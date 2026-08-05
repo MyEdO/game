@@ -173,13 +173,12 @@ const CRANE_FACE =
 // ne se ferme jamais sur lui-même à une couture. Le remplissage, lui, reste un tracé CLOS.
 //
 // CONTRAT D'EMBOÎTEMENT (tête ↔ encolure, #1082) : la GANACHE est la ligne où la tête finit, et
-// c'est la tête qui va la chercher. Son remplissage descend donc en arrière jusqu'à y ≈ 23 pour
-// x ≈ −8 → 0 — au-delà du pivot de gorge, sur la robe de l'encolure, que la tête recouvre (plan 9
-// contre 8). Auparavant, une TROISIÈME pièce (un pan `RACCORD_GORGE` posé par le canal `deco` de
-// l'espèce) allait poser cette robe à la place du crâne : une masse de ponte, dessinée dans un
-// repère qui n'était ni celui de la tête ni celui du cou, et qui multipliait les coutures au lieu
-// de les fermer. Le contour ouvert meurt maintenant DANS la gorge, où la ligne de gorge de
-// l'encolure le relaie.
+// c'est la TÊTE qui va la chercher — son remplissage descend en arrière jusqu'à y ≈ 23 pour
+// x ≈ −8 → 0, au-delà du pivot de gorge, sur la robe de l'encolure qu'elle recouvre (plan 9 contre
+// 8). Une couture de DEUX parts se ferme par ces deux parts : toute pièce de raccord posée entre
+// elles serait une troisième, dessinée dans un repère qui n'est celui d'aucune des deux, et
+// multiplierait les coutures au lieu d'en fermer une. Le contour ouvert meurt DANS la gorge, là où
+// la ligne de gorge de l'encolure le relaie.
 const CRANE_PROFIL =
   `<g data-part="crane">` +
   `<path d="M-4.69 -3.64 Q-9.1 3.1 -8.5 11.4 Q-7.7 19.4 -1.2 23 Q4.4 24.8 9.99 22.23 Q13.62 21.42 15.01 17.85 Q16.32 13.43 14.94 8.89 Q13.01 3.12 8.37 -0.92 Q2.27 -5.61 -4.69 -3.64Z" fill="@corps"/>` +

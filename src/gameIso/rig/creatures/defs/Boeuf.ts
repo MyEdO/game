@@ -114,7 +114,7 @@ const FANON = memo(() =>
   // l'encolure profondément dans le corps et trace, sur tout son pourtour bas, la crête et le pli
   // de gorge. L'encolure étant peinte APRÈS le tronc (plan 6 > 5), ces traits couraient en
   // DIAGONALE en travers de l'épaule : une balafre claire-sombre au milieu du dos. Cette robe
-  // pleine part de LIGNE_GARROT — le recouvrement contracté, la profondeur exacte à laquelle le
+  // pleine part de la ligne de GARROT — le recouvrement contracté, la profondeur exacte à laquelle
   // cou a le droit de mordre sur le tonneau — et les éteint en dessous. Ce n'est pas une pièce de
   // raccord posée entre deux voisins : c'est l'encolure qui va CHERCHER sa ligne, dans son repère.
   `<path d="M-13.4 ${U(lignes().garrot.y)} Q-15.4 9 -15 20 L15 20 Q13.4 9 12.4 ${U(lignes().garrot.y)} ` +
