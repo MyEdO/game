@@ -118,11 +118,18 @@ const corneProfil = (near: boolean): string => {
     // racine. La RACINE est calée SOUS la calotte (bord haut du crâne à y≈−10,4 en x=−7) : elle y
     // disparaît, le crâne étant peint après — la corne naît DERRIÈRE lui, comme une cheville
     // osseuse. Descendue de 5 u, elle serait avalée aux trois quarts (masque de corne nul).
-    `<path d="M-7.8 -10.2 Q-7 -18.8 5.4 -21.4 Q-1.4 -16.2 -2.8 -8.4 Z" fill="${c}" stroke="@corneO" stroke-width="0.55"/>` +
+    // RONDE 5 (juge v2 : « dégager le croissant de la ligne de nuque, épaissir d'environ 1/5 ») :
+    // la pointe se REDRESSE de 2,8 u et la racine s'épaissit de 5,3 → 6,3 u (+19 %). La CORDE passe
+    // de 16,2 à 17,4 u (+7 %) : le croissant reste court — la borne, c'est le retour de la
+    // corne-sabre de 21 u, écartée à la ronde précédente.
+    // La racine s'épaissit vers le BAS (second coin porté de −8,4 à −7,3), jamais vers le haut : le
+    // bord haut du crâne passe à y≈−10 en x=−7,7, et une racine remontée à −11,5 dépassait de la
+    // calotte en BARRETTE noire rectiligne au-dessus du front (lecture d'image de la sonde de tête).
+    `<path d="M-7.7 -10 Q-7.2 -20 4.4 -23.4 Q-1.2 -17.4 -2 -7.3 Z" fill="${c}" stroke="@corneO" stroke-width="0.55"/>` +
     (near
-      ? `<path d="M5.4 -21.4 Q-1.8 -16.8 -3.4 -8.8 L-4.8 -9.4 Q-3.2 -16 3.8 -20.2 Z" fill="@corneO" opacity="0.45"/>` + // face d'OMBRE (dessous du fût)
-        `<path d="M-6.9 -11.4 Q-5.8 -17.6 4 -20.6" fill="none" stroke="@corneH" stroke-width="1.3" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (dos du fût)
-        `<path d="M5.4 -21.4 Q1.8 -20 0 -18.2 Q2 -17.8 3.6 -19 Q5 -20.2 5.4 -21.4 Z" fill="@corneO"/>` // POINTE SOMBRE, franche
+      ? `<path d="M4.4 -23.4 Q-1.4 -18.4 -2.6 -8 L-4.2 -8.6 Q-2.6 -17.4 3 -22.2 Z" fill="@corneO" opacity="0.45"/>` + // face d'OMBRE (dessous du fût)
+        `<path d="M-6.8 -11.4 Q-6 -18.8 3.2 -22.6" fill="none" stroke="@corneH" stroke-width="1.5" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (dos du fût)
+        `<path d="M4.4 -23.4 Q1 -22 -0.8 -20 Q1.2 -19.6 2.8 -20.8 Q4.2 -22.2 4.4 -23.4 Z" fill="@corneO"/>` // POINTE SOMBRE, franche
       : '') +
     `</g>`;
 };
@@ -150,9 +157,14 @@ const CRANE_FACE =
 
 // PROFIL : front PLAT (le chanfrein bovin est droit, pas busqué), ganache PROFONDE, joue pleine,
 // crâne COURT (le museau effilé de l'équin est le défaut nommé au ticket).
+// Le contour est OUVERT sur le bord ARRIÈRE (racine des cornes → ganache) : c'est par là que la
+// tête entre dans l'encolure. Fermé, ce trait quasi noir courait EN PLEIN FLANC derrière la tête
+// (constat utilisateur au zoom : « un trait noir de contour de tête traverse le flanc ») — un os
+// ne se ferme jamais sur lui-même à une couture. Le remplissage, lui, reste un tracé CLOS.
 const CRANE_PROFIL =
   `<g data-part="crane">` +
-  `<path d="M-9 -9.4 Q-11.2 -1.4 -8.4 6.6 Q-6 14.4 0.6 18 Q6.2 20.6 11.6 19.4 Q15.8 18 17 13.6 Q18 8.2 15.8 3 Q12.8 -3.6 6.8 -7.8 Q-1 -12.6 -9 -9.4 Z" fill="@corps" stroke="@corpsO" stroke-width="0.7"/>` +
+  `<path d="M-9 -9.4 Q-11.2 -1.4 -8.4 6.6 Q-6 14.4 0.6 18 Q6.2 20.6 11.6 19.4 Q15.8 18 17 13.6 Q18 8.2 15.8 3 Q12.8 -3.6 6.8 -7.8 Q-1 -12.6 -9 -9.4 Z" fill="@corps"/>` +
+  `<path d="M-7.6 9.4 Q-6 14.4 0.6 18 Q6.2 20.6 11.6 19.4 Q15.8 18 17 13.6 Q18 8.2 15.8 3 Q12.8 -3.6 6.8 -7.8 Q-1 -12.6 -9 -9.4" fill="none" stroke="@corpsO" stroke-width="0.7" stroke-linecap="round"/>` +
   // FRONT + chanfrein ÉCLAIRÉS : un COIN, large au front (5,4 u) et effilé sur la racine du mufle
   // (2,8 u), pas une bande d'épaisseur constante — à épaisseur constante elle décollait du crâne et
   // lisait « courroie de bride » en travers de la face (lecture d'image du gros plan, ronde 4).
