@@ -9,7 +9,7 @@ import { worldTransformsG, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap, DEFAULT_PALETTE, type Palette } from '../palette';
 import {
   QUAD_SPECIES, buildQuadSkeleton, groundQuad, quadSkeletonForView,
-  type QuadBoneId, type QuadProps,
+  type QBone, type QuadBoneId, type QuadProps,
 } from './quadSkeleton';
 import { quadParts } from './quadParts';
 import { applyEyes } from '../parts/eyes';
@@ -27,6 +27,19 @@ const LEG_REF_TH = 9; // épaisseur de réf d'un os porteur (haut) → léger sc
 const TETE_PROFIL = 1.3;
 /** Os qui portent l'art de tête — `nuque` est le calque BAS du MÊME art (cf. `quadParts`). */
 const OS_TETE: QuadBoneId[] = ['tete', 'nuque'];
+
+/**
+ * Échelle d'OS d'un os quadrupède — SOURCE UNIQUE : tête (`headScale`, agrandie de profil),
+ * carrure des os de corps, épaisseur des membres. Le rendu la pose sur `ResolvedBone.scale` ; une
+ * garde qui projette un point du squelette au monde la lit ICI, jamais une copie.
+ */
+export function quadBoneScale(p: QuadProps, b: QBone, id: QuadBoneId, view: View): [number, number] {
+  if (OS_TETE.includes(id)) {
+    const k = (p.headScale ?? 1) * (view === 'profile' ? TETE_PROFIL : 1);
+    return [k, k];
+  }
+  return [b.limb ? (b.thickness / LEG_REF_TH) * (0.7 + 0.4 * p.girth) : 1, b.girth ? p.girth : 1];
+}
 
 /** (espèce, vue, pose, couleurs, ailes) → os résolus, triés z croissant (peintre). PUR. */
 export function resolveQuad(
@@ -74,7 +87,6 @@ export function resolveQuadFromProps(
   };
   const ov = colors ?? {};
   const tmap = buildTokenMap(stored, !ownWingTint && ov.corps != null ? ({ ...ov, aile: ov.corps } as Palette) : ov);
-  const legW = 0.7 + 0.4 * p.girth; // pattes plus épaisses pour les bêtes trapues
   // Un os → N os RÉSOLUS, un par PLAN distinct de ses calques : le plan déclaré d'un calque est
   // RELATIF à celui de l'os (`QuadDecoFragment.plan`), et le tri peintre unique ci-dessous
   // l'intercale dans la pile de la vue. Les calques sans plan déclaré restent groupés avec l'art
@@ -83,10 +95,7 @@ export function resolveQuadFromProps(
     .filter((id) => parts[id]?.length)
     .flatMap((id) => {
       const b = sk[id];
-      // Échelle d'OS de la TÊTE : `headScale` de l'espèce (uniforme), agrandie de profil.
-      const tete = OS_TETE.includes(id) ? (p.headScale ?? 1) * (view === 'profile' ? TETE_PROFIL : 1) : 0;
-      const sx = tete || (b.limb ? (b.thickness / LEG_REF_TH) * legW : 1);
-      const sy = tete || (b.girth ? p.girth : 1); // carrure = profondeur du corps
+      const [sx, sy] = quadBoneScale(p, b, id, view);
       const parPlan = new Map<number, string[]>();
       for (const l of parts[id]!) {
         const plan = l.plan ?? 0;
