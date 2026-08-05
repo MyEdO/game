@@ -18,6 +18,15 @@ import { quadAttackPose } from '../anim/creatureAttackPoses';
 import { sortByZ } from '../composite';
 
 const LEG_REF_TH = 9; // épaisseur de réf d'un os porteur (haut) → léger scale x des membres
+/**
+ * Agrandissement de la tête vue de PROFIL, porté par l'OS (jamais par le repère de l'art) : à
+ * l'échelle nue la tête lisait « minuscule/sombre » au bout de l'encolure. Il vit ici, avec les
+ * autres échelles d'os (membres, carrure), et non dans `quadAnchor` — l'art de tête et le décor de
+ * tête partagent ainsi une seule unité, celle de l'os (`src/gameIso/rig/PART-CONTRACT.md` l.137).
+ */
+const TETE_PROFIL = 1.3;
+/** Os qui portent l'art de tête — `nuque` est le calque BAS du MÊME art (cf. `quadParts`). */
+const OS_TETE: QuadBoneId[] = ['tete', 'nuque'];
 
 /** (espèce, vue, pose, couleurs, ailes) → os résolus, triés z croissant (peintre). PUR. */
 export function resolveQuad(
@@ -74,8 +83,10 @@ export function resolveQuadFromProps(
     .filter((id) => parts[id]?.length)
     .flatMap((id) => {
       const b = sk[id];
-      const sx = b.limb ? (b.thickness / LEG_REF_TH) * legW : 1;
-      const sy = b.girth ? p.girth : 1; // carrure = profondeur du corps
+      // Échelle d'OS de la TÊTE : `headScale` de l'espèce (uniforme), agrandie de profil.
+      const tete = OS_TETE.includes(id) ? (p.headScale ?? 1) * (view === 'profile' ? TETE_PROFIL : 1) : 0;
+      const sx = tete || (b.limb ? (b.thickness / LEG_REF_TH) * legW : 1);
+      const sy = tete || (b.girth ? p.girth : 1); // carrure = profondeur du corps
       const parPlan = new Map<number, string[]>();
       for (const l of parts[id]!) {
         const plan = l.plan ?? 0;

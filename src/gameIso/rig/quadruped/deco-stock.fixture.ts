@@ -54,6 +54,29 @@ export function quadDecoCouples(): DecoCouples {
 }
 
 /**
+ * Stock GELÉ des ART-DEFS qui portent leur PROPRE repère (mesuré le 2026-08-05, après le passage
+ * de l'échelle de tête sur l'OS) : un `<g transform=…>` enveloppant l'art de la part que le canal
+ * `deco` ne reproduit PAS — le décor authoré sur les coordonnées de cet art atterrit dans un autre
+ * repère. Le stock était INVISIBLE tant que l'ancre enveloppait l'art d'un `scale` : la garde ne
+ * lisait alors que l'enveloppe d'ancre. Une entrée s'écrit `<espèce> <vue> <os>` suivie du
+ * transform mesuré. Ne peut que rétrécir ; toute NOUVELLE def à repère propre rougit.
+ *  · Les rotations sont des mouvements RIGIDES : l'unité de la part reste celle de l'os.
+ *  · `boeuf profile tete` porte une ÉCHELLE (0,84) : l'art de tête y vaut 1,31 quand son décor de
+ *    tête vaut 1,56 — 19 % d'écart d'unité entre une part et son propre raccord (mesure du juge
+ *    de design, #1082).
+ */
+export const REPERES_ART_PROPRES_GELES = [
+  'blaireau profile tete',   // rotate(6)
+  'boeuf profile tete',      // translate(2 5) rotate(6) scale(0.84)  ← seule ÉCHELLE du stock
+  'cheval profile tete',     // rotate(8)
+  'grand-cerf profile tete', // rotate(8)
+  'manticore profile tete',  // rotate(6)
+  'rat-geant profile tete',  // rotate(16)
+  'sanglier profile tete',   // rotate(10)
+];
+export const PLAFOND_REPERES_ART_PROPRES = REPERES_ART_PROPRES_GELES.length;
+
+/**
  * Stock GELÉ des couples MORTS (mesuré le 2026-08-05). Deux voies de solde étaient ouvertes :
  * (a) réaffectation MÉCANIQUE à un os émis, (b) art de bout à créer. Les 12 relèvent de (b),
  * chacun pour la raison notée : leur art est authoré dans les COORDONNÉES et la SILHOUETTE du

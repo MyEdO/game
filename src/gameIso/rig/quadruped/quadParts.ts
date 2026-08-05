@@ -637,20 +637,18 @@ const backHeadLayers = (art: string) => ({
 // ============================ repère de l'art, par OS × VUE ============================
 /**
  * Repère (transform SVG) dans lequel vit l'art d'un os pour une vue : échelles d'espèce
- * (`headScale` / `tailLen` / `wingSpan`), agrandissement de la tête de PROFIL, miroir de l'aile
- * GAUCHE vue de bout. SOURCE UNIQUE : l'assemblage du gabarit ET le canal `deco` y passent.
- * `bodyLen`/`neckLen` n'y sont PAS : `barrel`/`neck` les cuisent dans les coordonnées de l'art de
- * tronc et d'encolure, et une def qui décore ces deux os s'authore à ces valeurs. Chaîne vide =
- * repère identité.
+ * (`tailLen` / `wingSpan`), miroir de l'aile GAUCHE vue de bout. SOURCE UNIQUE : l'assemblage du
+ * gabarit ET le canal `deco` y passent. Chaîne vide = repère identité.
+ * TÊTE (`tete`/`nuque`) : repère IDENTITÉ. L'art d'une part se dessine au gabarit de RÉFÉRENCE ;
+ * le moteur l'échelonne par l'OS (`composeQuad`, champ `scale` de `ResolvedBone` — même canal que
+ * les membres et la carrure), cf. `src/gameIso/rig/PART-CONTRACT.md` l.137. `headScale` a donc quitté cette
+ * fonction : l'art de tête et le décor de tête partagent l'unité de l'os.
+ * `bodyLen`/`neckLen` n'y sont pas non plus : `barrel`/`neck` les cuisent dans les coordonnées de
+ * l'art de tronc et d'encolure, et une def qui décore ces deux os s'authore à ces valeurs.
  */
 export function quadAnchor(p: QuadProps, bone: QuadBoneId, view: View): string {
   const t: string[] = [];
-  if (bone === 'tete' || bone === 'nuque') { // `nuque` = calque BAS de l'art de tête : MÊME repère
-    if (p.headScale && p.headScale !== 1) t.push(`scale(${p.headScale})`);
-    // Tête de PROFIL agrandie (1.3) : à l'échelle nue elle lisait « minuscule/sombre » au bout
-    // de l'encolure. Ancrée à la jonction tête-cou (0,0) → grandit sans se détacher du cou.
-    if (view === 'profile') t.push('scale(1.3)');
-  } else if (bone === 'queue') {
+  if (bone === 'queue') {
     if (p.tailLen && p.tailLen !== 1) t.push(`scale(${p.tailLen})`);
   } else if (bone === 'aileD' || bone === 'aileG') {
     if (bone === 'aileG' && view !== 'profile') t.push('scale(-1,1)');

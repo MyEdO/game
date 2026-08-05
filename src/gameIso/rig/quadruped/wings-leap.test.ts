@@ -3,6 +3,7 @@ import { resolveWing, wingedPlan } from '../winged/composeWing';
 import { quadrupedPlan, resolveQuadFromProps } from './composeQuad';
 import { quadLeapPose, quadWalkPose } from './quadPose';
 import { EYE_OPTIONS, eyesArtFromKeys } from '../parts/eyes';
+import type { View } from '../facing';
 
 const svgOf = (wings?: 'folded' | 'spread') =>
   resolveWing('Dragon', 'profile', {}, undefined, wings).map((b) => b.parts.map((p) => p.svg).join('')).join('');
@@ -24,10 +25,14 @@ describe('ailes pliées/déployées (WingState)', () => {
 });
 
 describe('props de finesse (ridge / markings / headScale / tailLen)', () => {
-  const svgQuad = (props: Record<string, unknown>) => {
-    const base = { sl: 1, build: 'equine', girth: 1, bodyLen: 1, neckLen: 1, neckAngle: -40, legLen: 1, head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', stored: {} } as never;
-    return resolveQuadFromProps({ ...(base as object), ...props } as never, 'profile').map((b) => b.parts.map((p) => p.svg).join('')).join('');
-  };
+  const base = { sl: 1, build: 'equine', girth: 1, bodyLen: 1, neckLen: 1, neckAngle: -40, legLen: 1, head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', stored: {} } as never;
+  const osQuad = (props: Record<string, unknown>, view: View = 'profile') =>
+    resolveQuadFromProps({ ...(base as object), ...props } as never, view);
+  const svgQuad = (props: Record<string, unknown>) =>
+    osQuad(props).map((b) => b.parts.map((p) => p.svg).join('')).join('');
+  /** Échelle portée par l'OS `tete` (les deux axes sont égaux : la tête s'échelonne uniformément). */
+  const echelleTete = (props: Record<string, unknown>, view: View = 'profile') =>
+    osQuad(props, view).find((b) => b.id === 'tete')!.scale;
   it('ridge : épines par DÉFAUT pour draconic, paramétrable (crête/plaques), sans pour les autres', () => {
     expect(svgQuad({ build: 'draconic' })).toContain('data-ridge="epines"');
     expect(svgQuad({ build: 'draconic', ridge: 'crete' })).toContain('data-ridge="crete"');
@@ -40,8 +45,15 @@ describe('props de finesse (ridge / markings / headScale / tailLen)', () => {
     expect(svgQuad({ markings: 'balzanes' })).toContain('data-marking="balzanes"');
     expect(svgQuad({})).not.toContain('data-marking');
   });
-  it('headScale / tailLen : enveloppes d’échelle sur tête et queue', () => {
-    expect(svgQuad({ headScale: 1.3 })).toContain('scale(1.3)');
+  it('headScale : échelle de l’OS tête (×1,3 de profil) ; tailLen : enveloppe d’échelle sur la queue', () => {
+    // La tête s'échelonne par l'OS (comme un membre ou la carrure) : `headScale` ne paraît PLUS
+    // dans l'art, il paraît dans `ResolvedBone.scale`. De profil, le socle l'agrandit de 1,3.
+    expect(echelleTete({ headScale: 1.3 })[0]).toBeCloseTo(1.69, 6);
+    expect(echelleTete({ headScale: 1.3 })[1]).toBeCloseTo(1.69, 6);
+    expect(echelleTete({ headScale: 1.3 }, 'front')[0]).toBeCloseTo(1.3, 6);
+    expect(echelleTete({})[0]).toBeCloseTo(1.3, 6); // sans headScale : le 1,3 du profil seul
+    expect(echelleTete({}, 'front')[0]).toBeCloseTo(1, 6);
+    expect(svgQuad({ headScale: 1.3 })).not.toContain('scale(1.3)'); // l'art de tête n'en porte plus
     expect(svgQuad({ tailLen: 1.4 })).toContain('scale(1.4)');
   });
   it('yeux des têtes quad ANCRÉS (data-eye) — prêts pour le catalogue d’yeux', () => {
