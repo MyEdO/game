@@ -37,45 +37,72 @@ const X = (n: number): string => (n * BL).toFixed(1);
 // L = 30 × neckLen = 12,6 : encolure COURTE. Le fanon pend de la gorge au poitrail en festons
 // larges — le tell bovin de profil. L'os encolure n'a d'art qu'en profil : les vues de bout
 // retombent proprement sur le nu (le fanon de face vit dans le deco de tronc).
+// L'os porte DEUX natures d'art et elles ne se transforment pas pareil (cf. commentaires en place).
 const FANON =
   `<g data-deco="fanon">` +
+  // RACCORD DE GARROT : la base de l'encolure du socle (`quadParts.neck`) plonge dans le corps et
+  // porte, sur tout son pourtour bas, le trait de crête et le pli de gorge. L'encolure étant peinte
+  // APRÈS le tronc (plan 6 > 5), ces traits couraient en DIAGONALE en travers de l'épaule : à
+  // l'image, une balafre claire-sombre au milieu du dos. Ce pan de robe pleine, sans contour, les
+  // éteint là où l'encolure entre dans la masse — le cou FOND dans le garrot au lieu d'y être posé.
+  `<path d="M-9 -4 Q-13 4 -15 19 L6 21 Q0 8 -2 -3 Z" fill="@corps"/>` +
+  // CE QUI APPARTIENT À L'OS suit l'os : crête d'encolure éclairée (dessus du cou, côté −x) et
+  // hachures du sens du poil. La crête s'ARRÊTE court (−12,4 → −4,4) et s'amincit : prolongée, elle
+  // traversait l'épaule en diagonale (COURROIE DE HARNAIS), et même écourtée elle dépassait du
+  // crâne en CROCHET clair — deux lectures d'image successives. Elle ne dit plus que le dessus du
+  // cou, entre la nuque et le garrot où la lentille de dos prend le relais.
+  `<path d="M-8.2 -12.4 Q-9.8 -8.4 -10.4 -4.4" fill="none" stroke="@corpsH" stroke-width="2.2" opacity="0.62" stroke-linecap="round"/>` +
+  `<path d="M-5.6 -8.4 q1.8 2.2 1.6 5 M-2.8 -9.6 q1.8 2.4 1.6 5.2 M0 -10 q1.6 2.2 1.4 4.8" fill="none" stroke="@corpsO" stroke-width="0.8" opacity="0.32" stroke-linecap="round"/>` + // hachures groupées (sens du poil)
+  // CE QUI PEND ne suit pas l'os : le `rotate(-32)` dé-tourne le fanon du surcroît de pente de
+  // l'encolure (−8° → −40° stockés, soit +8° → +40° au monde) — un fanon PEND sous la gorge. Sans
+  // cette contre-rotation la nappe part en biais vers l'avant et referme la gorge en COLLIER.
+  `<g transform="rotate(-32)">` +
   `<path d="M8.8 -12.4 Q13.6 -9.6 14.2 -4 Q17.8 -1.4 16.6 2.2 Q20.2 4.6 18.4 8.4 Q21 11.4 18.6 15.2 Q13.6 19.4 8 16.6 Q7.2 3.4 8 -11 Z" fill="@corps" stroke="@corpsO" stroke-width="0.6"/>` +
   `<path d="M10.4 -9.6 Q11.2 2.4 11.6 13.8" fill="none" stroke="@corpsO" stroke-width="1.6" opacity="0.5"/>` + // creux du pli
   `<path d="M13.6 -6.6 Q15.4 2.4 16 11.4" fill="none" stroke="@corpsH" stroke-width="2.2" opacity="0.72" stroke-linecap="round"/>` + // arête éclairée du fanon
-  `<path d="M-9.8 -11.4 Q-11.6 -4 -11.2 3.4" fill="none" stroke="@corpsH" stroke-width="3" opacity="0.65" stroke-linecap="round"/>` + // crête d'encolure éclairée
-  `<path d="M-5.6 -8.4 q1.8 2.2 1.6 5 M-2.8 -9.6 q1.8 2.4 1.6 5.2 M0 -10 q1.6 2.2 1.4 4.8" fill="none" stroke="@corpsO" stroke-width="0.8" opacity="0.32" stroke-linecap="round"/>` + // hachures groupées (sens du poil)
+  `</g>` +
   `</g>`;
 
 // ── TRONC ─────────────────────────────────────────────────────────────────────────────────────
-// PROFIL : la lumière suit le CONTOUR du dos (garrot bossu → croupe) en bande feutrée (deux
-// passes d'opacité, jamais une dalle à bord droit) ; le dessous du barillet et l'aine sont
-// creusés au jeton quasi noir ; hanche et épaule prennent un bombé ELLIPTIQUE (une pointe de
-// hanche en triangle plein lisait « épaulette collée » à la ronde 1).
+// PROFIL : la SILHOUETTE (dos éclairé en lentille, nappe ventrale) appartient désormais à la
+// CARRURE 'bovin' du socle (`quadParts.barrel`) — ce calque ne la redouble plus. Il ne pose que le
+// MODELÉ que la carrure ne peut pas connaître : les trois plans du corps (épaule, flanc, cuisse) et
+// leurs plis. Les grandes plages claires qui traversaient le flanc à la ronde 3 lisaient
+// « barbouillage beige » (verdict) : ici, aucune valeur claire ne quitte le plan qu'elle décrit.
 const TRONC_PROFIL =
   `<g data-deco="dos">` +
-  // Bande de LUMIÈRE le long du dos, calquée sur le bord supérieur de barrel() 'ursine'. Les deux
-  // bouts se REJOIGNENT en pointe (lentille) : à la ronde 2 la bande était refermée par un
-  // segment DROIT en plein flanc → elle lisait « planche clouée sur le dos ».
-  `<path d="M${X(-40)} -9.2 Q${X(-26)} -17.2 ${X(-8)} -21.2 Q${X(4)} -25.2 ${X(15)} -21.8 Q${X(23)} -18.6 ${X(27.6)} -11.4 ` +
-  `Q${X(22)} -15.4 ${X(13)} -18.2 Q${X(2)} -21 ${X(-9)} -16.8 Q${X(-25)} -12.6 ${X(-40)} -9.2 Z" fill="@corpsH" opacity="0.82"/>` +
-  // seconde passe FEUTRÉE juste dessous (fond la bande dans la robe, pas d'arête franche)
-  `<path d="M${X(-38)} -6.2 Q${X(-25)} -13.4 ${X(-9)} -17.4 Q${X(2)} -21.2 ${X(13)} -18 Q${X(20)} -15 ${X(25.6)} -8.6 ` +
-  `Q${X(19)} -12.6 ${X(11)} -14.8 Q${X(1)} -17.4 ${X(-9)} -13.6 Q${X(-24)} -9.8 ${X(-38)} -6.2 Z" fill="@corpsH" opacity="0.3"/>` +
-  // dessous du barillet CREUSÉ (@corpsO quasi noir à l'opacité) — croissant à pointes fondues,
-  // calqué sur le bord inférieur (les ellipses-disques de la ronde 2 lisaient « rondelles »)
-  `<path d="M${X(23)} 6.4 Q${X(3)} 16.6 ${X(-16)} 14.4 Q${X(-30)} 15 ${X(-37.6)} 8.6 ` +
-  `Q${X(-28)} 11 ${X(-15)} 10.4 Q${X(3)} 12.8 ${X(23)} 6.4 Z" fill="@corpsO" opacity="0.62"/>` +
-  // bombés ÉCLAIRÉS d'épaule et de cuisse (≥ 0,6 : de vraies surfaces de lumière, pas des voiles —
-  // sous 0,6 le mélange ne franchit pas la mi-distance base↔lumière de la robe)
-  `<path d="M${X(14)} -19.6 Q${X(23)} -16.4 ${X(27)} -9.6 Q${X(26)} -1.4 ${X(21)} 3.6 Q${X(21.4)} -5.4 ${X(17)} -11.4 Q${X(14.6)} -15.4 ${X(14)} -19.6 Z" fill="@corpsH" opacity="0.62"/>` +
-  `<path d="M${X(-34)} -13.6 Q${X(-25)} -14.6 ${X(-21)} -8.6 Q${X(-20)} 0 ${X(-24)} 6.4 Q${X(-24.6)} -1.6 ${X(-28)} -6.6 Q${X(-31)} -10.6 ${X(-34)} -13.6 Z" fill="@corpsH" opacity="0.62"/>` +
-  `<path d="M${X(20)} 9.4 Q${X(2)} 16.4 ${X(-18)} 13.6 Q${X(-28)} 13.6 ${X(-34)} 9.4 Q${X(-26)} 11.6 ${X(-16)} 11.6 Q${X(1)} 14 ${X(20)} 9.4 Z" fill="@corpsO" opacity="0.32"/>` +
-  `<path d="M${X(-20)} 2 Q${X(-17.6)} 8.4 ${X(-19.4)} 13.4" fill="none" stroke="@corpsO" stroke-width="1.1" opacity="0.45" stroke-linecap="round"/>` + // pli de l'aine
-  `<path d="M${X(26)} -6 Q${X(28.4)} 0 ${X(26.6)} 7.4" fill="none" stroke="@corpsO" stroke-width="1.2" opacity="0.4" stroke-linecap="round"/>` + // bord de poitrail
-  // hachures GROUPÉES et COURTES dans le sens du poil : épaule, flanc, cuisse
-  `<path d="M${X(17)} -13.6 q1.6 3.4 1.2 6.4 M${X(20)} -11.6 q1.6 3.4 1.2 6.4 M${X(22.8)} -9 q1.4 3.2 1 6" fill="none" stroke="@corpsO" stroke-width="0.85" opacity="0.34" stroke-linecap="round"/>` +
-  `<path d="M${X(0)} -12 q0.8 3.2 0.4 6 M${X(4)} -13 q0.8 3.2 0.4 6 M${X(8)} -13.4 q0.8 3.2 0.4 6" fill="none" stroke="@corpsO" stroke-width="0.8" opacity="0.22" stroke-linecap="round"/>` +
-  `<path d="M${X(-31)} -7.6 q-1.4 3.4 -1.2 6.4 M${X(-27.5)} -9.4 q-1.4 3.4 -1.2 6.6 M${X(-24)} -10.4 q-1.2 3.2 -1 6.2" fill="none" stroke="@corpsO" stroke-width="0.85" opacity="0.28" stroke-linecap="round"/>` +
+  // ÉPAULE : le plan de l'omoplate descend du garrot vers la pointe d'épaule. Nappe d'OMBRE en
+  // coin le long du bord arrière (c'est la marche), LÈVRE claire devant elle sur le plan qui
+  // regarde la lumière — un pli est une marche d'ombre bordée de lumière, jamais trois stries.
+  `<path d="M${X(19.8)} -19.4 Q${X(14.6)} -9.6 ${X(15.6)} 5.4 Q${X(12.2)} 9.4 ${X(9.6)} 5.4 ` +
+  `Q${X(9.6)} -9.4 ${X(14.8)} -19.4 Z" fill="@corpsO" opacity="0.2"/>` +
+  `<path d="M${X(19)} -18.4 Q${X(15.6)} -9.4 ${X(16.2)} 4.4 Q${X(13.8)} 7.4 ${X(12.2)} 4.4 ` +
+  `Q${X(12)} -8.4 ${X(15.6)} -18.4 Z" fill="@corpsO" opacity="0.22"/>` +
+  `<path d="M${X(20.6)} -18.4 Q${X(17.6)} -10.4 ${X(18)} 2.4" fill="none" stroke="@corpsH" stroke-width="1.8" opacity="0.62" stroke-linecap="round"/>` +
+  `<path d="M${X(24.4)} -22.6 Q${X(27.6)} -14.4 ${X(28.4)} -4.4 Q${X(27.6)} 4.4 ${X(24.4)} 10.4 ` +
+  `Q${X(25)} 1.4 ${X(23.4)} -7.6 Q${X(22.6)} -15.6 ${X(24.4)} -22.6 Z" fill="@corpsH" opacity="0.62"/>` + // bombé du poitrail
+  // CUISSE : un BOMBÉ rond sur la pointe de hanche, qui s'éteint AVANT le contour — poussé jusqu'au
+  // bord, il lisait « bande beige peinte sur la croupe » (lecture d'image, ronde 4). Devant lui, le
+  // CREUX DE FLANC : une crease étroite et douce, pas un second bandeau. Sans ce creux, cuisse et
+  // barillet fondent en une seule masse-œuf ; trop marqué, il fait un pansement.
+  `<ellipse cx="${X(-30)}" cy="-5.6" rx="${X(6.6)}" ry="12.4" transform="rotate(-8 ${X(-30)} -5.6)" fill="@corpsH" opacity="0.56"/>` +
+  `<path d="M${X(-21.6)} -19.4 Q${X(-19.6)} -8.4 ${X(-20.4)} 4.4 Q${X(-21.8)} 10.4 ${X(-23.6)} 12.4 ` +
+  `Q${X(-22.6)} 3.4 ${X(-22.6)} -6.6 Q${X(-23.2)} -13.4 ${X(-23.8)} -18.6 Z" fill="@corpsO" opacity="0.3"/>` +
+  // GARROT : AUCUN calque ici. La bosse est déjà dite par la CARRURE — le contour la porte et la
+  // lentille de dos y monte. Un dôme clair de plus, posé en travers de cette lentille, ne se lisait
+  // pas comme un relief mais comme une TRAÎNÉE diagonale sur la robe (deux lectures d'image
+  // successives) : deux valeurs claires voisines sur un même plan ne font pas un volume, elles font
+  // une salissure. Idem pour l'ombre de rein qui l'accompagnait.
+  // seconde passe FEUTRÉE sous la nappe ventrale de la carrure (fond l'ombre dans la robe, jamais
+  // d'arête franche) + les deux plis courts qui disent le poids : aine et arrière du coude.
+  `<path d="M${X(23)} 8.4 Q${X(4)} 16.6 ${X(-16)} 14.6 Q${X(-30)} 15.2 ${X(-38)} 9.6 ` +
+  `Q${X(-28)} 12.4 ${X(-15)} 11.8 Q${X(3)} 13.6 ${X(23)} 5.4 Z" fill="@corpsO" opacity="0.54"/>` +
+  `<path d="M${X(-19.6)} 3 Q${X(-17.2)} 9.4 ${X(-19)} 14.4" fill="none" stroke="@corpsO" stroke-width="1.1" opacity="0.45" stroke-linecap="round"/>` + // pli de l'aine
+  `<path d="M${X(14.4)} 9.4 Q${X(16.4)} 13.4 ${X(15.4)} 17.4" fill="none" stroke="@corpsO" stroke-width="1.1" opacity="0.42" stroke-linecap="round"/>` + // pli d'arrière-coude
+  // Le PROFIL ne porte AUCUNE hachure : posées sur la cuisse, les trois traits groupés lisaient
+  // « griffures sur un bandeau » à la lecture d'image (rondes 3 et 4) — sur un flanc de 78 u de
+  // long vu à 40 px, seule la VALEUR dit le poil. Les hachures restent là où elles décrivent une
+  // vraie arête serrée : la joue de la tête, le fanon, les vues de bout.
   `</g>`;
 
 // FACE : le poitrail est désormais LARGE au socle (`bodyWidth.front = 22`, déclaré par la def de
@@ -105,8 +132,10 @@ const TRONC_DOS =
   `<path d="M-20.4 -4.4 Q-17.6 -15.4 0 -19 Q17.6 -15.4 20.4 -4.4 Q15.6 -12.4 0 -15 Q-15.6 -12.4 -20.4 -4.4 Z" fill="@corpsH" opacity="0.34"/>` + // seconde passe feutrée
   `<ellipse cx="-13.4" cy="-1" rx="10.4" ry="15.6" fill="@corpsH" opacity="0.62"/>` + // hanche gauche (surface éclairée)
   `<ellipse cx="13.4" cy="-1" rx="10.4" ry="15.6" fill="@corpsH" opacity="0.34"/>` + // hanche droite (modelé)
-  `<path d="M0 -20 Q2.2 0 0 22 Q-2.2 0 0 -20 Z" fill="@corpsO" opacity="0.45"/>` + // sillon creusé
-  `<path d="M0 -19 Q1.5 1 0 21" fill="none" stroke="@corpsO" stroke-width="1.2" opacity="0.6"/>` +
+  // SILLON central creusé d'un ton : c'est lui qui sépare les DEUX masses de croupe en gris à
+  // 40 px — à 0,45 les deux hanches se refermaient en une seule bosse.
+  `<path d="M0 -20 Q3 0 0 22 Q-3 0 0 -20 Z" fill="@corpsO" opacity="0.62"/>` +
+  `<path d="M0 -19 Q1.5 1 0 21" fill="none" stroke="@corpsO" stroke-width="1.6" opacity="0.8"/>` +
   `<path d="M-26 -4 Q-26 12.6 -13 23 L-14.6 19.4 Q-23.4 10.4 -23.6 -3 Z" fill="@corpsO" opacity="0.5"/>` + // flancs enroulés
   `<path d="M26 -4 Q26 12.6 13 23 L14.6 19.4 Q23.4 10.4 23.6 -3 Z" fill="@corpsO" opacity="0.7"/>` +
   `<ellipse cx="0" cy="21.4" rx="16.4" ry="5.6" fill="@corpsO" opacity="0.45"/>` + // dessous de croupe
@@ -119,8 +148,13 @@ export const creature: CreatureDef = {
   plan: 'quadruped',
   quad: {
     sl: 1.06,
-    build: 'ursine', // masse profonde + bosse d'épaule + arrière lourd — la silhouette NON équine
-    girth: 1.2, bodyLen: BL, neckLen: 0.42, neckAngle: -8, legLen: 0.8,
+    build: 'bovin', // garrot bossu, creux de rein, croupe haute et charnue, ventre plein (quadParts)
+    // ENCOLURE : courte (0,42) mais portée en AVANT — l'angle stocké négatif est penché de +40° par
+    // le socle, ce qui sort la tête DEVANT le poitrail au lieu de la poser SUR le garrot (« moignon
+    // soudé »). L'angle est ignoré de face/dos (`quadSkeletonForView` y refige 0) : ces deux vues
+    // restent au pixel près celles de l'étalon, ce que `neckLen` — lu par les trois vues — aurait
+    // déplacé.
+    girth: 1.2, bodyLen: BL, neckLen: 0.42, neckAngle: -40, legLen: 0.8,
     head: 'boeuf', headScale: 1.2, tail: 'touffe-basse', tailLen: 1.05, mane: 'sans',
     ears: 'courtes', foot: 'sabot',
     deco: {

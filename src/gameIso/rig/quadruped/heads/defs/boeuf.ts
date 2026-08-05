@@ -73,13 +73,15 @@ const OREILLES_DOS = `<g data-part="oreilles">${oreilleDos(-1)}${oreilleDos(1)}<
 // première passe la faisait courir jusqu'à −16,6 u : elle montait sur l'encolure et son arête
 // claire lisait « aileron ». Le lointain d'abord, en robe d'ombre.
 const oreilleProfil = (near: boolean): string => {
-  const c = near ? '@corps' : '@corpsO';
+  // La LOINTAINE n'est plus un aplat `@corpsO` : deux pavillons quasi noirs empilés faisaient, sur
+  // l'épaule, une DALLE anguleuse sombre (lecture d'image) au lieu d'une paire d'oreilles. Elle est
+  // désormais de la robe, voilée d'ombre — une forme qui se devine DERRIÈRE, jamais un trou noir.
   return `<g transform="translate(${near ? 0 : 1.8} ${near ? 0 : 2.6})">` +
-    `<path d="M-5.2 -4 Q-9.4 -7.4 -13 -5 Q-14 -2.4 -11.4 -0.6 Q-7.6 1 -4.4 -0.8 Z" fill="${c}" stroke="@corpsO" stroke-width="0.6"/>` +
+    `<path d="M-5.2 -4 Q-9.4 -7.4 -13 -5 Q-14 -2.4 -11.4 -0.6 Q-7.6 1 -4.4 -0.8 Z" fill="@corps" stroke="@corpsO" stroke-width="0.6"/>` +
     (near
-      ? `<path d="M-6.4 -2.8 Q-9.8 -4.8 -12 -3.2 Q-12.2 -1.6 -10.2 -0.8 Q-7.2 0.2 -5.6 -0.8 Z" fill="@corpsO" opacity="0.7"/>` +
+      ? `<path d="M-6.4 -2.8 Q-9.8 -4.8 -12 -3.2 Q-12.2 -1.6 -10.2 -0.8 Q-7.2 0.2 -5.6 -0.8 Z" fill="@corpsO" opacity="0.52"/>` + // conque creusée
         `<path d="M-5.8 -3.6 Q-9.4 -6.2 -12.4 -4.4" fill="none" stroke="@corpsH" stroke-width="1.4" opacity="0.7" stroke-linecap="round"/>`
-      : '') +
+      : `<path d="M-5.2 -4 Q-9.4 -7.4 -13 -5 Q-14 -2.4 -11.4 -0.6 Q-7.6 1 -4.4 -0.8 Z" fill="@corpsO" opacity="0.45"/>`) +
     `</g>`;
 };
 
@@ -99,22 +101,28 @@ const corneFace = (s: number): string => {
 };
 const CORNES_FACE = `<g data-part="cornes">${corneFace(-1)}${corneFace(1)}</g>`;
 
-// De PROFIL la lyre est vue DE BOUT : la corne pointe latéralement, elle est donc fortement
-// RACCOURCIE — un simple cône qui monte du toupet vers l'arrière, la pointe recourbée vers
-// l'avant-haut. La première passe lui donnait 21 u de haut sur 8 de large en `@corne` plein
-// (L≈76) : à 1,56× d'ancrage de profil elle rendait une BANANE BLANCHE plus grosse que le crâne.
-// Elle fait désormais 15 u, s'effile vraiment (base 5 u → pointe), et la LOINTAINE n'est qu'un
-// décalage d'ombre vers l'avant-bas.
+// De PROFIL la corne est un CROISSANT COURT et EFFILÉ : racine épaisse au sommet-arrière du crâne,
+// balayage vers l'AVANT-haut, pointe SOMBRE et fine. Deux bornes se sont révélées à la lecture
+// d'image et tiennent la forme :
+//  · l'ÉPAISSEUR (≤ 4 u à la racine, ~3 au milieu, 0 à la pointe). La passe précédente gardait
+//    5 u de large jusqu'aux trois quarts : posée à plat sur la calotte, elle lisait HOUPPE, et la
+//    lointaine, à peine décalée, ajoutait un coin noir — la bête portait un plumet, pas des cornes.
+//  · la CORDE : 14,3 u (racine → pointe), soit 18,7 u de boîte après l'ancre de profil (×1,31),
+//    ≈ 6,2 px à 40 px de rendu — au-dessus du plancher de 2,5 px, et jamais la corne-sabre de 21 u.
+// La LOINTAINE est la MÊME forme, raccourcie et posée en ombre : un second fût qui se devine
+// derrière le crâne, jamais une pointe noire indépendante.
 const corneProfil = (near: boolean): string => {
   const c = near ? '@corne' : '@corneO';
-  return `<g transform="translate(${near ? 0 : 2.6} ${near ? 0 : 2.2})" opacity="${near ? 1 : 0.92}">` +
-    // CÔNE, pas barre : les deux bords se REJOIGNENT sur la pointe. La passe précédente gardait
-    // 4,5 u de large du talon à la pointe — au raster, un barreau clair posé sur le crâne.
-    `<path d="M-6.8 -6.2 Q-8.6 -12.4 -3.4 -19.8 Q-3 -13 -1.2 -5 Z" fill="${c}" stroke="@corneO" stroke-width="0.6"/>` +
+  return `<g transform="translate(${near ? 0 : 2.6} ${near ? 0 : 2.6})${near ? '' : ' scale(0.9)'}" opacity="${near ? 1 : 0.85}">` +
+    // Bord EXTÉRIEUR (arrière-haut) : racine → pointe ; bord INTÉRIEUR (avant-bas) : pointe →
+    // racine. La RACINE est calée SOUS la calotte (bord haut du crâne à y≈−10,4 en x=−7) : elle y
+    // disparaît, le crâne étant peint après — la corne naît DERRIÈRE lui, comme une cheville
+    // osseuse. Descendue de 5 u, elle serait avalée aux trois quarts (masque de corne nul).
+    `<path d="M-7.8 -10.2 Q-7 -18.8 5.4 -21.4 Q-1.4 -16.2 -2.8 -8.4 Z" fill="${c}" stroke="@corneO" stroke-width="0.55"/>` +
     (near
-      ? `<path d="M-3.4 -19.8 Q-3 -13 -1.2 -5 L-2.8 -5.4 Q-4.6 -13 -4.6 -18.6 Z" fill="@corneO" opacity="0.5"/>` + // face d'OMBRE du cône (moitié avant)
-        `<path d="M-6.2 -7 Q-7.8 -12.8 -3.6 -18.8" fill="none" stroke="@corneH" stroke-width="1.4" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (bord arrière)
-        `<path d="M-3.4 -19.8 Q-3.2 -17.8 -3.7 -16.6 Q-2.4 -17 -2.7 -18.6 Z" fill="@corneO" opacity="0.95"/>` // pointe noircie
+      ? `<path d="M5.4 -21.4 Q-1.8 -16.8 -3.4 -8.8 L-4.8 -9.4 Q-3.2 -16 3.8 -20.2 Z" fill="@corneO" opacity="0.45"/>` + // face d'OMBRE (dessous du fût)
+        `<path d="M-6.9 -11.4 Q-5.8 -17.6 4 -20.6" fill="none" stroke="@corneH" stroke-width="1.3" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (dos du fût)
+        `<path d="M5.4 -21.4 Q1.8 -20 0 -18.2 Q2 -17.8 3.6 -19 Q5 -20.2 5.4 -21.4 Z" fill="@corneO"/>` // POINTE SOMBRE, franche
       : '') +
     `</g>`;
 };
@@ -145,16 +153,18 @@ const CRANE_FACE =
 const CRANE_PROFIL =
   `<g data-part="crane">` +
   `<path d="M-9 -9.4 Q-11.2 -1.4 -8.4 6.6 Q-6 14.4 0.6 18 Q6.2 20.6 11.6 19.4 Q15.8 18 17 13.6 Q18 8.2 15.8 3 Q12.8 -3.6 6.8 -7.8 Q-1 -12.6 -9 -9.4 Z" fill="@corps" stroke="@corpsO" stroke-width="0.7"/>` +
-  // FRONT + chanfrein ÉCLAIRÉS : bande large calquée sur le bord SUPÉRIEUR (0,7 = surface, pas voile)
-  `<path d="M-7.4 -8.2 Q0 -11.2 6.6 -6.2 Q12.4 -2.2 15.2 3.4 L12.2 5.2 Q9.4 0.4 4.6 -3 Q-0.8 -6.8 -6.8 -4.8 Z" fill="@corpsH" opacity="0.7"/>` +
-  // joue bombée (modelé secondaire, sous le seuil : c'est un galbe, pas une source)
-  `<ellipse cx="1.6" cy="3.6" rx="6" ry="5.4" fill="@corpsH" opacity="0.3"/>` +
+  // FRONT + chanfrein ÉCLAIRÉS : un COIN, large au front (5,4 u) et effilé sur la racine du mufle
+  // (2,8 u), pas une bande d'épaisseur constante — à épaisseur constante elle décollait du crâne et
+  // lisait « courroie de bride » en travers de la face (lecture d'image du gros plan, ronde 4).
+  `<path d="M-8.4 -9.8 Q-1.2 -12.6 6.4 -7.2 Q11.8 -3.2 15 2.8 L12.6 4.2 Q9 -0.8 4 -4.2 Q-1.8 -7.8 -7.8 -4.4 Z" fill="@corpsH" opacity="0.7"/>` +
+  // JOUE : GALBE secondaire (0,34), pas une seconde source de lumière — le disque pâle à 0,64 se
+  // détachait du crâne en « plaque » et, doublé des hachures, lisait branchie. La lumière de la
+  // tête tient dans le coin du front ; la joue n'en est que le versant qui s'éteint.
+  `<path d="M-4.6 -1.4 Q1.4 -3.4 6.4 1.6 Q8 6.4 5.4 9.4 Q0.4 10.4 -3.6 6.4 Q-5.4 2.4 -4.6 -1.4 Z" fill="@corpsH" opacity="0.34"/>` +
   // ganache + gorge CREUSÉES au jeton quasi noir
   `<path d="M-8.2 4.4 Q-5.4 13 1.4 17 Q7 19.6 11.8 18.4 L11 15.4 Q6.4 16.6 1.6 14.2 Q-3.8 11 -6 3.6 Z" fill="@corpsO" opacity="0.62"/>` +
   // arcade lourde + creux temporal
   `<path d="M-6 -6.4 Q-2 -8.6 2 -5.8" fill="none" stroke="@corpsO" stroke-width="1.5" opacity="0.6" stroke-linecap="round"/>` +
-  // hachures groupées de joue
-  `<path d="M-4.4 -1.4 q1 3.4 0.6 6.4 M-1.8 -0.4 q1 3.4 0.6 6.4 M0.8 0.8 q1 3.2 0.6 6.2" fill="none" stroke="@corpsO" stroke-width="0.8" opacity="0.32" stroke-linecap="round"/>` +
   // toupet sur le front, entre les chevilles
   `<path d="M-7.6 -8.6 q1.6 -3 3.6 -1.6 q1.4 -2.6 3.4 -0.4" fill="none" stroke="@cheveux" stroke-width="1.5" opacity="0.85" stroke-linecap="round"/>` +
   `<g data-eye="D" data-ec="1.4 -2.4"><ellipse cx="1.4" cy="-2.4" rx="2" ry="2.2" fill="#15100a"/><circle cx="1.9" cy="-3" r="0.72" fill="#fff" opacity="0.7"/></g>` +
@@ -193,12 +203,21 @@ const MUFLE_FACE =
   `<path d="M-4.4 17.8 Q0 19.2 4.4 17.8" fill="none" stroke="#0b0603" stroke-width="0.9" opacity="0.9" stroke-linecap="round"/>` +
   `</g>`;
 
+// Le MUFLE doit rester une MASSE PROPRE, détachée de l'ombre de gorge : à la ronde 3 les deux
+// zones sombres se rejoignaient en une bande continue sous la tête et la bête portait un COLLIER
+// (verdict). D'où l'ourlet clair de la lèvre inférieure (0,6), qui coupe la bande en deux, et un
+// dessous de mufle allégé (0,5 → 0,38) : le noir franc est réservé au naseau et à la fente.
 const MUFLE_PROFIL =
   `<g data-part="mufle">` +
   `<path d="M12.4 6 Q18.2 7.6 19.6 12.8 Q20 18.2 15.6 19.8 Q11 20.4 9.8 16.2 Q9.4 10.6 11 6.2 Z" fill="@corps" stroke="@corpsO" stroke-width="0.6"/>` +
-  `<path d="M11.6 12.4 Q16.4 13.4 19.2 16.2 Q19 18.8 15.6 19.8 Q11.4 19.6 10.4 16.2 Z" fill="@corpsO" opacity="0.5"/>` +
-  `<path d="M12.2 6.6 Q17.2 8.2 18.8 12.4" fill="none" stroke="@corpsH" stroke-width="1.9" opacity="0.72" stroke-linecap="round"/>` +
-  `<path d="M14.4 10 Q17.2 11 17.4 13.8 Q15.4 13 14 12 Z" fill="#0b0603"/>` + // narine ouverte
+  `<path d="M11.6 12.8 Q16.4 13.8 19.2 16.4 Q19 18.8 15.6 19.8 Q11.4 19.6 10.4 16.4 Z" fill="@corpsO" opacity="0.38"/>` +
+  `<path d="M12.2 6.6 Q17.2 8.2 18.8 12.4" fill="none" stroke="@corpsH" stroke-width="1.9" opacity="0.72" stroke-linecap="round"/>` + // bourrelet clair du dessus
+  `<path d="M10.6 18.6 Q13.4 20.2 16.4 19.4" fill="none" stroke="@corpsH" stroke-width="1.4" opacity="0.6" stroke-linecap="round"/>` + // OURLET de la lèvre : sépare mufle et gorge
+  // NASEAU : trou FRANC, pas une virgule suggérée — à 40 px c'est le seul point noir du museau,
+  // et un mufle sans naseau lit « groin ». 2,4 u de rayon × 1,31 d'ancre ≈ 1,05 px à 40 px.
+  `<ellipse cx="16.2" cy="12.2" rx="2.4" ry="1.9" transform="rotate(26 16.2 12.2)" fill="#0b0603"/>` +
+  `<path d="M14.2 10.4 Q17.4 10.9 18.3 13.4 Q16 13.7 14.3 12.4 Z" fill="#0b0603"/>` +
+  `<path d="M13.7 9.6 Q17.3 10 18.6 12.8" fill="none" stroke="@corpsH" stroke-width="1" opacity="0.62" stroke-linecap="round"/>` + // lèvre claire au-dessus : le naseau CREUSE
   `<path d="M10.8 17 Q13.8 18.6 17.2 17.4" fill="none" stroke="#0b0603" stroke-width="0.9" opacity="0.9" stroke-linecap="round"/>` + // fente de bouche
   `</g>`;
 
@@ -213,7 +232,7 @@ export const quadHead: QuadHeadDef = {
     // (`quadAnchor`) EN PLUS de `headScale`, soit 1,56 pour le bœuf. Sans compensation, la tête
     // faisait 56 u de long pour un tronc de 110 (la moitié du corps). À 0,84 elle en fait 47,
     // et le rapport tête/tronc rejoint celui des vues de bout.
-    profile: `<g transform="rotate(6) scale(0.84)">` +
+    profile: `<g transform="translate(2 5) rotate(6) scale(0.84)">` +
       `<g data-part="oreilles">${oreilleProfil(false)}${oreilleProfil(true)}</g>` +
       `<g data-part="cornes">${corneProfil(false)}${corneProfil(true)}</g>` +
       `${CRANE_PROFIL}${MUFLE_PROFIL}</g>`,

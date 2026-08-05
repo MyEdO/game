@@ -32,7 +32,7 @@ import { QUAD_TAIL_DEFS } from './tails/_registry.generated';
  * l'aiguillent pas — trois points suffisent à faire apparaître une lecture conditionnelle de seuil.
  */
 export const AXIS_FUZZ: Partial<Record<keyof QuadProps, readonly unknown[]>> = {
-  build: ['equine', 'canine', 'suid', 'rodent', 'ursine', 'feline', 'draconic', 'batracien'],
+  build: ['equine', 'canine', 'suid', 'rodent', 'ursine', 'feline', 'draconic', 'batracien', 'bovin'],
   head: QUAD_HEAD_DEFS.map((d) => d.key),
   tail: QUAD_TAIL_DEFS.map((d) => d.key),
   ears: ['courtes', 'pointues', 'rondes'],

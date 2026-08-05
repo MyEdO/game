@@ -68,6 +68,11 @@ const LEG_BUILD: Record<string, { mass: number; haut: number; bas: number }> = {
   suid: { mass: 5.5, haut: 8, bas: 5.5 }, // sanglier : courtes et fortes
   rodent: { mass: 4.5, haut: 7, bas: 4.5 },
   ursine: { mass: 8.5, haut: 12, bas: 9 }, // ours : poteaux massifs
+  // Bovin : MÊME morphologie de membre que l'ursidé (poteaux massifs). La carrure 'bovin' est un
+  // axe de TRONC — c'est la silhouette du corps qui sépare le bœuf de l'ours, pas l'épaisseur du
+  // canon. Et cette table est lue par les TROIS vues : y descendre d'un cran aurait aminci les
+  // pattes de FACE et de DOS, deux vues déjà validées sur l'étalon bovin.
+  bovin: { mass: 8.5, haut: 12, bas: 9 },
   feline: { mass: 6.8, haut: 9, bas: 5.5 }, // lion : haunches musclées, canon fin
   draconic: { mass: 8, haut: 11, bas: 7.5 },
   batracien: { mass: 7.5, haut: 10, bas: 7 },
@@ -187,6 +192,36 @@ function barrel(p: QuadProps): string {
       hi = `<path d="M${X(-22)} -16 Q${X(-4)} -22 ${X(14)} -19 L${X(13)} -14 Q${X(-4)} -18 ${X(-21)} -11 Z" fill="@corpsH" opacity="0.5"/>`;
       lo = `<path d="M${X(-34)} 10 Q${X(-4)} 21 ${X(22)} 13 L${X(24)} 6 Q${X(-4)} 17 ${X(-33)} 4 Z" fill="@corpsO" opacity="0.85"/>` +
         `<circle cx="${X(-16)}" cy="-13" r="1.7" fill="@corpsO"/><circle cx="${X(-4)}" cy="-17" r="2" fill="@corpsO"/><circle cx="${X(7)}" cy="-16" r="1.6" fill="@corpsO"/><circle cx="${X(15)}" cy="-12" r="1.5" fill="@corpsO"/><circle cx="${X(-9)}" cy="-8" r="1.3" fill="@corpsO"/><circle cx="${X(2)}" cy="-6" r="1.4" fill="@corpsO"/>`;
+      break;
+    }
+    case 'bovin': { // BÊTE DE TRAIT : masse basse et lourde, garrot BOSSU, croupe HAUTE et charnue
+      // Le dos n'est pas une arche (ursine) mais une LIGNE BRISÉE en trois temps — bosse de garrot
+      // à l'avant, léger creux de rein au milieu, croupe qui remonte en table à l'arrière. Le
+      // poitrail descend au COUDE et le ventre est plein jusqu'aux flancs : la bête est basse sur
+      // pattes, jamais un tonneau rond. L'avant du corps RECULE au-dessus du poitrail (encoche
+      // d'encolure en x≈+26) — sans ce retrait l'encolure sort du sommet de la masse et la tête se
+      // soude au tronc (verdicts « moignon soudé », « capybara à collier »).
+      path = `M${X(26)} -21.6 Q${X(23.4)} -29.6 ${X(15)} -30.6 Q${X(7)} -27.6 ${X(0)} -25.8 ` +
+        `Q${X(-10)} -25.2 ${X(-20)} -27 Q${X(-30)} -29.2 ${X(-38)} -24 Q${X(-45)} -19 ${X(-46)} -8 ` +
+        `Q${X(-46)} 4 ${X(-40)} 12.6 Q${X(-30)} 18.6 ${X(-14)} 20.8 Q${X(2)} 21.8 ${X(14)} 20 ` +
+        `Q${X(24)} 17.6 ${X(29)} 9 Q${X(32)} 0 ${X(31)} -10 Q${X(30)} -18 ${X(26)} -21.6 Z`;
+      // dessus ÉCLAIRÉ en LENTILLE (pointes fondues aux deux bouts) : il monte sur la bosse de
+      // garrot, suit le creux de rein et se relève sur la croupe — la ligne de dos bovine se lit
+      // ainsi en gris, sans aucune arête droite.
+      hi = `<path d="M${X(-36)} -21.4 Q${X(-24)} -26.4 ${X(-10)} -23.4 Q${X(0)} -22.6 ${X(8)} -24.4 ` +
+        `Q${X(15)} -28.4 ${X(23)} -25.4 Q${X(17)} -24 ${X(10)} -21 Q${X(0)} -19 ${X(-10)} -19.6 ` +
+        `Q${X(-24)} -22 ${X(-36)} -21.4 Z" fill="@corpsH" opacity="0.68"/>` +
+        // seconde passe FEUTRÉE juste dessous : sans elle, le bord bas de la lentille fait une
+        // arête nette au milieu du flanc et l'ensemble lit « couverture de bât posée sur le dos ».
+        `<path d="M${X(-34)} -18.6 Q${X(-22)} -22.6 ${X(-8)} -20 Q${X(2)} -19.4 ${X(10)} -21.4 ` +
+        `Q${X(16)} -24.6 ${X(21.6)} -22.4 Q${X(15)} -21 ${X(8)} -18.4 Q${X(0)} -16.4 ${X(-9)} -16.6 ` +
+        `Q${X(-22)} -18.6 ${X(-34)} -18.6 Z" fill="@corpsH" opacity="0.26"/>`;
+      // NAPPE ventrale : le tiers bas prend l'ombre sur TOUTE la longueur (poitrail → aine), pas
+      // un liseré de contour — c'est elle qui pose la bête sur ses pattes en niveaux de gris.
+      lo = `<path d="M${X(29)} 4 Q${X(26.6)} 14 ${X(14)} 19.6 Q${X(-2)} 21.4 ${X(-16)} 20.4 ` +
+        `Q${X(-32)} 18.2 ${X(-41)} 11 Q${X(-45.4)} 4.6 ${X(-45.6)} -3.4 ` +
+        `Q${X(-42)} 8 ${X(-33)} 12.6 Q${X(-18)} 16.4 ${X(-2)} 16.6 Q${X(12)} 15.4 ${X(21)} 10.6 ` +
+        `Q${X(26)} 7 ${X(27.4)} 0.6 Z" fill="@corpsO" opacity="0.84"/>`;
       break;
     }
     default: // equine : poitrail profond, GARROT marqué, dos level, croupe arrondie qui descend en cuisse

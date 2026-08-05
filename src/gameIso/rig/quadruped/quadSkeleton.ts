@@ -43,7 +43,7 @@ export interface QuadDecoFragment { svg: string; plan?: number }
 export type QuadDecoValue = string | QuadDecoFragment[];
 
 /** Caractère d'une espèce quadrupède (proportions + parts + couleurs par défaut). */
-export type QuadBuild = 'equine' | 'canine' | 'suid' | 'rodent' | 'ursine' | 'feline' | 'draconic' | 'batracien';
+export type QuadBuild = 'equine' | 'canine' | 'suid' | 'rodent' | 'ursine' | 'feline' | 'draconic' | 'batracien' | 'bovin';
 /** Tête = id du REGISTRE des defs (`heads/defs/<clé>.ts`, union générée) — le socle ne peut plus
  *  écrire `p.head === 'hydre'` : une tête N+1 est un fichier, jamais une branche (#1082 P2). */
 export type QuadHead = QuadHeadId;
