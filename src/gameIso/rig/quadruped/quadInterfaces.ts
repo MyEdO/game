@@ -109,3 +109,16 @@ export interface QuadArtLine { os: QuadBoneId; x: number; y: number }
  */
 export const artLine = (base: QuadInterface, dx: number, dy: number): QuadArtLine =>
   ({ os: base.os, x: base.x + dx, y: base.y + dy });
+
+/**
+ * RECOUVREMENT CONTRACTÉ d'une interface : de combien d'unités la part PROPRIÉTAIRE doit mordre
+ * sur son voisin, dans son propre repère. C'est le terme du contrat d'emboîtement que le bipède
+ * écrit depuis sa refonte prod (« l'ourlet 8 sous le genou ») ; ici il ne peut PAS être une
+ * constante — l'encolure d'un crapaud fait 1,8 u de long quand celle d'un cheval en fait 46, et un
+ * recouvrement fixe déborderait l'une en avalant l'autre.
+ * Il se déduit donc de l'ÉPAISSEUR de la part propriétaire (21 %, borné à [2 u, 5 u]) : assez pour
+ * qu'aucun anticrénelage ne laisse voir la couture, jamais assez pour peindre le voisin. Sur le
+ * bœuf (encolure de 14 u) il vaut 2,9 u — la cible de 3 u posée par le juge de design (#1082).
+ */
+export const recouvrementContracte = (i: QuadInterface): number =>
+  +Math.min(5, Math.max(2, i.epaisseur * 0.21)).toFixed(2);

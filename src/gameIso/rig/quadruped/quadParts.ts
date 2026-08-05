@@ -213,10 +213,20 @@ function barrel(p: QuadProps): string {
       // pattes, jamais un tonneau rond. L'avant du corps RECULE au-dessus du poitrail (encoche
       // d'encolure en x≈+26) — sans ce retrait l'encolure sort du sommet de la masse et la tête se
       // soude au tronc (verdicts « moignon soudé », « capybara à collier »).
+      // JONCTION AUX MEMBRES : la ligne du ventre DESCEND en deux lobes, sur l'antérieur (x ≈ +24)
+      // et sur le postérieur (x ≈ −34), jusqu'à 6 u sous le ventre. C'est le CONTOUR de la carrure
+      // qui enveloppe le haut du membre, non une masse rapportée par-dessus : une bête de trait
+      // porte son épaule et sa cuisse DANS son corps, et le membre visible commence au coude et au
+      // grasset. Le membre proche est peint au plan 9, donc il en ressort ; la couture tronc↔membre
+      // se recouvre par la SILHOUETTE, la seule chose que ni la pose ni l'ordre du peintre ne
+      // décalent.
       path = `M${X(26)} -21.6 Q${X(23.4)} -29.6 ${X(15)} -30.6 Q${X(7)} -27.6 ${X(0)} -25.8 ` +
         `Q${X(-10)} -25.2 ${X(-20)} -27 Q${X(-30)} -29.2 ${X(-38)} -24 Q${X(-45)} -19 ${X(-46)} -8 ` +
-        `Q${X(-46)} 4 ${X(-40)} 12.6 Q${X(-30)} 18.6 ${X(-14)} 20.8 Q${X(2)} 21.8 ${X(14)} 20 ` +
-        `Q${X(24)} 17.6 ${X(29)} 9 Q${X(32)} 0 ${X(31)} -10 Q${X(30)} -18 ${X(26)} -21.6 Z`;
+        `Q${X(-46)} 5 ${X(-43.6)} 14 Q${X(-42.4)} 24 ${X(-34.6)} 27.4 ` +
+        `Q${X(-27.6)} 27.4 ${X(-24.4)} 19.8 Q${X(-12)} 22.4 ${X(0)} 22.6 ` +
+        `Q${X(10)} 22.2 ${X(16)} 19.8 Q${X(18.6)} 26.4 ${X(25)} 27.4 ` +
+        `Q${X(30.4)} 26.4 ${X(32)} 17.6 Q${X(33)} 5 ${X(31.6)} -6 ` +
+        `Q${X(30)} -18 ${X(26)} -21.6 Z`;
       // dessus ÉCLAIRÉ en LENTILLE (pointes fondues aux deux bouts) : il monte sur la bosse de
       // garrot, suit le creux de rein et se relève sur la croupe — la ligne de dos bovine se lit
       // ainsi en gris, sans aucune arête droite.
@@ -227,44 +237,16 @@ function barrel(p: QuadProps): string {
         // arête nette au milieu du flanc et l'ensemble lit « couverture de bât posée sur le dos ».
         `<path d="M${X(-34)} -18.6 Q${X(-22)} -22.6 ${X(-8)} -20 Q${X(2)} -19.4 ${X(10)} -21.4 ` +
         `Q${X(16)} -24.6 ${X(21.6)} -22.4 Q${X(15)} -21 ${X(8)} -18.4 Q${X(0)} -16.4 ${X(-9)} -16.6 ` +
-        `Q${X(-22)} -18.6 ${X(-34)} -18.6 Z" fill="@corpsH" opacity="0.26"/>` +
-        // MASSES D'ATTACHE — le cœur de la carrure de trait, et la réponse au verdict « la jonction
-        // avec le corps ». Une patte de bovin ne se PLANTE pas sous un tonneau : le corps DESCEND
-        // sur elle. Ces deux masses appartiennent au TRONC, débordent sous son contour (≈ 8 u) et
-        // enveloppent le haut du membre ; le membre proche, peint au plan 9, en ressort. On lit une
-        // continuation, plus un pilotis. Elles sont posées APRÈS la nappe ventrale : ce sont elles
-        // qui interrompent l'ombre du ventre à l'aplomb des membres, jamais l'inverse.
-        // Épaule (bras + coude), sur l'antérieur (pivot x ≈ +25) :
-        // Le trait ne court QUE sur la part de la masse qui fait SILHOUETTE (sous le contour du
-        // barillet) : contourner la masse entière posait une ligne de COUTURE en plein flanc, ce
-        // que la jonction doit précisément effacer.
-        `<path d="M${X(31.6)} -3 Q${X(34)} 8 ${X(32)} 17.4 Q${X(29.4)} 25.6 ${X(23)} 27.4 ` +
-        `Q${X(17)} 27 ${X(15.4)} 20.4 Q${X(14.4)} 11 ${X(16.4)} 1 Z" fill="@corps"/>` +
-        `<path d="M${X(33.6)} 4.4 Q${X(32.8)} 12.4 ${X(31)} 19.4 Q${X(28.6)} 25.8 ${X(23)} 27.4 ` +
-        `Q${X(17)} 27 ${X(15.4)} 20.4" fill="none" stroke="@corpsO" stroke-width="0.7" stroke-linecap="round"/>` +
-        `<path d="M${X(30.4)} -1 Q${X(32.6)} 8.4 ${X(30.6)} 17.4 Q${X(28.4)} 23.4 ${X(24.4)} 25.4 ` +
-        `Q${X(26)} 18.4 ${X(26.4)} 10.4 Q${X(26.6)} 3.4 ${X(28.4)} -1.4 Z" fill="@corpsH" opacity="0.5"/>` +
-        `<path d="M${X(17.4)} 6.4 Q${X(15.8)} 15.4 ${X(17.4)} 23.4 Q${X(20)} 27 ${X(23)} 27.4 ` +
-        `Q${X(19.4)} 24.4 ${X(18.8)} 16.4 Q${X(18.4)} 9.4 ${X(19.4)} 4.4 Z" fill="@corpsO" opacity="0.34"/>` +
-        // Cuisse CHARNUE, sur le postérieur (pivot x ≈ −35) : le fémur se devine sous la robe.
-        `<path d="M${X(-22.6)} -14 Q${X(-16.6)} -2 ${X(-18.6)} 12 Q${X(-21.6)} 24 ${X(-30.6)} 28 ` +
-        `Q${X(-39.6)} 27 ${X(-43)} 18.4 Q${X(-45.4)} 7 ${X(-43.4)} -5 Q${X(-39)} -15.4 ${X(-30)} -17.4 Z" fill="@corps"/>` +
-        `<path d="M${X(-45.6)} 6 Q${X(-44.6)} 14.4 ${X(-42.4)} 19.4 Q${X(-38.6)} 27 ${X(-30.6)} 28 ` +
-        `Q${X(-22)} 24.4 ${X(-19)} 13.4" fill="none" stroke="@corpsO" stroke-width="0.7" stroke-linecap="round"/>` +
-        `<path d="M${X(-24.4)} -12 Q${X(-19.6)} -1 ${X(-21)} 11.4 Q${X(-23.4)} 21.4 ${X(-30.4)} 25.4 ` +
-        `Q${X(-27)} 18.4 ${X(-25.6)} 9.4 Q${X(-24.6)} -1.6 ${X(-26.4)} -11 Z" fill="@corpsO" opacity="0.3"/>`;
-        // La masse de cuisse ne porte PAS sa propre lumière : le rond de la hanche est peint par la
-        // DEF de l'espèce, qui seule connaît son éclairage (`Boeuf.ts`, plage de croupe). Empilées,
-        // les deux valeurs claires se croisaient sur le même quartier — au gros plan, deux croissants
-        // beiges décalés sur la fesse, ce qui barbouille au lieu de tourner.
-      // NAPPE ventrale : le tiers bas prend l'ombre du VENTRE — mais elle MEURT avant l'aplomb des
-      // membres (x ≈ +25 devant, x ≈ −30 derrière). Menée d'un bord à l'autre, elle tranchait le
-      // haut des quatre pattes en une ligne horizontale : la bête devenait un tonneau sur pilotis
-      // (verdict utilisateur : « la jonction avec le corps »). Elle s'arrête donc dans l'entre-deux,
-      // là où le ventre est vraiment à l'ombre, et les masses d'attache ci-dessous prennent le
-      // relais sur les épaules et les cuisses.
-      lo = `<path d="M${X(20)} 12.6 Q${X(10)} 18.4 ${X(-2)} 20.4 Q${X(-14)} 20.4 ${X(-24)} 17.4 ` +
-        `Q${X(-19)} 13.4 ${X(-6)} 14.6 Q${X(6)} 14.6 ${X(17)} 9.6 Z" fill="@corpsO" opacity="0.8"/>`;
+        `Q${X(-22)} -18.6 ${X(-34)} -18.6 Z" fill="@corpsH" opacity="0.26"/>`;
+      // NAPPE ventrale : le tiers bas prend l'ombre du VENTRE. Elle court d'un lobe à l'autre et
+      // PARTAGE son bord avant avec le plan d'épaule que la def d'espèce peint par-dessus (contrat
+      // d'emboîtement, `Boeuf.ts`) : deux surfaces qui se rencontrent sur une arête commune, jamais
+      // deux taches posées côte à côte. Menée à l'HORIZONTALE d'un bord à l'autre elle tranchait le
+      // haut des quatre pattes et la bête devenait un tonneau sur pilotis (verdict utilisateur :
+      // « la jonction avec le corps ») ; elle épouse donc la descente du contour sur les membres.
+      lo = `<path d="M${X(24)} 15.4 Q${X(20)} 22.4 ${X(12)} 21.4 Q${X(0)} 22 ${X(-12)} 21.6 ` +
+        `Q${X(-22)} 21 ${X(-27)} 24.4 Q${X(-24)} 16.6 ${X(-12)} 16 Q${X(0)} 16.4 ${X(12)} 15.4 ` +
+        `Q${X(18)} 14.4 ${X(21)} 9.6 Z" fill="@corpsO" opacity="0.8"/>`;
       break;
     }
     default: // equine : poitrail profond, GARROT marqué, dos level, croupe arrondie qui descend en cuisse

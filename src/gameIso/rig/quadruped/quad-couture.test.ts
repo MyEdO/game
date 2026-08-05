@@ -307,11 +307,18 @@ describe('couture du gabarit quadrupède : deux parts voisines se recouvrent à 
     expect(INTERFACES_HORS_CADRE_GELEES.filter((c) => COUTURES_OUVERTES_GELEES.includes(c))).toEqual([]);
   });
 
-  /** Baseline FIGÉE : l'étalon bovin, épaule au repos (le parc va de 0 à 41 u). */
-  it('baseline bœuf tronc↔hautAvD (épaule, repos) = 21,75 u', () => {
+  /**
+   * Baseline FIGÉE : l'étalon bovin, épaule au repos (le parc va de 0 à 41 u).
+   * Elle vaut 21,25 u depuis que les MASSES D'ATTACHE du bovin ont été supprimées (#1082 B2) : la
+   * couverture ne vient plus d'une troisième pièce posée sur la couture mais du CONTOUR de la
+   * carrure, qui descend en deux lobes sur les membres. Le juge de design avait prédit une chute
+   * de la couverture ; elle est de 0,5 u sur 21,75 — ce que le contrat d'emboîtement rend, une
+   * masse de ponte le rendait aussi, et pour beaucoup plus cher.
+   */
+  it('baseline bœuf tronc↔hautAvD (épaule, repos) = 21,25 u', () => {
     const m = toutes().find((x) => x.cle === 'boeuf repos epaule');
     expect(m, 'mesure bœuf/repos/épaule absente').toBeTruthy();
-    expect(m!.corde).toBeCloseTo(21.75, 2);
+    expect(m!.corde).toBeCloseTo(21.25, 2);
   });
 
   /**

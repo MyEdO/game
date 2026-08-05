@@ -73,16 +73,20 @@ const OREILLES_DOS = `<g data-part="oreilles">${oreilleDos(-1)}${oreilleDos(1)}<
 // bovine est fortement raccourcie (elle pointe vers le spectateur-côté, pas vers l'arrière). Une
 // première passe la faisait courir jusqu'à −16,6 u : elle montait sur l'encolure et son arête
 // claire lisait « aileron ». Le lointain d'abord, en robe d'ombre.
+// IMPLANTATION : la base est portée DANS le crâne (x ≥ 0), pas contre son bord. Posé à la limite,
+// le pavillon fermait son propre contour hors du crâne et lisait, au gros plan, comme une ANSE
+// accrochée au-dessus de l'encolure. Le crâne étant peint après, seule la moitié qui dépasse se
+// voit — et elle se voit comme une oreille implantée, jamais comme une pièce posée.
 const oreilleProfil = (near: boolean): string => {
   // La LOINTAINE n'est plus un aplat `@corpsO` : deux pavillons quasi noirs empilés faisaient, sur
   // l'épaule, une DALLE anguleuse sombre (lecture d'image) au lieu d'une paire d'oreilles. Elle est
   // désormais de la robe, voilée d'ombre — une forme qui se devine DERRIÈRE, jamais un trou noir.
   return `<g transform="translate(${near ? 0 : 1.28} ${near ? 0 : 2.33})">` +
-    `<path d="M-1.99 1.2 Q-5.2 -2.01 -8.42 -0.32 Q-9.48 1.77 -7.47 3.5 Q-4.44 5.17 -1.61 3.95Z" fill="@corps" stroke="@corpsO" stroke-width="0.5"/>` +
+    `<path d="M-4.89 2.4 Q-8.1 -0.81 -11.32 0.88 Q-12.38 2.97 -10.37 4.7 Q-7.34 6.37 -4.31 5.15Z" fill="@corps" stroke="@corpsO" stroke-width="0.5"/>` +
     (near
-      ? `<path d="M-3.1 2.1 Q-5.77 0.13 -7.74 1.27 Q-8.05 2.59 -6.45 3.44 Q-4.03 4.53 -2.61 3.84Z" fill="@corpsO" opacity="0.52"/>` + // conque creusée
-        `<path d="M-2.53 1.48 Q-5.31 -1 -7.97 0.24" fill="none" stroke="@corpsH" stroke-width="1.18" opacity="0.7" stroke-linecap="round"/>`
-      : `<path d="M-1.99 1.2 Q-5.2 -2.01 -8.42 -0.32 Q-9.48 1.77 -7.47 3.5 Q-4.44 5.17 -1.61 3.95Z" fill="@corpsO" opacity="0.45"/>`) +
+      ? `<path d="M-6 3.3 Q-8.67 1.33 -10.64 2.47 Q-10.95 3.79 -9.35 4.64 Q-6.93 5.73 -5.51 5.04Z" fill="@corpsO" opacity="0.52"/>` + // conque creusée
+        `<path d="M-5.43 2.68 Q-8.21 0.2 -10.87 1.44" fill="none" stroke="@corpsH" stroke-width="1.18" opacity="0.7" stroke-linecap="round"/>`
+      : `<path d="M-4.89 2.4 Q-8.1 -0.81 -11.32 0.88 Q-12.38 2.97 -10.37 4.7 Q-7.34 6.37 -4.31 5.15Z" fill="@corpsO" opacity="0.45"/>`) +
     `</g>`;
 };
 
@@ -116,19 +120,26 @@ const CORNES_FACE = `<g data-part="cornes">${corneFace(-1)}${corneFace(1)}</g>`;
 // derrière le crâne, jamais une pointe noire indépendante.
 const corneProfil = (near: boolean): string => {
   const c = near ? '@corne' : '@corneO';
-  return `<g transform="translate(${near ? 0 : 2.14} ${near ? 0 : 2.9})${near ? '' : ' scale(0.9)'}" opacity="${near ? 1 : 0.85}">` +
+  return `<g transform="translate(${near ? 0 : 1.2} ${near ? 0 : 3.2})${near ? '' : ' scale(0.85)'}" opacity="${near ? 1 : 0.85}">` +
     // Bord EXTÉRIEUR (arrière-haut) : racine → pointe ; bord INTÉRIEUR (avant-bas) : pointe →
     // racine. La RACINE est calée SOUS la calotte (bord haut du crâne à y ≈ −3,7 en x = −4,2) :
     // elle y disparaît, le crâne étant peint après — la corne naît DERRIÈRE lui, comme une
     // cheville osseuse. Descendue de 4 u, elle serait avalée aux trois quarts (masque nul).
-    // La racine s'épaissit vers le BAS (second coin à y = −1,3), jamais vers le haut : une racine
+    // La racine s'épaissit vers le BAS (second coin à y = −0,7), jamais vers le haut : une racine
     // remontée à −5 dépasserait de la calotte en BARRETTE noire rectiligne au-dessus du front
     // (lecture d'image de la sonde de tête).
-    `<path d="M-3.55 -4.03 Q-2.26 -12.34 7.73 -14.16 Q2.53 -9.64 0.97 -1.27Z" fill="${c}" stroke="@corneO" stroke-width="0.46"/>` +
+    // RONDE 5 (juge v2 : « dégager le croissant de la ligne de nuque, l'écarter d'un cran et
+    // l'épaissir d'environ 1/5 ») : la POINTE se redresse (de y −14,2 à −15,8 pour 0,8 u de recul —
+    // le croissant se dresse au lieu de coucher son fût sur la nuque) et la RACINE s'épaissit de
+    // 5,3 à 6,3 u, +19 %, vers le BAS. La corde ne gagne que 8 % : la borne, c'est le retour de la
+    // corne-sabre écartée à la ronde précédente. La LOINTAINE est en même temps ramenée derrière
+    // (décalage 2,14 → 1,2, échelle 0,9 → 0,85) : elle dépassait la proche en lame sombre du côté
+    // du toupet, et la paire lisait « une corne claire + un éclat noir » au lieu d'une lyre.
+    `<path d="M-3.55 -4.03 Q-2.4 -12.9 6.9 -15.8 Q2.6 -10.2 1.8 -0.7Z" fill="${c}" stroke="@corneO" stroke-width="0.46"/>` +
     (near
-      ? `<path d="M7.73 -14.16 Q2.45 -10.49 0.53 -1.91 L-0.75 -2.55 Q1.36 -9.76 6.46 -13.28Z" fill="@corneO" opacity="0.45"/>` + // face d'OMBRE (dessous du fût)
-        `<path d="M-2.68 -5.12 Q-1.36 -11.23 6.66 -13.6" fill="none" stroke="@corneH" stroke-width="1.26" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (dos du fût)
-        `<path d="M7.73 -14.16 Q4.77 -13.29 3.09 -11.78 Q4.72 -11.27 6.17 -12.13 Q7.46 -13.18 7.73 -14.16Z" fill="@corneO"/>` // POINTE SOMBRE, franche
+      ? `<path d="M6.9 -15.8 Q2.5 -11 1.3 -1.4 L0 -2 Q1.6 -10 5.7 -14.9Z" fill="@corneO" opacity="0.45"/>` + // face d'OMBRE (dessous du fût)
+        `<path d="M-2.7 -5.1 Q-1.5 -12 5.9 -15.2" fill="none" stroke="@corneH" stroke-width="1.26" opacity="0.95" stroke-linecap="round"/>` + // arête éclairée (dos du fût)
+        `<path d="M6.9 -15.8 Q4.2 -14.8 2.6 -13.2 Q4.2 -12.8 5.6 -13.7 Q6.7 -14.7 6.9 -15.8Z" fill="@corneO"/>` // POINTE SOMBRE, franche
       : '') +
     `</g>`;
 };
@@ -160,10 +171,19 @@ const CRANE_FACE =
 // tête entre dans l'encolure. Fermé, ce trait quasi noir courait EN PLEIN FLANC derrière la tête
 // (constat utilisateur au zoom : « un trait noir de contour de tête traverse le flanc ») — un os
 // ne se ferme jamais sur lui-même à une couture. Le remplissage, lui, reste un tracé CLOS.
+//
+// CONTRAT D'EMBOÎTEMENT (tête ↔ encolure, #1082) : la GANACHE est la ligne où la tête finit, et
+// c'est la tête qui va la chercher. Son remplissage descend donc en arrière jusqu'à y ≈ 23 pour
+// x ≈ −8 → 0 — au-delà du pivot de gorge, sur la robe de l'encolure, que la tête recouvre (plan 9
+// contre 8). Auparavant, une TROISIÈME pièce (un pan `RACCORD_GORGE` posé par le canal `deco` de
+// l'espèce) allait poser cette robe à la place du crâne : une masse de ponte, dessinée dans un
+// repère qui n'était ni celui de la tête ni celui du cou, et qui multipliait les coutures au lieu
+// de les fermer. Le contour ouvert meurt maintenant DANS la gorge, où la ligne de gorge de
+// l'encolure le relaie.
 const CRANE_PROFIL =
   `<g data-part="crane">` +
-  `<path d="M-4.69 -3.64 Q-7.23 2.85 -5.6 9.78 Q-4.28 16.5 0.92 20.09 Q5.37 22.75 9.99 22.23 Q13.62 21.42 15.01 17.85 Q16.32 13.43 14.94 8.89 Q13.01 3.12 8.37 -0.92 Q2.27 -5.61 -4.69 -3.64Z" fill="@corps"/>` +
-  `<path d="M-5.17 12.19 Q-4.28 16.5 0.92 20.09 Q5.37 22.75 9.99 22.23 Q13.62 21.42 15.01 17.85 Q16.32 13.43 14.94 8.89 Q13.01 3.12 8.37 -0.92 Q2.27 -5.61 -4.69 -3.64" fill="none" stroke="@corpsO" stroke-width="0.59" stroke-linecap="round"/>` +
+  `<path d="M-4.69 -3.64 Q-9.1 3.1 -8.5 11.4 Q-7.7 19.4 -1.2 23 Q4.4 24.8 9.99 22.23 Q13.62 21.42 15.01 17.85 Q16.32 13.43 14.94 8.89 Q13.01 3.12 8.37 -0.92 Q2.27 -5.61 -4.69 -3.64Z" fill="@corps"/>` +
+  `<path d="M-4.4 20.6 Q-1.2 23 4.4 24.8 Q9.6 23.4 13.62 21.42 Q15.6 19.4 15.01 17.85 Q16.32 13.43 14.94 8.89 Q13.01 3.12 8.37 -0.92 Q2.27 -5.61 -4.69 -3.64" fill="none" stroke="@corpsO" stroke-width="0.59" stroke-linecap="round"/>` +
   // FRONT + chanfrein ÉCLAIRÉS : un COIN, large au front (4,5 u) et effilé sur la racine du mufle
   // (2,4 u), pas une bande d'épaisseur constante — à épaisseur constante elle décollait du crâne et
   // lisait « courroie de bride » en travers de la face (lecture d'image du gros plan, ronde 4).
@@ -172,13 +192,22 @@ const CRANE_PROFIL =
   // détachait du crâne en « plaque » et, doublé des hachures, lisait branchie. La lumière de la
   // tête tient dans le coin du front ; la joue n'en est que le versant qui s'éteint.
   `<path d="M-1.72 3.43 Q3.47 2.28 7.21 6.9 Q8.12 11.05 5.69 13.33 Q1.42 13.72 -1.57 10.03 Q-2.72 6.53 -1.72 3.43Z" fill="@corpsH" opacity="0.34"/>` +
-  // ganache + gorge CREUSÉES au jeton quasi noir
-  `<path d="M-5.24 7.96 Q-3.65 15.39 1.68 19.32 Q6.13 21.99 10.24 21.41 L9.84 18.83 Q5.89 19.43 2.09 17 Q-2.14 13.86 -3.33 7.48Z" fill="@corpsO" opacity="0.62"/>` +
+  // GANACHE + gorge CREUSÉES au jeton quasi noir — l'ombre court jusqu'au bout du remplissage, sur
+  // l'encolure : c'est elle qui fait TOURNER le dessous de la tête vers le cou. Arrêtée au contour
+  // du crâne, elle laissait le pan de robe qui enjambe la couture en plage de base sans
+  // profondeur (écart de luminance de la tête mesuré à 27 contre 32 quand l'ombre allait au bout).
+  `<path d="M-6.6 8.4 Q-6.2 16.4 -1 21.2 Q4.4 23.6 10.24 21.41 L9.84 18.83 Q4.6 20.4 0.4 17.8 Q-4 14.6 -4.7 8Z" fill="@corpsO" opacity="0.62"/>` +
   // arcade lourde + creux temporal
   `<path d="M-2.45 -0.87 Q1.08 -2.36 4.18 0.33" fill="none" stroke="@corpsO" stroke-width="1.26" opacity="0.6" stroke-linecap="round"/>` +
   // toupet sur le front, entre les chevilles
   `<path d="M-3.59 -2.85 q1.6 -2.37 3.15 -1.02 q1.4 -2.05 2.88 -0.04" fill="none" stroke="@cheveux" stroke-width="1.26" opacity="0.85" stroke-linecap="round"/>` +
   `<g data-eye="D" data-ec="3.38 3.12"><ellipse cx="3.38" cy="3.12" rx="1.68" ry="1.85" fill="#15100a"/><circle cx="3.85" cy="2.66" r="0.6" fill="#fff" opacity="0.7"/></g>` +
+  // PAUPIÈRE (juge v2) — un œil de bovin n'est pas une bille posée sur la joue : le globe est
+  // COIFFÉ d'une paupière lourde et frangée de cils. Elle est peinte APRÈS l'ancre `data-eye`, donc
+  // elle coiffe aussi bien l'œil de catalogue qui viendrait s'y substituer. Deux traits seulement :
+  // le bourrelet de robe qui mord sur le haut du globe, et son ourlet sombre.
+  `<path d="M1.5 2.4 Q3.4 0.2 5.4 2.3 Q3.4 1.7 1.5 2.4Z" fill="@corps"/>` +
+  `<path d="M1.4 2.5 Q3.4 0.4 5.5 2.4" fill="none" stroke="@corpsO" stroke-width="0.75" opacity="0.85" stroke-linecap="round"/>` +
   `</g>`;
 
 // DOS : calotte LARGE + nuque qui descend entre les épaules. La ligne y=0 est la coupe
