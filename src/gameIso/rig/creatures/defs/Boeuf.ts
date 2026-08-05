@@ -71,23 +71,32 @@ const FANON =
 // « barbouillage beige » (verdict) : ici, aucune valeur claire ne quitte le plan qu'elle décrit.
 const TRONC_PROFIL =
   `<g data-deco="dos">` +
-  // ÉPAULE : le plan de l'omoplate descend du garrot vers la pointe d'épaule. Nappe d'OMBRE en
-  // coin le long du bord arrière (c'est la marche), LÈVRE claire devant elle sur le plan qui
-  // regarde la lumière — un pli est une marche d'ombre bordée de lumière, jamais trois stries.
-  `<path d="M${X(19.8)} -19.4 Q${X(14.6)} -9.6 ${X(15.6)} 5.4 Q${X(12.2)} 9.4 ${X(9.6)} 5.4 ` +
-  `Q${X(9.6)} -9.4 ${X(14.8)} -19.4 Z" fill="@corpsO" opacity="0.2"/>` +
-  `<path d="M${X(19)} -18.4 Q${X(15.6)} -9.4 ${X(16.2)} 4.4 Q${X(13.8)} 7.4 ${X(12.2)} 4.4 ` +
-  `Q${X(12)} -8.4 ${X(15.6)} -18.4 Z" fill="@corpsO" opacity="0.22"/>` +
-  `<path d="M${X(20.6)} -18.4 Q${X(17.6)} -10.4 ${X(18)} 2.4" fill="none" stroke="@corpsH" stroke-width="1.8" opacity="0.62" stroke-linecap="round"/>` +
+  // ÉPAULE : le plan de l'omoplate descend du garrot vers la pointe d'épaule. Constat utilisateur
+  // au zoom de la ronde v2 : deux polygones d'ombre ORPHELINS (bords DURS, sommet coupé droit à
+  // y = −19,4 en travers de la lentille de dos) et, entre eux et le garrot, une plage de @corps PUR
+  // sans aucune structure. Les deux polygones sont remplacés par UNE marche en CROISSANT — pointue
+  // aux deux bouts, donc sans arête à sa naissance ni à sa fin — et la plage nue reçoit la NAPPE
+  // d'épaule qui lui manquait : une vraie surface éclairée (0,62, au-dessus du seuil L≈45,9) qui
+  // suit le plan de l'omoplate, bordée de sa lèvre claire. Un pli est une marche d'ombre bordée de
+  // lumière ; une plage sans valeur n'est pas un volume.
+  `<path d="M${X(20.4)} -8.4 Q${X(21.4)} -0.4 ${X(20)} 7.4 Q${X(17.6)} 13.4 ${X(14.4)} 8.4 ` +
+  `Q${X(13.4)} -0.6 ${X(14.4)} -9.4 Q${X(17)} -15.4 ${X(20.4)} -8.4 Z" fill="@corpsH" opacity="0.62"/>` + // NAPPE d'épaule (surface ÉCLAIRÉE)
+  `<path d="M${X(11.4)} -19.6 Q${X(15.4)} -7.4 ${X(14.6)} 7.4 Q${X(12.6)} 3.4 ${X(11.8)} -6.4 ` +
+  `Q${X(11.4)} -13.4 ${X(11.4)} -19.6 Z" fill="@corpsO" opacity="0.34"/>` + // marche d'ombre, pointue aux deux bouts
+  `<path d="M${X(21.6)} -14.4 Q${X(23)} -5.4 ${X(21.6)} 4.4" fill="none" stroke="@corpsH" stroke-width="1.6" opacity="0.6" stroke-linecap="round"/>` + // lèvre claire du pli
   `<path d="M${X(24.4)} -22.6 Q${X(27.6)} -14.4 ${X(28.4)} -4.4 Q${X(27.6)} 4.4 ${X(24.4)} 10.4 ` +
   `Q${X(25)} 1.4 ${X(23.4)} -7.6 Q${X(22.6)} -15.6 ${X(24.4)} -22.6 Z" fill="@corpsH" opacity="0.62"/>` + // bombé du poitrail
-  // CUISSE : un BOMBÉ rond sur la pointe de hanche, qui s'éteint AVANT le contour — poussé jusqu'au
-  // bord, il lisait « bande beige peinte sur la croupe » (lecture d'image, ronde 4). Devant lui, le
-  // CREUX DE FLANC : une crease étroite et douce, pas un second bandeau. Sans ce creux, cuisse et
-  // barillet fondent en une seule masse-œuf ; trop marqué, il fait un pansement.
-  `<ellipse cx="${X(-30)}" cy="-5.6" rx="${X(6.6)}" ry="12.4" transform="rotate(-8 ${X(-30)} -5.6)" fill="@corpsH" opacity="0.56"/>` +
-  `<path d="M${X(-21.6)} -19.4 Q${X(-19.6)} -8.4 ${X(-20.4)} 4.4 Q${X(-21.8)} 10.4 ${X(-23.6)} 12.4 ` +
-  `Q${X(-22.6)} 3.4 ${X(-22.6)} -6.6 Q${X(-23.2)} -13.4 ${X(-23.8)} -18.6 Z" fill="@corpsO" opacity="0.3"/>` +
+  // CUISSE : la lumière de la hanche SUIT le rond de la croupe et s'éteint en pointes aux deux
+  // bouts. L'ellipse qui tenait ce rôle lisait, au gros plan, comme un ŒUF beige posé sur la
+  // croupe : une ellipse pure n'a aucun bord commun avec l'anatomie, donc aucun plan — elle
+  // flottait, et les trois valeurs voisines (masse d'attache, creux de flanc, nappe ventrale)
+  // achevaient de barbouiller le quartier. Elle s'arrête AVANT la ligne de dos (pointe haute à
+  // y = −15 et non −19,6 : poussée jusqu'au contour, elle y faisait un BEC clair).
+  // Le CREUX DE FLANC quitte ce calque : la masse d'attache du socle porte désormais l'ombre du
+  // fémur au même endroit, et les deux creases côte à côte lisaient « griffures » (le défaut déjà
+  // nommé pour les hachures de flanc à la ronde 3). Une crease par pli.
+  `<path d="M${X(-29.4)} -15 Q${X(-38.4)} -12.4 ${X(-41.4)} -1.4 Q${X(-41)} 7.4 ${X(-37.6)} 13.4 ` +
+  `Q${X(-36.6)} 4.4 ${X(-35.4)} -2.6 Q${X(-33.6)} -10.4 ${X(-29.4)} -15 Z" fill="@corpsH" opacity="0.62"/>` +
   // GARROT : AUCUN calque ici. La bosse est déjà dite par la CARRURE — le contour la porte et la
   // lentille de dos y monte. Un dôme clair de plus, posé en travers de cette lentille, ne se lisait
   // pas comme un relief mais comme une TRAÎNÉE diagonale sur la robe (deux lectures d'image
@@ -123,6 +132,45 @@ const TRONC_FACE =
   `<path d="M-16.4 -14 q-0.8 3.6 -0.4 6.8 M-17 -6.6 q-0.6 3.6 -0.2 6.8 M15.4 -14 q0.8 3.6 0.4 6.8" fill="none" stroke="@corpsO" stroke-width="0.85" opacity="0.3" stroke-linecap="round"/>` + // hachures groupées
   `</g>`;
 
+// ── RACCORD DE GORGE (tête, PROFIL) ───────────────────────────────────────────────────────────
+// CONTRAT DE JONCTION : aucun os ne se ferme sur lui-même à la couture. L'art de tête est un
+// contour CLOS ; posé sur l'encolure, son bord arrière-bas dessinait une ligne nette en travers du
+// cou — la tête lisait « autocollant » sur le corps, la même guillotine que les pattes sous le
+// ventre (verdict utilisateur : « Surement pareil entre le corps et la tete »). Ce calque appartient
+// à la TÊTE (peint APRÈS son art, plan 0) et ENJAMBE la couture : ganache et gorge continuent vers
+// l'encolure en robe pleine, SANS trait, et l'ombre de dessous de ganache les fond dans le cou.
+// Repère : celui de l'ART de tête (`quadAnchor`), donc AVANT le `scale(0.84)` interne de la def.
+const RACCORD_GORGE =
+  `<g data-deco="raccord-gorge">` +
+  `<path d="M-2.4 2.6 Q-8.4 5.4 -12.6 11.4 Q-15 17.4 -12.6 23.4 Q-6.4 26.4 -0.6 21.4 ` +
+  `Q-1.8 12.4 -1.4 2.6 Z" fill="@corps"/>` +
+  // DESSOUS DE GANACHE — c'est ici que la valeur du raccord se joue, et elle se joue en OMBRE.
+  // Elle enveloppe tout le dessous du raccord (et non son seul coin arrière) : le pan de robe
+  // pleine qui enjambe la couture avait ramené le quartier à une plage de base sans profondeur
+  // (écart de luminance de la tête mesuré à 27 après le retrait de l'arête claire, contre 32
+  // avant). Creusée à 0,55 et menée jusque sous la joue, elle rend l'écart sans rien ÉCLAIRER de
+  // ce qui appartient à l'épaule.
+  `<path d="M-3.4 9.4 Q-9.4 13.4 -12.6 18.4 Q-14.4 21.4 -12.4 23.4 Q-7.4 26 -2.4 22.4 ` +
+  `Q-6.4 22.4 -8.4 20.4 Q-9.4 18.4 -7.4 15.4 Q-5.4 12.4 -2.6 10.4 Z" fill="@corpsO" opacity="0.55"/>` +
+  `<path d="M-11.4 12.4 Q-14.4 17.4 -12.4 23.4 Q-7.4 26 -2.4 22.4 Q-7 22.4 -9.4 19.4 Q-11 16.4 -11.4 12.4 Z" fill="@corpsO" opacity="0.45"/>` +
+  // La joue ne file PAS vers le cou en trait clair : posée à 1,6 u de large sur l'ancre de tête
+  // (×1,56 au monde), cette arête lisait au zoom comme un COUP DE PINCEAU beige en travers de
+  // l'épaule. Le raccord se dit par la MASSE (robe pleine sans contour) et par l'ombre ci-dessus ;
+  // une valeur claire de plus n'y décrivait aucun plan.
+  `</g>`;
+
+// ── CANON PROCHE (bas de patte, PROFIL) ───────────────────────────────────────────────────────
+// Repère de l'OS `bas*` : y = 0 au genou/jarret, y = 22 × legLen ≈ 17,6 au boulet ; le canon fait
+// ≈ 11,4 u de large en haut et 8,9 en bas (LEG_BUILD.bovin), l'échelle d'épaisseur de l'os
+// s'appliquant par-dessus. Deux valeurs seulement : l'ARÊTE éclairée du devant du canon (0,62 —
+// au-dessus du seuil de surface éclairée L≈45,9) et l'ombre du tendon derrière. Aucun contour :
+// le canon a déjà le sien au socle. Sans ce calque, sous un corps entièrement modelé, les quatre
+// membres restaient des aplats de robe — « poteaux de carton » au gros plan.
+const CANON_PROCHE =
+  `<g data-deco="canon">` +
+  `<path d="M2 1.4 Q4.2 5.4 3.8 11.4 Q3.4 15 2.6 17.2 Q1.4 13.4 1.4 8.4 Q1.4 4 2 1.4 Z" fill="@corpsH" opacity="0.62"/>` +
+  `<path d="M-3.8 2.4 Q-4.6 8.4 -4 15.4 Q-2.8 12.4 -2.6 7.4 Q-2.6 4.4 -3.8 2.4 Z" fill="@corpsO" opacity="0.34"/>` +
+  `</g>`;
 // DOS : la croupe est LARGE au socle (`bodyWidth.back = 26`) — ce calque la MODÈLE : dessus
 // éclairé qui suit le dôme et se referme en pointes sur les hanches (des bouts coupés droit
 // lisaient « épaulettes » posées sur les angles, ronde 2), sillon creusé, dessous dans l'ombre.
@@ -155,10 +203,26 @@ export const creature: CreatureDef = {
     // restent au pixel près celles de l'étalon, ce que `neckLen` — lu par les trois vues — aurait
     // déplacé.
     girth: 1.2, bodyLen: BL, neckLen: 0.42, neckAngle: -40, legLen: 0.8,
+    // POSTURE de repos, PROFIL seulement (`quadSkeletonForView` refige les angles de face/dos, donc
+    // ces deltas n'y entrent pas) : une bête de trait au repos est d'APLOMB. Le socle donne à tout
+    // quadrupède un arrière angulé (cuisse en avant, jarret cassé) — juste pour un canidé, mais le
+    // bœuf y « fléchissait du postérieur », et l'antérieur penché portait le pied sous la gorge.
+    // Les deltas redressent les quatre membres sans toucher au socle.
+    stance: {
+      hautAvD: 1, basAvD: -6, piedAvD: 5, hautAvG: -3, basAvG: -4, piedAvG: 4,
+      hautArD: 5, basArD: -9, piedArD: 4, hautArG: 4, basArG: -8, piedArG: 4,
+    },
     head: 'boeuf', headScale: 1.2, tail: 'touffe-basse', tailLen: 1.05, mane: 'sans',
     ears: 'courtes', foot: 'sabot',
     deco: {
       encolure: [{ svg: FANON, plan: 0 }],
+      'tete#profile': [{ svg: RACCORD_GORGE, plan: 0 }],
+      // CANONS PROCHES : le socle les rend en aplat de robe. Sous un corps entièrement modelé, ils
+      // lisaient « poteaux de carton » au gros plan. Ce calque leur donne l'arête éclairée du
+      // devant du canon et l'ombre du tendon derrière — le repère est celui de l'OS (aucune ancre
+      // sur un membre), donc il suit la patte en animation. Plan 0 : peint avec l'art de son os.
+      'basAvD#profile': [{ svg: CANON_PROCHE, plan: 0 }],
+      'basArD#profile': [{ svg: CANON_PROCHE, plan: 0 }],
       'tronc#profile': [{ svg: TRONC_PROFIL, plan: 0 }],
       'tronc#front': [{ svg: TRONC_FACE, plan: 0 }],
       'tronc#back': [{ svg: TRONC_DOS, plan: 0 }],
