@@ -61,17 +61,18 @@ export function quadDecoCouples(): DecoCouples {
  * s'écrit `<espèce> <vue> <os>`, suivie du transform mesuré. Ne peut que rétrécir, et ne peut pas
  * contenir d'entrée périmée : toute def à repère propre absente d'ici rougit, toute entrée d'ici
  * qui ne diverge plus rougit aussi.
- *  · 19 des 20 entrées sont des ROTATIONS : un mouvement RIGIDE, donc l'unité de la part reste
- *    celle de l'os (le décor y arriverait tourné, jamais redimensionné). C'est le port de tête de
- *    profil, cuit dans l'art faute d'axe de squelette qui le porte.
- *  · `boeuf profile tete` est le SEUL à porter une ÉCHELLE (0,84) : l'art de tête y vaut 1,31
- *    quand son décor de tête vaudrait 1,56 — 19 % d'écart d'unité entre une part et son propre
- *    raccord (mesure du juge de design, #1082). C'est le cas à solder au lot B2.
+ *  · les 19 entrées restantes sont TOUTES des ROTATIONS : un mouvement RIGIDE, donc l'unité de la
+ *    part reste celle de l'os (le décor y arriverait tourné, jamais redimensionné). C'est le port
+ *    de tête de profil, cuit dans l'art faute d'axe de squelette qui le porte.
+ *  · plus AUCUNE échelle : `boeuf profile tete` portait `translate(2 5) rotate(6) scale(0.84)` —
+ *    son art valait 1,31 quand son décor de tête valait 1,56, 19 % d'écart d'unité entre une part
+ *    et son propre raccord (mesure du juge de design, #1082). Le lot B2 a réécrit les coordonnées
+ *    de cet art dans le repère de l'OS, port de tête compris : la def n'enveloppe plus rien et
+ *    l'entrée SORT du stock — 20 → 19. C'est le patron que les 19 autres suivront.
  */
 export const REPERES_ART_PROPRES_GELES = [
   'basilic profile tete',    // rotate(6)
   'blaireau profile tete',   // rotate(6)
-  'boeuf profile tete',      // translate(2 5) rotate(6) scale(0.84)  ← seule ÉCHELLE du stock
   'chat-sauvage profile tete', // rotate(4)
   'cheval profile tete',     // rotate(8)
   'chien profile tete',      // rotate(6)
