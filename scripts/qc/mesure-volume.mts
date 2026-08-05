@@ -7,6 +7,9 @@
  *   npx tsx scripts/qc/mesure-volume.mts --all [--ids <a,b,c>] [--slot bras] [--views …] [--json] …
  *     (sweep de tout `SPECIFIC_TENUES` — mêmes réglages/métriques que le mode mono, ligne par
  *     tenue×vue. `--ids` restreint le sweep à une liste explicite, pour découper en tranches.)
+ *   npx tsx scripts/qc/mesure-volume.mts --creature <id> [--os tronc,tete] [--views …] [--json]
+ *     (plan QUADRUPÈDE/AILÉ : même définition de masque, par GROUPE D'OS, + PLATITUDE LOCALE
+ *     fenêtrée — compte, amas 4-connexes, carte, bandes. Cf. § MODE CRÉATURE plus bas.)
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
  * DÉFINITION DU MASQUE (il n'en existe qu'une — toute divergence de chiffre vient d'ici)
@@ -75,6 +78,10 @@ import { slugId } from '../../src/data/slug';
 import type { Appearance, RigSpeciesId } from '../../src/gameIso/rig/appearance';
 import type { View } from '../../src/gameIso/rig/facing';
 import { computeVerdict, CONTRAT_ECART_MIN, CONTRAT_CLAIR_MIN, CONTRAT_QUASI_BLANC_BASE_MIN, type Verdict } from '../../src/gameIso/rig/qc-contrat';
+import { QUAD_SPECIES, WINGED_SPECIES } from '../../src/gameIso/rig/creatures';
+import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQuad';
+import { QUAD_REST } from '../../src/gameIso/rig/quadruped/quadPose';
+import type { QuadBoneId } from '../../src/gameIso/rig/quadruped/quadSkeleton';
 
 // ── Rig de référence (figé) ───────────────────────────────────────────────────────────────
 const REF_APPEARANCE: Appearance = { species: 'Humain' as RigSpeciesId, sex: 'M', build: 0.55, seed: 4 };
@@ -100,14 +107,14 @@ const SLOT_FLESH: Partial<Record<Slot, BoneId[]>> = {
 };
 
 // ── CLI ───────────────────────────────────────────────────────────────────────────────────
-const USAGE = 'usage: npx tsx scripts/qc/mesure-volume.mts (<tenueId> | --all [--ids a,b,c]) [--slot bras] [--views front,profile,back] [--json] [--with-flesh] [--no-erode]';
+const USAGE = 'usage: npx tsx scripts/qc/mesure-volume.mts (<tenueId> | --all [--ids a,b,c] | --creature <id> [--os tronc,tete]) [--slot bras] [--views front,profile,back] [--json] [--with-flesh] [--no-erode]';
 const argv = process.argv.slice(2);
 const flag = (n: string) => argv.includes(n);
 function opt(n: string): string | undefined {
   const i = argv.indexOf(n);
   return i >= 0 ? argv[i + 1] : undefined;
 }
-const positional = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && ['--slot', '--views', '--ids'].includes(argv[i - 1])));
+const positional = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && ['--slot', '--views', '--ids', '--creature', '--os'].includes(argv[i - 1])));
 const tenueArg = positional[0];
 const allMode = flag('--all');
 const slot = (opt('--slot') ?? 'bras') as Slot;
@@ -116,20 +123,25 @@ const asJson = flag('--json');
 const withFlesh = flag('--with-flesh');
 const erode = !flag('--no-erode');
 const idsArg = opt('--ids');
+/** Porte CRÉATURE : le même harnais, appliqué au plan quadrupède/ailé (cf. § MODE CRÉATURE). */
+const creatureArg = opt('--creature');
+const osArg = opt('--os');
 
 function die(msg: string): never {
   console.error(msg);
   process.exit(1);
 }
 if (tenueArg && allMode) die(`${USAGE}\n--all et <tenueId> sont exclusifs.`);
-if (!tenueArg && !allMode) die(USAGE);
+if (creatureArg && (tenueArg || allMode)) die(`${USAGE}\n--creature ne se combine ni avec <tenueId> ni avec --all.`);
+if (!tenueArg && !allMode && !creatureArg) die(USAGE);
 if (idsArg && !allMode) die(`${USAGE}\n--ids nécessite --all.`);
+if (osArg && !creatureArg) die(`${USAGE}\n--os nécessite --creature.`);
 if (!SLOT_BONES[slot]) die(`slot inconnu: ${slot} — attendus: ${Object.keys(SLOT_BONES).join(', ')}`);
 for (const v of views) if (!['front', 'profile', 'back'].includes(v)) die(`vue inconnue: ${v} — attendues: front, profile, back`);
 
 // `tenueId` est un ID (slugId), jamais un libellé : un lookup par libellé replie silencieusement
 // sur la tenue citadins (incident corrigé en a1fcfe6c).
-if (!allMode && !TENUE_BY_ID[tenueArg]) {
+if (!allMode && !creatureArg && !TENUE_BY_ID[tenueArg]) {
   const asId = slugId(tenueArg);
   if (TENUE_BY_ID[asId]) die(`« ${tenueArg} » est un LIBELLÉ, pas un id. Relancer avec l'id : ${asId}`);
   if (CLASS_TENUE_BY_ID[asId]) die(`« ${tenueArg} » est un ARCHÉTYPE DE CLASSE (repli), pas une tenue spécifique — le harnais mesure les tenues de \`SPECIFIC_TENUES\`.`);
@@ -147,7 +159,7 @@ if (allMode) {
     tenueIds = SPECIFIC_TENUES.map((t) => t.id);
   }
 } else {
-  tenueIds = [tenueArg];
+  tenueIds = creatureArg ? [] : [tenueArg];
 }
 const tenueLabelOf = (id: string) => SPECIFIC_TENUES.find((t) => t.id === id)?.label ?? id;
 
@@ -482,7 +494,180 @@ const reglagesCommun = {
   contrat: { ecartMin: CONTRAT_ECART_MIN, clairMin: CONTRAT_CLAIR_MIN, quasiBlancBaseMin: CONTRAT_QUASI_BLANC_BASE_MIN },
 };
 
-if (allMode) {
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// MODE CRÉATURE (`--creature <id> [--os tronc,tete]`) — MÊME définition de masque (règle 3 :
+// couleur du composé = couleur du rendu des SEULS os demandés ; érosion 1 u) appliquée au plan
+// QUADRUPÈDE/AILÉ, en pose de repos. Ce mode ajoute la PLATITUDE LOCALE FENÊTRÉE, que l'écart
+// global ne voit pas : une bête peut afficher 33 pts d'écart P90−P10 avec un dos très structuré
+// et une PLAQUE de valeur uniforme à l'épaule (mesure du juge de design, #1082).
+//   Réglages DÉCLARÉS, à citer avec TOUT chiffre : fenêtre 11 u, pas 2 u, une fenêtre est RETENUE
+//   si ≥ 60 % de ses pixels sont au masque, et PLATE si son P90−P10 y est < 12 pts.
+//   Le rapport rend le COMPTE (plates/retenues), les AMAS de fenêtres plates 4-connexes (une
+//   fenêtre plate isolée est du modelé qui s'éteint ; un amas contigu est une plaque), la CARTE
+//   et les BANDES.
+// BANDES — découpage DÉCLARÉ de la boîte du masque (fractions de sa bbox), le profil regardant à
+// DROITE (`quadSkeleton`) : `dos` = tiers HAUT ; `flanc+epaule` = deux tiers bas de la moitié
+// AVANT ; `ensemble` = tout le masque. Une fenêtre appartient à une bande si son CENTRE y tombe.
+// PÉRIMÈTRE du masque : le GROUPE D'OS demandé, sans séparation par matière — un chiffre de ce
+// mode n'est comparable qu'à un chiffre du même mode (un relevé antérieur qui excluait la corne
+// du bœuf par géométrie compte moins de fenêtres retenues, à réglages pourtant identiques).
+// ─────────────────────────────────────────────────────────────────────────────────────────
+const PLAT_FENETRE_U = 11, PLAT_PAS_U = 2, PLAT_SEUIL = 12, PLAT_COUV = 0.6;
+const BANDES: { nom: string; x0: number; y0: number; x1: number; y1: number }[] = [
+  { nom: 'dos', x0: 0, y0: 0, x1: 1, y1: 1 / 3 },
+  { nom: 'flanc+epaule', x0: 0.5, y0: 1 / 3, x1: 1, y1: 1 },
+  { nom: 'ensemble', x0: 0, y0: 0, x1: 1, y1: 1 },
+];
+
+interface Platitude {
+  retenues: number;
+  plates: number;
+  amas: { fenetres: number; bbox: [number, number, number, number] }[];
+  bandes: { nom: string; retenues: number; plates: number; part: number | null }[];
+  carte: string[];
+}
+
+/** Platitude locale fenêtrée d'un masque (réglages ci-dessus). */
+function platitude(comp: Img, mask: Uint8Array, w: number, h: number): Platitude {
+  const fen = Math.round(PLAT_FENETRE_U * PX_PER_U), pas = Math.round(PLAT_PAS_U * PX_PER_U);
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) {
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  const cols = Math.max(0, Math.floor((x1 - x0 - fen) / pas) + 1), rows = Math.max(0, Math.floor((y1 - y0 - fen) / pas) + 1);
+  const plat = new Int8Array(cols * rows).fill(-1); // -1 = couverture insuffisante
+  let retenues = 0, plates = 0;
+  const bandes = BANDES.map((b) => ({ nom: b.nom, retenues: 0, plates: 0, part: null as number | null }));
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const bx = x0 + c * pas, by = y0 + r * pas;
+    const ls: number[] = [];
+    for (let y = by; y < by + fen; y++) for (let x = bx; x < bx + fen; x++) {
+      const i = y * w + x;
+      if (!mask[i]) continue;
+      ls.push(lum(comp.data[i * 4], comp.data[i * 4 + 1], comp.data[i * 4 + 2]));
+    }
+    if (ls.length < PLAT_COUV * fen * fen) continue;
+    retenues++;
+    ls.sort((a, b) => a - b);
+    const estPlate = quantile(ls, 0.9) - quantile(ls, 0.1) < PLAT_SEUIL;
+    plat[r * cols + c] = estPlate ? 1 : 0;
+    if (estPlate) plates++;
+    // Bandes : le CENTRE de la fenêtre, ramené en fractions de la bbox du masque.
+    const fx = (bx + fen / 2 - x0) / Math.max(1, x1 - x0), fy = (by + fen / 2 - y0) / Math.max(1, y1 - y0);
+    BANDES.forEach((b, k) => {
+      if (fx < b.x0 || fx > b.x1 || fy < b.y0 || fy > b.y1) return;
+      bandes[k].retenues++;
+      if (estPlate) bandes[k].plates++;
+    });
+  }
+  for (const b of bandes) b.part = b.retenues ? +((b.plates / b.retenues) * 100).toFixed(1) : null;
+  // Amas 4-connexes de fenêtres plates, rendus en u SVG.
+  const vu = new Uint8Array(cols * rows);
+  const amas: { fenetres: number; bbox: [number, number, number, number] }[] = [];
+  const u = (px: number) => +(px / PX_PER_U).toFixed(1);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const s = r * cols + c;
+    if (plat[s] !== 1 || vu[s]) continue;
+    const pile = [s]; vu[s] = 1;
+    const a = { n: 0, c0: c, r0: r, c1: c, r1: r };
+    while (pile.length) {
+      const q = pile.pop()!, qr = (q / cols) | 0, qc = q % cols;
+      a.n++;
+      if (qc < a.c0) a.c0 = qc; if (qc > a.c1) a.c1 = qc; if (qr < a.r0) a.r0 = qr; if (qr > a.r1) a.r1 = qr;
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+        const nr = qr + dr, nc = qc + dc;
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+        const t = nr * cols + nc;
+        if (plat[t] === 1 && !vu[t]) { vu[t] = 1; pile.push(t); }
+      }
+    }
+    if (a.n >= 2) amas.push({ fenetres: a.n, bbox: [u(x0 + a.c0 * pas), u(y0 + a.r0 * pas), u(x0 + a.c1 * pas + fen), u(y0 + a.r1 * pas + fen)] });
+  }
+  amas.sort((a, b) => b.fenetres - a.fenetres);
+  const carte: string[] = [];
+  for (let r = 0; r < rows; r++) {
+    let l = '';
+    for (let c = 0; c < cols; c++) l += plat[r * cols + c] === 1 ? '#' : plat[r * cols + c] === 0 ? '.' : ' ';
+    carte.push(`${l}  y=${u(y0 + r * pas).toFixed(0)}`);
+  }
+  return { retenues, plates, amas, bandes, carte };
+}
+
+if (creatureArg) {
+  const props = QUAD_SPECIES[creatureArg] ?? WINGED_SPECIES[creatureArg];
+  if (!props) {
+    const noms = [...Object.keys(QUAD_SPECIES), ...Object.keys(WINGED_SPECIES)];
+    const near = noms.filter((n) => n.includes(creatureArg.slice(0, 4)) || creatureArg.includes(n.slice(0, 4))).slice(0, 8);
+    die(`créature « ${creatureArg} » hors du plan quadrupède/ailé — ce mode ne mesure que ces deux plans (${noms.length} espèces).`
+      + (near.length ? `\nproches: ${near.join(', ')}` : ''));
+  }
+  const osMasque = (osArg ?? 'tronc').split(',').map((s) => s.trim()) as QuadBoneId[];
+  const tmap = buildTokenMap(props.stored, {});
+  const rapport = {
+    reglages: {
+      creature: creatureArg,
+      masqueOs: osMasque,
+      erosionU: erode ? ERODE_U : 0,
+      rendu: `${RENDER_W}x${RENDER_H} px (${PX_PER_U} px/u)`,
+      echelle: 'luminance Rec.709 sur 0..100',
+      platitude: { fenetreU: PLAT_FENETRE_U, pasU: PLAT_PAS_U, seuil: PLAT_SEUIL, couverture: PLAT_COUV },
+      bandes: BANDES.map((b) => b.nom),
+      pose: 'repos (QUAD_REST)',
+    },
+    vues: [] as { view: View; pixels: number; p90: number; p10: number; ecart: number; matiere: string | null; partClaire: number | null; platitude: Platitude }[],
+  };
+  for (const view of views) {
+    const bones = resolveQuadFromProps(props, view, QUAD_REST);
+    const comp = renderPng(bones, () => true);
+    const solo = renderPng(bones, (id) => osMasque.includes(id as QuadBoneId));
+    const { w, h } = comp;
+    const raw = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const o = i * 4;
+      if (solo.data[o + 3] < ALPHA_MIN || comp.data[o + 3] < ALPHA_MIN) continue;
+      if (solo.data[o] === comp.data[o] && solo.data[o + 1] === comp.data[o + 1] && solo.data[o + 2] === comp.data[o + 2]) raw[i] = 1;
+    }
+    const mask = erode ? erodeMask(raw, w, h, ERODE_PX) : raw;
+    const ls: number[] = [];
+    const counts = new Map<string, number>();
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i]) continue;
+      const o = i * 4;
+      ls.push(lum(comp.data[o], comp.data[o + 1], comp.data[o + 2]));
+      const hex = '#' + [comp.data[o], comp.data[o + 1], comp.data[o + 2]].map((v) => v.toString(16).padStart(2, '0')).join('');
+      counts.set(hex, (counts.get(hex) ?? 0) + 1);
+    }
+    ls.sort((a, b) => a - b);
+    const mat = dominantMaterial(tmap, counts);
+    rapport.vues.push({
+      view,
+      pixels: ls.length,
+      p90: +quantile(ls, 0.9).toFixed(1),
+      p10: +quantile(ls, 0.1).toFixed(1),
+      ecart: +(quantile(ls, 0.9) - quantile(ls, 0.1)).toFixed(1),
+      matiere: mat?.fam ?? null,
+      partClaire: mat && ls.length ? +((ls.filter((l) => l > mat.seuil).length / ls.length) * 100).toFixed(1) : null,
+      platitude: platitude(comp, mask, w, h),
+    });
+  }
+  if (asJson) {
+    console.log(JSON.stringify(rapport, null, 1));
+  } else {
+    const r = rapport.reglages;
+    console.log(`créature ${r.creature} · masque os [${r.masqueOs.join(', ')}] — visibles dans le composé · pose ${r.pose}`);
+    console.log(`  érosion  : ${r.erosionU} u SVG${erode ? '' : '  — DÉSACTIVÉE'} · rendu ${r.rendu} · ${r.echelle}`);
+    console.log(`  platitude: fenêtre ${r.platitude.fenetreU} u, pas ${r.platitude.pasU} u, couv ≥ ${r.platitude.couverture * 100} %, PLATE si P90-P10 < ${r.platitude.seuil} pts`);
+    for (const v of rapport.vues) {
+      console.log(`  ${v.view.padEnd(8)} px=${pad(v.pixels, 6)} P90=${pad(v.p90, 5)} P10=${pad(v.p10, 5)} écart=${pad(v.ecart, 5)} | matière ${(v.matiere ?? '-').padEnd(8)} clair=${pad(dash(v.partClaire), 5)} %`);
+      const pl = v.platitude;
+      console.log(`    platitude locale : ${pl.plates}/${pl.retenues} fenêtres PLATES`
+        + ` — ${pl.bandes.map((b) => `${b.nom} ${b.part === null ? '-' : `${b.part} %`} (${b.plates}/${b.retenues})`).join(' · ')}`);
+      for (const a of pl.amas) console.log(`      amas de ${pad(a.fenetres, 3)} fenêtres contiguës — u[${a.bbox[0]},${a.bbox[1]} → ${a.bbox[2]},${a.bbox[3]}]`);
+      console.log(`      carte (# = plate, . = structurée, espace = hors masque) — une colonne = ${PLAT_PAS_U} u`);
+      for (const l of pl.carte) console.log(`      ${l}`);
+    }
+  }
+} else if (allMode) {
   const tenues = tenueIds.map((id) => ({ id, label: tenueLabelOf(id), tmap: buildTokenMap(TENUE_PALETTE_BY_ID[id] ?? {}, {}) }));
   if (asJson) {
     const mesures: (ViewReport & { tenueId: string })[] = [];
