@@ -54,25 +54,41 @@ export function quadDecoCouples(): DecoCouples {
 }
 
 /**
- * Stock GELÉ des ART-DEFS qui portent leur PROPRE repère (mesuré le 2026-08-05, après le passage
- * de l'échelle de tête sur l'OS) : un `<g transform=…>` enveloppant l'art de la part que le canal
- * `deco` ne reproduit PAS — le décor authoré sur les coordonnées de cet art atterrit dans un autre
- * repère. Le stock était INVISIBLE tant que l'ancre enveloppait l'art d'un `scale` : la garde ne
- * lisait alors que l'enveloppe d'ancre. Une entrée s'écrit `<espèce> <vue> <os>` suivie du
- * transform mesuré. Ne peut que rétrécir ; toute NOUVELLE def à repère propre rougit.
- *  · Les rotations sont des mouvements RIGIDES : l'unité de la part reste celle de l'os.
- *  · `boeuf profile tete` porte une ÉCHELLE (0,84) : l'art de tête y vaut 1,31 quand son décor de
- *    tête vaut 1,56 — 19 % d'écart d'unité entre une part et son propre raccord (mesure du juge
- *    de design, #1082).
+ * Stock GELÉ des ART-DEFS qui portent leur PROPRE repère (mesuré le 2026-08-05 sur le périmètre
+ * ÉLARGI : l'art de tête de TOUTES les defs du registre, `deco` ou non, + tout os visé par une clé
+ * `deco`) : un `<g transform=…>` enveloppant l'art de la part que `quadAnchor` ne reproduit PAS —
+ * un décor authoré sur les coordonnées de cet art atterrirait dans un autre repère. Une entrée
+ * s'écrit `<espèce> <vue> <os>`, suivie du transform mesuré. Ne peut que rétrécir, et ne peut pas
+ * contenir d'entrée périmée : toute def à repère propre absente d'ici rougit, toute entrée d'ici
+ * qui ne diverge plus rougit aussi.
+ *  · 19 des 20 entrées sont des ROTATIONS : un mouvement RIGIDE, donc l'unité de la part reste
+ *    celle de l'os (le décor y arriverait tourné, jamais redimensionné). C'est le port de tête de
+ *    profil, cuit dans l'art faute d'axe de squelette qui le porte.
+ *  · `boeuf profile tete` est le SEUL à porter une ÉCHELLE (0,84) : l'art de tête y vaut 1,31
+ *    quand son décor de tête vaudrait 1,56 — 19 % d'écart d'unité entre une part et son propre
+ *    raccord (mesure du juge de design, #1082). C'est le cas à solder au lot B2.
  */
 export const REPERES_ART_PROPRES_GELES = [
+  'basilic profile tete',    // rotate(6)
   'blaireau profile tete',   // rotate(6)
   'boeuf profile tete',      // translate(2 5) rotate(6) scale(0.84)  ← seule ÉCHELLE du stock
+  'chat-sauvage profile tete', // rotate(4)
   'cheval profile tete',     // rotate(8)
+  'chien profile tete',      // rotate(6)
+  'crapaud profile tete',    // rotate(2)
   'grand-cerf profile tete', // rotate(8)
+  'griffon profile tete',    // rotate(5)
+  'hippogriffe profile tete', // rotate(5)
+  'lion-de-guerre-de-chrace profile tete', // rotate(6)
+  'loup profile tete',       // rotate(4)
   'manticore profile tete',  // rotate(6)
+  'ours profile tete',       // rotate(6)
+  'pegase profile tete',     // rotate(8)
   'rat-geant profile tete',  // rotate(16)
+  'rat-loup profile tete',   // rotate(16)
   'sanglier profile tete',   // rotate(10)
+  'stegadon profile tete',   // rotate(8)
+  'varghulf profile tete',   // rotate(16)
 ];
 export const PLAFOND_REPERES_ART_PROPRES = REPERES_ART_PROPRES_GELES.length;
 

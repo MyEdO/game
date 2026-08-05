@@ -20,6 +20,13 @@ import type { QuadBoneId, QuadPose, QuadProps } from './quadSkeleton';
  *    pas dans la mesure (angle mort VOULU : on mesure l'emboîtement, pas ce que l'œil voit) ;
  *  · l'assertion porte sur la CORDE : la longueur de recouvrement mesurée SUR la ligne
  *    d'interface (`quadInterfaces`), pas sur l'aire — une aire large mais décalée ne prouve rien ;
+ *  · DIRECTION de la corde — la ligne est TRANSVERSE à l'os (son axe local x porté au monde), donc
+ *    OBLIQUE dès que l'os est tourné. C'est la section par laquelle l'os voisin entre ; une corde
+ *    prise à l'HORIZONTALE du monde mesure une sécante quelconque des deux masques, qui dépend de
+ *    la rotation de la pose et non de l'emboîtement. Le choix pèse : `rat-loup repos gorge` vaut
+ *    3,75 u en transverse (OUVERTE, seuil 5,6) et 6,5 u à l'horizontale (fermée) ; `dragon mort
+ *    gorge` 3,5 contre 26,25. La définition transverse est la seule qui reste comparable d'une
+ *    pose à l'autre ;
  *  · la ligne est portée au monde par le SQUELETTE (pivot réel × `quadBoneScale`, la source unique
  *    d'échelle d'os) : elle existe même là où l'os propriétaire ne porte aucun art ;
  *  · seuil RELATIF : ≥ 40 % de l'épaisseur de l'os COUVERT — un cou de 14 u et une cuisse de 9 u
@@ -31,8 +38,14 @@ import type { QuadBoneId, QuadPose, QuadProps } from './quadSkeleton';
  * EXEMPTION STRUCTURELLE : les clusters multi-cous dessinent leur profil d'un bloc sur l'os
  * `encolure` (`QuadHeadDef.bone.profile === 'encolure'`) — la couture tête↔encolure n'y existe
  * pas, `quadInterfaces` rend `gorge` nulle. Jamais une liste d'espèces.
+ * DEUX CAUSES, DEUX STOCKS : une couture OUVERTE est un défaut d'ART (soldable au pinceau) ; une
+ * INTERFACE HORS CADRE (le pivot se projette hors de la boîte 120×150) ne l'est pas — elle se
+ * solde par la boîte ou par la pose. Les mélanger ferait payer à l'artiste une dette qui n'est
+ * pas la sienne.
  * COÛT : 25 espèces × 8 poses × jusqu'à 5 masques ≈ 1000 rendus (~3 min). C'est le prix d'une
  * mesure au pixel sur tout le parc ; les pixels bruts de resvg sont lus sans passer par un PNG.
+ * Le balayage est PARESSEUX (`toutes()`) : au niveau du module, il se payait à la COLLECTE de
+ * vitest, donc sur tout run filtré ailleurs dans le dépôt.
  */
 
 const PX_PER_U = 4;
@@ -71,20 +84,28 @@ const COUTURES: { cle: QuadInterfaceId; a: QuadBoneId; b: QuadBoneId }[] = [
 const ESPECES: [string, QuadProps][] = [...Object.entries(QUAD_SPECIES), ...Object.entries(WINGED_SPECIES)];
 
 /**
+ * POPULATION GELÉE — par NOM, jamais par compte : un compte reste vert si une espèce en remplace
+ * une autre, et le parc mesuré change alors sans que rien ne rougisse.
+ */
+const ESPECES_GELEES = [
+  'basilic', 'blaireau', 'boeuf', 'chat-sauvage', 'cheval', 'chien', 'chimere', 'crapaud', 'dragon',
+  'grand-cerf', 'griffon', 'hippogriffe', 'hydre', 'le-dechiqueteur-de-cadavres',
+  'lion-de-guerre-de-chrace', 'loup', 'manticore', 'ours', 'pegase', 'preyton', 'rat-geant',
+  'rat-loup', 'sanglier', 'stegadon', 'varghulf',
+];
+const POSES_GELEES = ['repos', 'marche0', 'marche33', 'marche66', 'morsure', 'bond', 'recul', 'mort'];
+
+/**
  * Stock GELÉ des coutures OUVERTES (mesuré le 2026-08-05, réglages ci-dessus) : `<espèce> <pose>
  * <couture>`. Ce sont des défauts d'assemblage RÉELS, nommés pour que la garde soit verte sur ce
- * qu'elle protège et ROUGE sur toute NOUVELLE ouverture. Le plafond ne peut que décroître.
+ * qu'elle protège et ROUGE sur toute NOUVELLE ouverture. Le plafond ne peut que décroître, et
+ * aucune entrée ne peut être PÉRIMÉE (une couture refermée SORT de la liste).
  * Familles lisibles dans le stock : le rat-loup et le varghulf n'ont AUCUNE corde au garrot ni à
  * la gorge (leur encolure ne rejoint ni la tête ni le tronc) ; la pose de MORT ouvre l'épaule ou
  * la hanche d'une dizaine d'espèces (le corps bascule, les membres décrochent) ; le loup et le
  * lion de Chrace n'ont aucune corde de hanche, dans TOUTES les poses.
  */
 const COUTURES_OUVERTES_GELEES = [
-  'blaireau mort epaule',
-  'chien mort epaule',
-  'chien mort hanche',
-  'crapaud mort epaule',
-  'crapaud mort hanche',
   'dragon marche33 gorge',
   'dragon morsure gorge',
   'dragon mort gorge',
@@ -112,8 +133,6 @@ const COUTURES_OUVERTES_GELEES = [
   'loup repos hanche',
   'pegase mort gorge',
   'preyton mort gorge',
-  'rat-geant mort epaule',
-  'rat-geant mort hanche',
   'rat-geant recul garrot',
   'rat-loup bond garrot',
   'rat-loup bond gorge',
@@ -129,7 +148,6 @@ const COUTURES_OUVERTES_GELEES = [
   'rat-loup recul garrot',
   'rat-loup repos garrot',
   'rat-loup repos gorge',
-  'sanglier mort epaule',
   'stegadon morsure gorge',
   'stegadon mort gorge',
   'varghulf bond garrot',
@@ -142,13 +160,35 @@ const COUTURES_OUVERTES_GELEES = [
   'varghulf marche66 gorge',
   'varghulf morsure garrot',
   'varghulf morsure gorge',
-  'varghulf mort epaule',
   'varghulf mort garrot',
   'varghulf mort gorge',
   'varghulf recul garrot',
   'varghulf recul gorge',
   'varghulf repos garrot',
   'varghulf repos gorge',
+];
+
+/**
+ * Stock GELÉ à cause SÉPARÉE — INTERFACE HORS CADRE. Ces neuf couples ne sont pas des défauts
+ * d'assemblage : en pose de MORT, l'articulation elle-même se projette AU SOL ou plus bas
+ * (y ≥ 150 mesuré, boîte de rendu 120×150), là où les masques sont coupés par le cadre. La corde
+ * y vaut 0 par construction — aucune retouche d'ART ne peut la rouvrir. Ce stock se solde le jour
+ * où la BOÎTE ou la POSE de mort change, jamais par un coup de pinceau.
+ * Points mesurés (profil, pose `mort`) : blaireau épaule (81,2 · 151,1) · chien épaule
+ * (78,1 · 152,9) et hanche (24,7 · 150,9) · crapaud épaule (78,8 · 153,0) et hanche (23,7 · 151,0)
+ * · rat géant épaule (80,5 · 152,4) et hanche (21,3 · 150,4) · sanglier épaule (78,1 · 151,1) ·
+ * varghulf épaule (80,5 · 150,0).
+ */
+const INTERFACES_HORS_CADRE_GELEES = [
+  'blaireau mort epaule',
+  'chien mort epaule',
+  'chien mort hanche',
+  'crapaud mort epaule',
+  'crapaud mort hanche',
+  'rat-geant mort epaule',
+  'rat-geant mort hanche',
+  'sanglier mort epaule',
+  'varghulf mort epaule',
 ];
 
 // ── rendu + masque ────────────────────────────────────────────────────────────────────────
@@ -194,7 +234,7 @@ function corde(mA: Uint8Array, mB: Uint8Array, l: Ligne): number {
   return +(n * pas).toFixed(2);
 }
 
-interface Mesure { cle: string; corde: number; seuil: number }
+interface Mesure { cle: string; corde: number; seuil: number; horsBoite: boolean }
 
 /** Toutes les mesures de couture — détecteur UNIQUE du fichier (`retrecir` = cas planté). */
 function mesures(retrecir?: { os: QuadBoneId; facteur: number }, especes: [string, QuadProps][] = ESPECES): Mesure[] {
@@ -212,10 +252,12 @@ function mesures(retrecir?: { os: QuadBoneId; facteur: number }, especes: [strin
       for (const c of COUTURES) {
         const i = inter[c.cle];
         if (!i) continue; // exemption STRUCTURELLE (cluster multi-cous : pas de couture de gorge)
+        const l = ligneMonde(p, delta, i);
         out.push({
           cle: `${espece} ${pose} ${c.cle}`,
-          corde: corde(masque(c.a), masque(c.b), ligneMonde(p, delta, i)),
+          corde: corde(masque(c.a), masque(c.b), l),
           seuil: +(i.epaisseurVoisin * CORDE_MIN_RELATIVE).toFixed(2),
+          horsBoite: !(l.x >= 0 && l.x <= VB_W && l.y >= 0 && l.y <= VB_H),
         });
       }
     }
@@ -223,30 +265,51 @@ function mesures(retrecir?: { os: QuadBoneId; facteur: number }, especes: [strin
   return out;
 }
 
-const TOUTES = mesures();
+/** Mesures du parc INTACT, calculées à la PREMIÈRE demande. Au niveau du module, ce balayage
+ *  (~1000 rendus) se payait à la COLLECTE de vitest, donc sur TOUT run filtré, même sur un autre
+ *  fichier. Jamais d'échantillonnage de poses en échange : 40 des 69 ouvertures vivent dans les
+ *  poses `mort` et `marche*`. */
+let _toutes: Mesure[] | null = null;
+const toutes = (): Mesure[] => (_toutes ??= mesures());
 const ouvertes = (ms: Mesure[]) => ms.filter((m) => m.corde < m.seuil);
 
 describe('couture du gabarit quadrupède : deux parts voisines se recouvrent à leur interface', () => {
-  it('couvre 25 espèces × 8 poses × 4 coutures (moins les gorges structurellement absentes)', () => {
-    expect(ESPECES.length).toBeGreaterThanOrEqual(25);
-    expect(POSES.length).toBe(8);
-    const clusters = ESPECES.filter(([, p]) => quadHeadBone(quadHeadDef(p.head), 'profile') === 'encolure').length;
-    expect(clusters).toBeGreaterThanOrEqual(3);
-    expect(TOUTES.length).toBe((ESPECES.length * COUTURES.length - clusters) * POSES.length);
+  it('population GELÉE : les 25 espèces et les 8 poses, par NOM', () => {
+    expect(ESPECES.map(([id]) => id).sort()).toEqual([...ESPECES_GELEES].sort());
+    expect(POSES.map(([nom]) => nom)).toEqual(POSES_GELEES);
   });
 
-  it('aucune couture OUVERTE hors du stock gelé (corde ≥ 40 % de l’épaisseur de l’os couvert)', () => {
-    const neuves = ouvertes(TOUTES)
-      .filter((m) => !COUTURES_OUVERTES_GELEES.includes(m.cle))
+  it('couvre 25 espèces × 8 poses × 4 coutures (moins les gorges structurellement absentes)', () => {
+    const clusters = ESPECES.filter(([, p]) => quadHeadBone(quadHeadDef(p.head), 'profile') === 'encolure').length;
+    expect(clusters).toBeGreaterThanOrEqual(3);
+    expect(toutes().length).toBe((ESPECES.length * COUTURES.length - clusters) * POSES.length);
+  });
+
+  it('aucune couture OUVERTE hors des stocks gelés (corde ≥ 40 % de l’épaisseur de l’os couvert)', () => {
+    const gele = (m: Mesure) => COUTURES_OUVERTES_GELEES.includes(m.cle) || INTERFACES_HORS_CADRE_GELEES.includes(m.cle);
+    const neuves = ouvertes(toutes())
+      .filter((m) => !gele(m))
       .map((m) => `${m.cle} : corde ${m.corde} u < seuil ${m.seuil} u`);
     expect(neuves).toEqual([]);
-    // Le stock ne peut que RÉTRÉCIR : une couture refermée se retire de la liste.
-    expect(ouvertes(TOUTES).length).toBeLessThanOrEqual(COUTURES_OUVERTES_GELEES.length);
+    // Le stock ne peut que RÉTRÉCIR : une couture refermée se retire de la liste…
+    expect(ouvertes(toutes()).length).toBeLessThanOrEqual(COUTURES_OUVERTES_GELEES.length + INTERFACES_HORS_CADRE_GELEES.length);
+    // … et il ne contient AUCUNE entrée périmée : une couture refermée qui resterait gelée
+    // maintiendrait un plafond menteur, et une régression ultérieure y passerait inaperçue.
+    const ouvertesCles = new Set(ouvertes(toutes()).map((m) => m.cle));
+    expect([...COUTURES_OUVERTES_GELEES, ...INTERFACES_HORS_CADRE_GELEES].filter((c) => !ouvertesCles.has(c)),
+      'entrée gelée qui n’est plus ouverte — à retirer du stock').toEqual([]);
+  });
+
+  it('le stock HORS CADRE est MESURÉ hors cadre, et lui seul', () => {
+    const horsCadre = toutes().filter((m) => m.horsBoite).map((m) => m.cle).sort();
+    expect(horsCadre).toEqual([...INTERFACES_HORS_CADRE_GELEES].sort());
+    // Une entrée hors cadre n'appartient pas au stock des coutures ouvertes : sa cause est autre.
+    expect(INTERFACES_HORS_CADRE_GELEES.filter((c) => COUTURES_OUVERTES_GELEES.includes(c))).toEqual([]);
   });
 
   /** Baseline FIGÉE : l'étalon bovin, épaule au repos (le parc va de 0 à 41 u). */
   it('baseline bœuf tronc↔hautAvD (épaule, repos) = 21,75 u', () => {
-    const m = TOUTES.find((x) => x.cle === 'boeuf repos epaule');
+    const m = toutes().find((x) => x.cle === 'boeuf repos epaule');
     expect(m, 'mesure bœuf/repos/épaule absente').toBeTruthy();
     expect(m!.corde).toBeCloseTo(21.75, 2);
   });
@@ -264,7 +327,7 @@ describe('couture du gabarit quadrupède : deux parts voisines se recouvrent à 
     const neuves = ouvertes(plante).filter((m) => !COUTURES_OUVERTES_GELEES.includes(m.cle));
     expect(neuves.length).toBeGreaterThan(0);
     // La gorge du bœuf, tenue dans le parc intact, s'ouvre franchement une fois la part rétrécie.
-    expect(TOUTES.find((x) => x.cle === 'boeuf repos gorge')!.corde).toBeGreaterThanOrEqual(5.6);
+    expect(toutes().find((x) => x.cle === 'boeuf repos gorge')!.corde).toBeGreaterThanOrEqual(5.6);
     expect(plante.find((x) => x.cle === 'boeuf repos gorge')!.corde).toBeLessThan(5.6);
   });
 });

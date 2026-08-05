@@ -1,7 +1,12 @@
 /**
- * INTERFACES du gabarit quadrupède — les cinq LIGNES où deux parts se rencontrent, nommées une
- * fois pour toutes : `gorge` (tête↔encolure), `garrot` (encolure↔tronc), `epaule` (tronc↔antérieur
- * proche), `hanche` (croupe↔postérieur proche), `naissanceQueue` (croupe↔queue).
+ * INTERFACES du gabarit quadrupède — les cinq lignes d'ARTICULATION où deux parts se rencontrent,
+ * nommées une fois pour toutes : `gorge` (tête↔encolure), `garrot` (encolure↔tronc), `epaule`
+ * (tronc↔antérieur proche), `hanche` (croupe↔postérieur proche), `naissanceQueue` (croupe↔queue).
+ * Ce sont des lignes de CINÉMATIQUE : chacune est un PIVOT du squelette, l'endroit où l'os voisin
+ * s'attache et tourne. Une ligne d'ART (ganache, arête d'omoplate, pli de flanc…) n'en est jamais
+ * une : elle se déclare en DÉCALAGE EXPLICITE depuis un de ces pivots (`artLine`), dans le repère
+ * de l'os propriétaire — jamais en littéral de coordonnée, qui redeviendrait une constante
+ * d'espèce (cf. la dispersion de 25,3 u mesurée ci-dessous).
  *
  * POURQUOI un module : sans lui, chaque art et chaque garde re-dérive « où finit l'encolure » à
  * partir des littéraux du squelette, et les copies divergent. Mesure du juge de design (#1082) :
@@ -91,3 +96,16 @@ export function quadInterfaces(p: QuadProps, view: View = 'profile'): QuadInterf
     naissanceQueue: auPivot(sk, 'croupe', 'queue'),
   };
 }
+
+/** Ligne d'ART : un point du repère d'un os, dérivé d'une articulation. Pas d'épaisseur ni d'os
+ *  voisin — rien ne s'y attache, c'est un repère de dessin. */
+export interface QuadArtLine { os: QuadBoneId; x: number; y: number }
+
+/**
+ * Ligne d'ART déclarée en DÉCALAGE depuis une articulation, dans le repère de l'os propriétaire de
+ * celle-ci (`base.os`). Le décalage est un littéral d'ARTISTE, assumé comme tel ; le point d'appui,
+ * lui, reste une fonction de l'espèce — l'art suit donc le squelette d'une espèce à l'autre sans
+ * qu'aucune coordonnée d'espèce ne soit recopiée.
+ */
+export const artLine = (base: QuadInterface, dx: number, dy: number): QuadArtLine =>
+  ({ os: base.os, x: base.x + dx, y: base.y + dy });

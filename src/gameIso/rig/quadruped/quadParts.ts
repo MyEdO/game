@@ -639,12 +639,12 @@ const backHeadLayers = (art: string) => ({
  * Repère (transform SVG) dans lequel vit l'art d'un os pour une vue : échelles d'espèce
  * (`tailLen` / `wingSpan`), miroir de l'aile GAUCHE vue de bout. SOURCE UNIQUE : l'assemblage du
  * gabarit ET le canal `deco` y passent. Chaîne vide = repère identité.
- * TÊTE (`tete`/`nuque`) : repère IDENTITÉ. L'art d'une part se dessine au gabarit de RÉFÉRENCE ;
- * le moteur l'échelonne par l'OS (`composeQuad`, champ `scale` de `ResolvedBone` — même canal que
- * les membres et la carrure), cf. `src/gameIso/rig/PART-CONTRACT.md` l.137. `headScale` a donc quitté cette
- * fonction : l'art de tête et le décor de tête partagent l'unité de l'os.
- * `bodyLen`/`neckLen` n'y sont pas non plus : `barrel`/`neck` les cuisent dans les coordonnées de
- * l'art de tronc et d'encolure, et une def qui décore ces deux os s'authore à ces valeurs.
+ * TÊTE (`tete`/`nuque`) : repère IDENTITÉ. L'art d'une part se dessine au gabarit de RÉFÉRENCE et
+ * le moteur l'échelonne par l'OS (`headScale` × `TETE_PROFIL` dans `composeQuad`, champ `scale` de
+ * `ResolvedBone` — même canal que les membres et la carrure), cf.
+ * `src/gameIso/rig/PART-CONTRACT.md` l.137 : l'art de tête et son décor partagent l'unité de l'os.
+ * TRONC / ENCOLURE : repère IDENTITÉ aussi — `barrel`/`neck` cuisent `bodyLen`/`neckLen` dans les
+ * coordonnées de leur art, et une def qui décore ces deux os s'authore à ces valeurs.
  */
 export function quadAnchor(p: QuadProps, bone: QuadBoneId, view: View): string {
   const t: string[] = [];

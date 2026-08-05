@@ -59,7 +59,11 @@ export interface QuadProps {
   girth: number; // carrure : profondeur/épaisseur du corps (×, vertical)
   bodyLen: number; // allongement du tronc/croupe
   neckLen: number; // longueur d'encolure
-  neckAngle: number; // inclinaison de l'encolure (deg ; négatif = redressée)
+  /** Inclinaison de l'encolure (deg). 0 = encolure VERTICALE, gorge à l'aplomb du garrot ; NÉGATIF
+   *  = encolure tendue vers l'AVANT et vers le BAS. Mesuré sur le bœuf au repos, en profil (points
+   *  d'interface portés au monde) : garrot (85,1 · 77,5) fixe ; 0 → gorge (85,1 · 64,9) ;
+   *  −40 → (93,2 · 67,9) ; −70 → (97,0 · 73,2). */
+  neckAngle: number;
   legLen: number; // longueur des membres (hauteur sur pattes)
   head: QuadHead;
   tail: QuadTail;

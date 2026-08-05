@@ -26,7 +26,7 @@ const LEG_REF_TH = 9; // épaisseur de réf d'un os porteur (haut) → léger sc
  */
 const TETE_PROFIL = 1.3;
 /** Os qui portent l'art de tête — `nuque` est le calque BAS du MÊME art (cf. `quadParts`). */
-const OS_TETE: QuadBoneId[] = ['tete', 'nuque'];
+export const OS_TETE: QuadBoneId[] = ['tete', 'nuque'];
 
 /**
  * Échelle d'OS d'un os quadrupède — SOURCE UNIQUE : tête (`headScale`, agrandie de profil),

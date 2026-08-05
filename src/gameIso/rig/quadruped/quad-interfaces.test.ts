@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../creatures';
 import { buildQuadSkeleton, groundQuad, quadSkeletonForView, type QuadProps } from './quadSkeleton';
-import { quadInterfaces, type QuadInterface, type QuadInterfaceId } from './quadInterfaces';
+import { quadInterfaces, artLine, type QuadInterface, type QuadInterfaceId } from './quadInterfaces';
 import { quadHeadBone, quadHeadDef } from './heads';
 import { worldTransformsG, type Matrix } from '../kinematics';
 import type { View } from '../facing';
@@ -24,7 +24,7 @@ const VUES: View[] = ['profile', 'front', 'back'];
 const IDS: QuadInterfaceId[] = ['gorge', 'garrot', 'epaule', 'hanche', 'naissanceQueue'];
 
 /** Point MONDE d'une interface : son point local traversé par le transform de son os. */
-function monde(p: QuadProps, i: QuadInterface, view: View = 'profile'): { x: number; y: number } {
+function monde(p: QuadProps, i: Pick<QuadInterface, 'os' | 'x' | 'y'>, view: View = 'profile'): { x: number; y: number } {
   const sk = groundQuad(quadSkeletonForView(buildQuadSkeleton(p), view), {});
   const m = (worldTransformsG(sk, {}) as Record<string, Matrix>)[i.os];
   return { x: m[0] * i.x + m[2] * i.y + m[4], y: m[1] * i.x + m[3] * i.y + m[5] };
@@ -138,5 +138,25 @@ describe('quadInterfaces : les cinq lignes de rencontre du gabarit quadrupède',
     // Aucune espèce à tête portée par `tete` ne perd sa gorge.
     for (const [id, p] of ESPECES.filter(([, q]) => quadHeadBone(quadHeadDef(q.head), 'profile') !== 'encolure'))
       expect(quadInterfaces(p, 'profile').gorge, `${id} : gorge attendue présente`).not.toBeNull();
+  });
+
+  /**
+   * Ligne d'ART (`artLine`) : le décalage est un littéral d'artiste, le point d'appui reste une
+   * FONCTION de l'espèce. La preuve est la dispersion : le MÊME décalage, porté au monde, tombe
+   * ailleurs sur chaque espèce — un littéral de coordonnée, lui, aurait une dispersion nulle.
+   */
+  it('artLine : décalage explicite depuis un pivot, qui SUIT le squelette d’une espèce à l’autre', () => {
+    const OFF: [number, number] = [4, 6]; // ganache : sous la gorge, vers l'avant
+    const mondes: number[] = [];
+    for (const [id, p] of ESPECES) {
+      const g = quadInterfaces(p, 'profile').gorge;
+      if (!g) continue; // cluster multi-cous : pas de gorge en profil
+      const l = artLine(g, ...OFF);
+      expect(l.os, `${id} : repère de la ligne d'art`).toBe(g.os);
+      expect([l.x - g.x, l.y - g.y], `${id} : décalage`).toEqual(OFF);
+      mondes.push(+monde(p, l).x.toFixed(1));
+    }
+    expect(mondes.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(mondes).size, 'dispersion mondiale du MÊME décalage').toBeGreaterThan(10);
   });
 });

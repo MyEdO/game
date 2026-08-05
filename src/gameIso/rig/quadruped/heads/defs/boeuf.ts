@@ -33,10 +33,11 @@ import { eyeF } from '../kit';
  *  · Hachures GROUPÉES et courtes dans le sens du poil, jamais semées, jamais sous 0,6 u de
  *    `stroke-width` (plancher dur : 1 u = 0,33 px à la vignette 40 px).
  *
- * VIGNETTE 40 px — les CORNES sont l'identifiant n°1 : envergure ±23,5 u dans le repère de l'art,
- * soit 58 u × `headScale` 1,24 ≈ 72 u de large sur une boîte de 120 (≈ 24 px à 40 px de rendu). Le
- * crâne fait ±10,4 (≈ 8,6 px) : le rapport corne/crâne tombe à ≈ 2,8 (il était de 3,7 quand le
- * bœuf portait le crâne étroit du 'cheval' — la bête lisait « deux ailes et un bâton »).
+ * VIGNETTE 40 px — les CORNES sont l'identifiant n°1 : envergure ±24 u dans le repère de l'art,
+ * soit 48 u, × `headScale` 1,2 (échelle d'os des vues de bout) ≈ 58 u de large sur une boîte de 120
+ * (≈ 19 px à 40 px de rendu). Le crâne fait ±10,4 (25 u de boîte, ≈ 8,3 px) : le rapport
+ * corne/crâne vaut ≈ 2,3 — le crâne bovin est LARGE, et c'est cette largeur qui interdit la lecture
+ * « deux ailes et un bâton » que donnait le crâne étroit de l'équin.
  *
  * MATÉRIAU DE CORNE : famille de jetons custom `corne`/`corneO`/`corneH`, STOCKÉE par l'espèce
  * porteuse (`creatures/defs/Boeuf.ts`, `quad.stored`). Une espèce qui adopterait cette tête sans
@@ -107,8 +108,9 @@ const CORNES_FACE = `<g data-part="cornes">${corneFace(-1)}${corneFace(1)}</g>`;
 //  · l'ÉPAISSEUR (≤ 4 u à la racine, ~3 au milieu, 0 à la pointe). La passe précédente gardait
 //    5 u de large jusqu'aux trois quarts : posée à plat sur la calotte, elle lisait HOUPPE, et la
 //    lointaine, à peine décalée, ajoutait un coin noir — la bête portait un plumet, pas des cornes.
-//  · la CORDE : 14,3 u (racine → pointe), soit 18,7 u de boîte après l'ancre de profil (×1,31),
-//    ≈ 6,2 px à 40 px de rendu — au-dessus du plancher de 2,5 px, et jamais la corne-sabre de 21 u.
+//  · la CORDE : 17,4 u (coin bas de racine → pointe), soit 22,8 u de boîte après l'échelle
+//    effective de profil (os 1,56 × `scale(0,84)` de cet art = 1,31), ≈ 7,6 px à 40 px de rendu —
+//    au-dessus du plancher de 2,5 px, et jamais la corne-sabre de 21 u.
 // La LOINTAINE est la MÊME forme, raccourcie et posée en ombre : un second fût qui se devine
 // derrière le crâne, jamais une pointe noire indépendante.
 const corneProfil = (near: boolean): string => {
@@ -226,7 +228,8 @@ const MUFLE_PROFIL =
   `<path d="M12.2 6.6 Q17.2 8.2 18.8 12.4" fill="none" stroke="@corpsH" stroke-width="1.9" opacity="0.72" stroke-linecap="round"/>` + // bourrelet clair du dessus
   `<path d="M10.6 18.6 Q13.4 20.2 16.4 19.4" fill="none" stroke="@corpsH" stroke-width="1.4" opacity="0.6" stroke-linecap="round"/>` + // OURLET de la lèvre : sépare mufle et gorge
   // NASEAU : trou FRANC, pas une virgule suggérée — à 40 px c'est le seul point noir du museau,
-  // et un mufle sans naseau lit « groin ». 2,4 u de rayon × 1,31 d'ancre ≈ 1,05 px à 40 px.
+  // et un mufle sans naseau lit « groin ». 2,4 u de rayon × 1,31 d'échelle effective de profil
+  // (os 1,56 × `scale(0,84)` de cet art) ≈ 1,05 px à 40 px.
   `<ellipse cx="16.2" cy="12.2" rx="2.4" ry="1.9" transform="rotate(26 16.2 12.2)" fill="#0b0603"/>` +
   `<path d="M14.2 10.4 Q17.4 10.9 18.3 13.4 Q16 13.7 14.3 12.4 Z" fill="#0b0603"/>` +
   `<path d="M13.7 9.6 Q17.3 10 18.6 12.8" fill="none" stroke="@corpsH" stroke-width="1" opacity="0.62" stroke-linecap="round"/>` + // lèvre claire au-dessus : le naseau CREUSE
@@ -240,10 +243,11 @@ export const quadHead: QuadHeadDef = {
     // La chaîne de concaténation EST l'ordre du peintre : oreilles → cornes → crâne → mufle.
     front: `<g>${OREILLES_FACE}${CORNES_FACE}${CRANE_FACE}${MUFLE_FACE}</g>`,
     back: `<g>${OREILLES_DOS}${CORNES_FACE}${CRANE_DOS}</g>`,
-    // PROFIL — `scale(0,84)` : l'ancre de profil applique déjà un `scale(1.3)` propre au socle
-    // (`quadAnchor`) EN PLUS de `headScale`, soit 1,56 pour le bœuf. Sans compensation, la tête
-    // faisait 56 u de long pour un tronc de 110 (la moitié du corps). À 0,84 elle en fait 47,
-    // et le rapport tête/tronc rejoint celui des vues de bout.
+    // PROFIL — `scale(0,84)` : de profil, l'OS de tête porte `headScale` (1,2) multiplié par
+    // `TETE_PROFIL` (1,3, `composeQuad.ts`), soit 1,56 ; le repère de l'art (`quadAnchor`) est
+    // l'identité sur `tete`. Sans compensation, la tête faisait 56 u de long pour un tronc de 110
+    // (la moitié du corps). À 0,84 elle en fait 47, et le rapport tête/tronc rejoint celui des
+    // vues de bout (où l'os ne porte que `headScale`).
     profile: `<g transform="translate(2 5) rotate(6) scale(0.84)">` +
       `<g data-part="oreilles">${oreilleProfil(false)}${oreilleProfil(true)}</g>` +
       `<g data-part="cornes">${corneProfil(false)}${corneProfil(true)}</g>` +
