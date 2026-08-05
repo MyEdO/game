@@ -10,6 +10,7 @@ import { scalesPatch } from '../parts/textures';
 import { quadHeadBone, quadHeadDef } from './heads';
 import { quadManeDef } from './manes';
 import { quadArt } from './partArt';
+import { QUAD_Z } from './quadZ';
 import { quadTailDef } from './tails';
 
 // ============================ helpers ============================
@@ -62,17 +63,20 @@ const joint = (body: string, cy: number, r: number, line = '@corpsO') =>
 // Morphologie des MEMBRES par carrure (anti « jouet de bois » : pattes-cylindres identiques) :
 // masse de cuisse/épaule fondue dans le corps en haut, canon plus fin en bas, jarret marqué.
 //   mass = largeur de la masse musculaire haute (demi-épaisseur), taper = épaisseur du canon.
-const LEG_BUILD: Record<string, { mass: number; haut: number; bas: number }> = {
+//   sousTronc = en PROFIL, le segment HAUT du membre PROCHE se peint SOUS le barillet (cf.
+//   `PLAN_HAUT_SOUS_TRONC` plus bas) : c'est le corps qui descend sur le membre, pas le membre qui
+//   se plante devant le flanc. Réservé aux carrures dont le tronc porte ses masses d'attache.
+//   jointNu = articulations calées sur l'épaisseur du segment et SANS liseré (cf. `bas` ci-dessous).
+const LEG_BUILD: Record<string, { mass: number; haut: number; bas: number; sousTronc?: boolean; jointNu?: boolean }> = {
   equine: { mass: 6.2, haut: 8.5, bas: 5.2 }, // cheval : cuisse pleine, canons FINS
   canine: { mass: 5.2, haut: 7.5, bas: 4.8 }, // loup/chien : svelte, jarret net
   suid: { mass: 5.5, haut: 8, bas: 5.5 }, // sanglier : courtes et fortes
   rodent: { mass: 4.5, haut: 7, bas: 4.5 },
   ursine: { mass: 8.5, haut: 12, bas: 9 }, // ours : poteaux massifs
-  // Bovin : MÊME morphologie de membre que l'ursidé (poteaux massifs). La carrure 'bovin' est un
-  // axe de TRONC — c'est la silhouette du corps qui sépare le bœuf de l'ours, pas l'épaisseur du
-  // canon. Et cette table est lue par les TROIS vues : y descendre d'un cran aurait aminci les
-  // pattes de FACE et de DOS, deux vues déjà validées sur l'étalon bovin.
-  bovin: { mass: 8.5, haut: 12, bas: 9 },
+  // Bovin : POTEAUX, plus épais que l'ursidé. Sous un tonneau de trait, les valeurs de l'ours
+  // donnaient des pattes d'antilope (verdict à l'œil). Cette table est lue par les TROIS vues :
+  // face et dos s'épaississent d'autant, ce qui est voulu — ce sont les MÊMES pattes.
+  bovin: { mass: 11, haut: 15.6, bas: 11.4, sousTronc: true, jointNu: true },
   feline: { mass: 6.8, haut: 9, bas: 5.5 }, // lion : haunches musclées, canon fin
   draconic: { mass: 8, haut: 11, bas: 7.5 },
   batracien: { mass: 7.5, haut: 10, bas: 7 },
@@ -99,13 +103,21 @@ function legParts(p: QuadProps, far: boolean, foot: QuadFoot, fore = false) {
   const leather = plumed ? '@cuirAv' : '@cuir';
   const L = LEG_BUILD[p.build] ?? LEG_BUILD.equine;
   // canon : plus FIN que la cuisse, s'effile vers le boulet ; jarret/genou bouché à la jointure.
+  // ARTICULATIONS NUES (carrures qui le déclarent) : la pastille de jointure est calée sur la
+  // DEMI-ÉPAISSEUR du segment et perd son liseré. Au diamètre du socle (12,1 u pour un canon de
+  // 10,8) et cerclée de son trait, elle dépassait du membre en DÔME — au zoom, une rotule de
+  // poupée articulée posée sur le genou (constat au gros plan des pattes). Elle doit BOUCHER le
+  // trou entre deux segments, pas s'annoncer.
+  const nu = LEG_BUILD[p.build]?.jointNu === true;
+  const jHaut = nu ? (L.bas + 0.6) / 2 : (L.bas + 1.4) * 0.52;
+  const jBas = nu ? L.bas * 0.36 : L.bas * 0.4;
   const bas = plumed
     ? joint(body, 0, (L.bas + 1.4) * 0.52, '@aileO') + taper(22 * ll, L.bas + 0.2, L.bas * 0.72, leather, '@cuirAvO') +
       scalesPatch(-L.bas * 0.34, L.bas * 0.34, 7, 22 * ll - 2, 2.4, 'cuirAv') +
       // culotte de plumes sur le haut du tarse (pointes dentelées)
       `<path d="M${(-(L.bas / 2 + 1.8)).toFixed(1)} -1.5 q-0.8 4.6 0.4 7.2 l1.9 -3.6 l1 4.2 l2 -3.8 l1.3 4 l1.9 -3.4 q1.3 -2.8 0.7 -5 Q0 ${(-L.bas * 0.5).toFixed(1)} ${(-(L.bas / 2 + 1.8)).toFixed(1)} -1.5 Z" fill="${body}" stroke="@aileO" stroke-width="0.4"/>` +
       joint(leather, 22 * ll, L.bas * 0.38, '@cuirAvO')
-    : joint(body, 0, (L.bas + 1.4) * 0.52) + taper(22 * ll, L.bas + 0.6, L.bas * 0.78, body) + joint(body, 22 * ll, L.bas * 0.4) + balzane(p, ll, L.bas + 0.6, far);
+    : joint(body, 0, jHaut, nu ? 'none' : '@corpsO') + taper(22 * ll, L.bas + 0.6, L.bas * 0.78, body) + joint(body, 22 * ll, jBas, nu ? 'none' : '@corpsO') + balzane(p, ll, L.bas + 0.6, far);
   return {
     haut: muscle(body, L.mass, 30 * ll) + taper(30 * ll, L.haut, L.bas + 1.4, body, plumed ? '@aileO' : '@corpsO'), // cuisse → genou
     bas,
@@ -215,13 +227,44 @@ function barrel(p: QuadProps): string {
         // arête nette au milieu du flanc et l'ensemble lit « couverture de bât posée sur le dos ».
         `<path d="M${X(-34)} -18.6 Q${X(-22)} -22.6 ${X(-8)} -20 Q${X(2)} -19.4 ${X(10)} -21.4 ` +
         `Q${X(16)} -24.6 ${X(21.6)} -22.4 Q${X(15)} -21 ${X(8)} -18.4 Q${X(0)} -16.4 ${X(-9)} -16.6 ` +
-        `Q${X(-22)} -18.6 ${X(-34)} -18.6 Z" fill="@corpsH" opacity="0.26"/>`;
-      // NAPPE ventrale : le tiers bas prend l'ombre sur TOUTE la longueur (poitrail → aine), pas
-      // un liseré de contour — c'est elle qui pose la bête sur ses pattes en niveaux de gris.
-      lo = `<path d="M${X(29)} 4 Q${X(26.6)} 14 ${X(14)} 19.6 Q${X(-2)} 21.4 ${X(-16)} 20.4 ` +
-        `Q${X(-32)} 18.2 ${X(-41)} 11 Q${X(-45.4)} 4.6 ${X(-45.6)} -3.4 ` +
-        `Q${X(-42)} 8 ${X(-33)} 12.6 Q${X(-18)} 16.4 ${X(-2)} 16.6 Q${X(12)} 15.4 ${X(21)} 10.6 ` +
-        `Q${X(26)} 7 ${X(27.4)} 0.6 Z" fill="@corpsO" opacity="0.84"/>`;
+        `Q${X(-22)} -18.6 ${X(-34)} -18.6 Z" fill="@corpsH" opacity="0.26"/>` +
+        // MASSES D'ATTACHE — le cœur de la carrure de trait, et la réponse au verdict « la jonction
+        // avec le corps ». Une patte de bovin ne se PLANTE pas sous un tonneau : le corps DESCEND
+        // sur elle. Ces deux masses appartiennent au TRONC, débordent sous son contour (≈ 8 u) et
+        // enveloppent le haut du membre ; le membre proche, peint au plan 9, en ressort. On lit une
+        // continuation, plus un pilotis. Elles sont posées APRÈS la nappe ventrale : ce sont elles
+        // qui interrompent l'ombre du ventre à l'aplomb des membres, jamais l'inverse.
+        // Épaule (bras + coude), sur l'antérieur (pivot x ≈ +25) :
+        // Le trait ne court QUE sur la part de la masse qui fait SILHOUETTE (sous le contour du
+        // barillet) : contourner la masse entière posait une ligne de COUTURE en plein flanc, ce
+        // que la jonction doit précisément effacer.
+        `<path d="M${X(31.6)} -3 Q${X(34)} 8 ${X(32)} 17.4 Q${X(29.4)} 25.6 ${X(23)} 27.4 ` +
+        `Q${X(17)} 27 ${X(15.4)} 20.4 Q${X(14.4)} 11 ${X(16.4)} 1 Z" fill="@corps"/>` +
+        `<path d="M${X(33.6)} 4.4 Q${X(32.8)} 12.4 ${X(31)} 19.4 Q${X(28.6)} 25.8 ${X(23)} 27.4 ` +
+        `Q${X(17)} 27 ${X(15.4)} 20.4" fill="none" stroke="@corpsO" stroke-width="0.7" stroke-linecap="round"/>` +
+        `<path d="M${X(30.4)} -1 Q${X(32.6)} 8.4 ${X(30.6)} 17.4 Q${X(28.4)} 23.4 ${X(24.4)} 25.4 ` +
+        `Q${X(26)} 18.4 ${X(26.4)} 10.4 Q${X(26.6)} 3.4 ${X(28.4)} -1.4 Z" fill="@corpsH" opacity="0.5"/>` +
+        `<path d="M${X(17.4)} 6.4 Q${X(15.8)} 15.4 ${X(17.4)} 23.4 Q${X(20)} 27 ${X(23)} 27.4 ` +
+        `Q${X(19.4)} 24.4 ${X(18.8)} 16.4 Q${X(18.4)} 9.4 ${X(19.4)} 4.4 Z" fill="@corpsO" opacity="0.34"/>` +
+        // Cuisse CHARNUE, sur le postérieur (pivot x ≈ −35) : le fémur se devine sous la robe.
+        `<path d="M${X(-22.6)} -14 Q${X(-16.6)} -2 ${X(-18.6)} 12 Q${X(-21.6)} 24 ${X(-30.6)} 28 ` +
+        `Q${X(-39.6)} 27 ${X(-43)} 18.4 Q${X(-45.4)} 7 ${X(-43.4)} -5 Q${X(-39)} -15.4 ${X(-30)} -17.4 Z" fill="@corps"/>` +
+        `<path d="M${X(-45.6)} 6 Q${X(-44.6)} 14.4 ${X(-42.4)} 19.4 Q${X(-38.6)} 27 ${X(-30.6)} 28 ` +
+        `Q${X(-22)} 24.4 ${X(-19)} 13.4" fill="none" stroke="@corpsO" stroke-width="0.7" stroke-linecap="round"/>` +
+        `<path d="M${X(-24.4)} -12 Q${X(-19.6)} -1 ${X(-21)} 11.4 Q${X(-23.4)} 21.4 ${X(-30.4)} 25.4 ` +
+        `Q${X(-27)} 18.4 ${X(-25.6)} 9.4 Q${X(-24.6)} -1.6 ${X(-26.4)} -11 Z" fill="@corpsO" opacity="0.3"/>`;
+        // La masse de cuisse ne porte PAS sa propre lumière : le rond de la hanche est peint par la
+        // DEF de l'espèce, qui seule connaît son éclairage (`Boeuf.ts`, plage de croupe). Empilées,
+        // les deux valeurs claires se croisaient sur le même quartier — au gros plan, deux croissants
+        // beiges décalés sur la fesse, ce qui barbouille au lieu de tourner.
+      // NAPPE ventrale : le tiers bas prend l'ombre du VENTRE — mais elle MEURT avant l'aplomb des
+      // membres (x ≈ +25 devant, x ≈ −30 derrière). Menée d'un bord à l'autre, elle tranchait le
+      // haut des quatre pattes en une ligne horizontale : la bête devenait un tonneau sur pilotis
+      // (verdict utilisateur : « la jonction avec le corps »). Elle s'arrête donc dans l'entre-deux,
+      // là où le ventre est vraiment à l'ombre, et les masses d'attache ci-dessous prennent le
+      // relais sur les épaules et les cuisses.
+      lo = `<path d="M${X(20)} 12.6 Q${X(10)} 18.4 ${X(-2)} 20.4 Q${X(-14)} 20.4 ${X(-24)} 17.4 ` +
+        `Q${X(-19)} 13.4 ${X(-6)} 14.6 Q${X(6)} 14.6 ${X(17)} 9.6 Z" fill="@corpsO" opacity="0.8"/>`;
       break;
     }
     default: // equine : poitrail profond, GARROT marqué, dos level, croupe arrondie qui descend en cuisse
@@ -640,10 +683,13 @@ export function quadParts(p: QuadProps, view: View = 'profile', wings: 'folded' 
   // SVG posé dans le REPÈRE DE L'ART de l'os (`quadAnchor`), en CALQUE sur cet os, uniquement là
   // où l'os porte déjà un art dans la vue courante (un os sans art n'affiche pas de décor flottant).
   // Clé `os#vue` = décor limité à cette vue (cf. QuadProps.deco) ; clé nue = toutes les vues.
-  const withDeco = (r: Partial<Record<QuadBoneId, string>>): QuadLayers => {
+  // Une entrée peut être un SVG nu (un calque au plan de l'os) OU une liste de calques déjà
+  // planifiés (`QuadLayer[]`) : c'est ce second cas qui permet à l'assemblage d'INTERCALER un
+  // morceau d'os dans la pile de la vue (haut de membre sous le barillet, cf. plus bas).
+  const withDeco = (r: Partial<Record<QuadBoneId, string | QuadLayer[]>>): QuadLayers => {
     const out: QuadLayers = {};
-    for (const [id, svg] of Object.entries(r) as [QuadBoneId, string | undefined][])
-      if (svg) out[id] = [{ svg }];
+    for (const [id, v] of Object.entries(r) as [QuadBoneId, string | QuadLayer[] | undefined][])
+      if (typeof v === 'string') { if (v) out[id] = [{ svg: v }]; } else if (v?.length) out[id] = [...v];
     if (p.deco) for (const [key, val] of Object.entries(p.deco) as [string, QuadDecoValue | undefined][]) {
       const [id, vue] = key.split('#') as [QuadBoneId, View | undefined];
       if (!val || (vue && vue !== view) || !out[id]) continue;
@@ -682,11 +728,22 @@ export function quadParts(p: QuadProps, view: View = 'profile', wings: 'folded' 
   const nearAr = legParts(p, false, p.foot), farAr = legParts(p, true, p.foot);
   const profArt = (far: boolean) => quadAnchored(p, far ? 'aileG' : 'aileD', view, wings === 'spread' ? wingProfile(p, far) : wingFoldedProfile(p, far));
   const profWings = p.wings ? { aileD: profArt(false), aileG: profArt(true) } : {};
+  // Carrure `sousTronc` : le segment HAUT des membres PROCHES quitte le plan des pattes proches
+  // (9) pour se glisser SOUS le barillet (5) — c'est le membre ENTIER, jamais un z d'os global :
+  // le calque est intercalé pour cette espèce seule, les 24 autres gardent leur pile au bit près
+  // (empreintes `quad-purete-rendu`). Sans ce plan, le chapeau rond du haut de membre (masse
+  // d'épaule + calotte du cône) se peignait PAR-DESSUS la tête et le flanc — démontré à la sonde
+  // d'isolement : la patte proche (9) couvrait la tête (7) et le tronc (5). Le bas et le pied
+  // restent devant (9). Valeur : entre la croupe (4) et le tronc (5), donc aucune égalité de z à
+  // départager dans le tri peintre.
+  const PLAN_HAUT_SOUS_TRONC = QUAD_Z.tronc.profile - 0.5 - QUAD_Z.hautAvD.profile;
+  const hautProche = (svg: string): string | QuadLayer[] =>
+    (LEG_BUILD[p.build] ?? LEG_BUILD.equine).sousTronc ? [{ svg, plan: PLAN_HAUT_SOUS_TRONC }] : svg;
   return withDeco({
     ...profWings,
     tronc: barrel(p), encolure: neck(p), tete: quadAnchored(p, 'tete', view, headgear(p, 'profile') + headArtOn(p, 'profile', 'tete')), queue: quadAnchored(p, 'queue', view, tail(p)),
-    hautAvD: nearAv.haut, basAvD: nearAv.bas, piedAvD: nearAv.pied,
-    hautArD: nearAr.haut, basArD: nearAr.bas, piedArD: nearAr.pied,
+    hautAvD: hautProche(nearAv.haut), basAvD: nearAv.bas, piedAvD: nearAv.pied,
+    hautArD: hautProche(nearAr.haut), basArD: nearAr.bas, piedArD: nearAr.pied,
     hautAvG: farAv.haut, basAvG: farAv.bas, piedAvG: farAv.pied,
     hautArG: farAr.haut, basArG: farAr.bas, piedArG: farAr.pied,
   });
