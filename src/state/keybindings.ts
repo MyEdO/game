@@ -10,7 +10,7 @@
 import type { GameState } from './store';
 import { useGame, activeCombatant } from './store';
 import { controlsActive } from './netOwnership';
-import { pickActiveModalKey } from './modalArbiter';
+import { pickActiveModalKey, surfacePleinChampCombat } from './modalArbiter';
 import { modalBlocksMapHover } from './mapHover';
 import { hotbar } from './hotbarBridge';
 import { TOUCHES_IMPRIMEES } from './dispositionConsole';
@@ -20,6 +20,7 @@ import type { ScreenDir } from './combatCursor';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from './stageYaw';
 import { arreterMarche, demarrerMarche } from './stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
+import { ecranCapacitesOffert } from './ecranCapacitesPorte';
 import { t, type MsgKey } from '../i18n';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
@@ -75,11 +76,12 @@ export interface KeyBinding {
 const inBattle = (s: GameState) => s.mode === 'battle' && !!s.battle && !s.battle.over;
 /** Aucune modale de combat ouverte (sinon Espace/Entrée doivent rester à la modale). Garde des
  *  gestes qui ENGAGENT ou QUITTENT le tour (fin de tour, barre d'action, menu système). */
-const noModal = (s: GameState) => pickActiveModalKey(s as Parameters<typeof pickActiveModalKey>[0]) == null;
+const noModal = (s: GameState) =>
+  pickActiveModalKey(s as Parameters<typeof pickActiveModalKey>[0]) == null && !surfacePleinChampCombat(s);
 /** La CARTE accepte-t-elle un geste de ciblage ? MÊME verdict que la souris (`modalBlocksMapHover`,
  *  arbitre) : une modale PILOTÉE PAR LA CARTE (désignation de cibles d'un sort) laisse la scène
  *  vivante — la souris y cible, le curseur clavier/manette doit pouvoir en faire autant. */
-const mapLive = (s: GameState) => !modalBlocksMapHover(s);
+const mapLive = (s: GameState) => !modalBlocksMapHover(s) && !surfacePleinChampCombat(s);
 /** Minuterie qui transforme l'appui en MAINTIEN — une seule, le geste de rotation est unique. */
 let minuterieMaintien: ReturnType<typeof setTimeout> | null = null;
 /** APPUI de rotation caméra — SOURCE UNIQUE du geste de l'écran de jeu, au CLAVIER (Q/E) : la caméra
@@ -172,6 +174,15 @@ export const KEYBINDINGS: KeyBinding[] = [
   // Inspection des combattants (option de jeu) : le clic sur un allié non actionnable ouvre son
   // statbloc. En combat seulement — hors combat aucun clic ne l'emprunte.
   { id: 'toggle-inspect', codes: ['KeyI'], labelKey: 'key.toggleInspect', section: 'combat', when: inBattle, run: (g) => g().toggleInspectEnabled() },
+  // ÉCRAN DES CAPACITÉS (spec HUD zone 6) : la touche COMMUTE l'écran, sous la MÊME porte que le
+  // bouton du rail (`state/ecranCapacitesPorte`) — une touche qui ouvrirait ce qu'un bouton refuse
+  // serait une 2ᵉ politique. Fermé : elle n'ouvre que si la porte est offerte ; ouvert : elle ferme
+  // toujours (une surface qu'on ouvre se referme par où elle s'ouvre).
+  {
+    id: 'ecran-capacites', codes: ['KeyK'], labelKey: 'key.ecranCapacites', section: 'combat',
+    when: (s) => s.ecranCapacitesOuvert || (inBattle(s) && ecranCapacitesOffert(s)),
+    run: (g) => g().setEcranCapacites(!g().ecranCapacitesOuvert),
+  },
   // Commuter le SET d'armes au poing (LDB 13 l.106 — Action gratuite ; plafond maison 1×/tour porté
   // par `battleSwitchLoadout`) : la touche FAIT TOURNER les sets de la colonne de la console, dans
   // l'ordre où ils y sont dessinés. Gardée sur ≥ 2 sets — un porteur d'un seul set n'a rien à commuter.

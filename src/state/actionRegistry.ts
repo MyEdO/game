@@ -16,7 +16,8 @@ import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
 import { canMove, trampleTarget, entityPickables, activeCombatant } from './store';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction } from '../engine/conditions';
+import { canTakeAction, hasCondition, isOutOfAction } from '../engine/conditions';
+import { findConditionById } from '../data';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/vehicle';
@@ -50,12 +51,25 @@ export interface ActionCtx {
   active: Combatant;
   battle: BattleState;
   netMode?: string;
+  /** L'ENTRÉE elle-même, posée par `actionGate` : un gate peut lire ce que SON action DÉCLARE (l'État
+   *  qu'elle traite, `rule` + `ruleCategory: 'etats'`) au lieu de nommer un id. Jamais fourni par un
+   *  appelant — c'est la porte de lecture qui l'attache. */
+  def?: ActionDef;
   /** PARAMÈTRES DE LA CASE (`ActionRunCtx` — la Compétence visée, l'arme, l'objet) : une entrée du
    *  registre peut être rendue N fois, une par candidat, et le verdict d'offre porte alors sur CE
    *  candidat (« au plafond de CETTE méthode d'Avantage »). Les gates de règle pure les ignorent ; le
    *  dispatcher reçoit exactement les mêmes (`runAction`), d'où une seule et même mesure. */
   args?: ActionRunCtx;
 }
+
+/** Nom du gate « ÉTAT PORTÉ » — NOMMÉ, parce que deux lecteurs le désignent : la donnée
+ *  (`actions.json`) et le producteur de pools, qui mesure PAR LUI la pertinence d'une case de remède. */
+export const GATE_ETAT_PORTE = 'etat-porte';
+/** Nom du gate « REMÈDE ATTEIGNABLE » — le second étage : l'État est bien là, mais le geste qui l'ôte
+ *  est-il possible MAINTENANT ? Séparé de la PERTINENCE (`etat-porte`) parce que les deux verdicts ont
+ *  deux effets différents à l'écran : le premier décide qu'une case EXISTE, le second qu'elle est
+ *  OFFERTE — une case refusée reste DESSINÉE et dit pourquoi (patron de la console). */
+export const GATE_REMEDE_ATTEIGNABLE = 'remede-atteignable';
 
 const ok: ActionGate = { ok: true };
 const no = (reason: string): ActionGate => ({ ok: false, reason });
@@ -150,6 +164,40 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
       : battle.loadoutSwapped
         ? no(t('agate.loadoutSwapped'))
         : ok,
+  /** REMÈDE D'ÉTAT (Se relever, Se rouler, Se libérer) : l'entrée DÉCLARE l'État qu'elle traite
+   *  (`rule` + `ruleCategory: 'etats'`, `actions.json`) — le geste n'est offert qu'au porteur DE cet
+   *  État, encore en état d'agir, ET dont l'État déclare un remède ATTEIGNABLE. Aucun id d'État ici :
+   *  un remède de plus est une ligne de JSON. C'est aussi la mesure de PERTINENCE que lit le
+   *  producteur de pools (une case de remède ne se dessine que pour l'État porté).
+   *
+   *  MIROIR DU DISPATCHER, à la ligne près : ce qui ferme le geste ici est ce qui le refuserait
+   *  là-bas, LU DE LA MÊME DONNÉE — l'exigence de Blessures d'À Terre (`recoverRequires.minWounds`,
+   *  `LDB 16 l.35`) qui garde `battleStandUp`, et l'existence d'un remède déclaré (Test `recover`
+   *  des États qui s'en libèrent, sans quoi `battleRecoverState` rendrait en silence). Une case
+   *  ouverte sur un clic muet est le défaut que cette symétrie ferme. */
+  [GATE_ETAT_PORTE]: ({ active, def }) => {
+    const etatId = def?.ruleCategory === 'etats' ? def.rule : undefined;
+    if (!etatId) return no(t('agate.stateUndeclared'));
+    return hasCondition(active, etatId) ? ok : no(t('agate.stateNotCarried'));
+  },
+  /** REMÈDE ATTEIGNABLE — le second étage du remède d'État : MIROIR DU DISPATCHER, à la ligne près.
+   *  Ce qui ferme le geste ici est ce qui le refuserait là-bas, LU DE LA MÊME DONNÉE — l'exigence de
+   *  Blessures d'À Terre (`recoverRequires.minWounds`, `LDB 16 l.35`) qui garde `battleStandUp`, et
+   *  l'existence d'un remède DÉCLARÉ (Test `recover`, sans quoi `battleRecoverState` rendrait en
+   *  silence). Une case ouverte sur un clic muet est le défaut que cette symétrie ferme ; la case,
+   *  elle, reste DESSINÉE avec sa raison. */
+  [GATE_REMEDE_ATTEIGNABLE]: ({ active, def }) => {
+    const etatId = def?.ruleCategory === 'etats' ? def.rule : undefined;
+    const etat = etatId ? findConditionById(etatId) : undefined;
+    if (!etat) return no(t('agate.stateUndeclared'));
+    if (isOutOfAction(active)) return no(t('agate.unableToAct'));
+    // Un État qui ne déclare NI Test de récupération (`recover`) NI exigence de remède n'a aucun
+    // remède atteignable : la case ne promet pas un clic muet (classe fermée, pas un cas nommé).
+    if (!etat.recover && !etat.recoverRequires) return no(t('agate.stateNoRemedy'));
+    const min = etat.recoverRequires?.minWounds;
+    if (min != null && active.wounds.current < min) return no(t('agate.remedyNeedsWounds'));
+    return ok;
+  },
   /** Cumuler l'Avantage (LDB 09 l.305-308) : chaque méthode a SON plafond (`skillAdvantageCap`), et
    *  au plafond le Test ne peut plus rien rendre. Le refus est DIT (« Avantage au plafond (N) ») et la
    *  case reste dessinée : la faire disparaître privait le joueur de la raison. La méthode visée vient
@@ -210,6 +258,15 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     !isVehicle(active) ? no(t('agate.notAVessel')) : battle.acted ? no(t('agate.vesselActionSpent')) : ok,
 };
 
+/** LE GESTE QUI REMÈDE À CET ÉTAT — l'entrée du registre qui le DÉCLARE (`rule` + `ruleCategory:
+ *  'etats'`, gate `etat-porte`). Source unique de son LIBELLÉ pour toute surface qui doit nommer le
+ *  geste (fenêtre du Test de récupération), à la place d'une branche par id d'État. */
+export function remedeDeLEtat(stateId: string): ActionDef | undefined {
+  return ACTIONS.find(
+    (a) => a.ruleCategory === 'etats' && a.rule === stateId && [a.gate].flat().includes(GATE_ETAT_PORTE),
+  );
+}
+
 /** Verdict d'offre d'une action, par son id — porte de lecture UNIQUE pour les surfaces.
  *  Le champ `gate` de l'entrée peut nommer PLUSIEURS prédicats : ils se composent par l'ET séquentiel
  *  déjà écrit (`et`) — toutes passent, sinon la PREMIÈRE raison refusée est rendue (aucune raison
@@ -220,7 +277,7 @@ export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
   const noms = Array.isArray(def.gate) ? def.gate : [def.gate];
   const inconnu = noms.find((g) => !ACTION_GATES[g]);
   if (inconnu) return no(`gate inconnu : ${inconnu}`);
-  return et(...noms.map((g) => ACTION_GATES[g]))(ctx);
+  return et(...noms.map((g) => ACTION_GATES[g]))({ ...ctx, def });
 }
 
 /** Contexte des sélecteurs : impurs par nature (ils lisent le combat, parfois la scène). */
@@ -357,7 +414,9 @@ export interface ActionRunCtx {
   crewId?: string;
   posteUid?: string;
   crewTestId?: string;
-  stateId?: 'empetre' | 'en-flammes';
+  /** ÉTAT visé par le geste (remède d'État) : un id de `etats.json` — c'est la DONNÉE de l'État
+   *  (`recover`) qui dit s'il se récupère, jamais une union gravée ici. */
+  stateId?: string;
   /** Bascule d'un mode ARMÉ : `true` = désarmer (re-clic sur la même case). */
   toggleOff?: boolean;
 }

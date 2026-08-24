@@ -15,6 +15,8 @@ import { DialogueBox } from './DialogueBox';
 import { MerchantPanel } from './MerchantPanel';
 import { TavernGameModal } from './TavernGameModal';
 import { CombatConsole } from './CombatConsole';
+import { EcranCapacites } from './EcranCapacites';
+import { BoutonCapacites } from './BoutonCapacites';
 import { PosteSheet } from './ShipSheet';
 import { isVehicle } from '../engine/vehicle';
 import { isEngin } from '../engine/structures';
@@ -302,6 +304,8 @@ export function CampaignView() {
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
+        {/* Écran des capacités : monté inconditionnellement, il se rend nul tant qu'il est fermé. */}
+        <EcranCapacites />
         {/* RAIL D'OUTILS (épure G) EN COMBAT : UN panneau vertical encadré au bord droit — le journal
             de bataille et l'ouvreur de dossier de navire y sont vissés, plus rien d'épars sur le champ
             ni dans la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le
@@ -311,6 +315,7 @@ export function CampaignView() {
             (`display: contents`) et chaque surface reprend son ancrage mobile propre. */}
         {mode === 'battle' && (
           <div className="hud-rail">
+            <BoutonCapacites />
             {vessel && (
               <button
                 type="button"

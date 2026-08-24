@@ -1391,6 +1391,11 @@ export interface EtatData extends StatusData {
    *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
    *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
   recover?: { skill?: string; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
+  /** EXIGENCES du remède de cet État, quand le remède n'est pas un Test mais un GESTE (À Terre : se
+   *  relever coûte le Mouvement) — `minWounds` = Blessures restantes minimales pour l'entreprendre
+   *  (`LDB 16 l.35`). Lues GÉNÉRIQUEMENT par le gate d'offre (`etat-porte`) et par le dispatcher :
+   *  une même donnée, un même verdict aux deux étages (une case ouverte sur un clic muet est un bug). */
+  recoverRequires?: { minWounds?: number };
   /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
    *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
    *  partagé par le gate de hotbar (`battleSelectAction`) ET l'IA (dépense PROACTIVE de Détermination pour se

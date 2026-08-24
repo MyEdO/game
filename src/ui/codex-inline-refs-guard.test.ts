@@ -38,6 +38,10 @@ import { codexLookupById } from './compendium/registry';
 import { ACTIONS } from '../data/index';
 
 const UI = fileURLToPath(new URL('.', import.meta.url)); // ce fichier vit dans src/ui/
+/** HORS `src/ui` : le PRODUCTEUR DE POOLS (`state/poolsDeCapacites`) porte les foyers de règle
+ *  littéraux des cases de capacité (possession tenue, Compétence d'Avantage, trait, sort, manœuvre).
+ *  Il est de l'affichage par destination — le scan le suit, sinon ce stock sortirait de la garde. */
+const HORS_UI = [fileURLToPath(new URL('../state/poolsDeCapacites.ts', import.meta.url))];
 
 export interface CodexRefLiteral {
   line: number;
@@ -153,8 +157,8 @@ interface Site extends CodexRefLiteral { rel: string }
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
   let dynamiques = 0;
-  for (const f of uiSources(UI)) {
-    const rel = 'src/ui/' + f.slice(UI.length).replace(/\\/g, '/');
+  for (const f of [...uiSources(UI), ...HORS_UI]) {
+    const rel = f.startsWith(UI) ? 'src/ui/' + f.slice(UI.length).replace(/\\/g, '/') : 'src/state/' + f.split(/[\\/]/).pop();
     const raw = lireSiPresent(f);
     if (raw === null) continue;
     const r = codexRefLiterals(rel, raw);
@@ -227,13 +231,13 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     const { sites, dynamiques } = corpus();
     expect(sites.length, 'aucun site mesuré : le scan ou le périmètre a lâché').toBeGreaterThan(20);
     // ANCRE de câblage, MESURÉE et non nominative : le scan voit PLUSIEURS fichiers, et l'un d'eux
-    // porte un STOCK. La console, elle, ne porte plus qu'une ref statique (`trappings/mains-nues`) :
-    // ses foyers de règle vivent dans `src/data/actions.json`, gardés par le test suivant.
+    // porte un STOCK. Les foyers de règle des cases vivent dans `src/data/actions.json` (gardés par le
+    // test suivant) ; ce qui reste en littéral est au producteur de pools, qui dit la pertinence.
     const parFichier = new Map<string, number>();
     for (const s of sites) parFichier.set(s.rel, (parFichier.get(s.rel) ?? 0) + 1);
     expect(parFichier.size, 'le scan ne voit plus qu’une poignée de fichiers').toBeGreaterThanOrEqual(5);
     expect(Math.max(...parFichier.values()), 'aucun fichier ne porte plus de STOCK de refs littérales').toBeGreaterThanOrEqual(5);
-    expect(sites.some((s) => s.rel === 'src/ui/CombatConsole.tsx'), 'la console est retombée hors scan').toBe(true);
+    expect(sites.some((s) => s.rel === 'src/state/poolsDeCapacites.ts'), 'le producteur de pools est retombé hors scan').toBe(true);
     expect(sites.some((s) => s.forme === 'jsx'), 'aucun site JSX mesuré : la forme `<CodexRef …>` est retombée hors scan').toBe(true);
     expect(sites.some((s) => s.rel.endsWith('.ts')), 'aucun site `.ts` mesuré : le périmètre est retombé aux seuls composants').toBe(true);
     // L'ANGLE MORT, chiffré : le corpus porte bien plus de refs à identité CALCULÉE que de littéraux.

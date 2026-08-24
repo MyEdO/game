@@ -19,6 +19,7 @@ import { GatedAction } from './GatedAction';
 import { actorHasSkill } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
+import { refusEcranCapacites } from '../state/ecranCapacitesPorte';
 import { rule } from '../engine/policy';
 import { canAfford, toMoney, formatMoney } from '../engine/money';
 import { bourseOf } from '../state/bourseFlow';
@@ -245,7 +246,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
               {tab === 'avancement' ? (
                 <AdvancementPanel hero={hero} />
               ) : tab === 'magie' ? (
-                <SpellbookSection hero={hero} />
+                <SpellbookSection hero={hero} onClose={onClose} />
               ) : tab === 'etat' ? (
                 <EtatPanel hero={hero} />
               ) : tab === 'histoire' ? (
@@ -290,8 +291,16 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
 /** Grimoire/livre de prières — incantation HORS COMBAT (couture D). Un héros lanceur cible self/allié.
  *  Les Projectiles magiques (offensifs) sont marqués « en combat » : ils exigent une cible ennemie. */
-function SpellbookSection({ hero }: { hero: Combatant }) {
+function SpellbookSection({ hero, onClose }: { hero: Combatant; onClose: () => void }) {
   const party = useGame((s) => s.party);
+  // EN COMBAT, la fiche ne LANCE plus rien : incanter, Focaliser et Dissiper sont des gestes du TOUR,
+  // et le tour a UNE surface exhaustive — l'écran des capacités (spec HUD zone 6). La fiche garde sa
+  // LECTURE (le grimoire, les NI, les composants) et porte un RENVOI VISIBLE vers cette surface.
+  const enCombat = useGame((s) => !!s.battle && !s.battle.over);
+  const setEcranCapacites = useGame((s) => s.setEcranCapacites);
+  // La PORTE de l'écran des capacités, ABONNÉE (elle dépend du tour et de la pause de Round) — la
+  // MÊME mesure que le bouton du rail : une seule politique pour toutes les portes de cet écran.
+  const refusCapacites = useGame((s) => refusEcranCapacites(s, hero.id));
   const oocCastSpell = useGame((s) => s.oocCastSpell);
   const oocFocusSpell = useGame((s) => s.oocFocusSpell);
   const oocDispelSpell = useGame((s) => s.oocDispelSpell);
@@ -316,6 +325,22 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
   return (
     <div className="sc-block sheet-spells">
       <span className="mini-title">Sorts — incantation hors combat</span>
+      {enCombat && (
+        <div className="row-flex" data-ecran="capacites">
+          {/* Le renvoi passe par LA MÊME PORTE que le bouton du rail (`refusEcranCapacites`) : il
+              n'arme jamais un drapeau qu'il ne peut pas honorer — refusé, il DIT pourquoi au
+              survol/focus au lieu de fermer la fiche sur un écran qui ne s'ouvrirait pas. */}
+          <GatedAction
+            id={`sheet-capacites-${hero.id}`}
+            label={<><Icon id="nav/compendium" size="sm" /> Incanter en combat — écran des capacités</>}
+            enabled={!refusCapacites}
+            reason={refusCapacites ?? ''}
+            primary={false}
+            btnClassName="small"
+            onClick={() => { onClose(); setEcranCapacites(true); }}
+          />
+        </div>
+      )}
       {(hero.sinPoints ?? 0) > 0 && (
         <span className="muted">
           <Icon id="ui/balance" size="sm" /> <CodexRef category="characteristics" id="peche" label="Péché">Péché : {hero.sinPoints}</CodexRef>
@@ -353,7 +378,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                 <span className="muted" title="Projectile magique : nécessite une cible ennemie (en combat)">
                   en combat
                 </span>
-              ) : (
+              ) : enCombat ? null : (
                 <span className="spell-actions">
                   {isArcaneSpell(sp) && (
                     <>
@@ -391,7 +416,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
             </span>
             {isMagicMissile(sp) ? (
               <span className="muted">en combat</span>
-            ) : (
+            ) : enCombat ? null : (
               <span className="spell-actions">
                 <GatedAction
                   id={`sheet-cast-grimoire-${hero.id}-${sp.id}`}
@@ -412,6 +437,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         // Action » — n'est pas bornée au combat. Visible seulement si le héros a Langue (Magick)
         // ET qu'au moins un sort permanent est actif dans le groupe (calque le patron de la console
         // EN combat : `canDispel && dispellable.length > 0`).
+        if (enCombat) return null;
         if (!actorHasSkill(hero, 'langue', 'magick')) return null;
         const dispellable = dispellableSpellsOn(party);
         if (!dispellable.length) return null;

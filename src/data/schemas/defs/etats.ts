@@ -43,6 +43,8 @@ export const schema = z.array(
     stacksReducedBy: z.string().optional(),
     restrictsAction: z.boolean().optional(),
     recover: recoverSchema.optional(),
+    /** `EtatData.recoverRequires` — exigences d'un remède qui n'est pas un Test (À Terre : `LDB 16 l.35`). */
+    recoverRequires: z.strictObject({ minWounds: z.number().optional() }).optional(),
     /** `EtatData.persistsAfterCombat` (`src/data/index.ts`) — LDB 16 l.56/70/84/92/107/117, LDB 62 l.250. */
     persistsAfterCombat: z.boolean().optional(),
     /** Arbitrage NON-verbatim (`EtatData.maison`, `src/data/index.ts`) — même patron que

@@ -21,7 +21,7 @@ describe('commandes de vue — hors du jeu, dans l’éditeur', () => {
     expect(editor).toMatch(/import\s+\{[^}]*ViewControls[^}]*\}/);
   });
 
-  it('le rail d’outils est monté EN COMBAT et porte le journal + le dossier de navire, rien d’autre', () => {
+  it('le rail d’outils est monté EN COMBAT et porte les capacités + le journal + le dossier de navire, rien d’autre', () => {
     const campaignView = src('./CampaignView.tsx');
     // Le rail est gaté sur le mode bataille : hors combat, la plaque du bas est le pont d'exploration.
     expect(campaignView).toMatch(/mode === 'battle' && \(\s*\n\s*<div className="hud-rail">/);
@@ -30,8 +30,10 @@ describe('commandes de vue — hors du jeu, dans l’éditeur', () => {
     expect(corps).toContain('<LogDrawer');
     // L'ouvreur du dossier porte la variante « tôle vissée » de sa primitive (world-meta.css).
     expect(corps).toMatch(/className="worldmap-btn"\s*\n\s*data-skin="tole"/);
-    // EXHAUSTIF : le seul composant du rail est le tiroir (l'`Icon` est celle du bouton de dossier).
-    expect(corps.match(/<[A-Z][A-Za-z]*/g)).toEqual(['<Icon', '<LogDrawer']);
+    // EXHAUSTIF : le rail ne porte que l'ouvreur de l'écran des capacités (composant à part, qui
+    // porte son propre refus — spec zone 6), l'ouvreur du dossier de navire (son `Icon`), et le
+    // tiroir-journal. Rien d'autre ne s'y visse.
+    expect(corps.match(/<[A-Z][A-Za-z]*/g)).toEqual(['<BoutonCapacites', '<Icon', '<LogDrawer']);
   });
 
   it('hors combat, le tiroir-journal est passé au PONT d’exploration (slot `journal`)', () => {

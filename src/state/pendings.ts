@@ -236,7 +236,9 @@ export interface PendingReload {
 export interface PendingStateRecovery {
   actorId: string;
   actorName: string;
-  state: 'empetre' | 'en-flammes';
+  /** ÉTAT en cours de récupération — un id de `etats.json` : c'est la DONNÉE de l'État (`recover`)
+   *  qui dit s'il se récupère par une Action, jamais une union gravée ici. */
+  state: string;
   skillLabel: string; // 'Force' | 'Athlétisme'
   skillValue: number;
   /** Valeur NUE de l'acteur (`LDB 09 l.17`) — grandeur du départage à DR égal (`LDB 12 l.160`). */

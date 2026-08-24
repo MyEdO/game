@@ -78,7 +78,9 @@ function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): 
   // rattrapé : `applyNetSnapshot` (`netFlow.ts`), où l'invité adopte l'état de l'hôte en bloc — aucun
   // écrivain de `camEdge: true` ne subsiste dans l'arbre, seul un hôte tournant un build ANTÉRIEUR au
   // lot pourrait en émettre un.
-  set({ ...base, ...data, screen: 'campaign', camEdge: false, net: useGame.getState().net });
+  // Les SURFACES d'écran ne se rechargent pas : une save prise écran des capacités ouvert rouvre la
+  // partie, pas l'écran (même famille que `camEdge` ci-dessus — état de VUE, jamais de partie).
+  set({ ...base, ...data, screen: 'campaign', camEdge: false, ecranCapacitesOuvert: false, net: useGame.getState().net });
   // Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
   // module ne connaît sinon que l'Arène + la scène courante → transitions/portes vers les AUTRES scènes du
   // paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (non persistée, `saves.ts`).
@@ -999,7 +1001,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Annule l'Action avant le jet de Main ensanglantée (défait une charge misclic comme `attackCancel`). */
   handGateCancel: () => void;
   /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
-  battleRecoverState: (state: 'empetre' | 'en-flammes') => void;
+  battleRecoverState: (state: string) => void;
   // recover{Roll,Reroll,BonusSL,DarkPact} (Lancer/Chance/+1 DR/Pacte) : générés (RollFlowActionsMap).
   /** « Appliquer » : retire 1 + DR pions de l'État, consomme l'Action. */
   recoverConfirm: () => void;
@@ -1403,6 +1405,10 @@ export interface GameState extends RollFlowActionsMap {
   /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `toggle-menu`) et le bouton ☰. */
   gameMenuOpen: boolean;
   setGameMenu: (open: boolean) => void;
+  /** ÉCRAN DES CAPACITÉS (spec HUD zone 6) ouvert : la surface EXHAUSTIVE des capacités du porteur,
+   *  par-dessus le jeu. Un seul état pour ses trois portes (touche, bouton du rail, renvoi de la fiche). */
+  ecranCapacitesOuvert: boolean;
+  setEcranCapacites: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
@@ -2692,6 +2698,7 @@ export const useGame = create<GameState>((set, get) => ({
   openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
   closeWorldMap: () => set({ worldMapOpen: false }),
   setGameMenu: (open) => set({ gameMenuOpen: open }),
+  setEcranCapacites: (open) => set({ ecranCapacitesOuvert: open }),
   startTravel: (routeId, mode, opts) => travelFlow.startTravel(get, set, routeId, mode, opts),
   resumeTravel: () => travelFlow.resumeTravel(get, set),
   departWaitDawn: () => travelFlow.departWaitDawn(get, set),

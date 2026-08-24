@@ -195,6 +195,18 @@ export function autoPolicyOf(s: ArbiterState): AutoPolicy | null {
   return def ? def.auto : null;
 }
 
+/**
+ * SURFACE PLEIN CHAMP posée PAR-DESSUS le champ de bataille (écran des capacités — spec HUD zone 6).
+ * Ce n'est pas une modale du registre (aucun `pending*`, aucun porteur, aucune auto-résolution) mais
+ * son VOILE couvre la carte ET la console : rien de ce qui se joue dessous n'est atteignable, ni à
+ * la souris ni au doigt. Les contextes de geste du clavier/manette la lisent donc au même titre
+ * qu'une modale — sans quoi les touches de la barre, la fin de tour et le curseur resteraient VIVANTS
+ * sous un voile opaque (mesuré, écran des capacités ouvert).
+ */
+export function surfacePleinChampCombat(s: ArbiterState): boolean {
+  return !!s.ecranCapacitesOuvert;
+}
+
 /** Une modale du registre tient-elle la fenêtre ? (Le verdict « la carte est-elle inerte ? » y ajoute
  *  l'exception des interludes pilotés par la carte : `state/mapHover.ts`.) */
 export function modalHolds(s: ArbiterState): boolean {

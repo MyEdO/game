@@ -58,6 +58,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   // émet — elles vivent au registre clavier (`state/keybindings.ts`), hors du périmètre de ce scan.
   setScreen: CLIENT('écran courant'),
   setGameMenu: CLIENT('menu système'),
+  setEcranCapacites: CLIENT('écran des capacités'),
   closeDocument: CLIENT('document lu'),
   openCodex: CLIENT('codex'),
   closeCodexOverlay: CLIENT('codex'),

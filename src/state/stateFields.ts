@@ -99,6 +99,11 @@ const STATE_FIELDS = {
   pendingDispel: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingFrenzy: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingRoundStart: { init: null, resetOn: [] },
+  // ÉCRAN DES CAPACITÉS (spec HUD zone 6) : surface plein champ, état d'ÉCRAN du client. Elle ne
+  // survit ni à un changement de scène ni à l'ouverture d'un combat (on ne reprend pas la main sous
+  // un voile ouvert au combat précédent) ; elle ne voyage pas non plus au snapshot coop
+  // (`netFlow.netSnapshot`, même famille que `localIntent`).
+  ecranCapacitesOuvert: { init: false, resetOn: ['scene', 'combatStart'] },
   preemptAiming: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingFateSave: { init: null, resetOn: [] },
   pendingVictory: { init: null, resetOn: ['combatStart'] },

@@ -415,3 +415,126 @@ describe('BackgroundPanel (rendu)', () => {
     expect(html).toContain('Modifiable hors combat');
   });
 });
+
+/**
+ * ONGLET MAGIE — LA FICHE NE JOUE PLUS EN COMBAT (spec HUD zone 6). Incanter, Focaliser et Dissiper
+ * sont des gestes du TOUR : ils ont UNE surface exhaustive, l'écran des capacités. En combat la fiche
+ * garde sa LECTURE et porte un RENVOI, sous LA MÊME PORTE que le bouton du rail
+ * (`refusEcranCapacites`) — jamais un drapeau armé qu'aucun écran n'honorerait. Hors combat, rien ne
+ * change : l'incantation hors combat reste à la fiche (couture D, `oocCastSpell`).
+ */
+describe('Onglet magie — la fiche RENVOIE en combat, elle JOUE hors combat', () => {
+  beforeAll(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  });
+  let container: HTMLDivElement;
+  let root: Root;
+  function mount(node: React.ReactElement) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root.render(node); });
+    return container;
+  }
+  afterEach(() => {
+    act(() => { root.unmount(); });
+    container.remove();
+    useGame.setState({ battle: null, ecranCapacitesOuvert: false });
+  });
+
+  /** Un incantateur avec deux sorts mémorisés — de quoi peupler la rubrique. */
+  const magicien = (): Combatant =>
+    ({ ...hero(), id: 'm1', spells: ['benediction-de-bataille', 'benediction-de-chance'] }) as unknown as Combatant;
+
+  const boutonsDeSort = () => [...container.querySelectorAll('.spell-actions button')];
+
+  it('HORS COMBAT : les gestes d’incantation de la fiche sont INTACTS, aucun renvoi', () => {
+    const h = magicien();
+    useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'magie' });
+    mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+    expect(boutonsDeSort().length, 'la fiche ne joue plus hors combat').toBeGreaterThan(0);
+    expect(container.querySelector('[data-ecran="capacites"]'), 'un renvoi hors combat : la fiche y joue déjà').toBeNull();
+  });
+
+  it('EN COMBAT, à son tour : plus AUCUN bouton d’action, un renvoi OFFERT vers l’écran', () => {
+    const h = magicien();
+    h.pos = { x: 1, y: 1 };
+    useGame.setState({
+      party: [h], sheetId: h.id, sheetTab: 'magie',
+      battle: { combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: null,
+        selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false,
+        log: [], over: null } as never,
+    });
+    let ferme = 0;
+    mount(<CharacterSheet heroId={h.id} onClose={() => { ferme++; }} />);
+    expect(boutonsDeSort().length, 'la fiche joue encore un geste de tour en combat').toBe(0);
+    const renvoi = container.querySelector('[data-ecran="capacites"] button') as HTMLButtonElement;
+    expect(renvoi, 'aucun renvoi vers l’écran des capacités').toBeTruthy();
+    expect(renvoi.getAttribute('aria-disabled'), 'le renvoi est refusé à son PROPRE tour').toBeNull();
+    act(() => { renvoi.click(); });
+    expect(ferme, 'le renvoi n’a pas refermé la fiche').toBe(1);
+    expect(useGame.getState().ecranCapacitesOuvert, 'le renvoi n’a pas ouvert l’écran').toBe(true);
+  });
+
+  it('EN COMBAT, au tour d’un AUTRE : le renvoi REFUSE avec sa raison, et n’arme rien', () => {
+    const h = magicien();
+    h.pos = { x: 1, y: 1 };
+    const foe = { ...hero(), id: 'e1', kind: 'enemy', pos: { x: 3, y: 3 } } as unknown as Combatant;
+    useGame.setState({
+      party: [h], sheetId: h.id, sheetTab: 'magie',
+      battle: { combatants: [h, foe], order: [h.id, foe.id], baseOrder: [h.id, foe.id], turn: 1, round: 1,
+        action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
+        acted: false, log: [], over: null } as never,
+    });
+    let ferme = 0;
+    mount(<CharacterSheet heroId={h.id} onClose={() => { ferme++; }} />);
+    const renvoi = container.querySelector('[data-ecran="capacites"] button') as HTMLButtonElement;
+    expect(renvoi, 'aucun renvoi rendu').toBeTruthy();
+    expect(renvoi.getAttribute('aria-disabled'), 'le renvoi s’offre alors que l’écran refuserait').toBe('true');
+    // La RAISON existe et est atteignable (copie hors écran de `GatedAction`, liée par aria-describedby).
+    const raison = container.querySelector(`#${renvoi.getAttribute('aria-describedby')}`);
+    expect(raison?.textContent, 'le refus ne dit pas pourquoi').toBeTruthy();
+    act(() => { renvoi.click(); });
+    expect(useGame.getState().ecranCapacitesOuvert, 'le renvoi a armé un drapeau qu’il ne peut pas honorer').toBe(false);
+    expect(ferme, 'le renvoi a fermé la fiche pour rien').toBe(0);
+  });
+});
+
+/**
+ * LE RENVOI EST CELUI DU PORTEUR QUI JOUE — l'écran des capacités montre l'ACTIF : ouvrir depuis la
+ * fiche d'un AUTRE héros donnerait les capacités d'un tiers. La porte le refuse (même mesure unique,
+ * `refusEcranCapacites(state, heroId)`).
+ */
+describe('Onglet magie — le renvoi n’ouvre que pour le porteur qui a la main', () => {
+  beforeAll(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  });
+  let container: HTMLDivElement;
+  let root: Root;
+  afterEach(() => {
+    act(() => { root.unmount(); });
+    container.remove();
+    useGame.setState({ battle: null, ecranCapacitesOuvert: false });
+  });
+
+  it('fiche de Wilhelm pendant le tour de Gunnar : le renvoi REFUSE et n’ouvre rien', () => {
+    const gunnar = ({ ...hero(), id: 'g1', label: 'Gunnar', pos: { x: 1, y: 1 } }) as unknown as Combatant;
+    const wilhelm = ({ ...hero(), id: 'w1', label: 'Wilhelm', pos: { x: 2, y: 2 },
+      spells: ['benediction-de-bataille'] }) as unknown as Combatant;
+    useGame.setState({
+      party: [gunnar, wilhelm], sheetId: wilhelm.id, sheetTab: 'magie',
+      battle: { combatants: [gunnar, wilhelm], order: [gunnar.id, wilhelm.id], baseOrder: [gunnar.id, wilhelm.id],
+        turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0,
+        movedPreAction: false, acted: false, log: [], over: null } as never,
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root.render(<CharacterSheet heroId={wilhelm.id} onClose={() => {}} />); });
+    const renvoi = container.querySelector('[data-ecran="capacites"] button') as HTMLButtonElement;
+    expect(renvoi, 'aucun renvoi rendu sur la fiche').toBeTruthy();
+    expect(renvoi.getAttribute('aria-disabled'), 'la fiche d’un autre héros ouvre l’écran de l’actif').toBe('true');
+    act(() => { renvoi.click(); });
+    expect(useGame.getState().ecranCapacitesOuvert, 'l’écran s’est ouvert sur les capacités d’un tiers').toBe(false);
+  });
+});

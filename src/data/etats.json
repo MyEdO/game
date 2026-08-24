@@ -67,6 +67,9 @@
     "gating": {
       "movement": "half"
     },
+    "recoverRequires": {
+      "minWounds": 1
+    },
     "icon": "condition/prone",
     "severity": 75,
     "aiThreat": 3

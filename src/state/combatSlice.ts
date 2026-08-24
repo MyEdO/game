@@ -56,7 +56,7 @@ import { resolveOpposed, extendedTestStep } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
-import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
+import { loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 import { recomputeLoadout, itemFromGive, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem } from '../engine/items';
 import { trappingById, resolvePresetCreature } from './campaignData';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -2121,7 +2121,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
     },
     handGateCancel: () => set({ pendingHandGate: null }), // avant le jet : aucun coût (l'Action n'est pas encore ouverte)
-    battleRecoverState: (state: 'empetre' | 'en-flammes') => {
+    battleRecoverState: (state: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const { battle } = get();
       if (!battle || battle.over || battle.acted) return;
@@ -2749,7 +2749,16 @@ export function createCombatSlice(get: Get, set: Set) {
         // (AskUserQuestion 2026-08-16, même fiche `:39-42`), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
         // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
-        for (const rw of c.weapons.filter((w) => w.type === 'ranged')) loadWeapon(c, rw);
+        // DÉFAUT, jamais un ÉCRASEMENT : on ne charge que ce dont le cycle de charge n'a JAMAIS
+        // commencé (`loaded` absent du registre). Un état de charge DÉCLARÉ garde le sien — celui
+        // qu'une scène AUTHORE (`ItemInstance.loaded`, la carte décide et le moteur suit : un
+        // scénario qui met deux pistolets vides au poing doit pouvoir le montrer) comme celui que le
+        // combat précédent a laissé (coup parti, Test étendu de rechargement en cours, LDB 62 l.335).
+        // MÊME idiome que la pièce servie (`state/shipPostes.ts`, « une pièce qui a TIRÉ garde son
+        // état ») ; ce chargement d'entrée est une commodité MAISON, aucune règle ne l'exige.
+        for (const rw of c.weapons.filter((w) => w.type === 'ranged')) {
+          if (loadRegister(c, rw).loaded === undefined) loadWeapon(c, rw);
+        }
         return c;
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits

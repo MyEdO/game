@@ -246,6 +246,17 @@
   min-width: 0;
 }
 
+/* BLOC de rubrique (`.sc-block`) — EMPILEMENT vertical d'un titre et de ses lignes : la matière
+   commune du panneau Sorts de la fiche héros et du détail de l'écran des capacités. Sans règle, ses
+   enfants se collaient bout à bout sur une ligne (« VISERArme au poing », recette 2026-08-24). */
+.sc-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
 /* ── CHIP / badge ── (.tag reste un alias historique) */
 .chip {
   display: inline-flex;
@@ -273,6 +284,31 @@ button.chip:hover {
   border-color: var(--gold);
   background: color-mix(in srgb, var(--gold) 16%, transparent);
   color: var(--gold2);
+}
+/* ÉTATS d'un chip-CAPACITÉ (`<button className="chip">` qui LANCE un geste : écran des capacités,
+   et tout site qui offrira le même descripteur) — à la PRIMITIVE, jamais une classe par écran :
+   · REFUSÉ (`aria-disabled`) : encre grisée qui tient AA sur le fond (`--cc-gated-ink`, le ton des
+     alvéoles fermées de la console), cadre éteint, curseur d'interdit — et AUCUN survol doré, une
+     case fermée ne promet rien ;
+   · ARMÉ (`data-armee`) : le doré de la maison, MÊME arrêt que le chip-interrupteur ci-dessus ;
+   · ÉLU pour lecture (`data-elue`) : liseré discret seulement — l'élection déplace un détail, elle
+     ne dit pas « pressé » (ni `aria-pressed`, ni le plein doré). */
+
+button.chip[aria-disabled='true'] {
+  color: var(--cc-gated-ink);
+  border-color: color-mix(in srgb, var(--cc-gated-ink) 40%, transparent);
+  cursor: not-allowed;
+}
+button.chip[aria-disabled='true']:hover {
+  border-color: color-mix(in srgb, var(--cc-gated-ink) 40%, transparent);
+}
+.chip[data-armee] {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold2);
+}
+.chip[data-elue] {
+  border-color: var(--gold2);
 }
 /* Variantes de TON (#492 bande d'alarmes) : un chip qui SIGNALE prend la gravité, jamais une couleur
    inline — `.tone-warn` (or) reprend `.warn-text` (creator.css), `.tone-danger` le rouge d'alerte. */

@@ -7,6 +7,8 @@ import { opposedLines } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
 import { describeStateRecovery } from '../state/flowOutcomes';
+import { remedeDeLEtat } from '../state/actionRegistry';
+import { conditionLabel } from '../data';
 
 /** Vue pure de la modale « se libérer » (Empêtré) / « se rouler » (En flammes). Testable sans store. */
 export function StateRecoveryModalView({
@@ -74,7 +76,7 @@ export function StateRecoveryModalView({
     <RollShell
       flowKey="recover"
       stake={flowStakeRef('recover', sr.state)}
-      title={sr.state === 'empetre' ? 'Se libérer' : 'Se rouler au sol'}
+      title={remedeDeLEtat(sr.state)?.label ?? conditionLabel(sr.state)}
       subtitle={<>{sub} · {sr.stacks} pion{sr.stacks > 1 ? 's' : ''}</>}
       rows={witness ? [actorRow, witness] : [actorRow]}
       rolled={rolled}

@@ -347,7 +347,11 @@
     "label": "Se rouler",
     "icon": "action/roll-fire",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": [
+      "action-libre",
+      "etat-porte",
+      "remede-atteignable"
+    ],
     "run": "battleRecoverState",
     "cost": "action",
     "rule": "en-flammes",
@@ -361,7 +365,11 @@
     "label": "Se libérer",
     "icon": "action/break-free",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": [
+      "action-libre",
+      "etat-porte",
+      "remede-atteignable"
+    ],
     "run": "battleRecoverState",
     "cost": "action",
     "rule": "empetre",
@@ -375,7 +383,11 @@
     "label": "Se relever",
     "icon": "action/stand-up",
     "surface": "grille",
-    "gate": "mouvement-intact",
+    "gate": [
+      "mouvement-intact",
+      "etat-porte",
+      "remede-atteignable"
+    ],
     "run": "battleStandUp",
     "cost": "mouvement",
     "rule": "a-terre",

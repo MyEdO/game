@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `hasHealSkill`, `possesses`, `specEntrySchema`, `redaction`, `buySkillAdvance`, `athletisme`, `wildcardSpecs`, `buildAdvancementView`, `ACTION_GATES`, `combatBaseValue`, +11 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/skills.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/axes.ts`, +14 fichiers
+- `LDB 9` (l.34-46) → `hasHealSkill`, `possesses`, `specEntrySchema`, `redaction`, `buySkillAdvance`, `athletisme`, `wildcardSpecs`, `buildAdvancementView`, `combatBaseValue`, `ACTION_GATES`, +11 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/skills.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/axes.ts`, +14 fichiers
 
 ---
 
@@ -625,7 +625,7 @@ Activité Artisanat entre aventures utilise Métier (voir [Activités](activites
 **Sources RAW :** LDB 09 l.349-364
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.305-308, l.311-346, l.348, l.349-364) → `altCharKey`, `skillAdvantageCap`, `test-metier-int`, `ACTION_GATES`, `PendingTest`, `openSkillTest`, `skill-advantage`, `intimidation`, `intuition`, `noir-parler`, +9 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/skillCombatApps.ts`, `src/engine/skills.ts`, +7 fichiers
+- `LDB 9` (l.305-308, l.311-346, l.348, l.349-364) → `altCharKey`, `skillAdvantageCap`, `test-metier-int`, `PendingTest`, `ACTION_GATES`, `openSkillTest`, `skill-advantage`, `intimidation`, `intuition`, `noir-parler`, +9 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/skillCombatApps.ts`, `src/engine/skills.ts`, +7 fichiers
 - `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 
 ---

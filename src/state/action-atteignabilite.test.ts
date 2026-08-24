@@ -32,7 +32,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ACTIONS } from '../data/index';
-import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
+import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, GATE_ETAT_PORTE, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
 import { KEYBINDINGS } from './keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
@@ -44,6 +44,13 @@ import { makeRNG } from '../engine/dice';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const CONSOLE_SRC = src('../ui/CombatConsole.tsx');
+/** LE PRODUCTEUR DE POOLS (`state/poolsDeCapacites`) : depuis qu'il porte la PERTINENCE (quelle case
+ *  naît pour ce porteur), les ids d'action littéraux vivent là — la console et l'écran de capacités
+ *  n'en font que l'habillage. Le scan lit donc les DEUX sources : une case posée par un site d'accueil
+ *  (panneau-paramètre, gouttière, pastille) reste littérale à la console. */
+const POOLS_SRC = src('./poolsDeCapacites.ts');
+/** L'ÉCRAN DE CAPACITÉS : surface EXHAUSTIVE du même pool (il ne déclare aucune case à lui). */
+const ECRAN_SRC = src('../ui/EcranCapacites.tsx');
 const FRISE_SRC = src('../ui/InitiativeStrip.tsx');
 const TARGETING_SRC = src('./targetingModes.ts');
 
@@ -61,13 +68,13 @@ function keysFrom(source: string, re: RegExp): string[] {
 /** Actions RENDUES par la console : elle ne déclare plus de cases à la main, elle CONSOMME le
  *  registre — une case naît d'un appel `cellFor('<id d'action>', …)`. On lit donc les ids d'action au
  *  site d'appel (+ le `data-cell="…"` littéral du coin de fin de tour, qui n'est pas une alvéole). */
-const CONSOLE_KEYS = [
-  ...keysFrom(CONSOLE_SRC, /cellFor\(\s*'([^']+)'()/g),
-  ...keysFrom(CONSOLE_SRC, /data-action="([^"]+)"()/g),
+const CONSOLE_KEYS = [CONSOLE_SRC, POOLS_SRC, ECRAN_SRC].flatMap((source) => [
+  ...keysFrom(source, /cellFor\(\s*'([^']+)'()/g),
+  ...keysFrom(source, /data-action="([^"]+)"()/g),
   // La console EXÉCUTE aussi des entrées sans alvéole (vignette de set, geste du bandeau de pause) :
   // son appel au registre est la surface, au même titre qu'une case.
-  ...keysFrom(CONSOLE_SRC, /runAction\(\s*'([^']+)'()/g),
-];
+  ...keysFrom(source, /runAction\(\s*'([^']+)'()/g),
+]);
 
 /** La FRISE d'initiative est une surface d'accueil du registre (spec §1d : `raise-hand` y vit) : elle
  *  marque l'entrée qu'elle rend par le MÊME attribut structurel que la console (`data-action`). */
@@ -89,9 +96,19 @@ const INTERLUDE_KEYS = INTERLUDE_BRANCHE ? ACTIONS.filter((a) => a.surface === '
  *  littéral. Sa surface est CE branchement, ET la présence d'une case pour l'hôte. La preuve
  *  structurelle (l'alvéole hôte porte `data-geste-2e`, le clic droit dispatche, le refus se lit) est
  *  au DOM dans `CombatConsole.test.tsx` : débrancher le rendeur y vire rouge. */
-const GESTE_2E_BRANCHE = /surface === 'geste-secondaire'/.test(CONSOLE_SRC);
+const GESTE_2E_BRANCHE = /surface === 'geste-secondaire'/.test(POOLS_SRC);
 const GESTE_2E_KEYS = GESTE_2E_BRANCHE
   ? ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote && CONSOLE_KEYS.includes(a.hote)).map((a) => a.id)
+  : [];
+
+/** Un REMÈDE D'ÉTAT (Se relever, Se rouler, Se libérer) n'a plus d'id cité au site : sa PERTINENCE
+ *  est le gate que SON entrée DÉCLARE (`etat-porte` — l'entrée dit l'État qu'elle traite par
+ *  `rule` + `ruleCategory: 'etats'`), et le producteur de pools rend TOUTES les entrées qui le
+ *  portent. Sa surface est CE branchement, mesuré à sa source ; la preuve structurelle (la case
+ *  naît de l'État porté, exécute son dispatcher) est au DOM dans `CombatConsole.test.tsx` (R-6). */
+const REMEDE_BRANCHE = POOLS_SRC.includes('GATE_ETAT_PORTE');
+const REMEDE_KEYS = REMEDE_BRANCHE
+  ? ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_PORTE)).map((a) => a.id)
   : [];
 
 /** Une PASTILLE D'ENTITÉ n'a pas de case : elle naît de la chose qui l'offre, sur le champ (spec zone
@@ -107,7 +124,7 @@ const OFFRES_SRC = src('./registreOffres.ts');
  *  appelants) : une entrée de ces surfaces SANS porteur déclaré est skippée EN SILENCE par le socle — elle
  *  n'atteindrait donc personne. C'est ce que la garde de porteur ci-dessous refuse. */
 const OFFRES_CONSOMMEES = [...new Set(
-  [OFFRES_SRC, src('../ui/CombatConsole.tsx')]
+  [OFFRES_SRC, POOLS_SRC, ECRAN_SRC]
     .flatMap((s) => s.split("offresDuRegistre(").slice(1).map((suite) => suite.split("'")[1]))
     .filter((s) => ACTIONS.some((a) => a.surface === s)), // écarte la DÉCLARATION du socle (son paramètre)
 )];
@@ -117,8 +134,9 @@ const PASTILLE_KEYS = PASTILLE_BRANCHE
   : [];
 
 /** Surfaces VIVANTES : la console, le bandeau d'interlude qu'elle rend, les gestes secondaires de ses
- *  alvéoles, les PASTILLES des entités du champ, la FRISE, et le clavier. */
-const SURFACES_VIVANTES = new Set([...CONSOLE_KEYS, ...FRISE_KEYS, ...INTERLUDE_KEYS, ...GESTE_2E_KEYS, ...PASTILLE_KEYS, ...KEYBINDING_IDS]);
+ *  alvéoles, les REMÈDES d'État que le producteur de pools rend par déclaration, les PASTILLES des
+ *  entités du champ, la FRISE, et le clavier. */
+const SURFACES_VIVANTES = new Set([...CONSOLE_KEYS, ...FRISE_KEYS, ...INTERLUDE_KEYS, ...GESTE_2E_KEYS, ...REMEDE_KEYS, ...PASTILLE_KEYS, ...KEYBINDING_IDS]);
 
 /** Les clés qu'une action revendique : son id + ses clés de surface encore forkées. */
 const claimedKeys = (a: (typeof ACTIONS)[number]) => [a.id, ...(a.keys ?? [])];

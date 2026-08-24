@@ -106,6 +106,9 @@ export function netSnapshot(get: Get): Record<string, unknown> {
   // clic. L'hôte qui refuse son propre geste n'a rien à dire aux autres tables ; et quand il exécute
   // l'intent d'un invité, le refus éventuel appartient à l'invité, pas au sien.
   delete (data as Record<string, unknown>).refus;
+  // MÊME raison pour l'ÉCRAN DES CAPACITÉS (spec HUD zone 6) : c'est une SURFACE ouverte par CE
+  // joueur, par-dessus SON jeu. Le voile de l'hôte n'a rien à poser sur la table des autres.
+  delete (data as Record<string, unknown>).ecranCapacitesOuvert;
   // Les règles maison de l'HÔTE voyagent avec l'état → parité hôte/invité (sinon l'invité calcule
   // sur SES propres surcharges localStorage et diverge).
   return packHouseRules(data, ruleOverrides());
@@ -160,6 +163,7 @@ export function applyNetSnapshot(set: Set, data: Record<string, unknown>): void 
     localIntent: mine.localIntent,
     dispelCarrierId: mine.dispelCarrierId, // le porteur élu est le choix EN COURS de ce client
     refus: mine.refus, // le refus du CLIENT survit au snapshot : c'est SON retour de geste
+    ecranCapacitesOuvert: mine.ecranCapacitesOuvert, // la surface OUVERTE par ce client lui appartient
 
     net: {
       ...(incoming ?? mine.net),

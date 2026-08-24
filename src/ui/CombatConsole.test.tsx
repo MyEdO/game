@@ -16,6 +16,7 @@ import { weaponLoaded } from '../engine/weaponLoad';
 import { t } from '../i18n';
 import { visibleFocusables } from './Modal';
 import { hotbar } from '../state/hotbarBridge';
+import { poserDansBarre } from '../state/dispositionConsole';
 import { regles, findQualityById, findActionById, findVehicleById, ACTIONS, type ActionDef } from '../data/index';
 import { ActiveModal } from './ActiveModal';
 import { vehicleCombatant } from '../engine/vehicle';
@@ -3602,5 +3603,75 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
     expect(refusAuTap(det), 'au doigt, la raison reste introuvable').toBe(attendue);
     expect(useGame.getState().battle!.combatants[0].resolve, 'le tap a dépensé quelque chose').toBe(avant);
     expect(useGame.getState().battle!.action, 'le tap a armé un mode').toBeNull();
+  });
+});
+
+/**
+ * SONDE PROMUE — LA BARRE N'OFFRE QUE LE POOL. Une adresse peut porter n'importe quelle entrée du
+ * REGISTRE (le validateur d'écriture `poserDansBarre` ne connaît que lui), mais la case n'est rendue
+ * que si le POOL du porteur porte cette clé : poser un sort que le porteur ne connaît pas laisse le
+ * rang VIDE, en silence. C'est le contrat qui rend l'écran de capacités nécessaire — il n'offre au
+ * placement QUE ce que `poolsDuPorteur` produit, et rien d'autre ne peut aboutir à une case vivante.
+ */
+describe('disposition — une clé hors POOL rend un trou (et le pool, une case)', () => {
+  it('un sort inconnu du porteur laisse son rang vide ; une capacité du pool le remplit', () => {
+    // Le porteur CONNAÎT un sort : le pool porte donc des cases `cast-spell` — mais AUCUNE à cette
+    // clé-là. Une résolution qui retomberait sur l'`actionId` rendrait le sort du voisin.
+    const h = hero('h1', 'Gunnar');
+    h.spells = ['benediction-de-bataille'];
+    const horsPool = poserDansBarre(h, { zone: 'capacites', index: 4 }, { actionId: 'cast-spell', cle: 'sort-inconnu' });
+    monter(horsPool);
+    const rangs = () => [...host.querySelectorAll('.cc-grid-right .cc-cell')];
+    expect(rangs().length, 'la grille de capacités n’a pas sa géométrie').toBeGreaterThan(4);
+    expect(rangs()[4].classList.contains('cc-empty'), 'une clé hors pool a produit une case vivante').toBe(true);
+    expect(rangs()[4].getAttribute('data-action'), 'la case porte une action que le pool n’offre pas').toBeNull();
+    // TÉMOIN POSITIF : au MÊME rang, une clé QUE LE POOL PORTE rend bien sa case (la sonde ne mesure
+    // pas un rang mort).
+    const temoin = hero('h1', 'Gunnar');
+    temoin.spells = ['benediction-de-bataille'];
+    const duPool = poserDansBarre(temoin, { zone: 'capacites', index: 4 }, { actionId: 'defend', cle: 'defend' });
+    monter(duPool);
+    expect(rangs()[4].getAttribute('data-action')).toBe('defend');
+  });
+});
+
+/**
+ * REMÈDE D'ÉTAT — LE GATE EST LE MIROIR DE SON DISPATCHER (sonde du juge). « Se relever » est refusé
+ * à 0 Blessure (`LDB 16 l.35`) : le dispatcher le garde déjà (`battleStandUp`), l'offre doit le dire
+ * AVANT le clic. Le patron de la console est la case DESSINÉE, fermée, qui porte sa raison — jamais
+ * une case qui disparaît (le joueur perdrait le pourquoi) ni un clic muet.
+ * La mesure est prise SUR LA DONNÉE (`EtatData.recoverRequires`, lue par le gate) : c'est elle qui
+ * tient les deux étages.
+ */
+describe('remède d’État — offre et dispatcher rendent le MÊME verdict', () => {
+  const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
+  /** Héros À TERRE, avec le compte de Blessures voulu. */
+  function aTerre(wounds: number) {
+    const h = hero('h1', 'Gunnar');
+    h.conditions = [{ id: 'a-terre', value: 1 }] as ConditionInstance[];
+    h.wounds.current = wounds;
+    return h;
+  }
+
+  it('0 Blessure : la case « Se relever » est DESSINÉE, FERMÉE, et dit pourquoi', () => {
+    monter(aTerre(0), { foes: [foe('e1', 9, 9)] });
+    const cell = caseAction('stand');
+    expect(cell, 'la case de relevé a disparu au lieu de dire son refus').not.toBeNull();
+    expect(cell!.getAttribute('data-gated'), 'la case ne se déclare pas fermée').toBe('');
+    // … et la raison est CELLE DE LA DONNÉE (`recoverRequires.minWounds` d'À Terre), pas une autre :
+    // c'est ce qui prouve que le gate lit l'exigence déclarée et non un repli générique.
+    expect(cell!.querySelector('[data-gate]')!.textContent).toBe(t('agate.remedyNeedsWounds'));
+    // … et le clic ne fait RIEN (le dispatcher refuse la même chose) : l'État reste porté.
+    act(() => (cell as HTMLButtonElement).click());
+    expect(useGame.getState().battle!.combatants[0].conditions.some((c) => c.id === 'a-terre'), 'le héros s’est relevé à 0 PB').toBe(true);
+  });
+
+  it('TÉMOIN — 5 Blessures : la case est OFFERTE et le clic relève', () => {
+    monter(aTerre(5), { foes: [foe('e1', 9, 9)] });
+    const cell = caseAction('stand');
+    expect(cell, 'la case de relevé n’est pas offerte').not.toBeNull();
+    expect(cell!.getAttribute('data-gated'), 'la case est fermée alors que le relevé est possible').toBeNull();
+    act(() => (cell as HTMLButtonElement).click());
+    expect(useGame.getState().battle!.combatants[0].conditions.some((c) => c.id === 'a-terre'), 'le clic n’a pas relevé').toBe(false);
   });
 });

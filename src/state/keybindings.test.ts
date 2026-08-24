@@ -300,3 +300,37 @@ describe('raccourcis — Échap pendant l’interlude d’un AUTRE siège (coop)
     expect(hits, 'un siège sans sortie ET sans menu serait enfermé par l’interlude d’autrui').toEqual(['toggle-menu']);
   });
 });
+
+/**
+ * SURFACE PLEIN CHAMP ouverte PAR-DESSUS le combat (écran des capacités, spec HUD zone 6) : son
+ * voile couvre la carte ET la console. Aucun geste de combat ne se joue dessous — ni la barre
+ * (1-8), ni la fin de tour, ni le curseur : le socle le lit UNE fois
+ * (`modalArbiter.surfacePleinChampCombat`, consommé par les deux contextes `noModal`/`mapLive`),
+ * jamais liaison par liaison. Restent vivantes : la touche de l'écran lui-même (elle FERME) et la
+ * caméra, qui n'engage rien et reste libre sous toute surface (comportement de TOUTES les modales,
+ * antérieur à cet écran).
+ */
+describe('raccourcis — un écran plein champ éteint les gestes de combat qui sont dessous', () => {
+  const SECTIONS_DE_COMBAT = ['combat', 'hotbar', 'curseur'] as const;
+  const actives = (s: GameState) =>
+    KEYBINDINGS.filter((b) => SECTIONS_DE_COMBAT.includes(b.section as (typeof SECTIONS_DE_COMBAT)[number]) && b.when(s)).map((b) => b.id);
+
+  it('TÉMOIN — écran fermé, la barre / la fin de tour / le curseur répondent', () => {
+    const vivantes = actives(fake());
+    expect(vivantes, 'aucun geste de combat mesuré : la sonde serait verte à vide').toContain('end-turn');
+    expect(vivantes).toContain('hotbar-1');
+    expect(vivantes).toContain('cursor-up');
+  });
+
+  it('MESURE — écran des capacités ouvert, plus un seul geste de combat sauf la touche de l’écran', () => {
+    // `toggle-inspect` reste : c'est une OPTION d'affichage (montrer les statblocs au clic), elle
+    // n'engage ni ressource ni tour, et sa garde (`inBattle`) est celle qu'elle avait sous TOUTE
+    // modale — hors du périmètre de cette surface. Tout le reste s'éteint.
+    expect(actives(fake({ ecranCapacitesOuvert: true }))).toEqual(['toggle-inspect', 'ecran-capacites']);
+  });
+
+  it('la touche de l’écran reste vivante pour le FERMER, même hors de sa porte d’ouverture', () => {
+    // Ouvert alors que le tour a changé de main : la touche doit encore refermer ce qui est à l'écran.
+    expect(binding('ecran-capacites').when(fake({ ecranCapacitesOuvert: true, pendingRoundStart: {} as never })), 'K ne referme plus').toBe(true);
+  });
+});

@@ -379,7 +379,7 @@ describe('Zone 11 — le journal est SUR le pont hors combat, au RAIL en combat'
     const rail = el.querySelector('.hud-rail');
     expect(rail, 'en combat, le rail est la plaque d’outils').not.toBeNull();
     expect(rail!.querySelector('.log-drawer')).not.toBeNull();
-    const dossier = rail!.querySelector('.worldmap-btn');
+    const dossier = rail!.querySelector('.worldmap-btn:not([data-ecran])');
     expect(dossier!.getAttribute('title')).toBe('Dossier du navire — état, cargaison, équipage');
     expect(dossier!.getAttribute('data-skin')).toBe('tole');
     // Zéro flottant en barre haute, en AUCUN mode (le dossier y vivait).
