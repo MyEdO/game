@@ -336,6 +336,55 @@ test(
   },
 )
 
+// Question utilisateur 2026-09-06 : « … alors que c'est dans un worktree ». La cible se résout
+// contre l'arbre visé : dedans = silence, dehors = arbitrage.
+test('D : une suppression RÉCURSIVE dont la cible est DANS le worktree prouvé passe en SILENCE', () => {
+  const { base, lie } = deuxArbres()
+  try {
+    assert.ok(silent(`cd ${lie} && rm -rf .claude/skills/x`), 'rm -rf dans le worktree : le hook parle encore')
+    assert.ok(silent(`cd ${lie} && Remove-Item -Recurse -Force .claude/skills/x`), 'Remove-Item dans le worktree')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('D : une cible qui SORT du worktree reste ASK, et l’arbre principal ne change pas', () => {
+  const { base, principal, lie } = deuxArbres()
+  try {
+    assert.equal(evaluate(`cd ${lie} && rm -rf ${principal}/src`)?.decision, 'ask', 'chemin absolu hors worktree')
+    assert.equal(evaluate(`cd ${lie} && rm -rf ../principal/src`)?.decision, 'ask', 'chemin relatif qui remonte')
+    assert.equal(evaluate(`cd ${principal} && rm -rf src/x`)?.decision, 'ask', 'arbre PRINCIPAL')
+    assert.equal(evaluate('rm -rf src/x')?.decision, 'ask', 'aucun répertoire prouvé')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test(
+  'D : la graphie MSYS `/c/…` du `cd` désigne le même worktree — silence',
+  { skip: process.platform === 'win32' ? false : 'la graphie `/c/…` n’est convertie que sur win32' },
+  () => {
+    const { base, lie } = deuxArbres()
+    try {
+      const msys = lie.replace(/\\/g, '/').replace(/^([A-Za-z]):\//, (_m, d) => `/${d.toLowerCase()}/`)
+      assert.ok(silent(`cd ${msys} && rm -rf sub`), `cd ${msys} : le hook parle encore`)
+    } finally {
+      rmSync(base, { recursive: true, force: true })
+    }
+  },
+)
+
+// Le préfixe de chaîne ne suffit pas : un dossier FRÈRE dont le nom commence par celui du worktree
+// est dehors — le séparateur est exigé.
+test('D : un frère `<worktree>-autre` n’est pas DANS le worktree — ASK', () => {
+  const { base, lie } = deuxArbres()
+  try {
+    assert.equal(evaluate(`cd ${lie} && rm -rf ${lie}-autre`)?.decision, 'ask')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('D : la jonction node_modules reste DENY, et `push --force` reste ASK, même en worktree prouvé', () => {
   const { base, lie } = deuxArbres()
   try {

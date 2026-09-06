@@ -21,10 +21,10 @@
 // partagé) — sans lui, `Write-Output "git stash"` ou un message de commit citant `git reset --hard`
 // déclenchaient un `ask` sur une commande qui n'exécute rien (faux positif mesuré 2026-08-03).
 import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
+import { resolve, sep } from 'node:path'
 import {
   segmentsProfonds, gitSubcommand, valeurParametre, indexParametre,
-  repertoireNommeParLaCommande, estWorktreeLie,
+  repertoireNommeParLaCommande, estWorktreeLie, versCheminNatif,
 } from './solde-ticket-guard.mjs'
 
 /** Une option courte parmi `letters` est-elle présente (isolée ou groupée : `-fd`, `-fdx`) ? */
@@ -151,6 +151,17 @@ function ciblesSuppressionRecursive(segment) {
   return []
 }
 
+/** La cible est-elle À L'INTÉRIEUR du répertoire `vise` (qui compte lui-même comme dedans) ? Une
+ *  cible relative se résout contre `vise`, une cible absolue s'impose ; la graphie MSYS (`/c/…`)
+ *  passe par la MÊME couture que la preuve de répertoire (`versCheminNatif`). Sur win32 la
+ *  comparaison ignore la casse, et le séparateur est exigé (`<vise>-autre` est dehors). */
+function cibleDansLeRepertoire(cible, vise) {
+  const pli = (p) => (process.platform === 'win32' ? p.toLowerCase() : p)
+  const abs = pli(resolve(vise, versCheminNatif(cible)))
+  const racine = pli(resolve(vise))
+  return abs === racine || abs.startsWith(racine.endsWith(sep) ? racine : racine + sep)
+}
+
 /** Le SHA passé APRÈS le séparateur `--` d'un `git show`, ou `null`. Tout ce qui suit `--` est un
  *  PATHSPEC : le commit y devient un filtre de chemin, et la commande rend silencieusement le même
  *  résultat pour tous les commits (piège mesuré 2026-08-26, fiche
@@ -192,6 +203,11 @@ export function repertoireProuve(command, cwd = null) {
  * `git -C ./.wt-inexistant reset --hard` passait en silence (mesuré 2026-09-04). Sans preuve de
  * répertoire, `ask` inchangé, et le message dit le geste. `stash` reste `ask` PARTOUT : sa pile est
  * partagée par tous les worktrees.
+ *
+ * MÊME porte pour une SUPPRESSION RÉCURSIVE (question utilisateur 2026-09-06 : « … alors que c'est
+ * dans un worktree ») : silence quand l'arbre visé est un worktree lié PROUVÉ et que la cible,
+ * résolue contre lui, est DANS cet arbre. Une cible qui en sort (`../<autre arbre>/src`, chemin
+ * absolu vers l'arbre principal) reste `ask`, et sans preuve de répertoire rien ne change.
  */
 export function evaluate(command, { cwd = null } = {}) {
   if (!command) return null
@@ -210,7 +226,8 @@ export function evaluate(command, { cwd = null } = {}) {
       }
     }
     const cibles = ciblesSuppressionRecursive(segment)
-    const aArbitrer = cibles.filter((c) => !CIBLES_JETABLES.some((re) => re.test(c)))
+    const aArbitrer = cibles.filter((c) => !CIBLES_JETABLES.some((re) => re.test(c))
+      && !(worktreeLie && cibleDansLeRepertoire(c, vise)))
     if (aArbitrer.length > 0) {
       return {
         decision: 'ask',
@@ -218,7 +235,8 @@ export function evaluate(command, { cwd = null } = {}) {
           `⚠ Suppression RÉCURSIVE dans un arbre partagé : ${aArbitrer.join(', ')}. Une cible qui n'est ` +
           `ni node_modules, ni .cache, ni dist, ni public/qc, ni le scratchpad de session peut porter ` +
           `du WIP vivant (le tien ou celui d'une autre session) — et un joker y emporte ce qui n'était ` +
-          `pas visé. Vérifier le contenu (git status, ls) avant de confirmer.`,
+          `pas visé. Vérifier le contenu (git status, ls) avant de confirmer. Si le geste vise un ` +
+          `WORKTREE lié, préfixe \`cd <worktree> &&\` : une cible dans un worktree prouvé passe en silence.`,
       }
     }
     const git = gitSubcommand(segment)
