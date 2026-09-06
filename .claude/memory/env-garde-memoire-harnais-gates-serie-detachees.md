@@ -20,4 +20,4 @@ metadata:
 
 **How to apply :** sur ce dépôt, ne jamais lancer une suite/gates en Bash de fond quand une autre session est active — script détaché + `--serie` + relire le fichier ; commit → `docs:build` → commit des pieds → gates → push.
 
-Lié : [[env-charge-machine-un-seul-agent-lourd]], [[env-coordination-arbre-partage-sessions]], [[env-outillage-degrade-session-2026-08-31]], [[user-regime-une-session-par-chantier-2026-09-01]].
+Lié : [[env-charge-machine-un-seul-agent-lourd]], [[env-coordination-arbre-partage-sessions]], [[env-outillage-degrade-session-2026-08-31]].

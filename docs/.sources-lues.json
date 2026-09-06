@@ -507,8 +507,6 @@
       ".claude/memory/user-doctrine-un-hote-jamais-duplique.md",
       ".claude/memory/user-doctrine-verrou-par-construction.md",
       ".claude/memory/user-mandat-chef-de-produit.md",
-      ".claude/memory/user-passage-fable-derives-opus.md",
-      ".claude/memory/user-regime-une-session-par-chantier-2026-09-01.md",
       ".claude/memory/user-ressource-licence-chatgpt.md",
       "scripts/docs/build-doctrines.mjs",
       "scripts/docs/lib/empreinte-sources.mjs",

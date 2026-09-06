@@ -25,4 +25,4 @@ metadata:
 
 **Leçon de méthode** : mon juge de DESIGN a accepté le verrou parce que mon brief citait l.117 pour « pas de durée native » sans coller la phrase suivante (« vous gagnez un nouvel État Inconscient à la fin du Round ») — le juge de DIFF l'a lu en entier. Le remède fut de remonter d'un niveau (réutiliser l'effet récurrent général) plutôt que rustiner le verrou. Voir [[feedback-citation-prouve-ce-quelle-repond]].
 
-Lié : [[env-garde-memoire-harnais-gates-serie-detachees]], [[user-regime-une-session-par-chantier-2026-09-01]], [[user-arbitrage-de-de-monde-affiche-comme-un-critique]] (magnitude tirée après Test : re-statuer sous #1508).
+Lié : [[env-garde-memoire-harnais-gates-serie-detachees]], [[user-arbitrage-de-de-monde-affiche-comme-un-critique]] (magnitude tirée après Test : re-statuer sous #1508).

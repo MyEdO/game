@@ -37,7 +37,7 @@ const ts = createRequire(import.meta.url)('typescript');
  *  les DEUX. Le type porte les outils et le prompt adversarial (`.claude/agents/juge.md`) ; le
  *  modèle ÉCRIT empêche un sous-agent d'hériter du modèle de session et fait coïncider l'affichage
  *  avec le fait — des agents EN ATTENTE s'affichaient « Fable » là où les transcripts disaient
- *  `claude-opus-5` (observation utilisateur 2026-09-05 ; fiche `user-passage-fable-derives-opus`).
+ *  `claude-opus-5` (observation utilisateur 2026-09-05).
  *  Un script absent de cette table échoue : le régime se déclare. */
 const PHASES_DE_JUGEMENT = {
   'audit-poison.js': [],
