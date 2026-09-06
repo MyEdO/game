@@ -63,6 +63,10 @@ const ATTENDU = {
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',
+    // +1 le 2026-09-06 (#1679 L3b C1) : la porte de stock lit le registre TEL QU'IL EST au commit
+    // jugé, et son test le prouve sur un dépôt jetable (quatre commits, registre posé au troisième)
+    // — dépôt et fichiers sous `os.tmpdir()`, l'arbre n'est jamais écrit.
+    'scripts/hooks/stocks-nominatifs.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +3 le 2026-09-05 : morsure des portes des trois migrations #1686 (lot 1 ids composés, lot 2
     // fusion des matières, lot 3a-2 purge de `structureAppearance.material`) ; leur dépôt jetable vit

@@ -1,4 +1,13 @@
 import { describe, it, expect } from 'vitest';
+
+// Plafond du cliquet — DANS LE TEST, jamais dans `labelResolverCallStock.mjs` (même raison que
+// `FOLIO_RATCHET_MAX`, `book-source-integrity.test.ts` : sans lui, « le stock ne peut que
+// décroître » n'est qu'un commentaire, et le chemin le plus court pour « solder » une régression
+// resterait d'ajouter une ligne au stock, CI verte). `creatureEquip.ts` (1) soldé 2026-07-27 : le
+// stock est VIDE, le plafond descend à ZÉRO — un cliquet TENU, sans cran d'accueil au-dessus.
+// En portée de MODULE : un plafond écrit dans un corps de `describe` est hors de vue de la porte de
+// stock, qui ne lit que les liaisons de module (registre `scripts/hooks/stocks.json`).
+const LABEL_RESOLVER_CALL_MAX = 0;
 import { readdirSync, readFileSync, statSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join, relative, isAbsolute } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -443,13 +452,6 @@ describe('garde-fou « appel à un résolveur d’entité par LIBELLÉ » (#909)
       ['findCreature', 'findDomain', 'findSkill', 'findSpell', 'findStar', 'findTalent', 'findTrappingByLabel'],
     );
   });
-
-  // Plafond du cliquet — DANS LE TEST, jamais dans `labelResolverCallStock.mjs` (même raison que
-  // `FOLIO_RATCHET_MAX`, `book-source-integrity.test.ts` : sans lui, « le stock ne peut que
-  // décroître » n'est qu'un commentaire, et le chemin le plus court pour « solder » une régression
-  // resterait d'ajouter une ligne au stock, CI verte). `creatureEquip.ts` (1) soldé 2026-07-27 : le
-  // stock est VIDE, le plafond descend à ZÉRO — un cliquet TENU, sans cran d'accueil au-dessus.
-  const LABEL_RESOLVER_CALL_MAX = 0;
 
   /** Clé de la dette : le fichier ET son COMPTE d'appels — un appel de plus est une entrée neuve,
    *  pas une ligne qui bouge (même mesure que `CLE_DETTE`, `src/data/slots-contrat.test.ts`). */

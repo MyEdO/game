@@ -18,6 +18,7 @@
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`) : les lectures git sont injectées.
 import { lireGit, sortieOuNull } from './gitPorte.mjs'
 import { croissanceDesStocks, croissancesNonCouvertes } from './stocksNominatifs.mjs'
+import { CHEMIN_REGISTRE, parserRegistre } from './stocksRegistre.mjs'
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
 export const SHA_NUL = '0'.repeat(40)
@@ -26,15 +27,18 @@ export const SHA_NUL = '0'.repeat(40)
  * Refus d'une plage, PUR. `commits` = `[{ sha, message, diff, images? }]` dans l'ordre de l'histoire,
  * `cumule` = le diff `<avant>..<apres>` d'un bloc, `imagesCumul` = les lecteurs d'image de ses deux
  * bouts.
- * @returns {{ sha: string, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
+ * @returns {{ sha: string, cle: string, fichier: string, net: number, declare: number | null,
+ *   exemples: string[] }[]} `cle` = `<fichier>#<LIAISON>` (le FICHIER seul quand l'image ne se lit
+ *   pas) : un fichier porte plusieurs stocks, et un cumul par fichier laisserait « +1 ici, −1 là »
+ *   se compenser. `fichier` est rendu à part — un contrôle négatif porte souvent sur le FICHIER.
  */
 export function refusDeLaPlage({ commits = [], cumule = '', imagesCumul } = {}) {
-  const enCroissance = new Set(croissanceDesStocks(cumule, imagesCumul).map((c) => c.fichier))
+  const enCroissance = new Set(croissanceDesStocks(cumule, imagesCumul).map((c) => c.cle))
   const refus = []
   for (const { sha, message, diff, images } of commits) {
     for (const c of croissancesNonCouvertes({ diff, message }, images)) {
-      if (!enCroissance.has(c.fichier)) continue
-      refus.push({ sha, fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
+      if (!enCroissance.has(c.cle)) continue
+      refus.push({ sha, cle: c.cle, fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
     }
   }
   return refus
@@ -44,11 +48,11 @@ export function refusDeLaPlage({ commits = [], cumule = '', imagesCumul } = {}) 
 export function raisonDeRefusDePlage(refus) {
   const lignes = refus.map((r) => {
     const declare = r.declare === null ? '' : ` (le message annonce \`+${r.declare}\`)`;
-    return `${r.sha.slice(0, 9)} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
+    return `${r.sha.slice(0, 9)} ${r.cle} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
   })
   return (
     `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${lignes.join(' || ')}. Geste : ` +
-    '`git rebase -i` pour porter `CLIQUET: <fichier> +N — <motif>` au message du commit fautif, ' +
+    '`git rebase -i` pour porter `CLIQUET: <fichier>#<LIAISON> +N — <motif>` au message du commit fautif, ' +
     "ou retirer l'entrée (un stock nominatif est une DETTE vers zéro, jamais un registre). `+N` " +
     "compte les ENTRÉES du stock — ses éléments —, jamais ce qu'elles dénombrent."
   )
@@ -61,11 +65,18 @@ export function raisonDeRefusDePlage(refus) {
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
+ * `registre` = le registre des stocks à lire. Par défaut, CELUI DU COMMIT JUGÉ (`git show
+ * <sha>:scripts/hooks/stocks.json`) : une porte juge les commits qui la PORTENT, et le registre EST
+ * la porte — une déclaration posée aujourd'hui ne rougit pas une croissance d'hier, qu'aucun message
+ * ne pouvait déclarer. Rien à tenir à jour : la condition s'éteint d'elle-même dès le commit qui
+ * embarque la déclaration (même patron que `porteEnVigueur` dans `stocks-nominatifs.test.mjs`). Le
+ * paramètre FORCE un registre — c'est ainsi qu'un test juge un dépôt jetable ou une fenêtre figée.
  * @param {{ cwd?: string, avant: string, apres: string,
- *           git?: (args: string[]) => string | null }} p
+ *           git?: (args: string[]) => string | null,
+ *           registre?: { entrees: object[] } }} p
  * @returns {{ refus: [], notes: string[], plage: string, indisponible: string|null, commits?: number }}
  */
-export function croissancesDeLaPlage({ cwd = process.cwd(), avant, apres, git } = {}) {
+export function croissancesDeLaPlage({ cwd = process.cwd(), avant, apres, git, registre = null } = {}) {
   const pannes = []
   const lire = git ?? ((args) => {
     const vu = lireGit(args, { cwd })
@@ -93,17 +104,26 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), avant, apres, git } 
     return { refus: [], notes, plage, indisponible: pannes[0] ?? null }
   }
   const shas = liste.split('\n').map((l) => l.trim()).filter(Boolean)
+  /** Le registre TEL QU'IL EST À CE COMMIT, ou `null` : ce commit ne déclare aucun stock. */
+  const registreA = (ref) => {
+    if (registre) return registre
+    const brut = lire(['show', `${ref}:${CHEMIN_REGISTRE}`])
+    if (brut === null) return { entrees: [] }
+    try { return parserRegistre(brut, `${ref}:${CHEMIN_REGISTRE}`) } catch { return { entrees: [] } }
+  }
   const commits = shas.map((sha) => ({
     sha,
     message: lire(['show', '-s', '--format=%B', sha]) ?? '',
     diff: lire(['show', '--format=', '-U0', '--no-renames', sha]) ?? '',
     images: {
+      registre: registreA(sha),
       lirePostImage: (f) => lire(['show', `${sha}:${f}`]),
       lirePreImage: (f) => lire(['show', `${sha}^:${f}`]),
     },
   }))
   const cumule = lire(['diff', '-U0', '--no-renames', `${base}..${apres}`]) ?? ''
   const imagesCumul = {
+    registre: registreA(apres),
     lirePostImage: (f) => lire(['show', `${apres}:${f}`]),
     lirePreImage: (f) => lire(['show', `${base}:${f}`]),
   }

@@ -24,6 +24,11 @@
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Longueur minimale d'une RAISON écrite à la main — motif d'un `CLIQUET:`, `raison` d'une entrée du
+ *  registre des stocks, raison d'une dérogation au pre-push. Sous ce seuil, c'est un tampon. Un
+ *  seuil par site en aurait fait trois qui divergent : la loi du cliquet vit ici. */
+export const MOTIF_MIN = 20
+
 /**
  * Écart d'une collection OBSERVÉE à son STOCK, dans les DEUX sens.
  * @template O, S

@@ -42,6 +42,21 @@ import { extractedBooks, frenchSourceDirs, isSentinel, sourceDirOf, walkSkillRef
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
+// ── Les PLAFONDS de ce fichier, en portée de MODULE et à noms UNIQUES ────────────────────────────
+// Un plafond vit là où la porte de stock le voit et où un `CLIQUET:` peut le nommer :
+// `src/data/refs-migrated.test.ts#<LIAISON>` (registre `scripts/hooks/stocks.json`). Écrits dans un
+// corps de `describe`/`it`, ils étaient hors de toute vue, et deux d'entre eux s'appelaient
+// `BASELINE` et deux `PLAFOND` — la même clé pour quatre dettes distinctes.
+
+/** Refs de Compétence groupée SANS spec (forme RAW attestée) : une de plus = une spec effacée. */
+const REFS_GROUPEES_SANS_SPEC_MAX = 341;
+/** Textes d'instance de Talent sans catalogue de spécs (destinee, frenesie) — #1621. */
+const TEXTES_INSTANCE_DE_TALENT_MAX = 24;
+/** Sentinelles « Au choix » de `talents[]`, comptées et bornées — #1621. */
+const SENTINELLES_AU_CHOIX_MAX = 12;
+/** `{text}` restants de `careerLevels.trappings` (baseline post-migration #622). */
+const TRAPPINGS_TEXT_MAX = 557;
+
 /** Les DEUX racines authiorées, pour les filets qui doivent être EXHAUSTIFS par construction plutôt
  *  que par liste de datasets (une liste se périme en silence).
  *
@@ -786,14 +801,13 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
   // imprime « Charme 57, Discrétion 43, Escamotage 45 … ». Le contrat est donc un CLIQUET : le compte
   // ne croît pas — c'est lui qui attrape une migration qui effacerait une `spec` sans retirer sa `ref`.
   it('refs de Compétence groupée SANS spec : compte stable (forme RAW attestée, jamais un résidu de migration)', () => {
-    const BASELINE = 341;
     const parFichier = new Map<string, number>();
     for (const n of nues) parFichier.set(n.where.split('(')[0], (parFichier.get(n.where.split('(')[0]) ?? 0) + 1);
     expect(nues.length).toBeGreaterThan(0);
     expect(
       nues.length,
       `${[...parFichier.entries()].map(([f, n]) => `${f}:${n}`).join(', ')} — une ref nue de PLUS = une spec effacée sans sa ref`,
-    ).toBeLessThanOrEqual(BASELINE);
+    ).toBeLessThanOrEqual(REFS_GROUPEES_SANS_SPEC_MAX);
   });
 
   // CONTRAT POSITIF NOMINATIF — `humains-tileens` porte EXACTEMENT les 12 Compétences de AA 05 l.122 :
@@ -875,20 +889,18 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
   });
 
   it('un Talent SANS catalogue de spécs (destinee, frenesie) porte un TEXTE d’instance : compté à part, jamais au stock de dette (#1621)', () => {
-    const PLAFOND = 24;
     const parTalent = [...textesDInstance.reduce((m, h) => m.set(h.refId, (m.get(h.refId) ?? 0) + 1), new Map<string, number>())]
       .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
-    // Cliquet UNIDIRECTIONNEL : PLAFOND, pas stock nominatif. Une 25e instance rougit (#1621) ; une
+    // Cliquet UNIDIRECTIONNEL : plafond, pas stock nominatif. Une 25e instance rougit (#1621) ; une
     // chute de 24 vers 1 reste verte — le régime du champ texte d'instance se tranche à #1621.
     expect(textesDInstance.length).toBeGreaterThan(0);
-    expect(textesDInstance.length, `${parTalent} — un texte d'instance de PLUS : le régime du champ se tranche à #1621`).toBeLessThanOrEqual(PLAFOND);
+    expect(textesDInstance.length, `${parTalent} — un texte d'instance de PLUS : le régime du champ se tranche à #1621`).toBeLessThanOrEqual(TEXTES_INSTANCE_DE_TALENT_MAX);
     const melanges = textesDInstance.filter((h) => SPECS_DE_TALENT_A_CREER.has(h.key)).map((h) => h.key);
     expect(melanges, `texte d'instance stocké comme dette de spec :\n${melanges.join('\n')}`).toEqual([]);
   });
 
   it('les sentinelles « Au choix » de talents[] sont ÉCARTÉES de la résolution mais COMPTÉES et BORNÉES (#1621)', () => {
-    const PLAFOND = 12;
-    // Même lecture que le PLAFOND des textes d'instance ci-dessus : cliquet UNIDIRECTIONNEL, pas
+    // Même lecture que le plafond des textes d'instance ci-dessus : cliquet UNIDIRECTIONNEL, pas
     // stock nominatif. La sentinelle est un EMPLACEMENT de spéc, pas une spéc : elle ne peut pas
     // résoudre au catalogue, donc `collecteSpecs` la saute avant `seen++` — sans ce compte, elle
     // sortait de la mesure sans laisser de trace. Le régime `choix` des réfs de Talent (qui les
@@ -899,7 +911,7 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
     expect(
       sentinelles.length,
       `${parTalent} — une sentinelle « Au choix » de PLUS sur un talents[] : poser la spéc imprimée, ou trancher le régime choix (#1621) :\n${sentinelles.join('\n')}`,
-    ).toBeLessThanOrEqual(PLAFOND);
+    ).toBeLessThanOrEqual(SENTINELLES_AU_CHOIX_MAX);
   });
 
   it('CONTRÔLE POSITIF — une spec de Talent inconnue posée sur une créature FIXTURE est ATTRAPÉE (mutation EN MÉMOIRE, jamais au disque)', () => {
@@ -977,7 +989,6 @@ describe('spec de Compétence GROUPÉE — corps-a-corps/projectiles ne portent 
 // l'atteste ligne à ligne vit dans `src/data/dotations-catalogue.test.ts` — trois portes (libellé
 // entier, singulier, tête de parenthèse) et 6 exclusions nominatives, chacune avec sa raison.
 describe('careerLevels.trappings — cliquet anti-régression {text} (#622)', () => {
-  const BASELINE = 557;
 
   function countText(items: unknown[]): number {
     let n = 0;
@@ -990,14 +1001,14 @@ describe('careerLevels.trappings — cliquet anti-régression {text} (#622)', ()
     return n;
   }
 
-  it(`careerLevels.flatMap(trappings) : au plus ${BASELINE} {text} (baseline post-migration #622)`, () => {
+  it(`careerLevels.flatMap(trappings) : au plus ${TRAPPINGS_TEXT_MAX} {text} (baseline post-migration #622)`, () => {
     const count = countText(careerLevels.flatMap((l) => l.trappings));
     expect(
       count,
-      count > BASELINE
-        ? `${count - BASELINE} nouvelle(s) dotation(s) {text} — migrer en ref typée ({creatureId}/{vehicleId}/{id}), jamais ajouter`
+      count > TRAPPINGS_TEXT_MAX
+        ? `${count - TRAPPINGS_TEXT_MAX} nouvelle(s) dotation(s) {text} — migrer en ref typée ({creatureId}/{vehicleId}/{id}), jamais ajouter`
         : undefined,
-    ).toBeLessThanOrEqual(BASELINE);
+    ).toBeLessThanOrEqual(TRAPPINGS_TEXT_MAX);
   });
 });
 

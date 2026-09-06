@@ -55,7 +55,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { croissancesNonCouvertes, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { chargerRegistre, fichiersDeclares } from '../guards/lib/stocksRegistre.mjs'
 import { GitIndisponible, estDansHead } from '../guards/lib/gitPorte.mjs'
 import {
   fenetreDeRevue, memeSha, mesureDuPalier, nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
@@ -1933,6 +1934,25 @@ export function evaluateStocksQuiGrandissent({ command, diff, images }) {
   return restantes.length ? { decision: 'deny', reason: raisonDeRefus(restantes) } : null
 }
 
+/**
+ * Le registre des stocks du dépôt JUGÉ. `null` = dépôt ÉTRANGER (ni la lib de la porte, ni le
+ * registre) : la règle de stock ne s'y applique pas. Un dépôt qui PORTE la lib mais pas le registre
+ * LÈVE — c'est le dépôt de ce garde, amputé (worktree non rebasé, `git checkout` partiel), et un
+ * silence y rendrait la porte AVEUGLE sur tous les stocks au lieu de le dire. Un registre présent
+ * mais illisible lève aussi : un registre cassé se corrige, il ne s'ignore pas.
+ */
+export function registreDuDepot(racine) {
+  const registre = join(racine, 'scripts', 'hooks', 'stocks.json')
+  const porte = join(racine, 'scripts', 'guards', 'lib', 'stocksNominatifs.mjs')
+  if (existsSync(registre)) return chargerRegistre({ racine, fresh: true })
+  if (!existsSync(porte)) return null
+  throw new Error(
+    `⛔ ${racine} porte la porte de stock (\`scripts/guards/lib/stocksNominatifs.mjs\`) mais PAS son `
+    + 'registre (`scripts/hooks/stocks.json`) : aucun stock ne serait compté. Rétablir le fichier '
+    + '(rebase du worktree, ou `git checkout <ref> -- scripts/hooks/stocks.json`).',
+  )
+}
+
 /** Décision d'ensemble d'un cumul de refus (patron de driver partagé avec `git-destructive-guard` :
  *  la décision est PORTÉE par l'évaluateur, `deny` à défaut). `null` si aucun refus, sinon la PLUS
  *  STRICTE — un seul `deny` fait basculer tout le cumul — et les raisons jointes. */
@@ -2068,18 +2088,30 @@ if (isMain) {
     fichiersModifies: readChangedNames(targetDir),
     fichiersStages: readChangedNames(targetDir, { cached: true }),
   })
-  // Diff des seuls fichiers PORTEURS de stock : le `-U0` par fichier existe déjà (même lecture que
-  // les preuves au site), et le lot entier ne se relit pas pour une poignée de fichiers. Hors
-  // `git commit`, aucun `git diff` n'est payé — ni le compilateur chargé par les images.
-  const porteursDeStock = isGitCommitCommand(text) ? fichiers.filter(estPorteurDeStock) : []
+  // Diff des seuls fichiers DÉCLARÉS au registre des stocks : le `-U0` par fichier existe déjà (même
+  // lecture que les preuves au site), et le lot entier ne se relit pas pour une poignée de fichiers.
+  // Hors `git commit`, aucun `git diff` n'est payé — ni le registre lu, ni le compilateur chargé.
+  // Le registre lu est celui du DÉPÔT JUGÉ (`targetDir`) : le garde juge le commit d'un autre arbre,
+  // et c'est cet arbre qui déclare ses stocks. Un dépôt SANS registre n'en déclare aucun.
+  // Un registre absent d'un dépôt qui porte la porte est un REFUS lisible, pas une pile d'appels :
+  // le hook rend toujours une décision, jamais un crash (patron de tous les évaluateurs).
+  let registre = null
+  let registreAbsent = null
+  try {
+    registre = isGitCommitCommand(text) ? registreDuDepot(targetDir) : null
+  } catch (err) {
+    registreAbsent = { decision: 'deny', reason: String(err?.message ?? err) }
+  }
+  const declares = registre ? fichiersDeclares(registre) : new Set()
+  const porteursDeStock = fichiers.filter((f) => declares.has(f))
   const stocks = evaluateStocksQuiGrandissent({
     command: text,
     diff: porteursDeStock.map((f) => commit.fichier(f)).join('\n'),
-    images: { lirePostImage: commit.contenu, lirePreImage: commit.avant },
+    images: { registre, lirePostImage: commit.contenu, lirePreImage: commit.avant },
   })
   const cumul = decisionCumulee([
     decision, antiEsquive, juge, amendInvisible, manifestClosure,
-    horsCommit, tombale, arbrePrincipal, hunks?.decision ? hunks : null, stocks,
+    horsCommit, tombale, arbrePrincipal, hunks?.decision ? hunks : null, registreAbsent, stocks,
   ])
   if (cumul) {
     console.log(JSON.stringify({

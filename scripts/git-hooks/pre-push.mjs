@@ -72,6 +72,7 @@ import {
   motifDeRefus,
 } from '../guards/lib/justificatif.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
+import { MOTIF_MIN } from '../guards/lib/stock.mjs'
 
 const ZERO = '0'.repeat(40)
 
@@ -110,8 +111,9 @@ export const LEVIER_DU_MOTIF = {
   'sans-ancetre': 'WFRP_PUSH_CI_NON_CONSULTABLE',
 }
 
-/** Longueur minimale d'une raison de dérogation : une manette se motive, ou elle ne vaut rien. */
-export const RAISON_MINIMALE = 20
+/** Longueur minimale d'une raison de dérogation : une manette se motive, ou elle ne vaut rien.
+ *  MÊME seuil que le motif d'un `CLIQUET:` — il vit à UN endroit (`stock.mjs`). */
+export const RAISON_MINIMALE = MOTIF_MIN
 
 /** Une course TERMINÉE ? Un stub qui ne dit rien du statut décrit une course finie. */
 const estTerminee = (course) => String(course?.status ?? 'completed') === 'completed'

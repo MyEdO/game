@@ -1,0 +1,2289 @@
+{
+  "_entete": [
+    "REGISTRE DES STOCKS — un stock est DÉCLARÉ, la porte lit la déclaration (#1679 L3b C1).",
+    "Schéma, rôles et règles de comptage : scripts/guards/lib/stocksRegistre.mjs (en-tête).",
+    "forme = COMMENT compter : liste (les éléments), objet (les propriétés, une propriété à valeur de",
+    "tableau étant une RUBRIQUE où l’on descend), plafond (la valeur, qui grandit quand elle MONTE).",
+    "role = stock (compté : sa croissance exige `CLIQUET: <fichier>#<LIAISON> +N — <motif>`),",
+    "descripteur (table de racines, fixture, registre de ce qui EXISTE : jamais compté), derive (valeur",
+    "CALCULÉE depuis un autre porteur : la compter doublerait une croissance déjà comptée).",
+    "CE REGISTRE N’EST PAS UN STOCK : ajouter ou retirer une entrée n’exige AUCUNE ligne `CLIQUET:` —",
+    "une déclaration dit ce qui EXISTE, le cliquet porte sur la CROISSANCE du stock déclaré.",
+    "La complétude est jouée par scripts/guards/lib/stocksRegistre.test.mjs (npm run test:hooks) :",
+    "tout candidat de l’arbre est déclaré, et toute déclaration existe — rouge nominatif dans les deux sens."
+  ],
+  "entrees": [
+    {
+      "fichier": "scripts/docs/build-ajouter-donnee.mjs",
+      "liaison": "ROUTAGE",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table de ROUTAGE du générateur : quel doc pour quel déclencheur."
+    },
+    {
+      "fichier": "scripts/docs/build-all.mjs",
+      "liaison": "GENERATORS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "registre des générateurs de docs — le cas canonique « un registre déclaré »."
+    },
+    {
+      "fichier": "scripts/docs/build-all.mjs",
+      "liaison": "NON_GENERATOR_CHECKS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les contrôles hors génération que `docs:check` joue."
+    },
+    {
+      "fichier": "scripts/docs/build-map-authoring.mjs",
+      "liaison": "REPERES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "repères d’authoring cités par le doc généré."
+    },
+    {
+      "fichier": "scripts/docs/build-registre-jets.mjs",
+      "liaison": "ROUTEURS_AUTHORES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "routeurs authorés que le registre des jets publie."
+    },
+    {
+      "fichier": "scripts/docs/check-doc-refs.mjs",
+      "liaison": "DOC_REF_SITES_EXEMPTS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites exemptés du contrôle des réfs de docs."
+    },
+    {
+      "fichier": "scripts/docs/check-doc-refs.mjs",
+      "liaison": "HOOK_SITES_EXEMPTS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de hook exemptés du contrôle des réfs de docs."
+    },
+    {
+      "fichier": "scripts/docs/check-plans-anchors.mjs",
+      "liaison": "SITES_EXEMPTS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites exemptés du contrôle des ancres de plans."
+    },
+    {
+      "fichier": "scripts/docs/lib/engineConcepts.mjs",
+      "liaison": "FILE_CONCEPTS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "index concept français → fichier du moteur, lu par l’index généré."
+    },
+    {
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "liaison": "ATTENDU",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "scripts ÉCRIVAINS atteints par chaque gate, à faire décroître (en-tête du site)."
+    },
+    {
+      "fichier": "scripts/gates/toutes.mjs",
+      "liaison": "ECRIT_LU",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table MESURÉE écrit/lit des gates : elle dit ce qui peut tourner en parallèle."
+    },
+    {
+      "fichier": "scripts/gen-registry.mjs",
+      "liaison": "POOLS_DERIVES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "pools dérivés déclarés au générateur de registres."
+    },
+    {
+      "fichier": "scripts/gen-registry.mjs",
+      "liaison": "REGISTRIES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les datasets dont le générateur tire les registres d’ids."
+    },
+    {
+      "fichier": "scripts/guards/lib/citationCoverage.mjs",
+      "liaison": "EXEMPT_DATASETS",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "datasets exemptés de la couverture de citation."
+    },
+    {
+      "fichier": "scripts/guards/lib/commentPoison.mjs",
+      "liaison": "LEGACY_VOCAB_EXCLUSIONS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "emplois vivants du mot écartés par leur contexte."
+    },
+    {
+      "fichier": "scripts/guards/lib/commentPoison.mjs",
+      "liaison": "LEGACY_VOCAB_FAMILIES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les MOTIFS de la famille « vocabulaire hérité » — la règle elle-même, pas sa dette."
+    },
+    {
+      "fichier": "scripts/guards/lib/domResiduStock.mjs",
+      "liaison": "DOM_RESIDU_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des résidus DOM à résorber."
+    },
+    {
+      "fichier": "scripts/guards/lib/domResiduStock.test.mjs",
+      "liaison": "STOCK",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "FIXTURE synthétique du test du stock DOM."
+    },
+    {
+      "fichier": "scripts/guards/lib/entityConsumers.mjs",
+      "liaison": "CATEGORY_FILES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "catégorie de Codex → fichier de données scanné."
+    },
+    {
+      "fichier": "scripts/guards/lib/entityOrphanStock.mjs",
+      "liaison": "ENTITY_ORPHAN_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des entités orphelines à câbler."
+    },
+    {
+      "fichier": "scripts/guards/lib/fieldConsumerTargets.mjs",
+      "liaison": "TARGETS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cibles du scan des consommateurs de champs."
+    },
+    {
+      "fichier": "scripts/guards/lib/fleshGradientStock.mjs",
+      "liaison": "FLESH_GRADIENT_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des dégradés de chair hérités."
+    },
+    {
+      "fichier": "scripts/guards/lib/folioLineAlignStock.mjs",
+      "liaison": "FOLIO_LINE_ALIGN_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des folios dont la ligne ne s’aligne pas."
+    },
+    {
+      "fichier": "scripts/guards/lib/folioRatchetStock.mjs",
+      "liaison": "FOLIO_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des folios déjà faux, gelé."
+    },
+    {
+      "fichier": "scripts/guards/lib/folioTitleRatchetStock.mjs",
+      "liaison": "FOLIO_TITLE_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des titres de folio faux — éteint, à zéro."
+    },
+    {
+      "fichier": "scripts/guards/lib/gameOpRefFk.mjs",
+      "liaison": "TOLERATED",
+      "forme": "objet",
+      "role": "stock",
+      "cible": null,
+      "raison": "marqueurs et gabarits TOLÉRÉS par la FK des réfs d’op."
+    },
+    {
+      "fichier": "scripts/guards/lib/grammaireStock.mjs",
+      "liaison": "GRAMMAIRE_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des écarts de grammaire des schémas."
+    },
+    {
+      "fichier": "scripts/guards/lib/groundingCorpus.mjs",
+      "liaison": "GROUNDING_CASES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cas de grounding décrits pour le corpus, pas des exemptions."
+    },
+    {
+      "fichier": "scripts/guards/lib/labelLogic.mjs",
+      "liaison": "LABEL_LITERAL_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "littéraux de label encore lus en logique."
+    },
+    {
+      "fichier": "scripts/guards/lib/labelLogic.mjs",
+      "liaison": "RATCHET_DIRS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "dossiers scannés par le ratchet des labels — source unique du périmètre."
+    },
+    {
+      "fichier": "scripts/guards/lib/labelLogic.mjs",
+      "liaison": "RATCHET_EXCEPTIONS",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "exceptions justifiées du ratchet des labels (#289)."
+    },
+    {
+      "fichier": "scripts/guards/lib/labelResolverCallStock.mjs",
+      "liaison": "LABEL_RESOLVER_CALL_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "stock des appels de résolveur de label — éteint, à zéro."
+    },
+    {
+      "fichier": "scripts/guards/lib/legacyVocabStock.mjs",
+      "liaison": "LEGACY_VOCAB_SITES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de vocabulaire hérité à migrer."
+    },
+    {
+      "fichier": "scripts/guards/lib/manualDocsStock.mjs",
+      "liaison": "MANUAL_DOCS_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "docs encore écrits à la main."
+    },
+    {
+      "fichier": "scripts/guards/lib/paletteLiteralStock.mjs",
+      "liaison": "PALETTE_LITERAL_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "littéraux de palette à sortir des rigs."
+    },
+    {
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "liaison": "SITE_EXEMPTIONS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites exemptés de l’intégrité des réfs RAW."
+    },
+    {
+      "fichier": "scripts/guards/lib/rigPartViewStock.mjs",
+      "liaison": "PART_VIEW_ALIAS_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "alias de vue de pièce de rig hérités."
+    },
+    {
+      "fichier": "scripts/guards/lib/rigPartViewStock.mjs",
+      "liaison": "PART_VIEW_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "vues de pièce de rig au format hérité."
+    },
+    {
+      "fichier": "scripts/guards/lib/rigViewStock.mjs",
+      "liaison": "RIG_VIEW_ALIAS_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "alias de vue de rig hérités."
+    },
+    {
+      "fichier": "scripts/guards/lib/rigViewStock.mjs",
+      "liaison": "RIG_VIEW_FORMAT_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "vues de rig au format hérité."
+    },
+    {
+      "fichier": "scripts/guards/lib/rigViewStock.mjs",
+      "liaison": "RIG_VIEW_TRANSFORM_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "transformations de vue de rig — éteint, à zéro."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "DES_HORS_PORTE_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "dés lancés hors de la porte de jet."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "ENGINE_DELEGATED_ROLL_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "roulages délégués au moteur, hors porte."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "PENDING_JET_FABRICATION_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "pendings de jet fabriqués au call-site."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "ROLL_SEAM_CORE",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "le seam lui-même — exclusion de principe, sans compte (en-tête du site)."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "ROLL_SEAM_PHASE2_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de jet hors seam, phase 2 (#918)."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "SEAM_CALLERS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les familles CANONIQUES d’ouverture de jet que le registre publie."
+    },
+    {
+      "fichier": "scripts/guards/lib/rollSeamWhitelist.mjs",
+      "liaison": "WORLD_DIE_SUBTRACTED_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "dés de monde soustraits à la porte — éteint, à zéro."
+    },
+    {
+      "fichier": "scripts/guards/lib/sceneFieldEditability.mjs",
+      "liaison": "FRONTIERE",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "frontière déclarée des champs de scène éditables."
+    },
+    {
+      "fichier": "scripts/guards/lib/slotsStock.mjs",
+      "liaison": "SLOTS_SANS_DECLARATION",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "emplacements sans déclaration à adopter."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_CIBLES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": null,
+      "raison": "signatures passées en `cible`, donc HORS du dénominateur mesuré."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_DEFAUT",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "valeurs par défaut divergentes, à ramener au lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_ENVELOPPE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enveloppes divergentes, à ramener au lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_FORMES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "formes de structure divergentes, à ramener au lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_HOMONYMES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "clés homonymes à classes multiples, à résorber."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_OPS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "ops portées hors de la forme du lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_ORPHELINES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "structures orphelines du lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/structuresStock.mjs",
+      "liaison": "STRUCTURES_REDECLARATIONS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "redéclarations locales d’un concept du lexique."
+    },
+    {
+      "fichier": "scripts/guards/lib/tableConsumerStock.mjs",
+      "liaison": "TABLE_ORPHAN_RATCHET",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "tables d’effets sans consommateur."
+    },
+    {
+      "fichier": "scripts/hooks/ecrans-ui.json",
+      "liaison": "$",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "le DOCUMENT du registre des écrans : son stock est la rubrique `ecrans`."
+    },
+    {
+      "fichier": "scripts/hooks/ecrans-ui.json",
+      "liaison": "$.ecrans",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "écrans déjà en place le 2026-08-16, qui ne croît plus (#1318 V5)."
+    },
+    {
+      "fichier": "scripts/hooks/fermetures-sans-solde.test.mjs",
+      "liaison": "STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "tickets fermés sans solde versionné."
+    },
+    {
+      "fichier": "scripts/hooks/solde-tombale.mjs",
+      "liaison": "EXEMPTIONS_TOMBALE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites exemptés du volet anti-tombale du garde de solde."
+    },
+    {
+      "fichier": "scripts/hooks/soldes-stock.test.mjs",
+      "liaison": "STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "soldes qui routent plus d’un reste."
+    },
+    {
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "liaison": "FENETRE_STOCKS",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "FENÊTRE de shas figés, fixture de la porte de stock."
+    },
+    {
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "liaison": "FENETRE_STOCK_OBJET",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "FENÊTRE de shas figés, fixture de la porte de stock."
+    },
+    {
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "liaison": "REGISTRE_FENETRES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "registre FIGÉ des fenêtres : ce que chaque fenêtre mesure, et rien d’autre."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-27-l1b-2d-manifests-label.mjs",
+      "liaison": "PORTEURS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "fichiers portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-27-l1b-3a-prose-desc.mjs",
+      "liaison": "DATA_CIBLES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cibles de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-27-l1b-3d-issues-outcome.mjs",
+      "liaison": "CIBLES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cibles de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-27-l1b-4a-meta-libres-mortes.mjs",
+      "liaison": "CIBLES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cibles de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-11a-entite-type.mjs",
+      "liaison": "CARDINAUX",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cardinaux attendus de cette migration datée, opposables au rejeu."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-11a-entite-type.mjs",
+      "liaison": "TYPES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table type → dataset de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-11b-entite-type.mjs",
+      "liaison": "CARDINAUX",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cardinaux attendus de cette migration datée, opposables au rejeu."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-11b-entite-type.mjs",
+      "liaison": "TYPES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table type → dataset de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-12a-entite-type.mjs",
+      "liaison": "CARDINAUX",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cardinaux attendus de cette migration datée, opposables au rejeu."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-12a-entite-type.mjs",
+      "liaison": "TYPES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table type → dataset de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-12b-entite-type.mjs",
+      "liaison": "CARDINAUX",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cardinaux attendus de cette migration datée, opposables au rejeu."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-12b-entite-type.mjs",
+      "liaison": "TYPES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table type → dataset de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-7a-config-enveloppe.mjs",
+      "liaison": "IDENTITES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "identités portées par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-8a-table-enveloppe.mjs",
+      "liaison": "IDENTITES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "identités portées par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-28-l1b-8b-table-vers-entries.mjs",
+      "liaison": "FICHIERS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "fichiers portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-30-l2-3d-homonyme-skill.mjs",
+      "liaison": "GESTES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "gestes de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-30-skillid-vers-ref-emboitee.mjs",
+      "liaison": "CHEMINS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "chemins portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-08-30-test-de-caracteristique-hors-competence.mjs",
+      "liaison": "CHEMINS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "chemins portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-09-01-1463-cost-rendu-a-son-type.mjs",
+      "liaison": "RENOMMAGES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "renommages de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-09-01-1463-give-money-enveloppe.mjs",
+      "liaison": "AUTHORING",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "fichiers d’authoring portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-09-01-1463-give-money-enveloppe.mjs",
+      "liaison": "PROJETS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "projets portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-09-01-1463-monnaie-brass.mjs",
+      "liaison": "CHEMINS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "chemins portés par cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/2026-09-05-1686-materials.mjs",
+      "liaison": "SOURCES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "sources de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/lib/1686-materials-portes.test.mjs",
+      "liaison": "SOURCES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "sources fixées par la porte de cette migration datée."
+    },
+    {
+      "fichier": "scripts/migrations/replay-head.mjs",
+      "liaison": "CHEMINS_EXPORTES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "chemins que le rejeu de HEAD exporte."
+    },
+    {
+      "fichier": "scripts/ops/audit-stock.json",
+      "liaison": "$.entrees",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "vulnérabilités >= high des deux arbres npm, stock décroissant."
+    },
+    {
+      "fichier": "scripts/ops/audit-stock.test.mjs",
+      "liaison": "PLAFOND",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond du stock d’advisories >= high."
+    },
+    {
+      "fichier": "scripts/ops/audit-stock.test.mjs",
+      "liaison": "STOCK_FIXTURE",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "FIXTURE synthétique du test de l’audit de stock."
+    },
+    {
+      "fichier": "scripts/ops/fermetures-non-citees.test.mjs",
+      "liaison": "PLAFOND",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des fermetures non citées."
+    },
+    {
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "liaison": "DOMAINS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les domaines de catalogue RAW que le générateur produit."
+    },
+    {
+      "fichier": "src/catch-vide-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "`catch` vides mesurés par fichier."
+    },
+    {
+      "fichier": "src/comment-poison-guard.test.ts",
+      "liaison": "PLAFOND_FINDINGS",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des trouvailles de poison de commentaire."
+    },
+    {
+      "fichier": "src/comment-poison-guard.test.ts",
+      "liaison": "TEST_DECISION_SITES",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "sites de décision que le garde de poison connaît."
+    },
+    {
+      "fichier": "src/data/book-source-integrity.test.ts",
+      "liaison": "FOLIO_RATCHET_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond du stock de folios faux."
+    },
+    {
+      "fichier": "src/data/book-source-integrity.test.ts",
+      "liaison": "FOLIO_TITLE_RATCHET_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des titres de folio faux — à zéro."
+    },
+    {
+      "fichier": "src/data/book-source-integrity.test.ts",
+      "liaison": "UNRESOLVED_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des réfs de livre non résolues."
+    },
+    {
+      "fichier": "src/data/citation-coverage-guard.test.ts",
+      "liaison": "BASELINES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "couverture de citation mesurée par fichier — éteint, à zéro."
+    },
+    {
+      "fichier": "src/data/entity-orphans.test.ts",
+      "liaison": "MAX_ENTITY_ORPHANS",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des entités orphelines."
+    },
+    {
+      "fichier": "src/data/field-consumers.test.ts",
+      "liaison": "LARGEUR",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "largeur de colonne du rapport — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/data/field-consumers.test.ts",
+      "liaison": "RECOUVRES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de consommation recouverts par un autre lecteur."
+    },
+    {
+      "fichier": "src/data/folio-line-align.test.ts",
+      "liaison": "RATCHET_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond du stock d’alignement de folio."
+    },
+    {
+      "fichier": "src/data/folio-line-align.test.ts",
+      "liaison": "SANS_CITATION_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des entrées sourcées sans citation de ligne."
+    },
+    {
+      "fichier": "src/data/folio-line-align.test.ts",
+      "liaison": "SCANNED_MIN",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "borne de COUVERTURE, opposable dans l’autre sens : elle MONTE quand la dette baisse."
+    },
+    {
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "liaison": "BASELINES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "imports de domaine générique mesurés par fichier — éteint, à zéro."
+    },
+    {
+      "fichier": "src/data/grounding-corpus.test.ts",
+      "liaison": "PENDING_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des cas de grounding en attente."
+    },
+    {
+      "fichier": "src/data/index-moteur-ratchet.test.ts",
+      "liaison": "UNDOCUMENTED_ENGINE_EXPORTS_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des exports de moteur non documentés."
+    },
+    {
+      "fichier": "src/data/maison-sans-source.test.ts",
+      "liaison": "BASELINES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "baselines mesurées des entrées maison sans source."
+    },
+    {
+      "fichier": "src/data/maison-sans-source.test.ts",
+      "liaison": "MASQUES_GELES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "masques gelés par dataset des entrées maison sans source."
+    },
+    {
+      "fichier": "src/data/maison-sans-source.test.ts",
+      "liaison": "TOTAL_GELE",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "total gelé des entrées maison sans source."
+    },
+    {
+      "fichier": "src/data/manual-docs-ratchet.test.ts",
+      "liaison": "MANUAL_DOCS_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des docs écrits à la main."
+    },
+    {
+      "fichier": "src/data/migrations-type-enveloppe.test.ts",
+      "liaison": "CAS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cas de migration confrontés par le test."
+    },
+    {
+      "fichier": "src/data/obtainability-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "entrées sans voie d’obtention mesurées par dataset."
+    },
+    {
+      "fichier": "src/data/overrides.ts",
+      "liaison": "OBJECT_FILE",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "dataset → fichier d’overrides : table de routage de la donnée."
+    },
+    {
+      "fichier": "src/data/plage-bornes-contrat.test.ts",
+      "liaison": "TUPLES_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "tuples de plage encore hors de la forme canonique."
+    },
+    {
+      "fichier": "src/data/prop-foot-migration.test.ts",
+      "liaison": "LEGACY_AUTHORED_FOOT_SITES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites d’authoring d’assise hérités, à migrer."
+    },
+    {
+      "fichier": "src/data/prop-foot-migration.test.ts",
+      "liaison": "LEGACY_PROP_FOOT_TABLE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "table d’assises de props héritées, à migrer."
+    },
+    {
+      "fichier": "src/data/refs-migrated.test.ts",
+      "liaison": "REFS_GROUPEES_SANS_SPEC_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des refs de Compétence groupée sans spec."
+    },
+    {
+      "fichier": "src/data/refs-migrated.test.ts",
+      "liaison": "SENTINELLES_AU_CHOIX_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des sentinelles « Au choix » de `talents[]` (#1621)."
+    },
+    {
+      "fichier": "src/data/refs-migrated.test.ts",
+      "liaison": "TEXTES_INSTANCE_DE_TALENT_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des textes d’instance de Talent sans catalogue de spécs (#1621)."
+    },
+    {
+      "fichier": "src/data/refs-migrated.test.ts",
+      "liaison": "TRAPPINGS_TEXT_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des dotations `{text}` de `careerLevels` (#622)."
+    },
+    {
+      "fichier": "src/data/regles-optionnelles-partition.test.ts",
+      "liaison": "COEXISTENCE",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "règles optionnelles qui coexistent — table de lecture."
+    },
+    {
+      "fichier": "src/data/scene-prose-graphie-guard.test.ts",
+      "liaison": "EXEMPTS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "scènes exemptées de la graphie de prose."
+    },
+    {
+      "fichier": "src/data/schemas/_ids.generated.ts",
+      "liaison": "IDS_PAR_DATASET",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "registre GÉNÉRÉ des ids par dataset."
+    },
+    {
+      "fichier": "src/data/schemas/_ids.generated.ts",
+      "liaison": "SPECS_PAR_DATASET",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "registre GÉNÉRÉ des specs par dataset."
+    },
+    {
+      "fichier": "src/data/schemas/defs-scenes/trous-de-validation.ts",
+      "liaison": "TROUS_DE_VALIDATION",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "trous de validation des defs de scène."
+    },
+    {
+      "fichier": "src/data/schemas/exposition-contrats.test.ts",
+      "liaison": "DETTES_EXEMPT",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "contrats d’exposition encore exemptés."
+    },
+    {
+      "fichier": "src/data/schemas/grammaire/mecanique.ts",
+      "liaison": "OPS_NON_TYPEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "ops encore sans type dans `OP_DEFS`, retirées par le commit qui les type."
+    },
+    {
+      "fichier": "src/data/schemas/grammaire/pool-specs.test.ts",
+      "liaison": "DATASETS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "datasets confrontés par le test des specs de pool."
+    },
+    {
+      "fichier": "src/data/schemas/grammaire/prose-inline.ts",
+      "liaison": "PROSE_INLINE_TOLEREE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "prose encore inline par type de document, tolérée le temps de sa matérialisation."
+    },
+    {
+      "fichier": "src/data/schemas/grammaire/ref.ts",
+      "liaison": "TYPES",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les types de référence du lexique : la grammaire elle-même."
+    },
+    {
+      "fichier": "src/data/schemas/grammaire/sans-livre.ts",
+      "liaison": "SANS_LIVRE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "documents sans folio source, retirés par le commit qui les source."
+    },
+    {
+      "fichier": "src/data/slots-contrat.test.ts",
+      "liaison": "DETTE_ADOPTION_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond de la dette d’adoption des emplacements."
+    },
+    {
+      "fichier": "src/data/source-racine-aveugle.test.ts",
+      "liaison": "RACINE_NUE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "datasets encore cités à la RACINE, aveugles par entrée."
+    },
+    {
+      "fichier": "src/data/source-racine-aveugle.test.ts",
+      "liaison": "SOUS_ENTREES_MESUREES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sous-entrées sous racine aveugle : la classe se vide, le compte baisse."
+    },
+    {
+      "fichier": "src/data/structures-contrat.test.ts",
+      "liaison": "PLAFOND_HORS_STRATE",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des structures hors strate du lexique."
+    },
+    {
+      "fichier": "src/data/tables.test.ts",
+      "liaison": "MAX_TABLE_ORPHAN",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des tables d’effets sans consommateur."
+    },
+    {
+      "fichier": "src/dom-residu-stock.test.ts",
+      "liaison": "MAX_DOM_RESIDU",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des résidus DOM."
+    },
+    {
+      "fichier": "src/effective-values-guard.test.ts",
+      "liaison": "CHAR_ACCESS_EXEMPT",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "accès direct aux caractéristiques encore exemptés."
+    },
+    {
+      "fichier": "src/engine/effect-rule-anchor.test.ts",
+      "liaison": "BASELINE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "effets sans ancre de règle, mesurés nominativement."
+    },
+    {
+      "fichier": "src/engine/groups-portage-1357.test.ts",
+      "liaison": "FOLDER_RULES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "règles de dossier gelées du portage des groupes (#1357)."
+    },
+    {
+      "fichier": "src/engine/groups-portage-1357.test.ts",
+      "liaison": "TRAIT_RULES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "règles de trait gelées du portage des groupes (#1357)."
+    },
+    {
+      "fichier": "src/engine/ops.ts",
+      "liaison": "OPS_CTX_GELES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "ops encore dépendantes du contexte, gelées."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/cameras.test.ts",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/groundAccents.test.ts",
+      "liaison": "DENSITE_MAX_M2",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "densité maximale d’accents au m² : une borne de RENDU mesurée, pas une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/groundAccents.test.ts",
+      "liaison": "ECART_HAUTEUR_MAX",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/groundAccents.test.ts",
+      "liaison": "ECART_LACET_MAX",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/instancePools.test.ts",
+      "liaison": "FOYERS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "foyers de pools confrontés par le test."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/marques-grille-lisible.test.ts",
+      "liaison": "CASES",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "taille de la grille sondée — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/mutateurs-signales.test.ts",
+      "liaison": "FOYERS_SIGNAL",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "foyers de signal confrontés par le test."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/mutateurs-signales.test.ts",
+      "liaison": "FOYERS_SITE",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "foyers de site confrontés par le test."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/traceQuad.test.ts",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/backends/webgl/worldTris.ts",
+      "liaison": "RECOUVREMENT_MIN_M",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "recouvrement minimal en mètres du maillage : une borne de RENDU."
+    },
+    {
+      "fichier": "src/gameIso/rig/composeRig-nape-z.test.ts",
+      "liaison": "COU_Z",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cote du cou dans la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/armour/armour-jambes-reach.test.ts",
+      "liaison": "MAX_VIEW_SPREAD",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond de l’écart de vue des jambières."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/armour/armour-jambes-reach.test.ts",
+      "liaison": "MIN_FRONT_Y",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "cote basse attendue — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/avantbras-override-ratchet.test.ts",
+      "liaison": "MAX_AVANTBRAS_OVERRIDES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des surcharges d’avant-bras — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/monster/rig-part-views.test.ts",
+      "liaison": "MAX_RIG_ALIAS",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des alias de vue de pièce."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/monster/rig-part-views.test.ts",
+      "liaison": "MAX_RIG_FORMAT",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des vues de pièce au format hérité."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/monster/rig-part-views.test.ts",
+      "liaison": "MAX_RIG_TRANSFORM",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des transformations de vue — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/flesh-gradient.test.ts",
+      "liaison": "MAX_FLESH_GRADIENT",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des dégradés de chair hérités."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/jambes-gabarit-ratchet.test.ts",
+      "liaison": "INITIAL_LEGACY",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "gabarits de jambes hérités au départ du cliquet."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/jambes-gabarit-ratchet.test.ts",
+      "liaison": "JAMBE_LEGACY",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "gabarits de jambes hérités, à migrer."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/jambes-gabarit-ratchet.test.ts",
+      "liaison": "MAX_OVERRIDES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des surcharges de gabarit de jambes."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/palette-literal.test.ts",
+      "liaison": "MAX_PALETTE_LITERAL",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des littéraux de palette."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/part-view-format.test.ts",
+      "liaison": "MAX_ALIAS",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des alias de vue de tenue."
+    },
+    {
+      "fichier": "src/gameIso/rig/parts/tenues/part-view-format.test.ts",
+      "liaison": "MAX_FORMAT",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des vues de tenue au format hérité."
+    },
+    {
+      "fichier": "src/gameIso/rig/plan-species-vocabulaire.test.ts",
+      "liaison": "BASELINE_CASTS",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "conversions de vocabulaire d’espèce mesurées par site."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "ANCRES_OEIL_ABSENTES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "ancres d’œil absentes, gelées."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "APPLICABLES_GELES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "décors applicables gelés du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "DECOS_MORTS_GELES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "décors morts gelés du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "DECOS_SANS_PLAN_GELES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "décors sans plan gelés du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "PLAFOND_ANCRES_OEIL_ABSENTES",
+      "forme": "plafond",
+      "role": "derive",
+      "cible": null,
+      "raison": "longueur d’un porteur déjà déclaré : la compter doublerait la même croissance."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "PLAFOND_DECOS_MORTS",
+      "forme": "plafond",
+      "role": "derive",
+      "cible": null,
+      "raison": "longueur d’un porteur déjà déclaré : la compter doublerait la même croissance."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "PLAFOND_DECOS_SANS_PLAN",
+      "forme": "plafond",
+      "role": "derive",
+      "cible": null,
+      "raison": "longueur d’un porteur déjà déclaré : la compter doublerait la même croissance."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "PLAFOND_REPERES_ART_PROPRES",
+      "forme": "plafond",
+      "role": "derive",
+      "cible": null,
+      "raison": "longueur d’un porteur déjà déclaré : la compter doublerait la même croissance."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/deco-stock.fixture.ts",
+      "liaison": "REPERES_ART_PROPRES_GELES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "repères d’art propres gelés du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "ALPHA_MIN",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "alpha minimal de la sonde — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "COUTURES_OUVERTES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "coutures ouvertes gelées du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "ESPECES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "espèces gelées de la couture quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "INTERFACES_HORS_CADRE_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "interfaces hors cadre gelées du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "POSES_GELEES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "poses gelées de la couture quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "SONDE_DEMI_U",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "demi-largeur de la sonde — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "VB_H",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "hauteur de viewBox — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-couture.test.ts",
+      "liaison": "VB_W",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "largeur de viewBox — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_FAR_LINES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des lignes de vue lointaine du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_HEAD_KEYS",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des clés de tête au socle quadrupède — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_HEAD_SITES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des sites de tête au socle quadrupède — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_MANE_SITES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des sites de crinière du socle quadrupède — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_SPECIES_SCALAR_LINES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des scalaires par espèce du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_TAIL_SITES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des sites de queue du socle quadrupède — à zéro."
+    },
+    {
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "liaison": "MAX_WING_STATE_LINES",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des lignes d’état d’aile du socle quadrupède."
+    },
+    {
+      "fichier": "src/gameIso/stage/cadre-viewbox.test.ts",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/cameras-reposees.test.tsx",
+      "liaison": "IMAGES",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "nombre d’images simulées — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/chrome-jeton.test.tsx",
+      "liaison": "commits",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "compteur local de la sonde — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/foyer-de-lampe.test.ts",
+      "liaison": "TOLERANCE_M",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance en MÈTRES sur la position du foyer : une tolérance de mesure."
+    },
+    {
+      "fichier": "src/gameIso/stage/lacet-continu.test.tsx",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/pion-cap-lisibilite.test.tsx",
+      "liaison": "AIRE_VISIBLE_MIN",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "aire visible minimale — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/pion-cap-lisibilite.test.tsx",
+      "liaison": "ECART_MAX",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "écart maximal admis sur le cap du pion : une tolérance de mesure."
+    },
+    {
+      "fichier": "src/gameIso/stage/projection.test.ts",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/projection.test.ts",
+      "liaison": "TOL_INV",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/redessin-pilote.test.tsx",
+      "liaison": "TINT",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "teinte de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/stage3dCamera.test.ts",
+      "liaison": "TOL",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance numérique de comparaison flottante : rien d’une dette."
+    },
+    {
+      "fichier": "src/gameIso/stage/stageFrames.test.ts",
+      "liaison": "horloge",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "horloge simulée de la sonde — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/name-field-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "champs `name` hors contrat — éteint, à zéro."
+    },
+    {
+      "fichier": "src/oversize-search-blindspot.test.ts",
+      "liaison": "SEUIL_OCTETS",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "seuil de 512 Ko au-dessus duquel un fichier est hors de portée des outils : un SEUIL de mesure."
+    },
+    {
+      "fichier": "src/scenes/test-scenarios/embuscade.test.ts",
+      "liaison": "H",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "hauteur du scénario de test — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/scenes/test-scenarios/embuscade.test.ts",
+      "liaison": "W",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "largeur du scénario de test — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/scenes/test-scenarios/entrainement.test.ts",
+      "liaison": "H",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "hauteur du scénario de test — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/scenes/test-scenarios/entrainement.test.ts",
+      "liaison": "W",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "largeur du scénario de test — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/scenes/test-scenarios/siege-enceinte.test.ts",
+      "liaison": "MOUTH_ROW",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "rangée de la gueule du scénario — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/batch-naval-quarantine-guard.test.ts",
+      "liaison": "QUARANTINED_FILES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fichiers navals en quarantaine."
+    },
+    {
+      "fichier": "src/state/cascade-consequence-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "conséquences de cascade hors socle — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-consequence-guard.test.ts",
+      "liaison": "CONTENT_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "contenus de conséquence hors socle — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-consequence-guard.test.ts",
+      "liaison": "SCOPE",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "périmètre scanné par le garde des conséquences de cascade."
+    },
+    {
+      "fichier": "src/state/cascade-step-difficulty-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "difficultés d’étape de cascade hors contrat — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-step-stake-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enjeux d’étape de cascade hors contrat — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-step-stake-guard.test.ts",
+      "liaison": "BASELINE_FLOW",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enjeux d’étape portés par un flux — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-step-stake-guard.test.ts",
+      "liaison": "BASELINE_LITERAL",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enjeux d’étape écrits en littéral — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/cascade-step-stake-guard.test.ts",
+      "liaison": "BASELINE_REQ",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enjeux d’étape requis hors contrat, par fichier."
+    },
+    {
+      "fichier": "src/state/cast-mods-source.test.ts",
+      "liaison": "DE",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "dé forcé de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/cast-mods-source.test.ts",
+      "liaison": "VALEUR",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "valeur attendue de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/chute-a-la-porte.test.ts",
+      "liaison": "BE",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "Bonus d’Endurance de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/combat-event-port-guard.test.ts",
+      "liaison": "WHITELIST",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites autorisés à émettre hors du port d’événements."
+    },
+    {
+      "fichier": "src/state/combat-hardcode-guard.test.ts",
+      "liaison": "BASELINES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "valeurs de combat encore écrites en dur, par fichier."
+    },
+    {
+      "fichier": "src/state/condition-event-counter.test.ts",
+      "liaison": "REMAINING",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "compteurs d’événement de Condition encore à câbler."
+    },
+    {
+      "fichier": "src/state/departage-etats-non-fondus.test.ts",
+      "liaison": "NUE",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "valeur nue de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/fixed-die-inventaire.test.ts",
+      "liaison": "T",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "dé fixé de la fixture — paramètre de MESURE du test (géométrie, tolérance, gabarit) : rien d’une dette."
+    },
+    {
+      "fichier": "src/state/flowtest-derived-stake.test.ts",
+      "liaison": "ENJEU_AU_PRODUCTEUR",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "enjeu attendu par producteur — table de lecture du garde."
+    },
+    {
+      "fichier": "src/state/flowtest-derived-stake.test.ts",
+      "liaison": "KIND_PAR_FICHIER",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "kind attendu par fichier de flux — table de lecture du garde."
+    },
+    {
+      "fichier": "src/state/guest-surface-class.test.ts",
+      "liaison": "HORS_SURFACE_UI",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "actions du store hors surface de jeu partagée, nominatives par action."
+    },
+    {
+      "fichier": "src/state/hors-modal-intent-path.test.ts",
+      "liaison": "EMISSION",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "table des émissions d’intention hors modale, mesurée par site."
+    },
+    {
+      "fichier": "src/state/i18n-narration-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "littéraux de narration hors catalogue — éteint, à zéro."
+    },
+    {
+      "fichier": "src/state/i18n-narration-guard.test.ts",
+      "liaison": "MIGRATED",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "fichiers DÉJÀ migrés — un acquis qui monte, jamais une dette."
+    },
+    {
+      "fichier": "src/state/in-battle-find-guard.test.ts",
+      "liaison": "BASELINES",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "recherches de combattant hors primitive, par fichier."
+    },
+    {
+      "fichier": "src/state/label-logic-guard.test.ts",
+      "liaison": "LABEL_RESOLVER_CALL_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des appels de résolveur par libellé — à zéro."
+    },
+    {
+      "fichier": "src/state/player-text-ratchet.test.ts",
+      "liaison": "GEL_AS_CASCADE_STEP",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "textes joueur gelés en étape de cascade."
+    },
+    {
+      "fichier": "src/state/player-text-ratchet.test.ts",
+      "liaison": "HORS_CASCADE_STEP",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "périmètre déclaré du cliquet de texte joueur."
+    },
+    {
+      "fichier": "src/state/roll-action-label-guard.test.ts",
+      "liaison": "ACTION_LABEL_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "libellés d’action encore écrits à la main."
+    },
+    {
+      "fichier": "src/state/roll-action-label-guard.test.ts",
+      "liaison": "ROLL_LABEL_SITUATION_STOCK",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "libellés de situation de jet encore écrits à la main."
+    },
+    {
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "liaison": "ETAPE_A_LA_MAIN_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "étapes de jet encore fabriquées à la main."
+    },
+    {
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "liaison": "HORS_PERIMETRE_COMBAT",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "périmètre déclaré du garde d’exclusivité : ce qu’il ne juge pas."
+    },
+    {
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "liaison": "LIGNE_A_LA_MAIN_STOCK",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "lignes de jet encore fabriquées à la main."
+    },
+    {
+      "fichier": "src/state/set-scan-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "balayages de `Set` hors primitive, par fichier."
+    },
+    {
+      "fichier": "src/state/state-purity.test.ts",
+      "liaison": "ALLOWLIST",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de `src/state` encore impurs."
+    },
+    {
+      "fichier": "src/ui/aria-primitive-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "a11y hors primitive, mesurée par fichier."
+    },
+    {
+      "fichier": "src/ui/aria-primitive-guard.test.ts",
+      "liaison": "OWNERS",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "primitive → fichier propriétaire de son a11y."
+    },
+    {
+      "fichier": "src/ui/codex-info-affordance-ratchet.test.ts",
+      "liaison": "RATCHET",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "affordances d’info du Codex encore manquantes."
+    },
+    {
+      "fichier": "src/ui/compendium/codex-edit-ancrage.test.ts",
+      "liaison": "TUS_MAX",
+      "forme": "plafond",
+      "role": "stock",
+      "cible": 0,
+      "raison": "plafond des ancrages d’édition du Codex encore tus."
+    },
+    {
+      "fichier": "src/ui/compendium/registry-enveloppe.test.ts",
+      "liaison": "ORPHELINS",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "catégories du Codex sans dataset apparié."
+    },
+    {
+      "fichier": "src/ui/compendium/registry.ts",
+      "liaison": "CODEX_SPECS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "le CATALOGUE des catégories du Codex : la donnée du produit."
+    },
+    {
+      "fichier": "src/ui/console-no-title-only.test.ts",
+      "liaison": "EXEMPTIONS",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de console exemptés — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/echap-couture-unique.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites d’Échap hors de la couture unique."
+    },
+    {
+      "fichier": "src/ui/editor-quarantine-guard.test.ts",
+      "liaison": "ALLOWLIST",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fichiers d’éditeur encore hors quarantaine."
+    },
+    {
+      "fichier": "src/ui/editor/no-datalist.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "`datalist` restants de l’éditeur, par fichier."
+    },
+    {
+      "fichier": "src/ui/gallery/registry.tsx",
+      "liaison": "GALLERY_SPECIMENS",
+      "forme": "liste",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "les spécimens de la galerie design : la donnée de l’écran."
+    },
+    {
+      "fichier": "src/ui/mono-stake-ratchet.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "enjeux mono restants, mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "primitives sans propriétaire déclaré — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "liaison": "OWNERS",
+      "forme": "objet",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "primitive → fichier propriétaire, la table du CLAUDE.md rendue opposable."
+    },
+    {
+      "fichier": "src/ui/registry-id-branch-guard.test.ts",
+      "liaison": "KNOWN",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "branchements « id === littéral » du Codex, cliquet BRUT qui ne monte jamais (en-tête :641)."
+    },
+    {
+      "fichier": "src/ui/registry-id-branch-guard.test.ts",
+      "liaison": "RAW_KNOWN",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "branchements « id === littéral » sur la donnée RAW, comptés par fichier et bornés (:647)."
+    },
+    {
+      "fichier": "src/ui/roll-line-difficulty-guard.test.ts",
+      "liaison": "BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "difficultés de ligne de jet hors contrat — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "BARE_BUTTON_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "boutons nus mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "BARE_BUTTON_EXEMPT_FILES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fichiers exemptés du cliquet des boutons nus."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "BARE_BUTTON_OPAQUE_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "boutons nus opaques — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "BREAKPOINT_EXEMPT",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fichiers exemptés du cliquet des breakpoints."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "CLASS_SELECTOR_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sélecteurs de classe mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "FILL_LITERAL_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "remplissages littéraux, mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "FLEX_WRAP_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "`flex-wrap` hors primitive, mesuré par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "FROZEN_WITNESS_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "témoins gelés mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "HEX_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "couleurs hexadécimales en dur — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "NUMBER_INPUT_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "champs nombre hors primitive, mesurés par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "NUMBER_INPUT_EXEMPT_FILES",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fichiers exemptés du cliquet des champs nombre."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "PANEL_REDEFINE_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "redéfinitions de panneau, mesurées par fichier."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "PRICE_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "prix écrits hors primitive — éteint, à zéro."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "PRICE_PA_ARMOR_EXEMPT",
+      "forme": "liste",
+      "role": "stock",
+      "cible": 0,
+      "raison": "sites de prix/PA d’armure exemptés."
+    },
+    {
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "liaison": "SHARED_LEAK_BASELINE",
+      "forme": "objet",
+      "role": "stock",
+      "cible": 0,
+      "raison": "fuites de style partagé, mesurées par fichier."
+    },
+    {
+      "fichier": "src/ui/useLongPress.ts",
+      "liaison": "TOLERANCE",
+      "forme": "plafond",
+      "role": "descripteur",
+      "cible": null,
+      "raison": "tolérance de déplacement de l’appui long, en pixels : une borne d’INTERACTION."
+    }
+  ]
+}

@@ -110,6 +110,18 @@ test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELL
   }
 })
 
+
+/** Registre des stocks d'un dépôt JETABLE : le garde lit celui du dépôt qu'il juge, jamais celui de
+ *  ce dépôt-ci. Sans cette déclaration, la porte ne compte RIEN — c'est tout le sujet. */
+function declarerStock(repo, fichier, liaison = 'STOCK', forme = 'liste') {
+  mkdirSync(join(repo, 'scripts', 'hooks'), { recursive: true })
+  writeFileSync(join(repo, 'scripts', 'hooks', 'stocks.json'), `${JSON.stringify({
+    _entete: ['registre du dépôt jetable de ce test'],
+    entrees: [{ fichier, liaison, forme, role: 'stock', cible: 0, raison: 'porteur de fixture du driver du garde de solde.' }],
+  }, null, 2)}
+`, 'utf8')
+}
+
 // Stock nominatif qui grandit : la règle vit dans `scripts/guards/lib/stocksNominatifs.mjs`, mais
 // c'est le DRIVER qui lui apporte l'index du dépôt cible et le message — ce câblage-là se teste ici.
 test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CLIQUET au message', () => {
@@ -123,7 +135,8 @@ test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CL
     mkdirSync(join(repo, 'src', 'state'), { recursive: true })
     const stock = join(repo, 'src', 'state', 'exemptions.test.ts')
     writeFileSync(stock, 'export const STOCK = [\n]\n', 'utf8')
-    git('add', 'src/state/exemptions.test.ts')
+    declarerStock(repo, 'src/state/exemptions.test.ts')
+    git('add', '-A')
     git('commit', '-q', '--no-verify', '-m', 'socle')
 
     writeFileSync(stock, ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
@@ -133,11 +146,11 @@ test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CL
     assert.ok(refus, 'aucune décision : le stock a grossi sans que rien ne le dise')
     assert.equal(refus.decision, 'deny')
     assert.match(refus.reason, /STOCK NOMINATIF qui NAÎT ou GRANDIT/)
-    assert.match(refus.reason, /src\/state\/exemptions\.test\.ts : \+2/)
+    assert.match(refus.reason, /src\/state\/exemptions\.test\.ts#STOCK : \+2/)
 
     const avecCliquet = decisionOf(
       'git commit -m "feat: deux exemptions de plus' +
-      '\n\nCLIQUET: src/state/exemptions.test.ts +2 — deux sites mesurés ce jour, extinction sous #9999"',
+      '\n\nCLIQUET: src/state/exemptions.test.ts#STOCK +2 — deux sites mesurés ce jour, extinction sous #9999"',
       repo,
     )
     assert.doesNotMatch(avecCliquet?.reason ?? '', /STOCK NOMINATIF/, 'un CLIQUET nommé et compté doit passer')
@@ -162,7 +175,8 @@ test('DRIVER : les TROIS formes de commit sont jugées sur ce qu\'elles emporten
     const chemin = 'scripts/guards/lib/xStock.mjs'
     const stock = join(repo, chemin)
     writeFileSync(stock, 'export const STOCK = [\n]\n', 'utf8')
-    git('add', chemin)
+    declarerStock(repo, chemin)
+    git('add', '-A')
     git('commit', '-q', '--no-verify', '-m', 'socle')
 
     // La croissance vit dans l'ARBRE DE TRAVAIL et NULLE PART dans l'index.
@@ -178,7 +192,7 @@ test('DRIVER : les TROIS formes de commit sont jugées sur ce qu\'elles emporten
       assert.ok(refus, `aucune décision pour « ${forme} » : le garde a lu l’index vide`)
       assert.equal(refus.decision, 'deny')
       assert.match(refus.reason, /STOCK NOMINATIF qui NAÎT ou GRANDIT/)
-      assert.match(refus.reason, /scripts\/guards\/lib\/xStock\.mjs : \+2/)
+      assert.match(refus.reason, /scripts\/guards\/lib\/xStock\.mjs#STOCK : \+2/)
     }
 
     // Forme INDEX : rien n'est stagé, donc le commit n'emporte rien — le garde se tait sur les stocks.
@@ -202,10 +216,42 @@ function depotAStock() {
   const vide = 'export const STOCK = [\n]\n'
   const plein = ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n')
   writeFileSync(join(repo, chemin), vide, 'utf8')
-  git('add', chemin)
+  declarerStock(repo, chemin)
+  git('add', '-A')
   git('commit', '-q', '--no-verify', '-m', 'socle')
   return { repo, git, chemin, vide, plein }
 }
+
+// Un dépôt qui PORTE la porte de stock mais PAS son registre : la porte serait AVEUGLE sur tous les
+// stocks. Elle le DIT (worktree non rebasé, `git checkout` partiel), au lieu de compter zéro.
+test('DRIVER : la porte de stock SANS son registre est un ARRÊT nommé, jamais un silence', () => {
+  const { repo, chemin, plein } = depotAStock()
+  try {
+    writeFileSync(join(repo, chemin), plein, 'utf8')
+    // Le dépôt porte déjà `scripts/guards/lib/xStock.mjs` ; on lui pose la LIB de la porte, et on
+    // lui RETIRE son registre — exactement l'état d'un worktree qui n'a pas rebasé le train.
+    writeFileSync(join(repo, 'scripts', 'guards', 'lib', 'stocksNominatifs.mjs'), '// la porte\n', 'utf8')
+    rmSync(join(repo, 'scripts', 'hooks', 'stocks.json'))
+    const refus = decisionOf('git commit -m "deux exemptions de plus"', repo)
+    assert.ok(refus, 'aucune décision : la porte s’est taue sur un registre MANQUANT')
+    assert.match(refus.reason, /porte la porte de stock .* mais PAS son registre/s)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// Un dépôt ÉTRANGER (ni la lib de la porte, ni le registre) : la règle de stock ne s'y applique pas.
+test('DRIVER : un dépôt ÉTRANGER — ni porte ni registre — ne déclare aucun stock, et rien ne rougit', () => {
+  const { repo, chemin, plein } = depotAStock()
+  try {
+    writeFileSync(join(repo, chemin), plein, 'utf8')
+    rmSync(join(repo, 'scripts', 'hooks', 'stocks.json'))
+    const vu = decisionOf('git commit -m "deux exemptions de plus"', repo)
+    assert.doesNotMatch(vu?.reason ?? '', /STOCK NOMINATIF|registre/, 'un dépôt étranger n’est pas jugé')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
 
 // Un pathspec à JOKER : `extractCommitPathspecs` ne le résout pas, mais git, lui, commite l'ARBRE DE
 // TRAVAIL de ce qu'il désigne. Le prendre pour « aucun chemin » faisait lire l'INDEX — vide — et la

@@ -12,8 +12,17 @@ import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, SHA_NUL } f
 
 const PORTEUR = 'scripts/x.test.mjs'
 
+/** Le REGISTRE de ces fixtures : la porte ne compte que ce qui est DÉCLARÉ, et un dépôt jetable
+ *  n'a pas le registre du dépôt. Une seule liaison, en forme de `liste`. */
+const REGISTRE = { entrees: [{
+  fichier: PORTEUR, liaison: 'STOCK', forme: 'liste', role: 'stock', cible: 0,
+  raison: 'porteur de fixture de la porte de plage.',
+}] }
+/** Image du porteur telle que la fixture l'écrit : les entrées ajoutées vivent à partir de la ligne 2. */
+const imagesDe = (entrees) => ({ registre: REGISTRE, lirePostImage: () => sourceStock(entrees), lirePreImage: () => sourceStock(entrees) })
+
 /** Diff `-U0` d'un ajout/retrait de lignes dans le porteur, à partir de la ligne `ligne`. */
-const diffDe = (ajoutees = [], retirees = [], ligne = 1) =>
+const diffDe = (ajoutees = [], retirees = [], ligne = 2) =>
   [
     `diff --git a/${PORTEUR} b/${PORTEUR}`,
     `--- a/${PORTEUR}`,
@@ -35,32 +44,35 @@ test('C : deux commits CLIQUETÉS +2 chacun passent — le cumul +4 ne demande p
       { sha: 'bbb2222', diff: diffDe([C, D]), message: 'T2\n\nCLIQUET: scripts/x.test.mjs +2 — seconde fournée, motif suffisamment long aussi' },
     ],
     cumule: diffDe([A, B, C, D]),
+    imagesCumul: { registre: REGISTRE },
   })
   assert.deepEqual(refus, [], 'le CLIQUET vit dans UN message : la plage se juge par commit')
 })
 
 test('C : un stock ajouté puis RETIRÉ dans la plage ne refuse rien — le filtre cumulé l\'écarte', () => {
   const commits = [
-    { sha: 'aaa1111', diff: diffDe([A, B]), message: 'ajoute' },
-    { sha: 'bbb2222', diff: diffDe([], [A, B]), message: 'retire' },
+    { sha: 'aaa1111', diff: diffDe([A, B]), message: 'ajoute', images: imagesDe([A, B]) },
+    { sha: 'bbb2222', diff: diffDe([], [A, B]), message: 'retire', images: imagesDe([A, B]) },
   ]
-  assert.equal(refusDeLaPlage({ commits, cumule: diffDe([A, B]) }).length, 1, 'sans retrait cumulé, le refus tient')
-  assert.deepEqual(refusDeLaPlage({ commits, cumule: '' }), [], 'croissance cumulée nulle : rien à refuser')
+  const imagesCumul = imagesDe([A, B])
+  assert.equal(refusDeLaPlage({ commits, cumule: diffDe([A, B]), imagesCumul }).length, 1, 'sans retrait cumulé, le refus tient')
+  assert.deepEqual(refusDeLaPlage({ commits, cumule: '', imagesCumul: { registre: REGISTRE } }), [], 'croissance cumulée nulle : rien à refuser')
 })
 
 test('C : un commit du MILIEU sans cliquet est refusé, et le refus le NOMME', () => {
   const refus = refusDeLaPlage({
     commits: [
       { sha: 'aaa1111', diff: diffDe([]), message: 'socle' },
-      { sha: 'bbb2222', diff: diffDe([A, B]), message: 'lot sans cliquet' },
+      { sha: 'bbb2222', diff: diffDe([A, B]), message: 'lot sans cliquet', images: imagesDe([A, B]) },
       { sha: 'ccc3333', diff: diffDe([]), message: 'tête innocente' },
     ],
     cumule: diffDe([A, B]),
+    imagesCumul: imagesDe([A, B]),
   })
-  assert.deepEqual(refus.map((r) => [r.sha, r.fichier, r.net]), [['bbb2222', PORTEUR, 2]])
+  assert.deepEqual(refus.map((r) => [r.sha, r.cle, r.net]), [['bbb2222', `${PORTEUR}#STOCK`, 2]])
   const raison = raisonDeRefusDePlage(refus)
   assert.match(raison, /bbb2222/)
-  assert.match(raison, /scripts\/x\.test\.mjs \+2/)
+  assert.match(raison, /scripts\/x\.test\.mjs#STOCK \+2/)
   assert.match(raison, /rebase -i/)
 })
 
@@ -94,8 +106,8 @@ test('C : sur un dépôt réel, la plage voit le commit du MILIEU que `git show 
     { contenu: `${sourceStock([A, B])}// tête anodine\n`, message: 'tête' },
   ])
   try {
-    const { refus } = croissancesDeLaPlage({ cwd: repo, avant: shas[0], apres: shas[2] })
-    assert.deepEqual(refus.map((r) => [r.sha, r.fichier, r.net]), [[shas[1], PORTEUR, 2]])
+    const { refus } = croissancesDeLaPlage({ cwd: repo, avant: shas[0], apres: shas[2], registre: REGISTRE })
+    assert.deepEqual(refus.map((r) => [r.sha, r.cle, r.net]), [[shas[1], `${PORTEUR}#STOCK`, 2]])
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -108,7 +120,7 @@ test('C : la même croissance RETIRÉE plus loin dans la plage ne refuse plus ri
     { contenu: sourceStock([]), message: 'et on les retire' },
   ])
   try {
-    assert.deepEqual(croissancesDeLaPlage({ cwd: repo, avant: shas[0], apres: shas[2] }).refus, [])
+    assert.deepEqual(croissancesDeLaPlage({ cwd: repo, avant: shas[0], apres: shas[2], registre: REGISTRE }).refus, [])
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -121,7 +133,7 @@ test('C : base NULLE sans `origin/main` → HEAD seul, et la porte le DIT (jamai
     { contenu: `${sourceStock([A, B])}// tête anodine\n`, message: 'tête' },
   ])
   try {
-    const { refus, notes } = croissancesDeLaPlage({ cwd: repo, avant: SHA_NUL, apres: shas[2] })
+    const { refus, notes } = croissancesDeLaPlage({ cwd: repo, avant: SHA_NUL, apres: shas[2], registre: REGISTRE })
     assert.deepEqual(refus, [], 'la tête seule ne porte aucune croissance')
     assert.equal(notes.length, 1)
     assert.match(notes[0], /plage inconnue/)

@@ -6,9 +6,10 @@
     "DÉCROISSANT : `scripts/ops/audit-stock.mjs` rend ROUGE une advisory NEUVE sur un paquet du stock",
     "(jamais une amnistie de paquet), un paquet neuf >= high hors stock, et une entrée dont l'advisory",
     "a DISPARU (« entrée périmée : retire-la »). Un paquet connu et inchangé est JAUNE au résumé.",
-    "CETTE LISTE EST INVISIBLE À LA PORTE T3 (`scripts/guards/lib/stocksNominatifs.mjs`) : ses entrées",
-    "ne portent aucun chemin de fichier du dépôt, et cette porte ne compte que des croissances de stock",
-    "en portée de module d'un fichier source. Le cliquet de ce stock-ci vit dans `audit-stock.test.mjs`.",
+    "CETTE LISTE EST VUE PAR LA PORTE DE STOCK : elle est DÉCLARÉE `scripts/ops/audit-stock.json#$.entrees`",
+    "au registre `scripts/hooks/stocks.json`, et la porte compte ses éléments quelle que soit leur clé —",
+    "une entrée de plus exige `CLIQUET: scripts/ops/audit-stock.json#$.entrees +N — <motif>` au message.",
+    "Le plafond de ce stock-ci vit dans `audit-stock.test.mjs`.",
     "`via` = les advisories GHSA rattachées DIRECTEMENT au paquet par `npm audit --json` ; `viaPaquets`",
     "= les paquets par lesquels la vulnérabilité lui arrive (un paquet purement transitif a `via` vide",
     "et c'est sa seule signature : `miniflare` et `wrangler` n'ont aucune advisory propre)."

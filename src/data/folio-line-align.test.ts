@@ -50,9 +50,9 @@ const RATCHET_MAX = 41;
  *  `book-source-integrity.test.ts`, `folioIntegrity.mjs`) : ils dérivaient sans un mot. Les deux
  *  bornes ci-dessous les rendent OPPOSABLES, chacune dans son sens. */
 const SCANNED_MIN = 312;
-const SANS_CITATION_MAX = 3294; // 4500 sourcées − 1206 citées ; INCHANGÉ par #1657 B3-2b-a — les 5
-// stations de `ship-stations.json` et le Trait naval `cale` citent toutes leur LIGNE en `source.note`
-// (MDG 13 l.730/714/751, MDG 12 l.303, MSRC 07 l.94), donc entrent au numérateur des CITÉES.
+// Les 5 stations de `ship-stations.json` et le Trait naval `cale` citent leur LIGNE en `source.note`
+// (MDG 13 l.730/714/751, MDG 12 l.303, MSRC 07 l.94) : elles entrent au numérateur des CITÉES.
+const SANS_CITATION_MAX = 3294;
 
 /** Entrées à `source:{book,page}` (SOURCÉES) et celles qui citent AUSSI une ligne (CITÉES), même
  *  règle de lecture que `citedEntries` : `source.note`, à défaut le champ `ref` frère. */

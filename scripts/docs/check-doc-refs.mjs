@@ -265,7 +265,7 @@ const estMetavariable = (tok) => /(^|\/)[A-Za-z](\.[A-Za-z0-9]+)?$/.test(tok)
 // jeton AILLEURS dans le fichier reste jugée. Une exemption qui ne matche plus se voit — son site
 // redevient rouge dès que la ligne bouge, et c'est le moment de la re-mesurer.
 const HOOK_SITES_EXEMPTS = new Set([
-  'scripts/git-hooks/pre-push.mjs:94|src/database', // contre-exemple de la comparaison par SEGMENT (`src/database` n’est pas `src/data`)
+  'scripts/git-hooks/pre-push.mjs:95|src/database', // contre-exemple de la comparaison par SEGMENT (`src/database` n’est pas `src/data`)
 ])
 // Un hook nomme aussi ses tests-scanners par leur SEUL nom de fichier (`label-logic-guard.test.ts`,
 // EXCLUDED de telle famille) : ce nom se confronte à l'index des tests de `src/`, sinon un renommage
