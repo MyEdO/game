@@ -1064,8 +1064,8 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 
 | Concept | Signature du lexique | Statut | Occurrences |
 |---|---|---|---|
-| reference | `id` | cible | 8986 |
-| reference | `id,spec` | cible | 1327 |
+| reference | `id` | cible | 8983 |
+| reference | `id,spec` | cible | 1324 |
 | reference | `choix,id` | cible | 278 |
 | reference | `id,type` | cible | 0 |
 | reference | `count,id,type` | cible | 0 |
@@ -1080,7 +1080,7 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 | reference | `arg,id,value` | historique | 125 |
 | reference | `count,id` | historique | 26 |
 | reference | `count,text` | historique | 0 |
-| reference | `id,times` | historique | 48 |
+| reference | `id,times` | historique | 53 |
 | reference | `id,qualityChoice` | historique | 36 |
 | reference | `ref` | historique | 2 |
 | reference | `wildcard` | historique | 7 |
@@ -1137,7 +1137,7 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **858** (cible 400 · declaree 6 · historique 125 · divergente 327). Objets JSON parcourus : **49281**, dont **32225** portent une forme
+Lignes concept × dataset × champ × forme : **859** (cible 400 · declaree 6 · historique 125 · divergente 328). Objets JSON parcourus : **49287**, dont **32231** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **86**.
 
 Entrées de racine sans concept de valeur : **4057** sur **4139** —
@@ -1146,7 +1146,7 @@ Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause `
 
 ### 3.1 référence à une entité — `reference` (strate Référence)
 
-475 ligne(s), 24708 occurrence(s).
+476 ligne(s), 24714 occurrence(s).
 Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Résolvables | Cibles résolues | Note |
@@ -1284,9 +1284,10 @@ Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou
 | entité | `skills` | `id,value` | cible | `creatures.json` | 4554 | — | `activities.json` `axes.json` `creatures.json` `crew-test-types.json` `drunkenness.json` `maladies.json` … | réf de Compétence de STATBLOC + son nombre imprimé (`refOuSpec('skill', {value})`) |
 | entité | `spec` | `id-nu` | historique | `creatures.json` | 1 | — | `skills.json` | référence portée par un CHAMP SCALAIRE d’un document (`species: "humain"`) — la cible est un objet de référence |
 | entité | `spells` | `id` | cible | `creatures.json` | 599 | — | `activities.json` `axes.json` `domains.json` `lightTones.json` `mass-battle.json` `mutations.json` … |  |
-| entité | `talents` | `id` | cible | `creatures.json` | 1455 | — | `actions.json` `careers.json` `crew-roles.json` `groups.json` `naval-traits.json` `psychology.json` … |  |
-| entité | `talents` | `id,spec` | cible | `creatures.json` | 221 | — | `activities.json` `arene-projet.json` `axes.json` `careers.json` `classes.json` `creatures.json` … |  |
-| entité | `talents` | `id,times` | historique | `creatures.json` | 48 | — | `careers.json` `naval-traits.json` `spells.json` `talents.json` |  |
+| entité | `talents` | `id` | cible | `creatures.json` | 1452 | — | `actions.json` `careers.json` `crew-roles.json` `groups.json` `naval-traits.json` `psychology.json` … |  |
+| entité | `talents` | `id,spec` | cible | `creatures.json` | 218 | — | `activities.json` `arene-projet.json` `axes.json` `careers.json` `classes.json` `creatures.json` … |  |
+| entité | `talents` | `id,spec,times` | divergente | `creatures.json` | 7 | — | `axes.json` `careers.json` `skills.json` `talents.json` `weaponGroups.json` |  |
+| entité | `talents` | `id,times` | historique | `creatures.json` | 53 | — | `careers.json` `naval-traits.json` `skills.json` `spells.json` `talents.json` |  |
 | entité | `traits` | `arg,id` | historique | `creatures.json` | 408 | — | `breath-types.json` `careers.json` `characteristics.json` `creatures.json` `damage-types.json` `domains.json` … | paramètre d’entité non déclaré (#1463 S2 A11) |
 | entité | `traits` | `arg,id+…` | divergente | `creatures.json` | 1 | — | `maneuvers.json` `mutations.json` `qualitySubtypes.json` `traits.json` |  |
 | entité | `traits` | `arg,id,value` | historique | `creatures.json` | 118 | — | `breath-types.json` `damage-types.json` `domains.json` `maneuvers.json` `merchantFamilies.json` `obsessions.json` … |  |
@@ -2473,7 +2474,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13170** objets sur **49281** ne sont portés par AUCUNE
+Au-delà des orphelines, **13170** objets sur **49287** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -4626,7 +4627,7 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 | `creatures.json` | `skills` | 5981 |
 | `creatures.json` | `spec` | 1 |
 | `creatures.json` | `spells` | 599 |
-| `creatures.json` | `talents` | 1724 |
+| `creatures.json` | `talents` | 1730 |
 | `creatures.json` | `traits` | 3049 |
 | `creatures.json` | `trappings` | 132 |
 | `crew-roles.json` | `skills` | 10 |
@@ -4889,4 +4890,4 @@ pèse **2637** slots sur 2972.
 - Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.
 - `valeursAuPath` ne descend PAS dans une branche d’union (`|N`) : la branche servie est celle qui parse, la donnée ne la porte pas — un slot sous union rend 0 valeur posée, et la résolution y est vacueuse.
 
-<!-- sources-empreinte: 063f8c60d2643e2b5662c9e0dbaf27b1062423c9 (369 fichiers, 11 dossiers) corps: ec2b5134c9008103858a62b8ab1afa00c8cb7228 -->
+<!-- sources-empreinte: 2cabd98299b630d1f4f55a8769572f690e1e6c19 (369 fichiers, 11 dossiers) corps: f87e669659522e83cd3939d501582037cd4b59c4 -->

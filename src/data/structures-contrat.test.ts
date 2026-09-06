@@ -1098,7 +1098,13 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 377 → 378 (#1690, 2026-09-06) : UNE ligne NEUVE, qui n'est pas une dérive de graphie —
       // `terrains.json › overlayProp` (l'id de décor posé sur chaque tuile, forme CIBLE refinée par
       // `idDe('prop')`) entre au dénominateur avec son document.
-      'L3 #1463': 378,
+      // … puis 378 → 379 (#1650, 2026-09-07) : `creatures.json › talents {id,spec,times}` — un Talent
+      // SPÉCIALISÉ pris PLUSIEURS fois (« Maître Artisan (Engingneurie) 2 », `frenchy.bzh 56 l.83`)
+      // n'existait dans AUCUN statbloc committé : le dataset ne portait que `{id,spec}` (spec seule) ou
+      // `{id,times}` (niveau seul). Ce n'est pas une graphie neuve — c'est la COMPOSITION des deux
+      // lignes déjà stockées de ce champ, qui s'éteindra avec elles quand `times` deviendra le `value`
+      // de la forme CIBLE de statbloc (`{id,spec,value}`).
+      'L3 #1463': 379,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
