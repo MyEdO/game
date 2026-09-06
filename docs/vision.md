@@ -51,9 +51,7 @@ construire ce batiment », fiche `user-doctrine-campagne-jamais-generee-par-scri
 On y joue seul ou à plusieurs sièges. [« les joueurs qui jouent au scénario en solo ou en groupe »,
 2026-09-06] Un siège peut tenir l'environnement et les ennemis : il **voit** leurs jets, peut les
 **fixer**, et **pilote** les ennemis, l'IA se retirant pour lui. [option retenue 2026-09-06 « Voir et
-fixer, ET piloter les ennemis » ; `worldSeat` dans `src/state/netOwnership.ts`] Il n'a aucun pouvoir
-narratif ni hors règles : « n'a aucun pouvoir particulier a part voir les jets de
-l'environnement/ennemie (et peut les controller) » [2026-09-06]. Les dés se fixent quand la partie est
+fixer, ET piloter les ennemis » ; `worldSeat` dans `src/state/netOwnership.ts`] Les dés se fixent quand la partie est
 configurée pour, c'est un confort déclaré, jamais une règle du livre. [« avec les dés fixés ou non »,
 2026-09-06 ; `src/engine/fixedDie.ts`] Tout dé passe par la même porte, aucune famille de jet n'en est
 exemptée. [« tous les jets passent par le même point d'entrée », 2026-09-04 ; dette résiduelle
