@@ -252,7 +252,7 @@ test('revue-palier, mode refutation : au-delà de 12 clauses de DoD, les suivant
 /** Les SIX invariants du premier brief de socle réellement soumis (#1679 L3), tels qu'il les porte. */
 const INVARIANTS_L3 = [
   { verbatim: "**Une règle = une porte.** Aucun lot n'écrit une règle en prose sans le hook, le test ou la garde qui la joue.", source: 'plan #1679 approuvé par l’utilisateur le 2026-09-01, § Principes d’exécution, 1', question: 'pourquoi les règles du 30/08 ont-elles été violées 5 fois en 48 h ?' },
-  { verbatim: 'jamais de push si le dernier run CI de `main` est rouge (attendre ou corriger)', source: '.claude/memory/user-regime-une-session-par-chantier-2026-09-01.md:24', question: 'comment plusieurs sessions poussent-elles sur un même tronc sans le casser ?' },
+  { verbatim: 'suite complète + tsc avant push, pas de push sur CI rouge', source: 'scripts/git-hooks/pre-push.mjs:2 (régime utilisateur 2026-09-01)', question: 'comment plusieurs sessions poussent-elles sur un même tronc sans le casser ?' },
   { verbatim: '`ecrireJustificatif` ne dégrade JAMAIS un verdict propre', source: '.claude/soldes/revue-palier-82e95be10.md, écart 1', question: 'un rejeu de gate sur arbre sale peut-il détruire la preuve d’un push régulier ?' },
   { verbatim: '**UNE SEULE charge lourde par machine**', source: 'pilotage v7 de #1679 (issuecomment-5539586217, § Régime)', question: 'pourquoi 109 spawns refusés pendant les gates de T1d ?' },
   { verbatim: '`ECRIT_LU` reste la vérité mesurée', source: 'scripts/gates/toutes.mjs (en-tête posé par T1d a9b7edf17)', question: 'quelles gates peuvent tourner en parallèle sans se lire ni s’écrire ?' },

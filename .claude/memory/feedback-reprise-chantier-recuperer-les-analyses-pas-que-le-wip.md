@@ -7,7 +7,7 @@ metadata:
 
 **Verbatim utilisateur (2026-09-02)** : « C'est un bon premier jet, il faudra ré-iterer une fois qu'on aura traité la premiere vague. D'ailleurs pour cette histoire de "table", la session dont tu as repris le travail avait eu la même conclusion, étonnant que tu n'ai pas récupéré ses analyses a lui aussi ».
 
-**Contexte** : à la reprise de #1463 (régime « une session par chantier », [[user-regime-une-session-par-chantier-2026-09-01]]), j'ai repris le WIP de CODE de la session fermée (passation B1 au ticket) mais pas ses analyses ; le juge #1673 a re-dérivé de zéro que `type` est le nom du document (`grammaire/document.ts:266`) et que `tables.json` n'est pas le modèle — conclusion que l'autre session avait déjà.
+**Contexte** : à la reprise de #1463 (régime « une session par chantier »), j'ai repris le WIP de CODE de la session fermée (passation B1 au ticket) mais pas ses analyses ; le juge #1673 a re-dérivé de zéro que `type` est le nom du document (`grammaire/document.ts:266`) et que `tables.json` n'est pas le modèle — conclusion que l'autre session avait déjà.
 
 **Why :** une analyse re-dérivée coûte un juge complet (≈280 k tokens, 35 min) et perd les nuances de la première ; la continuité d'un chantier repose sur ses conclusions autant que sur son code.
 
