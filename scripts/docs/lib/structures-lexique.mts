@@ -255,6 +255,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'count,id', statut: 'historique' },
       { sig: 'count,text', statut: 'historique' },
       { sig: 'id,times', statut: 'historique' },
+      { sig: 'id,spec,times', statut: 'historique', note: 'réf de TALENT spécialisée + niveau imprimé (`TalentRef extends Ref`, `src/data/index.ts:3079-3081`) — même réserve ouverte que `id,times` (nom du rang, L5)' },
       { sig: 'id,qualityChoice', statut: 'historique' },
       { sig: 'ref', statut: 'historique', note: 'ref emboîtée {ref:{id,spec}} ou id nu sous `ref`' },
       { sig: 'wildcard', statut: 'historique' },

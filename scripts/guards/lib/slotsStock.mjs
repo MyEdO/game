@@ -128,7 +128,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "creatures.json", champ: "remove", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "skills", occurrences: 5981, lot: "L2/L3 #1473", date: "2026-08-26" }, // −1 : doublon `riverain-respecte` supprimé du statbloc (687863ec6, skills 27→26) — compte non rafraîchi au commit
   { dataset: "creatures.json", champ: "spells", occurrences: 599, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "talents", occurrences: 1724, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "creatures.json", champ: "talents", occurrences: 1730, lot: "L2/L3 #1473", date: "2026-08-26" }, // +6 : #1650 — les talents IMPRIMÉS entrent au statbloc : technomage ×4 (frenchy.bzh 56 l.74-83), grand-maitre-des-hybridations ×1 (59 l.253), riverain-respecte ×1 (26 l.277)
   { dataset: "creatures.json", champ: "traits", occurrences: 3049, lot: "L2/L3 #1473", date: "2026-08-26" }, // +5 : Chien de trait, EDOC 07 folio 22, #673
   { dataset: "creatures.json", champ: "trappings", occurrences: 132, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "crew-roles.json", champ: "skills", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },

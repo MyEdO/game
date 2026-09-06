@@ -1098,7 +1098,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 377 → 378 (#1690, 2026-09-06) : UNE ligne NEUVE, qui n'est pas une dérive de graphie —
       // `terrains.json › overlayProp` (l'id de décor posé sur chaque tuile, forme CIBLE refinée par
       // `idDe('prop')`) entre au dénominateur avec son document.
-      'L3 #1463': 378,
+      // … puis 378 → 379 (#1650, 2026-09-07) : ENTRÉE d'une graphie neuve EN DONNÉE, pas une dérive —
+      // `{id, spec, times}` est la composition que `TalentRef extends Ref` déclare déjà
+      // (`src/data/index.ts:3079-3081`) ; elle n'existait dans aucun statbloc parce que l'import frenchy
+      // avait perdu la colonne Niv (0 `times` sur 1199 réfs de talent `frenchy-bzh`, #1701). Même réserve
+      // L5 que `id,times` (nom du rang), même lot : elle s'éteindra avec elle.
+      'L3 #1463': 379,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en

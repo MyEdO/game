@@ -18256,14 +18256,21 @@
         "spec": "marais"
       },
       {
+        "id": "maitre-artisan",
+        "spec": "charpentier-naval",
+        "times": 2
+      },
+      {
         "id": "sociable"
       },
       {
-        "id": "pecheur"
+        "id": "pecheur",
+        "times": 3
       },
       {
         "id": "savant",
-        "spec": "voies-fluviales"
+        "spec": "voies-fluviales",
+        "times": 2
       },
       {
         "id": "nomade"
@@ -36534,11 +36541,28 @@
     ],
     "talents": [
       {
-        "id": "bricoleur"
+        "id": "maitre-artisan",
+        "spec": "ingenieur",
+        "times": 3
+      },
+      {
+        "id": "bricoleur",
+        "times": 2
+      },
+      {
+        "id": "tireur-de-precision"
+      },
+      {
+        "id": "artilleur"
       },
       {
         "id": "magie-des-arcanes",
         "spec": "domaine-de-la-ruine"
+      },
+      {
+        "id": "travailleur-qualifie",
+        "spec": "ingenieur",
+        "times": 2
       }
     ],
     "trappings": [],
@@ -39301,10 +39325,12 @@
         "id": "doigts-de-fee"
       },
       {
-        "id": "bricoleur"
+        "id": "bricoleur",
+        "times": 2
       },
       {
-        "id": "chirurgie"
+        "id": "chirurgie",
+        "times": 2
       },
       {
         "id": "claquer-le-fouet"
@@ -39313,15 +39339,23 @@
         "id": "perspicace"
       },
       {
-        "id": "magnum-opus"
+        "id": "magnum-opus",
+        "times": 2
       },
       {
         "id": "maitre-artisan",
-        "spec": "ingenieur"
+        "spec": "ingenieur",
+        "times": 4
+      },
+      {
+        "id": "travailleur-qualifie",
+        "spec": "ingenieur",
+        "times": 3
       },
       {
         "id": "savant",
-        "spec": "ingenierie"
+        "spec": "ingenierie",
+        "times": 3
       },
       {
         "id": "nomade"

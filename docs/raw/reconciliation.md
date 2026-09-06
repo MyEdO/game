@@ -52,7 +52,7 @@ _Aucune._
 - `src/data/reseau-routier.json:192` (l.11) — "note": "EDOC 10 l.11 — section « Patrouilles routières » ; la phrase reprend l.17, l'encadré « LES JUSTICIERS » (l.13-15) la coupant."
 
 ### MCLB 2 — 5 réf(s) code, 0 dans l'Atlas
-- `src/data/creatures.json:59012` (l.2420) — "note": "MCLB 02 l.2420"
+- `src/data/creatures.json:59046` (l.2420) — "note": "MCLB 02 l.2420"
 - `src/data/skills.json:962` (l.1844) — "note": "MCLB 02 l.1844"
 - `src/data/skills.json:1559` (l.1322) — "note": "MCLB 02 l.1322"
 - `src/data/skills.json:1569` (l.2426) — "note": "MCLB 02 l.2426"
@@ -179,4 +179,4 @@ LDB 38
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, EDO, EDOC, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 882da0bbd4d966fb19fa002c43ca102d8cc313b3 (4037 fichiers, 153 dossiers) corps: 7e3fcdde4ca462175c40976c7b1fee047eee1082 -->
+<!-- sources-empreinte: 5f3675b606a0251e0e3ccbbcce7b62c0fcaa4850 (4038 fichiers, 153 dossiers) corps: 290e16b40ddc97a432b4da002ce3e52ec4c60c78 -->
