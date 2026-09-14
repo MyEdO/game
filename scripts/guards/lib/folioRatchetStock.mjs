@@ -8,15 +8,13 @@
 // le folio dépasse le dernier folio ATTESTÉ du livre (`hors livre`, réfutation qui se passe de desc).
 // Le commentaire de fin de ligne porte le folio déclaré → le folio MESURÉ.
 //
-// CLIQUET, pas absolution — trois verrous, tous dans le test :
+// CLIQUET, pas absolution — deux verrous, tous deux dans le test :
 //   (a) toute violation ABSENTE de cette liste échoue : une entrée neuve doit citer juste ;
 //   (b) toute clé de cette liste qui ne viole PLUS échoue : le stock se solde en corrigeant le folio
-//       au Source, jamais en gonflant la liste ;
-//   (c) la TAILLE du stock est plafonnée (`FOLIO_RATCHET_MAX` dans le test) : sans ce plafond,
-//       « le stock ne peut que décroître » n'était qu'un COMMENTAIRE, et le chemin le plus court pour
-//       « solder » une régression restait d'ajouter une ligne ici, CI verte — le précédent `reconcile`
-//       (157 dettes affichées, CI verte) que le dépôt a déjà payé. Faire croître ce stock impose donc
-//       de relever le plafond DANS la garde : un geste visible en revue, jamais un append discret.
+//       au Source, jamais en gonflant la liste.
+// Ce qu'un append coûte : chaque clé `<dataset>.json:<id>` NOMME son fichier, donc la porte de plage
+// (`croissanceDesStocks`, `stocksNominatifs.mjs`) la voit — une ligne de plus ici se DIT au message
+// par `CLIQUET: scripts/guards/lib/folioRatchetStock.mjs +N — <motif>`, jamais en silence.
 // `node scripts/data/audit-folios.mjs --stock` re-rend ce fichier et REFUSE de l'agrandir : l'outil
 // ne sait que solder.
 //

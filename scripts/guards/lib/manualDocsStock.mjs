@@ -8,16 +8,14 @@
 // premières lignes, un marqueur `GÉNÉRÉ par` (deux formes mesurées dans le dépôt : « ⚠️ Fichier
 // GÉNÉRÉ par … » et « GÉNÉRÉ par `npx tsx …` ») — cf. `src/data/manual-docs-ratchet.test.ts`.
 //
-// CLIQUET, pas absolution — trois verrous, tous dans le test :
+// CLIQUET, pas absolution — deux verrous, tous deux dans le test :
 //   (a) tout doc manuscrit ABSENT de cette liste échoue : un doc neuf se GÉNÈRE, il ne s'inscrit pas
 //       ici ;
 //   (b) toute entrée de cette liste devenue GÉNÉRÉE échoue : le stock se solde en retirant sa ligne,
-//       jamais en la laissant traîner ;
-//   (c) la TAILLE du stock est plafonnée (`MANUAL_DOCS_MAX` dans le test) : sans ce plafond, « le
-//       stock ne peut que décroître » n'était qu'un commentaire — la voie la plus courte pour
-//       « solder » un doc manuscrit neuf restait d'ajouter une ligne ici, CI verte. Faire croître ce
-//       stock impose donc de relever le plafond DANS la garde : un geste visible en revue, jamais un
-//       append discret.
+//       jamais en la laissant traîner.
+// Ce qu'un append coûte : chaque entrée NOMME son chemin `docs/*.md`, donc la porte de plage
+// (`croissanceDesStocks`, `stocksNominatifs.mjs`) la voit — une ligne de plus ici se DIT au message
+// par `CLIQUET: scripts/guards/lib/manualDocsStock.mjs +N — <motif>`, jamais en silence.
 //
 // Chaque ligne porte le chemin du doc et un fait bref (son sujet) — jamais une formulation qui se
 // donne une permission.

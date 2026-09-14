@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CREATURES } from '../creatures';
 import { quadParts } from './quadParts';
-import { ANCRES_OEIL_ABSENTES_GELEES, PLAFOND_ANCRES_OEIL_ABSENTES } from './deco-stock.fixture';
+import { ANCRES_OEIL_ABSENTES_GELEES } from './deco-stock.fixture';
 import { DECOS_MORTS_RATCHET, REPERES_ART_PROPRES_RATCHET } from '../../../../scripts/guards/lib/quadDecoStock.mjs';
 import { ecartDuVolet, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
 import { mesureDesReperes, fichierDeEspece } from '../../../../scripts/guards/lib/quadDecoAudit';
@@ -131,7 +131,6 @@ describe('art de VUE : l\'œil reste ANCRÉ pour le catalogue (#1082)', () => {
       'art de tête sans ancre d\'œil : `swapEye` y est MUET (catalogue d\'yeux sans effet), et en silence')
       .toEqual([]);
     // Le stock ne peut que RÉTRÉCIR, et ne tolère aucune entrée périmée : une ancre posée en sort.
-    expect(muettes.length).toBeLessThanOrEqual(PLAFOND_ANCRES_OEIL_ABSENTES);
     expect(ANCRES_OEIL_ABSENTES_GELEES.filter((c) => !muettes.includes(c)),
       'entrée gelée dont l\'ancre est désormais posée — à retirer du stock').toEqual([]);
   });

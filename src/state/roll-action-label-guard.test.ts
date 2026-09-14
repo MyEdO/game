@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { cleDeSite, ecartsDeStock, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
 import { skills } from '../data';
 import { CHAR_LABELS } from '../engine/types';
 import { fr } from '../i18n/messages/fr';
@@ -142,41 +143,43 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
   return hits;
 }
 
-/** STOCK NOMINATIF (#1109) — les six sites mesurés le 2026-08-05, chacun nommé par son fichier et son
- *  TEXTE exact. Plafond COLLÉ (longueur exacte) : un site assaini l'abaisse, un site neuf rougit nominativement.
+/** STOCK NOMINATIF (#1109) — les sites `rollLabel`-situation encore mesurés dans `src/state`, à la
+ *  forme d'entrée de TOUT stock nominatif du dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) :
+ *  `fichier` à ouvrir, `ref` = le TEXTE exact du libellé, `occurrence` = l'ordinal parmi ses
+ *  homonymes. Les DEUX volets ci-dessous le tiennent des deux côtés — un site NEUF hors stock rougit
+ *  à son fichier et à son texte, une entrée que plus aucun site ne porte rougit comme SOLDÉE —, et
+ *  c'est le `fichier` que la porte de plage voit : un append ici se DIT au message par `CLIQUET:`.
  *  #1318 V8c₃ : le stock est passé au catalogue (`sv.*`) SANS changer un octet de son texte — il est
  *  donc TOUJOURS LÀ, et le scan le suit désormais jusqu'à sa clé. */
-const ROLL_LABEL_SITUATION_STOCK: { file: string; text: string }[] = [
-  { file: 'src/state/seaVoyageFlow.ts', text: 'Tonneau contaminé' },
-  { file: 'src/state/seaVoyageFlow.ts', text: "Tonneau d'eau" },
+const ROLL_LABEL_SITUATION_STOCK = [
+  { fichier: 'src/state/seaVoyageFlow.ts', ref: 'Tonneau contaminé', occurrence: 1 },
+  { fichier: 'src/state/seaVoyageFlow.ts', ref: "Tonneau d'eau", occurrence: 1 },
 ];
-// Sortis du stock, MÊME RAISON à chaque fois : « Mal de mer » (premier voyage / mauvais temps), puis
-// « Scorbut » et « Épuisement » (#1479) — le Test est devenu une BANDE (une fenêtre, une rangée par
-// porteur) et la SITUATION y est portée par le libellé de la bande, la rangée nommant la Compétence,
-// comme le veut Z5.
-const ROLL_LABEL_SITUATION_PLAFOND = 2;
 
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
-  const situationSites = (): string[] => {
-    const out: string[] = [];
+  const situationSites = (): { file: string; ref: string }[] => {
+    const out: { file: string; ref: string }[] = [];
     for (const { rel, text } of readCorpus(['src/state'])) {
-      for (const h of scanRollLabels(text)) out.push(`${rel}:${h.line} — « ${h.text} »`);
+      for (const h of scanRollLabels(text)) out.push({ file: rel, ref: h.text });
     }
     return out;
   };
-
-  it('aucun site NEUF : tout `rollLabel`-situation est au stock nominatif', () => {
-    const inconnus = situationSites().filter(
-      (s) => !ROLL_LABEL_SITUATION_STOCK.some((k) => s.startsWith(`${k.file}:`) && s.endsWith(`— « ${k.text} »`)),
-    );
-    expect(
-      inconnus,
-      '`rollLabel` qui nomme une SITUATION hors stock — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md ; dette #1109) :\n' + inconnus.join('\n'),
-    ).toEqual([]);
+  const ecarts = ecartsDeStock({
+    observe: sitesEnEntrees(situationSites()),
+    stock: ROLL_LABEL_SITUATION_STOCK,
+    cle: cleDeSite,
+    remede: {
+      neuve: (k: string) => `${k} — site NEUF : un \`rollLabel\` qui nomme une SITUATION, là où la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md ; dette #1109).`,
+      perimee: (k: string) => `${k} — entrée SOLDÉE : plus aucun site ne porte ce libellé, retirer cette entrée du stock.`,
+    },
   });
 
-  it('plafond COLLÉ et décroissant (#1109)', () => {
-    expect(situationSites(), 'Stock #1109 : assainir un site ABAISSE ce plafond, jamais l’inverse.').toHaveLength(ROLL_LABEL_SITUATION_PLAFOND);
+  it('aucun site NEUF : tout `rollLabel`-situation est au stock nominatif', () => {
+    expect(ecarts.neuves, ecarts.neuves.join('\n')).toEqual([]);
+  });
+
+  it('aucune entrée PÉRIMÉE : chaque entrée du stock est encore mesurée à son site (#1109)', () => {
+    expect(ecarts.perimees, ecarts.perimees.join('\n')).toEqual([]);
   });
 
   it('fail-closed : un `rollLabel`-situation SYNTHÉTIQUE est détecté, une Compétence passe', () => {

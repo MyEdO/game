@@ -77,35 +77,25 @@ export function quadDecoCouples(): DecoCouples {
 }
 
 /**
- * Population GELÉE (mesurée le 2026-08-05, re-mesurée le 2026-08-06) : les 66 couples APPLICABLES,
- * dénominateur du stock des morts. Un couple ne quitte cette liste que par un art émis (solde réel)
- * — ou, nommément, par la preuve qu'il ne peignait RIEN. Sorties du 2026-08-06 : `boeuf back/front
- * encolure` sur la mesure du témoin (cf. `DECOS_MORTS_RATCHET`,
- * `scripts/guards/lib/quadDecoStock.mjs`) ; puis les cinq clés `deco`
- * bovines qui n'existent plus dans la def — `tete#back`, `tete#front` (l'art de tête est une part,
- * `quadruped/heads/defs/boeuf.ts`), `encolure`, `tete#profile`, `tronc#profile` (le PROFIL bovin est
- * un dessin entier compilé par os, `viewArt`). Restent les deux calques de modelé de bout.
+ * GEL DE POPULATION — les 66 couples `deco`×os×vue APPLICABLES, dénominateur du stock des morts
+ * (mesuré le 2026-08-05, re-mesuré le 2026-08-06). Ce n'est PAS une dette, c'est un PLANCHER
+ * anti-blanchiment, et voici EXACTEMENT ce qu'il mécanise : son unique consommateur
+ * (`quad-vues-ratchet.test.ts`, « aucun couple applicable GELÉ n'a disparu sans que son art soit
+ * émis ») refuse qu'un couple NOMMÉ ICI quitte la population mesurée sans art émis dans la vue —
+ * sans ce plancher, vider le dénominateur viderait le stock des morts en silence.
+ * CE QU'IL NE MÉCANISE PAS : la liste elle-même. En RETIRER une ligne retire aussi la contrainte
+ * (le filtre part de cette source), et en AJOUTER une n'ajoute qu'une contrainte de plus. Seule la
+ * REVUE garde ce fichier ; rien d'autre n'en tient le contenu. Comme rien n'y entre par un geste de
+ * solde, il n'y a pas de croissance à déclarer, et aucun plafond n'aurait de sens sur elle.
  *
- * Sorties du 2026-08-06 (vague P1b-MASSE) — les SIX clés `deco` ÉQUINES, pour deux raisons
- * distinctes qu'il faut tenir séparées : `cheval back/front encolure` ne peignaient RIEN (mesure du
- * témoin, cf. `DECOS_MORTS_GELES`) ; `cheval profile encolure`/`profile tete` sont SOLDÉES par
- * l'art (le harnais et la bride sont peints dans le dessin entier de profil, sur l'os qu'ils
- * chevauchent) ; `cheval back/front tete` portaient la BRIDE — un art de PROFIL (têtière et
- * muserolle en diagonale, anneau de mors sur la joue) que les vues de bout affichaient TEL QUEL sur
- * un mufle vu de face. Ce couple-là émettait donc bien quelque chose, mais de faux : sa disparition
- * rend aux vues de bout le cheval NU, ce que la def annonçait déjà. Un art de bride vu de bout
- * appartient à la phase d'ART des vues front/back, il n'est pas rattrapable par un décor de profil.
- *
- * DÉMÉNAGÉS le 2026-08-06 (#1128 L5) : les clés `deco` CANINES et PÉGASES ne sortent pas par
- * disparition, elles CHANGENT DE PORTEUR — l'art d'équipement est passé aux sets
- * `harnais-de-guerre-canin` et `collier-dore-pegase`, mesurés sous `<set>@<espèce>` (rendu prouvé
- * byte-identique pour le record qui porte le set, retrait pur pour les records dénudés). Les quatre
- * couples `sellerie-imperiale@cheval` ENTRENT au même titre : la population mesurée les comptait
- * déjà (L2), cette liste ne les nommait pas — 66 énumérés pour 70 mesurés.
- *
- * Les QUATRE couples `<set> back/front encolure` ne sont PAS repris : la clé des deux sets vise
- * désormais `encolure#profile`, elle ne réclame plus les vues de bout (solde du stock des morts,
- * 8 → 4, mesuré byte-neutre). Population : 70 → 66.
+ * HORS CLASSE des stocks nominatifs, avec sa raison : la clé est `<espèce> <vue> <os|clé#vue>`,
+ * celle de `quadDecoCouples` ci-dessus, et aucun fichier fautif ne s'en dérive — même raison,
+ * mesurée au même endroit, que l'exception écrite en tête de `scripts/guards/lib/quadDecoStock.mjs`
+ * pour `ANCRES_OEIL_ABSENTES_GELEES` : un chemin inventé vaudrait moins qu'une clé nue, il ferait
+ * mentir la porte de plage. Cette clé nue lui est donc INVISIBLE — comme l'est, deux fois, ce
+ * fichier même : `deco-stock.fixture.ts` n'est pas un `*.test.ts`, donc pas un porteur au sens de
+ * `estPorteurDeStock` (mesuré le 2026-09-15 : `porteur=false`, 0 entrée vue). C'est la GARDE, et
+ * elle seule, qui tient cette liste.
  */
 export const APPLICABLES_GELES = [
   'blaireau back tete#back',
@@ -181,8 +171,9 @@ export const APPLICABLES_GELES = [
  * (mesuré le 2026-08-06 par la garde `quad-anchor-contract.test.ts`, section « art de VUE :
  * l'œil reste ANCRÉ pour le catalogue »). Conséquence exacte, vérifiée au contre-factuel :
  * `swapEye` n'y trouve aucun point d'accroche et rend l'art INCHANGÉ — le catalogue d'yeux est
- * sans effet sur l'espèce, sans erreur ni trace. Le stock est nominatif, son plafond ne peut que
- * décroître, et il ne tolère aucune entrée périmée (une ancre posée doit SORTIR d'ici).
+ * sans effet sur l'espèce, sans erreur ni trace. Le stock est nominatif et ses deux volets le
+ * tiennent des deux côtés dans la garde : un art de tête muet hors de cette liste rougit à sa clé,
+ * et une entrée dont l'ancre est posée rougit comme périmée (elle SORT d'ici).
  *
  * `boeuf profile` : l'étalon « bête entière par vue » a été dessiné avant que cette conséquence
  * soit mesurée — son œil est peint en dur dans `boeufProfilCompile.ts` (0 occurrence de
@@ -193,4 +184,3 @@ export const APPLICABLES_GELES = [
 export const ANCRES_OEIL_ABSENTES_GELEES = [
   'boeuf profile',
 ];
-export const PLAFOND_ANCRES_OEIL_ABSENTES = ANCRES_OEIL_ABSENTES_GELEES.length;

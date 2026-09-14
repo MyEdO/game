@@ -61,7 +61,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "arene-projet.json", champ: "a", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "acts", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "ambush", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "arene-projet.json", champ: "appearance", occurrences: 25, lot: "L2/L3 #1473", date: "2026-09-01" }, // +3 : les 3 statblocs d'auteur muets (nuées de rats, dragon) portent leur Espèce
+  { dataset: "arene-projet.json", champ: "appearance", occurrences: 25, lot: "L2/L3 #1473", date: "2026-09-01" }, // +3 : les 3 statblocs d'auteur muets (nuées de rats, dragon) portent leur Espèce. AUCUNE fabrique à adopter : dans `entityAppearanceSchema` (`src/data/schemas/grammaire/valeurs.ts`), `species` et `tenue` sont des `z.string()` nus, et `TYPES` (`grammaire/ref.ts`) n'a ni type `espece` ni type `tenue` — l'adoption est celle de CE schéma, pour les quatre porteurs à la fois
   { dataset: "arene-projet.json", champ: "b", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "choices", occurrences: 14, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "dialogueId", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },

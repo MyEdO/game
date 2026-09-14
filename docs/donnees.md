@@ -223,8 +223,9 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   le rapport les signale (rubrique « À ARBITRER ») car la garde ne les départage pas.
   **Mode CLIQUET** : le stock des 109 entrées déjà fausses est gelé dans `scripts/guards/lib/folioRatchetStock.mjs`
   et ne peut que DÉCROÎTRE — toute entrée NEUVE au folio réfuté échoue la CI, toute clé soldée qui y traîne
-  aussi, et sa TAILLE est plafonnée par la garde (`FOLIO_RATCHET_MAX`) pour qu'« ajouter une ligne au stock »
-  ne soit jamais le chemin le plus court. `node scripts/data/audit-folios.mjs --stock` re-rend le stock et
+  aussi. Chaque clé `<dataset>.json:<id>` NOMME son fichier : la porte de plage la voit, et « ajouter une
+  ligne au stock » se DÉCLARE au message par `CLIQUET:`, jamais en silence.
+  `node scripts/data/audit-folios.mjs --stock` re-rend le stock et
   REFUSE de l'agrandir : l'outil ne sait que solder.
 - **`alsoIn?: SecondaryRef[]`** (#563, doctrine user 2026-07-17 : « jamais 2 talents différents ») —
   un même Talent/Trait/Qualité/objet **réimprimé** dans un AUTRE livre (ou un autre folio du même
@@ -493,4 +494,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 1ad26afdc08132c86fdf6bcfe08df97324366f32 (362 fichiers, 2 dossiers) corps: 3355c43081183a18aa15793ad0989e5bd82a75e1 -->
+<!-- sources-empreinte: e4f0975b6900baeb1d9616c401c41d722399f19a (362 fichiers, 2 dossiers) corps: bb50612811e532661d6a0b2be3fdf0bb65bcb789 -->

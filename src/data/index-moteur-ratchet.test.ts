@@ -4,9 +4,9 @@
  * Volet 1 — cliquet : `docs/index-moteur.md` (`scripts/docs/build-index-moteur.mjs`) donne à CHAQUE
  * export public un concept de FICHIER (`FILE_CONCEPTS`), donc closure garantie ; mais un export SANS
  * JSDoc n'est cherchable que par le sujet de son module, pas par son contenu. Ce test fige le nombre
- * d'exports sans JSDoc pour qu'il ne CROISSE plus sans un geste visible en revue (même patron que
- * `MANUAL_DOCS_MAX` de `manual-docs-ratchet.test.ts` : le plafond vit ICI, dans le test, pas dans la
- * lib de mesure — sinon « ne peut que décroître » ne serait qu'un commentaire).
+ * d'exports sans JSDoc pour qu'il ne CROISSE plus sans un geste visible en revue : le plafond vit
+ * ICI, dans le test, pas dans la lib de mesure — sinon « ne peut que décroître » ne serait qu'un
+ * commentaire.
  *
  * Volet 2 — contrat POSITIF : l'incident fondateur de #903bis. `rollCareer` (src/engine/creation.ts)
  * porte un JSDoc qui documente que plusieurs Carrières peuvent partager une borne de tirage ; deux

@@ -46,14 +46,12 @@ function manualDocs(): string[] {
 }
 
 /**
- * Plafond du stock cliqueté. Il vit ICI, dans le test, et NON dans `manualDocsStock.mjs` — sans
- * lui, « le stock ne peut que décroître » n'était qu'un commentaire, et le chemin le plus court
- * pour « solder » un doc manuscrit neuf restait d'ajouter une ligne au stock, CI verte. Toute
- * hausse de ce chiffre modifie CE fichier de test, jamais `manualDocsStock.mjs` seul. Il ne
- * DESCEND qu'en soldant des docs (génération ou suppression), jamais en ajoutant une entrée.
+ * Le stock est NOMINATIF : `manualDocsStock.mjs` nomme les 8 chemins `docs/*.md` encore manuscrits,
+ * et les deux volets ci-dessous le tiennent dans les deux sens — un doc manuscrit NEUF hors du stock
+ * rougit à son chemin, une entrée désormais générée (ou disparue) rougit au sien. Un append y coûte
+ * donc une ligne VISIBLE : chacune des 8 entrées nomme un fichier, la porte de plage
+ * (`croissanceDesStocks`) les voit toutes les 8, et une 9ᵉ se DIT au message par `CLIQUET:`.
  */
-const MANUAL_DOCS_MAX = 8;
-
 describe('cliquet des docs manuscrits — docs/*.md à plat doit se GÉNÉRER, pas s’écrire à la main (#903)', () => {
   const ecarts = ecartsDeStock({
     observe: manualDocs(),
@@ -71,10 +69,6 @@ describe('cliquet des docs manuscrits — docs/*.md à plat doit se GÉNÉRER, p
 
   it('le stock cliqueté ne peut que DÉCROÎTRE — aucune entrée désormais GÉNÉRÉE n’y traîne', () => {
     expect(ecarts.perimees).toEqual([]);
-  });
-
-  it('le stock cliqueté ne GROSSIT pas — sa taille est plafonnée par le test', () => {
-    expect(ecarts.taille).toBeLessThanOrEqual(MANUAL_DOCS_MAX);
   });
 });
 

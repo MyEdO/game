@@ -15,8 +15,9 @@
  * cette voie. Ces deux chiffres ne sont plus qu'écrits ici : `folio-line-align.test.ts` les CLIQUÈTE
  * (`SCANNED_MIN` croissant, `SANS_CITATION_MAX` décroissant).
  * Cette garde-ci scanne les entrées à `desc` citable et en laisse une part hors de tout verdict
- * d'encadrement. Ces populations VIVENT avec le corpus : le PLAFOND (`folioRatchetStock.mjs`) fait
- * foi, pas un chiffre écrit ici, et `node scripts/data/audit-folios.mjs` les re-mesure à la demande.
+ * d'encadrement. Ces populations VIVENT avec le corpus : le STOCK NOMINATIF
+ * (`folioRatchetStock.mjs`) fait foi, clé par clé, pas un chiffre écrit ici, et
+ * `node scripts/data/audit-folios.mjs` les re-mesure à la demande.
  * Diagnostic DATÉ du 2026-09-06 : 2723 scannées, 1254 hors verdict (880 descs introuvables, 140 trop
  * courtes, 92 en chapitre sans marqueur, 142 en livre hors Atlas) ; `noteAuthored` empruntée 1 fois
  * (`maladies.json:infection-du-sang` p.186). À re-mesurer avant de le citer — le tronc bouge.
@@ -64,15 +65,6 @@ describe('relation-livre id-pure — tout source.book est un id de books.json', 
   });
 });
 
-/**
- * Plafond du stock cliqueté. Il vit ICI, dans la garde, et NON dans le fichier de stock : sans lui,
- * « le stock ne peut que décroître » n'était qu'un commentaire, et le chemin le plus court pour
- * « solder » une régression restait d'ajouter une ligne au stock, CI verte (précédent `reconcile` :
- * 157 dettes affichées, CI verte). Le relever est un geste délibéré, visible en revue — l'inverse
- * d'un append discret. Il ne DESCEND qu'en soldant des folios au Source.
- */
-const FOLIO_RATCHET_MAX = 109;
-
 describe('intégrité du folio — source.page pointe sur la page qui porte la desc (#536)', () => {
   const { violations } = AUDIT;
   const found = new Set(violations.map((v) => v.key));
@@ -95,18 +87,7 @@ describe('intégrité du folio — source.page pointe sur la page qui porte la d
   it('le stock cliqueté ne peut que DÉCROÎTRE — aucune clé soldée n’y traîne', () => {
     expect([...FOLIO_RATCHET].filter((k) => !found.has(k))).toEqual([]);
   });
-
-  it('le stock cliqueté ne GROSSIT pas — sa taille est plafonnée par la garde', () => {
-    expect(FOLIO_RATCHET.size).toBeLessThanOrEqual(FOLIO_RATCHET_MAX);
-  });
 });
-
-/**
- * Plafond du stock de la VOIE C, même rôle et même lecture que `FOLIO_RATCHET_MAX`. À ZÉRO depuis
- * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est désormais un échec, il
- * n'y a plus de dette à cliqueter.
- */
-const FOLIO_TITLE_RATCHET_MAX = 0;
 
 /**
  * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section. C'est le compte de ce que
@@ -154,7 +135,7 @@ const FOLIO_TITLE_RATCHET_MAX = 0;
 // 55 `criticals.json` (LDB, p.174 déclarée, desc encadrée en 175-178), 10 `mass-battle.json` (ADE2,
 // p.88 → 90+), 1 `traits.json:destabilisant` (ZI, p.82 → 135). C'est la classe « ambiguïté prose/table »
 // de `folioRatchetStock.mjs:31-35` : elle se tranche au PDF, site par site, au train B3 de #1384
-// (relever `FOLIO_RATCHET_MAX` de 109 à 175 serait l'inverse du cliquet).
+// (ajouter 66 entrées à `folioRatchetStock.mjs` serait l'inverse du cliquet).
 const UNRESOLVED_MAX = 776;
 
 describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce qui reste (#1200)', () => {
@@ -174,10 +155,6 @@ describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce 
 
   it('le stock des titres ne peut que DÉCROÎTRE — aucune clé soldée n’y traîne', () => {
     expect([...FOLIO_TITLE_RATCHET].filter((k) => !found.has(k))).toEqual([]);
-  });
-
-  it('le stock des titres ne GROSSIT pas — sa taille est plafonnée par la garde', () => {
-    expect(FOLIO_TITLE_RATCHET.size).toBeLessThanOrEqual(FOLIO_TITLE_RATCHET_MAX);
   });
 
   it('ce que NI la desc NI le titre ne résolvent est compté et LISTÉ, jamais tu', () => {

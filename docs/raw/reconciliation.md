@@ -179,4 +179,4 @@ LDB 38
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, EDO, EDOC, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: d5e4656fca747ddb362584f1e703702947e6882c (4082 fichiers, 150 dossiers) corps: 69ddb1c000f94e2c61ad158a7c69757c4e4abb50 -->
+<!-- sources-empreinte: 64ccc4821c3a95de05f2c193054d16da26d31dee (4082 fichiers, 150 dossiers) corps: 69ddb1c000f94e2c61ad158a7c69757c4e4abb50 -->
