@@ -25,12 +25,12 @@ const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const vues = (a: PartArt | null) => (a == null ? [] : typeof a === 'string' ? [a] : [a.front, a.back, a.profile].filter((v) => v != null));
 
 /** Clés candidates d'une palette : sans jeton `@clé` dans `art`, hors base exemptée par 8(a). */
-const candidates = (palette: Record<string, string>, art: string): string[] =>
+const candidates = (palette: { [k: string]: string | undefined }, art: string): string[] =>
   Object.keys(palette).filter((k) =>
     !new RegExp(`@${k}(?![A-Za-z0-9_])`).test(art) && palette[`${k}O`] == null && palette[`${k}H`] == null);
 
 /** Clés mortes d'une palette : la sentinelle ne change pas `rendu()`. */
-function mortes(ou: string, palette: Record<string, string>, art: string, rendu: () => string): string[] {
+function mortes(ou: string, palette: { [k: string]: string | undefined }, art: string, rendu: () => string): string[] {
   const cand = candidates(palette, art);
   if (!cand.length) return [];
   const ref = rendu();

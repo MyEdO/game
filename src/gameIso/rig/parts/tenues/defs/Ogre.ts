@@ -22,7 +22,7 @@ const JAMBE = `<g stroke-linejoin="round">${OGRE.jambe}`
 export const tenue: TenueDef = {
   label: 'Ogre',
   id: "ogre",
-  palette: { cuir: '#5a3f24', metal: '#8b94a6', vet1: '#7a6a4a' },
+  palette: { vet1: '#7a6a4a' },
   set: {
     pied: BOTTE_CUIR,
     // torse = chair d'OGRE (le slot remplace le « Nu ») + plaque-bedaine par-dessus la panse.

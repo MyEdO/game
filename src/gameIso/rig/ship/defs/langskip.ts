@@ -49,7 +49,7 @@ function front(): string {
     + spar(0, -13, 0, -84, 3)
     + pennant(0, -84, 9)
     + spar(-25, -74.5, 25, -74.5, 2.2)
-    + '<path d="M-23 -74 Q0 -79 23 -74 L19 -34 Q0 -28.5 -19 -34 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-23 -74 Q0 -79 23 -74 L19 -34 Q0 -28.5 -19 -34 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + laizes('M-11.5 -73.4 Q-11 -52 -9.6 -32.2 M0 -74.6 Q0.4 -52 0 -30.4 M11.5 -73.4 Q11 -52 9.6 -32.2')
     // Avirons en éventail de part et d'autre.
     + '<g stroke="@mat" stroke-width="1.2" stroke-linecap="round"><line x1="-8" y1="-9" x2="-17" y2="1"/><line x1="-8.6" y1="-7" x2="-19" y2="-2"/><line x1="8" y1="-9" x2="17" y2="1"/><line x1="8.6" y1="-7" x2="19" y2="-2"/></g>'
@@ -63,9 +63,9 @@ function front(): string {
     + '<circle cx="-1.3" cy="-31.8" r="0.7" fill="@pavillon"/><circle cx="1.3" cy="-31.8" r="0.7" fill="@pavillon"/>'
     // Boucliers du pavois, en enfilade raccourcie sur chaque bord.
     + '<circle cx="-8.8" cy="-13.8" r="2.4" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
-    + '<circle cx="-6" cy="-13" r="2.4" fill="@voileO" stroke="@coqueO" stroke-width="0.8"/>'
+    + '<circle cx="-6" cy="-13" r="2.4" fill="@toileDeVoileO" stroke="@coqueO" stroke-width="0.8"/>'
     + '<circle cx="8.8" cy="-13.8" r="2.4" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
-    + '<circle cx="6" cy="-13" r="2.4" fill="@voileO" stroke="@coqueO" stroke-width="0.8"/>'
+    + '<circle cx="6" cy="-13" r="2.4" fill="@toileDeVoileO" stroke="@coqueO" stroke-width="0.8"/>'
     + '</g>';
 }
 
@@ -73,7 +73,7 @@ function back(): string {
   return '<g>'
     // Voile vue de DOS (le ventre fuit vers la proue : chute creuse), vergue, puis mât DEVANT.
     + spar(-25, -75.5, 25, -75.5, 2.2)
-    + '<path d="M-23 -75 Q0 -71 23 -75 L19 -33 Q0 -37.5 -19 -33 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-23 -75 Q0 -71 23 -75 L19 -33 Q0 -37.5 -19 -33 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + laizes('M-11.5 -73.6 Q-11 -54 -9.6 -34.6 M0 -72 Q0.4 -54 0 -36.6 M11.5 -73.6 Q11 -54 9.6 -34.6')
     + spar(0, -13, 0, -84, 3)
     + pennant(0, -84, 9)
@@ -87,9 +87,9 @@ function back(): string {
     + '<path d="M-1.4 -14.5 L1.4 -14.5 L1.1 -28 L-1.1 -28 Z" fill="@coque" stroke="@coqueO" stroke-width="1"/>'
     + '<path d="M-1.1 -28 Q-1.6 -33.4 2.6 -34 Q5 -34.2 4.6 -31.8 Q3 -32.8 1.6 -31 Q0.8 -29.8 1.1 -28 Z" fill="@coque" stroke="@coqueO" stroke-width="0.9"/>'
     // Boucliers du pavois.
-    + '<circle cx="-8.8" cy="-13.8" r="2.4" fill="@voileO" stroke="@coqueO" stroke-width="0.8"/>'
+    + '<circle cx="-8.8" cy="-13.8" r="2.4" fill="@toileDeVoileO" stroke="@coqueO" stroke-width="0.8"/>'
     + '<circle cx="-6" cy="-13" r="2.4" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
-    + '<circle cx="8.8" cy="-13.8" r="2.4" fill="@voileO" stroke="@coqueO" stroke-width="0.8"/>'
+    + '<circle cx="8.8" cy="-13.8" r="2.4" fill="@toileDeVoileO" stroke="@coqueO" stroke-width="0.8"/>'
     + '<circle cx="6" cy="-13" r="2.4" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
     + '</g>';
 }

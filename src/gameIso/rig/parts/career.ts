@@ -57,6 +57,23 @@ export function tenuePaletteFor(tenue: string | undefined): PaletteDeclaree {
   return TENUE_PALETTE_BY_ID[specificId] ?? CLASS_PALETTE_BY_ID[id] ?? {};
 }
 
+/** Peau GREFFÉE par la tête (`appearance.monster.tete`, `perso.head` du def, `head` de l'espèce) :
+ *  clé de tête → peau. */
+const PEAU_DE_TETE: ReadonlyMap<string, string> = new Map([['lezard', '#5d7a42'], ['chien', '#6e4a2c'], ['rat', '#6e4a2e']]);
+
+/** Domaine des têtes qui greffent une peau : les entrées de `coucheDEspece` autres que « aucune ». */
+export const TETES_A_PEAU: readonly string[] = [...PEAU_DE_TETE.keys()];
+
+/**
+ * Couche d'ESPÈCE du rig : la palette de l'espèce, plus la peau greffée par la tête `tete` quand
+ * l'espèce n'en déclare pas (ex. un Humain à tête de lézard) ; une espèce qui a la sienne (Skaven,
+ * Orc, Goule…) la garde. Seule construction de cette couche, sous `couchesDuRig`.
+ */
+export function coucheDEspece(palette: PaletteDeclaree, tete: string | undefined): PaletteDeclaree {
+  const peau = palette.peau == null && tete ? PEAU_DE_TETE.get(tete) : undefined;
+  return peau ? { ...palette, peau } : palette;
+}
+
 /**
  * Couches DÉCLARÉES du rig (#1903 D3), de la plus basse à la plus haute : espèce, puis tenue —
  * SOURCE UNIQUE de l'empilage (composeRig ET ses gardes l'appellent). La couche défaut est celle de

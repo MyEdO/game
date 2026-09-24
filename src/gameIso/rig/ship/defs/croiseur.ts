@@ -20,8 +20,8 @@ function axialSail(cx: number, yTop: number, h: number, hw: number): string {
   return spar(cx - hw - 2, yTop, cx + hw + 2, yTop, 1.7)
     + `<path d="M${cx - hw} ${yTop + 0.8} Q${cx - hw - 2.4} ${yTop + h / 2} ${cx - hw + 1.6} ${yB}`
     + ` Q${cx} ${yB + 2.8} ${cx + hw - 1.6} ${yB} Q${cx + hw + 2.4} ${yTop + h / 2} ${cx + hw} ${yTop + 0.8}`
-    + ` Q${cx} ${yTop + 2.4} ${cx - hw} ${yTop + 0.8} Z" fill="@voile" stroke="@voileO" stroke-width="1"/>`
-    + `<path d="M${cx} ${yTop + 2.4} Q${cx} ${yTop + h / 2} ${cx} ${yB + 1.6}" stroke="@voileO" stroke-width="0.7" opacity="0.4" fill="none"/>`;
+    + ` Q${cx} ${yTop + 2.4} ${cx - hw} ${yTop + 0.8} Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`
+    + `<path d="M${cx} ${yTop + 2.4} Q${cx} ${yTop + h / 2} ${cx} ${yB + 1.6}" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4" fill="none"/>`;
 }
 
 function profile(): string {
@@ -53,7 +53,7 @@ function profile(): string {
     + gunports(-40, 38, 9, -14.2, 2.8)
     + gunports(-40, -22, 4, -20.5, 2.6)
     // Galerie de poupe (fenêtres du flanc de dunette) et pavois crénelé SUR le rail du demi-pont.
-    + '<path d="M-50 -28 l2.5 0 m2.5 0 l2.5 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-50 -28 l2.5 0 m2.5 0 l2.5 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     + castle(-44, -16, -27, -24, 3)
     // Tourelles en poivrière (signature de la planche) : taffrail et coupée avant du demi-pont.
     + turret(-50, -32) + turret(-18, -27)
@@ -102,7 +102,7 @@ function back(): string {
     + '<path d="M-13 -24 Q0 -27.5 13 -24" fill="none" stroke="@coqueH" stroke-width="1.3"/>'
     // Moulures horizontales + GALERIE de fenêtres de poupe.
     + '<path d="M-11.5 -18.5 L11.5 -18.5 M-10.5 -12.5 L10.5 -12.5" stroke="@coqueH" stroke-width="0.9" opacity="0.8"/>'
-    + '<path d="M-10.5 -21 l3 0 m2.2 0 l3 0 m2.2 0 l3 0 m2.2 0 l3 0" stroke="@voileH" stroke-width="1.7"/>'
+    + '<path d="M-10.5 -21 l3 0 m2.2 0 l3 0 m2.2 0 l3 0 m2.2 0 l3 0" stroke="@toileDeVoileH" stroke-width="1.7"/>'
     // Écusson de poupe + sabords de retraite.
     + '<circle cx="0" cy="-8.5" r="2.6" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
     + gunports(-8.5, 8.5, 2, -8.5, 2.6)

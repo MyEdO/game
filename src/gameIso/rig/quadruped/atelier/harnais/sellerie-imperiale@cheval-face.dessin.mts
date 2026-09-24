@@ -26,7 +26,7 @@
  * trois taches — deux amorces rouges aux flancs, une barre de cuir en travers du poitrail, un seul
  * point d'or au centre. Aucune nappe à bord visible, aucun feston qui deviendrait du grésil à 40 px.
  *
- * JETONS : `@drap` (caparaçon), `@sellerieCuir` (cuirs), `@accent` (or) — jamais `@cuir`, jeton du
+ * JETONS : `@drap` (caparaçon), `@harnaisCuir` (cuirs), `@accent` (or) — jamais `@cuir`, jeton du
  * SABOT chez le cheval, qu'un recoloriage de robe ne doit pas traîner jusqu'au harnais.
  *
  * LANGAGE RESTREINT : uniquement des `<path>` en commandes ABSOLUES (M/L/C/Q/Z), aucun `<circle>`
@@ -71,7 +71,7 @@ const TRONC = [
   S('M42.9 53.4 C42.4 57.6 42.2 66 43.8 72.6 M68.1 53.4 C68.6 57.6 68.8 66 67.2 72.6', '@accent', 0.7),
   // ── BRETELLE DE POITRAIL : la barre de cuir en travers, la forme qui SIGNE la vue de face. Elle
   //    plonge au milieu comme une bricole attelée aux deux épaules.
-  F('M41 60.6 C48 66.6 63 66.6 70 60.6 L70 65.4 C63 71.4 48 71.4 41 65.4 Z', '@sellerieCuir'),
+  F('M41 60.6 C48 66.6 63 66.6 70 60.6 L70 65.4 C63 71.4 48 71.4 41 65.4 Z', '@harnaisCuir'),
   medaillon(55.5, 67.5, 2.4),
 ].join('');
 

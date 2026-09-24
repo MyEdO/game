@@ -173,8 +173,14 @@ export const tenue: TenueDef = {
   recopiant `#e2b48c` au lieu de `@peau` produit une couture au poignet sur tout personnage à
   peau non claire). Même règle pour toute autre matière déclarée dans la `palette` (cuir,
   tissu…) : si la valeur existe dans `palette`, c'est le jeton qui se peint, pas le littéral.
-- **Une TENUE, une ARME ou une ARMURE ne déclare aucune clé porteur** — GARDÉ
-  (`parts/no-porteur-in-palette.test.ts`, #583 chair, #599 flanc jumeau cheveux). Leur `palette`
+- **Toute clé de `palette` est une ligne de la table `clesDePalette.ts`** — GARDÉ au TYPE
+  (`PaletteDeclaree`, `palette.ts`). Une matière neuve = une ligne de `vocabulaire` qui dit ce
+  qu'elle peint, nommée d'après la pièce ou la matière vue, jamais d'après une teinte ou une
+  position. Aucune déclaration INERTE (sans effet sur la table résolue, sous aucune surcharge) —
+  GARDÉ (`palettes-declarees.test.ts`, `declarationsInertes`).
+- **Une TENUE, une ARME ou une ARMURE ne déclare aucune clé porteur** — GARDÉ au TYPE
+  (`PaletteDeCouchePortee`, `palette.ts` ; morsures `clesDePalette.test.ts` ; #583 chair, #599
+  flanc jumeau cheveux ; un `Record<string, string>` non littéral échappe au type). Leur `palette`
   déclare le cuir/tissu/métal, jamais `peau`, `cheveux`, `yeux` ni leur ombre/lumière
   (`PORTEUR`) : la chair et la chevelure viennent TOUJOURS de l'espèce (+ personnalisation),
   jamais du costume — 17 tenues qui déclaraient les clés de chair écrasaient la peau de tout

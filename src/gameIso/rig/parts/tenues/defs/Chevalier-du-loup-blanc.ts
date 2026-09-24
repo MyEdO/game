@@ -95,7 +95,7 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 //               hex n'est légitime QUE pour une matière propre à CETTE tenue (son cuir, son acier
 //               — une couleur qui lui appartient, à elle) — jamais pour recopier une valeur déjà
 //               déclarée dans `palette` (#583, garde `parts/tenues/palette-literal.test.ts`).
-//               Corollaire, gardé séparément (`parts/no-porteur-in-palette.test.ts`) :
+//               Corollaire, gardé au type (`PaletteDeCouchePortee`, `palette.ts`) :
 //               la `palette` du def elle-même ne DÉCLARE JAMAIS `peau`/`peauO`/`peauH` — 16 tenues
 //               le faisaient tout en peignant l'art avec les bons jetons, et cette valeur de
 //               PALETTE (prioritaire sur l'espèce dans l'empilage `couchesDuRig`) écrasait

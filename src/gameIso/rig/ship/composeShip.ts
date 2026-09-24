@@ -33,7 +33,7 @@ export function shipArtOf(id: string): ViewArt {
 
 // Palette par défaut : jetons NAVIRE propres au plan (bois de coque / toile / mât-rames / pavillon vif).
 // Les nuances O/H se dérivent via `buildTokenMap`.
-export const SHIP_DEFAULT: PaletteDeclaree = { coque: '#6b4a2b', voile: '#e8e0cc', mat: '#4a3320', pavillon: '#b03a2e' };
+export const SHIP_DEFAULT: PaletteDeclaree = { coque: '#6b4a2b', toileDeVoile: '#e8e0cc', mat: '#4a3320', pavillon: '#b03a2e' };
 
 // Poses (delta additif sur l'angle de la coque) : roulis au repos, tangage à l'« attaque » (éperon),
 // forte gîte à la mort (le navire sombre/chavire).

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTokenMap, applyTokenMap, tableDObjet, versHsl, chroma, clarte8, CHROMA_DE_TEINTE } from './palette';
-import { palettesDeclarees } from '../../../scripts/guards/lib/palettesDeclarees';
+import { buildTokenMap, applyTokenMap, tableDObjet, declarationsInertes, versHsl, chroma, clarte8, CHROMA_DE_TEINTE } from './palette';
 import { CLES, COUCHE_DEFAUT, defautDe, propagerSuiveuses } from './clesDePalette';
 import { couchesDuRig } from './parts/career';
 
@@ -60,12 +59,8 @@ describe('palette — buildTokenMap', () => {
       expect(clarte8(buildTokenMap([{ vet1: '#3f5020', vet1H: '#46521f' }], { vet1: s }).vet1H), s).toBeGreaterThan(clarte8(s));
   });
 
-  it('lumière déclarée `#ffffff` (Pégase, Hippogriffe `corpsH`) : reste blanche sous surcharge', async () => {
-    const blanches = (await palettesDeclarees()).flatMap(({ ou, palette }) =>
-      Object.entries(palette).filter(([k, v]) => /H$/.test(k) && v === '#ffffff' && palette[k.slice(0, -1)] != null).map(([k]) => ({ ou, palette, k })));
-    expect(blanches.length).toBeGreaterThanOrEqual(2);
-    for (const { ou, palette, k } of blanches)
-      for (const s of ['#3a2a1a', '#b03030', '#5d7a42']) expect(buildTokenMap([palette], { [k.slice(0, -1)]: s })[k], `${ou} ${k} sous ${s}`).toBe('#ffffff');
+  it('lumière déclarée `#ffffff` : reste blanche sous surcharge', () => {
+    for (const s of ['#3a2a1a', '#b03030', '#5d7a42']) expect(buildTokenMap([{ corps: '#e9eae2', corpsH: '#ffffff' }], { corps: s }).corpsH, s).toBe('#ffffff');
   });
 
   it('lumière d’une surcharge : jamais plus colorée que la surcharge quand l’art perd de la couleur', () => {
@@ -79,10 +74,16 @@ describe('palette — buildTokenMap', () => {
     expect(m.metal).toBe(defautDe('metal'));
   });
 
-  it('toute clé de la table est résolue, gamme comprise, sans déclaration', () => {
+  it('toute clé recoloriable ou commune est résolue sans déclaration, gamme comprise ; une clé de vocabulaire ne l’est pas', () => {
     const m = buildTokenMap([], {});
     const defaut = propagerSuiveuses(COUCHE_DEFAUT);
+    expect(CLES).toContain('coque');
+    expect(defaut.coque).toBeUndefined();
     for (const k of CLES) {
+      if (defaut[k] == null) {
+        for (const g of [k, `${k}O`, `${k}H`]) expect(m[g], g).toBeUndefined();
+        continue;
+      }
       expect(m[k], k).toBe(defaut[k]);
       expect(m[`${k}O`], `${k}O`).toMatch(/^#[0-9a-f]{6}$/);
       expect(m[`${k}H`], `${k}H`).toMatch(/^#[0-9a-f]{6}$/);
@@ -174,13 +175,65 @@ describe('palette — buildTokenMap', () => {
     expect(objet.aile).toBe(porteur.aile);
   });
 
-  it('clés hors table déclarées par un def (ex. navire) : base + ombre/lumière dérivées, table intacte', () => {
-    const m = buildTokenMap([{ coque: '#6b4a2b', voile: '#e8e0cc' }], {});
+  it('clés de vocabulaire déclarées par un def (ex. navire) : base + ombre/lumière dérivées, table intacte', () => {
+    const m = buildTokenMap([{ coque: '#6b4a2b', toileDeVoile: '#e8e0cc' }], {});
     expect(m.coque).toBe('#6b4a2b');
     expect(m.coqueO).toBeDefined();
     expect(m.coqueH).toBeDefined();
-    expect(m.voile).toBe('#e8e0cc');
+    expect(m.toileDeVoile).toBe('#e8e0cc');
     expect(m.peau).toBe(defautDe('peau'));
-    expect(applyTokenMap('<path fill="@coque" stroke="@coqueO"/><rect fill="@voile"/>', m)).not.toContain('@');
+    expect(applyTokenMap('<path fill="@coque" stroke="@coqueO"/><rect fill="@toileDeVoile"/>', m)).not.toContain('@');
+  });
+
+  it('clé hors table : aucune couche ne la résout, son jeton reste non résolu', () => {
+    const horsTable: Record<string, string> = { gouvernail: '#6b4a2b' };
+    const m = buildTokenMap([horsTable], {});
+    expect(m.gouvernail).toBeUndefined();
+    expect(applyTokenMap('<path fill="@gouvernail"/>', m)).toBe('<path fill="@gouvernail"/>');
+  });
+});
+
+describe('palette — déclarations inertes (#1903 A4)', () => {
+  it('une base égale à la couche défaut, gamme comprise, est inerte', () => {
+    expect(declarationsInertes({ cuir: defautDe('cuir'), vet1: '#646464' })).toEqual(['cuir']);
+  });
+
+  it('un rôle égal à sa dérivation est inerte ; un rôle qui change la gamme ne l’est pas', () => {
+    const derivee = buildTokenMap([{ vet1: '#646464' }]).vet1H;
+    expect(declarationsInertes({ vet1: '#646464', vet1H: derivee })).toEqual(['vet1H']);
+    expect(declarationsInertes({ vet1: '#646464', vet1H: '#ffeedd' })).toEqual([]);
+  });
+
+  it('point fixe : une gamme doublon de la couche défaut part entière, base puis rôle orphelin', () => {
+    expect(declarationsInertes({ or: COUCHE_DEFAUT.or, orO: COUCHE_DEFAUT.orO, vet1: '#646464' })).toEqual(['or', 'orO']);
+  });
+
+  it('un rôle sans base, orphelin, est inerte', () => {
+    expect(declarationsInertes({ cuir: '#123456', vet1O: '#101010' })).toEqual(['vet1O']);
+  });
+
+  it('une suiveuse déclarée égale à sa suivie n’est pas inerte : elle ne suit plus la surcharge', () => {
+    expect(declarationsInertes({ corps: '#646464', aile: '#646464' })).toEqual([]);
+  });
+
+  it('le rôle d’une suiveuse sans sa base, sa suivie donnée, peint : il n’est pas inerte', () => {
+    expect(declarationsInertes({ corps: '#646464', aileO: '#101010' })).toEqual([]);
+  });
+
+  it('une déclaration inerte sur la couche nue mais vivante sous une entrée du rig n’est pas inerte', () => {
+    const greffe = (c: Record<string, string>) => [c, { ...c, peau: '#5d7a42' }];
+    expect(declarationsInertes({ cheveux: '#2a2018', peauO: '#101010' })).toEqual(['peauO']);
+    expect(declarationsInertes({ cheveux: '#2a2018', peauO: '#101010' }, greffe)).toEqual([]);
+  });
+
+  it('entrées comparées par indice : la couche elle-même d’un côté, des objets neufs de l’autre', () => {
+    const peau = defautDe('peau');
+    const greffe = (c: Record<string, string | undefined>) => (c.peau != null ? [c, c] : [c, { ...c, peau }]);
+    expect(declarationsInertes({ peau, cheveux: '#2a2018' }, greffe)).toEqual(['peau']);
+  });
+
+  it('des entrées en nombre inégal avec et sans la clé lèvent', () => {
+    const inegales = (c: Record<string, string | undefined>) => (c.vet1 != null ? [c] : [c, c]);
+    expect(() => declarationsInertes({ vet1: '#646464' }, inegales)).toThrow(/entrée/);
   });
 });

@@ -1,5 +1,5 @@
 import type { PartArt } from '../types';
-import type { PaletteDeclaree } from '../../palette';
+import type { PaletteDeCouchePortee } from '../../palette';
 
 /** Slots couverts par une armure. Valeurs = PartArt (SVG dans le repère LOCAL de l'os porteur).
  *  `pied`/`main`/`cou` : armure de ces zones d'extrémité (solerets, gantelets, gorgerin) — pilote la
@@ -11,7 +11,7 @@ export type ArmourSet = Partial<Record<'tete' | 'torse' | 'bras' | 'jambes' | 'p
  * ('rembourre' | 'cuir' | 'maille' | 'plaque') — `armourPart` (equipment.ts) résout le matériau
  * inféré du nom de l'objet vers cet `id`.
  *
- * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeclaree = hex exact) → rendu sans
+ * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeCouchePortee = hex exact) → rendu sans
  * perte + recoloriage cohérent par le skin d'objet, EXACTEMENT comme les tenues.
  */
-export interface ArmourDef { id: string; set: ArmourSet; palette?: PaletteDeclaree }
+export interface ArmourDef { id: string; set: ArmourSet; palette?: PaletteDeCouchePortee }

@@ -14,7 +14,7 @@ const sailCross = (cx: number, cy: number, arm: number, w = 2.6, op = 0.85): str
 /** Fret bâché (tonneaux sous toile cirée, lignes de saisine). */
 const cargoTarp = (x0: number, x1: number, yDeck: number, h: number): string => {
   const cx = (x0 + x1) / 2;
-  return `<path d="M${x0} ${yDeck} Q${x0 + 1} ${yDeck - h} ${cx} ${yDeck - h - 0.6} Q${x1 - 1} ${yDeck - h} ${x1} ${yDeck} Z" fill="@voileO" stroke="@matO" stroke-width="0.8"/>`
+  return `<path d="M${x0} ${yDeck} Q${x0 + 1} ${yDeck - h} ${cx} ${yDeck - h - 0.6} Q${x1 - 1} ${yDeck - h} ${x1} ${yDeck} Z" fill="@toileDeVoileO" stroke="@matO" stroke-width="0.8"/>`
     + `<path d="M${x0 + (x1 - x0) * 0.3} ${yDeck - h + 0.4} l0.6 ${h - 0.8} M${x0 + (x1 - x0) * 0.68} ${yDeck - h + 0.2} l0.4 ${h - 0.6}" stroke="@matO" stroke-width="0.6" opacity="0.7" fill="none"/>`;
 };
 
@@ -49,12 +49,12 @@ function front(): string {
   return '<g>'
     // Voile carrée VENTRE au vent, vue de face : la toile masque le mât, la croix regarde la proue.
     + spar(-11, -50, 11, -50, 1.8)
-    + '<path d="M-10.5 -49 Q-14 -40 -12.5 -29 Q0 -26.5 12.5 -29 Q14 -40 10.5 -49 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-10.5 -49 Q-14 -40 -12.5 -29 Q0 -26.5 12.5 -29 Q14 -40 10.5 -49 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + sailCross(0, -39, 6.5, 2.4)
     + spar(0, -50, 0, -57, 2) + pennant(0, -57, 7)
     + stay(-11, -50, -8, -15) + stay(11, -50, 8, -15)
     // Fret dépassant du plat-bord au milieu du navire.
-    + '<path d="M-4.5 -15.5 Q0 -20 4.5 -15.5 Z" fill="@voileO" stroke="@matO" stroke-width="0.8"/>'
+    + '<path d="M-4.5 -15.5 Q0 -20 4.5 -15.5 Z" fill="@toileDeVoileO" stroke="@matO" stroke-width="0.8"/>'
     // Coque de FACE : section ronde et ventrue, tonture qui remonte vers les joues.
     + '<path d="M-10 -14 Q0 -17.5 10 -14 L6.5 0.5 Q0 2.8 -6.5 0.5 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
     + '<path d="M-10 -14 Q0 -17.5 10 -14" fill="none" stroke="@coqueH" stroke-width="1.1"/>'
@@ -69,12 +69,12 @@ function back(): string {
   return '<g>'
     // Voile vue de POUPE (face arrière, légèrement creusée) — le mât passe DEVANT la toile.
     + spar(-11.5, -50, 11.5, -50, 1.8)
-    + '<path d="M-10.5 -49 Q-11.8 -40 -11 -29.5 Q0 -27.5 11 -29.5 Q11.8 -40 10.5 -49 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-10.5 -49 Q-11.8 -40 -11 -29.5 Q0 -27.5 11 -29.5 Q11.8 -40 10.5 -49 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + sailCross(0, -39, 6.5, 2.4, 0.7)
     + stay(-11.5, -50, -8, -15) + stay(11.5, -50, 8, -15)
     + spar(0, -9, 0, -57, 2.2) + pennant(0, -57, 7)
     // Fret bâché au-dessus du plat-bord.
-    + '<path d="M-4.5 -15.5 Q0 -19.6 4.5 -15.5 Z" fill="@voileO" stroke="@matO" stroke-width="0.8"/>'
+    + '<path d="M-4.5 -15.5 Q0 -19.6 4.5 -15.5 Z" fill="@toileDeVoileO" stroke="@matO" stroke-width="0.8"/>'
     // Coque de POUPE : même section ronde que la proue (double-bout norse).
     + '<path d="M-10 -14 Q0 -17.5 10 -14 L6.5 0.5 Q0 2.8 -6.5 0.5 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
     + '<path d="M-10 -14 Q0 -17.5 10 -14" fill="none" stroke="@coqueH" stroke-width="1.1"/>'

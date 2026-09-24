@@ -36,8 +36,8 @@ function sailFace(): string {
   return spar(0, -6, 0, -46, 2)
     + stay(0, -46, -6.8, -7.5) + stay(0, -46, 6.8, -7.5)
     + '<path d="M-13 -42 L13 -42" stroke="@mat" stroke-width="1.8" stroke-linecap="round"/>'
-    + '<path d="M-12 -41 Q0 -38.5 12 -41 Q13.5 -32 11 -23 Q0 -18.5 -11 -23 Q-13.5 -32 -12 -41 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M0 -38.8 L0 -19.2" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-12 -41 Q0 -38.5 12 -41 Q13.5 -32 11 -23 Q0 -18.5 -11 -23 Q-13.5 -32 -12 -41 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M0 -38.8 L0 -19.2" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     // Écoutes des points d'écoute vers le plat-bord.
     + stay(-11, -23, -5.5, -7) + stay(11, -23, 5.5, -7)
     + pennant(0, -46, 7);

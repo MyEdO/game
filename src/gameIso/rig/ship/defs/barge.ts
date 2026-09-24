@@ -26,9 +26,9 @@ function profile(): string {
     // Rouf de barre à l'arrière (toit débordant, hublot) + timon par-dessus le tableau.
     + '<rect x="-30" y="-21" width="13" height="8" fill="@coque" stroke="@coqueO" stroke-width="1"/>'
     + '<path d="M-31.5 -21 L-15.5 -21" stroke="@matO" stroke-width="1.8" stroke-linecap="round"/>'
-    + '<circle cx="-26" cy="-16.5" r="1.1" fill="@voileH"/>'
+    + '<circle cx="-26" cy="-16.5" r="1.1" fill="@toileDeVoileH"/>'
     // Fret en pontée : ballot bâché au centre, caisses vers l'avant.
-    + '<path d="M-12 -13 q1.5 -5 6.5 -5 q5 0 6.5 4.8 Z" fill="@voileO" stroke="@matO" stroke-width="0.8"/>'
+    + '<path d="M-12 -13 q1.5 -5 6.5 -5 q5 0 6.5 4.8 Z" fill="@toileDeVoileO" stroke="@matO" stroke-width="0.8"/>'
     + '<rect x="16" y="-18.5" width="7" height="5.5" fill="@matO" stroke="@coqueO" stroke-width="0.8"/>'
     + '<rect x="24" y="-17.5" width="5.5" height="4.5" fill="@mat" stroke="@coqueO" stroke-width="0.8"/>'
     + timon(-30, -15)
@@ -63,7 +63,7 @@ function back(): string {
     // Rouf de barre dépassant du tableau (toit débordant, hublot).
     + '<rect x="-8" y="-20.5" width="16" height="6.5" fill="@coque" stroke="@coqueO" stroke-width="1"/>'
     + '<path d="M-9.5 -20.5 L9.5 -20.5" stroke="@matO" stroke-width="1.8" stroke-linecap="round"/>'
-    + '<circle cx="0" cy="-17.5" r="1.1" fill="@voileH"/>'
+    + '<circle cx="0" cy="-17.5" r="1.1" fill="@toileDeVoileH"/>'
     // Tableau arrière plat, bordages horizontaux.
     + '<path d="M-12 -14 L12 -14 L9.5 -1 L-9.5 -1 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
     + '<path d="M-12 -14 L12 -14" stroke="@coqueH" stroke-width="1.4"/>'

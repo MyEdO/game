@@ -17,7 +17,7 @@ import { appendageArt } from './parts/appendages';
 import { monsterInjection } from './parts/monstrous';
 import { HEADS, ARMS, LEGS } from './parts/monster';
 import { buildTokenMap, applyTokenMap } from './palette';
-import { tenueOverlaysFor, couchesDuRig } from './parts/career';
+import { tenueOverlaysFor, couchesDuRig, coucheDEspece } from './parts/career';
 import type { EquipCtx } from './parts/equipment';
 import { dorsalOverlays } from './parts/dorsal';
 import { CAPES } from './parts/capes';
@@ -341,19 +341,11 @@ function buildComposition(
   }
 
   // PALETTE : résout les jetons de clé de palette de chaque part. Couches (#1903 D3) : défaut <
-  // espèce < tenue < surcharges du joueur (appearance.colors). La peau greffée par la tête
-  // (SKIN_FROM_HEAD) est une valeur de la couche ESPÈCE, posée seulement quand l'espèce n'a pas de
-  // peau (ex. un Humain à tête de lézard) : une espèce qui a la sienne (Skaven, Orc, Goule…) la garde.
-  const speciesPalette = racePalette(race.id, appearance.sex);
-  const SKIN_FROM_HEAD: Record<string, string> = {
-    lezard: '#5d7a42', chien: '#6e4a2c', rat: '#6e4a2e',
-  };
-  const skinHeadKey = appearance.monster?.tete ?? bDef?.perso?.head ?? race.head; // greffe de peau depuis la tête (monster, def OU race)
-  const headSkin = speciesPalette.peau == null && skinHeadKey ? SKIN_FROM_HEAD[skinHeadKey] : undefined;
-  const espece = headSkin ? { ...speciesPalette, peau: headSkin } : speciesPalette;
-  // Sous tout : les jetons des parts SYSTÈME du pied (botte/griffes — dessinées par resolve, pas par
-  // la tenue) viennent de la couche défaut. `couchesDuRig` est la SEULE construction de
-  // l'empilage (#426).
+  // espèce (`coucheDEspece`, peau greffée par la tête comprise) < tenue < surcharges du joueur
+  // (appearance.colors). Sous tout : les jetons des parts SYSTÈME du pied (botte/griffes — dessinées
+  // par resolve, pas par la tenue) viennent de la couche défaut. `couchesDuRig` est la SEULE
+  // construction de l'empilage (#426).
+  const espece = coucheDEspece(racePalette(race.id, appearance.sex), appearance.monster?.tete ?? bDef?.perso?.head ?? race.head);
   const tmap = buildTokenMap(couchesDuRig(espece, tenue), appearance.colors);
   for (const id of BONE_IDS) boneParts[id] = boneParts[id].map((p) => ({ ...p, svg: applyTokenMap(p.svg, tmap) }));
 
