@@ -182,8 +182,8 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
     const lt = learnableTalents(hero);
     const fresh = lt.find((x) => !hero.talents.some((t) => talentConcrete(t) === x.label))!;
     expect(fresh.xpCost).toBe(100); // 1re acquisition
-    // Chanceux est déjà pris 1× (tirage de création) → la 2e acquisition coûte 200 PX.
-    expect(lt.find((x) => x.label === 'Chanceux')!.xpCost).toBe(200);
+    // Âme pure est déjà prise 1× (tirage de création) → la 2e acquisition coûte 200 PX.
+    expect(lt.find((x) => x.label === 'Âme pure')!.xpCost).toBe(200);
     expect(fresh.tutorMinBrass).toBe(tutorCostRange(fresh.xpCost).minBrass);
     expect(tutorCostRange(250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
   });

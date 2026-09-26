@@ -263,6 +263,23 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(after).toContain('— d100 — 3 Talents rendus');
   });
 
+  it('étape 5c — LDB 05 l.484 « vous pouvez relancer » : repère et « Relancer » sur le SEUL tirage doublon', () => {
+    const talents = (seed: number) =>
+      renderToStaticMarkup(<SkillsScreen d={rollDraftTalents(withCareer(withSpecies(newDraft(seed), SP.id), 'soldat'))} setD={() => {}} skillsSub="talents" setSkillsSub={() => {}} />);
+    const compte = (html: string, motif: string) => html.split(motif).length - 1;
+    const sansDoublon = talents(7);
+    expect(compte(sansDoublon, ' Relancer</button>')).toBe(0);
+    expect(sansDoublon).not.toContain('Déjà possédé');
+    // Graine 1 : Bonnes jambes aux tirages 0 et 1, le second est le doublon.
+    const doublon = talents(1);
+    expect(compte(doublon, 'Déjà possédé')).toBe(1);
+    expect(compte(doublon, ' Relancer</button>')).toBe(1);
+    // Graine 2 : Perspicace (choix « A ou B », Maxi 1) retiré au tirage 1.
+    const auMaxi = talents(2);
+    expect(auMaxi).toContain('Maxi atteint : sans effet si gardé');
+    expect(compte(auMaxi, ' Relancer</button>')).toBe(1);
+  });
+
   it('fiche vivante — l\'emplacement des talents aléatoires reste « à tirer » (compte dérivé de la donnée) tant que le geste 5c n\'est pas fait', () => {
     const d = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
     const atSkills = stepIds().indexOf('skills');

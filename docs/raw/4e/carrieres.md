@@ -608,7 +608,7 @@ Ces Carrières sont les Carrières **existantes** (LDB + Côtiers), réinterpré
 
 Règles de création d'un Personnage norse, **en remplacement** des règles Reiklander (LDB p. 36) (`MDG 07 l.222-260`).
 
-À la création, un Personnage norse peut sélectionner **3 Compétences à +5 Augmentations chacune** et **3 Compétences à +3 Augmentations chacune** ; les Talents aléatoires se tirent au tableau LDB p. 36 (relance si déjà possédé) ; langue maternelle = **Norse** (`MDG 07 l.226`).
+À la création, un Personnage norse peut sélectionner **3 Compétences à +5 Augmentations chacune** et **3 Compétences à +3 Augmentations chacune** ; les Talents aléatoires se tirent au tableau LDB p. 36 (« Si vous tombez sur un Talent que vous possédez déjà, vous pouvez relancer. » `LDB 05 l.484`) ; langue maternelle = **Norse** (`MDG 07 l.226`).
 
 Trois origines humaines norses (`MDG 07 l.228-246`) :
 

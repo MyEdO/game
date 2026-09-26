@@ -8,13 +8,14 @@ import {
   speciesSkillDefaults,
   rollRandomTalent,
   resolveSpeciesTalents,
+  resolveSpeciesTalentsDetail,
+  acquerirTalent,
   createHero,
   competencesDeCarriere,
   adresseDeCreation,
   libreDEspece,
   repartitionDeCarriere,
 } from './character';
-import { refKey } from './careerSlots';
 import { baseWithTalents } from './talentEffects';
 import { traitConsumptionFactor } from './provisions';
 import { traitEncumbranceFactor } from './combatFeatures/dispatch';
@@ -31,51 +32,101 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
   });
 });
 
-describe('rollRandomTalent — Tableau des Talents aléatoires (table d100)', () => {
-  it('renvoie un talent de la table', () => {
-    const t = rollRandomTalent(makeRNG(1), new Set());
-    expect(talents.find((x) => x.id === t?.id)?.rand).toBeDefined();
+describe('rollRandomTalent — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
+  it('renvoie un talent de la table, non doublon sans Talent possédé', () => {
+    const t = rollRandomTalent(makeRNG(1), [])!;
+    expect(talents.find((x) => x.id === t.ref.id)?.rand).toBeDefined();
+    expect(t.doublon).toBe(false);
   });
 
-  it('relance si le talent est déjà possédé (LDB : « vous pouvez relancer »)', () => {
-    // On possède déjà le talent du seed 1 → un nouveau tirage doit donner autre chose.
-    const first = rollRandomTalent(makeRNG(1), new Set())!;
-    const second = rollRandomTalent(makeRNG(1), new Set([refKey(first.id, first.spec)]))!;
-    expect(refKey(second.id, second.spec)).not.toBe(refKey(first.id, first.spec));
+  it('LDB 05 l.484 « vous pouvez relancer » : le Talent déjà possédé est RENDU, marqué doublon, jamais relancé d\'office', () => {
+    const first = rollRandomTalent(makeRNG(1), [])!;
+    const second = rollRandomTalent(makeRNG(1), [first.ref])!;
+    expect(second).toEqual({ ref: first.ref, doublon: true });
   });
 
   it('déterministe à seed égal', () => {
-    expect(rollRandomTalent(makeRNG(42), new Set())).toEqual(rollRandomTalent(makeRNG(42), new Set()));
+    expect(rollRandomTalent(makeRNG(42), [])).toEqual(rollRandomTalent(makeRNG(42), []));
   });
 
-  // `owned` est keyé par `refKey(talentId, specId)` : deux specs distinctes d'un talent groupé restent
-  // deux entités (LDB 10 l.13-20).
-  it('une spec possédée ne bloque pas les AUTRES specs du même talent groupé', () => {
-    const grouped = talents.find((t) => t.rand != null && specPoolOf(t).length > 1)!;
-    const [specA] = specPoolOf(grouped);
-    const owned = new Set([refKey(grouped.id, specA)]);
-    for (let seed = 0; seed < 200; seed++) {
-      const t = rollRandomTalent(makeRNG(seed), owned)!;
-      if (t.id === grouped.id) expect(t.spec).not.toBe(specA);
-    }
+  it('LDB 10 l.17 : une AUTRE utilisation possédée fait du tirage un doublon ; il prend la 1re utilisation non possédée', () => {
+    const tire = rollRandomTalent(makeRNG(2), [])!;
+    const pool = specPoolOf(talents.find((t) => t.id === tire.ref.id)!);
+    expect(pool.length).toBeGreaterThan(1);
+    const [specA, specB] = pool;
+    expect(tire.ref).toEqual({ id: tire.ref.id, spec: specA });
+    expect(rollRandomTalent(makeRNG(2), [{ id: tire.ref.id, spec: specA }])).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: true });
+    const toutes = pool.map((spec) => ({ id: tire.ref.id, spec }));
+    expect(rollRandomTalent(makeRNG(2), toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
+    expect(rollRandomTalent(makeRNG(2), [], specB)).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
   });
 });
 
 describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
-  it('Reiklander : Destinée (fixe), un choix résolu, et 3 talents aléatoires distincts', () => {
-    const out = resolveSpeciesTalents(sp(), { rng: makeRNG(7) });
+  it('Reiklander : Destinée (fixe), un choix résolu, et 3 tirages à leur adresse', () => {
+    const out = resolveSpeciesTalentsDetail(sp(), { graine: 7 });
     // « Perspicace ou Affable » → 1er par défaut ; « Destinée » fixe ; « 3 Talent aléatoire »
-    expect(out).toContainEqual({ id: 'destinee' });
-    expect(out).toContainEqual({ id: 'perspicace' });
-    // total = 1 (choix) + 1 (fixe) + 3 (aléatoires) = 5, tous distincts
+    expect(out.map((t) => t.ref)).toContainEqual({ id: 'destinee' });
+    expect(out.map((t) => t.ref)).toContainEqual({ id: 'perspicace' });
     expect(out).toHaveLength(5);
-    expect(new Set(out.map((t) => refKey(t.id, t.spec))).size).toBe(5);
+    expect(out.flatMap((t) => (t.tirage ? [t.tirage.adresse] : []))).toEqual([0, 1, 2].map((j) => adresseDeCreation.especeTirage(2, j)));
   });
 
   it('le choix « A ou B » est surchargeable, par adresse d\'emplacement', () => {
-    const out = resolveSpeciesTalents(sp(), { rng: makeRNG(7), choices: { 'espece:talents:0': 1 } });
+    const out = resolveSpeciesTalents(sp(), { graine: 7, choices: { 'espece:talents:0': 1 } });
     expect(out).toContainEqual({ id: 'affable' });
     expect(out).not.toContainEqual({ id: 'perspicace' });
+  });
+
+  // Graine 1 : Bonnes jambes au tirage 0 puis au tirage 1.
+  const tirage1 = adresseDeCreation.especeTirage(2, 1);
+  it('LDB 05 l.484 : un doublon est GARDÉ sans relance décidée', () => {
+    const out = resolveSpeciesTalentsDetail(sp(), { graine: 1 });
+    expect(out.slice(2).map((t) => [t.ref.id, t.tirage?.rang, t.tirage?.doublon])).toEqual([
+      ['bonnes-jambes', 0, false], ['bonnes-jambes', 0, true], ['reflexes-foudroyants', 0, false],
+    ]);
+  });
+
+  it('LDB 05 l.484 : la relance décidée remplace CE SEUL tirage, les autres gardent leur d100', () => {
+    const out = resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 1 } });
+    expect(out.slice(2).map((t) => [t.ref.id, t.tirage?.rang, t.tirage?.doublon])).toEqual([
+      ['bonnes-jambes', 0, false], ['chanceux', 1, false], ['reflexes-foudroyants', 0, false],
+    ]);
+  });
+
+  it('une relance au-delà du premier non-doublon est ignorée', () => {
+    const une = resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 1 } });
+    expect(resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 5 } })).toEqual(une);
+  });
+
+  // Graine 2 : Perspicace au tirage 1 — doublon sous « Perspicace », pas sous « Affable ».
+  it('le statut doublon d\'un tirage suit les Talents résolus avant lui (choix « A ou B »), à d100 inchangé', () => {
+    const perspicace = resolveSpeciesTalentsDetail(sp(), { graine: 2 });
+    const affable = resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: { 'espece:talents:0': 1 } });
+    expect(perspicace[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: true } });
+    expect(affable[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: false } });
+    expect(affable.slice(2).map((t) => t.ref)).toEqual(perspicace.slice(2).map((t) => t.ref));
+  });
+
+  it('une relance devenue sans objet (le tirage n\'est plus un doublon) ne s\'applique pas', () => {
+    const choix = { 'espece:talents:0': 1 };
+    const relance = resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: choix, talentRerolls: { [tirage1]: 1 } });
+    expect(relance).toEqual(resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: choix }));
+    expect(resolveSpeciesTalentsDetail(sp(), { graine: 2, talentRerolls: { [tirage1]: 1 } })[3].tirage?.rang).toBe(1);
+  });
+});
+
+describe('acquerirTalent — Maxi (LDB 05 l.475, LDB 10 l.18)', () => {
+  it('une acquisition de plus sous le Maxi ; aucune au Maxi', () => {
+    const heros = { characteristics: createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', rng: makeRNG(3) }).characteristics, talents: [] as Combatant['talents'] };
+    acquerirTalent(heros, { id: 'perspicace' });
+    acquerirTalent(heros, { id: 'perspicace' });
+    expect(heros.talents).toEqual([{ talentId: 'perspicace', spec: undefined, times: 1 }]);
+  });
+
+  it('createHero : un doublon gardé au Maxi n\'ajoute pas d\'acquisition', () => {
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', rng: makeRNG(3), speciesTalentsResolved: [{ id: 'perspicace' }, { id: 'destinee' }, { id: 'perspicace' }] });
+    expect(hero.talents.find((t) => t.talentId === 'perspicace')?.times).toBe(1);
   });
 });
 
@@ -188,7 +239,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
     const middenland = findSpeciesById('humains-middenland');
     if (!middenland) return; // espèce ADE absente → rien à tester
     const out = resolveSpeciesTalents(middenland, {
-      rng: makeRNG(11),
+      graine: 11,
       choices: { 'espece:talents:1': 1 }, // « Destinée ou Talent aléatoire » → la branche aléatoire
     });
     expect(out).not.toContainEqual({ id: 'destinee' });

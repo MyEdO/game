@@ -18,7 +18,7 @@
  * Choix et Spécialisations en ids (`ChoixDeCreation`) ; les emplacements de carrière utilisés sont
  * DÉSIGNÉS dans `careerSlotChoices` (cf. engine/careerSlots.ts).
  */
-import { RNG, defaultRNG, roll } from './dice';
+import { RNG, defaultRNG, roll, makeRNG, hashSeed } from './dice';
 import { buildInventory, recomputeLoadout, emptyArmour } from './items';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails } from './types';
@@ -54,6 +54,8 @@ export function skillCharacteristicById(id: string): CharKey {
  *  `speciesTalentChoices`). Deux emplacements qui désignent la même Compétence restent deux adresses. */
 export const adresseDeCreation = {
   especeTalent: (i: number): string => `espece:talents:${i}`,
+  /** Tirage `j` d'une entrée `{random: n}` de l'entrée d'espèce `i`, y compris comme option d'un choix. */
+  especeTirage: (i: number, j: number): string => `espece:talents:${i}:tirage:${j}`,
   carriereCompetence: (i: number): string => `carriere:competences:${i}`,
   ajout: (skillId: string): string => `ajout:${skillId}`,
   signe: (k: number): string => `signe:${k}`,
@@ -67,8 +69,8 @@ export const MAX_ADV_PER_SKILL = 10;
  *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). */
 export const CAREER_SKILLS_ADVANCED = 8;
 
-/** Format PERSISTÉ des choix de création (brouillon du roster) : 2 = en ids (#1923). */
-export const FORMAT_DES_CHOIX = 2;
+/** Format PERSISTÉ des choix de création (brouillon du roster) : 3 = tirages de Talents par adresse (#1897). */
+export const FORMAT_DES_CHOIX = 3;
 
 /**
  * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`),
@@ -82,8 +84,10 @@ export interface ChoixDeCreation {
   specChoices?: Record<string, string>;
   /** Option retenue (index dans `of`) par adresse d'une entrée « A ou B » des Talents d'espèce. */
   speciesTalentChoices?: Record<string, number>;
-  /** Spécialisation (id) d'un Talent aléatoire tiré, par id de Talent. */
+  /** Spécialisation (id) d'un Talent aléatoire tiré, par adresse de tirage (`adresseDeCreation.especeTirage`). */
   randomSpecPicks?: Record<string, string>;
+  /** Relances d'un Talent aléatoire tiré, par adresse de tirage (LDB 05 l.484). */
+  talentRerolls?: Record<string, number>;
   /** Répartition des 40 Augmentations de carrière (LDB 05 l.535), par Compétence : `refKey(id, spec)`
    *  (`cleDeCompetence`). Défaut : `repartitionDeCarriere`. */
   skillAdvances?: Record<string, number>;
@@ -196,70 +200,76 @@ function randomTalentTable() {
   return talentTable.filter((t) => t.rand != null).sort((a, b) => (a.rand as number) - (b.rand as number));
 }
 
-/** Tire un Talent sur le Tableau des Talents aléatoires (1d100), spécialisation non possédée par
- *  `pickSpec` (LDB 05 l.484). */
-export function rollRandomTalent(
-  rng: RNG,
-  /** Talents déjà possédés, keyés par `refKey(talentId, specId)`. */
-  owned: Set<string>,
-  pickSpec?: (talentId: string, options: string[]) => string | null,
-): RefDesignee | null {
-  const table = randomTalentTable();
-  if (!table.length) return null;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const r = roll(1, 100, rng);
-    const entry = table.find((t) => r <= (t.rand as number));
-    if (!entry) continue;
-    const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
-    if (specs.length) {
-      const free = specs.filter((s) => !owned.has(refKey(entry.id, s)));
-      if (!free.length) continue; // toutes les specs possédées → relance
-      return { id: entry.id, spec: pickSpec?.(entry.id, free) ?? free[0] };
-    }
-    if (!owned.has(refKey(entry.id))) return { id: entry.id };
-  }
-  return null;
+/** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484). `doublon` : Talent déjà dans
+ *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` si le Talent la
+ *  propose, sinon la 1re non possédée, sinon la 1re. */
+export function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } | null {
+  const r = roll(1, 100, rng);
+  const entry = randomTalentTable().find((t) => r <= (t.rand as number));
+  if (!entry) return null;
+  const doublon = possedes.some((p) => p.id === entry.id);
+  const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
+  if (!specs.length) return { ref: { id: entry.id }, doublon };
+  const libre = specs.find((s) => !possedes.some((p) => p.id === entry.id && p.spec === s));
+  return { ref: { id: entry.id, spec: specChoisie && specs.includes(specChoisie) ? specChoisie : libre ?? specs[0] }, doublon };
 }
 
 /**
  * Résout les Talents d'espèce (LDB 05 l.484) : une entrée « A ou B » (`pick`) → l'option retenue
- * (`choices`, par adresse ; défaut : la 1re) ; un Talent fixe tel quel ; `{random: n}` → n tirages
- * FIGÉS sur le Tableau des Talents aléatoires, y compris comme option d'un choix. Un joker prend la
- * spécialisation choisie (`specChoices`, par adresse), sinon la 1re non possédée.
+ * (`choices`, par adresse ; défaut : la 1re) ; un Talent fixe tel quel ; `{random: n}` → n tirages sur le
+ * Tableau des Talents aléatoires, y compris comme option d'un choix. Un joker prend la spécialisation
+ * choisie (`specChoices`, par adresse), sinon la 1re non possédée.
  */
-export function resolveSpeciesTalents(sp: SpeciesData, opts: OptionsDeResolution = {}): RefDesignee[] {
+export function resolveSpeciesTalents(sp: SpeciesData, opts: OptionsDeResolution): RefDesignee[] {
   return resolveSpeciesTalentsDetail(sp, opts).map((t) => t.ref);
 }
 
 interface OptionsDeResolution {
-  rng?: RNG;
+  /** Graine des tirages : chacun prend son flux, `${graine}:${adresse}:${rang}`. */
+  graine: number;
   choices?: Record<string, number>;
   specChoices?: Record<string, string>;
-  pickSpec?: (talentId: string, options: string[]) => string | null;
+  /** `ChoixDeCreation.randomSpecPicks`. */
+  randomSpecPicks?: Record<string, string>;
+  /** `ChoixDeCreation.talentRerolls` : le rang `r` d'un tirage ne s'applique que si le rang `r - 1` est un doublon. */
+  talentRerolls?: Record<string, number>;
 }
 
-/** `resolveSpeciesTalents`, chaque Talent marqué `tire` s'il sort du Tableau des Talents aléatoires. */
-export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeResolution = {}): { ref: RefDesignee; tire: boolean }[] {
-  const rng = opts.rng ?? defaultRNG;
-  const owned = new Set<string>();
-  const result: { ref: RefDesignee; tire: boolean }[] = [];
-  const add = (ref: RefDesignee, tire: boolean) => {
-    result.push({ ref, tire });
-    owned.add(refKey(ref.id, ref.spec));
-  };
-  const rollN = (n: number) => {
-    for (let i = 0; i < n; i++) {
-      const t = rollRandomTalent(rng, owned, opts.pickSpec);
-      if (t) add(t, true);
-    }
+/** Un Talent d'espèce résolu ; `tirage` pour un Talent tiré (LDB 05 l.484) : son adresse
+ *  (`adresseDeCreation.especeTirage`), son rang de relance effectif et `doublon` au regard des Talents
+ *  résolus avant lui. */
+export interface TalentDEspece {
+  ref: RefDesignee;
+  tirage?: { adresse: string; rang: number; doublon: boolean };
+}
+
+/** `resolveSpeciesTalents`, chaque Talent tiré portant son `tirage`. */
+export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeResolution): TalentDEspece[] {
+  const result: TalentDEspece[] = [];
+  const possedes = () => result.map((t) => t.ref);
+  const tirer = (adresse: string) => {
+    const aRang = (rang: number) => rollRandomTalent(makeRNG(hashSeed(`${opts.graine}:${adresse}:${rang}`)), possedes(), opts.randomSpecPicks?.[adresse]);
+    const relances = opts.talentRerolls?.[adresse] ?? 0;
+    let rang = 0;
+    let t = aRang(rang);
+    while (t?.doublon && rang < relances) t = aRang(++rang);
+    if (t) result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon } });
   };
   sp.talents.forEach((ref, i) => {
     const adresse = adresseDeCreation.especeTalent(i);
     const option = 'pick' in ref ? ref.of[opts.choices?.[adresse] ?? 0] ?? ref.of[0] : ref;
-    if ('random' in option) rollN(option.random);
-    else if ('id' in option) add(designer('talent', option, opts.specChoices?.[adresse], (s) => !owned.has(refKey(option.id, s))), false);
+    if ('random' in option) for (let j = 0; j < option.random; j++) tirer(adresseDeCreation.especeTirage(i, j));
+    else if ('id' in option) result.push({ ref: designer('talent', option, opts.specChoices?.[adresse], (s) => !possedes().some((p) => p.id === option.id && p.spec === s)) });
   });
   return result;
+}
+
+/** Une acquisition de plus du Talent (LDB 05 l.475), refusée au Maxi (LDB 10 l.18, `talentMaxReached`). */
+export function acquerirTalent(heros: Pick<Combatant, 'characteristics' | 'talents'>, { id, spec }: RefDesignee): void {
+  if (talentMaxReached(heros as Combatant, id, spec)) return;
+  const existing = heros.talents.find((t) => t.talentId === id && (t.spec ?? '') === (spec ?? ''));
+  if (existing) existing.times += 1;
+  else heros.talents.push({ talentId: id, spec, times: 1 });
 }
 
 export interface CreateHeroOptions extends ChoixDeCreation {
@@ -329,13 +339,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
 
   // 4a) Talents : Talents d'espèce + 1 Talent de carrière (LDB 05 l.535, LDB 10 l.9, Maxi respecté).
   const speciesTalents = opts.speciesTalentsResolved
-    ?? resolveSpeciesTalents(sp, { rng, choices: opts.speciesTalentChoices, specChoices, pickSpec: (id, free) => (opts.randomSpecPicks?.[id] && free.includes(opts.randomSpecPicks[id]) ? opts.randomSpecPicks[id] : null) });
+    ?? resolveSpeciesTalents(sp, { graine: rng.int(0, 0x7fffffff), choices: opts.speciesTalentChoices, specChoices, randomSpecPicks: opts.randomSpecPicks, talentRerolls: opts.talentRerolls });
   const talents: TalentInstance[] = [];
-  const addTalentRef = ({ id, spec }: RefDesignee) => {
-    const existing = talents.find((t) => t.talentId === id && (t.spec ?? '') === (spec ?? ''));
-    if (existing) existing.times += 1;
-    else talents.push({ talentId: id, spec, times: 1 });
-  };
+  const addTalentRef = (ref: RefDesignee) => acquerirTalent({ characteristics: chars, talents }, ref);
   for (const t of speciesTalents) addTalentRef(t);
 
   let chosenTalent = opts.careerTalent;
