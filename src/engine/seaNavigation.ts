@@ -39,6 +39,7 @@ import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
 import { effectiveChar } from './characteristics';
 import { testValue } from './skills';
+import { memeRef } from './careerSlots';
 
 type Per = 'heure' | 'minute' | 'round';
 const DATA = seaNavJson as unknown as {
@@ -77,7 +78,7 @@ export const REPARATION = DATA.reparation;
  *  de Compétence » (36 → +3). 0 si la Compétence n'est pas ACQUISE (le bonus récompense une formation,
  *  pas une Int nue — un score sans avance ne « possède » pas la Compétence). PUR. */
 export function savoirOceansBonus(c: Combatant): number {
-  const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'oceans')?.advances ?? 0;
+  const adv = (c.skills ?? []).find((s) => memeRef(s, { id: 'savoir', spec: 'oceans' }))?.advances ?? 0;
   if (adv <= 0) return 0;
   return Math.floor(testValue(c, 'savoir', undefined, 'oceans') / 10);
 }

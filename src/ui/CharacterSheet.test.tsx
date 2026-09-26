@@ -7,7 +7,8 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
-import { findTrappingById } from '../data';
+import { findTrappingById, refLabel } from '../data';
+import { metaDuChampDOp } from '../data/schemas/grammaire/mecanique';
 import { useGame } from '../state/store';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
@@ -62,6 +63,26 @@ describe('AdvancementPanel (rendu)', () => {
     expect(html).toContain('Pamphlétaire');
     expect(html).toContain('niveau en cours');
     expect(html).toContain('changer de carrière');
+  });
+
+  it('rangée d’un ajout de carrière : porteur en chip d’ENTITÉ, régime « comme en carrière » en `.chip` (LDB 10 l.467 ; EDOC 13 l.524)', () => {
+    const porteur = {
+      ...hero(),
+      talents: [{ talentId: 'flagellant', times: 1 }, { talentId: 'maitre-artisan', spec: 'forgeron', times: 1 }],
+      traits: [{ id: 'marque-de-tzeentch' }],
+      skills: [{ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 0 }],
+    } as unknown as Combatant;
+    const racine = document.createElement('div');
+    racine.innerHTML = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
+    const rangee = (libelle: string) => [...racine.querySelectorAll('.adv-row')].find((r) => r.querySelector('.adv-name')?.textContent?.startsWith(libelle))!;
+    const entites = (r: Element) => [...r.querySelectorAll('.adv-name .entity-chip')].map((c) => c.textContent);
+    const pastilles = (r: Element) => [...r.querySelectorAll('.adv-name .chip')].map((c) => c.textContent);
+    expect(entites(rangee('Frénésie'))).toEqual(['Flagellant']);
+    expect(pastilles(rangee('Frénésie'))).toEqual([]);
+    expect(entites(rangee('Mains agiles'))).toEqual(['Marque de Tzeentch']);
+    expect(pastilles(rangee('Mains agiles'))).toEqual([metaDuChampDOp('grantCareerTalent', 'commeEnCarriere')!.label]);
+    expect(entites(rangee('Métier'))).toEqual([refLabel('talents', { id: 'maitre-artisan', spec: 'forgeron' })]);
+    expect(entites(rangee('Sociable'))).toEqual([]);
   });
 
   it('grise un achat quand les PX sont insuffisants', () => {

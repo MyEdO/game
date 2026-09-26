@@ -16,6 +16,7 @@ import {
 } from './advancement';
 import { skillSlots, talentSlots, parseAdvancement } from './careerSlots';
 import { CareerLevelData } from '../data';
+import { talentEnCarriere } from './talentEffects';
 
 /** Fixtures : libellés d'avancement → `AdvancementRef[]`. */
 const A = (xs: string[]) => xs.map(parseAdvancement);
@@ -225,6 +226,29 @@ describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', (
     expect(isCareerLevelComplete(h, 2, completionOpts(2))).toBe(false); // T1 n'est PAS du niveau 2
     h.talents = [{ talentId: 't3', times: 1 }];
     expect(isCareerLevelComplete(h, 2, completionOpts(2))).toBe(true);
+  });
+  // LDB 07 l.124 ; ajouts DANS la carrière : LDB 10 l.745 (Maître artisan), l.467 (Flagellant) ; achat
+  // « comme en carrière », hors de la liste : EDOC 13 l.524 (Marque de Tzeentch).
+  it('isCareerLevelComplete : la Compétence ajoutée par Maître artisan compte parmi les 8 (LDB 10 l.745)', () => {
+    const h = completedHero(0);
+    h.skills = [...h.skills.slice(0, 7), { id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 5 }] as Combatant['skills'];
+    expect(isCareerLevelComplete(h, 1, completionOpts(1))).toBe(false);
+    h.talents = [...h.talents, { talentId: 'maitre-artisan', spec: 'forgeron', times: 1 }];
+    expect(isCareerLevelComplete(h, 1, completionOpts(1))).toBe(true);
+  });
+  it('isCareerLevelComplete : le Talent ajouté par Flagellant est un Talent du Niveau (LDB 10 l.467)', () => {
+    const h = completedHero(0);
+    h.talents = [{ talentId: 'frenesie', times: 1 }];
+    expect(isCareerLevelComplete(h, 1, completionOpts(1))).toBe(false);
+    h.talents = [...h.talents, { talentId: 'flagellant', times: 1 }];
+    expect(isCareerLevelComplete(h, 1, completionOpts(1))).toBe(true);
+  });
+  it('isCareerLevelComplete : un Talent acheté « comme en carrière » (Marque de Tzeentch) ne complète pas le Niveau (EDOC 13 l.524)', () => {
+    const h = completedHero(0);
+    h.talents = [{ talentId: 'magie-mineure', times: 1 }];
+    h.traits = [{ id: 'marque-de-tzeentch' }];
+    expect(talentEnCarriere(h, completionOpts(1).talentSlots, {}, 'magie-mineure', undefined)).toBe('ajout');
+    expect(isCareerLevelComplete(h, 1, completionOpts(1))).toBe(false);
   });
   it('careerChangeCost : 100 si complété, 200 sinon (l.120)', () => {
     expect(careerChangeCost(true)).toBe(100);

@@ -13,7 +13,7 @@ import {
   designateSlot,
   designationsFor,
   freeSlotFor,
-  talentMax,
+  talentMaxById,
   talentMaxReached,
   heldArcaneDomains,
   arcaneDomainCap,
@@ -22,6 +22,7 @@ import {
   parseAdvancement,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
+import { refusDeSpec } from '../data/schemas/grammaire/ref';
 
 /** Fixtures : libellés d'avancement → `AdvancementRef[]` (la donnée est structurée). */
 const A = (xs: string[]) => xs.map(parseAdvancement);
@@ -170,14 +171,14 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
 describe('Maxi des Talents (LDB 10 « Schéma des Talents »)', () => {
   it('Maxi 1 (Lire/Écrire) : atteint dès la 1re acquisition', () => {
     const h = hero({ talents: [{ talentId: 'lire-ecrire', times: 1 }] });
-    expect(talentMax(h, 'Lire/Écrire')).toBe(1);
+    expect(talentMaxById(h, 'lire-ecrire')).toBe(1);
     expect(talentMaxReached(h, 'lire-ecrire')).toBe(true);
     expect(talentMaxReached(h, 'baratiner')).toBe(false);
   });
   it('Maxi « Bonus de Caractéristique » : par spécialisation, recalculé sur la valeur courante', () => {
     // Sens aiguisé : Maxi = Bonus d'Initiative (I 30 → 3).
     const h = hero({ talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 3 }, { talentId: 'sens-aiguise', spec: 'ouie', times: 1 }] });
-    expect(talentMax(h, 'Sens aiguisé (Goût)')).toBe(3);
+    expect(talentMaxById(h, 'sens-aiguise')).toBe(3);
     expect(talentMaxReached(h, 'sens-aiguise', 'gout')).toBe(true);
     expect(talentMaxReached(h, 'sens-aiguise', 'ouie')).toBe(false); // spec distincte
   });
@@ -199,7 +200,7 @@ describe('désignation d\'un emplacement de Groupe d\'arme par specId (données 
   });
 });
 
-describe('un emplacement « (Au choix) » se désigne par une spécialisation (LDB 10 l.17)', () => {
+describe('un emplacement « (Au choix) » se désigne par une spécialisation', () => {
   const tSlots = talentSlots(levelsForCareer('pretre'), 1);
   const beni = tSlots.find((s) => s.options.some((o) => o.optionId === 'beni' && o.wildcard))!;
   it('Béni (Au choix) du Prêtre : couvert par une spécialisation, jamais nu', () => {
@@ -215,7 +216,7 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(designateSlot(h, 'pretre', beni, 'beni', 'sigmar', tSlots).ok).toBe(true);
     expect(h.careerSlotChoices?.pretre).toEqual({ [beni.key]: 'beni|sigmar' });
   });
-  it('Béni du Prêtre (catalogue FERMÉ) : la sentinelle et une spécialisation hors pool ne couvrent pas', () => {
+  it('Béni du Prêtre (sans `specsOpen`) : la sentinelle et une spécialisation hors pool ne couvrent pas', () => {
     expect(slotCovers(beni, 'beni', 'Au choix')).toBe(false);
     expect(slotCovers(beni, 'beni', 'zzz-inexistant')).toBe(false);
   });
@@ -225,7 +226,7 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(slotCovers(savoir, 'savoir', 'une-specialisation-creee')).toBe(true);
     expect(slotCovers(savoir, 'savoir', 'Au choix')).toBe(false);
   });
-  it('un joker de Compétence au catalogue FERMÉ (`specsOpen` absent de l’entrée) n’est couvert que par son pool', () => {
+  it('un joker de Compétence sans `specsOpen` n’est couvert que par son pool', () => {
     const cac = skillSlots(levelsForCareer('milicien'), 1).find((s) => s.options.some((o) => o.optionId === 'corps-a-corps' && o.wildcard))!;
     expect(cac, 'Milicien N1 porte « Corps à corps (Au choix) »').toBeDefined();
     expect(slotCovers(cac, 'corps-a-corps', 'une-specialisation-creee')).toBe(false);
@@ -236,6 +237,14 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(savant, 'Érudit N3 porte « Savant (Au choix) »').toBeDefined();
     expect(slotCovers(savant, 'savant', 'une-specialisation-creee')).toBe(true);
     expect(slotCovers(savant, 'savant', 'Au choix')).toBe(false);
+  });
+  it('un joker de Talent sans `specsOpen` (Haine) n’est couvert que par son catalogue éditable (CLAUDE.md règle 7) ; le schéma refuse le texte libre', () => {
+    const haine = talentSlots(levelsForCareer('cavalier'), 3).find((s) => s.options.some((o) => o.optionId === 'haine' && o.wildcard))!;
+    expect(haine, 'Cavalier N3 porte « Haine (Au choix) »').toBeDefined();
+    expect(slotCovers(haine, 'haine', 'Nains')).toBe(false);
+    expect(slotCovers(haine, 'haine', 'peaux-vertes')).toBe(true);
+    expect(refusDeSpec('talent', 'haine', 'Nains')).toBe('horsCatalogue');
+    expect(refusDeSpec('talent', 'maitre-artisan', 'Souffleur de verre')).toBeNull();
   });
   it('freeSlotFor / designateSlot refusent Béni nu', () => {
     expect(freeSlotFor(tSlots, {}, 'beni', undefined)).toBeUndefined();

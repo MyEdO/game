@@ -1,10 +1,10 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
+import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById } from '../../engine/items';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { WorldMap } from '../../state/worldMap';
-import type { TestScenario } from './_shared';
+import { renforceCompetence, type TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
 
 /**
@@ -16,47 +16,39 @@ import { rigSpeciesId } from '../../data';
  * réparer/caréner/commerce). L'équipage = les PJ (MDG 14 l.39), chacun tenant son RÔLE.
  */
 
-/** Ajoute/renforce une Compétence sur un héros, à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /** Quatre marins couvrant les RÔLES d'équipage essentiels des Tests de voyage (MDG 14) : Capitaine
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
 function crew(): Combatant[] {
   const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', rng: makeRNG(4801), id: 'mar-cap' });
   cap.shipRole = 'capitaine';
-  skill(cap, 'commandement', 50);
-  skill(cap, 'voile', 40);
+  renforceCompetence(cap, 'commandement', 50);
+  renforceCompetence(cap, 'voile', 40);
   cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', rng: makeRNG(4802), id: 'mar-timo' });
   timo.shipRole = 'timonier';
-  skill(timo, 'voile', 55);
-  skill(timo, 'ramer', 45);
-  skill(timo, 'metier', 40, 'Charpentier'); // entretien de la coque au soir
+  renforceCompetence(timo, 'voile', 55);
+  renforceCompetence(timo, 'ramer', 45);
+  renforceCompetence(timo, 'metier', 40, 'charpentier'); // entretien de la coque au soir
   timo.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', rng: makeRNG(4803), id: 'mar-navi' });
   navi.shipRole = 'navigateur';
-  skill(navi, 'orientation', 55);
-  skill(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
+  renforceCompetence(navi, 'orientation', 55);
+  renforceCompetence(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
   // Astromancien de bord (Magie des mers, MDG 02 l.176) : lance Bienfait de Bel Shanaar (Domaine des
   // Cieux, MDG 02 l.238) en mer — +2 DR aux Tests d'Orientation qui l'impliquent (Test d'équipage compris).
-  skill(navi, 'langue', 40, 'magick');
-  skill(navi, 'focalisation', 40);
+  renforceCompetence(navi, 'langue', 40, 'magick');
+  renforceCompetence(navi, 'focalisation', 40);
   navi.spells = ['bienfait-de-bel-shanaar'];
   navi.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.48 };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', rng: makeRNG(4804), id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
-  skill(vigie, 'perception', 55);
-  skill(vigie, 'voile', 35);
+  renforceCompetence(vigie, 'perception', 55);
+  renforceCompetence(vigie, 'voile', 35);
   vigie.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.4 };
 
   return [cap, timo, navi, vigie];

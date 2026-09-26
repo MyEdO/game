@@ -34,11 +34,17 @@ type NoeudZod = { _zod?: { def?: { type?: string; entries?: Record<string, strin
  * libellés ci-dessous aussi — deux déroulés divergeraient sur la première enveloppe neuve.
  */
 export function noyauEnum(noeud: unknown): NoeudZod | undefined {
+  return deroule(noeud, (n) => n._zod?.def?.type === 'enum') as NoeudZod | undefined;
+}
+
+/** Premier nœud qui satisfait `arret`, du nœud lui-même à travers ses enveloppes (`optional`, `nullable`,
+ *  `default`, `array`) ; `undefined` sinon. Le déroulé UNIQUE du dépôt (`noyauEnum`, `regimesDuChamp`). */
+export function deroule(noeud: unknown, arret: (n: NoeudZod) => boolean): unknown {
   let n = noeud as NoeudZod | undefined;
   for (let i = 0; i < DEROULE_MAX && n; i++) {
     const d = n._zod?.def;
     if (!d) return undefined;
-    if (d.type === 'enum') return n;
+    if (arret(n)) return n;
     n = (d.innerType ?? d.element) as NoeudZod | undefined;
   }
   return undefined;

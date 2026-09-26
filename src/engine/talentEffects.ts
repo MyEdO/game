@@ -29,9 +29,9 @@
 import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
 import { bonus, maxWounds } from './characteristics';
 import { talentIdByLabel, findTalentById, findTraitById, blessingsOf, refLabel } from '../data';
-import { splitLabel, wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
-import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
-import type { PassiveMod } from './ops';
+import { splitLabel, wildcardSpecs, inCareerStatus, memeRef, type CareerSlot, type InCareerStatus } from './careerSlots';
+import type { RefASpecialisation, RefDesignee, TypeEntite } from '../data/schemas/grammaire/ref';
+import type { GameOp, PassiveMod } from './ops';
 
 /**
  * Valeur « base + bonus permanents de talents » pour une CharKey, SANS les modificateurs
@@ -151,78 +151,88 @@ export function resolveMax(hero: Combatant): number {
  * (« Maître artisan (Forgeron) ») se reporte sur la compétence ajoutée (« Métier (Forgeron) ») ;
  * sans spec à reporter, l'emplacement `choix` de l'op reste ouvert (joker de groupe).
  */
-export function careerSkillAdditions(hero: Combatant): RefASpecialisation[] {
-  const out: RefASpecialisation[] = [];
+export function careerSkillAdditions(hero: Combatant): AjoutDeCarriere[] {
+  const out: AjoutDeCarriere[] = [];
   for (const t of hero.talents) {
+    const provenance: ProvenanceDAjout = { type: 'talent', id: t.talentId, ...(t.spec != null ? { spec: t.spec } : {}) };
     for (const op of findTalentById(t.talentId)?.passive ?? []) {
       if (op.op !== 'grantCareerSkill') continue;
       // Emplacement `choix` de l'op DÉSIGNÉ par la spec concrète du talent (Maître artisan (Forgeron)).
-      if (t.spec && op.skill.choix != null) out.push({ id: op.skill.id, spec: t.spec });
-      else if (op.skill.choix != null) out.push({ id: op.skill.id, choix: op.skill.choix });
-      else out.push({ id: op.skill.id, spec: op.skill.spec });
+      if (t.spec && op.skill.choix != null) out.push({ id: op.skill.id, spec: t.spec, provenance });
+      else if (op.skill.choix != null) out.push({ id: op.skill.id, choix: op.skill.choix, provenance });
+      else out.push({ id: op.skill.id, spec: op.skill.spec, provenance });
     }
   }
   return out;
 }
 
-/**
- * Talents ajoutés aux listes de carrière par les talents possédés (« Le Talent X est ajouté à la
- * liste des Talents de n'importe laquelle de vos Carrières », LDB 10 — Flagellant → Frénésie) OU par
- * un Trait porté (« peut acheter les Talents suivants comme s'ils étaient des Augmentations de
- * Carrière au coût en PX normal », MDG 07 l.252 — Marque de Khorne). Analogue Talent de
- * `careerSkillAdditions` : lit l'op `grantCareerTalent` (data-driven, par id) sur les deux sources.
- */
-export function careerTalentAdditions(hero: Combatant): RefASpecialisation[] {
-  const out: RefASpecialisation[] = [];
-  for (const t of hero.talents) {
-    for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op !== 'grantCareerTalent') continue;
-      out.push(op.talent);
-    }
-  }
-  for (const tr of hero.traits ?? []) {
-    for (const op of findTraitById(tr.id)?.passive ?? []) {
-      if (op.op !== 'grantCareerTalent') continue;
-      out.push(op.talent);
-    }
-  }
-  return out;
+/** Talents ajoutés à la carrière par les Talents possédés et les Traits portés (op `grantCareerTalent`) :
+ *  LDB 10 l.467 ; `commeEnCarriere` : EDOC 13 l.524, MDG 07 l.252. Analogue Talent de `careerSkillAdditions`. */
+export function careerTalentAdditions(hero: Combatant): AjoutDeTalent[] {
+  const porteurs: [ProvenanceDAjout, readonly GameOp[]][] = [
+    ...hero.talents.map((t): [ProvenanceDAjout, readonly GameOp[]] => [{ type: 'talent', id: t.talentId, ...(t.spec != null ? { spec: t.spec } : {}) }, findTalentById(t.talentId)?.passive ?? []]),
+    ...(hero.traits ?? []).map((tr): [ProvenanceDAjout, readonly GameOp[]] => [{ type: 'trait', id: tr.id }, findTraitById(tr.id)?.passive ?? []]),
+  ];
+  return porteurs.flatMap(([provenance, passifs]) => passifs.flatMap((op): AjoutDeTalent[] =>
+    op.op === 'grantCareerTalent' ? [{ ...op.talent, provenance, ...(op.commeEnCarriere ? { commeEnCarriere: true as const } : {}) }] : []));
 }
 
-/** Ajouts de carrière DÉPLIÉS en références désignées : un ajout à `choix` couvre son pool (LDB 10 l.467/745 ;
- *  EDOC 13 l.524). Lecture UNIQUE des ajouts, Compétences (`competenceEnCarriere`) comme Talents
+/** Talent ou Trait porteur de l'op qui accorde un ajout de carrière : référence d'entité (`TypeEntite`). */
+export type ProvenanceDAjout = RefDesignee & { type: Extract<TypeEntite, 'talent' | 'trait'> };
+
+/** Ajout de carrière : la référence ajoutée et son porteur (LDB 10 l.467, l.745). */
+export type AjoutDeCarriere = RefASpecialisation & { provenance: ProvenanceDAjout };
+
+/** Ajout de Talent : `commeEnCarriere` quand l'ajout n'entre pas dans la liste de la carrière (EDOC 13 l.524,
+ *  MDG 07 l.252). */
+export type AjoutDeTalent = AjoutDeCarriere & { commeEnCarriere?: true };
+
+/** Ajout de carrière déplié : une référence désignée, avec ce que l'ajout porte hors de sa référence. */
+export type AjoutDeplie<A extends AjoutDeCarriere = AjoutDeCarriere> = RefDesignee & Omit<A, keyof RefASpecialisation>;
+
+/** UN ajout déplié en références désignées : son pool quand il est à `choix` (LDB 10 l.467/745 ; EDOC 13
+ *  l.524). Lecture UNIQUE des ajouts, Compétences (`competencesAjouteesALaCarriere`) comme Talents
  *  (`talentsAjoutesALaCarriere`). */
-function deplierAjouts(ajouts: RefASpecialisation[], kind: 'skill' | 'talent'): RefDesignee[] {
-  return ajouts.flatMap((a): RefDesignee[] =>
-    a.choix == null
-      ? [{ id: a.id, ...(a.spec != null ? { spec: a.spec } : {}) }]
-      : wildcardSpecs({ label: refLabel(kind === 'skill' ? 'skills' : 'talents', a), optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }, kind).map((spec) => ({ id: a.id, spec })),
-  );
+function deplierAjout<A extends AjoutDeCarriere>(a: A, kind: 'skill' | 'talent'): AjoutDeplie<A>[] {
+  const { id, spec, choix, ...porte } = a;
+  return choix == null
+    ? [{ id, ...(spec != null ? { spec } : {}), ...porte }]
+    : wildcardSpecs({ label: refLabel(kind === 'skill' ? 'skills' : 'talents', a), optionId: id, wildcard: true, ...(Array.isArray(choix) ? { specOptions: choix } : {}) }, kind).map((s) => ({ id, spec: s, ...porte }));
 }
 
-/** L'ajout désigne-t-il exactement (id, spec) ? */
-function ajoutCouvre(ajouts: RefDesignee[], id: string, spec: string | undefined): boolean {
-  return ajouts.some((a) => a.id === id && (a.spec ?? '') === (spec ?? ''));
+/** Ajouts qui ENTRENT dans la liste de la carrière (LDB 10 l.467, l.745), un emplacement chacun, déplié :
+ *  un ajout `commeEnCarriere` n'y entre pas (EDOC 13 l.524). Lu par `isCareerLevelComplete` (LDB 07 l.124). */
+export function ajoutsDansLaCarriere(hero: Combatant, kind: 'skill' | 'talent'): RefDesignee[][] {
+  return kind === 'skill'
+    ? careerSkillAdditions(hero).map((a) => deplierAjout(a, kind))
+    : careerTalentAdditions(hero).filter((a) => !a.commeEnCarriere).map((a) => deplierAjout(a, kind));
+}
+
+/** Compétences AJOUTÉES à la carrière, dépliées (`deplierAjout`). Source UNIQUE des rangées d'avancement et
+ *  de l'achat (`competenceEnCarriere`). */
+export function competencesAjouteesALaCarriere(hero: Combatant): AjoutDeplie[] {
+  return careerSkillAdditions(hero).flatMap((a) => deplierAjout(a, 'skill'));
 }
 
 /** Statut « en carrière » d'une Compétence (LDB 07 l.76 ; LDB 10 l.745) : un emplacement cumulé la couvre
- *  (`inCareerStatus`), sinon un ajout de carrière déplié (`deplierAjouts`) → `'ajout'`. `remise` : LDB 10 l.745. */
+ *  (`inCareerStatus`), sinon un ajout de carrière déplié (`competencesAjouteesALaCarriere`) → `'ajout'`.
+ *  `remise` : LDB 10 l.745. `ajout` : l'ajout déplié qui la couvre, avec son porteur. */
 export function competenceEnCarriere(
   hero: Combatant,
   slots: CareerSlot[],
   designations: Record<string, string>,
   skillId: string,
   spec: string | undefined,
-): { statut: InCareerStatus | 'ajout'; remise: number } {
+): { statut: InCareerStatus | 'ajout'; remise: number; ajout?: AjoutDeplie } {
   const statut = inCareerStatus(slots, designations, skillId, spec);
-  const ajoutee = ajoutCouvre(deplierAjouts(careerSkillAdditions(hero), 'skill'), skillId, spec);
-  return { statut: statut ?? (ajoutee ? 'ajout' : null), remise: ajoutee && statut != null ? 5 : 0 };
+  const ajout = competencesAjouteesALaCarriere(hero).find((a) => memeRef(a, { id: skillId, spec }));
+  return { statut: statut ?? (ajout ? 'ajout' : null), remise: ajout && statut != null ? 5 : 0, ...(ajout ? { ajout } : {}) };
 }
 
-/** Talents AJOUTÉS à la carrière, dépliés (`deplierAjouts`). Source UNIQUE des rangées d'avancement et de
+/** Talents AJOUTÉS à la carrière, dépliés (`deplierAjout`). Source UNIQUE des rangées d'avancement et de
  *  l'achat (`talentEnCarriere`). */
-export function talentsAjoutesALaCarriere(hero: Combatant): RefDesignee[] {
-  return deplierAjouts(careerTalentAdditions(hero), 'talent');
+export function talentsAjoutesALaCarriere(hero: Combatant): AjoutDeplie<AjoutDeTalent>[] {
+  return careerTalentAdditions(hero).flatMap((a) => deplierAjout(a, 'talent'));
 }
 
 /** Statut « en carrière » d'un Talent (LDB 07 l.103) : un emplacement du niveau courant le couvre
@@ -237,11 +247,11 @@ export function talentEnCarriere(
 ): InCareerStatus | 'ajout' {
   const statut = inCareerStatus(slots, designations, talentId, spec, allSlotsForUniqueness);
   if (statut) return statut;
-  return ajoutCouvre(talentsAjoutesALaCarriere(hero), talentId, spec) ? 'ajout' : null;
+  return talentsAjoutesALaCarriere(hero).some((a) => memeRef(a, { id: talentId, spec })) ? 'ajout' : null;
 }
 
 /** Talents STRUCTURELLEMENT possédés via un Trait porté (`TraitData.passive` `grantTalent`, ≠
- *  `grantCareerTalent` qui n'ajoute qu'un DROIT D'ACHAT) — Marque de Khorne « bénéficie du Talent
+ *  `grantCareerTalent`, ajout de carrière) — Marque de Khorne « bénéficie du Talent
  *  Frénésie [et] gagne le Talent Savoir-vivre (Suivants de Khorne) » (MDG 07 l.250). Lu DIRECT sur
  *  `c.traits` (marche pour un PJ ou une créature, indépendant de `liveTraits`/spawn) — même lecture
  *  ciblée que `passiveCastPenalties` (magic.ts) pour un op STRUCTUREL, jamais un modificateur numérique
@@ -284,8 +294,7 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
   const own = c.talents ?? [];
   const granted: RefDesignee[] = [];
   for (const g of [...traitGrantedTalents(c), ...effectGrantedTalents(c)]) {
-    const already = own.some((t) => t.talentId === g.id && (t.spec ?? '') === (g.spec ?? ''))
-      || granted.some((k) => k.id === g.id && (k.spec ?? '') === (g.spec ?? ''));
+    const already = own.some((t) => memeRef({ id: t.talentId, spec: t.spec }, g)) || granted.some((k) => memeRef(k, g));
     if (!already) granted.push(g);
   }
   return [...own, ...granted.map((g) => ({ talentId: g.id, spec: g.spec, times: 1 }))];

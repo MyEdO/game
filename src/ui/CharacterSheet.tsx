@@ -11,7 +11,7 @@ import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
-import { buildAdvancementView } from '../state/advancement';
+import { buildAdvancementView, type AjoutDeRangee } from '../state/advancement';
 import { hasHealSkill, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
@@ -30,6 +30,8 @@ import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
 import { CodexRef } from './compendium/CodexRef';
+import { TalentChip, TraitChip } from './EntityChip';
+import { metaDuChampDOp } from '../data/schemas/grammaire/mecanique';
 import { CharValue } from './CharValue';
 import { HeroSheet } from './HeroSheet';
 import { Coins } from './Coins';
@@ -706,6 +708,18 @@ function AdvSection({ title, count, badge, children }: { title: string; count?: 
   );
 }
 
+/** Porteur d'un ajout de carrière (LDB 10 l.467), par le chip canonique de son type ; `commeEnCarriere`
+ *  (EDOC 13 l.524), libellé du champ au schéma de l'op. */
+function ProvenanceDAjoutChips({ ajout }: { ajout: AjoutDeRangee }) {
+  const p = ajout.provenance;
+  return (
+    <>
+      {' '}{p.type === 'talent' ? <TalentChip talent={p} /> : <TraitChip trait={p} />}
+      {ajout.commeEnCarriere && <> <span className="chip">{metaDuChampDOp('grantCareerTalent', 'commeEnCarriere')?.label}</span></>}
+    </>
+  );
+}
+
 export function AdvancementPanel({ hero }: { hero: Combatant }) {
   const buyCharAdvance = useGame((s) => s.buyCharAdvance);
   const buySkillAdvance = useGame((s) => s.buySkillAdvance);
@@ -753,6 +767,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             <span className="adv-name">
               {skillLabel(s.label, s.spec)} <em>{baseWithTalents(hero, s.characteristic) + s.advances}</em> {pill(s.inCareer)}
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
+              {s.ajout && <ProvenanceDAjoutChips ajout={s.ajout} />}
             </span>
             <span className="adv-meta">+{s.advances}</span>
             <button className="btn small" disabled={!afford(s.nextCost)} onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}>
@@ -793,6 +808,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <span className="adv-name">
                 {t.label}
                 {t.times > 0 ? ` ×${t.times}` : ''} {pill(true)}
+                {t.ajout && <ProvenanceDAjoutChips ajout={t.ajout} />}
               </span>
               <span className="adv-meta">{t.maxReached ? 'Maxi atteint' : ''}</span>
               <button className="btn small" disabled={t.maxReached || !afford(t.nextCost)} onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}>

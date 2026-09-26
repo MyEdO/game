@@ -3,6 +3,7 @@ import { findTrappingById, type SkillRef } from '../../data';
 import type { SceneEntity } from '../../state/scene';
 import { buildScene, type MapSpec } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import { memeRef } from '../../engine/careerSlots';
 
 /**
  * SIÈGE COMPLET — défendre l'enceinte, entièrement DÉCLARÉ en UN `MapSpec` (plus aucune plomberie bespoke :
@@ -288,7 +289,7 @@ export const scenario: TestScenario = {
     const gunner0 = party[0];
     for (const tid of ['baliste', 'canon-petit'])
       for (const ref of projForPiece(tid))
-        if (!gunner0.skills.some((s) => s.id === ref.id && s.spec === ref.spec))
+        if (!gunner0.skills.some((s) => memeRef(s, ref)))
           gunner0.skills.push({ id: ref.id, spec: ref.spec, characteristic: 'capacite-de-tir', advances: 20 });
     return party;
   },

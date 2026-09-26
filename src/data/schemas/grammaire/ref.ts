@@ -474,7 +474,7 @@ function noeudASpecialisation<T extends TypeEntite>(
     .strictObject({
       id: idDe(type),
       spec: z.string().min(1).optional(),
-      choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional(),
+      choix: z.union([z.literal(true), z.array(z.string().min(1)).min(1)]).optional(),
       ...((extra ?? {}) as Record<string, z.ZodType>),
     })
     .superRefine((v, ctx) => {

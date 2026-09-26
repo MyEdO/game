@@ -510,14 +510,23 @@
           "note": "frenchy.bzh 26 l.239"
         },
         "pool": false
+      },
+      {
+        "id": "plaine",
+        "label": "Plaine",
+        "source": {
+          "book": "frenchy-bzh",
+          "page": 138,
+          "note": "frenchy.bzh 26 l.366"
+        },
+        "pool": false
       }
     ],
     "rand": null,
     "source": {
       "book": "livre-de-base",
       "page": 133
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "bonnes-jambes",
@@ -1271,7 +1280,49 @@
     "max": 1,
     "test": null,
     "desc": "À l'âge de 10 ans, un Prêtre de Morr aussi appelé Augure, vous a pris à part pour prédire votre mort lors d'un rituel de passage à l'âge adulte, lourd d'encens, appelé la Destinée. En accord avec votre MJ, proposez une Destinée appropriée. Si votre Personnage meurt d'une façon y correspondant, votre prochain Personnage gagnera un bonus égal à la moitié du total de PX accumulés par votre Personnage mort pendant la partie.",
-    "specs": [],
+    "specs": [
+      {
+        "id": "des-tenebres-viendra-le-corbeau",
+        "label": "Des ténèbres viendra le corbeau."
+      },
+      {
+        "id": "les-betes-sauvages-n-auront-d-yeux-que-pour-toi",
+        "label": "Les bêtes sauvages n'auront d'yeux que pour toi."
+      },
+      {
+        "id": "la-peste-et-la-sombre-maladie-te-mettront-a-genoux",
+        "label": "La peste et la sombre maladie te mettront à genoux."
+      },
+      {
+        "id": "l-absence-affaiblira-ton-coeur",
+        "label": "L'absence affaiblira ton cœur."
+      },
+      {
+        "id": "l-epee-n-apportera-aucune-justice-seulement-ta-fin",
+        "label": "L'épée n'apportera aucune justice, seulement ta fin."
+      },
+      {
+        "id": "la-brioche-la-viennoiserie-la-tarte-regarde-ce-sont-les-delices-de-morr",
+        "label": "La brioche ! La viennoiserie ! La tarte ! Regarde, ce sont les délices de Morr !"
+      },
+      {
+        "id": "les-tambours-annoncent-ta-fin",
+        "label": "Les tambours annoncent ta fin."
+      },
+      {
+        "id": "la-mort-n-est-pas-la-fin",
+        "label": "La mort n'est pas la fin !"
+      },
+      {
+        "id": "tu-tomberas-sous-la-coupe-de-la-corruption",
+        "label": "Tu tomberas sous la coupe de la Corruption."
+      },
+      {
+        "id": "les-hautes-spheres-causeront-ta-chute",
+        "label": "Les hautes sphères causeront ta chute."
+      }
+    ],
+    "specsOpen": true,
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2170,7 +2221,18 @@
     "max": 1,
     "test": null,
     "desc": "Vous pouvez entrer en Frénésie comme décrit à la page 190.",
-    "specs": [],
+    "specs": [
+      {
+        "id": "a-volonte",
+        "label": "à Volonté !",
+        "source": {
+          "book": "frenchy-bzh",
+          "page": 384,
+          "note": "Habitants & Creatures 58 l.123"
+        },
+        "pool": false
+      }
+    ],
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2418,8 +2480,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 138
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "haine-sacree",
@@ -4455,8 +4516,7 @@
     },
     "combat": {
       "fearImmune": true
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "saut-carpe",
@@ -4932,8 +4992,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 145
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "seconde-vue",
@@ -5953,8 +6012,7 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 20
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "sang-neuf",

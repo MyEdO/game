@@ -34,6 +34,7 @@ import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
 import type { ModLine } from './combat';
+import { memeRef } from './careerSlots';
 
 // ── Types de la table des vents (l.21-41) ────────────────────────────────────────────────────────
 
@@ -127,7 +128,7 @@ export function riverWindEffect(force: RiverWindForceId, dir: RiverWindDirId): R
 /** Bonus de **Savoir (Voies fluviales)** aux Tests de Navigation (l.13 : « +1 DR … fleuves, rivières et
  *  canaux »). 0 si la Compétence n'est pas ACQUISE (le +1 DR récompense la formation, pas l'Int nue). PUR. */
 export function savoirVoiesFluvialesBonus(c: Combatant): number {
-  const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'voies-fluviales')?.advances ?? 0;
+  const adv = (c.skills ?? []).find((s) => memeRef(s, { id: 'savoir', spec: 'voies-fluviales' }))?.advances ?? 0;
   return adv > 0 ? DATA.savoirVoiesFluvialesDR : 0;
 }
 

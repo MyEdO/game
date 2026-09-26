@@ -189,7 +189,7 @@ export function HeroSheet({
         <section className="hero-present-sec">
           <h4>{t('present.talents')}</h4>
           <div className="skill-tags">
-            {talents.length ? talents.map((tt) => <TalentChip key={`${tt.talentId}|${tt.spec ?? ''}`} talent={tt} />) : <span className="hint">—</span>}
+            {talents.length ? talents.map((tt) => <TalentChip key={`${tt.talentId}|${tt.spec ?? ''}`} talent={{ id: tt.talentId, spec: tt.spec }} times={tt.times} />) : <span className="hint">—</span>}
             {pending?.talents}
           </div>
         </section>

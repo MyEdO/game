@@ -22,7 +22,7 @@ import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
-import { byId, type SkillData, type TypeResolu } from '../../index';
+import { byId, findTalentById, specPoolOf, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
@@ -1191,6 +1191,14 @@ describe('régime d’une réf à spécialisation — un porteur qui DÉSIGNE re
     expect(refOuSpec('talent').safeParse({ id: 'beni', choix: true }).success).toBe(false);
   });
 
+  it('une borne `choix` VIDE est refusée chez tout porteur d’emplacement ; une borne non vide passe', () => {
+    const borne = specPoolOf(findTalentById('beni')!).slice(0, 1);
+    for (const noeud of [avancement('talent'), refOuSpec('talent', undefined, 'specOuChoixFacultatifs'), specRef('talent')]) {
+      expect(noeud.safeParse({ id: 'beni', choix: [] }).success).toBe(false);
+      expect(noeud.safeParse({ id: 'beni', choix: borne }).success).toBe(true);
+    }
+  });
+
   it('le refus de la sentinelle sur un Talent ne porte AUCUNE référence de livre', () => {
     const res = refOuSpec('talent').safeParse({ id: 'beni', spec: 'Au choix' });
     expect(res.success).toBe(false);
@@ -1249,7 +1257,8 @@ describe('avancement() — l’emplacement d’avancement, vocabulaire CLOS', ()
     ['graphie MORTE `{ref}`', { ref: { id: 'sens-aiguise' } }, t, false],
     ['graphie MORTE `{wildcard}`', { wildcard: { id: 'sens-aiguise' } }, t, false],
     ['graphie MORTE `{choice}`', { choice: [{ ref: { id: 'sens-aiguise' } }] }, t, false],
-    ['Talent OUVERT : spéc hors catalogue', { id: 'savoir-vivre', spec: 'plombiers' }, t, true],
+    ['Talent `specsOpen` : spéc hors catalogue', { id: 'maitre-artisan', spec: 'plombiers' }, t, true],
+    ['Talent sans `specsOpen` : spéc hors catalogue (groupe neuf = entrée de specs[], CLAUDE.md règle 7)', { id: 'savoir-vivre', spec: 'plombiers' }, t, false],
     ['Compétence : spéc de catalogue', { id: 'signes-secrets', spec: 'guilde' }, s, true],
     // `signes-secrets` est une entrée OUVERTE (`entreeOuverte`) : une spéc hors catalogue passe au
     // schéma, y compris l'id `guilde-au-choix` fusionné dans `guilde` au commit 4. C'est la DONNÉE

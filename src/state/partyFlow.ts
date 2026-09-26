@@ -28,6 +28,7 @@ import {
   designateSlot,
   talentMaxReached,
   arcaneDomainGate,
+  memeRef,
 } from '../engine/careerSlots';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
@@ -396,7 +397,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       const clone: Combatant = structuredClone(h);
       const ctx = careerCtx(clone);
       const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
-      const known = clone.skills.some((sk) => sk.id === skillId && (sk.spec ?? '') === (spec ?? ''));
+      const known = clone.skills.some((sk) => memeRef(sk, { id: skillId, spec }));
       const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
       const inC = status != null;
       if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {

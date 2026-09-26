@@ -9,7 +9,7 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } from '../../data';
 import { slugId } from '../../data/slug';
-import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
+import { acquerirTalent, memeRef, splitLabel } from '../../engine/careerSlots';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
 
@@ -33,7 +33,7 @@ export function addTalents(c: Combatant, names: string[]): void {
   for (const name of names) {
     const { name: base, spec } = splitLabel(name);
     const talentId = findTalent(base)?.id ?? slugId(base);
-    if (!c.talents.some((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))) acquerirTalent(c, { id: talentId, spec });
+    if (!c.talents.some((t) => memeRef({ id: t.talentId, spec: t.spec }, { id: talentId, spec }))) acquerirTalent(c, { id: talentId, spec });
   }
 }
 

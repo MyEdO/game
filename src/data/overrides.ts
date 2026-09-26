@@ -27,7 +27,7 @@ import {
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
-import type { RefDesignee } from './schemas/grammaire/ref';
+import { TYPES, cibleDe, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
@@ -259,6 +259,17 @@ const ARRAYS = {
 
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
+
+/** Dataset-liste qui porte les entrées d'un type d'entité : la clé dont le fichier (`DATASET_FICHIER_DERIVE`)
+ *  est la cible du type (`cibleDe`) ; `undefined` si aucun dataset-liste ne le porte (`table`). */
+export function datasetDuType(type: TypeEntite): DatasetKey | undefined {
+  return DATASET_KEYS.find((k) => DATASET_FICHIER_DERIVE[k] === cibleDe(type));
+}
+
+/** Type d'entité d'un dataset-liste, l'inverse de `datasetDuType` ; `undefined` hors `TYPES`. */
+export function typeDuDataset(ds: DatasetKey): TypeEntite | undefined {
+  return (Object.keys(TYPES) as TypeEntite[]).find((t) => datasetDuType(t) === ds);
+}
 
 /** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS — mêmes types que `data/arcanePhenomena.ts`. */
 interface ArcanePhenomenaFile {

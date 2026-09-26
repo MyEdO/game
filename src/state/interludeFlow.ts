@@ -36,6 +36,7 @@ import {
 import { outOfTradeReason } from '../engine/disponibilite';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { applyOps, type GameOp } from '../engine/ops';
+import { memeRef } from '../engine/careerSlots';
 import { isFumble } from '../engine/oups';
 import { combatValue } from '../engine/combat';
 import { spellCost, ritualReduction } from '../engine/grimoire';
@@ -661,7 +662,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // d'artefact) → Test de Savoir (Magie) Intermédiaire (+0). Savoir est AVANCÉE : il faut l'avoir.
     const item = (h.items ?? []).find((i) => i.uid === opts.itemUid);
     if (!item || item.identified !== false) return; // rien à identifier
-    const savoir = h.skills.find((k) => k.id === 'savoir' && (k.spec ?? '') === 'magie' && k.advances >= 1);
+    const savoir = h.skills.find((k) => memeRef(k, { id: 'savoir', spec: 'magie' }) && k.advances >= 1);
     if (!savoir) {
       get().log(msg('if.noSavoirMagie', { name: h.label }));
       return;
@@ -1133,7 +1134,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h || st.left <= 0) return;
   if (refusedBeforeDraw(get, h.label)) return;
-  const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && (o.spec ?? '') === (spec ?? ''));
+  const opt = entrainementOptions(h).find((o) => o.kind === kind && memeRef(o, { id, spec }));
   if (!opt) {
     get().log(t('if.entrainementUnknown', { name: h.label }));
     return;
@@ -1152,7 +1153,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
   const r = kind === 'characteristic'
     ? engineBuyCharAdvance(h, id as CharKey, false)
     : (() => {
-        if (!h.skills.some((k) => k.id === id && (k.spec ?? '') === (spec ?? ''))) {
+        if (!h.skills.some((k) => memeRef(k, { id, spec }))) {
           h.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
         }
         return engineBuySkillAdvance(h, id, spec, false);

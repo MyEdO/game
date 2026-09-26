@@ -5,6 +5,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { formatMoney, fromBrass, toBrass, toMoney, add as moneyAdd, PA_PER_SC, type Money } from '../engine/money';
 import { bourseOf } from '../state/bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
+import { memeRef } from '../engine/careerSlots';
 import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../state/interludeFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, battleActivityDifficulty, battlePrepEntries, type MassBattleState } from '../state/massBattleFlow';
@@ -1036,7 +1037,7 @@ function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?:
   const activity = useGame((s) => s.interludeActivity);
   const items = (hero.items ?? []).filter((i) => i.identified === false);
   const [uid, setUid] = useState(items[0]?.uid ?? '');
-  const savoir = hero.skills.find((k) => k.id === 'savoir' && (k.spec ?? '') === 'magie' && k.advances >= 1);
+  const savoir = hero.skills.find((k) => memeRef(k, { id: 'savoir', spec: 'magie' }) && k.advances >= 1);
   const blocked = !items.length
     ? `Aucun objet non identifié dans le sac de ${hero.label}.`
     : !savoir

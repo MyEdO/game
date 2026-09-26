@@ -43,7 +43,7 @@ import {
   specLabel,
   talents as talentTable,
 } from '../data';
-import { splitTopLevelOu, splitLabel, parseOption, concreteLabel, refKey, isUnresolvedChoice, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, acquerirTalent, type PorteurDeTalents } from './careerSlots';
+import { splitTopLevelOu, splitLabel, parseOption, concreteLabel, refKey, memeRef, isUnresolvedChoice, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices } from './trappingChoices';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps } from './creation';
@@ -66,7 +66,7 @@ export function skillCharacteristicById(id: string): CharKey {
  *  corps (Base) » stocké « Base » au lieu de « base »). Une valeur DÉJÀ un id matche direct par la
  *  porte de VALIDITÉ (`specResolves` — y compris une entrée hors pool, `SpecEntry.pool: false`) ; une
  *  spec libre (domaine ouvert, hors catalogue) ne matche rien → renvoyée verbatim (inchangé). */
-function resolveSpecId(category: 'skills' | 'talents', defId: string, raw: string): string {
+export function resolveSpecId(category: 'skills' | 'talents', defId: string, raw: string): string {
   const def = category === 'skills' ? byId('skill', defId) : findTalentById(defId);
   if (!def) return raw;
   if (specResolves(def, raw)) return raw;
@@ -363,7 +363,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     if (isUnresolvedChoice(label)) throw new Error(`Compétence non résolue : ${label}`);
     const id = skillIdByLabel(name);
     const spec = rawSpec != null ? resolveSpecId('skills', id, rawSpec) : rawSpec;
-    const existing = skills.find((s) => s.id === id && (s.spec ?? '') === (spec ?? ''));
+    const existing = skills.find((s) => memeRef(s, { id, spec }));
     if (existing) existing.advances += adv; // même (id, spec) = même Compétence (LDB 09 l.42)
     else skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: adv });
   };

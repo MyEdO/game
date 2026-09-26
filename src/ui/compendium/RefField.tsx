@@ -11,8 +11,10 @@
  * On stocke partout l'`id` (ou la valeur de `valueKey`) — multilangue-safe (cf.
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
-import { useMemo } from 'react';
-import { datasetArray, type DatasetKey } from '../../data/overrides';
+import { useMemo, useState } from 'react';
+import { datasetArray, typeDuDataset, type DatasetKey } from '../../data/overrides';
+import { specCatalogOf, specLabel, specResolves, type SpecEntry, type SpecsSource } from '../../data';
+import { entreeOuverte, type RefASpecialisation, type RegimeDePorteur } from '../../data/schemas/grammaire/ref';
 import { NumberField } from '../NumberField';
 
 /** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
@@ -82,18 +84,18 @@ const valueOf = (e: Record<string, unknown>, valueKey: 'id' | 'label' | 'abr' = 
   String(e[valueKey] ?? '');
 
 interface RefEntry { id: string; value?: number }
-interface SpecRef { id: string; spec?: string }
+type SpecRef = RefASpecialisation;
 
 export function RefField(
-  { cfg, fieldKey, label, value, onChange, nullable }:
-  { cfg: RefFieldCfg; categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { cfg, fieldKey, label, value, onChange, nullable, regime }:
+  { cfg: RefFieldCfg; categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; regime?: RegimeDePorteur },
 ) {
   // `label` = AFFICHAGE (libellé FR du champ, #1466) ; `fieldKey`/`cfg` restent l'IDENTITé. Un appelant
   // qui ne connaît que la clé affiche la clé.
   const affiche = label ?? fieldKey;
   if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} />;
   if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
-  if (cfg.single) return <SingleRefField label={affiche} cfg={cfg} value={value} onChange={onChange} nullable={nullable} />;
+  if (cfg.single) return <SingleRefField label={affiche} cfg={cfg} value={value} onChange={onChange} nullable={nullable} regime={regime} />;
   return <ListRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
 }
 
@@ -109,10 +111,11 @@ function useOptions(cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; la
 }
 
 /** Mode `single` : UN `<select>` (+ option « — (aucun) — » si nullable, option « (inconnu) » si hors liste).
- *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
+ *  `spec` → la spécialisation de la référence (`SpecDeRef`), on stocke `{ id, spec? | choix? }` ; sinon la
+ *  chaîne brute. */
 function SingleRefField(
-  { label, cfg, value, onChange, nullable }:
-  { label?: string; cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, cfg, value, onChange, nullable, regime = 'specSeule' }:
+  { label?: string; cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; regime?: RegimeDePorteur },
 ) {
   const options = useOptions(cfg);
   const cur: SpecRef = cfg.spec
@@ -120,27 +123,83 @@ function SingleRefField(
     : { id: typeof value === 'string' ? value : '' };
   const id = cur.id ?? '';
   const known = id === '' || options.some((o) => o.v === id);
-  const emit = (nextId: string, nextSpec?: string) => {
+  const emitId = (nextId: string) => {
     if (nextId === '') { onChange(nullable ? null : ''); return; }
-    if (cfg.spec) { const v: SpecRef = { id: nextId }; if (nextSpec) v.spec = nextSpec; onChange(v); }
-    else onChange(nextId);
+    onChange(cfg.spec ? { id: nextId } : nextId);
   };
   return (
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (réf {cfg.ds})</em></span>
       <div className="de-reflrow">
-        <select value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
+        <select value={id} onChange={(e) => emitId(e.target.value)}>
           {nullable && <option value="">— (aucun) —</option>}
           {!nullable && id === '' && <option value="">— (choisir dans {cfg.ds}) —</option>}
           {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
           {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
         </select>
-        {cfg.spec && (
-          <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
-            onChange={(e) => emit(id, e.target.value || undefined)} />
-        )}
+        {cfg.spec && id !== '' && <SpecDeRef key={id} ds={cfg.ds} cur={cur} regime={regime} onChange={onChange} />}
       </div>
     </div>
+  );
+}
+
+const CHOIX_LIBRE = '__choix';
+const CHOIX_BORNE = '__borne';
+const TEXTE_LIBRE = '__libre';
+
+/** Spécialisation d'une référence : les specs du catalogue de l'entrée (`specCatalogOf`), la saisie libre
+ *  si l'entrée est OUVERTE (`entreeOuverte`), l'emplacement `choix` (libre ou borné) si le régime du champ
+ *  l'admet (`specOuChoixFacultatifs`). Rien sans catalogue. Une borne vide et un texte libre vide ne
+ *  s'émettent pas : le mode tient dans l'état local jusqu'à la première valeur. */
+function SpecDeRef({ ds, cur, regime, onChange }: { ds: DatasetKey; cur: SpecRef; regime: RegimeDePorteur; onChange: (v: SpecRef) => void }) {
+  const [modeEnCours, setModeEnCours] = useState<typeof CHOIX_BORNE | typeof TEXTE_LIBRE | null>(null);
+  const type = typeDuDataset(ds);
+  const def = (datasetArray(ds) as { id: string; specs?: SpecEntry[]; specsSource?: SpecsSource }[]).find((e) => e.id === cur.id);
+  const catalogue = def ? specCatalogOf(def) : [];
+  const ouverte = !!type && entreeOuverte(type, cur.id);
+  const aChoix = regime === 'specOuChoixFacultatifs';
+  if (!catalogue.length && !ouverte && cur.spec == null && cur.choix == null && modeEnCours == null) return null;
+  const libelle = (spec: string) => specLabel(ds, cur.id, spec);
+  const resout = (spec: string) => !!def && specResolves(def, spec);
+  const mode = cur.choix === true ? CHOIX_LIBRE
+    : Array.isArray(cur.choix) ? CHOIX_BORNE
+    : cur.spec == null ? modeEnCours ?? ''
+    : resout(cur.spec) ? cur.spec
+    : ouverte ? TEXTE_LIBRE : cur.spec;
+  const choisir = (v: string) => {
+    setModeEnCours(v === CHOIX_BORNE || v === TEXTE_LIBRE ? v : null);
+    if (v === '' || v === CHOIX_BORNE || v === TEXTE_LIBRE) onChange({ id: cur.id });
+    else if (v === CHOIX_LIBRE) onChange({ id: cur.id, choix: true });
+    else onChange({ id: cur.id, spec: v });
+  };
+  const borne = Array.isArray(cur.choix) ? cur.choix : [];
+  const basculer = (spec: string) => {
+    const suivante = borne.includes(spec) ? borne.filter((x) => x !== spec) : [...borne, spec];
+    setModeEnCours(CHOIX_BORNE);
+    onChange(suivante.length ? { id: cur.id, choix: suivante } : { id: cur.id });
+  };
+  return (
+    <>
+      <select aria-label="Spécialisation" value={mode} onChange={(e) => choisir(e.target.value)}>
+        <option value="">— (aucune spécialisation) —</option>
+        {aChoix && <option value={CHOIX_LIBRE}>au choix du joueur</option>}
+        {aChoix && catalogue.length > 0 && <option value={CHOIX_BORNE}>au choix parmi…</option>}
+        {catalogue.map((spec) => <option key={spec} value={spec}>{libelle(spec)}</option>)}
+        {ouverte && <option value={TEXTE_LIBRE}>autre (texte libre)</option>}
+        {mode === cur.spec && cur.spec != null && !catalogue.includes(cur.spec) && (
+          <option value={cur.spec}>{resout(cur.spec) ? libelle(cur.spec) : `${cur.spec} (inconnu)`}</option>
+        )}
+      </select>
+      {mode === TEXTE_LIBRE && (
+        <input aria-label="Spécialisation (texte libre)" style={{ width: 160 }} value={cur.spec ?? ''}
+          onChange={(e) => onChange(e.target.value ? { id: cur.id, spec: e.target.value } : { id: cur.id })} />
+      )}
+      {mode === CHOIX_BORNE && catalogue.map((spec) => (
+        <button type="button" className="chip" key={spec} aria-pressed={borne.includes(spec)} onClick={() => basculer(spec)}>
+          {libelle(spec)}
+        </button>
+      ))}
+    </>
   );
 }
 

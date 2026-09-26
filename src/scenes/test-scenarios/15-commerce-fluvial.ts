@@ -1,11 +1,11 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
+import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById } from '../../engine/items';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { Scene } from '../../state/scene';
 import type { MapPlace, MapRoute, WorldMap } from '../../state/worldMap';
-import type { TestScenario } from './_shared';
+import { renforceCompetence, type TestScenario } from './_shared';
 import { REIK_INDEX, hasTradeGoods, reikMarket, type ReikEntry } from './_reik-index';
 import { rigSpeciesId } from '../../data';
 
@@ -25,23 +25,15 @@ import { rigSpeciesId } from '../../data';
  * (l.139 : « les hameaux n'ont généralement aucune demande de biens ») — ils restent dans les données.
  */
 
-/** Ajoute/renforce une Compétence sur un héros, à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /** Quatre marchands ambulants. Berta tient le commerce : Marchandage (négocier l'achat/la vente),
  *  Ragot (dénicher une rumeur commerciale au marché, l.180) et Évaluation + Résistance à l'alcool
  *  (jauger la qualité secrète d'une cargaison de vin, l.95). Les trois autres sont l'équipage de barge. */
 function traders(): Combatant[] {
   const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', rng: makeRNG(1501), id: 'com-berta' });
-  skill(berta, 'marchandage', 65);
-  skill(berta, 'ragot', 55);
-  skill(berta, 'evaluation', 50);
-  skill(berta, 'resistance-a-l-alcool', 45);
+  renforceCompetence(berta, 'marchandage', 65);
+  renforceCompetence(berta, 'ragot', 55);
+  renforceCompetence(berta, 'evaluation', 50);
+  renforceCompetence(berta, 'resistance-a-l-alcool', 45);
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
@@ -49,16 +41,16 @@ function traders(): Combatant[] {
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
   const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', rng: makeRNG(1502), id: 'com-gunnar' });
-  skill(gunnar, 'ramer', 50);
-  skill(gunnar, 'voile', 40);
+  renforceCompetence(gunnar, 'ramer', 50);
+  renforceCompetence(gunnar, 'voile', 40);
   gunnar.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.58 };
 
   const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', rng: makeRNG(1503), id: 'com-otto' });
-  skill(otto, 'intimidation', 40);
+  renforceCompetence(otto, 'intimidation', 40);
   otto.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.62 };
 
   const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', rng: makeRNG(1504), id: 'com-lise' });
-  skill(lise, 'metier', 40, 'Cartographe');
+  renforceCompetence(lise, 'metier', 40, 'cartographe');
   lise.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   return [berta, gunnar, otto, lise];

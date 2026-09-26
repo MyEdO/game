@@ -29,7 +29,7 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
-import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, wildcardSpecIds, talentIdByLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, wildcardSpecIds, CareerLevelData, type AdvancementRef } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
@@ -142,6 +142,11 @@ export function refKey(id: string, spec?: string): string {
   return spec ? `${id}|${spec}` : id;
 }
 
+/** Même référence (id, spec) — l'égalité des `refKey`. Prédicat UNIQUE de l'identité d'une réf. */
+export function memeRef(a: RefDesignee, b: RefDesignee): boolean {
+  return refKey(a.id, a.spec) === refKey(b.id, b.spec);
+}
+
 /** Décode une clé produite par `refKey`. Ne JAMAIS l'utiliser sur un libellé d'affichage (cf. `splitLabel`). */
 export function parseRefKey(key: string): { id: string; spec?: string } {
   const i = key.indexOf('|');
@@ -215,13 +220,13 @@ export function availableChars(levels: CareerLevelData[], level: number): CharKe
 }
 
 /** Une (id, spec) concrète est-elle couverte par CE slot (désignations ignorées) ? Compare par
- *  `optionId` STABLE — jamais par libellé (i18n-safe). Un joker exige une spec : Compétence `LDB 09 l.40`, Talent `LDB 10 l.17`.
+ *  `optionId` STABLE — jamais par libellé (i18n-safe). Un joker exige une spec : Compétence `LDB 09 l.40`.
  *  La spec d'un joker doit être ADMISE par l'entrée (`refusDeSpec`, le prédicat du schéma) et, pour un
  *  joker restreint ou une entrée FERMÉE (`entreeOuverte`), appartenir au pool du joker (`wildcardSpecs`). */
 export function slotCovers(slot: CareerSlot, optionId: string, spec?: string): boolean {
   return slot.options.some((o) => {
     if (o.optionId !== optionId) return false;
-    if (!o.wildcard) return (o.spec ?? '') === (spec ?? '');
+    if (!o.wildcard) return memeRef({ id: optionId, spec: o.spec }, { id: optionId, spec });
     if (spec == null || refusDeSpec(slot.kind, optionId, spec) !== null) return false;
     return (!o.specOptions && entreeOuverte(slot.kind, optionId)) || wildcardSpecs(o, slot.kind).includes(spec);
   });
@@ -377,12 +382,6 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
   return typeof max === 'number' ? String(max) : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
 }
 
-/** Maxi par LIBELLÉ — bord authoring/tests : résout l'id (nom seul) puis délègue. */
-export function talentMax(hero: Combatant, label: string): number | null {
-  const id = talentIdByLabel(splitLabel(label).name);
-  return talentMaxById(hero, id);
-}
-
 /** Le héros a-t-il atteint le Maxi de ce Talent, par `(talentId, spec)` — identité STABLE, jamais
  *  un libellé re-parsé. */
 export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
@@ -395,7 +394,7 @@ export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?
 /** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */
 export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
 
-const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => memeRef({ id: x.talentId, spec: x.spec }, ref);
 
 /**
  * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10
@@ -462,7 +461,7 @@ export function arcaneDomainGate(hero: Combatant, domainId: string): { ok: boole
   if (held.normal.length >= cap) return { ok: false, reason: t('slot.domainCap', { cap }) };
   if (held.normal.length > 0) {
     const prev = held.normal[held.normal.length - 1];
-    const advances = hero.skills.find((s) => s.id === 'focalisation' && (s.spec ?? '') === prev)?.advances ?? 0;
+    const advances = hero.skills.find((s) => memeRef(s, { id: 'focalisation', spec: prev }))?.advances ?? 0;
     const known = domainSpellsKnown(hero, prev);
     if (advances < 20 || known < 8) {
       const prevLabel = findDomainById(prev)?.label ?? prev;

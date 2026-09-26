@@ -33,6 +33,7 @@ import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { MonsterPartsFields } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
+import { FamilleDuChamp } from '../editor/familleDuChamp';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
@@ -654,7 +655,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isPassive && (
           <div className="ed-field">
             <span>modificateurs PASSIFS continus (mêmes ops que les sorts — sans déclencheur)</span>
-            <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            <FamilleDuChamp noeud={noeudDe('passive')}>
+              <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            </FamilleDuChamp>
           </div>
         )}
         {isOptionalRule && (
@@ -847,7 +850,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {opsFields.map((fieldKey) => (
           <div className="ed-field" key={fieldKey}>
             <span>{fieldKey} — effet (GameOp[], même éditeur que les modificateurs passifs)</span>
-            <GameOpEditor ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            <FamilleDuChamp noeud={noeudDe(fieldKey)}>
+              <GameOpEditor ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            </FamilleDuChamp>
           </div>
         ))}
         {fields.map((f) => {
@@ -1119,47 +1124,28 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
  *  (`axes.skills`, #409) : `{id,spec?}[]` — plusieurs Compétences candidates possibles (`hint`
  *  précise la sémantique par appelant : « la meilleure retenue » pour un rôle, dérivation pour un axe). */
 function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void; hint?: string }) {
+  return <RefSpecListField ds="skills" quoi="Compétence" hint={hint} value={value} onChange={onChange} />;
+}
+
+/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]`. */
+function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
+  return <RefSpecListField ds="talents" quoi="Talent" hint="talents contribuant à l'axe (facultatif)" value={value} onChange={onChange} />;
+}
+
+/** Liste de références désignées `{id, spec?}[]` : un `RefField` (mode `spec`) par rangée. */
+function RefSpecListField({ ds, quoi, hint, value, onChange }: { ds: 'skills' | 'talents'; quoi: string; hint: string; value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
   const list = value ?? [];
-  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
-  const set = (next: typeof list) => onChange(next);
   return (
     <div className="ed-field">
       <span>{hint}</span>
-      {list.map((s, i) => (
+      {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
-            {!s.id && <option value="">— (choisir une compétence) —</option>}
-            {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+          <RefField cfg={{ ds, single: true, spec: true }} fieldKey={quoi} value={r}
+            onChange={(v) => onChange(list.map((x, j) => (j === i ? ((v as RefDesignee | '') || { id: '' }) : x)))} />
+          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Compétence</button>
-    </div>
-  );
-}
-
-/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]` — MÊME patron
- *  que `SkillSpecListField` (Compétences), sur le dataset `talents`. */
-function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
-  const list = value ?? [];
-  const talentOpts = datasetArray('talents') as { id: string; label: string }[];
-  const set = (next: typeof list) => onChange(next);
-  return (
-    <div className="ed-field">
-      <span>talents contribuant à l'axe (facultatif)</span>
-      {list.map((s, i) => (
-        <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
-            {!s.id && <option value="">— (choisir un talent) —</option>}
-            {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
-        </div>
-      ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Talent</button>
+      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ {quoi}</button>
     </div>
   );
 }

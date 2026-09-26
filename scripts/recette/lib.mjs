@@ -440,6 +440,24 @@ export async function waitFor(session, expression, { timeoutMs = 8000, intervalM
   }
 }
 
+/** Délai BORNÉ pendant lequel un helper qui vise une cible au DOM la re-cherche avant de refuser : un
+ *  écran monté en différé (liste des scénarios après « Scénarios de test ») n'est pas encore là au
+ *  premier regard. */
+export const DELAI_CIBLE_MS = 5000;
+
+/** Re-évalue `expression` jusqu'à une valeur non nulle, ou `null` à l'échéance `delaiCibleMs` — la
+ *  recherche de cible UNIQUE des helpers qui visent le DOM (`clickButtonByText`, `cliquerSelecteur`,
+ *  `survoler`, `infobulleDe`, `selectOption`, `typeInField`). */
+async function chercherCible(session, expression, delaiCibleMs = DELAI_CIBLE_MS, intervalMs = 100) {
+  const deadline = Date.now() + delaiCibleMs;
+  for (;;) {
+    const v = await evaluate(session, expression);
+    if (v != null) return v;
+    if (Date.now() >= deadline) return null;
+    await sleep(intervalMs);
+  }
+}
+
 /** Expression d'app prête — `__wfrp.screen` est posé par `installDevtools` (cf. `openApp`). */
 const APP_READY = `typeof window.__wfrp?.screen === 'function'`;
 
@@ -733,8 +751,8 @@ export async function setMobileViewport(session) {
  *
  * `modifiers` = les touches TENUES pendant le clic (`MOD_ALT`), même paramètre que `survoler`.
  */
-export async function clickButtonByText(session, texte, { exact = false, dans, rangee, modifiers = 0 } = {}) {
-  const rect = await evaluate(session, `(() => {
+export async function clickButtonByText(session, texte, { exact = false, dans, rangee, modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     const target = norm(${JSON.stringify(texte)});
     const racine = ${dans ? `document.querySelector(${JSON.stringify(dans)})` : 'document'};
@@ -758,8 +776,8 @@ export async function clickButtonByText(session, texte, { exact = false, dans, r
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, textes: matches.slice(0, 5).map((b) => norm(b.textContent)) };
-  })()`);
-  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''}`);
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''} après ${delaiCibleMs} ms`);
   if (rect.textes && rect.textes.length > 1) {
     console.warn(`clickButtonByText « ${texte} » : ${rect.textes.length} boutons matchent (${rect.textes.join(' | ')}) — le PREMIER est cliqué. Préciser avec { exact: true } si ce n'est pas celui-là.`);
   }
@@ -774,8 +792,8 @@ export async function clickButtonByText(session, texte, { exact = false, dans, r
  * absente, ou désactivée — jamais un clic silencieux qui n'a rien fait.
  * @returns {Promise<{ x: number, y: number, label: string }>}
  */
-export async function cliquerSelecteur(session, selecteur, { modifiers = 0 } = {}) {
-  const cible = await evaluate(session, `(() => {
+export async function cliquerSelecteur(session, selecteur, { modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const cible = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -786,8 +804,8 @@ export async function cliquerSelecteur(session, selecteur, { modifiers = 0 } = {
       desactive: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
       label: (el.getAttribute('title') || el.getAttribute('aria-label') || el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 60),
     };
-  })()`);
-  if (!cible) throw new Error(`cliquerSelecteur « ${selecteur} » : aucun élément`);
+  })()`, delaiCibleMs);
+  if (!cible) throw new Error(`cliquerSelecteur « ${selecteur} » : aucun élément après ${delaiCibleMs} ms`);
   if (cible.vide) throw new Error(`cliquerSelecteur « ${selecteur} » : boîte de taille nulle (non rendu)`);
   if (cible.desactive) throw new Error(`cliquerSelecteur « ${selecteur} » : contrôle DÉSACTIVÉ (${cible.label})`);
   await clicReel(session, cible.x, cible.y, modifiers);
@@ -877,8 +895,8 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
  * l'événement dirait au navigateur que la touche vient d'être relâchée.
  * Rend le point survolé `{ x, y }` ; lève si la cible est absente.
  */
-export async function survoler(session, cible, { attenteMs = 500, modifiers = 0 } = {}) {
-  const point = await evaluate(session, `(() => {
+export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const point = await chercherCible(session, `(() => {
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     const cible = ${JSON.stringify(cible)};
     let el = null;
@@ -888,8 +906,8 @@ export async function survoler(session, cible, { attenteMs = 500, modifiers = 0 
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
-  })()`);
-  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur ni texte de bouton)`);
+  })()`, delaiCibleMs);
+  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur ni texte de bouton) après ${delaiCibleMs} ms`);
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, buttons: 0, modifiers });
   await sleep(attenteMs);
   return point;
@@ -902,8 +920,8 @@ export async function survoler(session, cible, { attenteMs = 500, modifiers = 0 
  * sur l'enveloppe → bulle au coin haut-gauche, (8, 6) pour un contrôle à (1050, 258)).
  * `{ texte: null }` = aucune infobulle ouverte — un refus muet, pas une erreur de recette.
  */
-export async function infobulleDe(session, cible) {
-  const r = await evaluate(session, `(() => {
+export async function infobulleDe(session, cible, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const r = await chercherCible(session, `(() => {
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     const cible = ${JSON.stringify(cible)};
     let el = null;
@@ -921,8 +939,8 @@ export async function infobulleDe(session, cible) {
       cible: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
       bulle: { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) },
     };
-  })()`);
-  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur ni texte de bouton)`);
+  })()`, delaiCibleMs);
+  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur ni texte de bouton) après ${delaiCibleMs} ms`);
   return r;
 }
 
@@ -943,18 +961,16 @@ export async function infobulleDe(session, cible) {
  * remontées dans le message). Rend `{ valeur, libelle }` LUS après le geste — un `onChange` qui
  * refuse la valeur se voit donc au retour, jamais en silence.
  */
-export async function selectOption(session, selecteur, valeur) {
-  const rect = await evaluate(session, `(() => {
+export async function selectOption(session, selecteur, valeur, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} » après ${delaiCibleMs} ms`);
+  await clicReel(session, rect.x, rect.y);
   const res = await evaluate(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     const cible = ${JSON.stringify(String(valeur))};
@@ -1185,18 +1201,16 @@ export async function realKeyUp(session, touche) {
  * s'en apercevrait. `attendu` (chaîne ou prédicat) durcit le contrôle en ERREUR quand le site connaît
  * la valeur exacte à obtenir.
  */
-export async function typeInField(session, selecteur, texte, { clear = true, attendu } = {}) {
-  const rect = await evaluate(session, `(() => {
+export async function typeInField(session, selecteur, texte, { clear = true, attendu, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`typeInField : aucun élément ne matche « ${selecteur} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`typeInField : aucun élément ne matche « ${selecteur} » après ${delaiCibleMs} ms`);
+  await clicReel(session, rect.x, rect.y);
   if (clear) await evaluate(session, `(() => { const el = document.querySelector(${JSON.stringify(selecteur)}); el.select ? el.select() : el.setSelectionRange(0, el.value.length); return true; })()`);
   await session.rpc('Input.insertText', { text: texte });
   const lu = await evaluate(session, `document.querySelector(${JSON.stringify(selecteur)}).value`);

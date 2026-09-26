@@ -10,6 +10,7 @@ import {
   DELAI_EVALUATE,
   champParLibelle,
   clickButtonByText,
+  cliquerSelecteur,
   MOD_ALT,
   checkServer,
   frapperTouche,
@@ -484,8 +485,33 @@ for (const [dansLeDom, demandee] of [['L’Arène', "L'Arène"], ["L'Arène", 'L
 
 test('clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic', async () => {
   const { dom, session } = sessionRangees()
-  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim' }), /rangée « Middenheim »/)
+  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim', delaiCibleMs: 200 }), /rangée « Middenheim » après 200 ms/)
   assert.equal(dom.window.vise, undefined)
+})
+
+// ------------------------------------------------- recherche de cible BORNÉE (`chercherCible`)
+
+test('clickButtonByText : un bouton monté APRÈS l’appel est attendu, puis cliqué', async () => {
+  const { dom, session } = sessionRangees()
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<button id="tardif">Scénario tardif</button>'), 250)
+  await clickButtonByText(session, 'Scénario tardif', { delaiCibleMs: 2000 })
+  assert.equal(dom.window.vise, 'tardif')
+})
+
+test('clickButtonByText : à l’échéance, refus NOMMANT le libellé et le délai, sans clic', async () => {
+  const { dom, session } = sessionRangees()
+  const t0 = Date.now()
+  await assert.rejects(() => clickButtonByText(session, 'Jamais monté', { delaiCibleMs: 300 }), /aucun bouton ne matche « Jamais monté » après 300 ms/)
+  assert.ok(Date.now() - t0 >= 300, 'la recherche a duré le délai')
+  assert.equal(dom.window.vise, undefined)
+})
+
+test('cliquerSelecteur : un contrôle monté APRÈS l’appel est attendu', async () => {
+  const { dom, session } = sessionRangees()
+  dom.window.Element.prototype.getBoundingClientRect = function () { return { x: 0, y: 0, width: 10, height: 10 } }
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<button id="glyphe" class="ld-btn">☰</button>'), 250)
+  await cliquerSelecteur(session, '.ld-btn', { delaiCibleMs: 2000 })
+  assert.equal(dom.window.vise, 'glyphe')
 })
 
 // ------------------------------------------------- poserFichier : domaine DOM du CDP

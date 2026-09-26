@@ -92,19 +92,20 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
     expect(hough.traits.some((t: any) => t.id === 'animosite' && t.arg === 'tzeentch')).toBe(true);
   });
 
-  it('Les 10 Talents achetables hors-Carrière au tarif normal (grantCareerTalent, étendu aux Traits)', () => {
+  it('Les 10 Talents achetables comme en Carrière, hors de sa liste (grantCareerTalent `commeEnCarriere`, étendu aux Traits)', () => {
+    const PORTEUR = { type: 'trait', id: 'marque-de-tzeentch' };
     expect(careerTalentAdditions(bearer())).toEqual([
       // EDOC 13 l.524 : « Magie des Arcanes (n'importe laquelle) ».
-      { id: 'magie-des-arcanes', choix: true },
-      { id: 'diction-instinctive' },
-      { id: 'harmonisation-aethyrique' },
-      { id: 'magie-du-chaos', spec: 'tzeentch' },
-      { id: 'mage-de-guerre' },
-      { id: 'magie-mineure' },
-      { id: 'mains-agiles' },
-      { id: 'perception-de-la-magie' },
-      { id: 'seconde-vue' },
-      { id: 'sorcier' },
+      { id: 'magie-des-arcanes', choix: true, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'diction-instinctive', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'harmonisation-aethyrique', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'magie-du-chaos', spec: 'tzeentch', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'mage-de-guerre', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'magie-mineure', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'mains-agiles', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'perception-de-la-magie', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'seconde-vue', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'sorcier', commeEnCarriere: true, provenance: PORTEUR },
     ]);
   });
 

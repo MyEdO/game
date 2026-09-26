@@ -12,6 +12,7 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
+import { deroule, type MetaChamp } from './meta';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
@@ -51,19 +52,24 @@ class ChampAChoixDeclare {
   private declare readonly marqueNominale: true;
   constructor(
     readonly cible: TypeEntite,
+    readonly meta: MetaChamp,
     readonly extra?: Record<string, z.ZodType>,
   ) {}
 }
 
-/** Déclare un champ à choix de type `cible` (+ champs propres `extra`) à sa place dans un payload d'op. */
-export function aChoix(cible: TypeEntite, extra?: Record<string, z.ZodType>): ChampAChoixDeclare {
-  return new ChampAChoixDeclare(cible, extra);
+/** Déclare un champ à choix de type `cible`, sa méta d'édition `meta` (+ champs propres `extra`) à sa
+ *  place dans un payload d'op. */
+export function aChoix(cible: TypeEntite, meta: MetaChamp, extra?: Record<string, z.ZodType>): ChampAChoixDeclare {
+  return new ChampAChoixDeclare(cible, meta, extra);
 }
 
 /** Payload déclaré par ses champs (au moins un champ à choix) : la famille le ferme en `z.strictObject`. */
 type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare>>;
 
 const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !== null && '_zod' in v;
+
+/** `commeEnCarriere` d'un ajout de carrière : EDOC 13 l.524 ; absent : LDB 10 l.467, l.745. */
+const commeEnCarriereSchema = z.literal(true).optional().meta({ label: 'Achat comme en carrière, hors de sa liste' } satisfies MetaChamp);
 
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
@@ -178,9 +184,9 @@ const DECLARATIONS_D_OPS = {
     hours: formulaSchema.optional(),
     days: formulaSchema.optional(),
   }),
-  grantCareerSkill: { op: z.literal('grantCareerSkill'), skill: aChoix('skill') },
-  grantCareerTalent: { op: z.literal('grantCareerTalent'), talent: aChoix('talent') },
-  grantTalent: { op: z.literal('grantTalent'), talent: aChoix('talent') },
+  grantCareerSkill: { op: z.literal('grantCareerSkill'), skill: aChoix('skill', { label: 'Compétence' }) },
+  grantCareerTalent: { op: z.literal('grantCareerTalent'), talent: aChoix('talent', { label: 'Talent' }), commeEnCarriere: commeEnCarriereSchema },
+  grantTalent: { op: z.literal('grantTalent'), talent: aChoix('talent', { label: 'Talent' }) },
   grantReverseToken: z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional() }),
   exposeDisease: z.strictObject({
     op: z.literal('exposeDisease'),
@@ -345,6 +351,21 @@ export type ChampAChoix = { [K in keyof DeclarationsDOps & string]: ChampsAChoix
 export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = Object.entries(DECLARATIONS_D_OPS).flatMap(([op, d]) =>
   estNoeudZod(d) ? [] : Object.entries(d as FormeDePayload).flatMap(([champ, v]) => (v instanceof ChampAChoixDeclare ? [`${op}.${champ}` as ChampAChoix] : [])),
 );
+
+/** Type d'entité visé par un champ à choix, lu sur sa déclaration. */
+export function cibleDuChampAChoix(champ: ChampAChoix): TypeEntite {
+  const [op, nom] = champ.split('.');
+  return ((DECLARATIONS_D_OPS as Record<string, unknown>)[op] as Record<string, ChampAChoixDeclare>)[nom].cible;
+}
+
+/** Méta d'édition (`MetaChamp`, `.meta()` du nœud) d'un champ de payload d'op déclaré, `undefined` sans méta. */
+export function metaDuChampDOp(op: string, champ: string): MetaChamp | undefined {
+  const d = (DECLARATIONS_D_OPS as Record<string, unknown>)[op];
+  const noeud = estNoeudZod(d) ? (d as unknown as { shape?: Record<string, unknown> }).shape?.[champ] : (d as FormeDePayload | undefined)?.[champ];
+  if (noeud instanceof ChampAChoixDeclare) return noeud.meta;
+  const meta = estNoeudZod(noeud) ? (noeud.meta() as Partial<MetaChamp> | undefined) : undefined;
+  return meta?.label ? (meta as MetaChamp) : undefined;
+}
 
 /** Régime de chaque champ à choix d'un porteur ; un champ absent est `specSeule`. */
 export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur>>>;
@@ -832,6 +853,12 @@ const REGIMES_DES_NOEUDS = new WeakMap<object, Regimes>();
 /** Les régimes de la famille qui a construit ce nœud, `undefined` hors famille. */
 export function regimesDuNoeud(noeud: unknown): Regimes | undefined {
   return typeof noeud === 'object' && noeud !== null ? REGIMES_DES_NOEUDS.get(noeud) : undefined;
+}
+
+/** Les régimes du nœud de famille que porte un CHAMP de document (`z.array(famille.gameOp).optional()`),
+ *  à travers ses enveloppes (`deroule`) ; `undefined` si le champ ne porte aucune famille. */
+export function regimesDuChamp(noeud: unknown): Regimes | undefined {
+  return regimesDuNoeud(deroule(noeud, (n) => regimesDuNoeud(n) !== undefined));
 }
 
 /** Payloads d'une famille : une FORME se ferme en `z.strictObject`, ses champs à choix au régime demandé. */

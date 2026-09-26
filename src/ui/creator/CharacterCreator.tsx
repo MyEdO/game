@@ -2415,7 +2415,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         </Rubrique>
         <Rubrique title="Talents">
           <div className="skill-tags">
-            {hero.talents.map((t) => <TalentChip key={`${t.talentId}|${t.spec ?? ''}`} talent={t} />)}
+            {hero.talents.map((t) => <TalentChip key={`${t.talentId}|${t.spec ?? ''}`} talent={{ id: t.talentId, spec: t.spec }} times={t.times} />)}
           </div>
         </Rubrique>
         <Rubrique title="Possessions">

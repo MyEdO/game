@@ -620,7 +620,7 @@ export type GameOp =
   /** Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la
    *  liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de
    *  `grantCareerSkill`. Lu par `careerTalentAdditions`, pas appliqué au combattant. */
-  | { op: 'grantCareerTalent'; talent: RefASpecialisation }
+  | { op: 'grantCareerTalent'; talent: RefASpecialisation; commeEnCarriere?: true }
   /** ALTÉRATION d'ARME temporisée — enchantement OU dégradation, une seule primitive (Jalon 2.6 —
    *  Bénédiction de Droiture : Magique ; Marteau ardent : Magique +BSoc + En flammes/À Terre à la touche ; Épée
    *  ardente : +6 + Percutante + En flammes ; VDM 05 — Arme enchantée « ajouter 1 Atout ou retirer 1
