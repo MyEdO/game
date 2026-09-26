@@ -7,8 +7,7 @@ publier : c'est la matière du rejeu.
 
 - `wip-2026-09-24/LISEZMOI.md` : état exact à la pause du 2026-09-24 13:10 UTC, reste à faire par train, direction v3 de
   la référence polymorphe.
-- Travail jamais committé, instantané des arbres (tout fichier modifié ou neuf, aucun écart vérifié fichier par
-  fichier) :
+- Travail jamais committé, instantané des arbres (tout fichier modifié ou neuf ; comparé fichier par fichier à l’arbre, 0 écart) :
   - train 2a2, corrections 1 à 4 : branche `wip/1473-t2-2a2`, parent `6a55a5d7c` (`chantier/1473-t2`) ;
   - R2 C4a et ses corrections arrêtées : branche `wip/1473-r2-c4a`, parent `61fef43d7` (`chantier/1473-r2`).
 
