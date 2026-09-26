@@ -24,7 +24,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 import { useGame } from '../../state/store';
 import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../state/scene';
 import { computeStateVisibleAndLight, sceneLightSources } from '../../state/visionState';
-import { partyLeaderOf } from '../../state/combatants';
+import { capDuGroupe, meneurDuMonde } from '../../state/combatants';
 import { placingZoneOf } from '../../state/combatFlow';
 import { controlsActive } from '../../state/netOwnership';
 import { Dims, capsuleCenter } from '../../geometry/iso';
@@ -126,10 +126,10 @@ function CorpsDuMonde() {
   const hovered = useGame((s) => s.hovered); // tireur SURVOLÉ (frise ou token) : ses bandes de portée sont des marques de cases
   const viewMode = useGame((s) => s.viewMode);
   const debugRoofCut = useGame((s) => s.debugRoofCut); // recette #1478 : lève-toit débrayable (`__wfrp.roofCut`)
-  // CAP du groupe, lu SEULEMENT sous le regard de première personne : `setFacing` reforge la table à
-  // chaque pas et à chaque attaque, et un abonnement à la table entière re-rendrait tout l'hôte. Le
-  // sélecteur rend une valeur PRIMITIVE, constante hors POV.
-  const capPov = useGame((s) => (s.povActive && s.party[0] ? s.facing[s.party[0].id] ?? null : null));
+  // CAP du groupe (`capDuGroupe`, entrée UNIQUE de la table), lu SEULEMENT sous le regard de première
+  // personne : la table se reforge à chaque pas et à chaque attaque, et un abonnement à la table
+  // entière re-rendrait tout l'hôte. Le sélecteur rend une valeur PRIMITIVE, constante hors POV.
+  const capPov = useGame((s) => (s.povActive ? capDuGroupe(s) : null));
   // L'orientation MONDE vivante n'est PAS lue ici : `VolumetricWorld` s'y abonne pour ses billboards.
   // MONDE INAFFICHABLE (#1176 C5a) : contexte volumique refusé = plus aucun peintre du monde — l'écran
   // le DIT, il ne se replie plus en silence (`stage/webglSupport`).
@@ -271,7 +271,7 @@ function CorpsDuMonde() {
   // inverse, et la boucle d'images la réécrit après chaque calcul de focal, sans rendu React.
   useEffect(() => { setStageFrame({ dims: dimsVue, camRendue: () => camRef.current, zoom, aretes: () => aretesEcranRef.current }); }, [dimsVue, zoom]);
   useEffect(() => () => setStageFrame(null), []);
-  const partyLeader = partyLeaderOf(party);
+  const partyLeader = meneurDuMonde({ party });
   // PLACE ASSISE du meneur — résolue UNE fois pour tout l'écran (corps, chrome, caméra, POV). Le
   // point de RENDU du meneur en découle : son ancre s'il est attablé, sa case sinon. `partyPos`, lui,
   // ne bouge jamais : c'est la case d'abord, celle du brouillard, des chemins et des déclencheurs.

@@ -8,7 +8,8 @@ import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
 import type { Dir8 } from '../../state/dir8';
 import { TokenChromeOverlay } from './TokenChromeOverlay';
-import { tokenChrome, type TokenChromeMark } from '../builders/tokenChrome';
+import { tokenChrome, tokenChromes, type TokenChromeMark } from '../builders/tokenChrome';
+import { CAP_GROUPE, poserCapDuGroupe } from '../../state/combatants';
 import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
 import { discCapPath, discR, teamRingDecor } from '../builders/dynamicMarks';
 import { NEUTRAL_TINT } from '../teamColors';
@@ -52,6 +53,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 function marque(c: Combatant, team: TokenChromeMark['team']): TokenChromeMark {
   return {
     id: c.id,
+    capKey: c.id,
     cell: { x: c.pos!.x, y: c.pos!.y, z: 0 },
     n: 1,
     scaleK: combatantTokenScale(c),
@@ -163,6 +165,30 @@ describe('Cap du pion — appartenance et lisibilité (#1176 P3-5c)', () => {
     const capÉq = [...gÉq.querySelectorAll('path')].find((p) => p.getAttribute('d') === discCapPath('E', 1, DIMS_TOP))!;
     expect(capÉq.getAttribute('fill')).toBe(équipe.color);
     expect(équipe.color).not.toBe(NEUTRAL_TINT);
+  });
+
+  it('le disque du GROUPE tourne avec le cap du GROUPE, jamais avec celui de l’id du meneur', () => {
+    // La marque telle que le builder la dérive pour le jeton de groupe : IDENTITÉ du meneur (bus,
+    // chrome, caméra), CLÉ DE CAP du groupe (`partyTokenOf` → `capKey`).
+    const groupe = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, { leader: H1, pos: { x: 3, y: 3 }, capKey: CAP_GROUPE })[0];
+    expect(groupe.id, 'témoin : la marque porte bien l’id du meneur').toBe('h1');
+    useGame.setState({ facing: poserCapDuGroupe({ h1: 'S' }, 'E') } as never); // le cap du héros CONTREDIT celui du groupe
+    conteneur = document.createElement('div');
+    document.body.appendChild(conteneur);
+    root = createRoot(conteneur);
+    act(() =>
+      root!.render(
+        <svg className="iso-stage">
+          <TokenChromeOverlay chromes={[groupe]} dims={DIMS_TOP} liftAt={() => 0} pions walkPosAt={() => (_id, x, y) => ({ x, y, walking: false })} />
+        </svg>,
+      ),
+    );
+    const tracés = () => [...conteneur!.querySelectorAll('g[data-pion-cid="h1"] path')].map((p) => p.getAttribute('d'));
+    expect(tracés(), 'le cap DESSINÉ est celui du groupe').toContain(discCapPath('E', 1, DIMS_TOP));
+    expect(tracés(), 'et surtout pas celui keyé par le meneur').not.toContain(discCapPath('S', 1, DIMS_TOP));
+    // …et il SUIT le groupe : un pivot repeint le quartier sans rien changer au cap du héros.
+    act(() => { useGame.setState((s) => ({ facing: poserCapDuGroupe(s.facing, 'N') })); });
+    expect(tracés()).toContain(discCapPath('N', 1, DIMS_TOP));
   });
 
   it('les HUIT directions se lisent : tracés distincts, et surface visible au même ordre', () => {

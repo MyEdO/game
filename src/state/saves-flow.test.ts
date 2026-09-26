@@ -23,6 +23,8 @@ import type { Combatant, Trauma } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from './scene';
 import { pruneSeatAssignments } from './seating';
+import { capDuGroupe, poserCapDuGroupe } from './combatants';
+import type { Dir8 } from './dir8';
 import { entityBlockedAt } from './sceneRules';
 import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from './flow';
@@ -351,6 +353,19 @@ describe('parseSave — la version DOIT être la courante', () => {
     // −20 de Compétence, le demi-Mouvement et le plafond de mains d'arme tombent en silence. La save se jette.
     expect(SAVE_VERSION).toBeGreaterThanOrEqual(50);
     expect(parseSave({ ...cur, version: 49 })).toBeNull();
+  });
+
+  it('MESURE du motif de bump 50 → 51 (#1362) : le cap d’exploration est une entrée de GROUPE', () => {
+    // Le regard hors combat vit sous la clé de GROUPE (`CAP_GROUPE`), plus sous l'id de chaque héros :
+    // une save de 50 rouvre SANS entrée de groupe — le plateau et la vue subjective repartent au défaut
+    // sud, et le pivot suivant part de là. La save se jette.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(51);
+    expect(parseSave({ ...cur, version: 50 })).toBeNull();
+    // …et la forme NEUVE fait bien le tour du snapshot : ce que le cap du groupe écrit est persisté.
+    useGame.setState({ facing: poserCapDuGroupe({}, 'E') });
+    const etat = useGame.getState() as unknown as Record<string, unknown>;
+    const data = snapshotSave(etat, etat, 'maintenant').data as { facing: Record<string, Dir8> };
+    expect(capDuGroupe({ facing: data.facing })).toBe('E');
   });
 
   it('MESURE du motif de bump 33 → 34 : la spéc en LIBELLÉ ne couvre plus son emplacement', () => {

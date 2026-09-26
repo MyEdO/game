@@ -13,6 +13,7 @@ import { actionsDe, cleActionJouee } from './usable';
 import { bus, EVT } from './bus';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
+import { CAP_GROUPE, capDuGroupe } from './combatants';
 import { fleeBackstab, fleeCalme } from './pendings';
 import { applyAttackResult, applyEffects, applyEffectsLoot, runFlow, computeMoveReach } from './combatFlow';
 import { mountUp } from './mount';
@@ -3075,18 +3076,18 @@ describe('stepPartyDir — pas clavier BLOQUÉ (#792) : silence remplacé par MO
   });
 });
 
-describe("Orientation du meneur à l'entrée de scène (spawnFacing / heroStart authoré)", () => {
+describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart authoré)", () => {
   beforeEach(() => reset());
 
   const lead = { id: 'lead', label: 'L', xp: 0 } as unknown as Combatant;
 
-  it('startScene : heroStart au bord sud SANS facing → le meneur regarde le contenu (N, pas le vide POV)', () => {
+  it('startScene : heroStart au bord sud SANS facing → le groupe regarde le contenu (N, pas le vide POV)', () => {
     const sc = emptyScene(21, 20);
     sc.id = 'sud';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 } });
     useGame.getState().setParty([lead]);
     useGame.getState().startScene(sc);
-    expect(useGame.getState().facing).toEqual({ lead: 'N' });
+    expect(useGame.getState().facing).toEqual({ [CAP_GROUPE]: 'N' });
   });
 
   it('startScene : heroStart AVEC facing authoré → respecté tel quel', () => {
@@ -3095,7 +3096,7 @@ describe("Orientation du meneur à l'entrée de scène (spawnFacing / heroStart 
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 }, facing: 'O' });
     useGame.getState().setParty([lead]);
     useGame.getState().startScene(sc);
-    expect(useGame.getState().facing.lead).toBe('O');
+    expect(capDuGroupe(useGame.getState())).toBe('O');
   });
 
   it("transitionTo : par point d'entrée nommé → cap recalculé vers le contenu de la NOUVELLE carte (l'authoré du heroStart ne s'applique pas : on ne spawne pas dessus)", () => {
@@ -3109,7 +3110,7 @@ describe("Orientation du meneur à l'entrée de scène (spawnFacing / heroStart 
     useGame.getState().loadProject([a, b], 'a');
     useGame.getState().transitionTo('b', 'porte');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 6 });
-    expect(useGame.getState().facing.lead).toBe('N'); // vers le centroïde (3,3), PAS 'O'
+    expect(capDuGroupe(useGame.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
   });
 
   it('transitionTo : sans entrée nommée → spawn au heroStart, facing authoré respecté', () => {
@@ -3121,7 +3122,7 @@ describe("Orientation du meneur à l'entrée de scène (spawnFacing / heroStart 
     useGame.getState().setParty([lead]);
     useGame.getState().loadProject([a, b], 'a2');
     useGame.getState().transitionTo('b2');
-    expect(useGame.getState().facing.lead).toBe('NE');
+    expect(capDuGroupe(useGame.getState())).toBe('NE');
   });
 });
 
@@ -3237,9 +3238,9 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
 
     // 4) Points névralgiques explicites (les 5 suspensions de combat + horloge + orientation + retour).
     expect(st.gameTime).toBe(campaignStart());
-    // Le fantôme de l'ancienne partie est purgé ; SEUL le meneur est ré-orienté vers le contenu
-    // (heroStart (0,0) sur une 6×6 → centroïde (2.5,2.5) = SE).
-    expect(st.facing).toEqual({ h: 'SE' });
+    // Le fantôme de l'ancienne partie est purgé ; SEUL le cap du GROUPE est ré-orienté vers le
+    // contenu (heroStart (0,0) sur une 6×6 → centroïde (2.5,2.5) = SE).
+    expect(st.facing).toEqual({ [CAP_GROUPE]: 'SE' });
     expect(st.previousScene).toBeNull();
     expect(st.pendingFateSave).toBeNull();
     expect(st.pendingCast).toBeNull();

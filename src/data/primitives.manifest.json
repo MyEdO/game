@@ -143,6 +143,15 @@
     "verrou": "in-battle-find-guard.test.ts"
   },
   {
+    "id": "meneurDuMonde",
+    "type": "primitives.manifest",
+    "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
+    "fichier": "src/state/combatants.ts",
+    "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
+    "perimetre": "toute lecture du meneur et toute écriture du cap d'exploration dans src/state, src/gameIso, src/ui",
+    "verrou": "hero-debout-guard.test.ts"
+  },
+  {
     "id": "applyOps",
     "type": "primitives.manifest",
     "label": "applyOps/GameOp",

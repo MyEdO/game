@@ -129,7 +129,12 @@ import type { Scene } from './scene';
 // rouvre avec des effets qui portent ces champs et plus rien ne les lit : le −10 d'Esquive du sort, le
 // demi-Mouvement et le plafond de mains d'arme disparaissent en silence. La save se jette (politique 2
 // ci-dessus).
-export const SAVE_VERSION = 50;
+// 50 → 51 (#1362) : le CAP D'EXPLORATION est une entrée de GROUPE de `facing` (clé `CAP_GROUPE`,
+// `state/combatants.ts`), là où chaque héros portait la sienne. Une save de 50 rouvre avec des caps
+// keyés par des id de héros que plus personne ne lit, et SANS entrée de groupe : le regard du plateau
+// et la vue subjective repartent au défaut sud, le pivot suivant aussi. La save se jette (politique 2
+// ci-dessus).
+export const SAVE_VERSION = 51;
 
 export interface SaveMeta {
   version: number;
