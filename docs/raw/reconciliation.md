@@ -7,7 +7,7 @@
 > après crédit du folio d'une donnée et de la dette de fiche déclarée au manifest.
 > Tolérance ligne = ±20.
 
-**Sens A — code → Atlas (tous livres)** : 12 chapitre(s)-livre cités par le code & absents de l'Atlas · 11 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
+**Sens A — code → Atlas (tous livres)** : 12 chapitre(s)-livre cités par le code & absents de l'Atlas · 12 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
 **Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 47 · 0 crédité(s) par une source folio de `src/data` · 47 sous dette de fiche déclarée).
 
 ## A0 — Résumé Sens A par livre
@@ -21,7 +21,7 @@
 | MCLB | — | 1 | 0 | 0 |
 | MDG | — | 2 | 1 | 0 |
 | MSRC | — | 1 | 2 | 0 |
-| NADJ | — | 2 | 1 | 0 |
+| NADJ | — | 2 | 2 | 0 |
 | PDT | — | 2 | 0 | 0 |
 | VDM | — | 0 | 1 | 0 |
 
@@ -63,7 +63,7 @@
 - `src/data/naval-traits.json:12` (l.90) — "maison": "MSRC 07 l.94 gate le Critique de Superstructure sur « si le bateau dispose d'une cale » sans imprimer de Trait naval ; la cale rejoint le catalogue d
 - `src/data/regles-optionnelles-partition.test.ts:58` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
 - `src/data/schemas/grammaire/formes-partagees.test.ts:406` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
-- `src/ui/compendium/registry-enveloppe.test.ts:164` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
+- `src/ui/compendium/registry-enveloppe.test.ts:165` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
 - `src/data/schemas/defs-scenes/scene.ts:157` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
@@ -150,6 +150,9 @@
 ### MSRC 5 — 1/1 ligne(s) code hors couverture (propriétaire : —)
 - l.113 — `src/state/riverVoyageFlow.ts:876` — // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
 
+### NADJ 8 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
+- l.133 — `src/scenes/opera/floorplan.test.ts:357` — * #1179, #1883 — le pourtour du PUITS : NADJ 08 l.133 (folio 41). Le folio 39 est le plan (image), sans
+
 ## A3 — Réfs de CODE sans chapitre (`<ABRÉV> l.X`, pas d'unité chapitre à couvrir)
 
 _Aucune._
@@ -208,4 +211,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 99b81e8a400be98c321fc964a2a1d6e9a4e011c8 (4242 fichiers, 152 dossiers) corps: edbcaca1a1592817bbd5b4ee4a67d9aa06cd2dac -->
+<!-- sources-empreinte: 41ac8baf01b1c7177052bbaeec704278c88dc0d9 (4240 fichiers, 152 dossiers) corps: 83b0eedcf0cecef5a6e79b001bcb4731bd23804f -->

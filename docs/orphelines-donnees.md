@@ -36,10 +36,10 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 | `qualities` | 59 | 2 | 3 % |
 | `maneuvers` | 20 | 0 | 0 % |
 | `skills` | 48 | 1 | 2 % |
-| `props` | 124 | 0 | 0 % |
+| `props` | 121 | 0 | 0 % |
 | `vehicles` | 31 | 0 | 0 % |
 | `creatures` | 493 | 349 | 71 % |
-| **Total** | **1094** | **364** | — |
+| **Total** | **1091** | **364** | — |
 
 ### `traits`
 
@@ -420,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: dfbaa8c2c8b5f3280bea54e48a1b06acf631fb99 (2103 fichiers, 134 dossiers) corps: bc7f3dae06452f52c9443c42bfe46eae6a69a9e5 -->
+<!-- sources-empreinte: 1a8a8645d6e078fdf5d62fff3494b813c6ef5787 (2100 fichiers, 134 dossiers) corps: 11fea96cc2c880474e95115c151bc64b9da15106 -->

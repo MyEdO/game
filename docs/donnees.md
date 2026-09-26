@@ -89,7 +89,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `sizes.json` · `encumbranceTiers.json` | Barèmes par Taille (modif. au tir · Enc à bord · côté d'empreinte) · paliers d'Encombrement (objet à sous-catalogues · 4 entrée(s)) | `sizes` — objet single ; `encumbranceTiers` — dataset `encumbranceTiers` |
 | `etats.json` | États / Conditions (À terre, Aveuglé…) (21 entrée(s)) | `etats` — dataset `etats` |
 | `psychology.json` | États psychologiques (Peur, Terreur, Frénésie…) (9 entrée(s)) | `psychologies` — dataset `psychologies` |
-| `structures.json` · `structure-criticals.json` | Structures/portes (cibles de siège) · leurs critiques (24 entrée(s) · objet à sous-catalogues) | `structures` — dataset `structures` ; `structureCriticals` — niché (`structureCriticals`) |
+| `structures.json` · `structure-criticals.json` | Structures/portes (cibles de siège) · leurs critiques (25 entrée(s) · objet à sous-catalogues) | `structures` — dataset `structures` ; `structureCriticals` — niché (`structureCriticals`) |
 | `artillery-misfire.json` | Incidents de Tir d'Artillerie par Salve (AA 10 l.270-277) — arme d'équipe à Atout Salve qui subit un Incident de tir (objet à sous-catalogues) | `artilleryMisfire` — niché (`artilleryMisfire`) |
 | `mass-battle.json` | **ATTENTION — Objet à sous-catalogues** (`powerEstimate`, `mightModifiers`, **`warMachines`** ← le Bélier de siège ICI, `structures`, `hazards`) : bataille de masse (objet à sous-catalogues) | `massBattlePowerEstimate` · `massBattleMightModifiers` · `massBattleWarMachines` · `massBattleStructures` · `massBattleHazards` — niché (`massBattlePowerEstimate` · `massBattleMightModifiers` · `massBattleWarMachines` · `massBattleStructures` · `massBattleHazards`) |
 
@@ -161,8 +161,8 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `raceAppearance.json` | Apparence par race (gabarit, palette, tenue) — rig (21 entrée(s)) | `raceAppearance` — dataset `raceAppearance` |
-| `structureAppearance.json` | Apparence de structure (murs, portes) (18 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`) |
-| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (124 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (édité à la PALETTE de décor de l’éditeur de carte, jamais par une catégorie du Codex) |
+| `structureAppearance.json` | Apparence de structure (murs, portes) (19 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`) |
+| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (121 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (édité à la PALETTE de décor de l’éditeur de carte, jamais par une catégorie du Codex) |
 | `decorPalette.json` | Palette de couleurs de décor (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette d'art éditée au fichier (aucun écran d'atelier ne l'expose)) |
 | `teintesJeu.json` | TEINTES DE JEU du terrain — surbrillances tactiques (portées, zones, bandes de tir, anneaux de cible, halos, télégraphes) et identité d'unité (anneaux réservés, équipes, une couleur par héros), `id → #rrggbb` groupé par préfixe ; servi aux peintres par `src/gameIso/highlightTints.ts` et `src/gameIso/teamColors.ts` (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette de rendu éditée au fichier (aucun écran d'atelier ne l'expose)) |
 | `materials.json` | LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief`) porté par l'entrée (16 entrée(s)) | `materials` — dataset `materials` |
@@ -495,4 +495,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 1978c72f99471a974b51ba747c9ed3492caef0ec (378 fichiers, 2 dossiers) corps: 9d8bc79a1649065ab252f88d2818b3227f8c2c74 -->
+<!-- sources-empreinte: ed9cad884674b29fa3e91ee43570a6520d0829fc (378 fichiers, 2 dossiers) corps: 53fb98607b7c9d4c2bd2f0dd07156cfe99a2a41c -->
