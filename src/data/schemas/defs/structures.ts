@@ -47,9 +47,15 @@ const doc = document(
      * Barème d'authoring (dit ICI une fois, jamais recopié en donnée) : on prend la Taille de la créature
      * dont la Structure a l'encombrement — ouvrage d'enceinte, porte de ville, herse, terrassement et
      * navire = Énorme (l'exemple RAW est un mur de pierre Énorme) ; porte, cloison de bâtiment, clôture,
-     * palissade, mantelet, muret, chariot et chaloupe = Grande.
+     * palissade, mantelet, muret, chariot et chaloupe = Grande ; garde-corps d’une arête = Moyenne.
      */
     taille: sizeCategorySchema,
+    /**
+     * Porte-t-elle l'étage qui SURMONTE son arête (`AA 10 l.127` : « Les Personnages qui se trouvent sur
+     * ou dans la Structure ») ? Lu par le seul `parapetTilesAbove` (`state/scene.ts`). Aucun folio ne le
+     * dit — valeur MAISON par entrée, OBLIGATOIRE (aucun défaut implicite), dont `maison` porte la raison.
+     */
+    soutientEtage: z.boolean(),
   },
   {
     kind: { label: 'Nature de la Structure', hint: 'Porte ou Mur, pour la résolution mécanique' },
@@ -75,6 +81,10 @@ const doc = document(
       label: 'Taille de la Structure',
       hint: 'Compte son Bonus d’Endurance une fois de plus par catégorie au-dessus de l’attaquant ; exige un arbitrage maison',
     },
+    soutientEtage: {
+      label: 'Porte l’étage du dessus',
+      hint: 'Abattue, elle effondre l’étage qui surmonte son arête et fait chuter ses occupants ; exige un arbitrage maison',
+    },
   },
   {
     codex: { keys: ['structures'] },
@@ -89,7 +99,7 @@ const doc = document(
      */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown };
+        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown; soutientEtage?: unknown };
         const sansRaison = typeof e.maison !== 'string' || !e.maison;
         if (e.occulte === false && sansRaison)
           ctx.addIssue({
@@ -102,6 +112,12 @@ const doc = document(
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : \`taille\` sans \`maison\` — aucune table de source n’imprime la Taille d’une Structure (AA 10 l.98 la laisse à déterminer), l’arbitrage se nomme.`,
+          });
+        if (e.soutientEtage != null && sansRaison)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['maison'],
+            message: `${e.id} : \`soutientEtage\` sans \`maison\` — aucun folio ne dit quelle Structure porte un étage (AA 10 l.127), l’arbitrage se nomme.`,
           });
       }),
   },

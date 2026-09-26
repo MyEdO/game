@@ -153,8 +153,9 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const crest = crownFaces(app, A, B, H1);
 
     if (app.door) {
-      // CORPS DE GARDE : passage béant barré de sa claire-voie (intacte) ou seuil d'éboulis (abattue) + linteau.
-      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : claireVoie();
+      // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
+      // (abattu) + linteau.
+      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : open ? [] : claireVoie();
       return [...passage, slab('linteau', H1 - isoPxToM(app.door.lintelPx), H1), ...crest];
     }
     if (down) return breach();
@@ -218,14 +219,17 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     ];
   }
   if (app.claireVoie) {
-    // CLAIRE-VOIE sans porte (garde-corps) : plinthe + barreaux + main courante entre deux poteaux,
-    // AUCUNE face pleine — l'arête se voit au travers.
+    // CLAIRE-VOIE sans porte : barreaux entre deux poteaux, AUCUNE face pleine — l'arête se voit au
+    // travers. Plinthe et main courante (`couronnement`) seulement si l'APPARENCE les porte.
+    const cv = app.claireVoie;
     return [
       upright('poteau', 0, b, H1),
-      slab('plinthe', b, b + wallHeightM * SKIRT_FRAC),
+      ...(cv.plinthe ? [slab('plinthe', b, b + wallHeightM * SKIRT_FRAC)] : []),
       ...claireVoie(),
-      slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
-      ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
+      ...(cv.mainCourante ? [
+        slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
+        ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
+      ] : []),
       upright('poteau', 1, b, H1),
     ];
   }

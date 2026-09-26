@@ -129,7 +129,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "plage", signature: "max,min", date: "2026-08-23" },
   // #1883 (2026-09-26) — la CLAIRE-VOIE naît CIBLE : `claireVoie` (`defs/structureAppearance.ts`) est la
   // seule graphie de barreaux d'arête, portée par l'apparence.
-  { concept: "claireVoie", signature: "bars,bottomFrac,topFrac,traverseColor,traverseFracs", date: "2026-09-26" },
+  { concept: "claireVoie", signature: "bars,bottomFrac,mainCourante,plinthe,topFrac,traverseColor,traverseFracs", date: "2026-09-26" },
   // #1463 L4 P2 (2026-08-31) — la FOURCHETTE d'une rangée de table sort du dénominateur. Ce n'est pas
   // un mot du lexique qui la sort : la cible est TRANCHÉE (forme PLATE `{min, max}` + `findTableEntry`,
   // `src/engine/tables.ts`), et la charge utile d'une rangée (102 charges distinctes mesurées) est

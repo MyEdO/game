@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { auditFolio } from '../../scripts/guards/lib/folioIntegrity.mjs';
+import { auditFolio, labelSurLaPage } from '../../scripts/guards/lib/folioIntegrity.mjs';
 import structures from './structures.json';
 
 /**
@@ -19,6 +19,10 @@ import structures from './structures.json';
  * elles sont hors de portée de cette voie et le test le DIT plutôt que de les compter vertes. Leur
  * folio 89 est attesté par l'ancre de titre de leur table (`ADE II 8` l.280
  * « BARRICADES ET PROTECTIONS TYPIQUES », folio gouvernant 89), relevé au geste de migration.
+ *
+ * L'entrée `livre-de-base` (garde-corps, #1883) n'a ni `desc` ni ligne de table : son folio 161 se
+ * confronte au passage que son `maison` cite (LDB 14 l.81), lu dans les tranches du folio déclaré
+ * (ancre `data-folio="161"`, LDB 14 l.44) — et réfuté au folio voisin.
  */
 
 type Structure = { id: string; source: { book: string; page: number }; desc?: string };
@@ -26,6 +30,9 @@ type Structure = { id: string; source: { book: string; page: number }; desc?: st
 const ENTREES = structures as Structure[];
 const AUX_ARMES = ENTREES.filter((s) => s.source.book === 'aux-armes');
 const ADE_II = ENTREES.filter((s) => s.source.book === 'archives-de-l-empire-2');
+const LDB = ENTREES.filter((s) => s.source.book === 'livre-de-base') as (Structure & { maison?: string })[];
+/** LDB 14 l.81, verbatim — le passage que le `maison` du garde-corps cite pour son Couvert. */
+const LDB_14_L81 = 'Cible protégée par une couverture moyenne (une barrière en bois, par exemple).';
 
 describe('structures.json — folio de source confronté à l’extraction (#1467 L1b)', () => {
   it('chaque entrée aux-armes déclare le folio où vit sa `desc` (auditFolio → folio-ok)', () => {
@@ -58,10 +65,20 @@ describe('structures.json — folio de source confronté à l’extraction (#146
     }
   });
 
-  it('les folios posés sont exactement ceux attestés : ADE II 89, AA 119-120', () => {
+  it('les folios posés sont exactement ceux attestés : ADE II 89, AA 119-120, LDB 161', () => {
     expect(new Set(ADE_II.map((s) => s.source.page))).toEqual(new Set([89]));
     expect(ADE_II.length).toBe(5);
     expect(new Set(AUX_ARMES.map((s) => s.source.page))).toEqual(new Set([119, 120]));
+    expect(LDB.map((s) => `${s.id} p.${s.source.page}`)).toEqual(['garde-corps p.161']);
+    expect(ADE_II.length + AUX_ARMES.length + LDB.length, 'chaque entrée relève d’une voie').toBe(ENTREES.length);
+  });
+
+  it('l’entrée LDB : le passage cité par son `maison` vit au folio déclaré, et le folio voisin le réfute', () => {
+    const [gc] = LDB;
+    expect(gc.maison, 'le `maison` cite le passage confronté').toContain(LDB_14_L81);
+    expect(labelSurLaPage(gc.source.book, gc.source.page, LDB_14_L81), 'passage absent du folio déclaré').not.toBeNull();
+    for (const voisin of [gc.source.page - 1, gc.source.page + 1])
+      expect(labelSurLaPage(gc.source.book, voisin, LDB_14_L81), `folio ${voisin} : l’instrument doit réfuter`).toBeNull();
   });
 
   it('les 5 entrées ADE II sont HORS de la voie verbatim (aucune `desc`) — couverture dite, pas supposée', () => {

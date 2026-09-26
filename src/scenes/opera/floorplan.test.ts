@@ -354,9 +354,11 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
 });
 
 /**
- * #1179, #1883 — le pourtour du PUITS : NADJ 08 l.133 (folio 41). Le folio 39 est le plan (image), sans
- * ligne de texte à l'extraction (l.22 folio 37 → l.51 folio 40). Le bord de balcon laisse VOIR la salle
- * et ne se franchit pas : chaque paire puits|plancher porte la structure `garde-corps`, et elle seule.
+ * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
+ * […] en atterrissant sur des malheureux assis dans les sièges en dessous » — un bord de balcon, qu'on
+ * passe par projection. Le folio 39 est le plan (image), sans ligne de texte à l'extraction (l.22 folio
+ * 37 → l.51 folio 40). Choix MAISON (#1883) : ce bord laisse VOIR la salle et ne se franchit pas à la
+ * marche — chaque paire puits|plancher porte la structure `garde-corps`, et elle seule.
  * Les refends de loge qui meurent sur ce bord ne sont pas des impasses (`auditWallDeadEndsInside`,
  * famille 11).
  */
@@ -420,6 +422,7 @@ describe('plan de l’Opéra — l’ovale de l’étage est fermé (#1179)', ()
   });
 
   it('COUVERTURE : chaque paire puits|plancher porte le `garde-corps`, et aucune autre arête', () => {
+    expect(paires.length, 'le puits borde bien du plancher de balcon').toBeGreaterThan(0);
     const nues: string[] = [];
     const autres: string[] = [];
     for (const p of paires) {
@@ -432,6 +435,7 @@ describe('plan de l’Opéra — l’ovale de l’étage est fermé (#1179)', ()
   });
 
   it('MARCHE : la rive se foule, le pas vers le vide est barré — sur le plan COMPILÉ comme sur la scène MEUBLÉE', () => {
+    expect(paires.length, 'le puits borde bien du plancher de balcon').toBeGreaterThan(0);
     for (const sc of [s, operaPlan.scene]) {
       const rive = [...new Set(paires.map((p) => `${p.nx},${p.ny}`))];
       const infoulables = rive.filter((k) => { const [x, y] = k.split(',').map(Number); return !isWalkable(sc, x, y, 1); });

@@ -414,7 +414,11 @@ export type Variant = {
 /**
  * CLAIRE-VOIE d'une apparence d'arête (`StructureAppearanceDef.claireVoie`,
  * `src/gameIso/catalog/structures/types.ts`) : barreaux, bornes basse et haute en fraction de hauteur,
- * traverses. Forme CIBLE du concept `claireVoie` du lexique (`scripts/docs/lib/structures-lexique.mts`).
+ * traverses — et l'HABILLAGE qui l'encadre quand elle tient lieu de mur : `plinthe` au pied,
+ * `mainCourante` au sommet. Ils vivent ICI et non à la racine de l'apparence : seule une claire-voie
+ * les porte, et le builder ne les lit que dans sa branche (`gameIso/builders/walls.ts`). OBLIGATOIRES :
+ * une graphie par apparence, aucun défaut qui les imposerait à la herse. Forme CIBLE du concept
+ * `claireVoie` du lexique (`scripts/docs/lib/structures-lexique.mts`).
  */
 export const claireVoieSchema = z.strictObject({
   bars: z.number(),
@@ -422,6 +426,8 @@ export const claireVoieSchema = z.strictObject({
   topFrac: z.number(),
   traverseFracs: z.array(z.number()),
   traverseColor: z.string(),
+  plinthe: z.boolean(),
+  mainCourante: z.boolean(),
 });
 
 /**

@@ -316,7 +316,9 @@
         0.4,
         0.78
       ],
-      "traverseColor": "#4a4d54"
+      "traverseColor": "#4a4d54",
+      "plinthe": false,
+      "mainCourante": false
     },
     "door": {
       "openingFrac": 1,
@@ -374,7 +376,9 @@
       "bottomFrac": 0.11,
       "topFrac": 0.86,
       "traverseFracs": [],
-      "traverseColor": "#7c6647"
+      "traverseColor": "#7c6647",
+      "plinthe": true,
+      "mainCourante": true
     }
   },
   {
@@ -390,7 +394,9 @@
       "traverseFracs": [
         0.5
       ],
-      "traverseColor": "#4a4d54"
+      "traverseColor": "#4a4d54",
+      "plinthe": false,
+      "mainCourante": false
     },
     "door": {
       "openingFrac": 0.85,

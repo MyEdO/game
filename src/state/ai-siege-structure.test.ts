@@ -7,6 +7,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { findStructureById } from '../data';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from './scene';
+import { losClear } from './lineOfSight';
 import type { GameState } from './store';
 
 /**
@@ -75,6 +76,37 @@ describe('SIÈGE-B — armes de siège ciblent les structures', () => {
     const gunner = mkGunner();
     const action = chooseEnemyAction({ ...input(gunner, []), structures: undefined });
     expect(action.kind).not.toBe('shoot'); // le seul héros est hors LdV (derrière le mur) → pas de tir
+  });
+});
+
+/**
+ * #1883 — l'IA et la résolution du tir (`resolveAttack`, `losTo`) jugent la MÊME case : la face de la
+ * structure à l'étage de SON arête. Porte à z=1 au-dessus d'un mur plein à z=0 qui coupe la vue au sol :
+ * la face d'étage se voit (tir inter-étages), la case de sol à ses pieds non.
+ */
+describe('SIÈGE-B — structure d’étage : l’IA vise la case que la résolution juge', () => {
+  const sceneEtage = (): Scene => {
+    const s = siegeScene();
+    const n = s.dimensions.w * s.dimensions.h;
+    s.layers = [...s.layers, { z: 1, tiles: new Array(n).fill('herbe'), height: new Array(n).fill(3) }];
+    s.walls = [{ x: 14, y: 38, side: 'N', z: 1, structure: GATE }, { x: 14, y: 20, side: 'N' }];
+    return s;
+  };
+  const gateZ1 = (): Combatant => {
+    const c = mkGate();
+    c.pos = { x: 14, y: 38, z: 1 };
+    c.structureEdge = { x: 14, y: 38, side: 'N', z: 1 };
+    return c;
+  };
+
+  it('la résolution voit la face d’étage ; l’IA tire donc la porte', () => {
+    const gunner = mkGunner();
+    const scene = sceneEtage();
+    const cible = structureAimCell(gunner.pos!, gateZ1());
+    expect(cible).toEqual({ x: 14, y: 37, z: 1 });
+    expect(losClear(scene, gunner.pos!, cible), 'la résolution voit la face d’étage').toBe(true);
+    expect(losClear(scene, gunner.pos!, { x: 14, y: 37 }), 'la case de sol est masquée — sinon le contrat ne distingue rien').toBe(false);
+    expect(chooseEnemyAction({ ...input(gunner, [gateZ1()]), scene })).toEqual({ kind: 'shoot', targetId: 'gate' });
   });
 });
 

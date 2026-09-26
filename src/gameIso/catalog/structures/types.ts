@@ -35,10 +35,14 @@ export interface StructureAppearanceDef {
     jamb?: string; jambCap?: string;
     leaf?: string; plank?: string; handle?: string;
   };
-  /** CLAIRE-VOIE (herse, balustres) : `bars` intervalles de barreaux sur l'arête, dressés de
+  /** CLAIRE-VOIE (herse, garde-corps) : `bars` intervalles de barreaux sur l'arête, dressés de
    *  `bottomFrac` à `topFrac` de `wallHeightM`, et des traverses aux fractions `traverseFracs` de cette
-   *  hauteur ajourée. Elle BOUCHE une ouverture fermée, ou remplace la face pleine d'un mur. */
-  claireVoie?: { bars: number; bottomFrac: number; topFrac: number; traverseFracs: number[]; traverseColor: string };
+   *  hauteur ajourée. Elle BOUCHE une ouverture fermée, ou remplace la face pleine d'un mur — encadrée
+   *  alors de sa `plinthe` et de sa `mainCourante` quand l'apparence les porte. */
+  claireVoie?: {
+    bars: number; bottomFrac: number; topFrac: number; traverseFracs: number[]; traverseColor: string;
+    plinthe: boolean; mainCourante: boolean;
+  };
   /** FENÊTRE (croisée décorative sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
    *  ÉMISSIF de la NUIT (halo chaud), `frame` = cadre/dormant, `mullion` = meneau + traverse (croisillon). */
   window?: { glass: string; lit: string; frame: string; mullion: string };
@@ -67,7 +71,7 @@ export const WALL_PARTS = [
   'vitre', 'meneau', // fenêtre AJOURÉE (vitre transparente + meneau/croisillon ; encadrée par la `face`)
   'parapet', 'bande', 'arase', 'merlon', // fortification crénelée
   'linteau', 'seuil', // corps de garde (linteau / seuil d'éboulis)
-  'barreau', 'traverse', // claire-voie (herse, balustres)
+  'barreau', 'traverse', // claire-voie (herse, garde-corps)
   'gravats', 'gravats-tas', // brèche (structure abattue)
 ] as const;
 

@@ -171,9 +171,9 @@ describe('structures.json — le schéma n’accepte qu’une graphie par état 
   const base = {
     id: 'x-banc', type: 'structures', label: 'X', kind: 'mur',
     char: { BE: 1, B: 1 }, traits: [], source: { book: 'aux-armes', page: 119 },
-    // `taille` est EXIGÉE de toute entrée (AA 10 l.98) et exige à son tour son `maison` : le banc
-    // d'opacité porte les deux pour n'éprouver QUE la graphie d'`occulte`.
-    taille: 'grande', maison: 'banc — Taille et raison hors sujet ici',
+    // `taille` (AA 10 l.98) et `soutientEtage` (AA 10 l.127) sont EXIGÉS de toute entrée et exigent à
+    // leur tour son `maison` : le banc d'opacité les porte pour n'éprouver QUE la graphie d'`occulte`.
+    taille: 'grande', soutientEtage: false, maison: 'banc — Taille, étage et raison hors sujet ici',
   };
   const { maison: _raison, ...sansMaison } = base;
   const parse = (e: unknown) => (schemaStructures as { safeParse: (v: unknown) => { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } } }).safeParse([e]);

@@ -130,7 +130,7 @@ const doc = document(
     door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail et poignée' },
     claireVoie: {
       label: 'Claire-voie',
-      hint: 'Barreaux ajourés (herse, balustres) : nombre, bornes basse et haute en fraction de hauteur, traverses',
+      hint: 'Barreaux ajourés (herse, garde-corps) : nombre, bornes basse et haute en fraction de hauteur, traverses ; plinthe et main courante quand elle tient lieu de mur',
     },
     window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
     relief: {

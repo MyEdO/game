@@ -616,7 +616,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // EXCEPTION (AA 10 l.138) : une pièce de siège peut n'avoir QUE la STRUCTURE en vue (défenseurs cachés
   // derrière le parapet) — elle a alors un vrai coup jouable (brécher la porte), on ne la fait pas errer.
   const shootableStructureInView = hasRanged && !reloadNeeded
-    && (input.structures ?? []).some((st) => st.pos && los.clear(pos, { ...structureAimCell(pos, st), z: pos.z }));
+    && (input.structures ?? []).some((st) => st.pos && los.clear(pos, structureAimCell(pos, st)));
   if (heroes.length === 0 && !shootableStructureInView) {
     const closest = [...input.heroes].filter((h) => h.pos).sort((a, b) => manhattan(pos, a.pos!) - manhattan(pos, b.pos!))[0];
     if (!closest) return forced({ kind: 'end' });
@@ -1074,7 +1074,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   for (const st of structureTargets) {
     // On vise la FACE exposée de la structure (côté tireur) : c'est par là que la LdV n'est pas coupée par
     // l'arête de la structure elle-même (un canon voit la face de la porte, pas la case derrière elle).
-    const stSeen = los.clear(pos, { ...structureAimCell(pos, st), z: pos.z });
+    const stSeen = los.clear(pos, structureAimCell(pos, st));
     // TIR (pièce de siège qui brèche la porte) — face visible, en portée, et que l'arme peut ABÎMER.
     if (canFireStruct && stSeen && !structureImmune(rangedW!, st)
         && (maxWeaponRange <= 0 || rangeBandModifier(fpDist(st), maxWeaponRange, mpt) != null)) {

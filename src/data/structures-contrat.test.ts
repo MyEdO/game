@@ -460,8 +460,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // entrées « Choc au bras » (AA 07 l.113, LDB 18 l.88) que le moteur portait au site d'appel.
       // Elle ne blanchit AUCUN étalement : la graphie naît avec le terme, et `minimum` ne nomme que
       // lui (`atLeast`, lui, est déjà le seuil d'un palier et d'une Condition — il n'entre pas au noyau).
-      // Cliquet REMONTÉ 40 → 41 (#1883) : `claireVoie | bars,bottomFrac,topFrac,traverseColor,traverseFracs`
-      // — la claire-voie d'arête (herse, balustres), portée par l'apparence, naît à sa
+      // Cliquet REMONTÉ 40 → 41 (#1883) : `claireVoie | bars,bottomFrac,mainCourante,plinthe,topFrac,traverseColor,traverseFracs`
+      // — la claire-voie d'arête (herse, garde-corps), portée par l'apparence, naît à sa
       // forme cible ; ses deux signatures HORS STRATE sortent du stock `horsStrateStock.mjs`.
       ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 41],
       // Cliquet DESCENDU 671 → 670 (#1467 L1b V-P7) : le statbloc à `size` d'`arene-projet.json` quitte

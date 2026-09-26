@@ -51,7 +51,9 @@ export const OPERA_BASE: Terrain = 'vide';
  *    des deux flancs de l'étage sont en bois (NADJ 08 folio 39 — plan (image) : aucun matériau n'y
  *    figure ; le bois est un choix d'authoring MAISON, révisable, comme les frontières `clip` de
  *    `ZONES_ETAGE`) ;
- *  - `g` pose la STRUCTURE `garde-corps` sur chaque arête rive|puits de l'étage (NADJ 08 l.133).
+ *  - `g` pose la STRUCTURE `garde-corps` sur chaque arête rive|puits de l'étage. NADJ 08 l.133 atteste
+ *    le balcon (« projeté par-dessus le balcon ») ; qu'il ne se franchisse pas à la marche est un choix
+ *    d'authoring MAISON (#1883), révisable.
  *  UNE table pour TOUS les lecteurs de ces deux grilles : aucun lecteur sans table — cf. `zonesFromSeeds`,
  *  `state/asciiMap.ts`. */
 export const OPERA_WALL_LEGEND = {

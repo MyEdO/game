@@ -1945,15 +1945,18 @@ export function applyStructureCriticalToTarget(
  *  → pas de clobber. No-op (réf inchangée pour la scène) si la cible n'a pas d'arête (structure hors scène). */
 export function collapseStructure(get: Get, set: SetFn, target: Combatant): void {
   const e = target.structureEdge;
+  // L'arête ET sa Structure (id posé sur `creatureId` au build) : `parapetTilesAbove` lit si elle porte l'étage.
+  const seg = e && { ...e, structure: target.creatureId };
   // QUI tombe et de QUELLE hauteur — LU AVANT la transaction, sur la scène et la file courantes : un
   // updater Zustand est une fonction PURE de l'état, il ne remplit pas un tableau au passage (il peut
   // être rejoué). Le 1d10 des Dégâts est un dé comme un autre et part à la porte APRÈS (#1508,
   // `ouvrirChute`) — la transaction ci-dessous ne fait que la brèche, le déplacement et le journal.
   const avant = get();
-  const tombants = !e || !avant.scene ? [] : parapetTilesAbove(avant.scene, e).flatMap((tl) => {
+  const tombants = !seg || !avant.scene ? [] : parapetTilesAbove(avant.scene, seg).flatMap((tl) => {
     const sc = avant.scene!;
-    // Hauteur de chute = vraie hauteur métrique (relief) de la passerelle (z=tl.z) au-dessus du sol (z=0).
-    const metres = Math.abs(heightAt(sc, tl.x, tl.y, tl.z) - heightAt(sc, tl.x, tl.y, 0));
+    // Hauteur de chute = vraie hauteur métrique (relief) de la passerelle (`tl.z`) au-dessus de l'étage de
+    // l'arête (`tl.z - 1`), où l'occupant retombe.
+    const metres = Math.abs(heightAt(sc, tl.x, tl.y, tl.z) - heightAt(sc, tl.x, tl.y, tl.z - 1));
     return (avant.battle?.combatants ?? [])
       .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === tl.z)
       .map((c) => ({ id: c.id, metres }));
@@ -1962,17 +1965,17 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
     const log = [...(s.battle?.log ?? []), ev('death', structureCollapseLog(target.label), target.id)];
     let combatants = s.battle?.combatants.filter((c) => c.id !== target.id) ?? [];
     let scene = s.scene;
-    if (e && scene) {
+    if (seg && scene) {
       // Brèche : pose le flag `structureDown` sur l'arête (le Combattant-structure inerte est déjà retiré).
-      scene = setStructureDown(scene, e.x, e.y, e.side, e.z ?? 0, true);
-      // Effondrement de la PASSERELLE (z=1) portée par la structure abattue : ses occupants CHUTENT au
-      // sol (dégâts de chute, LDB 15) et les tuiles deviennent infranchissables (`setTileCollapsed`).
-      for (const tl of parapetTilesAbove(scene, e)) {
+      scene = setStructureDown(scene, seg.x, seg.y, seg.side, seg.z ?? 0, true);
+      // Effondrement de la PASSERELLE (`seg.z + 1`) portée par la structure abattue : ses occupants CHUTENT
+      // à l'étage de l'arête (dégâts de chute, LDB 15) et les tuiles deviennent infranchissables (`setTileCollapsed`).
+      for (const tl of parapetTilesAbove(scene, seg)) {
         const sc = scene; // réf non-null capturée pour les closures (scene est un `let` réassigné plus bas)
         combatants = combatants.map((c) => {
           if (c.pos?.x !== tl.x || c.pos?.y !== tl.y || (c.pos?.z ?? 0) !== tl.z) return c;
           const fallen = { ...c, wounds: { ...c.wounds }, conditions: c.conditions.map((x) => ({ ...x })) };
-          placeCombatant(fallen, sc, { x: tl.x, y: tl.y }); // chute au sol (z=0, omis) + hauteur rafraîchie
+          placeCombatant(fallen, sc, { x: tl.x, y: tl.y, z: tl.z - 1 }); // chute à l'étage de l'arête + hauteur rafraîchie
           log.push(ev('damage', tr('cf.gangwayCollapse', { name: c.label }), c.id));
           return fallen;
         });
