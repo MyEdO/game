@@ -35,7 +35,7 @@ import type { PropEl, TokenEl } from '../builders/types';
 import { actorPoseKey, actorPoses, type ActorPose, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
 import { combatHighlightsView, type HighlightOpts } from './highlightLayer';
 import type { ChromeAt } from './boardPose';
-import { GameStage3D, type StageFrame, type StageWalkAnim } from './GameStage3D';
+import { GameStage3D, type PercageEntrees, type StageFrame, type StageWalkAnim } from './GameStage3D';
 
 /**
  * REGARD porté sur le monde, à l'échelle de l'hôte. Même union que celle de la caméra (`StageFrame`),
@@ -53,7 +53,7 @@ export type WorldFrame =
     }
   | { mode: 'pov'; partyPos: { x: number; y: number; z?: number }; facing: Dir8; indoor: boolean; cid: string | null };
 
-export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, tokenEls, propEls, walksRef, partyToken, gameTime, lightLevel, lights, battle, highlightOpts, dynMarks, halos, chromes }: {
+export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, tokenEls, propEls, walksRef, partyToken, gameTime, lightLevel, lights, battle, highlightOpts, dynMarks, halos, chromes, percage }: {
   scene: Scene;
   mpt: number;
   /** Le REGARD de cet hôte — et la seule chose qui distingue les deux vues (cf. `WorldFrame`). */
@@ -87,6 +87,9 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   /** CHROME des jetons déjà dérivé par l'hôte — cet écran n'en consomme que l'ALLURE (le reste se
    *  peint en overlay SVG, `stage/TokenChromeOverlay`). */
   chromes?: readonly TokenChromeMark[];
+  /** DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) — les entrées du verdict que l'hôte tient déjà pour son
+   *  dégagement (nappes projetées + capsules d'alliés). Cette couche ne les dérive pas : elle passe. */
+  percage?: PercageEntrees | null;
 }) {
   const facings = useGame((s) => s.facing); // orientation MONDE vivante par acteur (Dir8)
   const poses: ActorPose[] = actorPoses(tokenEls, facings);
@@ -135,5 +138,5 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   const frameCam: StageFrame = frame.mode === 'plateau'
     ? { mode: 'plateau', dims: frame.dims, cam: frame.cam, zoom: frame.zoom }
     : { mode: 'pov', partyPos: frame.partyPos, facing: frame.facing, indoor: frame.indoor, cid: frame.cid };
-  return <GameStage3D scene={scene} mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} />;
+  return <GameStage3D scene={scene} mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} />;
 }

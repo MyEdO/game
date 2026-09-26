@@ -91,14 +91,42 @@ export interface Percage {
   rayons(): number[];
   /** Nombre de verdicts RÉELLEMENT rejoués depuis la création : la mesure de la cadence. */
   verdictsJoues(): number;
+  /** La pompe demande-t-elle des frames en ce moment ? En lecture pour les bancs. */
+  pompeEnVol(): boolean;
+  /** Coupe la pompe : l'écran se démonte. */
+  arreter(): void;
 }
 
-export function creerPercage(): Percage {
+/**
+ * LA POMPE DE FRAMES. Le fondu suppose une horloge, et l'hôte volumique n'en a pas : son rendu est
+ * ÉVÉNEMENTIEL (il ne dessine qu'aux invalidations — rendu React, battement de marche, averse,
+ * flamme). Scène immobile, personne ne marche : le verdict s'ouvre, puis plus une seule frame ne
+ * vient, et le rayon reste où le dernier dessin l'a laissé (mesuré : 0,672 px, figé).
+ *
+ * Le pilote est le SEUL à savoir qu'il n'est pas convergé — c'est donc lui qui redemande la frame,
+ * par la fonction de dessin que l'hôte lui donne. UNE boucle, jamais deux : même patron que le lacet
+ * continu (`state/stageYaw.ts`), armée tant qu'un rayon court après sa cible et éteinte à l'instant
+ * où tous l'ont rejointe. Sans fonction de dessin (bancs du verdict, hors navigateur), rien ne bat.
+ */
+export function creerPercage(dessiner?: () => void): Percage {
   let cle: string | null = null;
   let verdicts = 0;
+  let enVol = false;
   const cibles = new Array<number>(PERCAGE_MAX_HEROS).fill(0);
   const rayons = new Array<number>(PERCAGE_MAX_HEROS).fill(0);
   const centres = Array.from({ length: PERCAGE_MAX_HEROS }, () => new THREE.Vector3());
+  const converge = (): boolean => rayons.every((r, i) => r === cibles[i]);
+  const battre = (): void => {
+    if (!enVol) return;
+    dessiner!();
+    if (!enVol) return; // le dessin a fait avancer le fondu jusqu'à sa cible : la pompe s'éteint ici
+    requestAnimationFrame(battre);
+  };
+  const armer = (): void => {
+    if (enVol || !dessiner || typeof requestAnimationFrame !== 'function') return;
+    enVol = true;
+    requestAnimationFrame(battre);
+  };
   return {
     majVerdict({ cle: nouvelle, lids, acteurs, camera, largeurPx, hauteurPx }) {
       if (nouvelle === cle) return false;
@@ -111,6 +139,7 @@ export function creerPercage(): Percage {
         cibles[i] = acteur && occlus[i] ? PERCAGE_RAYON_PX : 0;
         if (acteur) centres[i].copy(centrePercage(camera, acteur.monde, largeurPx, hauteurPx));
       }
+      if (!converge()) armer();
       return true;
     },
     avancer(dtMs) {
@@ -119,8 +148,12 @@ export function creerPercage(): Percage {
         rayons[i] = avancerRayon(rayons[i], cibles[i], dtMs);
         trous[i].set(centres[i].x, centres[i].y, centres[i].z, rayons[i]);
       }
+      if (converge()) enVol = false;
+      else armer();
     },
     rayons: () => [...rayons],
     verdictsJoues: () => verdicts,
+    pompeEnVol: () => enVol,
+    arreter() { enVol = false; },
   };
 }
