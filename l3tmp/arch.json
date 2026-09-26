@@ -1,0 +1,401 @@
+✓ scénario « La Diligence — exploration » lancé
+{
+ "sceneId": "la-diligence",
+ "dims": {
+  "w": 32,
+  "h": 38
+ },
+ "partyPos": {
+  "x": 17,
+  "y": 2
+ },
+ "arch": [
+  {
+   "id": "diligence",
+   "label": "La Diligence",
+   "style": "maison",
+   "storeys": [
+    {
+     "id": "diligence-z0",
+     "z": 0,
+     "parts": [],
+     "roomZoneIds": [
+      "zone-r-z0"
+     ]
+    },
+    {
+     "id": "diligence-z1",
+     "z": 1,
+     "parts": [],
+     "roomZoneIds": []
+    }
+   ],
+   "facades": [
+    {
+     "id": "facade-est-z0-1",
+     "z": 0,
+     "edges": [
+      {
+       "x": 7,
+       "y": 0,
+       "side": "E"
+      },
+      {
+       "x": 7,
+       "y": 1,
+       "side": "E"
+      },
+      {
+       "x": 7,
+       "y": 2,
+       "side": "E"
+      },
+      {
+       "x": 7,
+       "y": 3,
+       "side": "E"
+      }
+     ],
+     "appearance": "auberge-relais-imperiale",
+     "roomZoneIds": [
+      "zone-A-z0"
+     ]
+    },
+    {
+     "id": "facade-est-z0-2",
+     "z": 0,
+     "edges": [
+      {
+       "x": 14,
+       "y": 6,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 7,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 8,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 9,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 10,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 11,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 12,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 13,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 14,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 15,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 16,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 17,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 18,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 19,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 20,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 21,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 22,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 23,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 24,
+       "side": "E"
+      },
+      {
+       "x": 14,
+       "y": 25,
+       "side": "E"
+      }
+     ],
+     "appearance": "auberge-relais-imperiale",
+     "roomZoneIds": [
+      "zone-S-z0"
+     ],
+     "features": [
+      {
+       "id": "enseigne-principale",
+       "kind": "sign",
+       "edge": {
+        "x": 14,
+        "y": 10,
+        "side": "E"
+       },
+       "offset": 0.5,
+       "width": 0.45
+      },
+      {
+       "id": "fenetre-14-12-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 14,
+        "y": 12,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-14-16-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 14,
+        "y": 16,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-14-20-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 14,
+        "y": 20,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-14-24-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 14,
+        "y": 24,
+        "side": "E"
+       }
+      }
+     ]
+    },
+    {
+     "id": "facade-est-z0-3",
+     "z": 0,
+     "edges": [
+      {
+       "x": 20,
+       "y": 6,
+       "side": "E"
+      }
+     ],
+     "appearance": "auberge-relais-imperiale",
+     "roomZoneIds": [
+      "zone-17-0"
+     ],
+     "features": [
+      {
+       "id": "pignon-principal",
+       "kind": "gable",
+       "edge": {
+        "x": 20,
+        "y": 6,
+        "side": "E"
+       },
+       "width": 0.85
+      }
+     ]
+    },
+    {
+     "id": "facade-est-z0-4",
+     "z": 0,
+     "edges": [
+      {
+       "x": 22,
+       "y": 21,
+       "side": "E"
+      },
+      {
+       "x": 22,
+       "y": 22,
+       "side": "E"
+      }
+     ],
+     "appearance": "auberge-relais-imperiale",
+     "roomZoneIds": [
+      "zone-17-0"
+     ]
+    },
+    {
+     "id": "facade-est-z0-5",
+     "z": 0,
+     "edges": [
+      {
+       "x": 30,
+       "y": 7,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 8,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 9,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 10,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 11,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 12,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 13,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 14,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 15,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 16,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 17,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 18,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 19,
+       "side": "E"
+      },
+      {
+       "x": 30,
+       "y": 20,
+       "side": "E"
+      }
+     ],
+     "appearance": "auberge-relais-imperiale",
+     "roomZoneIds": [
+      "zone-17-0",
+      "zone-U-z0",
+      "zone-j-z0"
+     ],
+     "features": [
+      {
+       "id": "fenetre-30-9-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 30,
+        "y": 9,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-30-12-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 30,
+        "y": 12,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-30-15-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 30,
+        "y": 15,
+        "side": "E"
+       }
+      },
+      {
+       "id": "fenetre-30-19-e",
+       "kind": "window-band",
+       "edge": {
+        "x": 30,
+        "y": 19,
+        "side": "E"
+       }
+      }
+     ]
+    },
+    {
+     "id": "facade-est-z0-6",
+     "z": 0,
+     "edges": [
+      {
+       "x": 30,
+       "y": 24,
+       "side": "E"
+      },
+      {
+       "x": 30,
+    

@@ -282,6 +282,7 @@ export function IsoStage() {
     const actors = visualAllies.map((a) => ({
       capsule: actorCapsuleOf({ x: a.x, y: a.y, h: heightAt(scene, a.x, a.y, a.z) }, dims),
       z: a.z,
+      cell: { x: a.x, y: a.y },
     }));
     return lidCutaway(clearedSpace(scene, visualAllies, exploredSet), lids, actors);
   }, [scene, visualAllies, exploredSet, roofGeom, dims]);

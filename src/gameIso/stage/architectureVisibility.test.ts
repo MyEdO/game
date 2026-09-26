@@ -52,6 +52,7 @@ describe('lidCutaway — le couvercle qui cache un allié À L’ÉCRAN se lève
       vertical: [z, z + 1] as [number, number],
     },
     z,
+    cell: { x, y },
   });
   const vide = (): ClearedSpace => ({ zoneIds: new Set(), zoneCells: new Map(), roomlessCells: new Set(), overheadCells: new Set(), liftedSections: new Set(), seenSections: null });
 

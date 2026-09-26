@@ -100,11 +100,20 @@ export interface Lid {
 export function lidCutaway(
   cleared: ClearedSpace,
   lids: readonly Lid[],
-  actors: readonly { capsule: ActorCapsule; z: number }[],
+  actors: readonly { capsule: ActorCapsule; z: number; cell: { x: number; y: number } }[],
 ): ClearedSpace {
+  const sheltered = (actor: { z: number; cell: { x: number; y: number } }) => {
+    const key = spaceCellKey(actor.cell.x, actor.cell.y, actor.z);
+    if (cleared.roomlessCells.has(key)) return true;
+    for (const id of cleared.zoneIds) if (cleared.zoneCells.get(id)?.has(key)) return true;
+    for (const above of cleared.overheadCells)
+      if (above.startsWith(`${actor.cell.x},${actor.cell.y},`) && Number(above.split(',')[2]) > actor.z) return true;
+    return false;
+  };
+  const abrites = actors.filter(sheltered);
   const sections = new Map<string, number>(); // masse levée → niveau de l'allié le plus BAS qu'elle cache
   for (const lid of lids)
-    for (const actor of actors) {
+    for (const actor of abrites) {
       if (lid.z < actor.z || !occludesActor(lid.occluder, actor.capsule)) continue;
       sections.set(lid.sectionId, Math.min(sections.get(lid.sectionId) ?? actor.z, actor.z));
     }
