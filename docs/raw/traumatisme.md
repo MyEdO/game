@@ -258,7 +258,7 @@ Toute amputation nécessite une **Chirurgie** pour être traitée. La blessure n
 **Voir aussi** : [Chirurgie](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie) ; États → [etats.md](etats.md).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.233-285) → `faim`, `cumulSchema`, `isFumble`, `soif`, `dechirure-jambe-mineure`, `recovery`, `CritEntry`, `amputationWoundDesc`, `TraumaCumul`, `dechirure-jambe-majeure`, +62 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +13 fichiers
+- `LDB 18` (l.233-285) → `faim`, `cumulSchema`, `soif`, `dechirure-jambe-mineure`, `isFumble`, `recovery`, `CritEntry`, `amputationWoundDesc`, `TraumaCumul`, `dechirure-jambe-majeure`, +62 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +13 fichiers
 
 ---
 

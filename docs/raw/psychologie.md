@@ -448,7 +448,7 @@ Les créatures agressives de grande Taille inspirent automatiquement Peur ou Ter
 - `LDB 85 l.382-383` — règle Peur/Terreur par Taille
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.274, l.282, l.382-384) → `StatblockEditor`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `seuilsDeSauvegarde`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, `toucheSauvee`, `displaceSmaller`, +52 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +17 fichiers
+- `LDB 85` (l.274, l.282, l.382-384) → `StatblockEditor`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `seuilsDeSauvegarde`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, `toucheSauvee`, `displaceSmaller`, +53 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +18 fichiers
 
 ---
 

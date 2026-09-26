@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { QtyStepper } from './QtyStepper';
 
 /** Ce que la primitive MONTE autour du champ (#1318 E1). */
@@ -105,8 +105,8 @@ export function NumberField(props: NumberFieldProps) {
   const commis = useRef<number | null>(courant);
   // Resynchronisation sur une valeur EXTERNE nouvelle (l'hôte passe d'une fiche à une entrée neuve,
   // la même instance restant montée) : la valeur précédente est tenue en ÉTAT, jamais dans la seule
-  // réf — sous `StrictMode` le rendu est double, la réf mutée au premier passage faisait sauter la
-  // resynchronisation au second, et le brouillon gardait la valeur de la fiche d'avant.
+  // réf — sous `StrictMode` le rendu est double, et une réf mutée au premier passage fait sauter la
+  // resynchronisation au second (le brouillon garderait la valeur de la fiche d'avant).
   const [precedente, setPrecedente] = useState<number | null>(courant);
   if (commit === 'geste' && precedente !== courant) {
     setPrecedente(courant);
@@ -130,7 +130,13 @@ export function NumberField(props: NumberFieldProps) {
   };
   // La poignée est tenue au RENDU tant que le champ est monté : le clic sur le bouton d'action de
   // l'hôte peut suivre la frappe dans le même tick.
-  if (commit === 'geste' && commitRef) commitRef.current = poser;
+  const mienne = useRef<null | (() => boolean)>(null);
+  if (commit === 'geste' && commitRef) { commitRef.current = poser; mienne.current = poser; }
+  // … et RELÂCHÉE au démontage : la réf de l'hôte SURVIT au champ (une coquille de jet reste montée
+  // d'une étape à l'autre, `RollShell.hoistDieCommit`). Une poignée orpheline répond `true` à la garde
+  // `withPickedDie` et avale le clic du CTA suivant. On ne relâche que SA poignée : un autre champ
+  // monté sur la même réf l'a déjà reprise, et sa prise reste la bonne.
+  useEffect(() => () => { if (commitRef && commitRef.current === mienne.current) commitRef.current = null; }, [commitRef]);
 
   const saisie = (
     <input
@@ -161,8 +167,8 @@ export function NumberField(props: NumberFieldProps) {
         e.stopPropagation();
         poser();
       } : undefined}
-      // Le blur ne COMMET pas quand `commitOnBlur: false` — mais il n'EFFACE rien non plus : cliquer
-      // le bouton d'action blur d'abord, et un brouillon effacé à cet instant perdait la saisie.
+      // Le blur ne COMMET pas quand `commitOnBlur: false` — et il n'EFFACE rien non plus : cliquer le
+      // bouton d'action blur d'abord, un brouillon effacé à cet instant part avec la saisie.
       onBlur={commit === 'geste' && commitOnBlur ? poser : undefined}
     />
   );

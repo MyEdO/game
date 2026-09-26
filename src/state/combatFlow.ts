@@ -17,7 +17,6 @@ import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { scheduleCombatTimer } from './combatTimers';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
-import { d10 } from '../engine/dice';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull } from './seaVoyageFlow';
 import {
@@ -76,7 +75,7 @@ import {
   isStupid,
   flyMeters, runMultiplier,
   isSkittishMount, immuneToSpellDomain,
-  traitCapability,
+  traitCapability, formatWardSave,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -173,8 +172,9 @@ import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
-import { isFumble, rollOups, type OupsResolved } from '../engine/oups';
-import { rollArtillerySalveMisfire } from '../engine/artilleryMisfire';
+import { isFumble, rollOups, desDOups, desDeBrisDeLame, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
+import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
+import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
 import { effectiveWeaponDamage, effectiveWeaponRange, isThrownWeapon, damageWeapon, destroyWeapon, isImprovised, solideSaveThreshold, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
@@ -246,7 +246,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 
 // --- Effets de scène/campagne extraits → combatEffects.ts (baril) ---
 export * from './combatEffects';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, registerSuiteCombat, ouvrirChute, cloturer, registerCloture, revealPurpose } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, registerSuiteCombat, ouvrirChute, cloturer, registerCloture, revealPurpose, nePeutPasDifferer, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
 // --- Manœuvres de créature (énumération + résolveurs roll/apply) extraites → combatManeuvers.ts (baril) ---
 export * from './combatManeuvers';
@@ -271,10 +271,10 @@ import {
   setManeuverPostHitHook,
 } from './combatManeuvers';
 import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type Flow, type FlowTest, type EffectTrigger } from './flow';
-import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre } from './cascade';
+import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre, pushStep } from './cascade';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, EnchainementDuCoup, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile } from './pendings';
+import type { CascadeStepMeta, EnchainementDuCoup, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
@@ -2777,12 +2777,34 @@ export function applyAttackResult(
   if (isStructure(target) && target.wounds.current <= 0) collapseStructure(get, set, target);
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
-  resolveEnemyFumble(get, set, attacker, weapon, res); // Maladresse d'un ENNEMI attaquant → résolue instantanément
-  // Maladresse d'un ENNEMI défenseur (Test opposé, LDB 14 l.13) : sa Parade/Esquive ratée sur un double.
-  if (target.kind === 'enemy' && defenderFumbled(res, target.weapons[0], target) && !isOutOfAction(target) && target.weapons[0]) {
-    applyOups(get, set, target, target.weapons[0], rollOups(target.weapons[0], battleRng()));
-  }
+  // LA QUEUE du coup (#1508 T3b-4) : les deux Maladresses d'après-coup, puis ce que l'appelant fera.
+  // L'une comme l'autre peut envoyer une casse d'arme à la porte (Sauvegarde Solide, table de Salve) :
+  // ce qui RESTE de la queue voyage alors sur l'étape et la reprise le joue — jamais devant le dé.
+  const queue: QueueDuCoup = { attackerId: attacker.id, targetId: target.id, res, oupsDefenseur: true, ...(suite ? { suite } : {}) };
+  if (resolveEnemyFumble(get, set, attacker, weapon, res, queue) === OPS_DIFFEREES) return true;
+  if (oupsDuDefenseur(get, set, target, queue) === OPS_DIFFEREES) return true;
   return false; // non suspendu : application complète terminée
+}
+
+/** Maladresse d'un ENNEMI DÉFENSEUR (Test opposé, LDB 14 l.13) : sa Parade/Esquive ratée sur un double.
+ *  ÉCRITURE UNIQUE, jouée par le site du coup OU par la reprise d'un dé de casse (la charge dit si elle
+ *  reste à jouer, `QueueDuCoup.oupsDefenseur`) — jamais deux fois, jamais devant un dé en vol. */
+function oupsDuDefenseur(get: Get, set: SetFn, target: Combatant, q: QueueDuCoup): Applique {
+  const arme = target.weapons[0];
+  if (!q.oupsDefenseur || target.kind !== 'enemy' || !arme || isOutOfAction(target) || !defenderFumbled(q.res, arme, target)) return undefined;
+  return applyOups(get, set, target, arme, rollOups(arme, battleRng()), new Map(), { ...q, oupsDefenseur: false });
+}
+
+/** REPREND la queue d'un coup dont une casse d'arme était partie à la porte : la Maladresse du
+ *  défenseur si elle restait, puis la SUITE déclarée par l'appelant (`jouerLaSuiteDuCoup`, écriture
+ *  unique) — que le site d'origine avait sautée en rendant « suspendu ». */
+function reprendreLaQueueDuCoup(get: Get, set: SetFn, q: QueueDuCoup): void {
+  const battle = get().battle;
+  const attacker = inBattleId(battle, q.attackerId);
+  const target = inBattleId(battle, q.targetId);
+  if (!attacker || !target) return;
+  if (oupsDuDefenseur(get, set, target, q) === OPS_DIFFEREES) return;
+  if (q.suite) jouerLaSuiteDuCoup(get, set, attacker, target, q.res, q.suite);
 }
 
 /**
@@ -2916,17 +2938,32 @@ export function runPreemptShots(get: Get, set: SetFn): void {
   if (changed) { set({ battle: { ...get().battle! } }); bus.emit(EVT.SCENE_DIRTY); }
 }
 
+/** CE QUE L'USURE A FAIT DE L'ARME (patron `IssueDeTouche`) : `intacte` (Incassable), `sauvee` (la
+ *  Sauvegarde Solide a tenu, LDB 60 l.30-32), `brisee` (inutilisable) ou `usee` (1 Dégât d'arme).
+ *  Le site qui JOURNALISE la casse lit cette issue — il ne la re-déduit pas de l'état de l'arme. */
+type IssueDUsure = 'intacte' | 'sauvee' | 'brisee' | 'usee';
+
 /** Use/détruit l'arme sur l'ItemInstance SOURCE (héros → persiste, `recomputeLoadout` re-dérive),
- *  sinon sur le Weapon actif (ennemi/figurant, transient). Respecte Incassable (LDB 62 l.262). */
-function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean): void {
+ *  sinon sur le Weapon actif (ennemi/figurant, transient). Respecte Incassable (LDB 62 l.262).
+ *
+ *  `deSolide` = le 1d10 de la Sauvegarde Solide, TOMBÉ À LA PORTE (#1508 T3b-4) : cette écriture ne
+ *  jette plus rien, elle DÉCIDE avec le dé reçu (LDB 60 l.30-32). Une arme Solide dont la destruction
+ *  est demandée SANS dé est une grappe mal servie : le refus est nommé, jamais une casse en silence. */
+function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSolide?: number): IssueDUsure {
   // L'ItemInstance source de l'arme tenue : match par `uid` (posé par recomputeLoadout sur le Weapon dérivé).
   // Mains nues / Crochet n'ont pas d'uid → pas d'item source (usure transient via le `else` ci-dessous).
   const it = weapon.uid ? (c.items ?? []).find((i) => i.uid === weapon.uid) : undefined;
-  if (isUnbreakable(it ?? weapon)) return; // Incassable : ni dégât ni destruction (LDB 62 l.262)
+  if (isUnbreakable(it ?? weapon)) return 'intacte'; // Incassable : ni dégât ni destruction (LDB 62 l.262)
   // Sauvegarde Solide(N) contre une cassure instantanée : 1d10 ≥ seuil → l'arme résiste (LDB 60 l.30-32).
   if (destroy) {
     const thr = solideSaveThreshold(weapon);
-    if (thr != null && d10(battleRng()) >= thr) return;
+    if (thr != null) {
+      if (deSolide == null) {
+        throw new Error(`#1508 — « ${weapon.label} » est Solide (${thr}+) et sa destruction est demandée sans le dé de Sauvegarde `
+          + '(engine/oups.desDOups) : la sauvegarde se joue à la porte, elle ne se saute pas.');
+      }
+      if (deSolide >= thr) return 'sauvee';
+    }
   }
   if (it) {
     if (destroy) {
@@ -2937,22 +2974,71 @@ function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean): void 
       it.damageTaken = (it.damageTaken ?? 0) + 1;
     }
     recomputeLoadout(c); // re-dérive c.weapons depuis l'item usé (persiste via carryOverState items)
-  } else if (destroy) {
-    destroyWeapon(weapon);
-  } else {
-    damageWeapon(weapon);
+    return it.destroyed ? 'brisee' : 'usee';
   }
+  if (destroy) {
+    destroyWeapon(weapon);
+    return 'brisee';
+  }
+  damageWeapon(weapon);
+  return 'usee';
+}
+
+/**
+ * OUVRE à la porte UN dé de la grappe d'une CASSE D'ARME (#1508 T3b-4) — FABRIQUE UNIQUE des deux
+ * lectures : SEUIL (Sauvegarde Solide, `LDB 60 l.30` : la rangée montre « ≥ Solide (9+) » AVANT le
+ * lancer) et TABLE (Incidents de Tir par Salve, `AA 10 l.270-277` : la LIGNE tirée est montrée, comme
+ * une Blessure critique). UN dé à la fois — le suivant dépend de ce que celui-ci pose.
+ *
+ * AUCUNE gate de possession : l'étape est poussée pour TOUT porteur, et c'est le socle qui décide de
+ * la fenêtre (`cascade.tirageSansSiege` — un porteur qu'aucun siège ne tient voit son dé roulé d'office).
+ */
+function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse, casse: PendingCasseDArme): void {
+  const id = `casse-${porteur.id}-${demande.cle}`;
+  const commun = { kind: 'casseDArme', label: demande.libelle, actorId: porteur.id, casse };
+  const lecture = demande.lecture;
+  if (lecture.kind === 'table') {
+    // MÊME séquence d'accueil que le dé en seuil (`pushDie` ci-dessous) : la grappe ne se scinde pas
+    // en deux fenêtres — d'où l'append direct plutôt que `pushTable` (qui vise la séquence 'combat').
+    pushStep(set, (index) => tableStep({
+      ...commun, id: `${id}-${index}`, icon: 'item/weapon',
+      table: { tableId: lecture.tableId, spec: demande.spec },
+      stake: combatStakeRef('artillerySalveMisfire'),
+    }), revealPurpose('sequence', false));
+    return;
+  }
+  pushDie(set, {
+    ...commun,
+    id,
+    icon: 'item/weapon',
+    spec: demande.spec,
+    seuil: { indice: lecture.indice, source: lecture.source, dome: false },
+  }, revealPurpose('sequence', false));
 }
 
 /**
  * Applique l'effet du Tableau des Oups ! au combattant `c` (mute + journalise). LDB 14 l.21-30.
  * Le chiffre des unités du jet sert de DR pour les touches (l.30).
+ *
+ * POINT D'APPLICATION (#1508 T3b-4) : tant qu'un dé de sa grappe reste à jeter (`engine/oups.desDOups`
+ * — Sauvegarde Solide de l'arme, table des Incidents par Salve), RIEN n'est appliqué : l'étape s'ouvre
+ * avec sa charge de reprise et la fonction rend `OPS_DIFFEREES`. Ses appelants CONSOMMENT ce retour.
+ * `des` = les dés DÉJÀ TOMBÉS de la grappe, par clé ; `coup` = la queue du coup qui l'a déclenchée,
+ * emportée par la charge pour être jouée à la reprise (le site appelant l'a rendue suspendue).
  */
-export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved): void {
+export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number> = new Map(), coup?: QueueDuCoup): Applique {
+  const reste = desDOups(c, weapon, r, des).filter((d) => !des.has(d.cle));
+  if (reste.length) {
+    ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
+    return OPS_DIFFEREES;
+  }
   const battle = get().battle!;
   const log: string[] = [tr('cf.oups', { name: c.label, effet: r.label })];
   // Bâclé : l'arme casse sur toute Maladresse (Test raté + double, LDB 60 l.50) — sauvegarde Solide possible.
-  if (hasQuality(weapon, 'bacle')) wearActiveWeapon(c, weapon, true);
+  // L'arme BRISÉE disparaît des mains du porteur : le journal le dit, sans quoi elle s'évapore en silence.
+  if (hasQuality(weapon, 'bacle') && wearActiveWeapon(c, weapon, true, des.get('bacle-solide')) === 'brisee') {
+    log.push(tr('store.toolBroken', { tool: weapon.label, name: c.label }));
+  }
   const sb = bonus(effectiveChar(c, 'force'));
   const units = r.roll % 10;
   switch (r.kind) {
@@ -2999,7 +3085,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1
       c.wounds.current = Math.max(0, c.wounds.current - lost);
       if (c.wounds.current <= 0) applyZeroWounds(c);
-      wearActiveWeapon(c, weapon, true); // arme détruite, persistée sur l'ItemInstance source
+      wearActiveWeapon(c, weapon, true, des.get('misfire-solide')); // arme détruite, persistée sur l'ItemInstance source
       log.push(tr('cf.fumbleMisfire', { lost }));
       // Arme d'équipe (MDG 12 l.464) : « Si une arme dotée du Défaut Arme d'équipe subit un Incident de
       // tir, tous les membres de son équipage sont affectés. » → CHAQUE servant APTE du poste (hors le
@@ -3022,9 +3108,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       // puis faites un jet dans le tableau suivant. ») — DISTINCT de l'Incident de tir GÉNÉRIQUE d'Arme
       // d'équipe (MDG 12 l.464) déjà résolu ci-dessus.
       if (hasQuality(weapon, 'salve')) {
-        const salve = rollArtillerySalveMisfire(loadRegister(c, weapon).chambered ?? 0, battleRng());
+        const salve = lireSalveMisfire(des.get('salve-table')!, loadRegister(c, weapon).chambered ?? 0);
         log.push(tr('cf.artillerySalveIncident', { entry: salve.label }));
-        if (salve.destroyed) wearActiveWeapon(c, weapon, true); // pièce détruite (idempotent si déjà cassée)
+        if (salve.destroyed) wearActiveWeapon(c, weapon, true, des.get('salve-solide')); // pièce détruite (idempotent si déjà cassée)
         const salveCrew = [c, ...(hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste
           ? exposedCrew((c.mannedPoste.crewIds ?? [])
               .filter((id) => id !== c.id)
@@ -3048,12 +3134,93 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'info', c.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
+  return undefined;
 }
 
-/** Maladresse d'un attaquant PILOTÉ PAR L'IA : résolue instantanément (IA abstraite). No-op si piloté humain/pas de fumble. */
-export function resolveEnemyFumble(get: Get, set: SetFn, enemy: Combatant, weapon: Weapon, res: AttackResult): void {
-  if (!aiDriven(get(), enemy) || !attackerFumbled(res, weapon, enemy)) return;
-  applyOups(get, set, enemy, weapon, rollOups(weapon, battleRng()));
+/** La TABLE des Incidents de Tir d'Artillerie par Salve au registre des étapes (AA 10 l.270-277) :
+ *  MÊME donnée que le résolveur du moteur (`ARTILLERY_MISFIRE`), lue une fois par la fenêtre (la ligne
+ *  tirée) et une fois par l'application (`lireSalveMisfire`) — aucune transcription. */
+registerTableStep(TABLE_SALVE_MISFIRE, {
+  label: tr('step.salveMisfire'),
+  die: D10_SALVE_MISFIRE.sides,
+  rows: ARTILLERY_MISFIRE,
+  lines: (roll) => [findTableEntry(ARTILLERY_MISFIRE, roll).label],
+  entryCategory: 'artilleryMisfire',
+});
+
+/** L'ARME dont CETTE grappe joue la casse — son libellé nomme la ligne du dé (« l'épée tient le
+ *  choc »), quel que soit le point d'application qui reprendra. */
+function armeDeLaCasse(get: Get, casse: PendingCasseDArme): string {
+  const reprise = casse.reprise;
+  if (reprise.mode === 'oups') return reprise.weapon.label;
+  const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+  return porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid)?.label ?? '';
+}
+
+/** LES DEMANDES de la grappe, avec les dés déjà tombés — LECTURE UNIQUE par mode de reprise : c'est
+ *  elle qui dit quelle demande CETTE étape sert (la première non servie, comme à l'ouverture). */
+function demandesDeLaCasse(get: Get, casse: PendingCasseDArme, des: Map<string, number>): DemandeDeCasse[] {
+  const reprise = casse.reprise;
+  if (reprise.mode === 'bladeTrap') {
+    const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+    const lame = porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
+    return porteur && lame ? desDeBrisDeLame(porteur, lame) : [];
+  }
+  const c = inBattleId(get().battle, reprise.actorId);
+  return c ? desDOups(c, reprise.weapon, reprise.r, des) : [];
+}
+
+/**
+ * APPLIER d'une étape de la grappe de CASSE D'ARME (#1508 T3b-4) : le dé est tombé (lancé ou POSÉ),
+ * qu'il soit lu en SEUIL (Sauvegarde Solide) ou en TABLE (Incidents par Salve). Le dé rejoint les dés
+ * de la grappe et le point d'application est RE-JOUÉ avec eux — c'est lui qui ouvre le dé suivant s'il
+ * en reste un (patron de l'applier `opsDe`), ou qui applique enfin la Maladresse / le Piège-lame.
+ *
+ * Un dé LU EN SEUIL s'écrit, qu'il sauve ou non, à la graphie unique du seuil (`formatWardSave`) :
+ * sans cette ligne, l'arme casserait sous sa propre protection sans que rien ne l'explique.
+ */
+registerCascadeApplier('casseDArme', (get, set, step, porteur) => {
+  const casse = step.casse;
+  if (!casse) return;
+  const de = step.de?.result;
+  const tirage = de?.total ?? step.table?.result?.die;
+  if (tirage == null) return; // aucun résultat sur l'étape : elle est ouverte, le goulot repassera
+  // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `sauvegarde`/`opsDe`).
+  if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+  const des = new Map(casse.des);
+  const lignes: string[] = [];
+  const seuil = step.de?.seuil;
+  if (de && seuil) {
+    lignes.push(tr(de.total >= seuil.indice ? 'cf.solideResists' : 'cf.solideBreaks', {
+      weapon: armeDeLaCasse(get, casse), roll: de.total, trait: formatWardSave(seuil.source, seuil.indice),
+    }));
+  }
+  const demande = demandesDeLaCasse(get, casse, des).filter((d) => !des.has(d.cle))[0];
+  if (!demande) return { consequences: freeCons(lignes) }; // la grappe a changé sous le dé : rien n'est appliqué au hasard
+  des.set(demande.cle, tirage);
+  if (casse.reprise.mode === 'bladeTrap') {
+    const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
+    if (!defenseur) return { consequences: freeCons([...lignes, tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+    // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
+    // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
+    nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
+    return { consequences: freeCons(lignes) };
+  }
+  const c = inBattleId(get().battle, casse.reprise.actorId);
+  if (!c) return { consequences: freeCons([...lignes, tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+  const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
+  // La Maladresse appliquée, la QUEUE du coup reprend là où le dé l'avait suspendue.
+  if (issue !== OPS_DIFFEREES && casse.reprise.coup) reprendreLaQueueDuCoup(get, set, casse.reprise.coup);
+  return { consequences: freeCons(lignes) };
+});
+
+/** Maladresse d'un attaquant PILOTÉ PAR L'IA. No-op si piloté humain/pas de fumble. Rend `Applique` :
+ *  la casse de son arme peut partir à la porte comme celle de n'importe qui — AUCUNE branche « IA »
+ *  ici, c'est la surface du PORTEUR qui décide si son dé s'affiche ou se roule au socle
+ *  (`rollSeam.surfaceOf` via `cascade.tirageSansSiege`). */
+export function resolveEnemyFumble(get: Get, set: SetFn, enemy: Combatant, weapon: Weapon, res: AttackResult, coup?: QueueDuCoup): Applique {
+  if (!aiDriven(get(), enemy) || !attackerFumbled(res, weapon, enemy)) return undefined;
+  return applyOups(get, set, enemy, weapon, rollOups(weapon, battleRng()), new Map(), coup);
 }
 
 /**
@@ -6753,18 +6920,25 @@ function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): b
  * `bladeTrapResult`, applier muet) — MÊME paradigme que le Coup Critique (une étape visible « l'un sous
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
  * jet résolu (la marge nette se recompose avec `bt`). */
-export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number): void {
+export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): Applique {
   const battle = get().battle;
-  if (!battle) return;
+  if (!battle) return undefined;
   const attacker = inBattleId(battle, bt.attackerId);
-  if (!attacker || isOutOfAction(attacker)) return;
+  if (!attacker || isOutOfAction(attacker)) return undefined;
   const drop = attacker.weapons.find((w) => w.uid === bt.weaponUid);
-  if (!drop) return;
+  if (!drop) return undefined;
   const netSL = defenderSL + bt.defSL - bt.attackerSL; // marge nette du défenseur vainqueur (LDB 62 l.280)
   let line: string;
   if (netSL >= 6) {
     // Succès Stupéfiant : la lame est BRISÉE, à moins qu'elle ne possède l'Atout Incassable (l.280).
-    wearActiveWeapon(attacker, drop, true);
+    // Sa Sauvegarde Solide (LDB 60 l.30) est un dé COMME UN AUTRE : il part à la porte AVANT toute
+    // mutation, et la reprise ré-entre ici avec lui. Le DÉSARMEMENT, lui, ne dépend pas de ce dé.
+    const reste = desDeBrisDeLame(attacker, drop).filter((d) => !des.has(d.cle));
+    if (reste.length) {
+      ouvrirDeDeCasse(set, attacker, reste[0], { des: [...des], reprise: { mode: 'bladeTrap', defenderId: defender.id, bt, defenderSL } });
+      return OPS_DIFFEREES;
+    }
+    wearActiveWeapon(attacker, drop, true, des.get('bladetrap-solide'));
     line = drop.destroyed
       ? tr('cf.bladeBroken', { name: attacker.label, weapon: drop.label })
       : tr('cf.bladeResists', { weapon: drop.label, name: attacker.label });
@@ -6778,7 +6952,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
     pushDisplay(set, { id: `cons-bladetrap-result-${defender.id}`, kind: 'bladeTrapResult', actorId: defender.id, icon: 'action/defend', label: tr('cf.bladeTrapLabel'), outcome: toRecapLines([tr('cf.lockedGauntletHold', { name: attacker.label, weapon: drop.label })]) });
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
-    return;
+    return undefined;
   }
   attacker.weapons = attacker.weapons.filter((w) => w !== drop);
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
@@ -6786,6 +6960,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   pushDisplay(set, { id: `cons-bladetrap-result-${defender.id}`, kind: 'bladeTrapResult', actorId: defender.id, icon: 'item/weapon', label: tr('cf.bladeTrapLabel'), outcome: toRecapLines([line]) });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
+  return undefined;
 }
 
 /** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)

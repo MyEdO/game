@@ -412,7 +412,7 @@ export function humanizeOp(o: GameOp): string {
     case 'castWard': return `impose −20 aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
     case 'suffocate': return `est soumis aux règles de la Suffocation`;
     case 'arrowWard': return "détruit les projectiles organiques qui entrent dans la Zone d'Effet";
-    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave(o.traitId, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;
+    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave({ kind: 'trait', id: o.traitId }, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;
     case 'attackWardFM': return `ne peut être attaqué qu'après un Test de Force Mentale réussi`;
     case 'martyr': return `reçoit à leur place les Dégâts subis par ses protégés`;
     case 'noBreath': return `n'a plus besoin de respirer`;

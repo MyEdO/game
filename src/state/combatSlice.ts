@@ -38,7 +38,7 @@ import { ev, evLines } from './combatLog';
 import { viewYawDeg } from './stageYaw';
 import { chargeArmee, courseArmee } from './localIntent';
 import { refuserGeste } from './refusVisible';
-import { nePeutPasDifferer } from './combatEffects';
+import { nePeutPasDifferer, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
 import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, type DefenseMode } from '../engine/combat';
@@ -2665,7 +2665,16 @@ export function createCombatSlice(get: Get, set: Set) {
       const step = pc?.participants[pc.cursor];
       if (!battle || !pc || step?.jet !== 'fumble' || !step.fumble?.result) return;
       const c = inBattleId(battle, step.actorId);
-      if (c) applyOups(get, set, c, step.fumble.weapon, step.fumble.result);
+      // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
+      // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
+      // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
+      const differee = c && applyOups(get, set, c, step.fumble.weapon, step.fumble.result) === OPS_DIFFEREES;
+      const suite = get().pendingCascade;
+      // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
+      // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
+      if (differee && (!suite || suite.cursor + 1 >= suite.participants.length)) {
+        throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
+      }
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
       get().cascadeNext();
     },

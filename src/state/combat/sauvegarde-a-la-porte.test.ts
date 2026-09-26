@@ -118,7 +118,7 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
     expect(st.kind).toBe('sauvegarde');
     expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
     expect(st.de?.spec, 'un 1d10, celui du RAW').toEqual({ n: 1, sides: 10 });
-    expect(st.de?.seuil, 'l’étape PORTE son seuil — la fenêtre peut le montrer').toEqual({ indice: 6, traitId: 'protection', dome: true });
+    expect(st.de?.seuil, 'l’étape PORTE son seuil — la fenêtre peut le montrer').toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
     expect(st.actorId, 'le porteur du dé est la cible').toBe(cible.id);
     expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
     expect((useGame.getState().pendingCascade?.participants ?? []).some((s) => s.kind === 'deviation'), 'aucune fenêtre de Critique avant la sauvegarde').toBe(false);
@@ -181,7 +181,7 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(st.actorId, 'le dé appartient au démon').toBe(demon.id);
-    expect(st.de?.seuil).toEqual({ indice: 8, traitId: 'demoniaque', dome: false });
+    expect(st.de?.seuil).toEqual({ indice: 8, source: { kind: 'trait', id: 'demoniaque' }, dome: false });
     expect(demon.wounds.current, 'rien n’est appliqué avant son dé').toBe(30);
     poser(8);
     expect(demon.wounds.current, '1d10 ≥ 8 : le coup est ignoré (LDB 85 l.98)').toBe(30);
@@ -203,7 +203,7 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     applyCast(useGame.getState, useGame.setState, mage, cible, spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
     const st = etapeCourante()!;
     expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');
-    expect(st.de?.seuil).toEqual({ indice: 6, traitId: 'protection', dome: true });
+    expect(st.de?.seuil).toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
     expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
     poser(6);
     expect(cible.wounds.current, 'le Dôme a sauvé : le Projectile est ignoré').toBe(30);

@@ -104,7 +104,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `night-stakes.json` | Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStake` (`src/state/restFlow.ts`) (15 entrée(s)) | `nightStakes` — dataset `nightStakes` |
 | `voyage-stakes.json` | Enjeu par `kind` d'étape de cascade de VOYAGE (#1117) — GABARIT de descripteur mécanique dont les trous `{nom}` reçoivent les valeurs calculées du flux, lu par `voyageStake` (`src/data/index.ts`) (42 entrée(s)) | `voyageStakes` — aucune (exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier) |
 | `flow-stakes.json` | Enjeu d'un JET DE MODALE MONO (#1117), keyé par l'id de jet `{flow, phase}` — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`) (34 entrée(s)) | `flowStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `flowStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) |
-| `combat-stakes.json` | Enjeu d'une étape de cascade de COMBAT (#1117), keyé par le `kind` de son applier — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `combatStakeRef`/`resolveStake` (`src/data/index.ts`) (37 entrée(s)) | `combatStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) |
+| `combat-stakes.json` | Enjeu d'une étape de cascade de COMBAT (#1117), keyé par le `kind` de son applier — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `combatStakeRef`/`resolveStake` (`src/data/index.ts`) (38 entrée(s)) | `combatStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) |
 
 ### Objets & équipement
 | Fichier | Contient | Exposition (Codex — édition) |
@@ -493,4 +493,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 1ad26afdc08132c86fdf6bcfe08df97324366f32 (362 fichiers, 2 dossiers) corps: 3355c43081183a18aa15793ad0989e5bd82a75e1 -->
+<!-- sources-empreinte: 443a3715e953a12858446d4729e5c32348f49915 (362 fichiers, 2 dossiers) corps: a4bfb4210357a3e54360bcdfecffd4ca88b7205b -->

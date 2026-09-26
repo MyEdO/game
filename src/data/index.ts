@@ -33,6 +33,7 @@ import mutationTablesJson from './mutationTables.json';
 import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
 import structureCriticalsRawJson from './structure-criticals.json';
+import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
 import trappingsJson from './trappings.json';
 import vehiclesJson from './vehicles.json';
@@ -462,6 +463,8 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
+  // Incidents de Tir par Salve (AA 10 l.270-277) : la LIGNE tirée est l'entrée jouée, comme un Critique.
+  artilleryMisfire: (id) => artilleryMisfireRows.some((e) => e.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
@@ -484,6 +487,7 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
 /** Rangées BRUTES des tables tirées par une étape, réduites à leur id — le résolveur d'enjeu n'a
  *  besoin que du pool d'ids, et les lit sur le MÊME JSON que le Codex édite. */
 const structureCriticalRows = (structureCriticalsRawJson as { entries: { id: string }[] }).entries;
+const artilleryMisfireRows = (artilleryMisfireRawJson as { entries: { id: string }[] }).entries;
 
 /** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
  *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)

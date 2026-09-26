@@ -634,7 +634,7 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 Bypass des PA en métal **et** bonus de dégâts égal aux PA bypassés (Métal = arme qui inflige les PA qu'elle pénètre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.398) → `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, `arme-enchantee`, `castContextMods`, `creuset-de-chamon` — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
+- `LDB 48` (l.398) → `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, `arme-enchantee`, `creuset-de-chamon`, `castContextMods` — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
 
 ---
 
@@ -647,7 +647,7 @@ Bypass des PA en métal **et** bonus de dégâts égal aux PA bypassés (Métal 
 Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par sort, mais une cible ne peut accumuler qu'un seul état `Exténué` issu de cet Attribut à la fois).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.497) → `Combatant`, `castContextMods`, `ecaille-d-acier`, `forge-de-chamon`, `l-or-des-fous`, `metal-changeant`, `plume-de-plomb`, `transmutation-de-chamon`, `caresse-de-laniph`, `dernieres-paroles`, +6 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/types.ts`, `src/state/combatFlow.ts`
+- `LDB 48` (l.497) → `Combatant`, `ecaille-d-acier`, `forge-de-chamon`, `castContextMods`, `l-or-des-fous`, `metal-changeant`, `plume-de-plomb`, `transmutation-de-chamon`, `caresse-de-laniph`, `dernieres-paroles`, +6 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/types.ts`, `src/state/combatFlow.ts`
 
 ---
 

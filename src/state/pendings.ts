@@ -949,6 +949,43 @@ export interface PendingWardSave {
   suite: SauvegardeSuite;
 }
 
+/** CE QUI RESTE À JOUER APRÈS un coup dont une Maladresse est partie à la porte (#1508 T3b-4) : la
+ *  Maladresse du DÉFENSEUR ennemi quand elle reste à jouer (elle suit celle de
+ *  l'attaquant), puis la SUITE du coup — l'appelant d'`applyAttackResult` l'a sautée (le site lui a
+ *  rendu « suspendu »), c'est donc la reprise qui la joue, UNE fois. JSON-sérialisable. */
+export interface QueueDuCoup {
+  attackerId: string;
+  targetId: string;
+  res: AttackResult;
+  oupsDefenseur: boolean;
+  suite?: SuiteDeCoup;
+}
+
+/** CE QUE LE DÉ D'UNE CASSE D'ARME RE-JOUE (#1508 T3b-4) — union par SITE DE REPRISE, patron
+ *  `SauvegardeSuite` : chaque membre nomme le point d'application qui ré-entre avec le dé tombé, et
+ *  porte ce que la reprise ne saurait pas rebâtir. JSON-sérialisable : elle voyage sur l'étape. */
+export type RepriseDeCasse =
+  | {
+    mode: 'oups';
+    actorId: string;
+    weapon: Weapon;
+    r: OupsResolved;
+    /** La queue du coup dont cette Maladresse est la dernière conséquence. Absente quand la
+     *  Maladresse ne vient pas d'un coup en cours (fenêtre de Maladresse du héros). */
+    coup?: QueueDuCoup;
+  }
+  | { mode: 'bladeTrap'; defenderId: string; bt: BladeTrapFreeze; defenderSL: number };
+
+/** CHARGE d'une étape de la GRAPPE de dés d'une CASSE D'ARME (#1508 T3b-4) — Sauvegarde Solide
+ *  (`LDB 60 l.30`) et table des Incidents par Salve (`AA 10 l.270-277`) : les dés DÉJÀ TOMBÉS de la
+ *  grappe, par clé (`engine/oups.desDOups`), et le point d'application qui les consommera. La
+ *  demande que CETTE étape sert est celle que la grappe rend en tête avec ces dés-là — rien n'est
+ *  recopié, donc rien ne peut diverger de ce que la fenêtre a montré (patron `combatEffects.opsDe`). */
+export interface PendingCasseDArme {
+  des: [string, number][];
+  reprise: RepriseDeCasse;
+}
+
 /** Contexte SÉRIALISABLE des tirages CHAÎNÉS d'une mutation de Corruption (#942 L5, LDB 19 l.73-83) :
  *  nature (corps ou esprit) → Tableau de Corruption → sous-table éventuelle (« Tête bestiale », EDOC 12).
  *  `tableId` = la table de CETTE étape (absent sur l'étape de nature) ; `kind`/`natureRoll` = l'issue de
@@ -1733,13 +1770,14 @@ export interface CascadeDeDecl extends CascadeDeTirage {
   seuil?: SeuilDeSauvegarde;
 }
 
-/** LE SEUIL d'une sauvegarde « 1d10 ≥ Indice » (Démoniaque `LDB 85 l.98`, Protection `LDB 85 l.278`, et
- *  le Trait qu'un Dôme octroie `LDB 47 l.410`) : l'Indice à atteindre, le TRAIT qui l'offre (id stable —
- *  la graphie est rendue par `formatWardSave`) et sa PROVENANCE (le porteur, ou la zone qui le lui
- *  octroie). JSON-sérialisable : il voyage sur l'étape. */
+/** LE SEUIL d'une sauvegarde « 1d10 ≥ Indice » (Démoniaque `LDB 85 l.98`, Protection `LDB 85 l.278`, le
+ *  Trait qu'un Dôme octroie `LDB 47 l.410`, la QUALITÉ Solide d'un objet `LDB 60 l.30`) : l'Indice à
+ *  atteindre, CE QUI l'offre (`SourceDeSauvegarde` — id stable + son dataset, la graphie étant rendue
+ *  par `formatWardSave`) et sa PROVENANCE (le porteur, ou la zone qui le lui octroie).
+ *  JSON-sérialisable : il voyage sur l'étape. */
 export interface SeuilDeSauvegarde {
   indice: number;
-  traitId: string;
+  source: import('../engine/traits/dispatch').SourceDeSauvegarde;
   dome: boolean;
 }
 
@@ -1927,6 +1965,10 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  L'applier lit le dé (`cascade.lireEnSeuil`) puis RÉ-ENTRE dans le site d'origine — patron de
    *  `critSeverity`, dont la charge rejoue `applyAttackResult` avec le Critique construit. */
   wardSave?: PendingWardSave;
+  /** Étape de la GRAPPE de dés d'une CASSE D'ARME (#1508 T3b-4) — Sauvegarde Solide (étape à DÉ lu en
+   *  SEUIL) ou table des Incidents par Salve (étape à TABLE) : même charge pour les deux lectures, et
+   *  l'applier ré-entre dans `applyOups`/`applyBladeTrap` avec le dé tombé — patron `wardSave`. */
+  casse?: PendingCasseDArme;
   /** Étapes à TABLE de la MUTATION de Corruption (#942 L5) : les d100 des tirages chaînés (nature →
    *  Tableau → sous-table) sont restés à poser ; l'applier de chaque étape lit le dé posé, INSÈRE
    *  l'étape suivante s'il en reste une, et applique la mutation au dernier niveau. */

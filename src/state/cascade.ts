@@ -414,7 +414,7 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
     ligne: t(sauve ? 'cf.wardSaved' : 'cf.wardFailed', {
       name: nom,
       roll: de.total,
-      trait: formatWardSave(seuil.traitId, seuil.indice),
+      trait: formatWardSave(seuil.source, seuil.indice),
       src: seuil.dome ? t('cf.wardFromDome') : '',
     }),
   };

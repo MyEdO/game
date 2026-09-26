@@ -67,7 +67,7 @@ export function fourchette(min: number, max: number, dieMax: number): string {
  *  rangée — celle qui, sur une rangée de Test, porte le « contre quoi » (`RollCalc`) — comme APRÈS
  *  le lancer (`totalLabel`, qui la préfixe du total et de sa comparaison). Une seule écriture. */
 export const seuilLabel = (seuil: SeuilDeSauvegarde): string =>
-  `${formatWardSave(seuil.traitId, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
+  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
 
 /** Sous-titre d'étape — SOURCE UNIQUE des six branches de la cascade (table / affichage riche /
  *  affichage / choix / batch / jet) : la POSITION dans la séquence, et elle seule. Le libellé de

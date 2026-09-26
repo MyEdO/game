@@ -604,7 +604,7 @@ export function opSummary(o: GameOp): string {
     case 'grantReverseToken': return `inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test (cible)'}`;
     case 'castWard': return `−20 Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
-    case 'domeWard': return `${formatWardSave(o.traitId, formulaSummary(o.indice))} (ZdE du sort)`;
+    case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.traitId }, formulaSummary(o.indice))} (ZdE du sort)`;
     case 'attackWardFM': return 'l’attaquer exige un Test de FM';
     case 'grantWeapon': return `${o.label} (Dégâts ${o.plusBF ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;

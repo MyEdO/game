@@ -707,7 +707,7 @@ Dessiner une carte revendable et utile à l'orientation. **Test de Métier (Cart
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-ch15), [Opérations Bancaires](#opérations-bancaires) (Planque, découverte sur 10 ou moins), [Activités de Voyage — EDOC 5](#activités-de-voyage--edoc-ch5) (Établir des Cartes — équivalent terrestre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `PendingExtendedTest`, `bankWithdrawInner`, `GameState`, +3 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, `src/state/interludeFlow.ts`, +6 fichiers
+- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `bankWithdrawInner`, `PendingExtendedTest`, `GameState`, +3 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, `src/state/interludeFlow.ts`, +6 fichiers
 
 ---
 
@@ -751,7 +751,7 @@ Réparer l'usure du vaisseau (planches pourries, voiles, coque incrustée). **De
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-ch15), [Artisanat](#artisanat) (Métier, Test étendu).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `bankWithdrawInner`, `GameState`, `PendingCascade`, +1 — `src/data/combat-stakes.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, `src/state/interludeFlow.ts`, +4 fichiers
+- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `bankWithdrawInner`, `GameState`, `fr`, +1 — `src/data/combat-stakes.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, `src/state/interludeFlow.ts`, +4 fichiers
 
 ---
 
