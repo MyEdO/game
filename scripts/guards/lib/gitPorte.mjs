@@ -23,6 +23,7 @@
 // `fetchOrigin` est à part, et NOMMÉE : elle ÉCRIT des refs. Une lecture et une mutation ne
 // partagent pas un hôte « fail-closed » sans que l'appelant sache laquelle il a jouée.
 import { spawnSync } from 'node:child_process'
+import { statSync } from 'node:fs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 
 /** Longueur maximale d'une `raison` : elle est DITE dans un refus de hook, une fois. */
@@ -105,13 +106,50 @@ function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSyn
 }
 
 /**
- * Classement d'un résultat de `spawnSync` en union à trois issues. PUR.
+ * Ce qu'un chemin EST pour un `cwd` de sous-processus : `'repertoire'`, `'fichier'` (tout nœud qui
+ * n'est pas un répertoire) ou `'absent'`. SOURCE UNIQUE de la question « ce chemin peut-il servir de
+ * cwd ? » — les portes n'en tiennent pas une seconde définition (un `existsSync` répondait « oui »
+ * pour un FICHIER, dont le spawn rend pourtant ENOENT/ENOTDIR).
+ * @param {string} chemin @returns {'repertoire'|'fichier'|'absent'}
+ */
+export function natureDuChemin(chemin) {
+  const vu = statSync(chemin, { throwIfNoEntry: false })
+  if (!vu) return 'absent'
+  return vu.isDirectory() ? 'repertoire' : 'fichier'
+}
+
+/** `true` si `chemin` est un RÉPERTOIRE existant — le seul chemin utilisable comme `cwd`. */
+export const estRepertoire = (chemin) => natureDuChemin(chemin) === 'repertoire'
+
+/**
+ * ENOENT du spawn : TROIS causes que le message de node confond sous un seul texte
+ * (`spawnSync git ENOENT`) — le `cwd` demandé n'existe pas (cible d'un `git worktree add` pas encore
+ * créée, chemin porteur d'une variable non expansée), il existe mais n'est pas un répertoire, ou le
+ * binaire git manque au PATH. Le `cwd` se SONDE ici, une seule fois : sans cette distinction, une
+ * porte renvoie « rejouer depuis un arbre où git répond » alors que git répondait, et que c'est le
+ * répertoire qui manquait (#1729).
+ * @param {string} message @param {string|undefined} cwd @param {(p:string)=>'repertoire'|'fichier'|'absent'} nature
+ */
+function raisonDuSpawn(message, cwd, nature) {
+  if (!/ENOENT/.test(message)) return message
+  if (cwd) {
+    const quoi = nature(cwd)
+    if (quoi === 'absent') return `cwd inexistant : ${cwd}`
+    if (quoi === 'fichier') return `cwd qui n'est pas un répertoire : ${cwd}`
+  }
+  return `git introuvable (binaire absent du PATH) — ${message}`
+}
+
+/**
+ * Classement d'un résultat de `spawnSync` en union à trois issues. PURE hors la SONDE du `cwd`
+ * (injectable par `nature`), qui distingue les trois ENOENT.
+ * @param {{cwd?:string, nature?:(p:string)=>'repertoire'|'fichier'|'absent'}} [opts]
  * @returns {{disponible:true, valeur:{status:number, stdout:string, stderr:string}}
  *   | {disponible:true, absent:true} | {disponible:false, raison:string}}
  */
-export function classer(vu) {
+export function classer(vu, { cwd, nature = natureDuChemin } = {}) {
   if (!vu) return indisponible('aucun résultat de processus')
-  if (vu.error) return indisponible(vu.error.message)
+  if (vu.error) return indisponible(raisonDuSpawn(vu.error.message, cwd, nature))
   if (vu.signal) return indisponible(`processus tué par le signal ${vu.signal}`)
   const stderr = String(vu.stderr ?? '')
   const stdout = String(vu.stdout ?? '')
@@ -124,10 +162,11 @@ export function classer(vu) {
 /**
  * `git <args>` dans `cwd`, rendu en union à trois issues.
  * @param {string[]} args
- * @param {{cwd?:string, spawn?:Function, attendre?:Function, site?:string, timeout?:number}} [opts]
+ * @param {{cwd?:string, spawn?:Function, attendre?:Function, site?:string, timeout?:number,
+ *   nature?:(p:string)=>'repertoire'|'fichier'|'absent'}} [opts]
  */
 export function lireGit(args, opts = {}) {
-  return classer(lancer('git', args, { site: `git ${args[0] ?? ''}`, ...opts }))
+  return classer(lancer('git', args, { site: `git ${args[0] ?? ''}`, ...opts }), { cwd: opts.cwd, nature: opts.nature })
 }
 
 /** La sortie d'une lecture réussie, `null` si l'objet est absent ou si le code de sortie n'est pas 0.

@@ -210,6 +210,20 @@ test('D : dans un WORKTREE prouvé par la commande, checkout/restore/reset/clean
   }
 })
 
+// Les graphies PowerShell du changement de répertoire (#1729) : même source que `cd`
+// (`repertoireNommeParLaCommande`), donc MÊME surface de permission ici — dite, et mesurée.
+test('D : `Set-Location <worktree>` prouve l’arbre comme `cd` ; vers l’arbre PRINCIPAL, ASK tenu', () => {
+  const { base, principal, lie } = deuxArbres()
+  try {
+    for (const mot of ['Set-Location', 'sl', 'chdir', 'pushd']) {
+      assert.ok(silent(`${mot} ${lie}; git reset --hard`), `${mot} <worktree> : le hook parle encore`)
+      assert.equal(evaluate(`${mot} ${principal}; git reset --hard`)?.decision, 'ask', `${mot} <arbre principal>`)
+    }
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('D : sans preuve de répertoire, ASK inchangé — et le refus dit le geste qui le lèverait', () => {
   const nu = evaluate('git reset --hard')
   assert.equal(nu?.decision, 'ask', 'un reset --hard NU ne prouve aucun arbre : il reste arbitré')

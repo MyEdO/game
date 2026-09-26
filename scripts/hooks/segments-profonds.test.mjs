@@ -214,12 +214,17 @@ test('le segment ENROBANT est rendu lui aussi (l\'invocation `cmd /c mklink …`
 })
 
 // ── extractTargetDir : le répertoire où le commit s'exécute VRAIMENT ──────────────────────────────
+// Ces attendus mesurent la RÉSOLUTION de chemin (graphies, pliage des `cd`, priorité du `-C`) sur des
+// chemins FABRIQUÉS : la sonde d'existence du disque y est donc injectée à vrai. Qu'un chemin
+// INEXISTANT ne serve pas de cwd est un AUTRE contrat, mesuré dans `solde-ticket-guard.test.mjs`.
+const TOUT_EXISTE = { existe: () => true }
+
 test('extractTargetDir : un chemin POSIX de disque (`/c/…`) devient natif sur win32, inchangé ailleurs', () => {
   const cmd = 'cd ' + PROFIL_WIN + '/dépôt && git commit -m "corrige #42"'
   const base = resolve('/base')
-  assert.equal(extractTargetDir(cmd, base, 'win32'), resolve(base, PROFIL_NATIF + '/dépôt'))
-  assert.equal(extractTargetDir(cmd, base, 'linux'), resolve(base, PROFIL_WIN + '/dépôt'))
-  assert.notEqual(extractTargetDir(cmd, base, 'linux'), extractTargetDir(cmd, base, 'win32'))
+  assert.equal(extractTargetDir(cmd, base, 'win32', TOUT_EXISTE), resolve(base, PROFIL_NATIF + '/dépôt'))
+  assert.equal(extractTargetDir(cmd, base, 'linux', TOUT_EXISTE), resolve(base, PROFIL_WIN + '/dépôt'))
+  assert.notEqual(extractTargetDir(cmd, base, 'linux', TOUT_EXISTE), extractTargetDir(cmd, base, 'win32', TOUT_EXISTE))
 })
 
 test('extractTargetDir : l\'attendu s\'ancre sur la base FOURNIE, jamais sur le cwd du process', () => {
@@ -246,14 +251,14 @@ test('versCheminNatif : ne convertit QUE la graphie `/<lettre>/…`', () => {
 
 test('extractTargetDir : un `cd` ou un `git -C` DANS un sous-shell désigne le même répertoire réel', () => {
   const base = resolve('/base')
-  assert.equal(extractTargetDir('sh -c "cd wt && git commit -m x"', base, 'linux'), resolve(base, 'wt'))
-  assert.equal(extractTargetDir('sh -c "git -C wt commit -m x"', base, 'linux'), resolve(base, 'wt'))
+  assert.equal(extractTargetDir('sh -c "cd wt && git commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
+  assert.equal(extractTargetDir('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
 })
 
 test('extractTargetDir : `git -C` prime sur `cd`, et sans ni l\'un ni l\'autre le cwd est inchangé', () => {
   const base = resolve('/base')
-  assert.equal(extractTargetDir('cd a && git -C b commit -m x', base, 'linux'), resolve(base, 'b'))
-  assert.equal(extractTargetDir('git commit -m x', base, 'linux'), base)
+  assert.equal(extractTargetDir('cd a && git -C b commit -m x', base, 'linux', TOUT_EXISTE), resolve(base, 'b'))
+  assert.equal(extractTargetDir('git commit -m x', base, 'linux', TOUT_EXISTE), base)
 })
 
 /** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : le driver s'y joue comme dans un arbre

@@ -164,9 +164,15 @@ function shaApresSeparateur({ sub, args }) {
 
 /**
  * Répertoire où la commande s'exécute, quand il est PROUVÉ : nommé par la commande elle-même
- * (`git -C <chemin>`, `cd <chemin> &&`) ou transmis par le canal (`tool_input.cwd`, que seul
+ * (`git -C <chemin>`, ou un changement de répertoire — `cd`, et ses graphies PowerShell
+ * `Set-Location`/`sl`/`chdir`/`pushd`, #1729) ou transmis par le canal (`tool_input.cwd`, que seul
  * `ctx_shell` fournit). `null` sinon — le cwd PERSISTANT du canal Bash n'est observable par aucun
  * hook, et une permission accordée sur un arbre deviné vaudrait pour l'arbre principal.
+ *
+ * Les graphies PowerShell ÉLARGISSENT la surface de permission de cette porte autant que celle de
+ * l'autre : un `Set-Location <worktree lié>; git reset --hard` passe désormais en silence comme son
+ * équivalent `cd`, et un `Set-Location <arbre principal>` reste arbitré. C'est la MEME règle lue
+ * dans la MEME source (`repertoireNommeParLaCommande`), pas une tolérance de plus.
  */
 export function repertoireProuve(command, cwd = null) {
   const nomme = repertoireNommeParLaCommande(command, cwd ?? process.cwd())

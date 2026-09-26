@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
-import { classer, commitsDe, estAncetre, fetchOrigin, lireGit, raisonCourte, sortieOuNull } from './gitPorte.mjs'
+import { classer, commitsDe, estAncetre, estRepertoire, fetchOrigin, lireGit, natureDuChemin, raisonCourte, sortieOuNull } from './gitPorte.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
 
 const ZERO = '0'.repeat(40)
@@ -25,6 +25,32 @@ function depot() {
 }
 
 const jeter = (racine) => rmSync(racine, { recursive: true, force: true })
+
+// Les DEUX ENOENT du spawn (#1729) : node écrit le même « spawnSync git ENOENT » quand le binaire
+// manque et quand le `cwd` demandé n'existe pas. Le second est le cas RÉEL mesuré : une porte y
+// renvoyait « rejouer depuis un arbre où git répond » alors que git répondait.
+test('lireGit : un cwd INEXISTANT se nomme, il ne se confond pas avec un git absent', () => {
+  const jamais = join(tmpdir(), `cwd-absent-${process.pid}`)
+  const vu = lireGit(['rev-parse', 'HEAD'], { cwd: jamais })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.raison, `cwd inexistant : ${jamais}`)
+
+  const sansGit = classer({ error: new Error('spawnSync git ENOENT') }, { cwd: tmpdir() })
+  assert.match(sansGit.raison, /git introuvable/, 'cwd répertoire → la cause restante est le binaire')
+})
+
+test('lireGit : un cwd qui EXISTE sans être un répertoire se nomme pour ce qu’il est', () => {
+  const { racine } = depot()
+  try {
+    const fichier = join(racine, 'a.txt')
+    assert.equal(natureDuChemin(fichier), 'fichier')
+    assert.equal(estRepertoire(fichier), false)
+    assert.equal(estRepertoire(racine), true)
+    const vu = lireGit(['rev-parse', 'HEAD'], { cwd: fichier })
+    assert.equal(vu.disponible, false)
+    assert.equal(vu.raison, `cwd qui n'est pas un répertoire : ${fichier}`)
+  } finally { jeter(racine) }
+})
 
 test('lireGit : status 0 rend un FAIT porteur de la sortie', () => {
   const { racine, second } = depot()

@@ -63,7 +63,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
-import { GitIndisponible, estDansHead } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, estDansHead, estRepertoire } from '../guards/lib/gitPorte.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
@@ -131,13 +131,65 @@ export function extractMessageSources(command, { readFile = readFileSync, cwd = 
 // commande (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), on la découpe en
 // segments aux enchaînements top-level (`&&`, `;`, `||`, `|`), puis on identifie dans CHAQUE segment
 // l'exécutable de tête et sa sous-commande (`git [-C <path>|-c <k=v>|...] commit`).
+// Ouverture d'un HEREDOC (`<<EOF`, `<<-'EOF'`, `<<"EOF"`) : ce qui suit, à partir de la LIGNE
+// suivante et jusqu'à la ligne qui répète le mot, est une DONNÉE écrite par la commande, pas des
+// commandes. Sans cette borne, le corps se tokenisait : ses `;`/`&&` ouvraient des segments et une
+// ligne de PROSE citant « git commit » devenait un commit (`cat > f.md <<'EOF' … EOF` d'un
+// commentaire de ticket, demande de confirmation sur une écriture de fichier, #1729 sonde 6).
+// Le mot de fin ne peut pas être quoté ici : les quotes de l'ouverture n'appartiennent pas au mot.
+const HEREDOC_OUVERTURE_RE = /^<<(-?)\s*(['"]?)([A-Za-z_][\w.-]*)\2/
+
+/** La ligne de fin est le mot SEUL, sans indentation — sauf après `<<-`, où le shell ne retire que
+ *  les TABULATIONS de tête. Tolérer une indentation quelconque ferait terminer un corps sur une
+ *  ligne de PROSE qui cite le mot, et la suite du texte redeviendrait des commandes. PUR. */
+const ferme = (ligne, { mot, tabs }) => (tabs ? ligne.replace(/^\t+/, '') : ligne).replace(/\r$/, '') === mot
+
+/** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs }`), `pos` étant le début de la
+ *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell. */
+function finDesCorpsHeredoc(command, pos, ouverts) {
+  let i = pos
+  for (const ouvert of ouverts) {
+    for (;;) {
+      if (i >= command.length) return command.length
+      const finLigne = command.indexOf('\n', i)
+      const ligne = command.slice(i, finLigne === -1 ? command.length : finLigne)
+      i = finLigne === -1 ? command.length : finLigne + 1
+      if (ferme(ligne, ouvert)) break
+    }
+  }
+  return i
+}
+
 function tokenizeCommand(command) {
   const tokens = []
   let i = 0
   const n = command.length
+  // Mots de fin des heredocs ouverts sur la ligne EN COURS : leurs corps commencent au prochain
+  // saut de ligne, dans l'ordre d'ouverture.
+  let heredocs = []
   while (i < n) {
-    while (i < n && /\s/.test(command[i])) i++
+    while (i < n && /\s/.test(command[i])) {
+      // Un SAUT DE LIGNE hors quote termine la commande comme un `;` : sans lui, la ligne qui SUIT
+      // le corps d'un heredoc se recollait au `cat` (segment unique) et son `git commit` devenait
+      // invisible. Les sauts de ligne d'un message vivent DANS un token quoté, jamais ici.
+      if (command[i] === '\n') {
+        i = heredocs.length > 0 ? finDesCorpsHeredoc(command, i + 1, heredocs) : i + 1
+        heredocs = []
+        tokens.push({ text: ';', op: ';' })
+        continue
+      }
+      i++
+    }
     if (i >= n) break
+    const ouverture = HEREDOC_OUVERTURE_RE.exec(command.slice(i))
+    if (ouverture) {
+      // Le marqueur reste un token (`OPERATEUR_SHELL_RE` le lit comme une redirection : rien après
+      // lui n'est un pathspec) ; son corps, lui, ne sera jamais tokenisé.
+      heredocs.push({ mot: ouverture[3], tabs: ouverture[1] === '-' })
+      tokens.push({ text: `<<${ouverture[3]}`, op: null })
+      i += ouverture[0].length
+      continue
+    }
     if (command[i] === '@' && (command[i + 1] === "'" || command[i + 1] === '"')) {
       const quote = command[i + 1]
       const closer = `${quote}@`
@@ -158,9 +210,15 @@ function tokenizeCommand(command) {
     // message fuir en tokens séparés (les mots d'un message multi-mots devenaient alors autant de
     // pathspecs parasites, #591 suite : le filtrage src/ui retombait à néant, JUGE silencieux).
     let buf = ''
+    let quoteVue = false
     let j = i
     while (j < n) {
       const c = command[j]
+      // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
+      // se POURSUIT — les deux caractères disparaissent, et le saut n'est pas la fin d'une commande.
+      // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
+      // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
+      if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
       if (/\s/.test(c) || c === ';' || c === '|' || (c === '&' && command[j + 1] === '&')) break
       // ANSI-C quoting `$'…'` (bash) : span QUOTÉ au même titre que `'…'`. Sans lui le `$` restait
       // collé au mot suivant (`bash -c $'gh issue create …'` rendait un token `$gh`) et l'exécutable
@@ -177,6 +235,7 @@ function tokenizeCommand(command) {
       }
       if (c === '"' || c === "'") {
         const quote = c
+        quoteVue = true
         j++
         while (j < n && command[j] !== quote) {
           // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
@@ -193,7 +252,9 @@ function tokenizeCommand(command) {
       buf += c
       j++
     }
-    tokens.push({ text: buf, op: null })
+    // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
+    // argument vide (`''`) en reste un — c'est la quote qui le prouve.
+    if (buf !== '' || quoteVue) tokens.push({ text: buf, op: null })
     i = j
   }
   return tokens
@@ -1479,34 +1540,88 @@ function valeurGitDashC(segment) {
   return null
 }
 
-/** Répertoire que la COMMANDE nomme elle-même : `git -C <path>` en priorité, sinon le premier
- *  `cd <path>` du pipeline, résolu contre `cwd`. `null` si la commande n'en nomme aucun — le
- *  répertoire n'est alors pas PROUVÉ, et un appelant qui accorde une permission sur la foi de
- *  l'arbre visé doit le savoir (le cwd persistant du canal Bash n'est observable par aucun hook ;
- *  seul `ctx_shell` transmet un `tool_input.cwd`). */
-export function repertoireNommeParLaCommande(command, cwd = process.cwd(), platform = process.platform) {
-  if (!command) return null
+/** Commandes qui CHANGENT le répertoire courant, dans les deux shells où ce hook est câblé : POSIX
+ *  (`cd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `pushd`). Ne lire que `cd` faisait
+ *  juger un commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell
+ *  (#1729 sonde 5). `popd` n'est pas lu : il dépend d'une pile que la commande ne dit pas. */
+const CHANGEMENTS_DE_REPERTOIRE = new Set(['cd', 'chdir', 'pushd', 'set-location', 'sl'])
+
+/** Chemin de commande NON EXPANSÉ (`$M`, `${M}`, `%M%`) : la variable vit dans le shell, pas dans le
+ *  hook — le texte ne désigne aucun répertoire. */
+const VARIABLE_NON_EXPANSEE_RE = /[$%]/
+
+/** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut`) et résolu contre `cwd` (`resolu`) : `git -C
+ *  <path>` en priorité, sinon le dernier `cd`/`Set-Location` du pipeline. `null` si aucun. */
+function cheminNommeParLaCommande(command, cwd, platform) {
   const segments = segmentsProfonds(command)
   for (const segment of segments) {
     const dashC = valeurGitDashC(segment)
-    if (dashC) return resolve(cwd, versCheminNatif(dashC, platform))
+    if (dashC) return { brut: dashC, resolu: resolve(cwd, versCheminNatif(dashC, platform)) }
   }
   // Les `cd` se PLIENT dans l'ordre : `cd <wt> && cd .. && git …` s'exécute dans le PARENT du
   // worktree, pas dedans. Retenir le premier faisait dire « worktree » à un geste qui n'y est plus
   // (mesuré 2026-09-04) — chaque `cd` se résout contre le répertoire où le précédent a mené.
-  let courant = null
+  let nomme = null
   for (const segment of segments) {
-    if (basenameExecutable(segment[0]) === 'cd' && segment[1]) {
-      courant = resolve(courant ?? cwd, versCheminNatif(segment[1], platform))
+    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) {
+      nomme = { brut: segment[1], resolu: resolve(nomme?.resolu ?? cwd, versCheminNatif(segment[1], platform)) }
     }
   }
-  return courant
+  return nomme
 }
 
-/** Répertoire dans lequel le `git commit` de la commande s'exécute réellement : celui qu'elle nomme,
- *  sinon `cwd` inchangé (comportement d'origine hors worktree). */
-export function extractTargetDir(command, cwd = process.cwd(), platform = process.platform) {
-  return repertoireNommeParLaCommande(command, cwd, platform) ?? cwd
+/**
+ * Répertoire CIBLE prouvé par la commande, et ce qu'elle nomme sans qu'il puisse servir de cwd.
+ * `dir` n'est retenu que s'il désigne un répertoire RÉEL : un chemin porteur d'une variable non
+ * expansée (`git -C "$M"`) et un chemin qui n'existe pas encore donnent au spawn de git un ENOENT
+ * impossible à distinguer d'un git absent — la porte refusait alors « ascendance indisponible » un
+ * geste que git exécutait très bien (#1729 sondes 1-2). La cible d'un `git worktree add <cible>`
+ * n'est JAMAIS un cwd : ce n'est pas un `-C`, et elle n'existe pas au moment du contrôle.
+ * `ignore` (`null` ou `{ chemin, raison }`) est DIT dans le message quand la porte refuse : sinon le
+ * refus juge un autre répertoire que celui que l'utilisateur lit.
+ * @returns {{ dir: string|null, ignore: { chemin: string, raison: string }|null }}
+ */
+export function cibleDeLaCommande(command, cwd = process.cwd(), platform = process.platform, { existe = estRepertoire } = {}) {
+  if (!command) return { dir: null, ignore: null }
+  const nomme = cheminNommeParLaCommande(command, cwd, platform)
+  if (!nomme) return { dir: null, ignore: null }
+  if (VARIABLE_NON_EXPANSEE_RE.test(nomme.brut)) {
+    return { dir: null, ignore: { chemin: nomme.brut, raison: 'variable de shell non expansée' } }
+  }
+  if (!existe(nomme.resolu)) {
+    return { dir: null, ignore: { chemin: nomme.resolu, raison: 'répertoire inexistant au moment du contrôle' } }
+  }
+  return { dir: nomme.resolu, ignore: null }
+}
+
+/** Répertoire que la COMMANDE nomme elle-même, résolu contre `cwd`, SANS sonder le disque : c'est la
+ *  question « quel arbre ce geste vise-t-il ? » (`git-destructive-guard` lit l'arbre qui GOUVERNE le
+ *  chemin, même pour un sous-dossier pas encore créé). « Ce répertoire peut-il servir de cwd à git ? »
+ *  est l'autre question, et elle a son hôte : `cibleDeLaCommande`. `null` si la commande n'en nomme
+ *  aucun — le répertoire n'est alors pas PROUVÉ, et un appelant qui accorde une permission sur la foi
+ *  de l'arbre visé doit le savoir (le cwd persistant du canal Bash n'est observable par aucun hook ;
+ *  seul `ctx_shell` transmet un `tool_input.cwd`). */
+export function repertoireNommeParLaCommande(command, cwd = process.cwd(), platform = process.platform) {
+  if (!command) return null
+  return cheminNommeParLaCommande(command, cwd, platform)?.resolu ?? null
+}
+
+/** Répertoire dans lequel le `git commit` de la commande s'exécute réellement — un cwd de SPAWN,
+ *  donc la cible PROUVÉE (`cibleDeLaCommande`) ; sinon `cwd` inchangé. */
+export function extractTargetDir(command, cwd = process.cwd(), platform = process.platform, opts) {
+  return cibleDeLaCommande(command, cwd, platform, opts).dir ?? cwd
+}
+
+/** Le refus, augmenté de ce que la commande nommait sans que ce soit un répertoire réel : sans cette
+ *  phrase, l'utilisateur lit un verdict porté sur un AUTRE répertoire que celui qu'il a écrit. PURE. */
+export function avecCibleIgnoree(decision, ignore) {
+  if (!decision || !ignore) return decision
+  return {
+    ...decision,
+    reason:
+      `${decision.reason} (jugé depuis le répertoire de la session : « ${ignore.chemin} » nommé par la `
+      + `commande n'a pas servi de répertoire cible — ${ignore.raison}.)`,
+  }
 }
 
 // ── Manifest RAW (prévention #434/#487) ────────────────────────────────────────────────────────────
@@ -1715,18 +1830,24 @@ export function fichiersCitantTickets(numeros, dir = process.cwd()) {
 /**
  * Le verdict PUR, ou le refus qui NOMME ce que git n'a pas pu lire. Une ascendance indisponible n'est
  * pas un « non » : la conclure ferait refuser un solde juste (ou passer un solde faux) sur rien.
+ * La CAUSE se nomme telle qu'elle est — un répertoire qui existe mais n'est gouverné par aucun
+ * dépôt (`horsDepot`) n'est ni un git absent ni un cwd manquant, et le renvoyer vers « un arbre où
+ * git répond » désignait la mauvaise correction (#1729).
  * @param {() => ({ decision: string, reason: string } | null)} juger
+ * @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
  */
-export function jugerOuNommerLIndisponible(juger) {
+export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = false } = {}) {
   try {
     return juger()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
+    const cause = horsDepot ? `hors dépôt : ${cwd}` : e.raison
+    const geste = horsDepot
+      ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
+      : 'Geste : rejouer le commit depuis un arbre où git répond.'
     return {
       decision: 'deny',
-      reason:
-        `⛔ ascendance indisponible : ${e.raison} — la porte ne peut rien juger de ce que git n'a pas lu. `
-        + 'Geste : rejouer le commit depuis un arbre où git répond.',
+      reason: `⛔ ascendance indisponible : ${cause} — la porte ne peut rien juger de ce que git n'a pas lu. ${geste}`,
     }
   }
 }
@@ -1873,6 +1994,32 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
     }
   }
   return null
+}
+
+/** `true` si la commande porte un geste `gh` que la porte de fermeture JUGE : fermeture directe, ou
+ *  `gh api --input <fichier>` visant UN ticket (dont le corps sera lu). PUR : aucune lecture de
+ *  fichier ici — le lecteur injecté JETTE, et un `--input` présent suffit à dire « geste jugé ». */
+export function porteUnGesteGh(command) {
+  if (!command) return false
+  const sansLecture = () => { throw new Error('corps non lu : on ne décide ici que de JUGER') }
+  return segmentsProfonds(command).some((s) => fermetureGh(s) !== null || corpsInputGh(s, sansLecture) !== null)
+}
+
+/**
+ * Le geste que ce garde JUGE, ou `null`. DEUX gestes, et deux seulement : un `git commit` (tous les
+ * évaluateurs de solde, de ticket, d'esquive, de juge, d'amend, de manifeste, d'arbre principal, de
+ * hunks et de stocks s'ouvrent sur `isGitCommitCommand`) et une fermeture `gh` hors commit
+ * (`evaluateFermetureHorsCommit`, le seul évaluateur qui ne demande pas de commit).
+ *
+ * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) lançait `mesureDuPalier` et
+ * `readChangedNames` dans son cwd, et un cwd hors dépôt faisait refuser « ascendance indisponible »
+ * une commande qui n'avait rien à voir avec un commit (#1729 sonde 3).
+ * @returns {'commit'|'fermeture'|null}
+ */
+export function gesteJuge(command) {
+  if (!command) return null
+  if (isGitCommitCommand(command)) return 'commit'
+  return porteUnGesteGh(command) ? 'fermeture' : null
 }
 
 // ── Arbre PRINCIPAL vs worktree ───────────────────────────────────────────────────────────────────
@@ -2033,11 +2180,34 @@ if (isMain) {
   // Date LOCALE (pas UTC) : un solde écrit après minuit heure locale porte la date locale.
   const d = new Date()
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const targetDir = extractTargetDir(command, baseCwd)
+  // Le répertoire cible n'est retenu que s'il EXISTE : sinon git y rendrait un ENOENT de spawn, et
+  // la porte refuserait « ascendance indisponible » un geste que git exécute (#1729). Ce qui a été
+  // écarté est DIT dans le refus, jamais avalé.
+  const cible = cibleDeLaCommande(command, baseCwd)
+  const targetDir = cible.dir ?? baseCwd
   // `npm run <x>` se résout dans le package.json du dépôt où la commande s'exécute (un
   // `cd <autre dépôt> && npm run x` n'y lit pas les scripts de CE dépôt-ci) — même discipline
   // d'ancrage que `targetDir` pour l'index, le message `-F` et l'histoire git.
   ancrerScriptsNpm(targetDir)
+  // HORS des deux gestes jugés (commit, fermeture `gh`), le garde ne lit RIEN : ni l'index, ni le
+  // palier, ni l'arbre. Une commande de lecture dans un répertoire hors dépôt se faisait refuser par
+  // l'ascendance d'un commit qu'elle ne portait pas (#1729 sonde 3).
+  if (!gesteJuge(command)) process.exit(0)
+  // HOTE UNIQUE de sortie : TOUT refus rendu par ce driver passe ici, donc porte la cible écartée
+  // (un second `console.log` au site la perdait — le refus `-F illisible` jugeait le cwd de session
+  // sans le dire).
+  const rendre = (decision) => {
+    const dit = avecCibleIgnoree(decision, cible.ignore)
+    if (!dit) return false
+    console.log(JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: dit.decision,
+        permissionDecisionReason: dit.reason,
+      },
+    }))
+    return true
+  }
   // Le contenu jugé est celui que le commit va EMPORTER, pas l'index : la forme de la commande le
   // décide (`diffDuCommit`), et toutes les évaluations lisent par cette même porte.
   const commit = diffDuCommit(command, targetDir)
@@ -2053,15 +2223,12 @@ if (isMain) {
   // désignait sinon un fichier homonyme de l'arbre de départ (fermeture invisible = fail-open).
   const { text, fileError } = extractMessageSources(command, { cwd: targetDir })
   if (fileError) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason:
-          `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
-          `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`,
-      },
-    }))
+    rendre({
+      decision: 'deny',
+      reason:
+        `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
+        `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`,
+    })
     process.exit(0)
   }
 
@@ -2095,7 +2262,7 @@ if (isMain) {
       fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, targetDir),
       lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, targetDir)),
     },
-  }))
+  }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
   // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
   // lecture que toutes les autres évaluations de ce driver.
   const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers })
@@ -2152,19 +2319,11 @@ if (isMain) {
     diff: porteursDeStock.map((f) => commit.fichier(f)).join('\n'),
     images: { lirePostImage: commit.contenu, lirePreImage: commit.avant },
   })
-  const cumul = decisionCumulee([
+  const rendu = rendre(decisionCumulee([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, manifestClosure,
     horsCommit, tombale, arbrePrincipal, hunks?.decision ? hunks : null, stocks,
-  ])
-  if (cumul) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: cumul.decision,
-        permissionDecisionReason: cumul.reason,
-      },
-    }))
-  } else if (hunks?.contexte) {
+  ]))
+  if (!rendu && hunks?.contexte) {
     console.log(JSON.stringify({
       hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: hunks.contexte },
     }))

@@ -51,6 +51,23 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
   }
 })
 
+// #1729 sonde 3 : une commande de LECTURE lancée dans un répertoire hors dépôt se faisait refuser
+// par l'ascendance d'un commit qu'elle ne portait pas. Le garde ne lit rien hors de ses gestes ; et
+// quand il juge, il nomme la cause VRAIE.
+test('DRIVER : hors des gestes jugés, silence même hors dépôt ; un commit hors dépôt nomme « hors dépôt »', () => {
+  const base = mkdtempSync(join(tmpdir(), 'hors-depot-'))
+  try {
+    assert.equal(decisionOf('ls -la', base), null, 'une commande de lecture n’a rien à faire juger')
+    assert.equal(decisionOf('wc -c note.md', base), null)
+    const out = decisionOf('git commit -m "fix(x): refs #1729"', base)
+    assert.ok(out, 'un commit, lui, se juge — et git n’a rien pu lire ici')
+    assert.equal(out.decision, 'deny')
+    assert.match(out.reason, /hors dépôt/)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-guard-'))
   try {
@@ -58,6 +75,22 @@ test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
     assert.ok(out, 'aucune décision sur un -F illisible')
     assert.equal(out.decision, 'deny')
     assert.match(out.reason, /illisible/)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// HÔTE UNIQUE de sortie (#1729) : le refus `-F illisible` a résolu le fichier contre le cwd de
+// SESSION parce que la cible nommée a été écartée — il doit le DIRE comme tous les autres refus.
+test('DRIVER : tout refus porte la cible écartée, le `-F illisible` compris', () => {
+  const base = mkdtempSync(join(tmpdir(), 'solde-guard-'))
+  try {
+    const out = decisionOf('cd .wt-jamais-cree && git commit -F absent.txt', base)
+    assert.ok(out, 'aucune décision sur un -F illisible')
+    assert.equal(out.decision, 'deny')
+    assert.match(out.reason, /illisible/)
+    assert.match(out.reason, /n'a pas servi de répertoire cible/)
+    assert.match(out.reason, /\.wt-jamais-cree/)
   } finally {
     rmSync(base, { recursive: true, force: true })
   }

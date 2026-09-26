@@ -50,6 +50,9 @@ import {
   problemesDeRevueNeuve,
   jugerOuNommerLIndisponible,
   revuesDuCommit,
+  cibleDeLaCommande,
+  avecCibleIgnoree,
+  gesteJuge,
 } from './solde-ticket-guard.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { GitIndisponible, estDansHead } from '../guards/lib/gitPorte.mjs'
@@ -1444,9 +1447,14 @@ test('evaluateManifestClosure : multi-fermeture — seuls les tickets encore pr�
 })
 
 // ── extractTargetDir (répertoire cible du commit, fix #587) ───────────────────────────────────────
+// Ces attendus mesurent la RÉSOLUTION du chemin sur des répertoires FABRIQUÉS : la sonde d'existence
+// y est injectée à vrai. Qu'un chemin INEXISTANT ne serve pas de cwd est le contrat voisin
+// (`cibleDeLaCommande`, #1729), mesuré plus bas sur un disque réel.
+const TOUT_EXISTE = { existe: () => true }
+
 test('extractTargetDir : "cd <path> && git commit" → résolu contre cwd, pas le cwd de la session', () => {
   const cwd = resolve('/repo/session')
-  const dir = extractTargetDir('cd ../autre-worktree && git commit -m "corrige #5"', cwd)
+  const dir = extractTargetDir('cd ../autre-worktree && git commit -m "corrige #5"', cwd, process.platform, TOUT_EXISTE)
   assert.equal(dir, resolve(cwd, '../autre-worktree'))
   assert.notEqual(dir, cwd)
 })
@@ -1464,22 +1472,22 @@ test('extractTargetDir : commande vide → cwd inchangé', () => {
 
 test('extractTargetDir : chemin quoté avec espaces (doubles/simples) dépouillé avant résolution', () => {
   const cwd = resolve('/repo/session')
-  const d1 = extractTargetDir('cd "../autre worktree" && git commit -m "corrige #5"', cwd)
+  const d1 = extractTargetDir('cd "../autre worktree" && git commit -m "corrige #5"', cwd, process.platform, TOUT_EXISTE)
   assert.equal(d1, resolve(cwd, '../autre worktree'))
-  const d2 = extractTargetDir("cd '../autre worktree' && git commit -m \"corrige #5\"", cwd)
+  const d2 = extractTargetDir("cd '../autre worktree' && git commit -m \"corrige #5\"", cwd, process.platform, TOUT_EXISTE)
   assert.equal(d2, resolve(cwd, '../autre worktree'))
 })
 
 test('extractTargetDir : "git -C <path> commit" reconnu même sans cd', () => {
   const cwd = resolve('/repo/session')
-  const dir = extractTargetDir('git -C ../autre-worktree commit -m "corrige #5"', cwd)
+  const dir = extractTargetDir('git -C ../autre-worktree commit -m "corrige #5"', cwd, process.platform, TOUT_EXISTE)
   assert.equal(dir, resolve(cwd, '../autre-worktree'))
 })
 
 test('extractTargetDir : chemin absolu résolu tel quel', () => {
   const cwd = resolve('/repo/session')
   const abs = resolve('/repo/autre-worktree')
-  const dir = extractTargetDir(`cd ${abs} && git commit -m "corrige #5"`, cwd)
+  const dir = extractTargetDir(`cd ${abs} && git commit -m "corrige #5"`, cwd, process.platform, TOUT_EXISTE)
   assert.equal(dir, abs)
   assert.notEqual(abs, cwd)
 })
@@ -2184,6 +2192,145 @@ test('jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; tout
   assert.match(vu.reason, /ascendance indisponible : not a git repository/)
   assert.equal(jugerOuNommerLIndisponible(() => null), null)
   assert.throws(() => jugerOuNommerLIndisponible(() => { throw new TypeError('un vrai bug') }), TypeError)
+
+  // La CAUSE VRAIE prime sur ce que git a bredouillé : un répertoire hors dépôt n'est ni un git
+  // absent ni un cwd manquant, et « unknown option `cached' » ne désignait aucune correction.
+  const hors = jugerOuNommerLIndisponible(
+    () => { throw new GitIndisponible('error: unknown option `cached\'') },
+    { cwd: '/base/scratchpad', horsDepot: true },
+  )
+  assert.match(hors.reason, /hors dépôt : \/base\/scratchpad/)
+  assert.doesNotMatch(hors.reason, /unknown option/)
+  assert.doesNotMatch(hors.reason, /où git répond/)
+})
+
+// ── Le garde ne juge que DEUX gestes — hors d'eux, il ne lit rien (#1729 sonde 3) ────────────
+test('gesteJuge : commit et fermeture `gh` ; toute autre commande est hors sujet', () => {
+  assert.equal(gesteJuge('git commit -m "x"'), 'commit')
+  assert.equal(gesteJuge('cd wt && git commit -F msg.txt'), 'commit')
+  assert.equal(gesteJuge('gh issue close 42'), 'fermeture')
+  assert.equal(gesteJuge('gh api -X PATCH repos/o/r/issues/42 --input corps.json'), 'fermeture')
+  assert.equal(gesteJuge('ls -la'), null)
+  assert.equal(gesteJuge('wc -c fichier.txt'), null)
+  assert.equal(gesteJuge('git status'), null)
+  assert.equal(gesteJuge('gh issue list --state open'), null)
+  assert.equal(gesteJuge(''), null)
+})
+
+// ── Continuation de ligne : la commande CONTINUE, le saut n'est pas une fin (#1729) ───────────
+test('tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne coupent pas la commande', () => {
+  const LF = '\n'
+  const BS = String.fromCharCode(92)
+  const BT = String.fromCharCode(96)
+  const contenu = `fix(hooks): refs #1729${LF}${LF}Closes #1728${LF}`
+  const src = extractMessageSources(`git commit --amend ${BS}${LF}  -F msg.txt`, { readFile: () => contenu })
+  assert.equal(src.fileError, null, 'le `-F` de la ligne suivante est perdu : le message n’est jamais lu')
+  assert.deepEqual(extractClosedIssues(src.text), [1728])
+  assert.deepEqual(extractRefIssues(src.text), [1729])
+  // Le marqueur lui-même ne devient pas un pathspec parasite (`["`"]` mesuré avant correction).
+  assert.deepEqual(
+    extractCommitPathspecs(`git commit -m "fix: refs #1729" ${BT}${LF}  -- scripts/hooks/x.mjs`),
+    ['scripts/hooks/x.mjs'],
+  )
+})
+
+// ── Répertoire CIBLE : ce que la commande nomme n'est un cwd que s'il EXISTE (#1729) ─────────────
+// Un cwd inexistant et un git absent rendent le MÊME ENOENT de spawn : retenir un chemin non prouvé
+// faisait refuser « ascendance indisponible » un geste que git exécutait (sondes 1-2 du ticket).
+test('cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cwd, et la raison est dite', () => {
+  const base = mkdtempSync(join(tmpdir(), 'cible-'))
+  try {
+    mkdirSync(join(base, 'wt'))
+    assert.deepEqual(
+      cibleDeLaCommande('cd wt && git commit -m x', base),
+      { dir: join(base, 'wt'), ignore: null },
+      'un répertoire RÉEL reste la cible',
+    )
+
+    const absent = cibleDeLaCommande('cd .wt-1728-L1 && git commit -m x', base)
+    assert.equal(absent.dir, null, 'la cible d’un worktree pas encore créé servait de cwd → ENOENT du spawn')
+    assert.match(absent.ignore.raison, /inexistant/)
+    assert.equal(absent.ignore.chemin, join(base, '.wt-1728-L1'))
+
+    const variable = cibleDeLaCommande('M=/c/x; git -C "$M" merge --ff-only x', base)
+    assert.equal(variable.dir, null)
+    assert.equal(variable.ignore.chemin, '$M')
+    assert.match(variable.ignore.raison, /non expansée/)
+
+    assert.deepEqual(
+      cibleDeLaCommande('git worktree add -b wt-1728-L1 .wt-1728-L1 HEAD', base),
+      { dir: null, ignore: null },
+      'la CIBLE d’un `git worktree add` n’est jamais un cwd : la commande ne nomme aucun répertoire',
+    )
+    assert.equal(extractTargetDir('git worktree add -b w .wt-x HEAD', base), base)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commit comme `cd`', () => {
+  const base = mkdtempSync(join(tmpdir(), 'cible-ps-'))
+  try {
+    mkdirSync(join(base, 'wt'))
+    for (const mot of ['cd', 'Set-Location', 'sl', 'chdir', 'pushd']) {
+      assert.equal(
+        extractTargetDir(`${mot} wt; git commit -m x`, base),
+        join(base, 'wt'),
+        `\`${mot}\` non lu : le commit du worktree est jugé contre l’arbre de départ`,
+      )
+    }
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('evaluateArbrePrincipal derrière un `Set-Location` : silence en worktree LIÉ, `ask` vers l’arbre PRINCIPAL', () => {
+  const base = mkdtempSync(join(tmpdir(), 'arbres-'))
+  try {
+    mkdirSync(join(base, 'principal', '.git'), { recursive: true })
+    mkdirSync(join(base, 'lie'), { recursive: true })
+    writeFileSync(join(base, 'lie', '.git'), 'gitdir: ../principal/.git/worktrees/lie\n', 'utf8')
+    const commit = (mot, ou) => `${mot} ${ou}; git commit -m "fix(x): refs #1729"`
+    const jugement = (cmd) => evaluateArbrePrincipal({
+      command: cmd,
+      principal: estArbrePrincipal(extractTargetDir(cmd, join(base, 'principal'))),
+    })
+    assert.equal(jugement(commit('Set-Location', '../lie')), null, 'un commit en worktree lié ne demande rien')
+    const versPrincipal = jugement(commit('Set-Location', join(base, 'principal')))
+    assert.equal(versPrincipal?.decision, 'ask', 'le faux négatif inverse : un commit dans l’arbre principal reste demandé')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché', () => {
+  const refus = { decision: 'ask', reason: '⚠ Commit dans l’ARBRE PRINCIPAL' }
+  const dit = avecCibleIgnoree(refus, { chemin: '/base/.wt-x', raison: 'répertoire inexistant au moment du contrôle' })
+  assert.equal(dit.decision, 'ask')
+  assert.match(dit.reason, /\.wt-x/)
+  assert.match(dit.reason, /inexistant/)
+  assert.equal(avecCibleIgnoree(refus, null), refus)
+  assert.equal(avecCibleIgnoree(null, { chemin: 'x', raison: 'y' }), null)
+})
+
+// ── Le CORPS d’un heredoc est une DONNÉE, pas des commandes (#1729 sonde 6) ───────────────────
+test('isGitCommitCommand : un heredoc qui ÉCRIT un texte citant « git commit » n’est pas un commit', () => {
+  const ecriture = [
+    "cat > note.md <<'EOF'",
+    'Geste joué : `Set-Location .wt-1728-L1; git commit -m \'fix\'` — du texte, pas une commande.',
+    'EOF',
+  ].join('\n')
+  assert.equal(isGitCommitCommand(ecriture), false)
+  assert.equal(isGitCommitCommand(ecriture.replace("<<'EOF'", '<<-"FIN"').replace(/\nEOF$/, '\nFIN')), false, 'graphies `<<-` et mot entre guillemets doubles')
+  // Le `git commit` HORS du corps reste vu, message packé en heredoc compris.
+  assert.equal(isGitCommitCommand('git commit -m "$(cat <<EOF\nfix(x): refs #1729\nEOF\n)"'), true)
+  assert.equal(isGitCommitCommand(`${ecriture}\ngit commit -m "fix(x): refs #1729"`), true, 'la commande qui SUIT le corps est rendue à la lumière')
+  // Fidélité au shell : seule la ligne du mot SEUL ferme un `<<MOT` — une ligne de prose INDENTÉE
+  // qui cite le mot ne rouvre pas le texte en commandes (sans quoi la prose suivante redevient un
+  // commit). Après `<<-`, seules les TABULATIONS de tête sont retirées.
+  const indente = ['cat > note.md <<EOF', '  EOF', "git commit -m 'du texte, pas un geste'", 'EOF', 'echo fin'].join('\n')
+  assert.equal(isGitCommitCommand(indente), false)
+  assert.equal(isGitCommitCommand(['cat > note.md <<-EOF', '\tEOF', 'git commit -m "vrai"'].join('\n')), true, '`<<-` ferme sur une tabulation')
 })
 
 test('problemesDeRevueNeuve SANS lecteur d’ascendance : le contrôle est DIT non joué, jamais présumé vrai', () => {
