@@ -5,10 +5,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { Editor } from './Editor';
 import { emptyScene, type Scene } from '../../state/scene';
 import { editeur } from '../../state/editeurBridge';
-import {
-  __setAutosaveBackendForTest, __resetAutosaveForTest, autosaveSave,
-  type EditorAutosaveBackend, type EditorAutosaveRecord,
-} from '../../state/editorAutosave';
+import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
+import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -22,7 +21,7 @@ afterEach(async () => {
   root = null;
   container = null;
   vi.restoreAllMocks();
-  __setAutosaveBackendForTest(null);
+  __setOuvertureIdbForTest(null);
 });
 
 async function monter(initialScene: Scene): Promise<HTMLDivElement> {
@@ -32,16 +31,6 @@ async function monter(initialScene: Scene): Promise<HTMLDivElement> {
   await act(async () => { root!.render(<Editor initialScene={initialScene} />); });
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
   return container;
-}
-
-function autosaveEnMemoire(): EditorAutosaveBackend {
-  const store = new Map<string, EditorAutosaveRecord>();
-  return {
-    async get(sceneId) { return store.get(sceneId) ?? null; },
-    async put(entry) { store.set(entry.sceneId, entry); },
-    async delete(sceneId) { store.delete(sceneId); },
-    async clear() { store.clear(); },
-  };
 }
 
 const MESSAGE = "Le monde de l'éditeur a rencontré une erreur de rendu";
@@ -78,8 +67,8 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
  */
 describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
   it('la modale nomme la faute et son lieu, sans « Restaurer » ; la scène chargée reste', async () => {
+    brancherBasesSimulees();
     await __resetAutosaveForTest();
-    __setAutosaveBackendForTest(autosaveEnMemoire());
     const fautive: Scene = {
       ...emptyScene(6, 6),
       id: 'scene-autosave-fautive',

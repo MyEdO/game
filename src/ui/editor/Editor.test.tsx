@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import {
-  __setAutosaveBackendForTest, __resetAutosaveForTest, autosaveSave,
-  type EditorAutosaveBackend, type EditorAutosaveRecord,
-} from '../../state/editorAutosave';
-import { __setIdbBackendForTest, __resetLibraryForTest, initLibrary, type IdbBackend, type SavedProject } from '../../state/projectLibrary';
+import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
+import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
+import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { brancherBasesSimulees, type BaseSimulee, type BasesSimulees } from '../../lib/indexedDb.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -21,6 +20,12 @@ import { dirname, join } from 'node:path';
 import { useGame } from '../../state/store';
 import { useGameKeyboard } from '../useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
+
+const BIBLIOTHEQUE = 'wfrp4-library';
+const AUTOSAVE = 'wfrp4-editor-autosave';
+
+/** Les projets écrits dans la bibliothèque IndexedDB simulée, dans l'ordre. */
+const projetsEcrits = (base: BaseSimulee) => base.ecritures.filter((q) => q.geste === 'put').map((q) => q.valeur as SavedProject);
 
 /** Le hook de raccourcis est monté par `App`, AU-DESSUS des écrans : le monter avec l'éditeur
  *  reproduit l'application réelle (registre unique, section `editeur` gardée par `screen`). */
@@ -158,13 +163,7 @@ describe('Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478)'
   it('un projet enregistré que la porte `parseProject` REFUSE rend ✗ avec le motif, jamais ✓', async () => {
     // Une entrée de bibliothèque dont le document n'a AUCUNE identité : la porte unique la refuse.
     const entree = { id: 'proj-casse', label: 'Projet cassé', startSceneId: 's', savedAt: 0, published: false, project: { scenes: [] } } as unknown as SavedProject;
-    const idb: IdbBackend = {
-      async getAll() { return [entree]; },
-      async put() { /* non exercé */ },
-      async delete() { /* non exercé */ },
-      async clear() { /* non exercé */ },
-    };
-    __setIdbBackendForTest(idb);
+    brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } }).magasins.get('projects')!.contenu.set(entree.id, entree);
     await initLibrary();
 
     const container = document.createElement('div');
@@ -187,7 +186,7 @@ describe('Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478)'
     });
     container.remove();
     await __resetLibraryForTest();
-    __setIdbBackendForTest(null);
+    __setOuvertureIdbForTest(null);
   });
 });
 
@@ -584,36 +583,18 @@ describe('Editor v2 — authoring architectural', () => {
 
 });
 
-function fakeAutosaveBackend(): EditorAutosaveBackend & { store: Map<string, EditorAutosaveRecord> } {
-  const store = new Map<string, EditorAutosaveRecord>();
-  return {
-    store,
-    async get(sceneId) {
-      return store.get(sceneId) ?? null;
-    },
-    async put(entry) {
-      store.set(entry.sceneId, entry);
-    },
-    async delete(sceneId) {
-      store.delete(sceneId);
-    },
-    async clear() {
-      store.clear();
-    },
-  };
-}
-
 describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
-  let backend: ReturnType<typeof fakeAutosaveBackend>;
+  let bases: BasesSimulees;
+  const sauvegardes = () => bases.contenu(AUTOSAVE, 'autosave');
 
   beforeEach(async () => {
+    bases = brancherBasesSimulees();
+    bases.amorcer(AUTOSAVE, 1, { autosave: { keyPath: 'sceneId' } });
     await __resetAutosaveForTest();
-    backend = fakeAutosaveBackend();
-    __setAutosaveBackendForTest(backend);
   });
 
   afterEach(() => {
-    __setAutosaveBackendForTest(null);
+    __setOuvertureIdbForTest(null);
   });
 
   it('Échap sur la modale de reprise ne détruit PAS la sauvegarde locale, et la proposition peut revenir (pt. A)', async () => {
@@ -636,7 +617,7 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
     });
 
     expect(container.textContent).not.toContain('Reprendre une sauvegarde locale ?');
-    expect(backend.store.has('scene-escape-test')).toBe(true); // Échap n'a RIEN détruit
+    expect(sauvegardes().has('scene-escape-test')).toBe(true); // Échap n'a RIEN détruit
 
     const reopen = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Sauvegarde locale en attente'))!;
     await act(async () => {
@@ -688,13 +669,6 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
   });
 
   it('#834 audit-2 DÉFAUTS 4/6 — « Enregistrer » purge le filet de TOUTES les scènes du projet, mais RIEN si le succès est DÉGRADÉ', async () => {
-    const okIdb: IdbBackend = {
-      async getAll() { return [] as SavedProject[]; },
-      async put() { /* succès */ },
-      async delete() { /* non exercé ici */ },
-      async clear() { /* non exercé ici */ },
-    };
-    __setIdbBackendForTest(okIdb);
 
     const initialScene: Scene = { ...emptyScene(4, 4), id: 'scene-purge-a', label: 'A' };
     const container = document.createElement('div');
@@ -715,8 +689,8 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
     await autosaveSave({ sceneId: 'scene-purge-a', scene: { ...emptyScene(4, 4), id: 'scene-purge-a' }, savedAt: 1 });
     await autosaveSave({ sceneId: sceneBId, scene: { ...emptyScene(4, 4), id: sceneBId }, savedAt: 1 });
-    expect(backend.store.has('scene-purge-a')).toBe(true);
-    expect(backend.store.has(sceneBId)).toBe(true);
+    expect(sauvegardes().has('scene-purge-a')).toBe(true);
+    expect(sauvegardes().has(sceneBId)).toBe(true);
 
     await act(async () => { byText('Fichier').click(); });
     await act(async () => { byText('Enregistrer…').click(); });
@@ -725,27 +699,20 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
     // DÉFAUT 4 : les DEUX scènes couchées dans le projet sont purgées, pas seulement l'active.
-    expect(backend.store.has('scene-purge-a')).toBe(false);
-    expect(backend.store.has(sceneBId)).toBe(false);
+    expect(sauvegardes().has('scene-purge-a')).toBe(false);
+    expect(sauvegardes().has(sceneBId)).toBe(false);
 
     // DÉFAUT 6 : un succès DÉGRADÉ (IndexedDB en échec, miroir localStorage seul) ne purge RIEN.
-    const degradedIdb: IdbBackend = {
-      async getAll() { return [] as SavedProject[]; },
-      async put() { throw new Error('IndexedDB indisponible (simulé)'); },
-      async delete() { /* non exercé ici */ },
-      async clear() { /* non exercé ici */ },
-    };
-    __setIdbBackendForTest(degradedIdb);
+    bases.base(BIBLIOTHEQUE).panne = (q) => (q.geste === 'put' ? new DOMException('IndexedDB indisponible (simulé)', 'UnknownError') : null);
     await autosaveSave({ sceneId: 'scene-purge-a', scene: { ...emptyScene(4, 4), id: 'scene-purge-a' }, savedAt: 2 });
     await act(async () => { saveBtn.click(); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-    expect(backend.store.has('scene-purge-a')).toBe(true);
+    expect(sauvegardes().has('scene-purge-a')).toBe(true);
 
     await act(async () => {
       root.unmount();
     });
     container.remove();
-    __setIdbBackendForTest(null);
   });
 
   it('le message de reprise n’affirme PLUS une fraîcheur relative jamais vérifiée (pt. B)', async () => {
@@ -790,27 +757,13 @@ describe('Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur', () =>
   });
 
   afterEach(() => {
-    __setIdbBackendForTest(null);
+    __setOuvertureIdbForTest(null);
     (globalThis as { localStorage?: Storage }).localStorage = originalLocalStorage;
   });
 
   it('« Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)', async () => {
     delete (globalThis as { localStorage?: Storage }).localStorage; // aucun filet miroir
-    const failing: IdbBackend = {
-      async getAll() {
-        return [] as SavedProject[];
-      },
-      async put() {
-        throw new Error('put refusé (quota simulé)');
-      },
-      async delete() {
-        /* non exercé ici */
-      },
-      async clear() {
-        /* non exercé ici */
-      },
-    };
-    __setIdbBackendForTest(failing);
+    brancherBasesSimulees().base(BIBLIOTHEQUE).panne = (q) => (q.geste === 'put' ? new DOMException('put refusé (quota simulé)', 'QuotaExceededError') : null);
 
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -916,17 +869,11 @@ describe('Editor v2 — le défaut mis en évidence est VIVANT (re-résolution c
  */
 describe('Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `type`, `label`)', () => {
   afterEach(() => {
-    __setIdbBackendForTest(null);
+    __setOuvertureIdbForTest(null);
   });
 
   it('« Fichier → Enregistrer » couche un projet dont les 3 premières clés sont `id`, `type`, `label`', async () => {
-    const couches: SavedProject[] = [];
-    __setIdbBackendForTest({
-      async getAll() { return [] as SavedProject[]; },
-      async put(p: SavedProject) { couches.push(p); },
-      async delete() { /* non exercé ici */ },
-      async clear() { /* non exercé ici */ },
-    });
+    const bibliotheque = brancherBasesSimulees().base(BIBLIOTHEQUE);
 
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -942,6 +889,7 @@ describe('Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `t
     await act(async () => { saveBtn.click(); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
+    const couches = projetsEcrits(bibliotheque);
     expect(couches.length, 'aucun projet couché — le geste d’enregistrement n’a pas abouti.').toBe(1);
     const project = couches[0].project as unknown as Record<string, unknown>;
     expect(Object.keys(project).slice(0, 3)).toEqual(['id', 'type', 'label']);

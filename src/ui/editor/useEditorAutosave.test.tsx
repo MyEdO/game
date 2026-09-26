@@ -3,32 +3,15 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditorAutosave } from './useEditorAutosave';
-import { autosaveSave, __setAutosaveBackendForTest, __resetAutosaveForTest, type EditorAutosaveBackend, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
+import { autosaveSave, __resetAutosaveForTest, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
+import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 import { emptyScene, type Scene } from '../../state/scene';
 import { CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
-
-function fakeBackend(): EditorAutosaveBackend & { store: Map<string, EditorAutosaveRecord> } {
-  const store = new Map<string, EditorAutosaveRecord>();
-  return {
-    store,
-    async get(sceneId) {
-      return store.get(sceneId) ?? null;
-    },
-    async put(entry) {
-      store.set(entry.sceneId, entry);
-    },
-    async delete(sceneId) {
-      store.delete(sceneId);
-    },
-    async clear() {
-      store.clear();
-    },
-  };
-}
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -61,12 +44,14 @@ function proposee(): Scene | undefined {
 describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   let container: HTMLDivElement;
   let root: Root;
-  let backend: ReturnType<typeof fakeBackend>;
+  /** Le magasin `autosave` de la base simulée, amorcée à sa version courante. */
+  let sauvegardes: Map<string, EditorAutosaveRecord>;
 
   beforeEach(async () => {
+    sauvegardes = brancherBasesSimulees()
+      .amorcer('wfrp4-editor-autosave', 1, { autosave: { keyPath: 'sceneId' } })
+      .magasins.get('autosave')!.contenu as Map<string, EditorAutosaveRecord>;
     await __resetAutosaveForTest();
-    backend = fakeBackend();
-    __setAutosaveBackendForTest(backend);
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -75,7 +60,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
-    __setAutosaveBackendForTest(null);
+    __setOuvertureIdbForTest(null);
     delete (window as unknown as { __probe?: Probe }).__probe;
   });
 
@@ -89,7 +74,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0); // laisse la vérification de reprise (aucune sauvegarde existante) conclure
       });
-      expect(backend.store.has('scene-x')).toBe(false); // rien avant le délai de débattue
+      expect(sauvegardes.has('scene-x')).toBe(false); // rien avant le délai de débattue
 
       const scene2 = { ...scene, label: 'v2' };
       await act(async () => {
@@ -98,7 +83,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(1600);
       });
-      expect(backend.store.get('scene-x')?.scene.label).toBe('v2');
+      expect(sauvegardes.get('scene-x')?.scene.label).toBe('v2');
     } finally {
       vi.useRealTimers();
     }
@@ -121,7 +106,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 1700));
     });
-    expect(backend.store.get('scene-y')?.scene.label).toBe('récupérée');
+    expect(sauvegardes.get('scene-y')?.scene.label).toBe('récupérée');
 
     await act(async () => {
       probe().restore();
@@ -151,10 +136,10 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     const capter = (raison: unknown): void => { nonGerees.push(raison); };
     process.on('unhandledRejection', capter);
     // Un enregistrement dont la LECTURE lève autre chose qu'un `ProjetRefuse` : la relecture rejette.
-    // Posé sur le backend du test, jamais par mock de module (`src/vi-mock-isolate-guard.test.ts`).
+    // Posé dans la base simulée du test, jamais par mock de module (`src/vi-mock-isolate-guard.test.ts`).
     const piege = { sceneId: 'scene-faute', schema: CURRENT_PROJECT_SCHEMA, savedAt: 1 } as unknown as EditorAutosaveRecord;
     Object.defineProperty(piege, 'scene', { enumerable: true, get() { throw new Error('faute du jeu'); } });
-    backend.store.set('scene-faute', piege);
+    sauvegardes.set('scene-faute', piege);
     try {
       const scene = { ...emptyScene(), id: 'scene-faute', label: 'v1' };
       await act(async () => {
@@ -170,7 +155,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(1600);
       });
-      const ecrit = backend.store.get('scene-faute');
+      const ecrit = sauvegardes.get('scene-faute');
       expect(ecrit === piege, 'le filet doit écrire malgré la faute').toBe(false);
       expect(ecrit?.scene.label).toBe('v2');
       vi.useRealTimers();
@@ -193,7 +178,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
         ] } }] } },
       ],
     } as unknown as Scene;
-    backend.store.set('scene-14', { sceneId: 'scene-14', scene: scene14, schema: 14, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    sauvegardes.set('scene-14', { sceneId: 'scene-14', scene: scene14, schema: 14, savedAt: 999 } as unknown as EditorAutosaveRecord);
     let recovered: Scene | null = null;
     await act(async () => {
       root.render(<Harness scene={{ ...emptyScene(), id: 'scene-14', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
@@ -210,7 +195,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('un enregistrement SANS marqueur de format est ÉCARTÉ et nommé : rien à restaurer, l’auteur le supprime', async () => {
-    backend.store.set('scene-sans-format', { sceneId: 'scene-sans-format', scene: { ...emptyScene(), id: 'scene-sans-format', label: 'ancienne' }, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    sauvegardes.set('scene-sans-format', { sceneId: 'scene-sans-format', scene: { ...emptyScene(), id: 'scene-sans-format', label: 'ancienne' }, savedAt: 999 } as unknown as EditorAutosaveRecord);
     let recovered: Scene | null = null;
     await act(async () => {
       root.render(<Harness scene={{ ...emptyScene(), id: 'scene-sans-format', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
@@ -221,7 +206,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => { probe().restore(); });
     expect(recovered).toBeNull();
     await act(async () => { probe().dismiss(); });
-    expect(backend.store.has('scene-sans-format')).toBe(false);
+    expect(sauvegardes.has('scene-sans-format')).toBe(false);
   });
 
   it('ignorer une reprise proposée supprime la sauvegarde locale et ne restaure rien', async () => {
@@ -238,7 +223,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       probe().dismiss();
     });
     expect(recovered).toBeNull();
-    expect(backend.store.has('scene-z')).toBe(false);
+    expect(sauvegardes.has('scene-z')).toBe(false);
   });
 
   it('deux scènes identiques (aucune divergence) ne proposent pas de reprise', async () => {
@@ -267,18 +252,18 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => {
       probe().hide();
     });
-    // Masquée : la modale n'a plus lieu d'être affichée, mais RIEN n'est supprimé du backend, et la
+    // Masquée : la modale n'a plus lieu d'être affichée, mais RIEN n'est supprimé du magasin, et la
     // proposition reste accessible (elle « peut revenir »).
     expect(probe().recovery).toBeNull();
     expect(probe().hasHiddenRecovery).toBe(true);
-    expect(backend.store.has('scene-hide')).toBe(true);
+    expect(sauvegardes.has('scene-hide')).toBe(true);
 
     await act(async () => {
       probe().show();
     });
     expect(proposee()?.label).toBe('récupérée');
     expect(probe().hasHiddenRecovery).toBe(false);
-    expect(backend.store.has('scene-hide')).toBe(true);
+    expect(sauvegardes.has('scene-hide')).toBe(true);
   });
 
   it('#834 audit-2 DÉFAUT 1 — hide() ne gèle plus l’écriture : le travail fait APRÈS un hide est protégé', async () => {
@@ -306,7 +291,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
         await vi.advanceTimersByTimeAsync(1600);
       });
 
-      expect(backend.store.get('scene-hide-work')?.scene.label).toBe('DEUX HEURES DE TRAVAIL');
+      expect(sauvegardes.get('scene-hide-work')?.scene.label).toBe('DEUX HEURES DE TRAVAIL');
     } finally {
       vi.useRealTimers();
     }
@@ -333,7 +318,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
         root.render(<Harness scene={sceneB} onRecovered={() => {}} />);
       });
 
-      expect(backend.store.get('scene-switch-a')?.scene.label).toBe('v1-avant-bascule');
+      expect(sauvegardes.get('scene-switch-a')?.scene.label).toBe('v1-avant-bascule');
     } finally {
       vi.useRealTimers();
     }
@@ -360,7 +345,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
           await vi.advanceTimersByTimeAsync(1000);
         });
       }
-      expect(backend.store.has('scene-continu')).toBe(true);
+      expect(sauvegardes.has('scene-continu')).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -376,7 +361,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0); // laisse la vérification de reprise conclure
       });
-      expect(backend.store.has('scene-unmount')).toBe(false);
+      expect(sauvegardes.has('scene-unmount')).toBe(false);
 
       const dirty = { ...scene, label: 'v1-en-vol' };
       await act(async () => {
@@ -386,7 +371,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         root.unmount();
       });
-      expect(backend.store.get('scene-unmount')?.scene.label).toBe('v1-en-vol');
+      expect(sauvegardes.get('scene-unmount')?.scene.label).toBe('v1-en-vol');
     } finally {
       vi.useRealTimers();
       // Le root est déjà démonté par ce test : `afterEach` ré-appelle `unmount()`, no-op sur un root démonté.
@@ -407,11 +392,11 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         root.render(<Harness scene={dirty} onRecovered={() => {}} />);
       });
-      expect(backend.store.has('scene-pagehide')).toBe(false);
+      expect(sauvegardes.has('scene-pagehide')).toBe(false);
       await act(async () => {
         window.dispatchEvent(new Event('pagehide'));
       });
-      expect(backend.store.get('scene-pagehide')?.scene.label).toBe('v1-avant-fermeture');
+      expect(sauvegardes.get('scene-pagehide')?.scene.label).toBe('v1-avant-fermeture');
     } finally {
       vi.useRealTimers();
     }

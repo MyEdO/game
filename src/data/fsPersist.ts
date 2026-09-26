@@ -5,7 +5,7 @@
  * page). Repli `download` quand l'API est absente (Firefox/Safari). Aucun serveur.
  */
 import { downloadText } from '../lib/fileIo';
-import { ecrireDansBase, lireDansBase, type BaseIdb } from '../lib/indexedDb';
+import { accesBase, type BaseIdb } from '../lib/indexedDb';
 
 /** File System Access présente dans ce navigateur. */
 export function fsApiDisponible(): boolean {
@@ -20,9 +20,9 @@ export const upgradeEditeurDeDonnees: BaseIdb['upgrade'] = (db) => {
   db.createObjectStore(STORE);
 };
 
-const BASE: BaseIdb = { nom: 'wfrp4-data-editor', version: 1, upgrade: upgradeEditeurDeDonnees };
-
 type DirHandle = FileSystemDirectoryHandle;
+
+const handles = accesBase({ nom: 'wfrp4-data-editor', version: 1, upgrade: upgradeEditeurDeDonnees }).magasin<DirHandle, string>(STORE);
 
 async function perm(h: DirHandle, request: boolean): Promise<boolean> {
   const opts = { mode: 'readwrite' } as const;
@@ -45,14 +45,14 @@ export async function connectDataDir(): Promise<DirHandle | null> {
     if (e instanceof DOMException && e.name === 'AbortError') return null;
     throw e;
   }
-  await ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).put(h, KEY); });
+  await handles.ecrire(h, KEY);
   return h;
 }
 
 /** Handle mémorisé + permission encore accordée (sans prompt) ? Sinon il faudra reconnecter. */
 export async function restoreDataDir(): Promise<{ handle: DirHandle; granted: boolean } | null> {
   if (!fsApiDisponible()) return null;
-  const h = (await lireDansBase(BASE, STORE, (m) => m.get(KEY))) as DirHandle | undefined;
+  const h = await handles.lire(KEY);
   if (!h) return null;
   return { handle: h, granted: await perm(h, false) };
 }
