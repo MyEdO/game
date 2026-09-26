@@ -11,7 +11,7 @@
 import { Effect, EncounterDef, Dialogue, Scene } from '../../state/scene';
 import { Icon } from '../Icon';
 import { EMPTY_FLOW } from '../../state/flow';
-import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER } from '../../state/combatEffects';
+import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappings as trappingsData, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion } from '../../data';
@@ -183,7 +183,7 @@ export function effectSummary(effect: Effect, ctx?: Pick<Ctx, 'scenes'>): string
     case 'ambitionLost': return `Ambition anéantie → Trauma${e.heroId ? ` → ${e.heroId}` : ''}`;
     case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'ops': {
-      const who = e.on === 'hero' ? '1ᵉʳ héros' : e.on === 'caster' ? 'lanceur' : e.on === 'target' ? 'cible' : 'groupe';
+      const who = e.on === 'hero' ? '1ᵉʳ héros' : 'groupe';
       return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}`;
     }
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
@@ -694,11 +694,10 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <div className="tf-row">
               <label className="dr">
                 Cible
+                {/* Les cibles qu'une SCÈNE peut viser, dérivées de la source unique du vocabulaire
+                    (`CIBLES_D_EFFET_DE_SCENE`) — celle-là même que la validation et le marcheur lisent. */}
                 <select value={e.on ?? 'party'} onChange={(ev) => upd({ on: ev.target.value })}>
-                  <option value="party">Tout le groupe</option>
-                  <option value="hero">Un héros</option>
-                  <option value="target">La cible (sort)</option>
-                  <option value="caster">Le lanceur (sort)</option>
+                  {CIBLES_D_EFFET_DE_SCENE.map((c) => <option key={c.on} value={c.on}>{c.label}</option>)}
                 </select>
               </label>
               {e.on === 'hero' && (

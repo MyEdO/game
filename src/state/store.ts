@@ -24,7 +24,7 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
+import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import { planClimb } from './climbMove';
@@ -2904,10 +2904,14 @@ export const useGame = create<GameState>((set, get) => ({
       if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
       set({ battle: { ...markActed(get, set, battle), action: null } });
     }
-    // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`) — exécutées par runFlow
-    // (butin de Test → fenêtre d'attribution ; if/test imbriqués gérés).
+    // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
+    // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
+    // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
+    // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
     const branch = effSuccess ? pt.onSuccess : pt.onFailure;
-    const issue = runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+    const issue = pt.subi
+      ? reprendreTestSubi(get, set, pt, effSuccess)
+      : runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
     // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
     //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
     //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes

@@ -26,12 +26,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTest';
 import { effectSourcesOf } from './triggeredEffects';
-import { EMPTY_FLOW, type Flow, type FlowTest } from './flow';
+import { EMPTY_FLOW, type Flow } from './flow';
+import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, type StakeRef } from '../data';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
@@ -43,24 +43,7 @@ import { makeRNG } from '../engine/dice';
 import { applyOps } from '../engine/ops';
 import { recomputeLoadout, parseDamage } from '../engine/items';
 import type { TriggeredEffect } from '../engine/flowCore';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
-
-const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
-
-/** NATURE de source de chaque famille de données qui porte des `FlowTest` (`EffectSourceKind`, table
- *  TOTALE côté Codex : `CATEGORY_BY_SOURCE_KIND`). Un fichier absent d'ici et porteur d'un `test`
- *  fait rougir la garde — c'est le point d'accrochage d'une famille NEUVE. */
-const KIND_PAR_FICHIER: Record<string, EffectSourceKind> = {
-  'spells.json': 'spell',
-  'trappings.json': 'trapping',
-  'etats.json': 'condition',
-  'talents.json': 'talent',
-  'traits.json': 'trait',
-  'maneuvers.json': 'maneuver',
-  'qualities.json': 'quality',
-  'symptoms.json': 'symptom',
-  'maladies.json': 'disease',
-};
+import { CATEGORY_BY_SOURCE_KIND, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
 
 /**
  * Familles dont l'ENJEU est POSÉ PAR LE PRODUCTEUR moteur (patron `miscast.mkTest`) — ni une exemption
@@ -149,31 +132,6 @@ function enjeuxDesRangeesDeCritique(): { entryId: string; stake: StakeRef | unde
       for (const n of noeuds) out.push({ entryId: e.id, stake: n.test.stake });
       const arme = crit.traumas.find((t) => t.critTrigger)?.critTrigger;
       if (e.escalation?.onNextCritWhileCondition) out.push({ entryId: e.id, stake: arme?.test.test.stake });
-    }
-  }
-  return out;
-}
-
-interface Noeud { fichier: string; entryId: string; ft: FlowTest }
-
-/** Tous les nœuds `kind:'test'` de la base app-owned, avec l'ENTRÉE qui les porte (id STABLE). */
-function noeudsDeTest(): Noeud[] {
-  const out: Noeud[] = [];
-  for (const fichier of listerDossier(DATA).filter((f) => f.endsWith('.json'))) {
-    let json: unknown;
-    try { json = JSON.parse(readFileSync(join(DATA, fichier), 'utf8')); } catch { continue; }
-    const entrees = Array.isArray(json) ? json : [json];
-    for (const entree of entrees) {
-      const id = (entree as { id?: string })?.id;
-      if (!id) continue;
-      const walk = (n: unknown): void => {
-        if (Array.isArray(n)) { n.forEach(walk); return; }
-        if (!n || typeof n !== 'object') return;
-        const o = n as Record<string, unknown>;
-        if (o.kind === 'test' && o.test) out.push({ fichier, entryId: id, ft: o.test as FlowTest });
-        for (const v of Object.values(o)) walk(v);
-      };
-      walk(entree);
     }
   }
   return out;

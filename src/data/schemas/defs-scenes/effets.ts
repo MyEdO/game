@@ -617,7 +617,11 @@ export const petitePriereSchema = z.strictObject({
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
 /** `Effect` (`state/scene.ts`) — l'union des 57 variantes. ANNOTÉE par le type manuscrit : la
- *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre. */
+ *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
+ *
+ *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
+ *  dit la FORME d'un Effet, pas le vocabulaire d'une scène. Ce qu'un Effet de SCÈNE peut viser se
+ *  juge à la scène (`validateScene` → `EFFECT_HANDLERS.ops.refs`, `state/combatEffects.ts`). */
 export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   z.discriminatedUnion('type', [
     setFlagSchema,

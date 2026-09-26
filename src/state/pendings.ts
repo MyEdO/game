@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './path';
@@ -169,6 +169,20 @@ export interface PendingTest {
   /** Ce Test EST le sous-Test d'un `onOwnTestFailed` (FM de palier 2 des Crampes routé en modale hors
    *  combat, MSRC 16) : sa résolution NE ré-émet PAS le trigger (garde de ré-entrance, `resolveTest`). */
   noOwnTestFailed?: boolean;
+  /** Test SUBI (porte `routeTriggeredTest`) : sa branche parle le vocabulaire `target`/`caster`, que
+   *  seul le marcheur d'ACTEUR honore (`runCombatFlow`, `combat/triggeredTest.ts`) ; le marcheur de
+   *  SCÈNE parle `party`/`hero`+`heroId`, que `runCombatFlow` n'honore pas. Ce marqueur NOMME le
+   *  vocabulaire de la branche : `resolveTest` la confie à `reprendreTestSubi`, qui la rejoue sur le
+   *  sujet (`actorId`). Ids SEULS, jamais de référence — un pending traverse JSON (save, coop).
+   *  `casterId` = le porteur quand il DIFFÈRE du sujet ; `source` = l'entité porteuse. Jumeaux de
+   *  `CascadeStepMeta.casterId`/`sourceKind`/`sourceEntityId`.
+   *
+   *  FRONTIÈRE : `subi` ne transporte que ce qui se RÉSOUT PAR ID depuis l'état. Les deux autres
+   *  contextes par référence d'`OPS_CTX_PAR_REFERENCE` (`engine/ops.ts`) — `hull`, `crew` — ne
+   *  franchissent pas la modale : leur porte est `bandeTriggeredTest`, qui les tient au site. Une
+   *  branche qui les exige (op `fall` d'un Critique de coque) lève à la reprise plutôt que de tirer
+   *  une hauteur sur une coque absente. */
+  subi?: { casterId?: string; source?: EffectSource };
   /** Branches du Test : des FLOWS (le nœud `test` du Flow ; `Effect.test` y est normalisé). */
   onSuccess?: Flow;
   onFailure?: Flow;

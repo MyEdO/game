@@ -129,7 +129,13 @@ import type { Scene } from './scene';
 // rouvre avec des effets qui portent ces champs et plus rien ne les lit : le −10 d'Esquive du sort, le
 // demi-Mouvement et le plafond de mains d'arme disparaissent en silence. La save se jette (politique 2
 // ci-dessus).
-export const SAVE_VERSION = 50;
+// 50 → 51 (#1874) : un `pendingTest` de Test SUBI hors combat porte `subi` — le vocabulaire
+// (`target`/`caster`) que sa branche parle, et sans lequel la reprise ne sait pas à qui elle
+// s'adresse. Une save de 50 rouvre avec un pending sans marqueur : `resolveTest` rejoue sa branche
+// par le marcheur de SCÈNE, qui lâche les feuilles `on:'target'` et donne les autres à TOUT le
+// groupe — les quatre héros tombent À Terre à la place du malade. La save se jette (politique 2
+// ci-dessus).
+export const SAVE_VERSION = 51;
 
 export interface SaveMeta {
   version: number;
