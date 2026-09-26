@@ -1,0 +1,2 @@
+RANGEES metier = [{"skillId":"metier","label":"Métier","spec":"imprimerie","characteristic":"dexterite","advances":0,"known":false,"inCareer":true,"nextCost":10},{"skillId":"metier","label":"Métier","spec":"forgeron","characteristic":"dexterite","advances":0,"known":false,"inCareer":true,"nextCost":10,"ajout":{"provenance":{"categorie":"talents","id":"maitre-artisan","spec":"forgeron"}}}]
+APRES ACHAT store = {"id":"metier","spec":"forgeron","characteristic":"dexterite","advances":1} xp= 990

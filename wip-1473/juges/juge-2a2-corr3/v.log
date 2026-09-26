@@ -1,0 +1,290 @@
+gen-registry: CREATURES ← 114 fichiers (src/gameIso/rig/creatures/defs) [inchangé]
+gen-registry: SCENARIOS ← 41 fichiers (src/scenes/test-scenarios) [inchangé]
+gen-registry: MONSTER_PARTS ← 24 fichiers (src/gameIso/rig/parts/monster/defs) [inchangé]
+gen-registry: QUAD_HEAD_DEFS ← 15 fichiers (src/gameIso/rig/quadruped/heads/defs) [inchangé]
+gen-registry: QUAD_TAIL_DEFS ← 12 fichiers (src/gameIso/rig/quadruped/tails/defs) [inchangé]
+gen-registry: QUAD_MANE_DEFS ← 3 fichiers (src/gameIso/rig/quadruped/manes/defs) [inchangé]
+gen-registry: QUAD_HARNAIS_DEFS ← 3 fichiers (src/gameIso/rig/quadruped/harnais/defs) [inchangé]
+gen-registry: APPENDAGE_DEFS ← 9 fichiers (src/gameIso/rig/parts/appendages/defs) [inchangé]
+gen-registry: PROSTHESIS_DEFS ← 7 fichiers (src/gameIso/rig/parts/prosthesis/defs) [inchangé]
+gen-registry: BODY_DEFS ← 2 fichiers (src/gameIso/rig/parts/bodies/defs) [inchangé]
+gen-registry: EYE_DEFS ← 9 fichiers (src/gameIso/rig/parts/eyes/defs) [inchangé]
+gen-registry: CAPE_DEFS ← 1 fichiers (src/gameIso/rig/parts/capes/defs) [inchangé]
+gen-registry: WING_DEFS ← 2 fichiers (src/gameIso/rig/parts/wings/defs) [inchangé]
+gen-registry: TENUE_DEFS ← 109 fichiers (src/gameIso/rig/parts/tenues/defs) [inchangé]
+gen-registry: HEAD_DEFS ← 10 fichiers (src/gameIso/rig/parts/heads/defs) [inchangé]
+gen-registry: HAIRSTYLE_DEFS ← 13 fichiers (src/gameIso/rig/parts/hairstyles/defs) [inchangé]
+gen-registry: SWARM_FORM_DEFS ← 8 fichiers (src/gameIso/rig/swarm/defs) [inchangé]
+gen-registry: ELEMENT_DEFS ← 70 fichiers (src/gameIso/rig/parts/elements/defs) [inchangé]
+gen-registry: WEAPON_DEFS ← 90 fichiers (src/gameIso/rig/parts/weapons/defs) [inchangé]
+gen-registry: SHIELD_DEFS ← 4 fichiers (src/gameIso/rig/parts/shields/defs) [inchangé]
+gen-registry: ARMOUR_DEFS ← 4 fichiers (src/gameIso/rig/parts/armour/defs) [inchangé]
+gen-registry: ENGIN_ARTS ← 13 fichiers (src/gameIso/rig/engin/defs) [inchangé]
+gen-registry: SHIP_ARTS ← 20 fichiers (src/gameIso/rig/ship/defs) [inchangé]
+gen-registry: LAND_ARTS ← 5 fichiers (src/gameIso/rig/land/defs) [inchangé]
+gen-registry: GABARIT_DEFS ← 13 fichiers (src/gameIso/rig/gabarits/defs) [inchangé]
+gen-registry: PLAN_LIST ← 18 fichiers (src/gameIso/rig/plans/defs) [inchangé]
+gen-registry: PROP_DEFS ← 123 fichiers (src/gameIso/catalog/decor/defs) [inchangé]
+gen-registry: ICON_FAMILIES ← 28 fichiers (src/ui/icons/defs) [inchangé]
+gen-registry: BACKDROP_DEFS ← 4 fichiers (src/ui/backdrops/defs) [inchangé]
+gen-registry: SOUND_DEFS ← 16 fichiers (src/audio/defs) [inchangé]
+gen-registry: SCHEMA_DEFS ← 124 fichiers (src/data/schemas/defs) [inchangé]
+gen-registry: SCHEMA_DEFS_SCENES ← 4 fichiers (src/data/schemas/defs-scenes) [inchangé]
+gen-registry: IDS_PAR_DATASET ← 4161 ids / 82 datasets (src/data/schemas/_ids.generated.ts) [inchangé]
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/claude/game/.wt-1473-t2
+
+ ✓ src/data/schemas/grammaire/grammaire.test.ts (105 tests) 1962ms
+   ✓ exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureur ne voit plus > la 1ʳᵉ entrée réelle de chaque def adopté est ACCEPTÉE — témoin positif de chaque paire 1077ms
+   ✓ exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureur ne voit plus > l’entrée AMPUTÉE d’une clé exigée est REFUSÉE — et le stock des paires est EXACTEMENT celui gelé 494ms
+ ✓ src/ui/ui-ratchets.test.ts (54 tests) 2300ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur 413ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet 303ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) chaque exemption est un SITE encore RÉEL — une ligne périmée se retire 320ms
+stderr | src/engine/combat-breakdown.test.ts > Taille — défense −2 DR/catégorie en parade (LDB 85 l.370) > un Moyen parant un Énorme subit −4 DR → l’attaquant touche
+[resolveOpposed] départage sans valeur nue (attaquant —, défenseur —) : repli sur les cibles 50/60 — poser la nue au PRODUCTEUR du jet (LDB 12 l.160).
+
+stderr | src/engine/combat-breakdown.test.ts > Taille — défense −2 DR/catégorie en parade (LDB 85 l.370) > en esquive, aucune pénalité de Taille → le défenseur évite
+[resolveOpposed] départage sans valeur nue (attaquant —, défenseur —) : repli sur les cibles 50/60 — poser la nue au PRODUCTEUR du jet (LDB 12 l.160).
+
+stderr | src/engine/combat-breakdown.test.ts > Taille — défense −2 DR/catégorie en parade (LDB 85 l.370) > attaquant de même Taille : parade normale (pas de pénalité)
+[resolveOpposed] départage sans valeur nue (attaquant —, défenseur —) : repli sur les cibles 50/60 — poser la nue au PRODUCTEUR du jet (LDB 12 l.160).
+
+ ✓ src/engine/combat-breakdown.test.ts (66 tests) 211ms
+ ✓ src/state/interlude-activities.test.ts (22 tests) 384ms
+ ✓ src/engine/activities.test.ts (57 tests) 294ms
+ ✓ src/comment-poison-guard.test.ts (75 tests) 3328ms
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 785ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 1104ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (hors tests) est au stock nominatif daté, et aucune ligne du stock n’est périmée 642ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 541ms
+ ✓ src/engine/careerSlots.test.ts (38 tests) 196ms
+ ✓ src/engine/advancement.test.ts (29 tests) 178ms
+ ✓ src/state/advancement.test.ts (21 tests) 188ms
+ ✓ src/engine/character.test.ts (22 tests) 116ms
+ ✓ src/state/partyFlow.test.ts (13 tests) 51ms
+ ✓ src/engine/traits/marque-de-tzeentch.test.ts (14 tests) 67ms
+ ✓ src/engine/combat-base-value.test.ts (12 tests) 105ms
+ ✓ src/data/schemas/validate.test.ts (14 tests) 223ms
+ ✓ src/engine/traits/marque-de-khorne.test.ts (11 tests) 94ms
+ ✓ src/engine/talentEffects.test.ts (8 tests) 45ms
+ ✓ src/scenes/test-scenarios/niveau-complet.test.ts (5 tests) 91ms
+ ✓ src/engine/meme-ref-guard.test.ts (2 tests) 3553ms
+   ✓ garde « même référence » — un seul prédicat (#1473) > Quel site de `src/` recode l’identité (id, spec) d’une référence au lieu de lire `memeRef` ? Réponse attendue : aucun. 3545ms
+ ✓ src/scenes/test-scenarios/96-presets-edo.test.ts (3 tests) 26ms
+ ✓ src/scenes/test-scenarios/index.test.ts (2 tests) 12ms
+ ✓ src/ui/InterludeScreen.test.tsx (24 tests) 1935ms
+   ✓ InterludeScreen — refonte LOT 6 > pied FIXE du volet : le PRÉ-JET (compétence + Difficulté) est visible AVANT « Entreprendre » (Revenus) 644ms
+ ✓ src/data/refs-migrated.test.ts (76 tests) 12290ms
+   ✓ appearance.species — id stable (species.json ∪ defs rig ∪ raceAppearance ∪ formes de nuée), jamais un libellé > scénarios de test (scene + extraScenes + party) : tout appearance.species résout dans le vocabulaire 432ms
+   ✓ refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, labels interdits) > scénarios de test (scene + extraScenes + party) : ref/weapon/tenue de chaque entité résolvent 363ms
+   ✓ postes d’artillerie — réf catalogue hydratée, jamais une base copiée (#222) > INVARIANT DUR — tout poste NEUF (`trappingId`) résout au catalogue et NE matérialise aucune base 329ms
+   ✓ GameOp — toute référence de la donnée committée résout dans son registre (#847) > le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée 9293ms
+   ✓ GameOp — toute référence de la donnée committée résout dans son registre (#847) > hors du parse d’op, toute chaîne d’un champ d’op à slot est jugée par le parse de son document 884ms
+ ✓ src/ui/editor/GameOpEditor.champs-a-choix.test.tsx (12 tests) 475ms
+stderr | src/ui/CharacterSheet.test.tsx > CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17) > Magie & Foi : le bouton « Lancer » est GATÉ pendant un combat, avec sa raison (jamais un clic sans effet)
+Warning: An update to SpellbookSection inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at SpellbookSection (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:473:29)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+
+stderr | src/ui/CharacterSheet.test.tsx > CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17) > gangrène du cadre : `data-corruption` posé selon le seuil de Corruption
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+
+stderr | src/ui/CharacterSheet.test.tsx > CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17) > badges de zone : critiques/séquelles en État (zones TOUCHÉES seulement) — ABSENTS des autres onglets
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to FicheBody inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at FicheBody (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:1018:22)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to FicheBody inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at FicheBody (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:1018:22)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+
+stderr | src/ui/CharacterSheet.test.tsx > Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIONS B) > les prothèses N’ONT PLUS d’achat PX dans la liste — l’onglet Avancement les porte
+Warning: An update to FicheBody inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at FicheBody (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:1018:22)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+Warning: An update to CharacterSheet inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CharacterSheet (/home/claude/game/.wt-1473-t2/src/ui/CharacterSheet.tsx:149:27)
+
+ ✓ src/ui/CharacterSheet.test.tsx (24 tests) 1618ms
+
+ Test Files  24 passed (24)
+      Tests  709 passed (709)
+   Start at  11:27:53
+   Duration  56.81s (transform 31.22s, setup 74.83s, collect 23.90s, tests 29.74s, environment 2.65s, prepare 449ms)
+
+vitest exit=0

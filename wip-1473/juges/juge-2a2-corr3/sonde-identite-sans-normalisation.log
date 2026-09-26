@@ -1,0 +1,8 @@
+src/engine/menace.ts:44:    (t) => t.talentId === 'resistance' && t.spec === menaceId,
+src/engine/seaNavigation.ts:80:  const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'oceans')?.advances ?? 0;
+src/engine/riverNavigation.ts:130:  const adv = (c.skills ?? []).find((s) => s.id === 'savoir' && s.spec === 'voies-fluviales')?.advances ?? 0;
+src/scenes/test-scenarios/voyage.ts:19:  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
+src/scenes/test-scenarios/15-commerce-fluvial.ts:31:  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
+src/scenes/test-scenarios/14-voyage-maritime.ts:22:  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
+src/scenes/test-scenarios/21-chute-du-greement.ts:30:  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
+src/scenes/test-scenarios/siege-enceinte.ts:291:        if (!gunner0.skills.some((s) => s.id === ref.id && s.spec === ref.spec))

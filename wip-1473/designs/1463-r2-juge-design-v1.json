@@ -1,0 +1,480 @@
+{
+  "summary": "Jugement adversarial d'un DESIGN de socle AVANT le codeur : lecture des sections d'ENTRÉE du brief (Invariant, cas canonique), trois lentilles de juge indépendantes, puis UN réfutateur PAR LENTILLE qui juge en un lot les bloquants d'une AUTRE lentille que la sienne (A→B, B→C, C→A ; plafond 8), synthèse calculée par le script. Rend le bloc à coller sous `## Design jugé :`. args : { brief, worktree, date, scratchpad }.",
+  "agentCount": 7,
+  "logs": [
+    "Phase Design : 3/3 lentilles rendues (0 agent(s) mort(s), leurs bloquants ne sont pas jugés).",
+    "Phase Design : 9 bloquant(s) distinct(s), 26 dit(s). 4 agents joués jusqu'ici.",
+    "Réfutation : 3 agents pour 9 bloquants (plafond 8 par réfutateur) — trou-de-socle → preuve-par-sonde, preuve-par-sonde → normes-et-poison, normes-et-poison → trou-de-socle.",
+    "Synthèse : RÉFUTÉ — 9 survivant(s) dont 5 structurel(s), 0 écarté(s), 7 agents joués : 1 de lecture, 3 de design, 3 de réfutation."
+  ],
+  "result": {
+    "verdict": "RÉFUTÉ",
+    "bloquants": [
+      {
+        "titre": "(a) Deux hôtes pour un même concept : D1 invente une seconde déclaration des listes d'entités d'un document `config`, alors que le def les déclare déjà par `exposition.edit.niche`",
+        "preuve": "Arbre épinglé : fc7b527fb (`git log --oneline -1` dans /home/claude/game/.wt-1473-r1). Les quatre defs déclarants de D4 déclarent DÉJÀ leurs listes comme datasets routés : `src/data/schemas/defs/crew-test-types.ts:43` `edit: { niche: { categories: ['crewTestTypes'] } }`, `sea-cargo.ts:141` `['seaCargo']`, `land-cargo.ts:137` `['landCargo']`, `mass-battle.ts:81` `['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards']`. Le contrat de ce socle, verbatim (`src/data/schemas/grammaire/document.ts:122-123`) : « `niche.categories` nomme les clés de catégorie Codex de CE document qui sont routées comme datasets (`CodexEdit.CATEGORY_DATASET`) : chacune édite UN champ tableau du document ». Ce socle est dérivé par `src/data/schemas/exposition-derivee.ts:114-120` (clé → fichier) et lié en mémoire par `src/data/overrides.ts` (`ARRAYS` : crewTestTypes, seaCargo, landCargo, massBattleWarMachines ; `NESTED_ARRAY_ROOT` : :350 et suivantes). La FK existante désigne d'ailleurs la liste par CETTE clé : `scripts/guards/lib/gameOpRefFk.mjs:107` `'skillDRBonus.testType': { registry: 'crewTestTypes' }`. Sonde (scratchpad `sonde-niche.mjs`, lecture seule, exit=0) sur les 41 defs `config` : chaque liste visée par D4 (`crew-test-types.json › types`, `sea-cargo.json › cargoes`, `land-cargo.json › cargoes`, `mass-battle.json › warMachines`) est déjà une catégorie `niche`. Seule manque la correspondance clé → CHAMP, aujourd'hui écrite à la main (`src/data/index.ts:2759` `crewTestTypes = (crewTestTypesJson as { types: … }).types` ; `:2486` `massBattleWarMachines = massBattleJson.warMachines`). D1 (`['types']`, `['cargoes']`…) ajoute une TROISIÈME façon de dire « ce config porte la liste X » (niche + binding de index.ts + D1), sans lien avec les deux autres.",
+        "correction": "Faire de D1 la déclaration qui MANQUE au socle `niche`, et non un socle voisin. Un def déclare UNE fois ses listes, clé → chemin (par exemple `export const listes = { crewTestTypes: 'types' }` au premier niveau, lisible textuellement par le générateur). `edit.niche.categories` en dérive (ou devient ce dictionnaire). Le générateur (D2), la source vivante (overrides) et la dérivation d'exposition lisent la même ligne. Le binding écrit à la main (`src/data/index.ts:2759`, `:2484-2488`) se dérive, ou se vérifie contre cette déclaration unique. Le brief doit nommer `exposition.edit.niche` dans « Cas canonique » et trancher la fusion. Son absence est un trou de grounding : la question 1 compare D1 à `discriminant`/`marqueurs` mais jamais à `niche`.",
+        "structurel": true,
+        "lentille": "trou-de-socle",
+        "auteurs": [
+          "trou-de-socle"
+        ],
+        "refutations": [
+          {
+            "titre": "(a) Deux hôtes pour un même concept : D1 invente une seconde déclaration des listes d'entités d'un document `config`, alors que le def les déclare déjà par `exposition.edit.niche`",
+            "refute": false,
+            "preuve": "CONFIRMÉ, non réfuté. Arbre fc7b527fb (`git log --oneline -1`). Les citations se vérifient : crew-test-types.ts:43, sea-cargo.ts:141, land-cargo.ts:137 et mass-battle.ts:81 déclarent bien `edit: { niche: { categories: [...] } }`. Le contrat de document.ts:122-123 est conforme au verbatim cité (« chacune édite UN champ tableau du document »), exposition-derivee.ts:114-120 fait la dérivation clé → fichier, et gameOpRefFk.mjs:107 porte `'skillDRBonus.testType': { registry: 'crewTestTypes' }`. Côté index.ts, :2759 (`crewTestTypes = (crewTestTypesJson as { types }).types`) et :2486 (`massBattleWarMachines = massBattleJson.warMachines`) sont écrits à la main.\n\nSonde : /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-r2.mts, lancée par `npx tsx … > out.txt 2>&1; echo exit=$?`, sortie exit=0.\n```\nimport { datasetArray, datasetFile, datasetEditable, DATASET_KEYS } from '…/src/data/overrides.ts';\nimport { idsVivants } from '…/src/data/schemas/grammaire/idsVivants.ts';\nimport { IDS_PAR_DATASET } from '…/src/data/schemas/_ids.generated.ts';\nimport * as D from '…/src/data/index.ts';\nconst cas = [['crewTestTypes','types',D.crewTestTypes],['seaCargo','cargoes',null],['landCargo','cargoes',null],['massBattleWarMachines','warMachines',D.massBattleWarMachines]];\nfor (const [cle,champ,bind] of cas){ const arr=datasetArray(cle); const f=datasetFile(cle); console.log(JSON.stringify({cle,champ,fichier:f,editable:datasetEditable(cle),n:arr.length,idsTextuels:arr.every(e=>typeof e.id==='string'),memeTableauQueBinding: bind? bind===arr:'n/a', idsVivantsDuFichier: idsVivants(f)??null, idsGeneresDuFichier: IDS_PAR_DATASET[f]??null})); }\n```\nSortie :\n- crewTestTypes → crew-test-types.json : n=10, idsTextuels=true, memeTableauQueBinding=true, idsVivants=null, idsGeneres=null\n- seaCargo → sea-cargo.json : n=13, idsTextuels=true\n- landCargo → land-cargo.json : n=9, idsTextuels=true\n- massBattleWarMachines → mass-battle.json : n=10, memeTableauQueBinding=true, idsVivants=null, idsGeneres=null\n\nLa clé `niche` désigne donc déjà, par IDENTITÉ en mémoire, exactement la liste que D1 redéclarerait (`['types']`, `['warMachines']`). D1 serait un troisième hôte du même fait. Le brief ne nomme `niche` qu'en question 4, jamais comme cas canonique.\n\nNuance, qui ne réfute pas : `sea-weather.ts:28` est `edit: { object: 'single' }` et non `niche`. Ses 4 listes (question 7 du brief) n'ont aujourd'hui aucune clé `niche`. La fusion demandée devra donc dire comment une liste NON éditée en niche se déclare. Le dictionnaire clé → chemin proposé par la correction le couvre, mais la dérivation « `niche.categories` en dérive » ne vaut pas dans l'autre sens.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "(b) D2 + D3 font du cas une VARIANTE : une table sœur et une branche `if (cible.liste)` dans `idsDe`, alors qu'une instance sans branche existe",
+        "preuve": "`src/data/schemas/grammaire/ref.ts:88-94`, verbatim : `function idsDe(type) { const dataset = cibleDe(type); return idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []; }`. D3 dit « `idsDe` lit la liste quand la cible en nomme une ». C'est une branche sur la forme de la cible (config vs entite), à côté de celle qui existe déjà pour le discriminant (`idDe` : `valeur === undefined ? idsDe(type) : idsSousListe(type, valeur)`, ref.ts `idDe`). D2 ajoute une table sœur à `IDS_PAR_DATASET`/`IDS_PAR_DISCRIMINANT` (`scripts/gen-registry.mjs:~690-700`), qui devient la 4e avec `IDS_PAR_MARQUEUR` du fil #1897 (`fae8ea80c`, même fichier). Côté vif, `SourceDIdsVivants` est clé par FICHIER (`src/data/schemas/grammaire/idsVivants.ts:21`). `ENTREES_VIVES` EXCLUT les nichés et lève sur un fichier revendiqué deux fois (`src/data/overrides.ts:450-460`, test `NESTED_ARRAY_ROOT[cle]) continue`) : une clé (fichier, liste) n'a donc aucune route vers le binding `ARRAYS.crewTestTypes`. Il faudrait une table écrite à la main (fichier, chemin) → DatasetKey, que rien ne déclare. Le « N+1 = une ligne dans le def + une ligne dans TYPES » de D5 est faux au site `src/data/overrides.ts:450-461`.",
+        "correction": "Instance plutôt que variante. La liste déclarée reçoit sa propre CLÉ d'emplacement dans le registre existant, que ce soit la clé `niche` (`crewTestTypes`) ou `crew-test-types.json#types`. `genIds` l'écrit dans `IDS_PAR_DATASET` (en ajustant la doc « premier niveau » et `verifieExhaustiviteDesIds`, `scripts/gen-registry.mjs:590`, qui garde « aucun id de RACINE »). `TYPES.crewTestType = { dataset: '<clé>' }`. `ENTREES_VIVES` indexe les nichés sous cette même clé (`ARRAYS[cle]` existe déjà). `idsDe`, `idsVivants` et `cibleDe` restent inchangés : zéro branche, zéro table sœur. La question 2 (discriminant ≡ emplacement) se tranche du même geste, ou se consigne explicitement comme hors lot. Le brief doit retirer « Un seul idsDe, aucune branche par type » tant que D3 garde sa cible `{dataset, liste}`.",
+        "structurel": true,
+        "lentille": "trou-de-socle",
+        "auteurs": [
+          "trou-de-socle"
+        ],
+        "refutations": [
+          {
+            "titre": "(b) D2 + D3 font du cas une VARIANTE : une table sœur et une branche `if (cible.liste)` dans `idsDe`, alors qu'une instance sans branche existe",
+            "refute": false,
+            "preuve": "CONFIRMÉ, non réfuté. Le verbatim de ref.ts:88-94 se vérifie : `idsDe` = `idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []`, clé = `cibleDe(type)` = `TYPES[type].dataset`. idsVivants.ts:21-26 déclare `SourceDIdsVivants.entrees(fichier)`, clé par FICHIER. overrides.ts:450-461 montre que `ENTREES_VIVES` fait `continue` sur `NESTED_ARRAY_ROOT[cle]` et lève sur un fichier revendiqué deux fois. Les quatre clés de D4 sont dans `NESTED_ARRAY_ROOT` (overrides.ts : `crewTestTypes`, `landCargo`, `seaCargo` sous le commentaire #1530, `massBattleWarMachines` en tête).\n\nMême sonde sonde-r2.mts (exit=0) :\n- `idsVivants('crew-test-types.json')` = null, `IDS_PAR_DATASET['crew-test-types.json']` = null. Idem pour sea-cargo.json, land-cargo.json et mass-battle.json.\n- `mass-battle.json` est revendiqué par 5 clés : [massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate].\n\nUne cible `{ dataset: 'mass-battle.json', liste: 'warMachines' }` ne se résout donc par aucune route existante. Il faudrait :\n- une branche dans `idsDe` (ou une nouvelle méthode de `SourceDIdsVivants`) ;\n- une table (fichier, chemin) → DatasetKey, que rien ne déclare, car la seule correspondance existante est clé niche → fichier, sans le champ.\n\nL'affirmation de D5, « N+1 = une ligne dans le def + une ligne dans TYPES », tombe au site overrides.ts:450-461. En revanche, la correction proposée (clé d'emplacement = clé niche, `ARRAYS[cle]` déjà vivant, de même identité que le binding : memeTableauQueBinding=true) s'appuie sur des pièces qui existent. Seul l'espace de noms de `IDS_PAR_DATASET` (des fichiers aujourd'hui) se mélangerait avec des clés de dataset : c'est à trancher, mais cela ne réfute pas le bloquant.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "D4 : `siegeRig` ne désigne PAS `mass-battle.json › warMachines[]` — désignateur réfuté, et avec lui la seule raison d'avoir `mass-battle.ts` au périmètre",
+        "preuve": "Arbre épinglé fc7b527fb. La sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-r2-v2.mjs a été lancée par `node … > sonde-r2-v2.out 2>&1; echo exit=$?`. Code de sortie : exit=1. Elle a fait une seule faute, la B5.\nCode B5 : `const wm = J('mass-battle.json').warMachines.map((w) => w.id); const rigs = []; deep(J('trappings.json'), (o) => { if (typeof o.siegeRig === 'string') rigs.push(o.siegeRig); }); check('B5 …', rigs.every((v) => wm.includes(v)), …)`\nSortie : `FAIL B5 trappings.siegeRig ⊂ mass-battle.warMachines — siegeRig distincts: [\"baliste\",\"catapulte\",\"batterie-tonnerre-de-feu\",\"canon-a-repetition\",\"canon-petit\",\"canon-lourd\",\"mortier\",\"pierrier\",\"belier\",\"canon-a-flammes\",\"mangonneau\",\"onagre\",\"trebuchet\"] ; hors: [\"catapulte\",\"canon-a-repetition\",\"canon-petit\",\"canon-lourd\",\"pierrier\",\"canon-a-flammes\"]`.\nLe champ vise en réalité le RIG de rendu. Source : src/gameIso/rig/siege-rig-resolution.test.ts:8, « tout `siegeRig` de la donnée résout une `CreatureDef` de plan NON bipède » ; il existe des defs `src/gameIso/rig/creatures/defs/Catapulte.ts`, `Canon-lourd.ts`, `Canon-a-repetition.ts`.\nOr le brief range ce lien parmi les « Désignateurs confirmés par le lecteur » (Constat).",
+        "correction": "Retirer `mass-battle.json › warMachines[] ← siegeRig` des désignateurs confirmés. Retirer `mass-battle.ts` et `trappings.ts:125` du périmètre. `warMachines` n'a alors aucun désignateur : selon l'invariant 4, aucun type ne s'ajoute. Le cas `siegeRig → CreatureDef` relève du registre `CREATURES`, qui est hors de ce lot.",
+        "structurel": false,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "D4 : `siegeRig` ne désigne PAS `mass-battle.json › warMachines[]` — désignateur réfuté, et avec lui la seule raison d'avoir `mass-battle.ts` au périmètre",
+            "refute": false,
+            "preuve": "CONFIRMÉ, arbre fc7b527fb (git log -1 : « feat(structures): refs #1473 refs #1468 — ops de Compétence typées, météo refOuSpec (R1-bis) »). Sonde rejouée en lecture seule (node -e sur mass-battle.json et trappings.json). warMachines = [baliste, belier, batterie-tonnerre-de-feu, canon-a-repetition-feu-d-enfer, canon, canon-a-flammes-nain, mangonneau, onagre, trebuchet, mortier]. siegeRig hors de cette liste : [catapulte, canon-a-repetition, canon-petit, canon-lourd, pierrier, canon-a-flammes]. src/gameIso/rig/siege-rig-resolution.test.ts:7-12 : siegeRig résout une `CreatureDef` de rendu (« siegeRig → CreatureDef de rendu »). src/data/schemas/defs/trappings.ts:125 : `siegeRig: z.string().optional()`, sans JSDoc. Le brief nuance le lien : l.63 « (typage non vérifié) », l.100 « si confirmé », l.138/141 « si la sonde le confirme ». Il le range pourtant sous le titre « Désignateurs confirmés par le lecteur » (l.53-54), et c'est ce Constat qui est faux. Côté normes : deux vocabulaires différents (ids de rig et ids de machine de guerre) se recoupent en partie (baliste, mortier, onagre…). C'est un homonyme trompeur, pas un désignateur. La correction se limite à des retouches du brief : retirer la ligne 63 et retirer mass-battle.ts/trappings.ts:125 du périmètre. Le design ne change pas.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D1/D3 ignorent la déclaration CANONIQUE déjà en place des listes d'entités d'un `config` (`exposition.edit.niche.categories` + bindings `ARRAYS`/`NESTED_ARRAY_ROOT`). Le régime vivant EXCLUT ces listes par construction et il est keyé par FICHIER",
+        "preuve": "1. Sortie de sonde : `A. configs à niche déclarée: … crew-test-types.json['crewTestTypes'] ; land-cargo.json['landCargo'] ; mass-battle.json['massBattlePowerEstimate', …, 'massBattleWarMachines', …] ; … sea-cargo.json['seaCargo'] ; …` : 23 `config` déclarent DÉJÀ leurs listes au def (crew-test-types.ts:43 `edit: { niche: { categories: ['crewTestTypes'] } }`, sea-cargo.ts:141, land-cargo.ts:137, mass-battle.ts:81).\n2. `OK C2 binding vivant crewTestTypes/seaCargo/landCargo/massBattleWarMachines existe dans ARRAYS` : chaque liste a déjà sa source vivante mutée en place (src/data/overrides.ts:180-260). La correspondance clé → chemin JSON est écrite À LA MAIN : src/data/index.ts:2759 `crewTestTypes = (crewTestTypesJson as { types: … }).types`.\n3. `OK C1 ENTREES_VIVES exclut les niches` : src/data/overrides.ts:453 `if (fichier === undefined || NESTED_ARRAY_ROOT[cle]) continue;`. Son JSDoc (:443-449) dit « NICHÉS EXCLUS — un tableau niché (`mass-battle.json` en porte 5 …) n'est pas la liste d'entrées de son document ». De plus, `SourceDIdsVivants.entrees(fichier)` (idsVivants.ts:21) est keyé par FICHIER : un fichier revendiqué par deux datasets lève (overrides.ts:454-458), et mass-battle.json en porte 5.\n4. Le brief ne nomme ni `niche`, ni `NESTED_ARRAY_ROOT`, ni `DATASET_FICHIER_DERIVE`, ni `ENTREES_VIVES`. D1 poserait donc une DEUXIÈME déclaration des mêmes listes, sous forme de chemin JSON, à côté de la clé de catégorie niche : deux sources à synchroniser (credo : « Une garde de synchronisation est un smell »).\n5. D3 « `SourceDIdsVivants` apprend » ne dit pas comment une clé (fichier, liste) retrouve le binding `ARRAYS[clé]`, alors que le lien vit en TS manuscrit.",
+        "correction": "Repenser D1 et D3 à partir de l'existant. Il faut choisir UNE déclaration par liste, lisible à la fois par le générateur (textuel) et par la couche donnée (binding vivant). Soit la clé niche devient la cible de type et porte son chemin, soit le chemin de D1 remplace la dérivation manuscrite d'index.ts. Il faut aussi trancher l'interface `SourceDIdsVivants` : (fichier, liste) ou clé de dataset. Et justifier la levée de l'exclusion écrite à overrides.ts:443-461. Cela répond aussi à la question 1 : l'unification doit englober `niche`, pas seulement `discriminant`/`marqueurs`.",
+        "structurel": true,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "D1/D3 ignorent la déclaration CANONIQUE déjà en place des listes d'entités d'un `config` (`exposition.edit.niche.categories` + bindings `ARRAYS`/`NESTED_ARRAY_ROOT`). Le régime vivant EXCLUT ces listes par construction et il est keyé par FICHIER",
+            "refute": false,
+            "preuve": "CONFIRMÉ sur le fond, avec une nuance. Déclarations existantes : crew-test-types.ts:43 `edit: { niche: { categories: ['crewTestTypes'] } }`, sea-cargo.ts:141, land-cargo.ts:137, mass-battle.ts:81 (5 catégories). Bindings : src/data/overrides.ts:419-421 `crewTestTypes/landCargo/seaCargo: { root: () => …RawJson }` dans `NESTED_ARRAY_ROOT` (:350). Exclusion vivante : overrides.ts:453 `if (fichier === undefined || NESTED_ARRAY_ROOT[cle]) continue;`, avec son JSDoc :443-449 « NICHÉS EXCLUS ». overrides.ts:454-458 lève une erreur si deux datasets revendiquent le même fichier. idsVivants.ts:20-25 : `entrees(fichier)` est keyé par fichier. La correspondance clé → chemin est écrite à la main : src/data/index.ts:2759 `(crewTestTypesJson as { types: … }).types`. Nuance : le brief NOMME bien `edit: { niche }` (l.120, question 4). L'affirmation « le brief ne nomme ni niche » est donc inexacte. Mais il n'y fait allusion qu'en question : D1 et D3 n'en tirent rien. Selon ma lentille, D1 introduit une SECONDE déclaration du même concept, les listes d'entités d'un config. Elle prendrait la forme d'un chemin JSON, à côté de la clé de catégorie niche, qui existe déjà. Cela ferait un doublon adjacent et deux sources à synchroniser (le credo le range parmi les smells). Il faut repenser où vit la déclaration unique, ainsi que l'interface de `SourceDIdsVivants`.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "Liste `cargoes` à DEUX populations (marchandises / marqueurs) + désignateurs `surplus`/`demande` omis. La cible `{ dataset, liste }` de D3 n'a pas de sous-liste, et aucun des régimes existants (discriminant, marqueurs) n'exprime « marchandise »",
+        "preuve": "Sortie de sonde : `B. sea-cargo.cargoes: 13 ids, dont marqueurs (echangeable:false): [\"commerce\",\"minimum-vital\"]` et `B4 naval-ports surplus/demande: 77 CLÉS désignatrices (absentes de D4), 11 distinctes`. Les tests B3/B4/B4b passent (inclusion vraie, aucun marqueur en surplus/demande aujourd'hui).\nLes désignateurs ne sont pas tous au brief :\n- D4 ne migre que `production` (naval-ports.ts:21, worldmap.ts:36) et `produits` (worldmap.ts:65).\n- Il omet `surplus`/`demande` : naval-ports.ts:22-23, worldmap.ts:38-39 (records keyés par id de cargaison), et `demande` terrestre à worldmap.ts:67.\nLes lecteurs n'admettent pas le même ensemble :\n- src/engine/seaVoyage.ts:102 `CARGOES = CARGO.cargoes.filter(isEchangeable)` et :108 `findCargoById` ne résolvent QUE les marchandises.\n- src/state/portFlow.ts:125 `for (const s of Object.keys(port.surplus ?? {})) ids.add(s);` sans aucun contrôle.\nUn `idDe` plat sur `cargoes` admettrait donc `commerce` comme clé de surplus, puis `findCargoById` rendrait undefined : c'est le silence même que le lot prétend fermer.\nAucun régime existant ne découpe cette sous-liste :\n- `idsParDiscriminant` exige une valeur TEXTUELLE sur chaque entrée (gen-registry.mjs:560-563 « discriminant … absent ou non textuel ») ; `echangeable` est absent des marchandises.\n- Les `marqueurs` de #1897 (fae8ea80c) sélectionnent les entrées qui PORTENT le champ, donc les marqueurs, jamais leur complément.\n- Les deux régimes exigent une racine LISTE (« sa racine n'est pas une LISTE d'entrées »). Pour un `config`, genIds fait d'ailleurs `continue` avant de lire le discriminant (`if (!idsDuFichier) continue;`), puisque `idsDuDataset` rend null (`A. config=41 idsDuDataset(racine)=null:41`).",
+        "correction": "La forme de cible de D3 doit composer liste × sous-liste : `production` admet toute l'entrée, `surplus`/`demande` n'admettent que les marchandises. Ce choix se fait AVANT le code, avec l'unification de la question 2. Il faut aussi ajouter `surplus`/`demande` (naval-ports.ts:22-23, worldmap.ts:38-39, :67) aux désignateurs de D4, via `z.record(idDe(…), …)`, dont le précédent est ship-criticals.ts:26. La même classe se présente pour land-cargo, qui a ses marqueurs `commerce`/`subsistance`.",
+        "structurel": true,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "Liste `cargoes` à DEUX populations (marchandises / marqueurs) + désignateurs `surplus`/`demande` omis. La cible `{ dataset, liste }` de D3 n'a pas de sous-liste, et aucun des régimes existants (discriminant, marqueurs) n'exprime « marchandise »",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Sonde node -e : sea-cargo.cargoes contient 11 marchandises dont `echangeable` est undefined, plus commerce:false et minimum-vital:false. land-cargo.cargoes a de même commerce:false et subsistance:false. naval-ports.json porte 77 clés surplus/demande. Le dépôt nomme DÉJÀ les deux populations par deux termes distincts. src/engine/seaVoyage.ts:99 `CARGO_ENTRIES` (entrées, marqueurs compris) et :102 `CARGOES = …filter(isEchangeable)`. :108 `findCargoById`, qui ne résout que les marchandises, et :110 `findCargoEntryById`, qui résout toute entrée. La cible `{ dataset, liste: 'cargoes' }` de D3 écrase cette distinction canonique sous un seul type. Désignateurs omis par D4 (brief l.99-101 : seuls production, worldmap:36 et :65) : naval-ports.ts:22-23 `surplus`/`demande: z.record(z.string(), …)`, worldmap.ts:38-39, et `demande: z.array(z.string())` au niveau terrestre (worldmap.ts:66). Lecteur sans garde : src/state/portFlow.ts:125 `for (const s of Object.keys(port.surplus ?? {})) ids.add(s);`, alors que :124 filtre la production par findCargoById. Le régime discriminant exige une racine LISTE (gen-registry.mjs:555). La forme de cible doit donc composer liste × sous-liste avant tout code : c'est une refonte de D3, pas une retouche.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "D4 : « l'entrée de gameOpRefFk.mjs meurt » est mécaniquement impossible, et la purge laisserait un résolveur orphelin hors périmètre",
+        "preuve": "Arbre fc7b527fb. `auditFieldCoverage` dérive les champs de l'union TS `GameOp` (src/engine/ops.ts), pas des schémas zod : `unclassified = derived.filter((f) => !declared.has(f.key))` (scripts/guards/lib/gameOpRefFk.mjs:243). Sonde (scratchpad/sonde-testtype.mjs) :\n```\nimport { auditFieldCoverage, GAMEOP_FIELD_TARGETS } from '/home/claude/game/.wt-1473-r1/scripts/guards/lib/gameOpRefFk.mjs';\nconst { derived, unclassified, stale } = auditFieldCoverage('/home/claude/game/.wt-1473-r1');\nconst k='skillDRBonus.testType';\nconsole.log('derived contient', k, derived.some(f=>f.key===k));\nconsole.log('unclassified', unclassified.length, 'stale', stale.length);\nconst declared = new Set(Object.keys(GAMEOP_FIELD_TARGETS).filter(x=>x!==k));\nconsole.log('si entrée retirée -> unclassified:', derived.filter(f=>!declared.has(f.key)).map(f=>f.key));\n```\nexit=0, sortie : `derived contient skillDRBonus.testType true` / `unclassified 0 stale 0` / `si entrée retirée -> unclassified: [ 'skillDRBonus.testType' ]`. Donc retirer l'entrée rend rouge `src/data/refs-migrated.test.ts` (« aucun champ de référence sans cible déclarée »). Précédent de l'arbre : les champs DÉJÀ passés à `idDe` gardent leur entrée `{ registry }` (removeTrait.traitId `idDe('trait')` mecanique.ts:89 ↔ gameOpRefFk.mjs `'removeTrait.traitId': { registry: 'traits' }` ; disease `idDe('maladie')` mecanique.ts:43 ↔ `'exposeDisease.disease': { registry: 'maladies' }`) — double garde déjà vivante sur toute la classe. En outre `resolvers.crewTestTypes` (src/data/refs-migrated.test.ts:1226) n'a aucun contrôle de péremption (seul le sens registre→résolveur est vérifié, refs-migrated.test.ts:1311) : il deviendrait orphelin, et ce fichier est HORS périmètre du brief.",
+        "correction": "Le brief dit ce que devient l'entrée : soit `{ coveredBy: 'idDe au parse (OP_DEFS)' }`, soit — mieux, et c'est la CLASSE — une règle générale : tout champ d'op dont OP_DEFS porte un `idDe` est classé couvert par dérivation, et les entrées `{ registry }` doublons des champs déjà migrés (traitId, disease…) passent dans le même geste. Ajouter `src/data/refs-migrated.test.ts` (résolveur `crewTestTypes`) au périmètre, ou justifier qu'il reste consommé.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "D4 : « l'entrée de gameOpRefFk.mjs meurt » est mécaniquement impossible, et la purge laisserait un résolveur orphelin hors périmètre",
+            "refute": false,
+            "preuve": "CONFIRMÉ sur l'arbre fc7b527fb. Le champ dérivé vient du type TS, pas de zod : src/engine/ops.ts:961 `{ op: 'skillDRBonus'; testType: string; ... }` reste une chaîne ouverte après migration du schéma. Or auditFieldCoverage (scripts/guards/lib/gameOpRefFk.mjs:240-246) classe `unclassified = derived.filter(!declared.has)`. Entrée actuelle : gameOpRefFk.mjs:107 `'skillDRBonus.testType': { registry: 'crewTestTypes' }`. Précédent déjà vivant : mecanique.ts:89 `traitId: idDe('trait')` garde l'entrée gameOpRefFk.mjs:99, et mecanique.ts:43 `idDe('maladie')` garde gameOpRefFk.mjs:116. Les deux socles (idDe au parse et la table FK des GameOp) couvrent donc déjà le même concept en double : c'est le défaut. Le résolveur `crewTestTypes: (id) => !!findCrewTestTypeById(id)` (src/data/refs-migrated.test.ts:1226) n'est contrôlé que dans le sens registre→résolveur (refs-migrated.test.ts:1311). Sonde rejouée (scratchpad/s1.mjs) :\n```\nimport { auditFieldCoverage, GAMEOP_FIELD_TARGETS } from '/home/claude/game/.wt-1473-r1/scripts/guards/lib/gameOpRefFk.mjs';\nconst { derived } = auditFieldCoverage('/home/claude/game/.wt-1473-r1');\nconst k='skillDRBonus.testType';\nconst declared = new Set(Object.keys(GAMEOP_FIELD_TARGETS).filter(x=>x!==k));\nconsole.log(derived.some(f=>f.key===k), derived.filter(f=>!declared.has(f.key)).map(f=>f.key));\n```\nexit=0, sortie : `true [ 'skillDRBonus.testType' ]`. Il suffit de retoucher le brief pour dire ce que devient l'entrée, et pour régler le doublon idDe/registry sur toute la classe.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D2/D3 : une QUATRIÈME table et un troisième régime vivant pour le même concept « emplacement d'ids d'un document », sous quatre termes concurrents",
+        "preuve": "Le concept existe déjà sous deux noms, et un troisième arrive par la branche en cours : `IDS_PAR_DISCRIMINANT` + `discriminantsDeclares` + `idsVivantsDuDiscriminant` (gen-registry.mjs:533, ref.ts:101, idsVivants.ts:47 ; variable `sousListes`, gen-registry.mjs:619) ; sur `chantier/1897-doublons-fan` (ab077ed7e) : `IDS_PAR_MARQUEUR` (_ids.generated.ts:190), `marqueursDeclares`, `idsVivantsDuMarqueur` (idsVivants.ts:77), et le JSDoc généré qui les appelle AUSSI « SOUS-LISTES » (fae8ea80c). D2 propose textuellement « une table sœur d'`IDS_PAR_DISCRIMINANT` » et D3 « `SourceDIdsVivants` apprend à rendre les éléments vivants d'une liste de `config` » : le stock monte à IDS_PAR_DATASET / _DISCRIMINANT / _MARQUEUR / +1, trois déclarations textuelles `export const …` lues par trois fonctions, trois `idsVivantsDu*`. Côté termes : « sous-liste » désigne déjà le filtre par discriminant (ref.ts:94 « Ids d'une SOUS-LISTE ») et le filtre par marqueur (1897), D1/D3 introduisent « liste » (cible `{ dataset, liste }`) pour un CHEMIN dans un document — deux mots proches pour deux axes différents (chemin vs filtre). La promesse D3 « un seul idsDe, aucune branche par type » est contredite par la forme proposée (trois lecteurs vivants distincts). Le brief pose la question 1 mais son design répond déjà « table sœur ».",
+        "correction": "Repenser le socle comme UN concept nommé une fois (ex. « emplacement » : document › chemin › filtre optionnel) : une seule déclaration par def, une seule table générée, un seul lecteur vivant ; discriminant et marqueur deviennent des FILTRES d'un emplacement, la liste de `config` son CHEMIN. Fixer l'ordre de fusion avec #1897 (mêmes fichiers : gen-registry.mjs, ref.ts, idsVivants.ts dont la signature passe à `ReadonlySet` sur ab077ed7e) dans le brief, et interdire « table sœur ».",
+        "structurel": true,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "D2/D3 : une QUATRIÈME table et un troisième régime vivant pour le même concept « emplacement d'ids d'un document », sous quatre termes concurrents",
+            "refute": false,
+            "preuve": "CONFIRMÉ : c'est une variante qui ajoute un axe, pas une instance du socle. Aujourd'hui, pour ajouter un axe, il faut un nouvel extracteur textuel, une nouvelle table générée, un nouveau lecteur et une nouvelle fonction vivante. Sur l'arbre : extracteur scripts/gen-registry.mjs:533-542 (`discriminantsDeclares`, regex `^export const discriminant`), variable `sousListes` à gen-registry.mjs:619, lecteur src/data/schemas/grammaire/ref.ts:94-101 (`idsSousListe` qui lit `IDS_PAR_DISCRIMINANT`, JSDoc « Ids d'une SOUS-LISTE »), fonction vivante src/data/schemas/grammaire/idsVivants.ts:47 (`idsVivantsDuDiscriminant`). La branche #1897 (ab077ed7e) ajoute un 3e axe sur le même patron : `git show ab077ed7e:src/data/schemas/_ids.generated.ts`, l.190 `export const IDS_PAR_MARQUEUR`, et le JSDoc l.185 qui l'appelle aussi « SOUS-LISTES » ; `git show ab077ed7e:.../idsVivants.ts`, l.69 et l.77 (`idsVivantsDuDiscriminant`, puis `idsVivantsDuMarqueur`, avec une signature passée à `ReadonlySet`). Le brief propose textuellement D2 « table sœur d'IDS_PAR_DISCRIMINANT » (brief l.89) et D3 « SourceDIdsVivants apprend à rendre les éléments vivants d'une liste de config » (l.94-96). Le 4e axe coûterait donc au moins 4 sites : gen-registry.mjs, _ids.generated.ts, ref.ts, idsVivants.ts. Cela contredit à la fois D5 (« une ligne dans son def + une ligne dans TYPES ») et la promesse « aucune branche par type ». Les questions 1 et 2 du brief voient le problème, mais le design ne le tranche pas. Il faut repenser le socle en UN seul concept (emplacement = document, chemin, filtre optionnel), avec un ordre de fusion fixé avec #1897.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "D4 : demi-migration des désignateurs de cargaison — `surplus`/`demande` restent en `z.string()` à côté de `production`/`produits` migrés",
+        "preuve": "Même type visé, mêmes objets : naval-ports.ts:22-23 `surplus: z.record(z.string(), z.number())`, `demande: z.record(z.string(), z.number())` ; worldmap.ts:38-39 idem pour `portProfileSchema` ; worldmap.ts:66 `demande: z.array(z.string())` pour `landMarketProfileSchema`. Sonde node sur la donnée : `naval-ports surplus keys 8 hors []`, `naval-ports demande keys 10 hors []` — toutes des ids de `sea-cargo.json › cargoes[]`. La grammaire sait typer une CLÉ de record : `z.record(idDe('shipStation'), formulaSchema)` (src/data/schemas/defs/ship-criticals.ts:26). D4 ne nomme que `naval-ports.production`, `worldmap.ts:36` et `:65`.",
+        "correction": "Étendre D4 et le périmètre à naval-ports.ts:22-23, worldmap.ts:38-39 et :66 (clés de record via `z.record(idDe(...), …)`), avec la sonde d'inclusion de chaque valeur ; ou prouver pourquoi ces sites ne désignent pas le même type.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "D4 : demi-migration des désignateurs de cargaison — `surplus`/`demande` restent en `z.string()` à côté de `production`/`produits` migrés",
+            "refute": false,
+            "preuve": "CONFIRMÉ. src/data/schemas/defs/naval-ports.ts:22-23 `surplus: z.record(z.string(), z.number())` et `demande: z.record(z.string(), z.number())` ; src/data/schemas/defs-scenes/worldmap.ts:37-39, avec le JSDoc « Colonne Surplus : id de cargaison → indice » qui nomme lui-même le type ; worldmap.ts:66 `demande: z.array(z.string())`, voisin de `produits`. La primitive typée pour une clé de record existe déjà : src/data/schemas/defs/ship-criticals.ts:26 `z.record(idDe('shipStation'), formulaSchema)`. Le patron couvre donc ce cas en une seule déclaration, et le brief ne l'applique pas. Sonde node (inclusion dans `sea-cargo.json › cargoes[].id`) : `surplus 8 hors []`, `demande 10 hors []`, `production 10 hors []`. Le brief (l.99-101 et Périmètre l.139-141) ne nomme que naval-ports.ts:21, worldmap.ts:36 et :65. Il suffit d'étendre le périmètre du brief.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "Constat faux sur `siegeRig` : il désigne un rig (espèce d'art), pas `mass-battle.json › warMachines[]`",
+        "preuve": "Sonde node : `warMachines` = baliste, belier, batterie-tonnerre-de-feu, canon-a-repetition-feu-d-enfer, canon, canon-a-flammes-nain, mangonneau, onagre, trebuchet, mortier ; valeurs de `siegeRig` hors de cette liste : catapulte ×3, canon-a-repetition ×3, canon-petit, canon-lourd ×3, pierrier, canon-a-flammes (12 sur 13 porteurs distincts testés). Consommateur réel : `appearance: { species: t.siegeRig! }` (src/ui/compendium/registry.ts:1556) et les defs de rig `src/gameIso/rig/creatures/defs/Canon-lourd.ts:6`. Même classe que le faux ami `voyage-stakes.kind` que le brief écarte.",
+        "correction": "Rayer `siegeRig` du Constat, de D4 et du périmètre (trappings.ts:125, mass-battle.ts) comme faux ami ; `mass-battle.warMachines[]` n'a alors aucun désignateur connu, donc aucun type (invariant 4).",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "Constat faux sur `siegeRig` : il désigne un rig (espèce d'art), pas `mass-battle.json › warMachines[]`",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Le brief classe le champ sous « Désignateurs confirmés par le lecteur » (l.52 et l.63), mais la sonde le dément. Sonde node : warMachines = [baliste, belier, batterie-tonnerre-de-feu, canon-a-repetition-feu-d-enfer, canon, canon-a-flammes-nain, mangonneau, onagre, trebuchet, mortier] ; sur 22 valeurs `siegeRig` dans trappings.json, 12 sont hors de cette liste : catapulte ×3, canon-a-repetition ×3, canon-petit, canon-lourd ×3, pierrier, canon-a-flammes. Le vrai socle cible est le registre d'art d'engin : src/gameIso/rig/engin/composeEngin.ts:23 (« Index des arts par id d'espèce… Les 13 `siegeRig` »), src/gameIso/rig/engin/artkit.ts:13 (« id d'espèce (clé de appearance.species / siegeRig) »), src/ui/compendium/registry.ts:1556 `appearance: { species: t.siegeRig! }`, src/gameIso/rig/bodyPlan.ts:182. Le champ est déclaré en src/data/schemas/defs/trappings.ts:125 `siegeRig: z.string().optional()`. Le brief prévoit « si confirmé » : la sonde infirme, donc la retouche consiste à rayer siegeRig et mass-battle.ts. Pas besoin de repenser le design.",
+            "structurel": false
+          }
+        ]
+      }
+    ],
+    "ecartes": [],
+    "dits": [
+      "Arbre jugé : fc7b527fb (/home/claude/game/.wt-1473-r1). Contrôle positif : `idsDuDataset` (scripts/gen-registry.mjs:515-526), `discriminantsDeclares` (:533-542), `idsParDiscriminant` (:553-…), `verifieExhaustiviteDesIds` (:590), `idsSousListe` (ref.ts:101) et `idsVivantsDuDiscriminant` (idsVivants.ts:47) sont présents aux lignes citées par le brief.",
+      "Constat du brief à re-mesurer : il annonce 26 configs à listes et ≈ 60 listes. Ma sonde naïve (`sonde-niche.mjs`, qui compte tout tableau dont un élément porte `id`) en rend 41 configs, 31 avec liste et 75 listes, mais elle compte à tort les `ops[]` à champ `id` (river/ship-criticals) et les sous-listes. Le décompte réel dépend de la définition d'« élément à id » : c'est au codeur de la fixer, sinon le fail-fast de D2 (« `id` qui est un libellé ») classera ces faux positifs arbitrairement.",
+      "Les listes de `sea-weather.json`, `sea-perils.json`, `arcane-phenomena.json`, `river-navigation.json`, `water-exposure.json` et `grapple.json` s'éditent en `edit: { object: 'single' }` (ex. sea-weather.ts:137). Elles n'ont donc ni catégorie `niche` ni binding `ARRAYS`. Les rendre référençables à chaud (question 4) demanderait une troisième route (parcours de `datasetObject`). C'est hors du commit 1 (sea-events), mais la forme retenue au bloquant 1 doit dire si une liste d'un `object: 'single'` peut s'y déclarer sans devenir `niche`.",
+      "Collision de fusion probable : le fil #1897 (`fae8ea80c`) réécrit `SourceDIdsVivants` (ajoute `version` et un mémo par fichier) et `DATASET_FICHIER_DERIVE`/`overrides.ts`, soit les mêmes interfaces que D3 étend. D3 doit se poser sur la forme d'après la fusion (mémo clé par emplacement), sinon deux régimes vifs coexistent.",
+      "Question 3 / #1528 : dans la forme « instance » (clé d'emplacement par liste), la collision entre listes ne se pose plus. Chaque liste est son propre espace, comme un dataset. En revanche `src/data/config-id-unique.test.ts` (« ANGLE MORT DIT : les espaces de noms NICHÉS … ne sont pas relevés ») doit dire ce qui change quand le registre indexe des ids nichés.",
+      "Invariant 4 contre « N+1 = une ligne » (question 7) : les deux tiennent si le générateur indexe les listes DÉCLARÉES au def (déclaration qui existe déjà pour l'édition, `niche`) et si `TYPES` ne reçoit que les listes désignées. Indexer « toutes les listes à id » par balayage structurel serait l'inverse du patron (le générateur nommerait par forme ce que le def ne déclare pas).",
+      "Arbre jugé : `git log --oneline -1` = fc7b527fb « feat(structures): refs #1473 refs #1468 — ops de Compétence typées, météo refOuSpec (R1-bis) ». Le design R2 n'est pas codé : la sonde juge donc la PRÉMISSE. L'arbre porte du WIP docs non commité (git status) qui n'a pas été attribué.",
+      "Sonde victorieuse à promouvoir : /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-r2-v2.mjs, sortie dans sonde-r2-v2.out (même dossier). Elle se lance par `node <sonde> > out 2>&1; echo exit=$?` et rend exit=1 (1 faute, B5). Elle importe `idsDuDataset` depuis scripts/gen-registry.mjs : l'import déclenche genAll, car la garde `process.argv[1]?.endsWith('gen-registry.mjs')` ne protège pas un import. Les lignes `[inchangé]` montrent qu'aucune écriture n'a eu lieu, mais un test promu devra se garder de cet effet de bord.",
+      "Erratum de sonde : la v1 (sonde-r2.mjs) passait des ids NUS à `idsDuDataset` et rendait à tort « 75 listes refusées ». La v2 corrigée rend `A. listes que idsDuDataset REFUSE (id=libellé): 0 []`. Sur les listes elles-mêmes, `idsDuDataset` marche : crew-test-types.types rend 10 ids, sea-cargo.cargoes 13, warMachines 10 (sonde-r2b.mjs, exit=0).",
+      "Comptes du constat à corriger. Mesuré : 41 `config` (41/41 à `idsDuDataset(racine)=null`), 31 documents à listes d'éléments à `id`, 75 listes dont 65 hors éléments imbriqués. Le brief dit 26 et ≈60. L'écart vient des tableaux `ops[]` à paramètre `id` (river-criticals, ship-criticals), qui ne sont pas des entités : une D2 « toutes les listes » indexerait ces faux positifs. C'est un argument pour D2 = listes DÉCLARÉES seulement (question 7).",
+      "Question 3 (collisions) : il y a 4 collisions d'id entre listes d'un même `config`, toutes hors listes d'entités. grapple.json « empetre » est dans init et win.* ; river-criticals « derive » et ship-criticals « a-terre » sont dans des `ops`. Aucune collision parmi les listes niche désignées.",
+      "Désignateurs confirmés par la sonde. B1 : `skillDRBonus.testType` = [\"affaler\",\"progression-poursuite\"], inclus dans crew-test-types.types. B2 : `roles`/`essential`, inclus dans crew-roles. B3 : naval-ports.production, inclus dans sea-cargo.cargoes.",
+      "Preuve mal étiquetée au Constat. src/state/portFlow.ts:124 (`if (findCargoById(p))`) est un filtrage VOULU des marqueurs, commenté aux lignes :122-123, et non un « id mort qui rend undefined en silence ». Le chemin qui passe sans contrôle est la ligne :125, les clés de `surplus`.",
+      "Worldmap : aucune donnée authorée hors tests ne porte `production:[`/`produits:[` (grep src sans test : 0). La migration de worldmap.ts:36/:65 se fait donc sans volume réel ; seul src/scenes/test-scenarios/15-commerce-fluvial.test.ts en porte.",
+      "`sea-weather.json` est un dataset-OBJET (`edit: { object: 'single' }`, dans `OBJECTS`, overrides.ts:279-300), pas une niche. Ses 4 listes n'ont aucun binding de liste. Le régime vivant de D3 devrait les lire par `datasetObject`, ce qui fait un deuxième chemin non décrit.",
+      "`gameOpRefFk.mjs:107` `'skillDRBonus.testType': { registry: 'crewTestTypes' }` meurt avec la migration. `STAKE_ENTRY_POOLS.crewTestTypes` (src/data/index.ts:442) est un autre prédicat d'appartenance sur la même liste, à mettre en regard d'un `idDe('crewTestType')`.",
+      "Arbre épinglé : `fc7b527fb feat(structures): refs #1473 refs #1468 — ops de Compétence typées, météo refOuSpec (R1-bis)`, conforme au brief (tête CI verte citée). Aucun design n'est encore codé : on juge le brief.",
+      "Collision du terme « marqueur » : dans le dépôt, il désigne déjà les « marqueurs de l'Index » à l'intérieur même des listes que D4 migre (`commerce`/`minimum-vital`, src/engine/seaVoyage.ts:97-111 ; `commerce`/`subsistance`, src/engine/landCargo.ts:47-66 ; worldmap.ts:64 « marchandises ET marqueurs »), et désignera sur #1897 un filtre par présence de champ (`export const marqueurs`). Si la question 1 réunit les déclarations sous « marqueurs », sea-cargo.ts porterait deux sens du mot. Le brief doit trancher le terme.",
+      "Cargaison : le type à ajouter vise l'ENTRÉE (`CargoEntry`, `findCargoEntryById` seaVoyage.ts:110), pas la marchandise (`CargoDef`, `findCargoById` :108 filtré par `echangeable`). Le Constat cite `findCargoById` comme consommateur de `production`, mais c'est `findCargoEntryById`/`isSeaTradeHub` qui lit ce champ. Le brief ne nomme pas les clés de `TYPES` pour sea/land-cargo, alors que les deux listes partagent des ids (produits-de-luxe, bois, vin, laine, commerce). Il faut deux noms distincts, fixés dans le brief.",
+      "`echangeable` (booléen porté par chaque entrée de `cargoes[]`) est lui-même une sous-liste par filtre : un site qui n'admet que des marchandises (un `surplus` ?) en aurait besoin. C'est un argument de plus pour un concept unique emplacement + filtre (bloquant 2).",
+      "Poison déjà en place dans le périmètre, à réécrire dans le geste et non à compléter : src/data/schemas/grammaire/mecanique.ts:108-111 « clé étrangère tenue par `scripts/guards/lib/gameOpRefFk.mjs` jusqu'à #1473 » (excuse datée par un ticket, sans tag entériné) ; scripts/gen-registry.mjs:586-588 « état courant, réversible : #1528 », que D2 modifie. Le nouveau JSDoc porte une réf nue, pas l'historique.",
+      "Sondes de D4 positives : `crew-test-types.types[].roles/essential` → crew-roles, 60 valeurs, 0 hors liste ; `naval-traits` `testType` = affaler, progression-poursuite, 0 hors liste ; `naval-ports.production`, 0 hors `sea-cargo.cargoes`.",
+      "Question 7 / invariant 4 : si D1 ne déclare que les listes désignées, le contrat « FERMÉ dans les deux sens » de `verifieExhaustiviteDesIds` (gen-registry.mjs:584) devient ouvert pour les listes de `config`. Un désignateur neuf vers une liste non déclarée ne produit aucun défaut. Le brief doit dire quelle garde ferme ce sens, sinon on crée une liste d'exemptions implicite (≈ 56 listes non déclarées).",
+      "Périmètre imprécis : « tests de scripts/gen-registry.mjs » ; le fichier réel est src/data/schemas/gen-contrat-ids.test.ts (cité par gen-registry.mjs:505).",
+      "Nommage des types : le singulier `crewTestType` (TYPES) face au pluriel `crewTestTypes` (Codex, index.ts:442, 2760) suit le précédent `crewRole`/`crewRoles`. C'est cohérent, pas un doublon.",
+      "Aucun processus laissé en vie. Seule écriture : la sonde, dans le scratchpad."
+    ],
+    "lecture": {
+      "casCanonique": [
+        {
+          "fichier": "scripts/gen-registry.mjs",
+          "ligne": 533,
+          "role": "discriminantsDeclares — lit `export const discriminant` par def, sans nommer de dataset au générateur"
+        },
+        {
+          "fichier": "scripts/gen-registry.mjs",
+          "ligne": 553,
+          "role": "idsParDiscriminant — indexe les ids d'une sous-liste discriminée en IDS_PAR_DISCRIMINANT, fail-fast nominatif"
+        },
+        {
+          "fichier": "src/data/schemas/grammaire/ref.ts",
+          "ligne": 101,
+          "role": "idsSousListe — lit IDS_PAR_DISCRIMINANT via cibleDe(type), régime lu par idDe pour la cible discriminée"
+        },
+        {
+          "fichier": "src/data/schemas/grammaire/idsVivants.ts",
+          "ligne": 47,
+          "role": "idsVivantsDuDiscriminant — régime « mémoire d'abord » pour les ids d'une sous-liste discriminée"
+        }
+      ],
+      "designJugePresent": false,
+      "invariants": [
+        {
+          "verbatim": "**Toute vérification d'un id contre le registre, sous `src/data/schemas`, passe par `idDe`.**",
+          "source": "brief R1 v1.1 de #1473, https://github.com/cgauche/game/issues/1473#issuecomment-5801354411",
+          "question": "où une référence à une entité se déclare-t-elle ? Sur une feuille `idDe(type)`, validée au parse contre le registre généré."
+        },
+        {
+          "verbatim": "`config` ⇒ aucun id, aucun défaut — non par principe, mais parce qu'`estRecordAIds` refuse une racine `id`+`label` (état courant, réversible : #1528).",
+          "source": "scripts/gen-registry.mjs:586-588 (JSDoc de `verifieExhaustiviteDesIds`)",
+          "question": "pourquoi le registre ne porte-t-il aucun id de RACINE d'un document `config` ? Réponse : par état courant, pas par principe. Elle ne dit rien des éléments à `id` qu'un `config` porte DANS ses listes : c'est la question de ce lot."
+        },
+        {
+          "verbatim": "Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.",
+          "source": "src/data/schemas/grammaire/document.ts:21",
+          "question": "qu'est-ce qu'une famille de document ? Un emballage de fichier, pas une nature d'entité. Un document `config` peut donc porter des entités dans une liste."
+        },
+        {
+          "verbatim": "Un type s'ajoute avec le lot qui le migre, jamais « au cas où ».",
+          "source": "src/data/schemas/grammaire/ref.ts:44, dernière phrase du JSDoc de TYPES (:38-44)",
+          "question": "quand un type entre-t-il dans `TYPES` ? Réponse : dans le commit qui migre ses sites de référence vers `idDe`, jamais avant. Portée pour ce lot : D4 n'ajoute un type de liste de `config` qu'avec la migration d'au moins un désignateur réel ; une liste que rien ne désigne n'entre pas dans `TYPES`, même si D2 l'indexe (question 7)."
+        }
+      ],
+      "perimetre": [
+        "scripts/gen-registry.mjs",
+        "src/data/schemas/_ids.generated.ts",
+        "src/data/schemas/grammaire/ref.ts",
+        "src/data/schemas/grammaire/idsVivants.ts",
+        "src/data/versionDataset.ts",
+        "src/data/overrides.ts",
+        "src/data/schemas/grammaire/grammaire.test.ts",
+        "tests de scripts/gen-registry.mjs",
+        "src/data/schemas/defs/crew-test-types.ts",
+        "src/data/schemas/defs/sea-cargo.ts",
+        "src/data/schemas/defs/land-cargo.ts",
+        "src/data/schemas/defs/mass-battle.ts",
+        "src/data/schemas/grammaire/mecanique.ts",
+        "src/data/schemas/defs/naval-ports.ts:21",
+        "src/data/schemas/defs-scenes/worldmap.ts:36",
+        "src/data/schemas/defs-scenes/worldmap.ts:65",
+        "src/data/schemas/defs/trappings.ts:125",
+        "scripts/guards/lib/gameOpRefFk.mjs"
+      ],
+      "primitives": [
+        "idDe",
+        "TYPES",
+        "IDS_PAR_DISCRIMINANT",
+        "idsSousListe",
+        "idsVivantsDuDiscriminant",
+        "discriminantsDeclares",
+        "idsParDiscriminant",
+        "idsDuDataset",
+        "verifieExhaustiviteDesIds",
+        "estRecordAIds",
+        "FamilleDocument"
+      ],
+      "manques": [
+        "Invariant 4 : la portée « D4 n'ajoute un type que s'il est désigné » n'est pas une question posée dans l'entrée elle-même mais une glose ajoutée après le verbatim — la citation source répond à « quand un type entre-t-il dans TYPES » sans mentionner explicitement le cas config/liste ; à vérifier si elle couvre réellement la portée qu'on lui prête.",
+        "Le brief ne porte aucune section « ## Design jugé : » avec verdict — le design D1-D5 est proposé « à attaquer », pas jugé.",
+        "6 questions ouvertes au jugement (unification discriminant/marqueurs/D1, forme de cible {dataset,liste} vs discriminée, cohérence avec #1528, régime vivant à l'atelier, alternative document `entite`, périmètre d'indexation D2 vs N+1) restent sans réponse — aucun verdict de conception n'est fourni au codeur.",
+        "Le brief ne fournit pas de casCanonique nommé explicitement sous ce titre autre que le patron discriminant/materials — aucun autre cas déjà couvert n'est cité.",
+        "Aucune section ne confirme la sonde du désignateur `siegeRig` (trappings.ts:125) ni le typage de `params` de sea-events.json ; le brief les renvoie explicitement hors lot / à confirmer par le codeur (question 6)."
+      ]
+    },
+    "agents": {
+      "lecture": 1,
+      "design": 3,
+      "refutation": 3,
+      "total": 7
+    },
+    "date": "2026-09-24",
+    "refutationIncomplete": false,
+    "bloc": "**RÉFUTÉ** — workflow `juge-design-socle`, run `<runId du lancement, cité par l'orchestrateur>`, 2026-09-24.\n9 bloquant(s) survivant(s), 0 écarté(s) par réfutation.\n1. [structurel] **(a) Deux hôtes pour un même concept : D1 invente une seconde déclaration des listes d'entités d'un document `config`, alors que le def les déclare déjà par `exposition.edit.niche`** (lentille trou-de-socle) — Arbre épinglé : fc7b527fb (`git log --oneline -1` dans /home/claude/game/.wt-1473-r1). Les quatre defs déclarants de D4 déclarent DÉJÀ leurs listes comme datasets routés : `src/data/schemas/defs/crew-test-types.ts:43` `edit: { niche: { categories: ['crewTestTypes'] } }`, `sea-cargo.ts:141` `['seaCargo']`, `land-cargo.ts:137` `['landCargo']`, `mass-battle.ts:81` `['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards']`. Le contrat de ce socle, verbatim (`src/data/schemas/grammaire/document.ts:122-123`) : « `niche.categories` nomme les clés de catégorie Codex de CE document qui sont routées comme datasets (`CodexEdit.CATEGORY_DATASET`) : chacune édite UN champ tableau du document ». Ce socle est dérivé par `src/data/schemas/exposition-derivee.ts:114-120` (clé → fichier) et lié en mémoire par `src/data/overrides.ts` (`ARRAYS` : crewTestTypes, seaCargo, landCargo, massBattleWarMachines ; `NESTED_ARRAY_ROOT` : :350 et suivantes). La FK existante désigne d'ailleurs la liste par CETTE clé : `scripts/guards/lib/gameOpRefFk.mjs:107` `'skillDRBonus.testType': { registry: 'crewTestTypes' }`. Sonde (scratchpad `sonde-niche.mjs`, lecture seule, exit=0) sur les 41 defs `config` : chaque liste visée par D4 (`crew-test-types.json › types`, `sea-cargo.json › cargoes`, `land-cargo.json › cargoes`, `mass-battle.json › warMachines`) est déjà une catégorie `niche`. Seule manque la correspondance clé → CHAMP, aujourd'hui écrite à la main (`src/data/index.ts:2759` `crewTestTypes = (crewTestTypesJson as { types: … }).types` ; `:2486` `massBattleWarMachines = massBattleJson.warMachines`). D1 (`['types']`, `['cargoes']`…) ajoute une TROISIÈME façon de dire « ce config porte la liste X » (niche + binding de index.ts + D1), sans lien avec les deux autres. → Faire de D1 la déclaration qui MANQUE au socle `niche`, et non un socle voisin. Un def déclare UNE fois ses listes, clé → chemin (par exemple `export const listes = { crewTestTypes: 'types' }` au premier niveau, lisible textuellement par le générateur). `edit.niche.categories` en dérive (ou devient ce dictionnaire). Le générateur (D2), la source vivante (overrides) et la dérivation d'exposition lisent la même ligne. Le binding écrit à la main (`src/data/index.ts:2759`, `:2484-2488`) se dérive, ou se vérifie contre cette déclaration unique. Le brief doit nommer `exposition.edit.niche` dans « Cas canonique » et trancher la fusion. Son absence est un trou de grounding : la question 1 compare D1 à `discriminant`/`marqueurs` mais jamais à `niche`.\n2. [structurel] **(b) D2 + D3 font du cas une VARIANTE : une table sœur et une branche `if (cible.liste)` dans `idsDe`, alors qu'une instance sans branche existe** (lentille trou-de-socle) — `src/data/schemas/grammaire/ref.ts:88-94`, verbatim : `function idsDe(type) { const dataset = cibleDe(type); return idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []; }`. D3 dit « `idsDe` lit la liste quand la cible en nomme une ». C'est une branche sur la forme de la cible (config vs entite), à côté de celle qui existe déjà pour le discriminant (`idDe` : `valeur === undefined ? idsDe(type) : idsSousListe(type, valeur)`, ref.ts `idDe`). D2 ajoute une table sœur à `IDS_PAR_DATASET`/`IDS_PAR_DISCRIMINANT` (`scripts/gen-registry.mjs:~690-700`), qui devient la 4e avec `IDS_PAR_MARQUEUR` du fil #1897 (`fae8ea80c`, même fichier). Côté vif, `SourceDIdsVivants` est clé par FICHIER (`src/data/schemas/grammaire/idsVivants.ts:21`). `ENTREES_VIVES` EXCLUT les nichés et lève sur un fichier revendiqué deux fois (`src/data/overrides.ts:450-460`, test `NESTED_ARRAY_ROOT[cle]) continue`) : une clé (fichier, liste) n'a donc aucune route vers le binding `ARRAYS.crewTestTypes`. Il faudrait une table écrite à la main (fichier, chemin) → DatasetKey, que rien ne déclare. Le « N+1 = une ligne dans le def + une ligne dans TYPES » de D5 est faux au site `src/data/overrides.ts:450-461`. → Instance plutôt que variante. La liste déclarée reçoit sa propre CLÉ d'emplacement dans le registre existant, que ce soit la clé `niche` (`crewTestTypes`) ou `crew-test-types.json#types`. `genIds` l'écrit dans `IDS_PAR_DATASET` (en ajustant la doc « premier niveau » et `verifieExhaustiviteDesIds`, `scripts/gen-registry.mjs:590`, qui garde « aucun id de RACINE »). `TYPES.crewTestType = { dataset: '<clé>' }`. `ENTREES_VIVES` indexe les nichés sous cette même clé (`ARRAYS[cle]` existe déjà). `idsDe`, `idsVivants` et `cibleDe` restent inchangés : zéro branche, zéro table sœur. La question 2 (discriminant ≡ emplacement) se tranche du même geste, ou se consigne explicitement comme hors lot. Le brief doit retirer « Un seul idsDe, aucune branche par type » tant que D3 garde sa cible `{dataset, liste}`.\n3. **D4 : `siegeRig` ne désigne PAS `mass-battle.json › warMachines[]` — désignateur réfuté, et avec lui la seule raison d'avoir `mass-battle.ts` au périmètre** (lentille preuve-par-sonde) — Arbre épinglé fc7b527fb. La sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-r2-v2.mjs a été lancée par `node … > sonde-r2-v2.out 2>&1; echo exit=$?`. Code de sortie : exit=1. Elle a fait une seule faute, la B5.\nCode B5 : `const wm = J('mass-battle.json').warMachines.map((w) => w.id); const rigs = []; deep(J('trappings.json'), (o) => { if (typeof o.siegeRig === 'string') rigs.push(o.siegeRig); }); check('B5 …', rigs.every((v) => wm.includes(v)), …)`\nSortie : `FAIL B5 trappings.siegeRig ⊂ mass-battle.warMachines — siegeRig distincts: [\"baliste\",\"catapulte\",\"batterie-tonnerre-de-feu\",\"canon-a-repetition\",\"canon-petit\",\"canon-lourd\",\"mortier\",\"pierrier\",\"belier\",\"canon-a-flammes\",\"mangonneau\",\"onagre\",\"trebuchet\"] ; hors: [\"catapulte\",\"canon-a-repetition\",\"canon-petit\",\"canon-lourd\",\"pierrier\",\"canon-a-flammes\"]`.\nLe champ vise en réalité le RIG de rendu. Source : src/gameIso/rig/siege-rig-resolution.test.ts:8, « tout `siegeRig` de la donnée résout une `CreatureDef` de plan NON bipède » ; il existe des defs `src/gameIso/rig/creatures/defs/Catapulte.ts`, `Canon-lourd.ts`, `Canon-a-repetition.ts`.\nOr le brief range ce lien parmi les « Désignateurs confirmés par le lecteur » (Constat). → Retirer `mass-battle.json › warMachines[] ← siegeRig` des désignateurs confirmés. Retirer `mass-battle.ts` et `trappings.ts:125` du périmètre. `warMachines` n'a alors aucun désignateur : selon l'invariant 4, aucun type ne s'ajoute. Le cas `siegeRig → CreatureDef` relève du registre `CREATURES`, qui est hors de ce lot.\n4. [structurel] **D1/D3 ignorent la déclaration CANONIQUE déjà en place des listes d'entités d'un `config` (`exposition.edit.niche.categories` + bindings `ARRAYS`/`NESTED_ARRAY_ROOT`). Le régime vivant EXCLUT ces listes par construction et il est keyé par FICHIER** (lentille preuve-par-sonde) — 1. Sortie de sonde : `A. configs à niche déclarée: … crew-test-types.json['crewTestTypes'] ; land-cargo.json['landCargo'] ; mass-battle.json['massBattlePowerEstimate', …, 'massBattleWarMachines', …] ; … sea-cargo.json['seaCargo'] ; …` : 23 `config` déclarent DÉJÀ leurs listes au def (crew-test-types.ts:43 `edit: { niche: { categories: ['crewTestTypes'] } }`, sea-cargo.ts:141, land-cargo.ts:137, mass-battle.ts:81).\n2. `OK C2 binding vivant crewTestTypes/seaCargo/landCargo/massBattleWarMachines existe dans ARRAYS` : chaque liste a déjà sa source vivante mutée en place (src/data/overrides.ts:180-260). La correspondance clé → chemin JSON est écrite À LA MAIN : src/data/index.ts:2759 `crewTestTypes = (crewTestTypesJson as { types: … }).types`.\n3. `OK C1 ENTREES_VIVES exclut les niches` : src/data/overrides.ts:453 `if (fichier === undefined || NESTED_ARRAY_ROOT[cle]) continue;`. Son JSDoc (:443-449) dit « NICHÉS EXCLUS — un tableau niché (`mass-battle.json` en porte 5 …) n'est pas la liste d'entrées de son document ». De plus, `SourceDIdsVivants.entrees(fichier)` (idsVivants.ts:21) est keyé par FICHIER : un fichier revendiqué par deux datasets lève (overrides.ts:454-458), et mass-battle.json en porte 5.\n4. Le brief ne nomme ni `niche`, ni `NESTED_ARRAY_ROOT`, ni `DATASET_FICHIER_DERIVE`, ni `ENTREES_VIVES`. D1 poserait donc une DEUXIÈME déclaration des mêmes listes, sous forme de chemin JSON, à côté de la clé de catégorie niche : deux sources à synchroniser (credo : « Une garde de synchronisation est un smell »).\n5. D3 « `SourceDIdsVivants` apprend » ne dit pas comment une clé (fichier, liste) retrouve le binding `ARRAYS[clé]`, alors que le lien vit en TS manuscrit. → Repenser D1 et D3 à partir de l'existant. Il faut choisir UNE déclaration par liste, lisible à la fois par le générateur (textuel) et par la couche donnée (binding vivant). Soit la clé niche devient la cible de type et porte son chemin, soit le chemin de D1 remplace la dérivation manuscrite d'index.ts. Il faut aussi trancher l'interface `SourceDIdsVivants` : (fichier, liste) ou clé de dataset. Et justifier la levée de l'exclusion écrite à overrides.ts:443-461. Cela répond aussi à la question 1 : l'unification doit englober `niche`, pas seulement `discriminant`/`marqueurs`.\n5. [structurel] **Liste `cargoes` à DEUX populations (marchandises / marqueurs) + désignateurs `surplus`/`demande` omis. La cible `{ dataset, liste }` de D3 n'a pas de sous-liste, et aucun des régimes existants (discriminant, marqueurs) n'exprime « marchandise »** (lentille preuve-par-sonde) — Sortie de sonde : `B. sea-cargo.cargoes: 13 ids, dont marqueurs (echangeable:false): [\"commerce\",\"minimum-vital\"]` et `B4 naval-ports surplus/demande: 77 CLÉS désignatrices (absentes de D4), 11 distinctes`. Les tests B3/B4/B4b passent (inclusion vraie, aucun marqueur en surplus/demande aujourd'hui).\nLes désignateurs ne sont pas tous au brief :\n- D4 ne migre que `production` (naval-ports.ts:21, worldmap.ts:36) et `produits` (worldmap.ts:65).\n- Il omet `surplus`/`demande` : naval-ports.ts:22-23, worldmap.ts:38-39 (records keyés par id de cargaison), et `demande` terrestre à worldmap.ts:67.\nLes lecteurs n'admettent pas le même ensemble :\n- src/engine/seaVoyage.ts:102 `CARGOES = CARGO.cargoes.filter(isEchangeable)` et :108 `findCargoById` ne résolvent QUE les marchandises.\n- src/state/portFlow.ts:125 `for (const s of Object.keys(port.surplus ?? {})) ids.add(s);` sans aucun contrôle.\nUn `idDe` plat sur `cargoes` admettrait donc `commerce` comme clé de surplus, puis `findCargoById` rendrait undefined : c'est le silence même que le lot prétend fermer.\nAucun régime existant ne découpe cette sous-liste :\n- `idsParDiscriminant` exige une valeur TEXTUELLE sur chaque entrée (gen-registry.mjs:560-563 « discriminant … absent ou non textuel ») ; `echangeable` est absent des marchandises.\n- Les `marqueurs` de #1897 (fae8ea80c) sélectionnent les entrées qui PORTENT le champ, donc les marqueurs, jamais leur complément.\n- Les deux régimes exigent une racine LISTE (« sa racine n'est pas une LISTE d'entrées »). Pour un `config`, genIds fait d'ailleurs `continue` avant de lire le discriminant (`if (!idsDuFichier) continue;`), puisque `idsDuDataset` rend null (`A. config=41 idsDuDataset(racine)=null:41`). → La forme de cible de D3 doit composer liste × sous-liste : `production` admet toute l'entrée, `surplus`/`demande` n'admettent que les marchandises. Ce choix se fait AVANT le code, avec l'unification de la question 2. Il faut aussi ajouter `surplus`/`demande` (naval-ports.ts:22-23, worldmap.ts:38-39, :67) aux désignateurs de D4, via `z.record(idDe(…), …)`, dont le précédent est ship-criticals.ts:26. La même classe se présente pour land-cargo, qui a ses marqueurs `commerce`/`subsistance`.\n6. **D4 : « l'entrée de gameOpRefFk.mjs meurt » est mécaniquement impossible, et la purge laisserait un résolveur orphelin hors périmètre** (lentille normes-et-poison) — Arbre fc7b527fb. `auditFieldCoverage` dérive les champs de l'union TS `GameOp` (src/engine/ops.ts), pas des schémas zod : `unclassified = derived.filter((f) => !declared.has(f.key))` (scripts/guards/lib/gameOpRefFk.mjs:243). Sonde (scratchpad/sonde-testtype.mjs) :\n```\nimport { auditFieldCoverage, GAMEOP_FIELD_TARGETS } from '/home/claude/game/.wt-1473-r1/scripts/guards/lib/gameOpRefFk.mjs';\nconst { derived, unclassified, stale } = auditFieldCoverage('/home/claude/game/.wt-1473-r1');\nconst k='skillDRBonus.testType';\nconsole.log('derived contient', k, derived.some(f=>f.key===k));\nconsole.log('unclassified', unclassified.length, 'stale', stale.length);\nconst declared = new Set(Object.keys(GAMEOP_FIELD_TARGETS).filter(x=>x!==k));\nconsole.log('si entrée retirée -> unclassified:', derived.filter(f=>!declared.has(f.key)).map(f=>f.key));\n```\nexit=0, sortie : `derived contient skillDRBonus.testType true` / `unclassified 0 stale 0` / `si entrée retirée -> unclassified: [ 'skillDRBonus.testType' ]`. Donc retirer l'entrée rend rouge `src/data/refs-migrated.test.ts` (« aucun champ de référence sans cible déclarée »). Précédent de l'arbre : les champs DÉJÀ passés à `idDe` gardent leur entrée `{ registry }` (removeTrait.traitId `idDe('trait')` mecanique.ts:89 ↔ gameOpRefFk.mjs `'removeTrait.traitId': { registry: 'traits' }` ; disease `idDe('maladie')` mecanique.ts:43 ↔ `'exposeDisease.disease': { registry: 'maladies' }`) — double garde déjà vivante sur toute la classe. En outre `resolvers.crewTestTypes` (src/data/refs-migrated.test.ts:1226) n'a aucun contrôle de péremption (seul le sens registre→résolveur est vérifié, refs-migrated.test.ts:1311) : il deviendrait orphelin, et ce fichier est HORS périmètre du brief. → Le brief dit ce que devient l'entrée : soit `{ coveredBy: 'idDe au parse (OP_DEFS)' }`, soit — mieux, et c'est la CLASSE — une règle générale : tout champ d'op dont OP_DEFS porte un `idDe` est classé couvert par dérivation, et les entrées `{ registry }` doublons des champs déjà migrés (traitId, disease…) passent dans le même geste. Ajouter `src/data/refs-migrated.test.ts` (résolveur `crewTestTypes`) au périmètre, ou justifier qu'il reste consommé.\n7. [structurel] **D2/D3 : une QUATRIÈME table et un troisième régime vivant pour le même concept « emplacement d'ids d'un document », sous quatre termes concurrents** (lentille normes-et-poison) — Le concept existe déjà sous deux noms, et un troisième arrive par la branche en cours : `IDS_PAR_DISCRIMINANT` + `discriminantsDeclares` + `idsVivantsDuDiscriminant` (gen-registry.mjs:533, ref.ts:101, idsVivants.ts:47 ; variable `sousListes`, gen-registry.mjs:619) ; sur `chantier/1897-doublons-fan` (ab077ed7e) : `IDS_PAR_MARQUEUR` (_ids.generated.ts:190), `marqueursDeclares`, `idsVivantsDuMarqueur` (idsVivants.ts:77), et le JSDoc généré qui les appelle AUSSI « SOUS-LISTES » (fae8ea80c). D2 propose textuellement « une table sœur d'`IDS_PAR_DISCRIMINANT` » et D3 « `SourceDIdsVivants` apprend à rendre les éléments vivants d'une liste de `config` » : le stock monte à IDS_PAR_DATASET / _DISCRIMINANT / _MARQUEUR / +1, trois déclarations textuelles `export const …` lues par trois fonctions, trois `idsVivantsDu*`. Côté termes : « sous-liste » désigne déjà le filtre par discriminant (ref.ts:94 « Ids d'une SOUS-LISTE ») et le filtre par marqueur (1897), D1/D3 introduisent « liste » (cible `{ dataset, liste }`) pour un CHEMIN dans un document — deux mots proches pour deux axes différents (chemin vs filtre). La promesse D3 « un seul idsDe, aucune branche par type » est contredite par la forme proposée (trois lecteurs vivants distincts). Le brief pose la question 1 mais son design répond déjà « table sœur ». → Repenser le socle comme UN concept nommé une fois (ex. « emplacement » : document › chemin › filtre optionnel) : une seule déclaration par def, une seule table générée, un seul lecteur vivant ; discriminant et marqueur deviennent des FILTRES d'un emplacement, la liste de `config` son CHEMIN. Fixer l'ordre de fusion avec #1897 (mêmes fichiers : gen-registry.mjs, ref.ts, idsVivants.ts dont la signature passe à `ReadonlySet` sur ab077ed7e) dans le brief, et interdire « table sœur ».\n8. **D4 : demi-migration des désignateurs de cargaison — `surplus`/`demande` restent en `z.string()` à côté de `production`/`produits` migrés** (lentille normes-et-poison) — Même type visé, mêmes objets : naval-ports.ts:22-23 `surplus: z.record(z.string(), z.number())`, `demande: z.record(z.string(), z.number())` ; worldmap.ts:38-39 idem pour `portProfileSchema` ; worldmap.ts:66 `demande: z.array(z.string())` pour `landMarketProfileSchema`. Sonde node sur la donnée : `naval-ports surplus keys 8 hors []`, `naval-ports demande keys 10 hors []` — toutes des ids de `sea-cargo.json › cargoes[]`. La grammaire sait typer une CLÉ de record : `z.record(idDe('shipStation'), formulaSchema)` (src/data/schemas/defs/ship-criticals.ts:26). D4 ne nomme que `naval-ports.production`, `worldmap.ts:36` et `:65`. → Étendre D4 et le périmètre à naval-ports.ts:22-23, worldmap.ts:38-39 et :66 (clés de record via `z.record(idDe(...), …)`), avec la sonde d'inclusion de chaque valeur ; ou prouver pourquoi ces sites ne désignent pas le même type.\n9. **Constat faux sur `siegeRig` : il désigne un rig (espèce d'art), pas `mass-battle.json › warMachines[]`** (lentille normes-et-poison) — Sonde node : `warMachines` = baliste, belier, batterie-tonnerre-de-feu, canon-a-repetition-feu-d-enfer, canon, canon-a-flammes-nain, mangonneau, onagre, trebuchet, mortier ; valeurs de `siegeRig` hors de cette liste : catapulte ×3, canon-a-repetition ×3, canon-petit, canon-lourd ×3, pierrier, canon-a-flammes (12 sur 13 porteurs distincts testés). Consommateur réel : `appearance: { species: t.siegeRig! }` (src/ui/compendium/registry.ts:1556) et les defs de rig `src/gameIso/rig/creatures/defs/Canon-lourd.ts:6`. Même classe que le faux ami `voyage-stakes.kind` que le brief écarte. → Rayer `siegeRig` du Constat, de D4 et du périmètre (trappings.ts:125, mass-battle.ts) comme faux ami ; `mass-battle.warMachines[]` n'a alors aucun désignateur connu, donc aucun type (invariant 4)."
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Lecture"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Design"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Réfutation"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 4,
+      "title": "Synthèse"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "lecture-du-brief",
+      "phaseIndex": 1,
+      "phaseTitle": "Lecture",
+      "agentId": "a5ecd6fb914918a42",
+      "agentType": "lecteur",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1790208961753,
+      "queuedAt": 1790208961726,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Tu LIS un brief d'agent et tu rends sa structure — tu ne juges rien, tu ne décides rien.\n\nArbre jugé (chemin ABSOLU, à utiliser tel quel) : /home/claude/game/.wt-1473-r1\nBrief jugé : /mnt/project-files/dettes/1463-r2-brief.md\nDate du jour : 2026-09-24\nDossier de sondes : /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad\n\nInterdits, sans exception : tout git ÉCRIVAIN (…",
+      "promptFramed": true,
+      "lastProgressAt": 1790208996329,
+      "tokens": 25728,
+      "toolCalls": 5,
+      "durationMs": 34575,
+      "resultPreview": "{\"casCanonique\":[{\"fichier\":\"scripts/gen-registry.mjs\",\"ligne\":533,\"role\":\"discriminantsDeclares — lit `export const discriminant` par def, sans nommer de dataset au générateur\"},{\"fichier\":\"scripts/gen-registry.mjs\",\"ligne\":553,\"role\":\"idsParDiscriminant — indexe les ids d'une sous-liste discriminée en IDS_PAR_DISCRIMINANT, fail-fast nominatif\"},{\"fichier\":\"src/data/schemas/grammaire/ref.ts\",\"lig…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "trou-de-socle",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a0bc8a3b0ce4bb1ed",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790208997362,
+      "queuedAt": 1790208997334,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — TROU DE SOCLE. Le design proposé fait-il du nouveau cas une INSTANCE du socle (une déclaration de plus, même code) ou une VARIANTE à branche (`if (<type de cas>)` dans un socle : héros/monde, terre/mer, mono/multi, solo/coop, arme/sort) ?\nCherche dans l'arbre jugé : (a) un SECOND socle qui couvre déjà ce concept — deux hôtes pour un concept est le défaut ; (b) le site où le N+1 coûterai…",
+      "promptFramed": true,
+      "lastProgressAt": 1790209119263,
+      "tokens": 94842,
+      "toolCalls": 16,
+      "durationMs": 121898,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"(a) Deux hôtes pour un même concept : D1 invente une seconde déclaration des listes d'entités d'un document `config`, alors que le def les déclare déjà par `exposition.edit.niche`\",\"preuve\":\"Arbre épinglé : fc7b527fb (`git log --oneline -1` dans /home/claude/game/.wt-1473-r1). Les quatre defs déclarants de D4 déclarent DÉJÀ leurs listes comme datasets routés : `src/data/sch…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "preuve-par-sonde",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a34bb0af756071c91",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790208997364,
+      "queuedAt": 1790208997334,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — PREUVE PAR SONDE. Écris et JOUE une sonde en lecture seule qui tente de CASSER le design avant que le code n'existe : un appel qui devrait échouer et ne le fait pas, un contrat que le design suppose et que le dépôt ne tient pas, une forme de donnée qui ne se présente pas comme le design le croit.\nLa sonde s'écrit sous le dossier de sondes, elle se joue sur un fichier isolé, et le CODE E…",
+      "promptFramed": true,
+      "lastProgressAt": 1790209207016,
+      "tokens": 77837,
+      "toolCalls": 25,
+      "durationMs": 209072,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"D4 : `siegeRig` ne désigne PAS `mass-battle.json › warMachines[]` — désignateur réfuté, et avec lui la seule raison d'avoir `mass-battle.ts` au périmètre\",\"preuve\":\"Arbre épinglé fc7b527fb. La sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-r2-v2.mjs a été lancée par `node … > sonde-r2-v2.out 2>&1; echo exit=$?`. Code de sortie : …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "normes-et-poison",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a664ab053805f5e55",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790209120112,
+      "queuedAt": 1790208997334,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — MISE AUX NORMES ET POISON. Le design nomme-t-il UN concept par UN terme (aucun synonyme concurrent dans le périmètre) ? Introduit-il un doublon adjacent d'un terme déjà porté par le dépôt ? Que RETIRE-t-il, et la migration de l'existant est-elle dans le geste (un stock qui grandit, une demi-migration, une liste d'exemptions neuve sont des bloquants) ?\nSignale le poison que le design fer…",
+      "promptFramed": true,
+      "lastProgressAt": 1790209273659,
+      "tokens": 61283,
+      "toolCalls": 19,
+      "durationMs": 153547,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"D4 : « l'entrée de gameOpRefFk.mjs meurt » est mécaniquement impossible, et la purge laisserait un résolveur orphelin hors périmètre\",\"preuve\":\"Arbre fc7b527fb. `auditFieldCoverage` dérive les champs de l'union TS `GameOp` (src/engine/ops.ts), pas des schémas zod : `unclassified = derived.filter((f) => !declared.has(f.key))` (scripts/guards/lib/gameOpRefFk.mjs:243). Sonde (…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "refutation:trou-de-socle→preuve-par-sonde",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "ac4c4a96b4f1a16d9",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790209274488,
+      "queuedAt": 1790209274462,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 2 bloquant(s) rendu(s) par la lentille « trou-de-socle ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « preuve-par-sonde ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — PREUVE PAR SONDE. Écris et JOUE une sonde en lecture seule qui tente de CASSER le design avant que le code n'existe : un a…",
+      "promptFramed": true,
+      "lastProgressAt": 1790209322191,
+      "tokens": 33998,
+      "toolCalls": 5,
+      "durationMs": 47700,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"(a) Deux hôtes pour un même concept : D1 invente une seconde déclaration des listes d'entités d'un document `config`, alors que le def les déclare déjà par `exposition.edit.niche`\",\"refute\":false,\"preuve\":\"CONFIRMÉ, non réfuté. Arbre fc7b527fb (`git log --oneline -1`). Les citations se vérifient : crew-test-types.ts:43, sea-cargo.ts:141, land-cargo.ts:137 et mass-battle.ts:8…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "refutation:preuve-par-sonde→normes-et-poison",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "af025fe19b8cc2a0f",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790209274490,
+      "queuedAt": 1790209274463,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 3 bloquant(s) rendu(s) par la lentille « preuve-par-sonde ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « normes-et-poison ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — MISE AUX NORMES ET POISON. Le design nomme-t-il UN concept par UN terme (aucun synonyme concurrent dans le périmètre) ?…",
+      "promptFramed": true,
+      "lastProgressAt": 1790209320293,
+      "tokens": 31348,
+      "toolCalls": 6,
+      "durationMs": 45110,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"D4 : `siegeRig` ne désigne PAS `mass-battle.json › warMachines[]` — désignateur réfuté, et avec lui la seule raison d'avoir `mass-battle.ts` au périmètre\",\"refute\":false,\"preuve\":\"CONFIRMÉ, arbre fc7b527fb (git log -1 : « feat(structures): refs #1473 refs #1468 — ops de Compétence typées, météo refOuSpec (R1-bis) »). Sonde rejouée en lecture seule (node -e sur mass-battle.js…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "refutation:normes-et-poison→trou-de-socle",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "a793023fa1e7889ab",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790209321089,
+      "queuedAt": 1790209274463,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 4 bloquant(s) rendu(s) par la lentille « normes-et-poison ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « trou-de-socle ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — TROU DE SOCLE. Le design proposé fait-il du nouveau cas une INSTANCE du socle (une déclaration de plus, même code) ou une …",
+      "promptFramed": true,
+      "lastProgressAt": 1790209380518,
+      "tokens": 32255,
+      "toolCalls": 9,
+      "durationMs": 59429,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"D4 : « l'entrée de gameOpRefFk.mjs meurt » est mécaniquement impossible, et la purge laisserait un résolveur orphelin hors périmètre\",\"refute\":false,\"preuve\":\"CONFIRMÉ sur l'arbre fc7b527fb. Le champ dérivé vient du type TS, pas de zod : src/engine/ops.ts:961 `{ op: 'skillDRBonus'; testType: string; ... }` reste une chaîne ouverte après migration du schéma. Or auditFieldCove…"
+    }
+  ],
+  "totalTokens": 357291,
+  "totalToolCalls": 85
+}

@@ -1,0 +1,4 @@
+{ fichiers: 124, avecCle: 105, sansCle: 19 }
+sans cle, avec espace: 13
+[["actions.json",1],["ambiance.json",0],["decorPalette.json",1],["donnees.manifest.json",0],["lieux-services.json",1],["localisation.json",0],["merchantFamilies.json",1],["merchants.json",1],["primitives.manifest.json",1],["progression-schemas.derived.json",0],["raw.manifest.json",1],["regles.json",1],["renduMonte.json",0],["reseau-routier.json",1],["speciesRace.json",0],["structureAppearance.json",1],["systemes.manifest.json",1],["tables.json",1],["teintesJeu.json",1]]
+avecCle hors SCHEMA_DEFS: []

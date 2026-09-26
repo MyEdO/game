@@ -1,0 +1,15 @@
+{
+  sourceEntrees: 26,
+  catalogueDiffereEspace: 8,
+  resolvesDiffereEspace: 0,
+  nonSourceCatalogueDiffere: 0,
+  nonSourceResolvesDiffere: 0
+}
+skills.json#[focalisation].specs source=winds catalogue=9 espace=20 vivant=20
+talents.json#[beni].specs source=cultBlessings catalogue=15 espace=41 vivant=41
+talents.json#[invocation].specs source=cultMiracles catalogue=15 espace=41 vivant=41
+talents.json#[magie-des-arcanes].specs source=arcaneDomains catalogue=18 espace=20 vivant=20
+talents.json#[magie-du-chaos].specs source=cultChaos catalogue=3 espace=41 vivant=41
+traits.json#[beni].specs source=cultBlessings catalogue=15 espace=41 vivant=41
+traits.json#[lanceur-de-sorts].specs source=arcaneDomains catalogue=18 espace=20 vivant=20
+traits.json#[miracles].specs source=cultMiracles catalogue=15 espace=41 vivant=41

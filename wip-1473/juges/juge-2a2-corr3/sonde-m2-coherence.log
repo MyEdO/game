@@ -1,0 +1,8 @@
+[imprimerie] PROJECTION [{"spec":"imprimerie","inCareer":true,"known":false,"cost":5,"ajout":"maitre-artisan|imprimerie"}]
+[imprimerie] STORE achat metier|imprimerie : paye=5 projete=5 adv=1
+[imprimerie]   rangee apres: known=true inCareer=true cost=5 ajout=maitre-artisan
+[forgeron] PROJECTION [{"spec":"imprimerie","inCareer":true,"known":false,"cost":10,"ajout":"-"},{"spec":"forgeron","inCareer":true,"known":false,"cost":10,"ajout":"maitre-artisan|forgeron"}]
+[forgeron] STORE achat metier|imprimerie : paye=10 projete=10 adv=1
+[forgeron]   rangee apres: known=true inCareer=true cost=10 ajout=-
+[forgeron] STORE achat metier|forgeron : paye=10 projete=10 adv=1
+[forgeron]   rangee apres: known=true inCareer=true cost=10 ajout=maitre-artisan

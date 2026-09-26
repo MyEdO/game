@@ -1,0 +1,500 @@
+{
+  "summary": "Jugement adversarial d'un DESIGN de socle AVANT le codeur : lecture des sections d'ENTRÉE du brief (Invariant, cas canonique), trois lentilles de juge indépendantes, puis UN réfutateur PAR LENTILLE qui juge en un lot les bloquants d'une AUTRE lentille que la sienne (A→B, B→C, C→A ; plafond 8), synthèse calculée par le script. Rend le bloc à coller sous `## Design jugé :`. args : { brief, worktree, date, scratchpad }.",
+  "agentCount": 7,
+  "logs": [
+    "Phase Design : 3/3 lentilles rendues (0 agent(s) mort(s), leurs bloquants ne sont pas jugés).",
+    "Phase Design : 11 bloquant(s) distinct(s), 27 dit(s). 4 agents joués jusqu'ici.",
+    "Réfutation : 3 agents pour 11 bloquants (plafond 8 par réfutateur) — trou-de-socle → preuve-par-sonde, preuve-par-sonde → normes-et-poison, normes-et-poison → trou-de-socle.",
+    "Synthèse : RÉFUTÉ — 11 survivant(s) dont 1 structurel(s), 0 écarté(s), 7 agents joués : 1 de lecture, 3 de design, 3 de réfutation."
+  ],
+  "result": {
+    "verdict": "RÉFUTÉ",
+    "bloquants": [
+      {
+        "titre": "VARIANTE, pas instance : D1/D2/D4 inventent un second hôte pour « l'effet mécanique d'un événement », parallèle au socle GameOp, déjà en service dans le même flux et chez les datasets navals voisins",
+        "preuve": "Arbre épinglé 9cf3308af (/home/claude/game/.wt-1473-r1). (a) Il existe déjà un second socle. Le store FABRIQUE des GameOp à partir de valeurs codées en dur : src/state/seaVoyageFlow.ts:2544 `applyOps(captain.actor, [{ op: 'grantTalent', talentId: 'chanceux' }], { …, defaultUntilTime: until })` et :2554-2556 trois `{ op: 'skillDRBonus', skill: { id: … }, bonus: 2 }`. Le voisin naval porte ces effets EN DONNÉE : src/data/schemas/defs/sea-shanties.ts:18-19 `crewOps`/`captainOps: z.array(gameOpSchema)`, avec exactement le sélecteur capitaine/équipage dont chance-navigateur et rafale-ghyran ont besoin. Les tables d'incidents de voyage ont leur socle commun : src/data/schemas/grammaire/mecanique.ts:667-675 `travelTableEntrySchema`, `occupantOps: z.array(gameOpSchema)`, partagé par 3 datasets. skillDRBonus est déjà typé dans OP_DEFS (mecanique.ts:112-113, `skill: refOuSpec('skill'), bonus: formulaSchema`). Or D2 retype la même chose en `params.skills: refOuSpec('skill')[]` + `params.drBonus` + `params.talent: idDe('talent')`, et D4 garde un `case` qui reconstruit l'op. Cela fait deux déclarations pour un seul concept. (b) Le site N+1 : D5 l'avoue lui-même, une nature de plus coûte un membre d'union au schéma, plus un membre de type moteur, plus un `case` dans `switch (event.kind)` (src/state/seaVoyageFlow.ts:2360 et :2695). Cela fait 3 sites, pas une ligne. Sonde (node sur src/data/sea-events.json) : 58 entrées, 51 `kind`, seuls 6 `kind` ont plus d'une rangée, 23 entrées ont `kind === id`, 12 `kind` sont sans params. Le discriminant est donc presque l'identité de la rangée : l'union discriminée à 51 membres donne un TYPE PAR RANGÉE, pas une forme partagée. Le précédent spells.ts:28-50 ne vaut pas pour ce cas : ses 4-5 `kind` sont des formes réutilisées par 416 entrées. (c) La primitive réinventée : `gameOpSchema`/OP_DEFS + `applyOps` (src/engine/ops.ts:1659, durée par `defaultUntilTime`, ops.ts:1258/1341).",
+        "correction": "Repenser D1/D5. Une rangée d'événement porte ses effets en `ops: z.array(gameOpSchema)`, avec un ciblage déclaré (patron `crewOps`/`captainOps` de sea-shanties, ou `occupantOps` de travelTableEntrySchema) et une durée en `diceSpecSchema`. Le store applique génériquement par `applyOps`. Les natures sans op existante (Humeur de Manann, Moral, cargaison, coque) reçoivent leur op dans OP_DEFS, réutilisables ailleurs, au lieu d'une clé `params` propre à leur `kind`. Il ne reste alors une union discriminée que pour le résidu de natures qui déclenchent un sous-flux (combat, navire hostile). Le critère N+1 devient : une nature de plus = une rangée de donnée. Au passage, les `case` `chance-navigateur` et `rafale-ghyran` (seaVoyageFlow.ts:2539-2560) meurent. Dépendance à noter : `grantTalent` figure encore dans OPS_NON_TYPEES (mecanique.ts:152), et son `talentId` n'est vérifié par `idDe` que si #1468 le type d'abord.",
+        "structurel": true,
+        "lentille": "trou-de-socle",
+        "auteurs": [
+          "trou-de-socle"
+        ],
+        "refutations": [
+          {
+            "titre": "VARIANTE, pas instance : D1/D2/D4 inventent un second hôte pour « l'effet mécanique d'un événement », parallèle au socle GameOp, déjà en service dans le même flux et chez les datasets navals voisins",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Arbre 9cf3308af (`git log --oneline -1` : « 9cf3308af fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible exclusive »). Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463.mts, lancée par `npx tsx` avec sortie redirigée vers un fichier, exit=0. Code : elle importe gameOpSchema de src/data/schemas/grammaire/mecanique et sea-events.json, compte les kinds, puis fait `gameOpSchema.safeParse({op:'grantTalent',talentId:'chanceux'})` et `gameOpSchema.safeParse({op:'skillDRBonus',skill:{id:'focalisation'},bonus:2})`. Sortie : `entrees 58 kinds 51 multi 6 kind===id 23 kindsSansParams 12` ; `rafale-ghyran {\"days\":\"1d10\",\"drBonus\":2,\"skills\":[\"focalisation\",\"guerison\",\"resistance\"]}` ; `chance-navigateur {\"days\":\"1d10\",\"talent\":\"chanceux\"}` ; `gameOp grantTalent true` ; `gameOp skillDRBonus true`. Les deux effets que D2 retype en clés `params` passent donc TELS QUELS le socle GameOp existant, et les chiffres du bloquant sont reproduits à l'unité. Le socle est déjà consommé génériquement : src/state/shipCrew.ts:196 (`applyOps(c, shanty.crewOps, {…, defaultUntilTime: until})`) et src/state/travelFlow.ts:1156 (occupantOps). Les deux sites du switch existent (seaVoyageFlow.ts:2360 et :2695). Le texte de D5 au brief dit bien « un membre de l'union (schéma) + un membre du type moteur + son `case` ». Le bloquant tient, et il faut repenser la forme de D1/D5.",
+            "structurel": true
+          }
+        ]
+      },
+      {
+        "titre": "D5 : type moteur `SeaEventDef` écrit à la main comme union « jumelle » du schéma, donc deux sources de vérité à synchroniser",
+        "preuve": "Le brief (§ Cas canonique, D5) dit : « le type moteur `SeaEventDef` (src/engine/seaVoyage.ts:36-44) devient l'union jumelle ». Or le dépôt a déjà le patron « type DÉRIVÉ de la déclaration ». src/engine/travelStages.ts:22 importe `weatherIdSchema` de `../data/schemas/defs/weather`, avec le commentaire :52-54 « DÉRIVÉ du schéma … la DÉCLARATION est l'unique vérité de l'alphabet — une union littérale recopiée ici aurait divergé en silence du z.enum ». De même, src/engine/overcast.ts:19 importe le type `SurincantationData`, exporté par src/data/schemas/defs/surincantation.ts:46 via `z.infer`. Le credo : « Une garde de synchronisation est un smell : une seule source de vérité. »",
+        "correction": "Dans src/data/schemas/defs/sea-events.ts, exporter `type SeaEventDef = z.infer<typeof seaEventDef>`, que src/engine/seaVoyage.ts importe (type seul, comme overcast.ts:19). On retire de D5 le « membre du type moteur ».",
+        "structurel": false,
+        "lentille": "trou-de-socle",
+        "auteurs": [
+          "trou-de-socle"
+        ],
+        "refutations": [
+          {
+            "titre": "D5 : type moteur `SeaEventDef` écrit à la main comme union « jumelle » du schéma, donc deux sources de vérité à synchroniser",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Le brief (§ Cas canonique) dit verbatim « le type moteur `SeaEventDef` (`src/engine/seaVoyage.ts:36-44`) devient l'union jumelle ». Aujourd'hui src/engine/seaVoyage.ts:36-44 est une interface manuscrite (`kind: string; params?: Record<string, unknown>`). Le précédent du type dérivé existe bien dans l'arbre. src/engine/travelStages.ts:22 contient `import { weatherIdSchema } from '../data/schemas/defs/weather'`, et :52-54 dit « DÉRIVÉ du schéma … une union littérale recopiée ici aurait divergé en silence ». src/engine/overcast.ts:19 contient `import type { SurincantationData } from '../data/schemas/defs/surincantation'`, défini en :46 par `z.infer`. Rien ne s'oppose à l'inférence depuis les feuilles typées : `idDe` renvoie `z.ZodType<Id<T>, string>` (src/data/schemas/grammaire/ref.ts:165) et `refOuSpec` renvoie `z.ZodType<RefASpecialisation>` (:396-399). Leur `z.infer` donne donc des types moteur exploitables. On corrige par une retouche du brief : exporter le type inféré.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "Les Tests des événements, aplatis en clés `params` ad hoc, réinventent le nœud `test` canonique",
+        "preuve": "Les clés observées (sonde node) : `difficulty`+`testType`+`totalDR` (ouragan, infestation), `prayerDifficulty` (presage), `gossipDifficulty`/`stealthDifficulty` (embrigadement), `bribeDifficulty` (controle-a-quai), `perceptionDifficulty` (passager-clandestin), `resistDifficulty` (vaisseau-pestifere). D1 les rend « strict par membre, clés = celles observées », donc un nom de clé de Difficulté par nature. La primitive existe : src/data/schemas/grammaire/mecanique.ts:542-553 `noeudTest(branche)` = `{ kind:'test', test: flowTestSchema, success, fail }`, déjà adoptée par maladies.json (#1657 B2b, cf. scripts/guards/lib/structuresStock.mjs:407-411). Le stock classe déjà `sea-events.json › params` en concept `test` : 3 objets (structuresStock.mjs:47).",
+        "correction": "Chaque épreuve d'événement se déclare en `noeudTest(…)` (Difficulté par `difficultySchema`, conséquence en branche d'ops `success`/`fail`), et non en `xxxDifficulty: difficultySchema` au membre. Le brief doit le nommer, et nommer la ligne de stock `test` qui doit décroître.",
+        "structurel": false,
+        "lentille": "trou-de-socle",
+        "auteurs": [
+          "trou-de-socle"
+        ],
+        "refutations": [
+          {
+            "titre": "Les Tests des événements, aplatis en clés `params` ad hoc, réinventent le nœud `test` canonique",
+            "refute": false,
+            "preuve": "PARTIELLEMENT RÉFUTÉ : le bloquant survit, mais il faut en restreindre la portée. Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463b.mts, lancée par `npx tsx` avec sortie redirigée vers un fichier, exit=0. Code : `flowTestSchema.safeParse` sur {difficulty:'difficile'} ; {skill:{id:'voile'},difficulty:'difficile'} ; {testType:'affaler',difficulty:'difficile'} ; {skill:{id:'voile'},difficulty:'complexe',totalDR:25} ; {skill:{id:'priere'},difficulty:'complexe'}. Sortie : `seul false skill:jet SANS compétence ni caractéristique…` ; `avecSkill true` ; `crewTestType false :Clé non reconnue : \"testType\"` ; `etendu false :Clé non reconnue : \"totalDR\"` ; `priere true`. (1) Les 6 clés propres à un kind (`prayerDifficulty`, `gossipDifficulty`, `stealthDifficulty`, `bribeDifficulty`, `perceptionDifficulty`, `resistDifficulty`, relevées par sonde-1463.mts sur 8 entrées) désignent des tests individuels à compétence, que `flowTestSchema` et `noeudTest` expriment bien. Sur ce point le grief TIENT. (2) Le grief ne tient PAS pour les 3 objets `difficulty` + `testType` + `totalDR` (ouragan, infestation-de-rats-geants, infestation-de-rats). Ce sont des Tests d'ÉQUIPAGE, étendus, et `flowTestSchema` (strict, src/data/schemas/grammaire/mecanique.ts:394) rejette `testType` comme `totalDR`. `extendedTestSchema` (:480) n'a pas non plus de `testType`. Or ce sont précisément les « 3 objets » de stock que le bloquant cite comme la ligne à faire décroître. Et scripts/guards/lib/structuresStock.mjs:47 dit verbatim que ces objets « restent classés `test` sans en être un — … `sea-events.json › params` 3 (le sujet du jet y vit sous `testType`) ». La preuve invoquée contredit donc la correction pour ces 3 cas : `noeudTest` ne peut pas les porter sans un membre « test d'équipage » dans le nœud canonique. Correction à retoucher dans le brief : `noeudTest` pour les 6 clés individuelles ; pour les tests d'équipage, étendre la forme canonique du Test (testType, DR cumulé) au lieu de créer une clé ad hoc. La ligne de stock à nommer n'est pas les « 3 objets test ».",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D1/D5 : une seule union pour deux tables et deux switch. L'« exhaustivité » promise est inatteignable telle que conçue",
+        "preuve": "Arbre 9cf3308af. Sonde B (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463-r2c2-b.mts, exit=0 mesuré par redirection, pas par pipe). Sortie : « kinds: board=35 port=18 union=51 communs=rien,beau-temps / switch bord (2360) cases=23 ; switch port (2695) cases=5 / kinds de l'union NON traités par le switch bord : 28 (dont 16 kinds port-only) / kinds de l'union NON traités par le switch port : 46 ». Les deux switch se terminent sur `default: break; // narratif` (seaVoyageFlow.ts:2563-2564 et 2744-2745). `seaEventDef` est partagé par boardEvents et portEvents (sea-events.ts:58-59). D1 pose UNE union à 51 membres pour les deux tables. Or chaque résolveur (resolveBoardEvent:2355, resolvePortArrival:2686) ne voit que sa table : un `switch` exhaustif sur l'union devrait lister 16 natures port-only côté bord et 33 natures bord-only côté port, qui y sont inatteignables. De plus, `beau-temps` a deux formes : côté bord `{days,temperature}`, côté port `{days,precipitations,temperature,vents,visibilite}`. Le switch port n'a pas de case `beau-temps`. D5 (« une nature de plus = membre + membre moteur + case ») est faux sur la base de ce même brief : D4 laisse 24 natures sans case (#1939).",
+        "correction": "Deux unions discriminées : `boardEventDef` (35 kinds) et `portEventDef` (18 kinds). Les kinds communs (`rien`, `beau-temps`) sont déclarés dans chacune avec leurs clés propres, et le type moteur a deux unions jumelles. L'exhaustivité s'obtient par un `default` typé `never`, avec les natures narratives listées EXPLICITEMENT dans un case groupé, pas par un `default: break` muet. D5 se réécrit : « membre de la table concernée + case, OU inscription explicite au groupe narratif (#1939) ».",
+        "structurel": false,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "D1/D5 : une seule union pour deux tables et deux switch. L'« exhaustivité » promise est inatteignable telle que conçue",
+            "refute": false,
+            "preuve": "CONFIRMÉ, pas réfuté. Arbre 9cf3308af, tête vérifiée par git log. Sonde node en lecture sur src/data/sea-events.json : boardEvents a 40 lignes et 35 kinds, portEvents a 18 lignes et 18 kinds, et seuls 'rien' et 'beau-temps' sont communs. beau-temps a une forme bord {\"days\":\"1d10\",\"temperature\":\"mediane\"} et une forme port {days,precipitations,temperature,vents,visibilite}. sea-events.ts:63-64 : boardEvents et portEvents lisent tous deux z.array(seaEventDef). seaVoyageFlow.ts:2563-2564 contient `default: break; // narratif : le desc verbatim au journal suffit — rien d'inventé` et :2744-2745 `default: break; // narratif / à jouer en scène`. seaVoyage.ts:36-44 donne `kind: string; params?: Record<string, unknown>`. Depuis ma lentille, deux aggravations. (a) D1 promet UN membre strict par kind (51), mais beau-temps a deux payloads, donc 'beau-temps' ne peut pas être un membre unique avec des params stricts. Il faudrait soit un params en union, soit des clés optionnelles, et une union unique ne tient donc pas. (b) D5 contredit D4 dans le même brief (D4 : « 24 natures SANS case »). Le commentaire de :2564 est une excuse du credo sans tag [entériné] : il appelle « narratif, rien d'inventé » des natures dont #1939 dit qu'elles ont des mécaniques RAW non implémentées. D1/D5 le laisse vivre. La correction proposée (deux unions, case narratif groupé explicite, default never) se fait en retouchant le brief.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D2 incomplet : trois désignateurs d'entités restent hors `idDe`. Cela viole les invariants 1 et 2 du brief lui-même",
+        "preuve": "Sonde A (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463-r2c2.mts, exit=0). Sortie : « OK [hors D2 metier spec] constructeur-de-navires-itinerant {\"id\":\"metier\",\"spec\":\"charpentier\"} ». Même résultat pour `constructeur-de-navires` et `tailleur`. Les clés du record `params.metier` ({charpentier:72,…}) sont donc des spécialisations de Compétence que `refOuSpec('skill')` résout, et D2 ne les nomme pas. `params.creatures` de `monstre-puissant` (« 1-3 : hydre d'os », « 4-5 : sangsue des abysses », « 10 : léviathan noir », « 1-3 : kharibde », « 6-9 : 3 syrènes bleues », « 10 : wyrm des mers ») est une table d10 de références de créatures encodée en prose. Les ids existent dans creatures.json (probe node : hydre-d-os, sangsue-des-abysses, gargantuan, leviathan-noir, kharibde, anguille-macheprise, syrene-bleue, wyrm-des-mers). `params.contents` (canot-sauvetage, passager-clandestin) désigne de même des rôles ou profils (Marin, Officier, Nautonier, Médecin de bord). D2 laisse ces deux champs en `z.string()` sans les inscrire au registre des fossiles.",
+        "correction": "Étendre D2. `metier` devient une liste `{ skill: refOuSpec('skill') (id metier + spec), value: number }`. `creatures` et `contents` deviennent des lignes de table `{min,max,count?, creature: idDe('creature')}` qui se lisent avec `roll`. Les cibles sans type au registre (Marin, Mousse, chat de navire) sont nommées comme fossiles, au même titre que `testType`. Il faut aussi ajouter `critLocation` (« greement », « aleatoire » → clés de ship-criticals.json) à la liste des fossiles `z.string()` de D2.",
+        "structurel": false,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "D2 incomplet : trois désignateurs d'entités restent hors `idDe`. Cela viole les invariants 1 et 2 du brief lui-même",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Sonde node sur sea-events.json : constructeur-itinerant params {\"metier\":{\"charpentier\":72,\"constructeur-de-navires\":68,\"tailleur\":63},\"daysPerJob\":\"1d10\"}. monstre-puissant a creatures [\"1-3 : hydre d'os\",\"4-5 : sangsue des abysses\",\"6-9 : gargantuan\",\"10 : léviathan noir\"] et [\"1-3 : kharibde\",…,\"10 : wyrm des mers\"]. canot-sauvetage et passager-clandestin ont contents [\"1 à 3 : deux Marins\",…]. ouragan et coup-critique ont critLocation \"greement\" / \"aleatoire\". Sonde sur creatures.json : hydre-d-os, sangsue-des-abysses, gargantuan, leviathan-noir, kharibde, anguille-macheprise, syrene-bleue et wyrm-des-mers valent tous true, officier true et marin false. Le design D2 du brief (l.« D2. Désignateurs → idDe ») ne cite que talent, skills, ship, crewRef et chefRef, et ses fossiles z.string() ne nomment que testType et les colonnes météo. Depuis la lentille normes : un même concept (référence d'entité) aurait deux représentations dans le même document, idDe d'un côté et chaîne de prose « 1-3 : hydre d'os » de l'autre. Cela fait une demi-migration du champ, contraire à l'invariant 2 cité par le brief. Les tables d10 en prose dupliquent aussi le concept de ligne de table min/max déjà porté par les lignes de sea-events elles-mêmes. La correction se fait en étendant D2 et la liste des fossiles.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D3 « rollDiceExpr meurt » se heurte au périmètre : 4 appels sur 5 ne lisent pas sea-events",
+        "preuve": "seaVoyageFlow.ts:2001 `rollDiceExpr`. Appels : l.2066 `b.durationRounds`, l.2067 `b.coolMinutes`, l.2087 `failDamage` (tous `SteamBreakdownEntry`, steam-breakdown.json : \"1d10\", \"20+1d10\", \"1d10-5\"), et l.1456 `sea.infestation.spoilPerNight`, un état de voyage typé `string` à l.192 et alimenté par `String(params.spoilEncPerNight ?? '1d10')` à l.2389. Le brief classe `steam-breakdown` HORS périmètre. Supprimer rollDiceExpr oblige donc soit à migrer steam-breakdown (interdit), soit à rerouter ces appels, sans que le brief dise vers quoi. La couture moteur existe : `rollExpr` (src/engine/dice.ts:98) accepte « 20+1d10 » et « 1d10-5 », et `rollDice(DiceSpec)` est à dice.ts:83.",
+        "correction": "Écrire dans D3 : les 3 appels steam passent par `rollExpr` du moteur (la donnée steam reste en chaîne, et sa migration en DiceSpec reste à #1652). `TravelPlan.sea.infestation.spoilPerNight` devient un `DiceSpec` tiré par `rollDice` (vérifier la forme de sauvegarde). Il faut aussi citer `rollExpr` et `rollDice` comme primitives de destination.",
+        "structurel": false,
+        "lentille": "preuve-par-sonde",
+        "auteurs": [
+          "preuve-par-sonde"
+        ],
+        "refutations": [
+          {
+            "titre": "D3 « rollDiceExpr meurt » se heurte au périmètre : 4 appels sur 5 ne lisent pas sea-events",
+            "refute": false,
+            "preuve": "CONFIRMÉ. seaVoyageFlow.ts:1998-2004 : la docstring de rollDiceExpr dit verbatim « params de la table Panne de Vapeur — « 1d10 », « 20+1d10 », « 1d10-5 » ». C'est donc le parseur de steam-breakdown, pas de sea-events. Appels (grep) : :1456 rollDiceExpr(sea.infestation.spoilPerNight), :2066 b.durationRounds, :2067 b.coolMinutes, :2087 failDamage. Le type d'état est à :192 `spoilPerNight: string`, alimenté à :2389 par `String((event.params as Record<string, unknown> | undefined)?.spoilEncPerNight ?? '1d10')`, où l'on trouve aussi un cast et un défaut en dur '1d10' qui double la donnée (poison D4 non listé). Le brief classe steam-breakdown hors périmètre (§ Périmètre, dernière puce). Destinations existantes : dice.ts:97 `rollExpr(expr: string, rng)` et dice.ts:83 `rollDice(dc: DiceSpec, rng)`. Depuis ma lentille : sans destination nommée, « rollDiceExpr meurt » est soit infaisable dans le périmètre, soit une demi-migration où le parseur survit sous un autre nom. La correction (rollExpr pour les trois appels steam, DiceSpec pour spoilPerNight avec vérification de la forme de sauvegarde, reste à #1652) est une retouche du brief.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D3 affirme que `rollDiceExpr` meurt, mais ses lecteurs restants sont HORS périmètre : c'est une demi-migration présentée comme un retrait",
+        "preuve": "Arbre épinglé à 9cf3308af (worktree /home/claude/game/.wt-1473-r1). `grep -n rollDiceExpr src/state/seaVoyageFlow.ts` rend 1456 (infestation, alimentée par sea-events), 2001 (définition), 2066 `rollDiceExpr(b.durationRounds…)`, 2067 `rollDiceExpr(b.coolMinutes…)`, 2087 `rollDiceExpr(failDamage…)` dans `openSteamSave`. Les lignes 2066, 2067 et 2087 lisent `SteamBreakdownEntry` (`src/engine/shipBuild.ts:275-279`, `durationRounds?: string; coolMinutes?: string; failDamage?: string`, schéma `src/data/schemas/defs/steam-breakdown.ts:19`). Or le brief, § Périmètre, déclare « Hors périmètre : … `steam-breakdown` … ». Le brief (D3) dit pourtant : « `eventParam` et `rollDiceExpr` meurent ».",
+        "correction": "Choisir une seule voie. Soit D3 ne tue que `eventParam` (ainsi que la lecture de 1456 et 2389) et écrit noir sur blanc que `rollDiceExpr` survit tant que le lot steam-breakdown de #1652 ne l'a pas remplacé, et ce reliquat est nommé dans le solde de #1652. Soit on ajoute `steam-breakdown.ts`, `shipBuild.ts` et `steam-breakdown.json` au périmètre. La question 5 du brief (« que reste-t-il à #1652 ») doit alors citer `rollDiceExpr` nommément.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "D3 affirme que `rollDiceExpr` meurt, mais ses lecteurs restants sont HORS périmètre : c'est une demi-migration présentée comme un retrait",
+            "refute": false,
+            "preuve": "CONFIRMÉ, arbre 9cf3308af. `grep -n rollDiceExpr src/state/seaVoyageFlow.ts` rend 1456, 2001 (définition), 2066 (`b.durationRounds`), 2067 (`b.coolMinutes`) et 2087 (`failDamage`). `src/engine/shipBuild.ts:270-279` : `type: 'steam-breakdown'` avec `durationRounds?: string`, `coolMinutes?: string`, `failDamage?: string`. Le brief dit « `eventParam` et `rollDiceExpr` meurent » (D3) et exclut `steam-breakdown` au § Périmètre. Vu sous l'angle du socle, c'est un second hôte du concept « dé en chaîne » : le parseur du store sert deux datasets et le lot n'en migre qu'un. Une retouche du brief suffit (reliquat nommé au solde de #1652, ou périmètre élargi).",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "Le concept « dé » a TROIS encodages dans sea-events.json. D3 n'en migre qu'un et en ajoute un quatrième",
+        "preuve": "Sonde en lecture seule (`node -e` sur `src/data/sea-events.json` : 58 événements, 51 `kind`). On trouve 1) des chaînes (`days:\"1d10\"`, `lostCrew:\"2d10\"`, `days:\"10+2d10\"`) ; 2) un NOMBRE de d10 porté par le NOM de la clé : `moraleD10:number`, `manannD10:number`, jusque dans `triton.params.impressed.manannD10`. Le store le lit comme « compte SIGNÉ de d10 à rouler » (`src/state/seaVoyageFlow.ts:2407-2410`, via le cast `event.params!.manannD10 as number`) ; 3) `ManannFactor.effect {sign, flat, d10}` dans le même document (`src/data/schemas/defs/sea-events.ts:17-25`), lu par le Codex (`src/ui/compendium/registry.ts`, `manannFactorItem`, `diceLabel({ n: eff.d10, sides: 10, plus: eff.flat })`). D3 ne vise que « Dés en chaîne ». Or `diceSpecSchema` (`src/data/schemas/grammaire/valeurs.ts:524-525`, `{n, sides, plus?}`) ne porte pas de signe. Le brief viole ici son propre invariant 2 (« Un lot qui touche un CHAMP embarque TOUTES les conventions de ce champ »).",
+        "correction": "D3 doit couvrir tous les dés de `params` : les clés `*D10`, y compris celles imbriquées dans `impressed`/`wrathful`, rejoignent la forme canonique. Le brief tranche aussi le cas du dé SIGNÉ (`formulaSchema` s'il sait porter un signe, sinon un signe explicite au porteur, au dépôt), mesure faite. Il décide enfin si `ManannFactor.effect` s'aligne dans le même geste (Codex `registry.ts` inclus) ou pourquoi il en est exclu, avec citation.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "Le concept « dé » a TROIS encodages dans sea-events.json. D3 n'en migre qu'un et en ajoute un quatrième",
+            "refute": false,
+            "preuve": "CONFIRMÉ. Sonde `node -e` sur boardEvents et portEvents : chaînes (`triton.victoryRoll \"1d10\"`, `spoilEncPerNight \"3d10\"`, `daysPerJob \"1d10\"`), comptes signés portés par le nom de la clé (`triton.impressed.manannD10 2`, `wrathful.manannD10 -2`, `presage.moraleD10 -1`, `bonne-humeur.moraleD10 2`). Le store les lit à `src/state/seaVoyageFlow.ts:2407-2410` avec le cast `event.params!.manannD10 as number`. Troisième encodage : `src/data/schemas/defs/sea-events.ts:17-25`, `effect {sign, flat, d10}`, lu par `src/ui/compendium/registry.ts:876-878` via `diceLabel({ n: eff.d10, sides: 10, plus: eff.flat })`. `diceSpecSchema` (`src/data/schemas/grammaire/valeurs.ts:525`) = `{n, sides, plus?}`, sans signe. Trois hôtes pour un même concept dans un même document : c'est le défaut de socle. On le corrige en élargissant D3, sans repenser l'union.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "Prémisse fausse de D2 : les colonnes météo ont déjà un enum canonique. Le « fossile » `z.string()` est donc un doublon, et `vents` concurrence `vent`",
+        "preuve": "`src/data/schemas/defs/sea-weather.ts:16-23` déclare `const windForce = z.enum(['calme-plat','legere-brise','brise-fraiche','vent-modere','vent-violent','violente-tempete'])`. Aux lignes 38-41 : `precipitations: z.enum(['aucune','legeres','abondantes','tres-abondantes'])`, `temperature: z.enum([...,'mediane',...])`, `visibilite: z.enum(['degage','brume','brouillard','puree-de-pois'])`, `vent: windForce`. Toutes les valeurs de sea-events sont dans ces enums (sonde : `vents:\"brise-fraiche\"`, `\"vent-violent\"`, `escalation.vents:\"violente-tempete\"`, `visibilite:\"brume\"`…). La clé de données s'appelle `vents` (au pluriel), alors que le schéma sea-weather et le store (`seaVoyageFlow.ts:2444`, `weather: { vent: 'calme-plat' }`) emploient `vent` : deux termes pour un même concept. Ces valeurs ne sont pas des ids de registre, donc la justification de D2 (« pas d'emplacement au registre avant R2 v2 ») ne s'applique pas.",
+        "correction": "Exporter les enums depuis `sea-weather.ts`, qui fait canon (ajouter ce fichier au périmètre), et typer `visibilite`/`precipitations`/`temperature`/`vent` avec eux. Renommer `vents` en `vent` dans le script de migration daté, y compris `escalation`. Retirer ces colonnes du « registre des fossiles ». Le fossile se réduit alors à `testType`, seul à dépendre d'un type de registre absent de `TYPES` (`ref.ts:46-78`).",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "Prémisse fausse de D2 : les colonnes météo ont déjà un enum canonique. Le « fossile » `z.string()` est donc un doublon, et `vents` concurrence `vent`",
+            "refute": false,
+            "preuve": "CONFIRMÉ. `src/data/schemas/defs/sea-weather.ts:16-23` déclare `const windForce = z.enum([...6 forces])`, non exporté. Aux lignes 38-41 : enums `precipitations`, `temperature`, `visibilite` et `vent: windForce`. `src/data/sea-events.json:1149` porte `\"vents\": \"vent-violent\"`, `:1151-1154` porte `escalation.vents \"violente-tempete\"`, `:1287` porte `\"vents\": \"brise-fraiche\"`. Autres valeurs trouvées par la sonde : `visibilite \"brume\"/\"degage\"`, `precipitations \"legeres\"/\"aucune\"`, `temperature \"mediane\"`, toutes membres de ces enums. Le store écrit `weather: { vent: 'calme-plat' }` (`seaVoyageFlow.ts:2444`). La primitive canonique existe, et D2 la réinvente en `z.string()` avec une justification (« pas d'emplacement au registre ») qui ne s'applique pas à des enums.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "D2 oublie des désignateurs que D1 figerait tels quels : sous-tables en prose (`creatures[]`, `contents[]`) qui nomment des entités par LIBELLÉ, et `metier` indexé par spécialisation",
+        "preuve": "Sonde sur sea-events.json : `puissant-monstre-marin` a `creatures:[\"1-3 : hydre d'os\",\"4-5 : sangsue des abysses\",\"6-9 : gargantuan\",\"10 : léviathan noir\"]` avec `roll:\"1d10\"`. `canot-de-sauvetage` et `passager-clandestin` ont `contents:[\"1 à 3 : deux Marins\",…]`. Il y a donc deux notations de plage (« 1-3 » et « 1 à 3 »), là où le canon est `plageSchema`/`findTableEntry`. Les entités y sont désignées par libellé, contre la doctrine ids stables (CLAUDE.md). `constructeur-de-navires-itinerant` a `metier:{\"charpentier\":72,\"constructeur-de-navires\":68,\"tailleur\":63}` : ce sont des spécialisations de la Compétence Métier indexées par clé d'objet, hors de la forme `refOuSpec('skill')` que D2 impose à `skills[]`. D1 (« clés = celles observées ») les rendrait STRICTES en `z.array(z.string())`, ce qui fige ce poison au lieu de le supprimer.",
+        "correction": "D2 doit énumérer ces trois clés. `creatures`/`contents` deviennent une sous-table `{...plageSchema.shape, <ref idDe('creature'|'crewRole')>, nombre?}`, après une sonde de résolution de chaque libellé. Toute cible absente du registre reçoit un arbitrage nommé (CustomStatblock ou omission documentée, règle 7). Le `roll` associé passe au dé canonique. `metier` devient une liste `{ skill: refOuSpec('skill'), valeur }`.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "D2 oublie des désignateurs que D1 figerait tels quels : sous-tables en prose (`creatures[]`, `contents[]`) qui nomment des entités par LIBELLÉ, et `metier` indexé par spécialisation",
+            "refute": false,
+            "preuve": "CONFIRMÉ par la sonde. `puissant-monstre-marin.creatures` = `[\"1-3 : hydre d'os\",...,\"10 : léviathan noir\"]` et `monstre-marin.creatures` = `[\"1-3 : kharibde\",...]`, avec `roll \"1d10\"`. `canot-de-sauvetage.contents` = `[\"1 à 3 : deux Marins\",...]` (`sea-events.json:904`), soit deux notations de plage. `constructeur-de-navires-itinerant.params.metier` = `{charpentier:72,\"constructeur-de-navires\":68,tailleur:63}` (`sea-events.json:1246-1250`). `plageSchema` est déjà importé dans `sea-events.ts:10` : la sous-table canonique existe et la prose la duplique. D2 n'énumère aucune de ces trois clés. Une retouche du brief suffit.",
+            "structurel": false
+          }
+        ]
+      },
+      {
+        "titre": "La forme persistée `infestation.spoilPerNight: string` n'est pas au périmètre. D3 laisserait une copie « dé en chaîne » dans l'état, ou changerait une forme sauvegardée sans monter `SAVE_VERSION`",
+        "preuve": "`src/state/seaVoyageFlow.ts:192` : `infestation?: { …; spoilPerNight: string }`. À la ligne 2389 : `spoilPerNight: String((event.params as Record<string, unknown> | undefined)?.spoilEncPerNight ?? '1d10')`. À la ligne 1456 : `rollDiceExpr(sea.infestation.spoilPerNight, rng)`. La politique est `src/state/migrateDoc.ts:6-8` (« au changement de forme persistée, `SAVE_VERSION` monte et les saves antérieures se JETTENT »), et `src/state/saves.ts:132` porte `SAVE_VERSION = 50`. `saves.ts` ne figure pas au périmètre du brief.",
+        "correction": "Nommer au périmètre le type d'état `infestation.spoilPerNight`, qui devient la forme canonique du dé, ainsi que la montée de `SAVE_VERSION` dans `src/state/saves.ts`. La conversion `String(...)` et le défaut `'1d10'` en dur de la ligne 2389 disparaissent.",
+        "structurel": false,
+        "lentille": "normes-et-poison",
+        "auteurs": [
+          "normes-et-poison"
+        ],
+        "refutations": [
+          {
+            "titre": "La forme persistée `infestation.spoilPerNight: string` n'est pas au périmètre. D3 laisserait une copie « dé en chaîne » dans l'état, ou changerait une forme sauvegardée sans monter `SAVE_VERSION`",
+            "refute": false,
+            "preuve": "CONFIRMÉ. `src/state/seaVoyageFlow.ts:192` : `infestation?: {...; spoilPerNight: string }`. Ligne 2389 : `String(... ?.spoilEncPerNight ?? '1d10')`. Ligne 1456 : `rollDiceExpr(sea.infestation.spoilPerNight, rng)`. L'état vit sous `travelPlan.sea` (`patchSea`, `seaVoyageFlow.ts:290-293`). La sauvegarde a un contrat POSITIF : tout champ de données entre, sauf `HORS_SAVE` (`src/state/saves.ts:173-191`), et `travelPlan` n'y figure pas, donc la forme est persistée. `SAVE_VERSION = 50` (`saves.ts:132`). La politique qui jette les saves est dans `src/state/migrateDoc.ts:7-8`. `saves.ts` n'est pas au périmètre du brief.",
+            "structurel": false
+          }
+        ]
+      }
+    ],
+    "ecartes": [],
+    "dits": [
+      "Arbre épinglé : `git log --oneline -1` = `9cf3308af fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible exclusive`, la tête que le brief annonce. Contrôle positif fait : `src/data/schemas/defs/sea-events.ts` porte encore `kind: z.string()` et `params: z.record(z.string(), z.unknown())`. Le design n'est pas encore implémenté (designJugePresent=false) ; c'est bien lui qui est jugé.",
+      "Question 1 du brief : la prémisse est fausse. Le formulaire du Compendium n'infère pas les clés depuis le schéma. `inferFields` (src/ui/compendium/editFields.ts:134-165) prend les clés dans les ENTRÉES et le kind dans l'échantillon (`kindOf`, :29-58), et ne lit le nœud que via `defDe(regime.noeud)?.shape` (:160). Une `z.discriminatedUnion` n'a pas de `.shape` : ni l'union ni la carte OP_DEFS ne « proposent les clés d'une nature neuve ». L'union perd même les libellés `select` des enums de `params`. Point à mesurer avant de le poser comme critère de choix.",
+      "Un autre doublon donnée/code du même ordre que rafale-ghyran, absent de l'inventaire D4 : src/state/seaVoyageFlow.ts:2531-2537 (`debris-cargaison`/`epave-cargaison`) code `rollDice(event.kind === 'epave-cargaison' ? 2 : 1, 100, rng)` alors que la donnée porte `cargoEnc: \"1d100\"`/`\"2d100\"`. Le branchement sur `event.kind` à l'intérieur du case est justement la VARIANTE à branche que cette lentille cherche.",
+      "D2, fossile `z.string()` pour `testType` et les colonnes météo : sur le plan du socle, c'est acceptable seulement si le fossile est inscrit avec son lot tueur (R2 v2 #1473). Hors du dossier sans-livre et des stocks, je n'ai trouvé aucune garde qui lise ces valeurs ; une sonde `gameOpRefFk.mjs` n'a pas été rejouée ici.",
+      "Stocks que la refonte ferait bouger, à nommer au brief : scripts/guards/lib/slotsStock.mjs:251-253 (sea-events `escalation` 1, `params` 9, `skills` 1) et scripts/guards/lib/structuresStock.mjs:463-464 (référence divergente `escalation`, `params`).",
+      "Arbre épinglé : /home/claude/game/.wt-1473-r1 @ 9cf3308af (fix(structures): refs #1473 refs #1468). Design non encore codé : sea-events.ts:30-38 porte toujours `params: z.record(z.string(), z.unknown())` et `kind: z.string()`, contrôle positif fait.",
+      "CONFIRMÉ D2, désignateurs nommés : 12/12 OK à la sonde A. talent « chanceux » → idDe('talent') ; skills focalisation, guerison, resistance → refOuSpec('skill') sous forme {id} ; ship langskip et cogue → idDe('vehicle') ; crewRef maraudeur-du-chaos et pirate-fluvial, chefRef chef-pirate → idDe('creature'). Aucun id mort, la migration ne cassera pas le parse.",
+      "CONFIRMÉ D3 : 38 chaînes-dés dans params, toutes exprimables en `diceSpecSchema` {n,sides,plus?} (sonde A, 38 OK). « 10+2d10 » (rumeurs-commerciales.days) devient {n:2,sides:10,plus:10}. Aucune clé observée ne mélange nombre et dé : `formulaSchema` n'est nécessaire nulle part d'après la donnée. moraleD10 et manannD10 sont des nombres de d10, pas des dés en chaîne.",
+      "Parseur `eventParam` (seaVoyageFlow.ts:2344-2349), défaut mesuré (sonde B, rng au max) : eventParam(\"1d100\") donne 10 (tire 1d10), eventParam(\"2d100\") donne 20, eventParam(\"10+2d10\") donne 20 (le +10 est perdu). Défaut aujourd'hui latent : aucun `num()` ne lit ces clés. Mais `debris-cargaison` et `epave-cargaison` (l.2531-2534) codent en dur `rollDice(1|2, 100)`, ce qui double `params.cargoEnc`. C'est un cas D4 que le brief ne nomme pas, au même titre que les météos en dur de `calme-plat`, `bruine`, `beau-temps` et `ciel-degage` (l.2443-2453).",
+      "D1, forme vide : la donnée tranche. 13 événements portent `params: {}`, 0 n'ont pas de params (sonde A).",
+      "D1, clés divergentes au sein d'un même kind (sonde A) : navire-hostile (greatGuns et chefRef facultatifs), presage (prayerDifficulty et manannD10 facultatifs), beau-temps (précipitations, vents, visibilité seulement au port). Les membres stricts doivent déclarer ces clés `.optional()`.",
+      "Valeurs de `testType` : « affaler » et « extermination-nuisibles » existent dans crew-test-types.json. Le fossile z.string() de D2 ne masque aujourd'hui aucune référence morte. En revanche aucune garde ne les vérifie, et je n'ai pas lu gameOpRefFk.mjs.",
+      "Q1 INCERTAIN : editFields.ts:28-53 infère le type de champ depuis la VALEUR (`kindOf`), pas depuis le schéma. descente.ts:73 parcourt `options` d'une union. Aucune des deux formes, union ou carte, ne prouve que l'éditeur propose les clés d'une nature neuve. Pour trancher : une sonde de `defDe` et de `CodexEdit` sur une entrée dont le `kind` est neuf.",
+      "Q6 : `seaEventItem` (registry.ts:866-868) ne passe que `sub` (min–max) à `depuisEnveloppe`. Si des params DiceSpec y sont rendus génériquement, ils apparaîtraient comme objets {n,sides} au lieu de « 1d10 ». Non vérifié au navigateur.",
+      "Code des sondes : sonde-1463-r2c2.mts (désignateurs via idDe/refOuSpec, 38 dés passés dans diceSpecSchema, divergences au sein d'un kind) et sonde-1463-r2c2-b.mts (couverture des case par switch, et eventParam recopié verbatim), dans /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/. Sorties dans sonde.out et sonde-b.out, exit=0 pour les deux, mesuré par redirection. Aucun processus laissé actif.",
+      "Épinglage : `git log --oneline -1` rend `9cf3308af fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible exclusive`, qui est la tête annoncée par le brief. Le design n'est pas implémenté dans l'arbre (`src/data/schemas/defs/sea-events.ts:29-37` porte encore `kind: z.string()` et `params: z.record(z.string(), z.unknown())`) : c'est le brief qui est jugé, pas un diff.",
+      "Les cibles de D2 résolvent toutes (sonde `node -e` sur creatures/vehicles/talents.json) : maraudeur-du-chaos, pirate-fluvial, chef-pirate, langskip, cogue et chanceux valent tous `true`. `crewRole` existe aussi dans `TYPES` (`src/data/schemas/grammaire/ref.ts:61`) : le brief doit justifier `idDe('creature')` plutôt que `crewRole` pour `crewRef`/`chefRef`. Le store les traite comme des ids de `creatures.json` (`seaVoyageFlow.ts:126`).",
+      "Il existe sept clés de Difficulté (`difficulty`, `prayerDifficulty`, `gossipDifficulty`, `bribeDifficulty`, `resistDifficulty`, `stealthDifficulty`, `perceptionDifficulty`), lues par cast (`seaVoyageFlow.ts:2385,2411,2725,2726`). D4 promet la fin des casts, mais D1 à D3 ne nomment pas `difficultySchema` (déjà utilisé par `sea-weather.ts:10`). Il faut le nommer. De même, `critLocation` vaut `\"aleatoire\"` alors que `shipLocationSchema` (`valeurs.ts:547`) ne contient pas `aleatoire` : c'est à trancher.",
+      "La monnaie est encodée par un SUFFIXE de clé, sous trois graphies (`co`, `ransomCO`, `bribeCO`, `blessingCO`, `rewardCO`, `rationPriceBronze`, `blessingSilverPerSize`). Le canon `moneySchema`/`moneyPartialSchema` (`valeurs.ts:517-521`) ne sait pas porter un montant tiré. Le brief doit dire si ce lot aligne la dénomination, ou consigner pourquoi il ne le fait pas (invariant 2).",
+      "Défauts en dur au lecteur, que D4 ne vise pas explicitement (D4 parle de « valeur en dur qui double une clé PRÉSENTE ») : `num('days', d10(rng))` (`seaVoyageFlow.ts:2444-2456, 2543, 2550`), `num('wounds', rollDice(1, 10, rng)) || rollDice(1, 10, rng)` (2363), `num('totalDR', 10)` (2384), `?? 'intermediaire'`/`?? 'complexe'` (2385, 2725, 2726). Si les clés deviennent requises dans les membres stricts, ces défauts sont du code mort à retirer dans le même geste.",
+      "Homonymie dans le périmètre : `seaVoyageFlow.ts:55` importe `roll as rollDice`, alors que `rollDice` désigne au moteur le lanceur de `DiceSpec` (`src/engine/dice.ts:83`). D3 (« tire par le moteur ») doit supprimer l'alias. Le brief nomme aussi deux voies de tirage, `rollExpr` (parseur de chaîne, `dice.ts:98`) dans l'invariant 3 et `DiceSpec` dans D3 : il faut n'en garder qu'une, sans quoi le codeur peut remplacer `eventParam` par `rollExpr(string)` et conserver les chaînes.",
+      "Synonyme introduit par le brief : « nature » (« 24 natures », « une nature de plus ») pour le discriminant `kind`, alors que le store dit « narratif » (`seaVoyageFlow.ts:2563`). Un seul terme suffit dans le code et les commentaires.",
+      "Forme vide de `params` (D1, « à trancher ») : la donnée est déjà uniforme (sonde : 13 `params:{}` et 0 absent), mais le type moteur la déclare optionnelle (`src/engine/seaVoyage.ts:43`, `params?:`). La mesure favorise une seule forme, celle de la donnée.",
+      "Poison qui deviendra faux, à réécrire dans le même geste : l'en-tête de `src/data/schemas/defs/sea-events.ts:1-7` et le commentaire de la ligne 28 (« sac hétérogène PAR `kind`… jamais un champ ad hoc par `kind` »), ainsi que le commentaire de `eventParam` (`seaVoyageFlow.ts:2341-2343`). Paraphrases et citations de règle en commentaire dans des `case` que le lot touche : `seaVoyageFlow.ts:2541` (« Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours. »), 2407-2408, 2066-2067 et 2087. La règle 6 impose la réf nue.",
+      "D2 crée un « registre des fossiles de #1463 », c'est-à-dire une liste d'exemptions. Une fois les colonnes météo corrigées (bloquant 3), seul `testType` doit y figurer, avec le ticket qui le tue nommé (R2 v2 de #1473). `crew-test-types` est absent de `TYPES` (`ref.ts:46-78`) et `ref.ts` est hors périmètre (train #1897).",
+      "Question 6 du brief : `seaEventItem` (`src/ui/compendium/registry.ts`, vers 869-871) ne lit que `min`/`max` via `depuisEnveloppe` et ne lit pas `params`. Aucun écran du Codex ne change pour les événements, sauf si `ManannFactor.effect` migre (bloquant 2), auquel cas `manannFactorItem` change.",
+      "Le cliquet `src/state/roll-seam-exclusivity-guard.test.ts:700` (`'src/state/seaVoyageFlow.ts': 1`) peut bouger quand D3 fait passer les tirages par le moteur. Le delta devra être justifié ligne par ligne (ligne `CLIQUET:`)."
+    ],
+    "lecture": {
+      "casCanonique": [
+        {
+          "fichier": "src/data/schemas/defs/spells.ts",
+          "ligne": 28,
+          "role": "payload typé par discriminant `kind`, membres stricts (spellRangeSchema/spellTargetSchema/spellDurationSchema)"
+        },
+        {
+          "fichier": "src/data/schemas/grammaire/mecanique.ts",
+          "ligne": 1,
+          "role": "OP_DEFS — autre forme (carte + superRefine + repli nominatif OPS_NON_TYPEES)"
+        },
+        {
+          "fichier": "src/engine/seaVoyage.ts",
+          "ligne": 36,
+          "role": "type moteur SeaEventDef, à faire devenir l'union jumelle"
+        },
+        {
+          "fichier": "src/ui/compendium/registry.ts",
+          "ligne": 868,
+          "role": "second lecteur de SeaEventDef (Codex)"
+        }
+      ],
+      "designJugePresent": false,
+      "invariants": [
+        {
+          "verbatim": "**Toute vérification d'un id contre le registre, sous `src/data/schemas`, passe par `idDe`.**",
+          "source": "brief R1 v1.1 de #1473, https://github.com/cgauche/game/issues/1473#issuecomment-5801354411",
+          "question": "où une référence à une entité se déclare-t-elle ? Sur une feuille `idDe`."
+        },
+        {
+          "verbatim": "Un lot qui touche un CHAMP embarque TOUTES les conventions de ce champ.",
+          "source": ".claude/skills/orchestrer-des-agents/SKILL.md, § Brief",
+          "question": "quand un lot touche un champ, jusqu'où va-t-il ? Jusqu'à toutes ses conventions."
+        },
+        {
+          "verbatim": "**Le moteur (`src/engine`) reste pur et testé.** Store, UI et rendu en dépendent, jamais l'inverse.",
+          "source": "CLAUDE.md, règle 3",
+          "question": "où vit le tirage d'un dé ? Au moteur (`rollExpr`, `src/engine/dice.ts:98`, et le lanceur de `DiceSpec`)."
+        },
+        {
+          "verbatim": "**Règles GÉNÉRALES, jamais spécifiques.** Corriger la classe entière du problème, pas le cas rencontré. Une garde de synchronisation est un smell : une seule source de vérité.",
+          "source": ".claude/credo.md",
+          "question": "qui porte la valeur d'un événement ? La donnée."
+        }
+      ],
+      "manques": [],
+      "perimetre": [
+        "src/data/schemas/defs/sea-events.ts",
+        "src/data/sea-events.json",
+        "scripts/migrations/ (script de migration daté, convention du dépôt)",
+        "src/engine/seaVoyage.ts",
+        "src/state/seaVoyageFlow.ts",
+        "src/ui/compendium/registry.ts (si le type l'exige)",
+        "src/state/sea-voyage-flow.test.ts",
+        "src/scenes/test-scenarios/14-voyage-maritime.test.ts",
+        "tests de schéma voisins (non nommés précisément)",
+        "stocks et cliquets que la migration fait bouger (lignes CLIQUET:)"
+      ],
+      "primitives": [
+        "idDe",
+        "refOuSpec",
+        "diceSpecSchema",
+        "formulaSchema",
+        "z.discriminatedUnion('kind', …)",
+        "OP_DEFS",
+        "TYPES (src/data/schemas/grammaire/ref.ts)",
+        "rollExpr (src/engine/dice.ts)"
+      ]
+    },
+    "agents": {
+      "lecture": 1,
+      "design": 3,
+      "refutation": 3,
+      "total": 7
+    },
+    "date": "2026-09-24",
+    "refutationIncomplete": false,
+    "bloc": "**RÉFUTÉ** — workflow `juge-design-socle`, run `<runId du lancement, cité par l'orchestrateur>`, 2026-09-24.\n11 bloquant(s) survivant(s), 0 écarté(s) par réfutation.\n1. [structurel] **VARIANTE, pas instance : D1/D2/D4 inventent un second hôte pour « l'effet mécanique d'un événement », parallèle au socle GameOp, déjà en service dans le même flux et chez les datasets navals voisins** (lentille trou-de-socle) — Arbre épinglé 9cf3308af (/home/claude/game/.wt-1473-r1). (a) Il existe déjà un second socle. Le store FABRIQUE des GameOp à partir de valeurs codées en dur : src/state/seaVoyageFlow.ts:2544 `applyOps(captain.actor, [{ op: 'grantTalent', talentId: 'chanceux' }], { …, defaultUntilTime: until })` et :2554-2556 trois `{ op: 'skillDRBonus', skill: { id: … }, bonus: 2 }`. Le voisin naval porte ces effets EN DONNÉE : src/data/schemas/defs/sea-shanties.ts:18-19 `crewOps`/`captainOps: z.array(gameOpSchema)`, avec exactement le sélecteur capitaine/équipage dont chance-navigateur et rafale-ghyran ont besoin. Les tables d'incidents de voyage ont leur socle commun : src/data/schemas/grammaire/mecanique.ts:667-675 `travelTableEntrySchema`, `occupantOps: z.array(gameOpSchema)`, partagé par 3 datasets. skillDRBonus est déjà typé dans OP_DEFS (mecanique.ts:112-113, `skill: refOuSpec('skill'), bonus: formulaSchema`). Or D2 retype la même chose en `params.skills: refOuSpec('skill')[]` + `params.drBonus` + `params.talent: idDe('talent')`, et D4 garde un `case` qui reconstruit l'op. Cela fait deux déclarations pour un seul concept. (b) Le site N+1 : D5 l'avoue lui-même, une nature de plus coûte un membre d'union au schéma, plus un membre de type moteur, plus un `case` dans `switch (event.kind)` (src/state/seaVoyageFlow.ts:2360 et :2695). Cela fait 3 sites, pas une ligne. Sonde (node sur src/data/sea-events.json) : 58 entrées, 51 `kind`, seuls 6 `kind` ont plus d'une rangée, 23 entrées ont `kind === id`, 12 `kind` sont sans params. Le discriminant est donc presque l'identité de la rangée : l'union discriminée à 51 membres donne un TYPE PAR RANGÉE, pas une forme partagée. Le précédent spells.ts:28-50 ne vaut pas pour ce cas : ses 4-5 `kind` sont des formes réutilisées par 416 entrées. (c) La primitive réinventée : `gameOpSchema`/OP_DEFS + `applyOps` (src/engine/ops.ts:1659, durée par `defaultUntilTime`, ops.ts:1258/1341). → Repenser D1/D5. Une rangée d'événement porte ses effets en `ops: z.array(gameOpSchema)`, avec un ciblage déclaré (patron `crewOps`/`captainOps` de sea-shanties, ou `occupantOps` de travelTableEntrySchema) et une durée en `diceSpecSchema`. Le store applique génériquement par `applyOps`. Les natures sans op existante (Humeur de Manann, Moral, cargaison, coque) reçoivent leur op dans OP_DEFS, réutilisables ailleurs, au lieu d'une clé `params` propre à leur `kind`. Il ne reste alors une union discriminée que pour le résidu de natures qui déclenchent un sous-flux (combat, navire hostile). Le critère N+1 devient : une nature de plus = une rangée de donnée. Au passage, les `case` `chance-navigateur` et `rafale-ghyran` (seaVoyageFlow.ts:2539-2560) meurent. Dépendance à noter : `grantTalent` figure encore dans OPS_NON_TYPEES (mecanique.ts:152), et son `talentId` n'est vérifié par `idDe` que si #1468 le type d'abord.\n2. **D5 : type moteur `SeaEventDef` écrit à la main comme union « jumelle » du schéma, donc deux sources de vérité à synchroniser** (lentille trou-de-socle) — Le brief (§ Cas canonique, D5) dit : « le type moteur `SeaEventDef` (src/engine/seaVoyage.ts:36-44) devient l'union jumelle ». Or le dépôt a déjà le patron « type DÉRIVÉ de la déclaration ». src/engine/travelStages.ts:22 importe `weatherIdSchema` de `../data/schemas/defs/weather`, avec le commentaire :52-54 « DÉRIVÉ du schéma … la DÉCLARATION est l'unique vérité de l'alphabet — une union littérale recopiée ici aurait divergé en silence du z.enum ». De même, src/engine/overcast.ts:19 importe le type `SurincantationData`, exporté par src/data/schemas/defs/surincantation.ts:46 via `z.infer`. Le credo : « Une garde de synchronisation est un smell : une seule source de vérité. » → Dans src/data/schemas/defs/sea-events.ts, exporter `type SeaEventDef = z.infer<typeof seaEventDef>`, que src/engine/seaVoyage.ts importe (type seul, comme overcast.ts:19). On retire de D5 le « membre du type moteur ».\n3. **Les Tests des événements, aplatis en clés `params` ad hoc, réinventent le nœud `test` canonique** (lentille trou-de-socle) — Les clés observées (sonde node) : `difficulty`+`testType`+`totalDR` (ouragan, infestation), `prayerDifficulty` (presage), `gossipDifficulty`/`stealthDifficulty` (embrigadement), `bribeDifficulty` (controle-a-quai), `perceptionDifficulty` (passager-clandestin), `resistDifficulty` (vaisseau-pestifere). D1 les rend « strict par membre, clés = celles observées », donc un nom de clé de Difficulté par nature. La primitive existe : src/data/schemas/grammaire/mecanique.ts:542-553 `noeudTest(branche)` = `{ kind:'test', test: flowTestSchema, success, fail }`, déjà adoptée par maladies.json (#1657 B2b, cf. scripts/guards/lib/structuresStock.mjs:407-411). Le stock classe déjà `sea-events.json › params` en concept `test` : 3 objets (structuresStock.mjs:47). → Chaque épreuve d'événement se déclare en `noeudTest(…)` (Difficulté par `difficultySchema`, conséquence en branche d'ops `success`/`fail`), et non en `xxxDifficulty: difficultySchema` au membre. Le brief doit le nommer, et nommer la ligne de stock `test` qui doit décroître.\n4. **D1/D5 : une seule union pour deux tables et deux switch. L'« exhaustivité » promise est inatteignable telle que conçue** (lentille preuve-par-sonde) — Arbre 9cf3308af. Sonde B (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463-r2c2-b.mts, exit=0 mesuré par redirection, pas par pipe). Sortie : « kinds: board=35 port=18 union=51 communs=rien,beau-temps / switch bord (2360) cases=23 ; switch port (2695) cases=5 / kinds de l'union NON traités par le switch bord : 28 (dont 16 kinds port-only) / kinds de l'union NON traités par le switch port : 46 ». Les deux switch se terminent sur `default: break; // narratif` (seaVoyageFlow.ts:2563-2564 et 2744-2745). `seaEventDef` est partagé par boardEvents et portEvents (sea-events.ts:58-59). D1 pose UNE union à 51 membres pour les deux tables. Or chaque résolveur (resolveBoardEvent:2355, resolvePortArrival:2686) ne voit que sa table : un `switch` exhaustif sur l'union devrait lister 16 natures port-only côté bord et 33 natures bord-only côté port, qui y sont inatteignables. De plus, `beau-temps` a deux formes : côté bord `{days,temperature}`, côté port `{days,precipitations,temperature,vents,visibilite}`. Le switch port n'a pas de case `beau-temps`. D5 (« une nature de plus = membre + membre moteur + case ») est faux sur la base de ce même brief : D4 laisse 24 natures sans case (#1939). → Deux unions discriminées : `boardEventDef` (35 kinds) et `portEventDef` (18 kinds). Les kinds communs (`rien`, `beau-temps`) sont déclarés dans chacune avec leurs clés propres, et le type moteur a deux unions jumelles. L'exhaustivité s'obtient par un `default` typé `never`, avec les natures narratives listées EXPLICITEMENT dans un case groupé, pas par un `default: break` muet. D5 se réécrit : « membre de la table concernée + case, OU inscription explicite au groupe narratif (#1939) ».\n5. **D2 incomplet : trois désignateurs d'entités restent hors `idDe`. Cela viole les invariants 1 et 2 du brief lui-même** (lentille preuve-par-sonde) — Sonde A (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463-r2c2.mts, exit=0). Sortie : « OK [hors D2 metier spec] constructeur-de-navires-itinerant {\"id\":\"metier\",\"spec\":\"charpentier\"} ». Même résultat pour `constructeur-de-navires` et `tailleur`. Les clés du record `params.metier` ({charpentier:72,…}) sont donc des spécialisations de Compétence que `refOuSpec('skill')` résout, et D2 ne les nomme pas. `params.creatures` de `monstre-puissant` (« 1-3 : hydre d'os », « 4-5 : sangsue des abysses », « 10 : léviathan noir », « 1-3 : kharibde », « 6-9 : 3 syrènes bleues », « 10 : wyrm des mers ») est une table d10 de références de créatures encodée en prose. Les ids existent dans creatures.json (probe node : hydre-d-os, sangsue-des-abysses, gargantuan, leviathan-noir, kharibde, anguille-macheprise, syrene-bleue, wyrm-des-mers). `params.contents` (canot-sauvetage, passager-clandestin) désigne de même des rôles ou profils (Marin, Officier, Nautonier, Médecin de bord). D2 laisse ces deux champs en `z.string()` sans les inscrire au registre des fossiles. → Étendre D2. `metier` devient une liste `{ skill: refOuSpec('skill') (id metier + spec), value: number }`. `creatures` et `contents` deviennent des lignes de table `{min,max,count?, creature: idDe('creature')}` qui se lisent avec `roll`. Les cibles sans type au registre (Marin, Mousse, chat de navire) sont nommées comme fossiles, au même titre que `testType`. Il faut aussi ajouter `critLocation` (« greement », « aleatoire » → clés de ship-criticals.json) à la liste des fossiles `z.string()` de D2.\n6. **D3 « rollDiceExpr meurt » se heurte au périmètre : 4 appels sur 5 ne lisent pas sea-events** (lentille preuve-par-sonde) — seaVoyageFlow.ts:2001 `rollDiceExpr`. Appels : l.2066 `b.durationRounds`, l.2067 `b.coolMinutes`, l.2087 `failDamage` (tous `SteamBreakdownEntry`, steam-breakdown.json : \"1d10\", \"20+1d10\", \"1d10-5\"), et l.1456 `sea.infestation.spoilPerNight`, un état de voyage typé `string` à l.192 et alimenté par `String(params.spoilEncPerNight ?? '1d10')` à l.2389. Le brief classe `steam-breakdown` HORS périmètre. Supprimer rollDiceExpr oblige donc soit à migrer steam-breakdown (interdit), soit à rerouter ces appels, sans que le brief dise vers quoi. La couture moteur existe : `rollExpr` (src/engine/dice.ts:98) accepte « 20+1d10 » et « 1d10-5 », et `rollDice(DiceSpec)` est à dice.ts:83. → Écrire dans D3 : les 3 appels steam passent par `rollExpr` du moteur (la donnée steam reste en chaîne, et sa migration en DiceSpec reste à #1652). `TravelPlan.sea.infestation.spoilPerNight` devient un `DiceSpec` tiré par `rollDice` (vérifier la forme de sauvegarde). Il faut aussi citer `rollExpr` et `rollDice` comme primitives de destination.\n7. **D3 affirme que `rollDiceExpr` meurt, mais ses lecteurs restants sont HORS périmètre : c'est une demi-migration présentée comme un retrait** (lentille normes-et-poison) — Arbre épinglé à 9cf3308af (worktree /home/claude/game/.wt-1473-r1). `grep -n rollDiceExpr src/state/seaVoyageFlow.ts` rend 1456 (infestation, alimentée par sea-events), 2001 (définition), 2066 `rollDiceExpr(b.durationRounds…)`, 2067 `rollDiceExpr(b.coolMinutes…)`, 2087 `rollDiceExpr(failDamage…)` dans `openSteamSave`. Les lignes 2066, 2067 et 2087 lisent `SteamBreakdownEntry` (`src/engine/shipBuild.ts:275-279`, `durationRounds?: string; coolMinutes?: string; failDamage?: string`, schéma `src/data/schemas/defs/steam-breakdown.ts:19`). Or le brief, § Périmètre, déclare « Hors périmètre : … `steam-breakdown` … ». Le brief (D3) dit pourtant : « `eventParam` et `rollDiceExpr` meurent ». → Choisir une seule voie. Soit D3 ne tue que `eventParam` (ainsi que la lecture de 1456 et 2389) et écrit noir sur blanc que `rollDiceExpr` survit tant que le lot steam-breakdown de #1652 ne l'a pas remplacé, et ce reliquat est nommé dans le solde de #1652. Soit on ajoute `steam-breakdown.ts`, `shipBuild.ts` et `steam-breakdown.json` au périmètre. La question 5 du brief (« que reste-t-il à #1652 ») doit alors citer `rollDiceExpr` nommément.\n8. **Le concept « dé » a TROIS encodages dans sea-events.json. D3 n'en migre qu'un et en ajoute un quatrième** (lentille normes-et-poison) — Sonde en lecture seule (`node -e` sur `src/data/sea-events.json` : 58 événements, 51 `kind`). On trouve 1) des chaînes (`days:\"1d10\"`, `lostCrew:\"2d10\"`, `days:\"10+2d10\"`) ; 2) un NOMBRE de d10 porté par le NOM de la clé : `moraleD10:number`, `manannD10:number`, jusque dans `triton.params.impressed.manannD10`. Le store le lit comme « compte SIGNÉ de d10 à rouler » (`src/state/seaVoyageFlow.ts:2407-2410`, via le cast `event.params!.manannD10 as number`) ; 3) `ManannFactor.effect {sign, flat, d10}` dans le même document (`src/data/schemas/defs/sea-events.ts:17-25`), lu par le Codex (`src/ui/compendium/registry.ts`, `manannFactorItem`, `diceLabel({ n: eff.d10, sides: 10, plus: eff.flat })`). D3 ne vise que « Dés en chaîne ». Or `diceSpecSchema` (`src/data/schemas/grammaire/valeurs.ts:524-525`, `{n, sides, plus?}`) ne porte pas de signe. Le brief viole ici son propre invariant 2 (« Un lot qui touche un CHAMP embarque TOUTES les conventions de ce champ »). → D3 doit couvrir tous les dés de `params` : les clés `*D10`, y compris celles imbriquées dans `impressed`/`wrathful`, rejoignent la forme canonique. Le brief tranche aussi le cas du dé SIGNÉ (`formulaSchema` s'il sait porter un signe, sinon un signe explicite au porteur, au dépôt), mesure faite. Il décide enfin si `ManannFactor.effect` s'aligne dans le même geste (Codex `registry.ts` inclus) ou pourquoi il en est exclu, avec citation.\n9. **Prémisse fausse de D2 : les colonnes météo ont déjà un enum canonique. Le « fossile » `z.string()` est donc un doublon, et `vents` concurrence `vent`** (lentille normes-et-poison) — `src/data/schemas/defs/sea-weather.ts:16-23` déclare `const windForce = z.enum(['calme-plat','legere-brise','brise-fraiche','vent-modere','vent-violent','violente-tempete'])`. Aux lignes 38-41 : `precipitations: z.enum(['aucune','legeres','abondantes','tres-abondantes'])`, `temperature: z.enum([...,'mediane',...])`, `visibilite: z.enum(['degage','brume','brouillard','puree-de-pois'])`, `vent: windForce`. Toutes les valeurs de sea-events sont dans ces enums (sonde : `vents:\"brise-fraiche\"`, `\"vent-violent\"`, `escalation.vents:\"violente-tempete\"`, `visibilite:\"brume\"`…). La clé de données s'appelle `vents` (au pluriel), alors que le schéma sea-weather et le store (`seaVoyageFlow.ts:2444`, `weather: { vent: 'calme-plat' }`) emploient `vent` : deux termes pour un même concept. Ces valeurs ne sont pas des ids de registre, donc la justification de D2 (« pas d'emplacement au registre avant R2 v2 ») ne s'applique pas. → Exporter les enums depuis `sea-weather.ts`, qui fait canon (ajouter ce fichier au périmètre), et typer `visibilite`/`precipitations`/`temperature`/`vent` avec eux. Renommer `vents` en `vent` dans le script de migration daté, y compris `escalation`. Retirer ces colonnes du « registre des fossiles ». Le fossile se réduit alors à `testType`, seul à dépendre d'un type de registre absent de `TYPES` (`ref.ts:46-78`).\n10. **D2 oublie des désignateurs que D1 figerait tels quels : sous-tables en prose (`creatures[]`, `contents[]`) qui nomment des entités par LIBELLÉ, et `metier` indexé par spécialisation** (lentille normes-et-poison) — Sonde sur sea-events.json : `puissant-monstre-marin` a `creatures:[\"1-3 : hydre d'os\",\"4-5 : sangsue des abysses\",\"6-9 : gargantuan\",\"10 : léviathan noir\"]` avec `roll:\"1d10\"`. `canot-de-sauvetage` et `passager-clandestin` ont `contents:[\"1 à 3 : deux Marins\",…]`. Il y a donc deux notations de plage (« 1-3 » et « 1 à 3 »), là où le canon est `plageSchema`/`findTableEntry`. Les entités y sont désignées par libellé, contre la doctrine ids stables (CLAUDE.md). `constructeur-de-navires-itinerant` a `metier:{\"charpentier\":72,\"constructeur-de-navires\":68,\"tailleur\":63}` : ce sont des spécialisations de la Compétence Métier indexées par clé d'objet, hors de la forme `refOuSpec('skill')` que D2 impose à `skills[]`. D1 (« clés = celles observées ») les rendrait STRICTES en `z.array(z.string())`, ce qui fige ce poison au lieu de le supprimer. → D2 doit énumérer ces trois clés. `creatures`/`contents` deviennent une sous-table `{...plageSchema.shape, <ref idDe('creature'|'crewRole')>, nombre?}`, après une sonde de résolution de chaque libellé. Toute cible absente du registre reçoit un arbitrage nommé (CustomStatblock ou omission documentée, règle 7). Le `roll` associé passe au dé canonique. `metier` devient une liste `{ skill: refOuSpec('skill'), valeur }`.\n11. **La forme persistée `infestation.spoilPerNight: string` n'est pas au périmètre. D3 laisserait une copie « dé en chaîne » dans l'état, ou changerait une forme sauvegardée sans monter `SAVE_VERSION`** (lentille normes-et-poison) — `src/state/seaVoyageFlow.ts:192` : `infestation?: { …; spoilPerNight: string }`. À la ligne 2389 : `spoilPerNight: String((event.params as Record<string, unknown> | undefined)?.spoilEncPerNight ?? '1d10')`. À la ligne 1456 : `rollDiceExpr(sea.infestation.spoilPerNight, rng)`. La politique est `src/state/migrateDoc.ts:6-8` (« au changement de forme persistée, `SAVE_VERSION` monte et les saves antérieures se JETTENT »), et `src/state/saves.ts:132` porte `SAVE_VERSION = 50`. `saves.ts` ne figure pas au périmètre du brief. → Nommer au périmètre le type d'état `infestation.spoilPerNight`, qui devient la forme canonique du dé, ainsi que la montée de `SAVE_VERSION` dans `src/state/saves.ts`. La conversion `String(...)` et le défaut `'1d10'` en dur de la ligne 2389 disparaissent."
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Lecture"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Design"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Réfutation"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 4,
+      "title": "Synthèse"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "lecture-du-brief",
+      "phaseIndex": 1,
+      "phaseTitle": "Lecture",
+      "agentId": "a19d976bf8b5b70db",
+      "agentType": "lecteur",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1790212294300,
+      "queuedAt": 1790212294270,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Tu LIS un brief d'agent et tu rends sa structure — tu ne juges rien, tu ne décides rien.\n\nArbre jugé (chemin ABSOLU, à utiliser tel quel) : /home/claude/game/.wt-1473-r1\nBrief jugé : /mnt/project-files/dettes/1463-r2c2-brief.md\nDate du jour : 2026-09-24\nDossier de sondes : /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad\n\nInterdits, sans exception : tout git ÉCRIVAIN…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212326278,
+      "tokens": 32670,
+      "toolCalls": 6,
+      "durationMs": 31976,
+      "resultPreview": "{\"casCanonique\":[{\"fichier\":\"src/data/schemas/defs/spells.ts\",\"ligne\":28,\"role\":\"payload typé par discriminant `kind`, membres stricts (spellRangeSchema/spellTargetSchema/spellDurationSchema)\"},{\"fichier\":\"src/data/schemas/grammaire/mecanique.ts\",\"ligne\":1,\"role\":\"OP_DEFS — autre forme (carte + superRefine + repli nominatif OPS_NON_TYPEES)\"},{\"fichier\":\"src/engine/seaVoyage.ts\",\"ligne\":36,\"role\":\"…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "trou-de-socle",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a4a800ac6bc618d28",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212327242,
+      "queuedAt": 1790212327216,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — TROU DE SOCLE. Le design proposé fait-il du nouveau cas une INSTANCE du socle (une déclaration de plus, même code) ou une VARIANTE à branche (`if (<type de cas>)` dans un socle : héros/monde, terre/mer, mono/multi, solo/coop, arme/sort) ?\nCherche dans l'arbre jugé : (a) un SECOND socle qui couvre déjà ce concept — deux hôtes pour un concept est le défaut ; (b) le site où le N+1 coûterai…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212438207,
+      "tokens": 55740,
+      "toolCalls": 21,
+      "durationMs": 110961,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"VARIANTE, pas instance : D1/D2/D4 inventent un second hôte pour « l'effet mécanique d'un événement », parallèle au socle GameOp, déjà en service dans le même flux et chez les datasets navals voisins\",\"preuve\":\"Arbre épinglé 9cf3308af (/home/claude/game/.wt-1473-r1). (a) Il existe déjà un second socle. Le store FABRIQUE des GameOp à partir de valeurs codées en dur : src/stat…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "preuve-par-sonde",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "ad1c6cafacc6a174f",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212327245,
+      "queuedAt": 1790212327216,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — PREUVE PAR SONDE. Écris et JOUE une sonde en lecture seule qui tente de CASSER le design avant que le code n'existe : un appel qui devrait échouer et ne le fait pas, un contrat que le design suppose et que le dépôt ne tient pas, une forme de donnée qui ne se présente pas comme le design le croit.\nLa sonde s'écrit sous le dossier de sondes, elle se joue sur un fichier isolé, et le CODE E…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212481327,
+      "tokens": 59051,
+      "toolCalls": 19,
+      "durationMs": 153453,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"D1/D5 : une seule union pour deux tables et deux switch. L'« exhaustivité » promise est inatteignable telle que conçue\",\"preuve\":\"Arbre 9cf3308af. Sonde B (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/sonde-1463-r2c2-b.mts, exit=0 mesuré par redirection, pas par pipe). Sortie : « kinds: board=35 port=18 union=51 communs=rien,beau-temps / s…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "normes-et-poison",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a372e276d6bf0321d",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212439034,
+      "queuedAt": 1790212327216,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "LENTILLE — MISE AUX NORMES ET POISON. Le design nomme-t-il UN concept par UN terme (aucun synonyme concurrent dans le périmètre) ? Introduit-il un doublon adjacent d'un terme déjà porté par le dépôt ? Que RETIRE-t-il, et la migration de l'existant est-elle dans le geste (un stock qui grandit, une demi-migration, une liste d'exemptions neuve sont des bloquants) ?\nSignale le poison que le design fer…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212607122,
+      "tokens": 48945,
+      "toolCalls": 17,
+      "durationMs": 168088,
+      "resultPreview": "{\"bloquants\":[{\"titre\":\"D3 affirme que `rollDiceExpr` meurt, mais ses lecteurs restants sont HORS périmètre : c'est une demi-migration présentée comme un retrait\",\"preuve\":\"Arbre épinglé à 9cf3308af (worktree /home/claude/game/.wt-1473-r1). `grep -n rollDiceExpr src/state/seaVoyageFlow.ts` rend 1456 (infestation, alimentée par sea-events), 2001 (définition), 2066 `rollDiceExpr(b.durationRounds…)`,…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "refutation:trou-de-socle→preuve-par-sonde",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "a460d8537091cb5c0",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212608173,
+      "queuedAt": 1790212608142,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 3 bloquant(s) rendu(s) par la lentille « trou-de-socle ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « preuve-par-sonde ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — PREUVE PAR SONDE. Écris et JOUE une sonde en lecture seule qui tente de CASSER le design avant que le code n'existe : un a…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212682753,
+      "tokens": 37252,
+      "toolCalls": 9,
+      "durationMs": 74576,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"VARIANTE, pas instance : D1/D2/D4 inventent un second hôte pour « l'effet mécanique d'un événement », parallèle au socle GameOp, déjà en service dans le même flux et chez les datasets navals voisins\",\"refute\":false,\"preuve\":\"CONFIRMÉ. Arbre 9cf3308af (`git log --oneline -1` : « 9cf3308af fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible ex…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "refutation:preuve-par-sonde→normes-et-poison",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "a13e663e9e252ed1d",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212608176,
+      "queuedAt": 1790212608142,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 3 bloquant(s) rendu(s) par la lentille « preuve-par-sonde ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « normes-et-poison ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — MISE AUX NORMES ET POISON. Le design nomme-t-il UN concept par UN terme (aucun synonyme concurrent dans le périmètre) ?…",
+      "promptFramed": true,
+      "lastProgressAt": 1790212649181,
+      "tokens": 25333,
+      "toolCalls": 5,
+      "durationMs": 40309,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"D1/D5 : une seule union pour deux tables et deux switch. L'« exhaustivité » promise est inatteignable telle que conçue\",\"refute\":false,\"preuve\":\"CONFIRMÉ, pas réfuté. Arbre 9cf3308af, tête vérifiée par git log. Sonde node en lecture sur src/data/sea-events.json : boardEvents a 40 lignes et 35 kinds, portEvents a 18 lignes et 18 kinds, et seuls 'rien' et 'beau-temps' sont com…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "refutation:normes-et-poison→trou-de-socle",
+      "phaseIndex": 3,
+      "phaseTitle": "Réfutation",
+      "agentId": "aaf74a29656f1274f",
+      "agentType": "juge",
+      "model": "claude-opus-5-5[1m]",
+      "state": "done",
+      "startedAt": 1790212649981,
+      "queuedAt": 1790212608143,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "RÉFUTATION — 5 bloquant(s) rendu(s) par la lentille « normes-et-poison ». Tu les examines depuis UNE AUTRE lentille que la leur, la tienne : « trou-de-socle ». Pars du principe que CHACUN est FAUX et essaie de le RÉFUTER sur pièces, dans l'arbre jugé.\n\nTA LENTILLE : LENTILLE — TROU DE SOCLE. Le design proposé fait-il du nouveau cas une INSTANCE du socle (une déclaration de plus, même code) ou une …",
+      "promptFramed": true,
+      "lastProgressAt": 1790212695488,
+      "tokens": 30988,
+      "toolCalls": 11,
+      "durationMs": 45507,
+      "resultPreview": "{\"verdicts\":[{\"titre\":\"D3 affirme que `rollDiceExpr` meurt, mais ses lecteurs restants sont HORS périmètre : c'est une demi-migration présentée comme un retrait\",\"refute\":false,\"preuve\":\"CONFIRMÉ, arbre 9cf3308af. `grep -n rollDiceExpr src/state/seaVoyageFlow.ts` rend 1456, 2001 (définition), 2066 (`b.durationRounds`), 2067 (`b.coolMinutes`) et 2087 (`failDamage`). `src/engine/shipBuild.ts:270-279…"
+    }
+  ],
+  "totalTokens": 289979,
+  "totalToolCalls": 88
+}

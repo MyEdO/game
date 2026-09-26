@@ -1,0 +1,388 @@
+{
+ "verdict": "FRAGILE",
+ "bloquants": [
+  {
+   "titre": "D1-bis réinvente un socle qui existe déjà : le registre des slots (`slotsDuParse` / `occurrencesTouchees`) établit déjà, occurrence par occurrence, quelles références de la donnée committée `idDe` valide au parse",
+   "preuve": "Arbre épinglé 9cf3308af (`git log --oneline -1` : « fix(structures): refs #1473 refs #1468 — grantReverseToken typé… », identique à la tête que déclare le brief). Le brief, D1-bis : « le codeur le PROUVE par le parse de mesure (`reperesDuParse`) — pour chaque occurrence committée d'un champ de `typesAuParse`, un repère au même path de donnée — et la sonde est promue en test committé ». Or ce calcul existe déjà : /home/claude/game/.wt-1473-r1/scripts/docs/lib/slots-registre.mts:77 `slotsDuParse(scan, defs)` rend chaque repère de `reperesDuParse` sous forme de case `(porteur, cle)` du document réel, sur les deux racines (`defsDeDocument`, :23-25 : `SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`). `occurrencesTouchees` (:99) et `couplesDeReference` (:135) en tirent les occurrences touchées et atteintes. Ce socle est consommé par /home/claude/game/.wt-1473-r1/src/data/slots-contrat.test.ts:52 et son en-tête (#1475) pose exactement la question de D1-bis (« quelles cases … le PARSE valide-t-il par `idDe` … à quel path »). La sonde ci-dessous, en lecture seule, relie ce socle à `GAMEOP_FIELD_TARGETS` en quelques lignes (exit=0) : « documents scannés 128 slots 30002 ». Pour les 9 doublons du point 2 de l'Invariant : aggravateSymptom.disease occ 1 slots 1 ; aggravateSymptom.symptomId 1/1 ; grantSymptom.disease 1/1 ; grantSymptom.symptomId 1/1 ; domeWard.traitId 1/1 ; removeTrait.traitId 1/1 ; offTerrainMod.terrain 3/3 (attenuateSymptom : aucune occurrence). Tous les champs D2 sont aujourd'hui à 0 slot (removeCondition.id 27/0, rollTable.tableId 23/0, summon.ref 16/0, contractDisease.disease 10/0…). La sonde montre aussi que la déclaration statique et la réalité par occurrence divergent : « condition.unlessCondition occ 14 slots 1 », c'est-à-dire un slot posé sur une op LOOSE, que `descendre` sur `OP_DEFS` ne verrait pas. Sonde exacte (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-slots-ops.mts, lancée par `npx tsx`) :\nimport { scanDuCorpus } from '/home/claude/game/.wt-1473-r1/scripts/docs/lib/structures-scan.mts';\nimport { slotsDuParse } from '/home/claude/game/.wt-1473-r1/scripts/docs/lib/slots-registre.mts';\nimport { GAMEOP_FIELD_TARGETS } from '/home/claude/game/.wt-1473-r1/scripts/guards/lib/gameOpRefFk.mjs';\nconst { defs, scan } = scanDuCorpus('/home/claude/game/.wt-1473-r1');\nconst slots = slotsDuParse(scan, defs);\nconst estSlot = new Map<object, Set<string|number>>();\nfor (const s of slots) { if (!estSlot.has(s.porteur)) estSlot.set(s.porteur, new Set()); estSlot.get(s.porteur)!.add(s.cle); }\n// marche de scan.brutParNom : pour chaque nœud {op} sans `kind`, et chaque champ à {registry}, compte occ et estSlot.get(noeud)?.has(champ) (tableau : estSlot.get(tableau)?.has(i))",
+   "correction": "Remplacer D1-bis par la consommation du socle existant : le test promu (dans `refs-migrated.test.ts`, qui peut importer le `.mts` comme le fait déjà `slots-contrat.test.ts:6-15`) exige que chaque occurrence d'un champ de `typesAuParse` dans `scan.brutParNom` soit une case de `slotsDuParse`. Aucune sonde neuve, aucun second calcul par `reperesDuParse`. Répondre ainsi à la question 2 : la garde qui établit « ce nœud d'op passe par un schéma qui valide par `idDe` » est `slotsDuParse`, pas une garde à écrire.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "D1-bis réinvente un socle qui existe déjà : le registre des slots (`slotsDuParse` / `occurrencesTouchees`) établit déjà, occurrence par occurrence, quelles références de la donnée committée `idDe` valide au parse",
+     "refute": false,
+     "structurel": false,
+     "preuve": "CONFIRMÉ, non réfuté. Arbre épinglé : `git log --oneline -1` rend « 9cf3308af fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible exclusive », la tête que déclare le brief. /home/claude/game/.wt-1473-r1/scripts/docs/lib/slots-registre.mts:52-67 : `slotsDuDocument` appelle `reperesDuParse(schema, document)` et convertit chaque repère en case `(porteur, cle)` du document. :77 `slotsDuParse` le fait sur `defsDeDocument()` (:23-25, SCHEMA_DEFS + SCHEMA_DEFS_SCENES). La preuve « un repère au même path de donnée » que D1-bis demande au codeur d'écrire avec `reperesDuParse` (ref.ts:248) est donc déjà codée, et consommée par src/data/slots-contrat.test.ts:52 (`const SLOTS = slotsDuParse(scan, DEFS)`), dont la question A (:24-26) est celle de D1-bis. J'ai rejoué la sonde du bloquant sur l'arbre (`npx tsx …/juge-ops-ref/sonde-slots-ops.mts > rejeu-slots.txt; echo exit=$?` → exit=0) : « documents scannés 128 slots 30002 », « testMod.exceptSkills occ 2 slots 0 », « diseaseTestMod.diseases occ 6 slots 0 », « summon.ref occ 16 slots 0 », « condition.unlessCondition occ 14 slots 1 ». Les chiffres sont identiques à ceux du bloquant. Le brief ne nomme `slotsDuParse` nulle part, et sa question 2 (« Existe-t-il déjà une garde… ? ») montre qu'il ignore ce socle. Correction à apporter au brief : D1-bis consomme `slotsDuParse`. Rien à repenser dans le design."
+    }
+   ]
+  },
+  {
+   "titre": "D5 « N+1 = une ligne » est faux, et le périmètre omet le stock des slots que l'adoption fait périmer (le test sera rouge)",
+   "preuve": "Premier site : /home/claude/game/.wt-1473-r1/scripts/guards/lib/slotsStock.mjs:154 `{ dataset: \"etats.json\", champ: \"exceptSkills\", occurrences: 1 … }` et :331 `{ dataset: \"trappings.json\", champ: \"diseases\", occurrences: 5 … }`. D'après la sonde ci-dessus, ce sont les occurrences de `testMod.exceptSkills` (etats.json, 2 valeurs, 0 slot) et de `diseaseTestMod.diseases` (trappings.json, 0 slot), deux champs que D2 fait adopter. /home/claude/game/.wt-1473-r1/src/data/slots-contrat.test.ts:235-238 échoue sur toute entrée périmée : « entrée périmée — elle se retire dans le commit de l'adoption ». L'en-tête de slotsStock.mjs le confirme : « Une ligne se solde en faisant ADOPTER la fabrique … et part dans le MÊME commit ». Or `scripts/guards/lib/slotsStock.mjs` est absent du « Périmètre » du brief, et les « Mouvements de stock attendus » ne nomment que GAMEOP_FIELD_TARGETS et OPS_NON_TYPEES. Deuxième site du N+1 : /home/claude/game/.wt-1473-r1/src/data/grammaire-guard.test.ts:280-294 tient une liste NOMINATIVE, à cardinal fixé, des champs d'`OP_DEFS` dont la clé figure dans `ALIAS` (:140 : `'skillId','talentId','trappingId','traitId','skill','ref',…`). Taper `summon.ref`, `polymorph.ref`, `scheduleRespawn.ref` et `giveTrapping.trappingId` y ajoute 4 lignes, comme `OP_DEFS.domeWard|traitId` (:285). Typer une op coûte donc, en plus de l'entrée `OP_DEFS` et du retrait d'`OPS_NON_TYPEES` : une ligne dans grammaire-guard.test.ts:280-294 (quand la clé est un alias), un retrait dans slotsStock.mjs, et les retraits de GAMEOP_FIELD_TARGETS.",
+   "correction": "Ajouter au périmètre `scripts/guards/lib/slotsStock.mjs` (et `docs/structures-donnees.md` §6 via `npm run docs:build`). Porter dans « Mouvements de stock » `SLOTS_SANS_DECLARATION` (au moins −2 : :154 et :331) et la liste de grammaire-guard.test.ts:280-294 (+4). Réécrire D5 avec son vrai coût, ou dériver la liste de grammaire-guard des alias d'`OP_DEFS` au lieu de la tenir à la main.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "D5 « N+1 = une ligne » est faux, et le périmètre omet le stock des slots que l'adoption fait périmer (le test sera rouge)",
+     "refute": false,
+     "structurel": false,
+     "preuve": "CONFIRMÉ, et même sous-estimé. /home/claude/game/.wt-1473-r1/scripts/guards/lib/slotsStock.mjs:154 `{ dataset: \"etats.json\", champ: \"exceptSkills\", occurrences: 1 … }` : src/data/etats.json:144-152 montre que l'unique `exceptSkills` est celui de `{ \"op\": \"testMod\", \"amount\": -10, \"exceptSkills\": [\"athletisme\",\"discretion\"] }`. slotsStock.mjs:331 `trappings.json | diseases | 5` : les 5 blocs `\"diseases\"` de trappings.json (l.6152, 6774, 6853, 7021, 7071) sont tous des `{ \"op\": \"diseaseTestMod\" }`. L'adoption D2 fait donc périmer ces lignes. src/data/slots-contrat.test.ts:235-238 échoue alors (« entrée périmée — elle se retire dans le commit de l'adoption »), et slotsStock.mjs:10-16 le redit (« part dans le MÊME commit que l'adoption »). Or slotsStock.mjs n'est pas dans le « Périmètre » du brief (Train 1). Le couple `etats.json | ops | 14` (:155) est lui aussi touché par le typage de `removeCondition.id` ; le mouvement « au moins −2 » est donc un minimum. Pour grammaire-guard : scripts/guards/lib/grammaireGuard.mjs:165-166 marque `alias` toute clé littérale présente dans `ALIAS` (src/data/grammaire-guard.test.ts:140 contient 'ref' et 'trappingId'). La liste figée de :280-294 contient déjà `OP_DEFS.domeWard|traitId` et `OP_DEFS.removeTrait|traitId`. Le brief garde la graphie de `summon.ref`, `polymorph.ref`, `scheduleRespawn.ref` et `giveTrapping.trappingId` (« graphie inchangée sauf mention ») : ces 4 champs y entrent. D5 « une ligne » est donc faux. On corrige en retouchant le brief (périmètre + mouvements de stock), sans repenser le design."
+    }
+   ]
+  },
+  {
+   "titre": "D1 × D2 : deux nœuds d'ops du train 1 ne passent pas par gameOpSchema. Retirer leurs champs du scan perd donc leur contrôle de clé étrangère, la preuve D1-bis échoue telle que le train est défini, et le critère D5 « N+1 = une ligne » est réfuté",
+   "preuve": "Arbre épinglé 9cf3308af (git log --oneline -1). Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-couverture.mts, jouée par `npx tsx` avec la sortie redirigée vers out-couverture.txt ; exit=0. Méthode : clone en mémoire de chaque document, puis chaque nœud {op} visité par le scan (même isGameOp que gameOpRefFk.mjs) est remplacé par {op:'__sonde__'}. Le nœud est « atteint » si l'issue « op inconnue de OP_DEFS » (mecanique.ts:243-247) tombe au chemin <nœud>.op ; la recherche descend récursivement dans invalid_union.errors et invalid_element.issues. Code exact :\n```ts\nconst isGameOp = (o: any) => typeof o.op === 'string' && !('kind' in o);\nfor (const n of nodes) {\n  const def = DEFS_DE_DOCUMENT.find((d: any) => d.file === n.src.key);\n  const clone = structuredClone(n.src.data);\n  let cur: any = clone; for (const k of n.p.slice(0, -1)) cur = cur[k];\n  cur[n.p[n.p.length - 1]] = { op: '__sonde__' };\n  const r = def.schema.safeParse(clone);\n  const want = [...n.p, 'op'].map(String).join('.');\n  if (!r.success && hit(r.error.issues, want)) atteints++; else (nonAtteints[n.op] ??= []).push(...);\n}\n```\nSortie : « noeuds {op} visités par le scan : 2218 — atteints par gameOpSchema : 2054 » ; « TOTAL non atteints : 164 — dont ops du brief : 2 » ; « [BRIEF] giveTrapping ×1 : src/data/spells.json#220.effects.steps.0.effect.ops.0.ops.0 » ; « [BRIEF] removeCondition ×1 : src/data/traits.json#73.effects.0.flow.else.effect.ops.0.thresholds.0.ops.1 ». Parents mesurés : spells.json[220] = {\"op\":\"perRound\",\"ops\":[{\"op\":\"giveTrapping\",\"trappingId\":\"ration\"}]} ; traits.json[73] (regeneration) = rollThreshold, dont thresholds[].ops contient {\"op\":\"removeCondition\",\"id\":\"inconscient\"}. perRound et rollThreshold sont tous deux dans OPS_NON_TYPEES (mecanique.ts:154-157) et absents de D2. Or le repli loose (mecanique.ts:242, `refusLoose`) ne parse pas les ops imbriquées. Avec D1, `giveTrapping.trappingId` et `removeCondition.id` quittent GAMEOP_FIELD_TARGETS, et plus rien ne vérifie `ration` ni `inconscient` à ces chemins. Pour D5 : typer une op dont une occurrence vit sous un conteneur non typé ne tient pas en une ligne, puisque le test D1-bis promu échoue.",
+   "correction": "Deux corrections. (1) Ajouter à D2 les conteneurs des occurrences concernées : `perRound` (ops récursif) et `rollThreshold` (thresholds[].ops récursif), avec les stocks recalculés (OPS_NON_TYPEES 86 → 71). À défaut, garder dans le scan les champs dont une occurrence n'est pas atteinte. (2) Remplacer la promesse D5 par une règle d'ordre : un conteneur d'ops se type avant ou avec son contenu. Promouvoir la sonde ci-dessus en invariant global de refs-migrated.test.ts : « tout nœud {op} visité par scanGameOpRefs est atteint par gameOpSchema ». Les 164 nœuds non atteints d'aujourd'hui y sont nommés, dialecte miscast.json compris, et leur nombre ne peut que décroître.",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "D1 × D2 : deux nœuds d'ops du train 1 ne passent pas par gameOpSchema. Retirer leurs champs du scan perd donc leur contrôle de clé étrangère, la preuve D1-bis échoue telle que le train est défini, et le critère D5 « N+1 = une ligne » est réfuté",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Arbre épinglé à 9cf3308af (git log --oneline -1) ; c'est bien la tête que nomme le brief. Donnée vérifiée par node : spells.json[220].effects.steps[0].effect.ops[0] = {\"op\":\"perRound\",\"ops\":[{\"op\":\"giveTrapping\",\"trappingId\":\"ration\"}]} ; traits.json[73] (regeneration) = rollThreshold, avec thresholds[0].ops[1] = {\"op\":\"removeCondition\",\"id\":\"inconscient\",\"value\":99}. `perRound` et `rollThreshold` figurent dans OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts:146-157), et gameOpSchema les envoie vers `refusLoose(v, ctx)` (mecanique.ts:242), qui ne parse pas leurs ops enfants. Aucun des deux n'est dans la liste D2 du brief (/mnt/project-files/dettes/1463-ops-ref-brief.md, § D2). J'ai relu la sortie de la sonde (out-couverture.txt) : « noeuds {op} visités par le scan : 2218 — atteints par gameOpSchema : 2054 », « [BRIEF] giveTrapping ×1 : spells.json#220…ops.0.ops.0 », « [BRIEF] removeCondition ×1 : traits.json#73…thresholds.0.ops.1 », « TOTAL non atteints : 164 ». Sous ma lentille, le défaut s'aggrave : D1 retire giveTrapping.trappingId et removeCondition.id de GAMEOP_FIELD_TARGETS au nom de « une seule source de vérité », alors que cette source ne couvre pas toutes les occurrences. Le train en sort à moitié migré. Il se corrige par une retouche du brief (typer d'abord les conteneurs perRound et rollThreshold, ou poser une règle d'ordre), donc sans refonte du design.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "D1-bis mal posée : une valeur réservée acceptée par union au site ('self', '$arg') n'émet aucun repère, donc « une occurrence = un repère » échoue sur 3 occurrences committées",
+   "preuve": "Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-union-reserve.mts, sortie dans out-union.txt, exit=0. Code :\n```ts\nconst respawn = z.strictObject({ op: z.literal('scheduleRespawn'), ref: z.union([idDe('creature'), z.literal('self')]) });\nconst expose = z.strictObject({ op: z.literal('exposeDisease'), disease: z.union([idDe('maladie'), z.literal('$arg')]) });\nconsole.log(nom, '→ repères :', JSON.stringify(reperesDuParse(s, v).map((r) => r.path.join('.'))));\n```\nSortie : « respawn id → repères : [\"ref\"] », « respawn self → repères : [] », « expose id → repères : [\"disease\"] », « expose $arg → repères : [] ». Occurrences committées touchées (sonde-d2.mts, out-d2.txt) : traits.json[56] et [98] disease=\"$arg\", traits.json[108] ref=\"self\". La preuve D1-bis telle que le brief l'écrit (« pour chaque occurrence committée d'un champ de typesAuParse, un repère au même path de donnée ») lève donc sur ces trois occurrences, dès que exposeDisease et scheduleRespawn entrent dans typesAuParse.",
+   "correction": "Reformuler D1-bis : l'occurrence est atteinte (voir l'invariant du bloquant 1), et sa valeur est soit un repère `idDe`, soit l'une des valeurs littérales réservées déclarées au même nœud de schéma, lues par `descendre` sur les branches z.literal. Aucune liste recopiée.",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "D1-bis mal posée : une valeur réservée acceptée par union au site ('self', '$arg') n'émet aucun repère, donc « une occurrence = un repère » échoue sur 3 occurrences committées",
+     "refute": false,
+     "preuve": "CONFIRMÉ. J'ai relu la sortie de la sonde (out-union.txt) : « respawn self → repères : [] », « expose $arg → repères : [] », contre [\"ref\"] et [\"disease\"] pour un id. Les occurrences committées, vérifiées par node : traits.json[56] (maladie) et traits.json[98] (contagieux) portent exposeDisease{disease:\"$arg\"} ; traits.json[108] (gardien-eternel) porte scheduleRespawn{ref:\"self\"}. Le brief écrit mot pour mot en D1-bis « pour chaque occurrence committée d'un champ de typesAuParse, un repère au même path de donnée ». En D2, il fait entrer exposeDisease et scheduleRespawn dans ce même ensemble avec leur union '$arg' / 'self'. La preuve lèverait donc sur ces 3 occurrences. Sous ma lentille : le correctif proposé lit les littéraux réservés sur le nœud de schéma par `descendre` et ne recopie aucune liste. Cela tient, et fait mourir TOLERATED.templates et TOLERATED.selfRef (scripts/guards/lib/gameOpRefFk.mjs:52-58), comme D2 le prévoit. Retouche de formulation, sans refonte.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "Les lignes du stock de slots que le lot fait mourir sont oubliées : fichier hors périmètre, absent des « mouvements de stock », et le critère D5 « N+1 = une ligne » est faux",
+   "preuve": "Arbre 9cf3308af. scripts/guards/lib/slotsStock.mjs:154 `{ dataset: \"etats.json\", champ: \"exceptSkills\", occurrences: 1 }` et :331 `{ dataset: \"trappings.json\", champ: \"diseases\", occurrences: 5 }`. Ce sont des champs d'op qui passent par gameOpSchema : etats.json:145-148 `passive:[{op:'testMod', exceptSkills:[…]}]` avec defs/etats.ts:48 `passive: z.array(gameOpSchema)` ; trappings.json:6151-6152 `diseaseTestMod.diseases` avec defs/trappings.ts:188. Une fois que D2 les type en idDe/refs, ces occurrences deviennent des slots. slots-contrat.test.ts:236-238 exige alors `ecarts.perimees` vide (« entrée périmée — elle se retire dans le commit de l'adoption »). Le cliquet DETTE_ADOPTION_MAX = 283 (slots-contrat.test.ts:60) vaut exactement le stock actuel (287 lignes `dataset:` moins les 4 INATTEIGNABLES). Contre-grep sur le brief : `grep -n slotsStock|slots-contrat|structuresStock|grammaireStock` renvoie exit=1, aucune mention.",
+   "correction": "Ajouter au périmètre du train 1 scripts/guards/lib/slotsStock.mjs, le cliquet de src/data/slots-contrat.test.ts et le doc généré §6. Ajouter aux « Mouvements de stock attendus » SLOTS_SANS_DECLARATION 283 → 281 et le cliquet abaissé. Pour la migration d'exceptSkills en `{id}`, dire sous quel champ la référence est recomptée. Réécrire D5 en y incluant le retrait des lignes du stock de slots.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Les lignes du stock de slots que le lot fait mourir sont oubliées : fichier hors périmètre, absent des « mouvements de stock », et le critère D5 « N+1 = une ligne » est faux",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Arbre 9cf3308af, git status propre. Le bloquant TIENT. scripts/guards/lib/slotsStock.mjs:154 `etats.json | exceptSkills | 1` et :331 `trappings.json | diseases | 5`, les deux sous le lot L2/L3 #1473. Ces champs passent par gameOpSchema : defs/etats.ts:48 et defs/trappings.ts:188 `passive: z.array(gameOpSchema)`, etats.json:144-150 testMod.exceptSkills, trappings.json:6151 diseaseTestMod.diseases. Un SLOT = une case validée par idDe au parse de mesure (slots-registre.mts:5-7, :77 slotsDuParse). Une fois ces champs typés, ces occurrences deviennent des slots. slots-contrat.test.ts:236-239 exige alors `ecarts.perimees` vide (« elle se retire dans le commit de l'adoption »), et le plafond est à :60 `DETTE_ADOPTION_MAX = 283`, avec 287 lignes `dataset:` dont 4 INATTEIGNABLES. `grep slotsStock|slots-contrat|structuresStock|grammaireStock` sur le brief sort avec exit=1. Lentille trou de socle : le site N+1 coûte plus d'une ligne. Il faut toucher OP_DEFS, OPS_NON_TYPEES, slotsStock.mjs et le cliquet slots-contrat.test.ts:60. D5 est donc faux tel qu'écrit. Une retouche du brief suffit : ajouter au périmètre et aux mouvements de stock."
+    }
+   ]
+  },
+  {
+   "titre": "`typesAuParse` est un synonyme neuf de SLOT, et D1-bis réécrit `slotsDuParse`",
+   "preuve": "Le dépôt nomme déjà ce concept. slots-registre.mts:5-7 : « chaque case `(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT » ; même définition à slotsStock.mjs:10-13. La primitive `slotsDuParse` (slots-registre.mts:77) rend déjà, pour chaque document des deux racines, `{dataset, path, type, porteur, cle}` par `reperesDuParse`. C'est exactement la preuve que D1-bis propose d'écrire comme nouvelle sonde promue en test (« pour chaque occurrence committée… un repère au même path »). En plus, « types » désigne déjà le type d'entité dans la grammaire (`TYPES`, `TypeEntite`, ref.ts:46,80), alors que l'ensemble proposé contient des clés `op.champ`. La liste des primitives du brief cite reperesDuParse mais ni slotsDuParse ni Slot.",
+   "correction": "Nommer l'ensemble dans le vocabulaire des slots (par exemple « champs d'op à slot ») et non en « types ». Pour D1-bis, joindre les nœuds d'op visités par scanGameOpRefs aux `slotsDuParse` (même `porteur`, même `cle`) au lieu d'écrire une sonde parallèle. Ajouter slotsDuParse à la liste des primitives du brief.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "`typesAuParse` est un synonyme neuf de SLOT, et D1-bis réécrit `slotsDuParse`",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT, et c'est le défaut central de ma lentille : deux hôtes pour un même concept. scripts/docs/lib/slots-registre.mts:28-38 définit le type `Slot {dataset, path, type, porteur, cle, parCle}`. :77 `slotsDuParse(scan, defs)` parse chaque document des deux racines (`defsDeDocument`, :23-25) par `reperesDuParse` et rend pour chaque occurrence la case validée par idDe au même path de donnée. C'est exactement la preuve que D1-bis (brief l.75-78) propose d'écrire comme sonde neuve. Le brief ne cite ni slotsDuParse ni Slot : grep sans résultat, seul reperesDuParse est cité (l.77). `TypeEntite` / `TYPES` (ref.ts:46, :79) nomment déjà le type d'entité. Note au-delà du bloquant : D1 dérive l'ensemble de façon statique depuis OP_DEFS (descendre + estFeuilleDId), alors que la jointure scanGameOpRefs × slotsDuParse (même porteur, même cle) donnerait directement le `doublon` par occurrence. À instruire au jugement de D1."
+    }
+   ]
+  },
+  {
+   "titre": "removeCondition.id en idDe('etat') : un même id d'État aurait deux domaines, et la liste en double de `petrifie` reste en place",
+   "preuve": "gameOpRefFk.mjs:59-63 : `softIds: { etats: ['petrifie'] }`, « valides partout où ce registre est visé ». maneuvers.json:295 pose `{op:'condition', id:'petrifie'}`. Le moteur retire n'importe quel id (ops.ts:1845-1855, `removeCondition(target, id, v)`). Après D2, `condition.id` accepte 'petrifie' via le scan et softIds, mais `removeCondition.id` le refuse au parse : un auteur ne peut plus écrire le retrait de Pétrifié au Compendium. Le brief ne le mesure que dans la donnée (« 'petrifie' absent de tout removeCondition »). De plus la liste existe deux fois, chacune se disant unique : conditions.ts:57-62 `NARRATIVE_MARKERS` (« REGISTRE UNIQUE de l'exception ») et le littéral de gameOpRefFk.mjs:62, que data-wellformed.test.ts:66-68 importe comme « SOURCE UNIQUE ». D2 retire `selfRef` et `templates` de TOLERATED mais laisse `softIds`.",
+   "correction": "Arbitrer dans le brief le domaine d'un id d'État d'op : soit les marqueurs narratifs entrent dans le domaine de idDe('etat'), soit Pétrifié devient une entrée d'etats.json, soit removeCondition reste hors du train. Faire dériver softIds de NARRATIVE_MARKERS, injecté par le consommateur TS comme typesAuParse, pour que le littéral 'petrifie' disparaisse de gameOpRefFk.mjs.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "removeCondition.id en idDe('etat') : un même id d'État aurait deux domaines, et la liste en double de `petrifie` reste en place",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT. gameOpRefFk.mjs:78 `'condition.id': { registry: 'etats' }` et :81 `'removeCondition.id': { registry: 'etats' }` visent le même registre. :59-63 softIds.etats ['petrifie'] est toléré pour tout champ du registre (:281, :287). Aujourd'hui, `removeCondition{id:'petrifie'}` passe donc la garde. Après D2, idDe('etat') vise etats.json (ref.ts:62), où l'on compte 0 entrée `\"id\": \"petrifie\"`. Pétrifié est refusé au parse pour removeCondition mais reste accepté pour condition, qui est maintenu dans OPS_NON_TYPEES par D4 : un même concept aurait deux hôtes et deux domaines. Le moteur retire n'importe quel id (ops.ts:1845-1855). maneuvers.json:295 pose `id: petrifie`. La liste existe en double : conditions.ts:57-62 NARRATIVE_MARKERS (« REGISTRE UNIQUE ») et gameOpRefFk.mjs:62, avec data-wellformed.test.ts:66-68 qui prend cette seconde copie pour « SOURCE UNIQUE ». Absent du brief (grep NARRATIVE_MARKERS : exit=1). Un arbitrage de domaine dans le brief suffit."
+    }
+   ]
+  },
+  {
+   "titre": "D2 « graphie inchangée » grave dans OP_DEFS des synonymes et des graphies que le dépôt a classées historiques ou divergentes, sans énoncer la règle qu'il applique au Talent",
+   "preuve": "Dans le périmètre de D2, la même cible (une créature) porte deux noms : `ref` (ops.ts:894 summon, :903 scheduleRespawn, :926 polymorph) et `morphRef` (ops.ts:933 transform). grammaireStock.mjs:78-83 classe `trappingId` parmi les « Graphies historiques de RÉFÉRENCE » à éteindre en L3. Son jumeau direct, l'Effet de scène `giveTrappingSchema` (defs-scenes/effets.ts:133-135, `trappingId: z.string()`), reste non vérifié pendant que l'op `giveTrapping.trappingId` passe en idDe. structuresStock.mjs marque `divergente` L3 les signatures d'op `morphRef+…` (:417), `tableId+…` (:173) et `disease+…` (:330). Le brief invoque l'Invariant 5 (« toutes les conventions du champ ») pour migrer la graphie du Talent en D3, mais ne dit rien de ces champs.",
+   "correction": "Énoncer dans le brief la graphie canonique d'une référence d'op : par exemple `<type>Id` nu pour un type non spécialisable, `<type>: refOuSpec` pour un type spécialisable. Ensuite, soit migrer `morphRef`/`ref`/`disease`/`tableId` dans le geste, soit les déclarer comme exceptions nommées qui répondent aux lignes de grammaireStock et structuresStock. Traiter l'Effet `giveTrappingSchema.trappingId` dans le même train, ou le nommer explicitement avec son lot de mort.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "D2 « graphie inchangée » grave dans OP_DEFS des synonymes et des graphies que le dépôt a classées historiques ou divergentes, sans énoncer la règle qu'il applique au Talent",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT. ops.ts:894 summon `ref`, :903 scheduleRespawn `ref`, :926 polymorph `ref`, :933 transform `morphRef` : une même cible créature porte deux noms. grammaireStock.mjs:78-86 classe les graphies historiques (`talentId`, `trappingId`, `ref`) en L3, dont effets.ts:giveTrappingSchema|alias|trappingId. Le schéma correspondant (defs-scenes/effets.ts:133-135) reste `trappingId: z.string()` non vérifié. structuresStock.mjs:173 `tableId+…`, :330 `disease+…` et :417 `morphRef+…` sont `divergente`, sous le lot « L3 #1463 », qui est le ticket même du brief (brief l.1). Le brief ne mentionne ni structuresStock ni grammaireStock : grep exit=1. Lentille trou de socle : si ces graphies entrent dans OP_DEFS, chaque synonyme est gravé dans le socle canonique au lieu d'être une instance d'une graphie de référence unique. Une retouche suffit : énoncer la graphie canonique et migrer, ou nommer les exceptions."
+    }
+   ]
+  },
+  {
+   "titre": "D3 ne migre qu'à moitié la graphie `{talentId, spec}` : l'alias d'axes.ts survit",
+   "preuve": "defs/axes.ts:26-30 déclare un `talentRefSchema` local `{ talentId: z.string(), spec }`, stocké comme alias à grammaireStock.mjs:79 et structuresStock.mjs:245-246 (`spec,talentId` divergente, `talentId` historique). reference.ts:35 le qualifie de « dette stockée, pas une variante ». D3 annonce que meurent seulement `grantTalent.talentId` et `grantCareerTalent.talentId`, et cite l'Invariant 5 (« TOUTES les conventions de ce champ »). Après D3, `talentId` resterait seulement dans axes.",
+   "correction": "Mettre axes.ts:26-30 (schéma, donnée axes.json, lecteur) dans le train D3 avec les lignes de grammaireStock et structuresStock correspondantes, ou le nommer comme reste avec son lot de mort.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "D3 ne migre qu'à moitié la graphie `{talentId, spec}` : l'alias d'axes.ts survit",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT. defs/axes.ts:26-30 déclare un `talentRefSchema` local `{talentId: z.string(), spec}`. grammaire/reference.ts:31-39 le nomme « dette stockée, pas une variante » face à la porte unique `talentRefSchema {id, spec?, times?}`. grammaireStock.mjs:79 le classe alias L3. structuresStock.mjs:245-246 l'inscrit sous axes.json talents (`spec,talentId` divergente, `talentId` historique), lot « L3 #1463 ». D3 (brief l.94-97) ne fait mourir que grantTalent.talentId et grantCareerTalent.talentId. Le mot `axes` est absent du brief (grep exit=1). Second hôte de la référence de Talent, et même un troisième : D3 vise `{talent: refOuSpec('talent')}` alors que la porte canonique est `{id, spec, times}`."
+    }
+   ]
+  },
+  {
+   "titre": "Gabarit '$arg' : le nom de la constante n'est pas fixé et la migration des littéraux reste à moitié faite",
+   "preuve": "Le brief (D2) dit « gabarit '$arg', exporté par le moteur comme `INDICE_TEMPLATE` ». Or flowCore.ts:510 définit `INDICE_TEMPLATE = '$indice'` : il faut un second nom, que le brief ne donne pas. withArg (triggeredEffects.ts:61-66) écrit en dur à la fois '$arg' et '$indice', alors qu'INDICE_TEMPLATE existe déjà. Le brief ne migre que '$arg'. TOLERATED.templates (gameOpRefFk.mjs:55) recopie les deux littéraux. La mort de `templates` est posée au conditionnel (« si plus aucun champ du scan ne porte de gabarit ») alors qu'elle se mesure dès maintenant : grep dans src/data et src/scenes donne `\"disease\": \"$arg\"` ×2 (traits.json uniquement), `\"amount\"` ×1 et `\"advantageCost\"` ×1 pour `$indice`, qui ne sont pas des champs à registre.",
+   "correction": "Donner le nom de la constante '$arg' et son type, sur le patron INDICE_TEMPLATE/IndiceTemplate. Migrer les deux littéraux de withArg vers les deux constantes. Déclarer ferme la mort de TOLERATED.templates, avec la mesure ci-dessus comme preuve.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Gabarit '$arg' : le nom de la constante n'est pas fixé et la migration des littéraux reste à moitié faite",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT. flowCore.ts:510 `INDICE_TEMPLATE = '$indice'`, :511 `IndiceTemplate` : le nom est déjà pris. Le brief l.80-81 écrit « gabarit '$arg', exporté par le moteur comme INDICE_TEMPLATE ». triggeredEffects.ts:61-65 écrit en dur '$arg' et '$indice'. TOLERATED.templates (gameOpRefFk.mjs:57) n'est lu qu'à :285, et seulement pour les champs à `registry`. Mesure : '$arg' n'apparaît que 2 fois, dans traits.json, toutes deux `exposeDisease.disease` (traits.json:1146, :2291). '$indice' n'apparaît que sur gainAdvantage.amount (traits.json:2493) et choice.advantageCost (qualities.json:697), qui ne sont pas des champs à registre. Une fois exposeDisease typé, `templates` est mort : c'est mesurable dès maintenant, pas conditionnel."
+    }
+   ]
+  },
+  {
+   "titre": "Du poison reste dans les fichiers du périmètre (le brief ne corrige qu'une seule référence périmée)",
+   "preuve": "gameOpRefFk.mjs:13-16 : « `src/data/schemas/` ne déclare AUCUNE cible de référence : un `GameOp` y est `z.looseObject` ». C'est déjà faux (OP_DEFS : 24 ops, feuilles idDe) et D1 le rend contraire au code. Références de ligne périmées vérifiées par sed : :2 `ops.ts:1573` alors qu'applyOps est à :1659 ; :148 `ops.ts:956` alors que `case 'narrative'` est à :2900 ; :151 `ops.ts:627-631` alors que `case 'giveTrapping'` est à :2446. Le brief ne corrige que :52. mecanique.ts:99 est une pierre tombale : « il rendait auparavant le drapeau `offTerrain` VRAI partout en silence (`engine/ops.ts:279-283`) ». Le lecteur moteur d'exceptSkills, que le lot touche, porte une paraphrase de règle : conditions.ts:611 `// Brisé : sauf course (Athlétisme) / dissimulation (Discrétion)`.",
+   "correction": "Dans le train 1 : réécrire l'en-tête « POURQUOI PAS LES SCHÉMAS ZOD » de gameOpRefFk.mjs d'après D1 (OP_DEFS couvre les champs à slot, le scan le reste), corriger toutes les références de ligne de l'en-tête et de GAMEOP_FIELD_TARGETS, retirer la pierre tombale de mecanique.ts:99, et remplacer le commentaire de conditions.ts:611 par la seule référence (LDB, ligne de l'État Brisé).",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Du poison reste dans les fichiers du périmètre (le brief ne corrige qu'une seule référence périmée)",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Le bloquant TIENT. gameOpRefFk.mjs:13-16 affirme « src/data/schemas/ ne déclare AUCUNE cible de référence : un GameOp y est z.looseObject ». C'est contredit par mecanique.ts:27 `export const OP_DEFS` (strictObject + idDe). gameOpRefFk.mjs:2 cite `ops.ts:1573`, alors qu'applyOps est à ops.ts:1659. :151 cite `ops.ts:956` pour narrative, alors que `case 'narrative'` est à ops.ts:2900. `case 'giveTrapping'` est à ops.ts:2446. mecanique.ts:99 : « il rendait auparavant le drapeau offTerrain VRAI partout en silence (engine/ops.ts:279-283) » est une pierre tombale. conditions.ts:611 porte une paraphrase de règle en commentaire, sur le lecteur moteur d'exceptSkills que le train 1 touche (brief l.138). Le brief ne corrige que :52 (l.92). Hors de ma lentille, sans effet sur le design."
+    }
+   ]
+  }
+ ],
+ "ecartes": [
+  {
+   "titre": "`giveTrapping` a un jumeau dans le vocabulaire d'Effet de scène, que le lot laisse en `z.string()` : deux hôtes pour « donner un objet par id », un seul typé",
+   "preuve": "/home/claude/game/.wt-1473-r1/src/engine/ops.ts:765 : « Même vocabulaire que l'Effet de scène `giveTrapping` ». /home/claude/game/.wt-1473-r1/src/data/schemas/defs-scenes/effets.ts:133-135 : `giveTrappingSchema = z.strictObject({ type: z.literal('giveTrapping'), trappingId: z.string().optional(), custom: z.string().optional(), …`. Sonde en lecture seule (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-effet-givetrapping.mts, exit=0) : « arene-projet.json effet giveTrapping.trappingId occ 18 slots 0 ». Ces 18 références ne passent pas par `gameOpSchema` et ne sont validées nulle part au parse. Le brief type `GameOp.giveTrapping.trappingId` en `idDe('trapping')` (D2) et laisse son jumeau hors du lot. Son Invariant 5 (« Un lot qui touche un CHAMP embarque TOUTES les conventions de ce champ ») lui sert à migrer la graphie du Talent (D3), mais il n'est pas appliqué à l'objet. Or une graphie canonique de la dotation existe : `trappingRefSchema` (/home/claude/game/.wt-1473-r1/src/data/schemas/grammaire/reference.ts:65-80, `{id, count?…} | {text, count?}`), isomorphe à `{trappingId?, custom?, count?}`.",
+   "correction": "Composer UNE feuille « objet donné » partagée par `OP_DEFS.giveTrapping` et `giveTrappingSchema` (effets.ts:133), avec au minimum `trappingId: idDe('trapping')` des deux côtés dans le même commit. Sinon, dire au brief pourquoi la graphie `trappingRefSchema` ne s'applique pas ici, et nommer le lot qui type le jumeau d'Effet.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutation": "RÉFUTÉ sur la prémisse et sur la correction. Les faits cités existent : effets.ts:133-135 `trappingId: z.string().optional()`, ops.ts:765 « Même vocabulaire », et le rejeu de sonde-effet-givetrapping.mts rend exit=0, « arene-projet.json effet giveTrapping.trappingId occ 18 slots 0 ». Mais le jumeau ne vise PAS le même domaine d'ids. src/state/campaignData.ts:93-98 : `trappingById(id) { return maps().objets.get(id) ?? findTrappingById(id); }`, soit « campagne-D'ABORD (`campaignNarratif.objets`) puis règle globale ». src/state/campaignData.test.ts:79-85 verrouille ce comportement : `applyEffects(…, [{ type: 'giveTrapping', trappingId: 'campagne-lame-maudite', heroId: 'a' }])` doit rendre l'objet de campagne (kind melee). Or `grep -c '\"campagne-lame-maudite\"' src/data/trappings.json` → 0, et ref.ts:46-78 (TYPES) ne connaît que `trapping: { dataset: 'trappings.json' }`. La correction du bloquant, « `trappingId: idDe('trapping')` des deux côtés dans le même commit », ferait donc REFUSER au parse un id légitime de catalogue de campagne dans toute campagne éditée. Le champ d'Effet vise l'union « objets de campagne ∪ trappings.json », une cible qui n'a pas de type dans TYPES. D'après la règle même du brief (D4 : sans type dans TYPES → reste nommé), il est hors de ce lot. L'Invariant 5 ne l'impose pas non plus, car ce n'est pas le même champ au sens de sa convention de cible. Les 21 ids présents aujourd'hui sont tous résolus dans trappings.json (sonde ci-dessous, ABSENT 0/21), mais cela décrit la donnée d'Arène, pas le contrat du champ. Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-gt-ids.mts, lancée par `npx tsx … > out-gt-ids.txt 2>&1; echo exit=$?` → exit=0 :\nimport { readFileSync } from 'node:fs';\nconst R = '/home/claude/game/.wt-1473-r1';\nconst ids = new Set((JSON.parse(readFileSync(`${R}/src/data/trappings.json`, 'utf8')) as { id: string }[]).map((t) => t.id));\nconst out: string[] = [];\nconst walk = (n: unknown, doc: string) => {\n  if (Array.isArray(n)) { n.forEach((x) => walk(x, doc)); return; }\n  if (!n || typeof n !== 'object') return;\n  const o = n as Record<string, unknown>;\n  if ((o.type === 'giveTrapping' || o.op === 'giveTrapping') && typeof o.trappingId === 'string')\n    out.push(`${doc} ${o.type ? 'effet' : 'op'} ${o.trappingId} ${ids.has(o.trappingId) ? 'OK' : 'ABSENT'}`);\n  for (const v of Object.values(o)) if (v && typeof v === 'object') walk(v, doc);\n};\nwalk(JSON.parse(readFileSync(`${R}/src/scenes/arene/arene-projet.json`, 'utf8')), 'arene-projet.json');\nwalk(JSON.parse(readFileSync(`${R}/src/data/spells.json`, 'utf8')), 'spells.json');\nfor (const l of out) console.log(l);\nconsole.log('ABSENT', out.filter((l) => l.endsWith('ABSENT')).length, '/', out.length);\nSortie : 18 lignes « arene-projet.json effet <id> OK », 3 lignes « spells.json op ration|ration|baton-enchante OK », « ABSENT 0 / 21 ». Ce qui reste, sans être bloquant : le brief gagnerait à nommer ce jumeau dans D4 (cible = catalogue de campagne ∪ base, sans type dans TYPES). La sonde rend un test candidat : un Effet `giveTrapping` d'id de campagne doit continuer à passer au parse du schéma de scène."
+  },
+  {
+   "titre": "Q3 sans réponse et défaut vivant : personne ne valide l'arg substitué à '$arg'. La créature experience-unique-du-clan-moulder porte Maladie(« au choix »), ce qui donne exposeDisease{disease:'au choix'} à l'exécution. Ni le scan ni l'union D2 ne le voient",
+   "preuve": "Trait `maladie` (traits.json, specsSource \"diseases\") : effects[0] = exposeDisease{disease:\"$arg\"}. withArg substitue tel quel (src/state/triggeredEffects.ts:61-66 : `if (out[k] === '$arg') out[k] = arg`). Instances mesurées sur creatures.json par node : « maladie:\"au choix\" ×1 estIdMaladie=false » à src/data/creatures.json:51985 (créature experience-unique-du-clan-moulder). Les 5 autres args sont des ids valides. Couverture actuelle : TOLERATED.templates (gameOpRefFk.mjs:52-56) laisse passer '$arg' dans le scan. traitInstanceSchema.arg est un `z.string().optional()` (grammaire/reference.ts:17-25). La garde Phase 3 des spécialisations ne parcourt que `[...skills, ...talents]` (src/data/refs-migrated.test.ts:543), pas les Traits à specsSource. Le « au choix » est en plus la sentinelle que la grammaire refuse pour une spec (`SENTINELLE_DE_SPEC`, ref.ts). L'union D2 `idDe('maladie') | '$arg'` rend ce défaut définitivement invisible au niveau de l'op.",
+   "correction": "Le brief doit répondre à Q3 : la référence réelle est l'arg de l'INSTANCE d'un Trait dont l'entrée déclare une specsSource. Elle doit se valider au parse de l'instance (concept Trait). Dans ce train, ou par un ticket nommé avec « Bloqué par / Débloque » si D4 le renvoie au concept Trait. Et le défaut creatures.json:51985 se corrige depuis la Source ou s'ouvre en issue, pas en silence.",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutation": "RÉFUTÉ sur sa prémisse. « Personne ne valide l'arg » est faux. La garde existe : src/data/trait-args-derived.test.ts:119-135 (« arg RÉSOUT dans le registre de sa source »). Elle parcourt chaque instance de Trait des créatures, des scènes et du projet Arène (l.20-23), lit `def.specsSource` et exige `SPEC_SOURCES[src].resolves(part)` (l.128). Or traits.json déclare `maladie:diseases` et `contagieux:diseases` (liste mesurée par node sur les specsSource). La question Q3 du brief (« qui garantit que l'arg d'un Trait Maladie (X) est un id de maladies.json ? ») a donc déjà sa réponse dans le dépôt. Le bloquant ne cite que refs-migrated.test.ts:543 (skills/talents) et manque cette garde. Le cas « au choix » n'est pas un trou silencieux : c'est une sentinelle joker TOLÉRÉE délibérément et déclarée (trait-args-derived.test.ts:48-49 `const WILDCARD = /^(un |une |deux )?au choix$/i;` « Sentinelle joker d'un statbloc RAW … tolérée », puis l.125 `if (WILDCARD.test(inst.arg.trim())) continue;`). Le résidu est exact : withArg (src/state/triggeredEffects.ts:61-66) substitue 'au choix' tel quel à l'exécution (instance vérifiée à creatures.json:51983-51985, source zoo-imperial p.26). Mais ce résidu interroge la sémantique d'exécution d'un joker déjà arbitré par une garde, pas une référence non validée. Il relève du concept Trait (D4 du brief le renvoie déjà : « Les id: z.string() de traitInstanceSchema … relèvent des concepts Trait et Talent »). Ce n'est pas un bloquant du lot « ops à référence ». Pour trancher le résidu : vérifier au Source ZI p.26 si « au choix » y est imprimé, et regarder ce que fait exposeDisease sur un id inconnu."
+  }
+ ],
+ "dits": [
+  "Arbre épinglé 9cf3308af, identique à la tête que déclare le brief. Stocks mesurés par `npx tsx` (exit=0) : GAMEOP_FIELD_TARGETS 65 entrées dont 49 `{registry}`, OPS_NON_TYPEES 86, OP_DEFS 24. Les points de départ 65 et 86 du brief sont exacts. Les 13 ops de D2 donnent bien 86 → 73. En revanche, 65 → 43 (22 retraits) suppose que `transform.morphRef` meurt aussi (gameOpRefFk.mjs:142), alors que D2 ne mentionne pour `transform` que « `ops` récursif » : le brief doit nommer `morphRef → idDe('creature')`.",
+  "Verdict de la lentille sur D2 : c'est une INSTANCE. Chaque op typée est une entrée d'`OP_DEFS` composée de feuilles existantes (`idDe`, `refs`, `refOuSpec`, `diceSpecSchema`, `traitInstanceSchema`), avec le même code (`gameOpSchema`, mecanique.ts:232-248). Aucune branche `if (<type d'op>)` n'est introduite.",
+  "La catégorie `doublon` de D1 fait double emploi avec `stale`. D1 fait sortir du périmètre dérivé tout champ de `typesAuParse`, et `auditFieldCoverage` (gameOpRefFk.mjs:240-247) calcule déjà `stale = déclarés − dérivés` : une entrée restante sur un tel champ ressort donc en `stale` sans nouvelle catégorie. Une troisième sortie ajoute une variante au socle sans rien mesurer de plus. Si un message distinct est voulu, c'est une question de libellé, pas de catégorie.",
+  "Question 3 : `withArg` (src/state/triggeredEffects.ts:54-66) déclare le gabarit GÉNÉRIQUE (« Une seule convention, pas de variante »). Il substitue `'$arg'` et `'$indice'` dans N'IMPORTE QUEL champ d'op, par des littéraux nus (:61-66, sans passer par `INDICE_TEMPLATE`, flowCore.ts:510). Une union `idDe | literal` écrite au site, sur le patron d'`advantageCost` (mecanique.ts:594), se répétera par champ : `gainAdvantage.amount: '$indice'` (mecanique.ts:141-143) sera le prochain cas. Un compositeur unique `gabarit(feuille, jeton)`, exporté avec les deux jetons à côté d'`INDICE_TEMPLATE` et lu par `withArg`, ferait du N+1 une instance. Le brief n'exporte que `'$arg'`.",
+  "Question 1, observation : puisque `refs-migrated.test.ts` est TS et peut importer `OP_DEFS` comme `slots-registre.mts`, le calcul de `typesAuParse` a sa place dans le consommateur TS. Il ne doit pas vivre dans `mecanique.ts`, qui ne doit pas dépendre d'un outil de garde. La sonde « condition.unlessCondition occ 14 slots 1 » montre qu'une vérité par occurrence (slots) couvre ce qu'un calcul statique sur `OP_DEFS` rate.",
+  "Le brief a raison de relever la référence périmée de gameOpRefFk.mjs:52 (« `src/engine/ops.ts:741` ») : le mot réservé `'self'` est documenté à ops.ts:897, et la ligne 741 porte `noBreath`.",
+  "D3 est cohérent avec le canon : `refOuSpec('talent')` est la feuille qu'`avancement('talent')` compose déjà (grammaire/avancement.ts:25-26). Ce n'est pas une troisième graphie.",
+  "Arbre épinglé : 9cf3308af (« fix(structures): refs #1473 refs #1468 — grantReverseToken typé, skillDRBonus à cible exclusive »). Worktree propre, aucun processus laissé (tous les tsx ont terminé, exit=0).",
+  "D1 tient mécaniquement. Sonde sonde-reperes.mts (out-reperes.txt, exit=0) : typesAuParse, calculé par descendre+estFeuilleDId sur les membres d'OP_DEFS (élagage du z.lazy), donne 15 champs. Leur intersection avec GAMEOP_FIELD_TARGETS donne exactement les 9 doublons de l'Invariant 2. Leurs 9 occurrences committées ont toutes un repère reperesDuParse au même chemin (0 manquant). Q1 : le calcul exige de trouver les membres `{op}` d'une union (skillDRBonus, et demain rollTable ou scheduleRespawn). Il vit mieux en fonction exportée à côté d'OP_DEFS (mecanique.ts) que dans le test.",
+  "Stocks confirmés par sonde-stock.mts (exit=0) : OPS_NON_TYPEES 86, GAMEOP_FIELD_TARGETS 65 → 43 (22 entrées meurent), les 13 ops de D2 sont toutes dans OPS_NON_TYPEES. Si le bloquant 1 est corrigé en typant perRound et rollThreshold, OPS_NON_TYPEES passe à 71.",
+  "Occurrences confirmées (sonde-d2.mts, exit=0) : grantTalent 57 + grantCareerTalent 21 = 78 (D3). testMod.exceptSkills : 1 occurrence (etats.json:148, ['athletisme','discretion']). Aucune clé observée hors du type TS pour les 13 ops de D2. Toutes les valeurs de ref résolvent dans IDS_PAR_DATASET, sauf les 3 réservées ('$arg' ×2, 'self' ×1). effectTables et tables.json portent les mêmes 21 ids : le remplacement du résolveur effectTables par idDe('table') est sans perte.",
+  "Q4 : le lecteur moteur compare l'id nu (src/engine/conditions.ts:611 : `m.op.exceptSkills?.includes(skill ?? '')`). refOuSpec('skill') accepte `{id}` sans spec (noeudASpecialisation avec exigeUnRegime=false, ref.ts), ce qui exprime bien « toute spécialisation ». Après migration, le champ n'est plus string[], donc son entrée sort en `stale` et non en `doublon`. Le compte reste 43.",
+  "Q5 : les 5 addTraits committés de `summon` sont vivants, mais traitInstanceSchema.id est un z.string() (reference.ts:17). Composer addTraits n'apporte aucune vérification de clé étrangère. Ne pas le compter comme une couverture de référence.",
+  "Q7 / porte joueur : une union au site dégrade le message nommé d'idDe en « Entrée invalide » (sonde-union-reserve.mts : « expose \"au choix\" → issue « invalid_union » à « disease » (Entrée invalide) »). exposeDisease et scheduleRespawn ont besoin d'un `error:` nommé (patron skillDRBonus, mecanique.ts:117-126). contractDisease (sans union) garde le message d'idDe, sauf s'il est posé sous un conteneur loose, qui n'est pas parsé (bloquant 1).",
+  "Hors train, à noter : les nœuds de miscast.json sont parsés par le dialecte jsonOpSchema (defs/miscast.ts, `op: z.string()`, `id: z.string()`), pas par gameOpSchema : condition, wounds, corruption, castPenalty, reduceToZero. Le jour où `condition` sera typée (L1c #1468), D1 retirerait condition.id du scan et perdrait la couverture de ces nœuds.",
+  "removeCondition.id → idDe('etat') crée une asymétrie avec TOLERATED.softIds.etats=['petrifie'] (gameOpRefFk.mjs:59-64) : `condition` pourra poser 'petrifie', `removeCondition` ne pourra pas le retirer. Aucune occurrence aujourd'hui, mais il faut l'arbitrer (softId → entrée etats.json, ou refus assumé).",
+  "La référence périmée est confirmée : gameOpRefFk.mjs:52 cite ops.ts:741 (qui décrit noBreath). Le mot réservé 'self' est documenté à ops.ts:897.",
+  "Arbre épinglé : 9cf3308af (tête annoncée par le brief) ; git status vide.",
+  "Stocks vérifiés par une sonde tsx (scratchpad juge-ops-ref/stock.mts, exit=0) : GAMEOP_FIELD_TARGETS = 65 (dont 49 registry), OPS_NON_TYPEES = 86, OP_DEFS = 24 ; les 13 ops de D2 sont toutes dans OPS_NON_TYPEES. 65 - 9 - 13 = 43 et 86 - 13 = 73 : les chiffres annoncés tiennent. Après le train 1, `giveTrapping.custom`, `transform.tag` et `scheduleRespawn.cancelFlag` (nonRef) restent dans la table sur des ops typées : la classification d'une op typée est donc répartie entre OP_DEFS et GAMEOP_FIELD_TARGETS. À dire dans le brief.",
+  "Tests à réécrire par le lot, que le brief ne nomme pas : refs-migrated.test.ts:1296-1307, « le vocabulaire toléré reste vert » ($arg et self), meurt au train 1 ; la contre-épreuve refs-migrated.test.ts:1279-1292 repose sur `grantTalent.talentId` et doit changer de champ au train 2.",
+  "summon.addTraits en traitInstanceSchema : l'id est `z.string()` (reference.ts:17-18) et le champ est un objet, donc invisible pour le scan (gameOpRefFk.mjs:23-26). Les ids de Trait de summon restent vérifiés nulle part, par le parse comme par le scan. Typer ce champ ne gagne aucune couverture de référence et doit être dit comme angle mort, pas compté comme gagné.",
+  "Excuses sans tag dans mecanique.ts, fichier du périmètre : :65 « dataset non encore déclaré à `TYPES` » et :141 « payloads non encore déclarés ». La seconde est adossée à un lot de mort (L1c #1468) ; la première non.",
+  "INCERTAIN : la migration de `testMod.exceptSkills` de string[] vers `[{id}]` peut créer une signature de forme neuve dans structuresStock (etats.json). Pour trancher, il faudrait lancer après la migration le scan de `scripts/docs/build-structures.mts` sur une copie, ce qui m'est interdit. C'est au codeur de le prouver."
+ ],
+ "lecture": {
+  "invariants": [
+   {
+    "verbatim": "Toute vérification d'un id contre le registre, sous `src/data/schemas`, passe par `idDe`.",
+    "source": "brief R1 v1.1 de #1473, https://github.com/cgauche/game/issues/1473#issuecomment-5801354411",
+    "question": "où une référence à une entité se déclare-t-elle ? Sur une feuille `idDe`."
+   },
+   {
+    "verbatim": "Une garde de synchronisation est un smell : une seule source de vérité.",
+    "source": ".claude/credo.md",
+    "question": "qui déclare la cible d'un champ-référence d'op ?"
+   },
+   {
+    "verbatim": "Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.",
+    "source": "src/data/schemas/grammaire/mecanique.ts:144 (JSDoc d'OPS_NON_TYPEES)",
+    "question": "quand une op quitte-t-elle le repli loose ?"
+   },
+   {
+    "verbatim": "La table est donc tenue par le type, jamais par la mémoire de l'auteur.",
+    "source": "scripts/guards/lib/gameOpRefFk.mjs:10-11",
+    "question": "qui fixe le PÉRIMÈTRE de la garde ?"
+   },
+   {
+    "verbatim": "Un lot qui touche un CHAMP embarque TOUTES les conventions de ce champ.",
+    "source": ".claude/skills/orchestrer-des-agents/SKILL.md, § Brief",
+    "question": "jusqu'où va un lot qui touche un champ ?"
+   }
+  ],
+  "casCanonique": [
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 89,
+    "role": "Op typée à feuille idDe : removeTrait"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 93,
+    "role": "Op typée à feuille idDe : domeWard"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 100,
+    "role": "Op typée à feuille idDe : offTerrainMod (100-106)"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 46,
+    "role": "Op à payload récursif : aggravateSymptom.otherwise"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 594,
+    "role": "Gabarit d'instance accepté AU PARSE : advantageCost"
+   },
+   {
+    "fichier": "src/engine/flowCore.ts",
+    "ligne": 510,
+    "role": "INDICE_TEMPLATE exporté"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/mecanique.ts",
+    "ligne": 134,
+    "role": "Migration de graphie R1/R1-bis : grantCareerSkill { skill: refOuSpec('skill') }"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/pool-specs.test.ts",
+    "ligne": 105,
+    "role": "pools de spécialisation de Talent validés par specRef('talent') (105-112)"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "ligne": 106,
+    "role": "Descente d'un schéma : descendre"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "ligne": 149,
+    "role": "estFeuilleDId, reconnaissance d'une feuille d'id"
+   },
+   {
+    "fichier": "scripts/guards/lib/gameOpRefFk.mjs",
+    "ligne": 240,
+    "role": "Périmètre dérivé : auditFieldCoverage"
+   },
+   {
+    "fichier": "src/data/refs-migrated.test.ts",
+    "ligne": 1236,
+    "role": "Consommateur de auditFieldCoverage (unclassified, stale) (1236-1240)"
+   }
+  ],
+  "perimetre": [
+   "src/data/schemas/grammaire/mecanique.ts",
+   "src/engine/ops.ts",
+   "src/engine/flowCore.ts",
+   "src/state/triggeredEffects.ts",
+   "scripts/guards/lib/gameOpRefFk.mjs",
+   "src/data/refs-migrated.test.ts",
+   "src/data/grammaire-guard.test.ts",
+   "src/data/schemas/grammaire/op-defs.test.ts",
+   "scripts/migrations/ (script daté, 1 occurrence de testMod.exceptSkills)",
+   "le lecteur moteur d'exceptSkills",
+   "src/ui/editor/GameOpEditor.tsx (si une graphie change)",
+   "docs générés (npm run docs:build)",
+   "Train 2 (D3) : périmètre établi par son propre grounding"
+  ],
+  "primitives": [
+   "idDe",
+   "refOuSpec",
+   "refs",
+   "descendre",
+   "estFeuilleDId",
+   "auditFieldCoverage",
+   "reperesDuParse",
+   "INDICE_TEMPLATE",
+   "specRef",
+   "diceSpecSchema",
+   "traitInstanceSchema",
+   "gameOpSchema",
+   "OP_DEFS",
+   "OPS_NON_TYPEES"
+  ],
+  "designJugePresent": false,
+  "manques": [
+   "Le brief porte une section « ## Design proposé (à attaquer) » suivie de « ## Questions posées au jugement » — pas de section « ## Design jugé : » avec verdict : le brief n'a pas encore été jugé.",
+   "Hors périmètre déclaré explicitement : scripts/gen-registry.mjs, src/data/schemas/grammaire/ref.ts (réservés au train 2e-f1 de #1897) — présent dans le brief comme exclusion, pas un manque en soi mais à noter comme contrainte de périmètre."
+  ]
+ },
+ "agents": {
+  "lecture": 1,
+  "design": 3,
+  "refutation": 3,
+  "total": 7
+ },
+ "date": "2026-09-24",
+ "refutationIncomplete": false,
+ "bloc": "**FRAGILE** — workflow `juge-design-socle`, run `<runId du lancement, cité par l'orchestrateur>`, 2026-09-24.\n11 bloquant(s) survivant(s), 2 écarté(s) par réfutation.\n1. **D1-bis réinvente un socle qui existe déjà : le registre des slots (`slotsDuParse` / `occurrencesTouchees`) établit déjà, occurrence par occurrence, quelles références de la donnée committée `idDe` valide au parse** (lentille trou-de-socle) — Arbre épinglé 9cf3308af (`git log --oneline -1` : « fix(structures): refs #1473 refs #1468 — grantReverseToken typé… », identique à la tête que déclare le brief). Le brief, D1-bis : « le codeur le PROUVE par le parse de mesure (`reperesDuParse`) — pour chaque occurrence committée d'un champ de `typesAuParse`, un repère au même path de donnée — et la sonde est promue en test committé ». Or ce calcul existe déjà : /home/claude/game/.wt-1473-r1/scripts/docs/lib/slots-registre.mts:77 `slotsDuParse(scan, defs)` rend chaque repère de `reperesDuParse` sous forme de case `(porteur, cle)` du document réel, sur les deux racines (`defsDeDocument`, :23-25 : `SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`). `occurrencesTouchees` (:99) et `couplesDeReference` (:135) en tirent les occurrences touchées et atteintes. Ce socle est consommé par /home/claude/game/.wt-1473-r1/src/data/slots-contrat.test.ts:52 et son en-tête (#1475) pose exactement la question de D1-bis (« quelles cases … le PARSE valide-t-il par `idDe` … à quel path »). La sonde ci-dessous, en lecture seule, relie ce socle à `GAMEOP_FIELD_TARGETS` en quelques lignes (exit=0) : « documents scannés 128 slots 30002 ». Pour les 9 doublons du point 2 de l'Invariant : aggravateSymptom.disease occ 1 slots 1 ; aggravateSymptom.symptomId 1/1 ; grantSymptom.disease 1/1 ; grantSymptom.symptomId 1/1 ; domeWard.traitId 1/1 ; removeTrait.traitId 1/1 ; offTerrainMod.terrain 3/3 (attenuateSymptom : aucune occurrence). Tous les champs D2 sont aujourd'hui à 0 slot (removeCondition.id 27/0, rollTable.tableId 23/0, summon.ref 16/0, contractDisease.disease 10/0…). La sonde montre aussi que la déclaration statique et la réalité par occurrence divergent : « condition.unlessCondition occ 14 slots 1 », c'est-à-dire un slot posé sur une op LOOSE, que `descendre` sur `OP_DEFS` ne verrait pas. Sonde exacte (/tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-slots-ops.mts, lancée par `npx tsx`) :\nimport { scanDuCorpus } from '/home/claude/game/.wt-1473-r1/scripts/docs/lib/structures-scan.mts';\nimport { slotsDuParse } from '/home/claude/game/.wt-1473-r1/scripts/docs/lib/slots-registre.mts';\nimport { GAMEOP_FIELD_TARGETS } from '/home/claude/game/.wt-1473-r1/scripts/guards/lib/gameOpRefFk.mjs';\nconst { defs, scan } = scanDuCorpus('/home/claude/game/.wt-1473-r1');\nconst slots = slotsDuParse(scan, defs);\nconst estSlot = new Map<object, Set<string|number>>();\nfor (const s of slots) { if (!estSlot.has(s.porteur)) estSlot.set(s.porteur, new Set()); estSlot.get(s.porteur)!.add(s.cle); }\n// marche de scan.brutParNom : pour chaque nœud {op} sans `kind`, et chaque champ à {registry}, compte occ et estSlot.get(noeud)?.has(champ) (tableau : estSlot.get(tableau)?.has(i)) → Remplacer D1-bis par la consommation du socle existant : le test promu (dans `refs-migrated.test.ts`, qui peut importer le `.mts` comme le fait déjà `slots-contrat.test.ts:6-15`) exige que chaque occurrence d'un champ de `typesAuParse` dans `scan.brutParNom` soit une case de `slotsDuParse`. Aucune sonde neuve, aucun second calcul par `reperesDuParse`. Répondre ainsi à la question 2 : la garde qui établit « ce nœud d'op passe par un schéma qui valide par `idDe` » est `slotsDuParse`, pas une garde à écrire.\n2. **D5 « N+1 = une ligne » est faux, et le périmètre omet le stock des slots que l'adoption fait périmer (le test sera rouge)** (lentille trou-de-socle) — Premier site : /home/claude/game/.wt-1473-r1/scripts/guards/lib/slotsStock.mjs:154 `{ dataset: \"etats.json\", champ: \"exceptSkills\", occurrences: 1 … }` et :331 `{ dataset: \"trappings.json\", champ: \"diseases\", occurrences: 5 … }`. D'après la sonde ci-dessus, ce sont les occurrences de `testMod.exceptSkills` (etats.json, 2 valeurs, 0 slot) et de `diseaseTestMod.diseases` (trappings.json, 0 slot), deux champs que D2 fait adopter. /home/claude/game/.wt-1473-r1/src/data/slots-contrat.test.ts:235-238 échoue sur toute entrée périmée : « entrée périmée — elle se retire dans le commit de l'adoption ». L'en-tête de slotsStock.mjs le confirme : « Une ligne se solde en faisant ADOPTER la fabrique … et part dans le MÊME commit ». Or `scripts/guards/lib/slotsStock.mjs` est absent du « Périmètre » du brief, et les « Mouvements de stock attendus » ne nomment que GAMEOP_FIELD_TARGETS et OPS_NON_TYPEES. Deuxième site du N+1 : /home/claude/game/.wt-1473-r1/src/data/grammaire-guard.test.ts:280-294 tient une liste NOMINATIVE, à cardinal fixé, des champs d'`OP_DEFS` dont la clé figure dans `ALIAS` (:140 : `'skillId','talentId','trappingId','traitId','skill','ref',…`). Taper `summon.ref`, `polymorph.ref`, `scheduleRespawn.ref` et `giveTrapping.trappingId` y ajoute 4 lignes, comme `OP_DEFS.domeWard|traitId` (:285). Typer une op coûte donc, en plus de l'entrée `OP_DEFS` et du retrait d'`OPS_NON_TYPEES` : une ligne dans grammaire-guard.test.ts:280-294 (quand la clé est un alias), un retrait dans slotsStock.mjs, et les retraits de GAMEOP_FIELD_TARGETS. → Ajouter au périmètre `scripts/guards/lib/slotsStock.mjs` (et `docs/structures-donnees.md` §6 via `npm run docs:build`). Porter dans « Mouvements de stock » `SLOTS_SANS_DECLARATION` (au moins −2 : :154 et :331) et la liste de grammaire-guard.test.ts:280-294 (+4). Réécrire D5 avec son vrai coût, ou dériver la liste de grammaire-guard des alias d'`OP_DEFS` au lieu de la tenir à la main.\n3. **D1 × D2 : deux nœuds d'ops du train 1 ne passent pas par gameOpSchema. Retirer leurs champs du scan perd donc leur contrôle de clé étrangère, la preuve D1-bis échoue telle que le train est défini, et le critère D5 « N+1 = une ligne » est réfuté** (lentille preuve-par-sonde) — Arbre épinglé 9cf3308af (git log --oneline -1). Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-couverture.mts, jouée par `npx tsx` avec la sortie redirigée vers out-couverture.txt ; exit=0. Méthode : clone en mémoire de chaque document, puis chaque nœud {op} visité par le scan (même isGameOp que gameOpRefFk.mjs) est remplacé par {op:'__sonde__'}. Le nœud est « atteint » si l'issue « op inconnue de OP_DEFS » (mecanique.ts:243-247) tombe au chemin <nœud>.op ; la recherche descend récursivement dans invalid_union.errors et invalid_element.issues. Code exact :\n```ts\nconst isGameOp = (o: any) => typeof o.op === 'string' && !('kind' in o);\nfor (const n of nodes) {\n  const def = DEFS_DE_DOCUMENT.find((d: any) => d.file === n.src.key);\n  const clone = structuredClone(n.src.data);\n  let cur: any = clone; for (const k of n.p.slice(0, -1)) cur = cur[k];\n  cur[n.p[n.p.length - 1]] = { op: '__sonde__' };\n  const r = def.schema.safeParse(clone);\n  const want = [...n.p, 'op'].map(String).join('.');\n  if (!r.success && hit(r.error.issues, want)) atteints++; else (nonAtteints[n.op] ??= []).push(...);\n}\n```\nSortie : « noeuds {op} visités par le scan : 2218 — atteints par gameOpSchema : 2054 » ; « TOTAL non atteints : 164 — dont ops du brief : 2 » ; « [BRIEF] giveTrapping ×1 : src/data/spells.json#220.effects.steps.0.effect.ops.0.ops.0 » ; « [BRIEF] removeCondition ×1 : src/data/traits.json#73.effects.0.flow.else.effect.ops.0.thresholds.0.ops.1 ». Parents mesurés : spells.json[220] = {\"op\":\"perRound\",\"ops\":[{\"op\":\"giveTrapping\",\"trappingId\":\"ration\"}]} ; traits.json[73] (regeneration) = rollThreshold, dont thresholds[].ops contient {\"op\":\"removeCondition\",\"id\":\"inconscient\"}. perRound et rollThreshold sont tous deux dans OPS_NON_TYPEES (mecanique.ts:154-157) et absents de D2. Or le repli loose (mecanique.ts:242, `refusLoose`) ne parse pas les ops imbriquées. Avec D1, `giveTrapping.trappingId` et `removeCondition.id` quittent GAMEOP_FIELD_TARGETS, et plus rien ne vérifie `ration` ni `inconscient` à ces chemins. Pour D5 : typer une op dont une occurrence vit sous un conteneur non typé ne tient pas en une ligne, puisque le test D1-bis promu échoue. → Deux corrections. (1) Ajouter à D2 les conteneurs des occurrences concernées : `perRound` (ops récursif) et `rollThreshold` (thresholds[].ops récursif), avec les stocks recalculés (OPS_NON_TYPEES 86 → 71). À défaut, garder dans le scan les champs dont une occurrence n'est pas atteinte. (2) Remplacer la promesse D5 par une règle d'ordre : un conteneur d'ops se type avant ou avec son contenu. Promouvoir la sonde ci-dessus en invariant global de refs-migrated.test.ts : « tout nœud {op} visité par scanGameOpRefs est atteint par gameOpSchema ». Les 164 nœuds non atteints d'aujourd'hui y sont nommés, dialecte miscast.json compris, et leur nombre ne peut que décroître.\n4. **D1-bis mal posée : une valeur réservée acceptée par union au site ('self', '$arg') n'émet aucun repère, donc « une occurrence = un repère » échoue sur 3 occurrences committées** (lentille preuve-par-sonde) — Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-ops-ref/sonde-union-reserve.mts, sortie dans out-union.txt, exit=0. Code :\n```ts\nconst respawn = z.strictObject({ op: z.literal('scheduleRespawn'), ref: z.union([idDe('creature'), z.literal('self')]) });\nconst expose = z.strictObject({ op: z.literal('exposeDisease'), disease: z.union([idDe('maladie'), z.literal('$arg')]) });\nconsole.log(nom, '→ repères :', JSON.stringify(reperesDuParse(s, v).map((r) => r.path.join('.'))));\n```\nSortie : « respawn id → repères : [\"ref\"] », « respawn self → repères : [] », « expose id → repères : [\"disease\"] », « expose $arg → repères : [] ». Occurrences committées touchées (sonde-d2.mts, out-d2.txt) : traits.json[56] et [98] disease=\"$arg\", traits.json[108] ref=\"self\". La preuve D1-bis telle que le brief l'écrit (« pour chaque occurrence committée d'un champ de typesAuParse, un repère au même path de donnée ») lève donc sur ces trois occurrences, dès que exposeDisease et scheduleRespawn entrent dans typesAuParse. → Reformuler D1-bis : l'occurrence est atteinte (voir l'invariant du bloquant 1), et sa valeur est soit un repère `idDe`, soit l'une des valeurs littérales réservées déclarées au même nœud de schéma, lues par `descendre` sur les branches z.literal. Aucune liste recopiée.\n5. **Les lignes du stock de slots que le lot fait mourir sont oubliées : fichier hors périmètre, absent des « mouvements de stock », et le critère D5 « N+1 = une ligne » est faux** (lentille normes-et-poison) — Arbre 9cf3308af. scripts/guards/lib/slotsStock.mjs:154 `{ dataset: \"etats.json\", champ: \"exceptSkills\", occurrences: 1 }` et :331 `{ dataset: \"trappings.json\", champ: \"diseases\", occurrences: 5 }`. Ce sont des champs d'op qui passent par gameOpSchema : etats.json:145-148 `passive:[{op:'testMod', exceptSkills:[…]}]` avec defs/etats.ts:48 `passive: z.array(gameOpSchema)` ; trappings.json:6151-6152 `diseaseTestMod.diseases` avec defs/trappings.ts:188. Une fois que D2 les type en idDe/refs, ces occurrences deviennent des slots. slots-contrat.test.ts:236-238 exige alors `ecarts.perimees` vide (« entrée périmée — elle se retire dans le commit de l'adoption »). Le cliquet DETTE_ADOPTION_MAX = 283 (slots-contrat.test.ts:60) vaut exactement le stock actuel (287 lignes `dataset:` moins les 4 INATTEIGNABLES). Contre-grep sur le brief : `grep -n slotsStock|slots-contrat|structuresStock|grammaireStock` renvoie exit=1, aucune mention. → Ajouter au périmètre du train 1 scripts/guards/lib/slotsStock.mjs, le cliquet de src/data/slots-contrat.test.ts et le doc généré §6. Ajouter aux « Mouvements de stock attendus » SLOTS_SANS_DECLARATION 283 → 281 et le cliquet abaissé. Pour la migration d'exceptSkills en `{id}`, dire sous quel champ la référence est recomptée. Réécrire D5 en y incluant le retrait des lignes du stock de slots.\n6. **`typesAuParse` est un synonyme neuf de SLOT, et D1-bis réécrit `slotsDuParse`** (lentille normes-et-poison) — Le dépôt nomme déjà ce concept. slots-registre.mts:5-7 : « chaque case `(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT » ; même définition à slotsStock.mjs:10-13. La primitive `slotsDuParse` (slots-registre.mts:77) rend déjà, pour chaque document des deux racines, `{dataset, path, type, porteur, cle}` par `reperesDuParse`. C'est exactement la preuve que D1-bis propose d'écrire comme nouvelle sonde promue en test (« pour chaque occurrence committée… un repère au même path »). En plus, « types » désigne déjà le type d'entité dans la grammaire (`TYPES`, `TypeEntite`, ref.ts:46,80), alors que l'ensemble proposé contient des clés `op.champ`. La liste des primitives du brief cite reperesDuParse mais ni slotsDuParse ni Slot. → Nommer l'ensemble dans le vocabulaire des slots (par exemple « champs d'op à slot ») et non en « types ». Pour D1-bis, joindre les nœuds d'op visités par scanGameOpRefs aux `slotsDuParse` (même `porteur`, même `cle`) au lieu d'écrire une sonde parallèle. Ajouter slotsDuParse à la liste des primitives du brief.\n7. **removeCondition.id en idDe('etat') : un même id d'État aurait deux domaines, et la liste en double de `petrifie` reste en place** (lentille normes-et-poison) — gameOpRefFk.mjs:59-63 : `softIds: { etats: ['petrifie'] }`, « valides partout où ce registre est visé ». maneuvers.json:295 pose `{op:'condition', id:'petrifie'}`. Le moteur retire n'importe quel id (ops.ts:1845-1855, `removeCondition(target, id, v)`). Après D2, `condition.id` accepte 'petrifie' via le scan et softIds, mais `removeCondition.id` le refuse au parse : un auteur ne peut plus écrire le retrait de Pétrifié au Compendium. Le brief ne le mesure que dans la donnée (« 'petrifie' absent de tout removeCondition »). De plus la liste existe deux fois, chacune se disant unique : conditions.ts:57-62 `NARRATIVE_MARKERS` (« REGISTRE UNIQUE de l'exception ») et le littéral de gameOpRefFk.mjs:62, que data-wellformed.test.ts:66-68 importe comme « SOURCE UNIQUE ». D2 retire `selfRef` et `templates` de TOLERATED mais laisse `softIds`. → Arbitrer dans le brief le domaine d'un id d'État d'op : soit les marqueurs narratifs entrent dans le domaine de idDe('etat'), soit Pétrifié devient une entrée d'etats.json, soit removeCondition reste hors du train. Faire dériver softIds de NARRATIVE_MARKERS, injecté par le consommateur TS comme typesAuParse, pour que le littéral 'petrifie' disparaisse de gameOpRefFk.mjs.\n8. **D2 « graphie inchangée » grave dans OP_DEFS des synonymes et des graphies que le dépôt a classées historiques ou divergentes, sans énoncer la règle qu'il applique au Talent** (lentille normes-et-poison) — Dans le périmètre de D2, la même cible (une créature) porte deux noms : `ref` (ops.ts:894 summon, :903 scheduleRespawn, :926 polymorph) et `morphRef` (ops.ts:933 transform). grammaireStock.mjs:78-83 classe `trappingId` parmi les « Graphies historiques de RÉFÉRENCE » à éteindre en L3. Son jumeau direct, l'Effet de scène `giveTrappingSchema` (defs-scenes/effets.ts:133-135, `trappingId: z.string()`), reste non vérifié pendant que l'op `giveTrapping.trappingId` passe en idDe. structuresStock.mjs marque `divergente` L3 les signatures d'op `morphRef+…` (:417), `tableId+…` (:173) et `disease+…` (:330). Le brief invoque l'Invariant 5 (« toutes les conventions du champ ») pour migrer la graphie du Talent en D3, mais ne dit rien de ces champs. → Énoncer dans le brief la graphie canonique d'une référence d'op : par exemple `<type>Id` nu pour un type non spécialisable, `<type>: refOuSpec` pour un type spécialisable. Ensuite, soit migrer `morphRef`/`ref`/`disease`/`tableId` dans le geste, soit les déclarer comme exceptions nommées qui répondent aux lignes de grammaireStock et structuresStock. Traiter l'Effet `giveTrappingSchema.trappingId` dans le même train, ou le nommer explicitement avec son lot de mort.\n9. **D3 ne migre qu'à moitié la graphie `{talentId, spec}` : l'alias d'axes.ts survit** (lentille normes-et-poison) — defs/axes.ts:26-30 déclare un `talentRefSchema` local `{ talentId: z.string(), spec }`, stocké comme alias à grammaireStock.mjs:79 et structuresStock.mjs:245-246 (`spec,talentId` divergente, `talentId` historique). reference.ts:35 le qualifie de « dette stockée, pas une variante ». D3 annonce que meurent seulement `grantTalent.talentId` et `grantCareerTalent.talentId`, et cite l'Invariant 5 (« TOUTES les conventions de ce champ »). Après D3, `talentId` resterait seulement dans axes. → Mettre axes.ts:26-30 (schéma, donnée axes.json, lecteur) dans le train D3 avec les lignes de grammaireStock et structuresStock correspondantes, ou le nommer comme reste avec son lot de mort.\n10. **Gabarit '$arg' : le nom de la constante n'est pas fixé et la migration des littéraux reste à moitié faite** (lentille normes-et-poison) — Le brief (D2) dit « gabarit '$arg', exporté par le moteur comme `INDICE_TEMPLATE` ». Or flowCore.ts:510 définit `INDICE_TEMPLATE = '$indice'` : il faut un second nom, que le brief ne donne pas. withArg (triggeredEffects.ts:61-66) écrit en dur à la fois '$arg' et '$indice', alors qu'INDICE_TEMPLATE existe déjà. Le brief ne migre que '$arg'. TOLERATED.templates (gameOpRefFk.mjs:55) recopie les deux littéraux. La mort de `templates` est posée au conditionnel (« si plus aucun champ du scan ne porte de gabarit ») alors qu'elle se mesure dès maintenant : grep dans src/data et src/scenes donne `\"disease\": \"$arg\"` ×2 (traits.json uniquement), `\"amount\"` ×1 et `\"advantageCost\"` ×1 pour `$indice`, qui ne sont pas des champs à registre. → Donner le nom de la constante '$arg' et son type, sur le patron INDICE_TEMPLATE/IndiceTemplate. Migrer les deux littéraux de withArg vers les deux constantes. Déclarer ferme la mort de TOLERATED.templates, avec la mesure ci-dessus comme preuve.\n11. **Du poison reste dans les fichiers du périmètre (le brief ne corrige qu'une seule référence périmée)** (lentille normes-et-poison) — gameOpRefFk.mjs:13-16 : « `src/data/schemas/` ne déclare AUCUNE cible de référence : un `GameOp` y est `z.looseObject` ». C'est déjà faux (OP_DEFS : 24 ops, feuilles idDe) et D1 le rend contraire au code. Références de ligne périmées vérifiées par sed : :2 `ops.ts:1573` alors qu'applyOps est à :1659 ; :148 `ops.ts:956` alors que `case 'narrative'` est à :2900 ; :151 `ops.ts:627-631` alors que `case 'giveTrapping'` est à :2446. Le brief ne corrige que :52. mecanique.ts:99 est une pierre tombale : « il rendait auparavant le drapeau `offTerrain` VRAI partout en silence (`engine/ops.ts:279-283`) ». Le lecteur moteur d'exceptSkills, que le lot touche, porte une paraphrase de règle : conditions.ts:611 `// Brisé : sauf course (Athlétisme) / dissimulation (Discrétion)`. → Dans le train 1 : réécrire l'en-tête « POURQUOI PAS LES SCHÉMAS ZOD » de gameOpRefFk.mjs d'après D1 (OP_DEFS couvre les champs à slot, le scan le reste), corriger toutes les références de ligne de l'en-tête et de GAMEOP_FIELD_TARGETS, retirer la pierre tombale de mecanique.ts:99, et remplacer le commentaire de conditions.ts:611 par la seule référence (LDB, ligne de l'État Brisé)."
+}

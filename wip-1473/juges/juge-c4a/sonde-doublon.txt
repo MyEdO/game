@@ -1,0 +1,5 @@
+avant 13
+LEVE collectionALaCle : « [art].specs » désigne 2 points de la donnée.
+LEVE collectionALaCle : « [art].specs » désigne 2 points de la donnée.
+pendant 48
+apres 13

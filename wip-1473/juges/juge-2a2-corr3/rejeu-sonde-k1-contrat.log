@@ -1,0 +1,8 @@
+haine|Nains resout=false ouverte=false designe=- => REFUSE
+haine|Peaux-vertes resout=false ouverte=false designe=peaux-vertes => REFUSE
+haine|Peaux vertes resout=false ouverte=false designe=peaux-vertes => REFUSE
+haine|Peaux-Vertes (Orques) resout=false ouverte=false designe=- => REFUSE
+savoir-vivre|Vagabonds fantômes resout=false ouverte=false designe=- => REFUSE
+sans-peur|Skavens resout=false ouverte=false designe=- => REFUSE
+bon-marcheur|Jungle resout=false ouverte=false designe=- => REFUSE
+destinee|La mort n’est pas la fin resout=false ouverte=true designe=la-mort-n-est-pas-la-fin => REFUSE

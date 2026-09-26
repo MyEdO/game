@@ -1,0 +1,4 @@
+tzeentch apres mains-agiles completed= false xp= 0
+tzeentch apres sociable (Talent de carriere) completed= true
+flagellant rangee frenesie = {"slotKey":"add:frenesie","entry":"Frénésie","talentId":"frenesie","label":"Frénésie","times":0,"nextCost":100,"maxReached":false,"ajout":{"provenance":{"categorie":"talents","id":"flagellant"}}}
+agitateur L1 talents slots = ["baratiner","faire-la-manche","lire-ecrire","sociable"]

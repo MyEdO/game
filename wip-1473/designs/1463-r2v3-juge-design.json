@@ -1,0 +1,489 @@
+{
+ "verdict": "FRAGILE",
+ "bloquants": [
+  {
+   "titre": "E1 + E5 : deux tables pour un même concept. Le catalogue de spécialisations inline devient un espace ET reste dans SPECS_PAR_ESPACE",
+   "preuve": "Arbre 55d4ea7fc. E1 : « toute collection d'ids nichée d'un def de defs/ passe par listeCle ». Or defs/skills.ts:26 et defs/talents.ts:79 déclarent `specs: z.array(specEntrySchema).optional()`, dont les éléments portent un `id` (sonde nested-id-arrays.cjs : `skills.json  [*].specs`). Par E2, chaque `skills.json#[art].specs` devient donc un espace de IDS_PAR_ESPACE. E5 garde pourtant `SPECS_PAR_DATASET → SPECS_PAR_ESPACE (même contenu, keyé par adresse)`. Aujourd'hui src/data/schemas/_ids.generated.ts:106-123 porte déjà ces mêmes ids : `'art': ['boucherie', 'calligraphie', …]`, identiques à skills.json art.specs[].id. Doublons mesurés : 12 compétences et 11 talents à specs inline, soit 23 catalogues présents dans deux tables. Le marqueur `specsOpen` (defs/skills.ts:14, defs/talents.ts:26, lu à ref.ts:162) décide de la même famille : un troisième hôte.",
+   "correction": "Soit SPECS_PAR_ESPACE disparaît pour les specs inline : le catalogue d'une entrée fermée est l'espace `<fichier>#[<id>].specs`, et seuls les univers `specsSource` (SOURCES_DE_SPECS) restent calculés, à la même adresse. Soit E1 exclut nommément les `specs` et le brief dit pourquoi ce ne sont pas des espaces. E5 et E9 doivent trancher, pas se contredire.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E1 + E5 : deux tables pour un même concept. Le catalogue de spécialisations inline devient un espace ET reste dans SPECS_PAR_ESPACE",
+     "refute": false,
+     "preuve": "CONFIRMÉ, arbre 55d4ea7fc. Le brief dit en E1 « toute collection d'ids nichée d'un def de defs/ passe par listeCle » et en E2 « une collection à clé émet un repère à son nœud ». Or defs/skills.ts:26 et defs/talents.ts:79 déclarent `specs: z.array(specEntrySchema)`, et specEntrySchema porte `id: z.string()` (grammaire/valeurs.ts:290-291). E5 garde pourtant SPECS_PAR_ESPACE « même contenu », et IDS_PAR_ESPACE absorbe DISCRIMINANT et MARQUEUR, pas les specs. De plus, E5 dit « un dataset édite exactement un espace », alors que `skills` éditerait sa racine ET ses sous-espaces specs. Sonde scratchpad/juge-r2v3/specs-doublons.cjs (node, exit=0), qui compare chaque `specs[].id` de skills.json et talents.json avec la ligne de SPECS_PAR_DATASET de _ids.generated.ts:106+. Sortie : `skills.json specs inline: 12 identiques dans SPECS_PAR_DATASET: 12 specsSource: 3` / `talents.json specs inline: 11 identiques dans SPECS_PAR_DATASET: 11 specsSource: 5`. Cela fait 23 catalogues identiques dans deux tables. Retouche du brief : trancher specs = espace (SPECS_PAR_ESPACE réduit aux univers specsSource) ou exclusion nommée.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E1 : la marque que « document() pose » sur la racine `entite` est perdue par `affinerDataset` (6 defs, dont materials.json, un espace filtré)",
+   "preuve": "document.ts:497 `const dataset = famille === 'entite' ? z.array(entreeScellee) : entreeScellee;` puis :498 `affinerDataset ? affinerDataset(dataset) : dataset`. liste-cle.ts:10-12 : « la marque vit sur le nœud RENDU par la fabrique ; un `.min`/`.refine` posé APRÈS le clone et la perd ». Six defs passent par affinerDataset : actions, advancementCosts, materials (defs/materials.ts:194 `dataset.superRefine`), names, stars, terrains. Sonde exécutée (tsx, exit=0) :\n```\nconst marquee = listeCle(z.strictObject({id:z.string()}), 'id');\nconst affinee = marquee.superRefine(() => {});\nconsole.log(clesRetrouvees(marquee).size, clesRetrouvees(affinee).size, cleDe(affinee)?'oui':'non', affinee===marquee);\n```\nSortie : `marquee trouvee: 1` / `affinee (superRefine apres) trouvee: 0 cleDe(affinee): non meme objet: false`. Aujourd'hui liste-cle.ts n'expose que `listeCle`, qui construit le nœud : document() n'a aucun moyen de re-marquer le nœud rendu par l'affinage.",
+   "correction": "Nommer au brief l'unique primitive de marquage que `listeCle` et `document()` partagent, par exemple `marquerCollection(noeud, cle)` exportée de liste-cle.ts. Elle est posée sur le nœud FINAL, après affinerDataset, avec l'unicité. Sinon, cantonner affinerDataset à ce qui ne clone pas la charge. Le test anti-perte (liste-cle.test.ts:35) doit couvrir la racine.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E1 : la marque que « document() pose » sur la racine `entite` est perdue par `affinerDataset` (6 defs, dont materials.json, un espace filtré)",
+     "refute": false,
+     "preuve": "CONFIRMÉ. À document.ts:497-498, `dataset = famille==='entite' ? z.array(entreeScellee) : …; schema = affinerDataset ? affinerDataset(dataset) : dataset`. `grep -ln affinerDataset defs/*.ts` rend 6 defs : actions, advancementCosts, materials, names, stars, terrains. materials.ts:194 écrit `dataset.superRefine(...)`. liste-cle.ts n'exporte que listeCle/cleDe/clesPosees/clesRetrouvees, et CLES.set n'est appelé que dans listeCle (:77) : aucune primitive ne permet de marquer le nœud après affinage. Sonde rejouée, scratchpad/juge-r2v3/affinage-perd-marque.mts (npx tsx, exit=0) :\n```\nconst marquee = listeCle(z.strictObject({ id: z.string() }), 'id');\nconst affinee = marquee.superRefine(() => {});\nconsole.log('marquee trouvee:', clesRetrouvees(marquee).size);\nconsole.log('affinee trouvee:', clesRetrouvees(affinee).size, 'cleDe(affinee):', cleDe(affinee) ? 'oui' : 'non', 'meme objet:', affinee === marquee);\n```\nSortie : `marquee trouvee: 1` / `affinee trouvee: 0 cleDe(affinee): non meme objet: false`. Retouche : nommer la primitive de marquage partagée, posée sur le nœud final.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E1/Q2 : le record-racine exige une seconde forme de marque, et le design laisse la question ouverte tout en affirmant une instance unique",
+   "preuve": "liste-cle.ts:24-27 : `interface MarqueDeCle { nom; de: (element: unknown) => string | undefined }`. La clé est lue DANS l'élément. Pour un record, la clé est le nom de propriété (document.ts:455 `entries: z.record(cleRecord ?? z.string().min(1), valeurRecord!)`), et `de(element)` ne peut pas l'exprimer. La branche tableau/record existe déjà dans le générateur : scripts/gen-registry.mjs:555-559 (`if (!Array.isArray(racine)) { … famille === 'record' … Object.keys(charge) }`). E1 ne dit pas quelle marque porte le record, et la question 2 du brief la renvoie au juge. Sans réponse, la mesure et le régime vivant auront chacun un `if (record)`. Les documents concernés sont defs/teintesJeu.ts:38 et defs/decorPalette.ts:13.",
+   "correction": "Redéfinir la marque au niveau de la COLLECTION, par exemple `ids(collection) → string[]` avec un nom de clé, posée par la primitive unique du bloquant précédent. Un record et une liste en sont deux instances, et ni la mesure (E2) ni le régime vivant (E6) ne testent la forme du nœud.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E1/Q2 : le record-racine exige une seconde forme de marque, et le design laisse la question ouverte tout en affirmant une instance unique",
+     "refute": false,
+     "preuve": "CONFIRMÉ. liste-cle.ts:24-27 définit `MarqueDeCle { nom; de: (element: unknown) => string | undefined }`, qui lit la clé DANS l'élément. listeCle rend toujours `z.array` (:58-79). Pour le record, la clé est le nom de propriété : document.ts:455 écrit `entries: z.record(cleRecord ?? z.string().min(1), valeurRecord!)`, et aucune fonction `de(element)` ne l'atteint. Le générateur branche déjà sur ce point : gen-registry.mjs:555-559 fait `if (!Array.isArray(racine)) … famille === 'record' … Object.keys(charge)`. Les defs concernés, par `grep -ln \"famille = 'record'\" defs/*.ts`, sont decorPalette.ts et teintesJeu.ts. E1 affirme pourtant « document() pose la marque » sur le record, et la question 2 du brief laisse la forme ouverte. Retouche : définir la marque au niveau de la collection (`ids(collection)`).",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E3 : « feuilles idDe inertes dans la fenêtre » ne suffit pas à amorcer un espace neuf. La précondition du parse de mesure active idDe hors de la fenêtre",
+   "preuve": "r1 (git show 9f12595f6:src/data/schemas/grammaire/ref.ts) :249-255 : `const normal = schema.safeParse(donnee); if (!normal.success) { … throw new Error('parse de mesure : la donnée est invalide au parse normal …') }`, exécuté HORS fenêtre. :86-91 : `idsDe` rend `idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []`, donc une liste vide pour un espace absent de la table. :172-176 : la feuille refuse tout id hors `admis()`. Quand un espace neuf entre avec son premier désignateur dans le même commit (promesse d'E3), la phase 2 lève donc avant d'ouvrir la fenêtre. La mesure des espaces ne peut réutiliser `reperesDuParse` qu'avec un mode qui change à la fois la feuille (:174) et la précondition (:249). On obtient une variante `if (mode)` dans le socle, que le brief pose en question (Q4) mais affirme résolue en E3.",
+   "correction": "Spécifier UNE fonction de mesure paramétrée : quelles feuilles sont actives, quelle précondition de validité (par exemple parse normal avec les feuilles idDe inertes, puis contrôle des références contre la table fraîchement mesurée). Dire comment la garantie B1 de R1 (donnée valide avant mesure) est préservée pour les slots. Sinon, renoncer à « même commit » et ordonner l'amorçage.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E3 : « feuilles idDe inertes dans la fenêtre » ne suffit pas à amorcer un espace neuf. La précondition du parse de mesure active idDe hors de la fenêtre",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Source : git show 9f12595f6:src/data/schemas/grammaire/ref.ts, extrait vers scratchpad/juge-r2v3/ref-r1.ts. :249-255 : `const normal = schema.safeParse(donnee); if (!normal.success) throw new Error('parse de mesure : la donnée est invalide au parse normal …')`, exécuté AVANT `parseDeMesure = true` (:256-257). :86-91 : `idsDe` rend `idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []`. :172-176 : la feuille refuse tout id hors `admis()`. Pour un espace neuf (C4 : `crewTestType` → `crew-test-types.json#types`), la table n'a pas la clé : admis() = [], donc le parse normal de skillDRBonus.testType échoue et la fonction lève avant d'ouvrir la fenêtre. Le WIP de r1 (git diff 9f12595f6 -- ref.ts dans .wt-1473-r1) paramètre déjà la fenêtre (`mesureDuParse`, REPERE_OP) mais garde la précondition inchangée. La question 4 du brief pose exactement ce point, alors qu'E3 le déclare résolu. Retouche : spécifier la fonction de mesure paramétrée et sa précondition.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E4 : les filtres restent hébergés par des exports de module rattachés au FICHIER et ne s'appliquent qu'à la racine. Un filtre niché coûtera un nouveau mécanisme",
+   "preuve": "Les filtres restent déclarés en `export const` : defs/materials.ts:34 `export const discriminant = 'domain';`, defs/spells.ts:23, defs/props.ts:18 `export const marqueurs = ['volume'];`, defs/skills.ts:14, defs/talents.ts:26. E4 les transporte par `optionalFields` (scripts/gen-registry.mjs:337,352), recopie TEXTUELLE en phase 1, et les borne à « l'espace RACINE de leur document ». L'espace est donc déclaré au nœud (listeCle / document()), son sous-espace à côté, par fichier. Or la raison du textuel (Invariant 7, idsVivants.ts:9-11) tombe pour la phase 2, qui importe SCHEMA_DEFS (E3) et lit le nœud. La grammaire d'adresse d'E5 admet `adresse?champ=valeur` pour toute adresse, mais aucun hôte ne permet de déclarer un filtre sur une adresse nichée (question 5 du brief). C'est ce site qui coûtera plus d'une ligne : un N+1 niché impose un mécanisme neuf.",
+   "correction": "Faire du discriminant et des marqueurs des PARAMÈTRES de la marque de collection, par exemple `document(…, { discriminant: 'domain' })` et `listeCle(el, 'id', { marqueurs: ['specsOpen'] })`, lus par la phase 2 au nœud. `export const discriminant`/`marqueurs` et leur lecture par `lireExports` disparaissent. `chargeParDiscriminant` se dérive du même paramètre, ce qui garde le second rôle cité au constat.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E4 : les filtres restent hébergés par des exports de module rattachés au FICHIER et ne s'appliquent qu'à la racine. Un filtre niché coûtera un nouveau mécanisme",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Les filtres sont des exports de module : defs/materials.ts:34 `export const discriminant = 'domain'`, defs/spells.ts:23 `export const discriminant = 'family'`, defs/props.ts:18 `export const marqueurs = ['volume']`, defs/skills.ts:14 et defs/talents.ts:26 `marqueurs = ['specsOpen']`. gen-registry.mjs:337 et :352 donnent `optionalFields: ['meta', 'discriminant', 'chargeParDiscriminant']`, portés au FICHIER. E4 les borne à « l'espace RACINE », alors qu'E5 admet `adresse?champ=valeur` pour toute adresse : la grammaire promet un filtre niché qu'aucun hôte ne sait déclarer. Or la phase 2 importe SCHEMA_DEFS (E3) et lit le nœud, donc la raison du textuel (idsVivants.ts:9-11) tombe pour elle. Retouche : faire du filtre un paramètre de la marque de collection.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E6 : le régime vivant « par adresse » branche selon le type d'édition, et repose sur une « liaison du fichier » que le brief ne nomme pas",
+   "preuve": "Aujourd'hui la racine vivante d'un fichier est éclatée en trois hôtes : ARRAYS (overrides.ts:159-258) pour les racines-tableaux, OBJECTS (:275-294) pour `single`, NESTED_ARRAY_ROOT (:350-425, une entrée par CATÉGORIE) pour les nichés. DATASET_DU_FICHIER (:450-467) saute les nichés (:459). E6 fixe trois règles : navigation de `datasetObject` pour `single` ; version « du dataset qui l'édite » ; ailleurs, « la liaison du fichier », qu'E7 invoque (« la racine à sérialiser est la liaison du fichier ») sans dire où elle se déclare. La version n'est pas définie pour un espace niché édité via son parent (`skills.json#[art].specs`, édité par la clé `skills`), ni pour la racine d'un document `niche` (`criticals.json` : aucune clé de dataset n'édite la racine, mais 8 catégories éditent ses rangées). Pourtant `memoParVersion` accepte déjà une liste de clés (versionDataset.ts:60 `cle: CleDeDataset | readonly CleDeDataset[]`).",
+   "correction": "Nommer UNE table fichier → racine vivante, dérivée de l'exposition, et son module. `entrees(adresse)` doit se lire par navigation depuis cette racine pour TOUTES les familles d'édition (dataset, niche, single, record, none+dataset), sans cas `single`. Version d'un espace = `memoParVersion(toutes les clés de dataset du fichier)`. Un fichier sans liaison retombe sur la table générée, comme aujourd'hui.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E6 : le régime vivant « par adresse » branche selon le type d'édition, et repose sur une « liaison du fichier » que le brief ne nomme pas",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Sonde scratchpad/juge-r2v3/liaison-fichier.mts (npx tsx, exit=0), qui groupe DATASET_KEYS par DATASET_FICHIER_DERIVE. Sortie : `criticals.json <- [\"criticalsTete\",…,\"aaCriticalsJambe\"]` (8 clés, toutes dans NESTED_ARRAY_ROOT, overrides.ts:359-366) ; `miscast.json <- [\"miscastMinor\",\"miscastMajor\",\"miscastWrath\"]` ; `skills.json <- [\"skills\"]`. Aucune clé de dataset n'édite donc l'espace racine `criticals.json` : « la version du dataset qui l'édite » (E6) n'y est pas définie. Même chose pour `skills.json#[art].specs`, tant qu'E5 maintient « un dataset édite exactement un espace ». DATASET_DU_FICHIER saute les nichés (overrides.ts:459 `if (NESTED_ARRAY_ROOT[cle]) continue;`). E7 invoque « la liaison du fichier » sans jamais la déclarer. memoParVersion accepte déjà une liste de clés (versionDataset.ts:60). Retouche : nommer la table fichier → racine vivante.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E7 : une liste nichée éditable reste déclarée DEUX fois (clé de la carte `niche` au def + ligne ARRAYS), tenues synchrones par test",
+   "preuve": "E7 : « ÉDITABLE = 1 entrée de carte au def + 1 ligne `ARRAYS` (le type `DatasetKey` dérive des clés d'`ARRAYS`, overrides.ts:260) ». La garde de synchronisation existe déjà : src/data/schemas/exposition-contrats.test.ts:137-144 « (e) routes ⊆ bindings : chaque dataset routé existe dans ARRAYS / OBJECTS » (`listesInconnues … absent d'ARRAYS`). E7 la conserve, alors que l'Invariant 2 du brief cite « Une garde de synchronisation est un smell ». Si l'entrée nichée d'ARRAYS devient « la navigation de la liaison du fichier le long de l'adresse », la ligne ARRAYS ne porte plus que le NOM, déjà présent dans la carte.",
+   "correction": "Dériver `DatasetKey` (et les clés nichées d'ARRAYS) du registre généré : phase 1 ou phase 2 émettent l'union des clés de `niche` à côté de SCHEMA_DEFS. La ligne ARRAYS des nichés disparaît, avec la garde (e) pour ces clés. Sinon, le brief compte honnêtement deux déclarations et justifie l'écart à l'Invariant 2.",
+   "structurel": false,
+   "lentille": "trou-de-socle",
+   "auteurs": [
+    "trou-de-socle"
+   ],
+   "refutations": [
+    {
+     "titre": "E7 : une liste nichée éditable reste déclarée DEUX fois (clé de la carte `niche` au def + ligne ARRAYS), tenues synchrones par test",
+     "refute": false,
+     "preuve": "CONFIRMÉ. E7 écrit verbatim « ÉDITABLE = 1 entrée de carte au def + 1 ligne `ARRAYS` ». overrides.ts:260 : `export type DatasetKey = keyof typeof ARRAYS`. La garde de synchronisation existe : exposition-contrats.test.ts:137-144, « (e) routes ⊆ bindings … (absent d'ARRAYS) ». Même sonde liaison-fichier.mts, sortie : `categories niche: 54 | dont cle dans ARRAYS: 54`. Les 54 catégories niche sont donc déclarées deux fois et tenues synchrones par la garde (e), contre l'Invariant 2 que le brief cite lui-même. Retouche : dériver les clés nichées d'ARRAYS du registre généré, ou justifier l'écart.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E7 : « la liaison du fichier » n'existe pas. Aucun des 25 fichiers porteurs des 54 tableaux nichés n'a de liaison dans ARRAYS ou OBJECTS, donc retirer NESTED_ARRAY_ROOT oblige à écrire une table fichier → racine que le design ne nomme pas.",
+   "preuve": "Arbre 55d4ea7fc (git log --oneline -1 = « 55d4ea7fc refactor(donnees): refs #1897 … »). Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-liaisons.mts, jouée avec `npx tsx`, exit=0 (lu par redirection vers un fichier puis $?). Pour chaque DatasetKey, la sonde prend le tableau vivant (datasetArray), importe la racine JSON de son datasetFile, cherche ce tableau par identité dans la racine, puis cherche un binding ARRAYS/OBJECTS qui soit cette racine. Sortie : « BILAN : 54 datasets nichés ; 54 dont le FICHIER n'a aucune liaison (25 fichiers : weather.json, mass-battle.json, crew-test-types.json, montures.json, incidents-monture.json, problemes-vehicule.json, obsessions.json, structure-criticals.json, land-cargo.json, sea-cargo.json, river-perils.json, crew-morale.json, criticals.json, ship-criticals.json, river-criticals.json, rencontres-edoc.json, sea-events.json, naval-progression.json, ship-construction.json, driving-mishap.json, drunkenness.json, miscast.json, surincantation.json, artillery-misfire.json, vents-tourbillonnants.json) ; 0 dont le tableau vivant n'est PAS atteignable dans la racine du fichier ». Aujourd'hui, les racines de ces fichiers (criticalsRawJson, massBattleData, miscastRoot…) ne sont atteintes que par les thunks de NESTED_ARRAY_ROOT (src/data/overrides.ts:350-425, 55 entrées `{ root: () =>`). Le coût annoncé par E7 (« ÉDITABLE = 1 entrée de carte au def + 1 ligne ARRAYS ») est donc faux pour un fichier neuf. Face favorable : la navigation garde l'identité des 54 tableaux (chemins mesurés, par exemple `[criticals-ldb-tete].entries`, `tables.cargaison`, `manann.factors`), ce qui répond oui à la question 6.",
+   "correction": "Nommer dans E7 et E9 la déclaration qui remplace NESTED_ARRAY_ROOT : une carte fichier → racine vivante de 25 entrées, ou sa dérivation depuis SCHEMA_DEFS si une couture de chargement le permet. La compter dans le coût d'une liste éditable, et l'ajouter à la liste « survivent ».",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "E7 : « la liaison du fichier » n'existe pas. Aucun des 25 fichiers porteurs des 54 tableaux nichés n'a de liaison dans ARRAYS ou OBJECTS, donc retirer NESTED_ARRAY_ROOT oblige à écrire une table fichier → racine que le design ne nomme pas.",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Arbre épinglé : `git log --oneline -1` = « 55d4ea7fc refactor(donnees): refs #1897 — l'entrée admet sa spécialisation ; lecteur unique des exports de def ». Lecture de /home/claude/game/.wt-1473-r2v2-lecture/src/data/overrides.ts. ARRAYS (:159-256) lie les TABLEAUX nichés (`weather`, `crewTestTypes`, `SHIP_CRITICAL_TABLES.cargaison`, `miscastEntries('miscast-mineure')`, `drivingMishapRawJson.entries`…), jamais leur racine. OBJECTS (:269-289) ne contient aucune des 25 racines. Le docstring de NESTED_ARRAY_ROOT le dit lui-même (:348-349) : « Cette table ne porte QUE la racine à sérialiser ». `sed -n 350,425p | grep -c \"{ root: () =>\"` = 55. Aucun autre porteur fichier → racine : `grep -rn \"liaison du fichier\" src docs` = 0 résultat, et le seul `import.meta.glob` de JSON est `src/data/dev-validate.ts:14`, qui lit les fichiers en brut (`?raw`, texte disque) et non les objets vivants. La sortie de sonde-liaisons.out est rejouée en lecture : « BILAN : 54 datasets nichés ; 54 dont le FICHIER n'a aucune liaison (25 fichiers …) ». Grief de ma lentille : E7 emploie « la liaison du fichier » comme un terme du dépôt alors qu'aucun symbole ne le porte. Le terme n'est pas défini, et la déclaration qui remplace les 55 thunks manque de la liste « survivent » d'E9. Le brief compte aussi mal : il cite « `:350-421`, 55 entrées » alors que les entrées vont jusqu'à :425. Une retouche du brief suffit : nommer la carte fichier → racine et l'ajouter au coût d'E7 et à E9.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E1 : aucun critère ne dit ce qu'est une « collection d'ids nichée ». Dans la donnée, les listes d'éléments à `id` sont surtout des listes de RÉFÉRENCES, et les `specs` en ligne feraient un doublon de SPECS_PAR_ESPACE (Invariant 2 violé par le design lui-même).",
+   "preuve": "Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-positions.mts, exit=0. Elle recense les positions de schéma (éléments notés *) des listes nichées d'objets portant un `id` texte, sur les 124 documents de SCHEMA_DEFS. Sortie : « POSITIONS de schéma à listes nichées d'objets à id : 167 ; DOUBLONS=12 ; toutes-au-registre (graphie de référence probable)=87 ; autres (identité probable)=68 ». Exemples de doublons : « creatures.json#[*].skills (listes=352, ids=5981, au registre=5981, listes à doublons=179) », « careerLevels.json#[*].skills (… listes à doublons=51) », « species.json#[*].skills (… 14) », plus des listes d'`ops` sous des `steps[*]` sans clé. Sonde sonde-espaces.mts : « listes nichées à id : 2912 ; sous une liste SANS clé (E2 « la mesure lève ») : 169 ; à doublons (listeCle rougit) : 292 ». Côté identité, la liste compte `skills.json#[*].specs (listes=12, ids=256)` et `talents.json#[*].specs (listes=11, ids=243)` : ce sont des collections à clé `id` qui, sous E1, deviennent des espaces `skills.json#[<id>].specs` dans IDS_PAR_ESPACE, alors que E5 garde SPECS_PAR_ESPACE, « même contenu, keyé par adresse ». On aurait deux déclarations du même ensemble. Réponse à la question 1 : sur les 68 positions d'identité, 0 doublon, donc listeCle ne rougit pas. Elle rougirait sur les 12 positions de références.",
+   "correction": "Poser dans E1 un critère explicite : une liste dont l'`id` d'élément est une feuille idDe est une référence et ne reçoit jamais listeCle. Joindre l'inventaire C1 des positions retenues : les 68 candidates, dont les 54 niches et les collections des documents `single`. Trancher les `specs` : soit les `specs` en ligne sont des espaces et SPECS_PAR_ESPACE devient leur projection ∪ SOURCES_DE_SPECS, soit ils sont exclus avec leur raison. Dire enfin si un espace sans désignateur (props `[*].seatSlots`, characteristics `[*].options`, vehicles `[*].travel.classes`) entre dans la table, au regard de ref.ts:39 « jamais au cas où ».",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "E1 : aucun critère ne dit ce qu'est une « collection d'ids nichée ». Dans la donnée, les listes d'éléments à `id` sont surtout des listes de RÉFÉRENCES, et les `specs` en ligne feraient un doublon de SPECS_PAR_ESPACE (Invariant 2 violé par le design lui-même).",
+     "refute": false,
+     "preuve": "CONFIRMÉ sur 55d4ea7fc. (1) Les listes de références portent bien un `id`. `node -e` sur creatures.json donne `[{\"id\":\"chevaucher\",\"value\":58,\"spec\":\"cheval\"},{\"id\":\"commandement\",…},{\"id\":\"corps-a-corps\",…}]`, et defs/creatures.ts:73 déclare `skills: z.array(skillRefSchema)`. Un même id y revient sous plusieurs `spec` : listeCle y rougirait. sonde-positions.out, relue : « DOUBLONS=12 », dont « creatures.json#[*].skills (… listes à doublons=179) ». E1 dit seulement « toute collection d'ids nichée d'un def de `defs/` passe par `listeCle` », sans critère qui sépare la référence de l'identité. (2) Grief de ma lentille, une double déclaration du même ensemble. scripts/gen-registry.mjs:701 construit SPECS_PAR_DATASET à partir de `e.specs.filter(…).map((s) => s.id)`. Or `skills.json[*].specs` (defs/skills.ts:26 `specs: z.array(specEntrySchema)`, donnée `art` → `[{\"id\":\"calligraphie\",…}]`) est une collection à `id` qui, sous E1, devient un espace d'IDS_PAR_ESPACE. De son côté, E5 garde « SPECS_PAR_DATASET → SPECS_PAR_ESPACE (même contenu, keyé par adresse) ». On aurait deux tables pour un même ensemble, ce qui est exactement la classe que l'Invariant 2 du brief veut tuer (« CINQ déclarations »). La question 1 du brief laisse ce point ouvert. Une retouche suffit : un critère « l'`id` d'élément est une feuille idDe ⇒ référence, jamais listeCle », et un sort explicite pour les `specs`.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "Preuve de C2 fausse sur la donnée : la marque posée par document() sur le record-racine ajoute la clé RACINE `decorPalette.json` (435 ids), qui n'est pas une collection nichée.",
+   "preuve": "Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-racines-hors-table.mts, exit=0. Sortie : « familles : {\"entite\":81,\"config\":41,\"record\":2} », « HORS TABLE decorPalette.json (famille record) : 435 ids ; libellés=0 ; ex=ombre | ombre2 | ombre3 | ombre4 », « clés de la table sans def de SCHEMA_DEFS : 0 ». sonde-espaces.mts donne « A. IDS_PAR_DATASET : 82 clés », ce qui confirme le compte 82 (81 entite + teintesJeu). Le seul écart entre « document() marque toute racine entite/record » et la table actuelle est donc decorPalette.json, écarté aujourd'hui par DEFAUTS_IDS (scripts/gen-registry.mjs:537-540) via estRecordAIds (:512-517, clés camelCase). Or le brief pose pour C2 : « les clés neuves sont les collections nichées ». Le test promu tel qu'il est écrit rougit.",
+   "correction": "Écrire la preuve de C2 ainsi : clés neuves = collections nichées ∪ {decorPalette.json}, avec la mort de DEFAUTS_IDS citée comme cause. Ou bien trancher que decorPalette n'est pas un espace, et dire alors par quelle marque document() s'abstient.",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "Preuve de C2 fausse sur la donnée : la marque posée par document() sur le record-racine ajoute la clé RACINE `decorPalette.json` (435 ids), qui n'est pas une collection nichée.",
+     "refute": false,
+     "preuve": "CONFIRMÉ sur 55d4ea7fc. src/data/schemas/defs/decorPalette.ts:13 : `export const famille = 'record';`. scripts/gen-registry.mjs:537-540 : `const DEFAUTS_IDS = { 'decorPalette.json': 'record de 435 jetons de teinte à clés camelCase (`terreTresSombre`) SOUS `entries` …' }`. Le docstring d'estRecordAIds (:505-511) le confirme : « Écartés par la 2ᵉ condition : `decorPalette` et les configurations à clés camelCase ». E1 dit que `document()` pose la marque sur les « `entries` de `record` » et que `DEFAUTS_IDS` meurt. decorPalette.json devient donc une clé RACINE neuve de la table, ce qui contredit la preuve de C2 (« les clés neuves sont les collections nichées ») et celle d'E2 (« les 82 clés actuelles … se re-dérivent à l'identique », 82 = 81 entite + teintesJeu d'après sonde-racines-hors-table.out). Grief de ma lentille : E1 retire une liste d'exemptions nominative sans dire ce que devient son unique stock. C'est une demi-migration. De plus, le def dit ses clés « OUVERTES » (decorPalette.ts:6) : en faire un espace d'ids est une décision à trancher, pas un effet de bord. Retouche du brief : ajouter decorPalette.json aux clés neuves attendues, ou nommer par quelle marque document() s'abstient.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E3 contredit le contrat B1 de reperesDuParse (r1) : la mesure exige d'abord un parse normal réussi HORS de la fenêtre. Des feuilles idDe inertes « pendant cette mesure » ne lèvent donc pas le blocage d'amorçage d'un espace neuf et de son premier désignateur.",
+   "preuve": "Lu par `git -C /home/claude/game/.wt-1473-r1 show 9f12595f6:src/data/schemas/grammaire/ref.ts` (lecture seule). Dans reperesDuParse : `const normal = schema.safeParse(donnee); if (!normal.success) { … throw new Error(\\`parse de mesure : la donnée est invalide au parse normal …\\`) }`, puis seulement `parseDeMesure = true`. La doc dit : « La donnée doit être VALIDE au parse normal, et c'est ce parse, exécuté HORS de la fenêtre de mesure, qui en juge ». Or idDe ne teste `parseDeMesure` qu'après `admis().includes(v)` (`if (admis().includes(v)) { if (parseDeMesure) ctx.addIssue(…repère…) ; return; }`). En C4, un type neuf (crewTestType → `crew-test-types.json#types`) porte des ids absents de la table encore périmée. Le parse normal de la donnée qui le désigne échoue donc AVANT la fenêtre, la phase 2 lève et ne peut pas écrire la table qui l'aurait débloquée. Le design dit « Pendant cette mesure, les feuilles idDe sont INERTES » sans dire que la pré-vérification normale l'est aussi. C'est la question 4, laissée ouverte.",
+   "correction": "Fixer dans E3 un point d'entrée distinct, ou un mode de la fenêtre, pour la mesure des espaces : dans ce mode, le parse de vérification préalable s'exécute lui aussi avec idDe inerte, alors que reperesDuParse (slots) garde sa pré-vérification B1. Nommer le test qui re-détecte après coup les défauts qu'on attrape aujourd'hui à la construction (valeur discriminante inconnue, marqueur non déclaré, type sans espace).",
+   "structurel": false,
+   "lentille": "preuve-par-sonde",
+   "auteurs": [
+    "preuve-par-sonde"
+   ],
+   "refutations": [
+    {
+     "titre": "E3 contredit le contrat B1 de reperesDuParse (r1) : la mesure exige d'abord un parse normal réussi HORS de la fenêtre. Des feuilles idDe inertes « pendant cette mesure » ne lèvent donc pas le blocage d'amorçage d'un espace neuf et de son premier désignateur.",
+     "refute": false,
+     "preuve": "CONFIRMÉ. Lu par `git -C /home/claude/game/.wt-1473-r1 show 9f12595f6:src/data/schemas/grammaire/ref.ts` (copie de lecture au dossier de sondes, ref-r1.ts). Aux lignes 248-255 : `const normal = schema.safeParse(donnee); if (!normal.success) { … throw new Error(`parse de mesure : la donnée est invalide au parse normal …`) }`. `parseDeMesure = true` ne vient qu'à :257. La feuille (:172-184) ne consulte `parseDeMesure` qu'APRÈS `if (admis().includes(v))`. Hors fenêtre, un id absent de la table périmée produit donc une issue : `ref('${type}') : id « ${v} » absent de …`. Le docstring :242-243 écrit noir sur blanc : « La donnée doit être VALIDE au parse normal, et c'est ce parse, exécuté HORS de la fenêtre de mesure, qui en juge ». Grief de ma lentille : un terme pour deux concepts. E2 et E3 emploient « la fenêtre de mesure » à la fois pour la fenêtre où idDe ÉMET un repère (slots, r1) et pour une fenêtre où idDe est INERTE (espaces). Le design ne tranche pas entre une fenêtre paramétrée et deux fenêtres : c'est la question 4, restée ouverte. Autre point, le même docstring (:243-244) avertit que « le repère d'une feuille `idDe` fait avorter le `pipe` qui la porte ». Un repère de collection émis comme issue hériterait de cette limite, et le design n'en dit rien. Retouche du brief : nommer le mode (ou le point d'entrée) sans pré-vérification normale, et le test qui re-détecte après coup les défauts de construction.",
+     "structurel": false
+    }
+   ]
+  },
+  {
+   "titre": "E2/E5 : « adresse » est déjà un concept enregistré du dépôt, qui désigne autre chose",
+   "preuve": "Arbre épinglé 55d4ea7fc (git log --oneline -1 : « 55d4ea7fc refactor(donnees): refs #1897 — l'entrée admet sa spécialisation ; lecteur unique des exports de def »). scripts/docs/lib/structures-lexique.mts:343-344 : `id: 'adresse', label: 'adresse d’un passage du Source (`descRef`)', strate: 'Valeur'` ; :670 `'adresse de prose': { cible: 'descRef' … }` ; rendu dans docs/structures-donnees.md:1124 et :1811 (« ### 3.6 adresse d’un passage du Source (`descRef`) — `adresse` »). Le terme a des centaines d'usages (src/data/schemas/grammaire/prose-inline.ts : 38 lignes, scripts/source/reparer-adresses.mjs, DescRefField.tsx…). Le brief E5 fait de « son ADRESSE » l'identifiant unique d'un espace d'ids (`IDS_PAR_ESPACE` keyé par adresse, `SourceDIdsVivants.entrees(adresse)`, `niche.categories` = « carte catégorie → adresse »).",
+   "correction": "Choisir pour l'emplacement d'un espace un terme libre dans le lexique (vérifié par `git grep` contre structures-lexique.mts et docs/structures-donnees.md), ou prouver que c'est le même concept que l'adresse de prose et l'y rattacher. Le brief doit citer ce contre-grep.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "E2/E5 : « adresse » est déjà un concept enregistré du dépôt, qui désigne autre chose",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Arbre épinglé 55d4ea7fc (`git log --oneline -1`). J'ai lu les sources et la collision est réelle : scripts/docs/lib/structures-lexique.mts:343-344 `id: 'adresse', label: 'adresse d’un passage du Source (`descRef`)', strate: 'Valeur'` ; :670 `'adresse de prose': { cible: 'descRef' … }` ; docs/structures-donnees.md:1124 et :1811 « ### 3.6 adresse d’un passage du Source (`descRef`) — `adresse` » ; `git grep -c -i adresse src/data/schemas/grammaire/prose-inline.ts` = 38. Dans le brief, E5 dit « un seul identifiant par espace, son ADRESSE » et E6 « `SourceDIdsVivants.entrees(adresse)` ». C'est l'emplacement d'une collection, sans rapport avec `descRef` (book/ch/parts). Je n'ai pas pu réfuter. On le corrige en renommant le terme dans le brief, sans toucher au mécanisme."
+    }
+   ]
+  },
+  {
+   "titre": "Le titre du design, « l'espace d'ids est la collection à clé », est faux sur le stock existant de `listeCle`, alors que E9 et la question 8 font de `listeCle` LA déclaration d'espace dans les deux portées",
+   "preuve": "`listeCle` déclare une clé d'UNICITÉ, pas un espace d'identité. Sites vivants : src/data/schemas/defs-scenes/scene.ts:545 `members: listeCle(encounterMemberSchema, 'entityId')` (la clé est une RÉFÉRENCE étrangère) ; :770 `stations: listeCle(sceneStationAnchorSchema, 'sceneId')` (référence étrangère) ; :760 `layers: listeCle(layerSchema, 'z')` (numérique) ; :762 `walls: listeCle(wallSegSchema, cleDArete)` avec :688 `nom: 'x,y,side,z'` (clé composée). L'en-tête de liste-cle.ts:8-9 oppose explicitement les deux concepts : « un slot désigne une RÉFÉRENCE vers un autre document […], une clé d'élément désigne l'IDENTITÉ d'un élément dans SA liste ». Le brief E9 dit : « Survivent […] : `listeCle` (identité ET espace) » : le même marqueur voudrait dire « espace » sous defs/ et « unicité seulement » sous defs-scenes/.",
+   "correction": "Séparer les deux concepts au nœud : l'espace d'ids se déclare comme un paramètre explicite de la primitive (par exemple `listeCle(el, 'id', { espace: true })`, ou une marque dédiée), et non par l'égalité « toute collection à clé = espace ». Réécrire E1, E9 et la question 8 en conséquence. `members`, `stations`, `layers` et `walls` doivent être nommés comme non-espaces.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Le titre du design, « l'espace d'ids est la collection à clé », est faux sur le stock existant de `listeCle`, alors que E9 et la question 8 font de `listeCle` LA déclaration d'espace dans les deux portées",
+     "refute": false,
+     "structurel": false,
+     "preuve": "J'ai vérifié à 55d4ea7fc. src/data/schemas/defs-scenes/scene.ts:545 `members: listeCle(encounterMemberSchema, 'entityId')`, :760 `layers: listeCle(layerSchema, 'z')`, :762 `walls: listeCle(wallSegSchema, cleDArete)` avec :688 `nom: 'x,y,side,z'`, :770 `stations: listeCle(sceneStationAnchorSchema, 'sceneId')`. Ce sont des clés d'unicité, pas des espaces d'identité. liste-cle.ts:8-9 oppose bien slot/RÉFÉRENCE et clé/IDENTITÉ. Le brief E9 dit « Survivent […] : `listeCle` (identité ET espace) ». Le bloquant tient. Je le juge NON structurel sous l'angle trou de socle, parce que le mécanisme proposé reste une INSTANCE du socle. E1 restreint la portée à `SCHEMA_DEFS`, où `listeCle` compte 0 appel aujourd'hui (brief, Invariant 2), et chaque espace entrerait par une `listeCle` posée exprès. L'égalité fausse ne mord que sur le lot « références locales ». La correction est un paramètre de la primitive existante (`espace`), qui reste une seule primitive paramétrée et pas une variante à branche. La mesure au parse, `document()` et `memoParVersion` restent inchangés. C'est une réécriture d'E1, d'E9 et de la question 8, pas une refonte."
+    }
+   ]
+  },
+  {
+   "titre": "Doublon adjacent : « espace d'ids » et « références locales » redoublent des termes et un index déjà présents (« INDEX DES IDS », « espace de noms CLOS », « RÉFÉRENCE SCOPÉE »). Un sixième mécanisme de déclaration d'ids, heuristique, est absent de l'inventaire de l'Invariant 2 et de E9",
+   "preuve": "scripts/docs/lib/structures-lexique.mts:578-579 : « RÉFÉRENCES SCOPÉES — clés dont la valeur désigne une identité d'un espace de noms CLOS, tenu par un document, jamais un document de l'INDEX DES IDS » ; :592 `CLES_REFERENCE_SCOPEE = { entry: 'entryPoints' }`. C'est le concept même du lot « références locales » de E9, sous un autre nom. scripts/docs/lib/structures-scan.mts:9-19 : « LE CŒUR EST L'INDEX DES IDS, SCOPÉ PAR DATASET […] 1. INDEX RACINE — l'identité de chaque entrée de racine (`id`/`key`/`nom`, ou la clé du record) […] 3. DOCUMENTS EMBARQUÉS — objet à clé d'identité […] Leurs ids complètent l'index ». Ce second index devine les ids nichés par heuristique (:436-470). E1 affirme « Plus aucune heuristique ni exception nominative », mais structures-scan.mts n'est ni dans le périmètre ni dans les listes « meurent/survivent » de E9. Pourtant slots-registre.mts, qui est dans le périmètre, joint son scan (`ScanDesReferences`, r1 :71).",
+   "correction": "Ajouter à l'Invariant 2 le sixième mécanisme (index des ids du scan : passes 1 et 3). Dire nominativement en E9 s'il dérive des espaces mesurés ou s'il reste le côté OBSERVÉ, et pourquoi. Réconcilier les termes : « espace d'ids » contre « espace de noms », « références locales » contre `CLES_REFERENCE_SCOPEE`/« référence scopée », « index des ids » contre `IDS_PAR_ESPACE`. Un seul terme par concept, et migration de l'autre dans le geste.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Doublon adjacent : « espace d'ids » et « références locales » redoublent des termes et un index déjà présents (« INDEX DES IDS », « espace de noms CLOS », « RÉFÉRENCE SCOPÉE »). Un sixième mécanisme de déclaration d'ids, heuristique, est absent de l'inventaire de l'Invariant 2 et de E9",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Les pièces sont vérifiées à 55d4ea7fc. scripts/docs/lib/structures-lexique.mts:578-579 « RÉFÉRENCES SCOPÉES — clés dont la valeur désigne une identité d'un espace de noms CLOS » et :592 `CLES_REFERENCE_SCOPEE = { entry: 'entryPoints' }`. scripts/docs/lib/structures-scan.mts:9-19 « LE CŒUR EST L'INDEX DES IDS, SCOPÉ PAR DATASET […] 1. INDEX RACINE […] 3. DOCUMENTS EMBARQUÉS […] Leurs ids complètent l'index » ; la passe 1 (:445-470, `ajouteIndex`) devine la racine par régime, sans lire le schéma. Sous l'angle trou de socle, c'est bien un SECOND hôte du concept « ids d'une collection », heuristique et absent de l'Invariant 2 et de la liste d'E9. `structures-scan.mts` ne figure pas au Périmètre du brief. Je n'ai pas pu réfuter. La correction se fait dans le brief : nommer ce mécanisme, puis décider s'il dérive des espaces ou reste le côté observé."
+    }
+   ]
+  },
+  {
+   "titre": "E2 invente une seconde grammaire de chemin de donnée à côté de celle que le même module de mesure porte déjà",
+   "preuve": "r1 9f12595f6:scripts/docs/lib/slots-registre.mts:44-50 `pathNormalise` : `.champ`, `[]` pour un élément (rang effacé), `{}` pour une clé de record. E2 pose `.champ` et `[clé]`, « grammaire FERMÉE à ces deux pas », avec le séparateur `fichier#chemin`. Le constat du même brief écrit `ship-criticals.json` › `tables.cargaison`, donc une troisième graphie, celle de docs/structures-donnees.md. Les deux grammaires naissent du même repère (`reperesDuParse`) et vivent dans le même fichier du périmètre.",
+   "correction": "Étendre `pathNormalise` et le paramétrer (pas `[clé]` quand l'élément porte une marque de clé) plutôt que créer une grammaire parallèle. Fixer une seule graphie du couple fichier/chemin dans le brief et dans le code.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "E2 invente une seconde grammaire de chemin de donnée à côté de celle que le même module de mesure porte déjà",
+     "refute": false,
+     "structurel": false,
+     "preuve": "`git -C .wt-1473-r1 show 9f12595f6:scripts/docs/lib/slots-registre.mts`, lignes 43-50 : `pathNormalise` (« `[].effects.steps[].test.skill`, `hauteurs{}` ») rend `.champ`, `[]` et `{}` à partir de `r.path` d'un repère de `reperesDuParse`. E2 pose une autre graphie tirée du même repère (`.champ`, `[clé]`, séparateur `fichier#chemin`), et le constat du brief en emploie une troisième (`ship-criticals.json` › `tables.cargaison`). Le chemin de slot est un PATRON (rang effacé), l'adresse est une INSTANCE (clé gardée). Les deux se distinguent donc par un paramètre de la même fonction, `[]` ou `[clé]` selon la marque de clé, comme `parCle` choisit déjà `{}`. Créer une seconde fonction serait un parallèle. Le bloquant tient et se corrige par une retouche."
+    }
+   ]
+  },
+  {
+   "titre": "Les renommages et les morts de E5/E9 laissent des orphelins hors périmètre ; la migration des scripts datés reste une question ouverte (demi-migration)",
+   "preuve": "`git grep` à 55d4ea7fc, hors fichiers générés et hors périmètre déclaré. `SPECS_PAR_DATASET` : src/data/schemas/grammaire/sourcesDeSpecs.ts:6, grammaire/valeurs.ts:288, src/data/spec-pool-contrat.test.ts:314, grammaire/pool-specs.test.ts (5), grammaire/valeurs-de-champ.test.ts (3). `IDS_PAR_DISCRIMINANT` : defs/materials.ts:31, grammaire/slots.test.ts:156. `IDS_PAR_MARQUEUR` : defs/props.ts:17. `NESTED_ARRAY_ROOT` : src/data/index.ts:2493 (« Cf. `data/overrides.ts::NESTED_ARRAY_ROOT` »). `verifieExhaustiviteDesIds` : scripts/gen-registry.d.mts. `DEFAUTS_IDS` cité par scripts/migrations/2026-08-27-l1b-2{a,b,c}-*.mjs:6. `cibleDe` cité par les trois migrations 2026-09-01-1463-*.mjs (:26/:47/:124). Leur message d'erreur nomme « `IDS_PAR_DATASET['careers.json']` » (:30, :51, :128) et leur lecture est la regex textuelle `/'careers\\.json':\\s*\\[/`, qui suppose la graphie à guillemets simples du générateur actuel. La phase 2 est un script TypeScript neuf, de graphie non spécifiée, et la question 9 est laissée ouverte, alors que replay.mjs rejoue ces migrations (CI, pre-push).",
+   "correction": "Le brief doit trancher la question 9 : soit adapter les migrations rejouées, soit spécifier que `IDS_PAR_ESPACE` garde la graphie `'fichier.json': [` lue par ces regex, et dire qui porte le nom mort dans leurs messages. Il doit aussi étendre le périmètre à chaque fichier listé ci-dessus. Critère de sortie mécanique : `git grep -n 'IDS_PAR_DATASET\\|IDS_PAR_DISCRIMINANT\\|IDS_PAR_MARQUEUR\\|SPECS_PAR_DATASET\\|NESTED_ARRAY_ROOT\\|cibleDe(' -- src scripts` hors migrations datées = 0.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Les renommages et les morts de E5/E9 laissent des orphelins hors périmètre ; la migration des scripts datés reste une question ouverte (demi-migration)",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Sonde : `git grep -n 'IDS_PAR_DATASET\\|IDS_PAR_DISCRIMINANT\\|IDS_PAR_MARQUEUR\\|SPECS_PAR_DATASET\\|NESTED_ARRAY_ROOT\\|cibleDe(\\|DEFAUTS_IDS\\|verifieExhaustiviteDesIds' -- src scripts ':!*.generated.*'` touche 31 fichiers. Parmi eux, hors du Périmètre nommé du brief : src/data/index.ts (1), src/data/schemas/grammaire/sourcesDeSpecs.ts (1), grammaire/valeurs.ts (1), grammaire/pool-specs.test.ts (5), grammaire/valeurs-de-champ.test.ts (5), grammaire/slots.test.ts (1), src/data/spec-pool-contrat.test.ts (1), scripts/gen-registry.d.mts (1), scripts/guards/lib/fieldConsumers.mjs (3), scripts/ops/chantier.mjs (1) et chantier.test.mjs (10), src/tests-sans-horloge-guard.test.ts (3), les trois migrations 2026-08-27-l1b-2{a,b,c} (1 chacune). scripts/migrations/2026-09-01-1463-gram-species-preview-career.mjs:28 lit `/'careers\\.json':\\s*\\[([^\\]]*)\\]/` et :30 nomme « `IDS_PAR_DATASET['careers.json']` ». _ids.generated.ts:30 porte bien la graphie `'careers.json': [`. Le brief laisse la question 9 ouverte. Le bloquant tient, et le compte d'orphelins est même plus large que celui qu'il cite."
+    }
+   ]
+  },
+  {
+   "titre": "Poison dans le périmètre que le design laisse vivre, ou qu'il rendrait mensonger",
+   "preuve": "src/data/overrides.ts (dans le périmètre, E7) : :72 « LOT 3 #422 (FINAL) : dernières 3 exemptions AUDIT » ; :63, :217, :227, :234, :239, :281-287, :387, :393, :397 portent des étiquettes historiques « LOT n #422 », qui sont des pierres tombales (git porte l'historique). :254 « qui n'étaient pas ÉDITABLES » est une pierre tombale. :220-221 « `NESTED_ARRAY_ROOT` réécrit le PARENT entier au save » deviendra faux quand E7 tue la table. src/data/schemas/grammaire/liste-cle.ts:8-9 (dans le périmètre) : « Registre DISTINCT de `slots.ts` » (slots.ts est supprimé par R1) et « une clé d'élément désigne l'IDENTITÉ d'un élément dans SA liste » deviennent faux sous E1. src/data/schemas/grammaire/idsVivants.ts:16-18 (« MÉMORISÉ par (fichier, version) : la version vient de la source (`SourceDIdsVivants.version`) ») meurt avec E6. Le brief ne nomme aucune de ces réécritures.",
+   "correction": "Ajouter au design la réécriture de ces en-têtes et commentaires dans le commit qui change leur objet (C1 pour liste-cle.ts, C3 pour overrides.ts et idsVivants.ts). Purger les étiquettes « LOT n #422 », « FINAL », « exemptions » et « n'étaient pas » d'overrides.ts, pour qu'un commentaire ne porte qu'une réf nue.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "Poison dans le périmètre que le design laisse vivre, ou qu'il rendrait mensonger",
+     "refute": false,
+     "structurel": false,
+     "preuve": "Vérifié à 55d4ea7fc. src/data/overrides.ts:63, :72 « LOT 3 #422 (FINAL) : dernières 3 exemptions AUDIT », :217, :227, :234, :239, :281-287, :387, :393, :397 « LOT n #422 » ; :254 « qui n'étaient pas ÉDITABLES » ; :220 « `NESTED_ARRAY_ROOT` » ; :350, :459 et :493 sont les usages que E7 tue. src/data/schemas/grammaire/liste-cle.ts:8-9 « Registre DISTINCT de `slots.ts` » et :16 `import { visiterNoeuds } from './slots'`. src/data/schemas/grammaire/idsVivants.ts:16-18 « MÉMORISÉ par (fichier, version) : la version vient de la source (`SourceDIdsVivants.version`) ». Le brief ne nomme aucune de ces réécritures. Le bloquant tient et se corrige par un ajout au brief."
+    }
+   ]
+  },
+  {
+   "titre": "« Collection à clé » (terme du brief) et `listeCle` (« liste à clé », terme du code) nomment le même concept par deux mots, et la marque du record-racine reste indécise (question 2)",
+   "preuve": "E1 : « Collection à clé : une liste dont les éléments sont identifiés par une clé (`listeCle`), ou le record-racine d'un document de famille `record` ». Le code dit « Listes à clé RETROUVÉES » (liste-cle.ts:95, `clesRetrouvees`). `listeCle` construit un `z.array` et ne peut pas marquer un `z.record`. La question 2 demande si une « marque sœur » est nécessaire, donc si « déclarée à son nœud et nulle part ailleurs » vaut une seule marque ou deux.",
+   "correction": "Trancher dans le brief. Soit la primitive est renommée d'après le concept et accepte les records, soit le brief garde « liste à clé » et nomme la marque des records comme un paramètre de la même primitive. Jamais deux marques pour un concept.",
+   "structurel": false,
+   "lentille": "normes-et-poison",
+   "auteurs": [
+    "normes-et-poison"
+   ],
+   "refutations": [
+    {
+     "titre": "« Collection à clé » (terme du brief) et `listeCle` (« liste à clé », terme du code) nomment le même concept par deux mots, et la marque du record-racine reste indécise (question 2)",
+     "refute": false,
+     "structurel": false,
+     "preuve": "src/data/schemas/grammaire/liste-cle.ts:54 `const base = z.array(element);`, donc `listeCle` ne fabrique que des tableaux. :83 « Listes à clé RETROUVÉES » : le bloquant cite :95, mais le texte est à :83 et le fond est exact. document.ts:393-394 : la famille `record` exige `valeurRecord` et produit `entries: z.record(…)`, hors de `listeCle`. Le brief E1 range pourtant le record-racine dans la « collection à clé » et pose la question 2 (« faut-il une marque sœur »). Sous l'angle trou de socle, c'est le risque de DEUX hôtes pour un concept, et il reste ouvert. Le bloquant tient. On le tranche dans le brief par un paramètre de la même primitive ou par la marque que pose `document()`, sans refonte."
+    }
+   ]
+  }
+ ],
+ "ecartes": [],
+ "dits": [
+  "Arbre épinglé : `git log --oneline -1` dans /home/claude/game/.wt-1473-r2v2-lecture renvoie `55d4ea7fc refactor(donnees): refs #1897 — l'entrée admet sa spécialisation ; lecteur unique des exports de def`. Le code r1 a été lu par `git -C /home/claude/game/.wt-1473-r1 show 9f12595f6:<chemin>` (tête 9f12595f6 confirmée). Contrôle positif : `listeCle` compte 28 appels sous defs-scenes/ et 0 fichier sous defs/, conforme au brief.",
+  "Le mécanisme d'E2 tient sur le point testé (zod 4.4.3). Un repère émis par une collection nichée dans une entrée scellée `.pipe(z.transform)` (patron document.ts:493) n'empêche pas le superRefine de la collection parente d'émettre le sien. Sonde (scratchpad/juge-r2v3/sonde-repere-imbrique.mts, tsx exit=0) : `const collection=(el,nom)=>z.array(el).superRefine((a,ctx)=>{ctx.addIssue({code:'custom',message:'repere '+nom,continue:true})}); const entree=z.strictObject({id:z.string(),specs:collection(z.strictObject({id:z.string()}),'specs')}).pipe(z.transform(v=>v)); collection(entree,'racine').safeParse([{id:'art',specs:[{id:'a'}]}])`. Sortie : `[{\"path\":[0,\"specs\"],\"msg\":\"repere specs\"},{\"path\":[],\"msg\":\"repere racine\"}]`. À promouvoir en test du C1.",
+  "E1 ne définit pas « collection d'ids » : collection IDENTIFIÉE par ses ids, ou collection de RÉFÉRENCES portant un champ `id` ? La sonde scratchpad/juge-r2v3/nested-id-arrays.cjs (exit=0) relève 167 chemins de listes à `id` dans src/data/*.json. Beaucoup sont des références : careerLevels.json `[*].skills` (432 entrées, élément `avancement('skill')`, defs/careerLevels.ts:30), creatures.json `[*].traits` (466 entrées, dont 18 avec des ids EN DOUBLE, que `listeCle` rougirait), ainsi que les listes `ops`. Le brief doit donner le critère, faute de quoi une même liste serait à la fois feuille de référence et espace.",
+  "E9, références locales : l'adresse d'E2 est ABSOLUE (fichier + chemin) et `TYPES[t].espace` n'en vise qu'une. Or un espace local se résout dans le document englobant (defs-scenes/projet.ts:99-110, `presetId` ; defs-scenes/narratif.ts:100-102), parfois en chaîne campagne puis base (src/state/campaignData.ts:97-98 `maps().objets.get(id) ?? findTrappingById(id)`). La mesure au parse peut en faire une instance : apparier après le parse les repères `idDe` et les repères d'espace d'un même document. Le brief devrait l'écrire dès maintenant, sinon le lot suivant rouvrira la grammaire, qu'E2 déclare FERMÉE, et gardera le `superRefine` de document.",
+  "La phase 2 (E3) ajoute un second pilote « parser chaque document en mesure », à côté de r1 scripts/docs/lib/slots-registre.mts:25-55 (`defsDeDocument` sur SCHEMA_DEFS et SCHEMA_DEFS_SCENES, puis `reperesDuParse`). Un seul parcours pourrait rendre à la fois les slots et les espaces : à nommer au brief pour éviter deux listes de documents mesurés.",
+  "Les documents `record` actuels (defs/teintesJeu.ts:38, defs/decorPalette.ts:13) : avec E1, decorPalette entre dans la table avec des clés camelCase (gen-registry.mjs:537-540 disparaît). C'est cohérent avec l'Invariant 2, mais le brief doit le dire, puisque `estUnLibelle`/`cleIdish` disparaissent aussi.",
+  "Arbre épinglé : /home/claude/game/.wt-1473-r2v2-lecture à 55d4ea7fc. Contrôle positif : listeCle est présent (grammaire/liste-cle.ts) avec 0 fichier sous defs/ et 28 appels sous defs-scenes/, ce qui confirme le brief. reperesDuParse est absent de cet arbre ; lu en lecture seule sur r1 à 9f12595f6 via `git show`. Aucune suite ni gate jouée, aucune écriture sous l'arbre, tous les processus tsx terminés (exit=0).",
+  "Attaque ratée (le design tient) : un repère de collection niché dans l'élément d'une collection à clé, sous le sceau `.pipe(z.transform)` de document(), laisse la liste extérieure émettre le sien (zod 4.4.3). Sonde sonde-repere-imbrique.mts, exit=0 : « A. entite › entries (pipe de sceau) : émis = [\"entries\",\"entries\",\"racine\"] ; repères recueillis = [[\"0.entries\",\"entries\"],[\"1.entries\",\"entries\"],[\"\",\"racine\"]] » ; « C. … émis = [\"racine\"] ; repères recueillis = [[\"0.skill\",\"idDe\"],[\"\",\"racine\"]] ». Condition : le repère d'espace doit porter `continue: true`, comme la feuille idDe de r1. Le recueil doit traduire `0.entries` en `[criticals-ldb-tete].entries` : le repère de la liste parente ne porte que le chemin, sa marque doit fournir la clé.",
+  "Attaque ratée : importer SCHEMA_DEFS ne pose PAS la source vivante, donc la phase 2 lit bien la donnée disque (sonde-chaine-import.mts, exit=0 : « SCHEMA_DEFS=124 ; source vivante avant import=false ; après import=false »).",
+  "Attaque ratée : chacune des 122 listes éditées d'ARRAYS est une collection à clé `id`, donc « un dataset édite exactement un espace » tient sur la donnée (sonde-datasets-sans-cle.mts, exit=0 : « datasets d'ARRAYS : 122 ; dont la liste éditée n'est PAS une collection à clé `id` : 0 »).",
+  "Question 9 : le renommage de la table ne casse pas les migrations rejouées, qui lisent la clé et non le nom (regex /'careers\\.json':\\s*\\[([^\\]]*)\\]/, 2026-09-01-1463-gram-species-preview-career.mjs:28, …-ref-dotations-creatures.mjs:49, …-ref-dotations.mjs:126). Elles cassent en revanche si la phase 2 TypeScript écrit la table par JSON.stringify. Sonde sonde-migrations-graphie.mjs, exit=0 : « IDS_PAR_ESPACE, même graphie (quotes simples) : careers=true trappings=true » / « IDS_PAR_ESPACE écrit par JSON.stringify : careers=false trappings=false ». Il faut imposer au design la graphie à quotes simples et des clés de racine égales au nom de fichier nu.",
+  "La grammaire d'adresse n'est pas fermée face à sa propre donnée : 11 ids de raw.manifest.json contiennent `#` et `/` (ex. `4e/combat#conversion-combat-poursuite`, sonde-graphie-adresse.mts, exit=0). C'est latent tant qu'aucune collection à clé ne se niche sous raw.manifest, mais le séparateur fichier `#` et les pas `[clé]` / `?champ=valeur` réclament une règle d'échappement, ou une garde qui refuse ces caractères dans une clé d'espace.",
+  "Question 2 : MarqueDeCle.de(element) (liste-cle.ts:24-27) lit la clé DANS l'élément, alors que la clé d'un z.record est la propriété. Marquer le record-racine demande donc d'étendre la marque, avec un nouveau genre de clé ; ce n'est pas un réemploi tel quel. teintesJeu.json (29 clés) et decorPalette.json (435) sont les deux seuls records.",
+  "E6 ne couvre pas les espaces qu'aucun dataset n'édite (ex. sea-cargo.json#.overload.paliers, sea-events.json#.fastVoyage.paliers, ship-criticals.json#.tablesDeChute) : « sa version est celle du dataset qui l'édite » n'y a pas de sens. Il faut dire que la table générée y fait foi.",
+  "Critère de sortie de C4 (`git grep -n _ids.generated -- src` hors ref.ts et générés = 0) : aujourd'hui il atteint aussi des tests absents du périmètre, grammaire/pool-specs.test.ts:14 (SPECS_PAR_DATASET) et grammaire/valeurs-de-champ.test.ts:19, en plus de grammaire.test.ts:29, buildings-catalogue.test.ts:17 et defs-scenes/projet.ts:23. Soit le critère exclut les tests, soit ces deux fichiers entrent au périmètre.",
+  "Citation imprécise : NESTED_ARRAY_ROOT s'étend sur overrides.ts:350-425 (et non :421), avec 55 entrées `{ root: () =>` ; 54 d'entre elles sont éditables et nichées selon la sonde des liaisons.",
+  "Codes des sondes et sorties complètes (à promouvoir en test) : /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/{sonde-liaisons,sonde-positions,sonde-espaces,sonde-racines-hors-table,sonde-repere-imbrique,sonde-datasets-sans-cle,sonde-chaine-import,sonde-graphie-adresse}.mts, sonde-migrations-graphie.mjs, et les fichiers .out associés.",
+  "Arbre épinglé : 55d4ea7fc, conforme au brief. Le cas canonique `reperesDuParse` n'est pas dans cet arbre (lu à r1 9f12595f6:src/data/schemas/grammaire/ref.ts:248-264 et slots-registre.mts). Il n'y a pas de section « Design jugé » : c'est le premier jugement de la v3.",
+  "Sonde (lecture seule, sortie en tête du rendu) : parmi les défs `entite`/`record` de src/data/schemas/defs, une seule est absente de `IDS_PAR_DATASET` : `decorPalette.json record` (82 clés comptées). E1 la fait entrer comme espace de 435 clés camelCase, par la mort de `DEFAUTS_IDS`. La preuve de C2, « les clés neuves sont les collections nichées », est donc fausse d'une clé racine. Le brief doit la nommer.",
+  "E5 garde un sélecteur textuel `adresse?champ=valeur` / `adresse?champ` : c'est la même famille que le sélecteur `chemin[?champ[=]]` réfuté en v2. Il faudrait dire pourquoi il n'hérite pas du même défaut (ici il ne filtre que la racine, selon E4).",
+  "E7 laisse une synchronisation : ÉDITABLE = 1 entrée de carte au def + 1 ligne `ARRAYS`, plus un test qui valide la carte contre les espaces mesurés. La même clé de catégorie est déclarée deux fois, gardée par un test. C'est le patron que l'Invariant 2 appelle « smell ». À justifier (typage statique de `DatasetKey`, overrides.ts:260) ou à dériver.",
+  "Les plages citées se chevauchent : E8 tue le `superRefine` d'`activeAxes` à projet.ts « :89-107 », et E9 renvoie celui des presets à « :98-108 ». À 55d4ea7fc, `activeAxes` couvre environ :90-97 et `presetId` :99-110.",
+  "ref.ts:32-38 : l'en-tête de `TYPES` énumère les types par lot historique (#1686, #1690, #1520…). E8 y ajoute cinq types (`crewTestType`, deux cargaisons, `axe`, `trauma`). Sans consigne, le stock historique grandit, alors qu'il faudrait une réf nue par type.",
+  "idsVivants.ts est volontairement une FEUILLE (:9-11). `memoParVersion` (versionDataset.ts:15) n'importe `DatasetKey` qu'en `import type`, donc E6 ne ferme pas le cycle. Mais la version y est keyée par `DatasetKey`, alors que la source vivante l'est par fichier : E6 mélange fichier, dataset et adresse sans nommer la couture."
+ ],
+ "lecture": {
+  "casCanonique": [
+   {
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "ligne": 248,
+    "role": "reperesDuParse(schema, donnee) ouvre la fenêtre de mesure au parse (parseDeMesure :143) ; marqué r1, vit sur chantier/1473-r1, pas dans l'arbre jugé 55d4ea7fc"
+   },
+   {
+    "fichier": "scripts/docs/lib/slots-registre.mts",
+    "ligne": 0,
+    "role": "slotsDuParse rend chaque repère en case (porteur, clé) par son chemin de donnée"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/liste-cle.ts",
+    "ligne": 88,
+    "role": "identité d'élément déclarée au nœud : marque lue par cleDe/clesRetrouvees (:88-101)"
+   },
+   {
+    "fichier": "src/data/schemas/grammaire/document.ts",
+    "ligne": 448,
+    "role": "fabrique de document : document() pose la charge (:448-497 : entite → z.array(entrée), record → entries: z.record(…), document à rangées → entries: z.array(rangée))"
+   },
+   {
+    "fichier": "src/data/versionDataset.ts",
+    "ligne": 60,
+    "role": "mémo par version : memoParVersion(cle, calcul) (:60-79), noyau des index vifs"
+   }
+  ],
+  "designJugePresent": false,
+  "invariants": [
+   {
+    "verbatim": "Toute vérification d'un id contre le registre, sous `src/data/schemas`, passe par `idDe`.",
+    "source": "brief R1 v1.1, https://github.com/cgauche/game/issues/1473#issuecomment-5801354411 ; contre-exemple vivant : defs-scenes/projet.ts:23, :89-107",
+    "question": "où une référence se déclare-t-elle ?"
+   },
+   {
+    "verbatim": "Une garde de synchronisation est un smell : une seule source de vérité.",
+    "source": ".claude/credo.md",
+    "question": "combien de déclarations pour « cette collection d'un document est un ensemble d'ids » ?"
+   },
+   {
+    "verbatim": "`niche.categories` nomme les clés de catégorie Codex de CE document qui sont routées comme datasets (`CodexEdit.CATEGORY_DATASET`) : chacune édite UN champ tableau du document, jamais le document entier",
+    "source": "src/data/schemas/grammaire/document.ts:125-127",
+    "question": "que désigne une catégorie niche ?"
+   },
+   {
+    "verbatim": "ANGLE MORT DIT : les espaces de noms NICHÉS (jetons de scène, sous-entrées) ne sont pas relevés — seul le PREMIER NIVEAU l'est, qui est le seul que `IDS_PAR_DATASET` indexe.",
+    "source": "src/data/config-id-unique.test.ts:20-21",
+    "question": "qu'indexe le registre ?"
+   },
+   {
+    "verbatim": "Un type s'ajoute avec le lot qui le migre, jamais « au cas où ».",
+    "source": "src/data/schemas/grammaire/ref.ts:39",
+    "question": "quand un type entre-t-il dans `TYPES` ?"
+   },
+   {
+    "verbatim": "Étendre le général et le paramétrer plutôt que créer un parallèle",
+    "source": ".claude/credo.md, puce « Réutiliser l'existant — le CANONIQUE, pas le voisin »",
+    "question": "quand un besoin neuf ressemble à un mécanisme existant, en crée-t-on un second ?"
+   },
+   {
+    "verbatim": "`_registry.generated.ts` importe les defs, qui appellent `idDe` à l'initialisation — lire le registre depuis `ref.ts` fermerait le cycle.",
+    "source": "idsVivants.ts:9-11",
+    "question": "pourquoi le générateur d'ids est-il textuel ?"
+   }
+  ],
+  "manques": [
+   "Section '## Invariant' du brief compte 7 entrées numérotées et chacune porte une question explicite (aucun invariant sans question à signaler) — pas de manque sur ce point",
+   "Cas canonique ref.ts:248-264 n'existe PAS dans l'arbre jugé /home/claude/game/.wt-1473-r2v2-lecture (419 lignes seulement, et le brief lui-même le marque comme vivant sur chantier/1473-r1 à l'arbre /home/claude/game/.wt-1473-r1, tête 9f12595f6) — la fusion citée par le brief comme 'premier geste du codeur' n'a pas encore eu lieu dans l'arbre jugé",
+   "scripts/docs/lib/slots-registre.mts cité sans numéro de ligne par le brief",
+   "Pas de section '## Design jugé :' avec verdict : ce brief n'a pas encore été jugé — designJugePresent=false"
+  ],
+  "perimetre": [
+   "scripts/gen-registry.mjs",
+   "le nouveau script de phase 2 (non nommé)",
+   "package.json (gen)",
+   "src/data/schemas/_ids.generated.ts (par npm run gen)",
+   "grammaire/ref.ts",
+   "grammaire/idsVivants.ts",
+   "grammaire/liste-cle.ts",
+   "grammaire/document.ts",
+   "scripts/docs/lib/slots-registre.mts",
+   "schemas/types.ts",
+   "src/data/overrides.ts",
+   "src/data/criticals.ts",
+   "src/data/shipCriticals.ts",
+   "schemas/exposition-derivee.ts",
+   "src/ui/compendium/CodexEdit.tsx (si CATEGORY_DATASET change de source)",
+   "gen-contrat-ids.test.ts",
+   "grammaire/grammaire.test.ts",
+   "config-id-unique.test.ts",
+   "src/state/buildings-catalogue.test.ts",
+   "tout def de defs/ qui porte une collection à clé nichée",
+   "defs/criticals.ts",
+   "defs/miscast.ts",
+   "les defs à niche",
+   "grammaire/mecanique.ts (skillDRBonus.testType, amputer.sequels)",
+   "defs/naval-ports.ts",
+   "defs-scenes/worldmap.ts",
+   "defs-scenes/projet.ts",
+   "scripts/guards/lib/gameOpRefFk.mjs",
+   "Migrations datées qui lisent la table (scripts/migrations/2026-09-01-1463-*.mjs)",
+   "Docs générés (npm run docs:build) à chaque commit"
+  ],
+  "primitives": [
+   "idDe",
+   "listeCle",
+   "cleDe",
+   "clesRetrouvees",
+   "clesPosees",
+   "document()",
+   "reperesDuParse",
+   "parseDeMesure",
+   "slotsDuParse",
+   "memoParVersion",
+   "discriminant",
+   "marqueurs",
+   "niche.categories",
+   "ARRAYS",
+   "NESTED_ARRAY_ROOT",
+   "typedRef",
+   "refMorte"
+  ]
+ },
+ "agents": {
+  "lecture": 1,
+  "design": 3,
+  "refutation": 3,
+  "total": 7
+ },
+ "date": "2026-09-24",
+ "refutationIncomplete": false,
+ "bloc": "**FRAGILE** — workflow `juge-design-socle`, run `<runId du lancement, cité par l'orchestrateur>`, 2026-09-24.\n18 bloquant(s) survivant(s), 0 écarté(s) par réfutation.\n1. **E1 + E5 : deux tables pour un même concept. Le catalogue de spécialisations inline devient un espace ET reste dans SPECS_PAR_ESPACE** (lentille trou-de-socle) — Arbre 55d4ea7fc. E1 : « toute collection d'ids nichée d'un def de defs/ passe par listeCle ». Or defs/skills.ts:26 et defs/talents.ts:79 déclarent `specs: z.array(specEntrySchema).optional()`, dont les éléments portent un `id` (sonde nested-id-arrays.cjs : `skills.json  [*].specs`). Par E2, chaque `skills.json#[art].specs` devient donc un espace de IDS_PAR_ESPACE. E5 garde pourtant `SPECS_PAR_DATASET → SPECS_PAR_ESPACE (même contenu, keyé par adresse)`. Aujourd'hui src/data/schemas/_ids.generated.ts:106-123 porte déjà ces mêmes ids : `'art': ['boucherie', 'calligraphie', …]`, identiques à skills.json art.specs[].id. Doublons mesurés : 12 compétences et 11 talents à specs inline, soit 23 catalogues présents dans deux tables. Le marqueur `specsOpen` (defs/skills.ts:14, defs/talents.ts:26, lu à ref.ts:162) décide de la même famille : un troisième hôte. → Soit SPECS_PAR_ESPACE disparaît pour les specs inline : le catalogue d'une entrée fermée est l'espace `<fichier>#[<id>].specs`, et seuls les univers `specsSource` (SOURCES_DE_SPECS) restent calculés, à la même adresse. Soit E1 exclut nommément les `specs` et le brief dit pourquoi ce ne sont pas des espaces. E5 et E9 doivent trancher, pas se contredire.\n2. **E1 : la marque que « document() pose » sur la racine `entite` est perdue par `affinerDataset` (6 defs, dont materials.json, un espace filtré)** (lentille trou-de-socle) — document.ts:497 `const dataset = famille === 'entite' ? z.array(entreeScellee) : entreeScellee;` puis :498 `affinerDataset ? affinerDataset(dataset) : dataset`. liste-cle.ts:10-12 : « la marque vit sur le nœud RENDU par la fabrique ; un `.min`/`.refine` posé APRÈS le clone et la perd ». Six defs passent par affinerDataset : actions, advancementCosts, materials (defs/materials.ts:194 `dataset.superRefine`), names, stars, terrains. Sonde exécutée (tsx, exit=0) :\n```\nconst marquee = listeCle(z.strictObject({id:z.string()}), 'id');\nconst affinee = marquee.superRefine(() => {});\nconsole.log(clesRetrouvees(marquee).size, clesRetrouvees(affinee).size, cleDe(affinee)?'oui':'non', affinee===marquee);\n```\nSortie : `marquee trouvee: 1` / `affinee (superRefine apres) trouvee: 0 cleDe(affinee): non meme objet: false`. Aujourd'hui liste-cle.ts n'expose que `listeCle`, qui construit le nœud : document() n'a aucun moyen de re-marquer le nœud rendu par l'affinage. → Nommer au brief l'unique primitive de marquage que `listeCle` et `document()` partagent, par exemple `marquerCollection(noeud, cle)` exportée de liste-cle.ts. Elle est posée sur le nœud FINAL, après affinerDataset, avec l'unicité. Sinon, cantonner affinerDataset à ce qui ne clone pas la charge. Le test anti-perte (liste-cle.test.ts:35) doit couvrir la racine.\n3. **E1/Q2 : le record-racine exige une seconde forme de marque, et le design laisse la question ouverte tout en affirmant une instance unique** (lentille trou-de-socle) — liste-cle.ts:24-27 : `interface MarqueDeCle { nom; de: (element: unknown) => string | undefined }`. La clé est lue DANS l'élément. Pour un record, la clé est le nom de propriété (document.ts:455 `entries: z.record(cleRecord ?? z.string().min(1), valeurRecord!)`), et `de(element)` ne peut pas l'exprimer. La branche tableau/record existe déjà dans le générateur : scripts/gen-registry.mjs:555-559 (`if (!Array.isArray(racine)) { … famille === 'record' … Object.keys(charge) }`). E1 ne dit pas quelle marque porte le record, et la question 2 du brief la renvoie au juge. Sans réponse, la mesure et le régime vivant auront chacun un `if (record)`. Les documents concernés sont defs/teintesJeu.ts:38 et defs/decorPalette.ts:13. → Redéfinir la marque au niveau de la COLLECTION, par exemple `ids(collection) → string[]` avec un nom de clé, posée par la primitive unique du bloquant précédent. Un record et une liste en sont deux instances, et ni la mesure (E2) ni le régime vivant (E6) ne testent la forme du nœud.\n4. **E3 : « feuilles idDe inertes dans la fenêtre » ne suffit pas à amorcer un espace neuf. La précondition du parse de mesure active idDe hors de la fenêtre** (lentille trou-de-socle) — r1 (git show 9f12595f6:src/data/schemas/grammaire/ref.ts) :249-255 : `const normal = schema.safeParse(donnee); if (!normal.success) { … throw new Error('parse de mesure : la donnée est invalide au parse normal …') }`, exécuté HORS fenêtre. :86-91 : `idsDe` rend `idsVivants(dataset) ?? IDS_PAR_DATASET[dataset] ?? []`, donc une liste vide pour un espace absent de la table. :172-176 : la feuille refuse tout id hors `admis()`. Quand un espace neuf entre avec son premier désignateur dans le même commit (promesse d'E3), la phase 2 lève donc avant d'ouvrir la fenêtre. La mesure des espaces ne peut réutiliser `reperesDuParse` qu'avec un mode qui change à la fois la feuille (:174) et la précondition (:249). On obtient une variante `if (mode)` dans le socle, que le brief pose en question (Q4) mais affirme résolue en E3. → Spécifier UNE fonction de mesure paramétrée : quelles feuilles sont actives, quelle précondition de validité (par exemple parse normal avec les feuilles idDe inertes, puis contrôle des références contre la table fraîchement mesurée). Dire comment la garantie B1 de R1 (donnée valide avant mesure) est préservée pour les slots. Sinon, renoncer à « même commit » et ordonner l'amorçage.\n5. **E4 : les filtres restent hébergés par des exports de module rattachés au FICHIER et ne s'appliquent qu'à la racine. Un filtre niché coûtera un nouveau mécanisme** (lentille trou-de-socle) — Les filtres restent déclarés en `export const` : defs/materials.ts:34 `export const discriminant = 'domain';`, defs/spells.ts:23, defs/props.ts:18 `export const marqueurs = ['volume'];`, defs/skills.ts:14, defs/talents.ts:26. E4 les transporte par `optionalFields` (scripts/gen-registry.mjs:337,352), recopie TEXTUELLE en phase 1, et les borne à « l'espace RACINE de leur document ». L'espace est donc déclaré au nœud (listeCle / document()), son sous-espace à côté, par fichier. Or la raison du textuel (Invariant 7, idsVivants.ts:9-11) tombe pour la phase 2, qui importe SCHEMA_DEFS (E3) et lit le nœud. La grammaire d'adresse d'E5 admet `adresse?champ=valeur` pour toute adresse, mais aucun hôte ne permet de déclarer un filtre sur une adresse nichée (question 5 du brief). C'est ce site qui coûtera plus d'une ligne : un N+1 niché impose un mécanisme neuf. → Faire du discriminant et des marqueurs des PARAMÈTRES de la marque de collection, par exemple `document(…, { discriminant: 'domain' })` et `listeCle(el, 'id', { marqueurs: ['specsOpen'] })`, lus par la phase 2 au nœud. `export const discriminant`/`marqueurs` et leur lecture par `lireExports` disparaissent. `chargeParDiscriminant` se dérive du même paramètre, ce qui garde le second rôle cité au constat.\n6. **E6 : le régime vivant « par adresse » branche selon le type d'édition, et repose sur une « liaison du fichier » que le brief ne nomme pas** (lentille trou-de-socle) — Aujourd'hui la racine vivante d'un fichier est éclatée en trois hôtes : ARRAYS (overrides.ts:159-258) pour les racines-tableaux, OBJECTS (:275-294) pour `single`, NESTED_ARRAY_ROOT (:350-425, une entrée par CATÉGORIE) pour les nichés. DATASET_DU_FICHIER (:450-467) saute les nichés (:459). E6 fixe trois règles : navigation de `datasetObject` pour `single` ; version « du dataset qui l'édite » ; ailleurs, « la liaison du fichier », qu'E7 invoque (« la racine à sérialiser est la liaison du fichier ») sans dire où elle se déclare. La version n'est pas définie pour un espace niché édité via son parent (`skills.json#[art].specs`, édité par la clé `skills`), ni pour la racine d'un document `niche` (`criticals.json` : aucune clé de dataset n'édite la racine, mais 8 catégories éditent ses rangées). Pourtant `memoParVersion` accepte déjà une liste de clés (versionDataset.ts:60 `cle: CleDeDataset | readonly CleDeDataset[]`). → Nommer UNE table fichier → racine vivante, dérivée de l'exposition, et son module. `entrees(adresse)` doit se lire par navigation depuis cette racine pour TOUTES les familles d'édition (dataset, niche, single, record, none+dataset), sans cas `single`. Version d'un espace = `memoParVersion(toutes les clés de dataset du fichier)`. Un fichier sans liaison retombe sur la table générée, comme aujourd'hui.\n7. **E7 : une liste nichée éditable reste déclarée DEUX fois (clé de la carte `niche` au def + ligne ARRAYS), tenues synchrones par test** (lentille trou-de-socle) — E7 : « ÉDITABLE = 1 entrée de carte au def + 1 ligne `ARRAYS` (le type `DatasetKey` dérive des clés d'`ARRAYS`, overrides.ts:260) ». La garde de synchronisation existe déjà : src/data/schemas/exposition-contrats.test.ts:137-144 « (e) routes ⊆ bindings : chaque dataset routé existe dans ARRAYS / OBJECTS » (`listesInconnues … absent d'ARRAYS`). E7 la conserve, alors que l'Invariant 2 du brief cite « Une garde de synchronisation est un smell ». Si l'entrée nichée d'ARRAYS devient « la navigation de la liaison du fichier le long de l'adresse », la ligne ARRAYS ne porte plus que le NOM, déjà présent dans la carte. → Dériver `DatasetKey` (et les clés nichées d'ARRAYS) du registre généré : phase 1 ou phase 2 émettent l'union des clés de `niche` à côté de SCHEMA_DEFS. La ligne ARRAYS des nichés disparaît, avec la garde (e) pour ces clés. Sinon, le brief compte honnêtement deux déclarations et justifie l'écart à l'Invariant 2.\n8. **E7 : « la liaison du fichier » n'existe pas. Aucun des 25 fichiers porteurs des 54 tableaux nichés n'a de liaison dans ARRAYS ou OBJECTS, donc retirer NESTED_ARRAY_ROOT oblige à écrire une table fichier → racine que le design ne nomme pas.** (lentille preuve-par-sonde) — Arbre 55d4ea7fc (git log --oneline -1 = « 55d4ea7fc refactor(donnees): refs #1897 … »). Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-liaisons.mts, jouée avec `npx tsx`, exit=0 (lu par redirection vers un fichier puis $?). Pour chaque DatasetKey, la sonde prend le tableau vivant (datasetArray), importe la racine JSON de son datasetFile, cherche ce tableau par identité dans la racine, puis cherche un binding ARRAYS/OBJECTS qui soit cette racine. Sortie : « BILAN : 54 datasets nichés ; 54 dont le FICHIER n'a aucune liaison (25 fichiers : weather.json, mass-battle.json, crew-test-types.json, montures.json, incidents-monture.json, problemes-vehicule.json, obsessions.json, structure-criticals.json, land-cargo.json, sea-cargo.json, river-perils.json, crew-morale.json, criticals.json, ship-criticals.json, river-criticals.json, rencontres-edoc.json, sea-events.json, naval-progression.json, ship-construction.json, driving-mishap.json, drunkenness.json, miscast.json, surincantation.json, artillery-misfire.json, vents-tourbillonnants.json) ; 0 dont le tableau vivant n'est PAS atteignable dans la racine du fichier ». Aujourd'hui, les racines de ces fichiers (criticalsRawJson, massBattleData, miscastRoot…) ne sont atteintes que par les thunks de NESTED_ARRAY_ROOT (src/data/overrides.ts:350-425, 55 entrées `{ root: () =>`). Le coût annoncé par E7 (« ÉDITABLE = 1 entrée de carte au def + 1 ligne ARRAYS ») est donc faux pour un fichier neuf. Face favorable : la navigation garde l'identité des 54 tableaux (chemins mesurés, par exemple `[criticals-ldb-tete].entries`, `tables.cargaison`, `manann.factors`), ce qui répond oui à la question 6. → Nommer dans E7 et E9 la déclaration qui remplace NESTED_ARRAY_ROOT : une carte fichier → racine vivante de 25 entrées, ou sa dérivation depuis SCHEMA_DEFS si une couture de chargement le permet. La compter dans le coût d'une liste éditable, et l'ajouter à la liste « survivent ».\n9. **E1 : aucun critère ne dit ce qu'est une « collection d'ids nichée ». Dans la donnée, les listes d'éléments à `id` sont surtout des listes de RÉFÉRENCES, et les `specs` en ligne feraient un doublon de SPECS_PAR_ESPACE (Invariant 2 violé par le design lui-même).** (lentille preuve-par-sonde) — Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-positions.mts, exit=0. Elle recense les positions de schéma (éléments notés *) des listes nichées d'objets portant un `id` texte, sur les 124 documents de SCHEMA_DEFS. Sortie : « POSITIONS de schéma à listes nichées d'objets à id : 167 ; DOUBLONS=12 ; toutes-au-registre (graphie de référence probable)=87 ; autres (identité probable)=68 ». Exemples de doublons : « creatures.json#[*].skills (listes=352, ids=5981, au registre=5981, listes à doublons=179) », « careerLevels.json#[*].skills (… listes à doublons=51) », « species.json#[*].skills (… 14) », plus des listes d'`ops` sous des `steps[*]` sans clé. Sonde sonde-espaces.mts : « listes nichées à id : 2912 ; sous une liste SANS clé (E2 « la mesure lève ») : 169 ; à doublons (listeCle rougit) : 292 ». Côté identité, la liste compte `skills.json#[*].specs (listes=12, ids=256)` et `talents.json#[*].specs (listes=11, ids=243)` : ce sont des collections à clé `id` qui, sous E1, deviennent des espaces `skills.json#[<id>].specs` dans IDS_PAR_ESPACE, alors que E5 garde SPECS_PAR_ESPACE, « même contenu, keyé par adresse ». On aurait deux déclarations du même ensemble. Réponse à la question 1 : sur les 68 positions d'identité, 0 doublon, donc listeCle ne rougit pas. Elle rougirait sur les 12 positions de références. → Poser dans E1 un critère explicite : une liste dont l'`id` d'élément est une feuille idDe est une référence et ne reçoit jamais listeCle. Joindre l'inventaire C1 des positions retenues : les 68 candidates, dont les 54 niches et les collections des documents `single`. Trancher les `specs` : soit les `specs` en ligne sont des espaces et SPECS_PAR_ESPACE devient leur projection ∪ SOURCES_DE_SPECS, soit ils sont exclus avec leur raison. Dire enfin si un espace sans désignateur (props `[*].seatSlots`, characteristics `[*].options`, vehicles `[*].travel.classes`) entre dans la table, au regard de ref.ts:39 « jamais au cas où ».\n10. **Preuve de C2 fausse sur la donnée : la marque posée par document() sur le record-racine ajoute la clé RACINE `decorPalette.json` (435 ids), qui n'est pas une collection nichée.** (lentille preuve-par-sonde) — Sonde /tmp/claude-0/-home-claude-game/9b4a8164-2f4a-5715-8cac-1eec5a598091/scratchpad/juge-r2v3/sonde-racines-hors-table.mts, exit=0. Sortie : « familles : {\"entite\":81,\"config\":41,\"record\":2} », « HORS TABLE decorPalette.json (famille record) : 435 ids ; libellés=0 ; ex=ombre | ombre2 | ombre3 | ombre4 », « clés de la table sans def de SCHEMA_DEFS : 0 ». sonde-espaces.mts donne « A. IDS_PAR_DATASET : 82 clés », ce qui confirme le compte 82 (81 entite + teintesJeu). Le seul écart entre « document() marque toute racine entite/record » et la table actuelle est donc decorPalette.json, écarté aujourd'hui par DEFAUTS_IDS (scripts/gen-registry.mjs:537-540) via estRecordAIds (:512-517, clés camelCase). Or le brief pose pour C2 : « les clés neuves sont les collections nichées ». Le test promu tel qu'il est écrit rougit. → Écrire la preuve de C2 ainsi : clés neuves = collections nichées ∪ {decorPalette.json}, avec la mort de DEFAUTS_IDS citée comme cause. Ou bien trancher que decorPalette n'est pas un espace, et dire alors par quelle marque document() s'abstient.\n11. **E3 contredit le contrat B1 de reperesDuParse (r1) : la mesure exige d'abord un parse normal réussi HORS de la fenêtre. Des feuilles idDe inertes « pendant cette mesure » ne lèvent donc pas le blocage d'amorçage d'un espace neuf et de son premier désignateur.** (lentille preuve-par-sonde) — Lu par `git -C /home/claude/game/.wt-1473-r1 show 9f12595f6:src/data/schemas/grammaire/ref.ts` (lecture seule). Dans reperesDuParse : `const normal = schema.safeParse(donnee); if (!normal.success) { … throw new Error(\\`parse de mesure : la donnée est invalide au parse normal …\\`) }`, puis seulement `parseDeMesure = true`. La doc dit : « La donnée doit être VALIDE au parse normal, et c'est ce parse, exécuté HORS de la fenêtre de mesure, qui en juge ». Or idDe ne teste `parseDeMesure` qu'après `admis().includes(v)` (`if (admis().includes(v)) { if (parseDeMesure) ctx.addIssue(…repère…) ; return; }`). En C4, un type neuf (crewTestType → `crew-test-types.json#types`) porte des ids absents de la table encore périmée. Le parse normal de la donnée qui le désigne échoue donc AVANT la fenêtre, la phase 2 lève et ne peut pas écrire la table qui l'aurait débloquée. Le design dit « Pendant cette mesure, les feuilles idDe sont INERTES » sans dire que la pré-vérification normale l'est aussi. C'est la question 4, laissée ouverte. → Fixer dans E3 un point d'entrée distinct, ou un mode de la fenêtre, pour la mesure des espaces : dans ce mode, le parse de vérification préalable s'exécute lui aussi avec idDe inerte, alors que reperesDuParse (slots) garde sa pré-vérification B1. Nommer le test qui re-détecte après coup les défauts qu'on attrape aujourd'hui à la construction (valeur discriminante inconnue, marqueur non déclaré, type sans espace).\n12. **E2/E5 : « adresse » est déjà un concept enregistré du dépôt, qui désigne autre chose** (lentille normes-et-poison) — Arbre épinglé 55d4ea7fc (git log --oneline -1 : « 55d4ea7fc refactor(donnees): refs #1897 — l'entrée admet sa spécialisation ; lecteur unique des exports de def »). scripts/docs/lib/structures-lexique.mts:343-344 : `id: 'adresse', label: 'adresse d’un passage du Source (`descRef`)', strate: 'Valeur'` ; :670 `'adresse de prose': { cible: 'descRef' … }` ; rendu dans docs/structures-donnees.md:1124 et :1811 (« ### 3.6 adresse d’un passage du Source (`descRef`) — `adresse` »). Le terme a des centaines d'usages (src/data/schemas/grammaire/prose-inline.ts : 38 lignes, scripts/source/reparer-adresses.mjs, DescRefField.tsx…). Le brief E5 fait de « son ADRESSE » l'identifiant unique d'un espace d'ids (`IDS_PAR_ESPACE` keyé par adresse, `SourceDIdsVivants.entrees(adresse)`, `niche.categories` = « carte catégorie → adresse »). → Choisir pour l'emplacement d'un espace un terme libre dans le lexique (vérifié par `git grep` contre structures-lexique.mts et docs/structures-donnees.md), ou prouver que c'est le même concept que l'adresse de prose et l'y rattacher. Le brief doit citer ce contre-grep.\n13. **Le titre du design, « l'espace d'ids est la collection à clé », est faux sur le stock existant de `listeCle`, alors que E9 et la question 8 font de `listeCle` LA déclaration d'espace dans les deux portées** (lentille normes-et-poison) — `listeCle` déclare une clé d'UNICITÉ, pas un espace d'identité. Sites vivants : src/data/schemas/defs-scenes/scene.ts:545 `members: listeCle(encounterMemberSchema, 'entityId')` (la clé est une RÉFÉRENCE étrangère) ; :770 `stations: listeCle(sceneStationAnchorSchema, 'sceneId')` (référence étrangère) ; :760 `layers: listeCle(layerSchema, 'z')` (numérique) ; :762 `walls: listeCle(wallSegSchema, cleDArete)` avec :688 `nom: 'x,y,side,z'` (clé composée). L'en-tête de liste-cle.ts:8-9 oppose explicitement les deux concepts : « un slot désigne une RÉFÉRENCE vers un autre document […], une clé d'élément désigne l'IDENTITÉ d'un élément dans SA liste ». Le brief E9 dit : « Survivent […] : `listeCle` (identité ET espace) » : le même marqueur voudrait dire « espace » sous defs/ et « unicité seulement » sous defs-scenes/. → Séparer les deux concepts au nœud : l'espace d'ids se déclare comme un paramètre explicite de la primitive (par exemple `listeCle(el, 'id', { espace: true })`, ou une marque dédiée), et non par l'égalité « toute collection à clé = espace ». Réécrire E1, E9 et la question 8 en conséquence. `members`, `stations`, `layers` et `walls` doivent être nommés comme non-espaces.\n14. **Doublon adjacent : « espace d'ids » et « références locales » redoublent des termes et un index déjà présents (« INDEX DES IDS », « espace de noms CLOS », « RÉFÉRENCE SCOPÉE »). Un sixième mécanisme de déclaration d'ids, heuristique, est absent de l'inventaire de l'Invariant 2 et de E9** (lentille normes-et-poison) — scripts/docs/lib/structures-lexique.mts:578-579 : « RÉFÉRENCES SCOPÉES — clés dont la valeur désigne une identité d'un espace de noms CLOS, tenu par un document, jamais un document de l'INDEX DES IDS » ; :592 `CLES_REFERENCE_SCOPEE = { entry: 'entryPoints' }`. C'est le concept même du lot « références locales » de E9, sous un autre nom. scripts/docs/lib/structures-scan.mts:9-19 : « LE CŒUR EST L'INDEX DES IDS, SCOPÉ PAR DATASET […] 1. INDEX RACINE — l'identité de chaque entrée de racine (`id`/`key`/`nom`, ou la clé du record) […] 3. DOCUMENTS EMBARQUÉS — objet à clé d'identité […] Leurs ids complètent l'index ». Ce second index devine les ids nichés par heuristique (:436-470). E1 affirme « Plus aucune heuristique ni exception nominative », mais structures-scan.mts n'est ni dans le périmètre ni dans les listes « meurent/survivent » de E9. Pourtant slots-registre.mts, qui est dans le périmètre, joint son scan (`ScanDesReferences`, r1 :71). → Ajouter à l'Invariant 2 le sixième mécanisme (index des ids du scan : passes 1 et 3). Dire nominativement en E9 s'il dérive des espaces mesurés ou s'il reste le côté OBSERVÉ, et pourquoi. Réconcilier les termes : « espace d'ids » contre « espace de noms », « références locales » contre `CLES_REFERENCE_SCOPEE`/« référence scopée », « index des ids » contre `IDS_PAR_ESPACE`. Un seul terme par concept, et migration de l'autre dans le geste.\n15. **E2 invente une seconde grammaire de chemin de donnée à côté de celle que le même module de mesure porte déjà** (lentille normes-et-poison) — r1 9f12595f6:scripts/docs/lib/slots-registre.mts:44-50 `pathNormalise` : `.champ`, `[]` pour un élément (rang effacé), `{}` pour une clé de record. E2 pose `.champ` et `[clé]`, « grammaire FERMÉE à ces deux pas », avec le séparateur `fichier#chemin`. Le constat du même brief écrit `ship-criticals.json` › `tables.cargaison`, donc une troisième graphie, celle de docs/structures-donnees.md. Les deux grammaires naissent du même repère (`reperesDuParse`) et vivent dans le même fichier du périmètre. → Étendre `pathNormalise` et le paramétrer (pas `[clé]` quand l'élément porte une marque de clé) plutôt que créer une grammaire parallèle. Fixer une seule graphie du couple fichier/chemin dans le brief et dans le code.\n16. **Les renommages et les morts de E5/E9 laissent des orphelins hors périmètre ; la migration des scripts datés reste une question ouverte (demi-migration)** (lentille normes-et-poison) — `git grep` à 55d4ea7fc, hors fichiers générés et hors périmètre déclaré. `SPECS_PAR_DATASET` : src/data/schemas/grammaire/sourcesDeSpecs.ts:6, grammaire/valeurs.ts:288, src/data/spec-pool-contrat.test.ts:314, grammaire/pool-specs.test.ts (5), grammaire/valeurs-de-champ.test.ts (3). `IDS_PAR_DISCRIMINANT` : defs/materials.ts:31, grammaire/slots.test.ts:156. `IDS_PAR_MARQUEUR` : defs/props.ts:17. `NESTED_ARRAY_ROOT` : src/data/index.ts:2493 (« Cf. `data/overrides.ts::NESTED_ARRAY_ROOT` »). `verifieExhaustiviteDesIds` : scripts/gen-registry.d.mts. `DEFAUTS_IDS` cité par scripts/migrations/2026-08-27-l1b-2{a,b,c}-*.mjs:6. `cibleDe` cité par les trois migrations 2026-09-01-1463-*.mjs (:26/:47/:124). Leur message d'erreur nomme « `IDS_PAR_DATASET['careers.json']` » (:30, :51, :128) et leur lecture est la regex textuelle `/'careers\\.json':\\s*\\[/`, qui suppose la graphie à guillemets simples du générateur actuel. La phase 2 est un script TypeScript neuf, de graphie non spécifiée, et la question 9 est laissée ouverte, alors que replay.mjs rejoue ces migrations (CI, pre-push). → Le brief doit trancher la question 9 : soit adapter les migrations rejouées, soit spécifier que `IDS_PAR_ESPACE` garde la graphie `'fichier.json': [` lue par ces regex, et dire qui porte le nom mort dans leurs messages. Il doit aussi étendre le périmètre à chaque fichier listé ci-dessus. Critère de sortie mécanique : `git grep -n 'IDS_PAR_DATASET\\|IDS_PAR_DISCRIMINANT\\|IDS_PAR_MARQUEUR\\|SPECS_PAR_DATASET\\|NESTED_ARRAY_ROOT\\|cibleDe(' -- src scripts` hors migrations datées = 0.\n17. **Poison dans le périmètre que le design laisse vivre, ou qu'il rendrait mensonger** (lentille normes-et-poison) — src/data/overrides.ts (dans le périmètre, E7) : :72 « LOT 3 #422 (FINAL) : dernières 3 exemptions AUDIT » ; :63, :217, :227, :234, :239, :281-287, :387, :393, :397 portent des étiquettes historiques « LOT n #422 », qui sont des pierres tombales (git porte l'historique). :254 « qui n'étaient pas ÉDITABLES » est une pierre tombale. :220-221 « `NESTED_ARRAY_ROOT` réécrit le PARENT entier au save » deviendra faux quand E7 tue la table. src/data/schemas/grammaire/liste-cle.ts:8-9 (dans le périmètre) : « Registre DISTINCT de `slots.ts` » (slots.ts est supprimé par R1) et « une clé d'élément désigne l'IDENTITÉ d'un élément dans SA liste » deviennent faux sous E1. src/data/schemas/grammaire/idsVivants.ts:16-18 (« MÉMORISÉ par (fichier, version) : la version vient de la source (`SourceDIdsVivants.version`) ») meurt avec E6. Le brief ne nomme aucune de ces réécritures. → Ajouter au design la réécriture de ces en-têtes et commentaires dans le commit qui change leur objet (C1 pour liste-cle.ts, C3 pour overrides.ts et idsVivants.ts). Purger les étiquettes « LOT n #422 », « FINAL », « exemptions » et « n'étaient pas » d'overrides.ts, pour qu'un commentaire ne porte qu'une réf nue.\n18. **« Collection à clé » (terme du brief) et `listeCle` (« liste à clé », terme du code) nomment le même concept par deux mots, et la marque du record-racine reste indécise (question 2)** (lentille normes-et-poison) — E1 : « Collection à clé : une liste dont les éléments sont identifiés par une clé (`listeCle`), ou le record-racine d'un document de famille `record` ». Le code dit « Listes à clé RETROUVÉES » (liste-cle.ts:95, `clesRetrouvees`). `listeCle` construit un `z.array` et ne peut pas marquer un `z.record`. La question 2 demande si une « marque sœur » est nécessaire, donc si « déclarée à son nœud et nulle part ailleurs » vaut une seule marque ou deux. → Trancher dans le brief. Soit la primitive est renommée d'après le concept et accepte les records, soit le brief garde « liste à clé » et nomme la marque des records comme un paramètre de la même primitive. Jamais deux marques pour un concept."
+}

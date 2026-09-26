@@ -1,0 +1,19 @@
+## A: x.spec === y.spec (sans normalisation)
+src/engine/combatFeatures/dispatch.ts:352:    if (rf.skills.some((s) => s.id === q.skill && (s.spec == null || s.spec === q.spec))) return { capDR: rf.capDR };
+src/engine/reverseToken.ts:29:  return tok.skill === q.skill && (tok.spec == null || tok.spec === q.spec);
+src/engine/combat.ts:169:    const sk = matching.find((s) => s.spec === w.spec);
+src/engine/flowCore.ts:350:      if (cond.what === 'talent') return a.talents.some((t) => t.id === cond.value && (!cond.spec || t.spec === cond.spec));
+src/engine/flowCore.ts:358:        s.id === cond.id && (cond.spec ? s.spec === cond.spec : true) && (s.advances ?? 0) >= (cond.advances ?? 0)));
+src/scenes/test-scenarios/siege-enceinte.ts:291:        if (!gunner0.skills.some((s) => s.id === ref.id && s.spec === ref.spec))
+src/state/shipCrew.ts:41:  return !!role && role.skills.some((s) => (c.skills ?? []).some((k) => k.id === s.id && (s.spec == null || k.spec === s.spec)));
+## B: spec || ''
+## C: "" double quotes
+## D: refKey(..) === refKey(..)
+src/engine/careerSlots.ts:147:  return refKey(a.id, a.spec) === refKey(b.id, b.spec);
+## E: ?? '') === hors spec
+src/ui/editor/Palette.tsx:463:                  className={`pal-item${(tool.ref ?? '') === o.id ? ' active' : ''}`}
+src/ui/compendium/CodexEdit.tsx:425:    const index = isNew ? -1 : arr.findIndex((e) => String(e.id ?? '') === id);
+src/engine/corruption.ts:243:      const j = (c.psychTraits ?? []).findIndex((x) => x.type === op.psychType && (x.cible ?? '') === (op.cible ?? ''));
+src/engine/grantedTraits.ts:30:  a.id === b.id && (a.value ?? null) === (b.value ?? null) && (a.arg ?? '') === (b.arg ?? '')
+src/engine/grantedTraits.ts:34:  && (a.src?.kind ?? '') === (b.src?.kind ?? '') && (a.src?.id ?? '') === (b.src?.id ?? '');
+src/engine/grantedTraits.ts:70:    const j = (c.psychTraits ?? []).findIndex((x) => x.type === pt.type && (x.cible ?? '') === (pt.cible ?? ''));
