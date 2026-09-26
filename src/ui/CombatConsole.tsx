@@ -327,7 +327,19 @@ function loadoutUnloaded(c: Combatant, lo: WeaponLoadout): boolean {
  *  Sa PLACE, elle, est RÉSERVÉE dans TOUTE gouttière (`[data-geste]`, hauteur fixe en CSS) : le
  *  socle a les mêmes voisins et le même rang qu'un geste soit offert ou non — la venue du geste ne
  *  pousse plus le compteur (sonde du juge vision : boîte du compteur remontée de 13px). */
-export function ArchGutter({ kind, value, max, label, short, unit, spend = 0, geste }: { kind: 'action' | 'move'; value: number; max: number; label: string; short: string; unit?: string; spend?: number; geste?: Cell }) {
+export function ArchGutter({ kind, value, max, label, short, unit, spend = 0, geste }: { kind: 'action' | 'move'; value?: number; max?: number; label: string; short: string; unit?: string; spend?: number; geste?: Cell }) {
+  // RESSOURCE ABSENTE (hors combat, où il n'y a pas de Tour) : la gouttière garde sa BOÎTE et se tait
+  // — même patron que le conduit d'Avantage vidé. Sa structure reste montée pour que l'arche ne
+  // bouge pas d'un dixième d'un mode à l'autre ; rien ne s'y lit, ni à l'œil ni au lecteur d'écran.
+  if (value === undefined || max === undefined) {
+    return (
+      <span className={`cc-gutter cc-gutter-${kind}`} aria-hidden="true">
+        <span className="cc-gutter-rail" />
+        <b className="cc-socle">0<i>{short}</i></b>
+        <span data-geste="" />
+      </span>
+    );
+  }
   const spendFrom = Math.max(0, value - spend);
   // Le CHIFFRE et les crans sont à l'écran (socle + rail) : le nom accessible suffit à les nommer pour
   // un lecteur d'écran — aucune infobulle native (proscrite, cf. `ConsoleCell`).
@@ -379,9 +391,10 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
   ring: string;
   /** MOUVEMENT : crans du rail, socle chiffré, crans qui partiront au commit, et l'ENTRÉE DU
    *  REGISTRE adossée à CETTE ressource (spec §1c : l'annulation du déplacement vit sur la jauge de
-   *  Mouvement — elle ne paraît que quand le gate `deplacement-annulable` passe). */
-  move: { value: number; max: number; spend?: number; geste?: Cell };
-  action: { value: number; max: number; spend?: number };
+   *  Mouvement — elle ne paraît que quand le gate `deplacement-annulable` passe).
+   *  ABSENTE hors combat : la gouttière garde sa boîte et ne promet aucun Tour. */
+  move?: { value: number; max: number; spend?: number; geste?: Cell };
+  action?: { value: number; max: number; spend?: number };
   /** États de la SITUATION, qui entrent dans le rack avec les États portés (`actorStateChips`). */
   etats?: EffectChip[];
   retraitDEtat?: ComponentProps<typeof StateChips>['action'];
@@ -389,13 +402,13 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
   return (
     <div className="cc-arch skin-pont">
       <div className="cc-arch-body">
-        <ArchGutter kind="move" value={move.value} max={move.max} label="Mouvement" short="MOUV." unit={`case${move.max > 1 ? 's' : ''}`} spend={move.spend} geste={move.geste} />
+        <ArchGutter kind="move" value={move?.value} max={move?.max} label="Mouvement" short="MOUV." unit={`case${(move?.max ?? 0) > 1 ? 's' : ''}`} spend={move?.spend} geste={move?.geste} />
         {/* Portrait NU (`identity`) : les Blessures se lisent à la barre pleine largeur dessous —
             la jauge superposée de la tuile en aurait fait la 2ᵉ écriture de la même donnée.
             Le camp se lit au `kind` du combattant, jamais au contrôle joueur (un allié piloté par
             un autre client reste un allié). */}
         <PortraitTile c={active} ring={ring} variant="identity" size="lg" team={active.kind === 'enemy' ? 'enemy' : 'ally'} />
-        <ArchGutter kind="action" value={action.value} max={action.max} label="Action" short="ACTION" spend={action.spend} />
+        <ArchGutter kind="action" value={action?.value} max={action?.max} label="Action" short="ACTION" spend={action?.spend} />
         {/* NICHE D'ÉTATS : même primitive que la tuile du bandeau (`StateChips reserve`), icône +
             INDICE chiffré par État, alvéoles vides toujours dessinées. */}
         <StateChips c={active} max={ARCH_STATE_CELLS} reserve extra={etats} action={retraitDEtat} />

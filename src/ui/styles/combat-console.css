@@ -865,6 +865,14 @@
   align-items: center;
   gap: 3px;
 }
+/* Gouttière SANS ressource (`ConsoleArch` sans `move`/`action`, hors combat) : sa boîte reste, sa
+   matière se tait. La structure est montée pour que l'arche garde ses dimensions au dixième. */
+.cc-gutter[aria-hidden='true'],
+/* Même loi pour l'alvéole de SORTIE hors combat : il n'y a pas de tour à finir, sa boîte reste et
+   ses voisines ne bougent pas d'un dixième. */
+.cc-end[aria-hidden='true'] {
+  visibility: hidden;
+}
 .cc-gutter-rail {
   display: flex;
   flex-direction: column-reverse;

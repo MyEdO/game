@@ -104,19 +104,21 @@
   min-width: 0;
   max-width: 100%;
 }
-/* CHAMP de vignette : l'ancêtre POSITIONNÉ dont une surface ancrée au bas du terrain a besoin pour
-   se montrer ici (`.combat-console`, `.exploration-dock` : `position: absolute; bottom: 0`). Sans
-   lui, la surface remonterait au premier ancêtre positionné de l'écran et sortirait de sa piste.
-   Une telle surface se dimensionne sur la FENÊTRE (`vh`, tranches `@media`), pas sur sa vignette :
-   la PISTE la montre à la largeur de recette du bureau, et le champ DÉFILE quand la vignette est
-   plus étroite — rien n'est amputé. Placement seul — la matière reste celle du spécimen. */
+/* CHAMP de vignette : la boîte BORNÉE qu'une surface d'écran réclame pour se montrer ici. Le pont
+   n'est plus ancré au bas du terrain — il EST la rangée basse du plateau, EN FLUX (#1848, hud.css) :
+   ce qu'il lui faut n'est pas un ancêtre positionné, c'est une boîte à la largeur de la fenêtre de
+   recette. Une telle surface se dimensionne sur la FENÊTRE (`vh`, tranches `@media`), pas sur sa
+   vignette : la PISTE la montre à la largeur de recette du bureau, et le champ DÉFILE quand la
+   vignette est plus étroite — rien n'est amputé. Placement seul — la matière reste celle du
+   spécimen. Un spécimen de PLEIN CHAMP (`pleinChamp`, registry.tsx) s'en passe : il se rend dans le
+   plateau RÉEL, où la grille le pose comme à l'écran. */
 .gallery-scene {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
 }
-/* La PISTE tient la bande ANCRÉE en pied : sa hauteur est celle que la surface publie au `:root`
-   (hauteur de pont, élévation du fronton au-dessus du liseré, bandeau de phase superposé) — un
+/* La PISTE tient les DEUX formes du pont : sa hauteur est celle que la surface publie au `:root`
+   (hauteur de bande, saillie du fronton au-dessus du liseré, bandeau de phase superposé) — un
    nombre en l'air se serait décalé à la première recalibration du budget de hauteur. Sa LARGEUR est
    celle de la vue BUREAU de `scripts/recette/vues-recette.json` : la surface se dimensionne sur la
    FENÊTRE, la montrer plus étroite ferait mentir la vignette sur la composition. Le nombre est
@@ -170,9 +172,231 @@
   font-size: 11px;
 }
 
+/* ══ MAQUETTES #1849 (spécimens `pleinChamp`) — PLACEMENT SEUL ═══════════════════════════════════
+   Aucune de ces règles ne peint : la MATIÈRE reste celle des spécimens (peaux partagées
+   `.skin-pont` / `.skin-bois` / `.skin-tole`, primitives du pont et du bandeau d'interlocuteur).
+   Elles posent le monde sous le plateau, éteignent le chrome de COMBAT là où le combat n'est pas, et
+   alignent les quatre blocs du dialogue. ══ */
+
+/* Le MONDE de la maquette : la capture que la recette pose à la place du rendu volumique, sous tout
+   le plateau — l'équivalent de `.stage > .iso-root`. */
+.stage > [data-maquette-monde] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* LES DEUX BOUTS DE LA BARRE — inventaire à GAUCHE, fiche à DROITE (verbatim utilisateur
+   2026-09-21), JUMEAUX : le bout gauche est une RÉGION DE COIN comme le droit (`.cc-corner`, d'où
+   les tokens d'alvéole de laiton, combat-console.css:1047-1056), posée dans la RÉSERVE MIROIR que la
+   bande garde déjà (rembourrage gauche de `.cc-dock`, combat-console.css:263). Hors flux : aucune
+   voie n'est poussée, l'identité de centrage du fronton reste entière. */
+.combat-console[data-maquette-mode] .cc-dock {
+  position: relative;
+  /* RÉSERVE MIROIR ÉLARGIE : la région droite porte maintenant DEUX alvéoles (fiche + fin du tour).
+     Le contrat de centrage du fronton (P-4, combat-console.css:259-263) veut la même largeur à
+     gauche — exprimée dans les MÊMES grandeurs, jamais en pixels d'ici. */
+  padding-left: calc(2 * var(--cc-corner) + var(--cc-gap) + var(--cc-bay-gap) + var(--cc-marge));
+}
+.combat-console[data-maquette-mode] .mq-coin-gauche {
+  position: absolute;
+  left: var(--cc-marge);
+  top: 0;
+  bottom: 0;
+  width: calc(2 * var(--cc-corner) + var(--cc-gap));
+  justify-content: flex-start;
+}
+/* Les DEUX alvéoles voisines du coin droit (fiche, fin du tour) : l'écart des alvéoles, pas celui
+   des travees. */
+.combat-console[data-maquette-mode] .cc-corner {
+  gap: var(--cc-gap);
+}
+/* Inventaire et Fiche : même boîte que l'alvéole de sortie à côté d'eux — mêmes boîtes en bagarre et
+   hors combat (« c'est la même console »). */
+.combat-console[data-maquette-mode] .mq-sac,
+.combat-console[data-maquette-mode] .mq-fiche {
+  width: var(--cc-corner);
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+}
+
+/* LE RAIL D'OUVREURS À L'ADRESSE DE ROGUE TRADER : colonne vissée au BORD DROIT, centrée dans la
+   rangée du monde (captures de l'utilisateur, combat comme exploration : la colonne occupe ≈34–65 %
+   de la hauteur). `hud.css` l'ancre en haut-droite et le DISSOUT ≤700px ; ce module n'en pose que
+   l'adresse de maquette, sa matière reste `.skin-bois` et sa pile la primitive `Stack`.
+   Le centrage se fait par marges automatiques entre deux bords, sans transformation. */
+.stage-flot > .mq-rail {
+  position: absolute;
+  right: var(--sp-md);
+  top: 0;
+  bottom: 0;
+  height: fit-content;
+  z-index: 46;
+  margin-block: auto;
+}
+/* CHROME de la galerie (« Galerie », retour à la liste) contre BARRE HAUTE du spécimen : les deux
+   portent `.hud-topbar`, donc le même coin haut-gauche. Le chrome, rendu en DERNIER, se cale au bord
+   opposé — le spécimen garde l'adresse réelle du menu ☰. Placement seul. */
+[data-maquette] > .stage > .hud-topbar:last-child {
+  left: auto;
+  right: var(--sp-sm);
+  max-width: none;
+}
+/* Chip de dépliage de la composition mobile repliée. */
+.mq-deplier {
+  position: absolute;
+  right: var(--sp-sm);
+  top: var(--sp-xs);
+  z-index: 6;
+}
+
+/* ── DIALOGUE : quatre blocs alignés au bas du champ (référence Rogue Trader) — portrait du
+   locuteur · parchemin de la conversation · réponses · portrait de qui répond. ── */
+.maquette-dialogue {
+  position: absolute;
+  left: var(--sp-lg);
+  right: var(--sp-lg);
+  bottom: var(--sp-lg);
+  /* CENTRÉE comme à la référence : la rangée ne s'étire pas à un écran de 1707px. */
+  margin-inline: auto;
+  max-width: 1440px;
+  height: 40%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1.2fr) minmax(0, 1fr) 160px;
+  /* La rangée vaut la BOÎTE, jamais son contenu : une rangée `auto` grandissait avec le parchemin et
+     poussait les portraits sous le bord bas de l'écran (mesuré à 780px). */
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--sp-md);
+  /* UNE RANGÉE, comme à la référence : les quatre blocs partagent leur HAUT et leur BAS. Alignés
+     à la fin (`end`), chacun gardait sa propre hauteur — le parchemin haut, les réponses tassées en
+     bas, les portraits flottant à mi-chemin. */
+  align-items: stretch;
+}
+.maquette-dialogue > * {
+  height: 100%;
+  min-height: 0;
+}
+/* REMISE À PLAT du bandeau d'interlocuteur : ici il n'est plus un flottant centré au bas de l'écran,
+   c'est une COLONNE de la rangée — la grille le pose, il ne s'ancre plus lui-même. */
+.maquette-dialogue > .dialogue-box {
+  position: static;
+  transform: none;
+  width: auto;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Les DEUX vignettes — qui parle et qui répond — suivent la MÊME loi, comme à la référence : un
+   CADRE CARRÉ nettement plus PETIT que les panneaux, aligné sur leur PIED, la plaque de nom SOUS le
+   cadre — la plaque n'est plus prise dans la hauteur du visage, qu'elle rognait dès que le nom
+   passait sur deux lignes (mesuré). */
+.maquette-dialogue > .mq-dlg-qui,
+.maquette-dialogue > .mq-dlg-meneur {
+  align-self: end;
+  height: auto;
+}
+.maquette-dialogue > .mq-dlg-qui .dlg-head,
+.maquette-dialogue > .mq-dlg-meneur .dlg-head {
+  flex-direction: column;
+  align-items: stretch;
+}
+.maquette-dialogue > .mq-dlg-qui .dlg-portrait,
+.maquette-dialogue > .mq-dlg-meneur .dlg-portrait {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.maquette-dialogue > .mq-dlg-qui .dlg-speaker,
+.maquette-dialogue > .mq-dlg-meneur .dlg-speaker {
+  text-align: center;
+  margin-bottom: 0;
+}
+/* Le PARCHEMIN et les RÉPONSES sont deux panneaux JUMEAUX : même hauteur, même pied. Chacun défile
+   dans sa boîte — la conversation s'allonge, la rangée ne grandit pas. */
+.maquette-dialogue .parchment-card-body {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Les réponses se lisent du HAUT du panneau (référence) : la gouttière qui les détachait d'une
+   réplique, au-dessus d'elles, n'a plus d'objet ici — la réplique vit au parchemin d'à côté. */
+.maquette-dialogue .dlg-choices {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0;
+  overflow-y: auto;
+}
+
 @media (max-width: 700px) {
   .gallery-spec-stage {
     flex-direction: column;
     align-items: stretch;
+  }
+  /* DIALOGUE en COLONNE : les deux portraits partagent la ligne haute — mêmes haut et bas, comme en
+     rangée —, le parchemin et les réponses prennent toute la largeur.
+     PARTAGE : la réplique COURANTE se lit sans défiler, donc le parchemin garde au moins 40 % de la
+     colonne (`minmax(40%, 1fr)`) ; ce sont les RÉPONSES qui cèdent et défilent. Sans ce plancher, une
+     liste de deux réponses longues écrasait le parchemin à ~60px (mesuré à 360×740). */
+  .maquette-dialogue {
+    height: 60%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* Trois rangées en PARTS, jamais en `auto` : elles somment toujours la colonne, et chacune porte
+       son PLANCHER — le cadre des portraits ne s'écrase pas sous sa plaque de nom (mesuré : 71px, le
+       portrait réduit à un filet), le parchemin garde ses 40 %, les réponses défilent. */
+    grid-template-rows: minmax(136px, 0.6fr) minmax(40%, 1fr) minmax(0, 0.7fr);
+  }
+  .maquette-dialogue > .mq-dlg-qui {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+  .maquette-dialogue > .mq-dlg-meneur {
+    grid-area: 1 / 2 / 2 / 3;
+  }
+  .maquette-dialogue > .parchment-card {
+    grid-area: 2 / 1 / 3 / -1;
+  }
+  .maquette-dialogue > .mq-dlg-reponses {
+    grid-area: 3 / 1 / 4 / -1;
+  }
+  /* LE RAIL GARDE SON ADRESSE sous 700px, là où `hud.css` le dissout (`display: contents`) et laisse
+     chacune de ses commandes se reposer seule : une colonne de sept ouvreurs empilés au même coin se
+     recouvrirait. La maquette garde donc la colonne du bord droit — mêmes boutons, même pile. */
+  .stage-flot > .mq-rail {
+    display: flex;
+  }
+  .stage-flot > .mq-rail > .worldmap-btn,
+  .stage-flot > .mq-rail > .log-drawer {
+    position: static;
+    inset: auto;
+  }
+  /* COMPOSITION EMPILÉE : la bande n'a plus de réserve à gauche (`grid-template-areas`,
+     combat-console.css) — les deux bouts de barre rejoignent la COLONNE du coin, l'inventaire en
+     tête, la fiche (et « Fin du tour » en bagarre) dessous. */
+  .combat-console[data-maquette-mode] .mq-coin-gauche {
+    position: static;
+    grid-area: corner;
+    /* Les deux bouts partagent la colonne du coin : l'inventaire se cale AU-DESSUS de la fiche en
+       laissant sa hauteur sous lui — deux boîtes alignées sur le même bord, jamais superposées. */
+    align-self: end;
+    justify-self: end;
+    width: var(--cc-corner);
+    height: var(--cc-cell-h);
+    margin-bottom: calc(var(--cc-cell-h) + var(--sp-lg));
+  }
+  .combat-console[data-maquette-mode] .cc-corner {
+    align-self: end;
+    /* La rangée du coin se mesure sur son contenu : sans ce plancher de DEUX alvéoles, les deux
+       bouts de barre tombent dans la même hauteur et se recouvrent (mesuré à 360×740). */
+    min-height: calc(2 * var(--cc-cell-h) + var(--sp-xs));
+  }
+}
+@media (max-width: 560px) {
+  /* MOBILE REPLIÉ : la bande ne garde que sa LIGNE D'ARCHE — la chip ⌃ déplie les travées. */
+  .combat-console[data-maquette-replie] .cc-bay {
+    display: none;
   }
 }

@@ -10,7 +10,7 @@
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
-import { type ComponentType, useRef, useState } from 'react';
+import { Fragment, type ComponentProps, type ComponentType, useEffect, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
 import { OptionChooser } from '../OptionChooser';
@@ -49,7 +49,7 @@ import { CareerPath } from '../CareerPath';
 import { FigTile, type ZoneBadgeSpec } from '../FigTile';
 import { PlaqueRow, PlaqueGrid } from '../PlaqueRow';
 import { DieFace } from '../DiceRoll';
-import { CHAR_KEYS, CHAR_LABELS, type ConditionId } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, type Combatant, type ConditionId } from '../../engine/types';
 import { effectiveChar } from '../../engine/characteristics';
 import { GroupedPickGrid, type PickGridSection } from '../GroupedPickGrid';
 import { DetailFrame } from '../DetailFrame';
@@ -64,7 +64,7 @@ import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, byId, findActionById, findSpellById } from '../../data';
 import { makePregens } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
@@ -79,6 +79,8 @@ import { WindRose } from '../WindRose';
 import { CAREER_CHAR_ADVANCES } from '../creator/draft';
 import { ItemIcon } from '../ItemIcon';
 import { Icon } from '../Icon';
+import { CodexTitre } from '../compendium/CodexRef';
+import { narrateIntent } from '../../gameIso/combatNarration';
 import { RollLine, PendingRollLine, TableRollLine } from '../RollLine';
 import { testBreakdown, testPending } from '../breakdown';
 import { RollPanel } from '../RollPanel';
@@ -93,8 +95,22 @@ import { InspectPanel } from '../InspectPanel';
 import { EquipmentPanel } from '../EquipmentPanel';
 import { MediaSelect } from '../MediaSelect';
 import { RefField, refFieldCfg } from '../compendium/RefField';
-import { itemFromTrappingById } from '../../engine/items';
+import { itemFromTrappingById, activeLoadout, loadoutLabel } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
+import { isConsumable } from '../../engine/consumables';
+import { hasHealSkill } from '../../engine/healing';
+import { partyLeaderOf } from '../../state/combatants';
+import { HERO_RING, ENEMY_RING } from '../../gameIso/teamColors';
+import { SpeakerBanner } from '../SpeakerBanner';
+import { tokenBodyKind, type TokenSubject } from '../../gameIso/tokenBodyKind';
+import { spawnEnemy } from '../../state/spawn';
+import { Prose } from '../Prose';
+import type { IconIdInput } from '../icons';
+import type { Dialogue, DialogueChoice, DialogueNode, Scene, SceneEntity } from '../../state/scene';
+import type { DialogueTurn } from '../../state/dialogueHistory';
+import { builtinCampaigns } from '../../scenes/campaign';
+import { scenario as scenarioEmbuscade } from '../../scenes/test-scenarios/embuscade';
+import { scenario as scenarioDialogueMulti } from '../../scenes/test-scenarios/dialogue-multi';
 
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
@@ -1302,88 +1318,22 @@ function PartyDockDemo() {
 }
 
 /** CONSOLE DE COMBAT — le pont MONTÉ DE SES PROPRES SOUS-COMPOSANTS (`ConsoleCell`, `PhaseBanner`,
- *  `ConsoleArch`, tous à props et sans store) avec des données d'exemple : la vignette ne peut donc
- *  pas diverger du balisage réel. Le composant de tête, lui, ne prend aucune prop et lit le store de
- *  la partie (`useGame`) : la galerie étant un écran de l'application EN COURS (`App.tsx`),
- *  l'amorcer d'ici injecterait un combat factice dans la partie du joueur. Ce qui reste en balisage
- *  de maquette est ce que la console rend EN LIGNE, indissociable du store : la coque, les travées,
- *  la colonne de sets (chaque vignette dispatche `switch-loadout`), le conduit d'Avantage et le coin
- *  de fin de tour (dispatch `end-turn`). Le pont se dimensionne sur la FENÊTRE : la piste positionnée
- *  d'un champ défilant (`.gallery-scene-track`) le montre à la largeur de recette du bureau. */
+ *  `ConsoleArch`, tous à props et sans store) sur les données RÉELLES d'un pré-tiré : la vignette ne
+ *  peut donc diverger ni du balisage réel, ni du registre des actions. Le composant de tête, lui, ne
+ *  prend aucune prop et lit le store de la partie (`useGame`) : la galerie étant un écran de
+ *  l'application EN COURS (`App.tsx`), l'amorcer d'ici injecterait un combat factice dans la partie
+ *  du joueur. La composition de la forme complète est celle de `PontMaquette` (bloc « MAQUETTES
+ *  #1849 ») : une seule composition de pont dans ce fichier, jamais deux qui dériveraient.
+ *  Le pont se dimensionne sur la FENÊTRE : la piste positionnée d'un champ défilant
+ *  (`.gallery-scene-track`) le montre à la largeur de recette du bureau. */
 function CombatConsoleMock() {
-  const actif = herosExemple();
-  /* Acteur ADVERSE de la forme spectatrice : le même pregen, du camp d'en face — la galerie ne
+  const actif = meneurDeMaquette();
+  /* Acteur ADVERSE de la forme spectatrice : le même pré-tiré, du camp d'en face — la galerie ne
      fabrique pas de statblock, elle change le CAMP (seule entrée que l'arche lit pour sa teinte). */
-  const adverse = { ...actif, id: 'e-demo', label: 'Mutant', kind: 'enemy' as const };
-  const rien = () => {};
+  const adverse: Combatant = { ...actif, id: `${actif.id}-adverse`, kind: 'enemy' };
   return (
     <div className="gallery-scene"><div className="gallery-scene-track">
-      <div className="combat-console" data-forme="complete">
-        <PhaseBanner label={<><Icon id="ui/wait" size="sm" /> Interlude</>} actions={[]} />
-        <div className="cc-dock skin-pont">
-          <div className="cc-bay cc-bay-left">
-            <div className="cc-bay-body">
-              <div className="cc-arsenal">
-                <span className="cc-bay-head">ÉPÉE ET BOUCLIER</span>
-                <div className="cc-arsenal-body">
-                  <div className="cc-sets" role="group" aria-label="Sets d’armes">
-                    <button type="button" data-set="s1" data-action="switch-loadout" className="chip cc-set on" aria-label="Épée et bouclier">
-                      <i className="cc-set-n">1</i>
-                      <Icon id="item/weapon" size="sm" />
-                      <span className="cc-key">X</span>
-                    </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse">
-                      <i className="cc-set-n">2</i>
-                      <Icon id="item/weapon" size="sm" />
-                      <i className="cc-set-load">VIDE</i>
-                    </button>
-                  </div>
-                  <div className="cc-grid cc-grid-left" aria-label="Arsenal">
-                    <ConsoleCell cell={{ key: 'attack', id: 'attack', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
-                    <ConsoleCell cell={{ key: 'shoot', id: 'shoot', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
-                    <ConsoleCell cell={{ key: 'charge', id: 'charge', family: 'attaque', label: 'Charger', icon: <Icon id="action/attack" />, gate: 'Déjà engagé au contact' }} />
-                    <ConsoleCell cell={undefined} />
-                  </div>
-                </div>
-              </div>
-              <div className="cc-quick">
-                <span className="cc-bay-head">ACCÈS RAPIDE</span>
-                <div className="cc-grid cc-grid-quick" aria-label="Accès rapide">
-                  <ConsoleCell cell={{ key: 'consume', id: 'consume', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
-                  <ConsoleCell cell={undefined} />
-                </div>
-              </div>
-            </div>
-          </div>
-          <ConsoleArch
-            active={actif}
-            ring="var(--gold)"
-            move={{ value: 3, max: 4, spend: 1, geste: { key: 'undo-move', id: 'undo-move', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
-            action={{ value: 1, max: 1 }}
-          />
-          <div className="cc-bay cc-bay-right">
-            <div className="cc-conduit" aria-label="Avantage : 2/6">
-              <span className="cc-conduit-label">AVANTAGE</span>
-              <span className="cc-conduit-rail">
-                {Array.from({ length: 10 }, (_, i) => <i key={i} className={i < 2 ? 'on' : i < 6 ? 'off' : 'out'} />)}
-              </span>
-              <span className="cc-conduit-plate">2/6</span>
-            </div>
-            <div className="cc-grid cc-grid-right" aria-label="Capacités">
-              <ConsoleCell hotkey={1} cell={{ key: 'dodge', id: 'dodge', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
-              <ConsoleCell hotkey={2} cell={{ key: 'cast', id: 'cast', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
-              <ConsoleCell hotkey={3} cell={undefined} />
-            </div>
-          </div>
-          <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end" aria-label="Finir le tour">
-              <span className="cc-ico"><Icon id="ui/turn-end" /></span>
-              <span className="cc-lbl">Fin du tour</span>
-              <span className="cc-key">F</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <PontMaquette mode="combat" heros={actif} />
       {/* FORME SPECTATRICE — l'ARCHE SEULE, sans bande (arbitrage utilisateur 2026-09-20) : c'est ce
           que le pont montre au tour d'un adversaire et avant le début du combat. L'ennemi porte la
           teinte d'équipe à ses Blessures et l'anneau en tirets de son camp ; le bandeau de phase se
@@ -1394,7 +1344,7 @@ function CombatConsoleMock() {
             à l'autre, et c'est sur elle que la forme spectatrice éteint la matière. Une vignette qui
             pendrait l'arche à la racine ne montrerait PAS ce que la CSS fait. */}
         <div className="cc-dock skin-pont">
-          <ConsoleArch active={adverse} ring="var(--danger)" move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />
+          <ConsoleArch active={adverse} ring={ENEMY_RING} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />
         </div>
       </div>
     </div></div>
@@ -1481,6 +1431,527 @@ function EquipmentPanelDemo() {
   return <EquipmentPanel hero={herosExemple()} />;
 }
 
+/* ══ MAQUETTES #1849 — le PONT UNIFIÉ et le DIALOGUE à la forme de Rogue Trader ══════════════════
+   Compositions STATIQUES à juger À L'IMAGE : elles montent les VRAIS sous-composants à props du pont
+   (`ConsoleArch`, `ConsoleCell`, `PhaseBanner`) et du bandeau d'interlocuteur (`SpeakerBanner`,
+   `ParchmentCard`, `GatedAction`) sur les données RÉELLES du dépôt — pré-tirés de
+   `src/data/pregens.ts`, entrées de `src/data/actions.json`, dialogues des scènes. Elles ne lisent
+   aucun store et ne branchent aucun geste : ce qu'elles montrent, le dépôt sait déjà le rendre.
+   Verbatim utilisateur 2026-09-21 : « qu'on soit en combat ou hors combat, la console doit etre
+   présente, et donc forcement avec sa nappe de bord a bord. En mode dialogue par contre l'affichage
+   est différent comme sur Rogue Trader ». */
+
+/** Le groupe de « L'Embuscade » — celui que le SCÉNARIO compose (`makeParty`), pas une équipe
+ *  parallèle : c'est lui qu'on voit à l'écran quand on joue cette scène. */
+const groupeDeMaquette = memoParVersion('pregens', () => scenarioEmbuscade.makeParty());
+/** MENEUR hors combat : la définition UNIQUE du dépôt (`state/combatants.ts`), jamais `party[0]` recopié. */
+const meneurDeMaquette = () => partyLeaderOf(groupeDeMaquette()) ?? groupeDeMaquette()[0];
+/** Le LANCEUR du groupe — désigné par ce qu'il SAIT FAIRE (il a des sorts ou des prières), jamais
+ *  par son rang ni par son nom : c'est la console d'un meneur dont des cases s'allument hors combat. */
+const lanceurDeMaquette = () => groupeDeMaquette().find((h) => (h.spells ?? []).length > 0) ?? meneurDeMaquette();
+/** La BANDE DE KNUD, telle que le combat la fait naître : les statblocs d'auteur de la rencontre
+ *  `enc-mutants`, projetés par la COUTURE de spawn du jeu (`spawnEnemy`) : c'est elle qui porte
+ *  l'espèce et l'apparence d'auteur sur le combattant — la projection nue perdrait les visages. */
+const ennemisDeMaquette = memoParVersion('pregens', () => (scenarioEmbuscade.scene.entities ?? [])
+  .filter((e) => e.statblock)
+  .map((e) => spawnEnemy(e.ref, e.statblock, e.id, e.pos, { appearance: e.appearance, weapon: e.weapon })));
+/** L'ORDRE DU TOUR : par caractéristique d'Initiative décroissante (LDB 13 — le jet de départ, lui,
+ *  vit au combat ; une maquette ne tire pas de dés). Héros et ennemis mêlés, la frise le lit tel
+ *  quel. Le héros de la console est AU TRAIT : son rang dans cet ordre est le `turn`. */
+const ordreDeMaquette = () => [...groupeDeMaquette(), ...ennemisDeMaquette()]
+  .sort((a, b) => (b.characteristics?.initiative ?? 0) - (a.characteristics?.initiative ?? 0));
+
+/** RAISON de fermeture hors combat. SEUL littéral de maquette de la composition A : aucune entrée de
+ *  `src/data/actions.json` n'a de surface d'exploration, leurs verdicts exigent tous un `battle`. */
+const RAISON_HORS_COMBAT = 'Hors combat';
+/** Siège COOP qui tient la décision de groupe, pour la maquette de dialogue à plusieurs. */
+const SIEGE_DE_MAQUETTE = 'L’hôte';
+
+type CaseDeMaquette = NonNullable<ComponentProps<typeof ConsoleCell>['cell']>;
+const rienDeMaquette = () => {};
+
+/** UNE CASE = UNE ENTRÉE du registre des actions — libellé, icône et id viennent de la donnée
+ *  (`cellFor`, CombatConsole.tsx:702) ; la maquette n'y ajoute que l'habillage porté par le contenu. */
+function caseDuRegistre(actionId: string, family: CaseDeMaquette['family'], over: Partial<CaseDeMaquette> = {}): CaseDeMaquette | undefined {
+  const def = findActionById(actionId);
+  if (!def) return undefined;
+  return {
+    key: def.keys?.[0] ?? def.id,
+    id: def.id,
+    family,
+    icon: <Icon id={def.icon as IconIdInput} />,
+    label: def.label,
+    run: rienDeMaquette,
+    ...over,
+  };
+}
+
+/** Case FERMÉE à son adresse : la fermeture EXISTANTE de la console (`data-gated` + raison lue au
+ *  survol et au focus), jamais une matière parallèle — le compte de cases ne bouge pas. */
+const fermee = (c?: CaseDeMaquette): CaseDeMaquette | undefined =>
+  c ? { ...c, gate: RAISON_HORS_COMBAT, disabled: true, run: undefined } : undefined;
+
+/** Les TROIS zones adressables du pont, remplies du contenu RÉEL du porteur. Hors combat, seules les
+ *  cases dont le flux existe déjà (consommable `consumableFlow.ts:46`, Soin `openMedic`, sorts
+ *  `oocCastSpell` `combatSlice.ts:3573`) restent ouvertes ; tout le reste se ferme à sa place. */
+function zonesDuPont(heros: Combatant, exploration: boolean) {
+  const set = activeLoadout(heros);
+  const armeDuSet = set?.main ? heros.items?.find((it) => it.uid === set.main) : undefined;
+  const consommable = heros.items?.find(isConsumable);
+  const sorts = (heros.spells ?? []).map((s) => findSpellById(s)).filter((s): s is NonNullable<typeof s> => !!s);
+  const clore = exploration ? fermee : (c?: CaseDeMaquette) => c;
+  return {
+    setLabel: set ? loadoutLabel(set, heros) : (heros.weapons[0]?.label ?? 'Mains nues'),
+    sets: heros.loadouts ?? [],
+    arsenal: [
+      clore(caseDuRegistre('attaque', 'arme', armeDuSet ? { icon: <ItemIcon item={armeDuSet} />, label: armeDuSet.label } : {})),
+      clore(caseDuRegistre('charge', 'attaque')),
+    ],
+    accesRapide: [
+      consommable ? caseDuRegistre('use-item', 'geste', { key: `q-objet-${consommable.uid}`, icon: <ItemIcon item={consommable} />, label: consommable.label }) : undefined,
+      hasHealSkill(heros) ? caseDuRegistre('heal', 'geste', { key: 'q-soigner' }) : undefined,
+    ],
+    capacites: [
+      clore(caseDuRegistre('defend', 'defense')),
+      clore(caseDuRegistre('disengage', 'mouvement')),
+      clore(caseDuRegistre('gain-advantage', 'avantage')),
+      clore(caseDuRegistre('stand', 'mouvement')),
+      clore(caseDuRegistre('course', 'mouvement')),
+      ...sorts.map((sp) => caseDuRegistre('cast-spell', 'magie', { key: `sort-${sp.id}`, label: sp.label })),
+    ],
+  };
+}
+
+/** Les OUVREURS d'écran de campagne au maximum simultané RÉEL — icônes et intitulés de
+ *  `ExplorationDock.tsx:43-82`, dans leur ORDRE d'origine (Hub et Repos s'excluent,
+ *  `CampaignView.tsx:263,266`). Les POSSESSIONS ouvrent l'écran des biens du GROUPE
+ *  (`PossessionsScreen`, `CampaignView.tsx:252`) : elles restent un ouvreur d'écran, en tête du rail,
+ *  et n'ont rien à voir avec le SAC du héros mené, qui vit au bout gauche de sa barre.
+ *  `travel/sail-ship` sert deux fois (navire, voyage : `ExplorationDock.tsx:53,58`) et le tiroir
+ *  reprend l'icône du carnet (`LogDrawer.tsx:46` contre `ExplorationDock.tsx:48`) — état du registre
+ *  d'icônes RÉEL, repris tel quel ici : la maquette ne réassigne aucune icône. */
+const OUVREURS_DE_CAMPAGNE: { icone: IconIdInput; nom: string }[] = [
+  { icone: 'travel/mount', nom: 'Possessions du groupe' },
+  { icone: 'nav/compendium', nom: 'Carnet d’enquête' },
+  { icone: 'travel/sail-ship', nom: 'Dossier du navire — état, cargaison, équipage' },
+  { icone: 'nav/campaign', nom: 'Carte du monde — voyager' },
+  { icone: 'nav/rest', nom: 'Dormir, camper' },
+  { icone: 'travel/sail-ship', nom: 'Rouvrir l’écran de voyage' },
+];
+
+function OuvreursDeCampagne() {
+  return (
+    <>
+      {OUVREURS_DE_CAMPAGNE.map((o, i) => (
+        <button key={i} type="button" className="worldmap-btn skin-tole" data-ton="laiton" aria-label={o.nom} onClick={rienDeMaquette}>
+          <Icon id={o.icone} size="lg" />
+        </button>
+      ))}
+    </>
+  );
+}
+
+/** LE PONT, une seule composition à deux MODES : même empreinte, mêmes adresses, mêmes quatre
+ *  régions (spec HUD 2026-08-17, « la barre ne disparaît JAMAIS »). Hors combat, le CHROME de combat
+ *  s'éteint — gouttières muettes (place réservée), conduit d'Avantage vidé, pas de bandeau de phase —
+ *  et le COIN se vide : « Fin du tour » n'existe qu'en bagarre, et les ouvreurs d'écran vivent au
+ *  rail du bord droit, la même adresse dans les deux modes (référence Rogue Trader). */
+function PontMaquette({ mode, heros, replie = false }: {
+  mode: 'exploration' | 'combat';
+  heros: Combatant;
+  /** Composition MOBILE repliée : la ligne d'arche seule, dépliable. */
+  replie?: boolean;
+}) {
+  const exploration = mode === 'exploration';
+  const { setLabel, sets, arsenal, accesRapide, capacites } = zonesDuPont(heros, exploration);
+  return (
+    <div
+      className="combat-console"
+      data-forme="complete"
+      data-maquette-mode={mode}
+      data-maquette-replie={replie ? '' : undefined}
+    >
+      {/* AUCUN BANDEAU DE PHASE EN COURS DE TOUR : le jeu n'en rend un que pour une PAUSE de round ou
+          un interlude de ciblage (`CombatConsole.tsx:573-599` — `phase` vaut `null` sinon). Le Round se
+          lit à la frise (`is-round`). */}
+      <div className="cc-dock skin-pont">
+        {/* BOUT GAUCHE — l'INVENTAIRE du héros mené, dans la réserve MIROIR du coin que la bande garde
+            déjà à gauche (`combat-console.css:263`) : même côté, même matière d'alvéole que le bout
+            droit. Verbatim utilisateur 2026-09-21 : « le bouton gauche de sa barre ouvre son
+            inventaire et le bouton droit de la barre ouvre sa fiche ». */}
+        <div className="cc-corner mq-coin-gauche">
+          {/* Le SAC du héros mené — l'onglet `possessions` de SA fiche (`CharacterSheet.tsx:95-102,160`),
+              jamais l'écran des biens du groupe (`PossessionsScreen`), qui reste un ouvreur du rail.
+              Le registre d'icônes n'a AUCUNE icône de sac : `item/misc` tient provisoirement. */}
+          <BoutonDeBout classe="mq-sac" icone="item/misc" libelle="Inventaire" nom={`Inventaire de ${heros.label}`} />
+        </div>
+        <div className="cc-bay cc-bay-left">
+          <div className="cc-bay-body">
+            <div className="cc-arsenal">
+              <span className="cc-bay-head">{setLabel}</span>
+              <div className="cc-arsenal-body">
+                {/* SÉLECTEUR DE SETS : vivant hors combat aussi (spec « X commute les sets hors
+                    combat aussi », `setActiveLoadout`, store.ts:880). */}
+                <div className="cc-sets" role="group" aria-label="Sets d’armes">
+                  {Array.from({ length: 3 }, (_, i) => {
+                    const lo = sets[i];
+                    if (!lo) return <span key={i} className="chip cc-set cc-empty"><i className="cc-set-n">{i + 1}</i></span>;
+                    const principale = lo.main ? heros.items?.find((it) => it.uid === lo.main) : undefined;
+                    const auPoing = i === 0;
+                    return (
+                      <button key={lo.id} type="button" data-set={lo.id} data-action="switch-loadout" className={`chip cc-set${auPoing ? ' on' : ''}`} aria-label={loadoutLabel(lo, heros)} onClick={rienDeMaquette}>
+                        <i className="cc-set-n">{i + 1}</i>
+                        {principale ? <ItemIcon item={principale} /> : <Icon id="item/weapon" size="sm" />}
+                        {auPoing && sets.length >= 2 ? <span className="cc-key">X</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="cc-grid cc-grid-left" aria-label="Arsenal">
+                  {Array.from({ length: 6 }, (_, i) => <ConsoleCell key={i} cell={arsenal[i]} />)}
+                </div>
+              </div>
+            </div>
+            <div className="cc-quick">
+              <span className="cc-bay-head">ACCÈS RAPIDE</span>
+              <div className="cc-grid cc-grid-quick" aria-label="Accès rapide">
+                {Array.from({ length: 4 }, (_, i) => <ConsoleCell key={i} cell={accesRapide[i]} />)}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* RESSOURCES DU TOUR : elles n'existent qu'en bagarre — hors combat les deux gouttières
+            gardent leur boîte et ne chiffrent rien (même patron que le conduit d'Avantage vidé). */}
+        <ConsoleArch
+          active={heros}
+          ring={HERO_RING[0]}
+          move={exploration ? undefined : { value: 4, max: 4 }}
+          action={exploration ? undefined : { value: 1, max: 1 }}
+        />
+        <div className="cc-bay cc-bay-right">
+          {/* CONDUIT d'Avantage : hors combat sa BOÎTE reste (la grille ne remonte pas), son contenu
+              part avec le combat — l'Avantage n'existe qu'en bagarre (LDB 14). */}
+          {exploration ? (
+            <div className="cc-conduit" aria-hidden="true" />
+          ) : (
+            <div className="cc-conduit" aria-label="Avantage : 2/6">
+              <span className="cc-conduit-label">AVANTAGE</span>
+              <span className="cc-conduit-rail">
+                {Array.from({ length: 10 }, (_, i) => <i key={i} className={i < 2 ? 'on' : i < 6 ? 'off' : 'out'} />)}
+              </span>
+              <span className="cc-conduit-plate">2/6</span>
+            </div>
+          )}
+          <div className="cc-grid cc-grid-right" aria-label="Capacités">
+            {Array.from({ length: 12 }, (_, i) => (
+              <ConsoleCell key={i} cell={capacites[i]} hotkey={i < 8 ? i + 1 : undefined} advantage={exploration ? 0 : 2} />
+            ))}
+          </div>
+        </div>
+        {/* BOUT DROIT — la FICHE du héros mené, JUMELLE du bout gauche : même région, même matière
+            d'alvéole, même boîte, en bagarre comme hors combat (verbatim utilisateur 2026-09-21 :
+            « c'est la même console »). */}
+        <div className="cc-corner">
+          <BoutonDeBout classe="mq-fiche" icone="file/document" libelle="Fiche" nom={`Fiche de ${heros.label}`} />
+          {/* FIN DU TOUR à l'EXTRÊME DROITE de la bande, comme à la référence : l'alvéole réelle du
+              coin (`cc-end`, médaillon de cire, touche F). Hors combat sa BOÎTE reste et se tait —
+              même patron que les gouttières et le conduit d'Avantage : la fiche ne bouge pas. */}
+          <BoutonFinDuTour muet={exploration} />
+        </div>
+      </div>
+      {replie && (
+        <button type="button" className="chip mq-deplier" aria-label="Déplier la console" onClick={rienDeMaquette}>⌃</button>
+      )}
+    </div>
+  );
+}
+
+/** FIN DU TOUR : l'alvéole du coin, telle que le pont la porte (arbitrage utilisateur 2026-08-24,
+ *  `combat-console.css:1042-1046`) — entrée `end-turn` du registre, médaillon de cire, touche. MUETTE
+ *  hors combat : la boîte reste, rien ne s'y lit. */
+function BoutonFinDuTour({ muet = false }: { muet?: boolean }) {
+  const def = findActionById('end-turn');
+  return (
+    <button
+      type="button"
+      data-cell="end-turn"
+      data-action="end-turn"
+      className="chip cc-cell cc-end"
+      aria-label={def?.label}
+      aria-hidden={muet || undefined}
+      disabled={muet || undefined}
+      onClick={rienDeMaquette}
+    >
+      <span className="cc-ico"><Icon id={(def?.icon ?? 'ui/turn-end') as IconIdInput} /></span>
+      <span className="cc-lbl">{def?.label}</span>
+      <span className="cc-key">F</span>
+    </button>
+  );
+}
+
+/** BOUT DE BARRE : l'alvéole des extrémités (inventaire à gauche, fiche à droite) — même gabarit
+ *  qu'une case du pont (`chip cc-cell`), aucune matière propre. */
+function BoutonDeBout({ classe, icone, libelle, nom }: { classe: string; icone: IconIdInput; libelle: string; nom: string }) {
+  return (
+    <button type="button" className={`chip cc-cell ${classe}`} aria-label={nom} onClick={rienDeMaquette}>
+      <span className="cc-ico"><Icon id={icone} /></span>
+      <span className="cc-lbl">{libelle}</span>
+    </button>
+  );
+}
+
+/** Le CHAMP : bande de groupe en haut-centre, RAIL vertical vissé au bord droit à mi-hauteur de la
+ *  rangée du monde, et le pont de bord à bord en rangée basse. Le rail est la MEME adresse dans les
+ *  deux modes (référence Rogue Trader, captures de l'utilisateur) : hors combat il porte les ouvreurs
+ *  d'écran de campagne puis le tiroir-journal, en bagarre le dossier de navire et le même tiroir
+ *  (`CampaignView.tsx:325-340`). Le spécimen rend un FRAGMENT d'enfants de `.stage` — c'est la GRILLE
+ *  du plateau (hud.css) qui les pose, comme à l'écran. */
+function ChampDeMaquette({ mode, children }: { mode: 'exploration' | 'combat'; children: React.ReactNode }) {
+  const exploration = mode === 'exploration';
+  return (
+    <>
+      {/* BARRE HUD SUPÉRIEURE, à l'adresse et au contenu de l'écran (`CampaignView.tsx:234-246`) :
+          le menu ☰, le LIEU de la scène, l'OBJECTIF courant — ces deux derniers hors combat seulement.
+          `GameMenu` et `ObjectiveBannerMount` LISENT le store : la maquette monte donc le bouton ☰ à
+          sa classe réelle (`GameMenu.tsx:50-61`) et le bandeau d'objectif par son composant PUR
+          (`ObjectiveBanner`, props nulles) sur un objectif AUTHORÉ du dépôt — la scène d'embuscade
+          n'en pose aucun, celui-ci vient de `scenes/test-scenarios/echeance.ts:50-53`. */}
+      <Row className="hud-topbar" align="start">
+        <div className="game-menu">
+          <button type="button" className="gm-btn skin-tole" data-ton="laiton" aria-label="Menu" title="Menu" onClick={rienDeMaquette}>☰</button>
+        </div>
+        {exploration && (
+          <strong data-hud="place" className="halo-champ" title={scenarioEmbuscade.scene.label}>
+            <CodexTitre title={scenarioEmbuscade.scene.label} />
+          </strong>
+        )}
+        {exploration && <ObjectiveBanner objectives={OBJECTIFS_DE_MAQUETTE} now={0} />}
+      </Row>
+      {/* Hors combat, la bande MARQUE le héros mené et son geste est « mener » : sa fiche et son
+          inventaire s'ouvrent aux deux bouts de SA barre (verbatim utilisateur 2026-09-21). En
+          bagarre, la bande reste strictement identitaire (arbitrage 2026-08-17). */}
+      <PartyDock heroes={groupeDeMaquette()} mene={mode === 'exploration' ? meneurDeMaquette().id : undefined} onOpen={rienDeMaquette} />
+      <div className="stage-flot">
+        {/* LA FRISE D'INITIATIVE, en bagarre, à l'adresse où l'écran la monte (`CampaignView.tsx:291-316`)
+            et avec l'ordre RÉEL du scénario : héros et bande de Knud mêlés par Initiative, le héros de
+            la console au trait. Aucune CSS de maquette : `initiative-strip.css` et la grille posent. */}
+        {mode === 'combat' && (() => {
+          const ordre = ordreDeMaquette();
+          return (
+            <InitiativeStrip
+              order={ordre.map((c) => c.id)}
+              turn={Math.max(0, ordre.findIndex((c) => c.id === meneurDeMaquette().id))}
+              round={2}
+              combatants={ordre}
+              over={false}
+              canFirstIds={[]}
+              onActivate={rienDeMaquette}
+              onPromote={rienDeMaquette}
+            />
+          );
+        })()}
+        {/* LE FIL DE COMBAT sous la frise (`CombatBanner`, `CampaignView.tsx:317`) : il lit le store,
+            la maquette reprend donc sa composition de classes (`CombatBanner.tsx:43-50`) sur une ligne
+            NARRÉE par la vraie dérivation (`narrateIntent`) — le télégraphe d'intention de Knud sur le
+            héros au trait, coloré par camp comme à l'écran. */}
+        {mode === 'combat' && (() => {
+          const ordre = ordreDeMaquette();
+          const knud = ennemisDeMaquette()[0];
+          const ligne = knud ? narrateIntent({ fromId: knud.id, toId: meneurDeMaquette().id, kind: 'charge' }, ordre) : null;
+          return (
+            <div className="combat-feed" role="status" aria-live="polite" aria-atomic="true">
+              {ligne && (
+                <div className={`cb-ev cb-now cb-tone-${ligne.tone} halo-champ`}>
+                  <span className="cb-ic"><Icon id={ligne.icon} size={15} /></span>
+                  <span className="cb-tx"><TeamSegments segments={ligne.segments} /></span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        <Stack className="hud-rail skin-bois mq-rail" gap="md" pad="md">
+          {mode === 'exploration' ? (
+            <OuvreursDeCampagne />
+          ) : (
+            <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" aria-label="Dossier du navire — état, cargaison, équipage" onClick={rienDeMaquette}>
+              <Icon id="travel/sail-ship" size="lg" />
+            </button>
+          )}
+          <LogDrawer battle={null} journal={JOURNAL_DE_MAQUETTE} />
+        </Stack>
+      </div>
+      {children}
+    </>
+  );
+}
+
+/** OBJECTIF de la barre haute : celui qu'un déclencheur du dépôt POSE déjà
+ *  (`scenes/test-scenarios/echeance.ts:50-53`, `setObjective` + échéance à deux jours). La scène
+ *  d'embuscade n'en authore aucun : sans lui, la maquette tairait une surface que l'écran porte. */
+const OBJECTIFS_DE_MAQUETTE = [{ id: 'ech-obj', text: 'Empêcher le rituel avant minuit', deadline: 2 * 1440 }];
+
+/** Lignes de journal RÉELLES de la scène d'embuscade (son message d'entrée et sa victoire). */
+const JOURNAL_DE_MAQUETTE = [
+  scenarioEmbuscade.scene.startMessage ?? '',
+  'La bande de Knud Cratinx gît à son tour. La route, enfin, se tait.',
+].filter(Boolean);
+
+// ── DIALOGUE ────────────────────────────────────────────────────────────────────────────────────
+
+/** LOCUTEUR d'un nœud : l'entité nommée par le nœud, à défaut celle qui PORTE ce dialogue (le
+ *  locuteur de SESSION que `interactEntity` pose). Résolu par ID, jamais par un nom en clair (#669). */
+function locuteurDe(dialogue: Dialogue, entites: SceneEntity[], node: DialogueNode): SceneEntity | undefined {
+  return node.speakerId
+    ? entites.find((e) => e.id === node.speakerId)
+    : entites.find((e) => e.dialogueId === dialogue.id);
+}
+
+/** TAG DE TEST d'une réponse, DÉRIVÉ de sa donnée (`choice.flow.kind === 'test'`) : Compétence du
+ *  registre + libellé canon de la difficulté. Aucun tag de RÉSULTAT — la donnée n'existe pas. */
+function tagDeTest(choix: DialogueChoice): string | undefined {
+  const flow = choix.flow;
+  if (!flow || flow.kind !== 'test') return undefined;
+  const skill = flow.test.skill;
+  const diff = flow.test.difficulty;
+  // Un Test sans Compétence porte sa Caractéristique : la maquette ne dit alors que la difficulté.
+  const nom = skill ? byId('skill', skill.id)?.label ?? skill.id : undefined;
+  const dit = [nom, diff ? DIFFICULTY_LABELS[diff] : undefined].filter(Boolean);
+  return dit.length ? dit.join(' · ') : undefined;
+}
+
+/** Les TOURS PASSÉS d'une conversation, reconstruits en suivant la première réponse de chaque nœud
+ *  jusqu'au nœud montré — texte de nœud et texte de réponse sont ceux de la SCÈNE, verbatim. */
+function toursDe(dialogue: Dialogue, entites: SceneEntity[], nodeId: string): DialogueTurn[] {
+  const tours: DialogueTurn[] = [];
+  let courant = dialogue.nodes.find((n) => n.id === dialogue.start);
+  while (courant && courant.id !== nodeId && tours.length < dialogue.nodes.length) {
+    const choix = courant.choices[0];
+    if (!choix) break;
+    tours.push({ speaker: locuteurDe(dialogue, entites, courant)?.label, nodeText: courant.desc, choiceText: choix.label, at: 0, dialogueId: dialogue.id });
+    const suivant = choix.next;
+    courant = suivant ? dialogue.nodes.find((n) => n.id === suivant) : undefined;
+  }
+  return tours;
+}
+
+/** VIGNETTE d'un interlocuteur — gabarit UNIQUE des DEUX bouts de la rangée (référence RT : les deux
+ *  personnages sont cadrés pareil) : le portrait du dépôt (`tokenBodyKind` en vue de face, le même
+ *  pipeline que le rendu iso) dans le cadre `.dlg-portrait`, la plaque de nom `.dlg-speaker` dessous.
+ *  Sans sujet (nœud de narration), le cadre se replie sur le fleuron. */
+function VignetteDeMaquette({ className, sujet, label }: { className: string; sujet?: TokenSubject; label?: string }) {
+  const portrait = sujet ? tokenBodyKind(sujet, 'top') : null;
+  return (
+    <div className={`dialogue-box dlg-boniment ${className}`}>
+      <div className="dlg-head">
+        <span className="dlg-portrait">
+          {portrait ? (
+            <svg viewBox={portrait.portraitBox} preserveAspectRatio="xMidYMid slice">{portrait.body}</svg>
+          ) : (
+            <Fleuron size={14} />
+          )}
+        </span>
+        {label && <div className="dlg-speaker">{label}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** PARCHEMIN calé sur sa FIN : la réplique EN COURS est ce que l'œil lit en premier, les tours passés
+ *  restent au-dessus, atteignables au défilement (référence RT). */
+function ParcheminDeMaquette({ children }: { children: React.ReactNode }) {
+  const fin = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // La boîte qui défile est le PARENT du repère : la carte pose son corps autour des enfants
+    // qu'on lui donne — aucun marqueur de la primitive n'est recopié ici.
+    const caler = () => {
+      const boite = fin.current?.parentElement;
+      if (boite) boite.scrollTop = boite.scrollHeight;
+    };
+    caler();
+    // La boîte change de hauteur quand la fenêtre change : sans ce recalage, la réplique courante
+    // repassait sous le pli à 1366 et à 360 (mesuré).
+    window.addEventListener('resize', caler);
+    return () => window.removeEventListener('resize', caler);
+  });
+  return (
+    <ParchmentCard>
+      {children}
+      <div ref={fin} />
+    </ParchmentCard>
+  );
+}
+
+/** LE DIALOGUE À LA FORME DE ROGUE TRADER (verbatim utilisateur 2026-09-21 : « lors d'un dialogue il
+ *  faut faire comme dans rogue trader ») : quatre blocs alignés au bas du champ — portrait du
+ *  LOCUTEUR et sa plaque de nom · PARCHEMIN de la conversation (tours passés + réplique courante) ·
+ *  RÉPONSES numérotées, avec le tag de test dérivé · portrait du MENEUR, qui répond. Aucune nappe de
+ *  pont : en dialogue le HUD s'efface, c'est la seule exception au pont unifié. */
+function DialogueMaquette({ scene, dialogueId, nodeId, coop = false }: { scene: Scene; dialogueId: string; nodeId?: string; coop?: boolean }) {
+  const dialogue = scene.dialogues.find((d) => d.id === dialogueId);
+  if (!dialogue) return <p className="hint">Dialogue absent de la scène.</p>;
+  const vise = nodeId ?? dialogue.start;
+  const node = dialogue.nodes.find((n) => n.id === vise) ?? dialogue.nodes[0];
+  const entites = scene.entities ?? [];
+  const locuteur = locuteurDe(dialogue, entites, node);
+  const tours = toursDe(dialogue, entites, node.id);
+  const meneur = meneurDeMaquette();
+  return (
+    <div className="stage-flot">
+      <div className="maquette-dialogue">
+        {/* 1 — QUI PARLE. Sans entité liée (nœud de narration), la vignette se replie sur son fleuron :
+            le bloc reste, la conversation garde ses quatre colonnes. */}
+        <VignetteDeMaquette className="mq-dlg-qui" sujet={locuteur && { kind: 'sceneEntity', ent: locuteur }} label={locuteur?.label} />
+        {/* 2 — LE PARCHEMIN : la conversation entière, rendue comme la relecture le fait déjà
+            (`DialogueHistoryScreen.tsx:72-78`), la réplique courante EN DERNIER et à vue — son
+            locuteur la précède au même rendu que les tours passés, jamais en titre de carte détaché. */}
+        <ParcheminDeMaquette>
+          {tours.map((t, i) => (
+            <Fragment key={i}>
+              {t.speaker && <div className="mini-title">{t.speaker}</div>}
+              <Prose md={t.nodeText} />
+              <p className="dlg-history-reply">{t.choiceText}</p>
+            </Fragment>
+          ))}
+          {locuteur?.label && <div className="mini-title">{locuteur.label}</div>}
+          <Prose md={node.desc} />
+        </ParcheminDeMaquette>
+        {/* 3 — LES RÉPONSES, numérotées (RT) ; une réponse refusée porte sa raison, comme aujourd'hui. */}
+        <SpeakerBanner className="mq-dlg-reponses" choices={<>
+          {node.choices.map((c, i) => {
+            const tag = tagDeTest(c);
+            return (
+              <GatedAction
+                key={i}
+                id={`dlg-choice-${i}`}
+                label={<>
+                  <span className="dlg-choice-text">{`${i + 1}. ${c.label}`}</span>
+                  {tag && <span className="chip">{tag}</span>}
+                </>}
+                ariaLabel={c.label}
+                enabled={!coop}
+                reason={`${SIEGE_DE_MAQUETTE} répond pour le groupe`}
+                onClick={rienDeMaquette}
+                primary={false}
+                btnClassName="dlg-choice"
+              />
+            );
+          })}
+          {coop && <SpectatorChip label={SIEGE_DE_MAQUETTE} action="répond pour le groupe…" />}
+        </>} />
+        {/* 4 — QUI RÉPOND : le MENEUR du groupe, dans la MÊME vignette que le locuteur — même cadre,
+            même cadrage de visage, même plaque de nom (référence RT). Aucune notion de « héros qui
+            répond » n'existe encore (#1362) : aucun état de sélection n'est montré. */}
+        <VignetteDeMaquette className="mq-dlg-meneur" sujet={{ kind: 'combatant', combatant: meneur }} label={meneur.label} />
+      </div>
+    </div>
+  );
+}
+
+/** La scène d'une campagne BUILT-IN qui porte CE dialogue — trouvée par son id, jamais par son rang. */
+function sceneAuDialogue(scenes: Scene[], dialogueId: string): Scene | undefined {
+  return scenes.find((s) => s.dialogues.some((d) => d.id === dialogueId));
+}
+
 export interface GallerySpecimen {
   /** Id STABLE du spécimen (clé de sélection), déclaré — le `label` n'est que l'affichage. */
   id: string;
@@ -1491,6 +1962,11 @@ export interface GallerySpecimen {
   category: string;
   /** Légende d'exception (ex. maquette statique) — sinon absente (spécimen vivant, données réelles). */
   note?: string;
+  /** Spécimen de PLEIN CHAMP : il ne tient pas dans une vignette parce qu'il EST un écran (le pont se
+   *  dimensionne sur la fenêtre, le dialogue s'aligne au bas du champ). La galerie le rend alors dans
+   *  le plateau réel (`.campaign-view > .stage`) au lieu de la coquille de liste — le spécimen rend un
+   *  FRAGMENT d'enfants de `.stage`, que la grille du plateau pose comme à l'écran. */
+  pleinChamp?: true;
   render: ComponentType;
 }
 
@@ -1577,6 +2053,93 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'ornements', label: 'Ornements', file: 'src/ui/Ornaments.tsx', category: 'Atelier du scribe', render: OrnamentsDemo },
   { id: 'notchgauge', label: 'NotchGauge', file: 'src/ui/NotchGauge.tsx', category: 'Personnages', render: NotchGaugeDemo },
   { id: 'windrose', label: 'WindRose', file: 'src/ui/WindRose.tsx', category: 'Personnages', render: WindRoseDemo },
+
+  // ── MAQUETTES #1849 — à juger À L'IMAGE, aucune n'est branchée (cf. le bloc de tête « MAQUETTES »).
+  {
+    id: 'mq-1849-a1',
+    label: 'A1 — Exploration : la console du meneur, rail d’ouvreurs au bord droit',
+    file: 'src/ui/CombatConsole.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Toutes les surfaces que l’écran monte hors combat : barre haute (☰, lieu, objectif), bande de groupe, rail du bord droit (7 commandes : possessions, carnet, navire, carte, repos, voyage, journal), pont de bord à bord. Même empreinte qu’en combat ; les cases de combat sont FERMÉES à leur adresse (raison « Hors combat », littéral de maquette). Clic sur un portrait du bandeau = mener ce héros ; au bout gauche de SA barre l’inventaire (sa fiche, onglet Sac), au bout droit sa fiche, et la boîte de « Fin du tour » reste réservée mais muette.',
+    pleinChamp: true,
+    render: () => <ChampDeMaquette mode="exploration"><PontMaquette mode="exploration" heros={meneurDeMaquette()} /></ChampDeMaquette>,
+  },
+  {
+    id: 'mq-1849-b-histo',
+    label: 'B — Dialogue : la conversation qui défile (trois locuteurs)',
+    file: 'src/ui/SpeakerBanner.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Dialogue RÉEL `dlg-tablee` (src/scenes/test-scenarios/dialogue-multi.ts) au 3ᵉ nœud : les deux tours passés viennent de la scène, verbatim.',
+    pleinChamp: true,
+    render: () => <DialogueMaquette scene={scenarioDialogueMulti.scene} dialogueId="dlg-tablee" nodeId="a3" />,
+  },
+  {
+    id: 'mq-1849-b-narrateur',
+    label: 'B — Dialogue : nœud de NARRATION (aucune entité liée)',
+    file: 'src/ui/SpeakerBanner.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Dialogue RÉEL `dlg-ambush` (src/scenes/test-scenarios/embuscade.ts) : sans entité liée, le bloc du locuteur se replie sur son fleuron — les quatre colonnes restent.',
+    pleinChamp: true,
+    render: () => <DialogueMaquette scene={scenarioEmbuscade.scene} dialogueId="dlg-ambush" />,
+  },
+  {
+    id: 'mq-1849-b-solo',
+    label: 'B — Dialogue : une réponse à TEST (tag dérivé)',
+    file: 'src/ui/SpeakerBanner.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Dialogue RÉEL `dlg-kramer-nuit-du-chat` (Loup et Saumure) : le tag de la réponse est DÉRIVÉ de `choice.flow.test` (Compétence + difficulté canon), rien n’est recopié ; le clic ouvrira la fenêtre de jet ordinaire, la maquette n’en montre rien.',
+    pleinChamp: true,
+    render: () => {
+      const scene = sceneAuDialogue(builtinCampaigns[0].scenes, 'dlg-kramer-nuit-du-chat');
+      if (!scene) return <p className="hint">Scène introuvable.</p>;
+      return <DialogueMaquette scene={scene} dialogueId="dlg-kramer-nuit-du-chat" />;
+    },
+  },
+  {
+    id: 'mq-1849-a1-lanceur',
+    label: 'A1-lanceur — Exploration : le meneur est le prêtre',
+    file: 'src/ui/CombatConsole.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Suppose #1362 (changer de meneur) : Frère Anselm mène, ses prières et son Soin sont les seules cases ALLUMÉES hors combat. Mêmes surfaces qu’en A1. Clic sur un portrait du bandeau = mener ce héros ; inventaire (fiche, onglet Sac) au bout gauche de sa barre, fiche au bout droit.',
+    pleinChamp: true,
+    render: () => <ChampDeMaquette mode="exploration"><PontMaquette mode="exploration" heros={lanceurDeMaquette()} /></ChampDeMaquette>,
+  },
+  {
+    id: 'mq-1849-c',
+    label: 'C — Combat : la même console, les mêmes bouts de barre',
+    file: 'src/ui/CombatConsole.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Toutes les surfaces que l’écran monte en bagarre : barre haute (☰ seul — lieu et objectif sont masqués en combat), bande de groupe, frise d’initiative à l’ordre réel de l’embuscade (round 2, héros de la console au trait), fil de combat sous la frise, rail du bord droit (dossier de navire, tiroir-journal), pont. Même empreinte qu’en exploration, mêmes bouts de barre aux mêmes boîtes, cases allumées, conduit d’Avantage rempli ; aucun bandeau de phase en cours de tour (le jeu n’en rend un que pour une pause de round ou un interlude), « Fin du tour » à l’extrême droite de la bande. Clic sur un portrait du bandeau = mener ce héros ; inventaire (fiche, onglet Sac) au bout gauche de sa barre, fiche au bout droit.',
+    pleinChamp: true,
+    render: () => <ChampDeMaquette mode="combat"><PontMaquette mode="combat" heros={meneurDeMaquette()} /></ChampDeMaquette>,
+  },
+  {
+    id: 'mq-1849-m2',
+    label: 'M2 — Mobile : la ligne d’arche seule, dépliable',
+    file: 'src/ui/CombatConsole.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. À juger À 360px : au repos le pont ne garde que sa ligne d’arche, la chip ⌃ déplie les travées ; le rail garde le bord droit.',
+    pleinChamp: true,
+    render: () => <ChampDeMaquette mode="exploration"><PontMaquette mode="exploration" heros={meneurDeMaquette()} replie /></ChampDeMaquette>,
+  },
+  {
+    id: 'mq-1849-m1',
+    label: 'M1 — Mobile : la composition compacte entière',
+    file: 'src/ui/CombatConsole.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. À juger À 360px : la composition compacte EXISTANTE du pont (combat-console.css ≤560), rail du bord droit compris.',
+    pleinChamp: true,
+    render: () => <ChampDeMaquette mode="exploration"><PontMaquette mode="exploration" heros={meneurDeMaquette()} /></ChampDeMaquette>,
+  },
+  {
+    id: 'mq-1849-b-coop',
+    label: 'B — Dialogue : en COOP, un autre siège répond',
+    file: 'src/ui/SpeakerBanner.tsx',
+    category: 'Maquettes #1849',
+    note: 'maquette statique — ne lit pas le store. Comportement EXISTANT (DialogueBox.tsx:62-70) porté à la forme RT : les réponses sont inertes avec leur raison, et la puce de spectateur dit qui répond.',
+    pleinChamp: true,
+    render: () => <DialogueMaquette scene={scenarioDialogueMulti.scene} dialogueId="dlg-tablee" nodeId="a3" coop />,
+  },
 ];
 
 /** Deux spécimens homonymes d'id seraient indistinguables à la sélection. */

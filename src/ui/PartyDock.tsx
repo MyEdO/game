@@ -18,10 +18,15 @@ const DOCK_STATE_CELLS = 3;
 export type PartyDockProps = {
   heroes: Combatant[];
   targeting?: boolean;
+  /** Héros MENÉ hors combat (#1849) : sa tuile porte le marquage de CHOIX COURANT de la primitive
+   *  (`PortraitTile selected`, celui des pickers), et le geste de la bande devient « mener » — la
+   *  fiche et l'inventaire s'ouvrent alors aux deux bouts de SA barre. Absent : bande identitaire,
+   *  le portrait ouvre la fiche (comportement d'origine). */
+  mene?: string;
   onOpen: (id: string) => void;
 };
 
-export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
+export function PartyDock({ heroes, targeting, mene, onOpen }: PartyDockProps) {
   const sheetOpen = useGame((s) => s.sheetId != null);
   /** Bande DÉPLIÉE ? Seule la composition étroite (≤560px) la replie — au-dessus, la poignée est
    *  masquée en CSS et la piste toujours montée : l'état ne retire jamais de contenu du DOM. */
@@ -72,8 +77,9 @@ export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
                État prend l'alvéole de débord de la primitive. */
             reserveStates
             maxStates={DOCK_STATE_CELLS}
+            selected={mene === c.id}
             onClick={() => onOpen(c.id)}
-            title={targeting ? `${c.label} — cibler` : `${c.label} — fiche du personnage`}
+            title={targeting ? `${c.label} — cibler` : mene !== undefined ? `${c.label} — mener` : `${c.label} — fiche du personnage`}
           />
           {/* NOM VISIBLE sous la tuile (planche 2026-08-17 : la bande nomme chaque héros en
               permanence — l'interdit « nom au survol » est levé, spec §1c-bis). */}
