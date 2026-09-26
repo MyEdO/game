@@ -60,7 +60,8 @@ const COEXISTENCE: Record<string, number> = {
   'naval-traits.json': 2,
   // 2 → 24 (#1688) : les 24 Structures citent leur folio (ADE II 89, AA 119-120) ET portent désormais
   // chacune la raison de sa `taille`, valeur qu'aucune table n'imprime (AA 10 l.98).
-  'structures.json': 24,
+  // 24 → 25 (#1883) : le `garde-corps` cite LDB 14 l.81 (folio 161) ET porte son `maison`.
+  'structures.json': 25,
   // +1 (#1599) : le symptôme `convulsions` cite son folio (LDB 188) ET porte en clair l'arbitrage de
   // son palier Grave — LDB 20 l.157 chiffre −10 (base) et −20 (Modéré) sans jamais rechiffrer Grave.
   'symptoms.json': 1,

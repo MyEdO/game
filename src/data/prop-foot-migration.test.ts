@@ -17,10 +17,6 @@ import type { AreneSceneFactory } from '../../scripts/arene/scenes.d.mts';
  */
 const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
   ['abreuvoir', 2, 1],
-  ['balustrade-bois', 3, 1],
-  // `balustrade-loge` se pose désormais à la CASE (une travée par case de rive de puits,
-  // `opera/floorplan.ts` `puitsRim`) : son empreinte de type a suivi le modèle, pas la migration.
-  ['balustrade-loge', 1, 1],
   ['barque', 2, 1],
   ['canon-de-pont', 1, 1],
   ['cheval-mort', 2, 1],

@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { detailRecipeSchema } from '../grammaire/valeurs';
+import { claireVoieSchema, detailRecipeSchema } from '../grammaire/valeurs';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -20,7 +20,8 @@ export const WALL_PART_KEYS = [
   'vantail', 'vantail-planche', 'poignee',
   'vitre', 'meneau',
   'parapet', 'bande', 'arase', 'merlon',
-  'linteau', 'herse-barreau', 'herse-traverse', 'seuil',
+  'linteau', 'seuil',
+  'barreau', 'traverse',
   'gravats', 'gravats-tas',
 ] as const;
 
@@ -86,16 +87,9 @@ const doc = document(
         leaf: z.string().optional(),
         plank: z.string().optional(),
         handle: z.string().optional(),
-        herse: z
-          .strictObject({
-            bars: z.number(),
-            topFrac: z.number(),
-            traverseFracs: z.array(z.number()),
-            traverseColor: z.string(),
-          })
-          .optional(),
       })
       .optional(),
+    claireVoie: claireVoieSchema.optional(),
     window: z
       .strictObject({
         glass: z.string(),
@@ -133,7 +127,11 @@ const doc = document(
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
-    door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail, poignée et herse' },
+    door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail et poignée' },
+    claireVoie: {
+      label: 'Claire-voie',
+      hint: 'Barreaux ajourés (herse, balustres) : nombre, bornes basse et haute en fraction de hauteur, traverses',
+    },
     window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
     relief: {
       label: 'Relief de paroi',

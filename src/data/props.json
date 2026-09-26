@@ -154,16 +154,6 @@
     }
   },
   {
-    "id": "balustrade-loge",
-    "type": "props",
-    "label": "Balustrade de loge",
-    "solid": true,
-    "foot": {
-      "w": 1,
-      "h": 1
-    }
-  },
-  {
     "id": "rangee-sieges",
     "type": "props",
     "label": "Rangée de fauteuils",
@@ -3778,15 +3768,6 @@
     "maison": "couvert maison : une carcasse au sol ne couvre qu’un corps à terre — l’étalon IMPARFAIT de la haie (LDB 14 l.72)"
   },
   {
-    "id": "balustrade-bois",
-    "type": "props",
-    "label": "Balustrade en bois",
-    "foot": {
-      "w": 3,
-      "h": 1
-    }
-  },
-  {
     "id": "canon-de-pont",
     "type": "props",
     "label": "Canon de pont",
@@ -5136,14 +5117,6 @@
     "type": "props",
     "label": "Barre à roue",
     "solid": true
-  },
-  {
-    "id": "bastingage",
-    "type": "props",
-    "label": "Bastingage",
-    "solid": true,
-    "cover": "moyenne",
-    "maison": "couvert maison : une lisse de pavois est une barrière en bois de bord — l’étalon MOYEN (LDB 14 l.81), même objet"
   },
   {
     "id": "bourse",

@@ -149,8 +149,6 @@ const RAISONS = {
     'couvert maison : même objet que le comptoir droit, replié en angle — l’étalon MOYEN de la barrière en bois (LDB 14 l.81)',
   'arche-ruine':
     'couvert maison : un piédroit de maçonnerie EST le mur de pierre de l’étalon de couvert TOTAL (LDB 14 l.86), et il coupe la vue',
-  bastingage:
-    'couvert maison : une lisse de pavois est une barrière en bois de bord — l’étalon MOYEN (LDB 14 l.81), même objet',
   buisson:
     'couvert maison : un buisson EST la haie de l’étalon de couvert IMPARFAIT (LDB 14 l.72) — même objet, aucune extrapolation',
   cabestan:

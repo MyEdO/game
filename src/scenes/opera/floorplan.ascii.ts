@@ -8,7 +8,8 @@
  *   puits touche le mur nord, rien ne relie les deux flancs par le haut).
  *   Arêtes : '-'=mur (N) ·
  *   '|'=mur (E) · ':'=PORTE · 'w'=cloison de bois (`OPERA_WALL_LEGEND` de `floorplan.ts` : mur SANS
- *   structure, apparence seule — les refends entre loges voisines des deux flancs de l'étage).
+ *   structure, apparence seule — les refends entre loges voisines des deux flancs de l'étage) ·
+ *   'g'=GARDE-CORPS (structure `garde-corps`, même table) sur chaque arête rive|puits de l'étage.
  *   Les 2 PUITS de rampe (angles du foyer, où la couche 0 monte 0→4 m rejoindre la
  *   galerie) sont TROUÉS ici même à l'étage (cases ' ' aux cols 6-8 / 35-37, rangées 46-49) — plus aucun
  *   perçage en code. Seule l'ÉLÉVATION MÉTRIQUE (S/s + rampes + galerie à 4 m) est posée par `floorplan.ts`
@@ -145,76 +146,76 @@ export const ETAGE_ASCII = String.raw`
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   |P P P PwM M M M M M M M M # # # # # # # # # # # # # # # # P P P P P P P P P P P P P|
 
-  |P P P PwM M M M M M M M M                                 P P P P P P P P P P P P P|
+  |P P P PwM M M M M M M M Mg                               gP P P P P P P P P P P P P|
 
-  |P P P P:M M M M M M M M M                                 P P P P P P P P P P P P P|
+  |P P P P:M M M M M M M M Mg                               gP P P P P P P P P P P P P|
 
-  |P P P PwM M M M M M M M M                                 P P P P P P P P P P P P P|
-
-  |P P P PwM M M M M M M M                                     P P P P P P P P P P P P|
+  |P P P PwM M M M M M M M Mg                               gP P P P P P P P P P P P P|
+                           g                                 g
+  |P P P PwM M M M M M M Mg                                   gP P P P P P P P P P P P|
            w w w w w w w w                                     w w w w w w w w w w : w
-  |P P P PwP P P P P P P P                                     P P P P P P P P P P P P|
-   w : w w
-  |P P P P P P P P P P P                                         P P P P P P P P P P P|
+  |P P P PwP P P P P P P Pg                                   gP P P P P P P P P P P P|
+   w : w w               g                                     g
+  |P P P P P P P P P P Pg                                       gP P P P P P P P P P P|
 
-  |P P P P P P P P P P P                                         P P P P P P P P P P P|
+  |P P P P P P P P P P Pg                                       gP P P P P P P P P P P|
+                       g                                         g
+  |P P P P P P P P P Pg                                           gP P P P P P P P P P|
 
-  |P P P P P P P P P P                                             P P P P P P P P P P|
-
-  |P P P P P P P P P P                                             P P P P P P P P P P|
+  |P P P P P P P P P Pg                                           gP P P P P P P P P P|
        w w w w w w w w                                             w w w w w w w w
-  |P P|P P P P P P P P                                             P P P P P P P P|P P|
+  |P P|P P P P P P P Pg                                           gP P P P P P P P|P P|
 
-  |P P|P P P P P P P P                                             P P P P P P P P|P P|
+  |P P|P P P P P P P Pg                                           gP P P P P P P P|P P|
+                     g                                             g
+  |P P:P P P P P P Pg                                               gP P P P P P P:P P|
 
-  |P P:P P P P P P P                                                 P P P P P P P:P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
-
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
        w w w w w w w                                                 w w w w w w w
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P:P P P P P P P                                                 P P P P P P P:P P|
+  |P P:P P P P P P Pg                                               gP P P P P P P:P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
-       - - - - - -                                                     - - - - - -
-  |P P|P P P P P P                                                     P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
+       - - - - - - g                                                 g - - - - - -
+  |P P|P P P P P Pg                                                   gP P P P P P|P P|
 
-  |P P|P P P P P P                                                     P P P P P P|P P|
+  |P P|P P P P P Pg                                                   gP P P P P P|P P|
 
-  |P P|P P P P P P                                                     P P P P P P|P P|
+  |P P|P P P P P Pg                                                   gP P P P P P|P P|
 
-  |P P|P P P P P P                                                     P P P P P P|P P|
+  |P P|P P P P P Pg                                                   gP P P P P P|P P|
+                   g                                                 g
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P Pg                                               gP P P P P P P|P P|
+                     g                                             g
+  |P P|P P P P P P P Pg                                           gP P P P P P P P|P P|
 
-  |P P|P P P P P P P                                                 P P P P P P P|P P|
+  |P P|P P P P P P P Pg                                           gP P P P P P P P|P P|
+                       g                                         g
+  |P P|P P P P P P P P Pg                                       gP P P P P P P P P|P P|
+                         g                                     g
+  |P P|P P P P P P P P P Pg                                   gP P P P P P P P P P|P P|
 
-  |P P|P P P P P P P P                                             P P P P P P P P|P P|
-
-  |P P|P P P P P P P P                                             P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P                                         P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P                                     P P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P                                     P P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P P                                 P P P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P P P P                         P P P P P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P P P P P                     P P P P P P P P P P P P P P|P P|
-
-  |P P|P P P P P P P P P P P P P P P P P         P P P P P P P P P P P P P P P P P|P P|
-
+  |P P|P P P P P P P P P Pg                                   gP P P P P P P P P P|P P|
+                           g                                 g
+  |P P|P P P P P P P P P P Pg                               gP P P P P P P P P P P|P P|
+                             g g                         g g
+  |P P|P P P P P P P P P P P P Pg                       gP P P P P P P P P P P P P|P P|
+                                 g                     g
+  |P P|P P P P P P P P P P P P P Pg                   gP P P P P P P P P P P P P P|P P|
+                                   g g g         g g g
+  |P P|P P P P P P P P P P P P P P P P Pg       gP P P P P P P P P P P P P P P P P|P P|
+                                         g g g g
   |P P|P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P|P P|
 
   |P P|P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P P|P P|

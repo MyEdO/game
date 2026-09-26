@@ -90,10 +90,10 @@ describe('wallSvg — pierre : palette UNIFIÉE du JSON (hex), face ombrée par 
     const svg = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }), dims, { zoom: 0.4 });
     expect(svg).not.toContain('fill="url(#dt-');
   });
-  it('porte-de-ville : 7 barreaux de herse (lignes 1.7 px) + 2 traverses', () => {
+  it('porte-de-ville : 7 barreaux de claire-voie (lignes 1.7 px) + 2 traverses', () => {
     const svg = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), dims);
     expect((svg.match(/stroke-width="1\.7"/g) ?? []).length).toBe(7);
-    const trav = structureAppearance('porte-de-ville').door!.herse!.traverseColor;
+    const trav = structureAppearance('porte-de-ville').claireVoie!.traverseColor;
     expect((svg.match(new RegExp(`fill="${trav}"`, 'g')) ?? []).length).toBe(2);
   });
   it('brèche : gravats + tas dentelé (liseré ferrure)', () => {

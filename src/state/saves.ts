@@ -149,7 +149,11 @@ import type { Scene } from './scene';
 // hors combat ; `resolveTest` aiguille sa branche sur ce champ (`reprendreTestSubi`). Une save de 53
 // rouvre un `pendingTest` sans `subi`, dont la branche `target`/`caster` part au marcheur de SCÈNE. La
 // save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 54;
+// 54 → 55 (#1883) : les défs de décor `balustrade-loge`, `balustrade-bois` et `bastingage` sont retirées de
+// `props.json`, et le garde-corps devient une ARÊTE (`WallSeg` à structure `garde-corps`). Une save de 54
+// prise à l'opéra rouvre sur une scène vivante dont les travées sont des décors inexistants
+// (`validateScene`), sans les arêtes neuves. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 55;
 
 export interface SaveMeta {
   version: number;

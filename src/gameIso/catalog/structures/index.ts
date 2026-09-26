@@ -55,7 +55,7 @@ export function wallPartColor(app: StructureAppearanceDef, part: WallPart): stri
     case 'plinthe': return app.wood?.skirt ?? app.face;
     case 'couronnement': return app.wood?.cap ?? app.cap ?? app.face;
     case 'arase': case 'merlon': return app.cap ?? app.face;
-    case 'bande': case 'herse-barreau': return app.band ?? app.face;
+    case 'bande': case 'barreau': return app.band ?? app.face;
     case 'jambage': return app.door?.jamb ?? app.face;
     case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? shade(app.face, 0.78);
     case 'vantail-planche': return app.door?.plank ?? app.wood?.skirt ?? app.post;
@@ -63,7 +63,7 @@ export function wallPartColor(app: StructureAppearanceDef, part: WallPart): stri
     case 'vitre': return app.window?.glass ?? defaultWindow()?.glass ?? app.face;
     case 'meneau': return app.window?.mullion ?? app.wood?.frame ?? app.post;
     case 'poteau': return app.post;
-    case 'herse-traverse': return app.door?.herse?.traverseColor ?? app.band ?? app.face;
+    case 'traverse': return app.claireVoie?.traverseColor ?? app.band ?? app.face;
     case 'gravats': case 'seuil': return app.rubble ?? app.wood?.rubble ?? app.face;
     case 'gravats-tas': return app.rubbleHi ?? app.wood?.rubbleHi ?? app.face;
   }
@@ -73,7 +73,7 @@ export function wallPartColor(app: StructureAppearanceDef, part: WallPart): stri
  *  - `matiere` : la partie EST la matière pleine du mur (courtine, couronnements, montants) ;
  *  - `saillie` : la partie est POSÉE devant de la matière pleine (`jutM` = saillie par côté) ;
  *  - `traversant` : la partie BOUCHE une ouverture, il n'y a RIEN derrière elle (`thickM` = épaisseur
- *    totale) — un vantail de porte, un carreau, les barreaux d'une herse, un tas de gravats.
+ *    totale) — un vantail de porte, un carreau, les barreaux d'une claire-voie, un tas de gravats.
  *  CALIBRAGE des saillies (#1176 P1-E) : le décalage de la carte d'ombre le long de la normale
  *  (`sunRig().normalBias`, `sceneMeshes.ts`) suit le rayon englobant des CASTEURS — géométrie ET quads
  *  de billboard (`worldShadowBox`) —, donc la TAILLE de la scène. Mesuré (m) sur les six scènes-témoins
@@ -107,8 +107,8 @@ export function wallPartRelief(part: WallPart): WallPartRelief {
     case 'vantail-planche': return { famille: 'traversant', thickM: 0.21 };
     case 'poignee': return { famille: 'traversant', thickM: 0.28 };
     case 'meneau': return { famille: 'traversant', thickM: 0.12 };
-    case 'herse-barreau': return { famille: 'traversant', thickM: 0.1 };
-    case 'herse-traverse': return { famille: 'traversant', thickM: 0.13 };
+    case 'barreau': return { famille: 'traversant', thickM: 0.1 };
+    case 'traverse': return { famille: 'traversant', thickM: 0.13 };
     case 'gravats': return { famille: 'traversant', thickM: 0.6 };
     case 'gravats-tas': return { famille: 'traversant', thickM: 0.8 };
     case 'vitre': return { famille: 'traversant', thickM: 0 };

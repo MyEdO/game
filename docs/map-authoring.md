@@ -250,9 +250,13 @@ Spec de relief EN COORDONNÉES (repli bas niveau ; préférer `elevate` piloté 
    partage entre n pièces sans trait entre elles : c'est un arbitrage MAISON, révisable, à motiver au
    site qui le déclare.
 8. **Mobilier par marqueurs** (`bind`) — en DERNIER, jamais avant validation structurelle.
-   Vocabulaire d'auberge déjà catalogué (`src/data/props.json`) : `escalier-bois`, `balustrade-bois`, `enclume`, `foyer-de-forge`, `cuve-brasserie`, `stalle-ecurie` ;
+   Vocabulaire d'auberge déjà catalogué (`src/data/props.json`) : `escalier-bois`, `enclume`, `foyer-de-forge`, `cuve-brasserie`, `stalle-ecurie` ;
    murs à colombage via l'apparence `mur-a-ossature-en-bois`
-   (`src/data/structureAppearance.json`).
+   (`src/data/structureAppearance.json`). Un garde-corps (rive de galerie, bord de balcon, bord de
+   pont) n'est PAS un décor de case : c'est la structure d'ARÊTE `garde-corps` (`src/data/structures.json`),
+   posée sur l'arête qu'il borde par l'une des deux voies d'arête — un char de `wallLegend` tracé dans
+   la grille `walled` (`{ g: { structure: 'garde-corps' } }`), ou une entrée `walls`
+   (`{ x, y, side, z, structure: 'garde-corps' }`).
 9. **Recette** — le harnais ci-dessous.
 
 ## Harnais QC de carte (réfute, ne certifie jamais)
@@ -314,7 +318,7 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `wallLegend?` | 1 | `src/scenes/opera/floorplan.ts` |
 | `elevate?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
 | `cells?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `walls?` | 5 | `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/99-revisit.ts`, `src/scenes/test-scenarios/zones-pieces.ts` … |
+| `walls?` | 6 | `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/99-revisit.ts`, `src/scenes/test-scenarios/opera.ts` … |
 | `relief?` | 4 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/opera.ts`, `src/scenes/test-scenarios/pont-vitrine.ts` |
 | `terrainRects?` | 2 | `src/scenes/test-scenarios/zones-pieces.ts`, `src/scenes/vitrine-batiments.ts` |
 | `architecture?` | 3 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/zones-pieces.ts`, `src/scenes/vitrine-batiments.ts` |
@@ -331,4 +335,4 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: b8bbbcd2a3962f358ee4c12771f73d5128ae1e6b (64 fichiers, 7 dossiers) corps: 0cf3a85725e6616358b80f72966db4d310aa7014 -->
+<!-- sources-empreinte: c81c317969f35dd4336588beaa039b05ebce78e4 (65 fichiers, 7 dossiers) corps: 21b4b878d9c6f1a32015f75f43265ef0920ec25f -->

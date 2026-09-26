@@ -306,9 +306,10 @@ function idsAncres(fichierData, ids) {
   return ids
 }
 const PROPS_AUBERGE = idsAncres('src/data/props.json', [
-  'escalier-bois', 'balustrade-bois', 'enclume', 'foyer-de-forge', 'cuve-brasserie', 'stalle-ecurie',
+  'escalier-bois', 'enclume', 'foyer-de-forge', 'cuve-brasserie', 'stalle-ecurie',
 ])
 const APPARENCES_AUBERGE = idsAncres('src/data/structureAppearance.json', ['mur-a-ossature-en-bois'])
+const [GARDE_CORPS] = idsAncres('src/data/structures.json', ['garde-corps'])
 
 // ── Constantes de verticalité : DÉRIVÉES de leur module, jamais recopiées ─────────────────────────
 
@@ -507,7 +508,11 @@ ${ORDRE}
 8. **Mobilier par marqueurs** (\`bind\`) — en DERNIER, jamais avant validation structurelle.
    Vocabulaire d'auberge déjà catalogué (\`src/data/props.json\`) : ${PROPS_AUBERGE.map((p) => `\`${p}\``).join(', ')} ;
    murs à colombage via l'apparence ${APPARENCES_AUBERGE.map((a) => `\`${a}\``).join(', ')}
-   (\`src/data/structureAppearance.json\`).
+   (\`src/data/structureAppearance.json\`). Un garde-corps (rive de galerie, bord de balcon, bord de
+   pont) n'est PAS un décor de case : c'est la structure d'ARÊTE \`${GARDE_CORPS}\` (\`src/data/structures.json\`),
+   posée sur l'arête qu'il borde par l'une des deux voies d'arête — un char de \`wallLegend\` tracé dans
+   la grille \`walled\` (\`{ g: { structure: '${GARDE_CORPS}' } }\`), ou une entrée \`walls\`
+   (\`{ x, y, side, z, structure: '${GARDE_CORPS}' }\`).
 9. **Recette** — le harnais ci-dessous.
 
 ## Harnais QC de carte (réfute, ne certifie jamais)

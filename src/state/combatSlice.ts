@@ -2873,7 +2873,7 @@ export function createCombatSlice(get: Get, set: Set) {
           const data = findStructureById(w.structure!);
           if (!data) return null;
           const c = structureCombatant(data, `structure-${w.x}-${w.y}-${w.side}-${w.z ?? 0}`);
-          c.pos = { x: w.x, y: w.y };
+          c.pos = { x: w.x, y: w.y, ...(w.z ? { z: w.z } : {}) };
           c.structureEdge = { x: w.x, y: w.y, side: w.side, z: w.z ?? 0 };
           return c;
         })

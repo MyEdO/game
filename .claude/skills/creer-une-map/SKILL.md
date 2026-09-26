@@ -29,8 +29,11 @@ image → grille ».
 7. **Zones nommées** : calque `zoneMap` + `zoneLegend` (un char = une pièce ; nom cuit au centre, révélé
    en cutaway) — recopie la légende du plan.
 8. **Mobilier par marqueurs** (`bind`) — EN DERNIER. Vocabulaire d'auberge : `escalier-bois`,
-   `balustrade-bois`, `enclume`, `foyer-de-forge`, `cuve-brasserie`, `stalle-ecurie` ; colombage via
-   l'apparence de mur `mur-a-ossature-en-bois`.
+   `enclume`, `foyer-de-forge`, `cuve-brasserie`, `stalle-ecurie` ; colombage via l'apparence de mur
+   `mur-a-ossature-en-bois`. Un garde-corps (rive de galerie, bord de balcon, bord de pont) n'est PAS un
+   décor de case : c'est la structure d'ARÊTE `garde-corps`, posée sur l'arête qu'il borde — par un char
+   de `wallLegend` dans la grille `walled` (`{ g: { structure: 'garde-corps' } }`), ou par une entrée
+   `walls` (`{ x, y, side, z, structure: 'garde-corps' }`).
 9. **Recette** — le harnais ci-dessous.
 
 ## Harnais QC — CHEMIN OBLIGATOIRE avant de déclarer une carte finie (réfute, ne certifie jamais)

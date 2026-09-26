@@ -34,8 +34,23 @@ describe('Scénario « Opéra — Théâtre » : Scene produite par buildScene(M
     expect(t0[idx(1, 5)]).toBe('mur'); // '.' du bord parterre → base 'mur'
     expect(t0[idx(5, 5)]).toBe('marbre'); // parterre
     expect(t0[idx(6, 2)]).toBe('plancher'); // scène
-    // aucune arête de mur : la géométrie de jeu reste des tuiles pleines, pas des murs d'arête
-    expect(scene.walls ?? []).toHaveLength(0);
+    // les murs restent des tuiles pleines : les seules arêtes sont les GARDE-CORPS des loges (#1883)
+    expect((scene.walls ?? []).filter((w) => w.structure !== 'garde-corps')).toEqual([]);
+  });
+
+  it('GARDE-CORPS : chaque bord de loge sur le vide du parterre est une arête `garde-corps` à l’étage (#1883)', () => {
+    const aretes = (scene.walls ?? []).map((w) => `${w.x},${w.y}${w.side}z${w.z ?? 0}`).sort();
+    expect(aretes).toEqual([
+      '12,13Nz1', '13,13Nz1', '14,13Nz1', '16,5Ez1', '16,6Ez1', '16,7Ez1',
+      '3,5Ez1', '3,6Ez1', '3,7Ez1', '6,13Nz1', '7,13Nz1', '8,13Nz1',
+    ]);
+    for (const w of scene.walls ?? []) {
+      const [nx, ny] = w.side === 'N' ? [w.x, w.y - 1] : [w.x + 1, w.y];
+      const [vide, loge] = w.side === 'E' && w.x === 16 ? [[w.x, w.y], [nx, ny]] : [[nx, ny], [w.x, w.y]];
+      expect(layerTiles(scene, 1)[idx(vide[0], vide[1])], `${w.x},${w.y}${w.side} borde le vide`).toBe('vide');
+      expect(layerTiles(scene, 1)[idx(loge[0], loge[1])], `${w.x},${w.y}${w.side} borde la loge`).toBe('plancher');
+    }
+    expect(scene.entities.some((e) => e.kind === 'prop' && /^bal-/.test(e.id)), 'plus aucune travée de décor').toBe(false);
   });
 
   it('reproduit les hauteurs métriques : scène +1 m, rampes d’angle 0→1→2 m, étage z1 à 2 m', () => {

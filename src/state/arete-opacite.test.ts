@@ -27,10 +27,10 @@ const sceneAvec = (seg: Partial<WallSeg>): Scene => {
 const ARETE = (s: Scene): WallSeg => s.walls![0];
 
 describe('areteOcculte — la liste de CE QUI LAISSE VOIR est nominative et sourcée', () => {
-  it('exactement deux Structures sont déclarées non occultantes, et chacune porte son `maison`', () => {
+  it('exactement trois Structures sont déclarées non occultantes, et chacune porte son `maison`', () => {
     const transparentes = structures.filter((s) => s.occulte === false).map((s) => s.id).sort();
     // Verrou NOMINATIF : un ajout futur passe par CE test, jamais par un `occulte: false` discret.
-    expect(transparentes).toEqual(['cloture-en-clayonnage', 'herse']);
+    expect(transparentes).toEqual(['cloture-en-clayonnage', 'garde-corps', 'herse']);
     // Contrat du schéma (`schemas/defs/structures.ts`) : `occulte: false` ne cite aucun folio, il porte
     // son `maison`, qui NOMME le passage dont la décision est tirée. Le passage se reconnaît à la
     // graphie des réfs RAW du dépôt — `refsInLine`, seul lecteur TYPÉ (`.d.mts`) consommable depuis `src`, dérivé de `scripts/raw/_lib.mjs` :
@@ -45,7 +45,7 @@ describe('areteOcculte — la liste de CE QUI LAISSE VOIR est nominative et sour
 
   it('toutes les AUTRES Structures occultent — aucune n’est muette par omission de lecture', () => {
     const occultantes = structures.filter((s) => s.occulte !== false);
-    expect(occultantes.length).toBe(structures.length - 2);
+    expect(occultantes.length).toBe(structures.length - 3);
     for (const s of occultantes) expect(areteOcculte(emptyScene(1, 1), { x: 0, y: 0, side: 'E', structure: s.id } as WallSeg)).toBe(true);
   });
 });
@@ -57,6 +57,7 @@ describe('areteOcculte — les défauts OCCULTENT, seul un arbitrage déclaré l
     ['mur d’habitation (aucun champ `occulte`)', { structure: 'mur-a-ossature-en-bois' }, true],
     ['clôture en clayonnage (`occulte: false`)', { structure: 'cloture-en-clayonnage' }, false],
     ['herse (`occulte: false`)', { structure: 'herse' }, false],
+    ['garde-corps (`occulte: false`)', { structure: 'garde-corps' }, false],
   ])('%s → occulte = %s', (_nom, seg, attendu) => {
     const s = sceneAvec(seg as Partial<WallSeg>);
     expect(areteOcculte(s, ARETE(s))).toBe(attendu);

@@ -101,8 +101,10 @@ const TOTAL_GELE = 50;
  * interdite par le second volet de ce fichier (« AUCUN champ `source` de type CHAÎNE »). Ces valeurs
  * vivaient NON TAGUÉES en littéraux de `state/scene.ts` : le stock ne croît pas, il devient visible,
  * et `TOTAL_GELE` ne bouge pas.
+ *
+ * `props.json` 41 → 40 (#1883) : la déf de décor `bastingage` meurt, et son `maison` de couvert avec elle.
  */
-const MASQUES_GELES: Record<string, number> = { 'actions.json': 29, 'buildings.json': 7, 'defauts-de-compilation.json': 1, 'props.json': 41, 'semences-de-scene.json': 1, 'terrains.json': 25 };
+const MASQUES_GELES: Record<string, number> = { 'actions.json': 29, 'buildings.json': 7, 'defauts-de-compilation.json': 1, 'props.json': 40, 'semences-de-scene.json': 1, 'terrains.json': 25 };
 
 const lire = (dir: string, f: string): unknown => JSON.parse(readFileSync(join(dir, f), 'utf8'));
 

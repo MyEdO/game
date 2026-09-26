@@ -1955,7 +1955,7 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
     // Hauteur de chute = vraie hauteur métrique (relief) de la passerelle (z=tl.z) au-dessus du sol (z=0).
     const metres = Math.abs(heightAt(sc, tl.x, tl.y, tl.z) - heightAt(sc, tl.x, tl.y, 0));
     return (avant.battle?.combatants ?? [])
-      .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === 1)
+      .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === tl.z)
       .map((c) => ({ id: c.id, metres }));
   });
   set((s: GameState) => {
@@ -1970,7 +1970,7 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
       for (const tl of parapetTilesAbove(scene, e)) {
         const sc = scene; // réf non-null capturée pour les closures (scene est un `let` réassigné plus bas)
         combatants = combatants.map((c) => {
-          if (c.pos?.x !== tl.x || c.pos?.y !== tl.y || (c.pos?.z ?? 0) !== 1) return c;
+          if (c.pos?.x !== tl.x || c.pos?.y !== tl.y || (c.pos?.z ?? 0) !== tl.z) return c;
           const fallen = { ...c, wounds: { ...c.wounds }, conditions: c.conditions.map((x) => ({ ...x })) };
           placeCombatant(fallen, sc, { x: tl.x, y: tl.y }); // chute au sol (z=0, omis) + hauteur rafraîchie
           log.push(ev('damage', tr('cf.gangwayCollapse', { name: c.label }), c.id));

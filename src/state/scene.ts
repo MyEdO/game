@@ -769,13 +769,14 @@ export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: numb
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
 }
 
-/** Tuiles de PASSERELLE (z=1) marchables situées « au-dessus » d'une arête de structure de sol — la case
- *  porteuse `(seg.x,seg.y)` et sa voisine à travers l'arête (`N` → (x,y-1), `E` → (x+1,y)), prises à z=1
- *  et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la structure portant la
+/** Tuiles de PASSERELLE marchables situées « au-dessus » d'une arête de structure — la case porteuse
+ *  `(seg.x,seg.y)` et sa voisine à travers l'arête (`N` → (x,y-1), `E` → (x+1,y)), prises à l'étage qui
+ *  SURMONTE l'arête (`seg.z + 1`) et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la structure portant la
  *  passerelle est abattue, ces tuiles s'effondrent (cf. `collapseStructure`). Ne renvoie QUE celles
  *  réellement praticables (la passerelle réelle) ; les arêtes obliques (`\\`,`/`) n'ont pas de voisine. */
 export function parapetTilesAbove(scene: Scene, seg: { x: number; y: number; side: WallSide; z?: number }): { x: number; y: number; z: number }[] {
-  const z = 1; // une passerelle au-dessus d'une structure de sol est au 1ᵉʳ étage
+  const z = (seg.z ?? 0) + 1;
+  if (!scene.layers.some((l) => l.z === z)) return []; // aucun étage au-dessus : `tileAt` relirait la 1ʳᵉ couche
   const cells = [{ x: seg.x, y: seg.y }];
   if (seg.side === 'N') cells.push({ x: seg.x, y: seg.y - 1 });
   else if (seg.side === 'E') cells.push({ x: seg.x + 1, y: seg.y });

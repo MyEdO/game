@@ -1,4 +1,4 @@
-import { parterreSeatCells, puitsRim } from './floorplan';
+import { parterreSeatCells } from './floorplan';
 import type { SceneEntity } from '../../state/scene';
 
 /**
@@ -204,10 +204,6 @@ const ents: SceneEntity[] = [
   ...seatCol('et-Rring2', 36, 18, 30, 'O', 1),
   ...seatRow('et-balc-43', 43, 11, 19, 'N', 1), ...seatRow('et-balc-43b', 43, 23, 31, 'N', 1),
   ...seatRow('et-balc-45', 45, 9, 19, 'N', 1), ...seatRow('et-balc-45b', 45, 23, 33, 'N', 1),
-  // GARDE-CORPS du puits (NADJ 08 folio 39 : le bord de balcon court tout autour de l'ovale) : une
-  // travée de `balustrade-loge` par case de RIVE, cap sur le puits — la liste vient de `puitsRim`, seule
-  // lecture de l'ovale, et l'id de chaque travée est celui de sa case.
-  ...puitsRim().map(({ x, y, facing }): SceneEntity => ({ id: `bal-${x}-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x, y }, facing, z: 1 })),
   { id: 'et-app-Lg1', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 20 }, z: 1 },
   { id: 'et-app-Lg2', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 28 }, z: 1 },
   { id: 'et-app-Rg1', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 20 }, z: 1 },

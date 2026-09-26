@@ -2,7 +2,7 @@
  * BUILDER de MURS — produit les éléments `wall` du pivot (cf. ./types) : pour chaque `WallSeg` de la
  * scène, les FACES MONDE (GP : grille + MÈTRES) de son assemblage — courtine/panneau de face, plinthe/
  * bandes/arase, parapet + merlons, montants d'extrémité, ouverture/linteau de porte, barreaux +
- * traverses de herse, tas de gravats d'une structure ABATTUE — et les VÉRITÉS DE SCÈNE (visible/down/
+ * traverses de claire-voie, tas de gravats d'une structure ABATTUE — et les VÉRITÉS DE SCÈNE (visible/down/
  * open). TOUT vient des CHAMPS de l'apparence d'arête partagée (`edgeAppearance`, def JSON iso+POV) : parapet/porte/
  * bois routés par la PRÉSENCE des champs, jamais par un id/type en dur. PUR et projection-agnostique :
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
@@ -45,8 +45,8 @@ const HANDLE_T0 = 0.74, HANDLE_T1 = 0.8, HANDLE_LO = 0.42, HANDLE_HI = 0.56; // 
 // (fraction d'arête × de WALL_H), encadré par les morceaux de `face`, meneau + traverse (demi-tailles).
 const WIN_T0 = 0.3, WIN_T1 = 0.7, WIN_LO = 0.42, WIN_HI = 0.8;
 const MULLION_HALF_T = 0.02, MULLION_HALF_PX = 2;
-const TRAVERSE_PX = 2; // traverse de fer d'une herse
-/** Demi-largeur d'un BARREAU de herse (fraction d'arête) — l'affine retrace la ligne médiane (1.7 px). */
+const TRAVERSE_PX = 2; // traverse d'une claire-voie
+/** Demi-largeur d'un BARREAU de claire-voie (fraction d'arête) — l'affine retrace la ligne médiane (1.7 px). */
 const BAR_HALF_T = 0.02;
 /** Seuil d'éboulis d'un corps de garde ABATTU (fraction de WALL_H). */
 const GATE_SILL_FRAC = 0.12;
@@ -132,6 +132,19 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   };
 
   const H1 = b + wallHeightM; // sommet de la face pleine
+  /** CLAIRE-VOIE (`app.claireVoie`) : barreaux + traverses, SOURCE UNIQUE des deux branches. */
+  const claireVoie = (): Face[] => {
+    const cv = app.claireVoie;
+    if (!cv) return [];
+    const lo = b + wallHeightM * cv.bottomFrac, hi = b + wallHeightM * cv.topFrac;
+    const out: Face[] = [];
+    for (let k = 0; k <= cv.bars; k++) {
+      const t = k / cv.bars;
+      out.push(span('barreau', Math.max(0, t - BAR_HALF_T), Math.min(1, t + BAR_HALF_T), lo, hi));
+    }
+    for (const f of cv.traverseFracs) out.push(slab('traverse', lo + (hi - lo) * f, lo + (hi - lo) * f + isoPxToM(TRAVERSE_PX)));
+    return out;
+  };
 
   if (app.parapet) {
     // FORTIFICATION de pierre : courtine ferrée + couronne crénelée (parapet + ferrure + arase + merlons).
@@ -140,18 +153,8 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const crest = crownFaces(app, A, B, H1);
 
     if (app.door) {
-      // CORPS DE GARDE : passage béant barré d'une herse (intacte) ou seuil d'éboulis (abattue) + linteau.
-      const passage: Face[] = [];
-      if (down) passage.push(slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC));
-      else if (app.door.herse) {
-        const h = app.door.herse;
-        const top = b + wallHeightM * h.topFrac;
-        for (let k = 0; k <= h.bars; k++) {
-          const t = k / h.bars;
-          passage.push(span('herse-barreau', Math.max(0, t - BAR_HALF_T), Math.min(1, t + BAR_HALF_T), b, top));
-        }
-        for (const f of h.traverseFracs) passage.push(slab('herse-traverse', b + (top - b) * f, b + (top - b) * f + isoPxToM(TRAVERSE_PX)));
-      }
+      // CORPS DE GARDE : passage béant barré de sa claire-voie (intacte) ou seuil d'éboulis (abattue) + linteau.
+      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : claireVoie();
       return [...passage, slab('linteau', H1 - isoPxToM(app.door.lintelPx), H1), ...crest];
     }
     if (down) return breach();
@@ -170,10 +173,11 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const op = wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
     // OUVERTE → l'ouverture est un TROU : AUCUNE face ne la remplit (jambages et chambranle la bordent
     // déjà, et les joues du mur se voient de part et d'autre) — on voit la pièce derrière, comme par une
-    // porte ouverte. FERMÉE → VANTAIL (panneau + planches + poignée) : la porte se LIT comme une porte.
+    // porte ouverte. FERMÉE → sa CLAIRE-VOIE quand l'apparence en porte une (herse), sinon le VANTAIL
+    // (panneau + planches + poignée) : la porte se LIT comme une porte.
     const leaf: Face[] = open
       ? []
-      : [
+      : app.claireVoie ? claireVoie() : [
           span('vantail', LEAF_T0, LEAF_T1, b, b + op),
           ...PLANK_TS.map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
           span('poignee', HANDLE_T0, HANDLE_T1, b + op * HANDLE_LO, b + op * HANDLE_HI),
@@ -208,6 +212,18 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
       span('meneau', midT - MULLION_HALF_T, midT + MULLION_HALF_T, winLo, winHi), // meneau vertical
       span('meneau', WIN_T0, WIN_T1, midV - mpx, midV + mpx), // traverse horizontale
       slab('plinthe', b, b + wallHeightM * SKIRT_FRAC),
+      slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
+      ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
+      upright('poteau', 1, b, H1),
+    ];
+  }
+  if (app.claireVoie) {
+    // CLAIRE-VOIE sans porte (garde-corps) : plinthe + barreaux + main courante entre deux poteaux,
+    // AUCUNE face pleine — l'arête se voit au travers.
+    return [
+      upright('poteau', 0, b, H1),
+      slab('plinthe', b, b + wallHeightM * SKIRT_FRAC),
+      ...claireVoie(),
       slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
       ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
       upright('poteau', 1, b, H1),

@@ -12,8 +12,7 @@
 import type { Scene, Terrain, WallOverlay } from '../../state/scene';
 import { buildScene, type MapSpec } from '../../state/mapSpec';
 import { METRES_PER_LEVEL } from '../../state/relief';
-import { parseWalledAscii, walledRowsOf, zonesFromSeeds, type ZoneSeed } from '../../state/asciiMap';
-import { terrainWalkable } from '../../state/terrain';
+import { walledRowsOf, zonesFromSeeds, type ZoneSeed } from '../../state/asciiMap';
 import { REZ_ASCII, ETAGE_ASCII } from './floorplan.ascii';
 
 const W = 44, H = 60;
@@ -47,13 +46,18 @@ export const OPERA_LEGEND: Record<string, Terrain> = { ',': 'dalle', P: 'planche
  *  le MÊME — une seule constante, jamais deux littéraux à tenir d'accord. */
 export const OPERA_BASE: Terrain = 'vide';
 
-/** Légende des ARÊTES de l'ASCII (`MapSpec.wallLegend`) : le char `w` vaut mur ET porte une APPARENCE de
- *  rendu, sans structure ni PV — les refends entre loges voisines des deux flancs de l'étage sont en bois
- *  (NADJ 08 folio 39 — plan (image) : aucun matériau n'y figure ; le bois est un choix d'authoring MAISON,
- *  révisable, comme les frontières `clip` de `ZONES_ETAGE`). UNE table pour TOUS les lecteurs de ces deux
- *  grilles, y compris `puitsRim`, dont le flood ne la lit pas : aucun lecteur sans table — cf.
- *  `zonesFromSeeds`, `state/asciiMap.ts`. */
-export const OPERA_WALL_LEGEND = { w: { appearance: 'mur-en-bois' } } satisfies Record<string, WallOverlay>;
+/** Légende des ARÊTES de l'ASCII (`MapSpec.wallLegend`) :
+ *  - `w` vaut mur et porte une APPARENCE de rendu, sans structure ni PV — les refends entre loges voisines
+ *    des deux flancs de l'étage sont en bois (NADJ 08 folio 39 — plan (image) : aucun matériau n'y
+ *    figure ; le bois est un choix d'authoring MAISON, révisable, comme les frontières `clip` de
+ *    `ZONES_ETAGE`) ;
+ *  - `g` pose la STRUCTURE `garde-corps` sur chaque arête rive|puits de l'étage (NADJ 08 l.133).
+ *  UNE table pour TOUS les lecteurs de ces deux grilles : aucun lecteur sans table — cf. `zonesFromSeeds`,
+ *  `state/asciiMap.ts`. */
+export const OPERA_WALL_LEGEND = {
+  w: { appearance: 'mur-en-bois' },
+  g: { structure: 'garde-corps' },
+} satisfies Record<string, WallOverlay>;
 
 /** Colonnes des 2 PUITS de rampe (angles du foyer, anciens escaliers du plan NADJ) : la couche 0 y monte
  *  du foyer à la cote de la galerie (les cases sont déjà TROUÉES à l'étage dans l'ASCII). */
@@ -90,59 +94,6 @@ export function parterreSeatCells(): { x: number; y: number }[] {
     }
   }
   return out;
-}
-
-/** Cap d'un garde-corps de rive : la face qui regarde le puits. */
-type Cap = 'N' | 'S' | 'E' | 'O';
-
-/** Les quatre voisines d'une case, avec le cap qui les vise. */
-const VOISINES: readonly (readonly [Cap, number, number])[] = [['N', 0, -1], ['S', 0, 1], ['O', -1, 0], ['E', 1, 0]];
-
-/** Cases de la RIVE du PUITS à l'étage, avec le cap de leur garde-corps — DÉRIVÉES de l'ASCII (source
- *  unique : recreuser l'ovale déplace les balustrades avec lui, cf. `furnished.ts`). Le PUITS est la plus
- *  grande composante 4-connexe de `vide` de l'étage qui ne touche AUCUN bord de grille : le hors-bâtiment,
- *  lui, borde la grille, et les trémies des deux rampes n'en sont que des lucarnes. La RIVE = toute case
- *  FOULABLE 4-adjacente à cette composante (la maçonnerie du mur de fond de scène n'en est donc pas) ; son cap
- *  vise, parmi ses voisines vides, celle du côté du CENTRE de l'ovale — ce qui tranche les cases d'angle,
- *  que l'ovale borde en marches d'escalier sur deux côtés. */
-export function puitsRim(): { x: number; y: number; facing: Cap }[] {
-  const { w, h, tiles } = parseWalledAscii(walledRowsOf(ETAGE_ASCII, W), OPERA_BASE, OPERA_LEGEND, { wallLegend: OPERA_WALL_LEGEND });
-  const dedans = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
-  const vu = new Uint8Array(w * h);
-  let puits: number[] = [];
-  for (let depart = 0; depart < w * h; depart++) {
-    if (vu[depart] || tiles[depart] !== OPERA_BASE) continue;
-    const pile = [depart];
-    const composante: number[] = [];
-    let borde = false;
-    vu[depart] = 1;
-    while (pile.length) {
-      const i = pile.pop()!;
-      composante.push(i);
-      const x = i % w, y = (i - x) / w;
-      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) borde = true;
-      for (const [, dx, dy] of VOISINES) {
-        const nx = x + dx, ny = y + dy;
-        if (!dedans(nx, ny) || vu[ny * w + nx] || tiles[ny * w + nx] !== OPERA_BASE) continue;
-        vu[ny * w + nx] = 1;
-        pile.push(ny * w + nx);
-      }
-    }
-    if (!borde && composante.length > puits.length) puits = composante;
-  }
-  const vide = new Set(puits);
-  const cx = puits.reduce((s, i) => s + (i % w), 0) / puits.length;
-  const cy = puits.reduce((s, i) => s + Math.floor(i / w), 0) / puits.length;
-  const rive: { x: number; y: number; facing: Cap }[] = [];
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      if (!terrainWalkable(tiles[y * w + x])) continue;
-      const caps = VOISINES.filter(([, dx, dy]) => dedans(x + dx, y + dy) && vide.has((y + dy) * w + x + dx));
-      if (!caps.length) continue;
-      const [facing] = caps.reduce((a, b) => (b[1] * (cx - x) + b[2] * (cy - y) > a[1] * (cx - x) + a[2] * (cy - y) ? b : a));
-      rive.push({ x, y, facing });
-    }
-  return rive;
 }
 
 /** Type d'une entrée de `MapSpec.zoneLegend` — une PIÈCE du plan, avec les GRAINES d'où son calque se

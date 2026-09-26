@@ -412,6 +412,19 @@ export type Variant = {
 };
 
 /**
+ * CLAIRE-VOIE d'une apparence d'arête (`StructureAppearanceDef.claireVoie`,
+ * `src/gameIso/catalog/structures/types.ts`) : barreaux, bornes basse et haute en fraction de hauteur,
+ * traverses. Forme CIBLE du concept `claireVoie` du lexique (`scripts/docs/lib/structures-lexique.mts`).
+ */
+export const claireVoieSchema = z.strictObject({
+  bars: z.number(),
+  bottomFrac: z.number(),
+  topFrac: z.number(),
+  traverseFracs: z.array(z.number()),
+  traverseColor: z.string(),
+});
+
+/**
  * Recette de détail de surface (`DetailRecipe`, `src/gameIso/detail/types.ts`) — portée par le champ
  * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
  * `structureAppearance.json`). Reflet STRICT de l'interface TS (mêmes sous-objets/champs requis).

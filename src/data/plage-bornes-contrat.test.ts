@@ -158,9 +158,9 @@ const TUPLES_STOCK: Record<string, { n: number; exclu?: string }> = {
     n: 1,
     exclu: 'ENSEMBLE de chiffres de Maladresse (`[8, 9]`), pas une bande : l’UNION est lue chiffre par chiffre (`src/engine/qualities/dispatch.ts:232`), et le schéma la déclare `z.array(z.number())`.',
   },
-  'structureAppearance.json::[].door.herse.traverseFracs': {
+  'structureAppearance.json::[].claireVoie.traverseFracs': {
     n: 1,
-    exclu: 'positions FRACTIONNAIRES des traverses d’une herse (`[0.4, 0.78]`) : deux points, pas deux bornes — `z.array` dans `defs/structureAppearance.ts`.',
+    exclu: 'positions FRACTIONNAIRES des traverses d’une claire-voie (`[0.4, 0.78]`) : deux points, pas deux bornes — `z.array` dans `defs/structureAppearance.ts`.',
   },
   'materials.json::[].detail.courses.blockWM': { n: 3, exclu: EXCLU_RECETTE },
   'materials.json::[].detail.speckle.rM': { n: 1, exclu: EXCLU_RECETTE },

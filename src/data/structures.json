@@ -303,6 +303,26 @@
     "desc": "Les clôtures en clayonnage sont tressées avec de minces branches de saule. Elles sont faciles à fabriquer et résistantes si leur tressage est bon. Cependant, elles conviennent davantage pour des enclos d'animaux que pour des fortifications. Elles restent employées comme couvert par ceux qui n'ont pas le temps de trouver autre chose ou qui ne disposent pas d'une meilleure alternative."
   },
   {
+    "id": "garde-corps",
+    "type": "structures",
+    "label": "Garde-corps",
+    "kind": "mur",
+    "char": {
+      "BE": 2,
+      "B": 10
+    },
+    "traits": [],
+    "couvertPenalty": "difficile",
+    "occulte": false,
+    "taille": "grande",
+    "source": {
+      "book": "livre-de-base",
+      "page": 161,
+      "note": "LDB 14 l.81"
+    },
+    "maison": "Arbitrage utilisateur du 2026-09-26 (#1883) : « Couvert moyen (Recommandé) ». Couvert : LDB 14 l.81 « Cible protégée par une couverture moyenne (une barrière en bois, par exemple). » — Difficile. Aucune ligne du tableau d’AA 10 n’imprime de garde-corps : sa robustesse est reprise de la Clôture en clayonnage (AA 10 l.41, Endurance 25, Blessures 10). Opacité maison, au patron de la Clôture en clayonnage : une rambarde ajourée se regarde au travers, elle ne coupe pas la Ligne de Vue et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : rambarde à hauteur de hanche — encombrement d’une créature Grande, au patron de la Clôture en clayonnage."
+  },
+  {
     "id": "herse",
     "type": "structures",
     "label": "Herse",

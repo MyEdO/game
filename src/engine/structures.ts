@@ -131,22 +131,23 @@ export function structureEnduranceMult(
   return 1 + Math.max(0, sizeGap(structureTaille(target), attackerSize));
 }
 
-/** Les DEUX cases bordant l'arête d'une structure (ses deux FACES) — calque `parapetTilesAbove` au sol
- *  (z de l'arête). Une arête N borde `(x,y)` (intérieur) ET `(x,y-1)` (extérieur) ; E borde `(x,y)` et
- *  `(x+1,y)` ; une cloison diagonale n'a qu'une case. Vide si la structure ne porte pas d'arête. */
-export function structureFaceCells(c: Pick<Combatant, 'structureEdge'>): { x: number; y: number }[] {
+/** Les DEUX cases bordant l'arête d'une structure (ses deux FACES), à l'étage `z` de l'arête. Une arête N
+ *  borde `(x,y)` (intérieur) ET `(x,y-1)` (extérieur) ; E borde `(x,y)` et `(x+1,y)` ; une cloison diagonale
+ *  n'a qu'une case. Vide si la structure ne porte pas d'arête. */
+export function structureFaceCells(c: Pick<Combatant, 'structureEdge'>): { x: number; y: number; z?: number }[] {
   const e = c.structureEdge;
   if (!e) return [];
-  if (e.side === 'N') return [{ x: e.x, y: e.y }, { x: e.x, y: e.y - 1 }];
-  if (e.side === 'E') return [{ x: e.x, y: e.y }, { x: e.x + 1, y: e.y }];
-  return [{ x: e.x, y: e.y }];
+  const z = e.z ? { z: e.z } : {}; // ABSENT = sol, la convention de `Combatant.pos`
+  if (e.side === 'N') return [{ x: e.x, y: e.y, ...z }, { x: e.x, y: e.y - 1, ...z }];
+  if (e.side === 'E') return [{ x: e.x, y: e.y, ...z }, { x: e.x + 1, y: e.y, ...z }];
+  return [{ x: e.x, y: e.y, ...z }];
 }
 
 /** Case de VISÉE d'une structure depuis `from` : sa FACE la plus proche de l'attaquant. C'est la seule
  *  par laquelle la Ligne de Vue n'est PAS coupée par l'arête de la structure ELLE-MÊME (on voit/frappe la
  *  face d'un mur depuis son côté ; on ne « voit pas à travers » jusqu'à la case derrière). Repli sur `pos`
  *  (structure sans arête / fixture de test). Réutilisé par l'IA (cible la porte) ET la résolution (LdV de tir). */
-export function structureAimCell(from: { x: number; y: number }, target: Pick<Combatant, 'structureEdge' | 'pos'>): { x: number; y: number } {
+export function structureAimCell(from: { x: number; y: number }, target: Pick<Combatant, 'structureEdge' | 'pos'>): { x: number; y: number; z?: number } {
   const faces = structureFaceCells(target);
   if (!faces.length) return target.pos ?? from;
   const cheb = (p: { x: number; y: number }) => chebyshev(p, from);

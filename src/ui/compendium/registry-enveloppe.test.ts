@@ -148,7 +148,8 @@ const CLES: Record<string, string> = {
   // #1688 : `taille` + `maison` exigés sur les 24 structures (mesuré en donnée : `maison` 2 → 24,
   // `taille` 0 → 24). La clé projetée qui bouge est `maison`, désormais portée par TOUS les items —
   // `taille` entre par `meta`/`sections`, d'où une FORME inchangée. Empreinte recalée à la MESURE.
-  "structures": 'de0741d264020293',
+  // #1883 : un 25ᵉ item, le `garde-corps` (sans `desc`, source LDB 14 l.81) — recalée à la MESURE.
+  "structures": '2d63e5a6d26b2dbf',
   "terrains": 'e542c259ce8b1e79',
   // #1715 : les 7 types de bâtiment quittent le code pour `buildings.json` et entrent au Codex —
   // empreinte MESURÉE, chaque item portant son `maison` (aucun folio n'imprime de catalogue de bâtiments).
@@ -382,7 +383,7 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   "massBattleWarMachines": { source: 10 }, // 10 items — T3 : source +10
   "massBattleStructures": { source: 5 }, // 5 items — T3 : source +5
   "massBattleHazards": { desc: 10, source: 10 }, // 10 items — T3 : source +10
-  "structures": { desc: 19, source: 24 }, // 24 items — T3 : -desc +5, source +24
+  "structures": { desc: 19, source: 25 }, // 25 items — T3 : -desc +5, source +24 ; #1883 : `garde-corps` source +1
   "crewRoles": { desc: 9, source: 2 }, // 9 items — T3 : source +2
   "crewTestTypes": { source: 10 }, // 10 items — T3 : source +10
   "traumas": { desc: 29, source: 29 }, // 29 items — T3 : source +29

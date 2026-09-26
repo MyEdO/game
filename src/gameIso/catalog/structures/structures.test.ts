@@ -16,11 +16,12 @@ function sceneWith(seg: WallSeg): Scene {
 }
 
 describe('apparence de structure (JSON partagé iso/POV)', () => {
-  it('les 18 apparences sont présentes (#832 : les 17 historiques + la cloison basse)', () => {
+  it('les 19 apparences sont présentes (#832 : les 17 historiques + la cloison basse ; #1883 : le garde-corps)', () => {
     const ids = structureAppearances.map((s) => s.id).sort();
     expect(ids).toEqual([
       'cloison-basse-a-ossature-en-bois',
       'cloture-en-clayonnage',
+      'garde-corps',
       'herse',
       'mantelet-de-bois',
       'mur-a-ossature-en-bois',
@@ -47,12 +48,12 @@ describe('apparence de structure (JSON partagé iso/POV)', () => {
     expect(app.face).not.toBe(structureAppearance('mur-en-bois').face);
   });
 
-  it('mur-en-pierre : arase + parapet crénelé ; porte-de-ville : herse 6 barreaux', () => {
+  it('mur-en-pierre : arase + parapet crénelé ; porte-de-ville : claire-voie de 6 barreaux', () => {
     // L'apparence dit ce qu'elle PEINT : le couronnement d'arase que `wallPartColor` sert aux parties
     // `arase`/`merlon`, et le parapet qui les pose — des COULEURS, seul canal que le rendu consulte.
     expect(structureAppearance('mur-en-pierre').cap).toBeDefined();
     expect(structureAppearance('mur-en-pierre').parapet).toBeDefined();
-    expect(structureAppearance('porte-de-ville').door?.herse?.bars).toBe(6);
+    expect(structureAppearance('porte-de-ville').claireVoie?.bars).toBe(6);
   });
 
   it('bois : couleur de base par partie (plus de palette pré-ombrée faceN/faceE)', () => {
@@ -101,6 +102,6 @@ describe('apparence de structure (JSON partagé iso/POV)', () => {
     expect(wallPartColor(pierre, 'bande')).toBe(pierre.band);
     expect(wallPartColor(pierre, 'merlon')).toBe(pierre.cap);
     const porte = structureAppearance('porte-de-ville');
-    expect(wallPartColor(porte, 'herse-traverse')).toBe(porte.door!.herse!.traverseColor);
+    expect(wallPartColor(porte, 'traverse')).toBe(porte.claireVoie!.traverseColor);
   });
 });

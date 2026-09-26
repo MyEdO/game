@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildOperaFloorplan, puitsRim, ZONES_REZ, ZONES_ETAGE,
+  buildOperaFloorplan, ZONES_REZ, ZONES_ETAGE,
   OPERA_WALL_LEGEND, OPERA_ZONE_SEEDS, OPERA_ZONE_LAYERS, OPERA_BASE, OPERA_LEGEND,
 } from './floorplan';
 import { ETAGE_ASCII } from './floorplan.ascii';
 import { walledRowsOf, zonesFromSeeds } from '../../state/asciiMap';
 import { scenarioEntities } from './furnished';
 import { scenario as operaPlan } from '../test-scenarios/opera-plan';
-import { tileAt, heightAt, isWalkable, wallBetween, type Scene } from '../../state/scene';
-import { reachable, walkComponentAt, type Pt } from '../../state/path';
+import { tileAt, heightAt, isWalkable, wallBetween, areteOcculteEntre, edgeOf } from '../../state/scene';
+import { reachable, type Pt } from '../../state/path';
+import { terrainWalkable } from '../../state/terrain';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { unreachableDescriptiveZones, reachedFloors } from '../../state/mapQC';
 import { scenePlanDefects } from '../../state/planDefects';
@@ -316,18 +317,24 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
       `arête(s) nue(s) en hauteur fortifiée(s) par leur cote — ${nuesHautes.size} arêtes nues en hauteur`).toEqual([]);
   });
 
-  it('les arêtes du char `w` rendent l’apparence de la légende, toutes les autres rendent le mur nu', () => {
-    const bois = OPERA_WALL_LEGEND.w.appearance;
-    // ATTENDU dérivé de la carte compilée (le char `w` → `WallSeg.appearance`), jamais d'une liste tenue à
-    // la main : rebâtir l'ASCII déplace l'attendu avec le plan.
-    const authorees = (s.walls ?? []).filter((w) => w.appearance === bois)
-      .map((w) => `wall:${w.x},${w.y},${w.side},${w.z ?? 0}`).sort();
-    expect(authorees.length, `la carte n’authore aucune arête « ${bois} » — la garde ne mesurerait rien (${diag})`)
-      .toBeGreaterThan(0);
-    const enBois = rendus.filter((el) => el.appearance === bois).map((el) => el.key).sort();
-    expect(enBois, `arêtes rendues en « ${bois} » ≠ arêtes authorées (${authorees.length} authorées, ${diag})`)
-      .toEqual(authorees);
-    const offenseurs = rendus.filter((el) => el.appearance !== 'plain' && el.appearance !== bois);
+  it('les arêtes de chaque char de la légende rendent son apparence, toutes les autres rendent le mur nu', () => {
+    // ATTENDU dérivé de la carte compilée (char → `WallSeg`), jamais d'une liste tenue à la main :
+    // rebâtir l'ASCII déplace l'attendu avec le plan. L'apparence d'un char est la sienne, sinon celle
+    // de sa structure (`wallApp`).
+    const apparences: string[] = [];
+    for (const [ch, overlay] of Object.entries(OPERA_WALL_LEGEND) as [string, { appearance?: string; structure?: string }][]) {
+      const app = overlay.appearance ?? overlay.structure!;
+      apparences.push(app);
+      const authorees = (s.walls ?? [])
+        .filter((w) => (overlay.appearance ? w.appearance === overlay.appearance : w.structure === overlay.structure && !w.appearance))
+        .map((w) => `wall:${w.x},${w.y},${w.side},${w.z ?? 0}`).sort();
+      expect(authorees.length, `la carte n’authore aucune arête du char « ${ch} » — la garde ne mesurerait rien (${diag})`)
+        .toBeGreaterThan(0);
+      const rendues = rendus.filter((el) => el.appearance === app).map((el) => el.key).sort();
+      expect(rendues, `arêtes rendues en « ${app} » ≠ arêtes authorées du char « ${ch} » (${authorees.length}, ${diag})`)
+        .toEqual(authorees);
+    }
+    const offenseurs = rendus.filter((el) => el.appearance !== 'plain' && !apparences.includes(el.appearance));
     expect(offenseurs.map((el) => `${el.key} → ${el.appearance}`),
       `élément(s) rendu(s) hors du mur nu et hors de la légende d’arête (${diag})`).toEqual([]);
   });
@@ -347,10 +354,11 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
 });
 
 /**
- * #1179 — le pourtour du PUITS n'est pas un mur : le plan (NADJ 08 folio 39) y montre un bord de balcon
- * OUVERT sur la salle, donc la seule frontière `plancher | vide`, sans arête. Les refends de loge qui
- * meurent sur ce bord ne sont pas des impasses — un quadrant infranchissable n'offre aucun bout à
- * contourner (`auditWallDeadEndsInside`, famille 11).
+ * #1179, #1883 — le pourtour du PUITS : NADJ 08 l.133 (folio 41). Le folio 39 est le plan (image), sans
+ * ligne de texte à l'extraction (l.22 folio 37 → l.51 folio 40). Le bord de balcon laisse VOIR la salle
+ * et ne se franchit pas : chaque paire puits|plancher porte la structure `garde-corps`, et elle seule.
+ * Les refends de loge qui meurent sur ce bord ne sont pas des impasses (`auditWallDeadEndsInside`,
+ * famille 11).
  */
 describe('plan de l’Opéra — l’ovale de l’étage est fermé (#1179)', () => {
   const s = buildOperaFloorplan();
@@ -385,21 +393,52 @@ describe('plan de l’Opéra — l’ovale de l’étage est fermé (#1179)', ()
     return set;
   })();
 
-  it('le PUITS est OUVERT : aucune arête entre une case du puits et sa voisine de plancher', () => {
-    expect(tileAt(s, PUITS_TEMOIN.x, PUITS_TEMOIN.y, 1), 'le centre du puits est bien vide').toBe('vide');
-    const offenseurs: string[] = [];
-    let paires = 0;
+  /** Paires (case du puits, voisine FOULABLE) de l'étage — l'oracle vient du flood ci-dessus, jamais de la
+   *  légende qui pose les arêtes ; la maçonnerie du mur de fond de scène n'est pas un bord de balcon. */
+  const paires = (() => {
+    const out: { x: number; y: number; nx: number; ny: number }[] = [];
     for (const key of puits) {
       const [x, y] = key.split(',').map(Number);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= W || ny >= H || tileAt(s, nx, ny, 1) === 'vide') continue;
-        paires++;
-        if (wallBetween(s, x, y, nx, ny, 1)) offenseurs.push(`${x},${y}|${nx},${ny}`);
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || !terrainWalkable(tileAt(s, nx, ny, 1))) continue;
+        out.push({ x, y, nx, ny });
       }
     }
-    expect(paires, 'le puits borde bien du plancher de balcon').toBeGreaterThan(0);
-    expect(offenseurs, `${puits.size} cases de puits, ${paires} paires puits|plancher`).toEqual([]);
+    return out;
+  })();
+  const aretesDe = ({ x, y, nx, ny }: { x: number; y: number; nx: number; ny: number }) => {
+    const e = edgeOf(x, y, nx, ny)!;
+    return (s.walls ?? []).filter((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === 1);
+  };
+
+  it('le PUITS reste VU : aucune arête OCCULTANTE entre une case du puits et sa voisine de plancher', () => {
+    expect(tileAt(s, PUITS_TEMOIN.x, PUITS_TEMOIN.y, 1), 'le centre du puits est bien vide').toBe('vide');
+    expect(paires.length, 'le puits borde bien du plancher de balcon').toBeGreaterThan(0);
+    const occultantes = paires.filter((p) => areteOcculteEntre(s, p.x, p.y, p.nx, p.ny, 1)).map((p) => `${p.x},${p.y}|${p.nx},${p.ny}`);
+    expect(occultantes, `${puits.size} cases de puits, ${paires.length} paires puits|plancher`).toEqual([]);
+  });
+
+  it('COUVERTURE : chaque paire puits|plancher porte le `garde-corps`, et aucune autre arête', () => {
+    const nues: string[] = [];
+    const autres: string[] = [];
+    for (const p of paires) {
+      const aretes = aretesDe(p);
+      if (!aretes.some((w) => w.structure === 'garde-corps')) nues.push(`${p.x},${p.y}|${p.nx},${p.ny}`);
+      for (const w of aretes) if (w.structure !== 'garde-corps') autres.push(`${w.x},${w.y}${w.side} ${w.structure ?? w.appearance ?? 'mur'}`);
+    }
+    expect(nues, 'paire(s) puits|plancher sans garde-corps').toEqual([]);
+    expect(autres, 'arête(s) autre que le garde-corps sur le bord du puits').toEqual([]);
+  });
+
+  it('MARCHE : la rive se foule, le pas vers le vide est barré — sur le plan COMPILÉ comme sur la scène MEUBLÉE', () => {
+    for (const sc of [s, operaPlan.scene]) {
+      const rive = [...new Set(paires.map((p) => `${p.nx},${p.ny}`))];
+      const infoulables = rive.filter((k) => { const [x, y] = k.split(',').map(Number); return !isWalkable(sc, x, y, 1); });
+      expect(infoulables, `case(s) de rive non foulable(s) sur ${rive.length}`).toEqual([]);
+      const ouvertes = paires.filter((p) => !wallBetween(sc, p.nx, p.ny, p.x, p.y, 1)).map((p) => `${p.nx},${p.ny}→${p.x},${p.y}`);
+      expect(ouvertes, 'pas de la rive vers le puits NON barré').toEqual([]);
+    }
   });
 
   it('un refend de loge qui MEURT sur le vide reste posé, et n’est PAS un défaut : l’à-pic exempte', () => {
@@ -459,66 +498,6 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
     expect(lustresDEtage.length, 'le plan porte des lustres d’étage').toBeGreaterThan(0);
     for (const l of lustresDEtage)
       expect(zonesAt(l.pos.x, l.pos.y, 0), `${l.id} (${l.pos.x},${l.pos.y}) : le rez dessous porte une pièce nommée`).not.toEqual([]);
-  });
-
-  it('GARDE-CORPS : chaque case de RIVE du puits porte une balustrade, et aucune autre case du plan', () => {
-    // Contrat de COUVERTURE, sans cardinal : l'ensemble des cases balustradées EST celui de la rive que
-    // `puitsRim` dérive de l'ASCII — recreuser l'ovale déplace les deux ensembles du même geste.
-    const cle = (x: number, y: number) => `${x},${y}`;
-    const balustrades = scenarioEntities.filter((e) => e.ref === 'balustrade-loge');
-    const posees = balustrades.map((e) => `${cle(e.pos.x, e.pos.y)}z${e.z ?? 0}`);
-    const rive = puitsRim();
-    expect(rive.length, 'la rive du puits n’est pas vide').toBeGreaterThan(0);
-    expect([...new Set(posees)].sort(), `${balustrades.length} balustrade(s) pour ${rive.length} case(s) de rive — doublon(s) : ${posees.filter((p, i) => posees.indexOf(p) !== i).join(' ')}`)
-      .toEqual(rive.map((c) => `${cle(c.x, c.y)}z1`).sort());
-    expect(posees.length, 'une seule balustrade par case').toBe(new Set(posees).size);
-    // CAP : la voisine visée par chaque travée est le VIDE du puits — le garde-corps regarde le dénivelé.
-    const VERS: Record<string, [number, number]> = { N: [0, -1], S: [0, 1], E: [1, 0], O: [-1, 0] };
-    const malCapees = balustrades
-      .filter((e) => { const [dx, dy] = VERS[e.facing as string]; return tileAt(s, e.pos.x + dx, e.pos.y + dy, 1) !== 'vide'; })
-      .map((e) => `${e.id} cap ${e.facing}`);
-    expect(malCapees, `balustrade(s) qui ne regardent pas le puits : ${malCapees.join(' ')}`).toEqual([]);
-  });
-
-  it('BALUSTRADES : elles ne retirent QUE les cases de rive, et n’enclavent aucune case de l’étage', () => {
-    // La balustrade est un décor SOLIDE (`props.json` `balustrade-loge`) : elle MURE sa case pour la
-    // marche (`isWalkable` → `entityBlockedAt`, `src/state/scene.ts:540`). Connexité lue à la SOURCE
-    // UNIQUE (`walkComponentAt`, `src/state/path.ts:175`) : 8-connexe et cross-couche, donc plus
-    // permissive qu'un flood 4-connexe — une case enclavée y reste une composante de plus.
-    const meuble = operaPlan.scene; // la scène RÉELLE du scénario (plan + mobilier)
-    const sansGardeCorps = { ...meuble, entities: meuble.entities.filter((e) => e.ref !== 'balustrade-loge') };
-    const cle = (x: number, y: number) => `${x},${y}`;
-    const { w, h } = meuble.dimensions;
-    const marchablesEtage = (sc: Scene) => {
-      const out = new Set<string>();
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (isWalkable(sc, x, y, 1)) out.add(cle(x, y));
-      return out;
-    };
-    const composantesEtage = (sc: Scene) => {
-      const ids = new Set<number>();
-      for (const k of marchablesEtage(sc)) {
-        const [x, y] = k.split(',').map(Number);
-        ids.add(walkComponentAt(sc, x, y, 1)!);
-      }
-      return ids;
-    };
-    const avec = marchablesEtage(meuble);
-    const sans = marchablesEtage(sansGardeCorps);
-    const rive = puitsRim().map((c) => cle(c.x, c.y)).sort();
-    expect(rive.length, 'la rive du puits n’est pas vide').toBeGreaterThan(0);
-    expect(sans.size, 'l’étage sans garde-corps porte des cases marchables').toBeGreaterThan(rive.length);
-    // (a) ENSEMBLES, pas cardinaux : ce que les balustrades ferment EST la rive, ni plus ni moins.
-    const fermees = [...sans].filter((k) => !avec.has(k)).sort();
-    const horsRive = fermees.filter((k) => !rive.includes(k));
-    const riveOuverte = rive.filter((k) => !fermees.includes(k));
-    expect(fermees, `case(s) fermée(s) hors rive : ${horsRive.join(' ')} — case(s) de rive restées marchables : ${riveOuverte.join(' ')}`)
-      .toEqual(rive);
-    const ouvertes = [...avec].filter((k) => !sans.has(k));
-    expect(ouvertes, `retirer les balustrades ne peut rien OUVRIR : ${ouvertes.join(' ')}`).toEqual([]);
-    // (b) AUCUNE ENCLAVE : poser les garde-corps ne crée pas une composante marchable de plus.
-    const compAvec = composantesEtage(meuble), compSans = composantesEtage(sansGardeCorps);
-    expect(compAvec.size, `les balustrades découpent l’étage : ${compSans.size} composante(s) marchable(s) sans elles, ${compAvec.size} avec`)
-      .toBe(compSans.size);
   });
 
   it('aucun décor ne se pose sur une RAMPE ni dans une cage d’escalier 8/9', () => {

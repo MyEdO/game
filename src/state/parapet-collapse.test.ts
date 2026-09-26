@@ -5,8 +5,12 @@ import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
-import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from './scene';
+import { isWalkable, tileCollapsed, structureIsDown, parapetTilesAbove, type Scene, type Terrain } from './scene';
 import { testScene } from '../scenes/test-fixture';
+import { scenario as operaPlan } from '../scenes/test-scenarios/opera-plan';
+import { parseProject } from './worldMap';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { draineCascade } from './cascadeTestKit';
 
 /**
@@ -93,5 +97,69 @@ describe('Effondrement de passerelle quand la structure portante est abattue', (
     const after = useGame.getState();
     expect(isWalkable(after.scene!, EDGE.x, EDGE.y, 0)).toBe(true); // case d'ancrage au SOL : libre
     expect(tileCollapsed(after.scene!, EDGE.x, EDGE.y, 0)).toBe(false);
+  });
+});
+
+/**
+ * #1883 — la passerelle qui s'écroule est celle de l'étage qui SURMONTE l'arête abattue (`seg.z + 1`) :
+ * une arête posée À un étage (garde-corps de balcon, cloison d'étage) ne porte pas le plancher qu'elle
+ * borde. Rempart de sol → sa passerelle z=1 (le `describe` ci-dessus) ; arête d'étage → rien de son étage.
+ */
+describe('parapetTilesAbove — l’étage qui surmonte l’arête (#1883)', () => {
+  const Z1 = { x: 2, y: 2, side: 'E' as const, z: 1 };
+
+  function sceneAEtages(): Scene {
+    const s = structuredClone(testScene);
+    s.walls = [{ ...Z1, structure: 'garde-corps' }];
+    const plein = () => new Array(s.dimensions.w * s.dimensions.h).fill('herbe') as Terrain[];
+    s.layers = [...s.layers, { z: 1, tiles: plein() }];
+    return s;
+  }
+
+  it('arête à z=1 : aucune tuile de SON étage ; un étage z=2 marchable au-dessus, lui, est porté', () => {
+    const s = sceneAEtages();
+    expect(parapetTilesAbove(s, Z1)).toEqual([]);
+    const haut = { ...s, layers: [...s.layers, { z: 2, tiles: s.layers[1].tiles }] };
+    expect(parapetTilesAbove(haut, Z1)).toEqual([{ x: 2, y: 2, z: 2 }, { x: 3, y: 2, z: 2 }]);
+  });
+
+  it('abattre un garde-corps d’étage en combat : l’occupant de la case bordée reste à z=1, sa tuile tient', () => {
+    useGame.getState().seedRng(1);
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    useGame.setState({ party: [hero], battle: null });
+    useGame.getState().startScene(sceneAEtages());
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const S = b.combatants.find((c) => c.bodyShape === 'structure')!;
+    expect(S.pos, 'la structure est enrôlée à l’étage de son arête').toEqual({ x: 2, y: 2, z: 1 });
+    const foe = b.combatants.find((c) => c.kind !== 'hero' && c.bodyShape !== 'structure')!;
+    foe.pos = { x: 2, y: 2, z: 1 };
+    useGame.setState({ battle: { ...b, combatants: [...b.combatants] } });
+    collapseStructure(useGame.getState, useGame.setState, S);
+    const after = useGame.getState();
+    expect(structureIsDown(after.scene!, { ...Z1, structure: 'garde-corps' })).toBe(true);
+    expect(after.battle!.combatants.find((c) => c.id === foe.id)!.pos).toEqual({ x: 2, y: 2, z: 1 });
+    expect(tileCollapsed(after.scene!, 2, 2, 1)).toBe(false);
+    expect(tileCollapsed(after.scene!, 3, 2, 1)).toBe(false);
+  });
+
+  it('opéra et Diligence : aucune arête à structure d’étage n’écroule une tuile de son propre étage', () => {
+    const diligence = parseProject(JSON.parse(readFileSync(join(process.cwd(), 'src/scenes/diligence/diligence-projet.json'), 'utf8')));
+    const scenes: [string, Scene][] = [
+      ['opera-plan', operaPlan.scene],
+      ...diligence.scenes.map((sc): [string, Scene] => [sc.id, sc]),
+    ];
+    let aretesDEtage = 0;
+    const fautives: string[] = [];
+    for (const [id, sc] of scenes)
+      for (const w of sc.walls ?? []) {
+        if (!w.structure || !(w.z ?? 0)) continue;
+        aretesDEtage++;
+        for (const t of parapetTilesAbove(sc, w)) if (t.z === (w.z ?? 0)) fautives.push(`${id} ${w.x},${w.y}${w.side} z${w.z}`);
+      }
+    expect(aretesDEtage, 'les deux scènes portent des arêtes à structure d’étage — sinon ce contrat ne mesure rien').toBeGreaterThan(0);
+    expect(fautives).toEqual([]);
   });
 });

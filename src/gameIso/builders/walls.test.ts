@@ -10,7 +10,7 @@ import { buildScene } from '../../state/mapSpec';
 /**
  * Builder de MURS du pivot : on teste la sortie MONDE (camera-free) — l'aiguillage d'arête unique
  * (`wallEnds`), les hauteurs en MÈTRES (conversion px⇔m partagée `isoPxToM`), les faces d'assemblage
- * pilotées par la DEF (parapet/merlons/herse/porte/brèche) et les vérités de scène (down/open/visible).
+ * pilotées par la DEF (parapet/merlons/claire-voie/porte/brèche) et les vérités de scène (down/open/visible).
  */
 
 function sceneWith(walls: WallSeg[]): Scene {
@@ -283,7 +283,7 @@ describe('buildWalls — façades architecturales authorées', () => {
     expect(height(wide)).toBe(height(narrow));
   });
 
-  it('préserve porte-de-ville, herse/parapet et brèche sous habillage de façade', () => {
+  it('préserve porte-de-ville, claire-voie/parapet et brèche sous habillage de façade', () => {
     const scene = facadeScene();
     scene.walls = [{ x: 2, y: 3, side: 'N', structure: 'porte-de-ville' }];
     scene.architecture![0].facades[0].edges = [{ x: 2, y: 3, side: 'N' }];
@@ -292,11 +292,11 @@ describe('buildWalls — façades architecturales authorées', () => {
     ];
     const intact = one(scene);
     expect(intact.appearance).toBe('porte-de-ville');
-    expect(parts(intact)).toContain('herse-barreau');
+    expect(parts(intact)).toContain('barreau');
     expect(parts(intact)).toContain('parapet');
     const down = one(setStructureDown(scene, 2, 3, 'N', 0, true));
     expect(parts(down)).toContain('seuil');
-    expect(parts(down)).not.toContain('herse-barreau');
+    expect(parts(down)).not.toContain('barreau');
     expect(down.faces.some((face) => face.architectureFeatureId)).toBe(false);
   });
 });
@@ -397,29 +397,29 @@ describe('buildWalls — fortification de PIERRE (def à parapet)', () => {
   });
 });
 
-describe('buildWalls — corps de garde (porte-de-ville : ouverture béante + herse)', () => {
+describe('buildWalls — corps de garde (porte-de-ville : ouverture béante + claire-voie)', () => {
   const def = structureAppearance('porte-de-ville');
   const el = one(sceneWith([{ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }]));
 
   it('PAS de face pleine ni de poteau : barreaux + traverses + linteau + couronne crénelée', () => {
     expect(facesOf(el, 'face')).toHaveLength(0);
     expect(facesOf(el, 'poteau')).toHaveLength(0);
-    expect(facesOf(el, 'herse-barreau')).toHaveLength(def.door!.herse!.bars + 1); // 7 barreaux (0..bars)
-    expect(facesOf(el, 'herse-traverse')).toHaveLength(def.door!.herse!.traverseFracs.length);
+    expect(facesOf(el, 'barreau')).toHaveLength(def.claireVoie!.bars + 1); // 7 barreaux (0..bars)
+    expect(facesOf(el, 'traverse')).toHaveLength(def.claireVoie!.traverseFracs.length);
     expect(facesOf(el, 'linteau')).toHaveLength(1);
     expect(facesOf(el, 'merlon')).toHaveLength(3);
   });
 
   it('barreaux : tronçons fins clampés à [0,1], du sol au linteau (topFrac × WALL_H_M)', () => {
-    const bars = facesOf(el, 'herse-barreau');
+    const bars = facesOf(el, 'barreau');
     expect(bars[0].poly[0].x).toBe(wallEnds({ x: 2, y: 2, side: 'N' })[0].x); // clampé à t=0
     for (const b of bars) {
-      expect(b.poly[0].h).toBeCloseTo(WALL_H_M * def.door!.herse!.topFrac, 9);
+      expect(b.poly[0].h).toBeCloseTo(WALL_H_M * def.claireVoie!.topFrac, 9);
       expect(b.poly[2].h).toBe(0);
     }
   });
 
-  it('ABATTU : la herse cède la place à un seuil d’éboulis, linteau et couronne restent', () => {
+  it('ABATTU : la claire-voie cède la place à un seuil d’éboulis, linteau et couronne restent', () => {
     let s = sceneWith([{ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }]);
     s = setStructureDown(s, 2, 2, 'N', 0, true);
     const down = one(s);

@@ -232,6 +232,13 @@ describe('lineOfSightCover — couvert des STRUCTURES d’arête (AA 10 l.23)', 
     expect(lineOfSightCover(abriteePar({ structure: 'cloture-en-clayonnage' }), from, to, []).cover).toBe('none');
   });
 
+  it('garde-corps (LDB 14 l.81, Difficile) → couverture MOYENNE, −20, sur l’arête de la cible tournée vers le tireur', () => {
+    const r = lineOfSightCover(abriteePar({ structure: 'garde-corps' }), from, to, []);
+    expect(r).toEqual({ blocked: false, cover: 'moyenne' });
+    expect(coverModifier(r.cover)).toBe(-20);
+    expect(lineOfSightCover(abriteePar({ structure: 'garde-corps' }), { x: 0, y: 3 }, to, []).cover).toBe('none');
+  });
+
   it('Structure ADE II (table sans colonne de Couvert, ADE II 8 l.282-288) → aucun couvert supposé', () => {
     expect(lineOfSightCover(abriteePar({ structure: 'mur-en-pierre' }), from, to, []).cover).toBe('none');
   });

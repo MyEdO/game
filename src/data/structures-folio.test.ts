@@ -51,8 +51,8 @@ describe('structures.json — folio de source confronté à l’extraction (#146
     expect(AUX_ARMES.length).toBe(19);
   });
 
-  it('la source est au FOLIO (`page`), jamais au chapitre — sur les 24 entrées', () => {
-    expect(ENTREES.length).toBe(24);
+  it('la source est au FOLIO (`page`), jamais au chapitre — sur les 25 entrées', () => {
+    expect(ENTREES.length).toBe(25);
     for (const s of ENTREES) {
       expect(typeof s.source.page, `${s.id} : \`page\` absente ou non numérique`).toBe('number');
     }

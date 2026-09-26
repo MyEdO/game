@@ -81,8 +81,11 @@ const idsFichier = data.map((e) => e.id);
 for (const id of Object.keys(FOLIOS)) {
   if (!idsFichier.includes(id)) echecs.push(`${id} : id de la table ABSENT de structures.json`);
 }
-for (const id of idsFichier) {
-  if (!(id in FOLIOS)) echecs.push(`${id} : entrée de structures.json ABSENTE de la table de folios`);
+// Une entrée NÉE au folio (`{book, page}`, postérieure à la migration) n'a rien à migrer : seule une
+// entrée encore au chapitre exige sa ligne de table.
+for (const e of data) {
+  if (!(e.id in FOLIOS) && typeof e.source?.page !== 'number')
+    echecs.push(`${e.id} : entrée de structures.json ABSENTE de la table de folios`);
 }
 
 // ── Réécriture textuelle ancrée (différée : rien n'est écrit avant la vérification) ──────────────

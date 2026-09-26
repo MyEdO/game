@@ -308,18 +308,19 @@
       "parapetBandFrac": 0.72,
       "arasePx": 3
     },
+    "claireVoie": {
+      "bars": 6,
+      "bottomFrac": 0,
+      "topFrac": 0.9,
+      "traverseFracs": [
+        0.4,
+        0.78
+      ],
+      "traverseColor": "#4a4d54"
+    },
     "door": {
       "openingFrac": 1,
-      "lintelPx": 4,
-      "herse": {
-        "bars": 6,
-        "topFrac": 0.9,
-        "traverseFracs": [
-          0.4,
-          0.78
-        ],
-        "traverseColor": "#4a4d54"
-      }
+      "lintelPx": 4
     }
   },
   {
@@ -354,19 +355,48 @@
     }
   },
   {
+    "id": "garde-corps",
+    "type": "structureAppearance",
+    "label": "Garde-corps",
+    "wallHeightM": 1,
+    "face": "#7c6647",
+    "post": "#43301c",
+    "wood": {
+      "inset": "#594732",
+      "frame": "#7c6647",
+      "cap": "#917a58",
+      "skirt": "#473829",
+      "rubble": "#4b3d2b",
+      "rubbleHi": "#5d4c36"
+    },
+    "claireVoie": {
+      "bars": 6,
+      "bottomFrac": 0.11,
+      "topFrac": 0.86,
+      "traverseFracs": [],
+      "traverseColor": "#7c6647"
+    }
+  },
+  {
     "id": "herse",
     "type": "structureAppearance",
     "label": "Herse",
     "face": "#4a4d54",
     "post": "#2b2d30",
+    "claireVoie": {
+      "bars": 6,
+      "bottomFrac": 0,
+      "topFrac": 0.85,
+      "traverseFracs": [
+        0.5
+      ],
+      "traverseColor": "#4a4d54"
+    },
     "door": {
       "openingFrac": 0.85,
       "lintelPx": 4,
       "jamb": "#4a4d54",
-      "jambCap": "#6b6f76",
-      "leaf": "#3a3d42",
-      "plank": "#24262a",
-      "handle": "#7c828c"
+      "jambCap": "#6b6f76"
     }
   },
   {

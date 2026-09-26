@@ -228,7 +228,8 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
   // les trois catalogues de matières fusionnent en `materials.json`). L'enveloppe de ses 4 entrées est
   // tenue au PRÉSENT, avec les 12 autres matières, par la partition EXHAUSTIVE en fin de fichier.
   // 1730 → 1731 : +1 : Mendier, LDB 09 l.97 (folio 119), #1612.
-  const TOTAL_ATTENDU = 1731;
+  // 1731 → 1732 : +1 : l'apparence `garde-corps` de `structureAppearance.json`, #1883.
+  const TOTAL_ATTENDU = 1732;
 
   const lu = (f: string) => JSON.parse(readFileSync(join(RACINE, 'src', 'data', f), 'utf8')) as Record<string, unknown>[];
 

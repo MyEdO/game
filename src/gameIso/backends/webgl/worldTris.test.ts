@@ -485,7 +485,7 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
   });
 
   it('TRAVERSANT : le DOS est là — une partie qui bouche une ouverture la bouche des DEUX côtés', () => {
-    for (const part of ['vantail', 'herse-barreau', 'gravats'] as WallPart[]) {
+    for (const part of ['vantail', 'barreau', 'gravats'] as WallPart[]) {
       expect(wallPartRelief(part).famille).toBe('traversant');
       const face = partFace(part);
       const { quads, oriented } = faceQuadsOriented(face, 2, faceDepthM(face));

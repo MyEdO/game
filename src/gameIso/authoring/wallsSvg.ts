@@ -24,7 +24,7 @@ const OUTLINE = 0.4; // liseré d'arête sombre dérivé de la face
 const JAMBCAP = 1.25; // chapiteau de jambage clair (repli sans couleur de def)
 const POST_W = 3.8, POST_CAP_H = 2.4, POST_BASE_H = 3; // montant d'extrémité
 const JAMB_W = 3.6, JAMB_CAP_H = 1.8; // jambage de porte
-const FRAME_W = 1.3, BAR_W = 1.7; // moulure bois / barreau de herse (lignes médianes)
+const FRAME_W = 1.3, BAR_W = 1.7; // moulure bois / barreau de claire-voie (lignes médianes)
 
 /** Parties ombrées par ORIENTATION (arête N assombrie). La PIERRE (hex
  *  depuis la palette unifiée du JSON) est désormais ombrée comme le bois : sa face N recule dans l'ombre,
@@ -96,7 +96,7 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
   if (part === 'jambage') return jambSvg(p[0], p[1], app);
   if (part === 'vitre') return glassSvg(p, app, tintK, !!opts?.night);
   if (part === 'moulure') return line(mid(p[0], p[3]), mid(p[1], p[2]), shade(wallPartColor(app, part), tintK), FRAME_W);
-  if (part === 'herse-barreau') return line(mid(p[2], p[3]), mid(p[0], p[1]), wallPartColor(app, part), BAR_W);
+  if (part === 'barreau') return line(mid(p[2], p[3]), mid(p[0], p[1]), wallPartColor(app, part), BAR_W);
   const base = wallPartColor(app, part);
   const fill = TINTED.has(part) ? shade(base, tintK) : base;
   let extra = '';
