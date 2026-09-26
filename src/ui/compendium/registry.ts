@@ -1505,7 +1505,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(fact('Portée', a.core ? 'Socle de base' : 'Axe de scénario')),
       sections: sections(
         a.skills?.length ? { title: 'Compétences', layout: 'chips', rows: a.skills.map((r) => idRefRow('skills', r.id, r.spec)) } : null,
-        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.talentId, r.spec)) } : null,
+        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.id, r.spec)) } : null,
       ),
     })),
   },

@@ -2363,6 +2363,7 @@ export const fr = {
   // ── #1318 V8c₅ — AVANCEMENT : raisons de refus (`engine/advancement.ts`, `adv.*`, LDB 07
   // l.89/135-148). Ces `reason` remontent à l'écran via `pf.refused`/`pf.careerRefused`.
   'adv.notEnoughXp': 'PX insuffisants',
+  'adv.talentMax': 'Maxi du Talent atteint',
   'adv.unknownSkill': 'Compétence inconnue',
   'adv.unknownLevel': 'niveau de carrière inconnu',
   'adv.sameLevel': 'déjà à ce niveau',

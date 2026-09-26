@@ -98,8 +98,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'moveMod', category: 'characteristics', build: () => ({ op: 'moveMod', mod: -1 }) },
     { kind: 'moveScale', category: 'characteristics', build: () => ({ op: 'moveScale', num: 1, den: 2 }) },
     { kind: 'wounds', category: 'characteristics', build: () => ({ op: 'wounds', amount: 1 }) },
-    { kind: 'grantTalent', category: 'talents', build: () => ({ op: 'grantTalent', talentId: talents[0].id }) },
-    { kind: 'grantCareerTalent', category: 'talents', build: () => ({ op: 'grantCareerTalent', talentId: talents[0].id }) },
+    { kind: 'grantTalent', category: 'talents', build: () => ({ op: 'grantTalent', talent: { id: talents[0].id } }) },
+    { kind: 'grantCareerTalent', category: 'talents', build: () => ({ op: 'grantCareerTalent', talent: { id: talents[0].id } }) },
     { kind: 'grantCareerSkill', category: 'skills', build: () => ({ op: 'grantCareerSkill', skill: { id: skills[0].id } }) },
     { kind: 'skillMod', category: 'skills', build: () => ({ op: 'skillMod', skill: { id: skills[0].id }, mod: -10 }) },
     { kind: 'skillDRBonus', category: 'skills', build: () => ({ op: 'skillDRBonus', skill: { id: skills[0].id }, bonus: 1 }) },
@@ -258,7 +258,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       const mutation = mutations.find((m) => m.id === mutationId)!;
       const op = (mutation.passive ?? []).find((o) => o.op === 'grantTalent')!;
       expect(op, mutationId).toBeTruthy();
-      expect((op as { spec?: string }).spec, `${mutationId} : la donnée porte l'ID, jamais le libellé`)
+      expect(op.op === 'grantTalent' ? op.talent.spec : undefined, `${mutationId} : la donnée porte l'ID, jamais le libellé`)
         .toMatch(/^[a-z-]+$/);
       const row = opRow(op);
       expect(row.t).toBe('ref');

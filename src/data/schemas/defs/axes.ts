@@ -14,26 +14,18 @@
  */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { refOuSpec } from '../grammaire/ref';
-import type { SkillRef } from '../../../engine/skills';
+import { refOuSpec, type RefDesignee } from '../grammaire/ref';
 
 export const file = 'axes.json';
 export const famille = 'entite';
 
-/** Spécialisation absente = TOUTE spec de la Compétence compte (ex. `metier` sans `spec`). */
-const skillRefSchema = refOuSpec('skill');
-
-const talentRefSchema = z.strictObject({
-  talentId: z.string(),
-  /** Spécialisation du Talent (ex. `maitre-artisan`→`ingenieur`) — absente = TOUTE spec compte. */
-  spec: z.string().optional(),
-});
-
 const champs = {
   /** Socle de base (actif par défaut si la campagne ne déclare pas `activeAxes`). */
   core: z.boolean().optional(),
-  skills: z.array(skillRefSchema).optional(),
-  talents: z.array(talentRefSchema).optional(),
+  /** Spécialisation absente = TOUTE spec compte. */
+  skills: z.array(refOuSpec('skill')).optional(),
+  /** Spécialisation absente = TOUTE spec compte. */
+  talents: z.array(refOuSpec('talent')).optional(),
 };
 
 const doc = document(
@@ -58,4 +50,4 @@ export const meta = doc.meta;
 export const exposition = doc.exposition;
 /** VUE TS du dataset — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`), la vue
  *  se recompose donc depuis l'enveloppe et les champs déclarés, sans rouvrir aucun nœud. */
-export type AxesData = (EnveloppeDocument & Omit<z.infer<z.ZodObject<typeof champs>>, 'skills'> & { skills?: SkillRef[] })[];
+export type AxesData = (EnveloppeDocument & Omit<z.infer<z.ZodObject<typeof champs>>, 'skills' | 'talents'> & { skills?: RefDesignee[]; talents?: RefDesignee[] })[];

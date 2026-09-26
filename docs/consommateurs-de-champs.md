@@ -17,9 +17,9 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 68 | `src/engine/actorView.ts:28` |
+| `id` | 69 | `src/engine/actorView.ts:28` |
 | `value` | 14 | `src/engine/creatureAttacks.ts:80` |
-| `arg` | 17 | `src/engine/creatureAttacks.ts:77` |
+| `arg` | 18 | `src/engine/creatureAttacks.ts:77` |
 | `count` | 4 | `src/engine/creatureAttacks.ts:85` |
 | `range` | 6 | `src/engine/creatureEquip.ts:81` |
 | `natural` | 1 | `src/engine/creatureEquip.ts:87` |
@@ -53,19 +53,19 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | `sides` | 18 | `src/engine/dice.ts:83` |
 | `plus` | 9 | `src/engine/dice.ts:83` |
 
-### `Ref` (src/data/index.ts)
+### `RefDesignee` (src/data/schemas/grammaire/ref.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 58 | `src/data/index.ts:3038` |
-| `spec` | 22 | `src/data/index.ts:3585` |
+| `id` | 179 | `src/data/index.ts:3037` |
+| `spec` | 108 | `src/data/index.ts:3574` |
 
 ### `QualityRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 6 | `src/data/index.ts:3597` |
-| `value` | 4 | `src/data/index.ts:3598` |
+| `id` | 6 | `src/data/index.ts:3587` |
+| `value` | 4 | `src/data/index.ts:3588` |
 
 ### `CastingNumberMod` (src/engine/castingNumber.ts)
 
@@ -85,8 +85,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `fixed` | 4 | `src/data/index.ts:3666` |
-| `roll` | 3 | `src/data/index.ts:3666` |
+| `fixed` | 4 | `src/data/index.ts:3656` |
+| `roll` | 3 | `src/data/index.ts:3656` |
 
 ### `TrappingRef` (src/data/index.ts)
 
@@ -94,27 +94,27 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `id` | 8 | `src/engine/items.ts:307` |
 | `spec` | 2 | `src/engine/items.ts:309` |
-| `count` | 10 | `src/data/index.ts:3666` |
-| `qualities` | 4 | `src/data/index.ts:3669` |
-| `qualityChoice` | 6 | `src/data/index.ts:3667` |
-| `text` | 2 | `src/data/index.ts:3660` |
-| `vehicleId` | 5 | `src/data/index.ts:3662` |
+| `count` | 10 | `src/data/index.ts:3656` |
+| `qualities` | 4 | `src/data/index.ts:3659` |
+| `qualityChoice` | 6 | `src/data/index.ts:3657` |
+| `text` | 2 | `src/data/index.ts:3650` |
+| `vehicleId` | 5 | `src/data/index.ts:3652` |
 | `label` | 7 | `src/engine/possessionGrants.ts:25` |
-| `creatureId` | 5 | `src/data/index.ts:3664` |
-| `choice` | 5 | `src/data/index.ts:3657` |
-| `wildcard` | 3 | `src/data/index.ts:3658` |
+| `creatureId` | 5 | `src/data/index.ts:3654` |
+| `choice` | 5 | `src/data/index.ts:3647` |
+| `wildcard` | 3 | `src/data/index.ts:3648` |
 
 ### `AdvancementRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 9 | `src/data/index.ts:3639` |
+| `id` | 9 | `src/data/index.ts:3629` |
 | `spec` | 3 | `src/engine/careerSlots.ts:177` |
-| `choix` | 7 | `src/data/index.ts:3038` |
-| `pick` | 2 | `src/data/index.ts:3642` |
-| `of` | 6 | `src/data/index.ts:3641` |
+| `choix` | 7 | `src/data/index.ts:3037` |
+| `pick` | 2 | `src/data/index.ts:3632` |
+| `of` | 6 | `src/data/index.ts:3631` |
 | `table` | — | *absent du type TS* |
-| `random` | 3 | `src/data/index.ts:3644` |
+| `random` | 3 | `src/data/index.ts:3634` |
 
 ### `EntityAppearance` (src/engine/authoringAppearance.ts)
 
@@ -189,7 +189,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `min` | 1 | `src/ui/compendium/registry.ts:839` |
 | `max` | 1 | `src/ui/compendium/registry.ts:839` |
-| `id` | 3 | `src/data/index.ts:502` |
+| `id` | 3 | `src/data/index.ts:501` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
 | `ops` | 3 | `src/engine/riverNavigation.ts:213` |
 | `shrapnel` | 3 | `src/engine/shipCritical.ts:110` |
@@ -299,5 +299,5 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
-`trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: d18fae6beb81e874c93033f1c7ca50a82ce7ce6c (2101 fichiers, 172 dossiers) corps: 27385aeea8ce10d415a3496a8871875771c66c0d -->
+`trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
+<!-- sources-empreinte: 6241a706413c0e7a25beeb5f63005e12362b9c60 (2102 fichiers, 172 dossiers) corps: ba2dcc576bf4899326a5f5daddeb2cf13d99ea99 -->

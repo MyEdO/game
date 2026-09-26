@@ -2537,11 +2537,11 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     }
     case 'chance-navigateur': {
-      // « Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours. »
+      // MDG 15 l.233
       const captain = partyAssisted(get().party, 'commandement');
       if (captain) {
         const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talentId: 'chanceux' }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
+        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
         set({ party: [...get().party] });
       }
       break;

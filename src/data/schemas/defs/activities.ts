@@ -16,7 +16,7 @@ export const famille = 'entite';
 
 // `difficulty?` = Difficulté PROPRE à cette voie quand le RAW en attache une différente par
 // Compétence (Punchausen, AA 12 l.45-49) — absente, la voie retombe sur `difficulty` de l'Activité.
-const skillRefSchema = refOuSpec('skill', { difficulty: difficultySchema.optional() });
+const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: difficultySchema.optional() });
 
 /** Termes de `Formula` dont la valeur ne se connaît QU'AU jet. Un modificateur de Test d'Activité est
  *  affiché AVANT l'engagement (`activityTestMod` → volet d'Activité, ligne de pré-jet) : la valeur
@@ -127,7 +127,7 @@ const doc = document(
   {
     contexts: z.array(activityContextSchema),
     // ── TestSpec (src/engine/skills.ts) ──
-    skills: z.array(skillRefSchema).optional(),
+    skills: z.array(voieDeCompetenceSchema).optional(),
     char: z.string().optional(),
     difficulty: difficultySchema.optional(),
     combined: z.boolean().optional(),

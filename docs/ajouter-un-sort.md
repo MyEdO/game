@@ -183,4 +183,4 @@ effet de cible —, `missile` vient d'`isMagicMissile`.
 
 `npm run typecheck` en plus : les unions de portée/cible/durée et `Formula` sont strictement
 typées — une valeur mal formée casse la compilation avant le runtime.
-<!-- sources-empreinte: 2e49c09655d56e4fe96b1b00b5f1976aec734a89 (16 fichiers, 0 dossiers) corps: d83457d4fa3c2cc3ef5ec080ec36173701339b61 -->
+<!-- sources-empreinte: adde280d68bc95dbe35d43a54562da200cb82f4b (16 fichiers, 0 dossiers) corps: d83457d4fa3c2cc3ef5ec080ec36173701339b61 -->

@@ -157,7 +157,7 @@ export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {
   'talents.json#[artiste].specs': ['calligraphie', 'cartographie', 'ecriture', 'gravure', 'icones', 'mosaique', 'peinture', 'sculpture', 'tatouage', 'tissage'],
   'talents.json#[assaut-feroce].specs': [],
   'talents.json#[assistant-magique].specs': [],
-  'talents.json#[attirant].specs': [],
+  'talents.json#[attirant].specs': ['mutants-et-hommes-betes'],
   'talents.json#[baratiner].specs': [],
   'talents.json#[battement].specs': [],
   'talents.json#[benediction-de-tzeentch].specs': [],

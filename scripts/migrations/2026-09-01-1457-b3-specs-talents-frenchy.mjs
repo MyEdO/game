@@ -305,7 +305,9 @@ const specsDeTrait = new Set();
 const walkTrait = (n) => {
   if (Array.isArray(n)) return n.forEach(walkTrait);
   if (!n || typeof n !== 'object') return;
-  if (n.talentId === 'savoir-vivre' && typeof n.spec === 'string') specsDeTrait.add(n.spec);
+  // Les deux graphies d'une op de Talent : `{ talentId, spec }` (avant #1473) et `{ talent: { id, spec } }`.
+  const ref = typeof n.talentId === 'string' ? { id: n.talentId, spec: n.spec } : n.talent;
+  if (ref?.id === 'savoir-vivre' && typeof ref.spec === 'string') specsDeTrait.add(ref.spec);
   for (const v of Object.values(n)) walkTrait(v);
 };
 walkTrait(traits);

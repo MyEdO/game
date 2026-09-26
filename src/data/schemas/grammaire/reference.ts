@@ -30,9 +30,9 @@ export const traitInstanceSchema = z.strictObject({
  */
 export const refSchema = z.strictObject({ id: z.string(), spec: z.string().optional() });
 
-/** `TalentRef` (`src/data/index.ts:2921`) — `Ref` + niveau facultatif (« Maîtrise du combat 2 »).
+/** `TalentRef` (`src/data/index.ts`) — référence + niveau facultatif (« Maîtrise du combat 2 »).
  *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures` et les profils embarqués de scène en
- *  dépendent (la graphie ALIAS `{talentId, spec}` d'`axes.ts` est une dette stockée, pas une variante).
+ *  dépendent.
  *  Les trois clés sont ÉCRITES, jamais `...refSchema.shape` : le mesureur de redéclarations lit les
  *  littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */

@@ -290,7 +290,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "chanceux"
+        "talent": {
+          "id": "chanceux"
+        }
       }
     ],
     "desc": "Mummit le Fou sourit au monde depuis les cieux étoilés et annonce une période de renouveau. Les personnes nées sous le signe de Mummit le Fou sont sensibles, intuitives et surtout, incroyablement chanceuses. Tout leur réussit, ou du moins est- ce l'impression qu'elles donnent. Ainsi, les natifs de ce signe sont connus pour être impulsifs et avoir la bougeotte : ils ont souvent le désir de tout laisser derrière eux et de fuir leurs responsabilités aussi longtemps que possible.",
@@ -318,8 +320,10 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "maitre-artisan",
-        "spec": "Au choix"
+        "talent": {
+          "id": "maitre-artisan",
+          "choix": true
+        }
       }
     ],
     "desc": "Les individus nés sous le signe des Deux Bœufs sont innovants, assidus, créatifs et peuvent fabriquer presque tout ce qu'ils désirent. Heureusement pour le monde, ce qu'ils désirent le plus, c'est aider les autres, que ce soit en améliorant une presse à imprimer ou en concevant une meilleure charrue pour labourer les champs de leur famille. Malheureusement, les projets dans lesquels ils se lancent peuvent parfois être fantaisistes et irréalisables, et des personnes mal intentionnées peuvent détourner leur idéalisme vers des causes dangereuses ou injustes.",
@@ -347,7 +351,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "ferveur-ardente"
+        "talent": {
+          "id": "ferveur-ardente"
+        }
       }
     ],
     "desc": "Le Danseur est un signe de passion... et d'obsession. Quand les natifs de ce signe se lancent à la poursuite de quelque chose, ils le font avec une assiduité à toute épreuve : qu'il s'agisse d'un cœur à conquérir ou d'un mystère à résoudre, le reste du monde s'efface devant leur détermination. Lorsqu'on les méprise, ils le prennent mal et peuvent réagir violemment.",
@@ -375,7 +381,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "noctambule"
+        "talent": {
+          "id": "noctambule"
+        }
       }
     ],
     "desc": "Les personnes nées sous le signe du Tambour se distinguent par leur caractère expansif et généreux. Elles ne font rien avec modération, et lorsqu'elles donnent, elles donnent tout. Ainsi, un Tambour ne manque jamais de faire l'aumône aux pauvres ou de prendre soin des membres malades de sa famille. Il ne refusera jamais non plus une invitation à une taverne ou à une fête. Les natifs du Tambour sont de bons vivants agréables à côtoyer, mais si leur hédonisme n'est pas contrôlé, ils peuvent se laisser aller à des excès désastreux.",
@@ -437,7 +445,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "sixieme-sens"
+        "talent": {
+          "id": "sixieme-sens"
+        }
       }
     ],
     "desc": "Une constellation vide d'étoiles. Un trou noir dans la voûte céleste. Les natifs de Vobist le Pâle peuvent parfois sembler imprévisibles et incertains ; après tout, ils sont nés sous une obscurité totale. Il peut leur arriver de se montrer excessivement prudents, mais aussi audacieux et courageux quand on s'y attend le moins, fonçant au cœur de la mêlée avant même les plus valeureux guerriers. Ce qui s'apparente chez eux à de l'incertitude peut se révéler être un sens aigu des causes auxquelles ils doivent se dévouer et de la manière dont ils doivent se battre pour elles. Enfin, lorsque Morrslieb, la lune du Chaos, est pleine lorsque Vobist le Pâle est ascendant, c'est un présage particulièrement mauvais.",
@@ -465,8 +475,10 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "resistance",
-        "spec": "maladie"
+        "talent": {
+          "id": "resistance",
+          "spec": "maladie"
+        }
       }
     ],
     "desc": "Les personnes nées sous le signe de la Charrette Brisée ont tendance à être orgueilleuses et à trop se soucier des apparences. Elles sont capables de dépenser jusqu'à leur dernier sou en quête des plaisirs terrestres, ou de se brûler les ailes en voulant obtenir l'approbation de leurs supérieurs. Toutefois, lorsqu'elles parviennent à réfréner ces tendances, leur fierté se transforme en confiance et leur vanité en sympathie.\n\nLe lien existant entre la Charrette Brisée et Nurgle est rarement évoqué, car toute forme d'adoration des Puissances de la Ruine est un motif suffisant pour finir au bûcher dans la plupart des régions du Vieux Monde. Tout le monde sent cependant que ce signe a quelque chose de sombre et de primitif ancré en lui, et il est couramment associé à la maladie dans de nombreuses cultures. Beaucoup de gens savent que l'influence du Père de la Peste est grande en ce monde, et quand la maladie ravage la terre, les plus désespérés se souviennent alors de vieux contes et de rites interdits, et lui font des offrandes également inavouables.",
@@ -494,7 +506,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "affinite-avec-les-animaux"
+        "talent": {
+          "id": "affinite-avec-les-animaux"
+        }
       }
     ],
     "desc": "Les personnes nées sous le signe de la Chèvre Sauvage ne laissent personne les approcher de trop près. Elles peuvent sembler distantes et apathiques, mais si elles se comportent ainsi, c'est pour ne pas risquer d'être blessées par les éventuelles déceptions auxquelles elles devront inévitablement faire face. Lorsqu'elles sont abattues, elles se complaisent dans leur douleur. Cependant, les rares fois où elles s'autorisent à éprouver de la joie, leur gaieté est contagieuse.\n\nLes natifs de la Chèvre Sauvage ayant une affinité avec la magie sont souvent attirés par le Vent d'Ambre de Ghur. Les individus nés sous ce signe seraient bien avisés de se rappeler que le monde n'est pas là pour les persécuter. Cela peut arriver à n'importe qui d'être frappé par la malchance, mais on ne peut pas passer sa vie à se morfondre pour autant.",
@@ -522,7 +536,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "volonte-de-fer"
+        "talent": {
+          "id": "volonte-de-fer"
+        }
       }
     ],
     "desc": "Le Chaudron de Rhya est vénéré tant par les astromanciens, les sorciers des ordres de Jade et d'Améthyste que par les astrologues. Ce signe est associé à l'éclosion de choses nouvelles, mais aussi à leur mort inévitable. Les individus nés sous sa lumière sont connus pour suivre des idéaux justes et pour être miséricordieux envers les innocents. Quelle que soit leur situation dans la vie, ils sont implacables dans leur quête de justice. Cet acharnement, s'il n'est pas contrôlé, peut toutefois les rendre insensibles et méprisants à l'égard de la vie et du bien-être des autres.",
@@ -550,7 +566,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "negociateur"
+        "talent": {
+          "id": "negociateur"
+        }
       }
     ],
     "desc": "Les natifs de Cackelfax le Coq ont de grandes ambitions et le regard tourné vers l'avenir. Il est rare de rencontrer un Coq dépensier. Les personnes nées sous ce signe s'efforcent d'atteindre leurs objectifs de la manière la plus directe possible : cela implique pour elles d'acquérir des relations, des faveurs, des biens, des compétences et, surtout, de l'argent (beaucoup d'argent). À mesure de leur ascension dans la société, elles prennent sous leur aile ceux qui, auparavant, ont pris soin d'eux. De nombreuses personnalités politiques reconnues ou en passe de le devenir sont nées sous le signe du Coq, ou du moins, le prétendent-elles. Les autres signes peuvent trouver les natifs du Coq avides ou impitoyables, mais ces derniers ont leurs raisons : dans ce monde, la réussite n'est pas offerte aux plus méritants. Elle s'achète, avec de l'argent ou avec du sang.",
@@ -607,7 +625,9 @@
     "ops": [
       {
         "op": "grantTalent",
-        "talentId": "sixieme-sens"
+        "talent": {
+          "id": "sixieme-sens"
+        }
       }
     ],
     "sub": {
@@ -639,7 +659,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "seconde-vue"
+        "talent": {
+          "id": "seconde-vue"
+        }
       }
     ],
     "sub": {
@@ -671,7 +693,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "magie-mineure"
+        "talent": {
+          "id": "magie-mineure"
+        }
       }
     ],
     "sub": {
@@ -703,7 +727,9 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "sorcier"
+        "talent": {
+          "id": "sorcier"
+        }
       }
     ],
     "sub": {

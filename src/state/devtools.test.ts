@@ -23,6 +23,7 @@ import { sceneToAscii } from './sceneToAscii';
 import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
+import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad, __resetLibraryForTest, __setIdbBackendForTest, type SavedProject } from './projectLibrary';
 import { parseProject } from './worldMap';
 
@@ -104,6 +105,15 @@ describe('__wfrp — autres commandes de recette', () => {
     const xpBefore = useGame.getState().party[0].xp ?? 0;
     buildApi().xp(150);
     expect(useGame.getState().party[0].xp).toBe(xpBefore + 150);
+  });
+
+  it('trait : pose le Trait hors combat par `grantTrait`, et ses Talents de carrière passifs se lisent', () => {
+    const hero = useGame.getState().party[0];
+    expect(buildApi().trait(hero.id, 'marque-de-tzeentch')).toContain('✓');
+    const porteur = useGame.getState().party[0];
+    expect(porteur.traits?.some((t) => t.id === 'marque-de-tzeentch')).toBe(true);
+    expect(careerTalentAdditions(porteur).map((r) => r.id)).toContain('magie-des-arcanes');
+    expect(buildApi().trait(hero.id, 'trait-inexistant')).toContain('✗');
   });
 
   it('spell : mémorise un sort au grimoire par l’EFFET MOTEUR (jamais une écriture parallèle)', () => {

@@ -16,7 +16,7 @@
 import { RNG, defaultRNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, talentConcrete, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, refConcrete, findTraitById, refLabel, findTrappingById } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
 import { findTableEntry } from './tables';
@@ -24,7 +24,7 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
-import type { SkillRef } from './skills';
+import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
@@ -38,7 +38,7 @@ import { applyAlcoholTest } from './drunkenness';
 import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
 import { applyHealWounds } from './healing';
 import { fateSaveOrDie } from './fortune';
-import { talentMaxReached } from './careerSlots';
+import { acquerirTalent } from './careerSlots';
 import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, buildWeapon, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
@@ -539,7 +539,7 @@ export type GameOp =
    *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
    *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
    *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; skill?: SkillRef; easeSteps?: number }
+  | { op: 'corruptionExposure'; level?: ExposureLevel; skill?: RefDesignee; easeSteps?: number }
   /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
    *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
    *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
@@ -559,7 +559,7 @@ export type GameOp =
    *  Compétence de magie, Tests interdits, ou DR de Prière plafonné à 0. Durée en
    *  Rounds (combat + entretien hors combat) OU en minutes/jours d'horloge.
    *  `skill` absent = TOUTE magie (même idiome d'absence que `grantReverseToken` ci-dessous). */
-  | { op: 'castPenalty'; skill?: SkillRef; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula }
+  | { op: 'castPenalty'; skill?: RefDesignee; mod?: number; blocked?: boolean; maxZeroDR?: boolean; rounds?: Formula; minutes?: Formula; hours?: Formula; days?: Formula }
   /** Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès
    *  Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »),
    *  composé par `heroStatus` (interludeFlow.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). */
@@ -567,7 +567,7 @@ export type GameOp =
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
    *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
    *  Test (« concernant votre cible », l.218). */
-  | { op: 'grantReverseToken'; skill?: SkillRef }
+  | { op: 'grantReverseToken'; skill?: RefDesignee }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
    *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `indice` : Indice du trait
@@ -610,18 +610,17 @@ export type GameOp =
    *   - sans échéance (Marques Arcaniques, VDM 02 l.238) → acquisition STRUCTURELLE dans `c.talents`
    *     (comme `attachMutation` et l'effet de Signe astral), bornée par le Maxi du registre : tous les
    *     canaux ci-dessus la voient.
-   *  Réf par `talentId` STABLE (+ `spec` éventuel « Sans Peur (Vampires) ») — résolu en libellé concret
-   *  par `talentConcrete`. */
-  | { op: 'grantTalent'; talentId: string; spec?: string }
+   *  Référence de Talent (`refOuSpec('talent')`, champ à choix de `mecanique.ts`). */
+  | { op: 'grantTalent'; talent: RefASpecialisation }
   /** Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) —
-   *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `SkillRef` sans sa valeur imprimée :
+   *  référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée :
    *  `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe.
    *  Lu par `careerSkillAdditions` (création/avancement), pas appliqué au combattant. */
-  | { op: 'grantCareerSkill'; skill: { id: string; spec?: string; choix?: true | string[] } }
+  | { op: 'grantCareerSkill'; skill: RefASpecialisation }
   /** Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la
    *  liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de
-   *  `grantCareerSkill`, ref par `talentId` STABLE. Lu par `careerTalentAdditions`, pas appliqué au combattant. */
-  | { op: 'grantCareerTalent'; talentId: string; spec?: string }
+   *  `grantCareerSkill`. Lu par `careerTalentAdditions`, pas appliqué au combattant. */
+  | { op: 'grantCareerTalent'; talent: RefASpecialisation }
   /** ALTÉRATION d'ARME temporisée — enchantement OU dégradation, une seule primitive (Jalon 2.6 —
    *  Bénédiction de Droiture : Magique ; Marteau ardent : Magique +BSoc + En flammes/À Terre à la touche ; Épée
    *  ardente : +6 + Percutante + En flammes ; VDM 05 — Arme enchantée « ajouter 1 Atout ou retirer 1
@@ -951,7 +950,7 @@ export type GameOp =
    *  de Perception basés sur l'ouïe » — PAS toute Perception) : gaté par le `sense` du CONTEXTE de Test
    *  (`testValue`), pas une liste de compétences codée en dur. Absent = inconditionnel (Cécité : compétences
    *  nommément listées CC/CT/Esquive/Chevaucher, `sense` inutile car déjà scopé par `skill`). */
-  | { op: 'skillMod'; skill: SkillRef; mod: number; sense?: PairedSense }
+  | { op: 'skillMod'; skill: RefDesignee; mod: number; sense?: PairedSense }
   /** +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ;
    *  chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228).
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
@@ -962,7 +961,7 @@ export type GameOp =
    *  un TYPE de Test d'équipage (`crew-test-types.json`) agnostique de la compétence (une Poursuite se
    *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`
    *  (personnage) ni `navalSkillTestDR` (coque). */
-  | { op: 'skillDRBonus'; skill: SkillRef; bonus: Formula; testType?: never }
+  | { op: 'skillDRBonus'; skill: RefDesignee; bonus: Formula; testType?: never }
   | { op: 'skillDRBonus'; testType: string; bonus: Formula; skill?: never }
   /** +N DR aux Tests d'une CARACTÉRISTIQUE (chanson « Camarades d'équipage » : +1 DR sur tout Test de
    *  Sociabilité, MDG 09 l.236) — variante par carac de `skillDRBonus`. Exécutée → `ActiveEffect.drBonus`
@@ -1231,7 +1230,7 @@ export interface OpsCtx {
   conjureForm?: ConjureForm;
   /** Branché par le store : EXPOSITION corruptrice (op `corruptionExposure`) → Test différé par modale
    *  (pendingCorruption). Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (level: ExposureLevel, skill?: SkillRef) => string[];
+  onCorruptionExposure?: (level: ExposureLevel, skill?: RefDesignee) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -2213,30 +2212,20 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       }
       case 'grantTalent': {
         const dur = durationFromCtx(ctx);
-        // Octroi SANS échéance (table de contrecoup — Marques Arcaniques, VDM 02 l.238) = acquisition
-        // STRUCTURELLE dans `c.talents`, MÊME chemin que `attachMutation` (corruption.ts) et que l'effet
-        // de Signe astral (`applyCreationOps`) : fiche, avancement, +DR de Talent et passifs de Talent
-        // lisent `c.talents`. Le Maxi du registre borne l'octroi (LDB 10 l.13-20, `talentMaxReached`).
+        const talent = refConcrete('talents', o.talent);
+        // Octroi SANS échéance (VDM 02 l.238) : acquisition structurelle, `acquerirTalent` (engine/careerSlots.ts).
         if (dur.scale === 'permanent') {
-          target.talents = target.talents ?? [];
-          if (talentMaxReached(target, o.talentId, o.spec)) {
-            lines.push(t('op.grantTalent.max', { name: target.label, talent: talentConcrete(o), src: ctx.label ?? 'sort' }));
-            break;
-          }
-          const has = target.talents.some((x) => x.talentId === o.talentId && (x.spec ?? '') === (o.spec ?? ''));
-          target.talents = has
-            ? target.talents.map((x) => (x.talentId === o.talentId && (x.spec ?? '') === (o.spec ?? '') ? { ...x, times: (x.times ?? 1) + 1 } : x))
-            : [...target.talents, { talentId: o.talentId, ...(o.spec ? { spec: o.spec } : {}), times: 1 }];
-          lines.push(t('op.grantTalent', { name: target.label, talent: talentConcrete(o), src: ctx.label ?? 'sort' }));
+          const acquis = acquerirTalent(target, o.talent);
+          lines.push(t(acquis ? 'op.grantTalent' : 'op.grantTalent.max', { name: target.label, talent, src: ctx.label ?? 'sort' }));
           break;
         }
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: ctx.label ?? 'Effet', bonus: 0,
           duration: dur,
-          grantedTalent: { talentId: o.talentId, ...(o.spec ? { spec: o.spec } : {}) },
+          grantedTalent: { talentId: o.talent.id, ...(o.talent.spec ? { spec: o.talent.spec } : {}) },
         });
-        lines.push(t('op.grantTalent', { name: target.label, talent: talentConcrete(o), src: ctx.label ?? 'sort' }));
+        lines.push(t('op.grantTalent', { name: target.label, talent, src: ctx.label ?? 'sort' }));
         break;
       }
       case 'reduceToZero': {

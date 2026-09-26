@@ -940,8 +940,10 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "sens-aiguise",
-        "spec": "odorat"
+        "talent": {
+          "id": "sens-aiguise",
+          "spec": "odorat"
+        }
       },
       {
         "op": "grantTrait",
@@ -1001,7 +1003,9 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "sorcier"
+        "talent": {
+          "id": "sorcier"
+        }
       },
       {
         "op": "charMod",
@@ -1417,8 +1421,10 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "sens-aiguise",
-        "spec": "ouie"
+        "talent": {
+          "id": "sens-aiguise",
+          "spec": "ouie"
+        }
       }
     ],
     "note": "Note 1 : peut être dissimulée seulement par des vêtements.",
@@ -1616,8 +1622,10 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "attirant",
-        "spec": "Mutants et hommes-bêtes"
+        "talent": {
+          "id": "attirant",
+          "spec": "mutants-et-hommes-betes"
+        }
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée. Talent Attirant restreint aux mutants et hommes-bêtes (la spec porte la restriction).",
@@ -1628,7 +1636,8 @@
     },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66,
+      "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
     }
   },
   {
@@ -2090,7 +2099,9 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "ambidextre"
+        "talent": {
+          "id": "ambidextre"
+        }
       }
     ],
     "appearance": {
@@ -2386,8 +2397,10 @@
       },
       {
         "op": "grantTalent",
-        "talentId": "sens-aiguise",
-        "spec": "odorat"
+        "talent": {
+          "id": "sens-aiguise",
+          "spec": "odorat"
+        }
       }
     ],
     "appearance": {
@@ -2478,8 +2491,10 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "sens-aiguise",
-        "spec": "vue"
+        "talent": {
+          "id": "sens-aiguise",
+          "spec": "vue"
+        }
       }
     ],
     "appearance": {

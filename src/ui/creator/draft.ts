@@ -18,7 +18,7 @@
  * `talentsRolled`, `wealthRoll`) ; le geste ne fait que DÉCOUVRIR un résultat déjà déterminé
  * (zéro savescum), et la validation d'étape EXIGE le geste.
  */
-import { CharKey, CHAR_KEYS, Characteristics, Combatant, TalentInstance } from '../../engine/types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { makeRNG } from '../../engine/dice';
 import { Money } from '../../engine/money';
 import {
@@ -42,7 +42,7 @@ import {
 } from '../../engine/creation';
 import { rule } from '../../engine/policy';
 import { createHero, resolveSpeciesTalents, RANDOM_ENTRY_RE, talentRefOfLabel } from '../../engine/character';
-import { parseEntry, splitLabel, concreteLabel, isUnresolvedChoice, splitTopLevelOu, talentMaxReached, wildcardSpecs, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
+import { parseEntry, splitLabel, concreteLabel, isUnresolvedChoice, splitTopLevelOu, talentMaxReached, acquerirTalent, type PorteurDeTalents, wildcardSpecs, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { findSpeciesById, rigSpeciesId, findTalent, careers, levelsForCareer, findSpell, advancementLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef } from '../../data';
 import { slugId } from '../../data/slug';
@@ -501,20 +501,17 @@ export function speciesTalentChoicesDone(d: CreatorDraft): boolean {
  *  `pettySpellQuota`) — n'affecte QUE les Caractéristiques du probe, pas sa sémantique pour les
  *  autres appelants (Maxi de talent, additions de carrière). */
 export function probeHero(d: CreatorDraft, withCareerTalent = true, charsAlloc = false): Combatant {
-  const talents: TalentInstance[] = [];
+  const characteristics = draftChars(d);
+  const acquis: PorteurDeTalents = { characteristics, talents: [] };
   const add = (label: string) => {
     // Libellé d'authoring → id STABLE (couture tolérée à la frontière du draft, doctrine ids).
     const { name, spec } = splitLabel(label);
-    const talentId = findTalent(name)?.id ?? slugId(name);
-    const e = talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''));
-    if (e) e.times += 1;
-    else talents.push({ talentId, spec, times: 1 });
+    acquerirTalent(acquis, { id: findTalent(name)?.id ?? slugId(name), spec });
   };
   for (const t of resolvedSpeciesTalents(d)) add(t);
   if (withCareerTalent && d.careerTalent) add(d.careerTalent);
-  const characteristics = draftChars(d);
   if (charsAlloc) for (const k of CHAR_KEYS) characteristics[k] += d.charAdvancesAlloc[k] ?? 0;
-  return { characteristics, talents, skills: [], movement: draftSpecies(d)?.movement ?? 0 } as unknown as Combatant;
+  return { characteristics, talents: acquis.talents ?? [], skills: [], movement: draftSpecies(d)?.movement ?? 0 } as unknown as Combatant;
 }
 
 /** Entrées de compétences de carrière allouables : les 8 du Niveau + ajouts de talents (LDB 10).

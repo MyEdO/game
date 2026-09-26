@@ -449,7 +449,7 @@ function tavernRow(get: Get, h: Combatant, game: TavernGame, choix?: number): Ba
  * la modale) — c'est la seule grandeur maison, et elle est éditable, jamais figée au code. */
 
 /** UNE OPTION de Test d'une manche (celle que l'entrée déclare, ou le repli du jeu). */
-type TavernOption = { skill?: import('../engine/skills').SkillRef; char?: CharKey; difficulty?: Difficulty; combatTest?: boolean };
+type TavernOption = { skill?: import('../data/schemas/grammaire/ref').RefDesignee; char?: CharKey; difficulty?: Difficulty; combatTest?: boolean };
 
 /** La Difficulté d'une option : la sienne, ou celle du jeu rapide (« Test opposé de Compétence
  *  Intermédiaire (+0) », l.11) quand l'option n'en nomme pas — un camp qui se contente d'ESQUIVER ne

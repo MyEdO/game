@@ -18,7 +18,7 @@ import { RNG, defaultRNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money } from './money';
-import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, talentConcrete, spells as allSpells } from '../data';
+import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, advancementLabel, spells as allSpells } from '../data';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { bonus } from './characteristics';
@@ -190,12 +190,12 @@ export function rollStar(rng: RNG = defaultRNG): { roll: number; id: string } {
 /** Applique les `ops` ADE II d'un signe astral AUX ATTRIBUTS DE DÉPART (ch.03 l.38) : `charMod` ajuste
  *  une Caractéristique de départ, `grantTalent` octroie un Talent via `addTalent` (le résolveur de la
  *  création). Le signe est résolu par son `id` STABLE (`findStarById` — ≠ libellé). Le Talent est passé
- *  en LIBELLÉ CONCRET (`talentConcrete` : id+spec → « Maître artisan (Au choix) ») que le consommateur
- *  re-résout. Effet baked une fois à la création — PAS un passif. */
+ *  en LIBELLÉ (`advancementLabel` : « Maître artisan (Au choix) » pour un `choix`) que le consommateur
+ *  re-résout (#1924). Effet baked une fois à la création — PAS un passif. */
 export function applyStarOps(starId: string, chars: Characteristics, addTalent: (label: string) => void): void {
   for (const op of findStarById(starId)?.ops ?? []) {
     if (op.op === 'charMod') chars[op.char] += op.mod;
-    else if (op.op === 'grantTalent') addTalent(talentConcrete(op));
+    else if (op.op === 'grantTalent') addTalent(advancementLabel('talents', op.talent));
   }
 }
 

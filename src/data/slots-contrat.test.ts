@@ -57,7 +57,7 @@ const CLE_DETTE = (c: { dataset: string; champ: string; occurrences: number }) =
   `${c.dataset} | ${c.champ} | ${c.occurrences}`;
 
 /** Plafond du cliquet de `SLOTS_SANS_DECLARATION` — #1473. */
-const DETTE_ADOPTION_MAX = 271;
+const DETTE_ADOPTION_MAX = 269;
 
 /** Plafond du cliquet de `SLOTS_INATTEIGNABLES` — #1473. */
 const INATTEIGNABLES_MAX = 4;

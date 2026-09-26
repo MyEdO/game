@@ -85,13 +85,7 @@ export const GAMEOP_FIELD_TARGETS = {
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Traits / Talents / Compétences ──
   'grantTrait.traitId': { registry: 'traits' },
-  'grantTalent.talentId': { registry: 'talents' },
-  'grantCareerTalent.talentId': { registry: 'talents' },
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
-  // Spécialisations : résolution assurée par la GARDE EXHAUSTIVE Phase 3 de
-  // `src/data/refs-migrated.test.ts`, qui connaît le domaine porteur (fermé/ouvert/`specsSource`).
-  'grantTalent.spec': { coveredBy: 'refs-migrated.test.ts § GARDE EXHAUSTIVE (Phase 3 complétude)' },
-  'grantCareerTalent.spec': { coveredBy: 'refs-migrated.test.ts § GARDE EXHAUSTIVE (Phase 3 complétude)' },
 
   // ── Séquelles (traumas.json) — `permanentAmputations` (src/engine/trauma.ts) instancie CHAQUE id ──
   'amputer.sequels': { registry: 'traumas' },

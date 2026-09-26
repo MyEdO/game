@@ -278,24 +278,23 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .map(({ f, t }) => `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.detail}`)
       .sort();
     expect(dansLaGrammaire).toEqual([
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.castPenalty|skill',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.corruptionExposure|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.corruptionExposure|skill',
       // `domeWard` est une op TYPÉE (`OP_DEFS`, #1508 T3 G0) : le Trait que le dôme octroie se nomme par
       // la graphie CANONIQUE d'un octroi (`traitId`), la même que `removeTrait` — d'où la ligne ici.
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.domeWard|traitId',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.giveTrapping|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.grantCareerSkill|skill',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.grantReverseToken|skill',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.polymorph|ref',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.removeTrait|traitId',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.scheduleRespawn|ref',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.skillDRBonus|skill',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.skillMod|skill',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.summon|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.domeWard|traitId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.giveTrapping|trappingId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.grantReverseToken|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.removeTrait|traitId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillMod|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:extendedTestSchema|skill',
       'src/data/schemas/grammaire/mecanique.ts:flowTestSchema|skill',
-      'src/data/schemas/grammaire/mecanique.ts:travelTableEntrySchema.mount.riderTest|skill',
+      'src/data/schemas/grammaire/mecanique.ts:travelTableEntry.mount.riderTest|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);

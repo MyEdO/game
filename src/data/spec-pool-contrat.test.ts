@@ -22,8 +22,11 @@ import { estSpecialisable, refOuSpec } from './schemas/grammaire/ref';
  *  1. une entrée hors pool est attestée ailleurs → elle porte une `source` ;
  *  2. toute spec demandée par une PORTE JOUEUR résout, et résout DANS le pool — sinon l'écran qui
  *     l'affiche ne peut pas l'offrir ;
- *  3. `pool` ne vide jamais un domaine groupé (`LDB 09 l.40` : l'Augmentation s'alloue à une
- *     Spécialisation — un domaine sans pool serait inallouable) ;
+ *  3. un EMPLACEMENT (`choix: true`, joker « au choix ») ne vise jamais une entrée à pool vide
+ *     (`LDB 09 l.40`) — garde `#1897` en fin de fichier (`choixSansPoolJoueur`). Pour un TALENT, des
+ *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.84`) ; une
+ *     COMPÉTENCE à `specs` est Groupée (`LDB 09 l.40`) et son pool vide est refusé par « aucune
+ *     Compétence spécialisable n’a un pool VIDE » (describe `L2 #1548`, catalogue RÉSOLU, inline compris) ;
  *  4. VALIDITÉ ⊇ POOL, par construction, sur chaque def.
  */
 const DEFS = [...skills, ...talents];
@@ -112,19 +115,14 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
     expect(perimees, `clé(s) de dette PÉRIMÉE(s) — la ref a été migrée, retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
   });
 
-  it('VALIDITÉ ⊇ POOL, et aucun domaine groupé n\'a un pool VIDE (`LDB 09 l.40`)', () => {
+  it('VALIDITÉ ⊇ POOL', () => {
     const fuites: string[] = [];
-    const vides: string[] = [];
     for (const def of DEFS) {
       for (const id of specPoolOf(def)) if (!specResolves(def, id)) fuites.push(`${def.id}/${id}`);
       const inline = (def.specs ?? []).map(specEntryId);
-      if (inline.length) {
-        expect(specPoolOf(def).length, def.id).toBeLessThanOrEqual(inline.length);
-        if (specPoolOf(def).length === 0) vides.push(def.id);
-      }
+      if (inline.length) expect(specPoolOf(def).length, def.id).toBeLessThanOrEqual(inline.length);
     }
     expect(fuites, `spec(s) proposées mais non valides :\n${fuites.join('\n')}`).toEqual([]);
-    expect(vides, `domaine(s) groupés à pool VIDE — Augmentation inallouable :\n${vides.join('\n')}`).toEqual([]);
   });
 });
 
@@ -150,16 +148,16 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
  *  - les défs de COMPÉTENCE et de TALENT sont confrontées (#1646, L-ref-3 du 2026-09-01 : les 5 spécs
  *    en libellé de `sens-aiguise` — 4 dans `mutations.json`, 1 dans `spells.json`, résolues par
  *    `PairedSense` et non par `testValue` — portent leur id) ; le volet SENTINELLE, lui, reste borné
- *    aux Compétences : `talentRefSchema` n'a pas de régime `choix`, et les 5 « Au choix » de
- *    `maitre-artisan` survivent à #1457 (4 dans `creatures.json`, 1 dans `stars.json`) — leur
- *    extinction demande le régime `choix` des réfs de Talent, reporté à #1621 ;
+ *    aux Compétences : `talentRefSchema` n'a pas de régime `choix`, et les 4 « Au choix » de
+ *    `maitre-artisan` de `creatures.json` survivent à #1457 — leur extinction demande le régime `choix`
+ *    des réfs de Talent de statbloc (#1621) ;
  *  - une spéc qui n'apparie AUCUNE entrée du catalogue de sa def n'est pas mesurée (texte libre d'un
- *    domaine ouvert, ou catalogue vide — `mutations.json › attirant`, dette nominative #1621) ;
+ *    domaine ouvert) ;
  *  - un libellé AMBIGU (deux entrées du même catalogue au même libellé normalisé) n'est pas départagé.
  */
 const DOSSIER_DATA = fileURLToPath(new URL('.', import.meta.url));
 /** DEUXIÈME racine de donnée authorée : les projets de scène composent la MÊME grammaire
- *  (`defs-scenes/communs.ts#skillRefSchema` = `refOuSpec('skill', { value })`), donc le même
+ *  (`defs-scenes/communs.ts#competenceChiffreeSchema` = `refOuSpec('skill', { value })`), donc le même
  *  invariant s'y mesure. Un scan borné à `src/data` laissait cette racine hors garde. */
 const DOSSIER_SCENES = fileURLToPath(new URL('../scenes/', import.meta.url));
 const RACINES: [string, string][] = [['data/', DOSSIER_DATA], ['scenes/', DOSSIER_SCENES]];
@@ -307,11 +305,9 @@ describe('L2 #1548 — `refOuSpec` refuse la sentinelle AU PARSE (`ref.ts#SENTIN
  * proposer au moins une spéc `pool` : sinon le tirage d'une spéc n'a aucun candidat et le `throw` de
  * `designateSpec` (`src/state/spawn.ts`) devient atteignable en partie.
  *
- * CE QUE CE VOLET AJOUTE au « aucun domaine groupé n'a un pool VIDE » ci-dessus : ce dernier ne
- * regarde une def QUE si elle porte des `specs[]` INLINE (`if (inline.length)`), ce qui saute par
- * construction les défs à `specsSource` — mesuré 2026-08-31 : `corps-a-corps`, `focalisation` et
- * `projectiles` ont 0 spéc inline pour 8/9/10 au registre, donc trois trous. `estSpecialisable` lit
- * le catalogue RÉSOLU (espace `<fichier>#[<id>].specs` de l'INDEX DES IDS), les deux régimes compris.
+ * PÉRIMÈTRE : `estSpecialisable` lit le catalogue RÉSOLU (espace `<fichier>#[<id>].specs` de l'INDEX
+ * DES IDS), `specs[]` inline et `specsSource` compris — mesuré 2026-08-31 : `corps-a-corps`,
+ * `focalisation` et `projectiles` ont 0 spéc inline pour 8/9/10 au registre.
  */
 describe('L2 #1548 — toute Compétence spécialisable propose au moins une spéc au tirage', () => {
   it('les défs à `specsSource` sont bien DANS le périmètre (le volet inline les saute)', () => {
@@ -418,11 +414,13 @@ describe('#1457 B2 — une spec ATTESTÉE dont le seul consommateur est un statb
 });
 
 /**
- * #1897 — un EMPLACEMENT `choix: true` se désigne dans le pool JOUEUR de son entrée (`specPoolOf` :
- * `wildcardSpecs` au créateur et à l'avancement, `designateSpec` au spawn). Une entrée dont le catalogue
- * n'est fait que de specs `pool: false` rendrait l'emplacement indésignable : refusé ici, à l'authoring,
- * sur les DEUX racines authorées. La clé de def se lit sur l'`id` du nœud porteur ; un id commun à
- * une Compétence et à un Talent (`resistance`) n'est fautif que si AUCUNE des deux n'a de pool.
+ * #1897 — un EMPLACEMENT se désigne dans le pool JOUEUR de son entrée (`LDB 09 l.40` ; `specPoolOf` :
+ * `wildcardSpecs` au créateur et à l'avancement, `designateSpec` au spawn). EMPLACEMENT = `choix: true`
+ * (avancement, ops à `choix`, statblocs) ou joker `spec` « au choix » (`SENTINELLE_CHOIX`, réfs de
+ * Talent de statbloc) ; `choix: [ids]` propose ses ids et n'est pas mesuré. Une entrée dont le
+ * catalogue n'est fait que de specs `pool: false` rendrait l'emplacement indésignable : refusé ici, à
+ * l'authoring, sur les DEUX racines authorées. La clé de def se lit sur l'`id` du nœud porteur ; un id
+ * commun à une Compétence et à un Talent (`resistance`) n'est fautif que si AUCUNE des deux n'a de pool.
  */
 type DefASpecs = Parameters<typeof specPoolOf>[0];
 function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string) => DefASpecs[]): { vus: number; fautes: string[] } {
@@ -432,11 +430,12 @@ function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string
     if (Array.isArray(node)) { node.forEach((x) => walk(x, ou)); return; }
     if (!node || typeof node !== 'object') return;
     const n = node as Record<string, unknown>;
-    if (typeof n.id === 'string' && n.choix === true) {
+    const emplacement = n.choix === true ? 'choix' : typeof n.spec === 'string' && SENTINELLE_CHOIX.test(n.spec) ? n.spec : null;
+    if (typeof n.id === 'string' && emplacement) {
       const defs = defsDe(n.id);
       if (defs.length) {
         vus++;
-        if (defs.every((d) => specPoolOf(d).length === 0)) fautes.push(`${ou} : « ${n.id} » en « choix » — pool joueur VIDE`);
+        if (defs.every((d) => specPoolOf(d).length === 0)) fautes.push(`${ou} : « ${n.id} » en « ${emplacement} » — pool joueur VIDE`);
       }
     }
     for (const v of Object.values(n)) walk(v, ou);
@@ -445,13 +444,13 @@ function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string
   return { vus, fautes };
 }
 
-describe('#1897 — un `choix` ne vise jamais une entrée à pool JOUEUR vide', () => {
+describe('#1897 — un emplacement ne vise jamais une entrée à pool JOUEUR vide', () => {
   const defsDe = (id: string): DefASpecs[] => [...skills, ...talents].filter((d) => d.id === id);
   const documents: [string, unknown][] = RACINES.flatMap(([racine, dir]) =>
     fichiersDeDonnees(dir).map((abs): [string, unknown] => [`${racine}${abs.slice(dir.length).replace(/\\/g, '/')}`, JSON.parse(readFileSync(abs, 'utf8'))]),
   );
 
-  it('les deux racines authorées : aucun `choix` sur une entrée sans pool joueur', () => {
+  it('les deux racines authorées : aucun emplacement sur une entrée sans pool joueur', () => {
     const { vus, fautes } = choixSansPoolJoueur(documents, defsDe);
     expect(vus, 'aucun `choix` vu : le walk ne mesurerait rien').toBeGreaterThan(0);
     expect(fautes, fautes.join('\n')).toEqual([]);
@@ -459,7 +458,16 @@ describe('#1897 — un `choix` ne vise jamais une entrée à pool JOUEUR vide', 
 
   it('la garde MORD : un catalogue fait de specs `pool: false` seules rend le `choix` fautif, nommément', () => {
     const fixture: DefASpecs[] = [{ specs: [{ id: 'statbloc-seul', label: 'Statbloc seul', pool: false }] } as DefASpecs];
-    const { fautes } = choixSansPoolJoueur([['fixture.json', [{ id: 'x', choix: true }, { id: 'x', spec: 'statbloc-seul' }]]], (id) => (id === 'x' ? fixture : []));
-    expect(fautes).toEqual(['fixture.json : « x » en « choix » — pool joueur VIDE']);
+    const { fautes } = choixSansPoolJoueur(
+      [['fixture.json', [{ id: 'x', choix: true }, { id: 'x', spec: 'au choix' }, { id: 'x', choix: ['statbloc-seul'] }, { id: 'x', spec: 'statbloc-seul' }]]],
+      (id) => (id === 'x' ? fixture : []),
+    );
+    expect(fautes).toEqual(['fixture.json : « x » en « choix » — pool joueur VIDE', 'fixture.json : « x » en « au choix » — pool joueur VIDE']);
+  });
+
+  it('une entrée à `specs` inline toutes `pool: false` et SANS emplacement qui la vise n’est pas fautive (`attirant`, `LDB 10 l.17`)', () => {
+    const fixture: DefASpecs[] = [{ specs: [{ id: 'public-restreint', label: 'Public restreint', pool: false }] } as DefASpecs];
+    const { fautes } = choixSansPoolJoueur([['fixture.json', [{ id: 'x' }, { id: 'x', spec: 'public-restreint' }]]], (id) => (id === 'x' ? fixture : []));
+    expect(fautes).toEqual([]);
   });
 });

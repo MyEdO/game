@@ -23,7 +23,7 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
-import { customStatblockSchema, ptSchema, skillRefSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
@@ -141,7 +141,7 @@ const baseDEntiteSchema = z.strictObject({
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
-      skills: z.array(skillRefSchema).optional(),
+      skills: z.array(competenceChiffreeSchema).optional(),
       /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. */
       hiddenUntilCombat: z.boolean().optional(),
     })

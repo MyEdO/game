@@ -95,7 +95,7 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
 
   it('une op fraîche à champ-réf REQUIS porte sa raison ; renseignée, elle n’en porte plus', () => {
     expect(opMissingRefs(newOp('grantTalent'))).toEqual(['Accorder un Talent : Talent à choisir']);
-    expect(opMissingRefs({ op: 'grantTalent', talentId: 'ambidextre' })).toEqual([]);
+    expect(opMissingRefs({ op: 'grantTalent', talent: { id: 'ambidextre' } })).toEqual([]);
     // Champ FACULTATIF (`removeCondition.id` = « au choix ») : absent ≠ manquant.
     expect(opMissingRefs(newOp('removeCondition'))).toEqual([]);
   });

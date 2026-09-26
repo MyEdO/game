@@ -43,7 +43,7 @@ import {
   specLabel,
   talents as talentTable,
 } from '../data';
-import { splitTopLevelOu, splitLabel, parseOption, concreteLabel, refKey, isUnresolvedChoice, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs } from './careerSlots';
+import { splitTopLevelOu, splitLabel, parseOption, concreteLabel, refKey, isUnresolvedChoice, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices } from './trappingChoices';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps } from './creation';
@@ -322,11 +322,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // carrière peut être un talent d'espèce → times 2 (l.502), Maxi respecté.
   const speciesTalents = opts.speciesTalentsResolved
     ?? resolveSpeciesTalents(sp, { rng, choices: opts.speciesTalentChoices });
-  const talents: TalentInstance[] = [];
+  const acquis: PorteurDeTalents = { characteristics: chars, talents: [] };
   const addTalentRef = ({ talentId, spec }: TalentChoisi) => {
-    const existing = talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''));
-    if (existing) existing.times += 1;
-    else talents.push({ talentId, spec, times: 1 });
+    acquerirTalent(acquis, { id: talentId, spec });
   };
   const addTalent = (label: string) => addTalentRef(talentRefOfLabel(label));
   for (const t of speciesTalents) addTalent(t);
@@ -338,8 +336,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     // via l'espèce sont sautés — cas Nain Lire/Écrire + Agitateur).
     for (const ref of talentEntries) {
       const candidate = talentRefOfLabel(resolveEntry(advancementLabel('talents', ref), opts.specChoices));
-      const probe: Combatant = { characteristics: chars, talents } as Combatant;
-      if (!talentMaxReached(probe, candidate.talentId, candidate.spec)) {
+      if (!talentMaxReached(acquis, candidate.talentId, candidate.spec)) {
         chosenTalent = candidate;
         break;
       }
@@ -352,6 +349,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // d'acquisition des Talents (l. ~377). Talent « (Au choix) » résolu via specChoices (resolveEntry).
   if (opts.starId) applyStarOps(opts.starId, chars, (label) => addTalent(resolveEntry(label, opts.specChoices)));
 
+  const talents: TalentInstance[] = acquis.talents ?? [];
   for (const t of talents) {
     if (isUnresolvedChoice(talentConcrete(t))) throw new Error(`Talent non résolu : ${talentConcrete(t)}`);
   }

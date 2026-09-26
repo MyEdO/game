@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
-import type { SkillRef } from '../../engine/skills';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../engine/shipBuild';
 import { serializeDataset } from '../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, schemaForFile } from '../../data/schemas/validate';
@@ -59,7 +59,7 @@ import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '
 import type { DiseaseSymptom } from '../../engine/disease';
 import type { CombatFeature } from '../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../data';
-import { skillRefLabel, talentRefLabel, type SkillRef as SkillRefLivre, type TalentRef } from '../../data';
+import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
 import type { SecondaryRef, Variant } from '../../data/schemas/grammaire/valeurs';
@@ -306,7 +306,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
   if (categoryKey === 'structures' || categoryKey === 'races') add('traits'); // {id,value?}[] → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
   if (categoryKey === 'crewRoles') add('skills'); // {id,spec?}[] → éditeur dédié (SkillSpecListField)
-  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[]/{talentId,spec?}[] → SkillSpecListField/TalentSpecListField
+  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {trappingId,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
   if (categoryKey === 'steamBreakdowns') add('restart'); // {skill:{id,spec?},difficulty,extendedDR?}[] → éditeur dédié
@@ -469,7 +469,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const isStructure = categoryKey === 'structures';
   // Rôle d'équipage (`crewRoles`, #157) : `skills` = {id,spec?}[] → éditeur dédié.
   const hasCrewSkills = categoryKey === 'crewRoles';
-  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[]/{talentId,spec?}[] → éditeurs dédiés
+  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[] → éditeurs dédiés
   // (SkillSpecListField, réutilisé tel quel côté Compétences ; TalentSpecListField, même patron côté Talents).
   const hasAxes = categoryKey === 'axes';
   // Traumatisme (`traumas`, #157) : `prosthesis` (prothèses annulatrices, LDB 73) = {trappingId,cancels}[].
@@ -783,7 +783,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
             <LignesFormatLivreField
               label="Compétences"
               hint="(une par ligne, format livre « Compétence (Spéc) Valeur » : « Langue (Magick) 63 », « Savoir (Au choix) 65 », « Métier (Armurier ou Forgeron) 50 », « Esquive 48 » — la valeur est le Test FINAL)"
-              value={refsEnLignes(entry.skills as SkillRefLivre[] | undefined, skillRefLabel)}
+              value={refsEnLignes(entry.skills as SkillRef[] | undefined, skillRefLabel)}
               onCommit={(t) => edit('skills', lignesEnRefs(t, parseSkillRef))}
             />
             <LignesFormatLivreField
@@ -798,9 +798,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
         {isStructure && <TraitListField label="Atouts" hint="(Résistant/Impénétrable — ADE II 8)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
         {isRace && <TraitListField label="Trait racial" hint="(#572 — Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
-        {hasCrewSkills && <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <TalentSpecListField value={entry.talents as { talentId: string; spec?: string }[] | undefined} onChange={(v) => edit('talents', v)} />}
+        {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasConsumable && <GenericArrayField noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
         {hasProsthesis && <ProsthesisField value={entry.prosthesis as { trappingId: string; cancels: 'all' | 'movement' }[] | undefined} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
@@ -1118,7 +1118,7 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
 /** Compétences d'un Rôle d'équipage (`crewRoles.skills`, MDG 14, #157) OU d'un axe de forces
  *  (`axes.skills`, #409) : `{id,spec?}[]` — plusieurs Compétences candidates possibles (`hint`
  *  précise la sémantique par appelant : « la meilleure retenue » pour un rôle, dérivation pour un axe). */
-function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: SkillRef[] | undefined; onChange: (v: SkillRef[]) => void; hint?: string }) {
+function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void; hint?: string }) {
   const list = value ?? [];
   const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1140,9 +1140,9 @@ function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au
   );
 }
 
-/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{talentId,spec?}[]` — MÊME patron
+/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]` — MÊME patron
  *  que `SkillSpecListField` (Compétences), sur le dataset `talents`. */
-function TalentSpecListField({ value, onChange }: { value: { talentId: string; spec?: string }[] | undefined; onChange: (v: { talentId: string; spec?: string }[]) => void }) {
+function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
   const list = value ?? [];
   const talentOpts = datasetArray('talents') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1151,15 +1151,15 @@ function TalentSpecListField({ value, onChange }: { value: { talentId: string; s
       <span>talents contribuant à l'axe (facultatif)</span>
       {list.map((s, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.talentId} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, talentId: e.target.value } : x)))}>
-            {!s.talentId && <option value="">— (choisir un talent) —</option>}
+          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
+            {!s.id && <option value="">— (choisir un talent) —</option>}
             {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { talentId: '' }])}>+ Talent</button>
+      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Talent</button>
     </div>
   );
 }
@@ -1467,7 +1467,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         ))}
       </div>
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
-      <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>

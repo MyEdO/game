@@ -16,7 +16,7 @@
 import { z } from 'zod';
 import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { gameOpSchema, conditionSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'talents.json';
@@ -87,7 +87,8 @@ const doc = document(
     specsOpen: z.boolean().optional(),
     rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    /** Désignateur : `careerSkillAdditions` (`engine/talentEffects.ts`), la spec du Talent porteur. */
+    passive: z.array(mecaniqueDe({ 'grantCareerSkill.skill': 'specOuChoixFacultatifs' }).gameOp).optional(),
     combat: combatFeatureSchema.optional(),
     // Contenu de RÉFÉRENCE (PNJ/campagne, RAW cité par entrée) : hors graphe d'obtenabilité (#326).
     codexOnly: z.literal(true).optional(),

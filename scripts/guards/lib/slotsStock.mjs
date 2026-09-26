@@ -69,7 +69,6 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "arene-projet.json", champ: "walls", occurrences: 235, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "weapon", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "ref", occurrences: 406, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 291 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:169`) + 115 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
-  { dataset: "axes.json", champ: "talents", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ambush", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ammo", occurrences: 8, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -201,7 +200,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "mutations.json", champ: "eyes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "mutations.json", champ: "features", occurrences: 54, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "mutations.json", champ: "ops", occurrences: 2, lot: "L3 #1473", date: "2026-08-31" }, // #862 : 1ʳᵉ op authorée de mutations.json (re-ciblage `onDayStart` de Haine sporadique)
-  { dataset: "mutations.json", champ: "passive", occurrences: 50, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "mutations.json", champ: "passive", occurrences: 43, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "naval-ports.json", champ: "production", occurrences: 38, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "naval-traits.json", champ: "passive", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "night-stakes.json", champ: "kind", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -262,13 +261,13 @@ export const SLOTS_SANS_DECLARATION = [
   // fabrique EST adoptée (`OP_DEFS.domeWard`, `idDe('trait')`, `grammaire/mecanique.ts:90`) : son
   // `traitId` est un slot, 1 / 206 atteintes au parse de mesure (#1473 R1, 2026-09-23). Les autres
   // occurrences sont dette réelle.
-  { dataset: "spells.json", champ: "ops", occurrences: 206, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "spells.json", champ: "ops", occurrences: 185, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "spells.json", champ: "perRound", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "spells.json", champ: "qualities", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "spells.json", champ: "subject", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "spells.json", champ: "when", occurrences: 18, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "stars.json", champ: "ascendant", occurrences: 11, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "stars.json", champ: "ops", occurrences: 55, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "stars.json", champ: "ops", occurrences: 42, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "symptoms.json", champ: "ops", occurrences: 8, lot: "L1b #1467", date: "2026-08-28" }, // les réfs du cycle (`onTick`) comptent ici, sous la feuille `EffectOp` du nœud `test` (#1657 B2b)
   { dataset: "symptoms.json", champ: "passive", occurrences: 3, lot: "L1b #1467", date: "2026-08-28" }, // #1599 : l'État *Exténué* du Malaise (LDB 20 l.188) s'écrit désormais en op `condition` du canal passif
   // #1599, 2026-09-06 : la fenêtre de Détermination d'une op `condition` PASSIVE (`resolveWindow`,
@@ -281,12 +280,11 @@ export const SLOTS_SANS_DECLARATION = [
   // seul État *Inconscient*, LDB 20 l.170 — le palier S'AJOUTE, les −10 de base tiennent sans être
   // recopiés). 6 → 6 + 1.
   { dataset: "symptoms.json", champ: "grave", occurrences: 1, lot: "L1b #1467", date: "2026-09-05" },
-  { dataset: "tables.json", champ: "ops", occurrences: 79, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "tables.json", champ: "ops", occurrences: 67, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "effects", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "gate", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "matches", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "ops", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "talents.json", champ: "passive", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "when", occurrences: 12, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "tavernGames.json", champ: "attrition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "tavernGames.json", champ: "combined", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -301,7 +299,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "traits.json", champ: "markMutations", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "of", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "ops", occurrences: 21, lot: "L2/L3 #1473", date: "2026-08-31" }, // +1 (#862) : État Exténué du réveil du Désespoir (VDM 09 l.280)
-  { dataset: "traits.json", champ: "passive", occurrences: 28, lot: "L1b #1467", date: "2026-08-28" },
+  { dataset: "traits.json", champ: "passive", occurrences: 5, lot: "L1b #1467", date: "2026-08-28" },
   { dataset: "traits.json", champ: "subject", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "suppressesCapabilities", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "value", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -310,7 +308,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "trappings.json", champ: "derivedWeapon", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "exceptGroups", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "onlyGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "trappings.json", champ: "ops", occurrences: 29, lot: "L1b #1467", date: "2026-08-28" },
+  { dataset: "trappings.json", champ: "ops", occurrences: 28, lot: "L1b #1467", date: "2026-08-28" },
   { dataset: "trappings.json", champ: "passive", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "qualities", occurrences: 438, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "shape", occurrences: 43, lot: "L2/L3 #1473", date: "2026-08-26" },

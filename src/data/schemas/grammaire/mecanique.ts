@@ -9,10 +9,10 @@ import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -42,10 +42,37 @@ export const perSLSchema = z.strictObject({ every: z.number(), amount: z.number(
 export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
 
 /**
- * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
- * vérifié sur toutes les occurrences réelles de l'op dans les 2 racines authorées.
+ * CHAMP À CHOIX d'un payload d'op : une référence à spécialisation dont le RÉGIME est un paramètre de la
+ * famille (`mecaniqueDe`), déclarée UNE fois à sa place dans le payload. La famille la résout en
+ * `refOuSpec(type, extra, regimes['<op>.<champ>'] ?? 'specSeule')` ; la clé est calculée depuis la
+ * POSITION de la déclaration. La marque privée rend la classe nominale : aucun nœud zod ne s'y confond.
  */
-export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = {
+class ChampAChoixDeclare {
+  private declare readonly marqueNominale: true;
+  constructor(
+    readonly cible: TypeEntite,
+    readonly extra?: Record<string, z.ZodType>,
+  ) {}
+}
+
+/** Déclare un champ à choix de type `cible` (+ champs propres `extra`) à sa place dans un payload d'op. */
+export function aChoix(cible: TypeEntite, extra?: Record<string, z.ZodType>): ChampAChoixDeclare {
+  return new ChampAChoixDeclare(cible, extra);
+}
+
+/** Payload déclaré par ses champs (au moins un champ à choix) : la famille le ferme en `z.strictObject`. */
+type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare>>;
+
+const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !== null && '_zod' in v;
+
+/**
+ * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
+ * vérifié sur toutes les occurrences réelles de l'op dans les 2 racines authorées. Une entrée est un
+ * nœud zod, ou la FORME de ses champs quand l'un d'eux est un champ à choix (`aChoix`). Toute op
+ * IMBRIQUÉE dans un payload (`z.lazy`) pointe la famille FERMÉE : seules les ops à la racine d'un
+ * porteur lisent ses régimes (`mecaniqueDe`).
+ */
+const DECLARATIONS_D_OPS = {
   banish: z.strictObject({ op: z.literal('banish'), narration: z.enum(['chaos', 'unravel']).optional(), onlyGroups: z.array(z.string()).optional() }),
   corruption: z.strictObject({
     op: z.literal('corruption'),
@@ -151,7 +178,9 @@ export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = {
     hours: formulaSchema.optional(),
     days: formulaSchema.optional(),
   }),
-  grantCareerSkill: z.strictObject({ op: z.literal('grantCareerSkill'), skill: refOuSpec('skill', undefined, 'specOuChoixFacultatifs') }),
+  grantCareerSkill: { op: z.literal('grantCareerSkill'), skill: aChoix('skill') },
+  grantCareerTalent: { op: z.literal('grantCareerTalent'), talent: aChoix('talent') },
+  grantTalent: { op: z.literal('grantTalent'), talent: aChoix('talent') },
   grantReverseToken: z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional() }),
   exposeDisease: z.strictObject({
     op: z.literal('exposeDisease'),
@@ -304,6 +333,22 @@ export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = {
   }),
 };
 
+type DeclarationsDOps = typeof DECLARATIONS_D_OPS;
+type ChampsAChoixDe<K extends string, D> = D extends z.ZodType
+  ? never
+  : { [C in keyof D & string]: D[C] extends ChampAChoixDeclare ? `${K}.${C}` : never }[keyof D & string];
+
+/** `<op>.<champ>` de chaque champ à choix, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
+export type ChampAChoix = { [K in keyof DeclarationsDOps & string]: ChampsAChoixDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
+
+/** Les champs à choix, dérivés du MÊME parcours que le type `ChampAChoix`. */
+export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = Object.entries(DECLARATIONS_D_OPS).flatMap(([op, d]) =>
+  estNoeudZod(d) ? [] : Object.entries(d as FormeDePayload).flatMap(([champ, v]) => (v instanceof ChampAChoixDeclare ? [`${op}.${champ}` as ChampAChoix] : [])),
+);
+
+/** Régime de chaque champ à choix d'un porteur ; un champ absent est `specSeule`. */
+export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur>>>;
+
 /**
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
  * DÉCROISSANTE, lot de mort `L1c #1468` (qui remplit les payloads restants et fait mourir le repli
@@ -316,8 +361,8 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
   'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'charMod', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
-  'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantCareerTalent', 'grantFreeAttack',
-  'grantNaturalWeapon', 'grantPsychTrait', 'grantTalent', 'grantTrait', 'handGate', 'ignoreAnimosity',
+  'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
+  'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
   'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'narrative', 'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
@@ -387,31 +432,6 @@ export function sujetsNonGarantis(cond: unknown): string[] {
   return typeof c.kind === 'string' && !(SUJETS_DE_VERROU as ReadonlySet<string>).has(c.kind) ? [c.kind] : [];
 }
 
-/**
- * Un `GameOp` (`src/engine/ops.ts`) tel qu'il apparaît en DONNÉE. Une op de `OP_DEFS` est validée sur
- * son payload STRICT ; une op de `OPS_NON_TYPEES` garde la forme LOOSE (aux refus de `refusLoose`
- * près) ; une op inconnue des DEUX registres est NOMMÉE en erreur. Ce rouge vit ICI et nulle part
- * ailleurs : la clé `op` est surchargée en donnée (les comparateurs `>=`/`<=`/`==` d'une `Condition`
- * la portent aussi).
- */
-export const gameOpSchema: z.ZodType<GameOp> = z.looseObject({ op: z.string() }).superRefine((v, ctx) => {
-  marquerOpAtteinte(ctx);
-  const payload = OP_DEFS[v.op];
-  if (payload) {
-    const res = payload.safeParse(v);
-    // L'issue du payload est REPORTÉE TELLE QUELLE, seul son `message` est préfixé du nom de l'op :
-    // aplatir son `code` en `'custom'` forcerait un consommateur à trier les refus d'op par leur
-    // PHRASE — donc par la locale (`grammaire/locale-fr.ts`), qui n'est pas un contrat.
-    if (!res.success) for (const issue of res.error.issues) ctx.addIssue({ ...issue, message: `GameOp « ${v.op} » : ${issue.message}` });
-    return;
-  }
-  if (OPS_NON_TYPEES.includes(v.op)) { refusLoose(v, ctx); return; }
-  ctx.addIssue({
-    code: 'custom',
-    path: ['op'],
-    message: `GameOp « ${v.op} » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée.`,
-  });
-}).transform((v) => v as GameOp);
 
 // ============================================================================
 // FLOW CORE (`src/engine/flowCore.ts`) — Condition / FlowTest / Flow / TriggeredEffect. SOURCE UNIQUE
@@ -625,21 +645,6 @@ export const flowTestSchema = z.strictObject({
   });
 });
 
-/** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
- *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
- *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:45`), et l'un des membres de l'union `Effect` de
- *  scène (`defs-scenes/effets.ts`). `on` = les 4 valeurs de
- *  l'interface TS : `'party'`/`'hero'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
- *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
- *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
-export const effectOpSchema = z.strictObject({
-  type: z.literal('ops'),
-  ops: z.array(gameOpSchema),
-  on: z.enum(['party', 'hero', 'caster', 'target']).optional(),
-  heroId: z.string().optional(),
-  untilTime: z.number().optional(),
-  label: z.string().optional(),
-});
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
  *  (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
@@ -745,25 +750,6 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
   });
 }
 
-/** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
-export const flowSchema: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('seq'), steps: z.array(flowSchema) }),
-    z.strictObject({ kind: z.literal('do'), effect: effectOpSchema }),
-    z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flowSchema, else: flowSchema.optional() }),
-    noeudTest(flowSchema),
-    z.strictObject({
-      kind: z.literal('choice'),
-      prompt: z.string(),
-      // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
-      // seulement : `withArg` (`state/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-      advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
-      icon: z.string().optional(),
-      yes: flowSchema,
-      no: flowSchema.optional(),
-    }),
-  ]),
-);
 
 
 /** CIBLE simple d'un effet déclenché — la branche chaîne de `EffectTargeting` (les deux autres sont
@@ -809,16 +795,6 @@ export const effectTriggerSchema = enumNomme({
   onOwnTestFailed: 'En échouant à un Test',
 } satisfies Record<EffectTrigger, string>);
 
-/** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:472`). `optional` (Contrôle de la Frénésie…)
- *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
-export const triggeredEffectSchema = z.strictObject({
-  trigger: effectTriggerSchema,
-  on: effectTargetingSchema,
-  flow: flowSchema,
-  condition: z.string().optional(),
-  attackType: z.enum(['melee', 'ranged']).optional(),
-  optional: z.boolean().optional(),
-});
 
 /** `StageOutcome` (`src/engine/activities.ts:82-84`) — effet de portée Étape (Activités + Rencontres
  *  de voyage). Dupliqué à l'identique dans `activities`/`incidents-monture`/`problemes-vehicule`/
@@ -828,46 +804,6 @@ export const stageOutcomeSchema = z.enum([
   'extraActivity', 'skipStage', 'fullRecovery', 'worsenWeather',
 ]);
 
-/** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
- *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
-export const travelTableEntrySchema = z.strictObject({
-  min: z.number(),
-  max: z.number(),
-  id: z.string(),
-  label: z.string(),
-  desc: z.string(),
-  stageOutcome: stageOutcomeSchema.optional(),
-  vehicleWounds: z.string().nullable().optional(),
-  occupantOps: z.array(gameOpSchema).optional(),
-  /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174), miroir de
-   *  `MountIncidentEffects` (`src/engine/travelTables.ts`) : elle est DÉCLARÉE par l'entrée, jamais
-   *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
-  mount: z.strictObject({
-    /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
-    riderTest: z.strictObject({
-      skill: refOuSpec('skill'),
-      char: charKeySchema.optional(),
-      difficulty: difficultySchema,
-      fallM: z.number(),
-    }).optional(),
-    /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
-    ridingPenalty: z.number().optional(),
-    /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
-    forcedAllure: z.enum(['pas', 'trot', 'galop']).optional(),
-    /** La bête ne peut plus être montée ni attelée (Boiteux, Patte brisée). */
-    preventsMount: z.boolean().optional(),
-    /** Les soins d'une halte n'effacent PAS cette séquelle (Patte brisée). */
-    notHealedByCare: z.boolean().optional(),
-    /** CONDITION DE FIN de la séquelle, telle que le `desc` verbatim de l'entrée la pose (« jusqu'à ce
-     *  que la partie abîmée soit réparée » / « jusqu'à ce que le fer ait été remplacé par un
-     *  maréchal-ferrant ») — fragment d'AFFICHAGE joueur accolé à la ligne de séquelle, jamais une
-     *  mécanique : ce qui EFFACE la séquelle reste `notHealedByCare` + les soins d'étape. */
-    endCondition: z.string().optional(),
-    /** ISSUE de la bête, quand le `desc` verbatim en pose une (Patte brisée : « Fracture (Majeure) …
-     *  peu d'espoir qu'elle y survive ») — fragment d'AFFICHAGE joueur, ligne propre au journal. */
-    outcome: z.string().optional(),
-  }).optional(),
-});
 
 /**
  * QUI encaisse un coup à l'ÉQUIPAGE — les trois désignations que les livres impriment, et rien
@@ -886,37 +822,225 @@ export const crewTargetSchema = z.union([
   z.strictObject({ role: ref('crewRole') }),
 ]);
 
-/**
- * `ShipCrewHit` (`src/data/shipCriticals.ts`) — ce qu'un Critique de coque fait à l'ÉQUIPAGE. Le
- * porteur dit QUI encaisse (`crewTarget`, REQUIS) ; l'ISSUE est SOIT une épreuve (le nœud `test` du
- * Flow, dont la branche d'échec porte la conséquence — MDG 13 l.763, MSRC 07 l.78/l.94), SOIT des
- * ops CERTAINES (`ops` — MSRC 07 l.82, où le livre n'appelle aucun jet). Les deux clefs sont
- * EXCLUSIVES.
- */
-export const shipCrewHitSchema = z
-  .strictObject({
-    crewTarget: crewTargetSchema,
-    test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }).optional(),
-    ops: z.array(gameOpSchema).optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (!v.test === !v.ops) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'un coup à l’équipage porte SOIT une épreuve (`test`) SOIT une conséquence certaine (`ops`) — jamais les deux, jamais aucune.',
-      });
+// ============================================================================
+// FAMILLE MÉCANIQUE — tout nœud qui compose un `GameOp`, construit par `mecaniqueDe(regimes)`.
+// ============================================================================
+
+/** Les régimes déposés par une famille sur ses nœuds `gameOp`/`effectOp`/`flow`. */
+const REGIMES_DES_NOEUDS = new WeakMap<object, Regimes>();
+
+/** Les régimes de la famille qui a construit ce nœud, `undefined` hors famille. */
+export function regimesDuNoeud(noeud: unknown): Regimes | undefined {
+  return typeof noeud === 'object' && noeud !== null ? REGIMES_DES_NOEUDS.get(noeud) : undefined;
+}
+
+/** Payloads d'une famille : une FORME se ferme en `z.strictObject`, ses champs à choix au régime demandé. */
+function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown>>> {
+  return Object.fromEntries(
+    Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
+      if (estNoeudZod(d)) return [op, d];
+      const champs = Object.entries(d as FormeDePayload).map(([champ, v]) =>
+        v instanceof ChampAChoixDeclare ? [champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')] : [champ, v],
+      );
+      return [op, z.strictObject(Object.fromEntries(champs))];
+    }),
+  );
+}
+
+function construire(regimes: Regimes) {
+  const opDefs = payloadsDe(regimes);
+  /**
+   * Un `GameOp` (`src/engine/ops.ts`) tel qu'il apparaît en DONNÉE. Une op de `OP_DEFS` est validée sur
+   * son payload STRICT ; une op de `OPS_NON_TYPEES` garde la forme LOOSE (aux refus de `refusLoose`
+   * près) ; une op inconnue des DEUX registres est NOMMÉE en erreur. Ce rouge vit ICI et nulle part
+   * ailleurs : la clé `op` est surchargée en donnée (les comparateurs `>=`/`<=`/`==` d'une `Condition`
+   * la portent aussi).
+   */
+  const gameOp: z.ZodType<GameOp> = z.looseObject({ op: z.string() }).superRefine((v, ctx) => {
+    marquerOpAtteinte(ctx);
+    const payload = opDefs[v.op];
+    if (payload) {
+      const res = payload.safeParse(v);
+      // L'issue du payload est REPORTÉE TELLE QUELLE, seul son `message` est préfixé du nom de l'op :
+      // aplatir son `code` en `'custom'` forcerait un consommateur à trier les refus d'op par leur
+      // PHRASE — donc par la locale (`grammaire/locale-fr.ts`), qui n'est pas un contrat.
+      if (!res.success) for (const issue of res.error.issues) ctx.addIssue({ ...issue, message: `GameOp « ${v.op} » : ${issue.message}` });
+      return;
     }
+    if (OPS_NON_TYPEES.includes(v.op)) { refusLoose(v, ctx); return; }
+    ctx.addIssue({
+      code: 'custom',
+      path: ['op'],
+      message: `GameOp « ${v.op} » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée.`,
+    });
+  }).transform((v) => v as GameOp);
+
+  /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
+   *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:45`), et l'un des membres de l'union `Effect` de
+   *  scène (`defs-scenes/effets.ts`). `on` = les 4 valeurs de
+   *  l'interface TS : `'party'`/`'hero'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
+   *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
+   *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
+  const effectOp = z.strictObject({
+    type: z.literal('ops'),
+    ops: z.array(gameOp),
+    on: z.enum(['party', 'hero', 'caster', 'target']).optional(),
+    heroId: z.string().optional(),
+    untilTime: z.number().optional(),
+    label: z.string().optional(),
   });
 
-/** `ShipCritEntry` (`src/data/shipCriticals.ts`) — entrée d100 de Critique de coque, partagée par
- *  `ship-criticals` (navale) et `river-criticals` (fluviale). */
-export const shipCritEntrySchema = z.strictObject({
-  ...plageSchema.shape,
-  id: z.string(),
-  label: z.string(),
-  ops: z.array(gameOpSchema).optional(),
-  shrapnel: z.number().optional(),
-  hullCrits: z.string().optional(),
-  crewHit: shipCrewHitSchema.optional(),
-  note: z.string(),
-});
+  /** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
+  const flow: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
+    z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }),
+      z.strictObject({ kind: z.literal('do'), effect: effectOp }),
+      z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }),
+      noeudTest(flow),
+      z.strictObject({
+        kind: z.literal('choice'),
+        prompt: z.string(),
+        // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
+        // seulement : `withArg` (`state/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
+        advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
+        icon: z.string().optional(),
+        yes: flow,
+        no: flow.optional(),
+      }),
+    ]),
+  );
+
+  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:472`). `optional` (Contrôle de la Frénésie…)
+   *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
+  const triggeredEffect = z.strictObject({
+    trigger: effectTriggerSchema,
+    on: effectTargetingSchema,
+    flow: flow,
+    condition: z.string().optional(),
+    attackType: z.enum(['melee', 'ranged']).optional(),
+    optional: z.boolean().optional(),
+  });
+
+  /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
+   *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
+  const travelTableEntry = z.strictObject({
+    min: z.number(),
+    max: z.number(),
+    id: z.string(),
+    label: z.string(),
+    desc: z.string(),
+    stageOutcome: stageOutcomeSchema.optional(),
+    vehicleWounds: z.string().nullable().optional(),
+    occupantOps: z.array(gameOp).optional(),
+    /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174), miroir de
+     *  `MountIncidentEffects` (`src/engine/travelTables.ts`) : elle est DÉCLARÉE par l'entrée, jamais
+     *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
+    mount: z.strictObject({
+      /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
+      riderTest: z.strictObject({
+        skill: refOuSpec('skill'),
+        char: charKeySchema.optional(),
+        difficulty: difficultySchema,
+        fallM: z.number(),
+      }).optional(),
+      /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
+      ridingPenalty: z.number().optional(),
+      /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
+      forcedAllure: z.enum(['pas', 'trot', 'galop']).optional(),
+      /** La bête ne peut plus être montée ni attelée (Boiteux, Patte brisée). */
+      preventsMount: z.boolean().optional(),
+      /** Les soins d'une halte n'effacent PAS cette séquelle (Patte brisée). */
+      notHealedByCare: z.boolean().optional(),
+      /** CONDITION DE FIN de la séquelle, telle que le `desc` verbatim de l'entrée la pose (« jusqu'à ce
+       *  que la partie abîmée soit réparée » / « jusqu'à ce que le fer ait été remplacé par un
+       *  maréchal-ferrant ») — fragment d'AFFICHAGE joueur accolé à la ligne de séquelle, jamais une
+       *  mécanique : ce qui EFFACE la séquelle reste `notHealedByCare` + les soins d'étape. */
+      endCondition: z.string().optional(),
+      /** ISSUE de la bête, quand le `desc` verbatim en pose une (Patte brisée : « Fracture (Majeure) …
+       *  peu d'espoir qu'elle y survive ») — fragment d'AFFICHAGE joueur, ligne propre au journal. */
+      outcome: z.string().optional(),
+    }).optional(),
+  });
+  /**
+   * `ShipCrewHit` (`src/data/shipCriticals.ts`) — ce qu'un Critique de coque fait à l'ÉQUIPAGE. Le
+   * porteur dit QUI encaisse (`crewTarget`, REQUIS) ; l'ISSUE est SOIT une épreuve (le nœud `test` du
+   * Flow, dont la branche d'échec porte la conséquence — MDG 13 l.763, MSRC 07 l.78/l.94), SOIT des
+   * ops CERTAINES (`ops` — MSRC 07 l.82, où le livre n'appelle aucun jet). Les deux clefs sont
+   * EXCLUSIVES.
+   */
+  const shipCrewHit = z
+    .strictObject({
+      crewTarget: crewTargetSchema,
+      test: noeudTest(flow, { difficulteRequise: true, echecSeulServi: true }).optional(),
+      ops: z.array(gameOp).optional(),
+    })
+    .superRefine((v, ctx) => {
+      if (!v.test === !v.ops) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'un coup à l’équipage porte SOIT une épreuve (`test`) SOIT une conséquence certaine (`ops`) — jamais les deux, jamais aucune.',
+        });
+      }
+    });
+
+  /** `ShipCritEntry` (`src/data/shipCriticals.ts`) — entrée d100 de Critique de coque, partagée par
+   *  `ship-criticals` (navale) et `river-criticals` (fluviale). */
+  const shipCritEntry = z.strictObject({
+    ...plageSchema.shape,
+    id: z.string(),
+    label: z.string(),
+    ops: z.array(gameOp).optional(),
+    shrapnel: z.number().optional(),
+    hullCrits: z.string().optional(),
+    crewHit: shipCrewHit.optional(),
+    note: z.string(),
+  });
+
+  for (const noeud of [gameOp, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
+  return { regimes, opDefs, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };
+}
+
+/** Une famille mécanique : ses payloads d'op et tout nœud qui compose un `GameOp`. */
+export type FamilleMecanique = ReturnType<typeof construire>;
+
+/** Le cache de `mecaniqueDe`, par forme CANONIQUE des régimes : il EST le registre des familles. */
+const FAMILLES = new Map<string, FamilleMecanique>();
+
+/**
+ * La famille mécanique d'un porteur, au régime de ses champs à choix. Mémoïsée par la forme canonique de
+ * `regimes` (entrées triées, `specSeule` retiré) : `mecaniqueDe({})` est la famille FERMÉE, dont les
+ * exports ci-dessous sont l'instance.
+ */
+export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
+  const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | undefined][])
+    .filter(([, r]) => r !== undefined && r !== 'specSeule')
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  for (const [champ] of entrees) {
+    if (!(CHAMPS_A_CHOIX as readonly string[]).includes(champ)) {
+      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix déclaré (${CHAMPS_A_CHOIX.join(', ')}).`);
+    }
+  }
+  const cle = JSON.stringify(entrees);
+  let famille = FAMILLES.get(cle);
+  if (!famille) {
+    famille = construire(Object.fromEntries(entrees) as Regimes);
+    FAMILLES.set(cle, famille);
+  }
+  return famille;
+}
+
+/** Les familles construites, en lecture seule — racines de la garde du masquage (`parse-de-mesure.test.ts`). */
+export function famillesConstruites(): readonly FamilleMecanique[] {
+  return [...FAMILLES.values()];
+}
+
+const FERMEE = mecaniqueDe({});
+export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = FERMEE.opDefs;
+export const gameOpSchema: z.ZodType<GameOp> = FERMEE.gameOp;
+export const effectOpSchema = FERMEE.effectOp;
+export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
+export const triggeredEffectSchema: z.ZodType<TriggeredEffect<EffectOp>> = FERMEE.triggeredEffect;
+export const travelTableEntrySchema = FERMEE.travelTableEntry;
+export const shipCrewHitSchema = FERMEE.shipCrewHit;
+export const shipCritEntrySchema = FERMEE.shipCritEntry;

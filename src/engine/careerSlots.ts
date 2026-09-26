@@ -6,8 +6,8 @@
  *    Spécialisation AU MOMENT où il alloue une Augmentation (l.38, ex. Théodora).
  *  - Talents (LDB 10 l.13-20) : la parenthèse est une « utilisation » distincte — Sens aiguisé
  *    (Vue) ≠ Sens aiguisé (Goût) ; le Maxi (1 ou « Bonus de X ») se compte par spécialisation.
- *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.78),
- *    Talents du niveau courant uniquement (l.100).
+ *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.76),
+ *    Talents du niveau courant uniquement (l.103).
  *
  * Modèle des emplacements « (Au choix) » : chaque entrée de liste d'un Niveau de Carrière est un
  * EMPLACEMENT (slot). Le livre fixe QUOI est disponible (Compétences/Talents ci-dessus) mais reste
@@ -27,10 +27,10 @@
  * l'assistant de création (`draft`/`CharacterCreator`) travaille sur des LIBELLÉS concrets (clés de
  * `specChoices`), le Codex sur la prose — c'est leur modèle, pas un chemin de résolution de règle.
  */
-import { Combatant, CharKey, CHAR_LABELS } from './types';
+import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
 import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, wildcardSpecIds, talentIdByLabel, CareerLevelData, type AdvancementRef } from '../data';
-import { entreeOuverte, refusDeSpec } from '../data/schemas/grammaire/ref';
+import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
@@ -193,7 +193,7 @@ function slotsOfLevel(level: CareerLevelData, kind: 'skill' | 'talent'): CareerS
   });
 }
 
-/** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.78). */
+/** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
 export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));
 }
@@ -364,7 +364,7 @@ export function designateSlot(
  * de l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts`) : une variante réglée qui
  * republie « Maxi » (AA 13 l.54-59, l.70-74) fait autorité sur la forme de base.
  */
-export function talentMaxById(hero: Combatant, talentId: string): number | null {
+export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
   if (max == null) return null; // sans limite
   if (typeof max === 'number') return max;
@@ -385,11 +385,42 @@ export function talentMax(hero: Combatant, label: string): number | null {
 
 /** Le héros a-t-il atteint le Maxi de ce Talent, par `(talentId, spec)` — identité STABLE, jamais
  *  un libellé re-parsé. */
-export function talentMaxReached(hero: Combatant, talentId: string, spec?: string): boolean {
+export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
   const max = talentMaxById(hero, talentId);
   if (max == null) return false;
-  const times = hero.talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0;
+  const times = (hero.talents ?? []).find(estLInstanceDe({ id: talentId, spec }))?.times ?? 0;
   return times >= max;
+}
+
+/** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */
+export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
+
+const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+
+/**
+ * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10
+ * l.18`, `talentMaxReached`), puis l'instance existante gagne un `times`, ou une instance neuve est
+ * posée. Rend `false`, sans rien écrire, quand le Maxi est atteint.
+ */
+export function acquerirTalent(porteur: PorteurDeTalents, ref: RefDesignee): boolean {
+  if (talentMaxReached(porteur, ref.id, ref.spec)) return false;
+  const talents = porteur.talents ?? [];
+  const meme = estLInstanceDe(ref);
+  porteur.talents = talents.some(meme)
+    ? talents.map((x) => (meme(x) ? { ...x, times: x.times + 1 } : x))
+    : [...talents, { talentId: ref.id, ...(ref.spec ? { spec: ref.spec } : {}), times: 1 }];
+  return true;
+}
+
+/** INVERSE d'`acquerirTalent` : l'instance perd un `times`, et disparaît au dernier. */
+export function retirerTalent(porteur: PorteurDeTalents, ref: RefDesignee): void {
+  const talents = porteur.talents ?? [];
+  const meme = estLInstanceDe(ref);
+  const instance = talents.find(meme);
+  if (!instance) return;
+  porteur.talents = instance.times > 1
+    ? talents.map((x) => (meme(x) ? { ...x, times: x.times - 1 } : x))
+    : talents.filter((x) => !meme(x));
 }
 
 /** `VDM 02 l.190-192` (texte identique `LDB 46 l.177`). Voir `arcaneDomainCap`/`arcaneDomainGate`. */

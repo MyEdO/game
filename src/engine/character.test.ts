@@ -240,3 +240,13 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
     expect(hero.size).toBe('moyenne');
   });
 });
+
+describe('createHero — Signe astral à Talent non désigné (ADE II 03 l.235)', () => {
+  it('Les Deux Bœufs : le Métier choisi sous la clé « Maître artisan (Au choix) » désigne le Talent octroyé', () => {
+    const hero = createHero({
+      speciesId: REIK, careerId: 'soldat', label: 'T', rng: makeRNG(3),
+      starId: 'les-deux-boeufs', specChoices: { 'Maître artisan (Au choix)': 'armurier' },
+    });
+    expect(hero.talents.filter((t) => t.talentId === 'maitre-artisan')).toEqual([{ talentId: 'maitre-artisan', spec: 'armurier', times: 1 }]);
+  });
+});

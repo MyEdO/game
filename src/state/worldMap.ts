@@ -11,6 +11,7 @@
  * marche forcée au niveau carte.
  */
 import type { Effect, Fige, ReliefDefaults, Scene, SceneRoofDefaults } from './scene';
+import { graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
 import { normalizeScene } from './scene';
 import type { TravelMode } from '../engine/travel';
@@ -994,6 +995,15 @@ export const PROJECT_MIGRATIONS = {
    * (parité mesurée par `projet-migration-13-vers-14.test.ts`, qui joue la MÊME fixture par les deux).
    */
   13: (doc) => ({ ...(remapSortsFusionnesDeep(doc) as Record<string, unknown>), version: 14, schema: 14 }),
+  /**
+   * `14` écrit la référence de Talent des ops `grantTalent` / `grantCareerTalent` à la graphie
+   * `talent: { id, spec? }` (#1473, train 2a) — primitive `graphieOpsDeTalentDeep`
+   * (`src/data/graphieOpsDeTalent.ts`). Sans ce passage, un projet de bibliothèque utilisateur qui porte
+   * une op de Talent serait REFUSÉ au parse (op typée, `grammaire/mecanique.ts`).
+   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`
+   * (parité mesurée par `projet-migration-14-vers-15.test.ts`, qui joue la MÊME fixture par les deux).
+   */
+  14: (doc) => ({ ...(graphieOpsDeTalentDeep(doc) as Record<string, unknown>), version: 15, schema: 15 }),
 } satisfies MigrationMap;
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se

@@ -14,9 +14,11 @@
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT toute écriture — non
  * canonique = sortie 1, jamais un reflow silencieux. `schema` garde sa POSITION.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * BORNE HAUTE CLOSE (`schema` ∈ {13, 14}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
- * `schema` futur.
- * FAIL-FAST : `schema` absent, non numérique ou ∉ {13, 14}, `scenes` non-tableau, périmètre vide → rien
+ * BORNE HAUTE OUVERTE (`schema` ∈ {13, ≥ 14}) : la DERNIÈRE migration de la chaîne dans l'ordre
+ * lexical est la seule à nommer un `schema` futur (`DERNIERE`, dérivée par
+ * `src/scenes/migrations-format-projet.test.ts`). Le document sort donc d'ici en `schema` =
+ * max(le sien, 14) : une migration amont ne RABAISSE jamais une forme.
+ * FAIL-FAST : `schema` absent, non entier ou < 13, `scenes` non-tableau, périmètre vide → rien
  * n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
@@ -28,7 +30,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-24-1897-projet-sorts-fusionnes';
 const RACINE = path.join(ROOT, 'src/scenes');
 
-/** Forme du document AVANT et APRÈS ce bump — la borne haute est CLOSE (cf. en-tête). */
+/** Forme du document AVANT et APRÈS ce bump — la borne haute est OUVERTE (cf. en-tête). */
 const SCHEMA_AVANT = 13;
 const SCHEMA_APRES = 14;
 
@@ -50,14 +52,14 @@ for (const abs of cibles) {
   const doc = JSON.parse(brut);
 
   if (canonique(doc) !== brut) { echecs.push(`${rel} : FORME NON CANONIQUE`); continue; }
-  if (doc.schema !== SCHEMA_AVANT && doc.schema !== SCHEMA_APRES) {
-    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`);
+  if (typeof doc.schema !== 'number' || !Number.isInteger(doc.schema) || doc.schema < SCHEMA_AVANT) {
+    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou plus récent attendu)`);
     continue;
   }
   if (!Array.isArray(doc.scenes)) { echecs.push(`${rel} : \`scenes\` absent ou non-tableau`); continue; }
 
   const remappe = remapSortsFusionnesDeep(doc);
-  rapports.push({ rel, abs, brut, doc, sortie: { ...remappe, schema: SCHEMA_APRES }, remappe: canonique(remappe) !== brut });
+  rapports.push({ rel, abs, brut, doc, sortie: { ...remappe, schema: Math.max(doc.schema, SCHEMA_APRES) }, remappe: canonique(remappe) !== brut });
 }
 
 if (!cibles.length) echecs.push('aucun projet de scène trouvé — périmètre déplacé');
@@ -74,7 +76,7 @@ for (const r of rapports) {
 
   // PREUVE post-écriture : la primitive n'a plus rien à réécrire, et le document s'annonce au format d'après.
   const apres = JSON.parse(out);
-  if (canonique(remapSortsFusionnesDeep(apres)) !== out || apres.schema !== SCHEMA_APRES) {
+  if (canonique(remapSortsFusionnesDeep(apres)) !== out || !(apres.schema >= SCHEMA_APRES)) {
     console.error(`[${NOM}] VÉRIFICATION POST-ÉCRITURE ROUGE — ${r.rel} : schema=${apres.schema}, id de sort fusionné restant`);
     process.exit(1);
   }

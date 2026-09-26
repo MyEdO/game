@@ -352,15 +352,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   /** Tous les datasets porteurs de `GameOp` (Flow de sorts/traits/etc. + effet de signe). */
   const opDatasets: unknown[] = [...spells, ...traits, ...creatures, ...qualities, ...stars];
 
-  it('ops grantTalent → { talentId } qui résout (jamais un libellé « talent »)', () => {
-    walk(opDatasets, (o) => {
-      if (o.op !== 'grantTalent') return;
-      expect('talent' in o, `grantTalent legacy { talent } résiduel : ${JSON.stringify(o)}`).toBe(false);
-      expect(typeof o.talentId, JSON.stringify(o)).toBe('string');
-      expect(findTalentById(o.talentId as string), String(o.talentId)).toBeTruthy();
-    });
-  });
-
   it('ops addQualities / grantWeapon.qualities = id de Qualité qui résout', () => {
     walk(opDatasets, (o) => {
       const lists: unknown[] = [];
@@ -370,12 +361,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         expect(typeof q, JSON.stringify(o)).toBe('string'); // id de Qualité, pas un objet/libellé brut
         expect(findQualityById(q as string), String(q)).toBeTruthy();
       }
-    });
-  });
-
-  it('ops grantCareerTalent (→ carrière) = réf par id qui résout (jamais un libellé)', () => {
-    walk([...opDatasets, ...talents], (o) => {
-      if (o.op === 'grantCareerTalent') expect(findTalentById(o.talentId as string), JSON.stringify(o)).toBeTruthy();
     });
   });
 
@@ -744,16 +729,9 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
    *  pas ce régime, concept LOTÉ L3 #1463 (`schemas/defs-scenes/narratif.ts` l.127-133). La
    *  sentinelle libre « au choix » les éteindrait en perdant la BORNE imprimée : elles restent ici.
    *
-   *  ANGLE MORT ÉNONCÉ (mesure du 2026-09-01, #1646) — le contrat ne walke que les TABLEAUX
-   *  `talents[]` de `creatures`/`careerLevels`/`species` (`walkSkillRefs`), seuls fichiers qui en
-   *  portent (221 / 172 / 40 spécs relevées). Une réf de Talent spécialisée par un AUTRE champ
-   *  échappe à l'instrument : 18 porteurs `{ talentId, spec }` mesurés hors de ces tableaux —
-   *  `spells.json` 6, `mutations.json` 5, `traits.json` 4, `stars.json` 2, `axes.json` 1. Les deux
-   *  de la MÊME classe que le stock ci-dessus (`traits.json:2051` `savoir-vivre|disciples-de-tzeentch`
-   *  et `traits.json:2692` `savoir-vivre|suivants-de-khorne`) sont SOLDÉS par B3 : leurs entrées
-   *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
-   *  `MDG 07 l.250` folio 56). Reste un cas de la classe du texte d'instance (Talent SANS catalogue,
-   *  #1621) : `mutations.json:1619` `attirant|Mutants et hommes-bêtes`. */
+   *  Hors des tableaux `talents[]` que walke ce contrat (`walkSkillRefs`), une référence de Talent est
+   *  un `refOuSpec('talent')` — ops de Talent, `axes.json › talents` (#1473, train 2a) : sa spéc est
+   *  jugée AU PARSE, contre le catalogue ou l'entrée ouverte. */
   const SPECS_DE_TALENT_A_CREER = new Set<string>([
     'creatures|haut-druide-de-la-foi-antique|bon-marcheur|ForêtouPlaine',
     'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|ForêtouPlaine',
@@ -1222,7 +1200,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
 
   it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(40);
+    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(38);
     expect(unclassified, `champs de GameOp sans cible déclarée (gameOpRefFk.mjs) :\n${unclassified.join('\n')}`).toEqual([]);
     expect(stale.map((c) => `${c.key} — ${c.raison}`), 'cibles déclarées hors périmètre').toEqual([]);
   });
@@ -1347,17 +1325,17 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
     const fixture = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTalent', talentId: 'sans-peur' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTrait', traitId: 'marque-de-tzeentch' }] } } }] }],
     }];
     expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders).toEqual([]);
     const phantom = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTalent', talentId: 'sans-peur-fantome' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTrait', traitId: 'marque-fantome' }] } } }] }],
     }];
     const out = scanGameOpRefs({ sources: phantom, resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('talents');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].talentId');
+    expect(out[0].registry).toBe('traits');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].traitId');
   });
 
   it('un marqueur narratif (`NARRATIVE_MARKERS`) résout là où son registre est visé, et seulement s’il est injecté', () => {

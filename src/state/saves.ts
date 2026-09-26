@@ -134,7 +134,15 @@ import type { Scene } from './scene';
 // ENTIER, `Combatant.spells` des héros et des pions de la scène vivante comprise : une save de 50 rouvrirait
 // un héros dont `findSpellById` ne résout plus le sort appris (`grimoire.ts`) — il disparaît de son
 // grimoire EN SILENCE. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 51;
+// 51 → 52 (#1473, train 2a) : les ops `grantTalent` / `grantCareerTalent` persistées passent de
+// `{ talentId, spec? }` à `{ talent: { id, spec? } }` — `Combatant.mutations[].passive`,
+// `ActiveEffect.grantedMutation.passive` / `.passive` / `.opsPerRound`, `ItemInstance.consumable`, les `Flow`
+// de la scène vivante, du `campaignDoc` et de `scheduledEffects`, et les étapes de `pendingCascade` /
+// `suspendedCascades` — et une mutation attachée porte désormais `Combatant.mutations[].talentsAcquis`.
+// Une save de 51 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
+// mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
+// jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 52;
 
 export interface SaveMeta {
   version: number;

@@ -22,7 +22,8 @@ import type { Get, Set } from './flowTypes';
 import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, type SkillRef, type SupportDetail } from '../engine/skills';
+import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, type SupportDetail } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
@@ -448,7 +449,7 @@ export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds:
  *  défaut le meilleur PJ SEUL), puis la meilleure option assistée. `null` si aucune équipe/option. Source
  *  UNIQUE du motif crew→solo→team→picked (Planification l.81, Scènes multi-PJ l.116-118, tenue l.161). */
 function resolveAssistedTeam(
-  mb: MassBattleState, party: Combatant[], actionId: string, skills: SkillRef[] | undefined, char: CharKey | undefined,
+  mb: MassBattleState, party: Combatant[], actionId: string, skills: RefDesignee[] | undefined, char: CharKey | undefined,
 ): { team: Combatant[]; picked: NonNullable<ReturnType<typeof bestAssistedOption>> } | null {
   const crew = assignedHeroesFor(mb, party, actionId);
   const solo = bestForSkills(party, skills, char)?.actor;

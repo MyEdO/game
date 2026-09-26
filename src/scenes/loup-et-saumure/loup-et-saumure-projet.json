@@ -2,7 +2,7 @@
  "id": "loup-et-saumure",
  "type": "projet",
  "label": "Le Loup et la Saumure",
- "schema": 14,
+ "schema": 15,
  "icon": "scenario/naval",
  "versionContenu": 1,
  "maison": "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer",

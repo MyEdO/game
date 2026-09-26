@@ -36,7 +36,7 @@ export function passiveSection(ops: GameOp[] | undefined, title = 'Modificateurs
 export function careerGrantSection(ops: GameOp[] | undefined, title = 'Ajouté à vos carrières'): CodexSection | null {
   const rows: CodexRow[] = (ops ?? []).flatMap((o): CodexRow[] => {
     if (o.op === 'grantCareerSkill') { const l = refLabel('skills', o.skill); return [{ t: 'ref', category: 'skills', id: o.skill.id, label: statName(l), show: l }]; }
-    if (o.op === 'grantCareerTalent') { const l = refLabel('talents', { id: o.talentId, spec: o.spec }); return [{ t: 'ref', category: 'talents', id: o.talentId, label: statName(l), show: l }]; }
+    if (o.op === 'grantCareerTalent') { const l = refLabel('talents', o.talent); return [{ t: 'ref', category: 'talents', id: o.talent.id, label: statName(l), show: l }]; }
     return [];
   });
   return rows.length ? { title, layout: 'chips', rows } : null;

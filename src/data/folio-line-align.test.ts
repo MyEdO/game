@@ -44,14 +44,14 @@ import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
 
-/** Couverture MESURÉE le 2026-09-23 (#1898, même mesure que `book-source-integrity.test.ts` et
- *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4519 entrées à `source:{book,page}`, dont 1306
- *  citent AUSSI une ligne — 493 jugées ici, 813 écartées (807 hors-forme, 6 queue-trouée), soit 10,9 %
+/** Couverture MESURÉE le 2026-09-24 (#1473, même mesure que `book-source-integrity.test.ts` et
+ *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4472 entrées à `source:{book,page}`, dont 1310
+ *  citent AUSSI une ligne — 495 jugées ici, 815 écartées (807 hors-forme, 8 queue-trouée), soit 11,1 %
  *  des folios vérifiés machine par cette voie. Les deux bornes ci-dessous rendent ces chiffres
  *  OPPOSABLES, chacune dans son sens, sans marge : la prochaine entrée sourcée SANS citer sa ligne fait
  *  rouge, comme la prochaine entrée qui cesse d'être jugée. */
-const SCANNED_MIN = 493;
-const SANS_CITATION_MAX = 3213; // 4519 sourcées − 1306 citées.
+const SCANNED_MIN = 495;
+const SANS_CITATION_MAX = 3162; // 4472 sourcées − 1310 citées.
 
 /** Entrées à `source:{book,page}` (SOURCÉES) et celles qui citent AUSSI une ligne (CITÉES), même
  *  règle de lecture que `citedEntries` : `source.note`, à défaut le champ `ref` frère. */

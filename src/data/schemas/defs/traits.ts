@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { refSchema } from '../grammaire/reference';
 import { document } from '../grammaire/document';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'traits.json';
 export const famille = 'entite';
@@ -92,7 +92,8 @@ const doc = document(
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(refSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`state/advancement.ts`). */
+    passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),

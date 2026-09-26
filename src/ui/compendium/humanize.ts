@@ -27,7 +27,7 @@ import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
-  diseaseLabel, refLabel, qualityRefLabel, talentConcrete,
+  diseaseLabel, refLabel, qualityRefLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
 
@@ -389,9 +389,9 @@ export function humanizeOp(o: GameOp): string {
     case 'removeTrait': return `perd le Trait ${formatTrait({ id: o.traitId })}`;
     case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
-    case 'grantTalent': return `gagne le Talent ${talentConcrete(o)}`;
+    case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
-    case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', { id: o.talentId, spec: o.spec })} à ses carrières`;
+    case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;
     case 'augmentWeapon': return `voit son arme enchantée${o.addQualities?.length ? ` (${o.addQualities.map((id) => qualityRefLabel({ id })).join(', ')})` : ''}${o.damageBonus != null ? ` +${humanizeFormula(o.damageBonus)} Dégâts` : ''}`;
     case 'cureDisease': return `guérit ${o.count ?? 1} maladie(s)`;
     case 'reduceDiseaseDays': return `raccourcit ${o.disease ? diseaseLabel(o.disease) : 'une maladie'} de ${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)`;

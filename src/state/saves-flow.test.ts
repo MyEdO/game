@@ -237,6 +237,14 @@ describe('parseSave — la version DOIT être la courante', () => {
     expect(findSpellById('alarme'), 'l’id fusionné n’existe plus au catalogue').toBeUndefined();
     expect(idDeSortVivant('alarme')).toBe('alerte');
   });
+  it('MESURE du motif de bump 51 → 52 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
+    // Une save de 51 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
+    // attachée garde `passive: [{ op: 'grantTalent', talentId }]`, et l'octroi lit `op.talent.id`. Le rejet
+    // d'une version non courante est la politique testée par « version ANTÉRIEURE → null » ci-dessus.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(52);
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
+  });
   it('MESURE du motif de bump 41 → 42 (#1509) : l’empreinte d’un décor à recette TOURNE avec son cap', () => {
     // La scène ÉDITÉE du joueur est PERSISTÉE telle quelle (`snapshotSave` recopie `state.scene`). Rien
     // n'y empêche un `table-2x1` au cap E : le schéma ne refuse que la diagonale. Une save de 41

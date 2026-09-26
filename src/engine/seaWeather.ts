@@ -32,7 +32,7 @@ import { findTableEntry } from './tables';
 import { d10, type RNG, defaultRNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
 
@@ -53,7 +53,7 @@ export interface SeaWeather {
 }
 
 interface WeatherRow { min: number; max: number; precipitations: string; temperature: string; visibilite: string; vent: string }
-interface PrecipitationDef { id: string; label: string; desc?: string; skillMods?: { skills: SkillRef[]; mod: number }[]; otherMod?: number }
+interface PrecipitationDef { id: string; label: string; desc?: string; skillMods?: { skills: RefDesignee[]; mod: number }[]; otherMod?: number }
 interface TemperatureDef { id: string; label: string; testEveryHours?: number; difficulty?: Difficulty; exposure?: 'chaleur' | 'froid'; litresParJour?: number }
 interface VisibilityDef { id: string; label: string; drPenalty?: number; beyondM?: number }
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
@@ -185,7 +185,7 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
  *  celle-là. Hors liste : `otherMod`, sinon 0. PUR. */
 export function precipitationSkillMod(precip: SeaPrecipitationId, skillId: string, spec?: string): number {
   const def = precipitationDef(precip);
-  const couvre = (r: SkillRef): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
+  const couvre = (r: RefDesignee): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
   return def.skillMods?.find((m) => m.skills.some(couvre))?.mod ?? def.otherMod ?? 0;
 }
 

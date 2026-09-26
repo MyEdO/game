@@ -11,7 +11,7 @@
 import { Flow, FlowTest, EMPTY_FLOW } from '../../state/flow';
 import type { Effect } from '../../state/scene';
 import type { FlowTestNode } from '../../engine/flowCore';
-import type { SkillRef } from '../../engine/skills';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';
 import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
@@ -118,7 +118,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
   return (
     <>
       <div className="tf-row">
-        <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={test.skill} onChange={(v) => upd({ skill: (v as SkillRef | null) ?? undefined })} nullable />
+        <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={test.skill} onChange={(v) => upd({ skill: (v as RefDesignee | null) ?? undefined })} nullable />
         {/* Caractéristique : les deux clefs COEXISTENT au schéma (`flowTestSchema`, aucune exclusion) et
             au moteur — `testValue` passe `characteristic` en `explicit` à `effectiveSkillCharKey`, qui
             REMPLACE la caractéristique par défaut de la Compétence dont les avances comptent toujours.

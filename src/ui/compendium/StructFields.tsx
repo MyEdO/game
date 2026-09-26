@@ -13,8 +13,9 @@ import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKe
 import type { DiseaseSymptom } from '../../engine/disease';
 import { formatDice, parseDice } from '../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../engine/combatFeatures/types';
-import type { AdvancementRef, TrappingRef, Ref, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../data';
+import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../data';
 import { dispoSaisonniereSchema, harvestRaritySchema } from '../../data/schemas/grammaire/valeurs';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../data/schemas/defs/domains';
 import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../data';
@@ -45,7 +46,7 @@ type DispoSaisonniere = z.infer<typeof dispoSaisonniereSchema>;
 
 /** 1°ʳᵉ référence d'un slot qui porte une LISTE de réfs (`reverseFailed.skills` : Pilote → Ramer OU
  *  Voile) — le contrôle MONO de cet atelier n'édite que celle-là, les suivantes sont conservées. PURE. */
-const premiereRef = (r: readonly Ref[]): Ref => r[0] ?? { id: '' };
+const premiereRef = (r: readonly RefDesignee[]): RefDesignee => r[0] ?? { id: '' };
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 1) maladies.symptoms — DiseaseSymptom[] = { symptomId, severity?, difficulty? }
@@ -364,7 +365,7 @@ export function CombatField(
         {c.reverseFailed && (() => {
           const rf = c.reverseFailed;
           const tete = premiereRef(rf.skills);
-          const poseTete = (r: Ref) => emit({ ...c, reverseFailed: { ...rf, skills: [r, ...rf.skills.slice(1)] } });
+          const poseTete = (r: RefDesignee) => emit({ ...c, reverseFailed: { ...rf, skills: [r, ...rf.skills.slice(1)] } });
           return (
             <>
               {/* `reverseFailed.skills` est une LISTE (Pilote → Ramer OU Voile) ; ce sélecteur MONO édite
@@ -385,7 +386,7 @@ export function CombatField(
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 3) skills/talents d'avancement — AdvancementRef[] (espèce / niveau de carrière)
- *    union (Ref & { choix? }) | { pick, of[] } | { random }
+ *    union (RefDesignee & { choix? }) | { pick, of[] } | { random }
  * ──────────────────────────────────────────────────────────────────────────── */
 
 type AdvMode = 'ref' | 'choix' | 'pick' | 'random';
@@ -394,7 +395,7 @@ const advMode = (a: AdvancementRef): AdvMode =>
   'id' in a ? (a.choix == null ? 'ref' : 'choix') : 'pick' in a ? 'pick' : 'random';
 
 /** Référence PORTÉE par une entrée (celle qui se transpose d'un mode à l'autre). */
-const advRef = (a: AdvancementRef): Ref => ('id' in a ? { id: a.id, ...(a.spec ? { spec: a.spec } : {}) } : { id: '' });
+const advRef = (a: AdvancementRef): RefDesignee => ('id' in a ? { id: a.id, ...(a.spec ? { spec: a.spec } : {}) } : { id: '' });
 
 /** Convertit une entrée vers un autre mode en gardant ce qui se transpose (la réf courante). */
 function advTo(a: AdvancementRef, mode: AdvMode): AdvancementRef {
@@ -429,11 +430,11 @@ export function AdvancementRefField(
               <button className="btn small danger" title="Retirer l'emplacement" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
             </div>
             {mode === 'ref' && (
-              <RefField cfg={refCfg} fieldKey="réf" value={advRef(a)} onChange={(v) => set(i, (v as Ref) ?? { id: '' })} />
+              <RefField cfg={refCfg} fieldKey="réf" value={advRef(a)} onChange={(v) => set(i, (v as RefDesignee) ?? { id: '' })} />
             )}
             {mode === 'choix' && 'id' in a && (
               <>
-                <RefField cfg={{ ds, single: true as const }} fieldKey="joker" value={{ id: a.id }} onChange={(v) => set(i, { id: ((v as Ref) ?? { id: '' }).id, choix: a.choix ?? true })} />
+                <RefField cfg={{ ds, single: true as const }} fieldKey="joker" value={{ id: a.id }} onChange={(v) => set(i, { id: ((v as RefDesignee) ?? { id: '' }).id, choix: a.choix ?? true })} />
                 <label className="dr">specs restreintes (CSV d'ids — vide = « Au choix »)
                   <input value={Array.isArray(a.choix) ? a.choix.join(', ') : ''} onChange={(e) => { const opts = e.target.value.split(',').map((s) => s.trim()).filter(Boolean); set(i, { id: a.id, choix: opts.length ? opts : true }); }} />
                 </label>
@@ -465,7 +466,7 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value: 
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 4) trappings (classe / niveau de carrière) — TrappingRef[]
- *    ( Ref & { count? } ) | { text, count? }
+ *    ( RefDesignee & { count? } ) | { text, count? }
  * ──────────────────────────────────────────────────────────────────────────── */
 
 const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
@@ -510,18 +511,18 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
             : isVehicle(t)
               ? (
                 <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.vehicleId} onChange={(v) => set(i, { vehicleId: typeof v === 'string' ? v : (v as Ref)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.vehicleId} onChange={(v) => set(i, { vehicleId: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                   <label className="dr">nom<input placeholder={findVehicleById(t.vehicleId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                 </>
               )
               : isCreature(t)
                 ? (
                   <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.creatureId} onChange={(v) => set(i, { creatureId: typeof v === 'string' ? v : (v as Ref)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.creatureId} onChange={(v) => set(i, { creatureId: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                     <label className="dr">nom<input placeholder={findCreatureById(t.creatureId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                   </>
                 )
-                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as Ref)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
+                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>

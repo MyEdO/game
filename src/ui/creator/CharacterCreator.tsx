@@ -1272,7 +1272,7 @@ export function StarScreen({ d, setD }: StepProps) {
   const sign = d.star ? starsTable.find((s) => s.id === d.star) : undefined; // d.star = id STABLE
   const selPos = STAR_POSITIONS.find((p) => p.members.some((m) => m.id === d.star)) ?? STAR_POSITIONS.find((p) => p.key === pendingKey);
   // Talent « (Au choix) » octroyé par le signe (ex. Maître artisan) → spec à préciser (réutilise specChoices).
-  const grantChoice = sign?.ops?.flatMap((o) => (o.op === 'grantTalent' && isUnresolvedChoice(talentConcrete(o)) ? [talentConcrete(o)] : []))[0];
+  const grantChoice = sign?.ops?.flatMap((o) => (o.op === 'grantTalent' && o.talent.choix != null ? [advancementLabel('talents', o.talent)] : []))[0];
   const grantOpts = grantChoice ? specOptionsFor(grantChoice) : [];
 
   const pickPos = (key: string) => {

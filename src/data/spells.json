@@ -3777,8 +3777,10 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "sens-aiguise",
-                "spec": "odorat"
+                "talent": {
+                  "id": "sens-aiguise",
+                  "spec": "odorat"
+                }
               }
             ]
           }
@@ -4685,11 +4687,15 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "sans-peur"
+                "talent": {
+                  "id": "sans-peur"
+                }
               },
               {
                 "op": "grantTalent",
-                "talentId": "coeur-vaillant"
+                "talent": {
+                  "id": "coeur-vaillant"
+                }
               },
               {
                 "op": "narrative",
@@ -11735,7 +11741,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "coude-a-coude"
+                "talent": {
+                  "id": "coude-a-coude"
+                }
               },
               {
                 "op": "narrative",
@@ -12226,7 +12234,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "sans-peur"
+                "talent": {
+                  "id": "sans-peur"
+                }
               },
               {
                 "op": "narrative",
@@ -12382,7 +12392,9 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "souplesse-feline"
+                "talent": {
+                  "id": "souplesse-feline"
+                }
               },
               {
                 "op": "narrative",
@@ -13441,7 +13453,9 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "sans-peur"
+                "talent": {
+                  "id": "sans-peur"
+                }
               },
               {
                 "op": "narrative",
@@ -13706,7 +13720,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "bonnes-jambes"
+                "talent": {
+                  "id": "bonnes-jambes"
+                }
               },
               {
                 "op": "narrative",
@@ -13880,7 +13896,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "sens-aiguise"
+                "talent": {
+                  "id": "sens-aiguise"
+                }
               },
               {
                 "op": "narrative",
@@ -14681,11 +14699,15 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "menacant"
+                "talent": {
+                  "id": "menacant"
+                }
               },
               {
                 "op": "grantTalent",
-                "talentId": "sens-aiguise"
+                "talent": {
+                  "id": "sens-aiguise"
+                }
               }
             ]
           }
@@ -19053,8 +19075,10 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "resistance",
-                "spec": "maladie"
+                "talent": {
+                  "id": "resistance",
+                  "spec": "maladie"
+                }
               },
               {
                 "op": "narrative",
@@ -19167,7 +19191,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "vision-nocturne"
+                "talent": {
+                  "id": "vision-nocturne"
+                }
               },
               {
                 "op": "narrative",
@@ -19986,7 +20012,9 @@
               "ops": [
                 {
                   "op": "grantTalent",
-                  "talentId": "detection-d-artefact"
+                  "talent": {
+                    "id": "detection-d-artefact"
+                  }
                 }
               ]
             }
@@ -20817,7 +20845,9 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "contorsionniste"
+                "talent": {
+                  "id": "contorsionniste"
+                }
               },
               {
                 "op": "narrative",
@@ -21440,8 +21470,10 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "bon-marcheur",
-                "spec": "regions-boisees"
+                "talent": {
+                  "id": "bon-marcheur",
+                  "spec": "regions-boisees"
+                }
               },
               {
                 "op": "narrative",
@@ -23607,18 +23639,24 @@
             "ops": [
               {
                 "op": "grantTalent",
-                "talentId": "resistance",
-                "spec": "poison"
+                "talent": {
+                  "id": "resistance",
+                  "spec": "poison"
+                }
               },
               {
                 "op": "grantTalent",
-                "talentId": "resistance",
-                "spec": "maladie"
+                "talent": {
+                  "id": "resistance",
+                  "spec": "maladie"
+                }
               },
               {
                 "op": "grantTalent",
-                "talentId": "resistance",
-                "spec": "chaos"
+                "talent": {
+                  "id": "resistance",
+                  "spec": "chaos"
+                }
               }
             ]
           }
@@ -26944,11 +26982,15 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "grimpeur"
+                "talent": {
+                  "id": "grimpeur"
+                }
               },
               {
                 "op": "grantTalent",
-                "talentId": "bon-marcheur"
+                "talent": {
+                  "id": "bon-marcheur"
+                }
               },
               {
                 "op": "narrative",

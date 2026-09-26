@@ -2,7 +2,7 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "schema": 14,
+ "schema": 15,
  "icon": "scenario/arena",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",

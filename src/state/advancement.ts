@@ -5,7 +5,7 @@
  * LDB 07/09/10) ; ici on ne fait que router les listes des Niveaux de Carrière.
  *
  * Disponibilité (LDB 07) : Caractéristiques et Compétences CUMULATIVES sur les niveaux ≤
- * courant (l.67/78), Talents du niveau courant uniquement (l.100). Les emplacements
+ * courant (l.43/76), Talents du niveau courant uniquement (l.103). Les emplacements
  * « (Au choix) » suivent le modèle de désignation de careerSlots (identité (id, spec)).
  */
 import { Combatant, CharKey, CHAR_KEYS, CHAR_LABELS } from '../engine/types';
@@ -18,19 +18,17 @@ import {
   validateCareerChange,
 } from '../engine/advancement';
 import {
-  CareerSlot,
   skillSlots,
   talentSlots,
   availableChars,
   designationsFor,
-  inCareerStatus,
   takenRefs,
   refKey,
   parseRefKey,
   talentMaxReached,
   wildcardSpecs,
 } from '../engine/careerSlots';
-import { careerSkillAdditions, careerTalentAdditions, baseWithTalents, type SkillTalentRef } from '../engine/talentEffects';
+import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../engine/talentEffects';
 import { rule } from '../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../data';
 
@@ -111,28 +109,15 @@ export interface AdvancementView {
   changeCostFor: (careerId: string) => number;
 }
 
-/** Remise « 5 PX de moins par Augmentation » (LDB 10 Maître artisan/Oreille absolue/…) quand la
- *  Compétence ajoutée par un talent est DÉJÀ couverte par la carrière. */
-function additionDiscount(additions: SkillTalentRef[], slots: CareerSlot[], designations: Record<string, string>, skillId: string, spec?: string): number {
-  const added = additions.some((a) => {
-    if (a.id !== skillId) return false;
-    if (a.choix != null) return true; // joker de groupe (Savoir (Région) reste exact)
-    return (a.spec ?? '') === (spec ?? '');
-  });
-  if (!added) return 0;
-  return inCareerStatus(slots, designations, skillId, spec) ? 5 : 0;
-}
-
 export function buildAdvancementView(hero: Combatant): AdvancementView {
   const career = hero.career ?? '';
   const careerLevel = hero.careerLevel ?? 1;
   const levels = levelsForCareer(career);
   const cur = levels.find((l) => l.level === careerLevel);
-  const sSlots = skillSlots(levels, careerLevel); // cumul niveaux ≤ courant (LDB 07 l.78)
-  const tSlots = talentSlots(levels, careerLevel); // niveau courant seul (l.100)
-  const careerChars = availableChars(levels, careerLevel); // cumul (l.67)
+  const sSlots = skillSlots(levels, careerLevel); // cumul niveaux ≤ courant (LDB 07 l.76)
+  const tSlots = talentSlots(levels, careerLevel); // niveau courant seul (l.103)
+  const careerChars = availableChars(levels, careerLevel); // cumul (l.43)
   const designations = designationsFor(hero, career);
-  const additions = careerSkillAdditions(hero);
 
   const chars: CharAdvanceRow[] = CHAR_KEYS.map((key) => {
     const advances = hero.charAdvances?.[key] ?? 0;
@@ -145,10 +130,8 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
   // compétence ajoutée par un talent (« à n'importe quelle Carrière », LDB 10).
   const skills: SkillAdvanceRow[] = hero.skills.map((s) => {
     const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
-    const status = inCareerStatus(sSlots, designations, s.id, s.spec);
-    const addedExact = additions.some((a) => a.id === s.id && (!a.spec || a.choix != null || (a.spec ?? '') === (s.spec ?? '')));
-    const inCareer = status != null || addedExact;
-    const discount = additionDiscount(additions, sSlots, designations, s.id, s.spec);
+    const { statut, remise: discount } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
+    const inCareer = statut != null;
     return {
       skillId: s.id,
       label: sName,
@@ -222,9 +205,9 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
     }
     return { slotKey: slot.key, entry: slot.entry, times: 0, nextCost: talentCost(0), maxReached: false, options };
   });
-  // Talents AJOUTÉS aux carrières par un talent possédé (Flagellant → Frénésie, LDB 10) : apprenables
+  // Talents AJOUTÉS à la carrière (`talentsAjoutesALaCarriere`, la définition que lit l'achat) : apprenables
   // en carrière même hors emplacement de niveau. Dédupe contre les slots déjà projetés (par id+spec).
-  for (const add of careerTalentAdditions(hero)) {
+  for (const add of talentsAjoutesALaCarriere(hero)) {
     const rk = refKey(add.id, add.spec);
     if (talents.some((r) => (r.talentId === add.id && (r.spec ?? '') === (add.spec ?? '')) || r.options?.some((o) => o.refKey === rk))) continue;
     const label = refLabel('talents', add);

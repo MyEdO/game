@@ -493,7 +493,7 @@ Détails complets par niveau (compétences/talents/possessions) → [`catalogue-
 **Sources RAW** : `MDG 09 l.3-30` + `l.57-757`
 **Voir aussi** : [Index des carrières](#index-des-carrières) · [Carrières norses (MDG)](#carrières-norses-mdg) · [`talents.md`](talents.md) (Chanson de marin, Commandant d'équipe, Commandant émérite)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.3-30, l.59, l.626, l.718) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CreatorDraft`, `CrewContributor`, `CombatFeature`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, +34 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +16 fichiers
+- `MDG 9` (l.3-30, l.59, l.626, l.718) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CreatorDraft`, `CombatFeature`, `CrewContributor`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, +34 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +16 fichiers
 - sans code : `MDG 9` (l.134)
 
 ---
@@ -517,7 +517,7 @@ Une chanson de marin affecte un équipage entier. Le Personnage doit trouver un 
 **Sources RAW** : `MDG 09 l.32-54`
 **Voir aussi** : [Classe Côtier (MDG)](#classe-côtier-mdg) · [Chansons de marins (MDG)](#chansons-de-marins-mdg) · [`talents.md`](talents.md)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.32-54) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CrewContributor`, `CombatFeature`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, `endShanty`, +20 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +14 fichiers
+- `MDG 9` (l.32-54) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CombatFeature`, `CrewContributor`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, `endShanty`, +20 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +14 fichiers
 
 ---
 

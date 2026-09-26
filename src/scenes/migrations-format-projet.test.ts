@@ -69,12 +69,13 @@ const CIBLE = 'src/scenes/camp/camp-projet.json';
 
 /** Joue `script` sur un dépôt jetable portant `doc` (`scripts/migrations/lib/joue.mjs`) ; rend le code
  *  de sortie, la sortie (le MOTIF d'un refus : deux refus distincts sortent tous deux 1) et l'état
- *  APRÈS. `src/data/props.json` (les TYPES de décor à places, lus par `2026-09-10-1687-usable-sieges.mjs`)
- *  et `src/data/sortsFusionnes.ts` (la primitive importée par `2026-09-24-1897-projet-sorts-fusionnes.mjs`)
+ *  APRÈS. `src/data/props.json` (les TYPES de décor à places, lus par `2026-09-10-1687-usable-sieges.mjs`),
+ *  `src/data/sortsFusionnes.ts` (la primitive importée par `2026-09-24-1897-projet-sorts-fusionnes.mjs`)
+ *  et `src/data/graphieOpsDeTalent.ts` (celle de `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`)
  *  sont des ENTRÉES déclarées de la chaîne : le dépôt les porte, sinon le script mourrait sur un fichier
  *  absent au lieu de rendre le refus qu'on mesure. */
 function joue(script: string, doc: Record<string, unknown>): { code: number | null; err: string; avant: string; apres: string } {
-  const d = depot({ [CIBLE]: serialise(doc, FORME_PROJET) }, ['src/data/props.json', 'src/data/sortsFusionnes.ts']);
+  const d = depot({ [CIBLE]: serialise(doc, FORME_PROJET) }, ['src/data/props.json', 'src/data/sortsFusionnes.ts', 'src/data/graphieOpsDeTalent.ts']);
   try {
     const { code, sortie } = jouerDans(d.racine, script);
     return { code, err: sortie, avant: d.avant.get(CIBLE) ?? '', apres: lireDans(d.racine, CIBLE) };

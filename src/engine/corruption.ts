@@ -23,9 +23,11 @@ import { talentCorruptionThreshold } from './combatFeatures/dispatch';
 import { findTableEntry } from './tables';
 import { mutationBodyMaxForSpecies } from '../data';
 import { rollObsession } from '../data/obsessions';
+import { acquerirTalent, retirerTalent } from './careerSlots';
 import { grantTrait, grantPsychTrait, removeGrantedTrait } from './grantedTraits';
 import type { PsychType } from './psychology';
 import type { GameOp } from './ops';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TriggeredEffect } from './flowCore';
 
 export type ExposureLevel = 'mineure' | 'moderee' | 'majeure';
@@ -90,6 +92,9 @@ export interface Mutation {
    *  fusionnée sur le rig quand la mutation est présente (cf. `combatantVisuals`). Type erased : le
    *  moteur ne la lit jamais (comme `Combatant.appearance` côté types). */
   appearance?: import('./authoringAppearance').EntityAppearance;
+  /** PROVENANCE, posée par `attachMutation` sur l'instance ATTACHÉE : les niveaux de Talent que son
+   *  attache a effectivement acquis (`acquerirTalent` rendu `true`). `detachMutation` ne retire qu'eux. */
+  talentsAcquis?: RefDesignee[];
 }
 
 // ---------------------------------------------------------------------------
@@ -188,11 +193,10 @@ export function mutationLimitExceeded(c: Combatant): boolean {
  *  pour les Cibles TIRÉES (`argFrom:'obsessions'` — Haine sporadique / Terribles phobies, EDOC 12).
  *  `grantTrait`/`grantPsychTrait` (noyau PARTAGÉ `grantedTraits.ts`, ci-dessus importé) : MÊME chemin
  *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
- *  jamais). `grantTalent` reste local parce que les passifs d'une mutation ne passent pas par `applyOps` :
- *  il écrit `c.talents` (structurel, visible à la fiche et à l'avancement) — MÊME rangement que l'op
- *  homonyme d'`applyOps` pour un octroi sans échéance. */
+ *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
+ *  pas par `applyOps`. */
 export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG): void {
-  c.mutations = [...(c.mutations ?? []), m];
+  const talentsAcquis: RefDesignee[] = [];
   for (const op of m.passive ?? []) {
     if (op.op === 'grantTrait') {
       // Valeur LITTÉRALE (les mutations RAW ont des indices fixes : Peur 3, Morsure +5).
@@ -207,9 +211,13 @@ export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG)
       const cible = op.cible ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       grantPsychTrait(c, op.psychType as PsychType, cible);
     } else if (op.op === 'grantTalent') {
-      c.talents = [...(c.talents ?? []), { talentId: op.talentId, ...(op.spec ? { spec: op.spec } : {}), times: 1 }];
+      if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
   }
+  const attachee: Mutation = { ...m };
+  delete attachee.talentsAcquis;
+  if (talentsAcquis.length) attachee.talentsAcquis = talentsAcquis;
+  c.mutations = [...(c.mutations ?? []), attachee];
 }
 
 /** INVERSE structurel d'`attachMutation` : retire l'instance de `c.mutations` (ses passifs charMod/moveMod/
@@ -224,18 +232,17 @@ export function detachMutation(c: Combatant, m: Mutation): void {
   let i = -1;
   for (let k = list.length - 1; k >= 0; k--) if (list[k].id === m.id && (list[k].roll ?? null) === (m.roll ?? null)) { i = k; break; }
   if (i < 0) return;
+  const attachee = list[i];
   c.mutations = [...list.slice(0, i), ...list.slice(i + 1)];
-  for (const op of m.passive ?? []) {
+  for (const talent of attachee.talentsAcquis ?? []) retirerTalent(c, talent);
+  for (const op of attachee.passive ?? []) {
     if (op.op === 'grantTrait') {
       const value = typeof op.indice === 'number' ? op.indice : undefined;
-      removeGrantedTrait(c, { id: op.traitId, ...(op.arg ? { arg: op.arg } : {}), ...(value != null ? { value } : {}), src: { kind: 'mutation', id: m.id } });
+      removeGrantedTrait(c, { id: op.traitId, ...(op.arg ? { arg: op.arg } : {}), ...(value != null ? { value } : {}), src: { kind: 'mutation', id: attachee.id } });
     } else if (op.op === 'grantPsychTrait') {
       const j = (c.psychTraits ?? []).findIndex((x) => x.type === op.psychType && (x.cible ?? '') === (op.cible ?? ''));
       if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];
       if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
-    } else if (op.op === 'grantTalent') {
-      const j = (c.talents ?? []).findIndex((x) => x.talentId === op.talentId && (x.spec ?? '') === (op.spec ?? ''));
-      if (j >= 0) c.talents = [...c.talents!.slice(0, j), ...c.talents!.slice(j + 1)];
     }
   }
 }

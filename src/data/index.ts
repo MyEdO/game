@@ -8,7 +8,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
-import { porteLeMarqueur, type TypeEntite } from './schemas/grammaire/ref';
+import { porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type DatasetDeSource, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { fichierDe, idsSurLaRacine } from './schemas/grammaire/cle-d-espace';
@@ -137,13 +137,12 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
-import type { SkillRef as EngineSkillRef } from '../engine/skills'; // type-only (aliasé : `SkillRef` est déjà pris ci-dessous, id Codex)
 
 /** Compétence AU CHOIX d'une Activité (`ActivityDef.skills`, `src/engine/skills.ts` `TestSpec`) —
  *  `difficulty?` porte la Difficulté PROPRE à cette voie quand le RAW en attache une différente par
  *  Compétence (Punchausen, AA 12 l.45-49 : Charme Complexe OU Divertissement (Narration)
  *  Intermédiaire) ; absente, la voie retombe sur `ActivityDef.difficulty`. */
-export interface ActivitySkill extends EngineSkillRef {
+export interface ActivitySkill extends RefDesignee {
   difficulty?: Difficulty;
 }
 
@@ -197,7 +196,7 @@ export interface WaterExposureData {
   id: string;
   label: string;
   desc: string;
-  test: { skill: EngineSkillRef; difficulty: import('../engine/types').Difficulty };
+  test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
   rollModPerNegativeSL: number;
   modifiers: WaterExposureModifier[];
   diseases: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[];
@@ -1021,7 +1020,7 @@ export interface SkillData {
  *  « (Au choix) » → matche la spec CHOISIE de l'instance (`t.spec`). `when` = contexte MÉCANISABLE (Condition combat — auto si vraie) ; `manual` =
  *  contexte NARRATIF inmécanisable (« quand vous soulevez ») → advisory, JAMAIS auto-appliqué. */
 export interface TestMatch {
-  skill?: Ref;
+  skill?: RefDesignee;
   char?: import('../engine/types').CharKey;
   specFromInstance?: boolean;
   /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
@@ -1470,7 +1469,7 @@ export interface EtatData extends StatusData {
    *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
    *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
    *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: Ref; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
+  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
   /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
    *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
    *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
@@ -1576,7 +1575,7 @@ export interface PsychologyData extends StatusData {
    *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
    *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
    *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
-  test?: { skill?: Ref; difficulty?: import('../engine/types').Difficulty };
+  test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
 }
 /** Tables Couleur des Yeux / Cheveux (LDB 05 l.698-744) : 2d10, par colonne `RaceKey` (#313). */
 export interface DetailColorData {
@@ -1851,10 +1850,10 @@ export interface TraitData {
    *  Sang corrosif, Régénération…) appliqués par `state/triggeredEffects`, jamais par un handler en dur.
    *  Type-only (le moteur reste pur : la donnée référence le Flow sans en dépendre à l'exécution). */
   effects?: import('../state/flow').TriggeredEffect[];
-  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `Ref[]` vers le dataset
+  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `RefDesignee[]` vers le dataset
    *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
    *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
-  grantsManeuvers?: Ref[];
+  grantsManeuvers?: RefDesignee[];
   /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `GameOp[]` — le MÊME vocabulaire
    *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
    *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
@@ -1938,7 +1937,7 @@ export interface QualityCapabilities {
 /** Atout/Défaut d'arme (LDB 62-63) : libellé + desc VERBATIM + effets déclenchés authorés (mêmes
  *  `TriggeredEffect` que les Traits — un Atout « à la touche : 1d10 + Empêtré » s'édite au Codex). */
 export interface QualityData {
-  /** id STABLE (slug du libellé) — cible des `Ref` de qualité, robuste au renommage. */
+  /** id STABLE (slug du libellé) — cible des `RefDesignee` de qualité, robuste au renommage. */
   id: string;
   type: 'qualities';
   label: string;
@@ -2201,7 +2200,7 @@ export interface SpellData {
     /** Caractéristique opposée (`resist` uniquement). */
     char?: import('../engine/types').CharKey;
     /** Compétence opposée (`resist` uniquement, rare) — référence `{ id, spec? }`. */
-    skill?: Ref;
+    skill?: RefDesignee;
   };
   /**
    * EFFETS du sort — `Flow` ÉDITABLE (système logique unique : `do`/`if`/`test`), source des effets
@@ -2723,7 +2722,7 @@ export interface CrewRoleData {
   id: string;
   type: 'crew-roles';
   label: string;
-  skills: EngineSkillRef[];
+  skills: RefDesignee[];
   desc: string;
   wage?: CrewWage;
 }
@@ -3035,7 +3034,7 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
  *  Même vocabulaire que `sizeFromTalents` (engine/character.ts) : la plus grande catégorie parmi
  *  `TalentData.size`. */
 export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCategory {
-  const ids = sp.talents.filter((t): t is Ref => 'id' in t && t.choix == null).map((t) => t.id);
+  const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
 }
 /** id d'espèce RIG (slug, clé `appearance.species`) dérivé d'un id d'espèce RULES (ou chaîne libre) :
@@ -3138,13 +3137,6 @@ type EntiteDe<T extends TypeResolu> = NonNullable<ReturnType<(typeof PAR_ID)[T]>
 export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | undefined {
   return PAR_ID[type](id) as EntiteDe<T> | undefined;
 }
-/** Noyau de RÉFÉRENCE structurée par `id` STABLE — partagé par toutes les refs de la donnée
- *  (compétences, talents, sorts, qualités, possessions, bénédictions…). `id` = slug du libellé
- *  (robuste au renommage) ; `spec` = spécialisation/type concret libre (« Ghur », « Reikland »), non un id. */
-export interface Ref {
-  id: string;
-  spec?: string;
-}
 /**
  * Référence STRUCTURÉE à une Compétence — la réf de la grammaire (`refOuSpec('skill')`, régimes
  * `spec` DÉSIGNÉE XOR `choix` à faire) + `value`, le nombre IMPRIMÉ au statbloc.
@@ -3152,10 +3144,7 @@ export interface Ref {
  * `choix` ne survit PAS au spawn : `skillsFromBook` (`state/spawn.ts`) DÉSIGNE une spécialisation, et
  * la `SkillInstance` runtime est toujours concrète.
  */
-export interface SkillRef extends Ref {
-  choix?: true | string[];
-  value: number;
-}
+export type SkillRef = RefASpecialisation & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
 export function skillRefLabel(ref: SkillRef): string {
@@ -3183,8 +3172,8 @@ const talentParId = indexParId('talents', talents);
 export function findTalentById(id: string): TalentData | undefined {
   return talentParId(id);
 }
-/** Référence STRUCTURÉE à un Talent (`Ref` + niveau `times` ≥2) — fin des chaînes « Maîtrise du combat 2 ». */
-export interface TalentRef extends Ref {
+/** Référence STRUCTURÉE à un Talent (`RefDesignee` + niveau `times` ≥2) — fin des chaînes « Maîtrise du combat 2 ». */
+export interface TalentRef extends RefDesignee {
   times?: number;
 }
 /** Libellé d'affichage d'une `TalentRef` : « Magie des Arcanes (Ghur) », « Maîtrise du combat 2 »
@@ -3400,8 +3389,8 @@ export function chaosSpellsOf(god: string): string[] {
   return findGodById(god)?.chaosSpells ?? [];
 }
 
-/** Référence à une Qualité d'objet (`Ref` + Indice éventuel : « Solide 3 » → value 3). */
-export interface QualityRef extends Ref {
+/** Référence à une Qualité d'objet (`RefDesignee` + Indice éventuel : « Solide 3 » → value 3). */
+export interface QualityRef extends RefDesignee {
   value?: number;
 }
 /** Quantité d'une possession conférée : nombre fixe (« (3) ») ou jet de dés structuré (« (1d10) »). */
@@ -3419,7 +3408,7 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
 export type TrappingRef =
-  | (Ref & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
+  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
   | { text: string; count?: CountSpec }
   | { vehicleId: string; count?: CountSpec; label?: string }
   | { creatureId: string; count?: CountSpec; label?: string }
@@ -3431,7 +3420,7 @@ export type TrappingRef =
  *  borné « Fléau ou À deux mains »), « n parmi » (`{pick, of}` — le « A ou B » des listes), ou
  *  tirage (`{random: n}`, « N Talent aléatoire »). */
 export type AdvancementRef =
-  | (Ref & { choix?: true | string[] })
+  | RefASpecialisation
   | { pick: number; of: AdvancementRef[] }
   | { random: number };
 
@@ -3541,7 +3530,7 @@ export function specResolves(def: { specsSource?: SpecsSource; specs?: SpecEntry
     ? SPEC_SOURCES[def.specsSource].resolves(specId)
     : (def.specs ?? []).some((e) => specEntryId(e) === specId);
 }
-/** Libellé d'affichage d'une spéc (`Ref.spec`) : si la def désigne une `specsSource`, résout via le
+/** Libellé d'affichage d'une spéc (`RefDesignee.spec`) : si la def désigne une `specsSource`, résout via le
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;
  *  sinon cherche l'id dans `def.specs` (`SpecEntry[]`, résolu en label FR) ; sinon verbatim (texte
  *  libre / id inconnu — jamais d'erreur d'affichage). SOURCE UNIQUE de résolution de spéc. */
@@ -3571,7 +3560,7 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
 }
 
 /**
- * CLÉ RUNTIME concrète d'une `Ref` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec.
+ * CLÉ RUNTIME concrète d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec.
  * SOURCE UNIQUE de l'index utilisé par les registres (`opts.skillAdvances` dans `engine/character.ts`,
  * `combatFeatures`, grimoire).
  *
@@ -3580,15 +3569,16 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
  * cassé des lookups silencieusement. `refLabel` ci-dessous en est la face AFFICHAGE, et la seule à
  * minter.
  */
-export function refConcrete(category: string, ref: Ref): string {
+export function refConcrete(category: string, ref: RefDesignee): string {
   const base = findById(category, ref.id)?.label ?? ref.id;
   return ref.spec ? `${base} (${specLabel(category, ref.id, ref.spec)})` : base;
 }
 
-/** Libellé CONCRET d'une `Ref` pour l'AFFICHAGE : « Magie des Arcanes (Ghur) ». Face minteuse de
- *  `refConcrete` (cf. son JSDoc pour la scission). Un site qui INDEXE avec ce texte appelle `refConcrete`. */
-export function refLabel(category: string, ref: Ref): PlayerText {
-  return dataLabel(refConcrete(category, ref));
+/** Libellé CONCRET d'une `RefDesignee` pour l'AFFICHAGE : « Magie des Arcanes (Ghur) », ou d'un emplacement
+ *  `choix` par `choixLabel`. Face minteuse de `refConcrete` (cf. son JSDoc pour la scission). Un site qui
+ *  INDEXE avec ce texte appelle `refConcrete`. */
+export function refLabel(category: string, ref: RefASpecialisation): PlayerText {
+  return dataLabel(ref.choix == null ? refConcrete(category, ref) : choixLabel(category, ref.id, ref.choix));
 }
 /** Copie une `QualityRef` de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}`) — objet neuf
  *  (le runtime mute `qualities` : enchantements, munitions). Plus d'aplatissement en chaîne « id value ». */
@@ -3651,7 +3641,7 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
 }
 /** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
  *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refConcrete` comme toute autre
- *  `Ref` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
+ *  `RefDesignee` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
  *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
 export function trappingRefLabel(ref: TrappingRef): string {
   if ('choice' in ref) return ref.choice.map(trappingRefLabel).join(' ou ');

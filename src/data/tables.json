@@ -1377,7 +1377,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-de-hysh"
+            "talent": {
+              "id": "empreint-de-hysh"
+            }
           }
         ]
       }
@@ -1544,7 +1546,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "numismate"
+            "talent": {
+              "id": "numismate"
+            }
           }
         ]
       },
@@ -1559,7 +1563,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-de-chamon"
+            "talent": {
+              "id": "empreint-de-chamon"
+            }
           }
         ]
       }
@@ -1701,7 +1707,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-de-ghyran"
+            "talent": {
+              "id": "empreint-de-ghyran"
+            }
           }
         ]
       }
@@ -1852,7 +1860,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-d-azyr"
+            "talent": {
+              "id": "empreint-d-azyr"
+            }
           }
         ]
       }
@@ -1965,7 +1975,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "vision-nocturne"
+            "talent": {
+              "id": "vision-nocturne"
+            }
           },
           {
             "op": "charDRBonus",
@@ -1990,7 +2002,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "menacant"
+            "talent": {
+              "id": "menacant"
+            }
           }
         ]
       },
@@ -2005,7 +2019,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "insignifiant"
+            "talent": {
+              "id": "insignifiant"
+            }
           }
         ]
       },
@@ -2042,7 +2058,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-d-ulgu"
+            "talent": {
+              "id": "empreint-d-ulgu"
+            }
           }
         ]
       }
@@ -2186,7 +2204,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-de-shyish"
+            "talent": {
+              "id": "empreint-de-shyish"
+            }
           }
         ]
       }
@@ -2319,7 +2339,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-d-aqshy"
+            "talent": {
+              "id": "empreint-d-aqshy"
+            }
           }
         ]
       }
@@ -2457,7 +2479,9 @@
           },
           {
             "op": "grantTalent",
-            "talentId": "empreint-de-ghur"
+            "talent": {
+              "id": "empreint-de-ghur"
+            }
           }
         ]
       }
