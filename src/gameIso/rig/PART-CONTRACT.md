@@ -131,8 +131,8 @@ la vue, jamais en allongeant la liste.**
   renommer l'usage vers un jeton de vêtement dédié (ex. `Nonne.ts`, guimpe → `@voile*`), jamais
   laisser `@cheveux*` peindre du tissu.
 - **La `palette` d'une tenue, d'une arme ou d'une armure n'a PAS le droit de déclarer une clé porteur
-  (`PORTEUR` : `peau`, `cheveux`, `yeux` et leur gamme)** — seule l'espèce les donne (gardé,
-  `parts/no-porteur-in-palette.test.ts`, #583, #599). Le piège vécu : l'ART peignait
+  (`PORTEUR` : `peau`, `cheveux`, `yeux` et leur gamme)** — seule l'espèce les donne (gardé au
+  TYPE, `PaletteDeCouchePortee` de `palette.ts`, #583, #599). Le piège vécu : l'ART peignait
   correctement `@peau`/`@peauO` (règle ci-dessus respectée), mais la `palette` du def déclarait
   AUSSI ces clés avec une teinte figée — `tenuePaletteFor` prime sur l'espèce dans l'empilage
   (`couchesDuRig`), donc ce jeton se résolvait à la couleur de la TENUE, pas à celle du

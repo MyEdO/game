@@ -21,7 +21,6 @@ export const tenue: TenueDef = {
     tablier: '#6d7642', tablierO: '#434b22', tablierH: '#8f9857',
     plume: '#6f9a3e', plumeO: '#446322', plumeH: '#97c460',
     paille: '#b8a05c', pailleO: '#8a7238', pailleH: '#d8c78a',
-    or: '#c9a23c', orO: '#8a6a1e', 
     cuir: '#6e4a26', cuirO: '#3f2a12', cuirH: '#916c40',
   },
   set: {

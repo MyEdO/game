@@ -56,8 +56,8 @@ function sailFace(): string {
   return spar(0, -8, 0, -62, 2.4)
     + stay(0, -62, -7.4, -9) + stay(0, -62, 7.4, -9)
     + '<path d="M-14 -57 L14 -57" stroke="@mat" stroke-width="1.8" stroke-linecap="round"/>'
-    + '<path d="M-13 -56 Q0 -53 13 -56 Q14.8 -46 12 -35.5 Q0 -30.5 -12 -35.5 Q-14.8 -46 -13 -56 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-4.3 -54.4 Q-4.3 -44 -4 -32.6 M4.3 -54.4 Q4.3 -44 4 -32.6" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-13 -56 Q0 -53 13 -56 Q14.8 -46 12 -35.5 Q0 -30.5 -12 -35.5 Q-14.8 -46 -13 -56 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-4.3 -54.4 Q-4.3 -44 -4 -32.6 M4.3 -54.4 Q4.3 -44 4 -32.6" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     + stay(-12, -35.5, -6, -9.5) + stay(12, -35.5, 6, -9.5)
     + pennant(0, -62, 8);
 }
@@ -79,7 +79,7 @@ function front(): string {
     + '<path d="M-6 -6.6 Q0 -9.6 6 -6.6 M-4.6 -3.2 Q0 -5.8 4.6 -3.2" fill="none" stroke="@coqueO" stroke-width="0.7" opacity="0.5"/>'
     // Pavois de tête de rangée sur chaque plat-bord.
     + '<circle cx="-6.2" cy="-11.4" r="2.2" fill="@pavillon" stroke="@coqueO" stroke-width="0.8"/>'
-    + '<circle cx="6.2" cy="-11.4" r="2.2" fill="@voileO" stroke="@coqueO" stroke-width="0.8"/>'
+    + '<circle cx="6.2" cy="-11.4" r="2.2" fill="@toileDeVoileO" stroke="@coqueO" stroke-width="0.8"/>'
     // Figure de proue de FACE : fauve entre ses deux ailes déployées.
     + '<path d="M-2.2 -19.6 Q-7.2 -22.4 -9.2 -26.6 Q-4.4 -24.6 -2.4 -21 Z M2.2 -19.6 Q7.2 -22.4 9.2 -26.6 Q4.4 -24.6 2.4 -21 Z" fill="@coque" stroke="@coqueO" stroke-width="0.8"/>'
     + '<path d="M0 -22.4 Q-2.4 -21.4 -2.4 -18.6 Q-2.4 -16 0 -15.2 Q2.4 -16 2.4 -18.6 Q2.4 -21.4 0 -22.4 Z" fill="@coque" stroke="@coqueO" stroke-width="1"/>'

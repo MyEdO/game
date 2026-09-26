@@ -2298,8 +2298,8 @@ export interface RaceAppearanceData {
   label: string;
   gabarit: string;
   gabaritOverride?: Record<string, number>;
-  palette?: Record<string, string>;
-  paletteF?: Record<string, string>;
+  palette?: import('./palette.types').PaletteDEspece;
+  paletteF?: import('./palette.types').PaletteDEspece;
   head?: string;
   legs?: string;
   armG?: string;

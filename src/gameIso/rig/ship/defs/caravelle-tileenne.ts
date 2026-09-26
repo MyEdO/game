@@ -42,12 +42,12 @@ function front(): string {
   return '<g>'
     // Grand mât (le plus haut) : voile carrée face au vent, ventre vers le spectateur.
     + spar(0, -14, 0, -92, 2.2)
-    + '<path d="M-16 -84 Q0 -87 16 -84 L14.5 -46 Q0 -42 -14.5 -46 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-16 -84 Q0 -87 16 -84 L14.5 -46 Q0 -42 -14.5 -46 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + spar(-18, -84.5, 18, -84.5, 1.6)
-    + '<path d="M0 -85 L0 -44" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M0 -85 L0 -44" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     + hune(0, -89)
     // Misaine devant, plus basse et plus étroite.
-    + '<path d="M-12 -64 Q0 -66.5 12 -64 L11 -38 Q0 -34.5 -11 -38 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-12 -64 Q0 -66.5 12 -64 L11 -38 Q0 -34.5 -11 -38 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + spar(-13.5, -64.5, 13.5, -64.5, 1.4)
     + stay(0, -92, -10, -17) + stay(0, -92, 10, -17)
     + pennant(0, -92, 10)
@@ -68,14 +68,14 @@ function back(): string {
   return '<g>'
     // Grand mât vu de poupe : dos de la toile (courbure fuyante).
     + spar(0, -20, 0, -92, 2.2)
-    + '<path d="M-15 -84 Q0 -82.5 15 -84 L13.5 -47 Q0 -49.5 -13.5 -47 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-15 -84 Q0 -82.5 15 -84 L13.5 -47 Q0 -49.5 -13.5 -47 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + spar(-17, -84.5, 17, -84.5, 1.6)
     + hune(0, -89)
     + pennant(0, -92, 10)
     // Artimon LATIN au premier plan : antenne en travers, fuseau de toile vu de chant.
     + spar(-4, -24, -4, -66, 1.8)
     + spar(-12, -40, 8, -70, 1.5)
-    + '<path d="M8 -70 L-12 -40 L-5 -38 Q3 -55 8 -70 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
+    + '<path d="M8 -70 L-12 -40 L-5 -38 Q3 -55 8 -70 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
     + pennant(-4, -66, 8)
     // TABLEAU ARRIÈRE plat (trapèze), bordé horizontal, couronnement en lumière.
     + '<path d="M-10.5 -21.5 L10.5 -21.5 L8 -2 Q0 0.8 -8 -2 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'

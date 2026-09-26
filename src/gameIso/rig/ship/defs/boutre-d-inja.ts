@@ -53,8 +53,8 @@ function front(): string {
     + spar(0, -11, 0, -70, 2.4)
     + spar(-4, -70, 4, -79, 1.8)
     // Latine bordée : le ventre déborde d'UN côté (bâbord du spectateur).
-    + '<path d="M3 -78 Q26 -52 12 -12 L2 -12 Q1 -45 3 -78 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M6 -66 Q16 -46 9.5 -16" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M3 -78 Q26 -52 12 -12 L2 -12 Q1 -45 3 -78 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M6 -66 Q16 -46 9.5 -16" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     + stay(0, -70, -7, -9) + stay(0, -70, 7, -9)
     + pennant(3, -79, 7)
     + '</g>';
@@ -68,7 +68,7 @@ function back(): string {
     + '<path d="M-8.5 -5 L-10.5 -20 L10.5 -20 L8.5 -5 Q0 -1.5 -8.5 -5 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
     // Moulures sculptées + deux fenêtres de dunette.
     + '<path d="M-9.8 -16.2 L9.8 -16.2 M-9.2 -11.5 L9.2 -11.5" stroke="@coqueO" stroke-width="0.8" opacity="0.55"/>'
-    + '<path d="M-5 -13.8 l2.6 0 M2.4 -13.8 l2.6 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-5 -13.8 l2.6 0 M2.4 -13.8 l2.6 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     // Lisse de couronnement balustrée (chandeliers), comme au profil.
     + '<path d="M-9 -20 l0 -2.4 M-4.5 -20 l0 -2.4 M0 -20 l0 -2.4 M4.5 -20 l0 -2.4 M9 -20 l0 -2.4" stroke="@coqueO" stroke-width="1"/>'
     + '<path d="M-10 -22.4 L10 -22.4" stroke="@coque" stroke-width="1.5" stroke-linecap="round"/>'
@@ -76,8 +76,8 @@ function back(): string {
     + spar(0, -20, 0, -64, 2.2)
     + spar(4, -64, -3, -73, 1.8)
     // Latine vue de poupe : le ventre déborde de l'AUTRE côté.
-    + '<path d="M-2 -72 Q-24 -48 -11 -22 L-1 -22 Q-3 -47 -2 -72 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-5 -62 Q-15 -46 -9 -25" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-2 -72 Q-24 -48 -11 -22 L-1 -22 Q-3 -47 -2 -72 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-5 -62 Q-15 -46 -9 -25" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     + stay(0, -64, -9, -21) + stay(0, -64, 9, -21)
     + pennant(-2, -73, 7)
     + '</g>';

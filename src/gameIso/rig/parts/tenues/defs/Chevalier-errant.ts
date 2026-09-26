@@ -15,7 +15,6 @@ export const tenue: TenueDef = {
     plume: '#a54c30', plumeO: '#6d2e1c', plumeH: '#c87b55',
     laurier: '#5d7c3a', laurierO: '#3b5323', laurierH: '#83a55e',
     echarpe: '#b26c34', echarpeO: '#77421d', echarpeH: '#d4945e',
-    or: '#c9a23c', orO: '#8a6a1e', 
     cuir: '#4a3826', cuirO: '#2b1f12', 
   },
   set: {

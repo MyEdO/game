@@ -1024,5 +1024,50 @@
     "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
+    "id": "clesDePalette",
+    "type": "primitives.manifest",
+    "label": "CLES/communes/vocabulaire",
+    "fichier": "src/gameIso/rig/clesDePalette.ts",
+    "concept": "table UNIQUE des clés de palette du rig, trois parties : recoloriables (une par Slot, défaut + libellé), communes (défaut ou clé suivie), vocabulaire (sans défaut, ce que la clé peint ; résolue seulement là où une couche la déclare)",
+    "perimetre": "toute clé `@clé` peinte ou déclarée dans le rig ; une matière neuve = une ligne de vocabulaire",
+    "verrou": "types PaletteDeclaree/PaletteDeCouchePortee (clé hors table refusée), clesDePalette.test.ts, palette.test.ts"
+  },
+  {
+    "id": "paletteDeclaree",
+    "type": "primitives.manifest",
+    "label": "PaletteDeclaree/PaletteDeCouchePortee",
+    "fichier": "src/gameIso/rig/palette.ts",
+    "concept": "type d'une palette déclarée : record partiel des gammes de la table (base, O, H) ; la couche PORTÉE (tenue, arme, armure) type `?: never` les gammes de sorte porteur, suiveuses comprises. Limite : refuse un littéral et un objet typé, pas un Record<string, string> non littéral",
+    "perimetre": "toute palette de def du rig : créatures, compose*, nuées, navires, artkits, espèces (PaletteDeclaree) ; tenues, armes, armures (PaletteDeCouchePortee)",
+    "verrou": "compilation ; morsures @ts-expect-error de clesDePalette.test.ts"
+  },
+  {
+    "id": "paletteDEspeceSchema",
+    "type": "primitives.manifest",
+    "label": "paletteDEspeceSchema",
+    "fichier": "src/data/schemas/grammaire/valeurs.ts",
+    "concept": "schéma d'une palette d'espèce persistée : clés dans les gammes de PORTEUR (GAMMES_PORTEUR, palette.types.ts), valeurs #rrggbb ; structure seule",
+    "perimetre": "raceAppearance.palette/paletteF (Compendium, dev-validate, CI des données)",
+    "verrou": "surcharge-palette.test.ts"
+  },
+  {
+    "id": "declarationsInertes",
+    "type": "primitives.manifest",
+    "label": "declarationsInertes",
+    "fichier": "src/gameIso/rig/palette.ts",
+    "concept": "déclarations INERTES d'une couche : clés dont le retrait laisse buildTokenMap identique sous chaque entrée que le rig applique à la couche et chaque surcharge sonde, retirées jusqu'au point fixe (doublon de la couche défaut, rôle orphelin)",
+    "perimetre": "porte de la donnée de palette, mesure d'un retrait",
+    "verrou": "palettes-declarees.test.ts (A4), palette.test.ts"
+  },
+  {
+    "id": "coucheDEspece",
+    "type": "primitives.manifest",
+    "label": "coucheDEspece/TETES_A_PEAU",
+    "fichier": "src/gameIso/rig/parts/career.ts",
+    "concept": "couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent",
+    "perimetre": "composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche)",
+    "verrou": "composeRig-peau-tete.test.ts, palettes-declarees.test.ts"
   }
 ]

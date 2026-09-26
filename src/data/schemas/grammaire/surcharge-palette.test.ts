@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import type { z } from 'zod';
 import raceAppearanceJson from '../../raceAppearance.json';
 import { gameOpSchema } from './mecanique';
-import { entityAppearanceSchema } from './valeurs';
+import { entityAppearanceSchema, paletteDEspeceSchema } from './valeurs';
 import { giveTrappingSchema } from '../defs-scenes/effets';
 import { schema as raceAppearanceSchema } from '../defs/raceAppearance';
 
@@ -33,5 +33,28 @@ describe('surcharge de palette persistée : clés dans SLOTS, valeurs #rrggbb (#
   it('op `giveTrapping` : son payload ne porte pas de `skin`', () => {
     expect(gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'ration' }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'ration', skin: BASE }).success).toBe(false);
+  });
+});
+
+describe('palette d’espèce persistée : clés dans les gammes de PORTEUR, valeurs #rrggbb (#1903 B2)', () => {
+  const espece = (palette: Record<string, string>) => [{ ...raceAppearanceJson[0], palette }];
+
+  it('une palette de gammes porteur #rrggbb passe, rôles compris', () => {
+    expect(paletteDEspeceSchema.safeParse({ peau: '#a08070', peauO: '#6e5040', cheveuxH: '#3a2c1e', yeux: '#2a2018' }).success).toBe(true);
+    expect(raceAppearanceSchema.safeParse(espece({ peau: '#a08070', peauO: '#6e5040' })).success).toBe(true);
+  });
+
+  it('une clé hors des gammes porteur est refusée', () => {
+    expect(paletteDEspeceSchema.safeParse({ peau: '#a08070', cuir: '#5a3f24' }).success).toBe(false);
+    expect(raceAppearanceSchema.safeParse(espece({ peau: '#a08070', cuir: '#5a3f24' })).success).toBe(false);
+  });
+
+  it('une couleur hors format est refusée', () => {
+    expect(paletteDEspeceSchema.safeParse({ peau: '#A08070' }).success).toBe(false);
+    expect(raceAppearanceSchema.safeParse(espece({ peau: 'beige' })).success).toBe(false);
+  });
+
+  it('`raceAppearance.json` passe tel quel', () => {
+    expect(raceAppearanceSchema.safeParse(raceAppearanceJson).success).toBe(true);
   });
 });

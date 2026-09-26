@@ -39,7 +39,7 @@ function profile(): string {
     // Château ARRIÈRE : rambarde du demi-pont, pont de la dunette, rang de fenêtres.
     + '<path d="M-8 -27.4 l0 -2 M-13 -27.9 l0 -2 M-18 -28.4 l0 -2" stroke="@coqueO" stroke-width="1.1"/>'
     + '<path d="M-5 -26.5 L-22 -28.5" stroke="@coqueO" stroke-width="0.8" opacity="0.5"/>'
-    + '<path d="M-27 -33.5 l3 0 m4 0 l3 0" stroke="@voileH" stroke-width="1.5"/>'
+    + '<path d="M-27 -33.5 l3 0 m4 0 l3 0" stroke="@toileDeVoileH" stroke-width="1.5"/>'
     + '<path d="M-26 -37.8 l0 -2 M-31 -38.2 l0 -2 M-36 -38.6 l0 -2" stroke="@coqueO" stroke-width="1.1"/>'
     + flag(-38, -42, 7, 4.5)
     + '</g>';
@@ -53,12 +53,12 @@ function front(): string {
     // Grand mât (le plus haut, derrière) + grande voile gonflée VERS le spectateur.
     + spar(0, -30, 0, -100, 2.6) + hune(0, -96) + pennant(0, -100, 10)
     + spar(-21, -88, 21, -88, 1.8)
-    + '<path d="M-19 -87 Q-21 -66 -19 -46 Q0 -40 19 -46 Q21 -66 19 -87 Q0 -83 -19 -87 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-6.5 -85 Q-7 -66 -6.5 -47 M6.5 -85 Q7 -66 6.5 -47" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-19 -87 Q-21 -66 -19 -46 Q0 -40 19 -46 Q21 -66 19 -87 Q0 -83 -19 -87 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-6.5 -85 Q-7 -66 -6.5 -47 M6.5 -85 Q7 -66 6.5 -47" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     // Misaine devant, plus basse.
     + spar(0, -33, 0, -78, 2.2) + pennant(0, -78, 7)
     + spar(-13, -70, 13, -70, 1.6)
-    + '<path d="M-12 -69 Q-13.5 -57 -12 -45 Q0 -41 12 -45 Q13.5 -57 12 -69 Q0 -66 -12 -69 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-12 -69 Q-13.5 -57 -12 -45 Q0 -41 12 -45 Q13.5 -57 12 -69 Q0 -66 -12 -69 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     // Haubans vers les porte-haubans.
     + stay(0, -100, -11, -24) + stay(0, -100, 11, -24)
     // Coque vue de proue : muraille ÉVASÉE, étrave centrale, préceintes en chevrons emboîtés.
@@ -83,12 +83,12 @@ function back(): string {
     // Grand mât + grande voile vue de dos (le ventre fuit le spectateur).
     + spar(0, -28, 0, -100, 2.6) + hune(0, -96) + pennant(0, -100, 10)
     + spar(-21, -88, 21, -88, 1.8)
-    + '<path d="M-19 -87 Q-20 -66 -18 -48 Q0 -44 18 -48 Q20 -66 19 -87 Q0 -84 -19 -87 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-6.5 -85 Q-7 -66 -6.5 -49 M6.5 -85 Q7 -66 6.5 -49" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-19 -87 Q-20 -66 -18 -48 Q0 -44 18 -48 Q20 -66 19 -87 Q0 -84 -19 -87 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-6.5 -85 Q-7 -66 -6.5 -49 M6.5 -85 Q7 -66 6.5 -49" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     // Artimon au plus près : antenne latine en diagonale + voile triangulaire.
     + spar(0, -32, 0, -74, 2.2) + pennant(0, -74, 7)
     + spar(-8, -72, 10, -40, 1.8)
-    + '<path d="M-8 -70 L9 -42 L-9 -44 Q-11 -58 -8 -70 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-8 -70 L9 -42 L-9 -44 Q-11 -58 -8 -70 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + stay(0, -100, -11, -22) + stay(0, -100, 11, -22)
     // Coque vue de poupe + SAFRAN d'étambot dans l'axe (ferrures horizontales).
     + '<path d="M-12 -22 Q-10.5 -7 0 1.5 Q10.5 -7 12 -22 Q0 -26.5 -12 -22 Z" fill="@coque" stroke="@coqueO" stroke-width="1.5"/>'
@@ -98,7 +98,7 @@ function back(): string {
     // Château arrière à FRUIT (rétréci vers le haut), fenêtres de dunette, créneaux, pavillon.
     + '<path d="M-11.5 -22.5 Q0 -27 11.5 -22.5 L9.5 -42 L-9.5 -42 Z" fill="@coque" stroke="@coqueO" stroke-width="1.2"/>'
     + '<path d="M-10.4 -31 L10.4 -31" stroke="@coqueO" stroke-width="0.8" opacity="0.5"/>'
-    + '<path d="M-6.5 -35.5 l3.2 0 m3.4 0 l3.2 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-6.5 -35.5 l3.2 0 m3.4 0 l3.2 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     + '<path d="M-7 -42 l0 -2.2 M-2.3 -42 l0 -2.2 M2.3 -42 l0 -2.2 M7 -42 l0 -2.2" stroke="@coqueO" stroke-width="1.1"/>'
     + flag(3, -44, 7, 4.5)
     + '</g>';

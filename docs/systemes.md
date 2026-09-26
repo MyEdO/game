@@ -156,6 +156,11 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `ouvrirBase/lireDansBase/ecrireDansBase` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -215,4 +220,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: daf57b24d7d0f7b33224b3f8cd99f4ce49a19491 (1838 fichiers, 2 dossiers) corps: 413929a7c05e53a96a6ce05a9f77cbe74bf9e5f4 -->
+<!-- sources-empreinte: c204fd4fada3e310087f74970da153e04200da84 (1838 fichiers, 2 dossiers) corps: 5670c6fc12509e04a3f753f563c44b0abec6741e -->

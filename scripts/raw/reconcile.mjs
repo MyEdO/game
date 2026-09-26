@@ -160,7 +160,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
     const folioStats = { byBook: new Map(), noAtlas: 0, noPage: 0 }
     for (const f of SRC) {
       const rel = f.replace(/\\/g, '/')
-      if (!rel.endsWith('.json') || /\.(test|spec)\./.test(rel)) continue
+      if (!rel.endsWith('.json')) continue
       for (const c of folioCitationsFromJson(rel, readFileSync(f, 'utf8'), { ...abbrMap, stats: folioStats })) {
         if (bookOf(c.book)) enSet(codeFolioCh, c.book, chKey(c.ch))
       }

@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
-import { SLOTS } from '../../palette.types';
+import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs } from './ref';
 import { fauteDEspece, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
@@ -526,6 +526,11 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
  *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
  *  d'effet de scène. */
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
+
+/** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans
+ *  `GAMMES_PORTEUR` (base, ombre, lumière des clés `PORTEUR`), valeurs `couleurHexSchema` (#1903 B2).
+ *  Structure seule : une déclaration sans effet de rendu est jugée par la porte du rig. */
+export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), couleurHexSchema);
 
 /** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
  *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de

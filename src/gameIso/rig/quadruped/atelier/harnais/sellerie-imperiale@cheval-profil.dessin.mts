@@ -28,7 +28,7 @@
  * se lit en TROIS taches — olive sur la croupe, vert sur le dos, rouge sur le flanc — plus une
  * seule tache d'or par pièce (médaillons, liserés, mors, étrier). Aucune nappe à bord visible.
  *
- * JETONS : la sellerie a ses cuirs PROPRES (`@sellerieCuir`), jamais `@cuir` — ce dernier est le
+ * JETONS : la sellerie a ses cuirs PROPRES (`@harnaisCuir`), jamais `@cuir` — ce dernier est le
  * jeton du SABOT chez le cheval, et un recoloriage de robe ne doit pas traîner le harnais avec lui.
  * `@drap` (caparaçon), `@sangle` (selle et panneaux olive) et `@accent` (or) lui sont déjà exclusifs.
  *
@@ -79,7 +79,7 @@ const TRONC = [
     'C37.4 74.4 34.8 74.6 32.4 74.6 C24.2 74.6 16 72.6 10.9 70 Z', '@sangleO', 0.5),
   // bande de cuir + médaillons
   F('M11 61 C17.6 63.6 25.6 65.4 33.4 65.4 C35.6 65.4 37.8 65.2 39.9 64.9 L39.85 68.4 ' +
-    'C37.6 68.7 35.4 68.9 33.2 68.9 C25 68.9 16.6 67 10.95 64.4 Z', '@sellerieCuir'),
+    'C37.6 68.7 35.4 68.9 33.2 68.9 C25 68.9 16.6 67 10.95 64.4 Z', '@harnaisCuir'),
   medaillon(15.6, 64, 2.6) + medaillon(25, 66.4, 2.6) + medaillon(34.4, 67, 2.6),
   // ── CAPARAÇON rouge liseré d'or : la grande tache du flanc. Son bord bas est FRANC (un feston
   //    y devient du grésil à 40 px), son liseré doré ne court que sur ce bord et le bord arrière.
@@ -94,12 +94,12 @@ const TRONC = [
   //    reculée sous le MILIEU du quartier (x≈63) et la sangle avancée à son bord avant (x≈71) :
   //    superposées, la sangle sombre coupait l'anneau d'or de l'étrier en deux (vu 2 de l'épure).
   FS('M60.6 49.6 C66.6 49.6 72 48.6 76.6 47 L77.4 62.6 C71.6 65.4 65 66 61.4 64.6 Z', '@sangleO', '#2a2a14', 0.5),
-  F('M62.4 63.6 L65 63.4 L65.8 80 L63.2 80.2 Z', '@sellerieCuir'),
+  F('M62.4 63.6 L65 63.4 L65.8 80 L63.2 80.2 Z', '@harnaisCuir'),
   FS('M61.4 79.8 C60.4 84.8 62.4 88.8 64.6 88.8 C67 88.8 68.6 84.8 67.6 79.8 L65.6 79.9 ' +
     'C66.4 83.8 65.6 86 64.6 86 C63.6 86 62.8 83.8 63.4 79.9 Z', '@accent', '@accentO', 0.5),
   // sangle de ventre : elle sort du caparaçon et passe sous le barillet, en ARRIÈRE de l'avant-bras
   // proche — dessinée sous lui (x ≥ 74), elle disparaissait entièrement au rendu.
-  F('M70.4 63 L74 62.4 L75.8 85.6 L72.2 86.4 Z', '@sellerieCuir'),
+  F('M70.4 63 L74 62.4 L75.8 85.6 L72.2 86.4 Z', '@harnaisCuir'),
   // ── SELLE matelassée VERTE : troussequin arrière + pommeau avant, capitonnage, liseré doré.
   FS('M47.6 49.6 C45.6 44 47 39 51 38 C54.4 37.4 55.6 40.6 58.6 41.6 ' +
     'C62 42.6 65.6 41.6 68 38.6 C70 36 73.4 36.4 74.6 40 ' +
@@ -122,12 +122,12 @@ const TRONC = [
 // Portée par l'os que le harnais chevauche : la bride suit la tête quand elle tourne.
 // ═════════════════════════════════════════════════════════════════════════════════════════════
 const TETE = [
-  S('M104.6 37 C105.6 44 107 52 109.6 60', '@sellerieCuir', 1.8),
-  S('M103.4 38.6 C106 36.6 109.6 36.6 112.2 38.8', '@sellerieCuir', 1.6),
+  S('M104.6 37 C105.6 44 107 52 109.6 60', '@harnaisCuir', 1.8),
+  S('M103.4 38.6 C106 36.6 109.6 36.6 112.2 38.8', '@harnaisCuir', 1.6),
   medaillon(107.8, 37, 1.6),
-  S('M107.4 57.6 C110.4 55.6 113.6 55 116.4 55.8', '@sellerieCuir', 1.6),
+  S('M107.4 57.6 C110.4 55.6 113.6 55 116.4 55.8', '@harnaisCuir', 1.6),
   FS(disque(111.2, 62.2, 2.4) + disque(111.2, 62.2, 1.2), '@accent', '@accentO', 0.4),
-  S('M109.4 62.6 C104.6 60.4 100.4 56.6 97.6 52', '@sellerieCuir', 1.3, 0.9),
+  S('M109.4 62.6 C104.6 60.4 100.4 56.6 97.6 52', '@harnaisCuir', 1.3, 0.9),
 ].join('');
 
 export const DESSIN: GroupeDessin[] = [
