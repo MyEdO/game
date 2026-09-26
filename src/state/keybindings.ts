@@ -18,6 +18,7 @@
 import type { GameState } from './store';
 import { useGame, activeCombatant } from './store';
 import { controlsActive } from './netOwnership';
+import { reponsesDuNoeud, conversationRepond, conversationAuDessus } from './dialogue';
 import { modalHolds } from './modalArbiter';
 import { modalBlocksMapHover } from './mapHover';
 import { hotbar } from './hotbarBridge';
@@ -33,7 +34,7 @@ import { t, type MsgKey } from '../i18n';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
  *  Purement présentationnel (le `when` de chaque binding reste l'unique arbitre d'exécution). */
-export type KeyBindingSection = 'pov' | 'camera' | 'combat' | 'curseur' | 'hotbar' | 'exploration' | 'systeme' | 'editeur';
+export type KeyBindingSection = 'pov' | 'camera' | 'combat' | 'curseur' | 'hotbar' | 'exploration' | 'dialogue' | 'systeme' | 'editeur';
 const KEY_SECTION_KEY: Record<KeyBindingSection, MsgKey> = {
   pov: 'key.section.pov',
   camera: 'key.section.camera',
@@ -41,6 +42,7 @@ const KEY_SECTION_KEY: Record<KeyBindingSection, MsgKey> = {
   curseur: 'key.section.curseur',
   hotbar: 'key.section.hotbar',
   exploration: 'key.section.exploration',
+  dialogue: 'key.section.dialogue',
   systeme: 'key.section.systeme',
   editeur: 'key.section.editeur',
 };
@@ -134,6 +136,12 @@ export interface KeyBinding {
    *  tabindex (flèches d'une liste, d'un menu, d'onglets). Le partage est tranché par le hook
    *  (`ui/useGameKeyboard.ts`), une seule fois pour tout le registre. */
   notWhenControlFocused?: boolean;
+  /** Le raccourci APPARTIENT à la couche DIALOGUE. Une conversation ouverte est une couche
+   *  BLOQUANTE (`ui/useDismissLayer`) : pendant qu'elle est à l'écran, SEULS les raccourcis qui la
+   *  déclarent répondent — les autres se taisent, même si leur `when` est vrai (la grille de
+   *  capacités en plein combat, la fin de tour, la caméra, l'exploration). La loi est tranchée par
+   *  `bindingApplies` ci-dessous, porte COMMUNE au clavier et à la manette. */
+  coucheDialogue?: boolean;
   /** RELÂCHEMENT de la touche. Un raccourci qui en porte un est un geste MAINTENU : il agit à
    *  l'enfoncement, dure tant que la touche est tenue, et se termine ici. La répétition automatique du
    *  clavier ne le rejoue pas (`useGameKeyboard`) — la durée est mesurée par le geste, pas par l'OS. */
@@ -377,12 +385,33 @@ export const KEYBINDINGS: KeyBinding[] = [
     },
     run: (g) => runAction('undo-move', g),
   },
+  // ── RÉPONSES d'un DIALOGUE (1-9) : la touche du RANG choisit la réponse NUMÉROTÉE à l'écran.
+  //    Le rang est celui de la liste VISIBLE (`reponsesDuNoeud`, source unique partagée avec la
+  //    fenêtre) : une réponse masquée par son `when` ne consomme pas de numéro, et une réponse
+  //    FERMÉE (siège qui ne décide pas, bourse trop courte) est inerte à la touche comme au clic —
+  //    c'est le MÊME `enabled`. Déclarées AVANT `hotbar-N` (mêmes codes physiques) : un dialogue
+  //    ouvert EN COMBAT donne les chiffres à la conversation, pas à la grille de capacités.
+  //    `coucheDialogue` les rend audibles pendant la conversation, où tout le reste se tait.
+  //    `conversationRepond` (siège + `surfaceTientLaMain`) est le prédicat du VERBE : la touche ne
+  //    s'offre pas quand `chooseDialogue` refuserait — sous la fenêtre de jet, le marché ou l'écran
+  //    plein qu'une réponse vient d'ouvrir.
+  ...Array.from({ length: 9 }, (_, i): KeyBinding => ({
+    id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: { n: i + 1 }, section: 'dialogue',
+    ...(i < TOUCHES_IMPRIMEES ? { sharedBy: [`hotbar-${i + 1}`] } : {}),
+    coucheDialogue: true,
+    when: conversationRepond,
+    run: (g) => {
+      const r = reponsesDuNoeud(g()).find((x) => x.rang === i + 1);
+      if (r?.enabled) g().chooseDialogue(r.index); // `index` = position dans la DONNÉE, jamais le rang
+    },
+  })),
   // Cases de la GRILLE de capacités : 1-8 = case au RANG n de la grille (adresse, pas rang d'action
   // — spec HUD zone 8, `docs/plans/2026-08-16-spec-hud-combat.md`), via le pont `hotbar` publié par la
   // `CombatConsole`. La touche d'un rang vide ou fermé ne déclenche rien, et ne glisse pas au voisin.
   // Inactif hors de son tour / pendant une modale.
   ...Array.from({ length: TOUCHES_IMPRIMEES }, (_, i): KeyBinding => ({
     id: `hotbar-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.hotbarSlot', labelParams: { n: i + 1 }, section: 'hotbar',
+    sharedBy: [`dialogue-choice-${i + 1}`],
     when: (s) => inBattle(s) && controlsActive(s) && noModal(s),
     run: () => { const sl = hotbar.capacites[i]; if (sl?.run && !sl.disabled) sl.run(); },
   })),
@@ -502,11 +531,30 @@ export function effectiveMods(b: KeyBinding, overrides: Record<string, string>):
   return overrides[b.id] ? parseCombo(overrides[b.id]).mods : (b.mods ?? []);
 }
 
+/**
+ * CE RACCOURCI RÉPOND-IL, dans cet état ? Porte UNIQUE des DEUX dispatchers (clavier
+ * `ui/useGameKeyboard`, manette `ui/useGamepad` via `runBindingById`) — une loi énoncée au registre
+ * qu'une seule des deux portes appliquerait ne serait pas une loi.
+ *
+ * Deux étages, dans cet ordre : la COUCHE (une conversation à l'écran est BLOQUANTE — seuls les
+ * raccourcis `coucheDialogue` répondent, même si leur `when` est vrai — et ceux-ci se taisent quand
+ * une autre surface est au-dessus de la conversation sur l'écran de CE siège, `conversationAuDessus`),
+ * puis le CONTEXTE (`when`).
+ * `notWhenControlFocused` n'est PAS de cette classe et reste à la porte clavier : il ne dépend pas de
+ * l'ÉTAT mais du FOCUS DOM, que la manette ne subit pas (elle déplace le focus elle-même et active
+ * le contrôle focalisé par un clic, `padButton`).
+ */
+export function bindingApplies(b: KeyBinding, s: GameState): boolean {
+  if (s.dialogue && b.coucheDialogue !== true) return false;
+  if (b.coucheDialogue && !conversationAuDessus()) return false;
+  return b.when(s);
+}
+
 /** Exécute un raccourci par son `id` (s'il s'applique au contexte courant) — table d'intentions PARTAGÉE
- *  par le clavier ET la manette : un seul endroit porte la garde `when` + l'action `run`. */
+ *  par le clavier ET la manette : un seul endroit porte les couches, la garde `when` et l'action `run`. */
 export function runBindingById(id: string, get: () => GameState): void {
   const b = KEYBINDINGS.find((k) => k.id === id);
-  if (b && b.when(get())) b.run(get);
+  if (b && bindingApplies(b, get())) b.run(get);
 }
 
 /** RELÂCHE un raccourci par son `id` — pendant du précédent pour les gestes MAINTENUS (`runUp`), que

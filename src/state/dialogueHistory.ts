@@ -11,8 +11,11 @@ export interface DialogueTurn {
   at: number;
   /** id de la scène où le tour a eu lieu (contexte de regroupement pour la relecture). */
   sceneId?: string;
-  /** id du Dialogue (regroupe les tours d'une même conversation à la relecture). */
+  /** id du Dialogue dont ce tour est issu (ce qu'on a ouvert), jamais le regroupement. */
   dialogueId: string;
+  /** SESSION de conversation (`EtatDialogue.session`) — CE qui regroupe les tours à la relecture :
+   *  deux visites au même PNJ sont deux conversations, même `dialogueId` et même scène. */
+  session: number;
 }
 
 /** Cap de volumétrie MAISON (#718) : l'historique est une archive BORNÉE (arbitrage consigné —

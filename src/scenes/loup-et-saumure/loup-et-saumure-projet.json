@@ -716,7 +716,7 @@
          "next": "kr-fret"
         },
         {
-         "label": "L’observer discrètement (Intuition)",
+         "label": "L’observer discrètement",
          "flow": {
           "kind": "test",
           "test": {
@@ -2165,7 +2165,7 @@
        "desc": "Au matin de l'appareillage, le chat du bord est malade et un albatros mort est cloué au beaupré. Kramer était « à terre toute la nuit ».",
        "choices": [
         {
-         "label": "L’interroger sur sa nuit (Intuition)",
+         "label": "L’interroger sur sa nuit",
          "flow": {
           "kind": "test",
           "test": {
@@ -2255,7 +2255,7 @@
        "desc": "« Calfeutrons la coque avant de reprendre la mer, capitaine — la traversée l'a mise à mal. »",
        "choices": [
         {
-         "label": "Superviser la réparation (Test étendu de Métier (Charpentier), 5 DR)",
+         "label": "Superviser la réparation",
          "flow": {
           "kind": "seq",
           "steps": [

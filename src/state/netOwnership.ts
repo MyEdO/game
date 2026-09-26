@@ -190,6 +190,34 @@ export function ownsLocally(state: GameState, combatantId: string | undefined): 
 }
 
 /**
+ * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
+ * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
+ * `chooseDialogue`/`closeDialogue`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
+ * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
+ * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
+ * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
+ *
+ * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
+ * fenêtre (`ui/ownership`, qui le ré-expose en hook) et les raccourcis `dialogue-choice-N`
+ * (`state/keybindings`) — `src/state` ne peut pas lire `src/ui`.
+ *
+ * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
+ * une dépendance déclarée — si la route du dialogue divergeait, l'affordance suivrait le sentinel, pas
+ * la route. `ui/ownership.test.tsx` verrouille cette égalité sur les 3 intents du jeton, siège par siège.
+ */
+export function ownsGroupDecision(s: GameState): boolean {
+  return ownsLocally(s, WORLD_STEP_OWNER);
+}
+
+/**
+ * Le siège qui tient la décision de groupe (0 = l'hôte) — pour NOMMER celui qu'on attend dans
+ * l'affordance de spectateur ; le verdict, lui, se demande à `ownsGroupDecision`.
+ */
+export function groupDecisionSeat(s: GameState): number {
+  return s.net.gmSeat ?? 0;
+}
+
+/**
  * Le JET de ce combattant doit-il être SURFACÉ (fenêtre influençable) plutôt que roulé en silence ?
  * INVARIANT : un jet se surface dès qu'un siège humain QUELCONQUE possède son porteur — le pilote de
  * l'ADVERSAIRE n'entre pas dans la condition ; un porteur surfacé n'est JAMAIS roulé en silence.
@@ -606,7 +634,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ...(['chooseDialogue', 'closeDialogue', 'interactEntity'] as const).map(
       (a) => [a, {
         rule: (s: GameState, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox, `interactEntity` useStagePointer ; `closeDialogue` : aucun)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer ; `closeDialogue` : aucun)',
       }] as readonly [string, Route],
     ),
   ],

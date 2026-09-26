@@ -20,6 +20,7 @@ import { pnjAuProfil } from '../state/sceneNpc';
 import { tavernGameValue } from '../state/tavernFlow';
 import { activeSequence } from '../state/sequenceCore';
 import { ActiveModal } from './ActiveModal';
+import { ouvrirDialogue } from '../state/dialogue';
 
 const PNJ = 'habitue-bras-de-fer';
 const g = useGame.getState;
@@ -35,8 +36,9 @@ beforeEach(() => {
   useGame.setState({
     party: pregenParty(PREGEN.soldat, PREGEN.chasseur),
     scene: scenario.scene,
-    dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: PNJ },
-  } as never);
+    screen: 'campaign',
+    dialogue: ouvrirDialogue(g(), dlg, PNJ),
+  });
 });
 afterEach(demonterRacines);
 afterAll(() => { resetRule('tavern-games'); });

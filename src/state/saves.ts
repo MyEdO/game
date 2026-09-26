@@ -149,7 +149,13 @@ import type { Scene } from './scene';
 // hors combat ; `resolveTest` aiguille sa branche sur ce champ (`reprendreTestSubi`). Une save de 53
 // rouvre un `pendingTest` sans `subi`, dont la branche `target`/`caster` part au marcheur de SCÈNE. La
 // save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 54;
+// 54 → 55 (#1869) : la CONVERSATION porte sa `session` (`EtatDialogue.session`, requis) — dans
+// `GameState.dialogue`, dans chaque `DialogueTurn` de `dialogueHistory`, et dans les transitions
+// SAUVÉES (`pendingTest.dialogueNext`, clôture `dialogueSuivant` de `pendingCascade`). Une save de 54
+// rouvre un dialogue en cours et des transitions SANS session, et un historique sans regroupement :
+// les tours d'avant se recolleraient à la conversation suivante, et le prochain id (dérivé du max
+// archivé) repartirait de 1. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 55;
 
 export interface SaveMeta {
   version: number;

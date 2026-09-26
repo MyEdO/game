@@ -107,7 +107,7 @@ describe('Échap — pile de couches LIFO', () => {
   });
 
   it('COUCHE BLOQUANTE (`onDismiss: null`) : Échap est consommé, rien ne bouge', () => {
-    const Bloquante = () => { useDismissLayer('bloquante', null); return null; };
+    const Bloquante = () => { useDismissLayer('bloquante', 'modale', null); return null; };
     act(() => root.render(<Bloquante />));
     echap();
     expect(dismissStackKinds(), 'la couche bloquante reste en place').toEqual(['bloquante']);
@@ -117,8 +117,8 @@ describe('Échap — pile de couches LIFO', () => {
   it('LA COUCHE RESTE (`onDismiss` rend `false`) : aucune cascade vers la couche du dessous', () => {
     const dessous = vi.fn();
     const Deux = () => {
-      useDismissLayer('dessous', dessous);
-      useDismissLayer('dessus', () => false);
+      useDismissLayer('dessous', 'modale', dessous);
+      useDismissLayer('dessus', 'modale', () => false);
       return null;
     };
     act(() => root.render(<Deux />));
