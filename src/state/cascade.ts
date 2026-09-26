@@ -29,7 +29,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './netOwnership';
 import { hoteOrphelin, PENDING_BY_JET } from './stateFields';
-import { toRecapLines } from './recapLine';
+import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -76,6 +76,14 @@ export function chainStep(get: Get, open: () => void): void {
  * boucle `for … break` qu'elle remplace : sans elle, les périls suivants rejoueraient leurs dés
  * (au retour du combat pour le pilote interactif, immédiatement pour les deux autres), là où la
  * boucle d'origine sortait sans les tirer.
+ *
+ * `dejaDites` : l'applier DÉCLARE avoir déjà écrit ses `consequences` au journal, par la voie unique
+ * (`journaliser`), et le goulot ne les ré-écrit pas — elles restent AFFICHÉES sur l'étape (`outcome`).
+ * Il compense la dette #1881 (les écritures NUES de `battle.log` que des appliers font encore) ; il
+ * EXIGE des lignes à désigner (`assertDejaDitesPorteSesLignes`).
+ * La classe : un applier qui déclenche LUI-MÊME une continuation écrivante (une reprise) doit dire ce
+ * que son dé a DÉCIDÉ avant ce que la continuation en FAIT ; le goulot, qui journalise après l'applier,
+ * arriverait derrière. Sépare « affiché sur l'étape » de « journalisé », sans second canal de texte.
  */
 export type CascadeApplier = (
   get: Get,
@@ -83,7 +91,7 @@ export type CascadeApplier = (
   step: CascadeStep,
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
-) => { consequences?: Consequence[]; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
+) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
 
 /** Une entrée de registre : la conséquence appliquée (`apply`) seule. L'affichage de l'issue de
  *  modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒ `''`, la
@@ -415,7 +423,7 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
     ligne: t(sauve ? 'cf.wardSaved' : 'cf.wardFailed', {
       name: nom,
       roll: de.total,
-      trait: formatWardSave(seuil.traitId, seuil.indice),
+      trait: formatWardSave(seuil.source, seuil.indice),
       src: seuil.dome ? t('cf.wardFromDome') : '',
     }),
   };
@@ -1122,6 +1130,21 @@ function assertBandeDeclarePossession(steps: readonly CascadeStep[]): void {
 }
 
 /**
+ * INVARIANT DE `dejaDites` (#1508) : le drapeau dit « ces lignes-là sont déjà au journal » — il DOIT
+ * donc désigner des lignes. Sans conclusion à désigner, il ne dit plus rien : il COUPE le journal du
+ * goulot pour une étape qui n'a rien écrit, et la conclusion disparaît des deux surfaces à la fois.
+ * MÊME POLITIQUE que `assertBandeDeclarePossession` : DEV throw, PROD journalise et poursuit.
+ */
+function assertDejaDitesPorteSesLignes(step: CascadeStep, lines: readonly RecapLine[]): void {
+  if (lines.length) return;
+  const msg = `[cascade] étape « ${step.id} » (${step.kind}) : « dejaDites » sans conclusion à désigner — `
+    + 'le drapeau COUPE le journal du goulot, il ne remplace pas une conclusion absente '
+    + '(applier qui a déjà écrit ses lignes : il les rend en `consequences`).';
+  console.error(msg);
+  if (import.meta.env?.DEV) throw new Error(msg);
+}
+
+/**
  * INVARIANT D'IDENTITÉ D'ÉTAPE (#1298, #1852) : dans UNE séquence, deux étapes ne portent jamais le
  * même `id`. L'id est l'ADRESSE de l'étape — `cascadeChoose`, les grappes de dés
  * (`combatEffects.groupeDe`), les insertions de conséquence et la recette la visent par lui. Deux
@@ -1284,7 +1307,8 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
     lines = out?.consequences ? resultLines(out.consequences) : [];
-    journaliser(get, set, lines.map((l) => l.text), 'info', { actorId: step.actorId });
+    if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
+    else journaliser(get, set, lines.map((l) => l.text), 'info', { actorId: step.actorId });
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.

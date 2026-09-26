@@ -37,7 +37,7 @@ import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze } from '../pendings';
 import { battleRng } from '../battleRng';
 import { runPureFlowLines, runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
-  differerLaSuite, jouerFlowEntier, OPS_DIFFEREES } from '../combatEffects';
+  differerLaSuite, jouerFlowEntier, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel, type BuiltCascadeStep } from '../rollSeam';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -127,7 +127,7 @@ export function setFocusInterruptHook(fn: FocusInterruptHook): void { focusInter
  *  BRISÉE sauf Incassable (LDB 62 l.280). Le DR du défenseur vient du Test résolu (`defSL` ci-dessous = celui
  *  du jet). Inversion de dépendance (cette brique reste sans import de combatFlow → pas de cycle). Absent
  *  (hors store) ⇒ no-op (l'op reste inerte, comme dans `applyOps`). */
-type BladeTrapHook = (get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number) => void;
+type BladeTrapHook = (get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number) => Applique;
 let bladeTrapHook: BladeTrapHook | undefined;
 export function setBladeTrapHook(fn: BladeTrapHook): void { bladeTrapHook = fn; }
 
@@ -484,7 +484,14 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
             // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
             // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
             // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
-            if (bladeTrapHook && ctx.bladeTrap) for (const op of node.effect.ops) if (op.op === 'breakBlade') bladeTrapHook(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0);
+            // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
+            // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
+            if (bladeTrapHook && ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
+              && bladeTrapHook(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
+              const reste = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
+              differerLaSuite(ctx.set, { kind: 'seq', steps: [reste, ...stack.splice(0)] }, 'combat', label);
+              return;
+            }
             // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
             // (untilTime/label bakés — consommable) + programmation des ops IMPURES `delayed`.
             const lines = applyLeafOps(ctx.get, ctx.set, unit, node.effect, oc);

@@ -3,12 +3,17 @@
  * combat ÉCHOUÉ dont le d100 est un double (miroir du Critique = double réussi). Déclenche le
  * Tableau des Oups !, ou un Incident de Tir (arme à Poudre noire + jet pair → explosion, l.56-57).
  */
-import { d100, RNG, defaultRNG } from './dice';
+import { d100, RNG, defaultRNG, type DiceSpec } from './dice';
 import { findTableEntry } from './tables';
 import { isDoubleRoll } from './tests';
-import { Weapon } from './types';
+import { Combatant, Weapon } from './types';
 import { oupsTable, oupsMisfire, OupsKind } from '../data/oups';
-import { isFirearmQuality } from './qualities/dispatch';
+import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
+import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
+import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from './artilleryMisfire';
+import type { DemandeDe } from './ops';
+import type { SourceDeSauvegarde } from './traits/dispatch';
+import { t } from '../i18n';
 
 export interface OupsResolved {
   roll: number;
@@ -41,4 +46,84 @@ export function rollOups(weapon: Weapon | undefined, rng: RNG = defaultRNG): Oup
   }
   const entry = findTableEntry(oupsTable(), roll);
   return { roll, kind: entry.kind, label: entry.label };
+}
+
+/** LA LECTURE que la porte fera du dé demandé par la grappe (#1508 T3b-4) : un SEUIL « 1d10 ≥ Indice »
+ *  (la Sauvegarde Solide, `LDB 60 l.30`) ou une TABLE (les Incidents de Tir par Salve, `AA 10 l.270`).
+ *  Le moteur DIT la lecture ; la porte sait seule ouvrir l'étape qui la porte. */
+export type LectureDeCasse =
+  | { kind: 'seuil'; indice: number; source: SourceDeSauvegarde }
+  | { kind: 'table'; tableId: string };
+
+/** UN dé de la grappe d'une casse d'arme — `DemandeDe` (forme du canal op → porte) + sa LECTURE. */
+export type DemandeDeCasse = DemandeDe & { lecture: LectureDeCasse };
+
+/** La qualité qui OFFRE la sauvegarde contre la cassure instantanée (`LDB 60 l.30`) — id STABLE. */
+const SOLIDE: SourceDeSauvegarde = { kind: 'qualite', id: 'solide' };
+
+const D10_SOLIDE: DiceSpec = { n: 1, sides: 10 };
+
+/** Le SEUIL de la Sauvegarde Solide de l'arme TENUE, ou `null` quand il n'y a pas de sauvegarde à
+ *  jouer : arme non Solide, ou Incassable (`LDB 62 l.262` — ni dégât ni destruction, donc aucun dé).
+ *  L'`ItemInstance` SOURCE fait foi pour Incassable, comme à l'usure (`combatFlow.wearActiveWeapon`). */
+function seuilSolide(c: Combatant, weapon: Weapon): number | null {
+  const it = weapon.uid ? (c.items ?? []).find((i) => i.uid === weapon.uid) : undefined;
+  if (isUnbreakable(it ?? weapon)) return null;
+  const thr = solideSaveThreshold(weapon);
+  // Un seuil imperdable ne DEMANDE pas de dé : un dé qui ne décide rien ne s'ouvre pas (`LDB 60 l.30`).
+  return thr != null && sauvegardeImperdable(thr) ? null : thr;
+}
+
+/** L'arme est-elle DÉJÀ CONDAMNÉE par un dé tombé de CETTE grappe ? `LDB 60 l.30` n'accorde qu'« un
+ *  Test de Sauvegarde … contre une cassure instantanée » : une arme que la sauvegarde précédente a
+ *  laissé briser n'en redemande pas une pour la cassure que la suite de la grappe répète. UNE règle
+ *  pour toute la grappe, jamais un `if` par paire de dés. */
+const condamnee = (des: Map<string, number>, indice: number): boolean =>
+  [...des].some(([cle, de]) => cle.endsWith('-solide') && de < indice);
+
+/** Le porteur MISE UN OBJET : l'étape le NOMME, sans quoi un héros à deux armes ne sait pas laquelle
+ *  son dé décide (le journal ne le dit qu'après coup). Le libellé est de l'AFFICHAGE ; la clé (`cle`)
+ *  reste l'identité de la demande. */
+const deSolide = (cle: string, indice: number, arme: string): DemandeDeCasse =>
+  ({ cle, spec: D10_SOLIDE, libelle: t('step.sauvegardeSolide', { weapon: arme }), lecture: { kind: 'seuil', indice, source: SOLIDE } });
+
+/**
+ * LES DÉS QUE CETTE MALADRESSE DEMANDE À LA PORTE (#1508 T3b-4) — PURE et ORDONNÉE, elle ne rend que
+ * les demandes CONNAISSABLES avec les dés déjà tombés (`des`), patron de `ops.demandesDeDes` : le dé
+ * suivant peut dépendre de ce que le précédent a posé (la Sauvegarde Solide de la pièce d'artillerie
+ * n'existe que si la ligne de Salve tirée la DÉTRUIT).
+ *
+ *  - `bacle-solide`   : Bâclé casse l'arme sur toute Maladresse (`LDB 60 l.50`) → sauvegarde Solide ;
+ *  - `misfire-solide` : l'Incident de tir détruit l'arme (`LDB 14 l.30`) → sauvegarde Solide ;
+ *  - `salve-table`    : une arme à Atout *Salve* tire EN PLUS sur sa table (`AA 10 l.264`) ;
+ *  - `salve-solide`   : la ligne tirée détruit la pièce → sauvegarde Solide.
+ *
+ * L'applier prend la PREMIÈRE non servie (`.filter((d) => !des.has(d.cle))[0]`) ; `des` complet → `[]`,
+ * et la Maladresse s'applique.
+ */
+export function desDOups(c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number>): DemandeDeCasse[] {
+  const out: DemandeDeCasse[] = [];
+  const seuil = seuilSolide(c, weapon);
+  const indice = seuil != null && !condamnee(des, seuil) ? seuil : null;
+  if (hasQuality(weapon, 'bacle') && indice != null) out.push(deSolide('bacle-solide', indice, weapon.label));
+  if (r.kind !== 'misfire') return out;
+  if (indice != null) out.push(deSolide('misfire-solide', indice, weapon.label));
+  if (!hasQuality(weapon, 'salve')) return out;
+  out.push({ cle: 'salve-table', spec: D10_SALVE_MISFIRE, libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
+  const tire = des.get('salve-table');
+  // L'Indice de Salve restant ne change ni la ligne ni sa destruction : il ne pèse que sur le NOMBRE de
+  // touches, lu à l'application (`applyOups`).
+  if (tire != null && indice != null && lireSalveMisfire(tire, 0).destroyed) out.push(deSolide('salve-solide', indice, weapon.label));
+  return out;
+}
+
+/**
+ * LE DÉ de la Sauvegarde Solide d'une lame que le Piège-lame BRISE (`LDB 62 l.280` : « à moins qu'elle
+ * ne possède l'Atout Incassable » ; `LDB 60 l.30` nomme justement la Lame piégée comme la source de
+ * cassure instantanée contre laquelle Solide sauve). MÊME lecture, MÊME forme que la grappe d'une
+ * Maladresse : une seule écriture de la sauvegarde d'un objet. `[]` = aucun dé à jouer.
+ */
+export function desDeBrisDeLame(porteur: Combatant, weapon: Weapon): DemandeDeCasse[] {
+  const indice = seuilSolide(porteur, weapon);
+  return indice == null ? [] : [deSolide('bladetrap-solide', indice, weapon.label)];
 }

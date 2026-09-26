@@ -7,6 +7,7 @@ import { makeRNG } from '../engine/dice';
 import { startCascade, registerCascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze } from './cascade';
 import { freeCons, monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { spyApplier } from './cascadeTestKit';
+import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
 
@@ -248,6 +249,30 @@ describe('Cascade séquentielle influençable', () => {
     expect(applied).toHaveLength(1);
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(useGame.getState().journal.some((l) => l.startsWith('Progression → DR'))).toBe(true);
+  });
+
+  /**
+   * `dejaDites` (#1508) — l'applier qui déclenche LUI-MÊME une continuation écrivante dit sa conclusion
+   * AVANT elle, par `journaliser`, et DÉCLARE au goulot de ne pas la ré-écrire. Le drapeau DÉSIGNE donc
+   * des lignes : sans elles il ne protège rien, il coupe seulement le journal (compense #1881).
+   */
+  it('`dejaDites` : les conséquences rendues sont AFFICHÉES sur l’étape, et écrites au journal UNE fois', () => {
+    const h = hero();
+    registerCascadeApplier('deja', (get, set) => {
+      journaliser(get, set, ['la conclusion, dite par l’applier'], 'info', { actorId: h.id });
+      return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
+    });
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: 'deja', actorId: h.id }] });
+    useGame.getState().cascadeNext();
+    expect(useGame.getState().journal.filter((l) => l === 'la conclusion, dite par l’applier'),
+      'le goulot ne la ré-écrit pas').toHaveLength(1);
+  });
+
+  it('`dejaDites` SANS conséquence à désigner : refus nommé (le drapeau ne remplace pas une conclusion)', () => {
+    const h = hero();
+    registerCascadeApplier('dejaVide', () => ({ dejaDites: true }));
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: 'dejaVide', actorId: h.id }] });
+    expect(() => useGame.getState().cascadeNext()).toThrow(/dejaDites.*sans conclusion à désigner/s);
   });
 
   it('buildConsequenceSteps : groupes non vides → étapes d’affichage (outcome pré-posé), vides ignorés', () => {

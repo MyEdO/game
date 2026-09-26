@@ -40,7 +40,7 @@ import type { PairedSense, GameOp } from '../engine/ops';
 import type {
   CascadeStep, CascadeStepMeta, BatchParticipant, CascadeAggregate, CascadeSecondRead, PendingCascade, CascadeTableDecl, CascadeTableResult, RevealEntry,
   PendingDeviation, PendingBladeTrap, PendingCritSeverity, PendingMiscastStep, PendingMutationStep,
-  StepEvaluation, SeuilDeSauvegarde, PendingWardSave,
+  StepEvaluation, SeuilDeSauvegarde, PendingWardSave, PendingCasseDArme,
 } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { PlayerText } from '../i18n/playerText';
@@ -1518,6 +1518,9 @@ export interface TableSpec {
   /** CHARGE des appliers de MUTATION (`corruptionFlow`) : le porteur, l'alignement de la source, la
    *  nature déjà tirée et la table en cours — ce que l'applier LIT pour chaîner le tirage suivant. */
   mutation?: PendingMutationStep;
+  /** CHARGE d'une étape de la grappe de dés d'une CASSE D'ARME (#1508 T3b-4) : la table des Incidents
+   *  par Salve (`AA 10 l.270-277`) est une étape de cette grappe — même charge que ses dés en seuil. */
+  casse?: PendingCasseDArme;
   meta?: CascadeStepMeta;
 }
 
@@ -1558,6 +1561,7 @@ export function tableStep(spec: TableSpec): BuiltCascadeStep | undefined {
     ...(spec.critSeverity ? { critSeverity: spec.critSeverity } : {}),
     ...(spec.miscast ? { miscast: spec.miscast } : {}),
     ...(spec.mutation ? { mutation: spec.mutation } : {}),
+    ...(spec.casse ? { casse: spec.casse } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   } as BuiltCascadeStep;
 }
@@ -1724,6 +1728,9 @@ export interface DieStepSpec {
   /** CHARGE de l'étape de sauvegarde (#1508) : les seuils restants + la suite du coup suspendu, que
    *  l'applier ré-entre (patron de la charge `fumble` d'une étape hôte — la donnée vit SUR l'étape). */
   wardSave?: PendingWardSave;
+  /** CHARGE d'une étape de la grappe de dés d'une CASSE D'ARME (#1508 T3b-4) : les dés déjà tombés +
+   *  le point d'application qui les consommera (`applyOups`/`applyBladeTrap`). */
+  casse?: PendingCasseDArme;
   stake?: StakeRef;
   meta?: CascadeStepMeta;
 }
@@ -1759,6 +1766,7 @@ export function dieStep(spec: DieStepSpec): BuiltCascadeStep | undefined {
       ...(spec.seuil ? { seuil: spec.seuil } : {}),
     },
     ...(spec.wardSave ? { wardSave: spec.wardSave } : {}),
+    ...(spec.casse ? { casse: spec.casse } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   } as BuiltCascadeStep;
