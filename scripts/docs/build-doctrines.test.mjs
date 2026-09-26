@@ -1,7 +1,7 @@
-// Le bloc « Doctrines utilisateur » de CLAUDE.md est DÉRIVÉ des fiches `.claude/memory/user-*.md`
+// `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md`
 // (scripts/docs/build-doctrines.mjs). Ce test verrouille les quatre propriétés qui font qu'il ne
-// peut pas mentir : le VERBATIM et sa DATE viennent de la fiche, l'injection est IDEMPOTENTE, une
-// édition à la main du bloc est vue par `--check`, et une fiche NEUVE non reflétée l'est aussi.
+// peut pas mentir : le VERBATIM et sa DATE viennent de la fiche, le rendu est DÉTERMINISTE, une
+// édition à la main du doc est vue par `--check`, et une fiche NEUVE non reflétée l'est aussi.
 // Lancé par `node --test`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import {
-  citationDe, dateDe, decouperFiche, fichesSuivies, ligneDe, construireBloc, injecter, tronquer, verbatimsDe,
+  citationDe, dateDe, decouperFiche, fichesSuivies, ligneDe, construireDoc, tronquer, verbatimsDe,
 } from './build-doctrines.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -170,43 +170,31 @@ test('ligne — nom, date, verbatim et CHEMIN de la fiche', () => {
   )
 })
 
-test('bloc — une ligne par fiche, triées par chemin, entre marqueurs', () => {
-  const bloc = construireBloc(TROIS, { dateAjout })
-  const lignes = bloc.split('\n').filter((l) => l.startsWith('- **'))
+test('doc — titre, avertissement de dérivé, puis une ligne par fiche triée par chemin', () => {
+  const doc = construireDoc(TROIS, { dateAjout })
+  const lignes = doc.split('\n').filter((l) => l.startsWith('- **'))
   assert.equal(lignes.length, 3)
   assert.deepEqual(
     lignes.map((l) => /\*\*([^*]+)\*\*/.exec(l)[1]),
     ['user-doctrine-datee', 'user-doctrine-entete', 'user-doctrine-sans-date'],
   )
-  assert.match(bloc, /^<!-- DOCTRINES-UTILISATEUR:debut /)
-  assert.ok(bloc.endsWith('<!-- DOCTRINES-UTILISATEUR:fin -->'))
-  assert.match(bloc, /## Doctrines utilisateur \(GÉNÉRÉ/)
+  assert.match(doc, /^# Doctrines utilisateur — généré\n/)
+  assert.match(doc, /Fichier GÉNÉRÉ par `node scripts\/docs\/build-doctrines\.mjs`/)
+  assert.ok(doc.endsWith('\n'))
 })
 
-test("bloc — l ordre des fiches EN ENTRÉE ne décide de rien (cross-OS)", () => {
-  assert.equal(construireBloc([...TROIS].reverse(), { dateAjout }), construireBloc(TROIS, { dateAjout }))
+test("doc — l ordre des fiches EN ENTRÉE ne décide de rien (cross-OS)", () => {
+  assert.equal(construireDoc([...TROIS].reverse(), { dateAjout }), construireDoc(TROIS, { dateAjout }))
 })
 
-const CANON = ['# Guide', '', 'Prose manuscrite.', '', "## Sources VF — l'essentiel", '', 'Suite.', ''].join('\n')
-
-test('injection — le bloc se pose AVANT l ancre, la prose manuscrite est intacte', () => {
-  const bloc = construireBloc(TROIS, { dateAjout })
-  const out = injecter(CANON, bloc)
-  assert.ok(out.indexOf(bloc) < out.indexOf("## Sources VF — l'essentiel"))
-  assert.ok(out.startsWith('# Guide\n\nProse manuscrite.\n'))
-  assert.ok(out.endsWith('\nSuite.\n'))
+test('doc — DÉTERMINISTE à l octet (deuxième passe = premier résultat)', () => {
+  assert.equal(construireDoc(TROIS, { dateAjout }), construireDoc(TROIS, { dateAjout }))
 })
 
-test('injection — IDEMPOTENTE à l octet (deuxième passe = premier résultat)', () => {
-  const bloc = construireBloc(TROIS, { dateAjout })
-  const une = injecter(CANON, bloc)
-  assert.equal(injecter(une, bloc), une)
-})
-
-test('--check — un bloc ÉDITÉ À LA MAIN diverge du bloc régénéré', () => {
-  const bloc = construireBloc(TROIS, { dateAjout })
-  const edite = injecter(CANON, bloc).replace('endroit a modifier', 'endroit à modifier (reformulé)')
-  assert.notEqual(injecter(edite, bloc), edite)
+test('--check — un doc ÉDITÉ À LA MAIN diverge du doc régénéré', () => {
+  const doc = construireDoc(TROIS, { dateAjout })
+  const edite = doc.replace('endroit a modifier', 'endroit à modifier (reformulé)')
+  assert.notEqual(edite, doc)
 })
 
 // ── Au RÉEL : les fiches du dépôt, pas des fixtures ────────────────────────────────────────
@@ -235,14 +223,14 @@ test('AU RÉEL — la doctrine des JETS rend sa règle, pas un grief', () => {
 })
 
 test('--check — une fiche user-* NEUVE non reflétée diverge (fraîcheur)', () => {
-  const pose = injecter(CANON, construireBloc(TROIS, { dateAjout }))
+  const pose = construireDoc(TROIS, { dateAjout })
   const neuve = {
     fichier: '.claude/memory/user-doctrine-neuve.md',
     texte: fiche('user-doctrine-neuve', {
       corps: 'Verbatim (2026-09-02) : « Une doctrine neuve s écrit en fiche, jamais dans le canon »',
     }),
   }
-  const avecNeuve = injecter(pose, construireBloc([...TROIS, neuve], { dateAjout }))
+  const avecNeuve = construireDoc([...TROIS, neuve], { dateAjout })
   assert.notEqual(avecNeuve, pose)
   assert.match(avecNeuve, /user-doctrine-neuve/)
 })

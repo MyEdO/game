@@ -3,7 +3,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * Garde structurelle #1318 P8/D10 — les MARQUEURS STRUCTURELS (classes racines distinctives des
- * primitives de la table « Primitives partagées » du CLAUDE.md) sont la PROPRIÉTÉ du fichier de leur
+ * primitives de `docs/primitives.md`) sont la PROPRIÉTÉ du fichier de leur
  * primitive. Même patron qu'`aria-primitive-guard` (rôle → fichier propriétaire), appliqué au markup :
  * `gallery-exhaustive` garantit le SPÉCIMEN (la primitive existe et est montée), jamais l'USAGE — rien
  * ne rougissait quand un écran RECOPIAIT le markup au lieu de composer la primitive.
@@ -42,7 +42,7 @@ const stripComments = (src: string) =>
 
 /**
  * Marqueur → fichier(s) PROPRIÉTAIRE(S). Justification par primitive : chaque classe listée est posée
- * par le composant de la table CLAUDE.md et par lui seul ; la recopier ailleurs, c'est refaire à la
+ * par le composant de la table `docs/primitives.md` et par lui seul ; la recopier ailleurs, c'est refaire à la
  * main la structure qu'il rend (en-tête/corps/pied, piste+remplissage, tuile+lueur, rangée+colonnes…).
  */
 const OWNERS: Record<string, string[]> = {

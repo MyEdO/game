@@ -188,7 +188,7 @@ const BARE_BUTTON_EXEMPT_FILES = new Set([
   'MediaSelect.tsx',
   'ViewControls.tsx',
   'PovControls.tsx',
-  // MenuCard.tsx : primitive canon du bouton de MENU (`MenuButton`, table CLAUDE.md) — même famille
+  // MenuCard.tsx : primitive canon du bouton de MENU (`MenuButton`, table `docs/primitives.md`) — même famille
   // que OptionChooser/Tabs, à charge à l'appelant (MainMenu/GameMenu) de la composer, jamais de recoder
   // un `<button className="btn">` de menu à la main.
   'MenuCard.tsx',
@@ -1362,8 +1362,8 @@ describe('HUD — matrice responsive canonique (design 2026-07-31 §12)', () => 
 });
 
 // ── (xvii) `<input type="number">` codé à la main (#1318 V5) — volet JUMEAU du cliquet (x) `<button>`
-//    nu : la primitive canonique du champ nombre borné est `NumberField` (table « Primitives partagées »
-//    du CLAUDE.md — saisie clavier + `QtyStepper` + plage dite). Un `<input type="number">` posé
+//    nu : la primitive canonique du champ nombre borné est `NumberField` (`docs/primitives.md`
+//    — saisie clavier + `QtyStepper` + plage dite). Un `<input type="number">` posé
 //    directement rejoue à la main la borne, les pas et l'affordance. BASELINE PAR FICHIER DÉCROISSANTE :
 //    stock COURANT mesuré par le scan ci-dessous : 26 balises / 2 fichiers, `editor/Inspector.tsx` et
 //    `editor/Palette.tsx` (migration #1318 E1, tranche 3). EXEMPTÉ : `NumberField.tsx`, la primitive elle-même (c'est elle qui a le

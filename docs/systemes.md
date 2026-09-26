@@ -76,7 +76,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `damageHull/healHull/damageVesselHull/healVesselHull` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `cascade/registerCascadeApplier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `rule/policy` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `netOwnership` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `ownsLocally/pilotedByHuman/aiDriven/siegesRequis` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `RefField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `Prose` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `resolveRender/tokenBodyKind` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -84,11 +84,56 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
+| `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
+| `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
+| `rovingKeyDown` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
+| `useLongPress` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `ReadyRow` |  |  |  |  | U |  | U |  | U | U |  |  | U |  |  |  |
+| `PanneauParametre` |  |  |  |  | U |  |  | U | U |  |  | U |  |  |  |  |
+| `LifeBar` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `TradeTable` |  |  |  |  |  |  |  |  |  |  | U |  |  |  |  |  |
+| `ParchmentCard` |  |  |  |  | U |  | U |  | U | U |  |  |  |  |  | U |
+| `ActivityPane` |  |  |  |  |  |  |  |  |  | U |  |  |  |  |  |  |
+| `QtyStepper` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
+| `NumberField` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
+| `FREE_ATTACK_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
+| `opRows` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `suspendActiveCascade/resumeSuspendedCascade` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `CreatorDice` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `CharacterPreview` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `GatedAction` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `RoseAxes` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `MetalStatus` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `WaxSeal/SealedPlaque` |  |  |  |  | U |  | U |  | U | U |  |  |  |  |  | U |
+| `CareerPath` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `FigTile` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `GroupedPickGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `DetailFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `PlaqueRow/PlaqueGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `CreatorStepFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `Band` |  |  |  |  | U |  | U |  | U | U |  |  |  |  | U |  |
+| `HeroSheet` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `DesignGallery` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 ## Primitives jamais adoptées par un système déclaré
 
 - `ItemIcon` (src/ui/ItemIcon.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `gen-registry (_registry.generated)` (scripts/gen-registry.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `useLongPress` (src/ui/useLongPress.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `CreatorDice` (src/ui/creator/CreatorDice.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `CharacterPreview` (src/ui/CharacterPreview.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `RoseAxes` (src/ui/RoseAxes.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `MetalStatus` (src/ui/MetalStatus.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `CareerPath` (src/ui/CareerPath.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `FigTile` (src/ui/FigTile.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `GroupedPickGrid` (src/ui/GroupedPickGrid.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `DetailFrame` (src/ui/DetailFrame.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `PlaqueRow/PlaqueGrid` (src/ui/PlaqueRow.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `CreatorStepFrame` (src/ui/creator/CreatorStepFrame.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `HeroSheet` (src/ui/HeroSheet.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `DesignGallery` (src/ui/gallery/DesignGallery.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 
 ## Modules `src/state`/`src/engine` non rattachés à un système déclaré
 
@@ -115,4 +160,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 311a5fa3c805e70b90bed6137e1472109f42146e (1809 fichiers, 2 dossiers) corps: 3042c872a0606c5a69ad6dab330baa708e6b3f61 -->
+<!-- sources-empreinte: 9426ad9ffd0980f78f02e9442c2b0bf4322cc7f7 (1809 fichiers, 2 dossiers) corps: 9daa2bd4b49ff304d9253bc41447e115ea76e647 -->

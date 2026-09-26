@@ -1,7 +1,7 @@
 # Charte UI — référence vivante
 
 > À lire avant de créer ou retoucher un écran (CSS, densité, responsive). Complète la règle
-> stricte 4 du `CLAUDE.md` (responsive, breakpoints canon) et la table « Primitives partagées ».
+> stricte 4 du `CLAUDE.md` (responsive, breakpoints canon) et `docs/primitives.md`.
 
 ## L'anatomie d'un écran (#371)
 
@@ -19,8 +19,8 @@ ne pas la réinventer par fichier :
 3. **`SpeakerBanner`** si l'écran porte un interlocuteur (aubergiste, marchand) — juste sous la bande
    d'ambiance, avant le contenu.
 4. **Contenu** en primitives composées : `.panel`/`.panel-grid`, `MasterDetail` (liste+détail),
-   tables (`.port-table`…) — jamais une liste/section maison recodée (cf. « Couche atomique » et la
-   table « Primitives partagées » du `CLAUDE.md`).
+   tables (`.port-table`…) — jamais une liste/section maison recodée (cf. « Couche atomique » et
+   `docs/primitives.md`).
 5. **Pied d'action** — `.bar`/`.modal-actions` selon le contexte (barre d'écran vs modale imbriquée).
 
 **Anti-patrons** : un écran nu sur fond noir (zéro `.panel`, zéro ambiance — famille « vide non
@@ -72,7 +72,7 @@ Classes CSS **canoniques** réellement définies dans `src/ui/styles/components.
 (+ `.seg` en `sheet.css`, composé par la primitive React `OptionChooser`). Ne couvre que le
 PARTAGÉ (utilisé par ≥2 domaines) — pas les classes propres à un seul écran (`.voyage-*`,
 `.city-hub-*`, `.party-*`, `.char-card*`…). Pour la couche **React** (composants, pas classes),
-voir la table « Primitives partagées » du `CLAUDE.md` racine — les deux se lisent ensemble : une
+voir `docs/primitives.md` — les deux se lisent ensemble : une
 primitive React pose souvent ces classes pour toi (ex. `RollShell` pose `.modal`/`.modal-actions`).
 
 ### Actions
@@ -190,7 +190,7 @@ son propre cue (Compendium, pickers marchands…) sans reposer le mécanisme de 
 | `.layout-sidebar` | Grille « colonne latérale (270px) + contenu » | Fiche vivante, inspecteurs — s'empile en 1 colonne ≤900px (breakpoint canon). |
 | `.panel-grid` (+ `.span-2`) | Grille de `.panel` en auto-fit (min 340px) | Tableau de bord de plusieurs panels — 1 colonne ≤700px ; `.span-2` pour un panel pleine largeur. |
 | `.bar` | Barre d'écran (en-tête, fond dégradé, filet or) | En-tête d'écran avec titre + actions — s'enroule ≤700px ; ne PAS la détourner pour une simple rangée sans fond/padding de header (charte : « éviter les espaces vides »). |
-| `.screen` | Colonne plein-écran (flex column, hauteur 100%) | Coquille racine d'un écran plein-champ « historique » (hors `ScreenShell`, cf. table CLAUDE.md). |
+| `.screen` | Colonne plein-écran (flex column, hauteur 100%) | Coquille racine d'un écran plein-champ « historique » (hors `ScreenShell`, cf. table `docs/primitives.md`). |
 | `.screen-body` | Corps de `ScreenShell` borné/centré (~960px) | Posée par `ScreenShell` (prop `body='centered'`) — écran de PANNEAUX/LECTURE (marché, dossier, hub) plutôt que canevas plein cadre ; jamais un centrage/bornage manuel recopié par écran. |
 | `.screen-body-wide` | Modificateur de `.screen-body` — plafond relevé (~1400px) au-delà de 1440px | Posée par `ScreenShell` (prop `body='centered-wide'`, politique grand écran) — écran-GRILLE/catalogue (négoce en `TradeTable`/`.panel-grid`) plutôt que lecture ; toujours combinée à `.screen-body`, jamais seule. |
 | `.master-detail` (+ `.master-detail-list`, `.master-detail-detail`) | Gabarit maître-détail (liste gauche + détail centre), LAYOUT pur | Composé par `MasterDetail.tsx` (CLAUDE.md) — s'empile ≤700px (`MASTER_DETAIL_STACK_BREAKPOINT_PX`), jamais une 2ᵉ composition liste+détail recodée. |
@@ -416,7 +416,7 @@ de goût pérenne du design system, **remplace la planche HTML** figée (retrait
 Gabarit `MasterDetail` : liste de primitives (Atomes du canon partagé, primitives « Atelier du
 scribe », portraits/aperçus) → détail = la primitive **vivante**, montée dans ses états, avec des
 DONNÉES RÉELLES de `src/data` (jamais inventées). Toute nouvelle primitive UI se catalogue ici EN
-MÊME TEMPS qu'au catalogue ci-dessus et à la table « Primitives partagées » du `CLAUDE.md`.
+MÊME TEMPS qu'au catalogue ci-dessus et à `src/data/primitives.manifest.json` (`docs/primitives.md`).
 
 ## Zéro texte tutoriel
 

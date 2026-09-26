@@ -4,7 +4,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 /**
  * Garde structurelle #414 — les rôles ARIA COMPOSITES à roving tabindex (`listbox`/`radiogroup`/
  * `tablist`/`menu`/`grid` — pas les rôles simples `button`/`dialog`/`img`) sont la PROPRIÉTÉ d'une
- * primitive UNIQUE (table OWNERS, cf. CLAUDE.md « Primitives partagées »). Le patron est déjà
+ * primitive UNIQUE (table OWNERS, cf. `docs/primitives.md`). Le patron est déjà
  * composable (`rovingKeyDown`, `Tabs`) : poser un de ces rôles hors du fichier propriétaire, c'est
  * recoder la navigation clavier (`onKeyDown`, `aria-selected`, focus) au lieu de composer la
  * primitive. Cliquet PAR FICHIER : BASELINE = stock gelé au moment de la garde, jamais de nouvelle

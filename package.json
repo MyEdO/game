@@ -34,6 +34,8 @@
     "docs:check:brut": "node scripts/docs/check-doc-refs.mjs && node scripts/docs/check-plans-anchors.mjs && node scripts/docs/build-all.mjs --check && node scripts/raw/check-atlas-counts.mjs && node scripts/data/check-progression-schemas.mjs",
     "docs:build": "node scripts/docs/build-all.mjs",
     "docs:empreinte": "node scripts/docs/build-all.mjs --empreinte",
+    "docs:primitives": "node scripts/docs/build-primitives.mjs",
+    "docs:doctrines": "node scripts/docs/build-doctrines.mjs",
     "docs:systemes": "node scripts/docs/build-systemes.mjs",
     "docs:donnees": "node scripts/docs/build-donnees.mjs",
     "docs:sources-vf": "node scripts/docs/build-sources-vf.mjs",

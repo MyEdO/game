@@ -636,7 +636,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Cliquet REMONTÉ 19 → 21 (L4 #1463, vague `plage`, 2026-08-31) : deux graphies reçoivent le
       // statut `cible`, et aucune donnée ne bouge pour ça. (1) `plage | max,min+…` : la cible d'une
       // rangée de table est TRANCHÉE — fourchette PLATE `{min, max}` + `findTableEntry`
-      // (`src/engine/tables.ts`, primitive de la table CLAUDE.md), et la charge utile d'une rangée
+      // (`src/engine/tables.ts`, primitive de la table `docs/primitives.md`), et la charge utile d'une rangée
       // (102 charges distinctes mesurées) est INHÉRENTE : c'est ce que le suffixe `+…` de la
       // projection nomme, pas une divergence. Mesuré 2026-08-31 : 1441 objets à deux bornes, TOUS
       // `min,max` — zéro `from/to`, zéro `de/a`, zéro `low/high` — et ZÉRO `{range:{min,max}}`, la

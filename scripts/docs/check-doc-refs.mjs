@@ -2,7 +2,7 @@
 // doivent jamais mentir. Six vérifications déterministes, exit 1 avec la liste fichier:ligne sinon :
 //   1. CHEMINS  — tout `src/…` / `scripts/…` cité existe sur le disque (fichier, dossier ou glob).
 //   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/.
-//   3. PRIMITIVES — tout symbole de la table « Primitives partagées » (CLAUDE.md) est un EXPORT réel.
+//   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/.
 //   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et `src/ui/styles/*.css`.
 //   5. SENS INVERSE — tout chemin `docs/….md` cité par src/ ou scripts/ existe sur le disque.
 //   6. HOOKS — tout chemin `src/…` / `scripts/…` cité par un hook (git-hooks, hooks) existe.
@@ -93,46 +93,35 @@ for (const file of listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))) {
   }
 }
 
-// 3. TABLE « Primitives partagées » (CLAUDE.md, racine du dépôt — hors docs/) : chaque symbole
-// backtiqué de la colonne « Primitive (source unique) » doit résoudre à un EXPORT réel de src/ —
-// cause-racine des fantômes historiques (ex. `inBattle` cité alors que le fichier n'exportait que
-// `inBattleId`, `ParticipantRow` jamais exporté nulle part). Vérifié contre l'EXPORT global de src/
-// (pas juste la colonne « Fichier » de la ligne : la prose y cite légitimement des primitives
-// AUXILIAIRES/consommatrices qui vivent dans leur PROPRE fichier — `ForceDoorModal`/`CharFrame`/
-// `ResilienceButton`… ; une carte symbole→fichier-de-la-ligne stricte re-déclencherait ces faux positifs).
-const CLAUDE_MD = 'CLAUDE.md'
-if (existsSync(CLAUDE_MD)) {
-  const text = readFileSync(CLAUDE_MD, 'utf8')
-  const lines = text.split('\n')
-  const headerIdx = lines.findIndex((l) => /^\|\s*Besoin\s*\|\s*Primitive/.test(l))
-  if (headerIdx >= 0) {
-    const EXPORTED_SYMS = new Set()
-    for (const f of fichiersSources(SRC_DIR, ['.ts', '.tsx', '.mjs', '.mts'])) {
-      const src = readFileSync(f, 'utf8')
-      for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
-      for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
-      for (const m of src.matchAll(/export\s*\{([^}]*)\}/g))
-        for (const part of m[1].split(','))
-          if (part.trim()) EXPORTED_SYMS.add((part.split(/\s+as\s+/).pop() ?? part).trim())
-    }
-    // Corps du tableau : toute ligne `| … |` qui suit le header/séparateur, jusqu'à la 1re ligne non-tableau.
-    for (let i = headerIdx + 2; i < lines.length; i++) {
-      const row = lines[i]
-      if (!row.startsWith('|')) break
-      // Découpe GFM : un `\|` échappé est du CONTENU (ex. une union TS `number \| null`), pas une
-      // frontière de colonne — un split naïf décale les colonnes et fait lire de la PROSE comme des
-      // symboles de primitive.
-      const cols = row.split(/(?<!\\)\|/).map((c) => c.trim())
-      const primitiveCol = cols[2] ?? ''
-      for (const span of primitiveCol.matchAll(/`([^`\n]+)`/g)) {
-        if (/\.(ts|tsx|mjs|mts)\b/.test(span[1])) continue // mention de FICHIER (ex. `seaVoyageFlow.ts`), pas un symbole
-        for (const c of span[1].matchAll(/\b([A-Za-z_$][\w$]*)\b/g)) {
-          const id = c[1]
-          if (!/[a-z]/.test(id) || !/[A-Z]/.test(id)) continue // camelCase/PascalCase only (cf. check 2)
-          if (!EXPORTED_SYMS.has(id))
-            problems.push({ file: CLAUDE_MD, line: i + 1, kind: 'primitive fantôme (aucun export src/)', tok: `${id}` })
-        }
-      }
+// 3. MANIFESTE DES PRIMITIVES (`src/data/primitives.manifest.json`, la SOURCE dont `docs/primitives.md`
+// dérive) : chaque symbole du champ `label` doit résoudre à un EXPORT réel de src/ — cause-racine des
+// fantômes historiques (ex. `inBattle` cité alors que le fichier n'exportait que `inBattleId`,
+// `ParticipantRow` jamais exporté nulle part). Vérifié contre l'EXPORT global de src/ (pas juste le
+// champ `fichier` de l'entrée : un `label` y nomme légitimement des symboles AUXILIAIRES qui vivent
+// dans leur PROPRE fichier — `CharFrame`, `ResilienceButton`… ; une carte symbole→fichier-de-l'entrée
+// stricte re-déclencherait ces faux positifs).
+const MANIFESTE_PRIMITIVES = 'src/data/primitives.manifest.json'
+if (existsSync(MANIFESTE_PRIMITIVES)) {
+  const brut = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
+  const EXPORTED_SYMS = new Set()
+  for (const f of fichiersSources(SRC_DIR, ['.ts', '.tsx', '.mjs', '.mts'])) {
+    const src = readFileSync(f, 'utf8')
+    for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
+    for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
+    for (const m of src.matchAll(/export\s*\{([^}]*)\}/g))
+      for (const part of m[1].split(','))
+        if (part.trim()) EXPORTED_SYMS.add((part.split(/\s+as\s+/).pop() ?? part).trim())
+  }
+  for (const entree of JSON.parse(brut)) {
+    const label = String(entree.label ?? '')
+    // La ligne du `label` dans le JSON : le rapport rend un `fichier:ligne` ouvrable.
+    const idx = brut.indexOf(`"label": ${JSON.stringify(label)}`)
+    const line = idx < 0 ? 1 : lineAt(brut, idx)
+    for (const c of label.matchAll(/\b([A-Za-z_$][\w$]*)\b/g)) {
+      const id = c[1]
+      if (!/[a-z]/.test(id) || !/[A-Z]/.test(id)) continue // camelCase/PascalCase only (cf. check 2)
+      if (!EXPORTED_SYMS.has(id))
+        problems.push({ file: MANIFESTE_PRIMITIVES, line, kind: 'primitive fantôme (aucun export src/)', tok: `${id}` })
     }
   }
 }

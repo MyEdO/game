@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   estComposantUI, estDeclare, relPath, cheminEntree, maquetteEntree, REGISTRE_DEFAUT, cheminRegistre,
+  MANIFESTE_PRIMITIVES,
 } from './new-src-file-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -59,7 +60,7 @@ test('composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu d
   const r = lance(join(REPO, FANTOME))
   assert.notEqual(r.code, 0, 'la garde doit BLOQUER (statut non nul)')
   assert.match(r.err, /NON DÉCLARÉ/)
-  assert.match(r.err, /Primitives partagées/)
+  assert.match(r.err, /src\/data\/primitives\.manifest\.json/)
   assert.match(r.err, /scripts\/hooks\/ecrans-ui\.json/)
   assert.match(r.err, /maquette validée EN PRÉSENCE/)
   assert.match(r.err, /SKIP_NEW_SRC_GUARD=1/)
@@ -84,12 +85,12 @@ test('un composant qui EXISTE déjà (édition, pas création) ne déclenche rie
   assert.equal(r.err.trim(), '')
 })
 
-test('primitive citée par le CLAUDE.md et écran du stock sont tous deux « déclarés »', () => {
-  const claudeMd = readFileSync(join(REPO, 'CLAUDE.md'), 'utf8')
+test('primitive du MANIFESTE et écran du stock sont tous deux « déclarés »', () => {
+  const manifeste = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
   const registre = JSON.parse(readFileSync(REGISTRE_DEFAUT, 'utf8'))
-  assert.ok(estDeclare('src/ui/NumberField.tsx', claudeMd, registre), 'primitive du CLAUDE.md')
-  assert.ok(estDeclare(cheminEntree(registre.ecrans[0]), claudeMd, registre, true), 'écran du stock, déjà dans l’arbre')
-  assert.ok(!estDeclare(FANTOME, claudeMd, registre))
+  assert.ok(estDeclare('src/ui/NumberField.tsx', manifeste, registre), 'primitive du manifeste')
+  assert.ok(estDeclare(cheminEntree(registre.ecrans[0]), manifeste, registre, true), 'écran du stock, déjà dans l’arbre')
+  assert.ok(!estDeclare(FANTOME, manifeste, registre))
 })
 
 test('une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)', () => {

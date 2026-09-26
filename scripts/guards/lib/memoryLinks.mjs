@@ -111,7 +111,7 @@ const EXTENSIONS_LUES = new Set(['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '
 /**
  * Chemins EXCLUS de la portée 2, chacun avec sa raison. Ce ne sont pas des offenseurs tolérés :
  * aucun n'est une RÉFÉRENCE VIVANTE vers la mémoire.
- *   - `docs/plans/`, `docs/superpowers/` : artefacts DATÉS (politique `docs/` du CLAUDE.md) — leur
+ *   - `docs/plans/`, `docs/superpowers/` : artefacts DATÉS (politique `docs/` de `docs/architecture.md`) — leur
  *     texte fige l'état d'un jour, il ne se recâble pas.
  *   - `docs/decisions/issues.json` : MIROIR du texte des tickets GitHub ; un `[[…]]` y est une
  *     CITATION de ce qu'une issue disait, pas un lien du dépôt — le corriger falsifierait l'archive.

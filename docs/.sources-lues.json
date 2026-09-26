@@ -569,7 +569,9 @@
     "dossiers": []
   },
   "scripts/docs/build-doctrines.mjs": {
-    "cibles": [],
+    "cibles": [
+      "docs/doctrines.md"
+    ],
     "fichiers": [
       ".claude/memory/user-arbitrage-barre-materialisee-et-sans-pages.md",
       ".claude/memory/user-arbitrage-bourse-personnelle-trapping.md",
@@ -6219,6 +6221,19 @@
       "src/data/schemas/defs"
     ]
   },
+  "scripts/docs/build-primitives.mjs": {
+    "cibles": [
+      "docs/primitives.md"
+    ],
+    "fichiers": [
+      "scripts/docs/build-primitives.mjs",
+      "scripts/docs/lib/empreinte-sources.mjs",
+      "scripts/docs/lib/jsdocUnion.mjs",
+      "scripts/guards/lib/lister.mjs",
+      "src/data/primitives.manifest.json"
+    ],
+    "dossiers": []
+  },
   "scripts/docs/build-registre-jets.mjs": {
     "cibles": [
       "docs/registre-jets.md"
@@ -9586,8 +9601,17 @@
       "scripts/docs/build-reprise.mjs",
       "scripts/docs/lib/empreinte-sources.mjs",
       "scripts/docs/lib/jsdocUnion.mjs",
+      "scripts/gates/toutes.mjs",
+      "scripts/git-hooks/pre-push.mjs",
+      "scripts/guards/lib/enteteArbre.mjs",
+      "scripts/guards/lib/gitPorte.mjs",
+      "scripts/guards/lib/justificatif.mjs",
       "scripts/guards/lib/lister.mjs",
-      "scripts/test/partition.mjs"
+      "scripts/guards/lib/npmLockHoisted.mjs",
+      "scripts/guards/lib/purgerPerimes.mjs",
+      "scripts/guards/lib/spawnResilient.mjs",
+      "scripts/test/partition.mjs",
+      "scripts/test/verrou.mjs"
     ],
     "dossiers": [
       ".github/workflows",

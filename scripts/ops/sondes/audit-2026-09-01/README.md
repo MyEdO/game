@@ -69,11 +69,6 @@ compteur d'ARBRE se re-mesure sur le sha courant, la valeur « L0 » date de `2a
 | `readdirSync` dans `scripts/docs` | (grep) | `grep -rn "readdirSync" scripts/docs \| wc -l` | 47 | 47 |
 | Skill `orchestrer-des-agents` : octets / part narrative | `classe.mjs` + `p6-artefacts.mjs` | `node scripts/ops/sondes/audit-2026-09-01/classe.mjs` | 33 413 o / 36 % | 32 074 o / 35,9 % |
 | Vécus du skill sans fiche de mémoire | `p5-artefacts.mjs` | `node scripts/ops/sondes/audit-2026-09-01/p5-artefacts.mjs` | 5 | 5 (lignes `ABSENT`) |
-| Table des primitives : rangées | `p1-artefacts.mjs` | `node scripts/ops/sondes/audit-2026-09-01/p1-artefacts.mjs` | 53 | 53 |
-| Table des primitives : fichiers cités | `prim.mjs` | `node scripts/ops/sondes/audit-2026-09-01/prim.mjs` | 52 | 52 |
-| `primitives.manifest.json` : entrées | `p1-artefacts.mjs` | idem | 28 | 28 |
-| Fichiers cités par la table, absents du manifeste | `prim.mjs` | idem | 32 | 32 |
-| « réflexe avant » dans la table | `p1-artefacts.mjs` | idem | 19 | 20 |
 | Fiches de mémoire INATTEIGNABLES depuis MEMORY.md | `p9-memoire.mjs` | `node scripts/ops/sondes/audit-2026-09-01/p9-memoire.mjs` | 12 | 12 (26 051 o) |
 | Fiches `user-*` non liées | `p1-memoire.mjs` | `node scripts/ops/sondes/audit-2026-09-01/p1-memoire.mjs $D` | 8 | 9 |
 | Épiques ouvertes muettes > 14 j | `brutes/agg.mjs` | `node …/brutes/agg.mjs $D` | 12/22 | 12/22 |
@@ -110,11 +105,10 @@ compteur d'ARBRE se re-mesure sur le sha courant, la valeur « L0 » date de `2a
 | `sonde-bypass.mjs` | contournabilité du garde de labels, sur son évaluateur RÉEL |
 | `probe-label.mjs` | témoin court du même garde (quatre formes d'ouverture) |
 | `sonde-solde.mjs` | contournabilité d'un plafond « ≤ 1 reste routant », sur le validateur RÉEL |
-| `prim.mjs` | table des primitives ⇄ `primitives.manifest.json` |
 | `classe.mjs` | densité narrative du skill `orchestrer-des-agents`, par section |
 | `mesure.mjs` | coût d'un export intégral de l'index git |
 | `wt.mjs` | parc de worktrees : branche, MERGED/UNMERGED, WIP, avance, dossiers orphelins |
-| `p1..p13-artefacts.mjs` | artefacts du dépôt (primitives, mémoire, skill, hooks, agents) — cf. en-tête de chaque fichier |
+| `p*-artefacts.mjs` | artefacts du dépôt (mémoire, skill, hooks, agents) — cf. en-tête de chaque fichier |
 | `p1..p9-memoire.mjs` | corpus `.claude/memory` (inventaire, frontmatter, atteignabilité, récidives) — cf. en-têtes |
 | `j1..j9.mjs`, `ja.mjs` | dossier #1463 (commentaires, descendance, commits, pilotage) — cf. en-têtes |
 | `probe-url-base.mjs` | fuite de `setupFiles` entre worktrees : l'ordre d'essai d'urls de vitest, worktree par worktree |

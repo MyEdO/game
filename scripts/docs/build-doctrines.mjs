@@ -1,24 +1,22 @@
 /**
- * Injecte dans CLAUDE.md le bloc « Doctrines utilisateur » DÉRIVÉ des fiches `.claude/memory/user-*.md`
+ * Écrit `docs/doctrines.md` — les doctrines utilisateur DÉRIVÉES des fiches `.claude/memory/user-*.md`
  * suivies par git : une fiche = une ligne (nom, date, compte de verbatims, extrait, chemin de la fiche).
  *
- * POURQUOI UN GÉNÉRATEUR : une doctrine utilisateur recopiée À LA MAIN dans le canon dérive de sa
- * fiche (paraphrase, date perdue, ligne oubliée) ; le canon ment alors avec l'autorité du canon. La
- * fiche reste la SOURCE, le bloc n'en est que le reflet — une doctrine neuve s'écrit en fiche.
+ * POURQUOI UN GÉNÉRATEUR : une doctrine utilisateur recopiée À LA MAIN dérive de sa fiche
+ * (paraphrase, date perdue, ligne oubliée) ; le doc ment alors avec l'autorité du canon. La fiche
+ * reste la SOURCE, ce doc n'en est que le reflet — une doctrine neuve s'écrit en fiche.
  *
- * CE QUE LE BLOC EST : UN EXTRAIT par fiche, jamais tous ses verbatims (18 des 29 fiches en portent
- * plusieurs ; les rendre tous ferait un bloc que personne ne lit). La ligne DIT combien la fiche en
+ * CE QUE LE DOC EST : UN EXTRAIT par fiche, jamais tous ses verbatims (18 des 29 fiches en portent
+ * plusieurs ; les rendre tous ferait une page que personne ne lit). La ligne DIT combien la fiche en
  * porte, et le chapeau renvoie à la fiche, qui fait foi. L'extrait est un VERBATIM (texte entre « »
  * du corps), jamais un résumé : coupé à 240 caractères sur une FIN DE PHRASE quand la fiche en offre
  * une, sinon sur un mot — jamais sur un mot-outil, qui laisserait la phrase en suspens.
  *
- * Le bloc vit ENTRE MARQUEURS dans un fichier MANUSCRIT : CLAUDE.md n'est donc pas une cible
- * `docs-generes` (patron de `scripts/raw/build-implemente.mjs`, qui injecte un champ dans des fiches
- * mixtes — `targets: []` dans `GENERATORS`). `npm run agents:sync` propage le bloc à AGENTS.md, qui
- * est régénéré plein-fichier depuis CLAUDE.md.
+ * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, famille
+ * `merge=docs-generes`) : `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
  * Mode --check (chaîné dans `npm run docs:check` et au pre-commit dès qu'une fiche `user-*` ou
- * CLAUDE.md est stagé) : régénère en mémoire, compare au fichier committé, exit 1 si divergence.
+ * `docs/doctrines.md` est stagé) : régénère en mémoire, compare au fichier committé, exit 1 si divergence.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
  */
@@ -30,10 +28,12 @@ import { emitOrCheck } from './lib/jsdocUnion.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
 const OUTIL = 'build-doctrines'
-const CIBLE = 'CLAUDE.md'
-const DEBUT = '<!-- DOCTRINES-UTILISATEUR:debut (GÉNÉRÉ par scripts/docs/build-doctrines.mjs — ne pas éditer) -->'
-const FIN = '<!-- DOCTRINES-UTILISATEUR:fin -->'
-const TITRE = '## Doctrines utilisateur (GÉNÉRÉ — une fiche = une doctrine, verbatim daté)'
+const CIBLE = 'docs/doctrines.md'
+const TITRE = '# Doctrines utilisateur — généré'
+const AVERTISSEMENT = [
+  '> ⚠️ Fichier GÉNÉRÉ par `node scripts/docs/build-doctrines.mjs` (`npm run docs:doctrines`) — NE PAS ÉDITER À LA MAIN.',
+  '> Source UNIQUE : les fiches `.claude/memory/user-*.md` suivies par git.',
+].join('\n')
 /** Le chapeau porte SA source : la règle qu'il applique est déjà écrite dans le canon manuscrit. */
 const CHAPEAU =
   'Un EXTRAIT par fiche — la FICHE fait foi : avant tout brief, tout verdict ou tout code sur un ' +
@@ -41,8 +41,6 @@ const CHAPEAU =
   "réflexe et sur toute prose de brief ; un brief qui les contredit ment. Une doctrine neuve s'écrit " +
   'en FICHE `user-*`, jamais ici. Règle appliquée : « Tout arbitrage UTILISATEUR consigné (doc, ' +
   'mémoire, ticket) porte sa CITATION verbatim + date. » (CLAUDE.md § Pour TOUT agent).'
-/** Section AVANT laquelle le bloc s'insère la première fois (ensuite, les marqueurs font foi). */
-const ANCRE = "## Sources VF — l'essentiel"
 const MIN_VERBATIM = 40
 const MAX_VERBATIM = 240
 
@@ -169,27 +167,12 @@ export function ligneDe({ fichier, texte }, dateAjout = () => '') {
   return `- **${nomDe(entete, fichier)}** (${quand}) : « ${tronquer(citation)} » — \`${fichier}\``
 }
 
-/** Le bloc entier, marqueurs compris. `fiches` = `[{ fichier, texte }]`, triées par nom de fichier. */
-export function construireBloc(fiches, { dateAjout = () => '' } = {}) {
+/** Le doc entier. `fiches` = `[{ fichier, texte }]`, rendues triées par chemin (ordre total). */
+export function construireDoc(fiches, { dateAjout = () => '' } = {}) {
   const lignes = [...fiches]
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier))
     .map((f) => ligneDe(f, dateAjout))
-  return [DEBUT, '', TITRE, '', CHAPEAU, '', ...lignes, '', FIN].join('\n')
-}
-
-/**
- * Remplace le bloc de `contenu` par `bloc` ; à défaut de marqueurs, l'insère juste AVANT `ANCRE`.
- * Un fichier sans marqueurs NI ancre est un défaut nommé (le bloc n'a pas de place).
- */
-export function injecter(contenu, bloc) {
-  const texte = String(contenu)
-  const debut = texte.indexOf(DEBUT)
-  const fin = texte.indexOf(FIN)
-  if (debut >= 0 && fin > debut) return texte.slice(0, debut) + bloc + texte.slice(fin + FIN.length)
-  if (debut >= 0 || fin >= 0) abandon(`${CIBLE} — un seul des deux marqueurs de bloc est présent (bloc mutilé)`)
-  const ancre = texte.indexOf(`\n${ANCRE}`)
-  if (ancre < 0) abandon(`${CIBLE} — section « ${ANCRE} » introuvable : le bloc n'a pas d'ancre où s'insérer`)
-  return `${texte.slice(0, ancre + 1) + bloc}\n\n${texte.slice(ancre + 1)}`
+  return [TITRE, '', AVERTISSEMENT, '', CHAPEAU, '', ...lignes, ''].join('\n')
 }
 
 /** Fiches `user-*.md` SUIVIES par git (aucun listing de disque ici : `ls-files` trie). */
@@ -209,20 +192,18 @@ function main() {
   const check = process.argv.includes('--check')
   const cwd = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
   const chemins = fichesSuivies(cwd)
-  if (chemins.length === 0) abandon('aucune fiche `.claude/memory/user-*.md` suivie par git — source vide, bloc refusé')
+  if (chemins.length === 0) abandon('aucune fiche `.claude/memory/user-*.md` suivie par git — source vide, doc refusé')
   const fiches = chemins.map((fichier) => ({ fichier, texte: readFileSync(resolve(cwd, fichier), 'utf8') }))
-  const bloc = construireBloc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) })
-  const chemin = resolve(cwd, CIBLE)
-  const out = injecter(readFileSync(chemin, 'utf8'), bloc)
-  const poids = Buffer.byteLength(bloc, 'utf8')
+  const out = construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) })
+  const poids = Buffer.byteLength(out, 'utf8')
   emitOrCheck({
     out,
-    path: chemin,
+    path: resolve(cwd, CIBLE),
     check,
-    staleMsg: `${OUTIL} — bloc « Doctrines utilisateur » PÉRIMÉ dans ${CIBLE} (fiche ajoutée/éditée, ou bloc édité à la main).`,
-    rerunMsg: `${OUTIL} — relancer \`node scripts/docs/build-doctrines.mjs\` puis \`npm run agents:sync\`, et committer ${CIBLE}.`,
-    okMsg: `${OUTIL} — OK (${chemins.length} doctrines, bloc de ${poids} octets)`,
-    writeMsg: `${OUTIL} — ${CIBLE} écrit (${chemins.length} doctrines, bloc de ${poids} octets)`,
+    staleMsg: `${OUTIL} — ${CIBLE} PÉRIMÉ (fiche ajoutée/éditée, ou doc édité à la main).`,
+    rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` et committer ${CIBLE}.`,
+    okMsg: `${OUTIL} — OK (${chemins.length} doctrines, ${poids} octets)`,
+    writeMsg: `${OUTIL} — ${CIBLE} écrit (${chemins.length} doctrines, ${poids} octets)`,
   })
 }
 

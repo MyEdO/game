@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +27,7 @@ const GARDE = {
     'Fichiers trackés SEULEMENT : un script non commité peut porter un NUL sans rougir (il ne peut pas se propager non plus).',
     '`scripts/**` seulement : `src/**` et les `.json` de données ont leurs propres gardes.',
     'Seul l’octet 0x00 BRUT est mesuré — une séquence d’ÉCHAPPEMENT `\\u0000` en littéral est légitime et invisible ici.',
+    'Un fichier TRACKÉ par l’index mais ABSENT de l’arbre (suppression en vol) n’est pas scanné : il n’a plus d’octets. La garde le SAUTE au lieu de rendre un ENOENT — une panne de lecture n’est pas un verdict.',
   ],
 } as const;
 
@@ -47,9 +48,15 @@ function positionsDeNul(buf: Buffer): number[] {
   return positions;
 }
 
-/** LECTURE : le détecteur pur appliqué aux octets du fichier. */
-function positionsDeNulDuFichier(chemin: string): number[] {
-  return positionsDeNul(readFileSync(join(RACINE, chemin)));
+/**
+ * LECTURE : le détecteur pur appliqué aux octets du fichier. `null` quand le fichier est TRACKÉ par
+ * l'index mais ABSENT de l'arbre de travail (suppression en vol) : il n'a plus d'octets à scanner, et
+ * un `ENOENT` brut ferait rendre à la garde une PANNE là où on attend un verdict.
+ */
+function positionsDeNulDuFichier(chemin: string): number[] | null {
+  const abs = join(RACINE, chemin);
+  if (!existsSync(abs)) return null;
+  return positionsDeNul(readFileSync(abs));
 }
 
 describe('scripts/ — aucun octet NUL brut dans un fichier tracké', () => {
@@ -70,7 +77,7 @@ describe('scripts/ — aucun octet NUL brut dans un fichier tracké', () => {
 
   it('aucun fichier tracké de scripts/ ne porte 0x00', () => {
     const fautifs = fichiersTrackes()
-      .map((f) => ({ f, positions: positionsDeNulDuFichier(f) }))
+      .map((f) => ({ f, positions: positionsDeNulDuFichier(f) ?? [] }))
       .filter((e) => e.positions.length > 0);
 
     const rapport = fautifs

@@ -1,7 +1,7 @@
 # Mémoire — Foundry/Game
 
 > Une ligne = un déclencheur ; un pointeur = une règle. L'état d'un chantier vit sur son ticket.
-> Les doctrines `user-*.md` ne sont PAS listées ici : le bloc GÉNÉRÉ « Doctrines utilisateur » de `CLAUDE.md` (`scripts/docs/build-doctrines.mjs`) les porte, verbatim daté.
+> Les doctrines `user-*.md` ne sont PAS listées ici : `docs/doctrines.md` (GÉNÉRÉ par `scripts/docs/build-doctrines.mjs`) les porte, verbatim daté.
 
 **Machine & outils** — [PowerShell](env-use-powershell-not-bash.md) · [charge](env-charge-machine-un-seul-agent-lourd.md) · [ctx_patch](env-ctx-patch-faux-succes-relire-au-fichier.md) · [EOL](env-eol-mutilees-arbre-local-parseurs-seam.md) · [faux vert](env-faux-vert-pont-rtk-vitest-collecte.md) · [gates](env-garde-memoire-harnais-gates-serie-detachees.md) · [git show](env-git-show-ordre-commit-avant-paths.md) · [Marker](env-marker-extraction-kills-et-timeout-outil.md) · [pipeline](env-workflow-pipeline-rend-des-copies.md)
 

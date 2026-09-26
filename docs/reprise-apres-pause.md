@@ -169,7 +169,6 @@ refaire `npm install`.
 | `PreToolUse` | Agent | `scripts/hooks/agent-dispatch-design-reminder.mjs` | Rappel altitude de design (dispatch d'agent) |
 | `PostToolUse` | Write \| Edit | `scripts/hooks/poison-postcheck.mjs` | Garde anti-poison au stylo (tombstone/excuse/label) |
 | `PostToolUse` | Agent | `scripts/hooks/agent-return-judge-reminder.mjs` | Rappel juge adversarial (retour d'agent) |
-| `SessionStart` | (tous) | `scripts/hooks/inject-project-credo.mjs` | Injection du credo de travail |
 
 **CI GitHub Actions** :
 
@@ -183,4 +182,35 @@ refaire `npm install`.
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou `gh run list --workflow=canari.yml`. La
 porte à chaque push est `.github/workflows/ci.yml` (« CI », push, pull_request).
-<!-- sources-empreinte: a31c6693a7e90837336ccc2a6e7895a190d31e80 (13 fichiers, 9 dossiers) corps: 622c11009348f7ed1779fd69315662a386151a45 -->
+
+## 6. Gates et livraison
+
+**Régime** (porté par `scripts/git-hooks/pre-push.mjs`, arbitrage utilisateur 2026-09-01) :
+« suite complète + tsc avant push, pas de push sur CI rouge ». L'ordre est donc **commit FINAL → `npm run gates` → `git push`** : le hook
+`pre-push` LIT des justificatifs, il ne joue rien, et refuse toute gate de `ci.yml` sans
+justificatif vert et propre pour le CONTENU poussé. Un push de PLUSIEURS commits est jugé par sa
+**TÊTE** — c'est la seule unité que la CI joue.
+
+**Plan de `npm run gates`** (`node scripts/gates/toutes.mjs`) : 22 gates classées, d'abord
+une phase SÉRIE `AVANT_LES_LANES` (`raw:coverage`, `raw:reconcile`, `raw:reanchor`) — les gates qui ÉCRIVENT dans
+l'arbre, jouées seules pour qu'aucun lecteur ne tombe sur un fichier à moitié écrit — puis
+3 lanes parallèles de LECTEURS :
+
+| Lane | Gates |
+|---|---|
+| `suite` | `test` |
+| `types` | `typecheck`, `lint`, `deps:unused`, `server:typecheck`, `test:agents`, `test:ops`, `test:runner`, `test:recette`, `test:hooks` |
+| `docs` | `docs:check`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-folio-continuity`, `test:docs`, `agents:check`, `build` |
+
+Les deux tables vivent dans `scripts/gates/toutes.mjs` : `LANES` pour la répartition ci-dessus,
+`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (22 gates mesurées, dont
+6 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
+qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par `WFRP_TEST_COEURS`
+pendant que les autres lanes tournent. Options : `--liste`, `--serie`, `--tout`. Une gate de `ci.yml`
+sans place dans ce plan fait REFUSER le run, avec son nom.
+
+**`package-lock.json`** : le régénérer TOUJOURS avec npm@10.9.3, recette exacte de
+`scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
+`@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
+`src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
+<!-- sources-empreinte: 5d8d0230d3decc3ba4264bf05bf7e9b62e080746 (22 fichiers, 9 dossiers) corps: 2243a6e6cb904b025f3d7089090c7534931b0312 -->

@@ -43,12 +43,12 @@ trouvaille/l'affirmation soumise, pas à la confirmer.\r
 ## Grille du DIFF (quand on te soumet un diff/rendu d'agent — chaque point se VÉRIFIE, pas se survole)\r
 \r
 **Les RÈGLES elles-mêmes vivent dans le canon — LIS-LES avant de juger, elles priment sur cette\r
-grille** : `.codex/credo.md` (règles de travail), `AGENTS.md` (règles strictes + table des\r
+grille** : `.codex/credo.md` (règles de travail), `AGENTS.md` (règles strictes), `docs/primitives.md` (table des\r
 primitives partagées), `docs/charte-ui.md` (loi UI). La grille ci-dessous n'est que ta procédure\r
 de vérification — si elle diverge du canon, le canon gagne.\r
 \r
 1. **Chaque classe CSS nouvelle est un DÉFAUT jusqu'à justification** : pourquoi pas la primitive\r
-   existante (table « Primitives partagées » du AGENTS.md), pourquoi pas une variante DANS la\r
+   existante (`docs/primitives.md`), pourquoi pas une variante DANS la\r
    primitive (prop → data-attribute), pourquoi pas un token ? Un scope par écran\r
    (`.mon-ecran .primitive { … }`) est présumé fautif — la variante appartient à la primitive.\r
 2. **Chaque composant/module nouveau** : le voisin canonique a-t-il été cherché (grep du concept) ?\r

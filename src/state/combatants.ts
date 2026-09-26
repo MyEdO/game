@@ -1,5 +1,5 @@
 /**
- * RECHERCHE d'un combattant par id — les deux primitives partagées (table CLAUDE.md) : `actorIn`
+ * RECHERCHE d'un combattant par id — les deux primitives partagées (`docs/primitives.md`) : `actorIn`
  * (combat OU groupe) et `inBattleId` (en combat seulement). Pure lecture d'état.
  *
  * Module VOLONTAIREMENT LÉGER (patron `targetingHolder`, #1054) : AUCUN import runtime, le type de
@@ -40,8 +40,9 @@ export function inBattleId(battle: GameState['battle'], id: string | undefined):
 }
 
 /**
- * COQUE par id — un navire vit dans la file de COMBAT quand il se bat (arbitrage utilisateur
- * 2026-07-16 : « Les navires sont des combattants »), et dans le PLAN DE TRAJET pendant un voyage
+ * COQUE par id — un navire vit dans la file de COMBAT quand il se bat (2026-07-16, verbatim
+ * utilisateur : « Les navires sont des combattants oui, c’est déjà le cas non ? », fiche
+ * `.claude/memory/user-arbitrage-navires-combattants.md`), et dans le PLAN DE TRAJET pendant un voyage
  * (`travelPlan.vehicle`, la coque transitoire qui encaisse les incidents). Ces deux hôtes sont les
  * seuls : `actorIn` couvre le premier, le second est hors du groupe. Sert la reconstitution du
  * contexte d'une étape de cascade née d'un Critique de coque (`meta.hullId` → `OpsCtx.hull`).

@@ -113,8 +113,7 @@ d'autre ne porte d'effet mécanique : le vocabulaire complet des ops disponibles
 
 Au Codex, ce champ a un éditeur dédié qui réutilise le `FlowEditor` de l'éditeur de scène ; chaque
 feuille pose sa cible et sa liste de `GameOp` via `GameOpEditor` — la même primitive que
-traits/mutations/talents/consommables. **Ne jamais réinventer un widget de liste d'ops** (table des
-primitives partagées, `CLAUDE.md`).
+traits/mutations/talents/consommables. **Ne jamais réinventer un widget de liste d'ops** (`docs/primitives.md`).
 
 Cas particuliers, mesurés sur la donnée :
 
@@ -183,4 +182,4 @@ effet de cible.
 
 `npm run typecheck` en plus : les unions de portée/cible/durée et `Formula` sont strictement
 typées — une valeur mal formée casse la compilation avant le runtime.
-<!-- sources-empreinte: e6ba839c9c3daf5ac5dca22507a35250322f249e (16 fichiers, 0 dossiers) corps: 8261228f84026b5657821bc3041ed1820af2b4d1 -->
+<!-- sources-empreinte: e6ba839c9c3daf5ac5dca22507a35250322f249e (16 fichiers, 0 dossiers) corps: ec5d4966e3427246efee90217f496c2ee006fee4 -->

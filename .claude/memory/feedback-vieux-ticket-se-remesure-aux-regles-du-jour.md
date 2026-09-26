@@ -8,7 +8,7 @@ metadata:
 Un ticket de plus de ~2 semaines se rouvre par un juge de GROUNDING en lecture seule : re-mesurer
 chaque constat sur l'arbre courant (le fichier, la ligne, le stock, la porte existent-ils encore),
 lister ce que des trains postérieurs ont déjà soldé, confronter le reste aux doctrines du jour (bloc
-« Doctrines utilisateur » du `CLAUDE.md`, fiches `user-*`). Le brief part de cette re-mesure, et le
+`docs/doctrines.md`, fiches `user-*`). Le brief part de cette re-mesure, et le
 ticket reçoit un commentaire « RE-MESURE » disant ce qui est mort, ce qui reste, sous quelle règle.
 
 **Why:** utilisateur (2026-09-03, verbatim) : « Le ticket est tres vieux, donc prends bien en compte

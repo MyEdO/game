@@ -147,18 +147,6 @@
           }
         ]
       }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/inject-project-credo.mjs claude",
-            "timeout": 10,
-            "statusMessage": "Injection du credo de travail"
-          }
-        ]
-      }
     ]
   }
 }

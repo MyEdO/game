@@ -2,9 +2,9 @@
  * Registre de la galerie design system (#412) — SOURCE UNIQUE lue par `DesignGallery` (rendu) ET
  * par la garde structurelle `gallery-exhaustive.test.ts` (couverture). Extension utilisateur
  * verbatim (2026-07-14) : « Faudrait forcer à ce que la galerie ait toutes les primitives » — chaque
- * primitive de la table « Primitives partagées » du `CLAUDE.md` dont le fichier vit sous `src/ui/`
+ * primitive de `src/data/primitives.manifest.json` dont le fichier vit sous `src/ui/`
  * (rendu réel, pas un module d'état/moteur pur) reçoit une entrée ICI, `file` reprenant le chemin
- * EXACT cité par la table (le test fait un import + une comparaison de chaîne, pas une heuristique).
+ * EXACT du manifeste (le test fait un import + une comparaison de chaîne, pas une heuristique).
  *
  * `render` est une fabrique paresseuse (composant React) pour ne rien monter avant que la galerie
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
@@ -55,6 +55,11 @@ import { axesProfile } from '../../engine/axes';
 import { GameOpChips } from '../GameOpChips';
 import { Band } from '../Band';
 import { CAREER_CHAR_ADVANCES } from '../creator/draft';
+import { ItemIcon } from '../ItemIcon';
+import { MediaSelect } from '../MediaSelect';
+import { RefField, refFieldCfg } from '../compendium/RefField';
+import { itemFromTrappingById } from '../../engine/items';
+import type { ItemInstance } from '../../engine/types';
 
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
@@ -189,6 +194,72 @@ function OptionChooserDemo() {
           { key: 'ok', label: 'Confirmer', primary: true, onSelect: () => {} },
         ]}
       />
+    </div>
+  );
+}
+
+/** Objets RÉELS du catalogue (`trappings.json`), instanciés par la fabrique du moteur — jamais un
+ *  objet forgé à la main : la galerie montre ce que le jeu rend. */
+function objetsExemple(): ItemInstance[] {
+  return ['epee-batarde', 'hallebarde', 'arc', 'bouclier', 'justaucorps-de-cuir', 'corde']
+    .map((id) => itemFromTrappingById(id))
+    .filter((i): i is ItemInstance => i !== null);
+}
+
+/** Silhouette de rig pour arme/armure/bouclier, glyphe de catégorie sinon — aux trois tailles nommées. */
+function ItemIconDemo() {
+  const objets = objetsExemple();
+  if (!objets.length) return <p className="hint">Aucun objet du catalogue n'a pu être instancié.</p>;
+  return (
+    <div className="stack">
+      {(['sm', 'md', 'lg'] as const).map((size) => (
+        <div key={size} className="row-flex" style={{ alignItems: 'center', gap: 12 }}>
+          <span className="hint" style={{ width: 32 }}>{size}</span>
+          {objets.map((item) => (
+            <span key={item.uid} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <ItemIcon item={item} size={size} />
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Sélecteur visuel : rangées `média + libellé + détail`, là où un `<select>` natif ne porte pas d'icône. */
+function MediaSelectDemo() {
+  const objets = objetsExemple();
+  const [choix, setChoix] = useState<string | undefined>(objets[0]?.uid);
+  if (!objets.length) return <p className="hint">Aucun objet du catalogue n'a pu être instancié.</p>;
+  return (
+    <MediaSelect
+      options={objets.map((item) => ({
+        key: item.uid,
+        media: <ItemIcon item={item} size="sm" />,
+        label: item.label,
+        sub: item.kind,
+      }))}
+      value={choix}
+      onSelect={setChoix}
+      placeholder="Choisir un objet"
+      title="Sélecteur visuel d'objet"
+    />
+  );
+}
+
+/** Picker de référence multilangue-safe : le LIBELLÉ s'affiche, l'`id` est stocké. Deux des quatre
+ *  modes, tous deux sur des configs RÉELLES de `REF_FIELD` : `single` (dataset) et `vocab` (champ). */
+function RefFieldDemo() {
+  const [classe, setClasse] = useState<unknown>(undefined);
+  const [carac, setCarac] = useState<unknown>(undefined);
+  const cfgClasse = refFieldCfg('careers', 'class');
+  const cfgCarac = refFieldCfg('species', 'refChar');
+  if (!cfgClasse || !cfgCarac) return <p className="hint">Config de champ-réf introuvable.</p>;
+  return (
+    <div className="stack">
+      <RefField cfg={cfgClasse} fieldKey="class" label="Classe de la carrière" value={classe} onChange={setClasse} nullable />
+      <RefField cfg={cfgCarac} fieldKey="refChar" label="Caractéristique de référence" value={carac} onChange={setCarac} nullable />
+      <p className="hint">Stocké : {JSON.stringify({ class: classe, refChar: carac })}</p>
     </div>
   );
 }
@@ -780,9 +851,9 @@ function ScreenShellNote() {
 }
 
 export interface GallerySpecimen {
-  /** Nom d'affichage — reprend le nom de la primitive (table CLAUDE.md). */
+  /** Nom d'affichage — reprend le `label` de la primitive au manifeste. */
   label: string;
-  /** Chemin EXACT cité par la table « Primitives partagées » du CLAUDE.md (comparaison stricte). */
+  /** Chemin EXACT déclaré par `src/data/primitives.manifest.json` (comparaison stricte). */
   file: string;
   category: string;
   /** Légende d'exception (ex. maquette statique) — sinon absente (spécimen vivant, données réelles). */
@@ -834,6 +905,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { label: 'DetailFrame', file: 'src/ui/DetailFrame.tsx', category: 'Atelier du scribe', render: DetailFrameDemo },
   { label: 'HeroSheet', file: 'src/ui/HeroSheet.tsx', category: 'Personnages', render: HeroSheetDemo },
   { label: 'ReadyRow', file: 'src/ui/ReadyRow.tsx', category: 'Écrans & layout', render: ReadyRowDemo },
+  { label: 'ItemIcon', file: 'src/ui/ItemIcon.tsx', category: 'Négoce & activités', render: ItemIconDemo },
+  { label: 'MediaSelect', file: 'src/ui/MediaSelect.tsx', category: 'Négoce & activités', render: MediaSelectDemo },
+  { label: 'RefField', file: 'src/ui/compendium/RefField.tsx', category: 'Éditeur', render: RefFieldDemo },
 ];
 
 export const GALLERY_CATEGORIES = [...new Set(GALLERY_SPECIMENS.map((s) => s.category))];

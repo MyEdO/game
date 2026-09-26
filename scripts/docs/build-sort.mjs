@@ -314,8 +314,7 @@ d'autre ne porte d'effet mécanique : le vocabulaire complet des ops disponibles
 
 Au Codex, ce champ a un éditeur dédié qui réutilise le \`FlowEditor\` de l'éditeur de scène ; chaque
 feuille pose sa cible et sa liste de \`GameOp\` via \`GameOpEditor\` — la même primitive que
-traits/mutations/talents/consommables. **Ne jamais réinventer un widget de liste d'ops** (table des
-primitives partagées, \`CLAUDE.md\`).
+traits/mutations/talents/consommables. **Ne jamais réinventer un widget de liste d'ops** (\`docs/primitives.md\`).
 
 Cas particuliers, mesurés sur la donnée :
 

@@ -68,7 +68,7 @@
     "label": "InfluenceRow",
     "fichier": "src/ui/InfluenceRow.tsx",
     "concept": "rangée d'influence Chance/Pacte/Résilience/Détermination",
-    "perimetre": "toute modale de jet influençable",
+    "perimetre": "toute modale de jet influençable ; porte aussi ResilienceButton et DeterminationButton",
     "verrou": "—"
   },
   {
@@ -94,7 +94,7 @@
     "type": "primitives.manifest",
     "label": "SearchFilterField",
     "fichier": "src/ui/SearchFilterField.tsx",
-    "concept": "champ de filtre/recherche de liste (état+pur)",
+    "concept": "champ de filtre/recherche de liste : le widget, avec useFilteredList (état) et filterByLabel (pur)",
     "perimetre": "catalogue, palette, sélecteur",
     "verrou": "—"
   },
@@ -120,7 +120,7 @@
     "id": "actorIn",
     "type": "primitives.manifest",
     "label": "actorIn/inBattleId",
-    "fichier": "src/state/combatOrParty.ts",
+    "fichier": "src/state/combatants.ts",
     "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement",
     "perimetre": "toute résolution d'acteur",
     "verrou": "in-battle-find-guard.test.ts"
@@ -140,7 +140,7 @@
     "label": "GameOpEditor",
     "fichier": "src/ui/editor/GameOpEditor.tsx",
     "concept": "édition d'une liste de GameOp[]",
-    "perimetre": "sorts, effets déclenchés, passifs, consommables, activités",
+    "perimetre": "sorts, effets déclenchés, passifs, consommables, activités ; repris par EffectList et FlowEditor",
     "verrou": "no-json-fields.test.ts"
   },
   {
@@ -200,9 +200,9 @@
   {
     "id": "netOwnership",
     "type": "primitives.manifest",
-    "label": "netOwnership",
+    "label": "ownsLocally/pilotedByHuman/aiDriven/siegesRequis",
     "fichier": "src/state/netOwnership.ts",
-    "concept": "axe contrôleur owns/piloted/aiDriven",
+    "concept": "axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
     "verrou": "netOwnership.test.ts"
   },
@@ -268,5 +268,293 @@
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
     "verrou": "npm run gen && git diff --exit-code"
+  },
+  {
+    "id": "menuCard",
+    "type": "primitives.manifest",
+    "label": "MenuCard/MenuSection/MenuButton/MenuToggle",
+    "fichier": "src/ui/MenuCard.tsx",
+    "concept": "carte de menu : sections de grands boutons pleine largeur icône+libellé, séparateurs titrés, interrupteur",
+    "perimetre": "menu principal hors partie et menu système en jeu (Coopération, Options)",
+    "verrou": "réflexe avant tout bouton ou carte de menu recodé"
+  },
+  {
+    "id": "screenMeta",
+    "type": "primitives.manifest",
+    "label": "ScreenMeta",
+    "fichier": "src/ui/ScreenMeta.tsx",
+    "concept": "méta d'en-tête date + bourse",
+    "perimetre": "en-tête d'écran plein-champ et en-tête du menu système (date seule)",
+    "verrou": "—"
+  },
+  {
+    "id": "tabs",
+    "type": "primitives.manifest",
+    "label": "Tabs",
+    "fichier": "src/ui/Tabs.tsx",
+    "concept": "onglets (flat/pill/sub/dock) : role tablist, aria-selected, roving tabindex",
+    "perimetre": "fiche, écran plein-champ, dock repliable, sous-onglets ; styles src/ui/styles/tabs.css",
+    "verrou": "réflexe avant toute liste d’onglets recodée"
+  },
+  {
+    "id": "rovingFocus",
+    "type": "primitives.manifest",
+    "label": "rovingKeyDown",
+    "fichier": "src/ui/rovingFocus.ts",
+    "concept": "navigation clavier flèches + Home/End d’un groupe, fonction pure sans hook (sites HTML et SVG)",
+    "perimetre": "tablist, listbox, radiogroup",
+    "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
+  },
+  {
+    "id": "useLongPress",
+    "type": "primitives.manifest",
+    "label": "useLongPress",
+    "fichier": "src/ui/useLongPress.ts",
+    "concept": "appui long 450 ms tactile et souris, geste secondaire d’une alvéole",
+    "perimetre": "alvéoles de la console de combat",
+    "verrou": "réflexe avant tout minuteur de pression recodé"
+  },
+  {
+    "id": "readyRow",
+    "type": "primitives.manifest",
+    "label": "ReadyRow",
+    "fichier": "src/ui/ReadyRow.tsx",
+    "concept": "rangée de ready-check coop : sièges requis seuls, siège nommé, état prêt/attendu",
+    "perimetre": "pause de Round, écran de Victoire, nuit de repos",
+    "verrou": "quorum = siegesRequis (src/state/netOwnership.ts), source unique"
+  },
+  {
+    "id": "panneauParametre",
+    "type": "primitives.manifest",
+    "label": "PanneauParametre",
+    "fichier": "src/ui/PanneauParametre.tsx",
+    "concept": "panneau-paramètre borné ancré à son déclencheur : un clic commit et ferme, Échap annule",
+    "perimetre": "munition d’une arme, localisation, objets d’une pastille, sort à dissiper",
+    "verrou": "réflexe avant tout tiroir de console recodé ; jamais pour un choix exhaustif"
+  },
+  {
+    "id": "lifeBar",
+    "type": "primitives.manifest",
+    "label": "LifeBar",
+    "fichier": "src/ui/LifeBar.tsx",
+    "concept": "barre de remplissage lisse : ton par palier ou teinte continue, dépassement explicite",
+    "perimetre": "vie du portrait, Blessures et Encombrement de la fiche",
+    "verrou": "réflexe avant toute jauge crantée réutilisée en barre de vie : JAMAIS NotchGauge, réservée aux ressources à PALIERS DISCRETS (Coque, Moral, Soute)"
+  },
+  {
+    "id": "tradeTable",
+    "type": "primitives.manifest",
+    "label": "TradeTable",
+    "fichier": "src/ui/TradeTable.tsx",
+    "concept": "table de négoce : colonnes de stats, prix, action par rangée, groupes de rubrique",
+    "perimetre": "marchand, port, marché terrestre",
+    "verrou": "réflexe avant tout tableau d’achat/vente recodé"
+  },
+  {
+    "id": "parchmentCard",
+    "type": "primitives.manifest",
+    "label": "ParchmentCard",
+    "fichier": "src/ui/ParchmentCard.tsx",
+    "concept": "carte-parchemin narrative adossée à un tirage : sceau d100, titre, ton",
+    "perimetre": "interlude, événement de bord en mer, révélation de scène",
+    "verrou": "réflexe avant tout parchemin à sceau recodé"
+  },
+  {
+    "id": "activityPane",
+    "type": "primitives.manifest",
+    "label": "ActivityPane",
+    "fichier": "src/ui/ActivityPane.tsx",
+    "concept": "panneau d’activité ou de service : en-tête, corps défilable, pied fixe (pré-jet, coût, action)",
+    "perimetre": "interlude, hub de cité",
+    "verrou": "réflexe avant tout volet en-tête/corps/pied recodé"
+  },
+  {
+    "id": "qtyStepper",
+    "type": "primitives.manifest",
+    "label": "QtyStepper",
+    "fichier": "src/ui/QtyStepper.tsx",
+    "concept": "stepper de quantité moins / centre / plus",
+    "perimetre": "panier, quantité en stock, baisse de prix par cran",
+    "verrou": "—"
+  },
+  {
+    "id": "numberField",
+    "type": "primitives.manifest",
+    "label": "NumberField",
+    "fichier": "src/ui/NumberField.tsx",
+    "concept": "champ nombre : variantes complet/champ/nu, bornes optionnelles, commit à la frappe ou au geste",
+    "perimetre": "cascade, réglages de table, atelier du Codex, quantité de marché, dé forcé",
+    "verrou": "réflexe avant toute saisie de nombre brute ; cliquet (xvii) de src/ui/ui-ratchets.test.ts"
+  },
+  {
+    "id": "freeAttackLabel",
+    "type": "primitives.manifest",
+    "label": "FREE_ATTACK_LABEL",
+    "fichier": "src/engine/combat.ts",
+    "concept": "libellé d’attaque gratuite de créature, par freeKind",
+    "perimetre": "toute attaque gratuite affichée",
+    "verrou": "—"
+  },
+  {
+    "id": "gameOpChips",
+    "type": "primitives.manifest",
+    "label": "GameOpChips",
+    "fichier": "src/ui/GameOpChips.tsx",
+    "concept": "rendu JOUEUR d’une liste de GameOp : chips codex-liées et phrase humanisée",
+    "perimetre": "passifs d’entité, effets de signe astral",
+    "verrou": "jamais le résumeur d’atelier opSummary"
+  },
+  {
+    "id": "opRows",
+    "type": "primitives.manifest",
+    "label": "opRows",
+    "fichier": "src/ui/compendium/opRows.ts",
+    "concept": "structure de rangées d’un GameOp[] pour le Codex",
+    "perimetre": "vue joueur des effets et fiches du compendium",
+    "verrou": "—"
+  },
+  {
+    "id": "cascadeSuspension",
+    "type": "primitives.manifest",
+    "label": "suspendActiveCascade/resumeSuspendedCascade",
+    "fichier": "src/state/cascade.ts",
+    "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
+    "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
+    "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
+  },
+  {
+    "id": "creatorDice",
+    "type": "primitives.manifest",
+    "label": "CreatorDice",
+    "fichier": "src/ui/creator/CreatorDice.tsx",
+    "concept": "cérémonie de tirage du créateur : attente, roulant, rendu, gain de PX en direct",
+    "perimetre": "Race, Carrière, Caractéristiques, Signe astral",
+    "verrou": "—"
+  },
+  {
+    "id": "characterPreview",
+    "type": "primitives.manifest",
+    "label": "CharacterPreview",
+    "fichier": "src/ui/CharacterPreview.tsx",
+    "concept": "aperçu d’un personnage en pied hors combat, rig réel",
+    "perimetre": "roster, créateur, fiche, marchand",
+    "verrou": "—"
+  },
+  {
+    "id": "gatedAction",
+    "type": "primitives.manifest",
+    "label": "GatedAction",
+    "fichier": "src/ui/GatedAction.tsx",
+    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap",
+    "perimetre": "toute action refusable de la console et des écrans",
+    "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
+  },
+  {
+    "id": "roseAxes",
+    "type": "primitives.manifest",
+    "label": "RoseAxes",
+    "fichier": "src/ui/RoseAxes.tsx",
+    "concept": "rose des forces : mini-radar gravé à N axes paramétrables",
+    "perimetre": "glyphe de figurine, médaillon, rendu plein",
+    "verrou": "axes calculés par axisScore et axesProfile (src/engine/axes.ts)"
+  },
+  {
+    "id": "metalStatus",
+    "type": "primitives.manifest",
+    "label": "MetalStatus",
+    "fichier": "src/ui/MetalStatus.tsx",
+    "concept": "chip de statut métallisé Bronze/Argent/Or avec son échelon",
+    "perimetre": "tout affichage de statut social",
+    "verrou": "—"
+  },
+  {
+    "id": "waxSeal",
+    "type": "primitives.manifest",
+    "label": "WaxSeal/SealedPlaque",
+    "fichier": "src/ui/WaxSeal.tsx",
+    "concept": "sceau de cire et plaque d’élu scellée",
+    "perimetre": "tuiles de sélection, plaques d’élu",
+    "verrou": "—"
+  },
+  {
+    "id": "careerPath",
+    "type": "primitives.manifest",
+    "label": "CareerPath",
+    "fichier": "src/ui/CareerPath.tsx",
+    "concept": "chemin d’évolution d’une carrière en médaillons de niveau",
+    "perimetre": "fiche, créateur, Codex des carrières",
+    "verrou": "—"
+  },
+  {
+    "id": "figTile",
+    "type": "primitives.manifest",
+    "label": "FigTile",
+    "fichier": "src/ui/FigTile.tsx",
+    "concept": "cadre-figurine unique : boîte à hauteur fixe, nom et compte dessous, sceau optionnel ; variante hero = présence plein format, prop zoneBadges donnant un badge par HitLocation ancré anatomiquement (l'appelant fournit la donnée par zone, jamais la position)",
+    "perimetre": "races, carrières, candidats, colonne aside de la fiche",
+    "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; AUCUNE ambiance CharacterPreview exposée (la tuile porte SA matière) ; réflexe avant tout cadre dans un cadre"
+  },
+  {
+    "id": "groupedPickGrid",
+    "type": "primitives.manifest",
+    "label": "GroupedPickGrid",
+    "fichier": "src/ui/GroupedPickGrid.tsx",
+    "concept": "grille de sélection en sections par famille ou classe, role listbox et roving tabindex",
+    "perimetre": "tout picker groupé",
+    "verrou": "—"
+  },
+  {
+    "id": "detailFrame",
+    "type": "primitives.manifest",
+    "label": "DetailFrame",
+    "fichier": "src/ui/DetailFrame.tsx",
+    "concept": "cadre de détail de l’élue : nom, chips méta, rubriques, prose scrollable",
+    "perimetre": "créateur, pickers, Codex",
+    "verrou": "—"
+  },
+  {
+    "id": "plaqueRow",
+    "type": "primitives.manifest",
+    "label": "PlaqueRow/PlaqueGrid",
+    "fichier": "src/ui/PlaqueRow.tsx",
+    "concept": "rangée-plaque sombre à rivets : préfixe codex, méta centrale, valeur à droite, états élu et roulant",
+    "perimetre": "registre de caractéristiques, rangées d’allocation",
+    "verrou": "réflexe avant toute rangée de registre recodée"
+  },
+  {
+    "id": "creatorStepFrame",
+    "type": "primitives.manifest",
+    "label": "CreatorStepFrame",
+    "fichier": "src/ui/creator/CreatorStepFrame.tsx",
+    "concept": "gabarit d’étape du créateur : bande d’action requise, zone de choix, zone de description",
+    "perimetre": "toutes les étapes du créateur",
+    "verrou": "src/ui/creator/creator-ossature.test.tsx"
+  },
+  {
+    "id": "band",
+    "type": "primitives.manifest",
+    "label": "Band",
+    "fichier": "src/ui/Band.tsx",
+    "concept": "bande titrée de rubrique : titre, compteur ou jauge ancrés à droite, contenu dessous",
+    "perimetre": "étapes du créateur, bandes de section du registre État de la fiche",
+    "verrou": "réflexe avant tout bandeau de rubrique recodé"
+  },
+  {
+    "id": "heroSheet",
+    "type": "primitives.manifest",
+    "label": "HeroSheet",
+    "fichier": "src/ui/HeroSheet.tsx",
+    "concept": "corps de fiche héros : en-tête figurine, caractéristiques et dérivées, forces seuillées, chips codex",
+    "perimetre": "résumé du créateur, écran de groupe",
+    "verrou": "réflexe avant toute fiche de personnage recodée"
+  },
+  {
+    "id": "designGallery",
+    "type": "primitives.manifest",
+    "label": "DesignGallery",
+    "fichier": "src/ui/gallery/DesignGallery.tsx",
+    "concept": "galerie du design system in-app (DEV) : chaque primitive montée vivante avec des données réelles",
+    "perimetre": "référence de goût des primitives d’UI",
+    "verrou": "—"
   }
 ]

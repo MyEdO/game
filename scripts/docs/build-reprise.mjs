@@ -20,6 +20,8 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { emitOrCheck } from './lib/jsdocUnion.mjs'
 import { repartitionWorkers } from '../test/partition.mjs'
+import { AVANT_LES_LANES, LANES, ECRIT_LU } from '../gates/toutes.mjs'
+import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
 
 const OUTIL = 'build-reprise'
 
@@ -79,7 +81,11 @@ function hooksDeSession(evenement) {
   )
 }
 
-const EVENEMENTS = ['PreToolUse', 'PostToolUse', 'SessionStart']
+/** Événements de session que la surface Claude DOIT déclarer. `SessionStart` n'en est pas : le credo
+ *  de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de CLAUDE.md,
+ *  et seule la surface Codex — qui n'a pas d'import — l'INJECTE au SessionStart
+ *  (`scripts/agents/compat-core.mjs`, `HOOKS_MONO_SURFACE`). */
+const EVENEMENTS = ['PreToolUse', 'PostToolUse']
 
 // Workflows GitHub Actions : nom, déclencheurs, portes npm exécutées.
 function bloc(texte, cle) {
@@ -195,6 +201,44 @@ const DEPLOY = workflow('deploy.yml')
 const EXPORT = workflow('export-issues.yml')
 
 const listeCode = (xs) => xs.map((x) => `\`${x}\``).join(', ')
+
+// ── Gates et livraison : DÉRIVÉ du code, jamais recopié ──────────────────────────────────────────
+// Le régime de livraison, le plan des gates et la recette du lock vivaient en prose dans CLAUDE.md,
+// donc ils y mentaient dès que le code bougeait. Ici, chaque fait a sa source exécutable :
+// `scripts/gates/toutes.mjs` (plan et options), `scripts/guards/lib/npmLockHoisted.mjs` (recette du
+// lock), `scripts/git-hooks/pre-push.mjs` (le régime). Aucune MESURE de durée n'est reprise : elle
+// vit dans les `raison` de `LANES`, qui se remesurent.
+
+const SRC_GATES = readFileSync(chemin('scripts/gates/toutes.mjs'), 'utf8')
+const SRC_PREPUSH = readFileSync(chemin('scripts/git-hooks/pre-push.mjs'), 'utf8')
+
+/** Options de `npm run gates`, DÉRIVÉES des `argv.includes('--x')` du lanceur. */
+const OPTIONS_GATES = [...new Set([...SRC_GATES.matchAll(/argv\.includes\('(--[\w-]+)'\)/g)].map((m) => m[1]))].sort()
+if (!OPTIONS_GATES.length) abandon('scripts/gates/toutes.mjs ne lit plus aucune option `--x` — le runbook en annonce')
+
+/** Variable qui borne la suite pendant les lanes (nommée par le lanceur lui-même). */
+const BORNE_SUITE = (SRC_GATES.match(/\bWFRP_[A-Z_]+COEURS\b/) ?? [])[0]
+if (!BORNE_SUITE) abandon('scripts/gates/toutes.mjs ne borne plus la suite par une variable `WFRP_*COEURS`')
+
+/** Régime utilisateur porté par le hook `pre-push` : sa date et son verbatim, lus au hook. */
+const REGIME = /régime utilisateur\s*(\d{4}-\d{2}-\d{2})\s*«\s*([^»]+?)\s*»/.exec(
+  SRC_PREPUSH.replace(/^\/\/ ?/gm, '').replace(/\s*\n\s*/g, ' '),
+)
+if (!REGIME) abandon('scripts/git-hooks/pre-push.mjs ne porte plus le régime utilisateur daté en verbatim')
+
+/** Version de npm exigée pour régénérer le lock — lue DANS la recette, jamais écrite deux fois.
+ *  Le module est aussi LU sur disque, pour que l'empreinte des sources du doc le couvre. */
+readFileSync(chemin('scripts/guards/lib/npmLockHoisted.mjs'), 'utf8')
+const NPM_LOCK = (REGEN_RECIPE.match(/npm@[\d.]+/) ?? [])[0]
+if (!NPM_LOCK) abandon('REGEN_RECIPE (npmLockHoisted.mjs) ne nomme plus de version de npm')
+
+const lignesLanes = LANES.map((l) => `| \`${l.nom}\` | ${listeCode(l.gates)} |`).join('\n')
+const NB_GATES_CLASSEES = AVANT_LES_LANES.length + LANES.reduce((n, l) => n + l.gates.length, 0)
+const NB_GATES_MESUREES = Object.keys(ECRIT_LU).length
+/** Écrivain = gate qui écrit à chaque run (`ecrit`) OU qui PEUT écrire, porte nommée (`ecritFerme`). */
+const NB_ECRIVAINS = Object.values(ECRIT_LU).filter(
+  (v) => (v.ecrit ?? []).length || Object.keys(v.ecritFerme ?? {}).length,
+).length
 
 // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -427,6 +471,35 @@ ${lignesWorkflows}
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou \`gh run list --workflow=canari.yml\`. La
 porte à chaque push est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}).
+
+## 6. Gates et livraison
+
+**Régime** (porté par \`scripts/git-hooks/pre-push.mjs\`, arbitrage utilisateur ${REGIME[1]}) :
+« ${REGIME[2]} ». L'ordre est donc **commit FINAL → \`npm run gates\` → \`git push\`** : le hook
+\`pre-push\` LIT des justificatifs, il ne joue rien, et refuse toute gate de \`ci.yml\` sans
+justificatif vert et propre pour le CONTENU poussé. Un push de PLUSIEURS commits est jugé par sa
+**TÊTE** — c'est la seule unité que la CI joue.
+
+**Plan de \`npm run gates\`** (\`${script('gates')}\`) : ${NB_GATES_CLASSEES} gates classées, d'abord
+une phase SÉRIE \`AVANT_LES_LANES\` (${listeCode(AVANT_LES_LANES)}) — les gates qui ÉCRIVENT dans
+l'arbre, jouées seules pour qu'aucun lecteur ne tombe sur un fichier à moitié écrit — puis
+${LANES.length} lanes parallèles de LECTEURS :
+
+| Lane | Gates |
+|---|---|
+${lignesLanes}
+
+Les deux tables vivent dans \`scripts/gates/toutes.mjs\` : \`LANES\` pour la répartition ci-dessus,
+\`ECRIT_LU\` pour ce que CHAQUE gate écrit et lit (${NB_GATES_MESUREES} gates mesurées, dont
+${NB_ECRIVAINS} écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
+qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par \`${BORNE_SUITE}\`
+pendant que les autres lanes tournent. Options : ${listeCode(OPTIONS_GATES)}. Une gate de \`ci.yml\`
+sans place dans ce plan fait REFUSER le run, avec son nom.
+
+**\`package-lock.json\`** : le régénérer TOUJOURS avec ${NPM_LOCK}, recette exacte de
+\`scripts/guards/lib/npmLockHoisted.mjs\` — ${REGEN_RECIPE}. npm 11 ampute les entrées hoistées
+\`@emnapi/*\` que \`npm ci\` exige en CI ; la garde (pre-commit +
+\`src/npm-lock-hoisted-guard.test.ts\`) refuse un lock amputé.
 `
 
 emitOrCheck({

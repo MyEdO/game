@@ -3,8 +3,7 @@
 // scripts en `--check` (plus des vérificateurs purs, qui n'écrivent rien) ; la garde
 // scripts/git-hooks/merge-docs.test.mjs refuse toute dérive entre les deux listes.
 // Une cible n'est pas toujours un `docs/*.md` ÉCRIT EN ENTIER : `build-implemente.mjs` injecte un
-// champ dans les fiches raw, `build-doctrines.mjs` injecte le bloc « Doctrines utilisateur » entre
-// marqueurs dans CLAUDE.md — ces deux-là déclarent `targets: []` et se jouent comme les autres.
+// champ dans les fiches raw — il déclare `targets: []` et se joue comme les autres.
 // Ordre motivé : les rapports d'Atlas LISENT les fiches docs/raw (coverage.mjs:309, reconcile.mjs:54,
 // reanchor.mjs:207), ils passent donc APRÈS build-catalogs/build-implemente qui les écrivent. C'est
 // cet ordre qui autorise une source elle-même GÉNÉRÉE : une source écrite par un générateur PLUS TARD
@@ -47,6 +46,7 @@ import {
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: ['docs/raw/catalogue-*.md'], check: false },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: [], injecte: ['docs/raw/*.md'] },
+  { runner: 'node', script: 'scripts/docs/build-primitives.mjs', targets: ['docs/primitives.md'] },
   { runner: 'node', script: 'scripts/docs/build-systemes.mjs', targets: ['docs/systemes.md'] },
   { runner: 'node', script: 'scripts/docs/build-donnees.mjs', targets: ['docs/donnees.md'] },
   { runner: 'node', script: 'scripts/docs/build-sources-vf.mjs', targets: ['docs/sources-vf.md'] },
@@ -68,9 +68,7 @@ export const GENERATORS = [
   { runner: 'node', script: 'scripts/docs/build-sort.mjs', targets: ['docs/ajouter-un-sort.md'] },
   { runner: 'node', script: 'scripts/docs/build-ajouter-donnee.mjs', targets: ['docs/ajouter-une-donnee.md'] },
   { runner: 'node', script: 'scripts/docs/build-regles-optionnelles.mjs', targets: ['docs/regles-optionnelles.md'] },
-  // Écrit un BLOC entre marqueurs dans CLAUDE.md, fichier manuscrit : `targets: []` comme
-  // build-implemente.mjs (la taxonomie de fusion ne vaut que pour un fichier écrit EN ENTIER).
-  { runner: 'node', script: 'scripts/docs/build-doctrines.mjs', targets: [], injecte: ['CLAUDE.md'] },
+  { runner: 'node', script: 'scripts/docs/build-doctrines.mjs', targets: ['docs/doctrines.md'] },
   { runner: 'tsx', script: 'scripts/gen-sorts-doc.mts', targets: ['docs/sorts-implementation.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-field-consumers.mts', targets: ['docs/consommateurs-de-champs.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-structures.mts', targets: ['docs/structures-donnees.md'] },
@@ -484,10 +482,10 @@ function main() {
     }
     const dossier = path.join(racineLectures, String(rang))
     mkdirSync(dossier, { recursive: true })
-    // Un générateur relit ce qu'il écrit (son .md en `--check`, le fichier où il injecte un bloc) :
+    // Un générateur relit ce qu'il écrit (son .md en `--check`, le fichier où il injecte un champ) :
     // rien de tout cela n'est une de ses sources. Seul un `targets` — un doc écrit EN ENTIER — reçoit
-    // le pied : `build-doctrines` n'écrit qu'un bloc de CLAUDE.md et `build-implemente` qu'un champ
-    // des fiches docs/raw, deux fichiers manuscrits qu'aucune empreinte ne peut signer.
+    // le pied : `build-implemente` n'écrit qu'un champ des fiches docs/raw, fichiers manuscrits
+    // qu'aucune empreinte ne peut signer.
     const signees = ciblesSurDisque(g.targets, cwd)
     const cibles = [...new Set([...signees, ...ciblesSurDisque(g.injecte ?? [], cwd)])].sort()
     try {

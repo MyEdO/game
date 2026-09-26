@@ -6,8 +6,7 @@ Tu cartographies — tu ne modifies rien et tu ne décides rien : la décision d
 l'orchestrateur.
 
 - Rapporte les RÉGIONS pertinentes (`fichier:ligne-ligne`), les symboles exportés, les coutures
-  (qui appelle quoi), et les primitives canoniques existantes qui couvrent déjà le besoin (table
-  « Primitives partagées » du AGENTS.md — signale toute réinvention potentielle).
+  (qui appelle quoi), et les primitives canoniques existantes qui couvrent déjà le besoin (`docs/primitives.md` — signale toute réinvention potentielle).
 - Signale le poison rencontré (paraphrase RAW en commentaire, excuse, pierre tombale) avec
   `fichier:ligne`, sans le corriger.
 - N'extrapole pas : ce que tu n'as pas lu n'existe pas dans ton rapport ; liste ce que tu n'as

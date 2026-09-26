@@ -5,7 +5,7 @@
  * remplace la planche HTML (retraitée par ce ticket). Extension utilisateur (2026-07-14, verbatim :
  * « Faudrait forcer à ce que la galerie ait toutes les primitives ») : le contenu vient du REGISTRE
  * `./registry.ts` (SOURCE UNIQUE) — la garde structurelle `gallery-exhaustive.test.ts` exige une
- * entrée par primitive `src/ui/**.tsx` de la table « Primitives partagées » du CLAUDE.md.
+ * entrée par primitive `src/ui/**.tsx` de `src/data/primitives.manifest.json`.
  */
 import { useState } from 'react';
 import { ScreenShell } from '../ScreenShell';

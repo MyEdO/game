@@ -1183,7 +1183,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
   return <CreatorStepFrame d={d} step={stepIdx} label="Caractéristiques" zones={{ action, choice }} />;
 }
 
-/** Adapte `QtyStepper` (primitive canonique, table CLAUDE.md) au vocabulaire LINÉAIRE de l'allocation
+/** Adapte `QtyStepper` (primitive canonique, table `docs/primitives.md`) au vocabulaire LINÉAIRE de l'allocation
  *  du créateur (± 1 entre `min` et `max`) — un décrément/incrément d'UNE unité. Mort du `Stepper`
  *  local du créateur (verdict utilisateur 2026-07-15 : « on créait des primitives ou on fait encore
  *  du code spécifique création ? ») : ce site consomme la MÊME primitive que la table marchande. */

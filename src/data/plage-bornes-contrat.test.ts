@@ -27,7 +27,7 @@
  *       `traits.json › effects[].on` (nombre de cibles d'un déclenchement).
  *
  * Ces six-là sont ce qui rend la CIBLE tenable : `findTableEntry`
- * (`src/engine/tables.ts`, primitive de la table CLAUDE.md) exige la forme PLATE `{min, max}`, et
+ * (`src/engine/tables.ts`, primitive de la table `docs/primitives.md`) exige la forme PLATE `{min, max}`, et
  * borne le tirage des DEUX côtés — donc l'ordre des rangées d'une table éditable au Codex ne décide
  * plus de son résultat.
  */

@@ -13,8 +13,7 @@ Tu exécutes une spec précise fournie par l'orchestrateur — tu n'inventes ni 
   utilise-le tel quel (chemin absolu), jamais l'arbre principal.
 - INTERDIT : tout `git checkout / restore / reset / stash / add / commit / clean` — tu écris des
   fichiers, l'orchestrateur gère git.
-- RÉUTILISE les primitives canoniques nommées dans le brief (table « Primitives partagées » du
-  AGENTS.md) ; si la spec te semble contredite par le code réel, STOPPE et rapporte l'écart au
+- RÉUTILISE les primitives canoniques nommées dans le brief (`docs/primitives.md`) ; si la spec te semble contredite par le code réel, STOPPE et rapporte l'écart au
   lieu d'improviser.
 - Aucun commentaire qui paraphrase une règle (réf nue seulement), aucune excuse, aucune pierre
   tombale.

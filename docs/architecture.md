@@ -1,8 +1,55 @@
 # Architecture — où trouver quoi (référence vivante)
 
-> Extrait verbatim du CLAUDE.md (dégraissage 2026-07-05). À lire quand on cherche où vit un
-> module, avant de créer un fichier, ou pour l'état courant des systèmes. La table des
-> « Primitives partagées » reste dans `CLAUDE.md` (toujours chargée).
+> À lire quand on cherche où vit un module, avant de créer un fichier, ou pour l'état courant des
+> systèmes. La table des primitives partagées vit dans `docs/primitives.md` (GÉNÉRÉ depuis
+> `src/data/primitives.manifest.json`, `npm run docs:primitives`).
+
+## Politique de `docs/`
+
+Ce dossier ne contient que des **références vivantes**, maintenues au fil du code. Les plans de
+refonte et sorties de brainstorming sont des artefacts **DATÉS** : ils vont dans `docs/plans/`,
+portent leur date en tête, et sont supprimés une fois exécutés (git porte l'historique). Ne JAMAIS
+s'appuyer sur un doc de plan pour décider de l'architecture actuelle — le code et les références
+vivantes font foi.
+
+Garde `npm run docs:check` (`scripts/docs/check-doc-refs.mjs`) : chaque chemin `src/…`/`scripts/…` et
+chaque symbole backtiqué cités par `docs/*.md` (hors `docs/plans/` et `docs/raw/`) doivent exister,
+et chaque `label` de `src/data/primitives.manifest.json` doit être un EXPORT réel — exit 1 avec la
+liste `fichier:ligne` sinon. Une référence vivante qui ment ne se tague pas, elle se corrige.
+
+**Fusion des docs DÉRIVÉS** (`.gitattributes`, trois familles, pilote
+`scripts/git-hooks/merge-docs.mjs` déclaré par `npm run postinstall`) :
+
+- `merge=docs-generes` — docs 100 % générés : la version courante est retenue, `docs:build` régénère.
+- `merge=docs-catalogue` — `docs/raw/catalogue-*.md` : dérivés SAUF leurs blocs `<!-- X-INTEGRATION -->`,
+  correctifs manuels dont la perte est refusée.
+- `merge=docs-fiche-raw` — fiches `docs/raw/*.md` mixtes (prose manuscrite + champ `**Implémente :**`
+  dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ (heading porteur),
+  donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un vrai conflit humain.
+
+Après toute fusion ou tout rebase : `npm run docs:build` (`scripts/docs/build-all.mjs`) régénère et
+nomme ce qui a bougé — les hooks `post-merge`/`post-rewrite` le lancent, le commit reste à toi.
+
+## Frontière orchestrateur · machinerie · data-driven
+
+Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
+**sans code spécifique**. Données = `effects`/`passive` sur l'entité, dispatchées par l'unique
+`fireTriggers` ; machinerie = hooks `registerCombatHook`, règles universelles de l'arène qui ne
+nomment AUCUNE entité. « Difficile à exprimer » n'autorise JAMAIS la machinerie : on étend le
+vocabulaire (`GameOp`, `Formula`, `Condition`). Détail et cas limites : `docs/combat-events-coherence.md` §3bis.
+
+## Pistes de mutualisation ÉVALUÉES puis ÉCARTÉES
+
+Sites trop divergents pour une source unique propre — ne pas « globaliser » de force.
+
+- `confirmPending` : les `xConfirm` divergent par leur garde de résultat et réutilisent `battle`
+  localement ; un wrapper ne raccourcirait rien.
+- `useMasterDetail` : le rejet portait sur le HOOK D'ÉTAT partagé (marchand ⇄ carte divergent après
+  sélection) et reste valide. Le GABARIT DE LAYOUT (slots liste/détail, aucun état) en a été extrait
+  en primitive sous #330 → `MasterDetail` dans `docs/primitives.md`.
+- `StatChip` / `itemStatParts` : trois formes de données différentes (chaîne d'`ItemInstance`,
+  `Combatant.weapons` résolues, table par famille).
+- Sweep `actorIn` dans `store.ts` : `battle` y reste en portée pour le `set` final.
 
 ## Arborescence
 

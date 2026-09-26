@@ -3,6 +3,10 @@ import { Buffer } from 'node:buffer';
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const replacements = [
+  // L'import `@fichier` est une affordance de Claude Code : Codex n'en a pas, sa surface INJECTE le
+  // credo au SessionStart. Traduire le POINTEUR en pointeur (`.codex/credo.md`) rendrait AGENTS.md
+  // menteur — on traduit le MÉCANISME. Doit précéder la règle `.claude/credo.md` ci-dessous.
+  ['@.claude/credo.md', 'Credo injecté au SessionStart par `.codex/hooks.json` (`inject-project-credo.mjs`).'],
   ['Foundry/CLAUDE.md', 'Foundry/AGENTS.md'],
   ['# CLAUDE.md', '# AGENTS.md'],
   ['CLAUDE.md', 'AGENTS.md'],
@@ -150,6 +154,27 @@ function referencesIn(text) {
   return [...new Set(text.match(/(?:AGENTS|CLAUDE)\.md|\.(?:agents|claude|codex|Codex)\/[\w./-]+/g) ?? [])].sort();
 }
 
+export const SURFACE_CLAUDE = '.claude/settings.json';
+export const SURFACE_CODEX = '.codex/hooks.json';
+
+/** Séparateur des clefs de contrat. JAMAIS écrit en octet brut dans la source : un NUL littéral
+ *  ferait tenir ce fichier pour BINAIRE par git (plus de diff texte ni de fusion 3-voies). */
+export const NUL = '\0';
+
+/**
+ * Hooks dont le CONTRAT n'appartient qu'à UNE surface — clef `phase`+NUL+`matcher`+NUL+`script` →
+ * surface qui DOIT le porter, l'autre devant l'ignorer. Un hook absent de cette table reste soumis
+ * à la parité stricte (même phase, même matcher, même script, même timeout des deux côtés).
+ *
+ * Le credo de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de
+ * CLAUDE.md — un import n'est ni tronqué ni persisté à part. Codex n'a pas d'import : sa surface
+ * l'INJECTE au SessionStart. Porter les deux mécanismes sur Claude chargerait le credo deux fois.
+ */
+
+export const HOOKS_MONO_SURFACE = new Map([
+  [`SessionStart${NUL}${NUL}inject-project-credo.mjs`, SURFACE_CODEX],
+]);
+
 export function validateHookParity(claudeSettings, codexHooks) {
   const forbiddenEverywhere = /\bcat\b|\/dev\/null|[<>]|\|\||&&/;
   const forbiddenOnCodex = /CLAUDE_PROJECT_DIR/;
@@ -159,15 +184,30 @@ export function validateHookParity(claudeSettings, codexHooks) {
       const script = /scripts[\\/]hooks[\\/]([\w.-]+\.mjs)/.exec(command)?.[1];
       return { phase, matcher: group.matcher ?? '', script, timeout: hook.timeout, command, surface, path: `${surface}.hooks.${phase}[${groupIndex}].hooks[${hookIndex}]` };
     })));
-  const left = flatten(claudeSettings, '.claude/settings.json');
-  const right = flatten(codexHooks, '.codex/hooks.json');
-  const isForbidden = (hook) => forbiddenEverywhere.test(hook.command) || (hook.surface === '.codex/hooks.json' && forbiddenOnCodex.test(hook.command));
+  const left = flatten(claudeSettings, SURFACE_CLAUDE);
+  const right = flatten(codexHooks, SURFACE_CODEX);
+  const isForbidden = (hook) => forbiddenEverywhere.test(hook.command) || (hook.surface === SURFACE_CODEX && forbiddenOnCodex.test(hook.command));
   const diagnostics = [...left, ...right].filter((hook) => isForbidden(hook) || !hook.script)
     .map((hook) => ({ family: 'hook', destination: hook.path, type: 'reference', message: `commande non portable: ${hook.command}` }));
-  const key = (hook) => `${hook.phase}|${hook.matcher}|${hook.script}|${hook.timeout}`;
-  for (const value of new Set([...left.map(key), ...right.map(key)]))
+
+  // Clef d'IDENTITÉ du contrat (sans le timeout) : le `matcher` peut contenir des `|`, la clef ne se
+  // découpe donc jamais sur ce caractère.
+  const identite = (hook) => `${hook.phase}${NUL}${hook.matcher}${NUL}${hook.script}`;
+  const propre = (hook) => HOOKS_MONO_SURFACE.get(identite(hook));
+
+  const key = (hook) => `${hook.phase}${NUL}${hook.matcher}${NUL}${hook.script}${NUL}${hook.timeout}`;
+  const partages = (liste) => liste.filter((hook) => !propre(hook));
+  for (const value of new Set([...partages(left).map(key), ...partages(right).map(key)]))
     if (!left.some((hook) => key(hook) === value) || !right.some((hook) => key(hook) === value))
       diagnostics.push({ family: 'hook', destination: value, type: 'content', message: 'hook absent sur une surface' });
+
+  for (const [cle, surface] of HOOKS_MONO_SURFACE) {
+    const porte = (liste) => liste.some((hook) => identite(hook) === cle);
+    const attendue = surface === SURFACE_CODEX ? right : left;
+    const interdite = surface === SURFACE_CODEX ? left : right;
+    if (!porte(attendue)) diagnostics.push({ family: 'hook', destination: cle, type: 'missing', message: `hook propre à ${surface} absent de cette surface` });
+    if (porte(interdite)) diagnostics.push({ family: 'hook', destination: cle, type: 'content', message: `hook réservé à ${surface} présent sur l'autre surface` });
+  }
   return diagnostics;
 }
 

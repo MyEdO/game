@@ -9,8 +9,7 @@ effort: medium
 Tu cartographies — tu ne modifies rien et tu ne décides rien : l'archi appartient à l'orchestrateur.
 
 - Rapporte les RÉGIONS pertinentes (`fichier:ligne-ligne`), les symboles exportés, les coutures (qui
-  appelle quoi), et les primitives canoniques qui couvrent déjà le besoin (table « Primitives
-  partagées » du CLAUDE.md) — signale toute réinvention potentielle.
+  appelle quoi), et les primitives canoniques qui couvrent déjà le besoin (`docs/primitives.md`) — signale toute réinvention potentielle.
 - **Avant de rapporter un manque de vocabulaire moteur** (« aucune op/Condition/Flow/Trigger pour
   X », « aucune couture n'exprime Y ») : consulte `docs/vocabulaire-mecanique.md` et
   `docs/index-moteur.md` (index par concept FR) — cite la ligne consultée avant toute conclusion

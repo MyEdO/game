@@ -21,7 +21,7 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   de `run_in_background` pour un runner.
 - Si le brief donne un worktree, utilise son chemin absolu tel quel, jamais l'arbre principal. Tu
   écris des fichiers ; l'orchestrateur gère git.
-- RÉUTILISE les primitives nommées au brief (table « Primitives partagées » du CLAUDE.md). Spec
+- RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
 - Auto-contrôle : le test ciblé si le brief en désigne un, les gates à l'orchestrateur. **Le code de

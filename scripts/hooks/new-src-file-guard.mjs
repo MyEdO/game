@@ -2,11 +2,12 @@
 //
 // Deux régimes (#1318 V5, 2026-08-16 ; périmètre étendu #1679 L1a) :
 //   - `src/ui/**/*.tsx` ET `src/gameIso/**/*.tsx` NEUFS (hors `*.test.tsx`) : BLOQUANT. Un composant
-//     d'UI ou de rendu est soit une PRIMITIVE partagée (citée par la table « Primitives partagées »
-//     du CLAUDE.md), soit un ÉCRAN/panneau/surcouche inscrit au registre
-//     `scripts/hooks/ecrans-ui.json`. Ni l'un ni l'autre → sortie non-zéro : la déclaration se fait
-//     AVANT le code. (`src/gameIso` porte 32 `.tsx` hors tests, mesurés le 2026-09-02 ; `authoring/`
-//     et `builders/` n'en portent aucun — le périmètre n'a pas d'exception à ménager.)
+//     d'UI ou de rendu est soit une PRIMITIVE partagée (déclarée dans
+//     `src/data/primitives.manifest.json`, rendue par `docs/primitives.md`), soit un
+//     ÉCRAN/panneau/surcouche inscrit au registre `scripts/hooks/ecrans-ui.json`. Ni l'un ni l'autre
+//     → sortie non-zéro : la déclaration se fait AVANT le code. (`src/gameIso` porte 32 `.tsx` hors
+//     tests, mesurés le 2026-09-02 ; `authoring/` et `builders/` n'en portent aucun — le périmètre
+//     n'a pas d'exception à ménager.)
 //   - tout autre fichier neuf sous `src/` : injection de contexte (rappel anti-réinvention).
 //
 // DEUX FORMES d'entrée au registre, une seule règle :
@@ -32,6 +33,7 @@ import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const REGISTRE_DEFAUT = join(REPO, 'scripts', 'hooks', 'ecrans-ui.json')
+export const MANIFESTE_PRIMITIVES = join(REPO, 'src', 'data', 'primitives.manifest.json')
 export const JOURNAL = join(REPO, '.claude', 'logs', 'new-src-guard-skips.log')
 
 /** Registre LU par la garde. Le chemin est INJECTABLE (`WFRP_REGISTRE_ECRANS`) pour une seule raison :
@@ -82,12 +84,12 @@ export const maquetteEntree = (e) => {
 }
 
 /**
- * Déclaré = cité par la table des primitives du CLAUDE.md, OU inscrit au registre des écrans. Une
- * entrée en CHAÎNE ne déclare que ce qui existe DÉJÀ (le stock du 2026-08-16) ; un fichier neuf exige
- * l'entrée OBJET portant sa `maquette` validée.
+ * Déclaré = cité par le manifeste des primitives (`manifeste` = son TEXTE), OU inscrit au registre des
+ * écrans. Une entrée en CHAÎNE ne déclare que ce qui existe DÉJÀ (le stock du 2026-08-16) ; un fichier
+ * neuf exige l'entrée OBJET portant sa `maquette` validée.
  */
-export function estDeclare(rel, claudeMd, registre, existe = false) {
-  if (claudeMd.includes(rel)) return true
+export function estDeclare(rel, manifeste, registre, existe = false) {
+  if (manifeste.includes(rel)) return true
   const entree = (registre.ecrans ?? []).find((e) => cheminEntree(e) === rel)
   if (entree === undefined) return false
   return typeof entree === 'string' ? existe : maquetteEntree(entree) !== ''
@@ -100,7 +102,7 @@ export function messageRegistreCasse(rel, cause) {
     '',
     `La déclaration de ${rel} ne peut pas être vérifiée : réparer d'abord`,
     '  scripts/hooks/ecrans-ui.json (JSON valide, clef "ecrans" = tableau de chemins)',
-    "  ou CLAUDE.md s'il est absent de l'arbre (checkout partiel ?),",
+    "  ou src/data/primitives.manifest.json s'il est absent de l'arbre (checkout partiel ?),",
     'puis relancer — la garde reprendra son cours normal.',
     '',
     "Ne PAS contourner en écrivant le fichier : sans registre lisible, plus rien n'est gardé.",
@@ -113,16 +115,17 @@ export function messageRefus(rel) {
     `REFUS — composant NON DÉCLARÉ : ${rel}`,
     '',
     "Un nouveau .tsx de src/ui ou src/gameIso se déclare AVANT d'être écrit (#1318 V5) :",
-    '  • PRIMITIVE partagée (réutilisable par N écrans) → ajouter sa ligne à la table',
-    '    « Primitives partagées » du CLAUDE.md (besoin | primitive | fichier), puis relancer.',
+    '  • PRIMITIVE partagée (réutilisable par N écrans) → ajouter son entrée à',
+    '    src/data/primitives.manifest.json (id, type, label, fichier, concept, perimetre,',
+    '    verrou), relancer `npm run docs:primitives`, puis relancer.',
     '  • ÉCRAN / panneau / modale / surcouche → maquette validée EN PRÉSENCE (une spec fige le',
     '    mécanisme, pas le goût), puis inscription au tableau "ecrans" de',
     `    scripts/hooks/ecrans-ui.json sous la forme { "fichier": "${rel}", "maquette": "<où et`,
     '    quand la maquette a été validée>" } (ordre alphabétique), puis relancer.',
     '',
-    "AVANT d'inscrire : vérifier qu'aucune primitive existante ne couvre le besoin (table du",
-    'CLAUDE.md + 2-3 variantes du concept grepées dans src/ui) — la réutiliser ou l\'ÉTENDRE',
-    'coûte moins que la Nᵉ copie.',
+    "AVANT d'inscrire : vérifier qu'aucune primitive existante ne couvre le besoin",
+    "(docs/primitives.md + 2-3 variantes du concept grepées dans src/ui) — la réutiliser ou",
+    "l'ÉTENDRE coûte moins que la Nᵉ copie.",
     '',
     'Dérogation pressée et TRACÉE : relancer avec SKIP_NEW_SRC_GUARD=1 (la dérogation est',
     'journalisée dans .claude/logs/new-src-guard-skips.log).',
@@ -131,7 +134,7 @@ export function messageRefus(rel) {
 
 export const RAPPEL_SRC = (rel) =>
   `⚠ Ce Write CRÉE un nouveau fichier sous src/ (${rel}). ` +
-  `Réflexe anti-réinvention : as-tu vérifié la table « Primitives partagées » du CLAUDE.md et grep 2-3 variantes du concept dans l'existant ? ` +
+  `Réflexe anti-réinvention : as-tu vérifié docs/primitives.md (généré de src/data/primitives.manifest.json) et grep 2-3 variantes du concept dans l'existant ? ` +
   `Si un module/primitive existant couvre le besoin, RÉUTILISE-le ou ÉTENDS-le (général + paramétrable) au lieu de créer ce fichier. ` +
   `Sinon, énonce explicitement pourquoi aucun existant ne convient avant de poursuivre.`
 
@@ -164,15 +167,15 @@ async function main() {
   if (!rel || !rel.startsWith('src/')) return // hors du dépôt, ou hors de src/
 
   if (estComposantUI(rel)) {
-    // Registre ou CLAUDE.md illisible → on REFUSE (fail-closed) : un crash rendrait un statut 1,
+    // Registre ou manifeste illisible → on REFUSE (fail-closed) : un crash rendrait un statut 1,
     // que Claude Code traite comme non bloquant — la garde passerait à vide.
     let déclaré = false
     let panne = null
     try {
-      const claudeMd = readFileSync(join(REPO, 'CLAUDE.md'), 'utf8')
+      const manifeste = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
       const registre = JSON.parse(readFileSync(cheminRegistre(), 'utf8'))
       // Le fichier n'existe pas (contrôle ci-dessus) : le stock en chaîne ne le déclare donc pas.
-      déclaré = estDeclare(rel, claudeMd, registre, false)
+      déclaré = estDeclare(rel, manifeste, registre, false)
     } catch (e) {
       panne = e.message
     }

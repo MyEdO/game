@@ -63,7 +63,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   irrecevable, et deux mesures ne se confirment que si leurs MÉTHODES DIFFÈRENT. Un diagnostic s'écrit
   en HYPOTHÈSE À RÉFUTER avec sa sonde discriminante : le fix que je prescris peut être faux aussi.
 - **UI** : nommer AUSSI la couche atomique — aucun élément nu (`<button>` → `.btn`/`.chip`/primitive,
-  conteneur → `.panel`, focusable custom → focus maison) ; citer « Primitives partagées » +
+  conteneur → `.panel`, focusable custom → focus maison) ; citer `docs/primitives.md` +
   `docs/charte-ui.md`.
 - **Mise aux normes** : « la zone touchée sort AUX NORMES — nommage COHÉRENT (un concept = un terme),
   duplication adjacente mutualisée ou ticketée, morts adjacents purgés » ; tout juge de cumul porte la
@@ -185,6 +185,11 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Jugement dur (réfutation, synthèse, archi) | `juge` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
+
+**Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**,
+pas l'art à l'aveugle. Déjà utilisés — audit de fidélité des règles (a trouvé 3 vrais bugs), extraction
+du Tome 1 en dossiers, génération des sprites de bestiaire depuis l'art officiel (lecture d'image par
+les agents).
 
 Préférer ces types (modèle + effort épinglés) à `general-purpose`, qui hérite l'effort de session.
 **JAMAIS Sonnet en effort haut/xhigh** : plus cher qu'un Opus medium. La cérémonie se calibre à la

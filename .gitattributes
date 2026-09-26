@@ -28,6 +28,8 @@
 #                    garde la version courante, refuse la fusion si un bloc entrant serait perdu.
 #   docs-fiche-raw : fiche MIXTE (prose manuscrite + champs `**Implémente :**` dérivés) — fusion
 #                    3-voies de la PROSE seule ; conflit résiduel = vrai conflit humain.
+docs/primitives.md            merge=docs-generes linguist-generated=true
+docs/doctrines.md             merge=docs-generes linguist-generated=true
 docs/systemes.md              merge=docs-generes linguist-generated=true
 docs/campagne-effects.md      merge=docs-generes linguist-generated=true
 docs/orphelines-donnees.md    merge=docs-generes linguist-generated=true

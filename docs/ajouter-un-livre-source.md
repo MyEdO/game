@@ -92,7 +92,7 @@ nouveau livre vient enrichir les fiches de domaine existantes (`combat.md`, `mag
 créer une nouvelle si le livre introduit un domaine inédit (le combat naval de MDG a justifié
 `docs/raw/combat-naval.md`, un fichier dédié référencé dans la table `Domaines` de `00-index.md`).
 
-- **Workflow multi-agents** (opt-in « ultracode », cf. § *Workflows multi-agents* de `CLAUDE.md`) :
+- **Workflow multi-agents** (opt-in « ultracode », cf. skill `orchestrer-des-agents`) :
   un agent par domaine touché fait `extract → verify` adversarial — la vérification reconfronte
   chaque réf/citation à la source, indispensable (des fabrications de contenu ont été trouvées et
   corrigées lors de l'épreuve du 2026-06-22, `docs/raw/epreuve-2026-06-22.md`). Le script workflow
@@ -144,8 +144,7 @@ re-seed automatique — c'est le chemin suivi par AA, ZI, MDG, ACE, MSRC et NADJ
 - Toute description mécanique passe par la primitive `<Prose>` (`src/ui/Prose.tsx`) au rendu, pas
   par un `dangerouslySetInnerHTML` ou un template ad hoc.
 - Tout **effet mécanique** (passif, déclenché, soin, dégâts…) issu du nouveau livre s'exprime en
-  `GameOp[]` (`src/engine/ops.ts`), édité via `<GameOpEditor>` — jamais un type/champ ad hoc (cf.
-  table des primitives partagées de `CLAUDE.md`).
+  `GameOp[]` (`src/engine/ops.ts`), édité via `<GameOpEditor>` — jamais un type/champ ad hoc (cf. `docs/primitives.md`).
 
 ## 6. Vérification (gardes rejouables)
 

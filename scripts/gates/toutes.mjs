@@ -261,12 +261,11 @@ export const ECRIT_LU = {
   },
   'docs:check': {
     ecrit: [],
-    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/', 'CLAUDE.md'],
+    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/'],
     raison:
       'les générateurs y tournent en `--check` : ils COMPARENT (build-all.mjs, `if (check) continue`) ; ' +
-      'LIT .claude/memory/ et CLAUDE.md parce que `build-doctrines.mjs` dérive le bloc « Doctrines ' +
-      'utilisateur » des fiches `.claude/memory/user-*.md` SUIVIES par git (build-doctrines.mjs:197) et ' +
-      'le confronte au fichier manuscrit (build-all.mjs:73, `injecte: [\'CLAUDE.md\']`)',
+      'LIT .claude/memory/ parce que `build-doctrines.mjs` dérive `docs/doctrines.md` des fiches ' +
+      '`.claude/memory/user-*.md` SUIVIES par git (build-doctrines.mjs:195)',
   },
   'docs:empreinte': {
     ecrit: [],

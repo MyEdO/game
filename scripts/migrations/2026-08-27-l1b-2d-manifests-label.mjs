@@ -35,9 +35,9 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 /** Les 3 porteurs : fichier, sélecteur des entrées PORTEUSES du libellé, et compte ATTENDU. */
 const PORTEURS = [
-  // 28 → 30 (#1728) : les primitives `itemIcon` et `mediaSelect` entrent au manifeste, de la MÊME
-  // forme que les 28 autres — le périmètre mesuré suit, à l'ÉGALITÉ.
-  { fichier: 'src/data/primitives.manifest.json', entrees: (d) => d, attendu: 30 },
+  // 30 → 62 (#1728) : les entrées de la table CLAUDE.md sont portées au manifeste, de la MÊME forme
+  // que les 30 autres — primitives EXISTANTES ; le périmètre mesuré suit, à l'ÉGALITÉ.
+  { fichier: 'src/data/primitives.manifest.json', entrees: (d) => d, attendu: 62 },
   { fichier: 'src/data/systemes.manifest.json', entrees: (d) => d, attendu: 16 },
   { fichier: 'src/data/donnees.manifest.json', entrees: (d) => d.rubriques, attendu: 11 },
 ];
