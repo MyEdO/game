@@ -6,6 +6,7 @@
 // les `jouer` réels (rebase, build-all, push, gh) ne sont jugés que par le train joué.
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -14,16 +15,20 @@ import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { reinitialiserStub } from '../guards/lib/coursesCi.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   ETAPES,
   MOTIF_APRES_REBASE,
   MOTIF_POST_REWRITE,
   RACINE,
   REFUS_DEUX_FOIS,
+  REFUS_TRAIN_DE_FUSION,
   attenteCiSecondes,
   citerArgv,
   commandeInterdite,
+  contexteDe,
   corpsDePilotage,
+  decisionDeRebase,
   estDocDerive,
   etatDeLEtape,
   filetDuTrainEnfant,
@@ -44,6 +49,7 @@ import {
   plageDeCitations,
   planDeReprise,
   refusDeGit,
+  relationAuTronc,
   rotationnerLog,
   sansOptionsGlobales,
   sortieDe,
@@ -1017,4 +1023,83 @@ test('ci : la borne ÉCOULÉE rend INDÉTERMINÉ, jamais un vert — et le dit',
   assert.equal(vu.indetermine, true)
   assert.match(vu.raison, /aucun verdict de la CI en 0 min sur ttttttttt/)
   assert.match(vu.raison, /rien n'est entré dans main/)
+})
+
+// ── étape `rebase` : la relation d'origin/main à HEAD (#1998) ─────────────────────────
+
+test('decisionDeRebase : tronc contenu → aucun rebase ; fusions hors tronc → refus ; sinon rebase', () => {
+  assert.equal(decisionDeRebase({ contenu: true, fusions: true }), 'contenu')
+  assert.equal(decisionDeRebase({ contenu: true, fusions: false }), 'contenu')
+  assert.equal(decisionDeRebase({ contenu: false, fusions: true }), 'fusions')
+  assert.equal(decisionDeRebase({ contenu: false, fusions: false }), 'rebase')
+})
+
+describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui avance', () => {
+  const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  after(() => rmSync(racine, { recursive: true, force: true }))
+  const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const commit = (fichier) => { writeFileSync(join(racine, fichier), `${fichier}\n`); g('add', '--', fichier); g('commit', '-q', '-m', fichier) }
+  const avancerLeTronc = (fichier) => {
+    g('checkout', '-q', 'main')
+    commit(fichier)
+    g('update-ref', 'refs/remotes/origin/main', 'main')
+    g('checkout', '-q', 'train')
+  }
+  // Le ctx de l'étape : `git` JETTE — l'étape ne doit lancer aucun rebase dans ces deux cas.
+  const ctx = {
+    racine,
+    get tete() { return g('rev-parse', 'HEAD') },
+    git: (args) => { throw new Error(`git ${args.join(' ')} lancé`) },
+  }
+  g('checkout', '-q', '-b', 'train')
+  commit('b.txt')
+  g('checkout', '-q', 'main')
+  commit('c.txt')
+  g('update-ref', 'refs/remotes/origin/main', 'main')
+  g('checkout', '-q', 'train')
+  g('merge', '-q', '--no-ff', '-m', 'fusion du tronc', 'main')
+  commit('d.txt')
+
+  test('tronc CONTENU : relation « contenu », aucun rebase, journal posé, « tronc déjà contenu »', () => {
+    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: true, fusions: false })
+    const journal = journalVide('train')
+    const vu = etapeRebase.jouer(ctx, journal)
+    const base = g('rev-parse', 'origin/main')
+    const tete = g('rev-parse', 'HEAD')
+    assert.equal(vu.ok, true)
+    assert.equal(vu.dit, `tronc déjà contenu — base ${base.slice(0, 9)} → tête ${tete.slice(0, 9)}`)
+    assert.deepEqual([journal.base, journal.tete, vu.detail.reecrit], [base, tete, false])
+    assert.equal(etapeRebase.dejaFaite(ctx, journal), true)
+  })
+
+  test('le tronc AVANCE : relation « non contenu + fusions », refus NOMMÉ, aucun rebase, histoire intacte', () => {
+    avancerLeTronc('e.txt')
+    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: false, fusions: true })
+    const tete = g('rev-parse', 'HEAD')
+    const journal = journalVide('train')
+    assert.deepEqual(etapeRebase.jouer(ctx, journal), { ok: false, raison: REFUS_TRAIN_DE_FUSION })
+    assert.equal(g('rev-parse', 'HEAD'), tete)
+    assert.equal(journal.base, null)
+    assert.equal(etapeRebase.dejaFaite(ctx, journal), false)
+  })
+
+  test('branche LINÉAIRE non contenue : un VRAI `git rebase origin/main` sous le contexte RÉEL, histoire linéaire', () => {
+    g('checkout', '-q', '-b', 'lineaire', 'main~1')
+    commit('f.txt')
+    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: false, fusions: false })
+    const teteAvant = g('rev-parse', 'HEAD')
+    const ctxReel = contexteDe({ racine, branche: 'lineaire', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const journal = journalVide('lineaire')
+    const vu = etapeRebase.jouer(ctxReel, journal)
+    const base = g('rev-parse', 'origin/main')
+    const tete = g('rev-parse', 'HEAD')
+    assert.equal(vu.ok, true)
+    assert.equal(vu.dit, `base ${base.slice(0, 9)} → tête ${tete.slice(0, 9)}`)
+    assert.notEqual(tete, teteAvant)
+    assert.deepEqual([journal.base, journal.tete, journal.teteAvant, vu.detail.reecrit], [base, tete, teteAvant, true])
+    assert.equal(g('rev-parse', 'HEAD~1'), base)
+    assert.equal(g('rev-list', '--merges', `${base}..HEAD`), '')
+    assert.equal(etapeRebase.dejaFaite(ctxReel, journal), true)
+  })
 })
