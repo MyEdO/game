@@ -123,16 +123,9 @@ export function lidCutaway(
       if (lid.z < actor.z || !occludesActor(lid.occluder, actor.capsule)) continue;
       sections.set(lid.sectionId, Math.min(sections.get(lid.sectionId) ?? actor.z, actor.z));
     }
-  if (!sections.size) return cleared;
-  const liftedCells = new Set(cleared.liftedCells);
-  const liftedSections = new Set([...cleared.liftedSections, ...sections.keys()]);
-  for (const lid of lids) {
-    const from = sections.get(lid.sectionId);
-    if (from === undefined) continue;
-    for (const cell of lid.cells)
-      for (let z = from + 1; z <= lid.z; z++) liftedCells.add(spaceCellKey(cell.x, cell.y, z));
-  }
-  return { ...cleared, liftedCells, liftedSections };
+  // PROTOTYPE M3 (non commité) : la levée par occlusion d'écran ne verse plus rien — ni section, ni
+  // case. L'abri réel (`overheadCells`/`clearedSpace`) reste intact ; le trou local prend le relais.
+  return cleared;
 }
 
 export function exteriorWallViewZ(activeZ: number, interiorFocused: boolean, layerZs: readonly number[]): number {

@@ -51,6 +51,7 @@ import { roomZonesByElKey, type KeepEl, type TintAt } from './backends/webgl/sce
 import { stageCamTransform } from './stage/stageCam';
 import { occupiedInteriorZoneIds, roomCutawayAllies, roomFocusAt } from './stage/roomFocus';
 import { NO_CLEARED_SPACE, frontFacadeCutaway, cutawayForSection, cutawayLifted, cutawayOverhead, lidCutaway, spaceCellKey } from './stage/architectureVisibility';
+import { clePercage } from './stage/percage';
 import { DoorOverlays } from './stage/DoorOverlays';
 import { ClimbOverlays } from './stage/ClimbOverlays';
 import { FallOverlays } from './stage/FallOverlays';
@@ -271,20 +272,43 @@ export function IsoStage() {
   // CACHE à l'écran (`lidCutaway`, la géométrie d'occlusion de #907). Les façades frontales de cet
   // espace tombent du même geste (`frontFacadeCutaway`), et rien au niveau du groupe n'est retiré.
   const roofGeom = useMemo(() => (scene ? buildRoofs(scene) : []), [scene]);
-  const cleared = useMemo(() => {
-    if (!scene) return NO_CLEARED_SPACE;
-    const lids = roofGeom.map((el) => ({
+  const lids = useMemo(
+    () => roofGeom.map((el) => ({
       sectionId: el.sectionId ?? el.key, // nappe hors masse authorée : elle est sa propre section
       z: el.cell.z,
       cells: el.cells,
       occluder: elOccluder(el, dims),
-    }));
-    const actors = visualAllies.map((a) => ({
-      capsule: actorCapsuleOf({ x: a.x, y: a.y, h: heightAt(scene, a.x, a.y, a.z) }, dims),
-      z: a.z,
-    }));
-    return lidCutaway(clearedSpace(scene, visualAllies, exploredSet), lids, actors);
-  }, [scene, visualAllies, exploredSet, roofGeom, dims]);
+    })),
+    [roofGeom, dims],
+  );
+  // ALLIÉS COIFFABLES : leur case VISUELLE, leur `cid` et leur capsule d'écran. UNE dérivation pour les
+  // DEUX ripostes à la même occlusion — la masse LEVÉE (`lidCutaway`) et le TROU local (#1176, M3) ;
+  // deux jeux de capsules divergeraient, et le trou s'ouvrirait où rien n'est caché.
+  const alliesCoiffables = useMemo(
+    () => (scene
+      ? visualTilesAt(wnow).map((t) => ({
+        cid: t.id,
+        capsule: actorCapsuleOf({ x: t.x, y: t.y, h: heightAt(scene, t.x, t.y, t.z) }, dims),
+        z: t.z,
+      }))
+      : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scene, visualAlliesKey, dims],
+  );
+  const cleared = useMemo(
+    () => (scene ? lidCutaway(clearedSpace(scene, visualAllies, exploredSet), lids, alliesCoiffables) : NO_CLEARED_SPACE),
+    [scene, visualAllies, exploredSet, lids, alliesCoiffables],
+  );
+  // DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) : ce que la boucle de rendu volumique reprend à la CLÉ
+  // (pas franchi, quart de tour, étage) pour percer un trou dans la masse qui coiffe un héros, là où
+  // `lidCutaway` la lève entière. Les entrées sont celles ci-dessus, sans un seul second calcul.
+  const percage = useMemo(
+    () => (scene
+      ? { cle: clePercage({ tuiles: visualTilesAt(wnow), rot: dims.rot ?? 0, view: dims.view ?? 'iso', activeZ }), lids, heros: alliesCoiffables }
+      : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scene, visualAlliesKey, dims, activeZ, lids, alliesCoiffables],
+  );
   // Les MÊMES vérités, dans la forme que consomme la voie VOLUMIQUE (#1176) : le dégagement en canal
   // GÉOMÉTRIE (une masse dégagée ne se rend pas), la visibilité en canal TEINTE. Un seul jeu de lois.
   // ZONES DE PIÈCE résolues sur la scène VIVE (#1176, P3-3) : le monde cuit ne les retient PLUS
@@ -473,6 +497,7 @@ export function IsoStage() {
         halos={halos}
         partyToken={partyToken}
         chromes={chromes}
+        percage={percage}
       />
     {/* Le fond du SVG est transparent : le canevas peint dessous. */}
     <svg ref={svgRef} className="iso-stage" style={{ background: 'transparent' }} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid slice" {...handlers}>

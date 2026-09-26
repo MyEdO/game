@@ -75,7 +75,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { freeYaw, type Dims, type Rot } from '../../geometry/iso';
+import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
 import { heightAt, type Scene } from '../../state/scene';
 import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../state/dir8';
 import { affineCamera, povCamera } from '../backends/webgl/cameras';
@@ -206,9 +206,24 @@ import { withRenderRank } from '../backends/webgl/renderRanks';
 import { buildTraceQuad, TRACE_LIFT_M } from '../backends/webgl/traceQuad';
 import type { TraceTransform } from '../../state/traceCalibration';
 import { signalerWebglRefusé } from './webglSupport';
+import { cadrePercage, materiauProfondeurPerce, percerMateriau, trousPercage, PERCAGE_MAX_HEROS } from '../backends/webgl/percageLocal';
+import { centrePercage, creerPercage, type ActeurPerce, type Percage } from './percage';
+import type { Lid } from './architectureVisibility';
 
 /** Convention de taille monde des billboards retenue pour le JEU (cf. `billboardMath`). */
 export const CONVENTION = 'jeu' as const;
+
+/** Pas de temps MAXIMAL (ms) servi au fondu des trous de découpe locale. Même borne que le semis de
+ *  chute et que la boucle de lacet : un onglet revenu au premier plan reprend le fondu, il ne le
+ *  téléporte pas d'un bout à l'autre. */
+const PERCAGE_PAS_MAX_MS = 100;
+
+/** Clé de verdict des frames SANS découpe locale (première personne, éditeur) : constante, donc le
+ *  verdict ne s'y rejoue jamais, et la liste vide y ramène toutes les cibles à zéro. */
+const PERCAGE_HORS_PLATEAU = 'percage:hors-plateau';
+
+/** Aucune nappe — la liste vide de ces mêmes frames, allouée UNE fois. */
+const AUCUNE_NAPPE: readonly Lid[] = [];
 
 /** Ce que cet écran DEMANDE à son renderer, et rien de plus — la surface exacte de sa dépendance à
  *  three côté sortie. Un banc d'essai peut donc en fournir un SANS contexte WebGL : jsdom n'en a
@@ -265,6 +280,24 @@ export type StageFrame =
    * position, elle, glisse. Statu quo du POV SVG — même arbitrage d'ingénierie, révisable au goût.
    */
   | { mode: 'pov'; partyPos: { x: number; y: number; z?: number }; facing: Dir8; indoor: boolean; cid: string | null };
+
+/**
+ * ENTRÉES du verdict de DÉCOUPE LOCALE (#1176, M3), fournies par l'hôte de plateau. Le `cid` est ce
+ * qui relie un héros à son BILLBOARD : le centre du trou se prend sur le quad POSÉ de la frame — donc
+ * sur la position qui GLISSE avec la marche —, jamais sur la case logique.
+ *
+ * INDEX DES TROUS : les quatre emplacements d'uniforme sont remplis dans l'ordre des héros AYANT un
+ * quad monté. Un quad qui naît ou qui meurt (rasterisation, jeton écarté par le builder) DÉCALE donc
+ * les emplacements suivants, et deux trous peuvent échanger le leur le temps d'un fondu.
+ */
+export interface PercageEntrees {
+  /** Clé ÉVÉNEMENTIELLE du verdict (`clePercage`) : pas franchi, cran/vue, étage. */
+  cle: string;
+  /** Nappes projetées de la carte — les MÊMES que consomme `lidCutaway`. */
+  lids: readonly Lid[];
+  /** Alliés candidats au trou, à leur case VISUELLE (arrondie), dans un ordre stable. */
+  heros: readonly { cid: string; capsule: ActorCapsule; z: number }[];
+}
 
 export interface GameStage3DProps {
   scene: Scene;
@@ -331,6 +364,11 @@ export interface GameStage3DProps {
    *  NON : son picking est PUREMENT GÉOMÉTRIQUE (`screenToTileAtZ` sur le SVG d'authoring), et un
    *  picker inscrit ici écraserait celui du jeu — le registre est un singleton. */
   spritePicking?: boolean;
+  /** DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) — les entrées du verdict, telles que l'hôte de plateau
+   *  les tient déjà pour le dégagement (`IsoStage` : nappes projetées + capsules d'alliés). Cet écran
+   *  n'en dérive AUCUNE : deux jeux de nappes/capsules divergeraient de la loi de `lidCutaway`, et le
+   *  trou s'ouvrirait là où rien n'est caché. Absent (POV, éditeur) = aucun trou. */
+  percage?: PercageEntrees | null;
 }
 
 /**
@@ -537,7 +575,7 @@ function dir8DuSegment(dx: number, dz: number): Dir8 | null {
   return best;
 }
 
-export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, spritePicking = true }: GameStage3DProps): JSX.Element {
+export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, spritePicking = true, percage }: GameStage3DProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<StageRenderer | null>(null);
   const boardsRef = useRef<Board[]>([]);
@@ -558,6 +596,13 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   /** Clés à ÉPINGLER (planches des boards montés) — jamais évincées tant qu'elles sont à l'écran. */
   const épinglesRef = useRef(new Map<string, string[]>());
   const cameraRef = useRef<THREE.Camera | null>(null);
+  /** PILOTE de la découpe locale (#1176, M3) — un par écran monté, comme sa scène three. Il tient la
+   *  clé du dernier verdict et le fondu des rayons ; les quatre trous qu'il écrit sont, eux, partagés
+   *  par tous les matériaux percés du module. */
+  const percageRef = useRef<Percage | null>(null);
+  if (!percageRef.current) percageRef.current = creerPercage();
+  /** Acteurs du verdict, RÉUTILISÉS d'une frame à l'autre : la passe n'alloue ni tableau ni vecteur. */
+  const acteursPercésRef = useRef<ActeurPerce[]>([]);
   const pov = frame.mode === 'pov';
   // STYLE DE CE REGARD (#1176, P3-5, `viewPolicy`) : ce que la vue choisit de MONTRER — les nappes de
   // brume et le soleil ci-dessous en descendent. La GÉOMÉTRIE de la frame (cadrage, cran d'art,
@@ -1023,6 +1068,53 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       precipBase.current = base;
       semis.instanceMatrix.needsUpdate = true;
     }
+    // DÉCOUPE LOCALE PAR OCCLUSION (#1176, M3) — TROIS cadences, et c'est tout le dessin de cette
+    // passe : le VERDICT à la CLÉ (pas franchi, quart de tour, étage — `Percage.majVerdict` le refuse
+    // de lui-même tant qu'elle ne bouge pas), le RAYON en fondu à la frame, et le CADRE D'ÉCRAN à la
+    // frame lui aussi. Ce dernier n'est pas un luxe : sous lacet LIBRE (#1176), un demi-tour de caméra
+    // ne franchit aucun cran, donc ne change aucune clé — la matrice et le centre du trou doivent
+    // suivre le regard sans attendre un verdict.
+    const pasPercage = Math.min(PERCAGE_PAS_MAX_MS, Math.max(0, maintenant - dernierRendu.current));
+    const pilote = percageRef.current!;
+    const acteursPercés = acteursPercésRef.current;
+    acteursPercés.length = 0;
+    // Les héros RÉELLEMENT perçables de cette frame entrent dans la clé : leurs quads naissent APRÈS
+    // le montage (rasterisation asynchrone), et une clé qui ne dirait que la case laisserait le
+    // verdict du premier instant — celui où aucun quad n'existait — valoir jusqu'au pas suivant.
+    let cidsPercés = '';
+    if (percage && f) {
+      for (const hp of percage.heros) {
+        if (acteursPercés.length >= PERCAGE_MAX_HEROS) break;
+        // Le centre du trou se prend sur le QUAD POSÉ de cette frame : un héros sans billboard monté
+        // (rasterisation en cours, jeton écarté par le builder) n'a aucun point où percer.
+        const board = boardsRef.current.find((b) => b.sub.cid === hp.cid);
+        if (!board) continue;
+        acteursPercés.push({ capsule: hp.capsule, z: hp.z, monde: board.mesh.position });
+        cidsPercés += `${hp.cid}|`;
+      }
+    }
+    // La passe d'OMBRE partage le discard et n'a aucun autre moyen de savoir où le trou tombe à
+    // l'écran du joueur : son propre raster est celui du soleil (cf. `percageLocal`).
+    cadrePercage(camera, w, h);
+    // Hors vue de plateau (première personne, éditeur), la clé est CONSTANTE et la liste vide : les
+    // trous ouverts se REFERMENT au même fondu, ils ne s'éteignent pas d'un coup.
+    pilote.majVerdict({
+      cle: percage && f ? `${percage.cle}@${cidsPercés}` : PERCAGE_HORS_PLATEAU,
+      lids: percage && f ? percage.lids : AUCUNE_NAPPE,
+      acteurs: acteursPercés,
+      camera,
+      largeurPx: w,
+      hauteurPx: h,
+    });
+    pilote.avancer(pasPercage);
+    // CENTRE À LA FRAME : le rayon appartient au pilote, mais le point où le trou tombe se reprend ici
+    // — le quad du héros a glissé et la caméra a pu tourner depuis le dernier verdict.
+    const trous = trousPercage();
+    for (let i = 0; i < acteursPercés.length; i++) {
+      if (trous[i].w <= 0) continue;
+      const centre = centrePercage(camera, acteursPercés[i].monde, w, h);
+      trous[i].set(centre.x, centre.y, centre.z, trous[i].w);
+    }
     dernierRendu.current = maintenant;
     // GAMMA de la courbe de brume (P3-1c) : `THREE.Fog` s'arrête au smoothstep, la courbe du POV est
     // smoothstep^gamma (`fogAt`, `pov/camera.ts`). Le `#define` se pose ici, et pas à un montage : les
@@ -1301,16 +1393,28 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // toujours lambertien, même sans soleil — l'ambiante porte alors la scène à elle seule
     // (`stageLights`), et le crépuscule n'a plus de marche d'escalier.
     const materials = worldSurfaceMaterials(geometry, anisotropy);
+    // DÉCOUPE LOCALE (#1176, M3) : chaque matériau du monde SAIT se trouer — une seule référence de
+    // fonction pour tous (`percerMateriau`), donc une seule clé de programme et aucun texte de shader
+    // touché. Sans le `#define`, les chunks surchargés rendent le shader d'origine.
+    for (const mat of materials) percerMateriau(mat);
     const mesh = new THREE.Mesh(geometry, materials);
     mesh.userData.emprunte = true;
     // Le monde caste et reçoit TOUJOURS : sans lampe à ombre, three ne compile aucun chemin d'ombre —
     // ces deux drapeaux ne coûtent alors rien, et le matériau cesse de dépendre de l'heure.
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    // La passe d'OMBRE partage le discard : three ne recopie ni les `defines` ni l'`onBeforeCompile`
+    // du matériau de surface vers le matériau de profondeur qu'il fabrique, et sans celui-ci le toit
+    // troué projetterait encore son ombre sur le héros dégagé.
+    const profondeurPercée = materiauProfondeurPerce();
+    mesh.customDepthMaterial = profondeurPercée;
     groupe.add(withRenderRank(mesh, 'monde'));
     ombresARefaire.current = true;
     dessiner();
-    return () => viderGroupe(groupe);
+    return () => {
+      viderGroupe(groupe); // `viderGroupe` ne connaît que `material` : le matériau de profondeur se libère ici
+      profondeurPercée.dispose();
+    };
     // Les MATÉRIAUX ne dépendent QUE de la cuisson : ni la teinte (elle vit dans les couleurs de sommet),
     // ni le dégagement (il vit dans l'index), ni l'heure (le régime lambertien ne bascule plus) n'en
     // refont un seul. Remettre `tintAt` ici reconstruisait les 76 matériaux de l'arène à chaque pas
