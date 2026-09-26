@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
+import { poserCapDuGroupe } from '../../state/combatants';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { setRevealAll } from '../../state/visionState';
 import { createHero } from '../../engine/character';
@@ -42,7 +43,7 @@ function poser(ambiance: Scene['ambiance']): Scene {
   scene.ambiance = ambiance;
   useGame.setState({
     screen: 'campaign', mode: 'exploration', party: [hero], scene,
-    partyPos: { x: 4, y: 4 }, facing: { [hero.id]: 'N' },
+    partyPos: { x: 4, y: 4 }, facing: poserCapDuGroupe({}, 'N'),
     dialogue: null, battle: null, povActive: true, lightLevel: 1,
   } as never);
   return scene;

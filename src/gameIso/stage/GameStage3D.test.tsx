@@ -141,8 +141,8 @@ describe('Hit-test de sprite — la voie qui peint est celle qui répond (#1176 
 });
 
 /**
- * L'ORIENTATION MONDE est lue par le monde volumique, qui la suit : `setFacing` reforge la table à
- * chaque orientation (donc à chaque pas et à chaque attaque), et l'abonnement vit dans
+ * L'ORIENTATION MONDE est lue par le monde volumique, qui la suit : toute écriture de cap
+ * (`faceToward`, à chaque pas et à chaque attaque) reforge la table, et l'abonnement vit dans
  * `VolumetricWorld` — le sous-arbre du stage doit donc bien commiter quand elle change.
  *
  * L'orientation est posée sur un id qu'AUCUN jeton de la scène ne porte : un corps abonné à SA propre
@@ -152,10 +152,10 @@ describe('Hit-test de sprite — la voie qui peint est celle qui répond (#1176 
 const SONDE = '__sonde-orientation'; // aucun jeton ne porte cet id
 
 describe('Orientation monde — le monde volumique la suit (#1176)', () => {
-  it('un `setFacing` re-rend le stage (la table y est lue) — la sonde n’est pas inerte', () => {
+  it('une écriture de cap re-rend le stage (la table y est lue) — la sonde n’est pas inerte', () => {
     const { commits } = monter();
     const avant = commits();
-    act(() => { useGame.getState().setFacing(SONDE, 'O'); });
+    act(() => { useGame.getState().faceToward(SONDE, { x: 1, y: 0 }, { x: 0, y: 0 }); }); // cap O
     expect(commits()).toBeGreaterThan(avant);
   });
 });

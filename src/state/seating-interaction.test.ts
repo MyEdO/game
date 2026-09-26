@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
+import { capDuGroupe, poserCapDuGroupe } from './combatants';
 import { emptyScene, type Scene } from './scene';
 import { seatPoseOf, seatSlotsOf, type SeatOccupant } from './seating';
 import { flowFromEffects } from './flow';
@@ -176,19 +177,19 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
 });
 
 describe('la POSE est unique — le cap d’ÉTAT suit la place', () => {
-  it('s’asseoir aligne `facing` du meneur sur le cap du slot', () => {
+  it('s’asseoir aligne le cap du GROUPE sur le cap du slot', () => {
     poser(ABORD_NORD);
-    useGame.setState((s) => ({ facing: { ...s.facing, h: 'N' } })); // regard opposé avant l'assise
+    useGame.setState((s) => ({ facing: poserCapDuGroupe(s.facing, 'N') })); // regard opposé avant l'assise
     useGame.getState().interactEntity(PROP);
     expect(poseDuMeneur()!.facing).toBe('S');
-    expect(useGame.getState().facing.h, 'le cap d’état, celui que lit la vue subjective').toBe('S');
+    expect(capDuGroupe(useGame.getState()), 'le cap d’état, celui que lit la vue subjective').toBe('S');
   });
 
   it('chaque abord donne SON cap : l’état n’est jamais celui de la marche', () => {
     for (const place of seatSlotsOf(scèneDeTaverne(), PROP)) {
       poser(place.approach);
       useGame.getState().interactEntity(PROP);
-      expect(useGame.getState().facing.h, `place « ${place.slotId} »`).toBe(place.facing);
+      expect(capDuGroupe(useGame.getState()), `place « ${place.slotId} »`).toBe(place.facing);
     }
   });
 });

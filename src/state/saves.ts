@@ -140,7 +140,12 @@ import type { Scene } from './scene';
 // `pendingApproach.sourceName` et `pendingWard.targetName` sont figés au geste ; `OpposedFreeze.attackerName`
 // (`pendingCascade`, `sequence`) est requis ; `TavernPayload.allyValue` est posé à l'ouverture d'un jeu
 // d'équipe. Une save de 51 rouvrirait une modale sans nom ni opposition. La save se jette (politique 2).
-export const SAVE_VERSION = 52;
+// 52 → 53 (#1362) : le CAP D'EXPLORATION est une entrée de GROUPE de `facing` (clé `CAP_GROUPE`,
+// `state/combatants.ts`), là où chaque héros portait la sienne. Une save de 52 rouvre avec des caps
+// keyés par des id de héros que plus personne ne lit, et SANS entrée de groupe : le regard du plateau
+// et la vue subjective repartent au défaut sud, le pivot suivant aussi. La save se jette (politique 2
+// ci-dessus).
+export const SAVE_VERSION = 53;
 
 export interface SaveMeta {
   version: number;

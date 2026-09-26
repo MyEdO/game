@@ -117,7 +117,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
-import { inBattleId } from './combatants';
+import { capDuGroupe, inBattleId, meneurDeboutDuMonde, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -384,7 +384,6 @@ export interface GameState extends RollFlowActionsMap {
   rotateCam: (dir: 1 | -1) => void;
   /** Orientation MONDE vivante par entité/combattant (Dir8) — projetée au rendu (camRot). */
   facing: Record<string, Dir8>;
-  setFacing: (id: string, dir: Dir8) => void;
   faceToward: (id: string, from?: Pt, to?: Pt) => void;
   faceFromPath: (id: string, path?: Pt[] | null) => void;
   faceAtCombatStart: () => void;
@@ -1772,7 +1771,7 @@ function placesDe(scene: Scene, entityId: string) {
  *  c'est la bascule du même intent, prioritaire sur toute autre affordance du meuble. */
 function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   const { scene } = get();
-  if (!scene || !get().party[0]) return false;
+  if (!scene || !meneurDuMonde(get())) return false;
   const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
@@ -1787,7 +1786,7 @@ function seLeverDe(get: Get, set: Set, entityId: string): boolean {
  *  quand le joueur a choisi l'offre `sasseoir`. */
 function sasseoirA(get: Get, set: Set, entityId: string): void {
   const { scene, partyPos } = get();
-  const leaderId = get().party[0]?.id;
+  const leaderId = meneurDuMonde(get())?.id;
   if (!scene || !leaderId) return;
   const places = placesDe(scene, entityId);
   if (!places.length) return;
@@ -1801,7 +1800,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
     // décor posé sur la case déclarée bascule la place sur son repli).
     const gagnee: { pose: SeatPose | null } = { pose: null };
     set((s) => {
-      if (!s.scene || s.party[0]?.id !== leaderId) return {};
+      if (!s.scene || meneurDuMonde(s)?.id !== leaderId) return {};
       const place = placesJouables(s.scene, entityId).find((p) => p.slotId === cible.slotId);
       if (!place || !memeCase(s.partyPos, place.approach)) return {};
       const res = assignSeat(s.scene, entityId, place.slotId, occupant, s.party.length);
@@ -1811,9 +1810,9 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
     });
     if (gagnee.pose) {
       get().log(t('seating.sat'));
-      // POSE UNIQUE : le cap d'ÉTAT suit celui de la place — le corps, la vue subjective et tout
-      // ce qui lit `facing` regardent la table, pas la direction d'où l'on venait.
-      get().setFacing(leaderId, gagnee.pose.facing);
+      // POSE UNIQUE : le cap du GROUPE suit celui de la place — le corps, la vue subjective et tout
+      // ce qui lit le regard d'exploration regardent la table, pas la direction d'où l'on venait.
+      set((s) => ({ facing: poserCapDuGroupe(s.facing, gagnee.pose!.facing) }));
       bus.emit(EVT.SCENE_DIRTY);
       return;
     }
@@ -1864,7 +1863,6 @@ export const useGame = create<GameState>((set, get) => ({
     set((s) => ({ camEdge: false, camRot: (((s.camRot + (dir === 1 ? 1 : 3)) % 4) as 0 | 1 | 2 | 3), camPan: { x: 0, y: 0 } }));
   },
   facing: {},
-  setFacing: (id, dir) => set((s) => ({ facing: { ...s.facing, [id]: dir } })),
   faceToward: (id, from, to) => {
     if (!from || !to) return;
     set((s) => ({ facing: { ...s.facing, [id]: facingToward(from, to) } }));
@@ -2183,6 +2181,7 @@ export const useGame = create<GameState>((set, get) => ({
     // navigation/vue (screen, caméra, zoom), le groupe (posé par `setParty`) et la SESSION COOP
     // (net : héberger une partie PUIS la lancer ne doit pas dissoudre le salon — Jalon 7).
     const { screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net } = get();
+    const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
     set({
       ...(JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>),
       screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net,
@@ -2191,7 +2190,7 @@ export const useGame = create<GameState>((set, get) => ({
       partyPos: pos,
       // Orientation d'ENTRÉE du meneur : authorée (facing du heroStart) sinon vers le CONTENU
       // (spawnFacing — en POV, un spawn au bord sud ne doit pas contempler le vide hors-carte).
-      facing: party[0] ? { [party[0].id]: start?.facing ?? spawnFacing(pos, scene.dimensions) } : {},
+      facing: poserCapDuGroupe({}, capEntrant),
       flags: { ...scene.flags },
       campaignSceneId: scene.id,
       journal: scene.startMessage ? [scene.startMessage] : [],
@@ -2281,7 +2280,7 @@ export const useGame = create<GameState>((set, get) => ({
       sceneInstances,
       mode: 'exploration',
       partyPos: { ...start },
-      facing: s.party[0] ? { ...s.facing, [s.party[0].id]: authored ?? spawnFacing(start, target.dimensions) } : s.facing,
+      facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, target.dimensions)),
       lightLevel: null, // nouvelle scène → lumière auto (un setLight ne se propage pas d'une scène à l'autre)
       // flags persistants : on conserve l'état narratif et on ajoute les
       // valeurs par défaut de la nouvelle scène pour les clés absentes.
@@ -2319,8 +2318,10 @@ export const useGame = create<GameState>((set, get) => ({
     // à une place dont il s'est déjà éloigné. Scène sans assise → aucun delta (même référence).
     const debout = get().party.length ? releaseSeat(scene, { kind: 'party', rang: RANG_MENEUR }) : scene;
     set(debout === scene ? { partyPos: pt } : { partyPos: pt, scene: debout });
-    const leadId = get().party[0]?.id;
-    if (leadId) get().faceFromPath(leadId, [from, pt]);
+    // CAP DU GROUPE le long du pas (écrivain unique) — `faceFromPath` reste la couture des caps
+    // INDIVIDUELS du combat. DELTA NUL : un pas qui ne change que l'ÉTAGE (escalier, `z` seul) ne
+    // touche pas au regard ; `facingToward` y rendrait son défaut sud et claquerait la vue.
+    if (from.x !== pt.x || from.y !== pt.y) set((s) => ({ facing: poserCapDuGroupe(s.facing, facingToward(from, pt)) }));
     bus.emit(EVT.SCENE_DIRTY);
     checkTriggers(get, set);
     // P5 (déplacement-puis-interaction) : l'interaction s'ouvre à la case D'ARRIVÉE du plan qui l'a
@@ -2346,8 +2347,9 @@ export const useGame = create<GameState>((set, get) => ({
     // Grimpeur (LDB 15 l.57) : porté par le meneur (exploration) ou le héros actif (combat). Grimpant
     // (LDB 85 l.160-162, créature, combat seulement) : `autoClimb` dispense de tout Test — et de la garde
     // `requiresGrimpeur`, réservée au Talent joueur (`planClimb` arbitre `autoSucceed`, réf ci-dessous).
-    // Sans Point de Blessure, un héros ne peut que ramper (LDB 16 l.35) : aucun grimpeur, refus NOMMÉ.
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : get().party.find((h) => !h.dead && h.wounds.current > 0);
+    // Sans Point de Blessure, un héros ne peut que ramper (LDB 16 l.35) ; Inconscient : LDB 16 l.113.
+    // Aucun grimpeur, refus NOMMÉ.
+    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
     if (!mover) { get().log(t('climb.personne')); return; }
     const hasGrimpeur = !!mover?.talents?.some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
     const autoClimb = mode === 'battle' && hasAutoClimb(mover?.traits);
@@ -2388,7 +2390,7 @@ export const useGame = create<GameState>((set, get) => ({
   fallAcross: (from, to) => {
     const { scene, mode, battle } = get();
     if (!scene) return;
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : get().party.find((h) => !h.dead && h.wounds.current > 0);
+    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
     if (!mover) return;
     if (mode === 'battle' && (!battle || battle.over || !controlsCombatant(get(), mover))) return;
     const plan = planFall(scene, from, to);
@@ -2413,43 +2415,41 @@ export const useGame = create<GameState>((set, get) => ({
   fallCancel: () => set({ pendingFall: null }),
 
   stepPartyDir: (dir) => {
-    const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge, party } = get();
+    const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge } = get();
     if (!scene || mode !== 'exploration' || dialogue) return;
     const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
     const dest = exploreStepDest(scene, partyPos, dir, dims);
     if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
     // Glisse d'1 case via l'anim de marche EXISTANTE (ANIM_MOVE → walkPosOf), puis `moveParty` (z-aware :
     // facing, triggers, déplacement-puis-fouille) — le leader VISIBLE est le même qu'IsoStage.
-    const leader = party.find((h) => !h.dead && h.wounds.current > 0) ?? party[0];
+    const leader = meneurDuMonde(get());
     if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [partyPos, dest] });
     get().moveParty(dest);
   },
 
   pivotParty: (turn) => {
-    const lead = get().party[0]?.id;
-    if (!lead) return;
+    if (!meneurDuMonde(get())) return; // groupe vide : personne à faire pivoter
     // Pivot du regard SEUL (aucun déplacement → pas de réorientation par `faceFromPath`). ±1 cran = 45°.
-    get().setFacing(lead, rotateDir8(get().facing[lead] ?? 'S', turn));
+    set((s) => ({ facing: poserCapDuGroupe(s.facing, rotateDir8(capDuGroupe(s) ?? 'S', turn)) }));
   },
 
   stepPartyRelative: (rel) => {
     const s = get();
     if (s.mode !== 'exploration') return;
     const scene = s.scene;
-    const lead = s.party[0]?.id;
-    if (!scene || !lead) return;
-    const cur = s.facing[lead] ?? 'S';
+    if (!scene || !meneurDuMonde(s)) return;
+    const cur = capDuGroupe(s) ?? 'S';
     // Cap MONDE du pas = regard tourné de 0/2/4/6 crans (2 crans = 90° par cadran relatif).
     const worldDir = rotateDir8(cur, { forward: 0, right: 2, back: 4, left: 6 }[rel]);
     const dest = povStepDest(scene, s.partyPos, worldDir);
     if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
     // Glisse d'1 case via l'anim de marche EXISTANTE (même forme d'émission que stepPartyDir).
-    const leader = s.party.find((h) => !h.dead && h.wounds.current > 0) ?? s.party[0];
+    const leader = meneurDuMonde(s);
     if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [s.partyPos, dest] });
     s.moveParty(dest);
-    // Un pas ≠ avant ne doit pas tourner le regard : `moveParty`→`faceFromPath` l'a réorienté le long du
+    // Un pas ≠ avant ne doit pas tourner le regard : `moveParty` a posé le cap du groupe le long du
     // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
-    if (rel !== 'forward') get().setFacing(lead, cur);
+    if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
   },
 
   interactEntity: (entityId) => {
@@ -2468,7 +2468,7 @@ export const useGame = create<GameState>((set, get) => ({
     // couture `state/seating`), qui peut tomber hors du voisinage de la case d'ancrage.
     // Le MENEUR est l'emplacement 1 du groupe ; son id ne sert qu'à re-vérifier, à l'écriture, que
     // le meneur n'a pas changé entre le clic et le commit (coop).
-    const leaderId = get().party[0]?.id;
+    const leaderId = meneurDuMonde(get())?.id;
     // Places JOUABLES, pas la géométrie : un décor que l'auteur n'a pas ACTIVÉ n'offre pas l'assise
     // (#1687, `placesJouables`) — le clic y reste inerte au lieu de servir une raison de refus.
     const places = placesDe(scene, entityId);

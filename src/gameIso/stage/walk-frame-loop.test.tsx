@@ -236,7 +236,7 @@ describe('Marche volumique — ni géométrie ni billboards reconstruits entre d
     expect(billboards.mock.calls.length).toBe(bAvant);
     // Un rendu EN PLEINE marche (le store bouge : ici l'orientation, que le monde volumique lit) : les
     // sujets s'y redérivent, et leur identité ne doit pas avoir bougé d'un demi-pas pour autant.
-    act(() => { useGame.getState().setFacing('__sonde-orientation', 'N'); });
+    act(() => { useGame.getState().faceToward('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
     expect(cuisson.mock.calls.length).toBe(cAvant);
     expect(billboards.mock.calls.length).toBe(bAvant);
   });

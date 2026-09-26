@@ -7,28 +7,19 @@ import { findVehicleById } from '../data';
 const ent = (over: Partial<SceneEntity>): SceneEntity => ({ id: 'x', kind: 'prop', pos: { x: 0, y: 0 }, ...over });
 
 describe('tokenBodyKind — classifieur de backend (rig / plan / sprite)', () => {
-  it('leader absent (groupe vide) → jeton VIDE (rig), id __party — plus de sprite villageois', () => {
-    const r = tokenBodyKind({ kind: 'partyLeader', leader: undefined });
-    expect(r.bodyKind).toBe('rig');
-    expect(r.id).toBe('__party');
-  });
-
-  it('entité prop sans ref → sprite, id préfixé e-', () => {
+  it('entité prop sans ref → sprite', () => {
     const r = tokenBodyKind({ kind: 'sceneEntity', ent: ent({ id: 'a', kind: 'prop' }) });
     expect(r.bodyKind).toBe('sprite');
-    expect(r.id).toBe('e-a');
   });
 
   it('personnage humanoïde (villageois) → rig', () => {
     const r = tokenBodyKind({ kind: 'sceneEntity', ent: ent({ id: 'b', kind: 'personnage', ref: 'villageois' }) });
     expect(r.bodyKind).toBe('rig');
-    expect(r.id).toBe('e-b');
   });
 
   it('personnage créature non-bipède (id rat-geant → espèce du record) → plan (fin de l’asymétrie sprite figé)', () => {
     const r = tokenBodyKind({ kind: 'sceneEntity', ent: ent({ id: 'c', kind: 'personnage', ref: 'rat-geant' }) });
     expect(r.bodyKind).toBe('plan');
-    expect(r.id).toBe('e-c');
   });
 });
 

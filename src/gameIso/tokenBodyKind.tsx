@@ -24,12 +24,12 @@ import type { RigOverlay } from './rig/bones';
 
 /**
  * Sujet à rendre comme token. Discriminé : combattant (combat), entité de scène
- * (exploration/éditeur) ou leader de groupe (token '__party' en exploration).
+ * (exploration/éditeur) ou leader de groupe (jeton du groupe en exploration).
  */
 export type TokenSubject =
   | { kind: 'combatant'; combatant: Combatant }
   | { kind: 'sceneEntity'; ent: SceneEntity; enrolled?: boolean }
-  | { kind: 'partyLeader'; leader?: Combatant };
+  | { kind: 'partyLeader'; leader: Combatant };
 
 export interface TokenBody {
   /** Famille de CORPS montée. `bakedDeath` se dérive : `bodyKind !== 'sprite'`. */
@@ -38,8 +38,6 @@ export interface TokenBody {
   body: ReactNode;
   /** Multiplicateur de taille d'espèce (bipède/créature) — la base reste au site appelant. */
   speciesScale: number;
-  /** Clé de routage bus/facing, préfixe déjà appliqué (`c.id` / `e-<id>` / `__party`). */
-  id: string;
   /** viewBox (repère 120×150 du corps) cadrant le VISAGE pour un portrait (RigPortrait / disque top).
    *  Humanoïde = gros plan tête ; créature = haut-avant (la tête varie selon le gabarit). */
   portraitBox: string;
@@ -111,7 +109,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
     const c = subject.combatant;
     // Structure de siège (`bodyShape:'structure'`) : fortification inerte → bloc de pierre crénelé, JAMAIS
     // un bipède Humain (`resolveRender` retomberait là-dessus, faute d'espèce). Invariant du classifieur.
-    if (isStructure(c)) return { bodyKind: 'plan', id: c.id, speciesScale: 1, portraitBox: STRUCT_BOX, flat: top, body: STRUCT_BODY };
+    if (isStructure(c)) return { bodyKind: 'plan', speciesScale: 1, portraitBox: STRUCT_BOX, flat: top, body: STRUCT_BODY };
     // Résolution de rendu UNIQUE par la DONNÉE (espèce explicite + trait Nuée), repli `creatureId`
     // (id STABLE posé au spawn, cf. Combatant.creatureId) : classe (rig humanoïde vs gabarit créature),
     // plan, espèce canonique, échelle. `kind==='hero'` est surchargé (PJ bipède OU acteur allié — cheval
@@ -126,25 +124,22 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
         const equip = prof?.equip ?? equipFromCombatant(c);
         const tenue = prof?.tenue ?? c.career; // garde-robe = tenue du profil, sinon id de carrière (Combatant.career)
         const f = faceFrame(appearance, equip, tenue, combatantOverlays(c));
-        return { bodyKind: 'rig', id: c.id, speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
+        return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
       }
-      return { bodyKind: 'rig', id: c.id, speciesScale: r.scale, portraitBox: FACE_BOX, flat: false, body: <AnimatedRigToken combatant={c} profile={prof ?? undefined} pos={c.pos} /> };
+      return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: FACE_BOX, flat: false, body: <AnimatedRigToken combatant={c} profile={prof ?? undefined} pos={c.pos} /> };
     }
-    return { bodyKind: 'plan', id: c.id, speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={c.id} planId={r.plan} species={r.species} recordId={c.creatureId} override={c.appearanceOverride} dead={groundStateOf(c) === 'corpse' || isOutOfAction(c)} prone={groundStateOf(c) === 'prone'} pos={c.pos} /> };
+    return { bodyKind: 'plan', speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={c.id} planId={r.plan} species={r.species} recordId={c.creatureId} override={c.appearanceOverride} dead={groundStateOf(c) === 'corpse' || isOutOfAction(c)} prone={groundStateOf(c) === 'prone'} pos={c.pos} /> };
   }
 
+  // JETON DE GROUPE : le seul sujet qui n'existe QU'EN DISQUE-PORTRAIT. En iso, le groupe est dessiné
+  // par le monde volumique (`sceneMeshes.partyActorPose` → billboard), pas par ce classifieur : son
+  // unique producteur est la marque de chrome (`builders/tokenChrome`), consommée par `TokenDisc` en
+  // vue du dessus. Le corps porte le visage du MENEUR ; son cap, lui, ne passe jamais par ici — il se
+  // lit à la clé publiée par `partyTokenOf` (`PartyToken.capKey`).
   if (subject.kind === 'partyLeader') {
     const leader = subject.leader;
-    if (leader) {
-      if (top) {
-        const f = faceFrame(combatantAppearance(leader.appearance ?? defaultAppearance(leader), leader), equipFromCombatant(leader), leader.career, combatantOverlays(leader));
-        return { bodyKind: 'rig', id: '__party', speciesScale: 1, portraitBox: f.box, flat: true, body: f.body };
-      }
-      return { bodyKind: 'rig', id: '__party', speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <AnimatedRigToken combatant={leader} /> };
-    }
-    // Groupe VIDE (aucun meneur) — cas défensif inatteignable en exploration (party.find ?? party[0]
-    // renvoie toujours un membre tant que le groupe existe) : jeton vide, plus de sprite « villageois ».
-    return { bodyKind: 'rig', id: '__party', speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <g /> };
+    const f = faceFrame(combatantAppearance(leader.appearance ?? defaultAppearance(leader), leader), equipFromCombatant(leader), leader.career, combatantOverlays(leader));
+    return { bodyKind: 'rig', speciesScale: 1, portraitBox: f.box, flat: true, body: f.body };
   }
 
   // sceneEntity (exploration + éditeur) — la résolution du preset de PNJ nommé (#671) et celle du
@@ -158,7 +153,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // homonyme (ex. `chaise` meuble de `props.json` vs chaise à porteurs de `vehicles.json`) sans jamais
   // se faire happer par ce registre.
   if (ent.kind === 'prop')
-    return { bodyKind: 'sprite', id, speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <g dangerouslySetInnerHTML={{ __html: entitySprite(ent) }} /> };
+    return { bodyKind: 'sprite', speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <g dangerouslySetInnerHTML={{ __html: entitySprite(ent) }} /> };
   // SUJET des diagnostics de donnée : `<scène>/<idEntité>` — une entité sans réf n'a aucune identité dans
   // `resolveRender`, et les ids d'entité ne sont uniques QUE dans leur scène (deux « aubergiste »).
   const sujet = `${useGame.getState().scene?.id ?? ''}/${ent.id}`;
@@ -175,14 +170,14 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   if (prof) {
     if (top) {
       const f = faceFrame(prof.appearance, prof.equip, prof.tenue, []);
-      return { bodyKind: 'rig', id, speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
+      return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
     }
-    return { bodyKind: 'rig', id, speciesScale: r.scale, portraitBox: FACE_BOX, flat: false, body: <RigToken id={id} appearance={prof.appearance} equip={prof.equip} career={prof.tenue} ambientAnim={ent.anim ?? ''} facing={ent.facing} pos={ent.pos} /> };
+    return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: FACE_BOX, flat: false, body: <RigToken id={id} appearance={prof.appearance} equip={prof.equip} career={prof.tenue} ambientAnim={ent.anim ?? ''} facing={ent.facing} pos={ent.pos} /> };
   }
   if (r.kind === 'plan') {
     // Socle unique `planOptsForRecord` (il résout aussi les clés d'yeux du catalogue en arts) :
     // précédence PAR CHAMP — l'apparence de l'entité prime sur celle du record (`refName`).
-    return { bodyKind: 'plan', id, speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={id} planId={r.plan} species={r.species} recordId={refName} override={ent.appearance} facing={ent.facing} pos={ent.pos} /> };
+    return { bodyKind: 'plan', speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={id} planId={r.plan} species={r.species} recordId={refName} override={ent.appearance} facing={ent.facing} pos={ent.pos} /> };
   }
-  return { bodyKind: 'sprite', id, speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <g dangerouslySetInnerHTML={{ __html: entitySprite(ent) }} /> };
+  return { bodyKind: 'sprite', speciesScale: 1, portraitBox: FACE_BOX, flat: false, body: <g dangerouslySetInnerHTML={{ __html: entitySprite(ent) }} /> };
 }

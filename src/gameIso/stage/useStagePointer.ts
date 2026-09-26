@@ -24,15 +24,14 @@ import { toggleDoorIn } from '../../state/scene';
 import { entityBlockedAt } from '../../state/sceneRules';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { chebyshev, walkNeighbors, type Pt } from '../../state/path';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan, type PathOpts } from '../../state/exploreNav';
+import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../state/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../state/seating';
+import { meneurDuMonde } from '../../state/combatants';
 // `t` est déjà le nom local de la TUILE survolée dans ce module : la traduction s'y importe sous son
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
 import { planJump } from '../../state/jumpMove';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
-import { maxJumpTiles } from '../../engine/movement';
-import { effectiveMovement } from '../../engine/encumbrance';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../state/bus';
 import { combatantAtTile } from '../../state/combatGeometry';
@@ -192,11 +191,7 @@ export function useStagePointer({
     pointViewBoxSousPixel(svgRef.current, cx, cy);
   const clientToSvg = (ev: React.PointerEvent): { x: number; y: number } | null => clientPtToSvg(ev.clientX, ev.clientY);
 
-  const pathOpts = (): PathOpts => {
-    const heroes = useGame.getState().party.filter((h) => !h.dead && h.wounds.current > 0);
-    const partyM = heroes.length ? Math.min(...heroes.map((h) => effectiveMovement(h))) : 0;
-    return { blocked: new Set(), jump: maxJumpTiles(partyM) };
-  };
+  const pathOpts = (): PathOpts => optionsDeCheminDuGroupe(useGame.getState().party);
 
   const moveAlong = (sceneId: string, plan: ExploreMovePlan) => {
     if (movingRef.current || plan.path.length < 2) return;
@@ -227,9 +222,7 @@ export function useStagePointer({
           if (Math.sign(a.x - b.x) === jdx && Math.sign(a.y - b.y) === jdy && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1) runUp++;
           else break;
         }
-        const heroes = st.party.filter((hero) => !hero.dead && hero.wounds.current > 0);
-        const partyM = heroes.length ? Math.min(...heroes.map((hero) => effectiveMovement(hero))) : 0;
-        const jumpPlan = planJump(currentScene, prev, cur, partyM, runUp);
+        const jumpPlan = planJump(currentScene, prev, cur, mouvementDuGroupe(st.party), runUp);
         if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
         st.moveParty(cur);
         if (jumpPlan.kind === 'test') {
@@ -360,7 +353,7 @@ export function useStagePointer({
     // Aucun second pending, aucune route `sit`/`seat` : le geste reste `interactEntity`. Cette branche
     // n'INTERCEPTE rien : sans place servable elle repasse la main à la chaîne fouille/marchand/dialogue.
     if (ent && ent.kind === 'prop' && placesJouables(sc, ent.id).length) {
-      const meneur = st.party[0]?.id;
+      const meneur = meneurDuMonde(st)?.id;
       const assisIci = !!meneur && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
       // UNE SEULE source de « place LIBRE » : le plan d'assise (`exploreSeatPlan`, qui filtre les
       // places prises et rend un chemin d'un seul point quand on est DÉJÀ sur l'abord d'une libre).
