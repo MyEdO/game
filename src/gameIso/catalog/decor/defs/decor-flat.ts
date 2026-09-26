@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Châssis de décor (toile peinte sur cadre) appuyé de profil : un panneau de scène peint d'une colonne
 // et d'un ciel, posé en attente. Le contenu emblématique du « Stockage des décors » (20), des coulisses
-// (16) et de la charpenterie (26) du théâtre. Cf. plan officiel NADJ 8 p.40 (longs panneaux/toiles rangés).
+// (16) et de la charpenterie (26) du théâtre. Cf. plan officiel NADJ 08 folio 38, image (longs panneaux/toiles rangés).
 export const prop: PropViz = {
   id: 'decor-flat',
   label: 'Châssis de décor',

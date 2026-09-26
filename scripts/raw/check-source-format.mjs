@@ -23,34 +23,46 @@
 // `docs/ajouter-un-livre-source.md`). D'où :
 //  — livre AVEC liste : le dossier se CONFRONTE à la liste (`ecartsAuGrain`) — noms, ligne 1,
 //    ouverture, index. Tout écart est un ROUGE NOMMÉ, sans stock : le geste tient en une commande.
-//  — livre SANS liste : son grain n'est déclaré nulle part. UNE entrée de stock par dossier
-//    (famille `sans-decoupe`), dont l'unité de réparation est le livre mis au grain.
+//  — livre SANS liste : son grain n'est déclaré nulle part. Une entrée de stock par chapitre
+//    (famille `sans-decoupe`), qui sort quand le livre est mis au grain.
 //
 // STOCK NOMINATIF (`scripts/raw/source-format-stock.json`, régime #1711) : une ENTRÉE par
-// (famille, dossier, détail), clé `famille :: fichier :: ref :: occurrence`
-// (`guards/lib/stock.mjs`, `cleDeSite` — seule définition, #1727). L'unité de RÉPARATION est le
-// LIVRE ré-extrait, pas le chapitre : d'où UNE entrée par famille et par dossier, dont la `ref`
-// porte le détail compté. Le `fichier` nomme le PREMIER chapitre fautif de ce dossier — un
-// chemin de DOSSIER nu (`Source/<livre>`) ne tombe sous aucun motif de
-// `scripts/guards/lib/stocksNominatifs.mjs` (`CHEMIN_SOURCE` exige `.md`) et laisserait TOUTES les
-// entrées du stock HORS DE VUE des deux portes de croissance (mesuré le 2026-09-14 :
-// `stocks-nominatifs` refusait « 0 entrée(s) vue(s) sur 57 déclarée(s) »). Les deux sens sont
-// rouges : un écart MESURÉ hors du stock (ré-extraire le livre, ou déclarer par `CLIQUET:`), une
-// entrée SANS écart mesuré (livre ré-extrait : la retirer).
+// (famille, FICHIER, détail), clé `famille :: fichier :: ref :: occurrence`
+// (`guards/lib/stock.mjs`, `cleDeSite` — seule définition, #1727). Le `fichier` est le chapitre
+// fautif lui-même, la `ref` son détail : aucune clé ne porte le compte d'un DOSSIER, qu'un livre
+// qui entre ou sort de la chaîne déplacerait tout entier (#1739, pose des folios du CRB). Un
+// chemin de DOSSIER nu ne tombe sous aucun motif de `scripts/guards/lib/stocksNominatifs.mjs`
+// (`CHEMIN_SOURCE` exige `.md`). Les deux sens sont rouges : un écart MESURÉ hors du stock
+// (ré-extraire le livre, ou déclarer par `CLIQUET:`), une entrée SANS écart mesuré (la retirer).
+//
+// MOBILIER DE PAGE (famille `mobilier`, #1739) : pour tout livre dont la liste de découpe porte des
+// `onglets`, un chiffre d'onglet ou un folio mêlé au flux est un ROUGE NOMMÉ, sans stock — le geste
+// est `node scripts/raw/reparer-mobilier.mjs <id>`. Le prédicat est celui de la sonde
+// (`lib/mobilier.mjs`), importé, jamais redit ; un mot du livre qui y tombe s'exempte AU SITE
+// (`scripts/guards/lib/mobilierExemptions.mjs`) pour ses `jetons` sites exactement : au-delà, le site
+// est rouge ; en deçà, l'exemption l'est.
+//
+// TITRES SOUDÉS (famille `titre-soude`, #1739) : pour tout livre dont la liste de découpe porte un
+// `gabaritTitre`, une ligne ouverte par un gras que suit autre chose que sa prose (P5) ou une ligne de
+// titre à deux groupes gras est un ROUGE NOMMÉ, sans stock — le geste est
+// `node scripts/raw/reparer-titres.mjs <id>`. Le prédicat est celui de la réparation
+// (`lib/titres-soudes.mjs`), importé, jamais redit.
 //
 // Re-run    : node scripts/raw/check-source-format.mjs
-// Régénérer : node scripts/raw/check-source-format.mjs --ecrire-stock
+// Régénérer : node scripts/raw/check-source-format.mjs --ecrire-stock [--lot <#N …>] — le lot est REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`, scripts/guards/lib/stock.mjs)
 import { existsSync, writeFileSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
-import { ecartDuVolet, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
-import { graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { ecartDuVolet, ecrireStockSousLot, phraseDeNaissance, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
+import { naissanceEnPlace, readStock } from './stockNominatif.mjs'
+import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
-import { decoupeDe, livreDuDossier, livresDecoupes, REGISTRE_LIVRES } from './_lib.mjs'
-import { nomAscii } from '../source/nom-ascii.mjs'
+import { decoupeDe, gabaritTitreDe, livreDuDossier, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
+import { exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
+import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
+import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-format-stock.json')
 
@@ -105,12 +117,6 @@ export function formeDeLigne1(ligne) {
 /** Le titre d'un chapitre est-il un SIGNET Word (`_GoBack`, `_gjdgxs`, `Sans titre`) plutôt que le
  *  titre imprimé ? Ces noms polluent l'index et rendent la réf de chapitre illisible. */
 export const estNomDeSignet = (titre) => titre.startsWith('_') || /^sans titre$/i.test(titre.trim())
-
-/** Une ligne de SÉPARATEUR de table Markdown (`| --- | --- |`, `|--|--|--|`). */
-export function estSeparateur(ligne) {
-  const t = ligne.trim().replace(/\s+/g, '')
-  return t.startsWith('|') && /^[|:-]+$/.test(t) && t.includes('--')
-}
 
 /** La ligne DÉBARRASSÉE de ses ancres de page (une table ouverte par une ancre reste une table). */
 const sansAncres = (ligne) => ligne.replace(ANCRE_PAGE, '')
@@ -182,98 +188,62 @@ export function liensDIndex(texte) {
 
 /**
  * Sites d'écart d'UN dossier (PUR : aucun accès disque). `dir` est le chemin POSIX du dossier ;
- * `fichiers` la liste `{ nom, texte }` de ses `.md`. Chaque site nomme le PREMIER chapitre fautif
- * de sa famille (le `fichier` du stock) et porte le DÉTAIL COMPTÉ du dossier en `ref`.
+ * `fichiers` la liste `{ nom, texte }` de ses `.md`. UN SITE PAR FICHIER fautif et par famille (et
+ * par balise pour `html-residuel`) : le `fichier` du stock est CE fichier, la `ref` porte son détail
+ * SANS cardinal ; le compte d'occurrences du défaut dans CE fichier est le `nombre`, hors clé — une
+ * réparation partielle ne change pas l'identité du site.
  *
- * COUVERTURE DITE : les familles (1) à (4) et (8) ne jugent que les fichiers au motif `NN - X.md`
- * (`CHAPITRE_RE`), `00 - Index.md` exclu — un `.md` hors motif leur est INVISIBLE (mesuré le
- * 2026-09-14 : 0 fichier hors motif sur les 20 dossiers FR). Les familles (5) `html-residuel` et
- * (7) `table-sans-separateur` balaient TOUS les `.md` du dossier, index compris ; (6) `index-mort`
- * ne lit que `00 - Index.md`.
+ * COUVERTURE DITE : les familles (1) à (4), (8) et (9) ne jugent que les fichiers au motif
+ * `NN - X.md` (`CHAPITRE_RE`), `00 - Index.md` exclu — un `.md` hors motif leur est INVISIBLE
+ * (mesuré le 2026-09-14 : 0 fichier hors motif sur les 20 dossiers FR). Les familles (5)
+ * `html-residuel` et (7) `table-sans-separateur` balaient TOUS les `.md` du dossier, index compris ;
+ * (6) `index-mort` ne lit que `00 - Index.md`.
  * @param {string} dir @param {{ nom: string, texte: string }[]} fichiers
- * @returns {{ famille: string, file: string, ref: string }[]}
+ * @returns {{ famille: string, file: string, ref: string, nombre?: number }[]}
  */
 export function sitesDuDossier(dir, fichiers, liste = null) {
   const out = []
   const noms = new Set(fichiers.map((f) => f.nom))
   const chapitres = fichiers.filter((f) => numeroDuFichier(f.nom) != null)
   const chemin = (nom) => `${dir}/${nom}`
+  const site = (famille, nom, ref, nombre = null) => out.push({ famille, file: chemin(nom), ref, ...(nombre == null ? {} : { nombre }) })
 
-  // (1) ligne 1 hors format — une entrée par FORME rencontrée.
-  const formes = new Map()
+  // (1) ligne 1 hors format — sa FORME.
   for (const { nom, texte } of chapitres) {
     const forme = formeDeLigne1(texte.split('\n')[0] ?? '')
-    if (!forme) continue
-    const vu = formes.get(forme)
-    formes.set(forme, { premier: vu?.premier ?? nom, n: (vu?.n ?? 0) + 1 })
-  }
-  for (const forme of [...formes.keys()].sort(parUnitesDeCode)) {
-    const { premier, n } = formes.get(forme)
-    out.push({ famille: 'ligne1-hors-format', file: chemin(premier), ref: `${forme} ×${n}` })
+    if (forme) site('ligne1-hors-format', nom, forme)
   }
 
-  // (2) chapitres SANS aucune ancre `data-folio` : rien n'y est adressable au folio imprimé.
-  const sansFolio = chapitres.filter(({ texte }) => !/data-folio/.test(texte))
-  if (sansFolio.length) {
-    out.push({ famille: 'sans-folio', file: chemin(sansFolio[0].nom), ref: `${sansFolio.length} chapitre(s)` })
-  }
+  // (2) chapitre SANS aucune ancre `data-folio` : rien n'y est adressable au folio imprimé.
+  for (const { nom, texte } of chapitres) if (!/data-folio/.test(texte)) site('sans-folio', nom, 'aucune ancre data-folio')
 
   // (3) ancres SEULES sur leur ligne : la forme « scan/folio », qui casse l'adressage au texte
   // (l'ancre ne préfixe plus le paragraphe qu'elle ouvre).
-  let seules = 0
-  let ancres = 0
-  let premiereSeule = null
   for (const { nom, texte } of chapitres) {
-    for (const l of texte.split('\n')) {
-      if (!/data-folio/.test(l)) continue
-      ancres += 1
-      if (!ANCRE_SEULE.test(l.trim())) continue
-      seules += 1
-      premiereSeule ??= nom
-    }
-  }
-  if (seules) {
-    out.push({ famille: 'ancre-seule', file: chemin(premiereSeule), ref: `${seules} ancres seules / ${ancres}` })
+    const seules = texte.split('\n').filter((l) => /data-folio/.test(l) && ANCRE_SEULE.test(l.trim())).length
+    if (seules) site('ancre-seule', nom, 'ancre(s) seule(s)', seules)
   }
 
-  // (4) noms de SIGNET Word à la place du titre imprimé.
-  const signets = chapitres.map((f) => f.nom).filter((n) => estNomDeSignet(titreDuFichier(n)))
-  if (signets.length) {
-    out.push({ famille: 'nom-de-signet', file: chemin(signets[0]), ref: `${signets.length} fichier(s) : ${signets.join(', ')}` })
-  }
+  // (4) nom de SIGNET Word à la place du titre imprimé.
+  for (const { nom } of chapitres) if (estNomDeSignet(titreDuFichier(nom))) site('nom-de-signet', nom, titreDuFichier(nom))
 
-  // (5) HTML résiduel — une entrée par BALISE (chacune se retire d'un geste distinct).
-  const balises = new Map()
+  // (5) HTML résiduel — par BALISE (chacune se retire d'un geste distinct).
   for (const { nom, texte } of fichiers) {
-    for (const [tag, n] of balisesResiduelles(texte)) {
-      const vu = balises.get(tag)
-      balises.set(tag, { premier: vu?.premier ?? nom, n: (vu?.n ?? 0) + n })
-    }
-  }
-  for (const tag of [...balises.keys()].sort(parUnitesDeCode)) {
-    const { premier, n } = balises.get(tag)
-    out.push({ famille: 'html-residuel', file: chemin(premier), ref: `<${tag}> ×${n}` })
+    const balises = balisesResiduelles(texte)
+    for (const tag of [...balises.keys()].sort(parUnitesDeCode)) site('html-residuel', nom, `<${tag}>`, balises.get(tag))
   }
 
   // (6) index MORT : un lien relatif vers un fichier absent du dossier.
   const index = fichiers.find((f) => f.nom === INDEX)
   if (index) {
     const morts = liensDIndex(index.texte).filter((c) => !noms.has(c))
-    if (morts.length) out.push({ famille: 'index-mort', file: chemin(INDEX), ref: `${morts.length} lien(s)` })
+    if (morts.length) site('index-mort', INDEX, 'lien(s) mort(s)', morts.length)
   }
 
   // (7) tables sans ligne de SÉPARATEUR : le bloc n'est pas une table pour un parseur Markdown.
-  let tables = 0
-  let cassees = 0
-  let premiereCassee = null
   for (const { nom, texte } of fichiers) {
-    const c = comptesDeTables(texte)
-    tables += c.total
-    cassees += c.sansSeparateur
-    if (c.sansSeparateur) premiereCassee ??= nom
-  }
-  if (cassees) {
-    out.push({ famille: 'table-sans-separateur', file: chemin(premiereCassee), ref: `${cassees}/${tables} tables` })
+    const { sansSeparateur } = comptesDeTables(texte)
+    if (sansSeparateur) site('table-sans-separateur', nom, 'table(s) sans séparateur', sansSeparateur)
   }
 
   // (8) LARGEUR de numéro hétérogène : dans un dossier, TOUT préfixe a la largeur du plus grand
@@ -282,24 +252,14 @@ export function sitesDuDossier(dir, fichiers, liste = null) {
   const numeros = chapitres.map((f) => numeroDuFichier(f.nom))
   if (numeros.length) {
     const largeur = largeurDeChapitre(Math.max(...numeros))
-    const horsLargeur = chapitres.filter(
-      (f) => graphieDuFichier(f.nom) !== graphieDeChapitre(numeroDuFichier(f.nom), largeur),
-    )
-    if (horsLargeur.length) {
-      out.push({
-        famille: 'largeur-de-numero',
-        file: chemin(horsLargeur[0].nom),
-        ref: `${horsLargeur.length} préfixe(s) hors largeur ${largeur}`,
-      })
+    for (const f of chapitres) {
+      if (graphieDuFichier(f.nom) !== graphieDeChapitre(numeroDuFichier(f.nom), largeur)) site('largeur-de-numero', f.nom, `hors largeur ${largeur}`)
     }
   }
 
   // (9) SANS DÉCOUPE : le livre n'a pas de LISTE DE DÉCOUPE (`scripts/raw/decoupes/<id>.json`), donc
-  // son GRAIN n'est déclaré nulle part et rien ne peut le confronter. UNE entrée par dossier :
-  // l'unité de réparation est le livre mis au grain, jamais un chapitre.
-  if (liste == null && chapitres.length) {
-    out.push({ famille: 'sans-decoupe', file: chemin(chapitres[0].nom), ref: `${chapitres.length} chapitre(s)` })
-  }
+  // le GRAIN de ses chapitres n'est déclaré nulle part et rien ne peut le confronter.
+  if (liste == null) for (const { nom } of chapitres) site('sans-decoupe', nom, 'grain non déclaré')
 
   return out
 }
@@ -318,8 +278,7 @@ export function ecartsAuGrain(dir, fichiers, liste) {
   const out = []
   const chemin = (nom) => `${dir}/${nom}`
   const parNom = new Map(fichiers.map((f) => [f.nom, f.texte]))
-  const largeur = largeurDeChapitre(Math.max(1, liste.length))
-  const attendus = liste.map((e, i) => nomAscii(`${graphieDeChapitre(i + 1, largeur)} - ${e.titre}.md`))
+  const attendus = nomsDeLaListe(liste)
 
   const servis = fichiers.filter((f) => numeroDuFichier(f.nom) != null).map((f) => f.nom)
   const enTrop = servis.filter((n) => !attendus.includes(n))
@@ -385,6 +344,45 @@ export const grainDuDossier = (dir) => {
 
 /** Écarts au grain de TOUS les dossiers FR, dans l'ordre du corpus. */
 export const grainAll = (dossiers = dossiersFR()) => dossiers.flatMap((d) => grainDuDossier(d))
+
+/**
+ * Les ROUGES de la famille `mobilier` pour des sites mesurés (`lib/mobilier.mjs#mobilierDuDossier`) :
+ * chaque site NON exempté, puis chaque exemption qui ne couvre pas exactement ses `jetons` sites —
+ * `{ file, ref }`. PURE.
+ */
+export const rougesDuMobilier = (sites, exemptions = EXEMPTIONS_MOBILIER) => [
+  ...sites.filter((s) => !s.exemption).map((s) => ({ file: s.fichier, ref: `l.${s.ligne} ${s.classe} « ${s.jeton} » : ${s.texte.trim().slice(0, 60)}` })),
+  ...exemptionsFausses(sites, exemptions).map(({ exemption: e, couverts }) => ({ file: e.fichier, ref: `exemption qui couvre ${couverts} site(s) pour ${e.jetons} déclaré(s) : ${e.motif}` })),
+]
+
+/**
+ * MOBILIER DE PAGE de tous les dossiers FR dont le livre a des `onglets` (`rougesDuMobilier`).
+ * @param {string[]} [dossiers] @param {object[]} [exemptions]
+ */
+export function mobilierAll(dossiers = dossiersFR(), exemptions = EXEMPTIONS_MOBILIER, avecListe = livresDecoupes()) {
+  const sites = dossiers.flatMap((d) => {
+    const livre = livreDuDossier(d)
+    if (!livre || !avecListe.includes(livre.id)) return []
+    const textes = new Map(lireDossier(d).map((f) => [f.nom, f.texte]))
+    return mobilierDuDossier(cheminDe(d), (nom) => textes.get(nom) ?? '', decoupeDe(livre.id), ongletsDe(livre.id), { exemptions })
+  })
+  return rougesDuMobilier(sites, exemptions)
+}
+
+/** Les ROUGES de la famille `titre-soude` d'UN dossier de livre, fichier par fichier dans l'ordre de sa
+ *  liste de découpe — PUR : `texteDe(nom)` rend le texte d'un fichier. `{ file, ref }`. */
+export const titresSoudesDuDossier = (dir, texteDe, liste) =>
+  nomsDeLaListe(liste).flatMap((nom) => sitesDeTitresSoudes(texteDe(nom)).map((s) => ({ file: `${dir}/${nom}`, ref: `l.${s.ligne} ${s.classe} : ${s.texte.trim().slice(0, 60)}` })))
+
+/** TITRES SOUDÉS de tous les dossiers FR dont le livre déclare un `gabaritTitre`. */
+export function titresSoudesAll(dossiers = dossiersFR(), avecListe = livresDecoupes()) {
+  return dossiers.flatMap((d) => {
+    const livre = livreDuDossier(d)
+    if (!livre || !avecListe.includes(livre.id) || !gabaritTitreDe(livre.id)) return []
+    const textes = new Map(lireDossier(d).map((f) => [f.nom, f.texte]))
+    return titresSoudesDuDossier(cheminDe(d), (nom) => textes.get(nom) ?? '', decoupeDe(livre.id))
+  })
+}
 
 /**
  * Les DOSSIERS FR suivis, dans l'ordre POSIX : l'union des livres à `dir` de `books.json` et du
@@ -468,10 +466,10 @@ export function ecartDuStock(sites, stock) {
 
 const QUOI = ({ comptes, dossiers, entrees }) =>
   'Écart de FORME des extractions de `Source/` au format canonique (#1739, épique #1388) : une ' +
-  'ENTRÉE par (famille, dossier, détail), clé `famille :: fichier :: ref :: occurrence` (régime ' +
+  'ENTRÉE par (famille, fichier, détail), clé `famille :: fichier :: ref :: occurrence` (régime ' +
   `#1711). Format DÉFINI par \`docs/ajouter-un-livre-source.md\` § « Format canonique ». ` +
   `${dossiers} dossier(s) FR balayé(s). ` +
-  `Compte par famille à la naissance : ${FAMILLES.map((f) => `${f} ${comptes[f]}`).join(', ')}. ` +
+  `${phraseDeNaissance(comptes, FAMILLES)} ` +
   'LE GESTE, UN SEUL — REJOUER la chaîne canonique sur le livre : re-découpe depuis la sortie ' +
   'Marker conservée sous `Source/_marker/`, ou ré-extraction quand cette sortie manque. Jamais un ' +
   'remède de chapitre (arbitrage utilisateur 2026-09-14 : « Il faut un format unifié pour toutes ' +
@@ -479,18 +477,11 @@ const QUOI = ({ comptes, dossiers, entrees }) =>
   'DÉCROISSANCE : un livre repassé par la chaîne sort du stock dans le train qui l’intègre — ses ' +
   'entrées se retirent dans le MÊME commit que le dossier remplacé, et la garde refuse alors toute ' +
   'entrée sans écart mesuré. L’ORDRE de ré-extraction vit sur #1739. ' +
-  'LIMITE DITE, et VOULUE — le DÉTAIL est un COMPTE : `ref` porte « ×N », donc tout geste NON ' +
-  'CANONIQUE (corriger une occurrence sur N à la main) déplace la clé et ROUGIT cette garde. C’est ' +
-  'exactement ce qu’on veut : un geste non canonique se voit. La porte de PLAGE ' +
-  '(`croissanceDesStocks`), elle, n’y verrait qu’un −1/+1 net 0 sur la même ligne — c’est la SUITE ' +
-  'qui tient ce cas, pas la porte de plage. ' +
-  'CE QUE LE `fichier` NOMME — le PREMIER chapitre fautif de la famille dans ce dossier, jamais le ' +
-  'dossier nu : un chemin sans `.md` ne tombe sous aucun motif de ' +
-  `\`scripts/guards/lib/stocksNominatifs.mjs\` (\`CHEMIN_SOURCE\` exige \`.md\`) et laisserait les ${entrees} ` +
-  'entrées hors de vue des deux portes de croissance (mesuré le 2026-09-14 : la garde ' +
-  '`stocks-nominatifs` refusait « 0 entrée(s) vue(s) sur 57 déclarée(s) »). ' +
+  'CE QUE LE `fichier` NOMME — le chapitre fautif lui-même : la `ref` porte le détail de CE ' +
+  'fichier, sans cardinal ; le `nombre`, hors clé, compte ses occurrences dans CE fichier, jamais dans un dossier. ' +
+  `${entrees} entrée(s). ` +
   'COUVERTURE DITE — les familles `ligne1-hors-format`, `sans-folio`, `ancre-seule`, ' +
-  '`nom-de-signet` et `largeur-de-numero` ne jugent que les fichiers au motif `NN - X.md`, ' +
+  '`nom-de-signet`, `largeur-de-numero` et `sans-decoupe` ne jugent que les fichiers au motif `NN - X.md`, ' +
   '`00 - Index.md` exclu ; un `.md` ' +
   'hors motif leur est INVISIBLE (mesuré le 2026-09-14 : 0 fichier hors motif sur les 20 dossiers). ' +
   '`html-residuel` et `table-sans-separateur` balaient, eux, TOUS les `.md` du dossier. ' +
@@ -498,10 +489,11 @@ const QUOI = ({ comptes, dossiers, entrees }) =>
   '`data-folio` est déjà nommée par `sans-folio`, et la compter deux fois dirait deux réparations ' +
   'là où il n’y en a qu’une.'
 
-/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). */
-export const stockDe = (sites, { lot, date, dossiers, ancien = [] }) => {
+/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). Les comptes
+ *  à la naissance sont ceux du stock en place (`naissance`), sinon ceux du jour. */
+export const stockDe = (sites, { lot, date, dossiers, ancien = [], naissance = null }) => {
   const entrees = entreesDe(sites, { lot, date, ancien })
-  const quoi = QUOI({ comptes: comptesParFamille(sites), dossiers, entrees: entrees.length })
+  const quoi = QUOI({ comptes: naissance ?? comptesParFamille(sites), dossiers, entrees: entrees.length })
   return `${JSON.stringify({ quoi, entrees }, null, 2)}\n`
 }
 
@@ -513,10 +505,14 @@ function main() {
   const stock = readStock(STOCK_PATH)
 
   if (args.includes('--ecrire-stock')) {
-    const lot = '#1739 S1'
-    const date = new Date().toISOString().slice(0, 10)
-    writeFileSync(STOCK_PATH, stockDe(sites, { lot, date, dossiers: dossiers.length, ancien: stock }))
-    console.log(`stock écrit : ${STOCK_PATH} — ${entreesDe(sites, { lot, date, ancien: stock }).length} entrée(s)`)
+    const r = ecrireStockSousLot(
+      args,
+      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, dossiers: dossiers.length, ancien: stock, naissance: naissanceEnPlace(STOCK_PATH, FAMILLES) }) }),
+      (texte) => writeFileSync(STOCK_PATH, texte),
+      STOCK_PATH,
+    )
+    ;(r.code ? console.error : console.log)(r.message)
+    process.exitCode = r.code
     return
   }
 
@@ -537,6 +533,20 @@ function main() {
     for (const g of grain) console.log(`  ${g.file} — ${g.ref}`)
   }
 
+  // MOBILIER : rouge nommé, jamais stocké — son geste est `node scripts/raw/reparer-mobilier.mjs <id>`.
+  const mobilier = mobilierAll(dossiers)
+  if (mobilier.length) {
+    console.log(`MOBILIER — ${mobilier.length} site(s) de mobilier de page (geste : node scripts/raw/reparer-mobilier.mjs <id>) :`)
+    for (const m of mobilier) console.log(`  ${m.file} — ${m.ref}`)
+  }
+
+  // TITRES SOUDÉS : rouge nommé, jamais stocké — son geste est `node scripts/raw/reparer-titres.mjs <id>`.
+  const soudes = titresSoudesAll(dossiers)
+  if (soudes.length) {
+    console.log(`TITRES SOUDÉS — ${soudes.length} ligne(s) (geste : node scripts/raw/reparer-titres.mjs <id>) :`)
+    for (const t of soudes) console.log(`  ${t.file} — ${t.ref}`)
+  }
+
   const { neuves, perimees } = ecartDuStock(sites, stock)
   if (neuves.length) {
     console.log('RÉGRESSION — écart(s) hors du stock :')
@@ -546,8 +556,8 @@ function main() {
     console.log('Entrée(s) SOLDÉE(s) (livre ré-extrait) :')
     for (const s of perimees) console.log(`  ${s}`)
   }
-  if (!neuves.length && !perimees.length && !grain.length) {
-    console.log('OK — cliquet aligné, aucune régression, aucun écart au grain.')
+  if (!neuves.length && !perimees.length && !grain.length && !mobilier.length && !soudes.length) {
+    console.log('OK — cliquet aligné, aucune régression, aucun écart au grain, aucun mobilier de page, aucun titre soudé.')
     return
   }
   process.exitCode = 1

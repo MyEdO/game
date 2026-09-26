@@ -96,7 +96,7 @@ export type BodyShape = 'humanoide' | 'quadrupede' | 'oiseau' | 'serpent' | 'ara
  *  (cf. `Combatant.structureEdge`). */
 export type WallEdgeSide = WallSideCanon;
 
-/** Étiquettes de localisation propres à une forme (surchargent HIT_LOCATION_LABELS ; LDB 76 p.312).
+/** Étiquettes de localisation propres à une forme (surchargent HIT_LOCATION_LABELS ; LDB 76 l.17-29).
  *  `vehicule` (véhicule/embarcation à coque — EDOC 7, MoR ch.5, MDG 13) : ses localisations
  *  (coque/gréement/roues/avirons…) sont PILOTÉES PAR DONNÉES (table par véhicule) : aucune étiquette en
  *  dur ici, et aucun chemin de résolution ne lit encore ces tables (#673 volet localisations, bloqué
@@ -109,11 +109,11 @@ export const BODY_SHAPE_LOC_LABELS: Record<BodyShape, Partial<Record<HitLocation
   araignee: { jambeD: t('hitloc.araignee.jambeD'), corps: t('hitloc.araignee.corps') }, // n'expose que Tête / Pattes / Abdomen
   vehicule: {}, // localisations data-driven (coque/gréement/…)
   structure: {}, // structure de siège (porte/mur/tour, ADE II 8) — pas de Tableau de Localisation propre
-  engin: {}, // engin de siège (affût servi, AA p.122-123) — INERTE, jamais de Localisation (isInanimate)
+  engin: {}, // engin de siège (affût servi, AA 10 l.136-193) — INERTE, jamais de Localisation (isInanimate)
   army: {}, // armée abstraite (Combat de masse, ADE II 8) : porte-Puissance inerte (wounds), jamais rendue ni localisée
 };
 
-/** Étiquette FR d'une localisation pour une forme de corps (LDB 76 p.312). Forme inconnue/absente de
+/** Étiquette FR d'une localisation pour une forme de corps (LDB 76 l.17-29). Forme inconnue/absente de
  *  la table → libellés humanoïdes (`HIT_LOCATION_LABELS`), comme `hitLocationByShape` retombe sur
  *  `humanoide` — les deux jumeaux tolèrent une forme hors table. Posée ICI (module FEUILLE) et
  *  ré-exportée par `combat.ts` : `trauma.ts` en a besoin, et `combat.ts` importe déjà `trauma.ts`. */
@@ -193,7 +193,7 @@ export interface VehicleData {
   purchase?: { price: Money; availability?: string };
   /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
    *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
-   *  bi-milieu : la Barge navigue le fleuve, LDB 70 p.306, tout en figurant à la table navale MDG 12
+   *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12
    *  avec `propulsion:'maritime'` — jamais l'un dérivé de l'autre) ; absent = terrestre implicite.
    *  `draft` = ATTELAGE (bêtes qui tirent, réf `montures.json`) — requis pour l'allure forcée EDOC 07
    *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
@@ -387,9 +387,9 @@ export interface Weapon {
    *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`), le rendu (rig). */
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
-   *  poudre-noire, AA 10 p.122 l.3848-3863) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
+   *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
    *  Résolu par `acceptableSpecs` (`weaponGroup ?? subType`) → Spé de tir du chef ET décompte d'équipage
-   *  (servants à la bonne Projectiles, l.3900). Absent = `subType` EST le Groupe (armes normales). */
+   *  (servants à la bonne Projectiles, AA 10 l.230). Absent = `subType` EST le Groupe (armes normales). */
   weaponGroup?: string;
   /** Bloque la fusion des qualités de FAMILLE du Groupe (`resolveQualities`, `WeaponGroupData.qualities`)
    *  SANS effacer `subType`/`weaponGroup` — la compétence/talent (`combatValue`/`talentDamageBonus`, lus
@@ -413,10 +413,10 @@ export interface Weapon {
    *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
    *  `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 p.122 l.3818) : tirée par UN SEUL servant
+  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN SEUL servant
    *  valide → l'arme perd TOUS ses Atouts (conserve ses Défauts). Lu par `crewedFireWeapon`. Absent = non. */
   soloSimple?: boolean;
-  /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 p.122-123) : peut viser une CASE au sol
+  /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169-171) : peut viser une CASE au sol
    *  (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe le rayon autour de la case. Lu
    *  par `availableAttacks` (ciblage de case vs combattant). Absent = tir DIRECT (canon, baliste, pierrier). */
   indirect?: boolean;
@@ -586,8 +586,8 @@ export interface ConditionInstance {
    *  `condition.entangleOnFail`. Absente (défaut LDB, Immobilisante générique) : un échec ne fait qu'échouer. */
   entangleOnFail?: boolean;
   /** Dégâts FIGÉS ignorant l'armure, infligés à CHAQUE tentative de libération (réussie ou ratée) — Filets
-   *  BARBELÉS (Zoo Impérial p.29 : « infligent automatiquement des Dégâts qui ignorent l'armure à toute
-   *  cible qui se débat »). Posés par l'op `condition.struggleDamage`. ZI 2 p.29 ne chiffre pas ce montant :
+   *  BARBELÉS (ZI 2 l.178 : « infligent automatiquement des Dégâts qui ignorent l'armure à toute
+   *  cible qui se débat »). Posés par l'op `condition.struggleDamage`. ZI 2 l.178 ne chiffre pas ce montant :
    *  le moteur ne fixe AUCUNE valeur — c'est un champ de DONNÉE éditable (qualité `filet-barbele`,
    *  `qualities.json`), à régler par qui autorise le contenu, jamais codé en dur ici. */
   struggleDamage?: number;
@@ -1423,9 +1423,13 @@ export interface Combatant {
    *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
    *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
-  /** `id` STABLE de la créature du bestiaire dont ce combattant est une instance (posé au spawn) —
+  /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
+   *  bestiaire (`state/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
    *  clé de résolution du rig/apparence (« plus de label » : on ne re-résout plus par `name`). */
   creatureId?: string;
+  /** Le porteur de fiche dont ce combattant a été spawné (`state/spawn.spawnEnemy`, #1882) — ce qui le
+   *  re-spawne à l'identique (`scheduleRespawn ref:'self'`). Absent : un héros, né de sa création. */
+  porteurDeFiche?: import('./statblock').PorteurDeFiche;
   /** Coque/navire (`bodyShape:'vehicule'`) : `id`s des Combattants d'ÉQUIPAGE exposés à bord (MDG 14).
    *  Un Critique « Équipage » et les Éclats reviennent à ces marins (Critiques de personnage / Dégâts). */
   crewIds?: string[];
@@ -1481,7 +1485,7 @@ export interface Combatant {
    *  objets qui occupent des cases SANS être une créature menaçante — un NAVIRE (MDG 12) : il a une empreinte
    *  mais aucune `size`, donc aucune Peur de Taille / Piétinement / ×Dégâts. Absent → empreinte dérivée de `size`. */
   footprint?: number;
-  /** Forme du corps (LDB 76 p.312) : choisit le Tableau de Localisation. Défaut `humanoide` au point de lecture. */
+  /** Forme du corps (LDB 76 l.17-29) : choisit le Tableau de Localisation. Défaut `humanoide` au point de lecture. */
   bodyShape?: BodyShape;
   /** Structure de siège (`bodyShape:'structure'`) : l'ARÊTE de mur que cette structure occupe (`scene.walls`).
    *  Sert à poser la BRÈCHE (`setStructureDown`) à sa destruction. `side` redéclare `state/scene` WallSide ici
@@ -1714,7 +1718,7 @@ export interface Combatant {
   /** Maladies auxquelles ce combattant a été EXPOSÉ pendant le combat (blessé par une source porteuse :
    *  Infecté → 'blessure-purulente', Maladie (Type) → l'`arg` (ex. 'fievre-du-rongeur' des rats),
    *  munition Infecté ; touché par Contagieux (Type) — EDO App.2 l.228-230 : Test 2 niveaux plus
-   *  difficile + incubation « Instantanée ») → Tests de Contraction post-combat (LDB 85 p.340 /
+   *  difficile + incubation « Instantanée ») → Tests de Contraction post-combat (LDB 85 l.187/225 /
    *  LDB 20 l.25/51). SOURCE UNIQUE (op `exposeDisease`). */
   diseaseExposure?: DiseaseExposure[];
   // Maladresse (LDB 14 — Tableau des Oups !) : effets reportés au prochain Round.
@@ -1780,7 +1784,7 @@ export interface Combatant {
    *  d'1 m par DR au lieu de causer des Dégâts. Consommé par l'attaque (héros uniquement). */
   pushbackMode?: boolean;
   /** `passive` des AURAS de combat à portée desquelles ce combattant se trouve (Perturbant :
-   *  −20 aux Tests, LDB 85 p.341) — recalculé chaque Round par le hook `recompute-auras` à partir des
+   *  −20 aux Tests, LDB 85 l.262) — recalculé chaque Round par le hook `recompute-auras` à partir des
    *  `TraitData.aura` voisines, lu par `combatTestPenaltyParts` (pool non-cumul des pénalités de Test,
    *  LDB 16 l.13) et par `skillDRBonus`/`charDRBonusOf`. Générique (toute aura). Chaque op voyage
    *  emballée en `PassiveMod` : son `src` porte le TRAIT émetteur, ce qui NOMME la chip du jet. */

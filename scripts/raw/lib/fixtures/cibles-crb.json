@@ -1,0 +1,287 @@
+{
+ "source": "CRB p.145 (STINKING DRUNK) et p.339 (Skeleton) ; .md 028 l.211-245 et 108 l.39-45 + l.89-95",
+ "pages": [
+  {
+   "page": 145,
+   "lignes": [
+    {
+     "colonne": 0,
+     "x0": 124.7,
+     "y0": 681.7,
+     "texte": "STINKING DRUNK",
+     "spans": [
+      {
+       "texte": "STINKING DRUNK",
+       "police": "CaslonAntique-Bold",
+       "taille": 15
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 182.5,
+     "y0": 663.7,
+     "texte": "Outcome",
+     "spans": [
+      {
+       "texte": "Outcome",
+       "police": "ACaslonPro-Bold",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 76.8,
+     "y0": 663.7,
+     "texte": "1d10",
+     "spans": [
+      {
+       "texte": "1d10",
+       "police": "ACaslonPro-Bold",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 110.8,
+     "y0": 649.1,
+     "texte": "‘Marienburger’s Courage!’: Gain a bonus of +2",
+     "spans": [
+      {
+       "texte": "‘Marienburger’s Courage!’:",
+       "police": "ACaslonPro-Bold",
+       "taille": 9
+      },
+      {
+       "texte": "Gain a bonus of +2",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 70.8,
+     "y0": 643.6,
+     "texte": "1–2",
+     "spans": [
+      {
+       "texte": "1–2",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 110.8,
+     "y0": 638.1,
+     "texte": "SL to resist Fear.",
+     "spans": [
+      {
+       "texte": "SL to resist",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      },
+      {
+       "texte": "Fear",
+       "police": "ACaslonPro-Italic",
+       "taille": 9
+      },
+      {
+       "texte": ".",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 110.8,
+     "y0": 623.5,
+     "texte": "‘You’re My Besht Mate!’: Ignore all your existing",
+     "spans": [
+      {
+       "texte": "‘You’re My Besht Mate!’:",
+       "police": "ACaslonPro-Bold",
+       "taille": 9
+      },
+      {
+       "texte": "Ignore all your existing",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 70.8,
+     "y0": 618,
+     "texte": "3–4",
+     "spans": [
+      {
+       "texte": "3–4",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "page": 339,
+   "lignes": [
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 684.9,
+     "texte": "skeleTon",
+     "spans": [
+      {
+       "texte": "s",
+       "police": "CaslonAntique-Bold-SC700",
+       "taille": 18
+      },
+      {
+       "texte": "keleTon",
+       "police": "CaslonAntique-Bold-SC700",
+       "taille": 12.6
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 671.1,
+     "texte": "Skeletons are the fleshless bones of those long dead, reanimated",
+     "spans": [
+      {
+       "texte": "Skeletons are the fleshless bones of those long dead, reanimated",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 658.1,
+     "texte": "by  dark  magic  to  walk  the  earth  as  mockeries  of  the  living.",
+     "spans": [
+      {
+       "texte": "by  dark  magic  to  walk  the  earth  as  mockeries  of  the  living.",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 645.1,
+     "texte": "Those who died and were not laid to rest according to the rituals",
+     "spans": [
+      {
+       "texte": "Those who died and were not laid to rest according to the rituals",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 632.1,
+     "texte": "of Morr, the god of death, may be resurrected in this form by a",
+     "spans": [
+      {
+       "texte": "of Morr, the god of death, may be resurrected in this form by a",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    },
+    {
+     "colonne": 0,
+     "x0": 58.1,
+     "y0": 619.1,
+     "texte": "sufficiently  powerful  necromancer.  Utterly  mindless,  skeletons",
+     "spans": [
+      {
+       "texte": "sufficiently  powerful  necromancer.  Utterly  mindless,  skeletons",
+       "police": "ACaslonPro-Regular",
+       "taille": 9
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "fichiers": [
+  {
+   "nom": "028 - Flattery, Bribery, and Status.md",
+   "page": 140,
+   "pageFin": 145,
+   "lignes": [
+    "When carousing, make a Consume Alcohol Test, with the Difficulty determined by the strength of the drink. On a failure, you gain the *Fatigued* Condition. If you keep drinking, or suffer an Astounding Failure (-5 SL), you become Stinking Drunk. Roll on the following table to see what happens.",
+    "",
+    "These effects last for two hours after you cease drinking, at which time they end, and you become hungover, suffering a *Fatigued*  Condition that lasts 12 - TB (Toughness Bonus) hours.",
+    "",
+    "| 1d10 | Outcome                                                                                                                                                                                                                                                                                           |",
+    "|------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|",
+    "| 1–2  | 'Marienburger's Courage!': Gain a bonus of +2 SL to resist Fear.                                                                                                                                                                                                                               |",
+    "| 3–4  | 'You're My Besht Mate!': Ignore all your existing Animosities (see page 183).                                                                                                                                                                                                                  |",
+    "| 5–6  | 'Why's Everything Wobbling!': On your Turn, you can either Move or take an Action, but not both (see page 162).                                                                                                                                                                             |",
+    "| 7–8  | 'I'll Take Yer All On!': Gain Animosity (Everybody!) (see page 183).                                                                                                                                                                                                                           |",
+    "| 9–10 | 'How Did I Get Here?': You wake up the next day, massively hungover, with little memory of what transpired. The GM and other players with you will fill in the embarrassing gaps if you investigate. Pass a Consume Alcohol Test or also gain a Poisoned Condition (see page 186). |",
+    "",
+    "#### **EXAMPLE OUTCOMES**",
+    "",
+    "**A Hard (-2 SL) Charm Test to convince a gathered crowd to support your appointment as village alderman.**",
+    "",
+    "**Astounding Success (+5 SL):** You are lifted aloft by the exultant crowd and paraded through the streets, with most convinced there could be no better candidate for the position.",
+    "",
+    "**Impressive Success (+3 to +4 SL):** Most are convinced by your words, and a few are truly passionate, telling their friends and acquaintances to support you.",
+    "",
+    "**Success (+1 to +2 SL):** You make a good impression, leaving most convinced you'd make a decent alderman.",
+    "",
+    "**Marginal Success (+0 SL):** People come away generally favourable towards your bid for the position, but could be easily swayed towards someone more compelling.",
+    "",
+    "**Marginal Failure (-0 SL):** A few people seem to nod on occasion, but no one leaves convinced you'd be suitable.",
+    "",
+    "**Failure (-1 to -2 SL):** You fail to convince almost anyone that you would be a suitable alderman.",
+    "",
+    "**Impressive Failure (-3 to -4 SL):** Most people leave convinced that almost anyone other than you would be preferable.",
+    "",
+    "**Astounding Failure (-5 SL):** Rotten fruit, clumps of dirt, and anything else people can lay their hands on are tossed your way as you completely botch your attempt to curry favour.",
+    "",
+    "# **Public Speaking**",
+    "",
+    "**STINKING DRUNK** Whether stirring up an audience or persuading an angry mob not to hand you over to a Witch Hunter, public speaking can be a powerful tool."
+   ]
+  },
+  {
+   "nom": "108 - The Restless Dead.md",
+   "page": 338,
+   "pageFin": 344,
+   "lignes": [
+    "#### **Optional Traits**",
+    "",
+    "*Bestial, Venom (Challenging)*",
+    "",
+    "Skeletons are the fleshless bones of those long dead, reanimated by dark magic to walk the earth as mockeries of the living. Those who died and were not laid to rest according to the rituals of Morr, the god of death, may be resurrected in this form by a sufficiently powerful necromancer. Utterly mindless, skeletons will fight until their bones are smashed to pieces. They have no courage for they have no fear. They cannot be killed because they are not alive.",
+    "",
+    "#### **SKELETON**",
+    "# **IT'S ALIVE! ALIVE!**",
+    "",
+    "Necromancers can raise and command the undead, but they are, themselves, living mortals (albeit creepily morbid ones obsessed with conquering mortality). Use the Human profile on page 319 and add the Spellcaster or Spellcaster Lord template from page 354 to create a Necromancer.",
+    "",
+    "**Skeleton** *'I raised the heavy lid expecting to find the glorious golden death mask of Khetanken. But we had been misinformed. A bony hand flew out and grabbed my neck. Startled, I dropped the lid, and the hand and lower arm were severed, trapping the undead creature within the sarcophagus. But it held on tightly, squeezing my neck so I could hardly breathe! I thought I was going to die. But Sister Celestine threw some of her sacred water over the thing, and it became lifeless once more. I use it as a back scratcher now.'*",
+    "",
+    "— Professor Vonnig Tramblehoff, Tomb Robber"
+   ]
+  }
+ ]
+}

@@ -108,8 +108,8 @@ export type TraitList = TraitInstance[];
 /**
  * OPTIONNEL COMPOSÉ (LDB 76) — élément de la liste `optionals` d'une créature IRRÉDUCTIBLE à un
  * `TraitInstance` : une NOTE de variante d'auteur. Deux formes (discriminées par `note`) :
- *  - `all-traits` : joker « n'importe quel Trait peut être ajouté » (Mutant, LDB 83 p.333) ;
- *  - `swap` : variante « remplacer des Traits par un bonus » (Grand Loup ZI 1 p.16, Griffon ZI).
+ *  - `all-traits` : joker « n'importe quel Trait peut être ajouté » (Mutant, LDB 83 l.91) ;
+ *  - `swap` : variante « remplacer des Traits par un bonus » (Grand Loup ZI 1 l.229, Griffon ZI).
  * `label` = texte source VERBATIM (Markdown), affiché tel quel (JAMAIS reformulé) ; les autres champs
  * pilotent l'APPLICATION au spawn. Distinguée d'un `TraitInstance` par la présence de `note` (jamais d'`id`).
  */

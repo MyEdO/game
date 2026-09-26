@@ -77,8 +77,8 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
   it('la résolution IA lit les DEUX nues, distinctes des valeurs testées', () => {
     const { foe } = setBattle('e');
     const rt = resolveRecoverTest(foe, 'empetre', useGame.getState().battle!)!;
-    expect([rt.opposed, rt.skillBase, rt.skillValue, rt.opponentBase, rt.opponentValue])
-      .toEqual([true, 60, 30, 50, 40]);
+    expect([rt.skillBase, rt.skillValue, rt.opposition?.base, rt.opposition?.value])
+      .toEqual([60, 30, 50, 40]);
   });
 
   it('CONTRAT : le tour IA joue le recover SANS aucun repli deux-cibles', () => {
@@ -132,7 +132,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
     const ia = readFileSync(new URL('../combatFlow.ts', import.meta.url), 'utf8');
     const joueur = readFileSync(new URL('../rollFlowSpecs.ts', import.meta.url), 'utf8');
     expect(
-      ia.includes("opposedTest(rt.skillValue, rt.opponentValue, battleRng(), rt.difficulty, 'intermediaire'"),
+      ia.includes("opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire'"),
       'voie IA : acteur à `rt.difficulty`, entrave à `intermediaire`',
     ).toBe(true);
     expect(
@@ -140,7 +140,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
       'voie joueur : l’acteur honore `p.difficulty`',
     ).toBe(true);
     expect(
-      joueur.includes("rollTest(p.opponentValue, 'intermediaire', battleRng())"),
+      joueur.includes("rollTest(p.opposition.value, 'intermediaire', battleRng())"),
       'voie joueur : l’entrave roule `intermediaire`',
     ).toBe(true);
   });

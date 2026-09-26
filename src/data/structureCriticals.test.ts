@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { findTableEntry } from '../engine/tables';
 
-describe('Blessures critiques sur une Structure (AA p.120) — 3ᵉ famille du modèle de coque', () => {
+describe('Blessures critiques sur une Structure (AA 10 l.116-127) — 3ᵉ famille du modèle de coque', () => {
   it('table d100 contiguë 1..100, chaque entrée nommée + id + note', () => {
     const e = [...STRUCTURE_CRITICALS].sort((a, b) => a.min - b.min);
     expect(e[0].min).toBe(1);

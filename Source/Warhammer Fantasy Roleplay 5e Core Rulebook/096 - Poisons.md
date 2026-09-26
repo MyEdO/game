@@ -1,10 +1,10 @@
 *Pages PDF 313*
 
-# **POISONS**
+# <span id="page-312-0" data-folio="313"></span>**POISONS**
 
 Recreational drugs, although not illegal in most parts of the Empire, are frequently associated with dubious rituals and cults by the Cult of Sigmar. Attitudes are more liberal in large cities where dens can be found offering spit, weirdroot, or Ranald's delight. Even so, getting involved in repeated use of these substances can be ruinous to health and reputation. Poison is not illegal either, but owning poison is bound to raise questions about its intended use. Prices are given for a single dose or application.
 
-#### **POISONS**
+**POISONS**
 
 | Item                 | Cost  | Enc | Availability |
 |----------------------|-------|-----|--------------|

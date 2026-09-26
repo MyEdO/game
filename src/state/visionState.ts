@@ -8,7 +8,7 @@ import { Scene, sceneMetresPerTile } from './scene';
 import { Pt } from './path';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './vision';
 import { memoByRef } from './sceneMemo';
-import { partyLeaderOf } from './combatants';
+import { meneurDuMonde } from './combatants';
 import { smokeOf } from './combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
@@ -43,7 +43,7 @@ export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'par
   // porteur nommé, la lampe du groupe reste clouée à la case logique pendant que le quad la traverse.
   const party = s.party ?? [];
   sources.push(...combatantLights({
-    id: partyLeaderOf(party)?.id,
+    id: meneurDuMonde({ party })?.id,
     pos: s.partyPos,
     items: party.flatMap((p) => p.items ?? []),
     weapons: party.flatMap((p) => p.weapons ?? []),

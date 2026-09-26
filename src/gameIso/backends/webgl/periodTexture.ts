@@ -31,7 +31,7 @@ import {
   type CourseVertical,
 } from '../../detail/courses';
 import { BLOCK_SHADE_K } from '../../detail/expand';
-import { parseHex } from '../../shade';
+import { parseHex, srgbToLinear } from '../../shade';
 import type { DetailRecipe } from '../../detail/types';
 
 /** Les deux familles de période : appareillage VERTICAL (mur, pan de toit) et appareillage de SOL. */
@@ -71,13 +71,6 @@ const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi 
  *  `materials.json` + `structureAppearance.json`) : rapport de canal LINÉAIRE maximal 1,443 (joint `#6a531f` sur le pan sud
  *  du chaume `#59461a` ; 1,211 en octets sRGB) — cette borne ne mord sur aucune recette d'aujourd'hui. */
 const TEINTE_MAX = 2;
-
-/** Un octet sRGB (0–255) en valeur LINÉAIRE — la transfert standard, celle que three applique aux
- *  couleurs de sommet et à la sortie du rendu. */
-const srgbToLinear = (octet: number): number => {
-  const u = octet / 255;
-  return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
-};
 
 /** Rapport de teinte PAR CANAL d'une couleur d'ornement sur une couleur de base, borné à `TEINTE_MAX`.
  *  `null` si l'une des deux n'est pas lisible en hex (couleur CSS nommée d'une def : la cuisson s'en

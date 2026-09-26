@@ -9,14 +9,16 @@
  * Chaque document porte SON identité, SA charge et SON espace de tirage d100 : les fourchettes des
  * deux jeux se recouvrent (80/80 mesurées), une table = un espace, le lecteur ne filtre rien.
  *
- * PROVENANCE : chaque RANGÉE porte son `source: {book, page}` (160/160) — LDB folios 174-177, AA
- * folios 83 (Tête), 84 (Bras), 85 (Torse), 86 (Jambe), relevés aux ancres `data-folio`
- * (`src/data/criticals-folio.test.ts`).
+ * PROVENANCE : chaque RANGÉE et chaque document-table porte son `source: {book, page, note}` (168/168) :
+ * `note` cite SA ligne (`LDB 18 l.<n>`, `AA 07 l.<n>` : fourchette et libellé pour une rangée, titre
+ * pour une table), `page` est le folio IMPRIMÉ de l'ancre `data-folio` qui gouverne cette ligne. Le
+ * folio est jugé contre la ligne par `src/data/folio-line-align.test.ts`, la ligne contre l'entrée par
+ * `src/data/criticals-folio.test.ts`.
  *
- * MODÉLISATION (réfs nues) : `ops` = effet IMMÉDIAT (PB en ignorant BE+PA — LDB 18 l.62 —, États,
+ * MODÉLISATION (réfs nues) : `ops` = effet IMMÉDIAT (PB en ignorant BE+PA — LDB 18 l.53 —, États,
  * et la colonne « Blessures » d'AA 07 l.40, absorbée en `{op:'wounds'}`). `test` = nœud `test` du
  * Flow (`noeudTest`), la forme UNIQUE du jet en donnée : sa branche `fail` porte la conséquence.
- * `lethal` = « Mort ». La TRIVIALITÉ d'AA 07 l.79 (« T ») n'est plus authorée : elle se DÉDUIT
+ * `lethal` = « Mort ». La TRIVIALITÉ d'AA 07 l.79 (« T ») n'est pas authorée : elle se DÉDUIT
  * (`critiqueTriviale`, `engine/critical.ts`) — une rangée non létale qui ne fait perdre aucune
  * Blessure. `desc` = texte canon VERBATIM (règle 5).
  */

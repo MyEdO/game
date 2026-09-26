@@ -3,7 +3,7 @@
  * la DONNÉE verbatim (`structure-criticals.json` via `data/structureCriticals`). Module FRÈRE de `shipCritical.ts`
  * (navire) et `critical.ts` (personnage) : il tire le d100 sur la table des Structures et rend une issue
  * STRUCTURÉE et PURE (ne mute rien — l'appelant applique). RAW : « Les Blessures Critiques ont un impact sur
- * une Structure de la même manière que les Blessures Critiques affectent un Personnage » (AA 10 p.121).
+ * une Structure de la même manière que les Blessures Critiques affectent un Personnage » (AA 10 l.114).
  *
  * Réutilisation stricte (pas de mécanique parallèle) :
  *  - les Blessures SUPPLÉMENTAIRES perdues par la Structure sont rendues en **`GameOp`** (`wounds`, mode par
@@ -35,7 +35,7 @@ export interface StructureCriticalResolved {
   log: string[];
 }
 
-/** Résout un Critique de Structure (AA 10 p.120-121) : tire le d100 sur `STRUCTURE_CRITICALS`, dérive les
+/** Résout un Critique de Structure (AA 10 l.112-127) : tire le d100 sur `STRUCTURE_CRITICALS`, dérive les
  *  Blessures supplémentaires en `GameOp` et le drapeau d'Effondrement. `forcedRoll` = d100 imposé (tests). PUR. */
 export function rollStructureCritical(rng: RNG = defaultRNG, forcedRoll?: number): StructureCriticalResolved {
   const roll = forcedRoll ?? d100(rng);
@@ -54,7 +54,7 @@ export function rollStructureCritical(rng: RNG = defaultRNG, forcedRoll?: number
   return { entry, id: entry.id, label: entry.label, roll, ops, destroyed: !!entry.destroyed, note: entry.note, log };
 }
 
-/** Ligne de journal de l'Effondrement d'une Structure (AA 10 p.121) → BRÈCHE franchissable. Construite dans la
+/** Ligne de journal de l'Effondrement d'une Structure (AA 10 l.127) → BRÈCHE franchissable. Construite dans la
  *  couche MOTEUR (comme les `log` de `shipCritical`) pour que la narration ne soit pas un littéral FR brut
  *  dans `state/combatFlow` (garde-fou i18n). */
 export function structureCollapseLog(name: string): string {

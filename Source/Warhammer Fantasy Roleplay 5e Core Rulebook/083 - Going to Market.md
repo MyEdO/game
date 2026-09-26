@@ -1,6 +1,6 @@
 *Pages PDF 297-298*
 
-# **GOING TO MARKET** XI
+# <span id="page-296-0" data-folio="297"></span>**GOING TO MARKET**
 
 Once you start play, the availability of rarer goods is restricted. A village market may only have a few locally sourced goods for sale, whilst the emporiums and market squares of the Empire's cities may contain all manner of exotic fare.
 
@@ -16,7 +16,7 @@ All Trappings have an Availability: either *Common*, *Scarce*, *Rare*, or *Exoti
 
 Once you know an item's Availability, check it on the following table to see if it is in stock.
 
-#### **AVAILABILITY**
+**AVAILABILITY**
 
 |        | Village      | Town         | City         |
 |--------|--------------|--------------|--------------|
@@ -30,7 +30,7 @@ If you fail an Availability Test for *Scarce* or *Rare* items, you can either re
 - The GM may overrule Availability as dictated by local details. For example, basic rowboats are automatically available if the adventure is located in a fishing village that features a renowned boat-builder.
 - Availability percentages can be increased by +10% or +20% if you are especially diligent, belong to a relevant Career such as Merchant or Fence, or spend an entire day shopping and making Gossip Tests.
 
-# **Bargaining and Trading**
+# <span id="page-297-0" data-folio="298"></span>**Bargaining and Trading**
 
 People of the Empire love a good bargain, and eager shoppers fill town squares looking for the best deals. When buying goods, there are two primary Skills to Test: Evaluate and Haggle.
 

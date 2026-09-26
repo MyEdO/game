@@ -84,7 +84,7 @@ export interface DiseaseSymptom {
   severity?: 'moderee' | 'grave';
   difficulty?: Difficulty;
   /** LOCALISATION/précision imprimée de l'instance (« Gonflement (Visage et tête) », Fièvre Cérébrale
-   *  Pourpre — EDO 11 p.145) : affichage seul (convention `spec` des compétences/talents) — la mécanique
+   *  Pourpre — EDO 11 l.119) : affichage seul (convention `spec` des compétences/talents) — la mécanique
    *  par-localisation du symptôme vit dans sa `desc`. */
   spec?: string;
 }

@@ -91,7 +91,7 @@ describe('resolveWeaponArea — Tir de zone (bandes RAW)', () => {
   });
 });
 
-// ── Explosion (LDB 62 p.298) ────────────────────────────────────────────────────────────────────────────────
+// ── Explosion (LDB 62 l.254) ────────────────────────────────────────────────────────────────────────────────
 describe('resolveWeaponArea — Explosion (rayon Indice m, États propagés)', () => {
   it('toutes les cibles à ≤ Indice mètres subissent DR+Dégâts ; hors rayon = épargné', () => {
     const atk = shooter('tireur', 0, 0);

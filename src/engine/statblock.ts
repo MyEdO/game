@@ -8,6 +8,14 @@ import type { TraitInstance } from './statEntry';
 import type { SizeCategory } from './size';
 import { makeRNG, hashSeed } from './dice';
 
+/** Le PORTEUR DE FICHE d'un combattant spawné (#1882, `LDB 77 l.7`) : exactement UN, jamais aucun —
+ *  l'absence est irreprésentable. `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
+ *  déjà mergée par la couche campagne (`resolvePresetCreature`). */
+export type PorteurDeFiche =
+  | { ref: string; statblock?: never; presetCreature?: never }
+  | { statblock: CustomStatblock; ref?: never; presetCreature?: never }
+  | { presetCreature: import('../data').CreatureData; ref?: never; statblock?: never };
+
 export interface CustomStatblock {
   /** Type de document EMBARQUÉ (#1467 L1b) : le profil s'annonce dans la donnée, jamais hydraté en
    *  mémoire — un statbloc extrait d'un projet reste identifiable hors de son porteur. */

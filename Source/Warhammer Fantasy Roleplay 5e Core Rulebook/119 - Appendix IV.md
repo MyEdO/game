@@ -1,6 +1,6 @@
 *Pages PDF 368-369*
 
-# **APPENDIX IV**
+# <span id="page-367-0" data-folio="368"></span>**APPENDIX IV**
 
 # **Conditions Reference**
 
@@ -42,7 +42,7 @@ You are wrapped in something restricting your movement. You may not Move, and al
 
 If you have an *Entangled* Condition as a result of being caught up in some material, refer to the **Strength of Materials** Table to decide the Strength to use in an opposed test.
 
-#### **STRENGTH OF MATERIALS**
+**STRENGTH OF MATERIALS**
 
 | Material         | Strength |
 |------------------|----------|
@@ -62,7 +62,7 @@ How much rest is required to remove a *Fatigued* Condition depends on what cause
 
 You have been poisoned. While *Poisoned*, you suffer a -1 SL penalty to all Tests and lose 1 Wound at the end of each Round, ignoring Toughness Bonus and Armour Points. If you reach 0 Wounds, you cannot heal until all *Poisoned* Conditions are removed. If you fall *Unconscious* when *Poisoned*, make an Endurance Test every Toughness Bonus Rounds or die horribly.
 
-I At the end of each Round, you may attempt an Endurance Test. A success removes 1 *Poisoned* Condition, and one more for each SL after the first. A successful Heal Test made by you or another Character removes 1 *Poisoned* Condition, and one more for each SL after the first.
+<span id="page-368-0" data-folio="369"></span>At the end of each Round, you may attempt an Endurance Test. A success removes 1 *Poisoned* Condition, and one more for each SL after the first. A successful Heal Test made by you or another Character removes 1 *Poisoned* Condition, and one more for each SL after the first.
 
 ### **Prone (page 186)**
 

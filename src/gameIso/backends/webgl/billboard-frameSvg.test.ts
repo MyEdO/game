@@ -236,7 +236,7 @@ describe('BillboardSubject.frameSvg — GABARIT de créature (la moitié du best
 // ————————————————————————————————————————————————————————————————
 
 function figurant(anim?: string, id = 'f1'): SceneEntity {
-  return { id, kind: 'personnage', pos: { x: 2, y: 2 }, facing: 'S', appearance: { species: 'humain' }, ...(anim ? { anim } : {}) } as unknown as SceneEntity;
+  return { id, kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, facing: 'S', appearance: { species: 'humain' }, ...(anim ? { anim } : {}) } as unknown as SceneEntity;
 }
 
 function tokenEl(ent: SceneEntity): TokenEl {

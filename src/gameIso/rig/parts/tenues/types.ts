@@ -1,5 +1,5 @@
 import type { PartArt } from '../types';
-import type { StoredPalette } from '../../palette';
+import type { PaletteDeclaree } from '../../palette';
 import type { RigOverlay } from '../../bones';
 
 /**
@@ -24,16 +24,16 @@ export type TenueSet = Partial<Record<'torse' | 'jambes' | 'bras' | 'avantBras' 
  * Les slots portent une string (FRONT) ou les 3 vues `{front, back, profile}`. Ajouter un
  * humanoïde habillé = DÉPOSER ce fichier (+ un def de race/PNJ pointant `tenue: '<name>'`).
  *
- * `palette` : couleurs par défaut des `@tokens` de l'art (StoredPalette = hex exact) → rendu
+ * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeclaree = hex exact) → rendu
  * sans perte + recoloriage cohérent. Résolue par `tenuePaletteFor` (tenue > classe).
  * Elle pilote aussi les parts SYSTÈME du pied/main (`CLAWFOOT`/`PLAINFOOT`/`HAND` de
- * `bodies/extremites.ts`, `BOTTE_CUIR` de `botte-gabarit.ts`, #426) : `botte` (cuir de la botte —
- * TÊTE de famille : `semelle` et `botteDos` la suivent) et `griffe` (pied nu griffu). Non
+ * `bodies/extremites.ts`, `BOTTE_CUIR` de `botte-gabarit.ts`, #426) : `botte` (cuir de la botte ;
+ * `semelle` et `botteDos` la suivent) et `griffe` (pied nu griffu). Non
  * déclarés → pied système (botte brune / griffes sombres). Chaque membre se déclare aussi SEUL
  * (`botteDos` sans `botte`) : la base déclarée est honorée, son ombre se DÉRIVE, les autres
  * restent système — aucune combinaison partielle n'est interdite ni silencieuse. MÊME contrat
- * pour la palette d'une RACE (`races/`, empilée sous la tenue) : c'est la palette PORTÉE entière
- * qui pilote le pied. Cf. `footPalette` et l'empilage unique `rigStoredPalette` (career.ts) ;
+ * pour la palette d'une RACE (`races/`), couche empilée sous la tenue. Clés suiveuses :
+ * `clesDePalette.ts` ; empilage : `couchesDuRig` (career.ts) ;
  * garde `parts/shared-parts-palette.test.ts`.
  *
  * Une tenue qui ne chausse pas (corps 'Nu', squelette décharné, pagne du Sanguinaire…) ne
@@ -48,7 +48,7 @@ export type TenueDef = {
   /** Libellé d'AFFICHAGE (nom authoré, slugifié une fois en `id`). N'est PAS la clé. */
   label: string;
   set: TenueSet;
-  palette?: StoredPalette;
+  palette?: PaletteDeclaree;
   /** Calques ASYMÉTRIQUES attachés à un os précis (pauldron/fourrure qui déborde une SEULE
    *  épaule) — même vocabulaire que `dorsalOverlays`/`monsterInjection` (`RigOverlay`, `plane`
    *  pour échapper au z inégal des bras epauleG/epauleD, `view` pour une vue). Optionnel :

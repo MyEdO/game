@@ -52,7 +52,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     // L'armement de créature est en Traits (« À distance (Arbalète) +9 (60) », arg = id `arbalete` du
     // catalogue `trappings`) : l'Indice de Recharge est résolu par la Qualité du trapping au spawn.
     expect(qualityIndice(findTrappingById('arbalete')!, 'recharge')).toBe(1);
-    const e = spawnEnemy(undefined, { name: 'Arbalétrier', char: { B: 10 }, traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }] } as never, 'e1', { x: 5, y: 5 });
+    const e = spawnEnemy({ statblock: { name: 'Arbalétrier', char: { B: 10 }, traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }] } as never }, 'e1', { x: 5, y: 5 });
     const rw = e.weapons.find((w) => w.type === 'ranged')!;
     expect(rw.reload).toBe(1);   // Indice de Recharge résolu par libellé
     expect(rw.loaded).toBe(true); // chargé au spawn → PAS de recharge à vide au 1er Round

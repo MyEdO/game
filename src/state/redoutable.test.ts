@@ -5,7 +5,7 @@ import type { Combatant } from '../engine/types';
 
 /**
  * Trait Redoutable (Zoo Impérial) — au début de son tour, la créature complète ses Avantages jusqu'à
- * son *Indice* (`value` de l'instance), sauf si Empêtré/Inconscient/Surpris (ZI 1 p.11). Câblé 100% en
+ * son *Indice* (`value` de l'instance), sauf si Empêtré/Inconscient/Surpris (ZI 14 l.1045). Câblé 100% en
  * DONNÉE : trigger `onTurnStart` → Flow gardé (`compare` sur les États) → op `gainAdvantage` dont
  * l'`amount: '$indice'` est baké à la valeur d'instance par `withArg`. Aucun code spécifique à Redoutable.
  */
@@ -39,14 +39,14 @@ describe('Trait Redoutable (ZI) — Avantage minimum = Indice au début du tour'
     expect(c.advantage).toBe(1);
   });
 
-  it('Empêtré → ne gagne PAS d’Avantage (garde, ZI p.11)', () => {
+  it('Empêtré → ne gagne PAS d’Avantage (garde, ZI 14 l.1045)', () => {
     const c = mk({ traits: [{ id: 'redoutable', value: 2 }] as never, advantage: 0 });
     addCondition(c, COND.empetre);
     fire(c);
     expect(c.advantage).toBe(0);
   });
 
-  it('Inconscient → ne gagne PAS d’Avantage (garde, ZI p.11)', () => {
+  it('Inconscient → ne gagne PAS d’Avantage (garde, ZI 14 l.1045)', () => {
     const c = mk({ traits: [{ id: 'redoutable', value: 2 }] as never, advantage: 0 });
     addCondition(c, COND.inconscient);
     fire(c);

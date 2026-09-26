@@ -30,13 +30,13 @@ import {
   CODE_CORPS_PERIME,
   lirePied,
   empreinteDuDisque,
-  ignoresGit,
   indexGit,
   motifDeRejeu,
   retirerPied,
   serialiserSourcesLues,
   sha1Corps,
 } from './lib/empreinte-sources.mjs'
+import { ignoresGit } from './lib/chemin-mesure.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 

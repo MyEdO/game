@@ -290,7 +290,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const balisteEnt = emplWithCrew('crew-baliste');
     const baliste = b.combatants.find((c) => c.id === balisteEnt.id)!;
     expect(baliste.inert).toBe(true);
-    // RAW-pur (AA 10 p.122-123) : un engin de siège n'a AUCUNE Blessure → NON-destructible. Un coup ÉNORME (999)
+    // RAW-pur (AA 10 l.136-193) : un engin de siège n'a AUCUNE Blessure → NON-destructible. Un coup ÉNORME (999)
     // inflige 0 (immune via le garde `target.inert`) — on le neutralise en tuant l'équipage, pas en le frappant.
     const coup: Weapon = { label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'siege' }] };
     expect(woundsFromHit(coup, baliste, 'corps', 999, 0, 1, undefined)).toBe(0);

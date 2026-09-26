@@ -2,7 +2,7 @@ import { TENUE_DEFS } from './_registry.generated';
 import { careers } from '../../../../data';
 import { memoParVersion } from '../../../../data/versionDataset';
 import type { TenueSet } from './types';
-import type { StoredPalette } from '../../palette';
+import type { PaletteDeclaree } from '../../palette';
 import type { RigOverlay } from '../../bones';
 
 export type { TenueSet, TenueDef } from './types';
@@ -26,10 +26,10 @@ export const CLASS_TENUE_BY_ID: Record<string, TenueSet> = Object.fromEntries(
   TENUE_DEFS.filter((d) => isClassDef(d.id)).map((d) => [d.id, d.set]),
 );
 /** Palettes par défaut : tenue spécifique (par id) puis classe (par id de classe). */
-export const TENUE_PALETTE_BY_ID: Record<string, StoredPalette> = Object.fromEntries(
+export const TENUE_PALETTE_BY_ID: Record<string, PaletteDeclaree> = Object.fromEntries(
   TENUE_DEFS.filter((d) => !isClassDef(d.id) && d.palette).map((d) => [d.id, d.palette!]),
 );
-export const CLASS_PALETTE_BY_ID: Record<string, StoredPalette> = Object.fromEntries(
+export const CLASS_PALETTE_BY_ID: Record<string, PaletteDeclaree> = Object.fromEntries(
   TENUE_DEFS.filter((d) => isClassDef(d.id) && d.palette).map((d) => [d.id, d.palette!]),
 );
 /** Calques asymétriques (`TenueDef.overlays`) par tenue spécifique puis par classe — même

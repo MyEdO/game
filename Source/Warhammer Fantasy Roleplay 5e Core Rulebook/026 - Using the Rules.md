@@ -1,6 +1,6 @@
 *Pages PDF 133*
 
-# **USING THE RULES**
+# <span id="page-132-0" data-folio="133"></span>**USING THE RULES**
 
 The core rules on the preceding pages are everything you need to know to start playing **Warhammer Fantasy Roleplay**. The following sections cover specific applications of the rules in greater detail, and deal with the situations you are most likely to encounter.
 

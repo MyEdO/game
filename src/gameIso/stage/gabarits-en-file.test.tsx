@@ -56,7 +56,7 @@ const SANS_BILLBOARD: SceneBillboardEls = { tokens: [], props: [] };
 /** Un décor posé à une case — même patron que `entree-en-scene.test.tsx` : de quoi donner à la
  *  population des billboards une clé à faire attendre. */
 const décor = (id: string, x: number, y = GROUPE.y): BillboardPropEl => ({
-  kind: 'prop', source: 'entity', key: `prop:${id}`, ref: 'tonneau', facing: 'S',
+  kind: 'prop', source: 'entity', key: `prop:${id}`, entId: id, span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
   cell: { x, y, z: 0 }, foot: { offX: 0, offY: 0, scale: 1 },
   states: { visible: true },
 });
@@ -365,7 +365,7 @@ describe('#1399 — une cuisson EN VOL ne survit pas au changement de scène', (
     const morte = demander();
     expect(bakeQueueLength(), 'PRÉMISSE : la cuisson doit être EN FILE, pas déjà faite').toBeGreaterThan(0);
 
-    clearFaceBakes(); // la SCÈNE change : la tâche en file appartient désormais à un monde mort
+    clearFaceBakes(); // la SCÈNE change : la tâche en file appartient à un monde mort
     const vive = demander();
     const [a, b] = await Promise.all([morte.prêt, vive.prêt]);
 

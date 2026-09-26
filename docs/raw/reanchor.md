@@ -4,73 +4,7 @@
 > exit 1 sur dérive non appliquée, ambiguïté, ou hausse de réf FAUSSE (❌) — voir en-tête du script.
 > Pour chaque citation verbatim « … » d'une fiche, on relocalise le texte dans le `.md` source
 > courant et on vérifie le n° de ligne cité. ✅ juste · 🔧 dérive (HIGH, unique : `--apply` la corrige) · 🟡 ambigu
-**Bilan : ✅ 632 · 🔧 0 dérives (relancer --apply) · 🟡 0 ambigus · ❌ 21 introuvables · ➖ 3545 synthèses** (⛔ 0 hors-fichier · ⚠️ 0 sans source) sur 4198 réfs · 653 citations · 29 fiches.
+**Bilan : ✅ 653 · 🔧 0 dérives (relancer --apply) · 🟡 0 ambigus · ❌ 0 introuvables · ➖ 3562 synthèses** (⛔ 0 hors-fichier · ⚠️ 0 sans source) sur 4215 réfs · 653 citations · 29 fiches.
 
 > (MEDIUM, manuel) · ❌ introuvable (LOW, paraphrase/mauvais chapitre) · ➖ synthèse (réf sans citation).
-
-## 4e/avancement.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 07 l.43` | ❌ LOW | « votre carrière va influer sur son gain en expé… » — aucune occurrence |
-| `LDB 07 l.84` | ❌ LOW | « gagner de l'argent… » — aucune occurrence |
-
-## 4e/bestiaire.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 85 l.276-277` | ❌ LOW | « augmentez f et e de +10, et réduisez ag de -5 … » — aucune occurrence |
-| `LDB 85 l.387` | ❌ LOW | « corps à corps (bagarre)… » — aucune occurrence |
-
-## 4e/carrieres.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 07 l.84` | ❌ LOW | « gagner de l'argent… » — aucune occurrence |
-
-## 4e/combat.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 13 l.184` | ❌ LOW | « lancer pour toucher de corps à corps étant un … » — aucune occurrence |
-| `ADE II 04 l.215` | ❌ LOW | « funeste : l'arme est imprégnée de magie de mor… » — aucune occurrence |
-| `ADE II 04 l.235` | ❌ LOW | « de coupure infinie : … si un coup de cette arm… » — aucune occurrence |
-| `ADE II 04 l.237` | ❌ LOW | « de blessure grave : … il peut inverser les chi… » — aucune occurrence |
-| `ZI 13 l.984` | ❌ LOW | « nuée - la nuée est considérée comme une seule … » — aucune occurrence |
-| `AA 10 l.215` | ❌ LOW | « pierrier 20 co 5 rare 30 +14 dangereuse, recha… » — aucune occurrence |
-
-## 4e/corruption.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 19 l.51-52` | ❌ LOW | « sur un échec, vous gagnez 2 points de corrupti… » — texte trouvé en LDB 21 l.54 |
-| `LDB 17 l.67` | ❌ LOW | « je te renie !… » — aucune occurrence |
-
-## 4e/creation.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 05 l.459` | ❌ LOW | « consultez votre carrière. recherchez dans le s… » — aucune occurrence |
-
-## 4e/deplacement.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `MDG 15 l.76` | ❌ LOW | « distance/jour suppose un équipage permettant d… » — aucune occurrence |
-
-## 4e/etats.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 46 l.66` | ❌ LOW | « 16-20 cérumen : vos oreilles se bouchent insta… » — aucune occurrence |
-| `LDB 46 l.80` | ❌ LOW | « 56-60 drain de l'âme : gagnez 1 état exténué, … » — aucune occurrence |
-| `LDB 46 l.102` | ❌ LOW | « 06-10 regard maudit : vous possédez 1 état ave… » — aucune occurrence |
-| `LDB 46 l.126` | ❌ LOW | « 66-70 régurgitation : gagnez l'état sonné, qui… » — aucune occurrence |
-| `NADJ 05 l.117` | ❌ LOW | « état fatigué… » — aucune occurrence |
-
-## 4e/tests.md
-
-| Réf | Statut | Détail |
-|---|---|---|
-| `LDB 17 l.68` | ❌ LOW | « "je ne faillirai pas !" : au lieu de lancer le… » — aucune occurrence |
-<!-- sources-empreinte: c954a3c2ccee535c3929ade11f5fb80277d9ea29 (273 fichiers, 18 dossiers) corps: bf22c2ac0d4bafea9e8542374bbf6c3f2909769d -->
+<!-- sources-empreinte: 1afc9e9fda22d2fc7146a2db2332653d5fb146c2 (204 fichiers, 18 dossiers) corps: 0821ff726284f96a8d2571ab110b002765900309 -->

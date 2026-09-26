@@ -1,5 +1,5 @@
 /**
- * Schéma de `water-exposure.json` — Exposition hydrique (MSRC 16 p.91). Fichier NON-tableau (objet
+ * Schéma de `water-exposure.json` — Exposition hydrique (MSRC 16 l.11-63). Fichier NON-tableau (objet
  * unique), dérivé de `WaterExposureData`/`WaterExposureModifier`/`WaterExposureAuto`
  * (`src/data/index.ts`). `test.difficulty` = `Difficulty` (moteur) → `difficultySchema` partagé.
  */
@@ -11,10 +11,10 @@ import { refOuSpec } from '../grammaire/ref';
 export const file = 'water-exposure.json';
 export const famille = 'config';
 
-/** Les deux tables de modificateurs d'Exposition hydrique (MSRC 16 p.91). */
+/** Les deux tables de modificateurs d'Exposition hydrique (MSRC 16 l.23-47). */
 export const waterTableSchema = enumNomme({ 'source-d-eau': 'Source d’eau', 'blessures-et-etats': 'Blessures et États' });
 
-/** Les deux contextes d'application d'un modificateur d'Exposition hydrique (MSRC 16 p.91). */
+/** Les deux contextes d'application d'un modificateur d'Exposition hydrique (MSRC 16 l.25/37). */
 export const waterAppliesToSchema = enumNomme({ ingestion: 'Ingestion', immersion: 'Immersion' });
 
 /** Union PLATE (pas `discriminatedUnion` — `woundsLost` a 2 formes selon `op`, discriminant non-unique

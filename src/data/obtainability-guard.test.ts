@@ -21,7 +21,7 @@ import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph'
  * - `empreint-de-la-magie` (EDOC 13 « Influence Maléfique de Tzeentch » l.248-258) : octroyé comme
  *   effet d'Incantation imparfaite dans une zone influencée par Tzeentch — mécanique de scène de
  *   campagne (« Main pourpre ») non authorée dans `src/scenes/`. `codexOnly:true`.
- * - `magie-du-chaos` (LDB 10 p.140 l.702-710 ; carrière concrète EDOC 13 l.137 « Magus du Culte de
+ * - `magie-du-chaos` (LDB 10 l.702-710 ; carrière concrète EDOC 13 l.137 « Magus du Culte de
  *   Tzeentch — destinée uniquement aux PNJ … utilisée par les PJ avec la permission du MJ ») : AUCUNE
  *   carrière/mutation de nos livres ne l'accorde à un PJ (vérifié `careerLevels.json`/mutations table
  *   Physique+Mentale EDOC 12 — aucune entrée « Magie du Chaos », seule « Fuite aethyrique » octroie
@@ -31,7 +31,7 @@ import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph'
  *   `pouvoir-du-chaos`, `flot-de-corruption`) + `consentement` : exemptés via le même flag
  *   (`obtainabilityGraph.ts` exclut la famille `chaos` de `spellNever` quand `magie-du-chaos` est
  *   `codexOnly`), pas un silence par-sort.
- * - `talent-aleatoire` (LDB 10 p.132) : entrée MÉTA, exemptée via `META_CATALOG_ENTRIES`
+ * - `talent-aleatoire` (LDB 05 l.484) : entrée MÉTA, exemptée via `META_CATALOG_ENTRIES`
  *   (`scripts/guards/lib/entityConsumers.mjs`, SOURCE UNIQUE partagée avec `src/data/entity-orphans.test.ts`
  *   — le fait n'est plus déclaré ici).
  *

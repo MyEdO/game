@@ -60,7 +60,7 @@ const hero = (): Combatant => ({ id: 'h', name: 'H', items: [], characteristics:
 
 const sceneWithAvitailleur = (marketMode?: string) => {
   const sc = emptyScene(4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, merchant: { archetype: 'avitailleur', ...(marketMode ? { marketMode } : {}) } as never });
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'avitailleur', ...(marketMode ? { marketMode } : {}) } as never });
   return sc;
 };
 

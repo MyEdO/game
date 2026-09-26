@@ -6,7 +6,7 @@ import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from './flow';
 
 /**
- * Démoniaque — bannissement « à la mort » (LDB 85 p.339 : « son âme retourne dans les Royaumes du Chaos,
+ * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,
  * ce qui la retire du jeu »). L'effet est 100 % DONNÉE : op `banish` portée par l'`effects` du trait,
  * déclenchée par `onSlain` — donc QUEL QUE SOIT le chemin de mort (0 PB, Critique LÉTAL/démembrement, mort
  * comme attaquant sous un Critique défensif, mort-auto), sans branche en dur dans applyAttackResult. Le

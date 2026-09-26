@@ -195,7 +195,11 @@ const CLE_DETTE = (c: { dataset: string; champ: string; occurrences: number }) =
 // Ce qui laisse ces deux lignes est la PROJECTION sur le dernier segment (`cliff`, `material`), face
 // au champ PORTEUR que le scan observe : les 8 lignes jumelles des quatre projets de scène sont au
 // stock depuis #1691/#1715, et les dix meurent ensemble avec le dériveur d'un niveau (L3 #1473).
-const DETTE_ADOPTION_MAX = 348;
+// Cliquet REMONTÉ 348 → 349 (#1882, 2026-09-23) : `species.json | profilStandard` ENTRE, fabrique
+// ADOPTÉE (`ref('creature')`, `defs/species.ts`) — même angle mort de la référence ENVELOPPÉE que
+// `species.json | previewCareer` : `[].profilStandard.id` projette sur `id`. Meurt avec le dériveur
+// d'un niveau (L3 #1473).
+const DETTE_ADOPTION_MAX = 349;
 
 describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', () => {
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {

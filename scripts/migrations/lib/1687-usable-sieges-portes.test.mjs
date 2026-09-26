@@ -82,8 +82,8 @@ const PROJETS = listerDossier(path.join(RACINE, 'src/scenes'))
 assert.ok(PROJETS.length > 0, 'aucun projet de scène — la fixture ne mesure rien');
 
 /** Les TYPES de décor qui portent des places — LUS au catalogue, comme la migration, mais par un
- *  chemin qui lui est propre : un banc qui importerait le dériveur de la migration ne mesurerait
- *  plus que sa cohérence avec elle-même. */
+ *  chemin qui lui est propre : un banc qui importerait le dériveur de la migration mesurerait
+ *  seulement sa cohérence avec elle-même. */
 const TYPES = new Set(
   JSON.parse(lire(PROPS)).filter((p) => Array.isArray(p?.seatSlots) && p.seatSlots.length).map((p) => p.id),
 );

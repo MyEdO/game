@@ -1,7 +1,7 @@
 /**
  * #1051 — la TABLE UNIQUE de possession (`netOwnership.ROUTES`) : sa construction, sa forme et ses
- * frontières. `intentAllowedFor` n'est plus qu'une lecture de cette table + le REPLI universel ; ce
- * qui se jugeait auparavant à la lecture d'une chaîne de `if (action === …)` se MESURE ici.
+ * frontières. `intentAllowedFor` est une lecture de cette table + le REPLI universel ; la route de
+ * chaque intention se MESURE ici.
  *
  * Trois verrous :
  *  - FAIL-FAST de construction : deux groupes qui fournissent la même clé lèvent un litige NOMINATIF

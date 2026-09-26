@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FlowEditor } from './FlowEditor';
 import { EMPTY_FLOW, type Flow } from '../../state/flow';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 
-const ctx = { encounters: [], dialogues: [] };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
   kind: 'test',
   test: { skill: { id: skill }, ...(vsGroups ? { vsGroups } : {}) },

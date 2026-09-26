@@ -277,7 +277,7 @@ describe('#1262 — la MARQUE mure la porte', () => {
 
   /**
    * LE MURAGE DE LA VAGUE COMBAT (#1262 B4) — `pushCombatStep` est le point d'append historique des
-   * étapes de combat. Retypé à la MARQUE, il ne prend plus que ce qu'un mint a monté : le site qui
+   * étapes de combat. Retypé à la MARQUE, il prend seulement ce qu'un mint a monté : le site qui
    * bâtirait son étape à la main NE COMPILE PLUS, dans les deux formes (déclaration directe ET
    * fabrique indexée). Le verrou est celui du COMPILATEUR : c'est la ligne `@ts-expect-error` qui
    * l'atteste (sans l'erreur attendue, `tsc` échoue) — l'exécution, elle, ignore les types, et l'étape

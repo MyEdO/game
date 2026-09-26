@@ -1,6 +1,6 @@
 *Pages PDF 336-338*
 
-# **THE ORC AND GOBLIN HORDES**
+# <span id="page-335-0" data-folio="336"></span>**THE ORC AND GOBLIN HORDES**
 
 The scourge of civilised peoples, orcs and goblins raid towns and villages, leaving nothing but blood and ruin in their wake. Dwelling in crude fortifications deep in forests and wild places, they spend most of their time warring amongst themselves. Every so often, a warlord emerges from these internecine skirmishes and binds the tribes into a mighty Waaagh! that crashes over the Old World in a green tide of destruction.
 
@@ -30,11 +30,11 @@ Scrawny, spiteful, nimble, and possessed of a degree of mean cunning, a goblin's
 
 **Toughness Bonus:** 3
 
-**Optional Light Armour:** +1 AP **Optional Helmet:** +2 AP to Head
+**Optional Light Armour:** +1 AP
 
-**Optional Shield:** +2 AP when Opposing
+**Optional Helmet:** +2 AP to Head
 
-an attack with *Dodge* or *Melee*
+**Optional Shield:** +2 AP when Opposing an attack with *Dodge* or *Melee*
 
 #### **Skills**
 
@@ -44,23 +44,17 @@ Dodge 35, Melee (Basic) 30, Perception 25, Ranged (Bow) 35, Stealth (Rural) 35, 
 
 **Afraid (Elves):** Elves cause *Fear* against this creature, see page 183 for details
 
-**Animosity (Orcs and Goblins):** The creature
+**Animosity (Orcs and Goblins):** The creature dislikes orcs and goblins, see page 183
 
-dislikes orcs and goblins, see page 183
+**Infected:** Wounded opponents must take an **Easy (+4 SL) Endurance** Test to avoid a Festering Wound
 
-**Infected:** Wounded opponents must take an **Easy (+4** 
-
-**SL) Endurance** Test to avoid a Festering Wound
-
-**Night Vision:** See clearly for 20 yards and extend the
-
-illumination distance of light sources by 20 yards
+**Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
 #### **Optional Traits**
 
 *Dark Vision, Hatred (Dwarfs), Ranged (Shortbow and Arrows) +7 (20) (Impale), Striding Gait (Woodland), Venom*
 
-# **Orc**
+# <span id="page-336-0" data-folio="337"></span>**Orc**
 
 Orcs are nasty, brutal, belligerent, and almost immune to pain. Muscular and broad-shouldered, they are built for fighting and will not let something as trivial as a lost arm spoil a good scrap. If no enemies can be found, they fight rival tribes of orcs and goblins, and if there are none, they fight each other. Though less numerous than goblins, they are bigger, tougher, and never let them forget it. Larger orcs are stronger, more aggressive, and command greater prestige, for might equals right in their warlike society. Some ride enormous boars into battle, a sight that rarely fails to terrify.
 
@@ -80,11 +74,13 @@ Orcs are nasty, brutal, belligerent, and almost immune to pain. Muscular and bro
 
 **Toughness Bonus:** 4
 
-**Optional Light Armour:** +1 AP **Optional Medium Armour:** +3 AP **Optional Helmet:** +2 AP to Head
+**Optional Light Armour:** +1 AP
 
-**Optional Shield:** +2 AP when Opposing
+**Optional Medium Armour:** +3 AP
 
-an attack with *Dodge* or *Melee*
+**Optional Helmet:** +2 AP to Head
+
+**Optional Shield:** +2 AP when Opposing an attack with *Dodge* or *Melee*
 
 #### **Skills**
 
@@ -96,19 +92,11 @@ Endurance 50, Melee (Basic) 40, Ranged (Bow) 35
 
 The creature dislikes orcs and goblins, see page 183
 
-**Belligerent:** As long as they possess Advantage and their opponent does
+**Belligerent:** As long as they possess Advantage and their opponent does not, they are immune to *Fear*
 
-not, they are immune to *Fear*
+**Infected:** Wounded opponents must take an **Easy (+4 SL) Endurance** Test to avoid a Festering Wound
 
-**Infected:** Wounded opponents must take
-
-an **Easy (+4 SL) Endurance** Test to
-
-avoid a Festering Wound
-
-**Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources
-
-by 20 yards
+**Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
 #### **Optional Traits**
 
@@ -118,9 +106,7 @@ by 20 yards
 
 — Gurkk Skulltaka, Orc Boss
 
-337
-
-# **Snotling**
+# <span id="page-337-0" data-folio="338"></span>**Snotling**
 
 Pea-brained creatures akin to enthusiastic, uncontrolled puppies, snotlings are natural scavengers and mimics. They collect bones, shiny objects, and whatever else catches their eye, while happily copying the actions of anything they see. If driven into battle by goblins or orcs, they fight in stinking swarms, hoping to overwhelm their foes through sheer weight of numbers. To aid this, they gather all manner of disgusting and noxious substances, from poisonous fungi to bodily waste, to hurl at their enemies.
 
@@ -142,15 +128,9 @@ Pea-brained creatures akin to enthusiastic, uncontrolled puppies, snotlings are 
 
 #### **Traits**
 
-**Bestial:** Animal behaviour is simple and predictable,
+**Bestial:** Animal behaviour is simple and predictable, see page 356
 
-see page 356
-
-**Infected:** Wounded opponents must take an
-
-**Easy (+4 SL)**
-
-**Endurance** Test to avoid a Festering Wound
+**Infected:** Wounded opponents must take an **Easy (+4 SL) Endurance** Test to avoid a Festering Wound
 
 **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 

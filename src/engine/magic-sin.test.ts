@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { prayerWrathTriggered } from './magic';
 
-describe('prayerWrathTriggered (LDB 40 l.45)', () => {
+describe('prayerWrathTriggered (LDB 40 l.46)', () => {
   it('dé des unités ≤ Péchés → Colère (même logique sur réussite ou échec : le jet seul compte)', () => {
     expect(prayerWrathTriggered(42, 3)).toBe(true); // unités 2 ≤ 3
     expect(prayerWrathTriggered(33, 3)).toBe(true); // unités 3 ≤ 3 (égalité)

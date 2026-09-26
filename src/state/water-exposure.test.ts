@@ -1,5 +1,5 @@
 /**
- * #46 — Maladies transmises par l'eau (MSRC 16 p.91) : tables d'exposition hydrique en DONNÉE
+ * #46 — Maladies transmises par l'eau (MSRC 16 l.13-61) : tables d'exposition hydrique en DONNÉE
  * (`water-exposure.json`, lookup `findTableEntry`) + Effet de scène `waterExposure` (Test de
  * Résistance Intermédiaire modifié par étape de cascade) + contraction DIRECTE sur échec
  * (« Si le Test de Résistance est raté, lancez un dé … avec un modificateur de +10 pour chaque DR
@@ -26,7 +26,7 @@ function hero(name: string, over: Partial<Combatant> = {}): Combatant {
   return { ...h, id: name, ...over } as Combatant;
 }
 
-describe('water-exposure.json — la donnée MSRC p.91', () => {
+describe('water-exposure.json — la donnée MSRC 16 l.23-61', () => {
   it('la table d100 partitionne 1..100 sans trou ni chevauchement', () => {
     let next = 1;
     for (const e of WATER_EXPOSURE.diseases) {

@@ -2,6 +2,7 @@ import type { HitLocation, Difficulty } from '../engine/types';
 import type { FlowTestNode } from '../engine/flowCore';
 import type { Formula, GameOp } from '../engine/ops';
 import type { SourceRef } from './schemas/grammaire/valeurs';
+import type { DocumentARangees } from './schemas/grammaire/document';
 import criticalsJson from './criticals.json';
 
 /**
@@ -141,14 +142,12 @@ export interface CritEscalation {
 }
 export type CritTable = CritEntry[];
 
-/** Un document-table de `criticals.json` : SON identité, SON jeu, SA Localisation, SES rangées. */
-export interface CritDoc {
-  id: string;
+/** Un document-table de `criticals.json` : l'ENVELOPPE de la fabrique (identité, `source`…) et ses
+ *  rangées (`DocumentARangees`, `grammaire/document.ts`), plus SON jeu et SA Localisation. */
+export interface CritDoc extends DocumentARangees<CritEntry> {
   type: 'criticals';
-  label: string;
   jeu: JeuDeCritique;
   localisation: CritTableKey;
-  entries: CritTable;
 }
 
 /** Les 8 documents-tables, dans leur ordre authoré (LDB puis Aux Armes). */

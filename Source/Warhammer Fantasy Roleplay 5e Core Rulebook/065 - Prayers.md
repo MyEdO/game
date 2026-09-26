@@ -1,6 +1,6 @@
 *Pages PDF 217-219*
 
-# **PRAYERS**
+# <span id="page-216-0" data-folio="217"></span>**PRAYERS**
 
 A small number of the faithful stand apart from their peers, seemingly able to appeal for their deity's direct intervention in the form of miracles. Those who perform such feats are known by many names in different parts of the Old World, including: living saints, gods' servants, the hallowed, divine wills, anointed ones — but, in the Empire, they are most commonly referred to as 'blessed', which is often used as a title. So, if Sister Anna were to be blessed by Sigmar and started to manifest miracles and blessings, she would become 'Blessed Anna', or, in full, 'Blessed Anna, Sister of Sigmar'.
 
@@ -26,7 +26,7 @@ The Blessed are watched closely by the gods, and risk gaining the disfavour of t
 
 If you violate any of the cult strictures listed under your god, the GM will award one or more Sin Points depending on the severity of your offence. Every time you receive a Sin Point, it is added to your running total. There is no maximum to the number of Sin Points you can earn. The more points you have, the more upset your god is likely to be should you call upon divine aid.
 
-#### **Sin and Wrath**
+#### <span id="page-217-0" data-folio="218"></span>**Sin and Wrath**
 
 Appealing to your deity when you have been acting contrary to the god's wishes is risky. Whenever you make a Pray Test, if the units die of the result is equal to or less than your current Sin Point total, then you will suffer the Wrath of the Gods, even if the Pray Test is successful.
 
@@ -36,7 +36,7 @@ Whenever you Fumble a Pray Test, or when the units die of a Pray Test is equal o
 
 When rolling on the **Wrath of the Gods** table, add +10 to the roll for each Sin Point you have accrued. After rolling and applying the result, reduce your Sin points by 1, to a minimum of 0.
 
-#### **WRATH OF THE GODS**
+**WRATH OF THE GODS**
 
 | d100    | Result                                                                                                                                                                                                                                                                                                                                                            |
 |---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -60,7 +60,7 @@ When rolling on the **Wrath of the Gods** table, add +10 to the roll for each Si
 | 88      | Daemonic Interference: The Dark Gods answer your pleas instead of your patron. A Lesser Daemon appears within 2d10 yards of your position and attacks the nearest target.                                                                                                                                                                                         |
 | 89–95   | Fear My Wrath: Gain 1 + Sin Points Broken Conditions.                                                                                                                                                                                                                                                                                                             |
 | 96–100  | Go On Penance: You must go on a Penance.                                                                                                                                                                                                                                                                                                                          |
-| 101–105 | Castigation: You are reduced to 0 Wounds (if you are not there already) then gain an Unconscious Condition, which cannot be removed until you regain at least 1 Wound.                                                                                                                                                                                            |
+<span id="page-218-0" data-folio="219"></span>| 101–105 | Castigation: You are reduced to 0 Wounds (if you are not there already) then gain an Unconscious Condition, which cannot be removed until you regain at least 1 Wound.                                                                                                                                                                                            |
 | 106–110 | Do Not Use My Name in Vain: You lose the Bless and Invoke Talents for the next 1d10 + Sin Points days.                                                                                                                                                                                                                                                            |
 | 111–115 | Rely Not upon Your Vanities: You have all of your Trappings removed. For each Penance you complete, you will have one taken magical item returned to you, should you have any.                                                                                                                                                                                    |
 | 116–120 | You Abuse My Mercy: You lose the Bless and Invoke Talents for the next 2d10 + Sin Points days.                                                                                                                                                                                                                                                                    |
@@ -74,7 +74,7 @@ When rolling on the **Wrath of the Gods** table, add +10 to the roll for each Si
 
 ### **DIVINE SERVANTS**
 
-Divine Servants are supernatural minions of the gods in the material realm, in the same way that Daemons serve the Dark Gods. They tend to take the form either of a favoured animal such as a white wolf for Ulric or a golden eagle for Myrmidia — or a departed devotee of the god, such as a legendary priest or templar. To construct Divine Servants appropriate to the god at hand, use the rules in **Chapter 12: Bestiary**, modifying an animal, human, or daemon as you see fit.
+Divine Servants are supernatural minions of the gods in the material realm, in the same way that Daemons serve the Dark Gods. They tend to take the form either of a favoured animal — such as a white wolf for Ulric or a golden eagle for Myrmidia — or a departed devotee of the god, such as a legendary priest or templar. To construct Divine Servants appropriate to the god at hand, use the rules in **Chapter 12: Bestiary**, modifying an animal, human, or daemon as you see fit.
 
 #### **Penance**
 

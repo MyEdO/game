@@ -32,8 +32,8 @@ import type { TestScenario } from './_shared';
  * dérivée de la pièce) et le `makeParty` (le SOLDAT reçoit les Spé de service). AUCUN push/setEncounters résiduel.
  */
 
-// Compétence Projectiles APPROPRIÉE au Groupe de l'engin (AA 10 p.122 l.3900) : un servant ne compte dans l'équipe
-// QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », l.3923). Dérivée de la pièce
+// Compétence Projectiles APPROPRIÉE au Groupe de l'engin (AA 10 l.230) : un servant ne compte dans l'équipe
+// QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », AA 10 l.253). Dérivée de la pièce
 // (`weaponGroup` du trapping) → la Spé = id du Groupe (arbalete/poudre-noire/catapulte). Test ~40.
 const projForPiece = (trappingId: string): SkillRef[] => {
   const g = findTrappingById(trappingId)?.weaponGroup;
@@ -230,7 +230,7 @@ export const spec: MapSpec = {
     },
     // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
     G: {
-      entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1, label: 'Guetteur du corps de garde' },
+      entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1 },
       member: { enc: 'assaut', side: 'ally', ai: true },
     },
     // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
@@ -283,8 +283,8 @@ export const scenario: TestScenario = {
   makeParty: () => {
     const party = pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur);
     // Le SOLDAT sait SERVIR les pièces de rempart : on lui octroie la Projectiles du Groupe de CHAQUE pièce
-    // (Baliste→Arbalète, Canon→Poudre noire). Sans cette Spé, il ne COMPTE PAS dans l'effectif d'équipe (AA
-    // p.122 l.3900) → la pièce qu'il prend tirerait en sous-effectif. Dérivé des pièces (aucun libellé en dur).
+    // (Baliste→Arbalète, Canon→Poudre noire). Sans cette Spé, il ne COMPTE PAS dans l'effectif d'équipe
+    // (AA 10 l.230) → la pièce qu'il prend tirerait en sous-effectif. Dérivé des pièces (aucun libellé en dur).
     const gunner0 = party[0];
     for (const tid of ['baliste', 'canon-petit'])
       for (const ref of projForPiece(tid))

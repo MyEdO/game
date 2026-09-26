@@ -27,7 +27,7 @@ const scene = buildScene({
     'Contre-sort & dissipation des deux camps ; le Prêtre a 3 Péchés (Colère possible même sur Prière réussie) ; ' +
     'l’Envoûteuse cause Peur 2 + Terreur 2 à l’ouverture (Test de Psychologie).',
   // Influence corruptrice (LDB 19) puis ligne d'engagement : deux bandes verticales que le groupe traverse
-  // en avançant vers l'est (réfs ennemies par ID STABLE — un libellé retomberait sur un mannequin B:10).
+  // en avançant vers l'est (réfs ennemies par ID STABLE, `RefIrresoluble` sinon).
   triggers: [
     {
       id: 'trg-corruption',

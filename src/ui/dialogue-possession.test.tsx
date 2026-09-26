@@ -21,7 +21,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const pnj: SceneEntity = { id: 'e1', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Alice' };
+const pnj: SceneEntity = { id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' };
 
 const dlg: Dialogue = {
   id: 'dlg-groupe',

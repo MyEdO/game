@@ -30,7 +30,7 @@ import { MERCHANTS } from './merchants/index';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 import type { CascadeStep } from './pendings';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
@@ -148,7 +148,7 @@ function partyStatusBudgetBrass(party: Combatant[]): number {
 /** Valeur EFFECTIVE d'un des 3 flags Marché (LDB 59/60) POUR UNE ENTITÉ marchande (#93) : l'OVERRIDE
  *  d'entité (`SceneEntity.merchant.{guild,marketMode,tenirComptes}`) PRIME sur la règle maison globale
  *  (`engine/policy` `rule('market-*')`) ; absent = héritage du global, JAMAIS un 3ᵉ état ambigu. Couture
- *  UNIQUE : tout call-site qui lisait `rule('market-*')` directement lit désormais CETTE fonction. */
+ *  UNIQUE : tout call-site qui lisait `rule('market-*')` directement lit CETTE fonction. */
 function marketRule(ent: SceneEntity | undefined, key: 'guild' | 'marketMode' | 'tenirComptes'): RuleValue {
   const override = ent?.merchant?.[key];
   if (override !== undefined) return override;
@@ -192,7 +192,7 @@ function computeFreshStockLines(
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
   const cat: CatalogItem[] = trappings
-    .filter((t) => !t.service) // tarif de service (chambre/écurie, LDB p.302) : jamais en stock, pas un objet
+    .filter((t) => !t.service) // tarif de service (chambre/écurie, LDB 66 l.12-14) : jamais en stock, pas un objet
     .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType != null && arch.category.subTypes.includes(t.subType))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;
@@ -526,7 +526,7 @@ export function payCart(get: Get, set: Set): void {
   // Crée les objets achetés (par UNITÉ) en attente de répartition + déplète le stock. Une ligne
   // UNITÉ (véhicule/créature-monture, #760) rejoint elle aussi `pendingDistribution` — le joueur
   // choisit le héros PROPRIÉTAIRE via le même écran de répartition que les objets de sac ;
-  // `dest` (= party[0]) n'est plus qu'une affectation PAR DÉFAUT, réassignable.
+  // `dest` (= party[0]) est l'affectation PAR DÉFAUT, réassignable.
   const dest = get().party[0]?.id ?? '';
   const staged: NonNullable<MerchantState['pendingDistribution']> = [];
   let newStock = m.stock;
@@ -682,12 +682,14 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   if (refused) { get().log(t('trade.barterRefused', { reason: refused })); return; }
   const quote = barterQuote(opts.giveTrappingId, opts.getStockId, getCount);
   if (!quote) { get().log(t('mf.barterNoPrice')); return; }
+  const donne = garanti(findTrappingById(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
+  const recu = garanti(findTrappingById(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
   const hero = get().party.find((h) => h.id === opts.giveHeroId);
   const stockLine = m.stock.find((l) => l.id === opts.getStockId);
   if (!hero || !stockLine) return;
   // Exemplaires cédés : instances NON équipées du même trapping chez ce héros.
   const givable = (hero.items ?? []).filter((i) => i.trappingId === opts.giveTrappingId && !i.equipped);
-  if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: findTrappingById(opts.giveTrappingId)?.label ?? '?', dispo: givable.length })); return; }
+  if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
   if (stockLine.qty < getCount) { get().log(t('mf.barterNoStock')); return; }
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
@@ -707,8 +709,8 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
     };
   });
   get().log(t('mf.barterDone', {
-    giveCount: quote.giveCount, giveLabel: findTrappingById(opts.giveTrappingId)?.label ?? '?',
-    getCount, getLabel: findTrappingById(opts.getStockId)?.label ?? '?',
+    giveCount: quote.giveCount, giveLabel: donne,
+    getCount, getLabel: recu,
     giveAv: quote.giveAv, ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: quote.getAv,
   }));
 }
@@ -808,12 +810,13 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   if (m.soured) return; // botch antérieur : le marchand se méfie, plus de marchandage (LDB 59 l.43)
   if (m.bargainLocked) return; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
   if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
-  const arch = MERCHANTS[m.archetype];
+  // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
+  const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
   const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
   const negotiator = hasBargainBonus(best.actor); // Négociateur → registre de talents (jamais un name-match)
   set({ pendingBargain: {
     playerId: best.actor.id, playerName: best.actor.label,
-    merchantName: arch?.label ?? 'Marchand', merchantValue: arch?.bargainSkill ?? 40,
+    merchantName: arch.label, merchantValue: arch.bargainSkill,
     playerSkill: best.value, support: best.support,
     // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
     // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du

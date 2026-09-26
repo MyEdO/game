@@ -287,7 +287,13 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // `domeWard` est une op TYPÉE (`OP_DEFS`, #1508 T3 G0) : le Trait que le dôme octroie se nomme par
       // la graphie CANONIQUE d'un octroi (`traitId`), la même que `removeTrait` — d'où la ligne ici.
       'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.domeWard|traitId',
+      // `giveTrapping` est une op TYPÉE (`OP_DEFS`, #1903) : l'objet se nomme par `trappingId`, la graphie de
+      // `GameOp` (`src/engine/ops.ts`) et de `conditionSchema`.
+      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.giveTrapping|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.removeTrait|traitId',
+      // `summon` est une op TYPÉE (#1882) : la créature invoquée se nomme par le champ `ref` du moteur
+      // (`engine/ops.ts`), tenu par `idDe('creature')`.
+      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:extendedTestSchema|skill',
       'src/data/schemas/grammaire/mecanique.ts:flowTestSchema|skill',

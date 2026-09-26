@@ -32,6 +32,7 @@ import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { MonsterPartsFields } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
+import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
@@ -655,6 +656,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
+            racine="critique"
             desc="jet de la rangée (nœud `test` — Difficulté, compétence, conséquences des deux branches)"
             value={entry.test as NoeudTest | undefined}
             onChange={(v) => edit('test', v)}
@@ -727,7 +729,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {hasConsumable && (
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
-            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }}
+            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
@@ -939,13 +941,13 @@ function ConsumableDurationField({ value, onChange }: { value: ConsumableDuratio
 /** Éditeur des EFFETS d'un sort (`SpellData.effects`) — le `Flow` ÉDITABLE (do/si/test, feuilles
  *  EffectOp). Réutilise le `FlowEditor` de l'éditeur de scène (source UNIQUE de la logique authorée) :
  *  pose des effets mécaniques `on:'target'`/`on:'caster'`, des branches conditionnelles, des Tests. Écrit
- *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). `ctx` vide :
- *  un sort n'a pas d'encounters/dialogues de scène (les transitions/dialogues n'ont pas cours ici). */
+ *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). Racine de
+ *  CATALOGUE `sort` (`ctxDeCatalogue`) : ni encounters/dialogues de scène, et la table de cibles d'un sort. */
 function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onChange: (v: Flow) => void }) {
   return (
     <div className="ed-field">
       <span>effets du sort (Flow éditable — effets mécaniques, conditions, tests)</span>
-      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={onChange} />
+      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={ctxDeCatalogue('sort')} onChange={onChange} />
     </div>
   );
 }
@@ -997,7 +999,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
@@ -1362,7 +1364,7 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
   );
 }
 
-/** Test de Résistance d'Exposition hydrique (`waterExposure.test`, MSRC 16 p.91, #157 suite) :
+/** Test de Résistance d'Exposition hydrique (`waterExposure.test`, MSRC 16 l.13, #157 suite) :
  *  Compétence + Difficulté — sorti du repli générique (le repli traiterait ce couple {skill,difficulty}
  *  en `recordText` renommable, ce qui autoriserait de corrompre les clés d'un objet à forme FIXE). */
 function WaterTestField({ value, onChange }: { value: WaterTest | undefined; onChange: (v: WaterTest) => void }) {
@@ -1370,7 +1372,7 @@ function WaterTestField({ value, onChange }: { value: WaterTest | undefined; onC
   const v = value ?? { skill: { id: '' }, difficulty: DIFFICULTIES[0] };
   return (
     <div className="ed-field">
-      <span>Test de Résistance (MSRC 16 p.91) — Compétence + Difficulté</span>
+      <span>Test de Résistance (MSRC 16 l.13) — Compétence + Difficulté</span>
       <div className="tf-row">
         <select value={v.skill.id} onChange={(e) => onChange({ ...v, skill: { ...v.skill, id: e.target.value } })}>
           {!v.skill.id && <option value="">— (choisir une compétence) —</option>}
@@ -1387,7 +1389,7 @@ function WaterTestField({ value, onChange }: { value: WaterTest | undefined; onC
 const WATER_APPLIES_TO_OPTS = optionsDuNoeud(waterAppliesToSchema) as [WaterExposureModifier['appliesTo'][number], string][];
 const WATER_TABLE_OPTS = optionsDuNoeud(waterTableSchema);
 
-/** Modificateurs du Test de Résistance d'Exposition hydrique (`waterExposure.modifiers`, MSRC 16 p.91) :
+/** Modificateurs du Test de Résistance d'Exposition hydrique (`waterExposure.modifiers`, MSRC 16 l.23-47) :
  *  id/libellé/valeur + contexte (Ingestion/Immersion, cumulables) + table d'origine. `auto` (dérivation
  *  automatique depuis le Combatant — PB restants/perdus, État) reste en JSON : union à 5 formes, rare
  *  (6/12 entrées), pas assez structurante pour justifier un 2ᵉ éditeur dédié. */
@@ -1400,7 +1402,7 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
   };
   return (
     <div className="ed-field">
-      <span>modificateurs du Test de Résistance (MSRC 16 p.91) — cumulables</span>
+      <span>modificateurs du Test de Résistance (MSRC 16 l.23-47) — cumulables</span>
       {list.map((m, i) => (
         <div className="ed-subfield" key={i}>
           <div className="tf-row">
@@ -1425,7 +1427,7 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
   );
 }
 
-/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 p.91) : plage d100
+/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : plage d100
  *  (jet APRÈS échec du Test) → maladie référencée par ID (sélecteur, comme `SkillSpecListField`/
  *  `ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
 function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases'] | undefined; onChange: (v: WaterExposureData['diseases']) => void }) {
@@ -1434,7 +1436,7 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   const set = (i: number, patch: Partial<WaterExposureData['diseases'][number]>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <div className="ed-field">
-      <span>maladies contractées — jet d100 après échec du Test de Résistance (MSRC 16 p.91)</span>
+      <span>maladies contractées — jet d100 après échec du Test de Résistance (MSRC 16 l.49-61)</span>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">d100&nbsp;<NumberField variant="nu" label="Plage d100 — borne basse" min={1} max={100} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage d100 — borne haute" min={1} max={100} value={r.max} onChange={(max) => set(i, { max })} /></label>

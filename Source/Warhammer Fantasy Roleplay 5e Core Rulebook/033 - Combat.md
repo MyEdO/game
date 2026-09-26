@@ -1,6 +1,6 @@
 *Pages PDF 161*
 
-# **COMBAT**
+# <span id="page-160-0" data-folio="161"></span>**COMBAT**
 
 Sooner or later, you will need to stop someone in their tracks — or they will try to stop you. When diplomacy fails, is never attempted, or simply isn't understood, combat begins.
 
@@ -24,7 +24,7 @@ Combat follows these steps until one side flees or is defeated:
 - 4. **Round Ends:** The Round ends when all combatants have taken a Turn. If the rules call for something to happen at the end of the Round, it happens now.
 - 5. **Repeat Steps 2–5 As Required:** Continue to play through Rounds until the combat is resolved.
 
-# **Combat Initiative Order** V
+# **Combat Initiative Order**
 
 Combatants take their Turns in Combat Initiative order. This is determined at the start of any combat by rolling a d10 and adding the character's Initiative Bonus — the GM may choose to roll for several or all NPCs at once. Those with higher results act before those with lower results. If two or more combatants have the same Combat Initiative, the one with the higher Initiative acts first. If they also have the same Initiative, they make an Opposed Initiative Test, with the winner choosing who acts first. Some Talents can modify Initiative order (see **Chapter 4: Skills and Talents**).
 

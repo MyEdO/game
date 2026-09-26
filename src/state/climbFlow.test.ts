@@ -7,6 +7,7 @@ import { makeRNG } from '../engine/dice';
 import { placeCombatant } from './spawn';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascadeTestKit';
+import { t } from '../i18n';
 
 /**
  * Câblage de l'ESCALADE (LDB 15 l.53-57) à la géométrie z (#82) : `climbAcross` grimpe une arête
@@ -27,6 +28,19 @@ function cliffScene(climb: WallClimb): Scene {
 }
 const foot = { x: 2, y: 1 };
 const top = { x: 2, y: 0 };
+
+describe('climbAcross — aucun grimpeur (#1906)', () => {
+  it('seul héros à 0 PB, conscient : refus NOMMÉ au journal, le groupe ne bouge pas, rien ne lève', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    hero.wounds.current = 0;
+    for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
+      useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
+      expect(() => useGame.getState().climbAcross(foot, top)).not.toThrow();
+      expect(useGame.getState().journal.slice(-1)[0]).toBe(t('climb.personne'));
+      expect(useGame.getState().partyPos).toEqual(foot);
+    }
+  });
+});
 
 describe('climbAcross — exploration', () => {
   beforeEach(() => {

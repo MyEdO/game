@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Établi de charpentier : plateau épais, pieds robustes entretoisés, étau de fer vissé en bout, planche
-// + scie posées dessus. Pièce maîtresse de la charpenterie & décors du théâtre. Cf. plan officiel NADJ 8 p.40.
+// + scie posées dessus. Pièce maîtresse de la charpenterie & décors du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'etabli',
   label: 'Établi',

@@ -3,7 +3,7 @@
 //   1. CHEMINS  — tout `src/…` / `scripts/…` cité existe sur le disque (fichier, dossier ou glob).
 //   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/.
 //   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/.
-//   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et `src/ui/styles/*.css`.
+//   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et les feuilles `.css` de src/.
 //   5. SENS INVERSE — tout chemin `docs/….md` cité par src/ ou scripts/ existe sur le disque.
 //   6. HOOKS — tout chemin `src/…` / `scripts/…` cité par un hook (git-hooks, hooks) existe.
 // Un métavariable `<…>` qui suit un chemin le tronque au dossier (ex. `src/ui/jetProps/<hook>.tsx`
@@ -130,10 +130,10 @@ if (existsSync(MANIFESTE_PRIMITIVES)) {
 
 // 4. Catalogue atomique CSS (docs/charte-ui.md, section « Couche atomique — catalogue »), les DEUX
 // sens :
-//   4a. chaque classe backtiquée `.foo` de la section doit exister comme sélecteur réel dans
-//       la COUCHE PARTAGÉE — sinon la doc ment (classe fantôme). Cette couche est celle que garde le
-//       cliquet (xiii) d'`src/ui/ui-ratchets.test.ts` (`SHARED_CSS_FILES`) : `src/ui/styles/*.css` ET
-//       la feuille du chrome du monde `src/gameIso/anim.css`, dont le catalogue est la SEULE sortie.
+//   4a. chaque classe backtiquée `.foo` de la section existe dans une feuille `.css` de src/, à
+//       toute profondeur — sinon la doc ment (classe fantôme). Le corpus lu est l'ARBRE (`CSS_TEXT`,
+//       `fichiersSources(SRC_DIR, ['.css'])`) : toute feuille neuve, où qu'elle vive,
+//       y entre à sa création.
 //   4b. chaque classe CANONIQUE (sélecteur de PREMIER NIVEAU, ni pseudo/combinateur/parenthèse) de
 //       la zone PARTAGÉE de `src/ui/styles/components.css` doit être citée dans la section — sinon
 //       la doc devient incomplète en silence. Zone PARTAGÉE = tout le fichier AVANT le premier bloc
@@ -152,7 +152,7 @@ if (existsSync(CHARTE_MD)) {
     if (endIdx < 0) endIdx = lines.length
     const section = lines.slice(startIdx, endIdx).join('\n')
 
-    const CSS_TEXT = [...fichiersSources('src/ui/styles', ['.css']), 'src/gameIso/anim.css']
+    const CSS_TEXT = fichiersSources(SRC_DIR, ['.css'])
       .map((f) => readFileSync(f, 'utf8'))
       .join('\n')
 

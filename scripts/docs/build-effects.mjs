@@ -1,6 +1,6 @@
 // Carte du vocabulaire `Effect` = DONNÉE (#667) : GÉNÉRÉE depuis les SCHÉMAS zod des variantes
 // (src/data/schemas/defs-scenes/effets.ts — AST TypeScript, pas de regex sur les accolades) ; c'est
-// là que vivent la forme de chaque variante et sa JSDoc, `src/state/scene.ts` n'en compose plus que
+// là que vivent la forme de chaque variante et sa JSDoc, `src/state/scene.ts` en compose seulement
 // les noms par `z.infer`. La feuille `type:'ops'` est le schéma de la grammaire, indexé lui aussi.
 // Sortie : docs/campagne-effects.md.
 // Re-run : node scripts/docs/build-effects.mjs (npm run docs:effects).

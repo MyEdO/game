@@ -39,7 +39,6 @@ export interface AlignReport {
 }
 
 export function parseLineCitation(cite: unknown): LineCitation | null;
-export function folioInLines(lines: string[], line: number): number | null;
 export function folioAnchors(lines: string[]): number[];
 export function anchorsAt(lines: string[]): { folio: number; line: number }[];
 export function folioGoverningWhy(

@@ -15,6 +15,7 @@ import {
 } from '../guards/lib/commentPoison.mjs';
 import { scanLabelLogic } from '../guards/lib/labelLogic.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+import { cheminDEcriture } from './solde-ticket-guard.mjs';
 
 let raw = '';
 process.stdin.setEncoding('utf8');
@@ -22,27 +23,25 @@ for await (const chunk of process.stdin) raw += chunk;
 
 let entree = {};
 try { entree = JSON.parse(raw)?.tool_input ?? {}; } catch { /* stdin illisible → silence */ }
-const fp = String(entree.file_path ?? entree.path ?? '');
-
-const norm = fp.replace(/\\/g, '/');
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-// Chemin RELATIF à la racine du dépôt qui porte ce hook : le périmètre `.claude/**`/`docs/**` se juge
-// sur lui, jamais sur le chemin absolu — un worktree lié vit lui-même sous `.claude/worktrees/`, et
-// tout fichier y passerait pour une note suivie.
-const rootNorm = root.replace(/\\/g, '/');
-const sousRacine = norm.startsWith(`${rootNorm}/`) ? norm.slice(rootNorm.length + 1) : norm;
+// Chemin RÉEL RELATIF à la racine de l'arbre git qui CONTIENT le fichier (`cheminDEcriture`, un
+// relatif se résout contre la racine de ce hook) : périmètre, lecture et message se jugent sur lui,
+// jamais sur le chemin brut — un worktree lié vit lui-même sous `.claude/worktrees/`, et tout fichier
+// y passerait pour une note suivie. Hors du contenu versionné (`horsContenu`), le hook se tait — jugé
+// à la sortie, pour que le spawn git ne se paie que si un volet a trouvé quelque chose.
+const chemin = cheminDEcriture(entree, { base: root });
+if (chemin === null) process.exit(0);
+const rel = chemin.relatif;
 // MÊME périmètre que la suite Vitest et le pre-commit : `estFichierScanne` (source unique,
 // `commentPoison.mjs`) — les deux racines, les quatre extensions, tests compris.
-const coupe = ['/src/', '/scripts/'].map((d) => norm.lastIndexOf(d)).filter((i) => i >= 0).sort((a, b) => b - a)[0];
-const rel = coupe === undefined ? norm : norm.slice(coupe + 1);
-const isSrcTs = estFichierScanne(norm);
+const isSrcTs = estFichierScanne(rel);
 
 /** Tout ce qui part en contexte, tous volets confondus (une seule sortie JSON par appel). */
 const sortie = [];
 
 if (isSrcTs) {
   let text;
-  try { text = readFileSync(fp.startsWith('/') || /^[A-Za-z]:/.test(fp) ? fp : join(root, fp), 'utf8'); } catch { text = ''; }
+  try { text = readFileSync(chemin.reel, 'utf8'); } catch { text = ''; }
   if (text) {
     const lines = [];
     for (const f of scanTombstones(rel, text))
@@ -72,7 +71,7 @@ if (isSrcTs) {
     const rappelBaseline = formatBaselineReport({ nouveaux: [], connus: verdict.connus, perimees: [] });
     // Même exclusion que label-logic-guard.test.ts (EXCLUDED) et le pre-commit : un fichier de test
     // plante les FIXTURES littérales de ce garde, il ne doit pas y rougir.
-    if (/(^|\/)src\/(engine|state)\//.test(norm) && !estFichierVitest(norm))
+    if (/^src\/(engine|state)\//.test(rel) && !estFichierVitest(rel))
       for (const f of scanLabelLogic(rel, text))
         lines.push(`POISON logique par label (#142, id STABLE seulement) — ${rel}:${f.line} ${f.detail}`);
     if (lines.length)
@@ -82,7 +81,7 @@ if (isSrcTs) {
 }
 
 /** Une note documentaire ou de mémoire : le pointeur nu s'y lit sans son ticket. */
-const estNoteSuivie = /^(\.claude|docs)\//.test(sousRacine);
+const estNoteSuivie = /^(\.claude|docs)\//.test(rel);
 /** Un titre sur la MÊME ligne : guillemets (droits, français), ou parenthèse explicative. */
 const PORTE_UN_TITRE = /["“”«»()]/;
 /** Un numéro de ticket cité seul (jamais dans une URL, un chemin ou une ancre `issuecomment-…`). */
@@ -97,7 +96,7 @@ if (estNoteSuivie) {
     : [];
   if (nues.length > 0) {
     sortie.push(
-      `POINTEUR DÉRÉFÉRENCÉ (${nues.length} ligne(s) écrite(s) dans ${norm}) : un numéro de ticket seul ` +
+      `POINTEUR DÉRÉFÉRENCÉ (${nues.length} ligne(s) écrite(s) dans ${rel}) : un numéro de ticket seul ` +
       'ne se lit pas — recoller le TITRE sur la même ligne (`gh issue view <N> --json title`), sinon la ' +
       'note est inerte pour qui la relit.',
       ...nues.slice(0, MAX_POINTEURS).map((l) => `  ${l.trim().slice(0, 120)}`),
@@ -105,7 +104,7 @@ if (estNoteSuivie) {
   }
 }
 
-if (sortie.length) {
+if (sortie.length && !chemin.horsContenu) {
   console.log(JSON.stringify({
     hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: sortie.join('\n') },
   }));

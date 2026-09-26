@@ -28,7 +28,7 @@ import type { CascadeStep } from './pendings';
  *  - « 91-95 Multiplication d'infortune : effectuez deux lancers sur cette table, en relançant tous
  *    les résultats entre 91-00 » (l.54).
  * Le +10 par Point de Péché de la Colère (« ajoutez-y +10 pour chaque Point de Péché que vous avez
- * déjà accumulé », LDB 40 l.53) est DÉCLARÉ en `mod` sur l'étape — le lookup se fait sur le dé
+ * déjà accumulé », LDB 40 l.46) est DÉCLARÉ en `mod` sur l'étape — le lookup se fait sur le dé
  * EFFECTIF.
  *
  * L'étape est POUSSÉE INCONDITIONNELLEMENT (#1426) : ni l'option « Dés fixés » ni le siège n'entrent
@@ -250,7 +250,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     expect(stepAt(0).table!.mod, 'le mod RÉELLEMENT appliqué reste lisible sur l’étape').toBe(10);
     expect(miscastRowAt('miscast-colere', 95).id, 'sans le mod, 95 tombe ailleurs').toBe('colere-redoutez-ma-colere');
     suivant();
-    // « Après le lancer et avoir appliqué le résultat, réduisez vos Points de Péché de 1 » (LDB 40 l.53).
+    // « Après le lancer et avoir appliqué le résultat, réduisez vos Points de Péché de 1 » (LDB 40 l.46).
     expect(hero.sinPoints).toBe(0);
     expect(hero.wounds.current, '« Châtiment » : total de Blessures réduit à 0').toBe(0);
   });

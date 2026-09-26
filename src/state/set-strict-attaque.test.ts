@@ -40,7 +40,7 @@ function shooter(rangedId: string) {
 
 /** Combat à DEUX cases de distance : héros actif, un bandit adjacent. `engaged` pose le lien symétrique. */
 function battleWith(h: Combatant, engaged: boolean) {
-  const e = spawnEnemy('brigand', undefined, 'e1', { x: 4, y: 3 });
+  const e = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 4, y: 3 });
   if (engaged) { h.engagedWith = [e.id]; e.engagedWith = [h.id]; }
   const battle = {
     combatants: [h, e], order: [h.id, e.id], baseOrder: [h.id, e.id],
@@ -135,7 +135,7 @@ describe('invariant « jamais sans arme » + statbloc', () => {
   });
 
   it('statbloc de créature : ses armes ne viennent PAS d’objets → aucun chemin runtime ne les re-dérive', () => {
-    const e = spawnEnemy('brigand', undefined, 'e-nu', { x: 1, y: 1 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'e-nu', { x: 1, y: 1 });
     expect(e.weapons.length).toBeGreaterThan(0);
     expect(e.items ?? []).toHaveLength(0); // les appels de recompute sont gardés par `items?.length`
     expect(e.loadouts ?? []).toHaveLength(0);
@@ -146,7 +146,7 @@ describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
     const h = makePregens()[0];
     h.pos = { x: 3, y: 3 };
-    const e = spawnEnemy('brigand', undefined, 'e-tir', { x: 4, y: 3 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'e-tir', { x: 4, y: 3 });
     e.items = [take('arbalete'), take('carreau', { equipped: false })];
     e.loadouts = [{ id: 'lo-tir', main: 'arbalete' }];
     e.activeLoadoutId = 'lo-tir';

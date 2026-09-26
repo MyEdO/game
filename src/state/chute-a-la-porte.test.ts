@@ -414,11 +414,11 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
 
 describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte que le chemin direct', () => {
   // Une feuille différée se reprend depuis une étape SÉRIALISÉE : son contexte doit traverser. Le
-  // reconstruire « de mémoire » perdait `{woundsDealt}` (Absorption, EDO 11 p.147), qui tombait à 0.
+  // reconstruire « de mémoire » perdait `{woundsDealt}` (Absorption, EDO 11 l.222), qui tombait à 0.
   const ops = () => [...opsDeChute(), { op: 'wounds', amount: { woundsDealt: true }, ignoreTB: true, ignoreAP: true }] as GameOp[];
   const CTX = () => ({ hull: coque(), woundsDealt: 7 });
 
-  it('`{woundsDealt}` (EDO 11 p.147) survit à la porte : même perte des deux côtés', () => {
+  it('`{woundsDealt}` (EDO 11 l.222) survit à la porte : même perte des deux côtés', () => {
     const direct = marin('direct', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
     applyOps(direct, ops(), { rng: makeRNG(4), ...CTX(), des: new Map([[cleDeDe(0, 'degats'), 5]]) });
 

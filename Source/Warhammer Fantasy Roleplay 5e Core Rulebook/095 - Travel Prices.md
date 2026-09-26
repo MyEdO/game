@@ -1,6 +1,6 @@
 *Pages PDF 313*
 
-# **TRAVEL PRICES**
+# <span id="page-312-0" data-folio="313"></span>**TRAVEL PRICES**
 
 The prices listed here do not include meals, lodging, or fodder, although coaches and passenger boats usually charge for the whole package for longer journeys. Package prices can be worked out by combining travel with food and boarding prices.
 
@@ -12,7 +12,7 @@ High-class travel is available and fashionable among the wealthy. It may cost ma
 
 All the costs listed here are per mile travelled, and are loose guides only. Faster coaches and barges generally cost twice as much. Slower examples cost as little as half as much. Increase or decrease speed by +/– 1 for faster or slower examples.
 
-#### **TRAVEL PRICES**
+**TRAVEL PRICES**
 
 | Transport       | Movement      | Cost | Distance             |
 |-----------------|---------------|------|----------------------|

@@ -10,10 +10,10 @@ describe('entitySprite — backend sprite = décor uniquement', () => {
   it('prop → sprite décor (propSvg)', () => {
     expect(entitySprite({ kind: 'prop', id: 'd1', ref: 'arbre' })).toBe(propSvg('arbre'));
   });
-  it('tout kind non-prop (personnage/ennemi/…) → chaîne vide (rendu géré par le rig en amont)', () => {
+  it('tout kind non-prop (personnage, départ héros) → chaîne vide (rendu géré par le rig en amont)', () => {
     expect(entitySprite({ kind: 'personnage', id: 'c1' })).toBe('');
-    expect(entitySprite({ kind: 'personnage', id: 'c2', ref: 'Pigeon' })).toBe('');
-    expect(entitySprite({ kind: 'ennemi', id: 'e1', ref: 'Zombie' })).toBe('');
+    expect(entitySprite({ kind: 'personnage', id: 'c2', ref: 'pigeon' })).toBe('');
+    expect(entitySprite({ kind: 'heroStart', id: 'h1' })).toBe('');
   });
 });
 

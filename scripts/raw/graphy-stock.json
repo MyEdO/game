@@ -1,437 +1,797 @@
 {
-  "quoi": "STOCK NOMINATIF des graphies de citation cliquetées par scripts/raw/citation-graphy-guard.mjs : une DETTE à drainer vers ZÉRO. Une entrée = un SITE (famille de graphie, fichier, réf ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée disparaît sans laisser de coquille. Le lot et la date sont ceux de la MISE EN FORME nominative de ce stock (#1711) ; la dette elle-même est antérieure. Se solde en corrigeant la citation, PUIS en retirant son entrée ici : la garde refuse tout site NEUF et toute entrée devenue caduque (cliquet à double sens), et la porte de plage compte toute croissance de ce fichier (scripts/guards/lib/stocksNominatifs.mjs). COÛT DU RÉ-RANGEMENT D'ORDINAL : l'occurrence est l'ordinal du site parmi ceux qui partagent la même (famille, fichier, réf) — docs/raw/4e/talents.md porte huit sites de LDB 10 p.145, et corriger le premier renumérote les sept autres : la garde rend alors sept périmées et sept neuves pour un seul geste, et le stock se réécrit d'un bloc. ANGLE MORT de la porte de plage : un échange EN PLACE à total constant rend net 0 — la dette ne peut pas croître, mais un solde et un neuf du même commit ne se déclarent pas ; la garde, elle, les voit toujours.",
+  "quoi": "STOCK NOMINATIF des graphies de citation cliquetées par scripts/raw/citation-graphy-guard.mjs (FAMILLES_CLIQUETEES) : une DETTE à drainer vers ZÉRO. Familles : `folioSrc` = réf au folio `<ABRÉV> [<chap>] p.<folio>` sur TOUTE ligne des citants de src/** (scripts/raw/lib/fichiersCitants.mjs), invariant zéro, le stock ne porte que des sites DIFFÉRÉS ; `chDot` et `bookNoChapterSrc` = src/** et fiches docs/raw ; `bareFolio` et `chapterBoundaryFolio` (AVERTISSEMENT) = fiches docs/raw seules. Une entrée = un SITE (famille de graphie, fichier, réf ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée disparaît sans laisser de coquille. Le lot et la date d'une entrée sont ceux du geste qui l'a DIFFÉRÉE (#1898 : sites de src/gameIso/rig/**, tenus par le fil de la palette des rigs, #1882, et de src/data/spells.json, tenus par le fil des sorts, #1897). Se solde en corrigeant la citation, PUIS en retirant son entrée ici : la garde refuse tout site NEUF et toute entrée devenue caduque (cliquet à double sens), et la porte de plage compte toute croissance de ce fichier (scripts/guards/lib/stocksNominatifs.mjs). COÛT DU RÉ-RANGEMENT D'ORDINAL : l'occurrence est l'ordinal du site parmi ceux qui partagent la même (famille, fichier, réf) — corriger le premier de N sites homonymes renumérote les N-1 autres : la garde rend alors N-1 périmées et N-1 neuves pour un seul geste, et le stock se réécrit d'un bloc. ANGLE MORT de la porte de plage : un échange EN PLACE à total constant rend net 0 — la dette ne peut pas croître, mais un solde et un neuf du même commit ne se déclarent pas ; la garde, elle, les voit toujours.",
   "entrees": [
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/index.ts",
-      "ref": "LDB 47 p.244",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "LDB p.161",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/schemas/defs/creatures.ts",
-      "ref": "LDB 83 p.333",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "LDB p.163",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/schemas/defs/localisation.ts",
-      "ref": "LDB 13 p.159",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "LDB p.166",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/schemas/defs/localisation.ts",
-      "ref": "LDB 76 p.310",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "LDB p.236",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/schemas/defs/vehicles.ts",
-      "ref": "LDB 70 p.306",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "LDB p.308-309",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/data/trait-args-derived.test.ts",
-      "ref": "LDB 83 p.333",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "MDG p.107",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/engine/combat.ts",
-      "ref": "LDB 13 p.159",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "MDG p.111",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/engine/ops.ts",
-      "ref": "LDB 47 p.244",
+      "famille": "folioSrc",
+      "fichier": "src/data/spells.json",
+      "ref": "MDG p.113",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/engine/ops.ts",
-      "ref": "LDB 47 p.244",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/amorphous/composeHulk.ts",
+      "ref": "LDB 79 p.320",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/amorphous/composeHulk.ts",
+      "ref": "ZI 5 p.48",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/arachnid/composeSpider.test.ts",
+      "ref": "LDB p.316",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/arachnid/composeSpider.ts",
+      "ref": "LDB 78 p.316",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/arachnid/composeSpider.ts",
+      "ref": "LDB 78 p.316",
       "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/engine/statEntry.ts",
-      "ref": "LDB 83 p.333",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/avian/composeBird.ts",
+      "ref": "LDB 79 p.318",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/engine/types.ts",
-      "ref": "LDB 70 p.306",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/avian/composeBird.ts",
+      "ref": "LDB 79 p.318",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/avian/composeBird.ts",
+      "ref": "ZI 6 p.65",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/avian/raptorParts.ts",
+      "ref": "ZI 6 p.65",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/bodyForm-coherence.test.ts",
+      "ref": "LDB 76 p.312",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/bodyForm-coherence.test.ts",
+      "ref": "LDB 76 p.312",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/bodyForm-coherence.test.ts",
+      "ref": "LDB p.312",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/bodyPlan.test.ts",
+      "ref": "LDB p.338",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/cephalopod/composeOctopus.ts",
+      "ref": "LDB 79 p.325",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Amibe.ts",
+      "ref": "ZI 5 p.48",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Basilic.ts",
+      "ref": "LDB 79 p.319",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/BrochetDuStir.ts",
+      "ref": "ZI 4 p.36-38",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/creatures/defs/Chimere.ts",
       "ref": "ZI 6 p.66",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/DechiqueteurDeCadavres.ts",
+      "ref": "ZI 5 p.58",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/creatures/defs/Demonette.ts",
       "ref": "LDB 84 p.337",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Fantome.ts",
+      "ref": "LDB 82 p.330",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/GrandAigle.ts",
+      "ref": "ZI 6 p.65",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Hippogriffe.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Hippogriffe.ts",
+      "ref": "LDB 79 p.325",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Hydre.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/IlPotenteGranchio.ts",
+      "ref": "ZI 12 p.85",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Leviathan.ts",
+      "ref": "ZI 12 p.85",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/creatures/defs/Loup.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Manticore.ts",
+      "ref": "LDB 79 p.324",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Pieuvre.ts",
+      "ref": "LDB 79 p.325",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Pigeon.ts",
+      "ref": "LDB 79 p.318",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Serpent.ts",
+      "ref": "LDB 79 p.319",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/creatures/defs/Spectre.ts",
       "ref": "LDB 82 p.331",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Whiptongue.ts",
+      "ref": "LDB 84 p.336",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/creatures/defs/Whiptongue.ts",
+      "ref": "LDB 85 p.338",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/engin/defs/mortier.ts",
+      "ref": "AA 10 p.127",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/fish/composeFish.ts",
+      "ref": "ZI 4 p.36",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/fish/composeFish.ts",
+      "ref": "ZI 4 p.36",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/land/defs/charrette.ts",
       "ref": "LDB 70 p.306",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/land/land-art.test.ts",
       "ref": "LDB 70 p.306",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/elements/defs/longues-jambes.ts",
+      "ref": "EDOC 12 p.67",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/monster/eyes.ts",
+      "ref": "LDB 85 p.339",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/shields/defs/Pavois.ts",
+      "ref": "AA 8 p.92",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/parts/tenues/defs/Demonette.ts",
       "ref": "LDB 84 p.337",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/tenues/defs/Mangeur-d-hommes.ts",
+      "ref": "ADE II 2 p.35",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/parts/tenues/defs/Ogre.ts",
       "ref": "LDB 77 p.314",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/tenues/defs/Rat-ogre.ts",
+      "ref": "LDB 85 p.339",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/parts/tenues/defs/Sanguinaire.ts",
       "ref": "LDB 84 p.337",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/parts/tenues/defs/Vermine-de-choc.ts",
+      "ref": "LDB 85 p.339",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/basilic.ts",
+      "ref": "LDB 79 p.319",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/dechiqueteur.ts",
+      "ref": "ZI 5 p.58",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/dechiqueteur.ts",
+      "ref": "ZI 5 p.58",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/felin.ts",
+      "ref": "LDB 79 p.324",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/hydre.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/defs/hydre.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/defs/loup-feroce.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/defs/loup-feroce.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/defs/ours.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/defs/ours.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/defs/ours.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 3,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/kit.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/heads/kit.ts",
+      "ref": "ZI 5 p.58",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/kit.ts",
       "ref": "ZI 6 p.66",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/heads/kit.ts",
       "ref": "ZI 6 p.66",
       "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadParts.ts",
+      "ref": "LDB 79 p.319",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadParts.ts",
+      "ref": "LDB 79 p.323",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadParts.ts",
+      "ref": "LDB 79 p.325",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadParts.ts",
+      "ref": "LDB 79 p.325",
+      "occurrence": 2,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadParts.ts",
+      "ref": "LDB p.321",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadSkeleton.ts",
+      "ref": "LDB p.321",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/quadSkeleton.ts",
+      "ref": "LDB p.325",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/quadruped/tails/defs/enroulee.ts",
+      "ref": "LDB 79 p.321",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/quadruped/tails/defs/touffe-basse.ts",
       "ref": "LDB 78 p.317",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/gameIso/rig/ship/defs/galere-de-guerre.ts",
-      "ref": "MDG 6 p.48",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/serpentine/composeSerpent.ts",
+      "ref": "LDB 79 p.319",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/artkit.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/barque-fluviale.ts",
+      "ref": "MDG 3 p.022",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/caraque.ts",
+      "ref": "MDG 13 p.114",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/chaloupe.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/chebec-arabien.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/chebec-arabien.ts",
+      "ref": "MDG 13 p.114",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/cogue.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/cogue.ts",
+      "ref": "MDG 13 p.114",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/esquif.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/galere-de-guerre.ts",
+      "ref": "MDG 6 p.048",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/galion-bretonnien.ts",
+      "ref": "MDG 13 p.114",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/knarr.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/langskip.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/ship/defs/loup-imperial.ts",
+      "ref": "MDG 12 p.098",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/spectral/composeSpectre.ts",
+      "ref": "LDB 82 p.330",
+      "occurrence": 1,
+      "lot": "#1898",
+      "date": "2026-09-23"
+    },
+    {
+      "famille": "folioSrc",
       "fichier": "src/gameIso/rig/spectral/composeSpectre.ts",
       "ref": "LDB 82 p.331",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "lot": "#1898",
+      "date": "2026-09-23"
     },
     {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/combatFlow.ts",
-      "ref": "LDB 47 p.244",
+      "famille": "folioSrc",
+      "fichier": "src/gameIso/rig/spectral/composeSpectre.ts",
+      "ref": "LDB p.329",
       "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/combatFlow.ts",
-      "ref": "LDB 47 p.244",
-      "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/combatFlow.ts",
-      "ref": "LDB 47 p.244",
-      "occurrence": 3,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/combatFlow.ts",
-      "ref": "LDB 47 p.244",
-      "occurrence": 4,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/l9-souffle.test.ts",
-      "ref": "LDB 47 p.244",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/state/teleport-push.test.ts",
-      "ref": "LDB 47 p.244",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/ui/VoyageScreen.test.tsx",
-      "ref": "LDB 70 p.306",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "src/ui/VoyageScreen.tsx",
-      "ref": "LDB 70 p.306",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/activites.md",
-      "ref": "LDB 9 p.131",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/combat-naval.md",
-      "ref": "LDB 12 p.155",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/corruption.md",
-      "ref": "LDB 18 p.181",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/deplacement.md",
-      "ref": "LDB 18 p.181",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/economie.md",
-      "ref": "LDB 59 p.291",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 2,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 3,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 4,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 5,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 6,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 7,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/talents.md",
-      "ref": "LDB 10 p.145",
-      "occurrence": 8,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "chapterBoundaryFolio",
-      "fichier": "docs/raw/4e/traumatisme.md",
-      "ref": "LDB 65 p.302",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "famille": "bookNoChapterSrc",
-      "fichier": "src/engine/combat.ts",
-      "ref": "// Pénalité de mobilité : pire pénalité (non-cumul, LDB l.20) entre Encombrement et traumatisme",
-      "occurrence": 1,
-      "lot": "#1825",
-      "date": "2026-09-19"
-    },
-    {
-      "famille": "bookNoChapterSrc",
-      "fichier": "src/engine/trauma.ts",
-      "ref": "/** Pire pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; non-cumul, LDB l.20). Une prothèse",
-      "occurrence": 1,
-      "lot": "#1825",
-      "date": "2026-09-19"
+      "lot": "#1898",
+      "date": "2026-09-23"
     }
   ]
 }

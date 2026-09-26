@@ -146,7 +146,7 @@ const seuil: Matiere = {
   },
 };
 
-/** STRUCTURE de siège (AA 10 p.120) : le mur PORTE déjà son trait (`stage/layers.ts:wallTraitObjs`) et
+/** STRUCTURE de siège (AA 10 l.94-102) : le mur PORTE déjà son trait (`stage/layers.ts:wallTraitObjs`) et
  *  sa visée son réticule (`stage/AimOverlay.tsx`) — la capacité n'ajoute donc AUCUNE marque, elle ne
  *  met qu'une prise sur l'arête. Sa classe la nomme, comme les autres, et son curseur dit ce qu'elle
  *  est : une cible de combat. */

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
-import { spawnEnemy } from '../../state/spawn';
+import { ficheDEntite } from '../../state/sceneNpc';
 import { applyCriticalToTarget } from '../../state/combatFlow';
 import { seedBattleRng } from '../../state/battleRng';
 import { layerTiles } from '../../state/scene';
@@ -9,13 +9,13 @@ import type { Combatant } from '../../engine/types';
 
 const scen = testScenarios.find((s) => s.id === 'embuscade-fluviale')!;
 
-/** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-fluvial-<i>`), comme
- *  `combatSlice` au démarrage — on transmet `crewIds`. */
+/** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-fluvial-<i>`) par la
+ *  fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
 function spawnRoster(): Combatant[] {
   return scen.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-fluvial-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map((e) => spawnEnemy(e.ref, e.statblock, e.id, e.pos, { crewIds: e.crewIds }));
+    .map(ficheDEntite);
 }
 
 describe('Embuscade fluviale — scène compilée + roster', () => {

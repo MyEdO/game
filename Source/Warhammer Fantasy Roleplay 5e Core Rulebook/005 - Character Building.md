@@ -1,6 +1,6 @@
 *Pages PDF 22*
 
-# <span id="page-21-0"></span>• **CHARACTER BUILDING** •
+# <span id="page-21-0" data-folio="22"></span>• **CHARACTER BUILDING** •
 
 You'll experience a life of adventure in the Empire through the eyes of your Character. Follow the steps here to create your Character using a combination of game information describing their abilities, and the personality and background story you invent for them.
 
@@ -20,5 +20,3 @@ As you make your Character, you will record everything about them on your Charac
 ### **FITTING IN**
 
 Your Character needs to work well with the other PCs and fit into the game the GM has planned, so talk as a group about your Character plans. For example, it would be hard to investigate a rogue wizard if none of the Characters can detect the use of magic!
-
-II

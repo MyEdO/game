@@ -43,7 +43,7 @@ describe('recomputeLoadout — SERVIR un poste (mannedPoste) : canon dérivé, t
   it('le chef de pièce qui sert un poste reçoit le canon en arme active (côté du POSTE), pas dans ses items', () => {
     const c = gunner();
     c.items = []; // aucune arme en inventaire — le canon vient du poste, pas du sac
-    // Le CHEF est `crewIds[0]` (RAW AA 10 p.124 : « ils nomment l'un d'entre eux pour effectuer le Test ») — seul lui
+    // Le CHEF est `crewIds[0]` (RAW AA 10 l.230 : « ils nomment l'un d'entre eux pour effectuer le Test ») — seul lui
     // dérive l'arme de tir (les membres SUPPORT occupent la pièce sans la tirer).
     c.mannedPoste = { item: { ...gunItem, uid: 'cannon', mountSide: undefined }, side: 'babord', crewIds: ['cap'] };
     recomputeLoadout(c);

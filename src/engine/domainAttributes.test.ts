@@ -53,7 +53,7 @@ describe('hasArcaneTalent', () => {
   });
 });
 
-describe('Métal / Cieux / Ombres — mitigation des Projectiles (LDB 48 l.87/302/482)', () => {
+describe('Métal / Cieux / Ombres — mitigation des Projectiles (LDB 48 l.399/106/588)', () => {
   it('Métal : ignore les PA métalliques ET les ajoute en Dégâts', () => {
     const t = mk({ items: [mail(3), leather(1)], armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
     expect(metalAPAt(t, 'corps')).toBe(3);
@@ -131,7 +131,7 @@ describe('Riders « à la touche » data-driven (Feu / Lumière / Mort / Vie) �
   });
 });
 
-describe('Cieux — arc d’Azyr (LDB 48 l.87) : géométrie on:{near} + bypass métal', () => {
+describe('Cieux — arc d’Azyr (LDB 48 l.106) : géométrie on:{near} + bypass métal', () => {
   // « se dirigent vers toutes les autres cibles dans les 2 mètres, à l’exception de ceux possédant le
   //   Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre BFM ». L’effet est
   //   une GÉOMÉTRIE (`on:{near:'victim',radiusMeters:2}`) résolue par `applyTriggeredEffects` (≠ runPureFlowLines

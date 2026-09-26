@@ -35,8 +35,8 @@ function setup() {
   const w = wiz();
   w.pos = { x: 2, y: 0 };
   w.characteristics['force-mentale'] = 40; // Carreau (FM mètres) → 20 cases : tout le plateau est À PORTÉE
-  const seen = spawnEnemy('Bandit de Grand Chemin', undefined, 'e-vu', { x: 16, y: 0 });
-  const hidden = spawnEnemy('Bandit de Grand Chemin', undefined, 'e-cache', { x: 16, y: 4 });
+  const seen = spawnEnemy({ ref: 'brigand' }, 'e-vu', { x: 16, y: 0 });
+  const hidden = spawnEnemy({ ref: 'brigand' }, 'e-cache', { x: 16, y: 4 });
   const battle = {
     combatants: [w, seen, hidden], order: [w.id, 'e-vu', 'e-cache'], baseOrder: [w.id, 'e-vu', 'e-cache'],
     turn: 0, round: 1, action: 'cast', selectedSpellId: 'carreau', reachable: new Map(),

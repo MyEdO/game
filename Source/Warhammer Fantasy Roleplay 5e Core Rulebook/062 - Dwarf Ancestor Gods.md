@@ -1,6 +1,6 @@
 *Pages PDF 215*
 
-# **DWARF ANCESTOR GODS**
+# <span id="page-214-0" data-folio="215"></span>**DWARF ANCESTOR GODS**
 
 The dwarfs venerate their ancient ancestors, valuing tradition above all else. Though the Time of the Ancestor Gods was many thousands of years ago (roughly –5500 IC as scholars reckon it), the dwarfs still hold records of that time in their oldest holds. Many names echo from that era, creating a broad, inter-related pantheon, but three ancestor gods are of especial importance and are known by all dwarfs: Grimnir, Grungni, and Valaya, each a progenitor of the species as a whole.
 

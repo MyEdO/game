@@ -116,7 +116,7 @@ Quand une entrée de Compétence ou Talent porte « (Au choix) », le joueur cho
 ### Compétences disponibles
 
 - Le joueur peut Augmenter les Compétences de son niveau **et de tous les niveaux précédents** (LDB 07 l.76).
-- La Compétence en italique au Niveau 1 est celle utilisée pour « Gagner de l'argent » (LDB 07 l.84).
+- La Compétence en italique au Niveau 1 est celle « que vous utiliserez pour Gagner de l'argent » (LDB 07 l.82).
 
 ### Talents disponibles
 

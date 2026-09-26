@@ -27,8 +27,6 @@ export function indexGit(racine: string): Map<string, string>;
 
 export function enfantsDeLIndex(blobs: Map<string, string>, dossier: string): string[];
 
-export function ignoresGit(racine: string): Set<string>;
-
 export function empreinteDe(
   fichiers: Iterable<[string, string]>,
   dossiers: Iterable<[string, string]>,

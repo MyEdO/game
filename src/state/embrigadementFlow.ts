@@ -36,7 +36,7 @@ const diff = (v: unknown, d: Difficulty): Difficulty => (typeof v === 'string' ?
  *  exige un porteur (`choiceStep`), et c'est ce meneur que la tentative engage. `null` = personne. */
 const ragotLead = (get: Get) => partyAssisted(get().party.filter((h: Combatant) => !h.dead), 'ragot');
 
-/** Sans meneur, il n'y a rien à tenter : la voie est close AVANT la décision (elle n'a plus qu'une issue). */
+/** Sans meneur, il n'y a rien à tenter : la voie est close AVANT la décision (elle a seulement une issue). */
 const SANS_MENEUR = 'Personne à bord ne peut mener l\'enquête : vos compagnons restent captifs.';
 
 /** Ouvre la séquence de recouvrement d'un Embrigadement (MDG 15 l.245). Applique d'abord la perte de

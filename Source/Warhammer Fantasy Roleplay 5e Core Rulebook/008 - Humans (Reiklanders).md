@@ -1,6 +1,6 @@
 *Pages PDF 26-27*
 
-# <span id="page-25-0"></span>**HUMANS (REIKLANDERS)**
+# <span id="page-25-0" data-folio="26"></span>**HUMANS (REIKLANDERS)**
 
 Reiklanders come from the heart of the Empire and are its most numerous people. They tend to be friendly, open, and optimistic, with the confidence that comes from living in the province that gave birth to Sigmar, the Empire's patron god. To outsiders, however, that confidence often appears as arrogance, and Reiklanders have a reputation for meddling in other people's affairs, convinced they know best.
 
@@ -34,6 +34,8 @@ Human civilisations have existed in distant lands for thousands of years, but th
 
 — Jacob Stackeldorf, Professor of Altdorf University
 
+#### <span id="page-26-0" data-folio="27"></span>**Names**
+
 **Forenames:** Adhemar, Anders, Artur, Beatrijs, Clementia, Detlev, Erika, Frauke, Frederich, Gerner, Gertraud, Haletha, Heinrich, Helga, Henryk, Irmina, Jehanne, Karl, Kruger, Lorelay, Marieke, Sebastien, Sigfreda, Talther, Talunda, Ulrich, Ulrika, Viola, Walther, Werther, Willelma, Wilryn, Xaver
 
 **Surnames:** Augenlos (One Eye), Bauer (Farmer), Dunn (Very Thin), Fleischer (Butcher), Lang (Tall), Laut (Loud Voice), Meyer (Steward), Müller (Miller), Schmidt (Smith), Schuster (Cobbler), Stark (Strong)
@@ -44,9 +46,7 @@ Human civilisations have existed in distant lands for thousands of years, but th
 
 **Height:** 4'9"+2d10"
 
-**Eye colour:** Ice Blue, Green, Pale Blue, Blue, Pale Grey, Grey,
-
-Brown, Hazel, Dark Brown, Black
+**Eye colour:** Ice Blue, Green, Pale Blue, Blue, Pale Grey, Grey, Brown, Hazel, Dark Brown, Black
 
 **Hair colour:** White Blond, Golden Blond, Red Blond, Golden Brown, Light Brown, Dark Brown, Black, Auburn, Red, Grey
 
@@ -56,7 +56,7 @@ Take six Advances (+30) in the Language (Reikspiel) Skill
 
 #### **Starting Skills**
 
-II **Names** Add one Advance (+5) to any five of the following Skills: Animal Care, Charm, Cool, Evaluate, Gossip, Haggle, Language (Bretonnian), Language (Wastelander), Leadership, Lore (Reikland), Melee (Basic), Ranged (Bow)
+Add one Advance (+5) to any five of the following Skills: Animal Care, Charm, Cool, Evaluate, Gossip, Haggle, Language (Bretonnian), Language (Wastelander), Leadership, Lore (Reikland), Melee (Basic), Ranged (Bow)
 
 #### **Starting Talents**
 

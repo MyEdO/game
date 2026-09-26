@@ -1,0 +1,11 @@
+/* PLAQUE DE NOM (`stage/PlaquesDeNom.tsx`, #1687) : le nom d'un utilisable révélé (Alt maintenu) ou
+   survolé, posé au-dessus de lui dans le SVG du plateau (foreignObject). Le TEXTE est celui du chrome
+   de nom du Codex (`CodexTitre` → `.codex-pop-title`) : une seule matière de nom à l'écran. Jamais une
+   cible — le monde dessous reste cliquable sur toute sa surface. La lisibilité sur le monde nu est la
+   classe PARTAGÉE `.halo-champ` (components.css), que la primitive pose à côté. */
+.plaque-nom {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}

@@ -12,10 +12,10 @@ export const creature: CreatureDef = {
   thero: {
     sl: 1.05, girth: 0.95, horns: 0, muzzle: 1.0,
     wings: 1.0, beak: 1.0, plumage: 1.0, serpentTail: true,
-    stored: {
+    palette: {
       corps: '#8a8a3e', corpsO: '#454618', corpsH: '#c8cc78',
       cheveux: '#3f4520', cheveuxO: '#1f2410', cuir: '#c87a2a',
-      aile: '#9a9c74', aileO: '#4a4c30',
+      voilure: '#9a9c74', voilureO: '#4a4c30',
     },
   },
 };

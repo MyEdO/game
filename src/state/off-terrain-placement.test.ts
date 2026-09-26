@@ -18,7 +18,7 @@ const marine = (): Combatant => ({
   traits: [{ id: 'creature-marine' }],
 } as unknown as Combatant);
 
-describe('placeCombatant — drapeau positionnel offTerrain (op offTerrainMod, MDG p.140)', () => {
+describe('placeCombatant — drapeau positionnel offTerrain (op offTerrainMod, MDG 16 l.17)', () => {
   it('posé HORS de l’eau, retiré DANS l’eau — re-dérivé à chaque placement (chokepoint unique)', () => {
     const c = marine();
     placeCombatant(c, scene, { x: 1, y: 0 }); // case 'sol'

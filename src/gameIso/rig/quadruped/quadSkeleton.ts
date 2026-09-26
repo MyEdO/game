@@ -5,7 +5,7 @@
  */
 import { worldTransformsG, type FKBone } from '../kinematics';
 import type { BonePose } from '../poses';
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import type { View } from '../facing';
 import { QUAD_Z } from './quadZ';
 import type { QuadHeadId } from './heads/_registry.generated';
@@ -83,9 +83,9 @@ export interface QuadProps {
   markings?: 'taches' | 'rayures' | 'balzanes' | 'sans'; // robe : taches/rayures de flanc, balzanes aux membres
   headgear?: 'bois' | 'cornes'; // coiffe de crâne : bois ramifiés (cerf) ou cornes courbées — défaut aucun
   /** Avant-train CONTRASTÉ de rapace (hippogriffe : moitié aigle / moitié cheval). Peint le
-   *  manteau emplumé de poitrail/épaule et le haut des ANTÉRIEURS avec la famille d'AILE
-   *  (@aile* — la moitié rapace est d'un seul plumage, cf. base custom `aile` ci-dessous), et
-   *  les tarses/serres AVANT avec la famille custom `cuirAv`. Absent = robe unie (griffon). */
+   *  manteau emplumé de poitrail/épaule et le haut des ANTÉRIEURS avec la gamme `aile`
+   *  (`clesDePalette.ts`), et les tarses/serres AVANT avec la gamme `cuirAv`. Absent = robe
+   *  unie (griffon). */
   foreCoat?: 'plumes';
   headScale?: number; // × sur l'art de tête (défaut 1)
   /**
@@ -133,10 +133,8 @@ export interface QuadProps {
    *  vocabulaire que QuadPose) : port habituel qui s'ajoute SOUS toute pose d'anim (lion de
    *  Chrace tapi prêt à bondir). Ignorée de face/dos (quadSkeletonForView y refige les angles). */
   stance?: QuadPose;
-  /** Robe/pelage par défaut (corps/cheveux/cuir…). Base custom `aile` = teinte PROPRE des ailes
-   *  (@aile/@aileO/@aileH — pégase : ailes brun/doré sur robe blanche) ; absente, les ailes
-   *  suivent la famille `corps` (cf. resolveQuadFromProps). */
-  stored: StoredPalette;
+  /** Palette déclarée de l'espèce, couche du rig (`buildTokenMap`) ; clé `aile` : `clesDePalette.ts`. */
+  palette: PaletteDeclaree;
 }
 
 // La DATA des espèces (props + alias) vit dans `creatures/defs/<Nom>.ts` (un fichier

@@ -654,7 +654,7 @@ function boardDe(cid: string, anchor: THREE.Vector3): Board {
 
 /** Héros de roster : ce que le meneur se choisit dessus (vivant, Blessures) et ce que le gate de port lit. */
 const héros = (id: string, items: { uid: string; trappingId: string; equipped: boolean }[] = []) => ({
-  id, kind: 'hero', dead: false, wounds: { current: 3, max: 3 }, items,
+  id, kind: 'hero', dead: false, wounds: { current: 3, max: 3 }, conditions: [], traits: [], talents: [], items,
 });
 
 describe('La lampe du GROUPE en exploration — portée par le MENEUR (#1245)', () => {

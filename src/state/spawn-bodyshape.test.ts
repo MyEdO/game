@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { bodyShapeOf, creatureToCombatant, statblockToCombatant } from './spawn';
 import { findCreatureById } from '../data';
 
-// Forme du corps → Tableau de Localisation (LDB « Point d'Impact des Créatures » p.312).
+// Forme du corps → Tableau de Localisation (LDB 76 l.15-29, « Point d'Impact des Créatures »).
 // Dérivée du gabarit rigué de la créature (bodyPlanById) ; serpent/araignée = Localisations Alternatives.
-describe('bodyShapeOf — forme du corps dérivée du gabarit (LDB p.312)', () => {
+describe('bodyShapeOf — forme du corps dérivée du gabarit (LDB 76 l.15-29)', () => {
   it('mappe les formes canoniques depuis le bestiaire', () => {
     expect(bodyShapeOf('araignee-geante')).toBe('araignee');
     expect(bodyShapeOf('serpent')).toBe('serpent');

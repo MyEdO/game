@@ -25,7 +25,8 @@ import domainesData from './domaines.json' with { type: 'json' }
 import { normalize, ELLIPSIS_SENTINEL } from '../../src/data/source/normalize.ts'
 // Le NUMÉRO DE CHAPITRE (prédicat, motif de nom, résolution) vit dans sa maison unique
 // `src/data/source/decoupe.ts` — module PUR, chargé tel quel par Node nu comme par vitest.
-import { fichierDuChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+import { fichierDuChapitre, graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+import { nomAscii } from '../source/nom-ascii.mjs'
 // « Livre EXTRAIT » : définition UNIQUE app/outillage, `src/data/source/livre-extrait.ts` (#1739).
 import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
 
@@ -220,6 +221,22 @@ export function decoupeDe(bookId, dir = DECOUPES_DIR) {
     throw new Error(`_lib: la liste de découpe de « ${bookId} » (${chemin}) ne porte aucun fichier`)
   return brut.fichiers
 }
+
+/** Les NOMS de fichier que la liste de découpe déclare, dans son ordre. PURE. */
+export const nomsDeLaListe = (liste) => {
+  const largeur = largeurDeChapitre(Math.max(1, liste.length))
+  return liste.map((e, i) => nomAscii(`${graphieDeChapitre(i + 1, largeur)} - ${e.titre}.md`))
+}
+
+/** Les ONGLETS DE CHAPITRE d'un livre, `[{ chiffre, pages: [a, b] }]`, ou `null` déclaré pour un livre
+ *  qui n'en imprime aucun — champ `onglets` de sa liste de découpe, lu ICI et nulle part ailleurs.
+ *  @param {string} bookId @param {string} [dir] @returns {{ chiffre: string, pages: [number, number] }[] | null} */
+export const ongletsDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).onglets
+
+/** Le GABARIT des titres d'entrée d'un livre, `{ titre, accompagnement, encadre, capitales, exclusions }` (typographies
+ *  `{ police, taille? }`), ou `null` déclaré — champ `gabaritTitre` de sa liste de découpe, lu ICI et
+ *  nulle part ailleurs. @param {string} bookId @param {string} [dir] */
+export const gabaritTitreDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).gabaritTitre
 
 // PDF d'un livre et sorties Marker — #1739 (2026-09-19, bloquant 3). Les PDF et `Source/_marker/` sont
 // gitignorés (`.gitignore`) : ils n'existent que dans l'ARBRE PRINCIPAL, jamais dans un worktree
@@ -456,10 +473,15 @@ export function buildFolioMap(chapters) {
   return map
 }
 
-// (map, folio) → { ch, lo, hi } | null (folio absent) | 'ambiguous' (folio dans ≥2 chapitres).
-export function folioRangeIn(map, folio) {
+// (map, folio, ch?) → { ch, lo, hi } | null (folio absent) | 'ambiguous'. Une page partagée entre
+// deux chapitres (l'un s'ouvre en milieu de page, #1739) porte son folio dans les deux : la réf qui
+// NOMME son chapitre `ch` se résout dans ce chapitre ; sans chapitre nommé ou hors de ses hits, un
+// folio présent dans ≥2 chapitres reste 'ambiguous'.
+export function folioRangeIn(map, folio, ch = null) {
   const hits = map.get(folio)
   if (!hits || !hits.length) return null
+  const dansCh = ch == null ? undefined : hits.find((h) => h.ch === ch)
+  if (dansCh) return dansCh
   if (new Set(hits.map((h) => h.ch)).size > 1) return 'ambiguous'
   return hits[0]
 }
@@ -482,22 +504,22 @@ export function folioIndexOf(abbr) {
   return map
 }
 
-// (abbr, folio) → { ch, lo, hi } | null | 'ambiguous'.
-export function folioRange(abbr, folio) {
-  return folioRangeIn(folioIndexOf(abbr), folio)
+// (abbr, folio, ch?) → { ch, lo, hi } | null | 'ambiguous' (`folioRangeIn`).
+export function folioRange(abbr, folio, ch = null) {
+  return folioRangeIn(folioIndexOf(abbr), folio, ch)
 }
 
 // (abbr, nn, folioStr, suffix) -> [lo, hi] LIGNES dans le fichier-chapitre `nn`, ou `null` (#606).
 // Convertit une ref folio `ABBR NN p.folio[-fin][+pts]` en plage de LIGNES du MEME chapitre via
-// `folioRange` (ancres `data-folio`). Ignore proprement (`null`, jamais un throw) : ancre absente
-// (residu #522), folio ambigu (present dans plusieurs chapitres), ou folio resolu vers un AUTRE
-// chapitre que `nn` (frontiere de chapitre) -- on ne cherche PAS a re-ancrer, juste a ne pas
-// crediter un mauvais chapitre. Un `-fin`/`+pts` dont le second folio est irresolu degrade sur
-// la seule plage du premier folio (jamais un throw ni une plage bancale).
+// `folioRange` (ancres `data-folio`), résolue DANS le chapitre `nn` quand le folio y est ancré (page
+// partagée comprise). Ignore proprement (`null`, jamais un throw) : ancre absente (residu #522), ou
+// folio ancré hors du chapitre `nn` (frontiere de chapitre) -- on ne cherche PAS a re-ancrer, juste
+// a ne pas crediter un mauvais chapitre. Un `-fin`/`+pts` dont le second folio est irresolu degrade
+// sur la seule plage du premier folio (jamais un throw ni une plage bancale).
 export function folioSpan(abbr, nn, folioStr, suffix) {
   const wantCh = Number(nn)
   const resolveInCh = (folio) => {
-    const r = folioRange(abbr, folio)
+    const r = folioRange(abbr, folio, wantCh)
     if (!r || r === 'ambiguous' || r.ch !== wantCh) return null
     return r
   }

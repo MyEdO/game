@@ -18,7 +18,7 @@ export const creature: CreatureDef = {
     head: 'aigle', tail: 'crin', ears: 'courtes', foot: 'sabot', frontFoot: 'serre',
     wings: 'plumes', wingSpan: 1.42, wingPose: 'dressees', wingLift: 17, mane: 'hirsute', foreCoat: 'plumes',
     headScale: 1.2, tailLen: 1.2, markings: 'taches',
-    stored: {
+    palette: {
       corps: '#e9eae2', corpsO: '#848b95', corpsH: '#ffffff', // robe blanche pommelée, ombres gris-bleu
       cheveux: '#f2efe6', cheveuxO: '#a9a494', // plumes d'encolure + queue de crin blanches
       cuir: '#4b4138', // sabots postérieurs sombres

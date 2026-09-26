@@ -2,8 +2,7 @@
 // saut de folio, folio COURANT, occurrences de titres dupliqués, adresse de CELLULE de table,
 // contrôle d'empreinte, montage d'adresse et chargement SOUS NODE NU. Ces tests lisent le VRAI
 // `Source/` — les cas de recette sont cités par `fichier:ligne`. UNE exception, nommée à son site :
-// le prédicat de couverture d'une CELLULE se verrouille sur une fixture, faute d'une section à deux
-// tables dans le corpus extrait — un verrou ne s'écrit pas après le dégât.
+// le prédicat de couverture d'une CELLULE se verrouille sur une fixture (deux tables SANS titre).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,6 +18,7 @@ import {
   graphieDuFichier, largeurDeChapitre, normText, numeroDuFichier, parseChapitre, parseTable,
   prefixesDeChapitres, resoudreAdresse, resoudreFragment, stripSpans, sumOf, tablesOf, titreDuFichier,
 } from './decoupe.ts';
+import { foliosRoulants } from './ancre-vide.ts';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const LDB = 'livre-de-base';
@@ -191,6 +191,35 @@ describe('parseChapitre — blocs, folios, sections', () => {
     const r1 = blocs('08', 'evolution-de-carriere', 0, 0, { secOcc: 1 }) as Resolu;
     const r2 = blocs('08', 'evolution-de-carriere', 0, 0, { secOcc: 2 }) as Resolu;
     expect(r1.md).not.toBe(r2.md);
+  });
+});
+
+describe('ancre de page VIDE (`ancreVide`) — ni folio roulant, ni `folios` (CRB)', () => {
+  it('`foliosRoulants` : une ancre vaut pour la ligne dont elle précède le texte, posée après du texte pour la suivante ; vide, pour aucune', () => {
+    const A = (n: number) => `<span id="page-${n - 1}-0" data-folio="${n}"></span>`;
+    expect(foliosRoulants(['avant', `${A(10)}Texte`, `suite ${A(11)}fin`, 'après', `${A(12)}`, 'douze', `  ${A(13)}${A(14)}Page 14`, `# ${A(15)}Titre`, 'quinze', `${A(16)}`, `${A(17)}dix-sept`, `x ${A(18)}`])).toEqual([null, 10, 10, 11, 12, 12, 14, 14, 15, 15, 17, 17]);
+  });
+  it('folio de SECTION : celui qui court au bout de la ligne du titre — ancre en tête de la ligne SUIVANTE exclue, ancre de la ligne du titre comprise', () => {
+    const A = (n: number) => `<span id="page-${n - 1}-0" data-folio="${n}"></span>`;
+    const { sections } = parseChapitre([`${A(1)}Avant`, '', '# **Titre**', `${A(2)}Suite`, '', `## ${A(3)}**Trois**`, '', 'Corps'].join('\n'));
+    expect(sections.map((s) => [s.title, s.folio, s.blocks.map((b) => b.folio)])).toEqual([['', null, [1]], ['Titre', 1, [2]], ['Trois', 3, [3]]]);
+  });
+  it('`foliosRoulants` sur le CRB réel : 004 l.75 → 10 ; titre `# <ancres 12-14>` l.109 → 11, l.110 → 14 ; ancre vide en fin de ligne : 032 l.137 → 159, 122 l.89 → 377', () => {
+    const lignes = (ch: string) => readFileSync(cheminChapitre('core-rulebook-5e', ch), 'utf8').replace(/\r\n|\r/g, '\n').split('\n');
+    const l004 = foliosRoulants(lignes('004'));
+    expect([l004[74], l004[108], l004[109], foliosRoulants(lignes('032'))[136], foliosRoulants(lignes('122'))[88]]).toEqual([10, 11, 14, 159, 377]);
+  });
+  const blocDe = (ch: string, trouve: (md: string) => boolean) =>
+    chapitreDe('core-rulebook-5e', ch).sections.flatMap((s) => s.blocks).find((b) => trouve(b.md))!;
+  it('004 l.75 : ancres vides 8 et 9 enchaînées devant l’ancre à texte 10 → folio 10, folios [10]', () => {
+    const b = blocDe('004', (md) => md.startsWith('Being the thoughts'));
+    expect([b.line, b.folio, b.folios]).toEqual([75, 10, [10]]);
+  });
+  it('032 : ancre vide 160 en fin de la dernière ligne du fichier → folios []', () => {
+    expect(blocDe('032', (md) => md.includes('OBSTACLE TABLE')).folios).toEqual([]);
+  });
+  it('122 : ancre vide 378 en fin de fichier → folios [377]', () => {
+    expect(blocDe('122', (md) => md.includes('WEALTH')).folios).toEqual([377]);
   });
 });
 
@@ -385,9 +414,8 @@ describe('resoudreAdresse — montage de fragments', () => {
 
 describe('blocsCouverts — ce qu’un fragment CITE DÉJÀ (prédicat unique du chevauchement)', () => {
   // Une CELLULE couvre le bloc de SA table. Une section à DEUX tables est le cas qui distingue le
-  // prédicat juste d'une recherche de lignes à travers la section : aucun livre extrait n'en porte
-  // aujourd'hui (balayage de tous les chapitres, 2026-09-05), d'où la fixture — le jour où un
-  // chapitre en portera une, la règle sera déjà posée.
+  // prédicat juste d'une recherche de lignes à travers la section ; banc réel à tables titrées :
+  // CRB 070 (`FragmentCellule.table`, plus bas).
   const CHAPITRE = parseChapitre([
     '### Blessures',
     '',
@@ -483,12 +511,12 @@ function pctAdressable(chapitre: ChapitreParse): number {
   let n = 0;
   let ok = 0;
   for (const s of chapitre.sections) {
-    for (const { table } of tablesOf(s)) {
+    for (const { table, cle } of tablesOf(s)) {
       for (const row of table.rows) {
         row.forEach((c, col) => {
           if (!c.trim()) return;
           n++;
-          if (cellRefFor(chapitre, { sec: s.slug, secOcc: s.occ, headers: table.headers, row, col })) ok++;
+          if (cellRefFor(chapitre, { sec: s.slug, secOcc: s.occ, table: cle, headers: table.headers, row, col })) ok++;
         });
       }
     }
@@ -596,5 +624,69 @@ describe('`<br>` de cellule — saut de ligne IMPRIMÉ : absorbé à l’adressa
   it('ANGLE MORT DIT : `normText` (donc `sumOf`) est AVEUGLE au `<br>` — les deux formes ont la même empreinte', () => {
     expect(normText('Quitter une Carrière<br>Achevée')).toBe(normText('Quitter une Carrière Achevée'));
     expect(sumOf('| a<br>b |')).toBe(sumOf('| a b |'));
+  });
+});
+
+describe('TITRE de table (#1739) — bannière absorbée, ou légende `**X**` du bloc qui précède', () => {
+  const CRB = 'core-rulebook-5e';
+  const section = (ch: string, slug: string) => chapitreDe(CRB, ch).sections.find((s) => s.slug === slug)!;
+
+  it('CRB 088 : la légende `**PACKS AND CONTAINERS**` titre sa table, et la prose qui suit reste dans SA section', () => {
+    const s = section('088', 'packs-and-containers');
+    expect(chapitreDe(CRB, '088').sections.filter((x) => x.slug === 'packs-and-containers')).toHaveLength(1);
+    expect(tablesOf(s).map((t) => [t.table.titre, t.cle])).toEqual([['PACKS AND CONTAINERS', 'packs and containers#1']]);
+    expect(s.blocks.some((b) => b.md.startsWith('**Backpack:**'))).toBe(true);
+  });
+
+  it('CRB 036 : `**HIT LOCATIONS**` titre la table de la section « 2: Determine Hit Location »', () => {
+    const s = section('036', '2-determine-hit-location');
+    expect(tablesOf(s).map((t) => t.table.titre)).toEqual(['HIT LOCATIONS']);
+  });
+
+  it('CRB 040 : légende au-dessus d’une table à en-tête VIDE — aucune rangée perdue', () => {
+    const [t] = tablesOf(section('040', 'dosage'));
+    expect([t.table.titre, t.table.headers, t.table.rows[0], t.table.banniereRefusee])
+      .toEqual(['CREATURE SIZE AND DOSAGE', ['', ''], ['Tiny', 'A single dose counts as 10 doses.'], undefined]);
+  });
+
+  it('un `**X**` suivi d’une ligne VIDE puis d’un paragraphe n’est pas une légende ; la bannière absorbée prime', () => {
+    const [s] = parseChapitre(['**X**', '', 'Prose.', '', '| a | b |', '|---|---|', '| 1 | 2 |', '', '**Y**', '', '| | BANDEAU | |', '|--|--|--|', '| c | d | e |', '| 3 | 4 | 5 |'].join('\n')).sections;
+    expect(tablesOf(s).map((t) => [t.table.titre, t.cle])).toEqual([[undefined, undefined], ['BANDEAU', 'bandeau#1']]);
+  });
+
+  // #1739 #1970 : hors CRB, la légende `**X**` au-dessus d'une table est lue comme son titre.
+  const titresDe = (livre: string, ch: string) => chapitreDe(livre, ch).sections.flatMap((s) => tablesOf(s)).map((t) => t.table.titre);
+
+  it.each([
+    'Hexenstag - Jour du Nouvel An',
+    'Geheimnistag - Le Jour des Mystères',
+    "Mittherbst - Équinoxe d'automne",
+    "Mondstille - Solstice d'hiver",
+  ])('ennemi-dans-l-ombre ch.12 : « %s » est lu titre de la table qui suit', (titre) => {
+    expect(titresDe('ennemi-dans-l-ombre', '12')).toContain(titre);
+  });
+
+  it('aventures-a-ubersreik-1 ch.25 : « A » est lu titre de la table qui suit', () => {
+    expect(titresDe('aventures-a-ubersreik-1', '25')).toContain('A');
+  });
+});
+
+describe('FragmentCellule.table (#1739) — une clé de ligne ambiguë entre tables se résout dans SA table', () => {
+  const chapitre = () => chapitreDe('core-rulebook-5e', '070');
+  const brouillon = (table?: string) =>
+    estampille<FragmentCellule>(chapitre(), { kind: 'cellule', sec: 'multiple-arcane-lores', secOcc: 1, row: '05 or less', col: 'Effect', ...(table ? { table } : {}) });
+
+  it('CRB 070 : « 05 or less » est dans les DEUX tables de miscast — sans `table`, ambiguë ; avec, résolue', () => {
+    expect((resoudreFragment(chapitre(), brouillon()) as { error: string }).error).toBe('ligne-ambigue');
+    expect((resoudreFragment(chapitre(), brouillon('major miscast table#1')) as Resolu).md).toMatch(/^Jibbering/);
+    expect((resoudreFragment(chapitre(), brouillon('minor miscast table#1')) as Resolu).md).toMatch(/^Cloyed Tongue/);
+  });
+
+  it('`cellRefFor` pose `table` QUAND la clé est ambiguë, et seulement alors', () => {
+    const [hit] = findCells(chapitre(), normText(
+      'Jibbering: You gabble unintelligibly for 1d10 Rounds. During this time, you cannot communicate verbally or use the Language Skill, although you may otherwise act normally.'));
+    expect(cellRefFor(chapitre(), hit)).toMatchObject({ row: '05 or less', col: 'Effect', table: 'major miscast table#1' });
+    const [unique] = findCells(chapitreDe(LDB, '19'), normText('+1 Mouvement'));
+    expect(cellRefFor(chapitreDe(LDB, '19'), unique)).not.toHaveProperty('table');
   });
 });

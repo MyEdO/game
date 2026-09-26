@@ -94,9 +94,11 @@ const DISQUE_STROKE_PX = 2.5;
  * R9), au rayon du disque — le pool volumique d'anneaux n'en pose plus aucun sous ce verdict, jamais
  * les deux. C'est la décoration d'ÉQUIPE : un pion sans camp n'en porte pas.
  *
- * Le CAP d'orientation, lui, appartient au PION et pas à son camp : il ne lit que `store.facing`, que
- * porte tout jeton posé, monture ou figurant compris — un pion hors groupe le porte donc aussi, à la
- * teinte NEUTRE de la palette d'identité (`teamColors.NEUTRAL_TINT`, celle d'une cible sans camp).
+ * Le CAP d'orientation, lui, appartient au PION et pas à son camp : il ne lit que `store.facing`, à la
+ * CLÉ que porte la marque (`TokenChromeMark.capKey` — son id pour une chose postée, `CAP_GROUPE` pour
+ * le jeton du groupe, que la marque tient de `partyTokenOf`), monture ou figurant compris — un pion
+ * hors groupe le porte donc aussi, à la teinte NEUTRE de la palette d'identité
+ * (`teamColors.NEUTRAL_TINT`, celle d'une cible sans camp).
  * C'est le quartier partagé du marqueur de station (`topoMarkers.wedgePath`, via `discCapPath`), à
  * cheval sur le bord du disque et peint APRÈS le portrait : dessous, le bord lui mangeait sa surface,
  * et il ne restait d'une diagonale qu'une couleur au coin. Son orientation est LUE ICI, au pion, et
@@ -108,7 +110,7 @@ const DISQUE_STROKE_PX = 2.5;
  * ses deux autres canaux : la teinte de VISIBILITÉ de sa case, et son allure.
  */
 function TokenDisc({ m, dims }: { m: TokenChromeMark; dims: Dims }): JSX.Element | null {
-  const facing: Dir8 = useGame((s) => s.facing?.[m.id]) ?? 'S';
+  const facing: Dir8 = useGame((s) => s.facing?.[m.capKey]) ?? 'S';
   const corps = tokenBodyKind(m.subject, 'top');
   if (!corps.flat) return null;
   const R = discR(m.n);
@@ -211,7 +213,7 @@ export function TokenChromeOverlay({ chromes, dims, liftAt, pions, tintAt, walkP
   const groupes = useRef(new Map<string, SVGGElement>());
   const mesure = useRef<SVGGElement | null>(null);
   const echelle = useEchelleEcran(mesure);
-  // ORIENTATION MONDE (`store.facing`) : AUCUN abonnement ici — `setFacing` reforge la référence de la
+  // ORIENTATION MONDE (`store.facing`) : AUCUN abonnement ici — toute écriture de cap reforge la référence de la
   // table à chaque pas et à chaque attaque, et cette surcouche vit sous les DEUX regards. L'abonnement
   // vit dans `TokenDisc`, monté sous le seul verdict `pionsEnDisques`, et n'y porte que la case du pion
   // concerné : sur le plateau iso, un cap qui change ne re-rend rien du tout.

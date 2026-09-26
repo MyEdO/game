@@ -15,9 +15,10 @@
 // `scripts/guards/raw-blind-refs-stock.json`, jamais ici — il est ABSENT, régime de tolérance zéro.
 //
 // Vocabulaire RÉUTILISÉ de `scripts/raw/_lib.mjs` (source unique) : `refRe`/`span`/
-// `bookOf`/`chapterFile`/`readText`. Périmètre src/ aligné sur `check-code-refs.mjs`.
+// `bookOf`/`chapterFile`/`readText`. Périmètre : les CITANTS de `src/` (`fichiersCitants`,
+// `scripts/raw/lib/fichiersCitants.mjs`), la même marche que `check-code-refs.mjs`.
 import { readFileSync } from 'node:fs'
-import { listerArbre } from './lister.mjs'
+import { fichiersCitants } from '../../raw/lib/fichiersCitants.mjs'
 import {
   refRe, span, refNums, isRangeSuffix, chapterFile, bookOf, readText, alternationDuRegistre, REGISTRE_LIVRES,
   estLivreExtrait, livreExtraitDe, sigleDe,
@@ -125,13 +126,6 @@ export function* refsInLine(ln) {
 
 export const isExcludedSrc = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX) || SELF_FILES.includes(rel)
 
-function fichiersDuCode(dir) {
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.split('/').includes('node_modules'),
-    filtre: (rel) => /\.(tsx?|json)$/.test(rel),
-  }).map((rel) => `${dir}/${rel}`)
-}
-
 const _chapterLines = new Map() // path -> string[] (une lecture par chapitre)
 function chapterLinesOf(path) {
   if (!_chapterLines.has(path)) _chapterLines.set(path, readText(path).split('\n'))
@@ -143,7 +137,7 @@ const isExempt = (hit) => SITE_EXEMPTIONS.some((e) => e.file === hit.file && e.r
 /** Scanne `srcDir` et retourne les réfs AVEUGLES : `{ file, row, ref, abbr, nn, lo, hi }`. */
 export function scanBlindRefs(srcDir = SRC_DIR) {
   const blind = []
-  for (const f of fichiersDuCode(srcDir)) {
+  for (const f of fichiersCitants(srcDir)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const src = readFileSync(f, 'utf8').split('\n')
@@ -164,7 +158,7 @@ export function scanBlindRefs(srcDir = SRC_DIR) {
 /** File d'AUDIT (non gatée) : réfs pointant une ligne vide, groupées par réf, comptées par sites. */
 export function scanEmptyLineRefs(srcDir = SRC_DIR) {
   const byRef = new Map()
-  for (const f of fichiersDuCode(srcDir)) {
+  for (const f of fichiersCitants(srcDir)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const src = readFileSync(f, 'utf8').split('\n')

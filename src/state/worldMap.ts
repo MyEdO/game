@@ -11,13 +11,14 @@
  * marche forcée au niveau carte.
  */
 import type { Effect, Fige, ReliefDefaults, Scene, SceneRoofDefaults } from './scene';
+import { garanti } from './combatants';
 import { normalizeScene } from './scene';
 import type { TravelMode } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
+import { findNavalPortById, findLieuServiceById, coreAxisIds, creatureSemee, vehiculeSeme, navireSeme } from '../data';
 
 /** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
 export interface MapPlace {
@@ -302,6 +303,10 @@ function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
   return zone ? { auberge: true, maison: zone.places.maison, camp: zone.places.camp } : undefined;
 }
 
+/** Les services de lieu que le CODE cite par id (`placeServices`) — leur présence au catalogue
+ *  `lieux-services.json` est prouvée par `data/refs-migrated.test.ts`. */
+export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge' } as const;
+
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché
  * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
@@ -313,12 +318,12 @@ function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
 export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
   const out: ResolvedPlaceService[] = [];
   if (place.port) {
-    const def = findLieuServiceById('port');
-    out.push({ id: 'port', category: 'port', label: def?.label ?? 'Port', icon: def?.icon, desc: def?.desc, port: place.port, hostLine: def?.hostLine, backdrop: def?.backdrop });
+    const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
+    out.push({ id: 'port', category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop });
   }
   if (place.market) {
-    const def = findLieuServiceById('marche');
-    out.push({ id: 'marche', category: 'marche', label: def?.label ?? 'Marché', icon: def?.icon, desc: def?.desc, market: place.market, hostLine: def?.hostLine, backdrop: def?.backdrop });
+    const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
+    out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop });
   }
   const declared = new Set<string>();
   for (const s of place.services ?? []) {
@@ -344,8 +349,8 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
   if (!declared.has('auberge')) {
     const rest = sceneAubergeOffer(scene);
     if (rest) {
-      const def = findLieuServiceById('auberge');
-      out.push({ id: 'auberge', category: 'auberge', label: def?.label ?? 'Auberge', icon: def?.icon, desc: def?.desc, rest, hostLine: def?.hostLine, backdrop: def?.backdrop });
+      const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
+      out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop });
     }
   }
   return out;
@@ -470,7 +475,8 @@ export function declutterPositions(
 // graphie `label` et fait s'annoncer les statblocs embarqués, la 6→7 fait s'annoncer le document
 // LUI-MÊME et ses scènes et pose la provenance, la 7→8 pose les matières de relief de chaque scène.
 import { migrateDoc, type MigrationMap, type RaisonDeRefus } from './migrateDoc';
-import { findPropById } from '../data';
+import { findPropById, findSpeciesById } from '../data';
+import { typeNonNomme } from '../data/schemas/defs-scenes/scene';
 import { ACTION_FOUILLER } from './usable';
 import { type NarratifBlock, emptyNarratif } from './campaignNarratif';
 import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/validate';
@@ -675,7 +681,8 @@ function poseSurChaqueScene(
  *
  * MÊMES trois invariants : une entité qui porte DÉJÀ la clé traverse INTACTE, ce qui n'est pas une
  * liste traverse tel quel (`parseProject` le refuse ensuite en le nommant), la valeur est une
- * FABRIQUE (chaque entité reçoit SA copie).
+ * FABRIQUE (chaque entité reçoit SA copie). La clé et la valeur peuvent se lire sur l'entité retenue
+ * (#1882 : `ref` ou `statblock` selon l'espèce).
  *
  * QUEUE, sans ancre : c'est la place que l'ÉDITEUR donne à un champ posé sur une entité existante
  * (`editEntity` étale l'entité puis le patch, `state/sceneEdit.ts`) — la migration écrit donc ce que
@@ -683,8 +690,8 @@ function poseSurChaqueScene(
  */
 function poseSurChaqueEntite(
   scenes: unknown,
-  cle: string,
-  valeur: () => unknown,
+  cle: string | ((ent: Record<string, unknown>) => string),
+  valeur: (ent: Record<string, unknown>) => unknown,
   retient: (ent: Record<string, unknown>) => boolean,
 ): unknown {
   if (!Array.isArray(scenes)) return scenes;
@@ -692,9 +699,11 @@ function poseSurChaqueEntite(
     if (!s || typeof s !== 'object' || !Array.isArray((s as Record<string, unknown>).entities)) return s;
     const sc = s as Record<string, unknown>;
     const entities = (sc.entities as unknown[]).map((e) => {
-      if (!e || typeof e !== 'object' || cle in e) return e;
+      if (!e || typeof e !== 'object') return e;
       const ent = e as Record<string, unknown>;
-      return retient(ent) ? { ...ent, [cle]: valeur() } : ent;
+      if (!retient(ent)) return ent;
+      const k = typeof cle === 'string' ? cle : cle(ent);
+      return k in ent ? ent : { ...ent, [k]: valeur(ent) };
     });
     return { ...sc, entities };
   });
@@ -715,6 +724,38 @@ const decorSansType = (ent: Record<string, unknown>): boolean => ent.kind === 'p
 /** Le type que le rendu DONNAIT à un décor sans `ref` avant #877. Ce littéral ne vit QUE dans la
  *  migration 11 → 12 : une migration FIGE un passé, elle ne pose pas un défaut. */
 const REF_DU_RENDU_AVANT_877 = 'tonneau';
+
+/** Un personnage qui ne NOMME aucune fiche (`typeNonNomme`) — la population que le bump 12 → 13 nomme. */
+const personnageSansFiche = (ent: Record<string, unknown>): boolean =>
+  ent.kind === 'personnage' && typeNonNomme({ id: String(ent.id), kind: 'personnage', ref: ent.ref, statblock: ent.statblock, presetId: ent.presetId }) !== undefined;
+
+/** Le profil standard (`LDB 77 l.7`) de l'espèce AUTHORÉE de l'entité — lu au catalogue à l'INSTANT de
+ *  la migration ; `undefined` pour une espèce absente, un id de rig ou une espèce sans profil. */
+const profilDeLEspece = (ent: Record<string, unknown>): string | undefined => {
+  const species = (ent.appearance as { species?: unknown } | undefined)?.species;
+  return typeof species === 'string' ? findSpeciesById(species)?.profilStandard?.id : undefined;
+};
+
+/** Le statbloc que la branche `!ref` de `spawnEnemy` posait avant #1882 (`state/spawn.ts`) : même
+ *  libellé, même profil. Porté par l'entité, il passe par la branche `statblock`, qui reçoit
+ *  l'`appearance` : la forme du corps suit alors l'espèce authorée (`bodyShapeForSpecies`). Ce littéral ne
+ *  vit QUE dans la migration 12 → 13. */
+const FICHE_DU_SPAWN_AVANT_1882 = (): Record<string, unknown> => ({ type: 'statblock', label: 'Ennemi', char: { B: 10 } });
+
+/** Un porteur VIDE (`ref: ''`, `presetId: ''`) n'est pas un porteur (`typeNonNomme`) : le bump 12 → 13 le
+ *  retire avant de nommer la fiche, même politique que l'absence. */
+function sansPorteurVide(scenes: unknown): unknown {
+  if (!Array.isArray(scenes)) return scenes;
+  return scenes.map((s) => {
+    if (!s || typeof s !== 'object' || !Array.isArray((s as Record<string, unknown>).entities)) return s;
+    const sc = s as Record<string, unknown>;
+    const entities = (sc.entities as unknown[]).map((e) => {
+      if (!e || typeof e !== 'object' || !personnageSansFiche(e as Record<string, unknown>)) return e;
+      return Object.fromEntries(Object.entries(e).filter(([k, v]) => !((k === 'ref' || k === 'presetId') && v === '')));
+    });
+    return { ...sc, entities };
+  });
+}
 
 /**
  * La fouille d'un décor devient une ACTION AUTHORÉE, et l'enveloppe `usable` vide se NOMME (#1687).
@@ -948,7 +989,64 @@ export const PROJECT_MIGRATIONS: MigrationMap = {
     version: 12,
     schema: 12,
   }),
+  /**
+   * `12` NOMME la fiche de tout personnage qui n'en nommait aucune (#1882) : un porteur (`ref`,
+   * `statblock` ou `presetId`) devient REQUIS sur une entité `kind:'personnage'`
+   * (`PORTEURS_DU_TYPE`, `defs-scenes/scene.ts`). L'espèce authorée porte un profil standard
+   * (`LDB 77 l.7`, `species.json`) → `ref` = ce profil ; sinon (espèce absente, id de rig, espèce
+   * sans profil) → le statbloc de la branche `!ref` d'avant #1882, écrit en `statblock` explicite
+   * (`FICHE_DU_SPAWN_AVANT_1882` : libellé et profil identiques, forme du corps de l'espèce). Sans ce passage, le
+   * projet serait REFUSÉ au parse sur son premier personnage sans fiche.
+   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-23-1882-fiche-de-personnage-nommee.mjs`
+   * (parité mesurée par `projet-migration-12-vers-13.test.ts`).
+   */
+  12: (doc) => ({
+    ...doc,
+    ...(doc.scenes !== undefined
+      ? {
+        scenes: poseSurChaqueEntite(
+          sansPorteurVide(doc.scenes),
+          (ent) => (profilDeLEspece(ent) ? 'ref' : 'statblock'),
+          (ent) => profilDeLEspece(ent) ?? FICHE_DU_SPAWN_AVANT_1882(),
+          personnageSansFiche,
+        ),
+      }
+      : {}),
+    version: 13,
+    schema: 13,
+  }),
+  /** 13 → 14 (#1882) : `livingRefSchema.creatureId`, `givePossession.ref.vehicleId` et `setVessel.vehicleId` exigent un id RÉSOLU
+   *  (`idDe`). Avant, l'effet neuf (`make`, éditeur) semait `''` : ce vide reçoit ce que l'outil sème
+   *  aujourd'hui (`creatureSemee`, `vehiculeSeme`, `navireSeme`). Pendant applicatif du script de dépôt
+   *  `scripts/migrations/2026-09-24-1882-refs-vivantes-semees.mjs` (parité : `projet-migration-13-vers-14.test.ts`). */
+  13: (doc) => ({
+    ...(semeLesRefsVides(doc) as typeof doc),
+    version: 14,
+    schema: 14,
+  }),
 };
+
+/** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,
+ *  `ref.vehicleId`) ou d'un `setVessel` (`vehicleId`), où que l'effet soit niché dans le DOCUMENT (Scène,
+ *  péril de route de `worldMap`, …), reçoit la réf. que l'outil sème (`PROJECT_MIGRATIONS[13]`). Le reste
+ *  traverse à l'identique. */
+export function semeLesRefsVides(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(semeLesRefsVides);
+  if (!v || typeof v !== 'object') return v;
+  const o = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, semeLesRefsVides(x)])) as Record<string, unknown>;
+  const seme = (ref: unknown): unknown => {
+    if (!ref || typeof ref !== 'object') return ref;
+    const r = ref as Record<string, unknown>;
+    if (r.creatureId === '') return { ...r, creatureId: creatureSemee() };
+    if (r.vehicleId === '') return { ...r, vehicleId: vehiculeSeme() };
+    return r;
+  };
+  if (o.type === 'setVessel' && o.vehicleId === '') return { ...o, vehicleId: navireSeme() };
+  if (o.type === 'givePossession') return { ...o, ref: seme(o.ref) };
+  if (o.type === 'startPursuit' && Array.isArray(o.foes))
+    return { ...o, foes: o.foes.map((f) => (f && typeof f === 'object' ? { ...(f as object), ref: seme((f as { ref?: unknown }).ref) } : f)) };
+  return o;
+}
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se
  *  devine pas. SOURCE UNIQUE — posée par la migration 6→7 sur un projet qui n'en portait aucune,
@@ -1018,6 +1116,15 @@ const REFUS_DE_MIGRATION: Record<RaisonDeRefus, { cause: CauseDeRefus; chemin: r
 function refusDeMigration(raison: RaisonDeRefus, schema: unknown, detail?: string): ProjetRefuse {
   const { cause, chemin, faute } = REFUS_DE_MIGRATION[raison];
   return refusDeForme(cause, chemin, faute(JSON.stringify(schema), detail));
+}
+
+/** UNE scène d'un document au `schema` donné, portée au schéma courant par la chaîne CANONIQUE
+ *  (`migrateDoc` + `PROJECT_MIGRATIONS`, celle de `parseProject`) puis normalisée (`normalizeScene`).
+ *  Refus nommé (`ProjetRefuse`, `REFUS_DE_MIGRATION`) si la chaîne ne sait pas la lire. */
+export function sceneAuSchemaCourant(scene: unknown, schema: unknown): Scene {
+  const issue = migrateDoc({ version: schema, schema, scenes: [scene] }, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS);
+  if (!issue.ok) throw refusDeMigration(issue.raison, issue.version, issue.detail);
+  return normalizeScene((issue.doc.scenes as Scene[])[0]);
 }
 
 /** Parse un document de projet, migrant au besoin via `migrateDoc`. Refus EXPLICITE (`ProjetRefuse`,

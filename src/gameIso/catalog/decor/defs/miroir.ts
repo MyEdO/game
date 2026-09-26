@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Miroir psyché : grande glace argentée inclinée dans un cadre de bois pivotant, sur pied à deux montants
-// et patins. Le miroir des loges d'artistes où l'on se costume. Cf. plan officiel NADJ 8 p.40.
+// et patins. Le miroir des loges d'artistes où l'on se costume. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'miroir',
   label: 'Miroir',

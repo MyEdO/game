@@ -104,7 +104,14 @@ la vue, jamais en allongeant la liste.**
 - **Sens des axes** : +x = droite, **+y = vers le bas de l'écran** (SVG standard). Pour les
   membres, +y va du joint vers l'**extrémité distale** (épaule→main, hanche→pied).
 - **Gradients partagés** (définis une fois dans `defsGlobaux()`, cf. sprites.ts) : `g_steel`, `g_steelD`,
-  `g_flesh`, `g_cloak`, `g_robe`, `g_coat`, `g_axe`, `g_glow`, `g_eye`, `g_crest`, `g_hVest`.
+  `g_cloak`, `g_robe`, `g_coat`, `g_axe`, `g_glow`, `g_eye`, `g_crest`, `g_hVest`. Leur couleur est
+  FIXE : ils ne suivent pas la palette (#1903).
+  Un dégradé qui suit la palette est un **dégradé DÉRIVÉ** `url(#dg-<forme>-<arrêt>-<arrêt>…)` : un
+  arrêt est un jeton `@clé` (`@vet1H`, `@cuirO`…) ou un littéral `#rrggbb`, et `applyTokenMap` le
+  résout en `<linearGradient>` dont l'id est le contenu. La table des formes (axe, arrêts) est
+  `FORMES_DE_DEGRADE` de `palette.ts`. Un arrêt littéral reste de la DETTE de littéral, comptée par le
+  cliquet `palette-literal.test.ts` comme un `stop-color`. L'art du rig ne définit aucun
+  `<linearGradient>`/`<radialGradient>` local (gardé, `parts/references-degrade.test.ts`).
   Sinon couleurs hex — MAIS **jamais pour la CHAIR** (voir ci-dessous). Matériaux d'armure : cuir
   `#6a4a2a`, maille `url(#g_steelD)`, plaque `url(#g_steel)`, rembourré `#9a8a6a`.
 - **MATIÈRE vs PORTEUR — distinction obligatoire (#583 chair, #599 flanc jumeau cheveux).** Une
@@ -112,12 +119,9 @@ la vue, jamais en allongeant la liste.**
   acier — une couleur qui lui appartient, à elle, pas au porteur). Elle est **INTERDITE pour les
   jetons du PORTEUR** — chair (`@peau`/`@peauO`/`@peauH`) ET chevelure
   (`@cheveux`/`@cheveuxO`/`@cheveuxH`) — qui appartiennent au PERSONNAGE et doivent TOUJOURS
-  suivre les jetons résolus par `raceAppearance.json` au moment du rendu, jamais `url(#g_flesh)`,
-  jamais un littéral hex. `g_flesh` est désormais DÉRIVÉ dynamiquement de la peau résolue du
-  personnage à la composition (`composeRig.tsx`, `palette.ts::fleshGradientId`/
-  `fleshGradientDefs`) : toute part qui le référence encore obtient la bonne teinte SANS ÊTRE
-  MIGRÉE, mais une part NEUVE doit peindre directement `@peau`/`@peauO`/`@peauH` — ne plus graver
-  `url(#g_flesh)`. Plus largement : tout littéral hex qui vaudrait EXACTEMENT une valeur déjà
+  suivre les jetons résolus par `raceAppearance.json` au moment du rendu, jamais un littéral hex.
+  Un dégradé de chair est le dégradé DÉRIVÉ `url(#dg-v-@peauH-@peauO)`, résolu par `applyTokenMap`
+  (`palette.ts`) à la passe du porteur (#1903 D2). Plus largement : tout littéral hex qui vaudrait EXACTEMENT une valeur déjà
   déclarée dans la `palette` du def (chair, cheveux, cuir, tissu, plume…) est une faute — c'était
   le jeton `@<clé>` qu'il fallait peindre (gardé, `parts/tenues/palette-literal.test.ts`,
   cliquet). Piège symétrique côté cheveux : un jeton `@cheveux*` DANS l'art d'une tenue n'est
@@ -126,14 +130,13 @@ la vue, jamais en allongeant la liste.**
   capuche, coiffe) qui ressemble à s'y méprendre à des cheveux, c'est le jeton qui est FAUX :
   renommer l'usage vers un jeton de vêtement dédié (ex. `Nonne.ts`, guimpe → `@voile*`), jamais
   laisser `@cheveux*` peindre du tissu.
-- **`TenueDef.palette` n'a PAS le droit de déclarer `peau`/`peauO`/`peauH`/`cheveux`/`cheveuxO`/
-  `cheveuxH`** — une TENUE n'a ni peau ni chevelure (gardé,
-  `parts/tenues/no-flesh-in-tenue-palette.test.ts`, #583, #599). Le piège vécu : l'ART peignait
+- **La `palette` d'une tenue, d'une arme ou d'une armure n'a PAS le droit de déclarer une clé porteur
+  (`PORTEUR` : `peau`, `cheveux`, `yeux` et leur gamme)** — seule l'espèce les donne (gardé,
+  `parts/no-porteur-in-palette.test.ts`, #583, #599). Le piège vécu : l'ART peignait
   correctement `@peau`/`@peauO` (règle ci-dessus respectée), mais la `palette` du def déclarait
   AUSSI ces clés avec une teinte figée — `tenuePaletteFor` prime sur l'espèce dans l'empilage
-  (`rigStoredPalette`), donc ce jeton se résolvait à la couleur de la TENUE, pas à celle du
-  porteur (17 tenues sur 117 pour la chair, dont `Chansonnier` en commentaire « avant-bras nu
-  (g_flesh) » — le nom trahissait déjà le défaut ; 5 tenues sur 117 pour les cheveux — la palette
+  (`couchesDuRig`), donc ce jeton se résolvait à la couleur de la TENUE, pas à celle du
+  porteur (17 tenues sur 117 pour la chair, 5 sur 117 pour les cheveux — la palette
   merge étant UNIQUE pour tout le rig, la fuite recolorait aussi le bone `cheveux` cosmétique
   SÉPARÉ, layer 1 sous la tenue, cf. `bones.ts::SLOT_LAYER`). Une tenue déclare cuir/tissu/métal ;
   jamais chair ni chevelure.

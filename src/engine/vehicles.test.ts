@@ -54,7 +54,7 @@ describe('dédup trappings ⊥ vehicles (foyer unique)', () => {
     expect(collisions).toEqual([]);
   });
 
-  it('les 6 véhicules migrés (achat) portent prix + dispo verbatim LDB p.306', () => {
+  it('les 6 véhicules migrés (achat) portent prix + dispo verbatim LDB 70 l.7-27', () => {
     const dil = vehicles.find((v) => v.id === 'diligence')!;
     expect(dil.purchase).toEqual({ price: { gold: 150, silver: 0, brass: 0 }, availability: 'Rare' });
     const coracle = vehicles.find((v) => v.id === 'coracle')!;

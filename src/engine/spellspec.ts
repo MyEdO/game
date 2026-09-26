@@ -1,16 +1,13 @@
 /**
  * spellSupport — classification mécanique d'un sort.
  *
- * Migration #5 : les métadonnées de résolution (durée, ZdE, opposition, téléportation…) qui
- * vivaient dans `src/data/spellspecs/*.ts` ont migré dans `SpellData` (spells.json). L'interface
- * `SpellSpec` et le registre `src/data/spellspecs/` sont supprimés. `spellSupport` reçoit
- * désormais directement les champs de `SpellData` sous forme de shape partielle (duck typing).
+ * Les métadonnées de résolution (durée, ZdE, opposition, téléportation…) vivent dans `SpellData`
+ * (spells.json) : `spellSupport` en reçoit les champs sous forme de shape partielle (duck typing).
  */
 import { GameOp } from './ops';
 
 /** Shape minimale des métadonnées de résolution lues par `spellSupport` — sous-ensemble de
- *  `SpellData` (les champs migrés de l'ancienne SpellSpec). Pas d'import circulaire : les
- *  types sont inline (chaînes littérales / primitives). */
+ *  `SpellData`. Pas d'import circulaire : les types sont inline (chaînes littérales / primitives). */
 export interface SpellResolutionMeta {
   curated?: boolean;
   /** Cible structurée — `{kind:'area'}` signale une Zone d'Effet (son rayon vit ici). */

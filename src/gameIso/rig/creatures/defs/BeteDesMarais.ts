@@ -14,6 +14,6 @@ export const creature: CreatureDef = {
   // mousse claire en lumière, touffes pendantes vert profond, racines/serres brun d'écorce.
   hulk: {
     sl: 1.15, girth: 1.15, form: 'brute',
-    stored: { corps: '#67743a', corpsO: '#20240e', corpsH: '#a9b25c', cheveux: '#3d4a1e', cheveuxO: '#161a08', cuir: '#5c4c28' },
+    palette: { corps: '#67743a', corpsO: '#20240e', corpsH: '#a9b25c', cheveux: '#3d4a1e', cheveuxO: '#161a08', cuir: '#5c4c28' },
   },
 };

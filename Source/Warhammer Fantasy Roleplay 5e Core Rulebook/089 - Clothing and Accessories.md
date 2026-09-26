@@ -1,10 +1,10 @@
 *Pages PDF 308-309*
 
-# **CLOTHING AND ACCESSORIES**
+# <span id="page-307-0" data-folio="308"></span>**CLOTHING AND ACCESSORIES**
 
-Clothing styles in the Empire vary considerably. As a general guideline, commoners wear simple tunics with breeches or gowns. Middle-class citizens favour puff-and-slash fashions with hats and hosiery or dresses. The elites flaunt capes, furs, and flamboyant hats with extravagantly enormous feathers the more exotic, the better!
+Clothing styles in the Empire vary considerably. As a general guideline, commoners wear simple tunics with breeches or gowns. Middle-class citizens favour puff-and-slash fashions with hats and hosiery or dresses. The elites flaunt capes, furs, and flamboyant hats with extravagantly enormous feathers — the more exotic, the better!
 
-#### **CLOTHING AND ACCESSORIES**
+**CLOTHING AND ACCESSORIES**
 
 | Item             | Cost   | Enc | Availability |
 |------------------|--------|-----|--------------|
@@ -32,7 +32,7 @@ Clothing styles in the Empire vary considerably. As a general guideline, commone
 | Uniform          | 2 GC   | 1   | Scarce       |
 | Walking Cane     | 3 GC   | 1   | Common       |
 
-**Amulet:** A simple brass badge bearing an embossed design or semi-precious stone.
+<span id="page-308-0" data-folio="309"></span>**Amulet:** A simple brass badge bearing an embossed design or semi-precious stone.
 
 **Cloak:** Cloaks protect wearers against the elements.
 
@@ -46,7 +46,7 @@ Clothing styles in the Empire vary considerably. As a general guideline, commone
 
 **Jewellery:** Prices vary by craftsmanship, metal type, and gem value. As a general guideline, common rings without any gemstones cost 10 coins equal to their metal type (i.e. brass, silver or gold) whereas necklaces cost 20 coins of the same
 
-**Sceptre:** The highest-ranking legal officials carry sceptres to XI indicate their status.
+**Sceptre:** The highest-ranking legal officials carry sceptres to indicate their status.
 
 **Signet Ring:** Gold rings with engraved stamps are worn by nobles and guild officials, who use them to imprint heraldry or insignia into sealing wax.
 

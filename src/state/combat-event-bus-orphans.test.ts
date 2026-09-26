@@ -79,7 +79,7 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
 /**
  * 7bis (#316) : un Coup Critique OPPOSÉ (LDB 14 l.3 — double au Test opposé) est une Blessure Critique ;
  * `applyOpposedCritical` émet désormais `onCrit` via le bus → les Atouts d'arme « sur Critique » (Taillade
- * → Hémorragique, AA 8 p.89) s'appliquent, avec l'arme RÉELLE de l'attaquant (weaponObj).
+ * → Hémorragique, AA 8 l.87) s'appliquent, avec l'arme RÉELLE de l'attaquant (weaponObj).
  */
 describe('7bis — applyOpposedCritical émet onCrit (Taillade sur Critique opposé)', () => {
   beforeEach(() => { vi.useFakeTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null, pendingLogQueue: [] }); });

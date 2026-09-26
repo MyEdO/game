@@ -21,7 +21,7 @@ import { useStagePointer, type StagePointer } from './useStagePointer';
 import { AreteOverlay } from './AreteOverlay';
 
 /**
- * FORTIFICATION D'ARÊTE PAR L'ÉTAGE `arete` (#1687, lot 1b-4 ; AA 10 p.120) — la structure abattable
+ * FORTIFICATION D'ARÊTE PAR L'ÉTAGE `arete` (#1687, lot 1b-4 ; AA 10 l.94-102) — la structure abattable
  * ne porte plus son overlay à handlers : elle est une capacité d'arête comme les trois autres, dérivée
  * (`state/aretes.ts`), projetée (`stage/aretesProjetees.ts`), résolue par le pixel
  * (`stage/pickResolve.ts`) et peinte par le peintre unique (`stage/AreteOverlay.tsx`).

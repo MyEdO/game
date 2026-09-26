@@ -7,9 +7,8 @@
  *
  * `ref` = citation de la règle (même champ que `obsessions.json.ref`) : l'abréviation DOIT être un
  * `abbr` de `books.json` (garde `src/engine/policy-donnee.test.ts`), le reste est la localisation la
- * plus précise dont on dispose. Mesuré au 2026-08-20 : 71 entrées en `<ABRÉV> <ch> l.<ligne>`, 8 au
- * CHAPITRE seul (le passage ne chiffre rien à pointer — `LDB 18`, `LDB 65`…), 2 au folio
- * imprimé (`MDG 15 p.131`). La `ref` porte la RÉFÉRENCE, jamais de justification en prose : celle
+ * plus précise dont on dispose : `<ABRÉV> <ch> l.<ligne>`, ou le CHAPITRE seul quand le passage ne
+ * chiffre rien à pointer (`LDB 18`, `LDB 65`…). La `ref` porte la RÉFÉRENCE, jamais de justification en prose : celle
  * d'une valeur que le RAW ne chiffre pas va dans `maison` (CLAUDE.md règle 7, même sémantique que
  * `castingNumberMod.maison`, `grammaire/valeurs.ts`) — 27 entrées ; `maison` et `source` sont des clés
  * d'ENVELOPPE, posées par la fabrique.

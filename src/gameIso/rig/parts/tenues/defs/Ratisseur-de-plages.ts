@@ -15,7 +15,7 @@ export const tenue: TenueDef = {
     vet1: '#d6a12c', vet1O: '#9c6f18', vet1H: '#eecb63',
     vet2: '#d2c59f', vet2O: '#a3956a', vet2H: '#ede2c3',
     cuir: '#9a6d3a', cuirO: '#553618', cuirH: '#c0965a',
-    metal: '#c2a04a', metalO: '#795d1d', metalH: '#e3c76f',
+    metal: '#c2a04a', metalO: '#795d1d', 
     corail: '#d6968c', corailO: '#a5635a', corailH: '#e9b5ac',
   },
   set: {

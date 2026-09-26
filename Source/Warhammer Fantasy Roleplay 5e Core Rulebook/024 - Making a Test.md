@@ -1,6 +1,6 @@
 *Pages PDF 130-132*
 
-# MAKING A TEST
+# <span id="page-129-0" data-folio="130"></span>MAKING A TEST
 
 # **DESCRIBE ACTION**
 
@@ -49,16 +49,16 @@ Sometimes a rule, ability, or circumstance will grant you Advantage or Disadvant
 
 Advantage and Disadvantage cancel each other out. If you have multiple sources of Advantage, each one after the first grants +1 SL, while multiple sources of Disadvantage inflict -1 SL.
 
-# **DIFFICULTY AND CHARACTER MODIFIERS**
+# <span id="page-130-0" data-folio="131"></span>**DIFFICULTY AND CHARACTER MODIFIERS**
 
 Not all Tests are as simple as the one above. The Success Level of a Test can be modified by how difficult it is to succeed, or by the Character's abilities and equipment:
 
-- Difficulty set by the GM, with easier tasks giving an SL bonus and harder ones giving a penalty (see **Difficulty Table**).
-- Character's modifiers come from Talents, equipment, Spells, and other effects. These will be clear on the player's Character Sheet.
+- Difficulty — set by the GM, with easier tasks giving an SL bonus and harder ones giving a penalty (see **Difficulty Table**).
+- Character's modifiers — come from Talents, equipment, Spells, and other effects. These will be clear on the player's Character Sheet.
 
 Combine any SL bonuses or penalties from the Difficulty with the Character's modifiers to arrive at the final SL modifier for the roll. This could turn a success into a failure, or prise victory from the jaws of defeat!
 
-#### **DIFFICULTY TABLE**
+**DIFFICULTY TABLE**
 
 | Difficulty  | Test Modifier | Example                                                         |
 |-------------|------------------|-----------------------------------------------------------------|
@@ -90,7 +90,7 @@ If an action isn't covered by a Skill, you can make a Characteristic Test instea
 
 Often, you will only need to know whether a Test results in a success or failure. If it's important to know just how well you have passed, or how badly you have failed, consult the **Outcomes Table** below. The GM uses the descriptions in the table to decide what happens as a result of your action. There are lots of example outcome tables for a variety of actions, along with specific advice on how to use the rules, later in this chapter.
 
-#### **OUTCOMES TABLE**
+**OUTCOMES TABLE**
 
 | SL            | Result                | Have You Succeeded?                                                                                                                                                                                                                          |
 |---------------|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -107,7 +107,7 @@ Often, you will only need to know whether a Test results in a success or failure
 
 Sometimes the GM may ask you to make multiple rolls over time, such as once per round, or once each day, while keeping a running total of the SL you have achieved. This is known as an Extended Test, and it is used when time and resources matter, such as repairing a battered breastplate or picking a lock before a guard arrives. An Extended Test succeeds once you have achieved a set target number of SL, and fails should you run out of time or resources. See page 266 for more on Extended Tests.
 
-# **Test Examples**
+# <span id="page-131-0" data-folio="132"></span>**Test Examples**
 
 Here are a few examples of Tests to help you get to grips with the rules.
 
@@ -141,4 +141,4 @@ With the GM's permission, two or more characters can work together on a Test. Th
 
 To help, a character must logically be able to meaningfully assist. Characters cannot normally help resist disease, poison, fear, hazards, or physically assist if they aren't close enough. A Character cannot assist with an Advanced Skill Test unless they have at least one Advance in the Skill being tested.
 
-*Example*: *Brokk and Salundra are trying to force open the barred door to a noble's cellar. The GM calls for a Challenging (+0 SL) Strength Test. Brokk has the higher Strength rating, at 53, so he makes the Test. He rolls a 61, but with Salundra helping he has Advantage. This allows him to reverse the roll to a 16, resulting in a +3 SL. Together they force the door open, and descend the darkened stairs with care.*
+***Example***: *Brokk and Salundra are trying to force open the barred door to a noble's cellar. The GM calls for a Challenging (+0 SL) Strength Test. Brokk has the higher Strength rating, at 53, so he makes the Test. He rolls a 61, but with Salundra helping he has Advantage. This allows him to reverse the roll to a 16, resulting in a +3 SL. Together they force the door open, and descend the darkened stairs with care.*

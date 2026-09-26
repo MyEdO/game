@@ -4,8 +4,8 @@ import { scenarioEntities } from '../opera/furnished';
 import type { TestScenario } from './_shared';
 
 /**
- * OPÉRA — PLAN MEUBLÉ. La géométrie fidèle du Théâtre Staatsoper (`opera/floorplan.ts`, plan NADJ 8
- * p.40/41) chargée en EXPLORATION avec son MOBILIER (`opera/furnished.ts`) : la scène DÉDIÉE où le
+ * OPÉRA — PLAN MEUBLÉ. La géométrie fidèle du Théâtre Staatsoper (`opera/floorplan.ts`, plan NADJ 08
+ * folio 38 rez / folio 39 étage, images) chargée en EXPLORATION avec son MOBILIER (`opera/furnished.ts`) : la scène DÉDIÉE où le
  * meublage se juge à l'écran (#1644), sans toucher au scénario jouable « Opéra », qui a sa propre
  * carte 21 cases et ses propres entités.
  *

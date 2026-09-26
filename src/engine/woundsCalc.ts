@@ -28,7 +28,7 @@ import type { SizeCategory } from './size';
  * qui se PASSE, et `effectiveSize` la rabat alors sur Moyenne (`LDB 14 l.128`), le standard jouable.
  */
 export function woundsFromHit(weapon: Weapon | undefined, target: Combatant, location: HitLocation | undefined, totalDamage: number, extraAP = 0, minWounds = 1, attackerSize: SizeCategory | undefined): number {
-  // Engin de siège INERTE (AA 10 p.122-123) : le RAW ne lui donne aucune Blessure → NON-DESTRUCTIBLE (immune).
+  // Engin de siège INERTE (AA 10 l.136-193) : le RAW ne lui donne aucune Blessure → NON-DESTRUCTIBLE (immune).
   // On le neutralise en tuant son équipage, jamais en le frappant. (≠ structure/véhicule, qui NE sont PAS `inert`.)
   if (target.inert) return 0;
   if (isStructure(target)) {

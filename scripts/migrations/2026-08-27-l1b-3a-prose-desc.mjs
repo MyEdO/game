@@ -27,7 +27,7 @@
  * `scripts/migrations/2026-08-24-give-trapping-label-vers-id.mjs`). La forme est vérifiée AVANT
  * toute écriture : non canonique = sortie 1, jamais un reflow silencieux.
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un porteur ne portant plus que `desc` est reconnu migré ;
+ * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un porteur portant seulement `desc` est reconnu migré ;
  * rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * FAIL-FAST : porteur ayant les DEUX clés, porteur sans ni l'une ni l'autre, `text` non-chaîne, ou
  * chemin déclaré absent du document → rien n'est écrit, sortie 1.

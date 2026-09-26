@@ -16,7 +16,7 @@ export const tenue: TenueDef = {
     vet2: '#6c7883', vet2O: '#3c454c', vet2H: '#9aa6af', // bottes gris-bleu
     metal: '#7f8b98', metalO: '#39404a', metalH: '#b2bbc7', // acier : poche, outils, chaînes
     os: '#a7b4ac', osO: '#6f7e77', osH: '#cfd8d0', // crâne + dents d'os teintés de vert-de-gris
-    fourrure: '#c6ccc6', fourrureO: '#8f968f', fourrureH: '#e9ece7', // ourlet de fourrure
+    fourrure: '#c6ccc6', fourrureO: '#8f968f', // ourlet de fourrure
     accent: '#61703f', accentO: '#3c4a25', accentH: '#8a985e', // bande d'étoffe olive à l'avant-bras
   },
   set: {

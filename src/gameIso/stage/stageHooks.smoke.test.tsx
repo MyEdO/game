@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useRef } from 'react';
 import { Combatant } from '../../engine/types';
 import type { BattleState } from '../../state/store';
-import { useStageCamera, stageFocus, computeViewBounds, cameraTargeting, VW, VH } from './useStageCamera';
+import { useStageCamera, stageFocus, adoucirFocal, computeViewBounds, cameraTargeting, VW, VH } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { useHoverTargeting } from './useHoverTargeting';
 import type { Dims } from '../../geometry/iso';
@@ -70,7 +70,17 @@ describe('stageFocus / computeViewBounds / cameraTargeting — helpers purs de c
 
   it('hors combat : suit la position (visuelle) du leader, sinon partyPos', () => {
     expect(stageFocus(base)).toEqual({ x: 2, y: 3, sujet: 'groupe' });
-    expect(stageFocus({ ...base, partyLeader: cbt('h', 'hero', { x: 0, y: 0 }) })).toEqual({ x: 2, y: 3, sujet: 'groupe:h' }); // walkStill → position logique
+    expect(stageFocus({ ...base, partyLeader: cbt('h', 'hero', { x: 0, y: 0 }) })).toEqual({ x: 2, y: 3, sujet: 'groupe' }); // walkStill → position logique
+  });
+
+  it('hors combat : le SUJET est le GROUPE — changer de meneur, groupe immobile, ne relance aucun adoucissement', () => {
+    const avant = stageFocus({ ...base, partyLeader: cbt('a', 'hero', { x: 0, y: 0 }) });
+    const apres = stageFocus({ ...base, partyLeader: cbt('b', 'hero', { x: 0, y: 0 }) });
+    // Le saut de focale s'arme sur un CHANGEMENT de sujet (`MondeDeCampagne`, `lissageRef`) : deux
+    // meneurs, un seul sujet → rien à adoucir, et la focale ne bouge pas non plus.
+    expect(apres.sujet, 'le meneur n’est pas le sujet : le groupe l’est').toBe(avant.sujet);
+    expect({ x: apres.x, y: apres.y }).toEqual({ x: avant.x, y: avant.y });
+    expect(adoucirFocal(null, apres, 0), 'sans lissage armé, la cible est servie telle quelle').toMatchObject({ x: 2, y: 3 });
   });
 
   it('paire de visée (télégraphe/attaque en résolution) : cadre le MILIEU attaquant ↔ cible', () => {

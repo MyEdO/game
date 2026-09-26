@@ -94,7 +94,7 @@ export function poseCorruptionPending(get: Get, set: Set, pending: PendingCorrup
 export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, align?: ChaosAlign): string[] {
   const rng = battleRng();
   const lines: string[] = [];
-  // Protection de Phâ (LDB 48 p.249) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
+  // Protection de Phâ (LDB 48 l.393) : un occupant d'une Zone `noCorruption` ne gagne aucune Corruption.
   if (n > 0 && hero.pos && (get().battle?.zones ?? []).some((z) => z.noCorruption && zoneCovers(z, hero.pos!))) {
     return [t('cor.phaWard', { name: hero.label })];
   }

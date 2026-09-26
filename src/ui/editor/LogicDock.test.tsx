@@ -5,6 +5,9 @@ import { emptyScene } from '../../state/scene';
 import { LogicDock } from './LogicDock';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { effectSummary } from './EffectList';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+
+const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE };
 
 function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
   const scene = emptyScene(10, 10);
@@ -93,13 +96,13 @@ describe('LogicDock — onglet Dialogues (master-détail de nœuds)', () => {
 
 describe('effectSummary — résumés humains des rangées repliées', () => {
   it('résume les effets courants en clair', () => {
-    expect(effectSummary({ type: 'giveXp', amount: 50 })).toContain('50 PX');
-    expect(effectSummary({ type: 'startCombat', encounter: 'enc-rats' })).toContain('enc-rats');
-    expect(effectSummary({ type: 'setFlag', flag: 'porte_ouverte', value: true })).toContain('porte_ouverte');
-    expect(effectSummary({ type: 'giveMoney', montant: { gold: 2, silver: 5, brass: 0 } })).toBe('Argent : 2 CO 5/–');
+    expect(effectSummary({ type: 'giveXp', amount: 50 }, SCENE)).toContain('50 PX');
+    expect(effectSummary({ type: 'startCombat', encounter: 'enc-rats' }, SCENE)).toContain('enc-rats');
+    expect(effectSummary({ type: 'setFlag', flag: 'porte_ouverte', value: true }, SCENE)).toContain('porte_ouverte');
+    expect(effectSummary({ type: 'giveMoney', montant: { gold: 2, silver: 5, brass: 0 } }, SCENE)).toBe('Argent : 2 CO 5/–');
     expect(
-      effectSummary({ type: 'transition', scene: 'sc-b', entry: 'porte' }, { scenes: [{ id: 'sc-b', nom: 'Taverne', entries: ['porte'] }] }),
+      effectSummary({ type: 'transition', scene: 'sc-b', entry: 'porte' }, { ...SCENE, scenes: [{ id: 'sc-b', nom: 'Taverne', entries: ['porte'] }] }),
     ).toContain('Taverne');
-    expect(effectSummary({ type: 'extendedTest', skill: { id: 'crochetage' }, label: 'Serrure', targetDR: 5 })).toContain('Crochetage');
+    expect(effectSummary({ type: 'extendedTest', skill: { id: 'crochetage' }, label: 'Serrure', targetDR: 5 }, SCENE)).toContain('Crochetage');
   });
 });

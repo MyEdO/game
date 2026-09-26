@@ -21,10 +21,13 @@ import type { PendingActivity } from '../state/interludeFlow';
 let root: Root | null = null;
 afterEach(() => { act(() => root?.unmount()); root = null; });
 
+const ARMEE = 'Horde du Chaos';
+
 /** Pending de tenue DÉJÀ jeté (la rangée témoin de l'ennemi n'est montrée que post-jet). */
 function holdPending(over: Partial<PendingActivity> = {}): PendingActivity {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', rng: makeRNG(42) });
   useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
+  useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3, enemyName: ARMEE });
   return {
     heroId: hero.id, kind: 'catalog', activityId: 'tenez-votre-position', battle: 'round',
     label: 'Tenez votre position', skillLabel: 'Corps à corps', skillValue: 42, difficulty: 'intermediaire',
@@ -57,5 +60,19 @@ describe('ActivityModal — rangée de l’ennemi d’une Scène « Tenez votre 
     const txt = renderWith(holdPending({ enemyBase: undefined }));
     expect(txt).toContain('Puissance');
     expect(txt).not.toContain('Rounds tenus');
+  });
+
+  it('la rangée de l’ennemi porte le NOM de l’armée adverse, jamais un libellé de repli (#1906)', () => {
+    const txt = renderWith(holdPending());
+    expect(txt).toContain(`${ARMEE} · Puissance`);
+    expect(txt).not.toContain('Ennemi ·');
+  });
+
+  it('une opposition de tenue SANS bataille ouverte est un bogue du jeu, dit — jamais un « Ennemi » anonyme (#1906)', () => {
+    const pa = holdPending();
+    useGame.setState({ massBattle: null });
+    const err = console.error;
+    console.error = () => {};
+    try { expect(() => renderWith(pa)).toThrow('sans bataille de masse ouverte'); } finally { console.error = err; }
   });
 });

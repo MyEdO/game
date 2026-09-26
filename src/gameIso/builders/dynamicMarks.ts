@@ -21,11 +21,11 @@ import { inBattleId } from '../../state/combatants';
 import { footprintN } from '../../state/footprint';
 import { mountOf } from '../../state/mount';
 import type { Pt } from '../../state/path';
-import type { SeatPose } from '../../state/seating';
 import type { BattleState } from '../../state/store';
 import { combatantTokenScale } from '../sizeScale';
 import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
 import type { TokenEl } from './types';
+import type { PartyToken } from './tokens';
 
 /** GABARIT du lien d'engagement : épaisseur de trait et pointillés, en PIXELS de la projection iso
  *  (`geometry/iso`) — l'échelle de référence dont le monde volumique tire ses fractions de case. */
@@ -108,7 +108,7 @@ export const NO_DYNAMIC_MARKS: DynamicMarks = Object.freeze({ tethers: Object.fr
  * des jetons RÉELLEMENT postés. Ces deux-là sont EXIGÉS (une frame sans jeton passe `[]`, une frame en
  * combat passe `null` pour le meneur) : un défaut y rendrait des anneaux silencieusement absents.
  */
-export function dynamicMarks(battle: BattleState | null, party: Pt | null, tokens: readonly TokenEl[], partyToken: { leader: Combatant; pos: Pt; seat?: SeatPose } | null): DynamicMarks {
+export function dynamicMarks(battle: BattleState | null, party: Pt | null, tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos' | 'seat'> | null): DynamicMarks {
   const tethers: EngageTether[] = [];
   let active: ActiveFootprint | null = null;
   if (battle) {
@@ -262,7 +262,7 @@ export function dashPattern(dash: string | undefined): { dashPx: number; gapPx: 
  *  hors combat. La population est celle des ÉLÉMENTS DU BUILDER (`builders/tokens`) — donc exactement
  *  celle que le rendu dessine, filtres compris ; un couple MONTÉ n'en porte pas — le composite cavalier
  *  + monture est UN corps. */
-export function teamRings(tokens: readonly TokenEl[], partyToken: { leader: Combatant; pos: Pt } | null): TeamRing[] {
+export function teamRings(tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos'> | null): TeamRing[] {
   const out: TeamRing[] = [];
   for (const tk of tokens) {
     const s = tk.subject;

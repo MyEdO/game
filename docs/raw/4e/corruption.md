@@ -97,8 +97,8 @@ Exemples d'Expositions Mineures :
 
 ### Exposition Modérée (0–2 PC selon DR)
 
-> « Sur un échec, vous gagnez 2 Points de Corruption. Sur un Succès Minime (0-1 DR), gagnez 1 Point de Corruption. Sur un Succès (2+ DR), vous ne gagnez aucun Point de Corruption. »
-> — LDB 19 l.51-52
+> « Si un Test se conclut par un échec, vous gagnez 2 Points de Corruption. Sur un Succès Minime (0-1 DR), gagnez 1 Point de Corruption. Sur un Succès (2+ DR), vous ne gagnez aucun Point de Corruption. »
+> — LDB 19 l.48
 
 | Résultat du Test | Points gagnés |
 |---|---|
@@ -391,7 +391,7 @@ Le Compagnon de *L'Ennemi dans l'Ombre* (Chapitre 8 : Les mutants dans l'Empire)
 | 45 | 38–39 | — | 41–43 | 41 | Œil pédonculé [3] | Voit par dessus ou autour des obstacles |
 | 46–47 | 40 | — | 44–46 | 42–44 | Tentacule épais [1] | Gagne le Trait de créature Tentacules |
 | 48 | 41–43 | — | 47–51 | — | Odeur pestilentielle | Gagne le Trait de créature Perturbant |
-| 49 | 44 | 44 | 52 | 45–46 | Fourrure [3] | Ne souffre plus de l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés (LDB 18 p.181) |
+| 49 | 44 | 44 | 52 | 45–46 | Fourrure [3] | Ne souffre plus de l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés (LDB 18 l.326-334) |
 | 50 | 45–47 | — | 53–54 | 47–48 | Branchies [1] | Peut respirer sous l'eau |
 | 51–52 | 48 | 45–47 | — | 49–50 | Peau brillante [3] | Équivaut à la lueur d'une chandelle |
 | 53 | 49 | 48–50 | 55–56 | — | Sans tête [3] | Gagne le Trait de créature Peur 2 ; les coups portés à la tête sont considérés comme ratés |
@@ -433,7 +433,7 @@ Le Compagnon de *L'Ennemi dans l'Ombre* (Chapitre 8 : Les mutants dans l'Empire)
 2. Test d'**Athlétisme Complexe (-10)** pour marcher à allure normale (Pattes).
 3. Mutation **non dissimulable**.
 
-**Sources RAW** : `EDOC 12 p.65-72`
+**Sources RAW** : `EDOC 12 l.63-147`
 
 ### Tableau Tête Bestiale (d100, sous-table)
 
@@ -452,7 +452,7 @@ Utilisée quand la table physique étendue indique « Tête bestiale ». Lance s
 | 81–90 | 81–95 | 81–99 | — | 76–80 | Loup | +1 PA à la tête ; gagne le Trait de créature Morsure +6 ; gagne le Talent Sens aiguisé (Odorat) |
 | 91–00 | 96–00 | 00 | 96–00 | 81–00 | Serpent | +1 PA à la tête ; gagne les Traits de créature Morsure +3 et Venin (Accessible) |
 
-**Sources RAW** : `EDOC 12 p.69`
+**Sources RAW** : `EDOC 12 l.150-168`
 
 ### Table Mentale étendue (d100, par dieu)
 
@@ -508,7 +508,7 @@ Utilisée quand la table physique étendue indique « Tête bestiale ». Lance s
 | 10 | Halflings | 20 | Bonheur |
 | 11 | Humains | | |
 
-**Sources RAW** : `EDOC 12 p.65-72`
+**Sources RAW** : `EDOC 12 l.170-246`
 
 ---
 
@@ -561,7 +561,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Limites : physique > BE ou mentale > BFM → damné | `mutationLimitExceeded` → `hero.damned = true` | **OK** |
 | PA naturels des mutations (apAll / apLocations) | `mutationArmourBonus(c, loc)` | **OK** |
 | Sombre Pacte (gain volontaire pour relancer) | `gainCorruption` + `pendingCorruption` | **OK** |
-| « Je te renie ! » (LDB 17 l.67) — 1 Résilience, pas de mutation | `resolveRenounce` + `pendingRenounce` | **OK** |
+| « Je te renie ! : vous pouvez choisir de ne pas développer la mutation obtenue » (LDB 17 l.67) — 1 Résilience, pas de mutation | `resolveRenounce` + `pendingRenounce` | **OK** |
 | Mods passifs via collecteur unifié passiveMods | `passive: GameOp[]` sur `Mutation` (mutations.json) | **OK** |
 | Traits de créature via mutation (Tentacule, Stupide…) | `attachMutation` → copie `m.traits` sur `c.traits` | **OK** |
 | Traits psychologiques via mutation (Frénésie) | `attachMutation` → copie `m.psychTraits` | **OK** |

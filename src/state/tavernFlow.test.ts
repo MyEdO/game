@@ -100,29 +100,51 @@ describe('playTavernGame', () => {
   it('Test opposé RÉEL (#579) : contre la SALLE, le jet adverse est roulé et FIGÉ AVANT que le joueur ne lance', () => {
     const [a] = twoHeroes();
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.result).toBeNull(); // le joueur n'a pas encore lancé SON jet
     expect(step.meta?.opposed?.aT).toBeTruthy(); // la salle, elle, a DÉJÀ un jet FIGÉ
-    expect(step.meta?.opposed?.attackerName).toBe('un adversaire de la salle');
+    expect(step.meta?.opposed?.attackerName, 'le libellé de SA fiche').toBe('Elfe (haut et sylvain)');
     expect(step.actorId, 'un seul porteur JOUABLE : l’étape est la sienne').toBe(a.id);
   });
 
-  it('adversaire ABSTRAIT (table) : jet figé sans attackerId (aucun Combatant réel)', () => {
+  it('habitué au profil standard : jet figé sans attackerId (aucun banc), sous le nom de sa fiche', () => {
     const [a] = twoHeroes();
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.meta?.opposed?.aT).toBeTruthy();
     expect(step.meta?.opposed?.attackerId).toBeUndefined();
-    expect(step.meta?.opposed?.attackerName).toBe('un adversaire de la salle');
+    expect(step.meta?.opposed?.attackerName).toBe('Humain');
+  });
+
+  it('ORACLE RAW : l’habitué joue la valeur de SON profil standard — Pari non acquis = Int (LDB 77 l.23 Nain 30, l.45 Elfe 40)', () => {
+    const [a] = twoHeroes();
+    const valeurAuProfil = (profil: string) => {
+      useGame.setState({ party: [a], sequence: null, pendingCascade: null });
+      get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: profil } });
+      return activeSequence<{ opponentValue: number }>(get)!.payload.opponentValue;
+    };
+    expect(valeurAuProfil('nain')).toBe(30);
+    expect(valeurAuProfil('elfe-haut-et-sylvain')).toBe(40);
+  });
+
+  it('jeu d’ÉQUIPE : les coéquipiers jouent LEUR profil ; sans lui, la partie est REFUSÉE en le nommant (#1882)', () => {
+    const [a] = twoHeroes();
+    useGame.setState({ party: [a] });
+    get().playTavernGame({ gameId: 'torchon', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    expect(get().sequence, 'aucune partie sans profil de coéquipier').toBeNull();
+    expect(get().journal.slice(-1)[0]).toContain('choisissez le profil de vos coéquipiers');
+    get().playTavernGame({ gameId: 'torchon', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    const p = activeSequence<{ opponentValue: number; allyValue: number }>(get)!.payload;
+    expect([p.opponentValue, p.allyValue], 'Projectiles non acquis = CT : Humain 30 en face, Elfe 40 à vos côtés (LDB 77 l.13, l.45)').toEqual([30, 40]);
   });
 
   it('Chance « +1 DR » RÉ-OPPOSE le jet du joueur contre l’adversaire FIGÉ — jamais un second tirage', () => {
     const [a] = twoHeroes();
     a.fortune = 3;
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const stepId = get().pendingCascade!.participants[0].id;
     get().cascadeRoll(stepId);
     const before = get().pendingCascade!.participants[0];
@@ -177,7 +199,7 @@ describe('playTavernGame', () => {
   it('zéro divergence de maths avec `resolveTavernRound` : le verdict final recompose EXACTEMENT depuis le meta figé', async () => {
     const [a] = twoHeroes();
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const aT = step.meta!.opposed!.aT;
     await drain();

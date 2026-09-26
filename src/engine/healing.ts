@@ -21,7 +21,7 @@ const condStacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id
 export const HEAL_SKILL = 'guerison';
 
 /** Le combattant possède-t-il la Compétence (Avancée) Guérison ? Sans Augmentation, « aucune idée
- *  de comment soigner » (LDB 09 l.31, l.33). */
+ *  de comment soigner » (LDB 09 l.30, l.32). */
 export function hasHealSkill(c: Combatant): boolean {
   return (c.skills ?? []).some((s) => s.id === HEAL_SKILL);
 }

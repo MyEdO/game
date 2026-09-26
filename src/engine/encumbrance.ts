@@ -38,7 +38,7 @@ export interface EncumbrancePenalties {
   immobile: boolean;
 }
 
-/** Profils de pénalité par palier (LDB 61 p.295) — DONNÉE (`src/data/encumbranceTiers.json`). Le palier 3
+/** Profils de pénalité par palier (LDB 61 l.35-40) — DONNÉE (`src/data/encumbranceTiers.json`). Le palier 3
  *  porte `movePenalty: null` (immobilisé : le flag `immobile` court-circuite, plus d'`Infinity`). */
 const ENCUMBRANCE_TIERS = encumbranceTiersJson as EncumbrancePenalties[];
 
@@ -70,7 +70,7 @@ export function effectiveMovement(c: Combatant): number {
   // `moveMod` ADDITIF du collecteur passif unifié : mutation PERMANENTE (Pattes d'animaux +1 / Corpulent /
   // Court sur pattes −1, kind `intrinseque`) + sort actif (kind `magique`) — sommés avant tout demi-Mouvement.
   // HORS de son terrain (op `offTerrainMod`, gaté par `c.offTerrain`) : le M est REMPLACÉ (Créature marine
-  // « son M tombe à 1 » MDG 16 p.140 ; Aquatique → 0, MSRC 15 p.90) — les gates/demi-Mouvement s'appliquent dessus.
+  // « son M tombe à 1 » MDG 16 l.17 ; Aquatique → 0, MSRC 15 l.139) — les gates/demi-Mouvement s'appliquent dessus.
   const mv = offTerrainMoveCap(c) ?? Math.max(0, c.movement + passiveMoveMod(c));
   // `movePenalty` n'est null que sur le palier immobilisé (déjà court-circuité ci-dessus) → `?? 0` sûr.
   const base = p.tier === 0 ? mv : Math.min(mv, Math.max(mv - (p.movePenalty ?? 0), p.moveFloor));

@@ -264,7 +264,7 @@ describe('gesundheit (MSRC 04 l.184-186) — Test de Résistance Accessible (+20
   });
 });
 
-describe('racine-des-tombes (MSRC p.14 / MSRC 04 l.221-229) — enduit anti-mort-vivant + cataplasme', () => {
+describe('racine-des-tombes (MSRC 04 l.221-229) — enduit anti-mort-vivant + cataplasme', () => {
   it("a un augmentWeapon : « Étalée sur une arme, la sève est nocive pour les Mort-vivants »", () => {
     expect(consumableOps(itemFromTrappingById('racine-des-tombes')!.consumable).some((o) => o.op === 'augmentWeapon')).toBe(true);
   });
@@ -281,7 +281,7 @@ describe('racine-des-tombes (MSRC p.14 / MSRC 04 l.221-229) — enduit anti-mort
   });
 });
 
-describe('rouille-mouchetee (MSRC p.14 / MSRC 04 l.239-241) — « Chaque dose réduit la durée de la maladie de 1d10 jours » + bonus continu (#458)', () => {
+describe('rouille-mouchetee (MSRC 04 l.239-241) — « Chaque dose réduit la durée de la maladie de 1d10 jours » + bonus continu (#458)', () => {
   it('réduit la Vérole du Tanneur de 1 à 10 jours (dé tiré à l\'application), jamais une autre maladie', () => {
     const other = activeDisease('peste-noire', 15);
     const target = activeDisease('verole-du-tanneur', 15);

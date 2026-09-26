@@ -27,7 +27,7 @@
  *           le Sort d'Arcane homonyme, VDM 02 folio 27).
  *       • divers : effrayant (sort↔talent), pistolet (qualité↔possession), resistance (compétence↔talent),
  *           belier (qualité de siège « Bélier » ADE II 8 ↔ sort homonyme « Bélier »), filet (trapping
- *           « Filet » ZI 3 p.31 ↔ qualité « Filet » ZI 2 p.29 — l'arme PORTE la qualité qui pose son Empêtré),
+ *           « Filet » ZI 2 l.174 ↔ qualité « Filet » ZI 2 l.176 — l'arme PORTE la qualité qui pose son Empêtré),
  *           poudre-impregnee-d-aqshy (trapping ↔ qualité, AA 08 l.544 — la munition PORTE la qualité
  *           qui pose son seuil de Maladresse élargi {8,9}, même patron que `filet`).
  *       • créature↔trapping : une créature existe aussi comme trapping ORDINAIRE (objet de sac, hors

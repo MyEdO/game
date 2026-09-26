@@ -15,7 +15,6 @@
 import { endState, isOutOfAction, type EndState } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import { footprintN, sizeFootprint } from '../../state/footprint';
-import type { Pt } from '../../state/path';
 import { entitySize } from '../../state/spawn';
 import type { IconId } from '../../ui/icons';
 import { combatantFlags, summarizeEffects } from '../effectIcons';
@@ -24,7 +23,8 @@ import { combatantBodyTopFrac, combatantTokenScale, entityTokenScale } from '../
 import type { TokenSubject } from '../tokenBodyKind';
 import { teamRingDecor, type MarkCell } from './dynamicMarks';
 import type { OffreRendue, OffresRenduesParPorteur } from '../../state/offreRendue';
-import { estPropVolumique, type PropEl, type TokenEl, type TokenSubjectEl } from './types';
+import { estPropVolumique, type DecorDEntite, type PropEl, type TokenEl, type TokenSubjectEl } from './types';
+import type { PartyToken } from './tokens';
 
 /** ALVÉOLES RÉSERVÉES du chrome d'un jeton — autant de places que le rack d'États du portrait
  *  (`PortraitTile maxStates`) : les deux surfaces montrent le même nombre d'États d'un combattant.
@@ -98,6 +98,10 @@ export function mountChrome(mount: Combatant): TokenChrome {
  *  SUJET dont la surcouche tire son corps (`tokenBodyKind`, source unique de la classification). */
 export interface TokenChromeMark extends TokenChrome {
   id: string;
+  /** CLÉ du cap de ce jeton dans `store.facing` — son id pour une chose POSTÉE (combattant, monture,
+   *  figurant), celle que PUBLIE le constructeur du jeton de groupe pour le groupe (`PartyToken.capKey`).
+   *  Le disque de la vue du dessus s'y abonne : un cap qui change ne re-rend que SON porteur. */
+  capKey: string;
   /** Case d'ANCRAGE (coin NO de l'empreinte) — la position logique, sans glissement. */
   cell: MarkCell;
   /** Côté de l'empreinte, en cases (`footprintN`). */
@@ -145,13 +149,13 @@ export function ancrageDuJeton(tk: TokenEl): Ancrage | null {
   };
 }
 
-/** L'ancrage d'un DÉCOR posté (`PropEl` : le tas d'objets, le tonneau fouillé) — même repère que celui
+/** L'ancrage d'un DÉCOR d'entité posté (`DecorDEntite` : le tas d'objets, le tonneau fouillé) — même repère que celui
  *  d'un jeton, tiré de l'empreinte et de l'échelle au pied que le builder de décors a déjà calculées.
  *  Un décor VOLUMIQUE (`VolumePropEl`) n'a pas de `foot` — sa géométrie monde porte sa taille : échelle 1. */
-export function ancrageDuDecor(pr: PropEl): Ancrage {
+export function ancrageDuDecor(pr: DecorDEntite): Ancrage {
   return {
     cell: { x: pr.cell.x, y: pr.cell.y, z: pr.cell.z },
-    n: Math.max(pr.span?.w ?? 1, pr.span?.h ?? 1),
+    n: Math.max(pr.span.w, pr.span.h),
     scaleK: estPropVolumique(pr) ? 1 : pr.foot.scale,
     bodyTopFrac: 1,
   };
@@ -181,7 +185,7 @@ export function tokenGesteMarks(
   for (const groupe of offres) {
     if (!groupe.offres.length) continue;
     const tk = tokens.find((t) => porteurDuJeton(t) === groupe.porteurId);
-    const pr = tk ? undefined : props.find((p) => p.entId === groupe.porteurId);
+    const pr = tk ? undefined : props.find((p): p is DecorDEntite => p.source === 'entity' && p.entId === groupe.porteurId);
     const a = tk ? ancrageDuJeton(tk) : pr ? ancrageDuDecor(pr) : null;
     if (!a) continue;
     out.push({ id: `geste-${groupe.porteurId}`, entityId: groupe.porteurId, label: groupe.porteurLabel, gestes: groupe.offres, ...a });
@@ -216,7 +220,7 @@ function subjectOf(s: TokenSubjectEl): TokenSubject {
 export function tokenChromes(
   tokens: readonly TokenEl[],
   ctx: ChromeCtx,
-  partyToken: { leader: Combatant; pos: Pt } | null = null,
+  partyToken: Pick<PartyToken, 'leader' | 'pos' | 'capKey'> | null = null,
 ): TokenChromeMark[] {
   const out: TokenChromeMark[] = [];
   for (const tk of tokens) {
@@ -224,12 +228,13 @@ export function tokenChromes(
     const a = ancrageDuJeton(tk);
     if (!a) continue;
     if (s.kind === 'figurant') {
-      out.push({ id: `e-${s.ent.id}`, ...a, team: null, subject: subjectOf(s), ...NEUTRE });
+      out.push({ id: `e-${s.ent.id}`, capKey: `e-${s.ent.id}`, ...a, team: null, subject: subjectOf(s), ...NEUTRE });
       continue;
     }
     const unit = s.kind === 'combatant' ? s.c : s.mount;
     out.push({
       id: unit.id,
+      capKey: unit.id,
       ...a,
       team: teamRingDecor(s.kind === 'mounted' ? s.rider : s.c, s.heroIndex),
       subject: subjectOf(s),
@@ -237,10 +242,12 @@ export function tokenChromes(
     });
   }
   // Le jeton de GROUPE n'est pas un combattant posté : il porte le décor d'équipe du MENEUR, à la
-  // première couleur d'identité — la même loi que son anneau (`teamRings`).
+  // première couleur d'identité — la même loi que son anneau (`teamRings`). Son IDENTITÉ est celle du
+  // meneur (le corps que la marche anime), son REGARD celui du groupe : d'où deux clés.
   if (partyToken)
     out.push({
       id: partyToken.leader.id,
+      capKey: partyToken.capKey,
       cell: { x: partyToken.pos.x, y: partyToken.pos.y, z: partyToken.pos.z ?? 0 },
       n: footprintN(partyToken.leader),
       scaleK: combatantTokenScale(partyToken.leader),

@@ -11,6 +11,6 @@ export const creature: CreatureDef = {
     comb: true,
     tailLen: 0.85, // faucille courte, dressée
     // Plumage brun chaud de poule rousse, pattes+bec jaune-ocre (cuir)
-    stored: { corps: '#a5764f', corpsO: '#5e4026', corpsH: '#d8b483', cheveux: '#6b4a2c', cheveuxO: '#3d2a17', cuir: '#d9a441' },
+    palette: { corps: '#a5764f', corpsO: '#5e4026', corpsH: '#d8b483', cheveux: '#6b4a2c', cheveuxO: '#3d2a17', cuir: '#d9a441' },
   },
 };

@@ -225,7 +225,7 @@ test('annotateSections : la section "(intro)" (avant le premier H2) est TOUJOURS
 })
 
 test('refSpansFor (#606) : une ref FOLIO `ABBR NN p.X` credite le meme chapitre que `l.X`, sans throw', () => {
-  // Disque REEL (LDB 10 = Talents, le cas fondateur du ticket) : la graphie p.<folio> (canonique #585)
+  // Disque REEL (LDB 10 = Talents, le cas fondateur du ticket) : la graphie folio des fiches de l'Atlas
   // resout une plage de lignes VIA folioRange -- jamais 0 span silencieux.
   const docs = [{ file: 'talents.md', text: 'LDB 10 p.132 — Table des Talents.' }]
   const stats = { ignoredFolios: 0 }

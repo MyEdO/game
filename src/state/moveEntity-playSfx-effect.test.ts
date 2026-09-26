@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
+import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from './combatEffects';
 import { emptyScene } from './scene';
 import type { Effect } from './scene';
 import { effectSummary } from '../ui/editor/EffectList';
@@ -19,7 +19,7 @@ afterEach(() => { useGame.setState(useGame.getInitialState()); });
 function sceneWithNpc() {
   const sc = emptyScene(10, 10);
   sc.id = 'move-sfx-scene';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 2, y: 2 } });
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } });
   return sc;
 }
 
@@ -100,14 +100,14 @@ describe('Effet playSfx (#701)', () => {
 
 describe('effectSummary — moveEntity / playSfx', () => {
   it('résume un déplacement', () => {
-    expect(effectSummary({ type: 'moveEntity', id: 'garde', to: { x: 3, y: 4 } } as Effect)).toMatch(/garde.*3.*4/);
+    expect(effectSummary({ type: 'moveEntity', id: 'garde', to: { x: 3, y: 4 } } as Effect, { cibles: CIBLES_D_EFFET_DE_SCENE })).toMatch(/garde.*3.*4/);
   });
 
   it('résume un retrait', () => {
-    expect(effectSummary({ type: 'moveEntity', id: 'garde', remove: true } as Effect)).toMatch(/[Rr]etirer garde/);
+    expect(effectSummary({ type: 'moveEntity', id: 'garde', remove: true } as Effect, { cibles: CIBLES_D_EFFET_DE_SCENE })).toMatch(/[Rr]etirer garde/);
   });
 
   it('résume un son', () => {
-    expect(effectSummary({ type: 'playSfx', id: 'gong-victoire' } as Effect)).toMatch(/gong-victoire/);
+    expect(effectSummary({ type: 'playSfx', id: 'gong-victoire' } as Effect, { cibles: CIBLES_D_EFFET_DE_SCENE })).toMatch(/gong-victoire/);
   });
 });

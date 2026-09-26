@@ -18,6 +18,8 @@
  * la défaite.
  */
 import { battleRng } from './battleRng';
+import { nomDuNavire } from './carriers';
+import { garanti } from './combatants';
 import { checkPartyWiped } from './partyWipe';
 import { placeById, placeOfScene, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';
@@ -79,11 +81,12 @@ function shorePlace(get: Get): MapPlace | undefined {
  * influençable pour les pilotes humains, cf. en-tête), échoue les rescapés au rivage le plus proche, PURGE
  * le navire (coque + cargaison perdues, IMMÉDIAT — indépendant de l'issue des jets) et surface le
  * dénouement (modale document + journal). `aboardIds` : héros à bord (défaut = tout le groupe vivant) — le
- * combat naval passe l'équipage de la coque coulée. No-op si aucun navire.
+ * combat naval passe l'équipage de la coque coulée. Le navire qui sombre est celui de campagne, sinon
+ * (passage) celui du voyage (`travelPlan.vehicle`, `seaVoyageFlow`) : l'un des deux est requis.
  */
 export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] } = {}): void {
   const vessel = get().vessel;
-  const shipName = vessel?.label ?? t('wreck.shipFallback');
+  const shipName = vessel ? nomDuNavire(vessel) : garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre').label;
   const diff = rule('sea-shipwreck-swim') as Difficulty;
   const shore = shorePlace(get);
   const aboardSet = opts.aboardIds ? new Set(opts.aboardIds) : null;
@@ -156,9 +159,9 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   }
 
   // Cascade influençable : une étape de Natation par nageur conscient. Le héros qu'aucun siège ne
-  // pilote voit son jet PRÉ-ROULÉ (même formule) et l'étape n'est plus qu'une lecture — c'est le jet
-  // POSÉ + la non-surface du porteur qui la rendent passive au socle (`rollFlowFactory.passive`),
-  // plus un drapeau d'étape. La clôture (dernière étape validée) exécute `finishShipwreck` —
+  // pilote voit son jet PRÉ-ROULÉ (même formule) et son étape est une lecture — c'est le jet POSÉ +
+  // la non-surface du porteur qui la rendent passive au socle (`rollFlowFactory.passive`), jamais un
+  // drapeau d'étape. La clôture (dernière étape validée) exécute `finishShipwreck` —
   // `purpose:'test'` : aucun crochet dédié requis dans le store (générique, `dispatchCascadeDone`
   // n'a rien à router).
   const meta = { shoreId: shore?.id ?? '', journalMark };

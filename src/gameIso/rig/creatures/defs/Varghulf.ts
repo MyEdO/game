@@ -65,7 +65,7 @@ export const creature: CreatureDef = {
     foot: 'serre', wings: 'membrane', wingSpan: 1.9, wingPose: 'dressees',
     mane: 'hirsute', ridge: 'epines', markings: 'sans',
     deco: { aileD: EVENTAIL_OS, aileG: EVENTAIL_OS, 'tronc#profile': ROBE_ACCENTS },
-    stored: {
+    palette: {
       corps: '#4a4239', corpsO: '#211c16', corpsH: '#b0763c', // fourrure gris charbon, accents fauve orangé (peau des membres/mufle sur l'artwork)
       cheveux: '#2a1c11', cheveuxO: '#140d06', // hérissement sombre de l'échine
       aile: '#b05e24', aileO: '#571f08', aileH: '#e08c3f', // membrane orange feu (signature artwork)

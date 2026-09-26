@@ -1,10 +1,10 @@
 *Pages PDF 315*
 
-# **PROSTHETICS** XI
+# <span id="page-314-0" data-folio="315"></span>**PROSTHETICS**
 
 Whether through disease, warfare, or misfortune, it is a relatively common occurrence in the Empire to lose body parts. For those who do, there are a variety of alternatives on offer. All Prosthetics have an Encumbrance of 0 when worn.
 
-#### **PROSTHETICS**
+**PROSTHETICS**
 
 | Item         | Cost | Enc | Availability |  |
 |--------------|------|-----|--------------|--|

@@ -374,7 +374,7 @@ export function talentTestSLBonus(
  *  vocabulaire des déclencheurs : `docs/vocabulaire-mecanique.md`). Le
  *  casting n'a pas de vue de combat → les `when` ne s'appliquent pas (aucun talent d'incantation n'en a). */
 export function castTestTalentDR(c: Combatant, skill: 'langue' | 'focalisation' | 'priere', spec?: string): number {
-  // + hors de son terrain : −DR à TOUS les Tests, l'incantation comprise (Créature marine, MDG 16 p.140).
+  // + hors de son terrain : −DR à TOUS les Tests, l'incantation comprise (Créature marine, MDG 16 l.17).
   return talentTestSLBonus(c, { skill, spec }) + skillDRBonus(c, skill, spec) + offTerrainTestDR(c);
 }
 

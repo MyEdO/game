@@ -90,16 +90,15 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 //               jamais en unités SVG.
 //  · RIVET    : point @metalO + éclat @metalH décalé d'un quart de pixel.
 //  · CHAIR    : la chair (peau nue à un poignet, une gorge, un visage) appartient au PERSONNAGE,
-//               jamais à la tenue — toujours `@peau`/`@peauO`/`@peauH`, jamais un littéral hex ni
-//               `url(#g_flesh)` (ce dernier n'est qu'un DÉFAUT de rendu clair, dérivé désormais de
-//               la peau résolue, mais une part NEUVE peint directement les jetons). Un littéral
+//               jamais à la tenue — `@peau`/`@peauO`/`@peauH` ou `url(#dg-v-@peauH-@peauO)`, jamais
+//               un littéral hex (`PART-CONTRACT.md`, « Gradients partagés »). Un littéral
 //               hex n'est légitime QUE pour une matière propre à CETTE tenue (son cuir, son acier
 //               — une couleur qui lui appartient, à elle) — jamais pour recopier une valeur déjà
 //               déclarée dans `palette` (#583, garde `parts/tenues/palette-literal.test.ts`).
-//               Corollaire, gardé séparément (`parts/tenues/no-flesh-in-tenue-palette.test.ts`) :
+//               Corollaire, gardé séparément (`parts/no-porteur-in-palette.test.ts`) :
 //               la `palette` du def elle-même ne DÉCLARE JAMAIS `peau`/`peauO`/`peauH` — 16 tenues
 //               le faisaient tout en peignant l'art avec les bons jetons, et cette valeur de
-//               PALETTE (prioritaire sur l'espèce dans l'empilage `rigStoredPalette`) écrasait
+//               PALETTE (prioritaire sur l'espèce dans l'empilage `couchesDuRig`) écrasait
 //               quand même la peau du porteur. Une tenue déclare cuir/tissu/métal, jamais chair.
 //  · CHEVEUX   : même contrat que CHAIR, flanc jumeau (#599) — les cheveux appartiennent au
 //               PERSONNAGE, jamais à la tenue. Un slot `tete` qui peint une VRAIE chevelure (mèche,
@@ -171,7 +170,7 @@ export const tenue: TenueDef = {
     // perdus à ajouter de la texture par-dessus ce plat. Valeur seule : voir § VOLUME.
     fourrure: '#f2efe4', fourrureO: '#48535f', fourrureH: '#fdfcf6',
     // hachures du poil : brun-violacé très sombre (le trait d'encre de l'illustration).
-    poil: '#3f3540', poilO: '#221d23', poilH: '#6d5e6b',
+    poil: '#3f3540', poilO: '#221d23', 
     // crâne : ivoire à patine ocre.
     os: '#ece2c6', osO: '#a08a58', osH: '#faf6e8',
     // orbite et cavités : olive sombre (et non noir — relevé au zoom).

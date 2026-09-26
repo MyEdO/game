@@ -19,8 +19,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { inferFields } from './editFields';
-import { DescRefField, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
-import { empreinteDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, type DescRef, type Fragment, type FragmentBlocs } from '../../data/source/decoupe';
+import { DescRefField, PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
+import { empreinteDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type DescRef, type Fragment, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
 
 /** Ce que le chargeur injecté sert, et ce qu'on lui a demandé — réglable par cas. */
 const etat = { manifeste: true, appels: [] as string[] };
@@ -81,12 +81,44 @@ const CHAPITRE_TABLE = [
   '',
 ].join('\n');
 
+/** Un chapitre à BANNIÈRE (rangée de tête absorbée) et à LÉGENDE `**X**` : les deux titres de table ;
+ *  puis une table SANS titre et une seconde « TABLEAU DES CHUTES », qui partagent la ligne « Saut ». */
+const CHAPITRE_TITRES = [
+  '### Tables',
+  '',
+  '| | TABLEAU DES MOUVEMENTS | |',
+  '|--|--|--|',
+  '| Mouvement | Allure | Course |',
+  '| Marche | 4 | 8 |',
+  '',
+  '**TABLEAU DES CHUTES**',
+  '',
+  '| Hauteur | Dégâts |',
+  '| --- | --- |',
+  '| 2 m | 1d10 |',
+  '| Marche | 0 |',
+  '',
+  'Texte de liaison entre les tables.',
+  '',
+  '| Élan | Bonus |',
+  '| --- | --- |',
+  '| Saut | 2 |',
+  '',
+  '**TABLEAU DES CHUTES**',
+  '',
+  '| Hauteur | Dégâts |',
+  '| --- | --- |',
+  '| Saut | 5 |',
+  '',
+].join('\n');
+
 /** Les chapitres que le chargeur remplaçant sert, par numéro ; tout autre numéro est introuvable. */
 const TEXTES: Record<string, string> = {
   21: CHAPITRE,
   22: '### Corruption\n\nUn second chapitre, dont le premier bloc est assez long pour être adressé sans ambiguïté.\n',
   23: CHAPITRE_CREUX,
   24: CHAPITRE_TABLE,
+  25: CHAPITRE_TITRES,
 };
 
 const PARSE = parseChapitre(CHAPITRE);
@@ -114,6 +146,7 @@ const MANIFESTE = {
       { ch: '22', fichier: '22 - _gjdgxs.md', titre: '', octets: 2424 },
       { ch: '23', fichier: '23 - Titres nus.md', titre: 'Titres nus', octets: 100 },
       { ch: '24', fichier: '24 - Blessures.md', titre: 'Blessures', octets: 900 },
+      { ch: '25', fichier: '25 - Tables.md', titre: 'Tables', octets: 300 },
     ],
   },
 };
@@ -228,10 +261,10 @@ describe('MANIFESTE — le chapitre se PIOCHE et se NOMME, ou se saisit au numé
 
     const liste = container?.querySelector('select[aria-label="Chapitre du passage"]') as HTMLSelectElement | null;
     expect(liste, 'aucune liste de chapitres — la branche manifeste est morte').toBeTruthy();
-    expect([...liste!.options].map((o) => o.value)).toEqual(['', '21', '22', '23', '24']);
+    expect([...liste!.options].map((o) => o.value)).toEqual(['', '21', '22', '23', '24', '25']);
     // Le TITRE nomme le chapitre ; sans titre, le champ le DIT — jamais le nom de fichier Word.
     expect([...liste!.options].map((o) => o.textContent)).toEqual([
-      '— (chapitre) —', '21 — Psychologie', '22 — (chapitre sans titre)', '23 — Titres nus', '24 — Blessures',
+      '— (chapitre) —', '21 — Psychologie', '22 — (chapitre sans titre)', '23 — Titres nus', '24 — Blessures', '25 — Tables',
     ]);
 
     await poserValeur(liste!, '22');
@@ -458,6 +491,102 @@ describe('« + Fragment » APRÈS UNE CELLULE — le chapitre n’est pas « ép
     expect(pose.parts).toHaveLength(2);
     const rendu = resoudreAdresse(PARSE24, pose);
     expect(estErreur(rendu), `le montage cellule + blocs est refusé : ${JSON.stringify(rendu)}`).toBe(false);
+  });
+});
+
+describe('les tables d’une section — celles du lecteur canonique `tablesOf` (#1739)', () => {
+  it('lignes et colonnes offertes = celles de `tablesOf` : la bannière absorbée n’est ni un en-tête ni une ligne', async () => {
+    const parse = parseChapitre(CHAPITRE_TITRES);
+    const brouillon: Fragment = { kind: 'cellule', sec: 'tables', secOcc: 1, row: '2 m', col: 'Dégâts', sum: '' };
+    const sum = empreinteDe(parse, brouillon);
+    if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
+    await monter({ book: 'livre-de-base', ch: '25', parts: [{ ...brouillon, sum }] }, () => {});
+    const options = (nom: string) => [...(container?.querySelector(`select[aria-label="Fragment 1 — ${nom} de la table"]`)?.querySelectorAll('option') ?? [])].map((o) => o.textContent);
+    const tables = tablesOf(parse.sections.find((s) => s.slug === 'tables')!);
+    expect(options('colonne')).toEqual(['Hauteur', 'Dégâts']);
+    expect(options('ligne')).toEqual(tables.flatMap((t) => t.table.rows.map((r) => r[0])));
+    expect(options('colonne')).not.toContain('TABLEAU DES MOUVEMENTS');
+  });
+
+  const scelle = (over: Partial<Fragment>) => {
+    const brouillon = { kind: 'cellule', sec: 'tables', secOcc: 1, row: 'Marche', col: 'Allure', sum: '', ...over } as Fragment;
+    const sum = empreinteDe(parseChapitre(CHAPITRE_TITRES), brouillon);
+    if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
+    return { book: 'livre-de-base', ch: '25', parts: [{ ...brouillon, sum }] } as DescRef;
+  };
+  const combo = (nom: string) => container?.querySelector(`select[aria-label="Fragment 1 — ${nom}"]`) as HTMLSelectElement | null;
+
+  it('une clé de ligne AMBIGUË entre tables titrées fait paraître le choix de la table ; le choisir pose `table`', async () => {
+    const poses: (DescRef | undefined)[] = [];
+    await monterVivant(scelle({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
+    const table = combo('table de la ligne');
+    expect([...(table?.options ?? [])].map((o) => o.value)).toEqual(['', 'tableau des mouvements#1', 'tableau des chutes#1']);
+    expect(table?.value).toBe('tableau des mouvements#1');
+    await poserValeur(table!, 'tableau des chutes#1');
+    expect((poses[poses.length - 1]!.parts[0] as { table?: string }).table).toBe('tableau des chutes#1');
+  });
+
+  const brut = (over: Partial<FragmentCellule>): DescRef =>
+    ({ book: 'livre-de-base', ch: '25', parts: [{ kind: 'cellule', sec: 'tables', secOcc: 1, row: 'Marche', col: 'Allure', sum: '', ...over }] });
+  const textes = (el: HTMLSelectElement | null) => [...(el?.options ?? [])].map((o) => o.textContent);
+
+  it('le choix de table se LIT au titre, avec un rang seulement entre tables de même titre', async () => {
+    await monter(scelle({ table: 'tableau des mouvements#1' }), () => {});
+    expect(textes(combo('table de la ligne'))).toEqual(['—', 'TABLEAU DES MOUVEMENTS', 'TABLEAU DES CHUTES (1)']);
+  });
+
+  it('une ligne dans une table TITRÉE et une SANS titre : le choix paraît, et ne propose que la titrée', async () => {
+    await monter(brut({ row: 'Saut', col: 'Dégâts' }), () => {});
+    const table = combo('table de la ligne');
+    expect([...(table?.options ?? [])].map((o) => o.value)).toEqual(['', 'tableau des chutes#2']);
+    expect(textes(table)).toEqual(['—', 'TABLEAU DES CHUTES (2)']);
+  });
+
+  it('une ligne, une colonne ou une table ABSENTE reste la valeur affichée de son combo, nommée comme telle', async () => {
+    await monter(brut({ row: 'Envol', col: 'Inconnue', table: 'tableau des vols#1' }), () => {});
+    expect(combo('ligne de la table')?.value).toBe('Envol');
+    expect(combo('colonne de la table')?.value).toBe('Inconnue');
+    expect(combo('table de la ligne')?.value).toBe('tableau des vols#1');
+    expect(textes(combo('colonne de la table'))[0]).toBe('Inconnue — colonne absente de la section');
+    expect(textes(combo('table de la ligne'))[1]).toBe('table absente de la section');
+  });
+
+  it('une table POSÉE hors de la ligne se nomme par son TITRE, jamais par sa clé moteur', async () => {
+    await monter(brut({ row: '2 m', col: 'Dégâts', table: 'tableau des mouvements#1' }), () => {});
+    expect(textes(combo('table de la ligne'))).toEqual(['—', 'TABLEAU DES MOUVEMENTS — table absente de la ligne', 'TABLEAU DES CHUTES (1)']);
+  });
+
+  it('une ligne AMBIGUË dont la rangée propose la table dit de CHOISIR la table', async () => {
+    await monter(brut({ row: 'Marche', col: 'Allure' }), () => {});
+    expect(combo('table de la ligne')).not.toBeNull();
+    expect(container?.querySelector('[data-fragment="0"] .de-warn')?.textContent).toBe(PHRASE_LIGNE_AMBIGUE_TABLE);
+  });
+
+  it('les colonnes offertes sont celles des tables qui PORTENT la ligne — celle de `table` s’il est posé', async () => {
+    const colonnes = () => [...(combo('colonne de la table')?.options ?? [])].map((o) => o.value);
+    await monter(brut({ row: '2 m', col: 'Dégâts' }), () => {});
+    expect(colonnes(), 'la ligne « 2 m » ne propose pas « Allure »').toEqual(['Hauteur', 'Dégâts']);
+    demonter();
+    await monter(brut({ row: 'Marche', col: 'Allure', table: 'tableau des mouvements#1' }), () => {});
+    expect(colonnes()).toEqual(['Mouvement', 'Allure', 'Course']);
+    demonter();
+    await monter(brut({ row: 'Saut', col: 'Dégâts' }), () => {});
+    expect(colonnes()).toEqual(['Élan', 'Bonus', 'Hauteur', 'Dégâts']);
+    demonter();
+    await monter(brut({ row: '2 m', col: 'Allure' }), () => {});
+    expect(colonnes()[0], 'la colonne courante hors de la table de la ligne reste affichée').toBe('Allure');
+  });
+
+  it('une clé de ligne UNIQUE ne montre aucun choix de table', async () => {
+    await monter(scelle({ row: '2 m', col: 'Dégâts' }), () => {});
+    expect(combo('table de la ligne')).toBeNull();
+  });
+
+  it('changer de LIGNE retire le `table` choisi pour l’ancienne', async () => {
+    const poses: (DescRef | undefined)[] = [];
+    await monterVivant(scelle({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
+    await poserValeur(combo('ligne de la table')!, '2 m');
+    expect(poses[poses.length - 1]!.parts[0]).not.toHaveProperty('table');
   });
 });
 

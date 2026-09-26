@@ -39,6 +39,8 @@ const SCRIPT_1715 = '2026-09-09-1715-roof-defaults-scenes.mjs';
 const SCRIPT_1687 = '2026-09-10-1687-usable-sieges.mjs';
 const SCRIPT_1687_ACTIONS = '2026-09-11-1687-actions-authorees.mjs';
 const SCRIPT_877 = '2026-09-21-877-ref-de-decor-nommee.mjs';
+const SCRIPT_1882 = '2026-09-23-1882-fiche-de-personnage-nommee.mjs';
+const SCRIPT_1882_REFS = '2026-09-24-1882-refs-vivantes-semees.mjs';
 
 /** La CHAÎNE du format projet, DÉRIVÉE du dossier : tout script daté qui lit le `schema` d'un
  *  `<campagne>-projet.json`, dans l'ordre lexical du rejeu (`scripts/migrations/replay.mjs`). */
@@ -79,6 +81,11 @@ function joue(script: string, doc: Record<string, unknown>): { code: number; err
     // un fichier absent au lieu de rendre le refus qu'on mesure.
     mkdirSync(join(dir, 'src', 'data'), { recursive: true });
     copyFileSync(join(RACINE, 'src', 'data', 'props.json'), join(dir, 'src', 'data', 'props.json'));
+    // `src/data/species.json` : les PROFILS STANDARD lus par `2026-09-23-1882-fiche-de-personnage-nommee.mjs`,
+    // même régime d'entrée déclarée.
+    copyFileSync(join(RACINE, 'src', 'data', 'species.json'), join(dir, 'src', 'data', 'species.json'));
+    // `creatures.json`, `vehicles.json` : la réf. SEMÉE lue par `2026-09-24-1882-refs-vivantes-semees.mjs`.
+    for (const f of ['creatures.json', 'vehicles.json']) copyFileSync(join(RACINE, 'src', 'data', f), join(dir, 'src', 'data', f));
     writeFileSync(cible, canonique(doc), 'utf8');
     const avant = readFileSync(cible, 'utf8');
     let code = 0;
@@ -139,7 +146,7 @@ describe(`${SCRIPT_13} — le bump de forme 4 → 5 (aplatissement de la poche \
   it('t6. RATTRAPAGE : un `schema` FUTUR, avalé par TOUTES les amont, est REFUSÉ par la DERNIÈRE de la chaîne', () => {
     // La DÉRIVATION couvre la chaîne connue : un script qui perdrait sa marque sortirait du banc en
     // silence, et la « dernière » dérivée mentirait.
-    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877]));
+    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877, SCRIPT_1882, SCRIPT_1882_REFS]));
     const schemaFutur = SCHEMA_PROJET + 1;
     // Un TYPE de décor à places, LU au catalogue : sans entité à places, `SCRIPT_1687` s'arrête sur
     // un périmètre vide au lieu de mesurer sa borne.

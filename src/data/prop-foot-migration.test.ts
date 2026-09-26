@@ -23,7 +23,6 @@ const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
   ['balustrade-loge', 1, 1],
   ['barque', 2, 1],
   ['canon-de-pont', 1, 1],
-  ['charrette', 2, 1],
   ['cheval-mort', 2, 1],
   ['cuve-brasserie', 1, 1],
   ['ecoutille', 1, 1],

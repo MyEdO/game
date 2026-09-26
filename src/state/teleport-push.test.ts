@@ -3,7 +3,7 @@ import { pushAway } from './path';
 import type { Scene } from './scene';
 
 /**
- * Jalon 2.6 — géométrie des déplacements forcés : Poussée (LDB 47 p.244 « repoussées de BFM
+ * Jalon 2.6 — géométrie des déplacements forcés : Poussée (LDB 47 l.479 « repoussées de BFM
  * mètres », recul en ligne jusqu'à l'obstacle) ; la Téléportation réutilise flyReachable
  * (déjà testé) + le mode 'teleport' de battleClickTile.
  */

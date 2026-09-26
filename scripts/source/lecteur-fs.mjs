@@ -38,6 +38,14 @@ export function lireChapitre(bookId, ch) {
 }
 
 /**
+ * Chapitres PARSÉS d'un livre, dans l'ordre des chapitres — la forme que `indexerLivre`
+ * (`src/data/source/renvoi.ts`) indexe. @param {string} bookId
+ * @returns {{ fichier: string, parse: import('../../src/data/source/decoupe.ts').ChapitreParse }[]}
+ */
+export const chapitresParses = (bookId) =>
+  chapitresDe(bookId).map((ch) => ({ fichier: fichierChapitre(bookId, ch), parse: lireChapitre(bookId, ch) }))
+
+/**
  * OUBLIE le chapitre mémorisé : un `Source/` réécrit sous un processus qui dure (serveur de dev)
  * doit être relu, sans quoi le lecteur resservirait l'ancien texte. @param {string} bookId
  * @param {string|number} ch @returns {boolean} `true` si un chapitre était mémorisé.

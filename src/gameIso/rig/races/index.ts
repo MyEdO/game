@@ -1,5 +1,5 @@
 import type { RaceDef } from './types';
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import { raceAppearance, type RaceAppearanceData } from '../../../data';
 import { feat } from '../parts/elements';
 import { memoByRef } from '../../../state/sceneMemo';
@@ -33,7 +33,7 @@ export function raceById(id: string | undefined): RaceDef {
   return resolve(rec ?? raceAppearance.find((r) => r.id === DEFAULT_RACE_ID)!);
 }
 /** Palette de peau/cheveux d'une race pour un sexe (variante F si définie, sinon la palette commune). */
-export function racePalette(id: string, sex: 'M' | 'F'): StoredPalette {
+export function racePalette(id: string, sex: 'M' | 'F'): PaletteDeclaree {
   const r = raceById(id);
   return sex === 'F' && r.paletteF ? r.paletteF : (r.palette ?? {});
 }

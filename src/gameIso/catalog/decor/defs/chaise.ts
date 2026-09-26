@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Chaise en bois : assise, dossier à barreaux, quatre pieds. Le siège des pièces de service du théâtre
-// (loges d'artistes, bureaux, costumiers) — distincte du fauteuil de loge capitonné. Cf. plan NADJ 8 p.40.
+// (loges d'artistes, bureaux, costumiers) — distincte du fauteuil de loge capitonné. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'chaise',
   label: 'Chaise',

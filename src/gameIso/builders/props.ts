@@ -26,7 +26,7 @@ import { capVolumique, empreinteDuProp } from '../../data/props.types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import { edgeKey, fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
 import type { FloorView } from './floors';
-import type { BillboardPropEl, PropEl } from './types';
+import type { PropEl, OrigineDecor } from './types';
 import { CARD_NB, outwardSide, wallEnds } from './walls';
 
 /** La scène porte-t-elle AU MOINS un décor volumique désignable ? Ce que le pointeur demande pour
@@ -39,11 +39,11 @@ export const sceneAUnPropVolumique = (scene: Scene): boolean =>
 /** ANCRAGE d'un décor — ce qu'un site d'émission DÉCLARE, avant que l'émetteur unique ne tranche
  *  volume ou billboard. `ancre` est le point MONDE (fractionnaire, en cases) où le décor se pose : le
  *  billboard en dérive son `foot` (décalage à la case porteuse), le volume son origine de recette. */
-interface AncrageDecor {
+type AncrageDecor = AncrageDecorBase & OrigineDecor;
+interface AncrageDecorBase {
   key: string;
   cell: { x: number; y: number; z: number };
   ancre: { x: number; y: number };
-  source: BillboardPropEl['source'];
   /** Type de décor demandé. ABSENT = l'entité n'en NOMME aucun : le décor sort en billboard d'ERREUR
    *  (`missingPropSvg`, #877), jamais dans l'art d'un autre type — exactement le sort d'une ref morte. */
   ref: string | undefined;
@@ -55,9 +55,6 @@ interface AncrageDecor {
   facing?: Dir8;
   /** Échelle du DESSIN billboard (défaut 1) — un volume tient ses dimensions de sa recette. */
   echelle?: number;
-  /** Empreinte (cases) : profondeur de tri du dessin comme du volume. */
-  span?: { w: number; h: number };
-  entId?: string;
   architectureFeatureId?: string;
   nappe?: { sectionId: string; cells: readonly { x: number; y: number }[] };
   roomZoneIds?: string[];
@@ -74,15 +71,16 @@ interface AncrageDecor {
  *  recette compilée sur l'ancre (`buildPropVolumes`) ; billboard = le dessin ancré aux pieds, décalé de
  *  `ancre − cell`. Les deux portent la MÊME identité, la même empreinte et les mêmes vérités de scène. */
 function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
+  const origine: OrigineDecor = a.source === 'entity'
+    ? { source: a.source, entId: a.entId, span: a.span }
+    : { source: a.source };
   const commun = {
     kind: 'prop' as const,
     key: a.key,
     cell: a.cell,
-    source: a.source,
     ref: a.ref,
     states: a.states,
-    ...(a.span ? { span: a.span } : {}),
-    ...(a.entId ? { entId: a.entId } : {}),
+    ...origine,
   };
   const prop = !a.sansVolume && refEstVolumique(a.ref) ? findPropById(a.ref) : undefined;
   if (a.ref !== undefined && prop?.volume) {
@@ -278,14 +276,12 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
           // dégagement de l'hôte, parité testée dans `stage/monde-de-campagne.test.tsx`) : deux
           // représentations, deux lois.
           if (roofCut) return;
-          // Faîte : PARTAGE la profondeur du toit (empreinte + coin caméra-proche identiques) pour se
-          // dessiner PAR-DESSUS lui ; ancré au MILIEU de l'empreinte et surélevé sur la pente (posé, pas
+          // Faîte : ancré au MILIEU de l'empreinte du toit et surélevé sur la pente (posé, pas
           // flottant), au cap du faîtage résolu. La NAPPE porteuse est déclarée : l'ornement volumique
           // se lève et retombe avec elle (`nappePorteuse`, loi de dégagement de l'hôte).
           out.push(elDeDecor({
             ...base,
             cell: { x: f.x, y: f.y, z },
-            span: { w: f.w, h: f.h },
             ancre: { x: f.x + (f.w - 1) / 2, y: f.y + (f.h - 1) / 2 },
             facing: capDuFaite(field.shape),
             solM: heightAt(scene, cx, cy, z),

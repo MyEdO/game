@@ -1,6 +1,6 @@
 *Pages PDF 164-168*
 
-# **ATTACKING**
+# <span id="page-163-0" data-folio="164"></span>**ATTACKING**
 
 To make a Ranged Attack, your target must be within your weapon's range (see **Chapter 11: Consumer Guide**) and in your line of sight. To make a Melee Attack, you must be Engaged with your target (page 163) and have a weapon ready.
 
@@ -19,6 +19,8 @@ In both melee and ranged combat, rolling double on a success is a Critical Hit, 
 If your attack hits, reverse the digits of your successful hit roll and compare the result to the **Hit Locations** table. For example, a roll of 23 becomes 32, striking the right arm.
 
 Creatures with unusual anatomies may use different **Hit Location** tables (see **Chapter 12: Bestiary**).
+
+**HIT LOCATIONS**
 
 | d100  | Location                    |
 |-------|-----------------------------|
@@ -61,7 +63,7 @@ As blows rain down on your armour, it can be damaged, possibly permanently. When
 
 If this lowers the AP to 0 in that Location, the armour there is rendered useless.
 
-# **Critical Hits and Fumbles** V
+# <span id="page-164-0" data-folio="165"></span>**Critical Hits and Fumbles**
 
 In the cut and thrust of combat, moments of extraordinary skill and disastrous mistakes can happen. These are represented by Critical Hits and Fumbles.
 
@@ -77,9 +79,10 @@ Any failed Melee or Ranged Test that rolls a double is a Fumble.
 
 By default, you drop your weapon and must spend your next Action retrieving it. Alternatively, the GM may roll on the **Oops! Table**.
 
-| OOPS! TABLE |                                                                                                                                                                                                                                                          |
-|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+**OOPS! TABLE**
+
 | 1d10        | Result                                                                                                                                                                                                                                                   |
+|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 1–2         | You catch a part of your anatomy (we recommend you play this for laughs) — lose 1 Wound, ignoring Toughness Bonus or Armour Points.                                                                                                                |
 | 3–4         | Your melee weapon jars badly, or ranged weapon malfunctions or slightly breaks — your weapon suffers 1 Damage. Next Round, you will act last regardless of Combat Initiative order, Talents, or special rules as you recover (see page 161). |
 | 5–6         | Your manoeuvre was misjudged, leaving you out of position, or you lose grip of a ranged weapon. Next Round, your Action suffers a penalty of -1 SL.                                                                                                |
@@ -102,6 +105,8 @@ If you are using a Blackpowder, Engineering, or Explosive weapon and roll 99 or 
 
 There are some extra considerations that apply to ranged attacks:
 
+**MISFIRE TABLE**
+
 | d10  | Result                                                                                                  |
 |------|---------------------------------------------------------------------------------------------------------|
 | 1–8  | The weapon fails to fire. If a gun, it must be reloaded. If an explosive, it is a dud.               |
@@ -111,7 +116,7 @@ There are some extra considerations that apply to ranged attacks:
 - You cannot make Ranged Attacks while Engaged, unless your weapon has the Pistol Quality (see page 305).
 - If you make a Ranged Attack against a target you are Engaged with, they may oppose the attack with any Melee Skill.
 
-#### **Weapon Groups**
+#### <span id="page-165-0" data-folio="166"></span>**Weapon Groups**
 
 Knowing how to swing a sword doesn't necessarily make you an expert with a spear, and the technique and understanding required to use a bow is quite different from the skills required to use a blackpowder weapon. When you use a weapon, roll against the appropriate Skill Specialisation, such as Melee (Basic) or Ranged (Blackpowder). Weapons are broken into various Weapon Groups, each tied to a Skill Specialisation.
 
@@ -145,7 +150,7 @@ Combat Tests are usually Challenging (+0 SL). Circumstances may grant an SL modi
 
 These modifiers apply to Attack Tests only, not to Tests made to oppose an attack. If an attacker gains Advantage on a Melee Test due to outnumbering their target, the defender does not automatically suffer Disadvantage on a Melee Test made to parry that blow simply because they are outnumbered.
 
-# **RANGED ATTACK MODIFIERS - ADD ALL THAT APPLY**
+**RANGED ATTACK MODIFIERS - ADD ALL THAT APPLY**
 
 | Positive Modifiers                                            | Negative Modifiers                                                                                   |
 |---------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
@@ -155,7 +160,7 @@ These modifiers apply to Attack Tests only, not to Tests made to oppose an attac
 | You spent an Action last Turn aiming at the target (+1 SL) | Fog or poor lighting (-1 SL), rain and wind (-2 SL) or extreme weather or pitch blackness (-3 SL) |
 |                                                               | Attacker moved before firing (-1 SL)                                                                 |
 
-# **MELEE ATTACK MODIFIERS**
+**MELEE ATTACK MODIFIERS**
 
 | Positive Modifiers                                  | Negative Modifiers                                                                             |
 |-----------------------------------------------------|------------------------------------------------------------------------------------------------|
@@ -165,7 +170,9 @@ These modifiers apply to Attack Tests only, not to Tests made to oppose an attac
 | Target is Entangled (+1 SL)                         | Attacker's weapon is in the off-hand (-2 SL)                                                   |
 |                                                     | Defender has high ground (-1 SL)                                                               |
 
-V **Aimed Shots** If you spend an Action aiming at your target, you gain +1 SL on your next ranged attack against them. You must have your ranged weapon in hand to aim, and the bonus is lost if you do anything else before taking your shot, such as moving or defending yourself.
+#### <span id="page-166-0" data-folio="167"></span>**Aimed Shots**
+
+If you spend an Action aiming at your target, you gain +1 SL on your next ranged attack against them. You must have your ranged weapon in hand to aim, and the bonus is lost if you do anything else before taking your shot, such as moving or defending yourself.
 
 # **Called Shots**
 
@@ -225,7 +232,7 @@ Instead of inflicting damage with an unarmed attack, you can attempt to Grapple 
 
 For those lacking claws, fangs, or some other natural enchancement, attacks made without a weapon are *Undamaging*. Any AP the target posses are doubled, attacks do not inflict a minimum of 1 Wound, and, if a Critical Wound is inflicted, roll twice on the Critical Wound table and choose the lower result.
 
-# **Mounted Combat**
+# <span id="page-167-0" data-folio="168"></span>**Mounted Combat**
 
 Riding into combat, sword swinging, guns blazing, is not only terrifying for those on the receiving end, it also brings bonuses to the rider. Mounted combat uses the same rules as any other combat, with the following additions:
 

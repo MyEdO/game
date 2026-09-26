@@ -1,7 +1,7 @@
 /**
  * Schéma de `night-stakes.json` — enjeu VERBATIM (règle 5) d'un `kind` d'étape de la cascade de nuit
- * (#331), migré depuis `NIGHT_STAKES` (`src/state/restFlow.ts`) en donnée app-owned (arbitrage
- * doctrine 2026-07-12 : un catalogue en dur est l'exception, il migre en donnée). Lu par `nightStake`.
+ * (#331), donnée app-owned (arbitrage doctrine 2026-07-12 : un catalogue en dur est l'exception, il
+ * migre en donnée). Chargé en `NIGHT_STAKES` (`src/data/index.ts`), lu par `nightStakeRef`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -35,7 +35,7 @@ const doc = document(
   {
     kind: {
       label: 'Étape de la cascade',
-      hint: 'Vocabulaire d’étape de nuit consommé par `nightStake` — distinct de l’identifiant',
+      hint: 'Vocabulaire d’étape de nuit consommé par `nightStakeRef` — distinct de l’identifiant',
     },
     stake: { label: 'Enjeu' },
     form: { label: 'Forme de l’enjeu' },

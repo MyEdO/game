@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Lit de repos : tête de lit panneautée, matelas, couverture sobre, oreiller. Banquette de repos des
-// artistes dans les loges du théâtre. Meuble large (2×1) — le sprite remplit la largeur. Cf. NADJ 8 p.40.
+// artistes dans les loges du théâtre. Meuble large (2×1) — le sprite remplit la largeur. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'lit',
   label: 'Lit',

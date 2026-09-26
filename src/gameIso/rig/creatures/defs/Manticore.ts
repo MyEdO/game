@@ -32,7 +32,7 @@ export const creature: CreatureDef = {
         `<path d="M-4.2 -3.8 Q-7.8 -5.6 -9 -8.6 Q-5.8 -7.6 -3.6 -6.4 Z M-5 -9.6 Q-8.4 -11 -9 -14.2 Q-6.4 -13.4 -4.4 -12 Z M-4.8 -16.4 Q-8.2 -18 -9 -21.4 Q-5.8 -20.2 -4 -18.8 Z M-3.8 -23 Q-7 -25 -7.6 -28.4 Q-4.6 -26.8 -2.8 -25.2 Z M-1.8 -29 Q-4.4 -32 -4.4 -35.6 Q-1.6 -33 -0.4 -30.6 Z M2 -33.6 Q0.8 -37.6 2 -41 Q4 -37.8 3.6 -34.8 Z M8 -37 Q7.6 -41 9.2 -44 Q10.8 -40.4 10 -37.2 Z" fill="@corpsH" stroke="#1a140e" stroke-width="0.4"/>` +
         `</g>`,
     },
-    stored: {
+    palette: {
       corps: '#5c6478', corpsO: '#303648', corpsH: '#8f96aa', cheveux: '#c25a1e', cheveuxO: '#7b330f',
       aile: '#7d5a92', aileO: '#43305c', aileH: '#a887bd', // membrane violet pourpre (signature artwork)
       cuir: '#3f3a4c',

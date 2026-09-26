@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Tabouret : petit siège sans dossier, assise ronde + trois pieds écartés. Meuble d'appoint des loges
-// d'artistes, du passage et des ateliers du théâtre. Cf. plan officiel NADJ 8 p.40.
+// d'artistes, du passage et des ateliers du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'tabouret',
   label: 'Tabouret',

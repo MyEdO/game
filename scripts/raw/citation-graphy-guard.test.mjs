@@ -1,6 +1,6 @@
-// Test du garde `citation-graphy-guard` (node --test) : la graphie chapitre-relative `NN-Nom l.X`
-// est détectée sur fixture, les faux positifs plausibles (dates, ids composés) n'accrochent pas,
-// et le VRAI `src/` du repo est à ZÉRO (#487 lot 3 — pas de baseline, régression = échec immédiat).
+// Test du garde `citation-graphy-guard` (node --test) : chaque classe est éprouvée sur des formes
+// NUES en arbre temporaire, les faux positifs plausibles (dates, ids composés) n'accrochent pas, et
+// le VRAI dépôt est confronté aux classes à zéro et au stock des familles cliquetées.
 // Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -10,12 +10,11 @@ import { join } from 'node:path'
 import {
   scanGraphyViolations, scanDocsRawViolations, scanImplProseViolations, BOOK_NO_CHAPTER_RE,
   scanChDotViolations, scanBareFolioViolations, scanBookNoChapterSrcViolations, scanUnknownAbbrViolations,
-  scanMultiFolioSplitViolations, scanChapterBoundaryFolioViolations, readStock, STOCK_PATH,
-  scanTout,
+  scanChapterBoundaryFolioViolations, scanFolioSrcViolations, scanMultiFolioSplitViolations, readStock, STOCK_PATH,
+  scanTout, cliquets, FAMILLES_CLIQUETEES,
 } from './citation-graphy-guard.mjs'
 import { allAbbrAlternation, chapterBoundaryRisk, siglesDeCoeur } from './_lib.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
-import { ecartDuVolet } from '../guards/lib/stock.mjs'
 
 // Des sigles RÉELS, pris au registre par leur RÉGIME (livre de cœur) — jamais recopiés : la classe se
 // juge sur ce que la graphie VOIT, pas sur l'identité d'un livre. Résolveur PARTAGÉ avec les autres
@@ -68,16 +67,19 @@ test('faux positif évité : un id composé (ticket-42, variant-15) ne matche pa
   })
 })
 
-test('plusieurs fichiers, extensions .ts/.tsx/.json toutes scannées', () => {
+test('plusieurs fichiers, tous les CITANTS scannés (`EXTS_CITANTES`, fichiersCitants.mjs)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'graphy-guard-multi-'))
   mkdirSync(join(dir, 'src', 'sub'), { recursive: true })
   writeFileSync(join(dir, 'src', 'a.ts'), '// 07-Carrières l.45\n', 'utf8')
   writeFileSync(join(dir, 'src', 'sub', 'b.tsx'), '// 09-Compétences l.226\n', 'utf8')
   writeFileSync(join(dir, 'src', 'sub', 'c.json'), '{"note": "20-Maladies l.145"}\n', 'utf8')
-  writeFileSync(join(dir, 'src', 'd.mjs'), '// 20-Maladies l.999 (extension hors périmètre, ignorée)\n', 'utf8')
+  writeFileSync(join(dir, 'src', 'sub', 'e.mts'), '// 18-Traumatisme l.60\n', 'utf8')
+  writeFileSync(join(dir, 'src', 'f.css'), '/* 14-Tests l.198 */\n', 'utf8')
+  writeFileSync(join(dir, 'src', 'g.md'), '20-Maladies l.12\n', 'utf8')
+  writeFileSync(join(dir, 'src', 'd.snap'), '// 20-Maladies l.999 (extension hors périmètre, ignorée)\n', 'utf8')
   try {
     const v = scanGraphyViolations(join(dir, 'src'))
-    assert.equal(v.length, 3)
+    assert.equal(v.length, 6)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -334,36 +336,19 @@ test('(e) ch. cosmétique : rapports générés (coverage/reconciliation/reancho
   })
 })
 
-// --- (#585 lot A) scan (f) : folio NU ---
-test('(f) folio nu : commentaire .ts détecté, titre de test (describe/it) hors périmètre (pas un commentaire)', () => {
+// --- portée des classes (f)/(h)/(i) : les fiches seules ; en `src/**`, la classe (j) voit toute réf au folio ---
+test('(f)/(h)/(i) : un arbre src/ portant un folio nu, un multi-folio et un folio en fin de chapitre ne nourrit que (j)', () => {
   withTempSrcAndRawDir(
-    {
-      'x.ts': '// Amphibie (LDB p.338) : bonus au DR\n',
-      'y.test.ts': "describe('Amphibie (LDB p.338)', () => {})\n",
-    },
+    { 'x.ts': '// Amphibie (LDB p.338) : folio nu\n// Mauvais œil (LDB 48 p.255) : folio en fin de chapitre\n// Outre à eau (LDB 64 p.301/303) : multi-folio à cheval\n' },
     {},
-    (srcDir) => {
-      const v = scanBareFolioViolations(srcDir, ['.ts', '.tsx', '.json'])
-      assert.equal(v.length, 1)
-      assert.equal(v[0].file.endsWith('x.ts'), true)
+    (srcDir, rawDir) => {
+      const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+      assert.deepEqual(passe.bareFolio, [])
+      assert.deepEqual(passe.chapterBoundaryFolio, [])
+      assert.deepEqual(passe.multiFolioSplit, [])
+      assert.deepEqual(passe.folioSrc.map((v) => v.ref), ['LDB p.338', 'LDB 48 p.255', 'LDB 64 p.301'])
     },
   )
-})
-
-test('(f) folio nu : champ JSON "ref" détecté, "desc"/"source.note" hors périmètre (verbatim / convention folio-imprimé)', () => {
-  withTempSrcAndRawDir({}, {}, (srcDir) => {
-    const content = [
-      '{',
-      '  "ref": "LDB p.174",',
-      '  "desc": "Une citation verbatim qui mentionne LDB p.174 dans le texte.",',
-      '  "source": { "book": "livre-de-base", "page": 174, "note": "section continue LDB p.174-179" }',
-      '}',
-    ].join('\n') + '\n'
-    writeFileSync(join(srcDir, 'a.json'), content, 'utf8')
-    const v = scanBareFolioViolations(srcDir, ['.ts', '.tsx', '.json'])
-    assert.equal(v.length, 1)
-    assert.equal(v[0].row, 2)
-  })
 })
 
 // --- (#585 lot A) scan (b) étendu à src ---
@@ -385,7 +370,7 @@ test('(#454) (f) folio nu : détecté dans docs/raw (toute ligne, pas seulement 
     {},
     { 'combat.md': '**Source :** LDB p.339\n', 'ok.md': '**Source :** LDB 85 l.90\n' },
     (srcDir, rawDir) => {
-      const v = scanBareFolioViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+      const v = scanBareFolioViolations(rawDir)
       assert.equal(v.length, 1)
       assert.equal(v[0].file.endsWith('combat.md'), true)
     },
@@ -394,7 +379,7 @@ test('(#454) (f) folio nu : détecté dans docs/raw (toute ligne, pas seulement 
 
 test('(#454) (f) folio nu : rapports générés (coverage/reconciliation/reanchor) et épreuves exclus de docs/raw', () => {
   withTempSrcAndRawDir({}, { 'coverage.md': 'LDB p.339\n' }, (srcDir, rawDir) => {
-    assert.equal(scanBareFolioViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir).length, 0)
+    assert.equal(scanBareFolioViolations(rawDir).length, 0)
   })
 })
 
@@ -435,44 +420,32 @@ test('(g) abréviation inconnue : ancienne graphie ADEII (tout capitales) EST d�
   )
 })
 
-// --- (#522 juge adversarial) scan (h) : multi-folios à cheval sur un AUTRE chapitre ---
-test('(h) multi-folio : LDB 64 p.301/303 (folios en chapitres DIFFÉRENTS : 64 vs 67) → détecté', () => {
-  withTempSrcAndRawDir(
-    { 'x.ts': '// Contenant d\'eau (Outre à eau/Seau, LDB 64 p.301/303) : forme fautive\n' },
-    {},
-    (srcDir) => {
-      const v = scanMultiFolioSplitViolations(srcDir, ['.ts', '.tsx', '.json'])
-      assert.equal(v.length, 1)
-      assert.equal(v[0].row, 1)
-      // 301 résout ch63 (l'ancre de folio vit dans le chapitre PRÉCÉDENT, ch64 n'a pas d'ancre propre)
-      // et 303 résout ch66 — les deux diffèrent du chapitre ÉCRIT (64), donc tous deux fautifs.
-      assert.deepEqual(v[0].folios.map((f) => f.folio), [301, 303])
-    },
-  )
+// --- (#522 juge adversarial) scan (h) : multi-folios d'une fiche à cheval sur un AUTRE chapitre ---
+test('(h) multi-folio en fiche : LDB 64 p.301/303 (folios hors du chapitre 64) → détecté', () => {
+  withTempSrcAndRawDir({}, { 'combat.md': "**Source :** Contenant d'eau (Outre à eau/Seau, LDB 64 p.301/303)\n" }, (srcDir, rawDir) => {
+    const v = scanMultiFolioSplitViolations(rawDir)
+    assert.equal(v.length, 1)
+    assert.equal(v[0].row, 1)
+    assert.equal(v[0].file.endsWith('combat.md'), true)
+    // 301 résout ch63 (l'ancre de folio vit dans le chapitre PRÉCÉDENT, ch64 n'a pas d'ancre propre)
+    // et 303 résout ch66 — les deux diffèrent du chapitre ÉCRIT (64), donc tous deux fautifs.
+    assert.deepEqual(v[0].folios.map((f) => f.folio), [301, 303])
+  })
 })
 
-test('(h) multi-folio : LDB 85 p.338-343 (même chapitre 85) → silence (forme saine)', () => {
-  withTempSrcAndRawDir(
-    { 'x.ts': '// Registre des Traits de créature (LDB 85 p.338-343) : forme saine\n' },
-    {},
-    (srcDir) => {
-      const v = scanMultiFolioSplitViolations(srcDir, ['.ts', '.tsx', '.json'])
-      assert.equal(v.length, 0)
-    },
-  )
+test('(h) multi-folio en fiche : LDB 85 p.338-343 (même chapitre 85) → silence', () => {
+  withTempSrcAndRawDir({}, { 'combat.md': '**Source :** Registre des Traits de créature (LDB 85 p.338-343)\n' }, (srcDir, rawDir) => {
+    assert.deepEqual(scanMultiFolioSplitViolations(rawDir), [])
+  })
 })
 
-test('(h) multi-folio : titre de test (describe/it) et hors-champ JSON hors périmètre (pas un commentaire/"ref")', () => {
-  withTempSrcAndRawDir(
-    { 'x.test.ts': "describe('Outre à eau (LDB 64 p.301/303)', () => {})\n" },
-    {},
-    (srcDir) => {
-      assert.equal(scanMultiFolioSplitViolations(srcDir, ['.ts', '.tsx', '.json']).length, 0)
-    },
-  )
+test('(h) multi-folio : rapports générés (coverage/reconciliation/reanchor) et épreuves exclus des fiches', () => {
+  withTempSrcAndRawDir({}, { 'coverage.md': 'LDB 64 p.301/303\n', 'epreuve-x.md': 'LDB 64 p.301/303\n' }, (srcDir, rawDir) => {
+    assert.deepEqual(scanMultiFolioSplitViolations(rawDir), [])
+  })
 })
 
-test('non-régression : le VRAI src/ du repo est à ZÉRO multi-folio à cheval sur un autre chapitre (#522)', () => {
+test('non-régression : le VRAI docs/raw/ du repo est à ZÉRO multi-folio à cheval sur un autre chapitre (#522)', () => {
   const v = scanMultiFolioSplitViolations()
   assert.deepEqual(
     v.map((x) => `${x.file}:${x.row}`),
@@ -519,10 +492,10 @@ test('(i) chapterBoundaryRisk (pur) : dernier folio de N mais N+1 s\'ouvre loin 
 
 test('(i) scan : LDB 48 p.255 (cas PROUVÉ — Mauvais œil réellement en 49) → détecté ; LDB 49 p.255 (forme corrigée) → silence', () => {
   withTempSrcAndRawDir(
-    { 'x.ts': '// Mauvais œil (LDB 48 p.255) forme fautive\n// Mauvais œil (LDB 49 p.255) forme corrigée\n' },
     {},
+    { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\nMauvais œil (LDB 49 p.255) forme corrigée\n' },
     (srcDir, rawDir) => {
-      const v = scanChapterBoundaryFolioViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+      const v = scanChapterBoundaryFolioViolations(rawDir)
       assert.equal(v.length, 1)
       assert.equal(v[0].row, 1)
       assert.equal(v[0].abbr, 'LDB')
@@ -532,57 +505,44 @@ test('(i) scan : LDB 48 p.255 (cas PROUVÉ — Mauvais œil réellement en 49) �
   )
 })
 
-test('(i) scan : couverture étendue à docs/raw (fiches scannées, patron chDot/bareFolio)', () => {
+test('(i) scan : chaque fiche scannée est jugée à part (fautive détectée, corrigée silencieuse)', () => {
   withTempSrcAndRawDir(
     {},
     { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\n', 'ok.md': 'Mauvais œil (LDB 49 p.255) forme corrigée\n' },
     (srcDir, rawDir) => {
-      const v = scanChapterBoundaryFolioViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+      const v = scanChapterBoundaryFolioViolations(rawDir)
       assert.equal(v.length, 1)
       assert.equal(v[0].file.endsWith('combat.md'), true)
     },
   )
 })
 
-test('(i) scan : forme multi-folio (LDB 64 p.301/303) hors périmètre (déjà couverte par le scan (h))', () => {
+test('(i) scan : un folio suivi d\'un autre (LDB 48 p.255/256) n\'est pas un folio simple → silence', () => {
   withTempSrcAndRawDir(
-    { 'x.ts': '// LDB 48 p.255/256 : suffixe multi-folio, jamais compté ici\n' },
     {},
+    { 'combat.md': 'LDB 48 p.255/256 : suffixe multi-folio, jamais compté ici\n' },
     (srcDir, rawDir) => {
-      assert.equal(scanChapterBoundaryFolioViolations(srcDir, ['.ts', '.tsx', '.json'], rawDir).length, 0)
+      assert.equal(scanChapterBoundaryFolioViolations(rawDir).length, 0)
     },
   )
 })
 
 // --- (#585 lot A) stock NOMINATIF par SITE, cliqueté dans les deux sens (patron check-code-refs.mjs) ---
+// Le verdict se lit par `cliquets`, la couture même de `main()` : une table recopiée ici ferait un
+// cliquet muet dès qu'une famille s'ajoute à la garde.
 
-/** RÉF nominative d'un site, par famille — même lecture que la garde. Une famille de plus ici sans
- *  entrée correspondante dans la garde ferait un cliquet muet : les deux tables se lisent ensemble. */
-const FAMILLES = () => [
-  ['chDot', scanChDotViolations(), (v) => v.text.trim()],
-  ['bareFolio', scanBareFolioViolations(), (v) => v.text.trim()],
-  ['bookNoChapterSrc', scanBookNoChapterSrcViolations(), (v) => v.text.trim()],
-  ['chapterBoundaryFolio', scanChapterBoundaryFolioViolations(), (v) => `${v.abbr} ${v.ch} p.${v.folio}`],
-]
-
-test('non-régression : les 4 familles cliquetées (#585, #454) du VRAI repo sont exactement les sites de graphy-stock.json', () => {
+test('non-régression : les familles cliquetées du VRAI repo sont exactement les sites de graphy-stock.json', () => {
   const stock = readStock()
   assert.ok(stock.length > 0, 'la dette de graphie est encore ouverte : un stock vide ici serait une perte de mesure')
-  for (const [famille, violations, ref] of FAMILLES()) {
-    const { neuves, perimees } = ecartDuVolet({
-      sites: violations.map((v) => ({ file: v.file, ref: ref(v) })),
-      stock: stock.filter((e) => e.famille === famille),
-      famille,
-      ou: 'graphy-stock.json',
-    })
-    assert.deepEqual(neuves, [], `${famille} — site(s) NEUF(s) :\n${neuves.join('\n')}`)
-    assert.deepEqual(perimees, [], `${famille} — entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
+  for (const { family, neuves, perimees } of cliquets(scanTout(), stock)) {
+    assert.deepEqual(neuves, [], `${family} — site(s) NEUF(s) :\n${neuves.join('\n')}`)
+    assert.deepEqual(perimees, [], `${family} — entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
   }
 })
 
 test('graphy-stock.json existe, et chaque entrée nomme sa famille, son fichier, sa réf et son échéance', () => {
   assert.equal(existsSync(STOCK_PATH), true)
-  const familles = new Set(FAMILLES().map(([f]) => f))
+  const familles = new Set(FAMILLES_CLIQUETEES.map(({ family }) => family))
   for (const e of readStock()) {
     assert.equal(familles.has(e.famille), true, `famille inconnue de la garde : ${e.famille}`)
     for (const champ of ['fichier', 'ref', 'occurrence', 'lot', 'date']) {
@@ -591,7 +551,65 @@ test('graphy-stock.json existe, et chaque entrée nomme sa famille, son fichier,
   }
 })
 
-// --- (#925) la PASSE UNIQUE nourrit les neuf classes : un corpus jouet portant UNE ligne fautive
+// --- (#1898) classe (j) : réf au FOLIO en `src/**`, TOUTE ligne, cliquet nominatif ---
+// Formes NUES, arbre temporaire : la classe se juge sur ce qu'elle voit, jamais sur l'arbre du jour.
+const FOLIO_SRC = {
+  'tete.ts': '// Coup de grâce (LDB 47 p.244)\n',
+  'fin.ts': 'const x = 1 // LDB 47 p.244\n',
+  'titre.test.ts': "it('coup de grâce (LDB 47 p.244)', () => {})\n",
+  'chaine.tsx': "const label = 'Coup de grâce (LDB 47 p.244)'\n",
+  'champ.json': '{ "note": "Coup de grâce, LDB 47 p.244" }\n',
+  'sans-chapitre.ts': 'const y = 2 // ACE p.220\n',
+}
+
+test('(j) réf au folio : commentaire de tête, de fin de ligne, titre de test, chaîne affichée, champ JSON, réf sans chapitre → une par site', () => {
+  withTempSrcAndRawDir(FOLIO_SRC, {}, (srcDir) => {
+    const v = scanFolioSrcViolations(srcDir)
+    assert.deepEqual(
+      v.map((x) => `${x.file.split('/').pop()}:${x.row} ${x.ref}`).sort(),
+      [
+        'chaine.tsx:1 LDB 47 p.244',
+        'champ.json:1 LDB 47 p.244',
+        'fin.ts:1 LDB 47 p.244',
+        'sans-chapitre.ts:1 ACE p.220',
+        'tete.ts:1 LDB 47 p.244',
+        'titre.test.ts:1 LDB 47 p.244',
+      ],
+    )
+  })
+})
+
+test('(j) réf au folio : une réf à la LIGNE n\'est pas une violation', () => {
+  withTempSrcAndRawDir(
+    { 'ok.ts': `const z = 3 // ${spec('LDB', 47, '120-125')}\nit('coup (${spec('ACE', 9, '14')})', () => {})\n` },
+    {},
+    (srcDir) => assert.deepEqual(scanFolioSrcViolations(srcDir), []),
+  )
+})
+
+const entreeFolio = (fichier, ref) => ({ famille: 'folioSrc', fichier, ref, occurrence: 1, lot: '#1898', date: '2026-09-23' })
+const jugeFolioSrc = (passe, stock) => cliquets(passe, stock).find((c) => c.family === 'folioSrc')
+
+test('(j) cliquet : un site DU stock ne fait pas échouer, un site NEUF et une entrée SOLDÉE font échouer', () => {
+  withTempSrcAndRawDir({ 'fin.ts': 'const x = 1 // LDB 47 p.244\n' }, {}, (srcDir, rawDir) => {
+    const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+    const fichier = passe.folioSrc[0].file
+
+    const couvert = jugeFolioSrc(passe, [entreeFolio(fichier, 'LDB 47 p.244')])
+    assert.deepEqual([couvert.neuves, couvert.perimees], [[], []])
+
+    const neuf = jugeFolioSrc(passe, [])
+    assert.equal(neuf.neuves.length, 1)
+    assert.match(neuf.neuves[0], /LDB 47 p\.244 :: 1 — site NEUF/)
+
+    const solde = jugeFolioSrc(passe, [entreeFolio(fichier, 'LDB 47 p.244'), entreeFolio(fichier, 'ACE p.220')])
+    assert.deepEqual(solde.neuves, [])
+    assert.equal(solde.perimees.length, 1)
+    assert.match(solde.perimees[0], /ACE p\.220 :: 1 — entrée SOLDÉE/)
+  })
+})
+
+// --- (#925) la PASSE UNIQUE nourrit les dix classes : un corpus jouet portant UNE ligne fautive
 // par famille, UN seul `scanTout`, chaque détecteur voit la sienne. Un détecteur débranché de la
 // passe rougit ici en nommant sa classe (le rapport du garde, lui, resterait muet sur elle).
 const JOUET_SRC = [
@@ -599,9 +617,7 @@ const JOUET_SRC = [
   '// LDB ch.6 l.2 : ch. cosmétique',                                    // 2  chDot
   '// EDOC l.172 : réf de livre sans chapitre',                          // 3  bookNoChapterSrc
   '// RAW 16 l.105 : abréviation inconnue',                              // 4  unknownAbbr
-  '// Amphibie (LDB p.338) : folio nu',                                  // 5  bareFolio
-  '// Outre à eau (LDB 64 p.301/303) : multi-folio à cheval',            // 6  multiFolioSplit
-  '// Mauvais œil (LDB 48 p.255) : folio en fin de chapitre',            // 7  chapterBoundaryFolio
+  'const x = 1 // Amphibie (LDB p.338) : réf au folio',                  // 5  folioSrc
 ].join('\n') + '\n'
 const jouetFiche = (sigle) => [
   `Faim (${spec(sigle, 18, '417–422')}) plage à tiret cadratin`,           // 1  docsRaw emdash-range
@@ -609,6 +625,9 @@ const jouetFiche = (sigle) => [
   '**Source :** ADE II `08 - Le theatre de la guerre.md` l.89-131.',      // 3  docsRaw backtick-file
   "Ce passage n'est pas implémenté.",                                    // 4  implProse
   'Voir RAW 16 l.105 : abréviation inconnue en fiche',                    // 5  unknownAbbr
+  '**Source :** LDB p.339',                                              // 6  bareFolio
+  'Mauvais œil (LDB 48 p.255) : folio en fin de chapitre',               // 7  chapterBoundaryFolio
+  'Outre à eau (LDB 64 p.301/303) : multi-folio à cheval',               // 8  multiFolioSplit
 ].join('\n') + '\n'
 
 test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaque classe est nourrie', () => {
@@ -621,9 +640,10 @@ test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaq
       chDot: ['x.ts:2'],
       bookNoChapterSrc: ['x.ts:3', 'combat.md:2'], // les DEUX corpus de la même passe
       unknownAbbr: ['x.ts:4', 'combat.md:5'], // les DEUX corpus de la même passe
-      bareFolio: ['x.ts:5'],
-      multiFolioSplit: ['x.ts:6'],
-      chapterBoundaryFolio: ['x.ts:7'],
+      folioSrc: ['x.ts:5'],
+      bareFolio: ['combat.md:6'],
+      chapterBoundaryFolio: ['combat.md:7'],
+      multiFolioSplit: ['combat.md:8'],
       docsRaw: ['combat.md:1', 'combat.md:2', 'combat.md:3'],
       implProse: ['combat.md:4'],
     }
@@ -632,6 +652,7 @@ test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaq
     }
     assert.deepEqual(passe.docsRaw.map((v) => v.kind), ['emdash-range', 'book-no-chapter', 'backtick-file'])
     assert.equal(passe.unknownAbbr[0].abbr, 'RAW')
+    assert.equal(passe.folioSrc[0].ref, 'LDB p.338')
     assert.deepEqual(passe.multiFolioSplit[0].folios.map((f) => f.folio), [301, 303])
     assert.deepEqual(
       [passe.chapterBoundaryFolio[0].abbr, passe.chapterBoundaryFolio[0].ch, passe.chapterBoundaryFolio[0].folio],

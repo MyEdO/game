@@ -238,7 +238,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
 /** Marchandage de l'armurier ambulant (Marchandage 45) ouvert sur un groupe donné. */
 function setupAmbulant(party: Combatant[]): void {
   const sc = emptyScene(4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
   set({ party, scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().openMerchant('pnj');
 }

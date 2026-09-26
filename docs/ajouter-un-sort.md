@@ -147,7 +147,7 @@ Rituel (`ritual`) — 17 entrées aujourd'hui :
 
 ## 5. Classification mécanique — `spellSupport`
 
-`spellSupport(ops, spell, missile)` (`src/engine/spellspec.ts:33`) rend l'une des
+`spellSupport(ops, spell, missile)` (`src/engine/spellspec.ts:30`) rend l'une des
 3 issues `mecanique` / `partiel` / `narratif`. Elle alimente le tableau de bord et le
 badge affiché en jeu. `ops` est l'union des feuilles du Flow pour la cible ET pour le lanceur : un
 effet de lanceur (téléportation, poussée, chaîne, invocation, zone, vol de vie) compte autant qu'un
@@ -182,4 +182,4 @@ effet de cible.
 
 `npm run typecheck` en plus : les unions de portée/cible/durée et `Formula` sont strictement
 typées — une valeur mal formée casse la compilation avant le runtime.
-<!-- sources-empreinte: debc5b0de975caedf5bccff68f0448e6da3569e1 (16 fichiers, 0 dossiers) corps: ec5d4966e3427246efee90217f496c2ee006fee4 -->
+<!-- sources-empreinte: 192f5e31769f05c08dc02a66ada5a25439f11af7 (16 fichiers, 0 dossiers) corps: 70173aa62e9514f2f9294dc3d9d232ebdf6e9ac3 -->

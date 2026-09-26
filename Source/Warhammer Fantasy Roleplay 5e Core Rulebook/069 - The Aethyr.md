@@ -1,6 +1,6 @@
 *Pages PDF 230-234*
 
-# **THE AETHYR**
+# <span id="page-229-0" data-folio="230"></span>**THE AETHYR**
 
 Scholars of magic derive their learning from the elves, who explained that the source of all magical power is the Aethyr. This infinite dimension, said to be the spawning ground of daemons and spirits, exists beyond the physical world. The elves taught that far to the north of the Empire, a great ragged wound was torn through the fabric of the world to the Aethyr, and it bleeds raw magic. These roiling energies — known as the Winds of Magic — blow throughout the world, gathering and eddying in great, heavenly whorls, only to rain down and permeate the land and the creatures dwelling upon it. It is these powerful Winds that wizards and witches use to fuel their spells.
 
@@ -20,9 +20,7 @@ Others believe magical energies are not so easily categorised. Many different ty
 
 There is much heated debate between experts on the nature of magic. The lecture halls of the Empire's most learned institutions often see ambitious scholars expound on their latest theories. Some liken magic to the backstage of a theatre, a mass of mechanisms, props, and hidden pulleys responsible for the drama viewed by the audience. Others resort to mathematical metaphors, complete with incomprehensible esoteric diagrams.
 
-VIII
-
-Although each treatise may end with an air of confident finality, it will only be met with polite coughs, raised hands, and a litany of objections and exceptions.
+<span id="page-230-0" data-folio="231"></span>Although each treatise may end with an air of confident finality, it will only be met with polite coughs, raised hands, and a litany of objections and exceptions.
 
 # **The Languages of Magick**
 
@@ -42,65 +40,45 @@ Spells from the Lore of Light are some of the most powerful, including piercing 
 
 # **The Lore of Metal**
 
-The Lore of Metal relates to *Chamon*, the Gold Wind. *Chamon* appears dense and heavy to Second Sight, sinking into the earth and coalescing within dense metals such as lead
-
-and gold. The alchemists of the Gold Order have a reputation for being unusually prosaic in their attitudes for wizards, and many are as interested in learning the facts of physics and chemistry as they are in the working of magic.
+The Lore of Metal relates to *Chamon*, the Gold Wind. *Chamon* appears dense and heavy to Second Sight, sinking into the earth and coalescing within dense metals such as lead and gold. The alchemists of the Gold Order have a reputation for being unusually prosaic in their attitudes for wizards, and many are as interested in learning the facts of physics and chemistry as they are in the working of magic.
 
 Spells from the Lore of Metal often involve the transmutation or alteration of metal. On the battlefield, alchemists have been known to cause fine steel armour and weaponry to corrode or melt, to weigh their foes down with suddenly dense armour, or to enchant their allies' weaponry with uncanny power.
 
-231
+# <span id="page-231-0" data-folio="232"></span>**The Lore of Life**
 
-# **The Lore of Life**
-
-The Lore of Life relates to *Ghyran*, the Jade Wind. Free flowing *Ghyran* is associated with growth, fertility, and nourishment. To those with the Sight, *Ghyran* appears much like a
-
-light rain, falling to the ground and pooling in eddying swirls. It sinks into the soil and is drawn up into the roots of plants from where it goes on to nourish all living things. The druids of the Jade Order often prefer life away from the cities, attuned to the seasons and the natural world.
+The Lore of Life relates to *Ghyran*, the Jade Wind. Free flowing *Ghyran* is associated with growth, fertility, and nourishment. To those with the Sight, *Ghyran* appears much like a light rain, falling to the ground and pooling in eddying swirls. It sinks into the soil and is drawn up into the roots of plants from where it goes on to nourish all living things. The druids of the Jade Order often prefer life away from the cities, attuned to the seasons and the natural world.
 
 Spells from the Lore of Life commonly involve healing and rejuvenation, from healing wounds to causing a barren field to burst with life. They can have offensive applications, too. The enemies of a druid may find themselves suddenly tangled up in wickedly sharp brambles and vines.
 
 #### **The Lore of Heavens**
 
-The Lore of Heavens relates to *Azyr*, the Blue Wind. It cascades through the skies over the Old World, crackling through the heavens, like a great, charged cloud. Astromancers of
-
-the Celestial Order, known for their calm and contemplative manners, use the wind to scry the future, the lens of *Azyr*  Spells from the Lore of Heavens involve the manipulation of fate, throwing up protective barriers, or cursing a foe with an unnatural run of bad luck. On the battlefield, astromancers also control elemental forces, blasting their enemies with bolts of lightning, or even drawing down shooting stars from the heavens.
+The Lore of Heavens relates to *Azyr*, the Blue Wind. It cascades through the skies over the Old World, crackling through the heavens, like a great, charged cloud. Astromancers of the Celestial Order, known for their calm and contemplative manners, use the wind to scry the future, the lens of *Azyr*  Spells from the Lore of Heavens involve the manipulation of fate, throwing up protective barriers, or cursing a foe with an unnatural run of bad luck. On the battlefield, astromancers also control elemental forces, blasting their enemies with bolts of lightning, or even drawing down shooting stars from the heavens.
 
 ### **The Lore of Shadows**
 
-The Lore of Shadows relates to *Ulgu*, the Grey Wind. To the Sight, it appears a thick fog, gathering in pools wherever intrigue and deceit are practised, rising into great storms
-
-and tempests when conflict breaks out. Wizards of the Grey Order, known as grey guardians, are secretive in their ways and given to uncertain loyalties. Despite this, the Grey Order is renowned for its wisdom and skill in negotiations, and is often called upon for diplomatic missions.
+The Lore of Shadows relates to *Ulgu*, the Grey Wind. To the Sight, it appears a thick fog, gathering in pools wherever intrigue and deceit are practised, rising into great storms and tempests when conflict breaks out. Wizards of the Grey Order, known as grey guardians, are secretive in their ways and given to uncertain loyalties. Despite this, the Grey Order is renowned for its wisdom and skill in negotiations, and is often called upon for diplomatic missions.
 
 Spells from the Lore of Shadows can be used to mask or obfuscate, confusing and disorienting their foes. In battle, the shadowy, insubstantial tendrils of *Ulgu* they wield can pierce to the heart of their foes, eviscerating the most well-protected troops, yet leaving armour eerily intact.
 
-VIII
+#### <span id="page-232-0" data-folio="233"></span>**The Lore of Death**
 
-#### **The Lore of Death**
-
-The Lore of Death relates to *Shyish*, the Purple Wind. It is attracted to places of death, such as battlefields, gardens of Morr, and sites of execution. The wind is said to blow strongest
-
-during times of transition, so wizards of the Amethyst Order tend to work their greatest rites during the hours of twilight. While *Shyish* is related to time and mortality, it is distinct from Necromancy, the illegal practice of raising and binding the dead, which uses the Dark Magic of *Dhar* in lieu of *Shyish*. Indeed, the Amethyst Order, much like the Cult of Morr, works tirelessly to combat the threat of Necromancy.
+The Lore of Death relates to *Shyish*, the Purple Wind. It is attracted to places of death, such as battlefields, gardens of Morr, and sites of execution. The wind is said to blow strongest during times of transition, so wizards of the Amethyst Order tend to work their greatest rites during the hours of twilight. While *Shyish* is related to time and mortality, it is distinct from Necromancy, the illegal practice of raising and binding the dead, which uses the Dark Magic of *Dhar* in lieu of *Shyish*. Indeed, the Amethyst Order, much like the Cult of Morr, works tirelessly to combat the threat of Necromancy.
 
 Nevertheless, spells from the Lore of Death resemble Necromancy to the untrained eye. They can drain their targets of life force, spread fear among their enemies, and contact the spirits of the departed.
 
 ### **The Lore of Fire**
 
-The Lore of Fire relates to *Aqshy*, the Red Wind. *Aqshy* is a hot and searing wind associated with brashness, courage, and zeal and is drawn to empirical heat. The
-
-pyromancers of the Bright Order are bold and hot-tempered and make for impressively destructive battle wizards.
+The Lore of Fire relates to *Aqshy*, the Red Wind. *Aqshy* is a hot and searing wind associated with brashness, courage, and zeal and is drawn to empirical heat. The pyromancers of the Bright Order are bold and hot-tempered and make for impressively destructive battle wizards.
 
 Many of the spells from the Lore of Fire are offensive in nature, enabling the caster to conjure up great balls of fire, or cause the blades of their allies to burst into flame. Even their non-offensive spells, such as crude healing magics, are still destructive in nature. Bright wizards are also adept at inspiring their allies, rallying their courage and inspiring bravery and loyalty in the troops with which they serve.
 
 #### **The Lore of Beasts**
 
-The Lore of Beasts relates to *Ghur*, the Amber Wind, a cold, primal force associated with the savage wilds and the beasts living there. To those with the Sight, *Ghur* seems to blow
-
-weakly in areas where the wilderness has been tamed and settlements constructed. This may explain why the shamans of the Amber Order often take up a hermitic existence and shun their fellow Men.
+The Lore of Beasts relates to *Ghur*, the Amber Wind, a cold, primal force associated with the savage wilds and the beasts living there. To those with the Sight, *Ghur* seems to blow weakly in areas where the wilderness has been tamed and settlements constructed. This may explain why the shamans of the Amber Order often take up a hermitic existence and shun their fellow Men.
 
 The spells of the Lore of Beasts allow a shaman to communicate with animals, request their aid, and even summon them to battle. Shapeshifting magic may also be used by the wizard to adopt animal forms.
 
-233
-
-# **Elven Magic**
+# <span id="page-233-0" data-folio="234"></span>**Elven Magic**
 
 Elves are long-lived beings whose minds are more attuned to the workings of magic than those of humanity. High elven mages train in all of the eight Winds as part of their apprenticeships, before the most promising move on to study High Magic: *Qhaysh*, the Silver Wind. This is the weaving of the eight Winds of Magic together into a blinding, coruscating energy. This magic is impressive and difficult, and elves claim it is beyond the capacity of humankind.
 
@@ -133,5 +111,3 @@ Practitioners of Hedgecraft generally live quiet lives on the fringes of smaller
 While the Lore of Witchcraft is not inherently malicious, or tied to the gods of Chaos, it has a justly earned reputation for evil and unpleasantness. Often self-taught, Witchcraft practitioners learn to reproduce many of the effects of miscast magic — typically nasty business, but frequently merely unusual or simply useful.
 
 It is not uncommon (but by no means universal) for witches to be seduced by the malefic temptation of *Dhar*. The combination of the corrosive effects of *Dhar* and being shunned by right-minded folk of the Empire often makes these witches bitter, spiteful souls, their hearts hard and flinty, their gaze baleful and ill-omened.
-
-VIII

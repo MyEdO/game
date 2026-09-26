@@ -70,10 +70,10 @@ export function isPassengerInBattle(c: Combatant, combatants: Combatant[], merSc
 }
 
 /** Nombre de servants EFFECTIFS qui tiennent le poste que `chef` sert, parmi `combatants` — entrée de
- *  `crewedFireWeapon` (sous-effectif d'une Arme d'équipe, AA 10 p.122-124). Comptent les servants à la fois APTES
+ *  `crewedFireWeapon` (sous-effectif d'une Arme d'équipe, AA 10 l.234-243). Comptent les servants à la fois APTES
  *  (vivants + conscients, via `exposedCrew`) ET possédant la Projectiles APPROPRIÉE au Groupe de l'engin
- *  (l.3900 : « Compétence Projectiles appropriée » ; Ingénierie qualifie pour la Poudre noire, l.3816 ; un
- *  servant à Arc ne compte PAS pour une baliste, Exemple 1 l.3921). Le Groupe est porté EN DONNÉE par la pièce
+ *  (l.230 : « Compétence Projectiles appropriée » ; Ingénierie qualifie pour la Poudre noire, l.146 ; un
+ *  servant à Arc ne compte PAS pour une baliste, Exemple 1 l.251). Le Groupe est porté EN DONNÉE par la pièce
  *  (`weaponGroup`) → réutilise `hasWeaponGroupSkill` (même source que la Spé de tir). Pièce SANS Groupe déclaré
  *  (stub/générique) → aucune exigence de compétence (tous les aptes comptent). Le chef est lui-même un `crewIds`
  *  du poste, donc compté s'il est qualifié. `undefined` si `chef` ne sert aucun poste (tir normal). PUR.
@@ -96,8 +96,8 @@ export function servingCrewPresent(chef: Combatant, combatants: Combatant[]): nu
 }
 
 /** Un combattant qui SERVIRAIT `poste` (en deviendrait chef) possède-t-il la Compétence Projectiles APPROPRIÉE
- *  au Groupe de l'engin (AA 10 p.122 l.3900) — donc COMPTERAIT-il dans l'effectif (vs simple « aide » qui déplace/
- *  compense les pertes, l.3902) ? Pièce SANS Groupe déclaré (générique/stub) ou arme non dérivable (ex. pièce à
+ *  au Groupe de l'engin (AA 10 l.230) — donc COMPTERAIT-il dans l'effectif (vs simple « aide » qui déplace/
+ *  compense les pertes, l.232) ? Pièce SANS Groupe déclaré (générique/stub) ou arme non dérivable (ex. pièce à
  *  2 mains qu'il ne peut tenir) → aucune exigence (true). MÊME prédicat que `servingCrewPresent`, mais l'arme est
  *  dérivée de CE combattant (le futur chef qui la manie). Sert au FEEDBACK d'« Servir cette pièce ». PUR. */
 export function isCrewQualified(actor: Combatant, poste: ShipPoste): boolean {
@@ -109,7 +109,7 @@ export function isCrewQualified(actor: Combatant, poste: ShipPoste): boolean {
 /** Répartition de l'équipage APTE (vivant + conscient) d'un poste pour l'AFFICHAGE (tooltip d'équipe) :
  *  `qualified` = membres possédant la Projectiles du Groupe → COMPTENT dans l'effectif (longueur identique à
  *  `servingCrewPresent`) ; `aides` = présents mais non qualifiés → aident à déplacer/compenser les pertes
- *  mais NE comptent PAS (AA 10 p.122 l.3902). Pièce sans Groupe → tous qualifiés. L'arme est dérivée du CHEF
+ *  mais NE comptent PAS (AA 10 l.232). Pièce sans Groupe → tous qualifiés. L'arme est dérivée du CHEF
  *  (`crewIds[0]`), exactement comme `servingCrewPresent`. PUR. */
 export function posteCrewSplit(poste: ShipPoste, combatants: Combatant[]): { qualified: Combatant[]; aides: Combatant[] } {
   const crew = (poste.crewIds ?? [])
@@ -305,7 +305,7 @@ export function leaveChef(actor: Combatant, poste: ShipPoste, combatants: Combat
 
 /** Un combattant REJOINT l'équipage d'une pièce (runtime « Servir cette pièce »). Pièce NON servie → il en
  *  devient le CHEF (`crewIds[0]`), seul à TIRER : lien + arme dérivée via `serveChef`. Pièce DÉJÀ servie (chef
- *  vivant) → il REJOINT en SUPPORT (Arme d'équipe, AA 10 p.124) — appendu en queue de `crewIds`, occupe la pièce
+ *  vivant) → il REJOINT en SUPPORT (Arme d'équipe, AA 10 l.232) — appendu en queue de `crewIds`, occupe la pièce
  *  (`mannedPoste` posé, compte dans l'Indice pour compenser le sous-effectif) mais NE tire PAS (aucune arme).
  *  KIND-AGNOSTIQUE. Mute en place. */
 export function serveAtPoste(actor: Combatant, poste: ShipPoste, combatants: Combatant[]): void {

@@ -6,7 +6,7 @@ import { resolveRender } from './rig/bodyPlan';
 import type { Combatant } from '../engine/types';
 import type { SceneEntity } from '../state/scene';
 
-const hero = { id: 'h1', kind: 'hero', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
+const hero = { id: 'h1', kind: 'hero', species: 'humains-reiklander', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 
 describe('tokenBodyKind — view top', () => {
   it('héros bipède : flat=true + portraitBox + corps en vue de face (tête)', () => {
@@ -27,6 +27,15 @@ describe('tokenBodyKind — view top', () => {
     const r = tokenBodyKind({ kind: 'sceneEntity', ent }, 'top');
     expect(r.bodyKind).toBe('sprite');
     expect(r.flat).toBe(false);
+  });
+});
+
+describe('tokenBodyKind — jeton du GROUPE : un disque-portrait, et rien d’autre', () => {
+  it('le groupe se classe en PORTRAIT même sans demander la vue du dessus : en iso, le monde volumique le dessine', () => {
+    const iso = tokenBodyKind({ kind: 'partyLeader', leader: hero });
+    expect(iso.flat, 'un seul rendu possible pour ce sujet : le disque').toBe(true);
+    expect(iso).toEqual(tokenBodyKind({ kind: 'partyLeader', leader: hero }, 'top'));
+    expect(renderToStaticMarkup(<svg>{iso.body}</svg>), 'le visage du MENEUR').toContain('data-bone="tete"');
   });
 });
 

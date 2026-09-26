@@ -15,8 +15,8 @@ function sceneWithAssignments(seatAssignments?: SeatAssignments): Scene {
   // nord (4,3), sud (4,5).
   s.entities = [
     { id: PROP, kind: 'prop', pos: { x: 4, y: 4 }, ref: TABLE, facing: 'N', usable: { assise: true } },
-    { id: 'pnj-1', kind: 'personnage', pos: { x: 4, y: 3 } },
-    { id: 'pnj-2', kind: 'personnage', pos: { x: 4, y: 5 } },
+    { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 3 } },
+    { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 5 } },
   ] as SceneEntity[];
   if (seatAssignments) s.seatAssignments = seatAssignments;
   return s;

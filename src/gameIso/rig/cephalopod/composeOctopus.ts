@@ -11,7 +11,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -23,7 +23,7 @@ type OBone = FKBone & { z: number };
 export interface OctopusProps {
   sl: number;
   girth: number; // grosseur du manteau
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 function buildSkeleton(): Record<OctoBoneId, OBone> {
@@ -173,7 +173,7 @@ export function resolveOctopusFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<OctoBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<OctoBoneId, string> = { tentacules: tentaclesArriere(view), corps: mantle(p, view), bras: tentaclesAvant(view) };
   return sortByZ((Object.keys(sk) as OctoBoneId[])
     .map((id) => ({
@@ -184,7 +184,7 @@ export function resolveOctopusFromProps(
 
 export const OCTOPUS_DEFAULT: OctopusProps = {
   sl: 1.05, girth: 1.0,
-  stored: { corps: '#8a6238', corpsO: '#452e16', corpsH: '#c2a068', cheveux: '#6b6d3a', cheveuxO: '#3a3c1f', cuir: '#b98f47' },
+  palette: { corps: '#8a6238', corpsO: '#452e16', corpsH: '#c2a068', cheveux: '#6b6d3a', cheveuxO: '#3a3c1f', cuir: '#b98f47' },
 };
 
 export function resolveOctopus(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

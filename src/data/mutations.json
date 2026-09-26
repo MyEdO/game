@@ -1672,7 +1672,7 @@
     "label": "Mauvais œil",
     "desc": "Vous pouvez lancer le Sort Mauvais œil\n(page 255 du Livre de Règles) en dépensant\nun Point de Chance, sans faire de test ;\nvous subissez immédiatement les effets\nd'une Incantation imparfaite mineure (page\n234 du Livre de Règles)",
     "kind": "physique",
-    "note": "Effet déclenché/actif : permet de lancer le Sort Mauvais œil (LDB p.255) en dépensant un Point de Chance, sans Test, puis subir une Incantation imparfaite mineure (LDB p.234) — dette #459 (action optionnelle payée en Chance). Note 3 : ne peut pas être dissimulée.",
+    "note": "Effet déclenché/actif : permet de lancer le Sort Mauvais œil en dépensant un Point de Chance, sans Test, puis subir une Incantation imparfaite mineure — dette #459 (action optionnelle payée en Chance). Note 3 : ne peut pas être dissimulée.",
     "appearance": {
       "features": [
         "mauvais-oeil"
@@ -1724,7 +1724,7 @@
     "label": "Fourrure",
     "desc": "Vous ne souffrez plus des effets de\nl'Exposition aux climats froids, mais les\neffets de l'Exposition aux climats chauds\nsont doublés (WFJDR, page 181)",
     "kind": "physique",
-    "note": "Immunité à l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés (LDB p.181). Règle d'environnement (Exposition) hors moteur de combat — laissée en note. Note 3 : ne peut pas être dissimulée. (featureKey alternatif : pelage-massif pour une fourrure plus dense.)",
+    "note": "Immunité à l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés. Règle d'environnement (Exposition) hors moteur de combat — laissée en note. Note 3 : ne peut pas être dissimulée. (featureKey alternatif : pelage-massif pour une fourrure plus dense.)",
     "appearance": {
       "features": [
         "pelage"

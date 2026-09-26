@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import { weaponPart } from '../src/gameIso/rig/parts/equipment';
+import { weaponPart, objetSansPorteur } from '../src/gameIso/rig/parts/equipment';
 import { pickView } from '../src/gameIso/rig/parts/types';
 import type { Weapon } from '../src/engine/types';
 
@@ -13,7 +13,7 @@ const W: [string, string][] = [
 ];
 const CW = 90, CH = 110, COLS = 5;
 const cells = W.map(([fam, name], i) => {
-  const frag = pickView(weaponPart(wep(name)), 'front');
+  const frag = pickView(objetSansPorteur(weaponPart(wep(name))), 'front');
   const x = (i % COLS) * CW, y = Math.floor(i / COLS) * CH;
   // place weapon frame (-20..20 x, -56..16 y) into cell, centered, scaled ~1.4
   return `<g transform="translate(${x + CW / 2},${y + 70})"><rect x="${-CW / 2}" y="-70" width="${CW}" height="${CH}" fill="${i % 2 ? '#20262f' : '#262d38'}"/><g transform="scale(1.5)">${frag}</g><text x="0" y="34" fill="#9fb" font-size="9" text-anchor="middle">${fam}</text></g>`;

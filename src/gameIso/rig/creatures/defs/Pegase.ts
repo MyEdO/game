@@ -20,7 +20,7 @@ export const creature: CreatureDef = {
     sl: 0.95, build: 'equine', girth: 0.98, bodyLen: 0.96, neckLen: 0.95, neckAngle: -28,
     legLen: 1.18, head: 'cheval', tail: 'crin', tailLen: 1.05, ears: 'courtes', foot: 'sabot',
     wings: 'plumes', wingSpan: 1.36, wingPose: 'dressees', wingLift: 26, mane: 'crin', markings: 'taches',
-    stored: {
+    palette: {
       corps: '#e8eae4', corpsO: '#828b95', corpsH: '#ffffff', // robe blanc argenté pommelée, ombres gris-bleu
       cheveux: '#8d6e46', cheveuxO: '#4e3a22', // crinière/queue fauves
       aile: '#8a6a3e', aileO: '#48331c', aileH: '#c9a25e', // plumes brun/doré des ailes

@@ -141,7 +141,7 @@ describe('câblages moteur', () => {
     const stoique = mk({ traumas: [t], traits: [{ id: 'insensible-a-la-douleur' }] });
     expect(traumaCharPenalties(douillet, 'agilite')).toEqual([-10]);
     expect(traumaCharPenalties(stoique, 'agilite')).toEqual([]);
-    // … mais une AMPUTATION reste pénalisante (LDB 85 p.340) — keyée par `traumaId` (`doigt-ampute`
+    // … mais une AMPUTATION reste pénalisante (LDB 85 l.195) — keyée par `traumaId` (`doigt-ampute`
     // porte `amputation: true` dans `traumas.json`), jamais par le `label`.
     const ampute = mk({ traumas: [{ label: 'Doigts amputés', traumaId: 'doigt-ampute', location: 'brasD', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -5 }] } as any], traits: [{ id: 'insensible-a-la-douleur' }] });
     expect(traumaCharPenalties(ampute, 'capacite-de-combat')).toEqual([-5]);

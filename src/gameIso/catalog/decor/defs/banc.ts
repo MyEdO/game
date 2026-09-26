@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Banc en bois : longue assise sans dossier sur quatre pieds. Mobilier le long des murs de la salle
 // verte et des vestiaires des chœurs du théâtre (les artistes s'y assoient pour se changer). Cf. plan
-// officiel NADJ 8 p.40 (longues banquettes contre les cloisons).
+// officiel NADJ 08 folio 38, image (longues banquettes contre les cloisons).
 export const prop: PropViz = {
   id: 'banc',
   label: 'Banc',

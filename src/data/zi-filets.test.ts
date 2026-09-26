@@ -12,7 +12,7 @@ import type { Combatant, Weapon } from '../engine/types';
  * Filets (Le Zoo Impérial p.29, issue #84) : « Si un gobelin réussit une attaque avec son filet, sa
  * cible gagne un État Empêtré. Pour s'en débarrasser, elle doit effectuer un Test de Force Intermédiaire
  * (+0) et obtenir un nombre de DR égal à l'Indice du filet » — Test NON opposé à SEUIL (`escapeThreshold`),
- * ≠ l'Immobilisante générique (LDB 62 p.298, Test OPPOSÉ contre la Force de l'attaquant). Filet lesté (Aux
+ * ≠ l'Immobilisante générique (LDB 62 l.258, Test OPPOSÉ contre la Force de l'attaquant). Filet lesté (Aux
  * Armes p.95) : même Atout Immobilisante, mais « le filet a une Force de 55 » FIGÉE (≠ Force du porteur).
  */
 
@@ -55,7 +55,7 @@ describe('Filet (Zoo Impérial p.29) — Empêtrement à la touche + libération
   it('résolution : Test NON opposé, DR ≥ 3 exigé (≠ opposé contre une Force)', () => {
     const c = foe('cible', { conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, sourceId: 'gobelin' }] });
     const r = resolveRecoverTest(c, 'empetre')!;
-    expect(r.opposed).toBe(false);
+    expect(r.opposition).toBeUndefined();
     expect(r.requireSl).toBe(3);
   });
 
@@ -68,7 +68,7 @@ describe('Filet (Zoo Impérial p.29) — Empêtrement à la touche + libération
     expect(empetreOf(tgt)?.value).toBe(1); // inchangé (unlessCondition)
   });
 
-  it('« si la cible ne parvient pas à se dépêtrer, elle gagne un État Empêtré supplémentaire » (ZI p.29) : la qualité pose entangleOnFail', () => {
+  it('« si la cible ne parvient pas à se dépêtrer, elle gagne un État Empêtré supplémentaire » (ZI 2 l.176) : la qualité pose entangleOnFail', () => {
     const atk = foe('gobelin');
     const tgt = foe('cible');
     const get = mountBattle([atk, tgt]);
@@ -127,7 +127,7 @@ describe('Déroutante (ADE II 4, atout d\'arme magique) — État Surpris à la 
   });
 });
 
-describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB p.298, fouet/lasso) et Constricteur (trait)', () => {
+describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB 62 l.258, fouet/lasso) et Constricteur (trait)', () => {
   it('Immobilisante générique : escapeStrength = Force DU PORTEUR (charOf F), pas figée', () => {
     const atk = foe('archer', { characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 47, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } });
     const tgt = foe('cible');
@@ -145,8 +145,8 @@ describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB p.298, fouet/lasso)
   it('Test opposé de Force (recover) reste inchangé pour l’Immobilisante générique', () => {
     const c = foe('cible', { conditions: [{ id: 'empetre', value: 1, escapeStrength: 47 }] });
     const r = resolveRecoverTest(c, 'empetre')!;
-    expect(r.opposed).toBe(true);
-    expect(r.opponentValue).toBe(47);
+    expect(r.opposition).toBeDefined();
+    expect(r.opposition?.value).toBe(47);
     expect(r.requireSl).toBeUndefined();
     expect(r.entangleOnFail).toBeUndefined();
     expect(r.struggleDamage).toBeUndefined();

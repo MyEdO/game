@@ -1,6 +1,6 @@
 *Pages PDF 109*
 
-# • **SKILLS AND TALENTS** •
+# <span id="page-108-0" data-folio="109"></span>• **SKILLS AND TALENTS** •
 
 *'Sure, playing Find the Empress is largely luck with only a modicum of skill. But try playing without that modicum, and you'll lose every time.'*
 

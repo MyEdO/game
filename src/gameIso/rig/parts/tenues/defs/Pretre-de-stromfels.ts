@@ -16,11 +16,11 @@ export const tenue: TenueDef = {
     vet1: '#5d8074', vet1O: '#375149', vet1H: '#8fb2a3',
     vet2: '#6d764a', vet2O: '#454d2b', vet2H: '#8b9463',
     os: '#e8e0ca', osO: '#b0a380', osH: '#f6f1e2',
-    gemme: '#3f9061', gemmeO: '#1f5837', gemmeH: '#7fcd97',
+    gemme: '#3f9061', gemmeH: '#7fcd97',
     metal: '#7c7566', metalO: '#403a30', metalH: '#b6ac94',
     sceau: '#9c3c2b', sceauO: '#5c1e15', sceauH: '#c05a44',
     fourrure: '#7e8b5b', fourrureO: '#4d5735', fourrureH: '#a6b280',
-    parch: '#d9cfb4', parchO: '#a89d7d', corde: '#b09a68',
+    parchemin: '#d9cfb4', parcheminO: '#a89d7d', corde: '#b09a68',
   },
   set: {
     pied: BOTTE_CUIR,
@@ -62,11 +62,11 @@ export const tenue: TenueDef = {
         + `<path d="M10.5 -25 L2.6 9 L-0.6 9 L7.4 -25 Z" fill="@cuir" stroke="@cuirO" stroke-width="0.6"/>`
         + `<path d="M-9.4 -22 L-2.4 8.4 M8.4 -22 L1.4 8.4" fill="none" stroke="@cuirH" stroke-width="0.5" opacity="0.6"/>`
         // rouleaux (parchemins/flotteurs) glissés dans la ceinture, hanche droite
-        + `<g stroke="@parchO" stroke-width="0.5"><ellipse cx="9.5" cy="7" rx="2.4" ry="1.5" fill="@parch" transform="rotate(-18 9.5 7)"/><ellipse cx="9.5" cy="7" rx="0.9" ry="1.2" fill="@parchO" transform="rotate(-18 9.5 7)"/><ellipse cx="11.4" cy="10.4" rx="2.2" ry="1.4" fill="@parch" transform="rotate(-14 11.4 10.4)"/><ellipse cx="11.4" cy="10.4" rx="0.8" ry="1.1" fill="@parchO" transform="rotate(-14 11.4 10.4)"/></g>`
+        + `<g stroke="@parcheminO" stroke-width="0.5"><ellipse cx="9.5" cy="7" rx="2.4" ry="1.5" fill="@parchemin" transform="rotate(-18 9.5 7)"/><ellipse cx="9.5" cy="7" rx="0.9" ry="1.2" fill="@parcheminO" transform="rotate(-18 9.5 7)"/><ellipse cx="11.4" cy="10.4" rx="2.2" ry="1.4" fill="@parchemin" transform="rotate(-14 11.4 10.4)"/><ellipse cx="11.4" cy="10.4" rx="0.8" ry="1.1" fill="@parcheminO" transform="rotate(-14 11.4 10.4)"/></g>`
         // EMBLÈMES pectoraux (haut du torse) —
         // bande de prière déchirée (parchemin) pendante
-        + `<path d="M-8.4 -12 L-4.6 -12 L-4 -1 L-5.4 3 L-7 0.4 L-8.2 3.2 L-9 -0.6 Z" fill="@parch" stroke="@parchO" stroke-width="0.5"/>`
-        + `<path d="M-7.8 -9 L-5.2 -9 M-7.8 -6.5 L-5 -6.5 M-7.6 -4 L-5 -4" stroke="@parchO" stroke-width="0.5" opacity="0.7"/>`
+        + `<path d="M-8.4 -12 L-4.6 -12 L-4 -1 L-5.4 3 L-7 0.4 L-8.2 3.2 L-9 -0.6 Z" fill="@parchemin" stroke="@parcheminO" stroke-width="0.5"/>`
+        + `<path d="M-7.8 -9 L-5.2 -9 M-7.8 -6.5 L-5 -6.5 M-7.6 -4 L-5 -4" stroke="@parcheminO" stroke-width="0.5" opacity="0.7"/>`
         // sceau rouge à tête de mort (médaillon)
         + `<circle cx="-6.4" cy="-14.4" r="2.9" fill="@sceau" stroke="@sceauO" stroke-width="0.8"/>`
         + `<circle cx="-6.4" cy="-14.4" r="2.9" fill="none" stroke="@sceauH" stroke-width="0.5" opacity="0.6"/>`

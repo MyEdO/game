@@ -31,6 +31,7 @@ import { getStagePan } from '../../state/stagePan';
 import { getStageYaw } from '../../state/stageYaw';
 import { subscribeStageFrames } from './stageFrames';
 import type { GesteMark } from '../builders/tokenChrome';
+import './pastille-entite.css';
 
 /** Côté de la CIBLE TACTILE, en PIXELS D'ÉCRAN (canon de la charte : ≥ 40 px). */
 export const PASTILLE_PX = 44;

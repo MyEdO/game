@@ -19,7 +19,8 @@
 import { writeFileSync } from 'node:fs'
 import { BOOKS, pdfDuSigle } from '../_lib.mjs'
 import { EMPTY_BENIGNES_PATH, EMPTY_PERDUES_PATH, SEUIL_UTILE, entreesDAncresVides, scanEmptyFoliosInBook } from '../check-folio-continuity.mjs'
-import { extractPages, resolveBookOffset, HAS_LOWER_RE } from '../anchor-fill.mjs'
+import { resolveBookOffset, HAS_LOWER_RE } from '../anchor-fill.mjs'
+import { extractPages } from './pdf-extract.mjs'
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { texteDeStock } from '../stockNominatif.mjs'
 

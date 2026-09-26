@@ -70,7 +70,7 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
   it('openCombatEndCascade CONSOMME la file : un héros piloté-humain → l\'étape rejoint la cascade de FIN', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(3) });
     const heroClone = { ...hero, kind: 'hero' as const };
-    // La file n'accepte plus qu'une étape MINTÉE (#1262 V2) ; sa ligne est posée telle quelle.
+    // La file accepte seulement une étape MINTÉE (#1262 V2) ; sa ligne est posée telle quelle.
     const queued = monoStep({ id: 'faim-H-0', kind: 'faim', actor: hero, label: fixtureText('Faim'), rollLabel: 'Résistance',
       difficulty: 'intermediaire', montee: { base: 40, target: 40 }, stake: nightStakeRef('faim') })!;
     useGame.setState({

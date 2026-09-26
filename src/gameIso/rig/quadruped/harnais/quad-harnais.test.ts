@@ -197,7 +197,7 @@ describe('donnée COMMITTÉE : un record harnaché est réellement servi (#1128 
     for (const { id, harnais, espece, colors } of recordsHarnaches()) {
       const set = QUAD_HARNAIS[harnais], p = SPECIES[espece];
       if (!set || !p) continue;
-      const tmap = buildTokenMap(p.stored, colors ?? {});
+      const tmap = buildTokenMap([p.palette], colors ?? {});
       for (const [cle, val] of Object.entries(set.deco)) {
         if (!val) continue;
         for (const f of quadDecoFragments(val))

@@ -1,9 +1,9 @@
 /**
- * Dégradés RIG / FX (acier, lames, tenues, halos arcaniques/divins, chair, sang, yeux…) — domaine
- * RIG, HORS de la refonte du rendu d'environnement. Leurs couleurs sont l'identité visuelle du
- * bestiaire et de l'équipement (dessinés « à la main »), pas des matériaux de décor : ceux-là vivent
- * en donnée (`src/data/*.json`) + `shade.ts`. Assemblés dans `defsGlobaux()` (`sprites.ts`) et montés une
- * seule fois au niveau App (`GlobalSvgDefs`). Verbatim — ne pas migrer en palette (ce n'est pas du décor).
+ * Dégradés RIG / FX GLOBAUX (acier, lames, tenues, halos arcaniques/divins, sang, yeux…), assemblés
+ * dans `defsGlobaux()` (`sprites.ts`) et montés une seule fois au niveau App (`GlobalSvgDefs`). Règle
+ * (#1903) : un dégradé d'ici est de couleur FIXE, il ne suit pas la palette. Une matière qui suit la
+ * palette se peint en dégradé DÉRIVÉ `url(#dg-<forme>-@<clé>…)`, résolu par `applyTokenMap`
+ * (`palette.ts`).
  *
  * Contient aussi les clipPaths `rigCutBras*` (#633 D1, scission du bras au coude par `splitBrasSvg`)
  * et `rigJambeClip*` (#633 Lot 0, confinement du détail de tenue à la silhouette de jambe, `jambeVetue`)
@@ -25,7 +25,6 @@ export const rigFxGradients = `
   <linearGradient id="g_hVest" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6f7e3a"/><stop offset="100%" stop-color="#46521f"/></linearGradient>
   <linearGradient id="g_mut" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c9152"/><stop offset="100%" stop-color="#39501f"/></linearGradient>
   <linearGradient id="g_mutD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5d7540"/><stop offset="100%" stop-color="#2a3c18"/></linearGradient>
-  <linearGradient id="g_flesh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8b88e"/><stop offset="100%" stop-color="#b07a52"/></linearGradient>
   <linearGradient id="g_crest" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff7a1a"/><stop offset="100%" stop-color="#c43f0a"/></linearGradient>
   <radialGradient id="g_eye" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffe14a"/><stop offset="70%" stop-color="#d88a1a"/><stop offset="100%" stop-color="#7a3a08"/></radialGradient>
   <radialGradient id="g_blood" cx="50%" cy="45%" r="55%"><stop offset="0%" stop-color="#7e1212"/><stop offset="100%" stop-color="#360707"/></radialGradient>

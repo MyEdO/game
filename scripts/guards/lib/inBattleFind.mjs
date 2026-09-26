@@ -4,20 +4,10 @@
 // `inBattleId(battle, id)` (`src/state/combatants.ts`). Module ESM pur, exécutable par `node`
 // nu — consommé par `src/state/in-battle-find-guard.test.ts` ET par un futur hook pre-commit.
 // Même patron que `hardcode.mjs` (mécanique de détection ici, BASELINES en policy dans le test).
+// Le texte scanné est la vue CODE SEUL (`codeSeul.mjs`, #1790) : prose et données blanchies, lignes
+// ET colonnes préservées — un finding garde le numéro de ligne du fichier d'origine.
 
-/** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.
- * @param {string} src @returns {string} */
-export function stripComments(src) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/import\s+(?:type\s+)?\{[\s\S]*?\}\s+from\s+['"][^'"]*['"];?/g, '')
-    .split('\n')
-    .map((l) => {
-      const i = l.indexOf('//');
-      return i >= 0 ? l.slice(0, i) : l;
-    })
-    .join('\n');
-}
+import { codeSeul } from './codeSeul.mjs';
 
 /**
  * Motif du find-par-id EN COMBAT : `.combatants.find((c) => c.id === …)` — capture tout receveur
@@ -35,7 +25,7 @@ export const IN_BATTLE_FIND_RX = /\.combatants\.find\(\s*\(?\w+\)?\s*=>\s*\w+\.i
  */
 export function scanInBattleFind(relPath, contenu) {
   const findings = [];
-  stripComments(contenu)
+  codeSeul(contenu)
     .split('\n')
     .forEach((line, i) => {
       if (IN_BATTLE_FIND_RX.test(line)) findings.push({ line: i + 1, detail: line.trim() });

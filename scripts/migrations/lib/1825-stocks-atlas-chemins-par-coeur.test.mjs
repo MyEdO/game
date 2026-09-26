@@ -15,7 +15,7 @@ const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs';
 
 /** Ce que la migration LIT hors de l'Atlas et des stocks : la couture `_lib.mjs` et ses imports. */
-const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source'];
+const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source'];
 
 // Chemins d'Atlas composés à l'exécution : `DOC_REF_RE` de scripts/docs/check-doc-refs.mjs.
 const RAWDIR = path.posix.join('docs', 'raw');
@@ -113,5 +113,18 @@ test('MIXTE — un homonyme NON cité et un nom à UN cœur cité à plat : sort
     texteDe({ entrees: [{ fichier: `${RAWDIR}/${a}/y.md`, occurrence: 1 }] }),
   );
   stocks.delete(abs);
+  intacts(stocks);
+});
+
+test('un stock SOLDÉ, ABSENT du disque : sortie 0, RIEN À FAIRE, le stock n’est pas recréé', (t) => {
+  const [a] = deuxCoeurs();
+  const { racine, stocks } = depot(t, [`${a}/y.md`], { entrees: [] });
+  const abs = path.join(racine, STOCK);
+  fs.rmSync(abs);
+  stocks.delete(abs);
+  const r = joue(racine, MIGRATION);
+  assert.equal(r.code, 0, r.sortie);
+  assert.match(r.stdout, /RIEN À FAIRE/u);
+  assert.equal(fs.existsSync(abs), false, `${STOCK} recréé`);
   intacts(stocks);
 });

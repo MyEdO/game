@@ -41,7 +41,7 @@ const BASELINES: Record<string, number> = {
   'src/state/combatFlow.ts': 1,
   'src/state/devtools.ts': 1,
   // src/ui (#410 — stock à résorber par #276)
-  'src/ui/ApproachModal.tsx': 2,
+  'src/ui/ApproachModal.tsx': 1,
   'src/ui/AuContactModal.tsx': 2,
   'src/ui/BattementModal.tsx': 2,
   'src/ui/CampaignView.tsx': 6,
@@ -68,7 +68,7 @@ const BASELINES: Record<string, number> = {
   'src/ui/ShipManeuverModal.tsx': 1,
   'src/ui/ShipSheet.tsx': 2,
   'src/ui/StateRecoveryModal.tsx': 1,
-  'src/ui/WardModal.tsx': 2,
+  'src/ui/WardModal.tsx': 1,
   // src/gameIso (#410 — stock à résorber par #276)
   'src/gameIso/builders/highlights.ts': 1,
   'src/gameIso/fx/useCombatFx.ts': 6,

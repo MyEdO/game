@@ -52,7 +52,7 @@ import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
-import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill } from '../data';
+import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { CHAR_LABELS, type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -1050,7 +1050,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const perso = findTableEntry(findEffectTableById('contremaitre-personnalite').rows, deMonde(rng));
       return {
         lines: [
-          msg('if.contremaitreOk', { name: h.label, lieu: lieu.label ?? '', objectif: objectif.label ?? '', perso: perso.label ?? '' }),
+          msg('if.contremaitreOk', { name: h.label, lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),
           msg('if.contremaitreNote'),
         ],
       };
@@ -1334,7 +1334,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
 export function bankWithdraw(get: Get, set: Set, index: number): void {
   const dep = (get().bank ?? [])[index];
   if (!dep) return;
-  if (refusedBeforeDraw(get, get().party.find((x) => x.id === dep.heroId)?.label ?? 'Le groupe')) return;
+  if (refusedBeforeDraw(get, libelleOuAbsence(get().party.find((x) => x.id === dep.heroId), 'heros', dep.heroId))) return;
   if (dep.kind === 'mecenat') {
     // Retrait de Mécénat (ACE 12 l.49) = 1 Activité résolue par un Test d'Évaluation Intermédiaire :
     // la modale d'Activité applique la bande (payoutPct) et consomme l'Activité à la validation.
@@ -1370,7 +1370,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
     set({ bank: rest });
     const threshold = dep.kind === 'invest' ? dep.rate : (dep.rate > 0 ? dep.rate : 10);
     return [msg('if.bankLost', {
-      name: h?.label ?? '?', roll, threshold,
+      name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
       what: msg(dep.kind === 'invest' ? 'if.bankFailBank' : 'if.bankFailStash'),
       money: formatMoney(fromBrass(dep.brass)),
     })];
@@ -1380,7 +1380,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
   set({ bank: rest });
   creditBourse(get, set, dep.heroId, fromBrass(payout)); // retrait PERSONNEL : recrédité au déposant
   return [msg('if.bankWithdraw', {
-    name: h?.label ?? '?', money: formatMoney(fromBrass(payout)), roll,
+    name: libelleOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
     extra: dep.kind === 'invest' ? msg('if.bankInterest', { rate: dep.rate }) : '',
   })];
 }
@@ -1449,4 +1449,11 @@ export function interludeEnd(get: Get, set: Set): void {
     massBattleBegin(get, set);
     set({ screen: 'massBattle' });
   }
+}
+
+/** Le libellé d'une ligne de table DESCRIPTIVE (le contremaître) : une ligne muette y est un défaut de donnée (#1906). */
+function ligneNommee(ligne: { label?: string }, table: string): string {
+  const { label } = ligne;
+  if (label === undefined) throw new Error(`[${table}] ligne sans libellé dans une table descriptive (#1906)`);
+  return label;
 }

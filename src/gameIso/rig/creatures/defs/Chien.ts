@@ -18,7 +18,7 @@ export const creature: CreatureDef = {
     sl: 0.8, build: 'feline', girth: 1.52, bodyLen: 0.92, neckLen: 0.36, neckAngle: -6,
     legLen: 0.48, head: 'ours', headScale: 1.05, tail: 'fouet', tailLen: 0.9, ears: 'rondes',
     foot: 'patte', mane: 'sans', ridge: 'sans', markings: 'sans',
-    stored: {
+    palette: {
       corps: '#8a5f3a', corpsO: '#3e2c1a', corpsH: '#b48a58', // robe fauve/brune de l'artwork
       cheveux: '#4a3320', cheveuxO: '#241708', // poil hérissé de nuque/crâne (le hérissement du molosse)
       cuir: '#241c14', // coussinets

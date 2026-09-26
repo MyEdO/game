@@ -9,7 +9,7 @@
  */
 import type { ResolvedBone } from './composeRig';
 import { mul, rotate, translate, type Matrix } from './kinematics';
-import { buildTokenMap, applyTokenMap, type Palette, type StoredPalette } from './palette';
+import { buildTokenMap, applyTokenMap, type Palette, type PaletteDeclaree } from './palette';
 
 /** Ligne de SOL du repère de corps (= les 150px de l'ancrage aux pieds). Tout corps statique pose
  *  sa base ICI ⇒ pas de lévitation (le défaut historique de la coque, qui se posait à ~98). */
@@ -26,13 +26,13 @@ export const GROUND_Y = 150;
  */
 export function groundedBody(
   svg: string,
-  stored: StoredPalette,
+  palette: PaletteDeclaree,
   colors?: Palette,
   opts: { baseY?: number; tilt?: number; id?: string; z?: number } = {},
 ): ResolvedBone[] {
   const { baseY = 0, tilt = 0, id = 'corps', z = 1 } = opts;
   // p_local → translate(0,-baseY) (base à l'origine) → rotate(tilt) (autour de la base) → translate au sol.
   const matrix: Matrix = mul(mul(translate(60, GROUND_Y), rotate(tilt)), translate(0, -baseY));
-  const map = buildTokenMap(stored, colors ?? {});
+  const map = buildTokenMap([palette], colors ?? {});
   return [{ id, matrix, scale: [1, 1], z, parts: [{ svg: applyTokenMap(svg, map), layer: 0 }] }];
 }

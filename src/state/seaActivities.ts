@@ -51,7 +51,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, type RollRequest } from './rollSeam';
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea } from './seaVoyageFlow';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -288,13 +288,13 @@ registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
  *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `maxAttempts`. */
 registerExtendedTestOutcome('sea-activity-opportunity', (get, set, p, total) => {
   const meta = p.outcome?.meta;
-  const heroId = typeof meta?.heroId === 'string' ? meta.heroId : undefined;
+  const heroId = String(meta?.heroId);
   const investBrass = typeof meta?.investBrass === 'number' ? meta.investBrass : 0;
-  const hero = heroId ? actorIn(get(), heroId) : undefined;
+  const hero = garanti(actorIn(get(), heroId), heroId, 'investisseur');
   const pct = opportunityTradePct(total);
   const back = Math.floor((investBrass * pct) / 100);
   distributeCredit(get, set, fromBrass(back));
-  const line = t('sact.tradeDone', { name: hero?.label ?? t('sact.heroFallback'), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
+  const line = t('sact.tradeDone', { name: hero.label, stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
   noteSeaLine(get, set, [line]);
   continueSeaActivitiesAfterCascade(get, set);
   return { consequences: freeCons([line]) };

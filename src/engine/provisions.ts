@@ -25,7 +25,7 @@
  *    ch.14) ou sous la règle optionnelle `water-scarcity` (siège, désert, souterrain). « Ni nourriture
  *    ni boisson … ne peuvent pas récupérer » (LDB 18 l.338) → `isDeprived` = affamé OU assoiffé, lu par `rest.ts`.
  *
- * La nourriture = objets « Ration (1 jour) » (trappings LDB 66 p.302) dans l'inventaire du héros.
+ * La nourriture = objets « Ration (1 jour) » (trappings LDB 66 l.20) dans l'inventaire du héros.
  * CHOIX documenté (canon muet sur la résorption) : manger à nouveau remet les compteurs ET les
  * malus de faim à zéro.
  *
@@ -92,7 +92,7 @@ export function traitConsumptionFactor(c: Combatant): number {
   return (c.traits ?? []).reduce((f, t) => Math.max(f, findTraitById(t.id)?.capabilities?.consumptionFactor ?? 1), 1);
 }
 
-/** L'objet est-il une ration de voyage (« Ration (1 jour) », LDB 66 p.302) ? Capacité par-OBJET `isRations`,
+/** L'objet est-il une ration de voyage (« Ration (1 jour) », LDB 66 l.20) ? Capacité par-OBJET `isRations`,
  *  NON gatée sur le port (on mange depuis le sac) — lue PAR ID dans le catalogue (≠ nom — multilangue-safe). */
 export function isRation(it: ItemInstance): boolean {
   return itemCapability(it, 'isRations');

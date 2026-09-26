@@ -312,7 +312,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('presetId : le choix atterrit dans la Scène et survit au round-trip (picker BORNÉ, jamais un texte libre — #834 audit-2 défaut 7)', async () => {
-    const h = mount({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 } });
+    const h = mount({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
     await h.mount();
 
     const select = Array.from(h.container.querySelectorAll('select'))
@@ -326,7 +326,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('upgrades[] : une amélioration navale ajoutée atterrit dans la Scène et survit au round-trip', async () => {
-    const h = mount({ id: 'coque', kind: 'prop', pos: { x: 0, y: 0 }, postes: [{ trappingId: 'canon' }] });
+    const h = mount({ id: 'coque', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'cogue', postes: [{ trappingId: 'canon' }] });
     await h.mount();
 
     const addUpgrade = Array.from(h.container.querySelectorAll('button'))
@@ -523,7 +523,7 @@ describe('Inspector — places assises d’un décor', () => {
       ...emptyScene(8, 8),
       entities: [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
+        { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
       ],
     };
     let latest = scene;
@@ -609,7 +609,7 @@ describe('Inspector — orientation : les caps OFFERTS suivent le catalogue', ()
   });
 
   it('PERSONNAGE : les huit caps restent offerts (la règle ne parle que du décor)', () => {
-    const h = mount({ id: 'pnj-1', kind: 'personnage', pos: { x: 1, y: 1 }, facing: 'SE' });
+    const h = mount({ id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, facing: 'SE' });
     h.mount();
     expect(capsOfferts(h.container)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO']);
   });

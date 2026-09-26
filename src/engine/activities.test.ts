@@ -420,7 +420,7 @@ describe('matchOutcomes — bandes d’issue par DR (ACE Annexe I)', () => {
   });
 });
 
-describe('Augure (VDM 03 p.44-45) — tire réellement le Tableau des Symboles', () => {
+describe('Augure (VDM 03 l.466-514) — tire réellement le Tableau des Symboles', () => {
   const aug = activityById('augure')!;
 
   it('Succès Minime (+0 à +1 DR) : un lancer sur `vdm-symboles-augure`', () => {

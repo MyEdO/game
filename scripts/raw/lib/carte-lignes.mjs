@@ -14,11 +14,15 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { hunksDe } from '../../guards/lib/hunks.mjs'
 import { normalize } from '../_lib.mjs'
+import { stripSpans } from '../../../src/data/source/decoupe.ts'
 
 /** @typedef {import('../../guards/lib/hunks.mjs').Hunk} Hunk */
 /** @typedef {{ ligne: number } | { supprimee: true } | { ambigue: true, candidates: number[] }} Destin */
 
-const jetons = (s) => normalize(s).split(' ').filter(Boolean)
+/** Texte comparé d'une ligne : ses ancres `<span>` ôtées (`stripSpans`), puis `normalize` — une ancre
+ *  posée dans une ligne ne la change pas. */
+const norme = (s) => normalize(stripSpans(s))
+const jetons = (s) => norme(s).split(' ').filter(Boolean)
 const NON_TRIVIAL = /\p{L}{3}/u
 
 /** `petite` est-elle `grande` MOINS des jetons (sous-suite), avec un jeton commun non trivial ? */
@@ -29,9 +33,9 @@ function estAmputee(petite, grande) {
   return k === petite.length
 }
 
-/** La nouvelle ligne CORRESPOND-elle à l'ancienne : (a) égale après `normalize`, ou (b) son amputée ? */
+/** La nouvelle ligne CORRESPOND-elle à l'ancienne : (a) égale après `norme`, ou (b) son amputée ? */
 const correspond = (nouvelle, ancienne) =>
-  normalize(nouvelle) === normalize(ancienne) || estAmputee(jetons(nouvelle), jetons(ancienne))
+  norme(nouvelle) === norme(ancienne) || estAmputee(jetons(nouvelle), jetons(ancienne))
 
 /**
  * APPARIEMENT d'un hunk à compte inégal : pour chaque nouvelle ligne, l'ancienne qui lui est
@@ -42,9 +46,9 @@ const correspond = (nouvelle, ancienne) =>
  */
 export function appariement(retirees, ajoutees) {
   const vieux = retirees.map(jetons)
-  const egales = retirees.map(normalize)
+  const egales = retirees.map(norme)
   const paires = ajoutees.map((l) => {
-    const n = normalize(l)
+    const n = norme(l)
     const a = egales.flatMap((e, i) => (e === n ? [i] : []))
     if (a.length) return a.length === 1 ? a[0] : undefined
     const j = jetons(l)

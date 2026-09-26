@@ -12,7 +12,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -26,7 +26,7 @@ export interface JabberProps {
   girth: number;
   antlers: boolean; // bois ramifiés (Mournbreath)
   tongue: number; // longueur de la langue-fouet (× ; Whiptongue = long)
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 function buildSkeleton(): Record<JabberBoneId, JBone> {
@@ -117,17 +117,15 @@ function body(p: JabberProps, view: View): string {
   return bodyFrontBack(p.girth, view === 'back');
 }
 
-function wing(p: JabberProps, far: boolean, view: View): string {
+function wing(far: boolean, view: View): string {
   // GRANDE aile membraneuse de dragon (bras + 3 doigts, membrane festonnée) — l'éventail de
   // l'artwork. Profil : les deux balayées vers l'arrière ; face/dos : déployées en miroir.
   const op = far ? 0.7 : 0.95;
   const sx = view === 'profile' ? -1 : far ? -1 : 1;
   const tilt = view === 'profile' ? (far ? -14 : -26) : -12; // profil : éventail DRESSÉ vers le haut-arrière
-  const membrane = p.stored.aile ? '@aile' : '@cheveux'; // famille @aile si la def la fournit
-  const membraneO = p.stored.aile ? '@aileO' : '@cheveuxO';
   return `<g opacity="${op}" transform="scale(${sx},1) rotate(${tilt})">` +
-    `<path d="M2 2 C8 -6 14 -18 20 -24 L40 -30 C43 -25 44 -20 44 -16 Q38 -13 40 -4 Q30 1 24 2 Q12 6 2 2 Z" fill="${membrane}" stroke="${membraneO}" stroke-width="0.7"/>` +
-    `<path d="M20 -24 L40 -30 M20 -24 L44 -16 M20 -24 L40 -4" stroke="${membraneO}" stroke-width="0.8" fill="none" opacity="0.8"/>` + // doigts
+    `<path d="M2 2 C8 -6 14 -18 20 -24 L40 -30 C43 -25 44 -20 44 -16 Q38 -13 40 -4 Q30 1 24 2 Q12 6 2 2 Z" fill="@voilure" stroke="@voilureO" stroke-width="0.7"/>` +
+    `<path d="M20 -24 L40 -30 M20 -24 L44 -16 M20 -24 L40 -4" stroke="@voilureO" stroke-width="0.8" fill="none" opacity="0.8"/>` + // doigts
     `<path d="M2 2 Q6 -6 9 -13 Q15 -20 20 -24" stroke="@corps" stroke-width="2.6" fill="none" stroke-linecap="round"/>` + // bras
     `<path d="M2 2 Q6 -6 9 -13 Q15 -20 20 -24" stroke="@corpsO" stroke-width="0.9" fill="none" opacity="0.6"/>` +
     `<path d="M20 -24 Q19 -27 21 -29 L23 -26 Z" fill="@cuir" stroke="#1a140e" stroke-width="0.4"/>` + // griffe d'aile
@@ -212,8 +210,8 @@ export function resolveJabberFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<JabberBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
-  const art: Record<JabberBoneId, string> = { corps: body(p, view), aileG: wing(p, true, view), aileD: wing(p, false, view), cou: neck(view), tete: head(p, view) };
+  const tmap = buildTokenMap([p.palette], colors ?? {});
+  const art: Record<JabberBoneId, string> = { corps: body(p, view), aileG: wing(true, view), aileD: wing(false, view), cou: neck(view), tete: head(p, view) };
   return sortByZ((Object.keys(sk) as JabberBoneId[])
     .map((id) => ({
       id, matrix: world[id], scale: [1, 1] as [number, number], z: sk[id].z,
@@ -223,7 +221,7 @@ export function resolveJabberFromProps(
 
 export const JABBER_DEFAULT: JabberProps = {
   sl: 1.15, girth: 1.0, antlers: false, tongue: 1,
-  stored: { corps: '#c8682a', corpsO: '#8a4216', corpsH: '#e89a52', cheveux: '#6a3210', cheveuxO: '#3a1c08', cuir: '#caa23a' },
+  palette: { corps: '#c8682a', corpsO: '#8a4216', corpsH: '#e89a52', cheveux: '#6a3210', cheveuxO: '#3a1c08', cuir: '#caa23a' },
 };
 
 export function resolveJabber(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

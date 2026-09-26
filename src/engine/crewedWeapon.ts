@@ -68,7 +68,7 @@ export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
   const added = pen.addFlaws.filter((f) => !has(f)).map((id) => ({ id }));
   const redoubled = pen.addFlaws.filter(has).length; // Défauts déjà portés et « re-reçus » → −10 chacun (l.460)
   let qualities: QualityInstance[] = [...weapon.qualities.filter((q) => q.id !== 'arme-d-equipe'), ...added];
-  // Baliste « relativement simple » (AA 10 p.122 l.3818) tirée par UN SEUL servant valide (`present ≤ 1` : pas
+  // Baliste « relativement simple » (AA 10 l.148) tirée par UN SEUL servant valide (`present ≤ 1` : pas
   // d'équipe) → l'arme PERD TOUS SES ATOUTS, conserve ses Défauts. ORTHOGONAL au sous-effectif : la recharge
   // ×2 / les Défauts ajoutés s'appliquent EN PLUS (cf. `simpleSoloFireWeapon`, qui ne touche QUE les Atouts).
   if (weapon.soloSimple && present <= 1) qualities = qualities.filter((q) => !isAtoutQuality(q.id));
@@ -81,7 +81,7 @@ export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
 }
 
 /**
- * Pièce « relativement simple » tirée par UN SEUL servant valide (la baliste, AA 10 p.122 l.3818) : l'arme PERD
+ * Pièce « relativement simple » tirée par UN SEUL servant valide (la baliste, AA 10 l.148) : l'arme PERD
  * TOUS SES ATOUTS (Pointue…) mais CONSERVE l'intégralité de ses Défauts (Recharge, Arme d'équipe…). PUR,
  * data-driven (Atout/Défaut lu dans `qualities.json` via `isAtoutQuality`). Le tir lui-même reste un Test de
  * Projectiles (Spé du Groupe) à la Capacité de Tir — cf. `combatValue` (la Spé s'applique normalement). Brique

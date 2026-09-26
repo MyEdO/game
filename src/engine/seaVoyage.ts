@@ -17,6 +17,7 @@
  *  - Cargaisons (l.402-436) : type au d100 PAR SAISON, prix de base par saison (Vin : 3d10 CO).
  */
 import seaEventsJson from '../data/sea-events.json';
+import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import { d10, roll as rollDice, type RNG, defaultRNG } from './dice';
@@ -143,7 +144,7 @@ export function cargoOverload(enc: number, capacity: number): CargoOverload {
   return {
     ratioPct: Math.round(ratio * 100),
     palierId: chosen?.id ?? null,
-    label: chosen?.label ?? 'Charge nominale',
+    label: chosen ? chosen.label : t('cargo.chargeNominale'),
     mMod: chosen?.mMod ?? 0,
     manoeuvreDR: chosen?.manoeuvreDR ?? 0,
     canSail: ratio <= OVERLOAD_HARD_CAP_PCT / 100,

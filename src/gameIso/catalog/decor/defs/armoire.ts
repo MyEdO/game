@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Armoire : haut meuble de rangement à deux portes panneautées, corniche en saillie, poignées de laiton.
-// Garde-robes des loges d'artistes et rangements des costumes du théâtre. Cf. plan officiel NADJ 8 p.40.
+// Garde-robes des loges d'artistes et rangements des costumes du théâtre. Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'armoire',
   label: 'Armoire',

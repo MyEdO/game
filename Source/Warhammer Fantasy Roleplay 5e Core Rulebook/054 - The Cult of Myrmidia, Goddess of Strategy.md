@@ -1,18 +1,18 @@
 *Pages PDF 207*
 
-# **THE CULT OF MYRMIDIA, GODDESS OF STRATEGY**
+# <span id="page-206-0" data-folio="207"></span>**THE CULT OF MYRMIDIA, GODDESS OF STRATEGY**
 
 **Seat of Power:** Magritta, Estalia
 
 **Head of the Cult:** Preceptress Fedonica Lucalestra
 
-**Primary Orders:** Order of the Eagle, Order of the Righteous
+**Primary Orders:** Order of the Eagle, Order of the Righteous Spear, Order of the Blazing Sun
 
-Spear, Order of the Blazing Sun **Major Festivals:** None in the Empire
+**Major Festivals:** None in the Empire
 
-**Important Holy Texts:** *Bellona Myrmidia*, *Bellum Strategia*, *The* 
+**Important Holy Texts:** *Bellona Myrmidia*, *Bellum Strategia*, *The Book of War*
 
-*Book of War* **Common Holy Symbols:** Spear behind a shield, eagles, suns
+**Common Holy Symbols:** Spear behind a shield, eagles, suns
 
 In the Empire, bronzed Myrmidia, daughter of Verena and Morr, sister of Shallya, is the goddess of strategy and scientific warfare. In the sun-drenched south, Myrmidia acts as a patron deity of both the Estalian kingdoms and the Tilean city-states, and is fanatically worshipped in both nations. She is commonly portrayed as a tall, athletic young woman armed and equipped in archaic, southern stylings. She is known for her calm, honourable approach to all matters, and her clerics do what they can to emulate this.
 

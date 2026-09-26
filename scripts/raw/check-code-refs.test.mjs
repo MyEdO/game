@@ -1,9 +1,8 @@
 // Test du garde `check-code-refs` (node --test) : une réf plantée hors borne du chapitre résolu OU
-// vers un chapitre introuvable est détectée dans le CODE, une réf valide reste silencieuse, et le
-// cliquet NOMINATIF tient dans les deux sens. Le PLAFOND du stock vit ici, jamais dans la garde : un
-// stock vide où la dette est encore ouverte serait une perte de mesure, et ce test la nomme.
-// L'alignement du VRAI src/ sur ses stocks est mesuré ici ET par la gate `npm run raw:check-code-refs`
-// (`main()` de check-code-refs.mjs). Lancé par `npm run test:raw`.
+// vers un chapitre introuvable est détectée dans le CODE, une réf valide reste silencieuse. Le PLAFOND
+// des stocks vit ici, jamais dans la garde : les deux sont soldés, ce test exige leur ABSENCE et un VRAI
+// src/ sans aucun site, mesuré aussi par la gate `npm run raw:check-code-refs` (`main()` de
+// check-code-refs.mjs). Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs'
@@ -12,8 +11,6 @@ import { join } from 'node:path'
 import {
   scanDeadCodeRefs, scanEmptyLineCodeRefs, isExcludedSrc, STOCK_PATH, EMPTY_LINE_STOCK_PATH,
 } from './check-code-refs.mjs'
-import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
 
 // LDB 06 (Source/…/06 - Classes.md) fait 6 lignes (split('\n').length) — chapitre réel, court, stable :
 // sert d'ancrage pour planter une réf hors borne sans toucher au vrai src/.
@@ -83,46 +80,11 @@ test('isExcludedSrc : art de couverture (tenues/defs/) exclu, reste inclus', () 
   assert.equal(isExcludedSrc('src/engine/combat.ts'), false)
 })
 
-// Les QUATRE gestes qu'un auteur peut faire sur le stock RÉEL, et ce que chaque porte en dit (sonde
-// du juge de diff, 2026-09-12, promue). Le stock sert de MODÈLE de sites : rien n'est écrit sur le
-// disque, et aucun cardinal n'est figé — c'est la RELATION entre geste et verdict qui est le contrat.
-test('stock réel — les quatre gestes : site neuf, entrée ajoutée, occurrence relevée, stock vidé', () => {
-  const stock = readStock(EMPTY_LINE_STOCK_PATH)
-  assert.ok(stock.length > 0, 'stock vide : la sonde jugerait par vacuité')
-  const sitesDuStock = stock.map((e) => ({ file: e.fichier, ref: e.ref }))
-  const ou = 'empty-line-code-refs-stock.json'
-
-  const neuf = ecartDuVolet({ sites: [...sitesDuStock, { file: 'src/engine/ops.ts', ref: 'LDB 99 l.1' }], stock, ou })
-  assert.equal(neuf.neuves.length, 1, 'un site jamais déclaré doit sortir SEUL')
-  assert.match(neuf.neuves[0], /src\/engine\/ops\.ts :: LDB 99 l\.1 :: 1 — site NEUF/)
-  assert.deepEqual(neuf.perimees, [])
-
-  const declare = ecartDuVolet({
-    sites: [...sitesDuStock, { file: 'src/engine/ops.ts', ref: 'LDB 99 l.1' }],
-    stock: [...stock, { fichier: 'src/engine/ops.ts', ref: 'LDB 99 l.1', occurrence: 1 }], ou,
-  })
-  assert.deepEqual([declare.neuves, declare.perimees], [[], []], 'déclarer l’entrée éteint la garde — et la porte de plage, elle, compte la ligne ajoutée')
-
-  const releve = ecartDuVolet({
-    sites: sitesDuStock,
-    stock: stock.map((e, i) => (i === 0 ? { ...e, occurrence: e.occurrence + 1 } : e)), ou,
-  })
-  assert.equal(releve.neuves.length, 1, 'une occurrence relevée découvre le site qu’elle abandonne')
-  assert.equal(releve.perimees.length, 1, 'et laisse une entrée que plus aucun site ne porte')
-
-  const vide = ecartDuVolet({ sites: sitesDuStock, stock: [], ou })
-  assert.equal(vide.neuves.length, sitesDuStock.length, 'stock vidé : tolérance ZÉRO, chaque site redevient neuf')
-  assert.deepEqual(vide.perimees, [])
-})
-
-test('non-régression : les sites de réf sur ligne VIDE du VRAI src/ sont exactement ceux du stock', () => {
-  const stock = readStock(EMPTY_LINE_STOCK_PATH)
-  assert.ok(stock.length > 0, 'le stock des réfs sur ligne vide est une dette encore ouverte : un stock vide ici serait une perte de mesure')
-  const { neuves, perimees } = ecartDuVolet({
-    sites: scanEmptyLineCodeRefs(), stock, ou: 'empty-line-code-refs-stock.json',
-  })
-  assert.deepEqual(neuves, [], `site(s) NEUF(s) :\n${neuves.join('\n')}`)
-  assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
+test('non-régression : le VRAI src/ n’a aucune réf morte ni aucune réf sur ligne VIDE', () => {
+  const mortes = scanDeadCodeRefs()
+  assert.deepEqual(mortes.map((d) => `${d.file}:${d.row} — ${d.ref}`), [], 'réf(s) de code MORTE(S)')
+  const vides = scanEmptyLineCodeRefs()
+  assert.deepEqual(vides.map((v) => `${v.file}:${v.row} — ${v.ref}`), [], 'réf(s) de code sur ligne VIDE')
 })
 
 // LDB 06 l.1 porte `*Pages PDF 48*`, LDB 06 l.2 est BLANCHE — ancrage réel du contrôle « ligne non vide ».
@@ -155,6 +117,8 @@ test('plage l.X-Y : vide seulement si TOUTE la plage est blanche', () => {
   })
 })
 
-test('régime ZÉRO-TOLÉRANCE (#583) : dead-code-refs-stock.json reste ABSENT', () => {
-  assert.equal(existsSync(STOCK_PATH), false, 'dead-code-refs-stock.json doit rester ABSENT (zéro-tolérance) — sa réapparition doit porter, dans chaque entrée, le résidu irréductible qu\'elle déclare')
+test('régime ZÉRO-TOLÉRANCE (#583, #1898) : les deux stocks restent ABSENTS', () => {
+  for (const chemin of [STOCK_PATH, EMPTY_LINE_STOCK_PATH]) {
+    assert.equal(existsSync(chemin), false, `${chemin} doit rester ABSENT (zéro-tolérance) — sa réapparition doit porter, dans chaque entrée, le résidu irréductible qu'elle déclare`)
+  }
 })

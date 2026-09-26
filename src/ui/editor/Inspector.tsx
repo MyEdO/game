@@ -29,7 +29,7 @@ import { MERCHANTS } from '../../state/merchants/index';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines } from '../../data';
-import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective } from '../../state/sceneEdit';
+import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema, facadeFeatureKindSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
@@ -234,7 +234,18 @@ export function Inspector({
   // Toute écriture d'entité de l'inspecteur (libellé, orientation, étage, ref, apparence, statblock…)
   // passe par le seam d'assise : tourner ou monter d'un étage un meuble attablé recale ou lève ses
   // places dans la MÊME mutation. Aucun `entities:` en direct ici.
-  const updateSel = (patch: Partial<SceneEntity>) => { if (ent) setScene(editEntity(scene, ent.id, patch)); };
+  // Un patch qui retirerait le type de l'entité (`TypeNonNomme`, #1882) est REFUSÉ et dit à l'auteur.
+  const [refusPatch, setRefusPatch] = useState<{ id: string; message: string } | null>(null);
+  const updateSel = (patch: Partial<SceneEntity>) => {
+    if (!ent) return;
+    try {
+      setScene(editEntity(scene, ent.id, patch));
+      setRefusPatch(null);
+    } catch (err) {
+      if (!(err instanceof TypeNonNomme)) throw err;
+      setRefusPatch({ id: ent.id, message: err.message });
+    }
+  };
   const updateSelCombat = (patch: Partial<NonNullable<SceneEntity['combat']>>) => {
     if (!ent) return;
     setScene(editEntityCombat(scene, ent.id, patch));
@@ -351,6 +362,7 @@ export function Inspector({
             </button>
           </div>
 
+          {ent && refusPatch?.id === ent.id && <p className="chip tone-danger" role="alert">{refusPatch.message}</p>}
           {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
 
           {sel?.type === 'architectureBody' && architectureBody && toiture && (
@@ -751,7 +763,8 @@ export function Inspector({
                   value={ent.presetId ?? ''}
                   onChange={(e) => updateSel({ presetId: e.target.value || undefined })}
                 >
-                  <option value="">— aucun (réf./profil ci-dessous) —</option>
+                  {/* #1882 : le preset SEUL porteur de fiche ne se retire pas (`PORTEURS_DU_TYPE`). */}
+                  <option value="" disabled={ent.ref === undefined && !ent.statblock}>— aucun (réf./profil ci-dessous) —</option>
                   {narratif.presetsPnj.map((p) => (
                     <option key={p.id} value={p.id}>{p.profil?.label ?? p.id}</option>
                   ))}
@@ -759,21 +772,35 @@ export function Inspector({
               </label>
               {ent.presetId && ent.statblock && (
                 <p className="hint" style={{ color: 'var(--danger)' }}>
-                  Preset PNJ ET profil personnalisé présents — le moteur donne la PRIORITÉ au preset
-                  (`spawn.ts`) : le profil ci-dessous est ignoré au spawn tant que le preset reste renseigné.
+                  Preset PNJ ET profil personnalisé présents — le preset prime (`sceneNpc.ts`,
+                  `porteurDeFiche`) : le profil ci-dessous est ignoré tant que le preset reste renseigné.
                 </p>
               )}
               {ent.statblock ? (
                 <>
                   <StatblockEditor stat={ent.statblock} onChange={(sb) => updateSel({ statblock: sb })} />
-                  <button className="btn small" onClick={() => updateSel({ statblock: undefined })}>↩ Utiliser une créature du bestiaire</button>
+                  {/* #1882 : quitter le profil personnalisé NOMME la fiche qui le remplace, dans le même geste. */}
+                  {ent.ref !== undefined ? (
+                    <button className="btn small" onClick={() => updateSel({ statblock: undefined })}>↩ Revenir à la fiche du bestiaire ({creatureLabel(ent.ref)})</button>
+                  ) : (
+                    <label className="ed-field">
+                      Remplacer par une fiche du bestiaire
+                      <select value="" onChange={(e) => { const cid = e.target.value; updateSel({ statblock: undefined, ref: cid, label: ent.label ?? creatureLabel(cid) }); }}>
+                        <option value="" disabled>— fiche —</option>
+                        {enemyCreatures.map((c) => (
+                          <option key={c.id} value={c.id}>{c.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </>
               ) : (
                 <>
                   <label className="ed-field">
-                    Créature (profil de combat)
-                    <select value={ent.ref ?? ''} onChange={(e) => { const cid = e.target.value || undefined; updateSel({ ref: cid, label: ent.label ?? (cid ? creatureLabel(cid) : undefined) }); }}>
-                      <option value="">— créature —</option>
+                    Fiche (bestiaire)
+                    {/* #1882 : aucune option ne retire la fiche ; la mention vide n'existe que tant qu'aucune n'est choisie. */}
+                    <select value={ent.ref ?? ''} onChange={(e) => { const cid = e.target.value; updateSel({ ref: cid, label: ent.label ?? creatureLabel(cid) }); }}>
+                      {ent.ref === undefined && <option value="" disabled>— fiche —</option>}
                       {enemyCreatures.map((c) => (
                         <option key={c.id} value={c.id}>{c.label}</option>
                       ))}
@@ -807,7 +834,7 @@ export function Inspector({
                       </>
                     );
                   })()}
-                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(ent.ref || ent.label || 'Ennemi') })}><Icon id="ui/settings" size="sm" /> Profil personnalisé…</button>
+                  <button className="btn small" onClick={() => updateSel({ statblock: emptyStatblock(ent.label ?? (ent.ref !== undefined ? creatureLabel(ent.ref) : undefined)) })}><Icon id="ui/settings" size="sm" /> Profil personnalisé…</button>
                 </>
               )}
               <div className="mini-title">Rencontres</div>
@@ -1321,11 +1348,10 @@ function EntityPanel({
         </label>
         <label className="ed-field">
           Orientation
-          {/* Un décor VOLUMIQUE n'a que les quatre cardinaux À OFFRIR : sa recette tourne là où son
-              empreinte solide ne tourne pas (#1509), et une diagonale poserait son corps en travers
-              de cases restées traversables. Le geste n'a donc pas à être réparé après coup — il
-              n'est pas proposable. Source de la règle : le CATALOGUE (`refEstVolumique`), la même
-              que lit le schéma de scène au parse et `validateScene` à l'écran. */}
+          {/* Un décor VOLUMIQUE n'a que les quatre cardinaux À OFFRIR : `data/props.types.ts`
+              `capVolumique`. Le geste n'est pas proposable, donc jamais à réparer après coup. Source :
+              le CATALOGUE (`refEstVolumique`), la même que lit le schéma de scène au parse et
+              `validateScene` à l'écran. */}
           <select value={ent.facing ?? 'S'} onChange={(e) => updateSel({ facing: e.target.value as SceneEntity['facing'] })}>
             {(refEstVolumique(ent.ref) && ent.kind === 'prop' ? CAPS_OFFERTS_CARDINAUX : CAPS_OFFERTS).map(([cap, libelle]) => (
               <option key={cap} value={cap}>{libelle}</option>

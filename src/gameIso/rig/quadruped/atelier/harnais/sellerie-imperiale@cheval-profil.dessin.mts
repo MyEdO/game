@@ -112,7 +112,7 @@ const TRONC = [
   // BRETELLE DE POITRAIL — écartée après mesure au rendu, pas par oubli : le devant de l'épaule est
   // occupé sur toute sa hauteur par l'ENCOLURE (plan 6, base jusqu'à y≈71) puis par l'avant-bras
   // PROCHE (plan 9, jusqu'à x≈89) ; il ne reste au tronc qu'un liséré de 2 u de large où une
-  // bretelle ne se lit plus qu'en tiret. Un accessoire qu'on ne verrait pas est du bruit dans le
+  // bretelle se lit seulement en tiret. Un accessoire qu'on ne verrait pas est du bruit dans le
   // fichier ; l'artwork officiel le montre d'ailleurs largement masqué par le membre proche.
 ].join('');
 

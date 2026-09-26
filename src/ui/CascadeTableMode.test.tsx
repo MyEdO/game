@@ -302,7 +302,7 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
     expect(dieHint()).toContain('(61 − 10)');
   });
 
-  it('modificateur POSITIF (+10 par Point de Péché, LDB 40 l.53) : les deux surfaces portent l’effectif et le « + »', () => {
+  it('modificateur POSITIF (+10 par Point de Péché, LDB 40 l.46) : les deux surfaces portent l’effectif et le « + »', () => {
     // Premier `mod` POSITIF en production (#942 L6, Colère des dieux) : l'opération se lit « + », et le
     // dé montré reste celui qui RÉSOUT — le naturel seul ferait lire 48 là où la ligne vient de 58.
     setDesFixes(true);
@@ -665,7 +665,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
     expect(devier, 'les voies doivent s’ouvrir une fois le dé tombé').toBeDefined();
     expect(subir).toBeDefined();
     // DEUX lignes de tirage : celle de l'ÉTAPE, en TÊTE (zone stable, `extra`), et celle que porte le
-    // panneau du Critique. Une seule = la tête est tombée, et le dé de l'étape ne se lit plus qu'à
+    // panneau du Critique. Une seule = la tête est tombée, et le dé de l'étape se lit seulement à
     // l'intérieur du panneau — ce n'est plus la même fenêtre.
     const tirages = [...host.querySelectorAll('.rm-roll.table')];
     expect(tirages, 'la ligne de tirage de l’ÉTAPE a disparu de la tête de fenêtre').toHaveLength(2);

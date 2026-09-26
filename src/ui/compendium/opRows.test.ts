@@ -151,7 +151,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(kill.t).toBe('text'); // `kill` n'a pas d'ancre nominative → repli texte humanisé
     });
 
-    it('rollTable par `tableId` (allure-demoniaque-nurgle, EDOC p.78) : rangées de la table référencée, résolue via effectTables', () => {
+    it('rollTable par `tableId` (allure-demoniaque-nurgle, EDOC 13 l.234-245) : rangées de la table référencée, résolue via effectTables', () => {
       const table = effectTables.find((t) => t.id === 'allure-demoniaque-nurgle');
       expect(table).toBeTruthy();
       const rows = opRows([{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }]);

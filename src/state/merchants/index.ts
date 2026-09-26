@@ -10,13 +10,13 @@ export const MERCHANTS: Record<string, MerchantArchetypeDef> = Object.fromEntrie
 );
 
 /** Garde CHOKE-POINT (échec fail-fast au chargement du module, pas un grep) : un `curated` qui
- *  pointe un tarif de SERVICE (LDB 66 p.302) le forcerait en stock (`curated` ignore la Disponibilité
+ *  pointe un tarif de SERVICE (LDB 66 l.12-14) le forcerait en stock (`curated` ignore la Disponibilité
  *  ET n'entre pas dans le filtre `!t.service` de `computeFreshStockLines`) — contradiction de donnée. */
 for (const arch of MERCHANT_ARCHETYPES) {
   for (const id of arch.curated ?? []) {
     const t = findTrappingById(id);
     if (t?.service) {
-      throw new Error(`Marchand "${arch.id}" : curated "${id}" est un tarif de service (LDB p.302), pas un objet — retire-le de curated.`);
+      throw new Error(`Marchand "${arch.id}" : curated "${id}" est un tarif de service (LDB 66 l.12-14), pas un objet — retire-le de curated.`);
     }
   }
 }

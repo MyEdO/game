@@ -49,7 +49,7 @@ const mkEnemyTarget = (id: string, x: number, y: number, E = 30, wounds = 60): C
 /** Emplacement AU SOL : une SceneEntity NON-navire qui PORTE la pièce (`postes`). */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
   ({ id: 'emplacement', name: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
-    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA p.122-123) : 0 Blessure, immune
+    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
   ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
@@ -240,7 +240,7 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// (F) ÉQUIPE — « Arme d'équipe (Indice) » (AA 10 p.124 l.3900-3913) : on REJOINT une pièce en SUPPORT (pas un
+// (F) ÉQUIPE — « Arme d'équipe (Indice) » (AA 10 l.230-232) : on REJOINT une pièce en SUPPORT (pas un
 //     remplacement-takeover). RAW : « ils peuvent nommer l'un d'entre eux pour effectuer le Test » (le CHEF =
 //     `crewIds[0]`, seul à tirer) ; « les membres supplémentaires n'ont aucun impact sur l'efficacité… mais
 //     peuvent aider à la déplacer ou compenser les pertes » (support = `crewIds[1..]`, compte dans l'Indice).
@@ -366,10 +366,10 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// (H) QUALIFICATION D'ÉQUIPE — « Compétence Projectiles APPROPRIÉE » (AA 10 p.122 l.3900-3923) : seul un servant
+// (H) QUALIFICATION D'ÉQUIPE — « Compétence Projectiles APPROPRIÉE » (AA 10 l.230/253) : seul un servant
 //     possédant la Projectiles du GROUPE de la pièce compte dans l'effectif ; un servant à Arc sur une baliste
-//     (Groupe Arbalète) « n'est pas considéré comme un membre de l'équipe » (Exemple 1 l.3923). Les corps
-//     supplémentaires non qualifiés AIDENT (déplacent/compensent) mais NE comptent PAS (l.3902).
+//     (Groupe Arbalète) « n'est pas considéré comme un membre de l'équipe » (Exemple 1, AA 10 l.253). Les corps
+//     supplémentaires non qualifiés AIDENT (déplacent/compensent) mais NE comptent PAS (AA 10 l.232).
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe de la pièce compte (AA 10 l.228-247)', () => {
   // `label` = libellé lisible (Arbalète/Arc) → résolu en id de Groupe stable (Phase 3 : la spec EST un id).
@@ -386,7 +386,7 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
     expect(servingCrewPresent(chef, all)).toBe(2); // 2 qualifiés = Indice → effectif complet 2/2
   });
 
-  it('renfort NON qualifié (Arc sur une baliste-Arbalète) → occupe la pièce mais N’augmente PAS l’effectif (Exemple 1 l.3923)', () => {
+  it('renfort NON qualifié (Arc sur une baliste-Arbalète) → occupe la pièce mais N’augmente PAS l’effectif (Exemple 1, AA 10 l.253)', () => {
     const poste = mkPoste('baliste');
     const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('Arbalète');
     const archer = mkActor('archer', 'npc', { x: 6, y: 5 }); archer.skills = proj('Arc'); // mauvais Groupe
@@ -397,7 +397,7 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
     expect(servingCrewPresent(chef, all)).toBe(1); // … mais ne compte PAS (Arc ≠ Arbalète)
     const { qualified, aides } = posteCrewSplit(poste, all);
     expect(qualified.map((c) => c.id)).toEqual(['chef']);
-    expect(aides.map((c) => c.id)).toEqual(['archer']); // corps présent qui « aide » (l.3902), greyé dans le tooltip
+    expect(aides.map((c) => c.id)).toEqual(['archer']); // corps présent qui « aide » (AA 10 l.232), greyé dans le tooltip
   });
 
   it('chef NON qualifié (Arc seul) → effectif 0 malgré un chef présent (le cas « Chef + 0 effectif » à expliquer)', () => {

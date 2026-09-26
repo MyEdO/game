@@ -61,7 +61,7 @@ describe('spawnEnemy — arme d’AUTHORING (weapon:) vs arme de TRAIT : pas de 
     const sb = { label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
       { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' },
     ] } as any;
-    const c = spawnEnemy(undefined, sb, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
+    const c = spawnEnemy({ statblock: sb }, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
     const ranged = c.weapons.filter((w) => w.type === 'ranged');
     expect(ranged).toHaveLength(1); // aucun doublon rendu/jeu
     expect(ranged[0].reload).toBeGreaterThan(0); // arme de JEU : Recharge dérivée de l'arbalète (LDB 62 l.333) → l'IA suit son cycle (#126)
@@ -261,23 +261,23 @@ describe('spawnEnemy — transport de l’apparence/carrière éditée vers le C
   const at = { x: 0, y: 0 };
 
   it('seed + sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
     expect(c.appearanceOverride).toMatchObject({ seed: 12345, sex: 'F', build: 0.7 });
     expect(c.appearance).toBeUndefined(); // rien de figé dans state — la résolution rig est différée
   });
 
   it('tenue éditée → portée par Combatant.career', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at, { appearance: { tenue: 'Soldat' } });
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'Soldat' } });
     expect(c.career).toBe('Soldat');
   });
 
   it('sans aucun override → appearanceOverride reste indéfini (rendu dérivé du nom inchangé)', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at);
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at);
     expect(c.appearanceOverride).toBeUndefined();
   });
 
   it('override PARTIEL (seed seul) → enemyRigProfile dérive la palette non éditée du seed édité (#1882 T1)', () => {
-    const seeded = enemyRigProfile(spawnEnemy('mutant', undefined, 'e1', at, { appearance: { seed: 999 } }))!;
+    const seeded = enemyRigProfile(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 999 } }))!;
     expect(seeded.appearance.seed).toBe(999);
     // Palette NON éditée : tirage individuel par le seed édité (record `mutant` sans palette authorée).
     expect(seeded.appearance.parts).toBeUndefined();
@@ -289,19 +289,19 @@ describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', (
   const at = { x: 0, y: 0 };
 
   it('belier-ade2 : espèce DÉRIVÉE = `belier` (art propre, plus le recyclage de baliste)', () => {
-    const c = spawnEnemy('belier-ade2', undefined, 'ram1', at);
+    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram1', at);
     expect(c.species).toBe('belier');
     expect(c.bodyShape).toBe('engin');
     expect(c.inert).toBe(true);
   });
 
   it('belier-ade2 : empreinte 2 recopiée sur le Combatant (`footprintN`, ADE II 8 l.239/258)', () => {
-    const c = spawnEnemy('belier-ade2', undefined, 'ram2', at);
+    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram2', at);
     expect(c.footprint).toBe(2);
   });
 
   it('baliste (sans `siegeFootprint` en donnée) : empreinte ABSENTE — `footprintN` retombe à 1 (non-régression)', () => {
-    const c = spawnEnemy('baliste', undefined, 'bal1', at);
+    const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
     expect(c.species).toBe('baliste');
     expect(c.footprint).toBeUndefined();
   });

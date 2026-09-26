@@ -125,8 +125,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('un enregistrement d’AVANT l’annonce (#1552) est restauré NORMALISÉ : la scène rendue s’annonce', async () => {
-    // Le magasin du filet n'a pas d'axe de version : un enregistrement écrit par une version
-    // antérieure y dort SANS `type`. Il rentre en mémoire par `restore` — donc par le normaliseur.
+    // Un enregistrement SANS `type` rentre en mémoire par la lecture — chaîne de migrations puis
+    // normaliseur (`sceneAuSchemaCourant`, #1882).
     const { type: _muet, ...muette } = { ...emptyScene(), id: 'scene-muette', label: 'restaurée' };
     await autosaveSave({ sceneId: 'scene-muette', scene: muette as Scene, savedAt: 999 });
     let recovered: Scene | null = null;
@@ -135,7 +135,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     });
     await act(async () => { await flush(); });
     expect(probe().recovery?.scene.label, 'la reprise doit être proposée').toBe('restaurée');
-    expect('type' in (probe().recovery!.scene as object), 'l’enregistrement stocké est bien MUET').toBe(false);
+    expect('type' in (backend.store.get('scene-muette')!.scene as object), 'l’enregistrement stocké est bien MUET').toBe(false);
+    expect(probe().recovery!.scene.type, 'la proposition a déjà traversé la chaîne à la lecture').toBe('scene');
 
     await act(async () => { probe().restore(); });
     expect((recovered as unknown as Scene).label).toBe('restaurée');

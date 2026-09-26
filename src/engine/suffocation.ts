@@ -42,7 +42,7 @@ import { itemCapability } from './capabilities';
 import { t } from '../i18n';
 import { chebyshev } from './grid';
 
-/** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 p.301 / Seau, LDB 67 p.303) ? Capacité par-OBJET
+/** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 l.35 / Seau, LDB 67 l.59) ? Capacité par-OBJET
  *  `waterContainer`, NON gatée sur le port — on le sort du sac pour asperger, comme `isRation`
  *  (`engine/provisions.ts`). Gate de l'Action « Asperger d'eau » (#497). */
 export function hasWaterContainer(c: Combatant): boolean {

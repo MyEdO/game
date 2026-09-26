@@ -193,7 +193,7 @@ proches ; Extrême → −Indice Dégâts.
 **Sources RAW.** `MDG 12 l.401-407` (pièces) · `l.410-424` (munitions) · `l.466-472` (Tir de zone).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.401-407, l.410-424) → `ammoSeq`, `canon`, `placementPenalty`, `VolleyShot`, `SHIP_ARC_PREF`, `VolleyResult`, `shipManeuverParams`, `applyNavalSurprisePosition`, `compatibleAmmo`, `AuthoredShipPoste`, +1 — `src/engine/items.ts`, `src/engine/types.ts`, `src/engine/volley.ts`, `src/scenes/test-scenarios/duel-naval.ts`, `src/state/combatSlice.ts`, `src/state/fireArc.ts`, +4 fichiers
+- `MDG 12` (l.401-407, l.410-424) → `ammoSeq`, `canon`, `placementPenalty`, `VolleyShot`, `SHIP_ARC_PREF`, `VolleyResult`, `shipManeuverParams`, `applyNavalSurprisePosition`, `ammoFamilyLabel`, `compatibleAmmo`, +4 — `src/data/index.ts`, `src/engine/items.ts`, `src/engine/types.ts`, `src/engine/volley.ts`, `src/i18n/messages/fr.ts`, `src/scenes/test-scenarios/duel-naval.ts`, +6 fichiers
 
 **État du code.** ✅ (R1) `resolveVolley` prépare l'arme de chaque pièce comme le tir individuel : `weaponWithAmmo`
 (munition du chef → Dégâts + **Perforante**/bypass via `woundsFromHit`) puis `crewedFireWeapon` (sous-effectif).
@@ -216,7 +216,7 @@ compensent les pertes). **Sous-effectif** (`MDG 12 l.448-458`), pénalités **cu
 | 1 | **Recharge doublée** | + **Imprécise** | + **Dangereuse** |
 
 Si une pièce reçoit un Défaut qu'elle a déjà → **−10 aux Tests de Projectiles** à la place (`l.460`). **Recharger**
-une Arme d'équipe : un servant peut apporter son **Soutien** (LDB 12 p.155) au Test (`l.462`). **Incident** sur une
+une Arme d'équipe : un servant peut apporter son **Soutien** (LDB 12 l.187-198) au Test (`l.462`). **Incident** sur une
 Arme d'équipe → **tous les servants** sont touchés (`l.464`).
 
 **Sources RAW.** `MDG 12 l.440-464`. **Citation** `l.458` : « les pénalités… sont **cumulatives**… Arme d'équipe
@@ -226,6 +226,7 @@ Arme d'équipe → **tous les servants** sont touchés (`l.464`).
 Dangereuse = Incident).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
+- `LDB 12` (l.187-198) → `useExtendedTestJetProps`, `soutien`, `fr`, `testBreakdown`, `BargainModalView`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, +56 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +31 fichiers
 - `MDG 12` (l.440-464) → `crewedPenalty`, `warMachineCrewPenalty`, `ReloadModalView`, `placementPenalty`, `crewedFireWeapon`, `shipManeuverParams`, `firedWeapon`, `Weapon`, `tir-de-zone`, `attackModifiers`, +3 — `src/data/qualities.json`, `src/engine/combat.ts`, `src/engine/crewedWeapon.ts`, `src/engine/types.ts`, `src/engine/warMachineCrew.ts`, `src/state/combatArea.ts`, +6 fichiers
 
 **État du code.** ✅ (R1) `resolveVolley` dérive l'arme effective de chaque pièce via `crewedFireWeapon(item,

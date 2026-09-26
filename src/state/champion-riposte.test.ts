@@ -6,7 +6,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 
 /**
- * PINNING — Défense du champion (LDB 85 p.338 : « Si elle gagne un Test opposé en se défendant en CC,
+ * PINNING — Défense du champion (LDB 85 l.71 : « Si elle gagne un Test opposé en se défendant en CC,
  * elle cause autant de Dégâts que si elle était l'attaquant ») + Riposte (LDB 10). Comportement NON couvert
  * par golden : on FIGE ici la contre-attaque (le défenseur Champion qui gagne le Test opposé frappe
  * l'attaquant avec son jet de défense) AVANT de migrer la réaction en données — c'est l'oracle de la migration.

@@ -192,7 +192,7 @@ describe('#1262 B4 — la sonde de murage de `pushCombatStep` est TUEUSE', () =>
  * (`rollSeam.ts`), et le cliquet textuel a perdu son volet `table:` dans le même geste
  * (`cascade-step-stake-guard.test.ts`). Le murage n'est complet qu'à DEUX serrures : celle-ci ferme
  * les mints (`tableStep`/`tableStepDone`), et `revealStep.ts` ferme la 3ᵉ fabrique exemptée du lint
- * ci-dessus — son `opts.table` n'accepte plus qu'une déclaration RÉSOLUE (`CascadeTableDone`), mesuré
+ * ci-dessus — son `opts.table` accepte seulement une déclaration RÉSOLUE (`CascadeTableDone`), mesuré
  * par `reveal.test.ts`. Ce qui remplace le scan doit MORDRE : la sonde rejoue les DEUX signatures sur
  * un programme TypeScript réel — requise, la directive est consommée ; optionnelle, elle devient
  * inutilisée (TS2578). Sans ce rouge, les `@ts-expect-error` de `roll-seam-mints` ne prouveraient
@@ -248,7 +248,7 @@ describe('#1262 V2 L6d — la sonde du murage de l’ENJEU des étapes MONO est 
 
 /**
  * LA RANGÉE DE JET EST MURÉE AU TYPE (#1262 V3 Lf) — jumelle de la marque d'étape : `BuiltRollRow`
- * porte désormais une propriété REQUISE et `RollShell.rows` l'exige (`readonly BuiltRollRow[]`), donc
+ * porte une propriété REQUISE et `RollShell.rows` l'exige (`readonly BuiltRollRow[]`), donc
  * un littéral monté à la main ne compile plus. C'est ce requis qui a REMPLACÉ le cliquet de comptage
  * `ui/roll-row-mount-ratchet.test.ts` (mort au même lot) : sans cette sonde, plus rien ne mesurerait
  * la porte au type, et un retour à la propriété optionnelle passerait en silence.
@@ -383,7 +383,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
 
 /**
  * LE CHAMP PILOTE EST MURÉ AU TYPE (#1318 V8a₀) — `CascadeStep.label` (resserré sur `CascadeStepBase`,
- * pas sur `RollParticipant`) n'accepte plus qu'un `PlayerText`. La sonde rejoue les DEUX signatures sur
+ * pas sur `RollParticipant`) accepte seulement un `PlayerText`. La sonde rejoue les DEUX signatures sur
  * un programme TypeScript réel : marquée, la directive est CONSOMMÉE ; en `string` (l'état d'avant), le
  * littéral passe et la directive devient INUTILISÉE (TS2578). Sans ce rouge, le champ pourrait
  * redevenir `label?: string` sans qu'aucun test ne bouge.

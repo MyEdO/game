@@ -122,7 +122,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     expect(res.malepierreConsumed ?? 0).toBe(0);
   });
 
-  it('« Se trouver à proximité d\'une malepierre » (LDB p.182) : porter l\'objet expose le porteur aux Influences malveillantes, MÊME option OFF', () => {
+  it('« Se trouver à proximité d\'une malepierre » (LDB 19 l.40) : porter l\'objet expose le porteur aux Influences malveillantes, MÊME option OFF', () => {
     const w = sorcier();
     w.items = [itemFromTrappingById('malepierre-brute')!];
     useGame.setState({ party: [w] });

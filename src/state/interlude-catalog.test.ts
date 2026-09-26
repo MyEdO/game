@@ -99,7 +99,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     const journal = useGame.getState().journal.join('\n');
     expect(journal).toMatch(/Colère/);
     expect(st().closeOps).toBeUndefined(); // « à la place » : l'issue d'échec ne tombe pas
-    expect(hero().sinPoints).toBe(1); // « réduisez vos Points de Péché de 1 » (LDB 40 l.53)
+    expect(hero().sinPoints).toBe(1); // « réduisez vos Points de Péché de 1 » (LDB 40 l.46)
   });
 
   // ── Tester des objets magiques (voie ACE — coexiste avec l'identification ADE II) ────────────────

@@ -201,7 +201,7 @@ describe('refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fi
     const { sites, dynamiques } = corpus();
     expect(sites.length, 'aucun site mesuré : le scan ou le périmètre a lâché').toBeGreaterThan(20);
     // ANCRE de câblage, MESURÉE et non nominative : le scan voit PLUSIEURS fichiers, et l'un d'eux
-    // porte un STOCK. La console, elle, ne porte plus qu'une ref statique (`trappings/mains-nues`) :
+    // porte un STOCK. La console, elle, porte seulement une ref statique (`trappings/mains-nues`) :
     // ses foyers de règle vivent dans `src/data/actions.json`, gardés par le test suivant.
     const parFichier = new Map<string, number>();
     for (const s of sites) parFichier.set(s.rel, (parFichier.get(s.rel) ?? 0) + 1);

@@ -1,6 +1,6 @@
 import type { BoneId } from '../bones';
 import type { View } from '../facing';
-import type { StoredPalette, Palette } from '../palette';
+import type { PaletteDeclaree, Palette } from '../palette';
 import type { GabaritDef } from '../gabarits/types';
 
 /** Trait de corps d'une race, ancré à un os, éventuellement échelonné à la taille de l'os. */
@@ -22,8 +22,8 @@ export interface RaceDef {
   label: string;                // libellé d'affichage (« Haut-Elfe ») dont l'id est le slug
   gabarit: string;              // id du gabarit par défaut
   gabaritOverride?: Partial<Pick<GabaritDef, 'sl' | 'st' | 'legs' | 'arms' | 'head'>>;
-  palette?: StoredPalette;      // peau/cheveux/yeux par défaut de l'espèce
-  paletteF?: StoredPalette;    // variante féminine (sinon palette sert aux deux sexes)
+  palette?: PaletteDeclaree;      // peau/cheveux/yeux par défaut de l'espèce
+  paletteF?: PaletteDeclaree;    // variante féminine (sinon palette sert aux deux sexes)
   head?: string;                // id de part de tête monstrueuse (HEADS), sinon visage humain cosmétique
   legs?: string;                // id de jambes monstrueuses (LEGS) remplaçant les 2 cuisses (ex. chèvre)
   armG?: string;                // id de bras monstrueux (ARMS) remplaçant l'épaule gauche

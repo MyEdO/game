@@ -1,113 +1,214 @@
 /**
  * PALETTE SÉMANTIQUE du rig — personnalisation de couleur cohérente, applicable à tout.
  *
- * Les parts (tenues, visage/cheveux, parts monstrueuses) référencent des EMPLACEMENTS
- * nommés au lieu de couleurs en dur : `@peau`, `@cheveux`, `@vet1` (vêtement principal),
- * `@vet2` (secondaire), `@cuir`, `@metal`. Au moment de composer le rig, `resolveTokens`
- * remplace ces tokens par les couleurs de la palette du personnage. Les ombres/reflets
- * sont DÉRIVÉS automatiquement : `@peauO` = peau assombrie, `@peauH` = éclaircie → le
- * dégradé survit au recoloriage. Résolu en hex (pas de var() CSS) → marche en navigateur
- * ET en rendu headless (resvg).
+ * Les parts (tenues, visage/cheveux, parts monstrueuses) référencent des CLÉS DE PALETTE
+ * (`clesDePalette.ts`) au lieu de couleurs en dur : `@peau`, `@cheveux`, `@vet1` (vêtement principal),
+ * `@vet2` (secondaire), `@cuir`, `@metal`. Au moment de composer le rig, `buildTokenMap` +
+ * `applyTokenMap` remplacent ces jetons par les couleurs résolues. Chaque clé porte une GAMME : sa
+ * base, son ombre `<clé>O` et sa lumière `<clé>H`. Un DÉGRADÉ DÉRIVÉ `url(#dg-<forme>-@<clé>-@<clé>…)`
+ * se résout dans la même passe (#1903 D2). Résolu en hex (pas de var() CSS) → marche en navigateur ET
+ * en rendu headless (resvg).
  */
 import type { PartArt } from './parts/types';
-
-/** Emplacements de couleur d'un personnage. Tout est optionnel (défauts sinon). */
-export interface Palette {
-  peau?: string;
-  cheveux?: string;
-  yeux?: string; // iris
-  vet1?: string; // vêtement principal
-  vet2?: string; // vêtement secondaire / doublure
-  cuir?: string;
-  metal?: string;
-  corps?: string; // robe/pelage/peau de corps des créatures (gabarits non-humains)
-  accent?: string; // détail vif (crête, langue, marque) — créatures
-}
-
-/** Palette par défaut (paysan générique) — base avant overrides espèce/carrière/mutation. */
-export const DEFAULT_PALETTE: Required<Palette> = {
-  peau: '#e2b48c',
-  cheveux: '#5a4427',
-  yeux: '#5a3e28',
-  vet1: '#8a7048',
-  vet2: '#4c3a26',
-  cuir: '#5a3f24',
-  metal: '#8b94a6',
-  corps: '#6b4a2e',
-  accent: '#c8923a',
-};
-
-/** Multiplie chaque canal RGB d'un hex par f (clamp 0..255) → assombrit (<1) / éclaircit (>1). */
-function scale(hex: string, f: number): string {
-  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
-  if (!m) return hex;
-  const ch = (h: string) => Math.max(0, Math.min(255, Math.round(parseInt(h, 16) * f)));
-  const to2 = (n: number) => n.toString(16).padStart(2, '0');
-  return `#${to2(ch(m[1]))}${to2(ch(m[2]))}${to2(ch(m[3]))}`;
-}
-
-// Suffixes de teinte : base, Ombre (assombri), Highlight (éclairci).
-const SHADES: [suffix: string, factor: number][] = [['', 1], ['O', 0.78], ['H', 1.18]];
-
-/** Luminance Rec.709 ramenée sur 0..100 — l'échelle du contrat (jamais 0..255). */
-export function lum(r: number, g: number, b: number): number {
-  return ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) * 100;
-}
-
-import { SLOTS, type Slot } from '../../data/palette.types';
+import { SLOTS, PORTEUR, type Slot } from '../../data/palette.types';
+import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses } from './clesDePalette';
+import { parseHex, toHex, shade, LUMA_709 } from '../shade';
 
 export { SLOTS, type Slot };
 
-/**
- * Palette STOCKÉE d'une tenue/tête : peut contenir non seulement les bases (`vet1`,
- * `cuir`…) mais aussi les ombres/reflets EXACTS d'origine (`vet1O`, `vet1H`, `cuirO`…).
- * Sert de DÉFAUT par-carrière → rendu identique à l'art dessiné, sans perte.
- */
-export type StoredPalette = Record<string, string>;
+/** Surcharge du joueur, par clé recoloriable. Tout est optionnel. */
+export type Palette = { [K in Slot]?: string };
 
-function stripUndef(p: Palette): Palette {
-  const out: Palette = {};
-  for (const [k, v] of Object.entries(p)) if (v != null) (out as Record<string, string>)[k] = v;
-  return out;
+/** Rôles de la gamme hors base : ombre `O` et lumière `H`, facteur de dérivation et signe de ΔL. */
+const ROLES: readonly [suffix: 'O' | 'H', factor: number, signe: -1 | 1][] = [['O', 0.78, -1], ['H', 1.18, 1]];
+
+/** Luminance Rec.709 ramenée sur 0..100 (jamais 0..255) : l'échelle du contrat de VOLUME rendu
+ *  (#635, #638, `qc-contrat.ts`), mesuré sur les pixels. L'ORDRE d'une gamme se mesure en clarté
+ *  HSL (`versHsl`). */
+export function lum(r: number, g: number, b: number): number {
+  return ((LUMA_709.r * r + LUMA_709.g * g + LUMA_709.b * b) / 255) * 100;
+}
+
+/** Hex `#rrggbb` → octets [r, g, b] 0..255 (`parseHex`) ; lève hors format. */
+function octets(hex: string): [number, number, number] {
+  const c = parseHex(hex);
+  if (!c) throw new Error(`couleur hors format #rrggbb : ${hex}`);
+  return c;
+}
+
+/** Hex `#rrggbb` → canaux [r, g, b] 0..1. */
+function canaux(hex: string): [number, number, number] {
+  const [r, g, b] = octets(hex);
+  return [r / 255, g / 255, b / 255];
+}
+
+/** Clarté HSL QUANTIFIÉE, entière : `max + min` des octets (0..510). */
+export function clarte8(hex: string): number {
+  const c = octets(hex);
+  return Math.max(...c) + Math.min(...c);
+}
+
+/** Chroma `max(r,g,b) − min(r,g,b)`, canaux 0..1. */
+export function chroma(hex: string): number {
+  const c = canaux(hex);
+  return Math.max(...c) - Math.min(...c);
+}
+
+/** Chroma à partir de laquelle une couleur A UNE TEINTE (#1903 D3 point 3, v2.4), en pas 8 bits. */
+export const CHROMA_DE_TEINTE = 21 / 255;
+
+/** Hex `#rrggbb` → [teinte 0..360, saturation 0..1, clarté 0..1] (HSL). */
+export function versHsl(hex: string): [number, number, number] {
+  const [r, g, b] = canaux(hex);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d === 0) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+/** [teinte, saturation, clarté] (HSL) → hex `#rrggbb`. */
+function depuisHsl(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s, hp = (((h % 360) + 360) % 360) / 60, x = c * (1 - Math.abs((hp % 2) - 1));
+  const [r, g, b] = hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
+  return toHex((r + l - c / 2) * 255, (g + l - c / 2) * 255, (b + l - c / 2) * 255);
+}
+
+const borne = (v: number) => Math.max(0, Math.min(1, v));
+
+/** Pas 8 bits au plus que la garde d'arrondi d'`ecartReporte` avance (teinte ou rabotage à 255 peuvent
+ *  annuler un pas). */
+const PAS_D_ARRONDI_MAX = 8;
+
+/**
+ * Ombre ou lumière d'une SURCHARGE `s` : l'écart de la gamme de couche (base `b` → `o`) reporté
+ * (#1903 D3 point 3, v2.4). Teinte : ΔH reporté si `b` ET `o` ont une teinte (`CHROMA_DE_TEINTE`).
+ * Chroma : `C(s)·C(o)/C(b)` si `b` a une teinte, sinon `C(s)`. Clarté : ΔL borné au signe du rôle,
+ * mis à l'échelle de la place disponible au-dessus ou au-dessous de `L(s)` ; tant que la clarté
+ * QUANTIFIÉE (`clarte8`) égale celle de `s` hors des bornes, elle avance d'un pas 8 bits dans le sens du
+ * rôle (`PAS_D_ARRONDI_MAX` pas au plus).
+ */
+function ecartReporte(s: string, b: string, o: string, signe: -1 | 1): string {
+  const [hs, , ls] = versHsl(s), [hb, , lb] = versHsl(b), [ho, , lo] = versHsl(o);
+  const teinteB = chroma(b) >= CHROMA_DE_TEINTE, teinteO = chroma(o) >= CHROMA_DE_TEINTE;
+  const dl = signe < 0 ? Math.min(lo - lb, 0) : Math.max(lo - lb, 0);
+  const c = teinteB ? (chroma(s) * chroma(o)) / chroma(b) : chroma(s);
+  const h = hs + (teinteB && teinteO ? ho - hb : 0);
+  const rendu = (l: number) => depuisHsl(h, l <= 0 || l >= 1 ? 0 : borne(c / (1 - Math.abs(2 * l - 1))), l);
+  let l = borne(dl > 0 ? ls + (dl * (1 - ls)) / (1 - lb) : dl < 0 ? ls + (dl * ls) / lb : ls);
+  let hex = rendu(l);
+  const ls8 = clarte8(s);
+  for (let n = 0; n < PAS_D_ARRONDI_MAX && ls8 > 0 && ls8 < 510 && clarte8(hex) === ls8; n++) hex = rendu((l = borne(l + signe / 255)));
+  return hex;
 }
 
 /**
- * Table finale token→hex. Règle par slot :
- *  - slot NON surchargé par l'utilisateur → on rend l'ombre/reflet EXACT stocké
- *    (`stored.vet1O`…) s'il existe → rendu par défaut identique à l'art ; sinon dérivé.
- *  - slot surchargé (`overrides.vet1`) → TOUTE la famille (base+O+H) est DÉRIVÉE de la
- *    couleur choisie → recoloriage cohérent (les ombres suivent).
+ * Palette DÉCLARÉE d'une couche (def de tenue, arme, armure, espèce…) : des bases (`vet1`, `cuir`…)
+ * et, le cas échéant, l'ombre et la lumière EXACTES de leur gamme (`vet1O`, `vet1H`…).
  */
-export function buildTokenMap(stored: StoredPalette, overrides: Palette = {}): Record<string, string> {
-  const ov = stripUndef(overrides) as Record<string, string>;
+export type PaletteDeclaree = Record<string, string>;
+
+function stripUndef(p: Palette): Record<string, string> {
   const out: Record<string, string> = {};
-  // Bases CUSTOM qu'un plan déclare AU-DELÀ des slots créature (ex. navire : `coque`/`voile`/`mat`) —
-  // adapté, pas tordu : on ne détourne plus `vet1`/`cuir`, chaque plan nomme ses propres jetons.
-  const slotSet = new Set<string>(SLOTS);
-  const customBases = [...new Set(
-    Object.keys(stored).map((k) => k.replace(/(O|H)$/, '')).filter((b) => !slotSet.has(b)),
-  )];
-  for (const slot of [...SLOTS, ...customBases]) {
-    const userBase = ov[slot];
-    const base = userBase ?? stored[slot] ?? (DEFAULT_PALETTE as Record<string, string>)[slot];
-    if (base == null) continue; // base custom non fournie → rien à dériver
-    for (const [suf, f] of SHADES) {
-      const token = slot + suf;
-      if (userBase != null) {
-        out[token] = f === 1 ? userBase : scale(userBase, f); // recolor → dérivé du choix
-      } else {
-        out[token] = stored[token] ?? (f === 1 ? base : scale(base, f)); // défaut → exact sinon dérivé
-      }
+  for (const [k, v] of Object.entries(p)) if (v != null) out[k] = v;
+  return out;
+}
+
+/** Indice de la couche la plus haute qui donne la base `k`, -1 si aucune. */
+function coucheQuiDonne(pile: readonly Readonly<Record<string, string>>[], k: string): number {
+  let i = pile.length - 1;
+  while (i >= 0 && pile[i][k] == null) i--;
+  return i;
+}
+
+/**
+ * Table finale jeton→hex du PORTEUR, par couches (#1903 D3) : défaut (`COUCHE_DEFAUT`) < `couches`,
+ * de la plus basse à la plus haute < `surcharge`. Chaque couche propage ses clés suiveuses
+ * (`propagerSuiveuses`). Pour chaque base (clés de la table ∪ bases déclarées), la gamme de COUCHE
+ * est celle de la couche la plus haute qui donne la base : son ombre/sa lumière déclarée dans CETTE
+ * couche, sinon dérivée de la base. Sous surcharge, la base est la couleur choisie et son ombre/sa
+ * lumière reportent l'écart de la gamme de couche (`ecartReporte`) ; une suiveuse suit la surcharge
+ * de sa clé suivie, sauf si la couche qui donne sa base la déclare elle-même.
+ */
+export function buildTokenMap(couches: readonly PaletteDeclaree[], surcharge: Palette = {}): Record<string, string> {
+  const declarees = [COUCHE_DEFAUT, ...couches];
+  const pile = declarees.map(propagerSuiveuses);
+  const ov = stripUndef(surcharge);
+  for (const [f, s] of SUIVEUSES) {
+    if (ov[s] == null || ov[f] != null) continue;
+    const i = coucheQuiDonne(pile, f);
+    if (i < 0 || declarees[i][f] == null) ov[f] = ov[s];
+  }
+  const bases = new Set<string>(CLES);
+  for (const c of pile) for (const k of Object.keys(c)) bases.add(k.replace(/(O|H)$/, ''));
+  const out: Record<string, string> = {};
+  for (const k of bases) {
+    const i = coucheQuiDonne(pile, k);
+    if (i < 0) continue;
+    const couche = pile[i];
+    const choisie = ov[k];
+    out[k] = choisie ?? couche[k];
+    for (const [suf, f, signe] of ROLES) {
+      const deCouche = couche[k + suf] ?? shade(couche[k], f);
+      out[k + suf] = choisie == null ? deCouche : ecartReporte(choisie, couche[k], deCouche, signe);
     }
   }
   return out;
 }
 
-/** Substitue les tokens `@slot`/`@slotO`/`@slotH` d'un fragment SVG via une table prête.
- *  Un token inconnu est laissé tel quel (no-op). Construire la table 1× par rig. */
+/** Sorte porteur : une clé de `PORTEUR`, ou une suiveuse (`SUIVEUSES`) d'une clé de sorte porteur. */
+const estDeSortePorteur = (k: string): boolean =>
+  (PORTEUR as readonly string[]).includes(k) || SUIVEUSES.some(([f, s]) => f === k && estDeSortePorteur(s));
+const CLES_PORTEUR = CLES.filter(estDeSortePorteur);
+
+/**
+ * Table d'un OBJET (arme, armure, bouclier ; #1903 D2) : la même résolution que `buildTokenMap`,
+ * sans aucune clé de sorte porteur (`estDeSortePorteur`). Un `@peau` ou un `dg-` à clé porteur de
+ * l'art d'un objet traverse cette passe intact et se résout à la passe du porteur.
+ */
+export function tableDObjet(couches: readonly PaletteDeclaree[], surcharge: Palette = {}): Record<string, string> {
+  const out = buildTokenMap(couches, surcharge);
+  for (const k of CLES_PORTEUR) for (const suf of ['', 'O', 'H']) delete out[k + suf];
+  return out;
+}
+
+/** Formes du dégradé dérivé `dg-<forme>-…` (#1903 D2) : axe du `<linearGradient>` et arrêts (%),
+ *  un arrêt par couleur. Un arrêt est un jeton `@clé` ou un littéral `#rrggbb` (dette de littéral). */
+export const FORMES_DE_DEGRADE: Record<string, { axe: string; arrets: readonly number[] }> = {
+  v: { axe: 'x1="0" y1="0" x2="0" y2="1"', arrets: [0, 100] },
+  v3: { axe: 'x1="0" y1="0" x2="0" y2="1"', arrets: [0, 55, 100] },
+};
+
+const DEGRADE_RESOLU = /url\(#dg-([a-z0-9]+)((?:-#[0-9a-fA-F]{6})+)\)/g;
+
+/**
+ * Dégradés dérivés d'un fragment dont les `@clé` sont substituées : chaque
+ * `url(#dg-<forme>-#h1-#h2…)` entièrement résolu devient `url(#dg-<forme>-h1-h2…)`, et le fragment
+ * est préfixé d'un `<defs>` portant chaque `<linearGradient>` utilisé qu'il ne définit pas déjà.
+ * L'id est le contenu résolu : deux passes, deux fragments, deux porteurs de même couleur partagent
+ * le même id et le même contenu.
+ */
+function deriverDegrades(svg: string): string {
+  const neufs = new Map<string, string>();
+  const out = svg.replace(DEGRADE_RESOLU, (whole, forme: string, suite: string) => {
+    const f = FORMES_DE_DEGRADE[forme];
+    const couleurs = suite.slice(2).toLowerCase().split('-#');
+    if (!f || couleurs.length !== f.arrets.length) return whole;
+    const id = `dg-${forme}-${couleurs.join('-')}`;
+    if (!neufs.has(id) && !svg.includes(`id="${id}"`))
+      neufs.set(id, `<linearGradient id="${id}" ${f.axe}>` +
+        f.arrets.map((a, n) => `<stop offset="${a}%" stop-color="#${couleurs[n]}"/>`).join('') + '</linearGradient>');
+    return `url(#${id})`;
+  });
+  return neufs.size ? `<defs>${[...neufs.values()].join('')}</defs>${out}` : out;
+}
+
+/** Substitue les jetons `@clé`/`@cléO`/`@cléH` d'un fragment SVG via une table prête, puis résout
+ *  ses dégradés dérivés (`deriverDegrades`). Un jeton inconnu est laissé tel quel (no-op), et un
+ *  `dg-` qui en contient un attend la passe suivante. Construire la table 1× par rig. */
 export function applyTokenMap(svg: string, map: Record<string, string>): string {
-  if (!svg.includes('@')) return svg;
-  return svg.replace(/@([a-zA-Z]\w*)/g, (whole, key: string) => map[key] ?? whole);
+  if (!svg.includes('@') && !svg.includes('url(#dg-')) return svg;
+  return deriverDegrades(svg.replace(/@([a-zA-Z]\w*)/g, (whole, key: string) => map[key] ?? whole));
 }
 
 /** Relève `applyTokenMap` sur un `PartArt` : string → substitution directe ; art directionnel →
@@ -121,42 +222,4 @@ export function applyTokenMapArt(art: PartArt, map: Record<string, string>): Par
         ...(art.back !== undefined && { back: applyTokenMap(art.back, map) }),
         ...(art.profile !== undefined && { profile: applyTokenMap(art.profile, map) }),
       };
-}
-
-/** Commodité : (overrides, stored?) → SVG résolu. Pour 1 fragment ; sinon préférer
- *  buildTokenMap + applyTokenMap (table réutilisée). */
-export function resolveTokens(svg: string, overrides: Palette, stored: StoredPalette = {}): string {
-  if (!svg.includes('@')) return svg;
-  return applyTokenMap(svg, buildTokenMap(stored, overrides));
-}
-
-/**
- * Chair DYNAMIQUE (#583 point 2) : `g_flesh` (`fxGradients.ts`) est un dégradé global FIXE
- * (peau claire), monté une seule fois au niveau du stage — il ne peut donc pas varier par
- * personnage sous ce même id. `fleshGradientId`/`fleshGradientDefs` fabriquent, PAR INSTANCE, un
- * dégradé équivalent dérivé de la peau résolue (`@peauH` → `@peauO`) ; `composeRig.tsx` l'injecte
- * en `<defs>` local et réécrit `url(#g_flesh)` vers cet id quand une part du personnage l'utilise
- * — aucune tenue n'est modifiée, seule la RÉSOLUTION change. Id déterministe (dérivé des hex
- * résolus) : deux personnages de même teinte de peau partagent le même dégradé sans collision.
- */
-/** Stops H/O de la chair — DÉRIVÉS de `peau` via `scale`/`SHADES` (même dérivation que
- *  `buildTokenMap`) quand la map n'en porte pas déjà, jamais un dégradé PLAT (les deux stops
- *  identiques à `map.peau`) : le chemin réel (`composeRig.tsx`, `tmap = buildTokenMap(...)`)
- *  les porte toujours, mais tout appelant qui passerait une palette non résolue (`StoredPalette`
- *  brute) doit recevoir un dégradé qui ombre quand même. */
-function fleshStops(map: Record<string, string>): { h: string; o: string } {
-  const peau = map.peau ?? DEFAULT_PALETTE.peau;
-  const shadeOf = (suf: 'O' | 'H', f: number) => map[`peau${suf}`] ?? scale(peau, f);
-  return { h: shadeOf('H', 1.18), o: shadeOf('O', 0.78) };
-}
-
-export function fleshGradientId(map: Record<string, string>): string {
-  const { h, o } = fleshStops(map);
-  return `g_flesh_${h.replace('#', '')}_${o.replace('#', '')}`;
-}
-
-export function fleshGradientDefs(map: Record<string, string>): string {
-  const { h, o } = fleshStops(map);
-  return `<defs><linearGradient id="${fleshGradientId(map)}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0%" stop-color="${h}"/><stop offset="100%" stop-color="${o}"/></linearGradient></defs>`;
 }

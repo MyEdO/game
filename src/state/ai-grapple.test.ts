@@ -83,7 +83,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
 
   /** Arène à 2 combattants adjacents (e Engagé/Empoigné avec h), tour sur `e`. */
   function arena(): { e: Combatant; h: Combatant } {
-    const e = spawnEnemy('Bandit de Grand Chemin', undefined, 'e', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'e', { x: 5, y: 5 });
     e.kind = 'enemy'; e.movement = 4; e.engagedWith = ['h'];
     e.grapplingWith = ['h'];
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];

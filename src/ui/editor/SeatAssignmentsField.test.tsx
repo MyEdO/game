@@ -17,7 +17,7 @@ function sceneWithTableAndNpc(): Scene {
   const s = emptyScene(8, 8);
   s.entities = [
     { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-    { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
+    { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
   ];
   return s;
 }
@@ -145,7 +145,7 @@ describe('SeatAssignmentsField — authoring des places assises (id-only)', () =
     // Table cernée de murs : aucune case voisine du siège n'est marchable, aucun abord ne se résout.
     s.layers = [{ z: 0, tiles: new Array(8 * 8).fill('mur') }];
     s.layers[0].tiles[2 * 8 + 2] = 'plancher';
-    s.entities[1] = { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Aubergiste' };
+    s.entities[1] = { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, label: 'Aubergiste' };
     const ui = mount(s);
     ui.choose('place-1', 'entity:pnj-aubergiste');
     expect(ui.sceneOf().seatAssignments).toBeUndefined();

@@ -47,9 +47,10 @@ import { SORTIES as SORTIES_DU_REGISTRE } from '../gen-registry.mjs'
 import { execFileResilient, reessayerAuChargement } from '../guards/lib/spawnResilient.mjs'
 import {
   avecPied, CODE_CORPS_PERIME, deltaSourcesLues, empreinteDeLIndex, empreinteDuDisque, ENV_CORPS_RENDUS, existeFichier,
-  fusionnerLectures, hashBlobDisque, ignoresGit, indexGit, lirePied, motifDeRejeu, estUnDocMarkdown,
+  fusionnerLectures, hashBlobDisque, indexGit, lirePied, motifDeRejeu, estUnDocMarkdown,
   serialiserSourcesLues, sha1Corps,
 } from './lib/empreinte-sources.mjs'
+import { ignoresGit } from './lib/chemin-mesure.mjs'
 
 /** `{ runner, script, targets, injecte }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), dont seuls les docs Markdown reçoivent un pied (`estUnDocMarkdown`, cf. la
@@ -161,7 +162,7 @@ export function ciblesSurDisque(cibles, cwd) {
  * mesuré) ou la plateforme (rendu vérifié, jamais mesuré), puis `tsx/esm` (argv, joué après
  * `NODE_OPTIONS`). `plateforme` : `null` = l'hôte. `corps` : le fichier de `ENV_CORPS_RENDUS`.
  */
-function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, cibles, plateforme, corps }) {
+function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, plateforme, corps }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     script,
@@ -175,6 +176,7 @@ function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, cibles, 
   if (lectures) {
     env.WFRP_LECTURES_RACINE = cwd
     env.WFRP_LECTURES_SORTIE = path.join(lectures, 'l')
+    env.WFRP_LECTURES_IGNORES = ignores
     env.WFRP_LECTURES_CIBLE = cibles.join(',')
   }
   return { args, env }
@@ -657,6 +659,10 @@ export async function executer({
   rmSync(racineLectures, { recursive: true, force: true })
   // Le cache de lectures et de corps de ce run se purge à chaque sortie d'`executer`.
   try {
+    // L'ensemble `ignoresGit`, calculé UNE fois, que chaque processus mesuré relit (#1769).
+    const ignoresLectures = path.join(racineLectures, 'ignores.json')
+    mkdirSync(racineLectures, { recursive: true })
+    writeFileSync(ignoresLectures, JSON.stringify([...ignores]))
     const parGenerateur = {}
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const rouges = []
@@ -695,7 +701,10 @@ export async function executer({
       // reçoit le pied : `build-implemente` n'écrit qu'un champ des fiches docs/raw, fichiers manuscrits
       // qu'aucune empreinte ne peut signer, et un registre `*.generated.ts` est du code.
       try {
-        run(g, { cwd, quiet, check, tsxEsm, lectures: dossier, cibles: [...new Set([...ecrites, ...injectees])].sort(), corps: corpsDe(null) })
+        run(g, {
+          cwd, quiet, check, tsxEsm, lectures: dossier, ignores: ignoresLectures,
+          cibles: [...new Set([...ecrites, ...injectees])].sort(), corps: corpsDe(null),
+        })
       } catch (e) {
         transmettreDiagnostic(e, quiet)
         const issue = issueDe(e)

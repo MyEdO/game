@@ -25,8 +25,8 @@ function seatingScene(opts: { propFacing?: Dir8; blocs?: { x: number; y: number 
   const pnj = { ...ABORDS_CAP_N, ...opts.pnjPos };
   const entities: SceneEntity[] = [
     { id: PROP, kind: 'prop', pos: { ...POS }, ref: TABLE, ...(opts.propFacing ? { facing: opts.propFacing } : {}) },
-    { id: 'pnj-1', kind: 'personnage', pos: { ...pnj['pnj-1'] } },
-    { id: 'pnj-2', kind: 'personnage', pos: { ...pnj['pnj-2'] } },
+    { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { ...pnj['pnj-1'] } },
+    { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { ...pnj['pnj-2'] } },
   ];
   // Recoin : chaque bloc est un comptoir SOLIDE (`props.json`) posé sur une case d'abord déclarée.
   opts.blocs?.forEach((p, i) => entities.push({ id: `comptoir-${i}`, kind: 'prop', pos: { ...p }, ref: 'comptoir-droit' }));
@@ -218,7 +218,7 @@ describe('approche EFFECTIVE — une chaise contre un comptoir reste occupable',
 
   it('les 4 places s’occupent simultanément, chaque PNJ posé SUR son abord', () => {
     const scene = recoin({ 'pnj-1': { x: 6, y: 6 }, 'pnj-2': { x: 5, y: 6 }, 'pnj-3': { x: 4, y: 5 } });
-    scene.entities.push({ id: 'pnj-3', kind: 'personnage', pos: { x: 4, y: 5 } });
+    scene.entities.push({ id: 'pnj-3', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 5 } });
     const slots = seatSlotsOf(scene, PROP);
     const occupants: SeatOccupant[] = [PARTY, NPC, { kind: 'entity', entityId: 'pnj-2' }, { kind: 'entity', entityId: 'pnj-3' }];
     let courant: Scene = scene;
@@ -260,8 +260,8 @@ describe('abords réservés à l’échelle de la SCÈNE — un repli ne vole pa
       { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N' },
       { id: 'table-2', kind: 'prop', pos: { x: 6, y: 3 }, ref: TABLE, facing: 'N' },
       { id: 'comptoir-0', kind: 'prop', pos: { x: 5, y: 4 }, ref: 'comptoir-droit' },
-      { id: 'pnj-1', kind: 'personnage', pos: { x: 6, y: 6 } },
-      { id: 'pnj-2', kind: 'personnage', pos: { x: 6, y: 4 } },
+      { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 } },
+      { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 4 } },
     ];
     return s;
   }
@@ -386,7 +386,7 @@ describe('assise — deux places dans la MÊME case de siège restent deux place
     metresPerTile: 10, // à cette échelle le corps de la murale (3,00 m) tient sur UNE case
     entities: [
       { id: 'murale', kind: 'prop', pos: { x: 4, y: 4 }, ref: MURALE, facing: 'S' } as SceneEntity,
-      { id: 'convive', kind: 'personnage', pos: { x: 5, y: 3 } } as SceneEntity,
+      { id: 'convive', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 3 } } as SceneEntity,
     ],
   });
 

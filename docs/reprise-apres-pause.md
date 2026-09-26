@@ -99,7 +99,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 139 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 143 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
@@ -164,7 +164,7 @@ refaire `npm install`.
 | `PreToolUse` | Write \| Edit | `scripts/hooks/enterine-guard.mjs` | Tag [entériné] = validation utilisateur |
 | `PreToolUse` | Write \| Edit | `scripts/hooks/exception-add-guard.mjs` | Ajout d'exception de garde = autorisation utilisateur |
 | `PreToolUse` | Write \| Edit \| mcp__lean-ctx__ctx_patch | `scripts/hooks/memoire-tombale-guard.mjs` | Fiche mémoire : réécrire au présent, jamais une pierre tombale |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/git-destructive-guard.mjs` | Garde git destructif (arbre partagé) |
+| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/commande-piege-guard.mjs` | Commande piège refusée (lien node_modules, git show -- <sha>) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-guard.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/issue-label-guard.mjs` | Ticket sans label refusé (index du backlog) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/runner-fast-reminder.mjs` | Rappel typecheck:fast (tsc nu ~42 s) |
@@ -196,7 +196,7 @@ gates sur CHAQUE branche `chantier/**`, et c'est son verdict — jamais un artef
 autorise une tête à entrer dans `main`. Elle CLASSE d'abord le push
 (`scripts/gates/classerPush.mjs`) : un push dont tous les fichiers changés tombent sous
 `.claude/`, `.agents/`, `.codex/`, `AGENTS.md`, `CLAUDE.md` ne joue que les 9 gates qui LISENT un de
-ces chemins (`docs:check:tout`, `agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:docs`, `deps:unused`, `docs:empreinte`, `test:raw`) ; les 14 autres sont sautées.
+ces chemins (`docs:check:tout`, `agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:docs`, `deps:unused`, `docs:empreinte`, `test:raw`) ; les 15 autres sont sautées.
 
 `npm run ops:publier` joue le train : rebase, docs dérivés, push de la BRANCHE, attente du run CI de
 cette branche, fast-forward de `main`, pilotage. Il refuse à la première étape rouge en la nommant,
@@ -216,18 +216,18 @@ nomme 4 refus, et celui qui exige un run vert ne vaut que pour la ref `main`.
 Ajouter une gate, c'est ajouter UN step à `ci.yml` — rien d'autre ne la récite.
 
 **Rejeu LOCAL `npm run gates`** (`node scripts/gates/toutes.mjs`), un confort de diagnostic, jamais une porte :
-23 gates classées en 3 lanes parallèles de LECTEURS — aucune gate
+24 gates classées en 3 lanes parallèles de LECTEURS — aucune gate
 n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (`docs:check:tout`) :
 
 | Lane | Gates |
 |---|---|
 | `suite` | `test` |
 | `types` | `typecheck`, `lint`, `deps:unused`, `server:typecheck`, `test:agents`, `test:ops`, `test:runner`, `test:recette`, `test:hooks` |
-| `docs` | `docs:check:tout`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `test:docs`, `agents:check`, `build` |
+| `docs` | `docs:check:tout`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `raw:check-renvois`, `test:docs`, `agents:check`, `build` |
 
 Les deux tables vivent dans `scripts/gates/toutes.mjs` : `LANES` pour la répartition ci-dessus,
-`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (23 gates mesurées, dont
-8 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
+`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (24 gates mesurées, dont
+9 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par `WFRP_TEST_COEURS`
 pendant que les autres lanes tournent. Options : `--gates`, `--liste`, `--serie`. Une gate de `ci.yml`
 sans place dans ce plan fait REFUSER le run, avec son nom.
@@ -236,4 +236,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: d4eef10b29222023929d0529e85e68ea9defd391 (24 fichiers, 8 dossiers) corps: 7409b979495a2424ab71e5a9463421dfabc44080 -->
+<!-- sources-empreinte: 4d8d3c4554742b5825ab19084fe5934315148716 (24 fichiers, 8 dossiers) corps: af2ab400479e9db79c7f43cd086ec98502ce5b96 -->

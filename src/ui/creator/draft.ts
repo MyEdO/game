@@ -19,6 +19,7 @@
  * (zéro savescum), et la validation d'étape EXIGE le geste.
  */
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, TalentInstance } from '../../engine/types';
+import { garanti } from '../../state/combatants';
 import { makeRNG } from '../../engine/dice';
 import { Money } from '../../engine/money';
 import {
@@ -406,7 +407,7 @@ export function rollDraftStar(d: CreatorDraft): CreatorDraft {
  *  fiche, aucune mécanique n'y référence un signe). */
 export function rollDraftAstrology(d: CreatorDraft): CreatorDraft {
   const rng = makeRNG(d.seed ^ 0xa57e);
-  const signLabel = (): string => findStarById(rollStar(rng).id)?.label ?? '';
+  const signLabel = (): string => { const id = rollStar(rng).id; return garanti(findStarById(id), id, 'signe astral').label; };
   return { ...d, ascendant: signLabel(), dwellings: celestialHouses.map((h) => ({ house: h.id, sign: signLabel() })) };
 }
 

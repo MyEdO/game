@@ -190,7 +190,7 @@ const HARMFUL_TARGET_OPS = new Set<string>([
  *  Les ops DUAL-SIGNE (`testMod`/`skillMod`/`attrMod`/`charDRBonus`/`sinMod`/`maxWeaponHands`… — la
  *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'any'
  *  est le comportement voulu, jamais 'ally' pour un malus déguisé (Malédiction de malchance, testMod
- *  amount:-10, LDB 49 p.255 — verrouillé par le test dual-signe de targetingModes.test.ts). */
+ *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.test.ts). */
 const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
   'grantWeapon', 'grantNaturalWeapon', 'grantFreeAttack', 'augmentWeapon', 'giveTrapping', 'freeReroll',
@@ -340,7 +340,7 @@ export function previewDifficultyOf(get: Get): DifficultyShown | undefined {
 
 function attackAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
   const battle = get().battle!;
-  // Pièce de siège SERVABLE (poste, MDG 12 / AA 10 p.124) : un poste-porteur qu'on peut REJOINDRE (chef si non
+  // Pièce de siège SERVABLE (poste, MDG 12 / AA 10 l.232) : un poste-porteur qu'on peut REJOINDRE (chef si non
   // servi, renfort sinon) → réticule « Servir » ; le clic rejoint l'équipe (jamais une attaque futile sur l'engin
   // inerte). Prioritaire. SOURCE `serveTargetPoste` (= hotbar/IA). Le tooltip d'ÉQUIPE (IsoStage) montre le détail.
   if (target.postes?.length) {
@@ -607,7 +607,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
         refuserGeste(get, set, t('cs.fearNoApproach', { name: active.label, feared: feared.label }));
         return;
       }
-      set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, intent: { kind: 'entity', id, approche: opts?.approche }, result: null }, battle: { ...get().battle!, preview: null } });
+      set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, sourceName: feared.label, intent: { kind: 'entity', id, approche: opts?.approche }, result: null }, battle: { ...get().battle!, preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
       return;
     }
@@ -618,7 +618,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Résilience) → il DIFFÈRE la déclaration derrière `pendingWard`. `wardCleared` = ce gate a déjà été
   // franchi pour CE clic (relance) → on le saute.
   if (!opts?.wardCleared && hasActiveFlag(target, 'attackWardFM')) {
-    set({ pendingWard: { attackerId: active.id, targetId: target.id, approche: opts?.approche, result: null }, battle: { ...get().battle!, preview: null } });
+    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, approche: opts?.approche, result: null }, battle: { ...get().battle!, preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }

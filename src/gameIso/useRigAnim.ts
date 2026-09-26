@@ -51,7 +51,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
       if (d.from === id) {
         const cs = d.kind === 'spell' ? combatants() : undefined;
         // L'IMPACT part du registre de pistes (`gameIso/fx/animTracks.ts`), sur son horloge propre :
-        // ce hook ne joue plus que le geste. Contrat d'émission unique, garde `animTracks.test.ts`.
+        // ce hook joue seulement le geste. Contrat d'émission unique, garde `animTracks.test.ts`.
         // Geste de l'arme EMPLOYÉE (portée par l'événement) — pas de l'arme principale :
         // la 2e frappe de dague gauche et le tentacule jouent LEUR clip (miroité à gauche).
         const def = rigAttackDef(

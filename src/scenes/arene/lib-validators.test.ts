@@ -47,7 +47,23 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
   });
 
   it('NPC : une tenue par id de CARRIÈRE (sans tenue dédiée) reste valide (résolue par classe)', () => {
-    expect(NPC('t', 0, 0, 'Test', { appearance: { tenue: 'archer' } }).appearance.tenue).toBe('archer');
+    expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue: 'archer' } }).appearance.tenue).toBe('archer');
+  });
+
+  it('NPC : sans fiche, la `ref` est le profil standard de son espèce, posée en QUEUE (LDB 77 l.7, #1882)', () => {
+    const e = NPC('t', 0, 0, 'Test', { appearance: { species: 'nains' } });
+    expect(e.ref).toBe('nain');
+    expect(Object.keys(e).slice(-1)).toEqual(['ref']);
+  });
+
+  it('NPC : sans fiche ni espèce à profil standard → throw qui NOMME le PNJ', () => {
+    expect(() => NPC('t', 0, 0, 'Test', { appearance: { species: 'gnomes' } })).toThrow(/PNJ « t » sans fiche/);
+    expect(() => NPC('t', 0, 0, 'Test', {})).toThrow(/PNJ « t » sans fiche/);
+  });
+
+  it('NPC : un porteur fourni (statblock, presetId) prime — aucune `ref` posée', () => {
+    expect(NPC('t', 0, 0, 'Test', { statblock: { type: 'statblock', label: 'T', char: { B: 10 } }, appearance: { species: 'nains' } }).ref).toBeUndefined();
+    expect(NPC('t', 0, 0, 'Test', { presetId: 'baron', appearance: { species: 'nains' } }).ref).toBeUndefined();
   });
 
   it('optionals : un TraitInstance structuré par id passe intact', () => {

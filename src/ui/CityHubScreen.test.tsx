@@ -105,7 +105,7 @@ describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de pl
   });
 });
 
-describe('restServicePrice — prix d’auberge lus au catalogue trappings (source unique, LDB 66 p.302)', () => {
+describe('restServicePrice — prix d’auberge lus au catalogue trappings (source unique, LDB 66 l.12-16)', () => {
   it('chambre privée == trapping "chambre-privee-nuit"', () => {
     expect(toBrass(restServicePrice('privee'))).toBe(toBrass(priceToMoney(findTrappingById('chambre-privee-nuit')!.price)));
   });

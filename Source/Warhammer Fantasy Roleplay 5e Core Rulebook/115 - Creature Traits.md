@@ -1,6 +1,6 @@
 *Pages PDF 356-363*
 
-# **CREATURE TRAITS**
+# <span id="page-355-0" data-folio="356"></span>**CREATURE TRAITS**
 
 ### **Afraid (Target)**
 
@@ -32,6 +32,8 @@ The creature may lose Momentum to make a Free Attack. The Damage equals Rating a
 
 The creature can enact Blessings, the relevant deity is indicated in parentheses. A creature with this Trait has a Pray Skill at Fel + 10 (or more at the GM's discretion).
 
+## <span id="page-356-0" data-folio="357"></span>**Bounce**
+
 The creature can bounce high, perhaps with powerful limbs, magic, or stubby wings. When Charging, Leaping, or Sprinting, they double their Movement Attribute and can ignore all intervening terrain and creatures as they leap over them.
 
 ### **Breath**
@@ -55,7 +57,7 @@ The creature is an extraordinarily skilled warrior. If they win an Opposed Test 
 
 The creature's touch chills their enemies' souls. If they lose Momentum, then for their Action, they can attempt an Opposed Weapon Skill/Dodge or Melee Test. If they win, the target loses 1d10 + SL Wounds ignoring Toughness Bonus and Armour Points. This attack is *Magical*.
 
-#### **Bounce** XII **Cold-blooded**
+### **Cold-blooded**
 
 The creature is cold-blooded and slow to react. They gain Advantage to Cool Tests. If they gain the *Surprised* Condition, this Condition is not lost the first time it should be (typically at the end of the Round or if they are attacked).
 
@@ -85,7 +87,7 @@ The creature's essence is raw magic, and unholy ichor pumps through what passes 
 
 All their attacks are *Magical*. Roll 1d10 after any blow is received, if the creature rolls Rating or higher, the blow is ignored, even if it is a Critical. They may not use this ability to ignore *Magical*  blows such as those caused by creatures with the *Magical* Trait or weapons with the *Magical* Quality. Should the creature be reduced to 0 Wounds, their soul returns to the Realms of Chaos immediately, removing them from play.
 
-### **Disease (Type)**
+### <span id="page-357-0" data-folio="358"></span>**Disease (Type)**
 
 The creature carries the disease listed, though whether they suffer from the disease is up to the GM. Others will have to Test as appropriate for Contraction (see page 179).
 
@@ -139,6 +141,8 @@ Whether brave, stupid, or just caught up in the moment, the creature is utterly 
 
 The creature is completely immune to a certain type of harm, such as poison, magic, or electricity. All harm of that type, including from a Critical Wound, is ignored.
 
+### <span id="page-358-0" data-folio="359"></span>**Infected**
+
 The creature, or their weapon, carries a nasty infection. If they cause a living opponent to lose Wounds, the opponent must pass an **Easy (+4 SL) Endurance** Test or contract a Festering Wound (see page 180).
 
 ### **Infestation**
@@ -155,7 +159,7 @@ One of the dark powers has marked this creature with a physical brand, proclaimi
 
 **Khorne:** The creature benefits from the Frenzy Talent. This creature gains the *Etiquette* (*Followers of Khorne*) Talent and is subject to *Animosity* towards overt followers of Slaanesh. The creature is also subject to *Animosity* by followers of Slaanesh, so long as the Mark of Khorne is visible. The Character may not use the Language (Magick) or Channelling skills unless it is to dispel a spell. Additionally, they may purchase the following Talents as if they were Career Advances for the normal XP costs: *Berserk Charge, Combat Aware, Combat Reflexes, Furious Assault, Implacable, Magic Resistance, Resistance (Magic), Resolute, Strike Mighty Blow, Warrior Born*.
 
-**Infected** XII **Nurgle:** The creature benefits from a bonus of +10 to its Toughness. This creature gains the *Etiquette* (*Followers of Nurgle*) Talent and is subject to *Animosity* towards overt followers of Tzeentch. The creature is also subject to *Animosity* by followers of Tzeentch, so long as the Mark of Nurgle is visible. Additionally they may purchase the following Talents as if they were Career Advances for the normal XP costs: *Frightening, Hardy, Implacable, Iron Jaw, Menacing, Resistance (Poison), Resistance (Disease), Robust, Tenacious*, and *Very Resilient*.
+**Nurgle:** The creature benefits from a bonus of +10 to its Toughness. This creature gains the *Etiquette* (*Followers of Nurgle*) Talent and is subject to *Animosity* towards overt followers of Tzeentch. The creature is also subject to *Animosity* by followers of Tzeentch, so long as the Mark of Nurgle is visible. Additionally they may purchase the following Talents as if they were Career Advances for the normal XP costs: *Frightening, Hardy, Implacable, Iron Jaw, Menacing, Resistance (Poison), Resistance (Disease), Robust, Tenacious*, and *Very Resilient*.
 
 > **Slaanesh:** The creature gains the *Fearless* (*Everything*) Talent. This creature gains the *Etiquette* (*Followers of Slaanesh*) Talent and is subject to *Animosity* towards overt followers of Khorne. The creature is also subject to *Animosity* by followers of Khorne, so long as the Mark of Slaanesh is visible. Additionally, they may purchase the following Talents as if they were Career Advances for the normal XP costs: *Attractive, Blather, Careful Strike, Combat Master, Gregarious, Inspiring, Lightning Reflexes, Nimblefingered, Resistant (Poison)*, and *Sharp*.
 
@@ -177,9 +181,7 @@ The creature has Chaos on the mind. Roll on the **Mental Corruption Table** foun
 
 The creature can enact Miracles; the relevant deity is indicated in parentheses. A creature with this Trait has a Pray Skill at Fel + 10 (or more at the GM's discretion).
 
-359
-
-### **Mutation**
+### <span id="page-359-0" data-folio="360"></span>**Mutation**
 
 The creature bears a Mutation. Roll on the **Physical Corruption Table** found on page 189.
 
@@ -253,9 +255,7 @@ So, you would need 4 *Size (Average)* creatures to outnumber a *Size (Large)* cr
 
 Conversely, for the sake of larger opponents being daunting enough, they do not themselves count as multiple opponents when working out if they receive a bonus for outnumbering themselves. 2 *Size (Large)* Ogres outnumber 1 *Size (Average)* Human 2 to 1, not 4 to 1.
 
-XII
-
-#### **Stomp**
+#### <span id="page-360-0" data-folio="361"></span>**Stomp**
 
 Creatures that are larger than their opponents may lose Momentum to make one Stomp as a Free Attack, kicking downwards or otherwise bashing smaller opponents out of the way. This attack has a Damage equal to their Strength Bonus and uses *Melee (Brawling)*.
 
@@ -270,6 +270,10 @@ Larger creatures have more Wounds:
 | Large     | (Strength Bonus + (2 × Toughness Bonus) + Willpower Bonus) × 2 |
 | Enormous  | (Strength Bonus + (2 × Toughness Bonus) + Willpower Bonus) × 4 |
 | Monstrous | (Strength Bonus + (2 × Toughness Bonus) + Willpower Bonus) × 8 |
+
+### **Skittish**
+
+The creature is scared by spectacular visible effects of magic or noises such as thunderclaps or explosions. If such occurs, they receive +3 *Broken* Conditions.
 
 ### **Spellcaster (Various)**
 
@@ -295,13 +299,7 @@ If you wish to use Size to make a creature bigger then increase *Strength* and *
 
 *Its Wounds would increase to 26, its fangs would inflict +5 Damage and its Bite would increase to +6 Damage.*
 
-### **Skittish**
-
-The creature is scared by spectacular visible effects of magic or noises such as thunderclaps or explosions. If such occurs, they receive +3 *Broken* Conditions.
-
-361
-
-# **Stupid**
+# <span id="page-361-0" data-folio="362"></span>**Stupid**
 
 While not devoid of self-awareness (and so lacking the *Bestial* Trait), the creature is stupid. If they are near any allies without the *Stupid* Trait, they guide them and nothing happens. Otherwise, they must pass an **Easy (+4 SL) Intelligence** Test at the start of each Round or become very confused. Should this occur, they will drool, perhaps sitting down or picking their nose, doing little of use, losing both their Move and Action for that Turn.
 
@@ -329,6 +327,8 @@ The creature supernaturally causes bone-chilling *Terror*. When first encounteri
 
 The creature's prehensile tongue can wrap itself around prey, dragging it to a grisly end. They may lose Momentum to make a Free Attack. This is a Ranged Attack that does Damage of SB +0. It is up to the GM to decide on the range, though a default is 3 yards for creatures of *Size (Small to Large)* and 12 yards for larger creatures. If the attack hits, the target receives 1 *Entangled* Condition and, if a smaller *Size*, is dragged towards the creature, and is Engaged in melee combat. The creature can then choose whether to release the target, perform a Free Attack using its *Weapon* Trait, or keep the target wrapped in their tongue, initiating a Grapple (see page 167).
 
+# <span id="page-362-0" data-folio="363"></span>**Tracker**
+
 Trackers are adept at following their prey, generally through scent or hearing. The creature is granted the Track Skill at Int +10. This number may be increased at the GM's discretion.
 
 # **Trained (Trained Skills)**
@@ -347,7 +347,11 @@ This Trait represents animals that have been trained through the *Animal Trainin
 
 **Home:** The animal is trained to return home if it is released or lost.
 
-**Magic:** The animal is trained to ignore *Skittish* when it comes to magic, which is required for most mounts used by spellcasters. **Mount:** The animal accepts a rider. Some creatures are especially belligerent, and will not accept a rider without the correct skill. For example, to ride a griffon, you need the *Ride (Griffon)* Skill. **War:** The animal is trained for war, gaining +10 *Weapon Skill*. It can also ignore *Skittish* for loud noises.
+**Magic:** The animal is trained to ignore *Skittish* when it comes to magic, which is required for most mounts used by spellcasters.
+
+**Mount:** The animal accepts a rider. Some creatures are especially belligerent, and will not accept a rider without the correct skill. For example, to ride a griffon, you need the *Ride (Griffon)* Skill.
+
+**War:** The animal is trained for war, gaining +10 *Weapon Skill*. It can also ignore *Skittish* for loud noises.
 
 #### **Undead**
 
@@ -357,7 +361,7 @@ The undead are neither living nor dead, meaning they are not reliant on the usua
 
 The creature's corpus is maintained by foul magics that are inherently unstable in the material realm. Whenever they end a Round Engaged with any opponents who possess Momentum when they do not, the creature is driven back, and the magics holding them together weaken and the creature loses 2 Wounds. If the creature ever reaches 0 Wounds, the magics holding them in place collapse, and they are destroyed or driven back from whence they came.
 
-#### **Tracker** XII **Vampiric**
+### **Vampiric**
 
 The creature feeds on blood and draws great physical strength from this act. Whenever they perform a successful Bite attack against an appropriate opponent, they heal as many Wounds as the opponent loses. Drinking blood in this way is the *only* way they can heal.
 

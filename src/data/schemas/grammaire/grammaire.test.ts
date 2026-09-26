@@ -636,7 +636,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     // DEUX ÉCARTS entre ce que la mesure PERD et ce que `exiges` REPREND, tous deux de la MÊME
     // classe — une entrée MÉTA ou sans prose citable dont la `desc: ""` est purgée, si bien
     // qu'exiger `desc` la refuserait :
-    //   • vague 12  : `talents` (187ᵉ entrée `talent-aleatoire`, vocabulaire de tirage LDB 10 p.132,
+    //   • vague 12  : `talents` (187ᵉ entrée `talent-aleatoire`, vocabulaire de tirage LDB 05 l.484,
     //     exemptée d'obtenabilité par `META_CATALOG_ENTRIES`), purgée par la migration 12a ;
     //   • vague 12b : `species` (5ᵉ entrée `humains-tileens`), purgée par la migration 12b.
     // Les deux renvois viennent NOMMÉMENT de `2026-08-27-l1b-3h-desc-null.mjs:25-28`, verbatim :

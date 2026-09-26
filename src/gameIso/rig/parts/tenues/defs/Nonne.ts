@@ -6,7 +6,7 @@ export const tenue: TenueDef = {
   id: "nonne",
   // `@voile*` peint la GUIMPE/voile de tissu qui encadre tout le visage (tete) et draine le long
   // du torse jusqu'aux épaules — jamais la chevelure du porteur, entièrement couverte par cette
-  // coiffe (#599, garde `no-flesh-in-tenue-palette.test.ts`).
+  // coiffe (#599, garde `no-porteur-in-palette.test.ts`).
   palette: {"vet1":"#cdc2a6","vet1O":"#9c906f","vet2":"#7a5436","vet2O":"#3a2415","voile":"#aebfce","voileO":"#8295a6","voileH":"#d3dde7","metalH":"#caa64a","metal":"#8a6e2a","metalO":"#7a5e1e","cuirO":"#321f12","cuir":"#5a3a26"},
   set: {
     pied: BOTTE_CUIR,

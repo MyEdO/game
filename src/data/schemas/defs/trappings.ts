@@ -7,14 +7,13 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, enumNomme, formulaSchema, moneySchema, sizeCategorySchema } from '../grammaire/valeurs';
+import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/mecanique';
 /** Les Atouts d'un objet passent par la vue COMMUNE `qualityRefSchema` : `quality` n'est PAS un type
  *  de `TYPES` (`grammaire/ref.ts`) — aucune fabrique FK ne le vise, et son ouverture est ancrée
  *  #1615/#1621. La population (438 références, dont 5 à Indice `{id:'taillade', value:1|2}`) est
  *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
-import { REACH_LABELS, REACH_VARIABLE } from '../../../engine/types';
 
 
 export const file = 'trappings.json';
@@ -35,11 +34,6 @@ const weaponDamageSpecSchema = z.union([
   z.strictObject({ literal: z.string() }),
   z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }),
 ]);
-
-/** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
- *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
- *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
-const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
 const weaponRangeSpecSchema = z.union([z.number(), z.strictObject({ bf: z.number() })]);
@@ -186,7 +180,7 @@ const doc = document(
     derivedWeapon: weaponSchema.optional(),
     capabilities: itemCapabilitiesSchema.optional(),
     passive: z.array(gameOpSchema).optional(),
-    /** Tarif de SERVICE (LDB 66 p.302 : chambre/écurie) — pas un objet possédable, cf. `TrappingData.service`. */
+    /** Tarif de SERVICE (LDB 66 l.12-14 : chambre/écurie) — pas un objet possédable, cf. `TrappingData.service`. */
     service: z.boolean().optional(),
   },
   {

@@ -204,7 +204,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     const hLive = st.battle!.combatants.find((c) => c.id === H.id)!;
     const eLive = st.battle!.combatants.find((c) => c.id === E.id)!;
     expect(hLive.conditions.some((c) => c.id === 'empetre')).toBe(true);
-    expect(areGrappling(eLive, hLive)).toBe(true); // `grapple:true` : la touche établit la PRISE (LDB 14 p.163 — l'IA la travaille ensuite, LOT B)
+    expect(areGrappling(eLive, hLive)).toBe(true); // `grapple:true` : la touche établit la PRISE (LDB 14 l.159 — l'IA la travaille ensuite, LOT B)
     expect(eLive.wounds.current).toBeGreaterThan(10); // drainé (Vampirique)
   });
 
@@ -235,7 +235,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(h.conditions.some((c) => c.id === 'empoisonne')).toBe(true);
   });
 
-  // ── Tentacules / Langue préhensile : entame & résolution d'Empoignade (LDB 85 p.343/340) ──
+  // ── Tentacules / Langue préhensile : entame & résolution d'Empoignade (LDB 85 l.405/213) ──
   it('Tentacules : une touche établit la PRISE d’Empoignade (grapple:true, « entame une Empoignade avec ce tentacule »)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();

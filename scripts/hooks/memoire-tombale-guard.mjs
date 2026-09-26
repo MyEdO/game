@@ -22,6 +22,7 @@
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
 import { readFileSync } from 'node:fs'
+import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
 const nu = (ligne) => ligne.replace(/⚠|️/gu, ' ').replace(/^[\s>#*_~–—•!-]+/u, '').trim()
@@ -122,8 +123,10 @@ if (import.meta.main) {
   let input = null
   try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
   const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
-  const decision = input ? evaluate(input, lire) : null
-  if (decision) {
+  // La fiche se juge sous son chemin RÉEL : la mémoire de session s'écrit par une jonction (#1973).
+  const chemin = cheminDEcriture(input)
+  const decision = chemin ? evaluate({ ...input, file_path: chemin.reel }, lire) : null
+  if (decision && !chemin.horsContenu) {
     console.log(JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',

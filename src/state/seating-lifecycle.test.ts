@@ -133,7 +133,7 @@ describe('mort / indisponibilité d’un occupant', () => {
     useGame.setState({ party: [h], battle: null, journal: [] });
     useGame.getState().startScene(testScene);
     const sc = useGame.getState().scene!;
-    const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', pos: { x: 5, y: 4 } };
+    const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 4 } };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } }, badaud];
     const occupant: SeatOccupant = { kind: 'entity', entityId: 'badaud' };
     useGame.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });

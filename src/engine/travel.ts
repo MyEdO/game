@@ -13,7 +13,7 @@
  *  - Coûts de trajet (LDB 51 l.178-189) : « par kilomètre parcouru », diligence Déplacement 6
  *    (Intérieur 2 sous / Extérieur 1 sou par km), barge Déplacement 8 (Cabine 5 / Pont 2 sous
  *    par km) ; « modèles plus rapides/lents : prix ×2 / ÷2, Mouvement ±1 » → paramétrable.
- *  - Fatigue d'Encombrement (LDB 61 p.295, déjà codée) : `encumbrancePenalties().travelFatigue`
+ *  - Fatigue d'Encombrement (LDB 61 l.35-40, déjà codée) : `encumbrancePenalties().travelFatigue`
  *    États Exténué « par journée de voyage » (paliers de surcharge) — enfin consommée ici.
  *
  * Tout est PARAMÉTRABLE par la donnée (carte du monde / route, éditeur) ; les défauts ci-dessous
@@ -25,7 +25,8 @@ import { RNG, defaultRNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
 import { addCondition } from './conditions';
-import { effectiveMovement, encumbrancePenalties } from './encumbrance';
+import { encumbrancePenalties } from './encumbrance';
+import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
 import { rule } from './policy';
 import {
@@ -97,11 +98,10 @@ export const TRAVEL_DEFAULTS = {
   perilDie: 8,
 } as const;
 
-/** Vitesse du groupe à pied = Mouvement EFFECTIF le plus lent (LDB 51 l.193), en km/h. */
+/** Vitesse du groupe à pied (km/h) : `slowestMovement` (LDB 51 l.193) appliqué aux membres qui
+ *  MARCHENT pour le voyage — les vivants. */
 export function partyWalkSpeed(party: Combatant[]): number {
-  const alive = party.filter((c) => !c.dead);
-  if (!alive.length) return 0;
-  return Math.max(0, Math.min(...alive.map((c) => effectiveMovement(c))));
+  return slowestMovement(party.filter((c) => !c.dead));
 }
 
 /** Vitesse de voyage (km/h) selon le mode. `movementOverride` = modèle rapide/lent (M ±1, LDB 51 l.178).
@@ -209,7 +209,7 @@ export function forcedMarchTest(c: Combatant, rng: RNG = defaultRNG): ForcedMarc
   return { line, gained: r.gained, d };
 }
 
-/** Fatigue d'Encombrement d'une journée de voyage à pied (LDB 61 p.295 — `travelFatigue` enfin
+/** Fatigue d'Encombrement d'une journée de voyage à pied (LDB 61 l.35-48 — `travelFatigue` enfin
  *  appliqué) : États Exténué selon le palier de surcharge. Mute `c`, renvoie le journal. */
 export function applyTravelFatigue(c: Combatant): string[] {
   if (c.dead) return [];

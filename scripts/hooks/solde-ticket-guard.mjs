@@ -60,7 +60,7 @@
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
 import {
@@ -68,6 +68,7 @@ import {
 } from '../guards/budget-contexte.mjs'
 import { GitIndisponible, estDansHead, estRepertoire, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
+import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { motifRattachement, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
@@ -315,7 +316,7 @@ export function basenameExecutable(token) {
 /** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU et insensible à
  *  la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte tout préfixe
  *  qu'aucun AUTRE paramètre de la commande ne partage. `noms` = tous ses paramètres. `-1` si absent. */
-export function indexParametre(args, nom, noms = [nom]) {
+function indexParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
   return args.findIndex((a) => {
@@ -539,7 +540,7 @@ export function pipelinesProfonds(command, profondeur = 0, { scripts = scriptsNp
 
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
  *  dans le même ordre (un segment enrobé précède son enrobeur : `cmd /c mklink …` n'a pas
- *  d'argument-chaîne unique, l'invocation vit sur ses arguments recollés — `git-destructive-guard`).
+ *  d'argument-chaîne unique, l'invocation vit sur ses arguments recollés — `commande-piege-guard`).
  *  `profondeur` = niveau d'imbrication de départ, borné par `PROFONDEUR_MAX_ENROBEURS`. */
 export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
@@ -551,7 +552,7 @@ const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--n
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :
  *  `& "C:\Program Files\Git\git.exe" commit …`) est sauté — le contrôle d'exécutable porte alors
  *  sur le BASENAME (sans extension `.exe`/`.cmd`, insensible à la casse). Invariant PARTAGÉ avec
- *  `git-destructive-guard` : « quel git, quelle sous-commande » ne se réécrit pas par garde. */
+ *  `commande-piege-guard` : « quel git, quelle sous-commande » ne se réécrit pas par garde. */
 export function gitSubcommandIndex(segment) {
   const start = segment[0] === '&' ? 1 : 0
   if (segment.length <= start) return -1
@@ -1605,18 +1606,6 @@ export function cibleDeLaCommande(command, cwd = process.cwd(), platform = proce
   return { dir: nomme.resolu, ignore: null }
 }
 
-/** Répertoire que la COMMANDE nomme elle-même, résolu contre `cwd`, SANS sonder le disque : c'est la
- *  question « quel arbre ce geste vise-t-il ? » (`git-destructive-guard` lit l'arbre qui GOUVERNE le
- *  chemin, même pour un sous-dossier absent du disque). « Ce répertoire peut-il servir de cwd à git ? »
- *  est l'autre question, et elle a son hôte : `cibleDeLaCommande`. `null` si la commande n'en nomme
- *  aucun — le répertoire n'est alors pas PROUVÉ, et un appelant qui accorde une permission sur la foi
- *  de l'arbre visé doit le savoir (le cwd persistant du canal Bash n'est observable par aucun hook ;
- *  seul `ctx_shell` transmet un `tool_input.cwd`). */
-export function repertoireNommeParLaCommande(command, cwd = process.cwd(), platform = process.platform) {
-  if (!command) return null
-  return cheminNommeParLaCommande(command, cwd, platform)?.resolu ?? null
-}
-
 /** Répertoire dans lequel le `git commit` de la commande s'exécute réellement — un cwd de SPAWN,
  *  donc la cible PROUVÉE (`cibleDeLaCommande`) ; sinon `cwd` inchangé. */
 export function extractTargetDir(command, cwd = process.cwd(), platform = process.platform, opts) {
@@ -2099,12 +2088,19 @@ export function gesteJuge(command) {
  *  DISTINGUENT : un prédicat booléen confondait « worktree lié » et « pas de dépôt du tout », et une
  *  permission accordée sur la réponse NÉGATIVE se donnait à un chemin inexistant. */
 export function natureDeLArbre(dir = process.cwd()) {
+  const racine = racineDeLArbre(dir)
+  if (racine === null) return null
+  try {
+    return statSync(join(racine, '.git')).isDirectory() ? 'dossier' : 'fichier'
+  } catch { return null }
+}
+
+/** Racine de l'arbre git qui contient `dir` — le premier dossier porté par un `.git` en remontant —,
+ *  ou `null` s'il n'y en a aucun. */
+function racineDeLArbre(dir = process.cwd()) {
   let courant = resolve(dir)
   for (;;) {
-    const point = join(courant, '.git')
-    try {
-      if (existsSync(point)) return statSync(point).isDirectory() ? 'dossier' : 'fichier'
-    } catch { return null }
+    if (existsSync(join(courant, '.git'))) return courant
     const parent = dirname(courant)
     if (parent === courant) return null
     courant = parent
@@ -2116,10 +2112,50 @@ export function estArbrePrincipal(dir = process.cwd()) {
   return natureDeLArbre(dir) === 'dossier'
 }
 
-/** `true` si `dir` (ou un de ses ancêtres) est un WORKTREE LIÉ — preuve POSITIVE, jamais l'absence
- *  d'arbre principal. */
-export function estWorktreeLie(dir = process.cwd()) {
-  return natureDeLArbre(dir) === 'fichier'
+/**
+ * Le chemin d'un `tool_input` d'écriture (`file_path`, sinon `path`), résolu UNE fois à l'entrée d'un
+ * hook : toute la suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut
+ * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base`, puis :
+ * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
+ * qui le contient, ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
+ * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y
+ * taisent (#1973). Deux preuves POSITIVES, tirées de ce MÊME calcul :
+ *   - hors dépôt : `racine` est `null` et l'ancêtre EXISTANT le plus proche n'est pas une racine de
+ *     volume (lecteur absent, rien d'existant sous la racine : `false`, le hook garde) ;
+ *   - ignoré : `git check-ignore -q` sur `reel`, depuis `racine` — un fichier SUIVI qu'un motif
+ *     couvre n'est pas ignoré (`--no-index` absent à dessein).
+ * Évalué au premier accès, une fois : le spawn git ne se paie que dans un dépôt, et seulement quand
+ * le hook a quelque chose à dire. `null` quand le `tool_input` ne porte aucun chemin.
+ * @returns {{ reel: string, racine: string|null, relatif: string, readonly horsContenu: boolean } | null}
+ */
+export function cheminDEcriture(toolInput, { base = process.cwd(), platform = process.platform } = {}) {
+  const brut = toolInput?.file_path ?? toolInput?.path
+  if (typeof brut !== 'string' || brut === '') return null
+  const absolu = resolve(base, versCheminNatif(brut, platform))
+  const ancetre = ancetreExistant(absolu)
+  const reel = canoniser(absolu)
+  const racine = racineDeLArbre(dirname(reel))
+  const posix = (p) => p.split(sep).join('/')
+  let horsContenu
+  return {
+    reel,
+    racine,
+    relatif: racine === null ? posix(reel) : posix(relative(racine, reel)),
+    get horsContenu() {
+      horsContenu ??= racine === null
+        ? ancetre !== null && dirname(ancetre) !== ancetre
+        : ignoreParGit(reel, racine)
+      return horsContenu
+    },
+  }
+}
+
+/** `true` si git PROUVE que `reel` est ignoré dans l'arbre `racine`. Git indisponible, ou dépôt que
+ *  git ne reconnaît pas : aucune preuve, `false` — le hook garde (`gitPorte.mjs`, `sortieOuNull`). */
+function ignoreParGit(reel, racine) {
+  const vu = lireGit(['check-ignore', '-q', '--', reel], { cwd: racine })
+  if (!vu.disponible || vu.absent) return false
+  return sortieOuNull(vu) !== null
 }
 
 /**
@@ -2252,7 +2288,7 @@ export function listeurDImage(args, dir) {
   }
 }
 
-/** Décision d'ensemble d'un cumul de refus (patron de driver partagé avec `git-destructive-guard` :
+/** Décision d'ensemble d'un cumul de refus (patron de driver partagé avec `commande-piege-guard` :
  *  la décision est PORTÉE par l'évaluateur, `deny` à défaut). `null` si aucun refus, sinon la PLUS
  *  STRICTE — un seul `deny` fait basculer tout le cumul — et les raisons jointes. */
 export function decisionCumulee(decisions) {

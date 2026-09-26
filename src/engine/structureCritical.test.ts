@@ -9,7 +9,7 @@ import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
  * (`wounds`, ignore BE/PA), le drapeau d'Effondrement (destruction) et la Blessure Triviale (0 Blessure).
  * NB : `STRUCTURE_CRITICALS` = la table verbatim (`structure-criticals.json`) — on lit ses fourchettes ici.
  */
-describe('rollStructureCritical (AA p.120-121)', () => {
+describe('rollStructureCritical (AA 10 l.112-127)', () => {
   it("Effondrement (96+) : destruction, AUCUNE op `wounds` (la chute à 0 = la BRÈCHE)", () => {
     const r = rollStructureCritical(makeRNG(1), 98);
     expect(r.id).toBe('effondrement');

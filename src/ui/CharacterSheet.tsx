@@ -26,7 +26,7 @@ import { bourseOf } from '../state/bourseFlow';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
 import { spellSupport } from '../engine/spellspec';
 import { spellEffectOps } from '../state/flow';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById } from '../data';
+import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
@@ -206,13 +206,13 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
                 <div className="sheet-idrow">
                   <span className="sheet-idrow-label">Race</span>
                   <span className="sheet-idrow-value">
-                    <CodexRef category="races" id={hero.species} label={findSpeciesById(hero.species)?.label ?? ''}>{speciesSingular(findSpeciesById(hero.species)?.label ?? hero.species)}</CodexRef>
+                    <CodexRef category="races" id={hero.species} label={libelleOuAbsence(findSpeciesById(hero.species), 'race', String(hero.species))}>{speciesSingular(findSpeciesById(hero.species)?.label ?? hero.species)}</CodexRef>
                   </span>
                 </div>
                 <div className="sheet-idrow">
                   <span className="sheet-idrow-label">Carrière</span>
                   <span className="sheet-idrow-value">
-                    <CodexRef category="careers" id={hero.career} label={findCareerById(hero.career)?.label ?? ''}>{careerLabelFor(hero)}</CodexRef>
+                    <CodexRef category="careers" id={hero.career} label={libelleOuAbsence(findCareerById(hero.career), 'carriere', String(hero.career))}>{careerLabelFor(hero)}</CodexRef>
                     {hero.careerLevel ? ` (niv. ${hero.careerLevel})` : ''}
                   </span>
                 </div>

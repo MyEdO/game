@@ -223,8 +223,8 @@ export function commitsDe(ref, n, opts = {}) {
  * UNIQUE de cette résolution : trois copies manuscrites la re-posaient, chacune avec son repli.
  *
  * `git rev-parse --path-format=absolute --git-common-dir` rend le `.git` COMMUN — celui de l'arbre
- * principal, quel que soit le worktree d'où on demande (forme déjà mesurée contre git réel :
- * `scripts/hooks/git-destructive-guard.test.mjs:284`). Son PARENT est l'arbre principal.
+ * principal, quel que soit le worktree d'où on demande (forme mesurée contre git réel :
+ * `scripts/guards/lib/gitPorte.test.mjs:266`). Son PARENT est l'arbre principal.
  *
  * DEUX REFUS NOMMÉS, jamais un repli sur `cwd` : un repli ferait poser un worktree SOUS un worktree,
  * exactement le cas que les outils doivent rendre inexprimable.

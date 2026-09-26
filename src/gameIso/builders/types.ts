@@ -85,8 +85,6 @@ export interface ElBase {
   key: string;
   /** Case d'ancrage. `z` = INDEX DE COUCHE (tri de profondeur), découplé de la hauteur métrique. */
   cell: { x: number; y: number; z: number };
-  /** Empreinte (cases) d'un élément multi-cases (toit, prop 2×2) — profondeur au coin caméra-proche. */
-  span?: { w: number; h: number };
   states: ElStates;
 }
 
@@ -159,9 +157,9 @@ export interface RoofEl extends ElBase {
  *  anim) ; 'terrain' = décor dérivé d'un terrain (`overlayProp`, ex. bois → arbre — 1×1, jamais fouillable) ;
  *  'ornament' = ornement d'IDENTITÉ d'un bâtiment (clocheton/cheminée/enseigne/étal — dérivé de `ArchitectureBody.style`
  *  via `buildingFeatures`) ; 'architecture' = feature authorée d'une façade. */
-export interface BillboardPropEl extends ElBase {
+export type BillboardPropEl = BillboardPropBase & OrigineDecor;
+interface BillboardPropBase extends ElBase {
   kind: 'prop';
-  source: 'entity' | 'terrain' | 'ornament' | 'architecture';
   /** Id stable qualifié `bodyId:facadeSectionId:featureId`. */
   architectureFeatureId?: string;
   /** Id de dessin : le type de décor tel que la donnée le NOMME — jamais normalisé. ABSENT (entité sans
@@ -175,27 +173,29 @@ export interface BillboardPropEl extends ElBase {
    *  ornement de FAÎTE (clocheton) ou de MUR (enseigne) se pose EN HAUTEUR. Honoré par les deux backends
    *  (iso : lift additionnel du token ; POV : hauteur d'ancre du billboard). */
   liftM?: number;
-  /** Id de l'ENTITÉ source — la seule clé dont un élément de décor a besoin : l'OFFRE d'interaction
-   *  ne se recopie pas ici, elle se DÉRIVE de l'entité au moment du rendu (`estUtilisable`,
-   *  `state/usable.ts`), seul endroit qui voie à la fois la scène et les drapeaux d'épuisement.
-   *  Absent pour un overlay terrain. */
-  entId?: string;
 }
+/** ORIGINE d'un décor (`source`), même union pour le billboard et le volume : une feature de façade ou
+ *  un ornement de bâtiment sort en volume par la MÊME règle qu'un prop de scène. Seul un décor d'ENTITÉ de scène
+ *  porte un `entId` — lui seul est désignable au pointeur — et avec lui son EMPREINTE effective au cap
+ *  de l'instance (`builders/props.ts`, `empreinteDuProp`). `entId` est la seule clé dont un élément de
+ *  décor a besoin : l'OFFRE d'interaction ne se recopie pas ici, elle se DÉRIVE de l'entité au moment
+ *  du rendu (`estUtilisable`, `state/usable.ts`), seul endroit qui voie à la fois la scène et les
+ *  drapeaux d'épuisement. */
+export type OrigineDecor =
+  | { source: 'entity'; entId: string; span: { w: number; h: number } }
+  | { source: 'terrain' | 'ornament' | 'architecture'; entId?: never; span?: never };
+/** Un décor d'ENTITÉ de scène : `entId` et `span` présents par construction. */
+export type DecorDEntite = PropEl & { source: 'entity' };
 /** Élément de décor à FACES : un décor dont le TYPE porte une recette volumique (`PropData.volume`) est
  *  compilé en géométrie MONDE (`builders/propVolumes.ts`) et cuit dans la masse commune — il n'a donc
- *  ni vignette ni empreinte de billboard à porter. Ses dimensions restent celles de son TYPE, et sa
- *  provenance est celle de TOUT décor (`source`, même union que le billboard : une feature de façade ou
- *  un ornement de bâtiment sort en volume par la MÊME règle qu'un prop de scène). Seul un décor
- *  d'ENTITÉ porte un `entId` — lui seul est désignable au pointeur. */
-export interface VolumePropEl extends ElBase {
+ *  ni vignette ni empreinte de billboard à porter. Son empreinte d'entité (`span`) est celle de son
+ *  corps au cap de l'instance, comme pour tout décor (`OrigineDecor`). */
+export type VolumePropEl = VolumePropBase & OrigineDecor;
+interface VolumePropBase extends ElBase {
   kind: 'prop';
-  source: BillboardPropEl['source'];
   ref: string;
-  entId?: string;
   /** Cap CARDINAL, jamais diagonal (cf. `Dir4`) — l'émetteur unique le refuse à la donnée. */
   facing: Dir4;
-  /** Empreinte (cases) du décor — profondeur de tri, comme pour son billboard. */
-  span?: { w: number; h: number };
   /** NAPPE PORTEUSE : la masse dont ce décor suit le SORT au dégagement (un ornement de faîte se lève
    *  AVEC son toit au lieu de flotter). Même identité de section et mêmes cellules que les pans. */
   nappe?: { sectionId: string; cells: readonly { x: number; y: number }[] };

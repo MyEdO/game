@@ -1,6 +1,6 @@
 *Pages PDF 230*
 
-# • **MAGIC** •
+# <span id="page-229-0" data-folio="230"></span>• **MAGIC** •
 
 *'Let the cannons thunder and gunners toil. All their fire pales before the will of a mage. Magic does not merely destroy, it commands, reshapes, and decides. On this battlefield, it is the mage who governs fate, and no engineer shall rival him.'*
 

@@ -148,7 +148,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     const a = fixtureScene('scene-t1');
     const b = fixtureScene('scene-t2');
     b.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
-    b.entities.push({ id: 'attable', kind: 'personnage', pos: { x: 2, y: 2 } }); // abord NORD
+    b.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD
     b.seatAssignments = {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
@@ -189,7 +189,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
       useGame.setState({ party: [hero()] });
       const s = fixtureScene('scene-assise');
       s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
-      s.entities.push({ id: 'attable', kind: 'personnage', pos: { x: 2, y: 2 } }); // abord NORD de la table
+      s.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD de la table
       useGame.getState().loadProject([s], 'scene-assise', undefined);
       useGame.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
       expect(useGame.getState().saveGame(1)).toBe(true);

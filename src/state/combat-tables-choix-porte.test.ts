@@ -109,7 +109,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     const parade = { label: 'Dague-épée', name: 'Dague-épée', type: 'melee', damage: { plusBF: true, flat: 2 }, qualities: [parseQualityInstance('piege-lame')!], uid: 'parade-1' } as unknown as Weapon;
     attaquant.weapons = [lame];
     defenseur.weapons = [parade];
-    // Test opposé PERDU par l'attaquant, avec un DOUBLE RÉUSSI du défenseur en PARADE (LDB 13 l.184).
+    // Test opposé PERDU par l'attaquant, avec un DOUBLE RÉUSSI du défenseur en PARADE (LDB 13 l.183).
     const res = {
       hit: false, attackerRoll: 61, netSL: -2, location: 'corps', damage: 0, woundsLost: 0, critical: false,
       advantageTo: 'defender', defenderDefeated: false, log: 'paré',

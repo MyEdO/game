@@ -17,7 +17,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -41,7 +41,7 @@ export interface TheropodProps {
   plumage?: number;
   /** Queue SERPENTINE effilée à pointe retroussée au lieu du balancier à crête. */
   serpentTail?: boolean;
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 const TEETH = '#efe6cf';
@@ -280,11 +280,9 @@ function wing(p: TheropodProps, far: boolean, view: View): string {
   const op = far ? 0.7 : 0.95;
   const sx = view === 'profile' ? -1 : far ? -1 : 1;
   const tilt = view === 'profile' ? (far ? 12 : -2) : -10;
-  const mem = p.stored.aile ? '@aile' : '@cheveux'; // famille @aile si la def la fournit
-  const memO = p.stored.aile ? '@aileO' : '@cheveuxO';
   return `<g opacity="${op}" transform="scale(${(sx * w).toFixed(2)},${w.toFixed(2)}) rotate(${tilt})">` +
-    `<path d="M2 2 C8 -8 15 -22 22 -28 L46 -35 Q42 -25 48 -17 Q38 -12 42 -3 Q31 -1 31 6 Q18 7 2 2 Z" fill="${mem}" stroke="${memO}" stroke-width="0.7"/>` +
-    `<path d="M22 -28 L46 -35 M22 -28 L48 -17 M22 -28 L42 -3 M22 -28 L31 6" stroke="${memO}" stroke-width="0.8" fill="none" opacity="0.8"/>` + // doigts
+    `<path d="M2 2 C8 -8 15 -22 22 -28 L46 -35 Q42 -25 48 -17 Q38 -12 42 -3 Q31 -1 31 6 Q18 7 2 2 Z" fill="@voilure" stroke="@voilureO" stroke-width="0.7"/>` +
+    `<path d="M22 -28 L46 -35 M22 -28 L48 -17 M22 -28 L42 -3 M22 -28 L31 6" stroke="@voilureO" stroke-width="0.8" fill="none" opacity="0.8"/>` + // doigts
     `<path d="M2 2 Q8 -8 12 -15 Q17 -24 22 -28" stroke="@corps" stroke-width="2.8" fill="none" stroke-linecap="round"/>` + // bras porteur
     `<path d="M2 2 Q8 -8 12 -15 Q17 -24 22 -28" stroke="@corpsO" stroke-width="0.9" fill="none" opacity="0.6"/>` +
     `<path d="M22 -28 Q21 -31.5 23.5 -33.5 L25.5 -30.5 Z" fill="@cuir" stroke="#1a140e" stroke-width="0.4"/>` + // griffe de poignet
@@ -360,7 +358,7 @@ export function resolveTheropodFromProps(
 ): ResolvedBone[] {
   const sk = skeletonForView(buildSkeleton(p), view);
   const world = worldTransformsG(sk, pose) as Record<TheropodBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<TheropodBoneId, string> = {
     corps: body(p, view), queue: tail(p, view), cou: neck(p, view), tete: head(p, view), machoire: jaw(p, view),
     brasG: arm(view, true), brasD: arm(view, false), jambeG: leg(p, view, true), jambeD: leg(p, view, false),
@@ -376,7 +374,7 @@ export function resolveTheropodFromProps(
 
 export const THEROPOD_DEFAULT: TheropodProps = {
   sl: 1.1, girth: 1.0, horns: 1.0, muzzle: 1.0,
-  stored: { corps: '#55703c', corpsO: '#28381d', corpsH: '#a3bd68', cheveux: '#39502a', cheveuxO: '#1c2a13', cuir: '#7a755c' },
+  palette: { corps: '#55703c', corpsO: '#28381d', corpsH: '#a3bd68', cheveux: '#39502a', cheveuxO: '#1c2a13', cuir: '#7a755c' },
 };
 
 export function resolveTheropod(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

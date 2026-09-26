@@ -466,3 +466,52 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(useGame.getState().journal.join('\n')).toContain(rowWithSL.label);
   });
 });
+
+/**
+ * #1874 C0 — le FM de palier 2 des Crampes (MSRC 16) jusqu'à SA CONSÉQUENCE, par le VRAI déclencheur
+ * (Activité d'interlude ratée), avec QUATRE héros dont le malade n'est PAS le premier du groupe : la
+ * branche d'échec pose À Terre sur le MALADE, et sur lui seul. La donnée n'est pas touchée — sa feuille
+ * ne déclare pas de `on`, c'est la REPRISE qui sait sur qui la branche d'un Test SUBI tombe.
+ */
+describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE, pas sur le groupe', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllTimers();
+    const party = [1, 2, 3, 4].map((i) => ({
+      ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i) }),
+      id: `h${i}`,
+    }));
+    useGame.setState({ party, battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingTest: null, journal: [] });
+    useGame.getState().startScene(testScene);
+    vi.clearAllTimers();
+    useGame.getState().seedRng(13);
+    useGame.getState().startInterlude(3);
+    draineCascade(useGame.getState);
+  });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('T6 — le malade est le 3ᵉ du groupe : lui seul tombe À Terre', () => {
+    const malade = useGame.getState().party[2];
+    expect(malade.id, 'le sujet ne doit JAMAIS être `party[0]`').toBe('h3');
+    malade.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }];
+    const itl = useGame.getState().interlude!;
+    itl.perHero[malade.id] = { ...itl.perHero[malade.id], fx: undefined, left: 2 };
+    useGame.setState({ interlude: { ...itl }, party: [...useGame.getState().party] });
+
+    useGame.getState().interludeActivity(malade.id, 'revenus');
+    useGame.getState().activityRoll();
+    // Échec « désastreux » (DR ≤ −4) → palier 1 inline (Sonné) + palier 2 en MODALE (Force Mentale).
+    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 99, success: false, sl: -4 } });
+    useGame.getState().activityConfirm();
+
+    const pt = useGame.getState().pendingTest!;
+    expect(pt.actorId, 'le FM de palier 2 se jette chez le malade').toBe('h3');
+    const autresAvant = JSON.stringify(useGame.getState().party.filter((c) => c.id !== 'h3'));
+    useGame.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -2 } });
+    useGame.getState().resolveTest();
+
+    const apres = useGame.getState().party;
+    expect(apres.find((c) => c.id === 'h3')!.conditions.some((c) => c.id === 'a-terre'), 'À Terre sur le malade').toBe(true);
+    expect(JSON.stringify(apres.filter((c) => c.id !== 'h3')), 'un camarade est tombé à la place du malade').toBe(autresAvant);
+  });
+});

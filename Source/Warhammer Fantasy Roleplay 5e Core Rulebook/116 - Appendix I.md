@@ -1,6 +1,6 @@
 *Pages PDF 364*
 
-# **APPENDIX I**
+# <span id="page-363-0" data-folio="364"></span>**APPENDIX I**
 
 # **Changes from Previous Editions**
 
@@ -18,7 +18,7 @@ In this edition, Advantage refers to swapping the results of a die role when doi
 
 The Difficulty of a Test is now expressed differently, applying an SL modifier rather than changed the value of the Skill being Tested. The following table makes this clear, but simply removing the '0' gives the correct SL modifier.
 
-# **DIFFICULTY TABLE**
+**DIFFICULTY TABLE**
 
 | Old Expression   | Meaning            |  |
 |------------------|--------------------|--|
