@@ -32,6 +32,7 @@ import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
+import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
@@ -658,6 +659,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
+            racine="critique"
             desc="jet de la rangée (nœud `test` — Difficulté, compétence, conséquences des deux branches)"
             value={entry.test as NoeudTest | undefined}
             onChange={(v) => edit('test', v)}
@@ -730,7 +732,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {hasConsumable && (
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
-            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }}
+            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
@@ -940,13 +942,13 @@ function ConsumableDurationField({ value, onChange }: { value: ConsumableDuratio
 /** Éditeur des EFFETS d'un sort (`SpellData.effects`) — le `Flow` ÉDITABLE (do/si/test, feuilles
  *  EffectOp). Réutilise le `FlowEditor` de l'éditeur de scène (source UNIQUE de la logique authorée) :
  *  pose des effets mécaniques `on:'target'`/`on:'caster'`, des branches conditionnelles, des Tests. Écrit
- *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). `ctx` vide :
- *  un sort n'a pas d'encounters/dialogues de scène (les transitions/dialogues n'ont pas cours ici). */
+ *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). Racine de
+ *  CATALOGUE `sort` (`ctxDeCatalogue`) : ni encounters/dialogues de scène, et la table de cibles d'un sort. */
 function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onChange: (v: Flow) => void }) {
   return (
     <div className="ed-field">
       <span>effets du sort (Flow éditable — effets mécaniques, conditions, tests)</span>
-      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={onChange} />
+      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={ctxDeCatalogue('sort')} onChange={onChange} />
     </div>
   );
 }
@@ -998,7 +1000,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>

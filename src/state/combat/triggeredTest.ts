@@ -25,7 +25,7 @@
 import { rollTest, resolveOpposed, opposedBranchSuccess, type TestResult } from '../../engine/tests';
 import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
-import { type OpsCtx } from '../../engine/ops';
+import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS } from '../../engine/types';
 import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
@@ -34,10 +34,11 @@ import { type Flow, type FlowTest, type ConditionCtx, evalCondition, flowHasImpu
 import { condCtx } from '../bourseFlow';
 import { buildActorView, combatConditionCtx, flowTestGated } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
-import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze } from '../pendings';
+import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest } from '../pendings';
 import { battleRng } from '../battleRng';
 import { runPureFlowLines, runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
-  differerLaSuite, jouerFlowEntier, OPS_DIFFEREES } from '../combatEffects';
+  differerLaSuite, jouerFlowEntier, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
+import { journaliser } from '../combatLog';
 import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel, type BuiltCascadeStep } from '../rollSeam';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -392,7 +393,7 @@ registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
     if (!hero || !part.result) continue;
     journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
     syncCombatant(get, set);
-    playAfter(get, set, hero, step.meta?.after, step.label ?? 'Effet');
+    playAfter(get, set, hero, step.meta?.after, nomDeSource(step));
   }
   return { consequences: freeCons(journal) };
 });
@@ -461,7 +462,7 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
   const stack: Flow[] = [flow];
-  const label = ctx.label ?? '';
+  const label = ctx.label;
   const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
   while (stack.length) {
     const node = stack.shift()!;
@@ -690,7 +691,7 @@ registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
   syncCombatant(get, set); // refléter la mutation du héros (États) dans party/battle
   // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
   // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
-  playAfter(get, set, hero, step.meta?.after, step.label ?? 'Effet', exec.source);
+  playAfter(get, set, hero, step.meta?.after, nomDeSource(step), exec.source);
   return { consequences: freeCons(journal) };
 });
 
@@ -802,10 +803,10 @@ registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
  * (`woundsDealt`/`sl`/`location`/`attackKind`) lu par les Conditions `if` du Flow (Venin sur PB perdus).
  */
 export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, actor: Combatant, flow: Flow, opsCtx?: OpsCtx): void {
-  // HORS COMBAT (Activité d'interlude — le FM de palier 2 des Crampes, MSRC 16 l.156) : un sous-Test d'un
-  // HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` → `pendingTest`, Chance/Résilience), jamais
-  // inline (doctrine « un jet = une modale » — vaut aussi hors combat). Gate `slThreshold` évaluée d'abord
-  // (openSkillTest ne la connaît pas) ; `noOwnTestFailed` tamponne la ré-entrance (resolveTest ne ré-émet pas).
+  // HORS COMBAT, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
+  // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
+  // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
+  // `noOwnTestFailed` tamponne la ré-entrance (resolveTest ne ré-émet pas).
   if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     if (flowTestGated(flow.test, target, cc)) return; // gate fermée → no-op (identique à la voie inline)
@@ -814,10 +815,56 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
     // Enjeu DÉRIVÉ du porteur si la donnée n'en déclare pas (#1262 V2 L6d) — la modale HORS COMBAT dit
     // ce qui se joue exactement comme l'étape de cascade : même porte, même deux étages.
     const ft = { ...withDerivedStake(flow.test, opsCtx?.source), noSupport: flow.test.noSupport ?? true };
-    openSkillTest(get, set, ft, flow.success, flow.fail, EMPTY_FLOW, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed });
+    // Le pending porte le VOCABULAIRE de la branche (`target`/`caster`) : c'est lui qui, à la reprise,
+    // envoie branche et continuation au marcheur d'ACTEUR (`reprendreTestSubi`) plutôt qu'à celui de
+    // scène. Ids seuls, même prédicat que l'`extraMeta` de l'étape de cascade (`runCombatFlow`,
+    // `case 'test'`) : le lanceur n'entre que lorsqu'il DIFFÈRE du sujet. Le libellé de la source voyage
+    // avec : la reprise la nomme comme la porte en combat (`nomDeSource`, ci-dessous).
+    const subi = {
+      ...(actor.id !== target.id ? { casterId: actor.id } : {}),
+      ...(opsCtx?.label ? { label: opsCtx.label } : {}),
+      ...(opsCtx?.source ? { source: opsCtx.source } : {}),
+    };
+    openSkillTest(get, set, ft, flow.success, flow.fail, EMPTY_FLOW, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed, subi });
     return;
   }
-  runCombatFlow({ mode: 'combat', get, set, target, caster: actor, label: opsCtx?.label ?? 'Effet', opsCtx }, flow);
+  runCombatFlow({ mode: 'combat', get, set, target, caster: actor, label: nomDeSource(opsCtx), opsCtx }, flow);
+}
+
+/**
+ * REPRISE de la branche d'un Test SUBI (`PendingTest.subi`, posé par la porte ci-dessus) — le pendant
+ * de `rejouerLaSuite` en mode `'combat'` (`combatEffects.ts`) pour la modale de Test : la branche et
+ * la continuation d'un Test SUBI parlent `target`/`caster`, vocabulaire que seul `runCombatFlow`
+ * honore (`case 'do'` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
+ * `get()` par ids — jamais capturé : entre l'ouverture et la reprise il y a une modale, donc
+ * potentiellement une save, un rechargement ou un relais coop. La source se nomme comme à la porte en
+ * combat (`nomDeSource`).
+ *
+ * Sujet MORT ou introuvable : la branche n'est PAS jouée, et la conséquence perdue se DIT
+ * (`cascade.cibleDisparue`, comme l'applier `opsDe`). Lanceur irrésoluble : on retombe sur le sujet,
+ * parité avec le combat (`applyTriggeredTestBranch` : `exec?.caster ?? c`).
+ */
+export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success: boolean): Applique {
+  const { casterId, ...gele } = pt.subi ?? {};
+  const label = nomDeSource(gele);
+  const sujet = actorIn(get(), pt.actorId);
+  if (!sujet || sujet.dead) {
+    journaliser(get, set, [t('cascade.cibleDisparue', { label })]);
+    return undefined;
+  }
+  const caster = (casterId ? actorIn(get(), casterId) : undefined) ?? sujet;
+  const branche = success ? pt.onSuccess : pt.onFailure;
+  const avant = comptePasDifferes(get());
+  runCombatFlow({
+    mode: 'combat', get, set, target: sujet, caster, label, opsCtx: { ...gele, sl: pt.sl },
+  }, { kind: 'seq', steps: [branche ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] });
+  // Les lignes de la branche partent dans la file différée (SOURCE UNIQUE des hooks profonds) ; leur
+  // destination est choisie par le ROUTAGE UNIQUE `journaliser` (`combatLog.ts`, #1881), jamais par une
+  // écriture nue de `battle.log` ici.
+  journaliser(get, set, drainPendingLog(get, set).map((e) => e.text), 'condition');
+  // Une feuille partie à la PORTE (#1508) a reçu la suite : l'appelant n'a plus à jouer ses clôtures
+  // devant le dé — même compte canonique que `rejouerLaSuite`.
+  return comptePasDifferes(get()) > avant ? OPS_DIFFEREES : undefined;
 }
 
 /**
@@ -839,7 +886,7 @@ export function bandeTriggeredTest(
   const surfaces: Combatant[] = [];
   for (const c of testeurs) {
     if (surfaceOf(get, c.id)) { surfaces.push(c); continue; }
-    runCombatFlow({ mode: 'combat', get, set, target: c, caster: c, label: opsCtx?.label ?? 'Effet', ...(opsCtx ? { opsCtx } : {}) }, node);
+    runCombatFlow({ mode: 'combat', get, set, target: c, caster: c, label: nomDeSource(opsCtx), ...(opsCtx ? { opsCtx } : {}) }, node);
   }
   if (!surfaces.length) return undefined;
   const ft = withDerivedStake(node.test, opsCtx?.source);

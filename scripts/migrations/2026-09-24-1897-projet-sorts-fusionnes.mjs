@@ -1,22 +1,22 @@
 /**
  * Migration #1897 — un id de sort FUSIONNÉ désigne l'entrée qui l'a absorbé, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 15` : toute place de sort du document est réécrite par la
+ * UN geste, et le document passe en `schema: 16` : toute place de sort du document est réécrite par la
  * primitive `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`, table GELÉE `SORTS_FUSIONNES_1897`)
  * — la MÊME que celle du migrateur de chargement, jamais un second calcul.
  *
- * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[14]` (`src/state/worldMap.ts`), qui
+ * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[15]` (`src/state/worldMap.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur. Parité mesurée par
- * `src/state/projet-migration-14-vers-15.test.ts`, qui joue la MÊME fixture par les deux.
+ * `src/state/projet-migration-15-vers-16.test.ts`, qui joue la MÊME fixture par les deux.
  *
  * ENTRÉES : les `src/scenes/<campagne>/<campagne>-projet.json` ; `src/data/sortsFusionnes.ts` (la
  * primitive et sa table, chargées par Node nu).
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT toute écriture — non
  * canonique = sortie 1, jamais un reflow silencieux. `schema` garde sa POSITION.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * BORNE HAUTE CLOSE (`schema` ∈ {14, 15}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
+ * BORNE HAUTE CLOSE (`schema` ∈ {15, 16}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
  * `schema` futur.
- * FAIL-FAST : `schema` absent, non numérique ou ∉ {14, 15}, `scenes` non-tableau, périmètre vide → rien
+ * FAIL-FAST : `schema` absent, non numérique ou ∉ {15, 16}, `scenes` non-tableau, périmètre vide → rien
  * n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
@@ -29,8 +29,8 @@ const NOM = '2026-09-24-1897-projet-sorts-fusionnes';
 const RACINE = path.join(ROOT, 'src/scenes');
 
 /** Forme du document AVANT et APRÈS ce bump — la borne haute est CLOSE (cf. en-tête). */
-const SCHEMA_AVANT = 14;
-const SCHEMA_APRES = 15;
+const SCHEMA_AVANT = 15;
+const SCHEMA_APRES = 16;
 
 const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 

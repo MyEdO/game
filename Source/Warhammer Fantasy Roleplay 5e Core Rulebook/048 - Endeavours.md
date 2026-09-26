@@ -1,6 +1,6 @@
 *Pages PDF 196-201*
 
-# **ENDEAVOURS**
+# <span id="page-195-0" data-folio="196"></span>**ENDEAVOURS**
 
 Activities Characters undertake between adventures are known as Endeavours. You may choose one Endeavour per week if you are not adventuring, up to a maximum of three Endeavours in each period of downtime.
 
@@ -48,7 +48,7 @@ To advance in your Career, you need to spend some time rubbing shoulders with th
 
 You spend time training one of your animals. Make an **Average (+2 SL) Animal Training** Test. If successful, add one skill to your animal from the *Trained* Creature Trait (see page 363).
 
-# **Banking**
+# <span id="page-196-0" data-folio="197"></span>**Banking**
 
 All the money remaining at the end of your 'Between Adventures' phase is lost before the next adventure begins, unless it is saved with this Endeavour. You have two options when taking the Banking Endeavour:
 
@@ -89,7 +89,7 @@ You may undertake the *Consult an Expert* Endeavour either to facilitate another
 
 First, you must locate an expert, unless you already know one. Make a **Challenging (+0 SL) Gossip** Test. On a success, you find a genuine expert. On a failure, you instead find the loudest self-proclaimed authority in the area, and the quality of their advice is up to the GM.
 
-Experts rarely give their time freely. They may require payment, or ask you to perform one or more Favours (see **Do Me a Favour!**, page 200), which can be called upon during a future adventure or 'bought off ' by spending Endeavours between future adventures. The GM determines what, if anything, the expert demands.
+<span id="page-197-0" data-folio="198"></span>Experts rarely give their time freely. They may require payment, or ask you to perform one or more Favours (see **Do Me a Favour!**, page 200), which can be called upon during a future adventure or 'bought off ' by spending Endeavours between future adventures. The GM determines what, if anything, the expert demands.
 
 The information you receive depends on both the expert consulted and the questions you ask. Academics know the history of their subjects, wizards of the Colleges of Magic understand magic and mystical artefacts — especially those of their own Order — Apothecary Generals can identify even the rarest poisons, and Verenan scholars recall countless historical events. Every expert presents their knowledge through the lens of their own experience and biases.
 
@@ -101,7 +101,7 @@ Crafting allows you to make any trapping from **Chapter 11: Consumer Guide** (or
 
 To craft the Trapping, attempt an Extended Trade Test, with a Difficulty set by the GM, typically using the Trapping's Availability as a loose guide.
 
-# **CRAFTING DIFFICULTY**
+**CRAFTING DIFFICULTY**
 
 | Availability | Difficulty          |
 |--------------|---------------------|
@@ -110,7 +110,7 @@ To craft the Trapping, attempt an Extended Trade Test, with a Difficulty set by 
 | Rare         | Difficult (-1 SL)   |
 | Exotic       | Very Hard (-3 SL)   |
 
-# **CRAFTING SL REQUIRED**
+**CRAFTING SL REQUIRED**
 
 | List Price | SL  |
 |------------|-----|
@@ -136,13 +136,13 @@ If successful, you can attempt a Charm Test during your next adventure to rally 
 
 Once you have successfully fomented dissent, you may try to turn the mob against a different target during the same adventure, though the Charm Test is two Difficulty levels harder.
 
-#### **Income**
+#### <span id="page-198-0" data-folio="199"></span>**Income**
 
 Most people resume their usual employment between bouts of adventuring. Bounty Hunters hunt bounties, Riverwardens ward rivers, Troll Slayers slay trolls — in the modern Empire, some even rely on a lucrative skill not featured in their job title. Wealthier Characters, such as Nobles and Merchants, might collect a stipend by (briefly) indulging their family, or collecting interest on their investments and business ventures. Roguish types have any number of means to acquire funds, though it's best not to ask for details.
 
 Take the *Income* Endeavour to represent your Character working in their chosen Career. Make an Average (+2 SL) Test using the ***Earning Skill*** listed in bold italics in the first Level of your Career. On a success, you earn income based on the **Status**  of your current Career Level, as shown below.
 
-# **EARNED INCOME**
+**EARNED INCOME**
 
 | Status Tier | Income                                   |
 |-------------|------------------------------------------|
@@ -177,7 +177,7 @@ If you do not take the *Income* Endeavour during Downtime, you neglect your Care
 
 For Characters at the highest Level of their Career, neglecting the demands of their position has more lasting consequences. See **Burdens of Power**, page 196.
 
-#### **The Latest News**
+#### <span id="page-199-0" data-folio="200"></span>**The Latest News**
 
 This Endeavour allows you to learn the latest news from afar. Attempt a **Challenging (+0 SL) Gossip** Test. On a success, you hear an interesting rumour, with your SL determining how accurate and detailed it is. The news may relate to an upcoming adventure, events elsewhere in the region, or anything else the GM considers appropriate. If you fail particularly badly (an Impressive Failure) you learn something false you are convinced is true. To facilitate this, the GM may want to make the Gossip Test in secret on your behalf.
 
@@ -205,7 +205,7 @@ Favours come in three levels: Minor, Major, and Significant. Regardless of a Fav
 
 In the Old World, breaking one's sworn word carries significant social ramifications. No-one trusts oath breakers, meaning your Status is reduced by 1 Tier (see page @@). Powerful and dangerous folks tend to take it very, very poorly if someone refuses a Favour owed them, so bloody consequences may follow.
 
-# **Study a Mark**
+# <span id="page-200-0" data-folio="201"></span>**Study a Mark**
 
 Use this Endeavour to observe a potential target and gain advantages during future criminal enterprises. A Charlatan may study a merchant in order to better impersonate them during a future scam, or a Thief may spend time watching the comings and goings of a warehouse's guards to get an idea of their patrol routes.
 

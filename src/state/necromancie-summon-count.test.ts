@@ -25,7 +25,7 @@ function setup(foes: number): Combatant {
   const necro = spawnEnemy({ ref: 'necromancien' }, 'necro', { x: 5, y: 5 });
   necro.kind = 'enemy';
   const others = Array.from({ length: foes }, (_, i) =>
-    Object.assign(spawnEnemy({ ref: 'bandit-de-grand-chemin' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
+    Object.assign(spawnEnemy({ ref: 'brigand' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
   );
   const combatants = [necro, ...others];
   const ids = combatants.map((c) => c.id);

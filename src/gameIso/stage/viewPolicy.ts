@@ -79,7 +79,7 @@ export interface StyleVue {
    *  un fond et non un outil. */
   grilleTactique: boolean;
   /** Un couple MONTÉ se rend-il en deux pions distincts (`buildTokens`, paramètre `top`) ? Vu à la
-   *  verticale, le cavalier se peint SUR sa monture et le composite ne montre plus qu'un corps ; deux
+   *  verticale, le cavalier se peint SUR sa monture et le composite montre seulement un corps ; deux
    *  disques côte à côte gardent les deux unités lisibles et cliquables. */
   montesDissocies: boolean;
   /** Les PIONS (combattants, meneur de groupe, figurants) se rendent-ils en DISQUES-PORTRAITS de la

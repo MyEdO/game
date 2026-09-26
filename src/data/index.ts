@@ -2162,7 +2162,7 @@ export interface SpellData {
     consequences: string;
   };
   /** Famille d'incantation STABLE (id, multilangue) — DISCRIMINANT moteur (familyOf / isArcaneSpell /
-   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus n'est plus qu'un libellé d'affichage. */
+   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus est un libellé d'affichage. */
   family: import('../engine/combatFeatures/types').CastingKind;
   /** Niveau d'Incantation (NI). `null` pour les Prières (Béni/Invocation). */
   cn: number | null;
@@ -2864,7 +2864,16 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): string {
-  return weatherData.seasons.find((s) => s.id === id)?.label ?? `saison « ${id} » (sans fiche)`;
+  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+}
+
+/** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
+ *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+/** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
+ *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
+export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): string {
+  return e ? e.label : t(`absent.${nature}`, { id });
 }
 /** Effets par météo (visibilité, mods de tir, poudre, Tests physiques, plafond de mouvement…). */
 export const weatherConditions = weatherData.conditions;
@@ -3020,6 +3029,27 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
+/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
+ *  (`vehicles.json` facette `hull`, MDG 13), affût d'engin de siège (`trappings.json` `siegeRig`, AA 10).
+ *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
+ *  spawn (`spawnEnemy`) la lisent ici. */
+export function refEntiteResolue(ref: string): boolean {
+  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+}
+/**
+ * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
+ * catalogue (#877, #1882). Un catalogue VIDE n'a PAS de défaut : l'appelant le DIT, jamais un littéral.
+ */
+export const premierOffert = (catalogue: readonly { id: string }[], quoi: string): string => {
+  const premier = catalogue[0];
+  if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
+  return premier.id;
+};
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
+ *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
+export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
+export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
 /** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
  *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572).
  *  Même vocabulaire que `sizeFromTalents` (engine/character.ts) : la plus grande catégorie parmi

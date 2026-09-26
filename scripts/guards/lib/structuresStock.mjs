@@ -345,7 +345,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "diligence-projet.json", champ: "reliefDefaults", signature: "cliff,deck,pilier,ramp", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "diligence-projet.json", champ: "roofDefaults", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-09-09" },
   { concept: "reference", dataset: "diligence-projet.json", champ: "scene", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-31" },
-  // #1715 : le TYPE de bâtiment d'un corps architectural (`ArchitectureBody.style`) résout désormais
+  // #1715 : le TYPE de bâtiment d'un corps architectural (`ArchitectureBody.style`) résout
   // contre `buildings.json` (`idDe('building')`, `defs-scenes/scene.ts`) — la même valeur `maison`
   // qu'avant, mesurée comme la référence qu'elle est. La ligne sœur `arene-projet.json | style` (2) est
   // MORTE au même geste : ses deux corps COMPOSITES (le Bourg, Felsbach) ne portent aucun type de
@@ -415,7 +415,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "maladies.json", champ: "symptoms", signature: "symptomId", statut: "divergente", strate: "Référence", occurrences: 47, lot: "L3 #1463", date: "2026-08-23" }, // +5 : Pneumonie (3) + Rhume commun (2), EDOC 08 folio 33 (#674)
   // 13 → 14 (#1657 B2b) : la 8ᵉ réf de symptôme à Difficulté PROPRE avait sa ligne à elle, sa valeur
   // `difficile` RÉSOLVANT vers un id de `sea-events.json`. En adoptant `noeudTest(flowSchema)`, le
-  // document déclare désormais `difficulty` par `difficultySchema` (`z.enum`, `grammaire/valeurs.ts`)
+  // document déclare `difficulty` par `difficultySchema` (`z.enum`, `grammaire/valeurs.ts`)
   // au lieu du `z.string()` de son `dailyTest` propre — et une clé dont la valeur est un LITTÉRAL
   // D'ENUM du schéma n'ouvre jamais de référence : l'homonyme meurt, la projection replie en `+…`.
   { concept: "reference", dataset: "maladies.json", champ: "symptoms", signature: "symptomId+…", statut: "divergente", strate: "Référence", occurrences: 14, lot: "L3 #1463", date: "2026-08-23" },
@@ -450,7 +450,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "pregens.json", champ: "career", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 8, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CARRIÈRE" },
   { concept: "reference", dataset: "pregens.json", champ: "species", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 8, lot: "L3 #1463", date: "2026-08-30", motif: "référence d’ESPÈCE" },
   { concept: "reference", dataset: "props.json", champ: "light", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-23" }, // 3→6 : +3 OCCURRENCES — les trois luminaires allumés par #1680 ligne 5 (`applique-murale`, `lustre-opera`, `lanterne-de-poupe`) portent un `light.tone`, de la MÊME forme que les trois déjà comptés
-  { concept: "reference", dataset: "props.json", champ: "primitives", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 297, lot: "L3 #1463", date: "2026-08-23" }, // 89 → 172 : les 11 recettes du LOT A #1644 ; 172 → 297 (#1343 lot B, 2026-09-21) : les 17 recettes du mobilier d'opéra/théâtre, même forme à l'identique
+  { concept: "reference", dataset: "props.json", champ: "primitives", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 379, lot: "L3 #1463", date: "2026-08-23" }, // 89 → 172 : les 11 recettes du LOT A #1644 ; 172 → 297 (#1343 lot B, 2026-09-21) : les 17 recettes du mobilier d'opéra/théâtre, même forme à l'identique ; 297 → 379 (#1343 lot C, 2026-09-26) : les 7 recettes des décors organiques (dont les deux mannequins), même forme, roues de la `charrette` en cylindres couchés
   { concept: "reference", dataset: "psychology.json", champ: "becomes", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "psychology.json", champ: "failCondition", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "psychology.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -535,7 +535,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 15, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
-  // 34 -> 35 (#1508 T3, 2026-09-07) : l'op `domeWard` du sort Dôme NOMME désormais le Trait qu'elle
+  // 34 -> 35 (#1508 T3, 2026-09-07) : l'op `domeWard` du sort Dôme NOMME le Trait qu'elle
   // octroie (`traitId`, `LDB 47 l.410`) au lieu de le taire ; même graphie, une occurrence de plus.
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 35, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "trappingId+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
@@ -774,7 +774,7 @@ export const STRUCTURES_DEFAUT = [
 ];
 
 /** Nom du lexique porté par PLUSIEURS classes de valeur à la fois (#1463 S2 : un nom de concept est
- *  réservé à son type) : une ligne disparaît quand le nom ne porte plus qu'UNE classe.
+ *  réservé à son type) : une ligne disparaît quand le nom porte seulement UNE classe.
  *  `cost` est sorti au L-monnaie-4 (2026-09-01) : les 55 coûts du Tour (`actions.json` → `coutAction`),
  *  les 21 barèmes d'installation navale (→ `installation`), les 6 paliers de prothèse (→ `px`, LDB 73
  *  l.19/23), le coût d'Avantage d'une réaction de défense (→ `avantage`) et les deux coûts d'Avantage du
@@ -814,7 +814,7 @@ export const STRUCTURES_REDECLARATIONS = [
   { def: "land-cargo.ts", champ: "gossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "bonusOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "charOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
-  { def: "miscast.ts", champ: "", concept: "", signature: "dice", statut: "hors lexique", commun: "prixTireSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" }, // `commun` recalé au 2026-09-01 (#1463 L-gram-3) : le littéral `{dice}` de la grammaire que le scan nomme est désormais `prixTireSchema` — MÊME signature, même ligne, aucun déplacement de porteur
+  { def: "miscast.ts", champ: "", concept: "", signature: "dice", statut: "hors lexique", commun: "prixTireSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" }, // `commun` recalé au 2026-09-01 (#1463 L-gram-3) : le littéral `{dice}` de la grammaire que le scan nomme est `prixTireSchema` — MÊME signature, même ligne, aucun déplacement de porteur
   { def: "miscast.ts", champ: "", concept: "", signature: "engagedAdvantageGap", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "indiceOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "rolled", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
@@ -969,7 +969,7 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "disponibilite.json", champ: "dispoPct", signature: "availability,pct,source", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "domains.json", champ: "cancelledBy", signature: "circumstance,desc,requiresSkill,source,sustained,test", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "domains.json", champ: "windModifiers", signature: "cancelledBy,desc,dr,source,tests", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
-  // 17 → 19 (#1715, 2026-09-09) : AUCUNE donnée neuve. Les circonstances de `when` sont désormais un
+  // 17 → 19 (#1715, 2026-09-09) : AUCUNE donnée neuve. Les circonstances de `when` sont un
   // vocabulaire FERMÉ (`domainCircumstanceSchema`, `defs/domains.ts`) — elles n'ouvrent plus de
   // référence, et les 2 rangs qui résolvaient par HOMONYMIE (`tour`, `middenheim`) rejoignent leurs 17
   // sœurs sous la signature commune.
@@ -1258,7 +1258,7 @@ export const STRUCTURES_OPS = [
   { op: "grantTalent", signature: "op,talentId", dataset: "traits.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTalent", signature: "op,talentId", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "op,traitId", dataset: "mutations.json", occurrences: 19, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTrait", signature: "op,traitId", dataset: "spells.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" }, // −1 (#862) : le Désespoir accordé porte désormais sa durée (ligne suivante)
+  { op: "grantTrait", signature: "op,traitId", dataset: "spells.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" }, // −1 (#862) : le Désespoir accordé porte sa durée (ligne suivante)
   { op: "grantTrait", signature: "durationHours,op,traitId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "mutations.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "op,traitId", dataset: "tables.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" },

@@ -1,6 +1,6 @@
 *Pages PDF 353-354*
 
-# **CREATURE TEMPLATES**
+# <span id="page-352-0" data-folio="353"></span>**CREATURE TEMPLATES**
 
 The templates provided here are suggestions for quick ways to create a more forbidding creature able to provide greater challenge to an adventuring party. They represent experienced soldiers, fierce commanders, or wily spellcasters. Following the templates is Ungrakk's Brayherd, a group of Beastmen created using the templates as an example.
 
@@ -96,7 +96,7 @@ Combat Aware, Combat Reflexes, Resolute
 
 *\* Wounds need to be increased due to changes to S, T, and WP.*
 
-# **Spellcaster**
+# <span id="page-353-0" data-folio="354"></span>**Spellcaster**
 
 This creature displays some magical talent and has a small suite of spells with which to confound their foes. This template may help represent a Goblin Shaman, Ogre Butcher, or Necromancer.
 

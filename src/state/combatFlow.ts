@@ -139,14 +139,14 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, inBattleId, garanti } from './combatants';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
@@ -1812,7 +1812,7 @@ export function applyCriticalToTarget(
   // Le(s) Test(s) que la Blessure impose (LDB 18 : « Réussissez un Test de Résistance… » ; l.74 pour un
   // déclencheur de séquelle) passent par la PORTE canonique, APRÈS la révélation du Critique : le SOCLE
   // seul décide de la surface (porteur tenu → étape influençable ; sinon voie inline). Patron
-  // `MiscastResult.testFlow` (l.4146). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
+  // `MiscastResult.testFlow` (`finishMiscast`). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
   // ci-dessus est gaté pareillement) — le Test n'a plus d'objet.
   if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { label: crit.label });
   return crit.lethal; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
@@ -1856,7 +1856,7 @@ export function applyHullCriticalToTarget(
     });
   }
   // Les Test(s) que la rangée impose passent par la PORTE canonique, APRÈS la révélation — mêmes deux
-  // voies que `applyCriticalToTarget` (l.1801), et le socle seul décide de la surface :
+  // voies que `applyCriticalToTarget`, et le socle seul décide de la surface :
   //  · Localisation « Équipage » → le marin encaisse un Critique de PERSONNAGE, dont le nœud de rangée
   //    (LDB 18) est celui de `resolveCritique` ;
   //  · sinon → le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins :
@@ -4100,7 +4100,7 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
         checkBattleOver(get, set);
       }
     }
-    // Attaques de ZONE/spéciales (Souffle/Vomi/Langue/Hurlement) : désormais des UNITÉS de la file — une
+    // Attaques de ZONE/spéciales (Souffle/Vomi/Langue/Hurlement) : des UNITÉS de la file — une
     // manœuvre de zone qui touche des HÉROS ouvre une cascade de défense INFLUENÇABLE (elle SUSPEND), donc
     // elle doit être RÉSUMABLE : la file est persistée sur l'ennemi ; la reprise re-appelle
     // `aiCreatureFreeAttacks` (file DÉFINIE → bloc d'init sauté, on enchaîne l'unité suivante). Ordre RAW
@@ -6696,7 +6696,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     // utilisateur) : cadence-aware (héros manuel → cascade influençable). Si une cascade s'ouvre, on DIFFÈRE
     // la victoire — sa fermeture (`combatEndBoundary`) enchaîne sur `finishCombatEnd`/`finishVictory`.
     // Slot occupé par une cascade de SETUP (Surprise, purpose 'combat') : on DIFFÈRE sans ouvrir plutôt
-    // que d'y APPENDRE les Tests de fin (`startCascade` appende désormais à même `purpose`, #942 L1) —
+    // que d'y APPENDRE les Tests de fin (`startCascade` appende à même `purpose`, #942 L1) —
     // l'écran de victoire ne doit pas dépendre de la résolution d'une séquence de setup. À la clôture de
     // cette cascade 'combat', `dispatchCascadeDone` (combatSlice) RE-VÉRIFIE `checkBattleOver` — slot LIBRE
     // → il OUVRE alors la cascade de fin (#345). C'est ce re-check déterministe (PAS `resumeSuspendedAI`, qui
@@ -7002,7 +7002,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // refresh-wounds 20 → triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
       // Détermination 70/72 → broken-recovery 74 → tail 76-79.5 → règles optionnelles (se-fatiguer 80).
       // (Mâchoires d'acier n'est plus un hook de Round : c'est un effet `onGainCondition` data-driven.)
-      // advanceTurn n'orchestre plus que le CADRE (Round, ordre, révélation) ; le CONTENU vit en hooks.
+      // advanceTurn orchestre seulement le CADRE (Round, ordre, révélation) ; le CONTENU vit en hooks.
       // (Frénésie : l'Arme libre est un grant de DONNÉE plafonné par freeAttacksThisTurn, remis à zéro au tour.)
       // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`
       // (roundHooks, bus-owned) restent la machinerie du bus. Sans `audience`/`self` → diffusion data
@@ -7249,7 +7249,7 @@ export function sealApproachMoves(get: Get, set: SetFn, c: Combatant | null | un
 }
 
 /** SEULE couture qui pose `acted` (Action du Tour consommée) : elle scelle du même geste les
- *  déplacements en attente de l'acteur — une Action prise interdit désormais `cancelMove`, donc le
+ *  déplacements en attente de l'acteur — une Action prise interdit `cancelMove`, donc le
  *  déplacement est irrévocable et son approche est due (LDB 21 l.27). Rend le `BattleState` à poser. */
 export function markActed(get: Get, set: SetFn, battle: BattleState): BattleState {
   sealApproachMoves(get, set, inBattleId(battle, battle.order[battle.turn]));
@@ -7311,7 +7311,7 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
   for (const p of state) {
     if (p.type === 'peur' && (p.calmeDR ?? 0) < (p.indice ?? 0) && p.lastTestRound !== battle.round) {
       const src = inBattleId(battle, p.sourceId);
-      return { kind: 'peur', sourceId: p.sourceId!, sourceName: src?.label ?? '', indice: p.indice ?? 1, prevDR: p.calmeDR ?? 0 };
+      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: p.indice ?? 1, prevDR: p.calmeDR ?? 0 };
     }
   }
   return null;
@@ -7458,7 +7458,7 @@ export function openRoundStartPsych(get: Get, set: SetFn): void {
  * `roundBoundary` (poison-resist/broken-recovery/se-fatiguer). Ordre choisi : upkeep AVANT la
  * Peur (les effets de Round RAW — dont les hooks ennemi — précèdent la révélation/Psychologie de fin
  * de Round, et la sortie d'un État Sonné/Brisé peut influer sur l'état d'esprit) ; ENTRE familles cet
- * ordre est conservé, mais il vaut désormais famille par famille (tous les upkeeps, puis les bandes)
+ * ordre est conservé, mais il vaut famille par famille (tous les upkeeps, puis les bandes)
  * et non plus héros par héros — une bande est UNE question posée à N héros, elle ne peut pas
  * s'entrelacer avec l'entretien de chacun d'eux. Appelée au franchissement de Round APRÈS
  * l'entretien/le Destin ; suspend l'IA jusqu'à résolution.
@@ -7632,7 +7632,7 @@ function aiSelectLoadout(set: SetFn, enemy: Combatant, battle: BattleState): voi
   enemy.activeLoadoutId = want.id;
   recomputeLoadout(enemy);
   const drawn = enemy.weapons.find((w) => w.type === (want === meleeSet ? 'melee' : 'ranged'));
-  battle.log.push(ev('detail', tr('cs.draw', { name: enemy.label, weapon: drawn?.label ?? '' }), enemy.id));
+  battle.log.push(ev('detail', tr('cs.draw', { name: enemy.label, weapon: garanti(drawn, want.id, 'arme du set dégainé').label }), enemy.id));
   set({ battle: { ...battle } });
 }
 
@@ -7784,7 +7784,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // chemin ; le couple est solidaire (positions synchronisées à l'exécution du « move »).
   const geom = mountOf(battle, enemy) ?? enemy;
   // Entrée de l'IA MUTUALISÉE (sorts résolus + escouade/orientation/perception/mouvement/vol/blocage).
-  // « Vient d'enfourcher » → Mouvement consommé ce tour (l'IA n'a plus que son Action).
+  // « Vient d'enfourcher » → Mouvement consommé ce tour (l'IA a seulement son Action).
   let input = buildAiInput(enemy, get);
   if (justMounted) input.movement = 0;
   let action = chooseEnemyAction(input);
@@ -7999,14 +7999,13 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const rt = resolveRecoverTest(enemy, action.state, battle);
       if (!rt) return advanceTurn(get, set); // État non récupérable par Action (pas de `recover` en donnée)
       let success: boolean, netSL: number;
-      if (rt.opposed && rt.opponentValue != null && rt.opponentBase != null) {
-        // LDB 12 l.160 : les DEUX camps portent leur nue (`resolveRecoverTest` les pose ENSEMBLE, jamais
-        // l'une sans l'autre), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
+      if (rt.opposition) {
+        // LDB 12 l.160 : les DEUX camps portent leur nue (`RecoverOpposition` les porte ENSEMBLE), comme la voie joueur (`FLOWS.recover`) — mêmes accesseurs.
         // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `rec.difficulty` (donnée), l'entrave
         // roule `intermediaire` — MÊME choix qu'au flux joueur (`FLOWS.recover`), verrouillé par
         // `combat/ai-recover-departage-nue.test`.
-        const opp = opposedTest(rt.skillValue, rt.opponentValue, battleRng(), rt.difficulty, 'intermediaire', {
-          attacker: rt.skillBase, defender: rt.opponentBase,
+        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, 'intermediaire', {
+          attacker: rt.skillBase, defender: rt.opposition.base,
         });
         success = opp.attackerWins; netSL = opp.netSL;
       } else {

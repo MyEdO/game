@@ -78,7 +78,7 @@ Deux conséquences structurelles de cet ordre :
 Cette même procédure est **rappelée à l'identique** partout où le livre décrit un engagement du joueur :
 
 - en combat, l'**Action** d'un tour — décrire, la GM décide si un Test est requis, narration du résultat (`CRB 034 l.23-25`, aire `combat`, fiche à extraire) ;
-- en interaction sociale, le joueur qui ne joue pas la scène explique tout de même ce qu'il cherche avant que la GM décide du Test (`CRB 029 l.136`, aire `enquete`, fiche à extraire).
+- en interaction sociale, le joueur qui ne joue pas la scène explique tout de même ce qu'il cherche avant que la GM décide du Test (`CRB 029 l.137`, aire `enquete`, fiche à extraire).
 
 **Ce qui suit immédiatement DESCRIBE ACTION, à la source, c'est ROLL DICE** (`CRB 024 l.11`) : le d100 comparé à la valeur testée, puis le Success Level si l'ampleur du résultat importe. Ce jet et ce calcul ne sont pas retranscrits ici (porteur : topic ROLL DICE).
 
@@ -124,7 +124,7 @@ Un échec ne se relance pas à volonté. Pour qu'un personnage **répète un Tes
 - `CRB 075 l.34` — tout Test appelé exige un plan pour le succès ET pour l'échec ; l'échec fait avancer l'histoire, avec des conséquences négatives
 - `CRB 024 l.3` — titre de la planche **MAKING A TEST** ; ses quatre étapes, dans l'ordre de la page : `l.5` **DESCRIBE ACTION**, `l.11` **ROLL DICE**, `l.52` **DIFFICULTY AND CHARACTER MODIFIERS**, `l.85` **SUMMARY & OUTCOME**
 - `CRB 024 l.7-9` — les **trois puces de DESCRIBE ACTION** : description du joueur ; la GM détermine si un Test est requis et expose les facteurs évidents pour le personnage ; si le joueur poursuit, la GM décide de la Skill ou de la Characteristic à tester
-- `CRB 034 l.23-25`, `CRB 034 l.29`, `CRB 029 l.136` — la même procédure en combat et en interaction sociale — aires `combat`, `enquete`
+- `CRB 034 l.23-25`, `CRB 034 l.29`, `CRB 029 l.137` — la même procédure en combat et en interaction sociale — aires `combat`, `enquete`
 - `CRB 024 l.11` — **ROLL DICE** : deuxième étape de la planche, qui suit IMMÉDIATEMENT les puces de DESCRIBE ACTION (jet et calcul du SL au topic ROLL DICE)
 - `CRB 024 l.16` — **CHECK YOUR SKILL OR CHARACTERISTIC** : légende d'une figure d'appui au calcul de SL, placée APRÈS les puces de ROLL DICE — le texte de la figure n'est PAS transcrit dans la source (défaut de transcription, #1820)
 - `CRB 024 l.52-59` — **DIFFICULTY AND CHARACTER MODIFIERS** : troisième étape de la planche ; la Difficulty fixée par la GM et les modificateurs du personnage se combinent en un modificateur de SL final
@@ -410,7 +410,7 @@ faute de dé. Principaux cas :
 - **I Will Not Fail!** (dépense de Fate) — `Instead of rolling a Test, choose the result instead`
   (`CRB 025 l.32`) ; règle entière au topic [Achieving the Impossible — I Will Not Fail!](#achieving-the-impossible--i-will-not-fail).
 - **Helpless Targets** — `you choose the result of your attack roll instead of rolling`
-  (`CRB 036 l.178`).
+  (`CRB 036 l.183`).
 - Talent **Resistant (Threat)** — `before rolling a Test to resist a specific Threat […] you may choose
   to automatically pass that Test` (`CRB 021 l.514`), une fois par session.
 - Talent **Combat Aware** — quand le GM accorderait normalement un Test pour ignorer *Surprised*,
@@ -453,7 +453,7 @@ donné**, et un relancer produit un nouveau jet, lui-même soumis à la bande.
   nouveau résultat — le nouveau jet est à son tour soumis à la bande.
 - `CRB 072 l.130` — Spell **Curse of Ill Fortune** : la seule règle du livre qui nomme une bande —
   `they reroll all Test rolls of 01–05` quand la cible n'a plus de Fortune.
-- `CRB 036 l.178` — **Helpless Targets** : on choisit le résultat du jet d'attaque au lieu de le lancer.
+- `CRB 036 l.183` — **Helpless Targets** : on choisit le résultat du jet d'attaque au lieu de le lancer.
 - `CRB 021 l.514` — Talent **Resistant (Threat)** : réussite choisie avant le jet, une fois par session.
 - `CRB 021 l.133` — Talent **Combat Aware** : `you automatically succeed` sans jet quand un Test serait
   normalement accordé pour ignorer *Surprised*.
@@ -493,7 +493,7 @@ donné**, et un relancer produit un nouveau jet, lui-même soumis à la bande.
 
 ### Silence RAW — le cas du 00 (résultat de 100)
 
-Le livre n'énumère, pour les doubles, que `11, 22, 33, 44 and so on` (`CRB 076 l.99`) et ne tranche jamais si un **00** (les deux dés à 0, c'est-à-dire 100) est un double. Il est par ailleurs toujours un échec — « A roll of 96-100 is always a failure » (`CRB 024 l.35`) —, et le chapitre de combat le nomme aux côtés du 99 pour les Misfires, `roll 99 or 00` (`CRB 036 l.99`), sans dire qu'il s'agit de doubles. **Silence RAW** : la question n'est pas tranchée ici.
+Le livre n'énumère, pour les doubles, que `11, 22, 33, 44 and so on` (`CRB 076 l.99`) et ne tranche jamais si un **00** (les deux dés à 0, c'est-à-dire 100) est un double. Il est par ailleurs toujours un échec — « A roll of 96-100 is always a failure » (`CRB 024 l.35`) —, et le chapitre de combat le nomme aux côtés du 99 pour les Misfires, `roll 99 or 00` (`CRB 036 l.102`), sans dire qu'il s'agit de doubles. **Silence RAW** : la question n'est pas tranchée ici.
 
 **Ordre de résolution.** Le double ne court-circuite rien : on calcule d'abord le SL final du Test **normalement**, modificateurs de Difficulty et modificateurs du personnage compris (« work out the final SL of the Test as normal »). C'est ce SL **final** — et non le brut du dé — qui décide du sens de la bascule :
 
@@ -510,11 +510,11 @@ Les deux degrés visés sont les lignes **Astounding Success** (« +5 or more »
 
 ### Écart RAW — le périmètre de l'exception de combat
 
-Le corps de règle nomme les seuls `Combat Melee Tests` (`CRB 024 l.44`), tandis que l'exemple de fin de chapitre renvoie plus largement — « Criticals and Fumbles work a little differently when making Melee or Ranged Tests in combat — see page 165. » (`CRB 024 l.124`). Le chapitre de combat, lui, écrit **Melee or Ranged** dans les deux sens (`CRB 036 l.70`, `CRB 036 l.76`). Écart RAW, non tranché ici. Le détail de cette voie (Critical Hit, Oops! Table, Misfires, Fumble gagnant un Test opposé) relève de l'aire `combat`.
+Le corps de règle nomme les seuls `Combat Melee Tests` (`CRB 024 l.44`), tandis que l'exemple de fin de chapitre renvoie plus largement — « Criticals and Fumbles work a little differently when making Melee or Ranged Tests in combat — see page 165. » (`CRB 024 l.124`). Le chapitre de combat, lui, écrit **Melee or Ranged** dans les deux sens (`CRB 036 l.72`, `CRB 036 l.78`). Écart RAW, non tranché ici. Le détail de cette voie (Critical Hit, Oops! Table, Misfires, Fumble gagnant un Test opposé) relève de l'aire `combat`.
 
 ### Écart RAW — l'effet par défaut d'un Fumble au combat
 
-`CRB 024 l.44` fait de l'**Oops Table** l'effet du Fumble en mêlée ; le chapitre de combat en fait au contraire une **option du GM**, l'effet par défaut étant de lâcher son arme (`CRB 036 l.78`). Écart RAW, non tranché ici ; la résolution d'un Fumble au combat relève de l'aire `combat`.
+`CRB 024 l.44` fait de l'**Oops Table** l'effet du Fumble en mêlée ; le chapitre de combat en fait au contraire une **option du GM**, l'effet par défaut étant de lâcher son arme (`CRB 036 l.80`). Écart RAW, non tranché ici ; la résolution d'un Fumble au combat relève de l'aire `combat`.
 
 **Exemples donnés par le livre** (`CRB 024 l.118-124`, sous *Test Examples* › *Criticals and Fumbles*) :
 
@@ -533,9 +533,9 @@ Dans ces deux exemples, le GM **narre** la conséquence sans recalculer explicit
 - `CRB 024 l.35` — **Automatic Success and Failure** : 96-100 toujours un échec (au moins Marginal Failure), 01-05 toujours une réussite (au moins Marginal Success)
 - `CRB 024 l.46-50` — **Advantage and Disadvantage** : inversion des chiffres (sans effet sur la présence d'un double), +1/–1 SL par source surnuméraire (peut renverser le sens de la bascule)
 - `CRB 024 l.118-124` — **Test Examples** › *Criticals and Fumbles* : Fumble sur 66 avec Stealth (Urban) 39 ; Critical sur 11 avec Athletics 30 en Difficult (–1 SL) ; renvoi page 165 pour « Melee or Ranged Tests in combat »
-- `CRB 036 l.70`, `CRB 036 l.76` — chapitre de combat : Melee **et** Ranged, y compris en défense d'un Test opposé (aire `combat`, cité ici pour poser l'écart avec `CRB 024 l.44`)
-- `CRB 036 l.78` — effet par défaut d'un Fumble au combat : lâcher son arme, **Oops! Table** en option du GM (écart avec `CRB 024 l.44`)
-- `CRB 036 l.99` — **Misfires!** : sur 99 ou 00 avec une arme Blackpowder/Engineering/Explosive, on lance sur la **Misfire Table** au lieu de l'**Oops! Table**
+- `CRB 036 l.72`, `CRB 036 l.78` — chapitre de combat : Melee **et** Ranged, y compris en défense d'un Test opposé (aire `combat`, cité ici pour poser l'écart avec `CRB 024 l.44`)
+- `CRB 036 l.80` — effet par défaut d'un Fumble au combat : lâcher son arme, **Oops! Table** en option du GM (écart avec `CRB 024 l.44`)
+- `CRB 036 l.102` — **Misfires!** : sur 99 ou 00 avec une arme Blackpowder/Engineering/Explosive, on lance sur la **Misfire Table** au lieu de l'**Oops! Table**
 - `CRB 076 l.91` — **SL Modifiers** : le GM peut accorder jusqu'à +1 SL pour une approche astucieuse, tous les modificateurs de SL s'appliquant après le jet
 - `CRB 076 l.97` — **Reroll** : le second résultat s'impose, donc un nouveau dé, donc un nouveau double possible
 - `CRB 076 l.111` — **Extended Tests** : un Critical ajoute au moins +6 SL, un Fumble retranche au moins –6 SL au total courant
@@ -552,11 +552,11 @@ Dans ces deux exemples, le GM **narre** la conséquence sans recalculer explicit
 
 > « Criticals and Fumbles work a little differently when making Melee or Ranged Tests in combat — see page 165. » — `CRB 024 l.124`
 
-> « Any successful Melee or Ranged Test that rolls a double is a Critical Hit, even if you are defending in an Opposed Test. » — `CRB 036 l.70`
+> « Any successful Melee or Ranged Test that rolls a double is a Critical Hit, even if you are defending in an Opposed Test. » — `CRB 036 l.72`
 
-> « Any failed Melee or Ranged Test that rolls a double is a Fumble. » — `CRB 036 l.76`
+> « Any failed Melee or Ranged Test that rolls a double is a Fumble. » — `CRB 036 l.78`
 
-> « By default, you drop your weapon and must spend your next Action retrieving it. Alternatively, the GM may roll on the Oops! Table. » — `CRB 036 l.78`
+> « By default, you drop your weapon and must spend your next Action retrieving it. Alternatively, the GM may roll on the Oops! Table. » — `CRB 036 l.80`
 
 > « A success always adds at least +1 SL, a failure always subtracts at least -1 SL, a Critical adds at least +6 SL, and a Fumble subtracts at least -6 SL. » — `CRB 076 l.111`
 
@@ -570,7 +570,7 @@ Dans ces deux exemples, le GM **narre** la conséquence sans recalculer explicit
 - [OPPOSED TESTS — les Tests opposés](#opposed-tests--les-tests-opposés) (`CRB 024 l.75-79`)
 - [EXTENDED TESTS — les Tests étendus](#extended-tests--les-tests-étendus) — planchers +6 / –6 SL (`CRB 024 l.106-108`, `CRB 076 l.101-111`)
 - [Cheating Death — How Did That Miss? et Not Today!](#cheating-death--how-did-that-miss-et-not-today) (`CRB 025 l.25`) et [Achieving the Impossible — I Will Not Fail!](#achieving-the-impossible--i-will-not-fail) — Critical choisi, avec choix de la Hit Location (`CRB 025 l.32`)
-- aire `combat` (fiche à extraire) — Critical Hits, Fumbles, **Oops! Table**, Misfires, Fumble gagnant un Test opposé (`CRB 036 l.64-99`)
+- aire `combat` (fiche à extraire) — Critical Hits, Fumbles, **Oops! Table**, Misfires, Fumble gagnant un Test opposé (`CRB 036 l.66-102`)
 - aire `traumatisme` (fiche à extraire) — Critical Wounds (page 171)
 
 **Implémente :** (non implémenté)
@@ -600,7 +600,7 @@ Dans les deux cas la manipulation est la même — on lit le d100 dans l'autre s
 
 Autrement dit : la première source détermine s'il y a inversion (et son sens), les suivantes se convertissent en modificateurs de SL, appliqués comme tous les modificateurs de SL une fois les dés lancés (`CRB 076 l.91`). Le RAW n'énonce pas d'ordre de résolution explicite entre l'annulation et la conversion en SL, ni de plafond au nombre de sources cumulables.
 
-**L'Advantage d'un camp n'est pas le Disadvantage de l'autre** (`CRB 036 l.146`) : une source d'Advantage s'attache au Test qu'elle nomme. Ce passage traite l'outnumbering en Advantage, la table **MELEE ATTACK MODIFIERS** en modificateur de SL (`CRB 036 l.162`) — écart RAW non tranché ici, porté par l'aire `combat` (fiche à extraire).
+**L'Advantage d'un camp n'est pas le Disadvantage de l'autre** (`CRB 036 l.151`) : une source d'Advantage s'attache au Test qu'elle nomme. Ce passage traite l'outnumbering en Advantage, la table **MELEE ATTACK MODIFIERS** en modificateur de SL (`CRB 036 l.167`) — écart RAW non tranché ici, porté par l'aire `combat` (fiche à extraire).
 
 **Ce qui accorde Advantage ou Disadvantage.** Le chapitre du GM nomme les familles légitimes et ferme la porte à l'improvisation : « This ability to reverse the numbers in your roll comes from Momentum (page 167), certain Talents, Spells, and Miracles, and from spending Fortune. The GM should almost never grant Advantage or inflict Disadvantage when the rules do not specifically call for it » (`CRB 076 l.95`).
 
@@ -613,13 +613,13 @@ Dans le périmètre des Tests :
 
 Hors du chapitre des Tests, d'autres règles en accordent ; chacune vit à son aire porteuse, et aucune n'est retranscrite ici :
 
-- aire `combat` (fiche à extraire) — **Momentum** (`CRB 037 l.13`), circonstances de tir et de monte (`CRB 036 l.194`, `l.198`, `l.235-239`) ;
+- aire `combat` (fiche à extraire) — **Momentum** (`CRB 037 l.13`), circonstances de tir et de monte (`CRB 036 l.199`, `l.203`, `l.240-244`) ;
 - aire `talents` (fiche à extraire) — Talents accordant Advantage, ainsi *Alley Cat* (`CRB 021 l.21`) ;
 - aire `etats` (fiche à extraire) — Conditions *Besmirched*, *Blinded*, *Prone* (`CRB 042 l.45`, `l.59`, `l.107`) ;
 - aire `psychologie` (fiche à extraire) — *Fear* (`CRB 041 l.25`) ;
 - aire `magie` (fiche à extraire) — *Second Sight* en zone saturée et Channelling dans un Vent accumulé (`CRB 070 l.69`, `l.71`) ;
 - aire `bestiaire` (fiche à extraire) — Creature Traits *Afraid (Target)*, *Cold-blooded*, *Fear (Rating)* (`CRB 115 l.7`, `l.62`, `l.104`) ;
-- aires `intrigue`, `social`, `deplacement` (fiches à extraire) — usages de Skills (`CRB 027 l.33`, `CRB 028 l.79`, `CRB 032 l.111`).
+- aires `intrigue`, `social`, `deplacement` (fiches à extraire) — usages de Skills (`CRB 027 l.33`, `CRB 028 l.80`, `CRB 032 l.114`).
 
 **Exemples du livre** (chaque ligne est reprise du texte, pas recalculée) :
 
@@ -773,13 +773,13 @@ Fiches à extraire.
 - `CRB 024 l.46-50` — **ADVANTAGE AND DISADVANTAGE** : mécanique générale, **portée par le topic
   ADVANTAGE AND DISADVANTAGE** ; ici, seule compte la conséquence propre à l'obscurité (une source
   unique ⇒ inversion forcée, aucun malus de SL)
-- `CRB 020 l.181-183`, `CRB 021 l.430-432`, `CRB 036 l.155`, `CRB 042 l.59-63`, `CRB 070 l.281-287`, `CRB 070 l.477-483`, `CRB 100 l.48-64`, `CRB 115 l.80-82`, `CRB 115 l.188-190` — renvois hors foyer, détaillés ci-dessus et au Voir aussi
+- `CRB 020 l.181-183`, `CRB 021 l.430-432`, `CRB 036 l.160`, `CRB 042 l.59-63`, `CRB 070 l.281-287`, `CRB 070 l.477-483`, `CRB 100 l.48-64`, `CRB 115 l.80-82`, `CRB 115 l.188-190` — renvois hors foyer, détaillés ci-dessus et au Voir aussi
 
 **Voir aussi** :
 
 - [ADVANTAGE AND DISADVANTAGE — inversion des chiffres et cumul](#advantage-and-disadvantage--inversion-des-chiffres-et-cumul) — PORTEUR de la mécanique (inversion des chiffres, annulation mutuelle, ±1 SL par source surnuméraire, `CRB 024 l.46-50`)
 - [MAKING A TEST — déclenchement et procédure du Test](#making-a-test--déclenchement-et-procédure-du-test) — la borne d'Advance et le choix de la valeur testée
-- aire `combat` (fiche à extraire) — table **RANGED ATTACK MODIFIERS**, lumière et temps (`CRB 036 l.148-156`)
+- aire `combat` (fiche à extraire) — table **RANGED ATTACK MODIFIERS**, lumière et temps (`CRB 036 l.153-161`)
 - aire `etats` (fiche à extraire) — Condition **Blinded** (`CRB 042 l.59-63`)
 - aire `talents` (fiche à extraire) — **Night Vision**, **Acute Sense (Sense)** (`CRB 021 l.430-432`, `l.11-13`)
 - aire `bestiaire` (fiche à extraire) — Creature Traits **Dark Vision** / **Night Vision**
@@ -1000,8 +1000,8 @@ porte une **troisième colonne vide** et une **ligne vide finale** (`CRB 116 l.2
 **Où vivent les exemples de Difficulty.** Le chapitre des Tests ne donne qu'**une** ligne d'exemple par
 degré (table ci-dessus). Les tables d'exemples détaillées, degré par degré et par type d'action,
 vivent dans les chapitres d'application : aires `intrigue`, `social`, `enquete`, `deplacement`
-(fiches à extraire) — `CRB 027 l.49-57`, `CRB 028 l.43-51`, `CRB 029 l.45-55`, `CRB 030 l.15-21`,
-`CRB 032 l.27-33`.
+(fiches à extraire) — `CRB 027 l.50-58`, `CRB 028 l.44-52`, `CRB 029 l.45-55`, `CRB 030 l.15-21`,
+`CRB 032 l.29-35`.
 
 **Sources RAW** :
 - `CRB 024 l.13` — le d100 se compare à la valeur **nue** : « trying to get equal or lower than their Skill ».
@@ -1036,7 +1036,7 @@ vivent dans les chapitres d'application : aires `intrigue`, `social`, `enquete`,
 - [AUTOMATIC SUCCESS AND FAILURE — 01-05 et 96-100](#automatic-success-and-failure--01-05-et-96-100)
 - [EXTENDED TESTS — les Tests étendus](#extended-tests--les-tests-étendus)
 - aire `conversion` (fiche à extraire) — **Appendix I** : Creature Traits, Advantage/Momentum, Resilience/Resolve, **DIFFICULTY TABLE** de conversion
-- aires `intrigue`, `social`, `enquete`, `deplacement`, `artisanat` (fiches à extraire) — tables d'exemples de Difficulty par action (`CRB 027 l.49-57`, `CRB 028 l.43-51`, `CRB 029 l.45-55`, `CRB 030 l.15-21`, `CRB 032 l.27-33`, `CRB 031 l.9`, `CRB 031 l.58-64`)
+- aires `intrigue`, `social`, `enquete`, `deplacement`, `artisanat` (fiches à extraire) — tables d'exemples de Difficulty par action (`CRB 027 l.50-58`, `CRB 028 l.44-52`, `CRB 029 l.45-55`, `CRB 030 l.15-21`, `CRB 032 l.29-35`, `CRB 031 l.9`, `CRB 031 l.58-64`)
 - aires `talents` et `religion` (fiches à extraire) — effets qui imposent ou verrouillent un degré
 
 **Implémente :** (non implémenté)
@@ -1158,9 +1158,9 @@ Ce que chaque exemple démontre :
 - [Getting Help — se faire aider sur un Test](#getting-help--se-faire-aider-sur-un-test) (`CRB 024 l.138-144`)
 - [Cheating Death — How Did That Miss? et Not Today!](#cheating-death--how-did-that-miss-et-not-today) — dépense avant résolution des issues d'un Test opposé (`CRB 025 l.25`)
 - [Achieving the Impossible — I Will Not Fail!](#achieving-the-impossible--i-will-not-fail) — victoire d'au moins `+1 SL` (`CRB 025 l.32`)
-- aire `combat` (fiche à extraire) — Opposed Melee Test et dégâts (`CRB 036 l.9`, `l.15`, `l.38`), Fumble gagnant (`CRB 036 l.91-95`), Critical Hit en défense (`CRB 036 l.70-72`), Momentum (`CRB 037 l.11`, `l.17`), Initiative (`CRB 033 l.29`), embuscade (`CRB 033 l.39`), Grapple (`CRB 036 l.220`)
+- aire `combat` (fiche à extraire) — Opposed Melee Test et dégâts (`CRB 036 l.9`, `l.15`, `l.40`), Fumble gagnant (`CRB 036 l.94-98`), Critical Hit en défense (`CRB 036 l.72-74`), Momentum (`CRB 037 l.11`, `l.17`), Initiative (`CRB 033 l.29`), embuscade (`CRB 033 l.39`), Grapple (`CRB 036 l.225`)
 - aire `etats` (fiche à extraire) — *Surprised* (`CRB 042 l.123`), *Entangled* (`CRB 042 l.75`)
-- aire `deplacement` (fiche à extraire) — poursuites (`CRB 032 l.79-85`)
+- aire `deplacement` (fiche à extraire) — poursuites (`CRB 032 l.81-87`)
 - aire `magie` (fiche à extraire) — dissipation (`CRB 070 l.149`), Touch Tests opposés (`CRB 070 l.35`, `CRB 067 l.13`)
 
 **Implémente :** (non implémenté)
@@ -1241,7 +1241,7 @@ Le chapitre de magie mobilise l'aide sur un cas précis : plusieurs spellcasters
 ### Ce qui n'est PAS Getting Help
 
 - **Coopération sur un Extended Test** : « Characters can often work together on an Extended Test. Each makes a Test and adds their SL to the shared total. » `CRB 076 l.115` — régime distinct, à plusieurs jets, sans permission préalable formulée, sans que seul le plus haut Skill lance, et sans les exclusions de `CRB 024 l.142`. Porteur unique : topic [EXTENDED TESTS — les Tests étendus](#extended-tests--les-tests-étendus) (`CRB 024 l.106-108`, `CRB 076 l.105-115`), non re-transcrit ici.
-- **Outnumbering et Surrounded en combat** : être plus nombreux ne passe pas par Getting Help mais par un modificateur de SL sur l'Attack Test (`CRB 036 l.162`, `l.186`, `l.190`) — relève de l'aire `combat` (fiche à extraire ; écart RAW, voir [ADVANTAGE AND DISADVANTAGE — inversion des chiffres et cumul](#advantage-and-disadvantage--inversion-des-chiffres-et-cumul)).
+- **Outnumbering et Surrounded en combat** : être plus nombreux ne passe pas par Getting Help mais par un modificateur de SL sur l'Attack Test (`CRB 036 l.167`, `l.191`, `l.195`) — relève de l'aire `combat` (fiche à extraire ; écart RAW, voir [ADVANTAGE AND DISADVANTAGE — inversion des chiffres et cumul](#advantage-and-disadvantage--inversion-des-chiffres-et-cumul)).
 - **Momentum** : Advantage gagné seul, en frappant, sur les seuls Melee Tests `CRB 037 l.11-13` — ce n'est pas une coopération. Porteur : aire `combat` (fiche à extraire).
 
 **Sources RAW** :
@@ -1258,7 +1258,7 @@ Le chapitre de magie mobilise l'aide sur un cas précis : plusieurs spellcasters
 - `CRB 024 l.83` — Characteristic Test : cas où le « plus haut » se mesure sur la Characteristic, sans barrière d'Advance.
 - `CRB 024 l.128` — exemple imprimé d'Advantage conféré par un Talent (*Alley Cat*) : seconde source possible sur un Test déjà aidé.
 - `CRB 025 l.9` — `Spend a Fortune Point to: Gain Advantage on a Test before rolling.` : seconde source d'Advantage explicitement nommée.
-- `CRB 020 l.7-8`, `CRB 020 l.13`, `CRB 020 l.17`, `CRB 020 l.23-27` (aire `competences`) · `CRB 036 l.162`, `CRB 036 l.186`, `CRB 036 l.190`, `CRB 037 l.11-13` (aire `combat`) · `CRB 039 l.3`, `CRB 040 l.7`, `CRB 041 l.21-23` (aires `maladies`, `psychologie`) · `CRB 070 l.153-155` (aire `magie`) — renvois hors foyer du topic
+- `CRB 020 l.7-8`, `CRB 020 l.13`, `CRB 020 l.17`, `CRB 020 l.23-27` (aire `competences`) · `CRB 036 l.167`, `CRB 036 l.191`, `CRB 036 l.195`, `CRB 037 l.11-13` (aire `combat`) · `CRB 039 l.3`, `CRB 040 l.7`, `CRB 041 l.21-23` (aires `maladies`, `psychologie`) · `CRB 070 l.153-155` (aire `magie`) — renvois hors foyer du topic
 - `CRB 024 l.106-108`, `CRB 076 l.105-115` — Extended Tests et coopération additive à plusieurs jets. **Porteur : topic EXTENDED TESTS** ; non re-transcrites ici.
 
 > « With the GM's permission, two or more characters can work together on a Test. The character with the highest Skill (or Characteristic) makes the Test with Advantage. » — `CRB 024 l.140`
@@ -1327,7 +1327,7 @@ Le mot « at least » est un **plancher, pas une valeur fixe** : un jet qui rapp
 
 **Emplois nommés par le RAW** — la mécanique de chacun vit à son aire porteuse, aucune n'est transcrite ici :
 
-- **Picking Locks** — aire `intrigue` (fiche à extraire), `CRB 027 l.40`, `l.147` ;
+- **Picking Locks** — aire `intrigue` (fiche à extraire), `CRB 027 l.41`, `l.148` ;
 - Skill **Art** — aire `competences` (fiche à extraire), `CRB 020 l.71` ;
 - **Crafting Endeavour** — aire `activites` (fiche à extraire), `CRB 048 l.125-127` ;
 - **Rounds outside combat** — aire `combat` (fiche à extraire), `CRB 033 l.43`.
@@ -1342,7 +1342,7 @@ Le mot « at least » est un **plancher, pas une valeur fixe** : un jet qui rapp
 - `CRB 076 l.117-121` — encadré **EXTEND CAUTION** : pourquoi la règle vit côté GM, situations courtes et tendues, fraction d'une tâche accomplie avant échéance, à éviter aux climax ou quand un Test unique suffit.
 - `CRB 024 l.100-101` — lignes `+0` *Marginal Success* et `–0` *Marginal Failure* de l'**OUTCOMES TABLE** (réussite / échec à zéro SL, sur lesquelles jouent les planchers ±1).
 - `CRB 024 l.138-144` — **Getting Help** : régime d'aide distinct (meilleure Skill, Test avec Advantage) à ne pas confondre avec l'addition des SL d'un Test étendu.
-- `CRB 027 l.40`, `CRB 027 l.147`, `CRB 020 l.71`, `CRB 048 l.125-127`, `CRB 033 l.43` — les quatre emplois hors foyer listés ci-dessus
+- `CRB 027 l.41`, `CRB 027 l.148`, `CRB 020 l.71`, `CRB 048 l.125-127`, `CRB 033 l.43` — les quatre emplois hors foyer listés ci-dessus
 
 > « Sometimes the GM may ask you to make multiple rolls over time, such as once per round, or once each day, while keeping a running total of the SL you have achieved. This is known as an Extended Test, and it is used when time and resources matter, such as repairing a battered breastplate or picking a lock before a guard arrives. An Extended Test succeeds once you have achieved a set target number of SL, and fails should you run out of time or resources. » — `CRB 024 l.108`
 
@@ -1409,7 +1409,7 @@ L'intitulé **Replenishing Fortune** (`CRB 025 l.13`) pose la règle complète :
 
 La reconstitution est donc **totale** (retour au maximum) et **automatique**, par session de jeu — contrairement au Fate, qui « is not automatically replenished » (`CRB 025 l.36`). Le chapitre GM calibre la cadence sur la durée réelle de table : « Fortune, by contrast, is replenished at the start of every session. This assumes a session of around four hours. For longer sessions, replenish Fortune at narratively appropriate moments, roughly every four hours. For shorter sessions, replenish it every other session to maintain a similar level of challenge. » (`CRB 076 l.73`).
 
-**Le maximum que remplit ce rafraîchissement** est une valeur d'espèce fixée à la création, non indexée sur le Fate, +1 si le premier tirage d'espèce est accepté — aire `creation` (fiche à extraire), `CRB 006 l.7`, `CRB 006 l.25`. Il bouge ensuite par le Talent *Luck* (aire `talents`), deux Character Events (aire `activites`) et la conversion de Resilience (`CRB 116 l.36`, aire `conversion`).
+**Le maximum que remplit ce rafraîchissement** est une valeur d'espèce fixée à la création, non indexée sur le Fate, +1 si le premier tirage d'espèce est accepté — aire `creation` (fiche à extraire), `CRB 006 l.7`, `CRB 006 l.27`. Il bouge ensuite par le Talent *Luck* (aire `talents`), deux Character Events (aire `activites`) et la conversion de Resilience (`CRB 116 l.36`, aire `conversion`).
 
 **Effets extérieurs** — les « certain encounters, Spells, and abilities » annoncés en `CRB 025 l.15`. Deux familles, à ne pas confondre : les points **datés** (gagnés pour une durée propre à l'effet — Lore Attributes, *Portents of Amul*, *Fate's Fickle Fingers*, *Cheat the Odds*, *Chaotic Foresight*) et les modificateurs du **maximum** (ci-dessus) ; certains effets **interdisent** la dépense (*Curse of Ill Fortune*, *Scandalous Rumours*) ou **réduisent** le prochain rafraîchissement (*Behold Your Wickedness*) ou le **suppriment** (*Traitor's Heart*). Chacun est porté par son aire (fiche à extraire) : `magie`, `religion`, `activites`, `talents` (*Doomed*).
 
@@ -1429,7 +1429,7 @@ Le chapitre GM n'ajoute aucune restriction mécanique, seulement un cadrage de d
 - `CRB 076 l.97` — définition de **Reroll** : le second résultat s'impose, pas de choix entre les deux (porteur unique)
 - `CRB 076 l.69`, `CRB 076 l.73` — cadrage GM de la dépense ; cadence de reconstitution calée sur ~4 h de jeu
 - `CRB 042 l.7-13`, `CRB 042 l.33`, `CRB 042 l.133-137` — aire `etats`
-- `CRB 006 l.7`, `CRB 006 l.25` — aire `creation`
+- `CRB 006 l.7`, `CRB 006 l.27` — aire `creation`
 - `CRB 021 l.388-390`, `CRB 021 l.742-744` — aire `talents`
 - `CRB 066 l.95-101`, `CRB 067 l.169-175`, `CRB 065 l.67` — aire `religion`
 - `CRB 047 l.25`, `CRB 047 l.37-39`, `CRB 047 l.71-77` — aire `activites`
@@ -1492,7 +1492,7 @@ Il n'existe donc, dans le socle 5e, aucune horloge de régénération du Fate : 
 
 Le chapitre du GM resserre encore la fréquence attendue et donne le barème d'appréciation : « Regaining Fate should be rare enough to feel momentous, perhaps marking the culmination of a long campaign or the achievement of an objective at considerable personal cost. » — là où, dans la même phrase, Fortune est rappelée comme « replenished at the start of every session » (`CRB 076 l.73`).
 
-**Stock de départ.** Le Fate se recopie sur la feuille à la création (`CRB 006 l.25`) ; le barème par espèce va de **1 à 4 points pour toute une campagne** — aire `creation` (fiche à extraire), `CRB 008 l.67`, `CRB 009 l.75`, `CRB 010 l.67`, `CRB 011 l.69`, `CRB 012 l.75`.
+**Stock de départ.** Le Fate se recopie sur la feuille à la création (`CRB 006 l.27`) ; le barème par espèce va de **1 à 4 points pour toute une campagne** — aire `creation` (fiche à extraire), `CRB 008 l.67`, `CRB 009 l.75`, `CRB 010 l.67`, `CRB 011 l.69`, `CRB 012 l.75`.
 
 **Autres entrées de Fate prévues par le RAW.** Hors octroi discrétionnaire du GM et hors stock d'espèce, le CRB nomme quatre sources chiffrées de Fate Points supplémentaires ; chacune est portée par une autre aire et n'est listée ici que parce qu'elle alimente le stock de Fate :
 
@@ -1512,7 +1512,7 @@ Le chapitre du GM resserre encore la fréquence attendue et donne le barème d'a
 - `CRB 007 l.14` — feuille de personnage : « Fate and Fortune: Help you succeed and survive (see page 133). »
 - `CRB 076 l.71` — conseil au GM : dépenser du Fate est « a Big Deal », moment dramatique à mettre en scène
 - `CRB 076 l.73` — conseil au GM : le regain de Fate doit rester assez rare pour être marquant (aboutissement d'une longue campagne, objectif atteint à grand prix personnel), par opposition à Fortune rendue à chaque séance
-- `CRB 006 l.25` — Fate fait partie des valeurs recopiées depuis l'espèce sur la feuille
+- `CRB 006 l.27` — Fate fait partie des valeurs recopiées depuis l'espèce sur la feuille
 - `CRB 008 l.67`, `CRB 009 l.75`, `CRB 010 l.67`, `CRB 011 l.69`, `CRB 012 l.75`, `CRB 016 l.67-69`, `CRB 017 l.66-70`, `CRB 021 l.201-203`, `CRB 071 l.285`, `CRB 065 l.73` — entrées et dépenses de Fate hors foyer, par aire ci-dessus
 - `CRB 116 l.36` — *Resilience and Resolve* — aire `conversion`
 
@@ -1551,7 +1551,7 @@ Le Fate ouvre **deux** usages au personnage : **Cheating Death** et **Achieving 
 ### **How Did That Miss?** — négation d'une attaque
 
 - **Fenêtre exacte** : *après* que des dés aient été jetés pour une attaque dirigée contre vous, mais **avant** que les Damage ne soient calculés, **avant** que les résultats d'un Opposed Test ne soient résolus, et **avant** que les Critical Hits ne soient déterminés. Les trois bornes sont cumulatives : dès qu'une de ces trois opérations est entamée, la fenêtre est close.
-- **Repère dans la séquence d'attaque** (`CRB 036 l.7-44`, aire `combat`) : la fenêtre s'ouvre une fois les dés du **Roll to Hit** tombés et se referme à l'entrée du **Determine Damage**.
+- **Repère dans la séquence d'attaque** (`CRB 036 l.7-46`, aire `combat`) : la fenêtre s'ouvre une fois les dés du **Roll to Hit** tombés et se referme à l'entrée du **Determine Damage**.
 - **Cible** : une attaque dirigée contre VOUS (« *an attack against you* ») — le texte ne prévoit pas de dépenser son Fate pour protéger un tiers.
 - **Déclencheur** : « *any dice are rolled for an attack* » — la fenêtre s'ouvre sur des dés jetés, quelle que soit la nature de l'attaque ; la prose d'illustration cite aussi bien le coup porté que le Spell (« *the blow misses, the spell fizzles* »).
 - **Effet** : dépenser 1 Fate **annule les effets de cette attaque** (« *negate the effects of that attack* »). Narrativement : le coup rate, le Spell avorte, ou l'on s'en tire de justesse (« *escape by the skin of your teeth* »).
@@ -1578,7 +1578,7 @@ Le chapitre du GM demande que la **différence de timing** se traduise dans la f
 - `CRB 025 l.21-23` — section *Cheating Death* : on peut dépenser un point de Fate pour retarder son rendez-vous avec Morr, de deux manières.
 - `CRB 025 l.25` — *How Did That Miss?* : fenêtre (après les dés de l'attaque, avant Damage / résolution de l'Opposed Test / détermination des Critical Hits), effet (annuler les effets de l'attaque), reprise normale du jeu.
 - `CRB 025 l.26` — *Not Today!* : au lieu de mourir, le personnage est retiré de la rencontre (inconscient, laissé pour mort, emporté par une rivière…) ; il survit, mais ne prend plus part à la rencontre en cours.
-- `CRB 036 l.7-44` — *Attacking* : la séquence en quatre temps qui borne la fenêtre de *How Did That Miss?* — aire `combat`
+- `CRB 036 l.7-46` — *Attacking* : la séquence en quatre temps qui borne la fenêtre de *How Did That Miss?* — aire `combat`
 - `CRB 038 l.41` · `CRB 038 l.92` · `CRB 038 l.96-98` · `CRB 038 l.123` · `CRB 038 l.148` · `CRB 038 l.173` · `CRB 038 l.198` — Critical Wounds, les deux voies de mort, *Sudden Death* et les entrées `Death` : ce que *Not Today!* annule — aire `traumatisme`
 - `CRB 042 l.53-55` — Condition *Bleeding* : la mort par d10 en fin de Round — aire `etats`
 - `CRB 021 l.388-390` — talent *Luck* : +1 maximum Fortune, le talent que l'exclusion de *Sudden Death* désigne — aire `talents`

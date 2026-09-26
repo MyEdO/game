@@ -1,6 +1,6 @@
 *Pages PDF 230-234*
 
-# **THE AETHYR**
+# <span id="page-229-0" data-folio="230"></span>**THE AETHYR**
 
 Scholars of magic derive their learning from the elves, who explained that the source of all magical power is the Aethyr. This infinite dimension, said to be the spawning ground of daemons and spirits, exists beyond the physical world. The elves taught that far to the north of the Empire, a great ragged wound was torn through the fabric of the world to the Aethyr, and it bleeds raw magic. These roiling energies — known as the Winds of Magic — blow throughout the world, gathering and eddying in great, heavenly whorls, only to rain down and permeate the land and the creatures dwelling upon it. It is these powerful Winds that wizards and witches use to fuel their spells.
 
@@ -20,7 +20,7 @@ Others believe magical energies are not so easily categorised. Many different ty
 
 There is much heated debate between experts on the nature of magic. The lecture halls of the Empire's most learned institutions often see ambitious scholars expound on their latest theories. Some liken magic to the backstage of a theatre, a mass of mechanisms, props, and hidden pulleys responsible for the drama viewed by the audience. Others resort to mathematical metaphors, complete with incomprehensible esoteric diagrams.
 
-Although each treatise may end with an air of confident finality, it will only be met with polite coughs, raised hands, and a litany of objections and exceptions.
+<span id="page-230-0" data-folio="231"></span>Although each treatise may end with an air of confident finality, it will only be met with polite coughs, raised hands, and a litany of objections and exceptions.
 
 # **The Languages of Magick**
 
@@ -44,7 +44,7 @@ The Lore of Metal relates to *Chamon*, the Gold Wind. *Chamon* appears dense and
 
 Spells from the Lore of Metal often involve the transmutation or alteration of metal. On the battlefield, alchemists have been known to cause fine steel armour and weaponry to corrode or melt, to weigh their foes down with suddenly dense armour, or to enchant their allies' weaponry with uncanny power.
 
-# **The Lore of Life**
+# <span id="page-231-0" data-folio="232"></span>**The Lore of Life**
 
 The Lore of Life relates to *Ghyran*, the Jade Wind. Free flowing *Ghyran* is associated with growth, fertility, and nourishment. To those with the Sight, *Ghyran* appears much like a light rain, falling to the ground and pooling in eddying swirls. It sinks into the soil and is drawn up into the roots of plants from where it goes on to nourish all living things. The druids of the Jade Order often prefer life away from the cities, attuned to the seasons and the natural world.
 
@@ -60,7 +60,7 @@ The Lore of Shadows relates to *Ulgu*, the Grey Wind. To the Sight, it appears a
 
 Spells from the Lore of Shadows can be used to mask or obfuscate, confusing and disorienting their foes. In battle, the shadowy, insubstantial tendrils of *Ulgu* they wield can pierce to the heart of their foes, eviscerating the most well-protected troops, yet leaving armour eerily intact.
 
-#### **The Lore of Death**
+#### <span id="page-232-0" data-folio="233"></span>**The Lore of Death**
 
 The Lore of Death relates to *Shyish*, the Purple Wind. It is attracted to places of death, such as battlefields, gardens of Morr, and sites of execution. The wind is said to blow strongest during times of transition, so wizards of the Amethyst Order tend to work their greatest rites during the hours of twilight. While *Shyish* is related to time and mortality, it is distinct from Necromancy, the illegal practice of raising and binding the dead, which uses the Dark Magic of *Dhar* in lieu of *Shyish*. Indeed, the Amethyst Order, much like the Cult of Morr, works tirelessly to combat the threat of Necromancy.
 
@@ -78,7 +78,7 @@ The Lore of Beasts relates to *Ghur*, the Amber Wind, a cold, primal force assoc
 
 The spells of the Lore of Beasts allow a shaman to communicate with animals, request their aid, and even summon them to battle. Shapeshifting magic may also be used by the wizard to adopt animal forms.
 
-# **Elven Magic**
+# <span id="page-233-0" data-folio="234"></span>**Elven Magic**
 
 Elves are long-lived beings whose minds are more attuned to the workings of magic than those of humanity. High elven mages train in all of the eight Winds as part of their apprenticeships, before the most promising move on to study High Magic: *Qhaysh*, the Silver Wind. This is the weaving of the eight Winds of Magic together into a blinding, coruscating energy. This magic is impressive and difficult, and elves claim it is beyond the capacity of humankind.
 

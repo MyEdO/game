@@ -39,7 +39,4 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 - **Tout test NEUF se livre avec sa preuve par MUTATION** : dans ton rendu, le test ROUGE câblage
   débranché (édition temporaire, remise à l'identique À LA MAIN) puis VERT rebranché, avec
   l'empreinte `git hash-object` du fichier muté avant et après.
-- **Aucune suppression récursive ou à joker** hors des cibles jetables du hook (`CIBLES_JETABLES`,
-  `scripts/hooks/git-destructive-guard.mjs`), le scratchpad `…\Temp\claude\…` écrit EN LITTÉRAL,
-  jamais par variable : sinon ne supprime pas, laisse en place (#1894).
 - Rendu final = données brutes : fichiers touchés, diff résumé, écarts, `fichier:ligne`.

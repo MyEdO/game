@@ -4,7 +4,7 @@
  * (`narrateEvent`) dans le vocabulaire structuré, sans composer un seul mot de texte.
  *
  * PARITÉ mesurée contre le rendu du JOURNAL lui-même (`NarratedSegments`, ce que compose `LogDrawer`) :
- * même texte, même coloration par camp. Les modales de jet, elles, ne rendent plus que la donnée
+ * même texte, même coloration par camp. Les modales de jet, elles, rendent seulement la donnée
  * (#1078 LOT B1) — un écart de narration entre le journal et l'issue se voit ICI.
  */
 import { describe, it, expect } from 'vitest';

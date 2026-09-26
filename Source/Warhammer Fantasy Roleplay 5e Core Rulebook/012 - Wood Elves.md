@@ -1,6 +1,6 @@
 *Pages PDF 34-35*
 
-# <span id="page-33-0"></span>**WOOD ELVES**
+# <span id="page-33-0" data-folio="34"></span>**WOOD ELVES**
 
 Wood elf life is entwined with nature, and their society is intermixed with the spirits of the forest. They are separatists whose arboreal outposts are concealed by misleading illusions. On the rare occasions they venture abroad, it is usually for war, as often with their neighbours as with darker forces, leaving the peoples of the Old World unsure where the allegiance of these fae, capricious elves truly lies.
 
@@ -38,7 +38,7 @@ Marrisith's envoys reveal little of their purpose, and strike the Reikland's hum
 
 — Cynwrawn Fartrack, Hunter from the Laurelorn
 
-### **Names**
+### <span id="page-34-0" data-folio="35"></span>**Names**
 
 Elves use their forename and an epithet translated into Reikspiel when travelling, as they usually consider it a futile task to explain the deeper meanings of their names to non-elves.
 

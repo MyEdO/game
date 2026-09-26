@@ -32,7 +32,7 @@ import { INDEX } from './check-source-format.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import {
   estNomDExtraction, graphieDeChapitre, largeurDeChapitre, ligne1DePlage, numeroDuFichier,
-  parseChapitre, plageDeLigne1, plageEnTexte,
+  parseChapitre, plageDeLigne1, plageEnTexte, tablesOf,
 } from '../../src/data/source/decoupe.ts'
 
 /** Les `.md` de CHAPITRE d'un dossier, dans l'ordre de leur numéro — le FLUX du livre. */
@@ -238,14 +238,23 @@ export function recalerStock(entrees, racine, carte, { portee = () => true } = {
   return { entrees: out, recalees, orphelines }
 }
 
+/** La ligne `n` porte-t-elle la légende `**X**` d'une table de la section ? PUR. */
+const legendeALaLigne = (section, n) =>
+  tablesOf(section).some(({ block, table }) => {
+    const i = section.blocks.indexOf(block)
+    return table.titre != null && i > 0 && section.blocks[i - 1].line === n
+  })
+
 /**
  * CARTE des sections d'un fichier ÉDITÉ EN PLACE, dérivée de sa carte de lignes EXACTE
  * (`lib/carte-lignes.mjs`) — même forme que `carteDesSections`, pour `recalerStock` : la ligne de
  * titre de `slug#occ` suit la carte, et le titre qui s'y trouve donne le nouveau `slug#occ`
  * (`parseChapitre`). Le préambule (`#1`, section sans titre que `parseChapitre` ouvre toujours en
  * tête) va au préambule. Un titre DÉPLACÉ (sa ligne supprimée, son slug sur UNE seule ligne de titre
- * neuve) suit sa ligne neuve. Un titre supprimé, pris dans un hunk ambigu (titre scindé), ou dont la
- * ligne n'est plus un titre est RAPPORTÉ avec sa raison — jamais deviné. Une ligne de titre NEUVE
+ * neuve) suit sa ligne neuve. Un titre devenu LÉGENDE de table (sa ligne est le `**X**` qui titre la
+ * table suivante, `tablesOf`) suit la section qui porte l'en-tête de sa table (#1739). Un titre
+ * supprimé, pris dans un hunk ambigu (titre scindé), ou dont la ligne n'est plus un titre est
+ * RAPPORTÉ avec sa raison — jamais deviné. Une ligne de titre NEUVE
  * (aucune ligne de HEAD n'y mène) SCINDE la section qui la précède : la clé HEAD de celle-ci est
  * rendue dans `scindees`, pour que les entrées qui y sont keyées soient rapportées. PUR.
  * @param {string} nom fichier (relatif au dossier du livre) @param {string} texteHead @param {string} texteArbre
@@ -270,6 +279,11 @@ export function carteDesSlugs(nom, texteHead, texteArbre, carteLignes) {
     const destin = carteLignes(s.line)
     const ref = 'ligne' in destin ? parLigne.get(destin.ligne) : undefined
     if (ref) { carte.set(`${nom} :: ${cle}`, { fichier: nom, ref }); continue }
+    const porteuse = 'ligne' in destin ? sectionsArbre.findLast((x) => x.line <= destin.ligne) : undefined
+    if (porteuse && legendeALaLigne(porteuse, destin.ligne)) {
+      carte.set(`${nom} :: ${cle}`, { fichier: nom, ref: `${porteuse.slug}#${porteuse.occ}` })
+      continue
+    }
     const memes = 'supprimee' in destin ? neuves.filter((n) => n.slug === s.slug && !deplacees.has(n)) : []
     if (memes.length === 1) {
       deplacees.add(memes[0])

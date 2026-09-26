@@ -1,6 +1,6 @@
 *Pages PDF 349-350*
 
-# **DAEMONS, THE GIBBERING HOSTS**
+# <span id="page-348-0" data-folio="349"></span>**DAEMONS, THE GIBBERING HOSTS**
 
 Daemons are blasphemous horrors from the Realms of Chaos, the manifest will of the Dark Gods. In the Reikland, they rarely appear except when summoned by cultists of the Ruinous Powers. Most daemons serve one of the four Chaos Gods, but some are little more than mindless beasts of the Aethyr, owing allegiance to none.
 
@@ -54,7 +54,7 @@ Cool 80, Melee (Two-handed) 60, Perception 50
 
 Khorne's chosen, bloodletters stalk the battlefields of the Old World, harvesting skulls in honour of the Blood God. Needle-like teeth jut from their monstrous, horned visages, and their blood-red skin is covered in scales as hard as brass. Each bears a Hellblade, a wickedly sharp weapon steeped in gore, wielded with the savage fury for which Khorne's daemons are feared.
 
-# **Daemonette of Slaanesh**
+# <span id="page-349-0" data-folio="350"></span>**Daemonette of Slaanesh**
 
 Like all creatures of the Prince of Excess, daemonettes are at once beautiful and horrifying. Possessing an unearthly allure that defies all sense and rationality, they render their enemies powerless to resist, so entranced are they by the profane sensuality of their monstrous forms. Their skin comes in a variety of mottled, pastel hues and they have large, jet black eyes. Wild, flowing, unnaturally coloured hair graces their delicate crowns. In lieu of hands, their slender arms terminate in gracile, crab-like claws.
 

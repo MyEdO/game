@@ -1,6 +1,6 @@
 *Pages PDF 288-295*
 
-# **SETTLEMENTS**
+# <span id="page-287-0" data-folio="288"></span>**SETTLEMENTS**
 
 The Reikland is one of the most populated and civilised of the Empire's grand provinces. Nevertheless, great swathes of the realm are still wild, blanketed in forest and untouched by human hand. Even after 2,500 years of expansion, most Reikland settlements are found along the Reik and its many tributaries, reached by river if not always by road. Only in the southern breadbasket are rural settlements found spread across the landscape, connected by roads and canals.
 
@@ -22,7 +22,7 @@ There is a noticeable elf population in Altdorf — founded by high elf merchant
 
 Asur in the Reikland gravitate to Altdorf, where they feel more comfortable around their peers. The streets of Turmgarten are asur merchants deal with the elf clans in Marienburg.
 
-Altdorf is also a renowned centre of learning. The sons and daughters of the wealthy matriculate at the University of Altdorf, regardless of academic ability. The famed Imperial Engineers School, founded by Tilean genius Leonardo da Miragliano, also lies within Altdorf 's walls. The most mysterious places of learning in Altdorf are the Colleges of Magic. Founded over two centuries ago, they train magically-gifted citizens to channel their dangerous talents in the defence of the Empire.
+<span id="page-288-0" data-folio="289"></span>Altdorf is also a renowned centre of learning. The sons and daughters of the wealthy matriculate at the University of Altdorf, regardless of academic ability. The famed Imperial Engineers School, founded by Tilean genius Leonardo da Miragliano, also lies within Altdorf 's walls. The most mysterious places of learning in Altdorf are the Colleges of Magic. Founded over two centuries ago, they train magically-gifted citizens to channel their dangerous talents in the defence of the Empire.
 
 Standing in stark contrast to the arcane mysteries of the Colleges of Magic, Altdorf is also the beating heart of the Cult of Sigmar. Sigmar's own city now boasts more Sigmarite temples and holy sites than all the other cities of the Empire combined, including the Grand Cathedral of Sigmar.
 
@@ -44,7 +44,7 @@ The months are Nachhexen (After Witching), Jahrdrung (Year-Turn), Pflugzeit (Plo
 
 There are eight days in the Imperial week. These are Wellentag (Workday), Aubentag (Levyday), Marktag (Marketday), Backertag (Bakeday), Bezahltag (Taxday), Konistag (Kingday), Angestag (Startweek), and Festag (Holiday). The origin of these names is lost to history, and now they carry little meaning. Markets are often open on days other than Marktags, and holidays vary according to the deities of local temples.
 
-#### **Auerswald**
+#### <span id="page-289-0" data-folio="290"></span>**Auerswald**
 
 The lively free town of Auerswald stands by the confluences of the Teufel, Tranig, and Ober rivers, one of the busiest and best protected trade routes in the Reikland. The folk of Auerswald tend to be strong-willed and determined, but their easy charm and famous wit ensure that no matter how steely their negotiations, they rarely cause offence.
 
@@ -80,7 +80,7 @@ Given the excellent quality of its alcoholic beverages, Eilhart has become a pop
 
 Stopping off in Eilhart for their Brauzeit festival, the Characters become aware of a spate of poisonings. Suspects abound, from grudgeful dwarf traders from the Grey Mountains, to inept brewers whose guild licenses were revoked. Fingers soon start to point to Renauld Turpin, a Bretonnian wine merchant jealous of Eilhart's success. He was last seen headed to Axe Bite Pass in great haste, and the Characters will have to move fast if they
 
-#### **Grünburg**
+#### <span id="page-290-0" data-folio="291"></span>**Grünburg**
 
 Grünburg's boatwrights craft high quality barges, found plying their trade along the whole length of the Reik. The Boatwrights Guild is one of the most powerful on the town council, with many of the other guilds subservient to its dictates.
 
@@ -114,7 +114,7 @@ The Stevedores Guild has recently raised its prices in response to the volume of
 
 Stimmigen is a busy market town in the Suden Vorbergland, with a bridge over the River Ober on the route to Ubersreik. Its lush orchards produce the Reikland's best known apple, the sweet, yet tart, Ernwald. The Ernwald only flourishes hereabouts and its cultivation has attracted a significant halfling population, whose delicious apple pies, pastries, and crumbles, not to mention crisp cider, can be found in local hostelries all year round, and especially during Pie Week at the start of autumn. All the folk of Stimmigen celebrate this halfling festival, as an opportunity for rich and poor alike to enjoy tastings and eating competitions, and generally gorge themselves on all manner of sweet, succulent, baked delicacies.
 
-#### **Ubersreik**
+#### <span id="page-291-0" data-folio="292"></span>**Ubersreik**
 
 The town of Ubersreik stands near Grey Lady Pass, one of only two major passes over the Grey Mountains into Bretonnia. Because of this, the town regularly sees traders and travellers from across the Old World. It has recently seen upheaval as the ruling von Jungfreuds were declared traitor by Emperor Karl Franz, and abandoned the town to seclude themselves at their ancestral seat in the Duchy of Black Rock to the west.
 
@@ -148,7 +148,7 @@ The Crooked Corridor is a narrow gorge, which winds through the Grey Mountains n
 
 The Crooked Corridor was once known only to goat herders and smugglers, until a spate of goblin raids in 2454 IC brought the pass to the attention of the Emperor Mattheus II. He decreed the construction of a fortress here to watch for invasion, and so his masons raised Blackstone Tower from the local dark stone and slate to stand sentinel over the gorge.
 
-Due to an oversight by surveyors, the new tower stood on land belonging to the dwarfs of Karak Ziflin. Not wanting to upset them, the emperor ceded the bastion, and today, the dwarfs repay the emperor's generosity by permitting a limited Reikland garrison of halberdiers and handgunners to barrack alongside their own troops at Blackstone Tower.
+<span id="page-292-0" data-folio="293"></span>Due to an oversight by surveyors, the new tower stood on land belonging to the dwarfs of Karak Ziflin. Not wanting to upset them, the emperor ceded the bastion, and today, the dwarfs repay the emperor's generosity by permitting a limited Reikland garrison of halberdiers and handgunners to barrack alongside their own troops at Blackstone Tower.
 
 This is not a happy alliance. The tower is a powder keg of grievances and resentment, with the Reiklanders chafing under the dwarfs' leadership, and the dwarfs constantly belittling the shoddy human stonework they are working to replace.
 
@@ -182,7 +182,7 @@ The Monastery of the Holy Word houses the order's greatest treasure: the *Testam
 
 The Monastery of the Holy Word will admit penitents and scholars who seek obscure details about the foundations of Sigmar's law. Many travel from across the Empire to query the black-and-green robed monks on doctrine or as part of a pilgrimage. None outside the order may consult, or even touch, the original documents, but they may gaze upon a few of the original pages if they can prove indisputable piety.
 
-#### **Rottfurt**
+#### <span id="page-293-0" data-folio="294"></span>**Rottfurt**
 
 Scholars and wizards throughout the Empire speak of Rottfurt in hushed, reverential tones. Though primarily a village of shepherds, trading wool and mutton, Rottfurt also produces a famous, and famously pricey, sheepskin parchment, Rottfurt Silver. The parchment possesses a faint sheen, takes ink well, and resists fading far longer than other, lesser parchments.
 
@@ -218,7 +218,7 @@ Almost three hundred years later, he hides there still, and time has made him bo
 
 Rumours of Janos von Carstein have reached the witch hunters *and* the pawns of the recently resurrected Mannfred. It would be unfortunate if poor, unsuspecting souls happened to hostel in the *Wayward Sun* on the same night the various parties arrive to investigate...
 
-# **The Ancient Sites and Terrible Ruins**
+# <span id="page-294-0" data-folio="295"></span>**The Ancient Sites and Terrible Ruins**
 
 Prehistoric monuments and relics of ancient religion litter the Reikland, places of mystery and the forgotten folk who raised them. Most towns and villages boast their own local ruins, with accompanying eerie tales of haunting and darkness.
 

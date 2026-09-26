@@ -1,7 +1,7 @@
 import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
 import { startOf, unreachableDescriptiveZones } from './mapQC';
 import { footprintTiles, sizeFootprint } from './footprint';
-import { entitySize, refEntiteResolue } from './spawn';
+import { entitySize } from './spawn';
 import { METRES_PER_LEVEL } from './relief';
 import { realFloorAt } from './sceneEdit';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
@@ -205,12 +205,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${e.label ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${e.label ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${e.label ?? e.id} sur étage ${e.z} inexistant`);
-      // RÉF de personnage : le schéma n'en dit que la forme (`ref: z.string().optional()`), la résolution
-      // est CELLE du spawn (`refEntiteResolue`, `state/spawn`) —
-      // un statbloc ou un preset de PNJ prime sur la réf et la rend sans objet, comme au runtime. Une réf
-      // fournie mais irrésoluble pose un mannequin `RÉF ?` à l'écran (#223) : l'auteur l'apprend ici.
-      if (e.kind === 'personnage' && e.ref !== undefined && !e.statblock && !e.presetId && !refEntiteResolue(e.ref))
-        add('error', 'entity', e.id, `${e.label ?? e.id} → créature inexistante « ${e.ref} »`);
     }
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).

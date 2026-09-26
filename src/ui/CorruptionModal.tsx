@@ -3,7 +3,7 @@ import { availableResistance, resistanceImproves } from '../engine/menace';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { exposureLevelSchema } from '../data/schemas/grammaire/valeurs';
 import { testValue } from '../engine/skills';
-import { flowStakeRef, refLabel } from '../data';
+import { flowStakeRef, refLabel, libelleOuAbsence } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
@@ -77,7 +77,7 @@ export function CorruptionModal() {
       title={seuil ? <><Icon id="nav/mutation" size="sm" /> Seuil de Corruption ({hero?.corruption ?? '?'} Points)</> : <><Icon id="nav/mutation" size="sm" /> Influence corruptrice ({libelleDeValeur(exposureLevelSchema, pc.level ?? 'mineure')})</>}
       subtitle={
         <>
-          <strong>{hero?.label ?? '?'}</strong> — Test de {skillLabel} Intermédiaire (+0)
+          <strong>{libelleOuAbsence(hero, 'heros', pc.heroId)}</strong> — Test de {skillLabel} Intermédiaire (+0)
         </>
       }
       setup={
@@ -98,7 +98,7 @@ export function CorruptionModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('info', describeCorruption(pc, hero?.label ?? '?'), pc.heroId), pool)] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('info', describeCorruption(pc, libelleOuAbsence(hero, 'heros', pc.heroId)), pc.heroId), pool)] : undefined}
       actions={actions}
     />
   );

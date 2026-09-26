@@ -22,10 +22,14 @@ import { makePregens } from '../data/pregens';
 import { findTavernGameById } from '../engine/tavernGame';
 import { playTavernGame, tavernGameValue, tavernNpcOffers } from './tavernFlow';
 import { sceneNpc } from './sceneNpc';
-import { activeSequence } from './sequenceCore';
+import { activeSequence, sequenceBoardOf } from './sequenceCore';
+import { cascadeAppliers } from './cascade';
+import type { CascadeStep } from './pendings';
 import { applyEffects } from './combatEffects';
 import { setRule, resetRule } from '../engine/policy';
 import { emptyScene } from './scene';
+import { t } from '../i18n';
+import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
 import { scenario as scenarioEdo } from '../scenes/test-scenarios/96-presets-edo';
 
@@ -113,6 +117,50 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-fantome' } });
 
     expect(activeSequence(get)).toBeNull();
+    expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: findTavernGameById('dominos')!.label }));
+  });
+});
+
+describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet', () => {
+  beforeEach(() => { useGame.setState(useGame.getInitialState(), true); poseScene([]); });
+  const dominos = () => findTavernGameById('dominos')!.label;
+
+  it('jeu inconnu', () => {
+    playTavernGame(get, set, { gameId: 'jeu-fantome', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
+    expect(activeSequence(get)).toBeNull();
+    expect(get().journal.slice(-1)[0]).toBe(t('tavern.jeuInconnu', { id: 'jeu-fantome' }));
+  });
+
+  it('challenger sorti du groupe', () => {
+    playTavernGame(get, set, { gameId: 'dominos', challengerId: 'heros-parti', opponent: { kind: 'profil', id: 'humain' } });
+    expect(activeSequence(get)).toBeNull();
+    expect(get().journal.slice(-1)[0]).toBe(t('tavern.challengerAbsent', { jeu: dominos() }));
+  });
+
+  it('adversaire héros sorti du groupe', () => {
+    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'hero', id: 'heros-parti' } });
+    expect(activeSequence(get)).toBeNull();
+    expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: dominos() }));
+  });
+
+  it('socle : un challenger disparu en cours de séquence LÈVE, jamais un tableau muet', () => {
+    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
+    const seq = activeSequence(get);
+    expect(seq).not.toBeNull();
+    set({ sequence: { ...seq!, payload: { ...(seq!.payload as object), challengerId: 'heros-parti' } } } as never);
+    expect(() => sequenceBoardOf(get)).toThrow(/tableau de taverne — challenger/);
+  });
+
+  it('étape `tavern-drink` sans lanceur : erreur nommée, jamais un id affiché pour nom', () => {
+    const step: CascadeStep = { id: 'pinte', kind: 'tavern-drink', label: fixtureText('Pinte'), actorId: get().party[0]!.id, result: { roll: 90, target: 40, sl: -5, success: false } };
+    expect(() => cascadeAppliers['tavern-drink']!.apply(get, set, step, undefined, { steps: [step], index: 0 })).toThrow(/tavern-drink.*torchonRate/);
+  });
+
+  it('profil de coéquipier inconnu', () => {
+    const jeu = findTavernGameById('middenball')!;
+    playTavernGame(get, set, { gameId: jeu.id, challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'profil-fantome' });
+    expect(activeSequence(get)).toBeNull();
+    expect(get().journal.slice(-1)[0]).toBe(t('tavern.coequipierSansProfil', { jeu: jeu.label, profil: 'profil-fantome' }));
   });
 });
 

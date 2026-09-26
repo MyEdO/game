@@ -147,7 +147,7 @@ function legPartsFront(p: QuadProps, far: boolean, foot: QuadFoot, fore = false)
 // CORPS ENTIER en UNE SEULE silhouette continue (poitrail → garrot → dos → croupe → cuisse →
 // ventre), dessinée dans le tronc : détourer barrique et croupe séparément lit « deux pièces mal
 // soudées / croupe-ballon » (retour utilisateur + juges).
-// +x = avant. La croupe (os) ne porte plus que pattes arrière/queue ; l'arrière-train vit ici
+// +x = avant. La croupe (os) porte seulement pattes arrière/queue ; l'arrière-train vit ici
 // (la croupe ne tourne que de quelques degrés en anim — perte négligeable, couture supprimée).
 // La profondeur est encore étirée par girth (scale vertical au rendu).
 // Canal `bodyHi` (calque clair du haut de la silhouette : pelage en touffes, balafres) : la DEF DE

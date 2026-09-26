@@ -8,7 +8,7 @@
 > Tolérance ligne = ±20.
 
 **Sens A — code → Atlas (tous livres)** : 12 chapitre(s)-livre cités par le code & absents de l'Atlas · 11 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
-**Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 50 · 0 crédité(s) par une source folio de `src/data` · 50 sous dette de fiche déclarée).
+**Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 47 · 0 crédité(s) par une source folio de `src/data` · 47 sous dette de fiche déclarée).
 
 ## A0 — Résumé Sens A par livre
 
@@ -37,8 +37,8 @@
 ### EDOC 9 — 5 réf(s) code, 0 dans l'Atlas
 - `src/engine/disease.ts:587` (l.21) — *  voyage (EDOC 09 l.21) passent par ici. No-op sur une maladie déjà active. */
 - `src/state/travel.test.ts:441` (l.21) — it('saison froide + Exposition RATÉE : le Rhume commun contracté en route se DÉCLARE à la Phase d’arrivée (EDOC 8 l.92, EDOC 9 l.21)', () => {
-- `src/state/travelFlow.ts:188` (l.21) — *  (EDOC 09 l.21, `declareArrivalDiseases`). */
-- `src/state/travelFlow.ts:443` (l.21) — // après interruption retrouve celle du départ). Lue par la Phase d'arrivée (EDOC 09 l.21).
+- `src/state/travelFlow.ts:189` (l.21) — *  (EDOC 09 l.21, `declareArrivalDiseases`). */
+- `src/state/travelFlow.ts:444` (l.21) — // après interruption retrouve celle du départ). Lue par la Phase d'arrivée (EDOC 09 l.21).
 
 ### EDOC 10 — 2 réf(s) code, 0 dans l'Atlas
 - `src/data/reseau-routier.json:173` (l.30) — "note": "EDOC 10 l.30 — section « Postes de péage » ; tarif l.32."
@@ -63,10 +63,10 @@
 - `src/data/naval-traits.json:12` (l.90) — "maison": "MSRC 07 l.94 gate le Critique de Superstructure sur « si le bateau dispose d'une cale » sans imprimer de Trait naval ; la cale rejoint le catalogue d
 - `src/data/regles-optionnelles-partition.test.ts:58` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
 - `src/data/schemas/grammaire/formes-partagees.test.ts:406` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
-- `src/ui/compendium/registry-enveloppe.test.ts:165` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
+- `src/ui/compendium/registry-enveloppe.test.ts:166` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
-- `src/data/schemas/defs-scenes/scene.ts:166` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
+- `src/data/schemas/defs-scenes/scene.ts:168` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
 - `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
@@ -125,7 +125,7 @@
 ### EDOC 13 — 3/9 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
 - l.137 — `src/data/index.ts:1101` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 - l.522 — `src/data/index.ts:1709` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
-- l.524 — `src/data/refs-migrated.test.ts:834` — *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
+- l.524 — `src/data/refs-migrated.test.ts:840` — *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
 
 ### MDG 15 — 3/50 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
 - l.461 — `src/data/naval-ports.test.ts:47` — it('Erengrad : Taille 4, Richesse 4, Surplus pièces-détachées-de-navire +1, Demande laine +1 (MDG 15 l.461-462, folio 138)', () => {
@@ -195,11 +195,11 @@ LDB 38
 
 ## B2 CRB (cœur 5e) — Chapitres cités par l'Atlas, jamais référencés dans le code
 
-_Avant crédits (50)_ : CRB 4 · CRB 6 · CRB 7 · CRB 8 · CRB 9 · CRB 10 · CRB 11 · CRB 12 · CRB 16 · CRB 17 · CRB 20 · CRB 21 · CRB 22 · CRB 23 · CRB 24 · CRB 25 · CRB 26 · CRB 27 · CRB 28 · CRB 29 · CRB 30 · CRB 31 · CRB 32 · CRB 33 · CRB 34 · CRB 36 · CRB 37 · CRB 38 · CRB 39 · CRB 40 · CRB 41 · CRB 42 · CRB 47 · CRB 48 · CRB 65 · CRB 66 · CRB 67 · CRB 70 · CRB 71 · CRB 72 · CRB 74 · CRB 75 · CRB 76 · CRB 86 · CRB 90 · CRB 97 · CRB 100 · CRB 114 · CRB 115 · CRB 116
+_Avant crédits (47)_ : CRB 4 · CRB 6 · CRB 7 · CRB 8 · CRB 9 · CRB 10 · CRB 11 · CRB 12 · CRB 16 · CRB 17 · CRB 20 · CRB 21 · CRB 22 · CRB 23 · CRB 24 · CRB 25 · CRB 26 · CRB 27 · CRB 28 · CRB 29 · CRB 30 · CRB 31 · CRB 32 · CRB 33 · CRB 34 · CRB 37 · CRB 38 · CRB 39 · CRB 41 · CRB 42 · CRB 47 · CRB 48 · CRB 65 · CRB 66 · CRB 67 · CRB 71 · CRB 72 · CRB 74 · CRB 75 · CRB 76 · CRB 86 · CRB 90 · CRB 97 · CRB 100 · CRB 114 · CRB 115 · CRB 116
 
 _Crédités par une source folio de `src/data/*.json` (0, donnée référencée sans réf de ligne)_ : —
 
-_Sous dette de fiche déclarée (50, toutes les fiches qui décrivent le chapitre sont ticketées)_ : CRB 4 (#1873 — 5e/tests) · CRB 6 (#1873 — 5e/tests) · CRB 7 (#1873 — 5e/tests) · CRB 8 (#1873 — 5e/tests) · CRB 9 (#1873 — 5e/tests) · CRB 10 (#1873 — 5e/tests) · CRB 11 (#1873 — 5e/tests) · CRB 12 (#1873 — 5e/tests) · CRB 16 (#1873 — 5e/tests) · CRB 17 (#1873 — 5e/tests) · CRB 20 (#1873 — 5e/tests) · CRB 21 (#1873 — 5e/tests) · CRB 22 (#1873 — 5e/tests) · CRB 23 (#1873 — 5e/tests) · CRB 24 (#1873 — 5e/tests) · CRB 25 (#1873 — 5e/tests) · CRB 26 (#1873 — 5e/tests) · CRB 27 (#1873 — 5e/tests) · CRB 28 (#1873 — 5e/tests) · CRB 29 (#1873 — 5e/tests) · CRB 30 (#1873 — 5e/tests) · CRB 31 (#1873 — 5e/tests) · CRB 32 (#1873 — 5e/tests) · CRB 33 (#1873 — 5e/tests) · CRB 34 (#1873 — 5e/tests) · CRB 36 (#1873 — 5e/tests) · CRB 37 (#1873 — 5e/tests) · CRB 38 (#1873 — 5e/tests) · CRB 39 (#1873 — 5e/tests) · CRB 40 (#1873 — 5e/tests) · CRB 41 (#1873 — 5e/tests) · CRB 42 (#1873 — 5e/tests) · CRB 47 (#1873 — 5e/tests) · CRB 48 (#1873 — 5e/tests) · CRB 65 (#1873 — 5e/tests) · CRB 66 (#1873 — 5e/tests) · CRB 67 (#1873 — 5e/tests) · CRB 70 (#1873 — 5e/tests) · CRB 71 (#1873 — 5e/tests) · CRB 72 (#1873 — 5e/tests) · CRB 74 (#1873 — 5e/tests) · CRB 75 (#1873 — 5e/tests) · CRB 76 (#1873 — 5e/tests) · CRB 86 (#1873 — 5e/tests) · CRB 90 (#1873 — 5e/tests) · CRB 97 (#1873 — 5e/tests) · CRB 100 (#1873 — 5e/tests) · CRB 114 (#1873 — 5e/tests) · CRB 115 (#1873 — 5e/tests) · CRB 116 (#1873 — 5e/tests)
+_Sous dette de fiche déclarée (47, toutes les fiches qui décrivent le chapitre sont ticketées)_ : CRB 4 (#1873 — 5e/tests) · CRB 6 (#1873 — 5e/tests) · CRB 7 (#1873 — 5e/tests) · CRB 8 (#1873 — 5e/tests) · CRB 9 (#1873 — 5e/tests) · CRB 10 (#1873 — 5e/tests) · CRB 11 (#1873 — 5e/tests) · CRB 12 (#1873 — 5e/tests) · CRB 16 (#1873 — 5e/tests) · CRB 17 (#1873 — 5e/tests) · CRB 20 (#1873 — 5e/tests) · CRB 21 (#1873 — 5e/tests) · CRB 22 (#1873 — 5e/tests) · CRB 23 (#1873 — 5e/tests) · CRB 24 (#1873 — 5e/tests) · CRB 25 (#1873 — 5e/tests) · CRB 26 (#1873 — 5e/tests) · CRB 27 (#1873 — 5e/tests) · CRB 28 (#1873 — 5e/tests) · CRB 29 (#1873 — 5e/tests) · CRB 30 (#1873 — 5e/tests) · CRB 31 (#1873 — 5e/tests) · CRB 32 (#1873 — 5e/tests) · CRB 33 (#1873 — 5e/tests) · CRB 34 (#1873 — 5e/tests) · CRB 37 (#1873 — 5e/tests) · CRB 38 (#1873 — 5e/tests) · CRB 39 (#1873 — 5e/tests) · CRB 41 (#1873 — 5e/tests) · CRB 42 (#1873 — 5e/tests) · CRB 47 (#1873 — 5e/tests) · CRB 48 (#1873 — 5e/tests) · CRB 65 (#1873 — 5e/tests) · CRB 66 (#1873 — 5e/tests) · CRB 67 (#1873 — 5e/tests) · CRB 71 (#1873 — 5e/tests) · CRB 72 (#1873 — 5e/tests) · CRB 74 (#1873 — 5e/tests) · CRB 75 (#1873 — 5e/tests) · CRB 76 (#1873 — 5e/tests) · CRB 86 (#1873 — 5e/tests) · CRB 90 (#1873 — 5e/tests) · CRB 97 (#1873 — 5e/tests) · CRB 100 (#1873 — 5e/tests) · CRB 114 (#1873 — 5e/tests) · CRB 115 (#1873 — 5e/tests) · CRB 116 (#1873 — 5e/tests)
 
 **VRAIS hors-code (après crédits) :**
 _Aucun._
@@ -208,4 +208,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 79a228d31df8c3b4b4d28b4bb7c5a624549b7b68 (4252 fichiers, 154 dossiers) corps: 902754247452050c8a755173f002ab30be8948d8 -->
+<!-- sources-empreinte: 695b2e8fd8a66d83799a67ee4b2858fda83b0a47 (4277 fichiers, 154 dossiers) corps: 6da6795a0e905807b55e368ef0b0335b402cfc1f -->

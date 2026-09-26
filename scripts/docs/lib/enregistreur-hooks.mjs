@@ -21,12 +21,11 @@
 import fs from 'node:fs'
 import { syncBuiltinESMExports } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { canoniser, relatifSousRacine } from './chemin-mesure.mjs'
-
-const EXCLUS = /(^|\/)(?:node_modules|\.git|\.cache|dist)(?:\/|$)/
+import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
 
 let racine = null
 let sortie = null
+let ignores = new Set()
 let cibles = new Set()
 const vus = new Set()
 
@@ -44,6 +43,7 @@ const estLecture = (drapeaux) =>
 export function initialize(donnees) {
   racine = canoniser(donnees.racine)
   sortie = donnees.sortie
+  ignores = new Set(donnees.ignores)
   cibles = new Set(donnees.cibles ?? [])
   fs.readFileSync = function (p, ...a) { const r = brut.readFileSync.call(this, p, ...a); noterChemin(p); return r }
   fs.openSync = function (p, d, ...a) { const r = brut.openSync.call(this, p, d, ...a); if (estLecture(d)) noterChemin(p); return r }
@@ -69,7 +69,7 @@ function noterChemin(cible) {
       : null
     if (!chemin) return
     const rel = relatifSousRacine(racine, chemin)
-    if (!rel || EXCLUS.test(rel) || cibles.has(rel) || vus.has(rel)) return
+    if (!rel || !dansLaMesure(rel, ignores) || cibles.has(rel) || vus.has(rel)) return
     vus.add(rel)
     brut.appendFileSync(`${sortie}.${process.pid}.hooks.jsonl`, `${rel}\n`)
   } catch { /* une lecture non enregistrable ne casse jamais le générateur */ }

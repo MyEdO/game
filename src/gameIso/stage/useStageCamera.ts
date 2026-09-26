@@ -148,8 +148,12 @@ export function stageFocus(args: {
   // tuile logique partyPos qui avance d'une case toutes les 150 ms.
   let focus: { x: number; y: number } = partyPos;
   if (mode !== 'battle' && partyLeader) {
+    // Le FOCUS suit le corps qui marche (le meneur, dont le glissement est keyé par son id) ; le SUJET,
+    // lui, est le GROUPE et ne dépend d'aucun héros — même raison qu'au centre de zone ci-dessus : un
+    // meneur qui change (le premier du roster tombe) relancerait sinon un adoucissement de focale alors
+    // que la caméra ne va nulle part.
     focus = walkPosOf(partyLeader.id, partyPos.x, partyPos.y);
-    sujet = `groupe:${partyLeader.id}`;
+    sujet = 'groupe';
   }
   if (camPair) {
     // Cadrer les DEUX : on centre sur le milieu attaquant ↔ cible.

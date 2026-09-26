@@ -21,6 +21,7 @@
  * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`resumeTravel`).
  */
 import { battleRng } from './battleRng';
+import { garanti } from './combatants';
 import { bus, EVT } from './bus';
 import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 
@@ -47,11 +48,11 @@ import { applyOps } from '../engine/ops';
 import { ouvrirChute } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
-import { findVehicleById, voyageStakeRef, weather } from '../data';
+import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { PERIPETIES } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
-import { partyAssisted, supportSplit, testValue, type SupportDetail } from '../engine/skills';
+import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
 import { formatMoney } from '../engine/money';
 import { condCtx, payFromGroup } from './bourseFlow';
@@ -206,7 +207,7 @@ export function currentTravelDayWeather(plan: TravelPlan, pendingRest: { travelD
 
 /** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
  *  km avancent AVANT la cascade (marche terrestre déterministe — heures × vitesse, comportement
- *  conservé ; seuls les JETS d'Étape/péripétie sont influençables), donc la clôture n'a plus qu'à
+ *  conservé ; seuls les JETS d'Étape/péripétie sont influençables), donc la clôture a seulement à
  *  enchaîner. Porte la destination, les héros en marche forcée (→ cascade de NUIT), le résultat
  *  d'INTERRUPTION d'une péripétie (combat/embuscade différé), et `arrived`. Jamais persisté au-delà d'une
  *  journée. La ligne de récap du jour vit dans `plan.recap.days[dernier]` (le `while` la relit). */
@@ -443,8 +444,8 @@ function runTravelDays(get: Get, set: Set): void {
   // après interruption retrouve celle du départ). Lue par la Phase d'arrivée (EDOC 09 l.21).
   if (plan0 && !plan0.diseasesAtStart) set({ travelPlan: { ...plan0, diseasesAtStart: diseaseKeys(get().party) } });
   const recap: TravelRecap | null = plan0 ? {
-    fromLabel: placeById(worldMap, plan0.fromPlaceId)?.label ?? '?',
-    toLabel: placeById(worldMap, plan0.toPlaceId)?.label ?? '?',
+    fromLabel: libelleOuAbsence(placeById(worldMap, plan0.fromPlaceId), 'lieu', plan0.fromPlaceId),
+    toLabel: libelleOuAbsence(placeById(worldMap, plan0.toPlaceId), 'lieu', plan0.toPlaceId),
     mode: plan0.mode, status: 'arrived', km: plan0.km, kmDone: plan0.kmDone,
     days: [], // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir
   } : null;
@@ -492,12 +493,12 @@ function runTravelDays(get: Get, set: Set): void {
     // (Tests de Conduite d'attelage) — sinon, progression linéaire à la vitesse du mode.
     const kmLeft = plan.km - plan.kmDone;
     const forcedEligible = plan.allure === 'galop' && plan.mode !== 'monture' && !plan.vehicleLame && !!vehicleTravel(plan.mode)?.draft;
-    const forcedDriver = forcedEligible ? partyAssisted(party, 'conduite-d-attelage') : null;
+    const forcedDriver = forcedEligible ? garanti(partyAssisted(party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur') : null;
     // Conducteur dont le jet se SURFACE (#1262) : chaque Test de Conduite d'attelage au km devient une
     // ÉTAPE de la cascade `travelDay` (Chance/Pacte/Résilience possibles), chaînée par insertions
     // successives jusqu'au premier échec (`buildForcedPaceDaySteps`) — gameTime/kmDone sont alors
     // DIFFÉRÉS à la clôture (`continueTravelDayAfterCascade`), comme la progression fluviale.
-    // Repli : pas de conducteur / aucun siège humain ne le tient → chemin SYNCHRONE (`forcedPaceDay`).
+    // Repli : allure forcée non éligible, ou aucun siège humain ne tient le conducteur → chemin SYNCHRONE (`forcedPaceDay`).
     const premierKm = forcedEligible && forcedDriver && surfaceOf(get, forcedDriver.actor.id)
       ? buildForcedPaceStep(forcedDriver, kmLeft)
       : undefined;
@@ -579,7 +580,7 @@ function runTravelDays(get: Get, set: Set): void {
 
     // Sous-système OPTIONNEL « Voyage par Étapes » (EDOC 8, parent `travel-etapes`) + PÉRIPÉTIES du
     // jour (d'auteur puis table d10 RAW). TOUS les JETS du jour (Activités d'Étape, Exposition de fin
-    // d'Étape, Survie/Perception des péripéties) sont désormais des ÉTAPES d'une CASCADE influençable
+    // d'Étape, Survie/Perception des péripéties) sont des ÉTAPES d'une CASCADE influençable
     // (`purpose:'travelDay'`, Chance/Pacte/Résilience) — plus d'auto-résolution inline. Ordre RAW (l.10)
     // : Météo (tirée ici, ambiance) → activités → péripéties. Quand aucun jet n'est produit (règle
     // Étapes éteinte ET pas de péripétie testable), la cascade est VIDE → on finalise directement (le
@@ -926,7 +927,7 @@ registerCascadeApplier('landPerilSurvie', (get, set, step, hero) => {
   if (!step.result) return;
   // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
   // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
-  if (step.result.success) return { consequences: freeCons([t('tf.survieOk', { who: hero?.label ?? t('tf.partyFallback') })]) };
+  if (step.result.success) return { consequences: freeCons([t('tf.survieOk', { who: garanti(hero, step.actorId, 'survivant du péril').label })]) };
   return { consequences: freeCons(applyEreintant(get, set)) };
 });
 
@@ -939,8 +940,8 @@ registerCascadeApplier('landPerilPerception', (get, set, step, hero) => {
   // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
   // échec sans embuscade configurée (rien à ajouter) → aucune conséquence.
   const j: string[] = step.result.success
-    ? [t('tf.perceptionOk', { who: hero?.label ?? t('tf.partyFallback') })]
-    : configured ? [t('tf.perceptionAmbush', { who: hero?.label ?? t('tf.partyFallback') })] : [];
+    ? [t('tf.perceptionOk', { who: garanti(hero, step.actorId, 'guetteur du péril').label })]
+    : configured ? [t('tf.perceptionAmbush', { who: garanti(hero, step.actorId, 'guetteur du péril').label })] : [];
   if (configured) j.push(...markLandInterrupt(get, set, {
     kind: 'ambush', scene: String(step.meta?.ambushScene ?? ''), entry: String(step.meta?.ambushEntry ?? '') || undefined,
     encounter: String(step.meta?.ambushEnc ?? ''), noSurprise: step.result.success,
@@ -1057,15 +1058,15 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number): ForcedPaceDayResult 
   const gallopKmh = draft.m * ALLURE_KMH_PER_M.galop; // vitesse au pas de course = M de l'attelage × 3 (l.140)
   const walkKmh = veh.movement;
   const out: ForcedPaceDayResult = { km: 0, hours: 0, lines: [], entries: [], vehicleOut: false, vehicleLame: false };
-  const driver = partyAssisted(get().party, 'conduite-d-attelage');
-  const driverLine = supportSplit(driver?.value ?? 0, driver?.support); // base RÉELLE du conducteur + sa ligne de Soutien
+  const driver = garanti(partyAssisted(get().party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur');
+  const driverLine = supportSplit(driver.value, driver.support); // base RÉELLE du conducteur + sa ligne de Soutien
   let galloped = 0;
   while (out.hours < plan.hoursPerDay - 1e-9 && out.km < kmLeft - 1e-9) {
     // SOURCE UNIQUE du kilomètre : `forcedPaceCheck` roule le conducteur (pénalité en MODIFICATEUR de
     // `rollTest`, dont la politique de clamp est la seule) puis, à son échec, chaque bête avec
     // l'aggravation de l.253. Ce chemin et la cascade joueur lisent le MÊME résolveur.
     const res = forcedPaceCheck({
-      valeurConduite: driver?.value ?? 0,
+      valeurConduite: driver.value,
       kmDejaCourus: galloped,
       animaux: draftAnimals(veh.draft!.count, draft.e),
       rng: battleRng(),
@@ -1080,7 +1081,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number): ForcedPaceDayResult 
     }
     const stupefiant = roll.sl <= -6; // Échec Stupéfiant (EDOC 07 l.253)
     out.entries.push({
-      actorId: driver?.actor.id ?? '', icon: 'travel/cart', label: 'Conduite d’attelage (allure forcée)',
+      actorId: driver.actor.id, icon: 'travel/cart', label: 'Conduite d’attelage (allure forcée)',
       // La rangée du récap NOMME ce qui compose la valeur : le Soutien des passagers (LDB 12, fondu
       // dans `driver.value`) et les crans déjà avalés au pas de course.
       d: testDetail('Conduite d’attelage', driverLine.base, roll,
@@ -1089,7 +1090,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number): ForcedPaceDayResult 
     });
     // Le jet est DÉJÀ affiché par la rangée `day.entries` (MultiRollList) du même recap — pas de
     // re-print du roll/target (#295 Lot 5) ; le verdict reste pour le journal général (surface SANS rangée).
-    out.lines.push(t('tf.forcedFail', { name: driver?.actor.label ?? t('tf.driverFallback'), stupefiant: stupefiant ? t('tf.fragStupefiant') : '' }));
+    out.lines.push(t('tf.forcedFail', { name: driver.actor.label, stupefiant: stupefiant ? t('tf.fragStupefiant') : '' }));
     out.lines.push(...forcedPaceBeastLines(res.animaux));
     if (stupefiant) {
       const pb = applyVehicleProblemToTravel(get, set, out);
@@ -1123,13 +1124,13 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
     // « S'il ne prend pas des mesures pour l'arrêter, le véhicule peut entrer en collision ! … S'il se
     // déplaçait plus vite que la vitesse de marche, il subit un Accident à la place » (l.284) — la
     // maîtrise = Test de Conduite d'attelage Intermédiaire (+0) du conducteur.
-    const driver = partyAssisted(get().party, 'conduite-d-attelage');
-    const rt = rollTest(driver?.value ?? 0, 'intermediaire', battleRng());
+    const driver = garanti(partyAssisted(get().party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur');
+    const rt = rollTest(driver.value, 'intermediaire', battleRng());
     // Repli IA/synchrone (`forcedPaceDay`) : aucune rangée nulle part pour ce jet — le journal est
     // la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`), porteur fondu dans le libellé (la phrase
     // NOMME déjà le conducteur).
     out.lines.push(t('tf.vehicleProblem', { label: entry.label }), traceLineOf({
-      label: t('tf.retakeControl', { name: driver?.actor.label ?? t('tf.driverFallback') }),
+      label: t('tf.retakeControl', { name: driver.actor.label }),
       roll: rt.roll, target: rt.target, success: rt.success,
       issue: rt.success ? t('tf.controlHeld') : t('tf.controlLost'),
     }));
@@ -1214,9 +1215,9 @@ registerCascadeApplier('landForcedPace', (get, set, step, hero) => {
   const kmLeft = Number(m.kmLeft), galloped = Number(m.galloped);
   // Conducteur RE-RÉSOLU (acteur + Soutien du moment) : le km suivant et la reprise de contrôle
   // testent la MÊME chose que le km courant, ils ne rejouent pas une valeur figée (LDB 12 l.189).
-  const driver = forcedPaceDriver(get);
+  const driver = garanti(forcedPaceDriver(get), 'conduite-d-attelage', 'conducteur');
   let km = Number(m.km), hours = Number(m.hours);
-  const name = hero?.label ?? t('tf.driverFallback');
+  const name = garanti(hero, step.actorId, 'conducteur').label;
   const plan = get().travelPlan!;
   const veh = vehicleTravel(plan.mode)!;
   const draft = mountProfileById(veh.draft!.montureId)!;
@@ -1271,8 +1272,7 @@ registerCascadeApplier('landForcedPace', (get, set, step, hero) => {
     // Repli SANS acteur joueur (pas d'étape insérée ci-dessus) : aucune rangée nulle part pour ce jet
     // — le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`). MÊME valeur que la
     // surface influençable : le conducteur soutenu (`forcedPaceDriver`), jamais une grandeur seconde.
-    // Sans conducteur du tout, il ne reste que la valeur nue de l'acteur de l'étape.
-    const rt = rollSansPilote(get, driver?.actor ?? hero, driver?.value ?? testValue(hero!, 'conduite-d-attelage'), 'intermediaire', battleRng());
+    const rt = rollSansPilote(get, driver.actor, driver.value, 'intermediaire', battleRng());
     j.push(traceLineOf({
       label: t('tf.retakeControl', { name }),
       roll: rt.roll, target: rt.target, success: rt.success,
@@ -1295,7 +1295,7 @@ registerCascadeApplier('landForcedPaceControl', (get, set, step, hero) => {
   if (!step.result) return;
   const m = step.meta!;
   const finalKm = Number(m.finalKm), finalHours = Number(m.finalHours);
-  const name = hero?.label ?? t('tf.driverFallback');
+  const name = garanti(hero, step.actorId, 'conducteur').label;
   // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
   const j = [t('tf.retakeControlDone', { name, issue: t(step.result.success ? 'tf.controlHeldDot' : 'tf.controlLostBang') })];
   if (step.result.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }

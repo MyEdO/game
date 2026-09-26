@@ -190,6 +190,21 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     expect(get().suspendedCascades.map((c) => c.purpose)).toEqual(['affichage']);
   });
 
+  it('fuir → la poursuite porte la crise posée par le producteur de l’étape (#1906)', () => {
+    set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
+    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [{ ...hailStep(), meta: { crisisLabel: 'La Dent de Manann', crisisDesc: 'voile noire' } }] });
+    get().cascadeChoose('sea-pirate-hail', 'fuir');
+    get().cascadeNext();
+    expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', desc: 'voile noire' });
+  });
+
+  it('fuir sur une étape SANS crise : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {
+    set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
+    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [{ ...hailStep(), meta: undefined }] });
+    get().cascadeChoose('sea-pirate-hail', 'fuir');
+    expect(() => get().cascadeNext()).toThrow(/sea-pirate-hail.*openPirateHail/);
+  });
+
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,

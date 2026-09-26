@@ -8,7 +8,7 @@ import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, weeklyCrewWageBrass, findMoraleFactor } from '../engine/crewMorale';
 import { provisioningManifest } from '../engine/provisions';
 import { fromBrass } from '../engine/money';
-import { bulkCarriers, type CarrierStateSlice } from '../state/carriers';
+import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../state/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema } from '../data/schemas/defs/vehicles';
@@ -72,7 +72,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
   const vd = findVehicleById(vessel.vehicleId);
   if (!vd?.ship) return null;
 
-  const name = vessel.label ?? vd.label;
+  const name = nomDuNavire(vessel);
   const rig = vd.hull?.rig;
   const woundsMax = vessel.wounds?.max ?? vd.hull?.char.B ?? 0;
   const woundsCur = vessel.wounds?.current ?? woundsMax;

@@ -54,7 +54,7 @@ describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', 
 
   it('contre la SALLE (adversaire abstrait), la manche reste MONO : un seul porteur, un seul siège', () => {
     const [a] = deuxSieges();
-    g().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    g().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
     const step = g().pendingCascade!.participants[0];
     expect(step.participants, 'aucune bande : personne d’autre ne joue').toBeUndefined();

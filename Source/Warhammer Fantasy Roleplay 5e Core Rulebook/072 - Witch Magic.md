@@ -1,6 +1,6 @@
 *Pages PDF 255-257*
 
-# **WITCH MAGIC**
+# <span id="page-254-0" data-folio="255"></span>**WITCH MAGIC**
 
 The following provides two lists of eight Spells for spellcasters not yet absorbed into the Colleges of Magic, who are almost always on the lookout for witch hunters and Sigmarites.
 
@@ -26,7 +26,7 @@ You create an atmosphere conducive to friendliness and good spirits. All Fellows
 
 You plead with a god of fertility to bless the target. While the Spell is active, if biologically possible, they will conceive a child. The Spell ends when used.
 
-#### **Mirkride**
+#### <span id="page-255-0" data-folio="256"></span>**Mirkride**
 
 **CN:** 0 **Range:** You
 
@@ -95,7 +95,7 @@ You cause an area to become blighted or desolate. For example you may target eit
 - Any crops currently planted in a blighted field rot overnight.
 - A blighted animal sickens. The afflicted beast no longer produces anything (cows produce no milk, coats and hides grow mangy and unusable) and will die in 10 - SL days.
 
-# **Creeping Menace**
+# <span id="page-256-0" data-folio="257"></span>**Creeping Menace**
 
 **CN:** 6 **Range:** Willpower yards
 

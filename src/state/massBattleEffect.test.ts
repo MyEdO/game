@@ -4,7 +4,7 @@ import { seedBattleRng } from './battleRng';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import type { Effect } from './scene';
-import { armyMight, armyStartMight } from './massBattleFlow';
+import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 
 /** Effet `startMassBattle` authoré typique (armées + situations par Round + rencontres de combat). */
@@ -51,6 +51,14 @@ describe('Effet startMassBattle — sérialisation (round-trip éditeur)', () =>
   it('la fabrique par défaut round-trippe aussi', () => {
     const def = EFFECT_HANDLERS.startMassBattle.make();
     expect(JSON.parse(JSON.stringify(def))).toEqual(def);
+  });
+
+  it('la fabrique ne recopie aucun nom d’armée : la bataille lancée porte ceux de `nomDArmee`', () => {
+    const def = EFFECT_HANDLERS.startMassBattle.make() as Extract<Effect, { type: 'startMassBattle' }>;
+    apply([def]);
+    const mb = useGame.getState().massBattle!;
+    expect([mb.ally.label, mb.enemy.label]).toEqual([nomDArmee(def.battle, 'ally'), nomDArmee(def.battle, 'enemy')]);
+    expect([def.battle.allyName, def.battle.enemyName]).toEqual([undefined, undefined]);
   });
 });
 

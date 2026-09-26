@@ -1,6 +1,6 @@
 *Pages PDF 208*
 
-# **THE CULT OF RANALD, GOD OF TRICKERY**
+# <span id="page-207-0" data-folio="208"></span>**THE CULT OF RANALD, GOD OF TRICKERY**
 
 **Seat of Power:** None officially
 

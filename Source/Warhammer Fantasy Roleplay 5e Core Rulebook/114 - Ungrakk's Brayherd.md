@@ -1,6 +1,6 @@
 *Pages PDF 354-356*
 
-# **UNGRAKK'S BRAYHERD**
+# <span id="page-353-0" data-folio="354"></span>**UNGRAKK'S BRAYHERD**
 
 This band of beastmen have moved into the wooded foothills of the Hägercrybs, having been driven out of their traditional territory in the Reikwald forest by the Shadow Web goblins. While the beastmen are individually strong, they lack numbers and organisation, passing their time by catching and eating the occasional sheep or shepherd. Word of the herd's activities have spread to Auerswald, and the Wallensteins have asked their chamberlain to arrange an expedition to slaughter the creatures.
 
@@ -46,7 +46,7 @@ Cool 60, Dodge 50, Intimidate 60, Leadership 15, Melee (Basic 65, Two-Handed 65)
 
 Greataxe, Light Armour
 
-# **Ungrakk - Gor Beastlord (Commander)**
+# <span id="page-354-0" data-folio="355"></span>**Ungrakk - Gor Beastlord (Commander)**
 
 Ungrakk is a mighty warrior who inspires fear and respect in his fellow beastmen. He is an unimaginative gor, driven to kill humans and cast down their structures. Following their conflict with the Shadow Web goblins, he leads a band of 5 Gors and 15 Ungor Archers. Life in the Hägercrybs has been relatively easy for the herd, and Ungrakk hopes to gather some more strength before taking to raiding tougher targets such as villages and farmsteads.
 
@@ -150,7 +150,7 @@ Channelling (*Ghur*) 50, Cool 50, Dodge 45, Intuition 50, Language (Magick) 45, 
 
 Axe, Light Armour, Staff
 
-# **Guzgog - Ungor Skirmisher**
+# <span id="page-355-0" data-folio="356"></span>**Guzgog - Ungor Skirmisher**
 
 Guzgog is a skilled skirmisher and a sharp shot with his shortbow. Though an adequate scout for the brayherd, he is not especially perceptive, and his failure to spot several goblin ambushes has left him distrusted. He is desperate not to make another mistake, knowing one more failure will earn him Ungrakk's murderous wrath.
 

@@ -1,6 +1,6 @@
 *Pages PDF 179-182*
 
-# **DISEASE AND INFECTION**
+# <span id="page-178-0" data-folio="179"></span>**DISEASE AND INFECTION**
 
 Plague and pestilence — the purview of Nurgle, the Chaos God of disease and despair — are an everyday fact of Old World life. Outbreaks of plague affect all levels of society, although the common folk usually fare the worst. To ward against these terrible infections, most turn to the welcoming arms of Nurgle's sworn enemy, Shallya, the goddess of mercy and healing. Those actually suffering a disease will often turn to any possible cure, ensuring wise women, herbalists, and travelling doktors are never out of business, even when most peddle quackery rather than true remedies.
 
@@ -46,7 +46,7 @@ Your very blood is diseased, and your heart now pumps sickness through your body
 
 **Symptoms:** Blight, Fever, Malaise
 
-#### **Bloody Flux**
+#### <span id="page-179-0" data-folio="180"></span>**Bloody Flux**
 
 The Bloody Flux is a persistent problem in the Empire, and widely viewed to be a curse upon the impious by the gods. The foul disease causes its unfortunate victim to evacuate the bowels forcibly and frequently. The Bloody Flux is endemic in the State Armies, where it is commonly claimed to kill more soldiers than any enemy. Typical cures include eating blood pudding to replace lost humours, 'corking', and rubbing fats into the afflicted area to lessen the sting.
 
@@ -116,7 +116,7 @@ Contracted from infected rodents, dreaded Ratte Fever brings inflamed rashes and
 
 **Symptoms:** Fever, Malaise, Pox
 
-#### **Sea Sickness**
+#### <span id="page-180-0" data-folio="181"></span>**Sea Sickness**
 
 Many folk feel queasy when they first spend time aboard a vessel at sea. Once they get used to the motion of the ocean, Sea Sickness only tends to be a problem when there are high winds or a vigorous swell. Elves are immune to Sea Sickness.
 
@@ -168,7 +168,7 @@ Your temperature is high, you sweat and shiver, and find it difficult to keep yo
 
 There's a rumble and a grumble. Any given situation may be the moment you just have to go to the privy. You are expected to take every opportunity you can to pop off for an essential stop, and this is largely left in your hands. In addition, once per session the GM will let you know that you simply have to go immediately. You have a number of Rounds equal to your Toughness Bonus to get to an appropriate place to relieve yourself, or else suffer the *Besmirched* Condition.
 
-## **Infection**
+## <span id="page-181-0" data-folio="182"></span>**Infection**
 
 You have a wound or open sore that will not heal properly because of an infection, weeping foul-smelling pus. For each *Infection* Symptom you have, you cannot recover 1 Wound. Every day, make a single **Very Easy (+6 SL) Endurance** Test or gain a *Festering Wound* if you do not already have one. If you do have one, the Test is **Easy (+4 SL)**, and if you fail, you contract *Blood Rot*.
 

@@ -1,6 +1,6 @@
 *Pages PDF 191*
 
-# **SPENDING XP**
+# <span id="page-190-0" data-folio="191"></span>**SPENDING XP**
 
 Between adventures, you may spend XP to advance your Characteristics and Skills, acquire new Talents, and advance your Career Level. Your Career Level determines what Characteristics, Skills, and Talents are available to you.
 
@@ -30,7 +30,7 @@ Each Skill Advance adds +5 to your Skill level. XP Costs for Skills increase in 
 
 The full rules for how to use your Skills can be found in **Chapter 4: Skills and Talents**. Like Characteristic Advances, there is no upper limit to the number of Skill Advances that can be purchased. The table below presents costs for even the most ambitious campaigns and improbably successful characters.
 
-# **ADVANCEMENT XP COSTS**
+**ADVANCEMENT XP COSTS**
 
 | Increase | Characteristic Advance Cost |            | Skill Advance Cost |            |
 |----------|--------------------------------|------------|-----------------------|------------|

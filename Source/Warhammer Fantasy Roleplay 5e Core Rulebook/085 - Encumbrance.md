@@ -1,10 +1,10 @@
 *Pages PDF 299*
 
-# **ENCUMBRANCE**
+# <span id="page-298-0" data-folio="299"></span>**ENCUMBRANCE**
 
 Even the doughtiest Dwarf cannot carry a limitless number of Trappings. To help you track how much you are carrying, all items are marked as weighing a number of Encumbrance Points (sometimes abbreviated to 'Enc'), typically from 0–3, where 0 shows a trifling item that is easily carried, and 3 represents something that is a struggle to heft. The number of Encumbrance Points you can carry without penalty is determined by your Strength Bonus + Toughness Bonus. Thus, average Humans begin play able to carry around 6 Encumbrance Points.
 
-#### **ENCUMBRANCE EXAMPLES**
+**ENCUMBRANCE EXAMPLES**
 
 | Enc | Example Trappings             |
 |-----|-------------------------------|
@@ -33,7 +33,7 @@ Worn items like armour and clothing have their Encumbrance reduced by 1, often c
 
 Characters who exceed their Encumbrance capacity are slowed and prone to fatigue. *Movement* reduction and Travel Fatigue incurred from Encumbrance stacks with any Armour penalties. Endurance Tests to resist the *Fatigued* Condition incur Disadvantage while Overburdened.
 
-### **OVERBURDENED EXAMPLES**
+**OVERBURDENED EXAMPLES**
 
 | Enc                | Penalty                                                           |  |  |  |  |
 |--------------------|-------------------------------------------------------------------|--|--|--|--|

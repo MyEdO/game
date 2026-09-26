@@ -84,7 +84,7 @@ import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbu
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel } from '../data';
+import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './fireArc';
@@ -99,7 +99,7 @@ import { exposedCrew } from '../engine/shipCritical';
 import { sceneZonesToBattle } from './zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, inBattleId, garanti } from './combatants';
 import { aPorteeDe } from './exploreNav';
 import { controlsCombatant, defenseSurfaced, influencesLocally, quorumAtteint } from './netOwnership';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './combatCursor';
@@ -496,7 +496,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // la borne de Round, première dans la chaîne, AFFAMAIT la reprise de tour d'une séquence FUSIONNÉE).
     // Les deux bornes ne sont PAS équivalentes : au franchissement, `advanceTurn` a DÉJÀ posé `{turn: 0, round}` et
     // joué les décomptes une-fois-par-Round (combatFlow.ts:5245-5246 → `resolveRoundBoundary` →
-    // `openRoundEndCascade`) ; le `roundBoundary` de la séquence ne porte plus QUE `enterRoundStartPause`.
+    // `openRoundEndCascade`) ; le `roundBoundary` de la séquence porte seulement `enterRoundStartPause`.
     // Lui céder la place SACRIFIE donc, pour le Round COURANT, la pause de début de Round et son reset
     // per-Round (`shotsThisTurn`/`acted`/`movementUsed`…) — au profit du tour EN COURS. Moindre mal :
     // l'inverse perd le tour définitivement (la pause pose `turn: -1` et GÈLE la machinerie,
@@ -579,7 +579,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !active.mountId) return;
       const mount = mountOf(battle, active);
-      const mountName = mount?.label ?? 'sa monture';
+      const mountName = libelleOuAbsence(mount, 'combattant', active.mountId);
       const wasControlled = !!mount && isControlledMount(mount); // monture Nerveux exclue de l'ordre tant que montée
       dismount(battle, scene, active);
       // La monture Nerveux redevient un combattant indépendant → réintègre l'ordre à son rang d'Initiative.
@@ -982,7 +982,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // On rejoue le clic BRUT (`pt`) après le Test (l.962) → `battleClickTile` re-résout l'escalier
         // (sinon, stocker `dest` le re-traduirait une 2ᵉ fois et renverrait au pied). Le check de Peur, lui,
         // porte bien sur la destination réelle (`dest` ci-dessus).
-        set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, intent: { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee }, result: null }, battle: { ...battle, preview: null } });
+        set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, sourceName: feared.label, intent: { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee }, result: null }, battle: { ...battle, preview: null } });
         bus.emit(EVT.SCENE_DIRTY);
         return true;
       };
@@ -1053,7 +1053,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const snap = battle.moveSnapshot;
       const active = activeCombatant(battle);
       // Aide PRÉ-Action uniquement : on n'annule que tant qu'aucune Action n'a été prise ce Tour (sinon
-      // l'Action aurait été résolue depuis une position désormais effacée). Rien à annuler sans segment.
+      // l'Action aurait été résolue depuis une position effacée). Rien à annuler sans segment.
       if (!snap || !active || !controlsCombatant(get(), active) || battle.acted || (battle.movementUsed ?? 0) === 0) return;
       for (const c of battle.combatants) {
         const p = snap.pos[c.id];
@@ -1636,11 +1636,11 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!c) return;
       const ok = pa.result.success;
       const log = [...battle.log, ev('fear', ok
-        ? t('cs.courageYes', { name: c.label, src: src?.label ?? t('cs.fearSourceFallback') })
-        : t('cs.courageNo', { name: c.label, src: src?.label ?? t('cs.fearSourceFallback') }), c.id, src?.id)];
+        ? t('cs.courageYes', { name: c.label, src: pa.sourceName })
+        : t('cs.courageNo', { name: c.label, src: pa.sourceName }), c.id, src?.id)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
-        // Relance l'intention différée (le gate est désormais 'passed') AVEC son verdict d'armement :
+        // Relance l'intention différée (le gate est 'passed') AVEC son verdict d'armement :
         // l'intention qui l'a produite a été dissoute par le premier clic, la relire ici refuserait le
         // geste que le joueur vient de gagner à son Test de Calme.
         if (pa.intent.kind === 'tile') get().battleClickTile(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
@@ -1901,7 +1901,7 @@ export function createCombatSlice(get: Get, set: Set) {
      *  (engine/policy), pas dans le store → la passer en Auto/Rapide ne traverse NI la boucle de tours NI la
      *  souscription de `combatAuto` (aucun `set`) : le combat se figeait sur le tour courant. On RÉ-ENTRE donc
      *  explicitement : `tickCombatAuto` auto-résout une éventuelle modale ouverte, `maybeRunEnemyTurn` joue le
-     *  tour de l'acteur si l'IA le pilote désormais. No-op en mode manuel / hors combat (gardes internes). */
+     *  tour de l'acteur si l'IA le pilote. No-op en mode manuel / hors combat (gardes internes). */
     resumeCadence: () => {
       const b = get().battle;
       if (!b || b.over) return;
@@ -2145,7 +2145,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (pr.success && reloadGrantsAssessAdvantage(a)) campGain(get, a, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
       // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : `progress` inclut le bonus de
       // Talent (réalisé à l'application), le nom d'arme est résolu ici (uid → NOM d'affichage).
-      const reloadName = a.weapons.find((w) => w.uid === pr.weaponUid)?.label ?? 'arme';
+      const reloadName = garanti(a.weapons.find((w) => w.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée').label;
       const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: reloadName } });
       set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ...evLines(reloadIssue, 'reload', a.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -2199,7 +2199,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingStateRecovery: {
           actorId: active.id, actorName: active.label, state,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
-          opposed: rt.opposed, opponentValue: rt.opponentValue, opponentBase: rt.opponentBase, opponentName: rt.opponentName, requireSl: rt.requireSl,
+          opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
           roll: null, opponentRoll: null, netSL: 0, success: false,
         },
@@ -2596,7 +2596,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // étape `attack` (`pendingAttack` mis à jour par cleaveAttack/dualStrikeAttack) ; on n'avance qu'au bout.
       advanceCombatJet(get);
     },
-    // `attackCancel` (« Annuler » / défaire-charge) est désormais GÉNÉRÉ par la fabrique
+    // `attackCancel` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
     // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
     // ('siege', commitPlacedZone). Ouvre la modale de tir de la pièce indirecte servie (`pendingAttack` siège) :

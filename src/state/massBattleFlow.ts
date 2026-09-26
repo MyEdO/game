@@ -253,6 +253,11 @@ function prepFlags(mb: MassBattleState): ReadonlySet<string> {
 
 const DEFAULT_SITUATION_SIZE = 3;
 
+/** Le nom d'une armée : celui authoré, sinon le défaut maison (`mbf.allyDefault`/`mbf.enemyDefault`). */
+export function nomDArmee(spec: MassBattleSpec, camp: 'ally' | 'enemy'): string {
+  return camp === 'ally' ? spec.allyName || t('mbf.allyDefault') : spec.enemyName || t('mbf.enemyDefault');
+}
+
 /** Ouvre une bataille de masse et bascule sur sa vue. */
 export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void {
   if (get().battle) { get().log(t('mbf.inCombat')); return; }
@@ -264,8 +269,8 @@ export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void 
   const defaultPool = ROUND_SCENES().filter((d) => d.sceneKind !== 'rally').map((d) => d.id);
   const pool = (spec.scenes && spec.scenes.length ? spec.scenes : defaultPool).filter((id) => !!battleSceneById(id));
   const mb: MassBattleState = {
-    ally: makeArmy(spec.allyName ?? t('mbf.allyDefault'), allyMight),
-    enemy: makeArmy(spec.enemyName ?? t('mbf.enemyDefault'), enemyMight),
+    ally: makeArmy(nomDArmee(spec, 'ally'), allyMight),
+    enemy: makeArmy(nomDArmee(spec, 'enemy'), enemyMight),
     plannedRounds: Math.max(1, Math.floor(spec.plannedRounds ?? 1)),
     round: 1,
     phase: 'prep',
@@ -895,9 +900,12 @@ function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boo
   return t(destroyed ? 'mbf.outcomeDestroyed' : 'mbf.outcomeSuperior', { winner, loser });
 }
 
-/** Ferme la bataille et revient au jeu. */
+/** Ferme la bataille et revient au jeu. Un Test de bataille en cours (`pendingActivity.battle`) lit
+ *  la bataille jusqu'à son issue (`confirmBattleActivity`) : la clôture est alors REFUSÉE, jamais purgée. */
 export function endMassBattle(get: Get, set: Set): void {
   if (!get().massBattle) return;
+  const enCours = get().pendingActivity;
+  if (enCours?.battle) { get().log(t('mbf.endTestEnCours', { test: enCours.label })); return; }
   set({ massBattle: null, screen: get().scene ? 'campaign' : 'menu' });
 }
 

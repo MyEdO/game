@@ -1308,8 +1308,8 @@ function EmpreinteDeLInstance({ scene, ent }: { scene: Scene; ent: SceneEntity }
 
 /**
  * ORIENTATION d'une entité. Un décor VOLUMIQUE n'a que les quatre cardinaux À OFFRIR (#1509, #1680
- * ligne 3) ; source de la règle : le CATALOGUE (`refEstVolumique`), la même que lit le schéma de scène
- * au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
+ * ligne 3) : `data/props.types.ts` `capVolumique` ; source : le CATALOGUE (`refEstVolumique`), la même
+ * que lit le schéma de scène au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
  * non élisible, comme l'état de `SelecteurDeDecor` : sans elle, le DOM afficherait la première option
  * comme si c'était le cap de l'instance, et la choisir n'émettrait aucun `change`.
  */

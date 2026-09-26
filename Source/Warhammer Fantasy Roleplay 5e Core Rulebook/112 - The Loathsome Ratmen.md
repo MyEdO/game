@@ -1,6 +1,6 @@
 *Pages PDF 351-352*
 
-# **THE LOATHSOME RATMEN**
+# <span id="page-350-0" data-folio="351"></span>**THE LOATHSOME RATMEN**
 
 Skaven are a malevolent species of ratmen eking out a foul existence in the sewers and tunnels beneath the Empire's cities, watching, waiting, and plotting. So rarely are they seen that those who do glimpse them usually dismiss them as beastmen or mutants. Few suspect the truth: an Under-Empire stretches beneath the Old World, its tunnels linking every major city and beyond.
 
@@ -52,7 +52,7 @@ Stealth Tests when underground
 
  *Disease (Ratte Fever), Mutation, Skittish, Tracker*
 
-# **Stormvermin**
+# <span id="page-351-0" data-folio="352"></span>**Stormvermin**
 
 The elite fighters of the skaven are the stormvermin: bigger, stronger, tougher, and more disciplined than clanrats. They will serve as the core of any major assault and comprise the bodyguard of important skaven. Stormvermin are usually well armed and armoured, sporting weapon combinations favoured by their clan.
 

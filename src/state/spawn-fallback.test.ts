@@ -1,11 +1,10 @@
 /**
  * #223 — « seed + repli bruyant » : toute résolution qui ÉCHOUE crie (console) et laisse une trace
- * VISIBLE, jamais un clone silencieux. Couvre le repli de réf. (marqueur au nom + console.error),
- * l'arme d'authoring hors catalogue (console.error + AUCUNE arme devinée), la garde-robe inconnue
+ * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882). Couvre l'arme d'authoring hors catalogue (console.error + AUCUNE arme devinée), la garde-robe inconnue
  * (console.warn + citadins). Le tirage individuel des teintes : `gameIso/rig/tirage-individuel.test.tsx`.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { spawnEnemy } from './spawn';
+import { RefIrresoluble, spawnEnemy } from './spawn';
 import { ficheDEntite, FicheAbsente } from './sceneNpc';
 import type { SceneEntity } from './scene';
 import type { Combatant } from '../engine/types';
@@ -42,19 +41,16 @@ describe('#1882 — aucune fiche sans porteur : ni profil de repli, ni PNJ gén�
   });
 });
 
-describe('#223 — repli bruyant de réf. irrésoluble (réf. FOURNIE-mais-fausse uniquement)', () => {
-  it('réf. bidon → le nom porte la réf. littérale (visible au token/frise) + console.error', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const c = spawnEnemy({ ref: 'creature-fantome-xyz' }, 'x2', POS);
-    expect(c.label).toBe('RÉF ? « creature-fantome-xyz »');
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('irrésoluble'));
+describe('#1882 — réf. irrésoluble : aucun mannequin, le spawn LÈVE', () => {
+  it('réf. bidon ou vide → `RefIrresoluble` nommant la réf. et l’entité, jamais un Combatant', () => {
+    for (const ref of ['creature-fantome-xyz', '']) {
+      expect(() => spawnEnemy({ ref }, 'x2', POS), ref).toThrow(RefIrresoluble);
+      expect(() => spawnEnemy({ ref }, 'x2', POS), ref).toThrow(`« ${ref} » (entité « x2 »)`);
+    }
   });
 
-  it('réf. VALIDE → aucun repli bruyant (contrôle)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const c = spawnEnemy({ ref: 'humain' }, 'x3', POS);
-    expect(c.label).not.toContain('RÉF ?');
-    expect(err).not.toHaveBeenCalled();
+  it('réf. VALIDE → la fiche du bestiaire (contrôle)', () => {
+    expect(spawnEnemy({ ref: 'humain' }, 'x3', POS).label).toBe('Humain');
   });
 });
 

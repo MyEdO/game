@@ -9,7 +9,7 @@ import {
   traits, stars, talents, maneuvers, skills, domains, crewRoles, groups, raceAppearance,
   byId, findTalentById, findTrappingById, findQualityById, findSeaShantyById,
   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
-  findCreatureById, findVehicleById, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
+  findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
   mutationTables,
   specLabel, refLabel, specEntryId, specEntryLabel, specResolves, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
@@ -19,6 +19,8 @@ import { itemFromTrappingById } from '../engine/items';
 import { COND } from '../engine/conditions';
 import { DISEASES } from '../engine/disease';
 import { effectTables } from './effectTables';
+import { findLieuServiceById } from './index';
+import { SERVICE_CITE } from '../state/worldMap';
 import { terrainEntree } from '../state/terrain';
 import pregensJson from './pregens.json';
 import { makePregens } from './pregens';
@@ -132,6 +134,10 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     ];
     for (const list of advLists) for (const a of list) expect(isObj(a)).toBe(true);
     for (const l of careerLevels) for (const k of l.characteristics) expect(CHAR_KEYS as readonly string[]).toContain(k);
+  });
+
+  it('chaque service de lieu que le code cite par id (`SERVICE_CITE`) existe au catalogue (#1906)', () => {
+    expect(Object.values(SERVICE_CITE).filter((id) => !findLieuServiceById(id))).toEqual([]);
   });
 
   it('careers/classes/species portent un id ; careers.class = classId qui résout', () => {
@@ -1086,15 +1092,13 @@ describe('appearance(.Override).species — TOUTE la donnée authorée des deux 
 //    résout par sa classe) — d'où l'ensemble carrière∪classe∪tenue plutôt que les seules tenues.
 // Toute violation ci-dessus = `fichier/entité/valeur`. DUR partout (projets régénérés par l'auteur en ids).
 describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, labels interdits)', () => {
-  const refResolves = (ref: string): boolean =>
-    !!findCreatureById(ref) || !!findVehicleById(ref)?.hull || !!findTrappingById(ref)?.siegeRig;
   const ENTITY_KINDS = new Set(['heroStart', 'personnage', 'prop']);
   function sweep(node: unknown, where: string, out: string[]): void {
     if (Array.isArray(node)) { node.forEach((x, i) => sweep(x, `${where}[${i}]`, out)); return; }
     if (!isObj(node)) return;
     if (typeof node.kind === 'string' && ENTITY_KINDS.has(node.kind) && isObj(node.pos)) {
       const who = `${where}(${node.id ?? node.label ?? node.kind})`;
-      if (node.kind === 'personnage' && typeof node.ref === 'string' && !refResolves(node.ref))
+      if (node.kind === 'personnage' && typeof node.ref === 'string' && !refEntiteResolue(node.ref))
         out.push(`${who}.ref = ${JSON.stringify(node.ref)} (ni créature ∪ véhicule ∪ engin de siège)`);
       if (typeof node.weapon === 'string' && !findTrappingById(node.weapon))
         out.push(`${who}.weapon = ${JSON.stringify(node.weapon)} (pas un trappingId du catalogue d'armes)`);

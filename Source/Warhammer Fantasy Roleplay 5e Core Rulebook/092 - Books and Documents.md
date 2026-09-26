@@ -1,10 +1,10 @@
 *Pages PDF 311*
 
-# **BOOKS AND DOCUMENTS**
+# <span id="page-310-0" data-folio="311"></span>**BOOKS AND DOCUMENTS**
 
 Books in the Empire vary from exquisite masterworks with flowing calligraphy and detailed illustrations to collections of scribbled notes bound together in tattered leather. In larger settlements, official documents, newssheets, and leaflets are typically press-printed, as are many poems, romances, and important academic texts. All prices are loose suggestions only, as contents and quality vary significantly.
 
-#### **BOOKS AND DOCUMENTS**
+**BOOKS AND DOCUMENTS**
 
 | Item                  | Cost  | Enc | Availability |
 |-----------------------|-------|-----|--------------|

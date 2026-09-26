@@ -26,7 +26,7 @@ import {
   type BaselineEntry,
 } from '../scripts/guards/lib/commentPoison.mjs';
 import { LEGACY_VOCAB_SITES } from '../scripts/guards/lib/legacyVocabStock.mjs';
-import { estFichierVitest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -43,8 +43,8 @@ const GARDE = {
     '(`scripts/guards/lib/commentPoison.mjs`), sur le corpus de `readCorpus` ' +
     '(`scripts/guards/lib/sourceCorpus.mjs`, #1462) — plus aucun parcours de dossiers local.',
   perimetre:
-    '`src/**` + `scripts/**`, extensions `.ts`, `.tsx`, `.mts`, `.mjs`. Familles excuse et tombale : TESTS INCLUS ' +
-    '(le poison écrit dans un test est du poison). Famille (e) : hors tests, périmètre de mesure de #1486. ' +
+    '`src/**` + `scripts/**`, extensions `.ts`, `.tsx`, `.mts`, `.mjs`. Familles excuse, tombale et (e) : TESTS ' +
+    'INCLUS (le poison écrit dans un test est du poison). ' +
     'Cliquet des revendications d’autorité : les tests de `src/**`.',
   angleMort: [
     'Les commentaires HTML/JSX (`<!-- … -->`, `{/* … */}` hors TS), les `.css` et les `.md` ne sont pas scannés (#593).',
@@ -93,7 +93,8 @@ const GARDE = {
   ticket: '#1486',
 } as const;
 
-/** Ensemble FERMÉ des lots de #1486 (relevé au ticket le 2026-08-23) : le `lot` d’une ligne de stock
+/** Ensemble FERMÉ des lots de #1486 (relevé au ticket le 2026-08-23, étendu le 2026-09-26 par le lot
+ *  `L7` : #1486 #1509) : le `lot` d’une ligne de stock
  *  est un ou plusieurs de ces jetons séparés par ` / `. Aucun placeholder n’est admis. */
 const LOTS_1486 = [
   'L1b #1467',
@@ -107,6 +108,7 @@ const LOTS_1486 = [
   '#1474',
   'chantier rig',
   'lot rendu',
+  'L7 désormais',
 ] as const;
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet (src/ → ..)
@@ -114,8 +116,6 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet 
 // scannée par elle-même. Un détecteur qui doit citer un motif le plante en LITTÉRAL DE CHAÎNE ici
 // (jamais lu par `extractComments`), il ne l'écrit pas dans sa prose.
 const CORPUS = readCorpus([...POISON_DIRS], { exts: [...POISON_EXTS], tests: true });
-/** Périmètre de mesure de #1486 : le code de production des deux racines. */
-const HORS_TESTS = CORPUS.filter((f) => !estFichierVitest(f.rel));
 /** Fichiers de test de `src/**` : périmètre du cliquet famille 4. */
 const TESTS_SRC = CORPUS.filter((f) => estSuiteVitest(f.rel) && f.rel.startsWith('src/'));
 
@@ -639,7 +639,44 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
     expect(legacyVocabIn('// `PCFSoftShadowMap` est DÉPRÉCIÉ depuis three 0.185')).toContain('déprécié');
     expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture')).toContain('obsolète');
     expect(legacyVocabIn('// enrobé en `ViewSet` par le shim `toViewSet`')).toContain('shim');
-    expect(legacyVocabIn('// ce point d’entrée ne sert plus qu’aux étapes déjà mintées')).toContain('ne sert plus qu’à');
+    expect(legacyVocabIn('// le registre porte désormais le libellé')).toContain('désormais');
+    expect(legacyVocabIn('// DÉSORMAIS, la file appartient à la scène')).toContain('désormais');
+    for (const site of [
+      '// ce point d’entrée ne sert plus qu’aux étapes déjà mintées',
+      '// le SVG de catalogue n’est plus qu’une vignette de palette',
+      "// `type` ci-dessus n'est plus qu'un libellé d'affichage",
+      '// ces entrées ne sont plus que des déléguées',
+      '// le registre ne porte plus que le libellé',
+      '// ce backend ne sert plus que le décor',
+      '// ce champ n’est désormais plus qu’un alias',
+      '// la voie n’était plus qu’un repli',
+    ])
+      expect(legacyVocabIn(site), site).toContain('ne … plus que');
+  });
+
+  it('faux positifs écartés : le COMPARATIF, le mot plus long, la locution et la citation VERBATIM ne sont pas « ne … plus que »', () => {
+    expect(legacyVocabIn('// le SVG de catalogue est la vignette de palette')).toEqual([]);
+    expect(legacyVocabIn('// la cible n’est plus quelconque : elle est nommée')).toEqual([]);
+    expect(legacyVocabIn('// ce total n’est pas plus que la somme des parts')).toEqual([]);
+    expect(legacyVocabIn('// le pot ne rend jamais plus qu’il n’a reçu')).toEqual([]);
+    expect(legacyVocabIn('// il n’est plus que temps de clore la manche')).toEqual([]);
+    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu » (NADJ 16 l.17)')).toEqual([]);
+    expect(legacyVocabIn('// « le module n’est plus que du bruit » (2026-07-27)')).toEqual([]);
+    expect(legacyVocabIn('// « la cible est désormais à couvert » (NADJ 16 l.17)')).toEqual([]);
+    expect(legacyVocabIn('// la cible est désormais à couvert')).toContain('désormais');
+    // L'exclusion ne vaut que si elle RECOUVRE le match : hors guillemets, la même phrase est un site.
+    expect(legacyVocabIn('// jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu')).toContain('ne … plus que');
+  });
+
+  it('des guillemets SANS réf ne font pas une citation : la tombale y reste un site, toutes familles', () => {
+    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu »')).toContain('ne … plus que');
+    expect(legacyVocabIn('// « ce module n’est plus qu’un relais », puis la suite du commentaire (NADJ 16 l.17)')).toContain('ne … plus que');
+    expect(legacyVocabIn('// « enrobé par le shim `toViewSet` »')).toContain('shim');
+  });
+
+  it('ÉTAT DE JEU au présent : un site de la forme, que seul le tag [entériné AAAA-MM-JJ] du MÊME commentaire neutralise (`scanLegacyVocab`, `ENTERINE_TAG_RX`)', () => {
+    expect(scanLegacyVocab('x.ts', '// la case n’est plus qu’éclairée par la lune')).toHaveLength(1);
+    expect(scanLegacyVocab('x.ts', '// la case n’est plus qu’éclairée par la lune [entériné 2026-09-26]')).toEqual([]);
   });
 
   it('cas planté : une CONSTANTE citée en commentaire est un site (le tiret bas n’est pas une frontière)', () => {
@@ -647,9 +684,8 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
   });
 
   it('cas planté : la coupure de ligne ne met pas la locution hors de portée', () => {
-    expect(legacyVocabIn('/** ce point d’entrée ne sert\n *  plus qu’aux étapes mintées. */')).toContain(
-      'ne sert plus qu’à',
-    );
+    expect(legacyVocabIn('/** ce point d’entrée ne sert\n *  plus qu’aux étapes mintées. */')).toContain('ne … plus que');
+    expect(legacyVocabIn('/** ce qui distingue une région n’est\n *  plus que ses alvéoles */')).toContain('ne … plus que');
   });
 
   it('faux positifs écartés : l’IDENTIFIANT et le NOM DE FICHIER cités en commentaire ne sont pas des sites', () => {
@@ -689,10 +725,10 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
     expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture')).toContain('obsolète');
   });
 
-  it('tout site de src/** et scripts/** (hors tests) est au stock nominatif daté, et aucune ligne du stock n’est périmée', () => {
+  it('tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée', () => {
     const findings: { file: string; line: number; detail: string }[] = [];
     const scanned: string[] = [];
-    for (const { rel, text } of HORS_TESTS) {
+    for (const { rel, text } of CORPUS) {
       scanned.push(rel);
       for (const x of scanLegacyVocab(rel, text)) findings.push({ file: rel, line: x.line, detail: x.detail });
     }

@@ -5,7 +5,7 @@ import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
 import { testScene } from '../../scenes/test-fixture';
-import { creatures } from '../../data';
+import { creatures, premierOffert } from '../../data';
 import { useSceneHistory } from './useSceneHistory';
 import { useEditorView } from './useEditorView';
 import { EditorToolbar } from './EditorToolbar';
@@ -30,7 +30,7 @@ import { publierEditeur } from '../../state/editeurBridge';
 import {
   Tool, Sel, Pt, deleteSel, moveSel, selPos, pasteEntity, addLayer, removeLayer,
   addArchitectureBody, addArchitectureStorey, addArchitecturePart, addBuildingMass,
-  planStairFlight, applyStairFlight, premierOffert,
+  planStairFlight, applyStairFlight,
 } from './editorState';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';

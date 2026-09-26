@@ -41,7 +41,7 @@ afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return {
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
     wounds: { current: 12, max: 12 }, weapons: [],
     characteristics: {}, advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
@@ -236,7 +236,7 @@ describe('Marche volumique — ni géométrie ni billboards reconstruits entre d
     expect(billboards.mock.calls.length).toBe(bAvant);
     // Un rendu EN PLEINE marche (le store bouge : ici l'orientation, que le monde volumique lit) : les
     // sujets s'y redérivent, et leur identité ne doit pas avoir bougé d'un demi-pas pour autant.
-    act(() => { useGame.getState().setFacing('__sonde-orientation', 'N'); });
+    act(() => { useGame.getState().faceToward('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
     expect(cuisson.mock.calls.length).toBe(cAvant);
     expect(billboards.mock.calls.length).toBe(bAvant);
   });

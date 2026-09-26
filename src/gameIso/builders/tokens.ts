@@ -13,6 +13,7 @@ import { combatantAtTile } from '../../state/combatGeometry';
 import { isPassengerInBattle } from '../../state/shipPostes';
 import { isRider, isMount, riderOf } from '../../state/mount';
 import { RANG_MENEUR, seatPoseOf, type SeatPose } from '../../state/seating';
+import { CAP_GROUPE } from '../../state/combatants';
 import type { Combatant } from '../../engine/types';
 import { isStructure } from '../../engine/structures';
 import { isOverhang, capsSolid } from './floors';
@@ -27,15 +28,26 @@ import type { TokenEl } from './types';
  * bougent pas. `null` = aucun meneur à poster (combat, vue subjective : l'appelant tranche ces
  * contextes, ici on ne connaît que la scène et le corps).
  */
+export interface PartyToken {
+  /** Le CORPS qui marche : c'est SON id que porte le bus des gestes, la pose du monde et la caméra. */
+  leader: Combatant;
+  pos: { x: number; y: number; z?: number };
+  seat?: SeatPose;
+  /** CLÉ du cap dans `store.facing`, publiée ICI et consommée telle quelle par TOUT ce qui dessine ce
+   *  jeton (quad du monde volumique, disque de la vue du dessus). Le regard du groupe n'est keyé par
+   *  AUCUN héros (`CAP_GROUPE`, `state/combatants.ts`) : un meneur qui change ne le fait pas sauter. */
+  capKey: string;
+}
+
 export function partyTokenOf(
   scene: Scene,
   leader: Combatant | undefined,
   partyPos: { x: number; y: number; z?: number },
-): { leader: Combatant; pos: { x: number; y: number; z?: number }; seat?: SeatPose } | null {
+): PartyToken | null {
   if (!leader) return null;
   const seat = seatPoseOf(scene, { kind: 'party', rang: RANG_MENEUR });
-  if (!seat) return { leader, pos: partyPos };
-  return { leader, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat };
+  if (!seat) return { leader, pos: partyPos, capKey: CAP_GROUPE };
+  return { leader, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat, capKey: CAP_GROUPE };
 }
 
 /** Vérité de JEU pilotant la sélection (PAS une caméra) : étage actif/isolé + mode de vue du dessus

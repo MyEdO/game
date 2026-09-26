@@ -14,6 +14,11 @@ import { seedBattleRng } from '../state/battleRng';
 import { pickActiveModalKey } from '../state/modalArbiter';
 import { scenario } from '../scenes/test-scenarios/taverne-profil-standard';
 import { TavernGameModal } from './TavernGameModal';
+import { TAVERN_GAMES, findTavernGameById } from '../engine/tavernGame';
+import { creatureLabel, profilsStandard } from '../data';
+import { pnjAuProfil } from '../state/sceneNpc';
+import { tavernGameValue } from '../state/tavernFlow';
+import { activeSequence } from '../state/sequenceCore';
 import { ActiveModal } from './ActiveModal';
 
 const PNJ = 'habitue-bras-de-fer';
@@ -51,6 +56,39 @@ describe('Taverne — la table s’ouvre sur l’offre du PNJ qui la propose', (
     const texte = container.ownerDocument.body.textContent ?? '';
     expect(texte).toContain('Habitué de la salle : valeur de jeu 30');
     expect(texte).toContain('Test opposé : Force');
+  });
+});
+
+describe('Taverne — l’habitué joue une FICHE : un profil standard choisi (LDB 77 l.7, #1929)', () => {
+  const ouvrirSeul = () => {
+    const [soldat] = g().party;
+    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().openTavernGames(); });
+    return monterRacine(<TavernGameModal />).container.ownerDocument;
+  };
+  const bouton = (doc: Document, texte: string) =>
+    [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === texte);
+
+  it('aucun champ libre : les profils standard sont offerts, le premier choisi, sa valeur LUE de sa fiche', () => {
+    const doc = ouvrirSeul();
+    const jeu = findTavernGameById(TAVERN_GAMES[0].id)!;
+    expect(doc.querySelector('input[type="number"]#tavern-opp-value'), 'plus de valeur saisie').toBeNull();
+    expect(doc.body.textContent).not.toContain('(MJ)');
+    for (const id of profilsStandard()) expect(bouton(doc, creatureLabel(id)), id).toBeTruthy();
+    const premier = pnjAuProfil(profilsStandard()[0], 'h')!;
+    expect(doc.body.textContent).toContain(`${premier.label} : valeur de jeu ${tavernGameValue(premier, jeu)} (de sa fiche).`);
+  });
+
+  it('choisir un profil puis Jouer : la partie oppose CETTE fiche, sous son nom et SA valeur', () => {
+    const doc = ouvrirSeul();
+    const jeu = findTavernGameById('dominos')!;
+    const elfe = pnjAuProfil('elfe-haut-et-sylvain', 'h')!;
+    expect(tavernGameValue(elfe, jeu), 'un profil qui se distingue du premier').not.toBe(tavernGameValue(pnjAuProfil(profilsStandard()[0], 'h')!, jeu));
+    act(() => { bouton(doc, jeu.label)!.click(); });
+    act(() => { bouton(doc, creatureLabel('elfe-haut-et-sylvain'))!.click(); });
+    expect(doc.body.textContent).toContain(`${elfe.label} : valeur de jeu ${tavernGameValue(elfe, jeu)} (de sa fiche).`);
+    act(() => { bouton(doc, 'Jouer')!.click(); });
+    const seq = activeSequence<{ opponentName: string; opponentValue: number }>(g)!;
+    expect(seq.payload).toMatchObject({ opponentName: elfe.label, opponentValue: tavernGameValue(elfe, jeu) });
   });
 });
 

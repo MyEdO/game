@@ -164,8 +164,8 @@ export interface ForcedPick {
 /**
  * Lentille de DÉRIVATION des verbes d'influence (Chance +1 DR / Résilience « Je ne faillirai pas ! » /
  * Résistance Menace). Ces règles sont GLOBALES (LDB 17 l.24/68) : quand un flux fournit sa lentille,
- * la fabrique compose `bonusSL`/`forceSuccess`/`setForcedRoll`/`resist` DEPUIS elle — la mécanique ne vit
- * plus qu'ICI, le flux ne déclare que SA FORME. Un flux sans lentille retombe sur le chemin `resolve(forced)`
+ * la fabrique compose `bonusSL`/`forceSuccess`/`setForcedRoll`/`resist` DEPUIS elle — la mécanique vit
+ * seulement ICI, le flux ne déclare que SA FORME. Un flux sans lentille retombe sur le chemin `resolve(forced)`
  * / `bonus.derive` (repli). Le `+1 DR` passe TOUJOURS par `bumpSL`, qui n'écrit jamais `success`
  * (LDB 17 l.24 ; succès du Test : LDB 12 l.11).
  */
@@ -732,7 +732,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const actor = spec.actor(s, loc.slot, p);
       // Résistance (Menace) : réussite forcée à DR = Bonus d'Endurance (LDB 10 l.1020). Repli = `resolve(…,{sl})`.
       // CIBLE : `lensDieTarget` (le jet POSÉ fait foi) — `dieTarget` seul s'éteint sur un Test déjà réussi,
-      // et l'auto-succès du talent, désormais offert APRÈS une réussite, se serait forcé contre une cible 0.
+      // et l'auto-succès du talent, offert APRÈS une réussite, se serait forcé contre une cible 0.
       const resolveResist = L
         ? (sl: number) => { const cur = L.actorTR(loc.slot); const tgt = lensDieTarget(loc.slot, actor) ?? 0; return L.applyRoll(s, loc.slot, actor!, get, forcedTR(1, tgt, sl, cur?.base), p); }
         : (sl: number) => spec.resolve(s, loc.slot, actor, get, { sl }, p);

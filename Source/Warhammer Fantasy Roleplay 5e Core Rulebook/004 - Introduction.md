@@ -1,6 +1,6 @@
 *Pages PDF 6-21*
 
-# <span id="page-5-0"></span>• **INTRODUCTION** •
+# <span id="page-5-0" data-folio="6"></span>• **INTRODUCTION** •
 
 # *'So, what's drawn you to my door, wastrel?*
 
@@ -34,7 +34,7 @@ The rules also use 1d100, a roll from 1–100 made with two d10s. Designate one 
 
 In general, low rolls give successful results. So, whether you're rolling a d10 or a d100, you want to get as close to 01 as possible.
 
-# <span id="page-6-0"></span>**Using This Book**
+# <span id="page-6-0" data-folio="7"></span>**Using This Book**
 
 You don't need to read this book cover to cover to get started. Depending on whether you intend to create a Character or GM a game for your friends, you may wish to vary your reading order.
 
@@ -72,7 +72,7 @@ Familiarise yourself with **Chapter 10: Glorious Reikland**, to get a feel for t
 
 **Warhammer Fantasy Roleplay** is a venerable game, and this is its fifth edition. Books and supplements for fourth edition, also published by Cubicle 7 Games, are compatible with this rulebook. A few rules have changed, and you might notice a few peculiarities with how information was presented in older books. To make the best use of this large library of supplements, region guides, adventures, and campaigns, use the appendix on page 364.
 
-Being the thoughts of Frederich 'Olde' Weirde of Altdorf, Noted Scholar, Professor of Esoteric Studies, Historian, Antiquarian, Fellow of the Altdorf Men's Historical Society and Connoisseur of Finest Estalian Port, upon the current state of affairs of our great nation.
+<span id="page-7-0" data-folio="8"></span><span id="page-8-0" data-folio="9"></span><span id="page-9-0" data-folio="10"></span>Being the thoughts of Frederich 'Olde' Weirde of Altdorf, Noted Scholar, Professor of Esoteric Studies, Historian, Antiquarian, Fellow of the Altdorf Men's Historical Society and Connoisseur of Finest Estalian Port, upon the current state of affairs of our great nation.
 
 The return of young Stefan from his trip to Sylvania ought to have proved cause for significant celebration in the Weirde household but, unfortunately, it coincided with a fresh outbreak of Frau Weirde's chronic weevil cough. Given the great sum I have wasted on visits to the physician and donations to the temple-hospice of merciful Shallya, I am at the end of my patience with it, and so, rather than hark at her hacking splutter through the walls of our home, I decided to repair to the Hanging Crow to impart upon the boy a few of the habits proper to a learned scholar. Specifically, how a draught of Owd Badger's assists academic lore to trickle through the brain and better form new insights.
 
@@ -86,7 +86,7 @@ Owd Badger's growing augmentation of my intellect only confirmed the necessity o
 
 As ever, your servant in pursuit of knowledge and wisdom, Olde Weirde
 
-# <span id="page-10-0"></span>Our Great Nation
+# <span id="page-10-0" data-folio="11"></span>Our Great Nation
 
 Despite the bleatings of scholarship's lightweight parasites, it is plainly ludicrous to suggest that the Empire is anything but the pinnacle of civilisation. We are safe in our homes, protected not just by mighty armies but by Sigmar himself. There is usually plenty of food, and in times of scarcity our rulers intervene to alleviate hardship. We are free to pursue our hearts' desires, moderated only by our abilities, funds, and the laws of man and gods.
 
@@ -106,7 +106,7 @@ Even those who have little may take pride in the greatness of the society that s
 
 And then there are the inns. Glorious institutions! They represent society and its best and can be found in every city, town, fly-blown village, and even along the roads of the Empire. Here the day's work may be put aside in favour of a warm hearth, a good drink, and agreeable company. Where else might a rat catcher share a bench with a roadwarden, a Tilean merchant debate the works of Hieronymous of Nuln with an Imperial student, or a fisherwoman best an engineer at a game of Whist? For a few hours, at least, we are all subjects of the Empire together and may enjoy one another's company, provided everyone remembers who is paying for the next round.
 
-# <span id="page-13-0"></span>Our Friends and Allies
+# <span id="page-11-0" data-folio="12"></span><span id="page-12-0" data-folio="13"></span><span id="page-13-0" data-folio="14"></span>Our Friends and Allies
 
 Our enlightened Empire extends a hand of friendship to all of good intent, and within its cities can be found halflings, dwarfs, and even elves, all living under the protection of Imperial law and contributing, in their various ways, to the prosperity of our great nation.
 
@@ -118,7 +118,7 @@ Dwarfs, too, have long been valued members of Imperial society, though their fri
 
 Those who leave the holds often find ready employment in the Empire, thanks to their considerable talents and devotion to 'doing a job properly'. Dwarfs are superb smiths, masons, engineers and armourers, and few human craftsmen would not benefit from observing them at work. Many of our finest fortifications were made by dwarf hands, while their expertise in gunpowder and artillery helped Imperial gunnery become renowned and feared wherever its thunderous roars are heard. Their more experimental engineering projects are beyond the comprehension of our best scholars.
 
-They are a dour and suspicious people, and their customs can sometimes seem severe to those accustomed to the more flexible habits of Imperial society. Yet a dwarf who calls you friend is a friend indeed, and their loyalty is not lightly abandoned. The same is true of their grievances, which they preserve with a diligence that would be admirable were it applied to less troublesome matters. A dwarf does not forget an insult, a broken promise or a debt left unpaid, and may carry such a grudge well beyond the lifespan of a human. This can make dealings with them somewhat formal, but there is considerable virtue in a people whose word means precisely what they say it means. I have found that courtesy, honesty and the prompt settling of accounts are generally sufficient to maintain good relations.
+<span id="page-14-0" data-folio="15"></span>They are a dour and suspicious people, and their customs can sometimes seem severe to those accustomed to the more flexible habits of Imperial society. Yet a dwarf who calls you friend is a friend indeed, and their loyalty is not lightly abandoned. The same is true of their grievances, which they preserve with a diligence that would be admirable were it applied to less troublesome matters. A dwarf does not forget an insult, a broken promise or a debt left unpaid, and may carry such a grudge well beyond the lifespan of a human. This can make dealings with them somewhat formal, but there is considerable virtue in a people whose word means precisely what they say it means. I have found that courtesy, honesty and the prompt settling of accounts are generally sufficient to maintain good relations.
 
 Then there are the elves, though it would perhaps be more accurate to say that there are elves in the Empire, rather than elves of it. The wood elves of Laurelorn live within Imperial borders but would, I suspect, object rather strongly to being described as Imperial subjects. Their queen is thought to be a mighty sorceress who has the loyalty of her elf subjects, as well as a variety of mysterious spirits of the woods. Few of these elves venture into human lands, and fewer still allow themselves to be properly observed. Their reputation among sophisticated folk is often quite favourable, particularly where music, poetry and other forms of artistry are concerned, while the common citizen is more likely to regard an elf with the same healthy suspicion reserved for wizards and others who seem liable to know rather more than they ought.
 
@@ -132,7 +132,7 @@ Ogres are much in demand throughout the Empire as bodyguards, mercenaries, and s
 
 Beyond our borders, the Empire is surrounded by peoples of varying degrees of usefulness and good sense. To the west lies Bretonnia, a hidebound and somewhat theatrical kingdom, though one which can generally be relied upon to oppose worse sorts of people. The Wasteland, having recently separated itself from Imperial administration, is chiefly concerned with commerce and therefore behaves sensibly whenever there is money to be made. Tilea provides excellent mercenaries, though they do seem to spend an extraordinary amount of time fighting one another. To the east, Kislev remains an intermittent ally, its hardy people understandably occupied with their own affairs.
 
-# On The Empire's Resilience
+# <span id="page-15-0" data-folio="16"></span><span id="page-16-0" data-folio="17"></span>On The Empire's Resilience
 
 When Sigmar founded his Empire, he forged the realm through might of arms and triumph of diplomacy, leaving behind a nation so soundly established that it has endured for twenty-five centuries. Our current Emperor, Karl Franz, stands in the rightful succession to that great founder, and occasional periods of disagreement, competing claims, civil wars, and other temporary administrative complications should not distract from this remarkable continuity. No nation survives so long without possessing an excellent foundation.
 
@@ -140,7 +140,7 @@ Even nature herself has helpfully arranged our defences. In the south and west, 
 
 Our forests, too, provide valuable natural protection. The mighty woods that divide our towns are extensive enough to discourage casual invasion and supply timber, game and other useful resources. Naturally, one should exercise a little common sense when wandering alone beneath their canopy. There are bandits, wolves, the occasional beastman, and other unfortunate examples of wildlife that have failed to appreciate the benefits of civilisation. From time to time a village is abandoned, a traveller goes missing, or some woodland settlement suffers an unfortunate fire. Such incidents are regrettable, certainly, but hardly evidence of widespread insecurity. Indeed, the fact that Imperial citizens continue to live, farm, trade, and raise families throughout these lands is proof of the protection they enjoy. One cannot expect every tree to have a watchman.
 
-# Threats Without and Within
+# <span id="page-17-0" data-folio="18"></span><span id="page-18-0" data-folio="19"></span>Threats Without and Within
 
 Our glorious Empire is beset by myriad threats, both beyond its borders and lurking in our wild places. That so many seek to tear down what we have built is proof that our civilisation is the envy of all others.
 
@@ -150,7 +150,7 @@ Within our borders, tribes of vicious goblins skulk in the deep forests and bray
 
 There are, of course, bandits, pirates, and other scoundrels who have yet to find respectable employment, while even our cities harbour cutpurses and ne'er-do-wells. As for the tales of mutants and other horrors lurking beneath our streets, I shall leave such fanciful nonsense to those who enjoy frightening themselves in the dark.
 
-# Our Greatest Foe
+# <span id="page-19-0" data-folio="20"></span>Our Greatest Foe
 
 But there is a yet more sinister and powerful threat, one that sensible people should not discuss frivolously or, preferably, at all. Corruption undoubtedly takes hold in those whose inherent flaws or unfortunate experiences make fertile ground for it, but there are signs for those with the wit to recognise them. The mutant and the blasphemous heretic are undoubtedly created from without as much as from within, touched by an insidious yet inconsistent force that reaches alike into the wild places and the centres of civilisation.
 
@@ -170,7 +170,7 @@ The most dangerous of these deviants scheme to recruit and place agents where th
 
 The prudent citizen, and especially gullible, impressionable youths, should therefore be wary of secret societies, mysterious midnight gatherings and anyone who insists that he possesses knowledge which the rest of us are not yet ready to understand. There is rarely anything worth knowing at the end of such a conversation.
 
-# A Civilisation Worth Saving
+# <span id="page-20-0" data-folio="21"></span>A Civilisation Worth Saving
 
 Despite the many and varied threats that seek to tear down the grand undertaking that is the Empire, we have endured for centuries, and will do so for centuries more. Our grand cities are not just bastions against the onslaught of our enemies, but the hubs of civilisation where opportunity abounds for industrious and ingenious souls.
 

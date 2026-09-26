@@ -1,7 +1,8 @@
 /**
  * Schéma de `materials.json` — LE dataset des matières du monde (#1686 lot 2), consommé comme
- * `MaterialEntry[]` (`src/data/materials.types.ts`). 15 entrées : 8 matières de décor volumique,
- * 4 de toiture (3 couvertures + le « plan » vu du dessus, marqué `vueDeDessus`), 3 de relief.
+ * `MaterialEntry[]` (`src/data/materials.types.ts`), en trois domaines : les matières de décor
+ * volumique, celles de toiture (les couvertures et le « plan » vu du dessus, marqué `vueDeDessus`),
+ * celles de relief.
  *
  * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `MaterialRef.domain`
  * (`src/gameIso/builders/types.ts`), servies par `DOMAINES_MATIERE`, qui les tient sous `satisfies`.

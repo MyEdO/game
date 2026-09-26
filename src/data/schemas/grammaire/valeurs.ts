@@ -214,7 +214,7 @@ export const fragmentBlocsSchema = z.strictObject({
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
  * par indices, qu'une ré-extraction déplacerait. `row`/`col` sont des CHAÎNES : la clé de ligne d'une
- * table de d100 (`01-10`) n'est pas un nombre.
+ * table de d100 (`01-10`) n'est pas un nombre. `table` : `TableDeSection.cle` (`decoupe.ts`).
  */
 export const fragmentCelluleSchema = z.strictObject({
   kind: z.literal('cellule'),
@@ -222,6 +222,7 @@ export const fragmentCelluleSchema = z.strictObject({
   secOcc: z.number().int().min(1),
   row: z.string().min(1),
   col: z.string().min(1),
+  table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
 });
 

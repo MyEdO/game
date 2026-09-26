@@ -1,6 +1,6 @@
 *Pages PDF 43-108*
 
-# • **CLASS AND CAREERS** •
+# <span id="page-42-0" data-folio="43"></span>• **CLASS AND CAREERS** •
 
 *'Well, I play a classless knave who would sell his own grandmother for a promotion and, when called upon regarding his shortcomings, blames those who do the actual work.'*
 
@@ -50,12 +50,15 @@ The three marked h are Characteristics you can Advance in the Career's first lev
 
 ## **Career Path**
 
-- **Recruit — Brass 5**
-- **Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), ***Melee (Any One)***, Melee (Basic), Ranged (Any One)
-- **Talents:** Drilled, Etiquette (Soldiers), Strong Back, Warrior Born
-- **Trappings:** Leather Breastplate, Uniform, Weapon (Any One)
+#### **Recruit — Brass 5**
 
-## **3. Skills**
+**Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), ***Melee (Any One)***, Melee (Basic), Ranged (Any One)
+
+**Talents:** Drilled, Etiquette (Soldiers), Strong Back, Warrior Born
+
+**Trappings:** Leather Breastplate, Uniform, Weapon (Any One)
+
+## <span id="page-43-0" data-folio="44"></span>**3. Skills**
 
 You can Advance all the Skills listed for your current Career level and lower. So, if you were a Recruit (Soldier level 1), you could only access the Skills listed under Recruit (level 1). But, if you were a Sergeant (level 3), you could access all the Skills for Sergeant (level 3), Soldier (level 2), and Recruit (level 1).
 
@@ -77,7 +80,7 @@ These are the Trappings typical of a Character at each Career Level. When creati
 
 This shows the Status of your current Career Level. As long as you have at least one Trapping from your current Career level, you can use this Status. If you don't, or if you have otherwise disgraced yourself, your Status is lowered (see page 141).
 
-## **ADVISER**
+## <span id="page-44-0" data-folio="45"></span>**ADVISER**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -135,7 +138,7 @@ Advisers are wily enough to know when it is best to leave a patron, whether temp
 
 Playing as an Adviser is an opportunity to access the corridors of power, read political and social situations, and use your considerable acumen to make the right call.
 
-## **AGITATOR**
+## <span id="page-45-0" data-folio="46"></span>**AGITATOR**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -199,7 +202,7 @@ As an Agitator, you can sway crowds in your favour and help your party negotiate
 
 **Trappings:** Impressive Hat, 3 Pamphleteers, Patron, Printing Press
 
-## **APOTHECARY**
+## <span id="page-46-0" data-folio="47"></span>**APOTHECARY**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -259,7 +262,7 @@ Playing an Apothecary lets you heal or harm with equal skill. You can become an 
 
 **Trappings:** Commission Papers, Large Workshop (Apothecary)
 
-## **ARTISAN**
+## <span id="page-47-0" data-folio="48"></span>**ARTISAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -317,7 +320,7 @@ This selection of crafts may inspire a trade for your Artisan Character: Armoure
 
 **Trappings:** Guild, Quality Clothing
 
-## **ARTIST**
+## <span id="page-48-0" data-folio="49"></span>**ARTIST**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -373,7 +376,7 @@ Artists of all stripes find themselves travelling abroad in search of patronage 
 
 **Trappings:** 3 Apprentices, Large Workshop (Artist), Library (Art)
 
-## **BAILIFF**
+## <span id="page-49-0" data-folio="50"></span>**BAILIFF**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -435,7 +438,7 @@ Playing a Bailiff lets you wield your lord's authority and act in their name. Yo
 
 **Trappings:** Library (Law), Quality Robes, Seal of Office
 
-## **BEGGAR**
+## <span id="page-50-0" data-folio="51"></span>**BEGGAR**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -497,7 +500,7 @@ Those tough and clever enough to survive may gather bands of wretches to beg on 
 
 Playing a Beggar lets you see the Old World from beneath society's notice. You are effectively invisible to most people, allowing you to witness what happens on the streets or gather information from the local underclass. Few Characters are better at scraping a living in the direst circumstances, making you a surprisingly valuable companion.
 
-## **BOATMAN**
+## <span id="page-51-0" data-folio="52"></span>**BOATMAN**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -561,7 +564,7 @@ As a Boatman, you are strong, tough, and accustomed to handling yourself in roug
 
 **Trappings:** Barge and Crew, Hat
 
-## **BOUNTY HUNTER**
+## <span id="page-52-0" data-folio="53"></span>**BOUNTY HUNTER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -625,7 +628,7 @@ Playing a Bounty Hunter lets you track dangerous foes, pursue leads across the O
 
 **Trappings:** Draught Horse and Cart, 4 Pairs of Manacles
 
-## **CAVALRYMAN**
+## <span id="page-53-0" data-folio="54"></span>**CAVALRYMAN**
 
 **Warrior Class:** High Elf, Human, Wood Elf
 
@@ -685,7 +688,7 @@ Playing a Cavalryman gives you exceptional riding skills, a horse, and formidabl
 
 **Trappings:** Deck of Cards, Quality Clothing
 
-# **CHARLATAN**
+# <span id="page-54-0" data-folio="55"></span>**CHARLATAN**
 
 **Rogue Class:** Halfling, High Elf, Human
 
@@ -743,7 +746,7 @@ To avoid suspicion, Charlatans rarely stay in one place for long. Few Swindlers 
 
 Playing a Charlatan lets you bluff, deceive, and talk your way through almost any situation. Your fellow adventurers may never entirely trust you, but your silver tongue can get them out of — and into — all manner of trouble.
 
-## **COACHMAN**
+## <span id="page-55-0" data-folio="56"></span>**COACHMAN**
 
 **Ranger Class:** Dwarf, Halfling, Human
 
@@ -803,7 +806,7 @@ Playing a Coachman gives you expertise with horses, transport, and blackpowder w
 
 **Trappings:** Fleet of Coaches and Horses, Maps
 
-# **DUELLIST**
+# <span id="page-56-0" data-folio="57"></span>**DUELLIST**
 
 **Courtier Class:** Dwarf, High Elf, Human
 
@@ -865,7 +868,7 @@ Playing a Duellist means you can face almost any foe in single combat, sure in y
 
 **Trappings:** 2 Quality Weapons
 
-## **ENGINEER**
+## <span id="page-57-0" data-folio="58"></span>**ENGINEER**
 
 **Academic Class:** Dwarf, Halfling, Human
 
@@ -923,7 +926,7 @@ Engineers tend to be eccentric, and playing one allows you to bring a spark of w
 
 **Trappings:** Library (Engineering), Quality Trade Tools (Engineer), Large Workshop (Engineer)
 
-## **ENTERTAINER**
+## <span id="page-58-0" data-folio="59"></span>**ENTERTAINER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -979,7 +982,7 @@ The open road, a new village every night, the smell of greasepaint, and the roar
 
 **Trappings:** Draught Horses and Wagon (Stage), Troupe of Entertainers, Wardrobe of Costumes and Props
 
-## **ENVOY**
+## <span id="page-59-0" data-folio="60"></span>**ENVOY**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1041,7 +1044,7 @@ Playing an Envoy lets you wield the authority of whomever you represent, while y
 
 **Trappings:** Best Quality Courtly Clothes, Herald, Staff of Diplomats
 
-## **FENCE**
+## <span id="page-60-0" data-folio="61"></span>**FENCE**
 
 **Rogue Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1103,9 +1106,7 @@ Playing a Fence lets you move comfortably between respectable society and the cr
 
 **Trappings:** Gang of Racketeers, Network of Informers, Warehouse
 
-for the world.
-
-## **FLAGELLANT**
+## <span id="page-61-0" data-folio="62"></span>**FLAGELLANT**
 
 **Ranger Class:** Human
 
@@ -1113,7 +1114,7 @@ for the world.
 
 *'We scourge this flesh and spill this blood, for his Empire, in Sigmar's name!'* — Viktorina Schwefel, Flagellant
 
-Flagellants travel the Empire, flogging themselves in penance for their own sins and the sins of others. The vast majority are devout followers of Sigmar, though a rare few dedicate themselves to other gods. Whatever their creed, all believe the End Times are imminent, and only through suffering can they hope to win divine deliverance
+Flagellants travel the Empire, flogging themselves in penance for their own sins and the sins of others. The vast majority are devout followers of Sigmar, though a rare few dedicate themselves to other gods. Whatever their creed, all believe the End Times are imminent, and only through suffering can they hope to win divine deliverance for the world.
 
 Most Flagellants wander in large bands led by a Prophet of Doom who interprets Sigmar's will. They wear little more than rags, chains, and outlandish garments intended to cause discomfort and pain. Some follow armies, whipping themselves into a frenzy as battle is joined and fighting without thought for their own safety. Others
 
@@ -1163,7 +1164,7 @@ Flagellants eagerly join any group they believe will earn their god's favour, gl
 
 **Trappings:** Book (Religion), Followers (including Penitents, Flagellants, and Zealots)
 
-## **GRAVE ROBBER**
+## <span id="page-62-0" data-folio="63"></span>**GRAVE ROBBER**
 
 **Rogue Class:** Halfling, Human
 
@@ -1225,7 +1226,7 @@ Playing a Grave Robber lets you explore the darkest places of the Old World in s
 
 **Trappings:** Bedroll, Maps, Tent, Trade Tools (Engineer), Writing Kit
 
-## **GUARD**
+## <span id="page-63-0" data-folio="64"></span>**GUARD**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1285,7 +1286,7 @@ Playing a Guard lets you stand between danger and those under your protection. Y
 
 **Trappings:** Breastplate, Squad of Guards
 
-## **HEDGE WITCH**
+## <span id="page-64-0" data-folio="65"></span>**HEDGE WITCH**
 
 **Peasant Class:** Human
 
@@ -1345,7 +1346,7 @@ Hedge Witches take their duty to their people seriously, but that does not mean 
 
 Playing a Hedge Witch lets you wield subtle magic beyond the teachings of the Colleges. You can ward against evil, commune with nature spirits, and support your companions with healing, wisdom, and hard-earned knowledge of life on the edge of civilisation.
 
-## **HERBALIST**
+## <span id="page-65-0" data-folio="66"></span>**HERBALIST**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1401,7 +1402,7 @@ Playing a Herbalist lets you do far more than heal. Your preparations can streng
 
 **Trappings:** Book (Herbs), Pony and Cart
 
-## **HUNTER**
+## <span id="page-66-0" data-folio="67"></span>**HUNTER**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1459,7 +1460,7 @@ Playing a Hunter lets you thrive where others struggle. Your keen eyes can spot 
 
 **Trappings:** Hawk Mews *or* Kennel of Hunting Dogs, Riding Horse
 
-## **INVESTIGATOR**
+## <span id="page-67-0" data-folio="68"></span>**INVESTIGATOR**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1521,7 +1522,7 @@ Playing an Investigator lets you uncover secrets others overlook. You bring prof
 
 **Trappings:** Network of Informers, Spyglass
 
-## **KNAVE**
+## <span id="page-68-0" data-folio="69"></span>**KNAVE**
 
 **Rogue Class:** Halfling, High Elf, Human
 
@@ -1581,7 +1582,7 @@ Playing a Knave lets you navigate the Old World's criminal underworld with ease.
 
 **Trappings:** A Ring of Knaves, Townhouse with Discreet Back Entrance
 
-## **KNIGHT**
+## <span id="page-69-0" data-folio="70"></span>**KNIGHT**
 
 **Warrior Class:** High Elf, Human, Wood Elf
 
@@ -1637,7 +1638,7 @@ Even the strictest order grants its Knights a degree of independence. Some adven
 
 **Trappings:** Large Unit of Knights or Several Small Units of Knights, Plumed Great Helm, Squire
 
-## **LAWYER**
+## <span id="page-70-0" data-folio="71"></span>**LAWYER**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1701,7 +1702,7 @@ Lawyers are not always deskbound. They often seek out evidence firsthand, unrave
 
 Playing a Lawyer lets you turn the law into a weapon. You can defend your companions from the authorities, exploit legal procedure to outwit officials, and use your knowledge to uncover — or hide — crimes.
 
-## **MERCHANT**
+## <span id="page-71-0" data-folio="72"></span>**MERCHANT**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1761,7 +1762,7 @@ Playing a Merchant lets you find opportunities wherever you travel. You know how
 
 **Trappings:** 2 Barges and 4 Wagons, Large Town Estate, 1000 GC, Quality Clothing, 2 Warehouses
 
-## **MESSENGER**
+## <span id="page-72-0" data-folio="73"></span>**MESSENGER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1819,7 +1820,7 @@ Playing a Messenger will make you one of the swiftest characters in the game, ab
 
 **Trappings:** Couriers, Mail Shirt, Writing Kit
 
-## **MINER**
+## <span id="page-73-0" data-folio="74"></span>**MINER**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -1879,7 +1880,7 @@ Playing a Miner lets you tackle dangers that would stop others in their tracks. 
 
 **Trappings:** Crew of Miners, Writing Kit
 
-## **MYSTIC**
+## <span id="page-74-0" data-folio="75"></span>**MYSTIC**
 
 **Peasant Class:** High Elf, Human, Wood Elf
 
@@ -1941,7 +1942,7 @@ Playing a Mystic lets you peer beyond the veil of the present. Whether reading o
 
 **Trappings:** Trade Tools (Astrology)
 
-## **NOBLE**
+## <span id="page-75-0" data-folio="76"></span>**NOBLE**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1969,7 +1970,7 @@ Playing a Noble grants you privilege and power. Your title protects you from the
 
 ## **Career Path**
 
-h **Scion — Gold 1**
+#### **Scion — Gold 1**
 
 **Skills:** Consume Alcohol, Gamble, Gossip, Intimidate, Language (Classical), ***Leadership***, Lore (Heraldry), Melee (Fencing), Perform (Dancing), Ride (Horse)
 
@@ -2001,7 +2002,7 @@ h **Scion — Gold 1**
 
 **Trappings:** 500 GC, Jewellery worth 500 GC, Province
 
-## **NUN**
+## <span id="page-76-0" data-folio="77"></span>**NUN**
 
 **Academic Class:** Human
 
@@ -2061,7 +2062,7 @@ Playing a Nun lets you bring faith, compassion, and authority wherever you trave
 
 **Trappings:** Religious Order
 
-## **OUTLAW**
+## <span id="page-77-0" data-folio="78"></span>**OUTLAW**
 
 **Rogue Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2123,7 +2124,7 @@ Playing an Outlaw lets you thrive beyond the reach of civilisation. You know peo
 
 **Trappings:** 'Fiefdom' of Outlaw Chiefs, Lair
 
-## **PEDLAR**
+## <span id="page-78-0" data-folio="79"></span>**PEDLAR**
 
 **Ranger Class:** Dwarf, Halfling, Human
 
@@ -2185,7 +2186,7 @@ Always on the move, Pedlars take naturally to the adventuring life in search of 
 
 **Trappings:** Draught Horse and Wagon, Goods worth at least 3d10 Shillings, 4d10 Shillings
 
-## **PHYSICIAN**
+## <span id="page-79-0" data-folio="80"></span>**PHYSICIAN**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2241,7 +2242,7 @@ Playing a Physician means understanding the body better than almost anyone else.
 
 **Trappings:** Courtly Attire, Letter of Appointment
 
-## **PILOT**
+## <span id="page-80-0" data-folio="81"></span>**PILOT**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2301,7 +2302,7 @@ As a Pilot, you are canny and perceptive, with a keen eye and deep local knowled
 
 **Trappings:** Boathand, Small Riverboat
 
-## **PIT FIGHTER**
+## <span id="page-81-0" data-folio="82"></span>**PIT FIGHTER**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2363,7 +2364,7 @@ Playing a Pit Fighter lets you dominate close-quarters combat through toughness,
 
 **Trappings:** Quality Helmet
 
-## **PRIEST**
+## <span id="page-82-0" data-folio="83"></span>**PRIEST**
 
 **Academic Class:** Human
 
@@ -2429,7 +2430,7 @@ A Priest's duties touch every aspect of life in the Empire. Priests of Manann co
 
 Playing a Priest makes you the spiritual heart of your party. You can inspire your companions, guide the faithful, and call upon your deity's Blessings and Miracles. Whether preaching to a crowd or standing against the enemies of your cult, your words carry the power and authority of your faith.
 
-## **PROTAGONIST**
+## <span id="page-83-0" data-folio="84"></span>**PROTAGONIST**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2493,7 +2494,7 @@ Playing a Protagonist means you are equally at home intimidating foes, fighting 
 
 **Trappings:** Disguise Kit
 
-## **RACKETEER**
+## <span id="page-84-0" data-folio="85"></span>**RACKETEER**
 
 **Rogue Class:** Dwarf, Halfling, Human
 
@@ -2551,7 +2552,7 @@ Playing a Racketeer lets you command respect through fear. You understand how th
 
 **Trappings:** Network of Informers, Quality Clothing and Hat, Subordinate Gang Bosses
 
-### **RAT CATCHER**
+### <span id="page-85-0" data-folio="86"></span>**RAT CATCHER**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -2613,7 +2614,7 @@ Playing a Rat Catcher lets you go where few others dare. You are at home in sewe
 
 **Trappings:** Assistant, Sack of Poisoned Bait
 
-## **RIVERWARDEN**
+## <span id="page-86-0" data-folio="87"></span>**RIVERWARDEN**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -2673,7 +2674,7 @@ Playing a Riverwarden combines the skills of a sailor, investigator, and fighter
 
 **Trappings:** Patrol Boats and Crew, Symbol of Rank
 
-### **RIVERWOMAN**
+### <span id="page-87-0" data-folio="88"></span>**RIVERWOMAN**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -2735,7 +2736,7 @@ Playing a Riverwoman makes you a practical and dependable companion. Whether row
 
 **Trappings:** Barge *or* Hut
 
-## **ROADWARDEN**
+## <span id="page-88-0" data-folio="89"></span>**ROADWARDEN**
 
 **Ranger Class:** Halfling, Human
 
@@ -2797,7 +2798,7 @@ Playing a Roadwarden lets you bring law and order to the wilderness between sett
 
 **Trappings:** Quality Hat and Cloak, Unit of Roadwardens
 
-## **SAILOR**
+## <span id="page-89-0" data-folio="90"></span>**SAILOR**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2861,7 +2862,7 @@ Charts, Spyglass
 
 **Trappings:** Sailing Ship and Crew, Sextant, Shipping
 
-## **SCHOLAR**
+## <span id="page-90-0" data-folio="91"></span>**SCHOLAR**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2923,7 +2924,7 @@ Playing a Scholar lets you bring learning and reason to your party. Whether deci
 
 **Trappings:** Study
 
-## **SCOUT**
+## <span id="page-91-0" data-folio="92"></span>**SCOUT**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2987,7 +2988,7 @@ Rations, Tent
 
 **Trappings:** Selection of Maps, Trade Tools (Cartographer)
 
-# **SERVANT**
+# <span id="page-92-0" data-folio="93"></span>**SERVANT**
 
 **Courtier Class:** Dwarf, Halfling, Human
 
@@ -3051,7 +3052,7 @@ Playing a Servant lets you move easily through every level of society. You can r
 
 **Trappings:** Hand Weapon, Fine Clothes, Servant
 
-## **SLAYER**
+## <span id="page-93-0" data-folio="94"></span>**SLAYER**
 
 **Warrior Class:** Dwarf
 
@@ -3115,7 +3116,7 @@ Playing a Slayer is unlike any other Career. You seek power or riches, but a wor
 
 **Trappings:** Rune Axe
 
-## **SMUGGLER**
+## <span id="page-94-0" data-folio="95"></span>**SMUGGLER**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3179,7 +3180,7 @@ Playing a Smuggler lets you stay one step ahead of the law. You are resourceful,
 
 **Trappings:** Disguise Kit, Small Fleet of Barges
 
-## **SOLDIER**
+## <span id="page-95-0" data-folio="96"></span>**SOLDIER**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3237,7 +3238,7 @@ Playing a Soldier makes you a disciplined and dependable warrior. Used to fighti
 
 **Trappings:** Letter of Commission, Light Warhorse, Map, Orders, Quality Uniform, Symbol of Rank, Regiment of Soldiers
 
-## **SPY**
+## <span id="page-96-0" data-folio="97"></span>**SPY**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3299,7 +3300,7 @@ A Spy's work takes them wherever secrets are hidden. They may infiltrate a noble
 
 Playing a Spy lets you skulk in the shadows, infiltrate dangerous organisations, and manipulate people. Your travelling companions benefit from your ability to work incognito, gather intelligence, and, where your objectives align, call upon the resources and influence of those you serve.
 
-## **STEVEDORE**
+## <span id="page-97-0" data-folio="98"></span>**STEVEDORE**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -3363,7 +3364,7 @@ Playing a Stevedore makes you a tough and dependable companion. You can handle y
 
 **Trappings:** Office and Staff, Writing Kit
 
-## **THIEF**
+## <span id="page-98-0" data-folio="99"></span>**THIEF**
 
 **Rogue Class:** Dwarf, Halfling, Human, Wood Elf
 
@@ -3427,7 +3428,7 @@ Playing a Thief makes you a very useful recruit to an adventuring party, since m
 
 **Trappings:** Calling Card, Dark Clothing
 
-### **TOWNSMAN**
+### <span id="page-99-0" data-folio="100"></span>**TOWNSMAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3487,7 +3488,7 @@ Playing a Townsman lets you navigate the bustle of urban life with confidence. Y
 
 **Trappings:** Chains of Office, Coach and Footman, Large Townhouse with Gardens and Servants, Quality Clothing
 
-## **VILLAGER**
+## <span id="page-100-0" data-folio="101"></span>**VILLAGER**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -3549,7 +3550,7 @@ Playing a Villager makes you a sturdy and resourceful companion. You understand 
 
 If you are playing a Villager, this list of jobs may help you choose a vocation: Beekeeper, Charcoal Burner, Farmer, Herder, Miller, Ploughman, Poultryman, Reaper, Shearer, Slaughterman, Spinner, Woodsman
 
-## **WARDEN**
+## <span id="page-101-0" data-folio="102"></span>**WARDEN**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3611,7 +3612,7 @@ Playing a Warden gives you the keen eye of a watchman, the resilience of an outd
 
 **Trappings:** Aide, Governor's Residence, Servant
 
-## **WARRIOR PRIEST**
+## <span id="page-102-0" data-folio="103"></span>**WARRIOR PRIEST**
 
 **Warrior Class:** Human
 
@@ -3671,7 +3672,7 @@ Sturdy
 
 **Trappings:** Religious Relic
 
-### **WATCHMAN**
+### <span id="page-103-0" data-folio="104"></span>**WATCHMAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3733,7 +3734,7 @@ Playing a Watchman lets you uphold the law on your own terms. You are observant,
 
 **Trappings:** Quality Hand Weapon, Quality Hat, Quality Symbol of Rank, Riding Horse
 
-## **WITCH**
+## <span id="page-104-0" data-folio="105"></span>**WITCH**
 
 **Rogue Class:** Human
 
@@ -3793,7 +3794,7 @@ Playing a Witch lets you wield magic beyond the strictures of the Colleges. Free
 
 **Trappings:** Minions, Library (Magic), Remote Lair
 
-### **WITCH HUNTER**
+### <span id="page-105-0" data-folio="106"></span>**WITCH HUNTER**
 
 **Ranger Class:** Human
 
@@ -3853,7 +3854,7 @@ Playing a Witch Hunter lets you combine keen investigative skills with martial p
 
 **Trappings:** Quality Courtly Garb, Subordinate Witch Hunters
 
-### **WIZARD**
+### <span id="page-106-0" data-folio="107"></span>**WIZARD**
 
 **Academic Class:** High Elf, Human, Wood Elf
 
@@ -3913,7 +3914,7 @@ Playing a Wizard lets you wield some of the most powerful magic in the Old World
 
 **Trappings:** Library (Magic), Workshop (Magic)
 
-## **WRECKER**
+## <span id="page-107-0" data-folio="108"></span>**WRECKER**
 
 **Riverfolk Class:** Dwarf, Halfling, Human, Wood Elf
 

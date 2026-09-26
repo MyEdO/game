@@ -22,6 +22,7 @@ import type { InteractHalo } from '../builders/interactHalos';
 import { useRef } from 'react';
 import { chromeHeadPx, chromeTransform, useEchelleEcran, type LiftAt } from './TokenChromeOverlay';
 import type { WalkPos } from '../fx/walkPose';
+import './plaque-nom.css';
 
 /** Largeur de la boîte, en pixels d'écran : un nom de décor y tient sur une ou deux lignes. */
 export const PLAQUE_W = 160;

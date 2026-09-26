@@ -10,7 +10,7 @@
 // O, l'ensemble des chiffres d'onglet d'un fichier, se tire de la DONNÉE `onglets` de sa liste de
 // découpe (`scripts/raw/decoupes/<id>.json`), jamais d'une devinette.
 import characteristics from '../../../src/data/characteristics.json' with { type: 'json' }
-import { cellulesDe, estSeparateur } from '../../../src/data/source/decoupe.ts'
+import { cellulesDe, estSeparateur, stripSpans } from '../../../src/data/source/decoupe.ts'
 import { nomsDeLaListe } from '../_lib.mjs'
 import { EXEMPTIONS_MOBILIER } from '../../guards/lib/mobilierExemptions.mjs'
 
@@ -75,9 +75,10 @@ export function sitesDeMobilier(texte, { O, folios, abreviations = ABREVIATIONS 
 export const sitesDuFichier = (texte, entree, onglets) =>
   sitesDeMobilier(texte, { O: chiffresDes(onglets, fenetreDe(entree)), folios: [entree.page - 1, entree.pageFin + 1] })
 
-/** L'exemption d'une LIGNE : celle du même fichier dont le motif tient au texte, ou `null`. PURE. */
+/** L'exemption d'une LIGNE : celle du même fichier dont le motif tient au texte (ancres de page
+ *  ôtées), ou `null`. PURE. */
 export const exemptionDe = (texte, fichier, exemptions) =>
-  exemptions.find((e) => e.fichier === fichier && e.motif.test(texte)) ?? null
+  exemptions.find((e) => e.fichier === fichier && e.motif.test(stripSpans(texte))) ?? null
 
 /**
  * Pose les exemptions sur les sites d'UN fichier — PUR. Une exemption couvre, sur sa ligne, ses

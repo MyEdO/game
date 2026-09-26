@@ -21,7 +21,7 @@ import { DIR8_ORDER, type Dir8 } from '../../state/dir8';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import type { Rot } from '../../geometry/iso';
-import type { PropEl } from '../builders/types';
+import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import { billboardView } from '../backends/webgl/billboardMath';
 import { project, type View } from '../rig/facing';
@@ -80,8 +80,8 @@ const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat',
 
 /** Un acteur au cap SUD, et un décor directionnel : l'un juge la vue d'entité, l'autre le cran d'atlas. */
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
-const TONNEAU: PropEl = {
-  kind: 'prop', source: 'entity', key: 'prop:tonneau', ref: 'tonneau', facing: 'S',
+const TONNEAU: BillboardPropEl = {
+  kind: 'prop', source: 'entity', key: 'prop:tonneau', entId: 'tonneau', span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
   cell: { x: 6, y: 4, z: 0 }, foot: { offX: 0, offY: 0, scale: 1 },
   states: { visible: true },
 };

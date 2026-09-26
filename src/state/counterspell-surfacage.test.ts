@@ -44,7 +44,7 @@ function setup() {
   return { H, E };
 }
 
-/** Incantation FIGÉE du héros (réussie, non critique) : la fenêtre de Contre-sort n'a plus qu'un jet
+/** Incantation FIGÉE du héros (réussie, non critique) : la fenêtre de Contre-sort a seulement un jet
  *  à trancher — aucun aléa de l'incantation n'entre dans la différentielle. */
 function freezeHeroCast(H: Combatant, E: Combatant) {
   useGame.setState({

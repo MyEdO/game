@@ -278,7 +278,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "progression-schemas.derived.json", champ: "livres", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "progression-schemas.derived.json", champ: "titresPage", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "props.json", champ: "light", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" }, // EXCEPTION NOMMÉE d'angle mort (en-tête) : fabrique ADOPTÉE (`idDe('lightTone')`), path DÉCLARÉ `[].light.tone` projeté sur `tone`, champ OBSERVÉ `light`.
-  { dataset: "props.json", champ: "primitives", occurrences: 297, lot: "L2/L3 #1473", date: "2026-08-26" }, // EXCEPTION NOMMÉE d'angle mort (en-tête) : fabrique ADOPTÉE (`idDe('material', 'prop')`, `defs/props.ts`), slots RÉSOLUS ; path DÉCLARÉ `[].volume.primitives[]|N.material` projeté sur `material`, champ OBSERVÉ `primitives`.
+  { dataset: "props.json", champ: "primitives", occurrences: 379, lot: "L2/L3 #1473", date: "2026-08-26" }, // EXCEPTION NOMMÉE d'angle mort (en-tête) : fabrique ADOPTÉE (`idDe('material', 'prop')`, `defs/props.ts`), slots RÉSOLUS ; path DÉCLARÉ `[].volume.primitives[]|N.material` projeté sur `material`, champ OBSERVÉ `primitives`.
   { dataset: "psychology.json", champ: "becomes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "psychology.json", champ: "failCondition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "psychology.json", champ: "immuneToFromTarget", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },

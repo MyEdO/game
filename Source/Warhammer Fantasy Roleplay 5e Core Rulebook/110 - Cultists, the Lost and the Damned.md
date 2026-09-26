@@ -1,6 +1,6 @@
 *Pages PDF 347-348*
 
-# **CULTISTS, THE LOST AND THE DAMNED**
+# <span id="page-346-0" data-folio="347"></span>**CULTISTS, THE LOST AND THE DAMNED**
 
 Like a rotten beam beneath white-washed walls, a terrible enemy lurks unseen within the Empire. In every province and town, men and women are seduced by the subtle lures of Chaos, tempted by the promise of power, knowledge, strength, or release.
 
@@ -69,7 +69,7 @@ Strength of Minor
 
 *Any Creature Traits the GM feels appropriate*
 
-# **Chaos Warrior**
+# <span id="page-347-0" data-folio="348"></span>**Chaos Warrior**
 
 Heavily armoured hulking brutes adorned with ornate spikes and eye-watering symbols of their gods, chaos warriors can barely be considered human. Nothing is left of their former lives; they exist to serve their dark patrons and nothing more. While most chaos warriors are exalted marauders from lands far to the north, a select few cultists may be gifted a prize of Chaos Armour by the Dark Gods, affording them great power at the cost of never removing the armour for as long as they live. Since few warriors are their better, and no knight better protected, their lives are often very long indeed.
 

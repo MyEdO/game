@@ -190,8 +190,8 @@ function areaCovering(area: ZoneArea, p: Pt): ZoneArea {
 
 /** PINCEAU d'emprise : met la case `p` DANS la zone (`add`) ou l'en SORT (`remove`), sans jamais
  *  basculer — repasser sur une case déjà peinte au glissé la laisse telle quelle. Peindre hors de la
- *  boîte de l'aire l'ÉTEND à la boîte englobante et matérialise l'emprise : la boîte n'est plus qu'un
- *  cadre, `sceneZoneTiles` reste exactement ce qui est peint (un disque peint au-delà de son rayon
+ *  boîte de l'aire l'ÉTEND à la boîte englobante et matérialise l'emprise : la boîte n'est alors
+ *  qu'un cadre, `sceneZoneTiles` reste exactement ce qui est peint (un disque peint au-delà de son rayon
  *  devient donc une emprise explicite dans une boîte rect). */
 export function paintEffectZoneTile(zone: SceneEffectZone, p: Pt, paint: 'add' | 'remove'): SceneEffectZone {
   const cur = sceneZoneTiles(zone);
@@ -557,17 +557,3 @@ export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { sc
       : base;
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }
-
-/**
- * Ce qu'un pinceau de catalogue porte AVANT tout choix d'auteur : le PREMIER élément OFFERT, dans
- * l'ordre où la famille le déroule plus bas. Un défaut d'éditeur se DÉRIVE de la donnée — patron
- * `terrainDElectionParDefaut` (`GameOpEditor.tsx`) : aucun id en dur, et le pinceau ne pose jamais un
- * id que le registre ne rend pas (#877). Un catalogue VIDE n'a PAS de défaut : l'outil le DIT, au
- * lieu de suppléer d'un littéral. Écrit UNE fois — décor, engin de siège et fiche de personnage posent
- * la même question.
- */
-export const premierOffert = (catalogue: readonly { id: string }[], quoi: string): string => {
-  const premier = catalogue[0];
-  if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
-  return premier.id;
-};

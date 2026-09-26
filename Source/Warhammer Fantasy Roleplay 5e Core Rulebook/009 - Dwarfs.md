@@ -1,6 +1,6 @@
 *Pages PDF 28-29*
 
-# <span id="page-27-0"></span>**DWARFS**
+# <span id="page-27-0" data-folio="28"></span>**DWARFS**
 
 Dwarfs are tough, resourceful, proud, and honourable. Given their long memories and proud natures, they bear grudges against those who have dishonoured them, even taking on the grievances of their ancestors. They believe their forebears watch over them, nursing bitterness long after death. Whilst it might be hard to win a dwarf 's friendship, once given, it is sincere and lasting.
 
@@ -38,7 +38,7 @@ Dwarfs are encountered throughout the Old World, although most reside in their h
 
 Given the long memories of dwarfs and their tendency to bear grudges, many harbour a deep resentment towards elves for their part in the War of Vengeance. As such, many dwarfs have the Animosity (Elves) Psychology trait (see page 183 and 356). Given some WFRP parties contain both elves and dwarfs, this may lead to unhelpful tensions. So, you may prefer to ignore this Talent between party members.
 
-#### **Names**
+#### <span id="page-28-0" data-folio="29"></span>**Names**
 
 Dwarfs usually identify with their clan but, particularly in the case of those who live to the north, may prefer to identify as the son (sson), daughter (dottir), niece (niz), or nephew (nev) of another dwarf. Others might choose a grand-sounding title reflecting a notable feat or deed.
 

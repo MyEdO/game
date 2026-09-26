@@ -253,8 +253,7 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   // utilité d'ÉCHELLE DE POSITION (couvert/danger), incommensurable avec l'échelle Blessures d'une attaque ;
   // le seul biais `TIER` ne départage qu'à utilité ÉGALE → un gain de couvert pouvait battre un tir/cast.
   // CORRECTION : un tireur/lanceur qui a une cible JOUABLE à portée FAIT FEU — il ne se replie JAMAIS au prix
-  // de son attaque (même peu fiable : un Carreau à 30 % vaut mieux qu'un cran de couvert). La reposition ne
-  // sert plus QUE l'absence d'attaque jouable.
+  // de son attaque (même peu fiable : un Carreau à 30 % vaut mieux qu'un cran de couvert). La reposition sert seulement l'absence d'attaque jouable.
   it('tireur (arc) + héros à portée + LdV → TIRE (ne fonce pas, ne se repositionne pas)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED], movement: 4 });
     const h = mk('h', 'hero', { x: 5, y: 9 }); // d=4, à portée (60) + LdV dégagée

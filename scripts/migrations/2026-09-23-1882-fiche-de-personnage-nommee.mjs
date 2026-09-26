@@ -10,7 +10,8 @@
  * serait REFUSÉE au parse dès son premier personnage sans fiche.
  *
  * Une entité qui porte DÉJÀ un porteur traverse INTACTE, y compris si sa ref est MORTE : une ref hors
- * registre n'est pas du ressort d'une migration, `validateScene` la NOMME et l'auteur la corrige.
+ * registre n'est pas du ressort d'une migration, la porte `parseProject` la REFUSE en la nommant. Un
+ * porteur VIDE (`ref: ''`) n'est pas un porteur : il est retiré et la fiche se nomme.
  *
  * SANS PROFIL STANDARD (espèce absente, id de rig, espèce qui n'en porte pas) : ce script n'ÉCRIT RIEN
  * et sort « ARBITRAGE REQUIS » en nommant l'entité. Le migrateur de CHARGEMENT
@@ -59,10 +60,17 @@ const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 
 const echecs = [];
 
+/** Un porteur absent ou VIDE (`''`) — même politique que `typeNonNomme`. */
+const vide = (v) => v === undefined || v === '';
+
 /** Un personnage qui ne NOMME aucune fiche — la seule population de ce passage. */
 const sansFiche = (ent) =>
   !!ent && typeof ent === 'object' && ent.kind === 'personnage'
-  && ent.ref === undefined && ent.statblock === undefined && ent.presetId === undefined;
+  && vide(ent.ref) && ent.statblock === undefined && vide(ent.presetId);
+
+/** L'entité sans ses porteurs VIDES, avant que sa fiche se nomme en QUEUE. */
+const sansPorteurVide = (ent) =>
+  Object.fromEntries(Object.entries(ent).filter(([k, v]) => !((k === 'ref' || k === 'presetId') && v === '')));
 
 const cibles = fs
   .readdirSync(RACINE, { withFileTypes: true })
@@ -111,7 +119,7 @@ for (const abs of cibles) {
         return e;
       }
       nommes++;
-      return { ...e, ref: profil }; // QUEUE : la place de l'éditeur
+      return { ...sansPorteurVide(e), ref: profil }; // QUEUE : la place de l'éditeur
     });
     return { ...s, entities };
   });

@@ -1,5 +1,5 @@
 // Conformité des CANAUX gardés : les hooks PreToolUse qui gardent les COMMANDES
-// (`git-destructive-guard`, `solde-ticket-guard`, `issue-label-guard`, `runner-capture-guard`)
+// (`commande-piege-guard`, `solde-ticket-guard`, `issue-label-guard`, `runner-capture-guard`)
 // doivent couvrir tous les outils par lesquels une commande shell part réellement — pas seulement
 // `Bash`/`PowerShell`.
 //
@@ -28,7 +28,7 @@ const SURFACES = [join(REPO, '.claude', 'settings.json'), join(REPO, '.codex', '
 
 /** Gardes de COMMANDES : nom de script → canaux qui doivent tous matcher. */
 const GARDES_COMMANDE = [
-  'git-destructive-guard', 'solde-ticket-guard', 'issue-label-guard', 'runner-capture-guard',
+  'commande-piege-guard', 'solde-ticket-guard', 'issue-label-guard', 'runner-capture-guard',
 ]
 /** Gardes d'ÉCRITURE : mêmes exigences de parité, sur les canaux qui portent un contenu. */
 const GARDES_ECRITURE = ['memoire-tombale-guard']
@@ -171,11 +171,7 @@ test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (c
   // pas — et un palier atteint denierait tout autant).
   assert.equal(decisionOf('solde-ticket-guard.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
   assert.equal(decisionOf('issue-label-guard.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
-  // `stash` plutôt que `reset --hard` : ce test mesure le CÂBLAGE du driver, et sa décision doit
-  // être la même où qu'il tourne. Un `reset --hard` se tait quand le `cwd` du payload prouve un
-  // worktree LIÉ (c'est la règle du garde) — et `REPO` en est un dès qu'on travaille en worktree.
-  // La pile de stash, elle, est partagée par tous les arbres : `ask` partout, arbre indifférent.
-  assert.equal(decisionOf('git-destructive-guard.mjs', 'git stash pop'), 'ask')
+  assert.equal(decisionOf('commande-piege-guard.mjs', 'git show --stat -- 21d0153b7'), 'deny')
   assert.equal(decisionOf('runner-capture-guard.mjs', 'npx vitest run | tail -20'), 'deny')
 })
 

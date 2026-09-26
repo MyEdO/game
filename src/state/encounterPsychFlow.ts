@@ -126,10 +126,11 @@ export function openEncounterPsych(get: Get, set: Set): void {
     const trig = encounterPsych(hero, npcs);
     if (!trig) continue;
     const src = npcs.find((n) => n.id === trig.sourceId);
+    if (!src) throw new Error(`[psychologie] la source « ${trig.sourceId} » du Test de ${hero.label} n'est pas un PNJ présent`);
     const cl = estCibleType(trig.kind) ? cibleLabel(trig.kind) : null;
     dues.push({
       hero,
-      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src?.label ?? '?', indice: trig.indice, cible: trig.cible },
+      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
         ? (trig.cible ? stepPrecision(dataLabel(cl.label), dataLabel(trig.cible)) : dataLabel(cl.label))

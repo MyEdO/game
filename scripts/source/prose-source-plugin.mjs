@@ -1,6 +1,6 @@
 // Plugin Vite `wfrp:prose-source` — la prose ADRESSÉE (`descRef`) est MATÉRIALISÉE AU BUILD.
 //
-// La donnée committée n'a plus qu'un porteur de prose : l'adresse. Le module JSON que Vite sert (dev)
+// La donnée committée a seulement un porteur de prose : l'adresse. Le module JSON que Vite sert (dev)
 // ou bundle (prod) est un DÉRIVÉ : le `transform` y injecte le `desc` que l'adresse résout, avant que
 // `vite:json` ne fabrique le module — donc les consommateurs de l'application lisent `entry.desc` comme
 // avant, et le navigateur ne résout RIEN sur le chemin joueur. Même classe que `registryGen()`

@@ -70,7 +70,6 @@ même matériau ; la couleur est résolue au RENDU, depuis la donnée d'apparenc
 |---|---|---|
 | `key` | `string` | Clé STABLE d'identité MONDE (`floor:x,y,z`…) — clé React/DOM, survit aux frames et rotations. |
 | `cell` | `{ x: number; y: number; z: number }` | Case d'ancrage. |
-| `span?` | `{ w: number; h: number }` | Empreinte (cases) d'un élément multi-cases (toit, prop 2×2) — profondeur au coin caméra-proche. |
 | `states` | `ElStates` | — |
 
 ### `ElStates` — les vérités de SCÈNE, camera-free
@@ -95,9 +94,9 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildFloors` | `FloorEl[]` | `src/gameIso/builders/floors.ts:318` | Éléments `floor` de la scène. |
 | `buildHighlights` | `HighlightEl[]` | `src/gameIso/builders/highlights.ts:64` | — |
 | `buildPropVolumes` | `Face[]` | `src/gameIso/builders/propVolumes.ts:52` | Les faces MONDE d'un décor volumique : recette locale × cap × ancre, posées sur `baseHeightM`. |
-| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:130` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
+| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:128` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
 | `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1401` | Éléments `roof` de la scène. |
-| `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:80` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
+| `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
 | `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:629` | Éléments `wall` de la scène. |
 
 ## 3. L'arborescence de `src/gameIso/`
@@ -185,7 +184,7 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 | Catalogue | Entrées |
 |---|---|
 | `src/data/structureAppearance.json` | 18 |
-| `src/data/materials.json` | 15 |
+| `src/data/materials.json` | 16 |
 | `src/data/decorPalette.json` | 435 |
 
 - **un matériau** (structure / relief / toit) : une entrée dans le catalogue correspondant ci-dessus
@@ -199,4 +198,4 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: e6bf1242b469d0e03e4ab5767eb12141d9d33d45 (1014 fichiers, 93 dossiers) corps: e03aa27cca01a737ae61321448a66b11867ae656 -->
+<!-- sources-empreinte: 3b4d2ebd3deef5f2763cd4602163b7362ae8ad8d (1015 fichiers, 93 dossiers) corps: c6f40f73ebafdd022b3dd737f1489c6e82ae7a1b -->

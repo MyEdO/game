@@ -9,6 +9,9 @@ import { screenStepDot, type ScreenDir } from './combatCursor';
 import { type Dims } from '../geometry/iso';
 import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from './dir8';
 import { chebyshev } from '../engine/grid';
+import { maxJumpTiles, slowestMovement } from '../engine/movement';
+import { niMortNiATerre } from './combatants';
+import type { Combatant } from '../engine/types';
 
 /** Case adjacente (8-voisins) libre et ATTEIGNABLE la plus proche d'une cible, pour le move-to-interact
  *  (P5). À l'ÉTAGE de la cible (un PNJ de loge s'aborde depuis une case voisine, même z). */
@@ -72,6 +75,22 @@ export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
 }
 
 export type PathOpts = MoveEnv;
+
+/**
+ * MOUVEMENT du GROUPE hors combat : `slowestMovement` (LDB 51 l.193) sur les membres NI MORTS NI À
+ * TERRE (`niMortNiATerre`, `state/combatants.ts`). Groupe vide ou entièrement à terre → 0. PUR.
+ */
+export function mouvementDuGroupe(party: readonly Combatant[]): number {
+  return slowestMovement(party.filter(niMortNiATerre));
+}
+
+/**
+ * OPTIONS DE CHEMIN du groupe hors combat — dérivation UNIQUE, consommée par l'aperçu de survol comme
+ * par le clic : la portée de saut découle du `mouvementDuGroupe`. PUR.
+ */
+export function optionsDeCheminDuGroupe(party: readonly Combatant[]): PathOpts {
+  return { blocked: new Set(), jump: maxJumpTiles(mouvementDuGroupe(party)) };
+}
 
 export interface ExploreMovePlan {
   dest: Pt;

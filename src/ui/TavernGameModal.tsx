@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
-import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, TAVERN_TEST_DIFFICULTY } from '../engine/tavernGame';
-import { CHAR_LABELS, DIFFICULTY_LABELS, type Difficulty } from '../engine/types';
-import { tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../state/tavernFlow';
-import { sceneNpc } from '../state/sceneNpc';
+import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, TAVERN_TEST_DIFFICULTY, type TavernGame } from '../engine/tavernGame';
+import { CHAR_LABELS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { HABITUE, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../state/tavernFlow';
+import { pnjAuProfil, sceneNpc } from '../state/sceneNpc';
 import { pickActiveModalKey } from '../state/modalArbiter';
 import { Row } from './Layout';
 import { bourseOf } from '../state/bourseFlow';
-import { refLabel } from '../data/index';
+import { creatureLabel, profilsStandard, refLabel } from '../data/index';
 import { PA_PER_SC, toBrass, fromBrass } from '../engine/money';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
@@ -23,9 +23,28 @@ import { NumberField } from './NumberField';
  *  UNIQUE, portée par les deux adversaires individuels qu'elle ferme. */
 const REFUS_EQUIPE = 'Sport d’équipe : tout le groupe joue dans le même camp — le camp d’en face est tenu par la salle.';
 
+/** Le PROFIL STANDARD d'un figurant de la salle (`LDB 77 l.7`) et la valeur de jeu que sa fiche en dérive. */
+function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
+  titre: string; profils: readonly string[]; choisi: string; onChoisir: (id: string) => void;
+  fiche: Combatant | undefined; game: TavernGame | undefined;
+}) {
+  return (
+    <div className="tavern-block">
+      <span className="mini-title">{titre}</span>
+      <OptionChooser
+        layout="grid"
+        options={profils.map((id) => ({ key: id, label: creatureLabel(id), primary: id === choisi, onSelect: () => onChoisir(id) }))}
+      />
+      {fiche && game && (
+        <p className="tavern-detail">{fiche.label} : valeur de jeu <b>{tavernGameValue(fiche, game)}</b> (de sa fiche).</p>
+      )}
+    </div>
+  );
+}
+
 /**
  * Jeux de taverne (Nuits agitées & dures journées, ch.16) — modale UNIQUE : choisir un jeu, un
- * challenger et un adversaire (compagnon OU valeur abstraite fixée par la table), puis résoudre EN
+ * challenger et un adversaire (compagnon, PNJ de la scène OU habitué au profil standard), puis résoudre EN
  * DEUX TEMPS (#370) : le jet du challenger s'ouvre par le seam de jet (`openRoll`, modale RollShell
  * influençable Chance/Pacte/Résilience, rendue par l'arbitre `ActiveModal`) ; à son retour, le
  * réducteur de la séquence décide de la manche. Une situation = une modale : tant que l'arbitre
@@ -48,11 +67,13 @@ export function TavernGameModal() {
   const heroes = party.filter((h) => !h.dead);
   const [gameId, setGameId] = useState(TAVERN_GAMES[0]?.id ?? '');
   const [challengerId, setChallengerId] = useState(heroes[0]?.id ?? '');
-  const [oppMode, setOppMode] = useState<'hero' | 'npc' | 'abstract'>(heroes.length > 1 ? 'hero' : 'abstract');
+  const [oppMode, setOppMode] = useState<'hero' | 'npc' | 'profil'>(heroes.length > 1 ? 'hero' : 'profil');
   const [oppNpcId, setOppNpcId] = useState('');
   const [oppHeroId, setOppHeroId] = useState('');
-  const [abstractValue, setAbstractValue] = useState<number | undefined>(undefined);
-  const [allyVal, setAllyVal] = useState<number | undefined>(undefined);
+  // L'HABITUÉ et les coéquipiers figurants jouent une FICHE : un profil standard choisi (`LDB 77 l.7`).
+  const profils = profilsStandard();
+  const [profilId, setProfilId] = useState(profils[0] ?? '');
+  const [allyProfilId, setAllyProfilId] = useState(profils[0] ?? '');
   const [stakePa, setStakePa] = useState(0);
   // JEU DE MISE : l'effectif de la table est une grandeur de TABLE (la source décrit un cercle sans
   // en fixer le nombre) — éditable ici, jamais figée au code.
@@ -107,12 +128,12 @@ export function TavernGameModal() {
       : refLabel('skills', { id: 'pari' });
   const skillLine = game ? `${nomDuTest} ${DIFFICULTY_LABELS[difficulteAffichee]}` : '';
   const challengerVal = game && challenger ? tavernGameValue(challenger, game) : 0;
-  const oppValue = abstractValue ?? challengerVal; // défaut : match égal (valeur du challenger)
-  const allyValue = allyVal ?? oppValue; // coéquipiers figurants : leur PROPRE valeur, réglable
+  const habitue = pnjAuProfil(profilId, HABITUE);
+  const coequipier = pnjAuProfil(allyProfilId, HABITUE);
   // JEU D'ÉQUIPE (Middenball) : le groupe joue ENSEMBLE — tous ses héros sont dans le MÊME camp. Un
   // compagnon ne peut donc pas y tenir le camp d'en face, qui est celui de la salle.
   const equipe = !!game?.team;
-  const oppKind: 'hero' | 'npc' | 'abstract' = equipe ? 'abstract' : oppMode;
+  const oppKind: 'hero' | 'npc' | 'profil' = equipe ? 'profil' : oppMode;
 
   const oppCandidates = heroes.filter((h) => h.id !== challengerId);
   // La mise sort de la bourse du CHALLENGER (débit/crédit personnel) : le plafond affiché est SA bourse.
@@ -136,8 +157,8 @@ export function TavernGameModal() {
           ? 'Aucun compagnon disponible : jouez contre un habitué de la salle.'
           : oppKind === 'npc' && !npc
             ? 'Personne dans cette scène ne propose de partie.'
-          : oppKind === 'abstract' && oppValue <= 0
-            ? 'Fixez la valeur de l’adversaire (au moins 1).'
+          : oppKind === 'profil' && (!habitue || (equipe && !coequipier))
+            ? 'Choisissez un profil standard.'
             : '';
   const canPlay = !raison;
 
@@ -147,10 +168,10 @@ export function TavernGameModal() {
       ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
       : oppKind === 'npc' && npc
         ? { kind: 'npc', id: npc.id }
-        : { kind: 'abstract', value: oppValue };
+        : { kind: 'profil', id: profilId };
     play({
       gameId: game.id, challengerId: challenger.id, opponent, stakeBrass: stake * PA_PER_SC,
-      ...(equipe ? { allyValue } : {}),
+      ...(equipe ? { allyProfil: allyProfilId } : {}),
       ...(game.pot ? { tablePlayers: joueurs } : {}),
     });
   };
@@ -229,7 +250,7 @@ export function TavernGameModal() {
                 // « personne à opposer » sont deux refus différents, et un segment muet les confondait.
                 { key: 'hero', label: 'Un compagnon', selected: oppKind === 'hero', refus: equipe ? REFUS_EQUIPE : oppCandidates.length === 0 ? 'Aucun compagnon disponible pour ce jeu.' : undefined, onSelect: () => setOppMode('hero') },
                 { key: 'npc', label: 'Un joueur de la salle', selected: oppKind === 'npc', refus: equipe ? REFUS_EQUIPE : npcs.length === 0 ? 'Personne dans la salle ne joue à ce jeu.' : undefined, onSelect: () => setOppMode('npc') },
-                { key: 'abstract', label: equipe ? 'L’équipe adverse' : 'Un habitué (MJ)', selected: oppKind === 'abstract', onSelect: () => setOppMode('abstract') },
+                { key: 'profil', label: equipe ? 'L’équipe adverse' : 'Un habitué', selected: oppKind === 'profil', onSelect: () => setOppMode('profil') },
               ]}
             />
             {equipe && (
@@ -256,23 +277,15 @@ export function TavernGameModal() {
                 ))}
               </Row>
             ) : (
-              <NumberField
-                id="tavern-opp-value"
-                label={equipe ? "Valeur des joueurs de l'équipe adverse (fixée par la table)" : "Valeur de l'adversaire (fixée par la table)"}
-                min={1}
-                max={100}
-                value={oppValue}
-                onChange={setAbstractValue}
+              <ChoixDeProfil
+                titre={equipe ? 'Les joueurs de l’équipe adverse' : 'Son profil'}
+                profils={profils} choisi={profilId} onChoisir={setProfilId} fiche={habitue} game={game}
               />
             )}
             {equipe && (
-              <NumberField
-                id="tavern-ally-value"
-                label={`Valeur de vos coéquipiers (les ${(game?.team?.size ?? 1) - heroes.length} figurants qui complètent VOTRE camp)`}
-                min={1}
-                max={100}
-                value={allyValue}
-                onChange={setAllyVal}
+              <ChoixDeProfil
+                titre={`Vos coéquipiers (les ${(game?.team?.size ?? 1) - heroes.length} figurants qui complètent VOTRE camp)`}
+                profils={profils} choisi={allyProfilId} onChoisir={setAllyProfilId} fiche={coequipier} game={game}
               />
             )}
           </div>

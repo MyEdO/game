@@ -112,7 +112,7 @@ describe('resolveCrewTest — Test d’équipage (somme des DR, rôle essentiel 
   });
 
   it('un Moral bas (« canailles ») applique -1 DR au total ; extraDR (Manque de bras) s’ajoute', () => {
-    const r = resolveCrewTest([{ value: 50 }], 'intermediaire', 30, seq([30]), -2); // band ≤50 → -1 DR
+    const r = resolveCrewTest([{ value: 50, label: 'Timonier' }], 'intermediaire', 30, seq([30]), -2); // band ≤50 → -1 DR
     expect(r.moraleDR).toBe(-1);
     expect(r.total).toBe(r.baseTotal - 1 - 2);
   });

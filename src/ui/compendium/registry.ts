@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -1830,7 +1830,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'calendarIntercalary', label: 'Calendrier — Jours intercalaires', group: 'Tables', cluster: 'Calendrier',
     build: () => calendarIntercalary.map((i) => depuisEnveloppe(i, {
-      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${calendarMonths[i.afterMonth]?.label ?? `mois ${i.afterMonth}`}`,
+      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${libelleOuAbsence(calendarMonths[i.afterMonth], 'mois', String(i.afterMonth))}`,
     })),
   },
   {

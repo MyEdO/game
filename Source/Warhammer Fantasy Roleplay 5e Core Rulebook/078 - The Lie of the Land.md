@@ -1,6 +1,6 @@
 *Pages PDF 273-278*
 
-# **THE LIE OF THE LAND**
+# <span id="page-272-0" data-folio="273"></span>**THE LIE OF THE LAND**
 
 The Reikland is named for the largest river in the Old World, the majestic Reik, which winds through the western Empire and defines the province's eastern and northern borders. The land is blanketed by dense forests, which overshadow the countless settlements, rivers, and roads that cut through the trees.
 
@@ -22,7 +22,7 @@ Countless mines riddle the craggy edges of the Grey Mountains, excavated by orde
 
 The Skullsmasherz tribe are a mountain-dwelling orc rabble who menace Axe Bite Pass. Under the brutal leadership of Ugrok Craktoof, they range across the mountains from Helmgart to Bretonnia, where Duke d'Montfort is planning to make overtures to Helmgart for an alliance with Margrave von Mackensen against the orcs.
 
-#### **DWARF HOLDS OF THE GREY MOUNTAINS**
+#### <span id="page-273-0" data-folio="274"></span>**DWARF HOLDS OF THE GREY MOUNTAINS**
 
 Many thousands of years ago, the depredations of orcs and goblins forced several clans of dwarfs to abandon their holds in the Worlds Edge Mountains. They journeyed west and eventually settled within the peaks and valleys of the Grey Mountains, hoping to find riches there. The mountains yielded relatively little mineral wealth, but nevertheless, they built holds and began to trade with the primitive humans who dwelled in the foothills.
 
@@ -52,7 +52,7 @@ When the Knights of the Fiery Heart announce a new effort to exterminate the gob
 
 The rocky Skaag Hills lie to the west of the River Bögen and run along the southern bank of the Reik before falling beneath the trees of the Duchy of Gorland. In the heart of the range, the forest recedes from the stony crags to reveal layers of stratified rock rising to the scree-laden highlands of the Prie Ridge. A single road crosses the gentler slopes of the Skaag Hills to the south, starting at Trosreut in the shadow of Castle Grauenberg and wending its way through to Holthausen, but many minor tracks and trails also cross the region, leading to abandoned mines and settlements which once produced silver and iron before the seams ran out. Today, outlaws, hunters, and mutants make use of the buildings that remain.
 
-### **The Vorbergland**
+### <span id="page-274-0" data-folio="275"></span>**The Vorbergland**
 
 The Vorbergland is a hilly region extending the length of the Reikland between the Grey Mountains and the edge of the province's forests. It is known for its fertile valleys, rolling grasslands, and windswept plains. The most heavily cultivated regions of the Reikland are the southeastern Vorbergland provinces around Böhrn, Ubersreik, Stimmigen, and Dunkelberg. Flourishing towns, villages, farms, and vineyards pepper the verdant valleys and pastures.
 
@@ -86,7 +86,7 @@ The deepest woods are shadowed and gloomy. Heavy fogs are common, especially alo
 
 The wood of the bloodpine tree is a deep maroon colour and prized by artisans for crafting exquisite furniture, which commands high prices in Altdorf, Marienburg, and Nuln. The Bloodpine Woods are an outcrop of these trees growing down the southern slopes of the Amber Hills. The lumber is difficult to source due to the Spiderclaw tribe, goblins who ride on swift-moving giant spiders, led by an ambitious shaman, Raknik Spiderclaw. Many a woodcutter has met a grisly fate as food for the monstrous arachnids and their masters. As bloodpine prices increase, merchants are willing to pay mercenaries and others to protect their supply of valuable timber.
 
-# **THE GROVE OF RHULITHRI**
+# <span id="page-275-0" data-folio="276"></span>**THE GROVE OF RHULITHRI**
 
 Where the Reikwald covers the Amber Hills, the elves of the Laurelorn forest have established a permanent camp by order of Queen Marrisith. Amongst a grove of ash and oak, they have trained the boughs of trees to form halls and lodges for any of their people who find themselves in the Reikland feeling wary or weary of human company.
 
@@ -124,7 +124,7 @@ The Reik is the mightiest river in the Old World, rising in the Black Mountains 
 
 North of Nuln, the Reik carves a broad valley through the Reikland, with increasing numbers of riverside settlements as it flows towards the Wasteland. Its span is so broad that it cannot be bridged downstream from Nuln until it reaches Altdorf, where it joins the Talabec and divides into a complex tracework of channels. These spread to form the Altdorf Flats, as the main channel flows through Altdorf, still wide, but narrow enough for the city's five Reik bridges. The capital's preeminence as a trade centre is due, in part, to the fact it is the only place for hundreds of miles where land traffic can cross the Reik.
 
-Downstream of Altdorf, the channels reconverge to form the deepest stretch of the Reik, broadening until the opposite bank disappears into the mists drifting across the water. Ocean-going vessels sail these waters, including the First Fleet of the Imperial Navy, whose warships travel to and from the deepwater harbour at Altdorf 's Reiksport.
+<span id="page-276-0" data-folio="277"></span>Downstream of Altdorf, the channels reconverge to form the deepest stretch of the Reik, broadening until the opposite bank disappears into the mists drifting across the water. Ocean-going vessels sail these waters, including the First Fleet of the Imperial Navy, whose warships travel to and from the deepwater harbour at Altdorf 's Reiksport.
 
 The westernmost Reik is replete with rocky islands. Some are crowned with ancient fortresses, now overrun by river pirates, while others have been abandoned entirely, home to little more than a handful of old smugglers' coves.
 
@@ -160,7 +160,7 @@ Although Middenland claims many famous marshlands, such as the Furdienst, Midden
 
 The largest wetland in the Reikland, the Grootscher Marsh spreads from both banks of the Reik in the west of the province. It extends some fifty miles into the Reikland and Middenland from the border with the Wasteland. Many consider it a cursed place, for it is the site of one of the Empire's most famous military defeats of the last century: the Battle of Grootscher Marsh, where the armies of the merchant princes of the Wasteland secured independence from Imperial rule.
 
-The foul-smelling fenland is populated by flocks of ill-sounding birds and infested with river trolls. In lean years when food is scarce, the trolls grow hungry and slip into the Reik to pluck the unwary from passing ships. Periodically, regiments of the Reikland State Army are sent to clear out the Grootscher Marsh, one of the worst punishment details imaginable, and even the hardiest soldiers fear for their lives.
+<span id="page-277-0" data-folio="278"></span>The foul-smelling fenland is populated by flocks of ill-sounding birds and infested with river trolls. In lean years when food is scarce, the trolls grow hungry and slip into the Reik to pluck the unwary from passing ships. Periodically, regiments of the Reikland State Army are sent to clear out the Grootscher Marsh, one of the worst punishment details imaginable, and even the hardiest soldiers fear for their lives.
 
 Travellers on the Reik occasionally report the sound of strange, ominous horns echoing through thick fog that gathers swiftly across the marsh. Stories of ancient swamp daemons may be more than mere legend, for riverfolk claim shadowy, shambling figures can be glimpsed moving through the mist.
 

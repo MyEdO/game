@@ -1,6 +1,6 @@
 *Pages PDF 152*
 
-# **LIFE BEYOND THE WALLS**
+# <span id="page-151-0" data-folio="152"></span>**LIFE BEYOND THE WALLS**
 
 Beyond the walls of the cities and towns of the Empire, the landscape is anything but welcoming. Aside from a few hardy farmers, daring merchants, and cautious Roadwardens, travellers are unlikely to meet a friendly face among the bandits and beastmen that trouble them. Occasional relief can be had at a price from Coaching Houses along the Empire's highways, but otherwise Characters must fend for themselves.
 
@@ -8,7 +8,7 @@ Beyond the walls of the cities and towns of the Empire, the landscape is anythin
 
 Depending on the distance to be covered and the circumstances at hand, trekking through the wilds could be as simple as making a single roll before arriving at the intended destination, or the journey may take up an entire session by itself. A single Navigation Test is sufficient for each day's travel, with a Difficulty determined by the weather conditions, whether or not there is a road or river to follow, and if the Characters have a map or are otherwise familiar with the region. Success means that day's travel concludes without much incident, while failure implies as many challenges and complications as the GM wishes to impose — some advice is provided in **Chapter 9: GM's Guide**.
 
-#### **EXAMPLE NAVIGATION DIFFICULTIES**
+**EXAMPLE NAVIGATION DIFFICULTIES**
 
 | Difficulty             | Conditions                                                                                                                                                                       |
 |------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

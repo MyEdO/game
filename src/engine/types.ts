@@ -1423,7 +1423,8 @@ export interface Combatant {
    *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
    *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
-  /** `id` STABLE de la créature du bestiaire dont ce combattant est une instance (posé au spawn) —
+  /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
+   *  bestiaire (`state/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
    *  clé de résolution du rig/apparence (« plus de label » : on ne re-résout plus par `name`). */
   creatureId?: string;
   /** Le porteur de fiche dont ce combattant a été spawné (`state/spawn.spawnEnemy`, #1882) — ce qui le

@@ -139,13 +139,11 @@ function corpsPostes(tokenEls: readonly TokenEl[], propEls: readonly PropEl[]): 
     out.push({ entId, ancrage: a, span: { w: a.n, h: a.n }, visible: tk.states.visible });
   }
   for (const el of propEls) {
-    if (el.source !== 'entity' || !el.entId) continue;
-    // L'empreinte de l'élément — la même source pour un décor billboardé et pour un décor volumique,
-    // qui ne porte aucune empreinte de billboard.
+    if (el.source !== 'entity') continue;
     out.push({
       entId: el.entId,
       ancrage: ancrageDuDecor(el),
-      span: { w: el.span?.w ?? 1, h: el.span?.h ?? 1 },
+      span: el.span,
       visible: el.states.visible,
     });
   }

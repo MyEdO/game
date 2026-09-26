@@ -1,6 +1,6 @@
 *Pages PDF 222-229*
 
-# **MIRACLES**
+# <span id="page-221-0" data-folio="222"></span>**MIRACLES**
 
 Miracles are major manifestations of a god's will, awe-inspiring events everyone will notice; a Character with the *Invoke* Talent can empower one of the Miracles for their cult from the following lists.
 
@@ -48,7 +48,7 @@ The target vessel's sails fill with favourable winds, speeding them safely towar
 
 You implore the Lord of Sea's Bounty to provide you with sustenance. Reaching into a body of water, you catch enough fish to feed 1 person. If you reach into the sea, you provide enough fish for 2 people. For every +2 SL, you may feed another person.
 
-#### **Sea Legs**
+#### <span id="page-222-0" data-folio="223"></span>**Sea Legs**
 
 **Range:** Fellowship yards **Target:** 1 **Duration:** Fellowship Bonus Rounds
 
@@ -106,7 +106,7 @@ You draw a line up to 8 yards long on the ground while incanting a dirge to Morr
 
 You touch the eyes of someone close to death and request Morr guide the soul within, but not take it. The target must have 0 Wounds and be willing. For the duration of the Miracle, the target gains the *Unconscious* Condition and will not deteriorate until the Miracle ends, staving off disease, ignoring Critical Wounds and poisons, and similar. This Miracle comes to an end should appropriate healing be provided, or should you perform the last rites. If you do this, which takes about a minute, the target's soul will pass through Morr's portal upon death, and the resulting corpse may never be targeted by Necromancy.
 
-# **Miracles of Myrmidia**
+# <span id="page-223-0" data-folio="224"></span>**Miracles of Myrmidia**
 
 ### **Blazing Sun**
 
@@ -174,7 +174,7 @@ Does anything exist that cannot be seen? You riddle with Ranald, who sends a Div
 
 Crossing your fingers, you ask what, exactly, is luck? Gain +1 Fortune Point, which lasts until the end of the session. For every +2 SL, you may gain an extra +1 Fortune Point. You may not invoke this Miracle again until you reach 0 Fortune points.
 
-### **Ranald's Grace**
+### <span id="page-224-0" data-folio="225"></span>**Ranald's Grace**
 
 **Range:** Touch **Target:** 1 **Duration:** Fellowship Bonus Rounds
 
@@ -249,7 +249,7 @@ You lay hands upon an injured or diseased target as you sing your prayers. Choos
 
 For every + 2 SL, you may choose another effect, and may choose the same effect repeatedly. This Miracle is slow, with the effects taking at least 10 minutes to manifest. If interrupted, the Miracle will need to be attempted again.
 
-### **Rhya's Union**
+### <span id="page-225-0" data-folio="226"></span>**Rhya's Union**
 
 **Range:** Touch **Target:** Special
 
@@ -323,7 +323,7 @@ Conditions, and gain the *Fearless (Everything)* Talent while the Miracle is in 
 
 You call on Sigmar to protect those close to you from the fell influence of Chaos. Any Spells that target anyone or anywhere within the Area of Effect suffer a penalty of -2 SL to Casting Tests, in addition to any other penalties.
 
-# **Sigmar's Fiery Hammer**
+# <span id="page-226-0" data-folio="227"></span>**Sigmar's Fiery Hammer**
 
 **Range:** You **Target:** You **Duration:** Fellowship Bonus Rounds
 
@@ -383,7 +383,7 @@ You chant to Father Taal, and he grants you his favour, imbuing you with speed a
 
 You call on Taal to guide you in the hunt for your quarry, which must be an animal you have seen, or an individual you know (as limited by the GM). While the Miracle is in effect, you cannot lose your quarry's trail save by supernatural means. Should your quarry enter a settlement, the trail ends there. You also receive +1 SL to all Tests regarding your quarry while under the influence of the Miracle.
 
-### **Tanglefoot**
+### <span id="page-227-0" data-folio="228"></span>**Tanglefoot**
 
 **Range:** Fellowship yards
 
@@ -441,7 +441,7 @@ You chant furious prayers, and Ulric's ferocity spreads. An ally may take a free
 
 You roar prayers concerning Blitzbeil, Ulric's ever-thirsty axe. If wielding an axe, it counts as *Magical*, causes an additional +SL Damage, and any targets struck gain a *Fatigued* Condition. Further, struck targets lose any *Bleeding* Conditions as their blood freezes; similarly, attacks from your axe cannot cause any *Bleeding* Conditions.
 
-# **Miracles of Verena**
+# <span id="page-228-0" data-folio="229"></span>**Miracles of Verena**
 
 # **As Verena Is My Witness**
 

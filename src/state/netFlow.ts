@@ -35,6 +35,12 @@ import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
 
+/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
+ *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
+export function nomDuSiege(net: Pick<NetState, 'seatNames'>, seat: number): string {
+  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
+}
+
 /** État réseau SÉRIALISABLE (dans GameState). `ownership` : heroId → siège (0 = hôte).
  *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte). */
 export interface NetState {

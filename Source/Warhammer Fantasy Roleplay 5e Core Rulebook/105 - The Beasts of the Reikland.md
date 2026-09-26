@@ -1,6 +1,6 @@
 *Pages PDF 325-327*
 
-# **THE BEASTS OF THE REIKLAND**
+# <span id="page-324-0" data-folio="325"></span>**THE BEASTS OF THE REIKLAND**
 
 # **Boar**
 
@@ -82,7 +82,7 @@ Dodge 35, Perception 40, Track 45
 
 **Note:** The small but vicious dog used by Rat Catchers begins play with the **Traits:** *Frenzy, Tracker, Trained (Broken, Fetch, War)*.
 
-# **Giant Rat**
+# <span id="page-325-0" data-folio="326"></span>**Giant Rat**
 
 Rats get everywhere and are especially prevalent in the cities and towns. The more densely people are packed in, the more densely rats are packed in with them, which is especially bad when the creatures carry disease. Though typically small, they can grow to monstrous proportions, with reports of rats beneath Altdorf the size of a human and larger. Rat catchers are employed to keep them in check.
 
@@ -160,7 +160,7 @@ Condition, with a Strength of 40
 
 *Size (Tiny to Large), Striding Gait (Woodland), Swarm, Trained (Broken, Guard, Magic, Mount, War), Venom (Average)*
 
-# **Horse**
+# <span id="page-326-0" data-folio="327"></span>**Horse**
 
 Horses are bred for many jobs, including speedy mounts for messengers, sturdy destriers for knights, and mighty drays for farmers. They are so useful, horse trading is almost a competitive sport in the Reikland. Unscrupulous horse copers (horse salesmen) are keen to make money at the expense of the ignorant buyer, painting and filing teeth of elderly horses or stuffing rags up noses to soak mucus — so the prospective buyer should beware.
 

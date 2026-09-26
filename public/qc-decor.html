@@ -6754,57 +6754,11 @@ svg{display:block;background:linear-gradient(#7a6a4a,#5a4d35);border-radius:4px}
 .token-endmark.es-rendu { color: #4a4030; }
 .token-endmark.es-hors { color: #d8e0cc; }
 
-/* PASTILLE D'ENTITÉ (spec HUD combat zone 4, #1411 P2-C) : le geste qu'une chose du champ offre,
-   posé au-dessus de son porteur dans le SVG du plateau (foreignObject). Cette boîte n'est qu'un
-   ANCRAGE : elle est TRANSPARENTE au pointeur (le SVG dessous reste cliquable et survolable sur toute
-   sa surface), seul le bouton le reçoit — et sa matière comme sa cible tactile appartiennent à la
-   primitive qui le pose (`GatedAction tactile` → `.btn-tactile`, base.css). */
-.pastille-entite {
-  display: flex;
-  justify-content: center;
-  width: fit-content;
-  margin: 0 auto;
-  pointer-events: none;
-}
-.pastille-entite .btn {
-  pointer-events: auto;
-}
-.pastille-entite .pe-cost {
-  font-size: 0.8em;
-  opacity: 0.8;
-}
-
-/* PLAQUE DE NOM (#1687) : le nom d'un utilisable révélé (Alt maintenu) ou survolé, posé au-dessus de
-   lui dans le SVG du plateau (foreignObject). Le TEXTE est celui du chrome de nom du Codex
-   (`CodexTitre` → `.codex-pop-title`) : une seule matière de nom à l'écran. Jamais une cible — le
-   monde dessous reste cliquable sur toute sa surface. La lisibilité sur le monde nu est la classe
-   PARTAGÉE `.halo-champ` (components.css), que la primitive pose à côté. */
-.plaque-nom {
-  display: flex;
-  justify-content: center;
-  text-align: center;
-  pointer-events: none;
-}
-
 @keyframes zdeMarch {
   to { stroke-dashoffset: -32; }
 }
 .zde-ants { animation: zdeMarch 0.9s linear infinite; }
 
-/* ── LE PLATEAU lui-même (`stage/GameStage3D.tsx`, `SurcoucheIso.tsx`) : il remplit tout l'espace
-   disponible (caméra responsive), et porte les animations de ce qui vit dessus. ── */
-.iso-stage {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: radial-gradient(circle at 50% 28%, var(--bg), var(--bg));
-  /* Aucun `cursor` au REPOS : le stage est le seul écrivain du curseur du monde
-     (`stage/useStagePointer.ts` — `'pointer'` sur un utilisable, `''` sinon), et une main posée ici
-     rendrait cet effacement invisible (#1687). */
-  touch-action: none;
-}
 /* Halo d'un décor magique ou d'une arme à feu (`.glow`, posé par les défs de `gameIso/catalog` et
    `rig/parts/weapons`) : pulsation lente, jamais une animation par déf. */
 .iso-stage .glow {

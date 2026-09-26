@@ -98,6 +98,36 @@ describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la
     expect(JSON.stringify(deux)).toBe(JSON.stringify(une));
   });
 
+  it('un porteur VIDE (`ref: \'\'`, `presetId: \'\'`) est une ABSENCE : retiré, puis la fiche se nomme en QUEUE (#1882)', () => {
+    const doc = {
+      schema: 12, version: 12,
+      scenes: [{ entities: [
+        { id: 'a', kind: 'personnage', ref: '', pos: { x: 0, y: 0 }, appearance: { species: ESPECE } },
+        { id: 'b', kind: 'personnage', ref: '', presetId: '', pos: { x: 0, y: 0 } },
+      ] }],
+    };
+    const [a, b] = (PROJECT_MIGRATIONS[12]!(doc as never) as { scenes: { entities: Record<string, unknown>[] }[] }).scenes[0].entities;
+    expect(a).toEqual({ id: 'a', kind: 'personnage', pos: { x: 0, y: 0 }, appearance: { species: ESPECE }, ref: PROFIL });
+    expect(Object.keys(a)).toEqual(['id', 'kind', 'pos', 'appearance', 'ref']);
+    expect(b).toEqual({ id: 'b', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: FICHE_DU_SPAWN });
+  });
+
+  it('au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)', () => {
+    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
+    expect(sceneEntitySchema.safeParse({ ...base, ref: '' }).error?.issues.map((i) => i.message))
+      .toEqual(['« ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+    expect(sceneEntitySchema.safeParse({ ...base, ref: 'creature-fantome' }).error?.issues.map((i) => i.message))
+      .toEqual(['« creature-fantome » ni créature, ni coque de véhicule, ni engin de siège']);
+  });
+
+  it('au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)', () => {
+    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
+    for (const ref of ['baton-de-combat', 'barque'])
+      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(false);
+    for (const ref of ['humain', 'cogue'])
+      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(true);
+  });
+
   it('SANS le migrateur, le personnage sans fiche serait REFUSÉ au parse, en NOMMANT l’entité', () => {
     const bricole = { ...structuredClone(PROJET_FORMAT_12), schema: CURRENT_PROJECT_SCHEMA };
     expect(() => parseProject(bricole)).toThrow(/entities « aubergiste » › ref: « ref », « statblock », « presetId » absents/);

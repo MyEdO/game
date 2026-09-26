@@ -130,6 +130,9 @@ describe('compteur de marques — le seul détecteur du zéro SILENCIEUX', () =>
       // +1 site ADOPTÉ (#1882, 2026-09-23) : `defs/species.ts › profilStandard` (`ref('creature')`),
       // le profil standard du PNJ de l'espèce (LDB 77 l.7).
       "idDe('creature')",
+      // +1 site ADOPTÉ (#1882 T2d, 2026-09-24) : `defs-scenes/effets.ts › livingRefSchema.creatureId` —
+      // l'adversaire de poursuite et la bête possédée résolvent contre `creatures.json`, jamais `''`.
+      "idDe('creature')",
       // +1 site ADOPTÉ (#1657 B3-2b-a) : `grammaire/mecanique.ts › crewTargetSchema.role` désigne le
       // SEUL rôle d'équipage que le livre nomme comme cible d'un coup (MSRC 07 l.86 « au timonier »).
       "idDe('crewRole')",
@@ -245,6 +248,9 @@ describe('compteur de marques — le seul détecteur du zéro SILENCIEUX', () =>
       "idDe('trapping')",
       // +1 site ADOPTÉ (#1520, 2026-09-23) : `defs/pregens.ts › weaponChoice`.
       "idDe('trapping')",
+      // +1 site ADOPTÉ (#1882 T2d, 2026-09-24) : `defs-scenes/effets.ts › givePossessionSchema.ref.vehicleId`
+      // — le véhicule possédé résout contre `vehicles.json`.
+      "idDe('vehicle')",
     ]);
   });
 

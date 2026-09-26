@@ -424,33 +424,41 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
   // une liste littérale redoublerait des ids et se tairait au premier renommage de pièce.
   const CAGES = new Set(Object.values({ ...ZONES_REZ, ...ZONES_ETAGE })
     .filter((p) => p.label?.startsWith('Escalier')).map((p) => p.id));
-  // DÉCOR SUSPENDU : le seul qui pend au-dessus du puits, NOMMÉ — toute autre case `vide` sous un décor est
-  // un défaut de pose (un fauteuil de loge au-dessus du parterre), jamais une exemption tacite.
-  const SUSPENDUS_AU_PUITS = ['lustre'];
-
-  it('tout décor POSÉ sur le plancher de l’étage tombe dans une pièce ; seul le lustre surplombe le vide', () => {
-    // Deux populations, aucune exemption au fichier : ce qui repose sur la dalle DOIT avoir sa pièce
-    // (sinon la loi de dégagement ne le trouve pas) ; ce qui pend au-dessus du puits est NOMMÉ un par un
-    // (`SUSPENDUS_AU_PUITS`), et n'a par construction aucun plancher ni aucune pièce sous lui.
+  it('tout décor de l’étage repose sur la dalle, dans une pièce — aucun ne surplombe le puits', () => {
+    // Une case `vide` sous un décor de l'étage est un défaut de pose (un fauteuil de loge au-dessus du
+    // parterre) ; ce qui repose sur la dalle DOIT avoir sa pièce, sinon la loi de dégagement ne le trouve pas.
     const etage = scenarioEntities.filter((e) => (e.z ?? 0) === 1);
-    const surPlancher = etage.filter((e) => tileAt(s, e.pos.x, e.pos.y, 1) !== 'vide');
-    const surPuits = etage.filter((e) => tileAt(s, e.pos.x, e.pos.y, 1) === 'vide');
-    expect(surPlancher.length, 'l’étage porte bien du décor posé').toBeGreaterThan(0);
-    const horsPiece = surPlancher
+    expect(etage.length, 'l’étage porte bien du décor posé').toBeGreaterThan(0);
+    const surPuits = etage.filter((e) => tileAt(s, e.pos.x, e.pos.y, 1) === 'vide').map((e) => `${e.id} (${e.pos.x},${e.pos.y})`);
+    expect(surPuits, `décor(s) de l’étage au-dessus du VIDE : ${surPuits.join(' ')}`).toEqual([]);
+    const horsPiece = etage
       .filter((e) => zonesAt(e.pos.x, e.pos.y, 1).length === 0)
       .map((e) => `${e.id} (${e.pos.x},${e.pos.y})`);
     expect(horsPiece, `décor(s) posé(s) à l’étage hors de toute pièce : ${horsPiece.join(' ')}`).toEqual([]);
-    // TÉMOINS NOMMÉS : les deux lustres du foyer sont POSÉS (ils coiffent les salons), pas suspendus au puits.
-    for (const id of ['foy-lustre-g', 'foy-lustre-d']) {
-      const l = surPlancher.find((e) => e.id === id);
-      expect(l, `${id} absent du décor posé de l’étage`).toBeDefined();
-      expect(zonesAt(l!.pos.x, l!.pos.y, 1), `${id} (${l!.pos.x},${l!.pos.y}) hors pièce`).not.toEqual([]);
-    }
-    expect(surPuits.map((e) => e.id).sort(),
-      `décor(s) au-dessus du VIDE : ${surPuits.map((e) => `${e.id} (${e.pos.x},${e.pos.y})`).join(' ')}`)
-      .toEqual([...SUSPENDUS_AU_PUITS].sort());
-    expect(surPuits.flatMap((e) => zonesAt(e.pos.x, e.pos.y, 1).map((id) => `${e.id}→${id}`)),
-      'un décor suspendu n’appartient à aucune pièce').toEqual([]);
+  });
+
+  it('LUSTRES : chacun est posé dans une pièce NOMMÉE de son niveau, jamais sur un vide de ce niveau', () => {
+    // La recette porte la hauteur (patron `applique-murale`) : le lustre se pose au NIVEAU de la pièce
+    // qu'il éclaire. Un volume à double hauteur (l'étage `vide` au-dessus) appartient au niveau inférieur.
+    // Sa hauteur contre la dalle ou le toit est tenue par `scenes/decor-sous-plafond.test.ts`.
+    const lustres = scenarioEntities.filter((e) => e.ref === 'lustre-opera');
+    expect(lustres.length, 'le plan porte des lustres').toBeGreaterThan(0);
+    const malPoses = lustres
+      .filter((e) => {
+        const z = e.z ?? 0;
+        return tileAt(s, e.pos.x, e.pos.y, z) === 'vide' || zonesAt(e.pos.x, e.pos.y, z).length === 0;
+      })
+      .map((e) => `${e.id} (${e.pos.x},${e.pos.y}) z${e.z ?? 0}`);
+    expect(malPoses, `lustre(s) sur un vide de leur niveau ou hors de toute pièce nommée : ${malPoses.join(' ')}`).toEqual([]);
+  });
+
+  it('LIMITE : la donnée ne dit pas QUELLE pièce un lustre éclaire — sous chaque lustre d’étage, le rez porte aussi une pièce nommée', () => {
+    // Descendre un lustre de la galerie au rez le poserait dans une autre pièce nommée (le Salon) : le test
+    // de pièce ci-dessus ne peut pas le refuser, seul le niveau authoré dit la pièce éclairée.
+    const lustresDEtage = scenarioEntities.filter((e) => e.ref === 'lustre-opera' && (e.z ?? 0) > 0);
+    expect(lustresDEtage.length, 'le plan porte des lustres d’étage').toBeGreaterThan(0);
+    for (const l of lustresDEtage)
+      expect(zonesAt(l.pos.x, l.pos.y, 0), `${l.id} (${l.pos.x},${l.pos.y}) : le rez dessous porte une pièce nommée`).not.toEqual([]);
   });
 
   it('GARDE-CORPS : chaque case de RIVE du puits porte une balustrade, et aucune autre case du plan', () => {

@@ -182,6 +182,15 @@ test('#1739 : la carte de slugs se branche sur `recalerStock` — la clé suit, 
   assert.deepEqual(orphelines, [`${racine}/09 - X.md :: alpha-beta#1 :: a|b`])
 })
 
+test('#1739 : un titre devenu LÉGENDE de table suit la section qui porte l’en-tête de sa table ; devenu prose, il reste RAPPORTÉ (CRB 027:47)', () => {
+  const head = ['### **SNEAKING AROUND**', '', 'texte', '', '## <span id="p"></span>**EXAMPLES**', '', '| Difficulty | Action |', '|---|---|', '| Easy | Hide |', '', '### **NOTE**', '', 'fin', ''].join('\n')
+  const arbre = ['### **SNEAKING AROUND**', '', 'texte', '', '<span id="p"></span>**EXAMPLES**', '', '| Difficulty | Action |', '|---|---|', '| Easy | Hide |', '', '**NOTE**', '', 'fin', ''].join('\n')
+  const diff = '@@ -5 +5 @@\n-## <span id="p"></span>**EXAMPLES**\n+<span id="p"></span>**EXAMPLES**\n@@ -11 +11 @@\n-### **NOTE**\n+**NOTE**\n'
+  const { carte, rapportees } = carteDesSlugs('027 - X.md', head, arbre, carteDeLignes(hunksDe(diff)))
+  assert.equal(carte.get('027 - X.md :: examples#1')?.ref, 'sneaking-around#1')
+  assert.deepEqual(rapportees, ["027 - X.md :: note#1 (l.11) — l.11 n'est plus un titre"])
+})
+
 test('#1739 : compte ÉGAL sans correspondance (scission + ligne vide ôtée, diff git réel) — le titre est RAPPORTÉ, jamais réécrit', () => {
   const head = 'a\n\n#### **Bounce** XII **Cold-blooded**\n\nbody\n'
   const arbre = 'a\n\n#### **Bounce**\n#### **Cold-blooded**\nbody\n'

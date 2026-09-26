@@ -124,7 +124,7 @@ describe('carte du monde — la géométrie de ses deux régimes (#1117)', () =>
 
   it('≤900px : la PRIMITIVE empile en une colonne', () => {
     expect(html, 'l’écran déclare sa cassure à la primitive').toContain('data-stack-below="900"');
-    expect(valeur(layout, ".split[data-stack-below='900']", '@media (max-width: 900px)', 'grid-template-columns')).toBe('1fr');
+    expect(valeur(layout, ".split[data-stack-below='900']", '@media (max-width: 900px)', 'grid-template-columns')).toBe('minmax(0, 1fr)');
   });
 
   it('l’écran de carte ne REDÉCLARE pas la règle de la primitive', () => {

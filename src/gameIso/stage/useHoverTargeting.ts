@@ -11,9 +11,7 @@ import { useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene } from '../../state/scene';
 import type { Pt } from '../../state/path';
-import { exploreMovePlan } from '../../state/exploreNav';
-import { maxJumpTiles } from '../../engine/movement';
-import { effectiveMovement } from '../../engine/encumbrance';
+import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../state/exploreNav';
 import { isOutOfAction, canTakeAction, hasCondition } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
 import { combatantAtTile } from '../../state/combatGeometry';
@@ -192,9 +190,7 @@ export function useHoverTargeting(
     const tile = hoveredPortal?.to ?? hover;
     if (mode !== 'exploration' || dialogue || !scene || !tile) return null;
     if (tile.x === partyPos.x && tile.y === partyPos.y && (tile.z ?? 0) === (partyPos.z ?? 0)) return null;
-    const heroes = party.filter((h) => !h.dead && h.wounds.current > 0);
-    const partyM = heroes.length ? Math.min(...heroes.map((h) => effectiveMovement(h))) : 0;
-    return exploreMovePlan(scene, partyPos, tile, { blocked: new Set(), jump: maxJumpTiles(partyM) });
+    return exploreMovePlan(scene, partyPos, tile, optionsDeCheminDuGroupe(party));
   }, [hover, hoveredPortal, mode, dialogue, scene, partyPos, party]);
   const explorePath = explorePlan?.path ?? null;
 

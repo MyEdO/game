@@ -182,9 +182,9 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     }
   });
 
-  it('un enregistrement au format 14 qui cite un sort FUSIONNÉ (#1897) est restauré remappé, par la chaîne du projet', async () => {
-    const scene14 = {
-      ...emptyScene(), id: 'scene-14', label: 'crypte',
+  it('un enregistrement au format 15 qui cite un sort FUSIONNÉ (#1897) est restauré remappé, par la chaîne du projet', async () => {
+    const scene15 = {
+      ...emptyScene(), id: 'scene-15', label: 'crypte',
       entities: [
         { id: 'sorcier', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme', 'flamme'] }, combat: { spells: ['alarme'] } },
         { id: 'autel', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, usable: { actions: [{ id: 'prier', flow: { kind: 'seq', steps: [
@@ -193,10 +193,10 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
         ] } }] } },
       ],
     } as unknown as Scene;
-    backend.store.set('scene-14', { sceneId: 'scene-14', scene: scene14, schema: 14, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    backend.store.set('scene-15', { sceneId: 'scene-15', scene: scene15, schema: 15, savedAt: 999 } as unknown as EditorAutosaveRecord);
     let recovered: Scene | null = null;
     await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-14', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-15', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
     await act(async () => { probe().restore(); });

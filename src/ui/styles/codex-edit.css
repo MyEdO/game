@@ -49,11 +49,13 @@
      identifiants longs — une base fixe `min(9.5rem, 100%)` le rabotait à 152 px sur les 25 rangées
      `.de-reflrow` du Codex) ; `min-width: 0` lève le plancher intrinsèque et `max-width: 100%` borne
      au parent, donc à 292 px le bord droit tombe pile sur l'hôte, sans un débordement.
-   Le plancher se lève sur les CONTRÔLES, jamais sur la rangée : `min-width: auto` n'est un plancher
-   que sur l'axe PRINCIPAL du flex, et la rangée est un élément de la COLONNE `.ed-field` — le lui
-   poser ne déplace aucun pixel (mesuré aux deux largeurs). */
+   Le plancher se lève sur les ÉLÉMENTS de la rangée (`> *`) et sur les contrôles qu'ils enveloppent,
+   jamais sur la rangée : `min-width: auto` n'est un plancher que sur l'axe PRINCIPAL du flex, et la
+   rangée est un élément de la COLONNE `.ed-field` — le lui poser ne déplace aucun pixel (mesuré aux
+   deux largeurs). Un enveloppant `.de-cell` resté à `min-width: auto` gardait la largeur intrinsèque
+   de son `<select>` (recette 360 px du 2026-09-26 : scrollWidth 535 pour 350). */
 .de-reflrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
-.de-reflrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.de-reflrow > *, .de-reflrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 /* Un `<select>` prend la largeur de son option courante — sa largeur NATURELLE reste la bonne (les
    identifiants longs des 25 rangées du Codex y sont lisibles). Ce qui manquait, c'est un PLANCHER :
    « 21 — PSYCHOLOG… » se rendait tronqué. `min-width: min(14rem, 100%)` le pose sans plafonner, et

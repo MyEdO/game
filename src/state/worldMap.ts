@@ -12,13 +12,14 @@
  */
 import type { Effect, Fige, ReliefDefaults, Scene, SceneRoofDefaults } from './scene';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
+import { garanti } from './combatants';
 import { normalizeScene } from './scene';
 import type { TravelMode } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
+import { findNavalPortById, findLieuServiceById, coreAxisIds, creatureSemee, vehiculeSeme, navireSeme } from '../data';
 
 /** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
 export interface MapPlace {
@@ -303,6 +304,10 @@ function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
   return zone ? { auberge: true, maison: zone.places.maison, camp: zone.places.camp } : undefined;
 }
 
+/** Les services de lieu que le CODE cite par id (`placeServices`) — leur présence au catalogue
+ *  `lieux-services.json` est prouvée par `data/refs-migrated.test.ts`. */
+export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge' } as const;
+
 /**
  * API UNIQUE des SERVICES d'un lieu (#343) : compose en UNE liste le port (`place.port`), le marché
  * (`place.market`) et les services extensibles du catalogue (`place.services`, `lieux-services.json`),
@@ -314,12 +319,12 @@ function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
 export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
   const out: ResolvedPlaceService[] = [];
   if (place.port) {
-    const def = findLieuServiceById('port');
-    out.push({ id: 'port', category: 'port', label: def?.label ?? 'Port', icon: def?.icon, desc: def?.desc, port: place.port, hostLine: def?.hostLine, backdrop: def?.backdrop });
+    const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
+    out.push({ id: 'port', category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop });
   }
   if (place.market) {
-    const def = findLieuServiceById('marche');
-    out.push({ id: 'marche', category: 'marche', label: def?.label ?? 'Marché', icon: def?.icon, desc: def?.desc, market: place.market, hostLine: def?.hostLine, backdrop: def?.backdrop });
+    const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
+    out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop });
   }
   const declared = new Set<string>();
   for (const s of place.services ?? []) {
@@ -345,8 +350,8 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
   if (!declared.has('auberge')) {
     const rest = sceneAubergeOffer(scene);
     if (rest) {
-      const def = findLieuServiceById('auberge');
-      out.push({ id: 'auberge', category: 'auberge', label: def?.label ?? 'Auberge', icon: def?.icon, desc: def?.desc, rest, hostLine: def?.hostLine, backdrop: def?.backdrop });
+      const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
+      out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop });
     }
   }
   return out;
@@ -738,6 +743,21 @@ const profilDeLEspece = (ent: Record<string, unknown>): string | undefined => {
  *  vit QUE dans la migration 12 → 13. */
 const FICHE_DU_SPAWN_AVANT_1882 = (): Record<string, unknown> => ({ type: 'statblock', label: 'Ennemi', char: { B: 10 } });
 
+/** Un porteur VIDE (`ref: ''`, `presetId: ''`) n'est pas un porteur (`typeNonNomme`) : le bump 12 → 13 le
+ *  retire avant de nommer la fiche, même politique que l'absence. */
+function sansPorteurVide(scenes: unknown): unknown {
+  if (!Array.isArray(scenes)) return scenes;
+  return scenes.map((s) => {
+    if (!s || typeof s !== 'object' || !Array.isArray((s as Record<string, unknown>).entities)) return s;
+    const sc = s as Record<string, unknown>;
+    const entities = (sc.entities as unknown[]).map((e) => {
+      if (!e || typeof e !== 'object' || !personnageSansFiche(e as Record<string, unknown>)) return e;
+      return Object.fromEntries(Object.entries(e).filter(([k, v]) => !((k === 'ref' || k === 'presetId') && v === '')));
+    });
+    return { ...sc, entities };
+  });
+}
+
 /**
  * La fouille d'un décor devient une ACTION AUTHORÉE, et l'enveloppe `usable` vide se NOMME (#1687).
  *
@@ -778,13 +798,13 @@ function migreActionsAuthorees(scenes: unknown): unknown {
   });
 }
 
-/** La forme SOURCE d'une référence de sort de preset au format 13 : objet de clé UNIQUE `id`, chaîne
+/** La forme SOURCE d'une référence de sort de preset au format 14 : objet de clé UNIQUE `id`, chaîne
  *  non vide — le seul élément qui se dénude SANS PERTE (`{ id, spec }` perdrait `spec`). */
 const estSortSource = (s: unknown): s is { id: string } =>
   !!s && typeof s === 'object' && !Array.isArray(s) && Object.keys(s).length === 1
   && typeof (s as { id?: unknown }).id === 'string' && (s as { id: string }).id.length > 0;
 
-/** `{ id }` → id nu dans `presetsPnj[].profil.spells` (bump 13 → 14, #1897) ; le reste traverse intact. */
+/** `{ id }` → id nu dans `presetsPnj[].profil.spells` (bump 14 → 15, #1897) ; le reste traverse intact. */
 function denudeSortsDePreset(narratif: unknown): unknown {
   const nb = narratif as { presetsPnj?: unknown } | null;
   if (!nb || typeof nb !== 'object' || !Array.isArray(nb.presetsPnj)) return narratif;
@@ -1005,7 +1025,7 @@ export const PROJECT_MIGRATIONS = {
     ...(doc.scenes !== undefined
       ? {
         scenes: poseSurChaqueEntite(
-          doc.scenes,
+          sansPorteurVide(doc.scenes),
           (ent) => (profilDeLEspece(ent) ? 'ref' : 'statblock'),
           (ent) => profilDeLEspece(ent) ?? FICHE_DU_SPAWN_AVANT_1882(),
           personnageSansFiche,
@@ -1015,33 +1035,64 @@ export const PROJECT_MIGRATIONS = {
     version: 13,
     schema: 13,
   }),
-  /**
-   * `13` DÉNUDE la référence de sort d'un preset de PNJ (#1897) : `narratif.presetsPnj[].profil` reprend
-   * le def créature, dont `spells` adopte `refs('spell')` — `{ id }` devient l'id nu, À SA PLACE. Sans ce
-   * passage, un projet de bibliothèque utilisateur serait REFUSÉ au parse sur son premier sort de preset.
-   * Un élément déjà nu traverse INTACT ; ce qui ne se dénude pas SANS PERTE (`{ id, spec }`, `{ id: '' }`)
-   * et ce qui n'est pas une liste traversent tels quels (`parseProject` les refuse ensuite, en les nommant).
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs`,
-   * qui refuse les mêmes formes : parité mesurée par `projet-migration-13-vers-14.test.ts`, qui joue la
-   * MÊME fixture par les deux.
-   */
+  /** 13 → 14 (#1882) : `livingRefSchema.creatureId`, `givePossession.ref.vehicleId` et `setVessel.vehicleId` exigent un id RÉSOLU
+   *  (`idDe`). Avant, l'effet neuf (`make`, éditeur) semait `''` : ce vide reçoit ce que l'outil sème
+   *  aujourd'hui (`creatureSemee`, `vehiculeSeme`, `navireSeme`). Pendant applicatif du script de dépôt
+   *  `scripts/migrations/2026-09-24-1882-refs-vivantes-semees.mjs` (parité : `projet-migration-13-vers-14.test.ts`). */
   13: (doc) => ({
-    ...doc,
-    ...(doc.narratif !== undefined ? { narratif: denudeSortsDePreset(doc.narratif) } : {}),
+    ...(semeLesRefsVides(doc) as typeof doc),
     version: 14,
     schema: 14,
   }),
   /**
-   * `14` fait désigner à chaque id de sort FUSIONNÉ par #1897 l'entrée qui l'a absorbé
+   * `14` DÉNUDE la référence de sort d'un preset de PNJ (#1897) : `narratif.presetsPnj[].profil` reprend
+   * le def créature, dont `spells` adopte `refs('spell')` — `{ id }` devient l'id nu, À SA PLACE. Sans ce
+   * passage, un projet de bibliothèque utilisateur serait REFUSÉ au parse sur son premier sort de preset.
+   * Un élément déjà nu traverse INTACT ; ce qui ne se dénude pas SANS PERTE (`{ id, spec }`, `{ id: '' }`)
+   * et ce qui n'est pas une liste traversent tels quels (`parseProject` les refuse ensuite, en les nommant).
+   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs`,
+   * qui refuse les mêmes formes : parité mesurée par `projet-migration-14-vers-15.test.ts`, qui joue la
+   * MÊME fixture par les deux.
+   */
+  14: (doc) => ({
+    ...doc,
+    ...(doc.narratif !== undefined ? { narratif: denudeSortsDePreset(doc.narratif) } : {}),
+    version: 15,
+    schema: 15,
+  }),
+  /**
+   * `15` fait désigner à chaque id de sort FUSIONNÉ par #1897 l'entrée qui l'a absorbé
    * (`SORTS_FUSIONNES_1897`, table GELÉE), à toute place de sort du document — primitive
    * `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`), la même que `ROSTER_MIGRATIONS[4]`. Sans ce
    * passage, un projet de bibliothèque utilisateur qui cite un sort fusionné serait REFUSÉ au parse
    * (`idDe('spell')`).
    * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-1897-projet-sorts-fusionnes.mjs`
-   * (parité mesurée par `projet-migration-14-vers-15.test.ts`, qui joue la MÊME fixture par les deux).
+   * (parité mesurée par `projet-migration-15-vers-16.test.ts`, qui joue la MÊME fixture par les deux).
    */
-  14: (doc) => ({ ...(remapSortsFusionnesDeep(doc) as Record<string, unknown>), version: 15, schema: 15 }),
+  15: (doc) => ({ ...(remapSortsFusionnesDeep(doc) as Record<string, unknown>), version: 16, schema: 16 }),
 } satisfies MigrationMap;
+
+/** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,
+ *  `ref.vehicleId`) ou d'un `setVessel` (`vehicleId`), où que l'effet soit niché dans le DOCUMENT (Scène,
+ *  péril de route de `worldMap`, …), reçoit la réf. que l'outil sème (`PROJECT_MIGRATIONS[13]`). Le reste
+ *  traverse à l'identique. */
+export function semeLesRefsVides(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(semeLesRefsVides);
+  if (!v || typeof v !== 'object') return v;
+  const o = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, semeLesRefsVides(x)])) as Record<string, unknown>;
+  const seme = (ref: unknown): unknown => {
+    if (!ref || typeof ref !== 'object') return ref;
+    const r = ref as Record<string, unknown>;
+    if (r.creatureId === '') return { ...r, creatureId: creatureSemee() };
+    if (r.vehicleId === '') return { ...r, vehicleId: vehiculeSeme() };
+    return r;
+  };
+  if (o.type === 'setVessel' && o.vehicleId === '') return { ...o, vehicleId: navireSeme() };
+  if (o.type === 'givePossession') return { ...o, ref: seme(o.ref) };
+  if (o.type === 'startPursuit' && Array.isArray(o.foes))
+    return { ...o, foes: o.foes.map((f) => (f && typeof f === 'object' ? { ...(f as object), ref: seme((f as { ref?: unknown }).ref) } : f)) };
+  return o;
+}
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se
  *  devine pas. SOURCE UNIQUE — posée par la migration 6→7 sur un projet qui n'en portait aucune,

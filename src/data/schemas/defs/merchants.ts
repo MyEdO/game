@@ -26,7 +26,7 @@ const doc = document(
     settlement: settlementSchema,
     resaleRate: z.number(),
     buyMarkup: z.number().optional(),
-    bargainSkill: z.number().optional(),
+    bargainSkill: z.number(),
     restockDays: z.number().optional(),
     /** Sélection d'objets proposés d'office — clés étrangères vers `trappings.json`. */
     curated: refs('trapping').optional(),

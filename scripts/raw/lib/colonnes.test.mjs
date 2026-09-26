@@ -2,19 +2,8 @@
 // lit (`pdf-lignes.py` : boîtes et lignes), réduites à leurs boîtes (`fixtures/pages-crb/p<N>.json`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { colonnes, lignes } from './colonnes.mjs'
-
-const page = (n) => {
-  const f = JSON.parse(readFileSync(new URL(`./fixtures/pages-crb/p${n}.json`, import.meta.url), 'utf8'))
-  return f.boites.map(([x0, y0, x1, y1, ls]) => ({
-    x0,
-    y0,
-    x1,
-    y1,
-    lignes: ls.map(([lx0, ly0, lx1, texte, spans]) => ({ x0: lx0, y0: ly0, x1: lx1, texte, spans: spans.map(([t, i, taille]) => [t, f.polices[i], taille]) })),
-  }))
-}
+import { pageCrb as page } from './fixtures/page-crb.mjs'
 const arrondis = (bords) => bords.map((b) => Math.round(b * 10) / 10)
 const ligne = (ls, re) => ls.find((l) => re.test(l.texte))
 const rang = (ls, re) => ls.findIndex((l) => re.test(l.texte))

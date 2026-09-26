@@ -1,6 +1,6 @@
 *Pages PDF 168-170*
 
-# **MOMENTUM**
+# <span id="page-167-0" data-folio="168"></span>**MOMENTUM**
 
 Experienced fighters know that a warrior who strikes first and strikes well is likely to win a fight. In combat, Momentum is gained by striking an opponent with a Melee Attack, and can later be used to maintain a dominant position.
 
@@ -20,7 +20,7 @@ You lose Momentum when you fail a Melee Test — including losing an Opposed Tes
 
 No matter the circumstances, a character or NPC may only spend Momentum to make one additional attack each Turn, even if they gain Momentum again after doing so.
 
-# **Leadership in Combat**
+# <span id="page-168-0" data-folio="169"></span>**Leadership in Combat**
 
 A **Leadership** Test allows you to issue orders to NPCs clearly and with authority. If you're attempting to order your natural subordinates — a noble commanding serfs, or a sergeant commanding their troops — commands are usually unopposed. If there is no natural hierarchy in place, or the order is particularly challenging — such as ordering your soldiers to charge a hydra head on — the Test is Opposed by your targets' Cool. If you are contesting another's authority, make an Opposed Leadership Test — the orders of the winner will be followed, though such disagreements are usually terrible for morale.
 
@@ -50,7 +50,7 @@ If prepared, you can hold your breath for Toughness Bonus x 10 seconds without a
 
 Each Round you are being suffocated, you lose 1 Wound. Should you reach 0 Wounds, you immediately receive the *Unconscious* Condition. After that, you will die of suffocation or drowning in Toughness Bonus Rounds.
 
-#### **Exposure**
+#### <span id="page-169-0" data-folio="170"></span>**Exposure**
 
 Every 4 hours spent in a difficult environment — such as subzero temperatures, a hot desert, or a howling storm — requires you to take an Endurance Test. Extreme environments require a Test every 2 hours.
 

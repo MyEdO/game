@@ -1,6 +1,6 @@
 *Pages PDF 279-287*
 
-# **THE POWERS THAT BE**
+# <span id="page-278-0" data-folio="279"></span>**THE POWERS THAT BE**
 
 Reikland is arguably the most powerful of the Empire's provinces; it is the seat of the emperor and a major centre of military and trading might. However, governance anywhere in the Empire is confusing and even more so in the grand province, where the various Imperial, noble, mercantile, and religious authorities vie for control.
 
@@ -36,7 +36,7 @@ As grand prince of the Reikland, Karl Franz appoints a council to run the provin
 
 The council meets weekly in the Wilhelm Chamber of the Volkshalle in Altdorf. It is rare for more than six high lords to attend simultaneously, and almost unheard of for Karl Franz to attend in person. The various personalities on the council have their own ambitions and agendas, which do not always align with one another, or indeed with the intentions of the grand prince of the Reikland.
 
-# **The Reikland Diet**
+# <span id="page-279-0" data-folio="280"></span>**The Reikland Diet**
 
 The Reikland Diet is an assembly of the heads of the province's noble households that scrutinises and ratifies any decree made by the grand prince of the Reikland. The crown retains certain powers, however, including the right to summon and command the state army of the Reikland, the raising of emergency taxes in times of crisis, the right to authorise new coinage, and the right to call a High Lord Steward's Court should a powerful noble happen to face a criminal charge.
 
@@ -52,7 +52,7 @@ Vassals of the grand prince rule the Reikland Estates. They can do as they will 
 
 > soldiers typically used in peacetime as watchmen, roadwardens, or guards. Most Reikland Estates are feudal, comprised of smaller fiefs ruled by vassals, many of whom hold hereditary titles that have existed for centuries.
 
-#### **THE DUCHY OF WALLENSTEIN**
+#### <span id="page-280-0" data-folio="281"></span>**THE DUCHY OF WALLENSTEIN**
 
 The Duchy of Wallenstein is the ancient demesne of the von Wallenstein family. It is a hilly region, sloping down from the rolling hills of the Hägercrybs to the sodden loam of the Teufel, Ober, and Tranig river valleys.
 
@@ -64,7 +64,7 @@ The duchy is wealthy, thanks to trade through Auerswald and the mineral riches b
 
 When Emperor Karl Franz declared Graf Sigismund von Jungfreud a traitor and sent several regiments from Altdorf to occupy Ubersreik, Graf Ferdinand and Lord Adelbert were careful to keep their opinions on the matter to themselves. Rumours cover the gamut of possibilities, some suggesting that Graf Ferdinand had a hand in the downfall of the Jungfreuds, while others suggest his dismay at Karl Franz's rash overreach is leading to a rapid reconciliation between the squabbling aristocrats.
 
-#### **THE GRAF'S CHIEF VASSALS**
+#### <span id="page-281-0" data-folio="282"></span>**THE GRAF'S CHIEF VASSALS**
 
 Graf Ferdinand von Wallenstein has several vassals who each hold lands under his rule. These families hold their tenure at the sufferance of the von Wallensteins, and in return for his continued favour they are conspicuous in their eagerness to support him politically and militarily.
 
@@ -106,7 +106,7 @@ Defending yourself in court usually requires an opposed Charm or Lore (Law) Test
 
 Minor punishments should rarely interrupt an adventure. For more serious crimes, the GM should usually provide an opportunity to escape, though habitual offenders can expect the Empire's justice to catch up with them eventually.
 
-#### **The City of Altdorf**
+#### <span id="page-282-0" data-folio="283"></span>**The City of Altdorf**
 
 As the largest city in the Empire, Altdorf is very much a power in its own right. While it is the capital of the Reikland, it tends to look to its own interests over those of the rest of the province. The Council of Altdorf rules the city, an ever-changing, ill-defined body of councillors, which meets in the Volkshalle to discuss an ever-changing, ill-defined range of matters. The citizens of Altdorf are proud of the Reikland, although they have a slightly condescending view of Reiklanders elsewhere and resent paying taxes to support their provincial neighbours.
 
@@ -136,7 +136,7 @@ There are several state armies in the Reikland. The army of Altdorf recruits and
 
 The Reikland Fleet of the Imperial Navy is also important, insofar as it protects shipping on the Reik. That said, Sea Lord von Hopfberg's admirals lament their apparent lack of influence in Reikland politics. This is not helped by the fact that the upper echelons of the fleet are riddled with nepotism and snobbery.
 
-# TIMELINE OF THE REIKLAND
+# <span id="page-283-0" data-folio="284"></span>TIMELINE OF THE REIKLAND
 
 Being a summary of the major events concerning the history of the Grand Province of Reikland.
 
@@ -204,7 +204,7 @@ Emperor Siegrich I dies in a hunting accident. After a fraught month, Prince Hed
 
 Johann Helstrum arrives in Reikdorf and claims to have holy visions concerning Sigmar. He preaches that he witnessed Sigmar's ascension to godhood. Such is the love the Unberogens have for their lost emperor, Helstrum is readily believed.
 
-#### **73 IC**
+#### <span id="page-284-0" data-folio="285"></span>**73 IC**
 
 Johann Helstrum builds a temple to Sigmar in Reikdorf. History will forever remember him as the first grand theogonist of the Cult of Sigmar, and the first man to recognise Sigmar's divinity.
 
@@ -260,7 +260,7 @@ The prince of the Reikland formally commissions a navy, worried about the influe
 
 The Time of Three Emperors. After Sigmarites botch an assassination attempt when electors refuse to back their choice for the next emperor, the elector count of Middenland denounces the imperial elections as a corrupt sham, and declares himself the rightful emperor. He has the support of the cult of Ulric, which had recently fallen out with the Talabecland emperors.
 
-The Empire now has three emperors: The Electoral Emperor supported by the cult of Sigmar, the Ottilian Emperor supported by the Cult of Taal, and the Wolf Emperor supported by the Cult of Ulric. The civil wars intensify.
+<span id="page-285-0" data-folio="286"></span>The Empire now has three emperors: The Electoral Emperor supported by the cult of Sigmar, the Ottilian Emperor supported by the Cult of Taal, and the Wolf Emperor supported by the Cult of Ulric. The civil wars intensify.
 
 #### **c. 1450–1550 IC**
 
@@ -310,7 +310,7 @@ The Reign of Magnus the Pious. Magnus von Bildhofen is elected Emperor Magnus I,
 
 The Third Parravon War. The Bretonnian duchy of Parravon invades the Reikland across the Grey Lady Pass, claiming the military escalation in Ubersreik caused by the mustering of the new State Army breaks an ancient treaty. They are quickly driven back, and the following year Parravon is besieged. Eventually, after a year of occasional skirmishes outside Parravon's extraordinarily high walls, and a great deal of standing around shouting insults, the king of Bretonnia treats on behalf of Parravon with Emperor Magnus I, ending the war.
 
-#### **2402–2405 IC**
+#### <span id="page-286-0" data-folio="287"></span>**2402–2405 IC**
 
 The Fourth Parravon War. The Bretonnian duchy of Parravon again invades the Reikland across the Grey Lady Pass. Ubersreik is besieged twice during the war, but doesn't fall. Peace is eventually brokered by the intervention of Emperor Dieter IV who agrees to pay the Parravonese an extortionate sum of money to retreat, drawing much criticism at court.
 

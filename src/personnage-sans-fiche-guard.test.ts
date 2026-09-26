@@ -41,6 +41,8 @@ const SANS_FICHE_PROUVES: readonly { fichier: string; it: string }[] = [
   { fichier: 'src/state/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)' },
   { fichier: 'src/state/spawn-fallback.test.ts', it: 'une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité' },
   { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
+  { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },
+  { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)' },
   { fichier: 'src/state/sceneEdit.test.ts', it: 'un patch sans rapport sur une entité DÉJÀ sans type passe ; `validateScene` la nomme' },
   { fichier: 'src/state/editorAutosave.test.ts', it: 'un autosave au format 12 est restauré TYPÉ par la migration, et un patch de cap passe' },
 ];

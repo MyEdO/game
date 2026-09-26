@@ -937,7 +937,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     expect(decl(racine, '--cc-bay-h')).toMatch(/var\(--cc-cell-h\)/);
     expect(STRIP_BASE, 'la frise lit encore une hauteur de pont').not.toMatch(/--cc-deck-h|--xd-deck-h/);
     // La colonne est une surface de la RANGÉE : c'est l'écran qui l'y pose (`.stage-flot`), et son
-    // bord bas ne réserve plus que le bandeau de phase, seule boîte qui déborde dans cette rangée.
+    // bord bas réserve seulement le bandeau de phase, seule boîte qui déborde dans cette rangée.
     const strip = ruleOf(STRIP_BASE, '.initiative-strip');
     expect(decl(strip, 'bottom')).toMatch(/var\(--cc-phase-h\)/);
     expect(parseFloat(decl(strip, 'top')!)).toBeGreaterThanOrEqual(44); // norme: la frise part SOUS le coin du menu ☰, dont la cible au doigt fait 44px (charte UI règle 4)
@@ -1392,7 +1392,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
   }
 
   // Défaut mesuré : `deduced.slice(0, 3)` faisait TOMBER la posture de tir (G5) d'une arbalète, alors que
-  // la spec §1a en fait le SEUL accès. Le débord garnit désormais la rangée libre.
+  // la spec §1a en fait le SEUL accès. Le débord garnit la rangée libre.
   it('D-1 — arbalète lourde seule : TOUS les gestes déduits sont visibles, G5 posture comprise', () => {
     monter(arbaletrier());
     expect(casesGauche().length).toBe(6);
@@ -1965,7 +1965,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     monter(tireur);
     expect(host.querySelectorAll('.cc-bay-left').length).toBe(1);
     expect((host.querySelector('.cc-bay-left') as HTMLElement).style.height, 'aucune hauteur en ligne : la loi est au CSS').toBe('');
-    // La travée n'a plus qu'UN enfant de contenu (le corps) : plus de bandeau sous les cases.
+    // La travée a seulement UN enfant de contenu (le corps) : plus de bandeau sous les cases.
     expect(host.querySelector('.cc-bay-left')!.children.length, 'une bande de plus sous la travée = du vide payé par le pont').toBe(1);
     expect(host.querySelector('.cc-bay-left')!.children[0].className).toContain('cc-bay-body');
 
@@ -2047,8 +2047,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     for (const p of ['background-image', 'border-top']) expect(decl(arche, p), p).toBeNull();
     expect(readFileSync(join(process.cwd(), 'src', 'ui', 'CombatConsole.tsx'), 'utf8')).toMatch(/className="cc-arch skin-pont"/);
     for (const c of ['border-right', 'border-bottom', 'border-left']) expect(decl(arche, c), c).toBe('0');
-    // Ce qui distingue une région n'est plus que ses ALVÉOLES : le coin porte les tokens de case, il
-    // n'a plus de plaque à lui.
+    // Une région se distingue par ses ALVÉOLES : le coin porte les tokens de case, sans plaque à lui.
     expect(decl(ruleOf(CC_BASE, '.cc-corner'), '--cc-cell-edge')).toBeTruthy();
     expect(decl(ruleOf(CC_BASE, '.cc-end'), 'border')).toBeNull();
   });
@@ -2270,7 +2269,7 @@ describe('CombatConsole — intention armée : aucun popover de règle au-dessus
 /**
  * BANDEAU D'INTERLUDE (#1411 P0-B) — un ciblage par la carte SANS MODALE (Frappe Mortelle, 2ᵉ frappe,
  * Surincantation, pose de zone, bordée, téléportation) doit porter SA SORTIE à l'écran : sans elle, le
- * joueur n'a plus que le clic-carte pour quitter le mode. Le bandeau la tire du REGISTRE (entrées
+ * joueur a seulement le clic-carte pour quitter le mode. Le bandeau la tire du REGISTRE (entrées
  * `surface: 'interlude'`, appariées par leur `mode` au mode de ciblage courant) — la console ne nomme
  * aucun état de flux, et le dispatcher exécuté est celui du registre (`runAction`).
  */
@@ -3127,7 +3126,7 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
  * PAUSE DE ROUND EN COOP (#1411 P2-A) — le bouton du bandeau passait DIRECTEMENT par
  * `confirmRoundStart`, là où la touche (`keybindings.round-start`) routait vers `roundStartReady` en
  * réseau : deux branchements pour un geste, dont un qui ignorait le ready-check. Le bandeau consomme
- * désormais l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
+ * l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
  */
 describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touche', () => {
   const bouton = () => host.querySelector('.cc-phase [data-action="round-start"]') as HTMLButtonElement | null;

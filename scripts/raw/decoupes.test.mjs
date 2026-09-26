@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { DECOUPES_DIR, decoupeDe, estLivreExtrait, livresDecoupes, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { ROLES_DE_GLYPHE } from './sonde-titres.mjs'
 
 const LIVRES_COUVERTS = new Map(REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => [b.id, b]))
 const IDS = livresDecoupes()
@@ -185,8 +186,10 @@ test('#1739 : `gabaritOnglet` est non nul si et seulement si `onglets` l’est, 
 })
 
 // Le GABARIT des titres d'entrée est ce que la sonde `scripts/raw/sonde-titres.mjs` lit : REQUIS,
-// `null` déclare un livre non sondé ; sinon cinq clés, chaque typographie `{ police, taille? }`.
-test('#1739 : `gabaritTitre` est déclaré — `null`, ou `{ titre, accompagnement, encadre, capitales, intertitre, exclusions }` de typographies bien formées', () => {
+// `null` déclare un livre non sondé ; sinon sept clés, chaque typographie `{ police, taille? }`, chaque
+// police d'ORNEMENT (`glyphes`) `{ police, role, caracteres }`, rôle parmi `ROLES_DE_GLYPHE`, caractères
+// mesurés au PDF (un caractère chacun, au moins un).
+test('#1739 : `gabaritTitre` est déclaré — `null`, ou `{ titre, accompagnement, encadre, capitales, intertitre, exclusions, glyphes }` bien formés', () => {
   const fautes = []
   const typo = (ou, t, tailleRequise) => {
     const cles = Object.keys(t ?? {}).sort().join(',')
@@ -199,7 +202,7 @@ test('#1739 : `gabaritTitre` est déclaré — `null`, ou `{ titre, accompagneme
     if (g === undefined) { fautes.push(`${id}.json — \`gabaritTitre\` absent`); continue }
     if (g === null) continue
     const cles = Object.keys(g).sort().join(',')
-    if (cles !== 'accompagnement,capitales,encadre,exclusions,intertitre,titre') fautes.push(`${id}.json — clés du gabarit ${cles}, attendu accompagnement,capitales,encadre,exclusions,intertitre,titre`)
+    if (cles !== 'accompagnement,capitales,encadre,exclusions,glyphes,intertitre,titre') fautes.push(`${id}.json — clés du gabarit ${cles}, attendu accompagnement,capitales,encadre,exclusions,glyphes,intertitre,titre`)
     typo(`${id}.json titre`, g.titre, true)
     typo(`${id}.json encadre`, g.encadre, true)
     typo(`${id}.json capitales`, g.capitales, false)
@@ -208,6 +211,14 @@ test('#1739 : `gabaritTitre` est déclaré — `null`, ou `{ titre, accompagneme
       if (!Array.isArray(g[k])) { fautes.push(`${id}.json — \`${k}\` doit être un tableau`); continue }
       g[k].forEach((t, i) => typo(`${id}.json ${k}[${i}]`, t, k === 'accompagnement'))
     }
+    if (!Array.isArray(g.glyphes)) fautes.push(`${id}.json — \`glyphes\` doit être un tableau`)
+    else g.glyphes.forEach((t, i) => {
+      const cles = Object.keys(t ?? {}).sort().join(',')
+      if (cles !== 'caracteres,police,role') fautes.push(`${id}.json glyphes[${i}] — clés ${cles || '(aucune)'}, attendu caracteres,police,role : une police d'ornement se lit à toute taille`)
+      else typo(`${id}.json glyphes[${i}]`, { police: t.police }, false)
+      if (!ROLES_DE_GLYPHE.includes(t?.role)) fautes.push(`${id}.json glyphes[${i}] — \`role\` ${JSON.stringify(t?.role)} : un rôle parmi ${ROLES_DE_GLYPHE.join(', ')}`)
+      if (!Array.isArray(t?.caracteres) || !t.caracteres.length || t.caracteres.some((c) => typeof c !== 'string' || [...c].length !== 1 || !c.trim())) fautes.push(`${id}.json glyphes[${i}] — \`caracteres\` ${JSON.stringify(t?.caracteres)} : les caractères mesurés au PDF, un chacun`)
+    })
   }
   assert.deepEqual(fautes, [], `gabarit de titre mal formé :\n${fautes.join('\n')}`)
 })

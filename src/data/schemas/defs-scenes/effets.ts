@@ -31,8 +31,9 @@ export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'c
 export const effectTargetSchema = z.enum(['party', 'hero']);
 /** `LivingRef` (`engine/possession.ts`) — bestiaire (édition Codex vivante) OU statbloc custom
  *  d'éditeur (le snapshot EST son identité). */
+const idDeCreature: z.ZodType<string, string> = idDe('creature');
 export const livingRefSchema = z.union([
-  z.strictObject({ creatureId: z.string() }),
+  z.strictObject({ creatureId: idDeCreature }),
   z.strictObject({ custom: customStatblockSchema }),
 ]);
 /** `ChaosAlign` (`engine/corruption.ts`) — Puissance du Chaos d'une table de mutation alignée. MÊME
@@ -153,10 +154,11 @@ export const giveTrappingSchema = z.strictObject({
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
  *  `giveTrapping.heroId`, §4.3). `ref` réutilise `LivingRef` (bête/serviteur, bestiaire OU statbloc
  *  custom) ou `{vehicleId}` (véhicule, catalogue `vehicles.json`). */
+const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
 export const givePossessionSchema = z.strictObject({
   type: z.literal('givePossession'),
   nature: z.enum(['bete', 'serviteur', 'vehicule']),
-  ref: z.union([livingRefSchema, z.strictObject({ vehicleId: z.string() })]),
+  ref: z.union([livingRefSchema, z.strictObject({ vehicleId: idDeVehicule })]),
   heroId: z.string().optional(),
 });
 
@@ -548,7 +550,7 @@ export const openWorldMapSchema = z.strictObject({ type: z.literal('openWorldMap
  *  Le navire survit aux jours et aux combats (le voyage maritime et le Port en repartent). */
 export const setVesselSchema = z.strictObject({
   type: z.literal('setVessel'),
-  vehicleId: z.string(),
+  vehicleId: idDeVehicule,
   label: z.string().optional(),
   morale: z.number().optional(),
   hullCurrent: z.number().optional(),
@@ -622,7 +624,11 @@ export const petitePriereSchema = z.strictObject({
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
 /** `Effect` (`state/scene.ts`) — l'union des 57 variantes. ANNOTÉE par le type manuscrit : la
- *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre. */
+ *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
+ *
+ *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
+ *  dit la FORME d'un Effet, pas le vocabulaire d'une scène. Ce qu'un Effet de SCÈNE peut viser se
+ *  juge à la scène (`validateScene` → `EFFECT_HANDLERS.ops.refs`, `state/combatEffects.ts`). */
 export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   z.discriminatedUnion('type', [
     setFlagSchema,

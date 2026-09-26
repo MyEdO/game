@@ -7,7 +7,7 @@
  */
 import { registerCascadeApplier, type CascadeApplier } from './cascade';
 import type { GameState } from './store';
-import type { CascadeStep } from './pendings';
+import type { BatchParticipant, CascadeStep } from './pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -49,6 +49,11 @@ export function soutienDe(st: LigneJugeable): number {
     .reduce((sum, m) => sum + m.value, 0);
 }
 
+/** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande) — par l'option
+ *  « Dés fixés » (`cascadeSetForcedRoll` / `cascadeBatchSetForcedRoll`), le geste d'un joueur. `undefined`
+ *  = le dé lancé reste. */
+export type PoseDe = (etape: CascadeStep, rangee?: BatchParticipant) => number | undefined;
+
 /**
  * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est TRANCHÉE (choix → son défaut
  * authoré), LANCÉE (bande → chaque rangée non roulée ; table non tirée → son dé ; jet → son dé), puis
@@ -62,7 +67,7 @@ export function soutienDe(st: LigneJugeable): number {
  * se présente ici en `'affichage'` : rien à lancer, on valide — le kit n'a AUCUNE branche pour la
  * politique du socle, il joue ce que la fenêtre offre.
  */
-export function avanceEtapeCascade(get: () => GameState): string | undefined {
+export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe): string | undefined {
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
@@ -71,8 +76,19 @@ export function avanceEtapeCascade(get: () => GameState): string | undefined {
     // ET un choix (la sévérité d'un Critique se tire DANS la fenêtre de Déviation) — le dé se lance
     // d'abord, le choix se tranche ensuite, sur la MÊME étape. En exclusif, le choix resterait non
     // tranché et `cascadeNext` drainerait à vide.
-    if (cur.target != null && !cur.result) get().cascadeRoll(cur.id);
-    if (cur.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
+    if (cur.target != null && !cur.result) {
+      get().cascadeRoll(cur.id);
+      const n = poser?.(cur);
+      if (n != null) get().cascadeSetForcedRoll(cur.id, n);
+    }
+    if (cur.participants) {
+      for (const part of cur.participants) {
+        if (part.result) continue;
+        get().cascadeBatchRoll(part.id);
+        const n = poser?.(cur, part);
+        if (n != null) get().cascadeBatchSetForcedRoll(part.id, n);
+      }
+    }
     if (cur.table && !cur.table.result) get().cascadeTableRoll(cur.id);
     if (cur.de && !cur.de.result) get().cascadeDieRoll(cur.id); // DÉ NU (#1508) : jumeau de la table — sans lui, le kit drainerait à vide sur une étape jamais prête
     const apres = get().pendingCascade?.participants[get().pendingCascade!.cursor];
@@ -84,10 +100,10 @@ export function avanceEtapeCascade(get: () => GameState): string | undefined {
 
 /** DRAINE la cascade active jusqu'à sa clôture (ou `max` étapes — garde d'emballement), en jouant
  *  chaque étape par `avanceEtapeCascade`. Rend les `kind` rencontrés, dans l'ordre. */
-export function draineCascade(get: () => GameState, max = 200): string[] {
+export function draineCascade(get: () => GameState, max = 200, poser?: PoseDe): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < max && get().pendingCascade; i++) {
-    const k = avanceEtapeCascade(get);
+    const k = avanceEtapeCascade(get, poser);
     if (k !== undefined) kinds.push(k);
   }
   return kinds;

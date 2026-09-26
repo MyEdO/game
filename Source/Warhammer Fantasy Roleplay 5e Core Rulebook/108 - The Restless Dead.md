@@ -1,6 +1,6 @@
 *Pages PDF 338-344*
 
-# **THE RESTLESS DEAD**
+# <span id="page-337-0" data-folio="338"></span>**THE RESTLESS DEAD**
 
 Neither living nor truly dead, the undead are the animate corpses of once living beings, granted an unholy parody of life through the fell arcane discipline of Necromancy. The shambling hordes of the restless dead come in many forms, from the reanimated corpses of zombies and skeletons, to the shrieking, spectral ghosts and banshees, to the brooding, manifest evil of the vampire lords.
 
@@ -38,7 +38,7 @@ Melee (Brawling) 35, Stealth 40, Track 40
 
 *Bestial, Venom (Challenging)*
 
-# **Skeleton**
+# <span id="page-338-0" data-folio="339"></span>**Skeleton**
 
 Skeletons are the fleshless bones of those long dead, reanimated by dark magic to walk the earth as mockeries of the living. Those who died and were not laid to rest according to the rituals of Morr, the god of death, may be resurrected in this form by a sufficiently powerful necromancer. Utterly mindless, skeletons will fight until their bones are smashed to pieces. They have no courage for they have no fear. They cannot be killed because they are not alive.
 
@@ -94,7 +94,7 @@ Necromancers can raise and command the undead, but they are, themselves, living 
 
 — Professor Vonnig Tramblehoff, Tomb Robber
 
-# **Zombie**
+# <span id="page-339-0" data-folio="340"></span>**Zombie**
 
 Like skeletons, zombies are undead creatures reanimated and bound together with foul magics. Unlike skeletons, they are so recently dead that much of their corporeal body still exists, rotting and diseased flesh sagging over their maggoty, swollen organs. As they fight, their flesh and organs slough off their bones, releasing a nauseating, noxious stench, powerful enough to turn the stomachs of all but the most hardened of soldiers.
 
@@ -150,7 +150,7 @@ Critical Wounds are ignored
 
 *Corruption (Minor), Disease (Various), Distracting, Territorial*
 
-# **Dire Wolf**
+# <span id="page-340-0" data-folio="341"></span>**Dire Wolf**
 
 When the earth gives up the dead, it is not only humans who rise. Macabre parodies of wolves and giant wolves, with glowing eyes, and tatters of flesh falling from their rotting, festering carcasses, dire wolves prowl the night on behalf of their necromantic masters. In the Reikland, they are said to roam the wooded foothills of the Hägercrybs when Morrslieb is full. They hunt tirelessly, driven by an insatiable hunger for flesh and an unnatural instinct for the scent of blood.
 
@@ -236,7 +236,7 @@ Dodge 40, Melee (Brawling) 40
 
 *Bestial, Fly 20, Frenzy, Hatred, Swarm, Territorial*
 
-# **Cairn Wraith**
+# <span id="page-341-0" data-folio="342"></span>**Cairn Wraith**
 
 Cairn wraiths are especially potent spirits, the spectral remains of aspiring necromancers who sought to prolong their existence through Dark Magic. In life they were strong-willed; in death their malevolent will drives them to exact a fearful vengeance on the burning souls of the living. Many such wraiths haunt the mist-shrouded cairns that dot the landscape of the Empire, such as the fell Hägercrybs.
 
@@ -322,7 +322,7 @@ Dodge 40, Melee (Basic) 45
 
 *Fly 20, Frenzy, Territorial*
 
-# **Vampire**
+# <span id="page-342-0" data-folio="343"></span>**Vampire**
 
 Vampires see themselves as the rulers of the night. Newly-turned vampires begin as formidable adversaries and only become more powerful with age. Many can pass as human, some even functioning for long periods amongst the living. Despite their outwardly human appearance, no heart beats beneath their pale skin, and in lieu of mortal hungers, they possess an abiding thirst for blood. All vampires of the Old World are ultimately descended from ancient bloodlines that originated millennia ago far to the south. The vampires of different bloodlines are often bitter rivals, proud of their heritage and the traits and traditions that set them apart from others, but they come together when necessary to face greater foes.
 
@@ -364,7 +364,7 @@ Charm 35, Climb 60, Intuition 50, Melee (Basic) 55, Melee (Brawling) 60, Percept
 
 *Bestial, Champion, Corruption (Minor), Dark Vision, Distracting, Fear, Fly 40, Frenzy, Hungry, Mental Corruption, Painless, Petrifying Gaze, Regeneration, Spellcaster (Death or Necromancy), Tracker, Wallcrawler*
 
-# **Varghulf**
+# <span id="page-343-0" data-folio="344"></span>**Varghulf**
 
 Most Vampires balance their need for blood with a veneer of civility and decorum, styling themselves as the aristocracy of the undead. Some, however, eschew their human façade, embracing the beast within. These varghulfs are savage creatures, devoid of all sophistry and abandoned entirely to animalistic self-gratification. They are bloated, bat-like beasts, basking in their base urge for blood.
 

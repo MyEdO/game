@@ -1,6 +1,6 @@
 *Pages PDF 207*
 
-# **THE CULT OF MYRMIDIA, GODDESS OF STRATEGY**
+# <span id="page-206-0" data-folio="207"></span>**THE CULT OF MYRMIDIA, GODDESS OF STRATEGY**
 
 **Seat of Power:** Magritta, Estalia
 

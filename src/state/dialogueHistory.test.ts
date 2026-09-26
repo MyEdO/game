@@ -108,7 +108,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1' },
     });
     useGame.getState().chooseDialogue(0);
-    useGame.getState().chooseDialogue(0); // nœud n2 désormais courant
+    useGame.getState().chooseDialogue(0); // le nœud courant est n2
     const h = useGame.getState().dialogueHistory;
     expect(h.length).toBe(2);
     expect(h[1].nodeText).toBe('Autre chose ?');

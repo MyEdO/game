@@ -135,7 +135,7 @@ Les **12 Attributs** = les 10 Caractéristiques standard (CC, CT, F, E, I, Ag, D
 - `LDB 76 l.46` (spawn.ts l.163-164) — « – » du schéma = caractéristique inexistante → 0.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.44-46) → `SceneEntity`, `SpawnExtras`, `sceneEntitySchema`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
+- `LDB 76` (l.44-46) → `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
 
 ---
 
@@ -154,7 +154,7 @@ Règle d'application des Traits Facultatifs modificateurs de profil (**Élite, C
 - `LDB 85 l.339-340` — « Utiliser les Tailles » (si la Taille Facultative change la catégorie → ±10 F/E, ∓5 Ag).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
+- `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, `sceneEntitySchema`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
 - `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `sizeFromTalents`, `resizeBySteps`, `StructureData`, `taille-modificateurs-en-combat`, `isStupid`, `regard-petrifiant`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
 
 ---
@@ -310,7 +310,7 @@ Pour les bêtes sauvages, les profils du bestiaire sont **arrondis à des multip
 Les Caractéristiques inexistantes (« – » → 0) **ne sont pas tirées**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `StatblockEditor`, `SceneEntity`, `SpawnExtras`, `sceneEntitySchema`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
+- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `StatblockEditor`, `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
 
 ---
 

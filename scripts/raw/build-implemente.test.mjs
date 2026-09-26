@@ -418,6 +418,18 @@ test('buildFolioMap + folioRangeIn : plage jusqu\'à l\'ancre suivante / EOF / i
   assert.equal(folioRangeIn(map, 200), 'ambiguous')                   // deux chapitres
 })
 
+test('folioRangeIn : une page PARTAGÉE (même folio ouvrant deux chapitres) se résout dans le chapitre NOMMÉ', () => {
+  const map = buildFolioMap([
+    { ch: 12, lines: ['e', '<span data-folio="199"></span>', 'f', '<span data-folio="200"></span>', 'g'] },
+    { ch: 13, lines: ['*Pages PDF 201*', '<span data-folio="200"></span>h', 'i'] },
+  ])
+  assert.deepEqual(folioRangeIn(map, 200, 12), { ch: 12, lo: 4, hi: 5 })
+  assert.deepEqual(folioRangeIn(map, 200, 13), { ch: 13, lo: 2, hi: 3 })
+  assert.equal(folioRangeIn(map, 200, 14), 'ambiguous')               // chapitre nommé hors de ses hits
+  assert.equal(folioRangeIn(map, 200), 'ambiguous')                   // aucun chapitre nommé
+  assert.deepEqual(folioRangeIn(map, 199, 13), { ch: 12, lo: 2, hi: 4 }) // non partagé : inchangé
+})
+
 const AA_MAP = { abbrOf: new Map([['aux-armes', 'AA']]), knownIds: new Set(['aux-armes']) }
 const freshStats = () => ({ byBook: new Map(), noAtlas: 0, noPage: 0 })
 

@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
+import { capDuGroupe, poserCapDuGroupe } from './combatants';
 import { emptyScene, type Scene } from './scene';
 import { seatPoseOf, seatSlotsOf, type SeatOccupant } from './seating';
 import { flowFromEffects } from './flow';
@@ -151,8 +152,8 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
   it('AUCUNE affordance morte : le halo n’est allumé que si un geste reste possible', () => {
     // Halo ALLUMÉ = fouille non épuisée OU place libre — exactement ce que le store sert.
     posrFouillable(ABORD_NORD);
-    const el = { kind: 'prop', key: `prop:${PROP}`, cell: { x: 5, y: 5, z: 0 }, source: 'entity', entId: PROP,
-      ref: TABLE, foot: { offX: 0, offY: 0, scale: 1 },states: { visible: true } } as unknown as BillboardPropEl;
+    const el: BillboardPropEl = { kind: 'prop', key: `prop:${PROP}`, cell: { x: 5, y: 5, z: 0 }, source: 'entity', entId: PROP,
+      span: { w: 1, h: 1 }, ref: TABLE, foot: { offX: 0, offY: 0, scale: 1 }, states: { visible: true } };
     // RÉGIME de révélation (#1687) : Alt tenu, donc ce qui APPELLE est allumé — ce que le halo dit ici,
     // c'est l'appartenance à la liste des utilisables, pas la variante peinte.
     const sc = () => useGame.getState().scene!;
@@ -176,19 +177,19 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
 });
 
 describe('la POSE est unique — le cap d’ÉTAT suit la place', () => {
-  it('s’asseoir aligne `facing` du meneur sur le cap du slot', () => {
+  it('s’asseoir aligne le cap du GROUPE sur le cap du slot', () => {
     poser(ABORD_NORD);
-    useGame.setState((s) => ({ facing: { ...s.facing, h: 'N' } })); // regard opposé avant l'assise
+    useGame.setState((s) => ({ facing: poserCapDuGroupe(s.facing, 'N') })); // regard opposé avant l'assise
     useGame.getState().interactEntity(PROP);
     expect(poseDuMeneur()!.facing).toBe('S');
-    expect(useGame.getState().facing.h, 'le cap d’état, celui que lit la vue subjective').toBe('S');
+    expect(capDuGroupe(useGame.getState()), 'le cap d’état, celui que lit la vue subjective').toBe('S');
   });
 
   it('chaque abord donne SON cap : l’état n’est jamais celui de la marche', () => {
     for (const place of seatSlotsOf(scèneDeTaverne(), PROP)) {
       poser(place.approach);
       useGame.getState().interactEntity(PROP);
-      expect(useGame.getState().facing.h, `place « ${place.slotId} »`).toBe(place.facing);
+      expect(capDuGroupe(useGame.getState()), `place « ${place.slotId} »`).toBe(place.facing);
     }
   });
 });

@@ -1,6 +1,6 @@
 *Pages PDF 192-193*
 
-# **REGIONAL EVENTS**
+# <span id="page-191-0" data-folio="192"></span>**REGIONAL EVENTS**
 
 The GM should roll once on the Regional Event table to determine what's going on in the local area during the Characters' downtime. If there is some important event, local festival or misfortune, or a prominent piece of gossip doing the rounds that will be important to a future adventure, the GM can substitute that instead of rolling.
 
@@ -44,7 +44,7 @@ A celebration is called! The GM decides the nature of the event. Possibilities i
 
 A travelling potion salesman arrives in the region, driving a gaudy wagon bedecked with racks of mysterious liquids in vials, jars, and earthen jugs. Scarce and Rare Herbs and Draughts (page 314) have their Availability improved by one step if bought from the travelling merchant during this Downtime. For each item bought this way, the GM rolls a d10: on a 1 or 2, it is actually a Poison (page 313) of the GM's choosing.
 
-#### **40–42: Levy**
+#### <span id="page-192-0" data-folio="193"></span>**40–42: Levy**
 
 A local lord levies warriors to form a regiment in his name. Maybe they are looking to contribute to a wider war effort, assemble a private army for their own purposes, or just keep up appearances through sponsoring a temporary military exercise. Characters from the Warrior Class gain an additional 50% from any *Income* Endeavours as they assist in training or recruiting villagers. Warriors who undertake the *Income* Endeavour count as having taken the *Combat Training* Endeavour.
 

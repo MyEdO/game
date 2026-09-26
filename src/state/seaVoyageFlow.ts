@@ -29,6 +29,7 @@
  * (`battle.combatants`) et le Manque de bras s'applique aussi (`shipCrew.ts`).
  */
 import { battleRng } from './battleRng';
+import { nomDuNavire } from './carriers';
 import { bus, EVT } from './bus';
 import { openRest, placesOfKind } from './restFlow';
 import { dayIndex } from './upkeep';
@@ -50,7 +51,7 @@ import type { AuthoredEnemy } from './encounterAuthoring';
 import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
-import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel } from '../data';
+import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
@@ -98,7 +99,7 @@ import { drainPendingLog } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '../engine/disease';
 import { CHAR_LABELS, DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
-import type { PendingSteamSave, CascadeStep } from './pendings';
+import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from './rollSeam';
@@ -118,7 +119,7 @@ function seaAspectLabel(aspect: WindAspect): string {
   return t(SEA_ASPECT_KEY[aspect]);
 }
 import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
@@ -355,7 +356,7 @@ function voyageShip(get: Get): { vessel: CampaignVessel; hull: Combatant } | nul
   if (!v?.ship) return null;
   const hull = vehicleCombatant(v);
   if (!hull) return null;
-  if (vessel.label) hull.label = vessel.label; // #230 — nom d'instance (affichage ; le rendu reste keyé par creatureId)
+  hull.label = nomDuNavire(vessel); // #230 — le rendu reste keyé par creatureId
   syncHullWoundsFromVessel(hull, vessel);
   hull.upgrades = vessel.upgrades ? [...vessel.upgrades] : undefined;
   hull.saboteurDR = vessel.saboteurDR;
@@ -778,7 +779,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   // du jour — leurs dés tombent donc avant tout autre dé de la journée, comme dans la boucle qu'elles
   // remplacent. Un péril qui interrompt TRONQUE la séquence (`stopSequence`) : les suivants ne tirent pas.
   const routeDuJour = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === get().travelPlan!.routeId);
-  const toLabel = get().worldMap ? placeById(get().worldMap!, get().travelPlan!.toPlaceId)?.label ?? '' : '';
+  const toLabel = libelleOuAbsence(get().worldMap ? placeById(get().worldMap!, get().travelPlan!.toPlaceId) : undefined, 'lieu', get().travelPlan!.toPlaceId);
   if (routeDuJour) steps.push(...buildAuthorPerilSteps(routeDuJour, toLabel, SEA_PERIL_INTERRUPT));
   // Événement de bord (l.89) : APRÈS les périls d'auteur — les dés d'auteur du jour tombent devant lui.
   pousseSi(steps, buildSeaBoardEventStep(get));
@@ -949,7 +950,7 @@ export function startFastVoyage(
   const weeks = Math.floor(days / SEA_WEEK_DAYS); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
-  log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: to?.label ?? '?', days, km: plan.km })]);
+  log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, 'rude-epreuve', 'voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'travel/wave', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -1001,7 +1002,7 @@ function applyFastPalier(get: Get, set: Set, palierId?: string): void {
     const lost = Math.round(max * palier.hullLostPct / 100);
     if (max > 0 && lost > 0) {
       damageVesselHull(get, set, hull2, lost);
-      tell(get, set, [t('sv.hullLostPct', { ship: vessel2.label ?? t('sv.hullFallback'), n: Math.min(lost, cur), pct: palier.hullLostPct })]);
+      tell(get, set, [t('sv.hullLostPct', { ship: nomDuNavire(vessel2), n: Math.min(lost, cur), pct: palier.hullLostPct })]);
     }
   }
   const locs: ShipCritKey[] = ['greement', 'coque', 'avirons', 'equipements', 'cargaison'];
@@ -1060,7 +1061,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   // Jours écoulés : franchissement par la couture UNIQUE `advanceTime` (entretien quotidien : faim/soif,
   // maladies, convalescence, paie hebdomadaire de l'équipage) — l'eau vient d'être décrémentée.
   get().advanceTime(fast.days * MINUTES_PER_DAY);
-  log(get, set, [t('sv.arriveFast', { to: to?.label ?? '?', days: fast.days })]);
+  log(get, set, [t('sv.arriveFast', { to: libelleOuAbsence(to, 'lieu', plan.toPlaceId), days: fast.days })]);
   if (to) openPortAt(get, set, to);
 }
 
@@ -2192,7 +2193,8 @@ function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = tr
   if (!plan?.sea) return false;
   const playerHullRef = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
   if (!playerHullRef) return false;
-  const playerHullName = get().vessel?.label ?? plan.vehicle?.label ?? 'Notre navire';
+  const vessel = get().vessel;
+  const playerHullName = vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label;
   registerScene(buildBoardingScene(playerHullRef, playerHullName, b));
   set({ travelPlan: { ...plan, interrupted: true, sea: { ...plan.sea, boarding: undefined } } });
   get().transitionTo(BOARDING_SCENE_ID, undefined);
@@ -2225,10 +2227,6 @@ function startSeaPursuit(get: Get, set: Set, info: { label: string; desc: string
   tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
 }
 
-/** Interpellation de la Cogue pirate (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
- *  d'une SEULE étape de CHOIX — fuir / combattre / se soumettre. L'applier `sea-pirate-hail` reprend
- *  `runSeaDay` à la fermeture. Le pillage (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués
- *  (MDG 15 l.171-173 décrit l'extorsion sans la chiffrer) → paramètre maison + choix joueur. */
 /** Descripteur d'abordage DÉRIVÉ d'un événement de navire hostile — `undefined` si l'événement ne nomme
  *  ni coque (`ship`) ni équipage type (`crewRef`) : la Némésis (bateau fétiche d'un boss) est authorée,
  *  pas simulable (retour `undefined` = repli honnête de `startChaseBoarding`). */
@@ -2250,13 +2248,27 @@ function seaDecider(get: Get): string {
   return partyAssisted(party, skillId)?.actor.id ?? party[0]?.id ?? '';
 }
 
+/** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */
+interface CrisePirate { crisisLabel: string; crisisDesc: string }
+
+/** Lit la crise posée par `openPirateHail`, SEUL producteur de l'étape (#1906). */
+function lireCrise(meta: CascadeStepMeta | undefined): CrisePirate {
+  if (typeof meta?.crisisLabel !== 'string' || typeof meta.crisisDesc !== 'string')
+    throw new Error('[sea-pirate-hail] étape sans crise alors que `openPirateHail` la pose (#1906)');
+  return { crisisLabel: meta.crisisLabel, crisisDesc: meta.crisisDesc };
+}
+
+/** Interpellation de la Cogue pirate (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
+ *  d'une SEULE étape de CHOIX — fuir / combattre / se soumettre. L'applier `sea-pirate-hail` reprend
+ *  `runSeaDay` à la fermeture. Le pillage (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués
+ *  (MDG 15 l.171-173 décrit l'extorsion sans la chiffrer) → paramètre maison + choix joueur. */
 function openPirateHail(get: Get, set: Set, event: SeaEventDef): void {
   const pillage = Number(rule('piratePillagePct'));
   patchSea(get, set, { boarding: seaBoardingFromEvent(event) });
   openChoice(get, set, {
     title: 'Cogue pirate', icon: 'nautical/wind', purpose: 'test',
     id: 'sea-pirate-hail', kind: 'sea-pirate-hail', actorId: seaDecider(get), label: dataLabel(event.label),
-    defaultChoice: 'fuir', meta: { crisisLabel: event.label, crisisDesc: event.desc },
+    defaultChoice: 'fuir', meta: { crisisLabel: event.label, crisisDesc: event.desc } satisfies CrisePirate,
     options: [
       { key: 'fuir', label: t('opt.fuir'), detail: t('sv.detailFuir') },
       { key: 'combattre', label: t('opt.combattre'), detail: t('sv.detailCombattre') },
@@ -2289,7 +2301,8 @@ registerCascadeApplier('sea-pirate-hail', (get, set, step) => {
     });
     return { consequences: freeCons(j), ...(tribut ? { insert: [tribut] } : {}) };
   } else {
-    startSeaPursuit(get, set, { label: String(step.meta?.crisisLabel ?? 'Cogue pirate'), desc: String(step.meta?.crisisDesc ?? '') }, 5);
+    const crise = lireCrise(step.meta);
+    startSeaPursuit(get, set, { label: crise.crisisLabel, desc: crise.crisisDesc }, 5);
   }
   // La reprise du jour à la fermeture de cette cascade (`purpose:'test'` en mer) est portée par
   // `dispatchCascadeDone` → `runSeaDay` (couture canonique de clôture, jamais un `setTimeout` ad hoc).

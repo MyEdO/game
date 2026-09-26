@@ -1,6 +1,6 @@
 *Pages PDF 319-324*
 
-# **THE PEOPLES OF THE REIKLAND**
+# <span id="page-318-0" data-folio="319"></span>**THE PEOPLES OF THE REIKLAND**
 
 While predominantly peopled by men and women of the Empire, the Reikland is also home to halflings, dwarfs, elves, ogres, and more. Below are basic profiles you can use for everyday citizens of the Empire, followed by specific profiles for commonly encountered individuals — watchmen, merchants, etc. All of these can be adapted to provide tailored allies and antagonists for your game, as described above.
 
@@ -60,7 +60,7 @@ Charm 45, Dodge 35, Perception 55, Sleight of Hand 45, Stealth (Urban) 35
 
 **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
-#### **DWARF**
+#### <span id="page-319-0" data-folio="320"></span>**DWARF**
 
 | M     | WS | BS | S  | T  | I  | Ag | Dex | Int | WP | Fel | W  |  |
 |-------|----|----|----|----|----|----|-----|-----|----|-----|----|--|
@@ -128,7 +128,7 @@ Cool 45, Melee (Basic) 45, Navigation 55, Perception 55, Ranged (Bow) 45
 
 **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
-# **Human Watchman**
+# <span id="page-320-0" data-folio="321"></span>**Human Watchman**
 
 Often the first to arrive at the scene of trouble, watchmen may also be found patrolling towns and cities, standing guard at gates and important buildings, or relaxing in taverns after their shifts. The profile could also be used for guards and soldiers, though such characters benefit from more armour options.
 
@@ -206,7 +206,7 @@ Animal Care 45, Charm 50, Charm Animal 40, Drive 45, Evaluate 50, Gossip 55, Hag
 
 Abacus, Canvas Tarpaulin, Cloak, Clothing, Dagger, Hat, Mule and Cart containing Wares, Pouch containing 3d10 Shillings, Sling Bag containing Lunch
 
-# **Human Thug**
+# <span id="page-321-0" data-folio="322"></span>**Human Thug**
 
 Belligerent and mercenary, these NPCs represent the sort of petty criminals who thrive in the rookeries of the Empire's cities. They may be found propping up the bar in rough taverns or working as frighteners and leg breakers for crime lords.
 
@@ -290,7 +290,7 @@ Tests to detect normally imperceptible details with the associated sense
 
 Clothing, Crowbar, Dagger, Hood, Leather Jerkin, Pouch containing 3d10 Brass Pennies, Sack, Sling Bag containing 2 Candles and 1d10 Matches
 
-# **Gnome**
+# <span id="page-322-0" data-folio="323"></span>**Gnome**
 
 An elusive and enigmatic folk, gnomes are isolationist and secretive. Little is known of their numbers, though scholars estimate a few tens of thousands live in the Old World, with perhaps more in the lee of the Worlds Edge Mountains. The largest known community is Glimdwarrow in the Mirror Moors. Home to no more than three thousand gnomes, it is still recovering from the depredations of the goblin warlord Grom the Paunch nearly a century ago.
 
@@ -324,7 +324,7 @@ Charm Animal 45, Melee (Basic) 45, Stealth (Rural) 40
 
 **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
-# **Ogre**
+# <span id="page-323-0" data-folio="324"></span>**Ogre**
 
 Big, loud, violent, and perpetually hungry, ogres hail from the distant east and wander the world in search of new meals. They readily adopt local dress and customs, having learnt that fitting in is more likely to lead to their next meal than frightening everyone away. In the Empire, ogres are best known as mercenaries and hired muscle. Many also find work as labourers, with the Halfling Gaffers Guild having effectively cornered the market in cheap ogre labour — much to the annoyance of its rivals.
 

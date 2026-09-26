@@ -10,6 +10,7 @@
 //  — F, M : `titreMd` RETIRÉ de la tête de la ligne étrangère (vide, elle part avec les blancs), posé
 //    devant `cible` ;
 //  — B : le gras seul devient la ligne de titre ;
+//  — glyphe-fuite : la ligne `<glyphe> **X**` (`ligneMd`) devient la ligne de titre, le glyphe ôté ;
 //  — S′ : la ligne de titre restaurée posée devant `cible` ;
 //  — O : l'entrée entière (sa ligne de titre jusqu'au titre suivant) posée devant `devant` ;
 //  — doublon : le débris `texteMd` retiré de la tête de sa ligne ;
@@ -21,11 +22,19 @@
 //  — P : la ligne recollée à la ligne de prose `avec` (`lib/titres-soudes.mjs#recoller`), les lignes
 //    entre elles ôtées ; avec une `etiquette`, seule la tête qui la précède se recolle, la ligne repart
 //    à l'étiquette ; de la plus basse à la plus haute, une chaîne de morceaux se recolle entière.
+//  — D : la ligne déplacée recollée à la ligne de prose `avec`, qu'elle suit au PDF ; elle quitte sa place ;
+//  — L : la ligne de titre devient `ligneLegende` ; une bannière sort de sa table, posée `ligneLegende`
+//    au-dessus, la rangée suivante devient l'en-tête (`enTete` `rangee`, séparateur recalé sur la
+//    largeur de la table) ou un en-tête VIDE à cette largeur est posé (`vide`) ;
+//  — legende-absente : `ligneLegende` posée devant `cible`.
 // La ligne de titre posée est `ligneTitre` de la sonde (texte du `.md`, niveau du frère typographique).
 // Un titre posé est un bloc : une ligne vide avant et après, jamais deux vides de suite.
 // REFUS D'ÉCRIRE : un site dont la ligne ne porte plus ce que la sonde a vu (rejeu d'un JSON périmé),
+// un S′ dont le fichier porte déjà autant de lignes de sa clé (`cle` de la sonde : ancres, `#`, emphase
+// ôtés) que ses pages en impriment (`comptage.auPdf`, une sans comptage),
 // deux gestes sur une ligne, ou un MULTI-ENSEMBLE DES MOTS du livre qui gagne autre chose que les mots
-// des S′ ou perd autre chose que les débris et les appels de figure.
+// des S′ et des légendes absentes ou perd autre chose que les débris, les appels de figure et les
+// glyphes fuités.
 //
 // Usage : node scripts/raw/reparer-titres.mjs <id du livre> [--sites <json> | --boites <json>] [--apply]
 // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
@@ -35,9 +44,19 @@ import { fileURLToPath } from 'node:url'
 import { decoupeDe, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
 import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
-import { enTete, sondeDuLivre } from './sonde-titres.mjs'
+import { cle, enTete, sondeDuLivre } from './sonde-titres.mjs'
+import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
 
-const FORMES = new Set(['S', 'F', 'M', 'B', "S'", 'O', 'doublon'])
+const FORMES = new Set(['S', 'F', 'M', 'B', 'glyphe-fuite', "S'", 'O', 'doublon', 'L', 'legende-absente'])
+const LIGNE_DE_TABLE = /^\s*\|/
+
+/** L'en-tête d'une table rendu à `largeur` colonnes (`''` : en-tête VIDE), complété de cellules vides,
+ *  et son séparateur recalé sur ses cellules. PURE. */
+export function enTeteALaLargeur(entete, largeur) {
+  const cellules = entete.trim() ? entete.trim().replace(/^\|/, '').replace(/\|$/, '').split('|') : []
+  while (cellules.length < largeur) cellules.push('   ')
+  return [`|${cellules.join('|')}|`, `|${cellules.map((c) => '-'.repeat(Math.max(3, c.length))).join('|')}|`]
+}
 /** `NNN:l` → rang de tri, de la plus basse ligne à la plus haute. PURE. */
 const rang = (adresse) => {
   const [nnn, l] = adresse.split(':')
@@ -82,7 +101,7 @@ export function reparerLivre(textes, sites) {
   }
   for (const site of sites.filter((x) => FORMES.has(x.forme))) {
     const avant = refus.length
-    if (['S', 'F', 'M', 'B', "S'"].includes(site.forme) && !site.ligneTitre) refus.push(`${site.site ?? site.cible} ${site.forme} « ${site.titre} » : aucune ligne de titre à poser`)
+    if (['S', 'F', 'M', 'B', 'glyphe-fuite', "S'"].includes(site.forme) && !site.ligneTitre) refus.push(`${site.site ?? site.cible} ${site.forme} « ${site.titre} » : aucune ligne de titre à poser`)
     else if (site.forme === 'S') {
       const reste = detacher(site, site.titreMd)
       if (typeof reste === 'string') { retoucher(site.site, reste); poser(site.site, [site.ligneTitre]) }
@@ -92,8 +111,12 @@ export function reparerLivre(textes, sites) {
     } else if (site.forme === 'B') {
       if (slot(site.site)?.texte.trim() !== site.titreMd) refus.push(`${site.site} B « ${site.titre} » : la ligne n'est plus « ${site.titreMd} »`)
       else retoucher(site.site, site.ligneTitre)
+    } else if (site.forme === 'glyphe-fuite') {
+      if (slot(site.site)?.texte !== site.ligneMd) refus.push(`${site.site} glyphe-fuite « ${site.titre} » : la ligne n'est plus « ${site.ligneMd} »`)
+      else retoucher(site.site, site.ligneTitre)
     } else if (site.forme === "S'") {
-      if (lignes.get(lieu(site.cible).nnn).includes(site.ligneTitre)) refus.push(`${site.cible} S′ « ${site.titre} » : « ${site.ligneTitre} » déjà dans le fichier`)
+      const deja = lignes.get(lieu(site.cible).nnn).filter((l) => cle(l) === cle(site.ligneTitre))
+      if (deja.length >= (site.comptage?.auPdf ?? 1)) refus.push(`${site.cible} S′ « ${site.titre} » : « ${site.ligneTitre} » déjà dans le fichier (« ${deja.join(' », « ')} »)`)
       else poser(site.cible, [site.ligneTitre])
     } else if (site.forme === 'O') {
       const { nnn, i } = lieu(site.site)
@@ -105,6 +128,27 @@ export function reparerLivre(textes, sites) {
       while (fin > i && !ls[fin - 1].trim()) fin -= 1
       for (let r = i; r < k; r += 1) retoucher(`${nnn}:${r + 1}`, null)
       poser(site.devant, ls.slice(i, fin))
+    } else if (site.forme === 'L' && site.enTete == null) {
+      if (slot(site.site)?.texte !== site.titreMd) refus.push(`${site.site} L « ${site.titre} » : la ligne n'est plus « ${site.titreMd} »`)
+      else retoucher(site.site, site.ligneLegende)
+    } else if (site.forme === 'L') {
+      const { nnn, i } = lieu(site.site)
+      const ls = lignes.get(nnn)
+      if (ls?.[i] !== site.titreMd) { refus.push(`${site.site} L « ${site.titre} » : la ligne n'est plus « ${site.titreMd} »`); continue }
+      let fin = i
+      while (fin + 1 < ls.length && LIGNE_DE_TABLE.test(stripSpans(ls[fin + 1]))) fin += 1
+      const largeur = Math.max(...ls.slice(i, fin + 1).map((l) => cellulesDe(stripSpans(l)).length))
+      let r = i + 1
+      while (r <= fin && estSeparateur(stripSpans(ls[r]))) r += 1
+      retoucher(site.site, null)
+      poser(site.site, [site.ligneLegende])
+      for (let k = i + 1; k < r; k += 1) retoucher(`${nnn}:${k + 1}`, null)
+      const [entete, separateur] = enTeteALaLargeur(site.enTete === 'vide' ? '' : ls[r], largeur)
+      retoucher(`${nnn}:${r + 1}`, site.enTete === 'vide' ? [entete, separateur, ls[r]].join('\n') : [entete, separateur].join('\n'))
+    } else if (site.forme === 'legende-absente') {
+      const deja = lignes.get(lieu(site.cible).nnn).filter((l) => cle(l) === cle(site.ligneLegende))
+      if (deja.length >= site.comptage.auPdf) refus.push(`${site.cible} legende-absente « ${site.titre} » : « ${site.ligneLegende} » déjà dans le fichier`)
+      else poser(site.cible, [site.ligneLegende])
     } else if (site.forme === 'doublon') {
       const reste = detacher(site, site.texteMd)
       if (typeof reste === 'string') retoucher(site.site, reste)
@@ -168,6 +212,17 @@ export function reparerLivre(textes, sites) {
     recolles.push({ nnn, ligne: i + 1, avec: j + 1 })
     fusions.set(`${nnn}:${i}`, j)
   }
+  for (const site of sites.filter((x) => x.forme === 'D')) {
+    const { nnn, i } = lieu(site.site)
+    const j = lieu(site.avec).i
+    const ss = slots.get(nnn)
+    if (lignes.get(nnn)?.[i] !== site.ligneMd) { refus.push(`${site.site} D : la ligne n'est plus « ${site.ligneMd} »`); continue }
+    if (ss[i].touche || ss[j].touche || ss[i].texte !== site.ligneMd || typeof ss[j].texte !== 'string') { refus.push(`${site.site} D : ligne déjà retouchée`); continue }
+    ss[j].texte = recoller(ss[j].texte, site.ligneMd)
+    ss[i].texte = null
+    ss[i].touche = ss[j].touche = true
+    appliques.push(`D ${site.site} → ${site.avec} « ${site.titre} »`)
+  }
   for (const site of sites.filter((x) => x.forme === 'G')) {
     const re = new RegExp(`(?<!\\*)${echappe(site.texteMd)}(?!\\*)`)
     const { nnn, i: i0 } = lieu(site.site)
@@ -192,15 +247,15 @@ export function ecartDuLivre(avant, apres) {
   return ecartDeMots(motsDe(tout(avant)), motsDe(tout(apres)))
 }
 
-/** Le verdict de fidélité au livre : `null`, ou ce qui cloche. Ajoutés = les mots des S′ ; retirés =
- *  ceux des débris. PURE. */
+/** Le verdict de fidélité au livre : `null`, ou ce qui cloche. Ajoutés = les mots des S′ et des légendes
+ *  absentes ; retirés = ceux des débris, des appels de figure et des glyphes fuités. PURE. */
 export function infidelite(avant, apres, sites) {
   const { retires, ajoutes } = ecartDuLivre(avant, apres)
-  const attendus = (formes, champ) => motsDe(sites.filter((s) => formes.includes(s.forme)).map((s) => s[champ]).join('\n'))
   const dit = (m) => [...m].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, n]) => `${k}×${n}`).join(' ') || '∅'
-  if (dit(ajoutes) !== dit(attendus(["S'"], 'ligneTitre'))) return `mots ajoutés ${dit(ajoutes)} ≠ mots des S′ ${dit(attendus(["S'"], 'ligneTitre'))}`
-  const retirables = motsDe(sites.flatMap((s) => (s.forme === 'doublon' ? [s.texteMd] : s.forme === 'A' ? [s.jeton] : [])).join('\n'))
-  if (dit(retires) !== dit(retirables)) return `mots retirés ${dit(retires)} ≠ mots des débris et des appels ${dit(retirables)}`
+  const poses = motsDe(sites.flatMap((s) => (s.forme === "S'" ? [s.ligneTitre] : s.forme === 'legende-absente' ? [s.ligneLegende] : [])).join('\n'))
+  if (dit(ajoutes) !== dit(poses)) return `mots ajoutés ${dit(ajoutes)} ≠ mots des S′ et des légendes absentes ${dit(poses)}`
+  const retirables = motsDe(sites.flatMap((s) => (s.forme === 'doublon' ? [s.texteMd] : s.forme === 'A' ? [s.jeton] : s.forme === 'glyphe-fuite' ? [s.glyphe] : [])).join('\n'))
+  if (dit(retires) !== dit(retirables)) return `mots retirés ${dit(retires)} ≠ mots des débris, des appels et des glyphes fuités ${dit(retirables)}`
   return null
 }
 

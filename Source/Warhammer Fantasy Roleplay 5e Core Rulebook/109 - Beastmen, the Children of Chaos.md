@@ -1,6 +1,6 @@
 *Pages PDF 345-346*
 
-# **BEASTMEN, THE CHILDREN OF CHAOS**
+# <span id="page-344-0" data-folio="345"></span>**BEASTMEN, THE CHILDREN OF CHAOS**
 
 Beastmen are grotesque hybrids of animal and human who consider themselves the true children of Chaos, blessed by the Dark Gods before all other species. Their savage herds stalk the forests, gathering numbers and worshipping at profane altars of stone.
 
@@ -88,7 +88,7 @@ Melee (Basic) 35, Perception 35, Track 40, Ranged (Bow) 40, Stealth (Rural) 40
 
 *Corruption (Minor), Disease (Packer's Pox), Infected, Infestation, Mutation*
 
-# **Minotaur**
+# <span id="page-345-0" data-folio="346"></span>**Minotaur**
 
 Massive and hulking, bull-like minotaurs tower above even the largest bestigors. Beastman herds congregate around minotaurs, as their imposing presence gives the lesser beasts courage, and herds with a large contingent of minotaurs consider themselves especially blessed by the Dark Gods.
 

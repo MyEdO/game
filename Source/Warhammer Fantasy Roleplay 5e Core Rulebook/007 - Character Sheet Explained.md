@@ -1,6 +1,6 @@
 *Pages PDF 24-25*
 
-# <span id="page-23-0"></span>**CHARACTER SHEET EXPLAINED**
+# <span id="page-23-0" data-folio="24"></span>**CHARACTER SHEET EXPLAINED**
 
 This sheet is where you keep track of your Character's abilities, equipment and more. Characteristics and Skills are often used to find out how well you perform an action. You will roll the dice (the two ten-sided dice known as D100, see page 6) and if the result is equal to or lower than the relevant Skill, your action succeeds. **The higher the value of your Skill, the easier it is to succeed**.
 
@@ -30,7 +30,7 @@ The Career Advancement Tracker tracks your progress through your Career. Each ti
 - **Willpower:** strength of mind, determination and focus.
 - **Fellowship:** making a good impression and getting on with people.
 
-|                                                          | WEALTH                                                      | ENCUMBRANCE     |       |          |                   |                    |        | CORRUPTION & MUTATION                            |       |  |  |  |  |
+<span id="page-24-0" data-folio="25"></span>|                                                          | WEALTH                                                      | ENCUMBRANCE     |       |          |                   |                    |        | CORRUPTION & MUTATION                            |       |  |  |  |  |
 |----------------------------------------------------------|-------------------------------------------------------------|-----------------|-------|----------|-------------------|--------------------|--------|--------------------------------------------------|-------|--|--|--|--|
 |                                                          |                                                             | Weapons         | 1     |          | Corruption Points |                    |        |                                                  |       |  |  |  |  |
 | D                                                        |                                                             | Armour          | 0     | Mutation |                   |                    |        | Effect                                           |       |  |  |  |  |

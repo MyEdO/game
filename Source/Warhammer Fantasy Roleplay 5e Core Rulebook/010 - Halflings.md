@@ -1,6 +1,6 @@
 *Pages PDF 30-31*
 
-# <span id="page-29-0"></span>**HALFLINGS**
+# <span id="page-29-0" data-folio="30"></span>**HALFLINGS**
 
 Halflings are cheerful, sociable, and possessed of enormous appetites in all things. They care more for good food and strong drink than matters of politics or war, and are notorious across the Empire as thieves, poachers, and scoundrels. Halflings regard unattended property as fair game and see little shame in taking advantage of the careless. Most are quick with a joke, quicker with an excuse, and quicker still with someone else's coin. Even so, they are fiercely loyal to their kin, and few are more generous when surrounded by family, friends, and a well-stocked table.
 
@@ -34,7 +34,7 @@ The first records of halflings come from the fertile lands where the Blue Reach 
 
 — 'Jammy' Mercimaus Alderflower II, Scholar from Fielbach
 
-### **Names**
+### <span id="page-30-0" data-folio="31"></span>**Names**
 
 **Halfling Forenames:** Antinnerra (Anni), Augustus (Gus), Esmerelda (Esme), Ferdinand (Fred), Heironymus (Hiro), Maximilian (Max), Theodosius (Theo), Thomasina (Tina), Seralinadara (Lin), Valentina (Val)
 

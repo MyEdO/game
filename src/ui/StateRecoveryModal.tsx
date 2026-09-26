@@ -36,8 +36,8 @@ export function StateRecoveryModalView({
   const rolled = sr.roll != null;
   // Contexte = nature du Test (opposé contre la source, ou cible) + pions ; le NOM de l'acteur est
   // montré par son portrait dans la ligne de jet (plus de nom en clair).
-  const sub = sr.opposed
-    ? `${sr.skillLabel} (opposé) contre ${sr.opponentName}`
+  const sub = sr.opposition
+    ? `${sr.skillLabel} (opposé) contre ${sr.opposition.label}`
     : sr.requireSl != null
       ? `${sr.skillLabel}, cible ${sr.roll?.target ?? sr.skillValue} · DR ≥ ${sr.requireSl}`
       : `${sr.skillLabel}, cible ${sr.roll?.target ?? sr.skillValue}`;
@@ -60,10 +60,10 @@ export function StateRecoveryModalView({
     onDarkPact,
   }, { fortune });
   // Test opposé : rangée TÉMOIN de la source (Force), figée post-jet.
-  const witness: BuiltRollRow | undefined = rolled && sr.opposed && sr.opponentRoll && sr.opponentValue != null
+  const witness: BuiltRollRow | undefined = rolled && sr.opposition && sr.opponentRoll
     ? witnessRow({
         // La source oppose sa Force à Difficulté Intermédiaire — ce que roule le résolveur (LDB 12 l.166).
-        row: opposedLines([{ label: `${sr.opponentName ?? 'Source'} — Force`, base: sr.opponentValue, r: sr.opponentRoll }])[0],
+        row: opposedLines([{ label: `${sr.opposition.label} — Force`, base: sr.opposition.value, r: sr.opponentRoll }])[0],
       })
     : undefined;
 

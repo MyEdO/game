@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
+import { nomDuSiege } from '../state/netFlow';
 import { useGame, activeCombatant, movementRemaining, type BattleState, type ShootingStanceKey } from '../state/store';
 import type { Combatant, Weapon, WeaponLoadout } from '../engine/types';
 import { hasMeaningfulOption } from '../state/turnEconomy';
@@ -549,7 +550,7 @@ export function CombatConsole() {
   if (!battle || battle.over) return null;
   // LE BANDEAU DE PHASE, source unique : la pause de Round, ou l'INTERLUDE de ciblage par la carte
   // (l'action `surface: 'interlude'` du mode courant, § registre). Un interlude sans bandeau serait un
-  // ciblage SANS SORTIE — le joueur n'aurait plus que le clic-carte pour en sortir.
+  // ciblage SANS SORTIE — le joueur aurait seulement le clic-carte pour en sortir.
   const interlude = interludeId ? findActionById(interludeId) : undefined;
   // PAUSE DE ROUND : le geste est l'ENTRÉE `round-start` du registre — la MÊME porte que la touche
   // (`keybindings.round-start`), donc le même arbitrage solo/coop. En réseau, le bouton ne lance rien :
@@ -670,7 +671,7 @@ export function CombatConsole() {
     Object.values(args ?? {}).filter((v): v is string => typeof v === 'string');
   /** LES OFFRES de la surface des gestes secondaires, par PORTEUR — socle PARTAGÉ avec les pastilles
    *  du champ (`state/registreOffres`). L'identité d'un candidat n'est plus DEVINÉE ici (`id ?? uid`) :
-   *  l'enveloppe de sélecteur du registre la DÉCLARE, et une alvéole n'a plus qu'à se reconnaître dans
+   *  l'enveloppe de sélecteur du registre la DÉCLARE, et une alvéole a seulement à se reconnaître dans
    *  ses propres paramètres. */
   const offres2e = offresDuRegistre('geste-secondaire', { active, battle, netMode: net.mode });
   /** GESTES SECONDAIRES d'une alvéole — RENDEUR UNIQUE (aucun id d'action ici), appelé pour TOUTE
@@ -1196,7 +1197,7 @@ export function CombatConsole() {
       {!phase && !controlled && (
         <div className="cc-phase skin-bois" data-phase={spectatrice ? 'spectatrice' : 'pont'}>
           {siegeDistant !== null ? (
-            <SpectatorChip label={net.seatNames[siegeDistant] ?? 'L’hôte'} action={`joue ${active.label}…`} />
+            <SpectatorChip label={nomDuSiege(net, siegeDistant)} action={`joue ${active.label}…`} />
           ) : (
             <span className="cc-phase-label">
               <Icon id="ui/wait" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}

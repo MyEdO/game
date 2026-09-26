@@ -1,6 +1,6 @@
 *Pages PDF 328-335*
 
-# **THE MONSTROUS BEASTS OF THE REIKLAND**
+# <span id="page-327-0" data-folio="328"></span>**THE MONSTROUS BEASTS OF THE REIKLAND**
 
 Throughout the Reikland, all manner of large and dangerous monsters hunt, preying on the unwise and the unwary, dragging them back to their bone-lined lairs to be consumed at leisure.
 
@@ -48,7 +48,7 @@ Climb 65, Melee (Brawling) 40, Stealth (Rural) 65, Swim 90
 
 > — Captain Wolfhardt von Glick, during an expedition to the Schadensumpf
 
-# **Cave Squig**
+# <span id="page-328-0" data-folio="329"></span>**Cave Squig**
 
 Squigs are large, generally round, fungoid creatures that live deep below ground in the dankest, darkest caves. They possess a gaping maw and large, sharp teeth, and are prized by goblins for their flesh and their hides, and to act as guards and pets.
 
@@ -127,7 +127,7 @@ Athletics 55, Endurance 45, Melee (Brawling) 50
 
 *Trained (Broken, Drive, Guard, Mount, War)*
 
-# **Dragon**
+# <span id="page-329-0" data-folio="330"></span>**Dragon**
 
 Dragons ruled the skies long before the elder species walked the Known World. While the dragons of today are mere shadows of their ancient brethren, they remain some of the most powerful creatures known to the Empire. The few surviving elder dragons are terrifyingly immense and rarely rouse from their slumbers. Should a dragon take umbrage with a small party of adventurers, it is time to run.
 
@@ -175,7 +175,7 @@ Melee (Brawling) 70, Perception 70, Tracking 70
 
 *Immunity (Any), Infestation, Magical, Mental Corruption, Mutation, Size (Monstrous), Spellcaster (Various), Stealthy, Striding Gait (Wetlands, Woodland), Undead, Venom (Difficult)*
 
-# **Fenbeast**
+# <span id="page-330-0" data-folio="331"></span>**Fenbeast**
 
 Raised by spellcasters from the filth of marshes and bogs, fenbeasts are seemingly mindless automatons held together by magic. Vaguely humanoid, they are comprised of mud, bones, branches, and slime, and require significant quantities of magic to retain their integrity. Occasionally, they are raised by wizards skilled in Jade magic to act as a bodyguard or to fulfil a specific task requiring brute strength or mindless killing. Sometimes they rise independently, spawned in stagnant festering pools where the flow of magic has been corrupted. The Jade College in Altdorf is said to maintain a score of the creatures as drudges, fetching and carrying for senior wizards, maintained by the ceaseless channelling of dozens of apprentices.
 
@@ -217,7 +217,7 @@ Endurance 65, Melee (Brawling) 40
 
 — Professor Vonnig Tramblehoff waxes philosophical
 
-# **Giant**
+# <span id="page-331-0" data-folio="332"></span>**Giant**
 
 Giants are solitary creatures who usually shun civilisation. Most stalk remote and high places surrounding the Empire, holing up in caves and forgotten ruins far from smaller folk, though they sometimes migrate to the foothills in search of food. They have a reputation for belligerence and ferocity, due in equal parts to their intimidating size, their association with marauding orc and goblin armies, and their tendency to devour farmers' cattle. Wandering giants have been known to smash up villages, stomping cottages into ruins and then rooting around in the wreckage for anything edible. Breweries are an especially popular target, as giants are notorious drunkards.
 
@@ -288,7 +288,7 @@ Athletics 65, Melee (Brawling) 60, Perception 60
 
 *Bestial, Immune to Psychology, Territorial, Trained (Broken, Guard, Magic, Mount, War)*
 
-# **Manticore**
+# <span id="page-332-0" data-folio="333"></span>**Manticore**
 
 Fortunately rare, manticores are relentlessly ferocious, driven to clear their territory of rival predators with extraordinary brutality. Their domains are easily recognised by the remains of other monsters strewn across the surrounding high ground. The creature has the head and body of a twisted great cat (though sometimes its face appears almost too Human), the wings of a bat, and a wicked, thrashing, barbed tail.
 
@@ -336,7 +336,7 @@ Melee (Brawling) 60, Track 55
 
 *Hatred (Predators), Mutation, Trained (Broken, Magic, Mount)*
 
-# **Pegasus**
+# <span id="page-333-0" data-folio="334"></span>**Pegasus**
 
 Pegasi are handsome white horses with great swan-like wings. They are dogged and inexhaustible flyers that fly in great herds in the high mountains, seemingly taking great delight as they swoop and swirl on the spiralling thermal currents. They are obvious candidates for steeds and many a warrior or scout has tried to catch a pegasus of their own. They are very intelligent, and some believe they only allow themselves to be captured if they wish to be, which has led to all manner of fancifully romantic legends insisting only those worthy or virtuous enough may be chosen.
 
@@ -346,7 +346,7 @@ Pegasi are handsome white horses with great swan-like wings. They are dogged and
 
 > — Berthold Bruner, Farmer and Pegasus-watcher
 
-# **Troll**
+# <span id="page-334-0" data-folio="335"></span>**Troll**
 
 Trolls are filthy, foul creatures that infest every corner of the Old World. Quick to adapt to their surroundings, they come in many forms, but all are huge and imposing. Dim-witted and driven by an endless hunger, they nevertheless hoard anything that catches their eye, making their lairs a trove of valuable treasures... and the grisly remains of previous meals. There are many species of troll, all of which share several common traits: they are exceptionally stupid, allowing cunning foes to outwit them; they regenerate, making them notoriously difficult to kill; and they can regurgitate their last meal at will, vomiting acrid bile over astonishing distances — although they are loath to do this as it leaves them extremely hungry.
 

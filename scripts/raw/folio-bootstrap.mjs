@@ -1,13 +1,13 @@
 // Amorce l'ancrage folio d'un livre VIERGE — aucun `<span … data-folio>` (#833, cas VDM).
 // `anchor-fill.mjs` DÉRIVE l'offset id↔folio des ancres déjà posées : sur un livre sans la moindre
 // ancre il n'a rien à dériver. Ce script fournit l'amorce manquante :
-//   1. il LIT le folio imprimé sur chaque page du PDF (pypdf via `lib/pdf-extract.py`) — le folio
-//      est un nombre nu isolé en tête ou en pied de la page ;
-//   2. il en déduit `offset = K − folio` (K = index pypdf 0-based = numéro d'id Marker) et EXIGE
+//   1. il LIT le folio imprimé sur chaque page du PDF (pdfminer via `lib/pdf-lignes.py`, lecteur de
+//      `anchor-fill.mjs`) — le folio est un nombre nu isolé en tête ou en pied de la page ;
+//   2. il en déduit `offset = K − folio` (K = index de page 0-based = numéro d'id Marker) et EXIGE
 //      qu'il soit constant sur toutes les pages folioées (une seule valeur, sinon abandon) ;
 //   3. il délègue la pose à `runBook()` d'`anchor-fill.mjs` — même convention d'ancre
 //      `<span id="page-K-0" data-folio="F"></span>`, même alignement conservateur (match unique
-//      exigé, sinon skip rapporté), aucune ancre nue ;
+//      exigé, sinon skip rapporté), ancres nues Marker complétées en place ;
 //   4. il régénère `00 - Index.md` en TOC à folios (`— folio N`, format des livres déjà bakés).
 //
 // Entrée  : <ABBR> de `books.json` (dossier `Source/…` associé) ; le PDF du livre vient de
@@ -21,13 +21,12 @@ import { join, resolve, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
 import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { extractPages, runBook } from './anchor-fill.mjs'
+import { lireBoites, pagesEnLignes, runBook } from './anchor-fill.mjs'
 
-const MAX_PROBE = 600            // borne de sondage : au-delà, pypdf renvoie null (page hors PDF)
 const FOLIO_LINE_RE = /^(\d{1,4})$/
 const EDGE_LINES = 4             // profondeur de recherche du folio en tête et en pied de page
 
-// Plage de pages (K, index pypdf 0-based) réellement couverte par les chapitres du livre, lue dans
+// Plage de pages (K, index 0-based) réellement couverte par les chapitres du livre, lue dans
 // leurs en-têtes `*Pages PDF N[-M]*`. Les pages HORS de cette plage (couverture, gardes, cartes de
 // fin) ne portent pas la pagination du corps — leurs nombres nus (légendes de carte) sont du bruit.
 export function corpusRange(dir) {
@@ -60,6 +59,12 @@ export function readPrintedFolio(pageText) {
   if (distincts.length !== 1) return null
   const bords = new Set(nus([...lines.slice(0, EDGE_LINES), ...lines.slice(-EDGE_LINES)]))
   return bords.has(distincts[0]) ? distincts[0] : null
+}
+
+/** Texte d'une page pour `readPrintedFolio` : ses lignes pdfminer du HAUT vers le BAS de la page
+ *  (y décroissant, puis x), une par ligne — la tête et le pied de page aux bords du texte. PURE. */
+export function texteDePage(lignesDeLaPage) {
+  return [...lignesDeLaPage].sort((a, b) => b.y0 - a.y0 || a.x0 - b.x0).map((l) => l.texte).join('\n')
 }
 
 // Offset K−folio du livre. `ok:false` si aucune page folioée, ou si l'offset n'est pas unique
@@ -122,9 +127,8 @@ function main() {
 
   const corpus = corpusRange(dir)
   if (!corpus) { console.log(`aucun en-tête \`*Pages PDF N[-M]*\` dans ${dir}`); process.exitCode = 1; return }
-  if (corpus.hi >= MAX_PROBE) console.log(`AVERTISSEMENT — corpus jusqu'à K ${corpus.hi}, sonde bornée à K ${MAX_PROBE - 1} : les pages au-delà ne seront ni lues ni ancrées (relever MAX_PROBE)`)
-  const pages = extractPages(pdfPath, Array.from({ length: MAX_PROBE }, (_, i) => i))
-  const all = [...pages.entries()].filter(([, t]) => t != null).sort((a, b) => a[0] - b[0])
+  const boites = lireBoites(livreDuSigle(abbr).id)
+  const all = [...pagesEnLignes(null, boites)].map(([k, ls]) => [k, texteDePage(ls)]).sort((a, b) => a[0] - b[0])
   const present = all.filter(([k]) => k >= corpus.lo && k <= corpus.hi)
   console.log(`## ${abbr} — ${basename(pdfPath)} : ${all.length} pages, corpus K ${corpus.lo}–${corpus.hi} (${present.length} pages)`)
 
@@ -138,18 +142,18 @@ function main() {
   }
   if (unread.length) console.log(`pages sans folio imprimé lisible (K) : ${unread.join(', ')}`)
 
-  const result = runBook(abbr, { apply, offset: off.offset })
+  const result = runBook(abbr, { apply, offset: off.offset, boites })
   if (!result.ok) { console.log(`ABANDON — ${result.reason}`); process.exitCode = 1; return }
-  let placed = 0, skipped = 0
+  let placed = 0, completed = 0, skipped = 0
   for (const c of result.chapters) {
     if (!c.range) { console.log(`- ${c.file} : pas d'en-tête \`*Pages PDF N[-M]*\``); continue }
-    placed += c.placed.length; skipped += c.skipped.length
+    placed += c.placed.length; completed += c.completed.length; skipped += c.skipped.length
     const slid = c.placed.filter((p) => p.slide > 0)
-    console.log(`- ${c.file} : ✅ ${c.placed.length} · ⏭️ ${c.skipped.length} · déjà là ${c.alreadyCount}`)
+    console.log(`- ${c.file} : ✅ ${c.placed.length} · 🔗 ${c.completed.length} · ⏭️ ${c.skipped.length} · déjà là ${c.alreadyCount}`)
     for (const p of slid) console.log(`    ↘️ folio ${p.folio} (l.${p.line}) — ancré sur le candidat décalé de ${p.slide} ligne(s) de tête`)
     for (const s of c.skipped) console.log(`    ❌ folio ${s.folio} — ${s.reason}`)
   }
-  console.log(`**Bilan ${abbr} : ✅ ${placed} posées · ⏭️ ${skipped} sautées**`)
+  console.log(`**Bilan ${abbr} : ✅ ${placed} posées · 🔗 ${completed} complétées · ⏭️ ${skipped} sautées**`)
 
   if (apply) {
     const title = basename(dir).replace(/^Warhammer v4 - |^WH - V4 - /, '')

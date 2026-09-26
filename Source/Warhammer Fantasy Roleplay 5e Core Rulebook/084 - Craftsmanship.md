@@ -1,6 +1,6 @@
 *Pages PDF 298-299*
 
-# **CRAFTSMANSHIP**
+# <span id="page-297-0" data-folio="298"></span>**CRAFTSMANSHIP**
 
 The items available in the shops, stalls, and merchant halls of the Empire vary significantly in quality. Not everything is made equal, and the Craftsmanship rules reflect this using Item Qualities and Item Flaws.
 
@@ -28,7 +28,7 @@ Cleverly crafted for ease of carrying. Reduce Encumbrance Points by 1.
 
 Expertly crafted with utility in mind. A failed Test using this item receives +1 SL. If the item is a piece of armour, any penalties for wearing it are reduced by one level (for example from −3 SL to −2 SL).
 
-# **Item Flaws**
+# <span id="page-298-0" data-folio="299"></span>**Item Flaws**
 
 A Trapping is called a Flawed Trapping if it has more Item Flaws than Qualities. Each Flaw halves the listed price and improves Availability by one step. Many vendors sell Flawed items, but pretend they are anything but. A successful Test with any appropriate Skill — such as *Evaluate*, or *Melee* for weapons, or *Trade* for tools — will spot such underhanded activities.
 

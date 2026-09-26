@@ -1,6 +1,6 @@
 *Pages PDF 315*
 
-# **MAGICAL ITEMS**
+# <span id="page-314-0" data-folio="315"></span>**MAGICAL ITEMS**
 
 The creation of even the most common magical items is arduous, dangerous, and can be undertaken only by those versed in both craftsmanship and magical enchantment. As such, they are always rare and expensive items. The prices given here are those that might be paid by a buyer on the black market. Purchasing such items will be much more expensive, and treating these items as commodities will earn the ire of the wizards of the Colleges of Magic who make them.
 
@@ -8,7 +8,7 @@ The magic items in this list are those created by the Colleges of Magic. They wi
 
 Using these items with Winds other than the one they are intended to work with has no effect, and may even be dangerous.
 
-#### **MAGICAL ITEMS**
+**MAGICAL ITEMS**
 
 | Item                        | Cost  | Enc | Availability |  |
 |-----------------------------|-------|-----|--------------|--|

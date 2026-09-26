@@ -198,3 +198,55 @@ test('J et P au joint `/` (CRB 018 p.50, p.107) : `Read/ Write` et `Read/` + `Wr
   assert.equal(textes.get('018'), ['**Talents:** Kingpin, Read/Write', '', '**Talents:** Petty Magic, Read/Write, Second Sight'].join('\n'))
   assert.equal(infidelite(texte, textes, sites), null)
 })
+
+const D_TEXTE = new Map([['018', ['**Trappings:** Warehouse', '', 'for the world.', '', '## <span id="page-61-0" data-folio="62"></span>**FLAGELLANT**', '', 'and only through suffering can they hope to win divine deliverance', '', 'Most Flagellants wander', ''].join('\n')]])
+const D_SITES = [{ forme: 'D', site: '018:3', avec: '018:7', ligneMd: 'for the world.', titre: 'for the world.' }]
+
+test('D (CRB 018 l.1106, p.62) : la ligne déplacée rejoint la prose qu’elle suit au PDF et quitte sa place ; rejouée, REFUSÉE', () => {
+  const { textes, refus, appliques } = reparerLivre(D_TEXTE, D_SITES)
+  assert.deepEqual(refus, [])
+  assert.deepEqual(appliques, ['D 018:3 → 018:7 « for the world. »'])
+  assert.equal(textes.get('018'), ['**Trappings:** Warehouse', '', '## <span id="page-61-0" data-folio="62"></span>**FLAGELLANT**', '', 'and only through suffering can they hope to win divine deliverance for the world.', '', 'Most Flagellants wander', ''].join('\n'))
+  assert.equal(infidelite(D_TEXTE, textes, D_SITES), null)
+  assert.deepEqual(reparerLivre(textes, D_SITES).refus, ['018:3 D : la ligne n\'est plus « for the world. »'])
+})
+
+test('S′ déjà dans le fichier sous une AUTRE forme (ancre, niveau, emphase) : refusé ; imprimé deux fois et porté une, posé (CRB 070:161, 013:63)', () => {
+  const texte = ['## <span id="page-237-0" data-folio="238"></span>MINOR MISCAST TABLE', '', '| d100 | Effect |', '', '#### **RANDOM TABLE**', '', '| a | b |', ''].join('\n')
+  const site = (ligneTitre, cible, comptage) => ({ forme: "S'", site: null, cible, ligneTitre, titre: ligneTitre, ...(comptage ? { comptage } : {}) })
+  const { refus } = reparerLivre(new Map([['070', texte]]), [site('#### **MINOR MISCAST TABLE**', '070:3')])
+  assert.deepEqual(refus, ['070:3 S′ « #### **MINOR MISCAST TABLE** » : « #### **MINOR MISCAST TABLE** » déjà dans le fichier (« ## <span id="page-237-0" data-folio="238"></span>MINOR MISCAST TABLE »)'])
+  const deux = reparerLivre(new Map([['013', texte]]), [site('#### **RANDOM TABLE**', '013:3', { auPdf: 2, auMd: 1 })])
+  assert.deepEqual([deux.refus, deux.textes.get('013').split('\n').filter((l) => /RANDOM TABLE/.test(l)).length], [[], 2])
+  assert.equal(reparerLivre(new Map([['013', texte]]), [site('#### **RANDOM TABLE**', '013:3', { auPdf: 1, auMd: 1 })]).refus.length, 1)
+})
+
+test('L et legende-absente (CRB 028:27, 036:23) : titre et bannière rendus en légende `**X**`, légende absente posée ; ajoutés = ses mots, rejoués : REFUSÉS', () => {
+  const md = [
+    'Prose.', '',
+    '### <span id="page-1-0"></span>**FIRST TABLE**', '',
+    '| Roll | Result |', '|---|---|', '| a | x |', '',
+    '| | BANNER TABLE | |', '|--|--|--|', '| d10 | Obstacle |', '| 1 | Wagon |', '',
+    '| d100 | Location |', '|---|---|', '| 01–09 | Head |',
+  ].join('\n')
+  const sites = [
+    { forme: 'L', site: '001:3', titreMd: '### <span id="page-1-0"></span>**FIRST TABLE**', ligneLegende: '<span id="page-1-0"></span>**FIRST TABLE**', titre: 'FIRST TABLE' },
+    { forme: 'L', site: '001:9', titreMd: '| | BANNER TABLE | |', ligneLegende: '**BANNER TABLE**', enTete: 'rangee', titre: 'BANNER TABLE' },
+    { forme: 'legende-absente', site: null, cible: '001:14', ligneLegende: '**HIT LOCATIONS**', comptage: { auPdf: 1, auMd: 0 }, titre: 'HIT LOCATIONS' },
+  ]
+  const textes = new Map([['001', md]])
+  const { textes: apres, refus } = reparerLivre(textes, sites)
+  assert.deepEqual(refus, [])
+  assert.equal(apres.get('001'), [
+    'Prose.', '',
+    '<span id="page-1-0"></span>**FIRST TABLE**', '',
+    '| Roll | Result |', '|---|---|', '| a | x |', '',
+    '**BANNER TABLE**', '',
+    '| d10 | Obstacle |   |', '|-----|----------|---|', '| 1 | Wagon |', '',
+    '**HIT LOCATIONS**', '',
+    '| d100 | Location |', '|---|---|', '| 01–09 | Head |',
+  ].join('\n'))
+  assert.equal(infidelite(textes, apres, sites), null)
+  assert.match(infidelite(textes, apres, sites.slice(0, 2)), /mots ajoutés HIT×1 LOCATIONS×1 ≠ mots des S′ et des légendes absentes ∅/)
+  assert.equal(reparerLivre(apres, sites).refus.length, 3)
+})

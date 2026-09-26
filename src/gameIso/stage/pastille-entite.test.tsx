@@ -116,8 +116,8 @@ const geste = (cible: Element, type: string) =>
  *  chaque `pointerdown` qui l'atteint — c'est le signal « le clic-monde a eu lieu ». */
 /** Le contenu d'une fonction de transformation (`matrix(…)`, `scale(…)`) — lu sans expression
  *  régulière, pour que la sonde mesure ce que le DOM porte et rien d'autre. */
-/** La feuille du CHROME DU MONDE — contrat CSS lu à la source (jsdom n'applique aucune mise en page). */
-const animCss = () => readFileSync(resolve(process.cwd(), 'src/gameIso/anim.css'), 'utf8');
+/** La feuille de la PASTILLE — contrat CSS lu à la source (jsdom n'applique aucune mise en page). */
+const feuillePastille = () => readFileSync(resolve(process.cwd(), 'src/gameIso/stage/pastille-entite.css'), 'utf8');
 
 const entreParentheses = (t: string) => t.slice(t.indexOf('(') + 1, t.lastIndexOf(')'));
 
@@ -202,9 +202,9 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     capture.mockClear();
     geste(boutonDe(el, 'm1')!, 'pointerdown');
     expect(capture, 'le bouton, lui, consomme son pointeur').not.toHaveBeenCalled();
-    // …et la transparence au pointeur est DITE dans la feuille du chrome (jsdom ne fait aucune mise en
+    // …et la transparence au pointeur est DITE dans la feuille de la pastille (jsdom ne fait aucune mise en
     // page : c'est le contrat CSS qui la porte au navigateur, et le rendu qui n'arrête rien à la boîte).
-    const css = animCss();
+    const css = feuillePastille();
     const bloc = css.slice(css.indexOf('.pastille-entite {'), css.indexOf('.pastille-entite .pe-cost'));
     expect(bloc, 'la boîte est transparente au pointeur').toContain('pointer-events: none');
     expect(bloc, 'et le bouton le reçoit, lui seul').toContain('.pastille-entite .btn {');

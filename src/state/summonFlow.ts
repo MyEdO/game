@@ -21,7 +21,7 @@ import { occupied } from './combatGeometry';
 import { inBattleId } from './combatants';
 import { spawnEnemy } from './spawn';
 import { grantTrait } from '../engine/grantedTraits';
-import { resolveFormula, slBonus, type GameOp } from '../engine/ops';
+import { resolveFormula, slBonus, nomDeSource, type GameOp } from '../engine/ops';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG, defaultRNG } from '../engine/dice';
 import { t } from '../i18n';
@@ -139,5 +139,5 @@ export function purgeExpiredSummons(battle: BattleState, round: number): string[
   battle.combatants = battle.combatants.filter((c) => !goneIds.has(c.id));
   battle.order = battle.order.filter((id) => !goneIds.has(id));
   if (battle.baseOrder) battle.baseOrder = battle.baseOrder.filter((id) => !goneIds.has(id));
-  return gone.map((c) => t('summon.dispels', { name: c.label, label: c.summon!.label ?? t('summon.fallbackLabel') }));
+  return gone.map((c) => t('summon.dispels', { name: c.label, label: nomDeSource(c.summon) }));
 }

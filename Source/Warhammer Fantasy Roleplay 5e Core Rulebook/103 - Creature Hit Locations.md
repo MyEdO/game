@@ -1,6 +1,6 @@
 *Pages PDF 318-319*
 
-# **CREATURE HIT LOCATIONS**
+# <span id="page-317-0" data-folio="318"></span>**CREATURE HIT LOCATIONS**
 
 To determine a Hit Location for quadrupeds, arm results are foreleg hits, and leg results are rear leg hits. For birds, arm hits become wing hits. For snakes, a roll of 01–19 hits the head, 20–00 hits the body. For spiders, 01–09 hits the head, 10–79 hits the legs and 80–00 hits the body. For any creature 2 steps larger than you (see Size on page 360), you'll hit the location closest to you (or in line of sight for shooting).
 
@@ -18,7 +18,7 @@ Where an *Armour* value is provided, the total Toughness Bonus + Armour Points i
 
 *Armour* and *Weapons* given to bipedal creatures with hands are just suggestions. If the GM wishes, such creatures could be armed and armoured with anything from the Consumer Guide, and can be assumed to have any Skills they need to use the items without penalty.
 
-### **BESTIARY FORMAT**
+### <span id="page-318-0" data-folio="319"></span>**BESTIARY FORMAT**
 
 - **Name:** The creature's name.
 - The creature's description.

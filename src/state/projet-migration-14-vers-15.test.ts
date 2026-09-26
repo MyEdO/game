@@ -1,31 +1,20 @@
 /**
- * GARDE — `PROJECT_MIGRATIONS[14]` : un projet AUTHORÉ AVANT la fusion des sorts de #1897 se charge encore.
+ * GARDE — `PROJECT_MIGRATIONS[14]` : un projet AUTHORÉ AVANT #1897 se charge encore.
  *
- * QUESTION : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double
- * (`SORTS_FUSIONNES_1897`, `src/data/sortsFusionnes.ts`) et n'existent plus au catalogue. Un `.json`
- * exporté avant ce lot, resté dans une bibliothèque utilisateur, qui cite l'un d'eux à une place de sort
- * (statbloc, rôle de combat, effets `learnSpell`/`castSpell`, preset de PNJ), ressort-il avec l'entrée
- * absorbante — au lieu d'être refusé par `idDe('spell')` ?
+ * QUESTION : `narratif.presetsPnj[].profil` reprend le def créature, dont `spells` adopte
+ * `refs('spell')` — la référence de sort passe de `{ id }` à l'id NU. Un `.json` exporté avant ce lot,
+ * resté dans une bibliothèque utilisateur, ressort-il avec les sorts de ses PNJ ?
  *
- * FIXTURE GELÉE : le document ci-dessous porte la forme `schema: 14`, un id fusionné à chaque place de
- * sort, et `nuee` (id fusionné) en TRAIT, hors place de sort. Il est FIGÉ ; le « moderniser » détruirait
- * ce que la garde mesure.
+ * FIXTURE GELÉE : le document ci-dessous porte la forme `schema: 14` — un preset dont le profil liste
+ * ses sorts en `{ id }`, un autre qui les liste déjà nus. Il est FIGÉ ; le « moderniser » détruirait ce
+ * que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
 import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { depot, efface, joue, lireDans, rienTouche } from '../../scripts/migrations/lib/joue.mjs';
 
-/** Flow d'une action authorée : un effet `learnSpell` et un effet `castSpell`, chacun sur un id fusionné. */
-const flowDAutel = () => ({
-  kind: 'seq',
-  steps: [
-    { kind: 'do', effect: { type: 'learnSpell', spell: 'alarme' } },
-    { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'projectile' } },
-  ],
-});
-
-/** Document schema 14 — FIGÉ. Ne pas y remplacer les ids fusionnés : c'est le sujet de la mesure. */
+/** Document schema 14 — FIGÉ. Ne pas dénuder `sorcier` : c'est le sujet de la mesure. */
 const PROJET_FORMAT_14 = {
   type: 'projet',
   schema: 14,
@@ -36,54 +25,41 @@ const PROJET_FORMAT_14 = {
   narratif: {
     affaires: [],
     indices: [],
-    presetsPnj: [{ id: 'mage', base: 'squelette', profil: { spells: ['alarme', 'alerte'] } }],
+    presetsPnj: [
+      { id: 'sorcier', base: 'squelette', profil: { spells: [{ id: 'flechette' }, { id: 'alerte' }] } },
+      { id: 'deja-nu', base: 'squelette', profil: { spells: ['flechette'] } },
+    ],
     objets: [],
   },
   scenes: [
     {
       type: 'scene',
-      id: 'crypte',
-      label: 'La crypte',
-      dimensions: { w: 2, h: 1 },
+      id: 'quai',
+      label: 'Le quai',
+      dimensions: { w: 1, h: 1 },
       reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS },
       roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-      layers: [{ z: 0, tiles: ['herbe', 'herbe'] }],
-      entities: [
-        {
-          id: 'sorcier',
-          kind: 'personnage',
-          pos: { x: 0, y: 0 },
-          statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme', 'flamme'], traits: [{ id: 'nuee' }] },
-          combat: { spells: ['alarme'] },
-        },
-        { id: 'autel', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, usable: { actions: [{ id: 'prier', flow: flowDAutel() }] } },
-      ],
+      layers: [{ z: 0, tiles: ['herbe'] }],
+      entities: [],
     },
   ],
 };
 
-const charge = () => parseProject(structuredClone(PROJET_FORMAT_14));
+const presetsMigrés = () => parseProject(structuredClone(PROJET_FORMAT_14)).narratif.presetsPnj;
 
-describe('PROJECT_MIGRATIONS[14] — un projet format 14 qui cite un sort fusionné se charge (#1897)', () => {
+describe('PROJECT_MIGRATIONS[14] — un projet format 14 se charge à travers la migration (#1897)', () => {
   it('le document gelé est bien au format ANTÉRIEUR (sans quoi la garde ne mesurerait rien)', () => {
     expect(PROJET_FORMAT_14.schema).toBe(14);
     expect(PROJET_FORMAT_14.schema).toBeLessThan(CURRENT_PROJECT_SCHEMA);
+    expect(PROJET_FORMAT_14.narratif.presetsPnj[0].profil.spells[0]).toEqual({ id: 'flechette' });
   });
 
-  it('chaque place de sort cite l’entrée ABSORBANTE ; le trait homonyme traverse intact', () => {
-    const doc = charge();
-    const [sorcier, autel] = doc.scenes[0].entities!;
-    expect(sorcier.statblock?.spells).toEqual(['alerte', 'flamme-magique']);
-    expect(sorcier.statblock?.traits).toEqual([{ id: 'nuee' }]);
-    expect(sorcier.combat?.spells).toEqual(['alerte']);
-    expect(autel.usable?.actions?.[0].flow).toEqual({
-      kind: 'seq',
-      steps: [
-        { kind: 'do', effect: { type: 'learnSpell', spell: 'alerte' } },
-        { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'carreau' } },
-      ],
-    });
-    expect(doc.narratif.presetsPnj[0].profil?.spells, 'dédoublonnée : `alarme` ET `alerte` n’en font qu’un').toEqual(['alerte']);
+  it('les sorts `{ id }` d’un preset ressortent en ids NUS, dans leur ORDRE', () => {
+    expect(presetsMigrés()[0].profil?.spells).toEqual(['flechette', 'alerte']);
+  });
+
+  it('un preset dont les sorts sont DÉJÀ nus traverse INTACT', () => {
+    expect(presetsMigrés()[1].profil?.spells).toEqual(['flechette']);
   });
 
   it('IDEMPOTENT : rejoué sur sa propre sortie, le migrateur ne change plus rien', () => {
@@ -92,24 +68,33 @@ describe('PROJECT_MIGRATIONS[14] — un projet format 14 qui cite un sort fusion
     expect(JSON.stringify(deux)).toBe(JSON.stringify(une));
   });
 
-  it('SANS le migrateur, l’id fusionné serait REFUSÉ au parse', () => {
+  it('SANS le migrateur, le sort `{ id }` serait REFUSÉ au parse', () => {
     const bricole = { ...structuredClone(PROJET_FORMAT_14), schema: CURRENT_PROJECT_SCHEMA };
-    expect(() => parseProject(bricole)).toThrow(/« alarme » est absent du catalogue des sorts \(spells\.json\)/);
+    expect(() => parseProject(bricole)).toThrow(/spells/);
+  });
+
+  it('un id de sort MORT n’est pas du ressort de la migration : le schéma le NOMME', () => {
+    const mort = structuredClone(PROJET_FORMAT_14);
+    mort.narratif.presetsPnj[0].profil.spells = [{ id: 'zzz-disparu' }];
+    expect(() => parseProject(mort)).toThrow(/« zzz-disparu » est absent du catalogue des sorts \(spells\.json\)/);
   });
 });
 
 /**
  * PARITÉ des DEUX pendants du même bump : la MÊME fixture est jouée par le script de DÉPÔT
- * (`scripts/migrations/2026-09-24-1897-projet-sorts-fusionnes.mjs`, dans un dépôt jetable) et par le
- * CHARGEMENT (`PROJECT_MIGRATIONS[14]`). Le script écrit EXACTEMENT ce que le chargement rend.
+ * (`scripts/migrations/2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs`, dans un dépôt jetable) et
+ * par le CHARGEMENT (`parseProject`, donc `PROJECT_MIGRATIONS[14]`). Une forme que le chargement
+ * dénude, le script la dénude À L'IDENTIQUE ; une forme que le chargement laisse à `parseProject`
+ * pour qu'il la refuse, le script la refuse (sortie 1) — jamais l'un qui avale ce que l'autre refuse.
  */
-const SCRIPT_DEPOT = '2026-09-24-1897-projet-sorts-fusionnes.mjs';
+const SCRIPT_DEPOT = '2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs';
 const REL = `src/scenes/${PROJET_FORMAT_14.id}/${PROJET_FORMAT_14.id}-projet.json`;
 const canonique = (doc: unknown) => `${JSON.stringify(doc, null, 1)}\n`;
 
-/** Le document joué par le script de dépôt, qui importe la primitive (`src/data/sortsFusionnes.ts`). */
+/** Le document joué par le script de dépôt : `{ code, sortie, doc, touches }` — `doc` relu après la
+ *  sortie 0, `touches` les fautes du témoin d'écriture après un refus. */
 function parLeDepot(doc: unknown): { code: number | null; sortie: string; doc: unknown; touches: string[] } {
-  const d = depot({ [REL]: canonique(doc) }, ['src/data/sortsFusionnes.ts']);
+  const d = depot({ [REL]: canonique(doc) });
   try {
     const r = joue(d.racine, SCRIPT_DEPOT);
     return {
@@ -130,18 +115,37 @@ function parLeChargement(doc: unknown): unknown {
 }
 
 describe('PARITÉ dépôt ⇄ chargement du bump 14 → 15 — une fixture, deux pendants (#1897)', () => {
-  it('le script écrit EXACTEMENT ce que le chargement rend, et `parseProject` accepte ce qu’il écrit', () => {
+  it('forme SOURCE et forme CIBLE : le script écrit EXACTEMENT ce que le chargement rend, et `parseProject` l’accepte', () => {
     const r = parLeDepot(PROJET_FORMAT_14);
     expect(r.code, r.sortie).toBe(0);
     expect(JSON.stringify(r.doc)).toBe(JSON.stringify(parLeChargement(PROJET_FORMAT_14)));
-    expect(() => parseProject(r.doc)).not.toThrow();
+    expect(() => parseProject(structuredClone(PROJET_FORMAT_14))).not.toThrow();
   });
 
-  it('schema 13 : le script le refuse (sa borne basse), rien d’écrit', () => {
-    const r = parLeDepot({ ...structuredClone(PROJET_FORMAT_14), schema: 13 });
+  const refusees: [string, (doc: typeof PROJET_FORMAT_14) => unknown][] = [
+    ['(1) `{ id, spec }` — la `spec` ne tient pas dans un id nu', (doc) => {
+      doc.narratif.presetsPnj[0].profil.spells = [{ id: 'flechette', spec: 'x' } as never];
+      return doc;
+    }],
+    ['(2) `{ id: \'\' }` — un id VIDE', (doc) => {
+      doc.narratif.presetsPnj[0].profil.spells = [{ id: '' }];
+      return doc;
+    }],
+    ['(3) projet SANS `narratif` — exigé au format 14 (`narratif: narratifSchema`, `defs-scenes/projet.ts`)', (doc) => {
+      const { narratif: _retire, ...sans } = doc;
+      return sans;
+    }],
+  ];
+
+  it.each(refusees)('%s : le chargement la laisse INTACTE et `parseProject` la refuse ; le script la refuse, rien d’écrit', (_cas, fabrique) => {
+    const doc = fabrique(structuredClone(PROJET_FORMAT_14));
+    const charge = parLeChargement(doc) as { narratif?: { presetsPnj: { profil?: { spells?: unknown } }[] } };
+    const avant = (doc as { narratif?: { presetsPnj: { profil?: { spells?: unknown } }[] } }).narratif?.presetsPnj[0].profil?.spells;
+    expect(charge.narratif?.presetsPnj[0].profil?.spells).toEqual(avant);
+    expect(() => parseProject(structuredClone(doc))).toThrow();
+    const r = parLeDepot(doc);
     expect(r.code, r.sortie).toBe(1);
     expect(r.sortie).toMatch(/ARBITRAGE REQUIS/);
-    expect(r.sortie).toContain('`schema` inattendu 13');
     expect(r.touches).toEqual([]);
   });
 });

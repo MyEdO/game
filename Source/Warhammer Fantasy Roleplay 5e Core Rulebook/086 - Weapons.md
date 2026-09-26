@@ -1,6 +1,6 @@
 *Pages PDF 300-305*
 
-# **WEAPONS**
+# <span id="page-299-0" data-folio="300"></span>**WEAPONS**
 
 Weapons used across the Empire vary according to provincial preference, religious requirement, individual inclination, and trusty old tradition. Here you will find a selection of the most commonly wielded melee and ranged weapons, which are presented using the following format.
 
@@ -52,7 +52,7 @@ Hand Weapon is used to describe any of a number of basic weapons that, though di
 
 Swords are a special hand weapon, being slightly deadlier than the other hand weapons and required skilled forging. They also bring a certain prestige to the wielder as they are the weapon of choice of the gentlefolk.
 
-# **MELEE WEAPONS**
+<span id="page-300-0" data-folio="301"></span>**MELEE WEAPONS**
 
 | Weapon               | Price    | Enc    | Availability | Reach      | Damage  | Qualities and Flaws                           |
 |----------------------|----------|--------|--------------|------------|---------|-----------------------------------------------|
@@ -99,7 +99,7 @@ Swords are a special hand weapon, being slightly deadlier than the other hand we
 
 \*\*\* Bastard Swords can be used one-handed with *Melee (Basic)*, but lose *Damaging* and gain *Unbalanced*.
 
-# **Ranged Weapon Groups**
+# <span id="page-301-0" data-folio="302"></span>**Ranged Weapon Groups**
 
 Ranged weapons are difficult to master. You cannot attempt a Ranged Test for a weapon you do not have the correct speciality for.
 
@@ -127,7 +127,7 @@ A weapon's range is its Medium range in yards. **Chapter 5: Rules** presents mod
 
 **Long** = Range x 2 **Extreme** = Range x 3
 
-# **EXAMPLE WEAPON RANGES**
+**EXAMPLE WEAPON RANGES**
 
 | Weapon              | Point Blank | Short | Med | Long | Extreme |
 |---------------------|----------------|-------|-----|------|---------|
@@ -140,7 +140,7 @@ A weapon's range is its Medium range in yards. **Chapter 5: Rules** presents mod
 
 Blunderbusses are the only weapons listed that use the Small Shot or Improvised Shot ammunition. All other Blackpowder and Engineering weapons use Bullets.
 
-#### **AMMUNITION**
+**AMMUNITION**
 
 | Weapon                      | Price | Enc | Availability | Range       | Damage | Qualities and Flaws |
 |-----------------------------|-------|-----|--------------|-------------|--------|---------------------|
@@ -157,7 +157,7 @@ Blunderbusses are the only weapons listed that use the Small Shot or Improvised 
 | Lead Bullet (12)            | 4d    | 0   | Common       | –           | +1     | Pummel              |
 | Stone Bullet (12)           | 1d    | 0   | Common       | As weapon   | –      | Pummel              |
 
-# **RANGED WEAPONS**
+<span id="page-302-0" data-folio="303"></span>**RANGED WEAPONS**
 
 | Weapon                  | Price  | Enc | Availability | Range  | Damage  | Qualities and Flaws                                       |  |  |  |
 |-------------------------|--------|-----|--------------|--------|---------|-----------------------------------------------------------|--|--|--|
@@ -199,7 +199,7 @@ Blunderbusses are the only weapons listed that use the Small Shot or Improvised 
 
 \*\*\* Bolas only inflict *Entangled* and *Prone* when hitting the Legs Hit Location.
 
-# **Weapon Qualities**
+# <span id="page-303-0" data-folio="304"></span>**Weapon Qualities**
 
 Some weapons have specific advantages over others, which are described with Weapon Qualities.
 
@@ -245,7 +245,7 @@ If an attack with this weapon hits, the target takes the Condition; any relevant
 
 *Parry* weapons are light, defensive implements designed for dual wielding. *Parry* weapons used to defend against attacks ignore the normal –2 SL off hand penalty (see page 166). When dual wielding, if your first attack hits, the second attack is Unopposed if made with a *Parry* weapon, as your agile weapon slips past your opponent's compromised defences.
 
-#### **Penetrating**
+#### <span id="page-304-0" data-folio="305"></span>**Penetrating**
 
 The weapon is highly effective at penetrating armour. It ignores 2 AP.
 

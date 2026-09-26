@@ -36,7 +36,7 @@ import { travelSpeed } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
 import type { StakeRef } from '../data';
-import { partyCargoTotalEnc } from './carriers';
+import { partyCargoTotalEnc, nomDuNavire } from './carriers';
 import { partyAssisted } from '../engine/skills';
 import { rollTest, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -58,7 +58,7 @@ import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/ty
 import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cascade';
 import { freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 import { riverAutoResolves, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
@@ -156,7 +156,7 @@ function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: bool
   const coque = vehicleCombatant(v);
   if (!coque) return null;
   if (vessel && vessel.vehicleId === vId) {
-    if (vessel.label) coque.label = vessel.label; // #230 — nom d'instance (affichage)
+    coque.label = nomDuNavire(vessel); // #230
     syncHullWoundsFromVessel(coque, vessel);
   }
   return { coque, hasSail: !!v.ship.sail };
@@ -555,7 +555,7 @@ function patchDay(get: Get, set: Set, patch: Partial<RiverDayContext>): void {
 registerCascadeApplier('riverControlRepair', (get, set, step, hero) => {
   if (!step.result) return;
   if (step.result.success) set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, broken: false, outOfControl: false } } });
-  const name = hero?.label ?? t('rv.carpenterFallback');
+  const name = garanti(hero, step.actorId, 'charpentier').label;
   return { consequences: freeCons([step.result.success
     ? { text: t('rv.repairOk', { name }), tone: 'ok' }
     : { text: t('rv.repairKo', { name }), tone: 'bad' }]) };
@@ -566,7 +566,7 @@ registerCascadeApplier('riverAgility', (get, set, step, hero) => {
   if (!step.result) return;
   const factor = rowingAgilityFactor(step.result.success, step.result.sl);
   set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, dayAgilityFactor: factor } } });
-  const name = hero?.label ?? t('rv.rowerFallback');
+  const name = garanti(hero, step.actorId, 'rameur').label;
   const text = step.result.success ? t('rv.rowOk', { name }) : factor === 0.5 ? t('rv.rowHalf', { name }) : t('rv.rowMinus', { name });
   return { consequences: freeCons([{ text, tone: step.result.success ? 'ok' : 'bad' }]) };
 });
@@ -579,7 +579,7 @@ registerCascadeApplier('riverNav', (get, set, step, hero) => {
   if (!kept) patchDay(get, set, { forceDrift: true });
   const savoirNote = savoir > 0 ? t('rv.fragSavoir', { n: savoir }) : '';
   return { consequences: freeCons([{
-    text: t('rv.navLine', { who: hero?.label ?? t('rv.pilotFallback'), savoir: savoirNote, issue: controlLabel(kept, step.result.success) }),
+    text: t('rv.navLine', { who: garanti(hero, step.actorId, 'pilote').label, savoir: savoirNote, issue: controlLabel(kept, step.result.success) }),
     tone: step.result.success ? 'ok' : kept ? 'info' : 'bad',
   }]) };
 });
@@ -791,7 +791,7 @@ registerCascadeApplier('riverPerilNav', (get, set, step) => {
 registerCascadeApplier('riverHoleRepair', (get, set, step, hero) => {
   if (!step.result) return;
   const plan = get().travelPlan!;
-  const name = hero?.label ?? t('rv.carpenterFallback');
+  const name = garanti(hero, step.actorId, 'charpentier').label;
   if (step.result.success) {
     const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, rollExpr(TEMPORARY_REPAIR.woundsPerRepair, battleRng()));
     healVesselHull(get, set, plan.vehicle!, healed);
@@ -1036,7 +1036,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
 /** Renflouage INFLUENÇABLE (#270, Force) — MÊME issue que `applyEchouage`, jet différé. */
 registerCascadeApplier('riverEchouageForce', (_get, _set, step, hero) => {
   if (!step.result) return;
-  const name = hero?.label ?? t('rv.partyFallback');
+  const name = garanti(hero, step.actorId, 'renfloueur').label;
   return { consequences: freeCons([step.result.success
     ? { text: t('rv.refloatedOk', { name }), tone: 'ok' }
     : { text: t('rv.refloatedKo', { name }), tone: 'bad' }]) };

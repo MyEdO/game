@@ -24,7 +24,7 @@ import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { registerCascadeApplier, chainStep } from './cascade';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
 import {
@@ -209,7 +209,7 @@ registerCascadeApplier(LAND_WINE_EVAL_KIND, (get, set, step) => {
   const rev = wineEvalReveal(offer.basePrice, success, sl);
   set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
   const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-  return { consequences: freeCons([`${actor?.label ?? 'Le groupe'} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
+  return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
 });
 
 export function closeLandMarket(_get: Get, set: Set): void {

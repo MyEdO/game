@@ -1,6 +1,6 @@
 *Pages PDF 258-259*
 
-# **DARK MAGIC**
+# <span id="page-257-0" data-folio="258"></span>**DARK MAGIC**
 
 The following provides two short lists of four Dark Magic Spells.
 
@@ -60,7 +60,7 @@ You channel a heavy flow of *Dhar* into bare earth, causing old bones to gather 
 
 You channel worming strands of thick *Dhar* before you, sinking it into corpses, reanimating that which was once dead. Reanimate WPB + SL dead bodies (as Zombies, see page 340) or skeletons (as Skeletons, see page 339) within range. They start with the *Prone* Condition. The summoned undead are entirely under your control and can perform simple orders as you command. If you die or gain an *Unconscious* Condition, the Spell comes to an end and the reanimated corpses fall dead again. For each +2 SL, you may reanimate an extra WPB + SL Skeletons or Zombies.
 
-#### **Screaming Skull**
+#### <span id="page-258-0" data-folio="259"></span>**Screaming Skull**
 
 **CN:** 8 **Range:** Willpower yards **Target:** Special **Duration:** Instant
 

@@ -69,7 +69,7 @@ describe('lineOfSightCover', () => {
     expect(lineOfSightCover(s, { x: 0, y: 0 }, { x: 4, y: 0 }, [])).toEqual({ blocked: false, cover: 'imparfaite' });
   });
   it('empreinte de charrette (2×1) → couvre ses deux cases', () => {
-    const s = scene(6, 1, {}, [prop('charrette', 3, 0)]); // empreinte 2×1 du catalogue (`props.json`)
+    const s = scene(6, 1, {}, [prop('charrette', 3, 0)]); // empreinte 2×1 DÉRIVÉE de sa recette volumique (`props.json`), cap par défaut
     // la case 4,0 fait partie de l'empreinte → couvert moyen sur la ligne 0,0 → 5,0
     expect(lineOfSightCover(s, { x: 0, y: 0 }, { x: 5, y: 0 }, [])).toEqual({ blocked: false, cover: 'moyenne' });
   });

@@ -21,7 +21,7 @@ const PROP_TROIS_PRIMITIVES: PropData = {
     capIdentite: 'S',
     primitives: [
       { kind: 'box', center: { xM: 0, yM: 0, hM: 0.45 }, size: { xM: 1.6, yM: 0.8, hM: 0.1 }, material: 'bois-chene' },
-      { kind: 'cylinder', center: { xM: 0.4, yM: 0, hM: 0.2 }, radiusM: 0.12, heightM: 0.4, sides: 8, material: 'fer-noirci' },
+      { kind: 'cylinder', center: { xM: 0.4, yM: 0, hM: 0.2 }, axis: 'h', radiusM: 0.12, longueurM: 0.4, sides: 8, material: 'fer-noirci' },
       { kind: 'prism', center: { xM: -0.4, yM: 0.2, hM: 0.15 }, size: { xM: 0.6, yM: 0.4, hM: 0.3 }, slope: 'x+', material: 'pierre-atre' },
     ],
   },

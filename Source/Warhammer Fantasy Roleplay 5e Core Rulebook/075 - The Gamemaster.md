@@ -1,6 +1,6 @@
 *Pages PDF 261-262*
 
-# • **THE GAMEMASTER** •
+# <span id="page-260-0" data-folio="261"></span>• **THE GAMEMASTER** •
 
 Bringing the world of **Warhammer Fantasy Roleplay** to life for your friends is a richly rewarding experience. If you have never run a roleplaying game before, it might seem a little intimidating, but with a few tricks of the trade, you'll find it easy and fun.
 
@@ -33,7 +33,7 @@ One common mistake first-time GMs make is asking a player to roll a Test when fa
 
 Every time you call for a Test, have a plan for both success and failure. Failure should move the story on, but with some negative consequences.
 
-#### **You Arbitrate the Rules**
+#### <span id="page-261-0" data-folio="262"></span>**You Arbitrate the Rules**
 
 The rules exist as a framework to decide how actions play out in a fair and transparent way. The chance for failure is what keeps a game interesting and makes success all the sweeter. What the rules shouldn't do is get in the way of having fun.
 

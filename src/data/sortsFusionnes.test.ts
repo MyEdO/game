@@ -2,7 +2,7 @@
  * CONTRAT — toute place de sort du document de PROJET est une forme que `remapSortsFusionnesDeep`
  * réécrit (#1897).
  *
- * QUESTION : `PROJECT_MIGRATIONS[13]` (`src/state/worldMap.ts`) confie à la primitive la réécriture des
+ * QUESTION : `PROJECT_MIGRATIONS[15]` (`src/state/worldMap.ts`) confie à la primitive la réécriture des
  * ids FUSIONNÉS, places reconnues par leur FORME (clé + liste ou chaîne), pas par le schéma — une
  * migration ne lit pas la forme du jour. Le schéma COURANT déclare-t-il une place `idDe('spell')`
  * (`slotsDe(projetSchema)`) sous une forme que la primitive ne reconnaît pas ? Une place de plus sous
