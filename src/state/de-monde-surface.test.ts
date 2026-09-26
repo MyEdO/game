@@ -209,7 +209,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
   });
 });
 
-// ── PARITÉ TERRE/MER du commerce : `landSellCargo` migré vers `openWorldTest` ────────────────────
+// ── PARITÉ TERRE/MER du commerce : `landSellCargo` passe par `openWorldTest` ─────────────────────
 
 function skill(c: Combatant, skillId: string, advances: number): void {
   const ex = c.skills.find((s) => s.id === skillId && s.spec == null);

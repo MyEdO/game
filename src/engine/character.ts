@@ -397,7 +397,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // le spawn de créature bestiaire, #513).
   const speciesTraits: import('./statEntry').TraitList = sp.traits ?? [];
 
-  // Taille (LDB 85 p.342) — portée par `TalentData.size` (DATA-DRIVEN, jamais un id de talent
+  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (DATA-DRIVEN, jamais un id de talent
   // nommé dans le moteur, #572) : la plus grande catégorie parmi les talents résolus (espèce +
   // carrière + signe astral) ci-dessus, sinon Moyenne.
   const size = sizeFromTalents(talents.map((tt) => tt.talentId), (id) => findTalentById(id)?.size);

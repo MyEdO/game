@@ -4,9 +4,6 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 export const tenue: TenueDef = {
   label: "Artiste",
   id: "artiste",
-  // `tete.front` peint une mèche relevée en crête (mohawk) : les jetons `@cheveux*` de l'art
-  // restent, mais la palette ne les déclare plus — la chevelure vient du PORTEUR
-  // (`stripPorterTokens`, career.ts), jamais de la tenue (#599).
   palette: {"vet1":"#5a3018","vet1O":"#3a2410","metalH":"#caa64a","vet2H":"#ece2c8","vet2O":"#b8a878","metal":"#7a5a18","vet2":"#e6d4a8","cuir":"#7a5226","cuirO":"#5a3a1e"},
   set: {
     pied: BOTTE_CUIR,

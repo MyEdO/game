@@ -10,7 +10,7 @@ import type { Weapon } from './types';
  * Builder UNIQUE des OBJETS INANIMÉS (`inanimateCombatant`) et ses trois saveurs :
  *  - STRUCTURE de siège (ADE II 8) — DESTRUCTIBLE, profil {E,B} ;
  *  - VÉHICULE-coque (MDG 12-13) — DESTRUCTIBLE, profil {E,B} (+ empreinte de navire) ;
- *  - ENGIN de siège INERTE (AA 10 p.122-123) — NON-DESTRUCTIBLE : 0 Blessure, immune via `woundsFromHit`.
+ *  - ENGIN de siège INERTE (AA 10 l.136-195) — NON-DESTRUCTIBLE : 0 Blessure, immune via `woundsFromHit`.
  */
 
 const mkWeapon = (over: Partial<Weapon> = {}): Weapon => ({
@@ -42,7 +42,7 @@ describe('vehicleCombatant (adaptateur destructible — MDG 12-13)', () => {
   });
 });
 
-describe('inanimateCombatant — engin de siège INERTE (AA p.122-123)', () => {
+describe('inanimateCombatant — engin de siège INERTE (AA 10 l.136-195)', () => {
   it('aucun profil à PV : Blessures 0, E 0, immune à la Psychologie, immobile', () => {
     const c = inanimateCombatant({ id: 'e', label: 'Baliste', refId: 'baliste', bodyShape: 'engin', inert: true });
     expect(c.inert).toBe(true);

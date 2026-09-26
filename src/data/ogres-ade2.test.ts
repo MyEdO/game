@@ -1,5 +1,5 @@
 /**
- * #61 — Équipement des ogres (ADE II 2 p.29-30) + fidélité des 4 PNJ ogres nommés (ADE II 1 p.14 / ADE II 2 p.26).
+ * #61 — Équipement des ogres (ADE II 2 l.600-703) + fidélité des 4 PNJ ogres nommés (ADE II 1 l.217/231 / ADE II 2 l.484/492).
  * La table « Armes à distance des ogres » du .md étant mutilée par l'extraction, les valeurs ont été
  * reconstituées depuis le PDF (p.29) — ce test fige les stats imprimées.
  */
@@ -10,7 +10,7 @@ import { itemFromTrappingById } from '../engine/items';
 const q = (id: string) => findTrappingById(id)!;
 const qualIds = (id: string) => q(id).qualities.map((x) => x.id).sort();
 
-describe('#61 — armes de corps à corps des ogres (ADE II p.29)', () => {
+describe('#61 — armes de corps à corps des ogres (ADE II 2 l.607-615)', () => {
   it('Massue ogre : 1 CO, Enc 2, Commune, Moyenne, BF+4 (personnalisation en desc)', () => {
     const e = q('massue-ogre');
     expect(e.price).toEqual({ gold: 1, silver: 0, brass: 0 });
@@ -32,7 +32,7 @@ describe('#61 — armes de corps à corps des ogres (ADE II p.29)', () => {
   });
 });
 
-describe('#61 — armes à distance des ogres (ADE II p.29, reconstituées du PDF)', () => {
+describe('#61 — armes à distance des ogres (ADE II 2 l.619-631, reconstituées du PDF)', () => {
   it('Lance-harpon : 8 CO, Enc 5, Exotique, Portée 20, +10, Entraves (→ Immobilisante) + Recharge 2', () => {
     const e = q('lance-harpon');
     expect(e.subType).toBe('entraves');
@@ -67,7 +67,7 @@ describe('#61 — armes à distance des ogres (ADE II p.29, reconstituées du PD
   });
 });
 
-describe('#61 — munitions & armure des ogres (ADE II p.29)', () => {
+describe('#61 — munitions & armure des ogres (ADE II 2 l.635-652)', () => {
   it('Harpon (6) : Empaleuse, portée comme l\'arme (pas d\'ammoRangeMod)', () => {
     const e = q('harpon');
     expect(e.packSize).toBe(6);
@@ -101,7 +101,7 @@ describe('#61 — munitions & armure des ogres (ADE II p.29)', () => {
   });
 });
 
-describe('#61 — les 4 PNJ ogres nommés (ADE II 1 p.14 / ADE II 2 p.26)', () => {
+describe('#61 — les 4 PNJ ogres nommés (ADE II 1 l.217/231 / ADE II 2 l.484/492)', () => {
   it('Isrogdal : « Combat déloyal 2 » (l.227) porté par TalentRef.times', () => {
     const tal = findCreatureById('isrogdal-lempresse')!.talents!.find((t) => t.id === 'combat-deloyal') as { id: string; times?: number };
     expect(tal.times).toBe(2);
@@ -121,7 +121,7 @@ describe('#61 — les 4 PNJ ogres nommés (ADE II 1 p.14 / ADE II 2 p.26)', () =
     expect(ids).toContain('massue-ogre');
     expect(ids).toContain('coup-de-poing');
   });
-  it('Golgfag / Hrothyogg : PAS de statbloc en VF (prose seule, ADE II p.13) → absents du bestiaire (règle 1)', () => {
+  it('Golgfag / Hrothyogg : PAS de statbloc en VF (prose seule, ADE II 1 l.198/210) → absents du bestiaire (règle 1)', () => {
     expect(findCreatureById('golgfag-mangehomme')).toBeUndefined();
     expect(findCreatureById('capitaine-hrothyogg')).toBeUndefined();
   });

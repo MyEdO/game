@@ -224,7 +224,7 @@ function chutes(ctx: ContexteAretes): AreteUtilisable[] {
   return out;
 }
 
-/** STRUCTURE (AA 10 p.120) : arête `structure` debout de la couche active, ENRÔLÉE dans la file de
+/** STRUCTURE (AA 10 l.94-102) : arête `structure` debout de la couche active, ENRÔLÉE dans la file de
  *  combat (le Combattant tient la cible ; à la brèche il disparaît et l'arête avec). Aucune garde
  *  d'adjacence — on la pilonne à distance. Le FRAPPEUR n'ouvre que l'OFFRE (sans héros en main, hors
  *  de mon tour, une enceinte ne se frappe pas) ; l'ANCRAGE est la case du MUR, celle du

@@ -11,6 +11,6 @@ export const creature: CreatureDef = {
   plan: 'avian',
   bird: {
     sl: 1.05, girth: 1.0, raptor: true,
-    stored: { corps: '#3a2a1c', corpsO: '#191009', corpsH: '#c89a4e', cheveux: '#9c8767', cheveuxO: '#57452e', cuir: '#dca62e' },
+    palette: { corps: '#3a2a1c', corpsO: '#191009', corpsH: '#c89a4e', cheveux: '#9c8767', cheveuxO: '#57452e', cuir: '#dca62e' },
   },
 };

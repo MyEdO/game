@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Chevalet de sciage (tréteau) portant une planche en cours de débit, avec une scie posée dessus. Le
-// poste de travail de la « Charpenterie et décors » (26) du théâtre. Cf. plan officiel NADJ 8 p.40
+// poste de travail de la « Charpenterie et décors » (26) du théâtre. Cf. plan officiel NADJ 08 folio 38 (image)
 // (tréteaux et bois de charpente).
 export const prop: PropViz = {
   id: 'scie-chevalet',

@@ -873,7 +873,7 @@ function isAmputationTrauma(t: Trauma): boolean {
   return ficheById(t.traumaId)?.amputation === true;
 }
 
-/** Insensible à la douleur (LDB 85 p.340) : les pénalités de Blessures Critiques NE DÉCOULANT PAS
+/** Insensible à la douleur (LDB 85 l.195) : les pénalités de Blessures Critiques NE DÉCOULANT PAS
  *  d'amputations sont ignorées (les États restent subis). Pur — lit le trait sur `c.traits`. */
 function painlessIgnores(c: Combatant, t: Trauma): boolean {
   return isPainless(c.traits) && !isAmputationTrauma(t);
@@ -1002,7 +1002,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
     for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse' });
   }
   // États (LDB 16) : leur `passive: GameOp[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
-  // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, l.20).
+  // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).
   // La magnitude d'un `testMod` est multipliée par les pions quand l'entrée porte `perStack` (LDB 16 l.11) ;
   // le gate de combat `ignoreStatePenalties` est appliqué au point de LECTURE (combatTestPenalty).
   for (const cond of c.conditions ?? []) {
@@ -1189,7 +1189,7 @@ export function traumaCharPenalties(c: Combatant, key: CharKey): number[] {
   return traumaCharPenaltiesLabeled(c, key).map((p) => p.mod);
 }
 
-/** Pire pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; non-cumul, LDB l.20). Une prothèse
+/** Pire pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; non-cumul, LDB 16 l.13). Une prothèse
  *  qui annule TOUT (Merveille d'ingénierie, LDB 73) lève aussi l'Esquive ; la Fausse jambe SEULE laisse le
  *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `trainProsthesis`,
  *  state/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
@@ -1213,7 +1213,7 @@ function senseMatches(opSense: PairedSense | undefined, testSense: PairedSense |
 /** Pire pénalité permanente à une Compétence nommée due aux traumatismes (séquelle de fracture, LDB 18
  *  l.202/212 — ex. −5/−10 « Langue » après une fracture à la Tête). `testSense` restreint les `skillMod`
  *  qui portent un `sense` (Surdité, LDB 18 : Perception auditive seulement — `senseMatches`) au Test COURANT ;
- *  transmis par `testValue`. Non-cumul (l.20) ; ≤ 0. */
+ *  transmis par `testValue`. Non-cumul (LDB 16 l.13) ; ≤ 0. */
 export function traumaSkillPenaltyParts(c: Combatant, skill?: string, testSense?: PairedSense): PassiveMod[] {
   if (!skill) return [];
   // Esquive est porté par traumaDodgePenalty (defenseValue) → EXCLU ici pour préserver la séparation historique.
@@ -1221,7 +1221,7 @@ export function traumaSkillPenaltyParts(c: Combatant, skill?: string, testSense?
     const o = m.op as Extract<GameOp, { op: 'skillMod' }>;
     return o.skill.id !== 'esquive' && o.skill.id === skill && o.mod < 0 && senseMatches(o.sense, testSense);
   });
-  // Non-cumul (l.20) : la PIRE seule — comparaison STRICTE, un ex æquo ne détrône pas le tenant
+  // Non-cumul (LDB 16 l.13) : la PIRE seule — comparaison STRICTE, un ex æquo ne détrône pas le tenant
   // (même arbitrage déterministe que `poolWinner`, conditions.ts).
   const worst = cand.reduce<PassiveMod | undefined>((best, m) => (
     best == null || (m.op as Extract<GameOp, { op: 'skillMod' }>).mod < (best.op as Extract<GameOp, { op: 'skillMod' }>).mod ? m : best), undefined);

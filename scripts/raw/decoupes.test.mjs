@@ -7,14 +7,15 @@
 // redit ; chaque entrée porte exactement son jeu de clés ; les pages sont croissantes (deux entrées
 // peuvent partager une page : on coupe à la LIGNE du titre, pas à la page) ; aucune entrée n'est
 // saisie deux fois ; chaque titre de fichier survit à `nomAscii` sans changer (le nom écrit sous
-// `Source/` est celui de la donnée) ; `onglets` est déclaré, bien formé et couvre chaque chapitre, `gabaritOnglet` l'accompagne.
+// `Source/` est celui de la donnée) ; `onglets` est déclaré, bien formé et couvre chaque chapitre, `gabaritOnglet` l'accompagne ; `gabaritTitre` est déclaré et bien formé.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DECOUPES_DIR, decoupeDe, estLivreExtrait, livresDecoupes, REGISTRE_LIVRES } from './_lib.mjs'
+import { DECOUPES_DIR, decoupeDe, estLivreExtrait, livresDecoupes, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { ROLES_DE_GLYPHE } from './sonde-titres.mjs'
 
 const LIVRES_COUVERTS = new Map(REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => [b.id, b]))
 const IDS = livresDecoupes()
@@ -133,7 +134,6 @@ test('#1739 : tout titre de fichier survit à `nomAscii` sans changer', () => {
 // livre sans onglet imprimé, son absence ne dit rien.
 // Même motif que `scripts/raw/onglets.py` (sonde Python qui écrit la donnée) : deux langages, une définition.
 const ROMAIN = /^(?=[IVXLC])C{0,3}(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/
-const ongletsDe = (id) => JSON.parse(readFileSync(join(DECOUPES_DIR, `${id}.json`), 'utf8')).onglets
 
 test('#1739 : `onglets` est déclaré — un tableau non vide, ou `null`', () => {
   const fautes = IDS.filter((id) => {
@@ -183,6 +183,44 @@ test('#1739 : `gabaritOnglet` est non nul si et seulement si `onglets` l’est, 
     }
   }
   assert.deepEqual(fautes, [], `gabarit d’onglet incohérent :\n${fautes.join('\n')}`)
+})
+
+// Le GABARIT des titres d'entrée est ce que la sonde `scripts/raw/sonde-titres.mjs` lit : REQUIS,
+// `null` déclare un livre non sondé ; sinon sept clés, chaque typographie `{ police, taille? }`, chaque
+// police d'ORNEMENT (`glyphes`) `{ police, role, caracteres }`, rôle parmi `ROLES_DE_GLYPHE`, caractères
+// mesurés au PDF (un caractère chacun, au moins un).
+test('#1739 : `gabaritTitre` est déclaré — `null`, ou `{ titre, accompagnement, encadre, capitales, intertitre, exclusions, glyphes }` bien formés', () => {
+  const fautes = []
+  const typo = (ou, t, tailleRequise) => {
+    const cles = Object.keys(t ?? {}).sort().join(',')
+    if (cles !== 'police,taille' && (tailleRequise || cles !== 'police')) fautes.push(`${ou} — clés ${cles || '(aucune)'}`)
+    if (typeof t?.police !== 'string' || !t.police.trim() || t.police.includes('+')) fautes.push(`${ou} — \`police\` ${JSON.stringify(t?.police)} : un nom sans préfixe de sous-ensemble`)
+    if ('taille' in (t ?? {}) && !(typeof t.taille === 'number' && t.taille > 0)) fautes.push(`${ou} — \`taille\` ${JSON.stringify(t.taille)} : un corps en pt positif`)
+  }
+  for (const id of IDS) {
+    const g = JSON.parse(readFileSync(join(DECOUPES_DIR, `${id}.json`), 'utf8')).gabaritTitre
+    if (g === undefined) { fautes.push(`${id}.json — \`gabaritTitre\` absent`); continue }
+    if (g === null) continue
+    const cles = Object.keys(g).sort().join(',')
+    if (cles !== 'accompagnement,capitales,encadre,exclusions,glyphes,intertitre,titre') fautes.push(`${id}.json — clés du gabarit ${cles}, attendu accompagnement,capitales,encadre,exclusions,glyphes,intertitre,titre`)
+    typo(`${id}.json titre`, g.titre, true)
+    typo(`${id}.json encadre`, g.encadre, true)
+    typo(`${id}.json capitales`, g.capitales, false)
+    typo(`${id}.json intertitre`, g.intertitre, true)
+    for (const k of ['accompagnement', 'exclusions']) {
+      if (!Array.isArray(g[k])) { fautes.push(`${id}.json — \`${k}\` doit être un tableau`); continue }
+      g[k].forEach((t, i) => typo(`${id}.json ${k}[${i}]`, t, k === 'accompagnement'))
+    }
+    if (!Array.isArray(g.glyphes)) fautes.push(`${id}.json — \`glyphes\` doit être un tableau`)
+    else g.glyphes.forEach((t, i) => {
+      const cles = Object.keys(t ?? {}).sort().join(',')
+      if (cles !== 'caracteres,police,role') fautes.push(`${id}.json glyphes[${i}] — clés ${cles || '(aucune)'}, attendu caracteres,police,role : une police d'ornement se lit à toute taille`)
+      else typo(`${id}.json glyphes[${i}]`, { police: t.police }, false)
+      if (!ROLES_DE_GLYPHE.includes(t?.role)) fautes.push(`${id}.json glyphes[${i}] — \`role\` ${JSON.stringify(t?.role)} : un rôle parmi ${ROLES_DE_GLYPHE.join(', ')}`)
+      if (!Array.isArray(t?.caracteres) || !t.caracteres.length || t.caracteres.some((c) => typeof c !== 'string' || [...c].length !== 1 || !c.trim())) fautes.push(`${id}.json glyphes[${i}] — \`caracteres\` ${JSON.stringify(t?.caracteres)} : les caractères mesurés au PDF, un chacun`)
+    })
+  }
+  assert.deepEqual(fautes, [], `gabarit de titre mal formé :\n${fautes.join('\n')}`)
 })
 
 // Tout CHAPITRE de la liste imprime son onglet quelque part : son segment de pages rencontre au moins

@@ -9,7 +9,8 @@
  *
  * ENTRÉES : `scripts/raw/reanchor-low-stock.json`, `scripts/raw/graphy-stock.json`,
  * `scripts/raw/reconciliation-stock.json` — LU aussi : l'Atlas sur disque (`docs/raw/`), la SEULE
- * source du cœur d'une page. Aucun nom de cœur ne vit dans ce fichier.
+ * source du cœur d'une page. Aucun nom de cœur ne vit dans ce fichier. Un stock SOLDÉ est ABSENT
+ * du disque (`fs.existsSync`) : il ne cite aucun chemin, la migration le saute sans écrire.
  *
  * GESTE : réécriture de CHEMIN seule, sur le TEXTE (le formatage du document est préservé à
  * l'octet). Un `docs/raw/<nom>.md` dont l'Atlas porte la page sous UN cœur devient
@@ -77,6 +78,7 @@ const CITATION = new RegExp(String.raw`${echappe(RAWDIR)}/([\w.-]+\.md)`, 'gu');
 const sites = []; // { fichier, avant, apres, n }
 for (const fichier of FICHIERS) {
   const abs = path.join(ROOT, fichier);
+  if (!fs.existsSync(abs)) continue;
   const brut = fs.readFileSync(abs, 'utf8');
   let n = 0;
   /** Les noms ambigus cités à plat dans CE stock — une anomalie par nom, pas par occurrence. */
@@ -113,7 +115,8 @@ if (anomalies.length) {
 }
 
 if (sites.length === 0) {
-  console.log(`RIEN À FAIRE — les ${FICHIERS.length} stock(s) nominatifs citent l'Atlas par un chemin à cœur.`);
+  const presents = FICHIERS.filter((f) => fs.existsSync(path.join(ROOT, f))).length;
+  console.log(`RIEN À FAIRE — les ${presents} stock(s) nominatifs présents citent l'Atlas par un chemin à cœur.`);
   process.exit(0);
 }
 

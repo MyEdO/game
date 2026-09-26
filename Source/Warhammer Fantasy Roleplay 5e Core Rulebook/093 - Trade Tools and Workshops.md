@@ -1,10 +1,10 @@
 *Pages PDF 312*
 
-# **TRADE TOOLS AND WORKSHOPS**
+# <span id="page-311-0" data-folio="312"></span>**TRADE TOOLS AND WORKSHOPS**
 
 Trade Tools are needed if you wish to take a Trade Test to make or fix something, and the examples below are a sample of the many options available. Workshops are needed for larger projects, such as creating new trappings.
 
-#### **TRADE TOOLS AND WORKSHOPS**
+**TRADE TOOLS AND WORKSHOPS**
 
 | Item        | Cost  | Enc | Availability |
 |-------------|-------|-----|--------------|

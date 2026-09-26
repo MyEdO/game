@@ -23,7 +23,7 @@ import { WoundsBadge } from './WoundsBadge';
  *
  * COQUE (navire/engin, #240) : le statbloc-personnage n'a aucun sens (caracs nulles) → on inspecte l'objet
  * visible via `ShipInspectBody` (Coque, cap, postes, Traits/Améliorations dont la Proue-idole #221) — même
- * geste (mode Inspection), une coque ENNEMIE y répond désormais comme un combattant, en LECTURE.
+ * geste (mode Inspection), une coque ENNEMIE y répond comme un combattant, en LECTURE.
  */
 export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onClose: () => void }) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -45,7 +45,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
           <div className="insp-id">
             <h3>{c.label}</h3>
             {/* PB en tête sans libellé texte : l'icône `resource/wounds` porte le sens (choix DÉLIBÉRÉ
-                du site d'appel — le badge, lui, ne rend plus que la valeur). */}
+                du site d'appel — le badge, lui, rend seulement la valeur). */}
             {!hull && <span className="insp-pv-num"><Icon id="resource/wounds" size="sm" /> <WoundsBadge wounds={c.wounds} /></span>}
           </div>
         </div>

@@ -6,7 +6,7 @@ import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 
 /**
- * Traversée aquatique (MSRC 15 p.90 / MDG 16 p.140 / LDB 85 p.338) : une créature à terrain d'élection `eau`
+ * Traversée aquatique (MSRC 15 l.139 / MDG 16 l.17 / LDB 85 l.21) : une créature à terrain d'élection `eau`
  * (op passive `offTerrainMod` → `requiredTerrains`) TRAVERSE l'eau bien qu'elle soit `walkable:false`
  * pour tous les autres. Le pathing lit `MoveEnv.swim` ; `moveEnv(battle, mover)` le dérive du mover.
  * Sans le trait, l'eau reste un mur — et `swim` ne débloque QUE l'eau, pas les autres non-marchables.

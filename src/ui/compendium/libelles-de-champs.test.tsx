@@ -156,7 +156,7 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
   // `oups.json` tenait ce rôle tant que son schéma d'union le laissait hors de `document()` : il était
   // le DERNIER document registré sans méta. Son adoption (#1467 L1b V-UNION) vide cette population, si
   // bien que le témoin négatif n'a plus de porteur. Le contrat qui reste se dit au POSITIF, et il est
-  // plus fort : le canal sert TOUT le registre, `undefined` ne signalant plus que le hors-registre.
+  // plus fort : le canal sert TOUT le registre, `undefined` signalant seulement le hors-registre.
   it('plus AUCUN document registré n’est sans méta — les DEUX racines comprises', () => {
     const sansMeta = DEFS_DE_DOCUMENT.filter((d) => metaPourFichier(d.file) === undefined).map((d) => `${d.root} · ${d.file}`);
     expect(sansMeta, `document(s) registré(s) sans méta — le canal atelier y retombe sur la clé technique :\n${sansMeta.join('\n')}`).toEqual([]);

@@ -20,6 +20,7 @@ import { TokenChromeOverlay } from './stage/TokenChromeOverlay';
 import { PlaquesDeNom } from './stage/PlaquesDeNom';
 // SONDE DE PICKING de la recette : son import l'enregistre auprès de l'outillage (`__wfrp.pickTileAt`).
 import './stage/pickProbe';
+import './stage/iso-stage.css';
 import { type GesteMark, type TokenChromeMark } from './builders/tokenChrome';
 import { type InteractHalo } from './builders/interactHalos';
 import { viewPolicy } from './stage/viewPolicy';

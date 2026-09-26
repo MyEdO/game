@@ -1,5 +1,5 @@
 /**
- * Trait de créature ABSORPTION (EDO 11 p.147) — mécanique 100 % DONNÉES (traits.json `absorption.effects`),
+ * Trait de créature ABSORPTION (EDO 11 l.222) — mécanique 100 % DONNÉES (traits.json `absorption.effects`),
  * dispatchée par le système générique d'effets déclenchés (`fireTriggers`). Aucune branche par-nom dans le
  * moteur : tout passe par les extensions GÉNÉRALES de vocabulaire (Condition `engagedAdvantageLead`,
  * Formula `{woundsDealt}`, EffectTargeting `grappled` / `{pick}`).
@@ -42,7 +42,7 @@ const get = (...cs: Combatant[]) => (() => ({ battle: { combatants: cs } })) as 
 const empetre = (c: Combatant) => stacks(c, 'empetre');
 const digere = (c: Combatant) => stacks(c, 'digere');
 
-describe('Absorption (EDO p.147) — engloutissement de fin de Round, data-driven', () => {
+describe('Absorption (EDO 11 l.222) — engloutissement de fin de Round, data-driven', () => {
   it('(a) Avantage supérieur à TOUS + adversaire de Taille ≤ → absorbe : Empêtré ×BF, Empoigné, marqué Digéré', () => {
     const b = beast(2);
     const v = prey('v', 'moyenne'); // Moyenne (3) ≤ Grande (4)

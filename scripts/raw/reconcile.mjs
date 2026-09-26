@@ -31,13 +31,14 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parUnitesDeCode, listerArbre } from '../guards/lib/lister.mjs'
+import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import {
   refReDe, refFolioReDe, alternationDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
   REGISTRE_LIVRES, folioSpan, span, pagesDeLAtlas, readText,
 } from './_lib.mjs'
 import { lireStockJson } from './stockNominatif.mjs'
+import { fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
@@ -83,14 +84,6 @@ export function decodeCle(cle, abbrs) {
   return sensB2 ? { sens: 'B2', ...sensB2 } : sensA ? { sens: 'A', ...sensA } : null
 }
 
-function fichiersSources(dir, exts) {
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.split('/').includes('node_modules'),
-    filtre: (rel) => exts.some((x) => rel.endsWith(x)),
-  }).map((rel) => join(dir, rel))
-}
-
-
 // Clé de chapitre canonique du Sens A (#434 défaut 9 suite, #1156) : le code écrit le numéro
 // zéro-préfixé (`AA 02`, `ADE II ch.03`, `LDB 08`), l'Atlas écrit les titres sans préfixe
 // (`## [AA 2]`, `## [LDB 8]`) — comparaison textuelle brute = faux trou, et exemption catalogue
@@ -118,14 +111,14 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
   const coeurs = coeursDe(registre)
   const ALT = alternationDe(books)
   const bookOf = bookOfDe(books)
-  const SRC = fichiersSources(srcDir, ['.ts', '.tsx', '.json'])
+  const SRC = fichiersCitants(srcDir)
   const DOCS = pagesDeLAtlas(rawDir, { classes: CLASSES, registre })
 
   // --- regex de réfs (source unique : _lib.mjs ; instances stateful /g locales) ---
   const REF_RE = refReDe(ALT)
-  // Miroir FOLIO (#606) : la graphie `ABBR NN p.folio` (gelée par #585) est aussi une citation de
-  // chapitre valide côté ATLAS (jamais côté CODE — le code cite des lignes, la donnée cite déjà son
-  // folio via `source:{book,page}`, traité par le crédit `codeFolioCh` plus bas) ; convertie en
+  // Miroir FOLIO (#606) : la graphie folio des fiches de l'Atlas (`ABBR NN p.folio`) est aussi une
+  // citation de chapitre valide côté ATLAS (jamais côté CODE — le code cite des lignes, la donnée
+  // cite déjà son folio via `source:{book,page}`, traité par le crédit `codeFolioCh` plus bas) ; convertie en
   // plage de LIGNES via `folioSpan`, fusionnée aux spans d'`atlas` — la couverture ne doit voir
   // qu'UNE mesure, jamais un chemin parallèle qui recompte différemment.
   const REF_FOLIO_RE = refFolioReDe(ALT)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { normalizeScene, type Scene } from '../../state/scene';
+import type { Scene } from '../../state/scene';
 import { autosaveLoad, autosaveSave, autosaveDelete, type EditorAutosaveRecord } from '../../state/editorAutosave';
 
 /** Délai de débattue avant écriture (pas à chaque frappe/pas de pinceau — cf. `editorAutosave.ts`). */
@@ -24,6 +24,7 @@ const MAX_WAIT_MS = 5000;
 export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => void) {
   const [recovery, setRecovery] = useState<EditorAutosaveRecord | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [ecartee, setEcartee] = useState<string | null>(null); // raison d'un enregistrement écarté à la lecture
   const [ready, setReady] = useState(false); // reste faux tant que la vérification de reprise n'a pas conclu pour CETTE scène
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkedRef = useRef<string | null>(null); // id de scène déjà vérifié cette session
@@ -37,8 +38,10 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     checkedRef.current = scene.id;
     setReady(false);
     let cancelled = false;
-    autosaveLoad(scene.id).then((rec) => {
+    autosaveLoad(scene.id).then((lu) => {
       if (cancelled) return;
+      const rec = lu && 'ecartee' in lu ? null : lu;
+      setEcartee(lu && 'ecartee' in lu ? lu.ecartee : null);
       const stale = !!rec && JSON.stringify(rec.scene) !== JSON.stringify(scene);
       setRecovery(stale ? rec : null);
       setHidden(false);
@@ -88,14 +91,11 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     };
   }, []);
 
-  /** Le magasin du filet de crash n'a PAS d'axe de version : un enregistrement écrit par une version
-   *  antérieure de l'application y dort tel quel, et il rentre en mémoire ICI. Il passe donc par le
-   *  normaliseur du dépôt (`normalizeScene`) comme toute Scène d'un document ancien — sans quoi le
-   *  travail restauré repartirait dans un « Enregistrer » en forme d'hier, que sa propre porte
-   *  (`parseProject`) refuserait à la relecture. */
+  /** La scène proposée a DÉJÀ traversé la chaîne de migrations canonique à la lecture
+   *  (`autosaveLoad`, `sceneAuSchemaCourant`) : elle est restaurée telle quelle. */
   function restore(): void {
     if (!recovery) return;
-    applyRecovered(normalizeScene(recovery.scene));
+    applyRecovered(recovery.scene);
     setRecovery(null);
     setHidden(false);
   }
@@ -119,6 +119,8 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
   }
 
   return {
+    ecartee,
+    oublierEcartee: () => setEcartee(null),
     recovery: hidden ? null : recovery,
     hasHiddenRecovery: hidden && !!recovery,
     restore,

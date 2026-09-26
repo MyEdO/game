@@ -126,11 +126,13 @@ ol.grid {
 .row > [data-push='end'] { margin-inline-start: auto; }
 .grid > [data-span='full'] { grid-column: 1 / -1; }
 
-/* ── CASSURES (breakpoints canon, règle stricte 4) : `stackBelow` / `rowBelow` ── */
+/* ── CASSURES (breakpoints canon, règle stricte 4) : `stackBelow` / `rowBelow` ──
+   Piste empilée `minmax(0, 1fr)` : une piste `1fr` nue vaut `minmax(auto, 1fr)` et s'élargit au
+   contenu (recette 360 px du 2026-09-26 : piste de 513 px dans un `.split` de 322). */
 @media (max-width: 900px) {
   .split[data-stack-below='900'],
   .grid[data-stack-below='900'] {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .split[data-stack-below='900']:not([data-side='end'])[data-sticky] > :first-child,
   .split[data-stack-below='900'][data-side='end'][data-sticky] > :last-child {
@@ -152,7 +154,7 @@ ol.grid {
 @media (max-width: 700px) {
   .split[data-stack-below='700'],
   .grid[data-stack-below='700'] {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .split[data-stack-below='700']:not([data-side='end'])[data-sticky] > :first-child,
   .split[data-stack-below='700'][data-side='end'][data-sticky] > :last-child {
@@ -170,7 +172,7 @@ ol.grid {
 @media (max-width: 560px) {
   .split[data-stack-below='560'],
   .grid[data-stack-below='560'] {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .split[data-stack-below='560']:not([data-side='end'])[data-sticky] > :first-child,
   .split[data-stack-below='560'][data-side='end'][data-sticky] > :last-child {

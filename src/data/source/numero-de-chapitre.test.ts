@@ -174,12 +174,12 @@ describe('garde `largeur-de-numero` — une largeur par dossier, celle du plus g
     expect(largeurs(listerDossier(livreForge()))).toEqual([]);
   });
 
-  it('un dossier MÊLÉ rougit, et NOMME le premier fichier hors largeur', () => {
+  it('un dossier MÊLÉ rougit, et NOMME chaque fichier hors largeur', () => {
     const court = largeurs(['99 - A.md', '100 - B.md']);
-    expect(court.map((s) => s.ref)).toEqual(['1 préfixe(s) hors largeur 3']);
+    expect(court.map((s) => s.ref)).toEqual(['hors largeur 3']);
     expect(court[0].file).toBe('Source/Livre/99 - A.md');
-    expect(largeurs(['07 - A.md', '100 - B.md']).map((s) => s.ref)).toEqual(['1 préfixe(s) hors largeur 3']);
-    expect(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.ref)).toEqual(['2 préfixe(s) hors largeur 3']);
+    expect(largeurs(['07 - A.md', '100 - B.md']).map((s) => s.ref)).toEqual(['hors largeur 3']);
+    expect(largeurs(['07 - A.md', '08 - B.md', '100 - C.md']).map((s) => s.file)).toEqual(['Source/Livre/07 - A.md', 'Source/Livre/08 - B.md']);
   });
 });
 

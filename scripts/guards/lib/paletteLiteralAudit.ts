@@ -3,12 +3,13 @@
  * garde `src/gameIso/rig/parts/tenues/palette-literal.test.ts` et le régénérateur
  * `scripts/rig/regen-palette-literal-stock.mts`.
  *
- * Classe de défaut mesurée : un littéral hex (`fill`/`stroke`/`stop-color`) qui vaut EXACTEMENT
+ * Classe de défaut mesurée : un littéral hex (`fill`/`stroke`/`stop-color`, ou arrêt d'un dégradé
+ * dérivé `url(#dg-<forme>-…)`, #1903 A3) qui vaut EXACTEMENT
  * (distance ZÉRO, insensible à la casse) une valeur déclarée dans la `palette` du MÊME def. Ce
  * littéral devait être le jeton `@<clé>` correspondant — quelle que soit la MATIÈRE peinte (chair,
  * cuir, tissu, plume…), la réponse mécanique est identique. Interdiction MÉCANISABLE SANS FAUX
  * POSITIF : on ne compare QUE contre les valeurs déclarées PAR LE MÊME def (jamais une distance
- * colorimétrique globale — cf. `fleshGradientAudit.ts`, faux positifs confirmés #583).
+ * colorimétrique globale, faux positifs confirmés #583).
  *
  * Cas fondateur vérifié (#583) : `Messager` bras.front utilise `@peau`/`@peauO` correctement, mais
  * bras.back/bras.profile recopient `#e2b48c`/`#8c4a28` — exactement `peau`/dérivés de `peauO` du
@@ -41,7 +42,10 @@ export type BodySlot = (typeof BODY_SLOTS)[number];
 export const VIEWS = ['front', 'back', 'profile'] as const;
 export type View = (typeof VIEWS)[number];
 
-const LITERAL = /(?:fill|stroke|stop-color)\s*=\s*("|')(#[0-9a-fA-F]{3,8})\1/g;
+const LITERAL = /(?:fill|stroke|stop-color)\s*=\s*("|')(#[0-9a-fA-F]{3,8})\1|url\(#dg-[a-z0-9]+((?:-(?:@[a-zA-Z]\w*|#[0-9a-fA-F]{6}))+)\)/g;
+
+/** Littéraux hex d'une correspondance de `LITERAL` : l'attribut, ou chaque arrêt littéral d'un `dg-`. */
+const litterauxDe = (m: RegExpExecArray): string[] => (m[2] ? [m[2]] : m[3].split('-').filter((a) => a.startsWith('#')));
 
 function viewsOf(art: PartArt): Partial<Record<View, string>> {
   return typeof art === 'string' ? { front: art } : art;
@@ -73,9 +77,8 @@ export function sitesPaletteLiteral(defs: readonly TenueDef[] = TENUE_DEFS): { f
         if (!svg) continue;
         LITERAL.lastIndex = 0;
         let m: RegExpExecArray | null;
-        while ((m = LITERAL.exec(svg))) {
-          if (hexSet.has(m[2].toLowerCase())) sites.push({ file: fichierDeTenue(def), ref: `${id}:${slot}:${view}` });
-        }
+        while ((m = LITERAL.exec(svg)))
+          for (const hex of litterauxDe(m)) if (hexSet.has(hex.toLowerCase())) sites.push({ file: fichierDeTenue(def), ref: `${id}:${slot}:${view}` });
       }
     }
   }

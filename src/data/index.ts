@@ -164,11 +164,11 @@ export const GRAPPLE = grappleJson as GrappleRule;
  */
 const adressee = <T>(json: unknown): T[] => json as T[];
 
-/** Mode d'exposition hydrique (MSRC 16 p.91) : ingestion volontaire (« boit de l'eau de rivière sans
+/** Mode d'exposition hydrique (MSRC 16 l.5/37) : ingestion volontaire (« boit de l'eau de rivière sans
  *  la faire bouillir ») ou immersion (chute/nage — « uniquement à l'immersion » pour le tableau 2). */
 export type WaterExposureMode = 'ingestion' | 'immersion';
 /** Dérivation AUTOMATIQUE d'un modificateur d'exposition depuis le Combatant (tableau 2 « Blessures et
- *  États », MSRC 16 p.91) : PB restants/perdus, PAR pion d'un État, présence d'un État. */
+ *  États », MSRC 16 l.35-47) : PB restants/perdus, PAR pion d'un État, présence d'un État. */
 export type WaterExposureAuto =
   | { kind: 'woundsRemaining'; op: '<='; value: number }
   | { kind: 'woundsLost'; op: '>='; value: number }
@@ -177,7 +177,7 @@ export type WaterExposureAuto =
   | { kind: 'hasCondition'; condition: string };
 /** Un modificateur d'exposition hydrique : tableau 1 « Source d'eau » (choix d'AUTEUR de la zone d'eau)
  *  ou tableau 2 « Blessures et États » (dérivé du Combatant via `auto`). « Tous les modificateurs
- *  peuvent être cumulés » (MSRC 16 p.91). NB : « Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n'a
+ *  peuvent être cumulés » (MSRC 16 l.13). NB : « Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n'a
  *  pas d'État « Assommé » ; le même chapitre écrit « État *Sonné* » p.92 — glissement de traduction). */
 export interface WaterExposureModifier {
   id: string;
@@ -187,7 +187,7 @@ export interface WaterExposureModifier {
   table: 'source-d-eau' | 'blessures-et-etats';
   auto?: WaterExposureAuto;
 }
-/** Tables d'exposition hydrique (MSRC 16 p.91) : Test de Résistance Intermédiaire modifié ; raté →
+/** Tables d'exposition hydrique (MSRC 16 l.13-63) : Test de Résistance Intermédiaire modifié ; raté →
  *  d100 « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
  *  second Test de Contraction). `rerollUnlessWounded` : « Relancez si le Personnage n'est pas blessé ». */
 export interface WaterExposureData {
@@ -202,11 +202,11 @@ export interface WaterExposureData {
 }
 export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
 
-/** Enjeu VERBATIM (règle 5, #331) d'un `kind` d'étape de la cascade de nuit (`src/state/restFlow.ts`
- *  `nightStake`) — un `kind` absent du catalogue n'affiche rien (surfaçage progressif). */
+/** Enjeu VERBATIM (règle 5, #331) d'un `kind` d'étape de la cascade de nuit (`src/state/restFlow.ts`,
+ *  via `nightStakeRef`) — un `kind` absent du catalogue n'affiche rien (surfaçage progressif). */
 export interface NightStakeEntry {
   /** Identité STABLE + libellé FR (#422, exposition Codex) — distincts de `kind` (vocabulaire lu par
-   *  `nightStake`), ajoutés pour la navigation/l'édition. */
+   *  `nightStakeRef`), ajoutés pour la navigation/l'édition. */
   id: string;
   label: string;
   kind: string;
@@ -822,6 +822,9 @@ export interface SpeciesData {
    *  quand elle porte son propre Groupe (« Humains (Tiléens) » → `humain` + `tileen`). Lus tels
    *  quels par `groupsFor` (`engine/groups`), qui ne dérive plus rien du `label`. */
   grantGroups: string[];
+  /** Profil standard du PNJ de l'espèce (`LDB 77 l.7`) — réf à `creatures.json`, posée par espèce.
+   *  Absent = aucun profil standard (`gnomes`). */
+  profilStandard?: { id: string };
   /** Seuil d100 de mutation PHYSIQUE (LDB 19 l.78-81 : d100 ≤ seuil → corps, sinon esprit) :
    *  Elfe 0, Nain 5, Halfling 10, Humain 50. Ogre 10 (ADE II « Ogres et Mutations »). ABSENT = défaut
    *  Humain (50) — le Gnome y est rattaché par NADJ « Gnomes et Corruption » (« mutent comme les humains »). */
@@ -834,7 +837,7 @@ export interface SpeciesData {
    *  (`import('../engine/statEntry').TraitInstance`, jamais une glose de règle en `desc`) : Ogre porte
    *  `{id:'ogre'}` (ADE2 « Ogres et Mutations » l.708 « Un Lourd Fardeau », encombrance/consommation
    *  ×2 lues par `traitEncumbranceFactor`/`traitConsumptionFactor` sur `Combatant.traits`). La Taille
-   *  (LDB 85 p.342) N'EST PAS un trait — elle est portée par le TALENT Massif/Petit (déjà présent
+   *  (LDB 85 l.342) N'EST PAS un trait — elle est portée par le TALENT Massif/Petit (déjà présent
    *  dans `talents`, lu par `createHero`). Posé sur `Combatant.traits` à `createHero`. Absent = aucun
    *  trait racial mécanique (espèce sans règle raciale hors talents/skills). */
   traits?: import('../engine/statEntry').TraitInstance[];
@@ -1053,7 +1056,7 @@ export interface TalentData {
    *  MÉCANIQUE correspondant est `combat.aa`. Absent = le Talent ne change pas en mode groupe. */
   descAA?: string;
   specs?: SpecEntry[];
-  /** Catégorie de Taille CONFÉRÉE par le talent (Massif → `grande`, Petit → `petite`, LDB 85 p.342) —
+  /** Catégorie de Taille CONFÉRÉE par le talent (Massif → `grande`, Petit → `petite`, LDB 85 l.344-354) —
    *  lue par `createHero` (#572), même vocabulaire que la Taille de créature (`SizeCategory`). */
   size?: import('../engine/size').SizeCategory;
   /** Source du pool de spéc (via `SPEC_SOURCES`/`specPoolOf`/`specLabel`) : `arcaneDomains` (Magie des
@@ -1115,9 +1118,9 @@ export interface ItemCapabilities {
   /** Protège des intempéries (Cape/Manteau, LDB 65 l.44) — annule le malus de Test d'Exposition au
    *  froid (GATÉ sur le port). */
   weatherProtection?: boolean;
-  /** Abri de campement (Tente, LDB 74 p.308) — annule/atténue l'Exposition d'une nuit dehors (NON gaté). */
+  /** Abri de campement (Tente, LDB 74 l.39) — annule/atténue l'Exposition d'une nuit dehors (NON gaté). */
   isShelter?: boolean;
-  /** Ration de voyage (« Ration (1 jour) », LDB 66 p.302) — consommée par l'entretien de Faim (NON gaté). */
+  /** Ration de voyage (« Ration (1 jour) », LDB 66 l.20) — consommée par l'entretien de Faim (NON gaté). */
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
@@ -1145,7 +1148,7 @@ export interface ItemCapabilities {
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `state/combatFlow.ts` `weaponContextOf`), choisi
    *  par le joueur avant le jet (`PendingAttack.harpoonRopeCut`). Lue par-objet (`itemCapability`). */
   ropeMode?: boolean;
-  /** Contenant d'eau (Outre à eau, LDB 64 p.301 / Seau, LDB 67 p.303) : consommé par l'action de combat « Asperger
+  /** Contenant d'eau (Outre à eau, LDB 64 l.18 / Seau, LDB 67 l.59) : consommé par l'action de combat « Asperger
    *  d'eau » (MDG 16 l.19, #497) qui pose `Combatant.wateredThisRound` sur une Créature marine
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
@@ -1166,13 +1169,13 @@ export interface TrappingData {
    *  (Arc/Poudre noire…), type d'armure (Plate/Mailles…) ou catégorie d'inventaire — réf d'entité, ≠ libellé. */
   subType: string | null;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
-   *  poudre-noire, AA 10 p.122 l.3848-3863) quand `subType` = catégorie de catalogue (« armes-de-siege »). Pilote
-   *  la Spé de tir (`acceptableSpecs`) et le décompte d'équipage (Projectiles appropriée, l.3900). */
+   *  poudre-noire, AA 10 l.178-193) quand `subType` = catégorie de catalogue (« armes-de-siege »). Pilote
+   *  la Spé de tir (`acceptableSpecs`) et le décompte d'équipage (Projectiles appropriée, AA 10 l.230). */
   weaponGroup?: string;
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 p.122 l.3818) : tirée par UN seul servant
+  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
    *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
   soloSimple?: boolean;
-  /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 p.122-123) : peut viser une CASE au sol.
+  /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;
   /** LDB 62 l.278 — approximation MAISON (le RAW ne liste pas les armes à lame), éditable. Propagé
@@ -1197,7 +1200,7 @@ export interface TrappingData {
   siegeRig?: string;
   /** `id` de munition REPRÉSENTATIVE (`TrappingData.id`, `categorie:'ammunition'`) d'une arme de siège — les
    *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
-   *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 p.101) ; le
+   *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
    *  `subType` seul ne discrimine pas la bonne famille pour le hint joueur. Propagé jusqu'à `Weapon`,
    *  résolu en libellé FR par `ammoFamilyLabel`. Absent = hint générique de la famille (`ammoFamilyLabel`). */
   defaultAmmo?: string;
@@ -1313,7 +1316,7 @@ export interface TrappingData {
    *  appliqués tant que l'objet est PORTÉ ou TENU (collecteur `passiveMods`). Ex. Bésicles → `skillMod`
    *  +20 Langue/Perception (LDB 67). */
   passive?: import('../engine/ops').GameOp[];
-  /** Tarif d'un SERVICE (LDB 66 p.302 : chambre/écurie…), pas un objet possédable — Enc « – » dans la
+  /** Tarif d'un SERVICE (LDB 66 l.12-14 : chambre/écurie…), pas un objet possédable — Enc « – » dans la
    *  source (≠ 0, RAW ne le compte même pas comme non-encombrant). N'entre JAMAIS en stock marchand
    *  (`computeFreshStockLines`), ni en inventaire (`itemFromTrappingById` refuse bruyamment) ; reste
    *  la source de PRIX pour son consommateur (référencée par id) et visible au Codex/Compendium. */
@@ -1717,7 +1720,7 @@ export interface TraitCapabilities {
   /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
    *  l'incantation SANS Compétence avancée (statblocs du bestiaire), lu par `knowsCastingSkill`. */
   spellcaster?: boolean;
-  /** Porte le Trait Mort-vivant (LDB 85 p.340, lu par Hurlement fantomatique LDB 85 l.170 :
+  /** Porte le Trait Mort-vivant (LDB 85 l.239, lu par Hurlement fantomatique LDB 85 l.170 :
    *  « créatures vivantes (ne possédant pas le trait Mort-vivant) ») — le TRAIT, PAS le Groupe
    *  bestiaire (un folder « Morts sans repos » sans ce Trait, ex. Goule de crypte, N'EST PAS visé). */
   undead?: boolean;
@@ -1862,14 +1865,14 @@ export interface TraitData {
    *  (`AppearanceField`) que les créatures/mutations. */
   appearance?: EntityAppearance;
   /** Drapeaux de CAPACITÉ irréductibles (décisions IA/psy, résolution, build/déplacement/vision) —
-   *  migrés des `defs/` mécaniques, lus PAR ID par `engine/traits/dispatch`. Édité au Codex. */
+   *  lus PAR ID par `engine/traits/dispatch`. Édité au Codex. */
   capabilities?: TraitCapabilities;
   /** Capacités d'AUTRES traits du même porteur ANNULÉES par ce trait (« entraîné à IGNORER son Trait
    *  X » — LDB 85 : Dressé (Dompté) ignore Bestial). Mécanisme GÉNÉRIQUE de suppression, lu par
    *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
   suppressesCapabilities?: (keyof TraitCapabilities)[];
   /** AURA de combat : projette des `passive` GameOp[] sur les combattants À PORTÉE (Perturbant : −20 aux
-   *  Tests à `rangeChar` mètres, LDB 85 p.341 ; `affects` = quel camp est touché, `affectsGroups` = à
+   *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché, `affectsGroups` = à
    *  quels Groupes d'appartenance la cible doit appartenir, `includesSelf` = l'émetteur se touche aussi).
    *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
    *  (emballée en `PassiveMod`, le trait émetteur en `src`), lue par `combatTestPenaltyParts` — pool
@@ -1893,7 +1896,7 @@ export interface TraitData {
 }
 /** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
  *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
- *  NI un effet déclenché (`effects`). Migrés des `defs/` mécaniques, lus PAR ID par `engine/qualities/dispatch`.
+ *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
  *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) restent lus du RUNTIME string (`parseQuality().indice`)
  *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
 export interface QualityCapabilities {
@@ -1912,7 +1915,7 @@ export interface QualityCapabilities {
   magazine?: boolean;           // À Répétition : chargeur (Indice)
   salvo?: boolean;              // Salve : chargeur (Indice)
   areaFire?: boolean;           // Tir de zone : nuage de projectiles (Indice)
-  explosion?: boolean;          // À Explosion : tous à Indice m du point cible subissent DR+Dégâts + États de l'arme (LDB p.298)
+  explosion?: boolean;          // À Explosion : tous à Indice m du point cible subissent DR+Dégâts + États de l'arme (LDB 62 l.254)
   crewedTeam?: boolean;         // Arme d'équipe : sous-effectif (Indice)
   parryAP?: boolean;            // Protectrice : Indice PA en opposant (Indice)
   // Objet / artisanat (LDB 60)
@@ -1953,10 +1956,10 @@ export interface QualityData {
    *  weaponDamageMod/armourPierce/critOnRoll) en `GameOp[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
    *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
   passive?: import('../engine/ops').GameOp[];
-  /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — migrés des `defs/`,
-   *  lus PAR ID par `engine/qualities/dispatch`. Édité au Codex. */
+  /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — lus PAR ID par
+   *  `engine/qualities/dispatch`. Édité au Codex. */
   capabilities?: QualityCapabilities;
-  /** Cette qualité est INDICÉE (LDB 60 p.286) — forme de `TraitData.indice`, plus l'UNITÉ imprimée avec
+  /** Cette qualité est INDICÉE (LDB 60 l.28) — forme de `TraitData.indice`, plus l'UNITÉ imprimée avec
    *  la valeur quand le livre en pose une (`AA 08 l.87` « Taillade (XA) » ; `LDB 62 l.66` « Recharge 1 »
    *  n'en a pas). Lue par `qualityRefLabel`. */
   indice?: { label: string; unite?: string };
@@ -2158,7 +2161,7 @@ export interface SpellData {
     consequences: string;
   };
   /** Famille d'incantation STABLE (id, multilangue) — DISCRIMINANT moteur (familyOf / isArcaneSpell /
-   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus n'est plus qu'un libellé d'affichage. */
+   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus est un libellé d'affichage. */
   family: import('../engine/combatFeatures/types').CastingKind;
   /** Niveau d'Incantation (NI). `null` pour les Prières (Béni/Invocation). */
   cn: number | null;
@@ -2180,15 +2183,15 @@ export interface SpellData {
   damage?: number;
   ignorePA?: boolean;
   ignoreBE?: boolean;
-  // ── MÉTADONNÉES DE RÉSOLUTION (migrées depuis src/data/spellspecs/*.ts — migration #5) ──────────
+  // ── MÉTADONNÉES DE RÉSOLUTION ──────────────────────────────────────────────────────────────────
   // Ces champs sont multilingue-safe (ids/formules, jamais du texte d'affichage).
   // Présents sur toutes les entrées OFFICIELLES (curated:true) ; absents sur les sorts homebrew (frenchy.bzh).
   /** Vrai pour une entrée curée de la base officielle. Absent/false pour les sorts homebrew (frenchy.bzh).
    *  Permet au test de couverture de vérifier que TOUS les sorts officiels ont une spec complète. */
   curated?: boolean;
-  // POUSSÉE / TÉLÉPORTATION / ATTAQUES EN CHAÎNE : effets POSITIONNELS désormais portés par des ops
+  // POUSSÉE / TÉLÉPORTATION / ATTAQUES EN CHAÎNE : effets POSITIONNELS portés par des ops
   // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
-  /** Sort « Souffle » (LDB 47 p.244) : délégué à l'attaque de ZONE du Trait Souffle. */
+  /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
   breathAttack?: true;
   /** OPPOSITION de la cible (multijet dans la modale d'incantation).
    *  `resist` : Test opposé par la caractéristique/compétence `char`/`skill` de la cible.
@@ -2394,17 +2397,17 @@ export const findTraitById: (id: string) => TraitData | undefined = traitParId;
 export const qualities = qualitiesJson as QualityData[];
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
-/** Atouts de Fabrication (LDB 60 p.286) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
+/** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
  *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
 export const fabricationAtouts = memoParVersion('qualities', (): string[] =>
   qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
 );
 /** Atout de fabrication par DÉFAUT (fallback maison quand le joueur ne choisit pas ; le RAW n'en fixe
- *  aucun — un objet de qualité a toujours UN Atout, LDB 60 p.286). */
+ *  aucun — un objet de qualité a toujours UN Atout, LDB 60 l.11). */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
 /** `QualityRef` d'un Atout de fabrication résolu — une qualité INDICÉE (`indice`) prend l'Indice 1
- *  par défaut d'un Atout UNIQUE de fabrication (Solide « encaisse Indice PdD », LDB 60 p.286). */
+ *  par défaut d'un Atout UNIQUE de fabrication (Solide « encaisse Indice PdD », LDB 60 l.30). */
 export function fabricationAtoutQuality(id: string): { id: string; value?: number } {
   return qualiteParId(id)?.indice ? { id, value: 1 } : { id };
 }
@@ -2863,7 +2866,16 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): string {
-  return weatherData.seasons.find((s) => s.id === id)?.label ?? `saison « ${id} » (sans fiche)`;
+  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+}
+
+/** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
+ *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+/** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
+ *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
+export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): string {
+  return e ? e.label : t(`absent.${nature}`, { id });
 }
 /** Effets par météo (visibilité, mods de tir, poudre, Tests physiques, plafond de mouvement…). */
 export const weatherConditions = weatherData.conditions;
@@ -3027,6 +3039,32 @@ const especeParId = indexParId('species', species);
 export function findSpeciesById(id: string | undefined): SpeciesData | undefined {
   return especeParId(id);
 }
+/** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
+ *  sans doublon, dans l'ordre du dataset. */
+export function profilsStandard(): string[] {
+  return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
+}
+/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
+ *  (`vehicles.json` facette `hull`, MDG 13), affût d'engin de siège (`trappings.json` `siegeRig`, AA 10).
+ *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
+ *  spawn (`spawnEnemy`) la lisent ici. */
+export function refEntiteResolue(ref: string): boolean {
+  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+}
+/**
+ * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
+ * catalogue (#877, #1882). Un catalogue VIDE n'a PAS de défaut : l'appelant le DIT, jamais un littéral.
+ */
+export const premierOffert = (catalogue: readonly { id: string }[], quoi: string): string => {
+  const premier = catalogue[0];
+  if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
+  return premier.id;
+};
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
+ *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
+export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
+export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
 /** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
  *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572).
  *  Même vocabulaire que `sizeFromTalents` (engine/character.ts) : la plus grande catégorie parmi

@@ -68,7 +68,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
   it('Démoniaque (wardSaves) : 1d10 ≥ Indice ignore le coup — état + RNG figés', () => {
     seedBattleRng(2); // graine où le 1d10 de sauvegarde ≥ 8 (le coup est ignoré)
     const atk = hero({ id: 'h1', pos: { x: 0, y: 0 } });
-    // Cible Démoniaque (Indice 8) : 1d10 ≥ 8 → coup ignoré, même Critique (LDB 85 p.339).
+    // Cible Démoniaque (Indice 8) : 1d10 ≥ 8 → coup ignoré, même Critique (LDB 85 l.98).
     const demon = enemy({ id: 'e1', pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }], wounds: { current: 20, max: 20 } });
     setBattle([atk, demon]);
     const before = useGame.getState().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current;

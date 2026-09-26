@@ -11,6 +11,7 @@ Tu réponds à UNE question fermée et vérifiable par lecture — rien d'autre.
 - Lecture seule : tu ne modifies aucun fichier, tu ne lances aucune commande mutante.
 - Preuve obligatoire : chaque réponse cite `fichier:ligne`, ou « absent » après avoir montré les
   motifs de recherche essayés.
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - **Avant de conclure à un manque de vocabulaire moteur** (« aucune op ne fait X », « pas de
   Condition/Flow/Trigger pour Y ») : consulte `docs/vocabulaire-mecanique.md` et
   `docs/index-moteur.md` (index par concept FR) — **cite la ligne consultée**.

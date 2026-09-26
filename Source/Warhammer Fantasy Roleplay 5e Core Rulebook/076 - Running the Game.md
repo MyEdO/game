@@ -1,6 +1,6 @@
 *Pages PDF 262-271*
 
-# **RUNNING THE GAME**
+# <span id="page-261-0" data-folio="262"></span>**RUNNING THE GAME**
 
 The Warhammer world is a dark and dangerous place, where monsters lurk in the shadows and corruption is everywhere. Suffering is common and few seek to alleviate it, seeking mostly to look after their own. Kindness is so rare, that it automatically tends to make others suspicious and they wonder what price or conditions lie behind even simple acts of kindness. Many make a practice of deception, believing that the strictly honest are fools.
 
@@ -10,9 +10,7 @@ This doesn't mean that games of **WFRP** should be exercises in unrelenting mise
 
 It is also worth remembering that your players' Characters are unusual by definition. They are the protagonists of the story and could be true heroes who put their lives on the line to defeat evils common folk could never stand against. Or, they might be just as corrupt and self-serving as the majority of people in the Old World. In **WFRP**, the choice is theirs.
 
-IX
-
-# **Magic and Witch Hunters**
+# <span id="page-262-0" data-folio="263"></span>**Magic and Witch Hunters**
 
 Magic in the Old World is deeply distrusted by the vast majority of people. Even licensed Wizards should be wary of using their powers in public, lest they cause a panic among the uneducated masses. Unlicensed magic users, such as Hedge Witches and Mystics, must be even more careful, as their very existence could be viewed as a crime punishable by burning at the stake.
 
@@ -36,7 +34,7 @@ When NPCs discuss the existence of cults within civilisation or fell altars tend
 
 Player Characters will most likely start out knowing nothing of Chaos and, depending on the course of their adventures, slowly uncover the terrifying truth of its existence. This in turn will expose them to Corruption (page 187), because even knowing about Chaos can be enough to start a Character on the path to ruination.
 
-# **NPCs with Character**
+# <span id="page-263-0" data-folio="264"></span>**NPCs with Character**
 
 More than almost any other factor, memorable NPCs will help you bring the Old World to life. WFRP has a long, rich tradition of introducing unforgettable NPCs, be they sinister villains, voluble farmers, or amusing pigeon tenders. Not every NPC has to be impossible to forget, but having a few stand out sharply will help to characterise the Old World.
 
@@ -58,9 +56,7 @@ Humans and halflings are everywhere in the Empire and could find themselves thro
 
 Dwarfs are relatively common in the Empire, but tend to be insular within their communities. They may, however, form strong bonds with non-dwarfs over matters of honour. A human who saves a dwarf 's life or reputation may find themselves with a stalwart companion who insists on helping until they feel they have repaid their debt. Given the longer lifespans of dwarfs, the favour may even have been done by the human Character's parent or grandparent. Dwarfs also respect those of other species whom they view as particularly honourable or dedicated to their craft, and so may strike up friendships with those they share a Class or related Career with.
 
-IX
-
-Elves can be encountered in the Empire, but are a rare sight and very much hold themselves apart from other species. An elf abroad in the Empire might be tasked with gathering information for their homeland and attach themselves to a band of adventurers to further this goal. Their long lives and appreciation of art might see an elf spend years accompanying an Artisan, Entertainer, or similar to witness their talent. They may even align themselves with a band of scoundrels out of a sense of adventure, or simple curiosity.
+<span id="page-264-0" data-folio="265"></span>Elves can be encountered in the Empire, but are a rare sight and very much hold themselves apart from other species. An elf abroad in the Empire might be tasked with gathering information for their homeland and attach themselves to a band of adventurers to further this goal. Their long lives and appreciation of art might see an elf spend years accompanying an Artisan, Entertainer, or similar to witness their talent. They may even align themselves with a band of scoundrels out of a sense of adventure, or simple curiosity.
 
 Knowing, vaguely, what sorts of adventures you intend to run will help your players make useful choices — so it is a good idea to let them in on a few details in advance, such as if their Characters will be wandering about or staying in one general area of the Old World for a time
 
@@ -76,7 +72,7 @@ Fate is another matter entirely. Spending Fate is a Big Deal: it is powerful eno
 
 Regaining Fate should be rare enough to feel momentous, perhaps marking the culmination of a long campaign or the achievement of an objective at considerable personal cost. Fortune, by contrast, is replenished at the start of every session. This assumes a session of around four hours. For longer sessions, replenish Fortune at narratively appropriate moments, roughly every four hours. For shorter sessions, replenish it every other session to maintain a similar level of challenge.
 
-#### **Opposed Tests**
+#### <span id="page-265-0" data-folio="266"></span>**Opposed Tests**
 
 Something should always happen as a result of an Opposed Test. Even when both Characters achieve the same SL and the Test ends in a stalemate, use the result to point towards a way forward. Perhaps neither side gains the upper hand, but one notices a weakness, discovers a clue, or realises what must be done to break the deadlock. Avoid situations where nothing happens, as a stalemate that simply stops the game is rarely interesting.
 
@@ -124,9 +120,7 @@ Why are Extended Tests explained here rather than in the Rules chapter? Because 
 
 Extended Tests work best for short, tense situations: you have three Turns to pick this complicated lock before the guard arrives — go! They can also show how much of a larger task the Characters can complete before time runs out, such as repairing a fortress before the orc horde arrives. Avoid using them for adventure climaxes, or when a single Test can resolve the situation just as well.
 
-IX
-
-# **Awarding XP**
+# <span id="page-266-0" data-folio="267"></span>**Awarding XP**
 
 The secret to awarding XP is to give enough for Characters to feel they are improving without making advancement seem too easy or too fast. Aim for a noticeable bump while leaving plenty of things for players to save towards.
 
@@ -151,7 +145,7 @@ Travelling in the Old World is generally considered to be fraught with peril, es
 
 It is up to you exactly how you wish to represent the potential dangers of travel within your game. Some GMs like to just get on with it, making travel a mere footnote description as they swiftly move on to what they consider the good stuff. Others like to linger, depicting the odd folk and interesting sights to be seen along the way. Within the Empire proper, most trips will generally be spent on a road or along a river, especially when travelling between settlements and cities. Roads are generally held to be slightly more dangerous than river travel, but cheaper, though seldom as swift — unless you are trying to travel against the current.
 
-### **Roads & Rivers**
+### <span id="page-267-0" data-folio="268"></span>**Roads & Rivers**
 
 The Empire's roads are crude and almost never paved, but the trade routes are especially well trod, and tend to boast the most road wardens, making them the safest by far. The further you travel from the well beaten routes though, the more likely the roads will turn to ill-kept muddy paths. You would think that the finer well-maintained roads would be the tolled ones, but tolling stations can and will turn up along even the shabbiest courses.
 
@@ -161,7 +155,7 @@ On the best roads, roadside inns can frequently be found every fifteen to twenty
 
 River travel can be easy to secure, but dedicated passenger barges generally only travel between pre-determined docks at specific settlements. Getting off at an unscheduled destination will probably require some fast-talking and a modest bribe. Going almost anywhere else requires either a chartered boat, an expensive prospect, or arranging to travel with a cargo vessel, which will likely take a hefty inducement.
 
-#### **TRAVELLING BY ROAD**
+**TRAVELLING BY ROAD**
 
 | d10 | Encounter                                                                                                                                                                                                                                                 |  |
 |-----|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--|
@@ -176,9 +170,7 @@ River travel can be easy to secure, but dedicated passenger barges generally onl
 | 9   | Corpse: A body lies face down in the middle of the road, broken arrow shafts protruding from its back. It has been there for some time and tracks on either side show that travellers have passed it by, paying no heed.                               |  |
 | 0   | Pyre: A smouldering pyre stands by the side of the road, a burned body lashed to a stake at its centre. A hammer or twin-tailed comet has been roughly carved into the figure's forehead, the clean lines showing it happened after the burning.    |  |
 
-IX
-
-#### **Travel Times**
+#### <span id="page-268-0" data-folio="269"></span>**Travel Times**
 
 As a rule of thumb, a traveller on foot or in a horse-drawn wagon can cover around 15 miles in a day, while a traveller mounted on a horse can manage around 30. Express coaches, which change horses along the route, can cover twice that distance, reaching around 60 miles in a day. A river barge travelling downstream can cover roughly 40 miles; while travelling upstream this distance is reduced to a maximum of 15 miles.
 
@@ -190,7 +182,7 @@ One never knows just what the open road has to offer. Some of the things travell
 
 You may roll on the following tables to randomly determine what your Player Characters encounter while travelling by road or river, or while traversing a city. Feel free to adjust them to suit your particular game, or choose ones you like instead of rolling, if you prefer.
 
-#### **TRAVELLING BY RIVER**
+**TRAVELLING BY RIVER**
 
 | d10                 | Encounter                                                                                                                                                                                                                                                                                                                                |  |
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--|
@@ -205,7 +197,7 @@ You may roll on the following tables to randomly determine what your Player Char
 | 9                   | Warning Shot: As the river passes through a heavily forested area, an arrow whistles from the trees and sticks into the side of the boat. It may be goblins taking potshots or a wood elf scout letting the Characters know not to attempt to land.                                                                                |  |
 | 0                   | Riverbank Gallows: Three wooden gallows stand on the muddy bank, each occupied by a fresh corpse. A painted sign warns that piracy and smuggling are punishable by death.                                                                                                                                                             |  |
 
-#### **FELLOW TRAVELLERS**
+<span id="page-269-0" data-folio="270"></span>**FELLOW TRAVELLERS**
 
 | d10 | Encounter                                                                                                                                                                                                                                                                                                                 |
 |-----|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -220,9 +212,7 @@ You may roll on the following tables to randomly determine what your Player Char
 | 9   | Elves: A small group of elegant high elves, likely merchants or with private business to which they are attending. Unless there is something particularly interesting about the Characters or their exploits, they will be politely dismissed. Wood elves will not be seen, unless they want to be for some reason. |
 | 0   | Travellers from Distant Lands: An Estalian diestro seeking a challenge worthy of his blade, a Bretonnian knight on a holy quest, a Norscan fascinated by the Empire, or a Kislevite that hopes to win a Hochland long rifle in an annual shooting contest.                                                          |
 
-IX
-
-#### **CITY LIFE**
+<span id="page-270-0" data-folio="271"></span>**CITY LIFE**
 
 | d10 | Encounter                                                                                                                                                                                                                                                                                    |  |
 |-----|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--|

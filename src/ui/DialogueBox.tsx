@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { evalCondition, conditionCtx } from '../state/flow';
 import { partyMoneyTotal } from '../state/bourseFlow';
@@ -24,8 +25,8 @@ export function DialogueBox() {
   // même routage que l'intent `chooseDialogue`). Les autres LISENT — leurs réponses sont inertes,
   // donc désactivées et non plus cliquables.
   const owns = useOwnsGroupDecision();
-  const seatNames = useGame((s) => s.net.seatNames);
-  const meneur = seatNames[groupDecisionSeat(useGame.getState())] ?? 'L’hôte';
+  const net = useGame((s) => s.net);
+  const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
   // COUCHE BLOQUANTE : une conversation en cours consomme le congédiement sans rien fermer — on en
   // sort par une réponse, jamais par Échap (`onDismiss: null`, l'équivalent de `closedBy="none"`).
   useDismissLayer('dialogue', null, !!dialogue);

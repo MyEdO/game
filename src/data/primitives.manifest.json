@@ -143,6 +143,15 @@
     "verrou": "in-battle-find-guard.test.ts"
   },
   {
+    "id": "meneurDuMonde",
+    "type": "primitives.manifest",
+    "label": "estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe",
+    "fichier": "src/state/combatants.ts",
+    "concept": "le MENEUR du groupe hors combat, et le CAP du groupe — un seul id pour le jeton dessiné, le regard, l'assise, la lampe et l'escalade, et une seule valeur de regard que le changement de meneur ne fait pas sauter",
+    "perimetre": "toute lecture du meneur et toute écriture du cap d'exploration dans src/state, src/gameIso, src/ui",
+    "verrou": "hero-debout-guard.test.ts"
+  },
+  {
     "id": "applyOps",
     "type": "primitives.manifest",
     "label": "applyOps/GameOp",
@@ -873,8 +882,8 @@
   {
     "id": "gameStage",
     "type": "primitives.manifest",
-    "label": "GameStage3D",
-    "fichier": "src/gameIso/stage/GameStage3D.tsx",
+    "label": "MondeDeCampagne",
+    "fichier": "src/gameIso/stage/MondeDeCampagne.tsx",
     "css": "src/gameIso/anim.css",
     "poseurs": [
       "src/gameIso/stage/",
@@ -886,9 +895,46 @@
       "src/gameIso/rig/parts/weapons/defs/"
     ],
     "nature": "organisme",
-    "concept": "LE PLATEAU : la surface du monde (caméra responsive) et les animations de ce qui vit dessus",
+    "concept": "les ANIMATIONS de ce qui vit sur le plateau : keyframes des FX, des gabarits, de la faune et de l’ambiance, et les teintes du chrome des jetons",
     "perimetre": "campagne, arène, plan top-down — halos de décor, chiffres de dégâts, fourmis de gabarit",
     "verrou": "gameIso/stage/anim-css-branchee.test.ts — les keyframes sont importées par l’hôte du monde"
+  },
+  {
+    "id": "isoStage",
+    "type": "primitives.manifest",
+    "label": "GameStage3D/SurcoucheIso",
+    "fichier": "src/gameIso/stage/GameStage3D.tsx",
+    "css": "src/gameIso/stage/iso-stage.css",
+    "poseurs": [
+      "src/gameIso/stage/GameStage3D.tsx",
+      "src/gameIso/SurcoucheIso.tsx"
+    ],
+    "nature": "organisme",
+    "concept": "la BOÎTE du plateau : le rectangle commun au canevas 3D et au SVG de surcouche",
+    "perimetre": "campagne (canevas et surcouche), éditeur (canevas)",
+    "verrou": "gameIso/stage/anim-css-branchee.test.ts, volet « mise en page `.iso-stage` » — tout module qui rend `.iso-stage` importe `stage/iso-stage.css`"
+  },
+  {
+    "id": "plaquesDeNom",
+    "type": "primitives.manifest",
+    "label": "PlaquesDeNom",
+    "fichier": "src/gameIso/stage/PlaquesDeNom.tsx",
+    "css": "src/gameIso/stage/plaque-nom.css",
+    "nature": "organisme",
+    "concept": "le NOM d’un utilisable révélé (Alt maintenu) ou survolé, posé au-dessus de lui dans le SVG du plateau (#1687)",
+    "perimetre": "campagne, arène — surcouche du plateau",
+    "verrou": "gameIso/stage/anim-css-branchee.test.ts — `.plaque-nom` est posée par son seul rendeur, qui importe `stage/plaque-nom.css`"
+  },
+  {
+    "id": "pastilleEntite",
+    "type": "primitives.manifest",
+    "label": "PastilleEntite",
+    "fichier": "src/gameIso/stage/PastilleEntite.tsx",
+    "css": "src/gameIso/stage/pastille-entite.css",
+    "nature": "organisme",
+    "concept": "le GESTE qu’une chose du champ offre, posé au-dessus de son porteur dans le SVG du plateau (#1411 P2-C)",
+    "perimetre": "campagne, arène — monture, pièce, tas au sol",
+    "verrou": "gameIso/stage/anim-css-branchee.test.ts — `.pastille-entite` est posée par son seul rendeur, qui importe `stage/pastille-entite.css`"
   },
   {
     "id": "stateChips",

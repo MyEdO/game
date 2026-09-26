@@ -528,10 +528,12 @@ export function CastModal() {
                 // déclaration ouverte ; une AUTRE rangée a déjà dissipé) éteignent le CTA avec leur
                 // raison, lus par les MÊMES prédicats — jamais une seconde condition recopiée.
                 const dejaDissipee = csp.participants.find((p) => p.id !== part.id && p.result?.dispelled);
+                const dissipateur = dejaDissipee && pool.find((c) => c.id === dejaDissipee.id);
+                if (dejaDissipee && !dissipateur) throw new Error(`[contre-sort] le participant « ${dejaDissipee.id} » a dissipé hors des combattants de la fenêtre`);
                 const rollBlocked = phase1
                   ? 'En attente des déclarations de la fenêtre'
-                  : dejaDissipee
-                    ? `Déjà dissipé par ${pool.find((c) => c.id === dejaDissipee.id)?.label ?? 'un autre contre-lanceur'}`
+                  : dissipateur
+                    ? `Déjà dissipé par ${dissipateur.label}`
                     : undefined;
                 /* Sous-ligne de la rangée (canal UNIQUE `note`) : la situation s'affiche là où le
                    contrôle de déclaration ne la porte pas déjà (rangée d'un autre siège, ou phase

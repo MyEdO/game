@@ -157,7 +157,7 @@ export function sectionsOf(text, splitLevel = 2) {
 }
 
 // Plages de ligne `{ lo, hi, file }` de toutes les refs `ABBR NN l.X[suffixe]` ET `ABBR NN p.folio[suffixe]`
-// (#606 : la graphie folio, gelee par #585, etait invisible ici) d'un chapitre, dans DOCS.
+// (#606 : la graphie folio des fiches de l'Atlas etait invisible ici) d'un chapitre, dans DOCS.
 // ⚠ N'utilise PAS `span()` de `_lib.mjs` : cette derniere reduit un suffixe `+N+M` (points DISCRETS,
 // « et aussi l.N, l.M ») a une bbox `[X, max(N,M)]` — correct pour son usage (borne « dans le
 // chapitre »), mais ici cette bbox fabrique un FAUX chevauchement de section (mesure : `AA 09

@@ -54,13 +54,13 @@ setEncounters(scene, [
     enemies: [
       // PREUVE (c) — tir PAR-DESSUS le clayonnage : posté contre l'arête (23,29)E, il est vu depuis
       // (24,31)/(24,32) et le tir part (couvert d'arête « Intermédiaire », +0).
-      { ref: 'gobelin', pos: { x: 23, y: 29 }, facing: 'E', label: 'Gobelin de la stalle voisine' },
+      { ref: 'gobelin', pos: { x: 23, y: 29 }, facing: 'E' },
       // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (19,32)E,
       // dans la stalle du sud-ouest, l'arc à la main, à 5 cases du groupe.
-      { ref: 'archer-gobelin', pos: { x: 19, y: 32 }, facing: 'E', weapon: 'arc', label: 'Archer gobelin de la stalle sud-ouest' },
+      { ref: 'archer-gobelin', pos: { x: 19, y: 32 }, facing: 'E', weapon: 'arc' },
       // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (25,31)E
       // (`mur-a-ossature-en-bois`, sans fenêtre), le tir est REFUSÉ faute de Ligne de Vue.
-      { ref: 'gobelin', pos: { x: 26, y: 31 }, facing: 'O', label: 'Gobelin derrière le mur de la remise' },
+      { ref: 'gobelin', pos: { x: 26, y: 31 }, facing: 'O' },
     ],
   },
 ]);

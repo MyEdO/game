@@ -1,22 +1,18 @@
 *Pages PDF 214*
 
-# **THE CULT OF VERENA, GODDESS OF WISDOM**
+# <span id="page-213-0" data-folio="214"></span>**THE CULT OF VERENA, GODDESS OF WISDOM**
 
-**Seat of Power:** None **Head of the Cult:** None
+**Seat of Power:** None
 
-**Primary Orders:** Order of Scalebearers, Order of Lorekeepers,
+**Head of the Cult:** None
 
-Order of Mysteries, Order of Everlasting Light
+**Primary Orders:** Order of Scalebearers, Order of Lorekeepers, Order of Mysteries, Order of Everlasting Light
 
 **Major Festivals:** Year Blessing
 
-**Important Holy Texts:** *Canticum Verena*, *Eulogium Verena*, *The* 
+**Important Holy Texts:** *Canticum Verena*, *Eulogium Verena*, *The Book of Swords*
 
-*Book of Swords*
-
-**Common Holy Symbols:** Scales of justice, owls, downward-
-
-pointing swords
+**Common Holy Symbols:** Scales of justice, owls, downward-pointing swords
 
 Wise Verena, the goddess of learning and justice, is the wife of dark Morr and the mother of Myrmidia and Shallya. She is generally depicted as a tall, classically beautiful woman, and usually carries a sword and a set of scales. As the patron of justice she is concerned with fairness rather than the letter of the law: she opposes tyranny and oppression as much as crime.
 
@@ -35,6 +31,8 @@ Temples to Verena can be found in most cities and larger towns, generally situat
 #### **Penances**
 
 Penances set by Verena normally involve the recovery or preservation of knowledge, the righting of an injustice, or the resolution of a dispute. Cultists may also be sent to recover a long-forgotten book of lore, or to mediate in a difficult quarrel. This could be anything from a farmers' boundary dispute to unpicking the complicated politics of two realms on the brink of war.
+
+#### **Strictures**
 
 - Never refuse to arbitrate a dispute when asked.
 - Always tell the truth without fear or favour.

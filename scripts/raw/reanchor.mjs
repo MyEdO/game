@@ -17,7 +17,9 @@
 //     (`scripts/raw/reanchor-low-stock.json`, écart `ecartDuVolet` de `scripts/guards/lib/stock.mjs`, clé
 //     `fiche :: réf citée :: occurrence`) : un site NEUF est une régression à corriger ou à déclarer,
 //     une entrée dont le site a disparu est une dette SOLDÉE à retirer. L'entrée nomme sa fiche
-//     `docs/raw/<x>.md` : l'ajouter est une croissance que la porte de plage compte.
+//     `docs/raw/<x>.md` : l'ajouter est une croissance que la porte de plage compte. Stock soldé
+//     (#1898) : fichier ABSENT en régime nominal → tolérance ZÉRO (`readStock` traite un fichier
+//     absent comme zéro entrée) ; un résidu IRRÉDUCTIBLE recrée le stock à sa mesure MINIMALE.
 //   - ⛔ PAST-EOF (hors-fichier) : NE PAS doubler — déjà cliqueté par `check-refs.mjs`
 //     (`dead-refs-stock.json`), sur la borne HAUTE dépliée d'une plage (`span`), un sur-ensemble
 //     de la borne de départ vérifiée ici.

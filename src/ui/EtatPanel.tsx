@@ -22,6 +22,7 @@
  * `data-tone` sur la bande de section (`Section`) — jamais une classe par ton.
  */
 import type { ReactNode } from 'react';
+import { garanti } from '../state/combatants';
 import type { Combatant, HitLocation } from '../engine/types';
 import { roundsLabel, clockLabel, type Duration } from '../engine/duration';
 import { locationLabel } from '../engine/combat';
@@ -240,7 +241,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
   const overEnc = totalEncumbrance(hero) > maxEncumbrance(hero);
   // Palier de Surcharge (0 sans signal ici, puisque `overEnc` filtre déjà) — l'id/label CODEX (#422)
   // vit dans `encumbranceTiers.json`, résolu par `tier` (le moteur n'expose que la valeur numérique).
-  const encTier = overEnc ? datasetArray('encumbranceTiers').find((t) => t.tier === encumbrancePenalties(hero).tier) : undefined;
+  const encTier = overEnc ? garanti(datasetArray('encumbranceTiers').find((t) => t.tier === encumbrancePenalties(hero).tier), encumbrancePenalties(hero).tier, 'palier d’encombrement') : undefined;
 
   // Ancre la PREMIÈRE rangée Critiques/Séquelles de chaque Localisation (une seule fois, dans l'ordre
   // de rendu du registre) — cible de clic du badge de zone de la colonne (`FigTile.zoneBadges`, pt.4).
@@ -439,14 +440,14 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
         </Section>
       )}
 
-      {overEnc && (
+      {encTier && (
         <Section anchor={ETAT_ANCHOR_ENCOMBREMENT} title="Surcharge" codexCategory="encumbranceTiers">
           <PlaqueRow valueMuted
             prefix={<Icon id={FALLBACK_ICON} size="sm" />}
             // Palier RÉEL (`encumbrancePenalties`, LDB 61) — le moteur applique déjà ces paliers
             // (Mouvement/Agilité, `engine/encumbrance.ts`), la ligne ne peut pas en montrer moins.
-            content={<CodexRef category="encumbranceTiers" id={encTier?.id ?? ''} label={encTier?.label ?? 'Surchargé'}>Surchargé</CodexRef>}
-            value={`${encTier?.label ?? ''} · ${totalEncumbrance(hero)}/${maxEncumbrance(hero)}`}
+            content={<CodexRef category="encumbranceTiers" id={encTier.id} label={encTier.label}>Surchargé</CodexRef>}
+            value={`${encTier.label} · ${totalEncumbrance(hero)}/${maxEncumbrance(hero)}`}
           />
         </Section>
       )}

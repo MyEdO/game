@@ -2,7 +2,7 @@
  * #458 : le DR (SL) d'un Test de consommable HORS COMBAT doit atteindre les ops de succès du Flow —
  * chaîne usePartyItem→runSceneConsumableFlow→openSkillTest→resolveTest→runFlow→applyEffectsLoot→
  * applyEffects→handler 'ops' (`combatEffects.ts`), symétrique au chemin combat (`triggeredTest.ts:159`,
- * `runPureFlowLines(..., { sl: t.sl })`). Donnée réelle : Gesundheit (`trappings.json`, MSRC 4 p.13) —
+ * `runPureFlowLines(..., { sl: t.sl })`). Donnée réelle : Gesundheit (`trappings.json`, MSRC 4 l.186) —
  * `reduceDiseaseDays.daysPerSL` sur `blessure-purulente`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';

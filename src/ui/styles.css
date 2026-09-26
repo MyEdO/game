@@ -74,7 +74,7 @@
 @import './styles/panneau-parametre.css'; /* panneau-paramètre borné ANCRÉ (PanneauParametre, spec HUD zone 10) — scope le .rm-loc-grid d'OptionChooser (option-chooser.css) dans le panneau, par la spécificité du descendant */
 @import './styles/sheet.css'; /* fiche de personnage + avancement */
 @import './styles/merchant.css'; /* marchand (achat/vente/réparation) */
-@import './styles/tavern.css'; /* jeux de taverne (NADJ ch.16) */
+@import './styles/tavern.css'; /* jeux de taverne (NADJ 16) */
 @import './styles/hud.css'; /* HUD plein-champ (frise, dock, journal, menu ☰, monnaie) */
 @import './styles/postes-roster.css'; /* roster PAR POSTE (PostesRoster + case AssignRow) : matière de la primitive partagée — rôles de marche, postes d'équipage, stations à bord */
 @import './styles/world-meta.css'; /* carte du monde, éditeur de carte, sauvegarde, interlude */

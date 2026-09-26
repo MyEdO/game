@@ -224,10 +224,10 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
     const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
     setBattle([pris], 'pris');
     const rt = resolveRecoverTest(pris, 'empetre', useGame.getState().battle!)!;
-    expect(rt.opposed).toBe(true);
+    expect(rt.opposition).toBeDefined();
     expect(rt.skillBase, 'Force NUE de l’acteur (LDB 09 l.17)').toBe(skillBaseValue(pris, undefined, undefined, 'force'));
-    expect(rt.opponentBase, 'l’entrave FIGÉE est sa propre nue — aucun porteur à décomposer').toBe(55);
-    expect(rt.opponentValue).toBe(55);
+    expect(rt.opposition?.base, 'l’entrave FIGÉE est sa propre nue — aucun porteur à décomposer').toBe(55);
+    expect(rt.opposition?.value).toBe(55);
   });
 
   it('le flux joueur roule ce Test sans AUCUN repli deux-cibles', () => {

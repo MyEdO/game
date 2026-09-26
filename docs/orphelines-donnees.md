@@ -36,10 +36,10 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 | `qualities` | 59 | 2 | 3 % |
 | `maneuvers` | 20 | 0 | 0 % |
 | `skills` | 48 | 1 | 2 % |
-| `props` | 123 | 0 | 0 % |
+| `props` | 124 | 0 | 0 % |
 | `vehicles` | 31 | 0 | 0 % |
-| `creatures` | 493 | 350 | 71 % |
-| **Total** | **1093** | **365** | — |
+| `creatures` | 493 | 349 | 71 % |
+| **Total** | **1094** | **364** | — |
 
 ### `traits`
 
@@ -70,7 +70,6 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 
 ### `creatures`
 
-- `elfe-haut-et-sylvain` — Elfe (haut et sylvain)
 - `pol-dankels` — Pol Dankels
 - `hyppogriffe` — Hyppogriffe
 - `chauve-souris-vampire-varghulf` — Chauve-souris vampire (Varghulf)
@@ -421,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: c0e7fc3b6bb5bbdbed61c878afdcbf88c6c05690 (2097 fichiers, 134 dossiers) corps: b40f37203a41cb4a0c801225da39879943323e87 -->
+<!-- sources-empreinte: a9a94d1c952383f4515be09bba5b671fc01cdee9 (2103 fichiers, 134 dossiers) corps: bc7f3dae06452f52c9443c42bfe46eae6a69a9e5 -->

@@ -11,6 +11,6 @@ export const creature: CreatureDef = {
   plan: 'fish',
   fish: {
     sl: 1.05, girth: 1.0,
-    stored: { corps: '#5a6850', corpsO: '#32402a', corpsH: '#c9d0ac', cheveux: '#32402a', cheveuxO: '#1e2818', cuir: '#7c8868' },
+    palette: { corps: '#5a6850', corpsO: '#32402a', corpsH: '#c9d0ac', cheveux: '#32402a', cheveuxO: '#1e2818', cuir: '#7c8868' },
   },
 };

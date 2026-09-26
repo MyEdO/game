@@ -64,7 +64,7 @@ const KEEP: KeepEl = () => true;
 const SANS_ACTEUR: ActorPose[] = [];
 
 const décor = (id: string, x: number, y = GROUPE.y): BillboardPropEl => ({
-  kind: 'prop', source: 'entity', key: `prop:${id}`, ref: 'tonneau', facing: 'S',
+  kind: 'prop', source: 'entity', key: `prop:${id}`, entId: id, span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
   cell: { x, y, z: 0 }, foot: { offX: 0, offY: 0, scale: 1 },
   states: { visible: true },
 });
@@ -273,7 +273,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
     ras = simulerRasterisation('retenue');
     // Le voile a DEUX causes de tombée : ses sujets proches, ou son plafond de sécurité — un vrai timer
     // qu'une machine saturée fait gagner la course. Le plafond est poussé hors d'atteinte : la tombée
-    // n'a plus qu'UNE cause possible, et le compte de quads relevé à la chute est bien celui du décor
+    // a seulement UNE cause possible, et le compte de quads relevé à la chute est bien celui du décor
     // qui l'a fait tomber.
     AMBIANCE.entreeEnScene.plafondMs = PLAFOND_HORS_ATTEINTE_MS;
     const états: boolean[] = [];

@@ -304,7 +304,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "progression-schemas.derived.json", champ: "livres", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "progression-schemas.derived.json", champ: "titresPage", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "props.json", champ: "light", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" }, // 3→6 : +3 OCCURRENCES — les trois luminaires allumés par #1680 ligne 5 (`applique-murale` et `lustre-opera` en `chandelle`, `lanterne-de-poupe` en `lanterne`) portent un `light.tone`, comme les trois déjà comptés. L'ADOPTION de la fabrique NE SOLDE PAS cette ligne, mesuré le 2026-09-02 : `idDe('lightTone')` sur `light.tone` déclare un slot au path `[].light.tone`, que `champDuPath` projette sur `tone` — jamais sur le champ PORTEUR `light` que le scan observe (angle mort déclaré en tête de ce fichier). La ligne se solde avec cet angle mort, pas avant.
-  { dataset: "props.json", champ: "primitives", occurrences: 297, lot: "L2/L3 #1473", date: "2026-08-26" }, // EXCEPTION NOMMÉE d'angle mort (en-tête) : fabrique ADOPTÉE (`idDe('material', 'prop')`, `defs/props.ts`), slots RÉSOLUS ; path DÉCLARÉ `[].volume.primitives[]|N.material` projeté sur `material`, champ OBSERVÉ `primitives`. 89 → 172 (#1644 lot A) → 297 (#1343 lot B) : les recettes volumiques du catalogue
+  { dataset: "props.json", champ: "primitives", occurrences: 379, lot: "L2/L3 #1473", date: "2026-08-26" }, // EXCEPTION NOMMÉE d'angle mort (en-tête) : fabrique ADOPTÉE (`idDe('material', 'prop')`, `defs/props.ts`), slots RÉSOLUS ; path DÉCLARÉ `[].volume.primitives[]|N.material` projeté sur `material`, champ OBSERVÉ `primitives`. 89 → 172 (#1644 lot A) → 297 (#1343 lot B) → 379 (#1343 lot C) : les recettes volumiques du catalogue
   { dataset: "psychology.json", champ: "becomes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "psychology.json", champ: "failCondition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "psychology.json", champ: "immuneToFromTarget", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -361,6 +361,8 @@ export const SLOTS_SANS_DECLARATION = [
   // SOUS-estimation, `ANGLES_MORTS_SLOTS`). Ce n'est pas une dette d'adoption, c'est la mesure qui
   // ne sait pas la voir.
   { dataset: "species.json", champ: "previewCareer", occurrences: 27, lot: "L2/L3 #1473", date: "2026-09-01" },
+  // NEUF (#1882) : `ref('creature')` ADOPTÉ (profil standard, LDB 77 l.7), même angle mort que `previewCareer`.
+  { dataset: "species.json", champ: "profilStandard", occurrences: 26, lot: "L2/L3 #1473", date: "2026-09-23" },
   { dataset: "species.json", champ: "of", occurrences: 80, lot: "L2/L3 #1473", date: "2026-08-31" },
   { dataset: "species.json", champ: "skills", occurrences: 315, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "species.json", champ: "talents", occurrences: 96, lot: "L2/L3 #1473", date: "2026-08-26" },

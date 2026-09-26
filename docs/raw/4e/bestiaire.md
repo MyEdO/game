@@ -47,7 +47,7 @@ Le chapitre 76 sert d'introduction au bestiaire WFRP4. Les créatures présenté
 Les **Traits Facultatifs** listés à côté de chaque créature représentent certains des Traits les plus courants de l'espèce. On peut cependant appliquer **n'importe quel Trait** à n'importe quelle créature si cela correspond au jeu voulu (`LDB 76 l.16-19`).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.4-13, l.16-19) → `traitsStandard`, `doc`, `critTableKeyFor`, `critiqueTable`, `resolveCritique`, `TraitData` — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
+- `LDB 76` (l.4-13, l.16-19) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `critiqueTable`, +6 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +5 fichiers
 
 ---
 
@@ -68,7 +68,7 @@ En principe, déterminer une **Localisation** pour une créature non humaine est
 **Voir aussi** : [Tableau de Localisation humanoïde](combat.md#tableau-de-localisation-humanoïde) — `combat.md` ; Critiques et Frappe Mortelle — `combat.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.19-45) → `traitsStandard`, `doc`, `sceneEntitySchema`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, `critiqueTable`, `creatureToCombatant`, `resolveCritique`, `TraitData` — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/state/scene.ts`, +2 fichiers
+- `LDB 76` (l.19-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
 
 ---
 
@@ -87,7 +87,7 @@ En principe, déterminer une **Localisation** pour une créature non humaine est
 Ces deux tables remplacent la table humanoïde standard pour les morphologies concernées. Toutes les autres créatures — quadrupèdes, oiseaux, créatures à tentacules — utilisent le **tableau humanoïde réétiquetté** (membres antérieurs = bras, membres postérieurs = jambes, ailes = bras).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.28-35) → `traitsStandard`, `doc`, `sceneEntitySchema`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, `critiqueTable`, `creatureToCombatant`, `resolveCritique`, `TraitData` — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/state/scene.ts`, +2 fichiers
+- `LDB 76` (l.28-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
 
 ---
 
@@ -106,7 +106,7 @@ Ces Traits dits « standard » peuvent donc être ajoutés à **n'importe quelle
 **Voir aussi** : [Index des Traits de créature](#index-des-traits-de-créature) ; Traits Facultatifs.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.31-35, l.37) → `traitsStandard`, `doc`, `sceneEntitySchema`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, `critiqueTable`, `creatureToCombatant`, `resolveCritique`, `TraitData` — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/state/scene.ts`, +2 fichiers
+- `LDB 76` (l.31-35, l.37) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
 
 ---
 
@@ -135,7 +135,7 @@ Les **12 Attributs** = les 10 Caractéristiques standard (CC, CT, F, E, I, Ag, D
 - `LDB 76 l.46` (spawn.ts l.163-164) — « – » du schéma = caractéristique inexistante → 0.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.44-46) → `sceneEntitySchema`, `SceneEntity`, `SpawnExtras`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
+- `LDB 76` (l.44-46) → `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
 
 ---
 
@@ -154,8 +154,8 @@ Règle d'application des Traits Facultatifs modificateurs de profil (**Élite, C
 - `LDB 85 l.339-340` — « Utiliser les Tailles » (si la Taille Facultative change la catégorie → ±10 F/E, ∓5 Ag).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.11-13, l.45) → `doc`, `sceneEntitySchema`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, `critiqueTable`, `creatureToCombatant`, `resolveCritique` — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, +1 fichiers
-- `LDB 85` (l.339-340) → `doc`, `SIZE_LABEL`, `structureTaille`, `resizeBySteps`, `StructureData`, `taille-modificateurs-en-combat`, `regard-petrifiant`, `souffle-feu`, `souffle-froid`, `souffle-corrosif`, +19 — `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, `src/engine/size.ts`, +3 fichiers
+- `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, `sceneEntitySchema`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
+- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `sizeFromTalents`, `resizeBySteps`, `StructureData`, `taille-modificateurs-en-combat`, `isStupid`, `regard-petrifiant`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
 
 ---
 
@@ -204,7 +204,7 @@ Le trait **Endurant** ajoute +BE aux Blessures calculées (appliqué avant tout 
 **Voir aussi** : [Modificateurs de Taille en combat](#modificateurs-de-taille-en-combat) ; [Taille dans combat.md](combat.md#taille--catégories-et-modificateurs-de-combat) (récapitulatif en-combat, renvoi ici pour le détail des Blessures).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.343-406) → `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `sizeDamageMultiplier`, `weaponFromTrait`, `sizeGrantedQualities`, `EnemyTurnInput`, +56 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/combat.ts`, +15 fichiers
+- `LDB 85` (l.343-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `sizeDamageMultiplier`, `weaponFromTrait`, `sizeGrantedQualities`, +66 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/character.ts`, +19 fichiers
 
 ---
 
@@ -214,7 +214,7 @@ Le trait **Endurant** ajoute +BE aux Blessures calculées (appliqué avant tout 
 
 Pour agrandir une créature d'une catégorie de Taille (transformer par exemple une Araignée Géante en Araignée Gigantesque) :
 
-> « Augmentez **F** et **E** de +10, et réduisez **Ag** de -5 par catégorie de taille supérieure. Inversez le procédé si vous voulez rendre une créature plus petite. » — `LDB 85 l.276-277`
+> « augmentez alors **F**  et **E** de +10, et réduisez **Ag** de -5 par catégorie de taille supérieure. Inversez le procédé si vous voulez rendre une créature plus petite. » — `LDB 85 l.340`
 
 Ces modificateurs s'appliquent **par catégorie d'écart**. Ils sont cumulatifs sur plusieurs catégories.
 
@@ -222,7 +222,7 @@ Ces modificateurs s'appliquent **par catégorie d'écart**. Ils sont cumulatifs 
 - `LDB 85 l.339-340` — règle d'agrandissement/réduction.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.276-277, l.339-340) → `doc`, `SIZE_LABEL`, `StatblockEditor`, `structureTaille`, `seuilsDeSauvegarde`, `toucheSauvee`, `resizeBySteps`, `resolvePsychAI`, `creatureToCombatant`, `hitModifiers`, +30 — `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, `src/engine/combat.ts`, +11 fichiers
+- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `sizeFromTalents`, `resizeBySteps`, `StructureData`, `taille-modificateurs-en-combat`, `isStupid`, `regard-petrifiant`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
 
 ---
 
@@ -295,7 +295,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `combat-deux-armes`, `grappleTierMod`, `grapple`, `main-secondaire`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
-- `LDB 85` (l.357-387) → `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, `displaceSmaller`, +29 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/engagement.ts`, `src/engine/psychology.ts`, +11 fichiers
+- `LDB 85` (l.357-387) → `TraitDef`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, +32 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/character.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +13 fichiers
 
 ---
 
@@ -310,7 +310,7 @@ Pour les bêtes sauvages, les profils du bestiaire sont **arrondis à des multip
 Les Caractéristiques inexistantes (« – » → 0) **ne sont pas tirées**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `sceneEntitySchema`, `StatblockEditor`, `SceneEntity`, `SpawnExtras`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
+- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `StatblockEditor`, `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
 
 ---
 
@@ -352,8 +352,8 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 | **Langue Préhensile (Indice)(Portée)** | Attaque gratuite | 1 Avantage | Distance ; Empêtré ; tire la cible si Taille inférieure (`LDB 85 l.211-213`) |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.31-35) → `traitsStandard`, `doc`, `sceneEntitySchema`, `critTableKeyFor`, `SceneEntity`, `SpawnExtras`, `critiqueTable`, `creatureToCombatant`, `resolveCritique`, `TraitData` — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/engine/critical.ts`, `src/state/scene.ts`, +2 fichiers
-- `LDB 85` (l.1-447) → `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `affame`, `scenario`, `creatureWeapon`, +197 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +40 fichiers
+- `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
+- `LDB 85` (l.1-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `affame`, `scenario`, +230 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +43 fichiers
 
 ---
 
@@ -409,7 +409,7 @@ Créatures MDG portant ce Trait : Anguille mâcheprise, Stylet, Élémentaire de
 **Voir aussi** : [Index des Traits de créature](#index-des-traits-de-créature) ; Trait *Aquatique* (MSRC) — `combat.md` § *Traits de mouvement* ; Trait *Amphibie* — `deplacement.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 16` (l.15-19, l.63-305) → `scene`, `scenario`, `fireTurnEdgeTriggers`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `sea-scorbut`, `sea-mal-de-mer`, `sea-tonneau-expose`, `sea-tonneau-contamine`, +23 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, `src/engine/ops.ts`, +8 fichiers
+- `MDG 16` (l.15-19, l.63-305) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `OP_DEFS`, `sea-scorbut`, +34 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, +14 fichiers
 
 ---
 
@@ -433,7 +433,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `ZI 14` (l.1045) → `fouissement` — `src/data/traits.json`
-- `MDG 16` (l.9-13, l.152) → `scene`, `scenario`, `fireTurnEdgeTriggers`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `sea-scorbut`, `TriggerCtx`, `offTerrainSuffocates`, `GameOp`, +8 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/voyage-stakes.json`, `src/engine/ops.ts`, `src/engine/suffocation.ts`, `src/engine/types.ts`, +6 fichiers
+- `MDG 16` (l.9-13, l.152) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `OP_DEFS`, `sea-scorbut`, +19 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/voyage-stakes.json`, `src/engine/combat.ts`, `src/engine/encumbrance.ts`, +12 fichiers
 
 ## Bilan de fidélité
 
@@ -470,7 +470,7 @@ Les chapitres `LDB 77-83`, `ZI`, `frenchy.bzh`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`
 
 ### Écarts ou points à vérifier
 
-- La règle **Piétinement** mentionne « Corps à corps (Bagarre) » (`LDB 85 l.387`) : vérifier que le code utilise bien cette Compétence (pas Corps à corps base générique).
+- La règle **Piétinement** « utilise la Compétence Corps à corps (Bagarre) » (`LDB 85 l.387`) : vérifier que le code utilise bien cette Compétence (pas Corps à corps base générique).
 - La règle **Nuée** (`LDB 85 l.252-258`) est synthétisée dans `combat.md` — ce fichier ne la re-transcrit pas (renvoi).
 - **Chapitres chamaniques / sorts de créatures** (Lanceur de Sorts, Béni, Miracles) : règle dans `magie.md` / `religion.md`, pas ici.
 - La règle d'**Animosité** (LDB 85 l.25 → LDB 21 l.X) est dans `psychologie.md`.

@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
+import { dansLaMesure } from './chemin-mesure.mjs'
 import path from 'node:path'
 
 const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
@@ -159,16 +160,6 @@ export function enfantsDeLIndex(blobs, dossier) {
   return [...noms]
 }
 
-/** Chemins IGNORÉS par git (une invocation) : ils ne sont dans aucun listing de l'index. */
-export function ignoresGit(racine) {
-  const sortie = execFileSync(
-    'git',
-    ['-c', 'core.quotepath=false', 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
-    { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 28 },
-  )
-  return new Set(sortie.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
-}
-
 /** Lignes `<chemin> <hash>` / `<dossier>/ <hash>` d'un set de lectures, dans l'ordre de l'empreinte. */
 function lignes(fichiers, dossiers) {
   return [
@@ -180,13 +171,14 @@ function lignes(fichiers, dossiers) {
 export const empreinteDe = (fichiers, dossiers) => sha1(lignes(fichiers, dossiers).join('\n'))
 
 /**
- * Empreinte du set MESURÉ, hashée sur le contenu du DISQUE. `ignores` retire du listing d'un dossier
- * ce que git ignore : le reste (un fichier non suivi) est exactement ce que l'index ne porte pas.
+ * Empreinte du set MESURÉ, hashée sur le contenu du DISQUE. `ignores` (`ignoresGit`) retire du
+ * listing d'un dossier ce qui n'entre pas dans la mesure (`dansLaMesure`) : le reste (un fichier non
+ * suivi) est exactement ce que l'index ne porte pas.
  */
 export function empreinteDuDisque(racine, lues, ignores) {
   const fichiers = new Map(lues.fichiers.map((p) => [p, hashBlobDisque(path.join(racine, p))]))
   const dossiers = new Map(
-    [...lues.dossiers].map(([d, entrees]) => [d, hashListing(entrees.filter((n) => !ignores.has(`${d}/${n}`)))]),
+    [...lues.dossiers].map(([d, entrees]) => [d, hashListing(entrees.filter((n) => dansLaMesure(`${d}/${n}`, ignores)))]),
   )
   return { empreinte: empreinteDe(fichiers, dossiers), fichiers, dossiers }
 }

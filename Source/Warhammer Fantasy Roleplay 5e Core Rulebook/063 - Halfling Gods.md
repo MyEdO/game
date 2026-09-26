@@ -1,6 +1,6 @@
 *Pages PDF 215-216*
 
-# **HALFLING GODS**
+# <span id="page-214-0" data-folio="215"></span>**HALFLING GODS**
 
 Some say that halflings are superstitious rather than religious, and the bulk of their deities support this impression. Most halfling gods and goddesses have to do with hearth and home, cooking, herblore, earthy matters, and general day-to-day concerns. Halfling gods are practical rather than philosophical; as the saying goes, 'Deep thoughts butter no parsnips'. Halflings also show respect to certain human deities, Sigmar, Taal, and Rhya in particular, but this is more from a desire to avoid conflict than from any sincere devotion.
 
@@ -8,7 +8,7 @@ Some say that halflings are superstitious rather than religious, and the bulk of
 
 Halflings do not really have priests, and they certainly do not build temples (though humans seem happy to do it for them, especially Sigmarites). There are better things to do than warble on about someone else's business. Of course, they respect the gods, and have shrines on-hand should they need to have a quick natter, but none make a career exclusively talking to just one god — why make yourself so exclusive? Should a particular god need to be appeased, it is usually left up to a local elder to do what is required on behalf of the community, often after a great deal of talking with relevant experts and peers.
 
-### **CHIEF GODS OF DWARFS, ELVES, AND HALFLINGS**
+### <span id="page-215-0" data-folio="216"></span>**CHIEF GODS OF DWARFS, ELVES, AND HALFLINGS**
 
 #### **Dwarfs**
 

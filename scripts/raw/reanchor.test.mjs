@@ -4,10 +4,9 @@
 // (LOW + « texte trouvé en ZI 2 l.68 ») mais ne bloquait rien. Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
 import { buildIndex, classifyQuote, continuations, scan, sitesLow, RAWDIR, LOW_STOCK_PATH } from './reanchor.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 
@@ -127,48 +126,12 @@ test('écart : deux sites de la MÊME réf dans la MÊME fiche se distinguent pa
   assert.equal(neuves.length, 1, 'le second site n’est pas couvert par l’entrée du premier')
 })
 
-// Les QUATRE gestes qu'un auteur peut faire sur le stock RÉEL, et ce que chaque porte en dit. Le
-// stock sert de MODÈLE de sites : rien n'est écrit sur le disque, et aucun cardinal n'est figé —
-// c'est la RELATION entre geste et verdict qui est le contrat.
-test('stock réel — les quatre gestes : site neuf, entrée ajoutée, occurrence relevée, stock vidé', () => {
-  const stock = readStock(LOW_STOCK_PATH)
-  assert.ok(stock.length > 0, 'stock vide : la sonde jugerait par vacuité')
-  const sitesDuStock = stock.map((e) => ({ file: e.fichier, ref: e.ref }))
-  const ou = 'reanchor-low-stock.json'
-
-  const neuf = ecartDuVolet({ sites: [...sitesDuStock, { file: 'docs/raw/4e/combat.md', ref: 'LDB 99 l.1' }], stock, ou })
-  assert.equal(neuf.neuves.length, 1, 'un site jamais déclaré doit sortir SEUL')
-  assert.match(neuf.neuves[0], /docs\/raw\/[\w-]+\/combat\.md :: LDB 99 l\.1 :: 1 — site NEUF/)
-  assert.deepEqual(neuf.perimees, [])
-
-  const declare = ecartDuVolet({
-    sites: [...sitesDuStock, { file: 'docs/raw/4e/combat.md', ref: 'LDB 99 l.1' }],
-    stock: [...stock, { fichier: 'docs/raw/4e/combat.md', ref: 'LDB 99 l.1', occurrence: 1 }], ou,
-  })
-  assert.deepEqual([declare.neuves, declare.perimees], [[], []], 'déclarer l’entrée éteint la garde — et la porte de plage, elle, compte la ligne ajoutée')
-
-  const releve = ecartDuVolet({
-    sites: sitesDuStock,
-    stock: stock.map((e, i) => (i === 0 ? { ...e, occurrence: e.occurrence + 1 } : e)), ou,
-  })
-  assert.equal(releve.neuves.length, 1, 'une occurrence relevée découvre le site qu’elle abandonne')
-  assert.equal(releve.perimees.length, 1, 'et laisse une entrée que plus aucun site ne porte')
-
-  const vide = ecartDuVolet({ sites: sitesDuStock, stock: [], ou })
-  assert.equal(vide.neuves.length, sitesDuStock.length, 'stock vidé : tolérance ZÉRO, chaque site redevient neuf')
-  assert.deepEqual(vide.perimees, [])
-})
-
 // ---------- auto-cohérence sur le VRAI Atlas (le cliquet vaut pour de vrai, pas seulement en fixture) ----------
 
-test('scan(RAWDIR) réel : les sites ❌ LOW mesurés sont EXACTEMENT les entrées de reanchor-low-stock.json', () => {
+test('régime ZÉRO-TOLÉRANCE (#1898) : le VRAI Atlas n’a aucun site ❌ LOW, et reanchor-low-stock.json reste ABSENT', () => {
   const r = scan(RAWDIR, {})
-  const stock = readStock(LOW_STOCK_PATH)
-  assert.ok(stock.length > 0, 'le stock des réfs ❌ LOW est une dette encore ouverte : un stock vide ici serait une perte de mesure')
-  const { neuves, perimees } = ecartDuVolet({ sites: sitesLow(r.lowRows), stock, ou: 'reanchor-low-stock.json' })
-  assert.deepEqual(neuves, [], `site(s) NEUF(s) :\n${neuves.join('\n')}`)
-  assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
-  assert.equal(stock.every((e) => e.fichier.startsWith('docs/raw/')), true, 'chaque entrée NOMME sa fiche : c’est ce que la porte de plage lit')
+  assert.deepEqual(sitesLow(r.lowRows).map((x) => `${x.file} :: ${x.ref}`), [], 'réf(s) ❌ LOW : la citation est introuvable à la ligne annoncée')
+  assert.equal(existsSync(LOW_STOCK_PATH), false, 'reanchor-low-stock.json doit rester ABSENT (zéro-tolérance) — sa réapparition doit porter, dans chaque entrée, le résidu irréductible qu’elle déclare')
 })
 
 // ---------- --remap : carte de lignes EXACTE (#1739), continuations nues comprises ----------

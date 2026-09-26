@@ -14,11 +14,12 @@ export const tenue: TenueDef = {
   label: 'Chevaucheur de blaireau',
   id: "chevaucheur-de-blaireau",
   palette: {
+    metal: '#8b94a6',
     vet1: '#4f8236', vet1O: '#2e5020', vet1H: '#82b558', // vert — écharpe + braies
     vet2: '#e6dcbf', vet2O: '#a89a70', vet2H: '#f4eeda', // crème — chemise
     cuir: '#875733', cuirO: '#472d15', cuirH: '#aa7a45', // cuir buffle — jerkin, ceinture, bracelet, bourse
     or: '#c9a23c', orO: '#8a6a1e', orH: '#e3c66d', // laiton — boucle de ceinture
-    rouge: '#b23a2c', rougeO: '#7a2019', rougeH: '#d16a54', // manchettes rouges
+    manchette: '#b23a2c', manchetteO: '#7a2019', manchetteH: '#d16a54', // manchettes rouges
     metalO: '#2a3038', // liseré acier (épaulière/écaille via g_steel/g_steelD globaux)
   },
   set: {
@@ -39,6 +40,6 @@ export const tenue: TenueDef = {
         profile: `<g stroke-linejoin="round"><path d="M-1.4 2 Q-1.8 11 -1.4 21 M2 2 Q2.4 11 2 21" fill="none" stroke="@vet1O" stroke-width="0.5" opacity="0.42"/><path d="M-5 21 Q0 23.4 5 21 L4.8 27 Q0 29.4 -4.8 27 Z" fill="@vet2" stroke="@vet2O" stroke-width="0.7"/><path d="M-4.5 23.6 Q0 25.8 4.5 23.6" fill="none" stroke="@vet2H" stroke-width="0.5" opacity="0.6"/><path d="M-4.6 26.6 Q0 28.8 4.7 26.6 L3.4 50 Q0 51.5 -3.2 50 Z" fill="@peau" stroke="@peauO" stroke-width="0.6"/><path d="M0.4 30 Q0.2 40 0.4 48" fill="none" stroke="@peauO" stroke-width="0.4" opacity="0.4"/></g>`,
       },
     }),
-    bras: `<g stroke-linejoin="round"><path d="M-5 -2.5 Q0 -5 5 -2.5 Q6.2 4 4.8 11 Q0 13 -4.8 11 Q-6.2 4 -5 -2.5 Z" fill="@vet2" stroke="@vet2O" stroke-width="0.7"/><path d="M-3 -1.5 Q-3.6 4 -3 10 M3 -1.5 Q3.6 4 3 10" fill="none" stroke="@vet2O" stroke-width="0.5" opacity="0.45"/><path d="M-4.8 10.5 Q0 12.5 4.8 10.5 L4.5 19 Q0 21 -4.5 19 Z" fill="@cuir" stroke="@cuirO" stroke-width="0.8"/><path d="M-4.8 10.5 Q0 12.5 4.8 10.5 L4.6 13 Q0 15 -4.6 13 Z" fill="@cuirH" opacity="0.28"/><g fill="#dfe7f2" stroke="@metalO" stroke-width="0.3"><circle cx="-2.4" cy="14.4" r="0.7"/><circle cx="2.4" cy="14.4" r="0.7"/><circle cx="0" cy="17" r="0.7"/></g><path d="M-4.5 18.5 Q0 20.5 4.5 18.5 L4.2 23.5 Q0 25.5 -4.2 23.5 Z" fill="@rouge" stroke="@rougeO" stroke-width="0.7"/><path d="M-4.2 20 Q0 22 4.2 20" fill="none" stroke="@rougeH" stroke-width="0.5" opacity="0.6"/></g>`,
+    bras: `<g stroke-linejoin="round"><path d="M-5 -2.5 Q0 -5 5 -2.5 Q6.2 4 4.8 11 Q0 13 -4.8 11 Q-6.2 4 -5 -2.5 Z" fill="@vet2" stroke="@vet2O" stroke-width="0.7"/><path d="M-3 -1.5 Q-3.6 4 -3 10 M3 -1.5 Q3.6 4 3 10" fill="none" stroke="@vet2O" stroke-width="0.5" opacity="0.45"/><path d="M-4.8 10.5 Q0 12.5 4.8 10.5 L4.5 19 Q0 21 -4.5 19 Z" fill="@cuir" stroke="@cuirO" stroke-width="0.8"/><path d="M-4.8 10.5 Q0 12.5 4.8 10.5 L4.6 13 Q0 15 -4.6 13 Z" fill="@cuirH" opacity="0.28"/><g fill="#dfe7f2" stroke="@metalO" stroke-width="0.3"><circle cx="-2.4" cy="14.4" r="0.7"/><circle cx="2.4" cy="14.4" r="0.7"/><circle cx="0" cy="17" r="0.7"/></g><path d="M-4.5 18.5 Q0 20.5 4.5 18.5 L4.2 23.5 Q0 25.5 -4.2 23.5 Z" fill="@manchette" stroke="@manchetteO" stroke-width="0.7"/><path d="M-4.2 20 Q0 22 4.2 20" fill="none" stroke="@manchetteH" stroke-width="0.5" opacity="0.6"/></g>`,
   },
 };

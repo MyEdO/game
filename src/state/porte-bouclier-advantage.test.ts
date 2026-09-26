@@ -7,7 +7,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 
 /**
- * Porte-Bouclier (LDB 10 p.144, VERBATIM) : « vous gagnez un nombre d'Avantages égal au nombre de Niveaux
+ * Porte-Bouclier (LDB 10 l.972, VERBATIM) : « vous gagnez un nombre d'Avantages égal au nombre de Niveaux
  * que vous possédez en Porte-bouclier SI VOUS PERDEZ le Test opposé » en vous défendant au Bouclier. C'est
  * une consolation de défense PERDUE (« situation désespérée »), pas un bonus de défense gagnée — le code
  * l'accordait à tort sur une défense GAGNÉE (advantageTo 'defender'). Fixe la fidélité RAW.
@@ -45,7 +45,7 @@ const loseWithShield: AttackResult = {
 };
 const adv = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!.advantage;
 
-describe('Porte-Bouclier — Avantage en défense PERDUE (LDB 10 p.144)', () => {
+describe('Porte-Bouclier — Avantage en défense PERDUE (LDB 10 l.972)', () => {
   beforeEach(() => { useGame.setState({ battle: null }); resetRule('combat-aa-avantage-groupe'); });
 
   it('défense PERDUE au Bouclier + Porte-Bouclier 2 → le défenseur gagne 2 Avantages (consolation)', () => {

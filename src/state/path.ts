@@ -310,7 +310,7 @@ export function reachable(scene: Scene, start: Pt, range: number, env: MoveEnv):
 }
 
 /**
- * Vol (LDB 85 p.343) : destinations en LIGNE DIRECTE jusqu'à `range` cases — « elle ignore tous les
+ * Vol (LDB 85 l.433) : destinations en LIGNE DIRECTE jusqu'à `range` cases — « elle ignore tous les
  * terrains, obstacles et personnages qui s'interposent » ; seul l'ATTERRISSAGE exige une empreinte
  * praticable et libre. Coût = distance de Tchebychev (déplacement libre dans les airs).
  */
@@ -370,7 +370,7 @@ export function pushAway(
   return { dest: pt(cur.x, cur.y, tz), pushed, collided: false };
 }
 
-/** Symétrique de `pushAway` : tire `target` VERS `anchor` (Langue préhensile, LDB 85 p.340 — la proie de
+/** Symétrique de `pushAway` : tire `target` VERS `anchor` (Langue préhensile, LDB 85 l.213 — la proie de
  *  Taille inférieure est « entraînée vers la créature »). Avance pas à pas le long de la ligne target→anchor,
  *  jusqu'à `tiles` cases, en s'arrêtant AVANT la case de l'anchor (rester adjacent) et AVANT tout obstacle /
  *  case occupée (donc avant l'empreinte d'un grand anchor, dont les tuiles sont dans `env.blocked`). Pur. */

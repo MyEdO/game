@@ -1,6 +1,6 @@
 *Pages PDF 272*
 
-# • **GLORIOUS REIKLAND** •
+# <span id="page-271-0" data-folio="272"></span>• **GLORIOUS REIKLAND** •
 
 To his Imperial Majesty, Emperor Karl Franz the First, by the Grace of the Gods, Elector Count and Grand Prince of Reikland, Prince of Altdorf, Count of the West March, Defender of Sigmar's Faith, do I commend this text, an examination of his most illustrious realm, the Grand Princedom of Reikland, heartland of Our Holy Empire. Long may he rule!
 
@@ -13,5 +13,3 @@ Truly, to be born a Reiklander is to be born blessed by the Gods Themselves. Giv
 — The words of Holy Mother Halma Habermann of Sigmar — Recorded faithfully by the humble scribe Melistius of the Order of the Anvil in 2510 IC
 
 Standing proud in the heart of the Old World, Reikland is the richest and most powerful of the Empire's grand provinces. Known for its engineers, wizards, and merchants, and for being the birthplace of the Cult of Sigmar, it is a realm of soaring mountains, snaking rivers, dark forests, and powerful trading centres. From his throne in the city of high-spired Altdorf, Emperor Karl Franz rules not only the Reikland, but all the Empire that lies beyond.
-
-X

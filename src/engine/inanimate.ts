@@ -4,7 +4,7 @@
  * partagée par les trois saveurs d'objet inanimé (le modèle « OBJET INANIMÉ généralisé ») :
  *  - **structure** de siège (ADE II 8, porte/mur) — DESTRUCTIBLE : profil à PV {E,B} ;
  *  - **véhicule**-coque (navire/chariot/barge, MDG 12-13) — DESTRUCTIBLE : profil à PV {E,B} ;
- *  - **engin de siège** (affût servi, AA 10 p.122-123) — INERTE NON-DESTRUCTIBLE : aucun profil à PV. Le RAW
+ *  - **engin de siège** (affût servi, AA 10 l.136-195) — INERTE NON-DESTRUCTIBLE : aucun profil à PV. Le RAW
  *    ne donne aucune Endurance/Blessures à un engin (c'est une « Arme d'équipe ») → on le neutralise en
  *    tuant son équipage, pas en le détruisant. `hull` ABSENT ⇒ Blessures {0,0,0} (immune via `woundsFromHit`).
  *

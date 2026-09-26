@@ -41,8 +41,6 @@ export function bipedDef(id: string): CreatureDef | undefined { return BIPED_BY_
  *  son `appearance.species` (un id) → on lit sa def sans match flou. */
 const DEF_BY_ID: Record<string, CreatureDef> = Object.fromEntries(CREATURES.map((c) => [defId(c), c]));
 export function defById(id: string): CreatureDef | undefined { return DEF_BY_ID[id]; }
-/** Libellé d'affichage d'un id d'espèce (ou l'id en repli). */
-export function speciesLabel(id: string): string { return DEF_BY_ID[id]?.label ?? id; }
 /** Options du sélecteur d'espèce (affiche le libellé, stocke l'id). */
 export function creatureSpeciesOptions(): { id: string; label: string }[] { return CREATURES.map((c) => ({ id: defId(c), label: c.label })); }
 /** Échelle de token d'une espèce canonique (par id) — bipède via race, non-bipède via props. */

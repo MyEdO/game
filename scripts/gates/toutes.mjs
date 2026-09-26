@@ -13,7 +13,7 @@
 //   1. `npm run gen`, puis les gates qui ÉCRIVENT dans l'arbre (`AVANT_LES_LANES`) — EN SÉRIE. Ce
 //      qu'elles réécrivent est NOMMÉ tout de suite, au lieu d'un « l'arbre a changé » sept minutes
 //      plus tard, et aucune lane ne peut lire un fichier pendant qu'une autre l'écrit.
-//   2. les LANES, qui ne contiennent plus que des LECTEURS.
+//   2. les LANES, qui contiennent seulement des LECTEURS.
 //   3. le RÉSUMÉ, puis la photo de l'arbre. Dans cet ordre : un résumé est ce qu'on vient de payer,
 //      il s'imprime AVANT tout ce qui pourrait encore échouer.
 //
@@ -56,7 +56,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * Ce que chaque gate ÉCRIT et LIT dans l'ARBRE, MESURÉ (sonde d'écritures transitives sur les
  * scripts atteints par la commande de `ci.yml`, 2026-09-04 ; chaque ligne re-vérifiée à la source).
  * Repassée le 2026-09-08 (#1709 E) à l'ENREGISTREUR DE LECTURES (`scripts/docs/lib/enregistreur-lectures.mjs`
- * posé en `--import` sur la commande de chaque gate) : `lit` déclare désormais aussi le CODE que la
+ * posé en `--import` sur la commande de chaque gate) : `lit` déclare aussi le CODE que la
  * gate exécute — le changer change son verdict, donc c'est une lecture. Angles morts de la sonde,
  * nommés : ce qu'un sous-processus NON-node lit (`git ls-files` de src/source-hygiene-guard.test.ts:76,
  * `tsc`/`eslint` binaires) lui échappe, et un chemin RELATIF écrit par un enfant dont le `cwd` est un
@@ -293,7 +293,7 @@ export const ECRIT_LU = {
     raison:
       '`--empreinte` sort avant toute génération (build-all.mjs, branche `--empreinte` de `main`) : les 9 ' +
       'lectures mesurées sont `docs/.sources-lues.json` et son propre code — les BLOBS qu’il compare sortent ' +
-      'de l’INDEX (`indexGit`, `git ls-files -s`, empreinte-sources.mjs:143), jamais du disque : angle mort ' +
+      'de l’INDEX (`indexGit` d’empreinte-sources.mjs, `git ls-files -s`), jamais du disque : angle mort ' +
       'de la sonde (sous-processus git), d’où `.claude/memory/` déclaré par LECTURE — les fiches `user-*.md` ' +
       'sont des sources de `docs/doctrines.md` (docs/.sources-lues.json) et leur blob entre dans le verdict (#1738)',
   },
@@ -332,6 +332,11 @@ export const ECRIT_LU = {
         '`check-source-puces.test.mjs` IMPORTE le détecteur des puces lues comme un jeton, dont l’unique ' +
         'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `isMain` ' +
         '(scripts/raw/check-source-puces.mjs:159) ; le banc ne fait que LIRE le stock (`readStock`)',
+      'scripts/raw/renvois-stock.json':
+        '`check-renvois.test.mjs` IMPORTE la garde des renvois « page N », dont l’unique écriture (la ' +
+        'régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `isMain` ' +
+        '(scripts/raw/check-renvois.mjs:89) ; le banc ne fait que LIRE le stock (`readStock`), son ' +
+        'refus de croissance passe une écriture INJECTÉE (`ecrireStockSousLot`) qui ne touche pas le disque',
       'scripts/raw/source-format-stock.json':
         '`check-source-format.test.mjs` IMPORTE le détecteur du format des extractions, dont l’unique ' +
         'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `isMain` ' +
@@ -364,7 +369,14 @@ export const ECRIT_LU = {
       'Source/**/*.md':
         '`recouper-source.test.mjs` IMPORTE le re-coupeur des `.md` en service ; ses `writeFileSync` et ' +
         '`rmSync` vivent dans `main()`, sous sa porte `estMain` (scripts/raw/recouper-source.mjs:397), ' +
-        'et le banc n’appelle que son cœur PUR sur un livre FORGÉ en mémoire',
+        'et le banc n’appelle que son cœur PUR sur un livre FORGÉ en mémoire ; `reparer-mobilier.test.mjs` ' +
+        'IMPORTE la réparation du mobilier de page (#1739), dont l’unique `writeFileSync` vit dans `main()`, ' +
+        'derrière sa porte `isMain` ET `--apply` (scripts/raw/reparer-mobilier.mjs:186) — le banc n’appelle ' +
+        'que ses fonctions PURES (`reparer`, `infidelite`, `motsDe`, `niveauDesFreres`, `niveauDeLegende`, ' +
+        '`texteDeBandeau`) sur des textes en mémoire ; `reparer-titres.test.mjs` IMPORTE la réparation des titres ' +
+        'd’entrée (#1739), dont l’unique `writeFileSync` vit dans `main()`, derrière sa porte `isMain` ET ' +
+        '`--apply` (scripts/raw/reparer-titres.mjs) — le banc n’appelle que son cœur PUR (`reparerLivre`, ' +
+        '`infidelite`) sur un livre forgé en mémoire',
       'scripts/raw/*-stock.json':
         'même porte, même module : le recalage des stocks nominatifs (`recalerStock`) rend un TEXTE, ' +
         'que le seul `main()` écrit derrière `estMain` (scripts/raw/recouper-source.mjs:397)',
@@ -405,8 +417,8 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
-      'aucune écriture dans les scripts atteints ; LIT Source/ et son stock ' +
-      'scripts/raw/empty-line-code-refs-stock.json',
+      'aucune écriture dans les scripts atteints ; LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
+      'scripts/raw/empty-line-code-refs-stock.json, ABSENTS en régime nominal, et scripts/raw/graphy-stock.json (sites différés)',
   },
   'raw:check-ancres': {
     ecrit: [],
@@ -462,6 +474,20 @@ export const ECRIT_LU = {
       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; le seul module ' +
       'écrivain atteint est le détecteur lui-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
   },
+  'raw:check-renvois': {
+    ecrit: [],
+    ecritFerme: {
+      'scripts/raw/renvois-stock.json':
+        'le stock NOMINATIF des renvois « page N » non résolus ne se réécrit que sous `--ecrire-stock` ' +
+        '(scripts/raw/check-renvois.mjs:89), option que la commande de .github/workflows/ci.yml ' +
+        'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
+    },
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+    raison:
+      'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
+      'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; le seul ' +
+      'module écrivain atteint est la garde elle-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
+  },
   'raw:check-source-format': {
     ecrit: [],
     ecritFerme: {
@@ -490,7 +516,7 @@ export const ECRIT_LU = {
     ],
     raison:
       'la suite lit docs/raw/ : ce rapport et elle ne peuvent pas tourner sans cette porte ; LIT le registre ' +
-      'de livres, le normaliseur de références et son stock scripts/raw/reanchor-low-stock.json',
+      'de livres, le normaliseur de références et son stock scripts/raw/reanchor-low-stock.json, ABSENT en régime nominal',
   },
   'server:typecheck': {
     ecrit: [],
@@ -559,7 +585,7 @@ export const LANES = [
     gates: [
       'docs:check', 'docs:empreinte', 'test:raw', 'raw:check-refs', 'raw:check-code-refs', 'raw:check-ancres',
       'raw:check-folio-continuity', 'raw:check-source-tables', 'raw:check-source-format',
-      'raw:check-source-puces', 'test:docs',
+      'raw:check-source-puces', 'raw:check-renvois', 'test:docs',
       'agents:check', 'build',
     ],
     raison:

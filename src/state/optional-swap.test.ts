@@ -2,7 +2,7 @@
  * OPTIONNELS COMPOSÉS (LDB 76, #174/#186) — vocabulaire « swap » (remplacer des Traits par un ou
  * PLUSIEURS octrois) et joker « tous les traits ». Vérifie (1) que le picker/Codex les AFFICHE (libellé
  * source verbatim, jamais « undefined »), et (2) que l'APPLICATION au spawn retire bien les Traits
- * nommés et octroie le(s) bonus (Grand Loup ZI 1 p.16 : +15 Soc ; Griffon ZI : +20 Soc ; Vouivre ZI :
+ * nommés et octroie le(s) bonus (Grand Loup ZI 1 l.229 : +15 Soc ; Griffon ZI : +20 Soc ; Vouivre ZI :
  * variante COMPOSITE — +20 I/Int/Soc + Discrétion (Rurale) 65 + Taille (Grande) + B=42).
  */
 import { describe, it, expect } from 'vitest';

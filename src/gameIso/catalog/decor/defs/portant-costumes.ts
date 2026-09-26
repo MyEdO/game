@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Portant à costumes : tringle sur montants chargée de robes et habits suspendus à des cintres. Le
 // mobilier des « Rangements des costumes » (24) et de l'atelier des « Couturières » (25) du théâtre.
-// Cf. plan officiel NADJ 8 p.40 (tringles de vêtements alignées).
+// Cf. plan officiel NADJ 08 folio 38, image (tringles de vêtements alignées).
 export const prop: PropViz = {
   id: 'portant-costumes',
   label: 'Portant à costumes',

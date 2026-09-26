@@ -10,24 +10,23 @@
 // sens échouent — un site NEUF est une régression à corriger ou à déclarer, une entrée dont le site
 // a disparu est une dette SOLDÉE à retirer. Un nombre relevé dans un fichier de compte est net 0 à la
 // porte de plage ; une entrée ajoutée est une croissance qui se déclare (`stocksNominatifs.mjs`).
-// Le stock gelé (dérive de ligne post-ré-extraction Marker) soldé (#583) : le fichier de stock est
-// ABSENT en régime nominal → tolérance ZÉRO (toute réf morte échoue nominativement, `readStock`
-// traite un fichier absent comme zéro entrée). Si un résidu IRRÉDUCTIBLE réapparaît, le stock se
-// recrée à sa mesure MINIMALE, chaque entrée portant son lot et sa date — jamais un cliquet tacite
-// qui masque une future régression.
 // DEUXIÈME contrôle, même parcours (#1457 G1) : la ligne citée doit être NON VIDE. Une réf dans les
 // bornes peut pointer sur du blanc après une ré-extraction / une restitution de folio (vécu : le folio
 // 88 de LDB 08 a décalé la fin du chapitre de +44 lignes, 7 réfs committées tombées sur du vide ou sur
 // un autre paragraphe). Stock PROPRE (`scripts/raw/empty-line-code-refs-stock.json`, même écart) pour
-// ne pas diluer la tolérance ZÉRO du contrôle de bornes ci-dessus.
+// que l'un des deux contrôles ne dilue pas la tolérance de l'autre.
+// Les deux stocks sont soldés (#583, #1898) : leurs fichiers sont ABSENTS en régime nominal → tolérance
+// ZÉRO (tout site échoue nominativement, `readStock` traite un fichier absent comme zéro entrée). Si un
+// résidu IRRÉDUCTIBLE réapparaît, son stock se recrée à sa mesure MINIMALE, chaque entrée portant son
+// lot et sa date — jamais un cliquet tacite qui masque une future régression.
 // Re-run : node scripts/raw/check-code-refs.mjs (npm run raw:check-code-refs).
 import { readFileSync } from 'node:fs'
-import { listerArbre } from '../guards/lib/lister.mjs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { readStock } from './stockNominatif.mjs'
+import { fichiersCitants } from './lib/fichiersCitants.mjs'
 
 export const SRC_DIR = 'src'
 export const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture, pas une règle (cf. build-implemente)
@@ -61,19 +60,12 @@ function lineCount(path) {
 
 export const isExcludedSrc = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX)
 
-function fichiersDuCode(dir) {
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.split('/').includes('node_modules'),
-    filtre: (rel) => /\.(tsx?|json)$/.test(rel),
-  }).map((rel) => join(dir, rel))
-}
-
 /** Parcourt `srcDir` (src/ par défaut) et retourne les réfs mortes du code :
  *  `{ file, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
  *  `kind` ∈ `out-of-bounds` (chapitre résolu, ligne hors borne) | `chapter-not-found` (chapitre absent). */
 export function scanDeadCodeRefs(srcDir = SRC_DIR) {
   const dead = []
-  for (const f of fichiersDuCode(srcDir)) {
+  for (const f of fichiersCitants(srcDir)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
@@ -101,7 +93,7 @@ export function scanDeadCodeRefs(srcDir = SRC_DIR) {
  *  folio). Les réfs hors borne / à chapitre introuvable sont l'affaire de `scanDeadCodeRefs`. */
 export function scanEmptyLineCodeRefs(srcDir = SRC_DIR) {
   const vides = []
-  for (const f of fichiersDuCode(srcDir)) {
+  for (const f of fichiersCitants(srcDir)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')

@@ -15,9 +15,9 @@
  * RAW :
  *  - Récupération (LDB 18 l.296) : Résistance +20 après « une bonne nuit de sommeil » → DR+BE PB,
  *    + BE/jour inconditionnel — le canon ne module PAS la récupération par la qualité du lit ;
- *  - Prix (LDB 66 p.304) : chambre commune 10 sc/pers · privée 10 pa pour 2 (la grande pour 4
+ *  - Prix (LDB 66 l.5-28) : chambre commune 10 sc/pers · privée 10 pa pour 2 (la grande pour 4
  *    coûte le double → regrouper par paires est équivalent, coût auto) · repas 1 pa ; PIÈTRE = ½
- *    prix, et la nourriture piètre expose à la Courante galopante (10 %, ch.66 l.51) ;
+ *    prix, et la nourriture piètre expose à la Courante galopante (10 %, LDB 66 l.5) ;
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon la MÉTÉO de la scène ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
@@ -608,7 +608,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   return { steps: banded, log, slept: { from, to: get().gameTime } };
 }
 
-/** Prix RAW de l'hébergement et du repas d'auberge (LDB 66 p.302) — SOURCE UNIQUE le catalogue
+/** Prix RAW de l'hébergement et du repas d'auberge (LDB 66 l.12-16) — SOURCE UNIQUE le catalogue
  *  `trappings.json` (ids de service), plus AUCUNE constante dupliquée : le hub de ville (#343) et
  *  `restCost` lisent le MÊME tarif. Piètre = ½ (appliqué par `restCost`). */
 function serviceBrass(id: string): number {
@@ -622,7 +622,7 @@ const PRICE_BRASS = {
   repas: serviceBrass('repas-auberge'),
 } as const;
 
-/** Tarif d'un service d'auberge en monnaie (LDB 66 p.302, source unique catalogue) — affiché par le
+/** Tarif d'un service d'auberge en monnaie (LDB 66 l.12-16, source unique catalogue) — affiché par le
  *  panneau d'auberge du hub de ville (#343), aligné au débit de `restCost`. */
 export function restServicePrice(kind: keyof typeof PRICE_BRASS): Money {
   return fromBrass(PRICE_BRASS[kind]);

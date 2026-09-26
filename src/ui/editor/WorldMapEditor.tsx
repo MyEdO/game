@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Scene } from '../../state/scene';
+import { CIBLES_PAR_RACINE } from '../../state/combatEffects';
 import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById } from '../../state/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
@@ -109,6 +110,7 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
     // Selects guidés (M9) : transitions de péripétie vers les scènes du projet (le marchand,
     // lié à la scène COURANTE au moment du voyage, reste un id libre ici).
     scenes: scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
+    cibles: CIBLES_PAR_RACINE.scene,
   };
 
   const toggleMode = (r: MapRoute, mode: TravelMode) => {

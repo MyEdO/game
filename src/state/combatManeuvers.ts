@@ -80,7 +80,7 @@ function floatTag(tgt: Combatant, text: string): void {
 }
 
 /** HOOK de conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie) — injecté par le store
- *  (`setManeuverPostHitHook`), pointe sur l'entraînement de la Langue préhensile (LDB 85 p.340 : une proie
+ *  (`setManeuverPostHitHook`), pointe sur l'entraînement de la Langue préhensile (LDB 85 l.213 : une proie
  *  plus petite Empêtrée est tirée vers la créature — pathing impur qui vit dans combatFlow). Appelé par
  *  `applyManeuverEffects` avec le nombre de pions *Empêtré* AVANT l'application des effets, pour que la
  *  voie SILENCIEUSE (non-héros/Surpris) ET la voie CASCADE (héros influençable) tirent à l'identique.
@@ -267,7 +267,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   if (active.mannedPoste && active.mannedPoste.crewIds?.[0] === active.id && !battle.acted && canTakeAction(active)) {
     const w = active.weapons.find((x) => x.uid === active.mannedPoste!.item.uid);
     // Pièce INDIRECTE (mortier/catapulte, `w.indirect`) : vise une CASE (placeur de zone), pas un combattant
-    // (AA 10 p.122-123). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
+    // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
     if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/serve-engine', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
   // (5) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :

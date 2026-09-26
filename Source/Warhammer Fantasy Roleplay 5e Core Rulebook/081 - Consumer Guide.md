@@ -1,6 +1,6 @@
 *Pages PDF 296*
 
-# • **CONSUMER GUIDE** •
+# <span id="page-295-0" data-folio="296"></span>• **CONSUMER GUIDE** •
 
 *'Had this feller in here the other day who expected to just be able to pay for a suit of armour and carry it out the same day. Words didn't seem to have much impact on him, so I invited him to try on a set of greaves I've been working on. After they pinched him black and blue he agreed to put a deposit down and made an appointment to get measured next Marktag.'*
 

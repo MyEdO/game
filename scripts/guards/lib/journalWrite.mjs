@@ -5,7 +5,7 @@
 // `src/state/journal-write-guard.test.ts` ET par un futur hook pre-commit. Même patron que
 // `inBattleFind.mjs` (mécanique de détection ici, BASELINES en policy dans le test).
 
-/** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`/`inBattleFind.mjs`.
+/** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.
  * @param {string} src @returns {string} */
 export function stripComments(src) {
   return src

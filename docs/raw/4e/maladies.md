@@ -560,8 +560,7 @@ compte des Rounds de combat, `LDB 16 l.97`). Le Test est donc roulé à chaque j
 Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les pénalités sont **permanentes** (seuls des moyens magiques ou miraculeux peuvent les annuler).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.4-160) → `onTickSchema`, `doc`, `DiseaseDef`, `OPS_FIELDS`, `water-exposure`, `Disease`, `mapRouteSchema`, `diseaseTestModLines`, `snapshotInfectionResidual`, `crampes-abdominales`, +29 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +17 fichiers
-- sans code : `MSRC 16` (l.35-47)
+- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `onTickSchema`, `doc`, `autoExposureMods`, `DiseaseDef`, `OPS_FIELDS`, `water-exposure`, `Disease`, +41 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
 
 ---
 
@@ -624,7 +623,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 **Traitement** (`MSRC 16 l.160`) : infusion d'écorce de saule → bonus de +10 à tous les Tests résultant de la colique pendant 1d10 heures. Pas d'autre traitement.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.149-160) → `onTickSchema`, `doc`, `Disease`, `crampes-abdominales`, `resolveInlineFlowTest`, `firingOwnTestFailed`, `colique`, `combatTestPenaltyParts`, `EffectTrigger`, `vers-du-reik`, +11 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, `src/engine/disease.ts`, +8 fichiers
+- `MSRC 16` (l.149-160) → `onTickSchema`, `doc`, `Disease`, `crampes-abdominales`, `resolveInlineFlowTest`, `firingOwnTestFailed`, `colique`, `combatTestPenaltyParts`, `EffectTrigger`, `vers-du-reik`, +10 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, `src/engine/disease.ts`, +7 fichiers
 
 ---
 
@@ -656,7 +655,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 **Disponibilité** : Limitée. **Saison** : Hiver, Printemps. **Emplacement** : Forêts mixtes. **Coût** : 15/–.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 4` (l.184-245) → `GameOp`, `applyOps`, `gesundheit`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`, `src/engine/ops.ts`
+- `MSRC 4` (l.184-245) → `blessDiseaseDuration`, `GameOp`, `applyOps`, `gesundheit`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`, `src/engine/ops.ts`, `src/engine/rest.ts`
 
 ---
 
@@ -690,7 +689,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 **Disponibilité** : Rare. **Saison** : Printemps. **Emplacement** : Collines. **Coût** : 2 CO.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 4` (l.241-252) → `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`
+- `MSRC 4` (l.241-252) → `blessDiseaseDuration`, `GameOp`, `racine-des-tombes`, `rouille-mouchetee` — `src/data/trappings.json`, `src/engine/ops.ts`, `src/engine/rest.ts`
 
 ---
 
@@ -847,5 +846,5 @@ Planifier l'approvisionnement est vital pour un long voyage : l'équipage fourni
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 14` (l.166, l.171, l.236-271) → `ship-criticals`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `un-officier-pour-10`, `capitaine-vaillant`, `nourriture-au-dessus-des-rations`, `sealskinDR`, `bon-presage`, `paie-reguliere`, +55 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, +15 fichiers
-- `MDG 15` (l.169-170) → `triton`, `maelstrom`, `puissant-monstre-marin`, `ouragan`, `puissant-vortex`, `nemesis`, `langskip-skaeling`, `bateau-endommage`, `culte-de-la-personnalite`, `infestation-de-rats-geants`, +9 — `src/data/sea-events.json`, `src/scenes/loup-et-saumure/loup-et-saumure-projet.json`
+- `MDG 15` (l.169-170) → `triton`, `maelstrom`, `puissant-monstre-marin`, `ouragan`, `puissant-vortex`, `nemesis`, `langskip-skaeling`, `bateau-endommage`, `culte-de-la-personnalite`, `infestation-de-rats-geants`, +12 — `src/data/reglesOptionnelles.json`, `src/data/sea-events.json`, `src/i18n/messages/fr.ts`, `src/scenes/loup-et-saumure/loup-et-saumure-projet.json`, `src/state/seaVoyageFlow.ts`
 

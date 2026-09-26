@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import { weaponPart } from '../src/gameIso/rig/parts/equipment';
+import { weaponPart, objetSansPorteur } from '../src/gameIso/rig/parts/equipment';
 import type { Weapon } from '../src/engine/types';
 
 const tag = process.argv[2] ?? 'x';
@@ -21,7 +21,7 @@ const NAMES: Array<[string, 'melee' | 'ranged']> = [
 mkdirSync('public/qc', { recursive: true });
 const CW = 80, CH = 120;
 const tiles = NAMES.map(([name, type], i) => {
-  const art = weaponPart(W(name, type));
+  const art = objetSansPorteur(weaponPart(W(name, type)));
   const svg = typeof art === 'string' ? art : (art.front ?? '');
   return `<g transform="translate(${i * CW},0)"><rect width="${CW}" height="${CH}" fill="#1d2230"/>` +
     `<g transform="translate(${CW / 2},${CH - 22})">${svg}</g>` +

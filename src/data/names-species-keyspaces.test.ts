@@ -1,6 +1,5 @@
 /**
- * Garde des espaces de clés « race » (issue #163, recalée #1467 L1b V-P4). Le repo n'en porte plus
- * qu'UN pour les races JOUABLES : l'id `RaceKey` (`schemas/grammaire/valeurs.ts`, #313).
+ * Garde des espaces de clés « race » (issue #163, recalée #1467 L1b V-P4). Le repo en porte seulement UN pour les races JOUABLES : l'id `RaceKey` (`schemas/grammaire/valeurs.ts`, #313).
  *  - `species.refChar` le porte côté données de personnage ;
  *  - chaque document de `names.json` porte cet id : `generateName` retrouve la banque sans conversion ;
  *  - `raceAppearance.json` (espace « rig », 21 races dont 14 non jouables) est keyé par le SLUG de
@@ -45,7 +44,7 @@ describe('#163 — espaces de clés « race » : names keyé RaceKey, pont speci
 
   it('convergence des deux espaces : le pont ramène chaque refChar sur l’id de rig de MÊME nom', () => {
     // Ce que la garde verrouillait avant #1467 L1b V-P4 était la SÉPARATION label⇄id ; l'identité est
-    // désormais la relation vraie — un préfixe de `speciesRace.json` mal placé la casse aussitôt.
+    // la relation vraie — un préfixe de `speciesRace.json` mal placé la casse aussitôt.
     const ecarts = SPECIES.filter((s) => baseSpeciesOf(s.label) !== s.refChar)
       .map((s) => `${s.label} : refChar ${s.refChar} ⇄ rig ${baseSpeciesOf(s.label)}`);
     expect(ecarts, 'refChar(s) dont le pont ne rejoint pas l’id de rig homonyme').toEqual([]);

@@ -65,8 +65,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   en HYPOTHÈSE À RÉFUTER avec sa sonde discriminante : le fix que je prescris peut être faux aussi.
 - **Un brief de juge ne prescrit JAMAIS de mutation**, ni dans l'arbre, ni sur une copie ou un dépôt
   jetable : la preuve par mutation est au codeur (`.claude/agents/codeur.md`), le juge la vérifie et
-  rejoue les tests. Aucun brief ne prescrit de suppression récursive ou à joker hors des
-  `CIBLES_JETABLES` de `scripts/hooks/git-destructive-guard.mjs` (#1894).
+  rejoue les tests.
 - **UI** : nommer AUSSI la couche atomique — aucun élément nu (`<button>` → `.btn`/`.chip`/primitive,
   conteneur → `.panel`, focusable custom → focus maison) ; citer `docs/primitives.md` +
   `docs/charte-ui.md`.

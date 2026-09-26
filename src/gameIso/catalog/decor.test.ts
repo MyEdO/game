@@ -92,7 +92,7 @@ describe('Opéra — props de théâtre', () => {
       expect(propSvg(id), id).toBe(propSvg(base)); // même vignette que sa base
       expect(propSvg(id).length, id).toBeGreaterThan(40);
       // L'empreinte EFFECTIVE, jamais un `foot` déclaré : les trois variantes longues sont des
-      // RECETTES, et un décor à recette n'a plus de `foot` (#1509) — leurs deux cases viennent de
+      // RECETTES, et un décor à recette ne porte aucun `foot` (#1509) — leurs deux cases viennent de
       // leur corps (plateaux de 3,40 à 3,80 m), comme la case unique de leur base.
       expect(empreinteDe(id), id).toEqual({ w: 2, h: 1 });
       expect(empreinteDe(base), base).toEqual({ w: 1, h: 1 });

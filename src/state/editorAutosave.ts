@@ -1,4 +1,5 @@
 import type { Scene } from './scene';
+import { CURRENT_PROJECT_SCHEMA, exigerUnRefus, sceneAuSchemaCourant } from './worldMap';
 
 /**
  * Sauvegarde locale AUTOMATIQUE de la scène en cours d'édition — un crash de rendu de l'éditeur
@@ -15,6 +16,16 @@ export interface EditorAutosaveRecord {
   sceneId: string;
   scene: Scene;
   savedAt: number;
+  /** `CURRENT_PROJECT_SCHEMA` à l'écriture : l'axe de version que la lecture fait traverser à la chaîne
+   *  canonique (`sceneAuSchemaCourant`). Absent = écrit avant ce versionnage (#1882). */
+  schema?: number;
+}
+
+/** Enregistrement ÉCARTÉ à la lecture : la chaîne de migrations ne sait pas le porter au schéma
+ *  courant (sans version, ou version refusée) — retiré du magasin, la raison dite à l'auteur. */
+export interface AutosaveEcartee {
+  sceneId: string;
+  ecartee: string;
 }
 
 export interface EditorAutosaveBackend {
@@ -120,20 +131,31 @@ export function __setAutosaveBackendForTest(b: EditorAutosaveBackend | null): vo
 
 /** Lecture — `null` si aucune sauvegarde automatique pour cette scène, ou si IndexedDB est
  *  indisponible (mode privé strict, jsdom…) : l'autosave reste une aide de SESSION, jamais une
- *  donnée qui bloque l'ouverture de l'éditeur. */
-export async function autosaveLoad(sceneId: string): Promise<EditorAutosaveRecord | null> {
+ *  donnée qui bloque l'ouverture de l'éditeur. La scène lue traverse la chaîne de migrations
+ *  canonique (`sceneAuSchemaCourant`) ; celle qu'elle refuse est RETIRÉE et rendue `AutosaveEcartee`
+ *  (politique de `saves.ts` : rejetée, retirée, dite). */
+export async function autosaveLoad(sceneId: string): Promise<EditorAutosaveRecord | AutosaveEcartee | null> {
+  let rec: EditorAutosaveRecord | null;
   try {
-    return await backend.get(sceneId);
+    rec = await backend.get(sceneId);
   } catch {
     return null;
+  }
+  if (!rec) return null;
+  try {
+    return { ...rec, scene: sceneAuSchemaCourant(rec.scene, rec.schema), schema: CURRENT_PROJECT_SCHEMA };
+  } catch (err) {
+    exigerUnRefus(err);
+    await autosaveDelete(sceneId);
+    return { sceneId, ecartee: err.message };
   }
 }
 
 /** Écriture best-effort : un échec (quota dépassé, accès refusé…) ne doit jamais faire planter
  *  l'éditeur — seul le filet disque est perdu, la session en mémoire n'est pas affectée. */
-export async function autosaveSave(entry: EditorAutosaveRecord): Promise<void> {
+export async function autosaveSave(entry: Omit<EditorAutosaveRecord, 'schema'>): Promise<void> {
   try {
-    await backend.put(entry);
+    await backend.put({ ...entry, schema: CURRENT_PROJECT_SCHEMA });
   } catch (err) {
     console.error(`[editorAutosave] sauvegarde automatique de « ${entry.sceneId} » en échec (session non affectée).`, err);
   }

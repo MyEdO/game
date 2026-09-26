@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Bureau : plateau en perspective, caisson à tiroirs d'un côté + pied simple de l'autre, une feuille de
-// papier posée dessus. Mobilier des bureaux du concierge/gestionnaire et du régisseur. Cf. plan NADJ 8 p.40.
+// papier posée dessus. Mobilier des bureaux du concierge/gestionnaire et du régisseur. Cf. plan NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'bureau',
   label: 'Bureau',

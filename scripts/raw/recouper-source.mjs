@@ -32,7 +32,7 @@ import { INDEX } from './check-source-format.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import {
   estNomDExtraction, graphieDeChapitre, largeurDeChapitre, ligne1DePlage, numeroDuFichier,
-  parseChapitre, plageDeLigne1, plageEnTexte,
+  parseChapitre, plageDeLigne1, plageEnTexte, tablesOf,
 } from '../../src/data/source/decoupe.ts'
 
 /** Les `.md` de CHAPITRE d'un dossier, dans l'ordre de leur numéro — le FLUX du livre. */
@@ -238,30 +238,67 @@ export function recalerStock(entrees, racine, carte, { portee = () => true } = {
   return { entrees: out, recalees, orphelines }
 }
 
+/** La ligne `n` porte-t-elle la légende `**X**` d'une table de la section ? PUR. */
+const legendeALaLigne = (section, n) =>
+  tablesOf(section).some(({ block, table }) => {
+    const i = section.blocks.indexOf(block)
+    return table.titre != null && i > 0 && section.blocks[i - 1].line === n
+  })
+
 /**
  * CARTE des sections d'un fichier ÉDITÉ EN PLACE, dérivée de sa carte de lignes EXACTE
  * (`lib/carte-lignes.mjs`) — même forme que `carteDesSections`, pour `recalerStock` : la ligne de
  * titre de `slug#occ` suit la carte, et le titre qui s'y trouve donne le nouveau `slug#occ`
  * (`parseChapitre`). Le préambule (`#1`, section sans titre que `parseChapitre` ouvre toujours en
- * tête) va au préambule. Un titre supprimé, pris dans un hunk ambigu (titre scindé), ou dont la
- * ligne n'est plus un titre est RAPPORTÉ avec sa raison — jamais deviné. PUR.
+ * tête) va au préambule. Un titre DÉPLACÉ (sa ligne supprimée, son slug sur UNE seule ligne de titre
+ * neuve) suit sa ligne neuve. Un titre devenu LÉGENDE de table (sa ligne est le `**X**` qui titre la
+ * table suivante, `tablesOf`) suit la section qui porte l'en-tête de sa table (#1739). Un titre
+ * supprimé, pris dans un hunk ambigu (titre scindé), ou dont la ligne n'est plus un titre est
+ * RAPPORTÉ avec sa raison — jamais deviné. Une ligne de titre NEUVE
+ * (aucune ligne de HEAD n'y mène) SCINDE la section qui la précède : la clé HEAD de celle-ci est
+ * rendue dans `scindees`, pour que les entrées qui y sont keyées soient rapportées. PUR.
  * @param {string} nom fichier (relatif au dossier du livre) @param {string} texteHead @param {string} texteArbre
  * @param {(n: number) => ({ ligne: number } | { supprimee: true } | { ambigue: true, candidates: number[] })} carteLignes
- * @returns {{ carte: Map<string, { fichier: string, ref: string }>, rapportees: string[] }}
+ * @returns {{ carte: Map<string, { fichier: string, ref: string }>, rapportees: string[], scindees: { cle: string, par: string }[] }}
  */
 export function carteDesSlugs(nom, texteHead, texteArbre, carteLignes) {
   const [preambule, ...titres] = parseChapitre(texteHead).sections
-  const parLigne = new Map(parseChapitre(texteArbre).sections.slice(1).map((s) => [s.line, `${s.slug}#${s.occ}`]))
+  const sectionsArbre = parseChapitre(texteArbre).sections
+  const parLigne = new Map(sectionsArbre.slice(1).map((s) => [s.line, `${s.slug}#${s.occ}`]))
+  const images = new Set()
+  texteHead.split('\n').forEach((_, n) => {
+    const d = carteLignes(n + 1)
+    if ('ligne' in d) images.add(d.ligne)
+  })
+  const neuves = sectionsArbre.slice(1).filter((s) => !images.has(s.line))
   const carte = new Map([[`${nom} :: ${preambule.slug}#${preambule.occ}`, { fichier: nom, ref: `${preambule.slug}#${preambule.occ}` }]])
   const rapportees = []
+  const deplacees = new Set()
   for (const s of titres) {
     const cle = `${s.slug}#${s.occ}`
     const destin = carteLignes(s.line)
     const ref = 'ligne' in destin ? parLigne.get(destin.ligne) : undefined
     if (ref) { carte.set(`${nom} :: ${cle}`, { fichier: nom, ref }); continue }
+    const porteuse = 'ligne' in destin ? sectionsArbre.findLast((x) => x.line <= destin.ligne) : undefined
+    if (porteuse && legendeALaLigne(porteuse, destin.ligne)) {
+      carte.set(`${nom} :: ${cle}`, { fichier: nom, ref: `${porteuse.slug}#${porteuse.occ}` })
+      continue
+    }
+    const memes = 'supprimee' in destin ? neuves.filter((n) => n.slug === s.slug && !deplacees.has(n)) : []
+    if (memes.length === 1) {
+      deplacees.add(memes[0])
+      carte.set(`${nom} :: ${cle}`, { fichier: nom, ref: `${memes[0].slug}#${memes[0].occ}` })
+      continue
+    }
     rapportees.push(`${nom} :: ${cle} (l.${s.line}) — ${'ligne' in destin ? `l.${destin.ligne} n'est plus un titre` : destinEnTexte(destin)}`)
   }
-  return { carte, rapportees }
+  const cleHead = new Map([...carte].map(([k, v]) => [v.ref, k]))
+  const scindees = neuves.flatMap((n) => {
+    const avant = sectionsArbre[sectionsArbre.indexOf(n) - 1]
+    const cle = cleHead.get(`${avant.slug}#${avant.occ}`)
+    return cle ? [{ cle, par: `${n.slug}#${n.occ} (l.${n.line})` }] : []
+  })
+  return { carte, rapportees, scindees }
 }
 
 /** Le recalage de TOUS les stocks nominatifs de `scripts/raw` par une carte de sections — aucun
@@ -286,9 +323,31 @@ function afficherStocks(stocks) {
   }
 }
 
-/** Un suivi de diff est BLOQUÉ tant qu'un titre est rapporté ou qu'une entrée keyée par section
- *  reste sans section porteuse : rien n'est deviné, donc rien n'est écrit. PUR. */
-export const suiviBloque = (rapportees, stocks) => rapportees.length > 0 || stocks.some((s) => s.orphelines.length > 0)
+/** Les entrées de stock keyées sur une section SCINDÉE par un titre neuf : `chemin :: ref  ← titre`.
+ *  Leur texte a pu passer dans la section neuve — jamais deviné. PUR. */
+export function entreesScindees(entrees, racine, scindees) {
+  const par = new Map(scindees.map((x) => [x.cle, x.par]))
+  return entrees.flatMap((e) => {
+    const chemin = e.fichier ?? e.file
+    const m = CLE_DE_REF.exec(String(e.ref ?? ''))
+    if (typeof chemin !== 'string' || !chemin.startsWith(`${racine}/`) || !m) return []
+    const k = `${chemin.slice(racine.length + 1)} :: ${m[0]}`
+    return par.has(k) ? [`${chemin} :: ${e.ref}  ← section scindée par ${par.get(k)}`] : []
+  })
+}
+
+/** Un suivi de diff est BLOQUÉ tant qu'une entrée keyée par section reste sans section porteuse — dont
+ *  toute entrée keyée sur un titre RAPPORTÉ — ou qu'une entrée est keyée sur une section scindée : rien
+ *  n'est deviné, donc rien n'est écrit. Un titre rapporté qu'aucune entrée ne keye ne bloque pas. PUR. */
+export const suiviBloque = (stocks, scindees = []) => scindees.length > 0 || stocks.some((s) => s.orphelines.length > 0)
+
+/** Un titre RAPPORTÉ (`fichier :: slug#occ (…) — raison`, ou `fichier — raison`) en ligne de rapport :
+ *  « aucun stock keyé » quand aucune entrée orpheline ne pointe sa section (ou son fichier). PUR. */
+export function rapporteeEnLigne(rapportee, racine, orphelines) {
+  const cle = rapportee.split(/ \(l\.| — /)[0]
+  const keyee = orphelines.some((o) => o.startsWith(`${racine}/${cle} `))
+  return `${rapportee}${keyee ? '' : ' — aucun stock keyé'}`
+}
 
 /**
  * `--suivre-diff` : les `.md` du livre ont été ÉDITÉS EN PLACE (aucun fichier renommé) ; chaque
@@ -298,6 +357,7 @@ export const suiviBloque = (rapportees, stocks) => rapportees.length > 0 || stoc
 function suivreLeDiff(dir, racine, DRY) {
   const carte = new Map()
   const rapportees = []
+  const scindees = []
   for (const nom of chapitresEnService(dir)) {
     const texteArbre = readText(join(dir, nom))
     const git = carteDuFichier(`${racine}/${nom}`)
@@ -305,13 +365,20 @@ function suivreLeDiff(dir, racine, DRY) {
     const r = carteDesSlugs(nom, git.texteHead, texteArbre, git.carte)
     for (const [k, v] of r.carte) carte.set(k, v)
     rapportees.push(...r.rapportees)
+    scindees.push(...r.scindees)
   }
   const stocks = stocksRecales(racine, carte, { portee: aUneCleDeSection })
-  console.log(`${racine} : carte de slugs par diff — ${carte.size} section(s) portée(s), ${rapportees.length} rapportée(s).`)
-  for (const r of rapportees) console.log(`  RAPPORTÉE : ${r}`)
+  const surScindees = stocksNominatifs(join('scripts', 'raw')).flatMap((chemin) => {
+    const brut = JSON.parse(readText(chemin))
+    return Array.isArray(brut.entrees) ? entreesScindees(brut.entrees, racine, scindees).map((e) => `${chemin} : ${e}`) : []
+  })
+  console.log(`${racine} : carte de slugs par diff — ${carte.size} section(s) portée(s), ${rapportees.length} rapportée(s), ${scindees.length} section(s) scindée(s).`)
+  const orphelines = stocks.flatMap((s) => s.orphelines)
+  for (const r of rapportees) console.log(`  RAPPORTÉE : ${rapporteeEnLigne(r, racine, orphelines)}`)
+  for (const e of surScindees) console.log(`  SECTION SCINDÉE : ${e}`)
   afficherStocks(stocks)
-  if (suiviBloque(rapportees, stocks)) {
-    console.log('BLOQUÉ — titre(s) rapporté(s) ou entrée(s) sans section porteuse : à trancher à la main ; rien n\'est écrit.')
+  if (suiviBloque(stocks, surScindees)) {
+    console.log('BLOQUÉ — entrée(s) sans section porteuse ou keyée(s) sur une section scindée : à trancher à la main ; rien n\'est écrit.')
     process.exitCode = 1
     return
   }

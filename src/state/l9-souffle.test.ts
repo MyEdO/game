@@ -1,5 +1,5 @@
 /**
- * Sort « Souffle » (LDB 47 p.244) : « Vous effectuez immédiatement une attaque de Souffle, comme
+ * Sort « Souffle » (LDB 47 l.509) : « Vous effectuez immédiatement une attaque de Souffle, comme
  * si vous aviez dépensé 2 Avantages pour activer le Trait de créature Souffle (voir page 341).
  * Souffle est un Projectile magique dont les Dégâts sont égaux à votre Bonus d'Endurance. Le MJ
  * détermine quel type d'attaque de Souffle correspond le mieux à votre Talent Magie des Arcanes. »
@@ -16,7 +16,7 @@ import type { CastResult } from '../engine/magic';
 
 const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, sl, isCritical: false, isFumble: false, log: 'lance Souffle' });
 
-describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 p.244)', () => {
+describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 

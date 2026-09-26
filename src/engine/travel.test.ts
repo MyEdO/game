@@ -24,7 +24,7 @@ function hero(opts: { id?: string; movement?: number; enc?: number; endurance?: 
   };
 }
 
-describe('vitesse de voyage (LDB 51 l.222 : Déplacement = km/h, le plus lent du groupe)', () => {
+describe('vitesse de voyage (LDB 51 l.193 : Déplacement = km/h, le plus lent du groupe)', () => {
   it('à pied : Mouvement effectif le plus lent du groupe', () => {
     expect(partyWalkSpeed([hero({ id: 'a', movement: 4 }), hero({ id: 'b', movement: 3 })])).toBe(3);
   });
@@ -105,7 +105,7 @@ describe('forcedMarchTest (LDB 51 l.195 : Test de Résistance ou Exténué, +1 s
   });
 });
 
-describe('applyTravelFatigue (LDB p.295 : Exténué par journée de voyage selon la surcharge)', () => {
+describe('applyTravelFatigue (LDB 61 l.35-48 : Exténué par journée de voyage selon la surcharge)', () => {
   it('non surchargé : rien', () => {
     const c = hero();
     expect(applyTravelFatigue(c)).toEqual([]);

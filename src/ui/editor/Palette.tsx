@@ -1,7 +1,7 @@
 /**
  * Palette v2 : un RAIL d'outils à icônes + le contenu CONTEXTUEL de l'outil actif (un seul
  * affiché à la fois — fini la pile infinie du POC). Pose DIRECTE depuis les catalogues
- * recherchables (décors `PROPS`, espèces du rig, bâtiments par catégorie, créatures du bestiaire).
+ * recherchables (décors `PROPS`, fiches du bestiaire, bâtiments par catégorie).
  * Composant de PRÉSENTATION : l'état (outil, pinceau, rencontre cible) vit dans Editor.
  *
  * APERÇU AU CAP D'IDENTITÉ : ce que la palette annonce d'un décor — sa chip d'empreinte — se lit au
@@ -19,8 +19,7 @@ import { terrainIds, terrainLabel } from '../../state/terrain';
 import { propDeclaredFoot } from '../../state/footprint';
 import { terrainDef } from '../../gameIso/catalog/terrain';
 import { PROPS } from '../../gameIso/catalog/decor';
-import { creatureSpeciesOptions } from '../../gameIso/rig/creatures';
-import { findPropById, structures } from '../../data';
+import { findPropById, premierOffert, profilsStandard, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
@@ -73,19 +72,6 @@ const ZONE_HINT: Record<ZoneVariant, string> = {
   trigger: 'Les effets s’éditent ensuite dans le panneau Logique.',
   rest: 'Lieux et qualité du repos s’éditent ensuite dans l’inspecteur.',
   effect: 'Effets et déclencheur s’éditent ensuite dans l’inspecteur.',
-};
-
-/**
- * Ce qu'un pinceau de catalogue porte AVANT tout choix d'auteur : le PREMIER élément OFFERT, dans
- * l'ordre où la famille le déroule plus bas. Un défaut d'éditeur se DÉRIVE de la donnée — patron
- * `terrainDElectionParDefaut` (`GameOpEditor.tsx`) : aucun id en dur, et le pinceau ne pose jamais un
- * id que le registre ne rend pas (#877). Un catalogue VIDE n'a PAS de défaut : l'outil le DIT, au
- * lieu de suppléer d'un littéral. Écrit UNE fois — décor et engin de siège posent la même question.
- */
-const premierOffert = (catalogue: readonly { id: string }[], quoi: string): string => {
-  const premier = catalogue[0];
-  if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
-  return premier.id;
 };
 
 /** Famille du rail correspondant à l'outil actif. */
@@ -165,6 +151,11 @@ export function Palette({
   const [lastTerrain, setLastTerrain] = useState<Terrain>(DEFAULT_TERRAIN);
   const [lastProp, setLastProp] = useState(() => premierOffert(Object.values(PROPS), 'Décor'));
   const [lastEngine, setLastEngine] = useState(() => premierOffert(siegeEngines(), 'Engin de siège'));
+  // FICHES d'un personnage (#1882) : le bestiaire de l'éditeur, les profils standard (`LDB 77 l.7`,
+  // désignés par `species.json`) en tête.
+  const standard = new Set(profilsStandard());
+  const fiches = [...enemyCreatures.filter((c) => standard.has(c.id)), ...enemyCreatures.filter((c) => !standard.has(c.id))];
+  const [lastFiche, setLastFiche] = useState<string | undefined>(undefined);
   // Matériau MÉMORISÉ par sous-mode (Cloison/Porte) — l'outil porte son matériau comme un pinceau porte
   // sa couleur : la palette ne montre que ce qui est POSABLE sur une arête pour ce sous-mode (#830).
   const wallEdgeStructures = structures.filter(isWallEdgeStructure);
@@ -191,7 +182,7 @@ export function Palette({
       case 'height': return setTool({ mode: 'height', metres: 2 });
       case 'stair': return setTool({ mode: 'stair', toZ: stairDefaultToZ });
       case 'crenellated': return setTool({ mode: 'crenellated', structure: lastCrenelStructure ?? null });
-      case 'personnage': return setTool({ mode: 'entity', kind: 'personnage' });
+      case 'personnage': return setTool({ mode: 'entity', kind: 'personnage', ref: lastFiche ?? premierOffert(fiches, 'Fiche de personnage') });
       case 'prop': return setTool({ mode: 'entity', kind: 'prop', ref: lastProp });
       case 'heroStart': return setTool({ mode: 'entity', kind: 'heroStart' });
       case 'zone': return setTool({ mode: 'zone', zone: 'room' });
@@ -454,20 +445,24 @@ export function Palette({
 
         {tool.mode === 'entity' && tool.kind === 'personnage' && (
           <>
-            <div className="mini-title">Personnage à poser</div>
-            {searchBox('espèce…')}
+            <div className="mini-title">Fiche du personnage à poser</div>
+            {searchBox('fiche…')}
             <div className="pal-list">
-              {filterByLabel([{ id: '', label: 'Villageois' }, ...creatureSpeciesOptions()], (o) => o.label, search).map((o) => (
+              {filterByLabel(fiches, (c) => c.label, search).map((c) => (
                 <button
-                  key={o.id || '__villageois'}
-                  className={`pal-item${(tool.ref ?? '') === o.id ? ' active' : ''}`}
-                  onClick={() => setTool({ mode: 'entity', kind: 'personnage', ref: o.id || undefined })}
+                  key={c.id}
+                  className={`pal-item${tool.ref === c.id ? ' active' : ''}`}
+                  onClick={() => {
+                    setLastFiche(c.id);
+                    setTool({ mode: 'entity', kind: 'personnage', ref: c.id });
+                  }}
                 >
-                  {o.label}
+                  {c.label}
+                  {standard.has(c.id) ? <span className="chip" title="LDB 77 l.7">Profil standard</span> : null}
                 </button>
               ))}
             </div>
-            <p className="hint">Cliquez la carte pour poser. Apparence, dialogue et rôle de marchand s'éditent ensuite dans l'inspecteur.</p>
+            <p className="hint">Cliquez la carte pour poser. L'apparence dérive de la fiche ; apparence, dialogue et rôle de marchand s'éditent ensuite dans l'inspecteur.</p>
           </>
         )}
 
@@ -544,16 +539,16 @@ export function Palette({
                 </option>
               ))}
             </select>
-            <div className="mini-title">Créature à placer</div>
-            {searchBox('créature…')}
+            <div className="mini-title">Fiche à placer</div>
+            {searchBox('fiche…')}
             <div className="pal-list">
               {filterByLabel(enemyCreatures, (c) => c.label, search).map((c) => (
-                <button key={c.id} className={`pal-item${(encRef || enemyCreatures[0]?.id) === c.id ? ' active' : ''}`} onClick={() => setEncRef(c.id)}>
+                <button key={c.id} className={`pal-item${encRef === c.id ? ' active' : ''}`} onClick={() => setEncRef(c.id)}>
                   {c.label}
                 </button>
               ))}
             </div>
-            <p className="hint">Chaque clic sur la carte ajoute la créature à la rencontre cible. Traits, sorts et apparence du spawn s'éditent dans l'inspecteur.</p>
+            <p className="hint">Chaque clic sur la carte ajoute la fiche à la rencontre cible. Traits, sorts et apparence du spawn s'éditent dans l'inspecteur.</p>
           </>
         )}
 

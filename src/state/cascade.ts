@@ -289,7 +289,7 @@ export function tableStepIds(): string[] {
  * `mod`, qui reste additif. Tout pilote de tirage passe par ici, et la surface qui OFFRE la pose
  * (mode table) aussi : sinon la ligne montrée et la ligne appliquée divergeraient dès que le
  * compteur bouge entre l'ouverture de l'étape et le dé (rafale de Colères : la 1ʳᵉ expie un Péché,
- * la 2ᵉ doit tirer au NOUVEAU total — LDB 40 l.53). Sans `modPerActor`, la déclaration est rendue
+ * la 2ᵉ doit tirer au NOUVEAU total — LDB 40 l.46). Sans `modPerActor`, la déclaration est rendue
  * TELLE QUELLE (aucun coût pour les tables à modificateur figé).
  */
 export function liveTableDecl(s: GameState, step: CascadeStep): CascadeTableDecl {

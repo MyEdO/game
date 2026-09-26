@@ -71,7 +71,7 @@ function sceneAtelier(): Scene {
 }
 
 /** La même, plus un ENNEMI D'EMBUSCADE (`hiddenUntilCombat`) ENRÔLÉ dans une rencontre — invisible EN
- *  JEU avant le combat, et dont l'auteur ne voyait plus que l'empreinte pointillée : un cadre vide. */
+ *  JEU avant le combat, et dont l'auteur voyait seulement l'empreinte pointillée : un cadre vide. */
 function sceneEmbuscade(): Scene {
   const s = emptyScene(8, 8);
   const embusque = {
@@ -507,6 +507,14 @@ async function remonter(...args: Parameters<typeof monter>) {
  * le volume (raison au site de `LOWER_LAYER_ISOLATE_BELOW`).
  */
 describe('Éditeur — canaux ISOLÉ et VOILÉ au canevas (#1176, P3-3, vague B)', () => {
+  it.each(['gabarit', 'isolee'] as const)('mode %s : un MEUBLE VOLUMIQUE posé à la couche active est cuit et dessiné au canevas', async (lowerLayerMode) => {
+    const meuble = sceneMobilier();
+    const avec = await monter({ mode: 'select' }, { scene: meuble, currentLayer: 0, lowerLayerMode });
+    const facesAvec = avec.faces();
+    const sans = await remonter({ mode: 'select' }, { scene: { ...meuble, entities: [] }, currentLayer: 0, lowerLayerMode });
+    expect(facesAvec).toBeGreaterThan(sans.faces());
+  });
+
   it('mode ISOLÉ : les faces de la couche du dessous quittent le dessin (canal DÉGAGEMENT)', async () => {
     const scene = sceneDeuxCouches();
     const gabarit = await monter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit' });

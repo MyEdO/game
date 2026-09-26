@@ -73,6 +73,19 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(src.causesTerreur).toBe(2);
   });
 
+  /** #1882 — la source de la rencontre est LA fiche du PNJ (`ficheDEntite`) : un Trait optionnel choisi par
+   *  l'auteur (`combat.optionals`, LDB 76 l.11) en fait partie, et l'appartenance qu'il octroie (Mort-vivant)
+   *  est une Cible de Haine, jouée à la rencontre comme en combat. */
+  it('un Trait OPTIONNEL de la fiche (Mort-vivant) fait du PNJ la Cible d’une Haine à la rencontre', () => {
+    const h = timoreux('H');
+    h.psychTraits = [{ type: 'haine', cible: 'mort-vivant' }];
+    useGame.setState({ party: [h] });
+    useGame.getState().startScene(scene([ent({ id: 'revenant', ref: 'humain', combat: { optionals: [{ id: 'mort-vivant' }] } })]));
+    const step = useGame.getState().pendingCascade?.participants[0];
+    expect(step?.encounterPsych?.kind).toBe('haine');
+    expect(step?.encounterPsych?.cible).toBe('mort-vivant');
+  });
+
   it('une Terreur ne déclenche AUCUNE cascade à la rencontre (hors combat = non hostile)', () => {
     useGame.setState({ party: [timoreux('H')] });
     useGame.getState().startScene(scene([ent({ id: 'spectre', statblock: TERREUR2 })]));

@@ -1,10 +1,10 @@
 *Pages PDF 312-313*
 
-# **ANIMALS AND VEHICLES**
+# <span id="page-311-0" data-folio="312"></span>**ANIMALS AND VEHICLES**
 
 Animals are used at all levels of society in the Empire. See **Chapter 12: Bestiary** for sample animal profiles. Like **Packs and Containers** (see page 308), all vehicles have an entry for the number of Encumbrance Points they can carry (Carries).
 
-#### **ANIMALS AND VEHICLES**
+**ANIMALS AND VEHICLES**
 
 | Item               | Cost   | Enc | Carries | Availability |
 |--------------------|--------|-----|---------|--------------|
@@ -28,7 +28,7 @@ Animals are used at all levels of society in the Empire. See **Chapter 12: Besti
 | Wagon              | 75 GC  | –   | 30      | Common       |
 | Worms (6)          | 1d     | 0   | –       | Common       |
 
-**Cart:** One driver and one draft animal required XI
+<span id="page-312-0" data-folio="313"></span>**Cart:** One driver and one draft animal required
 
 **Coach:** Two drivers and four horses are standard.
 
@@ -36,6 +36,8 @@ Animals are used at all levels of society in the Empire. See **Chapter 12: Besti
 
 **Destrier:** Destriers are large warhorses ridden by knights.
 
-**River Barge:** Three crew are standard. **Row Boat:** One rower is standard.
+**River Barge:** Three crew are standard.
+
+**Row Boat:** One rower is standard.
 
 **Wagon:** One driver and two horses are standard.

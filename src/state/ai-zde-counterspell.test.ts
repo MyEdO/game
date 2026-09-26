@@ -44,7 +44,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
   const okCast = () => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
   function setupZoneAwaitingCounter() {
-    const e = spawnEnemy('Bandit de Grand Chemin', undefined, 'caster', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'caster', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.characteristics.intelligence = 60; e.characteristics['force-mentale'] = 60;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never];
@@ -117,7 +117,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     const spell = findSpell('Explosion')!;
     const w = dispeller(2, 2, 'wiz'); // héros lanceur (kind hero → non aiDriven en cadence manuelle)
     w.spells = [spell.id, ...(w.spells ?? [])];
-    const t1 = spawnEnemy('Bandit de Grand Chemin', undefined, 't1', { x: 8, y: 8 });
+    const t1 = spawnEnemy({ ref: 'brigand' }, 't1', { x: 8, y: 8 });
     const battle = {
       combatants: [w, t1], order: [w.id, 't1'], baseOrder: [w.id, 't1'],
       turn: 0, round: 1, action: 'cast', selectedSpellId: spell.id, reachable: new Map(),

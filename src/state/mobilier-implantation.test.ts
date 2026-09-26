@@ -3,7 +3,7 @@ import { emptyScene, isWalkable, sceneMetresPerTile, type Scene, type SceneEntit
 import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from './seating';
 import { decorAncre } from './footprint';
 import { findPropById } from '../data';
-import { capVolumique, empreinteDuProp, rotatePropLocal, type PropPrimitive } from '../data/props.types';
+import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../data/props.types';
 import { buildPropVolumes } from '../gameIso/builders/propVolumes';
 import { chebyshev } from '../engine/grid';
 
@@ -72,25 +72,21 @@ function propBounds(ent: SceneEntity): Boite {
 }
 
 /**
- * AABB monde du CORPS d'un meuble — ses primitives moins ses TABOURETS. Un tabouret est la primitive
- * dont l'emprise au plan porte l'ancre d'une place : le seul volume qu'une recette autorise à déborder
- * de sa case, vers l'abord de cette place (`gameIso/catalog/props-volumiques.test.ts`).
+ * AABB monde du CORPS d'un meuble — ses primitives moins ses TABOURETS (`placeAssiseDe`,
+ * `data/props.types.ts`) : le seul volume qu'une recette autorise à déborder de sa case, vers l'abord
+ * de sa place (`gameIso/catalog/props-volumiques.test.ts`).
  */
 function corpsBounds(ent: SceneEntity): Boite {
   const prop = findPropById(ent.ref)!;
-  // Les cotes de la recette sont MÉTRIQUES : la division par l'échelle de la scène les met en CASES.
-  const demi = (p: PropPrimitive) => ({
-    dx: (p.kind === 'cylinder' ? p.radiusM : p.size.xM / 2) / MPT,
-    dy: (p.kind === 'cylinder' ? p.radiusM : p.size.yM / 2) / MPT,
-  });
   const xs: number[] = [], ys: number[] = [];
   const ancre = ancrageDe(ent).ancre;
   for (const p of prop.volume?.primitives ?? []) {
-    const { dx, dy } = demi(p);
-    const cx = p.center.xM / MPT, cy = p.center.yM / MPT;
-    if ((prop.seatSlots ?? []).some((s) => Math.abs(s.anchor.xM / MPT - cx) <= dx + 1e-9 && Math.abs(s.anchor.yM / MPT - cy) <= dy + 1e-9)) continue;
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-      const [rx, ry] = rotatePropLocal(cx + sx * dx, cy + sy * dy, ent.facing ?? 'S');
+    // Le tabouret, par la règle UNIQUE (`placeAssiseDe`) ; l'emprise, par la SEULE (`empriseLocaleM`).
+    if (placeAssiseDe(prop, p)) continue;
+    const e = empriseLocaleM(p);
+    // Les cotes de la recette sont MÉTRIQUES : la division par l'échelle de la scène les met en CASES.
+    for (const lx of [e.x0, e.x1]) for (const ly of [e.y0, e.y1]) {
+      const [rx, ry] = rotatePropLocal(lx / MPT, ly / MPT, ent.facing ?? 'S');
       xs.push(ancre.x + rx);
       ys.push(ancre.y + ry);
     }

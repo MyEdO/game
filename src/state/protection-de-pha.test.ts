@@ -12,7 +12,7 @@ import type { CastResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 
 /**
- * Protection de Phâ (LDB 48 p.249) — Zone sacrée centrée sur le lanceur (diamètre BFM, durée BFM Rounds) :
+ * Protection de Phâ (LDB 48 l.393) — Zone sacrée centrée sur le lanceur (diamètre BFM, durée BFM Rounds) :
  *  (1) les créatures PROFANES (Mort-vivant/Démoniaque, mutées, ou Corruption > BFM+BE) ne peuvent ENTRER
  *      (barrière `gate:'profane'`) ; (2) celles déjà à l'intérieur gagnent Brisé ENTRETENU (sans empiler) ;
  *  (3) nul gain de Corruption dans la Zone. Implémenté sur le système de Zone existant (op `zone`).
@@ -30,7 +30,7 @@ const ward = (over: Partial<BattleZone> = {}): BattleZone => ({
   perRound: [{ op: 'condition', id: 'brise', unlessCondition: 'brise' }], noCorruption: true, ...over,
 });
 
-describe('isProfane (LDB 48 p.249)', () => {
+describe('isProfane (LDB 48 l.393)', () => {
   it('Mort-vivant / Démoniaque (traits) → profane', () => {
     expect(isProfane(mk({ traits: [{ id: 'mort-vivant' }] as never }))).toBe(true);
     expect(isProfane(mk({ traits: [{ id: 'demoniaque' }] as never }))).toBe(true);

@@ -241,7 +241,7 @@ function kindOf(categorie: string): ItemKind {
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
   const t = resolveTrapping(id);
   if (!t) return null;
-  if (t.service) throw new Error(`itemFromTrappingById: "${t.id}" est un tarif de service (LDB p.302), pas un objet possédable.`);
+  if (t.service) throw new Error(`itemFromTrappingById: "${t.id}" est un tarif de service (LDB 66 l.12-14), pas un objet possédable.`);
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -274,10 +274,10 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     ...(t.consumable ? { consumable: t.consumable } : {}), // effet de consommable (Flow) copié du catalogue
     ...(t.consumableDuration ? { consumableDuration: t.consumableDuration } : {}), // durée d'horloge (LDB 71/72 « Durée : … »), résolue au boire
     subType: t.subType ?? undefined,
-    ...(t.weaponGroup ? { weaponGroup: t.weaponGroup } : {}), // Groupe de Projectiles d'une arme de siège (AA p.122)
+    ...(t.weaponGroup ? { weaponGroup: t.weaponGroup } : {}), // Groupe de Projectiles d'une arme de siège (AA 10 l.142)
     ...(t.defaultAmmo ? { defaultAmmo: t.defaultAmmo } : {}), // munition REPRÉSENTATIVE (hint joueur, ammoFamilyLabel)
-    ...(t.soloSimple ? { soloSimple: true } : {}), // baliste « relativement simple » : tir solo perd les Atouts (l.3818)
-    ...(t.indirect ? { indirect: true } : {}), // mortier/catapulte « arc élevé » (AA p.122-123) : tir INDIRECT → viser une case
+    ...(t.soloSimple ? { soloSimple: true } : {}), // baliste « relativement simple » : tir solo perd les Atouts (AA 10 l.148)
+    ...(t.indirect ? { indirect: true } : {}), // mortier/catapulte « arc élevé » (AA 10 l.169/171) : tir INDIRECT → viser une case
     ...(t.bladed ? { bladed: true } : {}), // LDB 62 l.278 — approximation MAISON, propagée du catalogue
     ...(t.organicProjectile ? { organicProjectile: true } : {}), // LDB 47 — approximation MAISON, propagée du catalogue
     ...(t.onHitEffects?.length ? { onHitEffects: t.onHitEffects } : {}), // effets « à la touche » en DONNÉE (Canon à flammes nain → En flammes, ADE II 8 l.243)
@@ -640,8 +640,8 @@ export function recomputeLoadout(c: Combatant): void {
       if (offW) weapons.push(offW);
     }
     // Pas de resync `it.equipped` sur les ARMES : « équipé » d'une arme = « tenue dans ce set actif », ce que
-    // `c.weapons` (dérivé ici) exprime déjà → les lecteurs passent par `isWeaponActive`. `it.equipped` ne sert
-    // plus que pour l'armure (port) et de seed du loadout par défaut (ensureDefaultLoadout).
+    // `c.weapons` (dérivé ici) exprime déjà → les lecteurs passent par `isWeaponActive`. `it.equipped` sert
+    // seulement pour l'armure (port) et de seed du loadout par défaut (ensureDefaultLoadout).
   }
   // Le SET ACTIF tient-il une arme ? (mesuré ICI : seules les armes issues des slots main/off comptent —
   // les armes naturelles/dérivées/de poste ajoutées plus bas ne « désarment » ni n'« arment » un set.)
@@ -653,7 +653,7 @@ export function recomputeLoadout(c: Combatant): void {
     const dw = i.equipped && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
     if (dw) weapons.push({ hand: 'main', ...dw });
   }
-  // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 p.343) ou
+  // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou
   // mutation (Tentacule épais → trait ; LDB 19 : « Compte comme une Arme de Créature »). Op `grantNaturalWeapon`,
   // MÊME vocabulaire, boucle KIND-AGNOSTIQUE : ajouter une source = l'itérer ici, aucun kind nommé en dur.
   // (L'Attaque gratuite 1/tour du Tentacule est portée par le maneuver `tentacule`, keyé sur uid `nat-tentacule`.)
@@ -980,7 +980,7 @@ export function ammoFamily(subType?: string): string {
 /** Libellé JOUEUR de la munition attendue par une arme à distance (hint d'achat/chargement quand le
  *  carquois du tireur ET le coffre du poste sont vides) : la munition REPRÉSENTATIVE de l'ARME
  *  (`defaultAmmo`, résolu au catalogue) si connue, sinon celle de la famille générique (`ammoFamily`) —
- *  `armes-de-siege` seul ne discrimine pas pierrier/canon/baliste/mortier (MDG 12 p.101), d'où le
+ *  `armes-de-siege` seul ne discrimine pas pierrier/canon/baliste/mortier (MDG 12 l.410-424), d'où le
  *  besoin du `defaultAmmo` par arme. Affichage FR pur (aide de saisie), jamais un id de logique. */
 export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string {
   if (defaultAmmo) {

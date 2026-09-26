@@ -23,7 +23,7 @@ export const creature: CreatureDef = {
     legLen: 1.2, head: 'cheval', tail: 'crin', tailLen: 1.55, mane: 'crin', ears: 'courtes',
     foot: 'sabot', markings: 'taches',
     viewArt: { profile: CHEVAL_PROFIL_COMPILE },
-    stored: {
+    palette: {
       corps: '#c6cac5', corpsO: '#7b838c', corpsH: '#f1f2ef', // gris pommelé, ombres gris-bleu
       cheveux: '#878d93', cheveuxO: '#43484e', // crinière/queue gris argenté
       cuir: '#3c322a', // sabots

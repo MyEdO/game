@@ -11,6 +11,6 @@ export const creature: CreatureDef = {
   plan: 'theropode',
   thero: {
     sl: 1.12, girth: 1.05, horns: 1.15, muzzle: 1.0,
-    stored: { corps: '#55703c', corpsO: '#28381d', corpsH: '#a3bd68', cheveux: '#39502a', cheveuxO: '#1c2a13', cuir: '#7a755c' },
+    palette: { corps: '#55703c', corpsO: '#28381d', corpsH: '#a3bd68', cheveux: '#39502a', cheveuxO: '#1c2a13', cuir: '#7a755c' },
   },
 };

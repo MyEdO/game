@@ -144,7 +144,7 @@ export function woundsForSize(bf: number, be: number, bfm: number, size: SizeCat
 }
 
 /**
- * Taille conférée par une liste de talents résolus (LDB 85 p.342, #572) : la plus GRANDE catégorie
+ * Taille conférée par une liste de talents résolus (LDB 85 l.344, #572) : la plus GRANDE catégorie
  * portée par `TalentData.size` parmi les talents possédés, sinon `moyenne`. Générique — aucun id de
  * talent nommé ici, la classe entière (Massif, Petit, tout futur talent de Taille) est couverte.
  */

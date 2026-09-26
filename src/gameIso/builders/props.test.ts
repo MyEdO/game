@@ -96,7 +96,7 @@ describe('buildProps — éléments prop du pivot', () => {
     s.entities = [
       { id: 'p1', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_BILLBOARD },
       { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'tente', facing: 'SE', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
-      { id: 'npc', kind: 'personnage', pos: { x: 5, y: 5 } }, // pas un prop → ignoré
+      { id: 'npc', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } }, // pas un prop → ignoré
     ] as SceneEntity[];
     return s;
   };
@@ -200,12 +200,11 @@ describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBod
   const orns = (s: ReturnType<typeof withRoof>, visible?: Set<string>) =>
     buildProps(s, visible).filter((e) => e.source === 'ornament');
 
-  it("chapelle → clocheton au FAÎTE : partage l'empreinte/profondeur du toit, centré, surélevé", () => {
+  it("chapelle → clocheton au FAÎTE : centré sur l'empreinte du toit, surélevé", () => {
     const [o] = orns(withRoof('chapelle', { x: 1, y: 1, w: 4, h: 5 }));
     expect(o.ref).toBe('clocheton');
     expect(o.key).toBe('orn:body-chapelle:mass-0:0');
     expect(o.cell).toEqual({ x: 1, y: 1, z: 0 }); // origine → même coin caméra-proche que le toit
-    expect(o.span).toEqual({ w: 4, h: 5 }); // → propDepth == roofDepth (se peint PAR-DESSUS)
     expect(o.facing).toBe('E'); // cap du faîtage résolu (ridge 'x' authoré par la fixture)
     expect(poseA(o, { x: 2.5, y: 3 }, 'E')).toBe(true); // recentré sur l'empreinte 4×5
     expect(socleM(o)).toBeGreaterThan(2); // posé haut sur la pente (≈ égout + 0.6·flèche), pas au sol
@@ -534,7 +533,7 @@ describe('buildProps — features de façade authorées', () => {
   /**
    * ANCRAGE À LA COUVERTURE (#1624) : une souche posée au sol + 2,25 m sortait à 3,73 m sous des toits
    * dont la couverture atteint 4 m et plus — une cheminée NOYÉE dans son propre toit. La vignette
-   * déclare désormais `base: 'toit'` et son `liftM` est un DELTA : la souche s'encastre dans la nappe
+   * déclare `base: 'toit'` et son `liftM` est un DELTA : la souche s'encastre dans la nappe
    * à l'aplomb de son ancre et la PERCE. Une seule machinerie de hauteur de toit
    * (`resolveNappes`/`fieldHeightAt`), celle des faîteaux.
    */

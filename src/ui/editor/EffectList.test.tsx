@@ -3,16 +3,18 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { EffectList, newEffect, EFFECT_MENU_GROUPS } from './EffectList';
+import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS, ctxDeCatalogue } from './EffectList';
 import { convertTo } from './AddMenu';
 import type { Effect } from '../../state/scene';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const ctx = { encounters: [], dialogues: [] };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 
 describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
   it('newEffect("setTime") crée un défaut phase nuit', () => {
@@ -35,7 +37,7 @@ describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
 describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('learnSpell : sorts de la base en optgroups (plus de « libellé exact »)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [] }} />,
+      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} />,
     );
     expect(html).toContain('<optgroup');
     expect(html).toContain('Fléchette');
@@ -44,7 +46,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('transition : scènes du projet + points d’entrée quand le contexte les fournit', () => {
     const ctx = {
-      encounters: [], dialogues: [],
+      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE,
       scenes: [
         { id: 'sc-a', nom: 'Village', entries: [] },
         { id: 'sc-b', nom: 'Taverne', entries: ['porte', 'cave'] },
@@ -62,12 +64,12 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], merchants: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');
   });
@@ -107,13 +109,13 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
   it('openPort : lieux de la carte du monde (ou explication si aucun)', () => {
     const withP = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
     );
     expect(withP).toContain('Marienburg (port-marienburg)');
     expect(withP).not.toMatch(/id du lieu/);
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], places: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [] }} />,
     );
     expect(without).toContain('Aucun lieu sur la carte du monde');
   });
@@ -264,5 +266,88 @@ describe('#1318 E1 — les bornes des rangées d’atelier sont TENUES à la sai
 
     await act(async () => { root.unmount(); });
     container.remove();
+  });
+});
+
+/**
+ * #1874 C0 — la table de cibles d'un Effet `ops` vient de la RACINE qui monte l'éditeur
+ * (`CIBLES_PAR_RACINE`). Question canonique : le talent `controle-de-la-frenesie` ouvert au Compendium
+ * (racine `declenche`) garde sa feuille `on:'target'` — résumé et sélecteur la disent, et toucher une
+ * autre propriété ne la réécrit pas.
+ */
+describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine', () => {
+  const feuilleTarget = (): Effect => {
+    const talent = talents.find((t) => t.id === 'controle-de-la-frenesie')!;
+    const trouve = (n: unknown): Effect | undefined => {
+      if (!n || typeof n !== 'object') return undefined;
+      const o = n as Record<string, unknown>;
+      if (o.type === 'ops' && o.on === 'target') return o as unknown as Effect;
+      for (const v of Object.values(o)) { const r = trouve(v); if (r) return r; }
+      return undefined;
+    };
+    const f = trouve(talent.effects);
+    expect(f, 'la feuille `on:target` du talent a disparu de la donnée').toBeDefined();
+    return f!;
+  };
+  const selectsDeCible = (c: HTMLElement) =>
+    Array.from(c.querySelectorAll('select')).filter((s) => Array.from(s.options).some((o) => o.value === 'target' || o.value === 'party'));
+  const monte = (effect: Effect, racine: Parameters<typeof ctxDeCatalogue>[0] | 'scene'): HTMLElement => {
+    const container = document.createElement('div');
+    container.innerHTML = renderToStaticMarkup(
+      <EffectFields effect={effect} ctx={racine === 'scene' ? ctx : ctxDeCatalogue(racine)} onChange={() => {}} />,
+    );
+    return container;
+  };
+
+  it('racine `declenche` : `target` sélectionnée parmi cible/porteur, et retirer une op ne réécrit pas `on`', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    let dernier: Effect | undefined;
+    function Controle() {
+      const [eff, setEff] = useState<Effect>(feuilleTarget());
+      return <EffectFields effect={eff} ctx={ctxDeCatalogue('declenche')} onChange={(n) => { dernier = n; setEff(n); }} />;
+    }
+    try {
+      await act(async () => { root.render(<Controle />); });
+      const [sel] = selectsDeCible(container);
+      expect(Array.from(sel.options).map((o) => [o.value, o.textContent])).toEqual([['target', 'La cible du déclencheur'], ['caster', 'Le porteur']]);
+      expect(sel.value).toBe('target');
+      const retirer = container.querySelector(`button[title="Supprimer l'op"]`) as HTMLButtonElement;
+      await act(async () => { retirer.click(); });
+      expect(dernier).toBeDefined();
+      expect((dernier as { on?: string }).on).toBe('target');
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
+  });
+
+  it('racine `sort` : deux options, la cible et le lanceur', () => {
+    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'caster', ops: [] }, 'sort'));
+    expect(Array.from(sel.options).map((o) => [o.value, o.textContent])).toEqual([['target', 'La cible'], ['caster', 'Le lanceur']]);
+  });
+
+  it('racine `maladie` : une seule cible, AUCUN sélecteur, le résumé la nomme', () => {
+    const f: Effect = { type: 'ops', ops: [{ op: 'condition', id: 'sonne' }] } as Effect;
+    expect(selectsDeCible(monte(f, 'maladie'))).toEqual([]);
+    expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
+  });
+
+  it('racine SCÈNE : deux options, groupe et héros', () => {
+    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero']);
+  });
+
+  it('effectSummary dit la cible de la racine, et nomme un `on` hors de son vocabulaire', () => {
+    const f = feuilleTarget();
+    expect(effectSummary(f, ctxDeCatalogue('declenche'))).toMatch(/^La cible du déclencheur : /);
+    expect(effectSummary(f, ctx)).toMatch(/^« on: target » hors du vocabulaire de cette racine : /);
+    expect(effectSummary({ type: 'ops', ops: [] }, ctx)).toMatch(/^Tout le groupe : /);
+    expect(effectSummary({ type: 'ops', on: 'caster', ops: [] }, ctxDeCatalogue('sort'))).toMatch(/^Le lanceur : /);
+    expect(effectSummary({ type: 'ops', on: 'caster', ops: [] }, ctxDeCatalogue('declenche'))).toMatch(/^Le porteur : /);
+    expect(effectSummary({ type: 'ops', on: 'caster', ops: [] }, ctxDeCatalogue('maladie'))).toMatch(/^« on: caster » hors du vocabulaire/);
+    // `on` absent : le défaut est celui de la RACINE — la cible au catalogue, le groupe en scène.
+    expect(effectSummary({ type: 'ops', ops: [] }, ctxDeCatalogue('sort'))).toMatch(/^La cible : /);
   });
 });

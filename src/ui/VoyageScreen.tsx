@@ -19,7 +19,7 @@ import { partyItemsCargoEnc, partyLandCapacity } from '../state/carriers';
 import { moraleBand } from '../engine/crewMorale';
 import { seasonOfMonth, weatherCondition } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
-import { findVehicleById, seasonLabel } from '../data';
+import { findVehicleById, seasonLabel, libelleOuAbsence } from '../data';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
@@ -149,7 +149,7 @@ const AGENDA_GLYPH: Record<DayAgendaItem['state'], string> = { done: '✓', curr
  *  jouée), le milieu réel du VÉHICULE (`plan.mode`, `vehicles.json`) tranche — jamais un repli « terre »
  *  deviné pour une embarcation affrétée (#333 correctif). `travel.medium` (facette VOYAGE, LDB 51 l.178-189)
  *  est la donnée du TRAJET PAYÉ elle-même — prioritaire, un véhicule pouvant être bi-milieu (la Barge
- *  navigue le fleuve, LDB 70 p.306, tout en figurant à la table navale MDG 12 avec
+ *  navigue le fleuve, LDB 51 l.185-187, tout en figurant à la table navale MDG 12 avec
  *  `hull.propulsion:'maritime'` — les deux facettes sont INDÉPENDANTES). Repli sur `hull.propulsion` si
  *  `travel.medium` est absent. Aucun id de véhicule nommé ici. */
 export function voyageMode(plan: TravelPlan): 'mer' | 'fleuve' | 'terre' {
@@ -287,8 +287,8 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
 
   const sub = voyageMode(plan);
   const sea = sub === 'mer';
-  const fromLabel = worldMap ? placeById(worldMap, plan.fromPlaceId)?.label ?? '?' : '?';
-  const toLabel = worldMap ? placeById(worldMap, plan.toPlaceId)?.label ?? '?' : '?';
+  const fromLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.fromPlaceId) : undefined, 'lieu', plan.fromPlaceId);
+  const toLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.toPlaceId) : undefined, 'lieu', plan.toPlaceId);
   const log = plan.log ?? [];
   const dayNum = log.length + 1;
   const stepWord = sub === 'terre' ? 'Étape' : 'Jour';

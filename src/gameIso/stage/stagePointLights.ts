@@ -8,7 +8,7 @@
  * de three (`numPointLights`, `getProgramCacheKeyParameters` — mesuré dans `three.module.js` 0.185.1,
  * et le test épingle la ligne) : le faire varier RECOMPILE tous les matériaux du monde (76 sur l'arène).
  * Donc : `createPointLightPool` monte un budget FIXE une fois pour toutes, et `applyPointLights`
- * ne bouge plus que l'INTENSITÉ, la position et la portée. Une lampe éteinte a une intensité de 0 —
+ * bouge seulement l'INTENSITÉ, la position et la portée. Une lampe éteinte a une intensité de 0 —
  * jamais `visible = false`, qui la retirerait de la passe de lumière (`WebGLRenderer.projectObject`
  * ignore un objet invisible) et ferait donc exactement varier le compte que l'on fige.
  *

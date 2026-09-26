@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
+import { garanti } from '../../state/combatants';
 import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '../../state/rollFlowSpecs';
 import { defenseValue, defenseModifiers, DEFENSE_LABEL, FREE_ATTACK_LABEL, type DefenseMode } from '../../engine/combat';
 import { shieldReactionCost } from '../../engine/combatFeatures/dispatch';
@@ -55,7 +56,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // (Intimidation/Dressage `combatSubstitute`) est utilisable en défense — l'attaquant a PEUR du
   // défenseur (gate `fear`). Data-driven : l'option existe parce que la donnée+le gate le disent.
   const sub = pd.weapon.type === 'melee' ? combatSubstitute(defender, attacker, 'defense') : null;
-  const socialLabel = sub ? byId('skill', sub.skillId)?.label ?? 'Intimidation' : undefined;
+  const socialLabel = sub ? garanti(byId('skill', sub.skillId), sub.skillId, 'compétence de substitution').label : undefined;
   // Base de la défense sociale (mode 'social') = valeur de Test de la Compétence substituée.
   const socialBase = pd.mode === 'social' ? sub?.value : undefined;
   // MA ligne pré-remplie : valeur + mods de la défense CHOISIE (recalculés à chaque changement). La météo

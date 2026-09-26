@@ -19,7 +19,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 }
 
 describe('engine/healing — gate compétence & cibles', () => {
-  it('hasHealSkill : vrai si Compétence Guérison possédée, faux sinon (Avancée, LDB 09 l.226)', () => {
+  it('hasHealSkill : vrai si Compétence Guérison possédée, faux sinon (Avancée, LDB 09 l.254)', () => {
     expect(hasHealSkill(hero())).toBe(true);
     expect(hasHealSkill(hero({ skills: [] }))).toBe(false);
   });

@@ -9,7 +9,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -21,7 +21,7 @@ type SBone = FKBone & { z: number };
 export interface SquigProps {
   sl: number;
   girth: number; // rondeur du corps
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 function buildSkeleton(): Record<SquigBoneId, SBone> {
@@ -98,7 +98,7 @@ export function resolveSquigFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<SquigBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<SquigBoneId, string> = { corps: body(p, view), machoire: jaw(p, view) };
   return sortByZ((Object.keys(sk) as SquigBoneId[])
     .filter((id) => art[id])
@@ -110,7 +110,7 @@ export function resolveSquigFromProps(
 
 export const SQUIG_DEFAULT: SquigProps = {
   sl: 0.85, girth: 1.0,
-  stored: { corps: '#a82828', corpsO: '#6e1616', corpsH: '#d85a4a', cheveux: '#5a1010', cheveuxO: '#3a0a0a', cuir: '#2a2018' },
+  palette: { corps: '#a82828', corpsO: '#6e1616', corpsH: '#d85a4a', cheveux: '#5a1010', cheveuxO: '#3a0a0a', cuir: '#2a2018' },
 };
 
 export function resolveSquig(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

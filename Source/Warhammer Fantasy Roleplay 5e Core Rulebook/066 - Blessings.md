@@ -1,6 +1,6 @@
 *Pages PDF 220-221*
 
-# **BLESSINGS**
+# <span id="page-219-0" data-folio="220"></span>**BLESSINGS**
 
 Blessings are minor manifestations of divine will; a Character with the *Bless* Talent receives all six Blessings for their cult as listed in **Blessings by Cult**.
 
@@ -26,7 +26,7 @@ For every +2 SL you score in a Pray Test when attempting a Blessing, you may cho
 
 If the Blessing in question has a Duration of 'Instant', you may not extend the Duration. You may choose the same option more than once. For instance, if you rolled +4 SL on a *Blessing of Healing*, you could heal three targets you were touching, two targets up to 6 yards away, or one target up to 12 yards away.
 
-# **BLESSINGS BY CULT**
+**BLESSINGS BY CULT**
 
 | Manann   | Battle     | Breath     | Courage    | Hardiness     | Savagery     | Tenacity      |
 |----------|------------|------------|------------|---------------|--------------|---------------|
@@ -44,7 +44,7 @@ If the Blessing in question has a Duration of 'Instant', you may not extend the 
 
 Blessings are subtle, completely imperceptible to those without the *Holy Visions* Talent, their manifestation usually indistinguishable to good fortune. In this way, clerics of the Old World without the *Bless* Talent often appear to be as effective as those with it. By comparison, Miracles are overtly manifest, always accompanied by holy signs and portents, which should reflect the circumstances and relevant deity. For instance, an Ulrican Miracle may be accompanied by a chill wind and the spectral howl of wolves, while those receiving a Miracle of Manann may find themselves drenched in saltwater.
 
-### **Blessing of Battle**
+### <span id="page-220-0" data-folio="221"></span>**Blessing of Battle**
 
 **Range:** 6 yards **Target:** 1
 
@@ -74,9 +74,7 @@ Your target gains +10 Fellowship.
 
 **Duration:** 6 rounds
 
-Your target must pass an **Average (+2 SL)** 
-
-**Cool** Test to break any of the strictures of your deity. If they fail, they are overcome with shame and do not take the action.
+Your target must pass an **Average (+2 SL) Cool** Test to break any of the strictures of your deity. If they fail, they are overcome with shame and do not take the action.
 
 ### **Blessing of Courage**
 
@@ -150,9 +148,7 @@ Your target gains +10 Strength.
 
 **Duration:** 6 rounds
 
-Enemies must make an **Average (+2 SL)** 
-
-**Cool** Test to attack your target as shame wells within for considering violence. If they fail, they must choose a different target, or a different Action.
+Enemies must make an **Average (+2 SL) Cool** Test to attack your target as shame wells within for considering violence. If they fail, they must choose a different target, or a different Action.
 
 # **Blessing of Recuperation**
 

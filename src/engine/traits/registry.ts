@@ -1,7 +1,7 @@
 /**
  * Registre des Traits de créature (LDB 85) — DÉRIVÉ de la DONNÉE (`src/data/traits.json`, via
  * `data.traits`). Plus de `defs/` mécaniques : toute la mécanique (passive/effects/grantsManeuvers/
- * capabilities) vit dans `traits.json`, lue PAR ID. `TRAITS` ne porte plus que le libellé d'affichage
+ * capabilities) vit dans `traits.json`, lue PAR ID. `TRAITS` porte seulement le libellé d'affichage
  * (`{ key }`) ; ses ids sont EXACTEMENT ceux de `traits.json` (« traits du registre »).
  * Les helpers de `dispatch.ts` lisent `TRAITS` ; spawn/combat/IA les appellent aux moments de jeu.
  */

@@ -16,7 +16,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { ecrivainsParGate } from './ecrivainsAtteints.mjs'
+import { corpusParGate, ecrivainsParGate, sansImportsDeType, transitif } from './ecrivainsAtteints.mjs'
+import { statSync } from 'node:fs'
+import { join } from 'node:path'
 import { ECRIT_LU } from './toutes.mjs'
 
 const RACINE = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
@@ -100,14 +102,24 @@ const ATTENDU = {
     // fixtures : des scripts jetables sous `os.tmpdir()` (`mkdtempSync` + `writeFileSync`, `rmSync`
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
+    // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
+    // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
+    // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
+    // `mkdtempSync`) : le hook juge un chemin. Exception-add y écrit un fichier de garde EXISTANT
+    // (`writeFileSync`), memoire-tombale une fiche (`mkdirSync` + `writeFileSync`) et une jonction
+    // (`symlinkSync`), poison-postcheck le fichier scanné (`mkdirSync` + `writeFileSync`) : les trois
+    // lisent le disque, natif et MSYS doivent y lire le même fichier.
+    'scripts/hooks/data-edit-guard.test.mjs',
     // +1 le 2026-09-14 (#1754) : le banc du garde `[entériné]` pose ses fichiers-CIBLES (`mkdtempSync`
     // + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — c'est l'état SUR DISQUE que le hook lit
     // désormais pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.
     'scripts/hooks/enterine-guard.test.mjs',
-    'scripts/hooks/git-destructive-guard.test.mjs',
+    'scripts/hooks/exception-add-guard.test.mjs',
     'scripts/hooks/inject-project-credo.test.mjs',
+    'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
+    'scripts/hooks/poison-postcheck.test.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',
@@ -139,6 +151,12 @@ const ATTENDU = {
     // +1 le 2026-09-23 (#1343 lot B) : morsure des portes de la migration #877 (ref de décor
     // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
     'scripts/migrations/lib/877-ref-de-decor-portes.test.mjs',
+    // +1 le 2026-09-23 (#1882) : morsure des portes de la migration #1882 (fiche de personnage
+    // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
+    'scripts/migrations/lib/1882-fiche-de-personnage-portes.test.mjs',
+    // +1 le 2026-09-24 (#1882 T2d) : morsure des portes de la migration 13 → 14 (réf. vivantes d'effet
+    // semées) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
+    'scripts/migrations/lib/1882-refs-vivantes-portes.test.mjs',
     // +2 le 2026-09-18 (#1812) : le mode CROISSANCE fait grandir les documents d'un EXPORT jetable
     // (`os.tmpdir()`, `replay-head.mjs:exporter`) avant de rejouer les migrations — l'arbre n'est
     // jamais écrit, et son banc travaille sur un dépôt `mkdtemp`.
@@ -224,6 +242,10 @@ const ATTENDU = {
     // hors de toute liste écrite à la main, donc jamais joué. Il forge ses sources (`mkdtempSync` +
     // `writeFileSync`) sous `os.tmpdir()` ; l'arbre n'est jamais écrit.
     'scripts/docs/lib/canauxMecaniques.test.mjs',
+    // +1 le 2026-09-26 (#1973) : le banc de `canoniser` pose deux dossiers (`mkdtempSync`,
+    // `mkdirSync`) et une jonction (`symlinkSync`) sous `os.tmpdir()`, `rmSync` en finally ; l'arbre
+    // n'est jamais écrit.
+    'scripts/docs/lib/chemin-mesure.test.mjs',
     'scripts/docs/lib/empreinte-sources.mjs',
     // +2 le 2026-09-14 (#1759) : le test de contrat importe `installer` pour
     // monter l'enveloppe de `fs` à nu (la casse d'un chemin lu se juge sans sous-processus).
@@ -279,6 +301,10 @@ const ATTENDU = {
     // `--ecrire-stock` sous `isMain` (check-source-puces.mjs:159) — déclarée en `ecritFerme` de
     // `test:raw` (ECRIT_LU).
     'scripts/raw/check-source-puces.mjs',
+    // +1 le 2026-09-25 (#1393 lot 1) : `check-renvois.test.mjs` importe la garde des renvois « page N »,
+    // dont l'unique écriture (régénération du stock) est fermée par `--ecrire-stock` sous `isMain`
+    // (check-renvois.mjs:89) — déclarée en `ecritFerme` de `test:raw` (ECRIT_LU).
+    'scripts/raw/check-renvois.mjs',
     // +1 le 2026-09-14 (#1739 H-0) : `check-source-format.test.mjs` importe le détecteur du format
     // des extractions, dont l'unique écriture (régénération du stock) est fermée par `--ecrire-stock`
     // sous `isMain` (check-source-format.mjs:396) — déclarée en `ecritFerme` de `test:raw` (ECRIT_LU).
@@ -312,6 +338,11 @@ const ATTENDU = {
     // retirés par `rmSync`) pour éprouver `mdsDeMarker`/`mdsDeRestitutions` sur le disque. Aucune
     // écriture DANS l'arbre : même classe que `check-source-format.test.mjs` ci-dessus.
     'scripts/raw/lib/marker-pages.test.mjs',
+    // +1 le 2026-09-25 (#1739) : l'extraction pypdf quitte `anchor-fill.mjs` pour sa maison, importée
+    // par `empty-folios-stock.mjs` et `marker-pages.mjs`. `extractPages` n'écrit que la sortie de
+    // `pdf-extract.py` sous un `mkdtempSync` de os.tmpdir(), `rmSync` en finally : aucune écriture
+    // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
+    'scripts/raw/lib/pdf-extract.mjs',
     'scripts/raw/reanchor-split.mjs',
     'scripts/raw/reanchor.mjs',
     'scripts/raw/reanchor.test.mjs',
@@ -369,6 +400,18 @@ const ATTENDU = {
     // et le passe à la couture par son `source` INJECTÉ ; la couture (`_lib.mjs`) n'écrit rien — le
     // seul écrivain, la CLI `pdf-de.mjs`, n'est pas importé (le banc la LANCE, sans argument).
     'scripts/raw/pdf-de.test.mjs',
+    // +1 le 2026-09-23 (#1739) : la réparation du mobilier de page, ACQUISE par l'import de son banc —
+    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // que ses fonctions PURES sur des textes en mémoire, l'arbre n'est jamais écrit.
+    'scripts/raw/reparer-mobilier.mjs',
+    // +1 le 2026-09-23 (#1739) : la sonde des titres d'entrée, ACQUISE par l'import de son banc — elle
+    // lit le PDF dans un dossier `mkdtempSync` d'os.tmpdir(), et son `--json` refuse tout chemin sous
+    // le dépôt ; le banc n'appelle que ses fonctions PURES sur des fixtures, l'arbre n'est jamais écrit.
+    'scripts/raw/sonde-titres.mjs',
+    // +1 le 2026-09-24 (#1739) : la réparation des titres d'entrée, ACQUISE par l'import de son banc —
+    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
+    'scripts/raw/reparer-titres.mjs',
   ],
   'raw:check-refs': [],
   // +1 le 2026-09-11 (#925) : la gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE
@@ -399,6 +442,11 @@ const ATTENDU = {
   // `--ecrire-stock` (check-source-puces.mjs:159) que ci.yml ne passe pas ; déclarée en
   // `ecritFerme` sur `scripts/raw/source-puces-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
   'raw:check-source-puces': ['scripts/raw/check-source-puces.mjs'],
+  // +1 le 2026-09-25 (#1393 lot 1) : la gate neuve est la garde des renvois « page N », qui porte UN
+  // `writeFileSync` — la régénération de son stock nominatif, fermée par la porte `--ecrire-stock`
+  // (check-renvois.mjs:89) que ci.yml ne passe pas ; déclarée en `ecritFerme` sur
+  // `scripts/raw/renvois-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
+  'raw:check-renvois': ['scripts/raw/check-renvois.mjs'],
   'raw:reanchor': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/reanchor.mjs'],
   'server:typecheck': [],
 }
@@ -443,4 +491,29 @@ test('toute gate qui atteint un écrivain a une entrée ÉCRIT/LU qui en parle',
       `${gate} atteint ${scripts.length} module(s) écrivain(s) et ne déclare NI écriture NI raison de n'en pas avoir`,
     )
   }
+})
+
+test('un import de DOSSIER se résout en son `index`, jamais en dossier (src/data/index.ts : `../i18n`)', () => {
+  const corpus = transitif(['src/data/index.ts'], RACINE)
+  assert.ok(corpus.includes('src/i18n/index.ts'), '`../i18n` doit atteindre src/i18n/index.ts')
+  assert.ok(!corpus.includes('src/i18n'), 'un dossier n’est jamais un module du corpus')
+})
+
+test('le corpus de chaque gate ne compte que des FICHIERS', () => {
+  for (const [gate, corpus] of Object.entries(corpusParGate(RACINE))) {
+    const dossiers = corpus.filter((f) => !statSync(join(RACINE, f)).isFile())
+    assert.deepEqual(dossiers, [], `${gate} : corpus porteur de dossiers`)
+  }
+})
+
+test('un import de TYPE seul n’entre pas au corpus, un import mixte y entre', () => {
+  assert.equal(sansImportsDeType("import type { A } from './a'\n").trim(), '')
+  assert.equal(sansImportsDeType("export type { A } from './a'\n").trim(), '')
+  assert.equal(sansImportsDeType("import { type A, type B } from './a'\n").trim(), '')
+  assert.equal(sansImportsDeType("import { type A, b } from './a'"), "import { type A, b } from './a'")
+  assert.equal(sansImportsDeType("import { a } from './a'"), "import { a } from './a'")
+  // `renvoi.ts` n'importe `valeurs.ts` que pour le TYPE `SourceRef`, et `decoupe.ts` pour du code.
+  const corpus = transitif(['src/data/source/renvoi.ts'], RACINE)
+  assert.ok(corpus.includes('src/data/source/decoupe.ts'))
+  assert.ok(!corpus.includes('src/data/schemas/grammaire/valeurs.ts'))
 })

@@ -3,7 +3,7 @@ import { chooseEnemyAction, EnemyTurnInput } from './ai';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../engine/types';
 
-// IA — Tentacules (LDB 85 p.343) : « vous pouvez utiliser une Action d'Attaque GRATUITE pour résoudre
+// IA — Tentacules (LDB 85 l.405) : « vous pouvez utiliser une Action d'Attaque GRATUITE pour résoudre
 // l'Empoignade AU LIEU de l'Action de la créature ». Une créature qui TIENT une Empoignade par un TENTACULE
 // n'est donc PAS verrouillée sur la lutte (contrairement au verrou générique LOT B) : le tentacule tient
 // pendant que le corps garde son Action normale. La Langue préhensile (p.340) n'a PAS cette dérogation
@@ -30,7 +30,7 @@ function holds(e: Combatant, hId: string): void {
   e.conditions = [{ id: 'empetre', value: 1, sourceId: hId }];
 }
 
-describe('IA — Tentacules/Langue : l’Empoignade tenue ne VERROUILLE pas la créature (LDB 85 p.343/340)', () => {
+describe('IA — Tentacules/Langue : l’Empoignade tenue ne VERROUILLE pas la créature (LDB 85 l.405/213)', () => {
   it('Tentacules + grapplingWith → action NORMALE (pas { grapple }) : le membre tient pendant que le corps agit', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { traits: [{ id: 'tentacules', value: 9, count: 2 }] });
     holds(e, 'h');

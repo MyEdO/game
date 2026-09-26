@@ -8,7 +8,7 @@ import { tenueFor } from './career';
 import { armourPart, armourMaterial, weaponPart, shieldPart, isShield, type EquipCtx } from './equipment';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
-import { buildTokenMap, applyTokenMap } from '../palette';
+import { tableDObjet, applyTokenMap } from '../palette';
 
 /** Nu du PIED par ESPÈCE (#736 Lot 1) — repli quand aucune tenue/armure ne chausse la zone :
  *  civilisé lisse (défaut) ou monstrueux griffu (`race.extremites`/`perso.extremites`). */
@@ -81,7 +81,7 @@ function resolveUpperLimb(
   if (armItem) {
     const mat = armourMaterial(armItem);
     matterArt = ARMOUR[mat]?.bras ?? '';                         // tokens @metal/@cuir… intacts
-    const map = buildTokenMap(ARMOUR_PALETTES[mat] ?? {}, armItem.skin as Record<string, string> | undefined);
+    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin as Record<string, string> | undefined);
     matterResolve = (svg) => applyTokenMap(svg, map);
     brasEstPleineLongueur = true;
   } else {

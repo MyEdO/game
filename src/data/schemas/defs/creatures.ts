@@ -15,8 +15,8 @@ export const famille = 'entite';
 
 /** `OptionalEntry` (`src/engine/statEntry.ts`) — un élément d'`optionals` (LDB 76) : soit un
  *  `TraitInstance` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
- *  joker « tous les traits » (Mutant, LDB 83 p.333) ou variante « remplacer des Traits par un bonus »
- *  (Grand Loup ZI 1 p.16, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
+ *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
+ *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
 const optionalWildcardSchema = z.strictObject({
   note: z.literal('all-traits'),
   label: z.string(),
@@ -74,7 +74,7 @@ const champs = {
     trappings: z.array(trappingRefSchema),
     spells: z.array(refSchema),
     /** Emplacements SECONDAIRES (#563) — le MÊME statbloc réimprimé par un autre livre (Bête des
-     *  marais : LDB 79 p.318, republiée verbatim par VDM 13 folio 179). L'ANCRE `source` reste seule
+     *  marais : LDB 79 l.14, republiée verbatim par VDM 13 folio 179). L'ANCRE `source` reste seule
      *  à porter la `desc` ; jamais une seconde entrée. */
     appearance: entityAppearanceSchema.optional(),
     harvest: z.strictObject({ rarity: harvestRaritySchema, danger: harvestDangerSchema, uses: z.string() }).optional(),

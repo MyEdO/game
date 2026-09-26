@@ -88,15 +88,15 @@ const ents: SceneEntity[] = [
   { id: 'sieges-2d', kind: 'prop', ref: 'rangee-sieges', pos: { x: 11, y: 10 }, facing: 'N' },
   { id: 'colonne-g', kind: 'prop', ref: 'colonne-brisee', pos: { x: 4, y: 6 } },
   { id: 'colonne-d', kind: 'prop', ref: 'colonne-brisee', pos: { x: 16, y: 6 } },
-  { id: 'statue', kind: 'prop', ref: 'statue', pos: { x: 4, y: 15 } },
+  { id: 'statue', kind: 'prop', ref: 'statue', pos: { x: 4, y: 12 } },
   // Professeur Pakker et son épouse, près de l'allée centrale (source 08 l.158) — cible des pétards.
   { id: 'pakker', kind: 'personnage', ref: 'villageois', label: 'Professeur Pakker', pos: { x: 9, y: 8 }, facing: 'N' },
   // Les deux étudiants, repliés vers l'arrière de la salle près de la porte (l.158) — combat optionnel.
   { id: 'etudiant-1', kind: 'personnage', label: 'Étudiant nerveux', pos: { x: 5, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-etudiants', statblock: ETUDIANT },
   { id: 'etudiant-2', kind: 'personnage', label: 'Étudiant fébrile', pos: { x: 6, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, statblock: ETUDIANT },
 
-  // Lustre suspendu au-dessus du parterre (prop sur le vide z1 → flotte plus haut).
-  { id: 'lustre', kind: 'prop', ref: 'lustre-opera', pos: { x: 10, y: 8 }, z: 1 },
+  // Lustre pendu au-dessus du parterre qu'il éclaire (la recette porte la hauteur, patron `applique-murale`).
+  { id: 'lustre', kind: 'prop', ref: 'lustre-opera', pos: { x: 10, y: 8 } },
 
   // Loges gauche (z1) : balustrade côté parterre, fauteuils, applique, un spectateur. Le garde-corps se
   // pose à la CASE (`props.json`) : une travée par case du bord de loge, cap sur le vide du parterre.

@@ -20,8 +20,8 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const alice: SceneEntity = { id: 'e1', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Alice' };
-const bob: SceneEntity = { id: 'e2', kind: 'personnage', pos: { x: 1, y: 0 }, label: 'Bob' };
+const alice: SceneEntity = { id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' };
+const bob: SceneEntity = { id: 'e2', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 0 }, label: 'Bob' };
 
 const dlg: Dialogue = {
   id: 'dlg-test',

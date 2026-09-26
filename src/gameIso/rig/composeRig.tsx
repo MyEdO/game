@@ -16,8 +16,8 @@ import { pickView } from './parts/types';
 import { appendageArt } from './parts/appendages';
 import { monsterInjection } from './parts/monstrous';
 import { HEADS, ARMS, LEGS } from './parts/monster';
-import { buildTokenMap, applyTokenMap, fleshGradientId, fleshGradientDefs, type Palette } from './palette';
-import { tenueOverlaysFor, rigStoredPalette } from './parts/career';
+import { buildTokenMap, applyTokenMap } from './palette';
+import { tenueOverlaysFor, couchesDuRig } from './parts/career';
 import type { EquipCtx } from './parts/equipment';
 import { dorsalOverlays } from './parts/dorsal';
 import { CAPES } from './parts/capes';
@@ -340,41 +340,22 @@ function buildComposition(
     for (const id of ['epauleG', 'avantBrasG', 'mainG'] as BoneId[]) boneParts[id] = [];
   }
 
-  // PALETTE : résout les tokens @peau/@cheveux/@vet1/@vet2/@cuir/@metal de chaque part.
-  // Couches (priorité croissante) : défaut carrière (ombres exactes d'origine) → peau de
-  // la tête monstrueuse (lézard=vert, chien=fauve, accorde la chair du corps) → surcharges
-  // utilisateur (appearance.colors). Surcharger un slot dérive toute sa famille (recolor).
-  // SKIN_FROM_HEAD n'accorde la peau du corps QUE pour une espèce SANS palette dédiée (ex.
-  // un Humain à qui on greffe une tête de lézard) : si l'espèce a sa propre palette de peau
-  // (Skaven, Orc, Goule…), celle-ci prime — sinon la peau de la tête écraserait la teinte
-  // d'espèce (ex. la Goule grise deviendrait fauve à cause de sa tête « chien »).
+  // PALETTE : résout les jetons de clé de palette de chaque part. Couches (#1903 D3) : défaut <
+  // espèce < tenue < surcharges du joueur (appearance.colors). La peau greffée par la tête
+  // (SKIN_FROM_HEAD) est une valeur de la couche ESPÈCE, posée seulement quand l'espèce n'a pas de
+  // peau (ex. un Humain à tête de lézard) : une espèce qui a la sienne (Skaven, Orc, Goule…) la garde.
   const speciesPalette = racePalette(race.id, appearance.sex);
   const SKIN_FROM_HEAD: Record<string, string> = {
     lezard: '#5d7a42', chien: '#6e4a2c', rat: '#6e4a2e',
   };
-  const speciesHasSkin = speciesPalette?.peau != null;
   const skinHeadKey = appearance.monster?.tete ?? bDef?.perso?.head ?? race.head; // greffe de peau depuis la tête (monster, def OU race)
-  const headSkin = !speciesHasSkin && skinHeadKey ? SKIN_FROM_HEAD[skinHeadKey] : undefined;
-  const overrides: Palette = { ...(headSkin ? { peau: headSkin } : {}), ...appearance.colors };
-  // Défauts empilés : ESPÈCE (peau/cheveux/yeux par espèce:sexe) → TENUE → surcharges.
-  // Palette de tenue : tenue dédiée OU archétype de classe en repli (tenuePaletteFor) →
-  // les tenues SANS art dédié héritent/recolorent comme les autres (cohérence).
-  // Sous tout : les jetons des parts SYSTÈME du pied (botte/griffes — dessinées par resolve, pas
-  // par la tenue). `rigStoredPalette` est la SEULE construction de cet empilage (#426).
-  const stored = rigStoredPalette(speciesPalette, tenue);
-  const tmap = buildTokenMap(stored, overrides);
-  // Chair DYNAMIQUE (#583 point 2) : une part qui grave encore `url(#g_flesh)` (dégradé global
-  // fixe, `fxGradients.ts`) reçoit ICI un dégradé LOCAL dérivé de la peau résolue du personnage
-  // (cf. `fleshGradientId`/`fleshGradientDefs`, `palette.ts`) — la tenue elle-même n'est pas touchée.
-  const usesFlesh = Object.values(boneParts).some((ps) => ps.some((p) => p.svg.includes('url(#g_flesh)')));
-  if (usesFlesh) {
-    const fleshId = fleshGradientId(tmap);
-    boneParts['torse'].push({ svg: fleshGradientDefs(tmap), layer: -9999 });
-    for (const id of BONE_IDS)
-      boneParts[id] = boneParts[id].map((p) => ({ ...p, svg: applyTokenMap(p.svg, tmap).replace(/url\(#g_flesh\)/g, `url(#${fleshId})`) }));
-  } else {
-    for (const id of BONE_IDS) boneParts[id] = boneParts[id].map((p) => ({ ...p, svg: applyTokenMap(p.svg, tmap) }));
-  }
+  const headSkin = speciesPalette.peau == null && skinHeadKey ? SKIN_FROM_HEAD[skinHeadKey] : undefined;
+  const espece = headSkin ? { ...speciesPalette, peau: headSkin } : speciesPalette;
+  // Sous tout : les jetons des parts SYSTÈME du pied (botte/griffes — dessinées par resolve, pas par
+  // la tenue) viennent de la couche défaut. `couchesDuRig` est la SEULE construction de
+  // l'empilage (#426).
+  const tmap = buildTokenMap(couchesDuRig(espece, tenue), appearance.colors);
+  for (const id of BONE_IDS) boneParts[id] = boneParts[id].map((p) => ({ ...p, svg: applyTokenMap(p.svg, tmap) }));
 
   // Profondeur en PROFIL, par COUCHES : ARME DU FOND ← (recouverte par) le HÉROS ← (recouverte par) l'ARME
   // DEVANT. Seules les armes sont re-z-ées (le corps garde son ordre normal entre les deux) : l'arme du fond

@@ -6,7 +6,7 @@ import { serpentSvg, SERPENT_DEFAULT, serpentStrike } from '../src/gameIso/rig/s
 import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveSerpentFromProps } from '../src/gameIso/rig/serpentine/composeSerpent';
 
-const sangsue = { ...SERPENT_DEFAULT, hood: false, girth: 1.15, stored: { corps: '#6a3a3a', corpsO: '#421f1f', corpsH: '#8a5050', cheveux: '#2a1414', cheveuxO: '#160a0a', cuir: '#7a5a2a' } };
+const sangsue = { ...SERPENT_DEFAULT, hood: false, girth: 1.15, palette: { corps: '#6a3a3a', corpsO: '#421f1f', corpsH: '#8a5050', cheveux: '#2a1414', cheveuxO: '#160a0a', cuir: '#7a5a2a' } };
 const cells: { label: string; svg: string }[] = [
   { label: 'Serpent profil', svg: serpentSvg(SERPENT_DEFAULT, 'profile') },
   { label: 'Serpent face', svg: serpentSvg(SERPENT_DEFAULT, 'front') },

@@ -94,7 +94,7 @@ export function conjureFormOptions(caster: Pick<Combatant, 'skills'>): ConjureFo
   if (!groupAdv.size) groupAdv.set('base', 0); // mage sans Spé → armes de base
   const out: { weapon: string; group: string; adv: number }[] = [];
   for (const t of trappings) {
-    if (t.service) continue; // tarif de service (LDB p.302) — pas un objet, itemFromTrappingById refuse
+    if (t.service) continue; // tarif de service (LDB 66 l.12-14) — pas un objet, itemFromTrappingById refuse
     const it = itemFromTrappingById(t.id);
     if (it?.kind !== 'melee' || !it.subType || !isConjurableWeapon(it)) continue;
     // groupAdv est keyé par id de Groupe ; it.subType EST l'id de Groupe de l'arme → match direct.

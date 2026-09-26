@@ -272,7 +272,7 @@ function retireEtat(c: Combatant, name: string, value: number, parSaSource: bool
   // l'effet de cet État » → l'Hémorragique épuisé (instance retirée) lève TOUS les gates de main (op
   // `handGate`). LEVER machinerie UNIQUE de la durée du marqueur (l'Hémorragique ne s'empile qu'en 1 instance).
   if (name === COND.hemorragique && existing.value <= 0) delete c.handGates;
-  // POINT UNIQUE de retrait d'État → une Blessure critique dont tous les États associés sont désormais tombés
+  // POINT UNIQUE de retrait d'État → une Blessure critique dont tous les États associés sont tombés
   // est GUÉRIE (LDB 18 l.304) : octroie la cicatrice post-guérison (Blessure spectaculaire / Nez cassé, l.61/72).
   settleHealedCriticals(c);
 }
@@ -434,7 +434,7 @@ export function isMagicallyAsleep(c: Combatant): boolean {
   return !!inc && (inc.roundsLeft != null || inc.untilTime != null) && c.wounds.current > 0;
 }
 
-/** Réveille un dormeur magique : retire son Inconscient de sommeil. Le dormeur, désormais éveillé, encaisse
+/** Réveille un dormeur magique : retire son Inconscient de sommeil. Le dormeur, éveillé, encaisse
  *  l'attaque qui l'a réveillé (il n'a pas pu la défendre — il dormait). */
 export function wakeSleeper(c: Combatant): void {
   const inc = c.conditions.find((x) => x.id === COND.inconscient);
@@ -530,7 +530,7 @@ export function combatTestPenaltyParts(c: Combatant): ModLine[] {
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
-  // Auras de combat (Perturbant : −20 à BE m, LDB 85 p.341) — `testMod` projetés dans `auraMods` par le hook
+  // Auras de combat (Perturbant : −20 à BE m, LDB 85 l.262) — `testMod` projetés dans `auraMods` par le hook
   // `recompute-auras`. HORS du gate `ignoreStatePenalties` : une aura est un TRAIT, pas un État (Endurance de
   // l'anachorète ne l'annule pas, LDB 42). Non-cumul = même pool (« une seule fois », LDB 85 l.262).
   for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) cand.push({ amount: m.op.amount, nature: 'Aura', src: m.src });
@@ -593,7 +593,7 @@ export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, c
  * effets ACTIFS à `testMod` global, `testMod` globaux de symptôme) et même provenance de LIBELLÉ : le
  * `src` que le collecteur `passiveMods` porte sur chaque `PassiveMod` (donnée `etats.json` →
  * `refLabel`), JAMAIS un branchement par nom d'entité. SOURCE UNIQUE du calcul ET de son affichage :
- * `testStatePenalty` n'en est plus que la somme.
+ * `testStatePenalty` en est seulement la somme.
  * Magnitudes/portées en DONNÉES (`etats.json` passive `testMod` : `combatOnly`/`movementOnly`/
  * `hearingOnly`/`exceptSkills`). Les États non classables hors combat (Aveuglé=vue, `combatOnly`) sont
  * exclus ici.

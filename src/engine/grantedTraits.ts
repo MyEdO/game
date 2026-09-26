@@ -76,7 +76,7 @@ export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
 /** Retire les instances du Trait `traitId` que la source `src` a ACCORDÉES à `c` — retrouvées par le
  *  registre d'instance `TraitInstance.src` (posé par l'op `grantTrait` et par `attachMutation`), quels
  *  que soient leur argument et leur indice — et renvoie celles qui l'ont été. Noyau de l'op
- *  `removeTrait` : un porteur qui RE-CIBLE son Trait (Haine sporadique, EDOC 8 p.67) retire LE SIEN puis
+ *  `removeTrait` : un porteur qui RE-CIBLE son Trait (Haine sporadique, EDOC 12 l.217) retire LE SIEN puis
  *  le ré-accorde, au lieu d'empiler une instance par jour ; le même Trait porté nativement ou accordé
  *  par un TIERS (Haine d'une prière, LDB 226) reste intact. Source inconnue = rien à attribuer, donc
  *  rien retiré. Mute `c`. */

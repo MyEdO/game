@@ -166,7 +166,7 @@ import {
   splitTopLevelOu,
 } from './draft';
 import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAllowed } from '../../engine/creation';
-import { PARTY_MAX } from '../../state/combatants';
+import { PARTY_MAX, garanti } from '../../state/combatants';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
 
@@ -2443,7 +2443,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
           écrasés « Pamphl étaire »/« Bronz »). */}
       {levels.length > 0 && (
         <div className="presentation-col" style={{ gridColumn: '1 / -1' }}>
-          <Rubrique title={<>Évolution — {career?.class ? findClassById(career.class)?.label ?? '' : ''}</>}>
+          <Rubrique title={<>Évolution — {career?.class ? garanti(findClassById(career.class), career.class, 'classe de carrière').label : ''}</>}>
             <CareerPath levels={levels} currentLevel={1} selected={1} />
           </Rubrique>
         </div>

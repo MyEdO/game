@@ -150,8 +150,8 @@ describe('EtatPanel', () => {
 
   it('rangée de zones (pt.4) MORTE dans le registre (lot « corps-index », #492) — seules les ancres de la PREMIÈRE rangée concernée subsistent', () => {
     const html = renderToStaticMarkup(<EtatPanel hero={afflictedHero()} />);
-    // La bande résumée (`ZoneBand`/`PlaqueGrid`) a migré vers `FigTile.zoneBadges` — plus de grille
-    // ni de compte agrégé ("1 critique"/"1 séquelle") dans le registre lui-même.
+    // Le résumé par zone vit dans `FigTile.zoneBadges` : le registre ne rend ni `PlaqueGrid` ni compte
+    // agrégé ("1 critique"/"1 séquelle").
     expect(html).not.toContain('plaque-grid');
     expect(html).not.toContain('1 critique');
     expect(html).not.toContain('1 séquelle');

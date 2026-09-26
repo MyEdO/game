@@ -227,7 +227,7 @@ export function traitCapability(traits: TraitList | undefined, cap: keyof TraitC
   return list.some((t) => !!findTraitById(t.id)?.capabilities?.[cap]);
 }
 
-/** Endurant (LDB 85 p.339) : +Bonus d'Endurance Blessures. */
+/** Endurant (LDB 85 l.130) : +Bonus d'Endurance Blessures. */
 export function traitBonusWoundsBE(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'bonusWoundsBE');
 }
@@ -269,7 +269,7 @@ export function wardSaves(traits: TraitList | undefined): number[] {
 // `canCounterOnDefenseWin` (combatFeatures/dispatch), jamais un prédicat par-nom `hasChampionDefense`.
 
 
-/** AURAS de combat déclarées par les traits du porteur (Perturbant : −20 à BE m, LDB 85 p.341 ; toute
+/** AURAS de combat déclarées par les traits du porteur (Perturbant : −20 à BE m, LDB 85 l.262 ; toute
  *  future aura). GÉNÉRIQUE — lue par le hook `recompute-auras`, qui projette leurs `passive` sur les
  *  combattants à portée. Aucun trait nommé en dur. Le `traitId` ÉMETTEUR voyage avec l'aura : c'est
  *  lui qui nomme la pénalité chez la cible (chip « −20 Perturbant » et son renvoi Codex). */
@@ -304,49 +304,49 @@ export function immuneToSpellDomain(traits: TraitList | undefined, spellDomainId
   return spellDomainId != null && spellDomainImmunityOf(traits) === spellDomainId;
 }
 
-/** Instable (LDB 85 p.340). */
+/** Instable (LDB 85 l.199). */
 export function isUnstable(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'unstable');
 }
 
-/** Insensible à la douleur (LDB 85 p.340) : pénalités de Critiques (hors amputations) ignorées. */
+/** Insensible à la douleur (LDB 85 l.195) : pénalités de Critiques (hors amputations) ignorées. */
 export function isPainless(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'painless');
 }
 
 
 // ── Psychologie / IA ──────────────────────────────────────────────────────────────────────────────
-/** Belliqueux (LDB 85 p.338) : immunité psy si plus d'Avantages que `foesMaxAdvantage`. */
+/** Belliqueux (LDB 85 l.51) : immunité psy si plus d'Avantages que `foesMaxAdvantage`. */
 export function bellicosePsychImmune(c: Pick<Combatant, 'traits' | 'advantage'>, foesMaxAdvantage: number): boolean {
   return traitCapability(c.traits, 'psychImmuneIfAhead') && (c.advantage ?? 0) > foesMaxAdvantage;
 }
 
-/** Fabriqué (LDB 85 p.339) : pas d'Int/FM/Soc → Tests psychologiques auto-réussis. */
+/** Fabriqué (LDB 85 l.142) : pas d'Int/FM/Soc → Tests psychologiques auto-réussis. */
 export function isMindless(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'mindless');
 }
 
-/** Bestial (LDB 85 p.338). */
+/** Bestial (LDB 85 l.59). */
 export function isBestial(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'bestial');
 }
 
-/** À sang-froid (LDB 85 p.338) : peut inverser ses Tests de FM échoués. */
+/** À sang-froid (LDB 85 l.13) : peut inverser ses Tests de FM échoués. */
 export function isColdBlooded(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'coldBlooded');
 }
 
-/** Stupide (LDB 85 p.341). */
+/** Stupide (LDB 85 l.335). */
 export function isStupid(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'stupid');
 }
 
-/** Rage (LDB 85 p.341). */
+/** Rage (LDB 85 l.282). */
 export function hasRage(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'rage');
 }
 
-/** Territorial (LDB 85 p.343) : annule la fuite de Bestial (combat jusqu'à la mort). */
+/** Territorial (LDB 85 l.413) : annule la fuite de Bestial (combat jusqu'à la mort). */
 export function isTerritorial(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'territorial');
 }
@@ -363,7 +363,7 @@ export function flyMeters(traits: TraitList | undefined): number | null {
   return t ? t.value ?? 0 : null;
 }
 
-/** Bond (LDB 85 p.338) : Charge/Course ×2 (et ignore les obstacles traversés). */
+/** Bond (LDB 85 l.63) : Charge/Course ×2 (et ignore les obstacles traversés). */
 export function hasLeap(traits: TraitList | undefined): boolean {
   return (traits ?? []).some((t) => !!findTraitById(t.id)?.capabilities?.leap);
 }
@@ -374,7 +374,7 @@ export function isSwarm(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'swarm');
 }
 
-/** Foulée (LDB 85 p.339) : Course ×1,5. */
+/** Foulée (LDB 85 l.146) : Course ×1,5. */
 export function hasStride(traits: TraitList | undefined): boolean {
   return (traits ?? []).some((t) => !!findTraitById(t.id)?.capabilities?.stride);
 }
@@ -390,7 +390,7 @@ export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'climbFullSpeed');
 }
 
-/** Rampant (MSRC 15 p.90) : « Elle ne peut pas réaliser d'Action de Course. » Capacité NON exprimable
+/** Rampant (MSRC 15 l.171) : « Elle ne peut pas réaliser d'Action de Course. » Capacité NON exprimable
  *  en GameOp → drapeau `capabilities.noRun`, interrogé par `runMultiplier`. */
 export function hasNoRun(traits: TraitList | undefined): boolean {
   return (traits ?? []).some((t) => !!findTraitById(t.id)?.capabilities?.noRun);

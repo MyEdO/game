@@ -3,7 +3,7 @@
 > ⚠️ Fichier GÉNÉRÉ par `node scripts/docs/build-mecanique.mjs` (`npm run docs:mecanique`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : le SITE réel du lecteur de
-chaque canal (`src/engine/trauma.ts:983`, `src/state/triggeredEffects.ts:471`, `src/engine/capabilities.ts:45`), les
+chaque canal (`src/engine/trauma.ts:983`, `src/state/triggeredEffects.ts:475`, `src/engine/capabilities.ts:45`), les
 20 membres d'`EffectTrigger` et les 6 formes d'`EffectTargeting`
 (`src/engine/flowCore.ts`), les 7 champs de `TriggeredEffect`, les 8 kinds
 de source réunis par `effectSourcesOf`, les 4 interfaces de capacités et leur nombre de
@@ -24,7 +24,7 @@ Toute mécanique — trait de créature, talent, atout d'arme/armure, mutation, 
 | Canal | Ce qu’il porte | Lu par |
 |---|---|---|
 | `passive: GameOp[]` | modificateur CONTINU, sans déclencheur | `passiveMods` (`src/engine/trauma.ts:983`) |
-| `effects: TriggeredEffect[]` | effet sur ÉVÉNEMENT (à la touche, en fin de Round…) | `fireTriggers` (`src/state/triggeredEffects.ts:471`) |
+| `effects: TriggeredEffect[]` | effet sur ÉVÉNEMENT (à la touche, en fin de Round…) | `fireTriggers` (`src/state/triggeredEffects.ts:475`) |
 | `capabilities` | drapeau IRRÉDUCTIBLE que le moteur INTERROGE (aucune valeur numérique ni formule) | `hasCapability` (`src/engine/capabilities.ts:45`) |
 
 Chaque champ est du **`GameOp[]`** ou du **`TriggeredEffect[]`** — jamais un type propre à
@@ -104,7 +104,7 @@ produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'enti
 
 ### Le dispatcher unique — `fireTriggers`
 
-`fireTriggers` (`src/state/triggeredEffects.ts:471`) est le **SEUL** point d'entrée pour jouer les effets
+`fireTriggers` (`src/state/triggeredEffects.ts:475`) est le **SEUL** point d'entrée pour jouer les effets
 déclenchés d'un combattant. Il réunit ses sources via `effectSourcesOf` (`src/state/triggeredEffects.ts:102`), qui
 énumère aujourd'hui **8 kinds** dans un ordre FIGÉ (déroulé RNG déterministe) :
 `trapping` → `trait` → `quality` → `talent` → `symptom` → `mutation` → `condition` → `psychology`.
@@ -136,10 +136,10 @@ un chiffre qui s'additionne.
 
 | Interface | Site | Drapeaux déclarés |
 |---|---|---|
-| `TraitCapabilities` | `src/data/index.ts:1701` | 43 |
-| `QualityCapabilities` | `src/data/index.ts:1899` | 26 |
-| `ItemCapabilities` | `src/data/index.ts:1110` | 12 |
-| `SymptomCapabilities` | `src/data/index.ts:1966` | 6 |
+| `TraitCapabilities` | `src/data/index.ts:1704` | 43 |
+| `QualityCapabilities` | `src/data/index.ts:1902` | 26 |
+| `ItemCapabilities` | `src/data/index.ts:1113` | 12 |
+| `SymptomCapabilities` | `src/data/index.ts:1969` | 6 |
 
 Lecture — un seul point d'entrée par portée, chaque canal restant disjoint par nom de capacité :
 
@@ -220,4 +220,4 @@ primitives, `CLAUDE.md`). Ne pas dupliquer une op qui existe déjà sous un autr
 | `src/engine/trauma.test.ts` | traumaFromKind (LDB 18-Traumatisme) |
 | `src/state/triggered-effects.test.ts` | fireTriggers — Traits et Atouts sur le même système flow+déclencheur |
 | `src/state/combat-hardcode-guard.test.ts` | garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8) |
-<!-- sources-empreinte: 5b1b220fd53562bf8e369eb8854ee48803c16ce1 (158 fichiers, 1 dossiers) corps: 46f0fdea83755a45a0d069ab5f5c787f2224813c -->
+<!-- sources-empreinte: a8a4e4842fcf27fbbcaec3a98f872c91625c6d6f (158 fichiers, 1 dossiers) corps: 98e28f7b5766877461749bba6575b18d2ae5bf88 -->

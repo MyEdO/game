@@ -12,7 +12,7 @@ describe('gabarit céphalopode', () => {
     const totalPaths = (tent.match(/<path/g) ?? []).length + (bras.match(/<path/g) ?? []).length;
     expect(totalPaths).toBeGreaterThanOrEqual(24); // 8 bras × 3 traits, répartis derrière/devant
     const corps = bones.find((b) => b.id === 'corps')!.parts[0].svg;
-    expect(corps).toContain(OCTOPUS_DEFAULT.stored.cuir); // iris (@cuir)
+    expect(corps).toContain(OCTOPUS_DEFAULT.palette.cuir); // iris (@cuir)
     expect(corps).toContain('<rect'); // pupille horizontale (rect)
   });
 
@@ -24,7 +24,7 @@ describe('gabarit céphalopode', () => {
 
   it('de dos : pas d’yeux', () => {
     const back = resolveOctopusFromProps(OCTOPUS_DEFAULT, 'back', {}).find((b) => b.id === 'corps')!.parts[0].svg;
-    expect(back).not.toContain(OCTOPUS_DEFAULT.stored.cuir);
+    expect(back).not.toContain(OCTOPUS_DEFAULT.palette.cuir);
   });
 
   it('les poses diffèrent (ondulation ≠ repos, projection tend les bras, mort affaisse)', () => {

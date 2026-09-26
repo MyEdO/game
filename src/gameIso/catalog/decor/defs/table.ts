@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Table en bois : plateau (dessus en perspective) + quatre pieds. Meuble de base des pièces de service
-// du théâtre (salle verte, loges d'artistes, costumiers). Cf. plan officiel NADJ 8 p.40.
+// du théâtre (salle verte, loges d'artistes, costumiers). Cf. plan officiel NADJ 08 folio 38 (image).
 export const prop: PropViz = {
   id: 'table',
   label: 'Table',

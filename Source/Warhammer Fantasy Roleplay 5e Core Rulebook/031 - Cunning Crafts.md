@@ -1,6 +1,6 @@
 *Pages PDF 153-155*
 
-# **CUNNING CRAFTS** V
+# <span id="page-152-0" data-folio="153"></span>**CUNNING CRAFTS**
 
 Life may be cheap in the Empire, but the necessities of living are anything but. Most commoners are used to making what they can for themselves and purchasing only those essentials they can't get by without. Clothes, simple tools, and damp hovels of mud and stone are often made by their owners, while skilled artisans create more complicated and hard wearing goods.
 
@@ -36,7 +36,7 @@ In many villages and a few towns, you may buy herbal ingredients at a rate of 5 
 
 Unlike creating a herbal remedy, the ingredients for alchemical preparations are produced through painstaking processes and must be purchased rather than found. The typical costs for a given treatment are provided on the Remedy Creation Difficulty table.
 
-#### **LOCATING HERBS FOR REMEDIES**
+**LOCATING HERBS FOR REMEDIES**
 
 | Time of Year                                   | Required SL |
 |------------------------------------------------|-------------|
@@ -45,7 +45,7 @@ Unlike creating a herbal remedy, the ingredients for alchemical preparations are
 | Summer (18th Sigmarzeit to 16th Nachgeheim) | 5           |
 | Autumn (17th Nachgeheim to 17th Kaldzeit)   | 10          |
 
-#### **Herbal Remedies**
+#### <span id="page-153-0" data-folio="154"></span>**Herbal Remedies**
 
 Make a Trade (Herbalist) Test to create 1 dose of a herbal remedy. The difficulty depends on the symptoms of the disease to be treated. This takes around 15 minutes. Each dose remains effective for a month.
 
@@ -71,9 +71,10 @@ Concocting a poison is similar to concocting a remedy, involving the same Lore S
 
 When you make the Trade Test, refer to the following table for the results.
 
-| REMEDY EFFECTIVENESS       |                                                                                                                                                                           |
-|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+**REMEDY EFFECTIVENESS**
+
 | SL                         | Result                                                                                                                                                                    |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | +6 or more, or Critical | A highly effective preparation is created. The Symptom is alleviated for a period of TB days.                                                                       |
 | +1 to +5                   | The remedy is effective. The Symptom is alleviated for 24 hours.                                                                                                       |
 | +0                         | The Symptom is alleviated for 24 hours, but the patient suffers an undignified side effect, such as persistent hiccups or having their tongue turn green.        |
@@ -81,7 +82,7 @@ When you make the Trade Test, refer to the following table for the results.
 | –1 to –5                   | The remedy has no effect.                                                                                                                                                 |
 | –6 or less, or Fumble   | Not only does the remedy fail to alleviate the Symptom, the patient must Test to see if they contract the Galloping Trots in addition to their current ailments. |
 
-# V **SELECTION OF POISONS**
+<span id="page-154-0" data-folio="155"></span>**SELECTION OF POISONS**
 
 | Name                    | Source                                                                | Resistance Test                                                                                | Effect                                                                                                                                                                                                                          |
 |-------------------------|-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

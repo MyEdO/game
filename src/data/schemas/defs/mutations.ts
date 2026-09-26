@@ -1,5 +1,5 @@
 /**
- * Schéma de `mutations.json` — Mutations (entités, LDB 19 p.184-185 + suppléments), miroir de
+ * Schéma de `mutations.json` — Mutations (entités, LDB 19 l.112-165 + suppléments), miroir de
  * `MutationData = Omit<Mutation, 'roll'>` (`src/data/mutations.ts`, `Mutation` définie
  * `src/engine/corruption.ts`). `roll` (jet d100, traçabilité de tirage) n'appartient PAS à
  * l'entité éditable — porté seulement par l'INSTANCE tirée à l'exécution (hors dataset).

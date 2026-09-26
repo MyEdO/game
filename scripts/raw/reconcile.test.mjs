@@ -8,8 +8,9 @@
 // `reconciliation-stock.json` (#1709 D2) ; ce banc juge la direction FINE et le régime du cliquet.
 // Un livre de CŒUR n'a pas de voie de stock : son sens A est à tolérance ZÉRO, dans la GATE
 // (`ecartsTrousDurs`, volet `coeur`) et verrouillé ici en régime, jamais en nombre.
-// Les tests suivants fixent le vocabulaire de couverture : une fiche qui ne cite QU'en graphie FOLIO
-// (`ABBR NN p.X`, #585/#606) crédite son chapitre via `folioSpan`/`folioRange`, à l'égal d'une réf ligne.
+// Les tests suivants fixent le vocabulaire de couverture : une fiche qui ne cite QU'en graphie folio
+// des fiches de l'Atlas (`ABBR NN p.X`, #606) crédite son chapitre via `folioSpan`/`folioRange`, à
+// l'égal d'une réf ligne.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'

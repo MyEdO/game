@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Coiffeuse de loge : table de toilette à tiroirs surmontée d'un miroir encadré, avec deux chandeliers.
 // Le meuble emblématique des vestiaires des chœurs / loges d'artistes du théâtre (les acteurs s'y
-// maquillent). Cf. plan officiel NADJ 8 p.40 (coiffeuses contre le mur des vestiaires 11/12/13).
+// maquillent). Cf. plan officiel NADJ 08 folio 38, image (coiffeuses contre le mur des vestiaires 11/12/13).
 export const prop: PropViz = {
   id: 'coiffeuse',
   label: 'Coiffeuse',

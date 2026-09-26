@@ -71,7 +71,7 @@ const SHIP_LOC_TABLES: Record<ShipLocTableId, ShipLocEntry[]> = {
 };
 const isShipLocTableId = (id: string): id is ShipLocTableId => id in SHIP_LOC_TABLES;
 
-/** Tableau de Localisation humanoïde (LDB 13 p.159) — un dé déjà INVERSÉ (1..100). */
+/** Tableau de Localisation humanoïde (LDB 13 l.137-145) — un dé déjà INVERSÉ (1..100). */
 export function hitLocation(reversed: number): HitLocation {
   return findTableEntry(BODY_SHAPES.humanoide, reversed).loc;
 }
@@ -126,7 +126,7 @@ const ANY_RANGED_SPEC = '*';
 
 /**
  * Spés (`WeaponGroupData.id`) que couvre la Spécialisation de Corps à corps / Projectiles du Groupe
- * donné, avec leur MODE. RAW : Corps à corps (LDB 09 l.141) et Projectiles (l.409) sont des Compétences
+ * donné, avec leur MODE. RAW : Corps à corps (LDB 09 l.156) et Projectiles (l.423) sont des Compétences
  * *Groupées* — chaque Spécialisation (désormais un `spec` = id de Groupe, cf. `SkillData.specsSource`)
  * couvre une classe d'armes ; sans la bonne Spé, aucun Test n'est possible (LDB 62 l.180), sauf les
  * exceptions listées l.184-192 (Groupes d'Armes à distance) :
@@ -136,8 +136,8 @@ const ANY_RANGED_SPEC = '*';
  */
 function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptance[] {
   // `weaponGroup` PRIME sur `subType` : une arme de siège porte sa catégorie de catalogue (« armes-de-siege »)
-  // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire, AA 10 p.122
-  // l.3848-3863) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
+  // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire,
+  // AA 10 l.178-193) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
   // arme normale, `weaponGroup` est absent → `subType` EST le Groupe (comportement inchangé).
   const gid = weapon.weaponGroup ?? weapon.subType ?? ''; // id de Groupe d'arme (`WeaponGroupData.id`)
   if (!gid) return [];
@@ -328,12 +328,12 @@ export function defenseBaseValue(c: Combatant, mode: DefenseMode, weapon?: Weapo
  * Modificateurs FONDUS dans la valeur de défense, en SOMME : pénalité de mobilité + mods de Test
  * char-QUALIFIÉS d'effets ACTIFS. Ils vivent DANS la valeur et ne transitent JAMAIS par `combineMods`
  * (plafond « Combiner les Difficultés », LDB 14 l.91-96) — les y verser les amputerait à −30.
- * L'Esquive subit la pénalité d'Agilité d'Encombrement (Surchargé, LDB 61 p.295).
+ * L'Esquive subit la pénalité d'Agilité d'Encombrement (Surchargé, LDB 61 l.35-40).
  */
 export function defenseValueMods(c: Combatant, mode: DefenseMode, weapon?: Weapon): number {
   if (mode === 'social') return 0; // valeur fournie clé en main par la couche état
   if (mode === 'parade') return combatValueMods(c, 'melee', weapon ?? c.weapons[0]);
-  // Pénalité de mobilité : pire pénalité (non-cumul, LDB l.20) entre Encombrement et traumatisme
+  // Pénalité de mobilité : pire pénalité (non-cumul, LDB 16 l.13) entre Encombrement et traumatisme
   // de jambe (Déchirure −10/−20, Fracture −20 « règle du Pied », LDB 18 l.220/229/285).
   const mobilityPenalty = Math.min(agilityTestPenalty(c), traumaDodgePenalty(c));
   // #193 : pénalité de récupération « Tests impliquant cette jambe » (Genou démis, LDB/AA) — Esquive EST
@@ -762,7 +762,7 @@ export function attackModifiers(
     // Cible vulnérable : une ligne PAR État qui l'expose (« +20 À Terre », « +10 Assourdi » de dos),
     // chacune liée à sa fiche — jamais un « Cible vulnérable » anonyme qui fond deux règles distinctes.
     out.push(...meleeAttackerBonusLines(target, { flankRear: opts.flankRear }));
-    // Parasité (LDB 85 p.340) : −10 pour toucher la créature en Corps à corps (vermine perturbante).
+    // Parasité (LDB 85 l.257) : −10 pour toucher la créature en Corps à corps (vermine perturbante).
     const para = incomingAttackMod(target, 'melee');
     if (para) out.push({ label: 'Parasité', value: para, famille: 'circonstance', ref: RULE_REF.parasite });
     // Option « Longueur d'Arme » (LDB 62 l.172) : arme adverse plus longue → −10 pour la toucher.
@@ -1101,7 +1101,7 @@ function combineOpposed(
   // MDG 09 l.228) — même règle d'application que le +DR de Talent (LDB 10 l.19 : « utilisation RÉUSSIE »).
   const atkSL = atk.sl + craftTestDRAdjust(weapon, atk.success) + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender)
     + (atk.success ? skillDRBonus(attacker, weapon.type === 'ranged' ? 'projectiles' : 'corps-a-corps') : 0)
-    + offTerrainTestDR(attacker); // hors de son terrain (Créature marine, MDG p.140) : −DR à TOUS ses Tests
+    + offTerrainTestDR(attacker); // hors de son terrain (Créature marine, MDG 16 l.17) : −DR à TOUS ses Tests
   const defSL = def.sl - parrySizePenalty + vsDefenseDRAdjust(weapon)
     + (defenseMode === 'parade' ? parryDRAdjust(parryWeapon, weapon) + craftTestDRAdjust(parryWeapon, def.success) : 0)
     + offTerrainTestDR(defender);
@@ -1190,7 +1190,7 @@ export function resolveMeleePassive(
 ): AttackResult {
   const atkBd = bd(attackTestLabel(weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
   if (!atk.success) return miss(attacker, defender, atkBd, 'defender');
-  const res = applyHit(attacker, defender, weapon, atkBd, atk.sl + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender) + skillDRBonus(attacker, 'corps-a-corps') + offTerrainTestDR(attacker), atk.isDouble && atk.success, location, dmgProxy, 0, withhold); // Imprécise : −1 DR à l'attaque (LDB 62 l.323) ; Pointue (LDB 62 l.288) ; Peur/Haine ±1 DR (LDB 21) ; +DR d'effet actif sur un Test réussi (Jacques Bret) ; hors de son terrain −DR (Créature marine, MDG p.140)
+  const res = applyHit(attacker, defender, weapon, atkBd, atk.sl + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender) + skillDRBonus(attacker, 'corps-a-corps') + offTerrainTestDR(attacker), atk.isDouble && atk.success, location, dmgProxy, 0, withhold); // Imprécise : −1 DR à l'attaque (LDB 62 l.323) ; Pointue (LDB 62 l.288) ; Peur/Haine ±1 DR (LDB 21) ; +DR d'effet actif sur un Test réussi (Jacques Bret) ; hors de son terrain −DR (Créature marine, MDG 16 l.17)
   if (res.hit && (attacker.swarm || sizeGap(dmgProxy?.size ?? attacker.size, defender.size) >= 1)) res.cleave = true; // Frappe Mortelle — plus grand OU Nuée (LDB 85 l.362/253) ; charge montée → Taille de la monture
   return res;
 }
@@ -1366,7 +1366,7 @@ export function resolveRanged(
       log: `${attacker.label} manque sa cible.`,
     };
   }
-  return applyHit(attacker, defender, weapon, atkBd, atk.sl + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender) + skillDRBonus(attacker, 'projectiles') + offTerrainTestDR(attacker), atk.isDouble && atk.success, location); // Imprécise : −1 DR (LDB 62 l.323) ; Pointue (LDB 62 l.288) ; Peur/Haine ±1 DR (LDB 21) ; +DR d'effet actif sur un tir réussi ; hors de son terrain −DR (MDG p.140)
+  return applyHit(attacker, defender, weapon, atkBd, atk.sl + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender) + skillDRBonus(attacker, 'projectiles') + offTerrainTestDR(attacker), atk.isDouble && atk.success, location); // Imprécise : −1 DR (LDB 62 l.323) ; Pointue (LDB 62 l.288) ; Peur/Haine ±1 DR (LDB 21) ; +DR d'effet actif sur un tir réussi ; hors de son terrain −DR (MDG 16 l.17)
 }
 
 /** Jet d'attaque FIGÉ d'un TIR (Test de Projectiles, mods de portée/Taille/État inclus) — mirror de
@@ -1496,7 +1496,7 @@ function applyHit(
   // Un OBJET INANIMÉ (structure/véhicule/affût) n'a PAS de Tableau de Localisation → aucune localisation
   // (l'affichage omet alors le membre, et le résolveur de Blessures l'ignore déjà : armure 0 partout).
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
-  // Éthéré (LDB 85 p.339) : « ne peut être blessée que par les Attaques magiques » — une attaque
+  // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.
   if (incomingDamageNullified(defender, attacker, isMagicWeapon(weapon))) {
     return {

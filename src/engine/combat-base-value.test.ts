@@ -4,7 +4,7 @@ import { skillBaseValue } from './skills';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
 
-// F=30,E=30 → BF+BE = 6 → capacité d'Encombrement 6 (LDB 61 p.295) : `enc:14` = palier 2 (−20 Ag).
+// F=30,E=30 → BF+BE = 6 → capacité d'Encombrement 6 (LDB 61 l.5) : `enc:14` = palier 2 (−20 Ag).
 const chars = (over: Partial<Characteristics> = {}): Characteristics => ({
   'capacite-de-combat': 40, 'capacite-de-tir': 35, force: 30, endurance: 30, initiative: 30,
   agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...over,

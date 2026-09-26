@@ -65,7 +65,7 @@ lecture UNIQUE**. Ses 14 branches d'émission, dans l'ordre du code :
 | `src/engine/trauma.ts:994` | `faim` | inline | — |
 | `src/engine/trauma.ts:997` | `faim` | inline | — |
 | `src/engine/trauma.ts:1002` | `ivresse` | inline | Ivresse (LDB 09 l.475) : −10/échec aux CC/CT/Ag/Dex/Int (pool non-cumul, kind `ivresse`). |
-| `src/engine/trauma.ts:1012` | `etat` | inline | États (LDB 16) : leur `passive: GameOp[]` (pénalité de Test → `testMod`, bonus à l'attaquant → `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, l.20). |
+| `src/engine/trauma.ts:1012` | `etat` | inline | États (LDB 16) : leur `passive: GameOp[]` (pénalité de Test → `testMod`, bonus à l'attaquant → `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13). |
 | `src/engine/trauma.ts:1017` | `etat` | inline | États PSYCHOLOGIQUES (LDB 21, `psychology.json`) : leur `passive` (Frénésie → `sbBonus +1`) émis dans le MÊME pool `etat` que les États — MÊME folding générique, zéro chemin parallèle. |
 | `src/engine/trauma.ts:1025` | `intrinseque` | inline | Mutations de Corruption (LDB 19) : modifs PERMANENTES du corps → leur `passive: GameOp[]` (vocab unifié, `mutations.json`) émis tel quel en kind `intrinseque`, COMME les traits. |
 | `src/engine/trauma.ts:1028` | — | `wornSocialMods` | Qualités d'objet équipées (LDB 60), producteurs sans cycle (wearPenalty est une feuille) : objet Laid → −Soc aux Tests sociaux (testMod char-qualifié) ; port d'armure → −N% par compétence (skillMod, intrinsèque). |
@@ -163,4 +163,4 @@ Tout passe par le Compendium in-app (écran Codex) :
   champ à part (§7).
 - **Ajouter une table de Corruption** (un dieu du Chaos) : Codex → Tables de Corruption → une entrée
   dont les plages référencent des mutations EXISTANTES par id.
-<!-- sources-empreinte: 84def8b750df89a44bb8b35cceb12d9c5a695f79 (144 fichiers, 1 dossiers) corps: 4f641e9e08f2f5b6f132272b78d4a66bc67371df -->
+<!-- sources-empreinte: bc22322294dd808c3fe0efebe191e363a437277e (144 fichiers, 1 dossiers) corps: 9be3df941a12e1842016c8cf6b1a62acad36fd8a -->

@@ -456,7 +456,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (`grammaire/valeurs.ts`) refuse toute autre graphie — il n'y a pas d'ancienne forme à
       // éteindre. Sans elles, `book` les rangeait sous `source` et `sum` sous `formule`.
       // Cliquet REMONTÉ 39 → 40 (#1797) : `formule | minimum,of` — la BORNE BASSE d'un terme de
-      // `Formula` (`{minimum, of}`, `formulaSchema`), où vit désormais le « minimum de 1 » des deux
+      // `Formula` (`{minimum, of}`, `formulaSchema`), où vit le « minimum de 1 » des deux
       // entrées « Choc au bras » (AA 07 l.113, LDB 18 l.88) que le moteur portait au site d'appel.
       // Elle ne blanchit AUCUN étalement : la graphie naît avec le terme, et `minimum` ne nomme que
       // lui (`atLeast`, lui, est déjà le seuil d'un palier et d'une Condition — il n'entre pas au noyau).
@@ -487,7 +487,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Cliquet DESCENDU 558 → 557 (L2 #1548, geste modèle) : les DEUX pseudo-PNJ de l'effet
       // `medicalAid` meurent de la donnée — la valeur de Guérison recopiée (`skill {id,value}`, 2
       // occurrences) s'éteint AVEC sa signature d'effet (`effect entityId,skill,type+…` → `entityId,type+…`),
-      // et les 2 soigneurs de l'arène RÉFÉRENCENT désormais leur fiche de bestiaire (`ref id-nu` :
+      // et les 2 soigneurs de l'arène RÉFÉRENCENT leur fiche de bestiaire (`ref id-nu` :
       // 291 → 293, la graphie déjà canonique du pion de scène). Une ligne de moins au stock.
       // Cliquet DESCENDU 557 → 538 (L2 #1548, commit 4) : les QUATRE graphies enveloppantes du champ
       // d'AVANCEMENT meurent de la donnée (careerLevels + species, 4 462 nœuds) — 20 lignes
@@ -616,7 +616,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Cliquet REMONTÉ 26 → 27 : c'est la COUVERTURE du relevé qui revient, pas la donnée qui
       // régresse. `introspecterDefs` prenait pour entrée d'un `pipe` à la racine sa SORTIE — un
       // `transform` sans clés : les 45 documents scellés par `document()` rendaient ZÉRO clé
-      // déclarée. Le relevé lit désormais le PORTEUR du pipe, et les 8 clés des 4 `*-projet.json`
+      // déclarée. Le relevé lit le PORTEUR du pipe, et les 8 clés des 4 `*-projet.json`
       // (`activeAxes`, `auteur`) redeviennent mesurables. Mesure du doc §2.4 : 370 → 621 clés
       // déclarées-jamais-observées, dont 243 posées d'office par la fabrique, hors dénominateur ici
       // (`CLES_POSEES_INCONDITIONNELLEMENT`) — ces 8-là sont les seules à entrer au stock.
@@ -630,12 +630,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       ['STRUCTURES_DEFAUT', STRUCTURES_DEFAUT.length, 27],
       // Cliquet DESCENDU 6 → 5 : le stock est à 5 depuis un lot antérieur et la marge n'avait pas été
       // reprise. Aucune raison de garder un cran libre : il servirait à absorber un homonyme neuf.
-      // … et 5 → 4 (L2 #1548, commit 3d) : l'homonyme `skill` MEURT — la clé n'a plus qu'UNE classe
+      // … et 5 → 4 (L2 #1548, commit 3d) : l'homonyme `skill` MEURT — la clé a seulement UNE classe
       // (object) dans les deux racines (coûts en PX renommés, valeur de Test emboîtée, `null` devenu
       // absence, liste renommée `skills`).
       ['STRUCTURES_HOMONYMES', STRUCTURES_HOMONYMES.length, 4],
       // Cliquet REMONTÉ 102 → 108 (#1467 L1b V-FLIP-ENTITE-b) : c'est la COUVERTURE du relevé qui a
-      // changé, pas la donnée ni les defs. `litterauxZod` (structures-scan.mts) visite désormais
+      // changé, pas la donnée ni les defs. `litterauxZod` (structures-scan.mts) visite
       // l'argument `champs` de `document()` — forme DOMINANTE (43 defs adoptés) qu'il ne voyait pas :
       // 8 déclarations SURFACÉES (7 `entries` de defs config/table + `interludeEvents` min/max, qui
       // était stockée AVANT l'adoption et revit à l'identique). Sans l'extension, l'adoption faisait
@@ -645,7 +645,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // composent la grammaire (`refOuSpec('skill')`, `grammaire/ref.ts`). Le cliquet SUIT.
       // Cliquet DESCENDU 105 → 104 (L2 #1548, commit 4bis) : `creatures.ts` ne redéclare plus son
       // objet de référence de Compétence — il compose `refOuSpec('skill', {value})`, comme le fait
-      // désormais `defs-scenes/communs.ts`. Le cliquet SUIT.
+      // `defs-scenes/communs.ts`. Le cliquet SUIT.
       // Cliquet REMONTÉ 104 → 105 (#674, 2026-08-31) : `maladies.ts` déclare le Test quotidien de la
       // Pneumonie (`dailyTest {difficulty+…}`, EDOC 08 l.104) avec son propre objet, comme le font
       // encore les autres porteurs de Test du même lot L4. La ligne s'éteindra avec eux.
@@ -653,7 +653,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // c'est l'empreinte de la migration P2 sur les defs, pas une dérive de forme : `weather.json`
       // et `advancementCosts.json` encodaient leurs tables par la BORNE HAUTE SEULE (19 + 15 rangées,
       // borne basse reconstruite par POSITION, donc ni authorée ni éditable). Leurs deux bornes étant
-      // désormais en donnée (EDOC 08 l.52-59 ; LDB 07 l.56-70), leurs deux schémas déclarent le
+      // en donnée (EDOC 08 l.52-59 ; LDB 07 l.56-70), leurs deux schémas déclarent le
       // littéral `{min, max, …}` — ils rejoignent la famille des 30 defs qui le redéclarent déjà.
       // RESTE NOMMÉ : le schéma PARTAGÉ (P1, `grammaire/valeurs.ts`) éteint les 32 d'un coup ; ces
       // deux lignes-là sont à éteindre AVEC elles, pas séparément.
@@ -715,7 +715,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // `test` — `maladies.ts` (le symptôme référencé et son `dailyTest`), `sea-weather.ts › temperatures`
       // (une entrée de table à `id`) et `tavernGames.ts › (racine)` (le concept `sequence` n'existe plus) ;
       // le 5ᵉ, `tavernGames.ts › rows`, change de concept et reste au dénominateur (`plage | max,min+…`,
-      // cible — le littéral porte deux bornes numériques et `plage` le classe désormais avant `test`).
+      // cible — le littéral porte deux bornes numériques et `plage` le classe avant `test`).
       // Cliquet DESCENDU 55 → 52 (#1463 L-gram-3, 2026-09-01) : le concept `prix` reçoit ses NŒUDS
       // (`prixSaisonnierSchema` / `prixTireSchema`, `grammaire/valeurs.ts`) et les deux defs de commerce
       // cessent de retaper l'union — `land-cargo.ts › price` et `sea-cargo.ts › price` sortent, la
@@ -724,7 +724,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // fin de fichier) ; `sea-cargo.ts › offerPrice` sort avec elle, en composant `plageOuverteSchema`.
       // Cliquet DESCENDU 52 → 51 (#1463 L-gram-4, 2026-09-01) : la dernière ligne du concept `source`
       // sort — la bande de schéma de progression cessait de nommer `folio` ce que la grammaire appelle
-      // `page` (`sourceRefSchema`, `grammaire/valeurs.ts`), et le def compose désormais sa SHAPE. La
+      // `page` (`sourceRefSchema`, `grammaire/valeurs.ts`), et le def compose sa SHAPE. La
       // correction est au GÉNÉRATEUR (`scripts/data/gen-progression-schemas.py`), l'artefact étant
       // dérivé : `--check` le revalide à l'octet.
       // Cliquet DESCENDU 51 → 44 (#1654 geste A, 2026-09-01) : les 7 lignes `signature: entries` du
@@ -758,7 +758,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // confond plus avec les deux autres). La somme des deux stocks est CONSTANTE : 671 + 91 = 670 + 92.
       // Cliquet REMONTÉ 92 → 106 (L2 #1548, commit 3c) : AUCUNE dérive neuve — ce sont 14 lignes qui
       // ARRIVENT de `STRUCTURES_FORMES` (−31 ci-dessus). Un conteneur dont la valeur de `skill` ÉTAIT un
-      // id résolvable ouvrait une référence AU CONTENEUR ; la référence étant désormais l'objet EMBOÎTÉ,
+      // id résolvable ouvrait une référence AU CONTENEUR ; la référence étant l'objet EMBOÎTÉ,
       // elle se compte sur LUI (forme CIBLE `{id}`, hors dénominateur) et le conteneur, qui annonce
       // encore une clé réservée sans résoudre lui-même, tombe ici. MÊME objet, autre stock — le
       // dénominateur GLOBAL décroît de 16 lignes (587+92 = 679 → 557+106 = 663).
@@ -864,7 +864,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 23 → 16 (#1654 geste A, 2026-09-01) : les 7 redéclarations `entries` du lot MEURENT par
       // CONSTRUCTION — `options.rangee` est admissible en TOUTE famille, la fabrique pose
       // `entries` (et `die` sous `deDeTirage`) avec leur méta FR, et la garde de `document()` refuse
-      // désormais l'une comme l'autre dans les `champs` d'un def à rangées : `driving-mishap`,
+      // l'une comme l'autre dans les `champs` d'un def à rangées : `driving-mishap`,
       // `drunkenness`, `montures`, `naval-progression`, `obsessions`, `surincantation`,
       // `vents-tourbillonnants`.
       'L1a #1466': 16,
@@ -883,7 +883,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // signatures d'op déjà stockées de ce dataset (`condition {durationRounds,id,op}` et
       // `condition {id,op,value}`), aucune forme neuve : la cause récurrente porte SA durée.
       // … puis 393 → 394 (#1599, 2026-09-06) : la signature `condition {id, op, resolveWindow}` — les
-      // DEUX États portés par un canal passif de `symptoms.json` déclarent désormais SUR L'OP ce qu'un
+      // DEUX États portés par un canal passif de `symptoms.json` déclarent SUR L'OP ce qu'un
       // Point de Détermination y fait (fenêtre d'horloge de la Fièvre (Grave), `LDB 20 l.170` ; refus du
       // Malaise, `l.188`), là où deux drapeaux de SYMPTÔME le disaient. Les 2 occurrences quittent
       // `condition {id,op}` (6 → 4) : mêmes op, une ligne de plus, ZÉRO drapeau de porteur en moins.
@@ -895,7 +895,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
       // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
       'L1c #1468': 398,
-      // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE désormais son folio à la racine
+      // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.
       // … puis 61 → 57 (#1552 lot 3) : le rôle `source` déclare son alternative `maison` et les 4
@@ -907,19 +907,19 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // `criticals.json` et `aa-criticals.json` sont SOLDÉES — les 8 documents-tables qui les
       // remplacent portent chacun leur `source` (LDB 174 ×4, AA 83/84/85/86).
       // … puis 55 → 53 (#1686 lot 2) : les TROIS lignes « `source` absente » des catalogues de matières
-      // (`propMaterials`/`roofMaterials`/`reliefMaterials`) n'en font plus qu'UNE — les trois documents
+      // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
       // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
-      'L1d #1469': 53 /* 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige désormais), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). Le +2 antérieur (alsoIn creatures/species posés par e89a836d3 SANS leur ligne de stock, sillage C1 #1457) reste à SOLDER par la vague L1d (#1469) */,
+      'L1d #1469': 53 /* 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). Le +2 antérieur (alsoIn creatures/species posés par e89a836d3 SANS leur ligne de stock, sillage C1 #1457) reste à SOLDER par la vague L1d (#1469) */,
       // L2 #1463 : 57 → 48 (commit 3b) — les 9 lignes de référence de Compétence à graphie `skillId`
       // (donnée + defs) meurent ; ce qui reste du lot est la référence PLATE `skill: "<id>"` des ops.
       // … puis 48 → 18 (commit 3c) : cette référence PLATE MEURT à SON TOUR — 30 lignes s'éteignent avec
       // l'emboîtement `skill: { id, spec? }` (cf. le cliquet `STRUCTURES_FORMES` ci-dessus).
       // … puis 18 → 16 (geste modèle) : les 2 lignes du pseudo-PNJ soigneur quittent le lot — la
       // valeur de Guérison recopiée MEURT (`skill {id,value}`), et la signature de l'effet qui la
-      // portait n'annonce plus qu'une entité (elle passe donc en `L3`, +1 ci-dessous : même mécanique
+      // portait annonce seulement une entité (elle passe donc en `L3`, +1 ci-dessous : même mécanique
       // de transfert entre lots du MÊME stock, somme des deux en BAISSE 415 → 414).
       // … puis 16 → 10 (commit 4) : les 6 dernières lignes du lot sont les enveloppes `{ref:{…}}` et
-      // `{wildcard:{…}}` de l'AVANCEMENT (careerLevels + species) — la référence y est désormais À
+      // `{wildcard:{…}}` de l'AVANCEMENT (careerLevels + species) — la référence y est À
       // PLAT, régime de spécialisation compris (`{id}`, `{id, spec}`, `{id, choix}`).
       // … puis 10 → 4 (commit 4bis) : les 6 lignes `skills {id,value}`/`{id,spec,value}` des statblocs
       //     passent CIBLE au site et sortent du dénominateur (cf. le cliquet `STRUCTURES_FORMES`).
@@ -970,7 +970,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // dans la branche `fail` du nœud `test`, sous `ops` — une seule graphie au lieu de deux.
       // … puis 376 → 374 (#1657 B2b) : les DEUX lignes `onFail` des maladies meurent à leur tour —
       // `symptoms.json › onFail` (2 signatures) fusionne dans `› ops`, et la 8ᵉ réf de symptôme à
-      // Difficulté propre (posée au geste A) part : le document déclare désormais sa Difficulté par
+      // Difficulté propre (posée au geste A) part : le document déclare sa Difficulté par
       // l'enum de la grammaire, un littéral d'enum n'ouvrant jamais de référence.
       // … puis 374 → 373 (#1657 B2c) : la ligne `river-criticals.json › onFail` MEURT à son tour — la
       // conséquence du coup à l'équipage rejoint `› ops` (4 → 5 occurrences), une seule graphie.
@@ -1037,7 +1037,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // donnée (`maladies.json › dailyTest`) et sa redéclaration au def (`maladies.ts › dailyTest`).
       // L4 #1463 : 221 → 162 (vague `plage`, 2026-08-31). −61 lignes de FORMES (les rangées de table
       // à fourchette plate passent CIBLE, cf. le cliquet `STRUCTURES_FORMES` ci-dessus) et +2 lignes
-      // de REDÉCLARATIONS (`weather.ts`, `advancementCosts.ts` — leurs schémas déclarent désormais le
+      // de REDÉCLARATIONS (`weather.ts`, `advancementCosts.ts` — leurs schémas déclarent le
       // littéral à DEUX bornes, empreinte de la migration P2 ; cf. le cliquet
       // `STRUCTURES_REDECLARATIONS`). Solde net −59.
       // … puis 162 → 152 (vague `plage`, LOT P1-a) : les 10 lignes de REDÉCLARATIONS des rangées de
@@ -1055,7 +1055,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (53 occurrences) — 44 `giveMoney` enveloppés dans `montant`, et les 9 montants PARTIELS
       // (`activities.minInvest`, coûts de choix d'arène) reconnus CIBLES par le lexique. Le concept
       // monnaie ne pèse plus AUCUNE ligne au stock des formes.
-      // … puis 113 → 112 (L-monnaie-4) : l'HOMONYME `cost` sort — le nom ne porte plus que la monnaie
+      // … puis 113 → 112 (L-monnaie-4) : l'HOMONYME `cost` sort — le nom porte seulement la monnaie
       // (8 tarifs d'arène), les 85 porteurs d'un autre type ayant reçu le nom de ce qu'ils chiffrent.
       // … puis 112 → 111 (#1463 L-de-1) : QUATRE lignes du concept `de` sortent — la forme divergente
       // `miscast.json › dice {n,sides+…}` et les TROIS dés re-tapés dans les defs (`maladies.ts`,
@@ -1083,8 +1083,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Le terrain gagné est de SIGNATURE, pas de compte — les deux lignes neuves portent l'exacte
       // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test` depuis B2a, là où la
       // graphie propriétaire projetait `difficulty+…`. Le décompte L3 (−2), lui, baisse.
-      // … #1657 B3-1 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` n'en font plus
-      // qu'UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
+      // … #1657 B3-1 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
       // (1 → 39), la seule graphie que la porte sache tester. Ce que le silence coûtait : le moteur
       // recomposait la valeur à la main (Endurance + avances de Résistance), hors `testValue`.
       // … #1657 B3-3 : 84 → 85, cliquet REMONTÉ d'UNE ligne, et c'est une CONVERGENCE, pas une dérive.

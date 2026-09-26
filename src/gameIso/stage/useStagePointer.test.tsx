@@ -14,6 +14,7 @@ import { resolveCursorZ } from '../../state/combatCursor';
 import { placesJouables, seatPoseOf, seatSlotsOf } from '../../state/seating';
 import { cleActionJouee, estUtilisable } from '../../state/usable';
 import { interactionHalos } from '../builders/interactHalos';
+import type { BillboardPropEl } from '../builders/types';
 import { exploreMovePlan, exploreSeatPlan } from '../../state/exploreNav';
 import { offresUtilisables } from '../../state/offresUtilisables';
 import { useGame } from '../../state/store';
@@ -776,7 +777,7 @@ describe('useStagePointer — relief et franchissement d’étage à la souris',
 
 /**
  * GLISSER-TOURNER au bouton MILIEU (#1176) — la 4e entrée du lacet libre. Le bouton principal marche
- * et panoramique, le droit ouvre l'attaque pertinente : la rotation à la souris n'avait plus que le
+ * et panoramique, le droit ouvre l'attaque pertinente : la rotation à la souris avait seulement le
  * milieu, et elle doit suivre le pointeur AU DEGRÉ dit par `SENSIBILITE_DRAG_DEG_PX`.
  */
 describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
@@ -1072,7 +1073,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   /**
    * SONDE G2 de la revue (#1443, round 3) : le SURVOL et le CLIC lisent la MÊME source
    * (`exploreMovePlan`) — le module le dit en toutes lettres. Table PLEINE et sans fouille : le survol
-   * traçait désormais un chemin vers une case adjacente que le clic n'honorait pas (il journalisait
+   * traçait un chemin vers une case adjacente que le clic n'honorait pas (il journalisait
    * `seating.noReachableSeat` sur place). Le clic PARCOURT le plan promis ; le refus ne se dit qu'À
    * PORTÉE, quand il n'y a plus rien à marcher.
    */
@@ -1183,8 +1184,8 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     // PRÉCONDITION : le halo appelle — il n'y a plus de place, mais la fouille n'est pas épuisée.
     expect(interactionHalos(
       [],
-      [{ kind: 'prop', key: 'prop:table-1', cell: { x: 2, y: 3, z: 0 }, source: 'entity', entId: 'table-1',
-        ref: 'table-ronde-4-tabourets', foot: { offX: 0, offY: 0, scale: 1 },states: { visible: true } } as never],
+      [{ kind: 'prop', key: 'prop:table-1', cell: { x: 2, y: 3, z: 0 }, source: 'entity', entId: 'table-1', span: { w: 1, h: 1 },
+        ref: 'table-ronde-4-tabourets', foot: { offX: 0, offY: 0, scale: 1 }, states: { visible: true } } satisfies BillboardPropEl],
       useGame.getState().scene!, {}, { survol: null, reveler: true },
     ), 'le halo DOIT appeler pour que le test morde').toHaveLength(1);
 
@@ -1322,7 +1323,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('curseur RENDU : flèche au repos, main sur l’utilisable, flèche de nouveau à l’épuisement', () => {
     const feuille = document.createElement('style');
-    feuille.textContent = readFileSync(join(process.cwd(), 'src/gameIso/anim.css'), 'utf8');
+    feuille.textContent = readFileSync(join(process.cwd(), 'src/gameIso/stage/iso-stage.css'), 'utf8');
     document.head.append(feuille);
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'iso-stage');

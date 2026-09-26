@@ -13,7 +13,7 @@ import { emptyScene, type SceneEntity } from '../../state/scene';
  * FOIS PAR SUJET — et
  * TOUS les sujets défectueux parlent, y compris ceux qui n'ont aucune réf à se mettre sous la clé (#936).
  */
-const ent = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Sans espèce' });
+const ent = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Sans espèce', statblock: { type: 'statblock', label: 'Sans espèce', char: { B: 10 } } });
 
 describe('diagnostics de rendu — une fois par sujet, jamais par frame (#936)', () => {
   let err: ReturnType<typeof vi.spyOn>;

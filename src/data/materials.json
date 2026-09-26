@@ -72,6 +72,15 @@
     "metalness": 0
   },
   {
+    "id": "feuillage",
+    "type": "materials",
+    "label": "Feuillage",
+    "domain": "prop",
+    "color": "#3f6b34",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

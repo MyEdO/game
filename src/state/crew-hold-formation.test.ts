@@ -18,15 +18,15 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endu
 
 const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
   ({
-    id, name: id, kind: 'enemy', side: 'ally', ai: true, characteristics: CHARS,
+    id, label: id, kind: 'enemy', side: 'ally', ai: true, characteristics: CHARS,
     wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
-    weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
+    weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
   }) as unknown as Combatant;
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   ({
-    id: 'hull', name: 'Bélier (poste)', kind: 'enemy', side: 'ally', pos, conditions: [], weapons: [],
+    id: 'hull', label: 'Bélier', kind: 'enemy', side: 'ally', pos, conditions: [], weapons: [],
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste],
   }) as unknown as Combatant;
 
@@ -35,7 +35,7 @@ const mkPoste = (crewIds: string[] = []): ShipPoste =>
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   ({
-    id, name: id, kind: 'hero', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+    id, label: id, kind: 'hero', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS, endurance: 30 }, wounds: { current: 12, max: 12 }, advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   }) as unknown as Combatant;

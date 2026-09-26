@@ -74,7 +74,7 @@ export interface CombatFeature {
    *  `pursuedMovement`) au calcul du DR de vitesse (LDB 15 l.104-108). */
   pursuitTargetBonus?: boolean;
   // ── Défense / Avantage ─────────────────────────────────────────────────────
-  /** Porte-Bouclier (LDB 10 p.144) : +niveau Avantage quand on se défend au Bouclier et qu'on PERD le
+  /** Porte-Bouclier (LDB 10 l.972) : +niveau Avantage quand on se défend au Bouclier et qu'on PERD le
    *  Test opposé (consolation d'une situation désespérée — pas sur une défense gagnée). */
   shieldAdvantage?: boolean;
   /** Réaction défensive à coût d'Avantages de réserve (Porte-Bouclier variante « Avantage de groupe »,

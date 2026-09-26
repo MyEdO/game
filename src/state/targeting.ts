@@ -2,7 +2,7 @@
  * Ciblage au SURVOL — source unique du tooltip + réticule + ligne de visée du joueur (IsoStage).
  * Rejoue les MÊMES prédicats que le clic (via le REGISTRE DE MODES `targetingModes.ts`) pour que
  * l'affordance ne mente jamais : réticule présent = le clic aboutira, réticule interdit = il sera refusé (et pourquoi).
- * Pur (lit l'état). `hoverTargeting`/`validTargets` ne sont plus que des entrées qui délèguent au mode
+ * Pur (lit l'état). `hoverTargeting`/`validTargets` sont seulement des entrées qui délèguent au mode
  * courant ; les corps d'affordance/candidats vivent dans `targetingModes.ts` (source unique).
  */
 import { Combatant } from '../engine/types';
@@ -28,7 +28,7 @@ export { spellAffinity } from './targetingModes';
 export function hoverTargeting(get: () => GameState, active: Combatant, target: Combatant): HoverTargeting {
   const battle = get().battle;
   if (!battle || battle.over || !active.pos || !target.pos) return { kind: 'none' };
-  // Un engin de siège INERTE (immune, RAW AA 10 p.122-123) n'est JAMAIS une cible d'attaque/sort/soin : pas de
+  // Un engin de siège INERTE (immune, RAW AA 10 l.175-193) n'est JAMAIS une cible d'attaque/sort/soin : pas de
   // réticule — on vise son équipage (combattants ordinaires), pas la pièce. (Structures/véhicules NE sont pas `inert`.)
   if (target.inert) return { kind: 'none' };
   return currentTargetingMode(get).affordance?.(get, active, target) ?? { kind: 'none' };

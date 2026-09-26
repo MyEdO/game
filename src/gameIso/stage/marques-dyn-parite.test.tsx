@@ -103,7 +103,7 @@ function démonter(): void {
   if (conteneur) { conteneur.remove(); conteneur = null; }
 }
 
-/** Ce que le SVG monté par-dessus le monde peint encore de ces repères : RIEN — il ne porte plus que
+/** Ce que le SVG monté par-dessus le monde peint encore de ces repères : RIEN — il porte seulement
  *  les overlays d'interaction. Mesuré pour que le retour d'une double peinture se voie. */
 function comptesSvg(el: HTMLElement): Record<string, number> {
   const liens = [...el.querySelectorAll('svg.iso-stage line')].filter((l) => l.getAttribute('stroke') === ENGAGE_TINT);

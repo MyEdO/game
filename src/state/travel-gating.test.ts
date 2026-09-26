@@ -122,6 +122,7 @@ function enPleineTraversee(flags: Record<string, boolean> = {}): void {
     worldMap: carteNaufrage,
     scene: scenePlate('monde-a'),
     travelPlan: plan,
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] },
     pendingCascade: null,
     suspendedCascades: [],
     journal: [],

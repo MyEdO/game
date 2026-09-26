@@ -155,7 +155,7 @@ const scene = buildScene({
           // Chef : reste en retrait, tire à l'arbalète (À distance dans le Trait — le Trait dérive déjà
           // l'arme de RENDU via `weaponFromTrapping`, plus de `weapon:` d'authoring redondant, #145).
           pos: { x: 17, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'lezard' } }, anim: 'standing',
-          label: 'Knud Cratinx — chef à la peau écailleuse',
+          label: 'Knud Cratinx',
           statblock: { type: 'statblock',
             label: 'Knud Cratinx',
             char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, initiative: 35, agilite: 33, dexterite: 29, intelligence: 33, 'force-mentale': 35, sociabilite: 30, B: 12 },
@@ -164,23 +164,23 @@ const scene = buildScene({
         },
         {
           pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'chien' } }, anim: 'howl',
-          label: 'Mikael — tête de chien, hurle à la mort',
+          label: 'Mikael',
           statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
         },
         {
           pos: { x: 14, y: 8 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { jambes: 'chevre' } }, anim: 'feeding',
-          label: 'Erik — pattes de chèvre, dévore un cadavre',
+          label: 'Erik',
           statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
         },
         {
           pos: { x: 14, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'ogive' } }, anim: 'standing',
-          label: 'Johann — tête en ogive, panse Mikael',
+          label: 'Johann',
           statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
         },
         {
           // « Mutile l'attelage à la hache » → arme dans le Trait (type Grande hache, libellé catalogué → shape).
           pos: { x: 12, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'minuscule' } }, anim: 'standing',
-          label: 'Terenz — crétin, mutile l’attelage',
+          label: 'Terenz',
           statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'cretin' }] },
         },
       ],

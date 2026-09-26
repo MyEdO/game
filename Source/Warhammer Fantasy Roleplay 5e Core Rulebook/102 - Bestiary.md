@@ -1,6 +1,6 @@
 *Pages PDF 318*
 
-# • **BESTIARY** •
+# <span id="page-317-0" data-folio="318"></span>• **BESTIARY** •
 
 *'Throughout the forests, mountains, and shadowed reaches of the Old World and lands beyond, creatures of cunning and deadly habits dwell. This volume catalogues their forms, behaviours, and the hazards they pose, so that scholars may study them, the unwary recognise peril before it claims life, and that students may gape at the depictions of their monstrous forms and appendages.'*
 

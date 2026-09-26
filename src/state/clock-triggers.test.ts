@@ -67,7 +67,7 @@ const ecart = (): number => extenue(get().party[0]) - extenue(get().party[1]);
 beforeEach(() => set({ battle: null, pendingCascade: null, deferredUpkeepQueue: [] }));
 
 describe('onDayStart — une émission PAR JOUR franchi (rattrapage compris)', () => {
-  it('trois jours sautés = trois re-ciblages de Haine sporadique (EDOC 8 p.67)', () => {
+  it('trois jours sautés = trois re-ciblages de Haine sporadique (EDOC 12 l.217)', () => {
     const h = hero('Rattrapage');
     attachMutation(h, mutFromCatalog(HAINE_SPORADIQUE), makeRNG(7));
     atDays([h], 0, 3);

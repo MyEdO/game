@@ -1386,7 +1386,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade).toBeTruthy();
     expect(get().pendingCascade!.purpose).toBe('seaScorbut'); // MÊME cascade « Entretien — Maladies » (#460)
-    // UNE SITUATION = UNE FENÊTRE : un seul Test (MDG 14 l.219), donc UNE étape — les PJ appelés y
+    // UNE SITUATION = UNE FENÊTRE : un seul Test (MDG 14 l.217), donc UNE étape — les PJ appelés y
     // tiennent chacun leur rangée, jamais N modales pour le même jet.
     const bandes = get().pendingCascade!.participants.filter((s) => s.kind === 'sea-mal-de-mer');
     expect(bandes).toHaveLength(1);

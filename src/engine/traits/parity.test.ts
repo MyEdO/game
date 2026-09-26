@@ -18,7 +18,7 @@ import { slugId } from '../../data/slug';
 
 // Traits dont la mécanique vit AILLEURS que dans les helpers de `dispatch` (la raison est documentée).
 const COUVERT_AILLEURS = new Map<string, string>([
-  // Environnement aquatique (MSRC 15 p.90 / MDG 16 p.140 / LDB 85 p.338) — op passive `offTerrainMod` (terrain d’election `eau`) :
+  // Environnement aquatique (MSRC 15 l.137-139 / MDG 16 l.14-19 / LDB 85 l.19-21) — op passive `offTerrainMod` (terrain d’election `eau`) :
   // (1) le drapeau positionnel `Combatant.offTerrain`, re-derive par `placeCombatant` selon la tuile, module le M
   // (encumbrance) et le DR de TOUS les Tests (combat/magic/rollFlows) hors de l’eau ; (2) `eau` est TRAVERSABLE en
   // pathing (`MoveEnv.swim` <- `requiredTerrains`, path.ts). Mecanise + teste (off-terrain.test.ts / path-swim.test.ts).
@@ -43,7 +43,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Venin', 'Empoisonné sur PB infligés — `effects` AUTHORÉ du trait (Test de Résistance paramétré par l’arg, fireTriggers onHit)'],
   ['Constricteur', 'Empêtré sur touche — `effects` AUTHORÉ du trait (condition empetre, escapeStrength=Force, fireTriggers onHit)'],
   ['Contagieux', 'transmet au TOUCHER la maladie hébergée (`$arg`) — `effects` AUTHORÉ onHit on:victim → op `exposeDisease{difficultyShift:-2, incubation:\'instant\'}` (ops.ts:1576), moissonnée par `applyAttackResult` (combatFlow.ts:2127) et résolue au bilan de fin de combat (`decideCombatEndHeroTests`, combatFlow.ts:5032) ; cf. `state/contagieux.test.ts`'],
-  ['Absorption', 'engloutissement de fin de Round MÉCANISÉ 100% data-driven (`absorption.effects` : onRoundEnd Empêtré×BF + Empoigné + Digéré ; digestion drain BF ignore PA/BE + créature guérit ; redirection onWoundLoss ; un/Round ; purge à la mort) — dispatché par `fireTriggers`, cf. `absorption.test.ts` (EDO p.147)'],
+  ['Absorption', 'engloutissement de fin de Round MÉCANISÉ 100% data-driven (`absorption.effects` : onRoundEnd Empêtré×BF + Empoigné + Digéré ; digestion drain BF ignore PA/BE + créature guérit ; redirection onWoundLoss ; un/Round ; purge à la mort) — dispatché par `fireTriggers`, cf. `absorption.test.ts` (EDO 11 l.222)'],
   ['Vampirique', 'drain de PB sur Morsure (combatFlow.applyFreeAttackEffects — gating « kind=morsure » sans Condition Flow)'],
   ['Se cabrer', 'couvert par le Piétinement existant (LDB 85 — trampleTarget)'],
   // Bestiaire fluvial (MSRC 15) — mécanique AUTHORÉE en `effects` (fireTriggers), comme Constricteur/Venin.
@@ -52,7 +52,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Salive anticoagulante', 'Hémorragique sur Morsure — `effects` AUTHORÉ (condition hemorragique, fireTriggers onHit)'],
   ['Hallucinogène', 'aura 2 m au début du Round → Test de FM → Sonné — `effects` AUTHORÉ (déclencheur onRoundStart near, fireTriggers)'],
   ['Forme de guerrière naïade', 'socle Peur 2 + Armure 2 à onCombatStart (grantTrait, `effects`) ; les 4 aspects tournants restent en desc (choix par Round = hook IA à câbler)'],
-  ['Capricieux', 'DR d’un Test de Sociabilité ENVERS la créature ±d10 (MSRC p.89) MÉCANISÉ : modulateur `vsCapricieux` du Test social → `capriciousDR` (delta de DR, d10 seedé UNE fois dans `openSkillTest`, appliqué au DR du Test résolu par `FLOWS.test`) ; authoré sur le Test d’un dialogue mené avec la créature, comme vsGroups (Animosité) / vsStatus (Statut) le sont (le contexte social de l’interlocuteur est authoré, pas auto-injecté depuis l’entité)'],
+  ['Capricieux', 'DR d’un Test de Sociabilité ENVERS la créature ±d10 (MSRC 15 l.151) MÉCANISÉ : modulateur `vsCapricieux` du Test social → `capriciousDR` (delta de DR, d10 seedé UNE fois dans `openSkillTest`, appliqué au DR du Test résolu par `FLOWS.test`) ; authoré sur le Test d’un dialogue mené avec la créature, comme vsGroups (Animosité) / vsStatus (Statut) le sont (le contexte social de l’interlocuteur est authoré, pas auto-injecté depuis l’entité)'],
   // Psychologie — engine/psychology.ts (parsePsychTraits)
   ['Peur', 'causesPeur (parsePsychTraits)'],
   ['Terreur', 'causesTerreur (parsePsychTraits)'],

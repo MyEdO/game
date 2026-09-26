@@ -1,6 +1,6 @@
 *Pages PDF 163*
 
-# **MOVING IN COMBAT** V
+# <span id="page-162-0" data-folio="163"></span>**MOVING IN COMBAT**
 
 How much detail you need for movement depends on how you track positions. In 'theatre of the mind', relative positions are described and the GM adjudicates movement as required. Even during tightly controlled combat Rounds, it is usually enough to narrate how your character negotiates the frenetic action, leaping barrels, sprinting for cover, or dancing around opponents as required.
 
@@ -8,7 +8,7 @@ You may alternatively wish to use a grid or battle map, with tokens or Citadel M
 
 The **Movement Table** shows how many yards you can normally move in a single Turn, either Walking or Running, without having to make an Athletics Test to sprint. Doing this will use your Move for your Turn.
 
-# **MOVEMENT TABLE**
+**MOVEMENT TABLE**
 
 | Movement | Walk (yards) | Run (yards) |
 |----------|--------------|-------------|

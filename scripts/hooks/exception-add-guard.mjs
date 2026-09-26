@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
+import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 // Gardes-tests connus, par leur NOM NU : une liste de noms se compare en CHAÎNE, jamais par regex
 // (aucune de ces entrées ne porte de joker).
@@ -128,9 +129,10 @@ if (isMain) {
   for await (const chunk of process.stdin) raw += chunk
   let input = null
   try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
-  const w = readWrite(input)
+  const chemin = cheminDEcriture(input)
+  const w = readWrite(chemin ? { ...input, file_path: chemin.reel } : input)
   const decision = w ? evaluate(w) : null
-  if (decision) {
+  if (decision && !chemin?.horsContenu) {
     console.log(JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',

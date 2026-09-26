@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parUnitesDeCode, listerArbre } from '../guards/lib/lister.mjs'
 import { refRe, refNums, isRangeSuffix, chapterFile, bookOf, readText, pagesDeLAtlas } from './_lib.mjs'
+import { EXTS_CITANTES } from './lib/fichiersCitants.mjs'
 
 export const ROOTS = ['src', 'scripts', 'docs']
 export const SKIP_DIRS = new Set(['node_modules', '.git', 'plans', 'superpowers'])
@@ -36,7 +37,7 @@ function fichiersScannes(dir) {
   const horsAtlas = listerArbre(dir, {
     absent: 'vide',
     descendre: (rel) => !rel.split('/').some((s) => SKIP_DIRS.has(s)) && `${dir}/${rel}` !== RAWDIR,
-    filtre: (rel) => /\.(tsx?|mjs|mts|json|md)$/.test(rel),
+    filtre: (rel) => EXTS_CITANTES.some((x) => rel.endsWith(x)),
   }).map((rel) => join(dir, rel))
   if (`${dir}/raw` !== RAWDIR) return horsAtlas
   return [...horsAtlas, ...pagesDeLAtlas(RAWDIR, { classes: CLASSES, absent: 'vide' }).map((p) => p.chemin)]

@@ -10,7 +10,8 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, type GameOp } from '../../../engine/ops';
 import { INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, plageSchema, refTestDeCorruption, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
+import { traitInstanceSchema } from './reference';
 import { marque } from './slots';
 import { idDe, ref, refs, refOuSpec } from './ref';
 
@@ -78,6 +79,28 @@ export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = {
    *  étalée parmi les clés de l'op (garde `src/data/monnaie-forme-unique.test.ts`, sonde A). La seule
    *  dénomination chiffrable est `brass`, l'unité de compte de `engine/money.ts`. */
   money: z.strictObject({ op: z.literal('money'), montant: z.strictObject({ brass: formulaSchema }) }),
+  giveTrapping: z.strictObject({
+    op: z.literal('giveTrapping'),
+    trappingId: idDe('trapping').optional(),
+    custom: z.string().optional(),
+    count: z.number().optional(),
+    perSL: perSLSchema.optional(),
+  }),
+  grantWeapon: z.strictObject({
+    op: z.literal('grantWeapon'),
+    label: z.string(),
+    damage: formulaSchema,
+    damagePlus: z.number().optional(),
+    plusBF: z.boolean().optional(),
+    qualities: z.array(z.string()).optional(),
+    subType: z.string().optional(),
+    reach: reachSchema.optional(),
+    hands: z.union([z.literal(1), z.literal(2)]).optional(),
+    onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
+    skin: surchargePaletteSchema.optional(),
+    form: idDe('trapping').optional(),
+    chooseForm: z.boolean().optional(),
+  }),
   healCaster: z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }),
   kill: z.strictObject({ op: z.literal('kill') }),
   loseTurn: z.strictObject({ op: z.literal('loseTurn'), what: z.enum(['action', 'movement']).optional() }),
@@ -89,8 +112,20 @@ export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = {
    *  elle est déjà écrite par la ligne « Cible » du sort (ZdE, `LDB 47 l.28`) — l'op la LIT. */
   domeWard: z.strictObject({ op: z.literal('domeWard'), traitId: idDe('trait'), indice: formulaSchema }),
   suffocate: z.strictObject({ op: z.literal('suffocate') }),
+  /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
+   *  sans créature est refusée AU PARSE (#1882), jamais spawnée. */
+  summon: z.strictObject({
+    op: z.literal('summon'),
+    ref: idDe('creature'),
+    count: formulaSchema,
+    countPerSL: perSLSchema.optional(),
+    addTraits: z.array(traitInstanceSchema).optional(),
+    size: sizeCategorySchema.optional(),
+    allyOfCaster: z.boolean().optional(),
+    despawnIfCasterDown: z.boolean().optional(),
+  }),
   /** `offTerrainMod` — passif POSITIONNEL : hors de son terrain d'ÉLECTION, le porteur subit un M
-   *  IMPOSÉ (`mSet`, Créature marine MDG 16 p.140 « son M tombe à 1 » ; Aquatique MSRC 15 p.90 → 0),
+   *  IMPOSÉ (`mSet`, Créature marine MDG 16 l.17 « son M tombe à 1 » ; Aquatique MSRC 15 l.139 → 0),
    *  un malus de DR à TOUS ses Tests (`testDR`) et/ou la suffocation (`suffocates`). Le terrain se
    *  nomme par un ID du registre (`idDe('terrain')`) : un terrain inconnu est refusé AU PARSE, là où
    *  il rendait auparavant le drapeau `offTerrain` VRAI partout en silence (`engine/ops.ts:279-283`). */
@@ -116,14 +151,14 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'beginPsych', 'breakBlade', 'castPenalty', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'charMod',
   'condition', 'contractDisease', 'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease',
   'damageArmour', 'delayed', 'disarm', 'diseaseTestMod', 'endPsych', 'endTransform', 'exposeDisease',
-  'freeReroll', 'gainAdvantage', 'gainResource', 'giveTrapping', 'grantCareerSkill', 'grantCareerTalent',
+  'freeReroll', 'gainAdvantage', 'gainResource', 'grantCareerSkill', 'grantCareerTalent',
   'grantFreeAttack', 'grantNaturalWeapon', 'grantPsychTrait', 'grantReverseToken', 'grantTalent', 'grantTrait',
-  'grantWeapon', 'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod',
+  'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod',
   'incomingSpellDRMod', 'interruptFocus', 'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands',
   'mitigateIncoming', 'moveMod', 'moveScale', 'narrative', 'perRound', 'polymorph',
   'preventInfection', 'push', 'reduceDiseaseDays', 'reduceToZero', 'removeCondition', 'removePsychTrait',
   'removeShipPoste', 'rollMutation', 'rollTable', 'rollThreshold', 'sbBonus', 'scheduleRespawn', 'senseLoss',
-  'sinMod', 'skillDRBonus', 'skillMod', 'spendAdvantage', 'statusMod', 'summon', 'suppressPsych',
+  'sinMod', 'skillDRBonus', 'skillMod', 'spendAdvantage', 'statusMod', 'suppressPsych',
   'suppressSymptom', 'teamCommander', 'teleport', 'testMod', 'transform', 'weaponDamageMod', 'weaponRollMod',
   'weatherWard', 'wounds', 'zone',
 ];

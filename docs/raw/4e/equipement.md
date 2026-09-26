@@ -447,7 +447,7 @@ Le Talent **Vision nocturne** étend le rayon effectif de toute source de lumiè
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 11` (l.176) → `ambush-vigilance`, `TraitCapabilities`, `trappeur`, `travailleur-qualifie`, `tres-fort`, `tres-resistant`, `tricheur`, `tueur`, `veloce`, `vigilance`, +5 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/talents.json`, `src/state/vision.ts`
-- `LDB 74` (l.5-62) → `SANS_LIVRE`, `doc`, `rayonEnCases`, `PropData`, `possessions-diverses`, `GameOp` — `src/data/props.json`, `src/data/props.types.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/props.ts`, `src/data/schemas/grammaire/sans-livre.ts`, `src/data/weaponGroups.json`, +2 fichiers
+- `LDB 74` (l.5-62) → `SANS_LIVRE`, `doc`, `rayonEnCases`, `PropData`, `possessions-diverses`, `ItemCapabilities`, `GameOp` — `src/data/index.ts`, `src/data/props.json`, `src/data/props.types.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/props.ts`, `src/data/schemas/grammaire/sans-livre.ts`, +3 fichiers
 
 #### Grappin (1 CO, Limitée ; Enc 1)
 > LDB 74 l.45 : « couplé à une corde, il permet de gravir des surfaces inaccessibles. »
@@ -579,7 +579,7 @@ Les objets personnels portés ne comptent pas, sauf très volumineux/lourds : ta
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (tables *Exemples de bateaux* et *Caractéristiques de bateau standard*) · § Construction navale (MDG) · § Traits de navire (MDG) · § Améliorations de navire (MDG) · [`deplacement.md`](deplacement.md) (voyage, vitesses).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.5-81) → `SIZE_SHIPBOARD_ENC`, `cargoTone`, `OverloadPalier`, `PortState`, `ShipDossierView`, `vesselMaxLoadEnc`, `OVERLOAD_HARD_CAP_PCT`, `CargoOverload`, `cargoOverload`, `shipboardSouls`, +12 — `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/seaVoyage.ts`, `src/engine/size.ts`, `src/engine/types.ts`, +9 fichiers
+- `MDG 12` (l.5-81) → `SIZE_SHIPBOARD_ENC`, `cargoTone`, `OverloadPalier`, `PortState`, `ShipDossierView`, `vesselMaxLoadEnc`, `OVERLOAD_HARD_CAP_PCT`, `CargoOverload`, `shipboardSouls`, `cargoOverload`, +12 — `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/seaVoyage.ts`, `src/engine/size.ts`, `src/engine/types.ts`, +9 fichiers
 - sans code : `MDG 12` (l.5)
 
 ---
@@ -733,6 +733,6 @@ Si un Défaut ainsi reçu est déjà présent, c'est **–10** supplémentaire �
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (tables *Pièces d'artillerie* et *Munitions pour pièces d'artillerie*) · [`combat.md`](combat.md) (armes à distance, Atouts/Défauts, Portée) · § Améliorations de navire (MDG) (Sabords).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.367-472) → `ammoSeq`, `moteur-broute`, `crewedPenalty`, `canon`, `warMachineCrewPenalty`, `fuite-de-vapeur`, `nid-de-pie`, `ReloadModalView`, `placementPenalty`, `VolleyShot`, +24 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/qualities.json`, `src/data/ship-stations.json`, `src/data/steam-breakdown.json`, +19 fichiers
+- `MDG 12` (l.367-472) → `ammoSeq`, `moteur-broute`, `crewedPenalty`, `canon`, `warMachineCrewPenalty`, `fuite-de-vapeur`, `nid-de-pie`, `ReloadModalView`, `placementPenalty`, `VolleyShot`, +27 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/qualities.json`, `src/data/ship-stations.json`, `src/data/steam-breakdown.json`, +20 fichiers
 - sans code : `MDG 12` (l.377, l.379)
 

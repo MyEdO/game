@@ -14,10 +14,10 @@ export const tenue: TenueDef = {
     metal: '#b7c0cd', metalO: '#4a5160', metalH: '#e9eef6',
     vet1: '#d9ab54', vet1O: '#96702e', vet1H: '#efd28e',
     vet2: '#3d55a6', vet2O: '#222f66', vet2H: '#6e86cd',
-    cuir: '#a5352c', cuirO: '#661c15', cuirH: '#c75f4e',
+    cuir: '#a5352c', cuirO: '#661c15', 
     fourrure: '#d0a765', fourrureO: '#8e6c38', fourrureH: '#ecd7a5',
     os: '#e6e0d2', osO: '#aba393', osH: '#f7f4ec',
-    or: '#c9a23c', orO: '#8a6a1e', orH: '#e3c66d',
+    or: '#c9a23c', orO: '#8a6a1e', 
     accent: '#b23428',
   },
   set: {

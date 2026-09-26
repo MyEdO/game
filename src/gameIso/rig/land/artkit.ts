@@ -6,7 +6,7 @@
  * y NÉGATIF (cf. `groundedBody`). RÉUTILISE les roues et la palette de la boîte à outils d'engin (bois/
  * fer communs aux véhicules à roues) + un jeton `bache` propre à la bâche de toile.
  */
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import type { ViewArt } from '../viewArt';
 import { wheelFace, wheelEdge, ENGIN_DEFAULT } from '../engin/artkit';
 
@@ -18,6 +18,6 @@ export interface LandArtDef extends ViewArt {
 }
 
 /** Palette par défaut d'un véhicule terrestre : bases de l'engin (bois/fer) + toile de bâche. */
-export const LAND_DEFAULT: StoredPalette = { ...ENGIN_DEFAULT, bache: '#8c7a54' };
+export const LAND_DEFAULT: PaletteDeclaree = { ...ENGIN_DEFAULT, bache: '#8c7a54' };
 
 export { wheelFace, wheelEdge };

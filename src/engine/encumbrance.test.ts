@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Characteristics, Combatant, ItemInstance } from './types';
 import { encumbrancePenalties, effectiveMovement, agilityTestPenalty } from './encumbrance';
 
-// F=30,E=30 → BF+BE = 3+3 = 6 → capacité d'Encombrement = 6 (LDB 61 p.295).
+// F=30,E=30 → BF+BE = 3+3 = 6 → capacité d'Encombrement = 6 (LDB 61 l.5).
 const chars = (F = 30, E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: F, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
 });

@@ -1,6 +1,6 @@
 *Pages PDF 109-114*
 
-### **SKILLS**
+### <span id="page-108-0" data-folio="109"></span>**SKILLS**
 
 There are three types of Skill:
 
@@ -14,7 +14,7 @@ Basic Skills are those that anyone might practice in day-to-day life, without sp
 
 **Example:** *Sigrid has no Advances in* Athletics*. However, as*  Athletics *is a Basic Skill, she can still Test* Athletics *using the Characteristic associated with it:* Agility*.*
 
-Advanced Skills require specialist knowledge, training, or firsthand experience to even attempt to use. You may only Test an Advanced Skill if you have taken at least one Advance in it.
+<span id="page-109-0" data-folio="110"></span>Advanced Skills require specialist knowledge, training, or firsthand experience to even attempt to use. You may only Test an Advanced Skill if you have taken at least one Advance in it.
 
 **Example:** *Adhemar has an* Intelligence *of 36 and no Advances in either the Basic* Gamble *Skill or the Advanced* Heal *Skill, both based on* Intelligence*. He can Test the* Gamble *Skill at 36 as it is Basic, and anyone can Test Basic Skills. The* Heal *Skill is an Advanced Skill, so Adhemar has no idea how to patch up wounds and can do nothing more useful to help an injured comrade than screaming loudly for a doctor!*
 
@@ -22,9 +22,9 @@ Advanced Skills require specialist knowledge, training, or firsthand experience 
 
 Grouped Skills are an array of related Skills gathered together under one heading. Each related Skill is called a Specialisation. When a Specialisation is mentioned in the rules, it is marked in brackets.
 
-*Example:* Language *is a Grouped Skill that represents many related Language Skills under a single Skill heading. Its Specialisations include* Language (Bretonnian)*,* Language (Magick)*, and*  Language (Mootish)*.* 
+***Example:*** Language *is a Grouped Skill that represents many related Language Skills under a single Skill heading. Its Specialisations include* Language (Bretonnian)*,* Language (Magick)*, and*  Language (Mootish)*.* 
 
-When you gain an Advance in a Grouped Skill, you must allocate the Advance to an appropriate Specialisation. Sometimes the Specialisation options will be marked clearly in your Career, so you simply select one of the options on offer. In other cases such as when a Specialisation is marked as 'Any One', meaning you can choose one Specialisation — you will need to select a Specialisation yourself.
+When you gain an Advance in a Grouped Skill, you must allocate the Advance to an appropriate Specialisation. Sometimes the Specialisation options will be marked clearly in your Career, so you simply select one of the options on offer. In other cases — such as when a Specialisation is marked as 'Any One', meaning you can choose one Specialisation — you will need to select a Specialisation yourself.
 
 **Example:** *Theodora has a choice of* Lore (Any One) *in her Career. When she allocates an Advance to that Skill, she has to decide which*  Lore *Specialisation to take. After some deliberation, she chooses to Advance her* Lore (Theology)*, showing she has improved her understanding of religious matters.*
 
@@ -32,7 +32,7 @@ Other than that, Grouped Skills are handled in exactly the same way as normal Sk
 
 **Example:** *Sigrid has 1 Advance in the Basic Skill* Entertain (Singing)*, but nothing in* Entertain (Acting)*. This means she Tests her* Fellowship *of 41 when attempting to act, and Tests 46 when singing (41 + 5 = 46). By comparison, Theodora has a single Advance in the Advanced Skill* Animal Training (Pigeon)*, but no Advances in* Animal Training (Horse)*. This means she can use the Skill to train her pigeons to drop bombs on unsuspecting enemies, but she cannot train her horse to charge into a formation of enemy troops, as she has no idea how to train horses.*
 
-#### **COMPLETE SKILL LIST**
+**COMPLETE SKILL LIST**
 
 | Skill           | Desc | Rules      | Skill            | Desc | Rules      | Skill           | Desc | Rules      |
 |-----------------|------|------------|------------------|------|------------|-----------------|------|------------|
@@ -54,7 +54,7 @@ Other than that, Grouped Skills are handled in exactly the same way as normal Sk
 
 Desc - Full description Rules - more relevant rules for skill *Italic* - Advanced skill **Bold** - Grouped Skill
 
-### **Animal Care (Int)** *advanced*
+### <span id="page-110-0" data-folio="111"></span>**Animal Care (Int)** *advanced*
 
 Care for animals and heal them from disease or injury. A Character with an Advance in this Skill can keep animals healthy under normal conditions without needing to Test. A Test is required to diagnose or resolve problems with animals, such as spotting signs of illness or healing an injury (page 171).
 
@@ -92,7 +92,9 @@ Makes people think favourably of you, your opinions, and actions you propose. Pe
 
 Your aptitude for befriending, quickly calming, or subjugating animals. A Charm Animal Test can convince a wild animal to back off, or a guard dog to devour a proffered scrap of meat rather than your arm.
 
-IV **Climb (S)** *basic* The ability to ascend steep or vertical surfaces, like a perilous mountainside or the rain-slick wall of a tumbledown townhouse. Climbing can sometimes be used in combat when facing especially monstrous foes — see page 162 for combat movement.
+### **Climb (S)** *basic*
+
+The ability to ascend steep or vertical surfaces, like a perilous mountainside or the rain-slick wall of a tumbledown townhouse. Climbing can sometimes be used in combat when facing especially monstrous foes — see page 162 for combat movement.
 
 ### **Consume Alcohol (T)** *basic*
 
@@ -122,7 +124,7 @@ Called upon when you must endure hardship, withstand deprivation, stand without 
 
 Lets you determine the value of goods. Everybody is assumed to know the relative worth of general items, but Evaluate allows you to identify the value of curious and unique items, recognise forgeries, or spot flaws.
 
-### **Gamble (Int)** *basic*
+### <span id="page-111-0" data-folio="112"></span>**Gamble (Int)** *basic*
 
 Measure the likelihood that a bet will pay off, as well as successfully engage in various games of chance. If you wish to improve your chances through cheating, see page 135.
 
@@ -176,7 +178,7 @@ Allows you to find your way in the wilderness, or across the ocean, using landma
 
 Used to survive in the wild, including the ability to fish, hunt, forage, and build fires and shelters. Experienced survivors are practiced at reading the signs of incoming inclement weather, making do with minimal tools, and noticing the spoor of local beasts.
 
-### **Perception (I)** *basic*
+### <span id="page-112-0" data-folio="113"></span>**Perception (I)** *basic*
 
 Your ability to notice things with your senses — sight, smell, hearing, touch, taste, and any other senses you may possess, such as magical or inhuman senses.
 
@@ -206,7 +208,9 @@ While there is some overlap between the Skills of Entertain, Perform, and Play, 
 
 You should choose carefully when determining whether your chosen Specialisation belongs to Entertain, Perform, or Play; consider how the Character will physically enact the Skill, and whether an untrained beginner could do so with any success. After all, someone without any musical training could feasibly sing beautifully, but hand them a set of bagpipes…
 
-IV **Pray (Fel)** *advanced* Invoke, appeal to, or otherwise commune with a deity. For more information on using the Pray Skill to seek divine intervention, see **Chapter 7: Religion and Belief**.
+### **Pray (Fel)** *advanced*
+
+Invoke, appeal to, or otherwise commune with a deity. For more information on using the Pray Skill to seek divine intervention, see **Chapter 7: Religion and Belief**.
 
 ### **Ranged (BS)** *advanced, grouped*
 
@@ -234,7 +238,7 @@ Operate and manoeuvre a sailing vessel — including knotwork, steering, gauging
 
 When you take the Lore (Local) skill, choose a locality that your Character is familiar with, eg. The Reikland, Tilea, Ubersreik, or The Street of a Thousand Taverns. If you take this Skill at character creation, decide with the GM what this should be — it could be your home village, or another place you are familiar with.
 
-### **Secret Signs (Int)** *advanced, grouped*
+### <span id="page-113-0" data-folio="114"></span>**Secret Signs (Int)** *advanced, grouped*
 
 **Specialisations:** Grey Order, Guild (Any One), Ranger, Scout, Thief, Vagabond.
 

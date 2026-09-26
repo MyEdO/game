@@ -12,7 +12,7 @@
  * PÉRIMÈTRE MESURÉ ET ANGLE MORT au 2026-09-06 (#1389 C4) : `src/data/*.json` porte 4516 entrées
  * à `source:{book,page}` ; 1223 citent aussi une ligne et `folio-line-align.test.ts` n'en juge que
  * 321 (902 écartées : 896 hors-forme, 6 queue-trouée), soit 7,1 % des folios vérifiés machine par
- * cette voie. Ces deux chiffres ne sont plus qu'écrits ici : `folio-line-align.test.ts` les CLIQUÈTE
+ * cette voie. Ces deux chiffres sont seulement écrits ici : `folio-line-align.test.ts` les CLIQUÈTE
  * (`SCANNED_MIN` croissant, `SANS_CITATION_MAX` décroissant).
  * Cette garde-ci scanne les entrées à `desc` citable et en laisse une part hors de tout verdict
  * d'encadrement. Ces populations VIVENT avec le corpus : le PLAFOND (`folioRatchetStock.mjs`) fait
@@ -98,7 +98,7 @@ describe('cœur de règles — une graphie par corps de règles (#1825)', () => 
  * 157 dettes affichées, CI verte). Le relever est un geste délibéré, visible en revue — l'inverse
  * d'un append discret. Il ne DESCEND qu'en soldant des folios au Source.
  */
-const FOLIO_RATCHET_MAX = 109;
+const FOLIO_RATCHET_MAX = 108;
 
 describe('intégrité du folio — source.page pointe sur la page qui porte la desc (#536)', () => {
   const { violations } = AUDIT;
@@ -130,59 +130,38 @@ describe('intégrité du folio — source.page pointe sur la page qui porte la d
 
 /**
  * Plafond du stock de la VOIE C, même rôle et même lecture que `FOLIO_RATCHET_MAX`. À ZÉRO depuis
- * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est désormais un échec, il
+ * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est un échec, il
  * n'y a plus de dette à cliqueter.
  */
 const FOLIO_TITLE_RATCHET_MAX = 0;
 
 /**
- * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section. C'est le compte de ce que
- * la garde ne PEUT pas juger ; il ne se solde qu'en recollant des descs au verbatim (règle 5) ou en
- * nommant les entrées comme leur livre les intitule. Plafonné pour la même raison que les stocks :
- * sans plafond, « la garde couvre de plus en plus » n'est qu'un commentaire.
+ * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section : ce que la garde ne PEUT
+ * pas juger. 775 au relevé du 2026-09-23 (#1898), dont `criticals.json` 131, `trappings.json` 109,
+ * `mutations.json` 103, `sea-events.json` 55, `careers.json` 49 (la liste complète est rendue par le
+ * dernier `it` de ce bloc). C'est la POPULATION auditée qui le fixe : l'audit ne voit qu'une entrée à
+ * `desc`, et chaque famille qui y entre apporte ses irrésolues. Il ne descend qu'en recollant des descs
+ * au verbatim (règle 5) ou en nommant les entrées comme leur livre les intitule. Plafonné pour la même
+ * raison que les stocks : sans plafond, « la garde couvre de plus en plus » n'est qu'un commentaire.
+ * Classes identifiées :
+ *  - cellule de tableau que l'extraction coupe par des `<br>`, et que la `desc` recolle sans les
+ *    reproduire : Critiques des deux jeux (`criticals.json`), stations `pont`, `greement`, `avirons` de
+ *    `ship-stations.json` (MDG 13 l.730, l.714, l.751) ;
+ *  - phrase coupée par un encadré : `reseau-routier.json:patrouille-routiere` (« LES JUSTICIERS ») ;
+ *  - chapitre sans ancre `data-folio` : 3 classes de route de `reseau-routier.json` (`EDOC 06`,
+ *    verdict `sans-marqueur`).
  */
-/**
- * Plafond des IRRÉSOLUES. Relevé 661 → 713 le 2026-08-27 (#1467 L1b V-P2) : c'est la POPULATION
- * mesurée qui a grandi, pas le détecteur qui a faibli. L'audit ne voit une entrée que si elle porte
- * une `desc` ; la migration `text` → `desc` fait entrer d'un coup la prose d'`interludeEvents`,
- * `peripeties`, `mass-battle › hazards` et `land-cargo › rumours` (mesuré au rendu de la garde :
- * 30 + 10 + 10 + 20 irrésolues sur ces quatre fichiers). Le plafond ne DESCEND qu'en soldant des
- * folios au `Source/` ; l'entrée `interludeEvents:kleptomane`, elle, n'était pas irrésolue mais
- * RÉFUTÉE (folio 193 déclaré, desc en 194) — corrigée à la donnée dans le même lot.
- *
- * Relevé 713 → 771 le 2026-08-28 (#1467 L1b V-FLIP-CONFIG), même lecture — `aa-criticals.json` est
- * depuis #1657 B2a l'un des deux jeux de `criticals.json`, ces 80 entrées y sont toujours : il ne
- * portait AUCUNE `source` (une note libre `_source` approximative), ses 80 entrées étaient donc hors
- * de l'audit. Sourcées au folio, elles y entrent : 22 sont prouvées par leur desc, 58 restent
- * irrésolues (51 `desc-introuvable`, 7 `desc-trop-courte` — les cellules du tableau AA portent des
- * `<br>` que la desc recolle sans les reproduire). Zéro réfutée : le volet « aucune entrée NEUVE
- * réfutée » est resté VERT sur ces 80. Population qui grandit, pas détecteur qui faiblit.
- *
- * Relevé 771 → 775 le 2026-08-31 (#677) : `reseau-routier.json` entre à l'audit avec 9 `desc`
- * citées, dont 4 restent irrésolues — 3 classes de route déclarées au folio 19, qu'`EDOC 06` ne
- * marque d'AUCUNE ancre `data-folio` (verdict `sans-marqueur` : le span est introuvable, pas la
- * desc), et `patrouille-routiere` (folio 39) dont la desc recolle les deux moitiés d'une phrase que
- * l'extraction coupe autour de l'encadré « LES JUSTICIERS » — même classe que les `<br>` des tables
- * d'Aux Armes ci-dessus. Population qui grandit, pas détecteur qui faiblit.
- */
-// 775 → 776 (#1657 B3-2b-a). MESURÉ : les 3 irrésolues neuves sont les stations `pont` (p.119),
-// `greement` (p.118) et `avirons` (p.120) de `ship-stations.json` — desc-introuvable ET
-// titre-introuvable. Leur `desc` recolle une CELLULE de tableau MDG 13 que l'extraction coupe par des
-// `<br>` (« se trouve sur le pont, il<br>doit réussir », l.730 ; « se trouve<br>dans le gréement »,
-// l.714 ; « se trouve aux<br>avirons », l.751) : la voie DESC cherche le verbatim d'un seul tenant et
-// ne le retrouve pas. Les 3 autres entrées du lot (`nid-de-pie` MDG 12 l.303, station `cale` et Trait
-// `cale` MSRC 07 l.94) citent de la PROSE continue et sont RÉSOLUES. Le cliquet est un PLAFOND : le
-// compte réel à l'arbre précédent était sous 775.
-//
-// ÉTAT DU MATCHER après #1384 B2 : `normMap` (`scripts/guards/lib/folioIntegrity.mjs:90`) ne compose
-// PAS `sansBr`, là où l'adressage (`normText`) le compose. Mesure du 2026-09-14, les deux branches
-// jouées sur le corpus : la composition ferait tomber les irrésolues de 775 à 538 (les 3 stations
-// ci-dessus résolvent) et convertirait 66 sites en réfutations NEUVES sur ce volet à tolérance zéro —
-// 55 `criticals.json` (LDB, p.174 déclarée, desc encadrée en 175-178), 10 `mass-battle.json` (ADE2,
-// p.88 → 90+), 1 `traits.json:destabilisant` (ZI, p.82 → 135). C'est la classe « ambiguïté prose/table »
-// de `folioRatchetStock.mjs:31-35` : elle se tranche au PDF, site par site, au train B3 de #1384
-// (relever `FOLIO_RATCHET_MAX` de 109 à 175 serait l'inverse du cliquet).
-const UNRESOLVED_MAX = 776;
+// ÉTAT DU MATCHER après #1384 B2 : `normMap` (`scripts/guards/lib/folioIntegrity.mjs:79`) ne compose
+// PAS `sansBr`, là où l'adressage (`normText`) le compose. Mesure du 2026-09-23 (#1898), les deux
+// branches jouées sur le corpus (`<br>` lu comme une espace, offsets bruts conservés) : la composition
+// ferait tomber les irrésolues de 775 à 538 (les 3 stations ci-dessus résolvent) et convertirait 11
+// sites en réfutations NEUVES sur ce volet à tolérance zéro — 10 `mass-battle.json` (ADE2, p.88 →
+// 90+), 1 `traits.json:destabilisant` (ZI, p.82 → 135) ; `criticals.json` n'en porte aucune (ses
+// folios, dans les deux jeux, sont ceux de leur ligne citée, jugés par `folio-line-align.test.ts`).
+// C'est la classe « ambiguïté prose/table » de `folioRatchetStock.mjs:31-35` : elle se tranche au PDF,
+// site par site, au train B3 de #1384 (relever `FOLIO_RATCHET_MAX` de 108 à 119 serait l'inverse du
+// cliquet).
+const UNRESOLVED_MAX = 775;
 
 describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce qui reste (#1200)', () => {
   const { titleViolations, noteAuthored, unresolved, stats, total } = AUDIT;

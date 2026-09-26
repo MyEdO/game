@@ -70,9 +70,9 @@ function carte(): Scene {
     id: ENC,
     victoryCondition: { type: 'surviveRounds', rounds: 3 },
     enemies: [
-      { ref: 'gobelin', pos: GOBELIN_VOISIN, facing: 'E', label: 'Gobelin de la stalle voisine' },
-      { ref: 'archer-gobelin', pos: ARCHER, facing: 'E', weapon: 'arc', label: 'Archer gobelin de la stalle ouest' },
-      { ref: 'gobelin', pos: GOBELIN_DERRIERE_MUR, facing: 'O', label: 'Gobelin derrière le mur' },
+      { ref: 'gobelin', pos: GOBELIN_VOISIN, facing: 'E' },
+      { ref: 'archer-gobelin', pos: ARCHER, facing: 'E', weapon: 'arc' },
+      { ref: 'gobelin', pos: GOBELIN_DERRIERE_MUR, facing: 'O' },
     ],
   });
   return {

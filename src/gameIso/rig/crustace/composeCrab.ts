@@ -10,7 +10,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -22,7 +22,7 @@ type CBone = FKBone & { z: number };
 export interface CrabProps {
   sl: number; // échelle token
   girth: number; // largeur/bombé de la carapace
-  stored: StoredPalette; // carapace (corps/corpsO/corpsH) ; cuir = articulations/pinces internes
+  palette: PaletteDeclaree; // carapace (corps/corpsO/corpsH) ; cuir = articulations/pinces internes
   /** Piquants dressés sur carapace + pinces (nombre sur le pourtour ; absent = carapace lisse). */
   spikes?: number;
   /** Longueur des pédoncules oculaires (1 = défaut court ; 2+ = pédoncules proéminents arqués). */
@@ -167,7 +167,7 @@ export function resolveCrabFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<CrabBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<CrabBoneId, string> = { corps: carapace(p, view), pinceG: claw(-1, p), pinceD: claw(1, p) };
   return sortByZ((Object.keys(sk) as CrabBoneId[])
     .map((id) => ({
@@ -178,7 +178,7 @@ export function resolveCrabFromProps(
 
 export const CRAB_DEFAULT: CrabProps = {
   sl: 1.0, girth: 1.0,
-  stored: { corps: '#9a4a36', corpsO: '#5a261a', corpsH: '#d08660', cheveux: '#5a261a', cheveuxO: '#34140d', cuir: '#caa890' },
+  palette: { corps: '#9a4a36', corpsO: '#5a261a', corpsH: '#d08660', cheveux: '#5a261a', cheveuxO: '#34140d', cuir: '#caa890' },
 };
 
 export function resolveCrab(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

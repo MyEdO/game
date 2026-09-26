@@ -18,7 +18,7 @@
  * le store (non sérialisables, jamais dans les snapshots).
  */
 import type { GameState } from './store';
-import { useGame, registerScene } from './store';
+import { useGame, registerScene, reposerPaquetDeCampagne } from './store';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';
@@ -34,6 +34,12 @@ import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
 
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
+
+/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
+ *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
+export function nomDuSiege(net: Pick<NetState, 'seatNames'>, seat: number): string {
+  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
+}
 
 /** État réseau SÉRIALISABLE (dans GameState). `ownership` : heroId → siège (0 = hôte).
  *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte). */
@@ -159,6 +165,7 @@ export function applyNetSnapshot(set: Set, data: Record<string, unknown>): void 
   set({
     ...base,
     ...(game as Partial<GameState>),
+    ...reposerPaquetDeCampagne((game as Partial<GameState>).campaignDoc),
     ...(keepCreator ? { screen: 'creator' as const } : null),
     localIntent: mine.localIntent,
     dispelCarrierId: mine.dispelCarrierId, // le porteur élu est le choix EN COURS de ce client

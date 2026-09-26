@@ -17,7 +17,7 @@ import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
 
 /**
- * Structures destructibles JOUABLES en combat (AA 10 p.120-121) : enrôlement depuis les arêtes de mur,
+ * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,
  * Dégâts par le CHEMIN combat (`applyAttackResult`), BRÈCHE à 0 Blessure et Critique de Structure.
  * Déterministe (RNG seedé, `forcedRoll` pour les Critiques) — on dépose un `WallSeg.structure` dans la
  * scène de fixture puis on `startCombat`, et la structure devient un Combattant inerte ciblable.
@@ -65,7 +65,7 @@ function hitRes(weapon: Weapon, target: Combatant, totalDamage: number, over: Pa
   };
 }
 
-describe('Structures de siège — enrôlement au combat (AA p.120-121)', () => {
+describe('Structures de siège — enrôlement au combat (AA 10 l.94-127)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
@@ -139,7 +139,7 @@ describe('Structures de siège — BRÈCHE à 0 Blessure', () => {
   });
 });
 
-describe('Structures de siège — Critique de Structure (AA p.121)', () => {
+describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 

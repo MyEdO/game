@@ -15,6 +15,6 @@ export const creature: CreatureDef = {
     sl: 1.25, build: 'ursine', girth: 1.3, bodyLen: 1.02, neckLen: 1.05, neckAngle: -10, legLen: 0.85,
     head: 'chimere', tail: 'dressee', ears: 'pointues', foot: 'patte', wings: 'membrane', wingSpan: 1.25,
     wingPose: 'dressees', mane: 'hirsute', ridge: 'epines', tailLen: 1.1,
-    stored: { corps: '#8b8779', corpsO: '#45463f', corpsH: '#c8c2ae', cheveux: '#d6cfbd', cheveuxO: '#77705e', cuir: '#4e483c' },
+    palette: { corps: '#8b8779', corpsO: '#45463f', corpsH: '#c8c2ae', cheveux: '#d6cfbd', cheveuxO: '#77705e', cuir: '#4e483c' },
   },
 };

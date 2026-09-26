@@ -1,5 +1,5 @@
 /**
- * MALADIES TRANSMISES PAR L'EAU (MSRC 16 p.91) — moteur PUR des tables d'exposition hydrique :
+ * MALADIES TRANSMISES PAR L'EAU (MSRC 16 l.3-63) — moteur PUR des tables d'exposition hydrique :
  * « Chaque fois qu'un Personnage risque d'être exposé à une maladie provenant de l'eau d'une rivière,
  * il est possible qu'il doive réaliser un Test de **Résistance Intermédiaire (+0)**, modifié selon les
  * circonstances. […] tous les modificateurs peuvent être cumulés. Si le Test de Résistance est raté,
@@ -19,7 +19,7 @@ import { findTableEntry } from './tables';
 import { d100, type RNG, defaultRNG } from './dice';
 
 /** Le personnage est-il « blessé » (PB courants < max) ? Gate du reroll « Relancez si le Personnage
- *  n'est pas blessé » (Infection mineure / Blessure Purulente, MSRC 16 p.91). */
+ *  n'est pas blessé » (Infection mineure / Blessure Purulente, MSRC 16 l.63). */
 export function isWounded(c: Combatant): boolean {
   return c.wounds.current < c.wounds.max;
 }
@@ -41,7 +41,7 @@ function autoTimes(c: Combatant, m: WaterExposureModifier): number {
 }
 
 /** Modificateurs AUTOMATIQUES (tableau 2 « Blessures et États », immersion seule) dérivés du Combatant —
- *  cumulés (« tous les modificateurs peuvent être cumulés », MSRC 16 p.91). Renvoie le détail pour la modale. */
+ *  cumulés (« tous les modificateurs peuvent être cumulés », MSRC 16 l.13). Renvoie le détail pour la modale. */
 export function autoExposureMods(c: Combatant, mode: WaterExposureMode): { label: string; mod: number }[] {
   const out: { label: string; mod: number }[] = [];
   for (const m of WATER_EXPOSURE.modifiers) {

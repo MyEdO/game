@@ -5,15 +5,15 @@
  * par le `plan` de la def de créature. `appearance.colors` surcharge la palette (buildTokenMap).
  */
 import type { View } from '../facing';
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import { defById } from '../creatures';
 import { SWARM_FORM_DEFS } from './_registry.generated';
 
 export interface SwarmForm {
   /** Dessine UN constituant centré en (cx,cy), à l'échelle s, miroité si flip ; +x = avant/tête. */
   critter(cx: number, cy: number, s: number, flip: boolean, view: View): string;
-  /** Palette par défaut de la forme (corps/ombre/reflet) — surchargeable par `appearance.colors`. */
-  stored: StoredPalette;
+  /** Palette par défaut de la forme (gammes : base, ombre, lumière) — surchargeable par `appearance.colors`. */
+  palette: PaletteDeclaree;
   /** Forme VOLANTE (oiseaux) : tapissée en flock dispersé en hauteur, sans amas au sol. */
   aerial?: boolean;
 }
@@ -37,14 +37,14 @@ const generiqueDraw =
   eye();
 export const DEFAULT_FORM: SwarmForm = {
   critter: (cx, cy, s, flip) => wrap(cx, cy, s, flip, generiqueDraw),
-  stored: { corps: '#6a5a44', corpsO: '#3e3424', corpsH: '#8a7a5e' },
+  palette: { corps: '#6a5a44', corpsO: '#3e3424', corpsH: '#8a7a5e' },
 };
 
 /** Table des FORMES de nuée — DÉRIVÉE des fichiers `defs/` (keyée par id de forme). */
 export const SWARM_FORMS: Record<string, SwarmForm> = Object.fromEntries(
   SWARM_FORM_DEFS.map((d) => [d.id, {
     critter: (cx: number, cy: number, s: number, flip: boolean) => wrap(cx, cy, s, flip, d.draw),
-    stored: d.stored,
+    palette: d.palette,
     aerial: d.aerial,
   }]),
 );

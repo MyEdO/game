@@ -74,7 +74,7 @@ export function SymptomsField({ value, onChange }: { value: DiseaseSymptom[] | u
             <option value="">— difficulté —</option>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
           </select>
-          {/* Localisation/précision imprimée (« Gonflement (Visage et tête) », EDO p.145) — affichage seul. */}
+          {/* Localisation/précision imprimée (« Gonflement (Visage et tête) », EDO 11 l.119) — affichage seul. */}
           <input placeholder="précision (ex. Visage et tête)" value={s.spec ?? ''} onChange={(e) => set(i, { spec: e.target.value || undefined })} />
           <button className="btn small danger" title="Retirer le symptôme" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -121,7 +121,7 @@ export function SymptomTickField({ value, onChange }: { value: SymptomTick | und
           <label>à partir du jour de phase active <NumberField variant="nu" label="Jour de phase active" min={1} vide value={value.afterDays} onChange={(n) => patch({ afterDays: n ?? undefined })} /></label>
           <label><input type="checkbox" checked={!!value.once} onChange={(e) => patch({ once: e.target.checked || undefined })} /> une seule fois (au jour exact)</label>
           {value.test
-            ? <NoeudTestField desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
+            ? <NoeudTestField racine="maladie" desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
             : <GameOpEditor ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
         </>
       )}
@@ -148,7 +148,7 @@ export function DiseaseDailyTestField({ value, onChange }: { value: DiseaseDaily
               {syms.map((sym) => <option key={sym.id} value={sym.id}>{sym.label}</option>)}
             </select>
           </div>
-          <NoeudTestField desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => onChange({ ...value, test: t ?? noeudTestNeuf() })} />
+          <NoeudTestField racine="maladie" desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => onChange({ ...value, test: t ?? noeudTestNeuf() })} />
         </>
       )}
     </div>
@@ -215,7 +215,7 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
             ]}
           />
           {value.test
-            ? <NoeudTestField desc="Test encouru — Difficulté, Compétence ou Caractéristique, et ce que l’échec inflige" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
+            ? <NoeudTestField racine="critiqueDeCoque" desc="Test encouru — Difficulté, Compétence ou Caractéristique, et ce que l’échec inflige" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
             : <GameOpEditor ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
         </>
       )}

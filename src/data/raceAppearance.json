@@ -40,8 +40,7 @@
       "peauO": "#a89464",
       "peauH": "#d8c9a0",
       "cheveux": "#3c2e1a",
-      "cheveuxH": "#6b7a3a",
-      "cheveuxO": "#4a3a22"
+      "cheveuxH": "#6b7a3a"
     },
     "paletteF": {
       "peau": "#d8c9a0",
@@ -174,10 +173,8 @@
     "palette": {
       "peau": "#e2b48c",
       "peauO": "#cf9a72",
-      "peauH": "#e89a86",
       "cheveux": "#9c7048",
-      "cheveuxO": "#7a3e1c",
-      "cheveuxH": "#9c5828"
+      "cheveuxO": "#7a3e1c"
     },
     "paletteF": {
       "peau": "#e2b48c",
@@ -196,7 +193,7 @@
     "palette": {
       "peau": "#c69a72",
       "peauO": "#b98a64",
-      "cheveux": "#6b4a30",
+      "cheveux": "#b88c38",
       "peauH": "#d9a87e",
       "cheveuxH": "#e6cf86",
       "cheveuxO": "#a98521"

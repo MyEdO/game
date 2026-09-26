@@ -173,19 +173,17 @@ export const tenue: TenueDef = {
   recopiant `#e2b48c` au lieu de `@peau` produit une couture au poignet sur tout personnage à
   peau non claire). Même règle pour toute autre matière déclarée dans la `palette` (cuir,
   tissu…) : si la valeur existe dans `palette`, c'est le jeton qui se peint, pas le littéral.
-- **Une TENUE n'a ni peau ni cheveux** — GARDÉ (`parts/tenues/no-flesh-in-tenue-palette.test.ts`,
-  #583 chair, #599 flanc jumeau cheveux). `TenueDef.palette` déclare le cuir/tissu/métal du
-  vêtement, jamais `peau`/`peauO`/`peauH` ni `cheveux`/`cheveuxO`/`cheveuxH` : la chair et la
-  chevelure viennent TOUJOURS de l'espèce (+ personnalisation), jamais du costume — 17 tenues qui
-  déclaraient les clés de chair écrasaient la peau de tout porteur (174/210 paires avant-bras↔main
-  à couture > 30 RGB, mesuré sans forcer `appearance.colors`) ; 5 tenues déclaraient les clés de
-  cheveux (jusqu'à 296 RGB d'écart sur un Vampire coiffé de la palette `Nonne`). Défense en
-  profondeur : `rigStoredPalette` (`career.ts`, `stripPorterTokens`) retire aussi les jetons du
-  PORTEUR d'une palette de tenue avant l'empilage — même une tenue fautive ne peut plus écraser
-  l'espèce. Piège symétrique : un jeton `@cheveux*` dans l'ART d'une tenue peut légitimement
-  peindre une AUTRE matière (guimpe, capuche) — dans ce cas ce n'est pas la palette qu'on
-  corrige, c'est le NOM du jeton qui est faux (renommer vers un jeton de vêtement dédié, hex
-  inchangé, cf. `Nonne.ts` guimpe/`@voile*`).
+- **Une TENUE, une ARME ou une ARMURE ne déclare aucune clé porteur** — GARDÉ
+  (`parts/no-porteur-in-palette.test.ts`, #583 chair, #599 flanc jumeau cheveux). Leur `palette`
+  déclare le cuir/tissu/métal, jamais `peau`, `cheveux`, `yeux` ni leur ombre/lumière
+  (`PORTEUR`) : la chair et la chevelure viennent TOUJOURS de l'espèce (+ personnalisation),
+  jamais du costume — 17 tenues qui déclaraient les clés de chair écrasaient la peau de tout
+  porteur (174/210 paires avant-bras↔main à couture > 30 RGB, mesuré sans forcer
+  `appearance.colors`) ; 5 tenues déclaraient les clés de cheveux (jusqu'à 296 RGB d'écart sur
+  un Vampire coiffé de la palette `Nonne`). Piège symétrique : un jeton `@cheveux*` dans l'ART
+  d'une tenue peut légitimement peindre une AUTRE matière (guimpe, capuche) — dans ce cas ce
+  n'est pas la palette qu'on corrige, c'est le NOM du jeton qui est faux (renommer vers un jeton
+  de vêtement dédié, hex inchangé, cf. `Nonne.ts` guimpe/`@voile*`).
 
 ## 5. Workflow complet
 

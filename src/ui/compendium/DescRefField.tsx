@@ -24,13 +24,18 @@ import {
   estErreur,
   graphieDeChapitre,
   largeurDeChapitre,
+  normText,
   resoudreAdresse,
   resoudreFragment,
+  tablesDeLaLigne,
+  tablesOf,
   type ChapitreParse,
   type CodeErreur,
   type DescRef,
   type Fragment,
+  type FragmentCellule,
   type Section,
+  type TableDeSection,
 } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
 import { NumberField } from '../NumberField';
@@ -57,6 +62,9 @@ export const PHRASE_REFUS = {
   'fragments-chevauchants': 'Deux fragments de ce montage citent le même passage — déplacez l’un d’eux sur d’autres blocs.',
   'montage-hors-plafond': 'Une adresse monte trois fragments au plus — retirez-en un.',
 } satisfies Record<CodeErreur, string>;
+
+/** `ligne-ambigue` quand la rangée PROPOSE le choix de la table : le remède est ce choix. */
+export const PHRASE_LIGNE_AMBIGUE_TABLE = 'Plusieurs tables de la section portent cette clé — choisissez sa table dans la liste « table ».';
 
 /** Le chapitre n'offre plus AUCUN bloc à citer — la seule raison qui parle du CHAPITRE. */
 const RAISON_EPUISE = 'Ce chapitre n’a aucun bloc adressable de plus.';
@@ -89,6 +97,22 @@ const MAX_FRAGMENTS = 3;
 
 /** Adresse d'une section : c'est `slug#occ` que le fragment STOCKE, le titre n'est qu'un guide. */
 const cleSection = (slug: string, occ: number) => `${slug}#${occ}`;
+
+/** Le fragment de cellule SANS discriminant de table (`FragmentCellule.table`). */
+function sansTable(x: FragmentCellule): FragmentCellule {
+  const reste = { ...x };
+  delete reste.table;
+  return reste;
+}
+/** Libellé d'une table TITRÉE : son titre, et son rang quand la section en porte plusieurs de ce titre. */
+function libelleTable(t: TableDeSection, toutes: TableDeSection[]): string {
+  const memes = toutes.filter((u) => u.cle != null && normText(u.table.titre ?? '') === normText(t.table.titre ?? ''));
+  return memes.length > 1 ? `${t.table.titre} (${memes.findIndex((u) => u.cle === t.cle) + 1})` : t.table.titre ?? '';
+}
+
+/** Les options d'un `<select>` contrôlé, PLUS sa valeur courante si elle n'y est pas (`sectionsPour`). */
+const avecCourante = (valeurs: string[], courante: string) => (valeurs.includes(courante) ? [] : [courante]);
+
 /** Une section SANS titre est le PRÉAMBULE d'extraction (« Pages PDF 27-47 »), pas un passage du
  *  livre : elle se nomme comme tel et passe en fin de liste (`sectionsOrdonnees`). */
 const libelleSection = (s: Section) => `${cleSection(s.slug, s.occ)} — ${s.title || 'préambule (sans titre)'}`;
@@ -97,20 +121,6 @@ const sectionsOrdonnees = (l: Section[]): Section[] => [...l.filter((s) => s.tit
 
 /** Libellé d'un chapitre : son TITRE, jamais le nom de fichier de l'extraction (`17 - _GoBack.md`). */
 const libelleChapitre = (c: ChapitreManifeste) => `${c.ch} — ${c.titre || '(chapitre sans titre)'}`;
-
-/** Tables markdown d'une section, ramenées à leurs en-têtes et à leurs cellules : les clés RÉELLES
- *  qu'un fragment de cellule peut désigner, jamais une saisie libre. */
-function tablesDe(section: Section | undefined): { headers: string[]; rows: string[][] }[] {
-  const out: { headers: string[]; rows: string[][] }[] = [];
-  for (const bloc of section?.blocks ?? []) {
-    const lignes = bloc.md.split('\n').filter((l) => /^\s*\|/.test(l));
-    if (lignes.length < 2) continue;
-    const cellules = (l: string) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
-    const separateur = (l: string) => cellules(l).every((c) => /^:?-{2,}:?$/.test(c));
-    out.push({ headers: cellules(lignes[0]), rows: lignes.slice(1).filter((l) => !separateur(l)).map(cellules) });
-  }
-  return out;
-}
 
 /** Le message MOTEUR d'un refus, replié derrière la primitive `.fold` (`components.css`, slots
  *  `.fold-title` / `.fold-body`) : la phrase d'auteur reste en tête, le détail ne se lit que sur
@@ -432,7 +442,23 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
 
       {etat === 'pret' && parts.map((f, i) => {
         const section = sectionDe(f);
-        const tables = tablesDe(section);
+        const tablesSection = section ? tablesOf(section) : [];
+        const tables = tablesSection.map((t) => t.table);
+        // Tables dont une rangée porte la clé de ligne choisie : à deux et plus, la ligne s'adresse dans
+        // SA table (`FragmentCellule.table`, #1739) — seule une table TITRÉE a une clé à proposer.
+        const portent = section && f.kind === 'cellule' ? tablesDeLaLigne(section, f.row) : [];
+        const tablesTitreesDeLaLigne = portent.filter((t) => t.cle != null);
+        const lignes = tables.flatMap((t) => t.rows.map((r) => r[0]));
+        // Colonnes = en-têtes des tables qui portent la ligne (celle de `table` s'il est posé) ; sans
+        // ligne trouvée, celles de toute la section.
+        const deLaLigne = section && f.kind === 'cellule' ? tablesDeLaLigne(section, f.row, f.table) : [];
+        const colonnes = (deLaLigne.length ? deLaLigne.map((t) => t.table) : tables).flatMap((t) => t.headers);
+        const choixDeTable = f.kind === 'cellule' && ((portent.length > 1 && tablesTitreesDeLaLigne.length > 0) || f.table != null);
+        /** Libellé de la table POSÉE hors des tables titrées de la ligne : son titre, jamais sa clé. */
+        const tableAbsente = (cle: string) => {
+          const t = tablesSection.find((u) => u.cle === cle);
+          return t ? `${libelleTable(t, tablesSection)} — table absente de la ligne` : 'table absente de la section';
+        };
         const dernierBloc = Math.max(0, (section?.blocks.length ?? 1) - 1);
         return (
           <div className="de-reflrow" key={i} data-fragment={i}>
@@ -506,16 +532,28 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
               <>
                 <label className="de-cell"><span>ligne</span>
                   <select aria-label={`Fragment ${i + 1} — ligne de la table`} value={f.row}
-                    onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...x, row: e.target.value } : x))}>
-                    {tables.flatMap((t, ti) => t.rows.map((r, ri) => <option key={`${ti}-${ri}`} value={r[0]}>{r[0]}</option>))}
+                    onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...sansTable(x), row: e.target.value } : x))}>
+                    {avecCourante(lignes, f.row).map((v) => <option key="courante" value={v}>{v} — ligne absente de la section</option>)}
+                    {lignes.map((v, k) => <option key={k} value={v}>{v}</option>)}
                   </select>
                 </label>
                 <label className="de-cell"><span>colonne</span>
                   <select aria-label={`Fragment ${i + 1} — colonne de la table`} value={f.col}
                     onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...x, col: e.target.value } : x))}>
-                    {tables.flatMap((t, ti) => t.headers.map((h, hi) => <option key={`${ti}-${hi}`} value={h}>{h}</option>))}
+                    {avecCourante(colonnes, f.col).map((v) => <option key="courante" value={v}>{v} — colonne absente de la section</option>)}
+                    {colonnes.map((v, k) => <option key={k} value={v}>{v}</option>)}
                   </select>
                 </label>
+                {choixDeTable && (
+                  <label className="de-cell"><span>table</span>
+                    <select aria-label={`Fragment ${i + 1} — table de la ligne`} value={f.table ?? ''}
+                      onChange={(e) => majeur(i, (x) => (x.kind !== 'cellule' ? x : e.target.value ? { ...x, table: e.target.value } : sansTable(x)))}>
+                      <option value="">—</option>
+                      {f.table != null && avecCourante(tablesTitreesDeLaLigne.map((t) => t.cle ?? ''), f.table).map((v) => <option key="courante" value={v}>{tableAbsente(v)}</option>)}
+                      {tablesTitreesDeLaLigne.map((t) => <option key={t.cle} value={t.cle}>{libelleTable(t, tablesSection)}</option>)}
+                    </select>
+                  </label>
+                )}
               </>
             )}
             {/* L'empreinte affichée dérive de la RÉSOLUTION, jamais de `f.sum` seul : un `sum` périmé
@@ -539,7 +577,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
               if (!err) return null;
               return (
                 <div className="ed-field">
-                  <span className="de-warn">{PHRASE_REFUS[err.error]}</span>
+                  <span className="de-warn">{err.error === 'ligne-ambigue' && choixDeTable ? PHRASE_LIGNE_AMBIGUE_TABLE : PHRASE_REFUS[err.error]}</span>
                   <DetailTechnique texte={`${err.error} : ${err.detail}`} />
                 </div>
               );

@@ -161,7 +161,7 @@ export interface OptionsDocument {
   readonly deDeTirage?: boolean;
   /**
    * Schéma d'une CLÉ du record — défaut `z.string().min(1)`. Un def dont l'univers de clés est FERMÉ
-   * le déclare ici (`src/data/schemas/defs/teintesJeu.ts:134` : `z.record(z.enum(TEINTE_KEYS), hexColor)`)
+   * le déclare ici (`src/data/schemas/defs/teintesJeu.ts` : `z.record(z.enum(TEINTE_KEYS), couleurHexSchema)`)
    * et garde son verrou par construction, qu'une clé libre perdrait. Mesuré (zod 4.4.3) : une clé
    * énumérée rend le record EXHAUSTIF — toute clé déclarée doit être présente.
    */

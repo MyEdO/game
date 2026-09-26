@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findCreatureById, findVehicleById, findTrappingById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -1594,7 +1594,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections({
         title: 'Symptômes', layout: 'list',
         rows: m.symptoms.map((s) => ({
-          // `spec` = localisation/précision imprimée de l'instance (« Gonflement (Visage et tête) », EDO 11 p.145).
+          // `spec` = localisation/précision imprimée de l'instance (« Gonflement (Visage et tête) », EDO 11 l.119).
           t: 'kv', k: `${symptomLabel(s.symptomId)}${s.spec ? ` (${s.spec})` : ''}`,
           v: [s.severity ? libelleDeValeur(symptomSeveritySchema, s.severity) : null, s.difficulty ? `Test ${DIFFICULTY_LABELS[s.difficulty]}` : null].filter(Boolean).join(' · ') || '—',
         } as CodexRow)),
@@ -1836,7 +1836,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'calendarIntercalary', label: 'Calendrier — Jours intercalaires', group: 'Tables', cluster: 'Calendrier',
     build: () => calendarIntercalary.map((i) => depuisEnveloppe(i, {
-      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${calendarMonths[i.afterMonth]?.label ?? `mois ${i.afterMonth}`}`,
+      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${libelleOuAbsence(calendarMonths[i.afterMonth], 'mois', String(i.afterMonth))}`,
     })),
   },
   {

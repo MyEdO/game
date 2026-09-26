@@ -1,6 +1,6 @@
 import { ARMOUR_DEFS } from './_registry.generated';
 import type { ArmourSet } from './types';
-import type { StoredPalette } from '../../palette';
+import type { PaletteDeclaree } from '../../palette';
 
 export type { ArmourSet, ArmourDef } from './types';
 
@@ -15,6 +15,6 @@ export const ARMOUR: Record<string, ArmourSet> = Object.fromEntries(
 
 /** Palette par DÉFAUT de chaque matériau (couleurs exactes des `@tokens` de son art) → rendu sans
  *  perte + recoloriage cohérent par le skin d'objet. Clé = `id` du def. */
-export const ARMOUR_PALETTES: Record<string, StoredPalette> = Object.fromEntries(
+export const ARMOUR_PALETTES: Record<string, PaletteDeclaree> = Object.fromEntries(
   ARMOUR_DEFS.filter((d) => d.palette).map((d) => [d.id, d.palette!]),
 );

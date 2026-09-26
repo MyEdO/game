@@ -1,14 +1,15 @@
 import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
 import { startOf, unreachableDescriptiveZones } from './mapQC';
 import { footprintTiles, sizeFootprint } from './footprint';
-import { entitySize, refEntiteResolue } from './spawn';
+import { entitySize } from './spawn';
+import { refEntiteResolue } from '../data';
 import { METRES_PER_LEVEL } from './relief';
 import { realFloorAt } from './sceneEdit';
 import { CHAR_KEYS } from '../engine/types';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
 import { refEstVolumique, stakeSpeaks, findPropById, matieresCouvrantes } from '../data';
 import { capDecorAdmis } from '../data/props.types';
-import { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { PENTE_TOIT_DEG, typeNonNomme } from '../data/schemas/defs-scenes/scene';
 // Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
 // ré-exporte combatEffects), comme le store : entrer le cycle d'effets/combat par le MÊME nœud
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
@@ -159,23 +160,21 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${e.label ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${e.label ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${e.label ?? e.id} sur étage ${e.z} inexistant`);
-      // Un décor VOLUMIQUE ne prend qu'un cap CARDINAL : sa recette tourne là où son empreinte solide ne
-      // tourne pas (#1509), une diagonale poserait son corps en travers de cases restées traversables.
+      // Un décor VOLUMIQUE ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`.
       // L'émetteur unique (`gameIso/builders/props.ts`) le refuse en dur — c'est ici que l'auteur l'apprend.
       if (e.kind === 'prop' && !capDecorAdmis(refEstVolumique(e.ref), e.facing))
         add('error', 'entity', e.id, `${e.label ?? e.id} : décor volumique « ${e.ref} » au cap ${e.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`);
-      // RÉF de décor : REQUISE et résolue au catalogue (#877), sœur de la réf de personnage ci-dessous.
-      // Le schéma la refuse au parse ; c'est ICI que l'auteur l'apprend d'une scène VIVANTE de l'éditeur,
-      // qui ne repasse pas par le parse. Sans type résolu, le rendu pose la silhouette d'erreur
-      // (`missingPropSvg`) : un décor se DIT, il ne se remplace jamais.
-      if (e.kind === 'prop' && !findPropById(e.ref))
-        add('error', 'entity', e.id, e.ref === undefined
-          ? `${e.label ?? e.id} : décor sans type — un décor NOMME son type au catalogue`
-          : `${e.label ?? e.id} → décor inexistant « ${e.ref} »`);
-      // RÉF de personnage : la résolution est CELLE du spawn (`refEntiteResolue`, `state/spawn`) —
-      // un statbloc ou un preset de PNJ prime sur la réf et la rend sans objet, comme au runtime. Une réf
-      // fournie mais irrésoluble pose un mannequin `RÉF ?` à l'écran (#223) : l'auteur l'apprend ici.
-      if (e.kind === 'personnage' && e.ref && !e.statblock && !e.presetId && !refEntiteResolue(e.ref))
+      // TYPE NOMMÉ, tout `kind` (`typeNonNomme`, source unique avec le schéma, #877, #1882) — c'est ICI
+      // que l'auteur l'apprend d'une scène VIVANTE de l'éditeur, qui ne repasse pas par le parse.
+      const typeAbsent = typeNonNomme(e);
+      if (typeAbsent) add('error', 'entity', e.id, `${e.label ?? e.id} : ${typeAbsent}`);
+      // RÉF de décor : résolue au catalogue (#877). Sans type résolu, le rendu pose la silhouette
+      // d'erreur (`missingPropSvg`) : un décor se DIT, il ne se remplace jamais.
+      if (e.kind === 'prop' && e.ref !== undefined && !findPropById(e.ref))
+        add('error', 'entity', e.id, `${e.label ?? e.id} → décor inexistant « ${e.ref} »`);
+      // RÉF de personnage : la résolution est CELLE du spawn (`refEntiteResolue`, `data/index.ts`), qu'un
+      // autre porteur la côtoie ou non (#1882) ; la réf vide est dite par `typeNonNomme`.
+      if (e.kind === 'personnage' && e.ref && !refEntiteResolue(e.ref))
         add('error', 'entity', e.id, `${e.label ?? e.id} → créature inexistante « ${e.ref} »`);
       if (e.statblock?.char)
         for (const k of Object.keys(e.statblock.char))

@@ -330,7 +330,7 @@ Taille disponible = **(Taille + Richesse) × résultat 1d100**, arrondi à la di
 
 ### Étape 4 — Marchandage à l'achat
 
-Test opposé de **Marchandage** vs. le vendeur : ±10 %, jusqu'à ±20 % avec le talent Négociateur (LDB 59 p.291).
+Test opposé de **Marchandage** vs. le vendeur : ±10 %, jusqu'à ±20 % avec le talent Négociateur (LDB 59 l.43).
 
 **Compétence Marchandage d'un marchand classique** : 32–50 (lancer 2d10+30 ou choisir).
 

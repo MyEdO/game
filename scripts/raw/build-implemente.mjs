@@ -4,11 +4,12 @@
 // régénère en mémoire, compare au committé, exit 1 sans écrire.
 // Re-run : node scripts/raw/build-implemente.mjs (npm run raw:implemente).
 import { readFileSync, writeFileSync } from 'node:fs'
-import { parUnitesDeCode, listerArbre } from '../guards/lib/lister.mjs'
+import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, esc, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { closureOf } from '../guards/lib/importGraph.mjs'
+import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const SRC_DIR = 'src'
@@ -318,15 +319,6 @@ export function parseFiche(relatif, content) {
   return { fields, anomalies }
 }
 
-/** Fichiers `.ts(x)`/`.json` sous `dir`, en ORDRE TOTAL : l'ordre des fichiers départage deux puces
- *  de même (livre, chapitre) au rendu du champ `**Implémente :**` (#1244). */
-function fichiersDuCode(dir) {
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.split('/').includes('node_modules'),
-    filtre: (rel) => /\.(tsx?|json)$/.test(rel),
-  }).map((rel) => join(dir, rel))
-}
-
 /** Index du code : citations non-test / test, lignes des .ts(x) (symboles), textes non-test (appelants).
  *  `abbrMap` (optionnel, `loadAbbrMap()`) active le pont FOLIO des `.json` : chaque `source:{book,page}`
  *  devient une citation `impl` (id = symbole), stats folio accumulées dans `folioStats`. */
@@ -336,7 +328,7 @@ export function indexCode(srcDir = SRC_DIR, abbrMap = null) {
   const fileLines = new Map()       // rel -> lines[]  (.ts/.tsx)
   const nonCommentText = new Map()  // rel -> lignes NON-commentaires jointes (non-test, pour les appelants)
   const folioStats = { byBook: new Map(), noAtlas: 0, noPage: 0 }
-  for (const f of fichiersDuCode(srcDir)) {
+  for (const f of fichiersCitants(srcDir, EXTS_IMPLEMENTANTES)) {
     const rel = f.replace(/\\/g, '/')
     if (estHorsImplementation(rel)) continue
     const isTest = /\.(test|spec)\./.test(rel)

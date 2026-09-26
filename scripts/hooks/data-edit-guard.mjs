@@ -1,18 +1,19 @@
 // Hook PreToolUse(Write|Edit) : rappel de GROUNDING quand une donnée app-owned (src/data/*.json) est
 // éditée. Non bloquant — injecte du contexte (le hard-gate reste `npm test`). Atteint aussi les
 // SOUS-AGENTS, où les skills ne se déclenchent jamais. Motivé par l'incident #148 (doublon « Bélier »).
+import { cheminDEcriture } from './solde-ticket-guard.mjs'
+
 let raw = ''
 process.stdin.setEncoding('utf8')
 for await (const chunk of process.stdin) raw += chunk
 
-let fp = ''
-try { fp = String(JSON.parse(raw)?.tool_input?.file_path ?? '') } catch { /* stdin illisible → silence */ }
+let chemin = null
+try { chemin = cheminDEcriture(JSON.parse(raw)?.tool_input) } catch { /* stdin illisible → silence */ }
 
-const norm = fp.replace(/\\/g, '/')
-const isData = /(^|\/)src\/data\/[^/]+\.json$/.test(norm)
+const isData = chemin !== null && /(^|\/)src\/data\/[^/]+\.json$/.test(chemin.relatif) && !chemin.horsContenu
 
 if (isData) {
-  const rel = norm.slice(norm.indexOf('src/data/'))
+  const rel = chemin.relatif.slice(chemin.relatif.lastIndexOf('src/data/'))
   const lines = [
     `⚠ Donnée app-owned éditée (${rel}). AVANT d'écrire — cf. incident #148 (doublon « Bélier ») :`,
     `1. CHECK-FIRST : grep l'id, le label ET le concept dans TOUT src/data/*.json — un concept vit peut-être déjà dans un autre sous-système (le Bélier existe dans 6 fichiers).`,

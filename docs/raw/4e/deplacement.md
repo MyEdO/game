@@ -496,11 +496,12 @@ Ajustements : régions plus au nord → +10 à +30 ; plus au sud → −10 à �
 **Source :** EDOC 08 l.88-92
 
 Fin de chaque Étape : tout PJ exposé à pluie ou neige sans **manteau ET tente** → Test **Exposition**
-(LDB 18 p.181). Pluie diluvienne/blizzard : Test même avec les deux. Manteau *ou* tente manquant →
+(LDB 18 l.326-334). Pluie diluvienne/blizzard : Test même avec les deux. Manteau *ou* tente manquant →
 Complexe (−10) ; les deux manquants → Difficile (−20). Hiver ou printemps après échec → **Rhume
 commun** (EDOC 08 l.110-122).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
+- `LDB 18` (l.326-334) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, +43 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +14 fichiers
 - `EDOC 8` (l.21-40, l.50-59, l.62, l.88-92, l.110-122) → `plein-air`, `Season`, `weatherIdSchema`, `printemps`, `approvisionnement`, `doc`, `Weather`, `ete`, `recueillir-informations`, `saisonParId`, +53 — `src/data/activities.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, +18 fichiers
 - dette : #674
 
@@ -612,7 +613,7 @@ Si un participant a un **M supérieur** aux autres, il gagne autant de **DR bonu
 | Heure de départ (terre & fleuve) | Canon muet (le budget/jour ne dit pas quand la journée commence) | Porte maison `travel-departure-gate` (défaut ON) : départ à pied/en selle/fluvial JOUÉ de l'aube au crépuscule ; de nuit → « Attendre l'aube » (nuit jouée) ou annuler (`pendingDeparture`). Mer exemptée. | Valeur maison éditable (#340). |
 | Navigation fluviale de nuit (halte au crépuscule) | Canon muet (MSRC 5) | La descente JOUÉE s'arrête au crépuscule (`finishRiverDay`) et reprend à l'aube — même cadence maison que la porte de départ | Re-tag sincérité #340 : valeur maison (ne se croit plus RAW). |
 | Privation de sommeil | Canon muet (LDB 18 : Exténué non lié au sommeil manqué) | Règle maison OPT-IN `travel-sleep-forced` : chaque jour calendaire franchi sans nuit jouée (`lastNightDay`) → +1 Exténué « privation de sommeil » (via `applyOps` condition, retiré au prochain vrai repos) | Valeur maison éditable, désactivée par défaut (#340). |
-| Voguer de nuit en mer (÷2) | « distance/jour suppose un équipage permettant de voguer de nuit ; sinon ÷2 » (MDG 15 l.76) | `applySeaProgress` lit la règle maison `sea-night-sailing` (équipage abstrait, MDG 14 l.39) : ON (défaut) = distance pleine ; OFF = `seaMilesPerDay(m, false)` → ÷2 | **Câblé #340** (avant : `nightSailing` codé en dur à `true` → le ÷2 n'était jamais appliqué). |
+| Voguer de nuit en mer (÷2) | « La distance parcourue par jour suppose que le vaisseau en question est doté d'un équipage assez nombreux et des installations nécessaires pour pouvoir voguer de nuit. Dans le cas contraire, divisez par deux la distance couverte en un jour. » (MDG 15 l.76) | `applySeaProgress` lit la règle maison `sea-night-sailing` (équipage abstrait, MDG 14 l.39) : ON (défaut) = distance pleine ; OFF = `seaMilesPerDay(m, false)` → ÷2 | **Câblé #340** (avant : `nightSailing` codé en dur à `true` → le ÷2 n'était jamais appliqué). |
 | Plafond marche forcée | Canon muet | 10 h/j par défaut (paramétrable) | Choix documenté dans `TRAVEL_DEFAULTS.forcedMaxHours`. |
 | Barges + courant | ±30 % | Implémenté via `route.speed[mode]` | Conforme. |
 | Péripétie seuil d10 | « événement sur un résultat de 8 » | `perilDie = 8` (0 = désactivé) | Conforme. |
@@ -755,7 +756,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `carte`, `PendingTest`, `FoulingLevel`, `aucune`, `applyExposureFailure`, `legeres`, `exposureNight`, +31 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/exposure.ts`, +8 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `carte`, `FoulingLevel`, `PendingTest`, `aucune`, `applyExposureFailure`, `legeres`, `exposureNight`, +31 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/exposure.ts`, +8 fichiers
 
 ---
 
@@ -1005,7 +1006,7 @@ Chaque jour en mer, on tient un **total cumulé d'Humeur de Manann** (chaque mod
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `portProfileSchema`, `grand-sacrifice`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +128 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +20 fichiers
+- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `portProfileSchema`, `grand-sacrifice`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +130 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +21 fichiers
 
 ---
 
@@ -1058,5 +1059,5 @@ Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a un
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/state/merchantFlow.ts) (Marchandage).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `PORT_PRODUITS`, `portProfileSchema`, `MapPlace`, `cereales`, `PortHeader`, `CargoMarkerDef`, +76 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +27 fichiers
+- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `PORT_PRODUITS`, `portProfileSchema`, `cereales`, `MapPlace`, `PortHeader`, `CargoMarkerDef`, +76 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +27 fichiers
 

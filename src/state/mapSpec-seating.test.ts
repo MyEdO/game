@@ -15,7 +15,7 @@ const BASE: MapSpec = { id: 'taverne', label: 'Taverne', size: [8, 8], terrain: 
 
 /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
 const TABLE = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } } as const;
-const AUBERGISTE = { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 2, y: 1 }, label: 'Aubergiste' } as const;
+const AUBERGISTE = { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 }, label: 'Aubergiste' } as const;
 const FIXED_ASSIGNMENT: SeatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
 
 /** Le MÊME meuble posé par un marqueur ASCII plutôt que par `entities`. */
@@ -83,7 +83,7 @@ describe('MapSpec.seatAssignments — le même meuble, mais une assise à ids FI
       levels: { z0: GRILLE_CERNEE },
       entities: [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 6 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } },
-        { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 2, y: 5 }, label: 'Aubergiste' },
+        { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 5 }, label: 'Aubergiste' },
       ],
       seatAssignments: FIXED_ASSIGNMENT,
     };

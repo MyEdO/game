@@ -1,5 +1,5 @@
 /**
- * Schéma de `encumbranceTiers.json` — Profils de pénalité d'Encombrement par palier (LDB 61 p.295),
+ * Schéma de `encumbranceTiers.json` — Profils de pénalité d'Encombrement par palier (LDB 61 l.35-40),
  * consommé par `src/engine/encumbrance.ts` (`EncumbrancePenalties[]`, qui ignore `id`/`label`).
  * Tableau de 4 entrées à index FIXE (0 = aucune pénalité … 3 = immobilisé). `movePenalty: null`
  * UNIQUEMENT sur le palier immobilisé (le flag `immobile` court-circuite avant lecture — cf.

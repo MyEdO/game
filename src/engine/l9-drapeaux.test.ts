@@ -83,7 +83,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
   });
 });
 
-describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inconscient » (LDB 47 p.242)', () => {
+describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inconscient » (LDB 47 l.277)', () => {
   it('onlyIfCondition : cible À Terre → Inconscient pour la durée du sort (BFM du lanceur)', () => {
     const caster = mk({ id: 'w', label: 'Sorcier' });
     const target = mk({ id: 't', label: 'Cible' });

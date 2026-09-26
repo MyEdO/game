@@ -16,7 +16,7 @@ export const tenue: TenueDef = {
     vet2: '#5fa8ce', vet2O: '#2b6b8f', vet2H: '#a4d4ea',
     cuir: '#6b4a2b', cuirO: '#3a2513', cuirH: '#8f6838',
     braie: '#4a4640', braieO: '#2a2722', braieH: '#5f5a50',
-    os: '#dcd4bd', osO: '#a2946f',
+    os: '#dcd4bd', 
   },
   set: {
     pied: BOTTE_CUIR,

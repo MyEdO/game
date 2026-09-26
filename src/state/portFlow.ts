@@ -45,7 +45,7 @@ import { toDate } from '../engine/clock';
 import { registerCascadeApplier, chainStep } from './cascade';
 import type { CascadeStep } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
-import { actorIn } from './combatants';
+import { actorIn, garanti } from './combatants';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 
@@ -241,16 +241,16 @@ registerCascadeApplier(PORT_BUY_BARGAIN_KIND, (get, set, step) => {
   const merchantValue = Number(step.meta?.merchantValue ?? 0);
   const merchantNegotiator = !!step.meta?.merchantNegotiator;
   const sellerDR = Number(step.meta?.sellerDR ?? 0);
-  const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
   const heroTR: TestResult = bargainHeroTR(step);
   const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
   // +DR du vendeur NPC (l.339-341) porté AVANT le départage : `resolveOpposed` reste le seul juge.
   const opp = resolveOpposed(heroTR, bumpSL(merchantRoll, sellerDR));
   const netSL = opp.netSL;
   let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
-  if (opp.winner === 'attacker') pct = -bargainPct(actor ? hasBargainBonus(actor) : false, netSL); // remise à l'acheteur
+  if (opp.winner === 'attacker') pct = -bargainPct(hasBargainBonus(actor), netSL); // remise à l'acheteur
   else if (opp.winner === 'defender') pct = bargainPct(merchantNegotiator, netSL); // le vendeur monte le prix
-  const bargainLine = t('port.bargainLine', { name: actor?.label ?? '?', roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
+  const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
   return { consequences: freeCons(finalizePortBuy(get, set, cargoId, want, basePrice, pct, bargainLine)) };
 });
 
@@ -312,16 +312,16 @@ registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
   const merchantValue = Number(step.meta?.merchantValue ?? 0);
   const merchantNegotiator = !!step.meta?.merchantNegotiator;
   const sellerDR = Number(step.meta?.sellerDR ?? 0);
-  const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
   const heroTR: TestResult = bargainHeroTR(step);
   const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
   // +DR du vendeur PJ (l.389-397) porté AVANT le départage : `resolveOpposed` reste le seul juge.
   const opp = resolveOpposed(bumpSL(heroTR, sellerDR), merchantRoll);
   const netSL = opp.netSL;
   let bargainPctVal = 0;
-  if (opp.winner === 'attacker') bargainPctVal = bargainPct(actor ? hasBargainBonus(actor) : false, netSL); // le PJ monte le prix
+  if (opp.winner === 'attacker') bargainPctVal = bargainPct(hasBargainBonus(actor), netSL); // le PJ monte le prix
   else if (opp.winner === 'defender') bargainPctVal = -bargainPct(merchantNegotiator, netSL); // l'acheteur le baisse
-  const bargainLine = t('port.bargainLine', { name: actor?.label ?? '?', roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
+  const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
   return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
 });
 
@@ -378,10 +378,10 @@ registerCascadeApplier(PORT_SELL_GOSSIP_KIND, (get, set, step) => {
   const lot = vessel?.cargo?.[cargoIndex];
   if (!st || !vessel || !lot) return {};
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
-  const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'ragot au port');
   // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
   const gossip = (issue: string) => freeCons([traceLineOf({
-    who: actor?.label ?? t('port.partyFallback'), label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
+    who: actor.label, label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
     roll: step.result!.roll, target: step.result!.target, sl: step.result!.sl, success: step.result!.success, issue,
   })]);
   if (!step.result.success) {

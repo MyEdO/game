@@ -176,7 +176,7 @@ export function cargoRaidLossPct(outcome: CargoRaidOutcome, fleePct: number, los
 // depuis les objets réels (héros/monture/véhicule/navire) vit dans la couture d'état `state/carriers.ts`,
 // qui assemble ces structures via les constructeurs ci-dessous.
 
-/** Nature physique d'un porteur → table de surcharge RAW (jambes = LDB 61 p.295 ; coque = MDG 12). Portée
+/** Nature physique d'un porteur → table de surcharge RAW (jambes = LDB 61 l.35-40 ; coque = MDG 12). Portée
  *  par la structure pour que la couche de risque (lot D) DISPATCHE sans flag ad hoc — décision 4. */
 export type CarrierHull = 'jambes' | 'coque';
 

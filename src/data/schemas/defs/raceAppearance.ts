@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
 
 export const file = 'raceAppearance.json';
@@ -28,7 +29,7 @@ const doc = document(
     featureKeys: z.array(z.string()).optional(),
     pose: z.record(z.string(), z.number()).optional(),
     tenue: z.string().optional(),
-    colors: z.record(z.string(), z.string()).optional(),
+    colors: surchargePaletteSchema.optional(),
     sex: z.enum(['M', 'F']).optional(),
     parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
     scale: z.number().optional(),

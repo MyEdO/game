@@ -325,7 +325,7 @@
           "files": [
             "night-stakes.json"
           ],
-          "desc": "Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStake` (`src/state/restFlow.ts`)"
+          "desc": "Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStakeRef` (`src/data/index.ts`, appelé par `src/state/restFlow.ts`)"
         },
         {
           "files": [

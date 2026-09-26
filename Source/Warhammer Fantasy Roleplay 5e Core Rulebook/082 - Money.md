@@ -1,6 +1,6 @@
 *Pages PDF 296-297*
 
-# **MONEY**
+# <span id="page-295-0" data-folio="296"></span>**MONEY**
 
 The Empire's coins are usually minted in three denominations: brass pennies (d), silver shillings (/), and gold crowns (GC). Coins weigh around an ounce and, as their inherent value is determined by weight, even foreign coins can be easily valued with a set of scales, though they will likely draw a suspicious eye.
 
@@ -24,7 +24,7 @@ Characters of a given Status most frequently use the coinage associated with the
 
 For GMs preferring hard numbers, spending around half your Status every day is usually enough to maintain appearances, though you may be living a little frugally. So, if you have a Status of Silver 4, spending at least 2 shillings per day will do for food and board, where if you have Brass 2 Status, you need only spend a pfennig a day.
 
-# **Criminal Coinage**
+# <span id="page-296-0" data-folio="297"></span>**Criminal Coinage**
 
 Of course, if there is money involved, there will be folk looking to take any advantage they can, including criminal options. For the Rogues in your party, two schemes concerning coins are worth knowing.
 

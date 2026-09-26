@@ -31,7 +31,7 @@ import { narratifSchema } from './narratif';
 const idsDAxes = (): readonly string[] => IDS_PAR_DATASET['axes.json'] ?? [];
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 12;
+export const SCHEMA_PROJET = 14;
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(
@@ -97,7 +97,7 @@ export const projetDoc = document(
         const presets = new Set(doc.narratif.presetsPnj.map((p) => p.id));
         doc.scenes.forEach((s, is) => {
           (s.entities ?? []).forEach((e, ie) => {
-            if (e.presetId === undefined || presets.has(e.presetId)) return;
+            if (!e.presetId || presets.has(e.presetId)) return;
             ctx.addIssue({
               code: 'custom',
               path: ['scenes', is, 'entities', ie, 'presetId'],

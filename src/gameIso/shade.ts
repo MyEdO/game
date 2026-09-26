@@ -14,8 +14,16 @@ export function parseHex(hex: string): [number, number, number] | null {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 const clamp255 = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
-const toHex = (r: number, g: number, b: number) =>
+/** Canaux [r,g,b] (0–255, arrondis et bornés) en `#rrggbb`. Émetteur UNIQUE, pendant de `parseHex`. */
+export const toHex = (r: number, g: number, b: number) =>
   `#${[r, g, b].map((c) => clamp255(c).toString(16).padStart(2, '0')).join('')}`;
+
+/** Un octet sRGB (0–255) en valeur LINÉAIRE — la transfert standard, celle que three applique aux
+ *  couleurs de sommet et à la sortie du rendu. */
+export const srgbToLinear = (octet: number): number => {
+  const u = octet / 255;
+  return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
+};
 
 /** Base × facteur de luminance (clampé). Un non-hex (`var(--x)`) est renvoyé tel quel. */
 export function shade(color: string, k: number): string {

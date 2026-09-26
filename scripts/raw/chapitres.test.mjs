@@ -73,8 +73,9 @@ test('#1825 : tout motif est une phrase, jamais un vide qui rendrait l’exclusi
 // Un motif est NOTRE prose éditoriale sur la classification, pas de la prose de livre : il se
 // reformule librement. Une réf citable `<ABRÉV> NN l.X` posée LÀ serait une citation que RIEN ne
 // vérifie : aucun scanner de réfs ne lit ce fichier — `reconcile.mjs` et `check-code-refs.mjs`
-// scannent `src/**` (.ts/.tsx/.json), `check-refs.mjs` les `.md` de `docs/raw/`. Elle pourrirait
-// donc en silence au premier réancrage. Un motif renvoie au CHAPITRE (« ch.8 »), jamais à la ligne.
+// scannent les citants de `src/**` (`scripts/raw/lib/fichiersCitants.mjs`), `check-refs.mjs` les `.md`
+// de `docs/raw/`. Elle pourrirait donc en silence au premier réancrage. Un motif renvoie au CHAPITRE
+// (« ch.8 »), jamais à la ligne.
 test('#1825 : aucun motif ne porte de réf citable — ce serait une citation que rien ne vérifie', () => {
   const citants = horsRegle.flatMap((e) => [...String(e.motif).matchAll(refRe())].map((m) => `${e.book} ${e.ch} — « ${m[0]} »`))
   assert.deepEqual(

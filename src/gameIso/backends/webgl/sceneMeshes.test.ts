@@ -72,6 +72,7 @@ import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
 import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../state/sceneMemo';
+import { srgbToLinear, toHex } from '../../shade';
 
 const scene = buildScene(siegeSpec);
 const mpt = sceneMetresPerTile(scene);
@@ -427,7 +428,7 @@ describe('CIEL & BRUME — les couleurs du POV, jamais des teintes propres au sp
   it('À PLEINE LUMIÈRE (le neutre) : le dégradé va de la brume d’horizon (bas) au haut de ciel — les teintes du catalogue', () => {
     const tex = skyTexture();
     const d = tex.image.data as Uint8Array;
-    const hex = (i: number) => `#${[0, 1, 2].map((k) => d[i * 4 + k].toString(16).padStart(2, '0')).join('')}`;
+    const hex = (i: number) => toHex(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
     expect(hex(0)).toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
     expect(hex(tex.image.height / 2 - 1)).toBe(AMBIANCE.pov.fogOutdoor.toLowerCase()); // horizon à mi-hauteur
     expect(hex(tex.image.height - 1)).toBe(AMBIANCE.pov.skyTop.toLowerCase());
@@ -470,7 +471,7 @@ describe('CIEL & BRUME — les couleurs du POV, jamais des teintes propres au sp
     const ciel = skyTexture();
     const d = ciel.image.data as Uint8Array;
     // Bas de la texture = l'horizon : c'est la brume de CIEL qui s'y trouve, pas celle des surfaces.
-    expect(`#${[0, 1, 2].map((k) => d[k].toString(16).padStart(2, '0')).join('')}`).toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
+    expect(toHex(d[0], d[1], d[2])).toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
   });
 
   it('INTÉRIEUR : brume sombre COURTE, et un fond sombre au lieu du ciel', () => {
@@ -511,12 +512,6 @@ describe('PALIER D’AMBIANCE (#1176) — le ciel et les brumes n’ont pas de l
     const d = skyTexture(undefined, lum).image.data as Uint8Array;
     return [d[0], d[1], d[2]] as const;
   };
-  const enHex = (o: readonly number[]) => `#${o.map((k) => k.toString(16).padStart(2, '0')).join('')}`;
-  /** Décodage sRGB → linéaire d'un octet (la conversion même de three, `SRGBToLinear`). */
-  const linéaire = (octet: number) => {
-    const c = octet / 255;
-    return c < 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  };
 
   it('le palier `nuit` vaut bien 0,3276 — la donnée, pas un nombre recopié', () => {
     expect(LUM_NUIT).toBeCloseTo(0.3276, 4);
@@ -524,21 +519,21 @@ describe('PALIER D’AMBIANCE (#1176) — le ciel et les brumes n’ont pas de l
 
   it('HORIZON de nuit : atténué par le palier, exactement comme l’albédo d’une face (sonde du juge)', () => {
     const nuit = horizonDe(LUM_NUIT);
-    expect(enHex(nuit)).toBe(commeUneFace(AMBIANCE.pov.fogOutdoor, LUM_NUIT));
+    expect(toHex(...nuit)).toBe(commeUneFace(AMBIANCE.pov.fogOutdoor, LUM_NUIT));
     // NON-RÉGRESSION de la sonde : plus jamais l'octet plein du catalogue (ni le #7f9ab4 mesuré à
     // l'écran, qui en est l'interpolation) là où la nuit est tombée.
-    expect(enHex(nuit)).not.toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
+    expect(toHex(...nuit)).not.toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
     const jour = horizonDe(1);
     for (const k of [0, 1, 2]) expect(nuit[k]).toBeLessThan(jour[k]);
     // …et l'atténuation est CELLE du monde : le rapport de luminance vaut le palier, par canal.
-    for (const k of [0, 1, 2]) expect(linéaire(nuit[k]) / linéaire(jour[k])).toBeCloseTo(LUM_NUIT, 2);
+    for (const k of [0, 1, 2]) expect(srgbToLinear(nuit[k]) / srgbToLinear(jour[k])).toBeCloseTo(LUM_NUIT, 2);
   });
 
   it('HAUT DE CIEL de nuit : même palier — le dégradé s’éteint entier, pas seulement son bas', () => {
     const tex = skyTexture(undefined, LUM_NUIT);
     const d = tex.image.data as Uint8Array;
     const i = (tex.image.height - 1) * 4;
-    expect(enHex([d[i], d[i + 1], d[i + 2]])).toBe(commeUneFace(AMBIANCE.pov.skyTop, LUM_NUIT));
+    expect(toHex(d[i], d[i + 1], d[i + 2])).toBe(commeUneFace(AMBIANCE.pov.skyTop, LUM_NUIT));
   });
 
   it('BRUME DES SURFACES de nuit : même palier — un sol lointain ne se relève pas vers une brume diurne', () => {
@@ -557,7 +552,7 @@ describe('PALIER D’AMBIANCE (#1176) — le ciel et les brumes n’ont pas de l
   });
 
   it('TABLE des paliers de `lightLevels.json` — l’horizon mesuré à chaque cran', () => {
-    const table = ([1, 0.75, 0.45, 0.18, 0] as const).map((s) => [s, enHex(horizonDe(ambianceLuminance(s)))]);
+    const table = ([1, 0.75, 0.45, 0.18, 0] as const).map((s) => [s, toHex(...horizonDe(ambianceLuminance(s)))]);
     expect(table).toEqual([
       [1, '#9fb2c6'],
       [0.75, '#8fa0b3'],

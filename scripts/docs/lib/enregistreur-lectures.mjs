@@ -9,11 +9,12 @@
 // 'node:fs'` déjà chargé continue d'appeler la fonction d'origine. Mesure du juge de design
 // (2026-09-02) : 5 lectures capturées sans l'appel, 1 006 avec.
 //
-// Périmètre : chemins sous `WFRP_LECTURES_RACINE`, hors `node_modules`/`.git`/`.cache`/`dist`, hors
-// les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
+// Périmètre : chemins sous `WFRP_LECTURES_RACINE` qui entrent dans la mesure (`dansLaMesure`, sur
+// l'ensemble `ignoresGit` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
+// #1769), hors les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
 // générateur relit son propre .md en mode `--check`). `statSync` reste HORS empreinte : la sonde
 // `V2-analyse.mjs` en a compté 255 sur 260 pointant des `*.test.*` et des snapshots, jamais lus.
-// Un `readdirSync` enregistre le DOSSIER et son listing brut trié : un fichier ajouté au dossier
+// Un `readdirSync` enregistre le DOSSIER et son listing trié, restreint à la mesure : un fichier ajouté au dossier
 // change ce que le générateur AURAIT lu, sans qu'aucun contenu ne bouge.
 //
 // Les ÉCRITURES sont mesurées elles aussi : un fichier écrit par le générateur n'est pas une de ses
@@ -23,17 +24,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
-import { canoniser, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
 
 const MARQUE = Symbol.for('wfrp.enregistreur-lectures')
 const RACINE = process.env.WFRP_LECTURES_RACINE
 const SORTIE = process.env.WFRP_LECTURES_SORTIE
+const IGNORES = process.env.WFRP_LECTURES_IGNORES
 
-/** Noms de dossier jamais suivis par git : leur contenu n'entre dans aucune empreinte. */
-const EXCLUS = /(^|\/)(?:node_modules|\.git|\.cache|dist)(?:\/|$)/
-
-/** Enveloppe `fs` et rend le collecteur — exporté pour que le test monte la mécanique à nu. */
-export function installer({ racine, cibles = [] } = {}) {
+/** Enveloppe `fs` et rend le collecteur — exporté pour que le test monte la mécanique à nu.
+ *  `ignores` : l'ensemble `ignoresGit` de la racine. */
+export function installer({ racine, ignores, cibles = [] }) {
+  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble `ignoresGit`) absent — sans lui, chaque lecture serait écartée en silence')
   const base = canoniser(racine)
   const exclues = new Set(cibles)
   const fichiers = new Set()
@@ -70,7 +71,7 @@ export function installer({ racine, cibles = [] } = {}) {
       rejets?.add(canoniserMemo(abs))
       return null
     }
-    if (!rel || EXCLUS.test(rel) || exclues.has(rel)) return null
+    if (!rel || !dansLaMesure(rel, ignores) || exclues.has(rel)) return null
     return rel
   }
 
@@ -108,7 +109,7 @@ export function installer({ racine, cibles = [] } = {}) {
       const rel = retenu(p, cheminsRejetes)
       if (rel === null || dossiers.has(rel)) return
       // eslint-disable-next-line no-restricted-syntax -- lecture PRISTINE du crochet : passer par `listerDossier` rappellerait l'enveloppe
-      dossiers.set(rel, brut.readdirSync(path.resolve(base, rel)).map(String).sort())
+      dossiers.set(rel, brut.readdirSync(path.resolve(base, rel)).map(String).filter((n) => dansLaMesure(`${rel}/${n}`, ignores)).sort())
     } catch { /* idem */ }
   }
 
@@ -159,8 +160,11 @@ export function installer({ racine, cibles = [] } = {}) {
 
 if (RACINE && SORTIE && !globalThis[MARQUE]) {
   globalThis[MARQUE] = true
+  if (!IGNORES) throw new Error('enregistreur-lectures : WFRP_LECTURES_IGNORES absent — sans lui, un chemin ignoré par git entrerait dans la mesure')
+  const ignores = JSON.parse(fs.readFileSync(IGNORES, 'utf8'))
   const collecteur = installer({
     racine: RACINE,
+    ignores: new Set(ignores),
     cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
   })
   // Ce qu'un THREAD DE HOOKS (tsx) charge et lit échappe à l'enveloppe de `fs` posée ici : le volet
@@ -169,6 +173,7 @@ if (RACINE && SORTIE && !globalThis[MARQUE]) {
     data: {
       racine: path.resolve(RACINE),
       sortie: SORTIE,
+      ignores,
       cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
     },
   })

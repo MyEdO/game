@@ -58,7 +58,7 @@ const doc = document(
       availability: availabilitySchema.optional(),
     }).optional(),
     /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `medium` : milieu du TRAJET PAYÉ (un véhicule
-     *  peut être bi-milieu — ex. la Barge navigue le fleuve LDB 70 p.306 tout en figurant à la table
+     *  peut être bi-milieu — ex. la Barge navigue le fleuve LDB 70 l.10 tout en figurant à la table
      *  navale MDG 12 avec `hull.propulsion:'maritime'` — les deux facettes sont INDÉPENDANTES,
      *  jamais l'une dérivée de l'autre) ; absent = terrestre implicite (défaut historique). */
     travel: z.strictObject({

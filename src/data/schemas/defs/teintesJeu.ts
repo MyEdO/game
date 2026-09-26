@@ -33,13 +33,10 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couleurHexSchema } from '../grammaire/valeurs';
 
 export const file = 'teintesJeu.json';
 export const famille = 'record';
-
-/** Couleur écrite en HEXA `#rrggbb` — la forme que lisent `THREE.Color` comme le SVG (même regex que
- *  `ambiance.ts`, forme unique du dépôt). */
-const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'couleur hexadécimale « #rrggbb » attendue');
 
 /** Ids admis — RECOPIE de ce que servent les deux façades (`src/gameIso/highlightTints.ts` et
  *  `src/gameIso/teamColors.ts`) : `src/data` ne dépend jamais RUNTIME de `src/gameIso`
@@ -155,7 +152,7 @@ const doc = document(
     // un refine « préfixe connu » : toute clé admise est déjà l'une des `TEINTE_KEYS`, dont la parité
     // aux préfixes déclarés est mesurée par `src/gameIso/highlightTints.test.ts`.
     cleRecord: z.enum(TEINTE_KEYS),
-    valeurRecord: hexColor,
+    valeurRecord: couleurHexSchema,
     affinerEntree: (entree) =>
       entree
         .refine(

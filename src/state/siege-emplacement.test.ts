@@ -46,7 +46,7 @@ const mkEnemy = (id: string, x: number, y: number, E = 30, wounds = 40): Combata
  *  porteur (≠ coque) pour que `shipOfCrew(chef)` rate et que l'arc retombe sur l'orientation du chef. */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
   ({ id: 'emplacement', name: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
-    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA p.122-123) : 0 Blessure, immune
+    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
   ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
@@ -64,7 +64,7 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est servi (mannedPoste)', () => {
   it('SceneEntity NON-navire portant `postes` → `Combatant.postes` au spawn (comme la voie navale)', () => {
     const poste = mkPoste('baliste', ['gunner', 's1']); // PAS de `side` → exige `ShipPoste.side` optionnel
-    const emplacement = spawnEnemy(undefined, { name: 'Affût de baliste', char: { B: 20 } } as never, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
+    const emplacement = spawnEnemy({ statblock: { name: 'Affût de baliste', char: { B: 20 } } as never }, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
     expect(emplacement.postes).toBeTruthy();
     expect(emplacement.bodyShape).not.toBe('vehicule'); // AUCUN couplage navire (pas une coque)
   });

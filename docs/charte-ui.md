@@ -338,7 +338,10 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `reward-recap.css` | `RewardRecap` | `.reward-messages`, `.reward-msg`, `.reward-stats`, `.reward-stat` (+ son `<b>`), `.reward-unit`, `.reward-ico`, `.reward-section` (+ son `h3`), `.reward-continue` — le GESTE DE SORTIE est un slot : l'hôte pose `.reward-continue` sur son propre bouton, la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`) |
 | `combat-start-splash.css` | `CombatStartSplash` (organisme) | `.combat-splash` (la pose plein-champ), `.combat-splash-inner` (ferrage + animation d'entrée-sortie, `@keyframes combat-splash-in`/`-fade`) et `.combat-splash-sub` (la ligne de sous-titre, art propre de cet organisme : un seul écran la porte) — le MOT, lui, pose la matière partagée `.display-title` |
 | `error-boundary.css` | `SceneErrorBoundary` | `.scene-error-boundary` (repli dans le stage) et `.app-error-boundary` (filet plein viewport, #225) — la seconde est demandée par l'appelant, déclarée en `poseurs` au manifeste |
-| `src/gameIso/anim.css` | `GameStage3D` (`anim.css`) | `.iso-stage` (la surface du monde, sans `cursor` au repos), `.glow` (halo d'un décor magique ou d'une arme à feu), `.dmg-float` (chiffre de dégâts qui monte au-dessus de la cible), `.pv-badge` (badge d'aperçu tap-1) |
+| `src/gameIso/stage/iso-stage.css` | `GameStage3D` et `SurcoucheIso` | `.iso-stage` (la surface du monde, sans `cursor` au repos) |
+| `src/gameIso/stage/plaque-nom.css` | `PlaquesDeNom` | `.plaque-nom` |
+| `src/gameIso/stage/pastille-entite.css` | `PastilleEntite` | `.pastille-entite`, `.pe-cost` |
+| `src/gameIso/anim.css` | `MondeDeCampagne` (son unique importeur) | `.glow` (halo d'un décor magique ou d'une arme à feu), `.dmg-float` (chiffre de dégâts qui monte au-dessus de la cible), `.pv-badge` (badge d'aperçu tap-1) |
 
 La **peau « tôle vissée »** `.skin-tole` (+ `data-ton="sombre"|"laiton"`, `components.css`) est du
 même ordre : la matière d'une commande VISSÉE sur une plaque de bois-laiton — plaque coupée au

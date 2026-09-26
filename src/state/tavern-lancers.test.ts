@@ -32,9 +32,13 @@ import {
   type SequenceState, type SequenceThrowTurn, type SequenceVolleyRules,
 } from './sequenceCore';
 import { resolveTavernRound } from '../engine/tavernGame';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload } from './tavernFlow';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep, PendingCascade } from './pendings';
+import { pnjAuProfil } from './sceneNpc';
+
+/** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
+const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 
 const get = useGame.getState.bind(useGame);
 const tick = (): Promise<void> => new Promise<void>((r) => { setTimeout(r, 0); });
@@ -192,7 +196,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
 
   it('un DR ÉNORME n’abat que les seize quilles — et le passage s’arrête, il n’y a plus rien à abattre', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(5, 20); // réussite à +60, DR posé bien au-delà des 16 quilles
     const res = get().tavernGames!.result!;
     expect(res.playerSL, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
@@ -201,7 +205,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
 
   it('un CRITIQUE renverse toutes les quilles, quel que soit le DR', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(11, 0); // double sur une réussite = Critique (l.7), DR nul
     expect(get().tavernGames!.result!.playerSL).toBe(16);
   });
@@ -221,7 +225,7 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
 
   it('la cible choisie règle la DIFFICULTÉ du lancer, et le Critique paie la ligne SUIVANTE', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     trancher('tavern-throw-aim', '2'); // les Cornes : 30 points, Accessible (+20)
     const band = get().pendingCascade!.participants.find((s) => s.kind === 'tavern-throw')!;
     expect(band.participants![0].difficulty, 'la Difficulté vient de la ligne visée').toBe('accessible');
@@ -231,7 +235,7 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
 
   it('sans Critique, la cible visée paie ses points — et un échec ne paie rien', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     trancher('tavern-throw-aim', '2');
     poseLancer(12, 1);
     expect(volley().gains.player).toEqual([30]);
@@ -247,7 +251,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
   /** Amène la partie à `points` marqués pour le challenger, sa première fléchette en main. */
   function aDeuxDoigts(points: number): Combatant {
     const a = seul();
-    get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence as SequenceState<TavernPayload>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.83), on le fixe pour mesurer.
     const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
@@ -273,7 +277,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
       useGame.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
       seedBattleRng(graine);
       const a = seul();
-      get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+      get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
       const payload = get().sequence!.payload as TavernPayload;
       vus.add(payload.throwers![0].camp);
     }
@@ -341,7 +345,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('le score du camp est sa MEILLEURE boule, jamais la somme des trois', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(12, 2);
     poseLancer(13, 5);
     expect(volley().gains.player).toEqual([2, 5]);
@@ -352,7 +356,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('une boule RATÉE est hors-jeu (elle ne compte pas), et le DR est plafonné à 6', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'abstract', value: 30 } });
+    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(99, -4); // hors-jeu
     poseLancer(12, 9); // DR brut 9 : le plafond mord
     expect(volley().gains.player).toEqual([0, 6]);
@@ -360,7 +364,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('PARTIE ENTIÈRE à graine réelle : elle conclut sans borne, et le score annoncé est celui du tableau', async () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const vus: number[] = [];
     for (let i = 0; i < 60 && get().pendingCascade; i++) {
       const board = sequenceBoardOf(get);
@@ -391,7 +395,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
     return {
       def: TAVERN_SEQUENCE, round: 2, cum,
       params: { drBonus: 'intelligence', sides: ALVATAFL.sides! },
-      payload: { gameId: 'alvatafl', challengerId, opponentValue: 40, opponentName: 'un habitué', stakeBrass: 0, side },
+      payload: { gameId: 'alvatafl', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0, side },
     };
   }
 
@@ -402,8 +406,8 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
       label: fixtureText('L\'Alvatafl'), rollLabel: 'Savoir', difficulty: 'intermediaire', base: 40, target: 40,
       result: { roll: mien.roll, target: 40, sl: mien.sl, success: true },
       meta: {
-        gameId: 'alvatafl', opponentValue: 40, opponentName: 'un habitué', stakeBrass: 0, round: 2,
-        opposed: { aT: { roll: sien.roll, target: 40, sl: sien.sl, success: true, isDouble: false, base: 40 }, attackerName: 'un habitué' },
+        gameId: 'alvatafl', opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0, round: 2,
+        opposed: { aT: { roll: sien.roll, target: 40, sl: sien.sl, success: true, isDouble: false, base: 40 }, attackerName: NOM_HABITUE },
       },
     };
     return { title: 'Alvatafl', purpose: 'sequence', participants: [step], cursor: 1, log: [] };

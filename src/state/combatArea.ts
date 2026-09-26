@@ -8,7 +8,7 @@
  *      · Bout portant → la cible seule, **+Indice aux Dégâts** (RAW) ;
  *      · Courte à Longue → la cible **+ les Indice cibles les plus proches** ;
  *      · Extrême → comme Courte-Longue mais **−Indice aux Dégâts** (bande jadis manquante).
- *  - **Explosion (Indice)** (LDB 62 p.298) : « Tous les Personnages situés à Indice mètres du point cible frappé
+ *  - **Explosion (Indice)** (LDB 62 l.254) : « Tous les Personnages situés à Indice mètres du point cible frappé
  *      subissent DR + Dégâts d'arme et gagnent tous les États infligés par l'arme. » → DR+Dégâts (déjà dans
  *      `damage`) + propagation des États PAR LE CHEMIN GÉNÉRIQUE `fireTriggers(...,'onHit',...)` (pas de pose bespoke).
  *
@@ -17,7 +17,7 @@
  *  - **cible = personnage (terre)** : rayon métrique Chebyshev autour de la cible, converti à l'échelle de la
  *    scène (`metresPerTile`, 2 m person-scale) — PAS le « 2 m » codé en dur ;
  *  - **cible = navire (mer, `bodyShape:'vehicule'`)** : COMPOSITION de MDG 13 (un coup à la Localisation
- *    « Équipage » touche un marin EXPOSÉ « comme un combat normal ») × MDG 12 l.466-472 / LDB 62 p.298 (Tir de
+ *    « Équipage » touche un marin EXPOSÉ « comme un combat normal ») × MDG 12 l.466-472 / LDB 62 l.254 (Tir de
  *    zone ajoute les Indice plus proches ; Explosion touche tous dans le rayon) → l'aire balaie l'ÉQUIPAGE
  *    EXPOSÉ du navire (`exposedCrew`, MÊME précédent que les Éclats d'un Critique de coque), car à l'échelle
  *    Mer (10 m/case) un rayon métrique < 1 case n'attraperait personne. PAS de cas spécial « navires au
@@ -42,7 +42,7 @@ import { RNG, defaultRNG } from '../engine/dice';
 import type { Pt } from './path';
 
 /** Contexte d'une touche à résoudre en aire — commun au tir individuel, à la bordée ET au pilonnage
- *  INDIRECT (« viser une case », AA 10 p.122-123 : mortier/catapulte à arc élevé visent un POINT au sol). */
+ *  INDIRECT (« viser une case », AA 10 l.169/171 : mortier/catapulte à arc élevé visent un POINT au sol). */
 export interface AreaHit {
   attacker: Combatant;
   /** Cible primaire — celle qui a encaissé la touche directe (tir individuel/bordée), EXCLUE de l'aire.
@@ -167,7 +167,7 @@ export function resolveWeaponArea(
     }
   }
 
-  // ── Explosion (LDB 62 p.298) : toutes les cibles candidates — DR+Dégâts + États de l'arme (pas de plafond d'Indice) ──
+  // ── Explosion (LDB 62 l.254) : toutes les cibles candidates — DR+Dégâts + États de l'arme (pas de plafond d'Indice) ──
   const expl = quals.find((r) => r.caps?.explosion);
   if (expl) {
     const indice = expl.indice ?? 1;

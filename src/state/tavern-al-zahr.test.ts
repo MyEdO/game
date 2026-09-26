@@ -99,7 +99,7 @@ async function partieComptee(des: number[], opts: { ante?: number; joueurs?: num
   const a = tableDeJeu();
   const avant = toBrass(bourseOf(get().party[0]));
   get().playTavernGame({
-    gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 },
+    gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' },
     stakeBrass: ante, tablePlayers: opts.joueurs ?? 3,
   });
   const { journal, trace } = await drain({ des });
@@ -182,7 +182,7 @@ describe('Al-zahr — la partie au store', () => {
   it('partie entière : la bourse du héros bouge EXACTEMENT du solde annoncé', async () => {
     const a = tableDeJeu();
     const avant = toBrass(bourseOf(get().party[0]));
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     expect(get().sequence?.def).toBe('tavern');
     await drain();
     const res = get().tavernGames!.result!;
@@ -194,7 +194,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('la MISE sort de la bourse : chacun l’ajoute au pot à l’ouverture de la manche', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const p = get().sequence!.payload as { pot?: number; net?: Record<string, number>; seats?: unknown[] };
     expect(p.seats).toHaveLength(3);
     expect(p.pot, '3 joueurs × 100 sc').toBe(300);
@@ -203,14 +203,14 @@ describe('Al-zahr — la partie au store', () => {
 
   it('mise plafonnée à la bourse du challenger', () => {
     const a = tableDeJeu(50);
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100000 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100000 });
     expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(50);
   });
 
   it('sans le sou : aucune partie ne s’ouvre (garde explicite, la source est muette)', () => {
     const a = heros();
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100 });
     expect(get().sequence).toBeNull();
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => l.includes('aucune partie'))).toBe(true);
@@ -218,7 +218,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('ÉLIMINÉ (2) : le joueur ne relance plus de la manche — les autres, si', async () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     // Cible annoncée par le héros (il ouvre la manche), puis son 1ᵉʳ lancer POSÉ à 2.
     const { trace, journal } = await drain({ des: [2] });
     const sien = trace.filter((s) => s.kind === 'tavern-pot-turn' && s.manche === 1 && s.actorId === a.id);
@@ -235,7 +235,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('le POT va au vainqueur : un 20 rafle les mises de la table', async () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const { journal } = await drain({ des: [20] });
     const potEntier = formatMoney(fromBrass(300)); // 3 mises de 100 sous
     expect(journal.some((l) => l === `${a.label} remporte la manche et empoche ${potEntier}.`)).toBe(true);
@@ -284,7 +284,7 @@ describe('Al-zahr — la partie au store', () => {
   it('D2 — partie INTERROMPUE : le pot en vol revient à ceux qui l’ont mis, et l’issue suit la bourse', async () => {
     const a = tableDeJeu();
     // Borne ramenée à un seul tour : la partie est coupée le pot encore plein (artefact d'anti-boucle).
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const avant = toBrass(bourseOf(get().party[0]));
     useGame.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, maxRounds: 2 } } });
     const { journal } = await drain();
@@ -296,7 +296,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('l’ENCART de résultat dit l’ISSUE au moment du jet, jamais la seule fourchette', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     // 1) le héros ouvre la manche : il annonce la cible (défaut de l'étape de choix = 7).
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cibleStep.kind).toBe('tavern-pot-target');
@@ -316,7 +316,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('un lancer qui PASSE la cible n’annonce pas une victoire (même plage, autre issue)', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().cascadeChoose(cibleStep.id, '7');
     get().cascadeNext();
@@ -328,7 +328,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('le tableau de marque montre le POT en jeu', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'abstract', value: 30 }, stakeBrass: 100, tablePlayers: 3 });
+    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const board = sequenceBoardOf(get);
     expect(board?.pot).toBe(`Pot : ${formatMoney(fromBrass(300))}`);
     expect(board?.camps).toHaveLength(3);

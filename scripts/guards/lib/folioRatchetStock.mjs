@@ -134,7 +134,6 @@ export const FOLIO_RATCHET = new Set([
   'trappings.json:catapulte-moyenne', // p.122 -> 123
   'trappings.json:catapulte-petite', // p.122 -> 123
   'trappings.json:epee-de-cour', // p.90 -> 93
-  'trappings.json:filet', // p.31 -> 29
   'trappings.json:gaffe-2', // p.90 -> 94
   'trappings.json:gantelet-a-pointes', // p.90 -> 94
   'trappings.json:grande-lance', // p.29 -> 30

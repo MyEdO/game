@@ -4,7 +4,7 @@
  * (mêmes clés) ; la logique ne change pas. Phase B : on y MIGRE les maps de labels jusqu'ici en dur.
  */
 export const fr = {
-  // Caractéristiques (LDB) — migré de engine/types.ts (CHAR_LABELS).
+  // Caractéristiques (LDB) — lu par `CHAR_LABELS` (`engine/types.ts`).
   'char.capacite-de-combat': 'Capacité de Combat',
   'char.capacite-de-tir': 'Capacité de Tir',
   'char.force': 'Force',
@@ -15,7 +15,7 @@ export const fr = {
   'char.intelligence': 'Intelligence',
   'char.force-mentale': 'Force Mentale',
   'char.sociabilite': 'Sociabilité',
-  // Difficultés de Test (LDB 12) — migré de engine/types.ts (DIFFICULTY_LABELS).
+  // Difficultés de Test (LDB 12) — lu par `DIFFICULTY_LABELS` (`engine/types.ts`).
   'difficulty.tresFacile': 'Très facile (+60)',
   'difficulty.facile': 'Facile (+40)',
   'difficulty.accessible': 'Accessible (+20)',
@@ -34,27 +34,27 @@ export const fr = {
   // du jet (`ui/RollLine.tsx`) — la cellule du dé y dit qu'aucun second tirage n'a lieu.
   'roll.secondeLecture': '{label} · 2ᵉ lecture',
   'roll.memeDe': 'même dé',
-  // Localisations d'impact (LDB) — migré de engine/types.ts (HIT_LOCATION_LABELS).
+  // Localisations d'impact (LDB) — lu par `HIT_LOCATION_LABELS` (`engine/types.ts`).
   'hitloc.tete': 'Tête',
   'hitloc.brasG': 'Bras gauche',
   'hitloc.brasD': 'Bras droit',
   'hitloc.corps': 'Corps',
   'hitloc.jambeG': 'Jambe gauche',
   'hitloc.jambeD': 'Jambe droite',
-  // Modes de défense (LDB 13) — migré de engine/combat.ts (DEFENSE_LABEL).
+  // Modes de défense (LDB 13) — lu par `DEFENSE_LABEL` (`engine/combat.ts`).
   'defense.parade': 'Parade',
   'defense.esquive': 'Esquive',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
-  // Attaques gratuites de créature (LDB 85) — migré de engine/combat.ts (FREE_ATTACK_LABEL).
+  // Attaques gratuites de créature (LDB 85) — lu par `FREE_ATTACK_LABEL` (`engine/combat.ts`).
   'freeAttack.morsure': 'Morsure',
   'freeAttack.caudale': 'Attaque caudale',
   'freeAttack.cornes': 'Cornes (charge)',
   'freeAttack.pietinement': 'Piétinement',
   'freeAttack.langue': 'Langue',
   'freeAttack.hurlement': 'Hurlement',
-  // Localisations par forme de corps (LDB 76 p.312) — migré de engine/types.ts (BODY_SHAPE_LOC_LABELS).
+  // Localisations par forme de corps (LDB 76 l.17-29) — lu par `BODY_SHAPE_LOC_LABELS` (`engine/types.ts`).
   'hitloc.quadrupede.brasG': 'Membre antérieur gauche',
   'hitloc.quadrupede.brasD': 'Membre antérieur droit',
   'hitloc.quadrupede.jambeG': 'Membre postérieur gauche',
@@ -121,6 +121,11 @@ export const fr = {
   'party.select.title': 'Choisir un aventurier',
   'party.slot.you': ' (vous)',
   'party.seat.host': 'Hôte',
+  'absent.heros': 'un héros qui a quitté le groupe',
+  'absent.combattant': 'un combattant qui a quitté le combat',
+  'absent.lieu': 'un lieu effacé de la carte',
+  'absent.navire': 'un navire retiré du catalogue',
+  'absent.saison': 'saison « {id} » (sans fiche)',
   'party.seat.player': 'Joueur {n}',
   'party.hero.edit': 'Modifier',
   'party.hero.replace': 'Remplacer',
@@ -296,6 +301,16 @@ export const fr = {
   'op.fall.deDegats': 'Dégâts de chute',
   'op.gainAdvantage': '{name} porte son Avantage à {n}.',
   'op.condPerRound': '{name} subira {v} État {cond} par Round ({src}).',
+  'op.nature.effet': 'Effet',
+  'op.nature.metamorphose': 'Métamorphose',
+  'op.nature.mutation': 'Mutation',
+  'op.nature.contrecoup': 'Contrecoup',
+  'op.nature.lumiere': 'Lumière',
+  'op.nature.sequelle': 'Séquelle',
+  'absent.mois': 'mois n° {id} (hors calendrier)',
+  'absent.race': 'race « {id} » retirée du Compendium',
+  'absent.carriere': 'carrière « {id} » retirée du Compendium',
+  'cargo.chargeNominale': 'Charge nominale',
   'op.condPerRoundUnless': "{name} regagnera l'État {cond} à chaque fin de Round, tant que dure {src} ({n} Rounds).",
   'op.condRegain': '{name} regagne {v} État {cond} : {src} le tient toujours.',
   'op.err.recurrenceHorloge': "op « condition » ({id}) : « perRound » ne se combine qu'avec « durationRounds » — la récurrence se compte en Rounds, une durée d'horloge n'a pas de frontière de Round.",
@@ -466,6 +481,7 @@ export const fr = {
   // ── Phase C : narration des effets de scène/campagne au journal (state/combatEffects). ──
   'eff.party': 'Le groupe',
   'eff.recover': '{name} récupère : {item}.',
+  'eff.recoverSansHeros': 'Personne ne récupère {item} : aucun héros dans le groupe.',
   'eff.purse': 'Bourse : {sign}{parts}.',
   'eff.coin.gold': '{n} CO',
   'eff.coin.silver': '{n} pa',
@@ -649,11 +665,11 @@ export const fr = {
   'cs.fragRunShort': ' — le souffle manque avant la destination',
   'cs.courageYes': '{name} rassemble son courage : il peut approcher {src} ce Tour.',
   'cs.courageNo': "{name} n'ose pas approcher {src} : la Peur le cloue (ce Tour).",
-  'cs.fearSourceFallback': 'la source de sa Peur',
   'cs.shameOvercome': '{name} surmonte sa honte (FM {roll}/{target}) et attaque {foe} malgré la Bénédiction de Protection.',
   'cs.shameBlocked': '{name} ne peut se résoudre à frapper {foe} (Bénédiction de Protection) — il doit choisir une autre cible ou une autre Action.',
   'cs.standUp': '{name} se relève.',
   'climb.tooHard': '{name} ne peut escalader cette paroi : elle est bien trop difficile sans le Talent Grimpeur.',
+  'climb.personne': 'Personne ne peut grimper : aucun héros n’a encore de Point de Blessure.',
   'climb.auto': '{name} escalade la paroi sans effort (Grimpant).',
   'fall.jumpSafe': '{name} saute dans le vide et amortit sa chute : aucun Dégât.',
   'cs.manPoste': '{name} prend en main {weapon}.',
@@ -894,7 +910,8 @@ export const fr = {
   'if.identifyConfusedWeek': '{name} confond {item} avec un objet similaire — la semaine est perdue.',
   'if.identifyConfusedType': "{name} confond {item} avec un objet d'un type similaire — il se méprend sur sa nature (Échec).",
   'if.identifyFailAware': "{name} n'identifie pas {item} cette semaine — il en est conscient (l'étude peut reprendre).",
-  'if.masterWeapon': '{name} a maîtrisé {item} (ACE p.219).',
+  // ACE 12 l.21
+  'if.masterWeapon': '{name} a maîtrisé {item}.',
   'if.researchDeep': '{name} étudie {item} en profondeur : Particularités et dangers révélés.',
   'if.researchMain': '{name} cerne la fonction principale de {item} et son activation.',
   'if.combatTrainingKo': '{name} peine à retrouver ses réflexes de combat ({skill}) cette semaine — aucun bénéfice.',
@@ -915,11 +932,13 @@ export const fr = {
   'if.orderTooExpensive': 'Commande trop chère ({cost}).',
   'if.orderPlaced': '{name} passe commande : {label} ({cost}) — livraison après la prochaine aventure.',
   'if.bankTierKo': '{name} : « Vous devez être des échelons Or et Argent pour épargner dans une banque ».',
-  'if.mecenatMin': 'Mécénat : mise minimale {min} (« au moins 5 CO », ACE p.220).',
+  // ACE 12 l.49
+  'if.mecenatMin': 'Mécénat : mise minimale {min}.',
   'if.depositPurseKo': 'La bourse de {name} ne couvre pas ce dépôt.',
   'if.eventBankPct': "Événement : {pct} % sur l'argent placé ({event}).",
   'if.bankInvest': "{name} investit {money} (Indice d'intérêts {rate} — {rate} % de gains, faillite sur ≤ {rate}).",
-  'if.bankMecenat': "{name} sponsorise un dramaturge prometteur : {money} (retrait par Test d'Évaluation Intermédiaire — Mécénat, ACE p.220).",
+  // ACE 12 l.49
+  'if.bankMecenat': "{name} sponsorise un dramaturge prometteur : {money} (retrait par Test d'Évaluation Intermédiaire).",
   'if.bankStash': '{name} planque {money} (retrait libre — découverte sur ≤ 10).',
   'if.withdrawNeedsActivity': 'Retirer un investissement exige une Activité.',
   'if.bankLost': '{name} — {roll} ≤ {threshold} : {what} — {money} perdus !',
@@ -956,6 +975,7 @@ export const fr = {
 
   // BATAILLE DE MASSE (`state/massBattleFlow.ts`, ADE II 8) — narration de journal et libellés d'aperçu.
   'mbf.inCombat': "Impossible d'ouvrir une bataille de masse en plein combat tactique.",
+  'mbf.endTestEnCours': 'Le Test « {test} » est en cours : terminez-le avant de clore la bataille.',
   'mbf.allyDefault': 'Armée des Personnages',
   'mbf.enemyDefault': 'Armée ennemie',
   'mbf.allyShortDefault': 'les Personnages',
@@ -1135,6 +1155,12 @@ export const fr = {
   'tavern.potRendu': 'Partie interrompue : {montant} de mises reprises sur la table.',
   'tavern.dejaEnCours': 'Une partie est déjà en cours : terminez-la avant d’en ouvrir une autre.',
   'tavern.potSansMise': '{who} ne pose aucune mise : aucune partie ne s’ouvre.',
+  'tavern.equipeSansCoequipier': '{jeu} se joue en équipe : choisissez le profil de vos coéquipiers.',
+  'tavern.coequipierHorsEquipe': '{jeu} ne se joue pas en équipe : aucun coéquipier à choisir.',
+  'tavern.jeuInconnu': 'Aucun jeu de taverne « {id} ».',
+  'tavern.challengerAbsent': '{jeu} : le héros qui proposait la partie a quitté le groupe.',
+  'tavern.adversaireAbsent': '{jeu} : l’adversaire n’est plus là.',
+  'tavern.coequipierSansProfil': '{jeu} : aucun profil de coéquipier « {profil} ».',
   'tavern.potChoix': '{who} — remettre une mise, ou abandonner ?',
   'tavern.potChoixRemise': 'Remettre {montant}',
   'tavern.potChoixAbandon': 'Abandonner la manche',
@@ -1383,7 +1409,6 @@ export const fr = {
   'store.saveOk': 'Partie sauvegardée (emplacement {slot}).',
   'store.saveKo': 'Sauvegarde impossible (stockage indisponible ou plein).',
   'store.sceneMissing': '(Scène « {scene} » introuvable — transition ignorée.)',
-  'store.climberFallback': 'Le grimpeur',
   'store.searchedAlready': '{what} : rien de plus à trouver.',
   'store.searchedFallback': 'Déjà fouillé',
   'store.actionJouee': '{what} : {action}…',
@@ -1464,11 +1489,9 @@ export const fr = {
   'tf.healPartial': '{name} récupère des Blessures (munition logée bloque le reste).',
   'tf.noMoreExtenue': '{name} n’est plus Exténué.',
   'tf.noAmbushConfigured': '(Aucune rencontre d’embuscade n’est configurée sur cette route — l’alerte reste sans suite.)',
-  'tf.partyFallback': 'Le groupe',
   'tf.survieOk': '{who} — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.',
   'tf.perceptionOk': '{who} — Perception (+20) : le groupe les voit venir !',
   'tf.perceptionAmbush': '{who} — Perception (+20) : embuscade !',
-  'tf.driverFallback': 'Le conducteur',
   'tf.modGallop': 'pas de course',
   'tf.modGalloped': 'Km déjà au pas de course ({n})',
   'tf.forcedStupefiant': 'Échec Stupéfiant — Problème de véhicule !',
@@ -1518,10 +1541,6 @@ export const fr = {
   'rv.controlKept': 'le barreur garde le cap.',
   'rv.controlSaved': 'le barreur rattrape la barre in extremis (Savoir Voies fluviales).',
   'rv.controlLost': 'le contrôle est perdu — le courant emporte le bateau.',
-  'rv.carpenterFallback': 'Le charpentier',
-  'rv.rowerFallback': 'Le rameur',
-  'rv.pilotFallback': 'Le barreur',
-  'rv.partyFallback': 'Le groupe',
   'rv.navigation': 'Navigation',
   // LOCALISATIONS de bateau : `shipLoc.*` (§ V8c₄, `engine/shipCritical.ts`) — le fluvial y était
   // arrivé le premier sous `rv.loc*` ; le moteur en porte désormais les HUIT, la navigation
@@ -1743,7 +1762,6 @@ export const fr = {
   'sv.fastTitle': 'Voyage rapide — Rude épreuve',
   'sv.cargoLostPct': "{pct} % de la cargaison s'est gâtée ou a été volée.",
   'sv.hullLostPct': '{ship} perd {n} Blessure(s) ({pct} %).',
-  'sv.hullFallback': 'La coque',
   'sv.fastBroken': "La traversée rapide est rompue : une voile hostile surgit sans que la vigie l'ait vue venir (Surprise) !",
   'sv.fastResult': "Voyage rapide — d10 {roll} − {weeks} semaine(s) {crewDR} DR (Rude épreuve) {manann} (dizaine d'Humeur de Manann) = {result} → {palier}.",
   'sv.arriveFast': '— Accostage à {to} (traversée rapide, {days} jour(s)) —',
@@ -1788,7 +1806,7 @@ export const fr = {
   'sv.hullTakes': '{label} : la coque encaisse {n} Blessure(s) (MDG 13 l.142).',
   'sv.sailsStruckInTime': 'Les voiles sont affalées à temps (MDG 13 l.292).',
   'sv.courseChange': 'Changement de cap (d10 {roll}, dérive {side}) : {desc}',
-  // Côtés de dérive (`courseChange.side`, ids `tribord`/`babord`) — MDG 13 l.263 écrit « bâbord ».
+  // Côtés de dérive (`courseChange.side`, ids `tribord`/`babord`) — MDG 13 l.322 écrit « bâbord ».
   'sv.sideTribord': 'tribord',
   'sv.sideBabord': 'bâbord',
   'sv.lighthouseSeen': "La lumière du phare est en vue — l'atterrage se précise (+{dr} DR d'Orientation, MDG 13 l.335).",
@@ -1825,7 +1843,8 @@ export const fr = {
   'sv.detailFuir': 'Course-poursuite : distancer la cogue (MDG 13 l.362-370).',
   'sv.detailCombattre': 'Refuser l’abordage et se défendre — abordage immédiat.',
   'sv.detailSoumettre': 'Laisser fouiller la cale ({pct} % de la cargaison pillée) puis livrer un tribut à Stromfels.',
-  'sv.pillaged': 'Les forbans fouillent la cale et emportent {enc} Enc de cargaison ({pct} %, MDG 15 p.131).',
+  // MDG 15 l.171-173
+  'sv.pillaged': 'Les forbans fouillent la cale et emportent {enc} Enc de cargaison ({pct} %).',
   'sv.pillagedEmpty': 'Les forbans fouillent une cale vide — rien à prendre.',
   'sv.detailLivrer': 'Un marin est emmené — perte réelle d’équipage, l’équipage est ébranlé.',
   'sv.detailRefuser': 'Les forbans passent à l’abordage.',
@@ -2075,7 +2094,6 @@ export const fr = {
   'sact.weekTitle': 'Activités de la semaine',
   'sact.tradeNoStake': "{name} — Commerce d'opportunité : aucune mise engagée.",
   'sact.tradeDone': "{name} — Commerce d'opportunité : mise {stake}, retour {back} ({pct} %).",
-  'sact.heroFallback': 'Le héros',
   'sact.chartOk': "{name} — Cartographie : une Carte marine d'une valeur de {gold} CO (+2 DR d'Orientation, MDG 15).",
   'sact.chartKo': '{name} — Cartographie : les relevés sont inutilisables.',
   'sact.stash': '{name} — Planque (MDG 15 l.292) : {money} cachés sur la carte — retrait libre, découverte sur ≤ 50.',
@@ -2146,7 +2164,6 @@ export const fr = {
   'port.buyerSearch': 'Recherche d’acheteur',
   'port.halfLot': '↔ {label} : personne pour tout le lot — la moitié ({enc} Enc) trouve preneur.',
   'port.noBuyer': '{label} : aucun marchand intéressé à {port} (nombre visé {target}).',
-  'port.partyFallback': 'Le groupe',
   'port.gossipRow': '{skill} — {label}',
   'port.hasSurplus': 'en regorge',
   'port.produces': 'en produit',
@@ -2161,9 +2178,6 @@ export const fr = {
   // ── #1318 V8c₅ (8ᵉ forme) — FRAGMENTS et REPLIS passés en PARAMÈTRE de `t()` : ils s'affichaient tels
   // quels (« pas compté » n'a jamais voulu dire « au catalogue »). Sites : `engine/ops.ts`,
   // `state/combatFlow.ts`, `state/combatSlice.ts`.
-  'op.srcFallback': 'Effet',
-  'op.srcSpell': 'sort',
-  'op.srcSequela': 'séquelle',
   'op.condAll': "tout l'État",
   'op.condSome': '{n} État',
   'op.resFate': 'Destin',
@@ -2183,7 +2197,6 @@ export const fr = {
 
   // ── #1318 V8c₅ — NAUFRAGE en mer (`state/shipwreck.ts`, `wreck.*`, MDG 13 l.674 / LDB 09 l.372 /
   // LDB 18 l.344). La Compétence (Natation) vient de `skills.json` : jamais bakée au gabarit.
-  'wreck.shipFallback': 'Le navire',
   'wreck.sinks': '{ship} sombre corps et biens (MDG 13 l.674).',
   'wreck.cargoSinks': '{label} et sa cargaison embarquée sombrent avec elle.',
   'wreck.unconscious': '{name} — inconscient dans les flots : emporté sans pouvoir nager (noyé, LDB 18 l.344).',
@@ -2277,7 +2290,6 @@ export const fr = {
   'summon.fragHostile': ' — hostile, hors de son contrôle !',
   'summon.fragAllies': ' (alliés)',
   'summon.dispels': '{name} se dissipe ({label}).',
-  'summon.fallbackLabel': 'invocation',
 
   // ── #1318 V8c₅ — SOCLE DU JET (`state/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.
   'roll.freeReroll': '{name} relance sans dépenser de Chance ({src}).',
@@ -2297,7 +2309,7 @@ export const fr = {
   'drunk.hangover': '{name} a la gueule de bois : 1 Exténué pendant {h} h.',
 
   // ── #1318 V8c₅ — MUNITION attendue par une arme à distance (`engine/items.ts`, `ammo.*`, hint
-  // d'achat/chargement quand carquois et coffre sont vides ; LDB 62 l.110-123, MDG 12 p.101).
+  // d'achat/chargement quand carquois et coffre sont vides ; LDB 62 l.110-123, MDG 12 l.410-424).
   'ammo.artillerie': 'Boulet et poudre',
   'ammo.poudreIngenierie': 'Balles et poudre',
   'ammo.arc': 'Flèches',
@@ -2323,7 +2335,7 @@ export const fr = {
   'social.statusMod': 'Statut ({beg}{side}) {sign}{mod}',
   'social.fragBegging': 'mendicité ',
 
-  // ── #1318 V8c₅ — CRITIQUE DE STRUCTURE de siège (`engine/structureCritical.ts`, AA 10 p.120-121).
+  // ── #1318 V8c₅ — CRITIQUE DE STRUCTURE de siège (`engine/structureCritical.ts`, AA 10 l.112-127).
   'structCrit.line': 'Critique de Structure : {label}{suite}{collapse}.',
   'structCrit.fragTrivial': ' (Triviale)',
   'structCrit.fragWounds': ' — {n} Blessure(s)',
@@ -2356,7 +2368,7 @@ export const fr = {
   'traitArg.paren': '({what})',
 
   // ── #1318 V8c₅ — VOYAGE À PIED : marche forcée et fatigue d'Encombrement (`engine/travel.ts`,
-  // `trv.*`, LDB 51 l.195 / LDB 61 p.295). La Compétence vient de `skills.json` (jamais bakée).
+  // `trv.*`, LDB 51 l.195 / LDB 61 l.35-48). La Compétence vient de `skills.json` (jamais bakée).
   'trv.forcedMarchOk': "{name} — marche forcée : il tient l'allure.",
   'trv.forcedMarchFail': '{name} — marche forcée : ÉCHEC, +{n} Exténué{over}.',
   'trv.fragOverloaded': ' (surchargé)',

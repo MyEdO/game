@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Paravent : cloison pliante à trois panneaux de toile tendue sur cadre, derrière laquelle les artistes
-// se changent dans les loges/vestiaires. Cf. plan officiel NADJ 8 p.40 (paravents des vestiaires des chœurs).
+// se changent dans les loges/vestiaires. Cf. plan officiel NADJ 08 folio 38, image (paravents des vestiaires des chœurs).
 export const prop: PropViz = {
   id: 'paravent',
   label: 'Paravent',

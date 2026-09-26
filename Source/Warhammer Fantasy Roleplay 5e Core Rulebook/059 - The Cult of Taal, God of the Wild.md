@@ -1,18 +1,16 @@
 *Pages PDF 212*
 
-# **THE CULT OF TAAL, GOD OF THE WILD**
+# <span id="page-211-0" data-folio="212"></span>**THE CULT OF TAAL, GOD OF THE WILD**
 
-**Seat of Power:** Talabheim, Talabecland **Head of the Cult:** Niav, Hierarch of Taal
+**Seat of Power:** Talabheim, Talabecland
+
+**Head of the Cult:** Niav, Hierarch of Taal
 
 **Primary Orders:** Order of the Antler, the Longshanks
 
-**Major Festivals:** Spring Equinox, with other equinoxes also
+**Major Festivals:** Spring Equinox, with other equinoxes also celebrated
 
-celebrated
-
-**Important Holy Texts:** *The Book of Green*, *Rites of the Ancient* 
-
-*Grove*, *Tome of Summer's Path*
+**Important Holy Texts:** *The Book of Green*, *Rites of the Ancient Grove*, *Tome of Summer's Path*
 
 **Common Holy Symbols:** Antlers, oaks, stone axes
 
@@ -33,6 +31,8 @@ Officially, the Hierarch leads the cult from there, though he spends most of his
 #### **Penances**
 
 Taal's penances usually involve clearing diseased or mutated monsters from wild areas, replanting sacred trees, and maintaining groves important to the cult. A cultist might also be ordered to climb a high mountain and leave a stone on a cairn at the top, or clear an obstruction at the top of a waterfall. Whatever the specific task that must be undertaken, Taal's penances almost always challenge the cultist to survive in the wild.
+
+#### **Strictures**
 
 - Offer a prayer of thanks for every animal taken.
 - Spend a week alone communing with the wilderness every year.

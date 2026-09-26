@@ -741,7 +741,7 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  `arene-projet.json` et prend `arene-hub`), et un coffre déplacé d'une case par le générateur
    *  déplaçait ses épingles. Ce qui NE dépend pas d'un chiffre authoré (plafond de hausse, zéro paire
    *  coplanaire après biais) continue de couvrir ces scènes, ici et dans les blocs voisins.
-   *  DETTE NOMMÉE : la mesure de relief n'a plus que DEUX sujets chiffrés. Un TROISIÈME régime
+   *  DETTE NOMMÉE : la mesure de relief a seulement DEUX sujets chiffrés. Un TROISIÈME régime
    *  (bourg meublé à fort relief) se rétablit par une scène CONSTRUITE portant du relief, pas en
    *  ré-épinglant une carte livrée. */
   const SANS_EPINGLE: [string, () => Scene, string][] = [

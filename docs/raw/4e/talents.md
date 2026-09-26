@@ -894,54 +894,54 @@ Vous êtes très résistant à la magie. Le DR de tout Sort vous affectant est r
 La meilleure défense c'est l'attaque, donc vous répondez à une attaque par une contre-attaque rapide comme l'éclair. Si votre arme possède l'Atout Rapide, vous pouvez infliger des Dégâts quand vous êtes attaqué, comme si c'était votre Action. Vous pouvez Riposter à un nombre d'attaques par Round égal à votre Niveau de Riposte. 
 
 ### Robuste
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1039-1043  
 **Maxi :** Bonus d'Endurance  
 
 Vous êtes un dur à cuire et vous encaissez les Dégâts. Vous réduisez tous les Dégâts subis de 1 par nombre de fois où vous avez pris le Talent Robuste, même si les Dégâts ne peuvent normalement pas être réduits. Mais vous subissez toujours un minimum de 1 Blessure de n'importe quelle source de Dégâts.
 
 ### Sans peur
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1045-1051  
 **Maxi :** Bonus de Force Mentale  
 **Tests :** Calme pour vous opposer à l'Intimidation, la Peur et la Terreur de votre Ennemi  
 
 Vous êtes suffisamment courageux ou fou pour que la peur de certains ennemis ne soit qu'un lointain souvenir. Avec un seul Test de Calme Accessible (+20), vous pouvez ignorer les effets d'Intimidation, de Peur ou de Terreur de l'ennemi spécifié quand vous le rencontrez. Les ennemis courants comprennent les hommes-bêtes, les peaux-vertes, les hors-la-loi, les vampires, les gardes et les Sorciers dissidents.
 
 ### Saut carpé
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1053-1057  
 **Maxi :** 1  
 
 Il est difficile de vous mettre à terre. Vous pouvez effectuer un Test d'Athlétisme Intermédiaire (+0) pour atterrir immédiatement sur vos pieds chaque fois que vous gagnez un État À Terre. Ce Test d'Athlétisme est souvent modifié par la Force du coup qui vous renverse : pour chaque tranche de +10 en Force que possède le coup au-delà de votre Endurance, vous subissez une pénalité de -10 au Test d'Athlétisme, et vice versa.
 
 ### Savant
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1059-1063  
 **Maxi :** Bonus d'Intelligence  
 **Tests :** Savoir (Savoir choisi)  
 
 Vous êtes exceptionnellement instruit, et vous possédez un niveau important de connaissances avancées dans un domaine d'études. Vous connaissez automatiquement un nombre d'informations correctes égal à votre Niveau de Savant (Savoir), au sujet d'une question pertinente sans avoir besoin de Test de Compétence Savoir. Les Tests, comme toujours, vous fourniront plus d'informations, déterminées par le MJ. 
 
 ### Savoir-vivre
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1065-1071  
 **Maxi :** Bonus de Sociabilité  
 **Tests :** Charme et Ragot (Groupe Social)  
 
 Vous pouvez vous intégrer socialement au groupe choisi, tant que vous vous habillez et vous comportez de façon appropriée. Voici des exemples de groupes sociaux pour ce Talent : Criminels, Cultistes, Guildes, Nobles, Érudits, Serviteurs et Soldats. Si vous ne possédez pas le Talent, ceux qui le possèdent remarquent votre gêne dans un environnement non familier. Cela concerne principalement l'interprétation du Personnage, mais peut conférer un bonus aux Tests de Sociabilité à la discrétion du MJ.
 
 ### Seconde vue
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1073-1077  
 **Maxi :** Bonus d'Initiative  
 **Tests :** N'importe quel Test pour détecter les Vents de Magie  
 
 Vous pouvez percevoir les Vents changeants de la Magie, qui soufflent depuis les Portes du Chaos jusqu'aux pôles du monde. Vous possédez à présent Seconde vue (voir page 233).
 
 ### Seigneur de guerre
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1079-1085  
 **Maxi :** Bonus de Sociabilité  
 **Tests :** Tests de Commandement pendant la guerre  
 
 Votre regard sévère et vos mots exaltants incitent vos soldats à se battre jusqu'au bout. Tous les subalternes capables de vous voir peuvent ajouter votre Niveau de Seigneur de guerre au DR d'un Test de Force Mentale par Round. Ce bonus n'est pas cumulatif.
 
 ### Sens aiguisé
-**Source :** LDB 10 p.145  
+**Source :** LDB 10 l.1087-1091  
 **Maxi :** Bonus d'Initiative  
 **Tests :** Perception (Sens)  
 
@@ -1116,6 +1116,7 @@ Vous pouvez voir parfaitement dans les ténèbres naturelles. En présumant que 
 **Voir aussi :** `vision.md` — brouillard de guerre, zones éclairées, états lumineux par case ; `equipement.md` § Éclairage — rayons de Bougie (10 m) et Lanterne (20 m), étendus de +20 m / niveau par ce Talent.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
+- `LDB 10` (l.1039-1043, l.1045-1051, l.1053-1057, l.1059-1063, l.1065-1071, l.1073-1077, l.1079-1085, l.1087-1091) → `fearImmuneVs`, `fearSourceFor`, `CombatFeature`, `resolvePsychAI`, `sansPeurVs`, `resolvePeurTest`, `resolveTerreurTest`, `CascadeStepMeta`, `pharmacologie`, `pied-marin`, +21 — `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/psychology.ts`, `src/state/combat/turnHooks.ts`, `src/state/combatFlow.ts`, +1 fichiers
 - `LDB 11` (l.176) → `ambush-vigilance`, `TraitCapabilities`, `trappeur`, `travailleur-qualifie`, `tres-fort`, `tres-resistant`, `tricheur`, `tueur`, `veloce`, `vigilance`, +5 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/talents.json`, `src/state/vision.ts`
 - `EDOC 13` (l.254-256) → `chaosDomainOf`, `allure-demoniaque-nurgle`, `allure-demoniaque-slaanesh`, `allure-demoniaque-tzeentch`, `allure-demoniaque-indivisible`, `GameOp`, `OpsCtx`, `empreint-de-la-magie`, `allure-demoniaque`, `aspect-sublime` — `src/data/spells.json`, `src/data/tables.json`, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, `src/engine/ops.ts`
 - `NADJ 15` (l.47) → `empreint-d-ulgu` — `src/data/talents.json`

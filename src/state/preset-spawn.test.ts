@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { mergeCreatureProfile, resolvePresetCreature } from './campaignData';
+import { FicheAbsente, sceneNpc } from './sceneNpc';
+import { netSnapshot, applyNetSnapshot } from './netFlow';
 import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { emptyScene, type Scene } from './scene';
@@ -90,13 +92,11 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
     expect(e.label).toBe('Nommé Test');
   });
 
-  it('échoue sans la clé : couche NON chargée → même presetId ne résout pas, repli générique', () => {
+  it('couche NON chargée : le presetId ne résout pas, et le PNJ sans autre porteur est un BOGUE nommé, jamais un PNJ générique (#1882)', () => {
     useGame.setState({ party: [hero()], campaignNarratif: null });
-    useGame.getState().startScene(presetScene('sc-nu'));
+    expect(() => useGame.getState().startScene(presetScene('sc-nu'))).toThrow(FicheAbsente);
     expect(resolvePresetCreature('pnj-test')).toBeUndefined();
-    const e = spawnedEnemy();
-    expect(e.characteristics[CC]).not.toBe(99); // repli (ni ref ni statblock) → PNJ générique
-    expect(e.label).not.toBe('Nommé Test');
+    expect(() => useGame.getState().startScene(presetScene('sc-nu'))).toThrow(/personnage « pnj-1 » : preset de PNJ « pnj-test » irrésoluble/);
   });
 
   it('resolvePresetCreature : base introuvable → undefined (fail-doux)', () => {
@@ -120,5 +120,25 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
   it('presetId déclaré dans le narratif → parseProject passe', () => {
     const doc = { ...enveloppe, scenes: [presetScene('sc-ok')], narratif: narratifFixture() };
     expect(() => parseProject(doc)).not.toThrow();
+  });
+});
+
+/**
+ * COOP (#1882) — la couche narrative d'un projet (`campaignNarratif`) est hors snapshot (`HORS_SAVE`,
+ * saves.ts) : l'invité la RE-DÉRIVE de `campaignDoc`, par la même couture que la reprise de save
+ * (`reposerPaquetDeCampagne`, store.ts). Sans elle, un PNJ à preset n'a pas de fiche chez l'invité.
+ */
+describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {
+  it('l’hôte et l’invité voient le MÊME PNJ à preset', () => {
+    useGame.setState({ party: [hero()], campaignNarratif: null });
+    useGame.getState().loadProject([presetScene('sc-coop')], 'sc-coop', null, narratifFixture());
+    expect(sceneNpc(useGame.getState().scene, 'pnj-1')?.label).toBe('Nommé Test');
+
+    const snap = netSnapshot(useGame.getState);
+    useGame.setState({ campaignNarratif: null }); // l'invité n'a jamais chargé le paquet
+    applyNetSnapshot(useGame.setState, snap);
+
+    expect(useGame.getState().campaignNarratif?.presetsPnj.map((p) => p.id)).toEqual(['pnj-test']);
+    expect(sceneNpc(useGame.getState().scene, 'pnj-1')?.label).toBe('Nommé Test');
   });
 });

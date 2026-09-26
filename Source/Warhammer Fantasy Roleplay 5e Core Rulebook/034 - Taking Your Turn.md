@@ -1,6 +1,6 @@
 *Pages PDF 162*
 
-# **TAKING YOUR TURN**
+# <span id="page-161-0" data-folio="162"></span>**TAKING YOUR TURN**
 
 Combat is fast, chaotic, and constantly changing. Blades flash, arrows fly, and combatants weave between friend and foe in a desperate struggle for survival.
 

@@ -9,6 +9,6 @@ export const creature: CreatureDef = {
   plan: 'arachnid',
   spider: {
     sl: 1.0, girth: 1.14, // gros abdomen bulbeux (LDB 78 : « effroyablement grandes »)
-    stored: { corps: '#6a5138', corpsO: '#241a10', corpsH: '#c9ab77', cheveux: '#181210', cheveuxO: '#0e0a08', cuir: '#7a1010' },
+    palette: { corps: '#6a5138', corpsO: '#241a10', corpsH: '#c9ab77', cheveux: '#181210', cheveuxO: '#0e0a08', cuir: '#7a1010' },
   },
 };

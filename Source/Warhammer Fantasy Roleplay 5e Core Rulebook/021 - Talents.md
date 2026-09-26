@@ -1,6 +1,6 @@
 *Pages PDF 114-128*
 
-## **TALENTS**
+## <span id="page-113-0" data-folio="114"></span>**TALENTS**
 
 You choose your initial Talents as part of creating your Character. Once your adventures have begun, you can buy additional Talents using Experience Points (XP) between adventures (see page 191), usually those from your current Career Level and the levels below it. Some Talents can be taken multiple times, as explained in their descriptions.
 
@@ -28,7 +28,7 @@ You can use your off-hand far better than most folk, either by training or innat
 
 Wild animals feel comfortable in your presence, treating you much as they would an otherwise innocuous part of the environment. As long as you do not act aggressively towards them, wild animals will not ordinarily attack you.
 
-### **Arcane Magic (Lore)**
+### <span id="page-114-0" data-folio="115"></span>**Arcane Magic (Lore)**
 
 You either study one of the eight Colour Lores of Magic (Beasts, Death, Fire, Heavens, Life, Light, Metal, or Shadows), a Witch Lore such as Hedgecraft or Witchcraft, or a Dark Lore like Daemonology or Necromancy. Upon learning the Talent, you gain one Spell of your choice from your chosen Lore. You may now memorise additional Spells from your chosen Lore for the following cost in XP.
 
@@ -54,7 +54,9 @@ You have a natural talent for art. You may always advance the Art Skill, even if
 
 Whether it is your piercing eyes or the flash of your perfect teeth, you know how to make the best use of what the gods gave you. When you successfully use Charm to influence those attracted to you, you can choose to either use your rolled SL, or the number rolled on your units die.
 
-IV **Battle Rage** You are always on the edge of self-control, ready to slip into a violent *Frenzy* at any moment (see page 184). If another ability would allow you to enter a state of *Frenzy*, you may do so without making a Test. Furthermore, when you exit the *Frenzy*  state, you do not incur a *Fatigued* Condition.
+### **Battle Rage**
+
+You are always on the edge of self-control, ready to slip into a violent *Frenzy* at any moment (see page 184). If another ability would allow you to enter a state of *Frenzy*, you may do so without making a Test. Furthermore, when you exit the *Frenzy*  state, you do not incur a *Fatigued* Condition.
 
 ### **Beat Blade**
 
@@ -72,7 +74,7 @@ You hurl yourself at your enemies with reckless abandon, using the force of your
 
 You are adept at offering effortless, entirely false justifications for being somewhere you shouldn't be, or doing something you shouldn't be doing. When you are caught, make a Charm Test, Opposed by your target's Cool. If you pass, your preposterous explanation convinces them for one Turn (or minute, depending on the situation) per SL you achieved on the Opposed Test. If you achieved a number of SL greater than your target's Willpower Bonus, they remain convinced until someone else points out the incongruity in your explanation.
 
-### **Bless (Deity)**
+### <span id="page-115-0" data-folio="116"></span>**Bless (Deity)**
 
 You are watched over by one of the gods and can empower simple prayers. Upon learning the Talent, you manifest all the Blessings of the deity you worship.
 
@@ -134,6 +136,8 @@ You are used to scanning the battlefield to make snap decisions informed by the 
 
 You are adept at making your presence felt on the battlefield, using your size or speed to corner your opponents. You count as two people for the purposes of outnumbering an opponent, or when determining if your side is outnumbered. See page 167 for the rules for outnumbering.
 
+### <span id="page-116-0" data-folio="117"></span>**Combat Reflexes**
+
 You react quickly to danger, leaping to attack your enemy without pause. When you roll for Combat Initiative, roll twice and choose your prefered result.
 
 ### **Commanding Presence**
@@ -156,7 +160,9 @@ Gain +5 Willpower. This does not count toward Advances.
 
 You know how to get the most out of your animals. Assuming you have the Drive Skill, you can direct your vehicle's animals to take an Action, as well as a Move, without a Test. When a Drive Test is required, make it with Advantage. When driving a vehicle in a Pursuit, add +1 to the animals' Movement Attributes.
 
-IV **Craftsman (Trade)** You are a true creative talent, sufficiently skilled in a craft to have the potential to elevate it to an art form. Choose a Trade Specialisation. You gain Advantage on Tests of this skill, and may Advance it even if it is not part of your current Career. You may purchase this Talent more than once, choosing a new Trade Specialisation each time you do.
+### **Craftsman (Trade)**
+
+You are a true creative talent, sufficiently skilled in a craft to have the potential to elevate it to an art form. Choose a Trade Specialisation. You gain Advantage on Tests of this skill, and may Advance it even if it is not part of your current Career. You may purchase this Talent more than once, choosing a new Trade Specialisation each time you do.
 
 ### **Criminal**
 
@@ -176,9 +182,7 @@ You are a skilled businessman who knows how to close a deal. You gain Advantage 
 
 You are able to sense when magic lies within an artefact. You can automatically tell if an item contains magical energy merely by touching it. If you also possess the *Second Sight* Talent, you may attempt an Intuition Test to determine the exact powers, means of activation, and number of charges the item possesses.
 
-117
-
-### **Dicer**
+### <span id="page-117-0" data-folio="118"></span>**Dicer**
 
 You are a gaming master, so skilled and lucky in most games of chance that you are frequently accused of cheating, despite rarely needing to. You gain Advantage on any Gamble Test you make.
 
@@ -198,7 +202,7 @@ You are trained in simple movements to distract or startle your opponent, drawin
 
 At the age of 10, you underwent the Dooming, a coming-of-age ritual observed by many humans in the Old World. During the incense-laden rite, a priest of Morr known as a doomsayer foretold the manner of your death. In conjunction with your GM, devise a suitable Doom. If your Character dies in the manner foretold, all allied Characters immediately refresh their Fortune, and your next Character begins play with an additional Fate Point.
 
-### **DOOMINGS**
+**DOOMINGS**
 
 | 1d100 | Dooming                                                                            | 1d100 | Dooming                                                                           |
 |-------|------------------------------------------------------------------------------------|-------|-----------------------------------------------------------------------------------|
@@ -218,6 +222,8 @@ At the age of 10, you underwent the Dooming, a coming-of-age ritual observed by 
 | 42–44 | It ringeth once: peace. It ringeth twice: pleasure. It ringeth thrice: death.      | 92–94 | Heed the siren's trilling, or soon your heart lies still.                         |
 | 45–47 | The Twisted Puppeteer doth pull thy strings and thus conjure up the end of things. | 95–97 | Rise not before Cacklefax's calling, for thine death is early indeed.             |
 | 48–50 | Ottokar dared to court the divine, but to do so is no right of thine.              | 98–00 | Morr sends a maiden.                                                              |
+
+### <span id="page-118-0" data-folio="119"></span>**Drilled**
 
 You have been trained to fight shoulder-to-shoulder with other soldiers as a single unit. Allies may freely Disengage from an opponent you are also Engaged with as you cover their retreat. Additionally, on your Turn you may lose Momentum in order to grant Momentum to any allies you are standing shoulder to shoulder with, so long as they also have this Talent.
 
@@ -245,7 +251,7 @@ You can move your hands with surprising dexterity. You can use Sleight of Hand t
 
 #### **Fast Shot**
 
-IV **Drilled** You can draw and fire a pistol with lightning speed, attacking before the Combat Initiative sequence begins. If you are not Engaged, you may make a single attack with a loaded weapon with the *Pistol* Trait before the first turn of the Round. This attack uses your Action for the Round. If multiple Characters use *Fast Shot*, resolve their attacks in Combat Initiative order. When your turn arrives, you act as normal, but cannot make another attack.
+You can draw and fire a pistol with lightning speed, attacking before the Combat Initiative sequence begins. If you are not Engaged, you may make a single attack with a loaded weapon with the *Pistol* Trait before the first turn of the Round. This attack uses your Action for the Round. If multiple Characters use *Fast Shot*, resolve their attacks in Combat Initiative order. When your turn arrives, you act as normal, but cannot make another attack.
 
 ### **Fearless (Enemy)**
 
@@ -267,7 +273,7 @@ You are a very capable fisherman and know all the best ways to land fish. Assumi
 
 You have dedicated your pain to the service of your god, and regular and repeated self-inflicted wounds mean that pain now only incites you to greater feats. You feel no pain and may ignore penalties inflicted by Critical Wounds, other than amputations. Additionally, if another ability or effect allows you to *Frenzy*  (page 184), you may enter a *Frenzy* any time you suffer a Wound without requiring a Test.
 
-### **Flee!**
+### <span id="page-119-0" data-folio="120"></span>**Flee!**
 
 When your life is on the line, you are capable of impressive bursts of speed. If you Disengage from combat, you may immediately make an extra Move to sprint away from your opponent. If you choose to Flee in combat (page 163), you do not gain any *Broken* Conditions. Tests as the Quarry in a Pursuit benefit from +1 SL.
 
@@ -317,7 +323,7 @@ You clearly see the great works of the gods all around you. You automatically kn
 
 You are a skilled hunter and know all the best techniques to find game. When travelling through well-stocked lands, you are automatically assumed to be able to hunt down enough game to feed yourself and a number of others equal to your Initiative Bonus, so long as you have time and the correct equipment. You may secure more food in addition to this using the normal rules for foraging (see page 152).
 
-#### **Impassioned Zeal (Cause)**
+#### <span id="page-120-0" data-folio="121"></span>**Impassioned Zeal (Cause)**
 
 You have a fervent belief in a certain cause, whether it be political, religious, or philosophical. When you talk about your cause, your words fill with passion and fervent zeal. You gain Advantage on Charm Tests when speaking on these matters. You also find it hard to deny, or prevaricate about the cause, and suffer Disadvantage when lying about or denouncing the subject of your passions.
 
@@ -375,7 +381,7 @@ Gain +5 Agility. This does not count toward Advances.
 
 You have a natural affinity for languages and learn new ones with ease. You gain Advantage on Language Tests. Additionally, Advances in any Language Specialisations always cost 50 XP, no matter how many Advances you have already taken. This Talent applies only to languages used for true communication — its effects do not apply to Language (Magick)*.*
 
-#### **Lip Reading**
+#### <span id="page-121-0" data-folio="122"></span>**Lip Reading**
 
 You can work out what people are saying by watching their lips move. If you have an unobstructed view of the speaker's mouth, you can attempt a **Challenging (+0 SL) Intuition** Test to understand what they are saying.
 
@@ -419,7 +425,7 @@ You have an imposing presence, and most people know to steer clear of you. You g
 
 You have a good ear for accents and dialects and can reproduce them accurately. You gain Advantage on Entertain (Acting, Comedy) and Perform (Clowning) Tests. Additionally, you may replicate any accent you are exposed to for at least a day, which may help with dealing with locals in an area at the GM's discretion.
 
-IV If you are familiar with an accent, you know if another is attempting to fake it or hide it unless they also have *Mimic*.
+<span id="page-122-0" data-folio="123"></span>If you are familiar with an accent, you know if another is attempting to fake it or hide it unless they also have *Mimic*.
 
 #### **Night Vision**
 
@@ -471,7 +477,7 @@ Full rules for learning new Spells are provided in **Chapter 8: Magic**. You can
 | 16 to 20                         | 200 XP                  |
 | 21 and up                        | 250 XP                  |
 
-#### **Pharmacist**
+#### <span id="page-123-0" data-folio="124"></span>**Pharmacist**
 
 You are highly skilled at pharmacy, better able than most to make pills, unguents, oils, creams, and more. When creating an alchemical remedy (see page 154), you produce an additional dose.
 
@@ -527,6 +533,8 @@ You know all the tricks for navigating dangerous rivers. You need not Test to na
 
 You are as tough as old boots and quickly recover from injury. Whenever you test to heal Wounds you may heal an additional 2 Wounds.
 
+#### <span id="page-124-0" data-folio="125"></span>**Roughrider**
+
 You are at home in the saddle in even the most difficult of circumstances and know how to protect your mount from harm during poor conditions. Assuming you have the Ride Skill, you can direct your mount to take an Action, as well as a Move, without a Ride Test. If a Ride Test is required, you may make it with Advantage. Furthermore, when mounted in a Pursuit, add +1 to the animal's Movement Attribute.
 
 #### **Rover**
@@ -559,7 +567,7 @@ You are an inquisitive soul who has travelled far and wide, and quickly pick up 
 
 #### **Second Sight**
 
-IV **Roughrider** You can perceive the shifting Winds of Magic that course from the Chaos Gates at the poles of the world. You now have the ability to percieve the Winds of Magic (see page 236).
+You can perceive the shifting Winds of Magic that course from the Chaos Gates at the poles of the world. You now have the ability to percieve the Winds of Magic (see page 236).
 
 #### **Secret Identity**
 
@@ -583,7 +591,7 @@ You can make shots of exceptional accuracy. Ranged Tests you make do not incur a
 
 You are skilled at using your shield to control the flow of battle. Once per Round, while carrying a shield, you may lose Momentum to either grant your shield's AP bonus to an adjacent ally who is not carrying a shield, or, if you win an Opposed Melee Test while attacking or defending, push your opponent up to 2 yards directly away and no longer count as Engaged.
 
-#### **Sixth Sense**
+#### <span id="page-125-0" data-folio="126"></span>**Sixth Sense**
 
 You get a strange feeling whenever danger is near. If you are about to trigger a trap or fall victim to a hidden danger, such as an ambush, collapsing tunnel, or poisoned glass of wine, you may make a **Challenging (+0 SL) Intuition** Test. On a success, you detect the danger at the last possible moment.
 
@@ -619,7 +627,7 @@ You are used to getting by with less, and know how to survive lean times. If a m
 
 No matter how bad things get, you always seem to come back for more. The first time in an encounter you gain one or more *Broken* Conditions, you gain one less.
 
-#### **Striding Gait (Terrain)**
+#### <span id="page-126-0" data-folio="127"></span>**Striding Gait (Terrain)**
 
 You are experienced in traversing difficult ground. You ignore all movement penalties when crossing over or through a specified terrain. If engaged in a Pursuit in your chosen terrain, you receive +2 SL to all Tests relating to the Pursuit. Example Terrains are: Coastal, Desert, Rocky, Tundra, Wetland, Woodland. You may take this Talent more than once, choosing a new Terrain each time you do.
 
@@ -651,7 +659,9 @@ You are the epitome of determination and resolve. Once per session, before takin
 
 You are an accomplished swimmer, able to fight a strong current and outpace other swimmers. You gain Advantage on Swim Tests, and receive a +2 SL Bonus to swimming Pursuits.
 
-IV **Sturdy** You have a brawny physique, or are very used to carrying things. When calculating the number of Encumbrance Points you can carry, count your Strength Bonus twice.
+#### **Sturdy**
+
+You have a brawny physique, or are very used to carrying things. When calculating the number of Encumbrance Points you can carry, count your Strength Bonus twice.
 
 #### **Suave**
 
@@ -681,7 +691,7 @@ You are a vigorous sort. The first time in an encounter you would gain one or mo
 
 You are somewhat of a Johann-of-all-trades, able to repair almost anything. You count all Trade Skills as Basic when repairing broken items. If you have at least 1 Advance in a Trade Skill, you have Advantage on Tests to repair associated items, and such repairs take half as much time.
 
-#### **Tower of Memories**
+#### <span id="page-127-0" data-folio="128"></span>**Tower of Memories**
 
 A recollection technique first instigated by the Cult of Verena, reputedly from elven practices taught by the loremasters of Hoeth, *Tower of Memories* allows you to perfectly recall a significant amount of facts by storing them in an imaginary spire. When you successfully use the Lore Skill, you can choose to either use your rolled SL, or the number rolled on your units die.
 
@@ -738,5 +748,3 @@ You are used to anticipating the needs of others, and yourself. Once per session
 You have learned magic through trial and error. Gain one Spell of your choice from any Colour Lore or the Lore of Witchcraft, even if you lack the appropriate *Arcane Magic* Talent. Further, treat that Spell's Channelling Skill as a Basic Skill. You can memorise an additional such Spell (and treat its Channelling Skill as Basic) for 150 XP; further Spells cost 50 XP more each time.
 
 Possession of this Talent may attract the attention of witch hunters, and complicate matters should you wish to join an established magical tradition. You can spend 100 XP to lose this Talent and all associated Spells.
-
-V

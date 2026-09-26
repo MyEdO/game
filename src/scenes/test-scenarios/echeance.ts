@@ -22,7 +22,7 @@ const auberge = buildScene({
     'Rien à faire d’autre ici que dormir — regardez le bandeau d’objectif en haut de l’écran se ' +
     'décompter à chaque nuit (« Dormir jusqu’au lendemain » chez l’aubergiste).',
   entities: [
-    { id: 'aubergiste', kind: 'personnage', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge-echeance' },
+    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge-echeance' },
   ],
   dialogues: [
     {
@@ -79,5 +79,5 @@ export const scenario: TestScenario = {
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
   makeParty: () => pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
   scene: auberge,
-  money: { gold: 2, silver: 0, brass: 0 }, // #668 : de quoi payer une nuit d'auberge à 4 (2 chambres privées + 4 repas ≈ 24s, LDB 66 p.302) du premier clic
+  money: { gold: 2, silver: 0, brass: 0 }, // #668 : de quoi payer une nuit d'auberge à 4 (2 chambres privées + 4 repas ≈ 24s, LDB 66 l.13/16/28) du premier clic
 };

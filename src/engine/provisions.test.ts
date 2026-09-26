@@ -28,7 +28,7 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
 /** RNG forcé : d100 → toujours `roll` (échec/réussite déterministe), d10 → 10. */
 const fixed = (roll: number): RNG => ({ int: (_min, max) => (max === 100 ? roll : max) });
 
-describe('dailyFoodUpkeep — rations (LDB p.302) et faim (LDB 18 l.342)', () => {
+describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () => {
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
     const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));

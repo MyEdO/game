@@ -54,7 +54,7 @@ export function corruptionEaseSteps(c: Combatant): number {
  *  décide. `toute` = Chaos non aligné (table EDOC élargie). */
 export type ChaosAlign = 'toute' | 'khorne' | 'nurgle' | 'slaanesh' | 'tzeentch';
 
-/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 p.184-185). */
+/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140). */
 export interface Mutation {
   /** `id` STABLE (slug) — clé de résolution runtime/données (registre, table de Corruption, rendu).
    *  « On ne se base plus sur le label » : le `label` ne sert qu'à l'affichage. */
@@ -74,7 +74,7 @@ export interface Mutation {
   passive?: GameOp[];
   /** Effets DÉCLENCHÉS de la mutation — MÊME vocabulaire que `TraitData.effects`/`SymptomData.effects`,
    *  dispatchés par l'unique `fireTriggers` (aucun chemin par KIND). Sert les mutations à cadence :
-   *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 8 p.67). */
+   *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 12 l.217). */
   effects?: TriggeredEffect[];
   /** Partie non modélisée de l'effet — verbatim, arbitrage MJ (rien d'inventé). */
   note?: string;
@@ -122,7 +122,7 @@ export function corruptionThresholdExceeded(c: Combatant): boolean {
   return (c.corruption ?? 0) > corruptionThreshold(c);
 }
 
-/** « PROFANE » au sens de la Protection de Phâ (LDB 48 p.249) : créature ayant le Trait Mort-vivant OU
+/** « PROFANE » au sens de la Protection de Phâ (LDB 48 l.393) : créature ayant le Trait Mort-vivant OU
  *  Démoniaque, OU porteuse de Mutations, OU dont la Corruption dépasse ses Bonus de FM + E combinés.
  *  Lue par la Zone sacrée (barrière d'entrée + Brisé aux profanes présents). */
 export function isProfane(c: Combatant): boolean {

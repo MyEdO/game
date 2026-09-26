@@ -1,6 +1,6 @@
 *Pages PDF 146-151*
 
-# **NOSING AROUND**
+# <span id="page-145-0" data-folio="146"></span>**NOSING AROUND**
 
 The Empire is rife with secretive schemes and dark conspiracies. Nobles expend a hundred lives to move a border two fields over, while the servants of the Dark Gods work to undermine civilisation itself.
 
@@ -14,7 +14,7 @@ Instead, allow Characters to notice one or two important clues straight away. Us
 
 Let the Players piece the evidence together where possible, and if they still become stuck, provide another lead. If all else fails, a helpful NPC can always point the way. An unsolved mystery is intriguing — one the Characters never discover is simply frustrating.
 
-#### **COMMON MEANS OF INVESTIGATION AND RESEARCH**
+**COMMON MEANS OF INVESTIGATION AND RESEARCH**
 
 | Action | Test |
 |---|---|
@@ -28,7 +28,7 @@ Let the Players piece the evidence together where possible, and if they still be
 | Spot a forgery | An Evaluate Test, with a Difficulty set by the quality of the work. |
 | Follow someone's trail | A Track Test, with a Difficulty set by the conditions and age of the trail. Opposed by your quarry's Track only if they took the time to cover their trail. |
 
-# **COMMON MEANS OF INVESTIGATION AND RESEARCH** V
+<span id="page-146-0" data-folio="147"></span>**COMMON MEANS OF INVESTIGATION AND RESEARCH**
 
 | Action | Test |
 |---|---|
@@ -42,7 +42,7 @@ Let the Players piece the evidence together where possible, and if they still be
 | Spot a forgery | An Evaluate Test, with a Difficulty set by the quality of the work. |
 | Follow someone's trail | A Track Test, with a Difficulty set by the conditions and age of the trail. Opposed by your quarry's Track only if they took the time to cover their trail. |
 
-### **EXAMPLE DIFFICULTIES OF COMMON INVESTIGATIVE TASKS**
+**EXAMPLE DIFFICULTIES OF COMMON INVESTIGATIVE TASKS**
 
 | Difficulty          | Action                                                                                                                                                                                                                             |
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -54,13 +54,14 @@ Let the Players piece the evidence together where possible, and if they still be
 | Hard (-2 SL)        | Research: Find the true name of a daemon hidden in a mad wizard's grimoire.<br>Lore (Law): Recall the perfect legal precedent to make a stunning point in court.<br>Track: Follow a day-old trail across barren, rocky mountains.  |
 | Very Hard (-3 SL)   | Research: Get to the bottom of a dwarf grudge.<br>Perception: Notice that a single book is missing from a towering bookshelf.<br>Lore (Reikland): Recall the name of every one of Karl Franz's cousins.                            |
 
-# **What You Already Know**
+# <span id="page-147-0" data-folio="148"></span>**What You Already Know**
 
 Even the most ignorant peasant in the Empire knows something of the world around them, even if it is only which cow provides the most milk and how much coin it will take to ensure their lord does not evict them come winter. The information in **Chapter 10** is common knowledge, and does not require a Test to know or remember.
 
-| COMMON LORE SPECIALISATIONS | |
-|---|---|
+**COMMON LORE SPECIALISATIONS**
+
 | Specialisation | Information Provided                                                                                                                                                         |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Engineering    | Understand the application of levers, pulleys, inclined planes, and other simple machinery. Recognise the work of a specific artisan, or the principles underlying a complex machine.           |
 | Geology        | Recognise specific types of stone, and determine where digging a well or mine is likely to prove fruitful, or judge if a cave is prone to flooding or likely to collapse.                       |
 | Heraldry       | Recognise the banners and iconography of great noble houses and military outfits. Determine the meaning of the animals, colours, and other symbols used in a coat of arms.                      |
@@ -95,9 +96,7 @@ If players spend too long discussing tactics during combat, the GM can remind th
 
 The following are the most common languages of the Old World, and the peoples who speak them. Many other tongues exist, but these are the ones most often encountered in the Reikland.
 
-V
-
-| LANGUAGE       | FAMILY                                    | SPOKEN BY…                                                                                                                                                                                                                    |
+<span id="page-148-0" data-folio="149"></span>| LANGUAGE       | FAMILY                                    | SPOKEN BY…                                                                                                                                                                                                                    |
 |----------------|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Albion         | None                                      | …the folk of Albion, who hail from a far-off, mist shrouded island realm and are rarely encountered.                                                                                                                       |
 | Battle Tongue  | None                                      | …warriors of the Old World. Composed of simple commands and gestures, it was supposedly developed by the goddess Myrmidia when she walked the Old World as a mortal.                                                    |
@@ -119,7 +118,7 @@ V
 | Thieves Tongue | None                                      | …street folk of the Old World. Expressions of this language are highly localised and individual, with local variants common.                                                                                               |
 | Wastelander    | Bretonnian, Haffennaff, Reikspiel      | ...the rural folk of the Wasteland, a windswept territory to the west of the Reikland. The official language of the Wasteland's capital, Marienburg, is Reikspiel, a reminder that the nation was once part of the Empire. |
 
-# **Research**
+# <span id="page-149-0" data-folio="150"></span>**Research**
 
 Most people in the Empire cannot read or write, so knowledge is usually spread by rumour, gossip, and proclamation. For the literate, however, books, records, and grimoires hold a wealth of information.
 
@@ -175,7 +174,7 @@ Investigation is about interpreting clues, not finding them. Essential clues sho
 
 Searching a room usually requires a **Challenging (+0 SL) Perception Test**. Higher SL reveal better-hidden clues or provide additional insights. If several Characters search the same area, try to reward every successful Test with something useful, rather than letting the highest result reveal everything.
 
-# V **EXAMPLE OUTCOMES**
+# <span id="page-150-0" data-folio="151"></span>**EXAMPLE OUTCOMES**
 
 **A Challenging (+0 SL) Perception Test to search the scene of a murder**
 

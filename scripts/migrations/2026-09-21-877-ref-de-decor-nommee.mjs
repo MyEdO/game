@@ -1,7 +1,7 @@
 /**
  * Migration #877 — le TYPE d'un décor se NOMME, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 12` : toute entité `kind:'prop'` sans `ref` reçoit
+ * UN geste, et le document passe en `schema: 12` au moins : toute entité `kind:'prop'` sans `ref` reçoit
  * `ref: 'tonneau'` — le type que le MONDE dessinait en dur avant ce lot (`gameIso/builders/props.ts`,
  * la voie du décor de scène). Ce que la migration ÉCRIT, c'est ce que le monde MONTRAIT : le décor
  * de scène sort inchangé. Le backend SPRITE (`entitySprite` → `tokenBodyKind`), lui, ne dessinait RIEN
@@ -36,9 +36,12 @@
  * Parité avec `PROJECT_MIGRATIONS[11]` mesurée par `src/state/projet-migration-11-vers-12.test.ts`.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0 (plus aucun décor sans
  * `ref`).
- * BORNE HAUTE CLOSE (`schema` ∈ {11, 12}, jamais « ≥ 11 ») : DERNIÈRE de la chaîne dans l'ordre
- * lexical, elle est la seule à savoir ce qui existe après elle et NOMME un `schema` futur.
- * FAIL-FAST : `schema` absent, non numérique ou ∉ {11, 12}, `scenes` non-tableau, périmètre vide →
+ * BORNE HAUTE OUVERTE (`schema` ∈ {11, ≥ 12}) : la DERNIÈRE migration de la chaîne dans l'ordre
+ * lexical est la seule à nommer un `schema` futur (`DERNIERE`, dérivée par
+ * `src/scenes/migrations-format-projet.test.ts`). Un document déjà plus récent traverse donc ici
+ * sans être RABAISSÉ : le document sort en `schema` = max(le sien, 12), et ses Scènes sont comptées
+ * comme celles de tout document lu.
+ * FAIL-FAST : `schema` absent, non numérique ou < 11, `scenes` non-tableau, périmètre vide →
  * rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
@@ -49,7 +52,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-21-877-ref-de-decor-nommee';
 const RACINE = path.join(ROOT, 'src/scenes');
 
-/** Forme du document AVANT et APRÈS ce bump — la borne haute est CLOSE (cf. en-tête). */
+/** Forme d'entrée et CIBLE de ce bump — la borne haute est OUVERTE (cf. en-tête). */
 const SCHEMA_AVANT = 11;
 const SCHEMA_APRES = 12;
 /** Le type que le rendu DONNAIT à un décor sans `ref` avant ce lot. Ce littéral FIGE un passé. */
@@ -81,8 +84,8 @@ for (const abs of cibles) {
   const doc = JSON.parse(brut);
 
   if (canonique(doc) !== brut) { echecs.push(`${rel} : FORME NON CANONIQUE`); continue; }
-  if (doc.schema !== SCHEMA_AVANT && doc.schema !== SCHEMA_APRES) {
-    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`);
+  if (typeof doc.schema !== 'number' || !Number.isInteger(doc.schema) || doc.schema < SCHEMA_AVANT) {
+    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou plus récent attendu)`);
     continue;
   }
   if (!Array.isArray(doc.scenes)) { echecs.push(`${rel} : \`scenes\` absent ou non-tableau`); continue; }
@@ -116,8 +119,11 @@ if (echecs.length) {
 }
 
 for (const r of rapports) {
+  // Le document ne REDESCEND jamais : un projet déjà porté plus loin par un passage postérieur garde
+  // son numéro, ce passage-ci n'ayant à garantir que le plancher de SA cible.
+  const cible = Math.max(r.doc.schema, SCHEMA_APRES);
   const sortie = Object.fromEntries(
-    Object.entries(r.doc).map(([k, v]) => (k === 'scenes' ? [k, r.scenes] : k === 'schema' ? [k, SCHEMA_APRES] : [k, v])),
+    Object.entries(r.doc).map(([k, v]) => (k === 'scenes' ? [k, r.scenes] : k === 'schema' ? [k, cible] : [k, v])),
   );
   const out = canonique(sortie);
   if (out !== r.brut) fs.writeFileSync(r.abs, out, 'utf8');
@@ -128,11 +134,12 @@ for (const r of rapports) {
     .flatMap((s) => (Array.isArray(s.entities) ? s.entities : []))
     .filter(decorSansType)
     .map((e) => e.id);
-  if (restes.length || apres.schema !== SCHEMA_APRES) {
+  if (restes.length || apres.schema < SCHEMA_APRES) {
     console.error(`[${NOM}] VÉRIFICATION POST-ÉCRITURE ROUGE — ${r.rel} : schema=${apres.schema}, ${restes.join(', ')}`);
     process.exit(1);
   }
-  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${apres.schema}, décors dont le type se NOMME désormais : ${r.nommes} (scènes : ${apres.scenes.length}) — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
+  const deja = r.doc.schema > SCHEMA_APRES ? ` — DÉJÀ MIGRÉ au-delà de ${SCHEMA_APRES}` : '';
+  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${apres.schema}${deja}, décors dont le type se NOMME désormais : ${r.nommes} (scènes : ${apres.scenes.length}) — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
 }
 
 console.log(`[${NOM}] TOTAL — ${cibles.length} projet(s), ${scenesVues} Scène(s), ${nommesVus} décor(s) nommé(s) ; population : ${decorsVus} décor(s)`);

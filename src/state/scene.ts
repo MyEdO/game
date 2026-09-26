@@ -35,7 +35,7 @@ import type {
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
-  victoryConditionSchema, wallClimbSchema, wallSegSchema, zoneAreaSchema,
+  victoryConditionSchema, wallClimbSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
 } from '../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
@@ -180,13 +180,20 @@ export interface SceneEntity {
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
     /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées par-dessus celles du bestiaire au spawn.
-     *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 p.122 l.3900). */
+     *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 l.230). */
     skills?: import('../data').SkillRef[];
     /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. `false`/absent = PNJ visible
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;
   };
 }
+
+/** Un porteur de fiche d'entité PRÉSENT au moins — dérivé de `PORTEURS_DU_TYPE.personnage` (#1882),
+ *  patron de `PorteurDeFiche` (`engine/statblock.ts`) : l'absence de tous est irreprésentable. */
+type PorteurDEntite = (typeof PORTEURS_DU_TYPE)['personnage']['porteurs'][number];
+export type AuMoinsUnPorteurDeFiche = {
+  [K in PorteurDEntite]: Required<Pick<SceneEntity, K>> & Partial<Pick<SceneEntity, Exclude<PorteurDEntite, K>>>;
+}[PorteurDEntite];
 
 export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;

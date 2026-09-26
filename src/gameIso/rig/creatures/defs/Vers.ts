@@ -10,6 +10,6 @@ export const creature: CreatureDef = {
   plan: 'serpentine',
   serpent: {
     sl: 0.7, girth: 0.9, hood: false, markings: 'bandes', blunt: true,
-    stored: { corps: '#c98d78', corpsO: '#8a5a48', corpsH: '#e0b6a4', cheveux: '#8a5a48', cheveuxO: '#5c3a2e', cuir: '#a8785e' },
+    palette: { corps: '#c98d78', corpsO: '#8a5a48', corpsH: '#e0b6a4', cheveux: '#8a5a48', cheveuxO: '#5c3a2e', cuir: '#a8785e' },
   },
 };

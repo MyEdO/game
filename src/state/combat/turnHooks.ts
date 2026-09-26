@@ -24,7 +24,7 @@ import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/con
 import { rawCombatTestBase } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId } from '../combatants';
+import { inBattleId, garanti } from '../combatants';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../lineOfSight';
@@ -94,8 +94,8 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
   const gates = (c.activeEffects ?? []).filter((e) => e.actGate);
   const chars = [...new Set(gates.map((e) => e.actGate!.char))];
   for (const char of chars) {
-    const gate = gates.find((e) => e.actGate!.char === char);
-    const label = gate?.label ?? 'Effet';
+    const gate = garanti(gates.find((e) => e.actGate!.char === char), char, 'gate d’action');
+    const label = gate.label;
     if (surfaceOf(get, c.id)) {
       // ENJEU (#1117) : le gabarit dit la mécanique du gate ; le RENVOI descend à l'ENTITÉ qui l'exige
       // (`ActiveEffect.source`, estampillée génériquement par `applyOps`) — la Racine de mandragore

@@ -174,7 +174,7 @@ export type Condition =
    *  meilleur Avantage ennemi engagé), SIGNÉE et non bornée, comparée par `op` à `value`. C'est l'INVERSE
    *  non-clampé de `engagedAdvantageGap` (qui mesure de combien un ennemi DÉPASSE le porteur, ≥ 0) : `> 0`
    *  = le porteur a un Avantage STRICTEMENT supérieur à TOUS ses adversaires engagés (Absorption « si la
-   *  créature a un Avantage plus élevé que tous les adversaires engagés », EDO 11 p.147). Hors combat / sans
+   *  créature a un Avantage plus élevé que tous les adversaires engagés », EDO 11 l.222). Hors combat / sans
    *  foe engagé = 0. */
   | { kind: 'engagedAdvantageLead'; op: CompareOp; value: number }
   /** Y a-t-il un adversaire VIVANT dans la Ligne de Vue de `target` (`ctx.foeInLoS`) ? Géométrie d'arène
@@ -527,7 +527,7 @@ export const EMPTY_FLOW: Flow = { kind: 'seq', steps: [] };
  *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
  *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
  *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
- *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 p.339) et tout futur effet « à la mort ».
+ *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
  *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
  *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
  *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
@@ -559,7 +559,7 @@ export type EffectTrigger =
  *  `{ near: 'victim', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
  *  `{ pick: 'engaged', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
  *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'self'` — la capacité restante tient compte
- *  des `grapplingWith` déjà tenus (engloutir « un adversaire à la fois », Absorption EDO 11 p.147). Réutilisable
+ *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
  *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export type EffectTargeting = 'self' | 'victim' | 'engaged' | 'grappled'
   | { near: 'victim' | 'self'; radiusMeters: number }

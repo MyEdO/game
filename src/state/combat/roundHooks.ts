@@ -121,10 +121,10 @@ registerCombatHook({
     }
   },
 });
-// Instable (LDB 85 p.340) MIGRÉ en DONNÉES : trait `instable` effects onRoundEnd — `if engagedAdvantageGap
+// Instable (LDB 85 l.199) MIGRÉ en DONNÉES : trait `instable` effects onRoundEnd — `if engagedAdvantageGap
 // > 0` → wounds {engagedAdvantageGap} (perd la différence d'Avantage) puis `if woundsCurrent<=0` → banish
 // {narration:'unravel'} (« se délite »). La valeur relationnelle est calculée par le dispatcher, sans hook dédié.
-// Bestial (LDB 85 p.338) « peur du feu → gagne Brisé » MIGRÉ en données : trait `bestial` effects
+// Bestial (LDB 85 l.59) « peur du feu → gagne Brisé » MIGRÉ en données : trait `bestial` effects
 // onRoundEnd (if En Flammes ∧ pas déjà Brisé → condition Brisé), dispatché par le dispatcher unique.
 registerCombatHook({
   // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`

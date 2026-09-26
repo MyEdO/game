@@ -224,7 +224,7 @@ Trois options, dans l'ordre :
 
 ### Augmentations de Caractéristique gratuites (à la création)
 
-> « Consultez votre Carrière. Recherchez dans le Schéma de progression les trois Caractéristiques marquées ☐ sans bordure bronze, argent ou or. Vous pouvez répartir comme bon vous semble un total de 5 Augmentations entre ces Caractéristiques. »
+> « Consultez votre Carrière au **Chapitre 3 : Classes et Carrières**. Recherchez dans le Schéma de progression les trois Caractéristiques marquées […] sans bordure bronze, argent ou or. Vous pouvez répartir comme bon vous semble un total de 5 Augmentations entre les Caractéristiques […] »
 > — LDB 05 l.459
 
 `LDB 05 l.459-463` — les 5 Augmentations initiales s'ajoutent à la valeur après tirage 2d10+bonus.

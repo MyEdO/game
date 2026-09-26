@@ -21,7 +21,7 @@ CIBLE : « ${w.label} » doit se reconnaître AU PREMIER COUP D'ŒIL comme : ${w
 
 REPÈRE (os « arme », cf. src/gameIso/rig/PART-CONTRACT.md) : origine (0,0) = la POIGNÉE dans la main ; la lame/tête/pointe pointe vers le HAUT (-y) ; pommeau vers +y. Étendue x ∈ [-15,15], y ∈ [-50,10]. Échelle uniforme (gabarit humain). Une arme longue (arquebuse, tromblon, pistolet) tient dans ces bornes : le canon pointe vers -y.
 
-STYLE : réutilise UNIQUEMENT les gradients déjà définis (g_steel, g_steelD, g_axe, g_glow, g_eye, g_flesh, g_blood) — n'invente AUCUN <defs>. Pour le bois/la crosse, un remplissage sombre (#3a2a1a / #5a3d24) convient. Inspire-toi du style des armes existantes : lis src/gameIso/rig/parts/equipment.ts (map WEAPONS). Crosse + canon + platine reliés d'un seul tenant. Silhouette LISIBLE avant le détail ; PAS de blob.
+STYLE : réutilise UNIQUEMENT les gradients déjà définis (g_steel, g_steelD, g_axe, g_glow, g_eye, g_blood) — n'invente AUCUN <defs>. La CHAIR (poing, main) se peint url(#dg-v-@peauH-@peauO), jamais un hex. Pour le bois/la crosse, un remplissage sombre (#3a2a1a / #5a3d24) convient. Inspire-toi du style des armes existantes : lis src/gameIso/rig/parts/equipment.ts (map WEAPONS). Crosse + canon + platine reliés d'un seul tenant. Silhouette LISIBLE avant le détail ; PAS de blob.
 
 PRODUIS un fragment SVG (sans <svg>, sans <defs>, sans transform racine).
 1) Écris-le dans art-ref/directional/weapons-redo/${w.slug}/cand${n}.json = {"front":"<...fragment...>"} (crée les dossiers).

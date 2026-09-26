@@ -10,7 +10,7 @@ import type { Scene } from './scene';
 import type { BattleState } from './store';
 
 /**
- * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 p.122-123 / ADE II : une pièce à TIR INDIRECT (mortier,
+ * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 l.169-171 / ADE II : une pièce à TIR INDIRECT (mortier,
  * catapulte — « arc élevé », `desc` AA : « projeter des explosifs par-dessus les murs ») vise un POINT au
  * sol (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe alors qui se trouve dans le
  * rayon AUTOUR de cette case. RÉUTILISE le résolveur d'aire UNIQUE `resolveWeaponArea` (partagé avec le tir

@@ -52,7 +52,7 @@ const chars = (): Characteristics => ({
   agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
 });
 
-/** Héros HUMAIN nu (Mouvement 4, aucun Encombrement) : `LDB 51 l.198` — le Déplacement EST la vitesse en km/h. */
+/** Héros HUMAIN nu (Mouvement 4, aucun Encombrement) : `LDB 51 l.193` — le Déplacement EST la vitesse en km/h. */
 function hero(id: string): Combatant {
   return {
     id, label: id, kind: 'hero', characteristics: chars(),

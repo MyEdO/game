@@ -2096,14 +2096,8 @@
                 "chooseForm": true,
                 "skin": {
                   "metal": "#8fd4ff",
-                  "metalH": "#e6f7ff",
-                  "metalO": "#2e5c8a",
                   "cuir": "#34557f",
-                  "cuirH": "#6fa3d6",
-                  "cuirO": "#1b3450",
-                  "accent": "#bfe6ff",
-                  "accentH": "#ffffff",
-                  "accentO": "#5a92cc"
+                  "accent": "#bfe6ff"
                 }
               }
             ]
@@ -4831,14 +4825,8 @@
                 "form": "arme-simple",
                 "skin": {
                   "metal": "#ff8a3a",
-                  "metalH": "#ffe1a3",
-                  "metalO": "#7e2a10",
                   "cuir": "#5a2410",
-                  "cuirH": "#c1631e",
-                  "cuirO": "#2a1206",
-                  "accent": "#ffce4a",
-                  "accentH": "#fff6d6",
-                  "accentO": "#d2641e"
+                  "accent": "#ffce4a"
                 },
                 "onHitEffects": [
                   {
@@ -6683,14 +6671,8 @@
                 "form": "serpe-de-guerre",
                 "skin": {
                   "metal": "#b07fdc",
-                  "metalH": "#ecd6ff",
-                  "metalO": "#42275f",
                   "cuir": "#2b1b3d",
-                  "cuirH": "#6b4a8c",
-                  "cuirO": "#180f29",
-                  "accent": "#d6acff",
-                  "accentH": "#ffffff",
-                  "accentO": "#7a4aa6"
+                  "accent": "#d6acff"
                 }
               },
               {

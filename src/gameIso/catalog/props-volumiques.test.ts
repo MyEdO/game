@@ -3,7 +3,7 @@ import { propSvg } from './decor';
 import { scenarioEntities } from '../../scenes/opera/furnished';
 import { buildOperaFloorplan } from '../../scenes/opera/floorplan';
 import { findPropById, props } from '../../data';
-import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placeAssiseDe, placesLocalesDuProp, rotatePropLocal, type PropData, type PropPrimitive } from '../../data/props.types';
+import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, empriseLocaleM, placeAssiseDe, placesLocalesDuProp, PROP_CYLINDER_AXES, REPERE_D_AXE, rotatePropLocal, type PropCylinderSides, type PropData, type PropPrimitive } from '../../data/props.types';
 import { decorFootGeometry } from '../../state/footprint';
 import { buildProps } from '../builders/props';
 import { buildPropVolumes } from '../builders/propVolumes';
@@ -19,9 +19,9 @@ import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG
- * de catalogue n'est plus qu'une vignette de palette. Ce fichier tient les deux moitiés du contrat :
- * l'identité (vignette + recette + places) et l'EXCLUSIVITÉ de la voie monde (une ref volumique n'a
- * plus aucun sujet de billboard).
+ * de catalogue est la vignette de palette. Ce fichier tient les deux moitiés du contrat : l'identité
+ * (vignette + recette + places) et l'EXCLUSIVITÉ de la voie monde (une ref volumique n'a aucun sujet
+ * de billboard).
  *
  * La liste est DÉRIVÉE du catalogue : une recette de plus entre sous contrat par sa seule déclaration
  * en donnée — une liste manuscrite laisserait les suivantes hors garde en silence.
@@ -83,14 +83,12 @@ function entitesAuthorees(): DecorAuthore[] {
   return moisson(CORPUS_SCENES());
 }
 
-/** Emprise d'une primitive : sa boîte englobante au sol en CASES (la recette est en mètres, #1507 —
- *  c'est l'échelle de la scène qui la ramène à la grille) et ses deux hauteurs, en mètres. */
+/** Emprise d'une primitive (`empriseLocaleM`, la seule) : sa boîte englobante au sol ramenée en CASES
+ *  (la recette est en mètres, #1507 — c'est l'échelle de la scène qui la ramène à la grille) et ses
+ *  deux hauteurs, en mètres. */
 function emprise(p: PropPrimitive): { x0: number; x1: number; y0: number; y1: number; bas: number; haut: number } {
-  const dx = (p.kind === 'cylinder' ? p.radiusM : p.size.xM / 2) / METRES_PAR_CASE;
-  const dy = (p.kind === 'cylinder' ? p.radiusM : p.size.yM / 2) / METRES_PAR_CASE;
-  const dh = (p.kind === 'cylinder' ? p.heightM : p.size.hM) / 2;
-  const cx = p.center.xM / METRES_PAR_CASE, cy = p.center.yM / METRES_PAR_CASE;
-  return { x0: cx - dx, x1: cx + dx, y0: cy - dy, y1: cy + dy, bas: p.center.hM - dh, haut: p.center.hM + dh };
+  const e = empriseLocaleM(p);
+  return { ...e, x0: e.x0 / METRES_PAR_CASE, x1: e.x1 / METRES_PAR_CASE, y0: e.y0 / METRES_PAR_CASE, y1: e.y1 / METRES_PAR_CASE };
 }
 type Emprise = ReturnType<typeof emprise>;
 const seChevauchent = (a: Emprise, b: Emprise): boolean => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
@@ -204,8 +202,8 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
 
   /**
    * EMPREINTE — les cases d'un décor à recette sont celles de son CORPS TOURNÉ, sièges exclus
-   * (`empreinteDeriveeDuProp`, #1509). Le `foot` déclaré n'est plus la vérité d'un volumique : il n'en
-   * reste QUE la vérité d'un billboard. Ces contrats mesurent donc la DÉRIVÉE, en positif.
+   * (`empreinteDeriveeDuProp`, #1509) ; le `foot` déclaré est la vérité d'un BILLBOARD seul. Ces
+   * contrats mesurent donc la DÉRIVÉE, en positif.
    *
    * L'exclusion des sièges EST le prédicat : un tabouret n'est pas un obstacle, c'est par lui qu'on
    * s'assoit — sans elle, la table ronde passerait de 1×1 à 2×2 solide et ses quatre abords
@@ -227,11 +225,13 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
 
   /**
    * LE CONTRAT DU SOCLE, en ATTENDUS NOMINAUX : l'empreinte de chaque recette, à chacun de ses quatre
-   * caps. Elle ne se compare à AUCUNE donnée — `foot` a disparu des recettes (migration
-   * `2026-09-03-1509-foot-volumique-mort.mjs`, refine `defs/props.ts`), et se comparer à ce que le
-   * code dérive lui-même ne rougirait jamais. La liste est CLOSE, et c'est la COUVERTURE qui la ferme
-   * (ses clés sont EXACTEMENT le catalogue) : une recette de plus s'y déclare avec ses cases mesurées,
-   * ou elle sort rouge sans être vue.
+   * caps. C'est un GOLDEN voulu : l'intention de l'auteur, écrite une fois, contre laquelle se mesure
+   * ce que la dérivation rend — aucune recette ne porte de `foot` (refine `defs/props.ts`), et se
+   * comparer à ce que le code dérive lui-même ne rougirait jamais. La liste est CLOSE, et c'est la
+   * COUVERTURE qui la ferme (ses clés sont EXACTEMENT le catalogue).
+   *
+   * COÛT D'UN MEUBLE N+1 : sa recette + sa vignette + sa pose en scène + UNE ligne d'attendu ici. Aucune
+   * ligne de CODE : `meuble-multicase-neuf.test.ts` le prouve sur une recette de fixture.
    */
   const EMPREINTES_ATTENDUES: Readonly<Record<string, { ns: [number, number]; eo: [number, number] }>> = {
     // Les deux recettes MULTI-CASE du catalogue : leur plateau (3,80 m pour la table longue, 3,00 m
@@ -250,6 +250,9 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     // La rangée de fauteuils du parterre : trois assises sous une même ménuiserie de 5,40 m, séparées
     // par quatre accoudoirs — son 3×1 vient de ce corps, là où elle le DÉCLARAIT en billboard.
     'rangee-sieges': { ns: [3, 1], eo: [1, 3] },
+    // Lot C (#1343) : la charrette à bras, plateau et brancards de 3,30 m — son 2×1 vient de ce corps,
+    // là où elle le DÉCLARAIT en billboard.
+    'charrette': { ns: [2, 1], eo: [1, 2] },
     // Toutes les autres tiennent sur UNE case, à tous les caps. La table ronde n'y tient que parce
     // que ses quatre tabourets sont exclus du corps (sans eux elle mesurerait 2×2 — cf. le contrat de
     // cache de `data/props-integrity.test.ts`).
@@ -264,6 +267,8 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
       // … et les deux BASES courtes, converties avec leurs variantes longues : une demi-migration
       // aurait laissé le même meuble en volume ici et en billboard là, selon sa longueur.
       'bureau', 'etabli',
+      // Lot C (#1343) — les décors organiques en volume sobre, chacun sur sa case à tous ses caps.
+      'plante-pot', 'statue', 'colonne-brisee', 'lustre-opera', 'mannequin', 'mannequin-couturier',
     ]).map((id) => [id, { ns: [1, 1], eo: [1, 1] }])),
   };
 
@@ -281,7 +286,7 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     }
   });
 
-  it('plus AUCUNE recette ne déclare de `foot` — c’est la vérité d’un BILLBOARD, et de lui seul (#1509)', () => {
+  it('AUCUNE recette ne déclare de `foot` — c’est la vérité d’un BILLBOARD, et de lui seul (#1509)', () => {
     expect(IDS.filter((id) => findPropById(id)!.foot !== undefined)).toEqual([]);
     // Et le champ vit toujours, chez ceux à qui il appartient : sans cette moitié, le contrat
     // ci-dessus passerait aussi sur un `foot` disparu du schéma.
@@ -344,8 +349,8 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
   });
 
   /**
-   * POPULATION — l'empreinte tourne désormais avec le cap (#1509), donc plus aucun cap n'est interdit
-   * à un meuble multi-case. Ce que ce contrat mesure à la place, c'est que le catalogue est authoré
+   * POPULATION — l'empreinte tourne avec le cap (#1509) : tout cap cardinal est licite pour un meuble
+   * multi-case. Ce que ce contrat mesure, c'est que le catalogue est authoré
    * POUR l'échelle de ses scènes : à l'échelle RÉELLE de la scène qui la porte, chaque instance
    * volumique couvre exactement les cases que le catalogue mesure à la grille terrestre (2 m/case,
    * `LDB 15 l.12`). Une scène à une AUTRE échelle — le monde naval est à 4 m/case et plus — y ferait
@@ -398,10 +403,9 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
 
 /**
  * CAP CARDINAL — LA CHAÎNE ENTIÈRE, sur une seule donnée fautive (#1680 ligne 3). Un décor dont le
- * TYPE porte une recette ne prend qu'un cap cardinal : sa recette tourne (`rotatePropLocal`) là où son
- * empreinte solide ne tourne pas (#1509). Quatre verrous, du plus AMONT au dernier filet, et ce test
- * les tient ENSEMBLE — la règle est celle du CATALOGUE (`refEstVolumique`), donc un BILLBOARD au même
- * cap reste licite à chaque étage :
+ * TYPE porte une recette ne prend qu'un cap cardinal : `data/props.types.ts` `capVolumique`. Quatre
+ * verrous, du plus AMONT au dernier filet, et ce test les tient ENSEMBLE — la règle est celle du
+ * CATALOGUE (`refEstVolumique`), donc un BILLBOARD au même cap reste licite à chaque étage :
  *   1. SCHÉMA (bloquant) : `sceneEntitySchema` refuse au parse, `parseProject` lève ;
  *   2. VALIDATEUR (signalant) : `validateScene` nomme l'entité à l'éditeur — il n'interdit rien, il
  *      montre (le panneau d'avertissements d'`Editor.tsx` est son seul consommateur) ;
@@ -500,26 +504,40 @@ describe('décor volumique — chaque face regarde le DEHORS, de la recette au m
   });
 
   /**
-   * ARÊTE DE COUTEAU du modelé de forme : `shadeFamily` (`backends/webgl/worldTris.ts`) départage une
-   * normale par le plus grand de |nx| et |nz|, et une égalité exacte est indécidable — un fût y prend
-   * des tons de familles voisines sur des faces symétriques. C'est ce qui exclut `sides: 12` du type
-   * (`PropCylinderSides`) ; ce contrat le mesure sur la géométrie, jamais sur la valeur authorée.
+   * ARÊTE DE COUTEAU du modelé de forme : `shadeFamily` (`backends/webgl/worldTris.ts:127-130`)
+   * départage une normale par sa plus grande composante, et une égalité des DEUX plus grandes est
+   * indécidable — un fût y prend des tons de familles voisines sur des faces symétriques. C'est ce qui
+   * exclut `sides: 12` du type (`PropCylinderSides`). Une face LATÉRALE est une face dont la normale
+   * est orthogonale à l'AXE, lu dans `REPERE_D_AXE` comme la géométrie : le critère ne suppose aucun
+   * axe. Mesuré sur la géométrie CUITE, à chaque (côtés × axe), 12 compris.
    */
-  it.each(IDS)('%s : aucune face latérale de cylindre ne tombe sur |nx| == |nz|', (id) => {
-    const prop = findPropById(id)!;
-    const surLArete: string[] = [];
-    prop.volume!.primitives.forEach((primitive, ip) => {
-      if (primitive.kind !== 'cylinder') return;
-      const faces = cuire({ ...prop, volume: { ...prop.volume!, primitives: [primitive] } }, { ancre: { x: 0, y: 0 }, facing: 'N', baseHeightM: 0 });
-      faces.forEach((face, k) => {
-        const n = polyNormal(facePoly(face, METRES_PAR_CASE))!;
-        if (Math.abs(n.y) > 1e-6) return; // dessus / dessous : pas une face latérale
-        if (Math.abs(Math.abs(n.x) - Math.abs(n.z)) < 1e-6)
-          surLArete.push(`primitive ${ip} (${primitive.sides} côtés) face ${k} : nx=${n.x.toFixed(4)} nz=${n.z.toFixed(4)}`);
-      });
-    });
-    expect(surLArete, `${id} : faces latérales sur l’arête de couteau`).toEqual([]);
+  const COUTEAU_ATTENDU: Readonly<Record<number, number>> = { 8: 0, 12: 4, 16: 0 };
+  // Les cas ci-dessous ITÈRENT la table : un axe retiré y disparaîtrait sans rougir. L'énumération se fixe ici.
+  it('les axes mesurés sont exactement les trois de la table', () => {
+    expect(PROP_CYLINDER_AXES).toEqual(['h', 'x', 'y']);
   });
+  it.each(Object.keys(COUTEAU_ATTENDU).flatMap((s) => PROP_CYLINDER_AXES.map((axis) => [Number(s), axis] as const)))(
+    'cylindre à %i côtés, axe %s : ses `sides` faces latérales, et le compte attendu sur l’arête de couteau',
+    (sides, axis) => {
+      const primitive: PropPrimitive = { kind: 'cylinder', center: { xM: 0, yM: 0, hM: 0.3 }, axis, radiusM: 0.3, longueurM: 0.5, sides: sides as PropCylinderSides, material: 'fer-noirci' };
+      const prop: PropData = { id: 'cylindre-epreuve', type: 'props', label: 'Cylindre d’épreuve', volume: { capIdentite: CAP_IDENTITE_PROP, primitives: [primitive] } };
+      // L'axe en convention three (X = est, Y = haut, Z = sud), tiré de la MÊME table que la géométrie.
+      const d = REPERE_D_AXE[axis](0, 0, 1);
+      const axe = { x: d.xM, y: d.hM, z: d.yM };
+      let laterales = 0, couteau = 0;
+      for (const face of cuire(prop, { ancre: { x: 0, y: 0 }, facing: CAP_IDENTITE_PROP, baseHeightM: 0 })) {
+        const brute = polyNormal(facePoly(face, METRES_PAR_CASE))!;
+        const l = Math.hypot(brute.x, brute.y, brute.z);
+        const n = { x: brute.x / l, y: brute.y / l, z: brute.z / l };
+        if (Math.abs(n.x * axe.x + n.y * axe.y + n.z * axe.z) > 1e-6) continue; // un bout : pas une face latérale
+        laterales++;
+        const [g1, g2] = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)].sort((u, v) => v - u);
+        if (g1 - g2 < 1e-6) couteau++;
+      }
+      expect(laterales, 'faces latérales mesurées').toBe(sides);
+      expect(couteau, 'faces latérales sur l’arête de couteau').toBe(COUTEAU_ATTENDU[sides]);
+    },
+  );
 
   it.each(IDS)('%s : la cuisson du monde ne RETOURNE aucune de ses faces', (id) => {
     const scene = sceneWith(propEntity({ id: 'e-1', ref: id, pos: { x: 3, y: 4 }, facing: 'N' }));

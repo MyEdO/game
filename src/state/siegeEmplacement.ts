@@ -4,7 +4,7 @@
  * qui PORTE un poste d'artillerie (`postes:[{ trappingId, crewIds }]`, base hydratée au spawn) et dont l'apparence est ENTIÈREMENT
  * DÉRIVÉE de sa `ref` (le trapping à art d'affût `siegeRig`) — JAMAIS d'`appearance.species` forcé :
  * `resolveRender` lit le rig d'engin depuis la ref (rendu IDENTIQUE éditeur ↔ exploration ↔ combat).
- * L'affût INERTE non-destructible (RAW-pur, AA 10 p.122-123) vient de la branche siège de `spawnEnemy`
+ * L'affût INERTE non-destructible (RAW-pur, AA 10 l.175-193) vient de la branche siège de `spawnEnemy`
  * (déclenchée par la `ref`), pas d'un statblock à PV.
  *
  * Exactement le modèle d'une créature posée PAR RÉFÉRENCE : on ne stocke pas l'espèce, on la dérive.

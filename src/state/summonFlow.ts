@@ -12,6 +12,7 @@
  * minions morts-vivants liés au sorcier). Hors combat : pas de grille → effet journalisé.
  */
 import type { Combatant } from '../engine/types';
+import type { PorteurDeFiche } from '../engine/statblock';
 import type { BattleState } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import { Pt, tileKey } from './path';
@@ -20,7 +21,7 @@ import { occupied } from './combatGeometry';
 import { inBattleId } from './combatants';
 import { spawnEnemy } from './spawn';
 import { grantTrait } from '../engine/grantedTraits';
-import { resolveFormula, slBonus, type GameOp } from '../engine/ops';
+import { resolveFormula, slBonus, nomDeSource, type GameOp } from '../engine/ops';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG, defaultRNG } from '../engine/dice';
 import { t } from '../i18n';
@@ -29,6 +30,9 @@ import { chebyshev } from '../engine/grid';
 /** Descripteur d'invocation = la charge utile de l'op `summon` du Flow (donnée éditable du sort) ;
  *  le discriminant `op` est superflu pour cette fonction dédiée → l'op complète s'assigne quand même. */
 type Summon = Omit<Extract<GameOp, { op: 'summon' }>, 'op'>;
+/** Ce qu'`applySummon` invoque : l'op `summon` (réf. du bestiaire), ou la fiche d'un défunt qui se
+ *  reconstitue (`ScheduledRespawn`, #1882). */
+export type Invocation = Summon | (Omit<Summon, 'ref'> & { porteur: PorteurDeFiche });
 
 /** Cases walkable et LIBRES (toute empreinte exclue) autour de `center`, en anneaux croissants (≤8),
  *  sur l'ÉTAGE de `center` (z-aware, #802) : un lanceur posé sur un chemin de ronde `z>0` invoque sur
@@ -69,14 +73,16 @@ export interface SummonOpts {
  * Invoque la/les créature(s) de `summon` près du lanceur. Mute la bataille (combatants + ordre),
  * renvoie le journal. Hors combat : journalisé (rien posé sur la grille).
  */
-export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Summon, opts: SummonOpts = {}): string[] {
+export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts = {}): string[] {
+  const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.ref };
+  const invoque = 'porteur' in summon ? caster.label : summon.ref;
   const rng = opts.rng ?? defaultRNG;
   const count = Math.max(1, resolveFormula(summon.count, caster, rng) + slBonus(opts.sl, summon.countPerSL));
   const battle = get().battle;
   const scene = get().scene;
   const hostile = summon.allyOfCaster === false;
   if (!battle || !scene || !caster.pos) {
-    return [`${caster.label} invoque ${count} × ${summon.ref}${hostile ? ' (hostile)' : ''} — hors combat, effet narratif (arbitrage MJ).`];
+    return [`${caster.label} invoque ${count} × ${invoque}${hostile ? ' (hostile)' : ''} — hors combat, effet narratif (arbitrage MJ).`];
   }
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
   const kind: Combatant['kind'] = hostile ? (caster.kind === 'hero' ? 'enemy' : 'hero') : caster.kind;
@@ -90,7 +96,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Sum
     const pos = tiles[i];
     if (!pos) break; // plus de place libre à proximité
     const id = `summon-${caster.id}-${battle.round}-${battle.combatants.length}-${i}`;
-    const c = spawnEnemy(summon.ref, undefined, id, pos);
+    const c = spawnEnemy(porteur, id, pos);
     c.kind = kind;
     if (summon.size) c.size = summon.size;
     for (const t of summon.addTraits ?? []) grantTrait(c, t); // traits surchargés (Frénésie, Magique…) — déjà structurés
@@ -107,7 +113,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Sum
     placed.push(c);
   }
   set({ battle: { ...battle } });
-  if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: summon.ref })];
+  if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
   const name = placed[0].label;
   const tag = hostile ? t('summon.fragHostile') : kind === 'hero' ? t('summon.fragAllies') : '';
   return [t('summon.summons', { name: caster.label, n: placed.length, label: name, tag })];
@@ -133,5 +139,5 @@ export function purgeExpiredSummons(battle: BattleState, round: number): string[
   battle.combatants = battle.combatants.filter((c) => !goneIds.has(c.id));
   battle.order = battle.order.filter((id) => !goneIds.has(id));
   if (battle.baseOrder) battle.baseOrder = battle.baseOrder.filter((id) => !goneIds.has(id));
-  return gone.map((c) => t('summon.dispels', { name: c.label, label: c.summon!.label ?? t('summon.fallbackLabel') }));
+  return gone.map((c) => t('summon.dispels', { name: c.label, label: nomDeSource(c.summon) }));
 }

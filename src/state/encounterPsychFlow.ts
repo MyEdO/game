@@ -17,8 +17,7 @@ import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
 import { Scene } from './scene';
 import type { CascadeStep, BatchParticipant, CascadeRoll } from './pendings';
-import { spawnEnemy } from './spawn';
-import { resolvePresetCreature } from './campaignData';
+import { ficheDEntite } from './sceneNpc';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, cibleLabel, PsychType, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
 import { skillBaseValue } from '../engine/skills';
@@ -51,13 +50,7 @@ export interface PendingEncounterPsych {
 export function sceneFearSources(scene: Scene): Combatant[] {
   return (scene.entities ?? [])
     .filter((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)
-    .map((e) => {
-      const preset = e.presetId ? resolvePresetCreature(e.presetId) : undefined;
-      return spawnEnemy(e.ref, e.statblock, e.id, e.pos, {
-        presetCreature: preset?.creature,
-        appearance: preset?.apparence ?? e.appearance,
-      });
-    });
+    .map(ficheDEntite);
 }
 
 /** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
@@ -133,10 +126,11 @@ export function openEncounterPsych(get: Get, set: Set): void {
     const trig = encounterPsych(hero, npcs);
     if (!trig) continue;
     const src = npcs.find((n) => n.id === trig.sourceId);
+    if (!src) throw new Error(`[psychologie] la source « ${trig.sourceId} » du Test de ${hero.label} n'est pas un PNJ présent`);
     const cl = estCibleType(trig.kind) ? cibleLabel(trig.kind) : null;
     dues.push({
       hero,
-      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src?.label ?? '?', indice: trig.indice, cible: trig.cible },
+      decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
         ? (trig.cible ? stepPrecision(dataLabel(cl.label), dataLabel(trig.cible)) : dataLabel(cl.label))

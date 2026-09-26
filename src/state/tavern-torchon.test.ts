@@ -43,7 +43,7 @@ function partie(n: number): Combatant[] {
   const party = makePregens().slice(0, n) as Combatant[];
   useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   capterLeRecit();
-  get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'abstract', value: 40 } });
+  get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
   return party;
 }
 
@@ -169,7 +169,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     capterLeRecit();
     // Bonus d'Endurance ramené à 1 : le premier échec de Résistance suffit à franchir le seuil d'Ivresse.
     party[0].characteristics.endurance = 19;
-    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     poseLancer(0, 5, -2); // raté + Résistance ratée → Tableau Ivre roulé
 
     expect(get().sequence, 'tous ont lancé : la partie est finie').toBeNull();
@@ -196,7 +196,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     party[0].drunk = { failedTests: 3, drunk: true, result: 'piece-tourne' };
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
-    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     poseLancer(7, 1); // il touche : il ne boira pas de la partie
 
     expect(get().sequence).toBeNull();
@@ -223,7 +223,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     seedBattleRng(17);
     const party = makePregens().slice(0, 2) as Combatant[];
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     for (let i = 0; i < 200 && get().pendingCascade; i++) {
       const pc = get().pendingCascade!;
       const cur = pc.participants[pc.cursor];
@@ -287,7 +287,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     const party = makePregens().slice(0, 1) as Combatant[];
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
-    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     // La SANCTION jouée est celle des paramètres — ceux de la fixture, convertis par la même porte.
     const seq = get().sequence!;
     useGame.setState({ sequence: { ...seq, params: tavernParams(FIXTURE as never) } });

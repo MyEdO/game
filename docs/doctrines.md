@@ -44,4 +44,4 @@ Un EXTRAIT par fiche — la FICHE fait foi : avant tout brief, tout verdict ou t
 - **user-regime-une-session-par-chantier-2026-09-01** (2026-09-01, 3 verbatims) : « Finir le merge, puis une seule session par chantier » — `.claude/memory/user-regime-une-session-par-chantier-2026-09-01.md`
 - **user-ressource-licence-chatgpt** (2026-08-31, 2 verbatims) : « Je n'ai pas autant de ressource pour faire une review ou reprendre le travail » — `.claude/memory/user-ressource-licence-chatgpt.md`
 - **user-vision-produit-trois-etages-2026-09-06** (2026-09-06, 2 verbatims) : « Il faut voir le jeu comme NWN, un moteur de jeu gérant les régles du jeu, et qui doit trancher sur les trous des régles ou les "arbitrages MJ", les scénarios qui sont créé depuis l'éditeur qui active ou non certains modules dans leur … » — `.claude/memory/user-vision-produit-trois-etages-2026-09-06.md`
-<!-- sources-empreinte: cf0e3e381937fecfa5b01631836348ad9a79baaf (41 fichiers, 0 dossiers) corps: cbfcfd86430ca5263671a79a1ab1b12bea3e8e22 -->
+<!-- sources-empreinte: 405a9304ca45c9521ff31a1ab7c8a4ef7b574090 (41 fichiers, 0 dossiers) corps: cbfcfd86430ca5263671a79a1ab1b12bea3e8e22 -->

@@ -5,7 +5,8 @@
  * fichier ne compose que la RÉFÉRENCE (`refOuSpec`).
  */
 import { z } from 'zod';
-import { AVAILABILITIES, COUVERT_DIFFICULTES, STAKE_FORMS } from '../../../engine/types';
+import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { SLOTS } from '../../palette.types';
 import { refOuSpec, idDe } from './ref';
 import { estGraphieDeChapitre } from '../../source/decoupe';
 
@@ -211,7 +212,7 @@ export const fragmentBlocsSchema = z.strictObject({
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
  * par indices, qu'une ré-extraction déplacerait. `row`/`col` sont des CHAÎNES : la clé de ligne d'une
- * table de d100 (`01-10`) n'est pas un nombre.
+ * table de d100 (`01-10`) n'est pas un nombre. `table` : `TableDeSection.cle` (`decoupe.ts`).
  */
 export const fragmentCelluleSchema = z.strictObject({
   kind: z.literal('cellule'),
@@ -219,6 +220,7 @@ export const fragmentCelluleSchema = z.strictObject({
   secOcc: z.number().int().min(1),
   row: z.string().min(1),
   col: z.string().min(1),
+  table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
 });
 
@@ -513,6 +515,21 @@ export const sizeCategorySchema = enumNomme({
   monstrueuse: 'Monstrueuse',
 });
 
+/** Couleur `#rrggbb` en minuscules, la SEULE graphie de couleur du dépôt : toute couleur persistée, dont
+ *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903 A6). */
+export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
+
+/** SURCHARGE de palette persistée (`Palette`, `src/gameIso/rig/palette.ts`) : clés dans `SLOTS`, valeurs
+ *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
+ *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
+ *  d'effet de scène. */
+export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
+
+/** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
+ *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
+ *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
+export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
+
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() });
@@ -659,19 +676,7 @@ export const entityAppearanceSchema = z.strictObject({
       ailes: z.boolean().optional(),
     })
     .optional(),
-  colors: z
-    .strictObject({
-      peau: z.string().optional(),
-      cheveux: z.string().optional(),
-      yeux: z.string().optional(),
-      vet1: z.string().optional(),
-      vet2: z.string().optional(),
-      cuir: z.string().optional(),
-      metal: z.string().optional(),
-      corps: z.string().optional(),
-      accent: z.string().optional(),
-    })
-    .optional(),
+  colors: surchargePaletteSchema.optional(),
   parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
   sex: z.enum(['M', 'F']).optional(),
   build: z.number().optional(),

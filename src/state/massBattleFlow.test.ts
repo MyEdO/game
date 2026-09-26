@@ -890,6 +890,16 @@ describe('Aléa & fermeture', () => {
     useGame.getState().endMassBattle();
     expect(useGame.getState().massBattle).toBeNull();
   });
+
+  it('endMassBattle REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
+    start();
+    useGame.getState().massBattleActivity('inspire');
+    const pa = pending()!;
+    useGame.getState().endMassBattle();
+    expect(useGame.getState().massBattle, 'le Test lit la bataille jusqu’à son issue').not.toBeNull();
+    expect(pending()).toEqual(pa);
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(`Le Test « ${pa.label} » est en cours : terminez-le avant de clore la bataille.`);
+  });
 });
 
 describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace · tenue +1 DR)', () => {

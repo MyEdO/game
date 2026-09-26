@@ -63,7 +63,7 @@ const doc = document(
     effects: z.array(triggeredEffectSchema).optional(),
     passive: z.array(gameOpSchema).optional(),
     capabilities: qualityCapabilities.optional(),
-    /** Cette qualité est INDICÉE (LDB 60 p.286) — forme de `TraitData.indice`/`traits.ts`, plus l'UNITÉ
+    /** Cette qualité est INDICÉE (LDB 60 l.28) — forme de `TraitData.indice`/`traits.ts`, plus l'UNITÉ
      *  que le livre imprime avec la valeur quand il y en a une (`AA 08 l.87` « Taillade (XA) », l.136
      *  « Taillade (1A) » ; `LDB 62 l.66` « Recharge 1 » n'en a aucune). Lue par `qualityRefLabel`. */
     indice: z.strictObject({ label: z.string(), unite: z.string().optional() }).optional(),

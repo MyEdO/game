@@ -9,7 +9,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -21,7 +21,7 @@ type FBone = FKBone & { z: number };
 export interface FishProps {
   sl: number; // échelle token
   girth: number; // épaisseur (hauteur) du corps fusiforme
-  stored: StoredPalette; // dos (corps) / ventre (corpsH) / contour (corpsO)
+  palette: PaletteDeclaree; // dos (corps) / ventre (corpsH) / contour (corpsO)
 }
 
 function buildSkeleton(): Record<FishBoneId, FBone> {
@@ -101,7 +101,7 @@ export function resolveFishFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<FishBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<FishBoneId, string> = { corps: body(p), caudale: caudal(p) };
   return sortByZ((Object.keys(sk) as FishBoneId[])
     .map((id) => ({
@@ -112,7 +112,7 @@ export function resolveFishFromProps(
 
 export const FISH_DEFAULT: FishProps = {
   sl: 1.0, girth: 1.0,
-  stored: { corps: '#5a6850', corpsO: '#32402a', corpsH: '#b2bea2', cheveux: '#32402a', cheveuxO: '#1e2818', cuir: '#7c8868' },
+  palette: { corps: '#5a6850', corpsO: '#32402a', corpsH: '#b2bea2', cheveux: '#32402a', cheveuxO: '#1e2818', cuir: '#7c8868' },
 };
 
 export function resolveFish(species: string, view: View = 'profile', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

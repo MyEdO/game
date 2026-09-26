@@ -1,5 +1,5 @@
 /**
- * Prix de la nuit de repos (`restFlow.restCost`, LDB 66 p.302) VS le catalogue `trappings.json`
+ * Prix de la nuit de repos (`restFlow.restCost`, LDB 66 l.12-16) VS le catalogue `trappings.json`
  * (`chambre-commune-nuit`/`chambre-privee-nuit`/`repas-auberge`, tarifs de SERVICE — cf.
  * `src/state/merchants/service-trappings.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces
  * ids au catalogue (`PRICE_BRASS` dérivé de `findTrappingById`, restFlow.ts) — SOURCE UNIQUE partagée
@@ -17,7 +17,7 @@ const hero = (id: string): Combatant => ({ id, name: id, items: [], wounds: { cu
 const basePending = (perHero: PendingRest['perHero']): PendingRest =>
   ({ places: { auberge: true }, quality: 'normale', days: 1, perHero, phase: 'setup' }) as PendingRest;
 
-describe('restCost (restFlow) résout les MÊMES prix que le catalogue trappings (LDB 66 p.302/304)', () => {
+describe('restCost (restFlow) résout les MÊMES prix que le catalogue trappings (LDB 66 l.12-16)', () => {
   it('chambre commune/nuit : restCost == price du trapping "chambre-commune-nuit"', () => {
     const h = hero('a');
     const cost = restCost(basePending({ a: { lodging: 'commune', food: 'rien' } }), [h]);
