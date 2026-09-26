@@ -297,13 +297,42 @@ export const effectOpSchema = z.strictObject({
   label: z.string().optional(),
 });
 
+/** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
+ *  (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
+export const extendedTestSchema = z.strictObject({
+  type: z.literal('extendedTest'),
+  /** Compétence testée — référence `{ id, spec? }` ; la `spec` précise QUELLE instance est testée
+   *  quand le héros en possède plusieurs (Métier (Serrurier), Savoir (Magie)…). */
+  skill: refOuSpec('skill').optional(),
+  characteristic: charKeySchema.optional(),
+  difficulty: difficultySchema.optional(),
+  label: z.string(),
+  /** DR CUMULÉ à atteindre (ex. serrure complexe = 5). */
+  targetDR: z.number(),
+  flag: z.string().optional(),
+  /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
+   *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
+  stake: stakeRefSchema.optional(),
+});
+
+/**
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:496`) — jet ALÉATOIRE interactif dont l'issue
+ * choisit la branche `success` ou `fail`. Le nœud ne dépend PAS du type de la feuille `do` de ses
+ * branches : seul le schéma de BRANCHE change (`flowSchema` mécanique / `sceneFlowSchema`,
+ * `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré par sa branche —
+ * `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
+ */
+export function noeudTest<B extends z.ZodType>(branche: B) {
+  return z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche });
+}
+
 /** `Flow<EffectOp>` (`engine/flowCore.ts:426`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
 export const flowSchema: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('seq'), steps: z.array(flowSchema) }),
     z.strictObject({ kind: z.literal('do'), effect: effectOpSchema }),
     z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flowSchema, else: flowSchema.optional() }),
-    z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: flowSchema, fail: flowSchema }),
+    noeudTest(flowSchema),
     z.strictObject({
       kind: z.literal('choice'),
       prompt: z.string(),

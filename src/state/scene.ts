@@ -17,7 +17,7 @@ import type {
   setFlagSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
   giveMoneySchema, giveXpSchema, startCombatSchema, startMassBattleSchema, transitionSchema,
   transitionBackSchema, startDialogueSchema, journalSchema, documentSchema, revealClueSchema,
-  discreditClueSchema, extendedTestSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
+  discreditClueSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
   openPortSchema, medicalAidSchema, restoreFortuneSchema, restSchema, mealPartySchema,
   inflictNightmaresSchema, ambitionLostSchema, inflictPsychologySchema, inflictDiseaseSchema,
   inflictHungerSchema, inflictThirstSchema, exposureNightSchema, inflictTraumaSchema,
@@ -27,6 +27,7 @@ import type {
   startPursuitSchema, openTavernGamesSchema, openWorldMapSchema, setVesselSchema,
   adjustManannSchema, adjustVesselSchema, endDialogueSchema,
 } from '../data/schemas/defs-scenes/effets';
+import type { extendedTestSchema } from '../data/schemas/grammaire/mecanique';
 // Idem pour les FORMES de la scène elle-même : le schéma zod (`data/schemas/defs-scenes/scene.ts`)
 // les DÉCLARE — champs, optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment.
 import type {

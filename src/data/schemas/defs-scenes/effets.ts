@@ -9,12 +9,12 @@
  *
  * Le `flowSchema` de la grammaire (`grammaire/mecanique.ts`) reste `Flow<EffectOp>` : sa feuille
  * `do` est la seule op mécanique. `sceneFlowSchema` ci-dessous est le MÊME arbre paramétré sur
- * l'union `Effect` complète (transition/dialogue/combat…) — `conditionSchema`/`flowTestSchema` sont
- * partagés, aucune structure n'est recopiée.
+ * l'union `Effect` complète (transition/dialogue/combat…) — `conditionSchema` est partagé et le nœud
+ * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
  */
 import { z } from 'zod';
 import { charKeySchema, difficultySchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption } from '../grammaire/valeurs';
-import { conditionSchema, effectOpSchema, flowTestSchema, gameOpSchema, stakeRefSchema } from '../grammaire/mecanique';
+import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest, stakeRefSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import type { Effect } from '../../../state/scene';
@@ -199,24 +199,6 @@ export const revealClueSchema = z.strictObject({
 
 /** Écarte un indice comme fausse piste (barré, relisible au carnet) — mécanique MAISON (#670). */
 export const discreditClueSchema = z.strictObject({ type: z.literal('discreditClue'), indiceId: z.string() });
-
-/** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
- *  (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
-export const extendedTestSchema = z.strictObject({
-  type: z.literal('extendedTest'),
-  /** Compétence testée — référence `{ id, spec? }` ; la `spec` précise QUELLE instance est testée
-   *  quand le héros en possède plusieurs (Métier (Serrurier), Savoir (Magie)…). */
-  skill: refOuSpec('skill').optional(),
-  characteristic: charKeySchema.optional(),
-  difficulty: difficultySchema.optional(),
-  label: z.string(),
-  /** DR CUMULÉ à atteindre (ex. serrure complexe = 5). */
-  targetDR: z.number(),
-  flag: z.string().optional(),
-  /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
-   *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
-  stake: stakeRefSchema.optional(),
-});
 
 /** Enfoncer une PORTE/objet à PLUSIEURS (`EDO Appendice 2`) : objet (BE = Bonus d'Endurance, B =
  *  Blessures) ; chaque héros frappe (Bagarre, dégâts = DR + BF − BE). `flag` posé quand l'objet cède. */
@@ -699,7 +681,7 @@ export const sceneFlowSchema: z.ZodType<Flow<Effect>> = z.lazy(() =>
     z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }),
     z.strictObject({ kind: z.literal('do'), effect: effectSchema }),
     z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: sceneFlowSchema, else: sceneFlowSchema.optional() }),
-    z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: sceneFlowSchema, fail: sceneFlowSchema }),
+    noeudTest(sceneFlowSchema),
     z.strictObject({
       kind: z.literal('choice'),
       prompt: z.string(),
