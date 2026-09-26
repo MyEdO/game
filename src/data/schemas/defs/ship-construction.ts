@@ -96,7 +96,7 @@ const doc = document(
   },
   {
     codex: { keys: ['shipHullSizes', 'shipSpeedTraits', 'shipConstructionTraits'] },
-    edit: { niche: { categories: ['shipHullSizes', 'shipSpeedTraits', 'shipConstructionTraits'] } },
+    edit: { niche: { categories: { shipHullSizes: 'standard', shipSpeedTraits: 'speedTraits', shipConstructionTraits: 'constructionTraits' } } },
   },
 );
 

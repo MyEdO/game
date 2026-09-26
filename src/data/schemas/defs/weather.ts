@@ -93,7 +93,7 @@ const doc = document(
   },
   {
     codex: { keys: ['weather', 'weatherConditions'] },
-    edit: { niche: { categories: ['weather', 'weatherConditions'] } },
+    edit: { niche: { categories: { weather: 'seasons', weatherConditions: 'conditions' } } },
   },
   {
     // BIJECTION alphabet ⇄ conditions — le z.enum ferme l'id INCONNU, `listeCle` l'id EN DOUBLE ; reste :

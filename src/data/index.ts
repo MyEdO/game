@@ -8,11 +8,9 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
-import { porteLeMarqueur, type TypeEntite } from './schemas/grammaire/ref';
+import { lireLEspace, porteLeMarqueur, type TypeEntite } from './schemas/grammaire/ref';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
-import { SOURCES_DE_SPECS, type DatasetDeSource, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
-import { fichierDe, idsSurLaRacine } from './schemas/grammaire/cle-d-espace';
-import sizesJson from './sizes.json';
+import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from '../state/merchants/types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -2489,10 +2487,6 @@ export const massBattleMightModifiers = massBattleJson.mightModifiers as MightMo
 export const massBattleWarMachines = massBattleJson.warMachines as WarMachineRow[];
 export const massBattleStructures = massBattleJson.structures as MassBattleStructureRow[];
 export const massBattleHazards = massBattleJson.hazards as HazardRow[];
-/** Objet racine (mêmes références vivantes que les 5 tableaux ci-dessus) — cible de sérialisation PLEINE
- *  au save d'une entrée d'un sous-tableau (l'éditeur ne doit PAS écrire QUE le tableau touché, sous peine
- *  de perdre les 4 autres sections du fichier). Cf. `data/overrides.ts::NESTED_ARRAY_ROOT`. */
-export const massBattleData = massBattleJson;
 
 /** LES matières du monde (#1686) — donnée pure, UN document, le domaine PORTÉ par l'entrée. */
 export const materials = materialsJson as MaterialEntry[];
@@ -3467,20 +3461,6 @@ export function findById(category: string, id: string): { label: string } | unde
     default: return undefined;
   }
 }
-/** Racine de chaque dataset lu par une source de spéc (`SOURCES_DE_SPECS`) — les bindings VIVANTS. */
-const RACINE_DE_SOURCE: Record<DatasetDeSource, () => unknown> = {
-  'weaponGroups.json': () => weaponGroups,
-  'domains.json': () => domains,
-  'gods.json': () => gods,
-  'sea-shanties.json': () => seaShanties,
-  'groups.json': () => groups,
-  'maladies.json': () => maladies,
-  'sizes.json': () => sizesJson,
-  'mutations.json': () => mutations,
-  'breath-types.json': () => breathTypes,
-  'damage-types.json': () => damageTypes,
-  'trappings.json': () => trappings,
-};
 /** Libellé d'affichage d'un id, par source de spéc. */
 const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
   weaponGroupsMelee: (id) => weaponGroupLabel(id),
@@ -3506,13 +3486,12 @@ const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
 export const SPEC_SOURCES = Object.fromEntries(
   (Object.keys(SOURCES_DE_SPECS) as SpecsSource[]).map((src) => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
-    const racine = RACINE_DE_SOURCE[fichierDe(SOURCES_DE_SPECS[src].univers)];
     return [
       src,
       {
-        pool: () => idsSurLaRacine(decl.pool ?? decl.univers, racine()),
+        pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
         label: LIBELLE_DE_SOURCE[src],
-        resolves: (id: string) => idsSurLaRacine(decl.univers, racine()).includes(id),
+        resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
       },
     ];
   }),

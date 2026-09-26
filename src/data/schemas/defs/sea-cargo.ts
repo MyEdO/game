@@ -138,7 +138,7 @@ const doc = document(
   },
   {
     codex: { keys: ['seaCargo'] },
-    edit: { niche: { categories: ['seaCargo'] } },
+    edit: { niche: { categories: { seaCargo: 'cargoes' } } },
   },
 );
 

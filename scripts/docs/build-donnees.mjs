@@ -102,7 +102,7 @@ function expositionOf(jsonFile) {
   const edit = 'none' in expo.edit ? `aucune (${expo.edit.none})${expo.edit.dataset ? ` — dataset \`${expo.edit.dataset}\`` : ''}`
     : 'dataset' in expo.edit ? `dataset \`${expo.edit.dataset}\``
     : 'object' in expo.edit ? `objet ${expo.edit.object}`
-    : `niché (${expo.edit.niche.categories.map((c) => `\`${c}\``).join(' · ')})`
+    : `niché (${Object.keys(expo.edit.niche.categories).map((c) => `\`${c}\``).join(' · ')})`
   return `${codex} — ${edit}`
 }
 
@@ -409,9 +409,11 @@ out += [
   "`src/data/schemas/validate.ts`) : les gardes de libellés et le CLIQUET de couverture vivent dans",
   "`src/ui/compendium/libelles-de-champs.test.tsx` — les CHIFFRES y sont, jamais recopiés ici.",
   "",
-  "**Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par",
-  "`scripts/gen-registry.mjs` (phase 1 de `npm run gen`), `_ids.generated.ts` (l'INDEX DES IDS,",
-  "`IDS_PAR_ESPACE`) par `scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.",
+  "**Registres GÉNÉRÉS** — `_registry.generated.ts`, `_registry-scenes.generated.ts` et",
+  "`_racines-vivantes.generated.ts` (`RACINES_VIVANTES`) par `scripts/gen-registry.mjs` (phase 1 de",
+  "`npm run gen`), `_ids.generated.ts` (l'INDEX DES IDS, `IDS_PAR_ESPACE`) et",
+  "`_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`) par `scripts/gen-espaces.mts` (phase 2). Ne",
+  "JAMAIS éditer à la main.",
   "`DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.",
   "",
   "Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à",

@@ -3,12 +3,11 @@
  * qu'elle admet (validité d'une `spec`) et le POOL qu'elle propose (choix joueur, ⊆ univers), chacun
  * une CLÉ D'ESPACE (`grammaire/cle-d-espace.ts`), dont les filtres sont les paramètres `espace` des defs
  * qui portent la donnée. Lecteurs : `IDS_PAR_ESPACE` (`_ids.generated.ts`, `scripts/gen-espaces.mts`),
- * `SPEC_SOURCES` (`src/data/index.ts`), `specsVivantesDe` (`grammaire/idsVivants.ts`).
+ * `SPEC_SOURCES` (`src/data/index.ts`), `lectureDeLEspace` (`grammaire/collection-cle.ts`).
  *
  * FEUILLE : aucun import d'exécution.
  */
 import type { SpecsSource } from '../../index.ts';
-import type { FichierDe } from './cle-d-espace.ts';
 
 export interface SourceDeSpecs {
   /** Espace des ids ADMIS comme spécialisation. */
@@ -36,6 +35,3 @@ export const SOURCES_DE_SPECS = {
   weaponsMelee: { univers: 'trappings.json?categorie=melee' },
   weaponsRanged: { univers: 'trappings.json?categorie=ranged' },
 } as const satisfies Record<SpecsSource, SourceDeSpecs>;
-
-/** Fichiers lus par les sources — la clé par laquelle un lecteur fournit leur racine. */
-export type DatasetDeSource = FichierDe<(typeof SOURCES_DE_SPECS)[SpecsSource]['univers']>;

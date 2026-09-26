@@ -1,29 +1,32 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { props, skills, domains, refEstVolumique, type PropData, type SkillData, type DomainData } from './index';
-import { setDataset } from './overrides';
-import { idDe, entreeOuverte, refusDeSpec } from './schemas/grammaire/ref';
-import { poserSourceDIdsVivants, type SourceDIdsVivants } from './schemas/grammaire/idsVivants';
+import { props, skills, domains, refEstVolumique, SPEC_SOURCES, type PropData, type SkillData, type DomainData } from './index';
+import { datasetObject, setDataset, setObjectDataset } from './overrides';
+import { idDe, entreeOuverte, lireLEspace, refusDeSpec } from './schemas/grammaire/ref';
+import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { sceneEntitySchema } from './schemas/defs-scenes/scene';
 
 /**
- * RÉGIME VIF DES IDS (#1897) — tout dataset-tableau du seam (`ARRAYS`, `data/overrides.ts`) est lu en
- * MÉMOIRE par `ref.ts`, qu'il ait une route d'édition au Codex ou non (`props.json` est `edit: none` :
- * aucun écran ne l'écrit). Chaque cas LIT d'abord (le mémo de `idsVivants.ts`
- * se remplit), ÉCRIT au seam, puis relit : un mémo qui ignorerait la version servirait l'ancien monde.
+ * RÉGIME VIVANT DES IDS (#1897, #1463) — tout espace de noms se lit sur la RACINE VIVANTE de son
+ * fichier (`RACINES_VIVANTES`, `data/overrides.ts`), qu'il ait une route d'édition au Codex ou non
+ * (`props.json` est `edit: none` : aucun écran ne l'écrit), niché ou non. Chaque cas LIT d'abord (le
+ * mémo de `data/overrides.ts` se remplit), ÉCRIT au seam, puis relit : un mémo qui ignorerait la version
+ * servirait l'ancien monde.
  */
 
 const DECORS_LIVRES: PropData[] = [...props];
 const COMPETENCES_LIVREES: SkillData[] = [...skills];
 const DOMAINES_LIVRES: DomainData[] = [...domains];
+const TAILLES_LIVREES = structuredClone(datasetObject('sizes'));
 afterEach(() => {
   setDataset('props', DECORS_LIVRES);
   setDataset('skills', COMPETENCES_LIVREES);
   setDataset('domains', DOMAINES_LIVRES);
+  setObjectDataset('sizes', structuredClone(TAILLES_LIVREES));
 });
 
 const entite = (ref: string, facing?: string) => ({ id: 'p-1', kind: 'prop', ref, pos: { x: 1, y: 1 }, ...(facing ? { facing } : {}) });
 
-describe('régime vif — `props.json` sans route d’édition', () => {
+describe('régime vivant — `props.json` sans route d’édition', () => {
   it('un décor posé par `setDataset` est accepté par `idDe(\'prop\')` et par le schéma d’entité', () => {
     const base = props.find((p) => p.id === 'tonneau')!;
     const noeud = idDe('prop');
@@ -46,7 +49,7 @@ describe('régime vif — `props.json` sans route d’édition', () => {
   });
 });
 
-describe('régime vif — l’admission d’une spécialisation suit l’ENTRÉE éditée au Codex, sans `npm run gen`', () => {
+describe('régime vivant — l’admission d’une spécialisation suit l’ENTRÉE éditée au Codex, sans `npm run gen`', () => {
   const ouverte = skills.find((s) => s.specsOpen === true && !!s.specs?.length)!;
   const fermee = skills.find((s) => !s.specsOpen && !s.specsSource && !!s.specs?.length)!;
 
@@ -77,19 +80,26 @@ describe('régime vif — l’admission d’une spécialisation suit l’ENTRÉE
   });
 });
 
-describe('mémo des ids vivants — daté par la source', () => {
-  it('poser une autre source vide le mémo, même à version égale', () => {
+describe('régime vivant — un espace NICHÉ se lit sur la racine vivante de son fichier (#1463)', () => {
+  it('une clé posée dans `sizes.json#rangedMod` par `setObjectDataset` entre aussitôt dans l’espace et dans l’univers `sizes`', () => {
+    expect(lireLEspace('sizes.json#rangedMod')?.has('colossale')).toBe(false);
+    expect(SPEC_SOURCES.sizes.resolves('colossale')).toBe(false);
+    setObjectDataset('sizes', { ...structuredClone(TAILLES_LIVREES), rangedMod: Object.assign(structuredClone(TAILLES_LIVREES.rangedMod), { colossale: 80 }) });
+    expect(lireLEspace('sizes.json#rangedMod')?.has('colossale')).toBe(true);
+    expect(SPEC_SOURCES.sizes.resolves('colossale')).toBe(true);
+  });
+});
+
+describe('régime vivant — reposé par un test', () => {
+  it('un régime posé se lit aussitôt, et le régime reposé reprend la main', () => {
     const noeud = idDe('etat');
     expect(noeud.safeParse('etat-synthetique').success).toBe(false);
-    const vraie: SourceDIdsVivants = poserSourceDIdsVivants(undefined)!;
-    poserSourceDIdsVivants({
-      entrees: (f) => (f === 'etats.json' ? [...vraie.entrees(f)!, { id: 'etat-synthetique' }] : vraie.entrees(f)),
-      version: vraie.version,
-    });
+    const vrai = poserRegimeVivant(undefined)!;
+    poserRegimeVivant((cle) => (cle === 'etats.json' ? new Set([...vrai(cle)!, 'etat-synthetique']) : vrai(cle)));
     try {
       expect(noeud.safeParse('etat-synthetique').success).toBe(true);
     } finally {
-      poserSourceDIdsVivants(vraie);
+      poserRegimeVivant(vrai);
     }
     expect(noeud.safeParse('etat-synthetique').success).toBe(false);
   });

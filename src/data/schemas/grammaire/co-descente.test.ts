@@ -9,7 +9,8 @@ import { z } from 'zod';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { coDescendre, defDe, descendre, enfantsDe, type PointDeDonnee } from './descente';
-import { collectionALaCle, collectionDe, collectionsDuDocument, idsDeCollection, listeCle } from './collection-cle';
+import { collectionALaCle, collectionDe, collectionsDuDocument, listeCle } from './collection-cle';
+import { idsDeCollection } from './cle-d-espace';
 import { noyauEnum } from './meta';
 
 const el = z.strictObject({ id: z.string() });

@@ -402,7 +402,7 @@ export function indexFiges(chemin, src, parBinding, vifs = accesseursVifs()) {
       for (const morceau of morceaux) {
         const m = morceau.match(rx);
         if (!m || (!decl.boucle && positionVive(morceau, m.index))) continue;
-        out.push(`${chemin}:${decl.ligne} — valeur figée à l’import sur la source vive « ${nom} » : ${decl.texte.split('\n')[0].trim()}`);
+        out.push(`${chemin}:${decl.ligne} — valeur figée à l’import sur la source vivante « ${nom} » : ${decl.texte.split('\n')[0].trim()}`);
         const declare = decl.texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)/);
         if (declare && !noms.has(declare[1])) {
           noms.set(declare[1], nom);

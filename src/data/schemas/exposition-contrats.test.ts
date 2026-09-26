@@ -86,7 +86,7 @@ describe('exposition Codex — contrats de la dérivation (#1472)', () => {
       for (const [fichier, exempt] of Object.entries(EXEMPTS)) {
         const def = parFichier.get(fichier);
         const edit = def?.exposition?.edit;
-        const routes = edit && 'niche' in edit ? edit.niche.categories : [];
+        const routes = edit && 'niche' in edit ? Object.keys(edit.niche.categories) : [];
         if (routes.includes(cle)) fautifs.push(`${fichier} : exempté (${exempt.kind}) mais route la catégorie « ${cle} »`);
       }
     }
@@ -203,7 +203,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
     expect(() =>
       deriveExposition([
         faux('un.json', { codex: { keys: ['sorts'] }, edit: { dataset: 'sorts' } }),
-        faux('trois.json', { codex: { keys: ['sorts'] }, edit: { niche: { categories: ['sorts'] } } }),
+        faux('trois.json', { codex: { keys: ['sorts'] }, edit: { niche: { categories: { sorts: 'sorts' } } } }),
       ]),
     ).toThrow(/« sorts » est revendiquée par DEUX documents \(`un\.json` et `trois\.json`\)/);
   });
@@ -221,7 +221,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
     expect(() =>
       deriveExposition([
         faux('un.json', { codex: { keys: ['sortsA'] }, edit: { dataset: 'sorts' } }),
-        faux('trois.json', { codex: { keys: ['sortsN'] }, edit: { niche: { categories: ['sorts'] } } }),
+        faux('trois.json', { codex: { keys: ['sortsN'] }, edit: { niche: { categories: { sorts: 'sorts' } } } }),
       ]),
     ).toThrow(/le dataset 'sorts' est édité par DEUX documents \(`un\.json` et `trois\.json`\)/);
   });

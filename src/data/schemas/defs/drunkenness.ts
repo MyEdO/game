@@ -39,7 +39,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['drunkenness'] },
-    edit: { niche: { categories: ['drunkenness'] } },
+    edit: { niche: { categories: { drunkenness: 'entries' } } },
   },
   { rangee: drunkEntrySchema },
 );

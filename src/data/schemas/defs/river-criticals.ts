@@ -40,7 +40,7 @@ const doc = document(
   },
   {
     codex: { keys: ['riverCriticalsGreement', 'riverCriticalsAvirons', 'riverCriticalsGouvernail', 'riverCriticalsCoque', 'riverCriticalsSuperstructure'] },
-    edit: { niche: { categories: ['riverCriticalsGreement', 'riverCriticalsAvirons', 'riverCriticalsGouvernail', 'riverCriticalsCoque', 'riverCriticalsSuperstructure'] } },
+    edit: { niche: { categories: { riverCriticalsGreement: 'tables.greement', riverCriticalsAvirons: 'tables.avirons', riverCriticalsGouvernail: 'tables.gouvernail', riverCriticalsCoque: 'tables.coque', riverCriticalsSuperstructure: 'tables.superstructure' } } },
   },
 );
 

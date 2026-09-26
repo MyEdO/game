@@ -24,7 +24,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['ventsTourbillonnants'] },
-    edit: { niche: { categories: ['ventsTourbillonnants'] } },
+    edit: { niche: { categories: { ventsTourbillonnants: 'entries' } } },
   },
   { rangee: windsEntrySchema },
 );

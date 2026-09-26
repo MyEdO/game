@@ -12,10 +12,7 @@
  * en TDZ). Même patron que `schemas/grammaire/idsVivants.ts`, l'autre module feuille posé par la
  * couche donnée.
  */
-import type { DatasetKey, ObjectDatasetKey } from './overrides';
-
-/** Clé de dataset versionnée : les tableaux (`ARRAYS`) ET les datasets-objets (`OBJECTS`) du seam. */
-export type CleDeDataset = DatasetKey | ObjectDatasetKey;
+import type { CleDeDataset } from './schemas/_cles-de-dataset.generated';
 
 /** Le compteur d'UN dataset, dans une CELLULE que le mémo capture UNE fois : une lecture chaude n'est
  *  plus une recherche par chaîne dans une `Map` mais une lecture de champ. */
