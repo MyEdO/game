@@ -39,8 +39,6 @@
 // Usage : node scripts/raw/reparer-titres.mjs <id du livre> [--sites <json> | --boites <json>] [--apply]
 // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
 import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { decoupeDe, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
 import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
@@ -284,5 +282,4 @@ function main() {
   if (args.includes('--apply')) for (const [k, t] of changes) writeFileSync(`${dir}/${noms.get(k)}`, t)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

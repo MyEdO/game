@@ -19,8 +19,6 @@
 // Usage : node scripts/raw/reparer-mobilier.mjs <id du livre> [--apply]
 // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
 import { writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { readText } from './_lib.mjs'
 import { estLigneDeTable, sansJeton } from './lib/mobilier.mjs'
 import { cellulesDe, estSeparateur } from '../../src/data/source/decoupe.ts'
@@ -189,5 +187,4 @@ function main() {
   console.log(`${ecrits.length} fichier(s) réparé(s), ${aReparer.length} site(s)`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

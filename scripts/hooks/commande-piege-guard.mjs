@@ -12,8 +12,6 @@
 // tokenizer quote-aware de `solde-ticket-guard` (`segmentsProfonds`/`gitSubcommand`, invariant
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
-import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
 import { segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
 
 /** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté). */
@@ -114,8 +112,7 @@ export function evaluate(command) {
 }
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) {
+if (import.meta.main) {
   let raw = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) raw += chunk

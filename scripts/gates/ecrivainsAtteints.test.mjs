@@ -405,7 +405,7 @@ const ATTENDU = {
     // seul écrivain, la CLI `pdf-de.mjs`, n'est pas importé (le banc la LANCE, sans argument).
     'scripts/raw/pdf-de.test.mjs',
     // +1 le 2026-09-23 (#1739) : la réparation du mobilier de page, ACQUISE par l'import de son banc —
-    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
     // que ses fonctions PURES sur des textes en mémoire, l'arbre n'est jamais écrit.
     'scripts/raw/reparer-mobilier.mjs',
     // +1 le 2026-09-23 (#1739) : la sonde des titres d'entrée, ACQUISE par l'import de son banc — elle
@@ -413,7 +413,7 @@ const ATTENDU = {
     // le dépôt ; le banc n'appelle que ses fonctions PURES sur des fixtures, l'arbre n'est jamais écrit.
     'scripts/raw/sonde-titres.mjs',
     // +1 le 2026-09-24 (#1739) : la réparation des titres d'entrée, ACQUISE par l'import de son banc —
-    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],

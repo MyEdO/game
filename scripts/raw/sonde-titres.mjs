@@ -1086,5 +1086,4 @@ function main() {
   if (sortie) writeFileSync(sortie, `${JSON.stringify({ livre: id, sites }, null, 1)}\n`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()
