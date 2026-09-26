@@ -7,7 +7,7 @@ import { hairstylesForSex, type HairArt } from './hairstyles';
 // porte ses 3 vues + composantes `behind` (masse qui épouse le crâne) et `drop` (chute qui dépasse
 // la tête) éventuelles PAR vue (HairArt), pliées ici dans la chaîne de vue (dépliées par composeRig :
 // behind → layer −2, drop → plan dorsal ; cf. splitPartBehind dans bones.ts).
-// Seul le profil/dos du VISAGE reste un art GÉNÉRIQUE token ci-dessous (PROFILE_FACE / BACK_NAPE).
+// Seul le profil/dos du VISAGE reste un art GÉNÉRIQUE token ci-dessous (PROFILE_FACE / HEAD_BACK_SKULL).
 
 const foldView = (main: string, behind?: string, drop?: string) => {
   const folded = behind ? `${behind}${PART_BEHIND_SEP}${main}` : main;
@@ -39,21 +39,20 @@ const DEFAULT_VISAGE: string[] = [
 // (Les CHEVEUX, eux, portent leurs vues DANS leur def — HairArt — plus d'art générique partagé.)
 // =========================================================================================
 
-// Nuque/cou vus de dos (le crâne est couvert par les cheveux de la coiffure, la base se fond vers
-// le col de la tenue) — cylindre modelé (galbe + ombre portée des cheveux + tendons), PAS un
-// trapèze plat : bande exposée entre le bas des cheveux et le col, qui se lit comme un COU.
-const BACK_NAPE =
-  // silhouette arrondie (coins galbés, pas de coin droit)
-  '<path d="M-3.6 11.2 Q0 13.2 3.6 11.2 Q4.2 14.4 3.4 17.6 Q0 19.6 -3.4 17.6 Q-4.2 14.4 -3.6 11.2Z" fill="@peau"/>' +
-  // ombre portée par les cheveux, juste sous la ligne d'implantation (fondu, pas un trait net)
-  '<path d="M-3.6 11.2 Q0 13.2 3.6 11.2 Q3.1 12.6 0 13.1 Q-3.1 12.6 -3.6 11.2Z" fill="@peauO" opacity="0.5"/>' +
-  // volume cylindrique : flancs ombrés vers les oreilles
-  '<path d="M-3.6 11.2 Q-4.2 14.4 -3.4 17.6 Q-3.9 14.6 -3 12Z" fill="@peauO" opacity="0.35"/>' +
-  '<path d="M3.6 11.2 Q4.2 14.4 3.4 17.6 Q3.9 14.6 3 12Z" fill="@peauO" opacity="0.35"/>' +
-  // reflet central (galbe de la nuque)
-  '<path d="M-0.9 13.2 Q0 12.8 0.9 13.2 Q1 15.4 0.6 17.4 L-0.6 17.4 Q-1 15.4 -0.9 13.2Z" fill="@peauH" opacity="0.4"/>' +
-  // tendons / creux de la base du crâne (fondu vers le col)
-  '<path d="M-2.4 16.8 Q0 17.8 2.4 16.8" stroke="@peauO" stroke-width="0.4" fill="none" opacity="0.3"/>';
+// Crâne arrière PLEIN vu de dos : même empreinte que le disque de visage FRONT ci-dessous
+// (`cx0 cy7 r9`) — un dôme entier en chair @peau qui descend jusqu'à la nuque, indépendant de
+// la coiffure (une coiffure chauve ne doit jamais laisser un trou entre les cheveux et le cou :
+// c'est le crâne, pas les cheveux, qui ferme le volume de la tête).
+const HEAD_BACK_SKULL =
+  // dôme plein, footprint identique au disque de visage (cy7 r9)
+  '<circle cx="0" cy="7" r="9" fill="@peau"/>' +
+  // ligne d'implantation / raphé occipital (subtil, pour lire un volume et non un disque plat)
+  '<path d="M0 -1.6 Q1.6 5.5 0 14.6" stroke="@peauO" stroke-width="0.5" fill="none" opacity="0.3"/>' +
+  // galbe des tempes/flancs (ombre douce vers les oreilles)
+  '<path d="M-9 7 Q-8.6 1 -4 -1.4 Q-7 2.2 -7.6 8 Q-7 12.2 -4 14.8 Q-8 12.6 -9 7Z" fill="@peauO" opacity="0.3"/>' +
+  '<path d="M9 7 Q8.6 1 4 -1.4 Q7 2.2 7.6 8 Q7 12.2 4 14.8 Q8 12.6 9 7Z" fill="@peauO" opacity="0.3"/>' +
+  // reflet au sommet du crâne
+  '<path d="M-4 -1 Q0 -2.6 4 -1 Q2 0.4 0 0.6 Q-2 0.4 -4 -1Z" fill="@peauH" opacity="0.4"/>';
 
 // VISAGE de PROFIL générique (tokens) : silhouette de côté propre — front, arête du nez, lèvres,
 // menton, un œil, une oreille. Remplace l'art headViews profil (hardcodé, déformé). Regarde +x.
@@ -117,5 +116,5 @@ export function cosmeticPart(slot: 'visage' | 'cheveux', species: string, sex: '
   // la variante dans le pool de la tête — même convention que les cheveux (pool + idx modulo).
   const pool = head?.visage?.length ? head.visage : DEFAULT_VISAGE;
   const visage = pool[((idx % pool.length) + pool.length) % pool.length];
-  return { front: visage, back: BACK_NAPE, profile: PROFILE_FACE };
+  return { front: visage, back: HEAD_BACK_SKULL, profile: PROFILE_FACE };
 }

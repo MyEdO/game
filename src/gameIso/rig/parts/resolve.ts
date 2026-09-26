@@ -100,6 +100,25 @@ const HAND: PartArt = {
   back: `${WRIST(0, '@peauO')}<ellipse cx="0" cy="2.6" rx="2.8" ry="3.2" fill="@peauO" stroke="@peauO" stroke-width="0.5"/>`,
   profile: `${WRIST(0.6, '@peau')}<ellipse cx="0.6" cy="2.6" rx="2.6" ry="3.2" fill="@peau" stroke="@peauO" stroke-width="0.5"/>`,
 };
+// Cou : cylindre de chair @peau reliant le sommet du torse (os `torse`) au bas du crâne (os
+// `tete`) — repère LOCAL de l'os `cou` (référence longueur=6/épaisseur=6, cf. skeletons.ts).
+// Toujours résolu (comme visage/cheveux), quelle que soit la tenue : un col de tenue le recouvre
+// naturellement (dessiné au torse/tête, calque au-dessus) ; nu ou en chauve, il ferme le volume
+// entre tête et torse dans les TROIS vues, seams qui manquaient à `HEAD_BACK_SKULL`/`FOOT` seuls.
+const NECK: PartArt = {
+  front: `<path d="M-3.6 -6.6 Q0 -8 3.6 -6.6 L4 2.6 Q0 5 -4 2.6 Z" fill="@peau"/>` +
+    `<path d="M-1.6 -6 Q0 -6.6 1.6 -6 L1.8 1.6 Q0 2.6 -1.8 1.6Z" fill="@peauH" opacity="0.3"/>` +
+    `<path d="M-3.6 -6.6 L-4 2.6 Q-3 1 -2.6 -4 Z" fill="@peauO" opacity="0.3"/>` +
+    `<path d="M3.6 -6.6 L4 2.6 Q3 1 2.6 -4 Z" fill="@peauO" opacity="0.3"/>`,
+  back: `<path d="M-3.8 -6.4 Q0 -7.8 3.8 -6.4 L4.2 2.8 Q0 5.2 -4.2 2.8 Z" fill="@peau"/>` +
+    `<path d="M-3.8 -6.4 Q0 -7 3.8 -6.4 Q3.4 -5.4 0 -5.2 Q-3.4 -5.4 -3.8 -6.4Z" fill="@peauO" opacity="0.45"/>` +
+    `<path d="M-0.9 -5 Q0 -5.4 0.9 -5 Q1 -1 0.6 2 L-0.6 2 Q-1 -1 -0.9 -5Z" fill="@peauH" opacity="0.35"/>` +
+    `<path d="M-2.4 1 Q0 2.2 2.4 1" stroke="@peauO" stroke-width="0.4" fill="none" opacity="0.3"/>`,
+  profile: `<path d="M-3 -6.4 Q1.5 -7.4 4.4 -4.6 L4.6 2.6 Q0 5 -3.6 2.6 Z" fill="@peau"/>` +
+    `<path d="M-3 -6.4 Q-3.6 -1 -3.6 2.6 Q-4.4 -1.4 -3 -6.4Z" fill="@peauO" opacity="0.35"/>` +
+    `<path d="M1.5 -7.2 Q4 -6 4.4 -4.6 Q3.4 -5.6 1.2 -6.2Z" fill="@peauH" opacity="0.4"/>`,
+};
+
 // Botte SYSTÈME : peinte en JETONS de la famille `botte` (cuir `@botte` + contour `@botteO`,
 // `@semelle`, et `@botteDos`/`@botteDosO` pour le cuir dorsal que l'art assombrit à la main) —
 // une tenue pilote donc la couleur de ses bottes par sa `palette` (`botte`, cf. tenues/types.ts).
@@ -154,6 +173,7 @@ export function resolveParts(
   // Cosmétique (toujours). overrides priment, sinon variante dérivée du seed.
   out.visage = P(cosmeticPart('visage', species, sex, overrides.visage ?? seed % 2));
   out.cheveux = P(cosmeticPart('cheveux', species, sex, overrides.cheveux ?? (seed >> 2)));
+  out.cou = P(NECK);
 
   // Corps : override → armure équipée → carrière → générique.
   // art RÉEL par slot (pour gater la substitution profil/dos ci-dessous sur l'art effectif, pas la tenue).

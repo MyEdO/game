@@ -35,12 +35,12 @@ export type Skeleton = Record<BoneId, Bone>;
 /** Parts visuelles interchangeables. */
 export type Slot =
   | 'visage' | 'cheveux'
-  | 'tete' | 'bras' | 'torse' | 'jambes' | 'pied' | 'main'
+  | 'tete' | 'cou' | 'bras' | 'torse' | 'jambes' | 'pied' | 'main'
   | 'arme' | 'bouclier';
 
 /** Os porteur(s) d'un slot. Le 2e os d'une paire (…D) est rendu en miroir. */
 export const SLOT_BONES: Record<Slot, BoneId[]> = {
-  visage: ['tete'], cheveux: ['tete'], tete: ['tete'],
+  visage: ['tete'], cheveux: ['tete'], tete: ['tete'], cou: ['cou'],
   torse: ['torse'],
   bras: ['epauleG', 'epauleD'],
   jambes: ['cuisseG', 'cuisseD'],
@@ -52,7 +52,7 @@ export const SLOT_BONES: Record<Slot, BoneId[]> = {
 /** Ordre de calque d'un slot À L'INTÉRIEUR d'un même os (petit = dessous). */
 export const SLOT_LAYER: Record<Slot, number> = {
   jambes: 0, torse: 1, bras: 2, pied: 0, main: 0,
-  visage: 0, cheveux: 1, tete: 2,
+  visage: 0, cheveux: 1, tete: 2, cou: 0,
   bouclier: 0, arme: 0,
 };
 
