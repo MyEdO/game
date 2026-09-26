@@ -7,7 +7,7 @@
  * repo pour les tests interactifs (`createRoot`/`act`, cf. `EtatPanel.behavior.test.tsx`) —
  * `@testing-library` n'est pas une dépendance de ce dépôt.
  */
-import { describe, it, expect, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { DialogueBox } from './DialogueBox';
@@ -44,7 +44,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
       flags: {},
       gameTime: campaignStart(),
       party: [],
-      dialogue: { dialogue: dlg, nodeId, speakerId: 'e1' },
+      dialogue: { dialogue: dlg, nodeId, speakerId: 'e1', session: 1 },
     });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -66,5 +66,55 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
   it('nœud AVEC speakerId : alterne vers l’entité référencée (Bob), sans toucher la session', () => {
     mount('n2');
     expect(container.querySelector('.dlg-speaker')?.textContent).toBe('Bob');
+  });
+});
+
+/**
+ * CE QUE LA RÉPONSE ANNONCE (#1869) : « N. [Compétence — Difficulté] libellé », composé à partir du
+ * FLUX. Mesuré sur le NOM ACCESSIBLE du bouton (ce qu'un joueur lit, ce qu'un lecteur d'écran dit),
+ * jamais sur une classe CSS.
+ */
+const dlgTeste: Dialogue = {
+  id: 'dlg-tag', start: 'n1',
+  nodes: [{ id: 'n1', desc: 'La cage est là.', choices: [
+    { label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+    { label: 'Renoncer.' },
+  ] }],
+} as Dialogue;
+
+describe('DialogueBox — numéro et Test annoncé (#1869)', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    useGame.setState({
+      scene: { ...scene, dialogues: [dlgTeste] } as Scene,
+      flags: {}, gameTime: campaignStart(), party: [],
+      dialogue: { dialogue: dlgTeste, nodeId: 'n1', speakerId: 'e1', session: 2 },
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root.render(<DialogueBox />); });
+  });
+  afterEach(() => {
+    act(() => { root.unmount(); });
+    container.remove();
+    useGame.setState({ dialogue: null });
+  });
+
+  const noms = () => Array.from(container.querySelectorAll('button')).map((b) => b.getAttribute('aria-label'));
+
+  it('chaque réponse porte son NUMÉRO, dans l’ordre de la liste visible', () => {
+    expect(noms()[0]?.startsWith('1. ')).toBe(true);
+    expect(noms()[1]?.startsWith('2. ')).toBe(true);
+  });
+
+  it('la réponse à Test porte le TAG dérivé de son flux — Compétence et Difficulté résolues au registre', () => {
+    expect(noms()[0]).toBe('1. [Crochetage — Accessible (+20)] Crocheter la cage.');
+  });
+
+  it('la réponse SANS Test ne porte aucun tag (rien à annoncer)', () => {
+    expect(noms()[1]).toBe('2. Renoncer.');
   });
 });

@@ -37,7 +37,7 @@ beforeEach(() => {
 
 describe('chooseDialogue — avancée différée pendant un Test', () => {
   it('choix AVEC Test : le dialogue reste au nœud courant tant que le Test n’est pas résolu', () => {
-    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1' } });
+    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     useGame.getState().chooseDialogue(0);
     // Le Test a suspendu ; le nœud N’A PAS avancé (pas de DialogueBox du nœud suivant sous la modale).
     expect(useGame.getState().pendingTest).toBeTruthy();
@@ -46,8 +46,20 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
     expect(useGame.getState().pendingTest!.dialogueNext).toBeTruthy();
   });
 
+  it('la réponse à Test ouvre la fenêtre de jet ORDINAIRE — pas une modale propre au dialogue (#1869)', () => {
+    // `chooseDialogue` → `runFlow` → `openSkillTest` : le dialogue n'a AUCUN chemin de jet à lui. Le
+    // pending est celui de tous les Tests (même slot, même verbe de résolution `resolveTest`), et il
+    // porte la SITUATION déclarée par le flux — jamais le libellé de la réponse.
+    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
+    useGame.getState().chooseDialogue(0);
+    const pt = useGame.getState().pendingTest!;
+    expect(pt.label).toBe('Force');
+    expect(pt.char).toBe('force');
+    expect(pt.actorId).toBeTruthy(); // un héros du groupe jette : la voie est la voie commune
+  });
+
   it('résolution du Test → la branche s’applique PUIS le dialogue avance', () => {
-    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1' } });
+    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     useGame.getState().chooseDialogue(0);
     useGame.setState({ pendingTest: { ...useGame.getState().pendingTest!, roll: 5, success: true } });
     useGame.getState().resolveTest();
@@ -57,7 +69,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
   });
 
   it('échec au Test → branche d’échec appliquée, dialogue avance quand même', () => {
-    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1' } });
+    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(true), nodeId: 'n1', session: 1 } });
     useGame.getState().chooseDialogue(0);
     useGame.setState({ pendingTest: { ...useGame.getState().pendingTest!, roll: 99, success: false } });
     useGame.getState().resolveTest();
@@ -66,7 +78,7 @@ describe('chooseDialogue — avancée différée pendant un Test', () => {
   });
 
   it('choix SANS Test : le dialogue avance immédiatement (non-régression)', () => {
-    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(false), nodeId: 'n1' } });
+    useGame.setState({ party: [hero()], dialogue: { dialogue: makeDialogue(false), nodeId: 'n1', session: 1 } });
     useGame.getState().chooseDialogue(0);
     expect(useGame.getState().pendingTest).toBeNull();
     expect(useGame.getState().dialogue?.nodeId).toBe('n2');

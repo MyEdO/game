@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-97 primitives.
+98 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -100,6 +100,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | rangée de ready-check coop : sièges requis seuls, siège nommé, état prêt/attendu | `ReadyRow` | `src/ui/ReadyRow.tsx` | `src/ui/styles/ready-row.css` | pause de Round, écran de Victoire, nuit de repos | quorum = siegesRequis (src/state/netOwnership.ts), source unique |
 | ligne de récap structurée : trio de tons ok/bad/info et étiquette de phase | `RecapLine` | `src/ui/RecapLine.tsx` | `src/ui/styles/recap-line.css` | issue d’une fenêtre de jet, chronique d’un écran, carte-parchemin | state/recapLine.ts — un site fournit la DONNÉE, jamais le markup (#1078) |
 | picker de référence multilangue-safe (par id) | `RefField` | `src/ui/compendium/RefField.tsx` | — | toute ref id statique du Compendium | CodexRef.test.ts |
+| ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | `src/state/dialogue.ts` | — | la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse | src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux) |
 | attaque gratuite déclenchée, kind-agnostique | `resolveFreeAttacks` | `src/state/combatFlow.ts` | — | toute source de Frappe réactive/Assaut féroce/Trait/État | creatureFreeAttacks.test.ts |
 | résolution rendu + dispatch backend | `resolveRender/tokenBodyKind` | `src/gameIso/rig/bodyPlan.ts` | — | tout rendu iso/POV/portrait | eslint.config.js |
 | corps d’une RÉVÉLATION tirée sur table : valeurs du coup, États infligés, chaque effet avec son explication RAW | `RevealBody` | `src/ui/RevealBody.tsx` | `src/ui/styles/reveal-body.css` | Coup Critique, Imparfaite, Mutation — étape d’affichage comme étape de choix de déviation | — |
@@ -128,4 +129,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 1ca35617647b40fffccf0baabf8ecd357ac497ce (6 fichiers, 0 dossiers) corps: 00bdf11e28fed853da729da591cdd6c832dc3bd7 -->
+<!-- sources-empreinte: 1ca35617647b40fffccf0baabf8ecd357ac497ce (6 fichiers, 0 dossiers) corps: ca7a2616cc9b44b4c8a9b47259cfffbe6f17a00e -->

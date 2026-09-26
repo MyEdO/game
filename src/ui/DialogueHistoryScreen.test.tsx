@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /** Relecture de l'historique de dialogue (#718 dernier lot) — contrats POSITIFS : deux conversations
- *  distinctes (`dialogueId`/`sceneId`) donnent deux rangées maître, la plus récente en tête ; la
- *  sélection affiche `nodeText` (verbatim) ET `choiceText` (la réponse) ; le regroupement pur
- *  démarre un nouveau groupe au changement de `dialogueId`/`sceneId` ; l'état vide s'affiche. */
+ *  distinctes (deux `session`) donnent deux rangées maître, la plus récente en tête ; la sélection
+ *  affiche `nodeText` (verbatim) ET `choiceText` (la réponse) ; le regroupement pur démarre un
+ *  nouveau groupe à chaque changement de `session` (#1869) ; l'état vide s'affiche. */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -15,9 +15,9 @@ beforeAll(() => {
 });
 
 const turns: DialogueTurn[] = [
-  { speaker: 'Le meunier', nodeText: 'On m’a volé mon grain.', choiceText: 'Je vais enquêter.', at: 100, sceneId: 'scene-1', dialogueId: 'dlg-1' },
-  { speaker: 'Le meunier', nodeText: 'Merci, aventurier.', choiceText: 'De rien.', at: 105, sceneId: 'scene-1', dialogueId: 'dlg-1' },
-  { speaker: 'La tavernière', nodeText: 'Une bière ?', choiceText: 'Volontiers.', at: 200, sceneId: 'scene-2', dialogueId: 'dlg-2' },
+  { speaker: 'Le meunier', nodeText: 'On m’a volé mon grain.', choiceText: 'Je vais enquêter.', at: 100, sceneId: 'scene-1', dialogueId: 'dlg-1', session: 1 },
+  { speaker: 'Le meunier', nodeText: 'Merci, aventurier.', choiceText: 'De rien.', at: 105, sceneId: 'scene-1', dialogueId: 'dlg-1', session: 1 },
+  { speaker: 'La tavernière', nodeText: 'Une bière ?', choiceText: 'Volontiers.', at: 200, sceneId: 'scene-2', dialogueId: 'dlg-2', session: 2 },
 ];
 
 let container: HTMLDivElement;
@@ -41,7 +41,7 @@ async function mount() {
 }
 
 describe('groupConversations — regroupement pur (#718)', () => {
-  it('des tours contigus de même dialogueId/sceneId forment UN groupe', () => {
+  it('des tours de même `session` forment UN groupe', () => {
     const groups = groupConversations(turns);
     expect(groups).toHaveLength(2);
     expect(groups[0].turns).toHaveLength(2);
@@ -50,14 +50,24 @@ describe('groupConversations — regroupement pur (#718)', () => {
     expect(groups[1].dialogueId).toBe('dlg-2');
   });
 
-  it('un changement de dialogueId OU sceneId démarre un NOUVEAU groupe', () => {
+  it('un changement de `session` démarre un NOUVEAU groupe', () => {
     const t2: DialogueTurn[] = [
-      { nodeText: 'a', choiceText: 'x', at: 1, sceneId: 's', dialogueId: 'd1' },
-      { nodeText: 'b', choiceText: 'y', at: 2, sceneId: 's', dialogueId: 'd2' }, // dialogueId change
-      { nodeText: 'c', choiceText: 'z', at: 3, sceneId: 's2', dialogueId: 'd2' }, // sceneId change
+      { nodeText: 'a', choiceText: 'x', at: 1, sceneId: 's', dialogueId: 'd1', session: 1 },
+      { nodeText: 'b', choiceText: 'y', at: 2, sceneId: 's', dialogueId: 'd2', session: 2 },
+      { nodeText: 'c', choiceText: 'z', at: 3, sceneId: 's2', dialogueId: 'd2', session: 3 },
     ];
     const groups = groupConversations(t2);
     expect(groups).toHaveLength(3);
+  });
+
+  it('DEUX visites au MÊME PNJ, dans la MÊME scène, sont DEUX conversations', () => {
+    const t3: DialogueTurn[] = [
+      { nodeText: 'a', choiceText: 'x', at: 1, sceneId: 's', dialogueId: 'd1', session: 4 },
+      { nodeText: 'a', choiceText: 'y', at: 9, sceneId: 's', dialogueId: 'd1', session: 5 }, // on rouvre le même dialogue
+    ];
+    const groups = groupConversations(t3);
+    expect(groups).toHaveLength(2);
+    expect(groups.map((g) => g.session)).toEqual([4, 5]);
   });
 });
 

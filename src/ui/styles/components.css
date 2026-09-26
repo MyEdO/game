@@ -747,6 +747,15 @@ button.chip:hover {
 .dlg-choice:hover:not(:disabled)::before {
   transform: translateX(3px);
 }
+/* Le NUMÉRO de la réponse — son RANG dans la liste visible, l'adresse que frappe la touche 1-9. */
+.dlg-choice-num {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+/* Le TEST que la réponse annonce, DÉRIVÉ de son flux (jamais recopié dans le libellé par l'auteur). */
+.dlg-choice-tag {
+  color: var(--gold2);
+}
 .dlg-choice-text {
   flex: 1;
 }

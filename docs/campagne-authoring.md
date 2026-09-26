@@ -177,6 +177,17 @@ chaîne de nom dupliquée dans la donnée.
   `closeDialogue`/`interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).
+- **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend
+  « `N. [Compétence — Difficulté] libellé` » : le NUMÉRO est le rang de la réponse dans la liste
+  VISIBLE (une réponse masquée par son `when` ne prend pas de numéro, et la touche 1-9 adresse ce
+  rang-là), et le TAG vient du `flow` de la réponse (`testAnnonce`, `src/state/dialogue.ts` : nœud
+  `test`, ou effet `extendedTest` — qui ajoute son DR cumulé). **N'écris JAMAIS la Compétence ni
+  « (Test de …) » dans le `label`** : la mention mentirait au premier changement de flux, et le joueur
+  la lirait deux fois. Garde ABSOLUE : `src/scenes/dialogue-label-sans-test.test.ts`. Le `label` du
+  `FlowTest`, lui, NOMME légitimement la fenêtre de jet (« Intuition — quelque chose cloche »).
+- **SESSION de conversation** — chaque ouverture pose un `dialogue.session` monotone
+  (`ouvrirDialogue`), recopié sur chaque tour archivé : c'est LUI qui regroupe une conversation à la
+  relecture. Deux visites au même PNJ sont donc deux conversations distinctes, rien à authorer.
 
 ### 9ter. Choix gatés sur le GROUPE (`when` skill/career/species/status, #711)
 

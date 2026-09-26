@@ -968,5 +968,14 @@
     "concept": "ce qu'un site fera APRÈS son coup, déclaré en DONNÉE à l'entrée (enchaînement, attaque gratuite, drapeaux du coup) et joué par une écriture unique à la reprise — y compris quand une fenêtre de défense s'interpose",
     "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation",
     "verrou": "src/state/defense-suite.test.ts"
+  },
+  {
+    "id": "reponsesDuNoeud",
+    "type": "primitives.manifest",
+    "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
+    "fichier": "src/state/dialogue.ts",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
+    "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
   }
 ]

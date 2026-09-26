@@ -12,26 +12,28 @@ import { useGame } from '../state/store';
 import type { DialogueTurn } from '../state/dialogueHistory';
 import { Stack } from './Layout';
 
-/** Une conversation = un run CONTIGU de tours partageant le même `dialogueId` ET `sceneId` — un
- *  dialogue se termine toujours avant qu'un autre s'ouvre, jamais d'entrelacement. */
+/** Une conversation = les tours d'une même SESSION de dialogue (`DialogueTurn.session`, posée à
+ *  l'ouverture par `ouvrirDialogue`) : deux visites au même PNJ sont deux conversations, là où le
+ *  couple `dialogueId`/`sceneId` les confondait. */
 export interface DialogueConversation {
   speaker?: string;
   at: number;
   sceneId?: string;
   dialogueId: string;
+  session: number;
   turns: DialogueTurn[];
 }
 
-/** Pure — regroupe une liste CHRONOLOGIQUE de tours en conversations (nouveau groupe dès que
- *  `dialogueId`/`sceneId` change par rapport au tour précédent). */
+/** Pure — regroupe une liste CHRONOLOGIQUE de tours en conversations (nouveau groupe à chaque
+ *  changement de `session`). */
 export function groupConversations(turns: DialogueTurn[]): DialogueConversation[] {
   const groups: DialogueConversation[] = [];
   for (const turn of turns) {
     const last = groups[groups.length - 1];
-    if (last && last.dialogueId === turn.dialogueId && last.sceneId === turn.sceneId) {
+    if (last && last.session === turn.session) {
       last.turns.push(turn);
     } else {
-      groups.push({ speaker: turn.speaker, at: turn.at, sceneId: turn.sceneId, dialogueId: turn.dialogueId, turns: [turn] });
+      groups.push({ speaker: turn.speaker, at: turn.at, sceneId: turn.sceneId, dialogueId: turn.dialogueId, session: turn.session, turns: [turn] });
     }
   }
   return groups;
@@ -51,7 +53,7 @@ export function DialogueHistoryScreen({ onClose }: { onClose: () => void }) {
     <Stack>
       {conversations.map((conv, i) => (
         <ListRow
-          key={`${conv.dialogueId}-${conv.sceneId ?? ''}-${conv.at}-${i}`}
+          key={`${conv.session}-${i}`}
           variant="codex"
           selected={selIdx === i}
           onClick={() => setSelIdx(i)}

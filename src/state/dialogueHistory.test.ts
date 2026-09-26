@@ -31,7 +31,7 @@ const entities: SceneEntity[] = [
 ];
 
 describe('recordTurn (helper pur)', () => {
-  const turn = (n: number): DialogueTurn => ({ nodeText: `n${n}`, choiceText: `c${n}`, at: n, dialogueId: 'd' });
+  const turn = (n: number): DialogueTurn => ({ nodeText: `n${n}`, choiceText: `c${n}`, at: n, dialogueId: 'd', session: 1 });
 
   it('ajoute un tour en fin d’historique', () => {
     const h = recordTurn([turn(1)], turn(2));
@@ -87,7 +87,7 @@ describe('chooseDialogue — archivage (#718)', () => {
     useGame.setState({
       party: [hero()],
       scene: { ...testScene, entities: [...testScene.entities, ...entities] },
-      dialogue: { dialogue: makeDialogue(), nodeId: 'n1' },
+      dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
     useGame.getState().chooseDialogue(0);
     const h = useGame.getState().dialogueHistory;
@@ -98,6 +98,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       choiceText: 'Salut.',
       dialogueId: 'd-archive',
       sceneId: testScene.id,
+      session: 7, // la SESSION de la conversation ouverte, recopiée sur le tour archivé
     });
   });
 
@@ -105,7 +106,7 @@ describe('chooseDialogue — archivage (#718)', () => {
     useGame.setState({
       party: [hero()],
       scene: { ...testScene, entities: [...testScene.entities, ...entities] },
-      dialogue: { dialogue: makeDialogue(), nodeId: 'n1' },
+      dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
     useGame.getState().chooseDialogue(0);
     useGame.getState().chooseDialogue(0); // nœud n2 désormais courant
@@ -122,7 +123,7 @@ describe('dialogueHistory / journal — survie cross-scène (transitionTo)', () 
     useGame.getState().startScene(testScene);
     useGame.setState({ party: [hero()] });
     useGame.getState().log('événement récent');
-    useGame.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd' }] });
+    useGame.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     useGame.getState().transitionTo(testScene.id);
     expect(useGame.getState().dialogueHistory.length).toBe(1);
     expect(useGame.getState().journal).toContain('événement récent');
@@ -133,7 +134,7 @@ describe('startScene (nouvelle partie) — reset', () => {
   it('remet dialogueHistory ET journal à leur état neuf', () => {
     useGame.setState({
       party: [hero()],
-      dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd' }],
+      dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }],
       journal: ['un vieux message'],
     });
     useGame.getState().startScene(testScene);
@@ -162,7 +163,7 @@ describe('save/load — dialogueHistory round-trip', () => {
   });
 
   it('un dialogueHistory non vide survit à un save → nouvelle partie → load', () => {
-    const seeded: DialogueTurn[] = [{ speaker: 'Garde', nodeText: 'n1', choiceText: 'c1', at: 5, dialogueId: 'd-archive', sceneId: testScene.id }];
+    const seeded: DialogueTurn[] = [{ speaker: 'Garde', nodeText: 'n1', choiceText: 'c1', at: 5, dialogueId: 'd-archive', sceneId: testScene.id, session: 3 }];
     useGame.setState({ dialogueHistory: seeded });
     expect(useGame.getState().saveGame(1)).toBe(true);
     useGame.getState().startScene(testScene); // « nouvelle partie » : dialogueHistory repart à zéro
@@ -172,7 +173,7 @@ describe('save/load — dialogueHistory round-trip', () => {
   });
 
   it('un save ANTÉRIEUR à #718 (data sans dialogueHistory) se charge sans crash → historique vide', () => {
-    useGame.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd' }] });
+    useGame.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     expect(useGame.getState().saveGame(1)).toBe(true);
     const saved = readSlot(1)!;
     const data = { ...(saved.data as Record<string, unknown>) };

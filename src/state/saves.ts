@@ -129,7 +129,11 @@ import type { Scene } from './scene';
 // rouvre avec des effets qui portent ces champs et plus rien ne les lit : le −10 d'Esquive du sort, le
 // demi-Mouvement et le plafond de mains d'arme disparaissent en silence. La save se jette (politique 2
 // ci-dessus).
-export const SAVE_VERSION = 50;
+// 50 → 51 (#1869) : la CONVERSATION porte sa `session` — `GameState.dialogue` (`EtatDialogue`) et
+// chaque `DialogueTurn` archivé. Une save de 50 rouvre avec un dialogue en cours SANS session et un
+// historique muet : les tours d'avant se recolleraient à la conversation suivante, et le prochain id
+// distribué (dérivé du max archivé) repartirait de 1. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 51;
 
 export interface SaveMeta {
   version: number;

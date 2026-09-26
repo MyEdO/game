@@ -3529,7 +3529,7 @@
          "next": "contrats"
         },
         {
-         "label": "Crocheter le vieux coffre du maître (Test de Crochetage).",
+         "label": "Crocheter le vieux coffre du maître.",
          "icon": "ui/lock",
          "when": {
           "kind": "flag",
@@ -4643,7 +4643,7 @@
          }
         },
         {
-         "label": "Piller le tronc des offrandes (Test de Discrétion).",
+         "label": "Piller le tronc des offrandes.",
          "icon": "action/pick-up",
          "when": {
           "kind": "flag",
@@ -15819,7 +15819,7 @@
        "desc": "« Psst ! Par ici ! Les hommes-rats m’engraissent pour leur table — la serrure est grossière, sortez-moi de là ! »",
        "choices": [
         {
-         "label": "Crocheter la cage (Test de Crochetage).",
+         "label": "Crocheter la cage.",
          "icon": "ui/lock",
          "when": {
           "kind": "flag",
