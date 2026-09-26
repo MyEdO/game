@@ -243,4 +243,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 327c2cd1680817dd1d21a53a454f93d56d724260 (25 fichiers, 8 dossiers) corps: 7f5e7ba3e7f2a067661cc91927669221c45667ed -->
+<!-- sources-empreinte: 1fe22f666b96a2feac10bf686b3e82f2df437da6 (25 fichiers, 8 dossiers) corps: 7f5e7ba3e7f2a067661cc91927669221c45667ed -->
