@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { resumeSuspendedAI } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 /**
@@ -13,7 +12,7 @@ import { testScene } from '../scenes/test-fixture';
  */
 function setupBattle(nHeroes: number) {
   const party = Array.from({ length: nHeroes }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i + 1) }));
+    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
   useGame.getState().startScene(testScene);
   useGame.getState().startCombat('enc-mutants');

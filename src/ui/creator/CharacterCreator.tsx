@@ -56,7 +56,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { adresseDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { adresseDeCreation, cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import { emplacementOctroye } from '../../engine/creation';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
@@ -165,7 +165,6 @@ import {
   speciesTalentRandomDrawn,
   rerollDraftTalent,
   withSpeciesTalentChoice,
-  fluxDuBrouillon,
   CAREER_SKILL_ADVANCES,
   MAX_ADV_PER_SKILL,
   CAREER_CHAR_ADVANCES,
@@ -1773,9 +1772,11 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
             ) : (
               <div className="talent-options-grid">
                 {choiceEntries.map(({ adresse, ref, options }) => {
-                  const selected = d.speciesTalentChoices[adresse] ?? null;
+                  const retenue = d.speciesTalentChoices[adresse];
+                  const selectedIdx = retenue ? options.findIndex((o) => cleDOption(o) === cleDOption(retenue)) : -1;
+                  const selected = selectedIdx < 0 ? null : selectedIdx;
                   const activeOptIdx = selected ?? 0;
-                  const choisir = (idx: number) => setD(withSpeciesTalentChoice(d, adresse, idx));
+                  const choisir = (idx: number) => setD(withSpeciesTalentChoice(d, adresse, options[idx]));
                   const groupRef: { current: HTMLDivElement | null } = { current: null };
                   const onOptKeyDown = rovingKeyDown<HTMLDivElement>({
                     containerRef: groupRef,
@@ -2021,14 +2022,14 @@ function trappingMeta(id: string): string {
 //      (draftWealth/trappingChoices, draft.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
 //      arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
 /** Faces INDIVIDUELLES du jet de bourse — même flux/ordre RNG que `draftWealth`
- *  (`fluxDuBrouillon(d, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
+ *  (`fluxDeCreation(d.seed, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
  *  les dés à l'écran (mock7 : faces + total) au lieu du seul total texte (retouche juge vision
  *  #393 P5). Bronze N : 2N d10 ; Argent N : N d10 ; Or (aucun dé, CO=Standing) : []. */
 function draftWealthDice(d: CreatorDraft): number[] {
   const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
   if (status.standing <= 0 || status.tier === 'Or') return [];
   const n = status.tier === 'Bronze' ? 2 * status.standing : status.standing;
-  const rng = fluxDuBrouillon(d, 'bourse');
+  const rng = fluxDeCreation(d.seed, 'bourse');
   return Array.from({ length: n }, () => d10Face(rng.int(1, 10)));
 }
 

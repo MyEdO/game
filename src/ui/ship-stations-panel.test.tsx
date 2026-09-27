@@ -16,7 +16,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { navalTraitsDe } from '../engine/navalTraits';
 import { shipStations } from '../data';
 import type { Combatant } from '../engine/types';
@@ -30,9 +29,8 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 
 /** Deux héros au groupe. */
 function poserGroupe(): Combatant[] {
-  const rng = makeRNG(7);
-  const gunnar = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng }), id: 'gunnar' };
-  const lise = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', rng }), id: 'lise' };
+  const gunnar = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
+  const lise = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
   // L'équipage vit AUSSI dans la bataille en mer (`setShipStation` patche les deux) : la fixture
   // porte donc une file de combat, sans quoi le contrat ne mesurerait que la moitié de l'action.
   const battle = { combatants: [gunnar, lise], log: [], round: 1, turn: 0 } as unknown as BattleState;

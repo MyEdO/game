@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { resolveCastChain } from './combatFlow';
 import type { Combatant } from '../engine/types';
@@ -24,7 +23,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, seed: 707,
     });
     hero.spells = ['fauche-demon'];
     useGame.setState({ party: [hero] });

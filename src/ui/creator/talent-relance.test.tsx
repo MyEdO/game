@@ -13,8 +13,8 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-/** Graine 1, Reiklander : Bonnes jambes aux tirages 0 et 1, Réflexes foudroyants au tirage 2. */
-const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(1), 'humains-reiklander'), 'soldat'));
+/** Graine 169, Reiklander : Doué en calcul aux tirages 0 et 1, Sixième sens au tirage 2. */
+const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(169), 'humains-reiklander'), 'soldat'));
 
 describe('Talents tirés — relance d\'un doublon au clic (LDB 05 l.484)', () => {
   let container: HTMLDivElement;
@@ -42,11 +42,11 @@ describe('Talents tirés — relance d\'un doublon au clic (LDB 05 l.484)', () =
   it('le clic remplace CE SEUL tirage ; le nouveau tirage, non doublon, ne porte plus de relance', () => {
     mount();
     const avant = speciesTalentRandomDrawn(draft);
-    expect(avant.map((t) => [t.ref.id, t.rang, t.doublon])).toEqual([['bonnes-jambes', 0, false], ['bonnes-jambes', 0, true], ['reflexes-foudroyants', 0, false]]);
+    expect(avant.map((t) => [t.ref.id, t.rang, t.doublon])).toEqual([['doue-en-calcul', 0, false], ['doue-en-calcul', 0, true], ['sixieme-sens', 0, false]]);
     expect(relancer()).toHaveLength(1);
     act(() => { relancer()[0].click(); });
     const apres = speciesTalentRandomDrawn(draft);
-    expect(apres.map((t) => [t.ref.id, t.rang, t.doublon])).toEqual([['bonnes-jambes', 0, false], ['chanceux', 1, false], ['reflexes-foudroyants', 0, false]]);
+    expect(apres.map((t) => [t.ref.id, t.rang, t.doublon])).toEqual([['doue-en-calcul', 0, false], ['doigts-de-fee', 1, false], ['sixieme-sens', 0, false]]);
     expect(draft.talentRerolls).toEqual({ [avant[1].adresse]: 1 });
     expect(relancer()).toHaveLength(0);
     expect(container.textContent).not.toContain('Déjà possédé');

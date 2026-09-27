@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { collapseStructure } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
 import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from './scene';
@@ -28,7 +27,7 @@ function sceneWithParapet(): Scene {
 /** Lance un combat sur la scène à herse + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
 function start() {
   useGame.getState().seedRng(1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithParapet());
   useGame.getState().startCombat('enc-mutants');

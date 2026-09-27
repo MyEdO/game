@@ -89,7 +89,7 @@ describe('7bis — applyOpposedCritical émet onCrit (Taillade sur Critique oppo
 
   it('un Critique opposé de l’attaquant Taillade → la victime gagne Hémorragique', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

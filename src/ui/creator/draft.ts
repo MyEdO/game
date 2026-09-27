@@ -20,7 +20,6 @@
  */
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, TalentInstance } from '../../engine/types';
 import { garanti } from '../../state/combatants';
-import { makeRNG, hashSeed, type RNG } from '../../engine/dice';
 import { Money } from '../../engine/money';
 import {
   rollSpecies,
@@ -56,9 +55,10 @@ import {
   poolDuJoker,
   adresseDeCreation,
   FORMAT_DES_CHOIX,
+  fluxDeCreation,
+  cleDOption,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
-  type TalentDEspece,
 } from '../../engine/character';
 import { refKey, talentMaxReached, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
@@ -78,12 +78,10 @@ export const CAREER_CHAR_ADVANCES = 5;
 
 /** Le brouillon = les choix de création (`ChoixDeCreation`, en ids) + l'état de l'assistant. */
 export interface CreatorDraft
-  extends Required<Pick<ChoixDeCreation, 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
-    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices'> {
+  extends Required<Pick<ChoixDeCreation, 'seed' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
+    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'> {
   /** Format des choix (`FORMAT_DES_CHOIX`) — un brouillon persisté sans lui n'est pas relu. */
   v: typeof FORMAT_DES_CHOIX;
-  /** Seed unique de l'assistant — tous les flux aléatoires en dérivent (figés). */
-  seed: number;
   // 1) Espèce
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -123,10 +121,6 @@ export interface CreatorDraft
   /** Compétences d'espèce à +5 / +3 (LDB 05 l.484) — `ChoixDeCreation.speciesSkillAdvances`. */
   speciesPlus5: RefDesignee[];
   speciesPlus3: RefDesignee[];
-  /** Talents d'espèce aléatoires TIRÉS (geste « Tirer aux dés » de l'étape 5c, #393 agentivité) :
-   *  avant le geste, les d100 n'apparaissent NULLE PART (ni volet ni fiche vivante) — la résolution
-   *  reste figée par le seed, le geste n'en découvre que l'affichage. */
-  talentsRolled?: boolean;
   // 5) Possessions
   /** Bourse de départ TIRÉE (LDB 05 l.578) — geste explicite requis (#393 P5 correctif
    *  d'agentivité : le montant, bien que déterministe côté `draftWealth`, ne s'affiche PLUS avant
@@ -243,18 +237,10 @@ export const hasSpecies = (d: CreatorDraft): boolean => !!d.speciesId && !!draft
 export const careerCharKeys = (d: CreatorDraft): CharKey[] =>
   (draftLevel(d)?.characteristics ?? []).filter((k): k is CharKey => CHAR_KEYS.includes(k as CharKey));
 
-/** Étapes aléatoires du brouillon, chacune son flux. */
-export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'bourse' | 'details' | 'heros';
-
-/** Le flux figé d'une étape du brouillon (`${d.seed}:<étape>[:<rang>]`) ; `rang` : compte de relances. */
-export function fluxDuBrouillon(d: CreatorDraft, etape: EtapeDeFlux, rang?: number): RNG {
-  return makeRNG(hashSeed(rang == null ? `${d.seed}:${etape}` : `${d.seed}:${etape}:${rang}`));
-}
-
 // ── 1) Espèce ──
 export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
   if (d.speciesRoll) return d; // FIGÉ : pas de relance (LDB 04 — aucune n'est offerte)
-  const r = rollSpecies(fluxDuBrouillon(d, 'espece'));
+  const r = rollSpecies(fluxDeCreation(d.seed, 'espece'));
   // La borne tirée propose `ids` ; on sélectionne la 1ʳᵉ par défaut, le joueur peut choisir une autre.
   return withSpecies({ ...d, speciesRoll: r }, r.ids[0]);
 }
@@ -262,9 +248,9 @@ export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
 export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
-/** `specChoices` privé des adresses (`adresseDeCreation`) aux préfixes donnés. */
-function horsAdresses(specChoices: Record<string, string>, ...prefixes: string[]): Record<string, string> {
-  return Object.fromEntries(Object.entries(specChoices).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
+/** Choix par adresse (`adresseDeCreation`) privés des adresses aux préfixes donnés. */
+function horsAdresses<V>(parAdresse: Record<string, V>, ...prefixes: string[]): Record<string, V> {
+  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
 }
 
 export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
@@ -325,20 +311,20 @@ export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const pool = careerRollPool(d);
   const n = d.careerRolls.length;
   if (n === 0) {
-    const r = rollCareer(pool, sp, fluxDuBrouillon(d, 'carriere'));
+    const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere'));
     // Chaque jet désigne une borne (`ids`) ; défaut = 1ʳᵉ carrière, le joueur peut en choisir une autre.
     return r ? withCareer({ ...d, careerRolls: [r] }, r.ids[0]) : d;
   }
   if (n === 1) {
     // « Faites deux lancers de plus, ce qui porte votre total à 3 choix » (LDB 05 l.211).
-    const rng = fluxDuBrouillon(d, 'carriere:deux-de-plus');
+    const rng = fluxDeCreation(d.seed, 'carriere:deux-de-plus');
     const r2 = rollCareer(pool, sp, rng);
     const r3 = rollCareer(pool, sp, rng);
     if (!r2 || !r3) return d;
     return { ...d, careerRolls: [...d.careerRolls, r2, r3] };
   }
   // « continuez à relancer jusqu'à obtenir quelque chose qui vous plaît » (l.212) — 0 PX.
-  const r = rollCareer(pool, sp, fluxDuBrouillon(d, 'carriere:relance', d.careerFreeRolls));
+  const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
   return r ? withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]) : d;
 }
 export function careerXp(d: CreatorDraft): number {
@@ -369,7 +355,7 @@ export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
  *  à l'animation (`CreatorDice`/`DiceRoll`) — même séquence RNG que `roll(2, 10, rng)` (deux tirages
  *  `rng.int(1, 10)` consécutifs par Caractéristique), donc `charRolls` reste bit-à-bit identique. */
 export function charRollPairs(d: CreatorDraft): [number, number][] {
-  const rng = fluxDuBrouillon(d, 'caracteristiques', d.charRerolls);
+  const rng = fluxDeCreation(d.seed, 'caracteristiques', d.charRerolls);
   return CHAR_KEYS.map(() => [rng.int(1, 10), rng.int(1, 10)] as [number, number]);
 }
 export function charRolls(d: CreatorDraft): number[] {
@@ -411,7 +397,7 @@ export const xpTotal = (d: CreatorDraft): number => speciesXp(d) + careerXp(d) +
 /** Tirage 1d100 FIGÉ du signe (anti-savescum, comme l'espèce) : on le garde (+25 PX) ou on choisit
  *  librement ensuite (+0 PX, RAW l.36). Pas de relance — RAW n'en offre aucune. */
 export function rollDraftStar(d: CreatorDraft): CreatorDraft {
-  const { roll: r, id } = rollStar(fluxDuBrouillon(d, 'signe')); // `id` STABLE du signe (≠ libellé)
+  const { roll: r, id } = rollStar(fluxDeCreation(d.seed, 'signe')); // `id` STABLE du signe (≠ libellé)
   return { ...d, starRoll: id, starRollValue: r, star: id };
 }
 
@@ -420,31 +406,17 @@ export function rollDraftStar(d: CreatorDraft): CreatorDraft {
  *  (ids internes, libellés à l'affichage) ; `sign` reste un libellé lisible (flavor stocké sur la
  *  fiche, aucune mécanique n'y référence un signe). */
 export function rollDraftAstrology(d: CreatorDraft): CreatorDraft {
-  const rng = fluxDuBrouillon(d, 'astrologie');
+  const rng = fluxDeCreation(d.seed, 'astrologie');
   const signLabel = (): string => { const id = rollStar(rng).id; return garanti(findStarById(id), id, 'signe astral').label; };
   return { ...d, ascendant: signLabel(), dwellings: celestialHouses.map((h) => ({ house: h.id, sign: signLabel() })) };
 }
 
 // ── 4) Compétences & Talents ──
-/** Résolution COMPLÈTE (tirages d100 compris) — INTERNE : l'exposition publique passe par
- *  `resolvedSpeciesTalents`, qui retient les tirés tant que le geste 5c n'est pas fait. */
-function resolvedSpeciesTalentsAll(d: CreatorDraft): TalentDEspece[] {
-  const sp = draftSpecies(d);
-  if (!sp) return [];
-  return resolveSpeciesTalentsDetail(sp, {
-    graine: d.seed,
-    choices: d.speciesTalentChoices,
-    specChoices: d.specChoices,
-    randomSpecPicks: d.randomSpecPicks,
-    talentRerolls: d.talentRerolls,
-  });
-}
-
 /** Talents d'espèce résolus (choix appliqués, tirages aléatoires FIGÉS par le seed) — les TIRÉS AU
- *  D100 n'y figurent qu'une fois le geste « Tirer aux dés » posé (`talentsRolled`, #393 agentivité :
- *  un talent non encore lancé n'apparaît NULLE PART, ni volet ni fiche vivante). */
+ *  D100 n'y figurent qu'une fois le geste « Tirer aux dés » posé (`talentsRolled`, #393). */
 export function resolvedSpeciesTalents(d: CreatorDraft): RefDesignee[] {
-  return resolvedSpeciesTalentsAll(d).filter((t) => d.talentsRolled || !t.tirage).map((t) => t.ref);
+  const sp = draftSpecies(d);
+  return sp ? resolveSpeciesTalentsDetail(sp, d).map((t) => t.ref) : [];
 }
 
 /** Geste « Tirer aux dés » des Talents d'espèce aléatoires (LDB 05 l.484, table l.514) — tirages figés
@@ -460,12 +432,13 @@ export function rerollDraftTalent(d: CreatorDraft, adresse: string): CreatorDraf
   return { ...d, talentRerolls: { ...d.talentRerolls, [adresse]: tirage.rang + 1 } };
 }
 
-/** Option `idx` de l'entrée « A ou B » à `adresse` ; changer d'option remet à zéro les relances et les
- *  spécialisations des tirages (`talentRerolls`, `randomSpecPicks`). */
-export function withSpeciesTalentChoice(d: CreatorDraft, adresse: string, idx: number): CreatorDraft {
-  const speciesTalentChoices = { ...d.speciesTalentChoices, [adresse]: idx };
-  if ((d.speciesTalentChoices[adresse] ?? 0) === idx) return { ...d, speciesTalentChoices };
-  return { ...d, speciesTalentChoices, talentRerolls: {}, randomSpecPicks: {} };
+/** Option `option` (une option de `of`) de l'entrée « A ou B » à `adresse` ; changer d'option (`cleDOption`)
+ *  remet à zéro les relances et les spécialisations des tirages de CETTE entrée (`talentRerolls`, `randomSpecPicks`). */
+export function withSpeciesTalentChoice(d: CreatorDraft, adresse: string, option: AdvancementRef): CreatorDraft {
+  const speciesTalentChoices = { ...d.speciesTalentChoices, [adresse]: option };
+  const avant = d.speciesTalentChoices[adresse];
+  if (avant != null && cleDOption(avant) === cleDOption(option)) return { ...d, speciesTalentChoices };
+  return { ...d, speciesTalentChoices, talentRerolls: horsAdresses(d.talentRerolls, `${adresse}:`), randomSpecPicks: horsAdresses(d.randomSpecPicks, `${adresse}:`) };
 }
 
 /** Talents d'espèce en TROIS lots (LDB 05 l.484, écran Talents — 5c), dérivés de la DONNÉE
@@ -492,9 +465,10 @@ export interface TirageDeTalent {
 /** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514), tels que le geste 5c les découvre — VIDE tant que le
  *  joueur n'a pas tiré (#393 agentivité). */
 export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
-  if (!d.talentsRolled) return [];
+  const sp = draftSpecies(d);
+  if (!sp || !d.talentsRolled) return [];
   const partiel: Combatant = { ...probeHero(d, false, true), talents: [] };
-  return resolvedSpeciesTalentsAll(d).flatMap(({ ref, tirage }) => {
+  return resolveSpeciesTalentsDetail(sp, d).flatMap(({ ref, tirage }) => {
     const auMaxi = !!tirage?.doublon && talentMaxReached(partiel, ref.id, ref.spec);
     acquerirTalent(partiel, ref);
     return tirage ? [{ ref, ...tirage, auMaxi }] : [];
@@ -661,7 +635,7 @@ export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation;
  *  La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI, pas ici. */
 export function draftWealth(d: CreatorDraft): Money {
   const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  return rollInitialWealth(status, fluxDuBrouillon(d, 'bourse'));
+  return rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
 }
 /** Pose le geste « Tirer aux dés » de la bourse — FIGÉ (aucune relance, LDB 05 l.578 n'en offre
  *  aucune) : le montant lui-même est déjà déterminé par `d.seed`, ce geste n'en découvre que
@@ -696,7 +670,7 @@ export function unresolvedTrappingSlots(d: CreatorDraft): string[] {
 export function rolledDetails(d: CreatorDraft): { age: number; height: number; eyes: string; hair: string } {
   const sp = draftSpecies(d);
   if (!sp) return { age: 0, height: 0, eyes: '', hair: '' };
-  const rng = fluxDuBrouillon(d, 'details');
+  const rng = fluxDeCreation(d.seed, 'details');
   return { age: rollAge(sp, rng), height: rollHeight(sp, rng), eyes: rollEyes(sp, rng), hair: rollHair(sp, rng) };
 }
 
@@ -785,7 +759,11 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
       plus5: d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? d.speciesPlus5 : defauts.plus5,
       plus3: d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? d.speciesPlus3 : defauts.plus3,
     },
-    speciesTalentsResolved: resolvedSpeciesTalents(d),
+    seed: d.seed,
+    speciesTalentChoices: d.speciesTalentChoices,
+    randomSpecPicks: d.randomSpecPicks,
+    talentRerolls: d.talentRerolls,
+    talentsRolled: d.talentsRolled,
     specChoices: d.specChoices,
     starId: d.star,
     fateSplit: d.fateSplit,
@@ -803,7 +781,6 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
       dwellings: d.dwellings?.length ? d.dwellings : undefined,
     },
     motivation: d.motivation.trim() || undefined,
-    rng: fluxDuBrouillon(d, 'heros'),
     apparence: d.apparence,
     id,
   });

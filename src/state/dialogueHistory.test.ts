@@ -8,11 +8,10 @@ import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueH
 import { speakerLabel, type Dialogue, type SceneEntity } from './scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { deleteSlot, readSlot, saveToSlot } from './saves';
 
-const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 
 /** Dialogue à deux nœuds ; n1 porte un override `speakerId`, n2 hérite du speaker de session. */
 function makeDialogue(): Dialogue {

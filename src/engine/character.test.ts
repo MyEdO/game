@@ -64,75 +64,93 @@ describe('rollRandomTalent — Tableau des Talents aléatoires (LDB 05 l.484)', 
 
 describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   it('Reiklander : Destinée (fixe), un choix résolu, et 3 tirages à leur adresse', () => {
-    const out = resolveSpeciesTalentsDetail(sp(), { graine: 7 });
-    // « Perspicace ou Affable » → 1er par défaut ; « Destinée » fixe ; « 3 Talent aléatoire »
+    const out = resolveSpeciesTalentsDetail(sp(), { seed: 7 });
+    // « Affable ou Perspicace » → 1er par défaut ; « Destinée » fixe ; « 3 Talent aléatoire »
     expect(out.map((t) => t.ref)).toContainEqual({ id: 'destinee' });
-    expect(out.map((t) => t.ref)).toContainEqual({ id: 'perspicace' });
+    expect(out.map((t) => t.ref)).toContainEqual({ id: 'affable' });
     expect(out).toHaveLength(5);
     expect(out.flatMap((t) => (t.tirage ? [t.tirage.adresse] : []))).toEqual([0, 1, 2].map((j) => adresseDeCreation.especeTirage(2, j)));
   });
 
   it('le choix « A ou B » est surchargeable, par adresse d\'emplacement', () => {
-    const out = resolveSpeciesTalents(sp(), { graine: 7, choices: { 'espece:talents:0': 1 } });
-    expect(out).toContainEqual({ id: 'affable' });
-    expect(out).not.toContainEqual({ id: 'perspicace' });
+    const out = resolveSpeciesTalents(sp(), { seed: 7, speciesTalentChoices: { 'espece:talents:0': { id: 'perspicace' } } });
+    expect(out).toContainEqual({ id: 'perspicace' });
+    expect(out).not.toContainEqual({ id: 'affable' });
   });
 
-  // Graine 1 : Bonnes jambes au tirage 0 puis au tirage 1.
+  // Graine 169 : Doué en calcul au tirage 0 puis au tirage 1.
   const tirage1 = adresseDeCreation.especeTirage(2, 1);
   it('LDB 05 l.484 : un doublon est GARDÉ sans relance décidée', () => {
-    const out = resolveSpeciesTalentsDetail(sp(), { graine: 1 });
+    const out = resolveSpeciesTalentsDetail(sp(), { seed: 169 });
     expect(out.slice(2).map((t) => [t.ref.id, t.tirage?.rang, t.tirage?.doublon])).toEqual([
-      ['bonnes-jambes', 0, false], ['bonnes-jambes', 0, true], ['reflexes-foudroyants', 0, false],
+      ['doue-en-calcul', 0, false], ['doue-en-calcul', 0, true], ['sixieme-sens', 0, false],
     ]);
   });
 
   it('LDB 05 l.484 : la relance décidée remplace CE SEUL tirage, les autres gardent leur d100', () => {
-    const out = resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 1 } });
+    const out = resolveSpeciesTalentsDetail(sp(), { seed: 169, talentRerolls: { [tirage1]: 1 } });
     expect(out.slice(2).map((t) => [t.ref.id, t.tirage?.rang, t.tirage?.doublon])).toEqual([
-      ['bonnes-jambes', 0, false], ['chanceux', 1, false], ['reflexes-foudroyants', 0, false],
+      ['doue-en-calcul', 0, false], ['doigts-de-fee', 1, false], ['sixieme-sens', 0, false],
     ]);
   });
 
   it('une relance au-delà du premier non-doublon est ignorée', () => {
-    const une = resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 1 } });
-    expect(resolveSpeciesTalentsDetail(sp(), { graine: 1, talentRerolls: { [tirage1]: 5 } })).toEqual(une);
+    const une = resolveSpeciesTalentsDetail(sp(), { seed: 169, talentRerolls: { [tirage1]: 1 } });
+    expect(resolveSpeciesTalentsDetail(sp(), { seed: 169, talentRerolls: { [tirage1]: 5 } })).toEqual(une);
   });
 
-  // Graine 2 : Perspicace au tirage 1 — doublon sous « Perspicace », pas sous « Affable ».
+  // Graine 5 : Perspicace au tirage 1 — doublon sous « Perspicace », pas sous « Affable ».
+  const affable = { 'espece:talents:0': { id: 'affable' } };
+  const perspicaceChoisi = { 'espece:talents:0': { id: 'perspicace' } };
   it('le statut doublon d\'un tirage suit les Talents résolus avant lui (choix « A ou B »), à d100 inchangé', () => {
-    const perspicace = resolveSpeciesTalentsDetail(sp(), { graine: 2 });
-    const affable = resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: { 'espece:talents:0': 1 } });
+    const perspicace = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: perspicaceChoisi });
+    const avecAffable = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: affable });
     expect(perspicace[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: true } });
-    expect(affable[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: false } });
-    expect(affable.slice(2).map((t) => t.ref)).toEqual(perspicace.slice(2).map((t) => t.ref));
+    expect(avecAffable[3]).toEqual({ ref: { id: 'perspicace' }, tirage: { adresse: tirage1, rang: 0, doublon: false } });
+    expect(avecAffable.slice(2).map((t) => t.ref)).toEqual(perspicace.slice(2).map((t) => t.ref));
   });
 
   it('une relance devenue sans objet (le tirage n\'est plus un doublon) ne s\'applique pas', () => {
-    const choix = { 'espece:talents:0': 1 };
-    const relance = resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: choix, talentRerolls: { [tirage1]: 1 } });
-    expect(relance).toEqual(resolveSpeciesTalentsDetail(sp(), { graine: 2, choices: choix }));
-    expect(resolveSpeciesTalentsDetail(sp(), { graine: 2, talentRerolls: { [tirage1]: 1 } })[3].tirage?.rang).toBe(1);
+    const relance = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: affable, talentRerolls: { [tirage1]: 1 } });
+    expect(relance).toEqual(resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: affable }));
+    expect(resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: perspicaceChoisi, talentRerolls: { [tirage1]: 1 } })[3].tirage?.rang).toBe(1);
+  });
+
+  it('l\'option « A ou B » se garde par son identité (`cleDOption`), quel que soit l\'ordre de `of`', () => {
+    const inverse = { ...sp(), talents: sp().talents.map((t) => ('pick' in t ? { ...t, of: [...t.of].reverse() } : t)) };
+    const fixes = (espece: typeof inverse) => resolveSpeciesTalents(espece, { seed: 1, talentsRolled: false, speciesTalentChoices: affable });
+    expect(fixes(sp())).toEqual([{ id: 'affable' }, { id: 'destinee' }]);
+    expect(fixes(inverse)).toEqual(fixes(sp()));
+  });
+
+  it('#393 : `talentsRolled: false` résout les tirages sans les rendre ; absent, ils sont rendus', () => {
+    const tous = resolveSpeciesTalentsDetail(sp(), { seed: 169 });
+    expect(tous.filter((t) => t.tirage)).toHaveLength(3);
+    expect(resolveSpeciesTalentsDetail(sp(), { seed: 169, talentsRolled: false })).toEqual(tous.filter((t) => !t.tirage));
+    expect(resolveSpeciesTalentsDetail(sp(), { seed: 169, talentsRolled: true })).toEqual(tous);
   });
 });
 
 describe('acquerirTalent — Maxi (LDB 05 l.475, LDB 10 l.18)', () => {
   it('une acquisition de plus sous le Maxi ; aucune au Maxi', () => {
-    const heros = { characteristics: createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', rng: makeRNG(3) }).characteristics, talents: [] as Combatant['talents'] };
+    const heros = { characteristics: createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', seed: 3 }).characteristics, talents: [] as Combatant['talents'] };
     acquerirTalent(heros, { id: 'perspicace' });
     acquerirTalent(heros, { id: 'perspicace' });
     expect(heros.talents).toEqual([{ talentId: 'perspicace', spec: undefined, times: 1 }]);
   });
 
   it('createHero : un doublon gardé au Maxi n\'ajoute pas d\'acquisition', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', rng: makeRNG(3), speciesTalentsResolved: [{ id: 'perspicace' }, { id: 'destinee' }, { id: 'perspicace' }] });
+    // Graine 5 : Perspicace (Maxi 1) choisi, puis tiré en doublon au tirage 1.
+    const choix = { seed: 5, speciesTalentChoices: { 'espece:talents:0': { id: 'perspicace' } } };
+    expect(resolveSpeciesTalentsDetail(sp(), choix)[3]).toMatchObject({ ref: { id: 'perspicace' }, tirage: { doublon: true } });
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', ...choix });
     expect(hero.talents.find((t) => t.talentId === 'perspicace')?.times).toBe(1);
   });
 });
 
 describe('createHero — applique compétences et talents raciaux', () => {
   it('le héros reçoit ses compétences d’espèce (advances ≥ valeur raciale) et ses talents', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'Test', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'Test', seed: 3 });
     const calme = hero.skills.find((s) => s.id === 'calme');
     expect(calme).toBeTruthy();
     expect(calme!.advances).toBeGreaterThanOrEqual(5); // +5 d'espèce (additif si aussi en carrière)
@@ -143,14 +161,14 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('aucun libellé « (Au choix) » résiduel sur le héros (specs résolues)', () => {
     for (const seed of [1, 5, 9]) {
-      const hero = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'T', rng: makeRNG(seed) });
+      const hero = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'T', seed });
       for (const s of hero.skills) expect(s.spec ?? '').not.toMatch(/au choix|\sou\s/i);
       for (const t of hero.talents) expect(talentConcrete(t)).not.toMatch(/\(.*au choix.*\)/i);
     }
   });
 
   it('5 Augmentations gratuites sur les 3 Caractéristiques de carrière (LDB 05 l.459)', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
     const total = Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0);
     expect(total).toBe(5);
     // La répartition explicite s'ajoute aux valeurs initiales.
@@ -158,12 +176,14 @@ describe('createHero — applique compétences et talents raciaux', () => {
       speciesId: REIK,
       careerId: 'soldat', // Caractéristiques de carrière : CC, F, E (Recrue)
       label: 'T',
-      rng: makeRNG(3),
+      seed: 3,
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       charAdvancesAlloc: { 'capacite-de-combat': 5 },
       careerTalent: { id: 'infatigable' }, // PAS Guerrier né (+5 CC), pour isoler les Augmentations
-      speciesTalentsResolved: [{ id: 'affable' }, { id: 'destinee' }], // pas de tirages → déterministe
+      speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
+      talentsRolled: false,
     });
+    expect(manual.talents.map((t) => t.talentId)).toEqual(['affable', 'destinee', 'infatigable']);
     expect(manual.charAdvances!['capacite-de-combat']).toBe(5);
     expect(manual.characteristics['capacite-de-combat']).toBe(35);
   });
@@ -175,8 +195,9 @@ describe('createHero — applique compétences et talents raciaux', () => {
       label: 'T',
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       charAdvancesAlloc: { 'capacite-de-combat': 5 },
-      speciesTalentsResolved: [{ id: 'affable' }, { id: 'destinee' }],
-      rng: makeRNG(3),
+      speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
+      talentsRolled: false,
+      seed: 3,
     });
     // La valeur brute reste 30 (passif non cuit) ; baseWithTalents lit le charMod du talent.
     expect(hero.characteristics.sociabilite).toBe(30); // base INCHANGÉE
@@ -186,14 +207,13 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('talent de carrière = talent d\'espèce → times 2 (LDB 05 l.535, LDB 10 l.9) ; Blessures avec Dur à cuire', () => {
     const hero = createHero({
-      speciesId: REIK,
+      speciesId: 'elfes-sylvains', // « Dur à cuire ou Seconde vue » (1re option), aucun Talent aléatoire
       careerId: 'milicien', // Niveau 1 propose « Dur à cuire »
       label: 'T',
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       charAdvancesAlloc: { 'capacite-de-combat': 5 },
       careerTalent: { id: 'dur-a-cuire' },
-      speciesTalentsResolved: [{ id: 'affable' }, { id: 'destinee' }, { id: 'dur-a-cuire' }],
-      rng: makeRNG(3),
+      seed: 3,
     });
     expect(hero.talents.find((t) => talentConcrete(t) === 'Dur à cuire')!.times).toBe(2);
     // Blessures = BF+2BE+BFM (3+6+3=12) + 2 × BE (Dur à cuire ×2) = 18.
@@ -205,7 +225,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
       speciesId: REIK,
       careerId: 'soldat',
       label: 'T',
-      rng: makeRNG(3),
+      seed: 3,
       xpBonus: 95,
       details: { age: 22, height: 178, eyes: 'Bleu', hair: 'Brun clair', ambitionShort: 'X', ambitionLong: 'Y' },
     });
@@ -220,15 +240,16 @@ describe('createHero — applique compétences et talents raciaux', () => {
       careerId: 'herboriste',
       label: 'T',
       careerTalent: { id: 'sens-aiguise', spec: 'gout' },
-      speciesTalentsResolved: [{ id: 'petit' }, { id: 'resistance', spec: 'corruption' }, { id: 'sens-aiguise', spec: 'gout' }, { id: 'vision-nocturne' }],
-      rng: makeRNG(3),
+      talentsRolled: false,
+      seed: 3,
     });
+    expect(hero.talents.map((t) => t.talentId)).toEqual(['petit', 'resistance', 'sens-aiguise', 'vision-nocturne']);
     expect(hero.talents.find((t) => talentConcrete(t) === 'Sens aiguisé (Goût)')!.times).toBe(2);
   });
 
   it('Talent de carrière : pris au Niveau 1 (LDB 05 l.535), un emplacement « (Au choix) » exige sa spécialisation (LDB 10 l.17)', () => {
     const cree = (careerTalent: { id: string; spec?: string }) =>
-      () => createHero({ speciesId: 'humains-reiklander', careerId: 'pretre', label: 'T', careerTalent, rng: makeRNG(5) });
+      () => createHero({ speciesId: 'humains-reiklander', careerId: 'pretre', label: 'T', careerTalent, seed: 5 });
     expect(cree({ id: 'beni' })).toThrow(/Talent de carrière « beni ».*pretre.*exige une spécialisation \(LDB 10 l\.17\)/);
     expect(cree({ id: 'acrobate' })).toThrow(/Talent de carrière « acrobate ».*absent du Niveau 1 de « pretre » \(LDB 05 l\.535\)/);
     const hero = cree({ id: 'beni', spec: 'sigmar' })();
@@ -239,8 +260,8 @@ describe('createHero — applique compétences et talents raciaux', () => {
     const middenland = findSpeciesById('humains-middenland');
     if (!middenland) return; // espèce ADE absente → rien à tester
     const out = resolveSpeciesTalents(middenland, {
-      graine: 11,
-      choices: { 'espece:talents:1': 1 }, // « Destinée ou Talent aléatoire » → la branche aléatoire
+      seed: 11,
+      speciesTalentChoices: { 'espece:talents:1': { random: 1 } }, // « Destinée ou Talent aléatoire » → la branche aléatoire
     });
     expect(out).not.toContainEqual({ id: 'destinee' });
     expect(out.length).toBeGreaterThanOrEqual(2);
@@ -249,7 +270,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
 describe('createHero — Trait racial + Taille par talent (#572)', () => {
   it('un héros Ogre porte le trait racial `ogre` (encombrance/consommation ×2) et sa Taille est Grande', () => {
-    const hero = createHero({ speciesId: 'ogres', careerId: 'ratier', label: 'Grosminet', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'ogres', careerId: 'ratier', label: 'Grosminet', seed: 3 });
     expect(hero.traits).toEqual([{ id: 'ogre' }]);
     expect(hero.talents.some((t) => t.talentId === 'massif')).toBe(true);
     expect(hero.size).toBe('grande');
@@ -258,7 +279,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
   });
 
   it('un héros Halfling (talent Petit) a une Taille Petite, sans trait racial ni facteur ×2', () => {
-    const hero = createHero({ speciesId: 'halflings', careerId: 'marchand', label: 'Bilbon', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'halflings', careerId: 'marchand', label: 'Bilbon', seed: 3 });
     expect(hero.talents.some((t) => t.talentId === 'petit')).toBe(true);
     expect(hero.size).toBe('petite');
     expect(hero.traits ?? []).toEqual([]);
@@ -267,7 +288,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
   });
 
   it('un héros humain (ni Massif ni Petit) a une Taille Moyenne', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
     expect(hero.size).toBe('moyenne');
   });
 });
@@ -275,7 +296,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
 describe('joker de création — une référence déjà tenue par un autre emplacement (LDB 05 l.535, l.484)', () => {
   const sansEspece = { plus5: [], plus3: [] };
   const gladiateur = (spec: string) =>
-    createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', rng: makeRNG(1), speciesSkillAdvances: sansEspece, specChoices: { [adresseDeCreation.carriereCompetence(2)]: spec } });
+    createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: sansEspece, specChoices: { [adresseDeCreation.carriereCompetence(2)]: spec } });
 
   it('gladiateur : le joker Corps à corps qui désigne Bagarre, déjà au Niveau 1, est refusé par son nom', () => {
     expect(() => gladiateur('bagarre')).toThrow(/Compétence de carrière « corps-a-corps\|bagarre » : déjà pris par un autre emplacement/);
@@ -288,7 +309,7 @@ describe('joker de création — une référence déjà tenue par un autre empla
   });
 
   const piedpaille = (plus5: RefDesignee[]) =>
-    createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', rng: makeRNG(1), speciesSkillAdvances: { plus5, plus3: [] } });
+    createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5, plus3: [] } });
 
   it('Halfling Piedpaille : le joker Métier qui désigne Cuisinier, déjà dans la liste, est refusé par son nom', () => {
     expect(() => piedpaille([{ id: 'metier', spec: 'cuisinier' }, { id: 'metier', spec: 'cuisinier' }, { id: 'charme' }])).toThrow(
@@ -326,7 +347,7 @@ describe('deux jokers de même id non désignés : chacun prend le premier LIBRE
     const fixture = { ...glad, skills: glad.skills.map((r, i) => (i === 1 ? { id: 'corps-a-corps', choix: true as const } : r)) };
     setDataset('careerLevels', origine.map((l) => (l === glad ? fixture : l)));
     try {
-      const h = createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', rng: makeRNG(1), speciesSkillAdvances: { plus5: [], plus3: [] } });
+      const h = createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
       const cac = h.skills.filter((s) => s.id === 'corps-a-corps').map((s) => s.spec);
       expect(cac).toHaveLength(3);
       expect(new Set(cac).size).toBe(3);
@@ -344,7 +365,7 @@ describe('deux jokers de même id non désignés : chacun prend le premier LIBRE
     try {
       const defauts = speciesSkillDefaults(fixture);
       expect(defauts.plus5[0].spec).not.toBe(defauts.plus5[1].spec);
-      const h = createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', rng: makeRNG(1), speciesSkillAdvances: { plus5: [{ id: 'metier' }, { id: 'metier' }, { id: 'metier', spec: 'cuisinier' }], plus3: [] } });
+      const h = createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5: [{ id: 'metier' }, { id: 'metier' }, { id: 'metier', spec: 'cuisinier' }], plus3: [] } });
       const metiers = h.skills.filter((s) => s.id === 'metier').map((s) => s.spec);
       expect(new Set(metiers).size).toBe(3);
     } finally {
@@ -359,7 +380,7 @@ describe('répartition par défaut des 40 Augmentations de carrière (LDB 05 l.5
     expect(entrees).toHaveLength(10);
     const r = repartitionDeCarriere(entrees);
     expect(Object.values(r)).toEqual([5, 5, 5, 5, 5, 5, 5, 5]);
-    const h = createHero({ speciesId: REIK, careerId: 'archer', label: 'a', rng: makeRNG(1), speciesSkillAdvances: { plus5: [], plus3: [] } });
+    const h = createHero({ speciesId: REIK, careerId: 'archer', label: 'a', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
     expect(h.skills.reduce((a, s) => a + s.advances, 0)).toBe(40);
     expect(h.skills.filter((s) => s.advances > 0)).toHaveLength(8);
   });

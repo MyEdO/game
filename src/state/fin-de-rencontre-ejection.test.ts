@@ -17,12 +17,11 @@ import { finalizeBattle } from './combatFlow';
 import { siegesRequis, quorumAtteint } from './netOwnership';
 import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(13) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 13 });
   h.id = id;
   h.pos = { x: 3, y: 3 };
   return h;

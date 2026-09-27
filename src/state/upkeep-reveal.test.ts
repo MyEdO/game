@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 // Entretien de Round groupé (initiative + hémorragie + mort) en UNE révélation témoin.
@@ -17,7 +16,7 @@ describe('Entretien de Round en révélation (store)', () => {
   });
 
   it('le début de combat MONTRE le champ (plan d’ensemble) — pas de modale d’Initiative (R2)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');
@@ -30,7 +29,7 @@ describe('Entretien de Round en révélation (store)', () => {
   });
 
   it('un franchissement de Round avec hémorragie pousse UNE révélation « Fin du Round » groupée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'hemorragique', value: 2 }];
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);

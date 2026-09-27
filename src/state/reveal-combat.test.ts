@@ -4,7 +4,6 @@ import { avanceEtapeCascade } from './cascadeTestKit';
 import { applyAttackResult } from './combatFlow';
 import { combatAdvanceBlocked } from './combatGate';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 
@@ -21,7 +20,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   });
 
   function battle() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

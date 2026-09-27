@@ -270,18 +270,18 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   });
 
   it('étape 5c — LDB 05 l.484 « vous pouvez relancer » : repère et « Relancer » sur le SEUL tirage doublon', () => {
-    const talents = (seed: number) =>
-      renderToStaticMarkup(<SkillsScreen d={rollDraftTalents(withCareer(withSpecies(newDraft(seed), SP.id), 'soldat'))} setD={() => {}} skillsSub="talents" setSkillsSub={() => {}} />);
+    const talents = (seed: number, speciesTalentChoices: CreatorDraft['speciesTalentChoices'] = {}) =>
+      renderToStaticMarkup(<SkillsScreen d={{ ...rollDraftTalents(withCareer(withSpecies(newDraft(seed), SP.id), 'soldat')), speciesTalentChoices }} setD={() => {}} skillsSub="talents" setSkillsSub={() => {}} />);
     const compte = (html: string, motif: string) => html.split(motif).length - 1;
     const sansDoublon = talents(7);
     expect(compte(sansDoublon, ' Relancer</button>')).toBe(0);
     expect(sansDoublon).not.toContain('Déjà possédé');
-    // Graine 1 : Bonnes jambes aux tirages 0 et 1, le second est le doublon.
-    const doublon = talents(1);
+    // Graine 169 : Doué en calcul aux tirages 0 et 1, le second est le doublon.
+    const doublon = talents(169);
     expect(compte(doublon, 'Déjà possédé')).toBe(1);
     expect(compte(doublon, ' Relancer</button>')).toBe(1);
-    // Graine 2 : Perspicace (choix « A ou B », Maxi 1) retiré au tirage 1.
-    const auMaxi = talents(2);
+    // Graine 5 : Perspicace (choix « A ou B », Maxi 1) retiré au tirage 1.
+    const auMaxi = talents(5, { 'espece:talents:0': { id: 'perspicace' } });
     expect(auMaxi).toContain('Maxi atteint : sans effet si gardé');
     expect(compte(auMaxi, ' Relancer</button>')).toBe(1);
   });

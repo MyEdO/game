@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { castingBaseValue, castingValue, castTestOf, evaluateCasting } from '../engine/magic';
 import { evaluateTest, resolveOpposed, REPLIS_DEUX_CIBLES } from '../engine/tests';
@@ -30,7 +29,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, seed: 13,
     });
     hero.spells = ['parole-de-tzeentch'];
     useGame.setState({ party: [hero] });

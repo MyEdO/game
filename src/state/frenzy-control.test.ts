@@ -4,7 +4,6 @@ import { openRoundEndCascade } from './combatFlow';
 import { collectRoundEndTestSteps } from './combat/triggeredTest';
 import { fireTriggers } from './triggeredEffects';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng, battleRng } from './battleRng';
 import { isFrenzied } from '../engine/psychology';
 import { hasCondition, COND } from '../engine/conditions';
@@ -23,7 +22,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(withTalent = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);

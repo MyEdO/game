@@ -10,7 +10,6 @@ import { registerScene } from './store';
 import type { Scene } from './scene';
 import { spawnEnemy } from './spawn';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 /** Stockage local en mémoire (patron partagé des tests de save). */
@@ -130,7 +129,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
   };
 
   function heroHaineux() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     // Haine ciblant un GROUPE du squelette présent en scène (lu sur la créature réelle, jamais deviné)
     // → `openEncounterPsych` ouvre sa cascade « Sang-froid » à l'entrée.
     const squelette = spawnEnemy({ ref: 'squelette' }, 'squ-probe', { x: 0, y: 0 });
@@ -154,7 +153,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     const suite: Scene = { ...testScene, id: 'probe-suite', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(CRYPTE);
     registerScene(suite);
-    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) })], pendingCascade: null, suspendedCascades: [], battle: null });
+    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     useGame.getState().startScene(CRYPTE);
     expect(useGame.getState().pendingCascade!.participants[0].reveal?.kind).toBe('sceneEntry');
     suspendActiveCascade(useGame.getState, useGame.setState); // ce que fait l'ouverture d'un combat sur la carte ouverte
@@ -173,7 +172,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     const suite: Scene = { ...testScene, id: 'probe-suite-2', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(crypteCombat);
     registerScene(suite);
-    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) })], pendingCascade: null, suspendedCascades: [], battle: null });
+    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     useGame.getState().startScene(crypteCombat);
     pushReveal(useGame.setState, { kind: 'effet', title: 'Conséquence B', lines: ['b'] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
     expect(useGame.getState().pendingCascade!.participants).toHaveLength(2);
@@ -190,7 +189,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     const suite: Scene = { ...testScene, id: 'probe-suite-3', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(CRYPTE);
     registerScene(suite);
-    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) })], pendingCascade: null, suspendedCascades: [], battle: null });
+    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     useGame.getState().startScene(CRYPTE);
     suspendActiveCascade(useGame.getState, useGame.setState); // la carte d'entrée est parquée…
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.

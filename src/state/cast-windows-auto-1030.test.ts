@@ -5,7 +5,6 @@ import { tickCombatAuto } from './combatAuto';
 import { seedBattleRng } from './battleRng';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
@@ -25,7 +24,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 function setup(spells: string[], n = 1, magick = true) {
   const hero = createHero({
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-    careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
+    careerTalent: { id: 'magie-mineure' }, seed: 707,
   });
   hero.spells = spells;
   useGame.setState({ party: [hero] });

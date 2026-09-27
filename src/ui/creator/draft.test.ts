@@ -43,7 +43,7 @@ import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
-import { adresseDeCreation, speciesSkillDefaults, designer } from '../../engine/character';
+import { adresseDeCreation, speciesSkillDefaults, designer, createHero } from '../../engine/character';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
@@ -82,7 +82,7 @@ function readyDraft() {
     speciesPlus5: speciesSkillDefaults(sp).plus5,
     speciesPlus3: speciesSkillDefaults(sp).plus3,
     ...carrierePrete(d),
-    speciesTalentChoices: { 'espece:talents:0': 1 },
+    speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
     careerTalent: 'id' in level.talents[0] ? designer('talent', level.talents[0]) : undefined, // un Talent du Niveau 1 de la carrière (LDB 05 l.535)
     label: 'Testeur',
   };
@@ -128,35 +128,73 @@ describe('aléatoire FIGÉ (anti-savescum)', () => {
     const d = rollDraftTalents(draft()); // geste 5c posé — Reiklander : « 3 Talent aléatoire »
     expect(resolvedSpeciesTalents(d)).toEqual(resolvedSpeciesTalents(d));
     // Changer un choix « A ou B » ne re-tire pas les dés des aléatoires.
-    const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': 1 } };
+    const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } } };
     const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
     expect(randoms(resolvedSpeciesTalents(d2))).toEqual(randoms(resolvedSpeciesTalents(d)));
   });
 });
 
+describe('une voie : le héros créé est celui que l\'écran montre (#1897)', () => {
+  // Graine 169, Reiklander : Doué en calcul aux tirages 0 et 1, le second relancé.
+  const tire = () => rollDraftTalents(withCareer(withSpecies(newDraft(169), 'humains-reiklander'), DEFAULT_CAREER.id));
+  const tiresDe = (h: { talents: { talentId: string }[] }, tires: { ref: RefDesignee }[]) => tires.filter((t) => h.talents.some((x) => x.talentId === t.ref.id)).length;
+
+  it('#393 : la fiche vivante (`buildHero`) ne porte aucun Talent tiré avant le geste ; après, les trois', () => {
+    const avant = withCareer(withSpecies(newDraft(169), 'humains-reiklander'), DEFAULT_CAREER.id);
+    const tires = speciesTalentRandomDrawn(rollDraftTalents(avant));
+    expect(tires.map((t) => t.ref.id)).toEqual(['doue-en-calcul', 'doue-en-calcul', 'sixieme-sens']);
+    expect(tiresDe(buildHero(avant), tires)).toBe(0);
+    expect(tiresDe(buildHero(rollDraftTalents(avant)), tires)).toBe(3);
+  });
+
+  it('la relance du brouillon atteint `createHero` : écran, `buildHero` et `createHero` des choix donnent les mêmes Talents', () => {
+    const d = rerollDraftTalent(tire(), adresseDeCreation.especeTirage(2, 1));
+    const ecran = speciesTalentRandomDrawn(d).map((t) => t.ref.id);
+    expect(ecran).toEqual(['doue-en-calcul', 'doigts-de-fee', 'sixieme-sens']);
+    const talents = (h: { talents: { talentId: string; times: number }[] }) => h.talents.map((t) => `${t.talentId}x${t.times}`);
+    const viaBuild = talents(buildHero(d));
+    const viaChoix = talents(createHero({
+      speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
+      speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
+    }));
+    expect(viaBuild).toEqual(viaChoix);
+    for (const id of ecran) expect(viaBuild.some((t) => t.startsWith(`${id}x`)), id).toBe(true);
+  });
+});
+
 describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
-  // Graine 1, Reiklander : Bonnes jambes aux tirages 0 et 1 ; graine 2 : Perspicace au tirage 1.
+  // Graine 169, Reiklander : Doué en calcul aux tirages 0 et 1 ; graine 5 : Perspicace au tirage 1.
   const tire = (seed: number) => rollDraftTalents(withCareer(withSpecies(newDraft(seed), 'humains-reiklander'), DEFAULT_CAREER.id));
   const tirage = (i: number) => adresseDeCreation.especeTirage(2, i);
 
   it('la relance porte le rang effectif + 1 ; sur un tirage non doublon, le brouillon est inchangé', () => {
-    const d = tire(1);
+    const d = tire(169);
     const relance = rerollDraftTalent(d, tirage(1));
     expect(relance.talentRerolls).toEqual({ [tirage(1)]: 1 });
-    expect(speciesTalentRandomDrawn(relance).map((t) => t.ref.id)).toEqual(['bonnes-jambes', 'chanceux', 'reflexes-foudroyants']);
+    expect(speciesTalentRandomDrawn(relance).map((t) => t.ref.id)).toEqual(['doue-en-calcul', 'doigts-de-fee', 'sixieme-sens']);
     expect(rerollDraftTalent(relance, tirage(1))).toBe(relance);
     expect(rerollDraftTalent(d, tirage(0))).toBe(d);
   });
 
   it('un doublon au Maxi est signalé `auMaxi` (LDB 10 l.18) ; sous le Maxi, non', () => {
-    expect(speciesTalentRandomDrawn(tire(2))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
-    expect(speciesTalentRandomDrawn(tire(1))[1]).toMatchObject({ ref: { id: 'bonnes-jambes' }, doublon: true, auMaxi: false });
+    expect(speciesTalentRandomDrawn(withSpeciesTalentChoice(tire(5), 'espece:talents:0', { id: 'perspicace' }))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
+    expect(speciesTalentRandomDrawn(tire(169))[1]).toMatchObject({ ref: { id: 'doue-en-calcul' }, doublon: true, auMaxi: false });
   });
 
-  it('changer d\'option « A ou B » ou d\'espèce remet à zéro relances et spécialisations des tirages', () => {
-    const d = { ...rerollDraftTalent(tire(2), tirage(1)), randomSpecPicks: { [tirage(0)]: 'odorat' } };
-    expect(withSpeciesTalentChoice(d, 'espece:talents:0', 0)).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
-    expect(withSpeciesTalentChoice(d, 'espece:talents:0', 1)).toMatchObject({ speciesTalentChoices: { 'espece:talents:0': 1 }, talentRerolls: {}, randomSpecPicks: {} });
+  it('changer d\'option « A ou B » remet à zéro relances et spécialisations des tirages de CETTE entrée ; changer d\'espèce, de toutes', () => {
+    // Humains du Middenland : « Destinée ou Talent aléatoire » (entrée 1), puis 3 Talents aléatoires (entrée 2).
+    const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
+    const d = {
+      ...withSpecies(newDraft(1), 'humains-middenland'),
+      speciesTalentChoices: { 'espece:talents:1': { random: 1 } },
+      talentRerolls: { [de(1, 0)]: 1, [de(2, 1)]: 1 },
+      randomSpecPicks: { [de(1, 0)]: 'odorat', [de(2, 0)]: 'gout' },
+    };
+    expect(withSpeciesTalentChoice(d, 'espece:talents:1', { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    expect(withSpeciesTalentChoice(d, 'espece:talents:1', { id: 'destinee' })).toMatchObject({
+      speciesTalentChoices: { 'espece:talents:1': { id: 'destinee' } }, talentRerolls: { [de(2, 1)]: 1 }, randomSpecPicks: { [de(2, 0)]: 'gout' },
+    });
+    expect(withSpeciesTalentChoice(d, 'espece:talents:0', { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
     expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
   });
 });
@@ -439,9 +477,9 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
     const tileenSorcererDraft = (talentPick: 'imperturbable' | 'affable') => {
       const base = withCareer(withSpecies(newDraft(4321), 'humains-tileens'), 'sorcier');
       const sp = draftSpecies(base)!;
-      const speciesTalentChoices: Record<string, number> = {};
+      const speciesTalentChoices: CreatorDraft['speciesTalentChoices'] = {};
       for (const { adresse, options } of speciesTalentChoiceEntries(base)) {
-        speciesTalentChoices[adresse] = Math.max(0, options.findIndex((o) => 'id' in o && o.id === talentPick));
+        speciesTalentChoices[adresse] = options.find((o) => 'id' in o && o.id === talentPick) ?? options[0];
       }
       return {
         ...base,

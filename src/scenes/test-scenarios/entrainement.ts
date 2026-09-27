@@ -1,5 +1,4 @@
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant, ItemInstance } from '../../engine/types';
 import { CustomStatblock } from '../../state/scene';
@@ -39,7 +38,7 @@ function tireur(): Combatant {
     careerId: 'soldat',
     label: 'Tireur (entraînement)',
     motivation: 'Exercice',
-    rng: makeRNG(3101),
+    seed: 3101,
     id: 'tr-tireur',
   });
   const arb = itemFromTrappingById('arbalete')!; // Recharge 1 + Empaleuse

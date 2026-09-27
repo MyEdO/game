@@ -49,16 +49,16 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `n` | 17 | `src/engine/dice.ts:86` |
-| `sides` | 18 | `src/engine/dice.ts:86` |
-| `plus` | 9 | `src/engine/dice.ts:86` |
+| `n` | 17 | `src/engine/dice.ts:89` |
+| `sides` | 18 | `src/engine/dice.ts:89` |
+| `plus` | 9 | `src/engine/dice.ts:89` |
 
 ### `Ref` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 65 | `src/data/index.ts:3058` |
-| `spec` | 23 | `src/data/index.ts:3547` |
+| `id` | 66 | `src/data/index.ts:3058` |
+| `spec` | 24 | `src/data/index.ts:3547` |
 
 ### `QualityRef` (src/data/index.ts)
 
@@ -108,13 +108,13 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 16 | `src/data/index.ts:3601` |
-| `spec` | 4 | `src/engine/careerSlots.ts:168` |
+| `id` | 17 | `src/data/index.ts:3601` |
+| `spec` | 5 | `src/engine/careerSlots.ts:168` |
 | `choix` | 11 | `src/data/index.ts:3058` |
 | `pick` | 2 | `src/data/index.ts:3604` |
-| `of` | 8 | `src/data/index.ts:3603` |
+| `of` | 9 | `src/data/index.ts:3603` |
 | `table` | — | *absent du type TS* |
-| `random` | 5 | `src/data/index.ts:3606` |
+| `random` | 6 | `src/data/index.ts:3606` |
 
 ### `EntityAppearance` (src/engine/authoringAppearance.ts)
 
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: 94ef647d6d4c6b50c0c904c209368dfa007e9ede (2116 fichiers, 174 dossiers) corps: 419a8f8e3bb0d817e518447aa73d4d2617cf98f2 -->
+<!-- sources-empreinte: 2aeea214a4ac604a60453008f95f3d4078b19ff7 (2117 fichiers, 174 dossiers) corps: 1dab182443aa86507da39f36114467c440567b0a -->

@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { gatherInnInfo, innGatherInfoMinutes } from './innFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from './worldMap';
@@ -25,7 +24,7 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 }
 
 function hero(advances: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', rng: makeRNG(11), id: 'h-artur' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 'h-artur' });
   skill(h, 'ragot', advances);
   return h;
 }

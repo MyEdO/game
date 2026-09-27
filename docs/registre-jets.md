@@ -179,7 +179,7 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 | `src/ui/creator/CharacterCreator.tsx` | 2 | dette | `generateName`, `rng.int` | mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6. |
 | `src/ui/creator/draft.ts` | 13 | dette | `rng.int`, `rollAge`, `rollCareer`, `rollEyes`, `rollHair`, `rollHeight`, `rollInitialWealth`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6. |
 
-_301 dés mesurés dans 45 fichiers, pour 119 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 301 dette._
+_301 dés mesurés dans 45 fichiers, pour 118 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 301 dette._
 
 ## Population AUTHORÉE (donnée, pas code)
 
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: eec435275349674118f126fb168f8269518e216c (2118 fichiers, 136 dossiers) corps: c82cca2a411c31308b2d16643024568acff7f6e1 -->
+<!-- sources-empreinte: b9e1b1b11f5398a5018f52e5c5586986865c1483 (2119 fichiers, 136 dossiers) corps: 0959616bcd7861f52a6c80c854f342f066ec3840 -->

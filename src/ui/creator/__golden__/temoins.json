@@ -26,16 +26,11 @@
     "times": 1
    },
    {
-    "talentId": "maitre-artisan",
-    "spec": "alchimiste",
+    "talentId": "sixieme-sens",
     "times": 1
    },
    {
-    "talentId": "affinite-avec-les-animaux",
-    "times": 1
-   },
-   {
-    "talentId": "dur-a-cuire",
+    "talentId": "reflexes-foudroyants",
     "times": 1
    },
    {
@@ -88,12 +83,6 @@
     "advances": 10
    },
    {
-    "id": "metier",
-    "spec": "alchimiste",
-    "characteristic": "dexterite",
-    "advances": 0
-   },
-   {
     "id": "calme",
     "characteristic": "force-mentale",
     "advances": 5
@@ -137,9 +126,9 @@
    "necessaire-d-ecriture"
   ],
   "wounds": {
-   "current": 15,
-   "max": 15,
-   "base": 15
+   "current": 12,
+   "max": 12,
+   "base": 12
   },
   "fate": 2,
   "resilience": 1,
@@ -182,15 +171,16 @@
     "times": 1
    },
    {
-    "talentId": "reflexes-foudroyants",
+    "talentId": "maitre-artisan",
+    "spec": "alchimiste",
     "times": 1
    },
    {
-    "talentId": "oreille-absolue",
+    "talentId": "bonnes-jambes",
     "times": 1
    },
    {
-    "talentId": "tres-fort",
+    "talentId": "tireur-de-precision",
     "times": 1
    },
    {
@@ -243,15 +233,21 @@
     "advances": 0
    },
    {
-    "id": "divertissement",
-    "spec": "chant",
-    "characteristic": "sociabilite",
-    "advances": 3
+    "id": "metier",
+    "spec": "alchimiste",
+    "characteristic": "dexterite",
+    "advances": 0
    },
    {
     "id": "charme",
     "characteristic": "sociabilite",
     "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "chant",
+    "characteristic": "sociabilite",
+    "advances": 3
    },
    {
     "id": "ragot",
@@ -277,9 +273,9 @@
    "chiffons"
   ],
   "wounds": {
-   "current": 13,
-   "max": 13,
-   "base": 13
+   "current": 12,
+   "max": 12,
+   "base": 12
   },
   "fate": 2,
   "resilience": 1,
@@ -471,11 +467,11 @@
     "times": 1
    },
    {
-    "talentId": "dur-a-cuire",
+    "talentId": "doigts-de-fee",
     "times": 1
    },
    {
-    "talentId": "guerrier-ne",
+    "talentId": "tres-fort",
     "times": 1
    },
    {
@@ -571,9 +567,9 @@
    "baton-de-combat"
   ],
   "wounds": {
-   "current": 14,
-   "max": 14,
-   "base": 14
+   "current": 12,
+   "max": 12,
+   "base": 12
   },
   "fate": 2,
   "resilience": 1,
@@ -607,7 +603,7 @@
   "charAdvances": {},
   "talents": [
    {
-    "talentId": "perspicace",
+    "talentId": "affable",
     "times": 1
    },
    {
@@ -615,12 +611,17 @@
     "times": 1
    },
    {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
     "talentId": "doigts-de-fee",
     "times": 1
    },
    {
-    "talentId": "affinite-avec-les-animaux",
-    "times": 2
+    "talentId": "artiste",
+    "spec": "calligraphie",
+    "times": 1
    },
    {
     "talentId": "beni",
@@ -669,6 +670,12 @@
     "spec": "theologie",
     "characteristic": "intelligence",
     "advances": 5
+   },
+   {
+    "id": "art",
+    "spec": "calligraphie",
+    "characteristic": "dexterite",
+    "advances": 0
    },
    {
     "id": "charme",
@@ -777,7 +784,7 @@
     "times": 1
    },
    {
-    "talentId": "tres-resistant",
+    "talentId": "fuite",
     "times": 1
    },
    {
@@ -873,9 +880,9 @@
    "necessaire-d-ecriture"
   ],
   "wounds": {
-   "current": 12,
-   "max": 12,
-   "base": 12
+   "current": 10,
+   "max": 10,
+   "base": 10
   },
   "fate": 0,
   "resilience": 2,

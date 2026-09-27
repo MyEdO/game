@@ -9,7 +9,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { actionGate } from './actionRegistry';
 import { hasCondition, raisonRefusDetermination, ACTE_DE_DEVERROUILLAGE } from '../engine/conditions';
@@ -19,7 +18,7 @@ import type { Combatant, ConditionInstance } from '../engine/types';
 
 /** Héros ACTIF, À Terre, à `pb` Blessures et `resolve` points de Détermination. */
 function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene);
   useGame.getState().startCombat('enc-mutants');

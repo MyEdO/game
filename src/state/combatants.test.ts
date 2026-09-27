@@ -5,7 +5,6 @@ import { isOutOfAction } from '../engine/conditions';
 import { maxJumpTiles } from '../engine/movement';
 import { effectiveMovement } from '../engine/encumbrance';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 
 /**
@@ -153,7 +152,7 @@ describe('cap du GROUPE — UNE entrée, keyée par aucun héros', () => {
 describe('mouvementDuGroupe — l’allure du traînard NI MORT NI À TERRE', () => {
   /** Héros COMPLET : `effectiveMovement` lit la fiche (espèce, encombrement). */
   const vrai = (id: string, graine: number) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, rng: makeRNG(graine) });
+    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: graine });
 
   it('groupe VIDE → allure 0, et le saut retombe au plancher du moteur', () => {
     expect(mouvementDuGroupe([])).toBe(0);

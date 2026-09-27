@@ -594,7 +594,7 @@ nombre d’entrées qui la portent.
 | `src/data/obsessions.json` | object | pipe à la racine | config | 1 | `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/oups.json` | array | liste | table | 8 | `id`:string(8) `kind`:string(8) `label`:string(8) `max`:number(7) `min`:number(7) `source`:object(8) `type`:string(8) |
 | `src/data/peripeties.json` | array | liste | entité | 10 | `desc`:string(10) `id`:string(10) `kind`:string(10) `label`:string(10) `roll`:number(10) `source`:object(10) `type`:string(10) |
-| `src/data/pregens.json` | array | liste | entité | 8 | `ambitionLong`:string(8) `ambitionShort`:string(8) `build`:number(2) `career`:string(8) `careerTalent`:object(2) `id`:string(8) `label`:string(8) `motivation`:string(8) `pettySpells`:array(1) `seed`:number(8) `sex`:string(2) `species`:string(8) `type`:string(8) |
+| `src/data/pregens.json` | array | liste | entité | 8 | `ambitionLong`:string(8) `ambitionShort`:string(8) `build`:number(2) `career`:string(8) `careerTalent`:object(2) `id`:string(8) `label`:string(8) `motivation`:string(8) `pettySpells`:array(1) `seed`:number(8) `sex`:string(2) `species`:string(8) `speciesTalentChoices`:object(5) `type`:string(8) |
 | `src/data/primitives.manifest.json` | array | liste | entité | 111 | `concept`:string(111) `css`:string(51) `fichier`:string(111) `id`:string(111) `label`:string(111) `nature`:string(8) `perimetre`:string(111) `poseurs`:array(12) `type`:string(111) `verrou`:string(111) |
 | `src/data/problemes-vehicule.json` | object | pipe à la racine | config | 1 | `die`:string(1) `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/progression-schemas.derived.json` | object | pipe à la racine | config | 1 | `id`:string(1) `label`:string(1) `livres`:array(1) `schemas`:array(1) `type`:string(1) |
@@ -657,7 +657,7 @@ nombre d’entrées qui la portent.
 
 ### 2.2 Fréquence globale des signatures d’entrée
 
-Signatures distinctes d’entrée de document : **640**. Les 40 plus fréquentes :
+Signatures distinctes d’entrée de document : **641**. Les 40 plus fréquentes :
 
 | Signature d’entrée | Entrées |
 |---|---|
@@ -902,7 +902,7 @@ se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la donnée), i
 
 #### A. Par défaut — sans lot de peuplement (stock `STRUCTURES_DEFAUT`)
 
-**126** documents portent au moins une clé déclarée jamais observée, **747** clés en tout
+**126** documents portent au moins une clé déclarée jamais observée, **746** clés en tout
 (stock `STRUCTURES_DEFAUT`, `scripts/guards/lib/structuresStock.mjs`, garde `src/data/structures-contrat.test.ts`).
 
 | Document | Clés | Détail |
@@ -974,7 +974,7 @@ se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la donnée), i
 | `obsessions.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `oups.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `peripeties.json` | 5 | `alsoIn` `descRef` `icon` `labelF` `maison` |
-| `pregens.json` | 9 | `age` `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` `weaponChoice` |
+| `pregens.json` | 8 | `age` `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
 | `primitives.manifest.json` | 7 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
 | `problemes-vehicule.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `progression-schemas.derived.json` | 7 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
@@ -1076,7 +1076,7 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 
 | Concept | Signature du lexique | Statut | Occurrences |
 |---|---|---|---|
-| reference | `id` | cible | 8212 |
+| reference | `id` | cible | 8217 |
 | reference | `id,spec` | cible | 1329 |
 | reference | `choix,id` | cible | 277 |
 | reference | `id,type` | cible | 0 |
@@ -1155,8 +1155,8 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **885** (cible 418 · declaree 6 · historique 131 · divergente 330). Objets JSON parcourus : **49212**, dont **31857** portent une forme
-mesurée. Champs porteurs de référence MESURÉS : **88**.
+Lignes concept × dataset × champ × forme : **886** (cible 419 · declaree 6 · historique 131 · divergente 330). Objets JSON parcourus : **49222**, dont **31862** portent une forme
+mesurée. Champs porteurs de référence MESURÉS : **89**.
 
 Entrées de racine sans concept de valeur : **4105** sur **4192** —
 un document n’est ni orphelin ni hors strate : ce compte est le seul porteur de ce qu’aucun concept ne revendique.
@@ -1164,7 +1164,7 @@ Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause `
 
 ### 3.1 référence à une entité — `reference` (strate Référence)
 
-493 ligne(s), 24247 occurrence(s).
+494 ligne(s), 24252 occurrence(s).
 Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Résolvables | Cibles résolues | Note |
@@ -1450,6 +1450,7 @@ Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou
 | entité | `career` | `id-nu` | historique | `pregens.json` | 8 | — | `careers.json` `creatures.json` `groups.json` `skills.json` `talents.json` | référence portée par un CHAMP SCALAIRE d’un document (`species: "humain"`) — la cible est un objet de référence |
 | entité | `careerTalent` | `id` | cible | `pregens.json` | 1 | — | `talents.json` |  |
 | entité | `careerTalent` | `id,spec` | cible | `pregens.json` | 1 | — | `gods.json` `skills.json` `talents.json` `traits.json` |  |
+| entité | `espece:talents:0` | `id` | cible | `pregens.json` | 5 | — | `talents.json` |  |
 | entité | `species` | `id-nu` | historique | `pregens.json` | 8 | — | `obsessions.json` `skills.json` `species.json` `talents.json` | référence portée par un CHAMP SCALAIRE d’un document (`species: "humain"`) — la cible est un objet de référence |
 | entité | `light` | `tone+…` | divergente | `props.json` | 6 | — | `lightTones.json` `trappings.json` |  |
 | entité | `primitives` | `material+…` | divergente | `props.json` | 379 | — | `materials.json` |  |
@@ -2529,14 +2530,14 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13476** objets sur **49212** ne sont portés par AUCUNE
+Au-delà des orphelines, **13481** objets sur **49222** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
 (`{x,y}` d’une tuile, bloc de caractéristiques, `{flat,plusBF}` de dégâts), les objets d’un `Flow`
 ou d’une `Formula` (`{kind,steps}`, `{bonusOf}`) et les objets à `op`, dont la grammaire est mesurée en §5.
 Ils ne sont pas au stock — ils se lisent ici, EN ENTIER : les
-**1183** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
+**1184** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
 table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 `src/data/structures-contrat.test.ts` (plafond sur le COMPTE, liste de référence = cette table).
 
@@ -2805,6 +2806,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `naval-ports.json` | `surplus` | `produits-de-luxe` | 5 |
 | `naval-ports.json` | `demande` | `armes,cereales` | 5 |
 | `naval-traits.json` | `weightEnc` | `bands,per` | 5 |
+| `pregens.json` | `speciesTalentChoices` | `espece:talents:0` | 5 |
 | `psychology.json` | `attackDR` | `amount,vs` | 5 |
 | `ship-construction.json` | `oars` | `crew,m` | 5 |
 | `ship-criticals.json` | `ops` | `hauteur,op` | 5 |
@@ -4274,7 +4276,7 @@ dans `src/data/slots-contrat.test.ts`.
 
 Ce volet est le REMPLAÇANT committé du « test FK générique » re-scopé au commentaire #1466 du 2026-08-23 : « le registre des SLOTS pour `docs/structures-donnees.md` (déclaré × observé) ».
 
-Slots déclarés : **3635** — espèce `id` **645**, espèce `acteur` **2990**.
+Slots déclarés : **3638** — espèce `id` **648**, espèce `acteur` **2990**.
 
 ### 6.1 Slots RÉSOLUBLES (espèce `id`, type du registre `_ids.generated`)
 
@@ -4395,8 +4397,11 @@ des ids. Une valeur non résolue est un rouge NOMINATIF de la garde, jamais une 
 | `pregens.json` | `[].species` | `species` | `species` | liste | 8 | 8 / 8 |
 | `pregens.json` | `[].career` | `career` | `career` | liste | 8 | 8 / 8 |
 | `pregens.json` | `[].careerTalent.id` | `id` | `talent` | liste | 2 | 2 / 2 |
+| `pregens.json` | `[].speciesTalentChoices{}\|0.id` | `id` | `talent` | liste | 5 | 5 / 5 |
+| `pregens.json` | `[].speciesTalentChoices{}\|1\|0.of[]\|0.id` | `id` | `talent` | liste | 0 | 0 / 0 |
+| `pregens.json` | `[].speciesTalentChoices{}\|1\|0.of[]\|1.id` | `id` | `talent` | liste | 0 | 0 / 0 |
+| `pregens.json` | `[].speciesTalentChoices{}\|1\|1.table.id` | `id` | `table` | liste | 0 | 0 / 0 |
 | `pregens.json` | `[].pettySpells[]` | `pettySpells` | `spell` | liste | 2 | 2 / 2 |
-| `pregens.json` | `[].weaponChoice` | `weaponChoice` | `trapping` | liste | 0 | 0 / 0 |
 | `problemes-vehicule.json` | `entries[].mount.riderTest.skill.id` | `id` | `skill` | liste | 0 | 0 / 0 |
 | `props.json` | `[].volume.primitives[]\|0.material` | `material` | `material` | liste | 379 | 379 / 379 |
 | `props.json` | `[].volume.primitives[]\|1.material` | `material` | `material` | liste | 379 | 379 / 379 |
@@ -4939,7 +4944,7 @@ La dette d’ADOPTION du registre : un `(dataset, champ)` porteur de référence
 (`scripts/guards/lib/slotsStock.mjs`, garde `src/data/slots-contrat.test.ts`) — il se solde concept
 par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 
-**338** couples (dataset, champ) sans slot déclaré.
+**339** couples (dataset, champ) sans slot déclaré.
 
 | Dataset | Champ | Occurrences observées |
 |---|---|---|
@@ -5143,6 +5148,7 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 | `night-stakes.json` | `kind` | 9 |
 | `night-stakes.json` | `rule` | 15 |
 | `pregens.json` | `careerTalent` | 2 |
+| `pregens.json` | `espece:talents:0` | 5 |
 | `progression-schemas.derived.json` | `livres` | 1 |
 | `progression-schemas.derived.json` | `titresPage` | 2 |
 | `props.json` | `light` | 6 |
@@ -5285,7 +5291,7 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 ### 6.3 Angles morts DÉCLARÉS de ce volet
 
 Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`) — l’espèce `acteur`
-pèse **2990** slots sur 3635.
+pèse **2990** slots sur 3638.
 
 - L’espèce `acteur` (`actorRefSchema`) est HORS résolution : elle désigne l’acteur d’une mécanique par un ENUM, pas l’id d’une entité d’un dataset — ce n’est pas une FK.
 - Un slot dont le `type` n’est pas un type du registre `_ids.generated` (entité INTERNE à une scène : pion, nœud de dialogue) n’est pas résoluble ici — l’index qui les porte est celui du scan (documents EMBARQUÉS), pas le registre généré. Ces slots sont au stock `SLOTS_INTERNES`, listés et jamais résolus ; l’unification passe par `typedRef` en L2 (#1473).
@@ -5293,4 +5299,4 @@ pèse **2990** slots sur 3635.
 - Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.
 - `valeursAuPath` traverse une branche d’union (`|N`) sans la discriminer : la donnée ne porte pas la branche qui la parse, chaque branche lit donc les valeurs de toutes — mesuré le 2026-09-22 sur `props.json › [].volume.primitives[]|0..2.material`, 297 valeurs à chacune des trois branches : la résolution y est comptée une fois par branche.
 
-<!-- sources-empreinte: 02a5d80c368835633d848b1f553fd8cf90685507 (392 fichiers, 10 dossiers) corps: 1c2e6dd9cc38807c4c051f60d34c347c76454d63 -->
+<!-- sources-empreinte: 03a5a252bbb26471839596648c64fe8535a904ab (393 fichiers, 10 dossiers) corps: 90860762f4a62cdc76528476f7b16a38b789c826 -->

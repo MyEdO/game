@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { applyAttackResult } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition } from '../engine/conditions';
 import type { AttackResult } from '../engine/combat';
@@ -20,7 +19,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

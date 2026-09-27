@@ -7,7 +7,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { castingValue } from '../engine/magic';
 import { findSpellById } from '../data';
 import { previewCast } from './combatFlow';
@@ -19,8 +18,8 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(priestPos: { x: number; y: number }) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
-    const priest = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', rng: makeRNG(2) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const priest = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     useGame.setState({ party: [hero, priest] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

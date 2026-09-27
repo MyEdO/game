@@ -4,7 +4,6 @@ import { openLandMarket, landSellCargo } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { buildScene } from './mapSpec';
 import { snapshotSave } from './saves';
 import { toBrass } from '../engine/money';
@@ -49,7 +48,7 @@ const CARRIER_ID = 'convoi-1';
  *  POSSESSIONS #617/#618) — `launchAtA` le pose après `loadProject` (le registre est vidé+re-semé au
  *  démarrage de scène, `startScene`/`seedStartingPossessions`). */
 function trader(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', rng: makeRNG(11), id: 't-artur' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   h.characteristics = { ...h.characteristics, Fel: 60 } as Combatant['characteristics'];
   skill(h, 'ragot', 60);
   skill(h, 'marchandage', 60);

@@ -15,7 +15,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { startCascade, registerCascadeApplier, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from './cascade';
 import { quantityStep, monoStep, freeCons } from './rollSeam';
 import { combatStakeRef } from '../data';
@@ -25,7 +24,7 @@ import type { CascadeStep } from './pendings';
 const get = useGame.getState.bind(useGame);
 
 function hero() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
   useGame.setState({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   return get().party[0];
 }

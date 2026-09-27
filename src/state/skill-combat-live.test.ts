@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { emptyScene } from './scene';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
@@ -19,7 +18,7 @@ function reset() {
 }
 
 function combat(heroOver: Partial<Combatant> = {}) {
-  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(3) });
+  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
   H.fortune = 0; H.resolve = 0; H.resilience = 0; H.advantage = 0;
   Object.assign(H, heroOver);
   const E: Combatant = JSON.parse(JSON.stringify(H));

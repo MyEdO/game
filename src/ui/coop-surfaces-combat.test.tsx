@@ -14,7 +14,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
@@ -28,7 +27,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(9) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 9 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;

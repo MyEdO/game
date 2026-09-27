@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { aiCreatureFreeAttacks, applyGaze, applyChillGrasp, applyWail, resolveRoundBoundary } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 import { areGrappling, setGrapple } from '../engine/grapple';
@@ -16,7 +15,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

@@ -6,7 +6,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
-import { makeRNG } from '../engine/dice';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { useGame } from './store';
@@ -123,7 +122,7 @@ describe('intégration : startCombat sème les pièges de la scène dans battle.
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('une scène avec effectZones → zone permanente dans le combat', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene: Scene = {
       ...testScene,
       effectZones: [

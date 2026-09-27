@@ -20,7 +20,6 @@ import { startCascade } from './cascade';
 import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { combatStakeRef } from '../data';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { skillBaseValue, testValue } from '../engine/skills';
 import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
@@ -29,8 +28,8 @@ import type { GameState } from './store';
 import type { PendingCascade, CascadeStep } from './pendings';
 
 function heroes() {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', rng: makeRNG(1) });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', rng: makeRNG(2) });
+  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
   useGame.setState({ party: [a, b] });
   return [a, b];
 }

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { creatureToCombatant } from '../state/spawn';
 import { findCreatureById } from '../data';
 
@@ -12,7 +11,7 @@ describe('InspectPanel', () => {
   const render = (c: Parameters<typeof InspectPanel>[0]['combatant']) =>
     renderToStaticMarkup(<InspectPanel combatant={c} onClose={() => {}} />);
 
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(3) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
   it('nom, PB (WoundsBadge courant/max) et statbloc (caractéristiques partagées)', () => {
     const html = render(hero);

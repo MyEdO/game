@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatEffects';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { bonus } from '../engine/characteristics';
 import { hasCondition } from '../engine/conditions';
 import type { Effect } from './scene';
@@ -17,7 +16,7 @@ describe('Effet fall — chute', () => {
   beforeEach(() => useGame.setState({ battle: null, partyPos: { x: 0, y: 0 } }));
 
   function loneHero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(3) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.wounds = { current: 40, max: 40 };
     useGame.setState({ party: [h] });
     return h;

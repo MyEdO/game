@@ -16,14 +16,13 @@ import { conversationRepond } from './dialogue';
 import { partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import { makeRNG } from '../engine/dice';
 import { toBrass } from '../engine/money';
 import type { Combatant } from '../engine/types';
 import type { Dialogue } from './scene';
 import type { GameState } from './store';
 
 const hero = (brass = 0): Combatant =>
-  withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) }), { gold: 0, silver: 0, brass });
+  withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass });
 
 /** Un nœud, trois réponses : un Test, une MASQUÉE par son `when`, une PAYANTE hors de portée. */
 const dlg: Dialogue = {

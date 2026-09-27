@@ -11,7 +11,6 @@ import { parseQualityInstance } from '../engine/qualities/normalize';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { modalOwnerOf, seatOwns, ownsLocally } from './netOwnership';
 import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
@@ -51,7 +50,7 @@ const live = (id: string) => useGame.getState().battle!.combatants.find((c) => c
 function combat(nb: number, seed = 7, invites: number[] = []) {
   useGame.getState().seedRng(seed);
   const heros = Array.from({ length: nb }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(seed + i) }));
+    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   useGame.setState({ party: heros });
   useGame.getState().startScene(structuredClone(testScene));
   useGame.getState().startCombat('enc-mutants');

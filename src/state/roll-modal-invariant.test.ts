@@ -29,7 +29,6 @@ import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybe
 import { gainCorruption } from './corruptionFlow';
 import { createHero } from '../engine/character';
 import { buildWeapon } from '../engine/items';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { addCondition, COND } from '../engine/conditions';
 
@@ -164,7 +163,7 @@ describe('Surfaçage « remonte-à-un-humain » — statique au choke-point (a)'
 
 // ── Harness de combat (calqué sur round-upkeep-cascade / maneuver-defense-cascade) ───────────────
 function freshCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   set({ party: [hero] });
   get().startScene(testScene);
   get().startCombat('enc-mutants');
@@ -245,7 +244,7 @@ function behavioralFloor(): void {
   }
   // 7) Corruption au seuil (LDB 19 l.70) — gaté `tenuParUnHumain` (surface, cadence-agnostique, modale).
   {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'C', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'C', seed: 1 });
     hero.aiControlled = silence; // volet (d) : ré-silençage réel
     hero.characteristics.endurance = 1; hero.characteristics['force-mentale'] = 1; hero.corruption = 5; // seuil 0 → dépassé
     set({ party: [hero], battle: null, pendingCorruption: null, net: { ...get().net, gmSeat: undefined } });

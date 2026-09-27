@@ -16,7 +16,7 @@ import { testScene } from '../scenes/test-fixture';
 function setup() {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   useGame.getState().startScene(testScene);
   vi.clearAllTimers();

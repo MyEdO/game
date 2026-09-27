@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 /**
@@ -14,7 +13,7 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
   beforeEach(() => { useGame.setState({ battle: null, pendingDisengage: null }); });
 
   it('héros Engagé ayant DÉJÀ agi peut se désengager en sacrifiant l’Avantage', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(3);
     useGame.getState().startScene(testScene);

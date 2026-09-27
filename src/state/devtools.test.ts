@@ -4,7 +4,6 @@ import { useGame } from './store';
 import { buildApi } from './devtools';
 import { partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
 import { itemFromTrappingById } from '../engine/items';
@@ -44,7 +43,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
   });
 
   it('en combat : tous les ennemis hors de combat + victoire par le flux normal (pendingVictory)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');
@@ -76,7 +75,7 @@ describe('__wfrp — autres commandes de recette', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().startScene(testScene);
     vi.clearAllTimers();
@@ -297,7 +296,7 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
   });
 
   it('place() d’un combattant SIMPLE (ni coque ni crew) reste une téléportation directe inchangée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.pos = { x: 1, y: 1 };
     const battle: BattleState = {
       combatants: [hero], order: [hero.id], turn: 0, round: 1, action: null, selectedSpellId: null,
@@ -314,7 +313,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

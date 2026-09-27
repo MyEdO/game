@@ -22,7 +22,6 @@ import {
   openCombatEndCascade, openRoundStartPsych,
 } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
 import { surfaceOf } from './rollSeam';
@@ -48,7 +47,7 @@ const parKind = (k: string) => etapes().find((s) => s.kind === k);
 function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;
   const party = Array.from({ length: n }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i + 1) }));
+    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
   g().startScene(testScene);
   g().startCombat('enc-mutants');

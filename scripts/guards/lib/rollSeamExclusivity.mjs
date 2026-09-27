@@ -279,7 +279,8 @@ export const AMORCE_TEST = ['rollTest', 'd100'];
  * `src/engine/dice.ts` au complet. La garde d'exclusivité (#274) ne connaît que le forgeage d'un
  * Test ; elle est donc AVEUGLE à une magnitude (`rollDice`), à une dispersion (`d10`), à une
  * expression authorée (`rollExpr`) et au d100 d'environnement (`deMonde`) — 60 des 75 lignes de dé
- * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04.
+ * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04. « Au complet » est gardé :
+ * `roll-seam-exclusivity-guard.test.ts`, « AMORCE COMPLÈTE ».
  * @type {readonly string[]}
  */
 export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'rollExpr', 'deMonde'];

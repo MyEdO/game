@@ -96,7 +96,7 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
 
   // Entrées d'espèce « A ou B » — première option.
   const speciesTalentChoices = { ...cur.speciesTalentChoices };
-  for (const e of speciesTalentChoiceEntries(cur)) speciesTalentChoices[e.adresse] ??= 0;
+  for (const e of speciesTalentChoiceEntries(cur)) speciesTalentChoices[e.adresse] ??= e.options[0];
   cur = { ...cur, speciesTalentChoices };
 
   if (speciesTalentRandomCount(cur) > 0 && !cur.talentsRolled) cur = rollDraftTalents(cur);

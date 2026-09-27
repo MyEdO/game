@@ -22,7 +22,6 @@ import { freeCons } from '../state/rollSeam';
 import { CascadeBody } from './CascadeModal';
 import type { CascadeStep } from '../state/pendings';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { applyAttackResult } from '../state/combatFlow';
 import { seedBattleRng } from '../state/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
@@ -523,7 +522,7 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
  */
 describe('bandes successives — le corps ne rend QUE la bande courante', () => {
   const heroOf = (id: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 1 });
     h.id = id;
     return h;
   };

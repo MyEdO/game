@@ -12,7 +12,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { InitiativeStrip } from './InitiativeStrip';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {
@@ -32,9 +31,9 @@ const noop = () => {};
 const HAND = { label: 'Pause', ariaLabel: 'Pause au prochain Round', raised: false, onToggle: noop };
 
 function fixtures() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(3) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
-  const foe = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', rng: makeRNG(5) }), id: 'e1', kind: 'enemy' as Combatant['kind'] };
+  const foe = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'] };
   return { h, foe };
 }
 

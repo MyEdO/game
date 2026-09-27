@@ -222,13 +222,15 @@ describe('compteur de marques — le seul détecteur du zéro SILENCIEUX', () =>
       // sortSchema` (`learnSpell.spell` et `castSpell.spellId`, UN nœud partagé) et
       // `grammaire/valeurs.ts › castingNumberModSchema.scope.spellIds`.
       ...Array.from({ length: 8 }, () => "idDe('spell')"),
-      // +1 site ADOPTÉ (#1520, 2026-09-23) : `defs/pregens.ts › pettySpells`, sous-liste discriminée
+      // +1 site ADOPTÉ (#1520, 2026-09-23) : `grammaire/choixDeCreation.ts › pettySpells`, sous-liste discriminée
       // `family` de `spells.json` (`export const discriminant`, `defs/spells.ts`).
       "idDe('spell', 'mineure')",
-      ...Array.from({ length: 4 }, () => "idDe('table')"),
-      // … 6 → 7 (#1520, 2026-09-23) : `defs/pregens.ts › careerTalent` (`refOuSpec('talent')`).
+      // … 4 → 5 (#1897, 2026-09-27) : `grammaire/choixDeCreation.ts › speciesTalentChoices` (`avancement('talent')`, sa table).
+      ...Array.from({ length: 5 }, () => "idDe('table')"),
+      // … 6 → 7 (#1520, 2026-09-23) : `grammaire/choixDeCreation.ts › careerTalent` (`refOuSpec('talent')`).
       // … 7 → 8 (#1924) : `grammaire/mecanique.ts › flowTestSchema.easierIf.hasTalent`.
-      ...Array.from({ length: 8 }, () => "idDe('talent')"),
+      // … 8 → 11 (#1897, 2026-09-27) : `grammaire/choixDeCreation.ts › speciesTalentChoices` (`avancement('talent')`, 3 feuilles).
+      ...Array.from({ length: 11 }, () => "idDe('talent')"),
       // +1 site ADOPTÉ (#1690) : `defs-scenes/scene.ts › layerSchema.tiles` résout CHAQUE case de la
       // grille contre `terrains.json` — 18 154 cellules sur les 4 projets livrés.
       "idDe('terrain')",
@@ -245,8 +247,6 @@ describe('compteur de marques — le seul détecteur du zéro SILENCIEUX', () =>
       "idDe('terrain')",
       "idDe('terrain')",
       "idDe('trait')",
-      "idDe('trapping')",
-      // +1 site ADOPTÉ (#1520, 2026-09-23) : `defs/pregens.ts › weaponChoice`.
       "idDe('trapping')",
       // +1 site ADOPTÉ (#1882 T2d, 2026-09-24) : `defs-scenes/effets.ts › givePossessionSchema.ref.vehicleId`
       // — le véhicule possédé résout contre `vehicles.json`.

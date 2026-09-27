@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { doAttack } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 /**
@@ -26,7 +25,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

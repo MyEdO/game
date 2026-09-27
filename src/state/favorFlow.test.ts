@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { fromBrass } from '../engine/money';
 import { creditBourse } from './bourseFlow';
 import { testScene } from '../scenes/test-fixture';
@@ -16,7 +15,7 @@ import { setRule, resetRule } from '../engine/policy';
 function setup() {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], favors: [], journal: [] });
   useGame.getState().startScene(testScene);
   vi.clearAllTimers();

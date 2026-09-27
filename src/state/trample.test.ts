@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { trampleTarget, aiCreatureFreeAttacks, applyTrample, runEnemyAI } from './combatFlow';
 import { mountMovement } from './mount';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
@@ -54,7 +53,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

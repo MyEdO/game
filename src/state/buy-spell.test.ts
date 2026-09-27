@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects, effectiveSpellOf } from './combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
+import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
@@ -18,9 +19,8 @@ beforeEach(() => {
 
 describe('buySpell', () => {
   it('mémorise contre PX (Magie mineure) ; refuse sans PX suffisants', () => {
-    const w = pregen(PREGEN.sorcier);
-    w.talents = w.talents.filter((t) => t.talentId !== 'imperturbable'); // Imperturbable, tiré à la création : +5 FM (LDB 10 l.581)
-    w.talents.push({ talentId: 'magie-mineure', times: 1 });
+    // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM.
+    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
     // Prémisse CONTRÔLÉE (indépendante du BFM réel du pré-tiré, #421 — les pré-tirés suivent
     // désormais les règles de création, leur quota de sorts mineurs varie avec leur seed) : BFM 2,
     // et 2 sorts mineurs déjà connus (Fléchette, Choc) = ses BFM inclus au Talent. Le suivant est

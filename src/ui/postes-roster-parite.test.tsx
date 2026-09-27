@@ -14,7 +14,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { navalTraitsDe } from '../engine/navalTraits';
 import { crewRoles, shipStations } from '../data';
 import { exposedCrew } from '../engine/shipCritical';
@@ -34,10 +33,9 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 
 /** MÊME groupe pour les quatre montages : seules les données de poste changent d'un roster à l'autre. */
 function groupe(): Combatant[] {
-  const rng = makeRNG(7);
   return [
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', rng }), id: 'a' },
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', rng }), id: 'b' },
+    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', seed: 7 }), id: 'a' },
+    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', seed: 8 }), id: 'b' },
   ];
 }
 

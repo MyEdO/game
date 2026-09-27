@@ -4,7 +4,6 @@ import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { avanceEtapeCascade } from '../cascadeTestKit';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { hasCondition } from '../../engine/conditions';
 
 import { testScene } from '../../scenes/test-fixture';
@@ -35,7 +34,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

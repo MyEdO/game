@@ -6,7 +6,6 @@ import { pathTo } from '../../state/path';
 import { useGame } from '../../state/store';
 import { applyEffects } from '../../state/combatEffects';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { scenario } from './opera';
 
 /**
@@ -128,7 +127,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
 
   beforeEach(() => useGame.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60, partyPos: { x: 10, y: 14, z: 1 } }));
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = { current: wounds, max: wounds };
     useGame.setState({ party: [h] });
     return h;

@@ -11,7 +11,6 @@ import { interludeEventFor } from '../data/interludeEvents';
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { setRule, resetRule } from '../engine/policy';
 
@@ -25,8 +24,8 @@ describe('Interlude — flux start/end', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', rng: makeRNG(2) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
     useGame.getState().startScene(testScene);
     vi.clearAllTimers();
@@ -140,7 +139,7 @@ describe('Interlude — flux start/end', () => {
   });
 
   it('interlude-elf-duty (défaut) : un elfe ≥3 semaines perd 1 Activité (devoir)', () => {
-    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', rng: makeRNG(3) });
+    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'Haut Elfe';
     useGame.setState({ party: [elf], interlude: null });
     useGame.getState().startInterlude(3);
@@ -152,7 +151,7 @@ describe('Interlude — flux start/end', () => {
 
   it('interlude-elf-duty OFF : l’elfe garde son Activité', () => {
     setRule('interlude-elf-duty', false);
-    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', rng: makeRNG(3) });
+    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'Haut Elfe';
     useGame.setState({ party: [elf], interlude: null });
     useGame.getState().startInterlude(3);

@@ -14,7 +14,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { CascadeBody } from './CascadeModal';
 import { dieStep } from '../state/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
@@ -27,7 +26,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(1) });
+const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence à UNE étape, le titre de la fenêtre étant fourni par l'appelant. */
 function openStep(title: string, step: (heroId: string) => CascadeStep) {

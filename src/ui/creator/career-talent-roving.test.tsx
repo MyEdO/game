@@ -8,7 +8,7 @@
  * dépendance du projet, vérifié — aucun `fireEvent` nulle part dans `src/`) :
  * `createRoot`/`act`/`element.dispatchEvent(new KeyboardEvent(...))`, cf. `MasterDetail.test.tsx`.
  *
- * Fixture déterministe (seed 3, espèce/carrière par défaut de `CharacterCreator.test.tsx`) :
+ * Fixture déterministe (seed 7, espèce/carrière par défaut de `CharacterCreator.test.tsx`) :
  * après `rollDraftTalents`, les 4 talents de carrière niveau 1 de l'Agitateur sont Baratiner /
  * Faire la manche / Lire·Écrire (déjà possédé via le tirage aléatoire de race → MAXI atteint,
  * `talentMaxReached`) / Sociable — un cas réel, pas fabriqué.
@@ -26,8 +26,8 @@ beforeAll(() => {
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
 const CAREER = careersForSpecies(SP.refCareer)[0]!;
-/** seed 3 — Lire/Écrire (index 2) est MAXI atteint (déjà possédé via le tirage aléatoire de race). */
-const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(3), SP.id), CAREER.id));
+/** seed 7 — Lire/Écrire (index 2) est MAXI atteint (déjà possédé via le tirage aléatoire de race). */
+const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(7), SP.id), CAREER.id));
 
 describe('CharacterCreator — roving clavier du radiogroup « Talent de carrière » (#519)', () => {
   let container: HTMLDivElement;

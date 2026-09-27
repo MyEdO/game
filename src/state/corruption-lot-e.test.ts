@@ -7,13 +7,14 @@ import { useGame } from './store';
 import { gainCorruption } from './corruptionFlow';
 import { draineCascade } from './cascadeTestKit';
 import { corruptionThresholdExceeded } from '../engine/corruption';
-import { makePregens } from '../data/pregens';
+import { PREGEN } from '../data/pregens';
+import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
 
+/** Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52). */
 function hero(): Combatant {
-  const h = makePregens()[0];
-  return { ...h, talents: h.talents.filter((t) => t.talentId !== 'ame-pure') }; // Âme pure, tirée à la création, écartée (LDB 10 l.52)
+  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
 }
 
 beforeEach(() => {
