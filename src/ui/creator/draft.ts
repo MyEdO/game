@@ -502,9 +502,9 @@ export interface TirageDeTalent {
  *  joueur n'a pas tiré (#393 agentivité). */
 export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
   if (!d.talentsRolled) return [];
-  const partiel = { characteristics: probeHero(d, false, true).characteristics, talents: [] as TalentInstance[] };
+  const partiel: Combatant = { ...probeHero(d, false, true), talents: [] };
   return resolvedSpeciesTalentsAll(d).flatMap(({ ref, tirage }) => {
-    const auMaxi = !!tirage?.doublon && talentMaxReached(partiel as Combatant, ref.id, ref.spec);
+    const auMaxi = !!tirage?.doublon && talentMaxReached(partiel, ref.id, ref.spec);
     acquerirTalent(partiel, ref);
     return tirage ? [{ ref, ...tirage, auMaxi }] : [];
   });
