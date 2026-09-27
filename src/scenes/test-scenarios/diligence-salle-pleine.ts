@@ -91,7 +91,6 @@ function meublerDeGens(depart: Scene): Scene {
   return scene;
 }
 
-const scene = meublerDeGens(poserDepart(diligenceCampaign.scenes[0]));
 
 export const scenario: TestScenario = {
   id: 'diligence-salle-pleine',
@@ -101,6 +100,5 @@ export const scenario: TestScenario = {
   title: 'La Diligence — salle pleine',
   tests: 'La salle meublée VUE HABITÉE : 16 convives authorés assis, un par place des 3 tables rondes et des 2 tables murales, chacun posé sur l’abord effectif de sa place.',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — départ au milieu de la salle, aucun combat.',
-  makeParty: makeShowcaseParty,
-  scene,
+  construire: () => ({ party: makeShowcaseParty(), scene: meublerDeGens(poserDepart(diligenceCampaign.scenes[0])) }),
 };

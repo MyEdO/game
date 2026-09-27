@@ -27,7 +27,7 @@ const projetsLivres = listerProjetsLivres()
 describe('#1869 — un dialogue sans ouvreur est injouable', () => {
   it('aucun scénario de test ni projet livré ne porte de dialogue jamais ouvert', () => {
     const trouves = [
-      ...testScenarios.flatMap((s) => jamaisOuverts(validateScene([s.scene, ...(s.extraScenes ?? [])], s.worldMap))),
+      ...testScenarios.map((s) => s.construire()).flatMap((c) => jamaisOuverts(validateScene([c.scene, ...(c.extraScenes ?? [])], c.worldMap))),
       ...projetsLivres.flatMap((doc) => jamaisOuverts(validateScene(doc.scenes, doc.worldMap))),
     ];
     expect(trouves, 'donner le dialogue à une entité, l’ouvrir par un effet, ou le supprimer').toEqual([]);

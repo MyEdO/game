@@ -32,6 +32,7 @@ import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
 import { scenario as scenarioEdo } from '../scenes/test-scenarios/96-presets-edo';
+const scenarioEdoConstruit = scenarioEdo.construire();
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -176,8 +177,8 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
   it('un PNJ à `presetId` joue de SON profil de campagne — nom et Compétence, jamais un repli générique', () => {
     set({
       party: makePregens().slice(0, 2) as Combatant[],
-      campaignNarratif: scenarioEdo.narratif,
-      scene: { ...emptyScene(), entities: scenarioEdo.scene.entities },
+      campaignNarratif: scenarioEdoConstruit.narratif,
+      scene: { ...emptyScene(), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
     });
 
@@ -192,8 +193,8 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
   it('la scène EDO le déclare joueur de taverne, et la modale lit son jeu ET sa mise authorés', () => {
     set({
       party: makePregens().slice(0, 2) as Combatant[],
-      campaignNarratif: scenarioEdo.narratif,
-      scene: { ...emptyScene(), entities: scenarioEdo.scene.entities },
+      campaignNarratif: scenarioEdoConstruit.narratif,
+      scene: { ...emptyScene(), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
     });
 

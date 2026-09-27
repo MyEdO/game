@@ -81,7 +81,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
-import { partyMoneyTotal, creditBourse, distributeCredit, condCtx } from './bourseFlow';
+import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
+import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
 import { diamondCorners, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
@@ -492,10 +493,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     clearAiTurnLog(); // trace IA vierge pour ce scénario
     const s = g();
     if (seed != null) s.seedRng(seed);
-    if (sc.rules) for (const [rid, v] of Object.entries(sc.rules)) setRule(rid, v);
-    s.setParty(sc.makeParty());
-    if (sc.extraScenes?.length || sc.worldMap || sc.narratif) s.loadProject([sc.scene, ...(sc.extraScenes ?? [])], sc.scene.id, sc.worldMap ?? null, sc.narratif);
-    else s.startScene(sc.scene);
+    const construit = poserScenario(g, sc);
     // Un plateau VIDE est un refus, jamais un silence : la recette qui continue dessus attribue son
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
@@ -511,20 +509,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
     rememberScenario(seed != null ? { id: sc.id, seed } : { id: sc.id });
-    const scLead = g().party[0];
-    if (sc.money && scLead) creditBourse(g, useGame.setState, scLead.id, sc.money); // seed de bourse du scénario (après le reset du lancement)
-    if (sc.vessel) useGame.setState({ vessel: sc.vessel }); // navire de campagne (voyage/combat maritime)
-    if (sc.autoCombat) g().startCombat(sc.autoCombat);
+    demarrerScenario(g, useGame.setState, sc, construit);
     if (g().pendingRoundStart) g().confirmRoundStart();
-    if (sc.massBattle) {
-      // Interlude AVANT la bataille (ADE II 8 l.65) : son budget d'Activités (max 3) est celui dans
-      // lequel puise la préparation. La préparation se joue DANS le menu d'interlude (« Interlude c'est
-      // interlude ») — `startMassBattle` reste donc sur l'écran d'interlude tant qu'un interlude est ouvert.
-      if (sc.interludeWeeks) g().startInterlude(sc.interludeWeeks);
-      g().startMassBattle(sc.massBattle);
-      return `✓ bataille de masse « ${sc.title} » lancée${sc.interludeWeeks ? ' (préparation dans le menu d\'interlude)' : ''}`;
-    }
-    s.setScreen('campaign');
+    if (construit.massBattle) return `✓ bataille de masse « ${sc.title} » lancée${g().interlude ? ' (préparation dans le menu d\'interlude)' : ''}`;
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {

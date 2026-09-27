@@ -2,6 +2,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { makeSorceress } from './_casters';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * DÔME (`LDB 47 l.410`) — la sauvegarde qu'une ZONE octroie, sous la main du joueur.
@@ -39,25 +40,28 @@ function groupe() {
   return [sorciere, protegee];
 }
 
-const scene = arena({ id: 'test-dome', label: 'Dôme — la sauvegarde d’une zone', w: 20, h: 10, heroStart: HERO_START });
-scene.startMessage =
-  'Ilyanwe lance le Dôme sur elle-même (console : alvéole « Dôme », cible « Vous ») : Berta, à côté, '
-  + 'gagne le Trait Protection (6+) contre ce qui vient du DEHORS. Le tireur gobelin tire de loin — la '
-  + 'sauvegarde tombe et le journal la nomme. L’orc, lui, entre sous la voûte et frappe au corps à '
-  + 'corps : là, le dôme ne protège de rien.';
-setEncounters(scene, [
-  {
-    id: 'enc-dome',
-    enemies: [
-      // TIREUR, volontairement LOIN et ARMÉ d'un arc : le dôme ne couvre que ce qui vient de
-      // l'extérieur, donc l'attaquant doit rester hors du rayon pour que la sauvegarde s'offre — et il
-      // n'y reste que s'il a de quoi TIRER (sans arme à distance, l'IA ferme la distance).
-      { ref: 'archer-gobelin', pos: { x: 17, y: 5 }, facing: 'O', weapon: 'arc', label: 'Tireur gobelin' },
-      // FRAPPEUR de mêlée : il vient AU CONTACT, donc sous la voûte — aucune sauvegarde ne lui répond.
-      { ref: 'orc', pos: { x: 7, y: 5 }, facing: 'O' },
-    ],
-  },
-]);
+function construireScene(): Scene {
+  const scene = arena({ id: 'test-dome', label: 'Dôme — la sauvegarde d’une zone', w: 20, h: 10, heroStart: HERO_START });
+  scene.startMessage =
+    'Ilyanwe lance le Dôme sur elle-même (console : alvéole « Dôme », cible « Vous ») : Berta, à côté, '
+    + 'gagne le Trait Protection (6+) contre ce qui vient du DEHORS. Le tireur gobelin tire de loin — la '
+    + 'sauvegarde tombe et le journal la nomme. L’orc, lui, entre sous la voûte et frappe au corps à '
+    + 'corps : là, le dôme ne protège de rien.';
+  setEncounters(scene, [
+    {
+      id: 'enc-dome',
+      enemies: [
+        // TIREUR, volontairement LOIN et ARMÉ d'un arc : le dôme ne couvre que ce qui vient de
+        // l'extérieur, donc l'attaquant doit rester hors du rayon pour que la sauvegarde s'offre — et il
+        // n'y reste que s'il a de quoi TIRER (sans arme à distance, l'IA ferme la distance).
+        { ref: 'archer-gobelin', pos: { x: 17, y: 5 }, facing: 'O', weapon: 'arc', label: 'Tireur gobelin' },
+        // FRAPPEUR de mêlée : il vient AU CONTACT, donc sous la voûte — aucune sauvegarde ne lui répond.
+        { ref: 'orc', pos: { x: 7, y: 5 }, facing: 'O' },
+      ],
+    },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'dome',
@@ -72,7 +76,6 @@ export const scenario: TestScenario = {
     + 'sauvegarde et le journal nomme le Trait qui a sauvé ; un coup de MÊLÉE sous la voûte n’en ouvre '
     + 'aucune ; deux dômes (ou un dôme sur qui porte déjà le Trait) ne donnent qu’UN dé.',
   partyNote: 'Ilyanwe (Haute Sorcière, 4 sorts posés par la scène — le Dôme en tête) · Berta (Soldat), la protégée',
-  makeParty: groupe,
-  scene,
+  construire: () => ({ party: groupe(), scene: construireScene() }),
   autoCombat: 'enc-dome',
 };

@@ -29,7 +29,7 @@ const legende = (label: string): boolean => label.trim().replace(ARTICLE, '').sp
 
 /** Chaque paquet de scènes avec le bloc narratif qui résout ses presets de PNJ. */
 function paquets(): { scenes: Scene[]; narratif?: NarratifBlock }[] {
-  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => ({ scenes: [s.scene, ...(s.extraScenes ?? [])], narratif: s.narratif }));
+  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => s.construire()).map((c) => ({ scenes: [c.scene, ...(c.extraScenes ?? [])], narratif: c.narratif }));
   for (const rel of listerProjetsLivres())
     out.push(parseProject(JSON.parse(readFileSync(join(__dirname, rel), 'utf8'))));
   return out;

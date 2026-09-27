@@ -8,6 +8,7 @@ import { useGame } from '../../state/store';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { findCreatureById } from '../../data';
 import type { SceneEntity } from '../../state/scene';
+import type { ScenarioConstruit } from './_shared';
 
 /**
  * Chaque personnage AUTHORÉ d'un scénario de test doit être rendable par SA donnée : réf de créature,
@@ -21,8 +22,8 @@ import type { SceneEntity } from '../../state/scene';
  * Périmètre : la donnée de SCÉNARIO. Une entité dont la `ref` désigne un record de bestiaire existant
  * est rendue par le catalogue (`src/data/creatures.json`) — ce que ce record déclare relève de lui.
  */
-const persos = (s: (typeof testScenarios)[number]): SceneEntity[] =>
-  [s.scene, ...(s.extraScenes ?? [])].flatMap((sc) => sc.entities.filter((e) => e.kind === 'personnage'));
+const persos = (c: ScenarioConstruit): SceneEntity[] =>
+  [c.scene, ...(c.extraScenes ?? [])].flatMap((sc) => sc.entities.filter((e) => e.kind === 'personnage'));
 
 /** L'apparence de cette entité est décidée par le SCÉNARIO (pas de record de bestiaire derrière la réf). */
 const authoreIci = (ent: SceneEntity): boolean => !ent.ref || !findCreatureById(ent.ref);
@@ -47,11 +48,12 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
   });
 
   it.each(testScenarios.filter((s) => !AUTHORES_AILLEURS.has(s.id)).map((s) => [s.id, s] as const))('le scénario %s rend ses personnages sans diagnostic de donnée', (id, s) => {
-    useGame.setState({ campaignNarratif: s.narratif ?? null }); // presets de PNJ du scénario (posés au lancement)
+    const c = s.construire();
+    useGame.setState({ campaignNarratif: c.narratif ?? null }); // presets de PNJ du scénario (posés au lancement)
     const enroles = new Set(
-      [s.scene, ...(s.extraScenes ?? [])].flatMap((sc) => sc.encounters.flatMap((e) => (e.members ?? []).map((m) => m.entityId))),
+      [c.scene, ...(c.extraScenes ?? [])].flatMap((sc) => sc.encounters.flatMap((e) => (e.members ?? []).map((m) => m.entityId))),
     );
-    for (const ent of persos(s).filter(authoreIci)) {
+    for (const ent of persos(c).filter(authoreIci)) {
       tokenBodyKind({ kind: 'sceneEntity', ent, enrolled: enroles.has(ent.id) });
       if (!enroles.has(ent.id)) continue; // un figurant qui n'entre jamais en combat n'est jamais spawné
       tokenBodyKind({ kind: 'combatant', combatant: ficheDEntite(ent) }); // la fiche que spawne `combatSlice`

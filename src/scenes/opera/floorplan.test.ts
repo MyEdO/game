@@ -15,6 +15,7 @@ import { scenePlanDefects } from '../../state/planDefects';
 import { METRES_PER_LEVEL } from '../../state/relief';
 import { buildWalls } from '../../gameIso/builders/walls';
 import { buildRoofs, clearedSpace } from '../../gameIso/builders/roofs';
+const operaPlanConstruit = operaPlan.construire();
 
 /** Case TÉMOIN au cœur du PUITS (l'ovale du folio 39, qui court du MUR DE FOND DE SCÈNE — rangée 1, sous le
  *  mur nord, au NORD des coulisses — au bas de la salle)
@@ -485,7 +486,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
     // marche (`isWalkable` → `entityBlockedAt`, `src/state/scene.ts:540`). Connexité lue à la SOURCE
     // UNIQUE (`walkComponentAt`, `src/state/path.ts:175`) : 8-connexe et cross-couche, donc plus
     // permissive qu'un flood 4-connexe — une case enclavée y reste une composante de plus.
-    const meuble = operaPlan.scene; // la scène RÉELLE du scénario (plan + mobilier)
+    const meuble = operaPlanConstruit.scene; // la scène RÉELLE du scénario (plan + mobilier)
     const sansGardeCorps = { ...meuble, entities: meuble.entities.filter((e) => e.ref !== 'balustrade-loge') };
     const cle = (x: number, y: number) => `${x},${y}`;
     const { w, h } = meuble.dimensions;

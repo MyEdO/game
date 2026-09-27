@@ -10,14 +10,15 @@ import { isMerScene, sceneMetresPerTile } from '../../state/scene';
 import { chebyshev } from '../../state/path';
 import { runEnemyAI, checkBattleOver } from '../../state/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
+const scenarioConstruit = scenario.construire();
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */
 function launch(seed: number) {
   const g = useGame.getState();
   g.seedRng(seed);
   seedBattleRng(seed);
-  g.setParty(scenario.makeParty());
-  g.startScene(scenario.scene);
+  g.setParty(scenario.construire().party);
+  g.startScene(scenarioConstruit.scene);
   g.startCombat('duel');
   if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
 }

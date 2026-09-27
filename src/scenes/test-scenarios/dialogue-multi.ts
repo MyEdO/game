@@ -2,6 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Dialogue multi-interlocuteurs » (#669) : UN dialogue dont les NŒUDS alternent l'interlocuteur
@@ -16,7 +17,7 @@ import type { TestScenario } from './_shared';
  * séparé. La réponse du 1ᵉʳ passage est déclarée AVANT celles du 2ᵉ : masquée, elle ne consomme pas
  * de numéro, et la 1ʳᵉ réponse visible du 2ᵉ passage porte le 1.
  */
-const auberge = buildScene({
+const construireAuberge = (): Scene => buildScene({
   id: 'test-dialogue-multi-auberge',
   label: 'Auberge — la tablée',
   desc: 'Arène de test.',
@@ -81,6 +82,8 @@ export const scenario: TestScenario = {
     'ZÉRO nom en clair dans la donnée. Reparler à Gustav après la tablée : reprise par `when` sur flag ' +
     'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
-  makeParty: () => pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
-  scene: auberge,
+  construire: () => ({
+    party: pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    scene: construireAuberge(),
+  }),
 };

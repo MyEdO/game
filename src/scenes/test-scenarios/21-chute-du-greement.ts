@@ -1,7 +1,7 @@
 import { createHero, skillCharacteristicById } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import type { Combatant, SkillInstance } from '../../engine/types';
-import type { SceneEntity } from '../../state/scene';
+import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
@@ -58,49 +58,52 @@ function equipage(): Combatant[] {
 
 // Coque de test : une COGUE (25 m → Taille « moyenne », MDG 12 l.122-129) qui porte le NID-DE-PIE.
 // Navire de TEST, jamais un navire de campagne modifié : l'Amélioration vit sur CETTE instance.
-/** La coque des héros — déclarée à part pour que la rencontre la NOMME sans la recopier. */
-const cogueDEssai: SceneEntity = {
-  id: 'cogue-test', kind: 'personnage', ref: 'cogue', pos: { x: 8, y: 6 }, facing: 'E',
-  label: 'La cogue d’essai', crewIds: ['gabier', 'vigie'],
-  upgrades: [{ id: 'nid-de-pie' }],
-};
+function construireScene(): Scene {
+  /** La coque des héros — déclarée à part pour que la rencontre la NOMME sans la recopier. */
+  const cogueDEssai: SceneEntity = {
+    id: 'cogue-test', kind: 'personnage', ref: 'cogue', pos: { x: 8, y: 6 }, facing: 'E',
+    label: 'La cogue d’essai', crewIds: ['gabier', 'vigie'],
+    upgrades: [{ id: 'nid-de-pie' }],
+  };
 
-/** La coque ADVERSE — même déclaration que celle des héros, sans équipage posté. */
-const coguePirate: SceneEntity = {
-  id: 'cogue-pirate', kind: 'personnage', ref: 'cogue', pos: { x: 16, y: 6 }, facing: 'O',
-  label: 'La cogue pirate',
-};
+  /** La coque ADVERSE — même déclaration que celle des héros, sans équipage posté. */
+  const coguePirate: SceneEntity = {
+    id: 'cogue-pirate', kind: 'personnage', ref: 'cogue', pos: { x: 16, y: 6 }, facing: 'O',
+    label: 'La cogue pirate',
+  };
 
-const scene = buildScene({
-  id: 'test-chute-greement',
-  label: 'Chute du gréement',
-  desc: 'Une cogue au mouillage, gréement et nid-de-pie garnis.',
-  size: [20, 12],
-  terrain: 'eau',
-  metresPerTile: 10,
-  heroStart: [3, 6],
-  startMessage:
-    'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
-    + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").',
-  entities: [
-    // La coque des HÉROS : c'est elle que le Critique frappe, et ses `crewIds` sont les deux postés.
-    cogueDEssai,
-    // Une coque ADVERSE : sans rencontre, le scénario était INERTE — aucun combat, aucun plan de voyage,
-    // donc `__wfrp.shipCrit` n'avait pas de coque en jeu et refusait. La route JOUABLE d'un Critique de
-    // navire est le combat naval (patron « Duel naval ») : l'ennemi ouvre la rencontre, le Critique suit.
-    coguePirate,
-  ],
-  encounters: [
-    {
-      id: 'greement',
-      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', belowPercent: 50 },
-      members: [
-        { entityId: 'cogue-test', side: 'ally' },
-        { entityId: 'cogue-pirate', side: 'enemy' },
-      ],
-    },
-  ],
-});
+  const scene = buildScene({
+    id: 'test-chute-greement',
+    label: 'Chute du gréement',
+    desc: 'Une cogue au mouillage, gréement et nid-de-pie garnis.',
+    size: [20, 12],
+    terrain: 'eau',
+    metresPerTile: 10,
+    heroStart: [3, 6],
+    startMessage:
+      'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
+      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").',
+    entities: [
+      // La coque des HÉROS : c'est elle que le Critique frappe, et ses `crewIds` sont les deux postés.
+      cogueDEssai,
+      // Une coque ADVERSE : sans rencontre, le scénario était INERTE — aucun combat, aucun plan de voyage,
+      // donc `__wfrp.shipCrit` n'avait pas de coque en jeu et refusait. La route JOUABLE d'un Critique de
+      // navire est le combat naval (patron « Duel naval ») : l'ennemi ouvre la rencontre, le Critique suit.
+      coguePirate,
+    ],
+    encounters: [
+      {
+        id: 'greement',
+        victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', belowPercent: 50 },
+        members: [
+          { entityId: 'cogue-test', side: 'ally' },
+          { entityId: 'cogue-pirate', side: 'enemy' },
+        ],
+      },
+    ],
+  });
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'chute-du-greement',
@@ -115,7 +118,6 @@ export const scenario: TestScenario = {
     + 'NID-DE-PIE, la hauteur est un entier (25 m) : une seule étape. Coque MOYENNE portant l’Amélioration '
     + 'Nid-de-pie (aucun navire livré ne la porte).',
   partyNote: 'Gabier Ott (gréement) · Vigie Nissa (nid-de-pie) — Athlétisme faible, la chute arrive',
-  makeParty: equipage,
-  scene,
+  construire: () => ({ party: equipage(), scene: construireScene() }),
   autoCombat: 'greement',
 };

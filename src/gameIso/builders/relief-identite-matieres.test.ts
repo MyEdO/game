@@ -22,7 +22,7 @@ import { matieresDe } from '../../data';
 
 /** Toutes les scènes LIVRÉES : un scénario du registre porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => [
-  ...testScenarios.map((s) => ({ nom: `scenario:${s.id}`, scene: s.scene })),
+  ...testScenarios.map((s) => ({ nom: `scenario:${s.id}`, scene: s.construire().scene })),
   ...allBuiltinCampaigns.flatMap((c) => (c.scenes ?? []).map((scene) => ({ nom: `campagne:${c.id}/${scene.id}`, scene }))),
 ];
 

@@ -45,7 +45,7 @@ const TUILE = {
 };
 const HERBE_SWATCH = '#3d6630';
 
-const scene = buildScene(siegeSpec);
+const scene = buildScene(siegeSpec());
 const face = (material: Face['material']): Face => ({ poly: [], material, oriented: false });
 const couleur = (material: Face['material']): string => faceSurface(face(material)).color;
 

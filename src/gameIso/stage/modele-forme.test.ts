@@ -26,6 +26,8 @@ import { stageLightScalars } from './stageLights';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { scenario as arene } from '../../scenes/test-scenarios/arene';
 import { scenario as opera } from '../../scenes/test-scenarios/opera';
+const operaConstruit = opera.construire();
+const areneConstruit = arene.construire();
 
 /** Le bake d'une scène, RETENU par son read-set réel (`worldBakeDeps`) — le patron de l'écran
  *  (`GameStage3D.tsx`, `memoByRefDeps`). L'arène et l'opéra sont recuits par plusieurs `it` de ce
@@ -107,7 +109,7 @@ describe('#1300 — la famille se lit sur la normale que la loi d’orientation 
     // (`worldTris.faceQuadsOriented`), et c'est `bakeWorldGeometry` qui les retourne vers le haut. Lire
     // la famille AVANT ce retournement peindrait tous les sols de toutes les scènes en famille de
     // soffite : c'est cette inversion-là que ce test tient.
-    for (const [nom, scene] of [['arène', arene.scene], ['opéra', opera.scene]] as const) {
+    for (const [nom, scene] of [['arène', areneConstruit.scene], ['opéra', operaConstruit.scene]] as const) {
       const baked = cuire(scene, sceneMetresPerTile(scene));
       // `shades` est un `Float32Array` : la valeur AUTHORÉE (double) ne s'y retrouve qu'arrondie — une
       // clé non `fround`ée ne joint AUCUN sommet et ferait passer n'importe quel compte pour zéro.
@@ -136,7 +138,7 @@ describe('#1300 — la famille se lit sur la normale que la loi d’orientation 
     // 589 (arène), 163 (opéra) et 78 (siège) faces verticales non orientées. Reste le FAIT, hors de
     // portée d'un facteur d'orientation : deux montants SYMÉTRIQUES par rapport au centre reçoivent
     // des familles opposées — ils regardent bien deux directions opposées du point de vue de la carte.
-    for (const [nom, scene] of [['arène', arene.scene], ['opéra', opera.scene]] as const) {
+    for (const [nom, scene] of [['arène', areneConstruit.scene], ['opéra', operaConstruit.scene]] as const) {
       const baked = cuire(scene, sceneMetresPerTile(scene));
       const pos = baked.geometry.getAttribute('position').array as Float32Array;
       let panachés = 0;
@@ -172,7 +174,7 @@ describe('#1300 — la famille se lit sur la normale que la loi d’orientation 
 });
 
 describe('#1300 — le CÂBLAGE : le facteur arrive dans la couleur de sommet', () => {
-  const scene = arene.scene;
+  const scene = areneConstruit.scene;
   const mpt = sceneMetresPerTile(scene);
   const plein = () => 1;
   const couleurs = (g: { getAttribute(n: string): { array: ArrayLike<number> } }) =>
@@ -250,7 +252,7 @@ describe('#1300 — l’AUTRE canal de modelé : les flaques d’un intérieur p
   ];
 
   it('sans palier authoré, un intérieur rend une extinction NULLE et n’allume aucune lampe', () => {
-    const scene = opera.scene;
+    const scene = operaConstruit.scene;
     const s = stageLightScalars({ scene, gameTime: 12 * 60, lightLevel: null });
     expect(s.ambianceLum).toBe(1);
     expect(extinctionDe(s.ambianceLum)).toBe(0);
@@ -264,7 +266,7 @@ describe('#1300 — l’AUTRE canal de modelé : les flaques d’un intérieur p
     // Ce que le lot NE fait pas : le modelé par les sources posées se joue à l'authoring du palier
     // d'ambiance de la scène (`Scene.ambientLight`, un ID de palier — `lightLevels.json` — jamais un
     // scalaire). C'est la mesure qui fonde le ticket d'authoring séparé.
-    const scene = { ...opera.scene, ambientLight: 'crepuscule' } as Scene;
+    const scene = { ...operaConstruit.scene, ambientLight: 'crepuscule' } as Scene;
     const s = stageLightScalars({ scene, gameTime: 12 * 60, lightLevel: null });
     expect(+s.ambianceLum.toFixed(3)).toBe(0.549);
     expect(+extinctionDe(s.ambianceLum).toFixed(3)).toBe(0.451);

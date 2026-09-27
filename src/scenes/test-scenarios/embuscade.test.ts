@@ -3,6 +3,7 @@ import { scenario } from './embuscade';
 import { layerTiles } from '../../state/scene';
 import { findTrappingById } from '../../data/index';
 import { weaponFromTrait } from '../../engine/creatureEquip';
+const scenarioConstruit = scenario.construire();
 
 /**
  * Verrouille la Scene PRODUITE par `buildScene` dans `embuscade.ts` : dimensions, terrain case-à-case
@@ -35,7 +36,7 @@ function expectedTiles(): string[] {
 }
 
 describe('embuscade — Scene produite par buildScene', () => {
-  const s = scenario.scene;
+  const s = scenarioConstruit.scene;
 
   it('dimensions et une seule couche z0', () => {
     expect(s.dimensions).toEqual({ w: W, h: H });

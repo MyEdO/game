@@ -25,6 +25,8 @@ import { buildPropVolumes, type AncrageVolume } from '../builders/propVolumes';
 import { findPropById, props, refEstVolumique } from '../../data';
 import { capVolumique, polygonesDePrimitive, type PropData } from '../../data/props.types';
 import type { SceneEntity } from '../../state/scene';
+const siegeConstruit = siege.construire();
+const pontConstruit = pont.construire();
 
 /**
  * PARITÉ DU PICKING DE TUILE ENTRE LES DEUX VOIES (#1176, lot P2-3).
@@ -352,8 +354,8 @@ function posteDuGroupe(scene: Scene, z: number, defaut: Pt): Pt {
 
 const CARTES: { nom: string; scene: Scene; etages: number[] }[] = [
   { nom: 'fixture', scene: FIXTURE, etages: ETAGES_FIXTURE },
-  { nom: 'pont-vitrine', scene: pont.scene as Scene, etages: [0, 1] },
-  { nom: 'siege-enceinte', scene: siege.scene as Scene, etages: [0] },
+  { nom: 'pont-vitrine', scene: pontConstruit.scene as Scene, etages: [0, 1] },
+  { nom: 'siege-enceinte', scene: siegeConstruit.scene as Scene, etages: [0] },
 ];
 
 /**

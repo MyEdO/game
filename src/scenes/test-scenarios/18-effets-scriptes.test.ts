@@ -7,6 +7,7 @@ import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
 import { scenario } from './18-effets-scriptes';
 import { draineCascade } from '../../state/cascadeTestKit';
+const scenarioConstruit = scenario.construire();
 
 /**
  * « Effets scriptés » (#96/#97) : chaque `it` prouve qu'un déclencheur RÉEL du scénario (dialogue,
@@ -14,10 +15,10 @@ import { draineCascade } from '../../state/cascadeTestKit';
  * observable — quatre interactions indépendantes, chacune UNE fois (rien à répéter).
  */
 describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un déclencheur réel', () => {
-  const scene = scenario.scene;
+  const scene = scenarioConstruit.scene;
 
   beforeEach(() => {
-    useGame.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.makeParty() });
+    useGame.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire().party });
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as never);
   });
   afterEach(() => { for (const id of Object.keys(scenario.rules ?? {})) resetRule(id); });

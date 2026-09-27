@@ -13,18 +13,18 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s a un groupe de héros non vide et une scène cohérente',
     (_id, s) => {
-      const party = s.makeParty();
+      const { party, scene } = s.construire();
       expect(party.length).toBeGreaterThanOrEqual(1);
       expect(party.every((h) => h.kind === 'hero')).toBe(true);
-      if (s.autoCombat) expect(s.scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
+      if (s.autoCombat) expect(scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
     },
   );
   /**
-   * Sorts des HÉROS posés EN CODE (`makeParty`) : aucun document ne les porte, donc aucun schéma de
+   * Sorts des HÉROS posés EN CODE (`construire`) : aucun document ne les porte, donc aucun schéma de
    * scène ne les voit — la porte est celle de la grammaire (`refs('spell')`). DÉRIVÉE.
    */
   it.each(testScenarios.map((s) => [s.id, s] as const))('les sorts des héros du scénario %s existent dans `spells.json`', (_id, s) => {
-    const verdict = refs('spell').safeParse(s.makeParty().flatMap((h) => h.spells ?? []));
+    const verdict = refs('spell').safeParse(s.construire().party.flatMap((h) => h.spells ?? []));
     expect(verdict.success ? [] : verdict.error.issues.map((i) => i.message)).toEqual([]);
   });
 
@@ -33,9 +33,9 @@ describe('Batterie de scénarios de test', () => {
     expect(testScenarios.find((s) => s.id === 'magie')).toBeTruthy();
   });
   it('résout une espèce de rig pour les cinq mutants de l’Embuscade', () => {
-    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!;
-    const encounter = embuscade.scene.encounters.find((e) => e.id === 'enc-mutants')!;
-    const entities = new Map(embuscade.scene.entities.map((e) => [e.id, e]));
+    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!.construire().scene;
+    const encounter = embuscade.encounters.find((e) => e.id === 'enc-mutants')!;
+    const entities = new Map(embuscade.entities.map((e) => [e.id, e]));
     assert(encounter.members?.length, 'enc-mutants doit contenir ses cinq membres');
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
@@ -56,8 +56,9 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s passe validateScene sans erreur',
     (id, s) => {
-      const project = [s.scene, ...(s.extraScenes ?? [])];
-      const errors = validateScene(project, s.worldMap).filter((w) => w.level === 'error');
+      const c = s.construire();
+      const project = [c.scene, ...(c.extraScenes ?? [])];
+      const errors = validateScene(project, c.worldMap).filter((w) => w.level === 'error');
       expect(errors, `scénario « ${id} » : ${errors.map((e) => `[${e.scope}${e.refId ? `:${e.refId}` : ''}] ${e.message}`).join(' | ')}`).toEqual([]);
     },
   );

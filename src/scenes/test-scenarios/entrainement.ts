@@ -3,7 +3,7 @@ import { acquerirTalent } from '../../engine/careerSlots';
 import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant, ItemInstance } from '../../engine/types';
-import { CustomStatblock } from '../../state/scene';
+import type { CustomStatblock, Scene } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import { pregen, PREGEN } from '../../data/pregens';
@@ -83,7 +83,7 @@ const W = 24, H = 14;
  * (colonne x=11, rangées 3-6) posé en tuiles 'mur' (`#`) via la grille `z0` — casse la ligne de vue vers
  * le mannequin tapi derrière. Braséros = props (halos de lumière). La lice (bande x=7) lance l'exercice.
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'terrain-entrainement',
   label: "Terrain d'entraînement",
   desc: 'Arène de test.',
@@ -162,10 +162,9 @@ export const scenario: TestScenario = {
     'désengagement & deux armes sur sparring-partners, forme d’arme (fiche du Bretteur), combat monté (monture ' +
     'libre, +20 vs plus petit), Explosion en zone (Sorcière).',
   partyNote: 'Tireur (arbalète + lanterne) · Bretteur (deux armes, forme changeable) · Tueur nain (vision nocturne) · Sorcière (Lumière/Explosion)',
-  makeParty: () => {
+  construire: () => {
     const sorciere = pregen(PREGEN.sorcier);
     sorciere.spells = ['lumiere', 'explosion', 'bouclier-magique', ...(sorciere.spells ?? [])];
-    return [tireur(), bretteur(), pregen(PREGEN.tueur), sorciere];
+    return { party: [tireur(), bretteur(), pregen(PREGEN.tueur), sorciere], scene: construireScene() };
   },
-  scene,
 };

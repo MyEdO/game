@@ -19,6 +19,7 @@ import type { WorldGeometry } from '../../gameIso/backends/webgl/sceneMeshes';
 import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../state/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
+const scenarioToitsConstruit = scenarioToits.construire();
 
 /**
  * L'ÉDITEUR SUR LA VOIE VOLUMIQUE (#1176, P3-3, vague A). Ce qui se mesure ici :
@@ -431,7 +432,7 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
    * là où le dessin vit : sur le SVG.
    */
   it('les TOITS ne sont peints qu’une fois : aucune masse au canevas, le plan étiqueté au SVG', async () => {
-    const scene = scenarioToits.scene; // masure à 4 pièces sous UNE nappe à deux pans (masse z=0)
+    const scene = scenarioToitsConstruit.scene; // masure à 4 pièces sous UNE nappe à deux pans (masse z=0)
     const avec = await monter({ mode: 'select' }, { scene, currentLayer: 1, roofs: true });
     const facesAvec = avec.faces();
     // Les nappes en PLAN de l'éditeur ont leur signature : des losanges à `opacity=0,7` (`authoring/roofsSvg`).

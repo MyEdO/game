@@ -1971,8 +1971,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'interlude', weeks: 1 }),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
-      // Règle optionnelle (LDB 21 l.108-110) : tout le chapitre est facultatif → désactivable.
-      if (rule('interlude-enabled')) env.get().startInterlude(e.weeks ?? 1);
+      env.get().startInterlude(e.weeks ?? 1);
     },
   },
   setTime: {
@@ -2033,7 +2032,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Navigation', label: 'Doter le groupe d\'un navire (MDG 13-15)', icon: 'travel/anchor',
     make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
     apply: (e, env) => {
-      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `TestScenario.vessel`,
+      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ScenarioConstruit.vessel`,
       // mais authorable. Moral neuf par défaut (MORALE_BASE) ; coque intacte sauf `hull*` authoré.
       const v = findVehicleById(e.vehicleId);
       if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op

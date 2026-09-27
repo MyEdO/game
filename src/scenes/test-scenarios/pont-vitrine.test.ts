@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './pont-vitrine';
 import { layerTiles } from '../../state/scene';
+const scenarioConstruit = scenario.construire();
 
 /** Valide la Scene PRODUITE par `buildScene(MapSpec)` : la migration doit être ÉQUIVALENTE en jeu à
  *  l'ancien DSL bespoke (mêmes dimensions, mêmes couches/tuiles/hauteurs, mêmes props, même heroStart). */
 describe('pont-vitrine — Scene produite', () => {
-  const s = scenario.scene;
+  const s = scenarioConstruit.scene;
   const W = 16;
   const at = (z: number, x: number, y: number) => layerTiles(s, z)[y * W + x];
   const height = (z: number) => s.layers.find((l) => l.z === z)!.height!;

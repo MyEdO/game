@@ -44,26 +44,29 @@ function chasseurArme(): Combatant {
   return h;
 }
 
-const scene = poserDepart(structuredClone(diligenceCampaign.scenes[0]));
-setEncounters(scene, [
-  {
-    id: 'enc-clayonnage',
-    // Aucune mort n'est requise : la recette porte sur la LIGNE DE VUE. Le combat reste ouvert le
-    // temps de viser les trois adversaires.
-    victoryCondition: { type: 'surviveRounds', rounds: 3 },
-    enemies: [
-      // PREUVE (c) — tir PAR-DESSUS le clayonnage : posté contre l'arête (23,29)E, il est vu depuis
-      // (24,31)/(24,32) et le tir part (couvert d'arête « Intermédiaire », +0).
-      { ref: 'gobelin', pos: { x: 23, y: 29 }, facing: 'E' },
-      // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (19,32)E,
-      // dans la stalle du sud-ouest, l'arc à la main, à 5 cases du groupe.
-      { ref: 'archer-gobelin', pos: { x: 19, y: 32 }, facing: 'E', weapon: 'arc' },
-      // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (25,31)E
-      // (`mur-a-ossature-en-bois`, sans fenêtre), le tir est REFUSÉ faute de Ligne de Vue.
-      { ref: 'gobelin', pos: { x: 26, y: 31 }, facing: 'O' },
-    ],
-  },
-]);
+function construireScene(): Scene {
+  const scene = poserDepart(structuredClone(diligenceCampaign.scenes[0]));
+  setEncounters(scene, [
+    {
+      id: 'enc-clayonnage',
+      // Aucune mort n'est requise : la recette porte sur la LIGNE DE VUE. Le combat reste ouvert le
+      // temps de viser les trois adversaires.
+      victoryCondition: { type: 'surviveRounds', rounds: 3 },
+      enemies: [
+        // PREUVE (c) — tir PAR-DESSUS le clayonnage : posté contre l'arête (23,29)E, il est vu depuis
+        // (24,31)/(24,32) et le tir part (couvert d'arête « Intermédiaire », +0).
+        { ref: 'gobelin', pos: { x: 23, y: 29 }, facing: 'E' },
+        // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (19,32)E,
+        // dans la stalle du sud-ouest, l'arc à la main, à 5 cases du groupe.
+        { ref: 'archer-gobelin', pos: { x: 19, y: 32 }, facing: 'E', weapon: 'arc' },
+        // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (25,31)E
+        // (`mur-a-ossature-en-bois`, sans fenêtre), le tir est REFUSÉ faute de Ligne de Vue.
+        { ref: 'gobelin', pos: { x: 26, y: 31 }, facing: 'O' },
+      ],
+    },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'ecuries-clayonnage',
@@ -78,7 +81,6 @@ export const scenario: TestScenario = {
     'voit le groupe et tire ; à distance comparable, un ennemi derrière un mur à ossature en bois est ' +
     'REFUSÉ (pas de Ligne de Vue) — l’arête de clayonnage restant INFRANCHISSABLE au déplacement.',
   partyNote: 'Chasseur (arc en main) + Soldat — départ dans l’allée est des écuries.',
-  makeParty: () => [chasseurArme(), pregen(PREGEN.soldat)],
-  scene,
+  construire: () => ({ party: [chasseurArme(), pregen(PREGEN.soldat)], scene: construireScene() }),
   autoCombat: 'enc-clayonnage',
 };

@@ -2,6 +2,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`battleWater`) gate ses cibles
@@ -30,19 +31,22 @@ function porteurDOutre() {
 }
 
 const HERO_START = { x: 2, y: 4 };
-const scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
-scene.startMessage =
-  "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
-  "de son terrain, elle suffoque (Trait Créature marine, MDG 16 l.19). Le Soldat porte une outre à " +
-  "eau — l'Action « Asperger d'eau » l'immunise pour le Round où elle est posée ; sans elle, l'anguille " +
-  "perd 1 Blessure par Round.";
-setEncounters(scene, [
-  {
-    id: 'enc-aspersion',
-    enemies: [{ ref: 'anguille-macheprise', pos: { ...HERO_START }, side: 'ally', ai: true }],
-    victoryCondition: { type: 'surviveRounds', rounds: 3 },
-  },
-]);
+function construireScene(): Scene {
+  const scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
+  scene.startMessage =
+    "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
+    "de son terrain, elle suffoque (Trait Créature marine, MDG 16 l.19). Le Soldat porte une outre à " +
+    "eau — l'Action « Asperger d'eau » l'immunise pour le Round où elle est posée ; sans elle, l'anguille " +
+    "perd 1 Blessure par Round.";
+  setEncounters(scene, [
+    {
+      id: 'enc-aspersion',
+      enemies: [{ ref: 'anguille-macheprise', pos: { ...HERO_START }, side: 'ally', ai: true }],
+      victoryCondition: { type: 'surviveRounds', rounds: 3 },
+    },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'aspersion',
@@ -57,7 +61,6 @@ export const scenario: TestScenario = {
     "poche (`hasWaterContainer`), l'asperge (`battleWater` pose `wateredThisRound`, aucun jet, consomme " +
     "l'Action) ; `waterSprayCandidates` filtre STRICTEMENT par `kind` identique à l'aspergeur.",
   partyNote: 'Soldat solo, outre à eau en poche.',
-  makeParty: () => [porteurDOutre()],
-  scene,
+  construire: () => ({ party: [porteurDOutre()], scene: construireScene() }),
   autoCombat: 'enc-aspersion',
 };

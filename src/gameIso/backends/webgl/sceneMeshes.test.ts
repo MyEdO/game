@@ -73,8 +73,11 @@ import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../state/sceneMemo';
 import { srgbToLinear, toHex } from '../../shade';
+const diligenceConstruit = diligence.construire();
+const pontVitrineConstruit = pontVitrine.construire();
+const areneConstruit = arene.construire();
 
-const scene = buildScene(siegeSpec);
+const scene = buildScene(siegeSpec());
 const mpt = sceneMetresPerTile(scene);
 const plein = () => 1;
 
@@ -118,11 +121,11 @@ const faireVitrine = () => buildVitrineScene();
 /** Les SIX scènes-témoins du chantier de rendu — la population que l'utilisateur juge. */
 const TEMOINS: [string, () => Scene][] = [
   ['siege-enceinte', () => scene],
-  ['pont-vitrine', () => pontVitrine.scene],
+  ['pont-vitrine', () => pontVitrineConstruit.scene],
   ['opera', () => buildOperaFloorplan()],
-  ['arene', () => arene.scene],
+  ['arene', () => areneConstruit.scene],
   ['vitrine-batiments', faireVitrine],
-  ['diligence', () => diligence.scene],
+  ['diligence', () => diligenceConstruit.scene],
 ];
 
 /** Normale (unitaire) du triangle `i` de la géométrie fusionnée. */
@@ -211,7 +214,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
     return b;
   }
 
-  for (const [nom, scn] of [['siege-enceinte', scene], ['arene', arene.scene]] as [string, Scene][])
+  for (const [nom, scn] of [['siege-enceinte', scene], ['arene', areneConstruit.scene]] as [string, Scene][])
     it(`${nom} : 0 triangle de mur à normale rentrante, 0 face libre retournée`, () => {
       const b = bilan(scn);
       expect(b.volumiques).toBeGreaterThan(1000);

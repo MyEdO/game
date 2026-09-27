@@ -3,13 +3,14 @@ import { scenario } from './magie-hors-combat';
 import { findSpell } from '../../data';
 import { layerTiles } from '../../state/scene';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile, castInfo } from '../../engine/magic';
+const scenarioConstruit = scenario.construire();
 
 /** Le scénario doit être JOUABLE hors combat : les lanceurs maîtrisent réellement leur Compétence
  *  (sinon les boutons « Lancer/Focaliser » échoueraient sur « ne maîtrise pas »), et le groupe offre
  *  bien les 3 cas (sort d'Arcane focalisable, bénédiction de soin, Projectile magique combat-only). */
 describe('Scénario Magie hors combat', () => {
-  const party = scenario.makeParty();
-  const [wiz, priest] = party; // makeParty() = [wiz, priest], ordre fixé (pregenParty)
+  const party = scenario.construire().party;
+  const [wiz, priest] = party; // groupe construit = [wiz, priest], ordre fixé (pregenParty)
 
   it('est un scénario d’EXPLORATION (pas d’autoCombat)', () => {
     expect(scenario.autoCombat).toBeUndefined();
@@ -17,7 +18,7 @@ describe('Scénario Magie hors combat', () => {
   });
 
   it('la scène compilée (buildScene) est une arène 14×9 plate, départ héros en (2,4), sans combat', () => {
-    const scene = scenario.scene;
+    const scene = scenarioConstruit.scene;
     expect(scene.id).toBe('test-magie-hors-combat');
     expect(scene.dimensions).toEqual({ w: 14, h: 9 });
     expect(scene.layers).toHaveLength(1);
