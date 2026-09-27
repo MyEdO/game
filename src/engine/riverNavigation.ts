@@ -29,6 +29,7 @@ import riverNavJson from '../data/river-navigation.json';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { d10, d100, rollExpr, type RNG, defaultRNG } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
@@ -77,14 +78,14 @@ const DATA = riverNavJson as unknown as {
   temporaryRepair: { difficulty: Difficulty; charpentierPenalty: number; woundsPerRepair: string };
 };
 
-export const RIVER_FORCES: RiverWindForceId[] = DATA.windForces.map((f) => f.id as RiverWindForceId);
-export const NAV_BASE_DIFFICULTY = DATA.navBaseDifficulty;
-export const TACK_DIFFICULTY = DATA.tackDifficulty;
+export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.map((f) => f.id as RiverWindForceId));
+export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;
+export const tackDifficulty = (): Difficulty => DATA.tackDifficulty;
 export const CAPSIZE = DATA.capsize;
 export const OUT_OF_CONTROL = DATA.outOfControl;
 export const TEMPORARY_REPAIR = DATA.temporaryRepair;
-export const DRIFT_PCT_OF_SPEED = DATA.driftPctOfSpeed;
-export const DRIFT_NAV_PENALTY = DATA.driftNavPenalty;
+export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
+export const driftNavPenalty = (): number => DATA.driftNavPenalty;
 
 export const riverForceLabel = (id: RiverWindForceId): string => DATA.windForces.find((f) => f.id === id)?.label ?? id;
 export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections.find((d) => d.id === id)?.label ?? id;
@@ -104,10 +105,11 @@ export function rollRiverWind(rng: RNG = defaultRNG): { force: RiverWindForceId;
  *  Léger, Très fort → Fort. PUR — renvoie la nouvelle force. */
 export function tickRiverWind(current: RiverWindForceId, rng: RNG = defaultRNG): RiverWindForceId {
   if (d10(rng) !== DATA.windTickThreshold) return current;
-  const i = RIVER_FORCES.indexOf(current);
+  const forces = riverForces();
+  const i = forces.indexOf(current);
   const up = d10(rng) <= 5;
-  const next = i === 0 ? 1 : i === RIVER_FORCES.length - 1 ? RIVER_FORCES.length - 2 : i + (up ? 1 : -1);
-  return RIVER_FORCES[next];
+  const next = i === 0 ? 1 : i === forces.length - 1 ? forces.length - 2 : i + (up ? 1 : -1);
+  return forces[next];
 }
 
 /** Nombre de crans de force appliqués sur une JOURNÉE (4 tirages, l.21). PUR. */
@@ -152,7 +154,7 @@ export function rowingAgilityFactor(success: boolean, sl: number): number {
   if (sl <= DATA.rowingAgility.spectacularSL) return DATA.rowingAgility.spectacularSpeedFactor;
   return 1 + DATA.rowingAgility.failSpeedPct / 100;
 }
-export const ROWING_AGILITY_DIFFICULTY = DATA.rowingAgility.difficulty;
+export const rowingAgilityDifficulty = (): Difficulty => DATA.rowingAgility.difficulty;
 
 /** Km parcourus dans la JOURNÉE : distance de base (barge M × heures, EDOC — l.15) modulée par l'effet du
  *  vent (% l.29-33) et le facteur d'Agilité (l.17). Plancher 0. PUR. */
@@ -168,11 +170,11 @@ export function riverDriftKm(baseKmPerDay: number): number {
 /** MODIFICATEURS NOMMÉS du Test de Navigation du jour — MSRC 7 l.38 (dérive : « les Tests de
  *  **Navigation** subissent un malus de –10 ») et l.41 (« Les Tests de **Navigation** pour tenter de
  *  diriger le bateau subissent un malus de -20 »). Ce sont des MALUS, pas des Difficultés : la
- *  Difficulté du Test reste `NAV_BASE_DIFFICULTY` (MSRC 7 l.15 demande le Test sans en fixer la
+ *  Difficulté du Test reste `navBaseDifficulty` (MSRC 7 l.15 demande le Test sans en fixer la
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
 export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.drift) mods.push({ label: 'Dérive', value: DRIFT_NAV_PENALTY, famille: 'jet', ref: RULE_REF['navigation-derive'] });
+  if (state.drift) mods.push({ label: 'Dérive', value: driftNavPenalty(), famille: 'jet', ref: RULE_REF['navigation-derive'] });
   if (state.outOfControl) mods.push({ label: 'Hors de contrôle', value: OUT_OF_CONTROL.navPenalty, famille: 'jet', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
@@ -181,10 +183,10 @@ export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean 
 
 
 /** Difficulté RAW du Test de redressement (note 4, l.40 — Accessible). */
-export const CAPSIZE_RIGHT_DIFFICULTY: Difficulty = DATA.capsize.rightDifficulty;
+export const capsizeRightDifficulty = (): Difficulty => DATA.capsize.rightDifficulty;
 
 /** Malus CUMULATIF par Round échoué du redressement (note 4, l.40) — chip NOMMÉE de la ligne. */
-export const CAPSIZE_RIGHT_CUMULATIVE = DATA.capsize.rightCumulativePenalty;
+export const capsizeRightCumulative = (): number => DATA.capsize.rightCumulativePenalty;
 
 /** Tours avant naufrage d'un bateau renversé non redressé (note 4, l.40) : Bonus d'Endurance de la coque. PUR. */
 export function capsizeSinkTurns(hullEndurance: number): number {

@@ -35,36 +35,46 @@
  * située DANS un corps de fonction (flèche, `function`, accesseur `get x()`, méthode abrégée) qui
  * n'est pas appelé sur place — elle se refait à chaque appel.
  *
- * CE QUE CETTE GARDE NE VOIT PAS, mesuré par injection (chaque cas rend 0 ligne aujourd'hui) :
+ * CE QUE CETTE GARDE NE VOIT PAS, mesuré par injection (chaque cas rend 0 ligne) :
  *  - CHAMP STATIQUE DE CLASSE — `export class R { static PAR_ID = new Map(traits.map((t) => [t.id, t])); }`
  *    (le corps de classe est à profondeur > 0 : aucune déclaration de niveau module n'y est vue) ;
  *  - FABRIQUE INTER-MODULE — `const PAR_ID = construire();` où `construire()` (autre fichier) lit le
  *    dataset : le détecteur ne suit aucun appel hors du fichier ;
  *  - RÉ-EXPORT RENOMMÉ — `export { traits as tousLesTraits }` dans un module tiers, puis
  *    `new Map(tousLesTraits.map(…))` chez son importateur : le vocabulaire ne suit que le seam ;
- *  - PARTITION PAR UN PRÉDICAT VIVANT — `TENUE_DEFS.filter((d) => !isClassDef(d.id))`
- *    (`gameIso/rig/parts/tenues/index.ts:20-42`) : la source énumérée n'est PAS un dataset (code
- *    généré), seul le PRÉDICAT lit `careers` — la partition reste donc figée à l'import alors que le
- *    prédicat, lui, est vivant. Aucun motif ne la voit : le dataset n'y est nommé nulle part.
+ *  - PARTITION PAR UN PRÉDICAT VIVANT — `const TENUES = TENUE_DEFS.filter((d) => !isClassDef(d.id))` :
+ *    la source énumérée n'est PAS un dataset, seul le PRÉDICAT en lit un — aucun motif ne la voit,
+ *    le dataset n'y est nommé nulle part ;
+ *  - LECTURE PAR MEMBRE — `Object.fromEntries(dispoJson.dispoPct.map(…))` : le binding est au
+ *    vocabulaire, mais chaque motif veut la méthode JUSTE après le nom ; un saut de membre
+ *    (`.dispoPct`) la cache ;
+ *  - ALIAS À ANNOTATION DE TYPE-OBJET — `const CARGO = seaCargoJson as unknown as { cargoes: X[]; sell: Y }`
+ *    puis `CARGO.cargoes.filter(…)` : le `;` du type littéral arrête la règle d'alias, le nom n'hérite
+ *    pas du dataset ;
+ *  - FABRIQUE LOCALE — `function ancre(p, id) { … }` puis `export const DAWN = ancre(calendarPhases, 'aube')` :
+ *    la lecture vit dans le corps d'une fonction du MÊME fichier, appelée au niveau module ; le corps
+ *    est un abri, l'appel n'est pas suivi ;
+ *  - FLÈCHE DANS L'ANNOTATION DE TYPE — `const C: Record<string, (id: string) => boolean> =
+ *    Object.fromEntries(FLOW_STAKES.map(…))` : le `=>` du TYPE passe pour une frontière de corps, la
+ *    lecture qui suit pour vivante ;
+ *  - INSTRUCTION D'APPEL DE NIVEAU MODULE — `registerTableStep('x', { rows: BOARD_EVENTS.map(…) })` :
+ *    ni `const`, ni affectation, ni boucle — l'instruction n'est pas balayée ;
+ *  - APOSTROPHE DANS UN TEXTE JSX — `<p>l'arme</p>` ouvre une chaîne pour le balayage de profondeur,
+ *    qui ne connaît pas le JSX : toute déclaration de niveau module qui SUIT est perdue.
  *
- * SONT désormais du VOCABULAIRE, joués à ce lot (les deux formes par lesquelles le module
+ * SONT du VOCABULAIRE (les deux formes par lesquelles le module
  * PROPRIÉTAIRE d'un dataset l'atteint sans jamais nommer le seam) : l'IMPORT JSON DIRECT
  * (`import vehiclesJson from '../data/vehicles.json'` — le document importé EST la racine vivante que
  * le seam mute, dès qu'il porte une clé de dataset : `documentsDesRacinesVivantes`, lu sur le module
  * généré `src/data/schemas/_racines-vivantes.generated.ts`) et l'ALIAS NU de niveau module
  * (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`, `export const IMPERIAL_MONTHS = calendarMonths`),
- * qui hérite du dataset. Ils ont révélé 10 staleness, toutes migrées à ce lot : `engine/travel.ts`
- * (index, transports payants, libellés de mode), `engine/trauma.ts` (index des fiches, fiches à
- * cumul, texte de plaie), `engine/clock.ts` (`campaignStart`), `data/bookMarker.ts`,
- * `data/schemas/grammaire/livres-extraits.ts`, `engine/disease.ts` (`diseaseDefs`) et ses deux
- * dérivés re-figés (`state/combatEffects.ts`, `ui/editor/EffectList.tsx`),
- * `gameIso/rig/parts/tenues/index.ts` (`classIds`).
+ * qui hérite du dataset (#1692).
  *
  * ASYMÉTRIE DE PÉRIMÈTRE, dite : la garde d'ÉCRITURE (`seam-ecriture-guard.test.ts`) balaie AUSSI les
  * `.test.ts` (une écriture hors seam dans un test contamine les autres tests du même processus) ;
  * celle-ci s'arrête aux INSTRUMENTS Vitest, tests ET bancs (`scripts/guards/lib/fichierVitest.mjs`,
  * #1788 — un banc POSE un index figé à dessein, c'est le témoin qu'il compare au vivant). Stock
- * résiduel dans les `.test.ts`, MESURÉ à ce lot : 46 valeurs
+ * résiduel dans les `.test.ts`, MESURÉ (#1692) : 46 valeurs
  * figées à l'import (fixtures d'arbre livré, la plupart légitimes — `const TRAITS_LIVRES = [...traits]` de
  * `fraicheur-datasets.test.ts` EST la sauvegarde qui restaure le seam). Les migrer relève d'un tri
  * cas par cas, pas d'un motif.
@@ -99,7 +109,8 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect(parBinding.get('shipConstruction')).toBe('shipHullSizes');
     expect(parBinding.get('criticalsTete')).toBe('criticalsTete');
 
-    // Et le détecteur VOIT désormais un index figé sur ce nom, injecté dans une copie en mémoire.
+    // Un index figé sur la CLÉ d'une entrée à valeur d'appel (`miscastMinor`) ou shorthand
+    // (`criticalsTete`), injecté dans une copie en mémoire, rend 1 ligne chacun.
     const fige = `import { miscastMinor } from '../data/overrides';\nconst PAR_ID = new Map(miscastMinor.map((r) => [r.id, r]));\n`;
     expect(indexFiges('copie.ts', fige, parBinding)).toHaveLength(1);
     const figeCrit = `import { criticalsTete } from '../data/overrides';\nconst PREMIER = criticalsTete[0];\n`;
@@ -227,9 +238,17 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     const champStatique = `import { traits } from '../data';\nexport class R { static PAR_ID = new Map(traits.map((t) => [t.id, t])); }\n`;
     const fabriqueInterModule = `import { construire } from './autre';\nconst PAR_ID = construire();\n`;
     const reexportRenomme = `import { tousLesTraits } from './reexport';\nconst PAR_ID = new Map(tousLesTraits.map((t) => [t.id, t]));\n`;
-    for (const cas of [champStatique, fabriqueInterModule, reexportRenomme]) {
-      expect(indexFiges('copie.ts', cas, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
+    const partitionParPredicat = `import { TENUE_DEFS } from './tenues.generated';\nimport { isClassDef } from '../data/careers';\nexport const TENUES = TENUE_DEFS.filter((d) => !isClassDef(d.id));\n`;
+    const lectureParMembre = `import { disponibilite as dispoJson } from '../data/index';\nexport const P = Object.fromEntries(dispoJson.dispoPct.map((e) => [e.a, e.p]));\n`;
+    const aliasTypeObjet = `import seaCargoJson from '../data/sea-cargo.json';\nconst CARGO = seaCargoJson as unknown as { cargoes: X[]; sell: Y };\nconst V = CARGO.cargoes.filter((c) => c);\n`;
+    const fabriqueLocale = `import { calendarPhases } from '../data';\nfunction ancre(p, id) { return p.find((x) => x.id === id).start; }\nexport const DAWN = ancre(calendarPhases, 'aube');\n`;
+    const flecheDansLeType = `import { FLOW_STAKES } from '../data';\nconst C: Record<string, (id: string) => boolean> = Object.fromEntries(FLOW_STAKES.map((e) => [e.k, () => true]));\n`;
+    const appelDeModule = `import { BOARD_EVENTS } from '../engine/seaVoyage';\nregisterTableStep('x', { rows: BOARD_EVENTS.map((e) => e.id) });\n`;
+    const apostropheJsx = `import { traits } from '../data';\nexport const V = () => <p>l'arme</p>;\nconst PAR_ID = new Map(traits.map((t) => [t.id, t]));\n`;
+    for (const cas of [champStatique, fabriqueInterModule, reexportRenomme, partitionParPredicat, lectureParMembre, aliasTypeObjet, fabriqueLocale, flecheDansLeType, appelDeModule]) {
+      expect(indexFiges('src/engine/copie.ts', cas, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
     }
+    expect(indexFiges('src/ui/copie.tsx', apostropheJsx, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);
   });
 
   it('CONTRÔLE POSITIF : l’IMPORT JSON DIRECT et son ALIAS NU sont du vocabulaire — mesuré sur un fichier RÉEL', () => {

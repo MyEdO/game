@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForce, windEffect, windAdjustedM,
-  visibilityDRPenalty, precipitationSkillMod, dailyWaterLitres, WIND_FORCES, temperatureDef,
+  visibilityDRPenalty, precipitationSkillMod, dailyWaterLitres, windForces, temperatureDef,
   seaExposureTestsPerDay,
 } from './seaWeather';
 import type { RNG } from './dice';
@@ -59,7 +59,7 @@ describe('vents — rose, aspect, mise à jour (MDG 13 l.250-272)', () => {
     expect(tickWindForce('vent-modere', seq(1, 8))).toBe('brise-fraiche'); // mollir
     expect(tickWindForce('calme-plat', seq(1, 8))).toBe('legere-brise'); // ne peut que forcir
     expect(tickWindForce('violente-tempete', seq(1, 3))).toBe('vent-violent'); // ne peut que mollir
-    expect(WIND_FORCES).toHaveLength(6);
+    expect(windForces()).toHaveLength(6);
   });
 });
 

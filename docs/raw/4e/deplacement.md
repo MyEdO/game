@@ -7,7 +7,7 @@
 > Conventions d'abréviation : voir [`sources.md`](../sources.md).
 >
 > **Périmètre de ce fichier** : Mouvement hors combat (règles générales), voyage entre lieux, montures
-> et véhicules, Encombrement et fatigue de voyage, poursuites.
+> et véhicules, Encombrement et fatigue de voyage, poursuites, Calendrier Impérial (le compte des jours).
 > Les règles de Charge, Désengagement, Fuite, Escalade, Saut et Chute *en combat* sont dans
 > [`combat.md`](combat.md) §§ correspondants — ce fichier les renvoie sans les re-transcrire.
 > ⚠️ Les champs **Implémente** sont GÉNÉRÉS (`npm run raw:implemente` — source éditoriale : `src/data/raw.manifest.json`) — ne pas les éditer à la main.
@@ -25,6 +25,7 @@
 - [Péripéties de voyage (LdB)](#péripéties-ldb)
 - [Système par Étapes (EDOC — optionnel)](#système-par-étapes-edoc--optionnel)
 - [Poursuites](#poursuites)
+- [Calendrier Impérial (EDO) : mois, semaine, jours intercalés](#calendrier-impérial-edo)
 - [Voir aussi](#voir-aussi)
 - [Implémente](#implémente)
 
@@ -581,6 +582,73 @@ Si un participant a un **M supérieur** aux autres, il gagne autant de **DR bonu
 
 ---
 
+## Calendrier Impérial (EDO)
+
+**Source :** EDO 12 l.13, EDO 12 l.17, EDO 12 l.19-30, EDO 12 l.32-47, EDO 12 l.60-203
+
+Le Calendrier Impérial (CI) compte les jours de l'année du Monde Connu : **12 mois**, **6 jours
+intercalés** entre les mois, et une semaine de **8 jours**. Des 6 jours intercalés, quatre sont les
+fêtes des solstices et des équinoxes, deux les jours où les deux lunes sont pleines ensemble
+(Hexensnacht, Geheimnisnacht). Mannslieb a un cycle de **25 jours** ; Morrslieb suit un cycle
+imprévisible. `EDO 12 l.13`, `EDO 12 l.17`
+
+**Durée de l'année — trois passages côte à côte, non tranchés ici :**
+
+| Passage | Verbatim | Compte |
+|---|---|---|
+| `EDO 12 l.13` | « Le monde de Warhammer met 400 jours pour évoluer autour de Söll, son soleil, une étoile bien plus grosse et plus chaude que la nôtre. » | 400 jours |
+| `EDO 12 l.17` | « Le Calendrier Impérial subdivise les 12 mois de l'année en 400 jours, plus 6 jours additionnels intercalés entre les mois. » | 400 + 6, à la lettre 406 |
+| `EDO 12 l.60-203` (table) | Nachhexen finit au 32 (`EDO 12 l.73`), Nachgeheim au 32 (`EDO 12 l.137`), les dix autres mois au 33 (ex. Jahrdrung, `EDO 12 l.81` : « \| Wellentag \| 1 \| 9  \| 17      \| 25 \| 33 \|  \| ») | 2 × 32 + 10 × 33 = 394, + 6 intercalaires = 400 |
+
+> « Quatre de ces jours excédentaires sont des fêtes qui marquent le tournant des saisons : les solstices d'été et d'hiver, et les équinoxes de printemps et d'automne. Les deux autres indiquent les jours où les deux lunes sont pleines en même temps » — `EDO 12 l.17`
+
+**Jours de la semaine** (`EDO 12 l.23-30`), dans l'ordre : Wellentag « jour du travail », Aubentag
+« jour des contributions », Marktag « jour de marché », Backertag « jour de fournée », Bezahltag
+« jour de paie », Konistag « jour du Roi », Angestag « début de la semaine », Festag « jour de fête ».
+
+**Mois** (`EDO 12 l.36-47`), dans l'ordre : Nachhexen, Jahrdrung, Pflugzeit, Sigmarzeit, Sommerzeit,
+Vorgeheim, Nachgeheim, Erntezeit, Brauzeit, Kaldezeit, Ulriczeit, Vorhexen.
+
+> L'extraction des deux listes ouvre chaque item par `0` (`- 0 Wellentag …`) : c'est la puce imprimée
+> lue comme un jeton (site au stock `scripts/raw/source-puces-stock.json`), pas du texte.
+
+**Jours intercalés, place dans la table** (`EDO 12 l.60-203`) :
+
+| Jour | Titre imprimé | Place |
+|---|---|---|
+| Hexenstag | « Hexenstag - Jour du Nouvel An » (`EDO 12 l.62`) | avant Nachhexen |
+| Mitterfruhl | « Mitterfruhl - Équinoxe de printemps » (`EDO 12 l.92`) | entre Jahrdrung et Pflugzeit |
+| Sonnstill | « Sonnstill - Solstice d'été » (`EDO 12 l.90`) | **illisible dans l'extraction** (voir ci-dessous) |
+| Geheimnistag | « Geheimnistag - Le Jour des Mystères » (`EDO 12 l.129`) | entre Vorgeheim et Nachgeheim |
+| Mittherbst | « Mittherbst - Équinoxe d'automne » (`EDO 12 l.155`) | entre Erntezeit et Brauzeit |
+| Mondstille | « Mondstille - Solstice d'hiver » (`EDO 12 l.168`) | entre Brauzeit et Kaldezeit |
+
+> ⚠️ Extraction abîmée `EDO 12 l.88-100` : `EDO 12 l.90` place « Sonnstill - Solstice d'été » entre
+> Jahrdrung et Mitterfruhl, et la grille de Pflugzeit est effondrée sur `EDO 12 l.92-100`
+> (« Wellentag - 8 16 24 32 » l.92, « Aubentag 1 » l.100). La place de Sonnstill et la grille de
+> Pflugzeit se relisent au PDF (folio 150).
+
+**Suite des jours de la semaine.** Aucune phrase ne dit si un jour intercalé porte un jour de la
+semaine ; la table le montre : Jahrdrung finit un Wellentag (`EDO 12 l.81`, jour 33) et Pflugzeit,
+après Mitterfruhl, s'ouvre un Aubentag (`EDO 12 l.100`, « Aubentag 1 ») ; la grille de chaque mois
+reprend, de Nachhexen à Vorhexen, au jour de semaine qui suit le dernier jour du mois précédent. La
+table d'une seule année ne montre pas le passage d'une année à l'autre : Vorhexen finit un Aubentag
+(`EDO 12 l.197`, jour 33), Nachhexen s'ouvre un Wellentag (`EDO 12 l.66`).
+
+**Premiers jours de saison** (astérisque de la table) : printemps Nachhexen 17 (`EDO 12 l.66`,
+`EDO 12 l.75`), été Sigmarzeit 18 (`EDO 12 l.107`, `EDO 12 l.114`), automne Nachgeheim 17
+(`EDO 12 l.138`, `EDO 12 l.142`), hiver Kaldezeit 18 (`EDO 12 l.172`, `EDO 12 l.181`). La pleine
+Mannslieb est marquée `•` (`EDO 12 l.77`).
+
+**Voir aussi :** [Système par Étapes (EDOC — optionnel)](#système-par-étapes-edoc--optionnel) (météo par
+saison), [Voyage à pied](#voyage-à-pied) (durée en jours), [`catalogue-divers.md`](catalogue-divers.md)
+(dates des signes astraux dans le calendrier).
+
+**Implémente :** _(généré — `npm run raw:implemente`)_
+- `EDO 12` (l.13, l.17, l.19-30, l.32-47, l.60-203) → `hexenstag`, `mitterfruhl`, `sonnstill`, `geheimnistag`, `mittherbst`, `mondstille` — `src/data/calendarIntercalary.json`, `src/data/calendarMonths.json`, `src/data/calendarWeekdays.json`, `src/engine/clock.ts`
+
+---
+
 ## Voir aussi
 
 - [`combat.md`](combat.md) — Charge, Désengagement, Fuite, Avantage, Escalade, Saut, Chute,
@@ -826,7 +894,7 @@ Adaptation des règles de Poursuite terrestres à plus grande échelle. Sauf int
 **Voir aussi :** [`deplacement.md`](deplacement.md#poursuites) (Poursuite terrestre LdB 15), [Tests d'équipage (MDG)](#tests-déquipage-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `scene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `sea-navigation`, `lighthouseOrientationDR`, `pursuitLowMPenalty`, `WorldMapPlacePanel`, `pursuitDistanceGain`, +12 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +10 fichiers
+- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `scene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `sea-navigation`, `lighthouseOrientationDR`, `WorldMapPlacePanel`, `pursuitLowMPenalty`, `pursuitDistanceGain`, +12 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +10 fichiers
 
 ---
 
@@ -1059,5 +1127,5 @@ Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a un
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/state/merchantFlow.ts) (Marchandage).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `PORT_PRODUITS`, `cereales`, `portProfileSchema`, `MapPlace`, `PortHeader`, `CargoMarkerDef`, +73 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +27 fichiers
+- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `cereales`, `portProfileSchema`, `MapPlace`, `PortHeader`, `CargoMarkerDef`, `marienburg`, +72 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +26 fichiers
 

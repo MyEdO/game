@@ -191,7 +191,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | `max` | 1 | `src/ui/compendium/registry.ts:839` |
 | `id` | 3 | `src/data/index.ts:500` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
-| `ops` | 3 | `src/engine/riverNavigation.ts:213` |
+| `ops` | 3 | `src/engine/riverNavigation.ts:215` |
 | `shrapnel` | 3 | `src/engine/shipCritical.ts:110` |
 | `hullCrits` | 2 | `src/engine/shipCritical.ts:103` |
 | `crewHit` | 2 | `src/engine/shipCritical.ts:112` |
@@ -300,4 +300,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: 5feb5f0cad42554a06a6e7d0338db5fd119a84ab (2103 fichiers, 172 dossiers) corps: fd7e8c08c2e53281c881178622735c8009fd50d6 -->
+<!-- sources-empreinte: 0713e4dda776064eae9e6bf0de3c55e3eda06851 (2103 fichiers, 172 dossiers) corps: 0705aa841474e94e50493743fa4f6cf5122e70c1 -->

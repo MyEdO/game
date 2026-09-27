@@ -110,7 +110,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `trappings.json` | **Équipement PORTÉ** : armes, armures, objets tenus/portés. **ATTENTION — PAS** les machines de guerre. (441 entrée(s)) | `trappings` · `siegeEngines` — dataset `trappings` |
-| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`DISPO_PCT`/`BARTER_RATIOS`) (objet à sous-catalogues) | `disponibilite` — objet single |
+| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`dispoPct`/`barterRatios`) (objet à sous-catalogues) | `disponibilite` — objet single |
 
 ### Bestiaire
 | Fichier | Contient | Exposition (Codex — édition) |
@@ -498,4 +498,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: ee4213bd258d4802e1686d73670cc70de578bd2e (380 fichiers, 2 dossiers) corps: 6400813f037221f57194eaa1f241a63e88fd752e -->
+<!-- sources-empreinte: 567acc2fcfbd51cc842f2e79bd6acabd18bbe656 (380 fichiers, 2 dossiers) corps: b52fd1dc5b4444c5dd5c04e5559f53d7a5f3e9b7 -->

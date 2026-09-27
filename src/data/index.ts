@@ -516,21 +516,21 @@ const miscastWrathRows = miscastRowsOf('miscast-colere');
  *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,
  *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
  *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
-const STAKE_ENTRY_CATALOG: Record<string, { category: string; has: (id: string) => boolean }> = {
+const stakeEntryCatalog = memoParVersion(['flowStakes', 'combatStakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
   diseaseTick: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   diseaseGangrene: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   diseasePersist: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   ...Object.fromEntries(
-    (flowStakesJson as FlowStakeEntry[])
+    FLOW_STAKES
       .filter((e) => e.entryCategory)
       .map((e) => [flowKind(e.flow, e.phase), { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
   ),
   ...Object.fromEntries(
-    (combatStakesJson as CombatStakeEntry[])
+    COMBAT_STAKES
       .filter((e) => e.entryCategory)
       .map((e) => [e.kind, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
   ),
-};
+}));
 
 /** ENJEU porté par l'ENTRÉE elle-même, par catégorie Codex — patron `ActivityDef.stake` (l'entité
  *  qui PORTE la règle porte aussi ce que son jet met en jeu). Une catégorie de plus = une ligne ICI.
@@ -544,7 +544,7 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
 
 /** Catégorie de l'ENTRÉE d'un `kind` — TABLE DES PORTES vers le foyer de la règle. Toute porte est
  *  NOMMÉE ici ; une porte qu'on n'écrit pas s'invente ailleurs.
- *  (a) DÉCLARATIVE : le `kind` figure au catalogue `STAKE_ENTRY_CATALOG` (dataset ou énumération),
+ *  (a) DÉCLARATIVE : le `kind` figure au catalogue `stakeEntryCatalog` (dataset ou énumération),
  *      sa catégorie est la même à chaque tirage — porte par défaut, elle PRIME sur les suivantes.
  *  (b) DYNAMIQUE BORNÉE : le producteur fournit `key.entryCategory`, valide seulement si le nom
  *      figure dans `STAKE_ENTRY_POOLS` — pour un `kind` jouant sur N catégories connues au tirage
@@ -557,7 +557,7 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
  *      (le même `kind` sert N natures de source) — si une déclaration statique peut la dire, c'est
  *      (a) ou (b). */
 function entryCategoryOf(key: StakeKey): { category: string; has: (id: string) => boolean } | undefined {
-  const declared = STAKE_ENTRY_CATALOG[key.kind];
+  const declared = stakeEntryCatalog()[key.kind];
   if (declared) return declared;
   const dyn = key.entryCategory;
   return dyn && STAKE_ENTRY_POOLS[dyn] ? { category: dyn, has: STAKE_ENTRY_POOLS[dyn] } : undefined;
