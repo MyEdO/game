@@ -33,7 +33,9 @@ chantier du ticket `<N>` depuis n'importe quel worktree du dépôt (le chantier 
 l'arbre principal) : il pose le worktree lié `.wt-<N>` sur `origin/main`, crée la branche
 `chantier/<N>`, y joue `npm ci` et imprime le port dev dérivé. `npm run ops:publier -- --detache`
 (`node scripts/ops/publier.mjs`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son `pid` et son `log`. Le train rebase sur `origin/main`, régénère les docs
+du harnais, et imprime son `pid` et son `log`. Le train rebase sur `origin/main` — sans rebase quand
+`origin/main` est déjà ancêtre de la tête, refus quand la branche porte des fusions hors tronc :
+fusionner `origin/main` dans la branche, puis `--reprendre` (#1998) —, régénère les docs
 dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (borné par
 `--ci-timeout-min`) et, sur vert, fait entrer `main` en FAST-FORWARD ; un run neuf rotationne le log
 précédent en `<branche>.<AAAAMMJJ-HHMMSS>.log` (péremption 7 jours) — ce n'est pas une archive, le
@@ -239,4 +241,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 014a00906cbbe70dda22952d09d4979741b20358 (24 fichiers, 8 dossiers) corps: ccfd33e78a093f48761069e89081268539610589 -->
+<!-- sources-empreinte: 7a21fd6a856732209a4e94555ce8f5b892165047 (24 fichiers, 8 dossiers) corps: 386ad0c4eb11f2843c69d171a31565fd8ab51e9d -->
