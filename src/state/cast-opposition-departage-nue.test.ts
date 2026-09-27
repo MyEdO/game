@@ -33,7 +33,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     });
     hero.spells = ['parole-de-tzeentch'];
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

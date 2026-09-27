@@ -99,7 +99,7 @@ function entryLabel(e: Entry): string {
   return nomDeProjet(e.kind === 'builtin' ? e.bc.label : e.sp.label);
 }
 function entrySceneCount(e: Entry): number {
-  return e.kind === 'builtin' ? e.bc.scenes.length : e.sp.project.scenes.length;
+  return e.kind === 'builtin' ? e.bc.paquet.scenes.length : e.sp.project.scenes.length;
 }
 
 export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {

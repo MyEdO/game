@@ -29,7 +29,7 @@ describe('Interlude — flux start/end', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, fromBrass(1000)); // bourse perso de départ (#531)
     useGame.getState().seedRng(11);

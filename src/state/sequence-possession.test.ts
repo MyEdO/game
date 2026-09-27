@@ -49,7 +49,7 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
   const party = Array.from({ length: n }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
-  g().startScene(testScene);
+  g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   vi.clearAllTimers();

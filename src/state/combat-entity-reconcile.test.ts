@@ -19,7 +19,7 @@ import { hashSeed } from '../engine/dice';
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
 }
 
@@ -191,7 +191,7 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
   it('sa place est libérée AVANT la pose du combat ; le voisin non enrôlé reste attablé', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero], battle: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;
     const enrole = sc.encounters.find((e) => e.id === 'enc-mutants')!.members![0].entityId;
     const pos = sc.entities.find((e) => e.id === enrole)!.pos;

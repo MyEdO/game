@@ -41,7 +41,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const party = Array.from({ length: n }, (_, i) =>
       createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
     useGame.setState({ party });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -251,7 +251,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     const party = [1, 2].map((i) =>
       createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
     useGame.setState({ party });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

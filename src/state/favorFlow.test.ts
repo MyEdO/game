@@ -17,7 +17,7 @@ function setup() {
   vi.clearAllTimers();
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], favors: [], journal: [] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   useGame.setState({ favors: [] });
   creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(1000));

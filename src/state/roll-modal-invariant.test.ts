@@ -165,7 +165,7 @@ describe('Surfaçage « remonte-à-un-humain » — statique au choke-point (a)'
 function freshCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   set({ party: [hero] });
-  get().startScene(testScene);
+  get().startScene(testScene());
   get().startCombat('enc-mutants');
   get().confirmRoundStart();
   vi.clearAllTimers();

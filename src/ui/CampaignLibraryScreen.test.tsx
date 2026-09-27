@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CampaignLibraryScreen, buildImportedProject, importDecision, playerImportError, PlayerFacingImportError } from './CampaignLibraryScreen';
-import { allBuiltinCampaigns } from '../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { CURRENT_PROJECT_SCHEMA, ProjetRefuse } from '../state/worldMap';
 import {
   projectSave,
@@ -19,6 +19,7 @@ import { __setOuvertureIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testkit';
 import { emptyScene, type Scene } from '../state/scene';
 import { useGame } from '../state/store';
+import { datasetArray, setDataset } from '../data/overrides';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -37,7 +38,7 @@ function brancherBibliotheque(panne: PanneSimulee): void {
  *  vit dans la poche `meta` — la forme qu'un document de ce schéma portait — et elle est REQUISE
  *  depuis #1552 : la migration n'en invente pas, un paquet anonyme se fait refuser à la porte. */
 function builtinDocJson(idx = 0): string {
-  const bc = allBuiltinCampaigns[idx];
+  const bc = paquetDuJeu(allBuiltinCampaigns[idx]);
   return JSON.stringify({
     schema: 3,
     meta: { id: bc.id, label: bc.label, icon: bc.icon, version: 1 },
@@ -53,7 +54,7 @@ describe('buildImportedProject — import portable (#766)', () => {
     const entry = buildImportedProject(builtinDocJson(0));
     expect(entry.published).toBe(true);
     expect(entry.project.schema).toBe(CURRENT_PROJECT_SCHEMA);
-    expect(entry.project.scenes.length).toBe(allBuiltinCampaigns[0].scenes.length);
+    expect(entry.project.scenes.length).toBe(allBuiltinCampaigns[0].paquet.scenes.length);
     expect(entry.startSceneId).toBe(entry.project.scenes[0].id);
     expect(entry.id).toBeTruthy();
     expect(entry.label).toBeTruthy();
@@ -63,7 +64,7 @@ describe('buildImportedProject — import portable (#766)', () => {
     // Le document PORTABLE porte ses axes actifs. Ils traversent `parseProject` — qui les rend
     // nommément — et doivent être RECONDUITS au `SavedProject` : sinon une campagne importée perd
     // ses axes en silence, et son ré-export les perd pour de bon.
-    const bc = allBuiltinCampaigns[0];
+    const bc = paquetDuJeu(allBuiltinCampaigns[0]);
     const axes = ['negoce', 'navigation'];
     const doc = JSON.stringify({
       type: 'projet',
@@ -268,6 +269,28 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     await unmount();
   });
 
+  it('un id renommé au Codex (#1692) : l’écran reste debout, et « Jouer » d’une campagne du jeu qui le référence refuse par la voie des projets', async () => {
+    const avant = [...datasetArray('props')];
+    const campagne = allBuiltinCampaigns.find((bc) => JSON.stringify(bc.paquet).includes('"ref":"tonneau"'));
+    expect(campagne, 'une campagne du jeu référence le décor `tonneau`').toBeDefined();
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
+    try {
+      useGame.setState({ pendingCampaign: null, scene: null });
+      await mount();
+      for (const bc of allBuiltinCampaigns) expect(container.textContent).toContain(bc.label);
+      await clique(campagne!.label, 'Jouer');
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+        'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.',
+      );
+      expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
+      expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
+    } finally {
+      setDataset('props', avant);
+      consoleErr.mockRestore();
+    }
+  });
+
   it('« Jouer » une entrée au départ INCONNU : le message dit le JEU refusé, et l’EXPORT de la même entrée réussit', async () => {
     const entry = buildImportedProject(builtinDocJson(0));
     entry.id = 'lib-fixture-depart';
@@ -301,7 +324,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('« Exporter » une copie au nom d’entrée DIVERGENT : le document exporté porte le nom que la liste montre (#1343)', async () => {
-    const { scenes: _sc, startSceneId: _st, worldMap: _wm, narratif: _na, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
+    const { paquet: _pq, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
     const copie = {
       id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-copie', savedAt: 1, published: true,
       project: {
@@ -359,7 +382,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('ré-importer un même id PROPOSE le remplacement (window.confirm) au lieu d’écraser silencieusement (#766)', async () => {
-    const bc = allBuiltinCampaigns[0];
+    const bc = paquetDuJeu(allBuiltinCampaigns[0]);
     const docFor = (version: number) => JSON.stringify({
       schema: 3,
       scenes: bc.scenes,
@@ -389,7 +412,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('échec réel de sauvegarde (IndexedDB en échec ET projet trop gros pour le miroir) : message visible au joueur (#776)', async () => {
-    const bc = allBuiltinCampaigns[0];
+    const bc = paquetDuJeu(allBuiltinCampaigns[0]);
     const doc = JSON.stringify({
       schema: 3,
       scenes: bc.scenes,

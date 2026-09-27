@@ -43,7 +43,7 @@ function putBattle(combatants: Combatant[], order: string[]) {
   useGame.setState({
     battle: { combatants, order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
-    mode: 'battle', scene: testScene, net: SOLO as never,
+    mode: 'battle', scene: testScene(), net: SOLO as never,
     pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCast: null,
     pendingCastOpposition: null, pendingCounterspell: null,
   });

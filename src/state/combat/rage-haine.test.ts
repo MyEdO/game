@@ -30,7 +30,7 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

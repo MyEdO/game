@@ -20,7 +20,7 @@ describe('statusMod (LDB 23 l.228-234) — Standing temporaire « pour la procha
     vi.clearAllTimers();
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, fromBrass(1000));
   });

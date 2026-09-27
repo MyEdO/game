@@ -24,7 +24,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40; // Bonus 4 → durée de base non nulle, la prolongation ×3 est mesurable
     useGame.setState({ party: [W] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -57,7 +57,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40;
     useGame.setState({ party: [W] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

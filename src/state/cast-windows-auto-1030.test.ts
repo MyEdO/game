@@ -28,7 +28,7 @@ function setup(spells: string[], n = 1, magick = true) {
   });
   hero.spells = spells;
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

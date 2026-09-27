@@ -30,7 +30,7 @@ const NET0 = g().net;
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
   set({ party });
-  g().startScene(testScene);
+  g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   vi.clearAllTimers();

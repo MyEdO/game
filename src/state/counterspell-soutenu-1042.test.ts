@@ -36,7 +36,7 @@ function setup() {
     return h;
   };
   useGame.setState({ party: [mk('W1', 707, 20, 'feu'), mk('W2', 101, 10, 'feu'), mk('W3', 55, 15, 'mort')] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

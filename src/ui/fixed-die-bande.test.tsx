@@ -48,7 +48,7 @@ function bande() {
   const a = hero('h1', 'Anselme', 40);
   const b = hero('h2', 'Brunhilde', 60);
   useGame.setState({
-    party: [a, b], battle: null, scene: testScene, net: SOLO as never,
+    party: [a, b], battle: null, scene: testScene(), net: SOLO as never,
     pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
   } as never);
   openScriptedPsych(useGame.getState, useGame.setState, 'peur', 1, 'Une ombre au fond du couloir', [a, b]);

@@ -20,14 +20,14 @@ import {
   percerMateriau,
   trousPercage,
 } from './percageLocal';
-import { diligenceCampaign } from '../../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
 import { sceneMetresPerTile } from '../../../state/scene';
 
 /** Les chunks d'origine — reconstitués en RETRANCHANT les blocs greffés, pour que la mesure tienne
  *  que la surcharge ait déjà été posée par un autre banc du même worker (`isolate: false`) ou non. */
 const ORIGINE = new Map(BLOCS_PERCAGE.map(([nom, bloc]) => [nom, THREE.ShaderChunk[nom as keyof typeof THREE.ShaderChunk].replace(bloc, '')]));
 
-const scene = diligenceCampaign.scenes[0];
+const scene = paquetDuJeu(diligenceCampaign).scenes[0];
 const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene));
 
 describe('PERÇABILITÉ cuite — le SOL ne se troue pas, et c’est structurel', () => {

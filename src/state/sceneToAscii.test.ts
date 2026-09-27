@@ -5,10 +5,10 @@ import { sceneZoneTiles } from './zones';
 import { sceneToAscii } from './sceneToAscii';
 import { glypheDe, tousLesTerrains } from './terrain';
 import { setDataset } from '../data/overrides';
-import { diligenceCampaign } from '../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 
 /** Scène réelle la plus riche du dépôt (paquet éditeur : 32×38, 2 niveaux). */
-const diligenceScene = () => diligenceCampaign.scenes[0];
+const diligenceScene = () => paquetDuJeu(diligenceCampaign).scenes[0];
 
 /** Reconstruit un `MapSpec` MINIMAL depuis un export (walled/legend/terrain/wallLegend/zoneMap/
  *  zoneLegend/relief SEULEMENT) — exactement ce que l'énoncé demande de « coller » dans un fichier source : aucune

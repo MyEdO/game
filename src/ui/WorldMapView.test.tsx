@@ -1,31 +1,50 @@
-import { describe, it, expect } from 'vitest';
-import { renderToStaticMarkup } from 'react-dom/server';
+// @vitest-environment jsdom
+import { describe, it, expect, beforeAll } from 'vitest';
+import { act, type ComponentProps } from 'react';
+import { createRoot } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { WorldMapView } from './WorldMapView';
+import { useGame } from '../state/store';
+import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
 import { declarations, reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
 
+beforeAll(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+/** Le HTML de la carte sur la VRAIE carte de l'Arène, posée comme la pose son lancement (la carte d'une
+ *  partie vient de la campagne lancée, #1692) ; `hereSceneId`/`initialRouteId` fixent le lieu et la route. */
+function renduDeLaCarte(props: ComponentProps<typeof WorldMapView>): string {
+  useGame.setState({ worldMap: paquetDuJeu(areneCampaign).worldMap! });
+  const hote = document.createElement('div');
+  const root = createRoot(hote);
+  act(() => root.render(<WorldMapView {...props} />));
+  const html = hote.innerHTML;
+  act(() => root.unmount());
+  return html;
+}
+
 /**
- * Recette « impossible de cliquer sur la carte » — rendu STATIQUE sur la VRAIE carte de campagne
- * (état initial du store = projet Arène ; en SSR zustand sert le snapshot initial, d'où les seams
- * `hereSceneId`/`initialRouteId`). On verrouille l'AFFORDANCE : destinations reliées cerclées et
- * cliquables (curseur), routes elles-mêmes cliquables (large zone), lieux hors d'atteinte estompés
- * et explicatifs, panneau de départ complet quand une route est choisie.
+ * Recette « impossible de cliquer sur la carte » — rendu sur la VRAIE carte de campagne. On
+ * verrouille l'AFFORDANCE : destinations reliées cerclées et cliquables (curseur), routes elles-mêmes
+ * cliquables (large zone), lieux hors d'atteinte estompés et explicatifs, panneau de départ complet
+ * quand une route est choisie.
  */
 describe('WorldMapView — carte de campagne cliquable et lisible', () => {
   it('au Bourg : « Vous êtes ici », Futaie/Felsbach cliquables (cerclées), Tourbière estompée (aide)', () => {
-    const html = renderToStaticMarkup(<WorldMapView hereSceneId="arene-hub" />);
+    const html = renduDeLaCarte({ hereSceneId: 'arene-hub' });
     expect(html).toContain('Vous êtes ici');
     expect(html).toContain('Cliquez une destination CERCLÉE');
-    expect(html).toContain('cursor:pointer'); // destinations reliées (et leurs routes)
+    expect(html).toContain('cursor: pointer'); // destinations reliées (et leurs routes)
     expect(html).toContain('pointer-events="stroke"'); // routes : large zone de clic invisible
-    expect(html).toContain('cursor:help'); // la Tourbière (non reliée au Bourg) explique au clic
+    expect(html).toContain('cursor: help'); // la Tourbière (non reliée au Bourg) explique au clic
     expect(html).toContain('opacity="0.55"'); // … et se voit estompée
     expect(html).toContain('La Vieille Futaie');
     expect(html).toContain('Felsbach');
   });
 
   it('route sélectionnée (Bourg → Futaie) : panneau de départ — itinéraire, 18 km, marche forcée, Partir', () => {
-    const html = renderToStaticMarkup(<WorldMapView hereSceneId="arene-hub" initialRouteId="route-futaie" />);
+    const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
     expect(html).toContain('Le Bourg de l’Arène');
     expect(html).toContain('La Vieille Futaie');
     expect(html).toContain('18 km');
@@ -46,7 +65,7 @@ describe('WorldMapView — carte de campagne cliquable et lisible', () => {
  * « Forcer +1 M » doit rendre CE bouton, jamais un nœud de `.map-canvas-frame`.
  */
 describe('carte du monde — le calque carte ne déborde pas sur le panneau (#1117)', () => {
-  const css = readFileSync(new URL('./styles/world-meta.css', import.meta.url), 'utf8');
+  const css = readFileSync('src/ui/styles/world-meta.css', 'utf8');
 
   it('`.worldmap-canvas` BORNE son contenu (sinon le cadre à ratio recouvre le panneau)', () => {
     const bloc = /\.worldmap-canvas\s*\{[^}]*\}/.exec(css)?.[0] ?? '';
@@ -55,7 +74,7 @@ describe('carte du monde — le calque carte ne déborde pas sur le panneau (#11
   });
 
   it('les commandes de cadence sont bien RENDUES dans le panneau (pas dans le canevas)', () => {
-    const html = renderToStaticMarkup(<WorldMapView hereSceneId="arene-hub" initialRouteId="route-futaie" />);
+    const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
     const panelStart = html.indexOf('worldmap-panel');
     expect(panelStart, 'le panneau existe').toBeGreaterThan(-1);
     // Le canevas est rendu AVANT le panneau : toute commande `.wm-modes` vit après son ouverture.
@@ -72,7 +91,7 @@ describe('carte du monde — le calque carte ne déborde pas sur le panneau (#11
  * puis `document.elementFromPoint` au centre de « Zoomer » → doit rendre le bouton, jamais l'aside.
  */
 describe('carte du monde — les commandes de zoom restent atteignables panneau ouvert (#1117)', () => {
-  const css = readFileSync(new URL('./styles/world-meta.css', import.meta.url), 'utf8');
+  const css = readFileSync('src/ui/styles/world-meta.css', 'utf8');
 
   it('le cadre carte ISOLE son empilement et les commandes de zoom y montent', () => {
     const frame = /\.map-canvas-frame\s*\{[^}]*isolation:\s*isolate[^}]*\}/.test(css);
@@ -91,8 +110,8 @@ describe('carte du monde — les commandes de zoom restent atteignables panneau 
  * `document.elementFromPoint` au centre de « Zoomer » → le bouton ; le panneau reste lisible dessous.
  */
 describe('carte du monde — la géométrie de ses deux régimes (#1117)', () => {
-  const layout = reglesCss(readFileSync(new URL('./styles/layout.css', import.meta.url), 'utf8'));
-  const ecran = reglesCss(readFileSync(new URL('./styles/world-meta.css', import.meta.url), 'utf8'));
+  const layout = reglesCss(readFileSync('src/ui/styles/layout.css', 'utf8'));
+  const ecran = reglesCss(readFileSync('src/ui/styles/world-meta.css', 'utf8'));
   /** Dernière valeur déclarée pour `prop` sur `selecteur`, dans le contexte `media` (`null` = 1er niveau). */
   const valeur = (
     regles: { selecteurs: string[]; corps: string; media: string | null }[],
@@ -102,7 +121,7 @@ describe('carte du monde — la géométrie de ses deux régimes (#1117)', () =>
     .flatMap((r) => declarations(r.corps))
     .filter((d) => d.prop === prop)
     .pop()?.valeur ?? null;
-  const html = renderToStaticMarkup(<WorldMapView hereSceneId="arene-hub" initialRouteId="route-futaie" />);
+  const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
 
   it('≥901px : deux colonnes — le canevas, puis l’aside BORNÉ', () => {
     expect(html.indexOf('worldmap-canvas'), 'le canevas est le PREMIER enfant').toBeLessThan(html.indexOf('worldmap-side'));

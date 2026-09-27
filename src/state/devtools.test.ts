@@ -13,7 +13,7 @@ import { EMPTY_FLOW } from './flow';
 import type { BattleState } from './store';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { WorldMap } from './worldMap';
-import { builtinCampaigns } from '../scenes/campaign';
+import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { editeur } from './editeurBridge';
 import { signalerEntreeEnScene } from './entreeEnScene';
@@ -46,7 +46,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
   it('en combat : tous les ennemis hors de combat + victoire par le flux normal (pendingVictory)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -78,7 +78,7 @@ describe('__wfrp — autres commandes de recette', () => {
     vi.clearAllTimers();
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
   afterEach(() => {
@@ -325,7 +325,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     vi.clearAllTimers();
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     vi.clearAllTimers();
   });
@@ -582,8 +582,8 @@ describe('__wfrp.campaign — charge une campagne BUILT-IN sans le character cre
   });
 
   it('sceneId optionnel : démarre sur une autre scène du projet que l’entrée par défaut', () => {
-    const c = builtinCampaigns.find((b) => b.id === 'loup-et-saumure')!;
-    const otherSceneId = c.scenes.find((sc) => sc.id !== c.startSceneId)?.id;
+    const { scenes } = paquetDuJeu(builtinCampaigns.find((b) => b.id === 'loup-et-saumure')!);
+    const otherSceneId = scenes.find((sc) => sc.id !== scenes[0].id)?.id;
     if (!otherSceneId) return; // projet à une seule scène — rien à vérifier ici
     buildApi().campaign('loup-et-saumure', 1, otherSceneId);
     expect(useGame.getState().scene?.id).toBe(otherSceneId);

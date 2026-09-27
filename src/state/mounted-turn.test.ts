@@ -28,7 +28,7 @@ function setup() {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as never;
-  useGame.setState({ battle, scene: testScene, party: [] });
+  useGame.setState({ battle, scene: testScene(), party: [] });
   return { hero, horse, other };
 }
 

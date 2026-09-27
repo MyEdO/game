@@ -173,7 +173,12 @@ import { stockageWeb } from '../lib/stockageWeb';
 // Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
 // mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
 // jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 58;
+// 58 → 59 (#1692, lot A2) : l'Arène se lance par `loadProject` comme toute campagne du jeu, et ses
+// scènes n'entrent plus au registre `sceneRegistry` à l'import. Une save d'Arène de 58 ne porte aucun
+// `campaignDoc` (chemin `startScene` d'alors) : rechargée, elle rouvre sa scène mais aucune autre zone
+// de l'Arène ne résout (mesuré : `transitionTo('arene-hub')` → « Scène introuvable — transition
+// ignorée »). La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 59;
 
 export interface SaveMeta {
   version: number;

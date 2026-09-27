@@ -22,7 +22,7 @@ describe('Focalisation en modale (store)', () => {
     if (!hero.skills.some((s) => s.id === 'focalisation')) hero.skills.push({ id: 'focalisation', advances: 20, characteristic: 'force-mentale' } as never);
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -49,7 +49,7 @@ describe('Focalisation en modale (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(7);
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -85,7 +85,7 @@ describe('Focalisation en modale (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.spells = ['flechette'];
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

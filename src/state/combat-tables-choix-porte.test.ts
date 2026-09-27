@@ -52,7 +52,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   const heros = Array.from({ length: nb }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   useGame.setState({ party: heros });
-  useGame.getState().startScene(structuredClone(testScene));
+  useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

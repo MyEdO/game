@@ -23,7 +23,7 @@ const SPELL = 'mur-de-feu'; // un id de Sort de Domaine réel (Feu) — couvert 
 function mageInBattle() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

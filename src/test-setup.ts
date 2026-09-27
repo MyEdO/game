@@ -25,8 +25,7 @@
  *      `onOwnTestFailed` (`state/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
  *      du `beforeEach` ci-dessous.
  *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `state/store`) : peuplé par `registerScene`/`loadProject`
- *      — donc aussi par des TESTS. Rendu à ses scènes `campaign` par défaut en `afterEach`
- *      (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
+ *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `state/scene-registry-isolation.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
  *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`shipwreck.test.ts`,
@@ -370,7 +369,7 @@ afterEach(() => {
   const fileOuverte = fileAct !== null && fileAct.current !== null;
   const fileNeuve = fileOuverte && fileAct!.current !== fileActSignalee;
   if (fileOuverte) fileActSignalee = fileAct!.current;
-  // REGISTRE DES SCÈNES (`state/store`) : rendu à ses scènes `campaign` par défaut APRÈS CHAQUE test —
+  // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.
   resetSceneRegistry();

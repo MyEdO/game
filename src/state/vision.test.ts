@@ -4,14 +4,14 @@ import { Scene, WallSeg, emptyScene, sceneMetresPerTile } from './scene';
 import { METRES_PER_LEVEL } from './relief';
 import { computeStateVisible } from './visionState';
 import { parseWalledAscii } from './asciiMap';
-import { builtinCampaigns } from '../scenes/campaign';
+import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 
 /** L'échelle des scènes de ce fichier — LUE, jamais redite : elles ne déclarent pas de
  *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`). */
 const MPT = sceneMetresPerTile(emptyScene(1, 1));
 /** L'échelle MER, LUE sur une scène LIVRÉE : l'abordage de la cogue (combat naval, MDG 13). */
 const MPT_MER = sceneMetresPerTile(
-  builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!.scenes.find((s) => s.id === 'ls-abordage-cogue')!,
+  paquetDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!).scenes.find((s) => s.id === 'ls-abordage-cogue')!,
 );
 
 /**

@@ -40,7 +40,7 @@ function startFight(seed = 7) {
   useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(structuredClone(testScene));
+  useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

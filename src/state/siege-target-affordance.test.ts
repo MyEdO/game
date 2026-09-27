@@ -18,7 +18,7 @@ import type { Weapon } from '../engine/types';
  */
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 function sceneWithStructure(structId: string): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: structId }];
   return s;
 }

@@ -63,7 +63,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     ...(charge === 'reaction' ? { advantagePools: { allies: 3, foes: 0 } } : {}),
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: combattants.filter((c) => c.kind === 'hero'),
+    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'hero'),
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
     net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: ennemiDefend ? 0 : undefined, ownership: {} },
   } as never);
@@ -202,7 +202,7 @@ function duel(): { h: Combatant; e: Combatant } {
     combatants: [h, e], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: testScene, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
+  useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
     pendingAttack: null, pendingDefense: null, net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
   return { h, e };
 }
@@ -261,7 +261,7 @@ describe('Piétinement suspendu : aucun balayage parasite, Action rendue (`encha
         combatants: [h, e1, e2], order: ['h', 'e1', 'e2'], baseOrder: ['h', 'e1', 'e2'], turn: 0, round: 1, action: null,
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
       } as unknown as BattleState;
-      useGame.setState({ battle, mode: 'battle', scene: testScene, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
+      useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
         net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
         pendingTrample: { attackerId: 'h', targetId: 'e1', result: {
           hit: true, attackerRoll: 20, netSL: 3, location: 'corps', damage: 6, woundsLost: 4, critical: false, advantageTo: null,
@@ -290,7 +290,7 @@ describe('deux Maladresses du même porteur dans une séquence', () => {
       combatants: [h, e], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
-    useGame.setState({ battle, mode: 'battle', scene: testScene, party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null,
       suspendedCascades: [], pendingLogQueue: [], journal: [], net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } } as never);
     const res = {
       hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 0, woundsLost: 0, critical: false, advantageTo: null, defenderDefeated: false, log: 't',

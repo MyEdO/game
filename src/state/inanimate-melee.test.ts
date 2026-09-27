@@ -22,7 +22,7 @@ function startWithVehicle() {
   useGame.getState().seedRng(1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  const scene = structuredClone(testScene);
+  const scene = structuredClone(testScene());
   scene.entities.push({ id: 'veh', kind: 'personnage', ref: 'diligence', pos: { x: 7, y: 10 } } as never);
   (scene.encounters[0].members ??= []).push({ entityId: 'veh' } as never);
   useGame.getState().startScene(scene);

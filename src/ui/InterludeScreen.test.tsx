@@ -34,7 +34,7 @@ function buildSeam(weeks = 3): InterludeSeam {
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'Forgeron', characteristic: 'dexterite', advances: 10 });
   useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   useGame.setState({ screen: 'interlude' });
   distributeCredit(useGame.getState, useGame.setState, fromBrass(5000)); // richesse de départ répartie sur les bourses perso (#531)
@@ -276,7 +276,7 @@ describe('InterludeScreen — catalogue d’Activités data-driven (ADE II + ACE
 
   it('à Altdorf (place de la carte liée à la scène courante) : les Activités d’ACE apparaissent', () => {
     const seam = buildSeam();
-    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene.id }], routes: [] } });
+    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
     const catalog = interludeCatalog(useGame.getState());
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'activities', catalog }} />);
     expect(html).toContain('Convalescence');

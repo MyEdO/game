@@ -24,7 +24,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
   function setup() {
     const mage = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
     useGame.setState({ party: [mage] });
-    useGame.getState().startScene({ ...testScene, environment: 'rural' } as never);
+    useGame.getState().startScene({ ...testScene(), environment: 'rural' } as never);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

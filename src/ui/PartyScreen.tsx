@@ -7,8 +7,8 @@ import { makePregensWithWealth } from '../data/pregens';
 import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
 import { downloadText, fileSlug } from '../lib/fileIo';
-import { campaign, builtinCampaigns, campagneDuJeu } from '../scenes/campaign';
-import { publishedProjects, campagneDeLEntree, playerEntryError, type SavedProject } from '../state/projectLibrary';
+import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
+import { publishedProjects, campagneDeLEntree, playerEntryError } from '../state/projectLibrary';
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
 import { axisScore, AXIS_QUALIFY_MIN } from '../engine/axes';
@@ -78,8 +78,6 @@ export function PartyScreen() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const setScreen = useGame((s) => s.setScreen);
-  const startScene = useGame((s) => s.startScene);
-  const loadProject = useGame((s) => s.loadProject);
   const pendingCampaign = useGame((s) => s.pendingCampaign);
   const sceneInProgress = useGame((s) => s.scene != null);
   const addHero = useGame((s) => s.partyAddHero);
@@ -90,14 +88,12 @@ export function PartyScreen() {
   const leave = useGame((s) => s.netLeave);
   const openPossessionsScreen = useGame((s) => s.openPossessionsScreen);
   const [campaignPick, setCampaignPick] = useState(false);
+  const [refusLancement, setRefusLancement] = useState<string | null>(null);
 
   const startCampaign = () => {
-    if (pendingCampaign) {
-      loadProject(pendingCampaign.scenes, pendingCampaign.startSceneId, pendingCampaign.worldMap ?? null, pendingCampaign.narratif);
-    } else {
-      startScene(campaign[0].scene);
-    }
-    setScreen('campaign');
+    const refus = lancerCampagne(useGame.getState, pendingCampaign);
+    setRefusLancement(refus);
+    if (refus === null) setScreen('campaign');
   };
 
   const inProgress = sceneInProgress && !pendingCampaign;
@@ -140,6 +136,16 @@ export function PartyScreen() {
           onClose={() => setCampaignPick(false)}
         />
       )}
+      {refusLancement && (
+        <Modal variant="plain" title={t('party.launch.refused')} onClose={() => setRefusLancement(null)} backdropClose>
+          <p className="chip tone-danger" role="alert">{refusLancement}</p>
+          <div className="modal-actions">
+            <button className="btn btn-primary" onClick={() => setRefusLancement(null)}>
+              {t('party.launch.refused.close')}
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -155,11 +161,12 @@ function CampaignSelect({ currentId, onClose }: { currentId: string | undefined;
     setPendingCampaign(pc);
     onClose();
   };
-  const pickEntree = (p: SavedProject) => {
+  /** « Choisir » une campagne du jeu ou une entrée de bibliothèque : son paquet passe la porte au geste. */
+  const choisir = (lancer: () => NonNullable<GameState['pendingCampaign']>) => {
     setRefusEntree(null);
-    let lancee: ReturnType<typeof campagneDeLEntree>;
+    let lancee: NonNullable<GameState['pendingCampaign']>;
     try {
-      lancee = campagneDeLEntree(p);
+      lancee = lancer();
     } catch (err) {
       setRefusEntree(playerEntryError(err, 'jouer'));
       return;
@@ -182,7 +189,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string | undefined;
               <button
                 className="btn small btn-primary"
                 disabled={currentId === c.id}
-                onClick={() => pick(campagneDuJeu(c))}
+                onClick={() => choisir(() => campagneDuJeu(c))}
               >
                 {currentId === c.id ? t('party.campaign.pick.current') : t('party.campaign.pick.choose')}
               </button>
@@ -194,7 +201,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string | undefined;
               <button
                 className="btn small btn-primary"
                 disabled={currentId === p.id}
-                onClick={() => pickEntree(p)}
+                onClick={() => choisir(() => campagneDeLEntree(p))}
               >
                 {currentId === p.id ? t('party.campaign.pick.current') : t('party.campaign.pick.choose')}
               </button>

@@ -205,6 +205,11 @@ export function OpenProjectModal({
           </div>
         ))}
       </Stack>
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>
+          Fermer
+        </button>
+      </div>
     </Modal>
   );
 }

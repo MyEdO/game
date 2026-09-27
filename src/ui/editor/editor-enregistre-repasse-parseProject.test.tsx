@@ -15,7 +15,7 @@ import { brancherBasesSimulees, type BaseSimulee } from '../../lib/indexedDb.tes
 import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
 import { Editor } from './Editor';
-import { allBuiltinCampaigns, type BuiltinCampaign } from '../../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -218,8 +218,8 @@ describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', ()
   });
 
   it('copie d’une campagne du jeu d’AVANT E5 (document au nom du paquet, entrée au nom de l’auteur) : s’ouvre et se réenregistre sous le nom de l’ENTRÉE', async () => {
-    const paquet = allBuiltinCampaigns[0];
-    const { scenes: _sc, startSceneId: _st, worldMap: _wm, narratif: _na, label: _lb, ...identiteDuPaquet } = paquet;
+    const paquet = paquetDuJeu(allBuiltinCampaigns[0]);
+    const { scenes: _sc, worldMap: _wm, activeAxes: _aa, narratif: _na, label: _lb, ...identiteDuPaquet } = paquet;
     const projet = {
       ...identiteDuPaquet,
       type: 'projet',
@@ -388,10 +388,10 @@ describe('Éditeur — une campagne du jeu ouverte en copie s’enregistre sous 
   });
 
   it('la copie garde le BLOC NARRATIF de son paquet : le document écrit le porte', async () => {
-    const paquet = allBuiltinCampaigns.find((bc) => bc.narratif.ouverture !== undefined);
-    expect(paquet, 'une campagne du jeu porte un narratif non vide (sans quoi on ne mesurerait rien)').toBeDefined();
-    const ecrits = await ouvreEnCopiePuisEnregistre(paquet!, 'Copie narrative');
+    const campagne = allBuiltinCampaigns.find((bc) => paquetDuJeu(bc).narratif.ouverture !== undefined);
+    expect(campagne, 'une campagne du jeu porte un narratif non vide (sans quoi on ne mesurerait rien)').toBeDefined();
+    const ecrits = await ouvreEnCopiePuisEnregistre(campagne!, 'Copie narrative');
     expect(ecrits).toHaveLength(1);
-    expect((ecrits[0].project as Record<string, unknown>).narratif).toEqual(paquet!.narratif);
+    expect((ecrits[0].project as Record<string, unknown>).narratif).toEqual(paquetDuJeu(campagne!).narratif);
   });
 });

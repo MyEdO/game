@@ -46,7 +46,7 @@ function combat(hero: Combatant, enemy: Combatant): void {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingDefense: null, pendingAttack: null, pendingDisengage: null, pendingCast: null,
     pendingCascade: null, suspendedCascades: [], pendingLogQueue: [],
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },

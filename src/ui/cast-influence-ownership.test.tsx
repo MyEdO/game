@@ -62,7 +62,7 @@ function casterRow(casterKind: 'hero' | 'enemy', cast: boolean, net: unknown = S
   useGame.setState({
     battle: { combatants: [H, E], order: ['H', 'E'], baseOrder: ['H', 'E'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
-    mode: 'battle', scene: testScene, party: [H], net: net as never,
+    mode: 'battle', scene: testScene(), party: [H], net: net as never,
     pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCastOpposition: null, pendingCounterspell: null,
     pendingCast: { casterId, targetId: casterKind === 'hero' ? 'E' : 'H', spellId: 'drain', missile: false, focused: false,
       result: castResult(cast) } as never,

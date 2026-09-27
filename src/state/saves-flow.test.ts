@@ -6,7 +6,8 @@
  * de `SAVE_VERSION` est REJETÉE et RETIRÉE du stockage, avec un témoin de message pour le joueur.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { useGame } from './store';
+import { useGame, resetSceneRegistry } from './store';
+import { lancerCampagne } from '../scenes/campaign';
 import { idDeSortVivant } from '../data/sortsFusionnes';
 import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, SAVE_VERSION, type SaveGame } from './saves';
 import { rule, setRule, loadRuleOverrides } from '../engine/policy';
@@ -62,7 +63,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     deleteSlot(1); deleteSlot(2); deleteSlot(3);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); deleteSlot(2); deleteSlot(3); loadRuleOverrides({}); takeObsoleteNotice(); });
@@ -72,7 +73,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(useGame.getState().saveGame(1)).toBe(true);
     const s = readSlot(1)!;
     expect(s.version).toBe(SAVE_VERSION);
-    expect(s.sceneLabel).toBe(testScene.label); // le NOM de la scène, pas son id
+    expect(s.sceneLabel).toBe(testScene().label); // le NOM de la scène, pas son id
     expect(s.sceneLabel.length).toBeGreaterThan(0);
     expect((s.data.flags as Record<string, unknown>)['drapeau-test']).toBe(true);
     const metas = listSaves();
@@ -92,7 +93,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(after.gameTime).toBe(12345);
     expect(after.party[0]?.label).toBe('Sauvé');
     expect(after.party[0]?.wounds.current).toBe(3);
-    expect(after.scene?.id).toBe(testScene.id);
+    expect(after.scene?.id).toBe(testScene().id);
     expect(after.screen).toBe('campaign');
     after.log('le store répond'); // les actions n'ont pas été écrasées par le merge
     const j = useGame.getState().journal;
@@ -161,7 +162,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     // importGame applique la save importée à l'état.
     useGame.setState({ flags: {}, scene: null, screen: 'menu' });
     expect(useGame.getState().importGame(json)).toBe(true);
-    expect(useGame.getState().scene?.id).toBe(testScene.id);
+    expect(useGame.getState().scene?.id).toBe(testScene().id);
   });
 });
 
@@ -201,8 +202,8 @@ describe('parseSave — la version DOIT être la courante', () => {
     // `parseProject` refuserait au prochain export de son projet.
     expect(parseSave({ ...cur, version: 37 })).toBeNull();
     const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-    const data = snapshotSave({ ...initial, scene: testScene }, initial, '2026-08-31T00:00:00.000Z').data;
-    expect(testScene.type, 'une scène du dépôt s’annonce').toBe('scene');
+    const data = snapshotSave({ ...initial, scene: testScene() }, initial, '2026-08-31T00:00:00.000Z').data;
+    expect(testScene().type, 'une scène du dépôt s’annonce').toBe('scene');
     expect((data.scene as { type?: string }).type, 'la scène persistée doit porter son `type`').toBe('scene');
   });
   it('MESURE du motif de bump 38 → 39 (#1680) : le vocabulaire des ids de PLACE persisté change', () => {
@@ -246,6 +247,16 @@ describe('parseSave — la version DOIT être la courante', () => {
     expect(SAVE_VERSION).toBeGreaterThanOrEqual(58);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
+  });
+  it('MESURE du motif de bump 58 → 59 (#1692) : une save neuve d’Arène, rechargée, résout ses zones', () => {
+    expect(lancerCampagne(useGame.getState, null)).toBeNull();
+    const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
+    const json = exportSave(snapshotSave(useGame.getState() as unknown as Record<string, unknown>, initial, '2026-09-27T00:00:00.000Z'));
+    resetSceneRegistry();
+    useGame.setState(useGame.getInitialState());
+    expect(useGame.getState().importGame(json)).toBe(true);
+    useGame.getState().transitionTo('arene-hub');
+    expect(useGame.getState().scene?.id).toBe('arene-hub');
   });
   it('MESURE du motif de bump 41 → 42 (#1509) : l’empreinte d’un décor à recette TOURNE avec son cap', () => {
     // La scène ÉDITÉE du joueur est PERSISTÉE telle quelle (`snapshotSave` recopie `state.scene`). Rien

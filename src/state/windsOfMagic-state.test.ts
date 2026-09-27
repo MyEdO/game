@@ -26,7 +26,7 @@ function wizardWithSecondeVue(): Combatant {
 
 function setupCombat(): void {
   useGame.setState({ party: [wizardWithSecondeVue()] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
 }
 
 /** Cible de Test MODÉRÉE (loin du plafond `targetMax` 99 de `testPolicy`, LDB 12 l.75, option
@@ -43,7 +43,7 @@ function moderateCaster(): Combatant {
 
 function setupModerateCombat(): void {
   useGame.setState({ party: [moderateCaster()] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
 }
 
 describe('#491 — Vents Tourbillonnants, câblage state', () => {
@@ -92,11 +92,11 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     const w = wizardWithSecondeVue();
     w.talents = w.talents.filter((t) => t.talentId !== 'seconde-vue');
     useGame.setState({ party: [w] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     for (let seed = 1; seed <= 10; seed++) {
       useGame.setState({ battle: null });
       useGame.setState({ party: [w] });
-      useGame.getState().startScene(testScene);
+      useGame.getState().startScene(testScene());
       seedBattleRng(seed);
       useGame.getState().startCombat('enc-mutants');
       expect(useGame.getState().battle!.windsOfMagic?.revealed).toBe(false);

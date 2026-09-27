@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diligenceCampaign } from '../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { emptyScene, isWalkable, type Scene, type Terrain, type WallSeg } from './scene';
 import { walkNeighbors, type Pt } from './path';
 
@@ -34,7 +34,7 @@ function sensUniques(scene: Scene): string[] {
 }
 
 describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
-  const diligence: Scene = diligenceCampaign.scenes[0];
+  const diligence: Scene = paquetDuJeu(diligenceCampaign).scenes[0];
 
   it('sur « La Diligence » (carte authorée, 3 couches), toute arête franchie l’est dans les deux sens', () => {
     expect(sensUniques(diligence)).toEqual([]);

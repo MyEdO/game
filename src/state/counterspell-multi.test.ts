@@ -28,7 +28,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     };
     const w1 = mk('W1', 707), w2 = mk('W2', 101);
     useGame.setState({ party: [w1, w2] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

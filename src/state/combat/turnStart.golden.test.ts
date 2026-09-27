@@ -27,7 +27,7 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
