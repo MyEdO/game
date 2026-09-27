@@ -16,7 +16,8 @@ import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import { document, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe } from './meta';
-import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
+import { descRefSchema, enumNomme, maisonSchema, sourceRefSchema, specsSchema } from './valeurs';
+import { defDe, descendre } from './descente';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
@@ -26,6 +27,7 @@ import { byId, findTalentById, specPoolOf, type SkillData, type TypeResolu } fro
 import { avancement } from './avancement';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
+import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { IDS_PAR_DATASET } from '../_ids.generated';
 import { poserSourceDIdsVivants } from './idsVivants';
 
@@ -1446,5 +1448,36 @@ describe('enumNomme — le libellé d’une valeur vit sur le NŒUD', () => {
     expect(optionsEnum(z.enum(['a', 'b']).optional())).toEqual(['a', 'b']);
     expect(optionsEnum(z.array(z.enum(['a', 'b'])))).toEqual(['a', 'b']);
     expect(optionsEnum(z.string())).toBeUndefined();
+  });
+});
+
+describe('entrée de `specs[]` — `maison` (CLAUDE.md règle 7)', () => {
+  const entree = { id: 'groupe-neuf', label: 'Groupe neuf' };
+  it('accepte `maison` : la raison d’une entrée sans folio, seule ou à côté de `source`', () => {
+    expect(specsSchema.safeParse([{ ...entree, maison: 'arbitrage : groupe hors exemples du livre' }]).success).toBe(true);
+    expect(specsSchema.safeParse([{ ...entree, source: { book: 'livre-de-base', page: 138 }, maison: 'raison' }]).success).toBe(true);
+  });
+  it('refuse un `maison` qui ne dit aucune raison : chaîne vide ou drapeau', () => {
+    expect(specsSchema.safeParse([{ ...entree, maison: '' }]).success).toBe(false);
+    expect(specsSchema.safeParse([{ ...entree, maison: true }]).success).toBe(false);
+  });
+});
+
+describe('`maisonSchema` — la raison maison a UNE forme (CLAUDE.md règle 7)', () => {
+  it('refuse une chaîne vide, accepte une raison', () => {
+    expect(maisonSchema.safeParse('').success).toBe(false);
+    expect(maisonSchema.safeParse('arbitrage : valeur absente du livre').success).toBe(true);
+  });
+  it('toute clé `maison` des schémas enregistrés COMPOSE `maisonSchema` — enveloppe comme sous-entrée', () => {
+    const defs = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
+    const retapes: string[] = [];
+    descendre(defs.map((d) => d.schema), ({ def, path, racine }) => {
+      // `auberge`/`maison`/`camp` : les lieux de repos (`defs-scenes/scene.ts`, `restPlacesSchema`), pas une raison.
+      if (def.type !== 'object' || !def.shape || !('maison' in def.shape) || 'auberge' in def.shape) return;
+      let valeur = def.shape.maison;
+      while (defDe(valeur)?.type === 'optional') valeur = defDe(valeur)?.innerType;
+      if (valeur !== maisonSchema) retapes.push(`${defs[racine].root}/${defs[racine].file}${path}.maison`);
+    });
+    expect(retapes).toEqual([]);
   });
 });

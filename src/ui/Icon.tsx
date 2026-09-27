@@ -4,7 +4,9 @@ import type { IconIdInput } from './icons';
 /* Primitive d'icône UI (LOT 4 — remplace les emojis d'affordance). Rend le fragment SVG du
    registre src/ui/icons/ dans un viewBox 24×24 qui hérite la couleur du texte (currentColor).
    SEAM des ids portés par la DONNÉE (`IconIdInput`) : les ids authorés en TS sont typés `IconId`
-   (union générée) en amont ; ici on accepte aussi un `string` JSON, validé par le throw DEV. */
+   (union générée) en amont ; ici on accepte aussi un `string` JSON, validé par le throw DEV.
+   `data-icon` porte l'id au DOM (`<Icon>` et `IconG`) : le fragment injecté n'en dit rien, et le kit
+   de recette le lit (`iconeDe`, `scripts/recette/lib.mjs`). */
 
 const SIZES = { sm: 14, md: 18, lg: 24 } as const;
 
@@ -26,7 +28,7 @@ export function iconSvg(id: IconIdInput): string {
 export function IconG({ id, x = 0, y = 0, size = 24 }: { id: IconIdInput; x?: number; y?: number; size?: number }) {
   const svg = iconSvg(id);
   if (!svg) return null;
-  return <g transform={`translate(${x},${y}) scale(${size / 24})`} aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <g transform={`translate(${x},${y}) scale(${size / 24})`} data-icon={id} aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 export function Icon({ id, size = 'md', className }: { id: IconIdInput; size?: number | keyof typeof SIZES; className?: string }) {
@@ -40,6 +42,7 @@ export function Icon({ id, size = 'md', className }: { id: IconIdInput; size?: n
   return (
     <svg
       className={className ? `icon ${className}` : 'icon'}
+      data-icon={id}
       viewBox="0 0 24 24"
       width={px}
       height={px}

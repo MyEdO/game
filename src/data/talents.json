@@ -2413,7 +2413,12 @@
     "specs": [
       {
         "id": "heretiques",
-        "label": "Hérétiques"
+        "label": "Hérétiques",
+        "source": {
+          "book": "livre-de-base",
+          "page": 80,
+          "note": "LDB 08 l.1718"
+        }
       },
       {
         "id": "hommes-betes",
@@ -2425,7 +2430,12 @@
       },
       {
         "id": "manannites",
-        "label": "Manannites"
+        "label": "Manannites",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 90,
+          "note": "MDG 11 l.127"
+        }
       },
       {
         "id": "monstres",
@@ -2449,11 +2459,21 @@
       },
       {
         "id": "suivants-de-stromfels",
-        "label": "Suivants de Stromfels"
+        "label": "Suivants de Stromfels",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 76,
+          "note": "MDG 09 l.700"
+        }
       },
       {
         "id": "suivants-du-chaos",
-        "label": "Suivants du Chaos"
+        "label": "Suivants du Chaos",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 90,
+          "note": "MDG 11 l.127"
+        }
       },
       {
         "id": "ennemis-de-sigmar",

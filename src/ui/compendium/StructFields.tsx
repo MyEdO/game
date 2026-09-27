@@ -31,6 +31,7 @@ import type { CrewTarget } from '../../data/shipCriticals';
 import { NumberField } from '../NumberField';
 import { PlageField } from '../PlageField';
 import { OptionChooser } from '../OptionChooser';
+import { libelleDuChamp } from './editFields';
 import type { OptionalRule, RuleValue } from '../../engine/policy';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
@@ -590,16 +591,26 @@ export function DispoSaisonniereField(
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 6bis) skills/talents.specs — SpecEntry[] = `{id,label}[]` (langue/chevaucher/discretion/art,
- *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition.
+ *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition. `maison` se saisit par
+ *    le MÊME contrôle qu'un sous-champ texte du Codex (`Field`, repli texte de `CodexEdit.tsx`), libellé
+ *    au régime `profondeur` (`libelleDuChamp`).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined; onChange: (v: SpecEntry[]) => void }) {
   const list = value ?? [];
   const set = (next: SpecEntry[]) => onChange(next);
   // Renommer = changer le LIBELLÉ et l'id qui en dérive ; les autres champs de l'entrée
-  // (`source`, `alsoIn`, `pool`) sont PORTÉS, jamais reconstruits.
+  // (`source`, `alsoIn`, `maison`, `pool`) sont PORTÉS, jamais reconstruits.
   const setLabel = (i: number, label: string) =>
     set(list.map((s, j) => (j === i ? { ...s, id: slugId(label), label } : s)));
+  // `maison` est une chaîne NON VIDE (`specEntrySchema`) : vider le champ retire la clé.
+  const setMaison = (i: number, maison: string) =>
+    set(list.map((s, j) => {
+      if (j !== i) return s;
+      const { maison: _maison, ...rest } = s;
+      return maison ? { ...rest, maison } : rest;
+    }));
+  const libelleMaison = libelleDuChamp('maison', { niveau: 'profondeur' });
   const setPool = (i: number, propose: boolean) =>
     set(list.map((s, j) => {
       if (j !== i) return s;
@@ -613,6 +624,7 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
         <div key={i} className="de-reflrow">
           <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />
           <em className="de-hint">{specEntryId(s)}</em>
+          <input aria-label={libelleMaison} placeholder={libelleMaison} value={s.maison ?? ''} onChange={(e) => setMaison(i, e.target.value)} />
           <OptionChooser
             layout="seg"
             options={[

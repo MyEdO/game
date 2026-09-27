@@ -11,6 +11,7 @@ import {
   champParLibelle,
   clickButtonByText,
   cliquerSelecteur,
+  iconeDe,
   MOD_ALT,
   checkServer,
   frapperTouche,
@@ -512,6 +513,31 @@ test('cliquerSelecteur : un contrôle monté APRÈS l’appel est attendu', asyn
   setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<button id="glyphe" class="ld-btn">☰</button>'), 250)
   await cliquerSelecteur(session, '.ld-btn', { delaiCibleMs: 2000 })
   assert.equal(dom.window.vise, 'glyphe')
+})
+
+// ------------------------------------------------- iconeDe : `data-icon` de `<Icon>` au DOM
+
+const PUCES = `
+  <span class="chip" id="puce-talent"><svg class="icon" data-icon="entity/talent"></svg>Haine</span>
+  <svg class="icon" id="icone-nue" data-icon="action/attack"></svg>
+  <span class="chip" id="puce-muette">Sans icône</span>`
+
+test('iconeDe : l’id de l’icône DESCENDANTE de l’élément, ou de l’élément s’il EST l’icône', async () => {
+  const { session } = sessionSurDom(PUCES)
+  assert.equal(await iconeDe(session, '#puce-talent'), 'entity/talent')
+  assert.equal(await iconeDe(session, '#icone-nue'), 'action/attack')
+})
+
+test('iconeDe : élément présent sans icône = null', async () => {
+  const { session } = sessionSurDom(PUCES)
+  assert.equal(await iconeDe(session, '#puce-muette', { delaiCibleMs: 200 }), null)
+})
+
+test('iconeDe : un élément monté APRÈS l’appel est attendu ; absent à l’échéance = refus NOMMANT le sélecteur', async () => {
+  const { dom, session } = sessionSurDom(PUCES)
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<span id="tardive"><svg data-icon="ui/wait"></svg></span>'), 250)
+  assert.equal(await iconeDe(session, '#tardive', { delaiCibleMs: 2000 }), 'ui/wait')
+  await assert.rejects(() => iconeDe(session, '#jamais', { delaiCibleMs: 300 }), /iconeDe « #jamais » : aucun élément après 300 ms/)
 })
 
 // ------------------------------------------------- poserFichier : domaine DOM du CDP

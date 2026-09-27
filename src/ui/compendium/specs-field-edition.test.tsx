@@ -76,3 +76,23 @@ describe('SpecsField — renommer une spécialisation (#1342 L3)', () => {
     expect(list[0].pool).toBe(false);
   });
 });
+
+describe('SpecsField — `maison` d’une entrée (CLAUDE.md règle 7)', () => {
+  const champMaison = () => container.querySelector('input[aria-label="maison"]') as HTMLInputElement;
+
+  it('saisir `maison` pose la raison ; le vider retire la clé', () => {
+    mount([{ id: 'groupe-neuf', label: 'Groupe neuf' }]);
+    saisir(champMaison(), 'groupe hors exemples du livre');
+    expect(list[0].maison).toBe('groupe hors exemples du livre');
+    saisir(champMaison(), '');
+    expect('maison' in list[0]).toBe(false);
+  });
+
+  it('renommer une entrée PORTE sa `maison`', () => {
+    mount([{ id: 'groupe-neuf', label: 'Groupe neuf', maison: 'raison de l’arbitrage' }]);
+    const input = container.querySelector('input') as HTMLInputElement;
+    saisir(input, 'Groupe renommé');
+    expect(list[0].id).toBe('groupe-renomme');
+    expect(list[0].maison).toBe('raison de l’arbitrage');
+  });
+});

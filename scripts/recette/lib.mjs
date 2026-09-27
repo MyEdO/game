@@ -441,13 +441,13 @@ export async function waitFor(session, expression, { timeoutMs = 8000, intervalM
 }
 
 /** Délai BORNÉ pendant lequel un helper qui vise une cible au DOM la re-cherche avant de refuser : un
- *  écran monté en différé (liste des scénarios après « Scénarios de test ») n'est pas encore là au
- *  premier regard. */
+ *  écran monté en différé (liste des scénarios après « Scénarios de test ») est absent au premier
+ *  regard. */
 export const DELAI_CIBLE_MS = 5000;
 
 /** Re-évalue `expression` jusqu'à une valeur non nulle, ou `null` à l'échéance `delaiCibleMs` — la
  *  recherche de cible UNIQUE des helpers qui visent le DOM (`clickButtonByText`, `cliquerSelecteur`,
- *  `survoler`, `infobulleDe`, `selectOption`, `typeInField`). */
+ *  `iconeDe`, `survoler`, `infobulleDe`, `selectOption`, `typeInField`). */
 async function chercherCible(session, expression, delaiCibleMs = DELAI_CIBLE_MS, intervalMs = 100) {
   const deadline = Date.now() + delaiCibleMs;
   for (;;) {
@@ -810,6 +810,23 @@ export async function cliquerSelecteur(session, selecteur, { modifiers = 0, dela
   if (cible.desactive) throw new Error(`cliquerSelecteur « ${selecteur} » : contrôle DÉSACTIVÉ (${cible.label})`);
   await clicReel(session, cible.x, cible.y, modifiers);
   return cible;
+}
+
+/**
+ * ID D'ICÔNE qu'affiche l'élément désigné par `selecteur` : son `data-icon` (posé par `<Icon>` et
+ * `IconG`, `src/ui/Icon.tsx`), ou celui de sa PREMIÈRE icône descendante. L'élément absent est
+ * RE-CHERCHÉ jusqu'à `delaiCibleMs`, puis refusé en le nommant ; présent sans icône = `null`.
+ * @returns {Promise<string | null>}
+ */
+export async function iconeDe(session, selecteur, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const cible = await chercherCible(session, `(() => {
+    const el = document.querySelector(${JSON.stringify(selecteur)});
+    if (!el) return null;
+    const icone = el.matches('[data-icon]') ? el : el.querySelector('[data-icon]');
+    return { icone: icone ? icone.getAttribute('data-icon') : null };
+  })()`, delaiCibleMs);
+  if (!cible) throw new Error(`iconeDe « ${selecteur} » : aucun élément après ${delaiCibleMs} ms`);
+  return cible.icone;
 }
 
 /** Clic RÉEL (CDP) au point donné — le geste de clic UNIQUE de ce module : tout helper qui clique

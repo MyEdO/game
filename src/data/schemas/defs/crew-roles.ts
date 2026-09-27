@@ -10,7 +10,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { moneySchema, sourceRefSchema } from '../grammaire/valeurs';
+import { maisonSchema, moneySchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'crew-roles.json';
@@ -29,7 +29,7 @@ const doc = document(
         daily: moneySchema,
         weekly: moneySchema,
         source: sourceRefSchema.optional(),
-        maison: z.string().optional(),
+        maison: maisonSchema.optional(),
       })
       .optional(),
   },

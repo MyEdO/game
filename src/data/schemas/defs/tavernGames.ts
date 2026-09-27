@@ -10,7 +10,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, plageSchema } from '../grammaire/valeurs';
+import { difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
 import { gameOpSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -46,7 +46,7 @@ const doc = document(
       skill: refOuSpec('skill').optional(),
       char: charKeySchema.optional(),
       /** Tag MAISON obligatoire : cet override n'est pas dans la source. */
-      maison: z.string(),
+      maison: maisonSchema,
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
     mode: z.enum(['opposed', 'extended']).optional(),

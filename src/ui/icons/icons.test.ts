@@ -3,7 +3,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ICON_FAMILIES } from './_registry.generated';
 import { ICON_DEFS } from './index';
-import { Icon } from '../Icon';
+import { Icon, IconG } from '../Icon';
 
 const ALL = ICON_FAMILIES.flat();
 
@@ -46,9 +46,15 @@ describe('primitive <Icon>', () => {
     expect(html).toContain('viewBox="0 0 24 24"');
     expect(html).toContain('width="18"');
     expect(html).toContain('class="icon"');
+    expect(html).toContain('data-icon="action/attack"');
     expect(html).toContain('aria-hidden');
     // le contenu du registre est bien injecté
     expect(html).toContain(ICON_DEFS['action/attack'].svg.slice(0, 40));
+  });
+
+  it('`IconG` porte aussi l’id de son icône au DOM (`data-icon`)', () => {
+    const html = renderToStaticMarkup(React.createElement('svg', null, React.createElement(IconG, { id: 'action/attack' })));
+    expect(html).toContain('<g transform="translate(0,0) scale(1)" data-icon="action/attack"');
   });
 
   it('accepte les tailles nommées et numériques', () => {
