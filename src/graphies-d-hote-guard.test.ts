@@ -39,6 +39,19 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
     for (const v of variantes) expect(detecte(v), v).toBe(true);
   });
 
+  it('cas plantés : `__dirname` et `__filename` du chargeur CJS, dans un `.cjs` comme dans un `.cts`', () => {
+    const variantes = [
+      "const racine = path.join(__dirname, '..')",
+      'const soi = __filename',
+      'console.log(__dirname)',
+      'module.exports = { ici: __dirname }',
+    ];
+    for (const v of variantes) {
+      for (const chemin of ['source.cjs', 'source.cts']) expect(lecturesDHote(v, chemin), `${chemin} : ${v}`).not.toEqual([]);
+    }
+    expect(lecturesDHote("const a = 1\nconst ici = __dirname", 'source.cjs')).toEqual([expect.objectContaining({ ligne: 2 })]);
+  });
+
   it('cas plantés : un NOM lié à `import.meta` lit de même, à sa ligne', () => {
     expect(lecturesDHote('const m = import.meta\nconst ici = m.dirname')).toEqual([expect.objectContaining({ ligne: 2 })]);
     expect(lecturesDHote('const m = import.meta\nconst { filename: f } = m')).toEqual([expect.objectContaining({ ligne: 2 })]);
@@ -168,6 +181,8 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
       "const chemin = require.resolve('path')",
       "const r = outil.createRequire(x)\nr('path')",
       "(await import('node:url')).fileURLToPath(x)",
+      'const o = { __dirname: 1 }',
+      'const x = config.__filename',
     ];
     for (const n of neutres) expect(detecte(n), n).toBe(false);
   });

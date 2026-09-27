@@ -142,6 +142,9 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
       'if (__filename === cible) main()',
       `if (${ARGV}.indexOf(__filename) > 0) main()`,
       `if (${ARGV}?.includes(fileURLToPath(${URL_DU_MODULE}))) main()`,
+      `if (${ARGV}.lastIndexOf(${FICHIER_DU_MODULE}) > 0) main()`,
+      `if (Object.is(${URL_DU_MODULE}, cible)) main()`,
+      'if (Object.is(cible, __filename)) main()',
       'const m = import.meta\nif (m.url === cible) main()',
       "if (import.meta['filename'] === cible) main()",
       `const estLance = () => ${URL_DU_MODULE} === cible`,
@@ -286,6 +289,20 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
       "spawnSync(process.execPath, ['-e', 'console.log(require.main)'])",
     ];
     for (const n of neutres) expect(detecte(n), n).toBe(false);
+  });
+
+  it('HORS DE PORTÉE : parcours d’`argv` par rappel ou `for…of`, `join`, `String(argv)`, `import.meta.main` en propriété ou `export default`', () => {
+    const horsDePortee = [
+      `if (${ARGV}.some((a) => a.endsWith('cli.mjs'))) main()`,
+      `const lance = ${ARGV}.find((a) => a.endsWith('cli.mjs'))`,
+      `if (${ARGV}.findIndex((a) => a.endsWith('cli.mjs')) > 0) main()`,
+      `for (const a of ${ARGV}) if (a.endsWith('cli.mjs')) main()`,
+      `if (${ARGV}.join(' ').includes('cli.mjs')) main()`,
+      `if (String(${ARGV}).includes('cli.mjs')) main()`,
+      'const etat = { lance: import.meta.main }',
+      'export default import.meta.main',
+    ];
+    for (const h of horsDePortee) expect(detecte(h), h).toBe(false);
   });
 
   it('cas planté : la même détection CITÉE en commentaire est hors de portée', () => {

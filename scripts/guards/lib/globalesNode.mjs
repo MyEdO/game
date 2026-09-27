@@ -10,7 +10,8 @@
  *   `argv:<k>` (le tableau `argv` privé de ses `k` premiers éléments, `k` saturé à `SATURATION`).
  * Valeurs TERMINALES, lues au site qui les produit, jamais transmises par une liaison :
  *   `element:<i>` (l'élément `i` d'`argv`, `i` saturé à `SATURATION`), `identite` (`import.meta.url`,
- *   `import.meta.filename`, `__filename`), `hote` (`import.meta.dirname`, `import.meta.filename`),
+ *   `import.meta.filename`, `__filename`), `hote` (`import.meta.dirname`, `import.meta.filename`,
+ *   `__dirname`, `__filename` : le chargeur CJS les pose, `.cjs`/`.cts` compris),
  *   `import.meta.main`, `require.main`, `process.mainModule`, `module.parent`, `module:<M>` (le module
  *   intégré `M`, sans préfixe `node:`, acquis par un appel de `require` ou de `getBuiltinModule`).
  *
@@ -29,9 +30,9 @@
  *
  * HORS DE PORTÉE : la portée lexicale (un nom est lié pour tout le fichier, et les noms de `GLOBALES` —
  * `process`, `globalThis`, `global`, `module`, `require`, `createRequire`, `getBuiltinModule`,
- * `__filename` — valent leur globale quel que soit leur masquage) ; une clé calculée non littérale
- * (`process[cle]`) ; `.at(-i)`, `.pop()` ; la copie (`[...argv]`, `Array.from(argv)`) ; `&&` ; une
- * valeur terminale liée puis relue par son nom ; `import x = require(…)`.
+ * `__filename`, `__dirname` — valent leur globale quel que soit leur masquage) ; une clé calculée non
+ * littérale (`process[cle]`) ; `.at(-i)`, `.pop()` ; la copie (`[...argv]`, `Array.from(argv)`) ;
+ * `&&` ; une valeur terminale liée puis relue par son nom ; `import x = require(…)`.
  */
 import typescript from 'typescript'
 // Liaison LOCALE : sous Vitest, l'import transformé relit `.default` à chaque accès — mesuré sur le
@@ -50,14 +51,15 @@ const elementDArgv = (i) => `element:${Math.min(i, SATURATION)}`
 const CONTENEUR = /^(?:process|globalThis|module|module:module|require|createRequire|getBuiltinModule|import\.meta|argv:\d+)$/
 
 const GLOBALES = new Map([
-  ['process', 'process'],
-  ['globalThis', 'globalThis'],
-  ['global', 'globalThis'],
-  ['module', 'module'],
-  ['require', 'require'],
-  ['createRequire', 'createRequire'],
-  ['getBuiltinModule', 'getBuiltinModule'],
-  ['__filename', 'identite'],
+  ['process', ['process']],
+  ['globalThis', ['globalThis']],
+  ['global', ['globalThis']],
+  ['module', ['module']],
+  ['require', ['require']],
+  ['createRequire', ['createRequire']],
+  ['getBuiltinModule', ['getBuiltinModule']],
+  ['__filename', ['identite', 'hote']],
+  ['__dirname', ['hote']],
 ])
 
 /** Résultat vide partagé : jamais muté. */
@@ -191,7 +193,7 @@ function evaluateur(liaisons) {
       const liees = liaisons.get(n.text)
       const globale = GLOBALES.get(n.text)
       if (!globale) return liees ?? VIDE
-      return new Set(liees ? [...liees, globale] : [globale])
+      return new Set([...(liees ?? []), ...globale])
     }
     if (ts.isMetaProperty(n) && n.keywordToken === ts.SyntaxKind.ImportKeyword && n.name.text === 'meta') return new Set(['import.meta'])
     if (ts.isPropertyAccessExpression(n)) return membre(valeurs(n.expression), n.name.text)
@@ -290,15 +292,19 @@ function lierImport(decl, liaisons, sites) {
   }
 }
 
+/** Globales de `GLOBALES` qui SONT une valeur terminale, lues par leur seul nom. */
+const GLOBALES_TERMINALES = new Set([...GLOBALES].filter(([, v]) => !v.some((x) => CONTENEUR.test(x))).map(([nom]) => nom))
+
 /**
- * Le nœud peut-il PRODUIRE une valeur terminale ? Accès, appel, et `__filename` lu comme valeur ; les
- * autres formes ne font que relayer celle d'un nœud enfant, déjà site.
+ * Le nœud peut-il PRODUIRE une valeur terminale ? Accès, appel, et une globale de
+ * `GLOBALES_TERMINALES` lue comme valeur ; les autres formes ne font que relayer celle d'un nœud
+ * enfant, déjà site.
  */
 const produitTerminal = (n) =>
   ts.isPropertyAccessExpression(n) ||
   ts.isElementAccessExpression(n) ||
   ts.isCallExpression(n) ||
-  (ts.isIdentifier(n) && n.text === '__filename' && n.parent.name !== n && n.parent.propertyName !== n)
+  (ts.isIdentifier(n) && GLOBALES_TERMINALES.has(n.text) && n.parent.name !== n && n.parent.propertyName !== n)
 
 /**
  * Liaisons du fichier jouées jusqu'au point fixe (un alias d'alias se lie au tour suivant) : rend

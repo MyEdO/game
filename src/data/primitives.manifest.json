@@ -297,6 +297,15 @@
     "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
   },
   {
+    "id": "pointDEntree",
+    "type": "primitives.manifest",
+    "label": "import.meta.main",
+    "fichier": "scripts/guards/lib/pointDEntree.mjs",
+    "concept": "ce module est-il le point d'entrée du processus (lancé, pas importé)",
+    "perimetre": "tout script de scripts/ et server/ qui porte un main",
+    "verrou": "src/point-d-entree-guard.test.ts"
+  },
+  {
     "id": "menuCard",
     "type": "primitives.manifest",
     "label": "MenuCard/MenuSection/MenuButton/MenuToggle",

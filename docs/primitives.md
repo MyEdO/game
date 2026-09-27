@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-106 primitives.
+107 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -102,6 +102,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | le GESTE qu’une chose du champ offre, posé au-dessus de son porteur dans le SVG du plateau (#1411 P2-C) | `PastilleEntite` | `src/gameIso/stage/PastilleEntite.tsx` | `src/gameIso/stage/pastille-entite.css` | campagne, arène — monture, pièce, tas au sol | gameIso/stage/anim-css-branchee.test.ts — `.pastille-entite` est posée par son seul rendeur, qui importe `stage/pastille-entite.css` |
 | rangée-plaque sombre à rivets : préfixe codex, méta centrale, valeur à droite, états élu et roulant | `PlaqueRow/PlaqueGrid` | `src/ui/PlaqueRow.tsx` | `src/ui/styles/plaque-row.css` | registre de caractéristiques, rangées d’allocation | réflexe avant toute rangée de registre recodée |
 | le NOM d’un utilisable révélé (Alt maintenu) ou survolé, posé au-dessus de lui dans le SVG du plateau (#1687) | `PlaquesDeNom` | `src/gameIso/stage/PlaquesDeNom.tsx` | `src/gameIso/stage/plaque-nom.css` | campagne, arène — surcouche du plateau | gameIso/stage/anim-css-branchee.test.ts — `.plaque-nom` est posée par son seul rendeur, qui importe `stage/plaque-nom.css` |
+| ce module est-il le point d'entrée du processus (lancé, pas importé) | `import.meta.main` | `scripts/guards/lib/pointDEntree.mjs` | — | tout script de scripts/ et server/ qui porte un main | src/point-d-entree-guard.test.ts |
 | règle optionnelle RAW + house-rule taguée | `rule/policy` | `src/engine/policy.ts` | — | tout arbitrage editable | — |
 | affichage d'un personnage (HUD/modale/picker) | `PortraitTile/CharFrame` | `src/ui/PortraitTile.tsx` | `src/ui/styles/portrait-tile.css` | toute vignette de personnage | — |
 | rendu de prose Markdown verbatim (HTML brut neutralisé) | `Prose` | `src/ui/Prose.tsx` | — | tout champ de prose RAW | no-html-in-prose.test.ts |
@@ -137,4 +138,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 91879951b4cddb55e524cd9552747606bc068734 (5 fichiers, 0 dossiers) corps: 3341940a788c4fc6971fb93390ea7e3b6e9d1d31 -->
+<!-- sources-empreinte: 3d720662c3bfba67e92e3e82cb4338d49b1dc765 (5 fichiers, 0 dossiers) corps: dc8609121f197037d0d1c1a9443bf6f03e759e07 -->

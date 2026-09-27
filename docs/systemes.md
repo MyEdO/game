@@ -85,6 +85,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `import.meta.main` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
@@ -165,6 +166,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 
 - `ItemIcon` (src/ui/ItemIcon.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `gen-registry (_registry.generated)` (scripts/gen-registry.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `import.meta.main` (scripts/guards/lib/pointDEntree.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `useLongPress` (src/ui/useLongPress.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CreatorDice` (src/ui/creator/CreatorDice.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CharacterPreview` (src/ui/CharacterPreview.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -220,4 +222,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: c84113d20ed4a3347ef9e71493548b4ac62277fb (1827 fichiers, 2 dossiers) corps: 70d46611ce7ae02b47aa2c944eae3f0223a8c4d7 -->
+<!-- sources-empreinte: 7ee6d60d4d190da7c2364fd618c45ed3ab9ca45c (1827 fichiers, 2 dossiers) corps: 34e5869b524b769714f9211b83ecaba2dc5ab27d -->

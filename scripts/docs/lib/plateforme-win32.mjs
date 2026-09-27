@@ -17,8 +17,13 @@
 // l'enregistreur, et lue canonique (`urlDuDepot`).
 //
 // NON SIMULÉ — ce que le code du dépôt reçoit de l'hôte, et la garde qui le ferme quand il y en a une :
-//   · `import.meta.dirname`/`filename`, `require`/`createRequire`/`getBuiltinModule` de `path` ou
-//     `url` (hors hooks ESM) — garde `src/graphies-d-hote-guard.test.ts` ;
+//   · `import.meta.dirname`/`filename`, `__dirname`/`__filename` (chargeur CJS),
+//     `require`/`createRequire`/`getBuiltinModule` de `path` ou `url` (hors hooks ESM) — garde
+//     `src/graphies-d-hote-guard.test.ts` ;
+//   · l'ORDRE des sorties de `readdir` (NTFS trie sans casse, ext4 rend l'ordre d'un hash) et le
+//     séparateur des chemins que rendent `readdir`/`readdirSync`/`fs.promises.readdir` en
+//     `recursive: true` — mur de l'ordre total d'`eslint.config.js` (seul `listerDossier`/`listerArbre`
+//     de `scripts/guards/lib/lister.mjs` liste un dossier, `listerArbre` joint par `/`) ;
 //   · la casse des chemins — rien ;
 //   · locale et ICU (`localeCompare`, `Intl`) — rien ;
 //   · `os.EOL` — rien ;

@@ -557,9 +557,10 @@ export const LANES = [
  * largement sous les 600) ; `docs:check:tout`, chaque générateur rendu sur l'hôte ET sous win32 :
  * 141 s au pire de trois runs SEULS (133,7 et 134,5 s le 2026-09-23, 141 s le 2026-09-24 sur un
  * conteneur Linux de 4 cœurs, #1801) ; ×3 = 423, sous les 600 ;
- * `test` 275,1 s et il RALENTIT sous bornage (×3 = 825).
+ * `test` 339,2 s le 2026-09-26 (conteneur Linux de 4 cœurs, 3 workers, borne de tas 3 072 Mo, run
+ * `mconf`) ; ×3 = 1 018.
  */
-export const TIMEOUTS = { defaut: 600, test: 900 }
+export const TIMEOUTS = { defaut: 600, test: 1020 }
 
 /**
  * Cœurs servis à la SUITE pendant les lanes. Valeur mesurée le 2026-09-04 sur un poste de 16 cœurs

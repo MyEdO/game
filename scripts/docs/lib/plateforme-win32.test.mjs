@@ -8,7 +8,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
@@ -51,17 +51,23 @@ function verifier(argv, mutation) {
   return { status: r.status, sortie: `${r.stdout}${r.stderr}` }
 }
 
+/** Chaque cas nomme la `cible` dont la mutation change le corps et la `prise` : le motif, dans ce
+ *  corps rendu en natif sans mutation, d'un chemin à `/` que la mutation réécrit. */
 const CAS = [
   {
     nom: '`listerArbre` joint par `join` — build-vocabulaire',
     script: 'scripts/docs/build-vocabulaire.mjs',
+    cible: 'docs/vocabulaire-mecanique.md',
+    prise: /`src\/(?:data|engine|state)\/[^`\s/]+\/[^`\s]+/,
     mutation: importMutation('scripts/guards/lib/lister.mjs', [
       ['const enfant = rel ? `${rel}/${nom}` : nom', 'const enfant = rel ? join(rel, nom) : nom'],
     ]),
   },
   {
-    nom: '`relatif` rendu par `relative` — reanchor',
-    script: 'scripts/raw/reanchor.mjs',
+    nom: '`relatif` rendu par `relative` — build-atlas-index',
+    script: 'scripts/raw/build-atlas-index.mjs',
+    cible: 'docs/raw/00-index.md',
+    prise: /\]\([^)\s/]+\/00-index\.md\)/,
     mutation: importMutation('scripts/raw/_lib.mjs', [
       ["import { dirname, join } from 'node:path'", "import { dirname, join, relative } from 'node:path'"],
       [
@@ -85,6 +91,13 @@ for (const cas of CAS) {
   })
 
   test(`rendu sous win32 — ${cas.nom} : muté, rouge sous win32, vert sur un hôte POSIX`, (t) => {
+    const reference = verifier(['--tout', '--plateforme', HOTE, '--only', cas.script])
+    assert.equal(reference.status, 0, reference.sortie)
+    assert.match(
+      readFileSync(path.join(RACINE, cas.cible), 'utf8'),
+      cas.prise,
+      `précondition : ${cas.cible}, rendu natif sans mutation, ne porte aucun chemin à \`/\` de la forme ${cas.prise} — la mutation n'a plus de prise sur le RENDU, ce cas ne prouve rien`,
+    )
     const natif = verifier(['--tout', '--plateforme', HOTE, '--only', cas.script], cas.mutation)
     const win32 = verifier(['--tout', '--plateforme', 'win32', '--only', cas.script], cas.mutation)
     assert.equal(win32.status, 1, win32.sortie)

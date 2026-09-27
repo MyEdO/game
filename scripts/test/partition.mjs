@@ -58,14 +58,16 @@ export function coeurs(env, mesure) {
  *  fichier. Le contrôleur v1 `memory` (`/sys/fs/cgroup/memory<chemin>`, champs `total_*`) prime sur
  *  la ligne v2 `0::<chemin>` (`/sys/fs/cgroup<chemin>`) ; le champ v2 `file` n'est pas lu, il compte
  *  `shmem`. Illisible, absent ou champ manquant : 0. */
-export function cacheFichiersCgroup(procCgroup, lire) {
-  const lignes = procCgroup.split('\n').map((l) => l.match(/^(\d+):([^:]*):(.*)$/)).filter(Boolean)
-  const v1 = lignes.find(([, , controleurs]) => controleurs.split(',').includes('memory'))
-  const v2 = lignes.find(([, id, controleurs]) => id === '0' && controleurs === '')
+function cacheFichiersCgroup(procCgroup, lire) {
+  const v1 = procCgroup
+    .split('\n')
+    .map((l) => l.match(/^\d+:([^:]*):(.*)$/))
+    .find((m) => m?.[1].split(',').includes('memory'))
+  const v2 = procCgroup.match(/^0::(.*)$/m)
   const [racine, champs] = v1
-    ? [`/sys/fs/cgroup/memory${v1[3]}`, ['total_inactive_file', 'total_active_file']]
+    ? [`/sys/fs/cgroup/memory${v1[2]}`, ['total_inactive_file', 'total_active_file']]
     : v2
-      ? [`/sys/fs/cgroup${v2[3]}`, ['inactive_file', 'active_file']]
+      ? [`/sys/fs/cgroup${v2[1]}`, ['inactive_file', 'active_file']]
       : [null, []]
   if (racine === null) return 0
   let stat
@@ -94,7 +96,7 @@ export function memoireDisponibleOctets(procCgroup, lire, { disponible, contrain
 
 /** Mesure système de `memoireDisponibleOctets`, en Mo. Couvre Linux (cgroup v1/v2) et Windows
  *  (libuv `ullAvailPhys`) ; macOS non mesuré (libuv s'y rabat sur les pages libres). */
-export const mesureMemoireDisponibleMo = () => {
+const mesureMemoireDisponibleMo = () => {
   const lire = (f) => readFileSync(f, 'utf8')
   const procCgroup = (() => {
     try {
@@ -332,7 +334,7 @@ export const SENTINELLES = [
 export const TAS_UTILISE = /(\d+) MB heap used/
 
 /** Part de `TAS_WORKER_MO` dont le bloc `[diag]` alerte. Paramètre maison. */
-export const SEUIL_ALERTE_TAS = 0.85
+const SEUIL_ALERTE_TAS = 0.85
 
 /** Compte, par libellé, les lignes portant chaque sentinelle. Une ligne peut en porter plusieurs. */
 export function compterSentinelles(lignes) {
