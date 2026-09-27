@@ -8,7 +8,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { REF_PROTEGEE, jugerPush, refsAPousser, verdictDuSha } from './pre-push.mjs'
@@ -317,4 +318,15 @@ test('deux refs sur stdin donnent deux refs jugées', () => {
     `refs/heads/main ${'a'.repeat(40)} refs/heads/main ${ZERO}\n` +
     `refs/heads/x ${'b'.repeat(40)} refs/heads/x ${ZERO}\n`
   assert.deepEqual(refsAPousser(lignes).map((r) => r.refDistante), ['refs/heads/main', 'refs/heads/x'])
+})
+
+test('git INDISPONIBLE (hors dépôt) : un refus NOMMÉ qui porte la raison de git, jamais « origin absent »', () => {
+  const hors = mkdtempSync(join(tmpdir(), 'pre-push-hors-'))
+  try {
+    const { refus } = jugerPush({ cwd: hors, stdin: '' })
+    assert.equal(refus.length, 1)
+    assert.match(refus[0], /^origin illisible, git indisponible : .*not a git repository/i)
+  } finally {
+    rmSync(hors, { recursive: true, force: true })
+  }
 })

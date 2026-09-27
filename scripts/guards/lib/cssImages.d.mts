@@ -1,5 +1,6 @@
 import type { EntreeManifeste, ImageCss, ventiler } from './cssCouches.mjs';
 import type { EntreeNominative } from './stock.mjs';
+import type { Depot } from './gitPorte.mjs';
 
 /** Un arbre lisible : ses fichiers d'un dossier, le texte d'un chemin ou d'un lot, les modules de `src/` qui portent un motif. */
 export interface SourceCss {
@@ -25,14 +26,13 @@ export function imageCss(source: SourceCss, options?: { racine?: string }): Imag
 export function sourceGit(p: {
   cwd?: string;
   arbre: string;
-  git?: (args: string[], opts?: { entree?: string }) => string | null;
+  depot?: Depot;
 }): SourceCss & { existe: () => boolean };
 export function sourceMelee(p: { dans: (rel: string) => boolean; dedans: SourceCss; dehors: SourceCss }): SourceCss;
-export function renommagesDe(git: (args: string[]) => string | null, bornes: string[]): Map<string, string>;
 export const CHEMIN_STOCK_CSS: string;
 export function ventilationDeGit(p: {
   cwd?: string;
   base: string;
   tete?: string;
-  git?: (args: string[], opts?: { entree?: string }) => string | null;
+  depot?: Depot;
 }): ReturnType<typeof ventiler> & { stockAvant: Record<'identite' | 'espacement', EntreeNominative[]> };

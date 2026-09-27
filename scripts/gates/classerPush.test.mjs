@@ -409,6 +409,23 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
   }
 })
 
+test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la panne est NOMMÉE', () => {
+  const { racine } = depotJetable()
+  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
+  const chemin = process.env.PATH
+  try {
+    const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
+    writeFileSync(join(cale, 'git'), `#!/bin/sh\ncase " $* " in *" merge-base "*) echo 'fatal: panne simulée' >&2; exit 128;; esac\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
+    process.env.PATH = `${cale}:${chemin}`
+    const v = classerPush({ ref: 'refs/heads/chantier/x', sha: 'HEAD', cwd: racine })
+    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec — git indisponible : fatal: panne simulée : conservateur']])
+  } finally {
+    process.env.PATH = chemin
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(cale, { recursive: true, force: true })
+  }
+})
+
 test('ÉCHEC — sur `main`, un commit RACINE sans `BEFORE` n’a pas de `SHA^` : classement CONSERVATEUR', () => {
   const { racine, git } = depotJetable()
   try {
@@ -420,11 +437,11 @@ test('ÉCHEC — sur `main`, un commit RACINE sans `BEFORE` n’a pas de `SHA^` 
   }
 })
 
-test('ÉCHEC — un `diff` illisible LÈVE, et le CLI sort 1 sans rien écrire sur stdout (le step est rouge)', () => {
+test('ÉCHEC — une borne du diff INCONNUE LÈVE `BorneAbsente`, et le CLI sort 1 sans rien écrire sur stdout (le step est rouge)', () => {
   const { racine } = depotJetable()
   try {
     const faux = 'f'.repeat(40)
-    assert.throws(() => classerPush({ ref: 'refs/heads/main', before: faux, sha: 'HEAD', cwd: racine }), /git diff .* : en échec/)
+    assert.throws(() => classerPush({ ref: 'refs/heads/main', before: faux, sha: 'HEAD', cwd: racine }), (e) => e.name === 'BorneAbsente' && e.bornes.includes(faux))
     const r = jouerCli(racine, { REF: 'refs/heads/main', BEFORE: faux, SHA: 'HEAD' })
     assert.deepEqual([r.code, r.stdout], [1, ''])
   } finally {

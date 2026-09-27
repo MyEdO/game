@@ -14,7 +14,7 @@ import { argv, env, exit, stderr, stdout } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { COMMANDE_GATE_CATALOGUES } from '../raw/gate-catalogues.mjs'
-import { TRONC, cheminsDe, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -102,65 +102,42 @@ export function gatesSautables({ gates, ecritLu }) {
   return sautables
 }
 
-/** `git <args>` par l'hôte : la sortie, ou une LEVÉE nommée (objet absent, code non nul, git
- *  indisponible) que chaque appelant ci-dessous replie en classement conservateur. */
-const sortieDe = (args, cwd) => {
-  const vu = lireGit(args, { cwd })
-  const sortie = sortieOuNull(vu)
-  if (sortie === null) throw new Error(`git ${args.join(' ')} : ${vu.disponible ? 'en échec' : vu.raison}`)
-  return sortie
-}
-const git = (args, cwd) => sortieDe(args, cwd).trim()
-
 /** Un sha nul ou fait de zéros : `github.event.before` d'un premier push (même lecture que ci.yml). */
 const shaNul = (sha) => !sha || !/[^0]/.test(sha)
-
-/** `refs/remotes/origin/main` est-il présent localement ? Un clone `--single-branch` d'une branche
- *  de travail ne l'a pas : le merge-base n'aurait alors aucune base. */
-const troncConnu = (cwd) => {
-  try {
-    git(['rev-parse', '--verify', '--quiet', `refs/remotes/${TRONC.suivi}`], cwd)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /**
  * La BASE du diff : ce contre quoi on classe. Sur `main`, l'incrément poussé (`BEFORE`, replié sur
  * `SHA^`). Ailleurs, ce qui ENTRERA dans `main` (`merge-base origin/main SHA`) — jamais l'incrément
  * du push, qu'un run annulé puis un push documentaire rendraient faux. `ref` est `github.ref` : une
- * REF git (`refs/pull/N/merge` compris), jamais un nom de branche.
+ * REF git (`refs/pull/N/merge` compris), jamais un nom de branche. Une lecture que git ne rend pas
+ * replie en classement CONSERVATEUR ; une panne de git (`enPanne`, `depotDe`) y est NOMMÉE.
+ * `refs/remotes/origin/main` manque à un clone `--single-branch` d'une branche de travail : il se
+ * fetche avant le merge-base.
  * @returns {{ base: string } | { base: null, motif: string }}
  */
 export function baseDuDiff({ ref, before, sha, cwd = process.cwd() } = {}) {
+  const pannes = []
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const conservateur = (motif) => ({
+    base: null,
+    motif: `${motif}${pannes.length ? ` — git indisponible : ${pannes.join(' ; ')}` : ''} : conservateur`,
+  })
   if (ref === TRONC.branche) {
     if (!shaNul(before)) return { base: before }
-    try {
-      return { base: git(['rev-parse', `${sha}^`], cwd) }
-    } catch {
-      return { base: null, motif: `main sans parent lisible pour ${sha} : conservateur` }
-    }
+    const parent = shaDe(depot, `${sha}^`)
+    return parent ? { base: parent } : conservateur(`main sans parent lisible pour ${sha}`)
   }
-  if (!troncConnu(cwd)) {
-    try {
-      git(['fetch', '--no-tags', 'origin', `${TRONC.nom}:refs/remotes/${TRONC.suivi}`], cwd)
-    } catch {
-      return { base: null, motif: 'origin/main absent après fetch : conservateur' }
-    }
-  }
-  try {
-    return { base: git(['merge-base', TRONC.suivi, sha], cwd) }
-  } catch {
-    return { base: null, motif: 'merge-base origin/main en échec : conservateur' }
-  }
+  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null && !reussi(fetchOrigin(depot))) return conservateur('origin/main absent après fetch')
+  const base = baseCommune(depot, TRONC.suivi, sha)
+  return base ? { base } : conservateur('merge-base origin/main en échec')
 }
 
-/** Le classement complet, du contexte de push aux motifs. */
+/** Le classement complet, du contexte de push aux motifs. Une borne du diff inconnue LÈVE
+ *  (`BorneAbsente`, `ceQuiChange`). */
 export function classerPush({ ref, before, sha, cwd = process.cwd() } = {}) {
   const socle = baseDuDiff({ ref, before, sha, cwd })
   if (socle.base === null) return { produit: true, base: null, fichiers: [], motifs: [socle.motif] }
-  const fichiers = cheminsDe((args) => sortieDe(args, cwd), ['diff', '--name-only', '--no-renames', socle.base, sha])
+  const fichiers = ceQuiChange(depotDe(cwd), socle.base, sha).chemins()
   return { ...classer(fichiers), base: socle.base, fichiers }
 }
 

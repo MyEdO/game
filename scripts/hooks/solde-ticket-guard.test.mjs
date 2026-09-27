@@ -61,7 +61,7 @@ import {
   listeurDuBudget,
 } from './solde-ticket-guard.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
-import { GitIndisponible, INDEX, estDansHead, lecteurGit } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, INDEX, depotDe, estDansHead } from '../guards/lib/gitPorte.mjs'
 import {
   archivesDe, derniereRevueArchivee, fenetreDeRevue, mesureDuPalier, nomDArchiveDeRevue, nomsDArchiveAcceptes,
   revuesNeuves, shasDeSubstance,
@@ -655,10 +655,10 @@ test('shasDeSubstance : une fusion PROPRE n’est pas de substance, une fusion q
     git('merge', '-q', '--no-commit', 'cote')
     const malefique = poser('src/mal.txt', 'MAL\n', 'fusion maléfique')
     assert.ok(git('rev-list', `${socle}..HEAD`, '--', 'src', 'scripts').includes(propre), 'témoin : la simplification d’histoire compte la fusion propre')
-    const vus = shasDeSubstance(lecteurGit(depot, { env: envDeDepotForge() }), `${socle}..HEAD`)
+    const vus = shasDeSubstance(depotDe(depot, { env: envDeDepotForge() }), [`${socle}..HEAD`])
     assert.deepEqual(new Set(vus), new Set([deCote, deMain, malefique]))
     assert.ok(!vus.includes(propre) && !vus.includes(doc))
-    assert.deepEqual(shasDeSubstance(lecteurGit(depot, { env: envDeDepotForge() }), `${socle}..HEAD`, { limite: 2 }), vus.slice(0, 2), 'la lecture s’arrête à la limite')
+    assert.deepEqual(shasDeSubstance(depotDe(depot, { env: envDeDepotForge() }), [`${socle}..HEAD`], { limite: 2 }), vus.slice(0, 2), 'la lecture s’arrête à la limite')
   } finally { rmSync(depot, { recursive: true, force: true }) }
 })
 
@@ -681,7 +681,7 @@ test('MORSURE : la revue neuve du commit REMET le palier a zero — elle est dan
     const vues = revuesNeuves(depot)
     assert.deepEqual(vues.map((r) => r.chemin), [revue.chemin])
     assert.deepEqual(
-      problemesDeRevueNeuve(vues[0], { today: TODAY, palier: avant, dansHead: (sha) => estDansHead(sha, { cwd: depot }) }),
+      problemesDeRevueNeuve(vues[0], { today: TODAY, palier: avant, dansHead: (sha) => estDansHead(depotDe(depot), sha) }),
       [],
     )
 
@@ -750,7 +750,7 @@ test('FORME du commit : une revue stagee HORS des pathspecs ne franchit RIEN, et
         palier: () => palier,
         neuves: () => emportees.map((r) => ({ ...r, contenu: c.contenu(r.chemin) ?? r.contenu })),
         omises: () => omises,
-        dansHead: (sha) => estDansHead(sha, { cwd: depot }),
+        dansHead: (sha) => estDansHead(depotDe(depot), sha),
       })
     }
 
@@ -799,7 +799,7 @@ test('CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est d
   )
   for (const maillon of chaine) {
     assert.ok(
-      estDansHead(maillon.tete, { cwd: racine }),
+      estDansHead(depotDe(racine), maillon.tete),
       `${maillon.chemin} : sa tete ${maillon.tete} n’est pas dans l’histoire de HEAD`,
     )
   }
@@ -2524,12 +2524,12 @@ test('estDansHead / fichiersDuCommitGit : le cas fondateur #584 tient contre git
     'false',
     'dépôt SUPERFICIEL : ce test lit l\'HISTOIRE — poser `fetch-depth: 0` sur le `actions/checkout` du job qui joue `test:hooks`.',
   )
-  assert.equal(estDansHead('4d6e1ff78', { cwd: repoRoot() }), true)
+  assert.equal(estDansHead(depotDe(repoRoot()), '4d6e1ff78'), true)
   assert.ok(
     fichiersDuCommitGit('4d6e1ff78', repoRoot()).includes('src/data/schemas/defs/teintesJeu.ts'),
     '4d6e1ff78 ne touche pas le fichier que le solde #584 lui attribue',
   )
-  assert.equal(estDansHead('0000000000000000000000000000000000000000', { cwd: repoRoot() }), false)
+  assert.equal(estDansHead(depotDe(repoRoot()), '0000000000000000000000000000000000000000'), false)
   // La LIGNE que le solde #584 cite est bien dans un hunk de ce commit — lue au diff, pas sur parole.
   const lignes = lignesDeHunks(diffDunSha('4d6e1ff78', 'src/data/schemas/defs/teintesJeu.ts', repoRoot()))
   assert.ok(lignes.includes(88), `lignes vues : ${lignes.join(',')}`)
@@ -2546,7 +2546,7 @@ test('le solde #584 de l\'arbre est CONFORME à sa propre grammaire', () => {
   )
   const contenu = readFileSync(join(repoRoot(), '.claude', 'soldes', '584.md'), 'utf8')
   const r = validateSolde(contenu, '2026-09-02', {
-    commitEstAncetre: (sha) => estDansHead(sha, { cwd: repoRoot() }),
+    commitEstAncetre: (sha) => estDansHead(depotDe(repoRoot()), sha),
     fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, repoRoot()),
     lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, repoRoot())),
   })
@@ -2644,7 +2644,7 @@ test('evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi →
 test('estDansHead HORS dépôt : JETTE une indisponibilité nommée, ne rend pas false', () => {
   const hors = mkdtempSync(join(tmpdir(), 'hors-depot-'))
   try {
-    assert.throws(() => estDansHead('4d6e1ff78', { cwd: hors }), (e) => {
+    assert.throws(() => estDansHead(depotDe(hors), '4d6e1ff78'), (e) => {
       assert.ok(e instanceof GitIndisponible)
       assert.match(e.raison, /not a git repository/i)
       return true

@@ -42,12 +42,9 @@ test('découpe : un split sur NUL hors de l’hôte', () => {
   assert.deepEqual(formes("sortie.split('\\n')"), [])
 })
 
-test('forme : une option qui produit des chemins, hors d’un lecteur de l’hôte', () => {
+test('forme : une option qui produit des chemins, où qu’elle soit écrite hors de l’hôte', () => {
   assert.deepEqual(formes("lire(['diff', '--cached', '--name-only']).split('\\n')"), [[1, 'forme']])
   assert.deepEqual(formes("const args = ['ls-files', '-z']"), [[1, 'forme'], [1, 'forme']])
   assert.deepEqual(formes("git(['show', '--numstat', sha])"), [[1, 'forme']])
-  assert.deepEqual(formes("cheminsDe(lire, ['diff', '--name-only', ...borne])"), [])
-  assert.deepEqual(formes("numstatDe(lire, [\n  'diff',\n  ...rev(),\n  '--numstat',\n])"), [], 'multi-ligne, dans le lecteur')
-  assert.deepEqual(formes("nameStatusDe(git, ['diff', '-M', '--name-status', ...f(a, [b])])"), [])
-  assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [])
+  assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [[1, 'forme']], 'une question qui fixe sa commande ne reçoit pas de forme')
 })

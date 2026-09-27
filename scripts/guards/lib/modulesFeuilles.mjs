@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cheminsDe, lecteurGit } from './gitPorte.mjs'
+import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
 import { IMPORT_RE, resolveImport } from './importGraph.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
@@ -50,7 +50,7 @@ export const FEUILLES = Object.freeze([
 /** Sources SUIVIES par git susceptibles de porter un import, chemins POSIX relatifs, triés.
  *  La source est GIT, pas le disque : ce que la CI joue, c'est ce qui est suivi. */
 export function sourcesSuivies(racine = RACINE) {
-  return cheminsDe(lecteurGit(racine), ['ls-files'])
+  return listerImage(depotDe(racine), INDEX)
     .filter((f) => EXTS_SOURCE.test(f))
     .sort()
 }

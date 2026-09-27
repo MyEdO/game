@@ -21,7 +21,7 @@ import { dirname, join } from 'node:path'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT, appelGhRunner, cheminTicket, pagesRest } from '../guards/lib/ticketsGh.mjs'
-import { cheminsDe, lecteurGit } from '../guards/lib/gitPorte.mjs'
+import { INDEX, depotDe, journalDe, listerImage } from '../guards/lib/gitPorte.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const CHEMIN_BASELINE = join(RACINE, 'scripts', 'ops', 'fermetures-non-citees.json')
@@ -118,13 +118,6 @@ export function rapportMarkdown({ depuis, rapport, rouges }) {
  *  job `fermetures` (stdin refermé, jamais `shell: true`), donc une seule implémentation. */
 const appelGh = appelGhRunner({ cwd: RACINE })
 
-/** Le lecteur git dans `cwd` : une lecture sans sortie LÈVE, la fenêtre ne se juge pas sur rien. */
-const gitDans = (cwd) => (args) => {
-  const sortie = lecteurGit(cwd)(args)
-  if (sortie === null) throw new Error(`fermetures-non-citees : \`git ${args.join(' ')}\` n'a rien rendu dans ${cwd}`)
-  return sortie
-}
-const git = gitDans(RACINE)
 
 /** L'endpoint s'écrit SANS barre oblique de tête : sous Git Bash, MSYS réécrit un argument
  *  commençant par `/` en chemin Windows et `gh` refuse alors l'endpoint (mesuré 2026-09-04 :
@@ -189,8 +182,9 @@ export const reculeDe = (date, jours) =>
 
 /** Numéros cités par un commit fermant depuis `depuis`, marge de bord comprise. */
 export function citesDepuis(depuis) {
-  const journal = git(['log', `--since=${reculeDe(depuis, MARGE_CITATION_JOURS)}`, '--pretty=format:%B%x00'])
-  return new Set(numerosFermes(journal))
+  const journal = journalDe(depotDe(RACINE), ['HEAD'], { depuis: reculeDe(depuis, MARGE_CITATION_JOURS) })
+  if (journal === null) throw new Error(`fermetures-non-citees : le journal de HEAD depuis ${depuis} est illisible dans ${RACINE}`)
+  return new Set(numerosFermes(journal.map((c) => c.message).join('\0')))
 }
 
 /** Numéros dont le solde est SUIVI par git (jamais un fichier seulement présent sur le disque).
@@ -198,7 +192,7 @@ export function citesDepuis(depuis) {
  *  paramètre, un objet de faits mélangeait deux arbres. */
 export function soldesSuivis(cwd = RACINE) {
   return new Set(
-    cheminsDe(gitDans(cwd), ['ls-files', '--', '.claude/soldes']).map((p) => p.split('/').pop().replace(/\.md$/, '')),
+    listerImage(depotDe(cwd), INDEX, '.claude/soldes').map((p) => p.split('/').pop().replace(/\.md$/, '')),
   )
 }
 

@@ -1,13 +1,13 @@
 // CLIQUET du board des chantiers (node --test) : tout ce qui décide est PUR, et la MESURE se joue sur
-// un git INJECTÉ — la base de comparaison est un paramètre, et la fixture le prouve avec une base qui
-// n'est ni `main` ni `origin/main`.
+// des QUESTIONS au dépôt injectées — la base de comparaison est un paramètre, et la fixture le prouve
+// avec une base qui n'est ni `main` ni `origin/main`.
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  CHAMPS, COULEURS_STATUT, JOURS_DORMANT, STATUTS, avanceDite, comptesDAvance, commitsDuLog,
-  construireLignes, cleNormalisee, indexerIssues, issuesDeGh, jourDe, lignesDeBranches, lireChamps,
+  CHAMPS, COULEURS_STATUT, JOURS_DORMANT, STATUTS, avanceDite,
+  construireLignes, cleNormalisee, indexerIssues, issuesDeGh, jourDe, lireChamps,
   lireItems, mesurer, mutationOptions, optionsAReecrire, optionsDuChamp, planDeSync, poserChamp,
   statutDe, statutLePlusVivant, synchroniser, ticketsCites, ticketsDe, valeursDeLigne,
 } from './board.mjs'
@@ -16,25 +16,7 @@ const MS_JOUR = 24 * 60 * 60 * 1000
 const MAINTENANT = new Date('2026-09-15T12:00:00Z')
 const ilYA = (jours, secondes = 0) => new Date(MAINTENANT.getTime() - jours * MS_JOUR - secondes * 1000).toISOString()
 
-test('lignesDeBranches lit nom, date ISO et sha — CRLF compris', () => {
-  const texte = 'chantier/1727-cliquets\t2026-09-14T09:12:33+02:00\taaaaaaa\r\n'
-    + 'codex/1388\t2026-09-01T18:00:00+02:00\tbbbbbbb\r\n'
-    + 'main\t2026-09-15T08:00:00+02:00\tccccccc\r\n'
-  const vues = lignesDeBranches(texte)
-  assert.equal(vues.length, 3)
-  assert.deepEqual(vues.map((b) => b.nom), ['chantier/1727-cliquets', 'codex/1388', 'main'])
-  assert.equal(vues[0].dernierCommitISO, '2026-09-14T09:12:33+02:00')
-  assert.equal(vues[1].sha, 'bbbbbbb')
-})
-
-test('lignesDeBranches sur une sortie vide rend []', () => {
-  assert.deepEqual(lignesDeBranches(''), [])
-  assert.deepEqual(lignesDeBranches('  \n\n'), [])
-})
-
-test('comptesDAvance lit la gauche en RETARD et la droite en AVANCE', () => {
-  assert.deepEqual(comptesDAvance('17\t1\n'), { retard: 17, avance: 1 })
-  assert.deepEqual(comptesDAvance('7\t0'), { retard: 7, avance: 0 })
+test('avanceDite : l’avance, puis le retard', () => {
   assert.equal(avanceDite({ avance: 1, retard: 17 }), '+1 / −17')
 })
 
@@ -53,16 +35,6 @@ test('ticketsDe se replie sur les messages d’avance : le plus cité, à égali
   const egalite = 'feat: refs #1600\nfix: corrige #1500\n'
   assert.deepEqual(ticketsDe('ab/notre', egalite), [1500])
   assert.deepEqual(ticketsDe('ab/notre', 'un message sans citation\n'), [])
-})
-
-test('commitsDuLog rend un enregistrement par commit, corps multi-lignes compris', () => {
-  const texte = '2026-09-10T10:00:00+02:00sujet un\ncorps\n\nsuite\n'
-    + '2026-09-11T10:00:00+02:00sujet deux refs #1392\n'
-  const vus = commitsDuLog(texte)
-  assert.equal(vus.length, 2)
-  assert.equal(vus[0].dateISO, '2026-09-10T10:00:00+02:00')
-  assert.match(vus[0].texte, /suite/)
-  assert.match(vus[1].texte, /refs #1392/)
 })
 
 test('statutDe rend les cinq statuts, et la frontière de JOURS_DORMANT est inclusive', () => {
@@ -412,51 +384,59 @@ test('lireChamps et lireItems ne lisent que ce qui est contractuel, par NOM norm
   assert.equal(items[0].champs[cleNormalisee('Dernier commit')], '2026-09-14')
 })
 
+const fait = (valeur) => ({ disponible: true, valeur })
+
+/**
+ * Les QUESTIONS du board, factices : chaque réponse est celle d'une question de l'hôte
+ * (`GESTES_DU_BOARD`), jamais une sortie de git. `appels` journalise les questions posées.
+ */
+function gestesFactices({ branches = [], divergence = () => ({ avance: 0, retard: 0 }), journal = () => [], fetchOrigin = () => fait(''), appels = [] } = {}) {
+  return {
+    arbrePrincipal: () => fait('/dep'),
+    fetchOrigin,
+    branchesDe: () => branches,
+    divergenceDe: (_depot, base, nom) => {
+      appels.push(`divergenceDe ${base} ${nom}`)
+      return divergence(base, nom)
+    },
+    journalDe: (_depot, revisions) => {
+      appels.push(`journalDe ${revisions.join(' ')}`)
+      return journal(revisions)
+    },
+  }
+}
+const branche = (nom, dernierCommitISO) => ({ nom, dernierCommitISO, sha: 'aaaaaaa' })
+
 test('la MESURE reçoit sa BASE en paramètre : `main` local n’est jamais la base', () => {
   const appels = []
-  const fait = (stdout) => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
-  const git = (args) => {
-    appels.push(args.join(' '))
-    if (args[0] === 'rev-parse') return fait('/dep/.git\n')
-    if (args[0] === 'for-each-ref') return fait('chantier/1727-cliquets\t2026-09-14T09:00:00+02:00\taaaaaaa\nmain\t2026-09-15T08:00:00+02:00\tccccccc\n')
-    if (args[0] === 'rev-list') return fait('17\t1\n')
-    if (args[0] === 'log') return fait('')
-    return fait('')
-  }
   const vu = mesurer({
     cwd: '/dep/.wt-1768',
     base: 'origin/autre',
-    git,
-    fetch: () => fait(''),
+    gestes: gestesFactices({
+      branches: [branche('chantier/1727-cliquets', '2026-09-14T09:00:00+02:00'), branche('main', '2026-09-15T08:00:00+02:00')],
+      divergence: () => ({ avance: 1, retard: 17 }),
+      appels,
+    }),
     inv: () => ({ ok: true, worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }] }),
     issues: () => ({ issues: new Map([[1727, { number: 1727, state: 'OPEN', title: 'Cliquets' }]]), anomalies: [] }),
     maintenant: MAINTENANT,
   })
   assert.equal(vu.ok, true)
-  assert.ok(appels.includes('rev-list --left-right --count origin/autre...chantier/1727-cliquets'),
-    `args reçus : ${JSON.stringify(appels)}`)
-  assert.ok(appels.some((a) => a.includes('origin/autre..chantier/1727-cliquets')),
-    `args reçus : ${JSON.stringify(appels)}`)
-  assert.ok(appels.every((a) => !/(^| )main\.\.|\.\.\.main( |$)/.test(a)), `args reçus : ${JSON.stringify(appels)}`)
+  assert.ok(appels.includes('divergenceDe origin/autre chantier/1727-cliquets'), `questions posées : ${JSON.stringify(appels)}`)
+  assert.ok(appels.includes('journalDe origin/autre..chantier/1727-cliquets'), `questions posées : ${JSON.stringify(appels)}`)
+  assert.ok(appels.every((a) => !/(^| )main\.\.|\.\.\.main( |$)| main$/.test(a)), `questions posées : ${JSON.stringify(appels)}`)
   assert.deepEqual(vu.lignes.map((l) => [l.ticket, l.statut, l.avance]), [[1727, 'En cours', '+1 / −17']])
 })
 
 test('la mesure NOMME le worktree détaché et la branche sans ticket, et les tient hors du board', () => {
-  const fait = (stdout) => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
-  const git = (args) => {
-    if (args[0] === 'rev-parse') return fait('/dep/.git\n')
-    if (args[0] === 'for-each-ref') {
-      return fait('ab/phanes\t2026-09-10T09:00:00+02:00\taaaaaaa\nchantier/vide\t2026-09-10T09:00:00+02:00\tbbbbbbb\n')
-    }
-    if (args[0] === 'rev-list') return fait('3\t2\n')
-    if (args[0] === 'log') return fait('2026-09-10T09:00:00+02:00un message sans citation\n')
-    return fait('')
-  }
   const vu = mesurer({
     cwd: '/dep',
     base: 'origin/main',
-    git,
-    fetch: () => fait(''),
+    gestes: gestesFactices({
+      branches: [branche('ab/phanes', '2026-09-10T09:00:00+02:00'), branche('chantier/vide', '2026-09-10T09:00:00+02:00')],
+      divergence: () => ({ avance: 2, retard: 3 }),
+      journal: () => [{ sha: 'aaaaaaa', date: '2026-09-10T09:00:00+02:00', message: 'un message sans citation\n' }],
+    }),
     inv: () => ({
       ok: true,
       worktrees: [
@@ -474,32 +454,22 @@ test('la mesure NOMME le worktree détaché et la branche sans ticket, et les ti
 })
 
 test('la mesure REFUSE nommément quand origin n’est pas consultable', () => {
-  const fait = (stdout) => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
   const vu = mesurer({
     cwd: '/dep',
-    git: (args) => (args[0] === 'rev-parse' ? fait('/dep/.git\n') : fait('')),
-    fetch: () => ({ disponible: false, raison: 'réseau coupé' }),
+    gestes: gestesFactices({ fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) }),
   })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /origin non consultable \(réseau coupé\)/)
 })
 
 test('une branche sans avance ET sans worktree est IGNORÉE ; avec worktree, `Fusionné` si la base la cite, sinon `Ouvert`', () => {
-  const fait = (stdout) => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
-  const gitQuiCite = (citation) => (args) => {
-    if (args[0] === 'rev-parse') return fait('/dep/.git\n')
-    if (args[0] === 'for-each-ref') {
-      return fait('chantier/1751-ops\t2026-09-12T09:00:00+02:00\taaaaaaa\n'
-        + 'worktree-agent-mort\t2026-09-01T09:00:00+02:00\tbbbbbbb\n')
-    }
-    if (args[0] === 'rev-list') return fait('7\t0\n')
-    if (args[0] === 'log') return fait(citation)
-    return fait('')
-  }
   const mesureAvec = (citation) => mesurer({
     cwd: '/dep',
-    git: gitQuiCite(citation),
-    fetch: () => fait(''),
+    gestes: gestesFactices({
+      branches: [branche('chantier/1751-ops', '2026-09-12T09:00:00+02:00'), branche('worktree-agent-mort', '2026-09-01T09:00:00+02:00')],
+      divergence: () => ({ avance: 0, retard: 7 }),
+      journal: () => (citation ? [{ sha: 'aaaaaaa', date: '2026-09-14T09:00:00+02:00', message: citation }] : []),
+    }),
     inv: () => ({
       ok: true,
       worktrees: [
@@ -511,7 +481,7 @@ test('une branche sans avance ET sans worktree est IGNORÉE ; avec worktree, `Fu
     maintenant: MAINTENANT,
   })
 
-  const cite = mesureAvec('2026-09-14T09:00:00+02:00feat: refs #1751\n')
+  const cite = mesureAvec('feat: refs #1751\n')
   assert.deepEqual(cite.lignes.map((l) => [l.ticket, l.statut, l.worktrees]),
     [[1751, 'Fusionné', ['/dep/.wt-1751 (propre+fusionné)']]])
   assert.deepEqual(cite.anomalies, [])
@@ -521,18 +491,13 @@ test('une branche sans avance ET sans worktree est IGNORÉE ; avec worktree, `Fu
 })
 
 test('la mesure NOMME un journal de base illisible, et ne dit pas « sans ticket » sur un log non lu', () => {
-  const fait = (stdout) => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
-  const git = (args) => {
-    if (args[0] === 'rev-parse') return fait('/dep/.git\n')
-    if (args[0] === 'for-each-ref') return fait('ab/phanes\t2026-09-10T09:00:00+02:00\taaaaaaa\n')
-    if (args[0] === 'rev-list') return fait('3\t2\n')
-    if (args[0] === 'log') return { disponible: false, raison: 'disque en panne' }
-    return fait('')
-  }
   const vu = mesurer({
     cwd: '/dep',
-    git,
-    fetch: () => fait(''),
+    gestes: gestesFactices({
+      branches: [branche('ab/phanes', '2026-09-10T09:00:00+02:00')],
+      divergence: () => ({ avance: 2, retard: 3 }),
+      journal: () => null,
+    }),
     inv: () => ({ ok: true, worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }] }),
     issues: () => ({ issues: new Map(), anomalies: [] }),
     maintenant: MAINTENANT,

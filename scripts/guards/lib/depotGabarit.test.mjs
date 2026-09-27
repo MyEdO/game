@@ -334,3 +334,42 @@ test('D : le stock des lanceurs d’arbre RÉEL est nominatif, compté au site, 
   }
   assert.deepEqual(fautes, [])
 })
+
+// #1806 (juge du lot #85, H2 point 5) : la forge est un ÉCRIVAIN ; l'identité qui
+// signe sa fondation est la sienne, posée dans le dépôt : ni l'environnement RÉEL du processus
+// (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`, dates, configuration globale), ni la machine ne l'atteignent.
+test('ÉCRIVAIN sous environnement HOSTILE : la fondation est signée `mesure`, non signée GPG, sur la branche demandée', () => {
+  const mesure = mkdtempSync(join(tmpdir(), 'forge-hostile-'))
+  const globale = join(mesure, 'globale.gitconfig')
+  writeFileSync(globale, '[user]\n\tname = Utilisatrice Hostile\n\temail = hostile@example.invalid\n[commit]\n\tgpgsign = true\n[init]\n\tdefaultBranch = autre\n')
+  const intrus = {
+    GIT_AUTHOR_NAME: 'Intrus', GIT_AUTHOR_EMAIL: 'intrus@example.invalid', GIT_COMMITTER_NAME: 'Intrus',
+    GIT_COMMITTER_EMAIL: 'intrus@example.invalid', GIT_AUTHOR_DATE: '2001-01-01T00:00:00Z', GIT_CONFIG_GLOBAL: globale,
+  }
+  const avant = Object.fromEntries(Object.keys(intrus).map((k) => [k, process.env[k]]))
+  Object.assign(process.env, intrus)
+  let racine = null
+  try {
+    racine = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, branche: 'principale', message: 'identité de la forge, env intrus' }).racine
+    assert.equal(git(racine)(['log', '-1', '--format=%an <%ae>|%cn <%ce>|%G?|%s']), 'mesure <mesure@example.invalid>|mesure <mesure@example.invalid>|N|identité de la forge, env intrus')
+    assert.notEqual(git(racine)(['log', '-1', '--format=%aI']).slice(0, 4), '2001')
+    assert.equal(git(racine)(['symbolic-ref', '--short', 'HEAD']), 'principale')
+  } finally {
+    for (const [k, v] of Object.entries(avant)) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
+    if (racine) jeter(racine)
+    jeter(mesure)
+  }
+})
+
+test('envDeDepotForge : aucune variable `GIT_*` du processus ne passe, hors les deux qui isolent la configuration', () => {
+  const avant = process.env.GIT_AUTHOR_NAME
+  process.env.GIT_AUTHOR_NAME = 'Intrus'
+  try {
+    const env = envDeDepotForge()
+    assert.deepEqual(Object.keys(env).filter((k) => k.startsWith('GIT_')).sort(), ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'])
+    assert.equal(readFileSync(env.GIT_CONFIG_GLOBAL, 'utf8'), '')
+  } finally {
+    if (avant === undefined) delete process.env.GIT_AUTHOR_NAME
+    else process.env.GIT_AUTHOR_NAME = avant
+  }
+})

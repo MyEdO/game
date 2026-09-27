@@ -1,41 +1,19 @@
-/** Déclarations des lectures git consommées depuis TypeScript (`cssCouchesAudit.ts`). */
+/** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`). */
 
-/** L'union à TROIS issues d'une lecture git (en-tête de `gitPorte.mjs`). */
-export type LectureGit =
-  | { disponible: true; valeur: { status: number; stdout: string; stderr: string }; absent?: undefined }
-  | { disponible: true; absent: true }
-  | { disponible: false; raison: string };
+/** La marque d'une poignée `depotDe` (`gitPorte.mjs`, `MARQUE_DEPOT`). */
+declare const MARQUE_DEPOT: unique symbol;
 
-export function lireGit(
-  args: string[],
-  opts?: { cwd?: string; site?: string; timeout?: number; entree?: string; env?: NodeJS.ProcessEnv },
-): LectureGit;
-/** Le lecteur git d'une porte dans `cwd` : la sortie, `null` si absent ou code non nul ; jette si git est indisponible. */
-export function lecteurGit(
+/** Le DÉPÔT git d'un `cwd` (`depotDe`) : une poignée opaque et MARQUÉE, premier paramètre de chaque
+ *  question ; un `{ cwd }` écrit à la main n'en est pas une. */
+export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
+
+/** Le dépôt git de `cwd`. */
+export function depotDe(
   cwd: string,
-  opts?: { env?: NodeJS.ProcessEnv },
-): (args: string[], opts?: { entree?: string }) => string | null;
-/** La sortie d'une lecture réussie, `null` si l'objet est absent ou le code de sortie non nul. */
-export function sortieOuNull(union: LectureGit): string | null;
-/** Les champs d'une sortie `git <args> -z` : les chemins tels que git les écrit, jamais cités. */
-export function cheminsDe(git: (args: string[]) => string | null, args: string[]): string[];
-/** Les fichiers qu'un `git grep -l -E` trouve sous `pathspecs`. */
-export function fichiersDuGrep(
-  git: (args: string[]) => string | null,
-  portee: string[],
-  motif: string,
-  pathspecs: readonly string[],
-): string[];
-/** Le texte de chaque chemin dans une ref ou l'index, par un seul `git cat-file --batch`. */
-export function lireEnLot(
-  git: (args: string[], opts?: { entree?: string }) => string | null,
-  arbre: string,
-  rels: readonly string[],
-): Map<string, string | null>;
+  opts?: { env?: NodeJS.ProcessEnv; enPanne?: (raison: string) => void },
+): Depot;
+/** La racine de l'arbre de travail, `null` hors d'un arbre. */
+export function racineDe(depot: Depot): string | null;
 export const INDEX: string;
 export const SUIVI: string;
 export const TRAVAIL: string;
-/** Les fichiers d'une image git sous `dossier` (ref, `INDEX`, `SUIVI` ou `TRAVAIL`). */
-export function listerImage(git: (args: string[]) => string | null, arbre: string, dossier: string): string[];
-/** Les entrées directes de `dossier` parmi des chemins complets. */
-export function enfantsDirects(chemins: readonly string[], dossier: string): string[];

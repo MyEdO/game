@@ -5,18 +5,21 @@
 import { test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, TRAVAIL, arbrePrincipal, ceQueFaitLeCommit, cheminsDe, classer, lecteurGit, eolsDe, etatsDe, nameStatusDe, numstatDe, commitsDe, enfantsDirects, estAncetre, estRepertoire, fetchOrigin,
-  fichiersDuGrep, lireGit, lireEnLot, listerImage, natureDuChemin, raisonCourte, sortieOuNull,
+  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide,
+  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
+  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
+  racineDe, raisonCourte, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, worktreesDe,
 } from './gitPorte.mjs'
-import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
+import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
-import { parUnitesDeCode } from './lister.mjs'
+import { listerDossier, parUnitesDeCode } from './lister.mjs'
 
 const ZERO = '0'.repeat(40)
 
@@ -32,20 +35,30 @@ function depot() {
 
 const jeter = (racine) => rmSync(racine, { recursive: true, force: true })
 
+/** Le dépôt forgé de `racine` (`envDeDepotForge`). */
+const forge = (racine) => depotDe(racine, { env: envDeDepotForge() })
+
+/** Un dépôt dont le lanceur est `repondre(args)` : les arguments de git SANS `OPTIONS_DE_L_HOTE`,
+ *  la réponse en résultat de `spawnSync`. Aucun git n'est lancé. */
+const depotFeint = (cwd, repondre) => depotDe(cwd, { spawn: (_git, args) => repondre(args.slice(OPTIONS_DE_L_HOTE.length)) })
+
+/** Un git MUET : code 1, rien sur aucun flux. */
+const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
 // Le SPAWN QUI N'A PAS DÉMARRÉ (#1729) : node écrit le même « spawnSync git ENOENT » quand le
 // binaire manque et quand le `cwd` demandé n'existe pas. Le second est le cas RÉEL mesuré : une
 // porte y renvoyait « rejouer depuis un arbre où git répond » alors que git répondait.
-test('lireGit : un cwd INEXISTANT se nomme, il ne se confond pas avec un git absent', () => {
+test('un dépôt dont le cwd est INEXISTANT se nomme, il ne se confond pas avec un git absent', () => {
   const jamais = join(tmpdir(), `cwd-absent-${process.pid}`)
-  const vu = lireGit(['rev-parse', 'HEAD'], { cwd: jamais })
+  const vu = estAncetre(depotDe(jamais), 'HEAD', 'HEAD')
   assert.equal(vu.disponible, false)
-  assert.equal(vu.raison, `cwd inexistant : ${jamais}`)
+  assert.equal(vu.raison, raisonCourte(`cwd inexistant : ${jamais}`))
 
   const sansGit = classer({ error: new Error('spawnSync git ENOENT') }, { cwd: tmpdir() })
   assert.match(sansGit.raison, /git introuvable/, 'cwd répertoire → la cause restante est le binaire')
 })
 
-test('lireGit : un cwd qui EXISTE sans être un répertoire se nomme pour ce qu’il est', () => {
+test('un dépôt dont le cwd EXISTE sans être un répertoire se nomme pour ce qu’il est', () => {
   const { racine } = depot()
   try {
     const fichier = join(racine, 'a.txt')
@@ -54,9 +67,9 @@ test('lireGit : un cwd qui EXISTE sans être un répertoire se nomme pour ce qu�
     assert.equal(estRepertoire(racine), true)
     // MÊME verdict sur les deux plateformes, où l'OS ne rend PAS le même code (ENOENT sur win32,
     // ENOTDIR sur POSIX — rouge de CI Linux mesuré sur le run 34815975288).
-    const vu = lireGit(['rev-parse', 'HEAD'], { cwd: fichier })
+    const vu = estAncetre(depotDe(fichier), 'HEAD', 'HEAD')
     assert.equal(vu.disponible, false)
-    assert.equal(vu.raison, `cwd qui n'est pas un répertoire : ${fichier}`)
+    assert.equal(vu.raison, raisonCourte(`cwd qui n'est pas un répertoire : ${fichier}`))
   } finally { jeter(racine) }
 })
 
@@ -83,80 +96,87 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   assert.equal(acces.raison, 'spawnSync git EACCES')
 })
 
-test('lireGit : status 0 rend un FAIT porteur de la sortie', () => {
+test('status 0 rend un FAIT porteur de la sortie', () => {
   const { racine, second } = depot()
   try {
-    const vu = lireGit(['rev-parse', 'HEAD'], { cwd: racine })
-    assert.equal(vu.disponible, true)
-    assert.equal(vu.absent, undefined)
-    assert.equal(vu.valeur.stdout.trim(), second)
-    assert.equal(sortieOuNull(vu).trim(), second)
+    assert.equal(shaDe(forge(racine), 'HEAD'), second)
   } finally { jeter(racine) }
 })
 
-test('lireGit : un PRÉDICAT qui rend 1 sans stderr est un FAIT porteur du code, jamais une panne', () => {
+test('un PRÉDICAT qui rend 1 sans stderr est un FAIT porteur du code, jamais une panne', () => {
   const { racine, premier, second } = depot()
   try {
-    const faux = lireGit(['merge-base', '--is-ancestor', second, premier], { cwd: racine })
-    assert.equal(faux.disponible, true)
-    assert.equal(faux.absent, undefined)
-    assert.equal(faux.valeur.status, 1)
-    // Un code ≠ 0 n'est pas une sortie exploitable pour les lecteurs d'image.
-    assert.equal(sortieOuNull(faux), null)
-    const quiet = lireGit(['rev-parse', '--verify', '--quiet', 'origin/main^{commit}'], { cwd: racine })
-    assert.equal(quiet.disponible, true)
-    assert.equal(quiet.valeur.status, 1)
+    const pannes = []
+    const depotSonde = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
+    assert.deepEqual(estAncetre(depotSonde, second, premier), { disponible: true, valeur: false })
+    assert.equal(shaDe(depotSonde, 'origin/main'), null, '`rev-parse --verify --quiet` : code 1, aucune panne')
+    assert.deepEqual(pannes, [])
   } finally { jeter(racine) }
 })
 
-test('lireGit : les cinq ABSENCES de la porte sont des ABSENTS (dépôt réel)', () => {
+test('les six ABSENCES de la porte sont des ABSENTS, jamais des pannes (dépôt réel)', () => {
   const { racine, second } = depot()
   try {
+    const pannes = []
+    const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const absents = {
-      'pre-image d’un fichier AJOUTÉ': ['show', `${second}^:neuf.txt`],
-      'post-image d’un fichier absent': ['show', `${second}:jamais.txt`],
-      'origin/main inconnu': ['rev-parse', 'origin/main'],
-      'sha inconnu': ['show', '-s', '--format=%B', ZERO],
-      'plage inconnue': ['diff', '-U0', `${ZERO}..${second}`],
+      'pre-image d’un fichier AJOUTÉ': () => lireEnLot(d, `${second}^`, ['neuf.txt']).get('neuf.txt'),
+      'post-image d’un fichier absent': () => lireEnLot(d, second, ['jamais.txt']).get('jamais.txt'),
+      'origin/main inconnu': () => shaDe(d, 'origin/main'),
+      'sha inconnu': () => journalDe(d, [`${ZERO}^!`]),
+      'origine inconnue': () => origineDe(d),
     }
-    for (const [nom, args] of Object.entries(absents)) {
-      const vu = lireGit(args, { cwd: racine })
-      assert.equal(vu.disponible, true, `${nom} : une absence n’est pas une panne`)
-      assert.equal(vu.absent, true, nom)
-      assert.equal(sortieOuNull(vu), null, `${nom} : le contrat des lecteurs d’image est \`null\``)
+    for (const [nom, question] of Object.entries(absents)) {
+      assert.equal(question(), null, `${nom} : le contrat des lecteurs d’image est \`null\``)
+      assert.deepEqual(pannes, [], `${nom} : une absence n’est pas une panne`)
     }
+    assert.deepEqual(estAncetre(d, ZERO, 'HEAD'), { disponible: true, absent: true }, 'l’union le dit ABSENT')
+    assert.throws(() => ceQuiChange(d, ZERO, second), BorneAbsente, 'une BORNE inconnue n’est pas l’objet demandé : elle LÈVE')
+    assert.deepEqual(pannes, [])
   } finally { jeter(racine) }
 })
 
-test('lireGit : HORS dépôt, c’est INDISPONIBLE — et la raison le dit', () => {
+test('HORS dépôt, c’est INDISPONIBLE — et la raison le dit : l’union la porte, une question la JETTE', () => {
   const hors = mkdtempSync(join(tmpdir(), 'git-hors-'))
   try {
-    const vu = lireGit(['rev-parse', 'HEAD'], { cwd: hors })
+    const vu = estAncetre(forge(hors), 'HEAD', 'HEAD')
     assert.equal(vu.disponible, false)
     assert.match(vu.raison, /not a git repository/i)
+    assert.throws(() => shaDe(forge(hors), 'HEAD'), (e) => e instanceof GitIndisponible && /not a git repository/i.test(e.raison))
+    const pannes = []
+    assert.equal(shaDe(depotDe(hors, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) }), 'HEAD'), null, 'sous `enPanne`, la question rend `null`')
+    assert.match(pannes.join(''), /not a git repository/i, 'et confie la raison à `enPanne`')
+    assert.equal(racineDe(forge(hors)), null, 'la racine d’un répertoire HORS arbre est `null`, pas une panne')
   } finally { jeter(hors) }
 })
 
-test('lireGit : un git ABSENT du système (ENOENT) est INDISPONIBLE, jamais un absent', () => {
-  const vu = lireGit(['rev-parse', 'HEAD'], {
-    spawn: () => ({ error: new Error('spawnSync git ENOENT'), status: null }),
-  })
+test('`racineDe` : `null` hors d’un arbre, une PANNE de git reste une panne (JETÉE, ou confiée à `enPanne`)', () => {
+  const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: panne simulée' })
+  assert.throws(() => racineDe(depotDe(tmpdir(), { spawn: panne })), (e) => e instanceof GitIndisponible && /panne simulée/.test(e.raison))
+  const pannes = []
+  assert.equal(racineDe(depotDe(tmpdir(), { spawn: panne, enPanne: (r) => pannes.push(r) })), null)
+  assert.match(pannes.join(''), /panne simulée/)
+  const horsArbre = () => ({ status: 128, stdout: '', stderr: 'fatal: this operation must be run in a work tree' })
+  assert.equal(racineDe(depotDe(tmpdir(), { spawn: horsArbre })), null, 'un dépôt NU n’a pas d’arbre')
+})
+
+test('un git ABSENT du système (ENOENT) est INDISPONIBLE, jamais un absent', () => {
+  const vu = estAncetre(depotFeint(tmpdir(), () => ({ error: new Error('spawnSync git ENOENT'), status: null })), 'HEAD', 'HEAD')
   assert.equal(vu.disponible, false)
   assert.match(vu.raison, /ENOENT/)
 })
 
-test('lireGit : un processus TUÉ par un signal est INDISPONIBLE', () => {
-  const vu = lireGit(['log'], { spawn: () => ({ status: null, signal: 'SIGKILL', stdout: '', stderr: '' }) })
+test('un processus TUÉ par un signal est INDISPONIBLE', () => {
+  const vu = estAncetre(depotFeint(tmpdir(), () => ({ status: null, signal: 'SIGKILL', stdout: '', stderr: '' })), 'HEAD', 'HEAD')
   assert.equal(vu.disponible, false)
   assert.match(vu.raison, /SIGKILL/)
 })
 
-test('lireGit : le processus qui n’a pas DÉMARRÉ est REJOUÉ (spawnResilient), pas classé indisponible', () => {
+test('le processus qui n’a pas DÉMARRÉ est REJOUÉ (spawnResilient), pas classé indisponible', () => {
   let essais = 0
   const attentes = []
-  const vu = lireGit(['rev-parse', 'HEAD'], {
+  const d = depotDe(tmpdir(), {
     attendre: (ms) => attentes.push(ms),
-    journal: { write: () => {} },
     spawn: () => {
       essais += 1
       return essais < 3
@@ -164,27 +184,17 @@ test('lireGit : le processus qui n’a pas DÉMARRÉ est REJOUÉ (spawnResilient
         : { status: 0, stdout: 'abc1234\n', stderr: '' }
     },
   })
+  assert.equal(shaDe(d, 'HEAD'), 'abc1234')
   assert.equal(essais, 3)
   assert.deepEqual(attentes, [2000, 5000])
-  assert.equal(vu.disponible, true)
-  assert.equal(vu.valeur.stdout.trim(), 'abc1234')
 })
 
 test('estAncetre : vrai, faux, et un sha inconnu qui rend ABSENT', () => {
   const { racine, premier, second } = depot()
   try {
-    assert.deepEqual(estAncetre(premier, second, { cwd: racine }), { disponible: true, valeur: true })
-    assert.deepEqual(estAncetre(second, premier, { cwd: racine }), { disponible: true, valeur: false })
-    assert.deepEqual(estAncetre(ZERO, 'HEAD', { cwd: racine }), { disponible: true, absent: true })
-  } finally { jeter(racine) }
-})
-
-test('commitsDe : les N derniers commits, du plus récent au plus ancien ; ref inconnue = ABSENT', () => {
-  const { racine, premier, second } = depot()
-  try {
-    assert.deepEqual(commitsDe('HEAD', 10, { cwd: racine }), { disponible: true, valeur: [second, premier] })
-    assert.deepEqual(commitsDe('HEAD', 1, { cwd: racine }), { disponible: true, valeur: [second] })
-    assert.deepEqual(commitsDe(ZERO, 5, { cwd: racine }), { disponible: true, absent: true })
+    assert.deepEqual(estAncetre(forge(racine), premier, second), { disponible: true, valeur: true })
+    assert.deepEqual(estAncetre(forge(racine), second, premier), { disponible: true, valeur: false })
+    assert.deepEqual(estAncetre(forge(racine), ZERO, 'HEAD'), { disponible: true, absent: true })
   } finally { jeter(racine) }
 })
 
@@ -195,12 +205,12 @@ test('fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans 
     execFileSync('git', ['clone', '-q', '--no-local', amont.racine, aval], { env: envDeDepotForge(), encoding: 'utf8' })
     // La ref distante est SUPPRIMÉE localement : seul un fetch réel peut la remettre.
     execFileSync('git', ['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: aval, env: envDeDepotForge() })
-    assert.equal(lireGit(['rev-parse', 'origin/main'], { cwd: aval }).absent, true)
-    const vu = fetchOrigin({ cwd: aval })
+    assert.equal(shaDe(forge(aval), 'origin/main'), null)
+    const vu = fetchOrigin(forge(aval))
     assert.equal(vu.disponible, true, vu.raison)
-    assert.equal(sortieOuNull(lireGit(['rev-parse', 'origin/main'], { cwd: aval })).trim(), amont.second)
+    assert.equal(shaDe(forge(aval), 'origin/main'), amont.second)
 
-    const sansOrigine = lireGit(['fetch', '--quiet', 'origin', 'main'], { cwd: amont.racine })
+    const sansOrigine = fetchOrigin(forge(amont.racine))
     assert.equal(sansOrigine.disponible, false)
   } finally {
     jeter(amont.racine)
@@ -209,29 +219,29 @@ test('fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans 
 })
 
 // L'ARBRE PRINCIPAL : la résolution que trois outils re-posaient à la main. Les formes de réponse
-// sont jouées avec un `git` INJECTÉ (aucun sous-module à fabriquer sur le disque pour cela), puis le
+// sont jouées avec un lanceur INJECTÉ (aucun sous-module à fabriquer sur le disque pour cela), puis le
 // fait qui compte est mesuré contre git RÉEL : depuis un WORKTREE, la réponse est l'arbre principal.
 test('arbrePrincipal : le PARENT du .git commun, séparateurs POSIX, casse CONSERVÉE', () => {
-  const gitQuiRend = (stdout) => (args) => {
+  const gitQuiRend = (cwd, stdout) => depotFeint(cwd, (args) => {
     assert.deepEqual(args, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
-    return { disponible: true, valeur: { status: 0, stdout, stderr: '' } }
-  }
-  assert.deepEqual(arbrePrincipal('/x/Game/.wt-42', gitQuiRend('/x/Game/.git\n')),
+    return { status: 0, stdout, stderr: '' }
+  })
+  assert.deepEqual(arbrePrincipal(gitQuiRend('/x/Game/.wt-42', '/x/Game/.git\n')),
     { disponible: true, valeur: '/x/Game' })
   // La casse rendue sert de `cwd` et de préfixe de cible : l'abaisser casserait un chemin
   // case-sensible (les fixtures `mkdtemp` de ce dépôt en portent, et `test:ops` tourne sur ubuntu).
-  assert.deepEqual(arbrePrincipal('/tmp/depot-Ab9Z/.wt-42', gitQuiRend('/tmp/depot-Ab9Z/.git')),
+  assert.deepEqual(arbrePrincipal(gitQuiRend('/tmp/depot-Ab9Z/.wt-42', '/tmp/depot-Ab9Z/.git')),
     { disponible: true, valeur: '/tmp/depot-Ab9Z' })
-  assert.deepEqual(arbrePrincipal('\\x\\Game', gitQuiRend('\\x\\Game\\.git\n')),
+  assert.deepEqual(arbrePrincipal(gitQuiRend('\\x\\Game', '\\x\\Game\\.git\n')),
     { disponible: true, valeur: '/x/Game' })
 })
 
 test('arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd', () => {
-  const gitQuiRend = (stdout) => () => ({ disponible: true, valeur: { status: 0, stdout, stderr: '' } })
+  const gitQuiRend = (cwd, stdout) => depotFeint(cwd, () => ({ status: 0, stdout, stderr: '' }))
 
   // Git MUET : la seule forme que le premier refus garde, et elle s'injecte (git ne la produit pas).
   for (const vide of ['', '   ']) {
-    const vu = arbrePrincipal('/x/nu.git', gitQuiRend(vide))
+    const vu = arbrePrincipal(gitQuiRend('/x/nu.git', vide))
     assert.equal(vu.disponible, false, `« ${JSON.stringify(vide)} » : rien ne se déduit d'une réponse vide`)
     assert.match(vu.raison, /rend une réponse vide/)
     assert.equal(vu.valeur, undefined, 'aucune valeur : surtout pas le cwd')
@@ -243,30 +253,55 @@ test('arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd', () => {
   const nu = join(base, 'depot.git')
   try {
     execFileSync('git', ['init', '-q', '--bare', nu], { env: envDeDepotForge(), encoding: 'utf8' })
-    const vuNu = arbrePrincipal(nu)
+    const vuNu = arbrePrincipal(forge(nu))
     assert.equal(vuNu.disponible, false, "un dépôt nu n'a pas d'arbre principal")
     assert.match(vuNu.raison, /hors d'un arbre/)
     assert.match(vuNu.raison, /dépôt nu/, 'le refus NOMME le dépôt nu')
     assert.equal(vuNu.valeur, undefined, 'aucune valeur : surtout pas le cwd')
   } finally { jeter(base) }
 
-  const sousModule = arbrePrincipal('/x/Game/sub', gitQuiRend('/x/Game/.git/modules/sub\n'))
+  const sousModule = arbrePrincipal(gitQuiRend('/x/Game/sub', '/x/Game/.git/modules/sub\n'))
   assert.equal(sousModule.disponible, false)
   assert.match(sousModule.raison, /hors d'un arbre/)
   assert.match(sousModule.raison, /sous-module ou --separate-git-dir/)
   assert.match(sousModule.raison, /modules\/sub/, 'le refus porte ce que git a rendu')
 
-  const enPanne = arbrePrincipal('/x', () => ({ disponible: false, raison: 'cwd inexistant : /x' }))
+  const jamais = join(tmpdir(), `arbre-absent-${process.pid}`)
+  const enPanne = arbrePrincipal(depotFeint(jamais, () => ({ error: new Error('spawnSync git ENOENT'), status: null })))
   assert.equal(enPanne.disponible, false)
-  assert.match(enPanne.raison, /cwd inexistant : \/x/)
+  assert.match(enPanne.raison, /cwd inexistant : /)
+  const court = `/inexistant-${process.pid}`
+  const nommeParLeMotif = arbrePrincipal(depotFeint(court, () => ({ error: new Error('spawnSync git ENOENT'), status: null })))
+  assert.equal(nommeParLeMotif.raison.split(court).length - 1, 1, `le cwd se nomme une fois : ${nommeParLeMotif.raison}`)
 
-  const horsDepot = arbrePrincipal('/x', () => ({ disponible: true, absent: true }))
+  const horsDepot = arbrePrincipal(depotFeint('/x', () => ({ status: 128, stdout: '', stderr: 'fatal: bad revision' })))
   assert.equal(horsDepot.disponible, false)
   assert.match(horsDepot.raison, /git n'y connaît pas de dépôt/)
 
-  const code = arbrePrincipal('/x', () => ({ disponible: true, valeur: { status: 128, stdout: '', stderr: '' } }))
+  const code = arbrePrincipal(depotFeint('/x', () => ({ status: 128, stdout: '', stderr: '' })))
   assert.equal(code.disponible, false)
   assert.match(code.raison, /rend 128/)
+})
+
+test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'profond-'))
+  const profond = join(base, 'a'.repeat(120), 'b'.repeat(120))
+  const nu = join(profond, 'depot.git')
+  try {
+    mkdirSync(profond, { recursive: true })
+    execFileSync('git', ['init', '-q', '--bare', nu], { env: envDeDepotForge(), encoding: 'utf8' })
+    assert.ok(nu.length > 200, `cwd de ${nu.length} caractères`)
+    const vuNu = arbrePrincipal(forge(nu))
+    assert.equal(vuNu.disponible, false)
+    assert.match(vuNu.raison, /^arbre principal non résolu : répertoire git hors d'un arbre — dépôt nu/)
+
+    const vide = arbrePrincipal(depotFeint(nu, () => ({ status: 0, stdout: '', stderr: '' })))
+    assert.match(vide.raison, /^arbre principal non résolu : git rev-parse --git-common-dir rend une réponse vide/)
+
+    const jamais = join(profond, 'absent')
+    const enPanne = arbrePrincipal(depotFeint(jamais, () => ({ error: new Error('spawnSync git ENOENT'), status: null })))
+    assert.match(enPanne.raison, /^arbre principal non résolu : cwd inexistant : /)
+  } finally { jeter(base) }
 })
 
 test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINCIPAL (git réel)', () => {
@@ -274,8 +309,8 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
   const lie = join(racine, '.wt-sonde')
   try {
     g('worktree', 'add', '-q', '-b', 'sonde', lie)
-    const depuisLie = arbrePrincipal(lie)
-    const depuisPrincipal = arbrePrincipal(racine)
+    const depuisLie = arbrePrincipal(forge(lie))
+    const depuisPrincipal = arbrePrincipal(forge(racine))
     assert.equal(depuisLie.disponible, true, depuisLie.raison)
     assert.equal(depuisLie.valeur, depuisPrincipal.valeur, 'le worktree et le principal répondent le MÊME arbre')
     assert.equal(depuisLie.valeur.toLowerCase(), racine.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase())
@@ -293,16 +328,18 @@ test('classer : la RAISON est la première ligne significative, bornée à 200 c
 
 test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'd/a.txt': 'a\n', 'd/s/b.txt': 'b\n', 'x.txt': 'x\n' }, message: 'socle' })
-  const git = (args) => sortieOuNull(lireGit(args, { cwd: racine }))
+  const d = forge(racine)
   try {
     execFileSync('git', ['rm', '-q', '--cached', 'd/a.txt'], { cwd: racine, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
     writeFileSync(join(racine, 'd/neuf.txt'), 'n\n')
-    assert.deepEqual(listerImage(git, 'HEAD', 'd'), ['d/a.txt', 'd/s/b.txt'])
-    assert.deepEqual(listerImage(git, INDEX, 'd'), ['d/s/b.txt'], 'retiré de l’index : hors de ce que le commit emporte')
-    assert.deepEqual(listerImage(git, SUIVI, 'd'), ['d/s/b.txt'], 'les chemins suivis : ni le retiré ni le non-suivi')
-    assert.deepEqual(listerImage(git, TRAVAIL, 'd').sort(), ['d/a.txt', 'd/neuf.txt', 'd/s/b.txt'], 'l’arbre de travail : non suivis compris')
-    assert.deepEqual(enfantsDirects(listerImage(git, 'HEAD', 'd'), 'd'), ['a.txt', 's'])
-    assert.deepEqual(listerImage(() => null, 'HEAD', 'd'), [], 'git muet : []')
+    assert.deepEqual(listerImage(d, 'HEAD', 'd'), ['d/a.txt', 'd/s/b.txt'])
+    assert.deepEqual(listerImage(d, INDEX, 'd'), ['d/s/b.txt'], 'retiré de l’index : hors de ce que le commit emporte')
+    assert.deepEqual(listerImage(d, SUIVI, 'd'), ['d/s/b.txt'], 'les chemins suivis : ni le retiré ni le non-suivi')
+    assert.deepEqual(listerImage(d, TRAVAIL, 'd').sort(), ['d/a.txt', 'd/neuf.txt', 'd/s/b.txt'], 'l’arbre de travail : non suivis compris')
+    assert.deepEqual(enfantsDirects(listerImage(d, 'HEAD', 'd'), 'd'), ['a.txt', 's'])
+    assert.deepEqual(listerImage(muet(), 'HEAD', 'd'), [], 'git muet : []')
+    assert.deepEqual(listerImage(d, 'HEAD', 'd', 'x.txt'), ['d/a.txt', 'd/s/b.txt', 'x.txt'], 'plusieurs dossiers')
+    assert.deepEqual(listerImage(d, 'HEAD'), ['d/a.txt', 'd/s/b.txt', 'x.txt'], 'sans dossier : tout l’arbre')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -310,12 +347,12 @@ test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAI
 
 test('listerImage : un suivi SUPPRIMÉ du disque sort de SUIVI et de TRAVAIL (`git commit -a` le supprime), pas de l’INDEX', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'd/a.txt': 'a\n', 'd/Console.tsx': 'c\n' }, message: 'socle' })
-  const git = (args) => sortieOuNull(lireGit(args, { cwd: racine }))
+  const d = forge(racine)
   try {
     rmSync(join(racine, 'd/Console.tsx'))
-    assert.deepEqual(listerImage(git, INDEX, 'd'), ['d/Console.tsx', 'd/a.txt'], 'l’index le porte encore')
-    assert.deepEqual(listerImage(git, SUIVI, 'd'), ['d/a.txt'])
-    assert.deepEqual(listerImage(git, TRAVAIL, 'd'), ['d/a.txt'])
+    assert.deepEqual(listerImage(d, INDEX, 'd'), ['d/Console.tsx', 'd/a.txt'], 'l’index le porte encore')
+    assert.deepEqual(listerImage(d, SUIVI, 'd'), ['d/a.txt'])
+    assert.deepEqual(listerImage(d, TRAVAIL, 'd'), ['d/a.txt'])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -326,13 +363,16 @@ test('lireEnLot : un seul `cat-file --batch` rend le texte de chaque chemin, mul
   const { racine, sha } = instanceDeDepot({ fichiers: textes, message: 'un' })
   try {
     const appels = []
-    const git = (args, opts) => { appels.push(args[0]); return sortieOuNull(lireGit(args, { cwd: racine, ...opts })) }
+    const d = depotDe(racine, {
+      env: envDeDepotForge(),
+      spawn: (commande, args, opts) => { appels.push(args[OPTIONS_DE_L_HOTE.length]); return spawnSync(commande, args, opts) },
+    })
     for (const arbre of [sha, INDEX]) {
-      assert.deepEqual([...lireEnLot(git, arbre, ['src/a.ts', 'src/absent.ts', 'src/b.ts'])],
+      assert.deepEqual([...lireEnLot(d, arbre, ['src/a.ts', 'src/absent.ts', 'src/b.ts'])],
         [['src/a.ts', textes['src/a.ts']], ['src/absent.ts', null], ['src/b.ts', textes['src/b.ts']]], arbre)
     }
     assert.deepEqual(appels, ['cat-file', 'cat-file'], 'une lecture par lot, pas une par chemin')
-    assert.deepEqual([...lireEnLot(git, sha, [])], [], 'lot vide : aucun processus')
+    assert.deepEqual([...lireEnLot(d, sha, [])], [], 'lot vide : aucun processus')
     assert.equal(appels.length, 2)
   } finally {
     jeter(racine)
@@ -340,56 +380,55 @@ test('lireEnLot : un seul `cat-file --batch` rend le texte de chaque chemin, mul
 })
 
 test('lireEnLot : une sortie de `cat-file` dont le bloc ne finit pas à sa taille LÈVE en nommant le chemin', () => {
-  const git = () => 'abc blob 3\nabcX'
-  assert.throws(() => lireEnLot(git, 'HEAD', ['src/a.ts']), /illisible à HEAD:src\/a\.ts : « abc blob 3 »/)
-  assert.deepEqual([...lireEnLot(() => 'abc blob 3\nabc\n', 'HEAD', ['src/a.ts'])], [['src/a.ts', 'abc']], 'témoin : le bloc bien formé')
+  const rendant = (stdout) => depotFeint(tmpdir(), () => ({ status: 0, stdout, stderr: '' }))
+  assert.throws(() => lireEnLot(rendant('abc blob 3\nabcX'), 'HEAD', ['src/a.ts']), /illisible à HEAD:src\/a\.ts : « abc blob 3 »/)
+  assert.deepEqual([...lireEnLot(rendant('abc blob 3\nabc\n'), 'HEAD', ['src/a.ts'])], [['src/a.ts', 'abc']], 'témoin : le bloc bien formé')
 })
 
-test('cheminsDe, numstatDe, nameStatusDe, eolsDe : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff, numstat, name-status, grep -l, --eol', () => {
+test('listerImage, ceQuiChange, eolsDe, fichiersDuGrep : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff-index, numstat, grep -l, --eol', () => {
   const E = 'src/ui/Écran.tsx'
   const B = 'src/mon module.ts'
   const { racine, sha } = instanceDeDepot({ fichiers: { [E]: 'const e = 1\n', [B]: 'const b = 1\n', 'src/a.ts': 'const a = 1\n' }, message: 'socle' })
-  const git = (args) => sortieOuNull(lireGit(args, { cwd: racine }))
+  const d = forge(racine)
   const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   try {
     assert.match(g('ls-files'), /^"src\/ui\/\\303\\211cran\.tsx"$/m, 'témoin : hors de l’hôte, la forme ligne CITE le chemin')
-    assert.match(git(['ls-files']), /^src\/ui\/Écran\.tsx$/m, 'par l’hôte, même la forme ligne (un patch n’a pas de -z) l’écrit en clair')
-    assert.deepEqual(cheminsDe(git, ['ls-files', '--', 'src']).sort(), [B, 'src/a.ts', E].sort())
-    assert.deepEqual(listerImage(git, sha, 'src').sort(), [B, 'src/a.ts', E].sort())
+    assert.deepEqual(listerImage(d, INDEX, 'src').sort(), [B, 'src/a.ts', E].sort())
+    assert.deepEqual(listerImage(d, sha, 'src').sort(), [B, 'src/a.ts', E].sort())
     writeFileSync(join(racine, E), 'const e = 2\n')
     g('mv', B, 'src/renommé.ts')
-    assert.deepEqual(cheminsDe(git, ['diff', 'HEAD', '--name-only', '--no-renames']).sort(), [B, 'src/renommé.ts', E].sort())
-    assert.deepEqual(numstatDe(git, ['diff', 'HEAD', '--numstat']),
+    const change = ceQuiChange(d, 'HEAD', SUIVI)
+    assert.deepEqual(change.chemins().sort(), [B, 'src/renommé.ts', E].sort())
+    assert.deepEqual(change.numstat(),
       [{ plus: 0, moins: 0, chemins: [B, 'src/renommé.ts'] }, { plus: 1, moins: 1, chemins: [E] }], 'un renommage : ses deux bouts')
-    assert.deepEqual(nameStatusDe(git, ['diff', 'HEAD', '-M', '--name-status']),
-      [{ statut: 'R100', chemins: [B, 'src/renommé.ts'] }, { statut: 'M', chemins: [E] }])
-    assert.deepEqual(eolsDe(git, ['ls-files', '--eol', '--cached', '--', E, 'src/renommé.ts']),
+    assert.deepEqual([...change.renommages()], [[B, 'src/renommé.ts']])
+    assert.deepEqual(eolsDe(d, [E, 'src/renommé.ts']),
       [{ index: 'lf', travail: 'lf', attr: '', chemin: 'src/renommé.ts' }, { index: 'lf', travail: 'lf', attr: '', chemin: E }], 'la TABULATION coupe, pas l’espace')
-    assert.deepEqual(fichiersDuGrep(git, [sha], 'const e', ['src']), [E], 'le préfixe `<ref>:` est retiré')
-    assert.deepEqual(fichiersDuGrep(git, ['--cached'], 'const', ['src']).sort(), ['src/a.ts', 'src/renommé.ts', E].sort())
-    assert.deepEqual(fichiersDuGrep(git, [], 'rien de tel', ['src']), [], 'aucun match : sortie 1, liste vide')
-    assert.deepEqual(cheminsDe(() => null, ['ls-files']), [], 'git muet : []')
+    assert.deepEqual(fichiersDuGrep(d, [sha], 'const e', ['src']), [E], 'le préfixe `<ref>:` est retiré')
+    assert.deepEqual(fichiersDuGrep(d, ['--cached'], 'const', ['src']).sort(), ['src/a.ts', 'src/renommé.ts', E].sort())
+    assert.deepEqual(fichiersDuGrep(d, [], 'rien de tel', ['src']), [], 'aucun match : sortie 1, liste vide')
   } finally {
     jeter(racine)
   }
 })
 
-test('etatsDe : `status --porcelain` en `{ etat, chemins }`, renommage (nouveau puis ancien), non-suivi et chemin non-ASCII EN CLAIR', () => {
+test('etatDeLArbre : `status --porcelain=v2` en `{ etat, chemins }`, renommage en ses deux bouts, non-suivi et chemin non-ASCII EN CLAIR', () => {
   const E = 'src/ui/Écran.tsx'
   const B = 'src/mon module.ts'
   const { racine } = instanceDeDepot({ fichiers: { [E]: 'const e = 1\n', [B]: 'const b = 1\n' }, message: 'socle' })
-  const git = (args) => sortieOuNull(lireGit(args, { cwd: racine }))
+  const d = forge(racine)
   const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   try {
     writeFileSync(join(racine, E), 'const e = 2\n')
     g('mv', B, 'src/renommé.ts')
     writeFileSync(join(racine, 'src/neuf é.ts'), 'n\n')
-    assert.deepEqual(etatsDe(git, ['status', '--porcelain']), [
-      { etat: 'R ', chemins: ['src/renommé.ts', B] },
+    assert.deepEqual(etatDeLArbre(d), [
+      { etat: 'D ', chemins: [B] },
+      { etat: 'A ', chemins: ['src/renommé.ts'] },
       { etat: ' M', chemins: [E] },
       { etat: '??', chemins: ['src/neuf é.ts'] },
     ])
-    assert.deepEqual(etatsDe(() => null, ['status', '--porcelain']), [], 'git muet : []')
+    assert.deepEqual(etatDeLArbre(muet()), [], 'git muet : []')
   } finally {
     jeter(racine)
   }
@@ -448,10 +487,10 @@ function depotDeFusions() {
 test('ceQueFaitLeCommit : une fusion PROPRE n’apporte rien — ni le fichier ni les lignes de la branche fusionnée', () => {
   const { racine, auteurDeH, propre } = depotDeFusions()
   try {
-    const git = lecteurGit(racine, { env: envDeDepotForge() })
-    assert.deepEqual(ceQueFaitLeCommit(git, propre).chemins(), [])
-    assert.equal(ceQueFaitLeCommit(git, propre).diff(['h.txt']), '')
-    assert.deepEqual(ceQueFaitLeCommit(git, auteurDeH).chemins(), ['h.txt'], 'le commit d’ORIGINE, lui, porte h.txt')
+    const d = forge(racine)
+    assert.deepEqual(ceQueFaitLeCommit(d, propre).chemins(), [])
+    assert.equal(ceQueFaitLeCommit(d, propre).diff(['h.txt']), '')
+    assert.deepEqual(ceQueFaitLeCommit(d, auteurDeH).chemins(), ['h.txt'], 'le commit d’ORIGINE, lui, porte h.txt')
   } finally {
     jeter(racine)
   }
@@ -460,14 +499,14 @@ test('ceQueFaitLeCommit : une fusion PROPRE n’apporte rien — ni le fichier n
 test('ceQueFaitLeCommit : une fusion qui RÉSOUT un conflit apporte sa résolution, lue contre la fusion automatique', () => {
   const { racine, resolue } = depotDeFusions()
   try {
-    const fait = ceQueFaitLeCommit(lecteurGit(racine, { env: envDeDepotForge() }), resolue)
+    const fait = ceQueFaitLeCommit(forge(racine), resolue)
     assert.deepEqual(fait.chemins(), ['f.txt'])
     assert.match(fait.diff(['f.txt']), /^\+B-resolu$/m)
-    const deBase = fait.texteDeBase('f.txt')
+    const deBase = fait.lirePreImage('f.txt')
     assert.match(deBase, /^<<<<<<< /m, 'la base est la fusion AUTOMATIQUE, marqueurs de conflit compris')
     assert.match(deBase, /^B-main$/m)
     assert.match(deBase, /^B-cote$/m)
-    assert.equal(fait.texteDeBase('g.txt'), 'x\n', 'un fichier que le commit ne touche pas a dans la base son texte du commit')
+    assert.equal(fait.lirePreImage('g.txt'), 'x\n', 'un fichier que le commit ne touche pas a dans la base son texte du commit')
   } finally {
     jeter(racine)
   }
@@ -476,10 +515,34 @@ test('ceQueFaitLeCommit : une fusion qui RÉSOUT un conflit apporte sa résoluti
 test('ceQueFaitLeCommit : une fusion « maléfique » apporte la ligne qu’aucun parent ne porte, et seulement elle', () => {
   const { racine, malefique } = depotDeFusions()
   try {
-    const fait = ceQueFaitLeCommit(lecteurGit(racine, { env: envDeDepotForge() }), malefique)
+    const fait = ceQueFaitLeCommit(forge(racine), malefique)
     assert.deepEqual(fait.chemins(), ['g.txt'])
     assert.deepEqual(fait.diff().split('\n').filter((l) => /^[+-][^+-]/.test(l)), ['+MAL'])
-    assert.equal(fait.texteDeBase('g.txt'), 'x\ny\n')
+    assert.equal(fait.lirePreImage('g.txt'), 'x\ny\n')
+  } finally {
+    jeter(racine)
+  }
+})
+
+test('ceQueFaitLeCommit : la base d’une fusion se lit SANS pilote de fusion ni attribut — aucun processus lancé, rien écrit dans l’arbre', () => {
+  const { racine } = depotDeFusions()
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    writeFileSync(join(racine, '.gitattributes'), 'f.txt merge=pilote\n'); g('add', '.gitattributes'); g('commit', '-q', '-m', 'attributs')
+    g('checkout', '-q', '-b', 'pilotee')
+    writeFileSync(join(racine, 'f.txt'), 'a\nB-pilotee\nc\n'); g('commit', '-q', '-am', 'pilotee : f')
+    g('checkout', '-q', 'main')
+    writeFileSync(join(racine, 'f.txt'), 'a\nB-tronc\nc\n'); g('commit', '-q', '-am', 'tronc : f')
+    try { g('merge', '-q', 'pilotee') } catch { /* conflit attendu, résolu ci-dessous */ }
+    writeFileSync(join(racine, 'f.txt'), 'a\nB-fusion\nc\n'); g('commit', '-q', '-am', 'fusion pilotée')
+    const fusion = g('rev-parse', 'HEAD').trim()
+    const marque = join(racine, 'MARQUE')
+    g('config', 'merge.pilote.driver', `echo JOUE >> '${marque}'; exit 1`)
+    const fait = ceQueFaitLeCommit(forge(racine), fusion)
+    assert.deepEqual(fait.chemins(), ['f.txt'])
+    assert.equal(existsSync(marque), false, 'le pilote de fusion de la configuration a été JOUÉ')
+    assert.deepEqual(listerDossier(racine).filter((n) => n.startsWith('.merge_file_')), [])
+    assert.match(fait.lirePreImage('f.txt'), /^<<<<<<< /m, 'la base est la fusion AUTOMATIQUE de git, sans le pilote')
   } finally {
     jeter(racine)
   }
@@ -495,7 +558,7 @@ test('ceQueFaitLeCommit : une fusion SANS ANCÊTRE COMMUN se lit comme `git show
     writeFileSync(join(racine, 'mal.txt'), 'MAL\n'); g('add', 'mal.txt'); g('commit', '-q', '-m', 'fusion sans ancêtre')
     const fusion = g('rev-parse', 'HEAD').trim()
     const remerge = (...forme) => g('show', '--remerge-diff', '--format=', ...forme, fusion)
-    const fait = ceQueFaitLeCommit(lecteurGit(racine, { env: envDeDepotForge() }), fusion)
+    const fait = ceQueFaitLeCommit(forge(racine), fusion)
     assert.deepEqual(fait.chemins(), remerge('--name-only').split('\n').filter(Boolean))
     assert.deepEqual(fait.chemins(), ['mal.txt'], 'o.txt vient de la fusion automatique, mal.txt de la fusion seule')
     const lignes = (patch) => patch.split('\n').filter((l) => /^[+-][^+-]/.test(l))
@@ -509,32 +572,35 @@ test('ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, 
   const { racine, premier, second, g } = depot()
   try {
     g('mv', 'a.txt', 'b.txt'); g('commit', '-q', '-m', 'trois')
-    const git = lecteurGit(racine, { env: envDeDepotForge() })
-    assert.deepEqual(ceQueFaitLeCommit(git, second).chemins(), ['neuf.txt'])
-    assert.equal(ceQueFaitLeCommit(git, second).texteDeBase('neuf.txt'), null, 'un fichier qui NAÎT est absent de la base')
-    const trois = ceQueFaitLeCommit(git, g('rev-parse', 'HEAD').trim())
+    const d = forge(racine)
+    assert.deepEqual(ceQueFaitLeCommit(d, second).chemins(), ['neuf.txt'])
+    assert.equal(ceQueFaitLeCommit(d, second).lirePreImage('neuf.txt'), null, 'un fichier qui NAÎT est absent de la base')
+    const trois = ceQueFaitLeCommit(d, g('rev-parse', 'HEAD').trim())
     assert.deepEqual(trois.chemins().sort(), ['a.txt', 'b.txt'], '`--no-renames` : les deux bouts')
     assert.deepEqual([...trois.renommages()], [['a.txt', 'b.txt']])
-    assert.equal(trois.texteDeBase('a.txt'), 'a\n')
-    assert.deepEqual(ceQueFaitLeCommit(git, premier).chemins(), ['a.txt'], 'une racine se lit contre l’arbre vide')
+    assert.equal(trois.lirePreImage('a.txt'), 'a\n')
+    assert.deepEqual(ceQueFaitLeCommit(d, premier).chemins(), ['a.txt'], 'une racine se lit contre l’arbre vide')
   } finally {
     jeter(racine)
   }
 })
 
 test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE', () => {
-  const lecteur = (version, parents) => (args) => (args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc ${parents}\n` : args[0] === 'diff' ? 'a.txt\0' : null)
+  const lecteur = (version, parents) => depotFeint(tmpdir(), (args) => {
+    const stdout = args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc ${parents}\n` : args[0] === 'diff-tree' ? '1\t0\ta.txt\0' : null
+    return stdout === null ? { status: 1, stdout: '', stderr: '' } : { status: 0, stdout, stderr: '' }
+  })
   assert.deepEqual(ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1'), 'abc').chemins(), ['a.txt'])
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
   assert.deepEqual(ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc').chemins(), [], 'windows lu ; merge-tree muet : base nulle')
-  assert.deepEqual(ceQueFaitLeCommit(() => null, 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
+  assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
 
 // ── Les lecteurs nommés sur leurs formes rares (#1806, juge des commits 8 et 9, Q7) ─────────────
 
-test('numstatDe : un chemin à TABULATION entier, un binaire en `null` (git réel)', () => {
+test('ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null` (git réel)', () => {
   const T = 'src/f\tg.test.ts'
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   try {
@@ -543,37 +609,28 @@ test('numstatDe : un chemin à TABULATION entier, un binaire en `null` (git rée
     writeFileSync(join(racine, T), 'un\ndeux\n')
     writeFileSync(join(racine, 'image.bin'), Buffer.from([0, 1, 2, 0, 255]))
     g('add', '-A')
-    const git = lecteurGit(racine, { env: envDeDepotForge() })
-    const vu = numstatDe(git, ['diff', '--cached', '--numstat']).sort((x, y) => parUnitesDeCode(x.chemins[0], y.chemins[0]))
+    const d = forge(racine)
+    const vu = ceQuiChange(d, 'HEAD', INDEX).numstat().sort((x, y) => parUnitesDeCode(x.chemins[0], y.chemins[0]))
     assert.deepEqual(vu, [
       { plus: null, moins: null, chemins: ['image.bin'] },
       { plus: 2, moins: 0, chemins: [T] },
     ])
     g('commit', '-q', '-m', 'deux')
     g('mv', T, 'src/h\ti.test.ts')
-    assert.deepEqual(numstatDe(git, ['diff', '--cached', '-M', '--numstat']), [{ plus: 0, moins: 0, chemins: [T, 'src/h\ti.test.ts'] }])
+    assert.deepEqual(ceQuiChange(d, 'HEAD', INDEX).numstat(), [{ plus: 0, moins: 0, chemins: [T, 'src/h\ti.test.ts'] }])
   } finally {
     jeter(racine)
   }
 })
 
-test('nameStatusDe : une COPIE (`C`) porte ses deux chemins, comme un renommage', () => {
-  const git = () => 'C075\0a.txt\0b.txt\0R100\0c.txt\0d.txt\0M\0e.txt\0'
-  assert.deepEqual(nameStatusDe(git, ['diff', '-C', '--name-status']), [
-    { statut: 'C075', chemins: ['a.txt', 'b.txt'] },
-    { statut: 'R100', chemins: ['c.txt', 'd.txt'] },
-    { statut: 'M', chemins: ['e.txt'] },
-  ])
-})
-
-test('etatsDe : un renommage de l’ARBRE (` R`, colonne Y) porte ses deux chemins (git réel, `add -N`)', () => {
+test('etatDeLArbre : un renommage de l’ARBRE (colonne Y) rend ses deux bouts, `status.renames` n’y fait rien (git réel, `add -N`)', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'contenu assez long pour un renommage\n' }, message: 'socle' })
   try {
     const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
     renameSync(join(racine, 'a.txt'), join(racine, 'b.txt'))
     g('add', '-N', 'b.txt')
-    const vu = etatsDe(lecteurGit(racine, { env: envDeDepotForge() }), ['status', '--porcelain'])
-    assert.deepEqual(vu, [{ etat: ' R', chemins: ['b.txt', 'a.txt'] }])
+    const vu = etatDeLArbre(forge(racine))
+    assert.deepEqual(vu, [{ etat: ' D', chemins: ['a.txt'] }, { etat: ' A', chemins: ['b.txt'] }])
   } finally {
     jeter(racine)
   }
@@ -582,10 +639,473 @@ test('etatsDe : un renommage de l’ARBRE (` R`, colonne Y) porte ses deux chemi
 test('eolsDe : un attribut à ESPACES (`attr/text eol=lf`) est lu entier, un enregistrement hors forme LÈVE en se nommant', () => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '*.txt text eol=lf\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {
-    const vu = eolsDe(lecteurGit(racine, { env: envDeDepotForge() }), ['ls-files', '--eol', '--', 'a.txt'])
+    const vu = eolsDe(forge(racine), ['a.txt'])
     assert.deepEqual(vu, [{ index: 'lf', travail: 'lf', attr: 'text eol=lf', chemin: 'a.txt' }])
   } finally {
     jeter(racine)
   }
-  assert.throws(() => eolsDe(() => 'pas une colonne\0', ['ls-files', '--eol']), /git ls-files --eol illisible : « pas une colonne »/)
+  assert.throws(() => eolsDe(depotFeint(tmpdir(), () => ({ status: 0, stdout: 'pas une colonne\0', stderr: '' })), []), /git ls-files --eol illisible : « pas une colonne »/)
+})
+
+/** Les réglages de l'utilisateur qui changent ce que rend une PORCELAINE, mesurés au jugement du lot
+ *  #85 (#1806) : chaque lecteur de l'hôte doit rendre sous eux ce qu'il rend sous une config vide.
+ *  `ATTRIBUTS` et `ORDRE` sont remplacés par des fichiers du dossier de la mesure. */
+const REGLAGES_HOSTILES = [
+  '[color]', '\tui = always', '\tdiff = always', '\tgrep = always', '\tstatus = always',
+  '[diff]', '\texternal = false', '\tnoprefix = true', '\tmnemonicPrefix = true', '\trelative = true',
+  '\tinterHunkContext = 50', '\trenames = copies', '\tindentHeuristic = false', '\talgorithm = patience',
+  '\tsuppressBlankEmpty = true', '\tcontext = 7', '\torderFile = ORDRE',
+  '[diff "tc"]', '\ttextconv = false',
+  '[core]', '\tattributesFile = ATTRIBUTS', '\tquotePath = true',
+  '[log]', '\tshowSignature = true',
+  '[grep]', '\tfullName = true', '\tpatternType = fixed', '\tlineNumber = true',
+  '[status]', '\tshowUntrackedFiles = no', '\trenames = copies',
+  '[merge]', '\tconflictStyle = diff3', '\trenames = false',
+  '[i18n]', '\tlogOutputEncoding = ISO-8859-1',
+]
+
+/** Ce que rend CHAQUE lecteur de l'hôte sur `racine`, lu depuis `cwd`, sous `env`. */
+function toutCeQueLisentLesLecteurs(racine, cwd, env, shas) {
+  const d = depotDe(cwd, { env })
+  const change = (c) => ({ base: c.base, chemins: c.chemins(), ad: c.chemins('AD'), numstat: c.numstat(), diff: c.diff(), diffM: c.diff([], { renommages: true }), renommages: [...c.renommages()], pre: c.lirePreImage('f.txt') })
+  return {
+    fusion: change(ceQueFaitLeCommit(d, shas.resolue)),
+    renommage: change(ceQueFaitLeCommit(d, shas.renomme)),
+    index: change(ceQuiChange(d, 'HEAD', INDEX)),
+    suivi: change(ceQuiChange(d, 'HEAD', SUIVI)),
+    plage: change(ceQuiChange(d, shas.propre, 'HEAD')),
+    journal: journalDe(d, [`${shas.propre}..HEAD`]),
+    grep: ['', '--untracked', '--cached', 'HEAD'].map((p) => fichiersDuGrep(d, p ? [p] : [], 'B-.*', [])),
+    etat: etatDeLArbre(d),
+    images: ['HEAD', INDEX, SUIVI, TRAVAIL].map((a) => listerImage(d, a, '.')),
+    textes: [...lireEnLot(d, 'HEAD', ['f.txt', 'Écran é.txt', 'absent.txt'])],
+    eols: eolsDe(d, ['f.txt', 'Écran é.txt']),
+    vide: arbreVide(d),
+    emporte: change(ceQuEmporteLIndex(d)),
+    shas: [shasDe(d, [`${shas.propre}..HEAD`]), shasDe(d, [`${shas.propre}^..HEAD`], { fusions: true })],
+    comptes: [combienDe(d, [`${shas.propre}..HEAD`]), divergenceDe(d, shas.propre, 'HEAD'), baseCommune(d, shas.propre, 'HEAD')],
+    refs: [shaDe(d, 'HEAD'), shaDe(d, 'HEAD', { court: true }), brancheDe(d), branchesDe(d)?.map((b) => b.nom)],
+    lieux: [racineDe(d), cheminGit(d, 'rebase-merge'), origineDe(d), dossierDesHooks(d), estSuperficiel(d)],
+    ignore: [estIgnore(d, 'sous/neuf.txt'), cheminsEnConflit(d)],
+    worktrees: worktreesDe(d)?.map((w) => [w.branche, w.principal]),
+    racine: relative(racine, cwd),
+  }
+}
+
+test('config HOSTILE : chaque lecteur de l’hôte rend sous les réglages de l’utilisateur ce qu’il rend sous une config vide', () => {
+  const { racine, resolue, propre } = depotDeFusions()
+  const mesure = mkdtempSync(join(tmpdir(), 'config-hostile-'))
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    writeFileSync(join(racine, 'r.txt'), 'une ligne assez longue pour qu’un renommage se détecte\n')
+    writeFileSync(join(racine, 'Écran é.txt'), 'é\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'pose')
+    g('mv', 'r.txt', 'r2.txt'); g('commit', '-q', '-m', 'renommé, déplacé')
+    const renomme = g('rev-parse', 'HEAD').trim()
+    writeFileSync(join(racine, 'g.txt'), 'x\ny\nMAL\nindexé\n'); g('add', 'g.txt')
+    writeFileSync(join(racine, 'x.txt'), 'x\ntravail\n')
+    mkdirSync(join(racine, 'sous'))
+    writeFileSync(join(racine, 'sous', 'neuf.txt'), 'B-neuf\n')
+    writeFileSync(join(mesure, 'attributs'), '* diff=tc\n')
+    writeFileSync(join(mesure, 'ordre'), 'x.txt\n')
+    const hostile = join(mesure, 'hostile.gitconfig')
+    writeFileSync(hostile, `${REGLAGES_HOSTILES.join('\n').replace('ATTRIBUTS', join(mesure, 'attributs').replace(/\\/g, '/')).replace('ORDRE', join(mesure, 'ordre').replace(/\\/g, '/'))}\n`)
+    const shas = { resolue, propre, renomme }
+    for (const cwd of [racine, join(racine, 'sous')]) {
+      const vide = toutCeQueLisentLesLecteurs(racine, cwd, envDeDepotForge(), shas)
+      const sous = toutCeQueLisentLesLecteurs(racine, cwd, { ...envDeDepotForge(), GIT_CONFIG_GLOBAL: hostile }, shas)
+      assert.deepEqual(sous, vide, `depuis ${relative(racine, cwd) || '.'}`)
+      assert.match(vide.fusion.pre, /^<<<<<<< [^\n]*\nB-main\n=======\nB-cote\n>>>>>>> /m, 'la base d’une fusion en conflit : le style `merge`')
+      assert.match(vide.suivi.diff, /^\+\+\+ b\/x\.txt$/m, 'les préfixes a/ b/ du patch')
+      assert.match(vide.plage.diff, /^\+\+\+ b\/Écran é\.txt\t?$/m, 'un chemin non-ASCII en clair dans le patch')
+      assert.deepEqual(vide.journal.at(-1).message, 'renommé, déplacé\n', 'le message en UTF-8')
+      assert.ok(vide.etat.some((e) => e.etat === '??' && e.chemins[0] === 'sous/neuf.txt'), 'le non-suivi est dans l’état')
+    }
+    assert.ok(g('-c', `include.path=${hostile}`, 'grep', '-l', '-e', 'B-').includes('\u001b['), 'témoin : la porcelaine, elle, se colore sous ces réglages')
+  } finally {
+    jeter(racine)
+    jeter(mesure)
+  }
+})
+
+// ── Les ÉCRIVAINS : la configuration de l'utilisateur fait foi (#1806, juge du lot #85, H2 point 5) ──
+
+/** Un dépôt ESPION : chaque argv reçu par git est journalisé dans `vus`, et git répond 0 à vide. */
+function espion() {
+  const vus = []
+  const d = depotDe(tmpdir(), { spawn: (_git, args) => { vus.push(args); return { status: 0, stdout: '', stderr: '' } } })
+  return { d, vus }
+}
+
+test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de l’hôte, aucun geste forçant', () => {
+  const { d, vus } = espion()
+  const ecrivains = [
+    ['fetchOrigin', () => fetchOrigin(d), [['fetch', '--quiet', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']]],
+    ['approfondir', () => approfondir(d), [['fetch', '--unshallow', 'origin']]],
+    ['initialiserDepot', () => initialiserDepot(d, { branche: 'main' }), [['init', '-q', '-b', 'main']]],
+    ['reglerDepot', () => reglerDepot(d, 'user.name', 'x'), [['config', '--local', '--', 'user.name', 'x']]],
+    ['ajouterOrigine', () => ajouterOrigine(d, '/o'), [['remote', 'add', '--', 'origin', '/o']]],
+    ['poserRef', () => poserRef(d, 'refs/x', 'abc'), [['update-ref', '--', 'refs/x', 'abc']]],
+    // `a.txt` est absent du disque de l'espion : `commitDe` demande d'abord à l'INDEX s'il y nomme un répertoire.
+    ['commitDe', () => commitDe(d, { message: 'm', chemins: ['a.txt'] }), [[...OPTIONS_DE_L_HOTE, 'ls-files', '-z', '--cached', '--', 'a.txt'], ['--literal-pathspecs', 'add', '--', 'a.txt'], ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', 'a.txt']]],
+    ['commitDe vide', () => commitDe(d, { message: 'm', chemins: [], vide: true }), [['commit', '-q', '--allow-empty', '--only', '-F', '-']]],
+    ['rebaser', () => rebaser(d, 'origin/main'), [['rebase', 'origin/main']]],
+    ['abandonnerRebase', () => abandonnerRebase(d), [['rebase', '--abort']]],
+    ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
+    ['pousser ff', () => pousser(d, { vers: 'main' }), [['push', 'origin', 'HEAD:main']]],
+    ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
+    ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
+    ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
+    ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],
+  ]
+  for (const [nom, ecrire, argv] of ecrivains) {
+    vus.length = 0
+    assert.equal(reussi(ecrire()), true, nom)
+    assert.deepEqual(vus, argv, nom)
+  }
+})
+
+test('commitDe : sans `chemins`, ou à chemins vides hors `vide`, LÈVE avant tout spawn — ni `add -A`, ni commit de tout l’index', () => {
+  const { d, vus } = espion()
+  for (const p of [{ message: 'm' }, { message: 'm', chemins: null }, { message: 'm', chemins: [] }, { message: 'm', vide: true }]) {
+    assert.throws(() => commitDe(d, p), /commitDe : un commit porte des `chemins` explicites/, JSON.stringify(p))
+  }
+  assert.deepEqual(vus, [])
+})
+
+test('commitDe : un chemin qui n’est pas un FICHIER — `.`, `:/`, `*`, un répertoire (sur le disque ou supprimé), `…/` — ne committe jamais l’arbre ; `vide` ne committe pas l’index', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', 'src/x.ts': 'x\n' }, message: 'socle' })
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const vus = []
+    const d = depotDe(racine, { env: envDeDepotForge(), spawn: (git, args, o) => { vus.push(args); return spawnSync(git, args, o) } })
+    const fichiersDeTete = () => g('show', '--name-only', '--format=', 'HEAD').split('\n').filter(Boolean)
+    for (const chemins of [['.'], [':/'], ['src'], ['src/'], [''], ['a.txt', 'src']]) {
+      assert.throws(() => commitDe(d, { message: 'm', chemins }), /commitDe : un chemin nomme un FICHIER/, JSON.stringify(chemins))
+    }
+    assert.deepEqual(vus, [], 'aucun spawn avant le refus')
+    writeFileSync(join(racine, 'a.txt'), 'a2\n')
+    writeFileSync(join(racine, 'non-suivi-secret.txt'), 's\n')
+    const tete = g('rev-parse', 'HEAD')
+    for (const motif of ['*', '?.txt']) {
+      const vu = commitDe(d, { message: 'motif', chemins: [motif] })
+      assert.equal(reussi(vu), false, `${motif} est un NOM de fichier, absent : rien n’est stagé`)
+      assert.equal(g('rev-parse', 'HEAD'), tete, motif)
+    }
+    assert.equal(g('diff', '--cached', '--name-only'), '', 'l’index est intact')
+    g('add', 'a.txt')
+    assert.equal(reussi(commitDe(d, { message: 'vide\n', chemins: [], vide: true })), true)
+    assert.deepEqual(fichiersDeTete(), [], 'le commit `vide` n’emporte pas l’index chargé')
+    assert.equal(g('diff', '--cached', '--name-only'), 'a.txt', 'l’index reste chargé')
+    rmSync(join(racine, 'src'), { recursive: true })
+    const avantRepertoire = g('rev-parse', 'HEAD')
+    assert.throws(() => commitDe(d, { message: 'm', chemins: ['src'] }), /commitDe : un chemin nomme un FICHIER.*\["src"\]/, 'un répertoire SUPPRIMÉ du disque reste un répertoire de l’index')
+    assert.equal(g('rev-parse', 'HEAD'), avantRepertoire)
+    assert.equal(g('diff', '--cached', '--name-only'), 'a.txt', 'rien n’est stagé du répertoire')
+    rmSync(join(racine, 'a.txt'))
+    assert.equal(reussi(commitDe(d, { message: 'suppression\n', chemins: ['a.txt'] })), true, 'témoin : un FICHIER supprimé du disque, entrée exacte de l’index, se committe')
+    assert.deepEqual(fichiersDeTete(), ['a.txt'])
+  } finally {
+    jeter(racine)
+  }
+})
+
+test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le commit et le rebase', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  const mesure = mkdtempSync(join(tmpdir(), 'ecrivain-hostile-'))
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    g('config', '--local', '--unset', 'user.name')
+    g('config', '--local', '--unset', 'user.email')
+    const globale = join(mesure, 'globale.gitconfig')
+    writeFileSync(globale, `${REGLAGES_HOSTILES.filter((l) => !/ATTRIBUTS|ORDRE/.test(l)).join('\n')}\n[user]\n\tname = Utilisatrice Hostile\n\temail = hostile@example.invalid\n[commit]\n\tgpgsign = false\n`)
+    const d = depotDe(racine, { env: envDeLUtilisatrice(globale) })
+    writeFileSync(join(racine, 'a.txt'), 'a2\n')
+    assert.equal(reussi(commitDe(d, { message: 'deux\n', chemins: ['a.txt'] })), true)
+    assert.equal(g('log', '-1', '--format=%an <%ae>|%s'), 'Utilisatrice Hostile <hostile@example.invalid>|deux')
+    g('branch', 'b', 'HEAD~1')
+    g('checkout', '-q', 'b')
+    writeFileSync(join(racine, 'b.txt'), 'b\n')
+    assert.equal(reussi(commitDe(d, { message: 'b\n', chemins: ['b.txt'] })), true)
+    assert.equal(reussi(rebaser(d, 'main')), true)
+    assert.equal(g('log', '-1', '--format=%cn|%s'), 'Utilisatrice Hostile|b', 'le rebase réécrit sous l’identité de l’utilisatrice')
+    assert.equal(g('rev-parse', 'HEAD~1'), g('rev-parse', 'main'))
+  } finally {
+    jeter(racine)
+    jeter(mesure)
+  }
+})
+
+test('pousser : `--force-with-lease` vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms', () => {
+  const d = depotDe(tmpdir(), { spawn: () => assert.fail('aucun git ne doit partir') })
+  for (const vers of ['main', 'refs/heads/main']) assert.throws(() => pousser(d, { vers, bail: true }), /main n’entre qu’en fast-forward/)
+})
+
+test('fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'fusion-textes-'))
+  try {
+    const poser = (nom, texte) => { writeFileSync(join(dossier, nom), texte); return join(dossier, nom) }
+    const labels = { ours: 'nous', base: 'base', theirs: 'eux' }
+    const propre = fusionDeTextes(depotDe(dossier), { ours: poser('o', 'a\nB\nc\n'), base: poser('b', 'a\nb\nc\n'), theirs: poser('t', 'a\nb\nc\n') }, labels)
+    assert.deepEqual(propre, { texte: 'a\nB\nc\n', conflit: false })
+    const conflit = fusionDeTextes(depotDe(dossier), { ours: poser('o', 'a\nX\nc\n'), base: poser('b', 'a\nb\nc\n'), theirs: poser('t', 'a\nY\nc\n') }, labels)
+    assert.equal(conflit.conflit, true)
+    assert.match(conflit.texte, /^<<<<<<< nous\nX\n=======\nY\n>>>>>>> eux$/m)
+  } finally {
+    jeter(dossier)
+  }
+})
+
+// ── Les BORNES : ni drapeau, ni absence confondue avec le vide (#1806) ──────────────────────────
+
+/** Chaque question et chaque écrivain de l'hôte à qui l'on passe `b` pour révision, ref, nom ou
+ *  chemin positionnel. */
+const gestesALaBorne = (d, b) => ({
+  shasDe: () => shasDe(d, [b]),
+  journalDe: () => journalDe(d, [b]),
+  combienDe: () => combienDe(d, [b]),
+  divergenceDe: () => divergenceDe(d, b, 'HEAD'),
+  baseCommune: () => baseCommune(d, b, 'HEAD'),
+  shaDe: () => shaDe(d, b),
+  estAncetre: () => estAncetre(d, b, 'HEAD'),
+  estDansHead: () => estDansHead(d, b),
+  'ceQuiChange avant': () => ceQuiChange(d, b, 'HEAD'),
+  'ceQuiChange apres': () => ceQuiChange(d, 'HEAD', b),
+  'ceQuiChange INDEX': () => ceQuiChange(d, b, INDEX),
+  'ceQuiChange SUIVI': () => ceQuiChange(d, b, SUIVI),
+  ceQueFaitLeCommit: () => ceQueFaitLeCommit(d, b),
+  listerImage: () => listerImage(d, b),
+  lireEnLot: () => lireEnLot(d, b, ['a.txt']),
+  fichiersDuGrep: () => fichiersDuGrep(d, [b], 'a', []),
+  initialiserDepot: () => initialiserDepot(d, { branche: b }),
+  reglerDepot: () => reglerDepot(d, b, 'x'),
+  poserRef: () => poserRef(d, b, 'HEAD'),
+  'poserRef sha': () => poserRef(d, 'refs/x', b),
+  rebaser: () => rebaser(d, b),
+  'ajouterWorktree branche': () => ajouterWorktree(d, { chemin: '/w', branche: b, depuis: 'HEAD' }),
+  'ajouterWorktree depuis': () => ajouterWorktree(d, { chemin: '/w', branche: 'x', depuis: b }),
+  supprimerBranche: () => supprimerBranche(d, b),
+  pousser: () => pousser(d, { vers: b }),
+  fetchOrigin: () => fetchOrigin(d, { branche: b }),
+})
+
+test('une BORNE qui commence par `-` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git', () => {
+  const { racine } = depot()
+  try {
+    const argv = []
+    const d = depotDe(racine, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args); return spawnSync(git, args, o) } })
+    for (const [nom, geste] of Object.entries(gestesALaBorne(d, '--output=/dev/null'))) {
+      argv.length = 0
+      assert.throws(geste, /ni vide ni un drapeau|portée « --output=\/dev\/null » inconnue/, nom)
+      assert.ok(argv.every((a) => !a.includes('--output=/dev/null')), `${nom} : « git ${argv.at(-1)?.join(' ')} »`)
+    }
+  } finally { jeter(racine) }
+})
+
+test('une BORNE à caractère de CONTRÔLE ou à `@{` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git', () => {
+  const { racine } = depot()
+  try {
+    const argv = []
+    const d = depotDe(racine, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args); return spawnSync(git, args, o) } })
+    for (const borne of [`HEAD\n${'f'.repeat(40)}`, 'HEAD\r', 'HEAD\0', 'main@{upstream}', 'HEAD@{0}']) {
+      for (const [nom, geste] of Object.entries(gestesALaBorne(d, borne))) {
+        argv.length = 0
+        assert.throws(geste, /caractère de contrôle ou `@\{`|portée « [^»]* » inconnue/s, `${nom} ${JSON.stringify(borne)}`)
+        assert.ok(argv.every((a) => !a.some((x) => x.includes(borne))), `${nom} : « git ${argv.at(-1)?.join(' ')} »`)
+      }
+    }
+  } finally { jeter(racine) }
+})
+
+test('un CHEMIN à caractère de CONTRÔLE est REFUSÉ par `lireEnLot` avant d’atteindre git : il lirait un autre objet que le fichier', () => {
+  const { racine } = depot()
+  try {
+    const entrees = []
+    const d = depotDe(racine, { env: envDeDepotForge(), spawn: (git, args, o) => { entrees.push(o.input); return spawnSync(git, args, o) } })
+    assert.equal(lireEnLot(d, 'HEAD', ['a.txt']).get('a.txt'), 'a\n', 'témoin : un chemin sain se lit')
+    for (const arbre of ['HEAD', INDEX]) {
+      for (const rel of ['nope\nHEAD', 'a.txt\r', 'a\0.txt', 'a\x7f', 'a\t.txt']) {
+        entrees.length = 0
+        assert.throws(() => lireEnLot(d, arbre, [rel, 'a.txt']), /lireEnLot : un chemin tient sur une ligne du lot/, `${arbre} ${JSON.stringify(rel)}`)
+        assert.deepEqual(entrees, [], `${arbre} ${JSON.stringify(rel)} : aucun spawn`)
+      }
+    }
+  } finally { jeter(racine) }
+})
+
+test('un `{ cwd }` écrit à la main n’est pas un dépôt : chaque question LÈVE `TypeError` à l’exécution', () => {
+  const { racine } = depot()
+  try {
+    assert.equal(typeof racineDe(depotDe(racine, { env: envDeDepotForge() })), 'string', 'témoin : la poignée de `depotDe` répond')
+    for (const faux of [{ cwd: racine }, Object.freeze({ cwd: racine }), null])
+      assert.throws(() => racineDe(faux), (e) => e instanceof TypeError && /un dépôt se construit par `depotDe\(cwd\)`/.test(e.message), JSON.stringify(faux))
+  } finally { jeter(racine) }
+})
+
+test('un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndisponible` nommée, jamais une absence ni `BorneAbsente`', () => {
+  for (const [quoi, cible] of [['commit de tête', 'HEAD'], ['arbre de tête', 'HEAD^{tree}']]) {
+    const { racine, premier, g } = depot()
+    try {
+      const d = forge(racine)
+      const blob = g('rev-parse', 'HEAD:a.txt').trim()
+      assert.throws(() => listerImage(d, blob), (e) => e.name === 'BorneAbsente', 'témoin : un blob n’est pas un arbre, c’est une absence')
+      const sha = g('rev-parse', cible).trim()
+      rmSync(join(racine, '.git', 'objects', sha.slice(0, 2), sha.slice(2)), { force: true })
+      const questions = {
+        listerImage: () => listerImage(d, 'main'),
+        'ceQuiChange(…).chemins': () => ceQuiChange(d, premier, 'main').chemins(),
+        fichiersDuGrep: () => fichiersDuGrep(d, ['main'], 'a', []),
+        ...(cible === 'HEAD' ? {
+          shaDe: () => shaDe(d, 'main'),
+          baseCommune: () => baseCommune(d, premier, 'main'),
+          divergenceDe: () => divergenceDe(d, premier, 'main'),
+          combienDe: () => combienDe(d, [`${premier}..main`]),
+          shasDe: () => shasDe(d, [`${premier}..main`]),
+          journalDe: () => journalDe(d, [`${premier}..main`]),
+          estDansHead: () => estDansHead(d, premier),
+        } : {}),
+      }
+      for (const [nom, question] of Object.entries(questions))
+        assert.throws(question, (e) => e instanceof GitIndisponible && /dépôt corrompu : (main|HEAD) → [0-9a-f]{40}(\^\{\}\^\{tree\})? manquant|unable to read tree/.test(e.raison), `${quoi} — ${nom}`)
+      const pannes = []
+      const confie = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
+      assert.deepEqual(listerImage(confie, 'main'), [], `${quoi} : sous \`enPanne\`, la panne est confiée`)
+      assert.match(pannes.join('\n'), /dépôt corrompu : main/, quoi)
+    } finally { jeter(racine) }
+  }
+})
+
+test('une ÉTIQUETTE annotée dont le commit cible MANQUE : `GitIndisponible` nommée, sous son nom comme sous `^{commit}`, `~n` et `^n`', () => {
+  const { racine, g } = depot()
+  try {
+    const d = forge(racine)
+    g('commit', '-q', '--allow-empty', '-m', 'trois')
+    g('tag', '-a', 'v1', '-m', 'etiquette')
+    assert.deepEqual(listerImage(d, 'v1'), ['a.txt', 'neuf.txt'], 'témoin : une étiquette intacte se lit')
+    const cible = g('rev-parse', 'HEAD').trim()
+    g('reset', '-q', '--soft', 'HEAD~1')
+    rmSync(join(racine, '.git', 'objects', cible.slice(0, 2), cible.slice(2)))
+    const questions = {
+      listerImage: () => listerImage(d, 'v1'),
+      'ceQuiChange(…).chemins': () => ceQuiChange(d, 'HEAD', 'v1').chemins(),
+      'shaDe v1^{commit}': () => shaDe(d, 'v1^{commit}'),
+      'shaDe v1~1': () => shaDe(d, 'v1~1'),
+      'shaDe v1^1': () => shaDe(d, 'v1^1'),
+      baseCommune: () => baseCommune(d, 'HEAD', 'v1'),
+    }
+    for (const [nom, question] of Object.entries(questions))
+      assert.throws(question, (e) => e instanceof GitIndisponible && /dépôt corrompu : v1 → [0-9a-f]{40}\^\{\} manquant/.test(e.raison), nom)
+  } finally { jeter(racine) }
+})
+
+test('un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit comme un chemin, jamais comme une option', () => {
+  const { d, vus } = espion()
+  const gestes = {
+    retirerWorktree: [() => retirerWorktree(d, '-f'), ['worktree', 'remove', '--', '-f']],
+    ajouterWorktree: [() => ajouterWorktree(d, { chemin: '-f', branche: 'b', depuis: 'HEAD' }), ['worktree', 'add', '-b', 'b', '--', '-f', 'HEAD']],
+    ajouterOrigine: [() => ajouterOrigine(d, '-u'), ['remote', 'add', '--', 'origin', '-u']],
+    commitDe: [() => commitDe(d, { message: 'm', chemins: ['-A'] }), ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', '-A']],
+    fusionDeTextes: [() => fusionDeTextes(d, { ours: '-o', base: '-b', theirs: '-t' }, { ours: 'o', base: 'b', theirs: 't' }), ['merge-file', '-p', '-L', 'o', '-L', 'b', '-L', 't', '--', '-o', '-b', '-t']],
+    estIgnore: [() => estIgnore(d, '-v'), ['check-ignore', '-q', '--', '-v']],
+    eolsDe: [() => eolsDe(d, ['-z']), ['ls-files', '-z', '--eol', '--cached', '--', '-z']],
+  }
+  for (const [nom, [geste, attendu]] of Object.entries(gestes)) {
+    vus.length = 0
+    geste()
+    assert.deepEqual(vus.at(-1).slice(vus.at(-1)[0] === '-c' ? OPTIONS_DE_L_HOTE.length : 0), attendu, nom)
+  }
+})
+
+test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le porte, `BorneAbsente` levée pour une collection — jamais le vide', () => {
+  const { racine } = depot()
+  try {
+    const pannes = []
+    const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
+    const F = 'f'.repeat(40)
+    const attendus = {
+      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null,
+      estAncetre: { disponible: true, absent: true }, estDansHead: false,
+    }
+    const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|rebaser|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
+    assert.equal(questions.length, 16)
+    for (const [nom, question] of questions) {
+      if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
+      else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)
+    }
+    assert.deepEqual(pannes, [], 'une borne absente n’est pas une panne')
+    assert.deepEqual(listerImage(d, 'HEAD'), ['a.txt', 'neuf.txt'], 'témoin : une borne présente se lit')
+    assert.deepEqual(lireEnLot(d, 'HEAD', ['jamais.txt']).get('jamais.txt'), null, 'témoin : un chemin absent d’une borne présente est un fait')
+  } finally { jeter(racine) }
+})
+
+// ── Oracles de VALEUR des questions, sur dépôt forgé (#1806) ─────────────────────────────────
+
+test('divergenceDe, combienDe, branchesDe, journalDe : les VALEURS — la gauche en RETARD, la droite en AVANCE, message sur plusieurs lignes', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const d = forge(racine)
+    g('checkout', '-q', '-b', 'cote')
+    for (const f of ['b', 'c']) { writeFileSync(join(racine, f), `${f}\n`); g('add', f); g('commit', '-q', '-m', `sujet ${f}\n\ncorps ${f}\nsuite ${f}`) }
+    g('checkout', '-q', 'main')
+    writeFileSync(join(racine, 'm'), 'm\n'); g('add', 'm'); g('commit', '-q', '-m', 'tronc')
+    assert.deepEqual(divergenceDe(d, 'main', 'cote'), { avance: 2, retard: 1 })
+    assert.deepEqual(divergenceDe(d, 'cote', 'main'), { avance: 1, retard: 2 })
+    assert.equal(combienDe(d, ['main..cote']), 2)
+    assert.deepEqual(journalDe(d, ['main..cote']).map((c) => c.message), ['sujet b\n\ncorps b\nsuite b\n', 'sujet c\n\ncorps c\nsuite c\n'])
+    const branches = branchesDe(d)
+    assert.deepEqual(branches.map((b) => b.nom), ['cote', 'main'])
+    for (const b of branches) {
+      assert.equal(b.sha, g('rev-parse', b.nom))
+      assert.equal(b.dernierCommitISO, g('log', '-1', '--format=%cI', b.nom))
+      assert.match(b.dernierCommitISO, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/)
+    }
+  } finally { jeter(racine) }
+})
+
+test('branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend les mêmes valeurs', () => {
+  const sha = 'a'.repeat(40)
+  const reponses = {
+    'for-each-ref': `main\u00002026-09-14T09:12:33+02:00\u0000${sha}\r\ncote\u00002026-09-01T18:00:00+02:00\u0000${sha}\r\n`,
+    'rev-list --left-right': '17\t1\r\n',
+    'rev-list --count': '3\r\n',
+  }
+  const d = depotFeint(tmpdir(), (args) => ({ status: 0, stderr: '', stdout: reponses[`${args[0]} ${args[1]}`] ?? reponses[args[0]] }))
+  assert.deepEqual(branchesDe(d), [
+    { nom: 'main', dernierCommitISO: '2026-09-14T09:12:33+02:00', sha },
+    { nom: 'cote', dernierCommitISO: '2026-09-01T18:00:00+02:00', sha },
+  ])
+  assert.deepEqual(divergenceDe(d, 'main', 'cote'), { retard: 17, avance: 1 })
+  assert.equal(combienDe(d, ['main..cote']), 3)
+})
+
+test('estSuperficiel, dossierDesHooks, estIgnore, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé', () => {
+  const origine = 'https://github.com/cgauche/game.git'
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', '.gitignore': '*.log\n' }, origin: origine })
+  const clone = mkdtempSync(join(tmpdir(), 'superficiel-'))
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const d = forge(racine)
+    assert.equal(estSuperficiel(d), false)
+    assert.equal(dossierDesHooks(d), 'hooks-absents')
+    assert.deepEqual([estIgnore(d, 'x.log'), estIgnore(d, 'a.txt')], [true, false])
+    assert.equal(cheminGit(d, 'rebase-merge'), '.git/rebase-merge')
+    assert.equal(brancheDe(d), 'main')
+    assert.equal(racineDe(d), g('rev-parse', '--show-toplevel'))
+    assert.equal(origineDe(d), origine)
+    g('checkout', '-q', '--detach')
+    g('config', '--local', '--unset', 'core.hooksPath')
+    g('remote', 'remove', 'origin')
+    assert.deepEqual([brancheDe(d), dossierDesHooks(d), origineDe(d)], [null, null, null])
+    execFileSync('git', ['clone', '-q', '--depth', '1', `file://${racine}`, join(clone, 'c')], { env: envDeDepotForge(), stdio: 'ignore' })
+    assert.equal(estSuperficiel(forge(join(clone, 'c'))), true)
+  } finally {
+    jeter(racine)
+    jeter(clone)
+  }
+})
+
+test('#1803 : `dossierDesHooks` ne lit que stdout — sous un bruit stderr, les hooks vivants se lisent vivants', () => {
+  const d = depotFeint(tmpdir(), () => ({ status: 0, stdout: 'scripts/git-hooks\n', stderr: 'warning: bruit\n' }))
+  assert.equal(dossierDesHooks(d), 'scripts/git-hooks')
 })

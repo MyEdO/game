@@ -16,7 +16,7 @@
 // est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
 // qu'il n'a pas pu poser, il le NOMME sur sa sortie, qui entre au contexte de la session.
 import { spawnSync } from 'node:child_process'
-import { lireGit } from '../guards/lib/gitPorte.mjs'
+import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { fileURLToPath } from 'node:url'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
@@ -49,13 +49,15 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** `git <args>` par l'hôte des lectures git (`lireGit`), rendu dans la forme de `lancer`. */
-export function lancerGit(args, { budget = BUDGET_CONSTAT, cwd } = {}) {
-  const vu = lireGit(args, { cwd, timeout: budget * 1000 })
+/** Les GESTES au dépôt des prérequis — deux questions et un écrivain —, ceux de l'hôte (`gitPorte.mjs`) : injectables (mesure). */
+export const GESTES_DU_CONTENEUR = Object.freeze({ estSuperficiel, dossierDesHooks, approfondir })
+
+/** L'union d'un écrivain de l'hôte, rendue dans la forme de `lancer`. */
+export function renduDeGit(vu) {
   if (!vu.disponible) return { ok: false, valeur: '', rapport: borner(vu.raison) }
-  if (vu.absent) return { ok: false, valeur: '', rapport: `objet absent : git ${args.join(' ')}` }
-  const { status, stdout, stderr } = vu.valeur
-  return { ok: status === 0, valeur: stdout.trim(), rapport: borner(`${stdout}${stderr}`.trim()) }
+  if (vu.absent) return { ok: false, valeur: '', rapport: 'objet absent' }
+  const { stdout, stderr } = vu.valeur
+  return { ok: reussi(vu), valeur: stdout.trim(), rapport: borner(`${stdout}${stderr}`.trim()) }
 }
 
 /** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE, `poser` agit :
@@ -66,10 +68,8 @@ export const PREREQUIS = [
     // Le conteneur clone à une profondeur bornée (50 commits mesurés). Dix gardes de `test:hooks`
     // LISENT l'histoire — `fermetures-sans-solde`, `soldes-stock`, `stocks-nominatifs`,
     // `segments-profonds` — et refusent NOMMÉMENT un dépôt superficiel.
-    manque: ({ racine, git }) =>
-      git(['rev-parse', '--is-shallow-repository'], { cwd: racine }).valeur === 'true',
-    poser: ({ racine, git, budget }) =>
-      git(['fetch', '--unshallow', 'origin'], { cwd: racine, budget }),
+    manque: ({ depot, gestes }) => gestes.estSuperficiel(depot) === true,
+    poser: ({ depot, gestes, budget }) => renduDeGit(gestes.approfondir(depot, { timeout: budget * 1000 })),
     geste: 'git fetch --unshallow origin',
     budget: 90,
   },
@@ -77,8 +77,7 @@ export const PREREQUIS = [
     nom: 'hooks git du dépôt',
     // Le script `postinstall` de `package.json` pose `core.hooksPath` et les trois pilotes de
     // fusion des docs dérivés ; sans lui, aucune garde de commit ne joue.
-    manque: ({ racine, git }) =>
-      git(['config', 'core.hooksPath'], { cwd: racine }).valeur !== 'scripts/git-hooks',
+    manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
     poser: ({ racine, run, budget }) =>
       run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
     geste: 'npm install',
@@ -112,7 +111,13 @@ export const BUDGET_TOTAL = PREREQUIS.reduce((somme, p) => somme + p.budget + BU
 export function mettreEnConformite(contexte, prerequis = PREREQUIS) {
   const lignes = []
   for (const p of prerequis) {
-    if (!p.manque(contexte)) continue
+    const pannes = contexte.pannes?.length ?? 0
+    const manque = p.manque(contexte)
+    if (contexte.pannes?.length > pannes) {
+      lignes.push(`[conteneur] ${p.nom} : NON MESURÉ, git indisponible — ${borner(contexte.pannes.at(-1))}`)
+      continue
+    }
+    if (!manque) continue
     const vu = p.poser({ ...contexte, budget: p.budget })
     lignes.push(
       vu.ok
@@ -123,9 +128,12 @@ export function mettreEnConformite(contexte, prerequis = PREREQUIS) {
   return lignes
 }
 
-export function bootstrap(env = process.env, racine = process.cwd(), run = lancer, git = lancerGit) {
+/** Le hook n'échoue JAMAIS la session : une panne de git s'y NOMME (`pannes`), et le prérequis qu'elle
+ *  empêche de mesurer n'est pas posé. */
+export function bootstrap(env = process.env, racine = process.cwd(), run = lancer, gestes = GESTES_DU_CONTENEUR) {
   if (!estConteneurDistant(env)) return []
-  return mettreEnConformite({ racine, run, git })
+  const pannes = []
+  return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

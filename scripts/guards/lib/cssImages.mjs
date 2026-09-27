@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { CHEMIN_TSCONFIG, aliasDe, directImportsOf, estModule, pathspecsDeModules } from './importGraph.mjs'
-import { INDEX, SUIVI, TRAVAIL, fichiersDuGrep, lecteurGit, lireEnLot, listerImage, nameStatusDe } from './gitPorte.mjs'
+import { INDEX, SUIVI, TRAVAIL, ceQuiChange, depotDe, fichiersDuGrep, lireEnLot, listerImage, shaDe } from './gitPorte.mjs'
 import { entreesEcrites } from './stock.mjs'
 import {
   CHEMIN_COUCHES, CHEMIN_MANIFESTE, RACINE_DES_MODULES, feuillesPartageesDe, fichiersReutilises,
@@ -112,25 +112,23 @@ export function imageCss(source, options) {
 
 /**
  * Une source lue par git dans `cwd` : `arbre` = une ref, `INDEX`, `SUIVI` ou `TRAVAIL` (`gitPorte.mjs`),
- * ces deux derniers lus sur le disque. `git` (args,
- * `{ entree }` → sortie, `null` = objet absent) est le lecteur de l'appelant ; par défaut `lecteurGit`,
- * dont une indisponibilité LÈVE (`GitIndisponible`) : une image vide jugerait sur rien.
- * @param {{ cwd?: string, arbre: string, git?: (args: string[], opts?: { entree?: string }) => string | null }} p
+ * ces deux derniers lus sur le disque. `depot` (`depotDe`) est le dépôt de l'appelant ; par défaut
+ * `depotDe(cwd)`, dont une indisponibilité LÈVE (`GitIndisponible`) : une image vide jugerait sur rien.
+ * @param {{ cwd?: string, arbre: string, depot?: import('./gitPorte.mjs').Depot }} p
  */
-export function sourceGit({ cwd = process.cwd(), arbre, git }) {
-  const lire = git ?? lecteurGit(cwd)
+export function sourceGit({ cwd = process.cwd(), arbre, depot = depotDe(cwd) }) {
   const disque = arbre === SUIVI || arbre === TRAVAIL
   const portee = arbre === INDEX ? ['--cached'] : arbre === SUIVI ? [] : arbre === TRAVAIL ? ['--untracked'] : [arbre]
   return {
-    existe: () => arbre === INDEX || disque || lire(['rev-parse', '--verify', '--quiet', `${arbre}^{commit}`]) !== null,
-    lister: (dossier) => listerImage(lire, arbre, dossier),
+    existe: () => arbre === INDEX || disque || shaDe(depot, arbre) !== null,
+    lister: (dossier) => listerImage(depot, arbre, dossier),
     lire: disque
       ? (rel) => lireDuTravail(cwd, rel)
-      : (rel) => lire(['show', `${arbre === INDEX ? '' : arbre}:${rel}`]),
+      : (rel) => lireEnLot(depot, arbre, [rel]).get(rel) ?? null,
     lireTout: disque
       ? (rels) => new Map(rels.map((rel) => [rel, lireDuTravail(cwd, rel)]))
-      : (rels) => lireEnLot(lire, arbre, rels),
-    citants: (motif) => fichiersDuGrep(lire, portee, motif, pathspecsDeModules(RACINE_DES_SOURCES)),
+      : (rels) => lireEnLot(depot, arbre, rels),
+    citants: (motif) => fichiersDuGrep(depot, portee, motif, pathspecsDeModules(RACINE_DES_SOURCES)),
   }
 }
 
@@ -161,16 +159,6 @@ export function lireDuTravail(cwd, rel) {
   }
 }
 
-/**
- * La carte des RENOMMAGES (chemin avant ↦ chemin après) que git détecte (`-M`, statut R) dans `args` — les
- * bornes d'un `git diff` (`['HEAD']`, `['--cached']`, `['<a>', '<b>']`).
- * @param {(args: string[]) => string | null} git @param {string[]} bornes
- * @returns {Map<string, string>}
- */
-export function renommagesDe(git, bornes) {
-  return new Map(nameStatusDe(git, ['diff', '-M', '--diff-filter=R', '--name-status', ...bornes]).map((e) => e.chemins))
-}
-
 /** Le stock CSS nominatif, et ses deux collections que la ventilation lit. */
 export const CHEMIN_STOCK_CSS = 'scripts/guards/lib/cssCouchesStock.mjs'
 const COLLECTIONS = { identite: 'CSS_IDENTITE_ECRAN_RATCHET', espacement: 'CSS_ESPACEMENT_RATCHET' }
@@ -180,12 +168,11 @@ const COLLECTIONS = { identite: 'CSS_IDENTITE_ECRAN_RATCHET', espacement: 'CSS_E
  * de `--ventiler` et de l'admission du régénérateur : images lues par `imageCss`, renommages `-M` de
  * l'intervalle, et Sb = le stock ÉCRIT à `base` (`CHEMIN_STOCK_CSS`) quand il existe. Une ref absente
  * de l'histoire LÈVE en se nommant : un clone superficiel ne ventile rien.
- * @param {{ cwd?: string, base: string, tete?: string, git?: (args: string[]) => string | null }} p
+ * @param {{ cwd?: string, base: string, tete?: string, depot?: import('./gitPorte.mjs').Depot }} p
  */
-export function ventilationDeGit({ cwd = process.cwd(), base, tete = TRAVAIL, git }) {
-  const lire = git ?? lecteurGit(cwd)
+export function ventilationDeGit({ cwd = process.cwd(), base, tete = TRAVAIL, depot = depotDe(cwd) }) {
   const source = (arbre) => {
-    const s = sourceGit({ cwd, arbre, git: lire })
+    const s = sourceGit({ cwd, arbre, depot })
     if (!s.existe()) throw new Error(`ref ${arbre} absente de l'histoire de ${cwd} (clone superficiel ? il faut \`fetch-depth: 0\`)`)
     return s
   }
@@ -198,7 +185,7 @@ export function ventilationDeGit({ cwd = process.cwd(), base, tete = TRAVAIL, gi
   if (ecarts.length) throw new Error(`${CHEMIN_STOCK_CSS} illisible à ${base} : ${ecarts.join(' ; ')}`)
   const stockAvant = lus ? { identite: lus.identite.entrees, espacement: lus.espacement.entrees } : undefined
   const v = ventiler(imageCss(avant, { racine: cwd }), imageCss(source(tete), { racine: cwd }), {
-    renommages: renommagesDe(lire, tete === TRAVAIL ? [base] : [base, tete]),
+    renommages: ceQuiChange(depot, base, tete === TRAVAIL ? SUIVI : tete).renommages(),
     stockAvant,
   })
   return { ...v, stockAvant: stockAvant ?? { identite: [], espacement: [] } }

@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge } from './depotGabarit.mjs'
 import { cheminsMalNormalises, raisonDeRefusEol } from './eolStage.mjs'
-import { eolsDe } from './gitPorte.mjs'
+import { depotDe, eolsDe } from './gitPorte.mjs'
 
 const ligne = (i, attr, chemin) => ({ index: i, travail: 'lf', attr, chemin })
 
@@ -78,7 +78,7 @@ test('dépôt JETABLE : `git apply --index` d’un patch CRLF stage un blob CRLF
     ].join('\n')
     writeFileSync(join(dir, 'p.patch'), patch)
     git('apply', '--index', '--whitespace=nowarn', 'p.patch')
-    const eols = (...chemins) => eolsDe((args) => git(...args), ['ls-files', '--eol', '--cached', '--', ...chemins])
+    const eols = (...chemins) => eolsDe(depotDe(dir, { env: envDeDepotForge() }), chemins)
     const sortie = eols('a.txt', 'b.txt')
     // `a.txt`, stagé par `git add`, est en LF ; `b.txt`, stagé par le patch, ne l'est pas.
     assert.deepEqual(cheminsMalNormalises(sortie).map((f) => f.chemin), ['b.txt'])

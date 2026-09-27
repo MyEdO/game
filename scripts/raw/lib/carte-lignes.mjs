@@ -10,8 +10,8 @@
 //   { supprimee: true }              disparue (suppression pure, ou non appariée d'un hunk dont
 //                                    toutes les nouvelles lignes sont appariées) ;
 //   { ambigue: true, candidates }    tout autre cas — la décision revient au consommateur.
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { SUIVI, ceQuiChange, depotDe, imageDeHead, lireEnLot } from '../../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../../guards/lib/hunks.mjs'
 import { normalize } from '../_lib.mjs'
 import { stripSpans } from '../../../src/data/source/decoupe.ts'
@@ -102,8 +102,6 @@ export function carteDeLignes(hunks) {
 export const destinEnTexte = (d) =>
   'ligne' in d ? `l.${d.ligne}` : d.supprimee ? 'ligne supprimée' : `hunk ambigu, candidates l.${d.candidates.join('/')}`
 
-const git = (args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] })
-
 /**
  * ENROBAGE git : la version `HEAD` d'un fichier et sa carte vers l'arbre de travail — ou `null` si
  * le fichier est absent de `HEAD` (aucune ancienne ligne à porter). LÈVE si le fichier de l'arbre
@@ -117,8 +115,10 @@ export function carteDuFichier(chemin) {
   if (/\r(?!\n)/.test(readFileSync(posix, 'utf8'))) {
     throw new Error(`carteDuFichier : « ${posix} » porte un CR isolé (#604) — la numérotation de git diverge de celle de readText ; corriger les fins de ligne d'abord`)
   }
-  let texteHead
-  try { texteHead = git(['show', `HEAD:${posix}`]) } catch { return null }
-  const hunks = hunksDe(git(['-c', 'core.quotePath=false', 'diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', 'HEAD', '--', posix]))
+  const depot = depotDe(process.cwd())
+  const head = imageDeHead(depot)
+  const texteHead = lireEnLot(depot, head, [posix]).get(posix) ?? null
+  if (texteHead === null) return null
+  const hunks = hunksDe(ceQuiChange(depot, head, SUIVI).diff([posix]))
   return { texteHead, carte: carteDeLignes(hunks), hunks }
 }

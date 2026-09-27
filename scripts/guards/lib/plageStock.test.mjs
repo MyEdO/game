@@ -162,10 +162,15 @@ test('git INDISPONIBLE : `indisponible` porte la raison, et la plage est NOMMÉE
   }
 })
 
-test('un lecteur injecté qui rend `null` (objet absent) ne lève AUCUNE indisponibilité', () => {
-  const vu = croissancesDeLaPlage({ debut: 'aaaaaaa', fin: 'bbbbbbb', git: () => null })
-  assert.equal(vu.indisponible, null)
-  assert.match(vu.notes.join(' '), /plage `aaaaaaa\.\.bbbbbbb` illisible/)
+test('une plage d’OBJETS ABSENTS dans un dépôt réel ne lève AUCUNE indisponibilité', () => {
+  const { repo } = depotJetable([{ contenu: '// socle\n', message: 'socle' }])
+  try {
+    const vu = croissancesDeLaPlage({ cwd: repo, debut: 'aaaaaaa', fin: 'bbbbbbb' })
+    assert.equal(vu.indisponible, null)
+    assert.match(vu.notes.join(' '), /plage `aaaaaaa\.\.bbbbbbb` illisible/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
 })
 
 // #1709 D1 — la classe qui a coûté TROIS runs de gates (2026-09-07) : la migration des marches
@@ -607,17 +612,20 @@ test('RECLASSEMENT (D3″) : un rebase qui fait disparaître le franchissement r
 })
 
 test('RECLASSEMENT : manifeste ILLISIBLE → refus NOMMÉ par son commit, jamais une levée qui emporterait les autres refus', () => {
-  const git = (args) => {
-    if (args[0] === 'version') return 'git version 2.43.0'
-    if (args[0] === 'rev-list') return args.includes('--parents') ? 'c1 p1' : 'c1'
-    if (args[0] === 'show' && args[1] === '-s') return 'feat'
-    if (args[0] === 'diff' && args.includes('--name-only')) return `${MANIFESTE}\0`
-    if (args[0] === 'show') return args[1].endsWith(`:${MANIFESTE}`) ? '{pas du json' : null
-    return null
+  const { racine, sha } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  try {
+    mkdirSync(join(racine, dirname(MANIFESTE)), { recursive: true })
+    writeFileSync(join(racine, MANIFESTE), '{pas du json\n', 'utf8')
+    git('add', MANIFESTE)
+    git('commit', '-q', '--no-verify', '-m', 'feat')
+    const c1 = git('rev-parse', 'HEAD').trim()
+    const lu = croissancesDeLaPlage({ cwd: racine, debut: sha, fin: c1 })
+    assert.deepEqual(lu.reclassements.map((r) => [r.sha, /primitives\.manifest\.json illisible/.test(r.illisible)]), [[c1, true]])
+    assert.deepEqual(lu.refus, [])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
-  const lu = croissancesDeLaPlage({ debut: 'a'.repeat(40), fin: 'b'.repeat(40), git })
-  assert.deepEqual(lu.reclassements.map((r) => [r.sha, /primitives\.manifest\.json illisible/.test(r.illisible)]), [['c1', true]])
-  assert.deepEqual(lu.refus, [])
 })
 
 // #1806 D1 — le porteur au chemin NON-ASCII, lu dans les en-têtes du patch `-U0` de chaque commit et
@@ -714,14 +722,21 @@ test('PLAGE : une fusion qui RÉÉCRIT une entrée amenée par la branche ne gra
 })
 
 test('PLAGE : une FUSION lue par un git plus ancien que 2.40 rend la plage INDISPONIBLE, nommée, sans rien juger', () => {
-  const git = (args) => {
-    if (args[0] === 'version') return 'git version 2.39.2'
-    if (args[0] === 'rev-list') return args.includes('--parents') ? 'c1 p1 p2' : 'c1'
-    return null
+  const { repo, socle, fusion } = depotAFusion(null)
+  const cale = mkdtempSync(join(tmpdir(), 'git-2-39-'))
+  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
+  writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = version ] && { echo 'git version 2.39.2'; exit 0; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
+  const chemin = process.env.PATH
+  process.env.PATH = `${cale}:${chemin}`
+  try {
+    const vu = croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion })
+    assert.match(vu.indisponible, /git 2\.39 ne sait pas git merge-tree --write-tree --stdin/)
+    assert.deepEqual([vu.refus, vu.reclassements], [[], []])
+  } finally {
+    process.env.PATH = chemin
+    rmSync(repo, { recursive: true, force: true })
+    rmSync(cale, { recursive: true, force: true })
   }
-  const vu = croissancesDeLaPlage({ debut: 'a'.repeat(40), fin: 'b'.repeat(40), git })
-  assert.match(vu.indisponible, /git 2\.39 ne sait pas git merge-tree --write-tree --stdin/)
-  assert.deepEqual([vu.refus, vu.reclassements], [[], []])
 })
 
 // ── La plage d'un PUSH ne rejuge pas le TRONC (#1806, stocks-nominatifs.test.mjs:33-36) ────────────

@@ -4,7 +4,7 @@
 // jouées par UN processus du dépôt, détaché du harnais, idempotent et REPRENABLE ; l'orchestrateur
 // lance, lit un journal, juge le contenu — il ne joue plus aucune étape à la main. Critère
 // "l'étape N+1 coûte une ligne" : ajouter une étape = une entrée dans la table `ETAPES` (nom,
-// `jouer(ctx)`, `dejaFaite(ctx)`), rien d'autre. »
+// `jouer(ctx)`, `dejaFaite(ctx)`), rien d'autre. » La table vit dans `etapesDuTrain.mjs`.
 //
 // RÉGIME (#1776) : commit FINAL → push de la BRANCHE → la CI juge → fast-forward de `main`. Aucune
 // gate ne se joue ici : `.github/workflows/ci.yml` les joue toutes sur la branche, et le ruleset
@@ -22,49 +22,46 @@
 // TÊTE, fast-forward de `main`, pilotage des tickets cités, fin. Un tronc qui a bougé pendant
 // l'attente RELANCE rebase → docs → push-branche → ci (#1751), borné par le compteur `reprises`.
 //
-// INTERDITS, gravés — `commandeInterdite` les refuse AVANT tout spawn, et ce fichier ne porte aucun
-// `gh issue close` (la fermeture appartient au job `fermetures` de la CI) :
-//   · `git add -A` / `--all` / `.`      — le commit des docs stage des chemins EXPLICITES ;
-//   · `git stash`                        — rien ne se met de côté ;
-//   · `git push --force` / `-f` sous toute forme, et `--force-with-lease` VERS `main` ;
-//   · `git reset --hard`, `git branch -D`, `git worktree remove --force` ;
-//   · `git commit` sans `--` de chemins explicites ;
-//   · `git checkout` / `git restore`     — le train ne restaure jamais un fichier.
+// CLÔTURE DES ÉTAPES, gardée contre une retouche de bonne foi — les étapes vivent dans
+// `etapesDuTrain.mjs`, et le test de clôture (`etapesDuTrain.test.mjs`) refuse à ce module toute
+// liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement de processus
+// par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses inertes,
+// import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu, import
+// dynamique ou `require`, `createRequire`/`getBuiltinModule`/`binding`, accès ambiant (global lu hors
+// de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
+// évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
+// module de la clôture (#2073). Une étape passe par le contexte (`contexteDe`), qui porte des
+// QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux arguments validés — `commitDe` (des
+// FICHIERS, sous `--literal-pathspecs`),
+// `rebaser`, `abandonnerRebase`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
+// nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `lireTicket` et `commenter`
+// (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
+// `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
+// ni `git add -A`, ni un commit de l'arbre ou de l'index entier, ni `git stash`, ni `push --force`,
+// ni `--force-with-lease` vers `main` (`pousser` le refuse), ni `reset --hard`, `branch -D`,
+// `worktree remove --force`, `checkout` ou `restore`.
 // Un rebase INTERROMPU trouvé sur disque à la préflight est NOMMÉ, jamais avorté d'office.
 //
 // Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--ci-timeout-min <n>]
 import { spawnSync, spawn } from 'node:child_process'
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { TRONC, cheminsDe, estAncetre, etatsDe, fetchOrigin, lireGit, raisonCourte, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
-import { ANNULEE, ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
-import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
+import {
+  GitIndisponible, TRONC, abandonnerRebase, brancheDe, ceQuiChange, cheminGit, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
+  etatDeLArbre, fetchOrigin, origineDe, pousser, racineDe, rebaser, shaDe, shasDe,
+} from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
-import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
-import { commitsDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
-import { GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
-import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
-import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
+import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { resoudreOutilLocal } from '../lancer-local.mjs'
-import { correspondGlob } from '../guards/lib/lister.mjs'
+import { ETAPES } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Délai par défaut, en minutes, de l'attente du verdict CI de la tête (#1776). */
 export const CI_TIMEOUT_MIN = 30
-
-/** Période de la sonde CI, en millisecondes. */
-export const PERIODE_SONDE_MS = 30_000
-
-/** Nom du workflow que la sonde reconnaît (`.github/workflows/ci.yml`, `name: CI`). */
-export const WORKFLOW = 'CI'
-
-/** Marque d'IDEMPOTENCE du pilotage : elle porte la tête publiée. */
-export const marquePublication = (sha) => `<!-- publier: ${sha} -->`
 
 // ── Purs : options, journal, plan ──────────────────────────────────────────────────────
 
@@ -411,257 +408,25 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
   return { etat: 'rouge', etape: 'moteur', raison: 'trop de relances du train' }
 }
 
-// ── Purs : verdicts et mise en forme ───────────────────────────────────────────────────
-
-/**
- * Verdict de la CI pour un sha, lu dans les courses TRIÉES (`coursesCi` trie `createdAt`
- * décroissant). PUR. Une conclusion inconnue n'est PAS verte : elle rougit, et se nomme.
- * @returns {{etat:'absente'|'en-vol'|'verte'|'rouge'|'annulee', course?:object}}
- */
-export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
-  const notres = (courses ?? []).filter(
-    (c) => String(c?.headSha ?? '') === String(sha) && (!c?.workflowName || String(c.workflowName) === workflow),
-  )
-  if (!notres.length) return { etat: 'absente' }
-  const course = notres[0]
-  if (String(course.status ?? 'completed') !== 'completed') return { etat: 'en-vol', course }
-  const conclusion = String(course.conclusion ?? '')
-  if (conclusion === ANNULEE) return { etat: 'annulee', course }
-  if (conclusion === 'success') return { etat: 'verte', course }
-  // `ROUGES` nomme les trois échecs connus ; toute AUTRE conclusion (`neutral`, `skipped`, une
-  // valeur neuve de GitHub) n'est pas verte non plus — elle rougit, et le journal la porte.
-  return { etat: 'rouge', course, inattendue: !ROUGES.has(conclusion) }
-}
-
-/**
- * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Trois familles, toutes déclarées
- * ailleurs : les `targets`/`injecte` des `GENERATORS`, la mesure `docs/.sources-lues.json`
- * (`build-all.mjs` REFUSE si elle n'est pas dans l'index), et les sorties de `npm run agents:sync`
- * (le pre-commit joue `agents:check` à chaque commit). PURE.
- */
-export function estDocDerive(chemin, generators = GENERATORS, { sourcesLues = SOURCES_LUES, racinesAgents = MANAGED_ROOTS } = {}) {
-  const c = String(chemin ?? '').replace(/\\/g, '/')
-  if (!c) return false
-  if (c === sourcesLues) return true
-  if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
-  return (generators ?? []).some((g) =>
-    [...(g.targets ?? []), ...(g.injecte ?? [])].some((motif) => correspondGlob(c, motif)),
-  )
-}
-
-/**
- * Partage des chemins SALES en deux tas : ce que l'étape `docs` sait committer (`estDocDerive`) et
- * le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, le hook
- * `post-rewrite` régénère les docs dérivés SANS les committer (`scripts/git-hooks/docs-rebuild.mjs`)
- * — sans ce partage, la préflight refusait le train pour une saleté que l'étape `docs` commet.
- * @param {string[]} chemins
- * @returns {{derives:string[], manuscrits:string[]}}
- */
-export function partitionSales(chemins, ...reste) {
-  const derives = []
-  const manuscrits = []
-  for (const c of chemins ?? []) (estDocDerive(c, ...reste) ? derives : manuscrits).push(c)
-  return { derives, manuscrits }
-}
-
-/**
- * Options GLOBALES de git, posées AVANT le sous-commande (`git -c k=v push …`, `git -C dir add …`).
- * Les sauter est la condition pour que `commandeInterdite` lise le vrai sous-commande : sans cela,
- * `['-c','x=y','add','-A']` passait pour un sous-commande `-c` inconnu, donc AUTORISÉ. PURE.
- * @returns {string[]} les arguments à partir du sous-commande
- */
-export function sansOptionsGlobales(args) {
-  const a = (args ?? []).map(String)
-  const aValeur = new Set(['-c', '-C', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--config-env'])
-  let i = 0
-  while (i < a.length) {
-    const x = a[i]
-    if (aValeur.has(x)) {
-      i += 2
-      continue
-    }
-    if (x.startsWith('--') && x.includes('=')) {
-      i += 1
-      continue
-    }
-    if (x.startsWith('-')) {
-      i += 1
-      continue
-    }
-    break
-  }
-  return a.slice(i)
-}
-
-/** Refus de commande, ou `null`. PURE — la SEULE liste des gestes que le train ne fait pas. */
-export function commandeInterdite(args) {
-  const a = sansOptionsGlobales(args)
-  const sous = a[0]
-  const porte = (...formes) => a.slice(1).some((x) => formes.includes(x) || formes.some((f) => x.startsWith(`${f}=`)))
-  if (sous === 'stash') return '`git stash` : le train ne met rien de côté'
-  if (sous === 'checkout' || sous === 'restore') return `\`git ${sous}\` : le train ne restaure aucun fichier`
-  if (sous === 'add' && porte('-A', '--all', '.')) return '`git add` global : le commit des docs stage des chemins EXPLICITES'
-  // `--force-with-lease` est ACCEPTÉ sur une branche de travail, et là seulement (#1776) : le rebase
-  // réécrit l'histoire de la branche à chaque tour, et le bail n'écrase que ce qu'on vient de lire.
-  // `main` n'entre jamais autrement qu'en fast-forward — la règle `non_fast_forward` du ruleset l'exige.
-  if (sous === 'push' && porte('--force', '-f')) return '`git push --force` : jamais, sous aucune forme'
-  if (sous === 'push' && porte('--force-with-lease') && a.some((x) => [TRONC.nom, TRONC.branche].includes(String(x).split(':').pop())))
-    return '`git push --force-with-lease` vers `main` : main n’entre qu’en fast-forward'
-  if (sous === 'reset' && porte('--hard')) return '`git reset --hard` : le train ne détruit aucun travail'
-  if (sous === 'branch' && porte('-D')) return '`git branch -D` : le train ne supprime aucune branche'
-  if (sous === 'worktree' && a[1] === 'remove' && porte('--force', '-f')) return '`git worktree remove --force` : jamais'
-  if (sous === 'commit' && !a.includes('--')) return '`git commit` sans `--` de chemins explicites : le commit des docs les nomme'
-  return null
-}
-
-/** Motif du commit de dérivés de l'étape `derives` — ceux que le hook `post-rewrite` a laissés. */
-export const MOTIF_POST_REWRITE = 'docs dérivés laissés non commités par le hook post-rewrite d’un rebase manuel'
-
-/** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
-export const MOTIF_APRES_REBASE = 'docs dérivés régénérés après rebase sur origin/main (post-rewrite)'
-
-/** Refus commun aux deux commits de dérivés : sans `#N`, la porte de commit refuserait le message. */
-export const REFUS_SANS_TICKET =
-  'aucun `#N` cité par la plage : le commit `chore(docs)` n’aurait aucun ticket, et la porte de commit le refuse — cite un ticket dans un commit de la plage'
-
-/**
- * La PLAGE dont les `#N` légitiment un commit de dérivés. PURE. Le journal la porte dès que l'étape
- * `rebase` a rendu ; AVANT elle (étape `derives`), `origin/main..HEAD` la remplace — `origin/main`
- * vient d'être fetché par la préflight.
- */
-export const plageDeCitations = (journal) =>
-  journal?.base && journal?.tete ? `${journal.base}..${journal.tete}` : `${TRONC.suivi}..HEAD`
-
-/**
- * Message du commit de docs dérivés. PURE — une seule forme pour les deux étapes qui commettent.
- * Le SUJET tient la règle du dépôt (`scripts/guards/lib/sujetDeCommit.mjs`, mesurée ici par
- * `refusDeSujet`, jamais par un compte recopié) ; le MOTIF va au CORPS. Quand les `refs` d'une plage
- * chargée feraient déborder le sujet, elles descendent au corps : `numerosCites` lit le message
- * ENTIER (`scripts/guards/lib/fermetures.mjs:63`), corps compris.
- */
-export const messageDeDerives = (numeros, motif) => {
-  const refs = numeros.map((n) => `refs #${n}`).join(' ')
-  const avecRefs = `chore(docs): ${refs} — docs dérivés\n\n${motif}\n`
-  if (refs && refusDeSujet(avecRefs) === null) return avecRefs
-  return `chore(docs): docs dérivés\n\n${motif}\n${refs ? `\n${refs}\n` : ''}`
-}
-
-/**
- * La FIN d'une sortie de commande — là où une porte imprime son verdict. PURE : les lignes `⛔` si
- * la sortie en porte, sinon ses `max` DERNIERS caractères.
- */
-export const finDeSortie = (texte, max = 400) => {
-  const t = String(texte ?? '').trim()
-  const refus = t.split(/\r?\n/).filter((l) => l.includes('⛔'))
-  if (refus.length) return refus.join('\n').slice(-max)
-  return t.slice(-max)
-}
-
-/**
- * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
- * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
- * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout, `scripts/guards/lib/gitPorte.mjs:164`). PURE.
- * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
- * @returns {string} '' quand git n'a rien imprimé
- */
-export const sortieDe = (vu, max = 400) =>
-  finDeSortie(
-    [vu?.raison, vu?.valeur?.stderr, vu?.valeur?.stdout]
-      .map((t) => String(t ?? '').trim())
-      .filter(Boolean)
-      .join('\n'),
-    max,
-  )
-
-/** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
-export const refusDeGit = (vu, max = 400) => sortieDe(vu, max) || `(status ${vu?.valeur?.status ?? '?'}) — git n'a rien imprimé`
-
-/** Refus du train quand le tronc bouge une SECONDE fois — une seule formulation, deux sites de lecture. */
-export const REFUS_DEUX_FOIS = 'origin/main a bougé DEUX fois pendant le train — relancer `npm run ops:publier`'
-
-/**
- * Le tronc a-t-il bougé sous le train ? PURE — UNE comparaison et UNE borne, lues AVANT le push et
- * APRÈS un push refusé (origin/main peut recevoir des commits entre les deux).
- * @param {{distant:string|null, base:string|null, reprises?:number}} p
- * @returns {'inchangé'|'relancer'|'rouge-deux-fois'}
- */
-export function verdictDuTronc({ distant, base, reprises = 0 }) {
-  if (distant === base) return 'inchangé'
-  return (reprises ?? 0) >= 1 ? 'rouge-deux-fois' : 'relancer'
-}
-
-/** Refus de l'étape `rebase` sur un train de FUSION qui ne contient pas le tronc (#1998). */
-export const REFUS_TRAIN_DE_FUSION =
-  'train de fusion : fusionner `origin/main` dans la branche, puis `--reprendre` — jamais un rebase qui linéarise les fusions'
-
-/**
- * Ce que l'étape `rebase` fait de la relation d'`origin/main` à HEAD (#1998). PURE.
- * @param {{contenu:boolean, fusions:boolean}} p `contenu` = `origin/main` ancêtre de HEAD ;
- *   `fusions` = `origin/main..HEAD` porte au moins un commit de fusion.
- * @returns {'contenu'|'fusions'|'rebase'}
- */
-export function decisionDeRebase({ contenu, fusions }) {
-  if (contenu) return 'contenu'
-  return fusions ? 'fusions' : 'rebase'
-}
-
 /**
  * La lecture git que `decisionDeRebase` juge : `origin/main` ancêtre de HEAD (`estAncetre`), et
- * sinon les fusions de `origin/main..HEAD`.
- * @param {string} racine
+ * sinon les fusions de `origin/main..HEAD` (`shasDe`).
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
  * @returns {{disponible:true, contenu:boolean, fusions:boolean}|{disponible:false, raison:string}}
  */
-export function relationAuTronc(racine) {
-  const vu = estAncetre(TRONC.suivi, 'HEAD', { cwd: racine })
+export function relationAuTronc(depot) {
+  const vu = estAncetre(depot, TRONC.suivi, 'HEAD')
   if (!vu.disponible) return { disponible: false, raison: vu.raison }
   if (vu.absent) return { disponible: false, raison: 'origin/main ou HEAD introuvable' }
   if (vu.valeur) return { disponible: true, contenu: true, fusions: false }
-  const merges = lireGit(['rev-list', '--merges', `${TRONC.suivi}..HEAD`], { cwd: racine, site: 'git rev-list' })
-  const sortie = sortieOuNull(merges)
-  if (sortie === null) return { disponible: false, raison: merges.disponible ? 'origin/main..HEAD illisible' : merges.raison }
-  return { disponible: true, contenu: false, fusions: sortie.trim() !== '' }
-}
-
-/** Première ligne d'un message de commit, bornée. PURE. */
-export const titreDeCommit = (message, max = 120) => {
-  const ligne = String(message ?? '').split('\n')[0].trim()
-  return ligne.length > max ? `${ligne.slice(0, max - 1)}…` : ligne
-}
-
-/**
- * Corps du commentaire de pilotage d'UN ticket. PURE — la marque est TOUJOURS la dernière ligne.
- * @param {{numero:string, base:string, tete:string, commits:{sha:string,message:string}[],
- *   ci:{etat:string, course?:object, attenteCiSecondes?:number},
- *   ferme:boolean, fermeParCi?:boolean, fermeAutrement?:boolean}} p
- */
-export function corpsDePilotage({ numero, base, tete, commits, ci, ferme, fermeParCi = false, fermeAutrement = false }) {
-  const court = (sha) => String(sha ?? '').slice(0, 9)
-  const lignes = [
-    `## Publication ${court(tete)}`,
-    '',
-    `Plage publiée : \`${court(base)} → ${court(tete)}\` sur \`main\`.`,
-    '',
-    `### Commits (${commits.length})`,
-    ...commits.map((c) => `- \`${court(c.sha)}\` ${titreDeCommit(c.message)}`),
-    '',
-    '### CI',
-  ]
-  const course = ci?.course
-  lignes.push(
-    course
-      ? `- ${ci.etat} — course \`${course.databaseId}\` : https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
-      : `- ${ci?.etat ?? 'non lue'} — aucune course rattachée à cette tête.`,
-  )
-  if (typeof ci?.attenteCiSecondes === 'number')
-    lignes.push(`- attente du verdict CI : ${(ci.attenteCiSecondes / 60).toFixed(1)} min (temps d’attente, pas de machine locale).`)
-  lignes.push('')
-  if (fermeAutrement) lignes.push(`#${numero} était déjà FERMÉ par un autre geste que cette publication.`)
-  else if (fermeParCi) lignes.push(`#${numero} a été FERMÉ par la CI (job \`fermetures\`) sur cette publication.`)
-  else if (ferme) lignes.push(`Ce commit FERME #${numero} : fermeture par le job \`fermetures\` de la CI.`)
-  else lignes.push(`#${numero} est rattaché (\`refs\`) par cette publication, non fermé.`)
-  lignes.push('', marquePublication(tete))
-  return `${lignes.join('\n')}\n`
+  try {
+    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: true })
+    if (fusions === null) return { disponible: false, raison: 'origin/main..HEAD illisible' }
+    return { disponible: true, contenu: false, fusions: fusions.length > 0 }
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    return { disponible: false, raison: e.raison }
+  }
 }
 
 // ── Impur : le train réel ──────────────────────────────────────────────────────────────
@@ -691,64 +456,32 @@ export function lireJournal(chemin, branche) {
   }
 }
 
-/** Le lecteur git de LECTURE dans `cwd` : sa sortie, ou `null`. */
-const lecteur = (cwd) => (args) => sortieOuNull(lireGit(args, { cwd, site: `git ${args[0]}` }))
+/** Le dépôt du train dans `racine` : une panne de lecture y LÈVE `GitIndisponible`, et le train
+ *  s'arrête ROUGE en la nommant (`main`) — lue `null`, elle passait pour un arbre propre ou pour
+ *  l'absence d'un rebase entamé. */
+const depotDuTrain = (racine) => depotDe(racine)
 
-/** Sortie d'un `git` de LECTURE, trimée, ou `null`. */
-const lu = (args, cwd) => lecteur(cwd)(args)?.trim() ?? null
-
-/** Fichier temporaire hors de l'arbre (message de commit, corps de commentaire). */
-function fichierTemporaire(prefixe, contenu) {
-  const chemin = join(tmpdir(), `wfrp-publier-${prefixe}-${process.pid}-${Date.now()}.txt`)
-  writeFileSync(chemin, contenu)
-  return chemin
-}
-
-/** Les `#N` cités par la plage de `journal` (ou `origin/main..HEAD` avant le rebase), dédupliqués. */
-function numerosDeLaPlage(racine, journal) {
-  return [...new Set(commitsDeLaPlage(plageDeCitations(journal), racine).flatMap((c) => numerosCites(c.message)))]
-}
+/** Chemins que l'état de l'arbre (`etatDeLArbre`) rend SALES, dédupliqués. @param {import('../guards/lib/gitPorte.mjs').Depot} depot */
+const cheminsSales = (depot) => [...new Set(etatDeLArbre(depot).flatMap((e) => e.chemins).filter(Boolean))]
 
 /**
- * COMMIT de docs DÉRIVÉS : stage des chemins EXPLICITES, message qui cite les tickets de la plage,
- * `journal.tete` avancé. UNE implémentation, deux appelants (`derives` avant le rebase, `docs`
- * après) — le geste est le même, seul le MOTIF change.
- * @param {object} ctx @param {{chemins:string[], numeros:string[], motif:string, journal:object}} p
- * @returns {{ok:boolean, raison?:string, detail?:object, dit?:string}}
+ * Les QUESTIONS git des étapes, posées au dépôt `depot` : le contexte les porte à la place de la
+ * poignée, qui ouvrirait tout écrivain de l'hôte.
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
  */
-function commettreDerives(ctx, { chemins, numeros, motif, journal }) {
-  const fichier = fichierTemporaire('msg', messageDeDerives(numeros, motif))
-  try {
-    const add = ctx.git(['add', '--', ...chemins])
-    if (!add.disponible || add.absent || add.valeur.status !== 0) return { ok: false, raison: `\`git add\` a échoué sur ${chemins.length} chemin(s)` }
-    const commit = ctx.git(['commit', '-F', fichier, '--', ...chemins])
-    if (!commit.disponible || commit.absent || commit.valeur.status !== 0) {
-      return { ok: false, raison: `\`git commit\` des docs a échoué : ${refusDeGit(commit)}` }
-    }
-  } finally {
-    rmSync(fichier, { force: true })
-  }
-  journal.tete = ctx.tete
-  return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
-}
-
-/**
- * Le verdict d'étape que porte un tronc MESURÉ, ou `null` s'il n'a pas bougé. Seul site qui
- * incrémente `journal.reprises` : la décision, elle, est la pure `verdictDuTronc`.
- * @param {object} journal @param {string|null} distant sha lu d'`origin/main` @param {string} phrase
- * @returns {{ok:boolean, relancer?:string[], dit?:string, raison?:string}|null}
- */
-function jugerLeTronc(journal, distant, phrase) {
-  const verdict = verdictDuTronc({ distant, base: journal.base, reprises: journal.reprises })
-  if (verdict === 'inchangé') return null
-  if (verdict === 'rouge-deux-fois') return { ok: false, raison: REFUS_DEUX_FOIS }
-  journal.reprises = (journal.reprises ?? 0) + 1
-  return {
-    ok: true,
-    relancer: ['rebase', 'docs', 'push-branche', 'ci'],
-    dit: `${phrase} (${distant?.slice(0, 9)}) : le train reprend au rebase`,
-  }
-}
+export const questionsDuTrain = (depot) => Object.freeze({
+  shaDe: (ref) => shaDe(depot, ref),
+  brancheDe: () => brancheDe(depot),
+  origineDe: () => origineDe(depot),
+  cheminGit: (nom) => cheminGit(depot, nom),
+  cheminsEnConflit: () => cheminsEnConflit(depot),
+  combienDe: (revisions) => combienDe(depot, revisions),
+  estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
+  ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
+  relationAuTronc: () => relationAuTronc(depot),
+  cheminsSales: () => cheminsSales(depot),
+  commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
+})
 
 /** `gh <args>`, en union simple. Jamais `shell: true`. */
 function gh(args, cwd, input) {
@@ -766,30 +499,65 @@ function gh(args, cwd, input) {
  *  attend, adossée au `gh` du train — le seul enrobeur qui borne son spawn en TEMPS. */
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
-/** Attente BLOQUANTE sans busy-loop (le train est synchrone de bout en bout). */
-function attendre(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+/** Les modes de `scripts/docs/build-all.mjs` que l'étape `docs` joue. */
+const MODES_DES_DOCS = Object.freeze(['--check', '--quiet'])
+
+/**
+ * `npm run <script>` sous `platform` : l'exécutable, son argv et `shell`. PURE. `npm` est un `.cmd`
+ * sous win32 (nodejs.org/api/child_process.html, « Spawning .bat and .cmd files on Windows »).
+ * @param {string} script @param {NodeJS.Platform} platform
+ */
+export function lancementNpm(script, platform) {
+  const win32 = platform === 'win32'
+  return { executable: win32 ? 'npm.cmd' : 'npm', args: ['run', script], shell: win32 }
+}
+
+/** Le numéro d'un ticket, sinon levée. */
+function numeroDeTicket(geste, numero) {
+  if ((typeof numero === 'string' || Number.isSafeInteger(numero)) && /^[1-9]\d*$/.test(String(numero))) return numero
+  throw new Error(`ctx.${geste} : un NUMÉRO de ticket — refusé : ${JSON.stringify(numero)}`)
 }
 
 /**
- * Le contexte que les étapes partagent. `git` est la SEULE porte de mutation, gardée par
- * `commandeInterdite` : un geste interdit JETTE avant tout spawn. `npm` est la SEULE porte des
- * `npm run <script>` des étapes — une porte, donc une décision mesurable en test.
+ * Le contexte que les étapes partagent (`etapesDuTrain.mjs`) : le test de clôture
+ * (`etapesDuTrain.test.mjs`) refuse au module des étapes toute liaison qui atteint un lancement de
+ * processus, contre une retouche de bonne foi (résidu : #2073) : chaque processus d'une étape passe
+ * par un geste d'ici. Écrivains nommés de l'hôte :
+ * `commit`, `rebaser`, `abandonnerRebase`, `pousser`, `tronc`. Hors git : `npm` (un NOM de script),
+ * `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `lireTicket` (un numéro), `commenter`
+ * (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
+  const depot = depotDuTrain(racine)
+  const stdio = ['ignore', fdLog, fdLog]
   return {
     racine,
+    questions: questionsDuTrain(depot),
     branche,
     options,
     journaliser,
     fdLog,
     npm(script) {
-      // `shell: true` : sous win32, `npm` est un `.cmd`, que `spawnSync` ne sait lancer autrement.
-      const binaire = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-      return spawnSync(binaire, ['run', script], { cwd: racine, stdio: ['ignore', fdLog, fdLog], shell: true })
+      if (typeof script !== 'string' || !/^[\w:.-]+$/.test(script)) throw new Error(`ctx.npm : un NOM de script \`npm run\`, jamais une commande — refusé : ${JSON.stringify(script)}`)
+      const { executable, args, shell } = lancementNpm(script, process.platform)
+      return spawnSync(executable, args, { cwd: racine, stdio, shell })
+    },
+    docs(mode) {
+      if (!MODES_DES_DOCS.includes(mode)) throw new Error(`ctx.docs : mode de build-all inconnu — ${JSON.stringify(mode)}`)
+      return spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), mode], { cwd: racine, stdio })
+    },
+    coursesCi(sha) {
+      if (typeof sha !== 'string' || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) throw new Error(`ctx.coursesCi : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
+      return coursesCi({ cwd: racine, commit: sha, limit: 30 })
+    },
+    lireTicket: (numero) => lireTicket({ depot: DEPOT, numero: numeroDeTicket('lireTicket', numero), appel: appelGh(racine) }),
+    commenter(numero, corps) {
+      numeroDeTicket('commenter', numero)
+      if (typeof corps !== 'string' || !corps.trim()) throw new Error(`ctx.commenter : un CORPS de commentaire — refusé : ${JSON.stringify(corps)}`)
+      return poserCommentaire({ depot: DEPOT, numero, corps, appel: appelGh(racine) })
     },
     get tete() {
-      return lu(['rev-parse', 'HEAD'], racine)
+      return shaDe(depot, 'HEAD')
     },
     /**
      * Le TRONC distant, fetché puis relu — la seule porte d'`origin/main` des étapes qui doivent le
@@ -797,337 +565,17 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
      * @returns {{disponible:true, sha:string|null}|{disponible:false, raison:string}}
      */
     tronc() {
-      const vu = fetchOrigin({ cwd: racine })
+      const vu = fetchOrigin(depot)
       if (!vu.disponible) return { disponible: false, raison: vu.raison }
-      return { disponible: true, sha: lu(['rev-parse', TRONC.suivi], racine) }
+      return { disponible: true, sha: shaDe(depot, TRONC.suivi) }
     },
-    git(args) {
-      const interdit = commandeInterdite(args)
-      if (interdit) throw new Error(`GESTE INTERDIT — ${interdit}`)
-      return lireGit(args, { cwd: racine, site: `git ${args[0]}`, timeout: 600_000 })
-    },
+    commit: ({ message, chemins }) => commitDe(depot, { message, chemins }),
+    rebaser: () => rebaser(depot, TRONC.suivi),
+    abandonnerRebase: () => abandonnerRebase(depot),
+    pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
   }
 }
 
-/**
- * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
- * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
- * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge au pre-commit, et le commit des docs échouerait sans nommer la cause.
- * @param {{npm: Function, journaliser: Function}} ctx
- * @returns {{ok: true} | {ok: false, raison: string}}
- */
-export function synchroniserAgents(ctx) {
-  const verif = ctx.npm('agents:check')
-  if (verif.status === 0) return { ok: true }
-  ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
-  const sync = ctx.npm('agents:sync')
-  if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : le pre-commit jouerait \`agents:check\` et refuserait le commit` }
-  return { ok: true }
-}
-
-/** La table des ÉTAPES : nom, `jouer(ctx, journal)`, `dejaFaite(ctx, journal)`. Ajouter une étape,
- *  c'est ajouter UNE entrée ici — rien d'autre. */
-export const ETAPES = [
-  {
-    nom: 'preflight',
-    // TOUJOURS rejouée : elle EST la garde.
-    dejaFaite: () => false,
-    jouer(ctx) {
-      const { racine } = ctx
-      for (const nom of ['rebase-merge', 'rebase-apply']) {
-        const chemin = lu(['rev-parse', '--git-path', nom], racine)
-        if (chemin && existsSync(resolve(racine, chemin)))
-          return { ok: false, raison: `rebase interrompu (${nom}) : \`git rebase --abort\` ou \`--continue\` à la main, puis \`--reprendre\`` }
-      }
-      if (lu(['symbolic-ref', '--quiet', 'HEAD'], racine) === null)
-        return { ok: false, raison: 'HEAD DÉTACHÉ : le train publie une branche, pas un sha errant' }
-      const { derives, manuscrits } = partitionSales(cheminsSales(racine))
-      if (manuscrits.length)
-        return {
-          ok: false,
-          raison:
-            `arbre NON COMMITÉ (${manuscrits.length}) — on ne publie que du committé :\n` +
-            `${manuscrits.map((s) => `    ${s}`).join('\n')}` +
-            (derives.length ? `\n  (et ${derives.length} doc(s) dérivé(s) régénéré(s) que l’étape derives aurait commis)` : ''),
-        }
-      const origine = lu(['remote', 'get-url', 'origin'], racine)
-      if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
-      const vuFetch = fetchOrigin({ cwd: racine })
-      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
-      const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
-      if (outil.refus) return { ok: false, raison: outil.refus }
-      const reste = derives.length
-        ? `${derives.length} doc(s) dérivé(s) régénéré(s) non commités (post-rewrite) : l’étape derives les commet`
-        : 'arbre propre'
-      return {
-        ok: true,
-        detail: { derivesSales: derives },
-        dit: `${reste}, origin consultable, outillage local posé`,
-      }
-    },
-  },
-  {
-    // Les docs DÉRIVÉS sales sont commis ICI, AVANT le rebase. Mesuré (2026-09-14, 2ᵉ train réel) :
-    // `git rebase origin/main` REFUSE de démarrer sur un arbre sale (« cannot rebase: You have
-    // unstaged changes ») — tolérer la saleté à la préflight sans la committer avant le rebase ne
-    // faisait que déplacer le refus d'une étape.
-    nom: 'derives',
-    dejaFaite(ctx) {
-      return partitionSales(cheminsSales(ctx.racine)).derives.length === 0
-    },
-    jouer(ctx, journal) {
-      const { racine } = ctx
-      const { derives, manuscrits } = partitionSales(cheminsSales(racine))
-      if (manuscrits.length)
-        return {
-          ok: false,
-          raison:
-            `MANUSCRIT(S) sale(s) que la préflight venait de refuser — l’arbre a bougé depuis :\n` +
-            manuscrits.map((c) => `    ${c}`).join('\n'),
-        }
-      if (!derives.length) return { ok: true, dit: 'aucun doc dérivé sale' }
-      const numeros = numerosDeLaPlage(racine, journal)
-      if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins: derives, numeros, motif: MOTIF_POST_REWRITE, journal })
-    },
-  },
-  {
-    nom: 'rebase',
-    dejaFaite(ctx, journal) {
-      return Boolean(journal.base) && journal.base === lu(['rev-parse', TRONC.suivi], ctx.racine) && journal.tete === ctx.tete
-    },
-    jouer(ctx, journal) {
-      const { racine } = ctx
-      const teteAvant = ctx.tete
-      const relation = relationAuTronc(racine)
-      if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
-      const decision = decisionDeRebase(relation)
-      if (decision === 'fusions') return { ok: false, raison: REFUS_TRAIN_DE_FUSION }
-      const vu = decision === 'rebase' ? ctx.git(['rebase', TRONC.suivi]) : null
-      if (vu && (!vu.disponible || vu.absent || vu.valeur.status !== 0)) {
-        const conflits = cheminsDe(lecteur(racine), ['diff', '--name-only', '--diff-filter=U'])
-        const entame = ['rebase-merge', 'rebase-apply'].some((nom) => {
-          const chemin = lu(['rev-parse', '--git-path', nom], racine)
-          return Boolean(chemin) && existsSync(resolve(racine, chemin))
-        })
-        // Un rebase qui REFUSE DE DÉMARRER (arbre sale, HEAD détaché…) n'a rien entamé : `--abort`
-        // y rendrait « No rebase in progress » et masquerait la vraie raison. Mesuré (2026-09-14) :
-        // tout échec était classé CONFLIT, sans un seul fichier à nommer.
-        if (!conflits.length && !entame) {
-          const brut = vu.disponible && !vu.absent ? `${vu.valeur.stderr ?? ''}\n${vu.valeur.stdout ?? ''}` : vu.raison
-          return { ok: false, raison: `rebase sur origin/main REFUSÉ (aucun rebase entamé) : ${raisonCourte(brut)}` }
-        }
-        ctx.git(['rebase', '--abort'])
-        return {
-          ok: false,
-          raison: `rebase sur origin/main en CONFLIT (abandonné)${conflits.length ? ` — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}` : ''}`,
-        }
-      }
-      journal.base = lu(['rev-parse', TRONC.suivi], racine)
-      journal.tete = ctx.tete
-      journal.teteAvant = teteAvant
-      const commits = lu(['rev-list', `${journal.base}..HEAD`], racine)
-      if (!commits) return { ok: false, raison: `rien à publier : ${journal.base?.slice(0, 9)}..HEAD est VIDE` }
-      const dit = `base ${journal.base.slice(0, 9)} → tête ${journal.tete.slice(0, 9)}`
-      return {
-        ok: true,
-        detail: { base: journal.base, tete: journal.tete, reecrit: teteAvant !== journal.tete },
-        dit: decision === 'contenu' ? `tronc déjà contenu — ${dit}` : dit,
-      }
-    },
-  },
-  {
-    nom: 'docs',
-    // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci est réécrit par l'étape
-    // `rebase` du lot SUIVANT, et un `docs` vert du lot précédent serait alors sauté à tort.
-    dejaFaite(ctx, journal) {
-      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete
-    },
-    jouer(ctx, journal) {
-      const { racine } = ctx
-      const touches = cheminsDe(lecteur(racine), ['diff', '--name-only', `${journal.base}..${journal.tete}`])
-      // La saleté est lue AVANT toute décision de saut : le hook `post-rewrite` d'un rebase MANUEL a
-      // pu régénérer des dérivés sans les committer, alors que la plage ne touche aucune source de
-      // doc. `touchesDocSources` ne court-circuite donc que la RÉGÉNÉRATION, jamais le COMMIT —
-      // sauter celui-ci laisserait l'arbre sale jusqu'aux gates, qui le refusent.
-      const salesAvant = cheminsSales(racine)
-      const regenerer = touchesDocSources(touches, sourcesMesurees(racine))
-      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
-      if (regenerer) {
-        const check = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--check'], {
-          cwd: racine, stdio: ['ignore', ctx.fdLog, ctx.fdLog],
-        })
-        if (check.status !== 0) {
-          ctx.journaliser('[publier] docs — `--check` non vert : passe COMPLÈTE de build-all\n')
-          const passe = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--quiet'], {
-            cwd: racine, stdio: ['ignore', ctx.fdLog, ctx.fdLog],
-          })
-          if (passe.status !== 0)
-            return {
-              ok: false,
-              raison: `build-all a rendu ${passe.status} : docs/ possiblement incohérent — \`git checkout -- docs/\` puis corriger la cause (rien n'a été staged ni commité)`,
-            }
-        }
-      }
-      const agents = synchroniserAgents(ctx)
-      if (!agents.ok) return agents
-      const chemins = cheminsSales(racine)
-      const { manuscrits } = partitionSales(chemins)
-      if (manuscrits.length)
-        return { ok: false, raison: `doc MANUSCRIT modifié par la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
-      if (!chemins.length) return { ok: true, dit: 'docs dérivés déjà à jour : rien à committer' }
-      const numeros = numerosDeLaPlage(racine, journal)
-      if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins, numeros, motif: MOTIF_APRES_REBASE, journal })
-    },
-  },
-  {
-    // PUSH DE LA BRANCHE : c'est lui qui DÉCLENCHE la CI, et la CI est la porte (#1776). Le rebase a
-    // réécrit l'histoire de la branche, donc `--force-with-lease` : il n'écrase que ce qu'on a lu.
-    nom: 'push-branche',
-    dejaFaite(ctx, journal) {
-      if (!journal.tete) return false
-      return lu(['rev-parse', `origin/${ctx.branche}`], ctx.racine) === journal.tete
-    },
-    jouer(ctx, journal) {
-      const vu = ctx.git(['push', '--force-with-lease', 'origin', `HEAD:refs/heads/${ctx.branche}`])
-      if (!vu.disponible || vu.absent || vu.valeur.status !== 0)
-        return { ok: false, raison: `push de la branche REFUSÉ :\n${refusDeGit(vu)}` }
-      return { ok: true, dit: `${journal.tete.slice(0, 9)} poussé sur ${ctx.branche} — la CI de la branche juge` }
-    },
-  },
-  {
-    // ATTENTE DU VERDICT CI sur la TÊTE, lue par son COMMIT : c'est ce sha-là que le ruleset exigera
-    // vert au fast-forward. Le temps passé ici est du temps d'ATTENTE, pas du temps machine local —
-    // le journal les sépare (`attenteCiSecondes`).
-    nom: 'ci',
-    dejaFaite(ctx, journal) {
-      const vue = journal.etapes.ci
-      return vue?.etat === 'vert' && vue.tete === ctx.tete && vue.detail?.etat === 'verte'
-    },
-    jouer(ctx, journal) {
-      const debut = Date.now()
-      const fin = debut + ctx.options.ciTimeoutMin * 60_000
-      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), attenteCiSecondes: (Date.now() - debut) / 1000 } })
-      let dernier = { etat: 'absente' }
-      while (Date.now() < fin) {
-        const vu = coursesCi({ cwd: ctx.racine, commit: journal.tete, limit: 30 })
-        if (!vu.disponible) ctx.journaliser(`[publier] ci — courses non lues : ${vu.raison}\n`)
-        else {
-          dernier = verdictDesRuns(vu.valeur, journal.tete)
-          const id = dernier.course?.databaseId
-          const url = id ? `https://github.com/${DEPOT}/actions/runs/${id}` : null
-          ctx.journaliser(`[publier] ci — ${dernier.etat}${url ? ` — ${url}` : ''}\n`)
-          if (dernier.etat === 'verte') return attendu({ ok: true, detail: dernier, dit: `course ${id} verte` })
-          if (dernier.etat === 'rouge' || dernier.etat === 'annulee')
-            return attendu({
-              ok: false,
-              detail: dernier,
-              raison:
-                `course CI ${dernier.etat}${id ? ` (${id})` : ''} sur ${journal.tete.slice(0, 9)} — RIEN n'est entré `
-                + `dans main. Lire le job/step rouge : ${url ?? `gh run list --commit ${journal.tete.slice(0, 12)}`}`,
-            })
-        }
-        attendre(PERIODE_SONDE_MS)
-      }
-      return attendu({
-        indetermine: true,
-        detail: dernier,
-        raison: `aucun verdict de la CI en ${ctx.options.ciTimeoutMin} min sur ${journal.tete.slice(0, 9)} — rien n'est entré dans main`,
-      })
-    },
-  },
-  {
-    // FAST-FORWARD de `main` sur une tête dont la CI est VERTE. Le ruleset `main` refuse tout le
-    // reste côté serveur ; ici on ne fait que le geste, et on RELANCE quand le tronc a bougé pendant
-    // l'attente CI (patron #1751) — la tête rebasée devra repasser par sa propre course.
-    nom: 'ff-main',
-    dejaFaite(ctx, journal) {
-      if (!journal.tete) return false
-      const vu = estAncetre(journal.tete, TRONC.suivi, { cwd: ctx.racine })
-      return vu.disponible && !vu.absent && vu.valeur === true
-    },
-    jouer(ctx, journal) {
-      const avant = ctx.tronc()
-      if (!avant.disponible) return { ok: false, raison: `origin non consultable avant le fast-forward : ${avant.raison}` }
-      const vuAvant = jugerLeTronc(journal, avant.sha, 'origin/main a bougé pendant l’attente CI')
-      if (vuAvant) return vuAvant
-      const vu = ctx.git(['push', 'origin', `HEAD:${TRONC.nom}`])
-      if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
-        // Le tronc se REMESURE après un refus : origin/main peut recevoir des commits entre la
-        // lecture d'amont et le push, et git refuse alors en `non-fast-forward` — c'est la MÊME
-        // relance, jugée par la MÊME décision, pas une panne.
-        const apres = ctx.tronc()
-        const vuApres = apres.disponible ? jugerLeTronc(journal, apres.sha, 'origin/main a bougé pendant le push') : null
-        if (vuApres) return vuApres
-        return { ok: false, raison: `fast-forward de main REFUSÉ :\n${refusDeGit(vu)}` }
-      }
-      return { ok: true, dit: `${journal.tete.slice(0, 9)} entré dans main en fast-forward` }
-    },
-  },
-  {
-    nom: 'pilotage',
-    // Le journal SUFFIT : chaque commentaire est déjà idempotent par sa marque (relue par `gh` dans
-    // `jouer`), et une étape verte pour CETTE tête a posé ou constaté les N de CETTE plage.
-    dejaFaite(ctx, journal) {
-      const vue = journal.etapes.pilotage
-      return vue?.etat === 'vert' && vue.tete === ctx.tete
-    },
-    jouer(ctx, journal) {
-      const { racine } = ctx
-      const commits = commitsDeLaPlage(`${journal.base}..${journal.tete}`, racine)
-      const numeros = [...new Set(commits.flatMap((c) => numerosCites(c.message)))]
-      const fermes = new Set(commits.flatMap((c) => numerosFermes(c.message)))
-      const ci = journal.etapes.ci?.detail ?? { etat: 'non lue' }
-      const rates = []
-      const poses = []
-      for (const numero of numeros) {
-        const vue = lireTicket({ depot: DEPOT, numero, appel: appelGh(racine) })
-        if (!vue.ok) {
-          rates.push(`#${numero} : ${vue.raison}`)
-          continue
-        }
-        const corpsVus = vue.corps
-        if (corpsVus.some((c) => c.includes(marquePublication(journal.tete)))) {
-          ctx.journaliser(`[publier] pilotage — #${numero} déjà piloté\n`)
-          continue
-        }
-        const fermeParCi = corpsVus.some((c) => commits.some((k) => c.includes(marqueDe(k.sha))))
-        const corps = corpsDePilotage({
-          numero,
-          base: journal.base,
-          tete: journal.tete,
-          commits,
-          ci,
-          ferme: fermes.has(numero),
-          fermeParCi,
-          fermeAutrement: vue.etat.toLowerCase() === 'closed' && !fermeParCi,
-        })
-        const pose = poserCommentaire({ depot: DEPOT, numero, corps, appel: appelGh(racine) })
-        if (pose.ok) poses.push(numero)
-        else rates.push(`#${numero} : ${pose.raison}`)
-      }
-      if (rates.length) return { ok: false, detail: { poses, rates }, raison: `pilotage manqué sur ${rates.length} ticket(s) :\n${rates.map((r) => `    ${r}`).join('\n')}` }
-      return { ok: true, detail: { poses, numeros }, dit: `${poses.length} commentaire(s) posé(s) sur ${numeros.length} ticket(s) cité(s)` }
-    },
-  },
-  {
-    nom: 'fin',
-    dejaFaite(ctx, journal) {
-      return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
-    },
-    jouer(ctx, journal) {
-      journal.etat = 'vert'
-      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)}` }
-    },
-  },
-]
-
-/** Chemins que `git status --porcelain` rend SALES, dédupliqués (un renommage porte ses deux). */
-export const cheminsSales = (racine) =>
-  [...new Set(etatsDe(lecteur(racine), ['status', '--porcelain']).flatMap((e) => e.chemins).filter(Boolean))]
 
 function main() {
   // L'enfant détaché tend son filet AVANT tout geste faillible : son journal est sa seule voix.
@@ -1139,18 +587,19 @@ function main() {
     process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--ci-timeout-min <n>]\n`)
     process.exit(1)
   }
-  const toplevel = lu(['rev-parse', '--show-toplevel'], RACINE)
+  const depot = depotDuTrain(RACINE)
+  const toplevel = racineDe(depot)
   if (!toplevel || resolve(toplevel) !== resolve(RACINE)) {
     process.stderr.write(`[publier] REFUS : ${RACINE} n'est pas la racine de son dépôt (git dit ${toplevel ?? 'rien'})\n`)
     process.exit(1)
   }
-  const branche = lu(['rev-parse', '--abbrev-ref', 'HEAD'], RACINE) ?? 'HEAD'
+  const branche = brancheDe(depot) ?? 'HEAD'
   const chemins = cheminsDeJournal(RACINE, branche)
   mkdirSync(chemins.dossier, { recursive: true })
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
 
   // La TÊTE VIVANTE : la seule contre laquelle une étape verte se juge (`planDeReprise`).
-  const teteVivante = lu(['rev-parse', 'HEAD'], RACINE)
+  const teteVivante = shaDe(depot, 'HEAD')
 
   if (options.etapes) {
     const journal = surDisque ?? journalVide(branche)
@@ -1194,12 +643,12 @@ function main() {
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)
-  if (repris) {
-    const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), ctx.tete)
-    journaliser(`[publier] reprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`)
-  }
   let verdict
   try {
+    if (repris) {
+      const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), ctx.tete)
+      journaliser(`[publier] reprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`)
+    }
     verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => sauverJournal(chemins.json, j), journaliser })
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e?.stack ?? e}` }
@@ -1217,5 +666,22 @@ function main() {
   return verdict.etat === 'vert' ? 0 : verdict.etat === 'indeterminee' ? 3 : 1
 }
 
+/**
+ * `main`, dont une panne de git AVANT le train (racine, branche, tête vivante) sort en ligne finale
+ * NOMMÉE — au log de l'enfant détaché, sur stderr sinon —, jamais en pile brute.
+ * @returns {number}
+ */
+function mainNomme() {
+  try {
+    return main()
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    const ligne = `PUBLICATION: rouge lecture — git indisponible : ${e.raison}\n`
+    if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
+    else process.stderr.write(ligne)
+    return 1
+  }
+}
+
 const estMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (estMain) process.exit(main())
+if (estMain) process.exit(mainNomme())

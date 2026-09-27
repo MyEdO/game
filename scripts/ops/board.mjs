@@ -27,7 +27,7 @@
 // appel d'écriture, aucun Project requis ; `--sans-fetch` y tolère un `origin` injoignable) ·
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
 import { fileURLToPath } from 'node:url'
-import { TRONC, arbrePrincipal, fetchOrigin, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe } from '../guards/lib/gitPorte.mjs'
 import { inventaire } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
 
@@ -75,10 +75,6 @@ export const CHAMPS = Object.freeze([
 /** Les branches qu'aucun chantier ne porte : la base et les deux préfixes de sauvegarde. */
 const EXCLUES = [/^main$/, /^backup\//, /^sauvegarde\//]
 
-/** Séparateurs d'enregistrement et de champ d'un `git log` multi-lignes (hors alphabet des messages). */
-const RS = ''
-const FS = ''
-
 /**
  * Le motif de CITATION dans un message de commit : un mot-clé puis une CHAÎNE de `#N`
  * (`refs #1392 #1388` cite les DEUX — mesuré sur 14 j d'`origin/main` : ne garder que le premier
@@ -102,59 +98,11 @@ export const cleNormalisee = (nom) => String(nom ?? '')
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '')
 
-/**
- * `git for-each-ref --format=%(refname:short)%09%(committerdate:iso-strict)%09%(objectname)` → une
- * branche par ligne. PURE.
- * @param {string} texte
- * @returns {{nom: string, dernierCommitISO: string, sha: string}[]}
- */
-export function lignesDeBranches(texte) {
-  return String(texte ?? '')
-    .replace(/\r\n/g, '\n')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((ligne) => {
-      const [nom = '', date = '', sha = ''] = ligne.split('\t')
-      return { nom: nom.trim(), dernierCommitISO: date.trim(), sha: sha.trim() }
-    })
-    .filter((b) => b.nom)
-}
-
 /** `true` si cette branche est celle d'un chantier (ni la base, ni une sauvegarde). PUR. */
 export const estBrancheDeChantier = (nom) => !EXCLUES.some((re) => re.test(String(nom ?? '')))
 
-/**
- * `git rev-list --left-right --count <base>...<branche>` → `{retard, avance}` : à GAUCHE ce que la
- * base a et que la branche n'a pas (retard), à DROITE ce que la branche a en propre (avance). PURE.
- * @param {string} texte @returns {{retard: number, avance: number}}
- */
-export function comptesDAvance(texte) {
-  const [gauche = '0', droite = '0'] = String(texte ?? '').trim().split(/\s+/)
-  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
-  return { retard: n(gauche), avance: n(droite) }
-}
-
 /** La colonne « Avance » d'une branche. PURE. */
 export const avanceDite = ({ avance = 0, retard = 0 }) => `+${avance} / −${retard}`
-
-/**
- * Les commits d'un `git log --format=%x1e%cI%x1f%s%n%b` — un enregistrement par commit, message
- * multi-lignes compris. PURE.
- * @param {string} texte @returns {{dateISO: string, texte: string}[]}
- */
-export function commitsDuLog(texte) {
-  return String(texte ?? '')
-    .split(RS)
-    .map((bloc) => bloc.trim())
-    .filter(Boolean)
-    .map((bloc) => {
-      const coupe = bloc.indexOf(FS)
-      return coupe < 0
-        ? { dateISO: '', texte: bloc }
-        : { dateISO: bloc.slice(0, coupe).trim(), texte: bloc.slice(coupe + 1) }
-    })
-}
 
 /**
  * Les tickets CITÉS par un texte de commit, et leur nombre de citations. PURE.
@@ -556,27 +504,38 @@ export function issuesDeGh(numeros, appel = appelGhRunner({ cwd: process.cwd() }
   return indexerIssues(vue.entrees, numeros)
 }
 
+/** Les GESTES au dépôt de la mesure — ses questions et `fetchOrigin` —, ceux de l'hôte (`gitPorte.mjs`) : injectables (mesure). */
+export const GESTES_DU_BOARD = Object.freeze({ arbrePrincipal, fetchOrigin, branchesDe, divergenceDe, journalDe })
+
 /**
  * La MESURE complète, depuis n'importe quel worktree : la racine des gestes git est l'arbre
  * PRINCIPAL, et `base` est un PARAMÈTRE (le CLI la fixe à `origin/main` après `fetch`).
- * `git`, `fetch`, l'inventaire des worktrees et la lecture des issues sont injectables (mesure).
- * @param {{cwd?: string, base?: string, git?: Function, fetch?: Function, inv?: Function,
+ * Les gestes au dépôt (`GESTES_DU_BOARD`), l'inventaire des worktrees et la lecture des issues
+ * sont injectables (mesure).
+ * @param {{cwd?: string, base?: string, gestes?: typeof GESTES_DU_BOARD, inv?: Function,
  *   issues?: Function, sansFetch?: boolean, maintenant?: Date, joursDormant?: number,
  *   joursFusionRecente?: number}} [params]
  * @returns {{ok: true, lignes: object[], anomalies: string[]} | {ok: false, refus: string}}
  */
 export function mesurer({
-  cwd = process.cwd(), base = BASE, git = lireGit, fetch = fetchOrigin, inv = inventaire,
+  cwd = process.cwd(), base = BASE, gestes = GESTES_DU_BOARD, inv = inventaire,
   issues = issuesDeGh, sansFetch = false, maintenant = new Date(), joursDormant = JOURS_DORMANT,
   joursFusionRecente = JOURS_FUSION_RECENTE,
 } = {}) {
-  const vuRacine = arbrePrincipal(cwd, git)
+  const vuRacine = gestes.arbrePrincipal(depotDe(cwd))
   if (!vuRacine.disponible) return { ok: false, refus: vuRacine.raison }
   const principal = vuRacine.valeur
+  let panne = null
+  const depot = depotDe(principal, { enPanne: (raison) => { panne = raison } })
+  const raison = () => {
+    const dite = panne ?? 'objet absent'
+    panne = null
+    return dite
+  }
   const anomalies = []
 
   if (!sansFetch) {
-    const vuFetch = fetch({ cwd: principal })
+    const vuFetch = gestes.fetchOrigin(depot)
     if (vuFetch.disponible !== true || vuFetch.absent === true) {
       return {
         ok: false,
@@ -588,12 +547,8 @@ export function mesurer({
     anomalies.push(`origin non rafraîchi (--sans-fetch) : la mesure porte sur les refs déjà présentes pour ${base}`)
   }
 
-  const vuRefs = git(
-    ['for-each-ref', '--format=%(refname:short)%09%(committerdate:iso-strict)%09%(objectname)', 'refs/heads'],
-    { cwd: principal, site: 'git for-each-ref' },
-  )
-  const refs = sortieOuNull(vuRefs)
-  if (refs === null) return { ok: false, refus: `git for-each-ref illisible : ${vuRefs.raison ?? 'objet absent'}` }
+  const refs = gestes.branchesDe(depot)
+  if (refs === null) return { ok: false, refus: `git for-each-ref illisible : ${raison()}` }
 
   const parBranche = new Map()
   const vuInv = inv({ racine: principal, cwd })
@@ -610,29 +565,25 @@ export function mesurer({
   }
 
   const branches = []
-  for (const brute of lignesDeBranches(refs).filter((b) => estBrancheDeChantier(b.nom))) {
-    const vuComptes = git(['rev-list', '--left-right', '--count', `${base}...${brute.nom}`],
-      { cwd: principal, site: 'git rev-list' })
-    const sortie = sortieOuNull(vuComptes)
-    if (sortie === null) {
-      anomalies.push(`avance de ${brute.nom} non mesurable contre ${base} : ${vuComptes.raison ?? 'objet absent'}`)
+  for (const brute of refs.filter((b) => estBrancheDeChantier(b.nom))) {
+    const comptes = gestes.divergenceDe(depot, base, brute.nom)
+    if (comptes === null) {
+      anomalies.push(`avance de ${brute.nom} non mesurable contre ${base} : ${raison()}`)
       continue
     }
-    const { avance, retard } = comptesDAvance(sortie)
+    const { avance, retard } = comptes
     const worktrees = parBranche.get(brute.nom) ?? []
     if (avance === 0 && !worktrees.length) continue
     let messages = ''
     let messagesLus = true
     if (avance > 0) {
-      const vuLog = git(['log', `--format=${RS}%cI${FS}%s%n%b`, `${base}..${brute.nom}`],
-        { cwd: principal, site: 'git log' })
-      const lu = sortieOuNull(vuLog)
-      messagesLus = lu !== null
+      const journal = gestes.journalDe(depot, [`${base}..${brute.nom}`])
+      messagesLus = journal !== null
       if (!messagesLus) {
-        anomalies.push(`messages d’avance de ${brute.nom} illisibles : ${vuLog.raison ?? 'objet absent'}`
+        anomalies.push(`messages d’avance de ${brute.nom} illisibles : ${raison()}`
           + ' — le repli par citation n’a pas pu être tenté')
       }
-      messages = lu ?? ''
+      messages = (journal ?? []).map((c) => c.message).join('\n')
     }
     const tickets = ticketsDe(brute.nom, messages)
     if (!tickets.length) {
@@ -645,21 +596,17 @@ export function mesurer({
     branches.push({ nom: brute.nom, dernierCommitISO: brute.dernierCommitISO, avance, retard, tickets, worktrees })
   }
 
-  const vuJournal = git(
-    ['log', `--format=${RS}%cI${FS}%s%n%b`, `--since=${joursFusionRecente} days`, base],
-    { cwd: principal, site: 'git log' },
-  )
-  const journalBase = sortieOuNull(vuJournal)
+  const journalBase = gestes.journalDe(depot, [base], { depuis: `${joursFusionRecente} days` })
   if (journalBase === null) {
-    anomalies.push(`journal de ${base} illisible : ${vuJournal.raison ?? 'objet absent'} — la classe `
+    anomalies.push(`journal de ${base} illisible : ${raison()} — la classe `
       + 'Fusionné est incomplète (aucune preuve de publication n’a pu être lue)')
   }
   const fusionnes = []
-  for (const commit of commitsDuLog(journalBase ?? '')) {
-    for (const ticket of ticketsCites(commit.texte).keys()) {
+  for (const commit of journalBase ?? []) {
+    for (const ticket of ticketsCites(commit.message).keys()) {
       const deja = fusionnes.find((f) => f.ticket === ticket)
-      if (!deja) fusionnes.push({ ticket, dateISO: commit.dateISO })
-      else if (commit.dateISO > deja.dateISO) deja.dateISO = commit.dateISO
+      if (!deja) fusionnes.push({ ticket, dateISO: commit.date })
+      else if (commit.date > deja.dateISO) deja.dateISO = commit.date
     }
   }
 

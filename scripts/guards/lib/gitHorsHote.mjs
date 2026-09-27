@@ -16,11 +16,11 @@
 //     lancé sans l'hôte ;
 //   · `decoupe`  — un `split` sur NUL : la découpe d'une sortie `-z` hors de l'hôte ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
-//     `ls-files`, `ls-tree`, `-z`) écrite hors de l'appel d'un lecteur de l'hôte (`LECTEURS`).
+//     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cheminsDe, fichiersDuGrep, lecteurGit } from './gitPorte.mjs'
+import { INDEX, depotDe, fichiersDuGrep, listerImage } from './gitPorte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
@@ -32,9 +32,6 @@ export const DOSSIERS_DES_PORTES = Object.freeze(['scripts/guards', 'scripts/hoo
 /** L'hôte : le seul module qui lance git et découpe ses sorties. */
 export const HOTE = 'scripts/guards/lib/gitPorte.mjs'
 
-/** Les lecteurs de l'hôte qu'une forme de chemins doit traverser. */
-export const LECTEURS = Object.freeze(['cheminsDe', 'numstatDe', 'nameStatusDe', 'etatsDe', 'eolsDe', 'journalDe'])
-
 const MODULE = /\.(?:mjs|cjs|mts|cts|ts|js)$/
 const LANCEUR = /[\w$]\s*\(\s*(['"`])git\1|\bexec(?:Sync)?\(\s*(['"`])git\s/g
 const DECOUPE = /split\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1\s*\)/g
@@ -45,24 +42,9 @@ export const IMPORT_DE_L_HOTE = "from[[:space:]]+['\"][^'\"]*gitPorte\\.mjs['\"]
 
 /** Les sources du périmètre, chemins POSIX relatifs, triés. */
 export function sourcesDesPortes(racine = RACINE) {
-  const git = lecteurGit(racine)
-  const sources = [...cheminsDe(git, ['ls-files', '--', ...DOSSIERS_DES_PORTES]), ...fichiersDuGrep(git, [], IMPORT_DE_L_HOTE, [])]
+  const depot = depotDe(racine)
+  const sources = [...listerImage(depot, INDEX, ...DOSSIERS_DES_PORTES), ...fichiersDuGrep(depot, [], IMPORT_DE_L_HOTE, [])]
   return [...new Set(sources)].filter((f) => MODULE.test(f) && !estFichierVitest(f) && f !== HOTE).sort()
-}
-
-/** Le nom de l'appel dont `index` est un argument : l'identifiant devant la première `(` ouverte à
- *  sa gauche, `null` hors de tout appel. */
-function appelEnglobant(texte, index) {
-  let profondeur = 0
-  for (let i = index - 1; i >= 0; i -= 1) {
-    const c = texte[i]
-    if (c === ')' || c === ']' || c === '}') profondeur += 1
-    else if (c === '(' || c === '[' || c === '{') {
-      if (profondeur > 0) profondeur -= 1
-      else if (c === '(') return /([\w$]+)\s*$/.exec(texte.slice(Math.max(0, i - 80), i))?.[1] ?? null
-    }
-  }
-  return null
 }
 
 /** Le texte sans ses commentaires, longueurs conservées (les index restent ceux de la source). */
@@ -82,7 +64,7 @@ export function sitesHorsHote(chemin, texte) {
   const noter = (forme, i) => sites.push({ chemin, ligne: ligneDe(i), forme, extrait: lignes[ligneDe(i) - 1].trim().slice(0, 120) })
   for (const m of code.matchAll(LANCEUR)) noter('lanceur', m.index)
   for (const m of code.matchAll(DECOUPE)) noter('decoupe', m.index)
-  for (const m of code.matchAll(FORME)) if (!LECTEURS.includes(appelEnglobant(code, m.index))) noter('forme', m.index)
+  for (const m of code.matchAll(FORME)) noter('forme', m.index)
   return sites.sort((a, b) => a.ligne - b.ligne)
 }
 

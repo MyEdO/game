@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { EQUIPEMENTS, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, refusDeCreation, resumeDeChantier } from './chantier.mjs'
+import { EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, refusDeCreation, resumeDeChantier } from './chantier.mjs'
 
 test('un nom de chantier est un numéro de ticket, avec un slug optionnel en minuscules', () => {
   for (const bon of ['1736', '42', '1732-1734-outillage', '1736-publication', '12-a', '12-a1-b2']) {
@@ -61,7 +61,8 @@ test('resumeDeChantier imprime les quatre faits, un par ligne', () => {
 
 test('nom invalide : refus NOMMÉ, et aucun git n’est joué', () => {
   let joue = 0
-  const vu = creerChantier({ racine: '/dep', nom: 'Publication', git: () => { joue += 1 }, fetch: () => { joue += 1 } })
+  const compte = () => { joue += 1 }
+  const vu = creerChantier({ racine: '/dep', nom: 'Publication', gestes: { arbrePrincipal: compte, shaDe: compte, fetchOrigin: compte, ajouterWorktree: compte } })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /nom de chantier invalide/)
   assert.match(vu.refus, /numéro de ticket/)
@@ -232,7 +233,7 @@ test('lancé depuis un WORKTREE : la cible se pose sous l’ARBRE PRINCIPAL, à 
 test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
-    const vu = creerChantier({ racine, nom: '46', sansCi: true, fetch: () => ({ disponible: false, raison: 'réseau coupé' }) })
+    const vu = creerChantier({ racine, nom: '46', sansCi: true, gestes: { ...GESTES_DU_CHANTIER, fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) } })
     assert.equal(vu.ok, false)
     assert.match(vu.refus, /réseau coupé/)
     assert.equal(existsSync(cibleDe(racine, '46')), false)

@@ -14,7 +14,7 @@
 // L'exécutable joué est le FICHIER JS déclaré par le champ `bin` du paquet, lancé par `process.execPath`
 // (`shell: false`) : aucun `.cmd` de `node_modules/.bin` n'est traversé, donc aucune règle de citation
 // de cmd.exe sur les arguments, et le même chemin de code sur win32 et sur posix.
-import fs from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -57,7 +57,7 @@ export function resoudreOutilLocal(racine, paquet, bin) {
   const manifesteChemin = path.join(racine, 'node_modules', paquet, 'package.json')
   const refusPaquet = refusOutillageLocal(racine, paquet, manifesteChemin)
   if (refusPaquet) return { refus: refusPaquet }
-  const relatif = entreeBin(JSON.parse(fs.readFileSync(manifesteChemin, 'utf8')), bin)
+  const relatif = entreeBin(JSON.parse(readFileSync(manifesteChemin, 'utf8')), bin)
   if (!relatif)
     return { refus: `[outillage] le paquet ${paquet} de cet arbre ne déclare aucun exécutable « ${bin} » : ${manifesteChemin}` }
   const entree = path.join(racine, 'node_modules', paquet, relatif)

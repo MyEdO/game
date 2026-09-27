@@ -51,7 +51,7 @@ function listeDuStub(chemin) {
   }
   if (Array.isArray(lu)) return fait(triees(lu))
   const appels = Array.isArray(lu?.appels) ? lu.appels : null
-  if (!appels || appels.length === 0) return indisponible(`stub ${chemin} : ni tableau de courses ni \`appels\``)
+  if (!appels || appels.length === 0) return indisponible(`stub sans courses — ni tableau ni \`appels\` : ${chemin}`)
   const rang = appelsServis.get(chemin) ?? 0
   appelsServis.set(chemin, rang + 1)
   return fait(triees(appels[Math.min(rang, appels.length - 1)]))

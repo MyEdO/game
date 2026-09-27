@@ -16,7 +16,7 @@
 //
 // Une racine appartient à UNE gate : `couverture()` rend rouge, nominativement, tout test qu'aucune
 // racine ne prend (orphelin) ou que deux prennent (doublon) — garde `testsParGate.test.mjs`.
-import { cheminsDe, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TRAVAIL, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
 
 /** Suffixe qui fait d'un fichier un test joué par `node --test`. */
 const SUFFIXE_TEST = '.test.mjs'
@@ -78,19 +78,14 @@ export function gateDe(chemin, racines = RACINES) {
  * @returns {string[]}
  */
 export function listerTests(racine = process.cwd()) {
-  const git = (args) => {
-    const vu = lireGit(args, { cwd: racine })
-    const sortie = sortieOuNull(vu)
-    if (sortie === null)
-      throw new Error(
-        `testsParGate : git ne rend pas les fichiers sous ${racine}/scripts ` +
-          `(${vu.disponible ? 'lecture sans verdict' : vu.raison}) — la répartition des tests ne se devine pas`,
-      )
-    return sortie
+  let chemins
+  try {
+    chemins = listerImage(depotDe(racine), TRAVAIL, 'scripts')
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    throw new Error(`testsParGate : git ne rend pas les fichiers sous ${racine}/scripts (${e.raison}) — la répartition des tests ne se devine pas`, { cause: e })
   }
-  return cheminsDe(git, ['ls-files', '--cached', '--others', '--exclude-standard', '--', 'scripts'])
-    .filter((f) => f.endsWith(SUFFIXE_TEST))
-    .sort()
+  return chemins.filter((f) => f.endsWith(SUFFIXE_TEST)).sort()
 }
 
 /**

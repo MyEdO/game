@@ -57,8 +57,17 @@ const ATTENDU = {
     // dossier de hooks jetable (`mkdtempSync` + `writeFileSync` sous os.tmpdir()) — un `git commit`
     // réel ne se joue pas autrement, et l'arbre du dépôt n'est jamais écrit.
     'scripts/git-hooks/commit-msg.test.mjs',
+    // +1 le 2026-09-27 (#1806) : le banc du lot de `docs-rebuild` pose une cale `git` en panne
+    // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
+    // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
+    'scripts/git-hooks/docs-rebuild.test.mjs',
     'scripts/git-hooks/merge-docs.mjs',
     'scripts/git-hooks/merge-docs.test.mjs',
+    // +1 le 2026-09-27 (#1806) : le banc du pre-commit forge un dépôt JETABLE (`instanceDeDepot`, sous
+    // os.tmpdir(), `rmSync` en finally), y stage un nom à tabulation et y JOUE le hook, `cwd` = ce
+    // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
+    // `git status --short --ignored` identique avant et après, sur ce worktree et sur l'arbre principal.
+    'scripts/git-hooks/pre-commit.test.mjs',
     'scripts/git-hooks/pre-push.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
     // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
@@ -176,6 +185,10 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
     'scripts/ops/chantier.test.mjs',
+    // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
+    // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
+    // aucun module fictif n'est importé ni exécuté, et rien n'est écrit, ni dans l'arbre ni ailleurs.
+    'scripts/ops/etapesDuTrain.test.mjs',
     // +1 le 2026-09-18 (#1813) : le banc du vocabulaire de PLAGE FERMANTE prend ses dépôts jetables à
     // la fixture partagée (`instanceDeDepot`, sous os.tmpdir()) et y pose ses fichiers
     // (`mkdirSync`/`writeFileSync` pour `.claude/soldes/42.md`, `rmSync` en finally) : lire une plage

@@ -6,7 +6,7 @@
 // fermeture de ticket devient invisible au contrôle de solde (fail-open mesuré 2026-08-03, #1052).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { spawnSync, execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -26,12 +26,12 @@ function depotDeChantier(params) {
 }
 
 /** Décision rendue par le driver pour un payload `ctx_shell` donné (`null` si le hook se tait). */
-function decisionOf(command, cwd) {
+function decisionOf(command, cwd, env = process.env) {
   const payload = JSON.stringify({
     session_id: 'test', hook_event_name: 'PreToolUse',
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
   })
-  const run = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8', cwd: REPO })
+  const run = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8', cwd: REPO, env })
   assert.equal(run.status, 0, `le hook a quitté en ${run.status} : ${run.stderr}`)
   if (!run.stdout.trim()) return null
   const { permissionDecision, permissionDecisionReason } = JSON.parse(run.stdout).hookSpecificOutput
@@ -499,6 +499,48 @@ test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
 
     const out = decisionOf('git commit -m "chore(docs): régénéré"', repo)
     assert.doesNotMatch(out?.reason ?? '', /SUBSTANCE sans ticket/, 'un commit de docs n’a aucun ticket à citer')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// #1806 : une PANNE de lecture du contenu emporté n'est pas « rien n'est emporté » — l'ascendance
+// reste lisible, donc aucun autre refus ne la rattraperait.
+test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
+  const cale = mkdtempSync(join(tmpdir(), 'git-diff-index-en-panne-'))
+  try {
+    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    writeFileSync(join(repo, 'src', 'x.ts'), 'export const x = 2\nexport const y = 3\n', 'utf8')
+    git('add', 'src/x.ts')
+    const commande = 'git commit -m "feat(x): y (refs #1806)"'
+    assert.doesNotMatch(decisionOf(commande, repo)?.reason ?? '', /lecture git indisponible/, 'témoin : git répond, aucune panne')
+
+    const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
+    writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = diff-index ] && { echo 'fatal: panne simulée' >&2; exit 128; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
+    const parCale = decisionOf(commande, repo, { ...process.env, PATH: `${cale}:${process.env.PATH}` })
+    assert.equal(parCale?.decision, 'deny')
+    assert.match(parCale.reason, /⛔ lecture git indisponible : fatal: panne simulée/)
+
+    const blob = git('rev-parse', 'HEAD:src/x.ts')
+    const objet = join(repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2))
+    chmodSync(objet, 0o644)
+    writeFileSync(objet, 'x')
+    const corrompu = decisionOf(commande, repo)
+    assert.equal(corrompu?.decision, 'deny')
+    assert.match(corrompu.reason, /⛔ lecture git indisponible : .*too long/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+    rmSync(cale, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : un dépôt SANS premier commit et un commit qui touche `CLAUDE.md` — la base est l’arbre vide, le hook ne tombe pas', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'CLAUDE.md': '# x\n', '.claude/skills/a/SKILL.md': 's\n' }, commit: false })
+  try {
+    execFileSync('git', ['add', 'CLAUDE.md', '.claude/skills/a/SKILL.md'], { cwd: repo, env: envDeDepotForge(), stdio: 'ignore' })
+    const out = decisionOf('git commit -m "chore: socle"', repo)
+    assert.doesNotMatch(out?.reason ?? '', /BorneAbsente|lecture git indisponible/)
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }

@@ -34,11 +34,11 @@
 //
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
-// git sont injectées.
-import { GitIndisponible, TRONC, ceQueFaitLeCommit, lireGit, sortieOuNull } from './gitPorte.mjs'
+// git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
+import { GitIndisponible, TRONC, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, shasDe } from './gitPorte.mjs'
 import { bilanDesStocks, croissanceDesCles, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDesCotes, lignesDeReclassement } from './reclassementCss.mjs'
-import { coteCss, renommagesDe, sourceGit } from './cssImages.mjs'
+import { coteCss, sourceGit } from './cssImages.mjs'
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
 export const SHA_NUL = '0'.repeat(40)
@@ -133,22 +133,14 @@ export function raisonDeRefusDePlage(refus) {
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
- * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null,
- *           git?: (args: string[]) => string | null }} p
+ * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null }} p
  * @returns {{ refus: [], reclassements: [], notes: string[], plage: string, indisponible: string|null, commits?: number }}
  */
-export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null, git } = {}) {
+export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
   const pannes = []
-  const lire = git ?? ((args, { entree } = {}) => {
-    const vu = lireGit(args, { cwd, entree })
-    if (!vu.disponible) {
-      pannes.push(vu.raison)
-      return null
-    }
-    return sortieOuNull(vu)
-  })
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
   const notes = []
-  const avecLeTronc = (sha) => lire(['merge-base', sha, TRONC.suivi])?.trim() || null
+  const avecLeTronc = (sha) => baseCommune(depot, sha, TRONC.suivi)
   if (debut === SHA_NUL) debut = null
   let tronc = null
   if (debut && vers === TRONC.branche) {
@@ -161,30 +153,31 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
   if (seul) notes.push(`plage inconnue : ni sha distant ni tronc — ${fin.slice(0, 9)} seul est jugé, sans ses parents`)
   const revisions = seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]
   const plage = revisions.join(' ')
-  const liste = lire(['rev-list', '--reverse', ...revisions])
-  if (liste === null) {
+  const shas = shasDe(depot, revisions)
+  if (shas === null) {
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
     return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
   }
-  const shas = liste.split('\n').map((l) => l.trim()).filter(Boolean)
+  const messages = new Map((journalDe(depot, revisions) ?? []).map((c) => [c.sha, c.message]))
+  const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
   let commits
   try {
     commits = shas.map((sha) => {
-      const fait = ceQueFaitLeCommit(lire, sha)
-      const source = (arbre) => sourceGit({ cwd, arbre, git: lire })
+      const fait = ceQueFaitLeCommit(depot, sha)
+      const source = (arbre) => sourceGit({ cwd, arbre, depot })
       const base = source(fait.base)
       return {
         sha,
-        message: lire(['show', '-s', '--format=%B', sha]) ?? '',
+        message: messages.get(sha) ?? '',
         diff: fait.diff(),
         images: {
-          lirePostImage: (f) => lire(['show', `${sha}:${f}`]),
-          lirePreImage: fait.texteDeBase,
+          lirePostImage: texteA(sha),
+          lirePreImage: fait.lirePreImage,
           renommages: fait.renommages(),
         },
         cotes: () => (deplaceLaFrontiere({
           chemins: fait.chemins(),
-          nesOuMorts: () => fait.chemins(['--diff-filter=AD']),
+          nesOuMorts: () => fait.chemins('AD'),
           base,
           commit: source(sha),
           racine: cwd,
@@ -196,11 +189,10 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
     return { refus: [], reclassements: [], notes, plage, indisponible: e.raison }
   }
-  const bilanEntre = (a, b) => bilanDesStocks(lire(['diff', '-U0', '--no-renames', `${a}..${b}`]) ?? '', {
-    lirePostImage: (f) => lire(['show', `${b}:${f}`]),
-    lirePreImage: (f) => lire(['show', `${a}:${f}`]),
-    renommages: renommagesDe(lire, [a, b]),
-  })
+  const bilanEntre = (a, b) => {
+    const change = ceQuiChange(depot, a, b)
+    return bilanDesStocks(change.diff(), { lirePostImage: texteA(b), lirePreImage: change.lirePreImage, renommages: change.renommages() })
+  }
   const troncDeFin = tronc && avecLeTronc(fin)
   const bout = debut ?? troncDeFin
   const troncDuBout = tronc && avecLeTronc(bout)

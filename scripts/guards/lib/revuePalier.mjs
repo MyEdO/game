@@ -11,13 +11,19 @@
 // que n'importe qui refait avec git, et qui rend la même valeur depuis n'importe quel arbre. Un compteur d'événements
 // compterait ce que chaque worktree fait de son côté (20 sur ce dépôt, dont des trains qui ne
 // rejoignent jamais `main`) : deux worktrees suffisent à en faire un nombre que rien ne recoupe.
-import { GitIndisponible, ceQueFaitLeCommit, cheminsDe, estAncetre, lecteurGit } from './gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, combienDe, depotDe, estAncetre, imageDeHead, lireEnLot, listerImage, shasDe } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
-/** Lecture git de ce module : la sortie, ou `''` quand l'objet demandé n'existe pas (un dépôt sans
- *  HEAD ne porte aucune archive, et ce n'est pas une erreur). Une INDISPONIBILITÉ (git absent, hors
- *  dépôt) JETTE — `mesureDuPalier` la rend en `erreur` nommée. */
-const git = (args, cwd) => lecteurGit(cwd)(args) ?? ''
+/** Le dossier des revues archivées. */
+const SOLDES = '.claude/soldes'
+
+/** Le texte de chaque chemin de `chemins` dans l'image `arbre` (`lireEnLot`), `''` quand l'objet
+ *  n'existe pas. Une INDISPONIBILITÉ (git absent, hors dépôt) JETTE — `mesureDuPalier` la rend en
+ *  `erreur` nommée. */
+const textesDe = (depot, arbre, chemins) => {
+  const lus = lireEnLot(depot, arbre, chemins)
+  return (chemin) => lus.get(chemin) ?? ''
+}
 
 const DATE_RE = /\d{4}-\d{2}-\d{2}/g
 const FENETRE_RE = /([0-9a-f]{7,40})\.\.([0-9a-f]{7,40})/
@@ -98,11 +104,12 @@ export function memeSha(a, b) {
  * @returns {{ chemin: string, date: string|null, base: string|null, tete: string|null }[]}
  */
 export function archivesDe(cwd = process.cwd()) {
-  // Dépôt sans HEAD : `git` rend `''` (objet absent), donc aucune archive — et ce n'est pas une erreur.
-  const suivis = cheminsDe((args) => git(args, cwd), ['ls-tree', '-r', '--name-only', 'HEAD', '--', '.claude/soldes'])
-  return suivis
-    .filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
-    .map((chemin) => ({ chemin, ...fenetreDeRevue(git(['show', `HEAD:${chemin}`], cwd)) }))
+  // Dépôt sans premier commit : son image est l'arbre vide (`imageDeHead`), donc aucune archive.
+  const depot = depotDe(cwd)
+  const head = imageDeHead(depot)
+  const revues = listerImage(depot, head, SOLDES).filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
+  const texte = textesDe(depot, head, revues)
+  return revues.map((chemin) => ({ chemin, ...fenetreDeRevue(texte(chemin)) }))
 }
 
 /**
@@ -111,13 +118,10 @@ export function archivesDe(cwd = process.cwd()) {
  * @returns {{ chemin: string, nom: string, contenu: string }[]}
  */
 export function revuesNeuves(cwd = process.cwd()) {
-  const ajoutees = cheminsDe((args) => git(args, cwd), ['diff', '--cached', '--name-only', '--diff-filter=A', '--', '.claude/soldes'])
-    .filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
-  return ajoutees.map((chemin) => ({
-    chemin,
-    nom: chemin.split('/').pop(),
-    contenu: git(['show', `:${chemin}`], cwd),
-  }))
+  const depot = depotDe(cwd)
+  const ajoutees = ceQuEmporteLIndex(depot).chemins('A', [SOLDES]).filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
+  const texte = textesDe(depot, INDEX, ajoutees)
+  return ajoutees.map((chemin) => ({ chemin, nom: chemin.split('/').pop(), contenu: texte(chemin) }))
 }
 
 /**
@@ -135,13 +139,14 @@ export function revuesNeuves(cwd = process.cwd()) {
 export function derniereRevueArchivee(cwd = process.cwd()) {
   const archivees = archivesDe(cwd)
   if (archivees.length === 0) return { etat: 'aucune-archive' }
+  const depot = depotDe(cwd)
   const jugeantes = []
   for (const r of archivees) {
     if (!r.tete) continue
-    const vu = estAncetre(r.tete, 'HEAD', { cwd })
+    const vu = estAncetre(depot, r.tete, 'HEAD')
     if (!vu.disponible) return { etat: 'ascendance-indisponible', raison: vu.raison }
     if (vu.absent || vu.valeur !== true) continue
-    jugeantes.push({ ...r, reste: Number.parseInt(git(['rev-list', '--count', `${r.tete}..HEAD`], cwd).trim(), 10) })
+    jugeantes.push({ ...r, reste: combienDe(depot, [`${r.tete}..HEAD`]) ?? Number.NaN })
   }
   jugeantes.sort((a, b) => a.reste - b.reste || parUnitesDeCode(a.chemin, b.chemin))
   if (jugeantes.length === 0) return { etat: 'toutes-orphelines', chemins: archivees.map((r) => r.chemin) }
@@ -153,7 +158,7 @@ export function derniereRevueArchivee(cwd = process.cwd()) {
  *  sha INCONNU rend `absent` — l'appelant en fait « pas dans cette histoire ». Le PRÉDICAT booléen
  *  correspondant est `estDansHead` (`gitPorte.mjs`), partagé avec le garde de solde. */
 export const ascendanceDansHead = (sha, cwd = process.cwd()) =>
-  sha ? estAncetre(sha, 'HEAD', { cwd }) : { disponible: true, absent: true }
+  sha ? estAncetre(depotDe(cwd), sha, 'HEAD') : { disponible: true, absent: true }
 
 /** Les dossiers qui font la SUBSTANCE d'un commit : le moteur et l'outillage. Source unique du
  *  critère — la mesure du palier (`shasDeSubstance`) et la porte du ticket au commit
@@ -169,22 +174,21 @@ export function estCheminDeSubstance(chemin) {
 }
 
 /**
- * Les commits de SUBSTANCE de `plage` (`<a>..<b>`), du plus ancien au plus récent : ceux dont CE QU'ILS
+ * Les commits de SUBSTANCE de la plage `revisions` (`shasDe`), du plus ancien au plus récent : ceux dont CE QU'ILS
  * FONT (`ceQueFaitLeCommit`, contre leur base) touche un chemin de substance (`estCheminDeSubstance`).
  * Une fusion propre n'en est pas ; une fusion qui apporte une ligne sous `src`/`scripts` en est.
- * `git` : le lecteur de l'appelant, `null` = rien. `limite` : la lecture s'arrête au `limite`-ième
+ * Une plage que git ne rend pas n'en a aucun. `limite` : la lecture s'arrête au `limite`-ième
  * commit de substance trouvé.
- * @param {(args: string[], opts?: { entree?: string }) => string | null} git @param {string} plage
+ * @param {import('./gitPorte.mjs').Depot} depot @param {readonly string[]} revisions
  * @param {{ limite?: number }} [options]
  * @returns {string[]}
  * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit`.
  */
-export function shasDeSubstance(git, plage, { limite = Infinity } = {}) {
-  const shas = (git(['rev-list', '--reverse', plage]) ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
+export function shasDeSubstance(depot, revisions, { limite = Infinity } = {}) {
   const vus = []
-  for (const sha of shas) {
+  for (const sha of shasDe(depot, revisions) ?? []) {
     if (vus.length >= limite) break
-    if (ceQueFaitLeCommit(git, sha).chemins().some(estCheminDeSubstance)) vus.push(sha)
+    if (ceQueFaitLeCommit(depot, sha).chemins().some(estCheminDeSubstance)) vus.push(sha)
   }
   return vus
 }
@@ -229,7 +233,7 @@ export function mesureDuPalier(cwd = process.cwd(), { emportes = [], seuil = Inf
   const { tete, chemin } = derniere
   const enCours = emportes.some(estCheminDeSubstance) ? 1 : 0
   try {
-    const publies = shasDeSubstance(lecteurGit(cwd), `${tete}..HEAD`, { limite: Math.max(0, seuil - enCours) }).length
+    const publies = shasDeSubstance(depotDe(cwd), [`${tete}..HEAD`], { limite: Math.max(0, seuil - enCours) }).length
     return { compte: publies + enCours, tete, chemin }
   } catch (err) {
     if (!(err instanceof GitIndisponible)) throw err

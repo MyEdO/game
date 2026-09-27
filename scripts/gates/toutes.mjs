@@ -144,7 +144,10 @@ export const ECRIT_LU = {
       '--porcelain` avant/après identique, et aucun résidu `migr-` dans os.tmpdir() ; +1 lecture le 2026-09-23 (#1739) : la garde du dépôt ' +
       '`guards/lib/pdfHorsCouture.test.mjs` LIT tout fichier de code et tout JSON de configuration, suivi ou ' +
       'non indexé — son banc exige que chaque racine de `racinesBalayees` soit couverte par ce `lit` ' +
-      '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts)',
+      '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
+      '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
+      'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
+      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir()',
   },
   'test:ops': {
     ecrit: [],

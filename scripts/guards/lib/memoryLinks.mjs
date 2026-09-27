@@ -42,7 +42,7 @@
 //
 // Module ESM pur — consommé par `scripts/guards/lib/memoryLinks.test.mjs`.
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { cheminsDe, lecteurGit } from './gitPorte.mjs';
+import { TRAVAIL, depotDe, enfantsDirects, imageDeHead, listerImage, racineDe } from './gitPorte.mjs';
 import { parUnitesDeCode, listerDossier } from './lister.mjs';
 import { extname, join } from 'node:path';
 import { sansBlocsDeCode } from './liensMarkdown.mjs';
@@ -138,19 +138,18 @@ function jetonDisparues(disparues) {
 /**
  * VOCABULAIRE des noms de fiche connus du dépôt : celles de l'arbre de travail ET celles de HEAD.
  * C'est ce qui rend le slug BACKTIQUÉ décidable — hors de ce vocabulaire, un kebab backtiqué est un
- * identifiant de code (mesure : 99,95 % de faux positifs, cf. en-tête). Si git ne répond pas, le
- * vocabulaire se réduit à l'arbre : la portée rétrécit, elle ne ment pas.
+ * identifiant de code (mesure : 99,95 % de faux positifs, cf. en-tête). HORS dépôt (`racineDe`
+ * nulle), le vocabulaire se réduit à l'arbre : la portée rétrécit, elle ne ment pas. Une PANNE de git
+ * LÈVE `GitIndisponible` : un vocabulaire amputé de HEAD rendrait des mentions indécidables muettes.
  * @returns {Set<string>}
  */
 export function nomsDeFichesConnues(root) {
   const noms = new Set(liveNotes(root).map((f) => f.replace(/\.md$/, '')));
-  try {
-    const chemins = cheminsDe(lecteurGit(root), ['ls-tree', '--name-only', 'HEAD', `${MEMORY_DIR}/`]);
-    for (const ligne of chemins) {
-      if (!ligne.endsWith('.md')) continue;
-      noms.add(ligne.slice(`${MEMORY_DIR}/`.length, -'.md'.length));
-    }
-  } catch { /* dépôt sans HEAD (banc forgé) : vocabulaire = arbre seul */ }
+  const depot = depotDe(root);
+  if (racineDe(depot) === null) return noms;
+  for (const nom of enfantsDirects(listerImage(depot, imageDeHead(depot), MEMORY_DIR), MEMORY_DIR)) {
+    if (nom.endsWith('.md')) noms.add(nom.slice(0, -'.md'.length));
+  }
   return noms;
 }
 
@@ -159,7 +158,7 @@ export function nomsDeFichesConnues(root) {
  * non ignorés) : un fichier temporaire posé dans le périmètre est donc VU. @returns {string[]}
  */
 export function fichiersHorsMemoire(root) {
-  const chemins = cheminsDe(lecteurGit(root), ['ls-files', '--cached', '--others', '--exclude-standard', '--', ...RACINES_HORS_MEMOIRE]);
+  const chemins = listerImage(depotDe(root), TRAVAIL, ...RACINES_HORS_MEMOIRE);
   return [...new Set(chemins)]
     .filter((rel) => EXTENSIONS_LUES.has(extname(rel)))
     .filter((rel) => !HORS_SCAN.some((p) => rel === p || rel.startsWith(p)))

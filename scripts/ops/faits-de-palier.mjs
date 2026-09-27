@@ -27,7 +27,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ascendanceDansHead, derniereRevueArchivee, memeSha, shasDeSubstance } from '../guards/lib/revuePalier.mjs'
 import { croissancesDeLaPlage } from '../guards/lib/plageStock.mjs'
-import { journalDe, lecteurGit, tenter } from '../guards/lib/gitPorte.mjs'
+import { depotDe, imageDeHead, journalDe, lireEnLot, tenter } from '../guards/lib/gitPorte.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { soldesSuivis } from './fermetures-non-citees.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -117,10 +117,10 @@ export function coursesParCommit(servies, shas) {
 
 // ── Lecture réelle ────────────────────────────────────────────────────────────────────────────
 
-const git = (args, cwd) => {
-  const sortie = lecteurGit(cwd)(args)
-  if (sortie === null) throw new Error(`faits-de-palier : \`git ${args.join(' ')}\` n'a rien rendu dans ${cwd}`)
-  return sortie
+/** La réponse d'une question au dépôt, ou une levée qui nomme `quoi` : ce que git n'a pas rendu. */
+const exiger = (valeur, quoi, cwd) => {
+  if (valeur === null || valeur === undefined) throw new Error(`faits-de-palier : ${quoi} illisible dans ${cwd}`)
+  return valeur
 }
 
 function main() {
@@ -158,20 +158,21 @@ function main() {
     process.exit(1)
   }
 
-  const substance = tenter(() => shasDeSubstance(lecteurGit(cwd), `${base}..${tete}`))
+  const depot = depotDe(cwd)
+  const substance = tenter(() => shasDeSubstance(depot, [`${base}..${tete}`]))
   if (!substance.disponible) {
     process.stderr.write(`faits-de-palier : ce que font les commits de \`${base}..${tete}\` est illisible — ${substance.raison}.\n`)
     process.exit(1)
   }
   const commits = marquerSubstance(
-    journalDe((args) => git(args, cwd), `${base}..${tete}`).map(commitDuJournal),
+    exiger(journalDe(depot, [`${base}..${tete}`]), `la plage ${base}..${tete}`, cwd).map(commitDuJournal),
     substance.valeur,
   )
   const shas = commits.map((c) => c.sha)
   const fermetures = fermeturesDesCommits(commits, soldesSuivis(cwd))
   const stocks = tenter(() => croissancesDeLaPlage({ cwd, debut: base, fin: tete }))
 
-  const depuis = git(['log', '-1', '--format=%cs', base], cwd).trim()
+  const depuis = exiger(journalDe(depot, [`${base}^!`])?.[0]?.date.slice(0, 10), `la date de ${base}`, cwd)
   const fermeturesHorsCommit = horsLigne
     ? { disponible: false, raison: '`--hors-ligne` : GitHub non consulté' }
     : tenter(() => execFileSync(process.execPath, [join(RACINE, 'scripts', 'ops', 'fermetures-non-citees.mjs'), '--depuis', depuis], {
@@ -194,7 +195,7 @@ function main() {
 
   const texteDeRevue = tenter(() => (revuePrecedente
     ? readFileSync(revuePrecedente, 'utf8')
-    : git(['show', `HEAD:${derniere.chemin}`], cwd)))
+    : exiger(lireEnLot(depot, imageDeHead(depot), [derniere.chemin]).get(derniere.chemin), `HEAD:${derniere.chemin}`, cwd)))
 
   const faitsChemin = sortie ?? sortieParDefaut(base, tete)
   const faits = {

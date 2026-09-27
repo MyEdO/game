@@ -33,7 +33,7 @@
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { TRONC, estAncetre, lireGit, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
@@ -109,14 +109,16 @@ export function verdictDuSha({ courses, sha, disponible = true, raison = null })
 
 /** Verdict COMPLET du hook : `{ refus: [], notes: [] }`. Aucune sortie, aucun code — testable. */
 export function jugerPush({ cwd, stdin, env = process.env }) {
-  // Les lectures git passent par l'hôte unique : `null` dit « l'objet n'existe pas », et une
-  // INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
-  const lire = (args) => sortieOuNull(lireGit(args, { cwd }))
+  // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
+  // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
+  const pannes = []
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
   const refus = []
   const notes = []
 
-  const origine = (lire(['remote', 'get-url', 'origin']) ?? '').trim()
-  if (!urlOrigineAcceptee(origine))
+  const origine = origineDe(depot) ?? ''
+  if (pannes.length) refus.push(`origin illisible, git indisponible : ${pannes[0]}`)
+  else if (!urlOrigineAcceptee(origine))
     refus.push(`origin = « ${origine || '(absent)'} » : ce hook ne connaît que github.com/cgauche/game`)
 
   for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
@@ -133,7 +135,7 @@ export function jugerPush({ cwd, stdin, env = process.env }) {
     } else if (!shaDistant || shaDistant === ZERO) {
       notes.push(`${refDistante} n’existe pas encore côté distant : rien à écraser, fast-forward non jugé`)
     } else {
-      const ancetre = estAncetre(shaDistant, shaLocal, { cwd })
+      const ancetre = estAncetre(depot, shaDistant, shaLocal)
       if (!ancetre.disponible)
         refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${ancetre.raison}`)
       else if (ancetre.absent)
