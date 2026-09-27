@@ -283,7 +283,7 @@ Trois options, dans l'ordre :
 | 47–49 | Imitation | 95–97 | Vision nocturne |
 | 50–52 | Imperturbable | 98–00 | Vivacité |
 
-**Si un Talent déjà possédé est obtenu, relancer.** `LDB 05 l.484`
+> « Si vous tombez sur un Talent que vous possédez déjà, vous pouvez relancer. » `LDB 05 l.484`
 
 ### Compétences et Talents de Carrière
 

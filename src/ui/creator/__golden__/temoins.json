@@ -4,16 +4,16 @@
   "species": "humains-reiklander",
   "career": "erudit",
   "characteristics": {
-   "capacite-de-combat": 31,
-   "capacite-de-tir": 32,
-   "force": 38,
-   "endurance": 33,
-   "initiative": 26,
-   "agilite": 29,
-   "dexterite": 37,
-   "intelligence": 28,
-   "force-mentale": 28,
-   "sociabilite": 29
+   "capacite-de-combat": 27,
+   "capacite-de-tir": 29,
+   "force": 32,
+   "endurance": 36,
+   "initiative": 33,
+   "agilite": 33,
+   "dexterite": 33,
+   "intelligence": 33,
+   "force-mentale": 37,
+   "sociabilite": 38
   },
   "charAdvances": {},
   "talents": [
@@ -26,15 +26,16 @@
     "times": 1
    },
    {
-    "talentId": "imitation",
+    "talentId": "maitre-artisan",
+    "spec": "alchimiste",
     "times": 1
    },
    {
-    "talentId": "oreille-absolue",
+    "talentId": "affinite-avec-les-animaux",
     "times": 1
    },
    {
-    "talentId": "reflexes-foudroyants",
+    "talentId": "dur-a-cuire",
     "times": 1
    },
    {
@@ -87,9 +88,9 @@
     "advances": 10
    },
    {
-    "id": "divertissement",
-    "spec": "chant",
-    "characteristic": "sociabilite",
+    "id": "metier",
+    "spec": "alchimiste",
+    "characteristic": "dexterite",
     "advances": 0
    },
    {
@@ -136,9 +137,9 @@
    "necessaire-d-ecriture"
   ],
   "wounds": {
-   "current": 11,
-   "max": 11,
-   "base": 11
+   "current": 15,
+   "max": 15,
+   "base": 15
   },
   "fate": 2,
   "resilience": 1,
@@ -158,16 +159,16 @@
   "species": "humains-middenheim",
   "career": "artisan",
   "characteristics": {
-   "capacite-de-combat": 35,
-   "capacite-de-tir": 36,
-   "force": 31,
-   "endurance": 33,
-   "initiative": 39,
-   "agilite": 31,
-   "dexterite": 29,
-   "intelligence": 23,
-   "force-mentale": 39,
-   "sociabilite": 27
+   "capacite-de-combat": 33,
+   "capacite-de-tir": 29,
+   "force": 36,
+   "endurance": 35,
+   "initiative": 34,
+   "agilite": 32,
+   "dexterite": 34,
+   "intelligence": 37,
+   "force-mentale": 31,
+   "sociabilite": 40
   },
   "charAdvances": {},
   "talents": [
@@ -181,15 +182,15 @@
     "times": 1
    },
    {
-    "talentId": "dur-a-cuire",
+    "talentId": "reflexes-foudroyants",
     "times": 1
    },
    {
-    "talentId": "linguistique",
+    "talentId": "oreille-absolue",
     "times": 1
    },
    {
-    "talentId": "affable",
+    "talentId": "tres-fort",
     "times": 1
    },
    {
@@ -242,15 +243,15 @@
     "advances": 0
    },
    {
-    "id": "charme",
-    "characteristic": "sociabilite",
-    "advances": 5
-   },
-   {
     "id": "divertissement",
     "spec": "chant",
     "characteristic": "sociabilite",
     "advances": 3
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
    },
    {
     "id": "ragot",
@@ -276,9 +277,9 @@
    "chiffons"
   ],
   "wounds": {
-   "current": 15,
-   "max": 15,
-   "base": 15
+   "current": 13,
+   "max": 13,
+   "base": 13
   },
   "fate": 2,
   "resilience": 1,
@@ -299,16 +300,16 @@
   "species": "nains",
   "career": "artisan",
   "characteristics": {
-   "capacite-de-combat": 42,
+   "capacite-de-combat": 41,
    "capacite-de-tir": 34,
-   "force": 38,
-   "endurance": 35,
-   "initiative": 34,
-   "agilite": 14,
-   "dexterite": 45,
-   "intelligence": 26,
-   "force-mentale": 50,
-   "sociabilite": 22
+   "force": 36,
+   "endurance": 40,
+   "initiative": 35,
+   "agilite": 23,
+   "dexterite": 49,
+   "intelligence": 35,
+   "force-mentale": 47,
+   "sociabilite": 17
   },
   "charAdvances": {},
   "talents": [
@@ -422,9 +423,9 @@
    "chiffons"
   ],
   "wounds": {
-   "current": 15,
-   "max": 15,
-   "base": 15
+   "current": 16,
+   "max": 16,
+   "base": 16
   },
   "fate": 0,
   "resilience": 2,
@@ -444,16 +445,16 @@
   "species": "humains-reiklander",
   "career": "sorcier",
   "characteristics": {
-   "capacite-de-combat": 29,
-   "capacite-de-tir": 34,
-   "force": 37,
-   "endurance": 32,
-   "initiative": 27,
-   "agilite": 28,
-   "dexterite": 38,
-   "intelligence": 26,
-   "force-mentale": 36,
-   "sociabilite": 23
+   "capacite-de-combat": 28,
+   "capacite-de-tir": 39,
+   "force": 28,
+   "endurance": 39,
+   "initiative": 29,
+   "agilite": 25,
+   "dexterite": 30,
+   "intelligence": 31,
+   "force-mentale": 30,
+   "sociabilite": 30
   },
   "charAdvances": {},
   "talents": [
@@ -466,15 +467,15 @@
     "times": 1
    },
    {
-    "talentId": "tres-fort",
+    "talentId": "sens-de-l-orientation",
     "times": 1
    },
    {
-    "talentId": "tireur-de-precision",
+    "talentId": "dur-a-cuire",
     "times": 1
    },
    {
-    "talentId": "noblesse",
+    "talentId": "guerrier-ne",
     "times": 1
    },
    {
@@ -570,9 +571,9 @@
    "baton-de-combat"
   ],
   "wounds": {
-   "current": 13,
-   "max": 13,
-   "base": 13
+   "current": 14,
+   "max": 14,
+   "base": 14
   },
   "fate": 2,
   "resilience": 1,
@@ -592,16 +593,16 @@
   "species": "humains-reiklander",
   "career": "pretre",
   "characteristics": {
-   "capacite-de-combat": 29,
-   "capacite-de-tir": 32,
-   "force": 33,
-   "endurance": 36,
-   "initiative": 28,
-   "agilite": 30,
-   "dexterite": 33,
-   "intelligence": 24,
-   "force-mentale": 31,
-   "sociabilite": 30
+   "capacite-de-combat": 23,
+   "capacite-de-tir": 35,
+   "force": 29,
+   "endurance": 24,
+   "initiative": 33,
+   "agilite": 33,
+   "dexterite": 31,
+   "intelligence": 28,
+   "force-mentale": 28,
+   "sociabilite": 34
   },
   "charAdvances": {},
   "talents": [
@@ -614,16 +615,12 @@
     "times": 1
    },
    {
-    "talentId": "chanceux",
+    "talentId": "doigts-de-fee",
     "times": 1
    },
    {
-    "talentId": "ame-pure",
-    "times": 1
-   },
-   {
-    "talentId": "imitation",
-    "times": 1
+    "talentId": "affinite-avec-les-animaux",
+    "times": 2
    },
    {
     "talentId": "beni",
@@ -720,9 +717,9 @@
    "robes"
   ],
   "wounds": {
-   "current": 12,
-   "max": 12,
-   "base": 12
+   "current": 8,
+   "max": 8,
+   "base": 8
   },
   "fate": 2,
   "resilience": 1,
@@ -743,16 +740,16 @@
   "species": "halflings-piedpaille",
   "career": "erudit",
   "characteristics": {
-   "capacite-de-combat": 20,
-   "capacite-de-tir": 42,
-   "force": 17,
-   "endurance": 33,
-   "initiative": 34,
-   "agilite": 33,
-   "dexterite": 39,
-   "intelligence": 28,
-   "force-mentale": 35,
-   "sociabilite": 39
+   "capacite-de-combat": 28,
+   "capacite-de-tir": 45,
+   "force": 20,
+   "endurance": 36,
+   "initiative": 35,
+   "agilite": 28,
+   "dexterite": 34,
+   "intelligence": 33,
+   "force-mentale": 44,
+   "sociabilite": 38
   },
   "charAdvances": {},
   "talents": [
@@ -780,7 +777,7 @@
     "times": 1
    },
    {
-    "talentId": "sens-de-l-orientation",
+    "talentId": "tres-resistant",
     "times": 1
    },
    {
@@ -876,9 +873,9 @@
    "necessaire-d-ecriture"
   ],
   "wounds": {
-   "current": 9,
-   "max": 9,
-   "base": 9
+   "current": 12,
+   "max": 12,
+   "base": 12
   },
   "fate": 0,
   "resilience": 2,

@@ -49,6 +49,9 @@ export const roll = (n: number, sides: number, rng: RNG = defaultRNG) => {
   return total;
 };
 
+/** Graine d'un flux de tirages dérivé (`OptionsDeResolution.graine`, `src/engine/character.ts`). */
+export const tirerGraine = (rng: RNG = defaultRNG): number => rng.int(0, 0x7fffffff);
+
 /**
  * LE d100 DE L'ENVIRONNEMENT — le dé que le MONDE lance (chance d'occurrence d'un péril, contenu
  * narratif d'une conséquence, descente de sous-table). PRIMITIVE de moteur, pas une porte : elle

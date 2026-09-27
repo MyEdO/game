@@ -19,6 +19,7 @@ beforeEach(() => {
 describe('buySpell', () => {
   it('mémorise contre PX (Magie mineure) ; refuse sans PX suffisants', () => {
     const w = pregen(PREGEN.sorcier);
+    w.talents = w.talents.filter((t) => t.talentId !== 'imperturbable'); // Imperturbable, tiré à la création : +5 FM (LDB 10 l.581)
     w.talents.push({ talentId: 'magie-mineure', times: 1 });
     // Prémisse CONTRÔLÉE (indépendante du BFM réel du pré-tiré, #421 — les pré-tirés suivent
     // désormais les règles de création, leur quota de sorts mineurs varie avec leur seed) : BFM 2,

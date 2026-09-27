@@ -36,6 +36,8 @@ import {
   withCoastalSwap,
   speciesTalentChoiceEntries,
   trappingSlotResolved,
+  rerollDraftTalent,
+  withSpeciesTalentChoice,
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
@@ -128,6 +130,33 @@ describe('aléatoire FIGÉ (anti-savescum)', () => {
     const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': 1 } };
     const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
     expect(randoms(resolvedSpeciesTalents(d2))).toEqual(randoms(resolvedSpeciesTalents(d)));
+  });
+});
+
+describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
+  // Graine 1, Reiklander : Bonnes jambes aux tirages 0 et 1 ; graine 2 : Perspicace au tirage 1.
+  const tire = (seed: number) => rollDraftTalents(withCareer(withSpecies(newDraft(seed), 'humains-reiklander'), DEFAULT_CAREER.id));
+  const tirage = (i: number) => adresseDeCreation.especeTirage(2, i);
+
+  it('la relance porte le rang effectif + 1 ; sur un tirage non doublon, le brouillon est inchangé', () => {
+    const d = tire(1);
+    const relance = rerollDraftTalent(d, tirage(1));
+    expect(relance.talentRerolls).toEqual({ [tirage(1)]: 1 });
+    expect(speciesTalentRandomDrawn(relance).map((t) => t.ref.id)).toEqual(['bonnes-jambes', 'chanceux', 'reflexes-foudroyants']);
+    expect(rerollDraftTalent(relance, tirage(1))).toBe(relance);
+    expect(rerollDraftTalent(d, tirage(0))).toBe(d);
+  });
+
+  it('un doublon au Maxi est signalé `auMaxi` (LDB 10 l.18) ; sous le Maxi, non', () => {
+    expect(speciesTalentRandomDrawn(tire(2))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
+    expect(speciesTalentRandomDrawn(tire(1))[1]).toMatchObject({ ref: { id: 'bonnes-jambes' }, doublon: true, auMaxi: false });
+  });
+
+  it('changer d\'option « A ou B » ou d\'espèce remet à zéro relances et spécialisations des tirages', () => {
+    const d = { ...rerollDraftTalent(tire(2), tirage(1)), randomSpecPicks: { [tirage(0)]: 'odorat' } };
+    expect(withSpeciesTalentChoice(d, 'espece:talents:0', 0)).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    expect(withSpeciesTalentChoice(d, 'espece:talents:0', 1)).toMatchObject({ speciesTalentChoices: { 'espece:talents:0': 1 }, talentRerolls: {}, randomSpecPicks: {} });
+    expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
   });
 });
 

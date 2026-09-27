@@ -137,7 +137,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   it('option VDM : DR bonus = Bonus de Force Mentale, sort NON complété au NI', () => {
     setRule('magic-vdm-incantation', true);
     const w = wiz();
-    w.talents = w.talents.filter((t) => t.talentId !== 'harmonisation-aethyrique');
+    w.talents = w.talents.filter((t) => t.talentId !== 'harmonisation-aethyrique' && t.talentId !== 'imperturbable'); // Imperturbable, tiré à la création : +5 FM (LDB 10 l.581)
     w.spells = ['manifestation-de-demon-mineur', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     w.characteristics['force-mentale'] = 35; // BFM 3

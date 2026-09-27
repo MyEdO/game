@@ -20,7 +20,7 @@
  */
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
-import { makeRNG } from '../engine/dice';
+import { makeRNG, hashSeed } from '../engine/dice';
 import { createHero, type ChoixDeCreation } from '../engine/character';
 import { rollInitialWealth, parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
 import { levelsForCareer, pregens, rigSpeciesId, trappingRefLabel } from './index';
@@ -112,7 +112,7 @@ export function makePregensWithWealth(): { hero: Combatant; wealth: Money }[] {
       const level = levelsForCareer(d.career).find((l) => l.level === 1);
       if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
       const status = parseStatus(level.status);
-      const wealth = rollInitialWealth(status, makeRNG(d.seed ^ 0x5eed));
+      const wealth = rollInitialWealth(status, makeRNG(hashSeed(`${d.seed}:bourse`)));
       out.push({ hero, wealth });
     } catch (e) {
       console.error(`Pré-tiré « ${d.label} » ignoré :`, e);

@@ -12,7 +12,7 @@
  * sauf sur le dernier écran »). La logique (tirages figés, bonus de PX, validation, construction)
  * vit dans ./draft.ts (pur).
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
 import { rovingKeyDown } from '../rovingFocus';
 import { NumberField } from '../NumberField';
@@ -162,6 +162,9 @@ import {
   speciesTalentChoiceEntries,
   speciesTalentRandomCount,
   speciesTalentRandomDrawn,
+  rerollDraftTalent,
+  withSpeciesTalentChoice,
+  fluxDuBrouillon,
   CAREER_SKILL_ADVANCES,
   MAX_ADV_PER_SKILL,
   CAREER_CHAR_ADVANCES,
@@ -1711,7 +1714,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
 }
 
 // ── 5c) Talents (LDB 05 l.484, l.535) — de race « un au choix » ⇄ de carrière « un au choix » ⇄
-//      tirés au d100 (figés dès la race choisie, listés ici en lecture — jamais une relance). ──
+//      tirés au d100 (figés dès la race choisie ; un doublon se relance au geste, `rerollDraftTalent`). ──
 function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZones {
   const probe = probeHero(d, false);
   const fixed = speciesTalentFixedEntries(d);
@@ -1723,23 +1726,32 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
     // Bande d'ACTION (planche mock6 : « l'encrier à dés […] remonte en topbar de la zone de
     // travail, AU-DESSUS des deux colonnes »). TIRÉS AU D100 (#393 agentivité) : VIDES avant le
     // geste — la carte canonique `CreatorDice` porte le tirage (frisson central, chips au verdict) ;
-    // un doublon déjà possédé est relancé D'OFFICE par le résolveur (LDB 05 l.484), RAW n'offre
-    // aucune relance au joueur (aucun bouton de relance ici, cf. `rollDraftTalents`).
+    // chaque doublon porte son repère et sa relance (LDB 05 l.484, `rerollDraftTalent`).
     action: (
       <>
         <StepHeader title="Talents" sub="Ce que le sort a tranché" />
         {randomCount > 0 && (
           <CreatorDice
             label={`Tirer ${randomCount} Talent${randomCount > 1 ? 's' : ''} — d100`}
-            hint={<>Sur le Tableau des Talents aléatoires — un doublon déjà possédé se relance d'office.</>}
+            hint={<>Sur le Tableau des Talents aléatoires — un Talent déjà possédé se garde, ou se relance d'un clic.</>}
             rolled={!!d.talentsRolled}
             xp={0}
             onRoll={() => setD(rollDraftTalents(d))}
           >
-            <div className="mini-title" style={{ marginTop: 0 }}>Tirés d'office — d100 — {randomCount} Talent{randomCount > 1 ? 's' : ''} rendu{randomCount > 1 ? 's' : ''}</div>
+            <div className="mini-title" style={{ marginTop: 0 }}>Tirés — d100 — {randomCount} Talent{randomCount > 1 ? 's' : ''} rendu{randomCount > 1 ? 's' : ''}</div>
             <div className="skill-tags">
-              {drawn.map((t, i) => (
-                <TalentRef key={i} talent={t} />
+              {drawn.map((t) => (
+                <Fragment key={t.adresse}>
+                  <TalentRef talent={t.ref} />
+                  {t.doublon && (
+                    <>
+                      <span className="chip tone-warn">{t.auMaxi ? 'Maxi atteint : sans effet si gardé' : 'Déjà possédé'}</span>
+                      <button className="btn small" onClick={() => setD(rerollDraftTalent(d, t.adresse))}>
+                        <Icon id="nav/dice" size="sm" /> Relancer
+                      </button>
+                    </>
+                  )}
+                </Fragment>
               ))}
             </div>
           </CreatorDice>
@@ -1762,7 +1774,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                 {choiceEntries.map(({ adresse, ref, options }) => {
                   const selected = d.speciesTalentChoices[adresse] ?? null;
                   const activeOptIdx = selected ?? 0;
-                  const choisir = (idx: number) => setD({ ...d, speciesTalentChoices: { ...d.speciesTalentChoices, [adresse]: idx } });
+                  const choisir = (idx: number) => setD(withSpeciesTalentChoice(d, adresse, idx));
                   const groupRef: { current: HTMLDivElement | null } = { current: null };
                   const onOptKeyDown = rovingKeyDown<HTMLDivElement>({
                     containerRef: groupRef,
@@ -2007,15 +2019,15 @@ function trappingMeta(id: string): string {
 //      montant, jet figé sans dés à rejouer) / « La classe » (prose RAW verbatim). Mécanique INCHANGÉE
 //      (draftWealth/trappingChoices, draft.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
 //      arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
-/** Faces INDIVIDUELLES du jet de bourse — même graine/ordre RNG que `draftWealth`
- *  (`d.seed ^ 0x901d`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
+/** Faces INDIVIDUELLES du jet de bourse — même flux/ordre RNG que `draftWealth`
+ *  (`fluxDuBrouillon(d, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
  *  les dés à l'écran (mock7 : faces + total) au lieu du seul total texte (retouche juge vision
  *  #393 P5). Bronze N : 2N d10 ; Argent N : N d10 ; Or (aucun dé, CO=Standing) : []. */
 function draftWealthDice(d: CreatorDraft): number[] {
   const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
   if (status.standing <= 0 || status.tier === 'Or') return [];
   const n = status.tier === 'Bronze' ? 2 * status.standing : status.standing;
-  const rng = makeRNG(d.seed ^ 0x901d);
+  const rng = fluxDuBrouillon(d, 'bourse');
   return Array.from({ length: n }, () => d10Face(rng.int(1, 10)));
 }
 

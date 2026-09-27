@@ -12,7 +12,8 @@ import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
 
 function hero(): Combatant {
-  return makePregens()[0];
+  const h = makePregens()[0];
+  return { ...h, talents: h.talents.filter((t) => t.talentId !== 'ame-pure') }; // Âme pure, tirée à la création, écartée (LDB 10 l.52)
 }
 
 beforeEach(() => {

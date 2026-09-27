@@ -14,7 +14,7 @@ import type { Combatant } from '../engine/types';
 
 function party2() {
   const all = makePregens();
-  const a = all[0];
+  const a = { ...all[0], talents: all[0].talents.filter((t) => t.talentId !== 'ame-pure') }; // Âme pure, tirée à la création, écartée (LDB 10 l.52)
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }
