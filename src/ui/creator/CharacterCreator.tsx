@@ -12,7 +12,7 @@
  * sauf sur le dernier écran »). La logique (tirages figés, bonus de PX, validation, construction)
  * vit dans ./draft.ts (pur).
  */
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
 import { rovingKeyDown } from '../rovingFocus';
 import { NumberField } from '../NumberField';
@@ -163,6 +163,7 @@ import {
   speciesTalentRandomCount,
   speciesTalentRandomDrawn,
   rerollDraftTalent,
+  withRandomTalentSpec,
   withSpeciesTalentChoice,
   CAREER_SKILL_ADVANCES,
   MAX_ADV_PER_SKILL,
@@ -1204,16 +1205,17 @@ function AllocStepper({ value, min = 0, max, onChange, label }: { value: number;
 }
 
 /** Sélecteur de spécialisation d'un emplacement joker : valeurs = ids de spec, libellés par `specLabel`. */
-function SpecSelect({ category, id, options, value, onChange, vide = '— spécialisation —' }: {
+function SpecSelect({ category, id, options, value, onChange, vide = '— spécialisation —', label }: {
   category: 'skills' | 'talents';
   id: string;
   options: string[];
   value: string;
   onChange: (spec: string) => void;
   vide?: string;
+  label?: string;
 }) {
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
+    <select value={value} aria-label={label} onChange={(e) => onChange(e.target.value)}>
       <option value="">{vide}</option>
       {options.map((s) => (
         <option key={s} value={s}>
@@ -1706,7 +1708,8 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
 }
 
 // ── 5c) Talents (LDB 05 l.484, l.535) — de race « un au choix » ⇄ de carrière « un au choix » ⇄
-//      tirés au d100 (figés dès la race choisie ; un doublon se relance au geste, `rerollDraftTalent`). ──
+//      tirés au d100 (figés dès la race choisie ; un doublon se relance au geste, `rerollDraftTalent` ;
+//      l'utilisation d'un tiré se choisit, `withRandomTalentSpec`). ──
 function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZones {
   const probe = probeHero(d, false);
   const fixed = speciesTalentFixedEntries(d);
@@ -1732,19 +1735,35 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
           >
             <div className="mini-title" style={{ marginTop: 0 }}>Tirés — d100 — {randomCount} Talent{randomCount > 1 ? 's' : ''} rendu{randomCount > 1 ? 's' : ''}</div>
             <div className="skill-tags">
-              {drawn.map((t) => (
-                <Fragment key={t.adresse}>
-                  <TalentRef talent={t.ref} />
-                  {t.doublon && (
-                    <>
-                      <span className="chip tone-warn">{t.auMaxi ? 'Maxi atteint : sans effet si gardé' : 'Déjà possédé'}</span>
-                      <button className="btn small" onClick={() => setD(rerollDraftTalent(d, t.adresse))}>
-                        <Icon id="nav/dice" size="sm" /> Relancer
-                      </button>
-                    </>
-                  )}
-                </Fragment>
-              ))}
+              {drawn.map((t, i) => {
+                const nom = refLabel('talents', { id: t.ref.id });
+                const homonymes = drawn.filter((u) => u.ref.id === t.ref.id).length > 1;
+                const designation = homonymes ? `${nom} — tirage ${i + 1}` : nom;
+                return (
+                  <Row key={t.adresse} gap="xs" role="group" aria-label={designation}>
+                    <TalentRef talent={t.utilisationChoisie == null ? { id: t.ref.id } : t.ref} />
+                    {t.utilisations.length > 0 && (
+                      <SpecSelect
+                        category="talents"
+                        id={t.ref.id}
+                        options={t.utilisations}
+                        value={t.utilisationChoisie ?? ''}
+                        vide="— choisir —"
+                        label={`Utilisation de ${designation}`}
+                        onChange={(spec) => setD(withRandomTalentSpec(d, t.adresse, spec))}
+                      />
+                    )}
+                    {t.doublon && (
+                      <>
+                        <span className="chip tone-warn">{t.auMaxi ? 'Maxi atteint : sans effet si gardé' : 'Déjà possédé'}</span>
+                        <button className="btn small" aria-label={`Relancer ${designation}`} onClick={() => setD(rerollDraftTalent(d, t.adresse))}>
+                          <Icon id="nav/dice" size="sm" /> Relancer
+                        </button>
+                      </>
+                    )}
+                  </Row>
+                );
+              })}
             </div>
           </CreatorDice>
         )}

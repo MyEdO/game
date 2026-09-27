@@ -37,6 +37,7 @@ import {
   speciesTalentChoiceEntries,
   trappingSlotResolved,
   rerollDraftTalent,
+  withRandomTalentSpec,
   withSpeciesTalentChoice,
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
@@ -196,6 +197,50 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
     });
     expect(withSpeciesTalentChoice(d, 'espece:talents:0', { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
     expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
+  });
+});
+
+describe('utilisation d\'un Talent tiré « (un au choix) » (LDB 05 l.484, table l.524 ; LDB 10 l.17)', () => {
+  // Graine 21, halflings : Sens aiguisé au tirage 0, doublon de « Sens aiguisé (Goût) » d'espèce.
+  const tire = () => rollDraftTalents(withCareer(withSpecies(newDraft(21), 'halflings'), 'agitateur'));
+  const tirage0 = adresseDeCreation.especeTirage(4, 0);
+  const tirage1 = adresseDeCreation.especeTirage(4, 1);
+  const message = 'Choisissez l\'utilisation du Talent tiré « Sens aiguisé ».';
+
+  it('le brouillon écrit l\'utilisation par adresse ; l\'écran la montre, hors du pool elle ne compte pas', () => {
+    const d = tire();
+    expect(speciesTalentRandomDrawn(d)[0]).toMatchObject({ ref: { id: 'sens-aiguise' }, adresse: tirage0, utilisations: ['ouie', 'odorat', 'gout', 'toucher', 'vue'], utilisationChoisie: null });
+    const choisi = withRandomTalentSpec(d, tirage0, 'odorat');
+    expect(choisi.randomSpecPicks).toEqual({ [tirage0]: 'odorat' });
+    expect(speciesTalentRandomDrawn(choisi)[0]).toMatchObject({ ref: { id: 'sens-aiguise', spec: 'odorat' }, utilisationChoisie: 'odorat' });
+    expect(speciesTalentRandomDrawn(withRandomTalentSpec(d, tirage0, 'chaos'))[0].utilisationChoisie).toBeNull();
+    expect(withRandomTalentSpec(choisi, tirage0, '').randomSpecPicks).toEqual({});
+  });
+
+  it('une relance efface l\'utilisation de SON adresse, et seulement elle', () => {
+    const d = { ...withRandomTalentSpec(tire(), tirage0, 'odorat'), randomSpecPicks: { [tirage0]: 'odorat', [tirage1]: 'vue' } };
+    expect(rerollDraftTalent(d, tirage0).randomSpecPicks).toEqual({ [tirage1]: 'vue' });
+  });
+
+  it('sans utilisation choisie, l\'étape Talents est bloquée par un message qui nomme le Talent', () => {
+    const d = tire();
+    expect(skillsSubMessage(d, 'talents')).toBe(message);
+    expect(talentsDone({ ...d, careerTalent: undefined })).toBe(false);
+    const choisi = withRandomTalentSpec(d, tirage0, 'odorat');
+    expect(skillsSubMessage(choisi, 'talents')).not.toBe(message);
+  });
+
+  it('`buildHero` et `createHero` portent l\'utilisation que l\'écran montre', () => {
+    const d = withRandomTalentSpec(tire(), tirage0, 'odorat');
+    const ecran = speciesTalentRandomDrawn(d)[0].ref;
+    const specs = (h: { talents: { talentId: string; spec?: string }[] }) => h.talents.filter((t) => t.talentId === 'sens-aiguise').map((t) => t.spec).sort();
+    const viaChoix = createHero({
+      speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
+      speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
+    });
+    expect(ecran.spec).toBe('odorat');
+    expect(specs(viaChoix)).toEqual(['gout', 'odorat']);
+    expect(specs(buildHero(d))).toEqual(specs(viaChoix));
   });
 });
 

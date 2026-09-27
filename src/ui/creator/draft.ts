@@ -60,7 +60,7 @@ import {
   type CompetenceDeCarriere,
 } from '../../engine/character';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
 
@@ -251,6 +251,10 @@ export const speciesXp = (d: CreatorDraft): number =>
 function horsAdresses<V>(parAdresse: Record<string, V>, ...prefixes: string[]): Record<string, V> {
   return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
 }
+/** Choix par adresse privés de l'adresse `adresse`. */
+function sansAdresse<V>(parAdresse: Record<string, V>, adresse: string): Record<string, V> {
+  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => a !== adresse));
+}
 
 export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
   if (id === d.speciesId) return d;
@@ -424,11 +428,17 @@ export function rollDraftTalents(d: CreatorDraft): CreatorDraft {
   return d.talentsRolled ? d : { ...d, talentsRolled: true };
 }
 
-/** Relance du tirage à `adresse` (LDB 05 l.484) : son rang effectif + 1, s'il est un doublon. */
+/** Relance du tirage à `adresse` (LDB 05 l.484) : son rang effectif + 1, s'il est un doublon ; efface
+ *  l'utilisation choisie à cette adresse (`randomSpecPicks`). */
 export function rerollDraftTalent(d: CreatorDraft, adresse: string): CreatorDraft {
   const tirage = speciesTalentRandomDrawn(d).find((t) => t.adresse === adresse);
   if (!tirage?.doublon) return d;
-  return { ...d, talentRerolls: { ...d.talentRerolls, [adresse]: tirage.rang + 1 } };
+  return { ...d, talentRerolls: { ...d.talentRerolls, [adresse]: tirage.rang + 1 }, randomSpecPicks: sansAdresse(d.randomSpecPicks, adresse) };
+}
+
+/** Utilisation `spec` du Talent tiré à `adresse` (LDB 10 l.17 ; `randomSpecPicks`, lu par `rollRandomTalent`). */
+export function withRandomTalentSpec(d: CreatorDraft, adresse: string, spec: string): CreatorDraft {
+  return { ...d, randomSpecPicks: spec ? { ...d.randomSpecPicks, [adresse]: spec } : sansAdresse(d.randomSpecPicks, adresse) };
 }
 
 /** Option `option` (une option de `of`) de l'entrée « A ou B » à `adresse` ; changer d'option (`cleDOption`)
@@ -453,16 +463,19 @@ export function speciesTalentRandomCount(d: CreatorDraft): number {
   return (draftSpecies(d)?.talents ?? []).reduce((n, a) => n + ('random' in a ? a.random : 0), 0);
 }
 /** Un Talent tiré au d100 (`TalentDEspece.tirage`) ; `auMaxi` : doublon dont le Maxi est déjà atteint
- *  (LDB 10 l.18), sans effet s'il est gardé. */
+ *  (LDB 10 l.18), sans effet s'il est gardé ; `utilisations` : le pool de `rollRandomTalent`
+ *  (`specPoolOf`, LDB 10 l.17) ; `utilisationChoisie` : `randomSpecPicks[adresse]` s'il est de ce pool. */
 export interface TirageDeTalent {
   ref: RefDesignee;
   adresse: string;
   rang: number;
   doublon: boolean;
   auMaxi: boolean;
+  utilisations: string[];
+  utilisationChoisie: string | null;
 }
-/** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514), tels que le geste 5c les découvre — VIDE tant que le
- *  joueur n'a pas tiré (#393 agentivité). */
+/** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514-531), tels que le geste 5c les découvre — VIDE tant que le
+ *  joueur n'a pas tiré (#393 agentivité). Utilisation : `withRandomTalentSpec` ; relance : `rerollDraftTalent`. */
 export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
   const sp = draftSpecies(d);
   if (!sp || !d.talentsRolled) return [];
@@ -470,8 +483,15 @@ export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
   return resolveSpeciesTalentsDetail(sp, d).flatMap(({ ref, tirage }) => {
     const auMaxi = !!tirage?.doublon && talentMaxReached(partiel, ref.id, ref.spec);
     acquerirTalent(partiel, ref);
-    return tirage ? [{ ref, ...tirage, auMaxi }] : [];
+    if (!tirage) return [];
+    const utilisations = specPoolOf(garanti(findTalentById(ref.id), ref.id, 'Talent'));
+    const choisie = d.randomSpecPicks[tirage.adresse];
+    return [{ ref, ...tirage, auMaxi, utilisations, utilisationChoisie: choisie != null && utilisations.includes(choisie) ? choisie : null }];
   });
+}
+/** Les Talents tirés dont l'utilisation reste à choisir (LDB 10 l.17 ; `withRandomTalentSpec`). */
+export function tiragesSansUtilisation(d: CreatorDraft): TirageDeTalent[] {
+  return speciesTalentRandomDrawn(d).filter((t) => t.utilisations.length > 0 && t.utilisationChoisie == null);
 }
 /** Toutes les décisions de Talents d'espèce « A ou B » sont-elles tranchées ? */
 export function speciesTalentChoicesDone(d: CreatorDraft): boolean {
@@ -813,6 +833,8 @@ function messageDesTalentsDeRace(d: CreatorDraft): string | null {
   const ouvert = speciesTalentChoiceEntries(d).find((e) => d.speciesTalentChoices[e.adresse] == null);
   if (ouvert) return `Choisissez : « ${advancementLabel('talents', ouvert.ref)} ».`;
   if (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) return 'Tirez vos Talents aléatoires aux dés.';
+  const [sansUtilisation] = tiragesSansUtilisation(d);
+  if (sansUtilisation) return `Choisissez l'utilisation du Talent tiré « ${refLabel('talents', { id: sansUtilisation.ref.id })} ».`;
   return null;
 }
 /** 5b — les 40 Augmentations réparties, 10 au plus par Compétence, Spécialisations choisies (LDB 05 l.535). */

@@ -22,6 +22,8 @@ import {
   rollDraftWealth,
   rollDraftChars,
   rollDraftTalents,
+  speciesTalentRandomDrawn,
+  withRandomTalentSpec,
   stepIds,
   draftLevel,
   buildHero,
@@ -293,6 +295,15 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(before).toContain('3 à tirer au d100 — 5c');
     const after = renderToStaticMarkup(<CreatorSummary d={rollDraftTalents(d)} step={atSkills} />);
     expect(after).not.toContain('à tirer au d100');
+  });
+
+  it('fiche vivante — un Talent tiré « (un au choix) » sans utilisation porte « utilisation à choisir — 5c » ; choisie, la puce tombe (LDB 10 l.17)', () => {
+    // Graine 21, halflings : Sens aiguisé au tirage 0.
+    const d = rollDraftTalents(withCareer(withSpecies(newDraft(21), 'halflings'), 'agitateur'));
+    const atSkills = stepIds().indexOf('skills');
+    expect(renderToStaticMarkup(<CreatorSummary d={d} step={atSkills} />)).toContain('utilisation à choisir — 5c');
+    const choisi = withRandomTalentSpec(d, speciesTalentRandomDrawn(d)[0].adresse, 'odorat');
+    expect(renderToStaticMarkup(<CreatorSummary d={choisi} step={atSkills} />)).not.toContain('utilisation à choisir');
   });
 
   // Le sceau de cire marque LE CHOIX, au moment où il se fait (demande user 2026-07-15, verbatim :

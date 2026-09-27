@@ -45,6 +45,7 @@ import {
   careerSkillsDone,
   speciesTalentChoicesDone,
   speciesTalentRandomCount,
+  tiragesSansUtilisation,
 } from './draft';
 import { Row } from '../Layout';
 
@@ -142,12 +143,13 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
                   <RoadmapChip>{speciesTalentRandomCount(d)} à tirer au d100 — étape {stepNo('skills')}</RoadmapChip>
                 )}
               </>
-            ) : !speciesTalentChoicesDone(d) || (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) ? (
+            ) : !speciesTalentChoicesDone(d) || (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) || tiragesSansUtilisation(d).length > 0 ? (
               <>
                 {!speciesTalentChoicesDone(d) && <RoadmapChip>au choix — 5c</RoadmapChip>}
                 {speciesTalentRandomCount(d) > 0 && !d.talentsRolled && (
                   <RoadmapChip>{speciesTalentRandomCount(d)} à tirer au d100 — 5c</RoadmapChip>
                 )}
+                {tiragesSansUtilisation(d).length > 0 && <RoadmapChip>utilisation à choisir — 5c</RoadmapChip>}
               </>
             ) : undefined,
             possessions: ahead('trappings') ? <RoadmapChip>dotations — étape {stepNo('trappings')}</RoadmapChip> : undefined,

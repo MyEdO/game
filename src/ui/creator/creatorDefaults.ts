@@ -21,6 +21,8 @@ import {
   careerSkillEntries,
   careerAdvTotal,
   speciesTalentRandomCount,
+  speciesTalentRandomDrawn,
+  withRandomTalentSpec,
   careerTalentOptions,
   pettySpellQuota,
   speciesSkillRefs,
@@ -100,6 +102,8 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   cur = { ...cur, speciesTalentChoices };
 
   if (speciesTalentRandomCount(cur) > 0 && !cur.talentsRolled) cur = rollDraftTalents(cur);
+  // Utilisation d'un Talent tiré : celle que `rollRandomTalent` désigne sans choix.
+  for (const t of speciesTalentRandomDrawn(cur)) if (t.utilisations.length && t.utilisationChoisie == null) cur = withRandomTalentSpec(cur, t.adresse, t.ref.spec ?? t.utilisations[0]);
 
   // 5b — Compétences de carrière : répartition égale des 40 Augmentations, 1re spécialisation libre des jokers dotés.
   if (careerAdvTotal(cur) !== CAREER_SKILL_ADVANCES) cur = { ...cur, skillAdvances: evenCareerSkillAdvances(cur) };

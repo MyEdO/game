@@ -543,7 +543,7 @@ Autrement dit : chaque fois qu'un personnage *réussit* un test utilisant une Co
 
 **Voir aussi** : [Degrés de Réussite (DR)](#degrés-de-réussite-dr), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.11-20, l.62, l.89, l.123, l.263, l.411, l.453, l.520, l.605, l.759, l.787) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `useAttackJetProps`, `affinite-avec-les-animaux`, `buyTalent`, `ChoixDeCreation`, `ambidextre`, `ame-pure`, `artilleur`, +115 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/schemas/grammaire/ref.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/advancement.ts`, +17 fichiers
+- `LDB 10` (l.11-20, l.62, l.89, l.123, l.263, l.411, l.453, l.520, l.605, l.759, l.787) → `talent-aleatoire`, `acrobaties-equestres`, `affable`, `useAttackJetProps`, `affinite-avec-les-animaux`, `buyTalent`, `ChoixDeCreation`, `ambidextre`, `ame-pure`, `artilleur`, +117 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/schemas/grammaire/ref.ts`, `src/data/skills.json`, `src/data/talents.json`, `src/engine/advancement.ts`, +17 fichiers
 
 ---
 
