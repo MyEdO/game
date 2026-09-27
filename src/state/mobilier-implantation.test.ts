@@ -42,7 +42,7 @@ const meuble = (id: string, ref: string, x: number, y: number, facing: SceneEnti
 
 const avec = (sc: Scene, ...meubles: SceneEntity[]): Scene => ({ ...sc, entities: [...sc.entities, ...meubles] });
 
-/** Une CLOISON entre deux cases voisines en cardinal (arête canonique, `edgeOf`). */
+/** Une CLOISON entre deux cases voisines en cardinal (arête canonique, `areteEntre`). */
 function avecCloison(sc: Scene, ax: number, ay: number, bx: number, by: number): Scene {
   const seg = by === ay ? { x: Math.min(ax, bx), y: ay, side: 'E' as const } : { x: ax, y: Math.max(ay, by), side: 'N' as const };
   return { ...sc, walls: [...(sc.walls ?? []), seg] };

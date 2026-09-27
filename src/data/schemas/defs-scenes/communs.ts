@@ -17,6 +17,11 @@ export const ptSchema = z.strictObject({ x: z.number(), y: z.number(), z: z.numb
  *  DÉRIVENT, l'éditeur en dérive ses options (`wallSideSchema.options`). Garde : `unions-canon.test.ts`. */
 export const wallSideSchema = z.enum(['N', 'E', '\\', '/']);
 export type WallSide = z.infer<typeof wallSideSchema>;
+/** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une
+ *  case porte une chose (mur, porte, paroi de relief, wedge, pan de toit). Distinct de `Dir4`
+ *  (`state/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
+ *  deux concepts : on ne « tourne » pas vers une arête, on ne pose pas un mur sur un cap. */
+export type CellSide = 'N' | 'E' | 'S' | 'O';
 /** `SkillRef` (`src/data/index.ts`) — MÊME nœud que le statbloc du bestiaire (`defs/creatures.ts`) :
  *  la réf de la grammaire (`spec` XOR `choix`) + la valeur de Test IMPRIMÉE. La FORME de sortie est
  *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte

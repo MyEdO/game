@@ -20,8 +20,9 @@ import { formesAdmises, type FormeArete } from '../../state/formeArete';
  *
  * ESPACEMENT d'une claire-voie, tiré du rendu (`wallFaces`) : `bars` intervalles, un barreau de largeur
  * `2·BAR_HALF_T` à chaque borne — le JOUR DÉCLARÉ entre deux barreaux vaut `1/bars − 2·BAR_HALF_T`. Une
- * grille est TENUE quand ses barreaux montent tous sur la bande qu'elle barre et qu'aucun jour ne dépasse
- * le jour déclaré, bords de l'arête compris.
+ * grille est TENUE quand ses barreaux ont tous une LARGEUR (non nulle le long de l'arête, lue sur le
+ * rendu), montent tous sur la bande qu'elle barre, et qu'aucun jour ne dépasse le jour déclaré, bords de
+ * l'arête compris.
  */
 
 const SEG: Record<FormeArete, { seg: Partial<WallSeg>; open?: boolean }> = {
@@ -86,6 +87,8 @@ const jourDeclare = (bars: number) => 1 / bars - 2 * BAR_HALF_T;
 /** La grille `barreaux` barre-t-elle `[0,1] × [lo, hi]` en tenant son espacement ? Rend la faute, ou
  *  `undefined`. */
 function claireVoieTenue(barreaux: readonly Rect[], bars: number, lo: number, hi: number): string | undefined {
+  const nuls = barreaux.filter((r) => r.t1 - r.t0 <= EPS);
+  if (nuls.length) return `${nuls.length} barreau(x) de largeur nulle le long de l’arête`;
   const courts = barreaux.filter((r) => r.lo > lo + EPS || r.hi < hi - EPS);
   if (courts.length) return `${courts.length} barreau(x) ne montent pas de ${lo} à ${hi} m`;
   const jours = trous(barreaux.map((r) => ({ ...r, lo, hi })), { t0: 0, t1: 1, lo, hi });

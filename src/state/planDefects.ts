@@ -9,7 +9,7 @@ import { sceneZoneTiles } from './zones';
 import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from './terrain';
 import { gradeBetween, METRES_PER_LEVEL } from './relief';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
-import type { CellSide } from './scene';
+import type { CellSide } from '../data/schemas/defs-scenes/communs';
 import { areteCanonique } from '../geometry/arete';
 
 /** Terrains BÂTIS : ceux dont l'entrée porte `built` (`TerrainDef.built`) — surface construite qui PORTE

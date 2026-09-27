@@ -64,7 +64,7 @@ export type EntityKind = z.infer<typeof entityKindSchema>;
 import type { CustomStatblock } from '../engine/statblock';
 import { chebyshev } from '../engine/grid';
 import type { SeatAssignments } from './seating';
-import { cleArete } from '../geometry/arete';
+import { areteEntre, cleArete } from '../geometry/arete';
 export type { CustomStatblock };
 
 /**
@@ -580,12 +580,6 @@ export function surfaceLink(
   return { grade: gradeBetween(ha, hb), drop: hb - ha };
 }
 
-/** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une
- *  case porte une chose (mur, porte, paroi de relief, wedge, pan de toit). Distinct de `Dir4`
- *  (`state/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
- *  deux concepts : on ne « tourne » pas vers une arête, on ne pose pas un mur sur un cap. */
-export type CellSide = 'N' | 'E' | 'S' | 'O';
-
 /** Mur sur ARÊTE de case. `side:'N'` = arête entre (x,y) et (x,y-1) ; `side:'E'` = arête entre (x,y)
  *  et (x+1,y). Les DIAGONALES `'\\'` (coin NO→SE) et `'/'` (coin NE→SO) tracent une cloison OBLIQUE en
  *  travers de la case (x,y) — pour les parois en éventail / courbes (purement VISUELLES : le déplacement
@@ -619,14 +613,14 @@ export function climbAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side:
 }
 
 /** Segment ESCALADABLE sur l'arête CANONIQUE (cardinale) séparant deux cases adjacentes `a`/`b`, ou
- *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `edgeOf` (arête canonique
+ *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `areteEntre` (arête canonique
  *  partagée avec `wallBetween`). PUR. */
 export function climbEdgeBetween(
   scene: Pick<Scene, 'walls'>,
   a: { x: number; y: number; z?: number },
   b: { x: number; y: number; z?: number },
 ): WallSeg | undefined {
-  const e = edgeOf(a.x, a.y, b.x, b.y);
+  const e = areteEntre(a.x, a.y, b.x, b.y);
   if (!e) return undefined;
   return climbAt(scene, e.x, e.y, e.side, a.z ?? 0);
 }
@@ -733,25 +727,15 @@ export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean
   return !wallIsOpen(scene, seg) && structureOccultante(seg.structure);
 }
 
-/** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non
- *  adjacentes. L'arête entre (x,y) et (x,y+1) est le `N` de (x,y+1) ; entre (x,y) et (x+1,y) le `E` de (x,y). */
-export function edgeOf(ax: number, ay: number, bx: number, by: number): { x: number; y: number; side: 'N' | 'E' } | null {
-  if (by === ay && bx === ax + 1) return { x: ax, y: ay, side: 'E' };
-  if (by === ay && bx === ax - 1) return { x: bx, y: by, side: 'E' };
-  if (bx === ax && by === ay + 1) return { x: bx, y: by, side: 'N' };
-  if (bx === ax && by === ay - 1) return { x: ax, y: ay, side: 'N' };
-  return null;
-}
-
 /** Une arête séparant deux cases adjacentes du même étage satisfait-elle `prédicat` ? Résolution
  *  d'arête PARTAGÉE par les deux questions qu'on lui pose — « barre-t-elle le pas ? » et « coupe-t-elle
- *  la vue ? » : même géométrie (cardinal seul, cf. `edgeOf`), seul le prédicat par segment diffère. */
-function areteEntre(
+ *  la vue ? » : même géométrie (cardinal seul, cf. `areteEntre`), seul le prédicat par segment diffère. */
+function areteEntreSatisfait(
   scene: Scene, ax: number, ay: number, bx: number, by: number, z: number,
   predicat: (seg: WallSeg) => boolean,
 ): boolean {
   if (!scene.walls?.length) return false;
-  const e = edgeOf(ax, ay, bx, by);
+  const e = areteEntre(ax, ay, bx, by);
   if (!e) return false;
   return aretesA(scene, e.x, e.y, e.side, z).some(predicat);
 }
@@ -760,14 +744,14 @@ function areteEntre(
  *  plein bloque toujours ; une PORTE bloque seulement si elle est FERMÉE, une STRUCTURE seulement tant
  *  qu'elle TIENT — les deux modes d'ouverture sont réunis par `wallIsOpen`. */
 export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
-  return areteEntre(scene, ax, ay, bx, by, z, (w) => !wallIsOpen(scene, w));
+  return areteEntreSatisfait(scene, ax, ay, bx, by, z, (w) => !wallIsOpen(scene, w));
 }
 
 /** Une arête coupe-t-elle la LIGNE DE VUE entre deux cases adjacentes du même étage ? Pendant exact de
  *  `wallBetween` pour la VUE — même arête, même géométrie, prédicat `areteOcculte`. Les deux verdicts
  *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
 export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
-  return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+  return areteEntreSatisfait(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
 }
 
 /** Tuiles marchables de l'ÉTAGE SOUTENU par une arête de structure — la case porteuse `(seg.x,seg.y)` et

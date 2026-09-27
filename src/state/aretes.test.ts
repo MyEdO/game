@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { edgeOf, emptyScene, type Scene } from './scene';
+import { emptyScene, type Scene } from './scene';
+import { areteEntre } from '../geometry/arete';
 import type { RoomPortal } from './roomPortals';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
@@ -272,7 +273,7 @@ describe('caseOpposee — l’ancrage BORDE l’arête, sur les quatre dériveur
     const vers = caseOpposee(arete);
     expect(vers.z, 'la case d’en face reste sur la couche de l’arête').toBe(arete.z);
     expect(
-      edgeOf(arete.ancrage.x, arete.ancrage.y, vers.x, vers.y),
+      areteEntre(arete.ancrage.x, arete.ancrage.y, vers.x, vers.y),
       'ancrage et case d’en face se séparent EXACTEMENT par cette arête',
     ).toEqual({ x: arete.x, y: arete.y, side: arete.side });
   });

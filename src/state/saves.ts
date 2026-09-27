@@ -154,7 +154,9 @@ import type { Scene } from './scene';
 // prise à l'opéra rouvre sur une scène vivante dont les travées sont des décors inexistants
 // (`validateScene`), sans les arêtes neuves. Les clés de drapeau de porte et de structure abattue
 // (`doorKey`, `structureDownKey`, `scene.flags`) passent au format de `cleArete` (`__door_x,y,side,z`) :
-// une save de 54 garderait ses portes ouvertes sous l'ancienne clé, relue comme absente. La save se jette
+// une save de 54 garderait ses portes ouvertes sous l'ancienne clé, relue comme absente. L'id du
+// Combattant-structure passe au même format (`structure-1-1-N-0` → `structure-1,1,N,0`,
+// `idCombattantStructure`) ; il vit dans `battle`, qu'une save ne porte jamais (en-tête). La save se jette
 // (politique 2 ci-dessus).
 export const SAVE_VERSION = 55;
 

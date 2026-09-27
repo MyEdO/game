@@ -56,8 +56,8 @@ export {
   editEntityCombat,
 } from '../../state/sceneEdit';
 export type { Rect, Pt, EffectZoneSeed } from '../../state/sceneEdit';
-import type { CellSide } from '../../state/scene';
-export type { CellSide } from '../../state/scene';
+import type { CellSide } from '../../data/schemas/defs-scenes/communs';
+export type { CellSide } from '../../data/schemas/defs-scenes/communs';
 export { planStairFlight, applyStairFlight, minFlightCells } from '../../state/stairFlight';
 export type { StairCell, StairStep, StairFlightPlan } from '../../state/stairFlight';
 

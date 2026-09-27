@@ -6,8 +6,9 @@
  * Chaque fonction renvoie une NOUVELLE Scène (immuable). `editorState.ts` les RÉ-EXPORTE : les câblages
  * du canvas (couplés UI/gameIso) y restent. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, EncounterMember, crenellatedAt, heightAt, layerTiles, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
 import { areteCanonique } from '../geometry/arete';
+import type { CellSide } from '../data/schemas/defs-scenes/communs';
 import { memoByRef } from './sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './dir8';
@@ -223,7 +224,7 @@ export function removeLayer(scene: Scene, z: number): Scene {
 // ── Outil MURS (arêtes + portes + diagonales). Une cloison est stockée sous forme CANONIQUE N/E : le S
 //    d'une case = le N de la case du dessous, le O = le E de la case de gauche → chaque arête n'existe
 //    qu'une fois, quel que soit le côté cliqué. ──
-// L'ARÊTE d'une case a UN terme, `CellSide` (`./scene`) : ce module n'en déclare pas un second.
+// L'ARÊTE d'une case a UN terme, `CellSide` (`data/schemas/defs-scenes/communs`) : ce module n'en déclare pas un second.
 
 
 /** État d'une arête : 'none' | 'wall' (pleine) | 'door' (franchissable), sur l'étage `z`. */

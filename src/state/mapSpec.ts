@@ -40,11 +40,12 @@ import type {
   WallClimb,
   ArchitectureBody,
   ArchitectureRect,
-  CellSide,
   WallOverlay,
 } from './scene';
+import type { CellSide } from '../data/schemas/defs-scenes/communs';
 import { DEFAULT_TERRAIN, emptyScene, tileAt, wallOverlayOf } from './scene';
-import { areteCanonique, libelleArete } from '../geometry/arete';
+import { areteCanonique } from '../geometry/arete';
+import { libelleArete } from './formeArete';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -760,7 +761,7 @@ export function buildScene(spec: MapSpec): Scene {
     }
   }
   // Passe 2 : diagonales — arête PUREMENT VISUELLE (scene.ts:698-700) : déplacement/vision/grimpe restent
-  // orthogonaux (`edgeOf`/`wallBetween`/`vision.ts` ne résolvent QUE N/E) → `climb`/`structure`/`door`
+  // orthogonaux (`areteEntre`/`wallBetween`/`vision.ts` ne résolvent QUE N/E) → `climb`/`structure`/`door`
   // ne bloqueraient/ouvriraient jamais rien : les poser mentirait silencieusement sur leur effet.
     // `window` et `appearance` restent décoratifs purs (aucune règle mécanique ne les lit).
   for (const wall of allWalls) {

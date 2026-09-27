@@ -1,4 +1,5 @@
-import { Scene, isWalkable, wallBetween, climbEdgeBetween, surfaceLink, edgeOf } from './scene';
+import { Scene, isWalkable, wallBetween, climbEdgeBetween, surfaceLink } from './scene';
+import { areteEntre } from '../geometry/arete';
 import type { Pt } from './path';
 
 /**
@@ -16,7 +17,7 @@ export type FallPlan =
 
 /** `from` = case du sauteur, `to` = case cardinale adjacente PLUS BASSE. PUR. */
 export function planFall(scene: Scene, from: Pt, to: Pt): FallPlan {
-  if (!edgeOf(from.x, from.y, to.x, to.y)) return { kind: 'none' }; // cardinal seulement (patron climb/jump)
+  if (!areteEntre(from.x, from.y, to.x, to.y)) return { kind: 'none' }; // cardinal seulement (patron climb/jump)
   const z = from.z ?? 0;
   if (wallBetween(scene, from.x, from.y, to.x, to.y, z)) return { kind: 'none' }; // mur/porte fermée bloque le saut
   if (climbEdgeBetween(scene, from, to)) return { kind: 'none' }; // arête grimpable → flux dédié (climbAcross/Escalade)

@@ -141,8 +141,11 @@ src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
                             `arete.ts` : `cleArete`, l'identité (case, côté, étage) d'une arête de mur,
-                            seule construction admise (garde `cle-arete-guard.test.ts`) — feuille,
-                            importable par `data/schemas` et `engine` (#1883).
+                            seule construction admise (garde `cle-arete-guard.test.ts`), `areteEntre`
+                            (l'arête canonique entre deux cases voisines) et `areteCanonique` — feuille :
+                            ses seuls imports sont les TYPES `WallSide`/`CellSide` de
+                            `data/schemas/defs-scenes/communs.ts`, importable par `data/schemas` et
+                            `engine` (#1883).
 src/engine/                 Règles WFRP4, PUR + testé :
   types.ts                    Caractéristiques, Combatant, Weapon, ItemInstance, Difficulty…
   tests.ts                    Tests & Degrés de Réussite (DR), tests opposés.
@@ -197,11 +200,11 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/state/
-  scene.ts                  SCÈNE : 35 fonctions PURES (tuiles, murs, portes, relief) + 39 types exportés,
+  scene.ts                  SCÈNE : 38 fonctions PURES (tuiles, murs, portes, relief) + 38 types exportés,
                             dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
                             (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 12 MANUSCRITS : `Scene`, `SceneEntity`,
+                            `EffectOp` = 58 membres). Restent 11 MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
@@ -209,12 +212,13 @@ src/state/
                             ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
                             l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
                             d'arête ÉCRIT sur une arête : `structure`/`appearance`),
-                            `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
+                            `Terrain` (alias primitif), `Fige` (marque de type d'une
                             valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
                             Comptes
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
-                            `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
-                            au foyer des caps (`state/dir8.ts`)
+                            `CellSide` = l'ARÊTE d'une case (quel bord porte un mur), déclaré dans
+                            `data/schemas/defs-scenes/communs.ts` à côté de `WallSide` ; le CAP, lui,
+                            vit au foyer des caps (`state/dir8.ts`)
   worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet v2
                             (`ProjectDoc`, `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
                             la campagne, ids de `data/axes.json`, défaut `coreAxisIds` via `resolveActiveAxes`).

@@ -1,9 +1,9 @@
 /** Déplacement sur grille : BFS pour cases atteignables et chemins. */
-import { Scene, isWalkable, edgeOf, surfaceLink, climbEdgeBetween, wallIsOpen } from './scene';
+import { Scene, isWalkable, surfaceLink, climbEdgeBetween, wallIsOpen } from './scene';
 import { hasTrait, hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
 import type { Combatant } from '../engine/types';
 import { memoByRef } from './sceneMemo';
-import { cleArete } from '../geometry/arete';
+import { cleArete, areteEntre } from '../geometry/arete';
 import { chebyshev } from '../engine/grid';
 
 export interface Pt {
@@ -66,7 +66,7 @@ const wallEdges = memoByRef(wallEdgesUncached);
 /** Un mur sépare-t-il (ax,ay) de (bx,by) au même étage ? (cardinal seulement.) */
 function walled(edges: Set<string>, ax: number, ay: number, bx: number, by: number, z: number): boolean {
   if (!edges.size) return false;
-  const e = edgeOf(ax, ay, bx, by);
+  const e = areteEntre(ax, ay, bx, by);
   return e ? edges.has(cleArete(e.x, e.y, e.side, z)) : false;
 }
 

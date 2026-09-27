@@ -151,7 +151,7 @@
 - l.113 — `src/state/riverVoyageFlow.ts:876` — // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
 
 ### NADJ 8 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.133 — `src/scenes/opera/floorplan.test.ts:357` — * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
+- l.133 — `src/scenes/opera/floorplan.test.ts:358` — * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
 
 ## A3 — Réfs de CODE sans chapitre (`<ABRÉV> l.X`, pas d'unité chapitre à couvrir)
 
@@ -211,4 +211,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 538b6987593008073f4217d2969be9c13f666f06 (4244 fichiers, 151 dossiers) corps: b23120eb4633ce7c4247615667eb5de5d0162993 -->
+<!-- sources-empreinte: 681d72c924e07bf57145bda6213f4eed51e23a33 (4244 fichiers, 151 dossiers) corps: 991451fd3eaf29784f4303c4b929f22a15dd95f7 -->

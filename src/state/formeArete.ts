@@ -13,7 +13,6 @@ import { findStructureById, premierOffert, structureAppearances, structures } fr
 import { facadeFeatureKindSchema } from '../data/schemas/defs-scenes/scene';
 import { valeursDe } from '../data/schemas/grammaire/meta';
 import { isDoorEdgeStructure, structureEdgeKind } from '../engine/structures';
-import { libelleArete } from '../geometry/arete';
 
 /** `fermeture-fixe` : Structure de nature `porte` posée sans `seg.door` — brèchable, jamais ouvrable. */
 export type FormeArete = 'mur-nu' | 'mur-fenetre' | 'porte-fermee' | 'porte-ouverte' | 'fermeture-fixe';
@@ -186,6 +185,12 @@ export function patchVersStructure(scene: Pick<Scene, 'architecture'>, seg: Wall
 const libelles = (formes: readonly FormeArete[]): string => formes.map((f) => `« ${LIBELLE_FORME[f]} »`).join(', ');
 
 const apparenceParId = (id: string) => structureAppearances.find((a) => a.id === id);
+
+/** LIBELLÉ d'affichage d'une arête — `(x,y,side)`, suivi de ` étage z` hors du rez-de-chaussée. Du texte
+ *  lu par les messages de validation et les résumés d'effet de l'éditeur : il vit dans l'état, pas dans
+ *  `geometry`, qui reste pur. */
+export const libelleArete = (e: { x: number; y: number; side: string; z?: number }): string =>
+  `(${e.x},${e.y},${e.side})${e.z ? ` étage ${e.z}` : ''}`;
 
 /** Libellé d'un ornement, lu sur l'enum nommé `facadeFeatureKindSchema`. */
 const LIBELLE_ORNEMENT = valeursDe(facadeFeatureKindSchema) as Readonly<Record<FacadeFeature['kind'], string>>;

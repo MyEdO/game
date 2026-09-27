@@ -21,9 +21,10 @@
 import { describe, it, expect } from 'vitest';
 import { aretesA, wallIndexOf } from './wallIndex';
 import {
-  areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt,
+  areteOcculteEntre, areteOcculte, structureAt, doorAt, climbAt,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
+import { areteEntre } from '../geometry/arete';
 import { allBuiltinCampaigns, diligenceCampaign } from '../scenes/campaign';
 import { testScenarios } from '../scenes/test-scenarios';
 
@@ -169,7 +170,7 @@ describe('wallIndex — le TRAVAIL évité, compté', () => {
    *  travail que l'index doit éviter. */
   const areteOcculteEntreNaif = (scene: Scene, ax: number, ay: number, bx: number, by: number, z: number): boolean => {
     if (!scene.walls?.length) return false;
-    const e = edgeOf(ax, ay, bx, by);
+    const e = areteEntre(ax, ay, bx, by);
     if (!e) return false;
     return scene.walls.some((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z && areteOcculte(scene, w));
   };

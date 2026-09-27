@@ -143,10 +143,16 @@ describe('SCHÉMA de `structureAppearance.json` — le linteau du corps de garde
   const entree = (extra: object) => [{ id: 'x', type: 'structureAppearance', label: 'X', face: '#111', post: '#222', ...extra }];
 
   const parapet = { heightLevelFrac: 0.32, merlonCount: 5, merlonStep: 2, merlonHeightPx: 6, bands: [], bandThickPx: 2, parapetBandFrac: 0.7, arasePx: 3 };
+  const claireVoie = { bars: 6, traverseFracs: [], traverseColor: '#333', plinthe: false, mainCourante: false };
   it('`corpsDeGarde.lintelPx` est requis ; le corps de garde vit DANS le parapet, jamais sans lui ; `door` ne porte pas de linteau', () => {
-    expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } } })).success).toBe(true);
-    expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: {} } })).success).toBe(false);
+    expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } }, claireVoie })).success).toBe(true);
+    expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: {} }, claireVoie })).success).toBe(false);
     expect(schema.safeParse(entree({ corpsDeGarde: { lintelPx: 4 } })).success).toBe(false);
     expect(schema.safeParse(entree({ door: { openingFrac: 0.5, lintelPx: 4 } })).success).toBe(false);
+  });
+
+  it('un corps de garde SANS `claireVoie` est refusé : aucune forme ne l’habillerait', () => {
+    expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } } })).success).toBe(false);
+    expect(schema.safeParse(entree({ parapet })).success).toBe(true);
   });
 });

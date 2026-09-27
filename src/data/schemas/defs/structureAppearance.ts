@@ -146,6 +146,15 @@ const doc = document(
     },
     edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
   },
+  {
+    // Le corps de garde se barre de la `claireVoie` de RACINE, la même que celle de la herse et du
+    // garde-corps : une seule demeure pour la claire-voie, donc un refine plutôt qu'un bloc imbriqué.
+    affinerEntree: (entree) =>
+      entree.refine((v) => !(v as { parapet?: { corpsDeGarde?: unknown } }).parapet?.corpsDeGarde || !!(v as { claireVoie?: unknown }).claireVoie, {
+        message: 'structureAppearance : un `parapet.corpsDeGarde` sans `claireVoie` — le passage n’aurait rien pour le barrer (`formesAdmises` le réduirait au mur nu).',
+        path: ['claireVoie'],
+      }),
+  },
 );
 
 export const schema = doc.schema;

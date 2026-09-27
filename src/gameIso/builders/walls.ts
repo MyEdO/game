@@ -8,7 +8,7 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { apparenceDeLArete, apparenceDOrnement, formeRendue, estBaie } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
@@ -28,7 +28,7 @@ import {
   WALL_NB, type RoofField,
 } from './roofs';
 import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
-import { cleArete } from '../../geometry/arete';
+import { cleArete, areteEntre } from '../../geometry/arete';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une baie dont l'apparence ne déclare pas de bloc `door` : arête que `validateScene` refuse
@@ -41,11 +41,25 @@ const CAP_FRAC = 0.86; // couronnement (bande haute)
 const CAP_LIP_PX = 4; // lèvre du couronnement, DÉBORDANTE au-dessus du sommet (cf. `capped` de `wallFaces`)
 const FRAME_PX = 1.3; // épaisseur de la moulure (trait historique)
 const CHAMBRANLE_PX = 4; // linteau de porte bois
-// VANTAIL d'une porte FERMÉE : panneau bois qui remplit l'ouverture entre les jambages, 3 joints de
-// planches verticaux (demi-largeur PLANK_HALF_T) et une poignée [HANDLE_T0,HANDLE_T1] à mi-hauteur.
+// VANTAIL d'une porte FERMÉE : panneau bois qui remplit l'ouverture [VANTAIL_T0, VANTAIL_T1] d'un
+// montant à l'autre ; ses joints de planches (demi-largeur PLANK_HALF_T) et sa poignée se DÉRIVENT de
+// ces bornes (`jointsDePlanches`, `poigneeDuVantail`).
+export const VANTAIL_T0 = 0, VANTAIL_T1 = 1;
 const PLANK_HALF_T = 0.012;
-const PLANK_TS = [0.34, 0.5, 0.66]; // positions des joints de planches (fraction d'arête)
-const HANDLE_T0 = 0.74, HANDLE_T1 = 0.8, HANDLE_LO = 0.42, HANDLE_HI = 0.56; // poignée
+/** Nombre de PLANCHES du vantail, toutes de même largeur : `PLANCHES − 1` joints. */
+export const PLANCHES = 4;
+/** Poignée, en fractions de la LARGEUR du vantail : son bord extérieur à `POIGNEE_BORD` du bord du
+ *  vantail, sa largeur `POIGNEE_LARGEUR` ; hauteur [HANDLE_LO, HANDLE_HI] de l'ouverture. */
+export const POIGNEE_BORD = 1 / 17, POIGNEE_LARGEUR = 3 / 34;
+const HANDLE_LO = 0.42, HANDLE_HI = 0.56;
+/** Axes des joints qui partagent [t0, t1] en `PLANCHES` planches égales. */
+export const jointsDePlanches = (t0: number, t1: number): number[] =>
+  Array.from({ length: PLANCHES - 1 }, (_, i) => t0 + ((t1 - t0) * (i + 1)) / PLANCHES);
+/** Tronçon [a, b] de la poignée d'un vantail [t0, t1]. */
+export const poigneeDuVantail = (t0: number, t1: number): [number, number] => {
+  const b = t1 - (t1 - t0) * POIGNEE_BORD;
+  return [b - (t1 - t0) * POIGNEE_LARGEUR, b];
+};
 // FENÊTRE (croisée) = vraie OUVERTURE dans la face : carreau AJOURÉ [WIN_T0,WIN_T1]×[WIN_LO,WIN_HI]
 // (fraction d'arête × de WALL_H), encadré par les morceaux de `face`, meneau + traverse (demi-tailles).
 const WIN_T0 = 0.3, WIN_T1 = 0.7, WIN_LO = 0.42, WIN_HI = 0.8;
@@ -196,9 +210,9 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const leaf: Face[] = forme === 'porte-ouverte'
       ? []
       : app.claireVoie ? claireVoie(b, b + op) : [
-          span('vantail', 0, 1, b, b + op),
-          ...PLANK_TS.map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
-          ...(forme === 'fermeture-fixe' ? [] : [span('poignee', HANDLE_T0, HANDLE_T1, b + op * HANDLE_LO, b + op * HANDLE_HI)]),
+          span('vantail', VANTAIL_T0, VANTAIL_T1, b, b + op),
+          ...jointsDePlanches(VANTAIL_T0, VANTAIL_T1).map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
+          ...(forme === 'fermeture-fixe' ? [] : [span('poignee', ...poigneeDuVantail(VANTAIL_T0, VANTAIL_T1), b + op * HANDLE_LO, b + op * HANDLE_HI)]),
         ];
     return [
       upright('poteau', 0, b, H1),
@@ -473,7 +487,7 @@ function crestGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           // ACCÈS (rampe/escalier atteint le chemin de ronde à ~même hauteur) → entrée OUVERTE, pas de
           // merlons en travers du passage.
           if (scene.layers.some((l) => isWalkable(scene, nx, ny, l.z) && gradeBetween(surfaceH, heightAt(scene, nx, ny, l.z)) !== 'cliff')) continue;
-          const e = edgeOf(x, y, nx, ny);
+          const e = areteEntre(x, y, nx, ny);
           if (!e) continue;
           // STRUCTURE (porte/herse) sous l'arête → elle rend DÉJÀ sa propre crête (corps de garde) : pas de
           // double crénelure au-dessus de la porte.

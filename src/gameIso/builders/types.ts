@@ -11,7 +11,8 @@
  * l'EXTÉRIEUR de la carte si elle est verticale.
  */
 
-import type { CellSide, FacadeFeature, SceneEntity, WallSide } from '../../state/scene';
+import type { FacadeFeature, SceneEntity, WallSide } from '../../state/scene';
+import type { CellSide } from '../../data/schemas/defs-scenes/communs';
 export type { CellSide };
 import type { Combatant } from '../../engine/types';
 import type { Dir4, Dir8 } from '../../state/dir8';

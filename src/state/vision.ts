@@ -12,7 +12,7 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
+import { Scene, tileAt, heightAt, sceneMetresPerTile, areteOcculte } from './scene';
 import { wallOnSight } from './lineOfSight';
 import { terrainOpaque, terrainSolidHeightM } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
@@ -23,7 +23,7 @@ import { findLightLevelById, findTraitById, findPropById, findTrappingById } fro
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../data/props.types';
 import type { Dir8 } from './dir8';
 import { memoByRef } from './sceneMemo';
-import { cleArete } from '../geometry/arete';
+import { cleArete, areteEntre } from '../geometry/arete';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -130,7 +130,7 @@ const SAMPLES_PER_TILE = 4;
 /** Prédicat d'arête O(1) de la grille d'opacité, bâti UNE fois par `Occ` (`memoByRef`) et non par
  *  rayon : c'est le même pour tous les rayons d'une scène, et il en part un par case regardée. */
 const edgeBlockerOf = memoByRef((occ: Occ) => (ax: number, ay: number, bx: number, by: number): boolean => {
-  const e = edgeOf(ax, ay, bx, by);
+  const e = areteEntre(ax, ay, bx, by);
   return e ? occ.walls.has(cleArete(e.x, e.y, e.side, 0)) : false;
 });
 

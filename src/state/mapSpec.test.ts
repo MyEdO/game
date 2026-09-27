@@ -273,7 +273,7 @@ describe('buildScene — diagonales (side \\\\/\\/) : attributs riches (#554)', 
     expect(seg?.window).toBe(true);
   });
 
-  it('`climb` sur une diagonale REFUSE explicitement (arête oblique purement visuelle, jamais résolue par `edgeOf`)', () => {
+  it('`climb` sur une diagonale REFUSE explicitement (arête oblique purement visuelle, jamais résolue par `areteEntre`)', () => {
     expect(() =>
       buildScene({
         id: 'diag2', label: 'Diag2', size: [3, 3], terrain: 'pave',

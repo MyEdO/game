@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWalls, wallEnds } from './walls';
+import { buildWalls, wallEnds, PLANCHES, POIGNEE_BORD, POIGNEE_LARGEUR } from './walls';
 import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../state/relief';
@@ -330,16 +330,31 @@ describe('buildWalls — porte BOIS (routée par le seg.door)', () => {
 });
 
 describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un trou)', () => {
-  it('closed → vantail + 3 planches + poignée à la place de l’ouverture béante', () => {
+  it('closed → vantail + planches + poignée à la place de l’ouverture béante', () => {
     const el = one(sceneWith([{ x: 2, y: 2, side: 'N', door: true, closed: true }]));
     const p = parts(el);
     expect(p).toContain('vantail');
-    expect(p.filter((x) => x === 'vantail-planche')).toHaveLength(3);
+    expect(p.filter((x) => x === 'vantail-planche')).toHaveLength(PLANCHES - 1);
     expect(p).toContain('poignee');
     expect(el.states.open).toBe(false);
     // le vantail remplit l’ouverture (0 → 0.52 × WALL_H_M) entre les jambages.
     const leaf = facesOf(el, 'vantail')[0];
     expect(leaf.poly.map((pt) => pt.h)).toEqual([WALL_H_M * 0.52, WALL_H_M * 0.52, 0, 0]);
+  });
+  it('les joints partagent le vantail en PLANCHES égales, la poignée tient sa distance RELATIVE au bord — lus sur le rendu, depuis les bornes du vantail', () => {
+    const el = one(sceneWith([{ x: 2, y: 2, side: 'N', door: true, closed: true }]));
+    const [A, B] = wallEnds({ x: 2, y: 2, side: 'N' });
+    const t = (p: { x: number; y: number }) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
+    const troncon = (f: { poly: { x: number; y: number }[] }) => [Math.min(...f.poly.map(t)), Math.max(...f.poly.map(t))];
+    const [v0, v1] = troncon(facesOf(el, 'vantail')[0]);
+    const axes = facesOf(el, 'vantail-planche').map((f) => { const [a, b] = troncon(f); return (a + b) / 2; }).sort((a, b) => a - b);
+    const bornes = [v0, ...axes, v1];
+    const largeurs = bornes.slice(1).map((b, i) => b - bornes[i]);
+    expect(largeurs).toHaveLength(PLANCHES);
+    for (const l of largeurs) expect(l, `planches ${largeurs.map((x) => x.toFixed(4)).join(' / ')}`).toBeCloseTo((v1 - v0) / PLANCHES, 9);
+    const [p0, p1] = troncon(facesOf(el, 'poignee')[0]);
+    expect((v1 - p1) / (v1 - v0)).toBeCloseTo(POIGNEE_BORD, 9);
+    expect((p1 - p0) / (v1 - v0)).toBeCloseTo(POIGNEE_LARGEUR, 9);
   });
   /** #1176 — le monde est VOLUMIQUE : une porte ouverte est un TROU, pas un panneau sombre. AUCUNE face
    *  n'occupe la hauteur d'ouverture ; les joues du mur (DoubleSide) montrent la pièce derrière. */
@@ -354,7 +369,7 @@ describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un
     const el = one(sceneWith([{ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois' }]));
     expect(el.forme).toBe('fermeture-fixe');
     expect(parts(el)).toContain('vantail');
-    expect(parts(el).filter((x) => x === 'vantail-planche')).toHaveLength(3);
+    expect(parts(el).filter((x) => x === 'vantail-planche')).toHaveLength(PLANCHES - 1);
     expect(parts(el)).not.toContain('poignee');
   });
 });

@@ -28,6 +28,13 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `const k = \`${D}{x}.${D}{y}.${D}{side}\`;`,
       `const k = \`${D}{x},${D}{y},S\`;`,
       `const k = \`${D}{x},${D}{y},O\`;`,
+      `const k = \`${D}{x}, ${D}{y}, ${D}{side}\`;`,
+      `const k = \`${D}{x}/${D}{y}/${D}{side}\`;`,
+      `const k = \`${D}{x};${D}{y};${D}{side}\`;`,
+      `const k = \`${D}{x} ${D}{y} ${D}{side}\`;`,
+      `const k = \`${D}{x}${D}{y}${D}{side}\`;`,
+      `const k = \`N,${D}{x},${D}{y}\`;`,
+      `const k = \`E:${D}{x}:${D}{y}\`;`,
     ]) expect(sitesFautifs(ligne), ligne).toHaveLength(1);
     for (const ligne of [
       `const source = \`arête (${D}{seg.x},${D}{seg.y},${D}{seg.side}) z${D}{seg.z ?? 0}\`;`,
@@ -35,6 +42,8 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `const b = index.get(\`${D}{nx},${D}{ny}\`);`,
       `: \`cell:${D}{at.x}:${D}{at.y}\`;`,
       `const k = cleArete(w.x, w.y, w.side, w.z ?? 0);`,
+      `const s = \`(N,${D}{x},${D}{y})\`;`,
+      `const t = \`NIVEAU${D}{a}${D}{b}\`;`,
       `key: \`seam:${D}{a.massId}:${D}{b.bodyId}:${D}{cleArete(c.x, c.y, side, z)}\`,`,
     ]) expect(sitesFautifs(ligne), ligne).toEqual([]);
   });

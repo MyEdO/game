@@ -7,7 +7,8 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, edgeOf, structureAt, structureIsDown } from './scene';
+import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, structureAt, structureIsDown } from './scene';
+import { areteEntre } from '../geometry/arete';
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../data';
 import { decorEnCase } from './decorIndex';
@@ -113,16 +114,16 @@ export function tileBlocksSight(scene: Scene, x: number, y: number): boolean {
  * vient le tir. Elle n'exige aucune notion de hauteur (le dépôt n'en a aucune côté règles), ne dépend
  * pas du trajet du rayon (donc ni de son arrondi, ni de l'ordre des pas) et reste locale à la cible —
  * ce que le canon décrit : un couvert dont la cible SE SERT, pas un obstacle rencontré. Les arêtes
- * DIAGONALES (`\`,`/`) n'en sont jamais : `edgeOf` ne connaît que le cardinal, comme `wallBetween`.
+ * DIAGONALES (`\`,`/`) n'en sont jamais : `areteEntre` ne connaît que le cardinal, comme `wallBetween`.
  */
 function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' | 'E' }[] {
   const out: { x: number; y: number; side: 'N' | 'E' }[] = [];
   if (from.x !== to.x) {
-    const e = edgeOf(to.x, to.y, from.x < to.x ? to.x - 1 : to.x + 1, to.y);
+    const e = areteEntre(to.x, to.y, from.x < to.x ? to.x - 1 : to.x + 1, to.y);
     if (e) out.push(e);
   }
   if (from.y !== to.y) {
-    const e = edgeOf(to.x, to.y, to.x, from.y < to.y ? to.y - 1 : to.y + 1);
+    const e = areteEntre(to.x, to.y, to.x, from.y < to.y ? to.y - 1 : to.y + 1);
     if (e) out.push(e);
   }
   return out;

@@ -11,7 +11,7 @@
  */
 import type { Scene, WallSeg } from './scene';
 import { setEdgeWall } from './sceneEdit';
-import type { CellSide } from './scene';
+import type { CellSide } from '../data/schemas/defs-scenes/communs';
 import { areteCanonique, cleArete } from '../geometry/arete';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */

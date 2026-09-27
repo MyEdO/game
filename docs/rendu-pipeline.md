@@ -29,8 +29,8 @@ rotation ou changement de projection ; la première personne n'hérite d'aucun c
 
 ## 1. Le pivot — `src/gameIso/builders/types.ts`
 
-`SceneEl` (`src/gameIso/builders/types.ts:243`) = `FloorEl` | `WallEl` | `RoofEl` | `PropEl` | `TokenEl` — union
-discriminée par `kind`. `PropEl` (`src/gameIso/builders/types.ts:209`) se subdivise elle-même en
+`SceneEl` (`src/gameIso/builders/types.ts:244`) = `FloorEl` | `WallEl` | `RoofEl` | `PropEl` | `TokenEl` — union
+discriminée par `kind`. `PropEl` (`src/gameIso/builders/types.ts:210`) se subdivise elle-même en
 `BillboardPropEl` | `VolumePropEl`.
 
 ### `GP` — un point en espace MONDE
@@ -98,7 +98,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:130` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
 | `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1354` | Éléments `roof` de la scène. |
 | `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
-| `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:660` | Éléments `wall` de la scène. |
+| `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:674` | Éléments `wall` de la scène. |
 
 ## 3. L'arborescence de `src/gameIso/`
 
@@ -199,4 +199,4 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: ef05a10b9fcc51bb1021d232a9eccd3da0b39dbd (1007 fichiers, 91 dossiers) corps: 86228511e2990770a95179d25e565ef9500cb25f -->
+<!-- sources-empreinte: 8c080b9a784bc47a54d5b4521240593d55153cf7 (1007 fichiers, 91 dossiers) corps: 4709e505667dc9c71a5832c8c9d31eeeb9c37133 -->

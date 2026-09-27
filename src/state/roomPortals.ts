@@ -1,5 +1,4 @@
 import {
-  edgeOf,
   isDescriptiveZone,
   isWalkable,
   structureIsDown,
@@ -10,7 +9,7 @@ import {
 import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
 import { aretesA } from './wallIndex';
-import { cleArete } from '../geometry/arete';
+import { cleArete, areteEntre } from '../geometry/arete';
 import { sceneZoneTiles } from './zones';
 
 export type RoomPortalKind = 'passage' | 'door-open' | 'door-closed';
@@ -81,7 +80,7 @@ function roomPortalsUncached(scene: Scene): RoomPortal[] {
     const z = from.z ?? 0;
     for (const [dx, dy] of directions) {
       const to = pointAt(from.x + dx, from.y + dy, z);
-      const edge = edgeOf(from.x, from.y, to.x, to.y);
+      const edge = areteEntre(from.x, from.y, to.x, to.y);
       if (!edge) continue;
       const kind = portalKind(scene, wallAt(scene, edge, z));
       if (!kind) continue;

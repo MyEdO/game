@@ -1,7 +1,7 @@
 /**
  * INDEX arête → murs d'une scène — la seule lecture de « quels segments tiennent CETTE arête ? ».
  *
- * Les quatre accesseurs par arête de `state/scene.ts` (`areteEntre` — donc `wallBetween` et
+ * Les quatre accesseurs par arête de `state/scene.ts` (`areteEntreSatisfait` — donc `wallBetween` et
  * `areteOcculteEntre` —, `structureAt`, `doorAt`, `climbAt`) y répondent en O(1). L'enjeu est le
  * VOLUME : une Ligne de Vue pose une question d'arête par PAS de rayon, et un tour d'IA en demande
  * des dizaines de milliers. Sans index, chaque question balaie les 668 arêtes de La Diligence —

@@ -35,8 +35,8 @@
  * (`state/devtools.ts:9`).
  */
 import { t } from '../i18n';
-import { heightAt, edgeOf, structureIsDown, type Scene, type WallSide } from './scene';
-import { cleArete } from '../geometry/arete';
+import { heightAt, structureIsDown, type Scene, type WallSide } from './scene';
+import { cleArete, areteEntre } from '../geometry/arete';
 import { idCombattantStructure } from '../engine/structures';
 import { planFall } from './fallMove';
 import { inBattleId } from './combatants';
@@ -211,7 +211,7 @@ function chutes(ctx: ContexteAretes): AreteUtilisable[] {
     const plan = planFall(scene, controleur, to);
     if (plan.kind !== 'fall') continue;
     if (!vue(ctx.visible, controleur, to, activeZ)) continue;
-    const e = edgeOf(controleur.x, controleur.y, to.x, to.y);
+    const e = areteEntre(controleur.x, controleur.y, to.x, to.y);
     if (!e) continue;
     out.push({
       cle: cleArete(e.x, e.y, e.side, activeZ),

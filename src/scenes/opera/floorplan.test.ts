@@ -7,7 +7,8 @@ import { ETAGE_ASCII } from './floorplan.ascii';
 import { walledRowsOf, zonesFromSeeds } from '../../state/asciiMap';
 import { scenarioEntities } from './furnished';
 import { scenario as operaPlan } from '../test-scenarios/opera-plan';
-import { tileAt, heightAt, isWalkable, wallBetween, areteOcculteEntre, edgeOf } from '../../state/scene';
+import { tileAt, heightAt, isWalkable, wallBetween, areteOcculteEntre } from '../../state/scene';
+import { areteEntre } from '../../geometry/arete';
 import { reachable, type Pt } from '../../state/path';
 import { terrainWalkable } from '../../state/terrain';
 import { effectiveArchitecture } from '../../state/sceneEdit';
@@ -355,10 +356,11 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
 
 /**
  * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
- * […] en atterrissant sur des malheureux assis dans les sièges en dessous » — un bord de balcon, qu'on
- * passe par projection. Le folio 39 est le plan (image), sans ligne de texte à l'extraction (l.22 folio
- * 37 → l.51 folio 40). Ce plan pose sur ce bord la structure `garde-corps`, et elle seule, à chaque
- * paire puits|plancher : il laisse VOIR la salle et ne se franchit pas à la marche (NADJ 08 l.133).
+ * […] en atterrissant sur des malheureux assis dans les sièges en dessous ». Le folio 39 est le plan
+ * (image), sans ligne de texte à l'extraction (l.22 folio 37 → l.51 folio 40). Ce plan pose sur ce bord
+ * la structure `garde-corps`, et elle seule, à chaque paire puits|plancher. Qu'elle laisse voir la salle
+ * et ne se franchisse pas à la marche, aucune de ces lignes ne le dit : c'est le `maison` de la
+ * structure `garde-corps` (`src/data/structures.json`), arbitrage #1883.
  * Les refends de loge qui meurent sur ce bord ne sont pas des impasses (`auditWallDeadEndsInside`,
  * famille 11).
  */
@@ -410,7 +412,7 @@ describe('plan de l’Opéra — l’ovale de l’étage est fermé (#1179)', ()
     return out;
   })();
   const aretesDe = ({ x, y, nx, ny }: { x: number; y: number; nx: number; ny: number }) => {
-    const e = edgeOf(x, y, nx, ny)!;
+    const e = areteEntre(x, y, nx, ny)!;
     return (s.walls ?? []).filter((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === 1);
   };
 

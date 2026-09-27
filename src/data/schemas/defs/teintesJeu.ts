@@ -126,8 +126,7 @@ export function distanceTeinte(a: string, b: string): number {
 /** Plancher de distance perceptuelle (`distanceTeinte`) entre deux teintes CONTIGUËS — qui se touchent
  *  à l'écran et doivent s'y distinguer : surbrillance peinte sous un pion, trait de baie contre ses
  *  jambages, anneaux de deux héros côte à côte. Étalon MESURÉ : la paire la plus proche que le dépôt
- *  lit distincte, `identite-heros-1` ⇄ `identite-heros-3`, est à 102 ; sous 90, deux teintes se
- *  confondent sur un trait de 2 px. Le plancher garde la marge d'un ajustement d'artiste. */
+ *  lit distincte, `identite-heros-1` ⇄ `identite-heros-3`, est à 102. */
 export const SEUIL_TEINTES_CONTIGUES = 90;
 
 /** Plancher de séparation des quatre identités de héros : leurs anneaux sont des teintes contiguës. */

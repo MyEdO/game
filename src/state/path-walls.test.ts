@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, wallBetween, edgeOf, setDoorOpen, type Scene } from './scene';
+import { emptyScene, wallBetween, setDoorOpen, type Scene } from './scene';
+import { areteEntre } from '../geometry/arete';
 import { pathTo, reachable, walkComponentAt, walkNeighbors } from './path';
 
 /**
@@ -15,11 +16,11 @@ function walledColumn(doorAtY?: number): Scene {
 const empty = new Set<string>();
 
 describe('murs sur arêtes — walkability', () => {
-  it('edgeOf canonicalise l’arête entre deux cases adjacentes', () => {
-    expect(edgeOf(1, 1, 2, 1)).toEqual({ x: 1, y: 1, side: 'E' }); // vers l'est
-    expect(edgeOf(2, 1, 1, 1)).toEqual({ x: 1, y: 1, side: 'E' }); // symétrique
-    expect(edgeOf(1, 1, 1, 2)).toEqual({ x: 1, y: 2, side: 'N' }); // vers le sud = N de (1,2)
-    expect(edgeOf(1, 1, 3, 1)).toBeNull(); // pas adjacentes
+  it('areteEntre canonicalise l’arête entre deux cases adjacentes', () => {
+    expect(areteEntre(1, 1, 2, 1)).toEqual({ x: 1, y: 1, side: 'E' }); // vers l'est
+    expect(areteEntre(2, 1, 1, 1)).toEqual({ x: 1, y: 1, side: 'E' }); // symétrique
+    expect(areteEntre(1, 1, 1, 2)).toEqual({ x: 1, y: 2, side: 'N' }); // vers le sud = N de (1,2)
+    expect(areteEntre(1, 1, 3, 1)).toBeNull(); // pas adjacentes
   });
 
   it('wallBetween détecte le mur (pas la porte)', () => {
