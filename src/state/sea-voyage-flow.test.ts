@@ -15,7 +15,8 @@ import { partyMoneyTotal, bourseOf, creditBourse } from './bourseFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
-import { byId, maladies } from '../data';
+import { byId, maladies, species } from '../data';
+import { setDataset, resetData } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import { buildEncounter } from './encounterAuthoring';
 import { emptyScene, type Scene } from './scene';
@@ -1425,6 +1426,19 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     // Aucune maladie déclenchée du tout ce jour (ni tonneau — pas d'eau suivie — ni scorbut) : routine.
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
+  });
+
+  it('l’immunité suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → testé', async () => {
+    const { setGmSeat } = await import('./netFlow');
+    setGmSeat(get, set, 1);
+    setDataset('species', species.map((s) => (s.id === 'hauts-elfes' ? { ...s, grantGroups: s.grantGroups.filter((g) => g !== 'elfe') } : s)));
+    set({ party: get().party.map((h) => ({ ...h, species: 'hauts-elfes' })) });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 0, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const bandes = get().pendingCascade?.participants.filter((s) => s.kind === 'sea-mal-de-mer') ?? [];
+    resetData();
+    expect(bandes).toHaveLength(1);
   });
 
   it('déjà immunisé (`diseaseImmunities`) → aucune étape reposée', async () => {

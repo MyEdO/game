@@ -87,6 +87,7 @@ import {
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
+import { groupsFor } from '../engine/groups';
 import { seaAutoResolves, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import { beginShipwreck } from './shipwreck';
@@ -1368,9 +1369,8 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
   return out;
 }
 
-/** Immunité elfe au mal de mer (MDG 14 l.215) — keyée sur l'id STABLE d'espèce (`hauts-elfes`/
- *  `elfes-sylvains`, `src/data/species.json`), jamais le libellé. */
-const isElfSpecies = (species: string | undefined): boolean => !!species?.includes('elfes');
+/** Immunité elfe au mal de mer (MDG 14 l.215) : groupe `elfe` de l'espèce (`grantGroups`). */
+const isElfSpecies = (species: string | undefined): boolean => groupsFor({ speciesId: species }).includes('elfe');
 
 /** Mal de mer (MDG 14 l.211-222) — DEUX déclencheurs INDÉPENDANTS, cumulables le même jour : premier
  *  jour de CETTE traversée (`daysAtSea === 0` — proxy : le moteur ne porte aucun état par-personnage

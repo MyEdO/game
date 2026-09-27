@@ -46,6 +46,12 @@ export const LABEL_EQ_RX = /\.label\s*===|===\s*[\w.]+\.label\b/;
  *  qui distingue des cas par IDENTITÉ de libellé plutôt que par `id` stable. */
 export const LABEL_PREDICATE_RX = /\.test\([^)]*\.label\b|\.label\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(/;
 
+/** PRÉDICAT de MOTIF sur une espèce (`species`, `x.species`) : méthode de chaîne prédicative ou
+ *  `.test(` d'une regex. L'appartenance d'une espèce se lit dans sa DONNÉE (`grantGroups`, `groupsFor`),
+ *  jamais dans la forme de son id ni de son libellé (#1897). */
+export const SPECIES_PREDICATE_RX =
+  /\bspecies\??\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(|\.test\([^)]*\bspecies\b/;
+
 /** `switch` sur `.label` : un aiguillage par libellé est la même famille de logique-par-label qu'une
  *  carte `BY_LABEL`, juste écrite en `switch`. */
 export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
@@ -145,6 +151,7 @@ export function scanLabelLogic(relPath, contenu) {
       BY_LABEL_RX.test(line) ||
       LABEL_EQ_RX.test(line) ||
       LABEL_PREDICATE_RX.test(line) ||
+      SPECIES_PREDICATE_RX.test(line) ||
       LABEL_SWITCH_RX.test(line) ||
       SLUG_FROM_LABEL_RX.test(line);
     // Une ligne qui viole les DEUX est rapportée sous `label-logic` (la règle la plus stricte prime,

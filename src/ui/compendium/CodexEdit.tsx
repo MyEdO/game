@@ -54,6 +54,7 @@ import type { PsychTrait } from '../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import type { OptionalRule } from '../../engine/policy';
 import type { TraitInstance, OptionalEntry } from '../../engine/statEntry';
+import { isSwarm } from '../../engine/traits/dispatch';
 import type { DomainData } from '../../data';
 import type { CharKey, Difficulty } from '../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
@@ -655,7 +656,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         </ul>
       )}
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -876,7 +877,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
 }
 
 /** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
-function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+function AppearanceField({ label, porteur, nuee, value, onChange }: { label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
@@ -886,7 +887,7 @@ function AppearanceField({ label, porteur, value, onChange }: { label: string; p
       <div className="ed-field">
         <span>Apparence</span>
         <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} />
+        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} nuee={nuee} />
         <label className="dr">
           <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
           {' '}Armure du profil visible sur la figurine

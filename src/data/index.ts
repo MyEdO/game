@@ -23,6 +23,7 @@ import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
+import speciesRaceJson from './speciesRace.json';
 import classesJson from './classes.json';
 import careersJson from './careers.json';
 import careerLevelsJson from './careerLevels.json';
@@ -3058,14 +3059,13 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
 }
-/** id d'espèce RIG (slug, clé `appearance.species`) dérivé d'un id d'espèce RULES (ou chaîne libre) :
- *  slug du LIBELLÉ d'espèce. Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance).
- *  Sortie = l'id species.json de l'entrée trouvée (invariant `slugId(label) === id`, 27/27, gardé par
- *  `refs-migrated.test.ts`). DEUX branches sortent de ce vocabulaire : sans entrée, le `rulesId` est
- *  slugué tel quel (identité sur un id inconnu) ; sans argument, la sortie est `humain` — un id de
- *  `raceAppearance.json`, PAS de species.json. */
+/** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
+export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
+/** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
+ *  `species.json` est un id du domaine de saisie, `grammaire/art.ts`) ; sans argument, `DEFAULT_RACE_ID`.
+ *  Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance). */
 export function rigSpeciesId(rulesId: string | undefined): RigSpeciesId {
-  return slugId(findSpeciesById(rulesId)?.label ?? rulesId ?? 'Humain') as RigSpeciesId;
+  return (rulesId ?? DEFAULT_RACE_ID) as RigSpeciesId;
 }
 /** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
  *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
@@ -3283,6 +3283,12 @@ const possessionParId = indexParId('trappings', trappings);
 export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
 }
+/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+export const armesChoisissables = memoParVersion('trappings', () => trappings
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
+  .map((t) => ({ id: t.id, label: t.label }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'fr')));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
   return qualiteParId(id);

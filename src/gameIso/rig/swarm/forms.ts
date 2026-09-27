@@ -49,6 +49,11 @@ export const SWARM_FORMS: Record<string, SwarmForm> = Object.fromEntries(
   }]),
 );
 
+/** Libellé d'AFFICHAGE d'une forme de nuée par id (`defs/<id>.ts`), `undefined` hors registre. */
+export function libelleDeFormeDeNuee(id: string): string | undefined {
+  return SWARM_FORM_DEFS.find((d) => d.id === id)?.label;
+}
+
 /** Repli : une nuée dont `appearance.species` est une VRAIE espèce (pas un id de forme) est routée
  *  par le `plan` de sa def de créature. N'importe QUE `defById` (pas resolveRender/bodyPlan → cycle). */
 const PLAN_TO_FORM: Record<string, string> = {

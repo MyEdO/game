@@ -233,6 +233,18 @@ describe('garde-fou « logique par label interdite » (#142)', () => {
     expect(findings.map((f) => f.line)).toEqual([1, 2, 3, 4]);
   });
 
+  it('scanLabelLogic : détecte un prédicat de MOTIF sur une espèce, pas sa lecture par id (#1897)', () => {
+    const src = [
+      "const elfe = /elfe/i.test(hero.species ?? '');",
+      "const isElf = (species) => !!species?.includes('elfes');",
+      "const nain = c.species.startsWith('nain');",
+      "const g = groupsFor({ speciesId: hero.species }).includes('elfe');",
+      "const sp = findSpeciesById(hero.species);",
+      "const ok = allowed.includes(hero.species);",
+    ].join('\n');
+    expect(scanLabelLogic('fixture.ts', src).map((f) => f.line)).toEqual([1, 2, 3]);
+  });
+
   it('collectIdParamFunctions + scanLabelAsIdArg : détecte `.label` passé où le paramètre déclaré est `id` (LOT 5)', () => {
     // Cas PLANTÉ = le motif EXACT de #142 LOT 5 (`state/spawn.ts` avant correction) : `bodyShapeOf`
     // déclare un paramètre `id: string` — lui passer `sb.label` fait résoudre par un libellé d'auteur,

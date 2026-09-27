@@ -46,6 +46,7 @@ import { applyMiscast } from './combatFlow';
 import { buySpell as partyBuySpell } from './partyFlow';
 import { testValue, type SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
+import { groupsFor } from '../engine/groups';
 import { effectiveEntry } from '../engine/variants';
 import { effectiveChar } from '../engine/characteristics';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
@@ -235,9 +236,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity) left -= 1;
-  // « les elfes ne perdent une Activité que si la durée est d'au moins trois semaines » (ch.23 l.50).
-  // Règle optionnelle (LDB 23 l.54-56) : le devoir elfique peut être ignoré (désactiver `interlude-elf-duty`).
-  const elfDuty = rule('interlude-elf-duty') && /elfe/i.test(hero.species ?? '') && itl.weeks >= 3;
+  // LDB 23 l.56 ; règle optionnelle `interlude-elf-duty` (LDB 23 l.54).
+  const elfDuty = rule('interlude-elf-duty') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
     left -= 1;
     lines.push(msg('if.elfDuty', { name: hero.label }));

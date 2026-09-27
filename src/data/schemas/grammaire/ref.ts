@@ -135,6 +135,11 @@ function admisDe(type: TypeEntite, valeur: string | undefined, site: string): Re
   return idsDeLEspace(valeur === undefined ? espaceDe(type) : cleDeSousListe(type, valeur, site), site);
 }
 
+/** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
+export function idsDe(type: TypeEntite): ReadonlySet<string> {
+  return admisDe(type, undefined, `idsDe('${type}')`);
+}
+
 /**
  * Appartenance à la SOUS-LISTE MARQUÉE de l'espace d'un type : les entrées qui PORTENT le champ
  * `marqueur` (paramètre `espace.marqueurs` du def, cf. `defs/props.ts`), clé `<espace>?<marqueur>`.

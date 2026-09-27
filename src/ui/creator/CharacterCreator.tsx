@@ -34,7 +34,7 @@ import {
   qualityRefLabel,
   findQualityById,
   advancementLabel,
-  trappings as allTrappings,
+  armesChoisissables,
   type TrappingRef,
   levelsForCareer,
   charAbr,
@@ -198,15 +198,8 @@ export const STEP_META: Record<StepId, { label: string; screen: (p: StepProps) =
 
 /** Espèces mises en avant : celles du Livre de base — dérivé des données, les suppléments
  *  apparaissent automatiquement à la suite. */
-const especesDuLivreDeBase = memoParVersion('species', () => allSpecies.filter((s) => s.source.book === 'livre-de-base').map((s) => s.label));
+const especesDuLivreDeBase = memoParVersion('species', () => new Set(allSpecies.filter((s) => s.source.book === 'livre-de-base').map((s) => s.id)));
 
-/** Choix proposés pour l'emplacement `{wildcard:'arme'}` : toutes les ARMES des données ({id, label}),
- *  hors celles que le catalogue DÉCLARE « Mains nues » (`TrappingData.unarmed`) — on ne choisit pas ses
- *  poings comme équipement de départ. */
-const armesChoisissables = memoParVersion('trappings', () => allTrappings
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
-  .map((t) => ({ id: t.id, label: t.label }))
-  .sort((a, b) => a.label.localeCompare(b.label, 'fr')));
 /** Demeure céleste par ID (ADE II 3 l.504-512) — libellé affiché + desc RAW en tooltip du thème astral. */
 const demeureParId = indexParId('celestialHouses', celestialHouses);
 
@@ -480,7 +473,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
     else families.push({ family: s.family, list: [s] });
   }
   const socle = especesDuLivreDeBase();
-  families.sort((a, b) => Number(b.list.some((s) => socle.includes(s.label))) - Number(a.list.some((s) => socle.includes(s.label))));
+  families.sort((a, b) => Number(b.list.some((s) => socle.has(s.id))) - Number(a.list.some((s) => socle.has(s.id))));
   const totalRaces = families.reduce((n, f) => n + f.list.length, 0);
 
   /** Apparence de la figurine qui REPRÉSENTE une famille sur sa carte : sa 1ʳᵉ lignée (la canonique

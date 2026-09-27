@@ -13,6 +13,8 @@ import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setRule, resetRule } from '../engine/policy';
+import { species } from '../data';
+import { setDataset, resetData } from '../data/overrides';
 
 /** Événement d'un héros, dé EXIGÉ : sans l'option « Dés fixés », le dé tombe à l'ouverture (#942 L7)
  *  — un `eventRoll` absent ici signifierait un tirage resté en attente, jamais un défaut de type. */
@@ -140,7 +142,7 @@ describe('Interlude — flux start/end', () => {
 
   it('interlude-elf-duty (défaut) : un elfe ≥3 semaines perd 1 Activité (devoir)', () => {
     const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
-    elf.species = 'Haut Elfe';
+    elf.species = 'hauts-elfes';
     useGame.setState({ party: [elf], interlude: null });
     useGame.getState().startInterlude(3);
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
@@ -152,7 +154,7 @@ describe('Interlude — flux start/end', () => {
   it('interlude-elf-duty OFF : l’elfe garde son Activité', () => {
     setRule('interlude-elf-duty', false);
     const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
-    elf.species = 'Haut Elfe';
+    elf.species = 'hauts-elfes';
     useGame.setState({ party: [elf], interlude: null });
     useGame.getState().startInterlude(3);
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
@@ -160,5 +162,18 @@ describe('Interlude — flux start/end', () => {
     const ev = eventOf(st);
     expect(st.left).toBe(Math.max(0, 3 - (ev.fx?.loseActivity ? 1 : 0))); // pas de devoir
     resetRule('interlude-elf-duty');
+  });
+
+  it('le devoir suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → pas de devoir', () => {
+    setDataset('species', species.map((s) => (s.id === 'hauts-elfes' ? { ...s, grantGroups: s.grantGroups.filter((g) => g !== 'elfe') } : s)));
+    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
+    elf.species = 'hauts-elfes';
+    useGame.setState({ party: [elf], interlude: null });
+    useGame.getState().startInterlude(3);
+    draineCascade(useGame.getState);
+    const st = useGame.getState().interlude!.perHero[elf.id];
+    const ev = eventOf(st);
+    resetData();
+    expect(st.left).toBe(Math.max(0, 3 - (ev.fx?.loseActivity ? 1 : 0)));
   });
 });

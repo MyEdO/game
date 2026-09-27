@@ -11,14 +11,15 @@ import { apparenceSuivante, type ApparenceEditee } from '../../gameIso/rig/parts
 import { tenueOptions } from '../../gameIso/rig/parts/career';
 import { harnaisOptions } from '../../gameIso/rig/quadruped/harnais';
 import { elementsOf } from '../../gameIso/rig/parts/elements';
-import { creatureSpeciesOptions } from '../../gameIso/rig/creatures';
+import { defById } from '../../gameIso/rig/creatures';
+import { libelleDeFormeDeNuee } from '../../gameIso/rig/swarm/forms';
+import { raceById, DEFAULT_RACE_ID } from '../../gameIso/rig/races';
+import { armesChoisissables, findSpeciesById, speciesSingular } from '../../data';
+import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
-
-/** Armes équipables proposées (une par forme/groupe — affichées par le rig). */
-const EDITOR_WEAPONS = ['Épée', 'Hache', 'Masse', 'Dague', 'Lance', 'Hallebarde', 'Bâton de combat', 'Arc', 'Arbalète', 'Pistolet', 'Fronde', 'Fouet'];
 
 /** Réglages de `ReglagesApparence` ; `variante` = « un autre visage » (graine + 1, reproductible). */
 export type ReglageApparence = 'species' | 'sex' | 'build' | 'hairstyle' | 'variante';
@@ -28,26 +29,51 @@ export type ReglagePart = 'monster' | 'eyes' | 'features' | 'tenue' | 'harnais' 
 
 const CASES_MONSTRE = [['cornes', 'Cornes'], ['queue', 'Queue'], ['ailes', 'Ailes']] as const;
 
+/** Libellé d'AFFICHAGE d'une espèce d'auteur, lu sur l'entrée de son registre ; l'id nu hors registre. */
+function libelleDEspece(id: string): string {
+  return speciesSingular(findSpeciesById(id)?.label) || defById(id)?.label || libelleDeFormeDeNuee(id) || id;
+}
+
+/** Groupes d'espèces PROPOSÉS (`domaineDEspeces`) : une Nuée ne se dessine que par une forme de nuée,
+ *  toute autre entité jamais par une forme de nuée (`resolveRender`, `gameIso/rig/bodyPlan.ts`). */
+function groupesDEspece(nuee: boolean): { libelle: string; ids: string[] }[] {
+  const domaine = domaineDEspeces();
+  const trie = (ids: readonly string[]) => [...ids].sort((a, b) => libelleDEspece(a).localeCompare(libelleDEspece(b), 'fr'));
+  return nuee
+    ? [{ libelle: 'Formes de nuée', ids: trie(domaine.nuees) }]
+    : [{ libelle: 'Espèces jouables', ids: trie(domaine.jouables) }, { libelle: 'Créatures', ids: trie(domaine.creatures) }];
+}
+
 /** Réglages d'apparence SANS titre de rubrique : l'hôte les range sous SON titre « Apparence ». */
 export function ReglagesApparence<T extends ApparenceEditee>({
   appearance,
   onChange,
   reglages,
+  nuee = false,
 }: {
   appearance: T;
   onChange: (next: T) => void;
   reglages: readonly ReglageApparence[];
+  /** L'entité porte le trait Nuée (l'hôte le sait) : seules les formes de nuée sont proposées. */
+  nuee?: boolean;
 }) {
   const poser = (patch: Partial<ApparenceEditee>) => onChange(apparenceSuivante(appearance, patch as Partial<T>));
   const { species, sex, build, hairstyle, seed } = appearance;
+  const groupes = groupesDEspece(nuee);
+  const horsDomaine = species != null && !groupes.some((g) => g.ids.includes(species));
   return (
     <>
       {reglages.includes('species') && (
         <label className="reglage-apparence">
           Espèce
           <select value={species ?? ''} onChange={(e) => poser({ species: e.target.value || undefined })}>
-            <option value="">(par défaut : Humain)</option>
-            {creatureSpeciesOptions().map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+            <option value="">{`— selon la réf. (à défaut : ${raceById(DEFAULT_RACE_ID).label}) —`}</option>
+            {horsDomaine && <option value={species}>{`${libelleDEspece(species)} (hors domaine)`}</option>}
+            {groupes.map((g) => (
+              <optgroup key={g.libelle} label={g.libelle}>
+                {g.ids.map((id) => <option key={id} value={id}>{libelleDEspece(id)}</option>)}
+              </optgroup>
+            ))}
           </select>
         </label>
       )}
@@ -154,8 +180,8 @@ export function MonsterPartsFields({
           Arme équipée
           <select value={weapon ?? ''} onChange={(e) => onWeapon(e.target.value || undefined)}>
             <option value="">— aucune —</option>
-            {EDITOR_WEAPONS.map((w) => (
-              <option key={w} value={w}>{w}</option>
+            {armesChoisissables().map((w) => (
+              <option key={w.id} value={w.id}>{w.label}</option>
             ))}
           </select>
         </label>

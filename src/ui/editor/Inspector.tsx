@@ -39,6 +39,7 @@ import { entityKindSchema, facadeFeatureKindSchema, roofProfileSchema, sceneWeat
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { isSwarm } from '../../engine/traits/dispatch';
 import { effectCtxOf } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
@@ -1383,6 +1384,7 @@ function EntityPanel({
                 appearance={ent.appearance ?? {}}
                 onChange={(appearance) => updateSel({ appearance })}
                 reglages={['species', 'sex', 'build', 'hairstyle', 'variante']}
+                nuee={isSwarm(findCreatureById(ent.ref)?.traits)}
               />
             </div>
             <label className="ed-field">

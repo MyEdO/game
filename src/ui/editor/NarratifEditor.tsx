@@ -4,6 +4,8 @@ import { Tabs, type TabItem } from '../Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { isSwarm } from '../../engine/traits/dispatch';
+import { mergeCreatureProfile } from '../../state/campaignData';
 import { creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
@@ -646,7 +648,8 @@ function PresetForm({ preset, onRename, onPatch, onRemove }: {
       </div>
       <div className="ed-field">
         <span>Apparence</span>
-        <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']} />
+        <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
+          nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
       </div>
       <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
       <label className="ed-field">
