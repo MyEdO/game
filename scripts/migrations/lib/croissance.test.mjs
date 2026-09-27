@@ -119,11 +119,23 @@ test('un mot NU n’exempte rien (« combat », « destin »… traînent dans t
   assert.equal(porteRef('LDB sans chapitre'), false);
 });
 
+test('un registre SANS abréviation ni topic n’exempte rien : aucun blanc suivi de chiffres', (t) => {
+  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'croissance-registre-vide-'));
+  t.after(() => efface(racine));
+  fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
+  fs.mkdirSync(path.join(racine, 'docs/raw'), { recursive: true });
+  fs.writeFileSync(path.join(racine, 'src/data/books.json'), JSON.stringify([{ label: 'sans sigle' }], null, 2), 'utf8');
+  const porteRefVide = reconnaisseurDeRef(racine);
+  assert.equal(porteRefVide('cardinal 20 ≠ 19 attendu'), false);
+  assert.equal(porteRefVide('docs/raw/combat'), false);
+  assert.equal(porteRefVide('combat#regles'), false);
+});
+
 // --- 3. L'exemption est évaluée LIGNE PAR LIGNE -------------------------------------------------
 
 test('refus DOUBLE dont une SEULE ligne porte une réf : l’autre est ROUGE, nommément', () => {
-  // Le voisinage n'exempte pas : `1659-sub-lengthm-plage` passait ainsi sa table nominative de
-  // sous-tirages grâce à la réf de la ligne CARDINAL d'à côté (mesuré, passe 3 du juge).
+  // Le voisinage n'exempte pas : la table nominative de sous-tirages de `1659-sub-lengthm-plage` ne
+  // s'exempte pas par la réf de la ligne CARDINAL d'à côté.
   const sortie = [
     'ARRÊT — 2 anomalie(s), AUCUNE écriture :',
     '  stars.json › [].sub : entrées du document ≠ entrées nommées',

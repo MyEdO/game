@@ -1,7 +1,7 @@
-// Sonde de la LOGIQUE de survie au rechargement du pipeline de capture (#1196, promue en test
-// committé sous #1211) : classification des erreurs CDP (`isNavigationError`) et politique de
-// rejeu (`withReloadRetry`). Tests PURS — aucun Chrome, aucun serveur, aucun process : la session
-// est un faux objet local. Lancé par `npm run test:recette`.
+// Sonde de la LOGIQUE de survie au rechargement du pipeline de capture (#1196, #1211) :
+// classification des erreurs CDP (`isNavigationError`) et politique de rejeu (`withReloadRetry`).
+// Tests PURS — aucun Chrome, aucun serveur, aucun process : la session est un faux objet local.
+// Lancé par `npm run test:recette`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { isAbsolute } from 'node:path'
@@ -29,6 +29,7 @@ import {
   withReloadRetry,
 } from './lib.mjs'
 import { ENTETE_RACINE } from '../port-dev.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { JSDOM } from 'jsdom'
 
 /** Session factice : `evaluate` (via `rpc`) répond « app prête » immédiatement, aucun réseau. */
@@ -62,7 +63,7 @@ for (const message of [
   })
 }
 
-test('classification : casse indifférente (les motifs CDP sont insensibles à la casse)', () => {
+test('classification : casse indifférente (les regex CDP sont insensibles à la casse)', () => {
   assert.equal(isNavigationError(err('INSPECTED TARGET NAVIGATED OR CLOSED')), true)
 })
 
@@ -174,15 +175,15 @@ test('withReloadRetry : le succès au 1er essai n\'appelle ni onRetry ni resettl
   assert.equal(touched, 0)
 })
 
-// ------------------------------------------------- arbre servi / arbre gelé (#1679 L1c)
+// ------------------------------------------------- arbre servi / arbre gelé (#1679)
 
 // Racines de sonde ASSEMBLÉES à l'exécution : ce fichier ne porte aucun chemin absolu littéral, il
 // reste donc soumis à `src/portable-paths-guard.test.ts` comme le reste de `scripts/**`.
 const RACINE_PARENTE = 'C' + ':/Users' + '/x/Foundry/Game'
 const RACINE_SONDE = RACINE_PARENTE + '/.wt-1679'
 const entete = (racine) => encodeURIComponent(racine.toLowerCase())
-/** Motif d'un chemin cité par le refus : les `/` y sont échappés comme dans le message rendu. */
-const motifChemin = (chemin) => chemin.toLowerCase().split('/').join('\\/')
+/** Regex d'un chemin cité par le refus, en minuscules comme dans le message rendu. */
+const regexDeChemin = (chemin) => echapperRegex(chemin.toLowerCase())
 
 test('arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)', () => {
   const refus = verdictArbreServi(undefined, RACINE_SONDE)
@@ -193,8 +194,8 @@ test('arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)', (
 test('arbre servi : racine servie ≠ cwd = refus NOMMANT les deux arbres', () => {
   const refus = verdictArbreServi(entete(RACINE_PARENTE), RACINE_SONDE)
   assert.match(refus, /Arbre SERVI ≠ arbre courant/)
-  assert.match(refus, new RegExp('sert « ' + motifChemin(RACINE_PARENTE) + ' »'))
-  assert.match(refus, new RegExp('tourne dans\\s+« ' + motifChemin(RACINE_SONDE).replace('.wt', '\\.wt') + ' »'))
+  assert.match(refus, new RegExp('sert « ' + regexDeChemin(RACINE_PARENTE) + ' »'))
+  assert.match(refus, new RegExp('tourne dans\\s+« ' + regexDeChemin(RACINE_SONDE) + ' »'))
 })
 
 test('arbre servi : MÊME arbre écrit autrement (casse, backslash, slash final) = accepté', () => {
@@ -283,7 +284,7 @@ test('withReloadRetry : arbre GELÉ — le rejeu garde son comportement', async 
   assert.equal(calls, 2)
 })
 
-// ------------------------------------------------- évaluation bornée (#1679 L1c)
+// ------------------------------------------------- évaluation bornée (#1679)
 
 test('evaluate : une expression qui ne rend jamais la main REJETTE au lieu de figer', async () => {
   const session = { rpc: () => new Promise(() => {}) } // jamais résolue : la page est bloquée
@@ -314,7 +315,7 @@ test('evaluate : sans plafond explicite, le défaut du kit est appliqué', async
   assert.equal(vus[0].timeout, DELAI_EVALUATE)
 })
 
-// ------------------------------------------------- état persistant (#1679 L1c)
+// ------------------------------------------------- état persistant (#1679)
 
 test('stockage : l\'instantané est relu depuis la page, les deux zones', async () => {
   const session = {

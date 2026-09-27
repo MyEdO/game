@@ -1,4 +1,4 @@
-// GARDE DE FORME du workflow d'extraction de fiches d'Atlas (#1825 lot E).
+// GARDE DE FORME du workflow d'extraction de fiches d'Atlas (#1825).
 //
 // L'invariant : le script ne NOMME aucun livre ni aucun DOMAINE — ni sigle, ni titre, ni dossier, ni
 // édition, ni cardinal de livres/chapitres —, ni dans son code, ni dans un PROMPT. Le périmètre
@@ -22,6 +22,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { REGISTRE_LIVRES } from './_lib.mjs'
 import { assemble } from './assemble-domain.mjs'
 import { lireRendu, perimetreDeCoeur } from './workflow-args.mjs'
@@ -103,7 +104,7 @@ const fonctionsDePrompt = [...SOURCE.matchAll(/function (\w+Prompt)\s*\([^)]*\)\
   .map((m) => ({ nom: m[1], amorce: m[2].slice(0, 20) }))
 
 /** Bordures UNICODE : `\w` laisserait passer « ZI, ÉAA, l'ACE. */
-const borde = (s) => new RegExp(`(?<![\\p{L}\\p{N}])${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u')
+const borde = (s) => new RegExp(`(?<![\\p{L}\\p{N}])${echapperRegex(s)}(?![\\p{L}\\p{N}])`, 'u')
 
 /** Toute identité du registre RÉEL : sigles, libellés, dossiers, cœurs, langues, TITRES de domaine. */
 const identitesReelles = () => [
@@ -221,13 +222,13 @@ test('workflow Atlas : un domaine SAUTÉ sort dans `sautes`, avec sa RAISON, pou
     ['Cartographie', { items: [] }, /inventaire VIDE/],
     ['Taxonomie', { topics: [] }, /taxonomie VIDE/],
   ]
-  for (const [phaseMuette, rendu, motif] of causes) {
+  for (const [phaseMuette, rendu, regex] of causes) {
     const { rendu: r } = await jouerWorkflow(SCRIPT, PERIMETRE(), (p, o) =>
       (o.phase === phaseMuette ? rendu : repondreAvec(false)(p, o)))
     assert.deepEqual(r.domains, [], `le domaine n'aurait pas dû être traité (${phaseMuette})`)
     assert.equal(r.sautes.length, 1, JSON.stringify(r.sautes))
     assert.equal(r.sautes[0].domain, LOT[0])
-    assert.match(r.sautes[0].raison, motif)
+    assert.match(r.sautes[0].raison, regex)
   }
   // Un run NOMINAL ne saute rien : la clé existe, et elle est vide.
   const { rendu: sain } = await jouerWorkflow(SCRIPT, PERIMETRE(), repondreAvec(false))
@@ -235,7 +236,7 @@ test('workflow Atlas : un domaine SAUTÉ sort dans `sautes`, avec sa RAISON, pou
 })
 
 // La consigne de TRANSCRIPTION ne va qu'aux phases qui ÉCRIVENT une table. La carto INVENTORIE :
-// lui demander de transcrire n'avait pas d'objet (elle ne rend que des `item`/`ref`/`gist`).
+// lui demander de transcrire n'aurait pas d'objet (elle ne rend que des `item`/`ref`/`gist`).
 test('workflow Atlas : la consigne de TRANSCRIPTION ne va qu’aux phases qui écrivent une table', async () => {
   const prompts = await promptsDesDeuxRuns()
   const TRANSCRIT = /TRANSCRIPTION DES TABLES : une table se transcrit ligne par ligne/
@@ -248,12 +249,12 @@ test('workflow Atlas : la consigne de TRANSCRIPTION ne va qu’aux phases qui é
 })
 
 // ── GRAMMAIRE DES RÉFS (#1873) ────────────────────────────────────────────────────────────────────
-// `<ABBR> <NN> l.<X>` désigne un FICHIER et sa LIGNE. Rien ne le DISAIT aux agents : dès qu'un livre
-// dépasse la centaine de chapitres, `<NN>` a trois chiffres et se lit comme un numéro de PAGE — un
-// agent de vérif est allé chercher « la page 24 » hors du dossier du livre, puis a rendu
-// `faithful:false` sur une fiche dont il reconnaissait le texte exact au mot. Faux négatif de
-// CLASSE : toute phase qui écrit ou lit une réf peut le commettre. La grammaire est donc dite UNE
-// fois, émise AVEC le mapping, et ce banc exige qu'elle atteigne CHAQUE prompt qui touche une réf.
+// `<ABBR> <NN> l.<X>` désigne un FICHIER et sa LIGNE. Dès qu'un livre dépasse la centaine de
+// chapitres, `<NN>` a trois chiffres et se lirait comme un numéro de PAGE : un agent de vérif qui
+// chercherait « la page 24 » hors du dossier du livre rendrait `faithful:false` sur une fiche dont
+// il reconnaît le texte exact au mot. Faux négatif de CLASSE : toute phase qui écrit ou lit une réf
+// peut le commettre. La grammaire est donc dite UNE fois, émise AVEC le mapping, et ce banc exige
+// qu'elle atteigne CHAQUE prompt qui touche une réf.
 const GRAMMAIRE = /GRAMMAIRE DES REFS — « <ABBR> <NN> l\.<X> »/
 /** Le MAPPING tel qu'un prompt l'émet (une ligne `- <ABBR> = <dossier> (langue : …)`). */
 const MAPPING = /^- [A-Z]{2,5} = \S.*\(langue : /m
@@ -294,14 +295,14 @@ test('workflow Atlas : la grammaire dite au juge de FIDÉLITÉ désigne un FICHI
   assert.match(verif, /le FICHIER \.md dont le nom commence par « <NN> - »/)
   assert.match(verif, /a sa LIGNE <X>/)
   assert.match(verif, /<NN> est ce PREFIXE DE NOM DE FICHIER/)
-  // L'exclusion est EXPLICITE : c'est elle qui a manqué, pas la définition.
+  // L'exclusion est EXPLICITE, en plus de la définition.
   assert.match(verif, /ce n est JAMAIS un numero de PAGE, ni du livre imprime, ni d un PDF/)
   assert.match(verif, /ni PDF, ni sortie brute d extracteur/)
 })
 
 // ── LECTURE SEULE (#1873) ────────────────────────────────────────────────────────────────
-// Un agent du run a EDITÉ un fichier de `Source/` pour compléter une phrase tronquée, puis la fiche a
-// CITÉ la ligne réparée comme preuve : l'extraction fabriquait sa propre source. Deux verrous, l'un
+// Un agent qui ÉDITERAIT un fichier de `Source/` pour compléter une phrase tronquée ferait CITER à la
+// fiche la ligne réparée comme preuve : l'extraction fabriquerait sa propre source. Deux verrous, l'un
 // hors du prompt (le TYPE d'agent, dont les outils n'écrivent pas), l'autre dedans (la clause). Ce
 // banc mesure les OPTIONS RÉELLEMENT ENVOYÉES par le script, pas son texte.
 
@@ -440,8 +441,8 @@ test('workflow Atlas : en REPRISE, une fidélité REFUSÉE ouvre la correction p
 })
 
 // Le verdict se keye sur l'ENTRÉE JUGÉE. Avec la clé de la RÉPONSE, un agent qui rebaptise son topic
-// inscrivait un fantôme : le topic réel restait `faithful:null`, et `assemble` refusait la fiche.
-test('workflow Atlas : un agent de vérif qui rend un AUTRE `topicId` ne keye plus de fantôme', async () => {
+// inscrirait un fantôme : le topic réel resterait `faithful:null`, et `assemble` refuserait la fiche.
+test('workflow Atlas : un agent de vérif qui rend un AUTRE `topicId` ne keye aucun fantôme', async () => {
   const { rendu } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(), () =>
     ({ topicId: 'un-id-que-personne-n-a-demande', faithful: true, issues: [] }))
   const topics = rendu.domains[0].topics
@@ -449,10 +450,10 @@ test('workflow Atlas : un agent de vérif qui rend un AUTRE `topicId` ne keye pl
   assert.equal(topics.find((t) => t.topicId === 'jamais-juge').faithful, true)
 })
 
-// UNE RE-VÉRIF MUETTE NE DÉTRUIT PLUS UN VERDICT. Un topic entré `faithful:false` avec ses `issues`
-// en ressortait `faithful:null` sans issue dès que l'agent ne rendait rien : le verdict établi était
-// effacé, et plus rien ne disait comment corriger. Ce que personne n'a jugé reste `null` ; ce qu'un
-// juge a refusé reste refusé, avec ses points.
+// UNE RE-VÉRIF MUETTE NE DÉTRUIT PAS UN VERDICT : un topic entré `faithful:false` avec ses `issues`
+// ne ressort pas `faithful:null` sans issue quand l'agent ne rend rien — le verdict établi, et ce qui
+// dit comment corriger, restent. Ce que personne n'a jugé reste `null` ; ce qu'un juge a refusé reste
+// refusé, avec ses points.
 test('workflow Atlas : en REPRISE, un agent MUET laisse le verdict antérieur INTACT', async () => {
   const rendu = RENDU_A_REPRENDRE()
   rendu.topics.push({ topicId: 'juge-refuse', title: 'Juge Refuse', markdown: '## Juge Refuse\n\nUn corps.', refs: ['BKA 05 l.3'], codeHint: '', faithful: false, issues: ['une valeur fausse'] })
@@ -474,14 +475,14 @@ test('workflow Atlas : un `args.reprise` mal formé LÈVE en nommant la cause', 
     [{ ...PERIMETRE(), reprise: { domain: LOT[0] } }, /`args\.reprise\.topics` absent ou vide/],
     [{ ...PERIMETRE(), lot: ['domaine-deux'], reprise: RENDU_A_REPRENDRE() }, /une reprise ne joue QUE le domaine de son rendu/],
   ]
-  for (const [argsDuRun, motif] of cas) {
-    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), motif, JSON.stringify(argsDuRun.reprise))
+  for (const [argsDuRun, regex] of cas) {
+    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), regex, JSON.stringify(argsDuRun.reprise))
   }
 })
 
-// BOUT EN BOUT — c'est le chemin qu'on emprunte quand un agent de vérification est resté muet :
-// run → fichier → `--reprise` → workflow → fichier → `assemble`. Chaque maillon était testé seul ;
-// aucun ne prouvait que le rendu de l'un ENTRE dans le suivant sans retaille à la main.
+// BOUT EN BOUT — c'est le chemin qu'on emprunte quand un agent de vérification est resté muet : run
+// → fichier → `--reprise` → workflow → fichier → `assemble`. Ce test prouve que le rendu de chaque
+// maillon ENTRE dans le suivant sans retaille à la main, ce qu'un test par maillon ne prouve pas.
 test('reprise de BOUT EN BOUT : rendu du run → lireRendu → workflow → assemble (Atlas jetable)', async () => {
   const dossier = mkdtempSync(join(tmpdir(), 'atlas-bout-en-bout-'))
   try {
@@ -533,7 +534,7 @@ test('workflow Atlas : un `args` absent ou mal formé LÈVE en nommant la cause'
     [{ coeur: 'alpha', livres, domaines }, /`args\.lot` absent ou vide/],
     [{ coeur: 'alpha', livres, domaines, lot: ['domaine-jamais-declare'] }, /« domaine-jamais-declare » du lot inconnu/],
   ]
-  for (const [argsDuRun, motif] of cas) {
-    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), motif, `args = ${JSON.stringify(argsDuRun)}`)
+  for (const [argsDuRun, regex] of cas) {
+    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), regex, `args = ${JSON.stringify(argsDuRun)}`)
   }
 })

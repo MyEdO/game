@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer';
 
+import { echapperRegex } from '../../src/lib/regex.ts';
+
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const replacements = [
@@ -35,8 +37,7 @@ export function readFrontmatter(text, sourcePath = '<memory>') {
 
 export function readTomlStringField(text, field, sourcePath = '<memory>') {
   const value = text.replace(/\r\n?/g, '\n');
-  const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const assignment = new RegExp(`^${escaped}\\s*=\\s*`, 'm').exec(value);
+  const assignment = new RegExp(`^${echapperRegex(field)}\\s*=\\s*`, 'm').exec(value);
   if (!assignment) throw new Error(`${sourcePath}: champ TOML absent: ${field}`);
   const start = assignment.index + assignment[0].length;
   for (const quote of ['"""', "'''"]) {

@@ -24,7 +24,7 @@
 // fichier au même titre normalisé (un titre et l'intitulé de sa table) sont UNE cible : la première,
 // l'englobante. Un titre à parenthèse finale (`Fear (Rating)`) se compare aussi sans elle. Un titre
 // trouvé DANS l'étendue d'un autre titre trouvé n'est pas nommé (« Fate » dans « Fate and Fortune »).
-// Design : #1393, lot 1 (2026-09-25).
+// Design : #1393.
 import {
   empreinteDe,
   graphieDuFichier,
@@ -37,9 +37,10 @@ import {
   type TableDeSection,
 } from './decoupe.ts';
 import type { SourceRef } from '../schemas/grammaire/valeurs.ts';
+import { alternationDe, espacesExtensibles } from '../../lib/regex.ts';
 
 /** Formes d'un renvoi dans une LANGUE : mesurées sur le corpus, jamais écrites par livre. */
-export interface MotifsDeRenvoi {
+export interface LexiqueDeRenvoi {
   /** Le mot « page », singulier et pluriel. */
   mots: string[];
   /** Ce qui peut précéder le mot dans le renvoi (inclus dans son étendue). */
@@ -61,13 +62,13 @@ export interface MotifsDeRenvoi {
 }
 
 /**
- * Motifs par LANGUE (`books.json#language`). VO : comptage du CRB, mesure du 2026-09-25 sur 451 renvois —
+ * Lexique par LANGUE (`books.json#language`). VO : comptage du CRB, mesure du 2026-09-25 sur 451 renvois —
  * introducteurs `(see` 143, `(` 129, `see` 85, `on` 26, `found on` 7, `listed on`, `described on`,
  * `explained on`, `presented on` 1 chacun ; plages `–` 8, `-` 1, `and` 3, `to` 1 ; listes `, ` 1
  * (`081 - Consumer Guide.md:13`), `, and ` 1 (`016 - 5. Talents, Trappings, and Final Game Details.md:45`) ;
  * « table of X » : 2 occurrences au CRB le 2026-09-26, dont 1 renvoi (`047 - Character Events.md:53`).
  */
-export const MOTIFS_DE_RENVOI: Readonly<Partial<Record<string, MotifsDeRenvoi>>> = {
+export const LEXIQUE_DE_RENVOI: Readonly<Partial<Record<string, LexiqueDeRenvoi>>> = {
   VO: {
     mots: ['page', 'pages'],
     introducteurs: ['see', 'on', 'found on', 'listed on', 'described on', 'explained on', 'presented on'],
@@ -81,10 +82,10 @@ export const MOTIFS_DE_RENVOI: Readonly<Partial<Record<string, MotifsDeRenvoi>>>
   },
 };
 
-/** Motifs d'une langue ; une langue sans motifs est une ERREUR, jamais un livre muet. */
-function motifsDe(langue: string): MotifsDeRenvoi {
-  const m = MOTIFS_DE_RENVOI[langue];
-  if (!m) throw new Error(`renvoi : aucun motif de renvoi pour la langue « ${langue} »`);
+/** Lexique d'une langue ; une langue sans lexique est une ERREUR, jamais un livre muet. */
+function lexiqueDe(langue: string): LexiqueDeRenvoi {
+  const m = LEXIQUE_DE_RENVOI[langue];
+  if (!m) throw new Error(`renvoi : aucun lexique de renvoi pour la langue « ${langue} »`);
   return m;
 }
 
@@ -100,21 +101,17 @@ export interface Renvoi {
   phrase: string;
 }
 
-const echapper = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const alternative = (xs: string[]): string =>
-  [...xs].sort((a, b) => b.length - a.length).map((x) => echapper(x).replace(/ /g, '\\s+')).join('|');
-
-const motifRenvoi = (m: MotifsDeRenvoi): RegExp =>
+const regexDeRenvoi = (m: LexiqueDeRenvoi): RegExp =>
   new RegExp(
-    `\\(?(?:(?:${alternative(m.introducteurs)})\\s+)?\\b(?:${alternative(m.mots)})\\s+(\\d+)` +
-      `(?:\\s*(?:${alternative(m.tirets)})\\s*(\\d+)|\\s+(?:${alternative(m.liaisons)})\\s+(\\d+))?` +
+    `\\(?(?:(?:${alternationDe(m.introducteurs, { parChaine: espacesExtensibles })})\\s+)?\\b(?:${alternationDe(m.mots, { parChaine: espacesExtensibles })})\\s+(\\d+)` +
+      `(?:\\s*(?:${alternationDe(m.tirets, { parChaine: espacesExtensibles })})\\s*(\\d+)|\\s+(?:${alternationDe(m.liaisons, { parChaine: espacesExtensibles })})\\s+(\\d+))?` +
       `((?:${elementDeListe(m)})*)\\)?`,
     'giu',
   );
 
 /** Un élément de liste de pages après le premier : séparateur, liaison facultative, nombre. */
-const elementDeListe = (m: MotifsDeRenvoi): string =>
-  `\\s*(?:${alternative(m.separateursDeListe)})\\s*(?:(?:${alternative(m.liaisonsDeListe)})\\s+)?\\d+`;
+const elementDeListe = (m: LexiqueDeRenvoi): string =>
+  `\\s*(?:${alternationDe(m.separateursDeListe, { parChaine: espacesExtensibles })})\\s*(?:(?:${alternationDe(m.liaisonsDeListe, { parChaine: espacesExtensibles })})\\s+)?\\d+`;
 
 /** Début de la phrase qui contient la position `at` (ligne ou `. `). */
 function debutDePhrase(texte: string, at: number): number {
@@ -131,7 +128,7 @@ function finDePhrase(texte: string, depuis: number): number {
 export function renvoisDe(texte: string, langue: string): Renvoi[] {
   const out: Renvoi[] = [];
   let finPrecedent = 0;
-  for (const m of texte.matchAll(motifRenvoi(motifsDe(langue)))) {
+  for (const m of texte.matchAll(regexDeRenvoi(lexiqueDe(langue)))) {
     const at = m.index;
     const bout = at + m[0].length;
     const phrase = debutDePhrase(texte, at);
@@ -286,12 +283,12 @@ function adresseDe(livre: LivreIndexe, { s, t }: Cible): DescRef {
 
 /** Résout un renvoi dans un livre indexé. */
 export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
-  const motifs = motifsDe(livre.langue);
+  const lexique = lexiqueDe(livre.langue);
   const base = { page: { book: livre.book, page: renvoi.folio }, fin: renvoi.fin, table: null as string | null };
   const toutes = livre.parFolio.get(renvoi.folio) ?? [];
   if (!toutes.length) return { ...base, niveau: 'introuvable', cible: null, candidats: [] };
   const secs = unParTitre(toutes);
-  const sg = (k: string): string => singulier(k, motifs.pluriel);
+  const sg = (k: string): string => singulier(k, lexique.pluriel);
   const rendre = (niveau: Niveau, sections: SectionAuFolio[], table: string | null = null): Resolution =>
     rendreCibles(niveau, sections.map((s) => ({ s })), table);
   const rendreCibles = (niveau: Niveau, elues: Cible[], table: string | null): Resolution =>
@@ -300,10 +297,10 @@ export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
       : { ...base, table, niveau: 'ambigu', cible: null, candidats: elues.map(nommer) };
 
   const clause = ` ${cle(renvoi.clause)} `;
-  const motTable = `(?:${alternative(motifs.tables)})`;
+  const motTable = `(?:${alternationDe(lexique.tables, { parChaine: espacesExtensibles })})`;
   const nommee =
     new RegExp(` ([\\p{L}\\p{N} ]{2,60}?) ${motTable} $`, 'u').exec(clause) ??
-    new RegExp(` ${motTable} (?:${alternative(motifs.liaisonsDeTable)}) ([\\p{L}\\p{N} ]{2,60}?) $`, 'u').exec(clause) ??
+    new RegExp(` ${motTable} (?:${alternationDe(lexique.liaisonsDeTable, { parChaine: espacesExtensibles })}) ([\\p{L}\\p{N} ]{2,60}?) $`, 'u').exec(clause) ??
     new RegExp(` ([\\p{L}\\p{N} ]{2,60}?) ${motTable} (?:[\\p{L}\\p{N}]+ ){0,3}$`, 'u').exec(clause);
   if (nommee) {
     const x = ` ${sg(nommee[1].trim())} `;

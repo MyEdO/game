@@ -3,8 +3,8 @@
 // MESURÉ sur le YAML.
 //   node --test scripts/gates/workflowsDuDepot.test.mjs   (joué par `npm run test:hooks`)
 //
-// Le cas : un rouge d'un workflow hors `ci.yml` n'était vu par aucune porte ni nommé par aucun canal
-// (`export-issues.yml` rouge chaque mardi du 2026-09-08 au 2026-09-15, #1713).
+// Le cas : un rouge d'un workflow hors `ci.yml` qu'aucune porte ne voit ni aucun canal ne nomme
+// (#1713).
 // Les mutations se jouent sur un dépôt JETABLE (`mkdtempSync` + `cpSync` sous os.tmpdir()) : l'arbre
 // du dépôt n'est jamais écrit.
 import { test } from 'node:test'
@@ -13,6 +13,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { stepsCi } from './gatesDeCi.mjs'
 import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, corpsRun, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
@@ -55,8 +56,8 @@ test('chaque raison déclarée NOMME son fait (elle n’est jamais vide)', () =>
 })
 
 test('un `if` qui N’EXIGE PAS le rouge ne vaut pas autosignale (!failure(), success() && !cancelled())', () => {
-  // Les trois faux-verts du juge de diff (2026-09-16) : la condition doit faire jouer le step SUR
-  // rouge, et le chemin doit s’EXÉCUTER — sans quoi la garde crédite un workflow muet.
+  // La condition doit faire jouer le step SUR rouge, et le chemin doit s’EXÉCUTER — sans quoi la
+  // garde crédite un workflow muet.
   const nie = mesurerEtat('banc.yml', workflowAvec('!failure()', `node ${SIGNALEUR} --verdict rouge`))
   assert.equal(nie.autosignale, false, `(A) !failure() — ${nie.motifs.join(' ; ')}`)
   const vert = mesurerEtat('banc.yml', workflowAvec('success() && !cancelled()', `node ${SIGNALEUR} --verdict rouge`))
@@ -101,7 +102,7 @@ test('MORSURE : un `gh issue create` inséré dans un workflow est vu comme une 
 })
 
 test('le LECTEUR de `ci.yml` (`gatesDeCi`) lit bien le fichier que PORTE nomme', () => {
-  // Confrontation, pas recopie : `gatesDeCi.mjs:54` garde son littéral (le registre n’est importé par
+  // Confrontation, pas recopie : `gatesDeCi.mjs:56` garde son littéral (le registre n’est importé par
   // aucune gate) — c’est ce test qui refuse la dérive entre les deux.
   const racine = mkdtempSync(join(tmpdir(), 'porte-de-gatesDeCi-'))
   try {
@@ -132,7 +133,7 @@ test('un workflow déclaré « autosignale » dont le step signaleur part fait r
     const constats = verdict({ cwd: racine })
     assert.equal(constats.length, 1, constats.join('\n'))
     assert.match(constats[0], /deps-report\.yml est déclaré « autosignale » mais le YAML ne le mesure PAS/)
-    assert.match(constats[0], new RegExp(`aucun step n’EXÉCUTE ${SIGNALEUR.replace(/[./]/g, '\\$&')}`))
+    assert.match(constats[0], new RegExp(`aucun step n’EXÉCUTE ${echapperRegex(SIGNALEUR)}`))
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

@@ -1,5 +1,5 @@
 /**
- * BANDES de la NUIT (#1117 L3) — les jets de nuit ne défilent plus un par un : ils font UNE fenêtre
+ * BANDES de la NUIT (#1117) — les jets de nuit font UNE fenêtre
  * par entrée de RÈGLE et par JOUR (`state/nightBands`), une RANGÉE par héros appelé.
  *
  * Ce que ce fichier verrouille :
@@ -33,6 +33,7 @@ import type { Combatant, Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep, type BuiltCascadeStep } from './rollSeam';
 import { nightStakeRef } from '../data';
+import { alternationDe } from '../lib/regex';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -44,7 +45,7 @@ function h(id: string, over: Partial<Combatant> = {}): Combatant {
   return c;
 }
 
-/** Étape MONO de nuit MINTÉE : la fabrique accepte seulement des produits de la porte (#1262 V2). La
+/** Étape MONO de nuit MINTÉE : la fabrique accepte seulement des produits de la porte (#1262). La
  *  ligne est posée telle quelle (`montee`) — chaque cas fixe ses propres valeurs de jet. */
 function nuit(spec: {
   id: string; kind: string; hero?: string; label?: string; rollLabel?: string;
@@ -87,7 +88,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
     expect(bandes.every((b) => b.participants!.length === 1)).toBe(true);
   });
 
-  /** SONDE du juge de design : aucune fenêtre ne peut contenir deux rangées de même porteur — une
+  /** INVARIANT : aucune fenêtre ne peut contenir deux rangées de même porteur — une
    *  seconde serait INJOIGNABLE (les verbes de rangée s'adressent à `part.id`). */
   it('INVARIANT : aucune bande de nuit ne contient deux rangées de même id', () => {
     set({ party: [h('h1', { drunk: { failedTests: 2, drunk: true } }), h('h2', { drunk: { failedTests: 1, drunk: true } })] } as never);
@@ -132,7 +133,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
 
   /** Les deux discriminants vivent dans des ESPACES DE NOMS SÉPARÉS : une étape SANS jour (la file de
    *  fin de combat en porte) prend le RANG nu, une étape avec jour prend `j<jour>` — un rang `2` et un
-   *  jour `2` ne peuvent plus se confondre. */
+   *  jour `2` ne peuvent pas se confondre. */
   it('rang (sans jour) et jour ne partagent pas le même espace de noms (#1277)', () => {
     const out = nightBands([conv('conv'), conv('conv'), conv('conv', 2)]);
     expect(out).toHaveLength(3);
@@ -182,10 +183,10 @@ describe('une bande, N rangées', () => {
 });
 
 /**
- * POSSESSION des bandes de nuit (#1268, fermé par #1262 V1 lot 5c) — la fabrique passe par le
- * constructeur du socle (`rollSeam.bandStep`). Sans possession, l'arbitre (`modalArbiter`, entrée
- * `cascade`) rendait `undefined` : la fenêtre échoyait à l'HÔTE SEUL, et le siège qui tient le
- * dormeur ne voyait jamais la rangée où se joue son jet de nuit.
+ * POSSESSION des bandes de nuit (#1268, #1262) — la fabrique passe par le constructeur du socle
+ * (`rollSeam.bandStep`). Sans possession, l'arbitre (`modalArbiter`, entrée `cascade`) rend
+ * `undefined` : la fenêtre échoit à l'HÔTE SEUL, et le siège qui tient le dormeur ne voit jamais la
+ * rangée où se joue son jet de nuit.
  */
 describe('POSSESSION d’une bande de nuit (#1268)', () => {
   const affame = (id: string) => h(id, { hunger: { days: 1, tests: 0, failures: 0 } });
@@ -208,7 +209,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
     expect(faim.actorId, 'une bande d’un seul porteur EST son porteur').toBe('h1');
     expect(faim.groupOwner).toBeUndefined();
 
-    // Deux sièges : le siège 1 possède le dormeur — l'hôte ne doit plus être le destinataire par défaut.
+    // Deux sièges : le siège 1 possède le dormeur — l'hôte n'est pas le destinataire par défaut.
     set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1'), 'la fenêtre est au siège qui tient le dormeur').toBe(true);
@@ -216,11 +217,10 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
   });
 
   /**
-   * MURAGE (#1262 B4) : `splitBandRows` ne RECOPIE plus la bande d'origine — chaque moitié repasse par
+   * MURAGE (#1262) : `splitBandRows` ne RECOPIE pas la bande d'origine — chaque moitié repasse par
    * le constructeur du socle (`bandStep`) depuis la déclaration relue. La possession se re-DÉRIVE donc
    * de SES rangées : une moitié à un seul porteur le NOMME (`actorId`), au lieu de garder le
    * `groupOwner` (owner `'*'`, n'importe quel siège) de la bande multi-porteurs dont elle sort.
-   * L'inverse exact de la sonde-résidu du lot 5c, comme annoncé à son commentaire.
    */
   it('une moitié de `splitBandRows` à UNE rangée NOMME son porteur (possession re-dérivée)', () => {
     set({ party: [affame('h1'), affame('h2')] } as never);
@@ -237,7 +237,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
     expect(others!.actorId).toBe('h2');
     expect(others!.groupOwner).toBeUndefined();
 
-    // La fenêtre part au siège qui tient le dormeur, plus à l'hôte (assertion COOP, #1262 B7).
+    // La fenêtre part au siège qui tient le dormeur, pas à l'hôte (assertion COOP, #1262).
     set({ pendingCascade: { title: 'T', purpose: 'test', cursor: 0, log: [], participants: [kept!] } } as never);
     set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
@@ -302,8 +302,8 @@ describe('une bande par MALADIE', () => {
 /**
  * Le `kind` 'exposure' a TROIS producteurs (nuit de repos, effet de scène `exposureNight`, entretien
  * de mer) et UN SEUL applier — d'escalade cumulative (LDB 18 l.330/334). Si l'un d'eux restait MONO,
- * l'applier de bande RENONCERAIT sur ses étapes : jets lancés, aucune conséquence, en silence (le
- * sinistre du migrateur psy). Garde STRUCTURELLE : tout FICHIER qui construit une étape d'Exposition
+ * l'applier de bande RENONCERAIT sur ses étapes : jets lancés, aucune conséquence, en silence.
+ * Garde STRUCTURELLE : tout FICHIER qui construit une étape d'Exposition
  * mentionne la fabrique de vagues.
  * PORTÉE MESURÉE — le détecteur est à granularité FICHIER, pas SITE : il ne voit que les littéraux
  * `kind:` de l'INDEX des kinds d'Exposition (`EXPOSURE_BAND_KINDS`, jamais un nom recopié) et la simple
@@ -313,7 +313,7 @@ describe('une bande par MALADIE', () => {
  */
 describe('les TROIS producteurs d’Exposition passent par la MÊME fabrique de vagues', () => {
   it('aucun site ne construit d’étape d’Exposition sans `exposureWaveBand`', () => {
-    const rxExposition = new RegExp(`kind: '(?:${EXPOSURE_BAND_KINDS.join('|')})'`);
+    const rxExposition = new RegExp(`kind: '(?:${alternationDe(EXPOSURE_BAND_KINDS)})'`);
     const producteurs = readCorpus(['src']).filter((f) => rxExposition.test(f.text));
     expect(producteurs.map((f) => f.rel), 'le stock de producteurs a bougé — vérifier que le nouveau passe par la fabrique')
       .toEqual(['src/state/combatEffects.ts', 'src/state/restFlow.ts', 'src/state/seaVoyageFlow.ts']);
@@ -366,10 +366,10 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     expect(get().party.find((c) => c.id === 'manuel')!.hunger!.tests).toBe(0);
   });
 
-  /** SONDE A — FAIL-OPEN : une étape que la fabrique REFUSE de bander (kind hors vocabulaire de nuit)
+  /** FAIL-OPEN : une étape que la fabrique REFUSE de bander (kind hors vocabulaire de nuit)
    *  ne doit pas se dissoudre dans la scission de rangées. `splitBandRows` rendrait `{}` sur elle : la
    *  file étant VIDÉE dans le même geste, l'étape — et sa conséquence — disparaîtraient en silence. */
-  it('SONDE A : une étape NON bandable de la file survit (chemin d’origine), jamais dissoute par la scission', () => {
+  it('une étape NON bandable de la file survit (chemin d’origine), jamais dissoute par la scission', () => {
     const manuel = h('manuel');
     const ennemi = { id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: { current: 0, max: 10 }, dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 } as unknown as Combatant;
@@ -393,12 +393,12 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
 });
 
 /**
- * SONDE B — les ids de BANDE doivent rester uniques dans une séquence : deux insertions issues du
+ * Les ids de BANDE doivent rester uniques dans une séquence : deux insertions issues du
  * MÊME `step.id` (la gueule de bois `dessoulageHangover-<héros>` de deux Dessoûlages) proviennent de
  * DEUX appels distincts à la fabrique, qui ne peut donc pas les dédoublonner entre elles — c'est le
  * DISCRIMINANT de clé porté par l'id (le jour, sinon le rang) qui les sépare.
  */
-describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
+describe('ids de bande UNIQUES dans la séquence', () => {
   it('deux jours de Dessoûlage → deux bandes de gueule de bois aux ids DISTINCTS', () => {
     set({ party: [h('h1', { drunk: { failedTests: 3, drunk: true } })] } as never);
     get().advanceTime(2 * MINUTES_PER_DAY);
@@ -426,12 +426,12 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
 });
 
 /**
- * SONDE D — Exposition BOUT EN BOUT sur le store (le cycle que ni l'unité ni le chemin de repos ne
+ * Exposition BOUT EN BOUT sur le store (le cycle que ni l'unité ni le chemin de repos ne
  * jouent en entier) : bande de vague 0 à DEUX rangées → une seule offre un délestage (LDB 18 l.332,
  * seul h1 porte une Possession lourde) → « jeter » ANNULE l'échec de h1 et déclenche la construction
  * de la vague 1 → l'escalade y vaut 0 pour h1 (annulé) et 1 pour h2.
  */
-describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRowId → vague N+1', () => {
+describe('Exposition (chaleur) de bout en bout : drop → cancelsRowId → vague N+1', () => {
   it('la vague 1 porte priorFails { h1: 0, h2: 1 } — l’échec annulé ne compte que pour son porteur', () => {
     const heavy = { uid: 'sac', trappingId: 'grand-sac', label: 'Grand sac à dos', kind: 'misc', qualities: [], equipped: true, enc: 3 } as never;
     const h1 = h('h1'); h1.items = [heavy];

@@ -1,17 +1,17 @@
 /**
- * Migration #1466 T3-b — effet `giveTrapping`, DEUX volets de la MÊME classe (une donnée d'authoring
+ * Migration #1466 — effet `giveTrapping`, DEUX volets de la MÊME classe (une donnée d'authoring
  * porte un **LIBELLÉ** d'affichage là où le lecteur attend un **id STABLE** de catalogue) :
  *   1. champ `trapping` → champ `trappingId` (catalogue `src/data/trappings.json`) ;
  *   2. éléments de `qualities: [...]` → ids de qualité (catalogue `src/data/qualities.json`).
  *
- * MOTIF MESURÉ : `giveTrappingSchema` (`src/data/schemas/defs-scenes/effets.ts:121`) est un
+ * MOTIF MESURÉ : `giveTrappingSchema` (`src/data/schemas/defs-scenes/effets.ts:135`) est un
  * `z.strictObject` dont les seuls canaux d'objet sont `trappingId` et `custom` ; AUCUN lecteur du
- * dépôt ne lit `.trapping` (`applyOps` case `giveTrapping`, `src/engine/ops.ts:1910` ;
- * `giveTrappingLabel`/`gearFromEffects`, `src/state/combatEffects.ts:147,176` ;
- * `createCombatSlice`, `src/state/combatSlice.ts:2245`). Les nœuds à `trapping` ne donnent donc
- * RIEN au runtime : demi-migration `7b4e7bbd4` restée en donnée, bug des 18 dons muets.
+ * dépôt ne lit `.trapping` (`applyOps` case `giveTrapping`, `src/engine/ops.ts:2451` ;
+ * `giveTrappingLabel`, `src/engine/items.ts:351` ; `gearFromEffects`,
+ * `src/state/combatEffects.ts:228` ; `createCombatSlice`, `src/state/combatSlice.ts:2341`). Les
+ * nœuds à `trapping` ne donnent donc RIEN au runtime.
  *
- * MOTIF MESURÉ (volet 2) : `withGiveQualities` (`src/engine/items.ts:313`) fait
+ * MOTIF MESURÉ (volet 2) : `withGiveQualities` (`src/engine/items.ts:338`) fait
  * `give.qualities.map((id) => ({ id }))` — l'élément est posé TEL QUEL comme `QualityRef.id` sur
  * l'`ItemInstance`. Un élément en libellé produit un `{ id: 'Magique' }` absent du registre des
  * qualités : aucune mécanique ne s'applique, aucune erreur n'est levée.
@@ -37,6 +37,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { echapperRegex } from '../../src/lib/regex.ts';
+
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
 const rel = (full) => path.relative(ROOT, full).replace(/\\/g, '/');
@@ -46,7 +48,7 @@ const norm = (s) =>
     .toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
 
 // ── Catalogue ────────────────────────────────────────────────────────────────────────────────────
-// `src/data/trappings.json` EST le catalogue : `src/data/index.ts:2269` l'expose tel quel
+// `src/data/trappings.json` EST le catalogue : `src/data/index.ts:2448` l'expose tel quel
 // (`export const trappings = trappingsJson as TrappingData[]`), sans transformation.
 const catalogue = JSON.parse(fs.readFileSync(abs('src/data/trappings.json'), 'utf8'));
 const parLabel = new Map();
@@ -56,7 +58,7 @@ for (const t of catalogue) {
   parLabel.set(k, [...(parLabel.get(k) ?? []), t.id]);
 }
 
-// `src/data/qualities.json` EST le registre des qualités : `src/data/index.ts:2227` l'expose tel
+// `src/data/qualities.json` EST le registre des qualités : `src/data/index.ts:2394` l'expose tel
 // quel (`export const qualities = qualitiesJson as QualityData[]`), sans transformation.
 const registreQualites = JSON.parse(fs.readFileSync(abs('src/data/qualities.json'), 'utf8'));
 const qualiteParLabel = new Map();
@@ -121,7 +123,7 @@ function migrateJson(full) {
     const id = resolve(label, `${rel(full)} ${chemin}`);
     if (id === null) continue;
     const jsonLabel = JSON.stringify(label);
-    const ancre = new RegExp(`"trapping"(\\s*:\\s*)${jsonLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+    const ancre = new RegExp(`"trapping"(\\s*:\\s*)${echapperRegex(jsonLabel)}`);
     if (!ancre.test(out)) {
       echecs.push({ label, where: `${rel(full)} ${chemin}`, motif: 'ancre textuelle introuvable' });
       continue;

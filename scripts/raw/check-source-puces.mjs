@@ -34,6 +34,7 @@ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet, ecrireStockSousLot, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
 import { parCleDeSite, readStock, texteDeStock } from './stockNominatif.mjs'
 import { normText } from '../../src/data/source/decoupe.ts'
+import { alternationDe } from '../../src/lib/regex.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-puces-stock.json')
 
@@ -48,7 +49,7 @@ const OUVERTURE = 60
 // rangée de table, un titre ou une citation ne sont pas des glyphes imprimés sur la page, et un
 // `|` répété d'une rangée à l'autre nommerait toutes les tables du corpus.
 const STRUCTURE = '-*+>|#='
-const ITEM = new RegExp(`^[ \\t]*(?:- )?([^\\s${STRUCTURE.replace(/[-*+|]/g, '\\$&')}]) (\\S.*)$`)
+const ITEM = new RegExp(`^[ \\t]*(?:- )?((?!${alternationDe([...STRUCTURE])})\\S) (\\S.*)$`)
 // Le jeton est HORS DE LA PHRASE : ce qui le suit OUVRE un item (majuscule, chiffre, ou habillage
 // Markdown d'un intitulé). Sans cette borne, toute prose anglaise ouvrant deux paragraphes par
 // « A … » se lirait comme un item à jeton `A`, et aucune de ces suites n'est un glyphe.

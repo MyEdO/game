@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { REF_PROTEGEE, jugerPush, refsAPousser, verdictDuSha } from './pre-push.mjs'
 import { reinitialiserStub } from '../guards/lib/coursesCi.mjs'
@@ -243,7 +244,7 @@ test('un origin ÉTRANGER est refusé, et le refus le cite', () => {
   }
 })
 
-// ── Stocks nominatifs de la PLAGE (revue de palier n°2) ────────────────────────────────────────
+// ── Stocks nominatifs de la PLAGE ────────────────────────────────────────────────────────────────
 
 /** Un PORTEUR de stock nominatif (`scripts/guards/lib/**.mjs`), tel que `stocksNominatifs` le lit. */
 const PORTEUR_DE_STOCK = 'scripts/guards/lib/exemptions.mjs'
@@ -269,7 +270,7 @@ test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est
     // La porte vaut pour TOUTE ref : un stock qui grandit en silence n'est pas moins faux sur une
     // branche de travail, et la CI de cette branche ne le mesure pas commit par commit.
     assert.ok(refus.length, 'un stock qui grandit en silence dans la plage doit refuser, branche comprise')
-    assert.match(refus.join('\n'), new RegExp(PORTEUR_DE_STOCK.replace(/[/.]/g, '\\$&')))
+    assert.match(refus.join('\n'), new RegExp(echapperRegex(PORTEUR_DE_STOCK)))
   } finally {
     jeter(racine)
   }

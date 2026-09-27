@@ -46,6 +46,7 @@ import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
 import { cle, enTete, sondeDuLivre } from './sonde-titres.mjs'
 import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
+import { echapperRegex } from '../../src/lib/regex.ts'
 
 const FORMES = new Set(['S', 'F', 'M', 'B', 'glyphe-fuite', "S'", 'O', 'doublon', 'L', 'legende-absente'])
 const LIGNE_DE_TABLE = /^\s*\|/
@@ -163,7 +164,6 @@ export function reparerLivre(textes, sites) {
     s.texte = neuf
     return appliques.push(`${site.forme} ${site.site} « ${site.titre} »`)
   }
-  const echappe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const appels = new Map()
   for (const site of sites.filter((x) => x.forme === 'A')) appels.set(site.site, [...(appels.get(site.site) ?? []), site])
   for (const groupe of appels.values()) {
@@ -174,7 +174,7 @@ export function reparerLivre(textes, sites) {
     })
   }
   for (const site of sites.filter((x) => x.forme === 'T')) {
-    const re = new RegExp(`(^|[^\\p{L}*])(\\**${echappe(site.avant)}) (${echappe(site.apres)})(?!\\p{L})`, 'u')
+    const re = new RegExp(`(^|[^\\p{L}*])(\\**${echapperRegex(site.avant)}) (${echapperRegex(site.apres)})(?!\\p{L})`, 'u')
     enPlace(site, (t) => (re.test(t) ? t.replace(re, '$1$2 — $3') : null))
   }
   for (const site of sites.filter((x) => x.forme === 'J')) {
@@ -224,7 +224,7 @@ export function reparerLivre(textes, sites) {
     appliques.push(`D ${site.site} → ${site.avec} « ${site.titre} »`)
   }
   for (const site of sites.filter((x) => x.forme === 'G')) {
-    const re = new RegExp(`(?<!\\*)${echappe(site.texteMd)}(?!\\*)`)
+    const re = new RegExp(`(?<!\\*)${echapperRegex(site.texteMd)}(?!\\*)`)
     const { nnn, i: i0 } = lieu(site.site)
     let i = i0
     while (!re.test(slots.get(nnn)?.[i]?.texte ?? '') && fusions.has(`${nnn}:${i}`)) i = fusions.get(`${nnn}:${i}`)

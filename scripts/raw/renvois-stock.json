@@ -1,5 +1,5 @@
 {
-  "quoi": "Renvois « page N » du texte de `Source/` que le résolveur `src/data/source/renvoi.ts` ne départage pas (#1393) : famille `ambigu` (plusieurs sections candidates au folio, ou table nommée qu’aucun titre ne porte) ou `introuvable` (aucun texte au folio). Livres couverts : extraits, dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`). Une ENTRÉE par renvoi, clé `famille :: fichier :: ref :: occurrence` (régime #1711) ; la réf est `slug#occ :: p.N :: rang R` — section porteuse, folio visé, rang parmi les renvois de la section vers ce folio. Ce fichier ne fait que décroître : une entrée part quand son renvoi se résout.",
+  "quoi": "Renvois « page N » du texte de `Source/` que le résolveur `src/data/source/renvoi.ts` ne départage pas (#1393) : famille `ambigu` (plusieurs sections candidates au folio, ou table nommée qu’aucun titre ne porte) ou `introuvable` (aucun texte au folio). Livres couverts : extraits, dont la `language` a son lexique (`LEXIQUE_DE_RENVOI`). Une ENTRÉE par renvoi, clé `famille :: fichier :: ref :: occurrence` (régime #1711) ; la réf est `slug#occ :: p.N :: rang R` — section porteuse, folio visé, rang parmi les renvois de la section vers ce folio. Ce fichier ne fait que décroître : une entrée part quand son renvoi se résout.",
   "entrees": [
     {
       "famille": "ambigu",

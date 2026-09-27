@@ -21,31 +21,30 @@
 // TROIS formes, un seul verdict : le `[[slug]]` ; le CHEMIN `.claude/memory/<nom>.md` sous toutes ses
 // écritures (lien markdown `](…)`, chemin nu, ancre `#…`, ligne `:<n>`) ; et la MENTION NUE du nom
 // d'une fiche DISPARUE, quelle que soit sa décoration (backtics, prose « cf. slug », `name: slug`,
-// suffixe `.md:<n>`) — ce sont ces deux dernières qui portaient les 29 liens morts laissés par la
-// refonte de mémoire de #1728, toutes invisibles à la forme `[[…]]`.
+// suffixe `.md:<n>`) — ces deux dernières sont invisibles à la forme `[[…]]` (#1728).
 //
 // ANGLES MORTS DÉCLARÉS DE LA PORTÉE 2 :
 //   - un fichier IGNORÉ par git (`.gitignore`) n'est pas vu : l'énumération est
 //     `git ls-files --cached --others --exclude-standard` (suivi OU non suivi mais versionnable).
 //   - un `[[…]]` dont la cible n'a pas la FORME d'un nom de fiche (kebab minuscule, ≥ 5 caractères)
-//     n'est pas vu. Mesuré le 2026-09-13 : sans ce filtre, 200+ faux positifs de littéraux
-//     JS `[[a, b]]` (tableaux de paires) et de classes de regex `[[^\]]` noient le rapport.
+//     n'est pas vu : sans ce filtre, les faux positifs des littéraux JS `[[a, b]]` (tableaux de
+//     paires) et des classes de regex `[[^\]]` noient le rapport.
 //   - la MENTION NUE n'est cherchée que pour les noms du VOCABULAIRE (fiches de l'arbre + fiches de
 //     HEAD, `nomsDeFichesConnues`) : la forme générique « kebab ≥ 5 caractères backtiqué » est
-//     MESURÉE inutilisable — 23 321 occurrences sur l'arbre du 2026-09-13, dont 23 309 hors fiche
-//     (`` `label` `` ×706, `` `undefined` `` ×343, `` `capabilities` `` ×118…), soit 99,95 % de faux
-//     positifs, un slug de fiche n'étant pas distinguable d'un identifiant de code. Conséquence
+//     inutilisable — ses occurrences sont presque toutes des identifiants de code (`` `label` ``,
+//     `` `undefined` ``, `` `capabilities` ``…), dont un slug de fiche n'est pas distinguable. Conséquence
 //     assumée : la fenêtre de détection d'une MENTION est le GESTE qui supprime la fiche (elle est
 //     encore à HEAD) ; une mention restée morte après un commit de suppression déjà passé redevient
 //     invisible. Le CHEMIN et le `[[…]]`, eux, sont vus toujours, fiche connue ou non.
 //   - hors racines et exclusions : `HORS_SCAN`, chacune motivée à son entrée.
 //
-// Module ESM pur — consommé par `scripts/guards/lib/memoryLinks.test.mjs`.
+// Module ESM pur.
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { parUnitesDeCode, listerDossier } from './lister.mjs';
 import { extname, join } from 'node:path';
 import { sansBlocsDeCode } from './liensMarkdown.mjs';
+import { alternationDe } from '../../../src/lib/regex.ts';
 
 /** Dossier de la mémoire persistante, relatif à la racine du dépôt. */
 export const MEMORY_DIR = '.claude/memory';
@@ -131,14 +130,13 @@ const JETON_CHEMIN = /\.claude\/memory\/([a-z0-9][a-z0-9-]*\.md)(?:[#:][^)\s]*)?
  */
 function jetonDisparues(disparues) {
   if (disparues.length === 0) return null;
-  const alternatives = [...disparues].sort((a, b) => b.length - a.length).join('|');
-  return new RegExp(`(?<![a-z0-9-])(${alternatives})(?![a-z0-9-])`, 'g');
+  return new RegExp(`(?<![a-z0-9-])(${alternationDe(disparues)})(?![a-z0-9-])`, 'g');
 }
 
 /**
  * VOCABULAIRE des noms de fiche connus du dépôt : celles de l'arbre de travail ET celles de HEAD.
  * C'est ce qui rend le slug BACKTIQUÉ décidable — hors de ce vocabulaire, un kebab backtiqué est un
- * identifiant de code (mesure : 99,95 % de faux positifs, cf. en-tête). Si git ne répond pas, le
+ * identifiant de code (cf. en-tête). Si git ne répond pas, le
  * vocabulaire se réduit à l'arbre : la portée rétrécit, elle ne ment pas.
  * @returns {Set<string>}
  */

@@ -1,9 +1,9 @@
 // CONTRAT du workflow `canari.yml` (node --test, sans réseau) : chaque MESURE joue, et le verdict est
 // AGRÉGÉ par un seul step qui les nomme toutes.
 //
-// Ce que ces tests empêchent, mesuré sur les 5 derniers canaris (tous rouges) : un step de mesure qui
-// COUPE le job — 17 à 22 steps skippés par run, un verdict sur 27 ; et un step qui joue sans être
-// relu par le résumé — mesure muette, donc mesure inutile.
+// Ce que ces tests empêchent : un step de mesure qui COUPE le job — les steps suivants skippés, leurs
+// verdicts perdus ; et un step qui joue sans être relu par le résumé — mesure muette, donc mesure
+// inutile.
 // Le YAML est lu par regex, comme `gatesDeCi` lit `ci.yml` : le contrat porte sur des lignes.
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
@@ -11,6 +11,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { SIGNALEUR, stepsDu } from '../gates/workflowsDuDepot.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -69,7 +70,7 @@ test('le résumé joue MÊME après un rouge, ne se blanchit pas, et ÉCHOUE sur
 test('le résumé délègue le signalement au script, avec le RAPPORT et le verdict tiré de $ROUGES', () => {
   // Le geste de signalement (label, survivante, commentaire, fermeture) vit dans
   // `scripts/ops/signaler-rouge.mjs` et s'y mesure ; ici, le contrat est l'APPEL.
-  assert.match(RESUME.bloc, new RegExp(`node ${SIGNALEUR.replace(/[./]/g, '\\$&')}`))
+  assert.match(RESUME.bloc, new RegExp(`node ${echapperRegex(SIGNALEUR)}`))
   assert.match(RESUME.bloc, /--titre "Canari rouge — environnement ou suite cassés"/)
   assert.match(RESUME.bloc, /--prefixe "Canari rouge"/)
   assert.match(RESUME.bloc, /--label canari/)
@@ -88,6 +89,6 @@ test('aucun `npm audit` brut ne fait échouer le canari : c’est `audit-stock.m
 
 test('les deux mesures d’ÉTAT sont jouées par le canari', () => {
   for (const script of ['audit-stock.mjs', 'fermetures-non-citees.mjs']) {
-    assert.match(TEXTE, new RegExp(`node scripts/ops/${script.replace('.', '\\.')}`), `${script} absent du canari`)
+    assert.match(TEXTE, new RegExp(`node scripts/ops/${echapperRegex(script)}`), `${script} absent du canari`)
   }
 })

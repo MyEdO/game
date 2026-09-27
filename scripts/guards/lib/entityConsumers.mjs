@@ -1,16 +1,14 @@
-// Corpus PARTAGÉ de détection de consommateurs d'ENTITÉS de catalogue — consommé par
-// `scripts/docs/build-entity-orphans.mjs` (générateur du rapport) ET `src/data/entity-orphans.test.ts`
-// (garde cliquet). Généralise le patron mesuré dans `tableConsumerStock.mjs`/`tables.test.ts` (#734)
-// à tout catalogue `src/data/*.json` adressé par `id` (le même ensemble que `id-collisions.test.ts`
-// nomme « catégories » : `traits`, `talents`, `qualities`, `maneuvers`, `skills`, `props`, `vehicles`,
-// `creatures` — cf. en-tête de `scripts/docs/build-entity-orphans.mjs` pour le périmètre RETENU/ÉCARTÉ).
+// Corpus PARTAGÉ de détection de consommateurs d'ENTITÉS de catalogue. Généralise le patron mesuré
+// dans `tableConsumerStock.mjs`/`tables.test.ts` (#734) à tout catalogue `src/data/*.json` adressé
+// par `id` (`CATEGORY_FILES`, le même ensemble que `id-collisions.test.ts` nomme « catégories » — cf.
+// en-tête de `scripts/docs/build-entity-orphans.mjs` pour le périmètre RETENU/ÉCARTÉ).
 //
 // SÉMANTIQUE DE « ORPHELINE » (écrite ICI parce que c'est elle qui décide ce qui compte comme
-// consommateur, #1553 L3) : une entité est ORPHELINE quand AUCUN CHEMIN DE JEU ne la convoque — ni
+// consommateur, #1553) : une entité est ORPHELINE quand AUCUN CHEMIN DE JEU ne la convoque — ni
 // un document de scène, ni une autre donnée, ni le code de PRODUCTION. Ce qui n'est PAS un chemin de
 // jeu : l'ATELIER d'authoring. La palette de l'éditeur de scène énumère des candidats à POSER À LA
-// MAIN (`ui/editor/Editor.tsx:168`, `creatures.filter((c) => typeof c.char.B === 'number')` — mesuré
-// 487 des 493 entrées de `creatures.json`, 2026-09) : la compter rendrait tout le catalogue
+// MAIN (`ui/editor/Editor.tsx`, `creatures.filter((c) => typeof c.char.B === 'number')`, la quasi-
+// totalité de `creatures.json`) : la compter rendrait tout le catalogue
 // « atteignable » et viderait l'instrument (une entité qu'aucune scène ne pose reste une mécanique
 // curée sans jeu). Elle est aujourd'hui rejetée fail-closed par la grammaire MODE 2 (`typeof`, champ
 // à deux niveaux, aucun `.map((c) => c.id)` enchaîné) — ce rejet est un ACCIDENT de grammaire, PAS la
@@ -23,8 +21,8 @@
 // complet (`"<id>"` ou `'<id>'`) dans (a) un AUTRE `src/data/*.json` (catalogue cible ou non — un
 // maneuver peut citer un autre maneuver, un trapping peut citer une qualité…), (b) le code de prod
 // `src/**/*.ts(x)` hors tests ET hors fichiers GÉNÉRÉS (`isGeneratedFile`, cf. plus bas), COMMENTAIRES
-// retirés, (c) les documents de PROJET DE SCÈNE `src/scenes/*/*-projet.json` (`sceneConsumerCorpus`,
-// 2026-09 — le CONTENU JOUÉ cite des entités par id : `entities[].ref`, `statblock.traits[].id`,
+// retirés, (c) les documents de PROJET DE SCÈNE `src/scenes/*/*-projet.json` (`sceneConsumerCorpus` —
+// le CONTENU JOUÉ cite des entités par id : `entities[].ref`, `statblock.traits[].id`,
 // `flow.test.skill.id`, `effect.trappingId`… ; frontière « déclaré SIEN » vs « référencé » et bruit
 // mesuré : cf. le JSDoc de `stripSceneOwnIdentities`). Jamais une sous-chaîne nue (prose, id plus
 // long, mention non citée en commentaire).
@@ -33,43 +31,43 @@
 // consommateur qui ne cite JAMAIS l'id, mais SÉLECTIONNE le catalogue par ses champs (ex.
 // `qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet')` bâtit le pool d'un picker —
 // toute entité qui satisfait le prédicat est atteinte, sans que son id apparaisse en toutes lettres
-// nulle part). Mesuré : `qualities:laid` (défaut d'Objet, LDB 60) est exactement ce cas — surfacé au
-// picker d'Artisanat (`ui/InterludeScreen.tsx:52-53`, chaîne `.filter(...).map((q) => q.id)`) SANS
+// nulle part). `qualities:laid` (défaut d'Objet, LDB 60) est exactement ce cas — surfacé au picker
+// d'Artisanat (`ui/InterludeScreen.tsx`, `atoutsDObjet`, chaîne `.filter(...).map((q) => q.id)`) SANS
 // jamais être cité littéralement. Restreint, par construction FAIL-CLOSED, à
 // `<catalogueTopLevel>.filter((param) => <prédicat>)` (jamais `.find`/`.some` — qui ne garantissent
 // pas que TOUTE entrée matchée soit réellement atteinte, une seule étant retenue par appel) où
 // `<prédicat>` est soit une comparaison d'ÉGALITÉ sur littéral (`param.champ === 'valeur'`), soit une
 // VÉRACITÉ de champ (`param.champ`) ou sa NÉGATION (`!param.champ`) — un seul niveau de champ à chaque
 // fois — ces trois formes de terme étant COMBINABLES entre elles par `&&`/`||` (jamais les deux dans le
-// même prédicat — ambiguïté de précédence non résolue). Mesuré : `vehicles.filter((v) => v.purchase &&
-// !v.ship)` (`state/merchantFlow.ts:130`, catalogue de vente du Maquignon, `unitKinds:
-// ['vehicule-terrestre']` dans `merchants.json`) combine véracité et négation, chaîne bien à
-// `.map((v) => v.id)` (`unitIdsOfKind`) : c'est ce cas qui a fait étendre la grammaire (2026-07-27).
+// même prédicat — ambiguïté de précédence non résolue). `vehicles.filter((v) => v.purchase && !v.ship)`
+// (`state/merchantFlow.ts`, `unitIdsOfKind`, catalogue de vente du Maquignon, `unitKinds:
+// ['vehicule-terrestre']` dans `merchants.json`) combine véracité et négation, chaîné à
+// `.map((v) => v.id)`.
 // Toute parenthèse de groupement, tout chaînage optionnel (`x?.y`), tout niveau de champ multiple
 // (`x.a.b`), tout appel de fonction reste HORS grammaire — rejeté fail-closed.
 //
-// RÈGLE SUPPLÉMENTAIRE (durcissement mesuré) — un filtre n'est CONSOMMATEUR que si son résultat est
+// RÈGLE SUPPLÉMENTAIRE — un filtre n'est CONSOMMATEUR que si son résultat est
 // ensuite EXPLOITÉ PAR ID : la chaîne doit se terminer par `.map((param) => param.id)` (chaîné
 // directement ou après d'autres `.filter(...)` intermédiaires). Fondement (doctrine du dépôt, CLAUDE.md
 // « on ne manipule que des IDs ; le `label` est de l'AFFICHAGE ») : un filtre qui sélectionne mais ne
 // mène nulle part par id (`.map((q) => q.label)`, ou pas de `.map` du tout) ne prouve AUCUN chemin
-// d'accès à l'entité — SÉLECTIONNER n'est pas la même chose que MENER À. Mesuré : `qualities.filter((q)
-// => q.polarite === 'atout')` dans `falseQualities()` (`src/state/interludeFlow.ts:1069`) sélectionne bien
+// d'accès à l'entité — SÉLECTIONNER n'est pas la même chose que MENER À. `qualities.filter((q) =>
+// q.polarite === 'atout')` dans `falseQualities()` (`src/state/interludeFlow.ts`) sélectionne bien
 // par champ, mais nourrit une liste de RUMEURS FAUSSES (Particularités que le personnage croit à tort
 // déceler après un jet raté — ADE II) affichées par LABEL, jamais appliquées : la qualité sélectionnée
 // n'est précisément PAS atteinte. Rejeté par cette règle générale (aucune exception codée sur ce
 // fichier). Tout filtre hors grammaire OU dont la chaîne ne mène pas à `.id` est IGNORÉ (l'entrée reste
 // orpheline si aucun autre consommateur ne la couvre) et remonté par l'appelant.
 //
-// Amélioration sur `tableConsumerStock.mjs` : au lieu d'une regex fragile sur l'ORDRE des clés
-// (`"id": "…", (?="label")`), la déclaration de l'entité dans SON PROPRE catalogue est retirée par
-// PARSE JSON (suppression de la seule clé top-level `id` avant re-sérialisation) — robuste à
-// n'importe quel ordre/forme de champs, généralisable aux 8 catalogues sans regex par fichier.
+// La déclaration de l'entité dans SON PROPRE catalogue est retirée par PARSE JSON (suppression de la
+// seule clé top-level `id` avant re-sérialisation), jamais par une regex sur l'ORDRE des clés
+// (`"id": "…", (?="label")`) — robuste à n'importe quel ordre/forme de champs, sans regex par fichier.
 import { readFileSync } from 'node:fs';
 import { listerArbre, listerDossier } from './lister.mjs';
 import { dirname, join } from 'node:path';
 import { dossierDesProjetsLivres, listerProjetsLivres } from './projetsLivres.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
+import { echapperRegex } from '../../../src/lib/regex.ts';
 
 /** Catalogues `src/data/*.json` adressés par `id`, retenus pour la mesure d'orphelines — MÊME
  *  ensemble que `CATEGORIES` de `src/data/id-collisions.test.ts`, moins `spells`/`trappings`
@@ -82,15 +80,15 @@ export const CATEGORY_FILES = {
   skills: 'skills.json',
   props: 'props.json',
   vehicles: 'vehicles.json',
-  // Au périmètre depuis #1553 L3. Le chemin de JEU d'une créature est la CITATION de son id (un
+  // Au périmètre (#1553). Le chemin de JEU d'une créature est la CITATION de son id (un
   // document de scène — `entities[].ref`, `encounters[]` —, une autre donnée : `montures.json`,
   // `groups.json`, `careerLevels.json`…) ou la sélection MODE 2 `creatures.filter((c) => c.purchase)
-  // .map((c) => c.id)` (`state/merchantFlow.ts:132`, bétail du Maquignon, 14 entrées). La palette de
+  // .map((c) => c.id)` (`state/merchantFlow.ts`, bétail du Maquignon). La palette de
   // l'éditeur n'en est PAS un — cf. SÉMANTIQUE en en-tête.
   creatures: 'creatures.json',
 };
 
-/** Les 2 catalogues ÉCARTÉS du périmètre (cause d'exclusion : en-tête de
+/** Les catalogues ÉCARTÉS du périmètre (cause d'exclusion : en-tête de
  *  `build-entity-orphans.mjs`). Déclarés ici pour que le rapport DÉRIVE leurs comptes du même scan
  *  au lieu de les figer en dur dans sa sortie ; aucune garde ne les mesure. */
 export const EXCLUDED_CATEGORY_FILES = {
@@ -153,14 +151,13 @@ function stripComments(src) {
 
 /** Un fichier GÉNÉRÉ est un MIROIR de la donnée, pas un USAGE — un registre exhaustif cite
  *  structurellement chaque id de son catalogue source, ce qui viderait la garde si on le comptait
- *  comme consommateur (mesuré : `engine/qualities/ids.generated.ts` cite LES 59 ids de
- *  `qualities.json`, `audio/_registry.generated.ts` et `data/schemas/_registry.generated.ts` de même
- *  pour leurs registres). Détection par LES DEUX conventions déjà en usage dans `src/**` (mesurées
- *  identiques sur les 30 fichiers générés du dépôt, 2026-07) : suffixe `*.generated.ts(x)` ET/OU
- *  en-tête « GÉNÉRÉ … NE PAS ÉDITER À LA MAIN » dans les 5 premières lignes — jamais une liste de
- *  chemins en dur. Exclu du corpus MODE 1 (`buildConsumerCorpus`) ET du scan MODE 2
- *  (`computeFieldPredicateConsumers`) : un générateur qui écrirait un `.filter(...).map(id)` mécanique
- *  serait le même mal. */
+ *  comme consommateur (`engine/qualities/ids.generated.ts` cite TOUS les ids de `qualities.json`,
+ *  `audio/_registry.generated.ts` et `data/schemas/_registry.generated.ts` de même pour leurs
+ *  registres). Détection par LES DEUX conventions en usage dans `src/**` : suffixe
+ *  `*.generated.ts(x)` ET/OU en-tête « GÉNÉRÉ … NE PAS ÉDITER À LA MAIN » dans les 5 premières
+ *  lignes — jamais une liste de chemins en dur. Exclu du corpus MODE 1 (`buildConsumerCorpus`) ET
+ *  du scan MODE 2 (`computeFieldPredicateConsumers`) : un générateur qui écrirait un
+ *  `.filter(...).map(id)` mécanique serait le même mal. */
 function isGeneratedFile(path, text) {
   if (/\.generated\.tsx?$/.test(path)) return true;
   const head = text.split('\n', 5).join('\n');
@@ -185,13 +182,13 @@ function sceneProjectFiles(srcDir) {
  *  champ `id`, qui n'est pas une citation. Retirés : l'`id` et le `label` de la RACINE (le projet
  *  se nomme lui-même), l'`id` de chaque `scenes[]`, et l'`id` de chaque élément des tableaux de
  *  DÉCLARATION d'une scène (`entities`, `architecture`, `dialogues`, `triggers`, `encounters` — les
- *  cinq TABLEAUX ; `entryPoints` en est absent parce qu'il est un RECORD dont les identités sont les
- *  CLÉS, que le scan par VALEURS ne collecte jamais). Un de ces cinq champs qui cesserait d'être un
+ *  TABLEAUX ; `entryPoints` en est absent parce qu'il est un RECORD dont les identités sont les
+ *  CLÉS, que le scan par VALEURS ne collecte jamais). Un de ces champs qui cesserait d'être un
  *  tableau fait CRASHER la garde (fail-loud) plutôt que passer le retrait en silence (fail-open).
  *  Tout le RESTE est référence potentielle — au premier chef `entities[].ref`, mais
  *  aussi `statblock.traits[].id`/`skills[].id`/`ammo[].qualities[].id`, `flow.test.skill.id`,
  *  `effect.trappingId`/`vehicleId`/`spell`, `weapon`… : ces `id`-là désignent une entrée de
- *  catalogue, ils ne la déclarent pas. Mesuré (2026-09) : sans ce retrait, `entities[].id` ferait
+ *  catalogue, ils ne la déclarent pas. Sans ce retrait, `entities[].id` ferait
  *  consommer `vehicles:cogue`/`vehicles:chaland`/`creatures:medecin` et `architecture[].id`
  *  `vehicles:diligence` PAR LEUR PROPRE POSE. */
 function stripSceneOwnIdentities(doc) {
@@ -259,16 +256,11 @@ export function buildConsumerCorpus(dataDir, srcDir, files = CATEGORY_FILES) {
 export const isConsumed = (corpus, id) => corpus.includes(`"${id}"`) || corpus.includes(`'${id}'`);
 
 /** Entités de catalogue MÉTA — une ligne de TABLE RAW transcrite en entrée de catalogue pour son
- *  vocabulaire de tirage (ex. `talents:talent-aleatoire`, LDB 10 p.132 : motif « N Talent(s)
- *  aléatoire(s) » consommé par `resolveSpeciesTalents`, `src/engine/character.ts`), jamais une entité POSSÉDABLE. Source UNIQUE de ce fait
- *  structurel, consommée par LES DEUX gardes qui le traitaient jusqu'ici par deux déclarations
- *  séparées (`src/data/entity-orphans.test.ts` — via `entityOrphanStock.mjs` — ET
- *  `src/data/obtainability-guard.test.ts`) : ni l'une ni l'autre ne re-déclare le fait chez elle.
- *  Clé = `catégorie:id`, même convention que `entityOrphanStock.mjs`. Mesuré exhaustivement sur les
- *  7 catalogues d'alors (grep `aleatoire|au-choix|table-des|choix-libre` sur
- *  traits/talents/qualities/maneuvers/skills/props/vehicles, 2026-07) : SEULE `talents:talent-aleatoire`
- *  qualifie. Re-mesuré sur `creatures` à son entrée au périmètre (#1553 L3, 2026-09) : AUCUNE entrée
- *  MÉTA — une créature est toujours une entité posée, jamais un jeton de tirage.
+ *  vocabulaire de tirage (ex. `talents:talent-aleatoire`, LDB 10 p.132 : forme « N Talent(s)
+ *  aléatoire(s) » consommée par `resolveSpeciesTalents`, `src/engine/character.ts`), jamais une
+ *  entité POSSÉDABLE. Source UNIQUE de ce fait structurel : aucune garde qui le lit ne le re-déclare
+ *  chez elle. Clé = `catégorie:id`, même convention que `entityOrphanStock.mjs`. Une créature n'y
+ *  entre jamais : elle est toujours une entité posée, jamais un jeton de tirage (#1553).
  * @type {ReadonlySet<string>} */
 export const META_CATALOG_ENTRIES = new Set(['talents:talent-aleatoire']);
 
@@ -284,10 +276,10 @@ function parseFieldPredicate(param, predicateRaw) {
   if (hasAnd && hasOr) return null;
   const op = hasOr ? '||' : '&&';
   const parts = hasAnd || hasOr ? predicate.split(op).map((s) => s.trim()) : [predicate];
-  const paramEsc = param.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const eqRe = new RegExp(`^${paramEsc}\\.([a-zA-Z_$][\\w$]*)\\s*===\\s*(['"])((?:(?!\\2).)*)\\2$`);
-  const truthyRe = new RegExp(`^${paramEsc}\\.([a-zA-Z_$][\\w$]*)$`);
-  const falsyRe = new RegExp(`^!${paramEsc}\\.([a-zA-Z_$][\\w$]*)$`);
+  const paramEchappe = echapperRegex(param);
+  const eqRe = new RegExp(`^${paramEchappe}\\.([a-zA-Z_$][\\w$]*)\\s*===\\s*(['"])((?:(?!\\2).)*)\\2$`);
+  const truthyRe = new RegExp(`^${paramEchappe}\\.([a-zA-Z_$][\\w$]*)$`);
+  const falsyRe = new RegExp(`^!${paramEchappe}\\.([a-zA-Z_$][\\w$]*)$`);
   const terms = [];
   for (const part of parts) {
     let m = part.match(eqRe);
@@ -348,10 +340,10 @@ function chainLeadsToId(text, pos) {
 }
 
 /** MODE 2 (cf. en-tête) — scanne `src/**\/*.ts(x)` de PRODUCTION (hors tests) pour les appels
- *  `<catalogueTopLevel>.filter((param) => <prédicat>)` sur l'un des 8 catalogues retenus. Retourne
- *  `{ consumed: Map<catégorie, Set<id>>, recognized: [{category, loc, predicate, matched}],
- *  skipped: [{category, loc, raw, reason}] }` — `skipped` liste tout filtre rencontré mais REJETÉ
- *  par la grammaire (fail-closed, JAMAIS traité comme consommateur). */
+ *  `<catalogueTopLevel>.filter((param) => <prédicat>)` sur l'un des catalogues retenus
+ *  (`CATEGORY_FILES`). Retourne `{ consumed: Map<catégorie, Set<id>>, recognized: [{category, loc,
+ *  predicate, matched}], skipped: [{category, loc, raw, reason}] }` — `skipped` liste tout filtre
+ *  rencontré mais REJETÉ par la grammaire (fail-closed, JAMAIS traité comme consommateur). */
 export function computeFieldPredicateConsumers(dataDir, srcDir) {
   const catalogData = {};
   for (const [cat, file] of Object.entries(CATEGORY_FILES)) {

@@ -8,6 +8,7 @@ import { SORTS_FUSIONNES_1897 } from '../data/sortsFusionnes';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { skillSlots, talentSlotsUpTo } from '../engine/careerSlots';
 import { levelsForCareer } from '../data';
+import { alternationDe } from '../lib/regex';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -180,17 +181,17 @@ describe('roster — export / import (portabilité, versionné via migrateDoc)',
   });
 });
 
-/** Le lot L2 #1548 renomme `SkillInstance.skillId` → `id` (`engine/types.ts`). Le roster persiste des
+/** #1548 renomme `SkillInstance.skillId` → `id` (`engine/types.ts`). Le roster persiste des
  *  `SkillInstance` par DEUX canaux — l'export versionné (`EXPORT_VERSION`) et la liste localStorage nue.
- *  `skillBaseValue` (`engine/skills.ts:153`) ne lit QUE `s.id` : sans remap aux deux canaux, un héros
- *  d'avant le lot repart avec ses Compétences muettes (Caractéristique nue, Augmentations perdues) sans
+ *  `skillBaseValue` (`engine/skills.ts`) ne lit QUE `s.id` : sans remap aux deux canaux, un héros
+ *  d'avant #1548 repart avec ses Compétences muettes (Caractéristique nue, Augmentations perdues) sans
  *  qu'aucun type ne bronche. Le roster ne se PURGE pas pour autant (l'arbitrage 2026-08-17 est borné aux
  *  saves — `migrateDoc.ts` interdit nommément la purge du roster par imitation) : il MIGRE, comme #311
- *  et #604 avant lui. Témoin : Résistance (Endurance), Endurance 35 + 20 Augmentations = 55. */
-describe('roster — remap `skillId`→`id` des Compétences persistées (#1548 L2, les DEUX canaux)', () => {
+ *  et #604. Témoin : Résistance (Endurance), Endurance 35 + 20 Augmentations = 55. */
+describe('roster — remap `skillId`→`id` des Compétences persistées (#1548, les DEUX canaux)', () => {
   const ancienHero = (id: string) => ({
     id,
-    label: 'Vétéran d’avant le lot',
+    label: 'Vétéran d’avant #1548',
     kind: 'hero',
     characteristics: { endurance: 35 },
     skills: [{ skillId: 'resistance', characteristic: 'endurance', advances: 20 }],
@@ -214,7 +215,7 @@ describe('roster — remap `skillId`→`id` des Compétences persistées (#1548 
     expect(skillBaseValue(res.entry!.hero, 'resistance')).toBe(55); // 35 + 20, jamais 35 muet
   });
 
-  it('(b) une entrée localStorage d’AVANT le lot est remappée à la lecture, les entrées saines intactes', () => {
+  it('(b) une entrée localStorage d’AVANT #1548 est remappée à la lecture, les entrées saines intactes', () => {
     const saine = {
       id: 'h-saine',
       label: 'Déjà migré',
@@ -248,10 +249,10 @@ describe('roster — remap `skillId`→`id` des Compétences persistées (#1548 
 });
 
 /** #1897 : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double (`SORTS_FUSIONNES_1897`).
- *  Un héros exporté ou gardé au roster avant le lot porte l'ancien id : aux DEUX canaux il désigne
+ *  Un héros exporté ou gardé au roster avant #1897 porte l'ancien id : aux DEUX canaux il désigne
  *  l'entrée absorbante, jamais un sort que `findSpellById` ne résout plus. */
 describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)', () => {
-  const heros = (id: string) => ({ id, label: 'Apprenti d’avant le lot', kind: 'hero', spells: ['alarme', 'alerte', 'flamme', 'choc'], skills: [], talents: [] });
+  const heros = (id: string) => ({ id, label: 'Apprenti d’avant #1897', kind: 'hero', spells: ['alarme', 'alerte', 'flamme', 'choc'], skills: [], talents: [] });
 
   beforeEach(() => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
@@ -267,7 +268,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     expect(res.entry!.hero.spells!.every((id) => findSpellById(id))).toBe(true);
   });
 
-  it('(b) une entrée localStorage d’avant le lot est remappée à la lecture, et une 2ᵉ lecture ne change rien', () => {
+  it('(b) une entrée localStorage d’avant #1897 est remappée à la lecture, et une 2ᵉ lecture ne change rien', () => {
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-prelot'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
     const un = rosterLoad();
     expect(un[0].hero.spells).toEqual(['alerte', 'flamme-magique', 'choc']);
@@ -279,7 +280,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
    *  garnie d'un id FUSIONNÉ ; à côté, des chaînes HOMONYMES hors place de sort (`bouclier` objet,
    *  case d'objet `q-objet-bouclier`) qui doivent traverser intactes. */
   const heroAToutesLesPlaces = (id: string) => ({
-    id, label: 'Sorcier d’avant le lot', kind: 'hero', skills: [], talents: [],
+    id, label: 'Sorcier d’avant #1897', kind: 'hero', skills: [], talents: [],
     spells: ['alarme', 'projectile'],
     componentSpells: ['projectile'],
     focus: { spell: 'projectile', dr: 2 },
@@ -290,7 +291,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-projectile' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
     items: [{ trappingId: 'bouclier' }],
   });
-  const FUSIONNES = Object.keys(SORTS_FUSIONNES_1897).join('|');
+  const FUSIONNES = alternationDe(Object.keys(SORTS_FUSIONNES_1897));
   /** Les ids fusionnés qui SURVIVENT dans le héros sérialisé, à une place de sort (`sort-` compris). */
   const survivants = (hero: unknown): string[] =>
     JSON.stringify(hero).match(new RegExp(`"(?:sort-)?(?:${FUSIONNES})"`, 'g'))?.filter((m) => m !== '"bouclier"') ?? [];
@@ -344,7 +345,7 @@ describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX 
     const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 5, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
     expect(res.entry?.hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
   });
-  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+  it('(b) une entrée localStorage d’avant #1924 est réécrite à la lecture, et une 2e lecture ne change rien', () => {
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
     const une = rosterLoad();
     expect(une[0].hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
@@ -353,8 +354,8 @@ describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX 
   });
 });
 
-/** #1473 (train 2a) : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
- *  roster avant le lot porte `talentId` dans les ops de ses armes, effets et traumatismes : aux DEUX
+/** #1473 : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
+ *  roster avant #1473 porte `talentId` dans les ops de ses armes, effets et traumatismes : aux DEUX
  *  canaux elles passent à la graphie que `engine/ops.ts` lit. */
 describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, les DEUX canaux)', () => {
   const heros = (id: string) => ({
@@ -382,7 +383,7 @@ describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, l
     expect(res.entry!.hero).toMatchObject(attendu);
     expect(JSON.stringify(res.entry!.hero)).not.toContain('talentId');
   });
-  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+  it('(b) une entrée localStorage d’avant #1473 est réécrite à la lecture, et une 2e lecture ne change rien', () => {
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
     const une = rosterLoad();
     expect(une[0].hero).toMatchObject(attendu);
@@ -391,11 +392,11 @@ describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, l
   });
 });
 
-/** #1473 (train 2a) : `detachMutation` ne retire que les `talentsAcquis` de la mutation attachée
- *  (`engine/corruption.ts`). Une mutation attachée avant le lot porte ses `grantTalent` en `talentId`
+/** #1473 : `detachMutation` ne retire que les `talentsAcquis` de la mutation attachée
+ *  (`engine/corruption.ts`). Une mutation attachée avant #1473 porte ses `grantTalent` en `talentId`
  *  et aucune `talentsAcquis`, et l'attache d'alors posait une instance NEUVE du Talent, doublon compris : la
  *  relecture fusionne les instances et reconstitue ce que le détachement d'alors retirait. */
-describe('roster — `talentsAcquis` d’une mutation attachée avant le lot (#1473, les DEUX canaux)', () => {
+describe('roster — `talentsAcquis` d’une mutation attachée en graphie `talentId` (#1473, les DEUX canaux)', () => {
   const mutationDAvant = (talentId: string) => ({ id: 'bras-tentaculaire', label: 'Bras tentaculaire', desc: '', kind: 'physique', roll: 1, passive: [{ op: 'grantTalent', talentId }] });
   const heros = (id: string, mutations: unknown[]) => ({ id, label: 'Mutant', kind: 'hero', skills: [], talents: [{ talentId: 'chanceux', times: 1 }], mutations });
 
@@ -420,13 +421,13 @@ describe('roster — `talentsAcquis` d’une mutation attachée avant le lot (#1
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
     expect(rosterLoad()).toEqual(une);
   });
-  it('(c) une mutation d’APRÈS le lot sans `talentsAcquis` (rien acquis) la garde vide, et un Talent non porté n’est pas reconstitué', () => {
+  it('(c) une mutation en graphie `talent: { id }` sans `talentsAcquis` (rien acquis) la garde vide, et un Talent non porté n’est pas reconstitué', () => {
     const apres = { ...mutationDAvant('chanceux'), passive: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] };
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h', [apres, { ...mutationDAvant('sens-aiguise'), id: 'autre' }]), wealth: { gold: 0, silver: 0, brass: 0 } }]));
     const [entree] = rosterLoad();
     expect(entree.hero.mutations!.map((m) => m.talentsAcquis)).toEqual([undefined, undefined]);
   });
-  /** Le détachement d'avant le lot (`git show origin/main:src/engine/corruption.ts`, `detachMutation`) :
+  /** Le détachement d'avant #1473 (`detachMutation` de `engine/corruption.ts`) :
    *  une instance retirée par `grantTalent` de la mutation. */
   it('(d) Talent de carrière DOUBLÉ par l’ancienne attache : les instances fusionnent, le détachement en rend une', () => {
     const doublon = { ...heros('h', [mutationDAvant('chanceux')]), talents: [{ talentId: 'chanceux', times: 1 }, { talentId: 'chanceux', times: 1 }] };

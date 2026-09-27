@@ -14,7 +14,7 @@
  *
  * GESTE : réécriture de CHEMIN seule, sur le TEXTE (le formatage du document est préservé à
  * l'octet). Un `docs/raw/<nom>.md` dont l'Atlas porte la page sous UN cœur devient
- * `docs/raw/<coeur>/<nom>.md` ; le champ `fichier` d'une entrée, un membre de `sites`, ou la même
+ * `docs/raw/<coeur>/<nom>.md` ; le champ `fichier` d'une entrée, un élément de `sites`, ou la même
  * citation en PROSE dans un champ `quoi` — la réécriture ne connaît que le chemin. Les autres
  * champs (`ref`, `occurrence`, `famille`, `lot`, `date`) sont INTOUCHÉS : le cardinal des entrées ne
  * bouge pas.
@@ -32,6 +32,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { pagesDeLAtlas, CLASSES_DE_PAGE, coeursDuRegistre } from '../raw/_lib.mjs';
+import { echapperRegex } from '../../src/lib/regex.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const RAWDIR = 'docs/raw';
@@ -67,13 +68,12 @@ for (const [nom, relatifs] of sousCoeur) {
   cible.set(nom, relatifs[0]);
 }
 
-const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 const COEURS = coeursDuRegistre();
 /** Le texte RAMENÉ À PLAT : tout préfixe de cœur retiré des chemins d'Atlas. Le témoin s'y mesure. */
 const aPlat = (texte) =>
   COEURS.reduce((t, coeur) => t.replaceAll(`${RAWDIR}/${coeur}/`, `${RAWDIR}/`), texte);
 
-const CITATION = new RegExp(String.raw`${echappe(RAWDIR)}/([\w.-]+\.md)`, 'gu');
+const CITATION = new RegExp(String.raw`${echapperRegex(RAWDIR)}/([\w.-]+\.md)`, 'gu');
 
 const sites = []; // { fichier, avant, apres, n }
 for (const fichier of FICHIERS) {
@@ -102,7 +102,7 @@ for (const fichier of FICHIERS) {
     if (citesAmbigus.has(nom)) continue;
     if (!fs.existsSync(path.join(ROOT, RAWDIR, nom))) anomalies.push(`${fichier} : « ${RAWDIR}/${nom} » ne désigne aucune page de l'Atlas`);
   }
-  for (const m of apres.matchAll(new RegExp(String.raw`${echappe(RAWDIR)}/[\w.-]+/[\w.-]+\.md`, 'gu'))) {
+  for (const m of apres.matchAll(new RegExp(String.raw`${echapperRegex(RAWDIR)}/[\w.-]+/[\w.-]+\.md`, 'gu'))) {
     if (!fs.existsSync(path.join(ROOT, m[0]))) anomalies.push(`${fichier} : « ${m[0]} » ne désigne aucune page de l'Atlas`);
   }
   if (apres !== brut) sites.push({ fichier, abs, apres, n });

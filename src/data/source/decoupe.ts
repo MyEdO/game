@@ -582,7 +582,7 @@ const ouDe = (frag: Fragment): string =>
 /**
  * Md de BLOCS rendu AFFICHABLE : sur une ligne de TABLE seulement, le `<br>` compte pour une espace.
  * GFM n'a aucune façon de montrer un saut de ligne DANS une cellule (une rangée tient sur UNE ligne),
- * et `<Prose>` ne monte que `remarkGfm` (`src/ui/Prose.tsx:87`) — un `\n` de cellule y serait rendu
+ * et `<Prose>` ne monte que `remarkGfm` (`src/ui/Prose.tsx:173`) — un `\n` de cellule y serait rendu
  * en espace de toute façon. La forme imprimée reste portée par la CHAÎNE d'une cellule adressée
  * (`brEnSaut`, `celluleBrute`) ; hors table, le md n'est pas touché — sans risque : le corpus VF
  * (16 livres de `BOOKS`) ne porte AUCUN `<br>` hors ligne de table, mesuré le 2026-09-14.

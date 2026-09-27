@@ -1,24 +1,25 @@
 // CORPUS de cas de grounding (#903) — chaque cas décrit un échec de grounding RÉEL, vécu (un agent
-// sans contexte a cherché et n'a PAS trouvé, ou a trouvé un motif faux), jamais un cas inventé pour
+// sans contexte a cherché et n'a PAS trouvé, ou a trouvé un passage faux), jamais un cas inventé pour
 // remplir le corpus. La garde qui le relit vit dans `src/data/grounding-corpus.test.ts`.
 //
-// CE QUE CE BANC MESURE — et ce qu'il NE mesure PAS. Il vérifie qu'un MOTIF reste trouvable par les
-// MOTS-CLEFS d'un agent dans la SURFACE désignée (grep déterministe, quelques ms, aucun agent réel
-// impliqué). Ce n'est PAS la même chose qu'un agent qui COMPREND : le banc ne juge ni la pertinence
-// de ce qui remonte, ni la capacité d'un agent à interpréter le motif une fois trouvé, ni les cas où
-// la bonne réponse existe mais sous des mots-clefs qu'aucun agent ne penserait à essayer. Sa valeur
-// est étroite et délibérée : détecter qu'un motif qui répondait à une vraie question CESSE de
-// répondre (doc renommée, ligne déplacée, chiffre périmé) — pas certifier que le grounding marche.
+// CE QUE CE BANC MESURE — et ce qu'il NE mesure PAS. Il vérifie que le PASSAGE d'un cas (ce que
+// matche sa regex) reste trouvable par les MOTS-CLEFS d'un agent dans la SURFACE désignée (grep
+// déterministe, quelques ms, aucun agent réel impliqué). Ce n'est PAS la même chose qu'un agent qui
+// COMPREND : le banc ne juge ni la pertinence de ce qui remonte, ni la capacité d'un agent à
+// interpréter le passage une fois trouvé, ni les cas où la bonne réponse existe mais sous des
+// mots-clefs qu'aucun agent ne penserait à essayer. Sa valeur est étroite et délibérée : détecter
+// qu'un passage qui répondait à une vraie question CESSE de répondre (doc renommée, ligne déplacée,
+// chiffre périmé) — pas certifier que le grounding marche.
 //
 // Un cas porte : `id` (stable), `question` (FR, telle qu'un agent se la pose), `keywords` (mots-clefs
-// de recherche), `surface` (chemin relatif au repo où le motif doit remonter), `status`
+// de recherche), `surface` (chemin relatif au repo où la regex doit matcher), `status`
 // (`'resolu'` | `'attente'`), `incident` (le fait vécu qui a motivé le cas). Un cas résolu porte EN
 // PLUS `resolves(text)` (prédicat pur) ET `sabotage(text)` (mutation pure qui retire EXACTEMENT ce
 // que le cas prétend vérifier) — les deux sont OBLIGATOIRES (typées non-optionnelles dans
 // `groundingCorpus.d.mts`) : sans `sabotage`, rien ne prouve que `resolves` teste la bonne chose au
-// lieu d'être vert par accident (« vert à vide », incident du 2026-07-27 — cf. cas 1 ci-dessous). Un
-// cas EN ATTENTE n'a ni `surface`/`resolves`/`sabotage` : la surface qui y répondrait n'existe pas
-// encore, et il porte à la place `surfaceManquante` (ce qui manque, nommé) — jamais un faux vert.
+// lieu d'être vert par accident (« vert à vide », cas 1 ci-dessous). Un cas EN ATTENTE n'a ni
+// `surface`/`resolves`/`sabotage` : la surface qui y répondrait n'existe pas encore, et il porte à la
+// place `surfaceManquante` (ce qui manque, nommé) — jamais un faux vert.
 //
 // Forme du corpus — module JS (données) + test qui le relit, PAS un fichier `src/data/*.json` : les
 // cas ne sont pas de la donnée de JEU (rien de tout ça n'est chargé en jeu), et le prédicat de
@@ -27,41 +28,35 @@
 // (`manualDocsStock.mjs`, `folioRatchetStock.mjs`, `rollSeamWhitelist.mjs`) : la donnée vit dans un
 // module `scripts/guards/lib/*.mjs`, la garde dans `src/data/*.test.ts`.
 //
-// Cas 1 (`carriere-borne-partagee`) — doublon avec `src/data/index-moteur-ratchet.test.ts` (« contrat
-// positif rollCareer ») ? DISTINGUÉ, pas absorbé : le test existant verrouille la STRUCTURE exacte de
-// la ligne générée (ancre `creation.ts:73` incluse) — il casse si `build-index-moteur.mjs` dérive.
-// Ce cas-ci verrouille la DÉCOUVRABILITÉ par mots-clefs, robuste à un déplacement de ligne/reformatage
-// (fenêtre de lignes, pas une ligne exacte) — la propriété que #903bis a réellement fait manquer aux
-// deux agents. Les deux gardes se complètent ; en retirer une romprait une garantie que l'autre ne
-// couvre pas.
+// Cas 1 (`carriere-borne-partagee`) — doublon avec `src/data/index-moteur-ratchet.test.ts`
+// (« contrat positif rollCareer ») ? DISTINGUÉ, pas absorbé : le test existant verrouille la
+// STRUCTURE exacte de la ligne générée (ancre `creation.ts:<ligne>` incluse, ligne non figée) — il
+// casse si `build-index-moteur.mjs` dérive. Ce cas-ci verrouille la DÉCOUVRABILITÉ par mots-clefs,
+// robuste à un déplacement de ligne/reformatage (fenêtre de lignes, pas une ligne exacte) (#903).
+// Les deux gardes se complètent ; en retirer une romprait une garantie que l'autre ne couvre pas.
 //
-// 2026-07-27 — incident « vert à vide » sur ce même cas 1 : la première version cherchait le motif
-// dans TOUT le document, y compris le préambule narratif (« Pourquoi ce fichier », l.8-13) qui RACONTE
-// l'incident fondateur et mentionne donc `rollCareer` à côté de « carrière »/« aléatoire ». Retirer la
-// ligne de concept générée laissait le cas VERT — il ne testait plus rien de généré, seulement de la
-// prose qui parle d'elle-même. Fix : `resolves` scope désormais STRICTEMENT à la section structurelle
-// « ## Index par concept (français) » (`sectionSlice`), jamais le document entier — la scope EXCLUT
-// mécaniquement le préambule et la section « par fichier », qui ne peuvent donc plus sauver le cas.
+// « Vert à vide » : le préambule du document et sa section « par fichier » mentionnent aussi
+// `rollCareer` à côté de « carrière » et « aléatoire ». `resolves` du cas 1 ne lit donc que la section
+// structurelle « ## Index par concept (français) » (`sectionSlice`), jamais le document entier : sans
+// la ligne de concept générée, le cas rougit.
 import spellsJson from '../../../src/data/spells.json' with { type: 'json' };
+import { echapperRegex } from '../../../src/lib/regex.ts';
 
 const WINDOW = 6;
 
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /**
- * Un motif est trouvable si une fenêtre de `WINDOW` lignes consécutives contient TOUS les
- * mots-clefs ET le motif — simule un agent qui cherche par mots-clefs puis lit son voisinage
- * immédiat, sans exiger que motif et mots-clefs partagent la MÊME ligne (contrairement au contrat
+ * Un passage est trouvable si une fenêtre de `WINDOW` lignes consécutives contient TOUS les
+ * mots-clefs et que la regex y matche — simule un agent qui cherche par mots-clefs puis lit son
+ * voisinage immédiat, sans exiger que le match et les mots-clefs partagent la MÊME ligne
+ * (contrairement au contrat
  * positif de `index-moteur-ratchet.test.ts`, volontairement plus strict).
  */
-function keywordWindowResolves(text, keywords, motif) {
+function keywordWindowResolves(text, keywords, regex) {
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const windowText = lines.slice(i, i + WINDOW).join('\n');
-    const hasAllKeywords = keywords.every((k) => new RegExp(escapeRegExp(k), 'i').test(windowText));
-    if (hasAllKeywords && motif.test(windowText)) return true;
+    const hasAllKeywords = keywords.every((k) => new RegExp(echapperRegex(k), 'i').test(windowText));
+    if (hasAllKeywords && regex.test(windowText)) return true;
   }
   return false;
 }
@@ -94,9 +89,8 @@ function sectionSlice(text, heading) {
 /**
  * Bornes d'une SOUS-section (`### …`) : mêmes bornes que `sectionBounds`, mais arrêtées au prochain
  * titre de N'IMPORTE QUEL niveau. Sans ça, un `### Type` court jusqu'au prochain `## …` et avale les
- * tables des types SUIVANTS — une ligne `| `champ` | …` d'un autre type y répondrait à sa place
- * (mesuré : le sabotage du cas `dotation-spec-consommateurs` restait VERT, rattrapé par un `spec`
- * homonyme d'un type voisin).
+ * tables des types SUIVANTS — une ligne `| `champ` | …` d'un autre type y répondrait à sa place (le
+ * sabotage du cas `dotation-spec-consommateurs` serait rattrapé par un `spec` homonyme d'un type voisin).
  */
 function sousSectionBounds(lines, heading) {
   const start = lines.findIndex((l) => l.trim() === heading);
@@ -165,7 +159,7 @@ export const GROUNDING_CASES = [
       if (!m) return false;
       return Number(m[1]) === spellsJson.length;
     },
-    // Retire la ligne « **Synthèse** : N sorts » elle-même — c'est l'unique occurrence du motif que
+    // Retire la ligne « **Synthèse** : N sorts » elle-même — c'est l'unique occurrence de ce que
     // `resolves` cherche, aucune autre ligne du doc ne peut le sauver.
     sabotage(text) {
       return text.split('\n').filter((l) => !/\*\*Synthèse\*\*/.test(l)).join('\n');
@@ -184,11 +178,9 @@ export const GROUNDING_CASES = [
       "le lecteur fondateur est `resolveOne` (src/engine/trappingChoices.ts:36). Puis L-ref-1 (75a454653, " +
       "#1463) lui en a ajouté un SECOND, légitime : `itemFromTrappingRef` (src/engine/items.ts:309) " +
       "MATÉRIALISE la spec sur l'`ItemInstance` — le rendu, lui, n'en est toujours pas un (`refConcrete`).",
-    // Ce que le cas exige est que le doc NOMME ses sites lecteurs, pas qu'il redise un NOMBRE gelé :
-    // la version « exactement 1 lecteur » a viré au rouge quand le second lecteur est apparu, alors
-    // que le doc répondait toujours — mieux — à la question. Sont exigés les DEUX rôles mesurés
-    // (résolution du choix + matérialisation) et l'absence de lecture au RENDU, qui est la réponse
-    // exacte au « personne ne lit `spec` » fondateur.
+    // Le cas exige que le doc NOMME ses sites lecteurs, pas qu'il redise un NOMBRE gelé, qui rougirait
+    // à chaque lecteur légitime de plus. Sont exigés les DEUX rôles (résolution du choix +
+    // matérialisation) et l'absence de lecture au RENDU, la réponse exacte à « personne ne lit `spec` ».
     resolves(text) {
       const section = sousSectionSlice(text, TRAPPING_REF_HEADING);
       if (section == null) return false;
@@ -200,9 +192,9 @@ export const GROUNDING_CASES = [
       if (!/`src\/engine\/items\.ts:\d+`/.test(fondateur)) return false;
       return /trappingRefLabel[\s\S]{0,80}ne lit PAS `ref\.spec`[\s\S]{0,60}`refConcrete`/.test(fondateur);
     },
-    // Fait retomber la ligne `spec` de la section `TrappingRef` à « 0 — JAMAIS LU » (comme les 16
-    // autres champs sans lecteur du même rapport) — seule occurrence du motif que `resolves` exige
-    // dans cette section, la narration « Cas fondateur » restant intacte ne peut pas sauver le cas.
+    // Fait retomber la ligne `spec` de la section `TrappingRef` à « 0 — JAMAIS LU » — seule occurrence
+    // de ce que `resolves` exige dans cette section : la section « Cas fondateur », intacte, ne peut pas
+    // sauver le cas.
     sabotage(text) {
       const lines = text.split('\n');
       const bounds = sousSectionBounds(lines, TRAPPING_REF_HEADING);

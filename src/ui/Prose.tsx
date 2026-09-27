@@ -11,10 +11,10 @@
  * rehype ci-dessous qui réutilise le tokeniseur PUR `tokenizeLinks` (source unique) — aucune logique
  * de liage dupliquée, ni HTML brut injecté (`dangerouslySetInnerHTML` proscrit ici).
  *
- * CONTRAT DU LIAGE (#1392 Lot E) : l'appariement de libellé n'a lieu QUE si l'appelant dit CE QU'IL
+ * CONTRAT DU LIAGE (#1392) : l'appariement de libellé n'a lieu QUE si l'appelant dit CE QU'IL
  * REND — la prop `porteur` (`{ type, id, chemin }`, `liage.ts`), c'est-à-dire le champ
  * d'entrée d'où sort ce texte, VERBATIM. Sans `porteur`, le markdown est rendu tel quel : aucune
- * mention n'est liée. Deux états, aucun intermédiaire.
+ * mention n'est liée. Deux états du rendu (porteur présent ou absent), aucun intermédiaire.
  */
 import { useMemo, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -35,8 +35,8 @@ interface HastNode {
 
 /** Sous-arbres dont le texte n'est PAS auto-lié (liens existants, code). */
 // `exergue` : une citation est la VOIX du livre, pas du texte de règle — le walk s'arrête à
-// l'élément, donc rien n'y est lié (verdict juge vision : « Fileuses du Destin », dans une citation
-// de l'Agitateur, pointait la règle des Points de Destin).
+// l'élément, donc rien n'y est lié (« Fileuses du Destin », dans une citation de l'Agitateur,
+// pointerait la règle des Points de Destin).
 const NO_LINK_TAGS = new Set(['a', 'code', 'pre', 'exergue']);
 
 /** Plugin rehype : remplace dans chaque nœud texte les mentions de règles par un élément `coderef`
@@ -47,7 +47,7 @@ function autolink(tree: HastNode, selfCategory: string, selfId: string): void {
     const next: HastNode[] = [];
     for (const child of node.children) {
       if (child.type === 'text' && typeof child.value === 'string') {
-        const tokens = tokenizeLinks(child.value, undefined, selfCategory, selfId);
+        const tokens = tokenizeLinks(child.value, selfCategory, selfId);
         if (tokens.length === 1 && typeof tokens[0] === 'string') {
           next.push(child);
         } else {

@@ -52,7 +52,7 @@ test('estFichierVitest : la production et ce qui RESSEMBLE à un instrument n’
   }
 })
 
-test('EST_FICHIER_VITEST : la regexp exportée est sans état — deux appels rendent le même verdict', () => {
+test('EST_FICHIER_VITEST : la regex exportée est sans état — deux appels rendent le même verdict', () => {
   // Un drapeau `g` ferait alterner `test()` vrai/faux via `lastIndex` : la garde qui la consomme
   // dans un `filter` verrait un fichier sur deux.
   assert.equal(EST_FICHIER_VITEST.global, false)
@@ -84,37 +84,38 @@ test('les deux prédicats se DÉRIVENT des fragments exportés — une source, q
 })
 
 // ── CLIQUET DE BALAYAGE : le prédicat vit en UN exemplaire ────────────────────────────────────────
-// Le geste qui a créé ce module ne vaut que s'il n'a pas de COPIE : une garde de synchronisation est
+// Ce module ne vaut que s'il n'a pas de COPIE : une garde de synchronisation est
 // un smell, une seule source de vérité. Le balayage lit `src/**` et `scripts/**` en CODE SEUL —
-// commentaires et chaînes blanchis, un littéral de regexp préservé (`codeSeul.mjs`) — et refuse tout
-// motif `\.test\.` / `\.bench\.` écrit ailleurs qu'ici. Deux sites seulement en sont soustraits, par
+// commentaires et chaînes blanchis, un littéral de regex préservé (`codeSeul.mjs`) — et refuse toute
+// regex `\.test\.` / `\.bench\.` écrite ailleurs qu'ici. Deux sites seulement en sont soustraits, par
 // leur FORME et non par une liste : le module lui-même, et le test du module de CORPUS, dont
 // l'oracle `marcheNaive` est volontairement indépendant (un oracle qui importerait le sujet ne
-// prouverait plus rien). Le motif cherché est PLANTÉ en morceaux ci-dessous : écrit d'un bloc, ce
+// prouverait plus rien). La regex cherchée est PLANTÉE en morceaux ci-dessous : écrite d'un bloc, ce
 // balayage se mordrait lui-même.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre } from './lister.mjs'
 import { codeSeul } from './codeSeul.mjs'
+import { alternationDe } from '../../../src/lib/regex.ts'
 
 const LIB = dirname(fileURLToPath(import.meta.url))
 const RACINE = join(LIB, '..', '..', '..')
 /** Le module qui PORTE les deux prédicats, et le test du module de CORPUS : les deux seuls sites du
- *  dépôt autorisés à écrire le motif, désignés par la FORME de leur nom, à côté de CE fichier. */
+ *  dépôt autorisés à écrire la regex, désignés par la FORME de leur nom, à côté de CE fichier. */
 const PORTEURS = new Set(['fichierVitest.mjs', 'sourceCorpus.test.mjs'].map((nom) => join(LIB, nom)))
 const DIALECTES = /\.[cm]?[jt]sx?$/
 /** Une SONDE D'AUDIT DATÉE (`ops/sondes/audit-AAAA-MM-JJ/`) : l'artefact GELÉ d'une mesure passée,
  *  qui vaut par ce qu'il a compté CE JOUR-LÀ. Le migrer réécrirait la mesure ; il n'est pas du code
  *  vivant, et sa FORME — le dossier daté — le dit sans qu'on nomme un fichier. */
 const SONDE_DATEE = /(^|\/)audit-\d{4}-\d{2}-\d{2}$/
-/** Le motif tel qu'on l'écrirait dans une regexp, assemblé mot par mot à l'exécution. */
-const MOTIFS = ['test', 'bench'].map((mot) => ['\\', '.', mot, '\\', '.'].join(''))
-/** Le motif en ALTERNANCE (`\.(<a>|<mot>|<b>)\.`), où le mot côtoie d'autres suffixes dans un
- *  groupe : même copie du prédicat, invisible à `MOTIFS`. Assemblé à l'exécution, comme lui. */
-const ALTERNANCE = new RegExp(String.raw`\\\.\((?:\w+\|)*(?:` + ['test', 'bench'].join('|') + String.raw`)(?:\|\w+)*\)\\\.`)
-/** Une ligne de CODE SEUL copie-t-elle le motif, en bloc ou en alternance ? */
-const copieLeMotif = (ligne) => MOTIFS.some((m) => ligne.includes(m)) || ALTERNANCE.test(ligne)
+/** Le texte de la regex tel qu'on l'écrirait, assemblé mot par mot à l'exécution. */
+const TEXTES_DE_REGEX = ['test', 'bench'].map((mot) => ['\\', '.', mot, '\\', '.'].join(''))
+/** La regex en ALTERNATION (`\.(<a>|<mot>|<b>)\.`), où le mot côtoie d'autres suffixes dans un
+ *  groupe : même copie du prédicat, invisible à `TEXTES_DE_REGEX`. Assemblée à l'exécution, comme eux. */
+const ALTERNATION = new RegExp(String.raw`\\\.\((?:\w+\|)*(?:` + alternationDe(['test', 'bench']) + String.raw`)(?:\|\w+)*\)\\\.`)
+/** Une ligne de CODE SEUL copie-t-elle la regex, en bloc ou en alternation ? */
+const copieLaRegex = (ligne) => TEXTES_DE_REGEX.some((t) => ligne.includes(t)) || ALTERNATION.test(ligne)
 
 const balayer = (racine) =>
   listerArbre(join(RACINE, racine), {
@@ -122,14 +123,14 @@ const balayer = (racine) =>
     descendre: (rel) => !rel.endsWith('node_modules') && !rel.endsWith('art-ref') && !SONDE_DATEE.test(rel),
   }).map((rel) => ({ rel: `${racine}/${rel}`, abs: join(RACINE, racine, rel) }))
 
-test('le prédicat vit en UN exemplaire : aucune copie locale du motif dans src/** ni scripts/**', () => {
+test('le prédicat vit en UN exemplaire : aucune copie locale de la regex dans src/** ni scripts/**', () => {
   const fautes = []
   for (const { rel, abs } of [...balayer('src'), ...balayer('scripts')]) {
     if (PORTEURS.has(abs)) continue
     codeSeul(readFileSync(abs, 'utf8'))
       .split(/\r?\n/)
       .forEach((ligne, i) => {
-        if (copieLeMotif(ligne)) fautes.push(`${rel}:${i + 1}`)
+        if (copieLaRegex(ligne)) fautes.push(`${rel}:${i + 1}`)
       })
   }
   assert.deepEqual(
@@ -142,8 +143,8 @@ test('le prédicat vit en UN exemplaire : aucune copie locale du motif dans src/
   )
 })
 
-test('le balayage voit la copie en ALTERNANCE, comme la copie en bloc', () => {
+test('le balayage voit la copie en ALTERNATION, comme la copie en bloc', () => {
   const copies = [String.raw`/\.(test|d)\.ts$/`, String.raw`/\.(test|spec)\./`, String.raw`/\.(spec|test)\./`, String.raw`/\.(d|bench|spec)\./`]
-  for (const ligne of copies) assert.equal(copieLeMotif(ligne), true, ligne)
-  for (const ligne of [String.raw`/\.(ts|tsx)$/`, String.raw`/\.(d)\.ts$/`, String.raw`/(test|spec)/`]) assert.equal(copieLeMotif(ligne), false, ligne)
+  for (const ligne of copies) assert.equal(copieLaRegex(ligne), true, ligne)
+  for (const ligne of [String.raw`/\.(ts|tsx)$/`, String.raw`/\.(d)\.ts$/`, String.raw`/(test|spec)/`]) assert.equal(copieLaRegex(ligne), false, ligne)
 })

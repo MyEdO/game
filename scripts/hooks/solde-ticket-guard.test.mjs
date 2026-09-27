@@ -1,6 +1,6 @@
 // Test du hook `solde-ticket-guard` (node --test) : la fermeture de ticket au commit exige un
 // SOLDE écrit conforme, avec sa propre réfutation adversariale, et respecte le palier de revue
-// adversariale (demande 2026-07-14). Lancé par `npm run test:hooks`.
+// adversariale. Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
@@ -8,6 +8,7 @@ import { resolve, join } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import {
   extractClosedIssues,
   validateSolde,
@@ -149,9 +150,9 @@ test('validateSolde : item sans disposition', () => {
   assert.match(r.problems.join(' ; '), /sans disposition valide/)
 })
 
-// ── Borne de la section « ## Restes » : une ligne VIDE n'y termine rien (sonde D1/P1.1) ──────────
-// Bornée à la première ligne blanche, la section rendait 1 reste vu pour 5 réels dès qu'une liste
-// était aérée — le PLAFOND (seul seuil doctrinal du garde) et la grammaire s'évaporaient ensemble.
+// ── Borne de la section « ## Restes » : une ligne VIDE n'y termine rien ──────────────────────────
+// Bornée à la première ligne blanche, la section rendrait 1 reste vu pour 5 réels dès qu'une liste
+// est aérée — le PLAFOND (seul seuil doctrinal du garde) et la grammaire s'évaporeraient ensemble.
 test('section Restes : 5 restes routants AÉRÉS comptent 5, comme la même liste compacte', () => {
   const compacte = '- a -> #1\n- b -> #2\n- c -> #3\n- d -> #4\n- e -> #5'
   const aeree = '- a -> #1\n\n- b -> #2\n\n- c -> #3\n\n- d -> #4\n\n- e -> #5'
@@ -306,8 +307,8 @@ test('fenetreDeRevue : la DERNIÈRE date de la 1re ligne, la PREMIÈRE fenêtre 
 /** Date de la 1re ligne — `null` quand elle n'en porte pas (la porte la refusera à ce titre). */
 const dateDe = (texte) => /\d{4}-\d{2}-\d{2}/.exec(texte.split('\n', 1)[0])?.[0] ?? null
 
-// Deux sessions ont archivé le 2026-09-05 une revue de MÊME base (f0f9436f5) : même nom, conflit AA
-// au rebase, la seconde ne pouvait pas entrer dans l'histoire. La fenêtre a pourtant DEUX bornes.
+// Deux revues de MÊME date et de MÊME base, de têtes différentes : un nom commun ferait conflit au
+// rebase, et la seconde n'entrerait pas dans l'histoire. La fenêtre a DEUX bornes.
 test('nomDArchiveDeRevue : même date et même base, têtes DIFFÉRENTES → deux noms', () => {
   const revue = (tete) => `# PALIER — 2026-09-05\n\nfenêtre \`f0f9436f5..${tete}\`\n`
   assert.equal(nomDArchiveDeRevue(revue('714df53da')), 'revue-palier-2026-09-05-f0f9436f5-714df53da.md')
@@ -457,7 +458,7 @@ test('evaluate : revue neuve dont le NOM ne repond pas au CONTENU -> deny qui di
   })
   assert.ok(d, 'un nom libre rendrait la suite des revues illisible')
   assert.match(d.reason, /la revue s'appelle revue-palier-2026-01-01-deadbee\.md/)
-  assert.match(d.reason, new RegExp(`son contenu la nomme ${nomDArchiveDeRevue(contenu)}`))
+  assert.match(d.reason, new RegExp(`son contenu la nomme ${echapperRegex(nomDArchiveDeRevue(contenu))}`))
 })
 
 test('evaluate : revue neuve dont la fenetre NE S’ENCHAINE PAS -> deny, base attendue NOMMEE', () => {
@@ -673,7 +674,7 @@ test('FORME du commit : une revue stagee HORS des pathspecs ne franchit RIEN, et
     const refus = juger(omettant)
     assert.ok(refus, 'fermeture AUTORISEE alors que la revue ne part pas : le palier ne repartirait pas')
     assert.match(refus.reason, /Palier atteint/)
-    assert.match(refus.reason, new RegExp(`${revue.chemin.replace(/[.]/g, '\\.')} est écrite et stagée mais NON EMPORTÉE`))
+    assert.match(refus.reason, new RegExp(`${echapperRegex(revue.chemin)} est écrite et stagée mais NON EMPORTÉE`))
     assert.match(refus.reason, /par pathspec n'emporte QUE les chemins nommés/)
 
     assert.equal(juger(`${omettant} ${revue.chemin}`), null, 'la revue nommee dans les pathspecs franchit le palier')
@@ -721,7 +722,7 @@ test('CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est d
   // Les revues ecrites sous la regle en vigueur portent une DATE dans leur nom : pour celles-la, le
   // nom repond au contenu. Les plus anciennes portent le sha de leur commit consommateur — git a
   // leur histoire, et c'est leur FENETRE, jamais leur nom, que la mesure lit. Le nom courant porte
-  // les DEUX bornes (#1679 L3b) ; les graphies anterieures restent acceptees telles quelles — une
+  // les DEUX bornes (#1679) ; les graphies anterieures restent acceptees telles quelles — une
   // archive committee ne se renomme pas.
   const nommeesParLeurFenetre = archives.filter((a) => /revue-palier-\d{4}-\d{2}-\d{2}-/.test(a.chemin))
   for (const a of nommeesParLeurFenetre) {
@@ -733,7 +734,7 @@ test('CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est d
   }
 })
 
-// ── extractRefIssues (anti-esquive, extension 2026-07-14) ──────────────────────────────────────────
+// ── extractRefIssues (anti-esquive) ──────────────────────────────────────────
 test('extractRefIssues : "ref #N" et "refs #N" reconnus, dédupliqués/triés', () => {
   assert.deepEqual(extractRefIssues('git commit -m "feat: truc, ref #371 refs #371 ref #393"'), [371, 393])
 })
@@ -741,8 +742,8 @@ test('extractRefIssues : "ref #N" et "refs #N" reconnus, dédupliqués/triés', 
 test('extractRefIssues : la CHAÎNE `refs #A #B #C` rend TOUS ses numéros, en nombres triés', () => {
   assert.deepEqual(extractRefIssues('git commit -m "fix(guards): refs #1699 #1388 — le banc"'), [1388, 1699])
   assert.deepEqual(extractRefIssues('git commit -m "chore: refs #12, #13"'), [12, 13])
-  // Le ticket rattaché par une chaîne exige son solde comme un `refs #N` seul : sans cela, #1388
-  // passait sous la porte dès qu'il était cité en 2ᵉ position.
+  // Le ticket rattaché par une chaîne exige son solde comme un `refs #N` seul : sans cela, un ticket
+  // cité en 2ᵉ position passerait sous la porte (#1388).
   assert.deepEqual(extractRefIssues('git commit -m "corrige #7 — refs #8 #9"'), [8, 9])
 })
 
@@ -805,11 +806,11 @@ test('analyzeDiffDuCommit : src/** hors src/ui/** → touchesUi false', () => {
   assert.equal(r.touchesUi, false)
 })
 
-// ── La restriction au lot de CETTE commande appartient à git (#591 défaut 1, arbre PARTAGÉ) ───────
+// ── La restriction au lot de CETTE commande appartient à git (#591, arbre PARTAGÉ) ───────────────
 // `diffDuCommit` borne déjà le `--numstat` par `-- <pathspecs>`. Refaire ce filtrage ICI avec un
-// matcheur de chemins MAISON aveuglait la garde sur `git commit -- .` (sonde 2026-09-04) : `.`
-// n'égale aucun chemin et n'en préfixe aucun, donc tout le lot était jeté — stock, `touchesSrc` et
-// compte de lignes à zéro sur la forme la plus courante.
+// matcheur de chemins MAISON aveuglerait la garde sur `git commit -- .` : `.` n'égale aucun chemin
+// et n'en préfixe aucun, donc tout le lot serait jeté — stock, `touchesSrc` et compte de lignes à
+// zéro sur la forme la plus courante.
 test('analyzeDiffDuCommit : lit le numstat TEL QUEL, sans second filtrage de chemins', () => {
   const raw = [
     '50\t20\tsrc/ui/RollShell.tsx',
@@ -836,7 +837,7 @@ test('analyzeDiffDuCommit : `git commit -- .` — le lot borné par git est vu E
   }
 })
 
-// ── isGitCommitCommand / extractCommitPathspecs (#591 défauts 1 et 3 — parsing STRUCTUREL) ─────────
+// ── isGitCommitCommand / extractCommitPathspecs (#591 — parsing STRUCTUREL) ─────────
 test('isGitCommitCommand : git commit simple → true', () => {
   assert.equal(isGitCommitCommand('git commit -m "corrige #7"'), true)
 })
@@ -849,7 +850,7 @@ test('isGitCommitCommand : enchaînement cmd1 && git commit → true', () => {
   assert.equal(isGitCommitCommand('npm test && git commit -m "x"'), true)
 })
 
-test('isGitCommitCommand : gh issue create citant "git commit" dans le corps → false (jamais un grep de sous-chaîne, #591 défaut 3)', () => {
+test('isGitCommitCommand : gh issue create citant "git commit" dans le corps → false (jamais un grep de sous-chaîne, #591)', () => {
   const cmd = 'gh issue create --title "bug" --body "le hook a refusé un git commit légitime"'
   assert.equal(isGitCommitCommand(cmd), false)
 })
@@ -875,9 +876,9 @@ test('extractCommitPathspecs : pas un commit → []', () => {
   assert.deepEqual(extractCommitPathspecs('gh issue create --body "git commit -- foo"'), [])
 })
 
-// Mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree : `2>&1` passait pour un
-// pathspec, `analyzeDiffDuCommit` filtrait sur un chemin inexistant, et le garde déclarait « ABSENT
-// de ce que ce commit emporte » chaque fichier cité par le solde. Une redirection n'est pas un chemin.
+// Une redirection n'est pas un chemin : lu comme pathspec, `2>&1` ferait filtrer `analyzeDiffDuCommit`
+// sur un chemin inexistant, et le garde déclarerait « ABSENT de ce que ce commit emporte » chaque
+// fichier cité par le solde.
 test('extractCommitPathspecs : une REDIRECTION, un PIPE ou un `&` n\'est jamais un pathspec', () => {
   const wt = '.wt-1679-L2'
   assert.deepEqual(extractCommitPathspecs(`git -C "${wt}" commit -q -F "${wt}/msg.txt" 2>&1 | tail -3`), [])
@@ -894,10 +895,10 @@ test('extractCommitPathspecs : une REDIRECTION, un PIPE ou un `&` n\'est jamais 
   assert.deepEqual(extractCommitPathspecs('git commit -m x -- "a>b.txt"'), ['a>b.txt'])
 })
 
-// La forme décide le diff, et deux jetons la faisaient basculer à tort (sondes 2026-09-04).
+// La forme décide le diff, et aucun de ces deux jetons ne la fait basculer.
 test('shorts groupés : le PREMIER `m`/`F` décide, comme dans git', () => {
-  // `-mF` est un MESSAGE valant « F » : lu comme « -m booléen puis -F fichier », le garde consommait
-  // le token suivant en pathspec et jugeait un commit sur un fichier qui n'y est pas.
+  // `-mF` est un MESSAGE valant « F » : lu comme « -m booléen puis -F fichier », le garde consommerait
+  // le token suivant en pathspec et jugerait un commit sur un fichier qui n'y est pas.
   assert.deepEqual(extractCommitPathspecs('git commit -mF src/ui/RollShell.tsx'), ['src/ui/RollShell.tsx'])
   assert.equal(formeDuCommit('git commit -mF').forme, 'index', 'aucun token à consommer après `-mF`')
   assert.deepEqual(extractCommitPathspecs('git commit -am "corrige #7"'), [])
@@ -930,7 +931,7 @@ test('extractCommitPathspecs : --file=<path> ne devient pas un pathspec', () => 
   assert.deepEqual(extractCommitPathspecs('git commit --file=commit-415.txt -- src/ui/Foo.tsx'), ['src/ui/Foo.tsx'])
 })
 
-// ── juge adversarial : -am contourne tout (défaut le plus grave, réfuté) ────────────────────────────
+// ── `-am` : le message n'est pas un pathspec, le commit emporte l'index entier ──────────────────────
 test('extractCommitPathspecs : "-am" (shorts groupés) → le message n\'est PAS un pathspec, [] (index entier)', () => {
   assert.deepEqual(extractCommitPathspecs('git commit -am "feat: refonte truc"'), [])
 })
@@ -1006,7 +1007,7 @@ test('extractClosedIssues : "--message=" multi-mots reconnaît toujours le mot-c
   assert.deepEqual(extractClosedIssues('git commit --message="corrige #501 pour de bon"'), [501])
 })
 
-// ── evaluatePorteDuTicket (porte du ticket, option retenue le 2026-09-11) ───────────────────
+// ── evaluatePorteDuTicket (porte du ticket) ──────────────────────────────────────────────────
 const porte = (command, ...fichiersEmportes) => evaluatePorteDuTicket({ command, fichiersEmportes })
 
 test('porte du ticket : un commit qui touche src/ sans aucun ticket est REFUSÉ, fichier nommé', () => {
@@ -1043,7 +1044,7 @@ test('porte du ticket : un message que la commande NE PORTE PAS (éditeur, --ame
     assert.ok(d, `${cmd} : refus attendu`)
     assert.match(d.reason, /part à l’ÉDITEUR \(ou est hérité par `--amend`\)/, cmd)
   }
-  // Message LISIBLE et sans ticket : le refus ne parle plus d'éditeur, il manque un ticket, point.
+  // Message LISIBLE et sans ticket : le refus ne parle pas d'éditeur, il manque un ticket, point.
   const lisible = porte('git commit -m "chore: une ligne de rien"', 'src/x.ts')
   assert.doesNotMatch(lisible.reason, /ÉDITEUR/)
   assert.equal(porte('git commit --amend -m "feat: x (refs #1709)"', 'src/x.ts'), null)
@@ -1128,9 +1129,9 @@ test('evaluateAntiEsquive : "ref #N" avec fichier ref-N.md non conforme → deny
   assert.match(d.reason, /trop maigre/)
 })
 
-// Scope tranché #591 (2026-07-17) : le déclencheur REFUTATION ne porte QUE sur le ticket
-// explicitement rattaché (fermeture ou `ref #N`) — un commit sans AUCUN ticket, même src/**
-// substantiel, reste hors du mécanisme (ce n'était PAS le déclencheur d'origine, cf. en-tête).
+// Scope #591 : le déclencheur REFUTATION ne porte QUE sur le ticket explicitement rattaché
+// (fermeture ou `ref #N`) — un commit sans AUCUN ticket, même src/** substantiel, reste hors du
+// mécanisme.
 test('evaluateAntiEsquive : aucun ticket rattaché (ni fermeture, ni ref #N), src touché → silence (#591)', () => {
   const d = evaluateAntiEsquive({
     command: 'git commit -m "feat: refonte truc"',
@@ -1178,7 +1179,7 @@ test('validateJugeVisionFile : section absente', () => {
   assert.match(r.problems.join(' ; '), /"## Juge-Vision" absente/)
 })
 
-// ── evaluateJuge (extension REFUTATION → JUGE adversarial, générale à tout domaine) ────────────────
+// ── evaluateJuge (REFUTATION → JUGE adversarial, général à tout domaine) ────────────────────────
 const JUGE_LINE_OK = 'JUGE: un agent juge adversarial a rejoué le diff contre le DoD, aucun contournement ne passe.'
 const JUGE_VISION_LINE_OK = 'JUGE-VISION: captures fraîches jugées contre l\'attendu, mécanisme et pixels vérifiés.'
 
@@ -1198,7 +1199,7 @@ test('evaluateJuge : fermeture de ticket → silence (déjà couverte par le sol
   assert.equal(evaluateJuge({ command: 'git commit -m "corrige #9"', stagedTouchesSrc: true, stagedTotalLines: 100 }), null)
 })
 
-// Scope tranché #591 : évaluateJuge partage EXACTEMENT le déclencheur d'evaluateAntiEsquive — un
+// Scope #591 : évaluateJuge partage EXACTEMENT le déclencheur d'evaluateAntiEsquive — un
 // `ref #N` rattaché, jamais un commit sans ticket du tout.
 test('evaluateJuge : aucun ticket rattaché, src touché → silence (#591)', () => {
   const d = evaluateJuge({
@@ -1287,7 +1288,7 @@ test('evaluateJuge : "ref #N" UI touchée, fichier ref-N.md avec "## Juge" ET "#
   assert.equal(d, null)
 })
 
-// ── extractMessageSources (message par fichier -F/--file, fix production 2026-07-14) ──────────────
+// ── extractMessageSources (message par fichier -F/--file) ─────────────────────────────────────────
 test('extractMessageSources : pas de -F → texte = commande telle quelle', () => {
   const r = extractMessageSources('git commit -m "corrige #42"')
   assert.equal(r.text, 'git commit -m "corrige #42"')
@@ -1394,7 +1395,7 @@ test('evaluateAmendInvisible : --amend sans -m/-F, diff staged ne touche pas src
   assert.equal(evaluateAmendInvisible({ command: 'git commit --amend', stagedTouchesSrc: false }), null)
 })
 
-// ── registres PORTEURS de ticket (prévention #434/#487, généralisée #1825) ────────────────────────
+// ── registres PORTEURS de ticket (#434, #487, #1825) ────────────────────────────────────────────
 // Les chemins de registre sont INVENTÉS ici : recopier un chemin réel ferait de ce banc un second
 // porteur de la liste, alors que la liste est de la DONNÉE (`registres-porteurs.json`, dont le banc
 // de forme plus bas mesure qu'elle désigne des fichiers existants).
@@ -1497,8 +1498,8 @@ test('evaluateRegistresPorteurs : multi-fermeture — seuls les tickets encore p
 })
 
 // LA LISTE SE LIT DANS LE COMMIT, AU MOMENT DE L'ÉVALUATION. Lue à l'import et sans garde, une
-// liste absente ou cassée faisait LEVER le module — le garde ENTIER muet, `exit 1`, stdout vide ;
-// lue sous la racine du script, un commit de worktree était jugé avec la liste d'un autre arbre.
+// liste absente ou cassée ferait LEVER le module — le garde ENTIER muet, `exit 1`, stdout vide ;
+// lue sous la racine du script, un commit de worktree serait jugé avec la liste d'un autre arbre.
 test('evaluateRegistresPorteurs : liste ABSENTE du commit → la FERMETURE refuse en nommant la cause', () => {
   const d = evaluateRegistresPorteurs({
     command: 'git commit -m "corrige #508"',
@@ -1506,7 +1507,7 @@ test('evaluateRegistresPorteurs : liste ABSENTE du commit → la FERMETURE refus
   })
   assert.ok(d, 'une liste absente ne doit pas laisser fermer en silence')
   assert.match(d.reason, /#508/)
-  assert.match(d.reason, new RegExp(CHEMIN_DE_LA_LISTE.replace(/[./]/g, '\\$&')))
+  assert.match(d.reason, new RegExp(echapperRegex(CHEMIN_DE_LA_LISTE)))
   assert.match(d.reason, /absente du contenu emporté/)
 })
 
@@ -1603,15 +1604,15 @@ test('extractTargetDir : chemin absolu résolu tel quel', () => {
   assert.notEqual(abs, cwd)
 })
 
-test('extractMessageSources : « -F » en PROSE d un message -m n est pas un flag fichier (git refuse -m+-F — faux positif vécu 2026-07-14)', () => {
+test('extractMessageSources : « -F » en PROSE d un message -m n est pas un flag fichier (git refuse -m+-F)', () => {
   const cmd = 'git commit -m "fix(hooks): les fermetures via -F et, pire, laissant passer — utiliser -m ou un chemin lisible"'
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
   assert.equal(r.fileError, null)
   assert.equal(r.text, cmd)
 })
 
-// Le drapeau `-F` ne vaut QUE dans le segment qui exécute `git commit` (mesuré 2026-09-04 : deux
-// refus « message de commit en fichier illisible » sur des commandes qui ne committent rien).
+// Le drapeau `-F` ne vaut QUE dans le segment qui exécute `git commit` : une commande qui ne committe
+// rien n'a pas de « message de commit en fichier illisible ».
 test('extractMessageSources : le -F de « gh api -X PATCH … -F corps=@fichier » n est PAS un message de commit', () => {
   const cmd = 'gh api -X PATCH repos/cgauche/game/issues/comments/42 -F body=@rapport.md'
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
@@ -1647,9 +1648,9 @@ test('extractMessageSources : le -F d un `git commit` ENCHAÎNÉ derrière un `g
 })
 
 // ── repoRoot / read*File : ancrage à l'emplacement du script, pas au cwd du process ────────────────
-// Constat de production : les hooks tournent avec `cwd` = celui de la commande qui les invoque
-// (jamais garanti = racine du dépôt) — `resolve('.claude/soldes', ...)` (relatif à `cwd`) cherchait
-// au mauvais endroit et le garde affirmait un solde "absent" alors qu'il existait.
+// Les hooks tournent avec `cwd` = celui de la commande qui les invoque (jamais garanti = racine du
+// dépôt) — `resolve('.claude/soldes', ...)` (relatif à `cwd`) chercherait au mauvais endroit et le
+// garde affirmerait un solde "absent" alors qu'il existe.
 test('repoRoot : résolu depuis l\'emplacement du script, retrouve la racine du dépôt même hors cwd', () => {
   const cwd = process.cwd()
   try {
@@ -1668,7 +1669,7 @@ test('repoRoot : résolu depuis l\'emplacement du script, retrouve la racine du 
 
 // TOUT ce que le garde lit se lit dans le RÉPERTOIRE où le commit s'exécute, jamais dans le dépôt du
 // HOOK : depuis un worktree, un solde ou une réfutation écrits là où l'on committe sont invisibles au
-// dépôt qui porte le script, et la porte refuse à tort (mesuré 2026-09-04).
+// dépôt qui porte le script, et la porte refuserait à tort.
 test('readSoldeFile/readRefFile : lisent le RÉPERTOIRE du commit, pas le dépôt du hook', () => {
   const fakeRepo = mkdtempSync(join(tmpdir(), 'solde-guard-fakerepo-'))
   const soldesDir = join(fakeRepo, '.claude', 'soldes')
@@ -1736,7 +1737,7 @@ test('evaluate : ni index ni disque → "fichier absent" (jamais le message de s
 
 // Le solde LU est celui que le commit EMPORTE, et cela dépend de la FORME de la commande : un solde
 // stagé est emporté par un commit d'index, PAS par un commit qui nomme d'autres chemins (git y prend
-// HEAD). Lire l'index dans tous les cas validait une preuve qui ne partait pas (sonde 2026-09-04).
+// HEAD). Lire l'index dans tous les cas validerait une preuve qui ne part pas.
 test('diffDuCommit.contenu : le solde EMPORTÉ suit la forme — index oui, hors pathspec non', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
@@ -1886,11 +1887,11 @@ test('tombalesDansSource : un commentaire de dette citant le ticket fermé est T
   assert.equal(t[0].ligne, 1)
 })
 
-test('tombalesDansSource : le MÊME motif dans une CHAÎNE n\'est pas un commentaire', () => {
+test('tombalesDansSource : la MÊME forme dans une CHAÎNE n\'est pas un commentaire', () => {
   assert.deepEqual(tombalesDansSource([4242], { fichiers: ['src/b.ts'], lire: () => SRC_CHAINE }), [])
 })
 
-test('tombalesDansSource : citer la PROVENANCE d\'un choix (sans motif de dette) est toléré', () => {
+test('tombalesDansSource : citer la PROVENANCE d\'un choix (sans forme de dette) est toléré', () => {
   assert.deepEqual(tombalesDansSource([4242], { fichiers: ['src/c.ts'], lire: () => SRC_PROVENANCE }), [])
 })
 
@@ -1934,7 +1935,7 @@ test('evaluateFermetureHorsCommit : silence sur ce qui ne ferme pas', () => {
   }
 })
 
-// ── `gh api --input <fichier>` : le corps de la requête est LU (abstention D6/a levée) ───────────
+// ── `gh api --input <fichier>` : le corps de la requête est LU ───────────────────────────────────
 test('evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "closed" est refusé', () => {
   const lire = () => JSON.stringify({ state: 'closed', state_reason: 'completed' })
   for (const cmd of [
@@ -1951,7 +1952,7 @@ test('evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "clos
 
 test('evaluateFermetureHorsCommit : les gestes `--input` qui ne peuvent pas FERMER passent en silence', () => {
   // Au PreToolUse le corps est souvent écrit APRÈS (par la commande elle-même) : refuser sur un
-  // fichier absent mordrait 4 gestes routiniers (sonde J4). Le corps n'est lu que sur l'endpoint
+  // fichier absent mordrait des gestes routiniers. Le corps n'est lu que sur l'endpoint
   // d'UN ticket et une méthode qui ÉCRIT.
   const absent = () => { throw new Error('ENOENT') }
   for (const cmd of [
@@ -2036,18 +2037,18 @@ test('cheminDEcriture : hors de tout arbre → `horsContenu`, graphie native, MS
   }
 })
 
-test('cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu’un motif couvre reste du contenu', () => {
+test('cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu’un glob couvre reste du contenu', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'public/suivi.json': '{}\n', '.gitignore': '.claude/*\n!.claude/memory/\n' } })
   try {
-    // Le motif posé APRÈS le commit couvre un fichier déjà suivi : `git check-ignore` sans `--no-index`
+    // Le glob posé APRÈS le commit couvre un fichier déjà suivi : `git check-ignore` sans `--no-index`
     // ne le compte pas ignoré.
     writeFileSync(join(racine, '.gitignore'), '.claude/*\n!.claude/memory/\npublic/\n')
     const vu = ecriture(join(racine, '.claude', 'worktrees', 'agent-x', 'src', 'a.ts'))
     assert.equal(vu.horsContenu, true, 'worktree mort sous `.claude/`')
     assert.notEqual(vu.racine, null, 'dans un dépôt : le verdict vient de git, pas de la racine')
     assert.equal(ecriture(join(racine, '.claude', 'memory', 'x.md')).horsContenu, false, '`!.claude/memory/`')
-    assert.equal(ecriture(join(racine, 'public', 'suivi.json')).horsContenu, false, 'suivi sous un motif')
-    assert.equal(ecriture(join(racine, 'public', 'neuf.json')).horsContenu, true, 'neuf sous un motif')
+    assert.equal(ecriture(join(racine, 'public', 'suivi.json')).horsContenu, false, 'suivi sous un glob')
+    assert.equal(ecriture(join(racine, 'public', 'neuf.json')).horsContenu, true, 'neuf sous un glob')
     if (process.platform === 'win32') {
       assert.equal(ecriture(versMsys(join(racine, '.claude', 'worktrees', 'x.md'))).horsContenu, true, 'MSYS')
     }
@@ -2106,7 +2107,7 @@ test('evaluateHunksEmportes : commit NU (sans pathspec) → silence', () => {
   }), null)
 })
 
-// ── Écran touché : capture de recette visuelle (E1) ───────────────────────────────────────────────
+// ── Écran touché : capture de recette visuelle ───────────────────────────────────────────────────
 test('estFichierEcran : src/ui et src/gameIso, jamais leurs tests', () => {
   assert.equal(estFichierEcran('src/ui/RollShell.tsx'), true)
   assert.equal(estFichierEcran('src/gameIso/stage/GameStage3D.tsx'), true)
@@ -2146,7 +2147,7 @@ test('verifierCapture : une capture PLAUSIBLE passe ; les six défauts sont NOMM
     assert.match(verifierCapture('public/qc/absente.png', { racine: base }).problemes[0], /introuvable/)
     assert.match(verifierCapture('public/qc/vide.png', { racine: base }).problemes[0], /ni un PNG ni un JPEG/)
     assert.match(verifierCapture('public/qc/faux.png', { racine: base }).problemes[0], /ni un PNG ni un JPEG/)
-    // Le défaut qui passait AVANT le juge : un en-tête PNG de 8 octets était accepté.
+    // Un en-tête PNG de 8 octets seul n'est pas une capture.
     assert.match(verifierCapture('public/qc/entete-seul.png', { racine: base }).problemes.join(' ; '), /trop légère/)
     assert.match(verifierCapture('public/qc/vignette.png', { racine: base }).problemes.join(' ; '), /trop petite \(64×48 px/)
     const futur = Date.now() + 60_000
@@ -2198,7 +2199,7 @@ test('validateSolde : un commit qui touche un ÉCRAN exige « ## Recette visuell
 })
 
 // Un en-tête de fichier énonce couramment une dette D'UN sujet et cite AILLEURS le ticket d'un
-// AUTRE : les juger au BLOC rapprochait 206 paires dans l'arbre (mesuré 2026-09-02), à la LIGNE 57.
+// AUTRE : les juger au BLOC rapprocherait des paires étrangères, que la LIGNE sépare.
 const SRC_ENTETE_MIXTE = [
   '/**',
   ' * Rapport GÉNÉRÉ. Le volet B reste non implémenté (#4242).',
@@ -2245,8 +2246,8 @@ test('validateSolde : « corrigé par <sha> » citant un fichier que le commit n
 })
 
 test('validateSolde : « corrigé par <sha> » citant une LIGNE hors des hunks du commit → refus', () => {
-  // La ligne se prouvait sur parole : « :999999 » passait tant que le FICHIER était touché (sonde
-  // D1/P1.3), là où « corrigé dans ce commit » exigeait déjà le site exact.
+  // Sans ce contrôle, la ligne se prouverait sur parole : « :999999 » passerait tant que le FICHIER
+  // est touché, là où « corrigé dans ce commit » exige le site exact.
   const restes = '- chemin mort cité -> corrigé par 4d6e1ff78 src/data/schemas/defs/teintesJeu.ts:999999'
   const r = validateSolde(solde({ restes }), TODAY, HISTOIRE_OK)
   assert.equal(r.ok, false)
@@ -2301,11 +2302,10 @@ test('le solde #584 de l\'arbre est CONFORME à sa propre grammaire', () => {
   assert.equal(r.ok, true, r.problems.join(' ; '))
 })
 
-// ── C2/C3/C4/C5 : les règles resserrées après le juge de diff ─────────────────────────────────────
+// ── Renommage, chemins nus ────────────────────────────────────────────────────────────────────────
 test('fichiersDuCommitGit : un RENOMMAGE rend les deux chemins NUS, jamais « {ancien => nouveau} »', () => {
-  // Mesuré sur 26be12347 : `.claude/soldes/revue-palier.md` renommée en `revue-palier-2205fde51.md`.
-  // Sans `--no-renames`, `git show --numstat` rend UNE ligne agrégée qu'aucun chemin cité n'égale —
-  // un solde JUSTE était refusé.
+  // Sans `--no-renames`, `git show --numstat` rend pour un renommage UNE ligne agrégée qu'aucun chemin
+  // cité n'égale — un solde JUSTE serait refusé.
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/ancien.ts': 'export const a = 1\n'.repeat(20) }, message: 'socle' })
   try {
     const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
@@ -2365,7 +2365,7 @@ test('evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi →
   assert.equal(evaluateHunksEmportes({ command: 'git commit -a -m "x"', fichiersModifies: [], fichiersStages: [] }), null)
 })
 
-// ── L'ASCENDANCE INDISPONIBLE n'est pas un « non » (#1679 L3 T2) ─────────────────────────────────
+// ── L'ASCENDANCE INDISPONIBLE n'est pas un « non » (#1679) ───────────────────────────────────────
 // `estDansHead` rend `false` pour un sha INCONNU, jamais pour une lecture qui n'a pas eu lieu : sans
 // cela, hors dépôt ou git absent, le refus dirait « ce commit n'est pas dans cette histoire » — un
 // motif faux.
@@ -2400,7 +2400,7 @@ test('jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; tout
   assert.doesNotMatch(hors.reason, /où git répond/)
 })
 
-// ── Le garde ne juge que DEUX gestes — hors d'eux, il ne lit rien (#1729 sonde 3) ────────────
+// ── Le garde ne juge que DEUX gestes — hors d'eux, il ne lit rien (#1729) ────────────────────
 test('gesteJuge : commit et fermeture `gh` ; toute autre commande est hors sujet', () => {
   assert.equal(gesteJuge('git commit -m "x"'), 'commit')
   assert.equal(gesteJuge('cd wt && git commit -F msg.txt'), 'commit')
@@ -2423,7 +2423,7 @@ test('tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne cou
   assert.equal(src.fileError, null, 'le `-F` de la ligne suivante est perdu : le message n’est jamais lu')
   assert.deepEqual(extractClosedIssues(src.text), [1728])
   assert.deepEqual(extractRefIssues(src.text), [1729])
-  // Le marqueur lui-même ne devient pas un pathspec parasite (`["`"]` mesuré avant correction).
+  // Le marqueur lui-même ne devient pas un pathspec parasite (`["`"]`).
   assert.deepEqual(
     extractCommitPathspecs(`git commit -m "fix: refs #1729" ${BT}${LF}  -- scripts/hooks/x.mjs`),
     ['scripts/hooks/x.mjs'],
@@ -2432,7 +2432,7 @@ test('tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne cou
 
 // ── Répertoire CIBLE : ce que la commande nomme n'est un cwd que s'il EXISTE (#1729) ─────────────
 // Un cwd inexistant et un git absent rendent le MÊME ENOENT de spawn : retenir un chemin non prouvé
-// faisait refuser « ascendance indisponible » un geste que git exécutait (sondes 1-2 du ticket).
+// ferait refuser « ascendance indisponible » un geste que git exécute.
 test('cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cwd, et la raison est dite', () => {
   const base = mkdtempSync(join(tmpdir(), 'cible-'))
   try {
@@ -2509,7 +2509,7 @@ test('avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il 
   assert.equal(avecCibleIgnoree(null, { chemin: 'x', raison: 'y' }), null)
 })
 
-// ── Le CORPS d’un heredoc est une DONNÉE, pas des commandes (#1729 sonde 6) ───────────────────
+// ── Le CORPS d’un heredoc est une DONNÉE, pas des commandes (#1729) ──────────────────────────────
 test('isGitCommitCommand : un heredoc qui ÉCRIT un texte citant « git commit » n’est pas un commit', () => {
   const ecriture = [
     "cat > note.md <<'EOF'",

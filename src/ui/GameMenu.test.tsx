@@ -6,6 +6,7 @@ import { campaignStart } from '../engine/clock';
 import { useGame } from '../state/store';
 import { KEYBINDINGS } from '../state/keybindings';
 import type { GameState } from '../state/store';
+import { echapperRegex } from '../lib/regex';
 
 describe('GameMenu — menu système plein écran (pause)', () => {
   // Rendu SSR (renderToStaticMarkup) : zustand v5 lit l'état INITIAL, d'où `initialOpen`/`initialView`
@@ -74,7 +75,7 @@ describe('GameMenu — menu système plein écran (pause)', () => {
     expect(html).toContain('Réinitialiser les touches');
   });
 
-  it('sous-écran Coopération : en-tête Retour + briques coop (plus aucun widget coop inline au menu)', () => {
+  it('sous-écran Coopération : en-tête Retour + briques coop (aucun widget coop inline au menu)', () => {
     const html = renderToStaticMarkup(
       <GameMenu sceneName="La taverne" time={campaignStart()} onQuit={() => {}} initialOpen initialView="coop" />,
     );
@@ -96,12 +97,12 @@ describe('GameMenu — menu système plein écran (pause)', () => {
 describe('☰ du menu système — atteignable menu ouvert, jamais au-dessus des modales (#1752)', () => {
   const hud = readFileSync(new URL('./styles/hud.css', import.meta.url), 'utf8');
   const components = readFileSync(new URL('./styles/components.css', import.meta.url), 'utf8');
-  /** Bloc d'une règle CSS, désignée par son sélecteur ÉCHAPPÉ en entier (`.`, `[`, `-`…), COMMENTAIRES
+  /** Bloc d'une règle CSS, désignée par son sélecteur passé à `echapperRegex`, COMMENTAIRES
    *  RETIRÉS : ici les commentaires CITENT les rangs (`z-index 130`…) et une sonde qui les lit
    *  mesurerait la prose au lieu de la déclaration. */
   const sansCommentaires = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
   const bloc = (css: string, selecteur: string): string =>
-    new RegExp(`${selecteur.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&')}\\s*\\{[^}]*\\}`).exec(sansCommentaires(css))?.[0] ?? '';
+    new RegExp(`${echapperRegex(selecteur)}\\s*\\{[^}]*\\}`).exec(sansCommentaires(css))?.[0] ?? '';
   const rang = (css: string, selecteur: string): number =>
     Number(/z-index:\s*(\d+)/.exec(bloc(css, selecteur))?.[1] ?? NaN);
 
