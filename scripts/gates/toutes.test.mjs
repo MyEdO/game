@@ -428,7 +428,7 @@ test('une machine qui ne porte pas les lanes joue en SÉRIE, et le dit', async (
 })
 
 test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes, exit 1', async () => {
-  // La morsure de `lanesAJouer` (l.139) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
+  // La morsure de `lanesAJouer` (l.104) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
   // rien des VERDICTS. Ici c'est `principal` entier qui est rejoué en `--serie` sur le même cas que
   // le test des deux lanes distinctes : `--serie` ne change que la COMPOSITION des lanes.
   const { racine } = depotDeGates([

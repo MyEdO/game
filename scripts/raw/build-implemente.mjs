@@ -6,7 +6,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
-import { refRe, span, bookOf, BOOKS, estLivreExtrait, esc, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
+import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { declarerCorpsPerime } from '../docs/lib/empreinte-sources.mjs'
 import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
@@ -22,14 +23,9 @@ export const MANIFEST_EDITORIAL_RE = /^src\/data\/[^/]+\.manifest\.json$/
 export const MANIFEST_PATH = 'src/data/raw.manifest.json'
 export const BOOKS_JSON_PATH = 'src/data/books.json'
 export const APP_ROOT_MODULE = 'src/main.tsx'
-// Fenêtre de match ligne (épreuve 2026-07-16). Recalibrage empirique 2026-07-16 (mesure `--dry` TOL
-// 10/5/2/0 → implémentés 286/282/273/264) : TOL n'est PAS le levier des faux « implémenté » des
-// pages-catalogues denses. Les faux `activites#dressage`/`entrainement`/`faites-moi-une-faveur`
-// viennent d'une plage FOLIO large (`activities.json` craft/learn → `LDB 23 l.50-191`) qui CONTIENT
-// déjà le topic → TOL-immune. À l'inverse TOL=0 casse de vrais folio-implémentés (colique : topic
-// `MSRC 16 l.109-111` vs plage folio `l.65-105`, décalage folio↔fiche de 4 l. que TOL comble).
-// Tenu à 10 : `renderBlock` accepte un override `ctx.tol` (mesure) ; le remède des pages denses est
-// côté FOLIO (feature #434), pas TOL — écart rapporté à l'orchestrateur.
+// Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
+// plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
+// vient de la plage FOLIO, pas de TOL (#434).
 export const TOL = 10
 
 // Acceptation DÉCLARÉE à la couture (`pagesDeLAtlas`) : les FICHES seules — le champ `Implémente` ne
@@ -55,8 +51,7 @@ const COMMENT_OR_BLANK = /^\s*(?:\/\/|\/\*|\*|$)/
 // Marqueur généré (SEULE graphie du non-implémenté) — et sa contre-épreuve d'invisibilité des gardes.
 export const GEN_TAG = '_(généré — `npm run raw:implemente`)_'
 export const NOT_IMPL = '(non implémenté)'
-// Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici se
-// désynchronisait dès qu'un livre s'ajoutait à BOOKS — cf. allAbbrAlternation, source unique).
+// Sigles des livres extraits : `allAbbrAlternation` (`_lib.mjs`, #434).
 export const GUARD_LEAK_RE = new RegExp(`\\b(?:${allAbbrAlternation()}) ?\\d* l\\.`)
 
 export function slugify(s) {
@@ -206,44 +201,6 @@ export function refMatches(topicRef, cit, tol = TOL) {
   )
 }
 
-/** Longueur d'intersection (en lignes) entre deux spans `[lo,hi]` (0 si disjoints). */
-function spanOverlap(aLo, aHi, bLo, bHi) {
-  const lo = Math.max(aLo, bLo), hi = Math.min(aHi, bHi)
-  return hi >= lo ? hi - lo + 1 : 0
-}
-
-/** Règle folio-EXCLUSIVE (#434, EXPÉRIENCE — flag `--folio-exclusive`, JAMAIS par défaut) : une
- *  citation FOLIO n'est attribuée qu'au(x) topic(s) de MEILLEUR RECOUVREMENT — parmi les topics dont
- *  les réfs (avec `tol`) intersectent la plage folio, seul(s) le(s) recouvrement(s) MAXIMAL(aux)
- *  (longueur d'intersection brute réfs↔plage) la reçoivent ; égalité = tous les ex æquo la gardent.
- *  Retourne Map<cit, Set<topic>>. Citations de LIGNE (code) non concernées.
- *  MESURE 2026-07-16 (`--dry --folio-exclusive`) : NE SÉPARE PAS → non adopté. Le décalage folio↔fiche
- *  fait que colique (réf fiche `MSRC 16 l.109-111`, HORS de sa plage folio `l.65-105`) a un recouvrement
- *  NUL avec sa propre citation → volée par le voisin `vers-de-carie` (réf l.71-86, recouvre 16 l.) →
- *  colique RÉGRESSE en non implémenté ; et 2 dettes (dernieres-nouvelles/semer-la-dissension) restent
- *  implémentées. Gardé en expérience derrière le flag ; le vrai bruit est documenté à part. */
-export function computeFolioWinners(fiches, index, tol = TOL) {
-  const topics = []
-  for (const fi of fiches) for (const f of fi.parsed.fields) topics.push({ topic: f.topic, refs: f.refs })
-  const winners = new Map()
-  for (const c of index.impl) {
-    if (!c.folio) continue
-    let best = -1
-    const scored = []
-    for (const t of topics) {
-      let overlap = 0, matches = false
-      for (const r of t.refs) {
-        if (r.book !== c.book || r.ch !== c.ch) continue
-        if (refMatches(r, c, tol)) matches = true
-        overlap += spanOverlap(r.lo, r.hi, c.lo, c.hi)
-      }
-      if (matches) { scored.push({ topic: t.topic, overlap }); if (overlap > best) best = overlap }
-    }
-    winners.set(c, new Set(scored.filter((s) => s.overlap === best).map((s) => s.topic)))
-  }
-  return winners
-}
-
 /** Fusionne des spans `[lo,hi]` qui se CHEVAUCHENT (pas les adjacents). */
 export function mergeSpans(spans) {
   const sorted = [...spans].sort((a, b) => a[0] - b[0] || a[1] - b[1])
@@ -361,7 +318,7 @@ export function isDeadExport(name, defFile, index) {
     if (dn === name) { declIdx = i; exported = /^export\b/.test(defLines[i]); break }
   }
   if (declIdx < 0 || !exported) return false
-  const re = new RegExp(`\\b${esc(name)}\\b`)
+  const re = new RegExp(`\\b${echapperRegex(name)}\\b`)
   for (let i = 0; i < defLines.length; i++) {
     if (i === declIdx || COMMENT_OR_BLANK.test(defLines[i])) continue
     if (re.test(defLines[i])) return false // appelant local (hors commentaire, hors déclaration)
@@ -381,11 +338,6 @@ export function etatDuTopic(field, ctx) {
   const { impl, tests } = index
   const tol = ctx.tol ?? TOL
   const refs = field.refs
-  // Règle folio-exclusive (expérience) : une citation FOLIO ne compte pour CE topic que s'il fait
-  // partie de ses gagnants au meilleur recouvrement (`computeFolioWinners`). OFF → comportement d'origine.
-  const folioOk = (c) =>
-    !c.folio || !ctx.folioExclusive || (ctx.folioWinners && ctx.folioWinners.get(c)?.has(field.topic))
-
   const refGroups = new Map() // 'BOOK|CH' -> { book, ch, refs:[] }
   for (const ref of refs) {
     const key = ref.book + '|' + ref.ch
@@ -400,7 +352,7 @@ export function etatDuTopic(field, ctx) {
     const matchedSpans = []
     const citMap = new Map() // file:row -> cit
     for (const ref of g.refs) {
-      const matched = impl.filter((c) => c.book === g.book && c.ch === g.ch && refMatches(ref, c, tol) && folioOk(c))
+      const matched = impl.filter((c) => c.book === g.book && c.ch === g.ch && refMatches(ref, c, tol))
       if (matched.length) {
         matchedSpans.push([ref.lo, ref.hi])
         for (const c of matched) { citMap.set(c.file + ':' + c.row, c); fichiers.add(c.file) }
@@ -628,8 +580,7 @@ export function buildContext({ rawDir = RAWDIR, srcDir = SRC_DIR, manifestPath =
   })
   const { topics, stems } = registresDeFiches(fiches)
   const dette = chargerDette({ topics, stems }, manifestPath)
-  const folioWinners = computeFolioWinners(fiches, index)
-  return { index, closure, dette, fiches, rawDir, folioWinners }
+  return { index, closure, dette, fiches, rawDir }
 }
 
 /** Les deux espaces d'`id` d'une dette, du MÊME parse : les topics, et les fiches qui les portent. */
@@ -715,7 +666,6 @@ function main() {
   const CHECK = args.includes('--check')
   const DRY = args.includes('--dry')
   const ctx = buildContext()
-  ctx.folioExclusive = args.includes('--folio-exclusive') // expérience #434 (mesure avant adoption)
 
   const all = etatsDesTopics(ctx)
   const orphans = orphelinsDeDette(ctx, all)

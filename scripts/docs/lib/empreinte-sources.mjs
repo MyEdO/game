@@ -25,9 +25,9 @@ const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
  * Format UNIQUE du pied, dernière ligne du doc généré. Il signe DEUX choses : l'empreinte des
  * SOURCES lues à la génération, et le sha1 du CORPS signé (le doc sans son pied).
  * Le corps est signé parce que les sources ne le disent pas : aucune cible n'est mesurée comme
- * source d'elle-même (0 générateur sur 30, sonde `q3b.mjs` 2026-09-04), si bien qu'un doc dérivé
+ * source d'elle-même, si bien qu'un doc dérivé
  * ÉDITÉ À LA MAIN resterait « frais » par ses seules sources, et pour toujours.
- * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 T1d ne le portent pas, et
+ * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 ne le portent pas, et
  * `retirerPied` doit savoir les retirer pour qu'une re-signature n'en empile pas deux.
  */
 export const PIED_RX =

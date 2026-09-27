@@ -160,6 +160,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `espacesExtensibles` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -204,6 +208,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `InitiativeStrip` (src/ui/InitiativeStrip.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `PartyDock` (src/ui/PartyDock.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ObjectiveBanner` (src/ui/ObjectiveBanner.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `echapperRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDe` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDeRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `espacesExtensibles` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 
 ## Modules `src/state`/`src/engine` non rattachés à un système déclaré
 
@@ -232,4 +240,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 6a3522ceb958ca0e3fce6171b72945689705ee7c (1847 fichiers, 2 dossiers) corps: 0aaf496f6fb78ba8c9546451cf3aa382d75e8e92 -->
+<!-- sources-empreinte: eca309491132b24c103fe5f55ab81306c691d2e9 (1847 fichiers, 2 dossiers) corps: dbb3fc96e029efa6b3e184e4bcbfeb9f0a74f6e1 -->

@@ -2704,6 +2704,7 @@
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -4975,6 +4976,7 @@
       "src/lib/normalize.ts",
       "src/lib/ordre.d.mts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -8059,6 +8061,7 @@
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -10018,7 +10021,8 @@
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
       "src/data/source/normalize.ts",
-      "src/lib/ordre.mjs"
+      "src/lib/ordre.mjs",
+      "src/lib/regex.ts"
     ],
     "dossiers": []
   },
@@ -13763,6 +13767,7 @@
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -16116,7 +16121,8 @@
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
       "src/data/source/normalize.ts",
-      "src/lib/ordre.mjs"
+      "src/lib/ordre.mjs",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "docs/raw",
@@ -16273,7 +16279,8 @@
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
       "src/data/source/normalize.ts",
-      "src/lib/ordre.mjs"
+      "src/lib/ordre.mjs",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -18850,6 +18857,8 @@
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.test.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.test.ts",
       "src/lib/stockageWeb.ts",
       "src/livres-recopies-guard.test.ts",
@@ -21133,7 +21142,8 @@
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
       "src/data/source/normalize.ts",
-      "src/lib/ordre.mjs"
+      "src/lib/ordre.mjs",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -21368,7 +21378,8 @@
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
       "src/data/source/normalize.ts",
-      "src/lib/ordre.mjs"
+      "src/lib/ordre.mjs",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -23998,6 +24009,8 @@
       "src/lib/normalize.ts",
       "src/lib/ordre.d.mts",
       "src/lib/ordre.mjs",
+      "src/lib/regex.test.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.test.ts",
       "src/lib/stockageWeb.ts",
       "src/livres-recopies-guard.test.ts",

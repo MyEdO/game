@@ -181,13 +181,12 @@ export function citerArgv(valeur) {
  * gates, mais sous POSIX seulement (`detached: process.platform !== 'win32'`) : sous win32 elles
  * héritent de la console de l'appelant. Sous win32, `spawn({ detached: true })` pose
  * `DETACHED_PROCESS` (libuv) : le train n'a AUCUNE console, et chacun de ses enfants console
- * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan — mesuré le 2026-09-17 sur 15
- * commandes : 9 consoles neuves, contre 1 (celle du train, CACHÉE, dont ses enfants héritent) par
- * `Start-Process -WindowStyle Hidden`. Le pid rendu est celui du NODE du train (`-PassThru`), jamais
- * celui du `powershell` intermédiaire, qui rend la main aussitôt (mesuré : 253 ms) et meurt sans
- * emporter le train. Aucune redirection n'est demandée à `Start-Process` : le train ouvre LUI-MÊME
- * son journal (`modeDuLog`) et le passe en stdio à ses enfants, et `-RedirectStandard*` retiendrait
- * le `powershell` jusqu'à la fin du train (mesuré : 16,14 s au lieu de 253 ms).
+ * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ; `Start-Process -WindowStyle
+ * Hidden` n'en ouvre qu'une, celle du train, CACHÉE, dont ses enfants héritent. Le pid rendu est
+ * celui du NODE du train (`-PassThru`), jamais celui du `powershell` intermédiaire, qui rend la main
+ * aussitôt et meurt sans emporter le train. Aucune redirection n'est demandée à `Start-Process` : le
+ * train ouvre LUI-MÊME son journal (`modeDuLog`) et le passe en stdio à ses enfants, et
+ * `-RedirectStandard*` retiendrait le `powershell` jusqu'à la fin du train.
  * @param {{script:string, args:string[], cwd:string, fdLog:number, envSupplementaire?:Record<string,string>,
  *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
  * @returns {number|undefined} pid du processus NODE du train

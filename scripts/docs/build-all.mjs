@@ -12,7 +12,7 @@
 // qui les écrivent. C'est cet ordre qui autorise une source elle-même GÉNÉRÉE : une source écrite par
 // un générateur PLUS TARD dans la liste serait lue périmée, et se fait refuser par nom.
 //
-// EMPREINTE DE SOURCES (#1679 L1b) — chaîne complète, aucun maillon écrit à la main :
+// EMPREINTE DE SOURCES (#1679) — chaîne complète, aucun maillon écrit à la main :
 //   1. chaque générateur est lancé avec `scripts/docs/lib/enregistreur-lectures.mjs` en préchargeur
 //      (`NODE_OPTIONS`, donc les sous-processus node en héritent) : ce qu'il lit se MESURE ;
 //   2. le set fusionné (un fichier par PID) part dans le dérivé `docs/.sources-lues.json` ;
@@ -24,10 +24,8 @@
 // écrit — un commit ne le bouge que s'il ajoute/retire une source ou un dossier lu (fichier neuf
 // sous `src/`, import de plus, fiche `docs/raw` de plus), pas parce qu'une source a changé de
 // contenu (c'est le PIED du doc qui bouge, lui, à chaque régénération).
-// Cinq générateurs étaient AVEUGLES à toute mesure naïve, mesuré 2026-09-02 : les trois `runner: 'tsx'`
-// (`tsx/dist/cli.mjs` RE-SPAWNE un processus — ils sont lancés ici par `node --import tsx/esm`) et les
-// deux qui appelaient `npx tsx <dumper>` (`build-donnees.mjs`, `build-codex-relations.mjs`, passés à
-// `resoudreOutilLocal` + `envIsole`, qui transmettent l'env).
+// Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
+// processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 //
 // RENDU SOUS UNE PLATEFORME (#1801) : `--check --plateforme <nom>` rend chaque générateur sur l'hôte
 // ET sous `<nom>` (sur l'hôte seul quand `<nom>` est l'hôte), par un module de `PLATEFORMES` composé

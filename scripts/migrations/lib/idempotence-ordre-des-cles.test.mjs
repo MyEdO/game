@@ -17,15 +17,15 @@
  *  1. NO-OP SUR CORPUS RENVERSÉ : `src/data` ENTIER est recopié dans un dépôt jetable, clés
  *     renversées document par document, puis TOUTES les migrations datées y sont rejouées une à une.
  *     Exigé : zéro réécriture (octet ET horodatage), et sortie 0 partout.
- *  2. FAIL-FAST `id` HORS TÊTE : pour chaque migration qui porte cette porte (dérivée du motif
+ *  2. FAIL-FAST `id` HORS TÊTE : pour chaque migration qui porte cette porte (dérivée de la forme
  *     `Object.keys(e).indexOf('id')`), le premier dataset de sa table reçoit son entrée de tête avec
  *     `id` repoussé au rang 1. Exigé : sortie 1, message NOMINATIF, fichier ni réécrit ni touché.
  *  3. Les deux morsures INVERSES — une entrée à `cover` privée de sa `maison`, un
  *     `steam-breakdown.json` dont `id` n'ouvre plus l'entrée DOIVENT être migrés : un no-op qui
  *     avale tout ne prouverait rien.
  *  4. PORTE DE FORME (#1812) : ce qui protège d'un rejeu sur une donnée d'une AUTRE époque est la
- *     FORME des entrées, jamais leur NOMBRE. Pour chaque migration qui porte cette porte (dérivée du
- *     motif de son message), la première entrée de son premier dataset reçoit un `type` ÉTRANGER :
+ *     FORME des entrées, jamais leur NOMBRE. Pour chaque migration qui porte cette porte (dérivée de la
+ *     forme de son message), la première entrée de son premier dataset reçoit un `type` ÉTRANGER :
  *     ni la forme source ni la forme cible. Exigé : sortie 1, message NOMINATIF, rien d'écrit.
  *     Sa garde de CLASSE — « +1 entrée ne coûte rien » — ne lit pas le code mais fabrique l'ajout et
  *     rejoue tout : `npm run migrations:replay:croissance` (`lib/croissance.mjs`).
@@ -43,6 +43,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { echapperRegex } from '../../../src/lib/regex.ts';
 import { ANTIDATE, efface, joue } from './joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
@@ -54,7 +55,7 @@ const DATEES = fs
   .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
   .sort((a, b) => a.localeCompare(b, 'en'));
 
-/** Le texte d'une migration — les dérivations ci-dessous s'y font par motif. */
+/** Le texte d'une migration — les dérivations ci-dessous s'y font par regex. */
 const texteDe = (migration) => fs.readFileSync(path.join(MIGRATIONS, migration), 'utf8');
 
 /**
@@ -119,13 +120,13 @@ const renverse = (doc) => {
 
 /**
  * Ce que le dépôt jetable doit porter pour qu'une migration échoue sur son CONTRAT et jamais sur une
- * absence de dépôt. Mesuré en retirant chaque poste : sans `Source/`, quatre migrations sortent 1 sur
- * une extraction introuvable — une raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
+ * absence de dépôt : sans `Source/`, des migrations sortent 1 sur une extraction introuvable — une
+ * raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
  *
- * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (4,7 Go,
+ * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
  */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'docs/raw', 'Source'];
+const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'docs/raw', 'Source'];
 
 test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
@@ -138,7 +139,7 @@ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renvers�
 
   const data = path.join(racine, 'src/data');
   const jsons = fs.readdirSync(data).filter((f) => f.endsWith('.json'));
-  // Plancher 121 → 119 (#1686 lot 2) : les trois catalogues de matières fusionnent en `materials.json`.
+  // Plancher du corpus (#1686 : les catalogues de matières fusionnent en `materials.json`).
   assert.ok(jsons.length >= 119, `corpus de ${jsons.length} document(s) — la copie n'a pas pris \`src/data\``);
 
   /** Le corpus RENVERSÉ, posé et gardé en référence : toute divergence ultérieure est une écriture. */
@@ -175,7 +176,7 @@ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renvers�
 
 // --- 2. FAIL-FAST « `id` HORS TÊTE » -------------------------------------------------------------
 
-/** Les migrations qui portent la porte `id` hors tête — DÉRIVÉES du motif qui la code. */
+/** Les migrations qui portent la porte `id` hors tête — DÉRIVÉES de la forme qui la code. */
 const PORTEURS_ID_EN_TETE = DATEES.filter((m) => /Object\.keys\(e\)\.indexOf\('id'\)/.test(texteDe(m)));
 
 /**
@@ -191,7 +192,7 @@ const premierDataset = (migration) => {
 };
 
 test('la porte `id` hors tête est portée par les 5 vagues d’enveloppe', () => {
-  assert.ok(PORTEURS_ID_EN_TETE.length >= 5, `${PORTEURS_ID_EN_TETE.length} porteur(s) — le motif dérivé ne trouve plus rien`);
+  assert.ok(PORTEURS_ID_EN_TETE.length >= 5, `${PORTEURS_ID_EN_TETE.length} porteur(s) — la regex dérivée ne trouve plus rien`);
   for (const m of ['2026-08-28-l1b-11a-entite-type.mjs', '2026-08-28-l1b-11b-entite-type.mjs',
     '2026-08-28-l1b-12a-entite-type.mjs', '2026-08-28-l1b-12b-entite-type.mjs', '2026-08-28-l1b-14-oups-type.mjs']) {
     assert.ok(PORTEURS_ID_EN_TETE.includes(m), `${m} n’est plus reconnue porteuse de la porte \`id\` en tête`);
@@ -214,11 +215,10 @@ for (const migration of PORTEURS_ID_EN_TETE) {
 
     const r = joue(racine, migration);
     const sortie = `${r.stdout}${r.stderr}`;
-    const echappe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
     assert.equal(r.code, 1, `sortie ${r.code} — un \`id\` hors tête doit ARRÊTER la migration : ${sortie.slice(0, 500)}`);
-    assert.match(sortie, new RegExp(echappe(fichier)), `arrêt MUET sur le fichier visé : ${sortie.slice(0, 500)}`);
+    assert.match(sortie, new RegExp(echapperRegex(fichier)), `arrêt MUET sur le fichier visé : ${sortie.slice(0, 500)}`);
     assert.match(sortie, /rang 1/, `arrêt sans NOMMER le rang de \`id\` : ${sortie.slice(0, 500)}`);
-    assert.match(sortie, new RegExp(echappe(tete.id)), `arrêt sans NOMMER l’entrée : ${sortie.slice(0, 500)}`);
+    assert.match(sortie, new RegExp(echapperRegex(String(tete.id))), `arrêt sans NOMMER l’entrée : ${sortie.slice(0, 500)}`);
     assert.equal(fs.readFileSync(cible, 'utf8'), avant, `${fichier} RÉÉCRIT alors que l’arrêt précède toute écriture`);
     assert.equal(fs.statSync(cible).mtimeMs, mtimeAvant, `${fichier} touché (mtime) alors que l’arrêt précède toute écriture`);
   });
@@ -298,11 +298,10 @@ for (const migration of PORTEURS_DE_FORME) {
 
     const r = joue(racine, migration);
     const sortie = `${r.stdout}${r.stderr}`;
-    const echappe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
     assert.equal(r.code, 1, `sortie ${r.code} — une forme ÉTRANGÈRE doit ARRÊTER la migration : ${sortie.slice(0, 500)}`);
-    assert.match(sortie, new RegExp(echappe(fichier)), `arrêt MUET sur le fichier visé : ${sortie.slice(0, 500)}`);
-    assert.match(sortie, new RegExp(echappe(tete.id)), `arrêt sans NOMMER l’entrée : ${sortie.slice(0, 500)}`);
-    assert.match(sortie, new RegExp(echappe(TYPE_ETRANGER)), `arrêt sans NOMMER la forme rencontrée : ${sortie.slice(0, 500)}`);
+    assert.match(sortie, new RegExp(echapperRegex(fichier)), `arrêt MUET sur le fichier visé : ${sortie.slice(0, 500)}`);
+    assert.match(sortie, new RegExp(echapperRegex(String(tete.id))), `arrêt sans NOMMER l’entrée : ${sortie.slice(0, 500)}`);
+    assert.match(sortie, new RegExp(echapperRegex(TYPE_ETRANGER)), `arrêt sans NOMMER la forme rencontrée : ${sortie.slice(0, 500)}`);
     assert.equal(fs.readFileSync(cible, 'utf8'), avant, `${fichier} RÉÉCRIT alors que l’arrêt précède toute écriture`);
     assert.equal(fs.statSync(cible).mtimeMs, mtimeAvant, `${fichier} touché (mtime) alors que l’arrêt précède toute écriture`);
   });

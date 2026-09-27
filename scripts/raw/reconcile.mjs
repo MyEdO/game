@@ -19,7 +19,7 @@
 //   ne se stocke pas », titres B2) et par le groupement de `coverage.mjs` : dire ce qu'un livre EST
 //   n'est pas lui appliquer un régime, et un libellé ne décide de rien.
 //   Un cœur de plus est UNE clé `coeur` de `books.json`, zéro ligne ici.
-// CLIQUET (#1709 lot D2, #925) : les TROUS DURS des deux sens — chapitre-livre cité par le code et
+// CLIQUET (#1709, #925) : les TROUS DURS des deux sens — chapitre-livre cité par le code et
 //   absent de l'Atlas (`hardA`), chapitre d'un livre de cœur décrit par l'Atlas jamais atteint par
 //   le code après crédit folio (`b2[].horsCode`) — sont confrontés au STOCK NOMINATIF
 //   `reconciliation-stock.json` : une entrée neuve OU une entrée du stock devenue caduque pose
@@ -35,9 +35,10 @@ import { fileURLToPath } from 'node:url'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import {
-  refReDe, refFolioReDe, alternationDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
+  refReDe, refFolioReDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
   REGISTRE_LIVRES, folioSpan, span, pagesDeLAtlas, readText,
 } from './_lib.mjs'
+import { alternationDe } from '../../src/lib/regex.ts'
 import { lireStockJson } from './stockNominatif.mjs'
 import { fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
@@ -85,7 +86,7 @@ export function decodeCle(cle, abbrs) {
   return sensB2 ? { sens: 'B2', ...sensB2 } : sensA ? { sens: 'A', ...sensA } : null
 }
 
-// Clé de chapitre canonique du Sens A (#434 défaut 9 suite, #1156) : le code écrit le numéro
+// Clé de chapitre canonique du Sens A (#434, #1156) : le code écrit le numéro
 // zéro-préfixé (`AA 02`, `ADE II ch.03`, `LDB 08`), l'Atlas écrit les titres sans préfixe
 // (`## [AA 2]`, `## [LDB 8]`) — comparaison textuelle brute = faux trou, et exemption catalogue
 // morte pour toute réf zéro-préfixée. Normalise aux DEUX collectes (code ET Atlas) et pour TOUS
@@ -110,7 +111,7 @@ const setDe = (table, book) => table.get(book) || new Set()
 export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH } = {}) {
   const books = booksDe(registre)
   const coeurs = coeursDe(registre)
-  const ALT = alternationDe(books)
+  const ALT = alternationDe(books.map(([a]) => a))
   const bookOf = bookOfDe(books)
   const SRC = fichiersCitants(srcDir)
   const DOCS = pagesDeLAtlas(rawDir, { classes: CLASSES, registre })
@@ -259,7 +260,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
     }
   }
 
-  // Résumé par livre (le compte central du #434 défaut 9)
+  // Résumé par livre (#434)
   const bookStats = new Map()
   const stat = (book) => {
     if (!bookStats.has(book)) bookStats.set(book, { hard: 0, soft: 0, noCh: 0 })
@@ -314,7 +315,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
     total: (topicsParFiche.get(entree.id) ?? []).length,
   }))
   // === SENS B2 (R2, régime de CŒUR) : chapitres cités par l'Atlas jamais référencés dans le code
-  // (`atlasLoose`/`codeLoose` portent déjà la clé canonique `chKey`, #434 défaut 11 — `LDB 06` et
+  // (`atlasLoose`/`codeLoose` portent déjà la clé canonique `chKey`, #434 — `LDB 06` et
   // `LDB 6` sont une seule entrée). Crédite le FOLIO : un chapitre atteint par une source
   // `{book,page}` de src/data est référencé (donnée), pas hors-code.
   // Second crédit, la DETTE DE FICHE (#1825) : un chapitre que le code n'atteint pas, mais dont

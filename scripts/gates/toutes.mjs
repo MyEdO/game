@@ -134,7 +134,7 @@ export const ECRIT_LU = {
       '+1 écrivain le 2026-09-18 (#1813) : `modulesFeuilles.test.mjs` fabrique l’arbre jetable où il éprouve ' +
       'les graphies d’import qui atteignent une FEUILLE (`mkdtempSync` sous os.tmpdir(), `rmSync` en finally) — ' +
       'sonde `git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; ' +
-      '+1 écrivain le 2026-09-20 (#1825 lot E2) : `guards/lib/jouer-workflow.test.mjs` écrit ses scripts ' +
+      '+1 écrivain le 2026-09-20 (#1825) : `guards/lib/jouer-workflow.test.mjs` écrit ses scripts ' +
       'JOUETS sous `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l’enveloppe qu’il éprouve charge un ' +
       'FICHIER, et l’arbre n’est jamais écrit ; +2 écrivains le 2026-09-22 (#1873) : ' +
       '`migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs` forge son dépôt sous `mkdtempSync` de ' +
@@ -343,10 +343,10 @@ export const ECRIT_LU = {
         '`check-folio-continuity.test.mjs` IMPORTE le détecteur des sauts de folio, dont l’unique ' +
         'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ; ' +
         'le banc ne fait que LIRE le stock (`readStock`, `lireStockJson`)',
-      // Le MOTIF, pas une page : l’écrivain tient le routeur de l’Atlas ET l’index de chaque cœur,
-      // et la population des cœurs est DÉRIVÉE (#1825) — un chemin de cœur écrit ici sous-déclarerait
-      // dès le cœur suivant. Même motif qu’à sa déclaration de générateur (`injecte`,
-      // scripts/docs/build-all.mjs), lu par la grammaire unique (`correspondGlob`).
+      // Le GLOB, pas une page : l’écrivain tient le routeur de l’Atlas ET l’index de chaque cœur,
+      // et la population des cœurs est DÉRIVÉE (#1825) ; un chemin de cœur écrit ici sous-déclarerait
+      // dès le cœur suivant. Même glob qu’à sa déclaration de générateur (`injecte`,
+      // scripts/docs/build-all.mjs).
       'docs/raw/**/00-index.md':
         '`build-atlas-index.test.mjs` IMPORTE l’écrivain des blocs des index de l’Atlas (cœurs du ' +
         'routeur, domaines de chaque cœur) ; son unique `writeFileSync` vit dans `main()`, sous sa ' +
@@ -354,7 +354,7 @@ export const ECRIT_LU = {
         'PURES (`lignesDesCoeurs`, `lignesDesDomaines`, `blocsDeLAtlas`, `injecter`). Le cas `--check` ' +
         'le LANCE, mais dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : ce sont ces ' +
         'pages-là qu’il écrit, jamais celles du dépôt',
-      // Le MOTIF, pas un dossier : le re-coupeur sert TOUT livre à liste de découpe
+      // Le GLOB, pas un dossier : le re-coupeur sert TOUT livre à liste de découpe
       // (`scripts/raw/decoupes/<id>.json`), et recale tout stock nominatif keyé par ses fichiers.
       'Source/**/*.md':
         '`recouper-source.test.mjs` IMPORTE le re-coupeur des `.md` en service ; ses `writeFileSync` et ' +
@@ -370,7 +370,7 @@ export const ECRIT_LU = {
       'scripts/raw/*-stock.json':
         'même porte, même module : le recalage des stocks nominatifs (`recalerStock`) rend un TEXTE, ' +
         'que le seul `main()` écrit derrière `import.meta.main` (`main` de scripts/raw/recouper-source.mjs)',
-      // Le MOTIF, pas une page : l’outil répare TOUTE page de l’Atlas dont un renvoi d’ancre est mort.
+      // Le GLOB, pas une page : l’outil répare TOUTE page de l’Atlas dont un renvoi d’ancre est mort.
       'docs/raw/**/*.md':
         '`reparer-ancres.test.mjs` IMPORTE l’outil de réparation des renvois d’ancre (#1824) ; son unique ' +
         '`writeFileSync` vit derrière la porte `--apply` de `reparer` (scripts/raw/reparer-ancres.mjs), et ' +
@@ -383,10 +383,10 @@ export const ECRIT_LU = {
       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
       'JETABLES sous `os.tmpdir()`, retirés par `rmSync` — aucune écriture dans l’arbre ; +3 écrivains le ' +
-      '2026-09-20 (#1825 lot E2) : `apply-livre.test.mjs` et `assemble-domain.test.mjs`, même régime ' +
+      '2026-09-20 (#1825) : `apply-livre.test.mjs` et `assemble-domain.test.mjs`, même régime ' +
       'os.tmpdir(), et `assemble-domain.mjs`, ACQUIS par l’import de son banc — ses `writeFileSync` vivent ' +
       'dans `assemble()`, appelée par le seul `main()`, sous sa porte `import.meta.main` ; +4 le 2026-09-20 ' +
-      '(#1825 lot F0) : la fabrique d’Atlas jetable (`atlasFixture.mjs`) et les deux bancs qui la ' +
+      '(#1825) : la fabrique d’Atlas jetable (`atlasFixture.mjs`) et les deux bancs qui la ' +
       'prennent (`_lib.test.mjs`, `build-atlas-index.test.mjs`), même régime os.tmpdir(), et ' +
       '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
@@ -398,7 +398,7 @@ export const ECRIT_LU = {
   },
   'raw:check-refs': {
     ecrit: [],
-    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
       '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, ABSENT en régime nominal',
@@ -412,7 +412,7 @@ export const ECRIT_LU = {
   },
   'raw:check-ancres': {
     ecrit: [],
-    lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
       + 'donc un renvoi mort est un renvoi faux, jamais un héritage à geler. LIT les pages de l’Atlas, '
@@ -428,7 +428,7 @@ export const ECRIT_LU = {
         'commande de .github/workflows/ci.yml ne passe pas ; sans elle la gate COMPARE le stock à sa ' +
         'mesure et ne touche à rien',
     },
-    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le normaliseur de références, ' +
       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
@@ -444,7 +444,7 @@ export const ECRIT_LU = {
         '(`main` de scripts/raw/check-source-tables.mjs), option que la commande de .github/workflows/ci.yml ' +
         'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
     },
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
       'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; le seul module écrivain ' +
@@ -458,7 +458,7 @@ export const ECRIT_LU = {
         '(`main` de scripts/raw/check-source-puces.mjs), option que la commande de .github/workflows/ci.yml ' +
         'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
     },
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; le seul module ' +
@@ -472,7 +472,7 @@ export const ECRIT_LU = {
         '(`main` de scripts/raw/check-renvois.mjs), option que la commande de .github/workflows/ci.yml ' +
         'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
     },
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
     raison:
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; le seul ' +
@@ -486,7 +486,7 @@ export const ECRIT_LU = {
         '(`main` de scripts/raw/check-source-format.mjs), option que la commande de .github/workflows/ci.yml ' +
         'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
     },
-    lit: ['Source/', 'src/data/books.json', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['Source/', 'src/data/books.json', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres et les dossiers FR de Source/ (ceux à `dir` plus les ' +
       'pré-pipeline atteints par balayage), ainsi que son stock nominatif ' +

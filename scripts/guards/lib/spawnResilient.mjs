@@ -2,12 +2,10 @@
 // sites de spawn en dépendent, `scripts/gates/toutes.mjs` (les gates du rejeu local et la photo
 // de l'arbre) et `scripts/docs/build-all.mjs` (chaque générateur de doc dérivée).
 //
-// LE CAS, MESURÉ le 2026-09-04 (première exécution des lanes, `gates --tout` sur b939ddfe7) : sous
-// quatre lanes parallèles, le loader Windows a refusé d'initialiser des processus NEUFS et rendu
-// `3221225794` = `STATUS_DLL_INIT_FAILED` (0xC0000142). Quatre victimes dans le même run :
-// `build-all.mjs` n'a pas pu démarrer `build-implemente.mjs` (docs:check ROUGE à 48,6 s),
-// `build` a perdu son `tsc -b` (ROUGE, 43 lignes sans une erreur), et 47 tests de la suite ont
-// échoué sur `expected 3221225794`. Aucun de ces rouges ne disait quoi que ce soit du contenu poussé.
+// LE CAS : sous des lanes parallèles, le loader Windows peut refuser d'initialiser des processus
+// NEUFS et rendre `3221225794` = `STATUS_DLL_INIT_FAILED` (0xC0000142) : un générateur qui ne démarre
+// pas, un `tsc -b` perdu, des tests qui échouent sur `expected 3221225794` — autant de rouges qui ne
+// disent rien du contenu poussé.
 //
 // POURQUOI REJOUER EST SÛR ICI, et seulement ici : ce code vient du LOADER, avant que le processus
 // n'exécute la moindre instruction de son `main` — il n'a rien lu, rien écrit, rien verrouillé.
@@ -16,7 +14,7 @@
 // un VRAI verdict et remonte tel quel : un rejeu ne peut donc pas transformer un rouge en vert.
 //
 // CE QUI SE MESURE : chaque rejeu imprime `MARQUE_REJEU` sur stderr. C'est le compteur de PRESSION
-// du lanceur — la mémoire système, elle, ne discrimine rien (100 % à 15 workers comme à 9).
+// du lanceur — la mémoire système, elle, ne discrimine rien.
 import { execFileSync } from 'node:child_process'
 
 /** `STATUS_DLL_INIT_FAILED` (0xC0000142) : le loader a refusé d'initialiser le processus. */

@@ -399,14 +399,12 @@ const ATTENDU = {
     'scripts/raw/reparer-titres.mjs',
   ],
   'raw:check-refs': [],
-  // +1 le 2026-09-11 (#925) : la gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE
-  // `fieldBlockMask` de `build-implemente.mjs` (frontière du bloc de champ généré, source unique) ;
-  // la réécriture des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
-  // Mesure du 2026-09-11 (`scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI) :
-  // 4 137 lectures, ZÉRO écriture.
-  // +1 le 2026-09-23 (#1801) : `build-implemente.mjs` importe `declarerCorpsPerime` du socle
-  // d'empreinte, dont l'écrivain (`ecrireDoc`) n'est appelé que par un générateur — la gate n'en
-  // appelle aucun.
+  // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
+  // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
+  // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
+  // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
+  // `build-implemente.mjs` importe `declarerCorpsPerime` du socle d'empreinte (#1801), dont
+  // l'écrivain (`ecrireDoc`) n'est appelé que par un générateur — la gate n'en appelle aucun.
   'raw:check-code-refs': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
