@@ -139,6 +139,11 @@ export function PartyScreen() {
       {refusLancement && (
         <Modal variant="plain" title={t('party.launch.refused')} onClose={() => setRefusLancement(null)} backdropClose>
           <p className="chip tone-danger" role="alert">{refusLancement}</p>
+          <div className="modal-actions">
+            <button className="btn btn-primary" onClick={() => setRefusLancement(null)}>
+              {t('party.launch.refused.close')}
+            </button>
+          </div>
         </Modal>
       )}
     </>

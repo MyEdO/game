@@ -405,6 +405,10 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
       );
       expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
       expect(useGame.getState().screen).toBe('party');
+      const fermer = document.querySelector('[role="dialog"] .modal-actions button') as HTMLButtonElement | null;
+      expect(fermer?.textContent, 'sortie visible de la modale de refus').toBe('Fermer');
+      await act(async () => fermer!.click());
+      expect(document.querySelector('[role="dialog"]'), 'la modale de refus est fermée').toBeNull();
     } finally {
       setDataset('props', avant);
       consoleErr.mockRestore();

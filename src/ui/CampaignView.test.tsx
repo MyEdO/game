@@ -256,6 +256,8 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     expect(b, 'bouton « Reprendre » absent de la modale de défaite').toBeTruthy();
     act(() => { b!.click(); });
   };
+  const menuPrincipal = () =>
+    [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal .modal-actions button')].find((x) => x.textContent === 'Menu principal');
 
   it('refus affiché, puis levé : la défaite suivante s’ouvre sans lui', () => {
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
@@ -269,9 +271,15 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
     try {
       act(() => { root.render(<CampaignView />); });
+      expect(menuPrincipal(), 'sans refus, la modale reste telle quelle').toBeUndefined();
       reprendre();
       expect(alerte()?.textContent).toBe(MESSAGE);
       expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
+      const menu = menuPrincipal();
+      expect(menu, 'refus posé : seconde sortie « Menu principal »').toBeTruthy();
+      act(() => { menu!.click(); });
+      expect(useGame.getState().screen).toBe('menu');
+      act(() => { useGame.setState({ screen: 'campaign' }); });
     } finally {
       setDataset('props', avant);
     }
@@ -280,6 +288,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     act(() => { useGame.setState({ mode: 'battle', battle: defaite(party) }); });
     expect(host.querySelector('.defeat-modal'), 'nouvelle défaite affichée').toBeTruthy();
     expect(alerte(), 'le refus d’avant ne survit pas à la modale').toBeNull();
+    expect(menuPrincipal(), 'sans refus, pas de « Menu principal »').toBeUndefined();
     consoleErr.mockRestore();
   });
 });

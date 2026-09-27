@@ -68,6 +68,7 @@ import { lancerCampagne } from '../scenes/campaign';
 function ModaleDeDefaite() {
   const [refus, setRefus] = useState<string | null>(null);
   const repli = useGame((s) => s.massBattle?.combatScene != null);
+  const setScreen = useGame((s) => s.setScreen);
   const reprendre = () => {
     const g = useGame.getState();
     if (g.massBattle?.combatScene || g.scene) {
@@ -80,9 +81,16 @@ function ModaleDeDefaite() {
   return (
     <Modal title={repli ? 'Repoussés…' : 'Défaite…'} variant="plain" className="defeat-modal" onClose={reprendre}>
       {refus && <p className="chip tone-danger" role="alert">{refus}</p>}
-      <button className="btn btn-primary" onClick={reprendre}>
-        {repli ? 'Poursuivre la bataille' : 'Reprendre'}
-      </button>
+      <div className="modal-actions">
+        <button className="btn btn-primary" onClick={reprendre}>
+          {repli ? 'Poursuivre la bataille' : 'Reprendre'}
+        </button>
+        {refus && (
+          <button className="btn" onClick={() => setScreen('menu')}>
+            Menu principal
+          </button>
+        )}
+      </div>
     </Modal>
   );
 }
