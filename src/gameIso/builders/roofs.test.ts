@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { boundarySegs, buildRoofs, clearedSpace, depthToEave, edgeAppearance, fieldHeightAt, gableEnds, roofPans, massFootprintCells, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type FacadeEdge, type RoofShapeSpec } from './roofs';
+import { boundarySegs, buildRoofs, clearedSpace, depthToEave, edgeAppearance, fieldHeightAt, gableEnds, roofPans, massFootprintCells, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type RoofShapeSpec } from './roofs';
+import type { FacadeEdge } from '../../state/facadeEdges';
 import { facadeStructureAppearance } from '../catalog/facades';
 import { wallApp } from '../catalog/structures';
 import { buildWalls } from './walls';

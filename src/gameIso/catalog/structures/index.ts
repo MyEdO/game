@@ -1,6 +1,6 @@
 import type { StructureAppearanceDef, WallPart } from './types';
 import type { WallSeg } from '../../../state/scene';
-import { apparenceDeclaree } from '../../../state/formeArete';
+import { APPARENCE_MUR_NU, apparenceDeclaree } from '../../../state/formeArete';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../missing';
@@ -22,23 +22,19 @@ const MISSING: StructureAppearanceDef = {
  *  Un `id` PRÉSENT mais SANS entrée dans `structureAppearance.json` est une donnée à corriger (#832) :
  *  repli VISIBLE + avertissement DEV, jamais l'identité d'une autre apparence. */
 export function structureAppearance(id?: string): StructureAppearanceDef {
-  if (!id) return MAP['plain'];
+  if (!id) return MAP[APPARENCE_MUR_NU];
   return catalogEntry((cle) => MAP[cle], id, 'structure', MISSING);
 }
 
 /** Apparence d'un mur d'arête — SOURCE UNIQUE iso + POV : override visuel, puis structure, sinon mur
  *  nu. L'apparence est une DONNÉE de la carte ; la hauteur n'y entre pas (#1180). */
 export function wallApp(seg: WallSeg): StructureAppearanceDef {
-  return structureAppearance(apparenceDeclaree(seg) ?? 'plain');
+  return structureAppearance(apparenceDeclaree(seg));
 }
 
-/** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : verre froid + ambre allumé) —
- *  jamais un littéral de couleur (garde-fou renderer). C'est un repli de PART absente sur une def
- *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `catalog/missing.ts` (#877). */
-const defaultWindow = () => structureAppearance('plain').window;
-/** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — la def sinon le repli `plain`. Source unique iso + POV. */
+/** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — celle du bloc `window` de la def. Source unique iso + POV. */
 export function windowLit(app: StructureAppearanceDef): string {
-  return app.window?.lit ?? defaultWindow()?.lit ?? app.face;
+  return app.window?.lit ?? app.face;
 }
 
 /** Couleur de BASE d'une partie de mur du pivot — SOURCE UNIQUE des deux backends (écran-affine + POV),
@@ -57,7 +53,7 @@ export function wallPartColor(app: StructureAppearanceDef, part: WallPart): stri
     case 'vantail': return app.door?.leaf ?? app.wood?.inset ?? shade(app.face, 0.78);
     case 'vantail-planche': return app.door?.plank ?? app.wood?.skirt ?? app.post;
     case 'poignee': return app.door?.handle ?? app.cap ?? app.wood?.cap ?? app.face;
-    case 'vitre': return app.window?.glass ?? defaultWindow()?.glass ?? app.face;
+    case 'vitre': return app.window?.glass ?? app.face;
     case 'meneau': return app.window?.mullion ?? app.wood?.frame ?? app.post;
     case 'poteau': return app.post;
     case 'traverse': return app.claireVoie?.traverseColor ?? app.band ?? app.face;

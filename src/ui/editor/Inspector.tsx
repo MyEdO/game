@@ -54,8 +54,8 @@ import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import { structureEdgeKind } from '../../engine/structures';
-import { fenetrePosable, formesHorsCompatibilite, natureDuType, patchVersType, typeDArete, type TypeDArete } from '../../state/formeArete';
-import { wallApp } from '../../gameIso/catalog/structures';
+import { apparenceDeLArete, fenetrePosable, formesHorsCompatibilite, natureDuType, patchVersStructure, patchVersType, typeDArete, type TypeDArete } from '../../state/formeArete';
+import { edgeKey, facadeEdges } from '../../state/facadeEdges';
 import { RefField } from '../compendium/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
@@ -212,6 +212,9 @@ export function Inspector({
   };
   const entry = sel?.type === 'entry' ? scene.entryPoints?.[sel.id] ?? null : null;
   const selW = sel?.type === 'wall' ? scene.walls?.find((w) => w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z) ?? null : null;
+  /** Façade authorée sur l'arête sélectionnée, et apparence RÉSOLUE de l'arête (`apparenceDeLArete`). */
+  const facadeDeSelW = selW ? facadeEdges(scene).get(edgeKey(selW))?.appearance : undefined;
+  const appDeSelW = selW ? structureAppearances.find((a) => a.id === apparenceDeLArete(selW, facadeDeSelW)) : undefined;
   const architectureBody = sel && (
     sel.type === 'architectureBody'
     || sel.type === 'architectureStorey'
@@ -1109,7 +1112,7 @@ export function Inspector({
                     <Icon id="ui/lock" size="sm" /> Fermée au départ
                   </label>
                 )}
-                {(selW.window || fenetrePosable(selW, wallApp(selW))) && (
+                {(selW.window || fenetrePosable(selW, appDeSelW ?? {})) && (
                   <label className="ed-check">
                     <input type="checkbox" checked={!!selW.window} onChange={(e) => patchSelW({ window: e.target.checked || undefined })} />
                     Fenêtre décorative
@@ -1123,7 +1126,7 @@ export function Inspector({
                   }}
                   fieldKey="Matériau du mur"
                   value={selW.structure}
-                  onChange={(v) => patchSelW({ structure: (v as string | null) || undefined })}
+                  onChange={(v) => patchSelW(patchVersStructure(selW, (v as string | null) || undefined, facadeDeSelW))}
                   nullable={typeDArete(selW) !== 'fermeture-fixe'}
                 />
                 <label className="ed-field">

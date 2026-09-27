@@ -168,7 +168,7 @@ export function fallFromTest(t: TestResult, metres: number): { success: boolean;
  * subies dépassent le BE, l'État À Terre est posé. MUTE `c`.
  *
  * Vit ICI, avec les deux autres briques de chute du chapitre (`resolveDeliberateFall`, `fallFromTest`) :
- * toute chute du jeu — repositionnement de groupe (Effet `fall`), effondrement d'une passerelle
+ * toute chute du jeu — repositionnement de groupe (Effet `fall`), effondrement d'un étage soutenu
  * (`collapseStructure`), incident de monture, op `fall` du gréement (MDG 13 l.678) — s'y applique.
  *
  * Le 1d10 entre PAR PARAMÈTRE (#1508) : c'est un dé du jeu comme un autre, il tombe à la porte des jets

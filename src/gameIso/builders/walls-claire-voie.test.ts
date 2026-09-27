@@ -7,7 +7,8 @@ import { formesAdmises, formesDeLArete, type FormeArete } from '../../state/form
 /**
  * CONTRATS de rendu des apparences à CLAIRE-VOIE (#1883), pour chaque FORME que l'apparence habille
  * (`formesAdmises`, `state/formeArete.ts` — la source que lisent aussi `validateScene` et l'Inspecteur),
- * posée sur la Structure du même id, intacte puis abattue. Deux lectures :
+ * posée sur la Structure du même id quand elle prend cette forme, sinon en override sur un mur de bois,
+ * intacte puis abattue. Deux lectures :
  *  - `parties` : `partie[bas-haut]` en mètres depuis le sol, dans l'ordre de peinture ;
  *  - `barreaux` : `barreau[t0-t1]`, le tronçon de l'arête (fraction 0..1 de A vers B) qu'occupe chaque
  *    barreau — l'espacement et la largeur des barreaux, que les hauteurs ne voient pas.
@@ -27,10 +28,13 @@ const SEG = { x: 1, y: 1, side: 'N' as const };
 
 function rendu(id: string, v: Variante, down: boolean) {
   let s: Scene = emptyScene(4, 4);
-  s.walls = [{ ...SEG, structure: id, ...v.seg }];
+  const porteur = formesDeLArete({ structure: id, ...v.seg }).includes(v.nom) ? { structure: id } : { structure: 'mur-en-bois', appearance: id };
+  s.walls = [{ ...SEG, ...porteur, ...v.seg }];
   if (v.open) s = setDoorOpen(s, SEG.x, SEG.y, SEG.side, 0, true);
   if (down) s = setStructureDown(s, SEG.x, SEG.y, SEG.side, 0, true);
-  return buildWalls(s)[0].faces;
+  const [el] = buildWalls(s);
+  expect(el.forme, `${id} : l’arête posée ne prend pas la forme ${v.nom}`).toBe(v.nom);
+  return el.faces;
 }
 
 type Faces = ReturnType<typeof rendu>;
@@ -84,6 +88,8 @@ const ATTENDU: Record<string, Record<string, { parties: string[]; barreaux: stri
     'mur-nu|abattu': { parties: GRAVATS_GC, barreaux: [] },
   },
   herse: {
+    'mur-nu|intact': { parties: ['poteau[0-4]', 'barreau×7[0-3.4]', 'traverse[1.7-1.783]', 'poteau[0-4]'], barreaux: SEPT_BARREAUX },
+    'mur-nu|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
     'porte-fermee|intact': { parties: HERSE_FERMEE, barreaux: SEPT_BARREAUX },
     'porte-fermee|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
     'porte-ouverte|intact': {
@@ -95,6 +101,11 @@ const ATTENDU: Record<string, Record<string, { parties: string[]; barreaux: stri
     'fermeture-fixe|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
   },
   'porte-de-ville': {
+    'mur-nu|intact': {
+      parties: ['poteau[0-5.28]', 'face[0-4]', 'bande[1.12-1.22]', 'bande[2.24-2.34]', 'bande[3.28-3.38]', 'parapet[4-5.28]', 'bande[4.922-5.022]', 'arase[5.155-5.28]', 'merlon×3[5.28-5.53]', 'poteau[0-5.28]'],
+      barreaux: [],
+    },
+    'mur-nu|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
     'porte-fermee|intact': { parties: [...BARREAUX_PDV, ...COURONNE_PDV], barreaux: SEPT_BARREAUX },
     'porte-fermee|abattu': { parties: ['seuil[0-0.48]', ...COURONNE_PDV], barreaux: [] },
     'porte-ouverte|intact': { parties: COURONNE_PDV, barreaux: [] },
@@ -117,7 +128,6 @@ describe('buildWalls — contrats des apparences à claire-voie, par variante po
     it(`${id} (${formes.join(', ')}) : parties × hauteurs et barreaux × tronçons de chaque forme habillée`, () => {
       const obtenu: Record<string, { parties: string[]; barreaux: string[] }> = {};
       for (const v of formes.map((f) => PAR_FORME[f])) {
-        expect(formesDeLArete({ structure: id, ...v.seg }), `${id} : la Structure de même id ne prend pas la forme ${v.nom}`).toContain(v.nom);
         for (const down of [false, true]) {
           const faces = rendu(id, v, down);
           obtenu[`${v.nom}|${down ? 'abattu' : 'intact'}`] = { parties: parties(faces), barreaux: barreaux(faces) };

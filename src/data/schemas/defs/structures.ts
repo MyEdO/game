@@ -44,10 +44,8 @@ const doc = document(
      * sur le `Combatant` bâti par `structureCombatant`. Aucune table de source ne l'imprime — valeur
      * MAISON par entrée, dont `maison` porte la raison DE CETTE ENTRÉE.
      *
-     * Barème d'authoring (dit ICI une fois, jamais recopié en donnée) : on prend la Taille de la créature
-     * dont la Structure a l'encombrement — ouvrage d'enceinte, porte de ville, herse, terrassement et
-     * navire = Énorme (l'exemple RAW est un mur de pierre Énorme) ; porte, cloison de bâtiment, clôture,
-     * palissade, mantelet, muret, chariot et chaloupe = Grande ; garde-corps d’une arête = Moyenne.
+     * Critère d'authoring : on prend la Taille de la créature dont la Structure a l'encombrement (l'exemple
+     * RAW est un mur de pierre Énorme).
      */
     taille: sizeCategorySchema,
     /**

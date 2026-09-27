@@ -636,7 +636,7 @@ nombre d’entrées qui la portent.
 | `src/data/stars.json` | array | liste | entité | 23 | `apparence`:string(23) `ascendant`:string(23) `classique`:string(23) `dates`:string(23) `desc`:string(23) `dieux`:string(23) `id`:string(23) `label`:string(23) `ops`:array(23) `rand`:number(23) `signe`:string(23) `source`:object(23) `sub`:object(4) `type`:string(23) |
 | `src/data/steam-breakdown.json` | array | liste | table | 6 | `compartmentDamage`:number(1) `coolMinutes`:string(1) `desc`:string(6) `durationRounds`:string(1) `engineDestroyed`:boolean(1) `failDamage`:string(1) `hullCritical`:boolean(1) `id`:string(6) `label`:string(6) `mMod`:number(2) `mSet`:number(2) `max`:number(6) `min`:number(6) `restart`:array(3) `source`:object(6) `type`:string(6) |
 | `src/data/structure-criticals.json` | object | pipe à la racine | config | 1 | `die`:string(1) `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
-| `src/data/structureAppearance.json` | array | liste | entité | 19 | `band`:string(5) `cap`:string(5) `claireVoie`:object(3) `detail`:object(17) `door`:object(5) `face`:string(19) `id`:string(19) `label`:string(19) `parapet`:object(4) `post`:string(19) `recess`:string(1) `rubble`:string(7) `rubbleHi`:string(7) `type`:string(19) `wallHeightM`:number(3) `window`:object(5) `wood`:object(11) |
+| `src/data/structureAppearance.json` | array | liste | entité | 19 | `band`:string(5) `cap`:string(5) `claireVoie`:object(3) `detail`:object(17) `door`:object(8) `face`:string(19) `id`:string(19) `label`:string(19) `parapet`:object(4) `post`:string(19) `recess`:string(1) `rubble`:string(7) `rubbleHi`:string(7) `type`:string(19) `wallHeightM`:number(3) `window`:object(5) `wood`:object(11) |
 | `src/data/structures.json` | array | liste | entité | 25 | `char`:object(25) `couvertPenalty`:string(18) `desc`:string(19) `edgeKind`:string(1) `enc`:number(10) `encLimit`:number(15) `fortified`:boolean(2) `id`:string(25) `kind`:string(25) `label`:string(25) `maison`:string(25) `occulte`:boolean(3) `source`:object(25) `soutientEtage`:boolean(17) `taille`:string(25) `traits`:array(25) `type`:string(25) `vehicle`:boolean(8) |
 | `src/data/surincantation.json` | object | pipe à la racine | config | 1 | `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/symptoms.json` | array | liste | entité | 18 | `capabilities`:object(6) `desc`:string(18) `effects`:array(1) `id`:string(18) `label`:string(18) `maison`:string(1) `onTick`:object(4) `passive`:array(10) `passiveBySeverity`:object(2) `source`:object(18) `type`:string(18) `visibleLocations`:array(1) `visiblePassive`:array(1) |
@@ -1159,7 +1159,7 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **883** (cible 406 · declaree 6 · historique 131 · divergente 340). Objets JSON parcourus : **50168**, dont **32584** portent une forme
+Lignes concept × dataset × champ × forme : **883** (cible 406 · declaree 6 · historique 131 · divergente 340). Objets JSON parcourus : **50171**, dont **32584** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **91**.
 
 Entrées de racine sans concept de valeur : **4141** sur **4228** —
@@ -2544,7 +2544,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13602** objets sur **50168** ne sont portés par AUCUNE
+Au-delà des orphelines, **13605** objets sur **50171** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -2870,6 +2870,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `duration` | `kind,plus,text` | 4 |
 | `spells.json` | `meters` | `times` | 4 |
 | `spells.json` | `then` | `fail,kind,success,test` | 4 |
+| `structureAppearance.json` | `door` | `lintelPx,openingFrac` | 4 |
 | `structureAppearance.json` | `parapet` | `arasePx,bandThickPx,bands,heightLevelFrac,merlonCount,merlonHeightPx,merlonStep,parapetBandFrac` | 4 |
 | `symptoms.json` | `success` | `kind,steps` | 4 |
 | `symptoms.json` | `fail` | `effect,kind` | 4 |
@@ -3559,7 +3560,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `ops` | `op,radiusMeters,shape` | 1 |
 | `spells.json` | `ops` | `char,durationRounds,mod,op` | 1 |
 | `spells.json` | `ritual` | `components,conditions,consequences,domains,reduced,sacrifices,type,xp` | 1 |
-| `structureAppearance.json` | `door` | `lintelPx,openingFrac` | 1 |
 | `structureAppearance.json` | `door` | `jamb,jambCap,lintelPx,openingFrac` | 1 |
 | `symptoms.json` | `passiveBySeverity` | `grave` | 1 |
 | `symptoms.json` | `resolveWindow` | `minutes,scale` | 1 |
@@ -5127,4 +5127,4 @@ pèse **2990** slots sur 3449.
 - Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.
 - `valeursAuPath` traverse une branche d’union (`|N`) sans la discriminer : la donnée ne porte pas la branche qui la parse, chaque branche lit donc les valeurs de toutes — mesuré le 2026-09-22 sur `props.json › [].volume.primitives[]|0..2.material`, 297 valeurs à chacune des trois branches : la résolution y est comptée une fois par branche.
 
-<!-- sources-empreinte: 1cab57d58b233cf35c60304c6048dccf1cdcd920 (387 fichiers, 10 dossiers) corps: 9c76473522aafdca8aa0ed4d802a0ac0fdf2a791 -->
+<!-- sources-empreinte: f6765fb1e5d170faec3ef035ac6e0e4b60fc233f (387 fichiers, 10 dossiers) corps: dbd1f63f8a160b33c5c4a6909e7fd2bf32c41468 -->

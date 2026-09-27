@@ -9,7 +9,7 @@
  * chacun à sa résolution.
  */
 import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
-import { formeRendue, estFermeture } from '../../state/formeArete';
+import { formeRendue, estBaie } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
@@ -23,12 +23,14 @@ import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
 import type { Face, GP, WallEl } from './types';
 import type { FloorView } from './floors';
 import {
-  closureAppearance, edgeAppearance, edgeKey, facadeEdges, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
-  WALL_NB, type FacadeEdge, type RoofField,
+  closureAppearance, edgeAppearance, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
+  WALL_NB, type RoofField,
 } from './roofs';
+import { edgeKey, facadeEdges, type FacadeEdge } from '../../state/facadeEdges';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
-/** Ouverture d'une porte bois sans config de def. */
+/** Ouverture d'une baie dont l'apparence ne déclare pas de bloc `door` : arête que `validateScene` refuse
+ *  (`formesAdmises`), ou apparence absente du catalogue (repli visible `catalog/missing.ts`). */
 const DOOR_FRAC = 0.52;
 /** Panneau bois encastré : tronçon [T0,T1] de l'arête × [LO,HI] de la hauteur ; moulure au sommet. */
 const PANEL_T0 = 0.2, PANEL_T1 = 0.8, PANEL_LO = 0.2, PANEL_HI = 0.78;
@@ -154,7 +156,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (poteaux montant à H1+P)
     const crest = crownFaces(app, A, B, H1);
 
-    if (app.door && estFermeture(forme)) {
+    if (app.door && estBaie(forme)) {
       // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
       // (abattu) + linteau.
       const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie();
@@ -172,18 +174,19 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
 
   // MUR ORDINAIRE (bois) : panneau encadré + moulures + plinthe, ou porte ajourée (routée par la FORME).
   if (down) return breach();
-  if (estFermeture(forme)) {
+  if (estBaie(forme)) {
     const op = wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
     // OUVERTE → l'ouverture est un TROU : AUCUNE face ne la remplit (jambages et chambranle la bordent
     // déjà, et les joues du mur se voient de part et d'autre) — on voit la pièce derrière, comme par une
     // porte ouverte. FERMÉE → sa CLAIRE-VOIE quand l'apparence en porte une (herse), sinon le VANTAIL
-    // (panneau + planches + poignée) : la porte se LIT comme une porte.
+    // (panneau + planches + poignée) : la porte se LIT comme une porte. Une fermeture fixe ne s'ouvre pas :
+    // son vantail n'a pas de poignée.
     const leaf: Face[] = forme === 'porte-ouverte'
       ? []
       : app.claireVoie ? claireVoie() : [
           span('vantail', LEAF_T0, LEAF_T1, b, b + op),
           ...PLANK_TS.map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
-          span('poignee', HANDLE_T0, HANDLE_T1, b + op * HANDLE_LO, b + op * HANDLE_HI),
+          ...(forme === 'fermeture-fixe' ? [] : [span('poignee', HANDLE_T0, HANDLE_T1, b + op * HANDLE_LO, b + op * HANDLE_HI)]),
         ];
     return [
       upright('poteau', 0, b, H1),

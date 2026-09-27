@@ -3,9 +3,9 @@ import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
-import { structureAppearance } from '../catalog/structures';
+import { structureAppearance, wallPartColor } from '../catalog/structures';
 import { shade, SIDE_N } from '../shade';
-import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 
 /**
  * Backend écran-affine des murs : projette les éléments `wall` du pivot via la projection partagée.
@@ -241,6 +241,21 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     const fixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
     expect(fixe).toContain('<path');
     const herseFixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'herse' }), top);
-    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages').toBe(2);
+    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée').toBe(3);
+  });
+
+  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée ; seule la porte OUVERTE laisse le vide', () => {
+    const lignes = (svg: string) => (svg.match(/<line /g) ?? []).length;
+    const vantail = wallPartColor(structureAppearance('solide-porte-en-bois'), 'vantail');
+    const porte = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
+    expect(lignes(porte(true)), 'porte ouverte : deux jambages, le vide entre').toBe(2);
+    expect(porte(true)).not.toContain(`stroke="${vantail}"`);
+    expect(lignes(porte(false)), 'porte fermée : jambages et vantail').toBe(3);
+    expect(porte(false)).toContain(`stroke="${vantail}"`);
+    const fixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois' }), top);
+    expect(fixe).toContain(`stroke="${vantail}"`);
+    const corpsDeGarde = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
+    expect(lignes(corpsDeGarde(false)), 'corps de garde fermé : barreaux de herse').toBe(3);
+    expect(lignes(corpsDeGarde(true)), 'corps de garde ouvert : passage libre').toBe(0);
   });
 });

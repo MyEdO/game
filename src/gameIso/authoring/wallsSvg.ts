@@ -10,7 +10,7 @@
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
-import { estFermeture } from '../../state/formeArete';
+import { estBaie, estBaieFermee } from '../../state/formeArete';
 import { wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeStructureAppearance } from '../catalog/facades';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
@@ -113,7 +113,9 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 }
 
 /** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
- *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. */
+ *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
+ *  fermée, fermeture fixe) se dessine bouchée — vantail entre les jambages, barreaux de herse — ; seule la
+ *  porte ouverte laisse le vide. */
 function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
   const seg = (p: Pt2, q: Pt2, w: number, col: string, dash?: string) =>
@@ -121,12 +123,12 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   if (app.parapet) {
     if (el.states.down) return `<g>${seg(a, b, 6, app.rubble ?? app.face, '3 5')}</g>`;
-    if (app.door && estFermeture(el.forme)) {
+    if (app.door && estBaie(el.forme)) {
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
       let glyph = `<rect x="${cx - h * 0.46}" y="${cy - h}" width="${h * 0.92}" height="${2 * h}" fill="${app.recess ?? app.face}"/>`;
-      for (let i = 1; i <= 3; i++) {
+      if (estBaieFermee(el.forme)) for (let i = 1; i <= 3; i++) {
         const ly = cy - h + 2 * h * (i / 4);
         glyph += `<line x1="${cx - h * 0.46}" y1="${ly}" x2="${cx + h * 0.46}" y2="${ly}" stroke="${app.cap ?? app.face}" stroke-width="1.6"/>`;
       }
@@ -135,7 +137,11 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
     return `<g>${seg(a, b, 11, app.band ?? app.face) + seg(a, b, 7, app.face)}</g>`;
   }
   if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
-  if (estFermeture(el.forme)) return `<g>${seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP))}</g>`;
+  if (estBaie(el.forme)) {
+    const jambages = seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP));
+    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 5, wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail')) : '';
+    return `<g>${jambages + bouchee}</g>`;
+  }
   return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;
 }
 
@@ -175,7 +181,7 @@ export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
   const featureFaces = el.faces.filter((face) => face.architectureFeatureId);
   let svg = renderFaces(physicalFaces);
   const { lod, mpt } = detailOf(opts);
-  if (lod >= 1 && app.detail?.timber && !estFermeture(el.forme) && !el.states.down) {
+  if (lod >= 1 && app.detail?.timber && !estBaie(el.forme) && !el.states.down) {
     const f = physicalFaces.find((x) => x.material.part === 'face');
     if (f) {
       const [A, B] = el.ends;
@@ -267,7 +273,7 @@ export function wallAccentsSvg(el: WallEl, dims: Dims, opts?: DetailOpts): strin
     });
     // COLOMBAGE re-tracé PAR-DESSUS les nuances de planches : cette couche se peint APRÈS `wallSvg`,
     // une planche nuancée recouvrirait sinon les pans de bois (le colombage vit DEVANT le bardage).
-    if (svg && app.detail.timber && !estFermeture(el.forme)) svg += timberOverlaySvg({ recipe: app.detail, quad, faceWM, faceHM, dims });
+    if (svg && app.detail.timber && !estBaie(el.forme)) svg += timberOverlaySvg({ recipe: app.detail, quad, faceWM, faceHM, dims });
   }
   return svg;
 }

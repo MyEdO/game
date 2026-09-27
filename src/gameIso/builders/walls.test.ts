@@ -338,6 +338,13 @@ describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un
     // Un quad qui remplirait l'ouverture aurait son bas à 0 et son haut à `op` : il n'y en a aucun.
     expect(el.faces.filter((f) => f.poly.length === 4 && Math.min(...f.poly.map((pt) => pt.h)) === 0 && Math.max(...f.poly.map((pt) => pt.h)) === op)).toEqual([]);
   });
+  it('FERMETURE FIXE (Structure de nature porte sans `door`) → vantail et planches, SANS poignée : elle ne s’ouvre pas', () => {
+    const el = one(sceneWith([{ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois' }]));
+    expect(el.forme).toBe('fermeture-fixe');
+    expect(parts(el)).toContain('vantail');
+    expect(parts(el).filter((x) => x === 'vantail-planche')).toHaveLength(3);
+    expect(parts(el)).not.toContain('poignee');
+  });
 });
 
 describe('buildWalls — mur FENÊTRÉ (vraie OUVERTURE : verre transparent, on voit l’intérieur)', () => {

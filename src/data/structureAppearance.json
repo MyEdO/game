@@ -28,6 +28,10 @@
       "lit": "#ffc271",
       "frame": "#7c6647",
       "mullion": "#3b2e1f"
+    },
+    "door": {
+      "openingFrac": 0.52,
+      "lintelPx": 4
     }
   },
   {
@@ -65,6 +69,10 @@
       "lit": "#ffc271",
       "frame": "#7c6647",
       "mullion": "#3b2e1f"
+    },
+    "door": {
+      "openingFrac": 0.52,
+      "lintelPx": 4
     }
   },
   {
@@ -102,6 +110,10 @@
       "lit": "#ffc271",
       "frame": "#7c6647",
       "mullion": "#3b2e1f"
+    },
+    "door": {
+      "openingFrac": 0.52,
+      "lintelPx": 4
     }
   },
   {
@@ -260,12 +272,6 @@
       "bandThickPx": 2.4,
       "parapetBandFrac": 0.72,
       "arasePx": 3
-    },
-    "window": {
-      "glass": "#8ea2ad",
-      "lit": "#ffc271",
-      "frame": "#888d95",
-      "mullion": "#34373c"
     }
   },
   {
@@ -570,7 +576,13 @@
     "face": "#6a6252",
     "post": "#3c362a",
     "rubble": "#463f31",
-    "rubbleHi": "#5b5240"
+    "rubbleHi": "#5b5240",
+    "window": {
+      "glass": "#7d95a1",
+      "lit": "#ffc271",
+      "frame": "#7c6647",
+      "mullion": "#3b2e1f"
+    }
   },
   {
     "id": "palissade-de-pieux",

@@ -28,9 +28,11 @@
  * `domain:'structure'`). C'est pourquoi ce module tient aussi l'indexation des murs et des façades
  * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { sceneZoneTiles } from '../../state/zones';
 import { memoByRef } from '../../state/sceneMemo';
+import { edgeKey, facadeEdges, type FacadeEdge } from '../../state/facadeEdges';
+import { apparenceDeclaree } from '../../state/formeArete';
 import { aretesA } from '../../state/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
@@ -783,45 +785,12 @@ export function gableEnds(
  *  partagée avec `walls.ts` — deux tables qui divergent, c'est un mur qui change de camp. */
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
-/** Clé d'ARÊTE (`x,y,side,z`) — SOURCE UNIQUE de l'indexation des murs et des façades authorées. */
-export const edgeKey = (edge: Pick<WallSeg, 'x' | 'y' | 'side'> & { z?: number }): string =>
-  `${edge.x},${edge.y},${edge.side},${edge.z ?? 0}`;
-
-export interface FacadeEdge {
-  bodyId: string;
-  sectionId: string;
-  appearance: string;
-  roomZoneIds?: string[];
-  features: FacadeFeature[];
-}
-
-/** Panneaux de FAÇADE authorés, indexés par arête. Mémoïsé PAR SCÈNE : `wallGeometry`, les joints de
- *  nappes et les fermetures de comble le lisent tous, une seule dérivation. */
-export const facadeEdges = memoByRef((scene: Scene): ReadonlyMap<string, FacadeEdge> => {
-  const indexed = new Map<string, FacadeEdge>();
-  for (const body of scene.architecture ?? [])
-    for (const section of body.facades)
-      for (const edge of section.edges) {
-        const key = edgeKey({ ...edge, z: edge.z ?? section.z });
-        if (indexed.has(key)) continue;
-        indexed.set(key, {
-          bodyId: body.id,
-          sectionId: section.id,
-          appearance: section.appearance,
-          ...(section.roomZoneIds ? { roomZoneIds: [...section.roomZoneIds] } : {}),
-          features: (section.features ?? []).filter((feature) =>
-            edgeKey({ ...feature.edge, z: feature.edge.z ?? section.z }) === key),
-        });
-      }
-  return indexed;
-});
-
 /** Apparence d'une ARÊTE de mur — SOURCE UNIQUE des deux rendus (`wallGeometry` de `walls.ts` et les
  *  fermetures d'architecture d'ici) : la façade authorée sur l'arête l'emporte tant que le segment ne
  *  pose ni structure ni override, sinon `wallApp` — une DONNÉE de la carte, jamais une cote (#1180).
  *  Un seul site : les deux rendus ne peuvent pas diverger. */
 export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
-  return facade && !seg.structure && !seg.appearance
+  return facade && !apparenceDeclaree(seg)
     ? facadeStructureAppearance(facade.appearance)
     : wallApp(seg);
 }

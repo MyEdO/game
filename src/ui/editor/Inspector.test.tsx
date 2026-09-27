@@ -141,8 +141,12 @@ describe('Inspector — apparence visuelle des murs', () => {
     const mur = await propositions({ structure: 'mur-a-ossature-en-bois' });
     expect(mur.fenetre).toBe(true);
     expect(mur.apparences).toContain('garde-corps');
-    expect(mur.apparences).not.toContain('porte-de-ville');
-    expect(mur.apparences).not.toContain('herse');
+    expect(mur.apparences).toContain('porte-de-ville');
+
+    const fenetree = await propositions({ structure: 'mur-a-ossature-en-bois', window: true });
+    expect(fenetree.apparences).toContain('mur-en-pierres-seches');
+    expect(fenetree.apparences).not.toContain('terrassement');
+    expect(fenetree.apparences).not.toContain('mur-de-chateau');
 
     const gardeCorps = await propositions({ structure: 'garde-corps' });
     expect(gardeCorps.fenetre).toBe(false);
@@ -238,6 +242,25 @@ describe('Inspector — les trois types d’arête s’authorent (cloison, porte
     expect(listees.map((o) => o.v)).toContain('porte-de-ville');
     expect(listees.some((o) => o.t.includes('(inconnu)'))).toBe(false);
     expect(listees.map((o) => o.v)).not.toContain('mur-en-bois');
+  });
+
+  it('une fermeture fixe n’offre pas l’option vide : elle exige sa Structure', async () => {
+    const h = await monterArete({ structure: 'porte-de-ville' });
+    expect(h.structuresListees().map((o) => o.v)).not.toContain('');
+    const cloison = await monterArete({ structure: 'mur-en-bois' });
+    expect(cloison.structuresListees().map((o) => o.v)).toContain('');
+  });
+
+  it('changer la Structure d’une cloison FENÊTRÉE pour une qui refuse la fenêtre : la fenêtre part, la scène reste valide', async () => {
+    const h = await monterArete({ structure: 'mur-en-bois', window: true });
+    const select = Array.from(h.container.querySelectorAll('.ed-field'))
+      .find((f) => f.querySelector('span')?.textContent?.startsWith('Matériau du mur'))!.querySelector('select') as HTMLSelectElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'mur-en-pierre');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(h.arete()).toEqual({ x: 1, y: 1, side: 'E', structure: 'mur-en-pierre' });
+    expect(h.erreurs()).toEqual([]);
   });
 });
 
