@@ -93,7 +93,7 @@ Dépenser 1 Point de Chance offre l'une de ces trois options (au choix du joueur
 **Voir aussi** : [Influencer un test — Chance, Résilience, Talents](tests.md#influencer-un-test--chance-résilience-talents) (dans `tests.md`) pour le contexte d'intégration avec les Tests et les Degrés de Réussite.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.21-25) → `canReroll`, `RunModal`, `canActFirst`, `fateSaveOrDie`, `carryOverState`, `freeActFirst`, `rerollAvailable`, `ReservesSeuilsBand`, `fortune-mid-session`, `CampaignView`, +24 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, +14 fichiers
+- `LDB 17` (l.21-25) → `canReroll`, `RunModal`, `canActFirst`, `fateSaveOrDie`, `carryOverState`, `freeActFirst`, `rerollAvailable`, `ReservesSeuilsBand`, `fortune-mid-session`, `RollFlowLens`, +24 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, +14 fichiers
 
 ---
 
