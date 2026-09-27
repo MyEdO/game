@@ -11,7 +11,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
-import { listeCle } from '../grammaire/liste-cle';
+import { listeCle } from '../grammaire/collection-cle';
 import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */

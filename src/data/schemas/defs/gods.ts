@@ -41,6 +41,8 @@ const doc = document(
     codex: { keys: ['gods'] },
     edit: { dataset: 'gods' },
   },
+  // Pools des sources `cultBlessings`/`cultMiracles`/`cultChaos` (`grammaire/sourcesDeSpecs.ts`).
+  { espace: { marqueurs: ['blessings', 'miracles', 'chaosSpells'] } },
 );
 
 export const schema = doc.schema;

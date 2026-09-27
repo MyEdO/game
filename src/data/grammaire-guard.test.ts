@@ -26,10 +26,10 @@ import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
 import { GRAMMAIRE_STOCK } from '../../scripts/guards/lib/grammaireStock.mjs';
 import { ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
-import { defDe, enfantsDe, PROFONDEUR_MAX } from './schemas/grammaire/slots';
+import { defDe, descendre, enfantsDe } from './schemas/grammaire/descente';
 import * as valeurs from './schemas/grammaire/valeurs';
 import * as reference from './schemas/grammaire/reference';
-import { ref, specRef, pick, typedRef } from './schemas/grammaire/ref';
+import { ref, specRef, pick } from './schemas/grammaire/ref';
 import { qualityRefSchema } from './schemas/grammaire/reference';
 
 const GARDE = {
@@ -59,7 +59,7 @@ const GARDE = {
       'reste rendu sur les clés ÉCRITES.',
     'une VARIANTE de discriminée (un littéral portant un `z.literal(…)`) est hors du volet `redeclaration` : ' +
       'son `type`/`kind` nomme la variante, pas le type d’une entité — une référence re-tapée DANS une variante ' +
-      'reste vue par le volet `alias`, mais la forme `{id, type}` d’un effet n’est pas comptée comme `typedRef`.',
+      'reste vue par le volet `alias`.',
     'un schéma construit DYNAMIQUEMENT (fabrique qui reçoit sa `shape` en paramètre, `z.object(shape)` sans ' +
       'littéral) est invisible : le scan lit une FORME écrite, pas un objet calculé au chargement.',
     'le récepteur d’un `.extend` n’est reconnu que s’il est un IDENTIFIANT importé d’un module de grammaire ' +
@@ -92,8 +92,8 @@ const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', 'src
 const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
 
 /**
- * Signatures d'objet DÉCLARÉES par la grammaire, dérivées par marche des schémas (`enfantsDe`, la
- * descente unique) : chaque nœud `object` rencontré donne le jeu de ses clés, nommé par les symboles
+ * Signatures d'objet DÉCLARÉES par la grammaire, dérivées par la descente de chaque schéma (`descendre`,
+ * `grammaire/descente.ts`) : chaque nœud `object` rencontré donne le jeu de ses clés, nommé par les symboles
  * exportés qui le portent. Aucune liste de clés n'est écrite à la main.
  *
  * Un même jeu de clés est porté par PLUSIEURS schémas (`{n,plus,sides}` → 4 candidats,
@@ -110,33 +110,28 @@ function signaturesDeLaGrammaire(
   melanger: (entrees: [string, unknown][]) => [string, unknown][] = (entrees) => entrees,
 ): { nom: string; cles: string[] }[] {
   const out = new Map<string, { noms: Set<string>; cles: string[] }>();
-  const marcher = (noeud: unknown, nom: string, ancetres: ReadonlySet<unknown>, profondeur: number): void => {
-    if (!noeud || typeof noeud !== 'object' || ancetres.has(noeud) || profondeur > PROFONDEUR_MAX) return;
-    const def = defDe(noeud);
-    if (!def) return;
-    if (def.type === 'object' && def.shape) {
-      const cles = Object.keys(def.shape);
-      if (cles.length >= 2) {
+  const marcher = (racines: readonly [string, unknown][]): void => {
+    for (const [nom, v] of racines)
+      descendre([v], ({ noeud, def }) => {
+        if (def.type !== 'object') return;
+        const cles = enfantsDe(noeud).flatMap((e) => (e.cle === undefined ? [] : [e.cle]));
+        if (cles.length < 2) return;
         const cle = cles.slice().sort().join(',');
         const porteurs = out.get(cle) ?? { noms: new Set<string>(), cles };
         porteurs.noms.add(nom);
         out.set(cle, porteurs);
-      }
-    }
-    const pile = new Set(ancetres).add(noeud);
-    for (const e of enfantsDe(def)) marcher(e.noeud, nom, pile, profondeur + 1);
+      });
   };
   const sources: Record<string, unknown> = { ...valeurs, ...reference };
-  for (const [nom, v] of melanger(Object.entries(sources))) if (defDe(v)) marcher(v, nom, new Set(), 0);
+  marcher(melanger(Object.entries(sources)).filter(([, v]) => defDe(v)));
   // Les fabriques FERMÉES de `ref.ts` ne rendent leur forme qu'APPELÉES : la signature cible
   // (`{id, spec, choix}`, `{pick, of}`…) est le canon que toute réf re-tapée recouvre.
   const fabriques: [string, unknown][] = [
     ['ref()', ref('skill')],
     ['specRef()', specRef('skill')],
     ['pick()', pick('skill')],
-    ['typedRef()', typedRef()],
   ];
-  for (const [nom, v] of melanger(fabriques)) marcher(v, nom, new Set(), 0);
+  marcher(melanger(fabriques));
   return [...out.values()].map(({ noms, cles }) => ({ nom: [...noms].sort().join('|'), cles }));
 }
 
@@ -283,21 +278,27 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       .map(({ f, t }) => `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.detail}`)
       .sort();
     expect(dansLaGrammaire).toEqual([
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.corruptionExposure|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.castPenalty|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.corruptionExposure|skill',
       // `domeWard` est une op TYPÉE (`OP_DEFS`, #1508 T3 G0) : le Trait que le dôme octroie se nomme par
       // la graphie CANONIQUE d'un octroi (`traitId`), la même que `removeTrait` — d'où la ligne ici.
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.domeWard|traitId',
-      // `giveTrapping` est une op TYPÉE (`OP_DEFS`, #1903) : l'objet se nomme par `trappingId`, la graphie de
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.domeWard|traitId',
+      // `giveTrapping` est une op TYPÉE (#1903) : l'objet se nomme par `trappingId`, la graphie de
       // `GameOp` (`src/engine/ops.ts`) et de `conditionSchema`.
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.giveTrapping|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.removeTrait|traitId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.giveTrapping|trappingId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.grantReverseToken|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.removeTrait|traitId',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillMod|skill',
       // `summon` est une op TYPÉE (#1882) : la créature invoquée se nomme par le champ `ref` du moteur
       // (`engine/ops.ts`), tenu par `idDe('creature')`.
-      'src/data/schemas/grammaire/mecanique.ts:OP_DEFS.summon|ref',
+      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:extendedTestSchema|skill',
       'src/data/schemas/grammaire/mecanique.ts:flowTestSchema|skill',
-      'src/data/schemas/grammaire/mecanique.ts:travelTableEntrySchema.mount.riderTest|skill',
+      'src/data/schemas/grammaire/mecanique.ts:travelTableEntry.mount.riderTest|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);

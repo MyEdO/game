@@ -18,7 +18,7 @@
  * `talentsRolled`, `wealthRoll`) ; le geste ne fait que DÉCOUVRIR un résultat déjà déterminé
  * (zéro savescum), et la validation d'étape EXIGE le geste.
  */
-import { CharKey, CHAR_KEYS, Characteristics, Combatant, TalentInstance } from '../../engine/types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../state/combatants';
 import { Money } from '../../engine/money';
 import {
@@ -45,7 +45,6 @@ import { t } from '../../i18n';
 import {
   createHero,
   resolveSpeciesTalentsDetail,
-  acquerirTalent,
   competencesDeCarriere,
   repartitionDeCarriere,
   CAREER_SKILL_ADVANCES,
@@ -60,7 +59,7 @@ import {
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
-import { refKey, talentMaxReached, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
+import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
@@ -484,12 +483,15 @@ export function speciesTalentChoicesDone(d: CreatorDraft): boolean {
  *  `pettySpellQuota`) — n'affecte QUE les Caractéristiques du probe, pas sa sémantique pour les
  *  autres appelants (Maxi de talent, additions de carrière). */
 export function probeHero(d: CreatorDraft, withCareerTalent = true, charsAlloc = false): Combatant {
-  const talents: TalentInstance[] = [];
   const characteristics = draftChars(d);
-  for (const t of resolvedSpeciesTalents(d)) acquerirTalent({ characteristics, talents }, t);
-  if (withCareerTalent && d.careerTalent) acquerirTalent({ characteristics, talents }, d.careerTalent);
+  const acquis: PorteurDeTalents = { characteristics, talents: [] };
+  const add = (ref: RefDesignee) => {
+    acquerirTalent(acquis, ref);
+  };
+  for (const t of resolvedSpeciesTalents(d)) add(t);
+  if (withCareerTalent && d.careerTalent) add(d.careerTalent);
   if (charsAlloc) for (const k of CHAR_KEYS) characteristics[k] += d.charAdvancesAlloc[k] ?? 0;
-  return { characteristics, talents, skills: [], movement: draftSpecies(d)?.movement ?? 0 } as unknown as Combatant;
+  return { characteristics, talents: acquis.talents ?? [], skills: [], movement: draftSpecies(d)?.movement ?? 0 } as unknown as Combatant;
 }
 
 /** Compétences de carrière allouables : un emplacement par entrée du Niveau 1 (LDB 05 l.535) — `cle`

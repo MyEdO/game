@@ -1,9 +1,9 @@
 /**
  * Garde de la CLASSE « catalogues à id RÉEL » (#401) : les 11 datasets éditoriaux dont l'identité de
- * navigation Codex était naguère DÉRIVÉE du libellé au build (`uniqueSlugId`, lot A b9196398) portent
- * désormais un champ `id` STABLE en donnée. Deux invariants, la classe est fermée :
- *  (a) UNICITÉ — chaque entrée a un `id` non vide, unique dans son catalogue (l'identité existe et ne
- *      collisionne pas — un focus/save/lien Codex la retrouve).
+ * navigation Codex était naguère DÉRIVÉE du libellé au build (`uniqueSlugId`, b9196398) portent
+ * un champ `id` STABLE en donnée. Deux invariants, la classe est fermée :
+ *  (a) PRÉSENCE — chaque entrée a un `id` non vide ; son unicité dans le catalogue est refusée au parse
+ *      (collection à clé, `schemas/grammaire/collection-cle.ts`).
  *  (b) PARITÉ de MIGRATION — l'`id` baké est IDENTIQUE au slug que `uniqueSlugId` dérivait du libellé
  *      ACTUEL (même ordre) : la migration n'a CHANGÉ aucune identité (navigation/saves intacts). Ce
  *      volet ne LIE pas l'id au libellé pour l'avenir (renommer un libellé au Codex ne touche plus
@@ -38,11 +38,9 @@ const CATALOGS: Record<string, { id: string; label: string }[]> = {
 
 describe('#401 — catalogues éditoriaux à id RÉEL en donnée', () => {
   for (const [name, entries] of Object.entries(CATALOGS)) {
-    it(`${name} — id non vide et unique sur chaque entrée`, () => {
+    it(`${name} — id non vide sur chaque entrée`, () => {
       const ids = entries.map((e) => e.id);
       expect(ids.filter((id) => !id || !id.trim()), `${name} : entrée(s) sans id`).toEqual([]);
-      const dups = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
-      expect(dups, `${name} : id(s) dupliqué(s)`).toEqual([]);
     });
 
     it(`${name} — parité : id === slug dérivé du libellé actuel (zéro changement d'identité)`, () => {

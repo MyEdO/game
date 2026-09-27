@@ -7,9 +7,9 @@ import type { Combatant } from './types';
 import { makeRNG } from './dice';
 import {
   corruptionGain, corruptionThresholdExceeded, mutationKindFor, mutationLimitExceeded,
-  attachMutation, mutationArmourBonus,
+  attachMutation, detachMutation, mutationArmourBonus,
 } from './corruption';
-import { rollMutation } from '../data/mutations';
+import { mutationById, rollMutation } from '../data/mutations';
 import { passiveSkillSum, passiveTestMod } from './trauma';
 import { effectiveChar } from './characteristics';
 import { testValue } from './skills';
@@ -143,5 +143,30 @@ describe('rollMutation — tables verbatim', () => {
       expect(rollMutation('physique', makeRNG(seed)).label).toBeTruthy();
       expect(rollMutation('mentale', makeRNG(seed)).label).toBeTruthy();
     }
+  });
+});
+
+describe('Talent octroyé par une mutation — acquisition bornée par le Maxi (LDB 10 l.18)', () => {
+  it('Crête sur la tête attachée deux fois sous un Maxi de 1 ne dépasse pas le Maxi', () => {
+    const crete = mutationById('crete-sur-la-tete')!;
+    const c = hero({ characteristics: { ...hero().characteristics, sociabilite: 15 } });
+    attachMutation(c, crete);
+    attachMutation(c, crete);
+    expect(c.talents).toEqual([{ talentId: 'attirant', spec: 'mutants-et-hommes-betes', times: 1 }]);
+  });
+  it('le détachement rend l’instance acquise par l’attache', () => {
+    const crete = mutationById('crete-sur-la-tete')!;
+    const c = hero();
+    attachMutation(c, crete);
+    detachMutation(c, crete);
+    expect(c.talents).toEqual([]);
+  });
+  it('au Maxi, l’attache n’acquiert rien et le détachement ne retire rien', () => {
+    const bicephale = mutationById('bicephale')!;
+    const c = hero({ talents: [{ talentId: 'ambidextre', times: 2 }] });
+    attachMutation(c, bicephale);
+    expect(c.talents).toEqual([{ talentId: 'ambidextre', times: 2 }]);
+    detachMutation(c, bicephale);
+    expect(c.talents).toEqual([{ talentId: 'ambidextre', times: 2 }]);
   });
 });

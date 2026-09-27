@@ -22,20 +22,14 @@ import { terrains } from './index';
  * Le contrat est DÉRIVÉ du dataset (aucune liste d'ids récitée ici) et il porte le TIE-BREAK : les
  * trois vues résolvent par `catalogEntry` sur un balayage VIF du document construit à l'identique
  * (`matieresDe(domaine).find`), donc un id en double y ferait gagner la PREMIÈRE déclaration en
- * silence. L'unicité gardée ici rend ce départage sans objet, et laisse UN seul chemin de résolution.
+ * silence. L'unicité, refusée au parse (collection à clé, `schemas/grammaire/collection-cle.ts`), rend
+ * ce départage sans objet, et laisse UN seul chemin de résolution.
  */
 const VUES: { domaine: string; entrees: readonly MaterialEntry[]; resout: (id: string) => { id: string } }[] = [
   { domaine: 'prop', entrees: matieresDe('prop'), resout: propMaterial },
   { domaine: 'roof', entrees: matieresDe('roof'), resout: roofMaterial },
   { domaine: 'relief', entrees: matieresDe('relief'), resout: reliefMaterial },
 ];
-
-/** Ids apparaissant plus d'une fois dans une liste, avec leur cardinal. */
-function doublons(ids: readonly string[]): string[] {
-  const compte = new Map<string, number>();
-  for (const id of ids) compte.set(id, (compte.get(id) ?? 0) + 1);
-  return [...compte].filter(([, n]) => n > 1).map(([id, n]) => `${id} ×${n}`);
-}
 
 describe('identité des matières du monde — (domaine, id), id unique sur tout le document', () => {
   it('les vues par domaine PARTITIONNENT le document, sans reste, et le périmètre est celui déclaré', () => {
@@ -45,11 +39,6 @@ describe('identité des matières du monde — (domaine, id), id unique sur tout
       VUES.reduce((n, v) => n + v.entrees.length, 0),
       'une entrée porte un domaine hors du périmètre déclaré : elle échapperait à toutes les gardes ci-dessous',
     ).toBe(materials.length);
-  });
-
-  it('aucun id répété dans le document — un homonyme porte un id composé', () => {
-    const repetes = doublons(materials.map((e) => e.id));
-    expect(repetes, `materials.json : id(s) en double — ${repetes.join(', ')}`).toEqual([]);
   });
 
   it.each(VUES.map((v) => [v.domaine, v] as const))(

@@ -21,7 +21,7 @@ export type WallSide = z.infer<typeof wallSideSchema>;
  *  la réf de la grammaire (`spec` XOR `choix`) + la valeur de Test IMPRIMÉE. La FORME de sortie est
  *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
-export const skillRefSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
+export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
 
 /** `CustomStatblock.spells` — ids de `spells.json` : la porte est la fabrique canonique (`refs('spell')`),
  *  la FORME DE SORTIE est DÉCLARÉE nue (patron `couvertureSchema`, `./scene.ts`) — le type moteur
@@ -55,7 +55,7 @@ export const customStatblockSchema = z.strictObject({
   size: sizeCategorySchema.optional(),
   groups: z.array(z.string()).optional(),
   spells: sortsConnusSchema.optional(),
-  skills: z.array(skillRefSchema).optional(),
+  skills: z.array(competenceChiffreeSchema).optional(),
   talents: z.array(talentRefSchema).optional(),
   randomChars: z.boolean().optional(),
   inert: z.boolean().optional(),

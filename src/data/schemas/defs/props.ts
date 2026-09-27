@@ -12,11 +12,6 @@ import { CAP_IDENTITE_PROP, PROP_CYLINDER_AXES, PROP_CYLINDER_SIDES } from '../.
 
 export const file = 'props.json';
 export const famille = 'entite';
-/** Champs MARQUEURS (#1897) : chacun définit la SOUS-LISTE des décors qui le portent — `volume` = les
- *  décors à recette volumique, cap cardinal seul (`defs-scenes/scene.ts`). `npm run gen` en dérive
- *  `IDS_PAR_MARQUEUR` (`schemas/_ids.generated.ts`), lue par `porteLeMarqueur` (`grammaire/ref.ts`).
- *  @generateur lu au TEXTE par `lireExports` (`scripts/gen-registry.mjs`), qu'aucun import ne dit à knip. */
-export const marqueurs = ['volume'];
 
 /** `PropPoint3` / `PropSize3` (`src/data/props.types.ts`) — repère LOCAL d'une recette de décor, en
  *  MÈTRES sur les trois axes (#1507) : `xM`/`yM` depuis l'ancre du décor, `hM` depuis le sol de la case.
@@ -107,6 +102,8 @@ const doc = document(
     edit: { none: 'catalogue d’art, édité au fichier `src/data/props.json` — aucun écran ne l’écrit (la palette de l’éditeur de carte le LIT)', dataset: 'props' },
   },
   {
+    // `volume` : cap cardinal seul (`defs-scenes/scene.ts`, `porteLeMarqueur`).
+    espace: { marqueurs: ['volume'] },
     /**
      * PROVENANCE PAR CHAMP (#1680 ligne 5). Le DATASET est exempté de provenance (`SANS_LIVRE`) parce
      * que ce qu'il décrit est de l'art : un volume, un libellé, une empreinte, la solidité physique de

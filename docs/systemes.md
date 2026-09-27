@@ -85,6 +85,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `descendre/enfantsDe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coDescendre/ouverts/pasDeDonnee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
@@ -224,4 +226,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 804b30cecca942b47aa8f909d773a4f264ee72e2 (1842 fichiers, 2 dossiers) corps: 2e1cbc5b01c1754bf47a8ad05d8c6d4826e18fc6 -->
+<!-- sources-empreinte: 52be61ac751970ef8fc813fa517b5ef252c11d0c (1844 fichiers, 2 dossiers) corps: a02c7b2bc5eaf7e67fdb329933caa2c6b2cd1c23 -->

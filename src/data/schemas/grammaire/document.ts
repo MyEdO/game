@@ -14,9 +14,11 @@
  */
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf } from './valeurs';
+import { defDe } from './descente';
 import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { champsProse, refineProse } from './prose';
+import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
  *  La CHARGE d'un document (ses rangées, `options.rangee`) est orthogonale à son emballage. */
@@ -147,14 +149,15 @@ export interface OptionsDocument {
   /** Champs qu'une variante réglée republie (`variantOf`, #563/#564). */
   readonly variantes?: readonly string[];
   /** Schéma d'une VALEUR du record — exigé par la famille `record`, refusé partout ailleurs. */
-  readonly valeurRecord?: z.ZodTypeAny;
+  readonly valeurRecord?: z.ZodType;
   /**
    * Schéma d'une RANGÉE du document — admissible dans TOUTE famille : la charge est orthogonale à
    * l'emballage du fichier. Même mécanique que `valeurRecord` : la fabrique pose
-   * `entries: z.array(rangee)` sur l'entrée, avec sa méta FR (`META_CHARGE`) — un def à rangées
-   * ne redéclare donc jamais sa charge, `die` compris (`options.deDeTirage`).
+   * `entries` sur l'entrée, en collection à clé `id` (`marquerCollection`, `grammaire/collection-cle.ts`),
+   * avec sa méta FR (`META_CHARGE`) — un def à rangées ne redéclare donc jamais sa charge, `die` compris
+   * (`options.deDeTirage`).
    */
-  readonly rangee?: z.ZodTypeAny;
+  readonly rangee?: z.ZodType<{ id: string }>;
   /**
    * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis) avec sa méta FR
    * (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
@@ -214,6 +217,11 @@ export interface OptionsDocument {
    * porte, lui, par `affinerEntree` — en famille `record` l'entrée EST le document, `entries` comprise.
    */
   readonly affinerDataset?: (dataset: z.ZodType<unknown>) => z.ZodType<unknown>;
+  /**
+   * Paramètres de l'ESPACE DE NOMS de racine (`discriminant`, `marqueurs` : `EspaceDeNoms`,
+   * `grammaire/collection-cle.ts`) — refusés hors des familles `entite`/`record`, qui seules en ouvrent un.
+   */
+  readonly espace?: EspaceDeNoms;
 }
 
 /** Handle FERMÉ d'un document : ce que le registre, l'éditeur et les gardes consomment. */
@@ -222,13 +230,14 @@ export interface DocumentHandle<T extends string> {
    * LE DATASET tel qu'il vit dans son fichier, emballé PAR FAMILLE (#1467) : `entite` →
    * `z.array(entrée)`, `config` → l'entrée seule, `record` → enveloppe + `entries`. Un def n'écrit
    * plus jamais son `z.array` à la main. Un fichier qui porte PLUSIEURS documents-tables est une
-   * famille `entite` dont chaque entrée a sa charge `entries` (`options.rangee`).
+   * famille `entite` dont chaque entrée a sa charge `entries` (`options.rangee`). En `entite` et en
+   * `record`, le nœud rendu est une collection à clé marquée ESPACE DE NOMS (`grammaire/collection-cle.ts`).
    */
   readonly schema: z.ZodType<unknown>;
   /**
    * L'ENTRÉE SCELLÉE seule — pour l'EMBARQUEMENT (statblocks, table posée dans un autre fichier),
    * jamais pour l'UI, qui consomme le dataset. En famille `record`, l'entrée EST le document entier
-   * (enveloppe + `entries`), donc `entree` et `schema` y coïncident. Sur un document à `rangee`,
+   * (enveloppe + `entries`) : `schema` y est `entree`, marquée collection à clé de ses `entries`. Sur un document à `rangee`,
    * l'entrée porte l'enveloppe ET ses rangées.
    */
   readonly entree: z.ZodType<unknown>;
@@ -275,7 +284,7 @@ export interface DocumentHandle<T extends string> {
  * optionnel ») : le verrou d'un document qui exige est au PARSE, il ne rétrécit jamais le type
  * partagé par tous les documents.
  */
-function champEnveloppe<S extends z.ZodTypeAny>(optionnel: S, exige: boolean, nonVide: S = optionnel): z.ZodOptional<S> {
+function champEnveloppe<S extends z.ZodType>(optionnel: S, exige: boolean, nonVide: S = optionnel): z.ZodOptional<S> {
   return (exige ? nonVide : optionnel.optional()) as z.ZodOptional<S>;
 }
 
@@ -308,14 +317,13 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
 }
 
 /**
- * Options d'un champ ÉNUMÉRÉ, à travers les enveloppes qui ne changent pas son univers de valeurs
- * (`optional`, `nullable`, `default`, `array`) — `undefined` si le champ n'est pas énuméré. COMPOSE le
- * déroulé unique du dépôt (`noyauEnum`, `grammaire/meta.ts`), celui-là même dont la lecture des
- * libellés d'un enum nommé (`valeursDe`, #1694) tire son noyau.
+ * Options d'un champ ÉNUMÉRÉ — les valeurs de son noyau d'enum, `undefined` si le champ n'est pas
+ * énuméré. COMPOSE le déroulé unique du dépôt (`noyauEnum`, `grammaire/meta.ts`), celui-là même dont la
+ * lecture des libellés d'un enum nommé (`valeursDe`, #1694) tire son noyau.
  */
-export function optionsEnum(noeud: z.ZodTypeAny): readonly string[] | undefined {
+export function optionsEnum(noeud: z.ZodType): readonly string[] | undefined {
   const noyau = noyauEnum(noeud);
-  return noyau ? Object.values(noyau._zod!.def!.entries as Record<string, string>) : undefined;
+  return noyau ? Object.values(defDe(noyau)!.entries as Record<string, string>) : undefined;
 }
 
 function verifieExposition(type: string, exposition: Exposition): void {
@@ -361,7 +369,7 @@ function verifieExposition(type: string, exposition: Exposition): void {
  * lui, vit sous `entries`, que la fabrique pose seule (`options.valeurRecord`/`options.cleRecord` en
  * `record`, `options.rangee` ailleurs) et qu'un def ne redéclare pas.
  */
-export function document<T extends string, C extends Record<string, z.ZodTypeAny>>(
+export function document<T extends string, C extends Record<string, z.ZodType>>(
   type: T,
   famille: FamilleDocument,
   champs: C & ChampsHorsEnveloppe<C>,
@@ -369,7 +377,7 @@ export function document<T extends string, C extends Record<string, z.ZodTypeAny
   exposition: Exposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, affinerDataset } = options;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -404,6 +412,9 @@ export function document<T extends string, C extends Record<string, z.ZodTypeAny
       `document('${type}') : \`rangee\` et la famille « record » sont EXCLUSIVES — un record porte sa charge par CLÉ (\`valeurRecord\`), une liste ordonnée de rangées est un autre document.`,
     );
   }
+  if (famille === 'config' && options.espace) {
+    throw new Error(`document('${type}') : \`espace\` n'a de sens que pour les familles « entite » et « record » (ici « config ») — un document de réglage n'ouvre aucun espace de noms de racine.`);
+  }
   if (deDeTirage && !rangee) {
     throw new Error(`document('${type}') : \`deDeTirage\` exige \`rangee\` — un dé de tirage tire une RANGÉE.`);
   }
@@ -431,7 +442,7 @@ export function document<T extends string, C extends Record<string, z.ZodTypeAny
   verifieExposition(type, exposition);
   const entree = z.strictObject({
     ...enveloppe(type, idDocument, exiges),
-    ...(champs as Record<string, z.ZodTypeAny>),
+    ...(champs as Record<string, z.ZodType>),
   }) as z.ZodObject<z.ZodRawShape>;
   const declarees = [...(variantes ?? [])];
   for (const k of declarees) {
@@ -458,7 +469,7 @@ export function document<T extends string, C extends Record<string, z.ZodTypeAny
         ? (z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: z.string().min(1) } : {}),
-            entries: z.array(rangee),
+            entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
           }) as z.ZodObject<z.ZodRawShape>)
         : complet;
   const entreePartielle: z.ZodType<unknown> = corps.partial().pipe(z.transform((v) => v));
@@ -495,7 +506,15 @@ export function document<T extends string, C extends Record<string, z.ZodTypeAny
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées
   // (`entite`), ou l'entrée elle-même (`config`, `record`).
   const dataset: z.ZodType<unknown> = famille === 'entite' ? z.array(entreeScellee) : entreeScellee;
-  const schema: z.ZodType<unknown> = affinerDataset ? affinerDataset(dataset) : dataset;
+  const affineDataset: z.ZodType<unknown> = affinerDataset ? affinerDataset(dataset) : dataset;
+  // ESPACE DE NOMS de racine : la liste `entite` (ses `id`) ou la carte `entries` du `record`, marquée
+  // sur le nœud FINAL — `affinerDataset` clone le nœud qu'il reçoit (#1463).
+  const schema: z.ZodType<unknown> =
+    famille === 'entite'
+      ? marquerCollection(affineDataset, marqueDeListe<{ id: string }>('id', espace))
+      : famille === 'record'
+        ? marquerCollection(affineDataset, marqueDeRecord({ sous: 'entries', espace }))
+        : affineDataset;
   const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...Object.fromEntries(clesPosees.map((k) => [k, META_CHARGE[k]])) };
   return {
     schema,

@@ -9,6 +9,7 @@ import { document } from '../grammaire/document';
 import { gameOpSchema, shipCritEntrySchema } from '../grammaire/mecanique';
 import { formulaSchema, replisSansExposeSchema, shipSizeSchema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'ship-criticals.json';
 export const famille = 'config';
@@ -42,11 +43,11 @@ const doc = document(
     replisSansExpose: replisSansExposeSchema,
     tablesDeChute: z.array(tableDeChuteSchema),
     tables: z.strictObject({
-      cargaison: z.array(shipCritEntrySchema),
-      greement: z.array(shipCritEntrySchema),
-      coque: z.array(shipCritEntrySchema),
-      avirons: z.array(shipCritEntrySchema),
-      equipements: z.array(shipCritEntrySchema),
+      cargaison: listeCle(shipCritEntrySchema, 'id'),
+      greement: listeCle(shipCritEntrySchema, 'id'),
+      coque: listeCle(shipCritEntrySchema, 'id'),
+      avirons: listeCle(shipCritEntrySchema, 'id'),
+      equipements: listeCle(shipCritEntrySchema, 'id'),
     }),
   },
   {

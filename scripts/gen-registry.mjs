@@ -6,15 +6,15 @@
  *
  *   node scripts/gen-registry.mjs
  *
- * Câblé dans `npm run gen` (+ `npm run build`). Ajouter une entrée = déposer un fichier
- * dans le `defs/` correspondant, puis relancer (auto en dev via le plugin Vite).
+ * `genAll` joue la PHASE 1 (ces registres) puis la PHASE 2 (`scripts/gen-espaces.mts`, l'INDEX DES
+ * IDS), pour `npm run gen`, `npm run build` et le plugin Vite (`vite.config.ts`, donc chaque run
+ * Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
  */
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
-import { SOURCES_DE_SPECS, universDeSource } from '../src/data/schemas/grammaire/sourcesDeSpecs.ts';
-import { porteLeChampMarqueur } from '../src/data/schemas/grammaire/idsVivants.ts';
 
 /**
  * `importDir` : chemin (relatif au fichier `out`) d'où importer chaque entrée. Défaut `./defs`
@@ -343,7 +343,7 @@ export const REGISTRIES = [
     type: 'SchemaDef',
     typeFrom: './types',
     fields: ['file', 'schema', 'famille', 'exposition'],
-    optionalFields: ['meta', 'discriminant', 'chargeParDiscriminant'],
+    optionalFields: ['meta'],
     constFields: { root: "'src/data'" },
   },
   {
@@ -358,7 +358,7 @@ export const REGISTRIES = [
     type: 'SchemaDef',
     typeFrom: './types',
     fields: ['file', 'schema', 'famille', 'exposition'],
-    optionalFields: ['meta', 'discriminant', 'chargeParDiscriminant'],
+    optionalFields: ['meta'],
     constFields: { root: "'src/scenes'" },
   },
 ];
@@ -369,24 +369,17 @@ export const REGISTRIES = [
 
 /**
  * FORME CANONIQUE de chaque export de premier niveau qu'un def porte et que CE générateur lit :
- * `chaine` = `export const X = '…';`, `liste` = `export const X = ['…', '…'];` (une ligne), `presence`
- * = seule l'existence de `export const X` compte (la valeur n'est lue qu'à la compilation du registre).
+ * `chaine` = `export const X = '…';`, `presence` = seule l'existence de `export const X` compte (la valeur n'est lue qu'à la compilation du registre).
  * Un nom lu hors de cette table est une faute du générateur, pas du def.
  */
 const FORMES_D_EXPORT = {
   file: 'chaine',
   famille: 'chaine',
-  discriminant: 'chaine',
-  marqueurs: 'liste',
   meta: 'presence',
-  chargeParDiscriminant: 'presence',
 };
 
 const CHAINE = "'([^'\\\\\\n]+)'";
-const VALEUR_CANONIQUE = {
-  chaine: new RegExp(`^ = ${CHAINE};$`),
-  liste: new RegExp(`^ = \\[((?:${CHAINE}(?:, ${CHAINE})*)?)\\];$`),
-};
+const VALEUR_CANONIQUE = new RegExp(`^ = ${CHAINE};$`);
 
 /**
  * LECTEUR UNIQUE des exports de premier niveau d'un def — la seule lecture textuelle d'un export du
@@ -397,7 +390,7 @@ const VALEUR_CANONIQUE = {
  * @param {string} src source du def
  * @param {readonly string[]} noms exports lus
  * @param {string} def chemin du def, pour le message
- * @returns {Record<string, string | string[] | true | undefined>}
+ * @returns {Record<string, string | true | undefined>}
  */
 export function lireExports(src, noms, def) {
   const lu = {};
@@ -408,13 +401,13 @@ export function lireExports(src, noms, def) {
     const autreForme = new RegExp(`^export\\s+(?:(?:let|var|function\\*?|async\\s+function|class)\\s+${nom}\\b|const\\s*\\{[^}]*\\b${nom}\\b)|^export\\s*\\{[^}]*\\b${nom}\\s*[,}]`, 'm').test(src);
     const hors = (attendu) =>
       new Error(`gen-registry: ${def} : export « ${nom} » hors de sa forme canonique (${attendu}) — le générateur est textuel, il ne lit que cette forme.`);
-    const attendu = forme === 'chaine' ? `export const ${nom} = '…';` : forme === 'liste' ? `export const ${nom} = ['…', …];` : `export const ${nom}`;
+    const attendu = forme === 'chaine' ? `export const ${nom} = '…';` : `export const ${nom}`;
     if (autreForme && !declaration) throw hors(attendu);
     if (!declaration) { lu[nom] = undefined; continue; }
     if (forme === 'presence') { lu[nom] = true; continue; }
-    const m = VALEUR_CANONIQUE[forme].exec(declaration[1]);
+    const m = VALEUR_CANONIQUE.exec(declaration[1]);
     if (!m) throw hors(attendu);
-    lu[nom] = forme === 'chaine' ? m[1] : [...(m[1] ?? '').matchAll(new RegExp(CHAINE, 'g'))].map((x) => x[1]);
+    lu[nom] = m[1];
   }
   return lu;
 }
@@ -565,294 +558,24 @@ function genArt(registres = REGISTRIES, out = 'src/data/schemas/_art.generated.t
 }
 
 /**
- * Registre des IDS de la donnée authorée (`src/data/schemas/_ids.generated.ts`) — le socle contre
- * lequel `ref(type)` refine un id AU PARSE (#1466, clause B de #1473).
- *
- * Périmètre MESURÉ : les 72 datasets de `src/data` dont la racine est une LISTE dont les entrées
- * portent un `id` string (3 500 ids). Les 41 objets de config et les 4 racines-objets à clés non-id
- * (`details`, `localisation`, `names`, `sizes` — clés de configuration ou libellés capitalisés, cf.
- * `docs/structures-donnees.md` §2.3) n'ouvrent aucun espace d'ids : les inscrire ferait résoudre une
- * référence contre une clé de réglage.
- *
- * `SPECS_PAR_DATASET` = le catalogue de SPÉCIALISATIONS d'une entrée, par dataset puis par entrée :
- * ses `specs[].id` inline (pool ou non), ou l'UNIVERS de sa `specsSource` (`universDeSource`, sur la
- * déclaration unique `SOURCES_DE_SPECS`) — jamais le pool de PROPOSITION d'un choix joueur
- * (`specPoolOf`, `src/data/index.ts`).
+ * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` sous `tsx` (il parse les documents par
+ * leurs schémas TypeScript), dans un processus enfant. Lève si l'enfant échoue.
  */
-/** Clé de racine-objet qui a la FORME d'un id (`ids internes, labels à l'affichage`). */
-const cleIdish = (k) => /^[a-z0-9][a-z0-9-]*$/.test(k);
-const genreDe = (v) => (Array.isArray(v) ? 'liste' : v === null ? 'nul' : typeof v);
-
-/**
- * Une racine-OBJET est-elle un RECORD À IDS (ses clés sont des ids : `localisation`, `criticals`,
- * `teintesJeu`) plutôt qu'un document/une configuration unique ? Trois conditions STRUCTURELLES :
- * au moins deux clés, toutes de la forme d'un id, et des valeurs de même genre. Un objet portant
- * `id`+`label` de premier niveau est UN document, pas un record. Écartés par la 2ᵉ condition :
- * `decorPalette` et les configurations à clés camelCase (noms de CHAMP, pas des ids).
- */
-function estRecordAIds(racine) {
-  const ks = Object.keys(racine);
-  if (ks.length < 2 || !ks.every(cleIdish)) return false;
-  if (typeof racine.id === 'string' && typeof racine.label === 'string') return false;
-  return new Set(ks.map((k) => genreDe(racine[k]))).size === 1;
+function genEspaces(verbose) {
+  const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux'])], {
+    stdio: 'inherit',
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
+  });
+  if (r.status !== 0) throw new Error(`gen-registry: phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}).`);
 }
 
 /**
- * Une valeur d'identité est-elle un LIBELLÉ (capitale initiale ou espace) plutôt qu'un id ? Un
- * `ref()` posé sur un tel dataset validerait un libellé d'affichage, contre la doctrine des ids
- * (CLAUDE.md). Les ids camelCase (`screenShell`, `touxEternuements`) en sont, eux, de vrais ids.
- */
-const estUnLibelle = (v) => /^[A-ZÀ-Þ]/.test(v) || /\s/.test(v);
-
-/**
- * DÉFAUTS d'ids — liste NOMINATIVE datée (2026-08-24), DÉCROISSANTE, lot de mort `L1b #1467` : les
- * documents de famille `entite`/`record` dont l'identité de premier niveau n'entre PAS au
- * registre. Chaque entrée porte l'obstacle MESURÉ. DEUX voies de retrait, toutes deux mesurées par le
- * contrat `verifieExhaustiviteDesIds` ci-dessous : le commit qui donne au document des ids de premier
- * niveau, OU celui qui le RE-ÉTIQUETTE dans une famille qui n'en attend aucun (`config` — c'est par
- * cette seconde voie que les tables d'Aux Armes sont sorties d'ici, V-FLIP-CONFIG #1467 : leurs 4
- * familles étaient des CHAMPS de document, pas des clés de record — elles sont depuis #1657 B2a 4 des
- * 8 documents de `criticals.json`, famille `entite` à ids de premier niveau). Un dataset ni registré ni inscrit ici fait ROUGIR
- * `npm run gen` ; une entrée survivante sur un document `config` aussi.
- */
-const DEFAUTS_IDS = {
-  'decorPalette.json':
-    'record de 435 jetons de teinte à clés camelCase (`terreTresSombre`) SOUS `entries` — graphie que le détecteur de record à ids n’admet pas',
-};
-
-/**
- * Ids de PREMIER NIVEAU d'un dataset, ou `null` quand il n'en porte aucun — SOURCE UNIQUE de
- * l'extraction, jouable sur fixture (`src/data/schemas/gen-contrat-ids.test.ts`).
- *
- * Deux formes de racine : un TABLEAU d'entrées à `id` (l'`id` de chaque entrée ; un `id` qui est un
- * LIBELLÉ fait renoncer le dataset entier), ou un OBJET. Un objet de famille `record` porte sa carte
- * sous `entries` depuis #1467 L1b V-FLIP-RECORD : la charge à examiner est alors `entries`, jamais
- * l'enveloppe (dont les clés `id`/`type`/`label` ne sont pas des ids de record).
- * @param {unknown} racine racine JSON du dataset
- * @param {string | undefined} famille famille DÉCLARÉE par le def (`famillesDeclarees`)
- * @returns {string[] | null} ids triés, ou `null`
- */
-export function idsDuDataset(racine, famille) {
-  if (!Array.isArray(racine)) {
-    const charge =
-      famille === 'record' && racine?.entries && typeof racine.entries === 'object' ? racine.entries : racine;
-    if (charge && typeof charge === 'object' && estRecordAIds(charge)) return Object.keys(charge).sort();
-    return null;
-  }
-  const entrees = racine.filter((e) => e && typeof e === 'object' && typeof e.id === 'string');
-  if (!entrees.length) return null;
-  if (entrees.some((e) => estUnLibelle(e.id))) return null;
-  return [...new Set(entrees.map((e) => e.id))].sort();
-}
-
-/** Projection de `lireDefs` : dataset (`file`) → valeur de l'export `nom`, pour les defs qui le portent. */
-function parDataset(dir, nom) {
-  return new Map(lireDefs(dir, ['file', nom]).filter((d) => d.file !== undefined && d[nom] !== undefined).map((d) => [d.file, d[nom]]));
-}
-
-/**
- * Champ DISCRIMINANT déclaré par un def (`export const discriminant`), dataset par dataset — aucun
- * dataset n'est nommé ici : le def possède son discriminant, le générateur ne fait que le lire
- * (`lireExports`). Un dataset sans cet export n'ouvre aucune sous-liste.
- */
-export function discriminantsDeclares(dir = 'src/data/schemas/defs') {
-  return parDataset(dir, 'discriminant');
-}
-
-/**
- * Champs MARQUEURS déclarés par un def (`export const marqueurs = ['<champ>', …];`), dataset par
- * dataset (`lireExports`) : le def possède ses marqueurs, aucun dataset n'est nommé ici. Un marqueur
- * définit une SOUS-LISTE : les entrées qui PORTENT ce champ (`porteLeChampMarqueur`, `grammaire/idsVivants.ts`).
- */
-export function marqueursDeclares(dir = 'src/data/schemas/defs') {
-  return parDataset(dir, 'marqueurs');
-}
-
-/**
- * Ids d'un dataset qui PORTENT chacun de ses champs marqueurs — la sous-liste que lit
- * `porteLeMarqueur(type, champ)` (`grammaire/ref.ts`). FAIL-FAST nominatif : un marqueur qu'aucune
- * entrée ne porte (renommé, mal orthographié) rendrait une sous-liste toujours vide.
- * @param {unknown} racine racine JSON du dataset
- * @param {string[]} champs champs marqueurs déclarés
- * @param {string} dataset nom du fichier, pour le message
- * @returns {Record<string, string[]>} champ → ids triés
- */
-export function idsParMarqueur(racine, champs, dataset) {
-  if (!Array.isArray(racine))
-    throw new Error(`gen-registry: ${dataset} déclare des marqueurs mais sa racine n'est pas une LISTE d'entrées.`);
-  const parChamp = {};
-  for (const champ of [...champs].sort()) {
-    const ids = racine.filter((e) => e && typeof e === 'object' && typeof e.id === 'string' && porteLeChampMarqueur(e, champ)).map((e) => e.id);
-    if (!ids.length) throw new Error(`gen-registry: ${dataset} déclare le marqueur « ${champ} » mais aucune entrée ne le porte.`);
-    parChamp[champ] = [...new Set(ids)].sort();
-  }
-  return parChamp;
-}
-
-/**
- * Ids d'un dataset GROUPÉS par la valeur de son champ discriminant — la sous-liste contre laquelle
- * `idDe(type, valeur)` refine. FAIL-FAST nominatif : un def qui déclare un discriminant absent des
- * entrées (renommé, mal orthographié) rendrait une table VIDE, donc une référence toujours refusée.
- * @param {unknown} racine racine JSON du dataset
- * @param {string} champ nom du champ discriminant
- * @param {string} dataset nom du fichier, pour le message
- * @returns {Record<string, string[]>} valeur → ids triés
- */
-export function idsParDiscriminant(racine, champ, dataset) {
-  if (!Array.isArray(racine))
-    throw new Error(`gen-registry: ${dataset} déclare le discriminant « ${champ} » mais sa racine n'est pas une LISTE d'entrées.`);
-  const parValeur = {};
-  for (const e of racine) {
-    if (!e || typeof e !== 'object' || typeof e.id !== 'string') continue;
-    const valeur = e[champ];
-    if (typeof valeur !== 'string')
-      throw new Error(`gen-registry: ${dataset} « ${e.id} » : discriminant « ${champ} » absent ou non textuel — la sous-liste ne peut pas se dériver.`);
-    (parValeur[valeur] ??= []).push(e.id);
-  }
-  if (!Object.keys(parValeur).length)
-    throw new Error(`gen-registry: ${dataset} déclare le discriminant « ${champ} » mais aucune entrée ne le porte.`);
-  for (const valeur of Object.keys(parValeur)) parValeur[valeur] = [...new Set(parValeur[valeur])].sort();
-  return Object.fromEntries(Object.entries(parValeur).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
-}
-
-/** Familles DÉCLARÉES par les defs de schéma (`export const famille`), dataset par dataset. */
-function famillesDeclarees(dir = 'src/data/schemas/defs') {
-  const defs = lireDefs(dir, ['file', 'famille']);
-  const muet = defs.find((d) => d.file === undefined || d.famille === undefined);
-  if (muet) throw new Error(`gen-registry: ${join(dir, muet.module)} : \`file\`/\`famille\` de premier niveau manquant — chaque def déclare sa famille.`);
-  return new Map(defs.map((d) => [d.file, d.famille]));
-}
-
-/**
- * Contrat FERMÉ entre la famille déclarée et le registre d'ids, dans les DEUX sens :
- * `entite`/`record` ⇒ ids au registre OU défaut nominatif ; `config` ⇒ aucun id, aucun défaut
- * — non par principe, mais parce qu'`estRecordAIds` refuse une racine `id`+`label` (état courant,
- * réversible : #1528).
- */
-export function verifieExhaustiviteDesIds(datasetsAIds, familles = famillesDeclarees(), defauts = DEFAUTS_IDS) {
-  const fautes = [];
-  for (const [dataset, famille] of [...familles].sort()) {
-    const aDesIds = datasetsAIds.has(dataset);
-    const defaut = dataset in defauts;
-    if (famille === 'entite' || famille === 'record') {
-      if (!aDesIds && !defaut) fautes.push(`${dataset} (famille ${famille}) : aucun id au registre et aucune entrée de DEFAUTS_IDS.`);
-      if (aDesIds && defaut) fautes.push(`${dataset} : porte des ids au registre ET une entrée de DEFAUTS_IDS — retirer l'entrée.`);
-    } else {
-      if (aDesIds) fautes.push(`${dataset} (famille ${famille}) : un document de réglage ne porte aucun id de premier niveau, or le registre en indexe.`);
-      if (defaut) fautes.push(`${dataset} (famille ${famille}) : entrée de DEFAUTS_IDS sur un document qui n'attend aucun id.`);
-    }
-  }
-  for (const dataset of Object.keys(defauts)) if (!familles.has(dataset)) fautes.push(`${dataset} : entrée de DEFAUTS_IDS sans def de schéma.`);
-  if (fautes.length) throw new Error(`gen-registry: exhaustivité du registre d'ids — ${fautes.length} faute(s) :\n  ${fautes.join('\n  ')}`);
-}
-
-function genIds() {
-  const dir = 'src/data';
-  const out = 'src/data/schemas/_ids.generated.ts';
-  const ids = [];
-  const specs = [];
-  const cacheJson = new Map();
-  const litJson = (nom) => {
-    if (!cacheJson.has(nom)) cacheJson.set(nom, JSON.parse(readFileSync(join(dir, nom), 'utf8')));
-    return cacheJson.get(nom);
-  };
-  const familles = famillesDeclarees();
-  const discriminants = discriminantsDeclares();
-  const marqueurs = marqueursDeclares();
-  const sousListes = [];
-  const sousListesMarquees = [];
-  for (const f of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
-    let racine;
-    try { racine = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { continue; }
-    const idsDuFichier = idsDuDataset(racine, familles.get(f));
-    if (!idsDuFichier) continue;
-    ids.push([f, idsDuFichier]);
-    const champ = discriminants.get(f);
-    if (champ) sousListes.push([f, idsParDiscriminant(racine, champ, f)]);
-    const champsMarqueurs = marqueurs.get(f);
-    if (champsMarqueurs) sousListesMarquees.push([f, idsParMarqueur(racine, champsMarqueurs, f)]);
-    if (!Array.isArray(racine)) continue;
-    const entrees = racine.filter((e) => e && typeof e === 'object' && typeof e.id === 'string');
-    const catalogueDe = (e) => {
-      if (e.specsSource) {
-        const source = SOURCES_DE_SPECS[e.specsSource];
-        if (!source) throw new Error(`gen-registry: ${f} « ${e.id} » : specsSource « ${e.specsSource} » inconnue de SOURCES_DE_SPECS.`);
-        return universDeSource(source, litJson(source.dataset));
-      }
-      return Array.isArray(e.specs) ? e.specs.filter((s) => s && typeof s.id === 'string').map((s) => s.id) : [];
-    };
-    const parEntree = entrees
-      .map((e) => [e.id, [...new Set(catalogueDe(e))].sort()])
-      .filter(([, l]) => l.length)
-      .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-    if (parEntree.length) specs.push([f, parEntree]);
-  }
-  verifieExhaustiviteDesIds(new Set(ids.map(([f]) => f)));
-  const body =
-    `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
-    `/**\n` +
-    ` * Ids de PREMIER NIVEAU de chaque dataset de \`src/data\` — les \`id\` des entrées d'un dataset-LISTE,\n * les CLÉS d'un dataset-RECORD (\`localisation\`, \`criticals\`, \`teintesJeu\`) — la cible de tout \`ref(type)\`\n` +
-    ` * (\`src/data/schemas/grammaire/ref.ts\`), qui refine l'id AU PARSE contre ce registre.\n` +
-    ` *\n` +
-    ` * Deux RÉGIMES de lecture, tous deux déclarés :\n` +
-    ` *  - CI / DEV / test : ce fichier généré, figé au commit — une référence morte casse au parse ;\n` +
-    ` *  - APPLICATION (éditeur compris, \`CodexEdit.save\` → \`validateDataset\`) : les ids se lisent sur les\n` +
-    ` *    datasets EN MÉMOIRE, sinon une entité créée au Compendium rendrait rouge toute donnée qui la\n` +
-    ` *    référence avant le prochain \`npm run gen\`. CÂBLÉ (#1686) : \`src/data/overrides.ts\` pose la source\n` +
-    ` *    vivante, \`src/data/schemas/grammaire/idsVivants.ts\` la sert à \`ref.ts\`.\n` +
-    ` */\n` +
-    `export const IDS_PAR_DATASET: Readonly<Record<string, readonly string[]>> = {\n` +
-    ids.map(([f, l]) => `  ${lit(f)}: [${l.map(lit).join(', ')}],\n`).join('') +
-    `};\n\n` +
-    `/**\n` +
-    ` * Catalogue de SPÉCIALISATIONS d'une entrée, par dataset puis par id d'entrée : ses \`specs[].id\`, ou\n` +
-    ` * l'UNIVERS de sa \`specsSource\` (\`grammaire/sourcesDeSpecs.ts\`) — la cible du refine de \`spec\` pour\n` +
-    ` * une entrée FERMÉE (sans le marqueur \`specsOpen\`).\n` +
-    ` */\n` +
-    `export const SPECS_PAR_DATASET: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {\n` +
-    specs
-      .map(([f, entrees]) => `  ${lit(f)}: {\n${entrees.map(([id, l]) => `    ${lit(id)}: [${l.map(lit).join(', ')}],\n`).join('')}  },\n`)
-      .join('') +
-    `};\n\n` +
-    `/**\n` +
-    ` * SOUS-LISTES d'ids d'un dataset DISCRIMINÉ, par valeur de son champ discriminant (le def le\n` +
-    ` * déclare : \`export const discriminant\`, cf. \`defs/materials.ts\`) — la cible du refine de\n` +
-    ` * \`idDe(type, valeur)\` (\`grammaire/ref.ts\`). MÉCANISME GÉNÉRIQUE : un autre dataset discriminé\n` +
-    ` * coûte son \`export const discriminant\`, aucune liste n'est récitée ici.\n` +
-    ` */\n` +
-    `export const IDS_PAR_DISCRIMINANT: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {\n` +
-    sousListes
-      .map(([f, parValeur]) =>
-        `  ${lit(f)}: {\n${Object.entries(parValeur).map(([v, l]) => `    ${lit(v)}: [${l.map(lit).join(', ')}],\n`).join('')}  },\n`)
-      .join('') +
-    `};\n\n` +
-    `/**\n` +
-    ` * SOUS-LISTES d'ids d'un dataset MARQUÉ, par champ marqueur : les entrées qui PORTENT ce champ (le\n` +
-    ` * def le déclare : \`export const marqueurs\`, cf. \`defs/props.ts\`) — la cible de\n` +
-    ` * \`porteLeMarqueur(type, champ)\` (\`grammaire/ref.ts\`). MÉCANISME GÉNÉRIQUE : une sous-liste de plus\n` +
-    ` * coûte un nom de champ au def, aucune liste n'est récitée ici.\n` +
-    ` */\n` +
-    `export const IDS_PAR_MARQUEUR: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {\n` +
-    sousListesMarquees
-      .map(([f, parChamp]) =>
-        `  ${lit(f)}: {\n${Object.entries(parChamp).map(([c, l]) => `    ${lit(c)}: [${l.map(lit).join(', ')}],\n`).join('')}  },\n`)
-      .join('') +
-    `};\n`;
-  let prev = '';
-  try { prev = readFileSync(out, 'utf8'); } catch { /* nouveau */ }
-  const changed = prev !== body;
-  if (changed) writeFileSync(out, body);
-  return { out, datasets: ids.length, ids: ids.reduce((n, [, l]) => n + l.length, 0), changed };
-}
-
-/**
- * `verbose` (param, défaut `false`) : régénère TOUS les registres. En mode silencieux (défaut —
- * appel `buildStart` du plugin Vite, donc CHAQUE run Vitest via `globalSetup`), n'imprime QUE les
- * registres réellement RÉGÉNÉRÉS ou en erreur (dossier absent), + UNE ligne agrégée pour le reste
- * — évite les ~15 lignes « [inchangé] » qui polluent chaque sortie de test et cassent le parseur
- * pass/fail de l'outil `rtk`. En mode verbose (exécution directe `npm run gen`), détail complet
- * inchangé (usage : audit manuel de ce que le générateur a vu).
+ * Régénère TOUS les registres (phase 1), les projections d'art (`genArt`), puis l'INDEX DES IDS
+ * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite, donc
+ * CHAQUE run Vitest via `globalSetup`), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
+ * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
+ * polluent chaque sortie de test et cassent le parseur pass/fail de l'outil `rtk`. En mode verbose
+ * (exécution directe `npm run gen`), détail complet (usage : audit manuel de ce que le générateur a vu).
  */
 export function genAll(verbose = false) {
   const results = REGISTRIES.map(genOne);
@@ -874,17 +597,14 @@ export function genAll(verbose = false) {
   } else {
     unchangedCount++;
   }
-  const idsRes = genIds();
-  if (idsRes.changed || verbose) {
-    console.log(`gen-registry: IDS_PAR_DATASET ← ${idsRes.ids} ids / ${idsRes.datasets} datasets (${idsRes.out})${idsRes.changed ? '' : ' [inchangé]'}`);
-  } else {
-    unchangedCount++;
-  }
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);
   }
+  genEspaces(verbose);
 }
 
-// Exécution directe (node scripts/gen-registry.mjs) : détail complet (audit manuel).
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) genAll(true);
+// Exécution directe (node scripts/gen-registry.mjs) : détail complet (audit manuel). Point d'entrée
+// seulement — l'importer (`vite.config.ts`, gardes) n'exécute rien.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  genAll(true);
+}

@@ -15,7 +15,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { deDeTableSchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -188,7 +188,7 @@ const doc = document(
     z.strictObject({
       id: z.string(),
       label: z.string(),
-      die: z.enum(['d10', 'd100']),
+      die: deDeTableSchema,
       rows: z.array(
         z.strictObject({
           ...plageSchema.shape,

@@ -27,7 +27,7 @@ import { CODEX } from './registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { enumNomme } from '../../data/schemas/grammaire/valeurs';
-import { defDe } from '../../data/schemas/grammaire/slots';
+import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
 import { lireExports } from '../../../scripts/gen-registry.mjs';
 
@@ -456,7 +456,7 @@ const docNiche = () => document(
 );
 
 describe('libellés de VALEURS à toute profondeur', () => {
-  const noeudDesRangees = (): unknown => (defDe(noeudObjet(docNiche().schema))?.shape ?? {})['rangees'];
+  const noeudDesRangees = (): unknown => enfantsDe(noeudObjet(docNiche().schema)).find((e) => e.cle === 'rangees')?.noeud;
 
   it('inferFields en PROFONDEUR rend les valeurs de l’enum niché', () => {
     const cols = inferFields([{ nature: 'physique' }], { niveau: 'profondeur', noeud: noeudObjet(noeudDesRangees()) });
@@ -479,7 +479,7 @@ describe('libellés de VALEURS à toute profondeur', () => {
    * (`grammaire/records-de-libelles.test.ts`).
    */
   it('cas RÉEL niché — `arcane-phenomena.json` `phenomena[].kind` rend un select nommé', () => {
-    const phenomena = (defDe(noeudObjet(schemaForFile('arcane-phenomena.json')))?.shape ?? {})['phenomena'];
+    const phenomena = enfantsDe(noeudObjet(schemaForFile('arcane-phenomena.json'))).find((e) => e.cle === 'phenomena')?.noeud;
     const cols = inferFields([{ kind: 'nexus' }], { niveau: 'profondeur', noeud: noeudObjet(phenomena) });
     const kind = cols.find((f) => f.key === 'kind')!;
     expect(kind.kind).toBe('select');
@@ -490,7 +490,7 @@ describe('libellés de VALEURS à toute profondeur', () => {
   it('cas RÉEL en RANGÉE — `drunkenness.json` `outcome` rend un select nommé', () => {
     // Un document à `rangee` porte sa charge en `entries` (`grammaire/document.ts`) : le nœud du
     // sous-formulaire est celui de la RANGÉE, pas celui de l'enveloppe.
-    const entries = (defDe(noeudObjet(schemaForFile('drunkenness.json')))?.shape ?? {})['entries'];
+    const entries = enfantsDe(noeudObjet(schemaForFile('drunkenness.json'))).find((e) => e.cle === 'entries')?.noeud;
     const cols = inferFields([{ outcome: 'blackout' }], { niveau: 'profondeur', noeud: noeudObjet(entries) });
     const outcome = cols.find((f) => f.key === 'outcome')!;
     expect(outcome.kind).toBe('select');

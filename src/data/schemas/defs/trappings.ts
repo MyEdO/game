@@ -286,7 +286,8 @@ const doc = document(
     codex: { keys: ['trappings', 'siegeEngines'] },
     edit: { dataset: 'trappings' },
   },
-  { exiges: ['source'] },
+  // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
+  { exiges: ['source'], espace: { discriminant: 'categorie' } },
 );
 
 export const schema = doc.schema;

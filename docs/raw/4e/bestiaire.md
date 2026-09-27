@@ -68,7 +68,7 @@ En principe, déterminer une **Localisation** pour une créature non humaine est
 **Voir aussi** : [Tableau de Localisation humanoïde](combat.md#tableau-de-localisation-humanoïde) — `combat.md` ; Critiques et Frappe Mortelle — `combat.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.19-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
+- `LDB 76` (l.19-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
 
 ---
 
@@ -87,7 +87,7 @@ En principe, déterminer une **Localisation** pour une créature non humaine est
 Ces deux tables remplacent la table humanoïde standard pour les morphologies concernées. Toutes les autres créatures — quadrupèdes, oiseaux, créatures à tentacules — utilisent le **tableau humanoïde réétiquetté** (membres antérieurs = bras, membres postérieurs = jambes, ailes = bras).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.28-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
+- `LDB 76` (l.28-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
 
 ---
 
@@ -106,7 +106,7 @@ Ces Traits dits « standard » peuvent donc être ajoutés à **n'importe quelle
 **Voir aussi** : [Index des Traits de créature](#index-des-traits-de-créature) ; Traits Facultatifs.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.31-35, l.37) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
+- `LDB 76` (l.31-35, l.37) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
 
 ---
 
@@ -135,7 +135,7 @@ Les **12 Attributs** = les 10 Caractéristiques standard (CC, CT, F, E, I, Ag, D
 - `LDB 76 l.46` (spawn.ts l.163-164) — « – » du schéma = caractéristique inexistante → 0.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.44-46) → `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
+- `LDB 76` (l.44-46) → `baseDEntiteSchema`, `SceneEntity`, `SpawnExtras`, `creatureToCombatant` — `src/data/schemas/defs-scenes/scene.ts`, `src/state/scene.ts`, `src/state/spawn.ts`, `src/ui/editor/OptionalTraitsPicker.tsx`
 
 ---
 
@@ -154,7 +154,7 @@ Règle d'application des Traits Facultatifs modificateurs de profil (**Élite, C
 - `LDB 85 l.339-340` — « Utiliser les Tailles » (si la Taille Facultative change la catégorie → ±10 F/E, ∓5 Ag).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, `sceneEntitySchema`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
+- `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, `SceneEntity`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
 - `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `sizeFromTalents`, `resizeBySteps`, `StructureData`, `taille-modificateurs-en-combat`, `isStupid`, `regard-petrifiant`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
 
 ---
@@ -310,7 +310,7 @@ Pour les bêtes sauvages, les profils du bestiaire sont **arrondis à des multip
 Les Caractéristiques inexistantes (« – » → 0) **ne sont pas tirées**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `StatblockEditor`, `SceneEntity`, `sceneEntitySchema`, `SpawnExtras`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
+- `LDB 77` (l.108) → `CustomStatblock`, `randomizeChars`, `Possession`, `skillInstance`, `StatblockEditor`, `baseDEntiteSchema`, `SceneEntity`, `SpawnExtras`, `creatureToCombatant`, `statblockToCombatant`, +5 — `src/data/creatures.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/possession.ts`, `src/engine/statblock.ts`, `src/state/scene.ts`, +3 fichiers
 
 ---
 
@@ -352,7 +352,7 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 | **Langue Préhensile (Indice)(Portée)** | Attaque gratuite | 1 Avantage | Distance ; Empêtré ; tire la cible si Taille inférieure (`LDB 85 l.211-213`) |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
+- `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
 - `LDB 85` (l.1-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +232 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +45 fichiers
 
 ---
@@ -409,7 +409,7 @@ Créatures MDG portant ce Trait : Anguille mâcheprise, Stylet, Élémentaire de
 **Voir aussi** : [Index des Traits de créature](#index-des-traits-de-créature) ; Trait *Aquatique* (MSRC) — `combat.md` § *Traits de mouvement* ; Trait *Amphibie* — `deplacement.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 16` (l.15-19, l.63-305) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `OP_DEFS`, `sea-scorbut`, +35 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, +14 fichiers
+- `MDG 16` (l.15-19, l.63-305) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +35 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, +14 fichiers
 
 ---
 
@@ -433,7 +433,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `ZI 14` (l.1045) → `fouissement` — `src/data/traits.json`
-- `MDG 16` (l.9-13, l.152) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `OP_DEFS`, `sea-scorbut`, +19 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/voyage-stakes.json`, `src/engine/combat.ts`, `src/engine/encumbrance.ts`, +12 fichiers
+- `MDG 16` (l.9-13, l.152) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +19 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/voyage-stakes.json`, `src/engine/combat.ts`, `src/engine/encumbrance.ts`, +12 fichiers
 
 ## Bilan de fidélité
 

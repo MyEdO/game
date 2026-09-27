@@ -13,11 +13,22 @@ const FORMES: ReadonlySet<string> = new Set(FORMES_DE_NUEE);
 /** Porte des espèces JOUABLES (`species.json`), lue vivante (entité créée au Compendium comprise). */
 const especeJouable = idDe('species');
 
-/** Faute de l'espèce `id` écrite par l'auteur (`appearance.species`), hors du domaine de saisie — espèce
- *  jouable ∪ espèce dessinée —, `null` sinon. Appelée par le schéma et par le rendu (`resolveRender`). */
-export function fauteDEspece(id: string): string | null {
-  if (ESPECES_DESSINEES.has(id) || especeJouable.safeParse(id).success) return null;
+/** L'espèce `id` est-elle DESSINÉE (defs de créature ou forme de nuée) ? */
+export function estEspeceDessinee(id: string): boolean {
+  return ESPECES_DESSINEES.has(id);
+}
+
+/** Faute d'une espèce d'auteur hors du domaine de saisie — espèce jouable ∪ espèce dessinée. Dite par le
+ *  schéma (`entityAppearanceSchema.species`, `grammaire/valeurs.ts`) et par `fauteDEspece`. */
+export function messageDEspeceInconnue(id: string): string {
   return `espèce « ${id} » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur.`;
+}
+
+/** Faute de l'espèce `id` écrite par l'auteur (`appearance.species`), hors du domaine de saisie, `null`
+ *  sinon. Appelée par le rendu (`resolveRender`), hors de tout parse. */
+export function fauteDEspece(id: string): string | null {
+  if (estEspeceDessinee(id) || especeJouable.safeParse(id).success) return null;
+  return messageDEspeceInconnue(id);
 }
 
 /** L'espèce est une FORME DE NUÉE (`swarm/defs`) : elle ne se rend que par le trait Nuée. */

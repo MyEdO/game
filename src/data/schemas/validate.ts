@@ -8,15 +8,15 @@
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.
  * Le format d'une faute a UNE source (`rapportDeFautes`) : `validateDataset` en dérive pour la porte
  * par fichier, `validateDocument` rend les fautes elles-mêmes (`Faute`). credo.md:7, 2ᵉ phrase.
- * Le LIEU d'une faute a UNE source aussi (`fautesDe`) : un élément de liste à clé (`listeCle`) s'y
+ * Le LIEU d'une faute a UNE source aussi (`fautesDe`) : un élément d'une LISTE à clé (`grammaire/collection-cle.ts`) s'y
  * nomme par sa clé, lue sur la valeur ; aucun message de schéma ne nomme son propre emplacement.
  */
 import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
-import { defDe, enfantsDe } from './grammaire/slots';
-import { cleDe } from './grammaire/liste-cle';
+import { coDescendre, descendre, enfantsDe } from './grammaire/descente';
+import { collectionDe } from './grammaire/collection-cle';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
@@ -40,53 +40,31 @@ export type Faute = {
 
 const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
 
-/** Un nœud et ses enveloppes TRANSPARENTES (`''` : optionnel, pipe, lazy ; `|N` : branches d'union) —
- *  ce que le même segment de chemin peut traverser. */
-function ouverts(noeuds: readonly unknown[]): unknown[] {
-  const vus = new Set<unknown>();
-  const file = [...noeuds];
-  for (let i = 0; i < file.length; i++) {
-    const n = file[i];
-    if (!estObjet(n) || vus.has(n)) continue;
-    vus.add(n);
-    const def = defDe(n);
-    if (def) for (const e of enfantsDe(def)) if (e.segment === '' || e.segment.startsWith('|')) file.push(e.noeud);
-  }
-  return [...vus];
-}
-
-/** Les nœuds atteints depuis `noeuds` par UN segment de chemin (clé d'objet ou de record, rang de liste
- *  ou de tuple) — la descente UNIQUE `enfantsDe`. */
-function enfantsParSegment(noeuds: readonly unknown[], segment: string | number): unknown[] {
-  const admis = typeof segment === 'number' ? ['[]', `[${segment}]`] : [`.${segment}`, '{}'];
-  return noeuds.flatMap((n) => {
-    const def = defDe(n);
-    return def ? enfantsDe(def).filter((e) => admis.includes(e.segment)).map((e) => e.noeud) : [];
-  });
-}
-
-/** Le LIEU d'un chemin : le schéma et la valeur sont descendus ENSEMBLE ; un rang dans une liste à
- *  clé devient l'élément nommé par sa clé (lue sur la valeur), le champ qui porte la liste s'y fond. */
+/** Le LIEU d'un chemin, par la CO-DESCENTE du schéma et de la valeur (`coDescendre`), élaguée hors du
+ *  chemin : un rang dans une liste à clé devient l'élément nommé par sa clé (lue sur la valeur), le
+ *  champ qui porte la liste s'y fond ; au-delà du dernier point atteint, les segments restent bruts. */
 function lieuDe(schema: unknown, valeur: unknown, chemin: readonly (string | number)[]): SegmentDeLieu[] {
   const lieu: SegmentDeLieu[] = [];
-  let noeuds: unknown[] = [schema];
-  let ici = valeur;
-  for (const segment of chemin) {
-    const traverses = ouverts(noeuds);
-    const element = typeof segment === 'number' && Array.isArray(ici) ? ici[segment] : undefined;
-    const marque = typeof segment === 'number' ? traverses.map(cleDe).find((m) => m !== undefined) : undefined;
-    const cle = marque?.de(element);
+  let atteint = 0;
+  coDescendre(schema, valeur, (p) => {
+    const n = p.chemin.length;
+    if (n === 0) return chemin.length === 0 ? 'arreter' : undefined;
+    const segment = chemin[n - 1];
+    if (n > chemin.length || p.chemin[n - 1] !== segment) return 'elaguer';
+    const marque = typeof segment === 'number' ? p.parent!.noeuds.map(collectionDe).find((m) => m !== undefined) : undefined;
+    const cle = marque?.forme === 'liste' ? marque.de(p.valeur) : undefined;
     if (cle === undefined) lieu.push(segment);
     else {
       const precedent = lieu[lieu.length - 1];
       const liste = typeof precedent === 'string' ? precedent : '';
       if (typeof precedent === 'string') lieu.pop();
-      const libelle = estObjet(element) && typeof element.label === 'string' ? element.label : undefined;
+      const libelle = estObjet(p.valeur) && typeof p.valeur.label === 'string' ? p.valeur.label : undefined;
       lieu.push(libelle === undefined ? { liste, cle } : { liste, cle, libelle });
     }
-    noeuds = enfantsParSegment(traverses, segment);
-    ici = estObjet(ici) ? (ici as Record<string | number, unknown>)[segment] : undefined;
-  }
+    atteint = n;
+    return n === chemin.length ? 'arreter' : undefined;
+  });
+  lieu.push(...chemin.slice(atteint));
   return lieu;
 }
 
@@ -128,7 +106,7 @@ export function rapportDeFautes(sujet: string, fautes: readonly Faute[]): string
 
 /** Schéma zod d'un document par nom de fichier (`characteristics.json`, `arene/arene-projet.json`),
  *  ou undefined s'il n'est pas registré. */
-export function schemaForFile(file: string): z.ZodTypeAny | undefined {
+export function schemaForFile(file: string): z.ZodType | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.schema;
 }
 
@@ -140,35 +118,28 @@ export function metaPourFichier(file: string): Readonly<Record<string, MetaChamp
 }
 
 /**
- * NŒUD OBJET sous un nœud quelconque — le premier nœud à `shape`, atteint par la descente UNIQUE
- * (`enfantsDe`, `grammaire/slots.ts`) à travers l'emballage de famille, le sceau et les enveloppes
- * (`z.array`, `.pipe`, refines, `optional`). C'est le seul chemin schéma→atelier vers les NŒUDS d'un
- * document scellé, à TOUTE profondeur : la méta publiée ne porte que le libellé du CHAMP, celui de ses
- * VALEURS vit sur le nœud (`enumNomme`, #1694).
+ * NŒUD OBJET sous un nœud quelconque — le premier nœud à `shape` atteint par la descente
+ * (`descendre`, `grammaire/descente.ts`, largeur d'abord, visite unique par identité : le plus PROCHE) à travers
+ * l'emballage de famille, le sceau et les enveloppes (`z.array`, `.pipe`, refines, `optional`, `lazy`).
+ * C'est le seul chemin schéma→atelier vers les NŒUDS d'un document scellé, à TOUTE profondeur : la
+ * méta publiée ne porte que le libellé du CHAMP, celui de ses VALEURS vit sur le nœud (`enumNomme`,
+ * #1694).
  */
 export function noeudObjet(schema: unknown): unknown {
-  let niveau: unknown[] = [schema];
-  const vus = new Set<unknown>();
-  for (let profondeur = 0; profondeur < 8 && niveau.length; profondeur++) {
-    const suivant: unknown[] = [];
-    for (const n of niveau) {
-      if (!n || typeof n !== 'object' || vus.has(n)) continue;
-      vus.add(n);
-      const def = defDe(n);
-      if (!def) continue;
-      if (def.shape) return n;
-      for (const e of enfantsDe(def)) suivant.push(e.noeud);
-    }
-    niveau = suivant;
-  }
-  return undefined;
+  let trouve: unknown;
+  descendre([schema], ({ noeud, def }) => {
+    if (def.type !== 'object') return;
+    trouve = noeud;
+    return 'arreter';
+  });
+  return trouve;
 }
 
 /** NŒUD zod d'un champ de PREMIER NIVEAU d'un document (`undefined` hors registre, ou si le document
  *  ne porte pas ce champ) — porte de lecture des libellés de valeurs (`valeursDe`/`libelleDeValeur`). */
 export function noeudDuChamp(file: string, champ: string): unknown {
   const entree = noeudObjet(schemaForFile(file));
-  return entree ? (defDe(entree)?.shape ?? {})[champ] : undefined;
+  return entree ? enfantsDe(entree).find((e) => e.cle === champ)?.noeud : undefined;
 }
 
 /** CHARGE d'une entrée d'un document DISCRIMINÉ : le champ discriminant, les clés que porte le CAS de
@@ -179,6 +150,14 @@ export interface ChargeDiscriminee {
   readonly toutes: readonly string[];
 }
 
+/** Champ DISCRIMINANT d'un document et sa CHARGE par valeur : les paramètres `discriminant` et
+ *  `chargeParDiscriminant` de l'`espace` de la marque de sa racine (`grammaire/collection-cle.ts`),
+ *  `undefined` sans eux. */
+function partitionDeCharge(def: SchemaDef | undefined): { champ: string; table: Readonly<Record<string, readonly string[]>> } | undefined {
+  const espace = def && collectionDe(def.schema)?.espace;
+  return espace?.discriminant && espace.chargeParDiscriminant ? { champ: espace.discriminant, table: espace.chargeParDiscriminant } : undefined;
+}
+
 /**
  * Charge DISCRIMINÉE d'une entrée — `undefined` si le document ne déclare pas de discriminant, ou si
  * l'entrée n'en porte pas une valeur connue (entrée en cours de saisie). C'est ce que l'atelier
@@ -186,10 +165,9 @@ export interface ChargeDiscriminee {
  * partagent aucune clé ferait éditer à chacun l'union des clés de tous les autres.
  */
 export function chargeDiscriminee(file: string, entree: Record<string, unknown>): ChargeDiscriminee | undefined {
-  const def = DEFS_DE_DOCUMENT.find((d) => d.file === file);
-  const champ = def?.discriminant;
-  const table = def?.chargeParDiscriminant;
-  if (!champ || !table) return undefined;
+  const partition = partitionDeCharge(DEFS_DE_DOCUMENT.find((d) => d.file === file));
+  if (!partition) return undefined;
+  const { champ, table } = partition;
   const valeur = entree[champ];
   const duCas = typeof valeur === 'string' ? table[valeur] : undefined;
   if (!duCas) return undefined;
@@ -215,11 +193,10 @@ export function brouillonNeuf(file: string, entrees: readonly Record<string, unk
   const brouillon: Record<string, unknown> = {};
   const type = def.meta && entrees.find((e) => typeof e?.type === 'string')?.type;
   if (typeof type === 'string') brouillon.type = type;
-  const champ = def.discriminant;
-  const table = def.chargeParDiscriminant;
-  if (champ && table) {
-    const premiere = Object.keys(valeursDe(noeudDuChamp(file, champ)) ?? table)[0];
-    if (premiere !== undefined) brouillon[champ] = premiere;
+  const partition = partitionDeCharge(def);
+  if (partition) {
+    const premiere = Object.keys(valeursDe(noeudDuChamp(file, partition.champ)) ?? partition.table)[0];
+    if (premiere !== undefined) brouillon[partition.champ] = premiere;
   }
   return brouillon;
 }
@@ -239,7 +216,7 @@ export function validateDataset(file: string, value: unknown): string | null {
 /** Valide `value` contre `schema` — porte du seam SANS nom de fichier (chargement d'un projet depuis
  *  le localStorage ou un import utilisateur). Rend les FAUTES (`null` si valide) : l'appelant en
  *  tire son rapport (`rapportDeFautes`) et sa surface les lit sans re-parser de texte. */
-export function validateDocument(schema: z.ZodTypeAny, value: unknown): readonly Faute[] | null {
+export function validateDocument(schema: z.ZodType, value: unknown): readonly Faute[] | null {
   const result = schema.safeParse(value);
   return result.success ? null : fautesDe(schema, value, result.error);
 }

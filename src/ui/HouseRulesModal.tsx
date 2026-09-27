@@ -55,7 +55,7 @@ export function HouseRulesPanel() {
           <section key={g} className="hr-group">
             {active.groups.length > 1 && <h4 className="mini-title">{g}</h4>}
             {active.rules.filter((r) => r.group === g).map((r) => (
-              <HouseRuleRow key={r.id} def={r} mutable={mutable} onChange={change} onReset={reset} />
+              <HouseRuleRow key={r.id} regle={r} mutable={mutable} onChange={change} onReset={reset} />
             ))}
           </section>
         ))}
@@ -82,64 +82,64 @@ function storeAction(store: object, name: string | undefined): (() => void) | un
 }
 
 function HouseRuleRow({
-  def, mutable, onChange, onReset,
+  regle, mutable, onChange, onReset,
 }: {
-  def: OptionalRule;
+  regle: OptionalRule;
   /** Verrou de CLASSE (identique pour toutes les rangées) — sa raison est rendue en tête du panneau. */
   mutable: boolean;
   onChange: (id: string, v: RuleValue) => void;
   onReset: (id: string) => void;
 }) {
-  const val = rule(def.id);
-  const dirty = val !== def.default;
-  const tip = def.hint ? `${def.ref} — ${def.hint}` : def.ref;
+  const val = rule(regle.id);
+  const dirty = val !== regle.default;
+  const tip = regle.hint ? `${regle.ref} — ${regle.hint}` : regle.ref;
   const describedBy = mutable ? undefined : LOCK_NOTE_ID;
-  // Action DÉCLARÉE par l'entrée (`def.action`), rendue quand la règle vaut sa valeur `when` : la
+  // Action DÉCLARÉE par l'entrée (`regle.action`), rendue quand la règle vaut sa valeur `when` : la
   // rangée ne connaît aucune règle, elle résout sur le store le nom d'action que l'entrée porte.
-  const act = def.action && val === def.action.when ? def.action : undefined;
+  const act = regle.action && val === regle.action.when ? regle.action : undefined;
   const run = useGame((s) => storeAction(s, act?.run));
   return (
     <>
       <div className="hr-row" title={tip}>
         <span className="hr-label">
-          {def.label}
+          {regle.label}
           {dirty && (
             <GatedAction
-              id={`${def.id}-reset`}
+              id={`${regle.id}-reset`}
               label="↺"
               ariaLabel="Revenir au défaut (RAW)"
               enabled={mutable}
               reasonId={LOCK_NOTE_ID}
               primary={false}
               btnClassName="small"
-              onClick={() => onReset(def.id)}
+              onClick={() => onReset(regle.id)}
             />
           )}
         </span>
         <span className="hr-control">
-          {def.kind === 'flag' && (
+          {regle.kind === 'flag' && (
             <input
-              type="checkbox" aria-label={def.label} checked={val === true} disabled={!mutable}
-              aria-describedby={describedBy} onChange={(e) => onChange(def.id, e.target.checked)}
+              type="checkbox" aria-label={regle.label} checked={val === true} disabled={!mutable}
+              aria-describedby={describedBy} onChange={(e) => onChange(regle.id, e.target.checked)}
             />
           )}
-          {def.kind === 'mode' && (
+          {regle.kind === 'mode' && (
             <select
-              aria-label={def.label} value={String(val)} disabled={!mutable}
-              aria-describedby={describedBy} onChange={(e) => onChange(def.id, e.target.value)}
+              aria-label={regle.label} value={String(val)} disabled={!mutable}
+              aria-describedby={describedBy} onChange={(e) => onChange(regle.id, e.target.value)}
             >
-              {(def.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+              {(regle.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           )}
-          {def.kind === 'param' && (
+          {regle.kind === 'param' && (
             <NumberField
-              variant="nu" label={def.label} value={Number(val)} min={def.min} max={def.max} step={def.step ?? 1}
+              variant="nu" label={regle.label} value={Number(val)} min={regle.min} max={regle.max} step={regle.step ?? 1}
               disabled={!mutable} describedBy={describedBy}
-              onChange={(n) => onChange(def.id, n)}
+              onChange={(n) => onChange(regle.id, n)}
             />
           )}
         </span>
-        <span className="hr-ref">{def.ref}</span>
+        <span className="hr-ref">{regle.ref}</span>
       </div>
       {act && run && (
         <div className="hr-action">

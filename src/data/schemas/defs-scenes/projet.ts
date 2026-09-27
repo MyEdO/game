@@ -7,8 +7,8 @@
  * (`../grammaire/document.ts`, #1552) en famille `config` — même code que les defs de configuration
  * sur objet unique (patron `defs/crew-morale.ts`) : l'enveloppe pose `type`, `id`, `label`, `desc`,
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
- * seam passent par `options.affinerEntree` — FK `activeAxes` vers `axes.json` et FK intra-document
- * `entity.presetId` → `narratif.presetsPnj`. Les invariants du bloc narratif restent portés par
+ * seam passent par `options.affinerEntree` — FK intra-document `entity.presetId` →
+ * `narratif.presetsPnj`. `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
  * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
  *
@@ -20,19 +20,15 @@
  * La version de FORME du document reste le littéral `schema`, champ de charge utile de ce document.
  */
 import { z } from 'zod';
-import { IDS_PAR_DATASET } from '../_ids.generated';
 import { document } from '../grammaire/document';
-import { listeCle } from '../grammaire/liste-cle';
+import { refs } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
 
-/** Ids d'`axes.json` — cible de `activeAxes`. Le type `axe` n'est pas déclaré au mapping de
- *  `grammaire/ref.ts` (`TYPES`) : la FK se refine ici contre le registre généré. */
-const idsDAxes = (): readonly string[] => IDS_PAR_DATASET['axes.json'] ?? [];
-
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 16;
+export const SCHEMA_PROJET = 17;
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(
@@ -49,7 +45,7 @@ export const projetDoc = document(
     }),
     worldMap: worldMapSchema.optional(),
     /** Axes de forces/faiblesses ACTIFS de la campagne (#409) — absent = socle `coreAxisIds`. */
-    activeAxes: z.array(z.string()).optional(),
+    activeAxes: refs('axe').optional(),
     narratif: narratifSchema,
   },
   {
@@ -82,20 +78,9 @@ export const projetDoc = document(
     affinerEntree: (entree) =>
       entree.superRefine((valeur, ctx) => {
         const doc = valeur as {
-          activeAxes?: string[];
           scenes: { entities?: { presetId?: string }[] }[];
           narratif: { presetsPnj: { id: string }[] };
         };
-        const connus = idsDAxes();
-        (doc.activeAxes ?? []).forEach((id, i) => {
-          if (connus.includes(id)) return;
-          ctx.addIssue({
-            code: 'custom',
-            path: ['activeAxes', i],
-            message: `activeAxes référence un axe inconnu de axes.json : « ${id} ».`,
-          });
-        });
-
         /** FK INTRA-document (#671) : tout `presetId` d'entité de scène résout un preset déclaré. */
         const presets = new Set(doc.narratif.presetsPnj.map((p) => p.id));
         doc.scenes.forEach((s, is) => {

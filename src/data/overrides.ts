@@ -49,7 +49,6 @@ import crewMoraleRawJson from './crew-morale.json';
 import { DATASET_FICHIER_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserSourceDIdsVivants } from './schemas/grammaire/idsVivants';
 import { bumperDataset, versionDuDataset } from './versionDataset';
-import { DEFS_DE_DOCUMENT } from './schemas/validate';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import type { GameOp } from '../engine/ops';
@@ -474,7 +473,6 @@ poserSourceDIdsVivants({
     const cle = DATASET_DU_FICHIER[fichier];
     return cle === undefined ? 0 : versionDuDataset(cle);
   },
-  discriminantDe: (fichier) => DEFS_DE_DOCUMENT.find((d) => d.file === fichier)?.discriminant,
 });
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */

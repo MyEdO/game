@@ -41,7 +41,7 @@ const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema
  *  charge utile du statbloc : `value`, le nombre IMPRIMÉ (#1463, « `value` = le seul nom du NOMBRE
  *  IMPRIMÉ au statbloc »). MÊME nœud que `swapGrantSchema` ci-dessus, dont l'octroi DÉSIGNE (régime
  *  par défaut) — une seule graphie de Compétence dans ce document. */
-const skillRefSchema = refOuSpec('skill', { value: z.number() }, 'specOuChoixFacultatifs');
+const competenceChiffreeAEmplacementSchema = refOuSpec('skill', { value: z.number() }, 'specOuChoixFacultatifs');
 
 
 /** `HarvestDanger` (`src/data/index.ts`). */
@@ -70,7 +70,7 @@ const champs = {
     char: z.record(z.string(), z.union([z.number(), z.null()])),
     traits: z.array(traitInstanceSchema),
     optionals: z.array(optionalEntrySchema),
-    skills: z.array(skillRefSchema),
+    skills: z.array(competenceChiffreeAEmplacementSchema),
     talents: z.array(talentRefSchema),
     trappings: z.array(trappingRefSchema),
     spells: refs('spell'),

@@ -177,7 +177,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
-| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (111 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (113 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
@@ -401,13 +401,14 @@ pas exigible (vocabulaires d'app, documents dont la source vit en profondeur) so
 
 **Les 4 exports plats du contrat `gen`** : tout def qui appelle `document(` exporte `file`, `schema`,
 `famille` et `meta` **À PLAT**. Le générateur de registre est TEXTUEL (lecture par regex, jamais un
-import) ; son lecteur unique, `lireExports` de `scripts/gen-registry.mjs`, lit `file` et `famille` à la
-seule forme `export const X = '…';` (guillemet SIMPLE littéral) et `meta` à la présence de
-`export const meta` :
+import) ; son lecteur UNIQUE, `lireExports` de `scripts/gen-registry.mjs` (formes `FORMES_D_EXPORT`),
+lit `file` et `famille` à la seule forme `export const X = '…';` (guillemet SIMPLE littéral) et `meta` à
+la présence de `export const meta` :
 
 - `file`, `famille` ou `meta` hors de sa forme canonique (guillemets doubles, `: string` annoté,
-  littéral gabarit, `= doc.file`, destructuration, `export { … }`) : `npm run gen` **LÈVE** en nommant
-  le def et l'export — aucun def n'est écarté en silence.
+  `as const`, littéral gabarit, `= doc.file`, destructuration, `export { … }`) : `npm run gen` **LÈVE**
+  en nommant le def et l'export — aucun def n'est écarté en silence
+  (`src/data/schemas/gen-registry-lecteur.test.ts`).
 - `file` absent : le module n'est pas une entrée du registre (module de FORME partagé, `genOne` de
   `scripts/gen-registry.mjs`). Seul cet export décide de l'appartenance au registre.
 - `meta` absent : le def **RESTE au registre** sans entrée `meta` (`presents` de `genOne`) — l'atelier
@@ -424,8 +425,9 @@ méta sans champ correspondant est refusée. C'est le canal registre → atelier
 `src/data/schemas/validate.ts`) : les gardes de libellés et le CLIQUET de couverture vivent dans
 `src/ui/compendium/libelles-de-champs.test.tsx` — les CHIFFRES y sont, jamais recopiés ici.
 
-**Registres GÉNÉRÉS** — `_registry.generated.ts`, `_registry-scenes.generated.ts` et
-`_ids.generated.ts`, par `node scripts/gen-registry.mjs` (`npm run gen`). Ne JAMAIS éditer à la main.
+**Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par
+`scripts/gen-registry.mjs` (phase 1 de `npm run gen`), `_ids.generated.ts` (l'INDEX DES IDS,
+`IDS_PAR_ESPACE`) par `scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.
 `DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.
 
 Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à
@@ -498,4 +500,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 99f6f98e9a4f5e1277e27d0c162d9788f0868378 (383 fichiers, 2 dossiers) corps: 4ea9f94ca7817d5a07c31c3543591c08afe0ac54 -->
+<!-- sources-empreinte: 4a9d518e739caec66849f239ca9912d56da5d18a (384 fichiers, 2 dossiers) corps: 72ef00535843ea65dc8ce0a4075529dad0c28bb3 -->

@@ -121,7 +121,7 @@ import { type OvercastSource, overcastSourceOf, overcastDurationParts, overcastB
 import type { SpellRange } from '../engine/spellRange';
 import { evalCondition } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, resolveFormula, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -6078,7 +6078,7 @@ export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, 
 
 /** RECONSTITUTION DIFFÉRÉE (op `scheduleRespawn`, Gardien éternel — Bestiaire de Middenheim) : à la mort du
  *  porteur, PROGRAMME (file `scheduledEffects`, horloge) la ré-invocation de la créature à `gameTime + d10
- *  jours`. Le délai `delayDays` est ROULÉ ici (`battleRng`, donc déterministe en test) ; `ref:'self'` se
+ *  jours`. Le délai `delayDays` est ROULÉ ici (`battleRng`, donc déterministe en test) ; `SELF_REF` se
  *  résout au porteur de fiche du défunt (`Combatant.porteurDeFiche`, #1882). Un INSTANTANÉ minimal du défunt (id/name/kind/pos)
  *  sert de lanceur à `applySummon` au déclenchement. Le `cancelFlag` (précautions) reste désamorçable par un
  *  Effet de scène. Sans position (hors grille) : pas de point de reconstitution → no-op. */
@@ -6086,8 +6086,8 @@ function scheduleRespawnFromOp(
   _get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'scheduleRespawn' }>,
 ): string[] {
   if (!actor.pos) return [];
-  // `ref:'self'` : la fiche du défunt, quel qu'en soit le porteur (Middenheim 04 p.115, LDB 76 l.11, #1882).
-  const porteur = op.ref === 'self' ? actor.porteurDeFiche : { ref: op.ref };
+  // `SELF_REF` : la fiche du défunt, quel qu'en soit le porteur (Middenheim 04 p.115, LDB 76 l.11, #1882).
+  const porteur = op.ref === SELF_REF ? actor.porteurDeFiche : { ref: op.ref };
   if (!porteur) throw new Error(`[scheduleRespawn] « ${actor.id} » n'a été spawné d'aucune fiche : \`ref:'self'\` ne peut le reconstituer (#1882)`);
   const days = resolveFormula(op.delayDays, actor, battleRng());
   const count = Math.max(1, resolveFormula(op.count ?? 1, actor, battleRng()));

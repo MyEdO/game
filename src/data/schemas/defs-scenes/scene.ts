@@ -23,10 +23,10 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
-import { customStatblockSchema, ptSchema, skillRefSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
-import { listeCle } from '../grammaire/liste-cle';
+import { listeCle } from '../grammaire/collection-cle';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF, type PartRelief } from '../../materials.types';
@@ -61,18 +61,12 @@ export const seatOccupantSchema = z.discriminatedUnion('kind', [
  *  l'interaction (dialogueId) ne distinguaient pas. */
 export const entityKindSchema = enumNomme({ heroStart: 'Départ héros', personnage: 'Personnage', prop: 'Décor' });
 
-/** Porte de registre d'une ref de DÉCOR (#877) : le même `idDe('prop')` que `terrains › overlayProp`,
- *  appliqué depuis le `superRefine` de l'entité — `SceneEntity.ref` est un champ PARTAGÉ avec le
- *  personnage, que seul le `kind` départage. La liste admise se relit à chaque validation, au régime
- *  vif (`grammaire/idsVivants.ts`) : un décor posé à la palette est référençable aussitôt. */
-const refDeDecor = idDe('prop');
-
 /** Sous-liste des décors à recette VOLUMIQUE : le marqueur `volume` de `defs/props.ts`. */
 const estVolumique = porteLeMarqueur('prop', 'volume');
 
 /** Les PORTEURS du type d'une entité, par `kind` (#877, #1882) : une entité NOMME son type, ou elle est
- *  refusée. La PRÉSENCE se juge au parse (`superRefine` en pied) et dans `validateScene` ; la
- *  RÉSOLUTION se juge au parse aussi : `refDeDecor` (décor), `refEntiteResolue` (personnage, lue au
+ *  refusée. La PRÉSENCE se juge au parse (`superRefine` de sa branche de `sceneEntitySchema`) et dans
+ *  `validateScene` ; la RÉSOLUTION se juge au parse aussi : `idDe('prop')` (décor), `refEntiteResolue` (personnage, lue au
  *  catalogue `src/data/index.ts`, patron `narratif.ts`). Une chaîne
  *  vide n'est pas un porteur. L'exclusivité des porteurs d'un personnage est #1892. */
 export const PORTEURS_DU_TYPE = {
@@ -115,21 +109,14 @@ export const actionAuthoreeSchema = z.strictObject({
   minutes: z.number().min(0).optional(),
 });
 
-/** `SceneEntity` (`state/scene.ts:41`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
- *  Le `superRefine` en pied porte les invariants CROSS-CHAMP de l'entité : le type NOMMÉ
- *  (`PORTEURS_DU_TYPE`) et le cap d'un décor volumique (`estVolumique`). */
-export const sceneEntitySchema = z.strictObject({
+/** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
+const baseDEntiteSchema = z.strictObject({
   id: z.string(),
-  kind: entityKindSchema,
   pos: z.strictObject({ x: z.number(), y: z.number() }),
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),
   facing: dir8Schema.optional(),
   label: z.string().optional(),
-  /** Réf au bestiaire (personnage) ou au catalogue de décor (prop). Un des porteurs du type
-   *  (`PORTEURS_DU_TYPE`, #877, #1882) : REQUISE et résolue au registre pour un décor ; pour un
-   *  personnage, elle, `statblock` ou `presetId`. */
-  ref: z.string().optional(),
   statblock: customStatblockSchema.optional(),
   /** Id d'un preset de `narratif.presetsPnj` — FK intra-document (vérifiée par `projetSchema`). */
   presetId: z.string().optional(),
@@ -186,35 +173,50 @@ export const sceneEntitySchema = z.strictObject({
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
-      skills: z.array(skillRefSchema).optional(),
+      skills: z.array(competenceChiffreeSchema).optional(),
       /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. */
       hiddenUntilCombat: z.boolean().optional(),
     })
     .optional(),
-}).superRefine((ent, ctx) => {
-  // TYPE NOMMÉ — verrou AU PARSE (#877, #1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici, au lieu de
-  // l'entité ; rien ne la remplace.
-  const absence = porteurAbsent(ent);
-  if (absence) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: absence });
-  if (ent.kind === 'personnage' && ent.ref && !refEntiteResolue(ent.ref))
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
-  if (ent.kind !== 'prop') return;
-  // REF DE DÉCOR (#877) : résolue au registre `props.json` ; une ref morte se DIT, jamais remplacée.
-  if (ent.ref !== undefined) {
-    const verdict = refDeDecor.safeParse(ent.ref);
-    if (!verdict.success)
-      for (const souci of verdict.error.issues) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: souci.message });
-  }
-  // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
-  // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
-  // régime vif, sinon au registre généré (`porteLeMarqueur`).
-  if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    path: ['facing'],
-    message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`,
-  });
 });
+
+/** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
+ *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
+const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
+  z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref });
+
+type EntityKindId = z.infer<typeof entityKindSchema>;
+
+/** `SceneEntity` (`state/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
+ *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
+ *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
+ *  porte ses invariants CROSS-CHAMP : le type NOMMÉ (`PORTEURS_DU_TYPE`), et pour un décor le cap d'un
+ *  décor volumique. */
+export const sceneEntitySchema = z.discriminatedUnion('kind', [
+  brancheDEntite('heroStart', z.string().optional()),
+  brancheDEntite('personnage', z.string().optional()).superRefine((ent, ctx) => {
+    // TYPE NOMMÉ — verrou AU PARSE (#1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici ; rien ne la remplace.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    if (ent.ref && !refEntiteResolue(ent.ref))
+      ctx.addIssue({ code: 'custom', path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+  }),
+  brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
+    // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
+    // feuille `idDe('prop')`. Une ref absente se DIT ici.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
+    // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
+    // régime vif, sinon au registre généré (`porteLeMarqueur`).
+    if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['facing'],
+      message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`,
+    });
+  }),
+]);
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
 
@@ -736,7 +738,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
 // ── La scène ────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * `Scene` (`state/scene.ts:683`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
+ * `Scene` (`state/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
  * `triggers`/`encounters`/`flags`, requises sur le type manuscrit, sont OPTIONNELLES ici : le
  * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
  * `migreSceneDeProjet`).

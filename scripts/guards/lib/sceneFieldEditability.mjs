@@ -121,7 +121,7 @@ const FRONTIERE = [
  * phase qui le tue — `.claude/skills/orchestrer-des-agents/SKILL.md` § Brief).
  * Clé = `<nom du export const>.<champ>` pour un shape zod, `<Type>.<champ>` pour un corps manuscrit.
  */
-export const FOSSILES = ['sceneEntitySchema.foot'];
+export const FOSSILES = ['baseDEntiteSchema.foot'];
 
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */

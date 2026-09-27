@@ -57,7 +57,6 @@ import {
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
 import { adresseDeCreation, cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
-import { emplacementOctroye } from '../../engine/creation';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -1275,7 +1274,7 @@ export function StarScreen({ d, setD }: StepProps) {
   const selPos = STAR_POSITIONS.find((p) => p.members.some((m) => m.id === d.star)) ?? STAR_POSITIONS.find((p) => p.key === pendingKey);
   // Talent « (Au choix) » octroyé par le signe (ex. Maître artisan) → spécialisation à préciser, à
   // l'adresse de l'op dans le signe.
-  const grantChoice = (sign?.ops ?? []).flatMap((o, k) => (o.op === 'grantTalent' && emplacementOctroye(o).choix ? [{ k, ref: emplacementOctroye(o) }] : []))[0];
+  const grantChoice = (sign?.ops ?? []).flatMap((o, k) => (o.op === 'grantTalent' && o.talent.choix != null ? [{ k, ref: o.talent }] : []))[0];
   const grantOpts = grantChoice ? poolDuJoker('talent', grantChoice.ref) : [];
 
   const pickPos = (key: string) => {

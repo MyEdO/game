@@ -7,15 +7,10 @@ import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { refSchema } from '../grammaire/reference';
 import { document } from '../grammaire/document';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'traits.json';
 export const famille = 'entite';
-/** Champs MARQUEURS (#1957) — `indice` : `LDB 85` l.94 ; `range` : `LDB 85` l.209 ; lus par
- *  `refusDArgDeTrait` (`grammaire/reference.ts`). `specsOpen` : `LDB 85` (ex. l.83), lu par `entreeOuverte`
- *  (`grammaire/ref.ts`).
- *  @generateur lu au TEXTE par `lireExports` (`scripts/gen-registry.mjs`), qu'aucun import ne dit à knip. */
-export const marqueurs = ['indice', 'range', 'specsOpen'];
 
 /** `TraitCapabilities` (`src/data/index.ts`) — clés OBSERVÉES dans `traits.json` (31/54 déclarées
  *  sur l'interface ; les autres appartiennent aux capabilities de qualités/symptômes ou sont réservées
@@ -97,7 +92,8 @@ const doc = document(
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(refSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`state/advancement.ts`). */
+    passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),
@@ -159,7 +155,9 @@ const doc = document(
     codex: { keys: ['traits', 'psychologie'] },
     edit: { dataset: 'traits' },
   },
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS },
+  // `indice` : `LDB 85` l.94 ; `range` : `LDB 85` l.209 ; lus par `refusDArgDeTrait` (`grammaire/reference.ts`).
+  // `specsOpen` : `LDB 85` (ex. l.83), lu par `entreeOuverte` (`grammaire/ref.ts`).
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen'] } },
 );
 
 export const schema = doc.schema;

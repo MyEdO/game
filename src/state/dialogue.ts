@@ -13,7 +13,7 @@
  *    recopié dans la donnée : l'affichage résout les libellés au registre).
  */
 import type { CharKey, Difficulty } from '../engine/types';
-import type { SkillRef } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
 import { evalCondition, flowTestGateOpen, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
 import type { Flow } from './flow';
@@ -88,7 +88,7 @@ export type RefusDeReponse =
 /** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `targetDR` n'est porté que par un Test
  *  ÉTENDU (le DR CUMULÉ à atteindre, donnée du flux). */
 export interface TestAnnonce {
-  skill?: SkillRef;
+  skill?: RefDesignee;
   characteristic?: CharKey;
   difficulty: Difficulty;
   targetDR?: number;

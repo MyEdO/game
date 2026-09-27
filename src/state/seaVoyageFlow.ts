@@ -110,14 +110,7 @@ import { dataLabel } from '../data';
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
-import type { WindAspect } from '../engine/seaWeather';
 
-/** Libellé de l'ASPECT du vent — `windAspect` rend un ID (`face`/`arriere`/`lateral`), que le flux
- *  collait derrière « vent » (« vent arriere »). Résolveur TOTAL : aucun repli-id. */
-const SEA_ASPECT_KEY = { face: 'sv.windFace', arriere: 'sv.windArriere', lateral: 'sv.windLateral' } as const;
-function seaAspectLabel(aspect: WindAspect): string {
-  return t(SEA_ASPECT_KEY[aspect]);
-}
 import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, garanti } from './combatants';
 import type { PlayerText } from '../i18n/playerText';
@@ -428,7 +421,7 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
 /** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
  *  puis EFFET DU VENT (%, Clinfoc — ch.13 l.274/ch.12 l.254). `null` = les voiles n'avancent pas
  *  (Encalminé / Affaler) — Propulsion à vapeur : M 4 constant, insensible au vent (ch.12 l.311). */
-function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: PropulsionKind | null; label: string; affaler: boolean } {
+function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: PropulsionKind | null; affaler: boolean } {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const hull = plan.vehicle!;
@@ -436,7 +429,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   if (shipHasNavalTrait(traits, 'propulsion-a-vapeur')) {
-    return { m: 4, sail: false, mode: null, label: t('sv.steamMode'), affaler: false }; // MDG 12 l.311
+    return { m: 4, sail: false, mode: null, affaler: false }; // MDG 12 l.311
   }
   const propulsion = vesselPropulsion(vd);
   const sail = propulsion?.mode === 'voile';
@@ -456,8 +449,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const cell = windEffect(sea.weather.vent, aspect, rigging);
   const m = windAdjustedM(Math.max(0, baseM), cell, sail);
   const affaler = !!(cell.affaler && sail);
-  const label = cell.encalmine && sail ? t('sv.becalmed') : affaler ? t('sv.strikeSails') : seaAspectLabel(aspect);
-  return { m, sail, mode: propulsion?.mode ?? null, label, affaler };
+  return { m, sail, mode: propulsion?.mode ?? null, affaler };
 }
 
 // ── Test d'équipage de VOYAGE (hors combat — l'équipage = les PJ) ────────────────────────────────
@@ -2558,11 +2550,11 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     }
     case 'chance-navigateur': {
-      // « Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours. »
+      // MDG 15 l.233
       const captain = partyAssisted(get().party, 'commandement');
       if (captain) {
         const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talentId: 'chanceux' }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
+        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
         set({ party: [...get().party] });
       }
       break;

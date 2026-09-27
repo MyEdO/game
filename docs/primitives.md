@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-111 primitives.
+113 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -42,6 +42,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol | `suspendActiveCascade/resumeSuspendedCascade` | `src/state/cascade.ts` | — | ouverture de combat, transition de scène, teardown de victoire ou de défaite | pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge |
 | aperçu d’un personnage en pied hors combat, rig réel | `CharacterPreview` | `src/ui/CharacterPreview.tsx` | — | roster, créateur, fiche, marchand | — |
 | table UNIQUE des clés de palette du rig, trois parties : recoloriables (une par Slot, défaut + libellé), communes (défaut ou clé suivie), vocabulaire (sans défaut, ce que la clé peint ; résolue seulement là où une couche la déclare) | `CLES/communes/vocabulaire` | `src/gameIso/rig/clesDePalette.ts` | — | toute clé `@clé` peinte ou déclarée dans le rig ; une matière neuve = une ligne de vocabulaire | types PaletteDeclaree/PaletteDeCouchePortee (clé hors table refusée), clesDePalette.test.ts, palette.test.ts |
+| co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider | `coDescendre/ouverts/pasDeDonnee` | `src/data/schemas/grammaire/descente.ts` | — | toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute | src/data/schemas/grammaire/co-descente.test.ts |
 | montant en monnaie impériale (LDB 57), coloré par dénomination et épelé en `title` — miroir JSX de `formatMoney` | `Coins` | `src/ui/Coins.tsx` | `src/ui/styles/coins.css` | tout prix AFFICHÉ : négoce, soins, repos, conseil, bourse d'en-tête | — |
 | fil d’ÉVÉNEMENTS du combat : le beat courant, ligne nue posée sur le terrain, toné par sa gravité | `CombatBanner` | `src/ui/CombatBanner.tsx` | `src/ui/styles/combat-banner.css` | refus du geste tenté, intention télégraphiée de l’IA, dernier résultat du journal | projection de sources existantes — zéro état dédié |
 | LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte | `CombatConsole` | `src/ui/CombatConsole.tsx` | `src/ui/styles/combat-console.css` | HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette | src/ui/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont |
@@ -51,6 +52,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | cérémonie de tirage du créateur : attente, roulant, rendu, gain de PX en direct | `CreatorDice` | `src/ui/creator/CreatorDice.tsx` | — | Race, Carrière, Caractéristiques, Signe astral | — |
 | gabarit d’étape du créateur : bande d’action requise, zone de choix, zone de description | `CreatorStepFrame` | `src/ui/creator/CreatorStepFrame.tsx` | `src/ui/styles/creator-step.css` | toutes les étapes du créateur | src/ui/creator/creator-ossature.test.tsx |
 | déclarations INERTES d'une couche : clés dont le retrait laisse buildTokenMap identique sous chaque entrée que le rig applique à la couche et chaque surcharge sonde, retirées jusqu'au point fixe (doublon de la couche défaut, rôle orphelin) | `declarationsInertes` | `src/gameIso/rig/palette.ts` | — | porte de la donnée de palette, mesure d'un retrait | palettes-declarees.test.ts (A4), palette.test.ts |
+| descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur | `descendre/enfantsDe` | `src/data/schemas/grammaire/descente.ts` | — | toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex | src/data/schemas/grammaire/descente.test.ts |
 | galerie du design system in-app (DEV) : chaque primitive montée vivante avec des données réelles | `DesignGallery` | `src/ui/gallery/DesignGallery.tsx` | — | référence de goût des primitives d’UI | — |
 | cadre de détail de l’élue : nom, chips méta, rubriques, prose scrollable | `DetailFrame` | `src/ui/DetailFrame.tsx` | — | créateur, pickers, Codex | — |
 | le DÉ comme matière : gemme, chiffre gravé, roulis, matière dorée, scène centrale qui voile son hôte | `DiceRoll` | `src/ui/DiceRoll.tsx` | `src/ui/styles/dice-roll.css` | roulis d’une fenêtre de jet, encrier du créateur, d100 textuel d’une ligne de jet | aucune face de dé redessinée hors de ce module (tone="gold" couvre l’Atelier) |
@@ -142,4 +144,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 6c678862e249bd45b6407afb27207bdf467b5737 (6 fichiers, 0 dossiers) corps: 3d72aded75e50eef15616f8024926234da6b7d68 -->
+<!-- sources-empreinte: 3627fcfbc46c9f5c122ccad9b6ec5b9c1933265d (6 fichiers, 0 dossiers) corps: 0a3069b85ec1df3a7bb1b323ff4470be1c2a1ef4 -->

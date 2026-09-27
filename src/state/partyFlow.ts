@@ -24,13 +24,12 @@ import {
   talentSlots,
   availableChars,
   designationsFor,
-  inCareerStatus,
   freeSlotFor,
   designateSlot,
   talentMaxReached,
   arcaneDomainGate,
 } from '../engine/careerSlots';
-import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from '../engine/talentEffects';
+import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
 import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
@@ -72,9 +71,9 @@ function careerCtx(hero: Combatant) {
     career,
     level,
     levels,
-    sSlots: skillSlots(levels, level), // Compétences : cumul niveaux ≤ courant (l.78)
-    tSlots: talentSlots(levels, level), // Talents : niveau courant seul (l.100)
-    careerChars: availableChars(levels, level), // Caractéristiques : cumul (l.67)
+    sSlots: skillSlots(levels, level), // Compétences : cumul niveaux ≤ courant (l.76)
+    tSlots: talentSlots(levels, level), // Talents : niveau courant seul (l.103)
+    careerChars: availableChars(levels, level), // Caractéristiques : cumul (l.43)
     designations: designationsFor(hero, career),
   };
 }
@@ -398,10 +397,8 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       const ctx = careerCtx(clone);
       const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
       const known = clone.skills.some((sk) => sk.id === skillId && (sk.spec ?? '') === (spec ?? ''));
-      const status = inCareerStatus(ctx.sSlots, ctx.designations, skillId, spec);
-      const additions = careerSkillAdditions(clone);
-      const added = additions.some((a) => a.id === skillId && (!a.spec || a.choix != null || (a.spec ?? '') === (spec ?? '')));
-      const inC = status != null || added;
+      const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
+      const inC = status != null;
       if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
         msg = t('pf.charNeedsMentor', { name: clone.label, what: lbl(skillLabel, spec) });
         return h;
@@ -415,7 +412,6 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
         const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
         clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
       }
-      const discount = added && status != null ? 5 : 0;
       const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
       if (!r.ok) {
         msg = t('pf.refused', { name: clone.label, what: lbl(skillLabel, spec), reason: r.reason ?? '' });
@@ -462,9 +458,9 @@ export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey:
   if (msg) get().log(msg);
 }
 
-/** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = un emplacement du
- *  niveau COURANT le couvre (explicite, désigné, ou libre → désignation automatique) ; hors
- *  carrière interdit (LDB 07 l.97) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
+/** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = `talentEnCarriere` : un
+ *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
+ *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
 export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
   let msg = '';
@@ -474,7 +470,7 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
       const clone: Combatant = structuredClone(h);
       const ctx = careerCtx(clone);
       const talentLabel = refLabel('talents', { id: talentId, spec }); // AFFICHAGE + conversion pour le moteur
-      const status = inCareerStatus(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+      const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (!status) {
         msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
         return h;

@@ -165,7 +165,15 @@ import { stockageWeb } from '../lib/stockageWeb';
 // `engine/careerSlots.ts`) se résume en ids, plus en libellés. Une save de 56 rouvrirait des héros dont
 // aucune désignation n'est plus appariée à son emplacement : chaque joker de carrière redevient à désigner.
 // La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 57;
+// 57 → 58 (#1473, train 2a) : les ops `grantTalent` / `grantCareerTalent` persistées passent de
+// `{ talentId, spec? }` à `{ talent: { id, spec? } }` — `Combatant.mutations[].passive`,
+// `ActiveEffect.grantedMutation.passive` / `.passive` / `.opsPerRound`, `ItemInstance.consumable`, les `Flow`
+// de la scène vivante, du `campaignDoc` et de `scheduledEffects`, et les étapes de `pendingCascade` /
+// `suspendedCascades` — et une mutation attachée porte `Combatant.mutations[].talentsAcquis`.
+// Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
+// mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
+// jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 58;
 
 export interface SaveMeta {
   version: number;

@@ -95,7 +95,7 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
 
   it('une op fraîche à champ-réf REQUIS porte sa raison ; renseignée, elle n’en porte plus', () => {
     expect(opMissingRefs(newOp('grantTalent'))).toEqual(['Accorder un Talent : Talent à choisir']);
-    expect(opMissingRefs({ op: 'grantTalent', talentId: 'ambidextre' })).toEqual([]);
+    expect(opMissingRefs({ op: 'grantTalent', talent: { id: 'ambidextre' } })).toEqual([]);
     // Champ FACULTATIF (`removeCondition.id` = « au choix ») : absent ≠ manquant.
     expect(opMissingRefs(newOp('removeCondition'))).toEqual([]);
   });
@@ -201,5 +201,33 @@ describe('GameOpEditor — l’op `fall` a son champ de table (recette #1508)', 
     expect(OP_LABEL.fall).toBe('Chute (hauteur lue dans une table)');
     const html = renderToStaticMarkup(<GameOpEditor ops={[choisie]} onChange={() => {}} />);
     expect(html).toContain(`value="${table.id}"`);
+  });
+});
+
+describe('GameOpEditor — résumé d’une réf ABSENTE ou VIDE (#1473)', () => {
+  const RIEN = /undefined|\(\)|\s$/;
+  it('skillDRBonus sans compétence ni type de test : la cible est à choisir', () => {
+    const r = opSummary({ op: 'skillDRBonus', bonus: 2 } as GameOp);
+    expect(r).toContain('à choisir');
+    expect(r).not.toMatch(RIEN);
+  });
+  it('id VIDE d’une réf optionnelle présente : la cible est à choisir, jamais un libellé vide', () => {
+    const ops: GameOp[] = [
+      newOp('skillDRBonus'),
+      { op: 'grantReverseToken', skill: { id: '' } },
+      { op: 'castPenalty', mod: -10, skill: { id: '' } },
+      { op: 'corruptionExposure', level: 'mineure', skill: { id: '' } },
+      { op: 'reduceDiseaseDays', days: 1, disease: '' },
+      { op: 'diseaseTestMod', amount: 10, diseases: [''] },
+    ];
+    for (const op of ops) {
+      const r = opSummary(op);
+      expect(r, op.op).toContain('à choisir');
+      expect(r, op.op).not.toMatch(RIEN);
+    }
+  });
+  it('réf ABSENTE d’une op qui lui donne un sens : ce sens est conservé', () => {
+    expect(opSummary({ op: 'castPenalty', mod: -10 })).toContain('toute magie');
+    expect(opSummary({ op: 'grantReverseToken' })).toContain('un Test (cible)');
   });
 });

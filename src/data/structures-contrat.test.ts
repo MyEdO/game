@@ -159,8 +159,7 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  * `scripts/guards/lib/horsStrateStock.mjs`, GÉNÉRÉE par
  * `npx tsx scripts/data/regen-hors-strate-stock.mts` depuis la mesure `scan.invisibles` que ce
  * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
- * `ecartDuVolet` ci-dessous, et le DÉFAUT D'INSTRUMENT qui fait bouger ce stock sans qu'un octet de
- * donnée change (`PROFONDEUR_MEMO`, `zod-introspect.mts`) est dit en tête du stock.
+ * `ecartDuVolet` ci-dessous.
  * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
  * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
  */
@@ -214,8 +213,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(
       lignes(neuves),
       'signature(s) HORS STRATE NEUVE(s) — une structure neuve se pose à la forme CIBLE du lexique ' +
-        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock. Une paire périmée/neuve d’un ' +
-        'MÊME dataset sans un octet de donnée changé est le bruit d’instrument dit en tête du stock.',
+        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock.',
     ).toEqual([]);
     expect(
       lignes(perimees),
@@ -604,7 +602,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // et `buildBoardingScene` portaient EN DUR, devenus mesurables et refinés au parse
       // (`idDe('terrain')`). MÊMES forme et solde que `semences-de-scene.json › terrain` (#1716) : les
       // quatre lignes meurent d'un seul geste au lot L3.
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 471],
+      // Cliquet DESCENDU 471 → 459 (#1473 R1) : 12 lignes `reference` sortent — `char` (`charKeySchema`)
+      // et `act` y sont des littéraux d'enum DÉCLARÉS que `choixDeclares` atteint sans borne.
+      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 459],
       // 8ᵉ stock, né du volet A : les clés déclarées jamais observées des DEUX racines (dont 5
       // apportées par les 4 projets de scène qui entrent au déclaré).
       // Cliquet DESCENDU 24 → 23 (#1467 L1b V-FLIP-ENTITE-c) : `creatures.json › group` est SOLDÉ —
@@ -778,7 +778,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // sortir 7 lignes sans le resserrer), et `diligence-projet.json › ouverture` sort à son tour —
       // le concept `ouverture` la CLASSE, et le classement précède la route orpheline. Un optionnel
       // peuplé (`source`) ne partage donc plus une même porte en deux buckets : la PROJECTION réunit.
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 97],
+      // Cliquet REMONTÉ 97 → 99 (#1473 R1) : les 2 objets `etats.json › value` sortis de la forme
+      // `char+…` ci-dessus, mêmes objets, autre stock.
+      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 99],
       // Cliquet DESCENDU 403 → 400 (L2 #1548, commit 3c) : 5 signatures d'op portant le `spec` FRÈRE
       // s'éteignent (`bonus,op,skill,spec` de spells/tables, `blocked,op,rounds,skill`/`mod,op,rounds,skill`
       // de spells dont le `skill: "all"` disparaît au profit de l'ABSENCE) et 2 se fondent dans des
@@ -899,11 +901,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (« surpris à mendier », `l.99`) et `condition {id, op}` dans `tables.json`. Les deux autres ops du
       // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
       // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
-      // … puis 398 → 399 (#1957 lot 1, 2026-09-24) : la signature `grantTrait {indice, op, range,
+      // … puis 398 → 393 (#1473 train 2a) : les 13 lignes `op,talentId`/`op,spec,talentId` des ops de Talent deviennent 8 lignes `op,talent` (`refOuSpec('talent')`).
+      // … puis 393 → 394 (#1957 lot 1, 2026-09-24) : la signature `grantTrait {indice, op, range,
       // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
       // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
       // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
-      'L1c #1468': 399,
+      'L1c #1468': 394,
       // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.
@@ -1017,18 +1020,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // catalogue de BÂTIMENTS passé en donnée (`buildings.json › roofMaterial` et `› features`,
       // `diligence-projet.json › style` ; `arene-projet.json › style` s'éteint). MÊME graphie que leurs
       // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1687 lot 3-I (2026-09-11) : 394 → 391 — TROIS lignes MEURENT, aucune ne naît, et ce n'est PAS une
-      // migration : les graphies `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et
-      // `type+…` (1) vivent sous `.scenes[].dialogues[].nodes[].choices[].flow.steps[]` et
-      // `.scenes[].triggers[].flow.steps[]` — jamais sous `interact` — et leur donnée n'a pas bougé d'un
-      // octet. Cause MESURÉE (quatre scans {defs} × {données}) : ce que `choixDeclares('arene-projet.json')`
-      // ATTEINT change — `phase` et `lodging` sont déclarés à HEAD comme ici (`defs-scenes/effets.ts`), mais
-      // la marche de l'instrument est mémoïsée et bornée (`PROFONDEUR_MEMO = 12`, borne atteignante :
-      // 452 clés à 12 contre 488 à 20), donc le chemin par lequel un nœud est atteint décide s'il est vu —
-      // et `interact` (court) cède à `usable → refine → actions[] → flow` (profond). `ouvreReference`
-      // (`structures-scan.mts:501`) ne tenant pas un littéral d'enum DÉCLARÉ pour une clé étrangère, ces 4
-      // objets cessent d'être des références et passent au dénominateur HORS STRATE (ils y sont
-      // quatre ENTRÉES de `scripts/guards/lib/horsStrateStock.mjs`, dont l'en-tête nomme ce défaut).
+      // #1687 lot 3-I (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
+      // `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et `type+…` (1), dont
+      // `choixDeclares` (`zod-introspect.mts`) atteint le littéral d'enum DÉCLARÉ ; `ouvreReference`
+      // (`structures-scan.mts`) ne l'ouvre pas en référence.
       // #1716 (2026-09-18) : 391 → 394 — TROIS lignes de référence NEUVES, posant en DONNÉE ce que
       // `emptyScene` (`state/scene.ts`) choisissait en littéraux : `semences-de-scene.json › terrain`
       // (id nu du sol dont la couche 0 est remplie), `› reliefDefaults` et `› roofDefaults` (les deux
@@ -1039,7 +1034,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // trois terrains que le COMPILATEUR (`state/mapSpec.ts`, `buildBoardingScene`) choisissait en
       // littéraux. Ids nus scalaires, MÊME graphie que `semences-de-scene.json › terrain` : même lot,
       // même extinction.
-      'L3 #1463': 397,
+      // #1473 R1 : 397 → 385 — DOUZE lignes `char+…`/`act+…` sortent sans un octet de donnée changé :
+      // `char` et `act` sont des littéraux d'enum DÉCLARÉS, que `choixDeclares` atteint depuis que sa
+      // descente n'est plus bornée.
+      // #1473 R1-bis : 385 → 384 — `sea-weather.json › spec` (record `{ projectiles: 'poudre-noire' }`)
+      // meurt : la spécialisation vit DANS la référence de `skills[]` (`refOuSpec('skill')`).
+      // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
+      // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
+      // (objet des ops / chaîne nue de 79 sites) entre, +1.
+      'L3 #1463': 372,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
@@ -1115,7 +1118,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // `prosthesisTraining` ×3 ; 29 occurrences).
       // … puis 98 → 97 (#1633) — `diligence-projet.json › ouverture` sort : le concept `ouverture` de
       // la strate `Document` la classe à sa forme CIBLE, elle n'annonce plus rien qu'elle ne résolve.
-      '#1553': 97,
+      // … puis 97 → 99 (#1473 R1) — les 2 objets `etats.json › value` quittent la forme `char+…` de `L3 #1463`.
+      '#1553': 99,
     };
     expect(
       Object.keys(plafonds).sort(),

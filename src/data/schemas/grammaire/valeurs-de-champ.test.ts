@@ -1,35 +1,32 @@
 /**
  * STOCK des VOCABULAIRES encore sans libellés de valeurs (#1694) — banc À PART : la mesure part du seul
- * REGISTRE (`DEFS_DE_DOCUMENT`), jamais d'un document synthétique bâti par un autre banc.
+ * REGISTRE (`DEFS_DE_DOCUMENT`, et les payloads d'`OP_DEFS`), jamais d'un document synthétique bâti par
+ * un autre banc.
  *
- * UNE descente, celle de `slots.ts::enfantsDe` (clés d'objet, liste, enveloppes, record, union, tuple,
- * `lazy`) — jamais une descente sœur. Le stock se tient par VOCABULAIRE (le jeu ordonné des options),
- * pas par nœud : un `z.lazy` non mémoïsé rend un nœud NEUF à chaque descente (mesuré #1694 : 2 280
- * nœuds `z.enum` distincts pour 187 vocabulaires, dont 1 770 clones du seul `conditionSchema`), si
- * bien qu'un stock par nœud compterait la même déclaration des centaines de fois. Le COMPTE, lui, se
- * tient par NŒUD DISTINCT (`{ nommes, muets }`) : sans lui, un seul nœud nommé blanchissait ses jumeaux
- * `z.enum` muets, qui rendaient un `select` anonyme sans jamais paraître au stock.
+ * UNE descente, `descendre` (`grammaire/descente.ts`) — jamais une descente sœur. Le stock se tient
+ * par VOCABULAIRE (le jeu ordonné des options), pas par nœud : plusieurs nœuds `z.enum` distincts
+ * portent le même vocabulaire (mesure du 2026-09-23 : 223 nœuds pour 194 vocabulaires). Le COMPTE, lui,
+ * se tient par NŒUD DISTINCT (`{ nommes, muets }`) : sans lui, un seul nœud nommé blanchissait ses
+ * jumeaux `z.enum` muets, qui rendaient un `select` anonyme sans jamais paraître au stock.
  */
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { defDe, enfantsDe, PROFONDEUR_MAX } from './slots';
+import { OP_DEFS } from './mecanique';
+import { descendre } from './descente';
 import { valeursDe } from './meta';
-import { IDS_PAR_DATASET, SPECS_PAR_DATASET } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../_ids.generated';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
-const IDS_CONNUS: ReadonlySet<string> = new Set([
-  ...Object.values(IDS_PAR_DATASET).flat(),
-  ...Object.values(SPECS_PAR_DATASET).flatMap((parId) => Object.values(parId).flat()),
-]);
+const IDS_CONNUS: ReadonlySet<string> = new Set(Object.values(IDS_PAR_ESPACE).flat());
 
 /**
  * Un vocabulaire d'IDS ne se nomme JAMAIS : ses options sont les ids d'un dataset, dont le nom FR est
  * déjà porté par l'entrée référencée — le redéclarer en ferait une SECONDE vérité. Il se DÉRIVE (jamais
- * une liste tenue à la main) : toutes ses options sont des ids authorés (`IDS_PAR_DATASET`,
- * `SPECS_PAR_DATASET`, émis par `npm run gen`), là où un vocabulaire de mots (`action`, `free`,
+ * une liste tenue à la main) : toutes ses options sont des ids authorés (`IDS_PAR_ESPACE`,
+ * émis par `npm run gen`), là où un vocabulaire de mots (`action`, `free`,
  * `charge`) n'en est aucun.
  */
 const estVocabulaireDIds = (options: readonly string[]): boolean => options.every((o) => IDS_CONNUS.has(o));
@@ -46,31 +43,22 @@ type CompteDeNoeuds = { nommes: number; muets: number };
  *  COPIE du registre (contrôle positif), jamais seulement sur `DEFS_DE_DOCUMENT`. */
 function vocabulairesDe(schemas: readonly unknown[]): Map<string, CompteDeNoeuds> {
   const vus = new Map<string, CompteDeNoeuds>();
-  const noeudsComptes = new Set<unknown>();
-  const descendre = (noeud: unknown, ancetres: ReadonlySet<unknown>, profondeur: number): void => {
-    if (!noeud || typeof noeud !== 'object' || ancetres.has(noeud) || profondeur > PROFONDEUR_MAX) return;
-    const def = defDe(noeud);
-    if (!def) return;
-    if (def.type === 'enum') {
-      if (noeudsComptes.has(noeud)) return;
-      noeudsComptes.add(noeud);
-      const options = Object.values(def.entries as Record<string, string>);
-      const cle = options.join('|');
-      const compte = vus.get(cle) ?? { nommes: 0, muets: 0 };
-      if (valeursDe(noeud) !== undefined) compte.nommes += 1;
-      else compte.muets += 1;
-      vus.set(cle, compte);
-      return;
-    }
-    const pile = new Set(ancetres).add(noeud);
-    for (const e of enfantsDe(def)) descendre(e.noeud, pile, profondeur + 1);
-  };
-  for (const s of schemas) descendre(s, new Set(), 0);
+  descendre(schemas, ({ noeud, def }) => {
+    if (def.type !== 'enum') return;
+    const cle = Object.values(def.entries as Record<string, string>).join('|');
+    const compte = vus.get(cle) ?? { nommes: 0, muets: 0 };
+    if (valeursDe(noeud) !== undefined) compte.nommes += 1;
+    else compte.muets += 1;
+    vus.set(cle, compte);
+    return 'elaguer';
+  });
   return vus;
 }
 
+/** Le registre des documents ET les payloads d'`OP_DEFS` : un payload d'op est lu par un raffinement de
+ *  `gameOpSchema` (`grammaire/descente.ts › enfantsDe`), que la descente d'un document ne traverse pas. */
 const vocabulairesDuRegistre = (): Map<string, CompteDeNoeuds> =>
-  vocabulairesDe(DEFS_DE_DOCUMENT.map((d) => d.schema));
+  vocabulairesDe([...DEFS_DE_DOCUMENT.map((d) => d.schema), ...Object.values(OP_DEFS)]);
 
 /** Les vocabulaires qu'un `enumNomme` nomme DÉJÀ et qui gardent un jumeau MUET — doctrine
  *  « un enum = une const nommée au module qui le porte » (#1694). */
@@ -100,6 +88,8 @@ const NOMMES = [
   // les 7 libellés de la table LDB 85 l.346-354.
   'minuscule|tresPetite|petite|moyenne|grande|enorme|monstrueuse',
   'nord|sud|est|ouest',
+  // `windAspectSchema` (MDG 13 l.267-270).
+  'arriere|lateral|face',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
   'ridge|facade|front',
   'tete|bras|corps|jambe',
@@ -150,6 +140,12 @@ const NOMMES = [
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
+  // Payloads d'`OP_DEFS` (#1473) : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
+  // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json`.
+  'action|movement',
+  'all|metal|leather|nonMagic|nonMetal',
+  'd10|d100',
+  'disc|wall',
 ].sort();
 
 /**
@@ -175,6 +171,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'all|blackpowder',
   'all|movement',
   'armyMight',
+  'arriere|cote|contraire',
   'auberge|maison|camp',
   'aucune|legeres|abondantes|tres-abondantes',
   'aucun|retard|quart-de-tour|demi-tour',
@@ -186,11 +183,11 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'caniculaire|chaude|mediane|froide|glaciale',
   'cargaison|greement|coque|avirons|equipements|gouvernail|superstructure',
   'chaleur|froid',
+  'chaos|unravel',
   'classe|relais|compagnie|peage|patrouille',
   'complet|partiel',
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   'current|ever',
-  'd10|d100',
   'dangereuse|tresDangereuse|extreme',
   'days|hours|minutes',
   'dechirure|fracture',
@@ -228,6 +225,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'le-plus-lent|aucun',
   'lisses|griffues',
   'localisation|porteur',
+  'main|off',
   'majeure|mineure-x2',
   'metal|leather|chaos',
   'mineure|arcane|invocation|beni|chaos',
@@ -246,6 +244,8 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'party|hero',
   'party|hero|caster|target',
   'pas|trot|galop',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent',
+  'peau|peauO|peauH|cheveux|cheveuxO|cheveuxH|yeux|yeuxO|yeuxH',
   'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',

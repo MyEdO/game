@@ -28,8 +28,8 @@
 ## A1 — Chapitres appelés par le CODE, ABSENTS de l'Atlas (trous durs)
 
 ### ADE I 2 — 2 réf(s) code, 0 dans l'Atlas
-- `src/data/talents.json:3194` (l.267) — "note": "ADE I 02 l.267"
-- `src/data/talents.json:4808` (l.276) — "note": "ADE I 02 l.276"
+- `src/data/talents.json:3207` (l.267) — "note": "ADE I 02 l.267"
+- `src/data/talents.json:4821` (l.276) — "note": "ADE I 02 l.276"
 
 ### EDO 10 — 1 réf(s) code, 0 dans l'Atlas
 - `src/data/skills.json:1896` (l.736) — "note": "EDO 10 l.736"
@@ -62,11 +62,11 @@
 ### MSRC 10 — 5 réf(s) code, 0 dans l'Atlas
 - `src/data/naval-traits.json:12` (l.90) — "maison": "MSRC 07 l.94 gate le Critique de Superstructure sur « si le bateau dispose d'une cale » sans imprimer de Trait naval ; la cale rejoint le catalogue d
 - `src/data/regles-optionnelles-partition.test.ts:58` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
-- `src/data/schemas/grammaire/formes-partagees.test.ts:406` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
+- `src/data/schemas/grammaire/formes-partagees.test.ts:412` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
 - `src/ui/compendium/registry-enveloppe.test.ts:166` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
-- `src/data/schemas/defs-scenes/scene.ts:168` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
+- `src/data/schemas/defs-scenes/scene.ts:155` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
 - `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
@@ -113,7 +113,7 @@
 - l.107 — `src/engine/naval-traits.test.ts:301` — it('Plat-bord : palier de LONGUEUR (grande barge ~30 m, bande ouverte au-delà de 20 m) → 45 CO / 60 Enc (MSRC 12 l.107/109)', () => {
 - l.111 — `src/data/index.ts:2597` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.117 — `src/engine/naval-traits.test.ts:304` — it('Allégement : ALLÈGE la coque — weightEnc NÉGATIF (grande barge → −80 Enc, MSRC 12 l.117)', () => {
-- l.137 — `src/data/schemas/defs/sea-weather.ts:106` — /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
+- l.137 — `src/data/schemas/defs/sea-weather.ts:102` — /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
 - l.140 — `src/engine/naval-traits.test.ts:191` — it('Gréement de course → −10 au Test de Navigation (MSRC 12 l.140) ; converti −1 DR d’équipage', () => {
 
 ### ADE II 4 — 4/5 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
@@ -122,12 +122,13 @@
 - l.46 — `src/state/interlude-activities.test.ts:303` — // ── Identifier un artefact magique (ADE II 4 l.46-59) ─────────────────────────────────────
 - l.50 — `src/state/interlude-activities.test.ts:362` — it('Identifier : Échec (−2 à −3) → confond avec un objet similaire, AUCUNE fausse Particularité (ADE II 4 l.50)', () => {
 
-### EDOC 13 — 3/9 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
+### EDOC 13 — 4/10 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
+- l.125 — `src/data/mutations.json:1640` — "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
 - l.137 — `src/data/index.ts:1101` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 - l.522 — `src/data/index.ts:1709` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
-- l.524 — `src/data/refs-migrated.test.ts:840` — *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
+- l.524 — `src/data/talents.json:4916` — "note": "EDOC 13 l.524"
 
-### MDG 15 — 3/50 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
+### MDG 15 — 3/51 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
 - l.461 — `src/data/naval-ports.test.ts:47` — it('Erengrad : Taille 4, Richesse 4, Surplus pièces-détachées-de-navire +1, Demande laine +1 (MDG 15 l.461-462, folio 138)', () => {
 - l.468 — `src/data/naval-ports.test.ts:67` — it('Kirkjugarður Langskipa : production armes/produits-de-luxe, sans surplus ni demande (MDG 15 l.468-469, folio 138)', () => {
 - l.474 — `src/data/naval-ports.test.ts:74` — it('Fjirgard : production produits-de-luxe, Demande armes +1, sans surplus (MDG 15 l.474, folio 138)', () => {
@@ -208,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: f44ebb83747ef240276cd60cafed7a87b43edb25 (4293 fichiers, 154 dossiers) corps: 6da6795a0e905807b55e368ef0b0335b402cfc1f -->
+<!-- sources-empreinte: b013be931ec4e50921d2ba635bd491f418353b5d (4306 fichiers, 154 dossiers) corps: ef70a3e9b68a3b72839d22265e1083ef6d38cdf6 -->

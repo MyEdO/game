@@ -287,13 +287,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/dataset-id-parity.test.ts",
-    motif: "désormais",
-    ancre: "désormais un champ `id` STABLE en donnée. Deux invariants, la classe est fermée :",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/domains-wind-schema.test.ts",
     motif: "désormais",
     ancre: "exige désormais une provenance par entrée, et ces 7 fixtures rejouent des Domaines RÉELS. */",
@@ -373,13 +366,6 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/data/refs-migrated.test.ts",
     motif: "désormais",
-    ancre: "Un Test déclenché authoré est désormais un nœud de STRUCTURE Flow (`{kind:'test', test:FlowTest}`) ;",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/refs-migrated.test.ts",
-    motif: "désormais",
     ancre: "4bis de L2 #1548 : ces lignes portent désormais `choix: [ids]`, que la marche ci-dessus rend au",
     lot: "L7 désormais",
     date: "2026-09-26",
@@ -444,13 +430,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/data/schemas/grammaire/sans-livre.ts",
     motif: "désormais",
     ancre: "désormais `maison`. Mesuré le 2026-09-05 (après la fusion des trois catalogues de matières en",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/schemas/grammaire/slots.test.ts",
-    motif: "désormais",
-    ancre: "son def — la Compétence testée par une rangée de Critique est désormais celle du nœud",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

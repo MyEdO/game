@@ -96,7 +96,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
    * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
    * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
-   * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute `Ref` dont le paramètre est un `Ref` —
+   * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
    * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).

@@ -17,7 +17,7 @@ import { proseDeScene } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
-import { listeCle } from '../grammaire/liste-cle';
+import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { Effect } from '../../../state/scene';

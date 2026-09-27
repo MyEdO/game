@@ -38,7 +38,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
     expect(dit, 'le document corrompu doit être refusé').not.toBeNull();
     expect(dit).not.toMatch(ANGLAIS);
-    expect(dit).toContain('conditions.2.id');
+    expect(dit).toContain('conditions « crachin » › id');
     // Les options attendues restent NOMMÉES : un refus qui dirait seulement « invalide » n'apprend rien.
     expect(dit).toContain('"sec"');
     expect(dit).toContain('"blizzard"');

@@ -11,6 +11,7 @@
  * marche forcée au niveau carte.
  */
 import type { Effect, Fige, ReliefDefaults, Scene, SceneRoofDefaults } from './scene';
+import { graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
@@ -1070,6 +1071,15 @@ export const PROJECT_MIGRATIONS = {
    * (parité mesurée par `projet-migration-15-vers-16.test.ts`, qui joue la MÊME fixture par les deux).
    */
   15: (doc) => ({ ...(remapSortsFusionnesDeep(doc) as Record<string, unknown>), version: 16, schema: 16 }),
+  /**
+   * `16` écrit la référence de Talent des ops `grantTalent` / `grantCareerTalent` à la graphie
+   * `talent: { id, spec? }` (#1473, train 2a) — primitive `graphieOpsDeTalentDeep`
+   * (`src/data/graphieOpsDeTalent.ts`). Sans ce passage, un projet de bibliothèque utilisateur qui porte
+   * une op de Talent serait REFUSÉ au parse (op typée, `grammaire/mecanique.ts`).
+   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`
+   * (parité mesurée par `projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux).
+   */
+  16: (doc) => ({ ...(graphieOpsDeTalentDeep(doc) as Record<string, unknown>), version: 17, schema: 17 }),
 } satisfies MigrationMap;
 
 /** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,

@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'crew-morale.json';
 export const famille = 'config';
@@ -16,7 +17,7 @@ const doc = document(
   famille,
   {
   base: z.number(),
-  factors: z.array(
+  factors: listeCle(
     z.strictObject({
       id: z.string(),
       label: z.string(),
@@ -31,8 +32,9 @@ const doc = document(
       recommendedPay: z.boolean().optional(),
       source: sourceRefSchema,
     }),
+    'id',
   ),
-  bands: z.array(
+  bands: listeCle(
     z.strictObject({
       ...plageSchema.shape,
       id: z.string(),
@@ -44,6 +46,7 @@ const doc = document(
       desc: z.string(),
       source: sourceRefSchema,
     }),
+    'id',
   ),
   },
   {

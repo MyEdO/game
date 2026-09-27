@@ -1,11 +1,8 @@
 /**
- * Garde-fou d'INTÉGRITÉ des identifiants de données.
+ * Collisions d'identifiants ENTRE catalogues — l'unicité DANS un catalogue est refusée au parse
+ * (collection à clé, `schemas/grammaire/collection-cle.ts`).
  *
- * (1) Unicité INTRA-catégorie : deux entrées de la même catalogue ne peuvent pas partager un id
- *     (un dup intra = vrai bug — les lookups par id deviennent ambigus). Couvre les tableaux
- *     EXPORTÉS (donc base + frenchy concaténés pour traits/spells).
- *
- * (2) Collisions INTER-catégorie : un même id peut exister dans deux catalogues distincts. Les
+ * Un même id peut exister dans deux catalogues distincts. Les
  *     lookups étant SCOPÉS par catégorie (`findTraitById`/`findTalentById`/`findManeuverById`/…),
  *     ces collisions sont inoffensives à l'exécution, MAIS sources de confusion. On VERROUILLE
  *     l'ensemble connu/voulu : toute NOUVELLE collision accidentelle (un id réutilisé sans le
@@ -67,14 +64,6 @@ const KNOWN_CROSS = [
 ].sort();
 
 describe('intégrité des ids de données', () => {
-  for (const [name, arr] of Object.entries(CATEGORIES)) {
-    it(`${name} : aucun id dupliqué intra-catégorie`, () => {
-      const ids = arr.map((x) => x.id);
-      const dups = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
-      expect(dups).toEqual([]);
-    });
-  }
-
   it("collisions inter-catégorie = exactement l'ensemble documenté (toute nouvelle collision échoue)", () => {
     const where = new Map<string, Set<string>>();
     for (const [name, arr] of Object.entries(CATEGORIES)) {

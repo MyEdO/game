@@ -85,7 +85,6 @@ describe('mémo des ids vivants — daté par la source', () => {
     poserSourceDIdsVivants({
       entrees: (f) => (f === 'etats.json' ? [...vraie.entrees(f)!, { id: 'etat-synthetique' }] : vraie.entrees(f)),
       version: vraie.version,
-      discriminantDe: vraie.discriminantDe,
     });
     try {
       expect(noeud.safeParse('etat-synthetique').success).toBe(true);

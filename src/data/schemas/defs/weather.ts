@@ -19,6 +19,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'weather.json';
 export const famille = 'config';
@@ -31,7 +32,7 @@ const doc = document(
   'weather',
   famille,
   {
-  seasons: z.array(
+  seasons: listeCle(
     z.strictObject({
       id: z.string(),
       label: z.string(),
@@ -43,11 +44,12 @@ const doc = document(
       ),
       source: sourceRefSchema.optional(),
     }),
+    'id',
   ),
   /** Liste MAISON des Caractéristiques réputées « physiques » (EDOC 8 l.82 ne la définit pas). */
   physicalTestChars: z.array(z.string()),
   physicalTestCharsSource: sourceRefSchema.optional(),
-  conditions: z.array(
+  conditions: listeCle(
     z.strictObject({
       id: weatherIdSchema,
       /** Le NOM de la météo à l'écran, et le seul (`weatherCondition(w).label`). `.min(1)` STRUCTUREL,
@@ -77,6 +79,7 @@ const doc = document(
         .optional(),
       source: sourceRefSchema.optional(),
     }),
+    'id',
   ),
   },
   {
@@ -93,15 +96,13 @@ const doc = document(
     edit: { niche: { categories: ['weather', 'weatherConditions'] } },
   },
   {
-    // BIJECTION alphabet ⇄ conditions — le z.enum ne ferme qu'UN des trois côtés (l'id INCONNU) :
+    // BIJECTION alphabet ⇄ conditions — le z.enum ferme l'id INCONNU, `listeCle` l'id EN DOUBLE ; reste :
     //  - COMPLÉTUDE : une condition SUPPRIMÉE au Codex éteindrait le libellé et les effets d'une météo
-    //    que la table saisonnière tire encore (`weatherCondition`, engine, ne lit que ce tableau) ;
-    //  - UNICITÉ : un id EN DOUBLE rend la seconde fiche inerte — le `find` de la porte prend la
-    //    première, donc éditer la seconde au Codex ne changerait RIEN à l'écran, sans un mot.
+    //    que la table saisonnière tire encore (`weatherCondition`, engine, ne lit que ce tableau).
     // COUVERTURE du d100 par saison (`ecartsDeCouverture`, grammaire) : les deux bornes étant
     //    éditables au Codex, un trou ou un chevauchement passerait le z.number() — et le tirage
     //    tomberait sur la dernière rangée par REPLI de `findTableEntry`, sans un mot.
-    // Refus NOMINATIF dans les trois cas, aux trois portes (CI `schema-contract`, boot `dev-validate`,
+    // Refus NOMINATIF dans les deux cas, aux trois portes (CI `schema-contract`, boot `dev-validate`,
     // save transactionnel du Codex).
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
@@ -112,14 +113,6 @@ const doc = document(
             code: 'custom',
             path: ['conditions'],
             message: `weather.json : condition(s) manquante(s) — ${manquants.join(', ')}. Chaque météo de l'alphabet (${weatherIdSchema.options.join(', ')}) porte sa fiche : le libellé et les effets ne vivent QUE là.`,
-          });
-        }
-        const doubles = [...new Set(ids.filter((id, i) => id !== undefined && ids.indexOf(id) !== i))];
-        if (doubles.length) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['conditions'],
-            message: `weather.json : id(s) en DOUBLE — ${doubles.join(', ')}. Une météo porte UNE fiche : la seconde serait inerte (la porte \`weatherCondition\` retient la première).`,
           });
         }
 

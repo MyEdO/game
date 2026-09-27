@@ -15,7 +15,7 @@ import { type EffectTrigger, type TriggeredEffect, type Flow, flowHasTest, spell
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { INDICE_TEMPLATE } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../engine/flowCore';
 import { weaponIdentity } from '../engine/items';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
@@ -51,19 +51,19 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
   const diff = arg ? difficultyFromLabel(arg) : undefined;
-  // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `'$arg'` reçoit l'arg (trait Maladie
-  // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `'$indice'` reçoit l'Indice numérique de l'instance
+  // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
+  // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
   // (Redoutable `value:2` → `gainAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
   // Si l'instance N'A PAS le paramètre attendu (trait templé posé sans arg/value), l'op est DROPPÉE (null) :
   // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon).
   const substOp = (op: GameOp): GameOp | null => {
     const o = op as Record<string, unknown>;
-    const hasArg = Object.values(o).includes('$arg');
-    const hasInd = Object.values(o).includes('$indice');
+    const hasArg = Object.values(o).includes(ARG_TEMPLATE);
+    const hasInd = Object.values(o).includes(INDICE_TEMPLATE);
     if (!hasArg && !hasInd) return op; // pas de template → inchangée
     if ((hasArg && arg === undefined) || (hasInd && value === undefined)) return null; // paramètre manquant → op inerte
     const out = { ...o };
-    for (const k in out) { if (out[k] === '$arg') out[k] = arg; else if (out[k] === '$indice') out[k] = value; }
+    for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
     return out as unknown as GameOp;
   };
   const visit = (f: Flow): Flow => {

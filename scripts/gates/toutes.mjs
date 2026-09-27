@@ -234,7 +234,7 @@ export const ECRIT_LU = {
     ecritFerme: {
       'src/_registry.generated.ts':
         'le `buildStart` de vite.config.ts:16 appelle `genAll()`, qui n’écrit que `if (changed)` ' +
-        '(`genOne`, `genArt`, `genIds` de scripts/gen-registry.mjs) — `toutes.mjs` joue `npm run gen` AVANT les lanes et REFUSE si un ' +
+        '(`genOne`, `genArt` de scripts/gen-registry.mjs, scripts/gen-espaces.mts) — `toutes.mjs` joue `npm run gen` AVANT les lanes et REFUSE si un ' +
         'registre bouge, donc il ne reste rien à écrire',
     },
     lit: ['src/', 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],

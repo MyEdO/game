@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-events.json';
 export const famille = 'config';
@@ -59,10 +60,10 @@ const doc = document(
       base: z.number(),
       portEventMod: z.number(),
       source: sourceRefSchema,
-      factors: z.array(manannFactor),
+      factors: listeCle(manannFactor, 'id'),
     }),
-    boardEvents: z.array(seaEventDef),
-    portEvents: z.array(seaEventDef),
+    boardEvents: listeCle(seaEventDef, 'id'),
+    portEvents: listeCle(seaEventDef, 'id'),
     fastVoyage: z.strictObject({ source: sourceRefSchema, paliers: z.array(fastVoyagePalier) }),
   },
   {

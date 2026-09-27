@@ -84,7 +84,7 @@ export function motifDeRejeu(texte, empreinteSources) {
  * (`coverage.mjs:422`, `reconcile.mjs:367`, `reanchor.mjs:344`) pendant que la suite lit ce même
  * dossier (`src/oversize-search-blindspot.test.ts:86`, `scripts/docs/manual-docs-ratchet.test.mjs:32`) :
  * jouées en LANES parallèles (`scripts/gates/toutes.mjs`), c'était un lecteur sur un fichier en
- * cours d'écriture. Patron : `genOne`, `genArt` et `genIds` de `scripts/gen-registry.mjs` (`if (changed) writeFileSync`).
+ * cours d'écriture. Patron : `genOne` et `genArt` de `scripts/gen-registry.mjs`, `scripts/gen-espaces.mts` (`if (changed) writeFileSync`).
  */
 export function ecrireDoc(chemin, contenu) {
   let actuel

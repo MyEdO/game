@@ -11,13 +11,13 @@
 import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, talentConcrete, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
+import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
 import { findFallTable, fallTables } from '../../data/shipCriticals';
 import { terrainLabel, terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
@@ -479,9 +479,9 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'removeTrait': return { op: 'removeTrait', traitId: '' };
     case 'grantPsychTrait': return { op: 'grantPsychTrait', psychType: '' };
     case 'removePsychTrait': return { op: 'removePsychTrait' };
-    case 'grantTalent': return { op: 'grantTalent', talentId: '' };
+    case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
     case 'grantCareerSkill': return { op: 'grantCareerSkill', skill: { id: '' } };
-    case 'grantCareerTalent': return { op: 'grantCareerTalent', talentId: '' };
+    case 'grantCareerTalent': return { op: 'grantCareerTalent', talent: { id: '' } };
     case 'augmentWeapon': return { op: 'augmentWeapon' };
     case 'cureDisease': return { op: 'cureDisease', count: 1 };
     case 'reduceDiseaseDays': return { op: 'reduceDiseaseDays', days: 1 };
@@ -518,7 +518,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'lifeSteal': return { op: 'lifeSteal', num: 1, den: 2, round: 'floor' };
     case 'light': return { op: 'light', radiusM: 10 };
     case 'skillMod': return { op: 'skillMod', skill: { id: '' }, mod: -10 };
-    case 'skillDRBonus': return { op: 'skillDRBonus', bonus: 1 };
+    case 'skillDRBonus': return { op: 'skillDRBonus', skill: { id: '' }, bonus: 1 };
     case 'charDRBonus': return { op: 'charDRBonus', char: 'sociabilite', bonus: 1 };
     case 'crewTestMod': return { op: 'crewTestMod', mod: 10 };
     // Aucun id EN DUR : la table se choisit, comme une table référencée de `rollTable` (`tableId: ''`).
@@ -586,8 +586,8 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   grantTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   removeTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   domeWard: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  grantTalent: [{ field: 'talentId', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerTalent: [{ field: 'talentId', ds: 'talents', label: 'Talent', required: true }],
+  grantTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
+  grantCareerTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
   grantCareerSkill: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillMod: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillDRBonus: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
@@ -629,6 +629,12 @@ export function opsMissingRefs(value: unknown): string[] {
 // Résumé
 // ---------------------------------------------------------------------------
 
+/** Libellé d'une réf PRÉSENTE dans une op : id vide = choix non fait, jamais un libellé vide. Le sens
+ *  d'une réf ABSENTE appartient à l'op, testé par l'appelant. Précédent : `fall`, « — table à choisir — ». */
+function refOuChoix(category: DatasetKey, ref: { id: string; spec?: string }, quoi: string): string {
+  return ref.id ? refLabel(category, ref) : `— ${quoi} à choisir —`;
+}
+
 export function opSummary(o: GameOp): string {
   // Une op dont la réf REQUISE n'est pas élue n'a pas de résumé à donner : elle porte son état, et la
   // rangée affiche la raison détaillée (`opsMissingRefs`).
@@ -645,7 +651,7 @@ export function opSummary(o: GameOp): string {
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
     case 'charMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char] ?? o.char}`;
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
-    case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refLabel('skills', o.skill) : (findCrewTestTypeById(o.testType ?? '')?.label ?? o.testType)}`;
+    case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType)?.label ?? o.testType) : '— compétence ou test à choisir —'}`;
     case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.char] ?? o.char}`;
     case 'crewTestMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} (Tests d’équipage)`;
     case 'fall': return `hauteur lue dans « ${findFallTable(o.hauteur.table.id)?.label ?? (o.hauteur.table.id || '— table à choisir —')} »`;
@@ -662,11 +668,11 @@ export function opSummary(o: GameOp): string {
     case 'gainResource': return `${o.amount >= 0 ? '+' : '−'}${Math.abs(o.amount)} ${o.resource === 'fate' ? 'Destin' : 'Chance'}${o.temporary ? ' (temp.)' : ''}`;
     case 'corruption': return `${o.amount >= 0 ? '+' : ''}${o.amount}${o.align ? ` (${libelleDeValeur(chaosAlignSchema, o.align)})` : ''}`;
     case 'sinMod': return `${o.amount >= 0 ? '+' : ''}${o.amount}`;
-    case 'corruptionExposure': return o.easeSteps != null ? `abri : −${o.easeSteps} cran(s) d’Influence` : `${libelleDeValeur(exposureLevelSchema, o.level ?? '')}${o.skill ? ` (${refLabel('skills', o.skill)})` : ''}`;
-    case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refLabel('skills', o.skill) : 'toute magie'}`}`;
+    case 'corruptionExposure': return o.easeSteps != null ? `abri : −${o.easeSteps} cran(s) d’Influence` : `${libelleDeValeur(exposureLevelSchema, o.level ?? '')}${o.skill ? ` (${refOuChoix('skills', o.skill, 'compétence')})` : ''}`;
+    case 'castPenalty': return `${o.blocked ? 'magie interdite' : o.maxZeroDR ? 'Prière plafonnée' : `${o.mod ?? 0} ${o.skill ? refOuChoix('skills', o.skill, 'compétence de magie') : 'toute magie'}`}`;
     case 'money': return `bourse ${typeof o.montant.brass === 'number' && o.montant.brass < 0 ? '' : '+'}${formulaSummary(o.montant.brass)} sc`;
     case 'statusMod': return `Standing ${formulaSummary(o.amount)} (prochaine aventure)`;
-    case 'grantReverseToken': return `inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test (cible)'}`;
+    case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : 'un Test (cible)'}`;
     case 'castWard': return `−20 Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
     case 'domeWard': return `${formatWardSave(o.traitId, formulaSummary(o.indice))} (ZdE du sort)`;
@@ -676,9 +682,9 @@ export function opSummary(o: GameOp): string {
     case 'grantTrait': return `${formatTrait({ id: o.traitId, arg: o.arg })}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'removeTrait': return `${formatTrait({ id: o.traitId })}`;
     case 'grantPsychTrait': return `${o.psychType}${o.cible ? ` (${o.cible})` : ''}`;
-    case 'grantTalent': return `${talentConcrete(o)}`;
+    case 'grantTalent': return `${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
-    case 'grantCareerTalent': return `${refLabel('talents', { id: o.talentId, spec: o.spec })}`;
+    case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
     case 'augmentWeapon': return `${[
       ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })),
       o.damageBonus != null ? `+${formulaSummary(o.damageBonus)} Dégâts` : '',
@@ -688,8 +694,8 @@ export function opSummary(o: GameOp): string {
       o.passive?.length ? 'maniement altéré' : '',
     ].filter(Boolean).join(', ') || '(vide)'}`;
     case 'cureDisease': return `${o.count ?? 1} maladie(s)`;
-    case 'reduceDiseaseDays': return `−${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)${o.disease ? ` (${refLabel('maladies', { id: o.disease })})` : ''}`;
-    case 'diseaseTestMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests de maladie${o.diseases?.length ? ` (${o.diseases.map((d) => refLabel('maladies', { id: d })).join(', ')})` : ''}`;
+    case 'reduceDiseaseDays': return `−${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)${o.disease != null ? ` (${refOuChoix('maladies', { id: o.disease }, 'maladie')})` : ''}`;
+    case 'diseaseTestMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests de maladie${o.diseases?.length ? ` (${o.diseases.map((d) => refOuChoix('maladies', { id: d }, 'maladie')).join(', ')})` : ''}`;
     case 'suppressSymptom': return `${refLabel('symptoms', { id: o.symptomId })} suspendu`;
     case 'aggravateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → ${o.severity} (${refLabel('maladies', { id: o.disease })})`;
     case 'attenuateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → échelon inférieur (${refLabel('maladies', { id: o.disease })})`;
@@ -712,7 +718,7 @@ export function opSummary(o: GameOp): string {
     case 'perRound': return `${o.ops.length} op(s) chaque Round`;
     case 'summon': return `${formulaSummary(o.count)}× ${o.ref}${o.allyOfCaster === false ? ' (hostile)' : ''}`;
     case 'scheduleRespawn': return `${o.ref} dans ${formulaSummary(o.delayDays)} j${o.cancelFlag ? ` (sauf « ${o.cancelFlag} »)` : ''}`;
-    case 'zone': return `${o.shape === 'wall' ? `mur ${formulaSummary(o.lengthMeters ?? 2)} m` : `disque ${formulaSummary(o.radiusMeters ?? 2)} m`}`;
+    case 'zone': return `${libelleDeValeur(zoneShapeSchema, o.shape)} ${formulaSummary((o.shape === 'wall' ? o.lengthMeters : o.radiusMeters) ?? 2)} m`;
     case 'push': return `${formulaSummary(o.meters)} m`;
     case 'teleport': return `${formulaSummary(o.meters)} m${o.perSL ? ` (+${formulaSummary(o.perSL.metersFormula)}/${o.perSL.every} DR)` : ''}`;
     case 'chain': return `${formulaSummary(o.maxBounces)} rebond(s), saut ${formulaSummary(o.hopMeters)} m`;
@@ -723,7 +729,7 @@ export function opSummary(o: GameOp): string {
     case 'loseTurn': return 'saute le tour';
     case 'removeShipPoste': return 'retire un poste de navire';
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
-    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${o.die === 'd100' ? '1d100' : '1d10'} → ${o.rows.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
+    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${libelleDeValeur(deDeTableSchema, o.die)} → ${o.rows.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
     case 'narrative': return `${o.text ? `« ${o.text.length > 40 ? `${o.text.slice(0, 39)}…` : o.text}` + ' »' : '(vide)'}`;
     default: return `${(o as GameOp).op}`;
@@ -1050,8 +1056,8 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
         )}
         {op.op === 'grantTalent' && (
           <RefField cfg={{ ds: 'talents', single: true, spec: true }} fieldKey="Talent"
-            value={{ id: o.talentId ?? '', spec: o.spec }}
-            onChange={(v) => { const r = typeof v === 'string' ? { id: v } : (v as { id: string; spec?: string }); upd({ talentId: r.id, spec: r.spec }); }} />
+            value={{ id: o.talent?.id ?? '', spec: o.talent?.spec }}
+            onChange={(v) => { const r = typeof v === 'string' ? { id: v } : (v as { id: string; spec?: string }); upd({ talent: r }); }} />
         )}
         {op.op === 'grantNaturalWeapon' && (
           <>
@@ -1140,11 +1146,9 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
             <label className="dr">Matériau ignoré
               <select value={o.bypass ?? ''} onChange={(e) => upd({ bypass: (e.target.value || undefined) as ArmourBypass | undefined })}>
                 <option value="">— aucun —</option>
-                <option value="nonMetal">Non-métal (Perforante, LDB 62 l.270)</option>
-                <option value="metal">Métal</option>
-                <option value="leather">Cuir</option>
-                <option value="nonMagic">Non-magique</option>
-                <option value="all">Toute l'armure</option>
+                {Object.entries(valeursDe(armourBypassCategorieSchema) ?? {}).map(([k, l]) => (
+                  <option key={k} value={k}>{l}</option>
+                ))}
               </select>
             </label>
           </>
@@ -1181,8 +1185,9 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
               <>
                 <label className="dr">Dé
                   <select value={o.die ?? 'd10'} onChange={(e) => upd({ die: e.target.value as 'd10' | 'd100' })}>
-                    <option value="d10">1d10</option>
-                    <option value="d100">1d100</option>
+                    {Object.entries(valeursDe(deDeTableSchema) ?? {}).map(([k, l]) => (
+                      <option key={k} value={k}>{l}</option>
+                    ))}
                   </select>
                 </label>
                 <RollTableRowsField rows={o.rows ?? []} onChange={(rows) => upd({ rows })} />

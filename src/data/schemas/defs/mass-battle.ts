@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { moneySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'mass-battle.json';
 export const famille = 'config';
@@ -61,11 +62,11 @@ const doc = document(
   'mass-battle',
   famille,
   {
-    powerEstimate: z.array(powerEstimateRowSchema),
-    mightModifiers: z.array(mightModifierRowSchema),
-    warMachines: z.array(warMachineRowSchema),
-    structures: z.array(structureRowSchema),
-    hazards: z.array(hazardRowSchema),
+    powerEstimate: listeCle(powerEstimateRowSchema, 'id'),
+    mightModifiers: listeCle(mightModifierRowSchema, 'id'),
+    warMachines: listeCle(warMachineRowSchema, 'id'),
+    structures: listeCle(structureRowSchema, 'id'),
+    hazards: listeCle(hazardRowSchema, 'id'),
   },
   {
     powerEstimate: { label: 'Estimation de Puissance', hint: "Table d'exemples de composition d'armée par valeur de Puissance" },

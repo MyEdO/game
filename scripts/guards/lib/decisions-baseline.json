@@ -28,6 +28,27 @@
       "ancre": "SOURCE consultable, citée verbatim",
       "raison": "le fragment n'est pas une revendication d'autorité : il CITE EN RÉFÉRENCE le commentaire GitHub de l'issue #1463 du 2026-08-23 (« ## Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) », point 3), qui motive le contrat de `choixDeclares` — point 3 vérifié au `gh issue view 1463 --comments` le 2026-09-14, il porte bien le verbatim cité (« une clé dont la valeur est un littéral d'enum zod (`kind/type/class/op`) n'ouvre jamais une référence »)",
       "date": "2026-09-14"
+    },
+    {
+      "fichier": "src/data/schemas/defs-scenes/projet-schema.test.ts",
+      "motif": "arbitrage #1552 cité à sa trace",
+      "ancre": "#1552 — arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi)",
+      "raison": "le verbatim cité (« Un projet se NOMME avant d'être enregistré (Recommandé) ») et sa date figurent au commentaire https://github.com/cgauche/game/issues/1552#issuecomment-5485711137 du 2026-08-31 (« Arbitrage produit rendu par AskUser (verbatim choisi : « Un projet se NOMME avant d'être enregistré (Recommandé) ») ») — vérifié par `gh api repos/cgauche/game/issues/1552/comments` le 2026-09-23 ; le site précède #1473 R1 (commit 0a9c46b53)",
+      "date": "2026-09-23"
+    },
+    {
+      "fichier": "src/data/schemas/defs-scenes/projet.ts",
+      "motif": "arbitrage #1552 cité à sa trace",
+      "ancre": "arbitrage utilisateur 2026-08-31, AskUser verbatim",
+      "raison": "le verbatim cité (« Un projet se NOMME avant d'être enregistré (Recommandé) ») et sa date figurent au commentaire https://github.com/cgauche/game/issues/1552#issuecomment-5485711137 du 2026-08-31 (« Arbitrage produit rendu par AskUser (verbatim choisi : « Un projet se NOMME avant d'être enregistré (Recommandé) ») ») — vérifié par `gh api repos/cgauche/game/issues/1552/comments` le 2026-09-23 ; le site précède #1473 R1 (commit 0a9c46b53)",
+      "date": "2026-09-23"
+    },
+    {
+      "fichier": "src/data/schemas/defs-scenes/scene.ts",
+      "motif": "arbitrage #1680 cité à sa trace",
+      "ancre": "FOYER de l'arbitrage utilisateur du 2026-09-04 (#1680",
+      "raison": "les deux verbatims cités (« Structures ciblables en siège seul », « Un drapeau de RENCONTRE, éditable ») et leur date figurent au commentaire https://github.com/cgauche/game/issues/1680#issuecomment-5546039260 du 2026-09-04 (« Décisions du 2026-09-04 (soir) — chaque question posée avec ses assertions, réponses verbatim », point I-20 / I-17) — vérifié par `gh api repos/cgauche/game/issues/1680/comments` le 2026-09-23 ; le site précède #1473 R1 (commit ee9608ead)",
+      "date": "2026-09-23"
     }
   ]
 }

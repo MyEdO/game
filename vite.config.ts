@@ -8,8 +8,9 @@ import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scrip
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 
-/** Auto-génération des registres « dépose un fichier → intégré » : régénère l'index explicite
- *  au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère ensuite). */
+/** Auto-génération des registres « dépose un fichier → intégré » et de l'INDEX DES IDS (`genAll`,
+ *  phases 1 et 2) au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère
+ *  ensuite). */
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));

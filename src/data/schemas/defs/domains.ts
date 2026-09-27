@@ -164,6 +164,8 @@ const doc = document(
     codex: { keys: ['domains'] },
     edit: { dataset: 'domains' },
   },
+  // `wind`, `arcane` : pools des sources `winds`/`arcaneDomains` (`grammaire/sourcesDeSpecs.ts`).
+  { espace: { marqueurs: ['wind', 'arcane'] } },
 );
 
 export const schema = doc.schema;

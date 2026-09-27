@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDe } from '../grammaire/ref';
-import { listeCle } from '../grammaire/liste-cle';
+import { listeCle } from '../grammaire/collection-cle';
 import { proseDeScene } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves } from '../../index';
@@ -120,7 +120,7 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     }
     /** Référence PAR ID jusque dans la spécialisation (`specResolves`, #1342 L3). La sentinelle
      *  « au choix » reste admise : elle désigne un EMPLACEMENT, pas une spécialisation. Elle ne
-     *  peut plus arriver côté COMPÉTENCE (`skillRefSchema` = `refOuSpec('skill')`, dont
+     *  peut plus arriver côté COMPÉTENCE (`competenceChiffreeSchema` = `refOuSpec('skill', { value })`, dont
      *  `ref.ts#SENTINELLE_DE_SPEC` la refuse au parse) ; elle arrive ENCORE côté TALENT, où
      *  `talentRefSchema` (`grammaire/reference.ts`) n'a pas de régime `choix` — 12 sentinelles
      *  mesurées dans `creatures.json`, dont ces profils embarqués sont le patch partiel. Concept

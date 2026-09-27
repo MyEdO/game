@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
 import { z } from 'zod';
+import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
@@ -20,15 +21,16 @@ import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
-import { ref, refs, specRef, refOuSpec, pick, typedRef, idDe, cibleDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
+import { ref, refs, specRef, refOuSpec, pick, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
 import { byId, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
-import { slotsDe } from './slots';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
-import { IDS_PAR_DATASET } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserSourceDIdsVivants } from './idsVivants';
+import { defDe, enfantsDe } from './descente';
+import { noeudObjet } from '../validate';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skillsJson[0] as { id: string };
@@ -286,11 +288,11 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     // l'emballage : la même option sert ici une famille `entite` (le fichier porte une LISTE de
     // documents-tables) et, plus bas, une famille `config` (le fichier EST le document).
     rangees: document('table-jouet', 'entite', {}, {}, EXPOSITION, {
-      rangee: z.strictObject({ min: z.number(), max: z.number(), label: z.string() }),
+      rangee: z.strictObject({ id: z.string(), min: z.number(), max: z.number(), label: z.string() }),
       deDeTirage: true,
     }),
     rangeesConfig: document('config-table-jouet', 'config', {}, {}, EXPOSITION, {
-      rangee: z.strictObject({ min: z.number(), max: z.number(), label: z.string() }),
+      rangee: z.strictObject({ id: z.string(), min: z.number(), max: z.number(), label: z.string() }),
     }),
   };
   const ENV = (type: string) => ({ id: 'x', type, label: 'X', source: SOURCE_REELLE });
@@ -322,7 +324,7 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
 
   it('document à `rangee` : `entries` POSÉE par la fabrique, et `die` REQUIS dès `deDeTirage`', () => {
     const { schema } = REPLIQUES.rangees;
-    const t = { ...ENV('table-jouet'), die: '1d100', entries: [{ min: 1, max: 10, label: 'Rien' }] };
+    const t = { ...ENV('table-jouet'), die: '1d100', entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien' }] };
     expect(schema.safeParse([t]).success).toBe(true);
     // `deDeTirage` déclaré : le dé est REQUIS, et une chaîne vide ne le satisfait pas.
     expect(schema.safeParse([{ ...t, die: undefined }]).success).toBe(false);
@@ -333,12 +335,16 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     expect(schema.safeParse([{ ...t, entries: {} }]).success).toBe(false);
     // Chaque rangée est validée par `rangee`, et le sceau refuse la clé en trop.
     expect(schema.safeParse([{ ...t, entries: [{ min: 1, max: 10 }] }]).success).toBe(false);
-    expect(schema.safeParse([{ ...t, entries: [{ min: 1, max: 10, label: 'Rien', inconnu: 1 }] }]).success).toBe(false);
+    expect(schema.safeParse([{ ...t, entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien', inconnu: 1 }] }]).success).toBe(false);
+    // Les rangées sont une collection à clé `id` : un id en double est refusé, l'id NOMMÉ.
+    const double = schema.safeParse([{ ...t, entries: [...t.entries, { ...t.entries[0], min: 11, max: 20 }] }]);
+    expect(double.success).toBe(false);
+    expect(double.error?.issues.map((i) => i.message)).toContain('« rien » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.');
   });
 
   it('`rangee` en famille `config` : le document EST son fichier, et porte sa charge', () => {
     const { schema } = REPLIQUES.rangeesConfig;
-    const t = { ...ENV('config-table-jouet'), entries: [{ min: 1, max: 10, label: 'Rien' }] };
+    const t = { ...ENV('config-table-jouet'), entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien' }] };
     expect(schema.safeParse(t).success).toBe(true);
     // SANS `deDeTirage`, `die` n'existe pas sur le document : le sceau le refuse comme clé en trop.
     expect(schema.safeParse({ ...t, die: '1d10' }).success).toBe(false);
@@ -357,7 +363,7 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     // rangées parsait en map, sans un mot. Le `deDeTirage` du même appel est couvert par le refus
     // ci-dessus : il exige une `rangee`, que `record` n'admet pas.
     expect(() =>
-      document('record-a-rangees', 'record', {}, {}, EXPOSITION, { valeurRecord: z.string(), rangee: z.number() }),
+      document('record-a-rangees', 'record', {}, {}, EXPOSITION, { valeurRecord: z.string(), rangee: z.strictObject({ id: z.string() }) }),
     ).toThrow(/document\('record-a-rangees'\) : `rangee` et la famille « record » sont EXCLUSIVES/);
     expect(() =>
       document('record-a-de', 'record', {}, {}, EXPOSITION, { valeurRecord: z.string(), deDeTirage: true }),
@@ -367,12 +373,12 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
   it('un def à `rangee` qui redéclare `entries` ou `die` dans ses `champs` est REFUSÉ (la fabrique les pose)', () => {
     expect(() =>
       document('table-doublon', 'entite', { entries: z.array(z.number()) }, { entries: { label: 'Rangées' } }, EXPOSITION, {
-        rangee: z.number(),
+        rangee: z.strictObject({ id: z.string() }),
       }),
     ).toThrow(/document\('table-doublon'\) : la fabrique pose « entries » \(charge du document\)/);
     expect(() =>
       document('table-de-doublon', 'config', { die: z.string() }, { die: { label: 'Dé' } }, EXPOSITION, {
-        rangee: z.number(),
+        rangee: z.strictObject({ id: z.string() }),
       }),
     ).toThrow(/document\('table-de-doublon'\) : la fabrique pose « die » \(charge du document\)/);
     // SANS `rangee`, `die` n'est pas une clé de charge : un def qui n'a pas de rangées peut le déclarer.
@@ -568,14 +574,14 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
   // Incident de Tir `kind: 'misfire'`) tiennent en UNE entrée dont un refine ⟺ porte la disjonction,
   // si bien qu'il n'a plus besoin d'une classe « union » hors des vagues d'adoption.
   const noeudInterne = (n: unknown): unknown => {
-    const d = (n as { _zod?: { def?: Record<string, unknown> }; def?: Record<string, unknown> })?._zod?.def;
-    if (!d) return undefined;
-    return d.type === 'array' ? d.element : d.innerType;
+    const type = defDe(n)?.type;
+    if (type === undefined || type === 'pipe' || type === 'lazy') return undefined;
+    return enfantsDe(n).find((e) => e.segment === (type === 'array' ? '[]' : ''))?.noeud;
   };
-  const shapeDe = (schema: unknown): Record<string, z.ZodTypeAny> | undefined => {
+  const shapeDe = (schema: unknown): Record<string, z.ZodType> | undefined => {
     let n: unknown = schema;
     for (let i = 0; i < 12 && n; i++) {
-      const shape = (n as { shape?: Record<string, z.ZodTypeAny> }).shape;
+      const shape = (n as { shape?: Record<string, z.ZodType> }).shape;
       if (shape) return shape;
       n = noeudInterne(n);
     }
@@ -694,9 +700,7 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
    * scellé — il ferait entrer dans la population des defs dont l'enveloppe est écrite à la main, et
    * le verrou d'exigence y serait mesuré sur un contrat que `document()` ne porte pas.
    */
-  const adopte = (schema: unknown): boolean =>
-    ((schema as { _zod?: { def?: { type?: string; element?: { _zod?: { def?: { type?: string } } } } } })?._zod?.def?.element?._zod?.def
-      ?.type ?? '') === 'pipe';
+  const adopte = (schema: unknown): boolean => defDe(enfantsDe(schema).find((e) => e.segment === '[]')?.noeud)?.type === 'pipe';
 
   /** Dataset RÉEL complet (jamais une entrée isolée : `affinerDataset` peut exiger la liste entière —
    *  `names.json` refuse tout tableau qui n'a pas ses 7 races). */
@@ -1018,11 +1022,9 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
     expect(possede.safeParse({ id: UNE_COMPETENCE.id, advances: 3, value: 40 }).success).toBe(false);
   });
 
-  it('`refs()` valide chaque id de la liste, `typedRef()` résout selon le `type` porté', () => {
+  it('`refs()` valide chaque id de la liste', () => {
     expect(refs('skill').safeParse([UNE_COMPETENCE.id]).success).toBe(true);
     expect(refs('skill').safeParse([UNE_COMPETENCE.id, 'inconnu']).success).toBe(false);
-    expect(typedRef().safeParse({ type: 'skill', id: UNE_COMPETENCE.id }).success).toBe(true);
-    expect(typedRef().safeParse({ type: 'talent', id: UNE_COMPETENCE.id }).success).toBe(false);
   });
 
   it('`pick()` accepte « n parmi » et le tirage sur table, jamais les deux', () => {
@@ -1067,7 +1069,7 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
 
   /**
    * DEUX RÉGIMES, UN SEUL NŒUD (`_ids.generated.ts`) : le fichier généré figé au commit, et les ids
-   * VIVANTS que `ref.ts` lit d'abord (`idsDe` : `idsVivants(dataset)`, sinon `IDS_PAR_DATASET[dataset]`),
+   * VIVANTS que `ref.ts` lit d'abord (`idsVivants(clé d'espace)`, sinon `IDS_PAR_ESPACE[clé d'espace]`),
    * posés par la couche donnée. Un schéma se construit une fois au chargement du module, la donnée se
    * valide après ; la liste admise doit donc se lire à la VALIDATION. Sans quoi une entité créée au
    * Compendium rendrait rouge toute donnée qui la référence.
@@ -1075,14 +1077,13 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
    * partagé, et vaut que la couche donnée ait déjà posé la sienne dans ce worker ou non.
    */
   it('un schéma construit AVANT une mise à jour du registre voit la NOUVELLE liste', () => {
-    const avant = (IDS_PAR_DATASET as unknown as Record<string, readonly string[]>)['etats.json'];
+    const avant = IDS_PAR_ESPACE['etats.json'];
     const noeud = idDe('etat'); // construit AVANT la mise à jour
     expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(false);
     const precedente = poserSourceDIdsVivants({
       entrees: (f) =>
         f === 'etats.json' ? [...avant.map((id) => ({ id })), { id: 'etat-cree-au-compendium' }] : precedente?.entrees(f),
       version: (f) => precedente?.version(f) ?? 0,
-      discriminantDe: (f) => precedente?.discriminantDe(f),
     });
     try {
       expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(true);
@@ -1093,19 +1094,16 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
     expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(false);
   });
 
-  it('la MARCHE d’un `pick` récursif se coupe sur le nœud lui-même et rend ses slots', () => {
-    const slots = slotsDe('src/data', 'jouet.json', pick('skill'));
-    expect(slots.map((s) => s.path)).toEqual(['|0.of[]|0.id', '|0.of[]|1.id', '|1.table.id']);
-    expect(new Set(slots.map((s) => s.type))).toEqual(new Set(['skill', 'table']));
-  });
-
-  it('la MARCHE retrouve la référence à son path exact (source de l’intégrité référentielle générique)', () => {
-    const jouet = z.array(z.strictObject({ comp: ref('skill'), sorts: refs('spell').optional() }));
-    expect(slotsDe('src/data', 'jouet.json', jouet)).toEqual([
-      { root: 'src/data', dataset: 'jouet.json', path: '[].comp.id', type: 'skill', espece: 'id', cardinalite: 'liste' },
-      { root: 'src/data', dataset: 'jouet.json', path: '[].sorts[]', type: 'spell', espece: 'id', cardinalite: 'liste' },
-    ]);
-    expect(cibleDe('skill')).toBe('skills.json');
+  it('`merchants.json` adopte `refs(\'trapping\')` : le dataset RÉEL parse, et un id de trapping inventé casse au parse', () => {
+    const def = SCHEMA_DEFS.find((d) => d.file === 'merchants.json')!;
+    const merchants = def.schema.parse(JSON.parse(JSON.stringify(merchantsJson)));
+    expect(Array.isArray(merchants)).toBe(true);
+    const faux = JSON.parse(JSON.stringify(merchantsJson)) as { curated?: string[] }[];
+    const porteur = faux.find((m) => m.curated?.length)!;
+    porteur.curated![0] = 'objet-qui-n-existe-pas';
+    const res = def.schema.safeParse(faux);
+    expect(res.success).toBe(false);
+    expect(JSON.stringify(res.error?.issues)).toMatch(/objet-qui-n-existe-pas.*trappings\.json/);
   });
 });
 
@@ -1428,7 +1426,7 @@ describe('enumNomme — le libellé d’une valeur vit sur le NŒUD', () => {
     expect(valeursDe(z.array(voie))).toEqual({ a: 'Aile', b: 'Boue' });
     expect(valeursDe(voie.default('a'))).toEqual({ a: 'Aile', b: 'Boue' });
     const fiche = document('talent', 'entite', { voie }, { voie: { label: 'Voie' } } as never, EXPOSITION);
-    expect(valeursDe((fiche.entree as unknown as { _zod: { def: { in: { _zod: { def: { shape: Record<string, unknown> } } } } } })._zod.def.in._zod.def.shape.voie)).toEqual({ a: 'Aile', b: 'Boue' });
+    expect(valeursDe(enfantsDe(noeudObjet(fiche.entree)).find((e) => e.cle === 'voie')?.noeud)).toEqual({ a: 'Aile', b: 'Boue' });
   });
 
   it('un nœud NON nommé n’a pas de libellés, et sa valeur se rend BRUTE', () => {

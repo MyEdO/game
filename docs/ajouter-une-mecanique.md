@@ -75,7 +75,7 @@ Documents porteurs :
 
 ## 3. Canal `effects` — le déclenché
 
-Un `TriggeredEffect` (`src/engine/flowCore.ts:567`) est un Flow d'ops appliqué à `on` quand `trigger` se
+Un `TriggeredEffect` (`src/engine/flowCore.ts:573`) est un Flow d'ops appliqué à `on` quand `trigger` se
 produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'entité.
 
 | Champ | Type | Rôle (JSDoc) |
@@ -88,12 +88,12 @@ produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'enti
 | `optional?` | `boolean` | Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT de le déclencher. |
 | `source?` | `EffectSource` | ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf` (`src/state/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. |
 
-### Les 20 déclencheurs (`EffectTrigger`, `src/engine/flowCore.ts:538`)
+### Les 20 déclencheurs (`EffectTrigger`, `src/engine/flowCore.ts:544`)
 
 `onHit` · `onCrit` · `onWoundLoss` · `onSlain` · `onRoundStart` · `onStartled` · `onKill` · `onCharged` · `onGainCondition` · `onCombatStart` · `onCombatEnd` · `onRoundEnd` · `onTurnStart` · `onTurnEnd` · `onDayStart` · `onWake` · `onAttackResolved` · `onCastResolved` · `onMiscast` · `onOwnTestFailed`
 
 
-### Les 6 formes de ciblage (`EffectTargeting`, `src/engine/flowCore.ts:564`)
+### Les 6 formes de ciblage (`EffectTargeting`, `src/engine/flowCore.ts:570`)
 
 - `'self'`
 - `'victim'`
@@ -160,7 +160,7 @@ même si un second trait la déclare. C'est de la DONNÉE, jamais un chemin de c
 ### Une capacité est un marqueur de PRÉSENCE, jamais un nombre
 
 Le drapeau dit qu'une mécanique s'applique ; sa VALEUR (Salve N, Protectrice N, Solide N…) vit sur
-l'INSTANCE portée par l'objet — `QualityInstance.value` (`src/engine/types.ts:362`), que le
+l'INSTANCE portée par l'objet — `QualityInstance.value` (`src/engine/types.ts:359`), que le
 dispatcher runtime expose sous `indice` (`resolveQualities`, `src/engine/qualities/dispatch.ts:56`).
 La saisie en prose (« Solide 3 ») n'est convertie en instance qu'à l'AUTHORING, par
 `parseQuality` (`src/engine/qualities/normalize.ts:31`) — le runtime ne re-parse jamais un libellé
@@ -220,4 +220,4 @@ primitives, `CLAUDE.md`). Ne pas dupliquer une op qui existe déjà sous un autr
 | `src/engine/trauma.test.ts` | traumaFromKind (LDB 18-Traumatisme) |
 | `src/state/triggered-effects.test.ts` | fireTriggers — Traits et Atouts sur le même système flow+déclencheur |
 | `src/state/combat-hardcode-guard.test.ts` | garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8) |
-<!-- sources-empreinte: 04eaf031cc69ad4646df5fa4831d0c0d4d61d52e (158 fichiers, 1 dossiers) corps: f8871cf00ff060c3d21b28c716275bdbc25821fd -->
+<!-- sources-empreinte: 6ab465d676a13d7d9ed84caa5312bf129dc1f669 (158 fichiers, 1 dossiers) corps: 80c27d9dc45969b1f771e4e077da008272fc5eb3 -->

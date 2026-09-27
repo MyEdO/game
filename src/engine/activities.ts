@@ -24,13 +24,14 @@ import { resolveFormula, type Formula, type GameOp } from './ops';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { resolveSkillBest, bestSkilledOption, testValue, type SkillRef, type TestSpec } from './skills';
+import { resolveSkillBest, bestSkilledOption, testValue, type TestSpec } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
 import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
-import { talentSlotsUpTo, designationsFor, inCareerStatus, talentMaxReached, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
-import { careerSkillAdditions } from './talentEffects';
+import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
 import { isTradable } from './disponibilite';
 import activitiesJson from '../data/activities.json';
@@ -559,7 +560,7 @@ export function resolveTravelActivity(
   actor: Combatant,
   def: ActivityDef,
   rng: RNG = defaultRNG,
-  opts: { skillMod?: number; stages?: number; freeSkill?: SkillRef } = {},
+  opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
 ): TravelActivityResult {
   const out: TravelActivityResult = {
     activityId: def.id, actorId: actor.id, sl: 0, success: true, ops: [], extenue: false,
@@ -591,7 +592,7 @@ export function resolveTravelActivity(
 export interface TravelActivitySpec {
   activityId: string;
   actorId: string;
-  used?: SkillRef;
+  used?: RefDesignee;
   value: number;
   /** Cible effective (Difficulté + mod, bornée) — `null` pour une Activité sans Test. */
   target: number | null;
@@ -602,7 +603,7 @@ export interface TravelActivitySpec {
 export function travelActivitySpec(
   actor: Combatant,
   def: ActivityDef,
-  opts: { skillMod?: number; stages?: number; freeSkill?: SkillRef } = {},
+  opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
 ): TravelActivitySpec {
   const skillRefs = def.freeSkill ? (opts.freeSkill ? [opts.freeSkill] : []) : (def.skills ?? []);
   const drTarget = def.extended && opts.stages != null ? def.extended.drPerStage * opts.stages : undefined;
@@ -610,7 +611,7 @@ export function travelActivitySpec(
   if (!skillRefs.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget };
   // MÊME choix que `resolveSkillBest` : meilleure valeur de l'acteur (first-max), Difficulté + mod bornés.
   let bestVal = -Infinity;
-  let used: SkillRef | undefined;
+  let used: RefDesignee | undefined;
   for (const ref of skillRefs) {
     const v = testValue(actor, ref.id, undefined, ref.spec);
     if (v > bestVal) { bestVal = v; used = ref; }
@@ -665,7 +666,7 @@ export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> =
 };
 
 /** Poste tenu par un héros pour une Étape : l'Activité + (pour Pratiquer une Compétence) la compétence libre. */
-export interface StagePosting { activityId: string; freeSkill?: SkillRef }
+export interface StagePosting { activityId: string; freeSkill?: RefDesignee }
 
 /** Résout TOUS les postes d'une Étape : itère les héros ASSIGNÉS (un poste max chacun) et résout
  *  l'Activité de chacun via `resolveTravelActivity`. PUR / seedé ; ordre = ordre du groupe. Un héros
@@ -806,7 +807,6 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   const sSlots = skillSlots(levels, level);
   const careerChars = availableChars(levels, level);
   const designations = designationsFor(hero, career);
-  const additions = careerSkillAdditions(hero);
 
   const chars: EntrainementOption[] = CHAR_KEYS
     .filter((k) => !inCareerChar(careerChars, k))
@@ -824,9 +824,7 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   for (const s of skills) {
     const specs = specPoolOf(s); // options OFFERTES au joueur (Entraînement)
     for (const spec of specs.length ? specs : [undefined]) {
-      if (inCareerStatus(sSlots, designations, s.id, spec) != null) continue; // de carrière → Avancement normal
-      const addedExact = additions.some((a) => a.id === s.id && (!a.spec || a.choix != null || (a.spec ?? '') === (spec ?? '')));
-      if (addedExact) continue; // ajoutée « à n'importe quelle Carrière » par un talent (LDB 10) → in-carrière
+      if (competenceEnCarriere(hero, sSlots, designations, s.id, spec).statut != null) continue; // de carrière → Avancement normal
       const known = hero.skills.find((k) => k.id === s.id && (k.spec ?? '') === (spec ?? ''));
       const advances = known?.advances ?? 0;
       const advanced = s.acces === 'avancee';
@@ -950,7 +948,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
   return talents
     .filter((t) => {
       if (specCatalogOf(t).length > 0) return false; // pas de sélecteur de spec dans ce catalogue
-      if (inCareerStatus(slots, desig, t.id) != null) return false; // de carrière → Avancement
+      if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return false; // de carrière → Avancement
       if (talentMaxReached(hero, t.id)) return false;
       return true;
     })

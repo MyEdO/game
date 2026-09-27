@@ -756,7 +756,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `carte`, `FoulingLevel`, `PendingTest`, `aucune`, `applyExposureFailure`, `legeres`, `exposureNight`, +31 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/exposure.ts`, +8 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `champs`, `carte`, `FoulingLevel`, `PendingTest`, `aucune`, `applyExposureFailure`, `legeres`, +32 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/exposure.ts`, +8 fichiers
 
 ---
 
@@ -782,7 +782,7 @@ Force du vent tirée au début, mise à jour à l'aube/midi/crépuscule/minuit (
 **Voir aussi :** [Météo de la Mer des Griffes (MDG)](#météo-de-la-mer-des-griffes-mdg), [Détroits et tourbillons (MDG)](#détroits-et-tourbillons-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.246-304) → `sea-weather`, `windDirectionSchema`, `carte`, `WorldMapRoutePanel`, `MapRoute`, `OrientationOutcome`, `aucune`, `orientationOutcome`, `legeres`, `sea-navigation`, +27 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +7 fichiers
+- `MDG 13` (l.246-304) → `sea-weather`, `windDirectionSchema`, `windAspectSchema`, `carte`, `WorldMapRoutePanel`, `MapRoute`, `OrientationOutcome`, `aucune`, `orientationOutcome`, `legeres`, +28 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +7 fichiers
 
 ---
 
@@ -955,7 +955,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg), [`traumatisme.md`](traumatisme.md#13-faim-et-soif) (Faim et Soif), [`maladies.md`](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (rations en mer).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `scenario`, `SeaVoyageState`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
+- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `exposureNight`, `dailyWaterLitres`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
 
 ---
 
@@ -1059,5 +1059,5 @@ Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a un
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/state/merchantFlow.ts) (Marchandage).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `PORT_PRODUITS`, `cereales`, `portProfileSchema`, `MapPlace`, `PortHeader`, `CargoMarkerDef`, +73 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +27 fichiers
+- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `PORT_PRODUITS`, `cereales`, `portProfileSchema`, `PortHeader`, `MapPlace`, `CargoMarkerDef`, +73 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +27 fichiers
 

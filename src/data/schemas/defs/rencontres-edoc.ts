@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { travelTableEntrySchema } from '../grammaire/mecanique';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'rencontres-edoc.json';
 export const famille = 'config';
@@ -19,9 +20,9 @@ const doc = document(
   {
     die: z.string(),
     tables: z.strictObject({
-      positives: z.array(travelTableEntrySchema),
-      fortuites: z.array(travelTableEntrySchema),
-      dangereuses: z.array(travelTableEntrySchema),
+      positives: listeCle(travelTableEntrySchema, 'id'),
+      fortuites: listeCle(travelTableEntrySchema, 'id'),
+      dangereuses: listeCle(travelTableEntrySchema, 'id'),
     }),
   },
   {

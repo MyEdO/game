@@ -26,15 +26,6 @@ export const file = 'materials.json';
 export const famille = 'entite';
 
 /**
- * CHAMP DISCRIMINANT du document : celui dont la valeur PARTITIONNE ses entrées (ici l'enum
- * `DOMAINES_MATIERE` du champ `domain`, déclaré juste dessous). Le def POSSÈDE son discriminant — la
- * fabrique de référence n'en connaît aucun cas particulier. `npm run gen` en dérive la table
- * `IDS_PAR_DISCRIMINANT` (`schemas/_ids.generated.ts`), contre laquelle `idDe('material', 'prop')`
- * refine AU PARSE : un id du BON dataset mais du MAUVAIS domaine est refusé, nommément.
- */
-export const discriminant = 'domain';
-
-/**
  * Libellés FR des DOMAINES — les valeurs du champ discriminant, nommées à UN endroit : cette table EST
  * l'univers du champ (`enumNomme`, plus bas), le Codex en titre ses groupes et le `select` de l'atelier
  * en fait ses options.
@@ -63,12 +54,12 @@ const CHARGE_PAR_DOMAINE = {
 } as const satisfies Record<MaterialDomain, { cles: readonly string[]; requises: readonly string[] }>;
 
 /**
- * CHARGE par valeur du DISCRIMINANT, telle que la lit l'atelier (`SchemaDef.chargeParDiscriminant`,
- * émise par `npm run gen`) : une entrée de matière n'édite que les champs de SON domaine, jamais
- * l'union des trois. Dérivée de la table ci-dessus — le refine et le formulaire lisent la MÊME
+ * CHARGE par valeur du DISCRIMINANT, telle que la lit l'atelier (`espace.chargeParDiscriminant` de la
+ * marque de racine, `chargeDiscriminee`) : une entrée de matière n'édite que les champs de SON domaine,
+ * jamais l'union des trois. Dérivée de la table ci-dessus — le refine et le formulaire lisent la MÊME
  * déclaration.
  */
-export const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.entries(CHARGE_PAR_DOMAINE).map(([domaine, charge]) => [domaine, charge.cles as readonly string[]]),
 );
 
@@ -157,6 +148,7 @@ const doc = document(
     edit: { dataset: 'materials' },
   },
   {
+    espace: { discriminant: 'domain', chargeParDiscriminant },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as Record<string, unknown>;

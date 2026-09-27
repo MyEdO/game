@@ -19,4 +19,4 @@ pas entrer dans l'histoire.
 (`ops:faits-de-palier -- --base <tête de la dernière revue> --tete <origin/main>`) ; si une revue de
 la fenêtre existe déjà sur `origin/main` ou sur un chantier voisin, ne pas en écrire une seconde ; le
 lot en cours se juge à part, hors fenêtre, et son jugement va aux soldes, pas au nom du fichier. Voir
-[[env-coordination-arbre-partage-sessions]].
+[[env-coordination-sessions]].

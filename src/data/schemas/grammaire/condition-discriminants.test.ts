@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { conditionSchema } from './mecanique';
+import { defDe, enfantsDe, ouverts } from './descente';
 
 const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.meta.url));
 
@@ -51,13 +52,10 @@ function kindsDuType(): string[] {
 /** Les discriminants des options de `conditionSchema` — le `z.lazy` est déroulé pour atteindre le
  *  `discriminatedUnion` réellement servi à la porte. */
 function kindsDuSchema(): string[] {
-  const anyS = conditionSchema as unknown as { def: { type: string; getter?: () => unknown } };
-  const inner = (anyS.def.type === 'lazy' ? anyS.def.getter!() : anyS) as { def: { options: unknown[] } };
-  return inner.def.options.map((o) => {
-    const opt = o as { def?: { shape?: Record<string, unknown> }; shape?: Record<string, unknown> };
-    const lit = (opt.def?.shape ?? opt.shape)!.kind as { def: { values?: Iterable<string>; value?: unknown } };
-    return lit.def.values ? [...lit.def.values][0] : String(lit.def.value);
-  });
+  const union = ouverts([conditionSchema]).find((n) => defDe(n)?.type === 'union');
+  return enfantsDe(union)
+    .filter((e) => e.segment.startsWith('|'))
+    .map(({ noeud }) => [...(defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values as Iterable<string>)][0]);
 }
 
 describe('`conditionSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {

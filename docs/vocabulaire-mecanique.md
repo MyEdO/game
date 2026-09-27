@@ -54,10 +54,10 @@ Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: 
 
 | Entité | Déclarée | `passive` | `effects` | Drapeaux |
 |---|---|---|---|---|
-| `ActiveEffect` | `src/engine/types.ts:759` | `passive: GameOp[]` | — | — |
+| `ActiveEffect` | `src/engine/types.ts:756` | `passive: GameOp[]` | — | — |
 | `DomainData` | `src/data/index.ts:2026` | — | `effects: TriggeredEffect[]` | — |
 | `ManeuverDef` | `src/data/index.ts:1654` | — | `effects: TriggeredEffect[]` | — |
-| `Mutation` | `src/engine/corruption.ts:58` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
+| `Mutation` | `src/engine/corruption.ts:60` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
 | `NavalTraitData` | `src/data/index.ts:2573` | `passive: GameOp[]` | — | — |
 | `QualityData` | `src/data/index.ts:1941` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
 | `StatusData` | `src/data/index.ts:1436` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
@@ -65,8 +65,8 @@ Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: 
 | `TalentData` | `src/data/index.ts:1041` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
 | `TraitData` | `src/data/index.ts:1824` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
 | `TrappingData` | `src/data/index.ts:1157` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
-| `Weapon` | `src/engine/types.ts:375` | `passive: GameOp[]` | — | — |
-| `WeaponEnchant` | `src/engine/types.ts:538` | `passive: GameOp[]` | — | — |
+| `Weapon` | `src/engine/types.ts:372` | `passive: GameOp[]` | — | — |
+| `WeaponEnchant` | `src/engine/types.ts:535` | `passive: GameOp[]` | — | — |
 
 _13 entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la
 table ne montre que les champs DÉCLARÉS (`EtatData`/`PsychologyData` tiennent les leurs de `StatusData`)._
@@ -170,14 +170,14 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | `gainAdvantage` | `amount`, `feedOpposingPool?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 3 — `tavernGames.json:bras-de-fer`, `tavernGames.json:middenball` … | Porte l'Avantage de la cible à AU MOINS `amount` (jamais réduit). |
 | `gainResource` | `resource`, `amount`, `perSL?`, `temporary?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 6 — `spells.json:le-premier-signe-d-amul`, `spells.json:le-second-signe-d-amul` … | Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les points NON dépensés à l'expiration (rounds OU horloge, engine/grantedResources). |
 | `giveTrapping` | `trappingId?`, `custom?`, `count?`, `perSL?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 3 — `spells.json:generosite-de-manann`, `spells.json:recolte-de-rhya` … | Crée un objet (`trapping`) dans l'inventaire de la cible — nom RÉEL de la base → objet à stats, nom inconnu → objet CUSTOM (misc). |
-| `grantCareerSkill` | `skill` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 5 — `talents.json:artiste`, `talents.json:maitre-artisan` … | Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) — référence EMBOÎTÉE (jamais libellé), MÊME forme que `SkillRef` sans sa valeur imprimée : `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe. |
-| `grantCareerTalent` | `talentId`, `spec?` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 21 — `talents.json:flagellant`, `traits.json:marque-de-tzeentch` … | Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de `grantCareerSkill`, ref par `talentId` STABLE. |
+| `grantCareerSkill` | `skill` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 5 — `talents.json:artiste`, `talents.json:maitre-artisan` … | Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) — référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée : `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe. |
+| `grantCareerTalent` | `talent` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 21 — `talents.json:flagellant`, `traits.json:marque-de-tzeentch` … | Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de `grantCareerSkill`. |
 | `grantFreeAttack` | `weapon`, `when`, `advantageCost?`, `advantageOrMovement?`, `activeIf?`, `perChargerOncePerRound?`, `label?` | **inerte au switch** | `engine/flowCore.ts`, `state/aiSpellValue.ts`, `state/combat/triggeredTest.ts` +3 | 3 — `psychology.json:frenesie`, `talents.json:assaut-feroce` … | ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce : attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). |
 | `grantNaturalWeapon` | `label`, `damage`, `damagePlus?`, `plusBF?`, `bare?`, `qualities?`, `attackKind?`, `subType?`, `uid?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 7 — `mutations.json:cornes-asymetriques`, `mutations.json:griffes` … | Accorde une ARME NATURELLE (Dent et griffe : Morsure BF+3 / Arme BF+4 ; Incarnation de Wyssan) : attaque ADDITIONNELLE de mêlée injectée dans `c.weapons` (recomputeLoadout), retirée à l'expiration. |
 | `grantPsychTrait` | `psychType`, `cible?`, `argFrom?` | exécutée | `engine/corruption.ts`, `engine/disease.ts` | 8 — `drunkenness.json:tous-un-par-un`, `mutations.json:colere-impie` … | Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). |
 | `grantReverseToken` | `skill?` | exécutée | `state/interludeFlow.ts` | 1 — `activities.json:observer-une-cible` | Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). |
 | `grantSymptom` | `disease`, `symptomId`, `severity?` | exécutée | `engine/disease.ts` | 1 — `maladies.json:pneumonie` | AJOUTE un symptôme à une maladie déjà portée (EDOC 08 l.106-108 : « la maladie développe également le symptôme Toxine »). |
-| `grantTalent` | `talentId`, `spec?` | exécutée | `engine/corruption.ts`, `engine/talentEffects.ts`, `state/aiSpellValue.ts` +1 | 57 — `mutations.json:tete-bestiale-chien`, `mutations.json:fuite-aethyrique` … | Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). |
+| `grantTalent` | `talent` | exécutée | `engine/corruption.ts`, `engine/talentEffects.ts`, `state/aiSpellValue.ts` +1 | 57 — `mutations.json:tete-bestiale-chien`, `mutations.json:fuite-aethyrique` … | Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). |
 | `grantTrait` | `traitId`, `arg?`, `argFrom?`, `indice?`, `indicePerSL?`, `range?`, `onlyGroups?`, `durationRounds?`, `durationMinutes?`, `durationHours?` | exécutée | `engine/corruption.ts`, `engine/polymorph.ts`, `state/aiSpellValue.ts` +1 | 132 — `domains.json:bete`, `maneuvers.json:forme-hybride-ulric` … | Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA, déplacement), retiré à l'expiration de l'ActiveEffect porteur. |
 | `grantWeapon` | `label`, `damage`, `damagePlus?`, `plusBF?`, `qualities?`, `subType?`, `reach?`, `hands?`, `onHitEffects?`, `skin?`, `form?`, `chooseForm?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 3 — `spells.json:arme-aethyrique`, `spells.json:l-epee-ardente-de-rhuin` … | Invoque une arme MAGIQUE temporaire (Arme aethyrique : Dégâts = BFM ; Faux de Shyish : Arme d'hast, BFM+3 ; Épée ardente de Rhuin : Dégâts +6, Percutante). |
 | `handGate` | — | exécutée | — | 2 — `criticals.json:main-ensanglantee`, `criticals.json:aa-bras-46` | Main « ensanglantée » (Aux Armes bras 46-50, l.2569 : Main ensanglantée) — pose un marqueur PAR-MAIN (`Combatant.handGates`), DISTINCT du compteur global Hémorragique, qui impose un Test de Dextérité (+20) AVANT toute Action employant l'arme tenue par cette main (`attackHandGate` ; Échec → op `disarm`). |
@@ -221,7 +221,7 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | `scheduleRespawn` | `ref`, `delayDays`, `count?`, `allyOfCaster?`, `cancelFlag?` | **inerte au switch** | `state/combatFlow.ts` | 1 — `traits.json:gardien-eternel` | RECONSTITUTION DIFFÉRÉE (Gardien éternel, Middenheim — « se reconstitue au bout de d10 jours »). |
 | `senseLoss` | `sense` | exécutée | `engine/trauma.ts`, `state/targetingModes.ts` | 2 — `traumas.json:oeil-perdu`, `traumas.json:oreille-perdue` | Perte d'un organe sensoriel PAIRÉ (œil/oreille). |
 | `sinMod` | `amount` | exécutée | `state/combatEffects.ts` | 2 — `activities.json:penitence`, `activities.json:penitence` | Points de PÉCHÉ ±N (LDB 40 l.36 : sanction du prêtre fautif ; ACE Annexe I « Pénitence » : « enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant ») — jamais sous 0. |
-| `skillDRBonus` | `skill?`, `bonus`, `testType?` | exécutée | `engine/navalTraits.ts`, `state/targetingModes.ts` | 60 — `naval-traits.json:peu-maniable`, `naval-traits.json:peu-maniable` … | +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ; chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228). |
+| `skillDRBonus` | `skill`, `bonus` \| `testType`, `bonus` | exécutée | `engine/navalTraits.ts`, `state/targetingModes.ts` | 60 — `naval-traits.json:peu-maniable`, `naval-traits.json:peu-maniable` … | +N DR à un Test de Compétence nommé (Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85 l.154 ; chanson « Jacques Bret » : +1 DR sur tout Test de Corps à corps réussi, MDG 09 l.228). |
 | `skillMod` | `skill`, `mod`, `sense?` | exécutée | `engine/skills.ts`, `engine/trauma.ts`, `engine/wearPenalty.ts` +1 | 26 — `drunkenness.json:bravoure-marienburgher`, `mutations.json:langue-pendante` … | Modificateur (pénalité/bonus) à UNE Compétence nommée — GÉNÉRALISE les pénalités de séquelle `skillPenalty` (Langue −100 « auto-échec parole ») ET `dodgePenalty` (Esquive −20, mobilité). |
 | `spendAdvantage` | `amount` | exécutée | — | **0** | Dépense `amount` Points d'Avantage du RÉFÉRENT (Déstabilisante : coût d'un Test de renversement). |
 | `statusMod` | `amount` | exécutée | `state/interludeFlow.ts` | 1 — `activities.json:surpris` | Modificateur TEMPORAIRE de Standing (LDB 23 l.228-234 « Réputation » : +1 sur succès, +2 sur Succès Stupéfiant, −1 sur Échec Stupéfiant) — durée `{scale:'adventure'}` (« pour la prochaine aventure »), composé par `heroStatus` (interludeFlow.ts), purgé à l'interlude SUIVANT (`purgeAdventureEffects`). |
@@ -239,7 +239,7 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | `wounds` | `amount`, `perSL?`, `onlyGroups?`, `ignoreTB?`, `ignoreAP?`, `bypassArmour?`, `apFrom?`, `min?`, `extraAP?`, `weaponHit?` | exécutée | `engine/critical.ts`, `engine/disease.ts`, `engine/miscast.ts` +9 | 225 — `criticals.json:blessure-spectaculaire`, `criticals.json:coupure-mineure` … | Blessures subies DIRECTEMENT. |
 | `zone` | `shape`, `radiusMeters?`, `lengthMeters?`, `lengthPerSL?`, `blocksLoS?`, `onCross?`, `perRound?`, `crossTest?`, `barrier?`, `gate?`, `noCorruption?` | **inerte au switch** | `engine/overcast.ts`, `state/combatFlow.ts`, `state/zones.ts` | 13 — `spells.json:vol-du-destin`, `spells.json:grands-feux-d-u-zhul` … | ZONE PERSISTANTE posée par le sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin). |
 
-_110 ops (111 membres d'union avant fusion des formes) — 87 exécutées par `applyOps`, 15 inertes au switch, 8 hors switch (impures ou passives — cf. « Résolveurs »)._
+_110 ops (112 membres d'union avant fusion des formes) — 87 exécutées par `applyOps`, 15 inertes au switch, 8 hors switch (impures ou passives — cf. « Résolveurs »)._
 
 ### Ops à ZÉRO usage en donnée (7)
 
@@ -356,4 +356,4 @@ Valeurs du champ `on` d'un `TriggeredEffect`.
 | `{ pick … }` | `sizeAtMost?`, `max` | — |
 
 _6 entrées — dérivées de `src/engine/flowCore.ts`._
-<!-- sources-empreinte: 4a629f8e74ff446cdcdaa77f5ba8470ec7806c5e (678 fichiers, 16 dossiers) corps: 2c67b3ab4a9a4c4fcdd72eedc36dbdf9f2ef3ad0 -->
+<!-- sources-empreinte: 76b0d64fc6e5ae95e188cea1c2dba78a4ae98d36 (680 fichiers, 16 dossiers) corps: 7e080bc9e512a4ea2f66787502d39ccbadcabbf2 -->

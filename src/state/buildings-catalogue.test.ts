@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildings, props } from '../data/index';
 import { resetData, setDataset } from '../data/overrides';
-import { IDS_PAR_DISCRIMINANT, IDS_PAR_DATASET } from '../data/schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from '../data/schemas/_ids.generated';
 import { schema } from '../data/schemas/defs/buildings';
 import type { BuildingDef } from '../data/buildings.types';
 import { buildingsMeta, buildingFeatures } from './buildings';
@@ -30,8 +30,8 @@ function refus(saboter: (dataset: BuildingDef[]) => void): string[] {
   return r.success ? [] : r.error.issues.map((i) => `${i.code} @${i.path.join('.')} : ${i.message}`);
 }
 
-const COUVERTURES = IDS_PAR_DISCRIMINANT['materials.json']?.roof ?? [];
-const IDS_DE_PROP = IDS_PAR_DATASET['props.json'] ?? [];
+const COUVERTURES = IDS_PAR_ESPACE['materials.json?domain=roof'] ?? [];
+const IDS_DE_PROP = IDS_PAR_ESPACE['props.json'] ?? [];
 
 afterEach(() => resetData());
 
@@ -87,7 +87,7 @@ describe('dataset des bâtiments — ce que le PARSE refuse', () => {
   });
 
   it('une couverture HORS du domaine toiture est refusée nominativement', () => {
-    const horsDomaine = (IDS_PAR_DISCRIMINANT['materials.json']?.relief ?? []).find((id) => !COUVERTURES.includes(id))!;
+    const horsDomaine = (IDS_PAR_ESPACE['materials.json?domain=relief'] ?? []).find((id) => !COUVERTURES.includes(id))!;
     expect(horsDomaine, 'aucune matière de relief hors toiture : le cas n’est plus exerçable.').toBeTruthy();
     const messages = refus((d) => { d[0].roofMaterial = horsDomaine; });
     expect(messages.length, `« ${horsDomaine} » (relief) accepté comme couverture.`).toBe(1);

@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { validateDataset, validateDocument, schemaForFile, rapportDeFautes, cheminLisible } from './validate';
-import { listeCle } from './grammaire/liste-cle';
+import { listeCle } from './grammaire/collection-cle';
 import { schema as characteristicsSchema } from './defs/characteristics';
 import { projetSchema } from './defs-scenes/projet';
 import areneProjet from '../../scenes/arene/arene-projet.json';

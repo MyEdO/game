@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs } from './ref';
-import { fauteDEspece, sexeDeCoiffure } from './art';
+import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
+import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { estGraphieDeChapitre } from '../../source/decoupe';
 
@@ -20,7 +21,7 @@ import { estGraphieDeChapitre } from '../../source/decoupe';
  * (`grammaire/meta.ts`) au lieu de tenir sa propre table par valeur.
  *
  * Le porteur est le NŒUD, jamais la clé de premier niveau : un enum niché (`[].outcomes[].on`) ou
- * partagé par 2 950 chemins (`actorRefSchema`) se nomme UNE fois, ici, comme un champ de racine.
+ * partagé entre defs (`actorRefSchema`) se nomme UNE fois, ici, comme un champ de racine.
  *
  * Une valeur peut porter, EN PLUS de son libellé, un HINT mécanique (`hints`, même porteur : le nœud) :
  * ce que la règle FAIT quand cette valeur est choisie, lu par `hintDeValeur` (`grammaire/meta.ts`) et
@@ -59,6 +60,10 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
  * `valeurs-de-champ.test.ts` se tenant par VOCABULAIRE.
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
+
+/** Dé d'une table à fourchettes — UNE déclaration pour `tables.json` (`defs/tables.ts`), les tables de
+ *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
+export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
 
 /**
  * Registre d'où DÉRIVE le pool de spécialisations d'une def (`SpecsSource`, `src/data/index.ts` ;
@@ -288,16 +293,23 @@ export type DescRef = z.infer<typeof descRefSchema>;
  * Compétence/Talent énumère sous `specs[]` : l'id STABLE manipulé par la logique, son `label` FR
  * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), et
  * `pool: false` pour une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). SOURCE UNIQUE :
- * `skills.ts` et `talents.ts` la composent, aucun des deux ne la retape — c'est le catalogue que
- * `specRef`/`refOuSpec` confrontent (`grammaire/ref.ts`, registre `SPECS_PAR_DATASET`).
+ * `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
+ * (`grammaire/ref.ts`, espace `<fichier>#[<id>].specs` de l'INDEX DES IDS).
  */
-export const specEntrySchema = z.strictObject({
+const specEntrySchema = z.strictObject({
   id: z.string(),
   label: z.string(),
   source: sourceRefSchema.optional(),
   alsoIn: z.array(secondarySourceRefSchema).optional(),
   pool: z.literal(false).optional(),
 });
+
+/**
+ * CATALOGUE DE SPÉCIALISATIONS d'une entrée (`specs[]`) : un ESPACE DE NOMS, clé `id`, désigné par
+ * `spec` d'un `refOuSpec`/`specRef` (`grammaire/ref.ts`). SOURCE UNIQUE : `skills.ts` et `talents.ts`
+ * le composent, aucun des deux ne le retape.
+ */
+export const specsSchema = listeCle(specEntrySchema, 'id', { espace: {} });
 
 // ============================================================================
 // COMBAT FEATURE (`src/engine/combatFeatures/types.ts`) — sac de flags CLOS conféré par un Talent/Trait,
@@ -580,7 +592,7 @@ export const replisSansExposeSchema = z.strictObject({
  * l.73-78) comme prix de base (MDG 15 l.422-434, MSRC 13 l.84-89). Les quatre clés se déclarent ICI,
  * une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur.
  */
-export const parSaison = <T extends z.ZodTypeAny>(valeur: T) =>
+export const parSaison = <T extends z.ZodType>(valeur: T) =>
   z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur });
 
 /**
@@ -703,12 +715,10 @@ export const entityAppearanceSchema = z.strictObject({
   parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
   sex: sexeSchema.optional(),
   build: z.number().optional(),
-  /** Espèce du corps affiché — espèce jouable ou espèce dessinée (`grammaire/art.ts`). */
+  /** Espèce du corps affiché — espèce jouable (`idDe('species')`) ou espèce dessinée (`grammaire/art.ts`). */
   species: z
-    .string()
-    .superRefine((v, ctx) => {
-      const faute = fauteDEspece(v);
-      if (faute) ctx.addIssue({ code: 'custom', message: faute });
+    .union([idDe('species'), z.string().refine(estEspeceDessinee, { abort: true })], {
+      error: (iss) => messageDEspeceInconnue(String(iss.input)),
     })
     .optional(),
   tenue: z.string().optional(),
@@ -732,14 +742,14 @@ export const entityAppearanceSchema = z.strictObject({
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']);
 
-/** `Formula` (`src/engine/ops.ts:87`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse). Resserré ici sur `CharKey`
- *  (fidèle à `src/engine/ops.ts:87`), sans risque pour les datasets (vérifié au parse). */
 /** Feuille de référence du terme `{rule}`, instanciée UNE fois : `formulaSchema` est un `z.lazy` que
  *  chaque composition ré-évalue — une fabrique appelée DANS le `lazy` poserait une marque par instance
  *  (58 mesurées), là où le site de référence est UN. */
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
+/** `Formula` (`src/engine/ops.ts:87`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
+ *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse). Resserré ici sur `CharKey`
+ *  (fidèle à `src/engine/ops.ts:87`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() =>
   z.union([
     z.number(),
@@ -787,14 +797,18 @@ export const TESTS_DE_CORRUPTION = ['resistance', 'calme'] as const;
 export type TestDeCorruption = (typeof TESTS_DE_CORRUPTION)[number];
 
 /** Référence de Compétence BORNÉE à `TESTS_DE_CORRUPTION` : porte UNIQUE des deux slots
- *  `corruptionExposure.skill`. Sans elle, toute Compétence passe la porte et le runtime la rabote
- *  en silence — la donnée mentirait sur le Test réellement joué. Forme ENUM (patron `charKeySchema`) :
- *  l'alphabet TYPE l'id, il ne le branche pas ; les deux Compétences n'étant pas spécialisables,
- *  aucun régime `spec`/`choix` n'a de sens ici — d'où la réf nue plutôt que `refOuSpec('skill')`. */
+ *  `corruptionExposure.skill` (`LDB 19 l.23-75`). La feuille `idDe('skill')` (`grammaire/ref.ts`) porte
+ *  la référence ; la borne se compose EN SORTIE de la feuille (`transform`), sans cloner la feuille. */
+const estTestDeCorruption = (v: unknown): v is TestDeCorruption => (TESTS_DE_CORRUPTION as readonly unknown[]).includes(v);
 export const refTestDeCorruption = z.strictObject({
-  id: z.enum(TESTS_DE_CORRUPTION, {
-    error: (iss) =>
-      `corruptionExposure.skill : « ${String(iss.input)} » hors des deux Compétences admises — Résistance (« resistance ») ou Calme (« calme ») (LDB 19 l.23-75).`,
+  id: idDe('skill').transform((v, ctx): TestDeCorruption => {
+    if (estTestDeCorruption(v)) return v;
+    ctx.addIssue({
+      code: 'custom',
+      input: v,
+      message: `corruptionExposure.skill : « ${v} » hors des deux Compétences admises — Résistance (« resistance ») ou Calme (« calme ») (LDB 19 l.23-75).`,
+    });
+    return z.NEVER;
   }),
 });
 
@@ -927,11 +941,11 @@ export const dispoSaisonniereSchema = parSaison(plageSchema);
 const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
 
 /** Ce qu'une entrée MARCHANDE doit porter pour que la couverture se mesure : un libellé (le refus est
- *  NOMINATIF) et les quatre colonnes. */
-type EntreeMarchande = { label: string; avail: z.infer<typeof dispoSaisonniereSchema> };
+ *  NOMINATIF) et les quatre colonnes — et son `id`, clé du catalogue. */
+type EntreeMarchande = { id: string; label: string; avail: z.infer<typeof dispoSaisonniereSchema> };
 /** Un MARQUEUR de colonne Production/Produits : reconnu à son CHAMP d'exclusion, comme le moteur le
- *  reconnaît (`isEchangeable`, `src/engine/cargo.ts`). */
-type EntreeMarqueur = { echangeable: false };
+ *  reconnaît (`isEchangeable`, `src/engine/cargo.ts`) ; son `id` est une clé du catalogue. */
+type EntreeMarqueur = { id: string; echangeable: false };
 
 /**
  * CATALOGUE DE CARGAISONS TIRÉ AU D100 — fabrique du tableau `cargoes` des deux livres de commerce
@@ -944,6 +958,7 @@ type EntreeMarqueur = { echangeable: false };
  * DIFFÈRE : les schémas d'entrée (le Vin terrestre porte `wine`) et le `site` cité par le refus.
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
+ * Le catalogue est une collection à clé `id` (`grammaire/collection-cle.ts`).
  *
  * @param marchand schéma d'une cargaison échangeable (doit porter `label` et `avail`)
  * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
@@ -954,7 +969,7 @@ export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeM
   marqueur: z.ZodType<B>,
   options: { site: string },
 ): z.ZodType<(A | B)[]> {
-  return z.array(z.union([marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
+  const catalogue = z.array(z.union([marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
     const marchandes = entrees.filter((e): e is A => !('echangeable' in e) || e.echangeable !== false);
     for (const saison of SAISONS_DE_DISPO) {
       const ecarts = ecartsDeCouverture(
@@ -970,5 +985,23 @@ export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeM
         });
       }
     }
+  });
+  return marquerCollection(catalogue, marqueDeListe<EntreeMarchande | EntreeMarqueur>('id'));
+}
+
+/**
+ * FEUILLE ou VALEUR RÉSERVÉE — un champ qui admet, en plus de sa feuille, UN littéral que le moteur
+ * lit à part : gabarit d'instance substitué par `withArg` (`engine/flowCore › INDICE_TEMPLATE`,
+ * `ARG_TEMPLATE`) ou mot réservé interprété à l'application (`engine/ops › SELF_REF`). Le littéral est
+ * une branche `z.literal` du MÊME nœud : le parse de mesure n'y pose aucun repère.
+ * Une valeur ni feuille ni réservée est refusée par le message de la FEUILLE (celui d'`idDe` nomme
+ * l'id absent et son dataset), jamais par l'« Entrée invalide » générique d'une union.
+ */
+export function ouReserve<F extends z.ZodType, const R extends string>(feuille: F, reserve: R) {
+  return z.union([feuille, z.literal(reserve)], {
+    error: (iss) => {
+      const branches = (iss as { errors?: readonly (readonly { message: string }[])[] }).errors;
+      return branches?.[0]?.[0]?.message;
+    },
   });
 }

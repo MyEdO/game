@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { trappingRefSchema } from './reference';
 import { flowTestSchema, gameOpSchema } from './mecanique';
 import { TESTS_DE_CORRUPTION, bornesSchema, ecartDeCoPresenceDesBornes, plageOuverteSchema, plageSchema } from './valeurs';
-import { validateDataset } from '../validate';
+import { schemaForFile, validateDataset, validateDocument } from '../validate';
 import criticals from '../../criticals.json';
 import localisation from '../../localisation.json';
 import structureCriticals from '../../structure-criticals.json';
@@ -49,6 +49,12 @@ import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
 import { resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { trappingRefLabel, type TrappingRef } from '../../index';
+
+
+/** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
+ *  d'une collection à clé par sa clé (`schemas/validate.ts`), le path garde son rang. */
+const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
+  (validateDocument(schemaForFile(fichier)!, valeur) ?? []).map((f) => f.chemin.join('.'));
 
 describe('trappingRefSchema — branches de TrappingRef', () => {
   it('accepte {id} de catalogue (+ count optionnel)', () => {
@@ -215,7 +221,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
       expect(validateDataset(fichier, data)).toBeNull();
       const err = validateDataset(fichier, ampute(data, chemin!));
       expect(err, `${fichier} accepte une rangée sans borne basse`).not.toBeNull();
-      expect(err).toContain([...chemin!, 'min'].join('.'));
+      expect(pathsRefuses(fichier, ampute(data, chemin!))).toContain([...chemin!, 'min'].join('.'));
     });
   }
 });
@@ -307,7 +313,7 @@ describe('plageOuverteSchema — la bande FINALE reste OUVERTE', () => {
     const { min: _absente, ...ampute } = bandes[0];
     const err = validateDataset('advancementCosts.json', [ampute, ...bandes.slice(1)]);
     expect(err, 'une bande sans borne basse est acceptée').not.toBeNull();
-    expect(err).toContain('0.min');
+    expect(pathsRefuses('advancementCosts.json', [ampute, ...bandes.slice(1)])).toContain('0.min');
   });
 });
 
@@ -353,7 +359,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     const { max: _absente, ...ampute } = bornees[0];
     const err = validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
     expect(err, 'un réglage à borne basse SEULE est accepté').not.toBeNull();
-    expect(err).toContain(`${i}.max`);
+    expect(pathsRefuses('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)])).toContain(`${i}.max`);
   });
 });
 

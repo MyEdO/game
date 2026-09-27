@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { shipCritEntrySchema } from '../grammaire/mecanique';
 import { replisSansExposeSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'river-criticals.json';
 export const famille = 'config';
@@ -23,11 +24,11 @@ const doc = document(
   {
     replisSansExpose: replisSansExposeSchema,
     tables: z.strictObject({
-      greement: z.array(shipCritEntrySchema),
-      avirons: z.array(shipCritEntrySchema),
-      gouvernail: z.array(shipCritEntrySchema),
-      coque: z.array(shipCritEntrySchema),
-      superstructure: z.array(shipCritEntrySchema),
+      greement: listeCle(shipCritEntrySchema, 'id'),
+      avirons: listeCle(shipCritEntrySchema, 'id'),
+      gouvernail: listeCle(shipCritEntrySchema, 'id'),
+      coque: listeCle(shipCritEntrySchema, 'id'),
+      superstructure: listeCle(shipCritEntrySchema, 'id'),
     }),
   },
   {

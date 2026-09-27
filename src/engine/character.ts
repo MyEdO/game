@@ -39,7 +39,7 @@ import {
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres } from './careerSlots';
+import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices } from './trappingChoices';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
@@ -281,14 +281,6 @@ export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeReso
   return opts.talentsRolled ?? true ? result : result.filter((t) => !t.tirage);
 }
 
-/** Une acquisition de plus du Talent (LDB 05 l.475), refusée au Maxi (LDB 10 l.18, `talentMaxReached`). */
-export function acquerirTalent(heros: Pick<Combatant, 'characteristics' | 'talents'>, { id, spec }: RefDesignee): void {
-  if (talentMaxReached(heros as Combatant, id, spec)) return;
-  const existing = heros.talents.find((t) => t.talentId === id && (t.spec ?? '') === (spec ?? ''));
-  if (existing) existing.times += 1;
-  else heros.talents.push({ talentId: id, spec, times: 1 });
-}
-
 export interface CreateHeroOptions extends ChoixDeCreation {
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -356,8 +348,10 @@ export function createHero(opts: CreateHeroOptions): Combatant {
 
   // 4a) Talents : Talents d'espèce + 1 Talent de carrière (LDB 05 l.535, LDB 10 l.9, Maxi respecté).
   const speciesTalents = resolveSpeciesTalents(sp, opts);
-  const talents: TalentInstance[] = [];
-  const addTalentRef = (ref: RefDesignee) => acquerirTalent({ characteristics: chars, talents }, ref);
+  const acquis: PorteurDeTalents = { characteristics: chars, talents: [] };
+  const addTalentRef = (ref: RefDesignee) => {
+    acquerirTalent(acquis, ref);
+  };
   for (const t of speciesTalents) addTalentRef(t);
 
   let chosenTalent = opts.careerTalent;
@@ -367,8 +361,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     for (const ref of level?.talents ?? []) {
       if (!('id' in ref)) continue;
       const candidate = designer('talent', ref);
-      const probe: Combatant = { characteristics: chars, talents } as Combatant;
-      if (!talentMaxReached(probe, candidate.id, candidate.spec)) {
+      if (!talentMaxReached(acquis, candidate.id, candidate.spec)) {
         chosenTalent = candidate;
         break;
       }
@@ -380,6 +373,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // AVANT heroSoFar (careerSkillAdditions voit un « Maître artisan » du signe) et avant les effets
   // d'acquisition des Talents.
   if (opts.starId) applyStarOps(opts.starId, chars, (ref, k) => addTalentRef(designer('talent', ref, specChoices[adresseDeCreation.signe(k)])));
+
+  const talents: TalentInstance[] = acquis.talents ?? [];
 
   // 4b) Compétences de carrière : 40 Augmentations (`repartitionDeCarriere` par défaut), UNE part par
   // Compétence (LDB 05 l.535) ; un ajout de Talent est acquis sans Augmentation.

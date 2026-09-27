@@ -9,7 +9,6 @@ import {
   rollRandomTalent,
   resolveSpeciesTalents,
   resolveSpeciesTalentsDetail,
-  acquerirTalent,
   createHero,
   competencesDeCarriere,
   adresseDeCreation,
@@ -17,6 +16,7 @@ import {
   repartitionDeCarriere,
 } from './character';
 import { baseWithTalents } from './talentEffects';
+import { acquerirTalent } from './careerSlots';
 import { traitConsumptionFactor } from './provisions';
 import { traitEncumbranceFactor } from './combatFeatures/dispatch';
 
@@ -290,6 +290,16 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
   it('un héros humain (ni Massif ni Petit) a une Taille Moyenne', () => {
     const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
     expect(hero.size).toBe('moyenne');
+  });
+});
+
+describe('createHero — Signe astral à Talent non désigné (ADE II 03 l.235)', () => {
+  it('Les Deux Bœufs : le Métier choisi à l’adresse de l’op du signe désigne le Talent octroyé', () => {
+    const hero = createHero({
+      speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3, talentsRolled: false,
+      starId: 'les-deux-boeufs', specChoices: { [adresseDeCreation.signe(1)]: 'armurier' },
+    });
+    expect(hero.talents.filter((t) => t.talentId === 'maitre-artisan')).toEqual([{ talentId: 'maitre-artisan', spec: 'armurier', times: 1 }]);
   });
 });
 
