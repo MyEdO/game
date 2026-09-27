@@ -26,6 +26,8 @@ export interface ExemptionCodex {
 export interface TablesExposition {
   readonly categoryDataset: Record<string, string>;
   readonly datasetFichier: Record<string, string>;
+  readonly datasetSuite: Record<string, string>;
+  readonly datasetsEditables: Set<string>;
   readonly objectCategory: Record<string, RouteObjet>;
   readonly fichiersDeclares: Set<string>;
   readonly exempts: Record<string, ExemptionCodex>;
@@ -40,6 +42,8 @@ export interface TablesExposition {
 export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
   const categoryDataset: Record<string, string> = {};
   const datasetFichier: Record<string, string> = {};
+  const datasetSuite: Record<string, string> = {};
+  const datasetsEditables = new Set<string>();
   const objectCategory: Record<string, RouteObjet> = {};
   const fichiersDeclares = new Set<string>();
   const exempts: Record<string, ExemptionCodex> = {};
@@ -57,7 +61,7 @@ export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
     proprietaire.set(cle, fichier);
   };
 
-  /** Un dataset éditable n'a qu'UN document porteur — son fichier disque en découle (#1530). */
+  /** Un dataset (liste ou objet) n'a qu'UN document porteur — son fichier disque en découle (#1530). */
   const routeFichier = (ds: string, fichier: string): void => {
     const deja = datasetFichier[ds];
     if (deja !== undefined) {
@@ -82,6 +86,15 @@ export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
     if ('exempt' in expo.codex) exempts[def.file] = expo.codex.exempt;
     const keys = 'keys' in expo.codex ? expo.codex.keys : [];
 
+    if ('none' in expo.edit) {
+      // Lecture seule : aucune route, mais un dataset-liste en mémoire garde son fichier.
+      if (expo.edit.dataset !== undefined) {
+        routeFichier(expo.edit.dataset, def.file);
+        datasetSuite[expo.edit.dataset] = '';
+      }
+      continue;
+    }
+
     if ('dataset' in expo.edit) {
       const ds = expo.edit.dataset;
       // Une seule clé Codex : elle route, quelle que soit sa graphie (`races` → dataset `species`).
@@ -96,6 +109,8 @@ export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
       revendique(route, def.file);
       categoryDataset[route] = ds;
       routeFichier(ds, def.file);
+      datasetSuite[ds] = '';
+      datasetsEditables.add(ds);
       continue;
     }
 
@@ -108,20 +123,24 @@ export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
       }
       revendique(keys[0], def.file);
       objectCategory[keys[0]] = { ds: keys[0], mode: expo.edit.object };
+      routeFichier(keys[0], def.file);
       continue;
     }
 
     if ('niche' in expo.edit) {
-      // Tableaux nichés : chaque catégorie routée porte le nom de son dataset (identité).
-      for (const cat of expo.edit.niche.categories) {
+      // Tableaux nichés : chaque catégorie routée porte le nom de son dataset (identité), et la suite
+      // nichée de sa collection.
+      for (const [cat, suite] of Object.entries(expo.edit.niche.categories)) {
         revendique(cat, def.file);
         categoryDataset[cat] = cat;
         routeFichier(cat, def.file);
+        datasetSuite[cat] = suite;
+        datasetsEditables.add(cat);
       }
     }
   }
 
-  return { categoryDataset, datasetFichier, objectCategory, fichiersDeclares, exempts };
+  return { categoryDataset, datasetFichier, datasetSuite, datasetsEditables, objectCategory, fichiersDeclares, exempts };
 }
 
 const derive = deriveExposition(SCHEMA_DEFS);
@@ -129,10 +148,18 @@ const derive = deriveExposition(SCHEMA_DEFS);
 /** Catégorie Codex → dataset-LISTE éditable (`src/data/overrides.ts` `ARRAYS`). */
 export const CATEGORY_DATASET_DERIVE: Readonly<Record<string, string>> = derive.categoryDataset;
 
-/** Dataset-LISTE éditable → FICHIER disque de son document porteur (#1530). Un dataset absent d'ici
- *  n'a AUCUNE route d'édition déclarée (`edit:{none}`) : il ne se sauvegarde pas, donc il n'a pas de
- *  fichier de sauvegarde — c'est un refus, jamais un `<clé>.json` deviné. */
+/** Clé de dataset → FICHIER disque de son document porteur (#1530) : route d'édition (`dataset`,
+ *  `niche`, `object`) ou lecture seule qui nomme son dataset (`none` + `dataset`). Jamais un
+ *  `<clé>.json` deviné. Son domaine est `CLES_DE_DATASET` (`_cles-de-dataset.generated.ts`). */
 export const DATASET_FICHIER_DERIVE: Readonly<Record<string, string>> = derive.datasetFichier;
+
+/** Dataset-LISTE → SUITE NICHÉE de sa collection dans son fichier (`grammaire/cle-d-espace.ts`) : `''`
+ *  pour la liste de racine (`dataset`, `none` + `dataset`), la suite déclarée par `niche.categories`
+ *  sinon. Un dataset-OBJET n'y est pas : il est la racine de son fichier. */
+export const DATASET_SUITE_DERIVE: Readonly<Record<string, string>> = derive.datasetSuite;
+
+/** Datasets-LISTES dotés d'une route d'ÉDITION (`dataset`, `niche`) — les seuls qui se sauvegardent. */
+export const DATASETS_EDITABLES_DERIVE: ReadonlySet<string> = derive.datasetsEditables;
 
 /** Catégorie Codex → dataset-OBJET éditable (`src/data/overrides.ts` `OBJECTS`). */
 export const OBJECT_CATEGORY_DERIVE: Readonly<Record<string, RouteObjet>> = derive.objectCategory;

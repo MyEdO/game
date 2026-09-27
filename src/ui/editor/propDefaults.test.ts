@@ -11,12 +11,12 @@ describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un d
   });
   it('décor searchable dont l’instance porte DÉJÀ une action → la liste de l’auteur est intacte', () => {
     const deja = { actions: [{ id: 'ouvrir', flow: EMPTY_FLOW }] };
-    const p = propRefPatch('coffre', deja);
+    const p = propRefPatch('coffre', { usable: deja });
     expect(p).toEqual({ ref: 'coffre' });
     expect('usable' in p).toBe(false);
   });
   it('l’ASSISE déjà activée survit à la pré-arme : les deux faits cohabitent dans l’enveloppe', () => {
-    const p = propRefPatch('coffre', { assise: true });
+    const p = propRefPatch('coffre', { usable: { assise: true } });
     expect(p.usable).toEqual({ assise: true, actions: [{ id: 'fouiller', flow: EMPTY_FLOW, unique: true }] });
   });
   it('décor pur (non searchable) → seulement ref, aucune action', () => {

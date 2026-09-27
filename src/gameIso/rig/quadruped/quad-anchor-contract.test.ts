@@ -3,7 +3,7 @@ import { CREATURES } from '../creatures';
 import { quadParts } from './quadParts';
 import { ANCRES_OEIL_ABSENTES_GELEES, PLAFOND_ANCRES_OEIL_ABSENTES } from './deco-stock.fixture';
 import { DECOS_MORTS_RATCHET, REPERES_ART_PROPRES_RATCHET } from '../../../../scripts/guards/lib/quadDecoStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
+import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
 import { mesureDesReperes, fichierDeEspece } from '../../../../scripts/guards/lib/quadDecoAudit';
 import type { Site } from '../../../../scripts/guards/lib/stock.mjs';
 import { applyEyes } from '../parts/eyes';
@@ -33,9 +33,6 @@ const STOCK = 'scripts/guards/lib/quadDecoStock.mjs';
  *  `{ fichier, ref, occurrence }` — qui NOMME la def à ouvrir — que la porte de plage voit à l'append. */
 const ratchet = (sites: readonly Site[], stock: Iterable<EntreeNominative>) =>
   ecartDuVolet({ sites, stock, ou: STOCK });
-
-/** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
-const porte = (lignes: readonly string[], cle: string) => lignes.some((l) => l.includes(cle));
 
 const quadDefs = CREATURES.filter((c) => c.quad).map((c) => ({ id: c.id, quad: c.quad as QuadProps }));
 
@@ -71,8 +68,8 @@ describe('quadAnchor = repère de l\'art de l\'os (contrat du canal deco)', () =
       fichier: 'src/gameIso/rig/creatures/defs/BeteQuiNExistePas.ts', ref: 'gonflement profile tete', occurrence: 1,
     }];
     const { perimees } = ratchet(mesureDesReperes().sites, gonfle);
-    expect(porte(perimees, ' :: gonflement profile tete :: 1')).toBe(true);
-    expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
+    expect(remedeNomme(perimees, ' :: gonflement profile tete :: 1')).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 
   /**

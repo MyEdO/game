@@ -50,7 +50,7 @@ function scenarioFiles() {
 }
 
 /** Évalue une expression de chaîne STATIQUE (littéral, ou concaténation `+` de littéraux/gabarits
- *  sans substitution) — la seule forme mesurée dans `src/scenes/test-scenarios/*.ts` pour les champs
+ *  sans substitution) — la seule forme admise dans la FICHE d'un scénario pour les champs
  *  `id`/`title`/`tests`/`partyNote`. `null` si la forme n'est pas reconnue (fail-fast en amont). */
 function evalStaticString(node) {
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
@@ -58,18 +58,6 @@ function evalStaticString(node) {
     const left = evalStaticString(node.left)
     const right = evalStaticString(node.right)
     return left != null && right != null ? left + right : null
-  }
-  // Gabarit AVEC substitution (`${creatures.length}`…) : mesuré une seule fois (galerie-modeles.ts,
-  // #903bis) — un `${expr}` non résolu STATIQUEMENT (compte dérivé de src/data au chargement, hors
-  // périmètre AST) est rendu comme `{expr}` littéral plutôt que fabriqué ou tronqué en silence.
-  if (ts.isTemplateExpression(node)) {
-    let out = node.head.text
-    for (const span of node.templateSpans) {
-      const resolved = evalStaticString(span.expression) ?? evalNumber(span.expression)
-      out += resolved != null ? String(resolved) : `{${span.expression.getText()}}`
-      out += span.literal.text
-    }
-    return out
   }
   return null
 }
@@ -98,16 +86,6 @@ function scenarioLiteral(sf) {
 
 const FIELDS = ['id', 'order', 'category', 'icon', 'title', 'tests', 'partyNote']
 
-/** L'EXPRESSION que porte un champ du littéral : sa valeur (`tests: '…'`) ou, pour un champ rendu à
- *  la LECTURE (`get tests() { return \`…\` }` — un scénario dont le compte se lit vif dans la donnée),
- *  l'expression de son unique `return`. Toute autre forme n'est pas évaluable ici. */
-function valeurDuChamp(prop) {
-  if (ts.isPropertyAssignment(prop)) return prop.initializer
-  if (!ts.isGetAccessorDeclaration(prop) || !prop.body) return null
-  const [seule] = prop.body.statements
-  return prop.body.statements.length === 1 && ts.isReturnStatement(seule) ? (seule.expression ?? null) : null
-}
-
 function readScenario(file) {
   const path = join(DIR, file)
   const text = readFileSync(path, 'utf8')
@@ -122,9 +100,8 @@ function readScenario(file) {
     if (!ts.isIdentifier(prop.name ?? {})) continue
     const key = prop.name.text
     if (!FIELDS.includes(key)) continue
-    const expr = valeurDuChamp(prop)
-    if (!expr) continue
-    row[key] = key === 'order' ? evalNumber(expr) : evalStaticString(expr)
+    if (!ts.isPropertyAssignment(prop)) continue
+    row[key] = key === 'order' ? evalNumber(prop.initializer) : evalStaticString(prop.initializer)
   }
   for (const key of FIELDS) {
     if (row[key] == null) {
@@ -169,15 +146,13 @@ const lines = [
   '**Périmètre mesuré / angles morts** — la section « Catalogue actuel » énumère chaque fichier',
   '`src/scenes/test-scenarios/<NN>-<slug>.ts` (hors `_*`, `*.test.ts`, `*.ascii.ts`, `index.ts` — même',
   "filtre que `scripts/gen-registry.mjs`), lu par AST (`id`/`order`/`category`/`title`/`tests`/`partyNote`",
-  "du littéral `export const scenario`), groupé par section dans le MÊME ordre que `TestScenariosScreen`",
+  "de la FICHE, le littéral `export const scenario`), groupé par section dans le MÊME ordre que `TestScenariosScreen`",
   "(`SCENARIO_SECTIONS` filtré aux catégories présentes, tri `order` croissant dans chaque section) —",
   "un miroir du menu en jeu. Angle mort : aucun `import` runtime n'est fait (voir en-tête du générateur,",
   "cycle `store.ts` ⇄ `triggeredEffects.ts` sous Node ESM natif) — un scénario dont le champ `id`/`order`/",
-  "`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique (variable, ou gabarit dont une",
-  "substitution `${…}` ne se réduit à aucun littéral — mesuré une fois, `galerie-modeles.ts`, compte dérivé",
-  "de `src/data` au chargement) affiche l'expression source entre accolades (`{creatures.length}`) plutôt",
-  "que de fabriquer ou tronquer une valeur en silence. Les sections « Vérifier une feature », « Ajouter un",
-  "scénario » et « Conventions »",
+  "`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique fait échouer le générateur : la",
+  "fiche ne lit aucun dataset, ce qui se construit vit dans la fabrique `construire`. Les sections",
+  "« Vérifier une feature », « Ajouter un scénario » et « Conventions »",
   "ci-dessous sont de l'INTENTION ÉDITORIALE (comment écrire un scénario, pourquoi la densité) non",
   "dérivable d'aucune donnée — maintenue à la main DANS CE GÉNÉRATEUR, jamais dans le .md.",
   '',
@@ -209,17 +184,25 @@ const lines = [
   '```ts',
   "import { arena } from './_shared';",
   "import type { TestScenario } from './_shared';",
+  "import type { Scene } from '../../state/scene';",
   '// (+ createHero / makePregens / itemFromTrappingById selon le groupe voulu)',
   '',
-  "const scene = arena({ id: 'test-xxx', nom: '…', heroStart: { x: 2, y: 4 } });",
-  "scene.encounters = [{ id: 'enc-xxx', enemies: [{ ref: 'Gobelin', pos: { x: 9, y: 4 } }] }];",
+  "function construireScene(): Scene {",
+  "  const scene = arena({ id: 'test-xxx', label: '…', heroStart: { x: 2, y: 4 } });",
+  "  scene.encounters = [{ id: 'enc-xxx', enemies: [{ ref: 'gobelin', pos: { x: 9, y: 4 } }] }];",
+  '  return scene;',
+  '}',
   '',
   'export const scenario: TestScenario = {',
   "  id: 'xxx', order: 7, category: 'combat', icon: 'scenario/ambush', title: '…',",
   "  tests: 'ce que ça vérifie', partyNote: 'le groupe',",
-  "  makeParty: () => [/* … */], scene, autoCombat: 'enc-xxx',",
+  "  construire: () => ({ party: [/* … */], scene: construireScene() }), autoCombat: 'enc-xxx',",
   '};',
   '```',
+  '',
+  "La FICHE (`id`…`partyNote`, `autoCombat`, `money`, `rules`, `interludeWeeks`) ne lit aucun dataset ;",
+  "tout ce qui se construit (groupe, scène, `extraScenes`, `worldMap`, `narratif`, `vessel`, `massBattle`)",
+  "sort de la fabrique `construire`, appelée à chaque lancement par `lancerScenario` (`src/state/scenarioFlow.ts`).",
   '',
   "`category` est une clé SANS emoji (`'combat' | 'magie' | 'creatures' | 'survie' | 'marche' |",
   "'scenarios' | 'naval' | 'rendu'`, `SCENARIO_SECTIONS` dans `_shared.ts`) — le libellé/icône de",

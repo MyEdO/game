@@ -2,6 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * GRIMPANT (LDB 85 l.160-162, #504) : une créature porteuse escalade une arête `WallSeg.climb` en
@@ -14,25 +15,28 @@ import type { TestScenario } from './_shared';
  * démonstration se joue en 1-2 Rounds (elle arrive au contact, le Chasseur achève au corps-à-corps ou au
  * tir de repli).
  */
-const scene = buildScene({
-  id: 'grimpant',
-  label: 'Grimpant — l’araignée escalade',
-  desc:
-    "Un plateau rocheux (4 m) domine une clairière ; une seule paroi praticable (arête sud du plateau) " +
-    "y donne accès. Une araignée géante rôde en contrebas.",
-  size: [10, 10],
-  terrain: 'herbe',
-  relief: [{ rect: [0, 0, 9, 2], height: 4 }], // plateau (rangées y=0..2, 4 m) — reste du sol à 0 m
-  // Arête grimpable (Trait Grimpant, LDB 85 l.160-162) : SEULE l'arête N de (5,3) (pied du plateau).
-  walls: [{ x: 5, y: 3, side: 'N', climb: { kind: 'surface' } }],
-  heroStart: [5, 1], // le Chasseur, sur le plateau, hors d'atteinte au sol
-  startMessage:
-    "Vous tenez le plateau : l'araignée géante, en contrebas, ne peut vous rejoindre qu'en escaladant " +
-    "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse).",
-});
-setEncounters(scene, [
-  { id: 'enc-grimpant', enemies: [{ ref: 'araignee-geante', pos: { x: 5, y: 8 }, facing: 'N' }] },
-]);
+function construireScene(): Scene {
+  const scene = buildScene({
+    id: 'grimpant',
+    label: 'Grimpant — l’araignée escalade',
+    desc:
+      "Un plateau rocheux (4 m) domine une clairière ; une seule paroi praticable (arête sud du plateau) " +
+      "y donne accès. Une araignée géante rôde en contrebas.",
+    size: [10, 10],
+    terrain: 'herbe',
+    relief: [{ rect: [0, 0, 9, 2], height: 4 }], // plateau (rangées y=0..2, 4 m) — reste du sol à 0 m
+    // Arête grimpable (Trait Grimpant, LDB 85 l.160-162) : SEULE l'arête N de (5,3) (pied du plateau).
+    walls: [{ x: 5, y: 3, side: 'N', climb: { kind: 'surface' } }],
+    heroStart: [5, 1], // le Chasseur, sur le plateau, hors d'atteinte au sol
+    startMessage:
+      "Vous tenez le plateau : l'araignée géante, en contrebas, ne peut vous rejoindre qu'en escaladant " +
+      "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse).",
+  });
+  setEncounters(scene, [
+    { id: 'enc-grimpant', enemies: [{ ref: 'araignee-geante', pos: { x: 5, y: 8 }, facing: 'N' }] },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'grimpant',
@@ -45,7 +49,6 @@ export const scenario: TestScenario = {
     "vitesse pleine — pathing (`reachable`/`pathTo`, `MoveEnv.traverse`) et IA (`chooseEnemyAction`) " +
     "exploitent l'arête automatiquement ; le groupe (hors du Talent Grimpeur) reste bloqué en bas.",
   partyNote: 'Chasseur solo, posté sur le plateau (hors d’atteinte au sol).',
-  makeParty: () => pregenParty(PREGEN.chasseur),
-  scene,
+  construire: () => ({ party: pregenParty(PREGEN.chasseur), scene: construireScene() }),
   autoCombat: 'enc-grimpant',
 };

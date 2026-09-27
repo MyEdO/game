@@ -136,7 +136,7 @@ import type {
   PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
-  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, CascadeStepMeta, Cloture, CounterDeclaration,
+  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
@@ -150,8 +150,9 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, Dialogue, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
+import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
 import { chebyshev, Pt } from './path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
@@ -542,7 +543,9 @@ export interface GameState extends RollFlowActionsMap {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`startScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
-  dialogue: { dialogue: Dialogue; nodeId: string; speakerId?: string } | null;
+  /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
+   *  fabrique `ouvrirDialogue` (`state/dialogue.ts`), jamais bâtie à la main. */
+  dialogue: EtatDialogue | null;
   /** Archive verbatim des tours de dialogue (#718) — CAMPAGNE-scopée : survit aux transitions de
    *  scène, vidée en nouvelle partie (`startScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
    *  du `journal` (dont le cap 40 éjecterait l'historique de dialogue). */
@@ -1756,9 +1759,9 @@ registerCloture('teardownDeVictoire', (get, set, c) => {
  * exécuteur, et il n'existe pas de `if (actionId === …)` pour en ajouter une.
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
-  parler: (_get, set, ent, scene) => {
+  parler: (get, set, ent, scene) => {
     const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId);
-    if (dlg) set({ dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: ent.id } });
+    if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().openMerchant(ent.id),
 };
@@ -2545,8 +2548,21 @@ export const useGame = create<GameState>((set, get) => ({
 
   chooseDialogue: (choiceIndex) => {
     const st = get();
-    if (!st.dialogue) return;
-    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue!.nodeId);
+    // LE VERBE VALIDE, pas la surface : la fenêtre grise, la touche se tait, mais c'est ICI que
+    // « cette réponse est-elle jouable MAINTENANT ? » se tranche — un intent coop forgé, une touche
+    // restée vive sous une modale et un clic arrivent tous par ce chemin. Deux portes, nommées :
+    //  · `conversationRepond` — conversation ouverte, CE siège décide, aucune surface ne tient la
+    //    main (`surfaceTientLaMain` : la fenêtre de jet ou le marché qu'une réponse vient d'ouvrir
+    //    SUSPEND la conversation) ;
+    //  · `reponsesDuNoeud` — la réponse est VISIBLE (son `when`) et OFFERTE (bourse), par le MÊME
+    //    sélecteur que les deux surfaces. Un index qui n'y figure pas n'existe pas pour le joueur.
+    if (!conversationRepond(st)) return;
+    const r = reponsesDuNoeud(st).find((x) => x.index === choiceIndex);
+    if (!r?.enabled) {
+      if (r?.refus === 'argent') get().log(t('store.dialogueNoMoney'));
+      return;
+    }
+    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
     const choice = node?.choices[choiceIndex];
     if (!node || !choice) return;
     // Option payante (auberge, péage, pot-de-vin) : dépense de groupe (aucun bénéficiaire héros
@@ -2556,7 +2572,7 @@ export const useGame = create<GameState>((set, get) => ({
       if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().log(t('store.dialogueNoMoney')); return; }
     }
     const transition: DialogueTransition = choice.next
-      ? { dialogue: st.dialogue.dialogue, nodeId: choice.next, speakerId: st.dialogue.speakerId }
+      ? { ...st.dialogue, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
@@ -2570,6 +2586,7 @@ export const useGame = create<GameState>((set, get) => ({
       at: st.gameTime,
       sceneId: st.scene?.id,
       dialogueId: st.dialogue.dialogue.id,
+      session: st.dialogue.session,
     };
     set((s) => ({ dialogueHistory: recordTurn(s.dialogueHistory, turn) }));
     // Logique du choix (effets + branches) → runFlow ; objet/argent reçu = fenêtre d'attribution (titrée du donateur).

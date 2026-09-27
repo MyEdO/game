@@ -16,7 +16,7 @@ const MISSING: ReliefMaterialDef = {
 };
 
 /** Matériau de relief par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
- *  VIVE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
+ *  VIVANTE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
  *  encore l'ancien relief. */
 export function reliefMaterial(id: string): ReliefMaterialDef {
   return catalogEntry((cle) => matieresDe('relief').find((m) => m.id === cle), id, 'relief', MISSING);

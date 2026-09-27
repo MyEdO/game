@@ -5905,7 +5905,9 @@
               },
               {
                 "op": "grantTalent",
-                "talentId": "frenesie"
+                "talent": {
+                  "id": "frenesie"
+                }
               },
               {
                 "op": "delayed",

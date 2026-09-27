@@ -13,11 +13,11 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { DEFS_DE_DOCUMENT } from '../../src/data/schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from '../../src/data/schemas/validate';
 
 /** Clé de registre d'un chemin : `<root>/<file>` — basename sous `src/data`, chemin relatif sous
  *  `src/scenes`. Le chemin reçu est normalisé POSIX (le hook passe des chemins git). */
-const SCHEMA_PAR_DOCUMENT = new Map(DEFS_DE_DOCUMENT.map((d) => [`${d.root}/${d.file}`, d.schema]));
+const DEF_PAR_DOCUMENT = new Map(DEFS_DE_DOCUMENT.map((d) => [`${d.root}/${d.file}`, d]));
 const cleDe = (chemin: string): string => chemin.split('\\').join('/').replace(/^\.\//, '');
 
 /** Le périmètre JUGÉ : catalogues à plat de `src/data`, documents (même en sous-dossier) de `src/scenes`. */
@@ -34,8 +34,8 @@ let checked = 0;
 let horsPerimetre = 0;
 for (const p of paths) {
   const file = cleDe(p);
-  const schema = SCHEMA_PAR_DOCUMENT.get(file);
-  if (!schema) {
+  const def = DEF_PAR_DOCUMENT.get(file);
+  if (!def) {
     if (!dansUneRacine(file)) {
       horsPerimetre++;
       continue;
@@ -58,11 +58,10 @@ for (const p of paths) {
     console.error(`KO ${file} — JSON illisible : ${(err as Error).message}`);
     continue;
   }
-  const result = schema.safeParse(raw);
-  if (!result.success) {
+  const rapport = validateDataset(def.file, raw);
+  if (rapport) {
     bad++;
-    console.error(`KO ${file} — invalide contre son schéma :`);
-    for (const iss of result.error.issues) console.error(`  - ${iss.path.join('.') || '(racine)'}: ${iss.message}`);
+    console.error(`KO ${rapport}`);
   }
 }
 

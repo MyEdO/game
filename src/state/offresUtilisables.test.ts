@@ -73,10 +73,10 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
     const libres = offresUtilisables(useGame.getState())[0].offres;
     expect(libres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
 
-    sc.seatAssignments = { table: Object.fromEntries(
+    const seatAssignments = { table: Object.fromEntries(
       ['place-1', 'place-2', 'place-3', 'place-4'].map((s) => [s, { kind: 'entity' as const, entityId: `pnj-${s}` }]),
     ) };
-    useGame.setState({ scene: { ...sc } } as Partial<GameState>);
+    useGame.setState({ scene: { ...sc, seatAssignments } } as Partial<GameState>);
     const prises = offresUtilisables(useGame.getState())[0].offres;
     expect(prises.length, 'le geste ne disparaît pas : il se refuse').toBe(1);
     expect(prises[0].gate).toEqual({ ok: false, reason: 'Toutes les places sont occupées.' });

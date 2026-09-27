@@ -75,7 +75,6 @@
     "src/ui/MassBattleView.tsx",
     "src/ui/MedicModal.tsx",
     "src/ui/MerchantPanel.tsx",
-    "src/ui/Modal.tsx",
     "src/ui/ModalSubject.tsx",
     "src/ui/MountTargetModal.tsx",
     "src/ui/NarratedLine.tsx",

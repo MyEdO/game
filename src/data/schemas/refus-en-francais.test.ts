@@ -5,7 +5,7 @@
  *
  * Trois volets, chacun sur le chemin RÉEL de son cas :
  *  - la porte par FICHIER (`validateDataset`) — le refus que le Compendium rend au save ;
- *  - la porte de la modale « Avancé » de l'éditeur (`SCHEMA_BLOCS_AVANCES` + `formatZodError`,
+ *  - la porte de la modale « Avancé » de l'éditeur (`SCHEMA_BLOCS_AVANCES` + `validateDocument`,
  *    `src/ui/editor/Editor.tsx:910`), qui ne passe PAS par le registre de documents ;
  *  - la GARDE DE CLASSE : tout fichier de PRODUCTION de `src/**` qui importe zod en VALEUR atteint la
  *    locale transitivement. Sans elle, un schéma futur bâti hors de la grammaire parlerait anglais
@@ -20,7 +20,7 @@ import { resolve } from 'node:path';
 import { clotureDImports, sourceALExecution } from '../../../scripts/guards/lib/importGraph.mjs';
 import { estFichierVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
-import { validateDataset, formatZodError } from './validate';
+import { validateDataset, validateDocument, rapportDeFautes } from './validate';
 import { SCHEMA_BLOCS_AVANCES } from '../../ui/editor/Editor';
 import weatherJson from '../weather.json';
 
@@ -38,7 +38,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
     expect(dit, 'le document corrompu doit être refusé').not.toBeNull();
     expect(dit).not.toMatch(ANGLAIS);
-    expect(dit).toContain('conditions.2.id');
+    expect(dit).toContain('conditions « crachin » › id');
     // Les options attendues restent NOMMÉES : un refus qui dirait seulement « invalide » n'apprend rien.
     expect(dit).toContain('"sec"');
     expect(dit).toContain('"blizzard"');
@@ -46,15 +46,15 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
   /**
    * La modale « Avancé » colle un JSON de trois blocs de logique. Le cas MESURÉ à l'écran le
-   * 2026-09-21 (`{"dialogues": 42}`) : c'est CETTE paire — `SCHEMA_BLOCS_AVANCES.safeParse` puis
-   * `formatZodError('Blocs de logique', …)` — que `saveAdvanced` pose dans `advError`, et rien
+   * 2026-09-21 (`{"dialogues": 42}`) : c'est CETTE paire — `validateDocument(SCHEMA_BLOCS_AVANCES, …)`
+   * puis `rapportDeFautes('Blocs de logique', …)` — que `saveAdvanced` pose dans `advError`, et rien
    * d'autre ne transforme le texte entre là et le `role="alert"` (`Editor.tsx:1239`).
    */
   it('porte de la modale « Avancé » — un bloc au MAUVAIS TYPE : refus français, au chemin', () => {
-    const lu = SCHEMA_BLOCS_AVANCES.safeParse({ dialogues: 42 });
+    const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, { dialogues: 42 });
 
-    expect(lu.success, 'un bloc au mauvais type doit être refusé').toBe(false);
-    const dit = formatZodError('Blocs de logique', lu.error!);
+    expect(fautes, 'un bloc au mauvais type doit être refusé').not.toBeNull();
+    const dit = rapportDeFautes('Blocs de logique', fautes!);
 
     expect(dit).not.toMatch(ANGLAIS);
     expect(dit).toBe('Blocs de logique — JSON invalide contre son schéma :\n  - dialogues: Entrée invalide : tableau attendu, nombre reçu');

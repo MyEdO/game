@@ -56,7 +56,7 @@ describe('tickDurations/endOfRound — gel à l’expiration au lieu du retrait 
 
 describe('inventaire des sorts frenchy-bzh marqués « + » — non re-perdables au sweep (#543)', () => {
   it.each([
-    ['bouclier', "56 - Clan Skryre.md l.145 : « 2 Tours +/4 Tours +/5 Tours + » (3 statblocks skavens, tous « + »)"],
+    ['bouclier-ruine', "56 - Clan Skryre.md l.145 : « 2 Tours +/4 Tours +/5 Tours + » (3 statblocks skavens, tous « + »)"],
     ['armure-aethyrique', 'sweep #543'],
     ['rafale-hurlante', 'sweep #543'],
   ])('%s porte `duration.plus === true` (%s)', (id) => {

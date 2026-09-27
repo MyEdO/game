@@ -17,7 +17,7 @@ export interface PrimitiveDomainFinding {
   systemId: string;
 }
 
-export function computeOwnerSystems(systemes: Systeme[]): Map<string, string[]>;
+export function computeOwnerSystems(systemes: Systeme[], cache?: Map<string, string[] | null>): Map<string, string[]>;
 export function scanGenericDomainImport(
   primitiveFile: string,
   contenu: string,

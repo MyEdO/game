@@ -10,7 +10,7 @@
  *    + bonus d'espèce) = 0 PX.
  *  - Richesse initiale (LDB 05 l.578-583) : Bronze 2d10 sous × Standing ; Argent 1d10 pistoles
  *    × Standing ; Or 1 couronne d'or × Standing.
- *  - Détails (LDB 05 l.691-744) : âge Humain 15+1d10, Nain 15+10d10, Halfling 15+5d10,
+ *  - Détails (LDB 05 l.701-768) : âge Humain 15+1d10, Nain 15+10d10, Halfling 15+5d10,
  *    Elfe 30+10d10 ; taille Humain 145+5d10 cm, Nain 130+3d10, Halfling 90+2d10,
  *    Elfe 180+2d10 ; yeux/cheveux : 2d10 sur les tables (eyes.json / hairs.json).
  */
@@ -18,7 +18,8 @@ import { RNG, defaultRNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money } from './money';
-import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, talentConcrete, spells as allSpells } from '../data';
+import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, spells as allSpells } from '../data';
+import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { bonus } from './characteristics';
@@ -73,7 +74,7 @@ export function rollSpecies(rng: RNG = defaultRNG): { roll: number; ids: string[
 }
 
 /**
- * Tire une Carrière sur le Tableau des Classes et Carrières aléatoires (LDB 05 l.197+), colonne
+ * Tire une Carrière sur le Tableau des Classes et Carrières aléatoires (LDB 05 l.214+), colonne
  * de l'espèce (`refCareer`). Les bornes des données sont les bornes HAUTES par carrière. Comme
  * pour les espèces, plusieurs carrières peuvent partager une borne : un jet désigne la borne et
  * le joueur CHOISIT librement parmi toutes ses carrières (le bonus de PX récompense le tirage).
@@ -146,8 +147,8 @@ export function rollAge(sp: SpeciesData, rng: RNG = defaultRNG): number {
   return rollDetailFormula(detailTables.ageBase, detailTables.ageRoll, sp, rng);
 }
 
-/** Taille en cm (LDB 05 l.707 — ex. Humain 145+5d10, Halfling 90+2d10).
- *  (Le dé bonus humain sur un 10 — l.705 — n'est pas simulé.) */
+/** Taille en cm (LDB 05 l.728 — ex. Humain 145+5d10, Halfling 90+2d10).
+ *  (Le dé bonus humain sur un 10 — l.724 — n'est pas simulé.) */
 export function rollHeight(sp: SpeciesData, rng: RNG = defaultRNG): number {
   return rollDetailFormula(detailTables.heightBase, detailTables.heightRoll, sp, rng);
 }
@@ -188,15 +189,14 @@ export function rollStar(rng: RNG = defaultRNG): { roll: number; id: string } {
 }
 
 /** Applique les `ops` ADE II d'un signe astral AUX ATTRIBUTS DE DÉPART (ch.03 l.38) : `charMod` ajuste
- *  une Caractéristique de départ, `grantTalent` octroie un Talent via `addTalent` (le résolveur de la
- *  création). Le signe est résolu par son `id` STABLE (`findStarById` — ≠ libellé). Le Talent est passé
- *  en LIBELLÉ CONCRET (`talentConcrete` : id+spec → « Maître artisan (Au choix) ») que le consommateur
- *  re-résout. Effet baked une fois à la création — PAS un passif. */
-export function applyStarOps(starId: string, chars: Characteristics, addTalent: (label: string) => void): void {
-  for (const op of findStarById(starId)?.ops ?? []) {
+ *  une Caractéristique de départ, `grantTalent` octroie son emplacement de Talent (`talent`, un `choix`
+ *  pour une spécialisation « Au choix ») via `addTalent`, avec le rang `k` de l'op dans le signe
+ *  (l'adresse de son emplacement). Effet baked une fois à la création — PAS un passif. */
+export function applyStarOps(starId: string, chars: Characteristics, addTalent: (ref: RefASpecialisation, k: number) => void): void {
+  (findStarById(starId)?.ops ?? []).forEach((op, k) => {
     if (op.op === 'charMod') chars[op.char] += op.mod;
-    else if (op.op === 'grantTalent') addTalent(talentConcrete(op));
-  }
+    else if (op.op === 'grantTalent') addTalent(op.talent, k);
+  });
 }
 
 /** Quota de Sorts de Magie mineure INCLUS AU TALENT (LDB 10 l.714 : « vous mémorisez… un nombre de

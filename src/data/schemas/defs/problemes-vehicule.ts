@@ -17,7 +17,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['problemesVehicule'] },
-    edit: { niche: { categories: ['problemesVehicule'] } },
+    edit: { niche: { categories: { problemesVehicule: 'entries' } } },
   },
   { rangee: travelTableEntrySchema, deDeTirage: true },
 );

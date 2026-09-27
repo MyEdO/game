@@ -2,6 +2,7 @@ import { makeShowcaseParty, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 // Équipage de la barge amie = 2 héros du groupe (comme la vitrine navale). Les Critiques de coque MSRC 7
 // visent une PRÉSENCE NOMMÉE, pas « tout le monde » : Gréement (l.78) frappe `{stations:['pont']}`,
@@ -11,7 +12,7 @@ import type { TestScenario } from './_shared';
 const CREW = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as const;
 
 /** Le groupe de la vitrine, ses deux membres d'équipage postés SUR LE PONT (MSRC 07 l.78). */
-const makeParty = (): Combatant[] =>
+const groupe = (): Combatant[] =>
   makeShowcaseParty().map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
 
 /**
@@ -28,7 +29,7 @@ const makeParty = (): Combatant[] =>
  *    l'eau — elle peut mordre l'ÉQUIPAGE ou s'en prendre à une COQUE.
  * Tout est SÉLECTIONNÉ EN DONNÉE (les refs de coque portent leurs tables) : zéro branche « fluvial » codée.
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-embuscade-fluviale',
   label: 'Embuscade fluviale',
   size: [18, 12],
@@ -74,7 +75,6 @@ export const scenario: TestScenario = {
     'moteur naval MDG ; équipage exposé lié (crewIds) → Éclats/critique « Équipage » sur de vrais pirates ; ' +
     'bestiaire ch.13 : Anguille du Reik (Constricteur, Morsure +8, Taille Grande).',
   partyNote: 'Groupe d’arène ; 2 héros sont l’équipage exposé de la barge (Éclats / Test d’Initiative de pont)',
-  makeParty,
-  scene,
+  construire: () => ({ party: groupe(), scene: construireScene() }),
   autoCombat: 'enc-fluvial',
 };

@@ -1,7 +1,7 @@
 /**
  * Migration #1882 (T2d) — une réf. VIVANTE d'effet n'est jamais VIDE, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 14` : où que l'effet vive dans le DOCUMENT (Scène, péril de
+ * UN geste, et le document passe en `schema: 14` au moins : où que l'effet vive dans le DOCUMENT (Scène, péril de
  * route de `worldMap`, …), tout `startPursuit` dont un adversaire porte `ref.creatureId: ''`, tout
  * `givePossession` dont la `ref` porte `creatureId: ''` ou `vehicleId: ''`, et tout `setVessel` à
  * `vehicleId: ''` reçoit la réf. que l'outil sème aujourd'hui : la PREMIÈRE créature, le PREMIER véhicule,
@@ -21,10 +21,12 @@
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT toute écriture : non
  * canonique = sortie 1, jamais un reflow silencieux. La réf. semée REMPLACE la valeur vide à sa place.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * BORNE HAUTE CLOSE (`schema` ∈ {13, 14}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
- * `schema` futur.
- * FAIL-FAST : `schema` absent, non numérique ou ∉ {13, 14}, `scenes` non-tableau, catalogue absent ou
- * vide, périmètre vide → rien n'est écrit, sortie 1.
+ * BORNE HAUTE OUVERTE (`schema` ∈ {13, ≥ 14}) : la DERNIÈRE migration de la chaîne dans l'ordre
+ * lexical est la seule à nommer un `schema` futur (`DERNIERE`, dérivée par
+ * `src/scenes/migrations-format-projet.test.ts`). Le document sort donc d'ici en `schema` =
+ * max(le sien, 14) : une migration amont ne RABAISSE jamais une forme.
+ * FAIL-FAST : `schema` absent, non entier ou < 13, `scenes` non-tableau, catalogue absent ou vide,
+ * périmètre vide → rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -34,6 +36,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-24-1882-refs-vivantes-semees';
 const RACINE = path.join(ROOT, 'src/scenes');
 
+/** Forme d'entrée et CIBLE de ce bump — la borne haute est OUVERTE (cf. en-tête). */
 const SCHEMA_AVANT = 13;
 const SCHEMA_APRES = 14;
 
@@ -85,8 +88,8 @@ for (const abs of cibles) {
   const brut = fs.readFileSync(abs, 'utf8');
   const doc = JSON.parse(brut);
   if (canonique(doc) !== brut) { echecs.push(`${rel} : FORME NON CANONIQUE`); continue; }
-  if (doc.schema !== SCHEMA_AVANT && doc.schema !== SCHEMA_APRES) {
-    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`);
+  if (typeof doc.schema !== 'number' || !Number.isInteger(doc.schema) || doc.schema < SCHEMA_AVANT) {
+    echecs.push(`${rel} : \`schema\` inattendu ${JSON.stringify(doc.schema)} (${SCHEMA_AVANT} ou plus récent attendu)`);
     continue;
   }
   if (!Array.isArray(doc.scenes)) { echecs.push(`${rel} : \`scenes\` absent ou non-tableau`); continue; }
@@ -107,17 +110,17 @@ if (echecs.length) {
 }
 
 for (const r of rapports) {
-  const sortie = { ...r.seme, schema: SCHEMA_APRES };
+  const sortie = { ...r.seme, schema: Math.max(r.doc.schema, SCHEMA_APRES) };
   const out = canonique(sortie);
   if (out !== r.brut) fs.writeFileSync(r.abs, out, 'utf8');
   // PREUVE post-écriture : plus AUCUNE réf. vide, et le document s'annonce au format d'après.
   const reste = { n: 0 };
   seme(JSON.parse(out), reste);
-  if (reste.n || JSON.parse(out).schema !== SCHEMA_APRES) {
+  if (reste.n || !(JSON.parse(out).schema >= SCHEMA_APRES)) {
     console.error(`[${NOM}] VÉRIFICATION POST-ÉCRITURE ROUGE — ${r.rel} : ${reste.n} réf. vide(s) restante(s)`);
     process.exit(1);
   }
-  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${SCHEMA_APRES}, réf. vides semées : ${r.semes} — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
+  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${JSON.parse(out).schema}, réf. vides semées : ${r.semes} — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
 }
 
 console.log(`[${NOM}] TOTAL — ${cibles.length} projet(s), ${scenesVues} Scène(s), ${semesVus} réf. semée(s) (créature : ${CREATURE}, véhicule : ${VEHICULE}, navire : ${NAVIRE})`);

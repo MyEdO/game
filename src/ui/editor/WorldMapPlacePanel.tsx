@@ -15,7 +15,7 @@ import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../state/scene';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../state/worldMap';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
-import { CARGOES, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
+import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
 import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
@@ -28,10 +28,6 @@ const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
  *  échanger ») — l'écran le rend entre parenthèses, il ne l'écrit pas. */
 const produitOptions = (entries: readonly CargoEntry[]): { id: string; label: string }[] =>
   entries.map((c) => ({ id: c.id, label: !isEchangeable(c) && c.hint ? `${c.label} (${c.hint})` : c.label }));
-/** Produits d'un marché terrestre (Index géographique, MSRC 13 l.183-278). */
-const MARKET_PRODUITS: readonly { id: string; label: string }[] = produitOptions(LAND_CARGO_ENTRIES);
-/** Production d'un port maritime (Index des ports, MDG 15 l.439-506). */
-const PORT_PRODUITS: readonly { id: string; label: string }[] = produitOptions(CARGO_ENTRIES);
 /** Port MARITIME par défaut posé quand l'auteur coche « Port » (petit port de production côtière). */
 const DEFAULT_PORT: PortProfile & { lighthouse?: boolean } = { taille: 2, richesse: 2, production: [] };
 
@@ -131,7 +127,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                   </select>
                 </label>
                 <div className="mini-title">Produits (colonne Produits, l.24-28)</div>
-                {MARKET_PRODUITS.map((p) => (
+                {produitOptions(LAND_CARGO_ENTRIES).map((p) => (
                   <label key={p.id} className="ed-check">
                     <input
                       type="checkbox"
@@ -222,7 +218,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                   <Icon id="travel/lighthouse" size="sm" /> Phare à l'approche (Test de Perception de vigie à l'atterrage, MDG 13 l.333-351)
                 </label>
                 <div className="mini-title">Production (colonne Produits de l'Index)</div>
-                {PORT_PRODUITS.map((p) => (
+                {produitOptions(CARGO_ENTRIES).map((p) => (
                   <label key={p.id} className="ed-check">
                     <input
                       type="checkbox"
@@ -233,7 +229,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                   </label>
                 ))}
                 <div className="mini-title">Surplus (le port en regorge → vente locale facilitée)</div>
-                {CARGOES.map((c) => (
+                {cargoes().map((c) => (
                   <label key={c.id} className="ed-check">
                     <input type="checkbox" checked={c.id in (pt.surplus ?? {})} onChange={() => toggleTable('surplus', c.id)} />
                     {c.label}
@@ -247,7 +243,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                   </label>
                 ))}
                 <div className="mini-title">Demande (le port en manque → meilleur prix d'offre)</div>
-                {CARGOES.map((c) => (
+                {cargoes().map((c) => (
                   <label key={c.id} className="ed-check">
                     <input type="checkbox" checked={c.id in (pt.demande ?? {})} onChange={() => toggleTable('demande', c.id)} />
                     {c.label}

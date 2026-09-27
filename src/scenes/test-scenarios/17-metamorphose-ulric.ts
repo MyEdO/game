@@ -2,6 +2,7 @@ import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * MÉTAMORPHOSE — un Enfant d'Ulric (lycanthrope, Middenheim p.116) commence en forme HUMAINE et adopte sa
@@ -12,7 +13,7 @@ import type { TestScenario } from './_shared';
  */
 const W = 18, H = 12;
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'clairiere-ulric',
   label: "Clairière des Enfants d'Ulric",
   desc: 'Une clairière cernée de bois où rôdent des lycanthropes.',
@@ -58,6 +59,8 @@ export const scenario: TestScenario = {
     "(delta de profil RAW + Traits + apparence tête-de-loup, persistant, réversible) au prix de deux Actions ; " +
     "auto-transformation de l'IA (self-buff valorisé data-driven), rendu du rig hybride.",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
-  makeParty: () => [pregen(PREGEN.soldat), pregen(PREGEN.sorcier), pregen(PREGEN.tueur), pregen(PREGEN.repurgateur)],
-  scene,
+  construire: () => ({
+    party: [pregen(PREGEN.soldat), pregen(PREGEN.sorcier), pregen(PREGEN.tueur), pregen(PREGEN.repurgateur)],
+    scene: construireScene(),
+  }),
 };

@@ -51,7 +51,7 @@ const cavalier = (patch: Partial<Combatant> = {}): Combatant => ({
   id: 'h1', label: 'Cavalier', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
   wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
   conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat',
-  species: 'Humain', appearance: { species: 'Humain', sex: 'M', build: 0.5 }, mountId: 'm1', ...patch,
+  species: 'humain', appearance: { species: 'humain', sex: 'M', build: 0.5 }, mountId: 'm1', ...patch,
 } as unknown as Combatant);
 
 const battleOf = (combatants: Combatant[]): BattleState => ({ combatants } as unknown as BattleState);

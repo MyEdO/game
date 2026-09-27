@@ -6,6 +6,8 @@
  * Structurels purs (aucune valeur SVG/rendu) : les arts résolus vivent dans `gameIso/rig`.
  */
 
+import type { Sexe } from '../data/schemas/grammaire/valeurs';
+
 /** Parts monstrueuses par slot (mutant modulaire : tête/bras choisis comme un PJ).
  *  Type structurel (pas d'import rendu) ; les valeurs valides sont offertes par l'éditeur. */
 export interface MonsterPartsSel {
@@ -41,7 +43,7 @@ export interface EntityAppearance {
   /** Coiffure / visage épinglés (rig) : slot → index. */
   parts?: { cheveux?: number; visage?: number };
   /** Surcharges cosmétiques (sinon dérivées du seed). */
-  sex?: 'M' | 'F';
+  sex?: Sexe;
   build?: number;
   /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : 'Nains', 'Halflings',
    *  'Elfes'… (canonicalisée par `baseSpeciesOf`). Vide = dérivée du nom. */
@@ -59,7 +61,7 @@ export interface EntityAppearance {
    *  PURS, aucun art d'armure synthétisé (`synthArmour`). */
   armurePortee?: boolean;
   /** Coiffure IMPOSÉE — id STABLE d'une coiffure (`hairstyles/defs`, jamais un index ni un libellé, #637).
-   *  Vide = tirage sexe+ordre dérivé du seed. Fail-fast au rendu si l'id est introuvable. */
+   *  Vide = tirage sexe+ordre dérivé du seed. Hors du pool espèce×sexe : chevelure d'erreur visible au rendu. */
   hairstyle?: string;
   /** Yeux personnalisés (clés du catalogue `EYE_OPTIONS` : chat/caprin/reptilien/noir/rouge/
    *  verre) — remplacés EN PLACE sur l'orbite du visage. Vide = yeux normaux. */

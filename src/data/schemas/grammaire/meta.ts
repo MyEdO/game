@@ -4,6 +4,7 @@
  * bien qu'un champ ne peut pas exister sans son nom lisible (aujourd'hui l'éditeur affiche la clé
  * technique, `src/ui/compendium/editFields.ts`).
  */
+import { defDe, enfantsDe } from './descente';
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {
@@ -20,26 +21,27 @@ export interface MetaChamp {
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */
 export type MetaDesChamps<C> = { [K in keyof C]: MetaChamp };
 
-/** Profondeur du DÉROULÉ d'enveloppes vers le noyau d'enum — `optional`/`default`/`array`/`nullable`
- *  s'empilent, jamais au-delà. */
-const DEROULE_MAX = 8;
-
-/** Forme lue sur un nœud zod 4.4.3 : sa `def`, et la `.meta()` que `enumNomme` y a posée. */
-type NoeudZod = { _zod?: { def?: { type?: string; entries?: Record<string, string>; innerType?: unknown; element?: unknown } }; meta?: () => unknown };
+/** Nœud énuméré tel que `meta.ts` le lit : la `.meta()` que `enumNomme` y a posée. */
+type NoeudEnum = { meta?: () => unknown };
 
 /**
- * NOYAU d'enum d'un nœud — le nœud `z.enum` lui-même, à travers les enveloppes qui ne changent pas son
- * univers de valeurs (`optional`, `nullable`, `default`, `array`), `undefined` si le nœud n'est pas
- * énuméré. UNIQUE déroulé du dépôt : `optionsEnum` (`grammaire/document.ts`) le compose, la lecture des
- * libellés ci-dessous aussi — deux déroulés divergeraient sur la première enveloppe neuve.
+ * NOYAU d'enum d'un nœud — le nœud `z.enum` lui-même, `undefined` si le nœud n'est pas énuméré. Le
+ * déroulé descend d'un nœud à son enfant quand `enfantsDe` (`grammaire/descente.ts`) en rend UN seul,
+ * de segment `''` ou `[]`, sans lire le type du nœud : il traverse donc optionnel, nullable, défaut,
+ * lecture seule, cible d'un `lazy`, élément de liste, et aussi `.catch`, `z.promise` et `z.success`,
+ * dont l'univers de valeurs n'est pas celui de leur enfant. Il s'arrête sur tout nœud à plusieurs
+ * enfants (union, pipe, intersection), sur tout autre segment, et sur un nœud déjà traversé. UNIQUE
+ * déroulé du dépôt : `optionsEnum` (`grammaire/document.ts`) le compose, la lecture des libellés
+ * ci-dessous aussi.
  */
-export function noyauEnum(noeud: unknown): NoeudZod | undefined {
-  let n = noeud as NoeudZod | undefined;
-  for (let i = 0; i < DEROULE_MAX && n; i++) {
-    const d = n._zod?.def;
-    if (!d) return undefined;
-    if (d.type === 'enum') return n;
-    n = (d.innerType ?? d.element) as NoeudZod | undefined;
+export function noyauEnum(noeud: unknown): NoeudEnum | undefined {
+  const traverses = new Set<unknown>();
+  for (let n = noeud; n && !traverses.has(n); ) {
+    if (defDe(n)?.type === 'enum') return n as NoeudEnum;
+    traverses.add(n);
+    const enfants = enfantsDe(n);
+    if (enfants.length !== 1 || (enfants[0].segment !== '' && enfants[0].segment !== '[]')) return undefined;
+    n = enfants[0].noeud;
   }
   return undefined;
 }

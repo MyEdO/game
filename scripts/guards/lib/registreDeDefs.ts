@@ -90,7 +90,7 @@ export function fichierDeDef<D extends object>(registre: RegistreDeDefs<D>, def:
 }
 
 /* --- Les CINQ registres d'art, en DONNÉES : chaque ligne recopie ce que `REGISTRIES`
- * (`scripts/gen-registry.mjs:29`) déclare du registre. Un registre de PLUS s'ajoute ici, en une
+ * (`scripts/gen-registry.mjs:33`) déclare du registre. Un registre de PLUS s'ajoute ici, en une
  * description ; aucune fonction ne s'écrit pour lui — `REGISTRE_CREATURES` en est la preuve, posée
  * par le volet C8 sans une ligne de code neuve. --- */
 

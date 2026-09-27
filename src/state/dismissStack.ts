@@ -3,8 +3,22 @@
  *
  * Modèle STANDARD (celui des `<dialog>`/popover natifs) : chaque surface qui peut être congédiée
  * s'empile à son ouverture, se dépile à sa fermeture, et un appui congédie LA COUCHE DU DESSUS.
- * L'ordre est celui des `pushLayer` — LIFO PUR : la dernière ouverte se ferme la première. Le `kind`
- * est un LIBELLÉ DE DIAGNOSTIC (journal, tests) ; il n'entre dans aucun calcul de rang.
+ * Le `kind` est l'identifiant STABLE de la surface : il n'entre dans aucun rang.
+ *
+ * PLAN d'une couche, déclaré à l'empilement (REQUIS) — où elle est PEINTE :
+ *  - `scene` : dans la scène de jeu, sous toute surface d'application (la fenêtre de conversation,
+ *    sans `z-index` dans `.stage-flot`, `styles/components.css`) ;
+ *  - `application` : au-dessus de la scène (modales, écrans, menus, bulles — voiles `fixed`).
+ * LA COUCHE DU DESSUS est celle du plan le plus haut, puis la dernière ouverte dans ce plan
+ * (`coucheDuDessus`) : c'est ce qui est peint au-dessus, et c'est elle que l'appui congédie.
+ *
+ * NATURE d'une couche, déclarée à l'empilement (REQUISE) — le modèle natif :
+ *  - `modale` (un `<dialog>` ouvert par `showModal()`) : elle PIÈGE le focus (`useModalA11y`) — ce qui
+ *    est dessous n'est plus jouable, ni au clavier ni à la marche, qu'un voile le couvre ou non ;
+ *  - `popover` : il ne piège rien — au-dessus, il se congédie en premier, mais il ne prend ni les touches
+ *    ni la page.
+ * Le congédiement ignore la nature ; `modaleDuDessus` la lit pour dire quelle surface MODALE est
+ * au-dessus sur l'écran de CE siège (la pile est locale au client).
  *
  * Deux façons pour une couche de RESTER à l'écran :
  *  - `onDismiss: null` — couche BLOQUANTE : elle CONSOMME l'appui sans rien faire (l'équivalent du
@@ -25,9 +39,20 @@
  *  l'écran, l'appui consommé — refus pur, ou congédiement PARTIEL (un échelon interne de moins). */
 export type OnDismiss = () => void | boolean;
 
+/** Ce que la couche fait de ce qui est dessous (cf. en-tête) : `modale` le retire au clavier et à la
+ *  marche, `popover` n'en retire rien. */
+export type LayerNature = 'modale' | 'popover';
+
+/** Où la couche est PEINTE (cf. en-tête) : `scene` sous `application`. */
+export type LayerPlan = 'scene' | 'application';
+
+const RANG_DU_PLAN: Readonly<Record<LayerPlan, number>> = { scene: 0, application: 1 };
+
 /** Jeton opaque rendu par `pushLayer` : la seule façon de désigner SA couche pour la retirer. */
 export interface DismissHandle {
   readonly kind: string;
+  readonly nature: LayerNature;
+  readonly plan: LayerPlan;
 }
 
 interface Couche extends DismissHandle {
@@ -53,8 +78,8 @@ function notifier(e: DismissEvent): void {
   for (const fn of [...abonnes]) fn(e);
 }
 
-export function pushLayer(couche: { kind: string; onDismiss: OnDismiss | null }): DismissHandle {
-  const c: Couche = { kind: couche.kind, onDismiss: couche.onDismiss };
+export function pushLayer(couche: { kind: string; nature: LayerNature; plan: LayerPlan; onDismiss: OnDismiss | null }): DismissHandle {
+  const c: Couche = { kind: couche.kind, nature: couche.nature, plan: couche.plan, onDismiss: couche.onDismiss };
   pile.push(c);
   notifier({ type: 'push', handle: c, taille: pile.length });
   return c;
@@ -69,8 +94,26 @@ export function popLayer(handle: DismissHandle): void {
   notifier({ type: 'pop', handle, taille: pile.length });
 }
 
+/** Couches de la pile dans l'ordre PEINT, du bas vers le haut : par plan, puis par ouverture. */
+export const dismissStackHandles = (): readonly DismissHandle[] =>
+  pile.map((c, i) => [c, i] as const)
+    .sort(([a, i], [b, j]) => RANG_DU_PLAN[a.plan] - RANG_DU_PLAN[b.plan] || i - j)
+    .map(([c]) => c);
+
+/** LA COUCHE DU DESSUS (parmi celles que `filtre` retient) : plan le plus haut, puis la dernière
+ *  ouverte dans ce plan. SOURCE UNIQUE de « qui est au-dessus ? » — congédiement, touches, marche,
+ *  focus. */
+export function coucheDuDessus(filtre?: (c: DismissHandle) => boolean): DismissHandle | undefined {
+  const peinte = dismissStackHandles();
+  for (let i = peinte.length - 1; i >= 0; i--) if (!filtre || filtre(peinte[i])) return peinte[i];
+  return undefined;
+}
+
+/** La couche MODALE du dessus sur l'écran de CE siège (le focus y est piégé), ou `undefined`. */
+export const modaleDuDessus = (): DismissHandle | undefined => coucheDuDessus((c) => c.nature === 'modale');
+
 export function dismissTop(): DismissResult {
-  const top = pile[pile.length - 1];
+  const top = coucheDuDessus() as Couche | undefined;
   if (!top) return 'vide';
   if (!top.onDismiss) return 'reste';
   if (top.onDismiss() === false) return 'reste';
@@ -80,11 +123,9 @@ export function dismissTop(): DismissResult {
 
 export const dismissStackSize = (): number => pile.length;
 
-/** Couches de la pile, du bas vers le haut, en lecture seule : qui est au-dessus de qui. */
-export const dismissStackHandles = (): readonly DismissHandle[] => [...pile];
-
-/** Libellés de la pile, du bas vers le haut — DIAGNOSTIC (tests, journal) uniquement. */
-export const dismissStackKinds = (): readonly string[] => pile.map((c) => c.kind);
+/** `kind` de toutes les couches, dans l'ordre PEINT, du bas vers le haut — lecture de DIAGNOSTIC :
+ *  seuls les tests la lisent. */
+export const dismissStackKinds = (): readonly string[] => dismissStackHandles().map((c) => c.kind);
 
 export function subscribeDismissStack(fn: (e: DismissEvent) => void): () => void {
   abonnes.push(fn);

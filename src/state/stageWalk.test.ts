@@ -15,6 +15,7 @@ import { resetStageGestes } from './stageGestes';
 import { STEP_MS } from '../geometry/walk';
 import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './stageWalk';
 import { chebyshev } from '../engine/grid';
+import { pushLayer, resetDismissStack } from './dismissStack';
 
 const get = useGame.getState;
 
@@ -44,11 +45,13 @@ function traceur(): { cases: { x: number; y: number }[]; off: () => void } {
 beforeEach(() => {
   vi.useFakeTimers();
   resetStageWalk();
+  resetDismissStack();
   poserScene();
 });
 
 afterEach(() => {
   resetStageWalk();
+  resetDismissStack();
   vi.useRealTimers();
 });
 
@@ -276,6 +279,49 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);
+  });
+
+  it('une COMMANDE d’interlude en souffrance (`pendingOrders`) n’est pas une porte : la marche continue', () => {
+    // Livrée à l'interlude SUIVANT (`interludeFlow`), la liste persiste toute l'aventure : aucune
+    // fenêtre ne la montre, et le registre la déclare `tientLaMain: false`.
+    useGame.setState({ pendingOrders: [{ heroId: 'h1', trappingId: 'corde' }] });
+    const t = traceur();
+    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    vi.advanceTimersByTime(STEP_MS * 2);
+    t.off();
+    expect(t.cases.length).toBe(3);
+  });
+
+  it('une DÉSIGNATION de cibles (sort délégué à la carte) à la 2ᵉ case : pas de 3ᵉ case', () => {
+    // La modale a cédé son geste à la carte (`pendingCast.pickingTargets`) : plus de fenêtre élue,
+    // mais la situation TIENT la main (`MODAL_DEFS.tientLaMain`).
+    const t = traceur();
+    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    vi.advanceTimersByTime(STEP_MS);
+    useGame.setState({ pendingCascade: { participants: [{ jet: 'cast' }], cursor: 0 }, pendingCast: { pickingTargets: true } } as never);
+    vi.advanceTimersByTime(STEP_MS * 4);
+    t.off();
+    expect(t.cases.length).toBe(2);
+  });
+
+  it('un écran PAR SIÈGE (couche posée sur la pile de ce client) à la 2ᵉ case : pas de 3ᵉ case', () => {
+    const t = traceur();
+    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    vi.advanceTimersByTime(STEP_MS);
+    pushLayer({ kind: 'fiche-perso', nature: 'modale', plan: 'application', onDismiss: () => {} });
+    vi.advanceTimersByTime(STEP_MS * 4);
+    t.off();
+    expect(t.cases.length).toBe(2);
+  });
+
+  it('un POPOVER (infobulle du codex) posé à la 2ᵉ case : la 3ᵉ case est parcourue', () => {
+    const t = traceur();
+    demarrerMarche(get, { vue: 'iso', dir: 'up' });
+    vi.advanceTimersByTime(STEP_MS);
+    pushLayer({ kind: 'popover-codex', nature: 'popover', plan: 'application', onDismiss: () => {} });
+    vi.advanceTimersByTime(STEP_MS);
+    t.off();
+    expect(t.cases.length).toBe(3);
   });
 
   it('un ÉCRAN plein-champ ouvert à la 2ᵉ case : pas de 3ᵉ case', () => {

@@ -9,7 +9,7 @@ import { worldTransforms, toSvg, apply, type Matrix } from './kinematics';
 import { addPose, type Pose } from './poses';
 import type { Appearance } from './appearance';
 import { resolveParts } from './parts/resolve';
-import { hairIndexById } from './parts/cosmetic';
+import { COIFFURE_HORS_POOL, hairIndexById } from './parts/cosmetic';
 import { applyEyes, eyesArtFromKeys } from './parts/eyes';
 import { feat as catalogFeatures, featureMorpho } from './parts/elements';
 import { pickView } from './parts/types';
@@ -160,16 +160,17 @@ function buildComposition(
   // droit (un dos voûté ne se montre pas pile de face en 2D).
   const speciesPose = view === 'profile' ? race.pose ?? {} : {};
   // Coiffure IMPOSÉE par id (`appearance.hairstyle`, #637) : résolue en index de pool ICI (seam qui tient
-  // l'apparence) et injectée en override `cheveux` — prime sur parts.cheveux/seed. Fail-fast si l'id est
-  // introuvable (hairIndexById). Sinon, override d'index / tirage sexe+ordre inchangés.
-  const partOverrides = appearance.hairstyle != null
-    ? { ...appearance.parts, cheveux: hairIndexById(appearance.species, appearance.sex, appearance.hairstyle) }
-    : (appearance.parts ?? {});
+  // l'apparence) et injectée en override `cheveux` — prime sur parts.cheveux/seed. Hors du pool, la
+  // chevelure d'ERREUR (`COIFFURE_HORS_POOL`, #223) remplace la part. Sinon, override d'index / tirage
+  // sexe+ordre inchangés.
+  const coiffure = appearance.hairstyle != null ? hairIndexById(appearance.species, appearance.sex, appearance.hairstyle) : undefined;
+  const partOverrides = coiffure !== undefined ? { ...appearance.parts, cheveux: coiffure } : (appearance.parts ?? {});
   // Nu du PIED (#736 Lot 1) : `perso.extremites` (créature non-canonique repliée sur une race
   // partagée, ex. Géant/Liche → Humain) prime sur le défaut de la RACE — même résolution que le
   // corps nu (bDef/race déjà résolus ci-dessus par `groundedBodySkeleton`).
   const extremites = bDef?.perso?.extremites ?? race.extremites ?? 'lisses';
   const parts = resolveParts(appearance.species, appearance.sex, tenue, equip, partOverrides, appearance.seed ?? 1, view, extremites);
+  if (appearance.hairstyle != null && coiffure === undefined) parts.cheveux = { svg: COIFFURE_HORS_POOL };
   // Yeux personnalisés (œil de verre, Œil énorme, yeux d'animaux…) : remplacés EN PLACE
   // sur l'orbite marquée du visage (cf. parts/eyes.ts — no-op sans marqueur). Les yeux de
   // RACE (Vampire rougeoyant) servent de défaut, l'apparence (mutation/blessure) prime.

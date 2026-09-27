@@ -21,11 +21,11 @@
  */
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { joue } from './joue.mjs';
+import { FORME_DATA, FORME_PROJET, serialise } from './croissance.mjs';
+import { depot, efface, joue, lireArbre, lireDans, rienTouche } from './joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION_DATA = '2026-09-07-1691-relief-en-donnee.mjs';
@@ -33,14 +33,8 @@ const MIGRATION_SCENES = '2026-09-07-1691-relief-defaults-scenes.mjs';
 const TERRAINS = 'src/data/terrains.json';
 const MATERIALS = 'src/data/materials.json';
 
-const lire = (rel) => fs.readFileSync(path.join(RACINE, rel), 'utf8');
-/** Formatage canonique de `src/data/*.json`. */
-const serialiseData = (doc) => JSON.stringify(doc, null, 2);
-/** Formatage canonique d'un document de projet de scène. */
-const serialiseScene = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
-
-const TEXTE_TERRAINS = lire(TERRAINS);
-const TEXTE_MATERIALS = lire(MATERIALS);
+const TEXTE_TERRAINS = lireArbre(TERRAINS);
+const TEXTE_MATERIALS = lireArbre(MATERIALS);
 const TERRAINS_DOC = JSON.parse(TEXTE_TERRAINS);
 const MATERIALS_DOC = JSON.parse(TEXTE_MATERIALS);
 
@@ -55,43 +49,13 @@ const terrainsAvant = () => TERRAINS_DOC.map(({ matiere: _pose, ...reste }) => r
 /** PROJECTION INVERSE de `materials.json` : marqueur de plan retiré. */
 const materialsAvant = () => MATERIALS_DOC.map(({ vueDeDessus: _pose, ...reste }) => reste);
 
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
-
-/** Dépôt jetable portant EXACTEMENT les fichiers demandés, plus la migration nommée. */
-function depot(migration, fichiers) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1691-'));
-  const avant = new Map();
-  for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.mkdirSync(path.dirname(cible), { recursive: true });
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  return { racine, avant, migration };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-
-/** Les fichiers posés sont INTACTS (octet + horodatage). */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) { fautes.push(`${rel} : SUPPRIMÉ`); continue; }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  return fautes;
-}
-
 // ── Volet `src/data` ────────────────────────────────────────────────────────────────────────────
 
 const depotData = (terrains, materials) =>
-  depot(MIGRATION_DATA, { [TERRAINS]: terrains, [MATERIALS]: materials });
+  ({ ...depot({ [TERRAINS]: terrains, [MATERIALS]: materials }), migration: MIGRATION_DATA });
 
 test('(a) ALLER-RETOUR data : l’état d’avant projeté → terrains.json ET materials.json BYTE-IDENTIQUES à l’arbre', (t) => {
-  const d = depotData(serialiseData(terrainsAvant()), serialiseData(materialsAvant()));
+  const d = depotData(serialise(terrainsAvant(), FORME_DATA), serialise(materialsAvant(), FORME_DATA));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -102,8 +66,8 @@ test('(a) ALLER-RETOUR data : l’état d’avant projeté → terrains.json ET 
     `la migration ne DIT pas que le domaine relief est intact : ${sortie.slice(0, 800)}`,
   );
   assert.match(sortie, /plan vu du dessus déclaré/, `le marqueur de plan ne se DIT pas : ${sortie.slice(0, 800)}`);
-  assert.equal(fs.readFileSync(path.join(d.racine, TERRAINS), 'utf8'), TEXTE_TERRAINS, 'terrains.json produit ≠ arbre');
-  assert.equal(fs.readFileSync(path.join(d.racine, MATERIALS), 'utf8'), TEXTE_MATERIALS, 'materials.json produit ≠ arbre');
+  assert.equal(lireDans(d.racine, TERRAINS), TEXTE_TERRAINS, 'terrains.json produit ≠ arbre');
+  assert.equal(lireDans(d.racine, MATERIALS), TEXTE_MATERIALS, 'materials.json produit ≠ arbre');
 });
 
 test('(b) REJEU data sur arbre migré : sortie 0, rien d’écrit', (t) => {
@@ -120,7 +84,7 @@ test('(c) BLOC PLEIN inconnu de la table des matières → sortie 1 NOMMANT le t
   // Le bloc est RENOMMÉ (cardinal du dataset intact) : c'est bien la table des matières de bloc que
   // la porte mesure, pas le compte d'entrées.
   const renomme = terrainsAvant().map((e) => (e.solidHeightM !== undefined ? { ...e, id: 'palissade' } : e));
-  const d = depotData(serialiseData(renomme), serialiseData(materialsAvant()));
+  const d = depotData(serialise(renomme, FORME_DATA), serialise(materialsAvant(), FORME_DATA));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -131,7 +95,7 @@ test('(c) BLOC PLEIN inconnu de la table des matières → sortie 1 NOMMANT le t
 
 test('(c bis) `matiere` SANS bloc plein → sortie 1 NOMMANT le terrain, rien d’écrit', (t) => {
   const orphelin = terrainsAvant().map((e, i) => (i === 0 ? { ...e, matiere: 'terre' } : e));
-  const d = depotData(serialiseData(orphelin), serialiseData(materialsAvant()));
+  const d = depotData(serialise(orphelin, FORME_DATA), serialise(materialsAvant(), FORME_DATA));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -151,7 +115,7 @@ test('(d) DEUX entrées `roof` sans couverture → sortie 1 : le plan ne se dés
     const { couverture: _sans, ...reste } = e;
     return reste;
   });
-  const d = depotData(serialiseData(terrainsAvant()), serialiseData(deuxPlans));
+  const d = depotData(serialise(terrainsAvant(), FORME_DATA), serialise(deuxPlans, FORME_DATA));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -161,7 +125,7 @@ test('(d) DEUX entrées `roof` sans couverture → sortie 1 : le plan ne se dés
 });
 
 test('(e) FORMATAGE data non canonique (indentation 4) → sortie 1 NOMINATIVE, rien d’écrit', (t) => {
-  const d = depotData(JSON.stringify(terrainsAvant(), null, 4), serialiseData(materialsAvant()));
+  const d = depotData(JSON.stringify(terrainsAvant(), null, 4), serialise(materialsAvant(), FORME_DATA));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -180,10 +144,10 @@ const PROJETS = fs
   .filter((rel) => fs.existsSync(path.join(RACINE, rel)));
 assert.ok(PROJETS.length > 0, 'aucun projet de scène — la fixture ne mesure rien');
 
-const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lire(rel)).scenes.length]));
+const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).scenes.length]));
 for (const rel of PROJETS)
   assert.ok(
-    JSON.parse(lire(rel)).scenes.every((s) => s.reliefDefaults),
+    JSON.parse(lireArbre(rel)).scenes.every((s) => s.reliefDefaults),
     `${rel} : une Scène sans \`reliefDefaults\` — l’arbre n’est pas migré`,
   );
 
@@ -193,22 +157,22 @@ for (const rel of PROJETS)
 const SCHEMA_AVANT = 7;
 const SCHEMA_APRES = 8;
 /** Le `schema` que l'arbre porte AUJOURD'HUI — lu, jamais récité. */
-const SCHEMA_ARBRE = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lire(rel)).schema]));
+const SCHEMA_ARBRE = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).schema]));
 for (const rel of PROJETS)
   assert.ok(SCHEMA_ARBRE[rel] >= SCHEMA_APRES, `${rel} : \`schema\` ${SCHEMA_ARBRE[rel]} < ${SCHEMA_APRES} — l’arbre n’est pas migré`);
 
 /** PROJECTION INVERSE d'un projet : `reliefDefaults` retiré de chaque Scène. Le `schema` de l'arbre
  *  est CONSERVÉ — c'est ce que la borne ouverte doit traverser sans rien rabaisser. */
 function projetAvant(rel) {
-  const doc = JSON.parse(lire(rel));
+  const doc = JSON.parse(lireArbre(rel));
   return { ...doc, scenes: doc.scenes.map(({ reliefDefaults: _pose, ...reste }) => reste) };
 }
 
 const depotScenes = (fabrique) =>
-  depot(MIGRATION_SCENES, Object.fromEntries(PROJETS.map((rel) => [rel, fabrique(rel)])));
+  ({ ...depot(Object.fromEntries(PROJETS.map((rel) => [rel, fabrique(rel)]))), migration: MIGRATION_SCENES });
 
 test('(f) ALLER-RETOUR scènes : l’état d’avant projeté → chaque projet BYTE-IDENTIQUE à l’arbre', (t) => {
-  const d = depotScenes((rel) => serialiseScene(projetAvant(rel)));
+  const d = depotScenes((rel) => serialise(projetAvant(rel), FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -218,12 +182,12 @@ test('(f) ALLER-RETOUR scènes : l’état d’avant projeté → chaque projet 
       sortie.includes(`${rel} — schema ${SCHEMA_ARBRE[rel]} → ${SCHEMA_ARBRE[rel]}, reliefDefaults posés : ${SCENES_PAR_PROJET[rel]}`),
       `${rel} : le bump ou la pose ne DIT pas son compte : ${sortie.slice(0, 1200)}`,
     );
-    assert.equal(fs.readFileSync(path.join(d.racine, rel), 'utf8'), lire(rel), `${rel} produit ≠ arbre`);
+    assert.equal(lireDans(d.racine, rel), lireArbre(rel), `${rel} produit ≠ arbre`);
   }
 });
 
 test('(g) REJEU scènes sur arbre migré : sortie 0, rien d’écrit', (t) => {
-  const d = depotScenes((rel) => lire(rel));
+  const d = depotScenes((rel) => lireArbre(rel));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -234,13 +198,13 @@ test('(g) REJEU scènes sur arbre migré : sortie 0, rien d’écrit', (t) => {
 
 test('(h) `reliefDefaults` INCOMPLET (une partie manquante) → sortie 1 NOMMANT la partie, rien d’écrit', (t) => {
   const d = depotScenes((rel) => {
-    const doc = JSON.parse(lire(rel));
+    const doc = JSON.parse(lireArbre(rel));
     const scenes = doc.scenes.map((s, i) => {
       if (i > 0) return s;
       const { cliff: _absent, ...reste } = s.reliefDefaults;
       return { ...s, reliefDefaults: reste };
     });
-    return serialiseScene({ ...doc, scenes });
+    return serialise({ ...doc, scenes }, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -257,7 +221,7 @@ test('(i) CARDINAL DÉPLACÉ (une Scène retirée) : le passage PASSE et pose ce
   const restantes = SCENES_PAR_PROJET[ampute] - 1;
   const d = depotScenes((rel) => {
     const doc = projetAvant(rel);
-    return serialiseScene(rel === ampute ? { ...doc, scenes: doc.scenes.slice(1) } : doc);
+    return serialise(rel === ampute ? { ...doc, scenes: doc.scenes.slice(1) } : doc, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -275,20 +239,20 @@ test('(j) `schema` FUTUR : la borne haute est OUVERTE depuis #1715 — le docume
   // seule sait ce qui existe après elle. Ici, la porte mesurée est l'inverse — un `schema` plus
   // récent ne doit ni ARRÊTER, ni redescendre à 8.
   const futur = Math.max(...Object.values(SCHEMA_ARBRE)) + 1;
-  const d = depotScenes((rel) => serialiseScene({ ...projetAvant(rel), schema: futur }));
+  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: futur }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
   assert.equal(code, 0, `sortie ${code} — un schema futur doit TRAVERSER : ${sortie.slice(0, 1200)}`);
   for (const rel of PROJETS) {
     assert.ok(sortie.includes(`${rel} — schema ${futur} → ${futur},`), `${rel} : le schema a été RABAISSÉ : ${sortie.slice(0, 1200)}`);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(d.racine, rel), 'utf8')).schema, futur, `${rel} : \`schema\` écrit ≠ ${futur}`);
+    assert.equal(JSON.parse(lireDans(d.racine, rel)).schema, futur, `${rel} : \`schema\` écrit ≠ ${futur}`);
   }
 });
 
 test('(j bis) `schema` ANTÉRIEUR à la chaîne → sortie 1 NOMMANT le numéro : la borne BASSE reste close', (t) => {
   const ancien = SCHEMA_AVANT - 1;
-  const d = depotScenes((rel) => serialiseScene({ ...projetAvant(rel), schema: ancien }));
+  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: ancien }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, d.migration);
@@ -311,7 +275,7 @@ test('(k) PARITÉ au RÉEL : sur les projets LIVRÉS, chaque Scène porte `relie
   // `reliefDefaults`, puis `roofDefaults` depuis #1715), donc à ce que la migration reposerait au rejeu.
   const fautes = [];
   for (const rel of PROJETS) {
-    const scenes = JSON.parse(lire(rel)).scenes;
+    const scenes = JSON.parse(lireArbre(rel)).scenes;
     assert.ok(scenes.length > 0, `${rel} : aucune Scène — la parité ne mesure rien`);
     for (const s of scenes) {
       const k = Object.keys(s);

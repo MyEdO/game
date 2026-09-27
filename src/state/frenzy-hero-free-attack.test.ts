@@ -11,6 +11,7 @@ import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { aiAvailableFreeAttack } from './combatFlow';
 import { hasFreeWeaponAttack } from './combatManeuvers';
 import { setCadence } from '../engine/cadence';
+const embuscadeConstruit = embuscade.construire();
 
 describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
   beforeEach(() => { vi.useFakeTimers(); useGame.getState().seedRng(7); setCadence('manuel'); });
@@ -18,7 +19,7 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
 
   function frenziedHeroAdjacentToFoe() {
     useGame.setState({ party: makeShowcaseParty() });
-    useGame.getState().startScene(embuscade.scene);
+    useGame.getState().startScene(embuscadeConstruit.scene);
     useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
     useGame.getState().confirmRoundStart();
     const b = useGame.getState().battle!;

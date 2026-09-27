@@ -40,7 +40,7 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     await h.click(OP_LABEL.grantTalent);
 
     expect(h.opsOf()).toHaveLength(1);
-    expect(h.opsOf()[0]).toEqual({ op: 'grantTalent', talentId: '' });
+    expect(h.opsOf()[0]).toEqual({ op: 'grantTalent', talent: { id: '' } });
     expect(h.container.textContent).toContain('Talent à choisir');
     // Le sélecteur porte SA sentinelle et ne pointe sur aucune entrée du registre.
     const select = Array.from(h.container.querySelectorAll('select')).find((s) => s.value === '');

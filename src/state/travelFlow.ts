@@ -59,7 +59,7 @@ import { condCtx, payFromGroup } from './bourseFlow';
 import { evalCondition } from '../engine/flowCore';
 import { d10, d100 } from '../engine/dice';
 import { rule } from '../engine/policy';
-import { toDate, isTravelDaylight, DAWN_MINUTE, minutesUntilNext } from '../engine/clock';
+import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext } from '../engine/clock';
 import { dayIndex } from './upkeep';
 import { seasonOfMonth, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
@@ -323,7 +323,7 @@ export function startTravel(
   // installations, MDG 15 l.76). De nuit → on mémorise le trajet et on propose « Attendre l'aube ».
   const riverPlayed = !!route.river && mode !== 'pied' && mode !== 'monture' && !!findVehicleById(mode)?.ship;
   if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || riverPlayed) && departureGated(get)) {
-    set({ pendingDeparture: { routeId, mode, opts, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, DAWN_MINUTE) } });
+    set({ pendingDeparture: { routeId, mode, opts, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
     return;
   }
 

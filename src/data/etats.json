@@ -146,8 +146,12 @@
         "op": "testMod",
         "amount": -10,
         "exceptSkills": [
-          "athletisme",
-          "discretion"
+          {
+            "id": "athletisme"
+          },
+          {
+            "id": "discretion"
+          }
         ]
       }
     ],

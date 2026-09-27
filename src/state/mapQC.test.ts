@@ -5,10 +5,11 @@ import { reachableCells, unreachableDescriptiveZones, reachedFloors, startOf } f
 import { walkNeighbors, type Pt } from './path';
 import type { Scene } from './scene';
 import { campaign, diligenceCampaign } from '../scenes/campaign';
+const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire();
 
 describe('mapQC — harnais QC de cartes (#778)', () => {
   it('démo `zones-pieces` (4 pièces cloisonnées) : les 4 pièces sont toutes atteignables depuis heroStart', () => {
-    const scene = zonesPiecesScenario.scene;
+    const scene = zonesPiecesScenarioConstruit.scene;
     const start = startOf(scene);
     expect(start).not.toBeNull();
     expect(unreachableDescriptiveZones(scene, start!)).toEqual([]);
@@ -74,7 +75,7 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
   });
 
   it('reachableCells depuis heroStart contient bien la case de départ', () => {
-    const scene = zonesPiecesScenario.scene;
+    const scene = zonesPiecesScenarioConstruit.scene;
     const start = startOf(scene)!;
     const cells = reachableCells(scene, start);
     expect(cells.has(`${start.x},${start.y},${start.z}`)).toBe(true);
@@ -131,7 +132,7 @@ describe('reachableCells — mêmes cases que le parcours en largeur (#1416)', (
   });
 
   const cartes: [string, Scene, { x: number; y: number; z?: number }[]][] = [
-    ['zones-pieces', zonesPiecesScenario.scene, [startOf(zonesPiecesScenario.scene)!, { x: 0, y: 0 }]],
+    ['zones-pieces', zonesPiecesScenarioConstruit.scene, [startOf(zonesPiecesScenarioConstruit.scene)!, { x: 0, y: 0 }]],
     ['cellule scellée', cellule, [{ x: 1, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 2 }]],
     ['deux étages', deuxEtages, [{ x: 0, y: 1 }, { x: 3, y: 0, z: 1 }, { x: 0, y: 0 }]],
     ['arene-hub', campaign.find((c) => c.id === 'arene-hub')!.scene, [{ x: 25, y: 20 }, { x: 1, y: 1 }, { x: 0, y: 0 }]],

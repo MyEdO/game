@@ -14,7 +14,7 @@
  * touche où qu'il vive.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { Modal } from './Modal';
@@ -147,7 +147,11 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
   it('une COUCHE ouverte au-dessus de la boîte se referme d’abord — la modale reste ouverte', () => {
     clicks = 0; escapes = 0;
     let surfaces = 0;
-    const Surface = () => { useDismissLayer('surface-portee', () => { surfaces += 1; }); return null; };
+    const Surface = () => {
+      const boite = useRef<HTMLDivElement>(null);
+      useDismissLayer({ kind: 'surface-portee', nature: 'modale', plan: 'application', boite }, () => { surfaces += 1; });
+      return <div ref={boite} />;
+    };
     const Scene = ({ portee }: { portee: boolean }) => (
       <Modal title="Jet" onClose={() => { escapes += 1; }}
         footer={

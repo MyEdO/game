@@ -3,6 +3,8 @@ import { emptyScene, isDescriptiveZone, Scene } from '../../state/scene';
 import { propFootTiles } from '../../state/footprint';
 import { entityAt } from '../../state/sceneEdit';
 import { validateScene } from '../../state/validateScene';
+import { buildProps } from '../../gameIso/builders/props';
+import { estPropVolumique } from '../../gameIso/builders/types';
 import { findCreatureById, creatureLabel, siegeEngines } from '../../data';
 import {
   eraseAt,
@@ -712,6 +714,20 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
     s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
     return s;
   }
+
+  it('changer la ref vers un décor VOLUMIQUE fait retomber un cap refusé au cap d’identité : le geste ne crée pas de faute (C2)', () => {
+    const s = emptyScene(8, 8);
+    s.entities = [{ id: 'p3', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'brasero', facing: 'NE' }];
+    expect(validateScene([s]).filter((w) => w.refId === 'p3')).toEqual([]);
+    const apres = changePropRef(s, 'p3', 'tonneau');
+    expect(apres.entities[0]).toMatchObject({ ref: 'tonneau', facing: 'S' });
+    expect(validateScene([apres]).filter((w) => w.refId === 'p3')).toEqual([]);
+    const [el] = buildProps(apres).filter((e) => e.entId === 'p3');
+    expect(estPropVolumique(el), 'le tonneau se cuit en volume, au cap d’identité').toBe(true);
+    // Un cap ADMIS par le nouveau type n'est pas touché.
+    expect(changePropRef({ ...s, entities: [{ ...s.entities[0], facing: 'E' }] }, 'p3', 'tonneau').entities[0].facing).toBe('E');
+    expect(changePropRef(apres, 'p3', 'brasero').entities[0].facing).toBe('S');
+  });
 
   it('changer la ref ou supprimer le prop élague dans la même mutation', () => {
     expect(changePropRef(attablee(), 'table-1', 'tonneau').seatAssignments).toEqual({});

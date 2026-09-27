@@ -255,7 +255,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `(\`src/data/index.ts\`, SOURCE UNIQUE du libellé affiché d'une \`TrappingRef\`) `
   out += specDansLeRendu
     ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refConcrete\`.\n`
-    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`Ref\`.\n`
+    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`RefDesignee\`.\n`
 
   // `zeros` sort NOMMÉ (`Type.champ`) : le cliquet de `src/data/field-consumers.test.ts` compare
   // cette liste à la sienne, écrite en dur — aucun re-parsing du `.md`, dont la table est un RENDU.

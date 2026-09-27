@@ -1164,7 +1164,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   sont. Dégâts à la coque = la Bordée, action du TOUR DE NAVIRE (mode `battery`, `batteryAffordance`,
   `src/state/targetingModes.ts:174-186`), un flux de ciblage SÉPARÉ de l'attaque personnelle.
 - **Combat naval — `place('id',{x,y})` ne réinitialise PAS `battle.action`/l'arme choisie** (vérifié
-  empiriquement sur `src/state/devtools.ts:390-414` : la fonction mute `pos` puis
+  empiriquement sur `src/state/devtools.ts:1089-1112` : la fonction mute `pos` puis
   `useGame.setState({ battle: { ...b } })` sans toucher `action`/`selectedAttack`) — repositionner une
   coque/un servant PUIS re-choisir l'arme, ou l'inverse, donne le MÊME résultat avec ce helper de
   triche. Le mouvement RÉEL (clic-pour-se-déplacer, hors `place()`) remet lui `battle.action` à `null`
@@ -1502,11 +1502,11 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   pas `pointerdown` ne fait RIEN, sans erreur.
 - **Écran « Scénarios de test » : chaque carte porte un bouton au libellé générique « Lancer »** —
   viser par texte amène le premier venu. L'ancrage est
-  `[data-testid="scenario-launch-<id>"]` (`src/ui/TestScenariosScreen.tsx:71`, verrouillé par
+  `[data-testid="scenario-launch-<id>"]` (`src/ui/TestScenariosScreen.tsx:50`, verrouillé par
   `TestScenariosScreen.test.tsx:25`).
 - **Hors combat, `__wfrp.state()` n'expose PAS la scène** : il ne rend que `sceneId`/`sceneName`
-  (`src/state/devtools.ts:532`). Les entités se lisent par `__wfrp.entities()`
-  (`src/state/devtools.ts:566`), qui rend id, libellé, nature, position et ce que l'entité OFFRE.
+  (`src/state/devtools.ts:522`). Les entités se lisent par `__wfrp.entities()`
+  (`src/state/devtools.ts:556`), qui rend id, libellé, nature, position et ce que l'entité OFFRE.
 
 Une op mécanique ne s'atteint pas depuis la Scène : elle vit dans un bloc d'effets de trigger.
 Chemin mesuré en recette (2026-09-18, #1789) jusqu'à l'éditeur d'une op :

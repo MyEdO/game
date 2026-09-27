@@ -68,11 +68,6 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-wounds', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'shanty-roll', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'exposition-hydrique', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'navigation-agilite-de-rame', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'navigation-chavirage', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'navigation-derive', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'navigation-greement', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'navigation-louvoyage', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'tests-opposes', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'crew-progression', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'crew-tourbillon', occurrence: 1 },
@@ -94,10 +89,12 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
 ]
 
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
+  { fichier: 'src/data/mutations.json', ref: 'crete-sur-la-tete', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'corruption-tables-edoc', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'vents-tourbillonnants', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'auberge-relais', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'diligences-quatre-saisons', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'diligences-tour-du-roc', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'lignes-rochet', occurrence: 1 },
+  { fichier: 'src/data/talents.json', ref: 'mutants-et-hommes-betes', occurrence: 1 },
 ]

@@ -19,7 +19,7 @@ import { terrainIds, terrainLabel } from '../../state/terrain';
 import { propDeclaredFoot } from '../../state/footprint';
 import { terrainDef } from '../../gameIso/catalog/terrain';
 import { PROPS } from '../../gameIso/catalog/decor';
-import { findPropById, premierOffert, profilsStandard, structures } from '../../data';
+import { findPropById, premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
@@ -479,13 +479,14 @@ export function Palette({
                 // `PROPS` est le catalogue d'ART (vignettes) ; la physique du décor vit dans la
                 // donnée app-owned, lue par la même `findPropById` que le monde.
                 const donnee = findPropById(p.id);
-                const effective = donnee?.volume
+                const volumique = refEstVolumique(p.id);
+                const effective = volumique
                   ? empreinteDuProp(donnee, CAP_IDENTITE_PROP, sceneMetresPerTile(scene))
                   : propDeclaredFoot(p.id);
                 // Un décor à recette n'a plus de tri-état à montrer (son corps décide toujours) : sa
                 // chip ne dit quelque chose que s'il dépasse UNE case. Pour un billboard, la présence
                 // même du `foot` est l'information — elle reste annoncée telle quelle.
-                const empreinte = effective && (!donnee?.volume || effective.w > 1 || effective.h > 1) ? effective : undefined;
+                const empreinte = effective && (!volumique || effective.w > 1 || effective.h > 1) ? effective : undefined;
                 return (
                 <button
                   key={p.id}

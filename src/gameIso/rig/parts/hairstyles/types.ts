@@ -1,3 +1,5 @@
+import type { Sexe } from '../../../../data/schemas/grammaire/valeurs';
+
 /**
  * Art PAR-VUE d'une chevelure (coiffure du pool OU coiffure par défaut d'une tête) :
  * les 3 vues `{front, profile, back}` + DEUX composantes optionnelles PAR vue :
@@ -25,4 +27,4 @@ export type HairArt = {
  * d'authoring, non consommée par la résolution (choix par sexe+ordre, jamais par nom). Ajouter une
  * coiffure = déposer un fichier.
  */
-export type HairstyleDef = { id: string; label: string; sex: 'M' | 'F'; order: number } & HairArt;
+export type HairstyleDef = { id: string; label: string; sex: Sexe; order: number } & HairArt;

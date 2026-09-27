@@ -21,12 +21,13 @@
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
 import { makeRNG } from '../engine/dice';
-import { createHero } from '../engine/character';
+import { createHero, type ChoixDeCreation } from '../engine/character';
 import { rollInitialWealth, parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
-import { findSpell, levelsForCareer, pregens, rigSpeciesId, trappingRefLabel } from './index';
+import { levelsForCareer, pregens, rigSpeciesId, trappingRefLabel } from './index';
 import type { Appearance } from '../gameIso/rig/appearance';
+import type { Sexe } from './schemas/grammaire/valeurs';
 
-export interface PregenDef {
+export interface PregenDef extends Pick<ChoixDeCreation, 'careerTalent' | 'pettySpells'> {
   /** `id` STABLE app-owned (kebab-case) — identité de navigation/Codex, découplée du `label`. */
   id: string;
   type: 'pregens';
@@ -42,23 +43,14 @@ export interface PregenDef {
   ambitionLong?: string;
   /** Âge (LDB 05 étape 6) — sinon laissé indéfini (pas de tirage moteur côté pré-tiré). */
   age?: number;
-  /** Talent de carrière CHOISI (libellé concret) — sans lui, `createHero` prend la 1re option
-   *  éligible du Niveau 1, qui n'est pas forcément le talent d'incantation requis (Magie mineure,
-   *  Béni…). */
-  careerTalent?: string;
-  /** Sorts de Magie mineure CHOISIS (libellés de `spells.json`, famille `mineure`) — n'a de sens que
-   *  si `careerTalent` porte le Talent Magie mineure. Complétés jusqu'au quota BFM exact (LDB 10
-   *  l.714 : « vous mémorisez... un nombre de Sorts égal à votre Bonus de Force Mentale ») par des
-   *  sorts mineurs supplémentaires — jamais moins que le quota, jamais un remplacement des sorts
-   *  authorés. */
-  pettySpells?: string[];
+  // `pettySpells` : complétés jusqu'au quota (LDB 10 l.714) par `fillPettySpellsToQuota`.
   /** Id de trapping (catalogue) résolvant l'emplacement `{wildcard:'arme'}` de la carrière
    *  (construct de choix d'équipement, `resolveTrappingChoices`) — absent tant qu'aucun des 8
    *  pré-tirés n'a un tel slot au Niveau 1 (vérifié #421 : aucune entrée de `careerLevels.json` au
    *  Niveau 1 des carrières actuelles n'en porte). */
   weaponChoice?: string;
   /** Sexe visuel (cosmétique ; aucune incidence de règles). Défaut 'M'. */
-  sex?: 'M' | 'F';
+  sex?: Sexe;
   /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
   build?: number;
 }
@@ -68,19 +60,14 @@ export interface PregenDef {
  *  engine) — APPEND uniquement : les Bénédictions du Talent Béni, déjà octroyées par
  *  `applyTalentAcquisition` dans `createHero`, ne sont JAMAIS écrasées. */
 function buildPregenHero(d: PregenDef): Combatant {
-  const authoredIds = (d.pettySpells ?? []).map((label) => {
-    const sp = findSpell(label);
-    if (!sp || sp.family !== 'mineure') {
-      throw new Error(`Pré-tiré « ${d.label} » : « ${label} » n'est pas un sort de Magie mineure valide (LDB 10 l.714).`);
-    }
-    return sp.id;
-  });
+  const authoredIds = d.pettySpells ?? [];
   const hero = createHero({
     speciesId: d.species,
     careerId: d.career,
     label: d.label,
     id: `pregen-${d.seed}`,
     careerTalent: d.careerTalent,
+    pettySpells: authoredIds,
     trappingChoices: d.weaponChoice ? { [trappingRefLabel({ wildcard: 'arme' })]: d.weaponChoice } : undefined,
     details: {
       age: d.age,
@@ -108,8 +95,8 @@ function buildPregenHero(d: PregenDef): Combatant {
   if (authoredIds.length > quota) {
     throw new Error(`Pré-tiré « ${d.label} » : ${authoredIds.length} sorts mineurs excèdent le quota BFM (${quota}, LDB 10 l.714).`);
   }
-  const complete = fillPettySpellsToQuota(authoredIds, quota);
-  hero.spells = [...(hero.spells ?? []), ...complete.filter((id) => !(hero.spells ?? []).includes(id))];
+  const complement = fillPettySpellsToQuota(authoredIds, quota).filter((id) => !(hero.spells ?? []).includes(id));
+  hero.spells = [...(hero.spells ?? []), ...complement];
   return hero;
 }
 

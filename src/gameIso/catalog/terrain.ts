@@ -1,5 +1,5 @@
 /** Présentation des terrains — DÉRIVÉE du dataset `src/data/terrains.json` via la façade
- *  `state/terrain` (lecture VIVE, index O(1)). La méta sémantique (walkable/priority) vient du même
+ *  `state/terrain` (lecture VIVANTE, index O(1)). La méta sémantique (walkable/priority) vient du même
  *  document : ici on n'expose que ce que le rendu lit. */
 import { terrainEntree, type TerrainDef } from '../../state/terrain';
 import type { TerrainStops } from '../../data/terrains.types';

@@ -36,6 +36,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { effectSchema } from './effets';
+import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
 const SCENE = fileURLToPath(new URL('../../../state/scene.ts', import.meta.url));
 const EFFETS = fileURLToPath(new URL('./effets.ts', import.meta.url));
@@ -154,13 +155,10 @@ function typesDuType(texteScene?: string): string[] {
 /** Les discriminants des options d'`effectSchema` — le `z.lazy` est déroulé pour atteindre la
  *  `discriminatedUnion` réellement servie à la porte. */
 function typesDuSchema(): string[] {
-  const anyS = effectSchema as unknown as { def: { type: string; getter?: () => unknown } };
-  const inner = (anyS.def.type === 'lazy' ? anyS.def.getter!() : anyS) as { def: { options: unknown[] } };
-  return inner.def.options.map((o) => {
-    const opt = o as { def?: { shape?: Record<string, unknown> }; shape?: Record<string, unknown> };
-    const lit = (opt.def?.shape ?? opt.shape)!.type as { def: { values?: Iterable<string>; value?: unknown } };
-    return lit.def.values ? [...lit.def.values][0] : String(lit.def.value);
-  });
+  const union = ouverts([effectSchema]).find((n) => defDe(n)?.type === 'union');
+  return enfantsDe(union)
+    .filter((e) => e.segment.startsWith('|'))
+    .map(({ noeud }) => [...(defDe(enfantsDe(noeud).find((e) => e.cle === 'type')?.noeud)?.values as Iterable<string>)][0]);
 }
 
 describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {

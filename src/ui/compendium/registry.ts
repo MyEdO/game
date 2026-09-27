@@ -12,13 +12,13 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, advancementBaseId, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, talentConcrete, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
-  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findCreatureById, findVehicleById, findTrappingById, structures, regles,
+  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
 } from '../../data';
@@ -65,7 +65,7 @@ import SURINCANTATION from '../../data/surincantation.json';
 import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
-import { statName } from '../../engine/statEntry';
+import { statName, isOptionalNote, type TraitList } from '../../engine/statEntry';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -75,7 +75,7 @@ import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTL
 import { AVAILABILITIES } from '../../engine/types';
 import { ACTIVITIES } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
-import { traitLabels, optionalLabels, traitArgSkeleton } from '../../engine/traits/dispatch';
+import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
@@ -203,8 +203,8 @@ export interface CodexItem {
   tabs?: CodexTab[];
   /** Corps prose en **Markdown** (verbatim de la source), rendu par `<Prose>` (auto-liage des règles). */
   desc?: string;
-  /** Arbitrage MAISON de l'entrée (clé d'enveloppe `maison`, `grammaire/document.ts`) : la raison, en
-   *  clair, d'une valeur qu'aucun folio n'imprime. Projetée par `depuisEnveloppe` et rendue UNE fois
+  /** Raison MAISON de l'entrée (clé d'enveloppe `maison`, `grammaire/document.ts`) : en clair,
+   *  d'où vient une valeur qu'aucun folio n'imprime. Projetée par `depuisEnveloppe` et rendue UNE fois
    *  par `CodexEntry` — c'est la provenance des documents SANS livre (CLAUDE.md règle 7). */
   maison?: string;
   source?: CodexSource | null;
@@ -319,13 +319,13 @@ const priceLabel = (p: Money | 'ND' | null | undefined): string | null => {
 const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
   join(t.damage ? damageString(t.damage) : null, conditionalDamageNote(t));
 
-/** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex : il s'édite à la
- *  palette de l'éditeur de carte, `defs/props.ts`) — lecture VIVE du dataset ; l'id nu tient lieu de
+/** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex et aucun écran ne
+ *  l'écrit, `defs/props.ts`) — lecture VIVANTE du dataset ; l'id nu tient lieu de
  *  nom pour une référence hors catalogue, que le parse refuse nominativement (`idDe('prop')`). */
 const propLabel = (id: string): string => props.find((p) => p.id === id)?.label ?? id;
 
 /** Nom d'auteur d'une matière de RELIEF de `materials.json` (domaine filtré comme le picker,
- *  `REF_FIELD['terrains.matiere']`) — lecture VIVE, l'id nu tenant lieu de nom hors catalogue. */
+ *  `REF_FIELD['terrains.matiere']`) — lecture VIVANTE, l'id nu tenant lieu de nom hors catalogue. */
 const matiereLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'relief')?.label ?? id;
 /** Nom d'auteur d'une matière de COUVERTURE (`materials.json` domaine `roof`) — l'id nu à défaut. */
 const couvertureLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'roof')?.label ?? id;
@@ -339,35 +339,46 @@ const family = (label: string): string => label.split(' (')[0].trim();
  *  entrée cassée… — ne doit jamais faire échouer un build). */
 const refId = (category: string, label: string): string => codexLookup(category, label)?.id ?? slugId(label);
 
-/** Lien cross-réf : nom canonique pour le lookup (via le parseur PARTAGÉ `parseStatEntry` —
- *  « 8 Tentacules +8 » → « Tentacules »), libellé complet conservé pour l'affichage + l'instance. */
-const refRow = (category: string, raw: string): CodexRow => {
-  const label = statName(raw);
-  return { t: 'ref', category, id: refId(category, label), label, show: raw.trim() };
-};
-const refRows = (category: string, items?: string[] | null): CodexRow[] => (items ?? []).map((s) => refRow(category, s));
 /** Rangées de référence d'une liste de Caractéristiques : `CharKey` EST l'id de `characteristics.json`
  *  (`charKeySchema`, `grammaire/valeurs.ts`) — aucun round-trip par libellé, même patron
  *  qu'`opRows.ts` (`case 'charMod'`). */
 const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
   keys.map((k) => ({ t: 'ref', category: 'characteristics', id: k, label: CHAR_LABELS[k], show: CHAR_LABELS[k] }));
-/** Lien cross-réf par `id` STABLE DÉJÀ CONNU (skip le round-trip par libellé de `refRow` — patron
- *  `critEntryItem`/traumas) : compétence/talent référencé par un axe de forces (axes.json, #409). */
-const idRefRow = (category: 'skills' | 'talents', id: string, spec?: string): CodexRow => {
+/** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé (`refId`) : `label` =
+ *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
+const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
   const label = refLabel(category, { id, spec });
-  return { t: 'ref', category, id, label, show: label };
+  return { t: 'ref', category, id, label, show: show ?? label };
+};
+/** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
+const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
+  (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
+/** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
+const advancementRow = (category: string, a: AdvancementRef): CodexRow => {
+  if ('pick' in a) {
+    return {
+      t: 'choice', category,
+      options: a.of.map((x) => {
+        const lbl = advancementLabel(category, x);
+        const name = statName(lbl);
+        return { id: advancementBaseId(x) ?? refId(category, name), label: name, show: lbl };
+      }),
+    };
+  }
+  if ('id' in a) return idRefRow(category, a.id, a.spec, advancementLabel(category, a));
+  return { t: 'chip', label: advancementLabel(category, a) };
 };
 const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
   pairs
     .filter(([, v]) => v != null && v !== '' && v !== '–')
     .map(([k, v]) => ({ t: 'kv', k, v: String(v) } as CodexRow));
 
-/** Section de pastilles cross-réf (skip si vide). */
-const chips = (title: string, category: string, items?: string[] | null): CodexSection | null =>
-  items && items.length ? { title, layout: 'chips', rows: refRows(category, items) } : null;
+/** Section de pastilles (skip si vide). */
+const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
+  rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
  *  foyer — `id`→Possessions, `creatureId`→Créatures, `vehicleId`→Véhicules — jamais une re-résolution
- *  par libellé (`refRow`/`slugId`). `{text}` reste du texte narratif (aucune entité désignée) ;
+ *  par libellé (`refId`/`slugId`). `{text}` reste du texte narratif (aucune entité désignée) ;
  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
@@ -377,9 +388,9 @@ const trappingRefRow = (ref: TrappingRef): CodexRow => {
   // rendu n'est même pas toujours le champ (`trappingRefLabel`, `src/data/index.ts:3573-3589`, le
   // DÉCORE du compte `ref.count` — « Pamphlétaire (3) »). Même boîte que ses voisines de section.
   if ('text' in ref || 'choice' in ref || 'wildcard' in ref) return { t: 'chip', label: show };
-  if ('creatureId' in ref) return { t: 'ref', category: 'creatures', id: ref.creatureId, label: findCreatureById(ref.creatureId)?.label ?? ref.creatureId, show };
+  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
   if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
-  return { t: 'ref', category: 'trappings', id: ref.id, label: findTrappingById(ref.id)?.label ?? ref.id, show };
+  return idRefRow('trappings', ref.id, undefined, show);
 };
 const trappingRefRows = (items?: TrappingRef[] | null): CodexRow[] => (items ?? []).map(trappingRefRow);
 /** Section de pastilles de Possessions (skip si vide) — équivalent `chips` pour les `TrappingRef[]` STRUCTURÉES. */
@@ -506,23 +517,6 @@ function outcomeBandsSection(bands?: OutcomeBand[]): CodexSection | null {
  * (`careersForSpecies`, `details`, `eyes`, `hairs`). Les faits-clés (M/Destin/Résilience) restent en
  * en-tête (méta), pas ici ; le tirage aléatoire (création) est ajouté PAR le créateur.
  */
-/** Une ENTRÉE de compétence/talent de race : « A ou B » (`{pick, of}`) → ligne de CHOIX (chaque
- *  option cliquable), sinon un simple lien cross-réf. Lit l'`AdvancementRef` STRUCTURÉ (plus de split
- *  de prose). */
-const choiceOrRef = (category: string, a: AdvancementRef): CodexRow => {
-  if ('pick' in a) {
-    return {
-      t: 'choice', category,
-      options: a.of.map((x) => {
-        const lbl = advancementLabel(category, x);
-        const name = statName(lbl);
-        return { id: advancementBaseId(x) ?? refId(category, name), label: name, show: lbl };
-      }),
-    };
-  }
-  return refRow(category, advancementLabel(category, a));
-};
-
 /** Section « Caractéristiques de base » d'une race — chaque carac affiche son écart racial (±). */
 export function raceCharSection(s: (typeof species)[number]): CodexSection {
   const rows: CodexRow[] = CHAR_KEYS.map((k) => {
@@ -540,7 +534,7 @@ export function raceCharSection(s: (typeof species)[number]): CodexSection {
 
 /** Section « Compétences de race » — chips cliquables, « A ou B » éclaté en choix. */
 export function raceSkillSection(s: (typeof species)[number]): CodexSection | null {
-  const rows = s.skills.map((a) => choiceOrRef('skills', a));
+  const rows = s.skills.map((a) => advancementRow('skills', a));
   return rows.length ? { title: 'Compétences de race', layout: 'chips', rows } : null;
 }
 
@@ -548,7 +542,7 @@ export function raceSkillSection(s: (typeof species)[number]): CodexSection | nu
  *  (#393 P2, verdict juge vision P1 item 8) : les choix/tirages (« au d100 ») ne se tranchent pas ici,
  *  mais à l'étape 5 (Compétences & Talents) du créateur. */
 export function raceTalentSection(s: (typeof species)[number]): CodexSection | null {
-  const rows = s.talents.map((a) => choiceOrRef('talents', a));
+  const rows = s.talents.map((a) => advancementRow('talents', a));
   if (!rows.length) return null;
   return { title: 'Talents de race', layout: 'chips', rows: [...rows, { t: 'nb', text: 'se tranchent à l’étape 5' }] };
 }
@@ -559,7 +553,7 @@ export function raceCareerSection(s: (typeof species)[number]): CodexSection | n
   const rows: CodexRow[] = [];
   for (const cl of classes) {
     const list = accessible.filter((c) => c.class === cl.id);
-    if (list.length) rows.push({ t: 'sub', label: cl.label }, ...list.map((c) => refRow('careers', c.label)));
+    if (list.length) rows.push({ t: 'sub', label: cl.label }, ...list.map((c) => idRefRow('careers', c.id)));
   }
   return rows.length ? { title: 'Carrières accessibles', layout: 'chips', rows } : null;
 }
@@ -618,7 +612,7 @@ function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem
       ...CHAR_KEYS.map((k) => cell(charAbr(k), c.char[k], { category: 'characteristics', id: k, label: CHAR_LABELS[k] })),
       { label: 'B', value: String(wounds), kref: { category: 'characteristics', id: 'blessure', label: 'Blessure' } },
     ],
-    traits: refRows('traits', traitLabels(c.traits)),
+    traits: traitRefRows(c.traits),
   };
 }
 
@@ -642,7 +636,7 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
     ),
     sections: sections(
       capabilitySection(cap as Record<string, unknown> | undefined, TRAIT_CAP_LABEL),
-      chips('Manœuvres conférées', 'maneuvers', (t.grantsManeuvers ?? []).map((r) => refLabel('maneuvers', r))),
+      chips('Manœuvres conférées', (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
       passiveSection(t.passive), effectsSection(t.effects),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
@@ -1427,8 +1421,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           // Les Caractéristiques avancées sont des IDS (`CharKey` = id de `characteristics.json`) :
           // elles sortent en rangées de référence, jamais en phrase jointe re-appariée par libellé.
           ...(lv.characteristics.length ? [{ t: 'sub', label: 'Caractéristiques avancées' } as CodexRow, ...charRefRows(lv.characteristics)] : []),
-          ...(lv.skills.length ? [{ t: 'sub', label: 'Compétences' } as CodexRow, ...refRows('skills', lv.skills.map((a) => advancementLabel('skills', a)))] : []),
-          ...(lv.talents.length ? [{ t: 'sub', label: 'Talents' } as CodexRow, ...refRows('talents', lv.talents.map((a) => advancementLabel('talents', a)))] : []),
+          ...(lv.skills.length ? [{ t: 'sub', label: 'Compétences' } as CodexRow, ...lv.skills.map((a) => advancementRow('skills', a))] : []),
+          ...(lv.talents.length ? [{ t: 'sub', label: 'Talents' } as CodexRow, ...lv.talents.map((a) => advancementRow('talents', a))] : []),
           ...(lv.trappings.length ? [{ t: 'sub', label: 'Possessions' } as CodexRow, ...trappingRefRows(lv.trappings)] : []),
         ],
       }));
@@ -1511,7 +1505,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(fact('Portée', a.core ? 'Socle de base' : 'Axe de scénario')),
       sections: sections(
         a.skills?.length ? { title: 'Compétences', layout: 'chips', rows: a.skills.map((r) => idRefRow('skills', r.id, r.spec)) } : null,
-        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.talentId, r.spec)) } : null,
+        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.id, r.spec)) } : null,
       ),
     })),
   },
@@ -1537,7 +1531,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
         meta: facts(fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability), fact('Emplacement', t.loc), fact('Dégâts', damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips('Qualités', 'qualities', resolveQualities({ qualities: t.qualities, subType: t.subType }).map((r) => qualityRefLabel({ id: r.id, value: r.indice }))),
+          chips('Qualités', resolveQualities({ qualities: t.qualities, subType: t.subType }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: 'Propriétés', layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           ...reverseSections('trappings', t.id),
         ),
@@ -1560,7 +1554,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         fact('Portée', rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod)),
       ),
       sections: sections(
-        chips('Qualités', 'qualities', t.qualities.map(qualityRefLabel)),
+        chips('Qualités', t.qualities.map((q) => idRefRow('qualities', q.id, undefined, qualityRefLabel(q)))),
         ...reverseSections('trappings', t.id),
       ),
     })),
@@ -1725,9 +1719,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => gods.map((c) => depuisEnveloppe(c, {
       sub: c.title,
       sections: sections(
-        chips('Bénédictions', 'spells', c.blessings.map((b) => refLabel('spells', b))),
-        chips('Miracles', 'spells', c.miracles.map((m) => refLabel('spells', m))),
-        chips('Sorts du Chaos', 'spells', (c.chaosSpells ?? []).map((s) => refLabel('spells', s))),
+        chips('Bénédictions', c.blessings.map((id) => idRefRow('spells', id))),
+        chips('Miracles', c.miracles.map((id) => idRefRow('spells', id))),
+        chips('Sorts du Chaos', (c.chaosSpells ?? []).map((id) => idRefRow('spells', id))),
       ),
     })),
   },
@@ -1753,11 +1747,11 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
       sections: sections(
         { title: 'Caractéristiques', layout: 'grid', rows: kvRows(Object.entries(c.char)) },
-        chips('Traits', 'traits', traitLabels(c.traits)),
-        chips('Traits optionnels', 'traits', optionalLabels(c.optionals)),
-        chips('Compétences', 'skills', c.skills.map(skillRefLabel)), // SkillRef[] → libellés « Calme 58 »
-        chips('Talents', 'talents', c.talents.map(talentRefLabel)), // TalentRef[] → libellés « Magie des Arcanes (Ghur) »
-        chips('Sorts', 'spells', c.spells.map((s) => refLabel('spells', s))),
+        chips('Traits', traitRefRows(c.traits)),
+        chips('Traits optionnels', (c.optionals ?? []).map((e) => (isOptionalNote(e) ? { t: 'chip', label: e.label } as CodexRow : idRefRow('traits', e.id, undefined, formatTrait(e))))),
+        chips('Compétences', c.skills.map((r) => idRefRow('skills', r.id, r.spec, skillRefLabel(r)))),
+        chips('Talents', c.talents.map((r) => idRefRow('talents', r.id, r.spec, talentRefLabel(r)))),
+        chips('Sorts', c.spells.map((id) => idRefRow('spells', id))),
         trappingChips('Possessions', c.trappings),
         c.harvest
           ? {
@@ -1815,8 +1809,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sub: lv.status, group: findCareerById(lv.career)?.label ?? lv.career,
       sections: sections(
         lv.characteristics.length ? { title: 'Caractéristiques avancées', layout: 'chips', rows: charRefRows(lv.characteristics) } : null,
-        chips('Compétences', 'skills', lv.skills.map((a) => advancementLabel('skills', a))),
-        chips('Talents', 'talents', lv.talents.map((a) => advancementLabel('talents', a))),
+        chips('Compétences', lv.skills.map((a) => advancementRow('skills', a))),
+        chips('Talents', lv.talents.map((a) => advancementRow('talents', a))),
         trappingChips('Possessions', lv.trappings),
       ),
     })),
@@ -1871,7 +1865,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     })),
   },
   {
-    key: 'raceAppearance', label: 'Apparences (rig)', group: 'Tables', cluster: 'Création de personnage',
+    key: 'raceAppearance', label: 'Apparences', group: 'Tables', cluster: 'Création de personnage',
     build: () => raceAppearance.map((r) => ({
       id: r.id, label: r.label, sub: r.gabarit, appearance: { species: r.id },
       meta: facts(fact('Gabarit', r.gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
@@ -1883,7 +1877,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       id: p.id,
       label: p.label, sub: join(findSpeciesById(p.species)?.label ?? p.species, findCareerById(p.career)?.label ?? p.career),
       meta: facts(fact('Motivation', p.motivation), fact('Graine', p.seed)),
-      sections: p.pettySpells?.length ? sections(chips('Sorts', 'pettySpells', p.pettySpells)) : undefined,
+      sections: p.pettySpells?.length ? sections(chips('Sorts', p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
     })),
   },
   {
@@ -1922,7 +1916,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         fact('Résolveur', a.resolver ?? null),
       ),
       sections: sections(
-        chips('Compétences (au choix)', 'skills', (a.skills ?? []).map((s) => refLabel('skills', { id: s.id, spec: s.spec }))),
+        chips('Compétences (au choix)', (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),
       ),
@@ -2044,7 +2038,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(
         fact('BE', s.char.BE), fact('Blessures', s.char.B), fact('Fortifiée', s.fortified ? 'oui' : null),
       ),
-      sections: sections(chips('Atouts', 'traits', traitLabels(s.traits as unknown as import('../../engine/statEntry').TraitList))),
+      sections: sections(chips('Atouts', traitRefRows(s.traits as unknown as TraitList))),
     })),
   },
   {
@@ -2167,14 +2161,14 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'crewRoles', label: 'Rôles d’équipage', group: 'Monde',
     build: () => crewRoles.map((r) => depuisEnveloppe(r, {
-      sections: sections(chips('Compétences', 'skills', r.skills.map((sk) => refLabel('skills', { id: sk.id, spec: sk.spec })))),
+      sections: sections(chips('Compétences', r.skills.map((sk) => idRefRow('skills', sk.id, sk.spec)))),
     })),
   },
   {
     key: 'crewTestTypes', label: 'Tests d’équipage (types)', group: 'Monde',
     build: () => crewTestTypes.map((t) => depuisEnveloppe(t, {
       meta: facts(fact('Rôle essentiel', crewRoles.find((r) => r.id === t.essential)?.label ?? t.essential)),
-      sections: sections(chips('Rôles contributeurs', 'crewRoles', t.roles.map((id) => crewRoles.find((r) => r.id === id)?.label ?? id))),
+      sections: sections(chips('Rôles contributeurs', t.roles.map((id) => idRefRow('crewRoles', id)))),
     })),
   },
   {
@@ -2531,7 +2525,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => MOUNT_PROFILES.map((p) => ({
       id: p.id, label: p.label,
       meta: facts(fact('Mouvement', p.m), fact('Endurance', p.e), fact('Trotte', p.trot ? 'oui' : 'non')),
-      sections: sections(chips('Bêtes liées', 'creatures', p.creatureIds.map((id) => findCreatureById(id)?.label ?? id))),
+      sections: sections(chips('Bêtes liées', p.creatureIds.map((id) => idRefRow('creatures', id)))),
     })),
   },
   {
@@ -2764,20 +2758,23 @@ export function combatantSections(c: Combatant): CodexSection[] {
     { t: 'kv', k: 'Taille', v: SIZE_LABEL[effectiveSize(c.size)] }, // Taille : pas une caractéristique → pas de lien Codex
   ];
   const skillRows: CodexRow[] = (c.skills ?? []).map((s) =>
-    refRow('skills', `${skillInstanceLabel(s)} ${skillBaseValue(c, s.id, s.spec)}`),
+    idRefRow('skills', s.id, s.spec, `${skillInstanceLabel(s)} ${skillBaseValue(c, s.id, s.spec)}`),
   );
-  // Comme les compétences/talents/sorts : chaque arme est une ENTITÉ (CodexRef vers sa fiche Codex
-  // « trappings » — popover au survol + clic — repli gracieux en texte pour une arme naturelle hors
-  // catalogue type « Morsure »), avec les Dégâts en BADGE (damageString, jamais l'objet brut).
-  const weaponRows: CodexRow[] = (c.weapons ?? []).map((w) => ({ t: 'ref', category: 'trappings', id: refId('trappings', w.label), label: w.label, show: w.label, badge: damageString(w.damage) }));
+  // Arme liée par son identité de catalogue (`trappingId`, sinon `builtinId`, `engine/types.ts`
+  // `Weapon`) ; sans elle, pastille nue. Dégâts en badge (`damageString`).
+  const weaponRows: CodexRow[] = (c.weapons ?? []).map((w) => {
+    const badge = damageString(w.damage);
+    const id = w.trappingId ?? w.builtinId;
+    return id ? { ...idRefRow('trappings', id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
+  });
   const worn = ARMOUR_LOCS.filter((l) => (c.armour?.[l] ?? 0) > 0);
   return sections(
     { title: 'Caractéristiques', layout: 'grid', rows: charRows },
     weaponRows.length ? { title: 'Armes', layout: 'chips', rows: weaponRows } : null,
     worn.length ? { title: 'Armure', layout: 'list', rows: [{ t: 'text', text: worn.map((l) => `${HIT_LOCATION_LABELS[l]} ${c.armour![l]}`).join(' · ') }] } : null,
-    chips('Traits', 'traits', traitLabels(c.traits)),
+    chips('Traits', traitRefRows(c.traits)),
     skillRows.length ? { title: 'Compétences', layout: 'chips', rows: skillRows } : null,
-    chips('Talents', 'talents', (c.talents ?? []).map((t) => talentConcrete(t))),
-    chips('Sorts', 'spells', (c.spells ?? []).map((id) => refLabel('spells', { id }))),
+    chips('Talents', (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
+    chips('Sorts', (c.spells ?? []).map((id) => idRefRow('spells', id))),
   );
 }

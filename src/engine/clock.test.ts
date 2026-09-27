@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { IMPERIAL_MONTHS, INTERCALARY, WEEKDAYS, DAYS_PER_YEAR, daysPerYear, MINUTES_PER_DAY, toDate, fromDate, formatImperial, campaignStart, dayPhase, isNight, minutesUntilNext, DAWN_MINUTE, DUSK_MINUTE, DAY_PHASES, ancreDePhase } from './clock';
+import { IMPERIAL_MONTHS, INTERCALARY, WEEKDAYS, daysPerYear, MINUTES_PER_DAY, toDate, fromDate, formatImperial, campaignStart, dayPhase, isNight, minutesUntilNext, dawnMinute, duskMinute, DAY_PHASES, ancreDePhase } from './clock';
 import { setDataset } from '../data/overrides';
 import { calendarMonths } from '../data';
 
@@ -9,11 +9,11 @@ describe('clock — calendrier impérial', () => {
     expect(IMPERIAL_MONTHS[0]).toMatchObject({ label: 'Nachhexen', days: 32 });
     expect(INTERCALARY).toHaveLength(6);
     expect(WEEKDAYS).toHaveLength(8);
-    expect(DAYS_PER_YEAR).toBe(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0) + INTERCALARY.length); // 394 + 6 = 400
+    expect(daysPerYear()).toBe(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0) + INTERCALARY.length); // 394 + 6 = 400
   });
 
   it('année = 400 jours (canon EiS Annexe 3 l.20/68) ; mois = 394 = 2×32 + 10×33', () => {
-    expect(DAYS_PER_YEAR).toBe(400);
+    expect(daysPerYear()).toBe(400);
     expect(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0)).toBe(394);
     expect(IMPERIAL_MONTHS.filter((m) => m.days === 32).map((m) => m.label)).toEqual(['Nachhexen', 'Nachgeheim']);
   });
@@ -35,14 +35,14 @@ describe('clock — calendrier impérial', () => {
 
   it('les jours intercalaires sont HORS du cycle hebdomadaire (weekday = null)', () => {
     expect(toDate(0).weekday).toBeNull(); // Hexenstag
-    expect(toDate(66 * MINUTES_PER_DAY).weekday).toBeNull(); // Mitterfrühl
+    expect(toDate(66 * MINUTES_PER_DAY).weekday).toBeNull(); // Mitterfruhl
     expect(toDate(MINUTES_PER_DAY).weekday).toBe('Wellentag'); // 1 Nachhexen 2512 (ancre)
   });
 
   it('la semaine enjambe les intercalaires sans les compter (canon : « bridge uninterrupted »)', () => {
-    // Hexenstag(0) Nachhexen(1..32) Jahrdrung(33..65) Mitterfrühl(66) Pflugzeit(67..)
+    // Hexenstag(0) Nachhexen(1..32) Jahrdrung(33..65) Mitterfruhl(66) Pflugzeit(67..)
     const lastJahrdrung = toDate(65 * MINUTES_PER_DAY); // 33 Jahrdrung
-    const festival = toDate(66 * MINUTES_PER_DAY); // Mitterfrühl
+    const festival = toDate(66 * MINUTES_PER_DAY); // Mitterfruhl
     const firstPflugzeit = toDate(67 * MINUTES_PER_DAY); // 1 Pflugzeit
     expect(festival.weekday).toBeNull();
     // Les deux jours de mois de part et d'autre de la fête ont des jours de semaine CONSÉCUTIFS.
@@ -62,10 +62,10 @@ describe('clock — calendrier impérial', () => {
     expect(d).toMatchObject({ year: 2512, monthName: 'Nachhexen', day: 1, hour: 0, minute: 0, intercalary: null });
   });
 
-  it('franchit l’intercalaire Mitterfrühl entre Jahrdrung et Pflugzeit', () => {
-    // Hexenstag(1) + Nachhexen(32) + Jahrdrung(33) = 66 jours → jour 66 = Mitterfrühl
+  it('franchit l’intercalaire Mitterfruhl entre Jahrdrung et Pflugzeit', () => {
+    // Hexenstag(1) + Nachhexen(32) + Jahrdrung(33) = 66 jours → jour 66 = Mitterfruhl
     const d = toDate(66 * MINUTES_PER_DAY);
-    expect(d.intercalary).toBe('Mitterfrühl');
+    expect(d.intercalary).toBe('Mitterfruhl');
   });
 
   it('formatImperial affiche date + heure françaises', () => {
@@ -128,13 +128,13 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
   // l'une en POSITIONNEL (`DAY_PHASES[0]`), l'autre avec un REPLI (`[length - 2]`, qui désigne
   // 'soir' — 20:00, pas 18:00) : deux heures fausses en silence si la donnée bougeait.
   it('ancres DAWN/DUSK : résolues par id sur `calendarPhases.json`, valeurs du dataset réel', () => {
-    expect(DAWN_MINUTE).toBe(300); // 05:00
-    expect(DUSK_MINUTE).toBe(1080); // 18:00
+    expect(dawnMinute()).toBe(300); // 05:00
+    expect(duskMinute()).toBe(1080); // 18:00
     // Chaque ancre est bien LA phase demandée, pas sa voisine de position.
-    expect(DAY_PHASES.find((p) => p.id === 'aube')?.start).toBe(DAWN_MINUTE);
-    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.start).toBe(DUSK_MINUTE);
+    expect(DAY_PHASES.find((p) => p.id === 'aube')?.start).toBe(dawnMinute());
+    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.start).toBe(duskMinute());
     // TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.
-    expect(DAY_PHASES.find((p) => p.id === 'soir')?.start).not.toBe(DUSK_MINUTE);
+    expect(DAY_PHASES.find((p) => p.id === 'soir')?.start).not.toBe(duskMinute());
   });
 
   it('`ancreDePhase` : une ancre absente FAIL-FAST, et le message nomme donnée + id + ids présents', () => {

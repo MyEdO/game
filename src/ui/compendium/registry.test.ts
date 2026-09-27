@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
 import { codexMatch, deburr, filterItems, facetValues } from './search';
 import { isEditableCategory } from './CodexEdit';
-import { creatures, etats, trappings, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
+import { creatures, etats, trappings, gods, spells, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
@@ -596,6 +596,46 @@ describe('Codex registry — Effets de Saturation par Vent (libellé de Domaine 
       const domain = findDomainById(w.domainId)!;
       const item = rows.find((i) => i.id === w.id)!;
       expect(item.label).toBe(`${w.wind} — ${domain.label}`);
+    }
+  });
+});
+
+describe('Codex — rangées de référence par id (#1897)', () => {
+  /** Ids des rangées 'ref' d'une section titrée de la fiche. */
+  const refIdsOf = (item: CodexItem | undefined, title: string): string[] =>
+    (item?.sections ?? []).filter((s) => s.title === title).flatMap((s) => s.rows).flatMap((r) => (r.t === 'ref' ? [r.id] : []));
+  const HOMONYMES: [string, string][] = [['enchevetrement', 'enchevetrement-2'], ['crevasse', 'crevasse-lumiere'], ['brume-mystique', 'brume-mystique-magie-du-marais']];
+
+  it('les homonymes de spells.json partagent leur libellé (plié) sous deux ids', () => {
+    for (const [a, b] of HOMONYMES) {
+      const la = spells.find((x) => x.id === a)?.label, lb = spells.find((x) => x.id === b)?.label;
+      expect(la && lb && deburr(la).toLowerCase() === deburr(lb).toLowerCase(), `${a}/${b}`).toBe(true);
+    }
+  });
+
+  it('Taal › Miracles › Enchevêtrement pointe enchevetrement-2', () => {
+    const taal = categoryByKey('gods')!.items.find((i) => i.id === 'taal');
+    expect(refIdsOf(taal, 'Miracles')).toContain('enchevetrement-2');
+    expect(refIdsOf(taal, 'Miracles')).not.toContain('enchevetrement');
+  });
+
+  it('chaque divinité lie EXACTEMENT les ids de sa donnée', () => {
+    const cat = categoryByKey('gods')!;
+    for (const g of gods) {
+      const item = cat.items.find((i) => i.id === g.id);
+      expect(refIdsOf(item, 'Bénédictions'), `${g.id} bénédictions`).toEqual(g.blessings);
+      expect(refIdsOf(item, 'Miracles'), `${g.id} miracles`).toEqual(g.miracles);
+      expect(refIdsOf(item, 'Sorts du Chaos'), `${g.id} chaos`).toEqual(g.chaosSpells ?? []);
+    }
+  });
+
+  it('chaque créature lie EXACTEMENT les ids de ses sorts, compétences et talents', () => {
+    const cat = categoryByKey('creatures')!;
+    for (const c of creatures) {
+      const item = cat.items.find((i) => i.id === c.id);
+      expect(refIdsOf(item, 'Sorts'), `${c.id} sorts`).toEqual(c.spells);
+      expect(refIdsOf(item, 'Compétences'), `${c.id} compétences`).toEqual(c.skills.map((r) => r.id));
+      expect(refIdsOf(item, 'Talents'), `${c.id} talents`).toEqual(c.talents.map((r) => r.id));
     }
   });
 });

@@ -15,12 +15,12 @@
 // les fichiers de test qu'il joue.
 //
 // CONDITION DE LICÉITÉ : l'arbre scanné est STATIQUE pendant un run. Sous vitest, l'unique écrivain
-// de `src/**` est `genAll()` du plugin `registryGen` (`vite.config.ts:18`, hook `buildStart`) : il
-// écrit `src/**/_registry.generated.ts` dans le processus vite-node PRINCIPAL, avant le démarrage
-// des workers, et seulement quand le contenu diffère (`scripts/gen-registry.mjs:426,711`). Les
-// autres écrivains de l'arbre sont des gates, jouées EN SÉRIE avant les lanes de lecture
-// (`AVANT_LES_LANES`, `scripts/gates/toutes.mjs:248`). Un appelant qui écrirait dans un dossier
-// scanné entre deux lectures a sa porte : `viderCorpus()`.
+// de `src/**` est `genAll()` du plugin `registryGen` (`vite.config.ts`, hook `buildStart`) : il
+// écrit `src/**/_registry.generated.ts` et `src/data/schemas/_art.generated.ts` dans le processus
+// vite-node PRINCIPAL, avant le démarrage des workers, et seulement quand le contenu diffère (`genOne`,
+// `genArt` de `scripts/gen-registry.mjs`). Les autres écrivains de l'arbre sont des gates, jouées EN
+// SÉRIE avant les lanes de lecture (`AVANT_LES_LANES`, `scripts/gates/toutes.mjs`). Un appelant qui
+// écrirait dans un dossier scanné entre deux lectures a sa porte : `viderCorpus()`.
 //
 // PRIX : le corpus est RETENU par le worker jusqu'à sa fin. Mesuré 2026-09-07 sur cet arbre, toutes
 // les clés des appelants co-résidentes : 132,1 Mo de texte pour 8 clés (dont 35,9 Mo pour

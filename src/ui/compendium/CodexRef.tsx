@@ -237,9 +237,9 @@ export function CodexRef({
   // congédiement (Échap, B) le referme, et s'arrête là — il n'ouvre plus le menu système derrière.
   // Une couche ouverte AU-DESSUS (modale, panneau-paramètre) recouvre la surface : le popover, qui
   // n'était qu'une infobulle posée sur l'écran d'en dessous, se retire au lieu de rester dessous.
-  // Sa bulle est inscrite comme surface NON modale : jamais le dialogue du dessus, mais la manette y
-  // navigue quand elle tient le focus (`surfaceFocalisee`).
-  useDismissLayer('popover-codex', unpin, pinned || !!pos, unpin, { boite: popRef, dialogue: false });
+  // Sa bulle est une couche POPOVER du plan d'APPLICATION : jamais le dialogue du dessus, mais la
+  // manette y navigue quand elle tient le focus (`surfaceFocalisee`).
+  useDismissLayer({ kind: 'popover-codex', nature: 'popover', plan: 'application', boite: popRef }, unpin, pinned || !!pos, unpin);
 
   useEffect(() => {
     if (!pinned && !pos) return;

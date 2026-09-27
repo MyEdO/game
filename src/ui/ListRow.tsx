@@ -10,11 +10,13 @@ import type { ReactNode } from 'react';
  * `variant` = la famille de style, portée en `data-variant` sur la balise : `insp` (panneaux de
  * l'ÉDITEUR) ou `codex` (écrans de consultation du JEU) — les deux vivent chez `.listrow`
  * (components.css). Les puces se passent en `children` (`<span className="chip">`) : la rangée décide
- * de leur PLACE, jamais de leur contenu.
+ * de leur PLACE, jamais de leur contenu. Une méta qui n'est pas une puce (une date, une ligne
+ * descriptive) passe en `subtitle` : elle se range SOUS le nom, dans sa colonne.
  */
 export function ListRow({
   onClick,
   label,
+  subtitle,
   title,
   selected,
   variant = 'insp',
@@ -23,6 +25,8 @@ export function ListRow({
   onClick: () => void;
   /** Colonne gauche : icône + libellé. */
   label: ReactNode;
+  /** Ligne secondaire sous le libellé, dans la colonne du nom (encre `.muted`). */
+  subtitle?: ReactNode;
   title?: string;
   /** Sélection SIMPLE : la rangée élue est l'item COURANT de son ensemble (`aria-current`), pas un
    *  interrupteur — les rangées non élues n'annoncent donc rien. Absent = la liste ne porte AUCUNE
@@ -41,7 +45,10 @@ export function ListRow({
       aria-current={selected ? 'true' : undefined}
       onClick={onClick}
     >
-      <span className="lr-name">{label}</span>
+      <span className="lr-name">
+        {label}
+        {subtitle != null && <span className="lr-sub muted">{subtitle}</span>}
+      </span>
       {children}
     </button>
   );

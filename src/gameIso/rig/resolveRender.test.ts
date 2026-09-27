@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { resolveRender, resolveById, resolveSpecies } from './bodyPlan';
+import { resolveRender, resolveById, resolveSpecies, planById } from './bodyPlan';
+import { bonesToSvg } from './renderBones';
+import { MISSING_ART } from './viewArt';
 import { defById } from './creatures';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { creatures } from '../../data';
@@ -37,9 +39,25 @@ describe('resolveRender — résolution de rendu 100% data-driven (par id d’es
     expect(resolveSpecies('liche')).toMatchObject({ kind: 'rig', plan: 'biped', species: 'liche' });
   });
 
-  it('une espèce INCONNUE (rôle générique sans def) → bipède (rig) ; l’espèce explicite est conservée', () => {
-    // L'arg explicite gagne et est préservé tel quel ; sans def il rend en bipède (race via baseSpeciesOf).
+  it('une espèce HORS DOMAINE (libellé, rôle sans def) → corps d’erreur `manquant`, l’espèce conservée pour le diagnostic', () => {
     for (const n of ['Cultiste', 'Soldat', 'Rôle totalement inconnu xyz'])
-      expect(resolveSpecies(n), n).toMatchObject({ kind: 'rig', plan: 'biped', species: n });
+      expect(resolveSpecies(n), n).toMatchObject({ kind: 'plan', plan: 'manquant', species: n });
+    // Même porte pour l'espèce du RECORD et pour une entité à trait Nuée.
+    expect(resolveRender('zzz', [{ id: 'nuee' }], undefined)).toMatchObject({ kind: 'plan', plan: 'manquant' });
+  });
+
+  it('une espèce JOUABLE (`species.json`) sans def rend en bipède', () => {
+    expect(resolveSpecies('humains-reiklander')).toMatchObject({ kind: 'rig', plan: 'biped', species: 'humains-reiklander' });
+  });
+
+  it('une FORME DE NUÉE sans le trait Nuée → corps d’erreur ; avec le trait → swarm', () => {
+    expect(resolveSpecies('rats')).toMatchObject({ kind: 'plan', plan: 'manquant', species: 'rats' });
+    expect(resolveRender('rats', [{ id: 'nuee' }], undefined)).toMatchObject({ kind: 'plan', plan: 'swarm', species: 'rats' });
+  });
+
+  it('le gabarit `manquant` dessine la silhouette de repli visible (#223), dans toutes les vues', () => {
+    for (const vue of ['front', 'profile', 'back'] as const)
+      expect(bonesToSvg(planById('manquant').resolve('zzz', vue, {})), vue).toContain('M-22 -52 L22 -4');
+    expect(MISSING_ART.profile!()).toContain('M-22 -52 L22 -4');
   });
 });

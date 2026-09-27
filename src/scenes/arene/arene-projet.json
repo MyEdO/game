@@ -2,7 +2,7 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "schema": 14,
+ "schema": 17,
  "icon": "scenario/arena",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",
@@ -3543,7 +3543,7 @@
          "next": "contrats"
         },
         {
-         "label": "Crocheter le vieux coffre du maître (Test de Crochetage).",
+         "label": "Crocheter le vieux coffre du maître.",
          "icon": "ui/lock",
          "when": {
           "kind": "flag",
@@ -4423,7 +4423,7 @@
          }
         },
         {
-         "label": "Repas chaud pour le groupe — 4 pa.",
+         "label": "Repas chaud pour le groupe.",
          "icon": "rest/stew",
          "cost": {
           "silver": 4
@@ -4638,7 +4638,7 @@
          }
         },
         {
-         "label": "Faire un don au tronc — 1 co.",
+         "label": "Faire un don au tronc.",
          "icon": "resource/gold-purse",
          "cost": {
           "gold": 1
@@ -4657,7 +4657,7 @@
          }
         },
         {
-         "label": "Piller le tronc des offrandes (Test de Discrétion).",
+         "label": "Piller le tronc des offrandes.",
          "icon": "action/pick-up",
          "when": {
           "kind": "flag",
@@ -15834,7 +15834,7 @@
        "desc": "« Psst ! Par ici ! Les hommes-rats m’engraissent pour leur table — la serrure est grossière, sortez-moi de là ! »",
        "choices": [
         {
-         "label": "Crocheter la cage (Test de Crochetage).",
+         "label": "Crocheter la cage.",
          "icon": "ui/lock",
          "when": {
           "kind": "flag",

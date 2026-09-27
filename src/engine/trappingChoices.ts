@@ -1,6 +1,6 @@
 /**
  * Résolveur de `TrappingRef` `{choice}`/`{wildcard}` (construct de choix d'équipement, Lot 1/3 —
- * EN MIROIR de `resolveEntry`/`advancementLabel` pour `AdvancementRef`, `src/data/index.ts`).
+ * EN MIROIR de `advancementLabel` pour `AdvancementRef`, `src/data/index.ts`).
  */
 import type { TrappingRef } from '../data/index';
 import { trappingRefLabel, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality } from '../data/index';

@@ -40,7 +40,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 function monte(n: GameState['net']) {
-  useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], net: n, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'e1' } });
+  useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], net: n, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'e1', session: 1 } });
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);

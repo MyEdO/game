@@ -8,7 +8,7 @@ import { projectsLoad, projectRemove, nomDeProjet, SavedProject } from '../../st
 import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
 import { exigerUnRefus, type ProjetRefuse } from '../../state/worldMap';
-import { cheminLisible, type Faute } from '../../data/schemas/validate';
+import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
 import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 
 /** Un refus RENDU à l'auteur : `message` en mots d'auteur, `detail` = le rapport de la porte
@@ -34,7 +34,8 @@ export function ChipDeRefus({ refus }: { refus: RefusRendu }) {
 }
 
 /**
- * Les gestes qui font passer un document par la porte `parseProject`, chacun avec le VERBE de son
+ * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
+ * `migreSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
  * refus, la CONSÉQUENCE qu'il ÉNONCE, et ce qu'il dit d'un projet SANS NOM. UNE table : ces chaînes
  * ne sont pas libres, un appelant ne peut pas les désaccorder — « Import refusé : ce projet ne
  * pourrait plus être rouvert » serait faux, rien n'ayant jamais été ouvert ni écrit.
@@ -65,6 +66,11 @@ const GESTES_DE_PORTE = {
     consequence: 'ce projet ne pourrait pas être joué',
     sansNom: 'Ce projet n’a pas de nom : impossible de le mettre à l’essai tel quel.',
   },
+  reprise: {
+    verbe: 'Restauration refusée',
+    consequence: 'cette sauvegarde locale ne peut pas être restaurée',
+    sansNom: 'Cette sauvegarde locale n’a pas de nom : impossible de la restaurer telle quelle.',
+  },
 } as const;
 
 /** Geste dont la porte du document peut opposer un refus — union FERMÉE. */
@@ -74,20 +80,14 @@ export type GesteDePorte = keyof typeof GESTES_DE_PORTE;
  *  contenu ne sauvera le projet. credo.md:7, 1ʳᵉ phrase. */
 const estSansNom = (f: Faute): boolean => f.chemin.length === 1 && (f.chemin[0] === 'id' || f.chemin[0] === 'label');
 
-/** Où vit la faute, en mots d'AUTEUR : la scène et l'entité telles qu'il les NOMME à l'écran, sinon
- *  le champ racine sous son LIBELLÉ de document (`projetDoc.meta`). Un chemin de schéma
- *  (`scenes.0.entities.3.ref`) ne désigne rien qu'il puisse aller corriger ; ce qui ne se résout pas
- *  est rendu TEL QUEL plutôt que passé sous silence. */
-function ouVitLaFaute(chemin: Faute['chemin'], doc: unknown): string {
-  const [racine, iScene, entites, iEntite] = chemin;
-  if (racine === 'scenes' && typeof iScene === 'number' && entites === 'entities' && typeof iEntite === 'number') {
-    const scenes = (doc as { scenes?: { id?: string; label?: string; entities?: { id?: string; label?: string }[] }[] } | null)?.scenes;
-    const sc = scenes?.[iScene];
-    const ent = sc?.entities?.[iEntite];
-    if (sc && ent) return `scène « ${sc.label ?? sc.id} », entité « ${ent.label ?? ent.id} »`;
-  }
-  const libelle = typeof racine === 'string' ? projetDoc.meta[racine]?.label : undefined;
-  return cheminLisible(libelle ? [libelle, ...chemin.slice(1)] : chemin);
+/** Le lieu d'une faute en mots d'AUTEUR : le champ RACINE sous son LIBELLÉ de document
+ *  (`projetDoc.meta`), chaque élément à clé par son libellé (sa clé à défaut). */
+function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
+  const [racine, ...suite] = lieu;
+  const libelleDe = (champ: string): string => projetDoc.meta[champ]?.label ?? champ;
+  const tete: SegmentDeLieu | undefined =
+    typeof racine === 'string' ? libelleDe(racine) : typeof racine === 'object' ? { ...racine, liste: libelleDe(racine.liste) } : racine;
+  return cheminLisible(tete === undefined ? [] : [tete, ...suite], (element) => element.libelle ?? element.cle);
 }
 
 /** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE : le rapport technique reste en détail. */
@@ -105,7 +105,7 @@ const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> 
  * faute ; les suivantes sont COMPTÉES. Le rapport de la porte reste en `detail` dès que le message
  * ne le reprend pas. Toute autre erreur n'est pas un refus de la porte : elle remonte telle quelle.
  */
-export function refusDeLaPorteDuProjet(erreur: unknown, doc: unknown, geste: GesteDePorte): RefusRendu {
+export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): RefusRendu {
   exigerUnRefus(erreur);
   const { verbe, consequence, sansNom } = GESTES_DE_PORTE[geste];
   if (erreur.cause !== 'schema') {
@@ -114,9 +114,9 @@ export function refusDeLaPorteDuProjet(erreur: unknown, doc: unknown, geste: Ges
   if (erreur.fautes.some(estSansNom)) return { message: sansNom, detail: erreur.message };
   const [premiere, ...autres] = erreur.fautes;
   const suite = autres.length > 0 ? ` (et ${autres.length} autre${autres.length > 1 ? 's' : ''} à corriger)` : '';
-  // Une phrase reprend en MAJUSCULE après le point : `ouVitLaFaute` rend un fragment (« scène … »),
+  // Une phrase reprend en MAJUSCULE après le point : `lieuDAuteur` rend un fragment (« Scènes … »),
   // il est donc INTRODUIT au lieu d'être recollé nu derrière la ponctuation.
-  const message = `${verbe} : ${consequence}. Faute : ${ouVitLaFaute(premiere.chemin, doc)} — ${premiere.message}${suite}`;
+  const message = `${verbe} : ${consequence}. Faute : ${lieuDAuteur(premiere.lieu)} — ${premiere.message}${suite}`;
   return autres.length > 0 ? { message, detail: erreur.message } : { message };
 }
 

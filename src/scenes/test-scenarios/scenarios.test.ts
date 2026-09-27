@@ -3,7 +3,7 @@ import { testScenarios } from './index';
 import { validateScene } from '../../state/validateScene';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
-import { terrainEntree } from '../../state/terrain';
+import { refs } from '../../data/schemas/grammaire/ref';
 
 describe('Batterie de scénarios de test', () => {
   it('couvre au moins 6 scénarios', () => {
@@ -13,26 +13,19 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s a un groupe de héros non vide et une scène cohérente',
     (_id, s) => {
-      const party = s.makeParty();
+      const { party, scene } = s.construire();
       expect(party.length).toBeGreaterThanOrEqual(1);
       expect(party.every((h) => h.kind === 'hero')).toBe(true);
-      expect(s.scene.layers[0].tiles.length).toBe(s.scene.dimensions.w * s.scene.dimensions.h);
-      if (s.autoCombat) expect(s.scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
+      if (s.autoCombat) expect(scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
     },
   );
   /**
-   * FILET des scènes TS (#1690). Le schéma refuse AU PARSE une tuile qui nomme un sol absent de
-   * `terrains.json` (`layerSchema.tiles: idDe('terrain')`), mais les scénarios de test sont
-   * construits EN CODE et ne passent par aucun parse : sans cette garde, un id de sol mort y peindrait
-   * le repli d'alarme sans que rien ne le dise. DÉRIVÉE — aucune liste d'ids récitée.
+   * Sorts des HÉROS posés EN CODE (`construire`) : aucun document ne les porte, donc aucun schéma de
+   * scène ne les voit — la porte est celle de la grammaire (`refs('spell')`). DÉRIVÉE.
    */
-  it('tout id de TERRAIN posé par une scène TS existe dans `terrains.json`', () => {
-    const morts: string[] = [];
-    for (const s of testScenarios)
-      for (const l of s.scene.layers)
-        for (const t of new Set(l.tiles))
-          if (!terrainEntree(t)) morts.push(`${s.id} z=${l.z} : « ${t} »`);
-    expect([...new Set(morts)], `sol(s) absent(s) du dataset : ${morts.join(' | ')}`).toEqual([]);
+  it.each(testScenarios.map((s) => [s.id, s] as const))('les sorts des héros du scénario %s existent dans `spells.json`', (_id, s) => {
+    const verdict = refs('spell').safeParse(s.construire().party.flatMap((h) => h.spells ?? []));
+    expect(verdict.success ? [] : verdict.error.issues.map((i) => i.message)).toEqual([]);
   });
 
   it('contient les piliers Embuscade et Magie', () => {
@@ -40,9 +33,9 @@ describe('Batterie de scénarios de test', () => {
     expect(testScenarios.find((s) => s.id === 'magie')).toBeTruthy();
   });
   it('résout une espèce de rig pour les cinq mutants de l’Embuscade', () => {
-    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!;
-    const encounter = embuscade.scene.encounters.find((e) => e.id === 'enc-mutants')!;
-    const entities = new Map(embuscade.scene.entities.map((e) => [e.id, e]));
+    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!.construire().scene;
+    const encounter = embuscade.encounters.find((e) => e.id === 'enc-mutants')!;
+    const entities = new Map(embuscade.entities.map((e) => [e.id, e]));
     assert(encounter.members?.length, 'enc-mutants doit contenir ses cinq membres');
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
@@ -63,8 +56,9 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s passe validateScene sans erreur',
     (id, s) => {
-      const project = [s.scene, ...(s.extraScenes ?? [])];
-      const errors = validateScene(project, s.worldMap).filter((w) => w.level === 'error');
+      const c = s.construire();
+      const project = [c.scene, ...(c.extraScenes ?? [])];
+      const errors = validateScene(project, c.worldMap).filter((w) => w.level === 'error');
       expect(errors, `scénario « ${id} » : ${errors.map((e) => `[${e.scope}${e.refId ? `:${e.refId}` : ''}] ${e.message}`).join(' | ')}`).toEqual([]);
     },
   );

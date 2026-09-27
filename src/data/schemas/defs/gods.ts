@@ -1,11 +1,10 @@
 /**
  * Schéma de `gods.json` — dérivé du contenu RÉEL (41 entrées, script d'inventaire) et de
- * `GodData` (`src/data/index.ts`). `blessings`/`miracles`/`chaosSpells` = `Ref[]` (par id de
- * sort) — même petite forme que `TrappingRef`/`AdvancementRef`, PROMUE dans `grammaire/reference.ts`.
+ * `GodData` (`src/data/index.ts`). `blessings`/`miracles`/`chaosSpells` = ids de sort (`refs('spell')`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { refSchema } from '../grammaire/reference';
+import { refs } from '../grammaire/ref';
 
 export const file = 'gods.json';
 export const famille = 'entite';
@@ -18,11 +17,11 @@ const doc = document(
      *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupsFor`). Absent = aucun Groupe. */
     grantGroups: z.array(z.string()).optional(),
     title: z.string().optional(),
-    blessings: z.array(refSchema),
-    miracles: z.array(refSchema),
+    blessings: refs('spell'),
+    miracles: refs('spell'),
     /** Sorts du Chaos accordés (LDB 10 « Magie du Chaos »/Domaine du Chaos) — 3/41 dieux (Nurgle/
      *  Slaanesh/Tzeentch). */
-    chaosSpells: z.array(refSchema).optional(),
+    chaosSpells: refs('spell').optional(),
     /** VERROU de Péché (MDG 11 l.148, Stromfels) : seuil de Points de Péché retirant l'usage du
      *  Talent de Prière (Béni/Invocation). 1/41 dieu observé (Stromfels). */
     sinLocks: z.strictObject({ beni: z.number().optional(), invocation: z.number().optional() }).optional(),
@@ -42,6 +41,8 @@ const doc = document(
     codex: { keys: ['gods'] },
     edit: { dataset: 'gods' },
   },
+  // Pools des sources `cultBlessings`/`cultMiracles`/`cultChaos` (`grammaire/sourcesDeSpecs.ts`).
+  { espace: { marqueurs: ['blessings', 'miracles', 'chaosSpells'] } },
 );
 
 export const schema = doc.schema;

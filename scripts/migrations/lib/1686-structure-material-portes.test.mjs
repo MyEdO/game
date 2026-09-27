@@ -19,24 +19,17 @@
  * des `.mjs` à préfixe DATÉ — un `.test.mjs` posé à côté des migrations y serait rejoué ou refusé.
  */
 import { strict as assert } from 'node:assert';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-import { joue } from './joue.mjs';
+import { FORME_DATA, serialise } from './croissance.mjs';
+import { crees, depot, efface, joue, lireArbre, lireDans, rienTouche } from './joue.mjs';
 
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-05-1686-structure-material-mort.mjs';
 const CIBLE = 'src/data/structureAppearance.json';
 const CLE = 'material';
 
-/** Formatage canonique de `src/data/*.json`, EXIGÉ par la migration en entrée comme en sortie. */
-const serialise = (doc) => JSON.stringify(doc, null, 2);
-
-const TEXTE_CIBLE = fs.readFileSync(path.join(RACINE, CIBLE), 'utf8');
+const TEXTE_CIBLE = lireArbre(CIBLE);
 const CIBLE_DOC = JSON.parse(TEXTE_CIBLE);
-const TEXTE_MIGRATION = fs.readFileSync(path.join(RACINE, 'scripts/migrations', MIGRATION), 'utf8');
+const TEXTE_MIGRATION = lireArbre(`scripts/migrations/${MIGRATION}`);
 
 /** Cardinal LU sur le dataset — jamais récité. */
 const CARDINAL = CIBLE_DOC.length;
@@ -44,51 +37,8 @@ assert.ok(CARDINAL > 0, `${CIBLE} : dataset VIDE — la fixture ne mesure rien`)
 
 /** PROJECTION INVERSE : l'état d'AVANT, chaque apparence reportant la clé morte. */
 const avantDoc = () => CIBLE_DOC.map((e, i) => ({ ...e, [CLE]: i % 2 === 0 ? 'bois' : 'pierre' }));
-const TEXTE_AVANT = serialise(avantDoc());
+const TEXTE_AVANT = serialise(avantDoc(), FORME_DATA);
 assert.notEqual(TEXTE_AVANT, TEXTE_CIBLE, 'la projection inverse ne réinjecte rien — la fixture ne mesure rien');
-
-/** Horodatage ANTIDATÉ : toute écriture, même à contenu égal, le remonte — le rejeu est mesurable. */
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
-
-/**
- * Dépôt jetable portant EXACTEMENT les fichiers demandés (`{ <rel>: texte }`), plus la migration
- * (texte `migration` si fourni — sinon celle de l'arbre). REND `{ racine, avant }`, `avant` étant la
- * table des textes posés.
- */
-function depot(fichiers, migration = TEXTE_MIGRATION) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1686-struct-'));
-  fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
-  fs.mkdirSync(path.join(racine, 'scripts/migrations'), { recursive: true });
-
-  const avant = new Map();
-  for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  fs.writeFileSync(path.join(racine, 'scripts/migrations', MIGRATION), migration, 'utf8');
-  return { racine, avant };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-
-/** Les fichiers posés sont INTACTS (octet + horodatage), et aucun autre `src/data/*.json` n'existe. */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) {
-      fautes.push(`${rel} : SUPPRIMÉ`);
-      continue;
-    }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  const poses = new Set([...avant.keys()].map((rel) => path.basename(rel)));
-  for (const f of fs.readdirSync(path.join(racine, 'src/data'))) if (!poses.has(f)) fautes.push(`src/data/${f} : fichier CRÉÉ`);
-  return fautes;
-}
 
 test('(a) ALLER-RETOUR : l’état d’avant projeté → `structureAppearance.json` BYTE-IDENTIQUE à celui de l’arbre', (t) => {
   const { racine } = depot({ [CIBLE]: TEXTE_AVANT });
@@ -101,7 +51,7 @@ test('(a) ALLER-RETOUR : l’état d’avant projeté → `structureAppearance.j
     `la purge ne DIT pas son compte : ${sortie.slice(0, 800)}`,
   );
   assert.equal(
-    fs.readFileSync(path.join(racine, CIBLE), 'utf8'),
+    lireDans(racine, CIBLE),
     TEXTE_CIBLE,
     'le `structureAppearance.json` produit diffère à l’octet de celui de l’arbre',
   );
@@ -114,7 +64,7 @@ test('(b) REJEU sur arbre migré : sortie 0, rien d’écrit (octet ET horodatag
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — un rejeu doit être un no-op vert : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /déjà migrée/, `le no-op ne se DIT pas : ${sortie.slice(0, 800)}`);
-  assert.deepEqual(rienTouche(racine, avant), [], 'le rejeu a écrit');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'le rejeu a écrit');
 });
 
 test('(c) CARDINAL DÉPLACÉ (une apparence retirée) : le passage PASSE, sans recalage (#1812)', (t) => {
@@ -122,7 +72,7 @@ test('(c) CARDINAL DÉPLACÉ (une apparence retirée) : le passage PASSE, sans r
   // recalage à tout lot qui ajoute un mur. Ce que ce passage possède, c'est la clé morte.
   const ampute = avantDoc();
   ampute.pop();
-  const { racine } = depot({ [CIBLE]: serialise(ampute) });
+  const { racine } = depot({ [CIBLE]: serialise(ampute, FORME_DATA) });
   t.after(() => efface(racine));
 
   const { code, sortie } = joue(racine, MIGRATION);
@@ -131,7 +81,7 @@ test('(c) CARDINAL DÉPLACÉ (une apparence retirée) : le passage PASSE, sans r
     sortie.includes(`clé \`${CLE}\` retirée de ${CARDINAL - 1} apparence(s)`),
     `le passage ne retire pas la clé des apparences qui RESTENT : ${sortie.slice(0, 800)}`,
   );
-  const relu = JSON.parse(fs.readFileSync(path.join(racine, CIBLE), 'utf8'));
+  const relu = JSON.parse(lireDans(racine, CIBLE));
   assert.deepEqual(relu.filter((e) => CLE in e), [], `\`${CLE}\` survit à l’écriture`);
 });
 
@@ -140,7 +90,7 @@ test('(c bis) PÉRIMÈTRE MIXTE (une apparence déjà à la forme CIBLE) : les p
   // NORMAL d'un dataset vivant, pas une anomalie — seule une forme TIERCE en serait une.
   const partiel = avantDoc();
   delete partiel[0][CLE];
-  const { racine } = depot({ [CIBLE]: serialise(partiel) });
+  const { racine } = depot({ [CIBLE]: serialise(partiel, FORME_DATA) });
   t.after(() => efface(racine));
 
   const { code, sortie } = joue(racine, MIGRATION);
@@ -149,19 +99,19 @@ test('(c bis) PÉRIMÈTRE MIXTE (une apparence déjà à la forme CIBLE) : les p
     sortie.includes(`clé \`${CLE}\` retirée de ${CARDINAL - 1} apparence(s)`),
     `le passage ne purge pas EXACTEMENT les porteuses : ${sortie.slice(0, 800)}`,
   );
-  const relu = JSON.parse(fs.readFileSync(path.join(racine, CIBLE), 'utf8'));
+  const relu = JSON.parse(lireDans(racine, CIBLE));
   assert.equal(relu.length, CARDINAL, 'le passage a perdu ou ajouté une entrée');
 });
 
 test('(d1) RACINE non-TABLEAU (document canoniquement formaté) → sortie 1 NOMINATIVE, rien d’écrit', (t) => {
-  const { racine, avant } = depot({ [CIBLE]: serialise({ entries: avantDoc() }) });
+  const { racine, avant } = depot({ [CIBLE]: serialise({ entries: avantDoc() }, FORME_DATA) });
   t.after(() => efface(racine));
 
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 1, `sortie ${code} — une racine non-tableau doit ARRÊTER la migration : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /racine non-TABLEAU/, `arrêt sans NOMMER la faute : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /structureAppearance\.json/, `arrêt sans NOMMER le document : ${sortie.slice(0, 800)}`);
-  assert.deepEqual(rienTouche(racine, avant), [], 'la migration a écrit alors que l’arrêt précède toute écriture');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'la migration a écrit alors que l’arrêt précède toute écriture');
 });
 
 test('(d2) FORMATAGE non canonique (indentation 4) → sortie 1 NOMINATIVE, rien d’écrit', (t) => {
@@ -171,7 +121,7 @@ test('(d2) FORMATAGE non canonique (indentation 4) → sortie 1 NOMINATIVE, rien
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 1, `sortie ${code} — un formatage non canonique doit ARRÊTER la migration : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /formatage non canonique/, `arrêt sans NOMMER la faute : ${sortie.slice(0, 800)}`);
-  assert.deepEqual(rienTouche(racine, avant), [], 'la migration a écrit alors que l’arrêt précède toute écriture');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'la migration a écrit alors que l’arrêt précède toute écriture');
 });
 
 /**
@@ -185,7 +135,7 @@ test('(e) CLÉ RESTANTE après écriture (mutant : suppression neutralisée) →
   const original = `for (const e of porteuses) delete e[CLE];`;
   assert.ok(TEXTE_MIGRATION.includes(original), 'la ligne de suppression a changé de forme — le mutant ne mesure rien');
   const mutant = TEXTE_MIGRATION.replace(original, `for (const e of porteuses) void e;`);
-  const { racine } = depot({ [CIBLE]: TEXTE_AVANT }, mutant);
+  const { racine } = depot({ [CIBLE]: TEXTE_AVANT, [`scripts/migrations/${MIGRATION}`]: mutant });
   t.after(() => efface(racine));
 
   const { code, sortie } = joue(racine, MIGRATION);

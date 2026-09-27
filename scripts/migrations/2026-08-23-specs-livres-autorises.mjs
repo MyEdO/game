@@ -111,7 +111,7 @@ const REMAP = new Map([
 
 /** AA 05 l.122 : `Langue (Estalien)` de la liste imprimée manque à `humains-tileens` (perdue au
  *  profit du `Savoir (Tilée)` que le Source n'imprime pas, retiré ci-dessus). */
-const ESTALIEN = { species: 'humains-tileens', after: 'arabien', ref: { id: 'langue', spec: 'estalien' } };
+const ESTALIEN = { species: 'humains-tileens', after: 'arabien', noeud: { id: 'langue', spec: 'estalien' } };
 
 // -- Catalogues de référence -------------------------------------------------------------------
 const skillsPath = path.join(DATA_DIR, 'skills.json');
@@ -197,8 +197,7 @@ function migrerEntree(entry, file, ownerId) {
   // Retrait de la `ref` PORTEUSE, jamais de la seule `spec` (sinon une Compétence de plus).
   for (const arr of skillArraysOf(entry)) {
     for (let i = arr.length - 1; i >= 0; i--) {
-      const it = arr[i];
-      if (aRetirer.has(it) || (it && typeof it === 'object' && aRetirer.has(it.ref))) arr.splice(i, 1);
+      if (aRetirer.has(arr[i])) arr.splice(i, 1);
     }
   }
   return n;
@@ -218,13 +217,13 @@ for (const f of CIBLES) {
       console.error(`ARRÊT — species ${ESTALIEN.species} introuvable ou sans skills[].`);
       process.exit(1);
     }
-    if (!sp.skills.some((a) => a.ref?.id === 'langue' && a.ref?.spec === ESTALIEN.ref.spec)) {
-      const at = sp.skills.findIndex((a) => a.ref?.id === 'langue' && a.ref?.spec === ESTALIEN.after);
+    if (!sp.skills.some((a) => a.id === 'langue' && a.spec === ESTALIEN.noeud.spec)) {
+      const at = sp.skills.findIndex((a) => a.id === 'langue' && a.spec === ESTALIEN.after);
       if (at < 0) {
         console.error(`ARRÊT — ${ESTALIEN.species} : ancre langue/${ESTALIEN.after} absente, ordre inattendu.`);
         process.exit(1);
       }
-      sp.skills.splice(at + 1, 0, { ref: { ...ESTALIEN.ref } });
+      sp.skills.splice(at + 1, 0, { ...ESTALIEN.noeud });
       n++;
       console.log(`species/${ESTALIEN.species} : Langue (Estalien) restaurée (AA 05 l.122).`);
     }

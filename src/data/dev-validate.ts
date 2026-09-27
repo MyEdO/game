@@ -3,7 +3,7 @@
  * projets de campagne `src/scenes`) — DEV uniquement (`import.meta.env.DEV`). En prod, le JSON servi a
  * DÉJÀ été validé par la porte CI (`schema-contract.test.ts`) : aucun coût runtime.
  * En dev, une édition à la main d'un document qui diverge de son schéma zod fait
- * remonter un message champ-par-champ (`formatZodError`) dès le démarrage — même contrat que la CI et que
+ * remonter un message champ-par-champ (`validateDataset`) dès le démarrage — même contrat que la CI et que
  * la sauvegarde Codex, servi par la SOURCE UNIQUE `schemas/validate.ts`.
  */
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';

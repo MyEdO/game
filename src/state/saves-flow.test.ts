@@ -7,6 +7,7 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';
+import { idDeSortVivant } from '../data/sortsFusionnes';
 import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, SAVE_VERSION, type SaveGame } from './saves';
 import { rule, setRule, loadRuleOverrides } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef } from '../data/index';
@@ -227,6 +228,24 @@ describe('parseSave — la version DOIT être la courante', () => {
     // décide — sans cette moitié, le contrat ci-dessus passerait aussi sur une scène mal formée.
     const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
+  });
+  it('MESURE du motif de bump 55 → 56 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 55 se jette', () => {
+    // Une save de 55 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
+    // a appris « Alarme » (frenchy-bzh, fusionnée dans « Alerte ») rouvrirait avec un id que plus rien
+    // ne résout. D'où le REJET, et non une purge silencieuse du grimoire.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(56);
+    const heros = { id: 'h', kind: 'hero', spells: ['alarme', 'alerte'] };
+    expect(parseSave({ ...cur, version: 55, data: { party: [heros] } })).toBeNull();
+    expect(findSpellById('alarme'), 'l’id fusionné n’existe plus au catalogue').toBeUndefined();
+    expect(idDeSortVivant('alarme')).toBe('alerte');
+  });
+  it('MESURE du motif de bump 57 → 58 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
+    // Une save de 57 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
+    // attachée garde `passive: [{ op: 'grantTalent', talentId }]`, et l'octroi lit `op.talent.id`. Le rejet
+    // d'une version non courante est la politique testée par « version ANTÉRIEURE → null » ci-dessus.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(58);
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
   });
   it('MESURE du motif de bump 41 → 42 (#1509) : l’empreinte d’un décor à recette TOURNE avec son cap', () => {
     // La scène ÉDITÉE du joueur est PERSISTÉE telle quelle (`snapshotSave` recopie `state.scene`). Rien

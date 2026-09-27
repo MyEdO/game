@@ -2,9 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipFromCombatant, isShield } from './equipment';
 import { pickView } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
+import { trappings } from '../../../data';
+import { itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import { weaponGroup } from '../../../engine/weaponGroup';
 
-const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = []): Weapon =>
-  ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q } as Weapon);
+const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
+  ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
 const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => pickView(weaponPart(wep(name, type)), 'front');
 /** Arme routée PAR SHAPE (id stable) — plus aucun routage par libellé au runtime. */
 const wepShape = (shape: string, type: 'melee' | 'ranged' = 'melee'): Weapon =>
@@ -33,7 +36,7 @@ describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)',
     expect(famShape('fleuret')).not.toBe(famShape('zweihander'));
   });
   it('une arme SANS shape ne route plus par son nom → repli par Groupe', () => {
-    expect(weaponFamily(wep('Épée bâtarde', 'melee'))).toBe('epee_batarde'); // Groupe deux-mains → défaut
+    expect(weaponFamily(wep('Épée bâtarde', 'melee', [], 'deux-mains'))).toBe('epee_batarde'); // Groupe deux-mains → défaut
     expect(weaponFamily(wep('Truc inconnu', 'melee'))).toBe('epee'); // défaut mêlée
   });
 });
@@ -119,5 +122,21 @@ describe('equipFromCombatant', () => {
     expect(equipFromCombatant(c).cape?.label).toBe('Cape');
     cape.equipped = false;
     expect(equipFromCombatant(c).cape).toBeUndefined();
+  });
+
+  it('chaque trapping d’arme à Groupe (`subType`) garde son Groupe jusqu’à l’arme tenue par le héros (#602)', () => {
+    const tenues: string[] = [], enPoste: string[] = [], perdues: string[] = [];
+    for (const t of trappings.filter((x) => (x.categorie === 'melee' || x.categorie === 'ranged') && x.subType)) {
+      const it = itemFromGive({ trappingId: t.id });
+      it.equipped = true;
+      const c = { id: 'h', label: 'Héros', items: [it], loadouts: [{ id: 'lo', main: it.uid }], activeLoadoutId: 'lo' } as unknown as Combatant;
+      recomputeLoadout(c);
+      const tenue = equipFromCombatant(c).weapons.find((w) => w.uid === it.uid);
+      const w = tenue ?? weaponFromItem(it); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
+      (tenue ? tenues : enPoste).push(t.id);
+      if (weaponGroup(w) !== t.subType) perdues.push(`${t.id}: ${t.subType} → ${String(weaponGroup(w))}`);
+    }
+    expect(perdues).toEqual([]);
+    expect([tenues.length, enPoste.length]).toEqual([122, 22]);
   });
 });

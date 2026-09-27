@@ -99,7 +99,7 @@
     ],
     "talents": [
       {
-        "talentId": "negociateur"
+        "id": "negociateur"
       }
     ]
   },
@@ -125,7 +125,7 @@
     ],
     "talents": [
       {
-        "talentId": "maitre-artisan",
+        "id": "maitre-artisan",
         "spec": "ingenieur"
       }
     ]
@@ -147,10 +147,10 @@
     ],
     "talents": [
       {
-        "talentId": "pied-marin"
+        "id": "pied-marin"
       },
       {
-        "talentId": "loup-de-mer"
+        "id": "loup-de-mer"
       }
     ]
   }

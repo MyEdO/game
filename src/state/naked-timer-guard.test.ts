@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { scanNakedTimers, SCAN_DIR, ALLOWED } from '../../scripts/guards/lib/nakedTimerScan.mjs';
+import { scanNakedTimers, SCAN_DIRS, ALLOWED } from '../../scripts/guards/lib/nakedTimerScan.mjs';
 
 /**
- * Garde STRUCTURELLE #415 : un `setTimeout`/`setInterval` NU sous `src/state` (hors le wrapper
- * `combatTimers.ts`) est INEXPRIMABLE — tout timer réel qui mute l'état passe par
- * `scheduleCombatTimer`/`scheduleFlowTimer`. Exemption PAR SITE (`ALLOWED_SITES`, #776 LOT 6) —
- * jamais par fichier entier : une whitelist de fichier amnistierait tout futur timer nu ajouté
- * ailleurs dans ce même fichier (défaut mesuré, patron repris de `RATCHET_EXCEPTIONS` du garde-fou
- * label-logic + CLIQUET de péremption, même mécanique que `label-logic-guard.test.ts`).
+ * Garde STRUCTURELLE #415 : un `setTimeout`/`setInterval` NU sous `SCAN_DIRS` (`src/state`, et
+ * `src/lib` que le store importe, #1956), hors le wrapper `combatTimers.ts`, est INEXPRIMABLE — tout
+ * timer réel qui mute l'état passe par `scheduleCombatTimer`/`scheduleFlowTimer`. Exemption PAR SITE
+ * (`ALLOWED_SITES`, #776 LOT 6) — jamais par fichier entier : une whitelist de fichier amnistierait
+ * tout futur timer nu ajouté ailleurs dans ce même fichier (défaut mesuré, patron repris de
+ * `RATCHET_EXCEPTIONS` du garde-fou label-logic + CLIQUET de péremption, même mécanique que
+ * `label-logic-guard.test.ts`).
  */
 
 // Exemptions JUSTIFIÉES par SITE — une entrée = `fichier :: MOTIF`, le motif étant la ligne de code
@@ -16,24 +17,16 @@ import { scanNakedTimers, SCAN_DIR, ALLOWED } from '../../scripts/guards/lib/nak
 // périme rien, mais RÉÉCRIRE la ligne (ou la retirer) fait échouer le CLIQUET ci-dessous — à réviser,
 // jamais à re-décaler. Un motif qui deviendrait AMBIGU dans son fichier échoue aussi (2e cliquet).
 const ALLOWED_SITES: Record<string, string> = {
-  'src/state/projectLibrary.ts :: const timer = setTimeout(() => {':
-    "timeout d'ouverture IndexedDB au BOOT (#776) — ne mute ni `battle` ni un flux de scène (rien " +
-    "de tel n'existe encore à cet instant), n'est jamais nettoyé par `clearTrackedTimers` (afterEach " +
-    "de test) : nature d'infrastructure, hors du périmètre COMBAT/FLUX de `combatTimers.ts`, pas un " +
-    'contournement de son suivi.',
-  'src/state/traceLayer.ts :: const timer = setTimeout(() => {':
-    "timeout d'ouverture IndexedDB au BOOT du calque de référence (#830) — même nature d'infra que " +
-    "l'ouverture de la bibliothèque de projets ci-dessus (aucun `battle`/flux de scène en jeu, jamais nettoyé par " +
-    '`clearTrackedTimers`), magasin distinct.',
-  'src/state/editorAutosave.ts :: const timer = setTimeout(() => {':
-    "timeout d'ouverture IndexedDB au BOOT du filet de crash de l'éditeur — même nature d'infra que " +
-    'les deux ouvertures IndexedDB ci-dessus (aucun `battle`/flux de scène en jeu, jamais ' +
-    'nettoyé par `clearTrackedTimers`), magasin distinct.',
+  "src/lib/indexedDb.ts :: const timer = setTimeout(() => regler(() => reject(new Error('IndexedDB open : délai dépassé'))), IDB_OPEN_TIMEOUT_MS);":
+    "délai d'ouverture de TOUTE base IndexedDB (#776, #1956) — ne mute ni `battle` ni un flux de " +
+    "scène (la bibliothèque de projets s'ouvre au BOOT, avant qu'aucun n'existe), n'est jamais " +
+    'nettoyé par `clearTrackedTimers` (afterEach de test) : nature d\'infrastructure, hors du ' +
+    'périmètre COMBAT/FLUX de `combatTimers.ts`, pas un contournement de son suivi.',
 };
 
 function findingsAcrossFiles(): { site: string; rel: string; line: number; call: string }[] {
   const out: { site: string; rel: string; line: number; call: string }[] = [];
-  for (const { rel, text } of readCorpus([SCAN_DIR], { exts: ['.ts', '.tsx', '.mts', '.cts'] })) {
+  for (const { rel, text } of readCorpus(SCAN_DIRS, { exts: ['.ts', '.tsx', '.mts', '.cts'] })) {
     if (ALLOWED.includes(rel)) continue;
     const lignes = text.split('\n');
     for (const f of scanNakedTimers(text)) out.push({ site: `${rel} :: ${lignes[f.line - 1].trim()}`, rel, line: f.line, call: f.call });
@@ -41,7 +34,7 @@ function findingsAcrossFiles(): { site: string; rel: string; line: number; call:
   return out;
 }
 
-describe('garde structurelle — setTimeout/setInterval nu sous src/state (#415)', () => {
+describe('garde structurelle — setTimeout/setInterval nu sous src/state et src/lib (#415)', () => {
   it('aucun fichier hors whitelist/exemptions PAR SITE ne porte de timer nu', () => {
     const offenders = findingsAcrossFiles()
       .filter((f) => !(f.site in ALLOWED_SITES))

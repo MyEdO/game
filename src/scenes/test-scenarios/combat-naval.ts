@@ -3,6 +3,7 @@ import { itemFromTrappingById, loadWeapon } from '../../engine/items';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 // Ids STABLES des 2 canonniers (le Soldat + le Chasseur du groupe d'arène) qui SERVENT les pierriers.
 const GUNNERS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as const;
@@ -44,7 +45,7 @@ function makeNavalParty(): Combatant[] {
 //  - le NAVIRE ennemi (cogue, coque E45/B50) est un Combattant à PV : on le bombarde comme un ennemi ; un
 //    Coup Critique se résout sur les tables de NAVIRE (localisation par gréement → États Voie d'eau / En
 //    flammes) et son ÉQUIPAGE exposé (pirates, `crewIds`) encaisse les Éclats / un Critique « Équipage ».
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-bataille-navale',
   label: 'Bataille navale',
   size: [18, 12],
@@ -91,7 +92,6 @@ export const scenario: TestScenario = {
     'équipage lié (crewIds) → Éclats / critique « Équipage » sur de vrais marins ; le Tueur + le Sorcier abordent. ' +
     'L’échelle de la scène (metresPerTile) est éditable : à 10 m/case, vue « mer ouverte » où chaque navire occupe sa Taille.',
   partyNote: 'Groupe d’arène ; le Soldat + le Chasseur servent les pierriers, le Tueur + le Sorcier abordent',
-  makeParty: makeNavalParty,
-  scene,
+  construire: () => ({ party: makeNavalParty(), scene: construireScene() }),
   autoCombat: 'enc-naval',
 };

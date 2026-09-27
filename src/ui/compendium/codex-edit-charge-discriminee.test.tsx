@@ -6,7 +6,7 @@
  * `inferFields` prend l'UNION des clés de TOUTES les entrées : sur `materials.json` (28 clés d'union,
  * dont 7 portées par une matière de décor), une matière `prop` s'éditait avec 21 champs ÉTRANGERS —
  * des pentes de toit et des faces de relief que son propre schéma REFUSE au save (refine ⟺ du def).
- * Le mécanisme est GÉNÉRIQUE : le def déclare `chargeParDiscriminant`, `chargeDiscriminee` le sert,
+ * Le mécanisme est GÉNÉRIQUE : le def déclare `espace.chargeParDiscriminant` (marque de sa racine), `chargeDiscriminee` le sert,
  * l'atelier filtre. Un document sans discriminant garde l'union (témoin ci-dessous).
  *
  * Le geste mesuré est celui de l'écran : `CodexEdit` monté sur une entrée réelle, libellés LUS dans

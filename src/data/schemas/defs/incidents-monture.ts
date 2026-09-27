@@ -19,7 +19,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['incidentsMonture'] },
-    edit: { niche: { categories: ['incidentsMonture'] } },
+    edit: { niche: { categories: { incidentsMonture: 'entries' } } },
   },
   { rangee: travelTableEntrySchema, deDeTirage: true },
 );

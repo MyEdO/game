@@ -3,9 +3,10 @@
  *
  *  - `2026-09-23-1882-fiche-de-personnage-nommee.mjs` (racine `src/scenes`) : pose `ref` = le profil
  *    standard de l'espèce (`LDB 77 l.7`, `species.json › profilStandard`) en QUEUE de tout personnage
- *    sans `ref`/`statblock`/`presetId`, et porte le document au `schema` 13. Un personnage dont
- *    l'espèce n'a pas de profil standard se NOMME : « ARBITRAGE REQUIS », rien d'écrit. Sa borne haute
- *    est OUVERTE (`schema` ≥ 12) : un document déjà porté au-delà traverse, jamais rabaissé.
+ *    sans `ref`/`statblock`/`presetId`, et porte le document au `schema` 13 au moins. Un personnage
+ *    dont l'espèce n'a pas de profil standard se NOMME : « ARBITRAGE REQUIS », rien d'écrit. Sa borne
+ *    haute est OUVERTE (`schema` ∈ {12, ≥ 13}) : un document plus récent traverse à l'octet, seule la
+ *    DERNIÈRE de la chaîne (`src/scenes/migrations-format-projet.test.ts`) nomme un `schema` futur.
  *
  * Une déclaration n'est pas une porte tant qu'on ne l'a pas vue MORDRE : ce banc joue la migration
  * sur un dépôt JETABLE (`os.tmpdir()`), une fois par scénario, et exige la sortie attendue, un
@@ -21,22 +22,15 @@
  * des `.mjs` à préfixe DATÉ.
  */
 import { strict as assert } from 'node:assert';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
-import { joue } from './joue.mjs';
+import { FORME_PROJET, serialise } from './croissance.mjs';
+import { depot, efface, joue, lireDans, refuse, rienTouche } from './joue.mjs';
 
 const MIGRATION = '2026-09-23-1882-fiche-de-personnage-nommee.mjs';
 
 /** Forme d'entrée et CIBLE du bump porté par cette migration — borne haute OUVERTE. */
 const SCHEMA_AVANT = 12;
 const SCHEMA_APRES = 13;
-
-/** Formatage canonique d'un document de projet de scène. */
-const serialise = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
-
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
 
 const ALPHA = 'src/scenes/alpha/alpha-projet.json';
 const BETA = 'src/scenes/beta/beta-projet.json';
@@ -77,9 +71,9 @@ const alpha = (schema = SCHEMA_AVANT, sansFiche = { appearance: { species: 'huma
 
 /** L'ÉTAT D'ARRIVÉE d'`alpha`, écrit à la main : `ref` en QUEUE du seul personnage sans fiche,
  *  `schema` à sa place, tout le reste identique. */
-const alphaApres = () => ({
+const alphaApres = (schema = SCHEMA_APRES) => ({
   type: 'projet',
-  schema: SCHEMA_APRES,
+  schema,
   id: 'alpha',
   label: 'Alpha',
   scenes: [
@@ -108,57 +102,14 @@ const beta = (schema = SCHEMA_AVANT) => ({
   scenes: [{ id: 'cour', entities: [{ id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } }] }],
 });
 
-/** Dépôt jetable portant EXACTEMENT les fichiers demandés, plus la migration. */
-function depot(fichiers) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1882-'));
-  const avant = new Map();
-  for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.mkdirSync(path.dirname(cible), { recursive: true });
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  return { racine, avant };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-const lireDans = (racine, rel) => fs.readFileSync(path.join(racine, rel), 'utf8');
-
-/** Les fichiers posés sont INTACTS (octet + horodatage). */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) { fautes.push(`${rel} : SUPPRIMÉ`); continue; }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  return fautes;
-}
-
-/** Un rouge d'AVANT-écriture : sortie 1, la faute NOMMÉE, aucun fichier touché. */
-function refuse(fichiers, message) {
-  const d = depot(fichiers);
-  try {
-    const { code, sortie } = joue(d.racine, MIGRATION);
-    assert.equal(code, 1, `sortie ${code} — la migration devait ARRÊTER : ${sortie.slice(0, 1200)}`);
-    assert.ok(sortie.includes('ARBITRAGE REQUIS'), `arrêt sans DEMANDER l’arbitrage : ${sortie.slice(0, 1200)}`);
-    assert.ok(sortie.includes(message), `arrêt sans NOMMER « ${message} » : ${sortie.slice(0, 1200)}`);
-    assert.deepEqual(rienTouche(d.racine, d.avant), [], 'la migration a écrit alors que l’arrêt précède toute écriture');
-  } finally {
-    efface(d.racine);
-  }
-}
-
 test('(a) MIGRATION RÉELLE : le personnage sans fiche reçoit le profil standard de son espèce en QUEUE, le document passe à 13, le reste est intact', (t) => {
-  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise(alpha()), [BETA]: serialise(beta()) });
+  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise(alpha(), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) });
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} : ${sortie.slice(0, 1200)}`);
-  assert.equal(lireDans(d.racine, ALPHA), serialise(alphaApres()), `${ALPHA} produit ≠ état d’arrivée`);
-  assert.equal(lireDans(d.racine, BETA), serialise(beta(SCHEMA_APRES)), `${BETA} : autre chose que le bump a changé`);
+  assert.equal(lireDans(d.racine, ALPHA), serialise(alphaApres(), FORME_PROJET), `${ALPHA} produit ≠ état d’arrivée`);
+  assert.equal(lireDans(d.racine, BETA), serialise(beta(SCHEMA_APRES), FORME_PROJET), `${BETA} : autre chose que le bump a changé`);
   assert.equal(lireDans(d.racine, SPECIES), especes(), 'le catalogue d’espèces est une ENTRÉE, jamais écrit');
   assert.ok(
     sortie.includes(`${ALPHA} — schema ${SCHEMA_AVANT} → ${SCHEMA_APRES}, personnages dont la fiche se NOMME désormais : 1 (scènes : 2) — fichier réécrit`),
@@ -171,7 +122,7 @@ test('(a) MIGRATION RÉELLE : le personnage sans fiche reçoit le profil standar
 });
 
 test('(b) IDEMPOTENT : rejouée sur l’état final, sortie 0 et rien d’écrit', (t) => {
-  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise(alphaApres()), [BETA]: serialise(beta(SCHEMA_APRES)) });
+  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise(alphaApres(), FORME_PROJET), [BETA]: serialise(beta(SCHEMA_APRES), FORME_PROJET) });
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -195,7 +146,8 @@ test('(c) SANS PROFIL STANDARD : espèce sans profil, id de rig, espèce absente
     [{}, 'undefined'],
   ]) {
     refuse(
-      { [SPECIES]: especes(), [ALPHA]: serialise(alpha(SCHEMA_AVANT, sansFiche)), [BETA]: serialise(beta()) },
+      MIGRATION,
+      { [SPECIES]: especes(), [ALPHA]: serialise(alpha(SCHEMA_AVANT, sansFiche), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
       `${ALPHA} › taverne › aubergiste : personnage sans fiche, espèce ${espece} sans profil standard (LDB 77 l.7)`,
     );
   }
@@ -203,18 +155,23 @@ test('(c) SANS PROFIL STANDARD : espèce sans profil, id de rig, espèce absente
 
 test('(d) BORNE HAUTE OUVERTE : un document déjà porté au-delà de 13 traverse à l’octet, jamais rabaissé', (t) => {
   const futur = SCHEMA_APRES + 1;
-  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise({ ...alphaApres(), schema: futur }), [BETA]: serialise(beta(futur)) });
+  const d = depot({ [SPECIES]: especes(), [ALPHA]: serialise(alphaApres(futur), FORME_PROJET), [BETA]: serialise(beta(futur), FORME_PROJET) });
   t.after(() => efface(d.racine));
+
   const { code, sortie } = joue(d.racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — un schema futur doit TRAVERSER : ${sortie.slice(0, 1200)}`);
-  assert.ok(sortie.includes(`${ALPHA} — schema ${futur} → ${futur} — DÉJÀ MIGRÉ au-delà de ${SCHEMA_APRES}`), `le no-op au-delà ne se DIT pas : ${sortie.slice(0, 1200)}`);
-  assert.deepEqual(rienTouche(d.racine, d.avant), [], 'le document est réécrit ou rabaissé');
+  assert.ok(
+    sortie.includes(`${ALPHA} — schema ${futur} → ${futur} — DÉJÀ MIGRÉ au-delà de ${SCHEMA_APRES}`),
+    `le passage d'un schema futur ne se DIT pas : ${sortie.slice(0, 1200)}`,
+  );
+  assert.deepEqual(rienTouche(d.racine, d.avant), [], 'un schema futur a été réécrit ou rabaissé');
 });
 
 test('(e) BORNE BASSE : un `schema` antérieur à la chaîne est refusé et NOMMÉ, rien d’écrit', () => {
   const ancien = SCHEMA_AVANT - 1;
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: serialise(alpha(ancien)), [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: serialise(alpha(ancien), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
     `${ALPHA} : \`schema\` inattendu ${ancien} (${SCHEMA_AVANT} ou plus récent attendu)`,
   );
 });
@@ -222,27 +179,31 @@ test('(e) BORNE BASSE : un `schema` antérieur à la chaîne est refusé et NOMM
 test('(f) FAIL-FAST `schema` ABSENT → sortie 1 NOMINATIVE, rien d’écrit', () => {
   const { schema: _retire, ...sansSchema } = alpha();
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: serialise(sansSchema), [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: serialise(sansSchema, FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
     `${ALPHA} : \`schema\` inattendu undefined (${SCHEMA_AVANT} ou plus récent attendu)`,
   );
 });
 
 test('(g) FAIL-FAST `schema` NON NUMÉRIQUE (la chaîne "12") → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: serialise(alpha(String(SCHEMA_AVANT))), [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: serialise(alpha(String(SCHEMA_AVANT)), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
     `${ALPHA} : \`schema\` inattendu "${SCHEMA_AVANT}" (${SCHEMA_AVANT} ou plus récent attendu)`,
   );
 });
 
 test('(h) FAIL-FAST `scenes` NON-TABLEAU → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: serialise({ ...alpha(), scenes: { taverne: {} } }), [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: serialise({ ...alpha(), scenes: { taverne: {} } }, FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
     `${ALPHA} : \`scenes\` absent ou non-tableau`,
   );
 });
 
 test('(i) FAIL-FAST PÉRIMÈTRE VIDE (aucun projet de scène) → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
+    MIGRATION,
     { [SPECIES]: especes(), 'src/scenes/orpheline/notes.txt': 'un dossier de campagne sans document de projet\n' },
     'aucun projet de scène trouvé — périmètre déplacé',
   );
@@ -250,21 +211,24 @@ test('(i) FAIL-FAST PÉRIMÈTRE VIDE (aucun projet de scène) → sortie 1 NOMIN
 
 test('(j) FAIL-FAST PÉRIMÈTRE VIDE (aucune Scène embarquée) → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: serialise({ ...alpha(), scenes: [] }) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: serialise({ ...alpha(), scenes: [] }, FORME_PROJET) },
     'aucune Scène embarquée — périmètre déplacé',
   );
 });
 
 test('(k) FORMATAGE non canonique (indentation 4) → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
-    { [SPECIES]: especes(), [ALPHA]: `${JSON.stringify(alpha(), null, 4)}\n`, [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [SPECIES]: especes(), [ALPHA]: `${JSON.stringify(alpha(), null, 4)}\n`, [BETA]: serialise(beta(), FORME_PROJET) },
     `${ALPHA} : FORME NON CANONIQUE`,
   );
 });
 
 test('(l) ENTRÉE DÉCLARÉE ABSENTE (`species.json`) → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
-    { [ALPHA]: serialise(alpha()), [BETA]: serialise(beta()) },
+    MIGRATION,
+    { [ALPHA]: serialise(alpha(), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },
     'src/data/species.json absent — entrée déclarée des profils standard',
   );
 });

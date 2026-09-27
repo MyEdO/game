@@ -18,8 +18,8 @@
  */
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
-import { HORS_MODAL, pickActiveModalKey, type ArbiterState } from './modalArbiter';
-import type { PendingKey } from './stateFields';
+import { surfaceTientLaMain, type ArbiterState } from './modalArbiter';
+import { modaleDuDessus } from './dismissStack';
 import { walkMs } from '../geometry/walk';
 import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
 
@@ -32,26 +32,17 @@ export type PasTenu =
 /** Identité d'un pas tenu : deux armements du MÊME pas ne se relâchent pas l'un l'autre. */
 const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `pov:${p.rel}`);
 
-/** Fenêtres HORS-modale qui laissent la carte MARCHABLE : le déplacement-puis-fouille est armé POUR
- *  marcher, et la file de journal se draine seule. Toutes les autres entrées de `HORS_MODAL` ferment
- *  la marche — c'est le REGISTRE qui décide, donc un `pending*` neuf l'arrête sans qu'on y revienne. */
-const PENDINGS_MARCHABLES: readonly PendingKey[] = ['pendingInteract', 'pendingLogQueue'];
-
 /**
- * La carte accepte-t-elle un pas MAINTENANT ? Prédicat GÉNÉRAL de « rien ne s'est ouvert » : écran de
- * jeu, mode exploration, ni dialogue, ni menu système, ni marchand, ni carte du monde, aucune modale du
- * registre (`pickActiveModalKey`, exhaustif par construction) et aucune fenêtre hors-modale bloquante.
+ * La carte accepte-t-elle un pas MAINTENANT ? Deux sources, aucune liste : les surfaces PARTAGÉES
+ * (`surfaceTientLaMain`, l'arbitre) et l'écran de CE siège (une couche MODALE de la pile
+ * `dismissStack` — fiche, menu système, codex, écran plein-champ ; un popover ne l'arrête pas). S'y ajoute ce que la MARCHE
+ * exige : le mode exploration et aucune conversation (une surface pour la marche, jamais pour
+ * elle-même).
  * `pas` fourni : la vue qui a armé doit être encore celle qui joue (bascule POV en plein maintien).
  */
 export function marcheAutorisee(s: GameState, pas?: PasTenu): boolean {
-  if (s.screen !== 'campaign' || s.mode !== 'exploration') return false;
-  if (s.dialogue || s.gameMenuOpen || s.merchant || s.worldMapOpen) return false;
-  if (pickActiveModalKey(s as ArbiterState) != null) return false;
-  const etat = s as unknown as Record<string, unknown>;
-  // Un pending de COLLECTION (file de commandes, file de journal) n'est « ouvert » que s'il porte
-  // quelque chose : une liste vide est un slot au repos, pas une fenêtre devant la carte.
-  const ouvert = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : !!v);
-  if (HORS_MODAL.some((d) => !PENDINGS_MARCHABLES.includes(d.pendingKey) && ouvert(etat[d.pendingKey]))) return false;
+  if (s.mode !== 'exploration' || s.dialogue) return false;
+  if (surfaceTientLaMain(s as ArbiterState) || modaleDuDessus()) return false;
   if (!pas) return true;
   return pas.vue === 'pov' ? !!s.povActive : !s.povActive;
 }

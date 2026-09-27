@@ -56,6 +56,8 @@ export function ecartDuVolet(p: {
   ou?: string;
 }): EcartsDeStock;
 
+export function remedeNomme(lignes: readonly string[], cle: string): boolean;
+
 export function refusDeCroissance<M, S>(
   mesurees: Iterable<M>,
   stock: Iterable<S>,

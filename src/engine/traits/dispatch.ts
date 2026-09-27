@@ -24,7 +24,7 @@ export function canonTraitId(text: string): string {
 }
 
 /** Idem, mais `undefined` si le texte ne nomme AUCUN trait du registre (le repli par slug masquerait
- *  l'inconnu là où l'appelant doit le distinguer — cf. `parseTrait`). */
+ *  l'inconnu là où l'appelant doit le distinguer). */
 export function knownTraitId(text: string): string | undefined {
   return traitIdByLabel(text);
 }
@@ -133,24 +133,6 @@ export function traitArgSkeleton(def: Pick<TraitData, 'indice' | 'specsSource' |
   if (def.specsSource) parts.push(t('traitArg.paren', { what: t(SPEC_SOURCE_KEY[def.specsSource]) }));
   if (def.range) parts.push(t('traitArg.paren', { what: t('traitArg.range') }));
   return parts.length ? parts.join(' ') : undefined;
-}
-
-export interface ParsedTrait {
-  /** `id` STABLE du trait de registre (slug, « demoniaque »). */
-  id: string;
-  /** Indice numérique (« Démoniaque 8+ » → 8, « Vol 100 » → 100, « Toile 40 » → 40). */
-  indice?: number;
-  /** Argument entre parenthèses (« Immunité (Poison) » → « Poison »). */
-  arg?: string;
-}
-
-/** Normalise une chaîne de trait via le parseur PARTAGÉ `parseStatEntry`, puis matche le trait du
- *  registre par `id` (casse ignorée). L'Indice = valeur non signée de fin (« Démoniaque 8+ », « Vol 100 »),
- *  sinon le bonus signé (« Arme +7 ») pour les traits d'attaque. */
-export function parseTrait(raw: string): ParsedTrait | null {
-  const p = parseStatEntry(raw);
-  const id = knownTraitId(p.name);
-  return id && TRAITS()[id] ? { id, indice: p.indice ?? p.bonus, arg: p.arg } : null;
 }
 
 export interface ResolvedTrait {

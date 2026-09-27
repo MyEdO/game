@@ -51,7 +51,7 @@ const doc = document(
   },
   {
     codex: { keys: ['voyageStakes'] },
-    edit: { none: 'exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier' },
+    edit: { none: 'exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier', dataset: 'voyageStakes' },
   },
   { exiges: ['source'] },
 );

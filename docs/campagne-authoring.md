@@ -22,7 +22,8 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 - **Compilation** `scene()` construit un `MapSpec` déclaratif puis délègue à `buildScene()`
   (`src/state/mapSpec.ts`) — MÊME compilateur headless-editor que l'éditeur. L'ASCII (`rows`/`legend`/
   `base`) est parsé, les bâtiments composés par `addBuilding`, les rencontres terse expansées par
-  `buildEncounter()` (`src/state/encounterAuthoring.ts`). Jamais poser une tuile à la main.
+  `buildEncounter()` (`src/state/encounterAuthoring.ts`). Jamais poser une tuile à la main. Une option
+  que `scene()` ne lit pas LÈVE en se nommant.
 - **Chargement** `parseProject()` (`src/state/worldMap.ts`) relit le JSON et résout les réfs sparse
   (ports, cf. §5). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
   `tenueId`/`weaponId`) FAIL-FAST à l'authoring — un libellé qui s'y glisse lève.
@@ -177,6 +178,18 @@ chaîne de nom dupliquée dans la donnée.
   `closeDialogue`/`interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).
+- **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend
+  « `N. [Compétence — Difficulté] libellé (coût)` » : le NUMÉRO est le rang de la réponse dans la
+  liste VISIBLE (une réponse masquée par son `when` ne prend pas de numéro, et la touche 1-9 adresse
+  ce rang-là), le TAG vient du `flow` de la réponse (`testAnnonce`, `src/state/dialogue.ts` : nœud
+  `test`, ou effet `extendedTest` — qui ajoute son DR cumulé), et la PUCE de coût vient de son `cost`
+  (`Coins`). **N'écris JAMAIS la Compétence, « (Test de …) » ni le coût (« — 4 pa », « (4 sous) »)
+  dans le `label`** : la mention ment au premier changement de flux ou de prix, et le joueur la lit
+  deux fois. Garde ABSOLUE : `src/scenes/dialogue-label-sans-test.test.ts`. Le `label` du
+  `FlowTest`, lui, NOMME légitimement la fenêtre de jet (« Intuition — quelque chose cloche »).
+- **SESSION de conversation** — chaque ouverture pose un `dialogue.session` monotone
+  (`ouvrirDialogue`), recopié sur chaque tour archivé : c'est LUI qui regroupe une conversation à la
+  relecture. Deux visites au même PNJ sont donc deux conversations distinctes, rien à authorer.
 
 ### 9ter. Choix gatés sur le GROUPE (`when` skill/career/species/status, #711)
 

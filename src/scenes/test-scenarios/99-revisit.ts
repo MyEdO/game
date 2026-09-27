@@ -2,6 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Revisite » (#707) — DÉMO de la persistance d'état au revisit (couche `sceneInstances`, moteur
@@ -13,7 +14,7 @@ import type { TestScenario } from './_shared';
  * revenir en Réserve — le coffre reste absent, la porte reste ouverte (sans ce lot, `transitionTo`
  * re-clonait la scène authored à chaque entrée et perdait les deux mutations).
  */
-const reserve = buildScene({
+const construireReserve = (): Scene => buildScene({
   id: 'test-revisit-reserve',
   label: 'La Réserve',
   desc: 'Arène de test.',
@@ -44,7 +45,7 @@ const reserve = buildScene({
   ],
 });
 
-const couloir = buildScene({
+const construireCouloir = (): Scene => buildScene({
   id: 'test-revisit-couloir',
   label: 'Le Couloir',
   desc: 'Arène de test.',
@@ -73,7 +74,5 @@ export const scenario: TestScenario = {
     'de la Réserve (disparaît) + ouvrir sa porte, transiter par le Couloir, revenir en Réserve — le coffre ' +
     'reste absent et la porte reste ouverte (sans capture/apply, `transitionTo` re-clonait la scène authored).',
   partyNote: 'Pré-tirés',
-  makeParty: () => makePregens(),
-  scene: reserve,
-  extraScenes: [couloir],
+  construire: () => ({ party: makePregens(), scene: construireReserve(), extraScenes: [construireCouloir()] }),
 };

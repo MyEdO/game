@@ -25,10 +25,12 @@
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
+import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
 import ts from 'typescript';
 import {
+  CLES_DE_SPECIALISATION,
   CLES_IDENTITE,
   CLES_PROSE_SANS_REFERENCE,
   CLES_REFERENCE_SCOPEE,
@@ -55,7 +57,7 @@ export type Racine = {
 
 export const RACINES: readonly Racine[] = [
   { id: 'src/data', dir: 'src/data', motif: '*.json', suffixe: '.json', recursif: false },
-  { id: 'src/scenes', dir: 'src/scenes', motif: '*-projet.json', suffixe: '-projet.json', recursif: true },
+  { id: PROJETS_LIVRES.dossier, dir: PROJETS_LIVRES.dossier, motif: `*${PROJETS_LIVRES.suffixe}`, suffixe: PROJETS_LIVRES.suffixe, recursif: PROJETS_LIVRES.recursif },
 ];
 
 export type Document = { racine: string; chemin: string; nom: string };
@@ -227,7 +229,7 @@ const candidatsStructurels = (o: Record<string, unknown>, dansTableau: boolean):
 const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: string }): Classement => {
   const candidates = c.signatures.filter((s) => s.sig === sig);
   const hit =
-    (site && candidates.find((s) => s.site?.datasets.includes(site.dataset) && s.site.champs.includes(site.champ)))
+    (site && candidates.find((s) => s.site && (s.site.datasets?.includes(site.dataset) ?? true) && s.site.champs.includes(site.champ)))
     ?? candidates.find((s) => !s.site);
   return { concept: c.id, strate: c.strate, statut: hit?.statut ?? 'divergente', note: hit?.note ?? '', signature: sig };
 };
@@ -325,6 +327,18 @@ export type FormeObservee = {
   /** Datasets vers lesquels les valeurs de cette forme résolvent (références seulement). */
   cibles: string[];
 };
+/**
+ * UNE occurrence de référence comptée par le scan, avec le COUPLE `(dataset, champ)` qu'il lui
+ * attribue — une instance par occurrence, l'unité du champ `occurrences` des formes de la strate
+ * `Référence` (#1473).
+ */
+export type OccurrenceDeReference = { readonly dataset: string; readonly champ: string };
+/**
+ * Occurrences de référence keyées par leur PORTEUR (l'objet ou la liste PARSÉS du document, par
+ * identité) puis par la CLÉ ou l'INDICE qui y pose la valeur : c'est la case où une valeur lue à un
+ * path déclaré tombe (#1473).
+ */
+export type ReferencesParPorteur = ReadonlyMap<object, ReadonlyMap<string | number, OccurrenceDeReference>>;
 export type SignatureOrpheline = {
   dataset: string;
   champ: string;
@@ -745,6 +759,30 @@ export function scannerDonnees(
     return formes.get(k)!;
   };
 
+  const referencesParPorteur = new Map<object, Map<string | number, OccurrenceDeReference>>();
+  const occurrencesDeReference: OccurrenceDeReference[] = [];
+  /**
+   * Compte UNE occurrence de référence à sa forme ET l'inscrit à ses cases `(porteur, clé)` : l'unique
+   * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme (#1473).
+   * Ses cases sont ses cases de RÉFÉRENCE : une clé de `CLES_DE_SPECIALISATION` n'en est pas une.
+   */
+  const inscrireReference = (
+    concept: Concept,
+    p: Prepare,
+    champ: string,
+    cl: { statut: FormeObservee['statut']; note: string; signature: string },
+    porteur: object,
+    cles: Iterable<string | number>,
+  ) => {
+    const ligne = ligneForme(concept, p, champ, cl);
+    ligne.occurrences += 1;
+    const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ };
+    occurrencesDeReference.push(occurrence);
+    if (!referencesParPorteur.has(porteur)) referencesParPorteur.set(porteur, new Map());
+    for (const k of cles) if (!CLES_DE_SPECIALISATION.has(String(k))) referencesParPorteur.get(porteur)!.set(k, occurrence);
+    return ligne;
+  };
+
   for (const p of prepares) {
     const clesNiveau1 = new Map<string, CleNiveau1>();
     for (const e of p.entrees) {
@@ -828,22 +866,19 @@ export function scannerDonnees(
       } else if (resolvantes.size && !estDocument) {
         // Un `{text}` qui RÉSOUT est une forme à part entière : `text (résolvable)`, divergente, à
         // migrer en `{id}` (#624). Seul le `{text}` NON résolvable reste la forme `declaree`.
-        const ligne = ligneForme(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, resolvantes)), resolvantes));
-        ligne.occurrences += 1;
+        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, resolvantes)), resolvantes), o, resolvantes);
         for (const d of cibles) ligne.ciblesSet.add(d);
         if (resolvantes.has('text')) ligne.resolvables += 1;
         classe = true;
       } else if (!estDocument && cles.length && cles.every((k) => GRAPHIES_SANS_ID.has(k)) && champsPorteurs.has(champ)) {
         // GRAPHIE de référence sous un champ porteur MESURÉ, qu'elle résolve ou non : l'enveloppe
         // `{ref:{…}}` et la dotation `{text:"…"}` sont des FORMES, pas des objets hors strate.
-        const ligne = ligneForme(CONCEPT_REFERENCE, p, champ, classementDeGraphie(p.nom, champ, sig));
-        ligne.occurrences += 1;
+        inscrireReference(CONCEPT_REFERENCE, p, champ, classementDeGraphie(p.nom, champ, sig), o, cles);
         classe = true;
       } else if (resolvantes.size && estDocument) {
         // Référence portée par un CHAMP SCALAIRE d'un document (`species: "humain"`).
         for (const k of resolvantes) {
-          const ligne = ligneForme(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'));
-          ligne.occurrences += 1;
+          const ligne = inscrireReference(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'), o, [k]);
           for (const d of index.get(String(o[k])) ?? []) ligne.ciblesSet.add(d);
         }
         classe = true;
@@ -861,8 +896,7 @@ export function scannerDonnees(
         // document indexé ouvrirait un couple (dataset, champ) fantôme au registre des slots.
         if (GRAPHIE_REFERENCE.has(k)) continue;
         if (!(v as string[]).some((x) => index.has(x) && ouvreReference(p.nom, k, x))) continue;
-        const ligne = ligneForme(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'));
-        ligne.occurrences += 1;
+        const ligne = inscrireReference(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'), v, v.keys());
         for (const x of v as string[]) for (const d of index.get(x) ?? []) ligne.ciblesSet.add(d);
         classe = true;
       }
@@ -973,6 +1007,12 @@ export function scannerDonnees(
 
   return {
     documents,
+    /** Le JSON PARSÉ de chaque document, keyé par nom : celui dont les objets portent les
+     *  occurrences de `referencesParPorteur` (#1473). */
+    brutParNom: new Map(prepares.map((p) => [p.nom, p.brut])) as ReadonlyMap<string, unknown>,
+    referencesParPorteur: referencesParPorteur as ReferencesParPorteur,
+    /** TOUTES les occurrences de la strate `Référence`, y compris celles sans case de référence (#1473). */
+    occurrencesDeReference: occurrencesDeReference as readonly OccurrenceDeReference[],
     index: { ids: index.size, libelles: libelles.size, collisions, labelsQuiSontDesIds },
     /** Valeurs qui ne résolvent QUE vers un dataset hors des cibles majoritaires de leur site. */
     ambigues: [...ambigues.values()].sort(

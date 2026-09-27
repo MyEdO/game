@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { scanAllPrimitives, scanGenericDomainImport } from '../../scripts/guards/lib/genericDomainImport.mjs';
+import { computeOwnerSystems, scanAllPrimitives, scanGenericDomainImport } from '../../scripts/guards/lib/genericDomainImport.mjs';
 import { directImportsOf } from '../../scripts/guards/lib/importGraph.mjs';
 
 /**
@@ -12,7 +12,9 @@ import { directImportsOf } from '../../scripts/guards/lib/importGraph.mjs';
  * de l'infra partagée légitime (pas domanial) ; un module atteint par exactement 1 système, importé
  * DIRECTEMENT par une primitive, est exactement la faute-souche relevée par #329 (ex. `cascade.ts`
  * → `shipManeuver.ts`, `CascadeModal.tsx` → `crewMorale.ts`/`data` naval — RÉSOLUES depuis par le
- * lot en vol sur #328/#329, cf. tableau du ticket).
+ * lot en vol sur #328/#329, cf. tableau du ticket). Ce système doit l'atteindre SANS traverser la
+ * primitive : un propriétaire HÉRITÉ de la primitive (seul son système la pose) ne rend pas sa
+ * dépendance domaniale.
  *
  * BASELINE NOMINATIVE (état RÉEL de l'arbre au 2026-07-11, renvoi #329) : AUCUNE marque (a) ouverte
  * ne correspond au motif « import direct d'un module single-système » à cette date — les items #1,
@@ -111,6 +113,21 @@ describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #
     const contenu = "import { rollCrewRole } from '../state/shipManeuver';\n";
     const found = scanGenericDomainImport('src/ui/FakePrimitive.tsx', contenu, ownerSystems);
     expect(found).toEqual([{ target: 'src/state/shipManeuver.ts', systemId: 'combat-naval' }]);
+  });
+
+  it('un propriétaire unique HÉRITÉ de la primitive (seul son système la pose) n’est PAS domanial', () => {
+    const primitives = [{ id: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx' }];
+    const systemes = [{ id: 'editeur', modules: ['src/ui/editor/Editor.tsx'] }];
+    expect(computeOwnerSystems(systemes).get('src/ui/errorCollector.ts')).toEqual(['editeur']);
+    expect(scanAllPrimitives(primitives, systemes)).toEqual([]);
+  });
+
+  it('FAIL-CLOSED : un système qui atteint la cible SANS la primitive la rend domaniale', () => {
+    const primitives = [{ id: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx' }];
+    const systemes = [{ id: 'bandeau', modules: ['src/ui/ErrorCollectorBanner.tsx'] }];
+    expect(scanAllPrimitives(primitives, systemes)).toEqual([
+      { primitiveId: 'errorBoundary', fichier: 'src/ui/SceneErrorBoundary.tsx', target: 'src/ui/errorCollector.ts', systemId: 'bandeau' },
+    ]);
   });
 
   it('FAIL-CLOSED : un module partagé par 2 systèmes (infra transverse) n’est PAS signalé', () => {

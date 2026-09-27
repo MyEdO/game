@@ -38,9 +38,8 @@
  *  - « Étiquette (Cultes) » (22 l.163 f.77 : « … avec les autres religieux ») et « Étiquette
  *    (Religieux) » (26 l.688 f.150 : « … avec les prêtres et les religieux ») nomment le même
  *    groupe social ; aucun statbloc ne porte les deux. Une entrée `cultes`.
- *  La SECONDE impression n'entre PAS en `alsoIn` : au stock des structures (#1463 L0), toute ligne
- *  `source | *.json | alsoIn` est `divergente`, lot L1d #1469 — un `alsoIn` de plus ferait CROÎTRE
- *  un stock décroissant. Elle est citée ici et à la ligne `cite` de chaque décision. Le doublon de
+ *  La SECONDE impression entre en `alsoIn` de l'entrée (`specEntrySchema`), `quote` VERBATIM
+ *  attesté au folio par `auditSecondaryRef` (`scripts/guards/lib/folioIntegrity.mjs`). Le doublon de
  *  casse (« Skavens » 53 l.109 / « skavens » 55 l.158) n'est, lui, qu'une seule impression.
  *
  * RÉSIDU ASSUMÉ (5 clés laissées au stock, motif au stock) : « Arpenteur (Plaine_OU_Forêt) » ×2 et
@@ -69,16 +68,22 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = path.join(ROOT, 'src/data');
 const BOOK = 'frenchy-bzh';
 const src = (page, note) => ({ book: BOOK, page, note });
+/** Emplacement SECONDAIRE (`secondarySourceRefSchema`) : `quote` = l'impression VERBATIM au folio. */
+const secondaire = (page, note, quote) => ({ book: BOOK, page, note, quote });
 
 /** Entrées de catalogue à créer, par id de Talent. Toutes statbloc-only → `pool: false`. */
 const ENTREES_NEUVES = {
   'savoir-vivre': [
-    // « Étiquette (Armée) » — Sergent du Guet, frenchy.bzh 13 l.128, folio 30.
-    { id: 'armee', label: 'Armée', source: src(30, 'frenchy.bzh 13 l.128'), pool: false },
+    // « Étiquette (Armée) » — Sergent du Guet, frenchy.bzh 13 l.128, folio 30 ; seconde impression
+    // « Étiquette (Militaires) », frenchy.bzh 19 l.105, folio 64.
+    { id: 'armee', label: 'Armée', source: src(30, 'frenchy.bzh 13 l.128'),
+      alsoIn: [secondaire(64, 'frenchy.bzh 19 l.105', 'Étiquette (Militaires)')], pool: false },
     // « Étiquette (Lettrés) » — Juge, frenchy.bzh 18 l.32, folio 58.
     { id: 'lettres', label: 'Lettrés', source: src(58, 'frenchy.bzh 18 l.32'), pool: false },
-    // « Étiquette (Cultes) » — Religieuse de Shallya, frenchy.bzh 22 l.163, folio 77.
-    { id: 'cultes', label: 'Cultes', source: src(77, 'frenchy.bzh 22 l.163'), pool: false },
+    // « Étiquette (Cultes) » — Religieuse de Shallya, frenchy.bzh 22 l.163, folio 77 ; seconde
+    // impression « Étiquette (Religieux) », frenchy.bzh 26 l.688, folio 150.
+    { id: 'cultes', label: 'Cultes', source: src(77, 'frenchy.bzh 22 l.163'),
+      alsoIn: [secondaire(150, 'frenchy.bzh 26 l.688', 'Étiquette (Religieux)')], pool: false },
     // « Étiquette (Skavens) » — Kapo, frenchy.bzh 53 l.109, folio 339.
     { id: 'skavens', label: 'Skavens', source: src(339, 'frenchy.bzh 53 l.109'), pool: false },
   ],
@@ -300,7 +305,9 @@ const specsDeTrait = new Set();
 const walkTrait = (n) => {
   if (Array.isArray(n)) return n.forEach(walkTrait);
   if (!n || typeof n !== 'object') return;
-  if (n.talentId === 'savoir-vivre' && typeof n.spec === 'string') specsDeTrait.add(n.spec);
+  // Les deux graphies d'une op de Talent : `{ talentId, spec }` (avant #1473) et `{ talent: { id, spec } }`.
+  const ref = typeof n.talentId === 'string' ? { id: n.talentId, spec: n.spec } : n.talent;
+  if (ref?.id === 'savoir-vivre' && typeof ref.spec === 'string') specsDeTrait.add(ref.spec);
   for (const v of Object.values(n)) walkTrait(v);
 };
 walkTrait(traits);

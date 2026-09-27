@@ -21,7 +21,7 @@ describe('relations — graphe inverse id-based', () => {
 
   it('sort → culte qui l’accorde (inversion de gods.blessings/miracles), avec détail', () => {
     const g = gods.find((x) => x.blessings.length > 0)!;
-    const spellId = g.blessings[0].id;
+    const spellId = g.blessings[0];
     const groups = reverseGroups('spells', spellId);
     const godGroup = groups.find((gr) => gr.category === 'gods');
     expect(godGroup?.referrers.some((r) => r.label === g.label && r.detail === 'Bénédiction')).toBe(true);

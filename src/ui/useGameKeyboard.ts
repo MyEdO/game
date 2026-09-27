@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { KEYBINDINGS, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
+import { KEYBINDINGS, bindingApplies, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
 import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
-import { dialogueDuDessus } from './useDismissLayer';
 
 /** Touches de NAVIGATION : elles ne sont à personne par défaut — un bouton focalisé ne les possède
  *  que s'il est un item d'un conteneur à roving tabindex (`ui/rovingFocus.ts`). */
@@ -21,15 +20,20 @@ const CONTENEUR_ROVING = '[role="listbox"],[role="tablist"],[role="menu"],[role=
  * EXACTEMENT ceux qu'il déclare (`mods`) — un raccourci sans `mods` se tait donc sous Alt ou Ctrl,
  * et laisse la combinaison au système ou au raccourci qui la déclare.
  *
+ * La MODALE DU DESSUS ne se tranche PAS ici : elle vit dans `bindingApplies` (`state/keybindings`),
+ * la porte que le clavier ET la manette empruntent — sous une modale de la pile, seules répondent
+ * les touches qu'elle déclare (`coucheDialogue` pour la conversation), Échap excepté. C'est une
+ * PROPRIÉTÉ déclarée au registre, jamais une liste d'ids : aucun dispatcher ne connaît un raccourci
+ * par son nom.
+ *
  * Le CONTRÔLE FOCALISÉ (`notWhenControlFocused`) ne possède que les touches de SON geste, et ce
  * partage est tranché ICI, une fois : un bouton/lien focalisé possède son ACTIVATION (Espace,
  * Entrée) ; les FLÈCHES ne lui appartiennent que s'il est l'item d'un conteneur à roving tabindex
  * (liste, onglets, menu, radiogroupe). Sinon un focus RÉSIDUEL — le bouton de palette qu'on vient de
  * cliquer — mangerait les flèches de l'application (sélection de l'éditeur, curseur tactique).
  *
- * Sous un DIALOGUE de la pile (`dialogueDuDessus`), le registre se tait, Échap excepté : même verdict
- * que `padContext` de la manette (`useGamepad.ts`). Une modale pilotée par la carte (désignation de
- * cibles) n'a pas de fenêtre, donc pas de dialogue dans la pile : le ciblage au clavier y reste vivant.
+ * Une modale pilotée par la carte (désignation de cibles) n'a pas de fenêtre, donc pas de couche dans
+ * la pile : le ciblage au clavier y reste vivant.
  */
 export function useGameKeyboard() {
   useEffect(() => {
@@ -41,7 +45,7 @@ export function useGameKeyboard() {
           effectiveCodes(k, s.keyOverrides).includes(e.code) &&
           modsMatch(effectiveMods(k, s.keyOverrides), tenus, e.code) &&
           (!k.notWhenControlFocused || !controlFocused) &&
-          k.when(s),
+          bindingApplies(k, s),
       );
     };
     const saisieEnCours = (e: KeyboardEvent): { saisie: boolean; controlFocused: boolean } => {
@@ -68,7 +72,6 @@ export function useGameKeyboard() {
         if (pris !== null) e.preventDefault();
         return;
       }
-      if (dialogueDuDessus()) return;
       const b = trouver(e, controlFocused);
       if (!b) return;
       e.preventDefault();

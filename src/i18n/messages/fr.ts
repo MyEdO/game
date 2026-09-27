@@ -1731,16 +1731,6 @@ export const fr = {
   'sv.crewFoodOut': "Vivres d'équipage ÉPUISÉS — la ration de base n'est plus assurée (Moral : la disette pèsera au conseil de bord, MDG 14 l.171).",
   'sv.crewFoodLeft': "Vivres d'équipage : −{need} (reste {left} jour{s}-homme).",
   'sv.leakSpoils': "La voie d'eau gâte {enc} Enc de cargaison (MSRC 7 l.101 / MDG).",
-  'sv.steamMode': 'vapeur (M 4, insensible au vent)',
-  'sv.becalmed': 'Encalminé',
-  'sv.strikeSails': 'Affaler les voiles !',
-  // ASPECT du vent (`windAspect`, `engine/seaWeather.ts`) : les trois valeurs sont des ids
-  // (`face`/`arriere`/`lateral`) — le flux les collait derrière « vent » (« vent arriere »). Les trois
-  // libellés sont le VERBATIM de la table Direction du vent, MDG 13 l.267-270 : « Vent de face » /
-  // « Vent arrière » / « Vent latéral » — seule la capitale tombe (l'incise les veut en minuscule).
-  'sv.windFace': 'vent de face',
-  'sv.windArriere': 'vent arrière',
-  'sv.windLateral': 'vent latéral',
   'sv.forcePace': 'Forcer le rythme',
   'sv.navigation': 'Navigation',
   'sv.progression': 'Progression',
@@ -2217,6 +2207,7 @@ export const fr = {
   'key.section.curseur': 'Curseur de combat',
   'key.section.hotbar': "Barre d'action",
   'key.section.exploration': 'Exploration',
+  'key.section.dialogue': 'Dialogue',
   'key.section.systeme': 'Système',
   'key.section.editeur': 'Éditeur de scène',
   'key.povForward': 'POV : avancer',
@@ -2250,6 +2241,12 @@ export const fr = {
   'key.interludeExit': 'Sortir du ciblage en cours',
   'key.actionDisarm': 'Désarmer le mode d’action armé',
   'key.hotbarSlot': 'Capacité {n} de la barre d’action',
+  'key.dialogueChoice': 'Dialogue : réponse {n}',
+  // Ligne de réponse de dialogue (#1869) : le NUMÉRO est le rang à l'écran (l'adresse de la touche),
+  // le TAG est DÉRIVÉ du flux de la réponse — Compétence et Difficulté résolues au registre.
+  'dlg.choiceNum': '{n}.',
+  'dlg.testTag': '[{quoi} — {diff}]',
+  'dlg.testTagCumul': '[{quoi} — {diff}, {dr} DR]',
   'key.toggleMenu': 'Ouvrir le menu système',
   'key.exploreUp': 'Exploration : pas vers le haut',
   'key.exploreDown': 'Exploration : pas vers le bas',
@@ -2380,6 +2377,7 @@ export const fr = {
   // ── #1318 V8c₅ — AVANCEMENT : raisons de refus (`engine/advancement.ts`, `adv.*`, LDB 07
   // l.89/135-148). Ces `reason` remontent à l'écran via `pf.refused`/`pf.careerRefused`.
   'adv.notEnoughXp': 'PX insuffisants',
+  'adv.talentMax': 'Maxi du Talent atteint',
   'adv.unknownSkill': 'Compétence inconnue',
   'adv.unknownLevel': 'niveau de carrière inconnu',
   'adv.sameLevel': 'déjà à ce niveau',
@@ -2394,7 +2392,7 @@ export const fr = {
   'ref.auChoix': '{base} (Au choix)',
   'slot.notCovered': "ce choix n'est pas couvert par cet emplacement",
   'slot.alreadyDesignated': 'emplacement déjà désigné',
-  'slot.takenByOther': 'déjà pris par un autre emplacement de cette carrière',
+  'slot.takenByOther': 'déjà pris par un autre emplacement de ce Niveau de Carrière',
   'slot.maxNone': 'Aucun',
   'slot.maxBonusOf': 'Bonus de {char}',
   'slot.darkOnlyOne': 'un seul Domaine sombre autorisé en plus des autres Domaines',

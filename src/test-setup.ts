@@ -35,7 +35,7 @@
  *      de séquence transitionnait ou non selon la partition, d'où des rouges CI verts en local (#1014).
  *    - la PILE DES COUCHES DISMISSIBLES et sa PORTE clavier (`state/dismissStack` + `ui/useDismissLayer`,
  *      `resetDismissLayers`) : la pile des surfaces congédiables et le refcount de l'écouteur Échap sont
- *      des singletons de module. Le congédiement étant LIFO PUR, une couche laissée par un fichier
+ *      des singletons de module. Le congédiement allant à la couche du DESSUS, une couche laissée par un fichier
  *      voisin décide si Échap atteint la surface qu'un banc mesure ou une autre : le rendez-vous entre
  *      l'appui et la surface dépendait de l'ordre des fichiers du worker (#1442, rouges CI intermittents
  *      sur `ui/compendium/CodexRef.hooks.test.tsx`, verts en local). Mesuré : une couche étrangère au
@@ -353,7 +353,7 @@ beforeEach(() => {
   // worker monteraient alors le message d'erreur au lieu du monde (`isolate:false`).
   reinitWebglRefusé();
   // PILE DES COUCHES DISMISSIBLES + PORTE clavier d'Échap (`ui/useDismissLayer`) : singletons de module
-  // eux aussi, et le congédiement est LIFO PUR — une couche laissée par un fichier voisin prend l'appui
+  // eux aussi, et le congédiement va à la couche du DESSUS — une couche laissée par un fichier voisin prend l'appui
   // à la place de la surface que le banc mesure (portée et mesure : §1 de l'en-tête). Sans DOM la remise
   // à plat ne touche que la pile : aucun écouteur n'est branché sur un environnement `node`.
   resetDismissLayers();

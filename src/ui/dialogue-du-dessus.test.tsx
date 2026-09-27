@@ -504,19 +504,26 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     expect(await jouer(false), 'témoin : le pavé pivote, la bascule quitte la vue subjective').toEqual({ capChange: true, pov: false });
   });
 
-  it('clavier : C, F, Q, E, V et les flèches sont inertes pendant la conversation', async () => {
+  it('clavier : aucun autre raccourci ne répond pendant la conversation — C, F, Q, E, V, flèches ; en plein combat, I', async () => {
     const s0 = await ouvrirConversation();
     for (const id of ['cam-recenter', 'cam-left', 'toggle-view']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
     for (const [code, key] of [['KeyC', 'c'], ['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyV', 'v'], ['ArrowUp', 'ArrowUp'], ['ArrowLeft', 'ArrowLeft']]) touche(code, key);
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
     expect(useGame.getState().viewMode, 'la vue n’a pas basculé').toBe(s0.viewMode);
+    act(() => useGame.setState({ mode: 'battle', inspectEnabled: false, battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never }));
+    expect(KEYBINDINGS.find((k) => k.id === 'toggle-inspect')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
+    touche('KeyI', 'i');
+    expect(pris(), 'en plein combat, I se tait aussi').toEqual([]);
+    expect(useGame.getState().inspectEnabled).toBe(false);
   });
 
   it('manette : Back et LT sont inertes pendant la conversation', async () => {
     const s0 = await ouvrirConversation();
     for (const id of ['cam-recenter', 'cam-left']) expect(KEYBINDINGS.find((k) => k.id === id)!.when(s0), `hors pile, ${id} partirait`).toBe(true);
+    act(() => useGame.setState({ zoom: 2 } as never));
     act(() => { padButton('Back'); padButton('LT'); });
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
+    expect(useGame.getState().zoom, 'Back n’a pas recentré la caméra').toBe(2);
   });
 
   it('témoin : la conversation close, Back et C repartent', async () => {
@@ -529,38 +536,73 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     expect(pris(), 'C et Back partent hors conversation').toEqual(['cam-recenter']);
   });
 
-  const conversationSurLaFiche = async () => {
+  const choix = () => [...conversation().querySelectorAll<HTMLButtonElement>('.dlg-choice')];
+  /** Scène de `CampaignView` : la conversation, l'arbitre des modales, et la fiche ouverte depuis un
+   *  bouton du HUD FOCALISÉ (jamais depuis <body> : la restitution à l'invocateur serait muette). */
+  const conversationSousLaFiche = async () => {
     poserScene();
     const patient = useGame.getState().party[0];
-    act(() => root.render(<StrictMode><DialogueBox /><ActiveModal /><CharacterSheet heroId={patient.id} onClose={() => {}} /></StrictMode>));
+    function Hud() {
+      const [fiche, setFiche] = useState(false);
+      return (
+        <>
+          <Clavier />
+          <DialogueBox />
+          <ActiveModal />
+          <button type="button" id="ouvrir-fiche" onClick={() => setFiche(true)}>Fiche</button>
+          {fiche && <CharacterSheet heroId={patient.id} onClose={() => setFiche(false)} />}
+        </>
+      );
+    }
+    act(() => root.render(<StrictMode><Hud /></StrictMode>));
     await vider();
-    expect(dialogueDuDessus(), 'la fiche est ouverte, dialogue du dessus').not.toBeNull();
+    const invocateur = document.querySelector<HTMLButtonElement>('#ouvrir-fiche')!;
+    invocateur.focus();
+    act(() => invocateur.click());
+    await vider();
+    const fiche = dialogueDuDessus()!;
+    expect(fiche, 'la fiche est ouverte, dialogue du dessus').not.toBeNull();
     parler();
     await vider();
+    expect(conversation(), 'la conversation est affichée').toBeTruthy();
+    return fiche;
   };
 
-  it('focus : ouverte sur une fiche, la conversation emprunte le focus', async () => {
-    await conversationSurLaFiche();
-    expect(actif()).toBe('Suite');
+  it('ouverte SOUS une fiche, la conversation attend : focus et Tab dans la fiche, 1-9 muets, Échap ferme la fiche (refs #1987)', async () => {
+    const fiche = await conversationSousLaFiche();
+    touche('Digit1', '1');
+    touche('Digit2', '2');
+    expect(pris(), 'aucune réponse ne part sous la fiche').toEqual([]);
+    expect(dismissStackKinds(), 'peinte sous la fiche, la conversation est sous elle dans la pile').toEqual(['dialogue', 'fiche-perso']);
+    expect(dialogueDuDessus(), 'la fiche reste le dialogue du dessus').toBe(fiche);
+    expect(fiche.contains(document.activeElement), `le focus reste dans la fiche, sur « ${actif()} »`).toBe(true);
+    await frappe('Tab');
+    expect(fiche.contains(document.activeElement), `Tab → « ${actif()} », dans la fiche`).toBe(true);
+    touche('Escape', 'Escape');
+    await vider();
+    expect(document.body.contains(fiche), 'Échap ferme la fiche, peinte au-dessus').toBe(false);
+    expect(useGame.getState().dialogue?.nodeId, 'la conversation est toujours là').toBe('n1');
   });
 
-  it('focus : Tab boucle dans les choix de la conversation, la fiche dessous ne le reprend pas', async () => {
-    await conversationSurLaFiche();
-    const [premier, dernier] = [bouton(conversation(), 'Suite'), bouton(conversation(), 'Adieu')];
+  it('la fiche fermée, la conversation prend le focus sur la réponse 1 ; Tab et la croix bouclent dans les choix ; 2 répond', async () => {
+    await conversationSousLaFiche();
+    touche('Escape', 'Escape');
+    await vider();
+    const [premier, dernier] = choix();
+    expect(document.activeElement, `focus sur « ${actif()} »`).toBe(premier);
     dernier.focus();
     await frappe('Tab');
-    expect(actif(), 'Tab depuis le dernier choix boucle sur le premier').toBe('Suite');
+    expect(document.activeElement, 'Tab depuis le dernier choix boucle sur le premier').toBe(premier);
     const arriere = new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
     act(() => { premier.dispatchEvent(arriere); });
     await vider();
-    expect(actif(), 'Maj+Tab depuis le premier boucle sur le dernier').toBe('Adieu');
-    act(() => { (document.activeElement as HTMLElement).blur(); });
-    await frappe('Tab');
-    expect(conversation().contains(document.activeElement), `Tab depuis <body> → « ${actif()} », pas dans la fiche`).toBe(true);
+    expect(document.activeElement, 'Maj+Tab depuis le premier boucle sur le dernier').toBe(dernier);
     premier.focus();
     act(() => { padDir('down'); });
-    expect(actif(), 'la croix navigue dans les choix').toBe('Adieu');
+    expect(document.activeElement, 'la croix navigue dans les choix').toBe(dernier);
     act(() => { padDir('down'); });
-    expect(actif(), 'et boucle dans les choix').toBe('Suite');
+    expect(document.activeElement, 'et boucle dans les choix').toBe(premier);
+    touche('Digit2', '2');
+    expect(pris(), 'la conversation a la main : la réponse 2 part').toEqual(['dialogue-choice-2']);
   });
 });

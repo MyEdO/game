@@ -1,6 +1,6 @@
 // Garde STRUCTURELLE #415 : tout timer RÉEL qui mute l'état passe par `scheduleCombatTimer`/
 // `scheduleFlowTimer` (`src/state/combatTimers.ts`) — un `setTimeout`/`setInterval` NU ailleurs sous
-// `src/state` est INEXPRIMABLE. Module ESM pur (node nu), patron `weatherTestModQuarantine.mjs`.
+// `SCAN_DIRS` est INEXPRIMABLE. Module ESM pur (node nu), patron `weatherTestModQuarantine.mjs`.
 
 /** Retire le CONTENU des commentaires bloc `/* … *\/` puis ligne `// …`, en préservant les `\n`
  *  (les numéros de ligne restent alignés sur l'original). */
@@ -26,8 +26,8 @@ export function scanNakedTimers(content) {
   return findings;
 }
 
-/** Dossier scanné, POSIX relatif à la racine du repo. */
-export const SCAN_DIR = 'src/state';
+/** Dossiers scannés, POSIX relatifs à la racine du repo : le store et la couche neutre qu'il importe (#1956). */
+export const SCAN_DIRS = ['src/state', 'src/lib'];
 
 /** `combatTimers.ts` seul reste exempté au niveau FICHIER — c'est le wrapper : sa nature est
  *  d'être plein de timers nus qu'il encapsule, ce n'est pas un contournement de son propre suivi.

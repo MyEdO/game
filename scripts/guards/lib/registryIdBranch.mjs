@@ -3,7 +3,7 @@
 // rajouter d'autres options, je ne veux pas voir une suite d'id. Soit la cadence n'a rien a faire
 // dans policy, soit faut lui mettre un flag » — un code qui traite N entrées d'un registre de façon
 // uniforme ne teste JAMAIS l'identité d'une entrée : le comportement particulier est un ATTRIBUT
-// DÉCLARÉ sur l'entrée, lu comme n'importe quel champ (`def.kind`, `def.options`…).
+// DÉCLARÉ sur l'entrée, lu comme n'importe quel champ (`regle.kind`, `regle.options`…).
 //
 // ⚠ Distincte de `labelLogic.mjs` (logique keyée par LABEL au lieu de l'id) : ici, keyer par id est
 // tout aussi fautif — dans un code générique, on ne key pas, on lit un champ.
@@ -102,14 +102,13 @@ export const EQUALITY_OPS = new Set([
 
 /**
  * Mots RÉSERVÉS du vocabulaire `GameOp` (`src/engine/ops.ts`) — liste FERMÉE, tenue à la main :
- *  - `''` : sentinelle « pas d'id » ;
- *  - `'self'` : le PORTEUR de l'op (`{ op:'scheduleRespawn', ref:'self' }`, `{ stacks:'self' }`,
- *    `on`/`near` en donnée). MESURÉ le 2026-08-17 : aucune entrée de `src/data/*.json` ne porte
- *    `"id": "self"` — c'est un mot du vocabulaire, jamais l'identité d'une entrée de registre.
+ *  - `''` : sentinelle « pas d'id ».
+ * Une valeur réservée NOMMÉE par une constante du moteur (`SELF_REF`, `src/engine/ops.ts`) n'y entre
+ * pas : le code la lit par sa constante, et son littéral comparé à un id est compté comme tout autre.
  * Un littéral de cette liste ne DÉSIGNE aucune entrée : le comparer n'est pas un branchement par id.
  * Toute entrée de plus se mesure sur `ops.ts` ET sur les registres avant d'être ajoutée ici.
  */
-export const OP_VOCABULARY = new Set(['', 'self']);
+export const OP_VOCABULARY = new Set(['']);
 
 /** Littéral qui DÉSIGNE une entrée de registre : chaîne littérale hors `OP_VOCABULARY`. */
 export function isEntryLiteral(node) {
@@ -374,8 +373,8 @@ function collectLiteralHolders(sf, origins) {
  *    stable, forme recommandée par la doctrine — la réaction PAR-NOM d'entité relève, elle, de la
  *    garde `hardcode.mjs` (`hasTalent`/`hasTraitKey`/`hasCondition` à argument littéral) ;
  *  - une entrée tenue par une constante de MODULE (`FORTUNE.id === x`) : code non générique ;
- *  - un mot du VOCABULAIRE `GameOp` (`id === ''`, `op.ref === 'self'` — `OP_VOCABULARY`) : il ne
- *    désigne aucune entrée de registre ;
+ *  - un mot du VOCABULAIRE `GameOp` (`id === ''` — `OP_VOCABULARY`) : il ne désigne aucune entrée
+ *    de registre ;
  *  - une collection de VOCABULAIRE FERMÉ (`const WAIST_BONES: BoneId[]` — `VOCABULARY_TYPES`) : ses
  *    membres sont bornés par une union de littéraux déclarée, pas par un registre de données ;
  *  - les TESTS et les MIGRATIONS (`isRegistryIdBranchExcluded`).

@@ -12,6 +12,7 @@ import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { Weapon, ItemInstance } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
+import { sexeSchema } from '../src/data/schemas/grammaire/valeurs';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -42,7 +43,7 @@ function cell(label: string, app: Appearance, equip: EquipCtx, career: string, v
 
 const cells: string[] = [];
 for (const sp of SPECIES) {
-  for (const sex of ['M', 'F'] as const) {
+  for (const sex of sexeSchema.options) {
     cells.push(cell(`${sp.label} ${sex}`, { species: sp.id, sex, build: 0.5, seed: 7 }, { weapons: [], armour: [] }, 'soldat'));
   }
 }

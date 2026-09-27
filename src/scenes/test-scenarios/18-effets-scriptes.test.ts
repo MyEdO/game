@@ -7,6 +7,7 @@ import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
 import { scenario } from './18-effets-scriptes';
 import { draineCascade } from '../../state/cascadeTestKit';
+const scenarioConstruit = scenario.construire();
 
 /**
  * « Effets scriptés » (#96/#97) : chaque `it` prouve qu'un déclencheur RÉEL du scénario (dialogue,
@@ -14,10 +15,10 @@ import { draineCascade } from '../../state/cascadeTestKit';
  * observable — quatre interactions indépendantes, chacune UNE fois (rien à répéter).
  */
 describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un déclencheur réel', () => {
-  const scene = scenario.scene;
+  const scene = scenarioConstruit.scene;
 
   beforeEach(() => {
-    useGame.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.makeParty() });
+    useGame.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire().party });
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as never);
   });
   afterEach(() => { for (const id of Object.keys(scenario.rules ?? {})) resetRule(id); });
@@ -32,7 +33,7 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
   });
 
   it('petitePriere : l’autel exauce un non-Béni (option `prayer-petites`, seuil relevé par la Compétence Prière)', () => {
-    const p = useGame.getState().party.find((h) => !hasTalent(h, 'Béni'))!;
+    const p = useGame.getState().party.find((h) => !hasTalent(h, 'beni'))!;
     expect(p).toBeTruthy(); // au moins un non-Béni chez les pré-tirés
     const sk = p.skills.find((s) => s.id === 'priere');
     if (sk) sk.advances = 200; else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 200 } as SkillInstance);

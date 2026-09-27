@@ -6,6 +6,7 @@ import type { Money } from './money';
 import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
+import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
@@ -320,13 +321,9 @@ export interface HeroDetails {
   dwellings?: { house: string; sign: string }[];
 }
 
-/** Ignorance de PA — descripteur GÉNÉRAL réutilisable (armes enchantées, attributs de Domaine,
- *  Projectiles…). Un NOMBRE = N points ignorés (aucun producteur en donnée actuellement) ; sinon
- *  une catégorie : 'all' (tous), 'metal' (armures métalliques — Chamon/Azyr), 'leather' (cuir —
- *  Ghur), 'nonMagic' (tout le non magique — Ulgu), 'nonMetal' (tout le non-métallique —
- *  Perforante, LDB 62 l.270). Calcul : engine/armourBypass.bypassedAP.
- */
-export type ArmourBypass = number | 'all' | 'metal' | 'leather' | 'nonMagic' | 'nonMetal';
+/** Ignorance de PA : vocabulaire déclaré par `armourBypassSchema` (`data/schemas/grammaire/mecanique.ts`).
+ *  Calcul : `engine/armourBypass.bypassedAP`. */
+export type { ArmourBypass };
 
 /** Spécification STRUCTURÉE des Dégâts d'arme (LDB 62). La présence du token `BF` (Bonus de Force) est
  *  PORTEUSE de sens — exprimée explicitement par `plusBF`, jamais par accident de chaîne. `flat` DÉJÀ

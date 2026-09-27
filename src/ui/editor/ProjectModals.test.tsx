@@ -99,7 +99,7 @@ function rendu(doc: unknown, geste: GesteDePorte) {
   try {
     parseProject(doc);
   } catch (e) {
-    return refusDeLaPorteDuProjet(e, doc, geste);
+    return refusDeLaPorteDuProjet(e, geste);
   }
   throw new Error('la porte a laissé passer le document');
 }
@@ -134,9 +134,11 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     );
   });
 
-  it('ouverture d’un contenu fautif : la scène et l’entité NOMMÉES, jamais le rapport brut', () => {
+  it('ouverture d’un contenu fautif : la scène et l’entité NOMMÉES par leur libellé, le décor UNE fois', () => {
     const r = rendu(decorSansType(projet()), 'ouverture');
-    expect(r.message).toMatch(/^Ouverture refusée : ce projet ne peut pas être ouvert\. Faute : scène « Salle du banc », entité « Le tonneau » — .*« ref » absente/);
+    expect(r.message).toBe(
+      'Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes « Salle du banc » › entities « Le tonneau » › ref — « ref » absente — un décor NOMME son type au catalogue (props.json)',
+    );
   });
 
   it('les fautes suivantes sont COMPTÉES', () => {
@@ -149,7 +151,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     const doc = { ...decorSansType(projet()), versionContenu: 'un' };
     const r = rendu(doc, 'import');
     expect(r.detail).toMatch(/^ {2}- versionContenu: /m);
-    expect(r.detail).toMatch(/^ {2}- scenes\.0\.entities\.0/m);
+    expect(r.detail).toMatch(/^ {2}- scenes « s1 » › entities « p0 » › ref: /m);
   });
 
   it('une SEULE faute : le message la reprend entière, aucun détail', () => {
@@ -180,7 +182,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
 
   it('une erreur qui n’est PAS un refus de la porte remonte telle quelle', () => {
     const bug = new TypeError('bug');
-    expect(() => refusDeLaPorteDuProjet(bug, null, 'import')).toThrow(bug);
+    expect(() => refusDeLaPorteDuProjet(bug, 'import')).toThrow(bug);
   });
 
   it('refus HORS porte : le verbe du geste, par la même table', () => {

@@ -5,7 +5,7 @@
  * Compétence/un Talent concret à la création ou à l'avancement.
  *
  * Trois formes, toutes de la grammaire :
- *  - `refOuSpec(type)` — `{ id }` (aucune spécialisation visée), `{ id, spec }` (spécialisation
+ *  - `refOuSpec(type, undefined, 'specOuChoixFacultatifs')` — `{ id }` (aucune spécialisation visée), `{ id, spec }` (spécialisation
  *    précisée), `{ id, choix: true }` (choix libre dans le pool), `{ id, choix: [ids] }` (choix
  *    borné) ;
  *  - `pick(type, [tirage])` — « n parmi » (`{ pick, of: [...] }`), dont une branche peut être un
@@ -23,5 +23,5 @@ const tirage = z.strictObject({ random: z.number().int().positive() });
 
 /** Emplacement d'avancement de `type` — composition FERMÉE, écrite UNE fois pour les deux defs. */
 export function avancement<T extends TypeEntite>(type: T): z.ZodType<unknown> {
-  return z.union([refOuSpec(type), pick(type, [tirage]), tirage]);
+  return z.union([refOuSpec(type, undefined, 'specOuChoixFacultatifs'), pick(type, [tirage]), tirage]);
 }

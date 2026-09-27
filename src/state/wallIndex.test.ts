@@ -37,7 +37,7 @@ const naif = (scene: Scene, x: number, y: number, side: WallSide, z: number): Wa
 /** TOUTES les scènes LIVRÉES : un scénario du registre généré porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
-  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.scene });
+  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
   for (const c of allBuiltinCampaigns) for (const sc of c.scenes ?? []) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };
@@ -194,11 +194,14 @@ describe('wallIndex — le TRAVAIL évité, compté', () => {
     const { scene, touches, remettre } = sceneEspionne();
 
     // Construction : l'index parcourt le tableau une seule fois (le mémo de `wallIndexOf` est keyé
-    // par l'identité de `scene.walls`, et ce proxy est neuf).
+    // par l'identité de `scene.walls`, et ce proxy est neuf). En test, `memoByRef` gèle d'abord sa clé
+    // (`sceneMemo.ts`) : la passe du gel lit chaque segment une fois, avant celle de l'index.
     areteOcculteEntre(scene, q[0][0], q[0][1], q[0][2], q[0][3], 0);
     const construction = touches();
+    const passeDuGel = murs().length;
     expect(construction, 'la construction de l’index parcourt le tableau').toBeGreaterThan(0);
-    expect(construction, 'UNE passe sur les murs, pas davantage').toBeLessThan(murs().length * 2);
+    expect(construction, 'la passe du gel, puis UNE passe de l’index, pas davantage')
+      .toBeLessThan(passeDuGel + murs().length * 2);
 
     remettre();
     let parIndex = 0;

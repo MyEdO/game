@@ -19,7 +19,7 @@
  * ressembler à un identifiant (point/slash/underscore, camelCase, PascalCase composé, kebab minuscule,
  * sigle d'une lettre) et au moins une doit porter une marque de texte FR (espace, accent, apostrophe,
  * mot capitalisé). Le « mot capitalisé » ne tient AUCUNE ligne du stock vivant : mesuré en neutralisant
- * `MOT_CAPITALISE`, les 9 lignes du STOCK restent VUES (aucune ne dépend de lui). Ce qu'il tient est la
+ * `MOT_CAPITALISE`, les 8 lignes du STOCK restent VUES (aucune ne dépend de lui). Ce qu'il tient est la
  * COUVERTURE, et cela se mesure aux contrôles positifs : sans lui, les trois fixtures dont les libellés
  * sont des mots capitalisés NUS (sans accent, sans espace, sans apostrophe — `{ physique: 'Physique',
  * mentale: 'Mentale' }`, sa forme TABLE, et `g.ts:SEG`) cessent d'être vues ; un Record de cette forme
@@ -45,23 +45,19 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { DEFS_DE_DOCUMENT } from '../validate';
-import { defDe, enfantsDe, PROFONDEUR_MAX } from './slots';
+import { descendre } from './descente';
 
-/** Les vocabulaires (jeux d'options) d'enum atteints par le registre — une descente `enfantsDe`. */
+/** Les vocabulaires (jeux d'options) d'enum atteints par le registre (`descendre`). */
 function vocabulairesDuRegistre(): Set<string>[] {
   const vus: Set<string>[] = [];
-  const descendre = (noeud: unknown, ancetres: ReadonlySet<unknown>, profondeur: number): void => {
-    if (!noeud || typeof noeud !== 'object' || ancetres.has(noeud) || profondeur > PROFONDEUR_MAX) return;
-    const def = defDe(noeud);
-    if (!def) return;
-    if (def.type === 'enum') {
+  descendre(
+    DEFS_DE_DOCUMENT.map((d) => d.schema),
+    ({ def }) => {
+      if (def.type !== 'enum') return;
       vus.push(new Set(Object.values(def.entries as Record<string, string>)));
-      return;
-    }
-    const pile = new Set(ancetres).add(noeud);
-    for (const e of enfantsDe(def)) descendre(e.noeud, pile, profondeur + 1);
-  };
-  for (const d of DEFS_DE_DOCUMENT) descendre(d.schema, new Set(), 0);
+      return 'elaguer';
+    },
+  );
   return vus;
 }
 
@@ -188,7 +184,6 @@ const STOCK: readonly string[] = [
   'src/ui/compendium/humanize.ts:REL_PLAYER',
   'src/ui/compendium/humanize.ts:negTable',
   'src/ui/compendium/humanize.ts:table',
-  'src/ui/editor/GameOpEditor.tsx:NATURE_INFLUENCE',
 ].sort();
 
 describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Record', () => {

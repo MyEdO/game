@@ -95,12 +95,12 @@ describe('PROJECT_MIGRATIONS[11] — un projet format 11 se charge à travers la
     // Le même document ANNONCÉ au numéro de forme courant ne migre plus : le schéma EXIGE le type
     // d'un décor et nomme l'entité fautive, au lieu de lui substituer un id en dur.
     const bricole = { ...structuredClone(PROJET_FORMAT_11), schema: CURRENT_PROJECT_SCHEMA };
-    expect(() => parseProject(bricole)).toThrow(/décor « jetee » : « ref » absente/);
+    expect(() => parseProject(bricole)).toThrow(/entities « jetee » › ref: « ref » absente/);
   });
 
   it('une ref MORTE n’est pas du ressort de la migration : le schéma la NOMME, personne ne la remplace', () => {
     const mort = { ...structuredClone(PROJET_FORMAT_11), schema: CURRENT_PROJECT_SCHEMA };
     mort.scenes[0].entities = [{ ...mort.scenes[0].entities[1], ref: 'zzz-disparu' }] as never;
-    expect(() => parseProject(mort)).toThrow(/décor « table » : ref\('prop'\) : id « zzz-disparu » absent de props\.json/);
+    expect(() => parseProject(mort)).toThrow(/entities « table » › ref: « zzz-disparu » est absent du catalogue des décors \(props\.json\)/);
   });
 });

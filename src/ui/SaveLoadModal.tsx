@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/store';
 import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveMeta, type ObsoleteCause } from '../state/saves';
-import { downloadText } from '../state/fileIo';
+import { downloadText } from '../lib/fileIo';
 import { GameDate } from './GameDate';
 import { Modal } from './Modal';
 import { Icon } from './Icon';

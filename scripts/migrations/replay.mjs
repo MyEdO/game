@@ -15,13 +15,10 @@
  *    connaît aucune histoire : `mesurerParGit` y REFUSE de conclure (`estUnDepot`) au lieu de rendre
  *    le vert que `git diff` fabrique tout seul hors dépôt.
  *
- * Quatre verdicts, aucun silence :
+ * Trois verdicts, aucun silence :
  *  - un script sans en-tête d'ENTRÉES (JSDoc « Entrées : … » — ce qu'il LIT) est ROUGE : une
  *    migration dont on ignore le périmètre de lecture ne se rejoue pas en confiance ;
- *  - un script dont le FAIL-FAST est ATTENDU sur l'arbre sain se déclare dans `ATTENDU_ROUGE` avec
- *    sa raison MESURÉE ET son ÉCHÉANCE (le ticket avec lequel l'entrée meurt) — nommé, jamais sauté
- *    en silence, et son exit 0 devient ROUGE à son tour (une raison périmée est une dérive) ;
- *  - tout autre exit non nul, ou toute donnée SUIVIE réécrite, est ROUGE ;
+ *  - tout exit non nul, ou toute donnée SUIVIE réécrite, est ROUGE ;
  *  - tout fichier NEUF apparu dans le périmètre pendant le rejeu est ROUGE et NOMMÉ.
  *
  * ENTRÉES : `scripts/migrations/*.mjs` (les migrations elles-mêmes) — le rejeu ne lit aucune donnée
@@ -46,8 +43,8 @@
  * sur le CARDINAL du geste qu'elle POSSÈDE : zéro geste à faire = rien n'est écrit et la sortie est 0,
  * quel que soit l'ordre des AUTRES clés du document (banc `lib/idempotence-ordre-des-cles.test.mjs`,
  * corpus entier renversé). Ce qu'une migration ne possède pas, elle le NOMME : un `id` hors tête sans
- * promotion déclarée est une anomalie, sortie 1 AVANT toute écriture. Toute migration absente
- * d'`ATTENDU_ROUGE` qui sort non nul rend le rejeu ROUGE (`replay.mjs:110`).
+ * promotion déclarée est une anomalie, sortie 1 AVANT toute écriture. Toute migration qui sort non
+ * nul rend le rejeu ROUGE.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -55,26 +52,6 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
-
-/**
- * Migrations dont le FAIL-FAST est ATTENDU sur l'arbre sain — liste NOMINATIVE datée (2026-08-25),
- * chaque entrée portant sa raison MESURÉE au rejeu et son ÉCHÉANCE (le ticket avec lequel elle
- * meurt). Elle ne fait que DÉCROÎTRE : un script dont la cause disparaît redevient vert, et son
- * entrée part avec.
- * @type {Record<string, string>}
- */
-export const ATTENDU_ROUGE = {
-  '2026-08-23-spec-competence-libelle-vers-id.mjs':
-    'ARBITRAGE REQUIS mesuré sur l’arbre sain — 6 occurrences / 3 specs de `creatures.json` sont des CHOIX ' +
-    'BORNÉS imprimés au statbloc (metier/« Armurier OU Forgeron » ×1, savoir/« Divinité » ×3, savoir/' +
-    '« Rivières ou Chemins » ×2) : le catalogue ne peut pas les résoudre en UN id, et la migration REFUSE ' +
-    'de deviner. Le fail-fast est le contrat, pas un incident. ÉCHÉANCE : #1456, ÉTENDU le 2026-08-26 aux ' +
-    'choix bornés — les 6 occurrences y sont nominatives, et cette entrée meurt AVEC lui.',
-  '2026-08-23-specs-livres-autorises.mjs':
-    'MÊME cause, même donnée : les 6 occurrences ci-dessus restent « hors catalogue sous un livre EXTRAIT » ' +
-    '(`frenchy-bzh`), ce que ce script déclare comme arrêt en 1. ÉCHÉANCE : les deux entrées meurent ' +
-    'ENSEMBLE avec #1456, étendu le 2026-08-26 pour les porter nominativement.',
-};
 
 // eslint-disable-next-line no-irregular-whitespace
 /** Bloc de commentaire d'en-tête d'un script (jusqu'au premier `*​/`). */
@@ -187,13 +164,12 @@ export function rejouer({ racine, dossier = join(racine, 'scripts', 'migrations'
     const debut = Date.now();
     const r = spawnSync(process.execPath, [join(dossier, f)], { cwd: racine, encoding: 'utf8' });
     const secondes = ((Date.now() - debut) / 1000).toFixed(1);
-    const attendu = ATTENDU_ROUGE[f];
-    const ok = attendu ? r.status !== 0 : r.status === 0;
-    ecrire(`  ${ok ? '✓' : '✗'} ${f} — exit ${r.status} (${secondes}s)${attendu ? ` [rouge ATTENDU : ${attendu}]` : ''}`);
+    const ok = r.status === 0;
+    ecrire(`  ${ok ? '✓' : '✗'} ${f} — exit ${r.status} (${secondes}s)`);
     if (ok) continue;
     const queue = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split(/\r?\n/).slice(-8).join('\n      ');
     ecrire(`      ${queue}`);
-    rouges.push(attendu ? `${f} : exit 0 alors que le rouge est déclaré ATTENDU (raison périmée)` : `${f} : exit ${r.status}`);
+    rouges.push(`${f} : exit ${r.status}`);
   }
   return { rouges, joues: scripts.length };
 }

@@ -11,7 +11,7 @@ sessions parallèles se bloquent (`Error: Browser is already in use … use --is
 d'attente ni fin prévisible, et le `--isolated` du message n'est pas actionnable depuis un agent.
 
 **Why:** plusieurs sessions Claude tournent en même temps sur ce dépôt
-([[env-coordination-arbre-partage-sessions]]) et chacune peut tenir le navigateur une heure.
+([[env-coordination-sessions]]) et chacune peut tenir le navigateur une heure.
 
 **How to apply:** dès le premier `already in use`, ni réessai ni attente : jouer la recette par le kit
 CDP canonique — `openApp(url)` / `evaluate` / `shot` / `consoleGuard` de `scripts/recette/lib.mjs`

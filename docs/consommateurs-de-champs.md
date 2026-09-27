@@ -9,19 +9,19 @@
 
 Schémas NOMMÉS candidats : `src/data/schemas/grammaire/` (formes partagées entre documents) + les `src/data/schemas/defs/` dont les sous-schémas sont nommés (`criticals.ts`, `props.ts`) ; **23 retenus** (voir en-tête du générateur pour les raisons d'exclusion). Les catalogues `src/data/schemas/defs/*.ts` à schéma d'entrée ANONYME restent HORS PÉRIMÈTRE — non par absence de nom TS : l'alias existe pour la plupart (41 interfaces `XData` dans `src/data/index.ts`, mesure 2026-09-01 — ex. `TrappingData` `index.ts:1113`, annotée par `src/engine/items.ts:20` et `src/engine/activities.ts:28`) et les champs d'une entrée anonyme sont dérivables (`scripts/docs/lib/zod-introspect.mts#introspecterDefs`) —, mais parce que la DÉRIVATION de `TARGETS` (jointure `type`↔`XData`) est un geste distinct, encore à faire (#1620) ; à l'unité, le geste d'auteur reste ouvert (nommer son schéma d'entrée dans SON def — ou en `grammaire/` si la forme est réellement partagée — puis l'ajouter à `TARGETS`), fait pour `props.json` → `PropData`.
 
-Détection au VÉRIFICATEUR DE TYPES (`ts.Program`/`TypeChecker`) : un lecteur est un accès dont le SYMBOLE de propriété est celui déclaré par le type cible, la propriété devant lui être PROPRE ou son porteur être DÉCLARÉ de ce type — aucune annotation littérale n'est cherchée, et un type anonyme de même forme ne crédite rien. Quatre états sont mesurés, dont deux ne sont pas des mesures de lecture (hérité, absent du type TS) ; ceux qui ont des membres ici : **146 lus** ; **5 « 0 — JAMAIS LU »** (`SourceRef.note`, `CastingNumberMod.maison`, `CastingNumberMod.source`, `CastingNumberMod.desc`, `PropData.type`) — champ PROPRE au type, aucun lecteur ; **8 absents du type TS** (`AdvancementRef.table`, `PropData.labelF`, `PropData.desc`, `PropData.descRef`, `PropData.source`, `PropData.alsoIn`, `PropData.maison`, `PropData.icon`) — le champ du schéma n'existe pas sur le type : divergence schéma↔type, listée en fin de rapport, sur 159 champs de 23 types.
+Détection au VÉRIFICATEUR DE TYPES (`ts.Program`/`TypeChecker`) : un lecteur est un accès dont le SYMBOLE de propriété est celui déclaré par le type cible, la propriété devant lui être PROPRE ou son porteur être DÉCLARÉ de ce type — aucune annotation littérale n'est cherchée, et un type anonyme de même forme ne crédite rien. Quatre états sont mesurés, dont deux ne sont pas des mesures de lecture (hérité, absent du type TS) ; ceux qui ont des membres ici : **147 lus** ; **5 « 0 — JAMAIS LU »** (`SourceRef.note`, `CastingNumberMod.maison`, `CastingNumberMod.source`, `CastingNumberMod.desc`, `PropData.type`) — champ PROPRE au type, aucun lecteur ; **8 absents du type TS** (`AdvancementRef.table`, `PropData.labelF`, `PropData.desc`, `PropData.descRef`, `PropData.source`, `PropData.alsoIn`, `PropData.maison`, `PropData.icon`) — le champ du schéma n'existe pas sur le type : divergence schéma↔type, listée en fin de rapport, sur 160 champs de 23 types.
 
-Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendait 41 champs « 0 lecteur » sur ces mêmes 159. Des 16 « 0 lecteur » de la première version de ce rapport (échantillon COMPLET), 12 ont un lecteur mesuré — dont `argDifficulty` et `stageOutcome`, qu'une vérification à la main manque comme le scan syntaxique, `spec` d'une `QualityRef` (champ PROPRE : `qualityRefSchema` porte son propre shape) et `hidden` d'un `TraitInstance` (`hiddenGroupsOf` annote `TraitInstance[]`) ; les 4 autres sont de vrais zéros. Coût : ~17 s et ~1,3 Go pour un rapport complet, contre 1,8 s au scan syntaxique. Angles morts (redéclaration structurelle, spread, clé dynamique, champ absent du type) : en-tête de `fieldConsumers.mjs`.
+Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendait 41 champs « 0 lecteur » sur ces mêmes 160. Des 16 « 0 lecteur » de la première version de ce rapport (échantillon COMPLET), 12 ont un lecteur mesuré — dont `argDifficulty` et `stageOutcome`, qu'une vérification à la main manque comme le scan syntaxique, `spec` d'une `QualityRef` (champ PROPRE : `qualityRefSchema` porte son propre shape) et `hidden` d'un `TraitInstance` (`hiddenGroupsOf` annote `TraitInstance[]`) ; les 4 autres sont de vrais zéros. Coût : ~17 s et ~1,3 Go pour un rapport complet, contre 1,8 s au scan syntaxique. Angles morts (redéclaration structurelle, spread, clé dynamique, champ absent du type) : en-tête de `fieldConsumers.mjs`.
 
 ### `TraitInstance` (src/engine/statEntry.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 66 | `src/engine/actorView.ts:28` |
+| `id` | 69 | `src/engine/actorView.ts:28` |
 | `value` | 14 | `src/engine/creatureAttacks.ts:80` |
-| `arg` | 17 | `src/engine/creatureAttacks.ts:77` |
+| `arg` | 18 | `src/engine/creatureAttacks.ts:77` |
 | `count` | 4 | `src/engine/creatureAttacks.ts:85` |
-| `range` | 6 | `src/engine/creatureEquip.ts:81` |
+| `range` | 7 | `src/engine/creatureEquip.ts:81` |
 | `natural` | 1 | `src/engine/creatureEquip.ts:87` |
 | `hidden` | 1 | `src/engine/groups.ts:57` |
 
@@ -53,19 +53,19 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | `sides` | 18 | `src/engine/dice.ts:83` |
 | `plus` | 9 | `src/engine/dice.ts:83` |
 
-### `Ref` (src/data/index.ts)
+### `RefDesignee` (src/data/schemas/grammaire/ref.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 62 | `src/data/index.ts:3066` |
-| `spec` | 18 | `src/data/index.ts:3588` |
+| `id` | 230 | `src/data/index.ts:3045` |
+| `spec` | 138 | `src/data/index.ts:3516` |
 
 ### `QualityRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 5 | `src/data/index.ts:3600` |
-| `value` | 4 | `src/data/index.ts:3601` |
+| `id` | 6 | `src/data/index.ts:3529` |
+| `value` | 4 | `src/data/index.ts:3530` |
 
 ### `CastingNumberMod` (src/engine/castingNumber.ts)
 
@@ -85,8 +85,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `fixed` | 4 | `src/data/index.ts:3669` |
-| `roll` | 3 | `src/data/index.ts:3669` |
+| `fixed` | 4 | `src/data/index.ts:3598` |
+| `roll` | 3 | `src/data/index.ts:3598` |
 
 ### `TrappingRef` (src/data/index.ts)
 
@@ -94,62 +94,63 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `id` | 8 | `src/engine/items.ts:307` |
 | `spec` | 2 | `src/engine/items.ts:309` |
-| `count` | 10 | `src/data/index.ts:3669` |
-| `qualities` | 4 | `src/data/index.ts:3672` |
-| `qualityChoice` | 6 | `src/data/index.ts:3670` |
-| `text` | 2 | `src/data/index.ts:3663` |
-| `vehicleId` | 5 | `src/data/index.ts:3665` |
+| `count` | 10 | `src/data/index.ts:3598` |
+| `qualities` | 4 | `src/data/index.ts:3601` |
+| `qualityChoice` | 6 | `src/data/index.ts:3599` |
+| `text` | 2 | `src/data/index.ts:3592` |
+| `vehicleId` | 5 | `src/data/index.ts:3594` |
 | `label` | 7 | `src/engine/possessionGrants.ts:25` |
-| `creatureId` | 5 | `src/data/index.ts:3667` |
-| `choice` | 5 | `src/data/index.ts:3660` |
-| `wildcard` | 3 | `src/data/index.ts:3661` |
+| `creatureId` | 5 | `src/data/index.ts:3596` |
+| `choice` | 5 | `src/data/index.ts:3589` |
+| `wildcard` | 3 | `src/data/index.ts:3590` |
 
 ### `AdvancementRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 8 | `src/data/index.ts:3642` |
-| `spec` | 2 | `src/engine/careerSlots.ts:170` |
-| `choix` | 7 | `src/data/index.ts:3066` |
-| `pick` | 2 | `src/data/index.ts:3645` |
-| `of` | 6 | `src/data/index.ts:3644` |
+| `id` | 16 | `src/data/index.ts:3571` |
+| `spec` | 4 | `src/engine/careerSlots.ts:168` |
+| `choix` | 11 | `src/data/index.ts:3045` |
+| `pick` | 2 | `src/data/index.ts:3574` |
+| `of` | 8 | `src/data/index.ts:3573` |
 | `table` | — | *absent du type TS* |
-| `random` | 3 | `src/data/index.ts:3647` |
+| `random` | 5 | `src/data/index.ts:3576` |
 
 ### `EntityAppearance` (src/engine/authoringAppearance.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `seed` | 5 | `src/gameIso/rig/enemyProfile.ts:115` |
-| `monster` | 11 | `src/gameIso/rig/enemyProfile.ts:144` |
-| `colors` | 13 | `src/gameIso/rig/bodyPlan.ts:122` |
-| `parts` | 5 | `src/gameIso/rig/enemyProfile.ts:61` |
-| `sex` | 8 | `src/gameIso/rig/enemyProfile.ts:60` |
-| `build` | 8 | `src/gameIso/rig/enemyProfile.ts:60` |
-| `species` | 18 | `src/gameIso/rig/bodyPlan.ts:168` |
-| `tenue` | 7 | `src/gameIso/rig/enemyProfile.ts:98` |
-| `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:124` |
-| `armurePortee` | 5 | `src/gameIso/rig/enemyProfile.ts:193` |
-| `eyes` | 13 | `src/gameIso/rig/bodyPlan.ts:123` |
-| `features` | 9 | `src/gameIso/rig/enemyProfile.ts:61` |
+| `seed` | 3 | `src/gameIso/rig/enemyProfile.ts:119` |
+| `monster` | 8 | `src/gameIso/rig/enemyProfile.ts:175` |
+| `colors` | 10 | `src/gameIso/rig/bodyPlan.ts:123` |
+| `parts` | 2 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `sex` | 4 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `build` | 5 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `species` | 14 | `src/gameIso/rig/bodyPlan.ts:173` |
+| `tenue` | 6 | `src/gameIso/rig/enemyProfile.ts:102` |
+| `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:125` |
+| `armurePortee` | 3 | `src/gameIso/rig/enemyProfile.ts:224` |
+| `hairstyle` | 4 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `eyes` | 10 | `src/gameIso/rig/bodyPlan.ts:124` |
+| `features` | 6 | `src/gameIso/rig/enemyProfile.ts:65` |
 
 ### `FlowTest` (src/engine/flowCore.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `stake` | 10 | `src/engine/flowCore.ts:841` |
-| `skill` | 30 | `src/engine/disease.ts:371` |
-| `sense` | 2 | `src/state/combatEffects.ts:1011` |
-| `characteristic` | 24 | `src/engine/disease.ts:371` |
+| `stake` | 10 | `src/engine/flowCore.ts:847` |
+| `skill` | 31 | `src/engine/disease.ts:371` |
+| `sense` | 2 | `src/state/combatEffects.ts:1012` |
+| `characteristic` | 25 | `src/engine/disease.ts:371` |
 | `difficulty` | 8 | `src/engine/disease.ts:358` |
-| `requireSL` | 2 | `src/state/combatEffects.ts:1050` |
+| `requireSL` | 2 | `src/state/combatEffects.ts:1051` |
 | `label` | 11 | `src/state/combat/triggeredTest.ts:235` |
-| `tool` | 2 | `src/state/combatEffects.ts:1013` |
-| `vsGroups` | 5 | `src/state/combatEffects.ts:918` |
-| `vsStatus` | 1 | `src/state/combatEffects.ts:917` |
-| `begging` | 3 | `src/state/combatEffects.ts:922` |
-| `vsCapricieux` | 1 | `src/state/combatEffects.ts:926` |
-| `easierIf` | 11 | `src/state/combatEffects.ts:967` |
+| `tool` | 2 | `src/state/combatEffects.ts:1014` |
+| `vsGroups` | 5 | `src/state/combatEffects.ts:919` |
+| `vsStatus` | 1 | `src/state/combatEffects.ts:918` |
+| `begging` | 3 | `src/state/combatEffects.ts:923` |
+| `vsCapricieux` | 1 | `src/state/combatEffects.ts:927` |
+| `easierIf` | 11 | `src/state/combatEffects.ts:968` |
 | `argDifficulty` | 1 | `src/state/triggeredEffects.ts:75` |
 | `unlessImmune` | 1 | `src/state/combat/flowEval.ts:137` |
 | `onlyGroups` | 1 | `src/state/combat/flowEval.ts:138` |
@@ -165,7 +166,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `min` | 2 | `src/state/travelFlow.ts:1154` |
-| `max` | 1 | `src/ui/compendium/registry.ts:822` |
+| `max` | 1 | `src/ui/compendium/registry.ts:816` |
 | `id` | 8 | `src/engine/mountTravel.ts:217` |
 | `label` | 8 | `src/engine/mountTravel.ts:201` |
 | `desc` | 1 | `src/state/travelPostes.ts:362` |
@@ -186,11 +187,11 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `min` | 1 | `src/ui/compendium/registry.ts:845` |
-| `max` | 1 | `src/ui/compendium/registry.ts:845` |
-| `id` | 3 | `src/data/index.ts:495` |
+| `min` | 1 | `src/ui/compendium/registry.ts:839` |
+| `max` | 1 | `src/ui/compendium/registry.ts:839` |
+| `id` | 3 | `src/data/index.ts:494` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
-| `ops` | 3 | `src/engine/riverNavigation.ts:213` |
+| `ops` | 3 | `src/engine/riverNavigation.ts:215` |
 | `shrapnel` | 3 | `src/engine/shipCritical.ts:110` |
 | `hullCrits` | 2 | `src/engine/shipCritical.ts:103` |
 | `crewHit` | 2 | `src/engine/shipCritical.ts:112` |
@@ -215,7 +216,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | `cover` | 3 | `src/data/props.types.ts:600` |
 | `light` | 3 | `src/data/props.types.ts:610` |
 | `foot` | 2 | `src/data/props.types.ts:382` |
-| `volume` | 18 | `src/data/index.ts:2803` |
+| `volume` | 16 | `src/data/props.types.ts:451` |
 | `seatSlots` | 5 | `src/data/props.types.ts:412` |
 
 ### `PropVolumeRecipe` (src/data/props.types.ts)
@@ -293,11 +294,11 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 ## Synthèse
 
-23 types, 159 champs mesurés : 146 lus, **5 avec « 0 lecteur » mesuré** au `TypeChecker`, 0 hérité, 8 absents du type TS. Ces « 0 lecteur » sont sous CLIQUET NOMINATIF (`src/data/field-consumers.test.ts`) : la liste attendue y est écrite champ par champ — un zéro apparu comme un zéro disparu est rouge, et la ligne ne se retire qu'avec le lecteur qui l'annule.
+23 types, 160 champs mesurés : 147 lus, **5 avec « 0 lecteur » mesuré** au `TypeChecker`, 0 hérité, 8 absents du type TS. Ces « 0 lecteur » sont sous CLIQUET NOMINATIF (`src/data/field-consumers.test.ts`) : la liste attendue y est écrite champ par champ — un zéro apparu comme un zéro disparu est rouge, et la ligne ne se retire qu'avec le lecteur qui l'annule.
 
 ## Cas fondateur
 
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
-`trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: a97134e3c509be89d2fa28236cac1c06f1af09d9 (2109 fichiers, 172 dossiers) corps: 7ffc6d432568c589ff68df89637391c1ab584924 -->
+`trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
+<!-- sources-empreinte: 14047dc736896438e0f5dfe9e96ee2a948017d76 (2125 fichiers, 174 dossiers) corps: cc91b2b27ef0e434014ad91041c43262bf5de7f5 -->

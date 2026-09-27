@@ -14,6 +14,8 @@ import { isStructure } from '../../engine/structures';
 import { couvertDepuisDifficulte } from '../../engine/cover';
 import { findStructureById } from '../../data';
 import { pregen, PREGEN } from '../../data/pregens';
+const diligenceConstruit = diligence.construire();
+const scenarioConstruit = scenario.construire();
 
 /**
  * OPACITÉ DÉCLARÉE PAR STRUCTURE (#1680, #1709) — les contrats du MOTEUR, sur une carte CONSTRUITE
@@ -253,16 +255,16 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
  */
 describe('scénario de recette « écuries » — armement du tireur et non-contamination', () => {
   it('arme le tireur du groupe d’une arme à DISTANCE (l’arc en main, pas la fronde rangée)', () => {
-    const tireur = scenario.makeParty()[0];
+    const tireur = scenario.construire().party[0];
     expect(tireur.weapons.some((w) => w.type === 'ranged')).toBe(true);
   });
 
   it('pose son groupe et ses ennemis SANS toucher la scène de campagne partagée', () => {
     const depart = (s: Scene) => s.entities.find((e) => e.kind === 'heroStart')!.pos;
-    expect(scenario.scene).not.toBe(diligence.scene);
-    expect(depart(scenario.scene)).not.toEqual(depart(diligence.scene));
-    const posees = scenario.scene.encounters.map((e) => e.id);
+    expect(scenarioConstruit.scene).not.toBe(diligenceConstruit.scene);
+    expect(depart(scenarioConstruit.scene)).not.toEqual(depart(diligenceConstruit.scene));
+    const posees = scenarioConstruit.scene.encounters.map((e) => e.id);
     expect(posees.length).toBeGreaterThan(0);
-    expect(diligence.scene.encounters.filter((e) => posees.includes(e.id))).toEqual([]);
+    expect(diligenceConstruit.scene.encounters.filter((e) => posees.includes(e.id))).toEqual([]);
   });
 });

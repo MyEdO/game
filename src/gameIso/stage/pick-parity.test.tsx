@@ -25,6 +25,8 @@ import { buildPropVolumes, type AncrageVolume } from '../builders/propVolumes';
 import { findPropById, props, refEstVolumique } from '../../data';
 import { capVolumique, polygonesDePrimitive, type PropData } from '../../data/props.types';
 import type { SceneEntity } from '../../state/scene';
+const siegeConstruit = siege.construire();
+const pontConstruit = pont.construire();
 
 /**
  * PARITÉ DU PICKING DE TUILE ENTRE LES DEUX VOIES (#1176, lot P2-3).
@@ -352,8 +354,8 @@ function posteDuGroupe(scene: Scene, z: number, defaut: Pt): Pt {
 
 const CARTES: { nom: string; scene: Scene; etages: number[] }[] = [
   { nom: 'fixture', scene: FIXTURE, etages: ETAGES_FIXTURE },
-  { nom: 'pont-vitrine', scene: pont.scene as Scene, etages: [0, 1] },
-  { nom: 'siege-enceinte', scene: siege.scene as Scene, etages: [0] },
+  { nom: 'pont-vitrine', scene: pontConstruit.scene as Scene, etages: [0, 1] },
+  { nom: 'siege-enceinte', scene: siegeConstruit.scene as Scene, etages: [0] },
 ];
 
 /**
@@ -502,7 +504,7 @@ describe('meuble HAUT — le rayon décide, la case dessinée n’est qu’un re
   /** Sommet MONDE d'un décor POSÉ dans la scène, cap et altitude de son pied compris. */
   const sommet = (ent: SceneEntity): number => sommetDuDecor(findPropById(ent.ref)!, {
     ancre: ent.pos,
-    facing: capVolumique(ent.facing, ent.id),
+    facing: capVolumique(ent.facing)!,
     baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, ent.z ?? 0),
     entId: ent.id,
   }, mpt);

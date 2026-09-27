@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { atteignable, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
 import { dialogueDuDessus, useDismissLayer } from './useDismissLayer';
-import { subscribeDismissStack, type OnDismiss } from '../state/dismissStack';
+import { subscribeDismissStack, type LayerPlan, type OnDismiss } from '../state/dismissStack';
 import { ModalSubject } from './ModalSubject';
 import { Row } from './Layout';
 import { CadrePied, CadreFermer, PRIMAIRE_DU_PIED, PIED_DU_CADRE, CROIX_DU_CADRE } from './Cadre';
@@ -63,8 +63,9 @@ function focusTarget(box: HTMLElement, mode: 'initial' | 'rescue'): HTMLElement 
 }
 
 /** Cible d'ouverture d'un dialogue : `focusTarget` initial — évite que le focus atterrisse sur un
- *  bouton sans intérêt (« rien ne répond »). */
-const cibleDialogue = (box: HTMLElement) => focusTarget(box, 'initial');
+ *  bouton sans intérêt (« rien ne répond »). Un dialogue qui n'est pas le dialogue du dessus
+ *  (`dialogueDuDessus`) n'emprunte rien : peint dessous, il attend que ce qui le couvre se retire. */
+const cibleDialogue = (box: HTMLElement) => (dialogueDuDessus() === box ? focusTarget(box, 'initial') : null);
 
 /** Cible d'une surface EMBARQUÉE dans un dialogue déjà ouvert (jet posé dans l'infirmerie) : la cible
  *  d'ouverture de ce dialogue, qui porte les gestes de la surface à son pied. Montée AVEC son dialogue
@@ -76,10 +77,12 @@ export const cibleEmbarquee = (box: HTMLElement): HTMLElement | null => {
 
 /** Comportement a11y des dialogues (pattern WAI-ARIA) : focus déplacé dans la boîte à l'ouverture,
  *  piège de focus (Tab/Shift+Tab bouclent), Échap = `onClose` quand il existe — seule la modale du
- *  DESSUS de la pile (`dialogueDuDessus`, la dernière ouverte) réagit, jamais le dernier
- *  `[role=dialog]` de l'ordre du document. Consommé par tout dialogue de la pile.
+ *  DESSUS de la pile (`dialogueDuDessus`) réagit, jamais le dernier `[role=dialog]` de l'ordre du
+ *  document. Consommé par tout dialogue de la pile.
  *
- *  @param kind libellé de DIAGNOSTIC de la couche empilée.
+ *  @param kind identifiant STABLE de la surface empilée (`dismissStack`) — il n'entre dans aucun rang.
+ *  @param plan où la boîte est PEINTE (`dismissStack`) : `application` (défaut, voile `fixed`) ou
+ *   `scene` (la conversation, peinte dans la scène sous toute surface d'application).
  *  @param actif le dialogue est-il RÉELLEMENT à l'écran. DISTINCT d'« annulable » : un composant monté
  *   en permanence (menu système fermé) ou qui rend `null` sous condition n'a AUCUNE couche — sans quoi il empilerait une couche fantôme qui mange le
  *   congédiement de toute la session.
@@ -87,8 +90,16 @@ export const cibleEmbarquee = (box: HTMLElement): HTMLElement | null => {
 export function useModalA11y(
   boxRef: RefObject<HTMLDivElement>,
   onClose?: OnDismiss,
-  { kind = 'modale', actif = true, etape }: { kind?: string; actif?: boolean; etape?: string | number } = {},
+  { kind = 'modale', plan = 'application', actif = true, etape }: { kind?: string; plan?: LayerPlan; actif?: boolean; etape?: string | number } = {},
 ) {
+  // CONGÉDIEMENT : le dialogue est une COUCHE de la pile (`dismissStack`, #1476) — Échap et le
+  // bouton B de la manette y arrivent par la couture unique `resoudreEchap`, qui congédie la couche
+  // du DESSUS (`coucheDuDessus`), jamais le dernier `[role=dialog]` de l'ordre du document — un
+  // portal ajouté en fin de `body` mentait sur l'ordre d'ouverture. Sans `onClose`, la couche est
+  // BLOQUANTE : elle consomme la touche sans rien fermer (un jet posé doit être résolu). Un `onClose`
+  // qui rend `false` garde la couche à l'écran (congédiement PARTIEL, #1752). Empilée AVANT l'emprunt :
+  // l'ordre des effets est celui des appels, et l'emprunt lit la pile (`cibleDialogue`).
+  useDismissLayer({ kind, nature: 'modale', plan, boite: boxRef }, onClose ?? null, actif);
   useFocusEmprunte(boxRef, actif, cibleDialogue, etape);
   // SAUVETAGE du focus : un contrôle focalisé que le rendu DÉMONTE (« Résilience » cède la place au
   // groupe de choix du dé, « Lancer » au résultat…) laisse le focus sur <body> — le piège Tab est
@@ -136,13 +147,6 @@ export function useModalA11y(
     });
     return () => { desabonner(); clearTimeout(relecture); };
   }, [boxRef, actif]);
-  // CONGÉDIEMENT : le dialogue est une COUCHE de la pile (`dismissStack`, #1476) — Échap et le
-  // bouton B de la manette y arrivent par la couture unique `resoudreEchap`, qui congédie la couche
-  // du DESSUS (la dernière ouverte), jamais le dernier `[role=dialog]` de l'ordre du document — un
-  // portal ajouté en fin de `body` mentait sur l'ordre d'ouverture. Sans `onClose`, la couche est
-  // BLOQUANTE : elle consomme la touche sans rien fermer (un jet posé doit être résolu). Un `onClose`
-  // qui rend `false` garde la couche à l'écran (congédiement PARTIEL, #1752).
-  useDismissLayer(kind, onClose ?? null, actif, undefined, { boite: boxRef, dialogue: true });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const box = boxRef.current;
@@ -245,7 +249,7 @@ export function Modal({
   taille?: 'apercu' | 'lecture' | 'large' | 'planche' | 'vaste';
   /** Gangrène du cadre (#492) : la Corruption du porteur ternit l'or de la boîte. */
   gangrene?: 'ronge' | 'seuil';
-  /** Nom de la couche de congédiement (`dismissStack`) — défaut `modale`. */
+  /** Identifiant STABLE de la couche de congédiement (`dismissStack`) — défaut `modale`. */
   kind?: string;
   /** Crochet d'appelant pour SES descendants — la boîte elle-même ne se vise pas (§5.3,
    *  `css-modules-guard.test.ts`) : géométrie et matière sont des états ci-dessus. */

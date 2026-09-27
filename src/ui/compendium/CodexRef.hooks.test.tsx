@@ -25,8 +25,8 @@ const mount = (node: React.ReactElement) => {
 beforeEach(() => { resetDismissLayers(); });
 
 /**
- * PRÉMISSE d'un appui d'Échap : la couche du DESSUS est bien celle de ce popover. Le congédiement est
- * LIFO PUR (`dismissTop`) — sommet étranger = l'appui va à l'autre surface, le popover reste à l'écran,
+ * PRÉMISSE d'un appui d'Échap : la couche du DESSUS est bien celle de ce popover. Le congédiement va
+ * à la couche du DESSUS (`dismissTop`) — sommet étranger = l'appui va à l'autre surface, le popover reste à l'écran,
  * et le banc rougirait sur « le popover n'est pas null » sans jamais nommer la vraie cause. Mesuré : une
  * couche étrangère empilée pendant le cas reproduit à l'identique le rouge CI de #1442, et le TEMPS n'y
  * change rien (la fermeture, elle, est synchrone : zéro tour d'attente nécessaire après l'appui).

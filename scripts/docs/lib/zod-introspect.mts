@@ -3,22 +3,19 @@
 // Consommée par `scripts/docs/build-structures.mts` pour la colonne « déclaré » et le volet
 // « forme DÉCLARÉE jamais observée ».
 //
-// zod 4.4.3 : la forme d'un nœud se lit sur `s._zod.def` (`type`, `shape`, `element`, `options`,
-// `innerType`, `getter`, `in`/`out`).
+// La forme d'un nœud se lit par `defDe`, ses enfants par `enfantsDe` (`src/data/schemas/grammaire/descente.ts`).
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { defDe, enfantsDe, type DefZod } from '../../../src/data/schemas/grammaire/slots';
+import { defDe, descendre, enfantsDe } from '../../../src/data/schemas/grammaire/descente';
 import { valeursDe } from '../../../src/data/schemas/grammaire/meta';
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs';
 
 /**
- * DESCENTE UNIQUE : les enfants d'un nœud, triés par RÔLE selon le SEGMENT de path qu'`enfantsDe`
- * (`grammaire/slots.ts`) leur donne — `.clé` clé d'objet, `[]` élément de liste, `{}` valeur de
- * record, `|N` branche d'union, `[N]` élément de tuple, `''` enveloppe (`innerType`, `in`/`out`,
- * cible d'un `lazy`, dans cet ordre). Aucun champ de `_zod.def` n'est lu à la main ici : une
+ * Les enfants d'un nœud, triés par RÔLE selon le SEGMENT de path qu'`enfantsDe`
+ * (`grammaire/descente.ts`) leur donne. Aucun champ de `_zod.def` n'est lu à la main ici : une
  * enveloppe que la descente apprendrait à traverser profite à TOUS les relevés de ce module.
  */
-function descente(def: DefZod) {
-  const enfants = enfantsDe(def);
+function descente(noeud: unknown) {
+  const enfants = enfantsDe(noeud);
   return {
     cles: enfants.filter((e) => e.cle !== undefined),
     element: enfants.find((e) => e.segment === '[]')?.noeud,
@@ -31,97 +28,67 @@ function descente(def: DefZod) {
 }
 
 /**
- * MARCHE MÉMOÏSÉE d'un arbre de schéma : chaque nœud n'est visité qu'UNE fois (mémo par IDENTITÉ),
- * la descente passe par `enfantsDe` SEUL. Bornée en profondeur — un schéma récursif non mémoïsé rend
- * un nœud neuf à chaque `lazy`. C'est la marche des RELEVÉS de ce module (recensement d'un arbre,
- * une visite par nœud) ; la marche des SLOTS (`grammaire/slots.ts`) est l'autre, et n'est PAS
- * mémoïsée à dessein — elle compte une instance partagée par 3 champs comme 3 slots.
+ * Coupe des relevés PAR VALEUR (`classeZod`, `clesDeclarees`, `litteraux`) : un nœud déjà présent sur
+ * le chemin du relevé est un CYCLE (`z.lazy` récursif, dont l'instance est stable :
+ * `grammaire/descente.ts`). Identité sur le CHEMIN, jamais par appel : un nœud partagé par deux clés se
+ * relit sous chacune. Ces relevés traversent `array`, `union`, `record`, les enveloppes, `lazy` et
+ * `pipe` sans passer par un `object`, qui arrête `classeZod` : un schéma récursif par ces seuls nœuds
+ * (`z.lazy(() => z.array(s))`) ne terminerait pas sans cette coupe.
  */
-export function marcherMemoise(
-  schema: unknown,
-  visiter: (def: DefZod, noeud: unknown) => void,
-  profondeurMax = PROFONDEUR_MEMO,
-): void {
-  const vus = new Set<unknown>();
-  const descendre = (n: unknown, profondeur: number): void => {
-    if (!n || typeof n !== 'object' || profondeur > profondeurMax || vus.has(n)) return;
-    vus.add(n);
-    const def = defDe(n);
-    if (!def) return;
-    visiter(def, n);
-    for (const enfant of enfantsDe(def)) descendre(enfant.noeud, profondeur + 1);
-  };
-  descendre(schema, 0);
-}
+type Chemin = ReadonlySet<unknown>;
+const RACINE: Chemin = new Set();
+const suivant = (chemin: Chemin, noeud: unknown): Chemin => new Set(chemin).add(noeud);
 
-/**
- * Borne de la marche mémoïsée de `choixDeclares`. Elle est ATTEIGNANTE sur les schémas de scène —
- * mesure du 2026-09-14, `marcherMemoise` sur la def `arene-projet.json` : 482 nœuds visités à 8,
- * 1253 à 12, 1783 à 20, 1816 à 40 (à comparer à `spells.json`, 462 à 12 contre 474 à 20 et au-delà,
- * où la mémo referme l'arbre avant la borne). La borne MORD donc, et comme la mémo est par
- * IDENTITÉ, le PREMIER chemin qui atteint un nœud décide s'il est vu : une retouche de schéma qui
- * change l'ordre de visite déplace des littéraux sous ou hors de la borne, sans qu'un octet de
- * donnée bouge. Conséquence mesurée et stockée : `scripts/guards/lib/horsStrateStock.mjs`, dont
- * l'en-tête nomme ce défaut ; sa levée est #1687.
- */
-const PROFONDEUR_MEMO = 12;
+/** Ce qu'un relevé écrit à la place d'un nœud déjà sur son chemin. */
+const MARQUE_CYCLE = '(cycle)';
 
-/**
- * Borne des relevés NON mémoïsés `classeZod`/`clesDeclarees` (descente par VALEUR, un même nœud se
- * relit sous chaque parent). Atteindre la borne TRONQUE le relevé : la troncature est NOMMÉE
- * (marqueur `MARQUE_TRONCATURE`, remonté par `introspecterDefs.tronquee` et compté dans le doc §2.1)
- * — mesure du 2026-08-26 sur les 125 defs des deux racines : 0 troncature.
- */
-const PROFONDEUR_RELEVE = 6;
-
-/** Ce qu'un relevé écrit quand la borne le tronque — le mot que le doc compte. */
-export const MARQUE_TRONCATURE = '(profondeur)';
-
-/** Nom de CLASSE de type d'un nœud zod, borné en profondeur (les unions récursives sont légion). */
-function classeZod(s: unknown, profondeur = 0): string {
+/** Nom de CLASSE de type d'un nœud zod. */
+function classeZod(s: unknown, chemin: Chemin = RACINE): string {
   if (!s || typeof s !== 'object') return `inconnu(${typeof s})`;
   const def = defDe(s);
   if (!def) return 'sans-def';
-  if (profondeur > PROFONDEUR_RELEVE) return `${def.type}${MARQUE_TRONCATURE}`;
-  const d = descente(def);
+  if (chemin.has(s)) return `${def.type}${MARQUE_CYCLE}`;
+  const c = suivant(chemin, s);
+  const d = descente(s);
   switch (def.type) {
     case 'literal':
-      return `literal ${JSON.stringify(def.values ?? def.value)}`;
+      return `literal ${JSON.stringify(def.values)}`;
     case 'enum':
       // Un enum NOMMÉ (`enumNomme`, `grammaire/valeurs.ts`) porte le libellé FR de chacune de ses
       // options SUR SON NŒUD (#1694) : le relevé le dit, c'est ce qui distingue un vocabulaire dont
       // l'atelier sait écrire les valeurs à l'écran d'un vocabulaire encore muet.
       return `enum${valeursDe(s) ? ' nommé' : ''}(${Object.values(def.entries ?? {}).length})`;
     case 'array':
-      return `array<${classeZod(d.element, profondeur + 1)}>`;
+      return `array<${classeZod(d.element, c)}>`;
     case 'object':
       return 'object';
     case 'tuple':
       return `tuple(${d.tuple.length})`;
     case 'union':
-      return `union<${d.branches.map((o) => classeZod(o, profondeur + 1)).join('|')}>`;
+      return `union<${d.branches.map((o) => classeZod(o, c)).join('|')}>`;
     case 'optional':
     case 'nullable':
     case 'default':
     case 'catch':
-      return `${def.type}<${classeZod(d.enveloppes[0], profondeur + 1)}>`;
+      return `${def.type}<${classeZod(d.enveloppes[0], c)}>`;
     case 'lazy':
       // Un `lazy` dont le getter LÈVE ne rend AUCUN enfant (`enfantsDe` absorbe) : la cible est dite
       // inatteignable plutôt que muette — elle se verrait dans le doc.
-      return d.enveloppes.length ? `lazy<${classeZod(d.enveloppes[0], profondeur + 1)}>` : 'lazy(inatteignable)';
+      return d.enveloppes.length ? `lazy<${classeZod(d.enveloppes[0], c)}>` : 'lazy(inatteignable)';
     case 'pipe':
-      return `pipe<${classeZod(d.enveloppes[0], profondeur + 1)}=>${classeZod(d.enveloppes[1], profondeur + 1)}>`;
+      return `pipe<${classeZod(d.enveloppes[0], c)}=>${classeZod(d.enveloppes[1], c)}>`;
     default:
       return def.type;
   }
 }
 
 /** Clés DÉCLARÉES d'un nœud d'entrée (objet, union de branches, record, lazy). */
-function clesDeclarees(s: unknown, profondeur = 0): { cles: Record<string, string>; note: string } {
+function clesDeclarees(s: unknown, chemin: Chemin = RACINE): { cles: Record<string, string>; note: string } {
   const def = defDe(s);
   if (!def) return { cles: {}, note: 'sans-def' };
-  if (profondeur > PROFONDEUR_RELEVE) return { cles: {}, note: MARQUE_TRONCATURE };
-  const d = descente(def);
+  if (chemin.has(s)) return { cles: {}, note: MARQUE_CYCLE };
+  const c = suivant(chemin, s);
+  const d = descente(s);
   if (def.type === 'object') {
     const cles: Record<string, string> = {};
     for (const e of d.cles) cles[e.cle!] = classeZod(e.noeud);
@@ -129,23 +96,23 @@ function clesDeclarees(s: unknown, profondeur = 0): { cles: Record<string, strin
   }
   if (def.type === 'union') {
     const cles: Record<string, string> = {};
-    // La note d'une branche REMONTE : sans ça une troncature (`MARQUE_TRONCATURE`) sous une union
-    // disparaîtrait avec les clés de sa branche, et la non-silence ne tiendrait plus par ce chemin.
+    // La note d'une branche REMONTE : sans ça un cycle (`MARQUE_CYCLE`) sous une union disparaîtrait
+    // avec les clés de sa branche.
     const notes: string[] = [];
     d.branches.forEach((opt, i) => {
-      const sub = clesDeclarees(opt, profondeur + 1);
+      const sub = clesDeclarees(opt, c);
       for (const [k, v] of Object.entries(sub.cles)) cles[k] = (cles[k] ? `${cles[k]} | ` : '') + `b${i}:${v}`;
       if (sub.note) notes.push(`b${i}:${sub.note}`);
     });
     return { cles, note: [`union(${d.branches.length} branches)`, ...notes].join(' ') };
   }
   if (def.type === 'record') {
-    const sub = clesDeclarees(d.valeur, profondeur + 1);
+    const sub = clesDeclarees(d.valeur, c);
     return { cles: sub.cles, note: `record ${sub.note}`.trim() };
   }
   if (def.type === 'lazy') {
     if (!d.enveloppes.length) return { cles: {}, note: 'lazy inatteignable' };
-    return clesDeclarees(d.enveloppes[0], profondeur + 1);
+    return clesDeclarees(d.enveloppes[0], c);
   }
   if (def.type === 'pipe') {
     // SCEAU de `document()` (#1467 L1b) : l'entrée d'un def adopté est un `pipe` dont la SORTIE est un
@@ -153,11 +120,8 @@ function clesDeclarees(s: unknown, profondeur = 0): { cles: Record<string, strin
     // `introspecterDefs` applique au record enveloppé : le premier des deux bouts qui a des clés.
     // Sans cette descente, tout def adopté rendait ZÉRO clé déclarée, et la comparaison
     // « déclaré × observé » se taisait au lieu de mordre.
-    const porteur = d.enveloppes.find((n) => {
-      const s = defDe(n);
-      return s && descente(s).cles.length > 0;
-    });
-    if (porteur) return clesDeclarees(porteur, profondeur + 1);
+    const porteur = d.enveloppes.find((n) => descente(n).cles.length > 0);
+    if (porteur) return clesDeclarees(porteur, c);
     return { cles: {}, note: 'pipe sans nœud à clés' };
   }
   return { cles: {}, note: `non-objet(${def.type})` };
@@ -169,8 +133,6 @@ export type DefIntrospectee = {
   famille: string;
   note: string;
   cles: Record<string, string>;
-  /** Le relevé a-t-il été coupé par `PROFONDEUR_RELEVE` ? Compté dans le doc — jamais silencieux. */
-  tronquee: boolean;
 };
 
 /** Introspection des defs du registre : racine déclarée + clés déclarées d'une entrée. */
@@ -178,7 +140,7 @@ export function introspecterDefs(defs: readonly SchemaDef[]): DefIntrospectee[] 
   return defs
     .map(({ file, schema }) => {
       const def = defDe(schema);
-      const d = def ? descente(def) : undefined;
+      const d = def ? descente(schema) : undefined;
       let entree: unknown = schema;
       let famille = `autre(${def?.type})`;
       if (def?.type === 'array') {
@@ -202,20 +164,18 @@ export function introspecterDefs(defs: readonly SchemaDef[]): DefIntrospectee[] 
         // entrées du document sont les VALEURS de cette carte, comme pour un record nu.
         // La SORTIE d'un sceau est un `transform` (elle ne porte aucune clé) : la forme du document
         // se lit sur l'ENTRÉE du pipe, seul nœud à clés.
-        const porteur = d!.enveloppes.map((n) => defDe(n)).find((s) => s && descente(s).cles.length);
+        const porteur = d!.enveloppes.find((n) => descente(n).cles.length);
         const carte = porteur ? descente(porteur).cles.find((e) => e.cle === 'entries')?.noeud : undefined;
-        const carteDef = carte ? defDe(carte) : undefined;
-        if (carteDef?.type === 'record') {
+        if (defDe(carte)?.type === 'record') {
           famille = 'record';
-          entree = descente(carteDef).valeur;
+          entree = descente(carte).valeur;
         }
       } else if (def?.type === 'tuple') {
         famille = 'tuple';
       }
       const { cles, note } = clesDeclarees(entree);
       const racine = classeZod(schema);
-      const tronquee = [racine, note, ...Object.values(cles)].some((t) => t.includes(MARQUE_TRONCATURE));
-      return { file, racine, famille, note, cles, tronquee };
+      return { file, racine, famille, note, cles };
     })
     .sort((a, b) => parUnitesDeCode(a.file, b.file));
 }
@@ -233,35 +193,36 @@ export function choixDeclares(defs: readonly SchemaDef[]): Map<string, Map<strin
   for (const { file, schema } of defs) {
     const parCle = new Map<string, Set<string>>();
     /** Littéraux de chaîne portés par le nœud (littéral, enum, ou union/enveloppe qui en contient). */
-    const litteraux = (n: unknown, profondeur = 0): string[] => {
+    const litteraux = (n: unknown, chemin: Chemin = RACINE): string[] => {
       const def = defDe(n);
-      if (!def || profondeur > 8) return [];
-      const d = descente(def);
+      if (!def || chemin.has(n)) return [];
+      const c = suivant(chemin, n);
+      const d = descente(n);
       switch (def.type) {
         case 'literal':
-          return [def.values, def.value].flatMap((v) => (Array.isArray(v) ? v : [v])).filter((v): v is string => typeof v === 'string');
+          return (Array.isArray(def.values) ? def.values : []).filter((v): v is string => typeof v === 'string');
         case 'enum':
           return Object.values(def.entries ?? {}).filter((v): v is string => typeof v === 'string');
         case 'union':
-          return d.branches.flatMap((o) => litteraux(o, profondeur + 1));
+          return d.branches.flatMap((o) => litteraux(o, c));
         case 'array':
-          return litteraux(d.element, profondeur + 1);
+          return litteraux(d.element, c);
         case 'optional':
         case 'nullable':
         case 'default':
         case 'catch':
         case 'lazy':
-          return litteraux(d.enveloppes[0], profondeur + 1);
+          return litteraux(d.enveloppes[0], c);
         case 'pipe':
           // `[in, out]` : les littéraux se lisent sur la SORTIE.
-          return litteraux(d.enveloppes[d.enveloppes.length - 1], profondeur + 1);
+          return litteraux(d.enveloppes[d.enveloppes.length - 1], c);
         default:
           return [];
       }
     };
-    // `enfantsDe` énumère DÉJÀ les clés de `shape` : la descente passe par `marcherMemoise` SEULE.
-    marcherMemoise(schema, (def) => {
-      for (const [k, v] of Object.entries(def.shape ?? {})) {
+    descendre([schema], ({ noeud }) => {
+      for (const { cle: k, noeud: v } of enfantsDe(noeud)) {
+        if (k === undefined) continue;
         for (const lit of litteraux(v)) {
           if (!parCle.has(k)) parCle.set(k, new Set());
           parCle.get(k)!.add(lit);

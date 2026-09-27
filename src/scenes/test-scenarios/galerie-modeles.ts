@@ -1,6 +1,5 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { creatures, careers, trappings } from '../../data/index';
-import { memoParVersion } from '../../data/versionDataset';
 import { arena } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene, SceneEntity } from '../../state/scene';
@@ -19,8 +18,8 @@ import { sizeFootprint } from '../../state/footprint';
  * passe à la suivante au-delà de `MAXW`. Les grandes créatures (Ogre 2×2, Dragon/Géant 3×3, démo 4×4)
  * ne se chevauchent donc plus avec leurs voisines. On tourne (Q/E) et zoome (molette).
  *
- * La galerie se CONSTRUIT à la LECTURE (`memoParVersion` sur les trois datasets qu'elle balaie, #1692) :
- * une créature/carrière/arme éditée au Codex est dans la galerie au lancement suivant.
+ * La galerie se construit au lancement (`construire`, #1692) : une créature/carrière/arme éditée au Codex
+ * est dans la galerie au lancement suivant.
  */
 const X0 = 2;
 const Y0 = 2;
@@ -38,7 +37,7 @@ const MUTANTS: { label: string; monster: MonsterPartsSel }[] = [
   { label: 'crétin', monster: { tete: 'minuscule' } },
 ];
 
-const galerie = memoParVersion(['creatures', 'careers', 'trappings'], () => {
+function construireScene(): Scene {
   const ents: SceneEntity[] = [];
   let cx = X0;
   let cy = Y0;
@@ -103,8 +102,8 @@ const galerie = memoParVersion(['creatures', 'careers', 'trappings'], () => {
     `Galerie : ${creatures.length} créatures (à l'échelle de leur Taille) · ${careers.length} carrières · ${weapons.length} armes · ${MUTANTS.length} mutants · 1 démo Monstrueuse 4×4. ` +
     'Tourne (Q/E) et zoome (molette) pour inspecter. Aucun combat.';
   scene.entities = [...scene.entities, ...ents]; // conserve le heroStart d'arena
-  return { scene };
-});
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'galerie-modeles',
@@ -112,16 +111,9 @@ export const scenario: TestScenario = {
   category: 'rendu',
   icon: 'scenario/gallery',
   title: 'Galerie de modèles',
-  get tests(): string {
-    // Le compte d'armes ne se nomme PAS ici : il est dérivé d'un filtre (`weapons`), qu'aucune
-    // lecture AST ne réduit — la doc rendrait l'EXPRESSION source. Le décompte exact vit dans le
-    // `startMessage` de la scène, à l'écran, où il est calculé pour de bon.
-    return `Tous les modèles du monde de campagne : ${creatures.length} créatures (empreintes par Taille) + TOUTES les carrières (${careers.length}) + TOUTES les armes de mêlée et de distance + mutants + démo Monstrueuse. Exploration, SANS combat.`;
-  },
+  // Les comptes vivants sont dans le `startMessage` de la scène construite.
+  tests: 'Tous les modèles du monde de campagne : TOUTES les créatures (empreintes par Taille) + TOUTES les carrières + TOUTES les armes de mêlée et de distance + mutants + démo Monstrueuse. Exploration, SANS combat.',
   partyNote: 'Exploration libre, aucun combat',
-  makeParty: () => pregenParty(PREGEN.soldat),
-  get scene(): Scene {
-    return galerie().scene;
-  },
+  construire: () => ({ party: pregenParty(PREGEN.soldat), scene: construireScene() }),
   // pas d'autoCombat : pure galerie d'exploration.
 };

@@ -3,8 +3,9 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditorAutosave } from './useEditorAutosave';
-import { autosaveSave, __setAutosaveBackendForTest, __resetAutosaveForTest, type EditorAutosaveBackend, type EditorAutosaveRecord } from '../../state/editorAutosave';
+import { autosaveSave, __setAutosaveBackendForTest, __resetAutosaveForTest, type EditorAutosaveBackend, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
 import { emptyScene, type Scene } from '../../state/scene';
+import { CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -32,7 +33,7 @@ function fakeBackend(): EditorAutosaveBackend & { store: Map<string, EditorAutos
 const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
 type Probe = {
-  recovery: EditorAutosaveRecord | null;
+  recovery: RepriseLocale | null;
   hasHiddenRecovery: boolean;
   restore: () => void;
   dismiss: () => void;
@@ -49,6 +50,12 @@ function Harness({ scene, onRecovered }: { scene: Scene; onRecovered: (s: Scene)
 
 function probe(): Probe {
   return (window as unknown as { __probe: Probe }).__probe;
+}
+
+/** La scène que la reprise PROPOSE (montée au format courant) — rien si l'enregistrement est écarté. */
+function proposee(): Scene | undefined {
+  const r = probe().recovery;
+  return r?.ok ? r.record.scene : undefined;
 }
 
 describe('useEditorAutosave — filet de crash de l’éditeur', () => {
@@ -107,7 +114,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => {
       await flush();
     });
-    expect(probe().recovery?.scene.label).toBe('récupérée');
+    expect(proposee()?.label).toBe('récupérée');
 
     // Tant que la reprise est proposée : AUCUNE écriture (la version à récupérer ne doit jamais
     // disparaître avant que l'utilisateur ait choisi — cf. doc du hook).
@@ -124,23 +131,97 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     expect(probe().recovery).toBeNull();
   });
 
-  it('un enregistrement d’AVANT l’annonce (#1552) est restauré NORMALISÉ : la scène rendue s’annonce', async () => {
-    // Un enregistrement SANS `type` rentre en mémoire par la lecture — chaîne de migrations puis
-    // normaliseur (`sceneAuSchemaCourant`, #1882).
-    const { type: _muet, ...muette } = { ...emptyScene(), id: 'scene-muette', label: 'restaurée' };
+  it('une scène au format courant qui enfreint le schéma de scène est ÉCARTÉE et nommée : rien à restaurer', async () => {
+    const { type: _muet, ...muette } = { ...emptyScene(), id: 'scene-muette', label: 'muette' };
     await autosaveSave({ sceneId: 'scene-muette', scene: muette as Scene, savedAt: 999 });
     let recovered: Scene | null = null;
     await act(async () => {
       root.render(<Harness scene={{ ...emptyScene(), id: 'scene-muette', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
-    expect(probe().recovery?.scene.label, 'la reprise doit être proposée').toBe('restaurée');
-    expect('type' in (backend.store.get('scene-muette')!.scene as object), 'l’enregistrement stocké est bien MUET').toBe(false);
-    expect(probe().recovery!.scene.type, 'la proposition a déjà traversé la chaîne à la lecture').toBe('scene');
-
+    const r = probe().recovery;
+    expect(r && !r.ok ? r.refus.fautes.map((f) => [f.chemin, f.code]) : null).toEqual([[['type'], 'invalid_value']]);
     await act(async () => { probe().restore(); });
-    expect((recovered as unknown as Scene).label).toBe('restaurée');
-    expect((recovered as unknown as Scene).type, 'la scène restaurée doit s’annoncer').toBe('scene');
+    expect(recovered).toBeNull();
+  });
+
+  it('une FAUTE DU JEU à la relecture se propage (rejet non géré) et ne coupe pas l’écriture débattue', async () => {
+    vi.useFakeTimers();
+    const nonGerees: unknown[] = [];
+    const capter = (raison: unknown): void => { nonGerees.push(raison); };
+    process.on('unhandledRejection', capter);
+    // Un enregistrement dont la LECTURE lève autre chose qu'un `ProjetRefuse` : la relecture rejette.
+    // Posé sur le backend du test, jamais par mock de module (`src/vi-mock-isolate-guard.test.ts`).
+    const piege = { sceneId: 'scene-faute', schema: CURRENT_PROJECT_SCHEMA, savedAt: 1 } as unknown as EditorAutosaveRecord;
+    Object.defineProperty(piege, 'scene', { enumerable: true, get() { throw new Error('faute du jeu'); } });
+    backend.store.set('scene-faute', piege);
+    try {
+      const scene = { ...emptyScene(), id: 'scene-faute', label: 'v1' };
+      await act(async () => {
+        root.render(<Harness scene={scene} onRecovered={() => {}} />);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(probe().recovery, 'la relecture a levé : rien à proposer, rien ne suspend l’écriture').toBeNull();
+      await act(async () => {
+        root.render(<Harness scene={{ ...scene, label: 'v2' }} onRecovered={() => {}} />);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1600);
+      });
+      const ecrit = backend.store.get('scene-faute');
+      expect(ecrit === piege, 'le filet doit écrire malgré la faute').toBe(false);
+      expect(ecrit?.scene.label).toBe('v2');
+      vi.useRealTimers();
+      for (let i = 0; i < 4; i++) await new Promise((r) => setTimeout(r, 0));
+      expect(nonGerees.map((e) => (e as Error).message)).toEqual(['faute du jeu']);
+    } finally {
+      process.off('unhandledRejection', capter);
+      vi.useRealTimers();
+    }
+  });
+
+  it('un enregistrement au format 15 qui cite un sort FUSIONNÉ (#1897) est restauré remappé, par la chaîne du projet', async () => {
+    const scene15 = {
+      ...emptyScene(), id: 'scene-15', label: 'crypte',
+      entities: [
+        { id: 'sorcier', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme', 'flamme'] }, combat: { spells: ['alarme'] } },
+        { id: 'autel', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, usable: { actions: [{ id: 'prier', flow: { kind: 'seq', steps: [
+          { kind: 'do', effect: { type: 'learnSpell', spell: 'alarme' } },
+          { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'projectile' } },
+        ] } }] } },
+      ],
+    } as unknown as Scene;
+    backend.store.set('scene-15', { sceneId: 'scene-15', scene: scene15, schema: 15, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    let recovered: Scene | null = null;
+    await act(async () => {
+      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-15', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+    });
+    await act(async () => { await flush(); });
+    await act(async () => { probe().restore(); });
+    const [sorcier, autel] = (recovered as unknown as { entities: Record<string, any>[] }).entities;
+    expect(sorcier.statblock.spells).toEqual(['alerte', 'flamme-magique']);
+    expect(sorcier.combat.spells).toEqual(['alerte']);
+    expect(autel.usable.actions[0].flow.steps.map((st: { effect: unknown }) => st.effect)).toEqual([
+      { type: 'learnSpell', spell: 'alerte' },
+      { type: 'castSpell', casterId: 'sorcier', spellId: 'carreau' },
+    ]);
+  });
+
+  it('un enregistrement SANS marqueur de format est ÉCARTÉ et nommé : rien à restaurer, l’auteur le supprime', async () => {
+    backend.store.set('scene-sans-format', { sceneId: 'scene-sans-format', scene: { ...emptyScene(), id: 'scene-sans-format', label: 'ancienne' }, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    let recovered: Scene | null = null;
+    await act(async () => {
+      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-sans-format', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+    });
+    await act(async () => { await flush(); });
+    const r = probe().recovery;
+    expect(r && !r.ok ? r.refus.fautes.map((f) => [f.chemin, f.message]) : null).toEqual([[['schema'], '« schema » absent ou non numérique (schema=undefined)']]);
+    await act(async () => { probe().restore(); });
+    expect(recovered).toBeNull();
+    await act(async () => { probe().dismiss(); });
+    expect(backend.store.has('scene-sans-format')).toBe(false);
   });
 
   it('ignorer une reprise proposée supprime la sauvegarde locale et ne restaure rien', async () => {
@@ -181,7 +262,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => {
       await flush();
     });
-    expect(probe().recovery?.scene.label).toBe('récupérée');
+    expect(proposee()?.label).toBe('récupérée');
 
     await act(async () => {
       probe().hide();
@@ -195,7 +276,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     await act(async () => {
       probe().show();
     });
-    expect(probe().recovery?.scene.label).toBe('récupérée');
+    expect(proposee()?.label).toBe('récupérée');
     expect(probe().hasHiddenRecovery).toBe(false);
     expect(backend.store.has('scene-hide')).toBe(true);
   });
@@ -211,7 +292,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0);
       });
-      expect(probe().recovery?.scene.label).toBe('vieille-recup');
+      expect(proposee()?.label).toBe('vieille-recup');
 
       await act(async () => {
         probe().hide();

@@ -94,7 +94,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildFloors` | `FloorEl[]` | `src/gameIso/builders/floors.ts:318` | Éléments `floor` de la scène. |
 | `buildHighlights` | `HighlightEl[]` | `src/gameIso/builders/highlights.ts:64` | — |
 | `buildPropVolumes` | `Face[]` | `src/gameIso/builders/propVolumes.ts:52` | Les faces MONDE d'un décor volumique : recette locale × cap × ancre, posées sur `baseHeightM`. |
-| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:126` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
+| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:128` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
 | `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1401` | Éléments `roof` de la scène. |
 | `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
 | `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:629` | Éléments `wall` de la scène. |
@@ -110,7 +110,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `src/gameIso/detail/` | 3 | 0 | détail de surface (matériaux v2) : recettes dépliées en primitives UV, déterministes au seed |
 | `src/gameIso/fx/` | 5 | 0 | effets de combat — hors périmètre de la garde anti-couleur (couleur d’intention, pas d’identité de matériau) |
 | `src/gameIso/pov/` | 3 | 0 | première personne : caméra, brume, boîtes de billboard, voiles d’écran |
-| `src/gameIso/rig/` | 21 | 25 | art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur |
+| `src/gameIso/rig/` | 21 | 26 | art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur |
 | `src/gameIso/stage/` | 54 | 0 | hôtes de montage : le monde et ses surcouches React, le plan de station, le tri des objets |
 
 ### Appendices du rig — UN registre, 9 ids, une seule résolution
@@ -198,4 +198,4 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: 2e8c6ce8325adb08a093d278780a872934611311 (1013 fichiers, 92 dossiers) corps: ab70c79cfb4038262dcc4a0bb29a54cdcfb6ea17 -->
+<!-- sources-empreinte: a2582e1b523e9746af3ef5784bd1e7736a7695c6 (1015 fichiers, 93 dossiers) corps: c6f40f73ebafdd022b3dd737f1489c6e82ae7a1b -->

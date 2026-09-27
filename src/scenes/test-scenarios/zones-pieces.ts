@@ -2,6 +2,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import type { WallSpec } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /** « Étiquettes de zone » — scénario de quatre pièces intérieures liées à un corps architectural. */
 const FOOT = { x: 1, y: 1, w: 8, h: 6 };
@@ -19,7 +20,7 @@ const PERIMETER_WALLS: WallSpec[] = [
   ...Array.from({ length: FOOT.h }, (_, i) => ({ x: FOOT.x + FOOT.w - 1, y: FOOT.y + i, side: 'E' as const })),
 ].map((wall) => 'door' in wall && wall.door ? wall : { ...wall, structure: 'mur-en-bois' });
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'zones-pieces',
   label: 'Étiquettes de zone',
   desc:
@@ -81,6 +82,5 @@ export const scenario: TestScenario = {
     "(murs d'arête + portes) sous un toit unique — révélation en cutaway (toit levé dès qu'un allié entre " +
     "dans l'empreinte), un nom par pièce, jamais au survol.",
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  makeParty: makeShowcaseParty,
-  scene,
+  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
 };

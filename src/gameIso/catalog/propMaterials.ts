@@ -19,7 +19,7 @@ const MISSING: PropMaterialData = {
 };
 
 /** Matériau de décor par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
- *  VIVE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
+ *  VIVANTE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
  *  encore l'ancienne matière. */
 export function propMaterial(id: string): PropMaterialData {
   return catalogEntry((cle) => matieresDe('prop').find((m) => m.id === cle), id, 'matière de décor', MISSING);

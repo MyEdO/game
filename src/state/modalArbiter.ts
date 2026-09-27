@@ -249,6 +249,10 @@ export interface HorsModalDef {
   key: string;
   pendingKey: PendingKey;
   owner: (s: ArbiterState) => string | undefined | '*';
+  /** Ce pending, posé, TIENT-IL LA MAIN (`surfaceTientLaMain`) ? REQUIS (patron `auto`) : chaque
+   *  fenêtre se classe à sa déclaration. `false` = un pending SANS surface devant le joueur — un
+   *  geste armé qui attend son arrivée, une file que le système draine, une commande en souffrance. */
+  tientLaMain: boolean;
   /** Intents invités dont la possession suit l'OWNER de CE pending (#1016) — le geste vit DANS cette
    *  fenêtre et n'a pas d'autre porteur. Absent = aucun intent invité n'y est adossé, ou son porteur
    *  ne se lit pas dans le pending (il est alors routé nominativement par `intentAllowedFor`). */
@@ -256,29 +260,29 @@ export interface HorsModalDef {
 }
 
 export const HORS_MODAL = [
-  { key: 'bargain', pendingKey: 'pendingBargain', owner: (s) => s.pendingBargain?.playerId }, // Marchandage (écran Marché)
-  { key: 'appraise', pendingKey: 'pendingAppraise', owner: (s) => s.pendingAppraise?.actorId }, // Évaluation/Détection (écran Marché/Compendium)
-  { key: 'loot', pendingKey: 'pendingLoot', owner: () => '*' }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victory', pendingKey: 'pendingVictory', owner: () => '*' }, // Écran de victoire : `readyBySeat`, unanimité
-  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', owner: (s) => s.pendingSiegeAim?.gunnerId }, // Placeur de case (ciblage carte, pas de modale)
-  { key: 'interact', pendingKey: 'pendingInteract', owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
-  { key: 'roundStart', pendingKey: 'pendingRoundStart', owner: () => '*' }, // Pause de début de Round (fenêtre Chance) : ready-check par siège
-  { key: 'seaActivities', pendingKey: 'pendingSeaActivities', owner: () => '*' }, // Activités hebdomadaires en mer : décision de groupe
-  { key: 'manannPriest', pendingKey: 'pendingManannPriest', owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
-  { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
-  { key: 'campaign', pendingKey: 'pendingCampaign', owner: () => undefined }, // Campagne choisie au menu : avant tout siège coop, hôte
-  { key: 'orders', pendingKey: 'pendingOrders', owner: () => undefined }, // Commandes d'interlude : dépense de bourse de groupe, hôte
+  { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId }, // Marchandage (écran Marché)
+  { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId }, // Évaluation/Détection (écran Marché/Compendium)
+  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*' }, // Butin hors victoire : chacun voit qui l'emporte
+  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*' }, // Écran de victoire : `readyBySeat`, unanimité
+  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId }, // Placeur de case (ciblage carte, pas de modale)
+  { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
+  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*' }, // Pause de début de Round (fenêtre Chance) : ready-check par siège
+  { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*' }, // Activités hebdomadaires en mer : décision de groupe
+  { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
+  { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
+  { key: 'campaign', pendingKey: 'pendingCampaign', tientLaMain: true, owner: () => undefined }, // Campagne choisie au menu : avant tout siège coop, hôte
+  { key: 'orders', pendingKey: 'pendingOrders', tientLaMain: false, owner: () => undefined }, // Commandes d'interlude : dépense de bourse de groupe, hôte
   // Balayage / 2ᵉ frappe : ciblage carte (TargetPrompt), pas de modale — leurs gestes (enchaîner,
   // terminer, renoncer) sont ceux de l'ATTAQUANT qui les tient, et sont routés sur lui (#1016).
-  { key: 'cleave', pendingKey: 'pendingCleave', owner: (s) => s.pendingCleave?.attackerId, intents: ['cleaveAttack', 'cleaveEnd'] },
-  { key: 'dualStrike', pendingKey: 'pendingDualStrike', owner: (s) => s.pendingDualStrike?.attackerId, intents: ['dualStrikeAttack', 'dualStrikeSkip'] },
-  { key: 'logQueue', pendingKey: 'pendingLogQueue', owner: () => undefined }, // File de journal DIFFÉRÉE : système, drainée automatiquement (pas d'acteur)
+  { key: 'cleave', pendingKey: 'pendingCleave', tientLaMain: true, owner: (s) => s.pendingCleave?.attackerId, intents: ['cleaveAttack', 'cleaveEnd'] },
+  { key: 'dualStrike', pendingKey: 'pendingDualStrike', tientLaMain: true, owner: (s) => s.pendingDualStrike?.attackerId, intents: ['dualStrikeAttack', 'dualStrikeSkip'] },
+  { key: 'logQueue', pendingKey: 'pendingLogQueue', tientLaMain: false, owner: () => undefined }, // File de journal DIFFÉRÉE : système, drainée automatiquement (pas d'acteur)
   // Cadre de campagne (#717) : rideau d'ouverture et récap de fin de chapitre — des ÉCRANS
   // (`ScreenShell`), pas des modales de combat, et des gestes d'HÔTE (l'ouverture est un rideau, la
   // clôture de séance vit déjà chez l'hôte) : aucun ready-check, aucun intent invité.
-  { key: 'ouverture', pendingKey: 'pendingOuverture', owner: () => undefined },
-  { key: 'chapterRecap', pendingKey: 'pendingChapterRecap', owner: () => undefined },
-  { key: 'departure', pendingKey: 'pendingDeparture', owner: () => undefined }, // Porte de départ de nuit (carte du monde) : l'hôte décide (#340)
+  { key: 'ouverture', pendingKey: 'pendingOuverture', tientLaMain: true, owner: () => undefined },
+  { key: 'chapterRecap', pendingKey: 'pendingChapterRecap', tientLaMain: true, owner: () => undefined },
+  { key: 'departure', pendingKey: 'pendingDeparture', tientLaMain: true, owner: () => undefined }, // Porte de départ de nuit (carte du monde) : l'hôte décide (#340)
 ] as const satisfies readonly HorsModalDef[];
 
 /**
@@ -301,6 +305,48 @@ export function horsModalByPending(): Record<string, HorsModalDef> {
   const out: Record<string, HorsModalDef> = {};
   for (const d of HORS_MODAL as readonly HorsModalDef[]) out[d.pendingKey] = d;
   return out;
+}
+
+/** Surface PARTAGÉE qui NE vit PAS dans un `pending*` : un état de PARTIE que l'hôte arbitre et que
+ *  tous les sièges ont sous les yeux, et qui couvre la scène. Déclarée ICI, à l'arbitre, à côté des deux
+ *  registres de fenêtres. Une surface PAR SIÈGE (fiche, menu système, fenêtre Codex `codexOverlay`,
+ *  inspection) n'y entre JAMAIS : elle vit dans la pile des couches de SON client (`dismissStack`), et
+ *  l'écran de l'hôte ne doit pas refuser le geste d'un invité. L'ÉCRAN plein (`screen`, dont l'écran
+ *  `compendium`) est, lui, PARTAGÉ : le snapshot de l'hôte écrase `screen` chez chaque invité
+ *  (`netFlow.applyNetSnapshot`). */
+export interface SurfaceHorsPendingDef {
+  key: string;
+  tientLaMain: (s: ArbiterState) => boolean;
+}
+
+export const SURFACES_HORS_PENDING = [
+  { key: 'marche', tientLaMain: (s) => !!s.merchant },
+  { key: 'jeuxDeTaverne', tientLaMain: (s) => !!s.tavernGames },
+  { key: 'document', tientLaMain: (s) => !!s.document },
+  // Montées en EXPLORATION seulement (`ui/CampaignView`) : hors de ce mode, le slot n'a pas d'écran.
+  { key: 'carteDuMonde', tientLaMain: (s) => !!s.worldMapOpen && s.mode === 'exploration' },
+  { key: 'port', tientLaMain: (s) => !!s.port && s.mode === 'exploration' },
+  { key: 'marcheDeTerre', tientLaMain: (s) => !!s.landMarket && s.mode === 'exploration' },
+  // Un ÉCRAN plein autre que celui du jeu (groupe, interlude, `compendium`…) : la scène n'est pas à l'écran.
+  { key: 'ecranPlein', tientLaMain: (s) => s.screen !== 'campaign' },
+] as const satisfies readonly SurfaceHorsPendingDef[];
+
+/** Un pending est OUVERT s'il porte quelque chose : une collection vide est un slot au repos. */
+const pendingOuvert = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : !!v);
+
+/**
+ * UNE SURFACE PARTAGÉE TIENT-ELLE LA MAIN ? Verdict UNIQUE de « ce que TOUS les sièges ont sous les
+ * yeux n'est pas la scène » : une modale du registre (`modalHolds`), une fenêtre HORS-modale ouverte
+ * qui se déclare `tientLaMain`, ou une surface partagée hors `pending*` (`SURFACES_HORS_PENDING`).
+ * Il garde le VERBE, là où il s'exécute (chez l'hôte) ; les surfaces PAR SIÈGE sont la pile des
+ * couches du client (`dismissStack`). Dérivé des trois registres : une fenêtre neuve se classe à sa
+ * déclaration, jamais dans une liste de consommateur.
+ */
+export function surfaceTientLaMain(s: ArbiterState): boolean {
+  if (modalHolds(s)) return true;
+  const etat = s as Record<string, unknown>;
+  if ((HORS_MODAL as readonly HorsModalDef[]).some((d) => d.tientLaMain && pendingOuvert(etat[d.pendingKey]))) return true;
+  return (SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).some((d) => d.tientLaMain(s));
 }
 
 /** Toutes les clés `pending*` couvertes par `MODAL_DEFS` (owner MODALE, direct + coexistants). */

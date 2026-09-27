@@ -122,7 +122,7 @@ import { type OvercastSource, overcastSourceOf, overcastDurationParts, overcastB
 import type { SpellRange } from '../engine/spellRange';
 import { evalCondition } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, resolveFormula, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -134,7 +134,7 @@ import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
-  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastRowSource, MISCAST_TABLES, MISCAST_TABLE_ROWS,
+  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
@@ -4215,15 +4215,15 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
 // ---------------------------------------------------------------------------
 
 // Une entrée par table RÉELLE de `miscast.json` (Mineure/Majeure LDB, leurs révisions VDM, Colère
-// des dieux) : fourchettes et ids STABLES projetés depuis la donnée PAR RÉFÉRENCE (le moteur les
-// expose), et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
+// des dieux) : fourchettes et ids STABLES projetés depuis la donnée PAR RÉFÉRENCE (`table.entries`,
+// le tableau que le seam édite en place), et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
 // La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
 // miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
 for (const table of MISCAST_TABLES) {
   registerTableStep(table.id, {
     label: table.label,
     die: 100,
-    rows: MISCAST_TABLE_ROWS[table.id],
+    rows: table.entries,
     lines: (die) => [miscastRowAt(table.id, die).label],
     ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
   });
@@ -4512,12 +4512,12 @@ export function castSpell(
   set: SetFn,
   caster: Combatant,
   target: Combatant,
-  label: string,
+  spellId: string,
   fromGrimoire = false,
 ) {
-  const spell = resolveSpell(label);
+  const spell = resolveSpell(spellId);
   if (!spell) {
-    castRefused(get, set, caster, tr('cf.spellNotFound', { spell: label }));
+    castRefused(get, set, caster, tr('cf.spellNotFound', { spell: spellId }));
     return;
   }
   // Contrecoups bloquants (LDB 46/40) : « Propos ésotériques », « Vous abusez de ma patience »…
@@ -4535,7 +4535,7 @@ export function castSpell(
   }
   // Lecture au grimoire (LDB 47 l.21) : sort NON mémorisé de son Domaine, NI doublé.
   if (fromGrimoire && !canCastFromGrimoire(caster, spell)) {
-    castRefused(get, set, caster, tr('cf.grimoireRefused', { name: caster.label, spell: label }));
+    castRefused(get, set, caster, tr('cf.grimoireRefused', { name: caster.label, spell: spell.label }));
     return;
   }
   // Sort « Souffle » (LDB 47 l.509) : délégué à l'attaque de ZONE du Trait — la portée suit le
@@ -6079,7 +6079,7 @@ export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, 
 
 /** RECONSTITUTION DIFFÉRÉE (op `scheduleRespawn`, Gardien éternel — Bestiaire de Middenheim) : à la mort du
  *  porteur, PROGRAMME (file `scheduledEffects`, horloge) la ré-invocation de la créature à `gameTime + d10
- *  jours`. Le délai `delayDays` est ROULÉ ici (`battleRng`, donc déterministe en test) ; `ref:'self'` se
+ *  jours`. Le délai `delayDays` est ROULÉ ici (`battleRng`, donc déterministe en test) ; `SELF_REF` se
  *  résout au porteur de fiche du défunt (`Combatant.porteurDeFiche`, #1882). Un INSTANTANÉ minimal du défunt (id/name/kind/pos)
  *  sert de lanceur à `applySummon` au déclenchement. Le `cancelFlag` (précautions) reste désamorçable par un
  *  Effet de scène. Sans position (hors grille) : pas de point de reconstitution → no-op. */
@@ -6087,8 +6087,8 @@ function scheduleRespawnFromOp(
   _get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'scheduleRespawn' }>,
 ): string[] {
   if (!actor.pos) return [];
-  // `ref:'self'` : la fiche du défunt, quel qu'en soit le porteur (Middenheim 04 p.115, LDB 76 l.11, #1882).
-  const porteur = op.ref === 'self' ? actor.porteurDeFiche : { ref: op.ref };
+  // `SELF_REF` : la fiche du défunt, quel qu'en soit le porteur (Middenheim 04 p.115, LDB 76 l.11, #1882).
+  const porteur = op.ref === SELF_REF ? actor.porteurDeFiche : { ref: op.ref };
   if (!porteur) throw new Error(`[scheduleRespawn] « ${actor.id} » n'a été spawné d'aucune fiche : \`ref:'self'\` ne peut le reconstituer (#1882)`);
   const days = resolveFormula(op.delayDays, actor, battleRng());
   const count = Math.max(1, resolveFormula(op.count ?? 1, actor, battleRng()));

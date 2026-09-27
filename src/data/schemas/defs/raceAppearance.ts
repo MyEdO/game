@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { paletteDEspeceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
+import { paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
 
 export const file = 'raceAppearance.json';
@@ -30,7 +30,7 @@ const doc = document(
     pose: z.record(z.string(), z.number()).optional(),
     tenue: z.string().optional(),
     colors: surchargePaletteSchema.optional(),
-    sex: z.enum(['M', 'F']).optional(),
+    sex: sexeSchema.optional(),
     parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
     scale: z.number().optional(),
     eyes: z.strictObject({ G: z.string().optional(), D: z.string().optional() }).optional(),
@@ -56,11 +56,11 @@ const doc = document(
       label: 'Teintes tirées par individu',
       hint: 'Teintes (peau, cheveux…) parmi lesquelles chaque individu de la race reçoit la sienne ; ce qu’on fixe sur le personnage ou la créature l’emporte',
     },
-    featureKeys: { label: 'Traits de corps', hint: 'Traits anatomiques ajoutés au rig (ventre, barbe, queue, cornes…)' },
+    featureKeys: { label: 'Traits de corps', hint: 'Traits anatomiques ajoutés à l’apparence de la race (ventre, barbe, queue, cornes…)' },
     pose: { label: 'Posture au repos', hint: 'Posture de face et de profil au repos' },
     tenue: { label: 'Tenue par défaut', hint: 'Tenue portée par défaut par cette race' },
     colors: { label: 'Surcharge de palette', hint: 'Couleurs qui surchargent la palette de base pour cette race' },
-    sex: { label: 'Sexe forcé', hint: 'Sexe imposé au rig de cette race, sans choix' },
+    sex: { label: 'Sexe forcé', hint: 'Sexe imposé à l’apparence de cette race, sans choix' },
     parts: { label: 'Coiffure/visage épinglés', hint: 'Variante de coiffure et de visage fixée pour cette race' },
     scale: { label: 'Échelle du token', hint: 'Facteur d’échelle globale du pion en jeu (ex. Géant)' },
     eyes: {

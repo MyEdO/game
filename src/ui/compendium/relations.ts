@@ -146,7 +146,7 @@ const graph = versionCached<ReverseGraph>(() => {
     const by: Referrer = { category: 'talents', id: t.id, label: t.label };
     for (const op of t.passive ?? []) {
       if (op.op === 'grantCareerSkill') addReverse('skills', op.skill.id, by, 'Talents le conférant');
-      else if (op.op === 'grantCareerTalent') addReverse('talents', op.talentId, by, 'Talents le conférant');
+      else if (op.op === 'grantCareerTalent') addReverse('talents', op.talent.id, by, 'Talents le conférant');
       else if (op.op === 'charMod') addReverse('characteristics', op.char, by, 'Talents (bonus de départ)');
     }
   }
@@ -160,7 +160,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const tr of c.optionals) if (!isOptionalNote(tr)) addReverse('traits', tr.id, { ...by, detail: 'facultatif' }, 'Créatures ayant ce trait');
     for (const sk of c.skills) addReverse('skills', sk.id, by);
     for (const ta of c.talents) addReverse('talents', ta.id, by);
-    for (const sp of c.spells) addReverse('spells', sp.id, by, 'Créatures la lançant');
+    for (const sp of c.spells) addReverse('spells', sp, by, 'Créatures la lançant');
     for (const tp of c.trappings) if ('id' in tp) addReverse('trappings', tp.id, by, 'Créatures la possédant');
   }
 
@@ -195,9 +195,9 @@ const graph = versionCached<ReverseGraph>(() => {
   // 12) Dieux/Cultes → bénédictions + miracles.
   for (const g of gods) {
     const by: Referrer = { category: 'gods', id: g.id, label: g.label };
-    for (const b of g.blessings) addReverse('spells', b.id, { ...by, detail: 'Bénédiction' }, 'Cultes (Bénédictions / Miracles)');
-    for (const mi of g.miracles) addReverse('spells', mi.id, { ...by, detail: 'Miracle' }, 'Cultes (Bénédictions / Miracles)');
-    for (const cs of g.chaosSpells ?? []) addReverse('spells', cs.id, { ...by, detail: 'Sort du Chaos' }, 'Cultes (Bénédictions / Miracles)');
+    for (const b of g.blessings) addReverse('spells', b, { ...by, detail: 'Bénédiction' }, 'Cultes (Bénédictions / Miracles)');
+    for (const mi of g.miracles) addReverse('spells', mi, { ...by, detail: 'Miracle' }, 'Cultes (Bénédictions / Miracles)');
+    for (const cs of g.chaosSpells ?? []) addReverse('spells', cs, { ...by, detail: 'Sort du Chaos' }, 'Cultes (Bénédictions / Miracles)');
   }
 
   // 13) États INFLIGÉS — ops `condition` des effets (Sort = Flow ; Trait/Qualité/Talent/Domaine = TriggeredEffect[].flow).

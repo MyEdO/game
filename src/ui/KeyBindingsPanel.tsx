@@ -23,7 +23,7 @@ import { Row } from './Layout';
  * @clavier-hors-registre la CAPTURE de remap n'est pas un raccourci : elle lit la touche BRUTE pour
  * l'écrire dans le registre, et doit donc passer avant lui (garde `ui/raccourcis-registre.test.ts`).
  */
-const SECTION_ORDER: KeyBindingSection[] = ['systeme', 'pov', 'camera', 'combat', 'curseur', 'hotbar', 'exploration', 'editeur'];
+const SECTION_ORDER: KeyBindingSection[] = ['systeme', 'pov', 'camera', 'combat', 'curseur', 'hotbar', 'exploration', 'dialogue', 'editeur'];
 
 /** Codes qui ne sont QUE des modificateurs : tenus seuls, ils ne désignent aucune touche — la capture attend la touche qualifiée. */
 const CODES_MODIFICATEUR = /^(Control|Alt|Shift|Meta)(Left|Right)$/;

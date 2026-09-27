@@ -320,7 +320,18 @@
       ]
     },
     "desc": "Que ce soit votre regard perçant, votre corps musclé, ou peut- être l'éclat de vos dents parfaites, vous savez comment utiliser au mieux ce que les dieux vous ont offert. Quand vous réussissez à utiliser Charme pour influencer ceux qui vous trouvent Attirant, vous pouvez choisir d'utiliser soit le DR de votre lancer, soit le nombre des unités obtenu sur votre dé. Donc, une réussite de 63 peut être utilisée comme un DR de +3. ",
-    "specs": [],
+    "specs": [
+      {
+        "id": "mutants-et-hommes-betes",
+        "label": "avec les mutants et les hommes-bêtes",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 66,
+          "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
+        },
+        "pool": false
+      }
+    ],
     "rand": 19,
     "source": {
       "book": "livre-de-base",
@@ -935,7 +946,7 @@
         {
           "skill": {
             "id": "savoir",
-            "spec": "Apothicaire"
+            "spec": "apothicaire"
           }
         }
       ]
@@ -1980,7 +1991,9 @@
     "passive": [
       {
         "op": "grantCareerTalent",
-        "talentId": "frenesie"
+        "talent": {
+          "id": "frenesie"
+        }
       }
     ]
   },
@@ -4846,6 +4859,14 @@
           "page": 30,
           "note": "frenchy.bzh 13 l.128"
         },
+        "alsoIn": [
+          {
+            "book": "frenchy-bzh",
+            "page": 64,
+            "note": "frenchy.bzh 19 l.105",
+            "quote": "Étiquette (Militaires)"
+          }
+        ],
         "pool": false
       },
       {
@@ -4866,6 +4887,14 @@
           "page": 77,
           "note": "frenchy.bzh 22 l.163"
         },
+        "alsoIn": [
+          {
+            "book": "frenchy-bzh",
+            "page": 150,
+            "note": "frenchy.bzh 26 l.688",
+            "quote": "Étiquette (Religieux)"
+          }
+        ],
         "pool": false
       },
       {

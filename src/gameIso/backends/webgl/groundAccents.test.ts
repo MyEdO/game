@@ -167,7 +167,7 @@ function reposé(
 }
 
 describe('groundAccents — semis de SCÈNE et montage instancié', () => {
-  const scene = buildScene(siegeSpec);
+  const scene = buildScene(siegeSpec());
   const mpt = sceneMetresPerTile(scene);
 
   it('la scène de siège porte un semis MESURABLE', () => {
@@ -250,7 +250,7 @@ describe('groundAccents — semis de SCÈNE et montage instancié', () => {
  * `deleteProgram`/`linkProgram` et un ré-upload de sommets par quart de tour.
  */
 describe('groundAccents — REPOSE en place, jamais de reconstruction', () => {
-  const scene = buildScene(siegeSpec);
+  const scene = buildScene(siegeSpec());
   const mpt = sceneMetresPerTile(scene);
   const accents = sceneGroundAccents(scene, mpt);
   /** Teinte STABLE, comme celle que l'hôte du monde mémorise (`stage/MondeDeCampagne`) : elle ne se reforge qu'au
@@ -439,8 +439,9 @@ function nappesSemees() {
     rank: number;
     accents: ReturnType<typeof tileGroundAccents>;
   }[] = [];
-  for (const sc of testScenarios)
-    for (const scene of [sc.scene, ...(sc.extraScenes ?? [])]) {
+  for (const sc of testScenarios) {
+    const c = sc.construire();
+    for (const scene of [c.scene, ...(c.extraScenes ?? [])]) {
       const m2t = sceneMetresPerTile(scene);
       const wfs = worldFaces(scene);
       const rangs = coplanarRanks(wfs.map((w) => facePoly(w.face, m2t)));
@@ -459,6 +460,7 @@ function nappesSemees() {
         });
       });
     }
+  }
   return out;
 }
 

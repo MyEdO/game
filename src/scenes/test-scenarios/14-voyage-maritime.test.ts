@@ -1,24 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
+import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
-import { distributeCredit, partyMoneyTotal } from '../../state/bourseFlow';
+import { partyMoneyTotal } from '../../state/bourseFlow';
 import { findSpell } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../state/cascadeTestKit';
 
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
+const scenConstruit = scen.construire();
 const get = () => useGame.getState();
 
-/** Lance le scénario EXACTEMENT comme le menu (setParty → loadProject → money → vessel). */
+/** Lance le scénario par le lanceur du menu (`lancerScenario`). */
 function launch(seed = 1) {
   seedBattleRng(seed);
-  const g = get();
-  g.setParty(scen.makeParty());
-  g.loadProject([scen.scene, ...(scen.extraScenes ?? [])], scen.scene.id, scen.worldMap ?? null);
-  if (scen.money) distributeCredit(get, useGame.setState, scen.money); // bourses du groupe (SOCLE POSSESSIONS #531)
-  if (scen.vessel) useGame.setState({ vessel: scen.vessel });
+  lancerScenario(get, useGame.setState, scen);
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
   // cascade, elle gèle les actions du bord (`startTravel` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.
@@ -55,18 +53,18 @@ function sailToPort(maxSteps = 400): string[] {
 describe('Scénario Voyage maritime — enregistrement & carte', () => {
   it('est dans la section Naval, avec route MARITIME (milles) entre 2 ports dont un à phare + le navire de campagne', () => {
     expect(scen.category).toBe('naval');
-    expect(scen.vessel?.vehicleId).toBe('cogue');
-    const route = scen.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
+    expect(scenConstruit.vessel?.vehicleId).toBe('cogue');
+    const route = scenConstruit.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
     expect(route.sea).toBe(true);
     expect(route.modes).toContain('mer');
-    const marienburg = scen.worldMap!.places.find((p) => p.id === 'p-marienburg')!;
+    const marienburg = scenConstruit.worldMap!.places.find((p) => p.id === 'p-marienburg')!;
     expect(marienburg.port).toBeTruthy();
     expect(marienburg.port!.lighthouse).toBe(true);
-    expect(scen.extraScenes?.some((s) => s.id === 'test-mer-arrivee')).toBe(true);
+    expect(scenConstruit.extraScenes?.some((s) => s.id === 'test-mer-arrivee')).toBe(true);
   });
 
   it('cap EST — vent de dos sur les dominantes d\'ouest (MDG 13 l.253), jamais de face permanent (#408)', () => {
-    const route = scen.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
+    const route = scenConstruit.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
     expect(route.seaHeading).toBe('est');
   });
 });
@@ -102,7 +100,7 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
 });
 
 describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)', () => {
-  const navi = scen.makeParty().find((h) => h.id === 'mar-navi')!;
+  const navi = scen.construire().party.find((h) => h.id === 'mar-navi')!;
 
   it('le Navigateur est un Astromancien : il maîtrise l’incantation et connaît Bienfait de Bel Shanaar', () => {
     expect(knowsCastingSkill(navi, 'langue', 'magick')).toBe(true); // incantation des Arcanes

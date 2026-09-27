@@ -12,10 +12,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { fileURLToPath } from 'node:url';
 import { schema as characteristicsSchema } from './schemas/defs/characteristics';
-import { DEFS_DE_DOCUMENT, formatZodError } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import type { RacineDocument } from './schemas/types';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -23,9 +24,8 @@ const SCENES_DIR = fileURLToPath(new URL('../scenes/', import.meta.url));
 /** Dossier de chaque racine de documents — `SchemaDef.file` est relatif a SA racine. */
 const DIR_DE_RACINE: Record<RacineDocument, string> = { 'src/data': DATA_DIR, 'src/scenes': SCENES_DIR };
 
-/** Les documents `*-projet.json` de `src/scenes`, chemins relatifs a la racine (recursif). */
-const projetsDeScene = (): string[] =>
-  listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('-projet.json') });
+/** Les projets livrés (`projetsLivres.mjs`), chemins relatifs a la racine `src/scenes`. */
+const projetsDeScene = (): string[] => listerProjetsLivres();
 
 /**
  * Documents sans schéma, DÉSIGNÉS PAR LEUR CHEMIN COMPLET (`src/data/x.json`, `src/scenes/y/z.json`)
@@ -39,8 +39,7 @@ describe('contrat de donnée — les documents des deux racines valident leur sc
   for (const def of DEFS_DE_DOCUMENT) {
     it(`${def.root}/${def.file} valide ${def.schema === characteristicsSchema ? '(schéma characteristics)' : 'son schéma'}`, () => {
       const raw = JSON.parse(readFileSync(`${DIR_DE_RACINE[def.root]}${def.file}`, 'utf8'));
-      const result = def.schema.safeParse(raw);
-      expect(result.success, result.success ? '' : formatZodError(def.file, result.error)).toBe(true);
+      expect(validateDataset(def.file, raw)).toBeNull();
     });
   }
 

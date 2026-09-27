@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
+import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
 import { toBrass } from '../../engine/money';
@@ -16,14 +17,12 @@ import { REIK_INDEX } from './_reik-index';
  * → revendre à Altdorf (Florissant R 5, +10 %) avec PROFIT (l.11-13, l.150-156).
  */
 const scen = testScenarios.find((s) => s.id === 'commerce-fluvial')!;
+const scenConstruit = scen.construire();
 const get = () => useGame.getState();
 
-/** Lance le scénario EXACTEMENT comme le menu (setParty → loadProject → money). */
+/** Lance le scénario par le lanceur du menu (`lancerScenario`). */
 function launch() {
-  const g = get();
-  g.setParty(scen.makeParty());
-  g.loadProject([scen.scene, ...(scen.extraScenes ?? [])], scen.scene.id, scen.worldMap ?? null);
-  if (scen.money) distributeCredit(get, useGame.setState, scen.money); // bourses du groupe (SOCLE POSSESSIONS #531)
+  lancerScenario(get, useGame.setState, scen);
 }
 
 /** Descend le fleuve par une route de barge jusqu'à l'arrivée (travelPlan retombé à null). Route directe
@@ -51,7 +50,7 @@ function bargeTo(routeId: string, destSceneId: string, maxSteps = 60): void {
 describe('Scénario Commerce fluvial — carte fidèle à l’Index géographique (MSRC 13)', () => {
   it('est dans la section Marché, avec les VRAIES localités du Reik et leurs indices verbatim', () => {
     expect(scen.category).toBe('marche');
-    const places = scen.worldMap!.places;
+    const places = scenConstruit.worldMap!.places;
     const place = (id: string) => places.find((p) => p.id === `p-${id}`)!;
     // Indices recopiés de l'Index (l.187 Altdorf, l.227 Kemperbad, l.221 Grünburg, l.237 Ubersreik).
     expect(place('altdorf').market).toMatchObject({ taille: 4, richesse: 5, produits: ['commerce'] });
@@ -60,7 +59,7 @@ describe('Scénario Commerce fluvial — carte fidèle à l’Index géographiqu
     expect(place('ubersreik').market).toMatchObject({ taille: 3, richesse: 4 });
     // Chaque Lieu de la carte a un marché (LandMarketProfile) et est relié par barge.
     expect(places.every((p) => p.market)).toBe(true);
-    expect(scen.worldMap!.routes.every((r) => r.modes.includes('barge'))).toBe(true);
+    expect(scenConstruit.worldMap!.routes.every((r) => r.modes.includes('barge'))).toBe(true);
     // Les Hameaux (Taille 1) restent hors carte mais dans les données (l.139).
     expect(REIK_INDEX.some((e) => e.taille === 1)).toBe(true);
     expect(places.some((p) => p.id === 'p-furtild')).toBe(false);

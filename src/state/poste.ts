@@ -8,7 +8,7 @@
  * d'équipage mutualisés) reste dans ses modules dédiés (`engine/activities`, `state/shipCrew`) — un Poste
  * ne fait qu'exposer l'identité assignable, jamais la mécanique de résolution. PUR.
  */
-import type { SkillRef } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ActivityDef } from '../engine/activities';
 import type { Combatant } from '../engine/types';
 import type { CrewRoleData, ShipStationData } from '../data';
@@ -23,7 +23,7 @@ export interface Poste {
   id: string;
   label: string;
   icon?: string;
-  skills: SkillRef[];
+  skills: RefDesignee[];
 }
 
 /** Activité de voyage (`activitiesFor('voyage')`) → Poste. */

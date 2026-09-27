@@ -8,6 +8,7 @@ import { seedBattleRng } from '../../state/battleRng';
 import { draineEtLit } from '../../state/cascadeTestKit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
+const scenarioConstruit = scenario.construire();
 
 /**
  * DÔME (`LDB 47 l.410`) : preuve LIVE sur la scène RÉELLE du scénario — le sort du CATALOGUE (ses ops,
@@ -25,8 +26,8 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }
 
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
 function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combatant; orc: Combatant } {
-  useGame.setState({ battle: null, party: scenario.makeParty() });
-  useGame.getState().startScene(scenario.scene);
+  useGame.setState({ battle: null, party: scenario.construire().party });
+  useGame.getState().startScene(scenarioConstruit.scene);
   useGame.getState().startCombat('enc-dome');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

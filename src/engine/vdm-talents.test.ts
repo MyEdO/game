@@ -55,12 +55,12 @@ describe('Concocter — variante « Règles d’incantation révisées » (VDM 1
   it('MORSURE — le +DR de Talent (LDB 10 l.19) change de Compétence avec la règle', () => {
     const c = withTalents([{ talentId: 'concocter', times: 1 }]);
     // OFF : le Talent bonifie Savoir (Apothicaire), pas Métier.
-    expect(talentTestSLBonus(c, { skill: 'savoir', spec: 'Apothicaire' })).toBe(1);
+    expect(talentTestSLBonus(c, { skill: 'savoir', spec: 'apothicaire' })).toBe(1);
     expect(talentTestSLBonus(c, { skill: 'metier', spec: 'apothicaire' })).toBe(0);
     expect(talentTestSLBonus(c, { skill: 'metier', spec: 'alchimiste' })).toBe(0);
     setRule(RULE, true);
     // ON : il bonifie Métier (Apothicaire) ET Métier (Alchimiste), plus Savoir.
-    expect(talentTestSLBonus(c, { skill: 'savoir', spec: 'Apothicaire' })).toBe(0);
+    expect(talentTestSLBonus(c, { skill: 'savoir', spec: 'apothicaire' })).toBe(0);
     expect(talentTestSLBonus(c, { skill: 'metier', spec: 'apothicaire' })).toBe(1);
     expect(talentTestSLBonus(c, { skill: 'metier', spec: 'alchimiste' })).toBe(1);
   });

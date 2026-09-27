@@ -36,7 +36,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['navalProgression'] },
-    edit: { niche: { categories: ['navalProgression'] } },
+    edit: { niche: { categories: { navalProgression: 'entries' } } },
   },
   { rangee: progressionEntrySchema },
 );

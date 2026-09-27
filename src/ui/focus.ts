@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
+import { dialogueDuDessus } from './useDismissLayer';
 
 /**
  * Coutures de FOCUS partagées par toute surface qui déplace le focus DOM : dialogues (`Modal`,
@@ -33,9 +34,10 @@ export const focusSansIntention = (): boolean => sansIntention;
 /** FOCUS EMPRUNTÉ par une surface (WAI-ARIA APG, Dialog (Modal) Pattern : « When a dialog closes, focus
  *  returns to the element that invoked the dialog unless either: The invoking element no longer
  *  exists. […] ») : dès que la surface est `actif`, le focus entre sur `cible(box)` ; à sa fermeture, il
- *  revient à l'INVOCATEUR, le nœud qui l'avait à cette ouverture, s'il est encore dans le document —
- *  sauf si le focus est déjà posé sur un élément vivant hors d'elle (ni sa boîte, ni son entrée), qu'il
- *  ne lui vole pas. « Son entrée » : celle de l'ouverture ET celle de la dernière étape.
+ *  revient à l'INVOCATEUR, le nœud qui l'avait à cette ouverture, s'il est encore dans le document et
+ *  qu'aucun dialogue du dessus ne le couvre (`dialogueDuDessus` absent, ou qui le contient) — sauf si
+ *  le focus est déjà posé sur un élément vivant hors d'elle (ni sa boîte, ni son entrée), qu'il ne lui
+ *  vole pas. « Son entrée » : celle de l'ouverture ET celle de la dernière étape.
  *  `cible` rend `null` : la surface n'emprunte rien (ni entrée, ni retour).
  *  `etape` : l'entrée à l'étape, au-delà de l'invocateur de l'APG. Quand elle change pendant que la
  *  surface reste `actif`, le focus entre sur `cible(box)` sans passer par l'invocateur, sous la même
@@ -67,7 +69,11 @@ export function useFocusEmprunte(
       const ae = document.activeElement;
       if (ae instanceof HTMLElement && ae !== document.body && ae !== entree && ae !== entreePosee.current && !box.contains(ae)) return;
       const o = invocateur.current;
-      if (o?.isConnected) poserFocus(o);
+      // Un dialogue reste au-dessus (`dialogueDuDessus`) et l'invocateur n'est pas dans sa boîte : le
+      // focus lui revient, pas à l'invocateur peint dessous — il le reprend par son repli (`Modal.tsx`).
+      const dessus = dialogueDuDessus();
+      if (o?.isConnected && (!dessus || dessus.contains(o))) poserFocus(o);
+      else if (dessus && ae instanceof HTMLElement && box.contains(ae)) ae.blur();
       if (!o?.isConnected || document.activeElement === o) invocateur.current = null;
     };
   }, [boxRef, actif, cible]);

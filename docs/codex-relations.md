@@ -41,8 +41,8 @@ argument de la fabrique `document()` (`src/data/schemas/grammaire/document.ts`, 
   document, soit `{ exempt: { kind, raison, ticket? } }` : une exemption MOTIVÉE. La fabrique
   refuse un `codex` sans clés ni exemption motivée.
 - `edit` — ce que l'ÉDITEUR édite : `{ dataset }`, `{ object: 'single' | 'record' }`,
-  `{ niche: { categories } }` (les clés Codex du document routées comme datasets, chacune éditant
-  UN champ tableau — le fichier parent est réécrit au save), ou `{ none: raison }`. La fabrique
+  `{ niche: { categories } }` (chaque clé Codex du document routée comme dataset, vers la suite
+  nichée de la collection qu'elle édite — le fichier parent est réécrit au save), ou `{ none: raison }`. La fabrique
   refuse les quatre absents.
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
@@ -158,7 +158,7 @@ est celle du document porteur, telle que `document()` la déclare.
 | `psychologie` | Psychologie | `src/data/traits.json` | dataset `traits` |
 | `psychologies` | États psychologiques | `src/data/psychology.json` | dataset `psychologies` |
 | `qualities` | Qualités | `src/data/qualities.json` | dataset `qualities` |
-| `raceAppearance` | Apparences (rig) | `src/data/raceAppearance.json` | dataset `raceAppearance` |
+| `raceAppearance` | Apparences | `src/data/raceAppearance.json` | dataset `raceAppearance` |
 | `races` | Races | `src/data/species.json` | dataset `species` |
 | `regles` | Règles de jeu | `src/data/regles.json` | aucune |
 | `reglesOptionnelles` | Règles optionnelles | `src/data/reglesOptionnelles.json` | dataset `reglesOptionnelles` |
@@ -269,7 +269,7 @@ Le JSDoc est rapporté en ENTIER : le contrat d'une couture relationnelle tient 
 | `tokenizeLinks` | function | `src/ui/compendium/relations.ts:502` | Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex, façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés). `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf. `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié. |
 
 `bookContents` est projeté DANS le `build` (paresseux) de la catégorie Livres
-(`src/ui/compendium/registry.ts:1800`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
+(`src/ui/compendium/registry.ts:1794`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
 items — aucun cycle de projection.
 
 ## Barre de catégories — sous-groupes repliables (`cluster`)
@@ -320,4 +320,4 @@ Regrouper une catégorie = poser `cluster: '…'` sur son littéral dans `CODEX_
 - `npx vitest run src/ui/compendium/humanize.test.ts`
 - `npx vitest run src/data/schemas/exposition-contrats.test.ts`
 - `npx vitest run src/data/serialize.test.ts`
-<!-- sources-empreinte: 20aa5651dcdd58c4a9d5cb47c5993dc532993119 (771 fichiers, 0 dossiers) corps: c7389c0c0f236a4c391641cb9e57806e78b0cdf0 -->
+<!-- sources-empreinte: 31ba7c838f63b5a6c6a784e749460bf64cb3ea10 (781 fichiers, 0 dossiers) corps: 85a4b1e534df54918650b73f70e5e6ab4cc11c7b -->

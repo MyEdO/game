@@ -1377,8 +1377,8 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('décor d’un AUTRE étage, adjacent dans le plan : le clic ne joue RIEN sur place', () => {
     const jouerAction = vi.fn();
     const setPendingInteract = vi.fn();
-    const scene = sceneMeuble('table-ronde-4-tabourets'); // décor VOLUMIQUE : le rayon peut le nommer
-    (scene.entities[0] as { z?: number }).z = 1; // le meuble est à l'étage, le groupe au rez
+    const dePlainPied = sceneMeuble('table-ronde-4-tabourets'); // décor VOLUMIQUE : le rayon peut le nommer
+    const scene = { ...dePlainPied, entities: [{ ...dePlainPied.entities[0], z: 1 }] }; // le meuble à l'étage, le groupe au rez
     useGame.setState({
       scene, mode: 'exploration', partyPos: { x: 2, y: 2 }, party: [], dialogue: null,
       jouerAction, setPendingInteract, flags: {}, journal: [],
@@ -1394,8 +1394,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     );
 
     // TÉMOIN — le MÊME clic, le même rayon, le décor RAMENÉ de plain-pied : le geste se joue.
-    delete (scene.entities[0] as { z?: number }).z;
-    useGame.setState({ scene: { ...scene }, partyPos: { x: 2, y: 2 } });
+    useGame.setState({ scene: dePlainPied, partyPos: { x: 2, y: 2 } });
     const p2 = monter();
     const ev2 = pointerEvent(tileCenter(2, 3, dims).cx, tileCenter(2, 3, dims).cy);
     p2.handlers.onPointerDown(ev2);

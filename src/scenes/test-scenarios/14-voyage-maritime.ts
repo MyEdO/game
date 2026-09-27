@@ -5,6 +5,7 @@ import type { Combatant, SkillInstance } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { WorldMap } from '../../state/worldMap';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 import { rigSpeciesId } from '../../data';
 
 /**
@@ -63,7 +64,7 @@ function crew(): Combatant[] {
 }
 
 // ── Deux ports : Salzenmund (départ) et Marienburg (arrivée, phare + grand port de commerce) ──
-const departPort = buildScene({
+const construireDepart = (): Scene => buildScene({
   id: 'test-mer-depart',
   label: 'Salzenmund — les quais',
   desc: 'Arène de test.',
@@ -80,7 +81,7 @@ const departPort = buildScene({
     'du monde pour appareiller vers Marienburg.)',
 });
 
-const arrivePort = buildScene({
+const construireArrivee = (): Scene => buildScene({
   id: 'test-mer-arrivee',
   label: 'Marienburg — le Grand Port',
   desc: 'Arène de test.',
@@ -94,7 +95,7 @@ const arrivePort = buildScene({
 });
 
 // ── Carte du monde : une seule route, MARITIME (milles), avec phare à l'arrivée ──
-const carte: WorldMap = {
+const construireCarte = (): WorldMap => ({
   id: 'test-mer-carte',
   label: 'Mer des Griffes (test)',
   places: [
@@ -125,7 +126,7 @@ const carte: WorldMap = {
       seaHeading: 'est',
     },
   ],
-};
+});
 
 export const scenario: TestScenario = {
   id: 'voyage-maritime',
@@ -140,16 +141,18 @@ export const scenario: TestScenario = {
     'Grand Port (écran Port : réparer/caréner/commerce). Équipage = les PJ, chacun à son rôle (Capitaine/Timonier/' +
     'Navigateur/Vigie).',
   partyNote: 'Équipage : Capitaine Brenner (Commandement) · Timonière Hilda (Voile/Charpentier) · Navigateur Ansmann (Orientation + Astromancien : Bienfait de Bel Shanaar) · Vigie Perla (Perception)',
-  makeParty: crew,
-  scene: departPort,
-  extraScenes: [arrivePort],
-  worldMap: carte,
   money: { gold: 40, silver: 0, brass: 0 }, // de quoi réparer la coque au port
-  // Cogue de campagne : coque ENDOMMAGÉE (déclenche l'entretien du soir), tonneaux d'eau suivis, Moral neuf.
-  vessel: {
-    vehicleId: 'cogue',
-    morale: { score: 75, lastMoraleWeek: 0, factors: [] },
-    wounds: { current: 15, max: 50 }, // coque mal en point : entretien chaque nuit, encore à réparer à l'arrivée
-    waterLitres: 2900, // 20 tonneaux de 145 L (MDG 14 l.242) — 19 hommes à 3 L/jour, soit ~50 jours d'eau
-  },
+  construire: () => ({
+    party: crew(),
+    scene: construireDepart(),
+    extraScenes: [construireArrivee()],
+    worldMap: construireCarte(),
+    // Cogue de campagne : coque ENDOMMAGÉE (déclenche l'entretien du soir), tonneaux d'eau suivis, Moral neuf.
+    vessel: {
+      vehicleId: 'cogue',
+      morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+      wounds: { current: 15, max: 50 }, // coque mal en point : entretien chaque nuit, encore à réparer à l'arrivée
+      waterLitres: 2900, // 20 tonneaux de 145 L (MDG 14 l.242) — 19 hommes à 3 L/jour, soit ~50 jours d'eau
+    },
+  }),
 };

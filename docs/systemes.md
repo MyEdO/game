@@ -90,6 +90,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `descendre/enfantsDe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coDescendre/ouverts/pasDeDonnee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
@@ -144,7 +146,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `SpectatorChip` |  |  |  |  |  |  |  |  | U | U |  |  |  |  |  |  |
 | `GearAssignList` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `RewardRecap` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `SceneErrorBoundary` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `SceneErrorBoundary` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `LogDrawer` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `InspectPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `EquipmentPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -160,11 +162,16 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `ouvrirBase/lireDansBase/ecrireDansBase` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -188,7 +195,6 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `CombatStartSplash` (src/ui/CombatStartSplash.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `GearAssignList` (src/ui/GearAssignList.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `RewardRecap` (src/ui/RewardRecap.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
-- `SceneErrorBoundary` (src/ui/SceneErrorBoundary.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `LogDrawer` (src/ui/LogDrawer.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `InspectPanel` (src/ui/InspectPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `EquipmentPanel` (src/ui/EquipmentPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -205,7 +211,7 @@ Portée : fichiers top-level (hors `*.test.ts`) non atteints par la closure d'im
 manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système
 unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.
 
-18 fichier(s) :
+19 fichier(s) :
 
 - `src/engine/axes.ts`
 - `src/engine/mountedManeuvers.ts`
@@ -222,7 +228,8 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/offresUtilisables.ts`
 - `src/state/preferences.ts`
 - `src/state/registreOffres.ts`
+- `src/state/scenarioFlow.ts`
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 4ea4aea57b3f2c15b8bb4b8877bee35e80fa397c (1834 fichiers, 2 dossiers) corps: 5651b4702272360f90c80282695f90a4025e999c -->
+<!-- sources-empreinte: 700035f94190d3952927ad3563879a0fb8a13a13 (1850 fichiers, 2 dossiers) corps: 56beeb1e042c9c7a5878fc97c9c013e8328f28bd -->

@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { cosmeticPart } from './cosmetic';
 import { genericPart } from './generic';
 import { pickView } from './types';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
-const sv = (slot: 'visage' | 'cheveux', sp: string, sex: 'M' | 'F', idx: number) =>
+const sv = (slot: 'visage' | 'cheveux', sp: string, sex: Sexe, idx: number) =>
   pickView(cosmeticPart(slot, sp, sex, idx), 'front');
 
 describe('cosmeticPart', () => {

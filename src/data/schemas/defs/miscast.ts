@@ -118,7 +118,7 @@ const doc = document(
   },
   {
     codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastWrath'] },
-    edit: { niche: { categories: ['miscastMinor', 'miscastMajor', 'miscastWrath'] } },
+    edit: { niche: { categories: { miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries', miscastWrath: '[miscast-colere].entries' } } },
   },
   { rangee: jsonRowSchema },
 );

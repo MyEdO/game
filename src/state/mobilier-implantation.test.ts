@@ -54,7 +54,7 @@ const MPT = sceneMetresPerTile(salle());
  *  `gameIso/builders/props.ts` applique), son cap, le sol qu'il touche. */
 const ancrageDe = (ent: SceneEntity) => ({
   ancre: decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, MPT)),
-  facing: capVolumique(ent.facing, ent.id),
+  facing: capVolumique(ent.facing)!,
   baseHeightM: 0,
   entId: ent.id,
 });

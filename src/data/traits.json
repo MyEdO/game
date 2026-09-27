@@ -2048,49 +2048,72 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "savoir-vivre",
-        "spec": "disciples-de-tzeentch"
+        "talent": {
+          "id": "savoir-vivre",
+          "spec": "disciples-de-tzeentch"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "magie-des-arcanes"
+        "talent": {
+          "id": "magie-des-arcanes",
+          "choix": true
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "diction-instinctive"
+        "talent": {
+          "id": "diction-instinctive"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "harmonisation-aethyrique"
+        "talent": {
+          "id": "harmonisation-aethyrique"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "magie-du-chaos",
-        "spec": "tzeentch"
+        "talent": {
+          "id": "magie-du-chaos",
+          "spec": "tzeentch"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "mage-de-guerre"
+        "talent": {
+          "id": "mage-de-guerre"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "magie-mineure"
+        "talent": {
+          "id": "magie-mineure"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "mains-agiles"
+        "talent": {
+          "id": "mains-agiles"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "perception-de-la-magie"
+        "talent": {
+          "id": "perception-de-la-magie"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "seconde-vue"
+        "talent": {
+          "id": "seconde-vue"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "sorcier"
+        "talent": {
+          "id": "sorcier"
+        }
       }
     ]
   },
@@ -2689,8 +2712,10 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "savoir-vivre",
-        "spec": "suivants-de-khorne"
+        "talent": {
+          "id": "savoir-vivre",
+          "spec": "suivants-de-khorne"
+        }
       },
       {
         "op": "castPenalty",
@@ -2708,44 +2733,64 @@
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "assaut-feroce"
+        "talent": {
+          "id": "assaut-feroce"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "charge-berserk"
+        "talent": {
+          "id": "charge-berserk"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "combat-instinctif"
+        "talent": {
+          "id": "combat-instinctif"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "coup-puissant"
+        "talent": {
+          "id": "coup-puissant"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "determine"
+        "talent": {
+          "id": "determine"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "endurci"
+        "talent": {
+          "id": "endurci"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "guerrier-ne"
+        "talent": {
+          "id": "guerrier-ne"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "resistance",
-        "spec": "magie"
+        "talent": {
+          "id": "resistance",
+          "spec": "magie"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "resistance-a-la-magie"
+        "talent": {
+          "id": "resistance-a-la-magie"
+        }
       },
       {
         "op": "grantCareerTalent",
-        "talentId": "vigilance"
+        "talent": {
+          "id": "vigilance"
+        }
       }
     ]
   },
@@ -3129,7 +3174,9 @@
     "passive": [
       {
         "op": "grantTalent",
-        "talentId": "seconde-vue"
+        "talent": {
+          "id": "seconde-vue"
+        }
       },
       {
         "op": "skillDRBonus",

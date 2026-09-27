@@ -22,4 +22,4 @@ Ce qu'il apporte que le livre ne dit pas : ses §19-20 (ce que la 5e reprend d'A
 Magie, ce qu'elle n'en reprend pas, ce qui casse) et une liste d'errata candidats du livre 5e.
 
 Voir [[user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata]] et
-[[game-sources-pdf-errors-verify-case-by-case]].
+[[game-erreurs-de-pdf]].

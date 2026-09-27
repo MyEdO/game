@@ -10,7 +10,7 @@
  * lui devenait insensible à Échap. Les deux portes se contredisaient.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { dismissStackKinds } from '../state/dismissStack';
@@ -107,7 +107,11 @@ describe('Échap — pile de couches LIFO', () => {
   });
 
   it('COUCHE BLOQUANTE (`onDismiss: null`) : Échap est consommé, rien ne bouge', () => {
-    const Bloquante = () => { useDismissLayer('bloquante', null); return null; };
+    const Bloquante = () => {
+      const boite = useRef<HTMLDivElement>(null);
+      useDismissLayer({ kind: 'bloquante', nature: 'modale', plan: 'application', boite }, null);
+      return <div ref={boite} />;
+    };
     act(() => root.render(<Bloquante />));
     echap();
     expect(dismissStackKinds(), 'la couche bloquante reste en place').toEqual(['bloquante']);
@@ -117,9 +121,11 @@ describe('Échap — pile de couches LIFO', () => {
   it('LA COUCHE RESTE (`onDismiss` rend `false`) : aucune cascade vers la couche du dessous', () => {
     const dessous = vi.fn();
     const Deux = () => {
-      useDismissLayer('dessous', dessous);
-      useDismissLayer('dessus', () => false);
-      return null;
+      const bas = useRef<HTMLDivElement>(null);
+      const haut = useRef<HTMLDivElement>(null);
+      useDismissLayer({ kind: 'dessous', nature: 'modale', plan: 'application', boite: bas }, dessous);
+      useDismissLayer({ kind: 'dessus', nature: 'modale', plan: 'application', boite: haut }, () => false);
+      return <><div ref={bas} /><div ref={haut} /></>;
     };
     act(() => root.render(<Deux />));
     echap();

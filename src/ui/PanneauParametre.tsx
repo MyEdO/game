@@ -19,7 +19,8 @@
  * dialogue est le hook partagé `useModalA11y` (focus au montage sur le 1ᵉʳ candidat, piège Tab,
  * flèches, retour du focus au déclencheur à la fermeture) — comme `InspectPanel`/`CharacterSheet`,
  * dialogues au markup propre. Le congédiement (Échap, B de la manette) est celui de tout le monde :
- * le panneau est une COUCHE de la pile partagée (`useModalA11y` la pousse), congédiée en LIFO.
+ * le panneau est une COUCHE de la pile partagée (`useModalA11y` la pousse), congédiée quand elle est la
+ * couche du dessus (`coucheDuDessus`).
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -81,7 +82,7 @@ function PanneauBoite({ anchor, intitule, options, onClose, pos }: Omit<PanneauP
   const fermer = useCallback(() => closeRef.current(), []);
   // ANNULATION GRATUITE : le panneau s'empile comme couche `panneau-parametre` — Échap le congédie
   // tant qu'il est la couche du DESSUS, et rien d'autre ne bouge (ni curseur tactique, ni intention
-  // armée, ni menu système). Une couche ouverte APRÈS lui (modale) passe devant : c'est le LIFO.
+  // armée, ni menu système). Une couche d'application ouverte APRÈS lui (modale) passe devant.
   useModalA11y(panelRef, fermer, { kind: 'panneau-parametre' }); // `PanneauBoite` n'est monté QUE placé et affiché → actif par défaut
 
   // CLIC DEHORS : ferme aussi, sans rien engager.

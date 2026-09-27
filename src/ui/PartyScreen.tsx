@@ -6,7 +6,7 @@ import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
 import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
-import { downloadText, fileSlug } from '../state/fileIo';
+import { downloadText, fileSlug } from '../lib/fileIo';
 import { campaign, builtinCampaigns, campagneDuJeu } from '../scenes/campaign';
 import { publishedProjects, campagneDeLEntree, playerEntryError, type SavedProject } from '../state/projectLibrary';
 import { Combatant } from '../engine/types';

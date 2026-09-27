@@ -1,0 +1,1184 @@
+[
+ {
+  "id": "pregen-101",
+  "species": "humains-reiklander",
+  "career": "soldat",
+  "characteristics": {
+   "capacite-de-combat": 32,
+   "capacite-de-tir": 33,
+   "force": 31,
+   "endurance": 38,
+   "initiative": 24,
+   "agilite": 32,
+   "dexterite": 33,
+   "intelligence": 27,
+   "force-mentale": 27,
+   "sociabilite": 23
+  },
+  "charAdvances": {
+   "capacite-de-combat": 2,
+   "endurance": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "sens-aiguise",
+    "spec": "ouie",
+    "times": 1
+   },
+   {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
+    "talentId": "affinite-avec-les-animaux",
+    "times": 1
+   },
+   {
+    "talentId": "guerrier-ne",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 8
+   },
+   {
+    "id": "escalade",
+    "characteristic": "force",
+    "advances": 5
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "bataille",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "musicien",
+    "spec": "tambour",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "arme-simple",
+   "dague",
+   "bourse",
+   "dague",
+   "plastron-de-cuir",
+   "uniforme"
+  ],
+  "wounds": {
+   "current": 11,
+   "max": 11,
+   "base": 11
+  },
+  "fate": 4,
+  "resilience": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain",
+   "soldat"
+  ],
+  "designations": {
+   "soldat": [
+    "musicien|tambour"
+   ]
+  }
+ },
+ {
+  "id": "pregen-202",
+  "species": "nains",
+  "career": "tueur",
+  "characteristics": {
+   "capacite-de-combat": 44,
+   "capacite-de-tir": 28,
+   "force": 29,
+   "endurance": 39,
+   "initiative": 25,
+   "agilite": 19,
+   "dexterite": 44,
+   "intelligence": 29,
+   "force-mentale": 53,
+   "sociabilite": 16
+  },
+  "charAdvances": {
+   "capacite-de-combat": 2,
+   "force": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
+    "talentId": "determine",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   },
+   {
+    "talentId": "resistance-a-la-magie",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "frenesie",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 10
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "guerison",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "pari",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "trolls",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "intimidation",
+    "characteristic": "force",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "khazalid",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "arme-simple",
+   "dague",
+   "bourse",
+   "arme-simple",
+   "flasque",
+   "tatouage"
+  ],
+  "wounds": {
+   "current": 13,
+   "max": 13,
+   "base": 13
+  },
+  "fate": 1,
+  "resilience": 3,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "nain"
+  ],
+  "designations": {}
+ },
+ {
+  "id": "pregen-707",
+  "species": "humains-reiklander",
+  "career": "sorcier",
+  "characteristics": {
+   "capacite-de-combat": 34,
+   "capacite-de-tir": 32,
+   "force": 24,
+   "endurance": 35,
+   "initiative": 31,
+   "agilite": 29,
+   "dexterite": 37,
+   "intelligence": 34,
+   "force-mentale": 30,
+   "sociabilite": 35
+  },
+  "charAdvances": {
+   "capacite-de-combat": 2,
+   "intelligence": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   },
+   {
+    "talentId": "ambidextre",
+    "times": 1
+   },
+   {
+    "talentId": "doue-en-calcul",
+    "times": 1
+   },
+   {
+    "talentId": "magie-mineure",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "corps-a-corps",
+    "spec": "armes-d-hast",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 8
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "focalisation",
+    "spec": "feu",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "magick",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "magie",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [
+   "flechette",
+   "choc",
+   "alerte"
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "grimoire",
+   "baton-de-combat"
+  ],
+  "wounds": {
+   "current": 11,
+   "max": 11,
+   "base": 11
+  },
+  "fate": 4,
+  "resilience": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {
+   "sorcier": [
+    "focalisation|feu"
+   ]
+  }
+ },
+ {
+  "id": "pregen-808",
+  "species": "humains-reiklander",
+  "career": "pretre",
+  "characteristics": {
+   "capacite-de-combat": 37,
+   "capacite-de-tir": 33,
+   "force": 24,
+   "endurance": 29,
+   "initiative": 33,
+   "agilite": 36,
+   "dexterite": 33,
+   "intelligence": 31,
+   "force-mentale": 35,
+   "sociabilite": 28
+  },
+  "charAdvances": {
+   "endurance": 2,
+   "agilite": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "ame-pure",
+    "times": 1
+   },
+   {
+    "talentId": "sens-de-l-orientation",
+    "times": 1
+   },
+   {
+    "talentId": "bonnes-jambes",
+    "times": 1
+   },
+   {
+    "talentId": "beni",
+    "spec": "sigmar",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "priere",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "recherche",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "theologie",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [
+   "benediction-de-bataille",
+   "benediction-de-courage",
+   "benediction-de-droiture",
+   "benediction-de-puissance",
+   "benediction-de-protection",
+   "benediction-de-vigueur"
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "symbole-religieux",
+   "robes"
+  ],
+  "wounds": {
+   "current": 9,
+   "max": 9,
+   "base": 9
+  },
+  "fate": 4,
+  "resilience": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain",
+   "sigmarite"
+  ],
+  "designations": {
+   "pretre": [
+    "beni|sigmar"
+   ]
+  }
+ },
+ {
+  "id": "pregen-303",
+  "species": "elfes-sylvains",
+  "career": "chasseur",
+  "characteristics": {
+   "capacite-de-combat": 49,
+   "capacite-de-tir": 40,
+   "force": 33,
+   "endurance": 30,
+   "initiative": 47,
+   "agilite": 41,
+   "dexterite": 43,
+   "intelligence": 43,
+   "force-mentale": 37,
+   "sociabilite": 31
+  },
+  "charAdvances": {
+   "force": 2,
+   "endurance": 2,
+   "dexterite": 1
+  },
+  "talents": [
+   {
+    "talentId": "dur-a-cuire",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   },
+   {
+    "talentId": "nomade",
+    "times": 1
+   },
+   {
+    "talentId": "sens-aiguise",
+    "spec": "vue",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "bon-marcheur",
+    "spec": "littoral",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "emprise-sur-les-animaux",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "escalade",
+    "characteristic": "force",
+    "advances": 8
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "piegeage",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "projectiles",
+    "spec": "fronde",
+    "characteristic": "capacite-de-tir",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "betes-sauvages",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "survie-en-exterieur",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "discretion",
+    "spec": "rurale",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "chant",
+    "characteristic": "sociabilite",
+    "advances": 3
+   },
+   {
+    "id": "intimidation",
+    "characteristic": "force",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "cape",
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "ration",
+   "arme-simple",
+   "bottes",
+   "fronde",
+   "projectile-de-pierre"
+  ],
+  "wounds": {
+   "current": 15,
+   "max": 15,
+   "base": 15
+  },
+  "fate": 1,
+  "resilience": 1,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "elfe"
+  ],
+  "designations": {
+   "chasseur": [
+    "bon-marcheur|littoral"
+   ]
+  }
+ },
+ {
+  "id": "pregen-404",
+  "species": "humains-reiklander",
+  "career": "apothicaire",
+  "characteristics": {
+   "capacite-de-combat": 33,
+   "capacite-de-tir": 24,
+   "force": 32,
+   "endurance": 34,
+   "initiative": 26,
+   "agilite": 31,
+   "dexterite": 34,
+   "intelligence": 34,
+   "force-mentale": 34,
+   "sociabilite": 35
+  },
+  "charAdvances": {
+   "endurance": 2,
+   "dexterite": 2,
+   "intelligence": 1
+  },
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "dur-a-cuire",
+    "times": 1
+   },
+   {
+    "talentId": "guerrier-ne",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   },
+   {
+    "talentId": "concocter",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "guerison",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "classique",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "metier",
+    "spec": "apothicaire",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "metier",
+    "spec": "empoisonneur",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "chimie",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "remedes",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "plantes",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "potion-de-guerison",
+   "justaucorps-de-cuir",
+   "pilon-et-mortier"
+  ],
+  "wounds": {
+   "current": 15,
+   "max": 15,
+   "base": 15
+  },
+  "fate": 4,
+  "resilience": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {}
+ },
+ {
+  "id": "pregen-505",
+  "species": "halflings",
+  "career": "voleur",
+  "characteristics": {
+   "capacite-de-combat": 20,
+   "capacite-de-tir": 38,
+   "force": 23,
+   "endurance": 30,
+   "initiative": 35,
+   "agilite": 30,
+   "dexterite": 48,
+   "intelligence": 24,
+   "force-mentale": 39,
+   "sociabilite": 41
+  },
+  "charAdvances": {
+   "initiative": 2,
+   "agilite": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "petit",
+    "times": 1
+   },
+   {
+    "talentId": "resistance",
+    "spec": "corruption",
+    "times": 1
+   },
+   {
+    "talentId": "sens-aiguise",
+    "spec": "gout",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "attirant",
+    "times": 1
+   },
+   {
+    "talentId": "resistance",
+    "spec": "chaos",
+    "times": 1
+   },
+   {
+    "talentId": "chat-de-gouttiere",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "discretion",
+    "spec": "urbaine",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "escalade",
+    "characteristic": "force",
+    "advances": 5
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 8
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 8
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "discretion",
+    "spec": "rurale",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "escamotage",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "halfling",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "bougie",
+   "pied-de-biche",
+   "veste-de-cuir",
+   "sac"
+  ],
+  "wounds": {
+   "current": 9,
+   "max": 9,
+   "base": 9
+  },
+  "fate": 2,
+  "resilience": 3,
+  "xp": 0,
+  "size": "petite",
+  "groups": [
+   "halfling",
+   "criminel"
+  ],
+  "designations": {}
+ },
+ {
+  "id": "pregen-606",
+  "species": "humains-reiklander",
+  "career": "repurgateur",
+  "characteristics": {
+   "capacite-de-combat": 38,
+   "capacite-de-tir": 30,
+   "force": 28,
+   "endurance": 33,
+   "initiative": 34,
+   "agilite": 31,
+   "dexterite": 30,
+   "intelligence": 30,
+   "force-mentale": 32,
+   "sociabilite": 25
+  },
+  "charAdvances": {
+   "capacite-de-combat": 2,
+   "endurance": 2,
+   "force-mentale": 1
+  },
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "tireur-de-precision",
+    "times": 1
+   },
+   {
+    "talentId": "doue-en-calcul",
+    "times": 1
+   },
+   {
+    "talentId": "noblesse",
+    "times": 1
+   },
+   {
+    "talentId": "determine",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 10
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "bagarre",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "guerison",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "intimidation",
+    "characteristic": "force",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "torture",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "cape",
+   "vetements",
+   "dague",
+   "bourse",
+   "sac-a-dos",
+   "boite-a-amadou",
+   "couverture",
+   "ration",
+   "arme-simple"
+  ],
+  "wounds": {
+   "current": 11,
+   "max": 11,
+   "base": 11
+  },
+  "fate": 4,
+  "resilience": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {}
+ }
+]

@@ -24,7 +24,7 @@
  */
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
-import { minutesUntilNext, DUSK_MINUTE } from '../engine/clock';
+import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { applyEffects, nePeutPasDifferer } from './combatEffects';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, type MapRoute, type WorldMap } from './worldMap';
@@ -47,10 +47,10 @@ import { difficultyFromModifier } from '../engine/tests';
 import { effectiveChar } from '../engine/characteristics';
 import {
   rollRiverWind, tickRiverWindDay, riverWindEffect, riverPilotSkill, savoirVoiesFluvialesBonus,
-  rowingAgilityFactor, ROWING_AGILITY_DIFFICULTY, riverDayKm, riverDriftKm, navPenaltyMods,
-  DRIFT_NAV_PENALTY, DRIFT_PCT_OF_SPEED, OUT_OF_CONTROL,
-  riverControlKept, CAPSIZE_RIGHT_DIFFICULTY, CAPSIZE_RIGHT_CUMULATIVE, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
-  resolveRiverImpact, rollBarrage, rollBarrageClearing, echouageDamage, NAV_BASE_DIFFICULTY, TACK_DIFFICULTY,
+  rowingAgilityFactor, rowingAgilityDifficulty, riverDayKm, riverDriftKm, navPenaltyMods,
+  driftNavPenalty, driftPctOfSpeed, OUT_OF_CONTROL,
+  riverControlKept, capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
+  resolveRiverImpact, rollBarrage, rollBarrageClearing, echouageDamage, navBaseDifficulty, tackDifficulty,
   CAPSIZE, TEMPORARY_REPAIR, riverForceLabel,
   type RiverWindForceId, type RiverWindDirId,
 } from '../engine/riverNavigation';
@@ -251,7 +251,7 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: strin
  *  péril `navTest`. Les malus ne sont PAS des Difficultés : ils se lisent en chips sur la ligne. */
 function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindEffect>): { difficulty: Difficulty; mods: ModLine[] } {
   return {
-    difficulty: NAV_BASE_DIFFICULTY,
+    difficulty: navBaseDifficulty(),
     mods: navPenaltyMods({ drift: !!eff.drift || !!river.broken, outOfControl: !!river.outOfControl }),
   };
 }
@@ -324,14 +324,14 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
     const repair = bestShipwright(get);
     if (repair) pousseSi(steps, riverStep('river-repair', 'riverControlRepair', repair.actor, t('step.riverRepair'), 'travel/repair',
       refLabel('skills', { id: 'metier' }), repair.ligne, TEMPORARY_REPAIR.difficulty, undefined,
-      { stake: voyageStakeRef('riverControlRepair', { driftPenalty: DRIFT_NAV_PENALTY, outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
+      { stake: voyageStakeRef('riverControlRepair', { driftPenalty: driftNavPenalty(), outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
     else logs.push(t('rv.riggingNoRepairman'));
   }
 
   // 2. AGILITÉ de rame (l.17) : échec → −20 % ; Échec spectaculaire (−6 DR) → ÷2.
   if (pilot) {
     pousseSi(steps, riverStep('river-agility', 'riverAgility', pilot.actor, t('step.riverAgility'), 'travel/rowboat',
-      t('char.agilite'), { test: { char: 'agilite' } }, ROWING_AGILITY_DIFFICULTY, undefined,
+      t('char.agilite'), { test: { char: 'agilite' } }, rowingAgilityDifficulty(), undefined,
       { stake: voyageStakeRef('riverAgility', {
         // La SOURCE parle en POURCENTAGE et en DIVISION (MSRC 7 l.17) : le facteur ×0.8 est la langue du
         // moteur, pas celle du joueur — la ligne d'échec dit déjà « −20 % » / « ÷2 ».
@@ -347,7 +347,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
     const navTest = riverNavTest(river, eff);
     pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, stepPrecision(t('step.navigation'), refLabel('skills', { id: skillId })), 'travel/sail-ship',
       refLabel('skills', { id: skillId }), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
-      { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: DRIFT_PCT_OF_SPEED }) }));
+      { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
     logs.push(t('rv.noPilot'));
     dayCtx.forceDrift = true; // pas de barreur = contrôle perdu (note 2 : dérive)
@@ -356,7 +356,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
 
   // 4. LOUVOYAGE (note 3, l.39) : le +% de vent de côté Modéré/Fort n'est acquis qu'avec un Test réussi.
   if (eff.tack && pilot) pousseSi(steps, riverStep('river-tack', 'riverTack', pilot.actor, t('step.riverTack'), 'nautical/tack',
-    refLabel('skills', { id: skillId }), pilotLigne!, TACK_DIFFICULTY, { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
+    refLabel('skills', { id: skillId }), pilotLigne!, tackDifficulty(), { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
     { stake: voyageStakeRef('riverTack', { windPct: eff.pct ?? 0 }) }));
 
   // 5. Sauvegardes de VENT (l.40-41).
@@ -603,7 +603,7 @@ registerCascadeApplier('riverTack', (get, set, step) => {
  *  Savoir (Voies fluviales, l.13) se résout AU DR dans l'applier (`riverControlKept`), pas dans la cible. */
 function rightingStep(get: Get, source: CascadeStep, round: number, be: number): BuiltCascadeStep | undefined {
   const rounds = Math.max(1, be); // plancher : au moins UNE tentative (parité avec le nb de Rounds joués)
-  const penalty = round * CAPSIZE_RIGHT_CUMULATIVE;
+  const penalty = round * capsizeRightCumulative();
   // Le barreur est RE-RÉSOLU ici (acteur + Soutien du moment) : la ligne se remonte par le monteur
   // canonique, jamais transportée d'étape en étape. Le −5 cumulatif du Round courant est un
   // modificateur DE CIBLE (l.40) : déclaré en `surLaCible`, il ne s'empile pas d'un Round à l'autre.
@@ -627,8 +627,8 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
     id: `${source.id}-right-${round}`, kind: 'riverRighting', actor: porteur, icon: 'nautical/tack',
     label: stepDetail(t('step.riverRighting'), t('step.round', { n: round + 1, total: rounds })),
     rollLabel: source.rollLabel ?? t('rv.navigation'),
-    difficulty: CAPSIZE_RIGHT_DIFFICULTY,
-    stake: voyageStakeRef('riverRighting', { nextPenalty: (round + 1) * CAPSIZE_RIGHT_CUMULATIVE, rounds: rounds }),
+    difficulty: capsizeRightDifficulty(),
+    stake: voyageStakeRef('riverRighting', { nextPenalty: (round + 1) * capsizeRightCumulative(), rounds: rounds }),
     meta: { rightRound: round, rightRounds: rounds, savoir },
     // Barreur en poste : sa valeur SOUTENUE se décompose. Plus de barreur éligible (mort, débarqué) :
     // la valeur figée à la construction tient lieu de seuil, DÉCLARÉE comme venant d'une autre formule
@@ -722,7 +722,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
     if (!onFail) return resolveRiverPerilConsequence(get, set, peril, { ...step, result: null }, rng);
     const st = monoStep({
       id: `${step.id}-nav`, kind: 'riverPerilNav', actor: pilot.actor, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.evitement')),
-      rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: NAV_BASE_DIFFICULTY,
+      rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
       ligne: {
         test: { skill: skillId }, valeur: pilot.value, soutien: pilot.support,
         surLaCible: navPenaltyMods({ drift: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
@@ -1067,7 +1067,7 @@ function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string;
   // UN SEUL franchissement de jour par cycle jour+nuit (comme le voyage terrestre).
   // L'ENTRETIEN n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans la
   // cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  set({ gameTime: get().gameTime + (arrived ? 24 * 60 : minutesUntilNext(get().gameTime, DUSK_MINUTE)) });
+  set({ gameTime: get().gameTime + (arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute())) });
   set({
     travelPlan: {
       ...get().travelPlan!, kmDone,

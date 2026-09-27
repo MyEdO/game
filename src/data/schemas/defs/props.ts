@@ -48,7 +48,7 @@ export const propPrimitiveSchema = z.discriminatedUnion('kind', [
  *  égal au défaut du monde (`CAP_IDENTITE_PROP`, même source que le type et `rotatePropLocal` — une
  *  chaîne recopiée ici dériverait au premier changement de repère). REQUIS : une recette écrite sous un
  *  autre repère ne peut pas entrer en silence (#1680 ligne 16). */
-export const propVolumeRecipeSchema = z.strictObject({ capIdentite: z.literal(CAP_IDENTITE_PROP), primitives: z.array(propPrimitiveSchema) });
+export const propVolumeRecipeSchema = z.strictObject({ capIdentite: z.literal(CAP_IDENTITE_PROP), primitives: z.array(propPrimitiveSchema).min(1) });
 
 /** `PropSeatSlot` (`src/data/props.types.ts`) — place assise offerte par un décor : ancre MÉTRIQUE du
  *  corps (`propPoint3Schema`), cap du corps assis (Dir8), et case d'ABORD relative à l'ancre de
@@ -96,12 +96,14 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          'catalogue des placeables de décor (art, pas règle) — aucune catégorie du Codex ne l’expose ; il s’édite à la palette de l’éditeur de carte',
+          'catalogue des placeables de décor (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : il s’édite au fichier `src/data/props.json`',
       },
     },
-    edit: { none: 'édité à la PALETTE de décor de l’éditeur de carte, jamais par une catégorie du Codex' },
+    edit: { none: 'catalogue d’art, édité au fichier `src/data/props.json` — aucun écran ne l’écrit (la palette de l’éditeur de carte le LIT)', dataset: 'props' },
   },
   {
+    // `volume` : cap cardinal seul (`defs-scenes/scene.ts`, `porteLeMarqueur`).
+    espace: { marqueurs: ['volume'] },
     /**
      * PROVENANCE PAR CHAMP (#1680 ligne 5). Le DATASET est exempté de provenance (`SANS_LIVRE`) parce
      * que ce qu'il décrit est de l'art : un volume, un libellé, une empreinte, la solidité physique de

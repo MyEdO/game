@@ -310,7 +310,7 @@ describe('Editor v2 — authoring architectural', () => {
     });
     expect(container.querySelector('.insp-title')?.textContent).toContain('grenier');
     const bodyWarning = Array.from(container.querySelectorAll('.ed-validation button.listrow')).find(
-      (candidate) => candidate.textContent?.includes('Id dupliqué « corps »'),
+      (candidate) => candidate.textContent?.includes('« corps » dupliqué'),
     ) as HTMLButtonElement;
     await act(async () => {
       bodyWarning.click();
@@ -372,7 +372,7 @@ describe('Editor v2 — authoring architectural', () => {
 
     // Avertissement SANS position : l'annotation du clic précédent s'éteint (elle désignerait autre chose).
     const idWarning = Array.from(container.querySelectorAll('.ed-validation button.listrow')).find(
-      (candidate) => candidate.textContent?.includes('Id dupliqué'),
+      (candidate) => candidate.textContent?.includes('dupliqué :'),
     ) as HTMLButtonElement;
     await act(async () => {
       idWarning.click();

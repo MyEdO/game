@@ -4,7 +4,7 @@ import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
-import { downloadText, fileSlug } from '../state/fileIo';
+import { downloadText, fileSlug } from '../lib/fileIo';
 import { parseProject, documentDeProjet, type ProjectDoc } from '../state/worldMap';
 import {
   projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur,

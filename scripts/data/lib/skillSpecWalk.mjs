@@ -14,6 +14,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { estNomDExtraction, numeroDuFichier } from '../../../src/data/source/decoupe.ts';
+import { sourceDirOf } from '../../raw/_lib.mjs';
 
 /** Casse/accents neutralisés — comparaison de LIBELLÉS uniquement. */
 export function norm(s) {
@@ -59,17 +60,6 @@ export function skillArraysOf(entry) {
   };
   walk(entry, null);
   return out;
-}
-
-/**
- * Dossier d'extraction d'un livre, quel que soit le champ qui le porte : `dir` pour les livres de
- * l'Atlas RAW (`scripts/raw/_lib.mjs#BOOKS` les exige, pont folio compris), `extractionDir`
- * pour une extraction citable HORS Atlas (`frenchy-bzh`). Une seule lecture, partagée par le
- * périmètre `extractedBooks` et par le volet « dossier FR réclamé » de la garde.
- */
-export function sourceDirOf(book) {
-  const d = book?.dir ?? book?.extractionDir;
-  return typeof d === 'string' && d ? d : null;
 }
 
 /** Un chapitre d'extraction est un `NN - ….md` à la racine du dossier du livre. */

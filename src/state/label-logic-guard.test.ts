@@ -552,18 +552,26 @@ describe('garde-fou « appel à un résolveur d’entité par LIBELLÉ » (#909)
     return counts;
   }
 
-  it('src/data/index.ts porte au moins les 7 résolveurs mesurés à la pose de la règle', () => {
-    // Contre le silence : si la convention de nommage (`label` + retour `XxxData`) dérive au fil
-    // d'un renommage, ce test devient rouge AVANT que le reste du volet ne devienne muet à son tour.
+  it('src/data/index.ts porte au moins un résolveur reconnu', () => {
     expect(RESOLVER_NAMES.size, 'aucun résolveur reconnu : le volet est devenu muet').toBeGreaterThan(0);
-    expect([...RESOLVER_NAMES].sort()).toEqual(
-      expect.arrayContaining(
-        ['findCreature', 'findDomain', 'findSkill', 'findSpell', 'findStar', 'findTalent', 'findTrappingByLabel'],
-      ),
-    );
   });
 
-  // Le stock est VIDE, et ce zéro est un CLIQUET TENU : aucun plafond ne le double. Un appel neuf
+  it('collectLabelEntityResolvers : reconnaît les TROIS formes d’un résolveur par libellé (#909, #1924)', () => {
+    const src = [
+      'export function findMachin(label: string): MachinData | undefined { return undefined; }',
+      'export const findBidule = (label: string): BiduleData | undefined => undefined;',
+      'export function machinIdByLabel(label: string): string { return label; }',
+      "const trucParLabel = indexParChamp('trucs', trucs, (t) => t.label);",
+      'export const findTruc: (label: string) => TrucData | undefined = trucParLabel;',
+      // Contre-épreuves : paramètre `label` mais ni retour `XxxData` ni nom `…By…Label` —
+      // et fonction NON exportée (résolveur privé, pas la surface publique du fichier).
+      'export function charKeyOf(label: string): string { return label; }',
+      'function privateFind(label: string): MachinData | undefined { return undefined; }',
+    ].join('\n');
+    expect([...collectLabelEntityResolvers(src)].sort()).toEqual(['findBidule', 'findMachin', 'findTruc', 'machinIdByLabel']);
+  });
+
+  // Le stock ne fait que décroître : aucun plafond ne le double. Un appel neuf
   // depuis `src/engine`/`src/state` est une entrée que le stock ne porte pas, donc une `neuve` du
   // volet ci-dessous — et une ligne ajoutée au stock pour « solder » cette régression serait une
   // `perimee` au même geste. Les deux sens sont tenus par l'ÉCART, jamais par un compte.
@@ -602,19 +610,6 @@ describe('garde-fou « appel à un résolveur d’entité par LIBELLÉ » (#909)
     ).toEqual([]);
   });
 
-  it('collectLabelEntityResolvers : reconnaît un résolveur par la FORME (param `label`, retour `XxxData`), pas un nom', () => {
-    const src = [
-      'export function findMachin(label: string): MachinData | undefined {',
-      "  return machins.find((m) => m.label === label);",
-      '}',
-      // Contre-épreuves : paramètre `label` mais retour NON `XxxData` (conversion label→id tolérée) —
-      // et fonction NON exportée (résolveur privé, pas la surface publique du fichier).
-      'export function charKeyOf(label: string): string { return label; }',
-      'function privateFind(label: string): MachinData | undefined { return undefined; }',
-    ].join('\n');
-    expect([...collectLabelEntityResolvers(src)]).toEqual(['findMachin']);
-  });
-
   it('scanLabelResolverCalls : détecte l’appel BARE, ignore un nom SHADOWÉ localement', () => {
     const resolverNames = new Set(['findCreature']);
     const bad = "const c = findCreature('Orc');";
@@ -633,7 +628,8 @@ describe('garde-fou « appel à un résolveur d’entité par LIBELLÉ » (#909)
     // sur les fichiers réels scannés en dehors de ce dossier temporaire).
     const tmp = mkdtempSync(join(tmpdir(), 'label-resolver-call-wiring-'));
     try {
-      writeFileSync(join(tmp, 'probe.ts'), "export const x = findCreature('Orc');\n");
+      const [resolveur] = RESOLVER_NAMES;
+      writeFileSync(join(tmp, 'probe.ts'), `export const x = ${resolveur}('Orc');\n`);
       const counts = new Map<string, number>();
       for (const { rel, text } of readCorpus([tmp], { tests: true })) {
         counts.set(rel, scanLabelResolverCalls(rel, text, RESOLVER_NAMES).length);

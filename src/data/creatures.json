@@ -596,42 +596,18 @@
       }
     ],
     "spells": [
-      {
-        "id": "alerte"
-      },
-      {
-        "id": "flechette"
-      },
-      {
-        "id": "pas-leger"
-      },
-      {
-        "id": "reperes"
-      },
-      {
-        "id": "carreau"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "terrifiant"
-      },
-      {
-        "id": "vision-dans-l-obscurite"
-      },
-      {
-        "id": "la-lance-d-ambre"
-      },
-      {
-        "id": "langue-bestiale"
-      },
-      {
-        "id": "maitre-de-la-bete"
-      },
-      {
-        "id": "vol-du-destin"
-      }
+      "alerte",
+      "flechette",
+      "pas-leger",
+      "reperes",
+      "carreau",
+      "protection",
+      "terrifiant",
+      "vision-dans-l-obscurite",
+      "la-lance-d-ambre",
+      "langue-bestiale",
+      "maitre-de-la-bete",
+      "vol-du-destin"
     ],
     "desc": "La grâce et la sophistication de l'aristocratie estalienne associées à la présence et la stature de la noblesse de l'Empire font de Balacañon un membre respecté de la haute société. Et le fait qu'elle soit un sorcier la fait craindre à juste titre. Véritable machine de guerre, Balacañon combine son éducation avec les énergies primitives de Ghur pour se démarquer.",
     "source": {
@@ -4635,7 +4611,7 @@
       },
       {
         "id": "corruption",
-        "arg": "modérée"
+        "arg": "Modérée"
       },
       {
         "id": "demoniaque",
@@ -4742,7 +4718,7 @@
       },
       {
         "id": "corruption",
-        "arg": "modérée"
+        "arg": "Modérée"
       },
       {
         "id": "dedoublement"
@@ -4770,7 +4746,7 @@
       {
         "id": "langue-prehensile",
         "value": 6,
-        "arg": "6 mètres"
+        "range": 6
       },
       {
         "id": "mutation"
@@ -4864,7 +4840,7 @@
       {
         "id": "langue-prehensile",
         "value": 3,
-        "arg": "3 mètres"
+        "range": 3
       },
       {
         "id": "mutation"
@@ -11528,39 +11504,17 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "soins"
-      },
-      {
-        "id": "souffle"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "resistance-du-penitent"
-      },
-      {
-        "id": "apaisement"
-      },
-      {
-        "id": "catharsis"
-      },
-      {
-        "id": "larmes-de-shallya"
-      },
-      {
-        "id": "purification"
-      }
+      "culpabilite",
+      "benediction-de-convalescence",
+      "benediction-de-protection",
+      "benediction-de-guerison",
+      "benediction-de-souffle",
+      "benediction-de-tenacite",
+      "endurance-de-l-anachorete",
+      "baume-pour-un-esprit-blesse",
+      "catharsis",
+      "larmes-de-shallya",
+      "innocence-immaculee"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -13023,39 +12977,17 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "justice"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "benediction-de-puissance"
-      },
-      {
-        "id": "robustesse"
-      },
-      {
-        "id": "modele-de-vertu"
-      },
-      {
-        "id": "arriere-sorciere"
-      },
-      {
-        "id": "marteau-de-justice"
-      },
-      {
-        "id": "sus-a-l-ennemi"
-      },
-      {
-        "id": "sanctuaire"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-droiture",
+      "benediction-de-protection",
+      "benediction-de-puissance",
+      "benediction-de-vigueur",
+      "flambeau-de-vertu",
+      "n-ecoutez-point-la-sorciere",
+      "marteau-ardent-de-sigmar",
+      "vaincre-les-impies",
+      "sanctuaire"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -13345,42 +13277,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-puissance"
-      },
-      {
-        "id": "robustesse"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "blizzard"
-      },
-      {
-        "id": "fureur-d-ulric"
-      },
-      {
-        "id": "chaleur-de-la-fourrure"
-      },
-      {
-        "id": "morsure-d-hiver"
-      },
-      {
-        "id": "haine-du-faible"
-      },
-      {
-        "id": "courage-du-loup"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-puissance",
+      "benediction-de-vigueur",
+      "benediction-de-sauvagerie",
+      "benediction-de-tenacite",
+      "blizzard",
+      "fureur-d-ulric",
+      "peau-de-loup-d-hiver",
+      "morsure-de-l-hiver",
+      "haine-du-faible",
+      "courage-du-loup"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -13674,39 +13582,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "justice"
-      },
-      {
-        "id": "rapidite"
-      },
-      {
-        "id": "benediction-de-sagesse"
-      },
-      {
-        "id": "verena-m-est-temoin"
-      },
-      {
-        "id": "justice-aveugle"
-      },
-      {
-        "id": "epee-de-justice"
-      },
-      {
-        "id": "la-verite-finit-toujours-par-sortir"
-      },
-      {
-        "id": "sagesse-du-hibou"
-      }
+      "benediction-de-chance",
+      "benediction-de-courage",
+      "culpabilite",
+      "benediction-de-droiture",
+      "benediction-de-vivacite",
+      "benediction-de-sagesse",
+      "verena-est-mon-temoin",
+      "justice-aveugle",
+      "entraves-a-la-verite",
+      "epee-de-justice",
+      "la-verite-eclatera",
+      "sagesse-de-la-chouette"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -16286,24 +16173,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "benediction-de-finesse"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "rapidite"
-      }
+      "benediction-de-chance",
+      "benediction-de-charisme",
+      "culpabilite",
+      "benediction-de-finesse",
+      "benediction-de-protection",
+      "benediction-de-vivacite"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -18780,24 +18655,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "conserve"
-      },
-      {
-        "id": "eau-pure"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "position"
-      },
-      {
-        "id": "source"
-      }
+      "conservation",
+      "purification-de-l-eau",
+      "feux-follets",
+      "pas-leger",
+      "reperes",
+      "source"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -18995,42 +18858,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "conserve"
-      },
-      {
-        "id": "eau-pure"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "position"
-      },
-      {
-        "id": "source"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "bienveillance"
-      },
-      {
-        "id": "nostrum"
-      },
-      {
-        "id": "ramanchage"
-      },
-      {
-        "id": "fertilisation"
-      },
-      {
-        "id": "bouillon-revigorant"
-      }
+      "conservation",
+      "purification-de-l-eau",
+      "feux-follets",
+      "pas-leger",
+      "reperes",
+      "source",
+      "enchevetrement",
+      "bonne-volonte",
+      "nostrum",
+      "ramanchage",
+      "fertilisation",
+      "bouillon-revigorant"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -19176,24 +19015,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      }
+      "choc",
+      "murmures",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -19365,42 +19192,19 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "faux-semblant"
-      },
-      {
-        "id": "nuee"
-      },
-      {
-        "id": "mauvais-oeil"
-      },
-      {
-        "id": "terreur-nocturne"
-      },
-      {
-        "id": "effigie-maudite"
-      },
-      {
-        "id": "ruine"
-      }
+      "vol",
+      "choc",
+      "murmures",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "faux-semblant",
+      "menace-rampante",
+      "mauvais-oeil",
+      "terreur-nocturne",
+      "effigie-maudite",
+      "degradation"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -19547,24 +19351,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "soins"
-      }
+      "benediction-de-charisme",
+      "benediction-de-courage",
+      "benediction-de-grace",
+      "benediction-de-convalescence",
+      "benediction-de-protection",
+      "benediction-de-guerison"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -19732,33 +19524,15 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "rapidite"
-      },
-      {
-        "id": "soins"
-      }
+      "benediction-de-chance",
+      "benediction-de-charisme",
+      "benediction-de-courage",
+      "culpabilite",
+      "benediction-de-grace",
+      "benediction-de-convalescence",
+      "benediction-de-protection",
+      "benediction-de-vivacite",
+      "benediction-de-guerison"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -20196,24 +19970,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "soins"
-      },
-      {
-        "id": "souffle"
-      }
+      "culpabilite",
+      "benediction-de-grace",
+      "benediction-de-convalescence",
+      "benediction-de-protection",
+      "benediction-de-guerison",
+      "benediction-de-souffle"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -20388,42 +20150,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "protection"
-      },
-      {
-        "id": "soins"
-      },
-      {
-        "id": "souffle"
-      },
-      {
-        "id": "recolte-de-rhya"
-      },
-      {
-        "id": "abri-de-rhya"
-      },
-      {
-        "id": "main-de-rhya"
-      },
-      {
-        "id": "union-de-rhya"
-      },
-      {
-        "id": "abondance-de-rhya"
-      },
-      {
-        "id": "dressage-de-rhya"
-      }
+      "culpabilite",
+      "benediction-de-grace",
+      "benediction-de-convalescence",
+      "benediction-de-protection",
+      "benediction-de-guerison",
+      "benediction-de-souffle",
+      "recolte-de-rhya",
+      "abri-de-rhya",
+      "caresse-de-rhya",
+      "union-de-rhya",
+      "abondance-de-rhya",
+      "dressage-de-rhya"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -20867,24 +20605,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-la-chasse"
-      },
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "robustesse"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "souffle"
-      }
+      "benediction-de-bataille",
+      "benediction-de-la-chasse",
+      "culpabilite",
+      "benediction-de-vigueur",
+      "benediction-de-sauvagerie",
+      "benediction-de-souffle"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -21064,42 +20790,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-la-chasse"
-      },
-      {
-        "id": "culpabilite"
-      },
-      {
-        "id": "robustesse"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "souffle"
-      },
-      {
-        "id": "instinct-animal"
-      },
-      {
-        "id": "saut-de-cabri"
-      },
-      {
-        "id": "seigneur-de-la-chasse"
-      },
-      {
-        "id": "benedicite-de-taal"
-      },
-      {
-        "id": "treve-de-taal-dsfl"
-      },
-      {
-        "id": "les-voies-de-la-nature"
-      }
+      "benediction-de-bataille",
+      "benediction-de-la-chasse",
+      "culpabilite",
+      "benediction-de-vigueur",
+      "benediction-de-sauvagerie",
+      "benediction-de-souffle",
+      "instincts-animaux",
+      "bondissant-comme-un-cerf",
+      "seigneur-de-la-chasse",
+      "benedicite-de-taal",
+      "treve-de-taal-dsfl",
+      "les-voies-de-la-nature"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -28790,42 +28492,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "position"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "trouble"
-      }
+      "choc",
+      "eclat",
+      "flamme-magique",
+      "pas-leger",
+      "reperes",
+      "flechette",
+      "chute",
+      "bouclier-anti-fleches",
+      "enchevetrement",
+      "poussee",
+      "carreau",
+      "trouble"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -28990,48 +28668,20 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "position"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "felure-aethyrique"
-      }
+      "choc",
+      "eclat",
+      "flamme-magique",
+      "pas-leger",
+      "reperes",
+      "putrefaction",
+      "flechette",
+      "chute",
+      "bouclier-anti-fleches",
+      "enchevetrement",
+      "poussee",
+      "carreau",
+      "trouble",
+      "felure-aethyrique"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -29228,57 +28878,23 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "position"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "secousse-tellurique"
-      }
+      "choc",
+      "eclat",
+      "drain",
+      "flamme-magique",
+      "pas-leger",
+      "reperes",
+      "putrefaction",
+      "flechette",
+      "chute",
+      "bouclier-anti-fleches",
+      "enchevetrement",
+      "poussee",
+      "carreau",
+      "trouble",
+      "felure-aethyrique",
+      "explosion-de-corruption",
+      "secousse-tellurique"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -30277,42 +29893,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "langue-des-gors"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "ouverture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "effrayant"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "projectile-de-dhar"
-      }
+      "choc",
+      "flamme-magique",
+      "langue-des-gors",
+      "tendre-l-oreille",
+      "ouverture",
+      "flechette",
+      "effrayant",
+      "poussee",
+      "trouble",
+      "felure-aethyrique",
+      "explosion-de-corruption",
+      "decharge-de-corruption"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -30475,42 +30067,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "langue-des-gors"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "ouverture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "effrayant"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "projectile-de-dhar"
-      }
+      "choc",
+      "flamme-magique",
+      "langue-des-gors",
+      "tendre-l-oreille",
+      "ouverture",
+      "flechette",
+      "effrayant",
+      "poussee",
+      "trouble",
+      "felure-aethyrique",
+      "explosion-de-corruption",
+      "decharge-de-corruption"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -30700,42 +30268,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "langue-des-gors"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "ouverture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "effrayant"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "projectile-de-dhar"
-      }
+      "choc",
+      "flamme-magique",
+      "langue-des-gors",
+      "tendre-l-oreille",
+      "ouverture",
+      "flechette",
+      "effrayant",
+      "poussee",
+      "trouble",
+      "felure-aethyrique",
+      "explosion-de-corruption",
+      "decharge-de-corruption"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -30911,7 +30455,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -31030,7 +30574,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -31144,7 +30688,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -31265,7 +30809,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -31401,7 +30945,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31533,7 +31077,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31616,18 +31160,10 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "langue-des-slaangors"
-      }
+      "choc",
+      "murmures",
+      "drain",
+      "langue-des-gors"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -31691,7 +31227,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31777,36 +31313,16 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "langue-des-slaangors"
-      },
-      {
-        "id": "regard-lubrique"
-      },
-      {
-        "id": "introspection"
-      },
-      {
-        "id": "berceuse-soporifique-ua-ii"
-      },
-      {
-        "id": "cacophonie-scabreuse"
-      },
-      {
-        "id": "langue-aceree"
-      },
-      {
-        "id": "decharge-cerebrale"
-      }
+      "choc",
+      "murmures",
+      "drain",
+      "langue-des-gors",
+      "regard-lubrique",
+      "consentement",
+      "berceuse-soporifique-ua-ii",
+      "cacophonie-scabreuse",
+      "langue-aceree",
+      "decharge-cerebrale"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -31862,7 +31378,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31959,51 +31475,21 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      },
-      {
-        "id": "sommeil"
-      },
-      {
-        "id": "langue-des-slaangors"
-      },
-      {
-        "id": "regard-lubrique"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "introspection"
-      },
-      {
-        "id": "berceuse-soporifique-ua-ii"
-      },
-      {
-        "id": "cacophonie-scabreuse"
-      },
-      {
-        "id": "langue-aceree"
-      },
-      {
-        "id": "decharge-cerebrale"
-      },
-      {
-        "id": "rejeton-de-slaanesh"
-      }
+      "choc",
+      "murmures",
+      "drain",
+      "flechette",
+      "secousse",
+      "sommeil",
+      "langue-des-gors",
+      "regard-lubrique",
+      "felure-aethyrique",
+      "consentement",
+      "berceuse-soporifique-ua-ii",
+      "cacophonie-scabreuse",
+      "langue-aceree",
+      "decharge-cerebrale",
+      "rejeton-de-slaanesh"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -32062,7 +31548,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -32159,54 +31645,22 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      },
-      {
-        "id": "sommeil"
-      },
-      {
-        "id": "langue-des-slaangors"
-      },
-      {
-        "id": "regard-lubrique"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "introspection"
-      },
-      {
-        "id": "berceuse-soporifique-ua-ii"
-      },
-      {
-        "id": "cacophonie-scabreuse"
-      },
-      {
-        "id": "langue-aceree"
-      },
-      {
-        "id": "decharge-cerebrale"
-      },
-      {
-        "id": "rejeton-de-slaanesh"
-      },
-      {
-        "id": "desarroi"
-      }
+      "choc",
+      "murmures",
+      "drain",
+      "flechette",
+      "secousse",
+      "sommeil",
+      "langue-des-gors",
+      "regard-lubrique",
+      "felure-aethyrique",
+      "consentement",
+      "berceuse-soporifique-ua-ii",
+      "cacophonie-scabreuse",
+      "langue-aceree",
+      "decharge-cerebrale",
+      "rejeton-de-slaanesh",
+      "desarroi"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -32251,7 +31705,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "immunite-psychologique"
@@ -32348,7 +31802,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "immunite-psychologique"
@@ -32455,7 +31909,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32571,7 +32025,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32644,18 +32098,10 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "langue-des-pestigors"
-      }
+      "choc",
+      "drain",
+      "putrefaction",
+      "langue-des-gors"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -32715,7 +32161,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32791,21 +32237,16 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "langue-des-pestigors"
-      }
+      "choc",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "langue-des-gors",
+      "felure-aethyrique",
+      "furoncle-infecte",
+      "arme-souillee",
+      "nuee-de-mouches",
+      "putrefaction-2"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -32857,7 +32298,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -32947,42 +32388,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "langue-des-pestigors"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "furoncle-infecte"
-      },
-      {
-        "id": "arme-souillee"
-      },
-      {
-        "id": "nuee-de-mouches"
-      },
-      {
-        "id": "haleine-fetide"
-      },
-      {
-        "id": "putrefaction"
-      }
+      "choc",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "langue-des-gors",
+      "felure-aethyrique",
+      "furoncle-infecte",
+      "arme-souillee",
+      "nuee-de-mouches",
+      "haleine-fetide",
+      "putrefaction-2"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -33037,7 +32454,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -33127,24 +32544,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "langue-des-pestigors"
-      }
+      "choc",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "langue-des-gors",
+      "felure-aethyrique",
+      "furoncle-infecte",
+      "arme-souillee",
+      "nuee-de-mouches",
+      "haleine-fetide",
+      "putrefaction-2"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -33201,7 +32612,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "perturbant"
@@ -33309,7 +32720,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "perturbant"
@@ -33425,7 +32836,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -33503,9 +32914,8 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "flammes-roses-de-tzeentch"
-      }
+      "feu-rose-de-tzeentch",
+      "feu-bleu-de-tzeentch"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -33565,7 +32975,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -33644,27 +33054,13 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flammes-roses-de-tzeentch"
-      },
-      {
-        "id": "langue-des-tzaangors"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "projectile-mineur"
-      }
+      "feu-rose-de-tzeentch",
+      "langue-des-gors",
+      "bruits",
+      "murmures",
+      "eclat",
+      "flamme-magique",
+      "flechette"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -33724,7 +33120,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -33806,51 +33202,21 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flammes-roses-de-tzeentch"
-      },
-      {
-        "id": "langue-des-tzaangors"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "teleportation"
-      },
-      {
-        "id": "duplicite-de-tzeentch"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "maitrise-du-destin"
-      },
-      {
-        "id": "malediction-de-tzeentch"
-      }
+      "feu-rose-de-tzeentch",
+      "langue-des-gors",
+      "bruits",
+      "murmures",
+      "eclat",
+      "flamme-magique",
+      "flechette",
+      "secousse",
+      "felure-aethyrique",
+      "trouble",
+      "teleportation",
+      "duplicite-de-tzeentch",
+      "explosion-de-corruption",
+      "maitrise-du-destin",
+      "malediction-de-tzeentch"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -33902,7 +33268,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "instable"
@@ -33973,63 +33339,25 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "langue-des-tzaangors"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      },
-      {
-        "id": "ame-devoilee"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "teleportation"
-      },
-      {
-        "id": "duplicite-de-tzeentch"
-      },
-      {
-        "id": "flammes-bleues-de-tzeentch"
-      },
-      {
-        "id": "flammes-roses-de-tzeentch"
-      },
-      {
-        "id": "esprit-enfievre"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "maitrise-du-destin"
-      },
-      {
-        "id": "secousse-tellurique"
-      },
-      {
-        "id": "malediction-de-tzeentch"
-      }
+      "langue-des-gors",
+      "bruits",
+      "murmures",
+      "eclat",
+      "flamme-magique",
+      "flechette",
+      "secousse",
+      "percevoir-l-echeveau",
+      "felure-aethyrique",
+      "trouble",
+      "teleportation",
+      "duplicite-de-tzeentch",
+      "feu-bleu-de-tzeentch",
+      "feu-rose-de-tzeentch",
+      "feu-spirituel",
+      "explosion-de-corruption",
+      "maitrise-du-destin",
+      "secousse-tellurique",
+      "malediction-de-tzeentch"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -34081,7 +33409,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "instable"
@@ -34152,63 +33480,25 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "langue-des-tzaangors"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      },
-      {
-        "id": "ame-devoilee"
-      },
-      {
-        "id": "felure-aethyrique"
-      },
-      {
-        "id": "trouble"
-      },
-      {
-        "id": "teleportation"
-      },
-      {
-        "id": "duplicite-de-tzeentch"
-      },
-      {
-        "id": "flammes-bleues-de-tzeentch"
-      },
-      {
-        "id": "flammes-roses-de-tzeentch"
-      },
-      {
-        "id": "esprit-enfievre"
-      },
-      {
-        "id": "explosion-de-dhar"
-      },
-      {
-        "id": "maitrise-du-destin"
-      },
-      {
-        "id": "secousse-tellurique"
-      },
-      {
-        "id": "malediction-de-tzeentch"
-      }
+      "langue-des-gors",
+      "bruits",
+      "murmures",
+      "eclat",
+      "flamme-magique",
+      "flechette",
+      "secousse",
+      "percevoir-l-echeveau",
+      "felure-aethyrique",
+      "trouble",
+      "teleportation",
+      "duplicite-de-tzeentch",
+      "feu-bleu-de-tzeentch",
+      "feu-rose-de-tzeentch",
+      "feu-spirituel",
+      "explosion-de-corruption",
+      "maitrise-du-destin",
+      "secousse-tellurique",
+      "malediction-de-tzeentch"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -36543,21 +35833,11 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "crepitement-funeste"
-      },
-      {
-        "id": "depecage"
-      },
-      {
-        "id": "bouclier"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-ruine"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -36750,24 +36030,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "crepitement-funeste"
-      },
-      {
-        "id": "depecage"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "rafale-hurlante"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-ruine",
+      "rafale-hurlante"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -36984,27 +36252,13 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "crepitement-funeste"
-      },
-      {
-        "id": "depecage"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "rafale-hurlante"
-      },
-      {
-        "id": "crevasse"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-ruine",
+      "rafale-hurlante",
+      "crevasse"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -37357,18 +36611,10 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "rat-esclave"
-      },
-      {
-        "id": "poudre-d-escampette"
-      },
-      {
-        "id": "rage-meurtriere"
-      },
-      {
-        "id": "bond-furtif"
-      }
+      "rat-esclave",
+      "poudre-d-escampette",
+      "rage-meurtriere",
+      "bond-furtif"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -37589,24 +36835,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "rat-esclave"
-      },
-      {
-        "id": "poudre-d-escampette"
-      },
-      {
-        "id": "rage-meurtriere"
-      },
-      {
-        "id": "bond-furtif"
-      },
-      {
-        "id": "armure-d-obscurite"
-      },
-      {
-        "id": "poids-plume"
-      }
+      "rat-esclave",
+      "poudre-d-escampette",
+      "rage-meurtriere",
+      "bond-furtif",
+      "armure-d-obscurite",
+      "poids-plume"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -37852,33 +37086,15 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "rat-esclave"
-      },
-      {
-        "id": "poudre-d-escampette"
-      },
-      {
-        "id": "rage-meurtriere"
-      },
-      {
-        "id": "bond-furtif"
-      },
-      {
-        "id": "armure-d-obscurite"
-      },
-      {
-        "id": "poids-plume"
-      },
-      {
-        "id": "pattes-gluantes"
-      },
-      {
-        "id": "shurikens-enchantes"
-      },
-      {
-        "id": "disparition"
-      }
+      "rat-esclave",
+      "poudre-d-escampette",
+      "rage-meurtriere",
+      "bond-furtif",
+      "armure-d-obscurite",
+      "poids-plume",
+      "pattes-gluantes",
+      "shurikens-enchantes",
+      "disparition"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -38180,18 +37396,10 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "immuno-deficience"
-      },
-      {
-        "id": "furoncle-infecte"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience",
+      "furoncle-infecte"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -38376,24 +37584,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "immuno-deficience"
-      },
-      {
-        "id": "contamination"
-      },
-      {
-        "id": "furoncle-infecte"
-      },
-      {
-        "id": "nuee-de-mouches"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience",
+      "contamination",
+      "furoncle-infecte",
+      "nuee-de-mouches"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -38593,27 +37789,13 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "immuno-deficience"
-      },
-      {
-        "id": "contamination"
-      },
-      {
-        "id": "furoncle-infecte"
-      },
-      {
-        "id": "nuee-de-mouches"
-      },
-      {
-        "id": "brume-acide"
-      }
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience",
+      "contamination",
+      "furoncle-infecte",
+      "nuee-de-mouches",
+      "brume-acide"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -40193,30 +39375,20 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "faveur-du-rat-cornu"
-      },
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "marque-du-rat-cornu"
-      },
-      {
-        "id": "rat-esclave"
-      },
-      {
-        "id": "immuno-deficience"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "bond-furtif"
-      },
-      {
-        "id": "avatar-du-rat-cornu"
-      }
+      "faveur-du-rat-cornu",
+      "flamme-verdatre",
+      "marque-du-rat-cornu",
+      "rat-esclave",
+      "immuno-deficience",
+      "hebetement",
+      "bond-furtif",
+      "avatar-du-rat-cornu",
+      "depecage",
+      "crevasse",
+      "poudre-d-escampette",
+      "armure-d-obscurite",
+      "contamination",
+      "nuee-de-mouches"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -40455,30 +39627,20 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "faveur-du-rat-cornu"
-      },
-      {
-        "id": "flamme-verdatre"
-      },
-      {
-        "id": "marque-du-rat-cornu"
-      },
-      {
-        "id": "rat-esclave"
-      },
-      {
-        "id": "immuno-deficience"
-      },
-      {
-        "id": "hebetement"
-      },
-      {
-        "id": "bond-furtif"
-      },
-      {
-        "id": "avatar-du-rat-cornu"
-      }
+      "faveur-du-rat-cornu",
+      "flamme-verdatre",
+      "marque-du-rat-cornu",
+      "rat-esclave",
+      "immuno-deficience",
+      "hebetement",
+      "bond-furtif",
+      "avatar-du-rat-cornu",
+      "depecage",
+      "crevasse",
+      "poudre-d-escampette",
+      "armure-d-obscurite",
+      "contamination",
+      "nuee-de-mouches"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -42025,15 +41187,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      }
+      "choc",
+      "flechette",
+      "secousse",
+      "douces-paroles",
+      "demangeaison-agacante",
+      "crepitements-vengeurs"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -42236,18 +41395,14 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      }
+      "choc",
+      "tendre-l-oreille",
+      "flechette",
+      "secousse",
+      "douces-paroles",
+      "enchevetrement",
+      "demangeaison-agacante",
+      "crepitements-vengeurs"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -42468,24 +41623,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "alarme"
-      },
-      {
-        "id": "choc"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "saccade"
-      }
+      "alerte",
+      "choc",
+      "eclat",
+      "tendre-l-oreille",
+      "flechette",
+      "secousse",
+      "douces-paroles",
+      "demangeaison-agacante",
+      "crepitements-vengeurs",
+      "enchevetrement",
+      "lune-de-malheur",
+      "malveillance-absolue"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -43706,21 +42855,16 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "lumiere"
-      }
+      "bruits",
+      "eclat",
+      "feux-follets",
+      "flamme-magique",
+      "lumiere",
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "cogne-fort",
+      "coup-d-boule"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -43911,24 +43055,18 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "lumiere"
-      },
-      {
-        "id": "projectile-mineur"
-      }
+      "bruits",
+      "eclat",
+      "feux-follets",
+      "flamme-magique",
+      "lumiere",
+      "flechette",
+      "enchevetrement",
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "cogne-fort",
+      "coup-d-boule"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -44141,30 +43279,22 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "alarme"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "eclat"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "flamme"
-      },
-      {
-        "id": "lumiere"
-      },
-      {
-        "id": "projectile-mineur"
-      }
+      "alerte",
+      "bruits",
+      "eclat",
+      "tendre-l-oreille",
+      "feux-follets",
+      "flamme-magique",
+      "lumiere",
+      "flechette",
+      "enchevetrement",
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "cogne-fort",
+      "coup-d-boule",
+      "soleil-noir",
+      "waaagh"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -44882,30 +44012,14 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "belier"
-      }
+      "bruits",
+      "murmures",
+      "tendre-l-oreille",
+      "feux-follets",
+      "chute",
+      "enchevetrement",
+      "carreau",
+      "poussee"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -45130,39 +44244,17 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "mauvais-oeil"
-      },
-      {
-        "id": "pierre-de-souffrance"
-      }
+      "bruits",
+      "murmures",
+      "tendre-l-oreille",
+      "feux-follets",
+      "pas-leger",
+      "chute",
+      "enchevetrement",
+      "carreau",
+      "poussee",
+      "mauvais-oeil",
+      "pierre-de-souffrance"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -45408,51 +44500,21 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "brume-mystique"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "enchevetrement"
-      },
-      {
-        "id": "projectile"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "mauvais-oeil"
-      },
-      {
-        "id": "pierre-de-souffrance"
-      },
-      {
-        "id": "algues-cruelles"
-      },
-      {
-        "id": "vague-scelerate"
-      },
-      {
-        "id": "crue-mortelle"
-      }
+      "bruits",
+      "brume-mystique",
+      "murmures",
+      "tendre-l-oreille",
+      "feux-follets",
+      "pas-leger",
+      "chute",
+      "enchevetrement",
+      "carreau",
+      "poussee",
+      "mauvais-oeil",
+      "pierre-de-souffrance",
+      "algues-cruelles",
+      "vague-scelerate",
+      "crue-mortelle"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -46203,27 +45265,14 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "frenesie-artificielle"
-      },
-      {
-        "id": "terrifiant"
-      },
-      {
-        "id": "reanimation"
-      }
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "frenesie-artificielle",
+      "terrifiant",
+      "relever-les-morts",
+      "reanimation"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -46410,33 +45459,16 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "frenesie-artificielle"
-      },
-      {
-        "id": "appel-de-vanhel"
-      },
-      {
-        "id": "terrifiant"
-      },
-      {
-        "id": "reanimation"
-      }
+      "choc",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "frenesie-artificielle",
+      "l-appel-de-vanhel",
+      "terrifiant",
+      "relever-les-morts",
+      "reanimation"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -46653,54 +45685,25 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "feu-follet"
-      },
-      {
-        "id": "pourriture"
-      },
-      {
-        "id": "projectile-mineur"
-      },
-      {
-        "id": "vision-dans-l-obscurite"
-      },
-      {
-        "id": "frenesie-artificielle"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "armure-d-aethyr"
-      },
-      {
-        "id": "bouclier"
-      },
-      {
-        "id": "forme-spectrale"
-      },
-      {
-        "id": "appel-de-vanhel"
-      },
-      {
-        "id": "terrifiant"
-      },
-      {
-        "id": "reanimation"
-      }
+      "choc",
+      "murmures",
+      "tendre-l-oreille",
+      "drain",
+      "feux-follets",
+      "putrefaction",
+      "flechette",
+      "vision-dans-l-obscurite",
+      "frenesie-artificielle",
+      "chute",
+      "armure-d-aethyr",
+      "bouclier-anti-fleches",
+      "forme-spectrale",
+      "l-appel-de-vanhel",
+      "terrifiant",
+      "relever-les-morts",
+      "reanimation",
+      "invitation-a-la-danse-macabre-de-vanhel",
+      "invocation-d-un-colosses-necrofex"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -49240,66 +48243,27 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "alarme"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "courant-d-air"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "ouverture"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "sommeil"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "armure-d-aethyr"
-      },
-      {
-        "id": "mouchard"
-      },
-      {
-        "id": "entrave"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "faux-semblant"
-      },
-      {
-        "id": "telekinesie"
-      },
-      {
-        "id": "forme-spectrale"
-      },
-      {
-        "id": "appel-de-vanhel"
-      },
-      {
-        "id": "reanimation"
-      }
+      "alerte",
+      "bruits",
+      "choc",
+      "murmures",
+      "coup-de-vent",
+      "tendre-l-oreille",
+      "drain",
+      "ouverture",
+      "pas-leger",
+      "sommeil",
+      "chute",
+      "armure-d-aethyr",
+      "mouchard",
+      "enchevetrement",
+      "poussee",
+      "faux-semblant",
+      "deplacement-d-objet",
+      "forme-spectrale",
+      "l-appel-de-vanhel",
+      "relever-les-morts",
+      "reanimation"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -49562,69 +48526,29 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "alarme"
-      },
-      {
-        "id": "bruit"
-      },
-      {
-        "id": "choc"
-      },
-      {
-        "id": "chuchotis"
-      },
-      {
-        "id": "courant-d-air"
-      },
-      {
-        "id": "espionnage"
-      },
-      {
-        "id": "fatigue"
-      },
-      {
-        "id": "ouverture"
-      },
-      {
-        "id": "pied-leger"
-      },
-      {
-        "id": "sommeil"
-      },
-      {
-        "id": "secousse"
-      },
-      {
-        "id": "armure-d-aethyr"
-      },
-      {
-        "id": "mouchard"
-      },
-      {
-        "id": "entrave"
-      },
-      {
-        "id": "belier"
-      },
-      {
-        "id": "faux-semblant"
-      },
-      {
-        "id": "telekinesie"
-      },
-      {
-        "id": "forme-spectrale"
-      },
-      {
-        "id": "appel-de-vanhel"
-      },
-      {
-        "id": "reanimation"
-      },
-      {
-        "id": "agression-aethyrique"
-      }
+      "alerte",
+      "bruits",
+      "choc",
+      "murmures",
+      "coup-de-vent",
+      "tendre-l-oreille",
+      "drain",
+      "ouverture",
+      "pas-leger",
+      "sommeil",
+      "chute",
+      "armure-d-aethyr",
+      "mouchard",
+      "enchevetrement",
+      "poussee",
+      "faux-semblant",
+      "deplacement-d-objet",
+      "forme-spectrale",
+      "l-appel-de-vanhel",
+      "relever-les-morts",
+      "reanimation",
+      "agression-aethyrique",
+      "invitation-a-la-danse-macabre-de-vanhel"
     ],
     "source": {
       "book": "frenchy-bzh",
@@ -56778,24 +55702,12 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "caresse-de-laniph"
-      },
-      {
-        "id": "la-faux-de-shyish"
-      },
-      {
-        "id": "reanimation"
-      },
-      {
-        "id": "relever-les-morts"
-      },
-      {
-        "id": "le-voile-violet-de-shyish"
-      },
-      {
-        "id": "vol-de-vie"
-      }
+      "caresse-de-laniph",
+      "la-faux-de-shyish",
+      "reanimation",
+      "relever-les-morts",
+      "le-voile-violet-de-shyish",
+      "vol-de-vie"
     ],
     "desc": "La Première Menace de Middenheim est une puissante monstruosité morte-vivante, qui ressemble à la fois à un fantôme immatériel et à une entité vampirique. L'origine de Babrakkos est une zone d'ombre, mais les érudits pensent que le manque de sites consacrés à la Foi antique dans la région, ainsi que les étranges propriétés nécromantiques du Fort de Bronze indiquent qu'un puissant nécromancien y a régné avant que les Teutogens ne s'y installent. Babrakkos était peut-être un serviteur, un ami ou un rival de Morath, le nécromancien qui vivait auparavant au Fort d'Airain.\n\nIl a passé plus de deux mille ans à rassembler ses forces afin de pouvoir se manifester dans le monde de nouveau. Au départ, la liche peut uniquement s'incarner sous une faible forme spectrale, mais au fur et à mesure que ses serviteurs commettent davantage d'actes en son nom, elle devient bel et bien une entité morte-vivante mortelle. Les Mangeurs du Monde ont un sanctuaire dédié à Babrakkos dans les caves d'un bâtiment de l'Altmarkt (voir p. 33). C'est ici qu'ils rangent les artefacts qu'ils réussissent à dérober. Babrakkos se manifeste dans cette région et y reste jusqu'à ce que la maladie et le désordre atteignent un tel paroxysme qu'il se sent prêt à errer de nouveau dans le monde des mortels.",
     "source": {
@@ -57160,27 +56072,13 @@
       }
     ],
     "spells": [
-      {
-        "id": "creer-un-petit-animal"
-      },
-      {
-        "id": "drain"
-      },
-      {
-        "id": "putrefaction"
-      },
-      {
-        "id": "flot-de-corruption"
-      },
-      {
-        "id": "malediction-de-douleur-paralysante"
-      },
-      {
-        "id": "menace-rampante"
-      },
-      {
-        "id": "infecte-benediction"
-      }
+      "creer-un-petit-animal",
+      "drain",
+      "putrefaction",
+      "flot-de-corruption",
+      "malediction-de-douleur-paralysante",
+      "menace-rampante",
+      "infecte-benediction"
     ],
     "desc": "Kanker Flett du clan Pestilens est le prélat des sous-sols de Middenheim, un rang accordé aux individus chargés d'implanter les Pestilens dans une région où le clan était jusqu'alors inactif (Kanker a ajouté l'« Archi » lui-même et cela ne semble déranger personne).\n\nKanker et une clique de serviteurs Moines de la Peste viennent se s'installer dans Sous-Middenheim. Les valets chamailleurs de l'Archiprélat le portent d'un endroit à un autre sur un brancard de bois, car ses jambes ont dépéri et sa silhouette émaciée, cachée par ses vêtements verts en lambeaux, n'est plus qu'une enveloppe paralysée et véreuse. Kanker et son entourage font profil bas, et marmonnent des litanies dévouées au Rat Cornu à ceux qui peuvent les entendre. Même s'ils offrent leurs services au Châtelain-Chef de guerre, ce dernier ne sait pas vraiment comment les employer. Gnawretch et Kanker animent des conférences au cours desquelles Kanker jure de déchaîner une épidémie dans Middenheim une fois que Gnawretch aura découvert une source d'eau.\n\nKanker adorerait répandre une épidémie dans la ville au-dessus, mais il aimerait tout autant la déchaîner chez les skavens. Le Dieu Cornu qu'il vénère est Nurgle, et s'il terrasse Middenheim ou Sous-Middenheim avec une épidémie, son protecteur divin en sera ravi.",
     "source": {
@@ -58672,18 +57570,10 @@
     ],
     "trappings": [],
     "spells": [
-      {
-        "id": "menace-rampante"
-      },
-      {
-        "id": "malediction-de-douleur-paralysante"
-      },
-      {
-        "id": "horreur-obsedante"
-      },
-      {
-        "id": "mauvais-oeil"
-      }
+      "menace-rampante",
+      "malediction-de-douleur-paralysante",
+      "horreur-obsedante",
+      "mauvais-oeil"
     ],
     "desc": "L'une des raisons expliquant le succès éclatant de l'organisation dirigée par « l'Homme » est sa propension à employer des utilisateurs de magie non agréés. Johen est un jeune homme au talent prononcé pour la sorcellerie. Avec sa carrure athlétique superbement proportionnée, son visage rond marqué par un large sourire étincelant et des cheveux blonds bouclés, il paraît plutôt désarmant. Il est toutefois un démoniste déterminé dont les habitudes personnelles choqueraient les fidèles du Sceptre de Jade.\n\nC'est à la magie noire de Johen que la Geist Haus doit de conserver sa réputation de lieu hanté. Il utilise des sorts tels que *Menace rampante*, *Malédiction de douleur paralysante*, *Horreur obsédante* et le *Mauvais œil* pour s'assurer que quiconque s'égare sur ce terrain se retrouve convaincu qu'une présence surnaturelle est tapie à l'intérieur de la maison.\n\nJohen a quelques talents d'apothicaire, mais il apprend beaucoup de Waldtraud, plus professionnelle. Il sait qu'elle est mourante et cherche à acquérir le plus de connaissances possible sur la préparation des produits chimiques avant qu'elle ne soit vaincue par sa maladie.",
     "source": {
@@ -61315,12 +60205,8 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "bourbier-vivant"
-      },
-      {
-        "id": "tourbillon"
-      }
+      "bourbier-vivant",
+      "tourbillon"
     ],
     "desc": "D'après ceux qui étudient les arcanes de la magie, le Vent de Jade de *Ghyran* comporte une certaine ressemblance avec l'eau. Ceux qui possèdent la Seconde vue peuvent le regarder tomber sur la terre comme de la pluie, s'écouler le long des fleuves et des rivières et s'accumuler en mares. Il n'est donc pas très surprenant que les océans du monde contiennent de grandes quantités de *Ghyran*.\n\n*Ghyran* ne se disperse pas dans les eaux des mers. Le Vent de magie bouge peut-être comme de l'eau, mais sur les grands océans, il se concentre dans certaines zones locales et dérive sous forme de « bancs ». Cette intensité de *Ghyran* peut faire proliférer la vie et se développer de gros tapis d'algues ou des nuées de méduses ondulantes.\n\nLà où *Ghyran* est le plus concentré, les eaux qui le portent peuvent s'animer et dessiner la silhouette grossière d'une gigantesque forme humanoïde. Les histoires parlant de ces élémentaires de mer suscitent beaucoup de débats parmi les magisters du Collège de Jade. Certains soutiennent que ces créatures sont les cousines des naïades, car ce sont des esprits de la nature qui se manifestent sous forme d'eau vivante. D'autres supposent que ce sont des élémentaires incarnant directement *Ghyran*. Pour l'heure, aucun rite permettant à un sorcier d'invoquer un élémentaire de mer n'a encore été développé, bien que certains mages affirment en avoir déjà soumis un à leur volonté pendant une courte période de temps.\n\nUn élémentaire de mer sauvage est une perspective effrayante. Il est peut-être imprégné du Vent de la Vie, mais cela ne veut pas dire que son tempérament est nourricier et doux. C'est une créature tapageuse et violente, exubérante de force et de vitalité au détriment de ceux qui se trouvent sur sa route. L'élémentaire semble adorer détruire, par exemple en broyant des navires ou en invoquant des tourbillons. Il s'abat sur les marins dans une frénésie vorace pour les prendre dans les eaux tumultueuses de son propre corps et les y noyer.\n\n**Immersion :** l'élémentaire de mer peut tenter d'immerger ses adversaires en effectuant une Empoignade. S'il inflige un État *Empêtré* à son opposant, il l'engloutit dans les eaux de son propre corps.\n\nLe personnage immergé suffoque comme détaillé en page 181 de **WFJDR**. Il peut essayer de s'échapper en se libérant de l'État *Empêtré* comme s'il était Empoigné par l'élémentaire de mer, en effectuant des Tests opposés de **Force** pour se dégager. Cependant, l'élémentaire de mer n'a pas besoin de maintenir activement l'Empoignade, il peut agir comme si le personnage immergé n'était pas là et n'est pas considéré comme Engagé.\n\n**Résistant au feu :** les élémentaires de mer ne subissent jamais l'État *En flammes*.\n\n**Lanceur de sorts instinctif :** les élémentaires de mer peuvent utiliser leur Caractéristique Force pour le lancement de sorts et la focalisation.",
     "source": {
@@ -62138,30 +61024,14 @@
       }
     ],
     "spells": [
-      {
-        "id": "bourbier-vivant"
-      },
-      {
-        "id": "mer-d-huile"
-      },
-      {
-        "id": "tourbillon"
-      },
-      {
-        "id": "contre-courants"
-      },
-      {
-        "id": "encalmine"
-      },
-      {
-        "id": "malediction-de-la-mer"
-      },
-      {
-        "id": "vents-favorables"
-      },
-      {
-        "id": "lame-de-fond"
-      }
+      "bourbier-vivant",
+      "mer-d-huile",
+      "tourbillon",
+      "contre-courants",
+      "encalmine",
+      "malediction-de-la-mer",
+      "vents-favorables",
+      "lame-de-fond"
     ],
     "desc": "Aucune autre créature au monde ne suscite autant de légendes et de spéculation que Triton. Malgré la fascination qu'il génère aussi bien chez les marins que chez les érudits, les sorciers et les prêtres, l'immense majorité des informations concernant sa nature fait l'objet d'une intense controverse.\n\nBien qu'il soit rarement aperçu, les rumeurs affirment qu'il parcourt les mers du monde. Sa morphologie ressemble à celle des séduisantes sirènes qui sont parfois vues en train de sillonner les eaux entre les îles de la mer Tiléenne. Audessus de la ceinture, il a la forme physique d'un homme à la carrure puissante et au visage beau, mais féroce. Ses cheveux forment une épaisse crinière et il arbore une grosse barbe broussailleuse. Sous le nombril et à partir des hanches, il est doté d'une queue de poisson. Il est aussi véritablement titanesque : même les immenses géants broyeurs d'os semblent petits à côté du formidable Triton.\n\nTriton maîtrise plusieurs pouvoirs mystiques : il peut contrôler les éléments et dompter les monstres des profondeurs. Ses capacités ont des points communs avec la pratique de la magie des mers et les miracles accomplis par les prêtres de Manann. Mais malgré ces preuves d'intelligence complexe, personne ne l'a jamais vu communiquer avec les marins. Il émet des sons incompréhensibles quand il lance ses sorts, et s'il parle une langue, ni les elfes, ni les sorciers ne la connaissent.\n\nUne faction au sein des Maîtres du Savoir de Saphery affirme que Triton vivait dans l'océan avant l'Avènement du Chaos et qu'il a appris à leurs ancêtres comment naviguer et s'orienter. Ces elfes disent qu'il était autrefois plus petit, mais communicatif et coopératif. Quand le Chaos est entré dans le monde, il a altéré Triton, augmentant énormément sa taille et sa force, mais le privant de la capacité ou de la volonté de parler.\n\nUne autre théorie soutient que Triton n'a pas été affecté par le Chaos et que sa réserve vient du fait qu'il est extrêmement offensé par la témérité des marins qui pillent les mers pour en tirer de la nourriture et de l'huile de baleine. Triton semble effectivement avoir de l'affection pour les créatures de l'océan, comme en témoigne l'hostilité qu'il a toujours démontrée envers les elfes noirs qui semblent le courroucer en soumettant les kharibde et les dragons des mers.\n\nLes humains du Vieux Monde croient que Triton a un lien de parenté avec Manann, mais les contes populaires et les testaments apocryphes déclarent tour à tour qu'il s'agit du fils, du frère, de l'avatar, du premier fidèle ou du serviteur divin du dieu marin. Les elfes pensent que la question n'est pas si simple, car les Druchii honorent Mathlann (la divinité elfique dont le domaine et la nature sont très proches de ceux de Manann) aussi sincèrement que les marins de Cothique, et pourtant Triton leur voue une haine meurtrière.\n\n**Magie des mers de Triton :** Triton est un lanceur de sorts puissant, mais il lance sa magie d'une manière différente de tous les autres êtres du monde. Ses pouvoirs sont un mélange entre les miracles des dieux et la maîtrise de l'Aethyr. Triton connaît les Sorts de magie des mers suivants (voir page 15) : *Bourbier vivant, Mer d'huile, Tourbillon*.\n\nIl peut lancer les Miracles de Manann suivants comme s'ils étaient des Sorts avec un NI de 1 : *Contre-courants, Encalminé, Malédiction de la mer, Vents favorables*. Il peut également lancer le Miracle de Stromfels suivant comme s'il était un Sort avec un NI de 1 : *Lame de fond*. Si Triton génère des DR supplémentaires quand il lance ces Miracles comme des Sorts, il peut utiliser les règles de Surincantation pour les ajuster comme s'ils étaient des Sorts.\n\n**Faveur de Manann :** la relation exacte de Triton avec Manann est mystérieuse, mais son existence est indéniable. Au MJ de déterminer la manière dont elle se manifeste, mais Triton ne va probablement pas bien réagir à un vaisseau dont l'Humeur de Manann est négative et peut traiter avec respect un bateau dont l'Humeur de Manann est de 50 ou plus. À l'inverse, si quelqu'un manque de respect à Triton, l'Humeur de Manann peut baisser et si quelqu'un lui fait plaisir, l'Humeur de Manann peut augmenter.\n\n**Seigneur des profondeurs :** la Compétence Emprise sur les animaux et le Talent Affinité avec les animaux de Triton ne peuvent être utilisés que sur des créatures marines. Cela dit, les critères qui pourraient normalement empêcher un Personnage d'employer la Compétence Emprise sur les animaux ne s'appliquent pas à Triton, c'est-à-dire que les créatures des mers belliqueuses, territoriales, dressées ou blessées lui témoignent tout de même du respect. Seules les créatures marines dominées par magie ne respectent plus le commandement de Triton.\n\nLes créatures dotées du Trait *Amphibie* et/ou *Aquatique* sont soumises à cette règle lorsqu'elles se trouvent dans l'eau, mais peuvent l'ignorer sur terre.\n\n**Trident de Triton :** une immense arme d'hast à trois pointes faisant plus de cent mètres de long. Triton pourrait utiliser son arme pour empaler les monstres les plus gigantesques ou écraser la coque d'une arche noire.\n\n| Arme | Groupe | Enc | Allonge | Dégâts | Atouts et Défauts |\n| --- | --- | --- | --- | --- | --- |\n| Trident de Triton | Armes d'hast | 250 | Considérable | +BF+6 | Dévastatrice, Empaleuse, Magique, Percutante |\n\n**Naufrageuse :** chaque fois que le trident de Triton inflige des Dégâts à la Coque d'un vaisseau, ce bateau doit effectuer un Test d'**Endurance Complexe (–10)**. En cas d'échec, le navire subit *Voie d'eau 1*. Chaque fois que le trident de Triton inflige des Dégâts Critiques à la Coque d'un bateau, ce vaisseau doit effectuer un Test d'**Endurance Difficile (–20)**. En cas d'échec, le navire subit *Voie d'eau 3*.",
     "source": {
@@ -64846,9 +63716,7 @@
     "talents": [],
     "trappings": [],
     "spells": [
-      {
-        "id": "armure-aethyrique"
-      }
+      "armure-aethyrique"
     ],
     "desc": "*Aqshy* est le Vent de Magie le plus destructeur, affamé et insatiable, dévorant tout sans raison apparente. On raconte que les élémentaires incarnés du Feu qui en sont issus possèdent un courroux et une fureur qui n'est égalée que par celle des démons.\n\nConnus dans la tradition magique sous le nom de Calcinés, Faucheurs noirs et Jack des Cendres, ils dominent largement les champs de bataille. De leur apparence maigre mais terrible, comme des braises noires parsemées de cendre, émane une chaleur phénoménale. Peu de personnes peuvent endurer leur colère : une tempête de feu qui transforme les armures en scories fondues et fait exploser l'artillerie, projetant des éclats brûlants de métal dans les airs et dans la peau de ceux qui se trouvent à proximité.\n\n**Descendre en cendres :** l'intense chaleur qui émane de l'élémentaire incarné du Feu fait grimacer et fléchir ses ennemis en combat rapproché. Au corps à corps, ils doivent réussir un Test de **Calme Accessible (+20)** ou bien subir –20 à leur Compétence de Corps à corps.\n\n**Don du feu :** l'élémentaire irradie de chaleur et libère des braises brûlantes pendant qu'il se déplace. Au début de chaque Round, lancez 1d10. Sur un 10 et à la discrétion du MJ, un objet inflammable situé dans un rayon de 20 mètres de l'élémentaire reçoit +1 État *En flammes*. Si cet objet est porté par un Personnage, il dispose d'un tour pour s'en débarrasser sans quoi il reçoit lui aussi +1 État *En flammes*.\n\n**Lanceur de sorts décérébré :** les élémentaires incarnés du Feu peuvent utiliser leur Caractéristique de Force pour lancer des sorts.",
     "source": {

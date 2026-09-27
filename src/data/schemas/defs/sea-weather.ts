@@ -4,15 +4,11 @@
  * quotidien (table 4 aspects), modificateur saisonnier, catalogues d'aspect (Précipitations /
  * Température / Visibilité / Vents), rose des vents, effet du vent (standard + Clinfoc), Affaler les
  * voiles, Encalminé.
- *
- * `precipitations[].skillMods[].spec` (ex. `{ "projectiles": "poudre-noire" }`) gate le mod sur la
- * spécialisation d'arme quand le `skillId` seul est ambigu (Projectiles (Poudre noire) uniquement,
- * pas Projectiles (Arc)) — lu par `precipitationSkillMod(precip, skillId, spec)` dans
- * `src/engine/seaWeather.ts` (#162).
  */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
@@ -25,7 +21,8 @@ const windForce = z.enum([
   'vent-violent',
   'violente-tempete',
 ]);
-const windAspect = z.enum(['arriere', 'lateral', 'face']);
+/** Aspect du vent relatif au cap (MDG 13 l.267-270). */
+export const windAspectSchema = enumNomme({ arriere: 'vent arrière', lateral: 'vent latéral', face: 'vent de face' });
 const windEffectCell = z.strictObject({
   pctSail: z.number().optional(),
   pctOther: z.number().optional(),
@@ -33,7 +30,7 @@ const windEffectCell = z.strictObject({
   affaler: z.boolean().optional(),
   virement: z.boolean().optional(),
 });
-const windEffectTable = z.record(windForce, z.record(windAspect, windEffectCell));
+const windEffectTable = z.record(windForce, z.record(windAspectSchema, windEffectCell));
 
 const champs = {
   table: z.array(
@@ -62,9 +59,8 @@ const champs = {
       skillMods: z
         .array(
           z.strictObject({
-            skills: z.array(z.string()),
-            /** Spécialisation requise par `skillId` (ex. `{ projectiles: 'poudre-noire' }`) — cf. tête de fichier. */
-            spec: z.record(z.string(), z.string()).optional(),
+            /** MDG 13 l.187-201. */
+            skills: z.array(refOuSpec('skill')),
             mod: z.number(),
           }),
         )
@@ -104,7 +100,7 @@ const champs = {
   effetDuVent: windEffectTable,
   effetDuVentClinfoc: windEffectTable,
   /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
-  effetDuVentGreementDelta: z.record(windAspect, z.number()),
+  effetDuVentGreementDelta: z.record(windAspectSchema, z.number()),
   affaler: z.strictObject({
     difficulty: difficultySchema,
     failCritLocation: z.string(),

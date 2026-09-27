@@ -47,7 +47,7 @@
     "type": "primitives.manifest",
     "label": "useFocusEmprunte / focusSansIntention / poserFocus / visibleFocusables",
     "fichier": "src/ui/focus.ts",
-    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à son invocateur (le nœud qui l'avait à CETTE ouverture, s'il est encore dans le document) pour toute surface qui emprunte le focus ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
+    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à son invocateur (le nœud qui l'avait à CETTE ouverture, s'il est encore dans le document et qu'aucun dialogue du dessus ne le couvre) pour toute surface qui emprunte le focus ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
     "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), bulle épinglée de `CodexRef`, manette (`useGamepad`)",
     "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
   },
@@ -56,9 +56,9 @@
     "type": "primitives.manifest",
     "label": "useDismissLayer / dialogueDuDessus / surfaceFocalisee",
     "fichier": "src/ui/useDismissLayer.ts",
-    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture et, s'il en a une, inscrit sa surface (boîte et nature, dialogue ou bulle) ; `dialogueDuDessus` répond à « qui est au-dessus ? » (sauvetage du focus, piège Tab, registre clavier, manette), comme Échap (`resoudreEchap`) ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
+    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture, déclarée en entier (identifiant stable, nature `modale`/`popover`, plan `scene`/`application`, boîte) ; `dialogueDuDessus` rend la boîte de la modale du dessus (`coucheDuDessus` : plan le plus haut, puis la dernière ouverte), la même couche que lisent Échap (`resoudreEchap`), les touches (`bindingApplies`) et la marche — lue par l'emprunt, le sauvetage et la restitution du focus, le piège Tab et la manette ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
     "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), bulle de `CodexRef`, panneaux et menus qui se congédient, `useGameKeyboard`, `useGamepad`",
-    "verrou": "dialogue-du-dessus.test.tsx — l'ordre des ouvertures, jamais celui du document ; echap-pile-lifo.test.tsx — Échap congédie la couche du dessus"
+    "verrou": "dialogue-du-dessus.test.tsx — l'ordre des ouvertures, jamais celui du document ; la conversation, peinte sous une fiche, attend ; echap-pile-lifo.test.tsx — Échap congédie la couche du dessus ; dismissStack.test.ts — le plan d'abord"
   },
   {
     "id": "rollShell",
@@ -347,6 +347,24 @@
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
     "verrou": "npm run gen && git diff --exit-code"
+  },
+  {
+    "id": "descendre",
+    "type": "primitives.manifest",
+    "label": "descendre/enfantsDe",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
+    "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",
+    "verrou": "src/data/schemas/grammaire/descente.test.ts"
+  },
+  {
+    "id": "coDescendre",
+    "type": "primitives.manifest",
+    "label": "coDescendre/ouverts/pasDeDonnee",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
+    "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
+    "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
   },
   {
     "id": "menuCard",
@@ -887,7 +905,8 @@
     "css": "src/ui/styles/error-boundary.css",
     "poseurs": [
       "src/ui/App.tsx",
-      "src/ui/CampaignView.tsx"
+      "src/ui/CampaignView.tsx",
+      "src/ui/editor/Editor.tsx"
     ],
     "concept": "filet d’un crash de RENDU : capture, journalise, et montre un panneau de reprise en français au lieu de l’écran noir",
     "perimetre": "autour du stage (scène iso/POV), autour de tout l’écran de jeu (#225)",
@@ -1068,6 +1087,15 @@
     "verrou": "src/state/defense-suite.test.ts"
   },
   {
+    "id": "indexedDb",
+    "type": "primitives.manifest",
+    "label": "ouvrirBase/lireDansBase/ecrireDansBase",
+    "fichier": "src/lib/indexedDb.ts",
+    "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
+    "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
+    "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
     "id": "clesDePalette",
     "type": "primitives.manifest",
     "label": "CLES/communes/vocabulaire",
@@ -1111,5 +1139,41 @@
     "concept": "couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent",
     "perimetre": "composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche)",
     "verrou": "composeRig-peau-tete.test.ts, palettes-declarees.test.ts"
+  },
+  {
+    "id": "reponsesDuNoeud",
+    "type": "primitives.manifest",
+    "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
+    "fichier": "src/state/dialogue.ts",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
+    "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
+  },
+  {
+    "id": "surfaceTientLaMain",
+    "type": "primitives.manifest",
+    "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
+    "fichier": "src/state/modalArbiter.ts",
+    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
+    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
+    "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+  },
+  {
+    "id": "playerText",
+    "type": "primitives.manifest",
+    "label": "PlayerText",
+    "fichier": "src/i18n/playerText.ts",
+    "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
+    "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "dataLabel",
+    "type": "primitives.manifest",
+    "label": "dataLabel",
+    "fichier": "src/data/index.ts",
+    "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
+    "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
   }
 ]

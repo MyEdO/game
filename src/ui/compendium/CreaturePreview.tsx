@@ -24,10 +24,7 @@ function rigSvg(name: string, a: EntityAppearance | undefined, view: View, porte
   const species = a?.species ?? porteur;
   const r = resolveRender(species, findCreatureById(name)?.traits, name);
   if (r.kind === 'rig') {
-    const p = entityRigProfile(name, hashSeed(name), {
-      seed: a?.seed, species, tenue: a?.tenue, monster: a?.monster, features: a?.features,
-      colors: a?.colors, parts: a?.parts, sex: a?.sex, build: a?.build, eyes: a?.eyes,
-    });
+    const p = entityRigProfile(name, hashSeed(name), { ...a, species });
     return p ? bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, view, [])) : '';
   }
   const plan = planById(r.plan);

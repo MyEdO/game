@@ -115,9 +115,9 @@ describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la
   it('au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)', () => {
     const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
     expect(sceneEntitySchema.safeParse({ ...base, ref: '' }).error?.issues.map((i) => i.message))
-      .toEqual(['personnage « p » : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['« ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
     expect(sceneEntitySchema.safeParse({ ...base, ref: 'creature-fantome' }).error?.issues.map((i) => i.message))
-      .toEqual(['personnage « p » : ref « creature-fantome » ni créature, ni coque de véhicule, ni engin de siège']);
+      .toEqual(['« creature-fantome » ni créature, ni coque de véhicule, ni engin de siège']);
   });
 
   it('au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)', () => {
@@ -130,7 +130,7 @@ describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la
 
   it('SANS le migrateur, le personnage sans fiche serait REFUSÉ au parse, en NOMMANT l’entité', () => {
     const bricole = { ...structuredClone(PROJET_FORMAT_12), schema: CURRENT_PROJECT_SCHEMA };
-    expect(() => parseProject(bricole)).toThrow(/personnage « aubergiste » : « ref », « statblock », « presetId » absents/);
+    expect(() => parseProject(bricole)).toThrow(/entities « aubergiste » › ref: « ref », « statblock », « presetId » absents/);
   });
 
   /** Le combattant APRÈS le migrateur, par la fiche du spawn (`ficheDEntite`), face à ce que la branche
@@ -157,7 +157,7 @@ describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la
     const r = sceneEntitySchema.safeParse(base);
     expect(r.success).toBe(false);
     expect(r.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
-      ['ref', 'personnage « p » : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)'],
+      ['ref', '« ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)'],
     ]);
   });
 });

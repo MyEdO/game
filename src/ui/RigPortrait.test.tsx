@@ -4,7 +4,7 @@ import { RigPortrait } from './RigPortrait';
 import { mutationById } from '../data/mutations';
 import type { Combatant } from '../engine/types';
 
-const hero = { id: 'h1', kind: 'hero', name: 'Soldat', career: 'Soldat', appearance: { species: 'Humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
+const hero = { id: 'h1', kind: 'hero', name: 'Soldat', career: 'Soldat', appearance: { species: 'humains-reiklander', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 
 describe('RigPortrait', () => {
   it('rend un svg avec viewBox cadré + le visage (tête) du rig', () => {

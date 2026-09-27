@@ -49,7 +49,7 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappings, findCreatureById } from '../data';
+import { trappings, findCreatureById, findTraitById } from '../data';
 import { creatureToCombatant } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
@@ -58,6 +58,8 @@ import { isOutOfAction, addCondition, syncDerivedConditions } from '../engine/co
 import { contractDisease, tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
+import { acquerirTalent } from '../engine/careerSlots';
+import { grantTrait } from '../engine/grantedTraits';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
@@ -79,7 +81,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
-import { partyMoneyTotal, creditBourse, distributeCredit, condCtx } from './bourseFlow';
+import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
+import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
 import { diamondCorners, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
@@ -490,10 +493,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     clearAiTurnLog(); // trace IA vierge pour ce scénario
     const s = g();
     if (seed != null) s.seedRng(seed);
-    if (sc.rules) for (const [rid, v] of Object.entries(sc.rules)) setRule(rid, v);
-    s.setParty(sc.makeParty());
-    if (sc.extraScenes?.length || sc.worldMap || sc.narratif) s.loadProject([sc.scene, ...(sc.extraScenes ?? [])], sc.scene.id, sc.worldMap ?? null, sc.narratif);
-    else s.startScene(sc.scene);
+    const construit = poserScenario(g, sc);
     // Un plateau VIDE est un refus, jamais un silence : la recette qui continue dessus attribue son
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
@@ -509,20 +509,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
     rememberScenario(seed != null ? { id: sc.id, seed } : { id: sc.id });
-    const scLead = g().party[0];
-    if (sc.money && scLead) creditBourse(g, useGame.setState, scLead.id, sc.money); // seed de bourse du scénario (après le reset du lancement)
-    if (sc.vessel) useGame.setState({ vessel: sc.vessel }); // navire de campagne (voyage/combat maritime)
-    if (sc.autoCombat) g().startCombat(sc.autoCombat);
+    demarrerScenario(g, useGame.setState, sc, construit);
     if (g().pendingRoundStart) g().confirmRoundStart();
-    if (sc.massBattle) {
-      // Interlude AVANT la bataille (ADE II 8 l.65) : son budget d'Activités (max 3) est celui dans
-      // lequel puise la préparation. La préparation se joue DANS le menu d'interlude (« Interlude c'est
-      // interlude ») — `startMassBattle` reste donc sur l'écran d'interlude tant qu'un interlude est ouvert.
-      if (sc.interludeWeeks) g().startInterlude(sc.interludeWeeks);
-      g().startMassBattle(sc.massBattle);
-      return `✓ bataille de masse « ${sc.title} » lancée${sc.interludeWeeks ? ' (préparation dans le menu d\'interlude)' : ''}`;
-    }
-    s.setScreen('campaign');
+    if (construit.massBattle) return `✓ bataille de masse « ${sc.title} » lancée${g().interlude ? ' (préparation dans le menu d\'interlude)' : ''}`;
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {
@@ -1449,13 +1438,41 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  'magie-du-chaos', { spec: 'tzeentch' })`). */
     talent: (id: string, talentId: string, opts: number | { spec?: string; times?: number } = 1) => {
       const { spec, times } = typeof opts === 'number' ? { spec: undefined, times: opts } : { spec: opts.spec, times: opts.times ?? 1 };
-      const grant = (c: Combatant): Combatant =>
-        c.id === id ? { ...c, talents: [...(c.talents ?? []), { talentId, times, ...(spec != null ? { spec } : {}) }] } : c;
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const acquis = { ...c };
+        for (let i = 0; i < times; i++) acquerirTalent(acquis, { id: talentId, ...(spec != null ? { spec } : {}) });
+        return acquis;
+      };
       useGame.setState((s) => ({
         party: s.party.map(grant),
         battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
       }));
-      return `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''}`;
+      const pose = actorIn(useGame.getState(), id)?.talents?.find((t) => t.talentId === talentId && (t.spec ?? null) === (spec ?? null));
+      return pose
+        ? `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''} ×${pose.times}`
+        : `✗ ${id} : « ${talentId} » non acquis (Maxi atteint ou combattant absent)`;
+    },
+
+    /** RECETTE : pose un Trait de créature sur un combattant, hors combat compris (ex. Marque de Tzeentch
+     *  pour dérouler ses Talents de carrière à l'avancement). Passe par `grantTrait`
+     *  (`engine/grantedTraits.ts`), le noyau de l'op homonyme et d'`attachMutation`. `opts` : `arg`
+     *  (Cible, Domaine…) et `value` (indice). Rend l'état RÉEL relu au store. */
+    trait: (id: string, traitId: string, opts: { arg?: string; value?: number } = {}) => {
+      if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
+      const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const porteur = { ...c };
+        grantTrait(porteur, instance);
+        return porteur;
+      };
+      useGame.setState((s) => ({
+        party: s.party.map(grant),
+        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
+      }));
+      const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
+      return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le

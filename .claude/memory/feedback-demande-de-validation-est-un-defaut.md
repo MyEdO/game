@@ -9,4 +9,4 @@ Toute demande de validation qui atteint l'utilisateur est un défaut. Avant de r
 
 **Why:** « Tu fais quoi qui fait que je dois valider chacune de tes opérations ? » / « Pourquoi je dois valider ce genre d'opération ? Qui est responsable ? » (utilisateur, 2026-09-13).
 
-**How to apply:** commit en worktree lié avec `cd <worktree> && …` en tête de commande et message inline par `-m "$(cat <<'EOF' … EOF)"` ; jamais `Set-Location`, jamais un fichier `-F` créé dans la même commande ; un brief qui cite des commandes git se passe inline à l'agent, pas par un heredoc. Voir [[env-coordination-arbre-partage-sessions]].
+**How to apply:** commit en worktree lié avec `cd <worktree> && …` en tête de commande et message inline par `-m "$(cat <<'EOF' … EOF)"` ; jamais `Set-Location`, jamais un fichier `-F` créé dans la même commande ; un brief qui cite des commandes git se passe inline à l'agent, pas par un heredoc. Voir [[env-coordination-sessions]].
