@@ -23,7 +23,7 @@ import { Money } from '../engine/money';
 import { makeRNG } from '../engine/dice';
 import { createHero, type ChoixDeCreation } from '../engine/character';
 import { rollInitialWealth, parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
-import { levelsForCareer, pregens, rigSpeciesId, trappingRefLabel } from './index';
+import { levelsForCareer, pregens, rigSpeciesId } from './index';
 import type { Appearance } from '../gameIso/rig/appearance';
 import type { Sexe } from './schemas/grammaire/valeurs';
 
@@ -44,11 +44,6 @@ export interface PregenDef extends Pick<ChoixDeCreation, 'careerTalent' | 'petty
   /** Âge (LDB 05 étape 6) — sinon laissé indéfini (pas de tirage moteur côté pré-tiré). */
   age?: number;
   // `pettySpells` : complétés jusqu'au quota (LDB 10 l.714) par `fillPettySpellsToQuota`.
-  /** Id de trapping (catalogue) résolvant l'emplacement `{wildcard:'arme'}` de la carrière
-   *  (construct de choix d'équipement, `resolveTrappingChoices`) — absent tant qu'aucun des 8
-   *  pré-tirés n'a un tel slot au Niveau 1 (vérifié #421 : aucune entrée de `careerLevels.json` au
-   *  Niveau 1 des carrières actuelles n'en porte). */
-  weaponChoice?: string;
   /** Sexe visuel (cosmétique ; aucune incidence de règles). Défaut 'M'. */
   sex?: Sexe;
   /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
@@ -68,7 +63,6 @@ function buildPregenHero(d: PregenDef): Combatant {
     id: `pregen-${d.seed}`,
     careerTalent: d.careerTalent,
     pettySpells: authoredIds,
-    trappingChoices: d.weaponChoice ? { [trappingRefLabel({ wildcard: 'arme' })]: d.weaponChoice } : undefined,
     details: {
       age: d.age,
       ambitionShort: d.ambitionShort,

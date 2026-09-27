@@ -56,7 +56,9 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { adresseDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -1926,62 +1928,55 @@ function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (
   );
 }
 
-/** Emplacement `{choice}`/`{wildcard}`/`{id,qualityChoice}` d'une dotation (construct de choix
- *  d'équipement, Lot 2/3 #657) — rendu GÉNÉRAL, RÉCURSIF (EN MIROIR de `resolveTrappingChoices`,
- *  MÊME clé `trappingRefLabel`) : `{choice}` → `OptionChooser` (une branche = un bouton, la branche
- *  choisie EST rendue récursivement — une branche `{id,qualityChoice}` déroule son picker d'Atout
- *  NESTED juste dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur stockée = l'`id`
- *  d'arme) ; `{id,qualityChoice:true}` → un Atout de Fabrication (LDB 60 « X de qualité ») parmi
- *  `fabricationAtouts`, libellé + effet verbatim (`QualityData.desc`) en hint — `raffine` PRÉ-SÉLECTIONNÉ
- *  (défaut du résolveur, `DEFAULT_FABRICATION_ATOUT`) tant qu'aucun choix n'est stocké : ne rien choisir
- *  reste un brouillon VALIDE (l'objet est « de qualité » raffiné par défaut). Une autre catégorie de
- *  joker sans picker dédié affiche un repli explicite (jamais un `<select>` brut recodé). */
-export function TrappingChoiceSlot({ slot, choices, onChoicesChange }: {
-  slot: TrappingRef;
-  choices: Record<string, string>;
-  onChoicesChange: (key: string, value: string) => void;
+/** Un emplacement de dotation (`emplacementsDeDotation`) — rendu RÉCURSIF : `{choice}` →
+ *  `OptionChooser` (une branche = un bouton ; l'emplacement que porte la branche choisie se déroule
+ *  dessous) ; `{wildcard:'arme'}` → `WeaponWildcardPicker` (valeur = l'`id` d'arme) ;
+ *  `{id,qualityChoice:true}` → un Atout de Fabrication (LDB 60 l.9-32) parmi `fabricationAtouts`,
+ *  libellé + effet verbatim (`QualityData.desc`) en hint — `DEFAULT_FABRICATION_ATOUT` pré-sélectionné
+ *  tant qu'aucun choix n'est stocké (défaut du résolveur). Une autre catégorie de joker n'a pas de
+ *  sélecteur. */
+export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
+  emplacement: EmplacementDeDotation;
+  choices: ChoixDeDotation;
+  onChoicesChange: (adresse: AdresseDeCreation, value: number | string) => void;
 }) {
-  const key = trappingRefLabel(slot);
-  const value = choices[key];
-  if ('choice' in slot) {
-    const options = slot.choice.map((branch) => {
-      const label = trappingRefLabel(branch);
-      return { key: label, label, primary: value === label, onSelect: () => onChoicesChange(key, label) };
-    });
-    // Branche EFFECTIVE (défaut miroir de `resolveTrappingChoices` : sans choix, la 1re branche) —
-    // détermine si le picker d'Atout NESTED se déroule sous la grille de branches.
-    const selectedBranch = (value && slot.choice.find((b) => trappingRefLabel(b) === value)) || slot.choice[0];
+  const { adresse } = emplacement;
+  if (emplacement.sorte === 'branches') {
+    const choisie = brancheChoisie(emplacement, choices);
+    const options = emplacement.ref.choice.map((branche, j) => ({
+      key: String(j),
+      label: trappingRefLabel(branche),
+      primary: choisie === j,
+      onSelect: () => onChoicesChange(adresse, j),
+    }));
+    const sous = sousEmplacement(emplacement, choisie ?? 0);
     return (
       <>
         <OptionChooser layout="grid" options={options} />
-        {'id' in selectedBranch && selectedBranch.qualityChoice && (
-          <TrappingChoiceSlot slot={selectedBranch} choices={choices} onChoicesChange={onChoicesChange} />
-        )}
+        {sous && <TrappingChoiceSlot emplacement={sous} choices={choices} onChoicesChange={onChoicesChange} />}
       </>
     );
   }
-  if ('wildcard' in slot) {
-    if (slot.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(key, v)} />;
-    return <p className="hint">Catégorie « {slot.wildcard} » sans picker dédié pour l'instant.</p>;
+  const value = idChoisi(emplacement, choices);
+  if (emplacement.sorte === 'joker') {
+    if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
+    return <p className="hint">Catégorie « {emplacement.ref.wildcard} » : aucun sélecteur au créateur.</p>;
   }
-  if ('id' in slot && slot.qualityChoice) {
-    const options = fabricationAtouts().map((atoutId) => {
-      const q = findQualityById(atoutId);
-      return {
-        key: atoutId,
-        label: (
-          <>
-            {q?.label ?? atoutId}
-            {q?.desc && <em className="hint" style={{ display: 'block', fontStyle: 'normal', fontWeight: 'normal' }}>{q.desc}</em>}
-          </>
-        ),
-        primary: value ? value === atoutId : atoutId === DEFAULT_FABRICATION_ATOUT,
-        onSelect: () => onChoicesChange(key, atoutId),
-      };
-    });
-    return <OptionChooser layout="grid" options={options} />;
-  }
-  return null;
+  const options = fabricationAtouts().map((atoutId) => {
+    const q = findQualityById(atoutId);
+    return {
+      key: atoutId,
+      label: (
+        <>
+          {q?.label ?? atoutId}
+          {q?.desc && <em className="hint" style={{ display: 'block', fontStyle: 'normal', fontWeight: 'normal' }}>{q.desc}</em>}
+        </>
+      ),
+      primary: (value ?? DEFAULT_FABRICATION_ATOUT) === atoutId,
+      onSelect: () => onChoicesChange(adresse, atoutId),
+    };
+  });
+  return <OptionChooser layout="grid" options={options} />;
 }
 
 /** Détail d'un objet d'équipement (trappings.json) par `id` : dégâts / PA / encombrement / qualités. */
@@ -2024,10 +2019,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   const klass = findClassById(career?.class);
   const wealth = draftWealth(d);
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftWealth(d)));
-  const careerTrappings = level?.trappings ?? []; // TrappingRef[]
-  const choiceSlots = careerTrappings.filter(
-    (t): t is TrappingRef => 'choice' in t || 'wildcard' in t || ('id' in t && !!t.qualityChoice),
-  );
+  const emplacements = level ? emplacementsDeDotation(d.careerId, 1).filter(estEmplacementRacine) : [];
 
   const stepIdx = stepIds().indexOf('trappings');
   if (!level || !career) {
@@ -2041,12 +2033,12 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
     );
   }
 
-  const chip = (ref: import('../../data').TrappingRef, key: number) => {
+  const chip = (ref: TrappingRef, key: number) => {
     const label = trappingRefLabel(ref);
     return <EntityRef key={key} category="trappings" id={'id' in ref ? ref.id : undefined} label={splitLabel(label).name} show={label} />;
   };
-  const classItems = klass?.trappings ?? [];
-  const careerItems = careerTrappings.filter((t) => !('choice' in t || 'wildcard' in t || ('id' in t && !!t.qualityChoice)));
+  const classItems = (klass?.trappings ?? []).filter((t) => !estEmplacementDeDotation(t));
+  const careerItems = level.trappings.filter((t) => !estEmplacementDeDotation(t));
   // Formule de bourse fixée par le TIER du statut (SOURCE UNIQUE : titre de bande, sous-texte du geste
   // et note d'intro la citent tous — planche `finale-mock7`, « 2d10 sous de cuivre » sous « La bourse »).
   const purseFormula = level.status.startsWith('Bronze') ? '2d10 sous de cuivre' : level.status.startsWith('Argent') ? '1d10 pistoles' : "1 couronne d'or";
@@ -2118,17 +2110,16 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
         <div className="skill-tags">{classItems.map(chip)}</div>
       </Band>
 
-      {choiceSlots.map((slot, i) => {
-        const key = trappingRefLabel(slot);
-        const value = d.trappingChoices?.[key];
+      {emplacements.map((e) => {
+        const arme = e.sorte === 'joker' ? idChoisi(e, d.trappingChoices ?? {}) : undefined;
         return (
-          <Band key={i} title={key}>
+          <Band key={e.adresse} title={trappingRefLabel(e.ref)}>
             <TrappingChoiceSlot
-              slot={slot}
+              emplacement={e}
               choices={d.trappingChoices ?? {}}
-              onChoicesChange={(k, v) => setD({ ...d, trappingChoices: { ...d.trappingChoices, [k]: v } })}
+              onChoicesChange={(adresse, v) => setD({ ...d, trappingChoices: { ...d.trappingChoices, [adresse]: v } })}
             />
-            {value && 'wildcard' in slot && <p className="hint">{trappingMeta(value)}</p>}
+            {arme && <p className="hint">{trappingMeta(arme)}</p>}
           </Band>
         );
       })}

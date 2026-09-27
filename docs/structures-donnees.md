@@ -919,7 +919,7 @@ se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la donnée), i
 
 #### A. Par défaut — sans lot de peuplement (stock `STRUCTURES_DEFAUT`)
 
-**126** documents portent au moins une clé déclarée jamais observée, **747** clés en tout
+**126** documents portent au moins une clé déclarée jamais observée, **746** clés en tout
 (stock `STRUCTURES_DEFAUT`, `scripts/guards/lib/structuresStock.mjs`, garde `src/data/structures-contrat.test.ts`).
 
 | Document | Clés | Détail |
@@ -991,7 +991,7 @@ se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la donnée), i
 | `obsessions.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `oups.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `peripeties.json` | 5 | `alsoIn` `descRef` `icon` `labelF` `maison` |
-| `pregens.json` | 9 | `age` `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` `weaponChoice` |
+| `pregens.json` | 8 | `age` `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
 | `primitives.manifest.json` | 7 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
 | `problemes-vehicule.json` | 6 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` |
 | `progression-schemas.derived.json` | 7 | `alsoIn` `desc` `descRef` `icon` `labelF` `maison` `source` |
@@ -4806,4 +4806,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: b4368918f20aedecbacd94735637de8844e842d5 (393 fichiers, 10 dossiers) corps: 7884920d8499a94af0fe58b48ce32f6263c24072 -->
+<!-- sources-empreinte: a987928e5421d714aa86d84678dc61499dd2db41 (393 fichiers, 10 dossiers) corps: 728aab26fe839215dc943fce3838543d0086ffca -->

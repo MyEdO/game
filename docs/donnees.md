@@ -502,4 +502,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 40a2066510a894f64146c6d960436e4283005a11 (383 fichiers, 2 dossiers) corps: 3c7be39e23675a9e2e55775c60cc029bed72004b -->
+<!-- sources-empreinte: a145b864130e84b6eb919fbbbbc71dd89c7089c3 (383 fichiers, 2 dossiers) corps: 3c7be39e23675a9e2e55775c60cc029bed72004b -->

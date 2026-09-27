@@ -91,17 +91,18 @@ describe('périmètre de TARGETS — aucune cible ne rend zéro champ', () => {
 
 describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
   /**
-   * `TrappingRef.spec` a DEUX lecteurs directs, un par ROLE : `resolveOne`
-   * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement `{choice}`/
-   * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
+   * `TrappingRef.spec` a TROIS lecteurs directs, un par ROLE : `resoudre`
+   * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement
+   * `qualityChoice`, `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
-   * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
+   * L-ref-1) —, et `cleDuFormat2` (`src/state/roster.ts`), la clé FIGÉE d'un brouillon au format 2
+   * (#1988), qui ne peut pas passer par le rendu vivant. Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
    * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
    * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).
    */
-  it('`TrappingRef.spec` : DEUX lecteurs, résolution et matérialisation — aucun dans le rendu', () => {
+  it('`TrappingRef.spec` : TROIS lecteurs, résolution, matérialisation et clé du format 2 — aucun dans le rendu', () => {
     const target = TARGETS.find((t) => t.type === 'TrappingRef');
     expect(target, 'TrappingRef absent de TARGETS — le cas fondateur a perdu sa surface').toBeTruthy();
     const byField = rapport().byType.get('TrappingRef');
@@ -112,8 +113,8 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     const specReaders = [...new Set(specSites.map((s) => s.slice(0, s.lastIndexOf(':'))))];
     expect(
       specSites.sort(),
-      'TrappingRef.spec devrait avoir EXACTEMENT 2 sites lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:36']);
+      'TrappingRef.spec devrait avoir EXACTEMENT 3 sites lecteurs : la résolution de choix, la matérialisation et la clé du format 2',
+    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:107', 'src/state/roster.ts:135']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refConcrete`',

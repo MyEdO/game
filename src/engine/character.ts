@@ -26,19 +26,17 @@ import {
   SpeciesData,
   CareerLevelData,
   findSpeciesById,
-  findCareerById,
-  findClassById,
   firstLevel,
   levelsForCareer,
   byId,
   findTalentById,
   specPoolOf,
   talents as talentTable,
-  type TrappingRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
-import { resolveTrappingChoices } from './trappingChoices';
+import { resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
+import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
@@ -50,15 +48,6 @@ export function skillCharacteristicById(id: string): CharKey {
   return data?.characteristic ?? 'dexterite'; // CharKey stable portée par la donnée (repli prudent)
 }
 
-/** Adresse d'un EMPLACEMENT de création — la clé des choix portés par un emplacement (`specChoices`,
- *  `speciesTalentChoices`). Deux emplacements qui désignent la même Compétence restent deux adresses. */
-export const adresseDeCreation = {
-  especeTalent: (i: number): string => `espece:talents:${i}`,
-  carriereCompetence: (i: number): string => `carriere:competences:${i}`,
-  ajout: (skillId: string): string => `ajout:${skillId}`,
-  signe: (k: number): string => `signe:${k}`,
-};
-
 /** « Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ » (LDB 05 l.535). */
 export const CAREER_SKILL_ADVANCES = 40;
 /** « sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade » (LDB 05 l.535). */
@@ -67,8 +56,9 @@ export const MAX_ADV_PER_SKILL = 10;
  *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). */
 export const CAREER_SKILLS_ADVANCED = 8;
 
-/** Format PERSISTÉ des choix de création (brouillon du roster) : 2 = en ids (#1923). */
-export const FORMAT_DES_CHOIX = 2;
+/** Format PERSISTÉ des choix de création (brouillon du roster) : 2 = en ids (#1923) ; 3 = choix de
+ *  dotation par adresse (#1988). */
+export const FORMAT_DES_CHOIX = 3;
 
 /**
  * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`),
@@ -79,9 +69,9 @@ export interface ChoixDeCreation {
    *  du Niveau 1 dont le Maxi n'est pas atteint. */
   careerTalent?: RefDesignee;
   /** Spécialisation choisie (id) par ADRESSE d'emplacement (`adresseDeCreation`). */
-  specChoices?: Record<string, string>;
+  specChoices?: Record<AdresseDeCreation, string>;
   /** Option retenue (index dans `of`) par adresse d'une entrée « A ou B » des Talents d'espèce. */
-  speciesTalentChoices?: Record<string, number>;
+  speciesTalentChoices?: Record<AdresseDeCreation, number>;
   /** Spécialisation (id) d'un Talent aléatoire tiré, par id de Talent. */
   randomSpecPicks?: Record<string, string>;
   /** Répartition des 40 Augmentations de carrière (LDB 05 l.535), par Compétence : `refKey(id, spec)`
@@ -91,8 +81,8 @@ export interface ChoixDeCreation {
   speciesSkillAdvances?: { plus5: RefDesignee[]; plus3: RefDesignee[] };
   /** Talents d'espèce DÉJÀ résolus (tirages figés inclus) — court-circuite `resolveSpeciesTalents`. */
   speciesTalentsResolved?: RefDesignee[];
-  /** Emplacements `{choice}`/`{wildcard}` des dotations, cf. `resolveTrappingChoices`. */
-  trappingChoices?: Record<string, string>;
+  /** Choix des emplacements de dotation par adresse (`emplacementsDeDotation`). */
+  trappingChoices?: ChoixDeDotation;
   /** Sorts de Magie mineure choisis (ids de `spells.json`), dans la limite du quota (LDB 10 l.714). */
   pettySpells?: string[];
 }
@@ -122,7 +112,7 @@ export function designer(kind: 'skill' | 'talent', ref: RefASpecialisation, choi
 
 /** Un emplacement de Compétence de carrière de départ : le Niveau 1 ou un ajout de Talent (LDB 10). */
 export interface CompetenceDeCarriere {
-  adresse: string;
+  adresse: AdresseDeCreation;
   ref: RefASpecialisation;
   /** La Compétence désignée — `null` pour un joker sans spécialisation choisie. */
   designee: RefDesignee | null;
@@ -136,7 +126,7 @@ export interface CompetenceDeCarriere {
 
 /** Les Compétences de carrière de départ (LDB 05 l.535) : un emplacement par entrée du Niveau 1, puis les
  *  ajouts des Talents (LDB 10 l.70, l.745, l.891 ; LDB 11 l.204) qu'aucune entrée ne tient déjà (`cle`). */
-export function competencesDeCarriere(level: CareerLevelData | undefined, hero: Combatant, specChoices: Record<string, string> = {}): CompetenceDeCarriere[] {
+export function competencesDeCarriere(level: CareerLevelData | undefined, hero: Combatant, specChoices: Record<AdresseDeCreation, string> = {}): CompetenceDeCarriere[] {
   const out: CompetenceDeCarriere[] = [];
   const refs = level?.skills ?? [];
   const slots = level ? skillSlots([level], level.level) : [];
@@ -144,7 +134,7 @@ export function competencesDeCarriere(level: CareerLevelData | undefined, hero: 
     const choisie = specChoices[adresseDeCreation.carriereCompetence(i)];
     return 'id' in ref && ref.choix != null && choisie ? [[slots[i].key, refKey(ref.id, choisie)]] : [];
   }));
-  const designerA = (adresse: string, ref: RefASpecialisation, ajout: boolean, libre: (spec: string) => boolean): CompetenceDeCarriere => {
+  const designerA = (adresse: AdresseDeCreation, ref: RefASpecialisation, ajout: boolean, libre: (spec: string) => boolean): CompetenceDeCarriere => {
     const choisie = specChoices[adresse];
     const designee = ref.choix == null || choisie ? designer('skill', ref, choisie) : null;
     return { adresse, ref, designee, cle: designee ? cleDeCompetence(designee) : ref.id, ajout, libre };
@@ -233,8 +223,8 @@ export function resolveSpeciesTalents(sp: SpeciesData, opts: OptionsDeResolution
 
 interface OptionsDeResolution {
   rng?: RNG;
-  choices?: Record<string, number>;
-  specChoices?: Record<string, string>;
+  choices?: Record<AdresseDeCreation, number>;
+  specChoices?: Record<AdresseDeCreation, string>;
   pickSpec?: (talentId: string, options: string[]) => string | null;
 }
 
@@ -395,10 +385,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
 
   // 5) Possessions : classe + carrière → inventaire à stats, armes/armures équipées. Les refs `{id}`
   //    (catalogue) deviennent des objets ; les refs `{text}` (« Arme (Base) », flavor) n'ont pas de
-  //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Résolution des
-  //    emplacements `{choice}`/`{wildcard}` (construct de choix d'équipement, Lot 1/2/3) via
-  //    `opts.trappingChoices` AVANT `buildInventory`.
-  const rawTrappings = resolveTrappingChoices(dotationRefsForHero(opts.careerId, 1), opts.trappingChoices ?? {});
+  //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
+  //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
+  const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
   const items = buildInventory(rawTrappings);
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
@@ -512,18 +501,3 @@ function autoFateSplit(extra: number): { fate: number; resilience: number } {
   const fate = Math.ceil(extra / 2);
   return { fate, resilience: extra - fate };
 }
-
-function classForCareer(careerId: string) {
-  // careerLevels n'a pas la classe ; on la retrouve via la carrière (par id stable).
-  return findClassById(findCareerById(careerId)?.class);
-}
-
-/** Dotations de Classe + Niveau de carrière (`TrappingRef[]`) — PUR, réutilisé par `createHero`
- *  (5, sac de départ) ET par le seam de semis de Possessions au démarrage d'une partie neuve
- *  (#617/#618 Lot 1, `state/possessionsFlow.ts`). `careerLevel` défaut 1 (création). */
-export function dotationRefsForHero(careerId: string, careerLevel: number = 1): TrappingRef[] {
-  const levels = levelsForCareer(careerId);
-  const level = levels.find((l) => l.level === careerLevel) ?? firstLevel(careerId);
-  return [...(classForCareer(careerId)?.trappings ?? []), ...(level?.trappings ?? [])];
-}
-

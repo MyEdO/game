@@ -53,13 +53,14 @@ import {
   speciesSkillDefaults,
   designer,
   poolDuJoker,
-  adresseDeCreation,
   FORMAT_DES_CHOIX,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
+import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, rigSpeciesId, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
+import { findSpeciesById, rigSpeciesId, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
@@ -261,7 +262,7 @@ export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
 /** `specChoices` privé des adresses (`adresseDeCreation`) aux préfixes donnés. */
-function horsAdresses(specChoices: Record<string, string>, ...prefixes: string[]): Record<string, string> {
+function horsAdresses(specChoices: Record<AdresseDeCreation, string>, ...prefixes: string[]): Record<AdresseDeCreation, string> {
   return Object.fromEntries(Object.entries(specChoices).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
 }
 
@@ -456,7 +457,7 @@ export function rollDraftTalents(d: CreatorDraft): CreatorDraft {
 export function speciesTalentFixedEntries(d: CreatorDraft): RefDesignee[] {
   return (draftSpecies(d)?.talents ?? []).flatMap((a) => ('id' in a ? [designer('talent', a)] : []));
 }
-export function speciesTalentChoiceEntries(d: CreatorDraft): { adresse: string; ref: AdvancementRef; options: AdvancementRef[] }[] {
+export function speciesTalentChoiceEntries(d: CreatorDraft): { adresse: AdresseDeCreation; ref: AdvancementRef; options: AdvancementRef[] }[] {
   return (draftSpecies(d)?.talents ?? []).flatMap((a, i) => ('pick' in a ? [{ adresse: adresseDeCreation.especeTalent(i), ref: a, options: a.of }] : []));
 }
 export function speciesTalentRandomCount(d: CreatorDraft): number {
@@ -640,26 +641,13 @@ export function rollDraftWealth(d: CreatorDraft): CreatorDraft {
   return d.wealthRoll ? d : { ...d, wealthRoll: true };
 }
 
-/** Un emplacement `{choice}`/`{wildcard}` de la dotation Niveau 1 est-il RÉSOLU par `choices`
- *  (`d.trappingChoices`) ? RÉCURSIF (miroir de `resolveTrappingChoices`) — un `choice` requiert la
- *  branche choisie ET que CETTE branche soit elle-même résolue ; un `wildcard` requiert un id choisi ;
- *  toute autre ref (id/text/vehicleId/creatureId) est déjà concrète. */
-export function trappingSlotResolved(ref: TrappingRef, choices: Record<string, string>): boolean {
-  if ('choice' in ref) {
-    const key = trappingRefLabel(ref);
-    const picked = choices[key];
-    const branch = picked && ref.choice.find((b) => trappingRefLabel(b) === picked);
-    return !!branch && trappingSlotResolved(branch, choices);
-  }
-  if ('wildcard' in ref) return !!choices[trappingRefLabel(ref)];
-  return true;
-}
-/** Emplacements `{choice}`/`{wildcard}` non résolus des dotations de la carrière Niveau 1 (libellés
- *  d'emplacement, pour message d'erreur) — gate de `validateStep('trappings')`. */
+/** Libellés des emplacements de dotation du Niveau 1 que le joueur n'a pas tranchés
+ *  (`emplacementTranche`) — gate de `validateStep('trappings')`. */
 export function unresolvedTrappingSlots(d: CreatorDraft): string[] {
-  const level = draftLevel(d);
-  if (!level) return [];
-  return level.trappings.filter((t) => !trappingSlotResolved(t, d.trappingChoices ?? {})).map(trappingRefLabel);
+  if (!draftLevel(d)) return [];
+  return emplacementsDeDotation(d.careerId, 1)
+    .filter((e) => estEmplacementRacine(e) && !emplacementTranche(e, d.trappingChoices ?? {}))
+    .map((e) => trappingRefLabel(e.ref));
 }
 
 // ── 6) Détails ──

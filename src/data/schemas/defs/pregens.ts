@@ -35,9 +35,6 @@ const doc = document(
      *  de sens que si `careerTalent` porte le Talent Magie mineure ; complétés au quota BFM exact par
      *  `pregens.ts` (LDB 10 l.714), jamais un remplacement des sorts authorés. */
     pettySpells: z.array(idDe('spell', 'mineure')).optional(),
-    /** Id de trapping (catalogue) résolvant l'emplacement `{wildcard:'arme'}` de la carrière
-     *  (construct de choix d'équipement) — aucune des 8 entrées actuelles n'a un tel slot au Niveau 1. */
-    weaponChoice: idDe('trapping').optional(),
     /** Sexe visuel (cosmétique). Défaut 'M'. */
     sex: sexeSchema.optional(),
     /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
@@ -53,7 +50,6 @@ const doc = document(
     age: { label: 'Âge', hint: 'Âge du pré-tiré ; absent sur toutes les entrées observées' },
     careerTalent: { label: 'Talent de carrière choisi', hint: 'Talent de Niveau choisi ; sans lui, le premier de la liste est pris' },
     pettySpells: { label: 'Sorts de Magie mineure', hint: 'Sorts mineurs choisis, complétés au quota par le générateur' },
-    weaponChoice: { label: 'Arme choisie', hint: 'Objet qui résout un choix d’arme d’équipement de départ' },
     sex: { label: 'Sexe', hint: 'Sexe visuel du pré-tiré (cosmétique)' },
     build: { label: 'Morphologie', hint: 'Corpulence visuelle du pré-tiré (cosmétique)' },
   },

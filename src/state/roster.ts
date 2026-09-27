@@ -10,6 +10,10 @@ import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../data/graphieOp
 import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
+import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
+import { emplacementsDeDotation, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../engine/trappingChoices';
+import { formatDice } from '../engine/dice';
+import { findCreatureById, findQualityById, findTrappingById, findVehicleById, type QualityRef, type TrappingRef } from '../data';
 import { t } from '../i18n';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
@@ -54,18 +58,98 @@ export function rosterLoad(): RosterEntry[] {
     // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) et la
     // graphie des ops de Talent (#1473) de même, héros par héros.
     return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
-      .filter((e): e is RosterEntry => !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string')
-      .map((e) => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
+      .filter((e): e is EntreeLue => !!e && typeof e === 'object' && typeof (e as EntreeLue).hero?.id === 'string')
+      .map((e): RosterEntry => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
   } catch {
     return [];
   }
 }
 
-/** Le brouillon persisté, s'il est au format des choix en ids (`FORMAT_DES_CHOIX`) ; sinon aucun : un
- *  brouillon antérieur porte des libellés qu'aucune lecture ne résout, le créateur rouvre le héros par
- *  `draftFromHero`. */
-function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
-  return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
+/** Entrée telle que lue du stockage, avant `brouillonRelu`. */
+type EntreeLue = Omit<RosterEntry, 'draft'> & { draft?: BrouillonPersiste };
+
+/** Brouillon tel que lu du stockage : le format 2 rangeait `trappingChoices` par libellé d'emplacement. */
+type BrouillonPersiste = Omit<CreatorDraft, 'v' | 'specChoices' | 'speciesTalentChoices' | 'trappingChoices'> & {
+  v?: number;
+  specChoices?: Record<string, string>;
+  speciesTalentChoices?: Record<string, number>;
+  trappingChoices?: Record<string, number | string>;
+};
+
+/** Le brouillon persisté au format des choix (`FORMAT_DES_CHOIX`), ses clés marquées à la lecture
+ *  (`adresseLue`) ; un brouillon au format 2 y est migré (`choixDeDotationDuFormat2`). Un brouillon
+ *  antérieur porte des libellés qu'aucune lecture ne résout : aucun, le créateur rouvre le héros par
+ *  `draftFromHero`. Idempotent. */
+function brouillonRelu(draft: BrouillonPersiste | undefined): CreatorDraft | undefined {
+  if (!draft || (draft.v !== FORMAT_DES_CHOIX && draft.v !== 2)) return undefined;
+  const { v, specChoices, speciesTalentChoices, trappingChoices, ...choix } = draft;
+  return {
+    ...choix,
+    v: FORMAT_DES_CHOIX,
+    specChoices: adressesLues(specChoices),
+    speciesTalentChoices: adressesLues(speciesTalentChoices),
+    ...(trappingChoices && { trappingChoices: v === 2 ? choixDeDotationDuFormat2(draft.careerId, trappingChoices) : adressesLues(trappingChoices) }),
+  };
+}
+
+/** Les entrées de `choix` dont la clé est une adresse (`adresseLue`). */
+function adressesLues<V>(choix: Record<string, V> = {}): Record<AdresseDeCreation, V> {
+  const lues: Record<AdresseDeCreation, V> = {};
+  for (const [cle, v] of Object.entries(choix)) {
+    const adresse = adresseLue(cle);
+    if (adresse) lues[adresse] = v;
+  }
+  return lues;
+}
+
+/** `trappingChoices` d'un brouillon au format 2 (clé = libellé de l'emplacement ; valeur = libellé de la
+ *  branche d'un `{choice}`, id d'objet ou d'Atout sinon) rangés par adresse, la branche par son index.
+ *  Une clé qui ne nomme aucun emplacement de la carrière, ou une branche qu'aucune ne nomme, n'était
+ *  lue par aucun résolveur : elle ne se reporte pas. */
+function choixDeDotationDuFormat2(careerId: string, anciens: Record<string, number | string>): ChoixDeDotation {
+  const choix: ChoixDeDotation = {};
+  for (const e of emplacementsDeDotation(careerId, 1)) {
+    const v = anciens[cleDuFormat2(e.ref, e)];
+    if (typeof v !== 'string') continue;
+    if (e.sorte !== 'branches') choix[e.adresse] = v;
+    else {
+      const j = e.ref.choice.findIndex((b, k) => cleDuFormat2(b, sousEmplacement(e, k)) === v);
+      if (j >= 0) choix[e.adresse] = j;
+    }
+  }
+  return choix;
+}
+
+/** Le libellé d'une `TrappingRef` tel que le format 2 le composait (`trappingRefLabel` d'alors), FIGÉ :
+ *  le `label` brut de la donnée et les liants du format 2, jamais le catalogue de messages — un
+ *  brouillon 2 se relit quelle que soit la langue d'affichage. `e` : l'emplacement que porte `ref`. */
+function cleDuFormat2(ref: TrappingRef, e: EmplacementDeDotation | undefined): string {
+  if (e?.sorte === 'branches') return e.ref.choice.map((b, j) => cleDuFormat2(b, sousEmplacement(e, j))).join(' ou ');
+  if (e?.sorte === 'joker') return e.ref.wildcard === 'arme' ? 'Arme (au choix)' : `${e.ref.wildcard} (au choix)`;
+  const base = 'text' in ref
+    ? ref.text
+    : 'vehicleId' in ref
+      ? (findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId)
+      : 'creatureId' in ref
+        ? (findCreatureById(ref.creatureId)?.label ?? ref.creatureId)
+        : 'id' in ref ? avecSpecDuFormat2(findTrappingById(ref.id)?.label ?? ref.id, ref.spec) : '';
+  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+  const qualite = e?.sorte === 'atout'
+    ? ' (qualité au choix)'
+    : 'id' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualiteDuFormat2).join(', ')})` : '';
+  return base + count + qualite;
+}
+
+function avecSpecDuFormat2(base: string, spec: string | undefined): string {
+  return spec ? `${base} (${spec})` : base;
+}
+
+function qualiteDuFormat2(q: QualityRef): string {
+  const data = findQualityById(q.id);
+  const base = avecSpecDuFormat2(data?.label ?? q.id, q.spec);
+  if (q.value == null) return base;
+  const unite = data?.indice?.unite;
+  return unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`;
 }
 
 /** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */

@@ -382,15 +382,15 @@ const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
+  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
+  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
+  if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
   // entité du Codex n'est désignée — donc pas de `t:'ref'` non plus, et aucun porteur : le libellé
-  // rendu n'est même pas toujours le champ (`trappingRefLabel`, `src/data/index.ts:3573-3589`, le
-  // DÉCORE du compte `ref.count` — « Pamphlétaire (3) »). Même boîte que ses voisines de section.
-  if ('text' in ref || 'choice' in ref || 'wildcard' in ref) return { t: 'chip', label: show };
-  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
-  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
-  return idRefRow('trappings', ref.id, undefined, show);
+  // rendu n'est même pas toujours le champ (`trappingRefLabel` le DÉCORE du compte `ref.count` —
+  // « Pamphlétaire (3) »). Même boîte que ses voisines de section.
+  return { t: 'chip', label: show };
 };
 const trappingRefRows = (items?: TrappingRef[] | null): CodexRow[] => (items ?? []).map(trappingRefRow);
 /** Section de pastilles de Possessions (skip si vide) — équivalent `chips` pour les `TrappingRef[]` STRUCTURÉES. */

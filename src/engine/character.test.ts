@@ -10,10 +10,10 @@ import {
   resolveSpeciesTalents,
   createHero,
   competencesDeCarriere,
-  adresseDeCreation,
   libreDEspece,
   repartitionDeCarriere,
 } from './character';
+import { adresseDeCreation } from './adresseDeCreation';
 import { refKey } from './careerSlots';
 import { baseWithTalents } from './talentEffects';
 import { traitConsumptionFactor } from './provisions';
@@ -73,7 +73,7 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   });
 
   it('le choix « A ou B » est surchargeable, par adresse d\'emplacement', () => {
-    const out = resolveSpeciesTalents(sp(), { rng: makeRNG(7), choices: { 'espece:talents:0': 1 } });
+    const out = resolveSpeciesTalents(sp(), { rng: makeRNG(7), choices: { [adresseDeCreation.especeTalent(0)]: 1 } });
     expect(out).toContainEqual({ id: 'affable' });
     expect(out).not.toContainEqual({ id: 'perspicace' });
   });
@@ -189,7 +189,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
     if (!middenland) return; // espèce ADE absente → rien à tester
     const out = resolveSpeciesTalents(middenland, {
       rng: makeRNG(11),
-      choices: { 'espece:talents:1': 1 }, // « Destinée ou Talent aléatoire » → la branche aléatoire
+      choices: { [adresseDeCreation.especeTalent(1)]: 1 }, // « Destinée ou Talent aléatoire » → la branche aléatoire
     });
     expect(out).not.toContainEqual({ id: 'destinee' });
     expect(out.length).toBeGreaterThanOrEqual(2);

@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
-import { trappingRefLabel, type TrappingRef } from '../../data';
+import type { ReactElement } from 'react';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
+import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
+
+const dot = adresseDeCreation.dotation;
+const emplacementA = (adresse: string) => emplacementsDeDotation(CARRIERE_FIXTURE, 1).find((e) => e.adresse === adresse)!;
 import { CreatorSummary } from './CreatorSummary';
 import {
   newDraft,
@@ -413,39 +419,51 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(validateStep(rolled, 'trappings')).toBeNull();
   });
 
-  it('TrappingChoiceSlot `{id, qualityChoice}` (#657 Lot 2) : les 4 Atouts de Fabrication en options, raffine pré-sélectionné sans choix', () => {
-    const slot: TrappingRef = { id: 'fleuret', qualityChoice: true };
-    const withoutChoice = renderToStaticMarkup(<TrappingChoiceSlot slot={slot} choices={{}} onChoicesChange={() => {}} />);
-    for (const label of ['Raffiné', 'Léger', 'Pratique', 'Solide']) expect(withoutChoice).toContain(label);
-    // Hints d'effet verbatim (`QualityData.desc`, LDB 60).
-    expect(withoutChoice).toContain('signe de statut social');
-    expect(withoutChoice).toContain('Point d&#x27;Encombrement');
-    expect(withoutChoice).toContain('DR à un Test raté');
-    expect(withoutChoice).toContain('Robuste');
-    // Raffiné (défaut du résolveur) pré-sélectionné sans que rien ne soit stocké.
-    expect(estPrimary(withoutChoice, 'Raffiné')).toBe(true);
-    expect(estPrimary(withoutChoice, 'Solide')).toBe(false);
+  it('TrappingChoiceSlot `{id, qualityChoice}` : les 4 Atouts de Fabrication en options, raffine pré-sélectionné sans choix', () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const slot = emplacementA(dot([4]));
+      const withoutChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{}} onChoicesChange={() => {}} />);
+      for (const label of ['Raffiné', 'Léger', 'Pratique', 'Solide']) expect(withoutChoice).toContain(label);
+      // Hints d'effet verbatim (`QualityData.desc`, LDB 60).
+      expect(withoutChoice).toContain('signe de statut social');
+      expect(withoutChoice).toContain('Point d&#x27;Encombrement');
+      expect(withoutChoice).toContain('DR à un Test raté');
+      expect(withoutChoice).toContain('Robuste');
+      // Raffiné (défaut du résolveur) pré-sélectionné sans que rien ne soit stocké.
+      expect(estPrimary(withoutChoice, 'Raffiné')).toBe(true);
+      expect(estPrimary(withoutChoice, 'Solide')).toBe(false);
 
-    const key = trappingRefLabel(slot);
-    const withChoice = renderToStaticMarkup(<TrappingChoiceSlot slot={slot} choices={{ [key]: 'solide' }} onChoicesChange={() => {}} />);
-    expect(estPrimary(withChoice, 'Solide')).toBe(true);
-    expect(estPrimary(withChoice, 'Raffiné')).toBe(false);
+      const withChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{ [dot([4])]: 'solide' }} onChoicesChange={() => {}} />);
+      expect(estPrimary(withChoice, 'Solide')).toBe(true);
+      expect(estPrimary(withChoice, 'Raffiné')).toBe(false);
+    });
   });
 
-  it('TrappingChoiceSlot `{choice}` imbriquant un `{id, qualityChoice}` : le picker d\'Atout se déroule SOUS la branche choisie', () => {
-    const qualityBranch: TrappingRef = { id: 'fleuret', qualityChoice: true };
-    const slot: TrappingRef = { choice: [{ id: 'miroir-a-main' }, qualityBranch] };
-    const outerKey = trappingRefLabel(slot);
-    const branchKey = trappingRefLabel(qualityBranch);
-    // Défaut (aucun choix) : la 1re branche (Miroir) est effective, aucun picker d'Atout imbriqué.
-    const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot slot={slot} choices={{}} onChoicesChange={() => {}} />);
-    expect(beforeBranch).not.toContain('Robuste'); // desc de Solide, absent : picker imbriqué non déroulé
-    // Branche « Fleuret de qualité » choisie + Atout Solide choisi dans le picker imbriqué.
-    const afterBranch = renderToStaticMarkup(
-      <TrappingChoiceSlot slot={slot} choices={{ [outerKey]: branchKey, [branchKey]: 'solide' }} onChoicesChange={() => {}} />,
-    );
-    expect(afterBranch).toContain('Robuste'); // picker imbriqué déroulé
-    expect(estPrimary(afterBranch, 'Solide')).toBe(true);
+  it("TrappingChoiceSlot `{choice}` imbriquant un `{id, qualityChoice}` : le picker d'Atout se déroule SOUS la branche choisie", () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const slot = emplacementA(dot([0]));
+      // Défaut (aucun choix) : la 1re branche (Miroir) est effective, aucun picker d'Atout imbriqué.
+      const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{}} onChoicesChange={() => {}} />);
+      expect(beforeBranch).not.toContain('Robuste'); // desc de Solide, absent : picker imbriqué non déroulé
+      // Branche « Fleuret de qualité » choisie + Atout Solide choisi dans le picker imbriqué.
+      const afterBranch = renderToStaticMarkup(
+        <TrappingChoiceSlot emplacement={slot} choices={{ [dot([0])]: 1, [dot([0, 1])]: 'solide' }} onChoicesChange={() => {}} />,
+      );
+      expect(afterBranch).toContain('Robuste'); // picker imbriqué déroulé
+      expect(estPrimary(afterBranch, 'Solide')).toBe(true);
+    });
+  });
+
+  it("TrappingChoiceSlot écrit l'index de la branche à l'adresse de l'emplacement, et déroule l'emplacement de la branche à son chemin", () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const ecrits: [string, number | string][] = [];
+      const slot = emplacementA(dot([3]));
+      const rendu = TrappingChoiceSlot({ emplacement: slot, choices: { [dot([3])]: 0 }, onChoicesChange: (adresse, v) => ecrits.push([adresse, v]) });
+      const [chooser, sous] = (rendu as ReactElement<{ children: ReactElement<{ options?: { onSelect: () => void }[]; emplacement?: { adresse: string } }>[] }>).props.children;
+      chooser.props.options![1].onSelect();
+      expect(ecrits).toEqual([[dot([3]), 1]]);
+      expect(sous.props.emplacement!.adresse).toBe(dot([3, 0]));
+    });
   });
 
   it('étape Détails (#393 P5, étalon = planche ratifiée du créateur, écran Détails) — gabarit DEUX ZONES, identité + motivation + apparence dans le panneau', () => {
