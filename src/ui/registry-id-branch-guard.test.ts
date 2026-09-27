@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { COMPARATEUR_DE_REF } from '../../scripts/guards/lib/memeRef.mjs';
 
 /**
  * Garde-fou « branchement par IDENTITÉ dans du code GÉNÉRIQUE » (#842).
@@ -169,16 +170,16 @@ const RAW_KNOWN: Record<string, number> = {
   // `careerSlots` ('focalisation') et `healing` (`HEAL_SKILL`) ci-dessous ; la constante de module est
   // résolue par le scan brut (L2 #1548), donc la factorisation ne l'assainit pas et ne le prétend pas.
   'src/engine/bourse.ts': 1,
-  'src/engine/careerSlots.ts': 1, // reste `s.id === 'focalisation'` (lookup par id stable)
+  'src/engine/careerSlots.ts': 1, // reste `memeRef(s, { id: 'focalisation', spec: prev })` (lookup par id stable)
   'src/engine/corruption.ts': 2,
   'src/engine/crewedWeapon.ts': 1,
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
   'src/engine/equipCompare.ts': 2,
-  // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `careerSlots` ('focalisation')
-  // et `critical` ('resistance') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des
-  // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout désormais
-  // les constantes de module (L2 #1548), une factorisation n'assainit rien.
+  // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `bourse` et `careerSlots`
+  // ('focalisation') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des sites qui
+  // la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout les constantes
+  // de module (L2 #1548), une factorisation n'assainit rien.
   'src/engine/healing.ts': 1,
   'src/engine/magic.ts': 3,
   'src/engine/menace.ts': 1,
@@ -591,6 +592,21 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     expect(scanRawIdEqualities('fixture.ts', "const VIDE = '';\nfunction f(o: Op) { return o.ref === VIDE; }")).toEqual([]);
     // Une constante qui n'est PAS un littéral chaîne ne désigne rien non plus.
     expect(scanRawIdEqualities('fixture.ts', 'const CLE = compute();\nfunction f(e: E) { return e.id === CLE; }')).toEqual([]);
+  });
+
+  it('MORSURE BRUTE : le COMPARATEUR CANONIQUE ne cache pas la comparaison qu’il remplace', () => {
+    // Le nom scanné est celui qu'exporte le moteur : renommer le prédicat sans la garde rougit ICI.
+    expect(readFileSync('src/engine/careerSlots.ts', 'utf8')).toMatch(new RegExp(`export function ${COMPARATEUR_DE_REF}\\(`));
+    const c = COMPARATEUR_DE_REF;
+    // Désignation d'une entrée par littéral, par constante de module, ou par appel qualifié : compté.
+    expect(scanRawIdEqualities('fixture.ts', `const sk = xs.find((s) => ${c}(s, { id: 'savoir', spec: 'magie' }));`)).toHaveLength(1);
+    expect(scanRawIdEqualities('fixture.ts', `const CLE = 'savoir';\nconst sk = xs.find((s) => ${c}({ id: CLE }, s));`)).toHaveLength(1);
+    expect(scanRawIdEqualities('fixture.ts', `const sk = xs.find((s) => refs.${c}(s, { id: 'savoir' }));`)).toHaveLength(1);
+    // Deux désignations VARIABLES (raccourci `{ id }` compris) : aucune entrée désignée, rien compté.
+    expect(scanRawIdEqualities('fixture.ts', `function f(o: R, id: string, spec?: string) { return ${c}(o, { id, spec }); }`)).toEqual([]);
+    expect(scanRawIdEqualities('fixture.ts', `function f(o: R, skillId: string) { return ${c}(o, { id: skillId }); }`)).toEqual([]);
+    // Un littéral d'id passé à une AUTRE fonction n'est pas une comparaison.
+    expect(scanRawIdEqualities('fixture.ts', "const r = acquerir(s, { id: 'savoir' });")).toEqual([]);
   });
 
   it('ANGLES MORTS ASSERTÉS : ce que les deux gardes ne voient PAS, écrit noir sur blanc', () => {

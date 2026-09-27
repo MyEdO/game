@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant, ItemInstance } from '../engine/types';
-import type { Possession } from '../engine/possession';
 import { heroCarrier } from '../engine/carrier';
 import {
   addItemToHero, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout, receiveItems, totalEncumbrance,
   isWeaponActive, buildInventory, weaponItem,
 } from '../engine/items';
 import { applyOps } from '../engine/ops';
+import { gearFromEffects } from './combatEffects';
 import { ensureBourse, ensureBourseInstance, bourseInstanceOf } from '../engine/bourse';
 import { equipConjuredWeapon } from '../engine/conjuredWeapons';
 import { pregen, PREGEN } from '../data/pregens';
@@ -135,9 +135,9 @@ describe('entrée — `receiveItems` et ses flux', () => {
     const A = addItemToHero(addItemToHero(pregen(PREGEN.soldat), 'sac-a-dos'), 'dague');
     const sac = A.items!.find((i) => i.trappingId === 'sac-a-dos')!;
     const dague = dernier(A);
-    const mule = { uid: 'pos-1', nature: 'bete', ref: { creatureId: 'mule' }, ownerId: A.id, location: { kind: 'avec-le-groupe' }, items: [] } as unknown as Possession;
-    useGame.setState({ party: [{ ...A, items: A.items!.map((i) => (i.uid === dague.uid ? { ...i, inside: sac.uid } : i)) }], possessions: [mule] });
-    useGame.getState().transferItem(sac.uid, A.id, mule.uid);
+    useGame.setState({ party: [{ ...A, items: A.items!.map((i) => (i.uid === dague.uid ? { ...i, inside: sac.uid } : i)) }] });
+    const mule = useGame.getState().addPossession({ nature: 'bete', ref: { creatureId: 'mule' }, ownerId: A.id, location: { kind: 'avec-le-groupe' }, items: [] });
+    useGame.getState().transferItem(sac.uid, A.id, mule);
     const surMule = useGame.getState().possessions[0].items;
     expect(surMule.map((i) => i.uid).sort()).toEqual([sac.uid, dague.uid].sort());
     expect(surMule.find((i) => i.uid === dague.uid)!.inside).toBe(sac.uid);
@@ -147,7 +147,8 @@ describe('entrée — `receiveItems` et ses flux', () => {
 
   it('`receiveItems` sur une possession : copie non portée, rangée par défaut, sans re-dérivation de héros', () => {
     const sac = trapping('sac-a-dos');
-    const mule = { uid: 'pos-2', items: [sac] } as unknown as Possession;
+    const uid = useGame.getState().addPossession({ nature: 'bete', ref: { creatureId: 'mule' }, ownerId: 'h', location: { kind: 'avec-le-groupe' }, items: [sac] });
+    const mule = useGame.getState().possessions.find((p) => p.uid === uid)!;
     const epee = { ...trapping('epee'), equipped: true };
     const [entree] = receiveItems({ kind: 'possession', possession: mule }, [epee]);
     expect(entree).not.toBe(epee);
@@ -179,7 +180,7 @@ describe('entrée — `receiveItems` et ses flux', () => {
 
     useGame.setState({
       party: [pregen(PREGEN.soldat)],
-      pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [{ label: 'Dague', effect: { type: 'giveTrapping', trappingId: 'dague' } }], defeated: [] } as never,
+      pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: gearFromEffects([{ type: 'giveTrapping', trappingId: 'dague' }]).gear, defeated: [] },
     });
     useGame.getState().assignVictoryGear(0, heros(0).id);
     expect(dernier(heros(0)).trappingId).toBe('dague');

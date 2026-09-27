@@ -1475,11 +1475,14 @@ describe('`maisonSchema` — la raison maison a UNE forme (CLAUDE.md règle 7)',
   it('toute clé `maison` des schémas enregistrés COMPOSE `maisonSchema` — enveloppe comme sous-entrée', () => {
     const defs = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
     const retapes: string[] = [];
-    descendre(defs.map((d) => d.schema), ({ def, path, racine }) => {
+    descendre(defs.map((d) => d.schema), ({ noeud, def, path, racine }) => {
+      if (def.type !== 'object') return;
+      const cles = enfantsDe(noeud).filter((e) => e.cle !== undefined);
       // `auberge`/`maison`/`camp` : les lieux de repos (`defs-scenes/scene.ts`, `restPlacesSchema`), pas une raison.
-      if (def.type !== 'object' || !def.shape || !('maison' in def.shape) || 'auberge' in def.shape) return;
-      let valeur = def.shape.maison;
-      while (defDe(valeur)?.type === 'optional') valeur = defDe(valeur)?.innerType;
+      if (cles.some((e) => e.cle === 'auberge')) return;
+      let valeur = cles.find((e) => e.cle === 'maison')?.noeud;
+      if (valeur === undefined) return;
+      while (defDe(valeur)?.type === 'optional') valeur = enfantsDe(valeur).find((e) => e.segment === '')?.noeud;
       if (valeur !== maisonSchema) retapes.push(`${defs[racine].root}/${defs[racine].file}${path}.maison`);
     });
     expect(retapes).toEqual([]);

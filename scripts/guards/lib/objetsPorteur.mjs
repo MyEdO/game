@@ -23,6 +23,7 @@
 import path from 'node:path'
 import ts from 'typescript'
 import { repoProgram } from './tsProgram.mjs'
+import { estFichierVitest } from './fichierVitest.mjs'
 
 const COUTURE = 'src/engine/items.ts'
 const CARRIER = 'src/engine/carrier.ts'
@@ -32,13 +33,12 @@ const CHAMPS_PLACEMENT = ['inside', 'equipped']
 const INSERTIONS = { push: 1, unshift: 1, splice: 3 }
 
 const norm = (p) => p.replace(/\\/g, '/')
-const estTest = (rel) => /\.test\.tsx?$/.test(rel)
 
-/** Racines du Program du dépôt : `src/` hors tests. */
+/** Racines du Program du dépôt : `src/` hors instruments Vitest. */
 export function racinesSrc(fileNames, root) {
   return fileNames.filter((f) => {
     const rel = norm(path.relative(root, f))
-    return rel.startsWith('src/') && !estTest(rel)
+    return rel.startsWith('src/') && !estFichierVitest(rel)
   })
 }
 
@@ -156,7 +156,7 @@ export function auditObjetsPorteur(root, programme = null) {
   const ecarts = []
   for (const sf of program.getSourceFiles()) {
     const rel = norm(path.relative(root, sf.fileName))
-    if (sf.isDeclarationFile || !rel.startsWith('src/') || estTest(rel)) continue
+    if (sf.isDeclarationFile || !rel.startsWith('src/') || estFichierVitest(rel)) continue
     const poser = (angle, forme, n) =>
       ecarts.push({ angle, forme, at: `${rel}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1}` })
     const visit = (n) => {

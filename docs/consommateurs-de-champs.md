@@ -166,7 +166,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `min` | 2 | `src/state/travelFlow.ts:1154` |
-| `max` | 1 | `src/ui/compendium/registry.ts:821` |
+| `max` | 1 | `src/ui/compendium/registry.ts:822` |
 | `id` | 8 | `src/engine/mountTravel.ts:217` |
 | `label` | 8 | `src/engine/mountTravel.ts:201` |
 | `desc` | 1 | `src/state/travelPostes.ts:361` |
@@ -187,8 +187,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `min` | 1 | `src/ui/compendium/registry.ts:844` |
-| `max` | 1 | `src/ui/compendium/registry.ts:844` |
+| `min` | 1 | `src/ui/compendium/registry.ts:845` |
+| `max` | 1 | `src/ui/compendium/registry.ts:845` |
 | `id` | 3 | `src/data/index.ts:498` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
 | `ops` | 3 | `src/engine/riverNavigation.ts:216` |
@@ -203,7 +203,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `id` | 11 | `src/data/props.types.ts:595` |
 | `type` | **0 — JAMAIS LU** | — |
-| `label` | 1 | `src/ui/compendium/registry.ts:330` |
+| `label` | 1 | `src/ui/compendium/registry.ts:331` |
 | `labelF` | — | *absent du type TS* |
 | `desc` | — | *absent du type TS* |
 | `descRef` | — | *absent du type TS* |
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:310`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: ce286b2b0a5e568529a1dd173f57a3b6ec046b58 (2124 fichiers, 174 dossiers) corps: 8a4fd75d5c480e617494efdd6767598c0236929f -->
+<!-- sources-empreinte: 4de6581799a42d35df28a1f210128a4a52890404 (2124 fichiers, 174 dossiers) corps: 44151c51fcc162a44f2b877e107f3552a000dd69 -->

@@ -21,6 +21,7 @@ import { NumberField } from '../NumberField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
+import { AjoutRangee, ListeRangees } from '../AjoutRangee';
 import { ReadyRow } from '../ReadyRow';
 import { CoopInvite, CoopCodeInput, SeatList, CoopAssignRow, CoopBanner } from '../CoopPanels';
 import { CharFrame } from '../CharFrame';
@@ -305,6 +306,23 @@ function RefFieldDemo() {
       <RefField cfg={cfgClasse} fieldKey="class" label="Classe de la carrière" value={classe} onChange={setClasse} nullable />
       <RefField cfg={cfgCarac} fieldKey="refChar" label="Caractéristique de référence" value={carac} onChange={setCarac} nullable />
       <p className="hint">Stocké : {JSON.stringify({ class: classe, refChar: carac })}</p>
+    </Stack>
+  );
+}
+
+/** Liste éditable VIVANTE : l'ajout porte le focus au champ de la rangée neuve ; la seconde pose
+ *  est un ajout REFUSÉ, sa raison rendue par `GatedAction`. */
+function AjoutRangeeDemo() {
+  const [rangees, setRangees] = useState([{ id: 1, nom: 'Exclusion' }]);
+  return (
+    <Stack>
+      <ListeRangees nom="Rangées de la liste">
+        {rangees.map((r) => (
+          <input key={r.id} aria-label={`Rangée ${r.id}`} value={r.nom} onChange={(e) => setRangees((rs) => rs.map((x) => (x.id === r.id ? { ...x, nom: e.target.value } : x)))} />
+        ))}
+      </ListeRangees>
+      <AjoutRangee libelle="Rangée" onAjout={() => setRangees((rs) => [...rs, { id: rs.length + 1, nom: '' }])} />
+      <AjoutRangee libelle="Rangée" onAjout={() => {}} refus="La liste est pleine." />
     </Stack>
   );
 }
@@ -1548,6 +1566,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'qtystepper', label: 'QtyStepper', file: 'src/ui/QtyStepper.tsx', category: 'Négoce & activités', render: QtyStepperDemo },
   { id: 'numberfield', label: 'NumberField', file: 'src/ui/NumberField.tsx', category: 'Négoce & activités', render: NumberFieldDemo },
   { id: 'gatedaction', label: 'GatedAction', file: 'src/ui/GatedAction.tsx', category: 'Négoce & activités', render: GatedActionDemo },
+  { id: 'ajoutrangee-listerangees', label: 'AjoutRangee / ListeRangees', file: 'src/ui/AjoutRangee.tsx', category: 'Éditeur', render: AjoutRangeeDemo },
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },

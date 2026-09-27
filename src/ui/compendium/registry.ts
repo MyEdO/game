@@ -306,7 +306,8 @@ const specsFact = (cat: 'skills' | 'talents', def: { id: string; specsSource?: i
   const ids = specCatalogOf(def);
   if (!ids.length) return null;
   const marque = def.specsOpen ? libelleDuChamp('specsOpen', { meta: metaPourFichier(`${cat}.json`) }) : undefined;
-  return { label: 'Spécialisations', value: ids.map((id) => specLabel(cat, def.id, id)).join(', '), ...(marque ? { marque } : {}) };
+  const f = fact('Spécialisations', ids.map((id) => specLabel(cat, def.id, id)).join(', '));
+  return f && marque ? { ...f, marque } : f;
 };
 
 /** Prix d'une possession → libellé monnaie canon. La MARQUE de la colonne Prix (`'ND'`, LDB 62 l.28/

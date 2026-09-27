@@ -25,21 +25,24 @@ export type MetaDesChamps<C> = { [K in keyof C]: MetaChamp };
 type NoeudEnum = { meta?: () => unknown };
 
 /**
- * NOYAU d'enum d'un nœud — le nœud `z.enum` lui-même, `undefined` si le nœud n'est pas énuméré. Le
- * déroulé descend d'un nœud à son enfant quand `enfantsDe` (`grammaire/descente.ts`) en rend UN seul,
- * de segment `''` ou `[]`, sans lire le type du nœud : il traverse donc optionnel, nullable, défaut,
- * lecture seule, cible d'un `lazy`, élément de liste, et aussi `.catch`, `z.promise` et `z.success`,
- * dont l'univers de valeurs n'est pas celui de leur enfant. Il s'arrête sur tout nœud à plusieurs
- * enfants (union, pipe, intersection), sur tout autre segment, et sur un nœud déjà traversé. UNIQUE
- * déroulé du dépôt : `optionsEnum` (`grammaire/document.ts`) le compose, la lecture des libellés
+ * NOYAU d'enum d'un nœud — le premier nœud `z.enum` de son `deroule`, `undefined` si le déroulé n'en
+ * rencontre aucun. `optionsEnum` (`grammaire/document.ts`) le compose, la lecture des libellés
  * ci-dessous aussi.
  */
 export function noyauEnum(noeud: unknown): NoeudEnum | undefined {
   return deroule(noeud, (n) => defDe(n)?.type === 'enum') as NoeudEnum | undefined;
 }
 
-/** Premier nœud qui satisfait `arret`, du nœud lui-même à travers le déroulé décrit ci-dessus ;
- *  `undefined` sinon. Le déroulé UNIQUE du dépôt (`noyauEnum`, `regimesDuChamp`). */
+/**
+ * Premier nœud qui satisfait `arret`, évalué sur le nœud lui-même puis sur chaque nœud traversé ;
+ * `undefined` sinon. Le déroulé descend d'un nœud à son enfant quand `enfantsDe`
+ * (`grammaire/descente.ts`) en rend UN seul, de segment `''` ou `[]`, sans lire le type du nœud : il
+ * traverse donc optionnel, nullable, défaut, lecture seule, cible d'un `lazy`, élément de liste, et
+ * aussi `.catch`, `z.promise` et `z.success`, dont l'univers de valeurs n'est pas celui de leur enfant.
+ * Il s'arrête sur tout nœud à plusieurs enfants (union, pipe, intersection), sur tout autre segment,
+ * et sur un nœud déjà traversé. UNIQUE déroulé du dépôt : `noyauEnum` et `regimesDuChamp`
+ * (`grammaire/mecanique.ts`) le composent.
+ */
 export function deroule(noeud: unknown, arret: (n: unknown) => boolean): unknown {
   const traverses = new Set<unknown>();
   for (let n = noeud; n && !traverses.has(n); ) {

@@ -24,6 +24,7 @@ import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs';
+import { COMPARATEUR_DE_REF } from './memeRef.mjs';
 
 /** Liaison LOCALE du compilateur : sous le transformeur SSR de Vitest, chaque `ts.x` d'un import est
  *  une traversée de module (`__vite_ssr_import_N__.default.x`) — sur le visiteur d'AST, chaud, elle
@@ -524,6 +525,12 @@ export function countRegistryIdBranch(rel, contenu) {
  *  - `e.id.startsWith('x')`, `.match(…)` — 0/0 : ce n'est pas une égalité ;
  *  - champ d'identité hors convention (`e.cle === 'x'`) — 0/0.
  *
+ * Le COMPARATEUR CANONIQUE (`COMPARATEUR_DE_REF`, `memeRef.mjs`) pèse comme l'égalité qu'il remplace :
+ * `memeRef(s, { id: 'savoir', spec })` est `s.id === 'savoir' && …`, écrit par le prédicat unique. Un
+ * appel compte UNE comparaison dès qu'une de ses désignations est un littéral d'objet dont la propriété
+ * `id` désigne une entrée (`designeUneEntree` : littéral, ou constante de module qui en tient un).
+ * Deux désignations VARIABLES (`memeRef(o, { id, spec })`) ne désignent aucune entrée : 0.
+ *
  * Compté par NŒUD et non par ligne (contrairement au garde principal) : `id === 'a' ? … : id === 'b'`
  * sur une seule ligne pèse deux comparaisons, et n'en éteindre qu'une doit se voir.
  * @param {string} relPath @param {string} contenu
@@ -560,15 +567,33 @@ export function scanRawIdEqualities(relPath, contenu) {
     return false;
   };
 
+  /** Désignation `{ id: <entrée>, … }` passée au comparateur : sa propriété `id` désigne une entrée. */
+  const designationDUneEntree = (node) => {
+    const n = unwrap(node);
+    if (!ts.isObjectLiteralExpression(n)) return false;
+    return n.properties.some((p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name)
+      && p.name.text === 'id' && designeUneEntree(p.initializer));
+  };
+
+  /** Appel du comparateur canonique, nu (`memeRef(…)`) ou qualifié (`refs.memeRef(…)`). */
+  const estComparateur = (call) => {
+    const c = unwrap(call.expression);
+    const nom = ts.isIdentifier(c) ? c : ts.isPropertyAccessExpression(c) ? c.name : null;
+    return !!nom && ts.isIdentifier(nom) && nom.text === COMPARATEUR_DE_REF;
+  };
+
+  const compte = (node) => {
+    const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+    findings.push({ line, detail: (lines[line - 1] || '').trim() });
+  };
+
   const visit = (node) => {
     if (ts.isBinaryExpression(node) && EQUALITY_OPS.has(node.operatorToken.kind)) {
       const l = unwrap(node.left);
       const r = unwrap(node.right);
-      if ((isIdName(l) && designeUneEntree(r)) || (isIdName(r) && designeUneEntree(l))) {
-        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-        findings.push({ line, detail: (lines[line - 1] || '').trim() });
-      }
+      if ((isIdName(l) && designeUneEntree(r)) || (isIdName(r) && designeUneEntree(l))) compte(node);
     }
+    if (ts.isCallExpression(node) && estComparateur(node) && node.arguments.some(designationDUneEntree)) compte(node);
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(sf, visit);

@@ -34,8 +34,8 @@
 // dans le code de prod) puis en relançant le régénérateur — jamais en retirant la ligne à la main.
 //
 // DISPOSITIONS (ce que chaque groupe attend pour se solder ; la ligne, elle, est générée) :
-//   — `traits:marque-de-tzeentch`, `talents:benediction-de-tzeentch`/`disciple-du-changement`/
-//     `double-vie`/`empreint-de-la-magie` : bloqué par #676 — porteur attendu = carrière « Magus du
+//   — `talents:benediction-de-tzeentch`/`disciple-du-changement`/`double-vie`/
+//     `empreint-de-la-magie` : bloqué par #676 — porteur attendu = carrière « Magus du
 //     Culte de Tzeentch », absente de `careers.json` (EDOC 9).
 //   — `traits:absorption`, `traits:contagieux` : bloqué par #921 (cause A) — mécanique `effects`
 //     COMPLÈTE (et testée, `src/state/contagieux.test.ts`), aucune créature EDO ne porte le Trait.
@@ -431,6 +431,5 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/traits.json', ref: 'aura-de-mort', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'contagieux', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'decerebre', occurrence: 1 },
-  { fichier: 'src/data/traits.json', ref: 'marque-de-tzeentch', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'voleur-de-chair', occurrence: 1 },
 ]

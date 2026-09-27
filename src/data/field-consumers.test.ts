@@ -113,7 +113,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(
       specSites.sort(),
       'TrappingRef.spec devrait avoir EXACTEMENT 2 sites lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:36']);
+    ).toEqual(['src/engine/items.ts:310', 'src/engine/trappingChoices.ts:36']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refConcrete`',

@@ -1813,13 +1813,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/registry-id-branch-guard.test.ts",
-    motif: "désormais",
-    ancre: "sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/sheetAlarms.test.ts",
     motif: "désormais",
     ancre: "(désormais `EffectChips`). Contrat : détecter les afflictions par `key` d'identité + `label`",

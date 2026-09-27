@@ -9,6 +9,9 @@
 // par `node` nu.
 import { codeSeul } from './codeSeul.mjs';
 
+/** Nom du prédicat UNIQUE de l'identité d'une référence, exporté par `src/engine/careerSlots.ts`. */
+export const COMPARATEUR_DE_REF = 'memeRef';
+
 /** `(x.spec ?? '') ===`, `!==`, et la forme miroir `=== (y.spec ?? '')`. */
 export const MEME_SPEC_RX = /\bspec\s*\?\?\s*''\s*\)\s*[!=]==|[!=]==\s*\(\s*[\w$.!?[\]]*\bspec\s*\?\?\s*''/;
 
