@@ -1,10 +1,11 @@
 /**
  * Plomberie IndexedDB des magasins locaux (#1956) : disponibilité, ouverture bornée (#776), mise en
- * promesse des requêtes et des transactions, et accès d'UNE opération à une base. Couche neutre : la
- * donnée (`src/data`) et le store (`src/state`) l'importent tous deux.
+ * promesse des requêtes et des transactions, et la poignée d'une base (`accesBase`) : ses magasins
+ * typés et son vidage. Couche neutre : la donnée (`src/data`) et le store (`src/state`) l'importent
+ * tous deux.
  *
  * Politique de connexion : chaque opération ouvre sa connexion et la FERME à son règlement
- * (`lireDansBase`, `ecrireDansBase`) ; une ouverture réussie APRÈS le règlement de `ouvrirBase` est
+ * (`avecConnexion`) ; une ouverture réussie APRÈS le règlement de `ouvrirBase` est
  * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la montée de
  * version d'un autre onglet.
  */
@@ -78,34 +79,73 @@ export function transactionReglee(tx: IDBTransaction): Promise<void> {
   });
 }
 
-/** Lit dans UN magasin de `base` par `requete` ; `undefined` sans IndexedDB. */
-export async function lireDansBase(
-  base: BaseIdb,
-  magasin: string,
-  requete: (m: IDBObjectStore) => IDBRequest,
-): Promise<unknown> {
-  if (!idbDisponible()) return undefined;
+/** Ouvre `base`, joue `geste` sur la connexion, et la ferme au règlement. */
+async function avecConnexion<T>(base: BaseIdb, geste: (db: IDBDatabase) => Promise<T>): Promise<T> {
   const db = await ouvrirBase(base);
   try {
-    return await requeteReglee(requete(db.transaction(magasin, 'readonly').objectStore(magasin)));
+    return await geste(db);
   } finally {
     db.close();
   }
 }
 
-/** Écrit dans les `magasins` de `base` par `geste`, dans UNE transaction ; sans IndexedDB, rien. */
-export async function ecrireDansBase(
+/** Écrit dans les magasins `nomsMagasins` de la connexion par `geste`, dans UNE transaction. */
+function transactionEcriture(db: IDBDatabase, nomsMagasins: string[], geste: (tx: IDBTransaction) => void): Promise<void> {
+  const tx = db.transaction(nomsMagasins, 'readwrite');
+  geste(tx);
+  return transactionReglee(tx);
+}
+
+/** Lit dans le magasin `nomMagasin` de `base` par `requete` ; `undefined` sans IndexedDB. */
+async function lireDansBase(
   base: BaseIdb,
-  magasins: string | string[],
-  geste: (tx: IDBTransaction) => void,
-): Promise<void> {
+  nomMagasin: string,
+  requete: (m: IDBObjectStore) => IDBRequest,
+): Promise<unknown> {
+  if (!idbDisponible()) return undefined;
+  return avecConnexion(base, (db) => requeteReglee(requete(db.transaction(nomMagasin, 'readonly').objectStore(nomMagasin))));
+}
+
+/** Écrit dans le magasin `nomMagasin` de `base` par `geste`, dans UNE transaction ; sans IndexedDB, rien. */
+async function ecrireDansBase(base: BaseIdb, nomMagasin: string, geste: (m: IDBObjectStore) => void): Promise<void> {
   if (!idbDisponible()) return;
-  const db = await ouvrirBase(base);
-  try {
-    const tx = db.transaction(magasins, 'readwrite');
-    geste(tx);
-    await transactionReglee(tx);
-  } finally {
-    db.close();
-  }
+  await avecConnexion(base, (db) => transactionEcriture(db, [nomMagasin], (tx) => geste(tx.objectStore(nomMagasin))));
+}
+
+/** Un magasin d'une base : valeurs `V`, clés `K` (une clé composée est un tableau). */
+export interface MagasinIdb<V, K extends IDBValidKey> {
+  /** La valeur de `cle` ; `null` si absente ou sans IndexedDB. */
+  lire(cle: K): Promise<V | null>;
+  /** Toutes les valeurs ; `[]` sans IndexedDB. */
+  lireTout(): Promise<V[]>;
+  /** Pose `valeur`, sous `cle` pour un magasin à clés externes (`IDBObjectStore.put`). */
+  ecrire(valeur: V, cle?: K): Promise<void>;
+  supprimer(cle: K): Promise<void>;
+}
+
+/** La poignée d'une base : ses magasins, et son vidage. */
+export interface AccesBase {
+  magasin<V, K extends IDBValidKey>(nomMagasin: string): MagasinIdb<V, K>;
+  /** Vide tous les magasins de la base, dans UNE transaction ; sans IndexedDB, rien. */
+  vider(): Promise<void>;
+}
+
+export function accesBase(base: BaseIdb): AccesBase {
+  return {
+    magasin: <V, K extends IDBValidKey>(nomMagasin: string): MagasinIdb<V, K> => ({
+      lire: async (cle) => ((await lireDansBase(base, nomMagasin, (m) => m.get(cle))) as V | undefined) ?? null,
+      lireTout: async () => ((await lireDansBase(base, nomMagasin, (m) => m.getAll())) as V[] | undefined) ?? [],
+      ecrire: (valeur, cle) => ecrireDansBase(base, nomMagasin, (m) => { if (cle === undefined) m.put(valeur); else m.put(valeur, cle); }),
+      supprimer: (cle) => ecrireDansBase(base, nomMagasin, (m) => { m.delete(cle); }),
+    }),
+    vider: async () => {
+      if (!idbDisponible()) return;
+      await avecConnexion(base, (db) => {
+        const nomsMagasins = Array.from(db.objectStoreNames);
+        return transactionEcriture(db, nomsMagasins, (tx) => {
+          for (const nomMagasin of nomsMagasins) tx.objectStore(nomMagasin).clear();
+        });
+      });
+    },
+  };
 }

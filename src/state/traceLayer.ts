@@ -1,5 +1,5 @@
 import type { TraceTransform } from './traceCalibration';
-import { ecrireDansBase, lireDansBase, type BaseIdb } from '../lib/indexedDb';
+import { accesBase, type BaseIdb } from '../lib/indexedDb';
 
 /**
  * Persistance du CALQUE DE RÉFÉRENCE de l'éditeur (planche de livre décalquée, #830) — jamais de la
@@ -41,15 +41,6 @@ export interface TraceLayerRecord {
   savedAt: number;
 }
 
-export interface TraceLayerBackend {
-  get(sceneId: string, z: number): Promise<TraceLayerRecord | null>;
-  put(entry: TraceLayerRecord): Promise<void>;
-  delete(sceneId: string, z: number): Promise<void>;
-  getExpanded(sceneId: string): Promise<boolean | null>; // null = jamais réglé, l'appelant applique son défaut
-  putExpanded(sceneId: string, expanded: boolean): Promise<void>;
-  clear(): Promise<void>;
-}
-
 const STORE = 'layers';
 const PANEL_STORE = 'panelExpanded';
 
@@ -62,38 +53,16 @@ export const upgradeCalques: BaseIdb['upgrade'] = (db, ancienneVersion) => {
   if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
 };
 
-const BASE: BaseIdb = { nom: 'wfrp4-trace-layers', version: 2, upgrade: upgradeCalques };
-
-const realBackend: TraceLayerBackend = {
-  async get(sceneId, z) {
-    return ((await lireDansBase(BASE, STORE, (m) => m.get([sceneId, z]))) as TraceLayerRecord | undefined) ?? null;
-  },
-  put: (entry) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).put(entry); }),
-  delete: (sceneId, z) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).delete([sceneId, z]); }),
-  async getExpanded(sceneId) {
-    const r = (await lireDansBase(BASE, PANEL_STORE, (m) => m.get(sceneId))) as { sceneId: string; expanded: boolean } | undefined;
-    return r?.expanded ?? null;
-  },
-  putExpanded: (sceneId, expanded) =>
-    ecrireDansBase(BASE, PANEL_STORE, (tx) => { tx.objectStore(PANEL_STORE).put({ sceneId, expanded }); }),
-  clear: () => ecrireDansBase(BASE, [STORE, PANEL_STORE], (tx) => {
-    tx.objectStore(STORE).clear();
-    tx.objectStore(PANEL_STORE).clear();
-  }),
-};
-
-let backend: TraceLayerBackend = realBackend;
-
-export function __setTraceLayerBackendForTest(b: TraceLayerBackend | null): void {
-  backend = b ?? realBackend;
-}
+const base = accesBase({ nom: 'wfrp4-trace-layers', version: 2, upgrade: upgradeCalques });
+const calques = base.magasin<TraceLayerRecord, [string, number]>(STORE);
+const panneaux = base.magasin<{ sceneId: string; expanded: boolean }, string>(PANEL_STORE);
 
 /** Lecture — `null` si aucun calque enregistré pour cette (scène, couche), ou si IndexedDB est
  *  indisponible (mode privé strict, jsdom…) : le calque reste alors une aide de SESSION, jamais une
  *  donnée qui bloque l'ouverture de l'éditeur. */
 export async function traceLayerLoad(sceneId: string, z: number): Promise<TraceLayerRecord | null> {
   try {
-    return await backend.get(sceneId, z);
+    return await calques.lire([sceneId, z]);
   } catch {
     return null;
   }
@@ -104,7 +73,7 @@ export async function traceLayerLoad(sceneId: string, z: number): Promise<TraceL
  *  la session, seul le round-trip disque est perdu. */
 export async function traceLayerSave(entry: TraceLayerRecord): Promise<void> {
   try {
-    await backend.put(entry);
+    await calques.ecrire(entry);
   } catch (err) {
     console.error(`[traceLayer] persistance du calque de « ${entry.sceneId} » (couche ${entry.z}) en échec (session non affectée).`, err);
   }
@@ -112,7 +81,7 @@ export async function traceLayerSave(entry: TraceLayerRecord): Promise<void> {
 
 export async function traceLayerDelete(sceneId: string, z: number): Promise<void> {
   try {
-    await backend.delete(sceneId, z);
+    await calques.supprimer([sceneId, z]);
   } catch (err) {
     console.error(`[traceLayer] suppression du calque de « ${sceneId} » (couche ${z}) en échec.`, err);
   }
@@ -123,7 +92,7 @@ export async function traceLayerDelete(sceneId: string, z: number): Promise<void
  *  applique son propre défaut (déplié). */
 export async function panelExpandedLoad(sceneId: string): Promise<boolean | null> {
   try {
-    return await backend.getExpanded(sceneId);
+    return (await panneaux.lire(sceneId))?.expanded ?? null;
   } catch {
     return null;
   }
@@ -131,13 +100,13 @@ export async function panelExpandedLoad(sceneId: string): Promise<boolean | null
 
 export async function panelExpandedSave(sceneId: string, expanded: boolean): Promise<void> {
   try {
-    await backend.putExpanded(sceneId, expanded);
+    await panneaux.ecrire({ sceneId, expanded });
   } catch (err) {
     console.error(`[traceLayer] persistance du repli du panneau de « ${sceneId} » en échec.`, err);
   }
 }
 
-/** Test-only : vide les magasins pour l'isolation entre tests. */
+/** Test-only : vide la base pour l'isolation entre tests. */
 export async function __resetTraceLayerForTest(): Promise<void> {
-  await backend.clear();
+  await base.vider();
 }

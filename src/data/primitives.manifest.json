@@ -1019,9 +1019,9 @@
   {
     "id": "indexedDb",
     "type": "primitives.manifest",
-    "label": "ouvrirBase/lireDansBase/ecrireDansBase",
+    "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
+    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1087,5 +1087,14 @@
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modalKindsOpen)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+  },
+  {
+    "id": "stockageLocal",
+    "type": "primitives.manifest",
+    "label": "stockageLocal",
+    "fichier": "src/lib/stockageLocal.ts",
+    "concept": "accès protégé au `localStorage` : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox) ; chaque site garde ses clés et sa sérialisation",
+    "perimetre": "tout site qui lit ou écrit le localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI",
+    "verrou": "src/lib/stockageLocal.test.ts"
   }
 ]

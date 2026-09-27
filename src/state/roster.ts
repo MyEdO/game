@@ -9,6 +9,7 @@ import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
 import { migrerClesDEmplacement } from '../engine/careerSlots';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { t } from '../i18n';
+import { stockageLocal } from '../lib/stockageLocal';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
  *  Snapshot À LA CRÉATION : le héros tel que sorti de `buildHero`, plus sa
@@ -28,16 +29,8 @@ export interface RosterEntry {
 
 const KEY = 'wfrp4.roster.v1';
 
-function storage(): Storage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null; // accès refusé (mode privé strict, iframe sandbox…)
-  }
-}
-
 export function rosterLoad(): RosterEntry[] {
-  const s = storage();
+  const s = stockageLocal();
   if (!s) return [];
   try {
     const raw = s.getItem(KEY);
@@ -169,7 +162,7 @@ export function rosterImport(str: string): RosterImportResult {
 
 function save(list: RosterEntry[]): void {
   try {
-    storage()?.setItem(KEY, JSON.stringify(list));
+    stockageLocal()?.setItem(KEY, JSON.stringify(list));
   } catch {
     // quota plein / stockage indisponible : on ne casse pas la création pour ça
   }

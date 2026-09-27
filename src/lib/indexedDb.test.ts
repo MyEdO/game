@@ -2,15 +2,14 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   IDB_OPEN_TIMEOUT_MS,
   __setOuvertureIdbForTest,
-  ecrireDansBase,
+  accesBase,
   idbDisponible,
-  lireDansBase,
   ouvrirBase,
   requeteReglee,
   transactionReglee,
   type BaseIdb,
 } from './indexedDb';
-import { baseSimulee, brancherBaseSimulee, ouvertureSimulee, type BaseSimulee, type OuvertureSimulee } from './indexedDb.testkit';
+import { baseSimulee, brancherBasesSimulees, ouvertureSimulee, type BaseSimulee, type OuvertureSimulee } from './indexedDb.testkit';
 
 const BASE: BaseIdb = {
   nom: 'wfrp4-essai',
@@ -175,35 +174,116 @@ describe('requeteReglee / transactionReglee — la mise en promesse, un seul rè
   });
 });
 
-describe('lireDansBase / ecrireDansBase — une opération, sa connexion fermée à son règlement', () => {
-  it('sans IndexedDB : la lecture rend `undefined`, l’écriture ne fait rien', async () => {
-    await expect(lireDansBase(BASE, 'choses', (m) => m.getAll())).resolves.toBeUndefined();
-    await expect(ecrireDansBase(BASE, 'choses', () => { throw new Error('jamais appelé'); })).resolves.toBeUndefined();
+describe('accesBase — un magasin par opération, sa connexion fermée à son règlement', () => {
+  const choses = accesBase(BASE).magasin<{ id: string; n?: number }, string>('choses');
+
+  it('sans IndexedDB : `lire` rend `null`, `lireTout` `[]`, les écritures et le vidage ne font rien', async () => {
+    await expect(choses.lire('a')).resolves.toBeNull();
+    await expect(choses.lireTout()).resolves.toEqual([]);
+    await expect(choses.ecrire({ id: 'a' })).resolves.toBeUndefined();
+    await expect(choses.supprimer('a')).resolves.toBeUndefined();
+    await expect(accesBase(BASE).vider()).resolves.toBeUndefined();
   });
 
-  it('écrit puis relit, chaque opération dans sa transaction et sa connexion, refermée', async () => {
-    const base = baseSimulee();
-    brancherBaseSimulee(base);
-    await ecrireDansBase(BASE, 'choses', (tx) => { tx.objectStore('choses').put({ id: 'a', n: 1 }); });
-    await expect(lireDansBase(BASE, 'choses', (m) => m.getAll())).resolves.toEqual([{ id: 'a', n: 1 }]);
-    expect(base.transactions.map((t) => [t.magasins, t.mode])).toEqual([[['choses'], 'readwrite'], [['choses'], 'readonly']]);
-    expect(base.fermetures).toBe(2);
+  it('écrit, relit, supprime, chaque opération dans sa transaction et sa connexion, refermée', async () => {
+    const base = brancherBasesSimulees().base(BASE.nom);
+    await choses.ecrire({ id: 'a', n: 1 });
+    await expect(choses.lire('a')).resolves.toEqual({ id: 'a', n: 1 });
+    await expect(choses.lireTout()).resolves.toEqual([{ id: 'a', n: 1 }]);
+    await choses.supprimer('a');
+    await expect(choses.lire('a')).resolves.toBeNull();
+    expect(base.transactions.map((t) => [t.magasins, t.mode])).toEqual([
+      [['choses'], 'readwrite'], [['choses'], 'readonly'], [['choses'], 'readonly'], [['choses'], 'readwrite'], [['choses'], 'readonly'],
+    ]);
+    expect(base.fermetures).toBe(5);
   });
 
-  it('une transaction en échec rejette, et la connexion est refermée quand même', async () => {
-    const base = baseSimulee();
-    brancherBaseSimulee(base);
-    await ecrireDansBase(BASE, 'choses', () => {});
+  it('clé externe et clé composée passent telles quelles', async () => {
+    const bases = brancherBasesSimulees();
+    const externe: BaseIdb = { nom: 'wfrp4-externe', version: 1, upgrade: (db) => { db.createObjectStore('poignees'); } };
+    const composee: BaseIdb = { nom: 'wfrp4-composee', version: 1, upgrade: (db) => { db.createObjectStore('couches', { keyPath: ['scene', 'z'] }); } };
+    const poignees = accesBase(externe).magasin<{ kind: string }, string>('poignees');
+    const couches = accesBase(composee).magasin<{ scene: string; z: number }, [string, number]>('couches');
+    await poignees.ecrire({ kind: 'directory' }, 'dataDir');
+    await couches.ecrire({ scene: 's', z: 1 });
+    await expect(poignees.lire('dataDir')).resolves.toEqual({ kind: 'directory' });
+    await expect(couches.lire(['s', 1])).resolves.toEqual({ scene: 's', z: 1 });
+    await expect(couches.lire(['s', 0])).resolves.toBeNull();
+    expect(bases.base('wfrp4-externe').ecritures).toEqual([{ magasin: 'poignees', geste: 'put', cle: 'dataDir', valeur: { kind: 'directory' } }]);
+  });
+
+  it('une écriture en panne rejette, n’applique RIEN, et la connexion est refermée quand même', async () => {
+    const base = brancherBasesSimulees().base(BASE.nom);
+    await choses.ecrire({ id: 'a' });
     const erreur = new DOMException('quota', 'QuotaExceededError');
-    base.echec = erreur;
-    await expect(ecrireDansBase(BASE, 'choses', (tx) => { tx.objectStore('choses').put({ id: 'b' }); })).rejects.toBe(erreur);
+    base.panne = (q) => (q.geste === 'put' && (q.valeur as { id: string }).id === 'b' ? erreur : null);
+    await expect(choses.ecrire({ id: 'b' })).rejects.toBe(erreur);
+    await expect(choses.lire('b')).resolves.toBeNull();
+    expect(base.ecritures.map((q) => q.valeur)).toEqual([{ id: 'a' }]);
+    expect(base.fermetures).toBe(3);
+  });
+
+  it('une lecture en panne rejette par sa requête, et la connexion est refermée quand même', async () => {
+    const base = brancherBasesSimulees().base(BASE.nom);
+    const erreur = new DOMException('illisible', 'UnknownError');
+    base.panne = (q) => (q.geste === 'getAll' ? erreur : null);
+    await expect(choses.lireTout()).rejects.toBe(erreur);
+    await expect(choses.lire('a')).resolves.toBeNull();
     expect(base.fermetures).toBe(2);
   });
 
-  it('un geste qui lève rejette, et la connexion est refermée quand même', async () => {
-    const base = baseSimulee();
-    brancherBaseSimulee(base);
-    await expect(lireDansBase(BASE, 'absent', (m) => m.getAll())).rejects.toThrow('absent');
+  it('un magasin absent rejette, et la connexion est refermée quand même', async () => {
+    const base = brancherBasesSimulees().base(BASE.nom);
+    await expect(accesBase(BASE).magasin('absent').lireTout()).rejects.toThrow('absent');
     expect(base.fermetures).toBe(1);
+  });
+
+  it('`vider` vide TOUS les magasins de la base dans UNE transaction ; en panne, il n’en vide aucun', async () => {
+    const deux: BaseIdb = {
+      nom: 'wfrp4-deux',
+      version: 1,
+      upgrade: (db) => { db.createObjectStore('a', { keyPath: 'id' }); db.createObjectStore('b', { keyPath: 'id' }); },
+    };
+    const bases = brancherBasesSimulees();
+    const acces = accesBase(deux);
+    await acces.magasin('a').ecrire({ id: 1 });
+    await acces.magasin('b').ecrire({ id: 2 });
+    const base = bases.base('wfrp4-deux');
+    base.panne = (q) => (q.geste === 'clear' && q.magasin === 'b' ? new DOMException('quota', 'QuotaExceededError') : null);
+    await expect(acces.vider()).rejects.toThrow('quota');
+    expect([bases.contenu('wfrp4-deux', 'a').size, bases.contenu('wfrp4-deux', 'b').size]).toEqual([1, 1]);
+    base.panne = () => null;
+    await acces.vider();
+    expect([bases.contenu('wfrp4-deux', 'a').size, bases.contenu('wfrp4-deux', 'b').size]).toEqual([0, 0]);
+    expect(base.transactions[base.transactions.length - 1].magasins).toEqual(['a', 'b']);
+  });
+});
+
+describe('brancherBasesSimulees — un branchement, une base par nom', () => {
+  it('deux bases ouvertes par le même branchement restent distinctes, chacune montée UNE fois', async () => {
+    const bases = brancherBasesSimulees();
+    const montees: string[] = [];
+    const autre: BaseIdb = { nom: 'wfrp4-autre', version: 1, upgrade: (db) => { montees.push('autre'); db.createObjectStore('choses', { keyPath: 'id' }); } };
+    const essai: BaseIdb = { ...BASE, upgrade: (db, v) => { montees.push('essai'); BASE.upgrade(db, v); } };
+    await accesBase(essai).magasin('choses').ecrire({ id: 'e' });
+    await accesBase(autre).magasin('choses').ecrire({ id: 'x' });
+    await accesBase(essai).magasin('choses').ecrire({ id: 'f' });
+    expect([...bases.contenu('wfrp4-essai', 'choses').keys()]).toEqual(['e', 'f']);
+    expect([...bases.contenu('wfrp4-autre', 'choses').keys()]).toEqual(['x']);
+    expect(montees).toEqual(['essai', 'autre']);
+  });
+
+  it('une base amorcée à une version antérieure monte depuis elle ; à la version courante, ne monte pas', async () => {
+    const bases = brancherBasesSimulees();
+    const vues: number[] = [];
+    const amorcee = bases.amorcer(BASE.nom, 2, { vieux: {} });
+    await accesBase({ ...BASE, upgrade: (db, v) => { vues.push(v); BASE.upgrade(db, v); } }).magasin('choses').lireTout();
+    expect(vues).toEqual([2]);
+    expect([...amorcee.magasins.keys()]).toEqual(['vieux', 'choses']);
+
+    const aJour = bases.amorcer('wfrp4-a-jour', 1, { choses: { keyPath: 'id' } });
+    aJour.magasins.get('choses')!.contenu.set('p', { id: 'p' });
+    await expect(accesBase({ ...BASE, nom: 'wfrp4-a-jour', version: 1, upgrade: () => { vues.push(-1); } }).magasin('choses').lire('p')).resolves.toEqual({ id: 'p' });
+    expect(vues).toEqual([2]);
   });
 });

@@ -25,6 +25,7 @@
  */
 import type { RuleValue } from '../engine/policy';
 import type { Scene } from './scene';
+import { stockageLocal } from '../lib/stockageLocal';
 
 // 32 → 33 (L2 #1548, geste modèle) : une personne se RÉFÉRENCE. Le document de scène (`scene`) perd
 // les deux pseudo-PNJ écrits en clair — l'effet `medicalAid` porte seulement son `entityId` (la
@@ -196,14 +197,6 @@ export type AnySlot = SaveSlot | typeof AUTO_SLOT;
 const KEY = (slot: AnySlot) => `wfrp4.save.${slot}`;
 const LEGACY_KEY = (version: number, slot: AnySlot) => `wfrp4.save.v${version}.${slot}`;
 
-function storage(): Storage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null; // accès refusé (mode privé strict, iframe sandbox…)
-  }
-}
-
 /**
  * Les clés de DONNÉES qui ne partent PAS en save — l'ensemble NOMMÉ, une raison par clé. Le contrat
  * du snapshot est POSITIF (tout champ de données de l'état initial entre), donc une exclusion qui
@@ -346,7 +339,7 @@ function discardSlot(s: Storage, slot: AnySlot, cause: ObsoleteCause): void {
 }
 
 export function saveToSlot(slot: AnySlot, save: SaveGame): boolean {
-  const s = storage();
+  const s = stockageLocal();
   if (!s) return false;
   try {
     s.setItem(KEY(slot), JSON.stringify(save));
@@ -374,7 +367,7 @@ function residualCause(s: Storage, slot: AnySlot): ObsoleteCause | null {
 /** Lit l'emplacement : une save à `SAVE_VERSION`, ou `null`. Tout contenu d'une AUTRE version (clé
  *  stable, clé de quarantaine ou clé versionnée historique) ou illisible est JETÉ, témoin posé. */
 export function readSlot(slot: AnySlot): SaveGame | null {
-  const s = storage();
+  const s = stockageLocal();
   if (!s) return null;
   let raw: string | null;
   try {
@@ -414,7 +407,7 @@ export function readSlot(slot: AnySlot): SaveGame | null {
 
 export function deleteSlot(slot: AnySlot): void {
   try {
-    const s = storage();
+    const s = stockageLocal();
     if (!s) return;
     for (const k of slotKeys(slot)) s.removeItem(k);
   } catch {
