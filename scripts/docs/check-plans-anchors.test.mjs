@@ -18,11 +18,11 @@ import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 const ICI = dirname(fileURLToPath(import.meta.url))
 const GARDE = join(ICI, 'check-plans-anchors.mjs')
 /** Libs que la garde importe en RELATIF : le dépôt jetable doit les porter au même chemin. */
-const LIBS = [['scripts', 'guards', 'lib', 'lister.mjs']]
+const LIBS = [['scripts', 'guards', 'lib', 'lister.mjs'], ['src', 'lib', 'ordre.mjs']]
 /** La garde et ses libs, LUES : le dépôt jetable les porte aux mêmes chemins relatifs. */
 const CODE_DE_LA_GARDE = {
   'scripts/docs/check-plans-anchors.mjs': readFileSync(GARDE, 'utf8'),
-  ...Object.fromEntries(LIBS.map((parts) => [parts.join('/'), readFileSync(join(ICI, '..', ...parts.slice(1)), 'utf8')])),
+  ...Object.fromEntries(LIBS.map((parts) => [parts.join('/'), readFileSync(join(ICI, '..', '..', ...parts), 'utf8')])),
 }
 
 const git = (base, ...args) => {
