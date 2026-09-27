@@ -78,14 +78,10 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
    *  « plusieurs jours » attendus. Cap EST (vent de dos dominant) : plafond large pour couvrir la
    *  variance légitime des tempêtes (RAW), mais qui aurait échoué sur l'ancien cap.
    *
-   *  MESURE du 2026-09-05 (#1599), sur les 15 seeds, avec les rôles filtrés par `isOutOfAction`
-   *  (LDB 16 : un KO ne tient pas de poste) et la réserve d'eau re-dérivée de MDG 14 l.242
-   *  (« Un tonneau contient 145 litres d'eau. Un membre d'équipage boit 2 à 3 litres d'eau par
-   *  jour. » — 20 tonneaux, 19 hommes à 3 L/jour) :
-   *  [2,875 · 2,875 · 1,875 · 2,875 · 10,875 · 4,875 · 5,875 · 3,875 · 1,875 · 1,875 · 1,875 · 1,875
-   *   · 2,875 · 1,875 · 4,875], max 10,875 (seed 5), moyenne 3,542. Les mêmes 15 valeurs à 600 L
-   *  qu'à 2 900 L : la soif n'était sur le chemin d'aucune de ces traversées (seule la seed 5 vidait
-   *  les tonneaux, au 10ᵉ jour, sans changer sa durée). Le plafond de 42 j n'est donc pas serré : il
+   *  MESURE du 2026-09-27 (#1897 ; MDG 13 l.272, l.294 ; MDG 14 l.242) :
+   *  [2,875 · 1,875 · 1,875 · 1,875 · 10,875 · 3,875 · 1,875 · 13,875 · 2,875 · 1,875 · 1,875 · 1,875
+   *   · 1,875 · 1,875 · 2,875], max 13,875 (seed 8), moyenne 3,608 ; équipages décalés (graines
+   *  +1 / +2 / +7000) : max 13,875 / 16,875 / 21,875. Le plafond de 42 j n'est donc pas serré : il
    *  reste la borne qui aurait ROUGI sur l'ancien cap ouest. */
   it('aucune des 15 premières seeds ne dépasse 42 jours de mer (l\'ancien cap ouest atteignait 106,875)', () => {
     const days: number[] = [];

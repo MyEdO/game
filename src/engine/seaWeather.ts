@@ -29,6 +29,7 @@
  */
 import seaWeatherJson from '../data/sea-weather.json';
 import { findTableEntry } from './tables';
+import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, type RNG, defaultRNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
@@ -68,6 +69,8 @@ const DATA = seaWeatherJson as unknown as {
   temperatures: TemperatureDef[];
   visibilites: VisibilityDef[];
   vents: { id: string; label: string }[];
+  windTickThreshold: number;
+  windTicksPerDay: number;
   roseDesVents: { min: number; max: number; direction: string }[];
   effetDuVent: Record<string, Record<WindAspect, WindEffectCell>>;
   effetDuVentClinfoc: Record<string, Record<WindAspect, WindEffectCell>>;
@@ -131,18 +134,14 @@ export function windAspect(heading: WindDirection, windFrom: WindDirection): Win
   return opposite[heading] === windFrom ? 'arriere' : 'lateral';
 }
 
-/** Mise à jour du vent « à l'aube, à midi, au crépuscule et à minuit » (l.272) : 1d10, sur 1 le vent
- *  change d'un cran (50/50 forcir/mollir ; bornes : Calme plat → Légère brise, Violente tempête →
- *  Vent violent). PUR — renvoie la nouvelle force. */
+/** UNE mise à jour de la force du vent (l.272). PUR. */
 export function tickWindForce(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
-  if (d10(rng) !== 1) return current;
-  const forces = windForces();
-  const i = forces.indexOf(current);
-  const up = d10(rng) <= 5;
-  // Bornes RAW : « Le Calme plat ne peut devenir qu'une Légère brise et une Violente tempête ne peut
-  // devenir qu'un Vent violent » (l.272) — le cran aux bornes est FORCÉ, pas annulé.
-  const next = i === 0 ? 1 : i === forces.length - 1 ? forces.length - 2 : i + (up ? 1 : -1);
-  return forces[next];
+  return basculesDeForce(windForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
+}
+
+/** Force du vent au terme d'une journée : `windTicksPerDay` mises à jour (l.272). PUR. */
+export function tickWindForceDay(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
+  return basculesDeForce(windForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
 /** Gréement du navire modulant l'EFFET DU VENT : `clinfoc` = tableau ALTERNATIF de l'Amélioration Clinfoc

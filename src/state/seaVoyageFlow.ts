@@ -65,10 +65,10 @@ import { isRation } from '../engine/provisions';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
-  rollSeaWeather, rollWindDirection, windAspect, tickWindForce, windEffect, windAdjustedM,
+  rollSeaWeather, rollWindDirection, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
   precipitationSkillMod, precipitationDef,
-  type SeaWeather, type WindDirection,
+  type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, rollWeeklyFouling,
@@ -164,7 +164,7 @@ export interface SeaVoyageState {
   /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
    *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
   entries?: NightEntry[];
-  /** Milles parcourus AUJOURD'HUI (fixés par la Progression). */
+  /** Milles parcourus AUJOURD'HUI le long du trajet : Progression, ou dérive SIGNÉE (MDG 13 l.294). */
   milesToday: number;
   /** Blessures de coque AU LEVER du jour — sert au DELTA du jour clos (`SeaRecapChrome.hullDelta`) :
    *  la chronique d'un jour PASSÉ raconte ce que la journée a coûté à la coque, l'état COURANT restant
@@ -805,11 +805,18 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const effAfterAffaler = effectiveSeaM(get);
   if (sea.sailsDown || effAfterAffaler.m === null) {
     const anchored = shipHasNavalTrait(hullNavalTraits(plan.vehicle!), 'ancre');
-    const drift = anchored ? 0 : Math.round(seaMilesPerDay(4, true) * (AFFALER_RULES.driftPctOfSpeed / 100));
-    tell(get, set, [!sea.sailsDown
-      ? t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })
-      : t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift }) })]);
-    patchSea(get, set, { milesToday: 0 });
+    if (!sea.sailsDown) {
+      const drift = anchored ? 0 : Math.round(seaMilesPerDay(4, true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      tell(get, set, [t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })]);
+      patchSea(get, set, { milesToday: 0 });
+    } else {
+      // MDG 13 l.294 ; l.262-270.
+      const windDrift = anchored ? 0 : Math.round(seaMilesPerDay(cruiseM(plan.vehicle!), true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      const sens = DRIFT_ALONG_ROUTE[windAspect(sea.heading, sea.windFrom)];
+      const credited = Math.max(-plan.kmDone, sens * windDrift);
+      tell(get, set, [t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) })]);
+      patchSea(get, set, { milesToday: credited });
+    }
     steps.push(...buildPostProgressionSteps(get, set));
     return { steps, log: [] };
   }
@@ -829,6 +836,10 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   }
   return { steps, log: [] };
 }
+
+/** Sens de la dérive sous le vent le long du trajet, par aspect du vent (MDG 13 l.262-270, l.294). */
+const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
+const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
 /** Un jour de voyage maritime est-il de PURE ROUTINE (aucune décision susceptible de survenir) ? Une
  *  crise en cours, une infestation active, ou une route à embuscade NON ENCORE déclenchée forcent
@@ -1667,11 +1678,10 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     milesLeft: Math.max(0, Math.round(plan.km - kmDone)),
     daysLeft: Math.max(0, Math.ceil(Math.max(0, plan.km - kmDone) / seaMilesPerDay(cruiseM(hull), true))),
   };
-  // Météo du LENDEMAIN (ch.13 l.164) + direction du vent (rose, l.250) — force du vent : celle du jour
-  // qui s'achève, mise à jour (l.272, résumée en un cran par jour à l'échelle voyage).
+  // Météo du LENDEMAIN (ch.13 l.164), direction du vent (l.250), force du vent (l.272).
   const season = seasonOfMonth(toDate(get().gameTime).month);
   let weather = rollSeaWeather(season, rng);
-  weather = { ...weather, vent: tickWindForce(sea.weather?.vent ?? weather.vent, rng) };
+  weather = { ...weather, vent: tickWindForceDay(sea.weather?.vent ?? weather.vent, rng) };
   let windFrom = rollWindDirection(rng);
   // Verrous d'événement (Bruine / Beau temps / Ciel dégagé / Calme plat, ch.15).
   let lock = sea.weatherLock;

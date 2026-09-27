@@ -65,7 +65,7 @@ seam (`ROLL_SEAM_CORE`) sont hors périmètre — leur pending EST le foyer.
 | `src/state/massBattleFlow.ts` | 1 | dette | 354 | `openBattleActivity` — fabrique PARTAGÉE, atteinte par 6 call-sites (prep ×3/round ×2/resistance) -> #1067 (surfaçage massBattle). |
 | `src/state/medicFlow.ts` | 2 | dette | 176, 202 | `pendingHeal` et `pendingSurgery` du soigneur PNJ hors combat -> #1064. |
 | `src/state/merchantFlow.ts` | 1 | dette | 881 | `pendingAppraise` (Évaluation / Intuition de détection) -> #1064. |
-| `src/state/seaVoyageFlow.ts` | 1 | dette | 2094 | `pendingSteamSave` (`openSteamSave`, Test d'Initiative de l'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c'est la FABRIQUE du pending qui reste montée à la main -> #1474. |
+| `src/state/seaVoyageFlow.ts` | 1 | dette | 2104 | `pendingSteamSave` (`openSteamSave`, Test d'Initiative de l'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c'est la FABRIQUE du pending qui reste montée à la main -> #1474. |
 | `src/state/store.ts` | 1 | canonique | 2869 | canonique : re-ciblage d'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit. |
 
 _15 sites mesurés dans 9 fichiers — par nature : 11 dette, 2 canonique, 2 mixte._
@@ -160,9 +160,9 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 | `src/state/possessionsFlow.ts` | 1 | dette | `possessionGrantsFromRefs` | mesuré : possessionGrantsFromRefs×1. C (octrois tirés) -> #1508 T5. |
 | `src/state/pursuitFlow.ts` | 1 | dette | `rollTest` | mesuré : rollTest×1. Test de poursuite roulé en direct -> #1508 T3. |
 | `src/state/restFlow.ts` | 8 | dette | `applyExposureFailure`, `applyFaimTest`, `applyOps`, `applySoifTest`, `restRecovery`, `rng.int`, `rollContraction` | mesuré : applyExposureFailure×2, applyFaimTest×1, applyOps×1, applySoifTest×1, restRecovery×1, rng.int×1, rollContraction×1. B, C (Exposition, faim/soif) -> #1508 T2/T5. |
-| `src/state/riverVoyageFlow.ts` | 13 | dette | `applyCrewHit`, `deMonde`, `resolveRiverImpact`, `rollBarrage`, `rollBarrageClearing`, `rollExpr`, `rollRiverWind`, `rollShipCritical`, `rollTest` | mesuré : rollTest×3, resolveRiverImpact×2, rollExpr×2, applyCrewHit×1, deMonde×1, rollBarrage×1, rollBarrageClearing×1, rollRiverWind×1, rollShipCritical×1. A (péril fluvial), C (dégâts d'impact) -> #1508 T4/T5. |
+| `src/state/riverVoyageFlow.ts` | 14 | dette | `applyCrewHit`, `deMonde`, `resolveRiverImpact`, `rollBarrage`, `rollBarrageClearing`, `rollExpr`, `rollRiverWind`, `rollShipCritical`, `rollTest`, `tickRiverWindDay` | mesuré : rollTest×3, resolveRiverImpact×2, rollExpr×2, applyCrewHit×1, deMonde×1, rollBarrage×1, rollBarrageClearing×1, rollRiverWind×1, rollShipCritical×1, tickRiverWindDay×1. A (péril fluvial), C (dégâts d'impact) -> #1508 T4/T5. |
 | `src/state/seaActivities.ts` | 2 | dette | `applyOps` | mesuré : applyOps×2. B -> #1508 T2. |
-| `src/state/seaVoyageFlow.ts` | 54 | dette | `applyCrewHit`, `applyOps`, `d10`, `deMonde`, `pickSeaHazard`, `resolveFastVoyage`, `rng.int`, `roll`, `rollCourseChange`, `rollDaysToNextEvent`, `rollPortEvent`, `rollSeaWeather`, `rollShipCritical`, `rollTest`, `rollWeeklyFouling`, `rollWindDirection`, `tickWindForce` | mesuré : roll×16, d10×7, rollShipCritical×5, applyOps×4, rollTest×4, deMonde×3, rng.int×2, rollDaysToNextEvent×2, rollSeaWeather×2, rollWindDirection×2, applyCrewHit×1, pickSeaHazard×1, resolveFastVoyage×1, rollCourseChange×1, rollPortEvent×1, rollWeeklyFouling×1, tickWindForce×1. A (dés de monde), C (magnitudes maritimes) -> #1508 T4/T5. |
+| `src/state/seaVoyageFlow.ts` | 54 | dette | `applyCrewHit`, `applyOps`, `d10`, `deMonde`, `pickSeaHazard`, `resolveFastVoyage`, `rng.int`, `roll`, `rollCourseChange`, `rollDaysToNextEvent`, `rollPortEvent`, `rollSeaWeather`, `rollShipCritical`, `rollTest`, `rollWeeklyFouling`, `rollWindDirection`, `tickWindForceDay` | mesuré : roll×16, d10×7, rollShipCritical×5, applyOps×4, rollTest×4, deMonde×3, rng.int×2, rollDaysToNextEvent×2, rollSeaWeather×2, rollWindDirection×2, applyCrewHit×1, pickSeaHazard×1, resolveFastVoyage×1, rollCourseChange×1, rollPortEvent×1, rollWeeklyFouling×1, tickWindForceDay×1. A (dés de monde), C (magnitudes maritimes) -> #1508 T4/T5. |
 | `src/state/sequenceCore.ts` | 2 | dette | `applyOps` | mesuré : applyOps×2. B -> #1508 T2. |
 | `src/state/shipCollision.ts` | 2 | dette | `applyOps` | mesuré : applyOps×2. B -> #1508 T2. |
 | `src/state/shipCrew.ts` | 4 | dette | `applyOps`, `deMonde`, `recalcMorale` | mesuré : applyOps×2, deMonde×1, recalcMorale×1. A (désertion `deMonde`, un dé par marin), B -> #1508 T2/T4. |
@@ -179,7 +179,7 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 | `src/ui/creator/CharacterCreator.tsx` | 2 | dette | `generateName`, `rng.int` | mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6. |
 | `src/ui/creator/draft.ts` | 13 | dette | `rng.int`, `rollAge`, `rollCareer`, `rollEyes`, `rollHair`, `rollHeight`, `rollInitialWealth`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6. |
 
-_301 dés mesurés dans 45 fichiers, pour 118 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 301 dette._
+_302 dés mesurés dans 45 fichiers, pour 121 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 302 dette._
 
 ## Population AUTHORÉE (donnée, pas code)
 
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: 07ebb068557967d9c8e82a1c315a128095606980 (2123 fichiers, 136 dossiers) corps: 585fe5b7206f47e1621f99eb4ff5111197447ebf -->
+<!-- sources-empreinte: d1e55c9cc55a3252fd357fe826e7d664e6c3a34e (2124 fichiers, 136 dossiers) corps: 1be9fc9a8be8b25b4697edf5e87c77c5d348e7c5 -->
