@@ -998,7 +998,7 @@ _2142 exports publics mesurés (160 fichiers de `src/engine`, hors tests) — 18
 | `d10` | 44 | const | — | Dés : tirage, expressions |
 | `d100` | 45 | const | — | Dés : tirage, expressions |
 | `roll` | 46 | const | — | Dés : tirage, expressions |
-| `tirerGraine` | 53 | const | Graine d'un flux de tirages dérivé (`OptionsDeResolution.graine`, `src/engine/character.ts`). | Dés : tirage, expressions, Création de personnage : tirage aléatoire, espèce, carrière |
+| `tirerGraine` | 53 | const | Graine d'un flux de tirages dérivé. | Dés : tirage, expressions, Création de personnage : tirage aléatoire, espèce, carrière |
 | `deMonde` | 75 | const | LE d100 DE L'ENVIRONNEMENT — le dé que le MONDE lance (chance d'occurrence d'un péril, contenu narratif d'une conséquence, descente de sous-table). | Dés : tirage, expressions, Tests : Degrés de Réussite, Caractéristiques, tables |
 | `DiceSpec` | 80 | interface | Descripteur de jet de dés en DONNÉE (forme canonique partagée : « NdM(+P ») — `n`d`sides`+`plus`). | Dés : tirage, expressions |
 | `rollDice` | 86 | const | Roule un `DiceSpec` (n dés à `sides` faces + `plus`). | Dés : tirage, expressions |
@@ -3145,4 +3145,4 @@ _2142 exports publics mesurés (160 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: 609d57e66b174a6df3fb04895b050f61b2c7057c (166 fichiers, 6 dossiers) corps: db28728feba437a47bc27a3394e13c097600312a -->
+<!-- sources-empreinte: 5f8c98d13ff3edcdafbd6939dead61e6803f6f23 (166 fichiers, 6 dossiers) corps: d98696e8a84052c911bd0ed412023bf1987ce247 -->

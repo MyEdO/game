@@ -89,7 +89,7 @@ const OWN_TAB_MIN = Number(capture(TABS_SRC, /export const OWN_TAB_MIN = (\d+)/,
 const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
 if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
 
-const CLE_PERSISTANCE = capture(lire(STORE), /const KEY = '([^']+)'/, 'la clé de persistance `KEY`', STORE)
+const CLE_PERSISTANCE = capture(lire(STORE), /export const HOUSE_RULES_STORAGE_KEY = '([^']+)'/, 'la clé de persistance `HOUSE_RULES_STORAGE_KEY`', STORE)
 
 for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
   if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)

@@ -141,7 +141,8 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `accesBase` (magasins typés, `vider`) — bibliothèque de projets, calque de
                             référence, sauvegarde automatique, dossier `src/data` du Codex (#1956) ;
                             doublure `indexedDb.testkit.ts` (`brancherBasesSimulees`).
-                            `stockageLocal.ts` : accès protégé au `localStorage` (`stockageLocal`).
+                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
+                            (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a

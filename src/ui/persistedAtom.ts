@@ -9,7 +9,7 @@
  * forme stockée — booléen, nombre, id d'énumération ou objet JSON.
  */
 import { useSyncExternalStore } from 'react';
-import { stockageLocal } from '../lib/stockageLocal';
+import { stockageWeb } from '../lib/stockageWeb';
 
 export interface PersistedAtom<T> {
   /** Valeur courante (lecture hors React : garde, sérialisation, test). */
@@ -23,7 +23,7 @@ export interface PersistedAtom<T> {
 export function persistedAtom<T>(key: string, fallback: T, parse: (raw: string) => T, write: (v: T) => string): PersistedAtom<T> {
   let value: T = (() => {
     try {
-      const raw = stockageLocal()?.getItem(key);
+      const raw = stockageWeb('localStorage')?.getItem(key);
       return raw === null || raw === undefined ? fallback : parse(raw);
     } catch {
       return fallback;
@@ -34,7 +34,7 @@ export function persistedAtom<T>(key: string, fallback: T, parse: (raw: string) 
   const set = (v: T): void => {
     value = v;
     try {
-      stockageLocal()?.setItem(key, write(v));
+      stockageWeb('localStorage')?.setItem(key, write(v));
     } catch {
       // stockage indisponible
     }

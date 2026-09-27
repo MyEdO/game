@@ -2,7 +2,7 @@ import { parseProject, exigerUnRefus, refusDeForme, type PROJECT_MIGRATIONS, typ
 import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
 import { accesBase, idbDisponible, type BaseIdb } from '../lib/indexedDb';
-import { stockageLocal } from '../lib/stockageLocal';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
  *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
@@ -184,7 +184,7 @@ export function remapProjectNamesDeep(node: unknown): unknown {
  *  emprunte ce repli (`initLibrary` sans IndexedDB, son `catch`, et `projectsLoad` avant tout chargement) :
  *  ne JAMAIS lire `KEY` sans repasser par cette fonction (#776 pt.2). */
 function readLocalStorage(): SavedProject[] {
-  const s = stockageLocal();
+  const s = stockageWeb('localStorage');
   if (!s) return [];
   try {
     const raw = s.getItem(KEY);
@@ -211,7 +211,7 @@ function readLocalStorage(): SavedProject[] {
  *  refusé, ou l'écriture échoue même pour une liste vide) — les deux font grossir `skipped`, mais
  *  seule la 2de justifie un message qui ne parle PAS de volume de campagne (#776 pt.3). */
 function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storageUnavailable: boolean } {
-  const s = stockageLocal();
+  const s = stockageWeb('localStorage');
   if (!s) return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
   const sized = list.map((e) => {
     let json: string;
@@ -259,7 +259,7 @@ function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storage
 let pendingTombstones = new Set<string>();
 
 function readTombstones(): Set<string> {
-  const s = stockageLocal();
+  const s = stockageWeb('localStorage');
   let persisted = new Set<string>();
   if (s) {
     try {
@@ -276,7 +276,7 @@ function readTombstones(): Set<string> {
 }
 
 function writeTombstones(ids: Set<string>): boolean {
-  const s = stockageLocal();
+  const s = stockageWeb('localStorage');
   if (!s) {
     pendingTombstones = new Set(ids);
     return false;
@@ -457,7 +457,7 @@ export async function __resetLibraryForTest(): Promise<void> {
   cache = null;
   pendingTombstones = new Set();
   try {
-    const s = stockageLocal();
+    const s = stockageWeb('localStorage');
     s?.removeItem(KEY);
     s?.removeItem(TOMBSTONE_KEY);
   } catch {

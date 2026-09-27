@@ -205,6 +205,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     brancherBasesSimulees().base(NOM).panne = (q) => (q.geste === 'getAll' ? new DOMException('getAll refusé', 'UnknownError') : null);
     await initLibrary();
     expect(projectsLoad()).toEqual([]);
+    // Le `catch` a joué : la branche de succès aurait purgé la tombe, absente d'IndexedDB.
+    expect(JSON.parse(localStorage.getItem(TOMBSTONE_KEY)!)).toEqual(['p1']);
   });
 
   describe('miroir localStorage borné PAR PROJET (#776 lot correctif — LOCAL_MIRROR_ENTRY_LIMIT)', () => {

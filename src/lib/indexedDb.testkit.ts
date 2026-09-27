@@ -47,6 +47,10 @@ export interface BaseSimulee {
   ecritures: RequeteSimulee[];
   fermetures: number;
   panne: PanneSimulee;
+  /** Annulation au COMMIT de toute transaction qui écrit (`abort` sans `error`, comme un quota
+   *  dépassé à la validation) : son `error`, `null` pour une annulation sans cause. `undefined` :
+   *  aucune annulation. */
+  annulationAuCommit: DOMException | null | undefined;
   /** La vue `IDBDatabase` que reçoivent `upgrade` et les opérations. */
   db: IDBDatabase;
 }
@@ -65,7 +69,7 @@ export function baseSimulee(existants: Record<string, { keyPath?: string | strin
   const magasins = new Map<string, MagasinSimule>(
     Object.entries(existants).map(([nom, o]) => [nom, { ...o, contenu: new Map() }]),
   );
-  const etat: BaseSimulee = { magasins, transactions: [], ecritures: [], fermetures: 0, panne: sansPanne, db: null as unknown as IDBDatabase };
+  const etat: BaseSimulee = { magasins, transactions: [], ecritures: [], fermetures: 0, panne: sansPanne, annulationAuCommit: undefined, db: null as unknown as IDBDatabase };
   const rangement = (c: unknown): unknown => (Array.isArray(c) ? JSON.stringify(c) : c);
   const cleDe = (m: MagasinSimule, valeur: unknown, cleExterne: unknown): unknown => {
     if (m.keyPath === undefined) return rangement(cleExterne);
@@ -127,6 +131,11 @@ export function baseSimulee(existants: Record<string, { keyPath?: string | strin
         if (echec) {
           tx.error = echec;
           tx.onerror?.();
+          return;
+        }
+        if (enAttente.length && etat.annulationAuCommit !== undefined) {
+          tx.error = etat.annulationAuCommit;
+          tx.onabort?.();
           return;
         }
         for (const { q, geste } of enAttente) {

@@ -235,7 +235,7 @@ Trois options, dans l'ordre :
 
 ### Compétences et Talents liés à la Race
 
-> « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations chacune, et 3 Compétences auxquelles ajouter 3 Augmentations chacune. »
+> « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune, et 3 Compétences auxquelles ajouter 3 Augmentations à chacune. »
 > — LDB 05 l.484
 
 `LDB 05 l.483-553`
@@ -287,8 +287,8 @@ Trois options, dans l'ordre :
 
 ### Compétences et Talents de Carrière
 
-> « Vous commencez au premier niveau de Carrière. Il y a 8 Compétences et 4 Talents répertoriés à ce niveau. Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. Vous pouvez choisir un unique Talent. »
-> — LDB 05 l.535-547
+> « Vous commencez au premier niveau de Carrière listé sur votre Évolution de Carrière. Il y a 8 Compétences et 4 Talents répertoriés à ce niveau, et vous pouvez choisir ceux qui vous conviennent le mieux. Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. […] Vous pouvez aussi choisir un unique Talent à apprendre. »
+> — LDB 05 l.535
 
 `LDB 05 l.534-553`
 

@@ -19,7 +19,7 @@ export interface BaseIdb {
 }
 
 /** #776 */
-export const IDB_OPEN_TIMEOUT_MS = 3000;
+const IDB_OPEN_TIMEOUT_MS = 3000;
 
 type OuvertureIdb = (nom: string, version: number) => IDBOpenDBRequest;
 
@@ -41,7 +41,7 @@ export function idbDisponible(): boolean {
 
 /** Ouvre `base`. Se règle UNE fois : succès, erreur, `blocked` ou délai `IDB_OPEN_TIMEOUT_MS` (#776) ;
  *  une connexion qui aboutit après ce règlement est refermée. */
-export function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
+function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = ouverture(base.nom, base.version);
     let regle = false;
@@ -63,7 +63,7 @@ export function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
 }
 
 /** Le résultat d'une requête, ou son erreur. */
-export function requeteReglee<T>(req: IDBRequest<T>): Promise<T> {
+function requeteReglee<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -71,7 +71,7 @@ export function requeteReglee<T>(req: IDBRequest<T>): Promise<T> {
 }
 
 /** La fin d'une transaction : `complete`, ou son erreur (`error`, `abort`). */
-export function transactionReglee(tx: IDBTransaction): Promise<void> {
+function transactionReglee(tx: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);

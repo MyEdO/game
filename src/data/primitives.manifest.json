@@ -1099,12 +1099,12 @@
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
   },
   {
-    "id": "stockageLocal",
+    "id": "stockageWeb",
     "type": "primitives.manifest",
-    "label": "stockageLocal",
-    "fichier": "src/lib/stockageLocal.ts",
-    "concept": "accès protégé au `localStorage` : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox) ; chaque site garde ses clés et sa sérialisation",
-    "perimetre": "tout site qui lit ou écrit le localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI",
-    "verrou": "src/lib/stockageLocal.test.ts"
+    "label": "stockageWeb",
+    "fichier": "src/lib/stockageWeb.ts",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
+    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   }
 ]

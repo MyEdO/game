@@ -49,7 +49,7 @@ export const roll = (n: number, sides: number, rng: RNG = defaultRNG) => {
   return total;
 };
 
-/** Graine d'un flux de tirages dérivé (`OptionsDeResolution.graine`, `src/engine/character.ts`). */
+/** Graine d'un flux de tirages dérivé. */
 export const tirerGraine = (rng: RNG = defaultRNG): number => rng.int(0, 0x7fffffff);
 
 /**
