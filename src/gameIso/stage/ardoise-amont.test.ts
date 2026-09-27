@@ -6,7 +6,7 @@
  * tant que sa tranche est armée, `requestSlice` sort sans rien réarmer. Si la callback armée meurt
  * avec l'environnement jsdom du fichier qui l'a posée, le drapeau reste levé DANS LE GRAPHE DE MODULES
  * que la suite partage (`isolate: false`) : le fichier suivant enfile ses rasterisations et aucune
- * n'est servie — son écran se monte sans un seul quad, et son rouge n'accuse plus qu'une machine lente
+ * n'est servie — son écran se monte sans un seul quad, et son rouge accuse seulement une machine lente
  * (« expected [] to have a length of 2 » après vingt secondes d'attente).
  *
  * `brancherArdoise` lave donc l'ardoise AUX DEUX BOUTS. Ce banc mesure le bout AMONT, le seul qui

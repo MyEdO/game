@@ -254,12 +254,12 @@ function dominantMaterial(tmap: Record<string, string>, counts: Map<string, numb
 const BODY_SLOTS = new Set(['peau', 'cheveux', 'yeux', 'corps']);
 const TENUE_FAM_TOKENS = SLOTS.filter((s) => !BODY_SLOTS.has(s));
 const TENUE_TOKEN_RE = new RegExp(`@(${TENUE_FAM_TOKENS.join('|')})(O|H)?\\b`);
-/** Un gradient de tenue est tout `url(#g_...)` qui n'est PAS `g_flesh` (chair dynamique, #583). */
-const TENUE_GRADIENT_RE = /url\(#g_(?!flesh\b)\w+\)/;
+/** Un gradient de tenue est tout `url(#g_...)` ; un dégradé dérivé `dg-` compte par ses jetons. */
+const TENUE_GRADIENT_RE = /url\(#g_\w+\)/;
 
 /** Vrai si le fragment SVG référence de l'art de TENUE (jeton de famille vêtement/cuir/métal/accent
  *  ou gradient de tenue) — faux s'il ne référence que de la chair/anatomie (`@peau*`, `@cheveux*`,
- *  `url(#g_flesh)`) ou est absent. */
+ *  y compris dans un `dg-`) ou est absent. */
 function fragmentHasTenueArt(svg: string): boolean {
   return TENUE_TOKEN_RE.test(svg) || TENUE_GRADIENT_RE.test(svg);
 }
@@ -577,7 +577,7 @@ if (creatureArg) {
       + (near.length ? `\nproches: ${near.join(', ')}` : ''));
   }
   const osMasque = (osArg ?? 'tronc').split(',').map((s) => s.trim()) as QuadBoneId[];
-  const tmap = buildTokenMap(props.stored, {});
+  const tmap = buildTokenMap([props.palette], {});
   const rapport = {
     reglages: {
       creature: creatureArg,
@@ -643,7 +643,7 @@ if (creatureArg) {
     }
   }
 } else if (allMode) {
-  const tenues = tenueIds.map((id) => ({ id, label: tenueLabelOf(id), tmap: buildTokenMap(TENUE_PALETTE_BY_ID[id] ?? {}, {}) }));
+  const tenues = tenueIds.map((id) => ({ id, label: tenueLabelOf(id), tmap: buildTokenMap([TENUE_PALETTE_BY_ID[id] ?? {}], {}) }));
   if (asJson) {
     const mesures: (ViewReport & { tenueId: string })[] = [];
     for (const t of tenues) for (const v of views) {
@@ -681,7 +681,7 @@ if (creatureArg) {
 } else {
   const tenueId = tenueArg;
   const tenueLabel = tenueLabelOf(tenueId);
-  const tmap = buildTokenMap(TENUE_PALETTE_BY_ID[tenueId] ?? {}, {});
+  const tmap = buildTokenMap([TENUE_PALETTE_BY_ID[tenueId] ?? {}], {});
   const rapport = { reglages: { tenueId, tenueLabel, ...reglagesCommun }, vues: views.map((v) => measure(tenueId, tmap, v)) };
 
   if (asJson) {

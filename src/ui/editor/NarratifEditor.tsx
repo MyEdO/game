@@ -3,9 +3,8 @@ import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
-import { MonsterPartsFields } from './MonsterPartsFields';
-import { creatureSpeciesOptions } from '../../gameIso/rig/creatures';
-import { coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
 import { creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
@@ -650,31 +649,26 @@ function PresetForm({ preset, onRename, onPatch, onRemove }: {
         </div>
       </div>
       <div className="ed-field">
-        <span>Apparence (rig)</span>
-        <label className="ed-subfield">
-          Espèce
-          <select value={appearance.species ?? ''} onChange={(e) => patchAppearance({ species: e.target.value || undefined })}>
-            <option value="">(par défaut : Humain)</option>
-            {creatureSpeciesOptions().map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
-            ))}
-          </select>
-        </label>
+        <span>Apparence</span>
+        <ReglagesApparence
+          species={appearance.species}
+          sex={appearance.sex}
+          build={appearance.build}
+          hairstyle={appearance.hairstyle}
+          onSpecies={(id) => patchAppearance({ species: id })}
+          onSex={(s) => patchAppearance({ sex: s })}
+          onBuild={(b) => patchAppearance({ build: b })}
+          onHairstyle={(id) => patchAppearance(coiffureChoisie(id))}
+        />
       </div>
       <MonsterPartsFields
         monster={appearance.monster}
         colors={appearance.colors}
-        sex={appearance.sex}
-        build={appearance.build}
-        hairstyle={appearance.hairstyle}
         tenue={appearance.tenue}
         eyes={appearance.eyes}
         features={appearance.features}
         onMonster={(patch) => patchAppearance({ monster: { ...(appearance.monster ?? {}), ...patch } })}
         onColors={(patch) => patchAppearance({ colors: { ...(appearance.colors ?? {}), ...patch } })}
-        onSex={(s) => patchAppearance({ sex: s })}
-        onBuild={(b) => patchAppearance({ build: b })}
-        onHairstyle={(id) => patchAppearance({ hairstyle: id })}
         onTenue={(c) => patchAppearance({ tenue: c })}
         onEyes={(patch) => patchAppearance({ eyes: { ...(appearance.eyes ?? {}), ...patch } })}
         onFeatures={(f) => patchAppearance({ features: f.length ? f : undefined })}

@@ -17,6 +17,6 @@ describe('gabarit swarm (nuée — piloté par le trait « Nuée », LDB 85)', (
   });
 
   it('une espèce sans trait Nuée ne route PAS vers swarm (humanoïde → biped)', () => {
-    expect(resolveSpecies('Soldat de l’Empire').plan).toBe('biped'); // pas de trait Nuée → pas d'amas
+    expect(resolveSpecies('humain').plan).toBe('biped');
   });
 });

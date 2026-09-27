@@ -7,7 +7,7 @@ import type { GameOp } from '../../engine/ops';
 import { newOp, OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../editor/GameOpEditor';
 import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
-import { humanizeOp } from './humanize';
+import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
 import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables } from '../../data';
 import type { CharKey } from '../../engine/types';
@@ -264,5 +264,25 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(row.t).toBe('ref');
       if (row.t === 'ref') expect(row.show).toBe(libelle);
     }
+  });
+});
+
+describe('opRow — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => {
+  it('la rangée montre la Portée de l’op', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'langue-prehensile', indice: 5, range: 12 });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Langue préhensile +5 (12)'); expect(row.badge).toBeUndefined(); }
+  });
+
+  it('une attaque rend son Indice littéral en « +Dégâts »', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'morsure', indice: 4 });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Morsure +4'); expect(row.badge).toBeUndefined(); }
+  });
+
+  it('un Indice Formula reste en badge', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Vol'); expect(row.badge).toBe(humanizeFormula({ charOf: 'agilite' })); }
   });
 });

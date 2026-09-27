@@ -5,7 +5,7 @@ import { resetDiagOnce } from '../../gameIso/rig/devDiag';
 import { spawnEnemy } from '../../state/spawn';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { useGame } from '../../state/store';
-import { resolvePresetCreature } from '../../state/campaignData';
+import { ficheDEntite } from '../../state/sceneNpc';
 import { findCreatureById } from '../../data';
 import type { SceneEntity } from '../../state/scene';
 
@@ -54,13 +54,7 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
     for (const ent of persos(s).filter(authoreIci)) {
       tokenBodyKind({ kind: 'sceneEntity', ent, enrolled: enroles.has(ent.id) });
       if (!enroles.has(ent.id)) continue; // un figurant qui n'entre jamais en combat n'est jamais spawné
-      const preset = ent.presetId ? resolvePresetCreature(ent.presetId) : undefined; // même résolution que `combatSlice`
-      const c = spawnEnemy(ent.ref, ent.statblock, ent.id, ent.pos, {
-        presetCreature: preset?.creature,
-        appearance: preset?.apparence ?? ent.appearance,
-        weapon: ent.weapon,
-      });
-      tokenBodyKind({ kind: 'combatant', combatant: c });
+      tokenBodyKind({ kind: 'combatant', combatant: ficheDEntite(ent) }); // la fiche que spawne `combatSlice`
     }
     const dits = [...err.mock.calls, ...warn.mock.calls].map((c) => String(c[0]));
     expect(dits, `scénario « ${id} » : ${dits.join(' | ')}`).toEqual([]);
@@ -68,8 +62,8 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
 
   it('le mannequin d’entraînement rend le MÊME profil qu’avant l’espèce posée (seules la chaîne species et le tirage individuel de sa race changent)', () => {
     const sb = { type: 'statblock' as const, label: "Mannequin d'entraînement", char: { M: 0, endurance: 35, B: 40 } };
-    const avant = enemyRigProfile(spawnEnemy(undefined, sb, 'm', { x: 0, y: 0 }));
-    const apres = enemyRigProfile(spawnEnemy(undefined, sb, 'm', { x: 0, y: 0 }, { appearance: { species: 'humains-reiklander' } }));
+    const avant = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }));
+    const apres = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }, { appearance: { species: 'humains-reiklander' } }));
     expect(apres?.appearance.species).toBe('humains-reiklander');
     // `uid` d'objet = compteur de PROCESSUS (`w-it-<n>`) : sa valeur dépend de tout ce qui a spawné avant
     // dans le fichier de test ET de l'ordre de la suite. Toute comparaison de profil le neutralise.

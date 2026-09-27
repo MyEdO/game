@@ -1,6 +1,6 @@
 *Pages PDF 133*
 
-# **FATE AND FORTUNE**
+# <span id="page-132-0" data-folio="133"></span>**FATE AND FORTUNE**
 
 Whether it is guts, luck, or the favour of the gods, Fate and Fortune smile upon you. You can spend them to gain an edge or cheat unpleasant consequences.
 

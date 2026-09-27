@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
+import { EFFECT_HANDLERS } from './combatEffects';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 
@@ -46,5 +47,17 @@ describe('Effet givePossession (#617/#618 Lot 1)', () => {
     const p = useGame.getState().possessions[0];
     expect(p.nature).toBe('vehicule');
     expect('ref' in p).toBe(false);
+  });
+});
+
+/** La bête donnée est une RÉFÉRENCE (#1882) : sa fiche est celle que spawne la monture de combat —
+ *  une réf. vide ou morte se DIT à l'auteur (`validateScene`, via `refs`), jamais au spawn. */
+describe('Effet givePossession — la réf. est tenue à sa porte (#1882)', () => {
+  const refs = EFFECT_HANDLERS.givePossession.refs!;
+  const ctx = {} as never;
+  it('créature vide ou inconnue → erreur nommée ; créature du bestiaire → rien', () => {
+    expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);
+    expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: 'licorne-mauve' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);
+    expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: 'mule' } } as never, ctx)).toEqual([]);
   });
 });

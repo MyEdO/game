@@ -1,6 +1,6 @@
 *Pages PDF 161*
 
-# **COMBAT**
+# <span id="page-160-0" data-folio="161"></span>**COMBAT**
 
 Sooner or later, you will need to stop someone in their tracks — or they will try to stop you. When diplomacy fails, is never attempted, or simply isn't understood, combat begins.
 

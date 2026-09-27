@@ -4,6 +4,9 @@ import { Combatant } from '../engine/types';
 import { skillBaseValue } from '../engine/skills';
 import { findSpellById } from '../data';
 import { SORTS_FUSIONNES_1897 } from '../data/sortsFusionnes';
+import { FORMAT_DES_CHOIX } from '../engine/character';
+import { skillSlots, talentSlotsUpTo } from '../engine/careerSlots';
+import { levelsForCareer } from '../data';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -94,21 +97,20 @@ describe('roster — persistance des personnages créés', () => {
     expect((list[0].hero as unknown as { name?: string }).name).toBeUndefined();
   });
 
-  it('rosterLoad rejoue la migration name→label (#608 Lot B) sur un `draft` ANCIEN FORMAT (speciesId+careerId présents)', () => {
+  it('rosterLoad ÉCARTE un `draft` sans format (choix en libellés, #1923) : le héros reste, le brouillon ne se relit pas', () => {
+    const ancien = { speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Ancien', careerTalent: 'Magie mineure', pettySpells: ['Putréfaction'] };
+    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'] };
     localStorage.setItem(
       'wfrp4.roster.v1',
       JSON.stringify([
-        {
-          hero: { id: 'legacy2', label: 'Déjà migré', kind: 'hero' },
-          wealth: { gold: 0, silver: 0, brass: 0 },
-          draft: { speciesId: 'humain', careerId: 'soldat', name: 'Ancien Nom Draft' },
-        },
+        { hero: { id: 'avant', label: 'Héros intact', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: ancien },
+        { hero: { id: 'apres', label: 'Héros', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: actuel },
       ]),
     );
-    const list = rosterLoad();
-    expect(list).toHaveLength(1);
-    expect(list[0].draft?.label).toBe('Ancien Nom Draft');
-    expect((list[0].draft as unknown as { name?: string })?.name).toBeUndefined();
+    const [avant, apres] = rosterLoad();
+    expect(avant.hero.label).toBe('Héros intact');
+    expect(avant.draft).toBeUndefined();
+    expect(apres.draft).toEqual(actuel);
   });
 
   it('sans localStorage (environnement sans stockage) : load → [], add/remove ne jettent pas', () => {
@@ -315,5 +317,37 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     const [entree] = rosterLoad();
     expect(survivants(entree.hero)).toEqual([]);
     expect(entree.hero).toMatchObject(attendu);
+  });
+});
+
+describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX canaux)', () => {
+  // Soldat, Niveau 1 : « Musicien (Tambour ou Fifre) », 7e Compétence. Clé d'avant : résumé en libellés.
+  const cleEnLibelles = '1:skill:6:Musicien';
+  const cleEnIds = () => {
+    const levels = levelsForCareer('soldat');
+    return [...skillSlots(levels, 4), ...talentSlotsUpTo(levels, 4)].find((s) => s.key.startsWith('1:skill:6:'))!.key;
+  };
+  const heros = (id: string) => ({ id, label: 'Soldat', kind: 'hero', skills: [], talents: [], careerSlotChoices: { soldat: { [cleEnLibelles]: 'musicien|tambour' } } });
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('la clé d’après résume l’emplacement en ids, jamais en libellés', () => {
+    expect(cleEnIds()).toBe('1:skill:6:musicien*');
+  });
+  it('(a) un export v5 charge avec ses désignations aux clés en ids', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 5, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.entry?.hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
+  });
+  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(une[0].hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
   });
 });

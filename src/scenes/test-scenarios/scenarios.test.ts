@@ -1,7 +1,7 @@
 import { describe, it, expect, assert } from 'vitest';
 import { testScenarios } from './index';
 import { validateScene } from '../../state/validateScene';
-import { spawnEnemy } from '../../state/spawn';
+import { ficheDEntite } from '../../state/sceneNpc';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';
 
@@ -39,17 +39,7 @@ describe('Batterie de scénarios de test', () => {
     assert(encounter.members?.length, 'enc-mutants doit contenir ses cinq membres');
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
-      const combatant = spawnEnemy(entity.ref, entity.statblock, entity.id, entity.pos, {
-        appearance: entity.appearance,
-        weapon: entity.weapon,
-        optionals: entity.combat?.optionals,
-        spells: entity.combat?.spells,
-        randomChars: entity.combat?.randomChars,
-        skills: entity.combat?.skills,
-        crewIds: entity.crewIds,
-        postes: entity.postes,
-        upgrades: entity.upgrades,
-      });
+      const combatant = ficheDEntite(entity);
       return [combatant.label, combatant.species, enemyRigProfile(combatant)?.appearance.species];
     });
 

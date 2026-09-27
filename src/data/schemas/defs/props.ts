@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { cell2Schema, dir8Schema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 import { document } from '../grammaire/document';
-import { CAP_IDENTITE_PROP, PROP_CYLINDER_SIDES } from '../../props.types';
+import { CAP_IDENTITE_PROP, PROP_CYLINDER_AXES, PROP_CYLINDER_SIDES } from '../../props.types';
 
 export const file = 'props.json';
 export const famille = 'entite';
@@ -33,7 +33,9 @@ const emetSchema = z.literal(true).optional();
 export const propPrimitiveSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('box'), center: propPoint3Schema, size: propSize3Schema, material: idDe('material', 'prop'), emet: emetSchema }),
   z.strictObject({
-    kind: z.literal('cylinder'), center: propPoint3Schema, radiusM: z.number().finite(), heightM: z.number().finite(),
+    kind: z.literal('cylinder'), center: propPoint3Schema,
+    // AXE REQUIS (#1343 lot C) : les clés de `REPERE_D_AXE` (`PROP_CYLINDER_AXES`) ; `longueurM` se mesure le long de lui.
+    axis: z.literal(PROP_CYLINDER_AXES), radiusM: z.number().finite(), longueurM: z.number().finite(),
     // CÔTÉS ADMIS : la même source que le type et le validateur de catalogue (`PROP_CYLINDER_SIDES`,
     // `src/data/props.types.ts`) — une union recopiée ici dériverait de l'union TS au premier ajout.
     sides: z.literal(PROP_CYLINDER_SIDES), material: idDe('material', 'prop'), emet: emetSchema,
@@ -114,7 +116,7 @@ const doc = document(
      */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; light?: unknown; cover?: unknown; opaque?: unknown; source?: unknown; maison?: unknown; foot?: unknown; volume?: unknown };
+        const e = v as { id: string; light?: unknown; cover?: unknown; opaque?: unknown; source?: unknown; maison?: unknown; foot?: unknown; volume?: unknown; seatSlots?: unknown };
         const regles = (['light', 'cover', 'opaque'] as const).filter((k) => e[k] !== undefined);
         if (regles.length && e.source === undefined && (typeof e.maison !== 'string' || !e.maison))
           ctx.addIssue({
@@ -130,6 +132,13 @@ const doc = document(
             code: 'custom',
             path: ['foot'],
             message: `${e.id} : \`foot\` sur une recette volumique — les cases d’un décor à recette viennent de son CORPS tourné, pas d’une empreinte déclarée`,
+          });
+        // PLACES SANS RECETTE : `data/props.types.ts`, CAP D'IDENTITÉ.
+        if (e.seatSlots !== undefined && e.volume === undefined)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['seatSlots'],
+            message: `${e.id} : places assises sans recette volumique — les \`seatSlots\` d’un décor s’écrivent dans le repère de sa recette (\`volume\`), un billboard n’en porte pas`,
           });
       }),
   },

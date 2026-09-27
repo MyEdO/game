@@ -1,7 +1,7 @@
 /**
  * MORSURE des PORTES de `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs` (#1473) — une op de Talent
- * d'un document de projet prend la graphie `talent: { id, spec? }`, et le document passe au `schema` 15.
- * Sa borne haute est CLOSE (`schema` ∈ {14, 15}) : DERNIÈRE de la chaîne, elle NOMME un `schema` futur.
+ * d'un document de projet prend la graphie `talent: { id, spec? }`, et le document passe au `schema` 17.
+ * Sa borne haute est CLOSE (`schema` ∈ {16, 17}) : DERNIÈRE de la chaîne, elle NOMME un `schema` futur.
  *
  * La migration est jouée sur un dépôt JETABLE (`./joue.mjs`), une fois par scénario, avec la primitive
  * qu'elle importe (`src/data/graphieOpsDeTalent.ts`, COPIÉE de l'arbre) ; les rouges d'avant-écriture
@@ -20,8 +20,8 @@ import { depot, efface, joue, lireDans, refuse, rienTouche } from './joue.mjs';
 
 const MIGRATION = '2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs';
 const COPIES = ['src/data/graphieOpsDeTalent.ts'];
-const SCHEMA_AVANT = 14;
-const SCHEMA_APRES = 15;
+const SCHEMA_AVANT = 16;
+const SCHEMA_APRES = 17;
 
 const ALPHA = 'src/scenes/alpha/alpha-projet.json';
 const BETA = 'src/scenes/beta/beta-projet.json';
@@ -46,7 +46,7 @@ const beta = (schema = SCHEMA_AVANT) => ({ type: 'projet', schema, id: 'beta', s
 
 const poses = (a, b = beta()) => ({ [ALPHA]: serialise(a, FORME_PROJET), [BETA]: serialise(b, FORME_PROJET) });
 
-test('(a) MIGRATION RÉELLE : chaque op de Talent prend `talent: { id, spec? }` À SA PLACE, le document passe à 15, le reste intact', (t) => {
+test('(a) MIGRATION RÉELLE : chaque op de Talent prend `talent: { id, spec? }` À SA PLACE, le document passe à 17, le reste intact', (t) => {
   const d = depot(poses(alpha()), COPIES);
   t.after(() => efface(d.racine));
   const { code, sortie } = joue(d.racine, MIGRATION);

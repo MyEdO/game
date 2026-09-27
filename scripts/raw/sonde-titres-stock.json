@@ -1,0 +1,2574 @@
+{
+  "quoi": "Sites de la SONDE des TITRES (`scripts/raw/sonde-titres.mjs`, #1739 #1820) qu’aucune réparation ne consomme : N, corps-introuvable, place-non-prouvee, paragraphe-non-prouve, et toute forme émise hors `colonne` (en-tête de colonne, jamais un écart). Une ENTRÉE par SITE, clé `fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le 1er `.md` de la page du titre, `ref` = forme, page et titre imprimé : l’IDENTITÉ du site, jamais une ligne du `.md`. Mesuré au PDF, qu’aucun dépôt ne suit : le test ne le confronte que là où le PDF est présent. Ce fichier ne décroît que quand un site disparaît.",
+  "entrees": [
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md",
+      "ref": "N :: p.6 :: « THROWING BONES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md",
+      "ref": "N :: p.7 :: « WARHAMMER FANTASY ROLEPLAY 5TH EDITION »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/005 - Character Building.md",
+      "ref": "N :: p.22 :: « FITTING IN »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/008 - Humans (Reiklanders).md",
+      "ref": "N :: p.27 :: « Fate »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/008 - Humans (Reiklanders).md",
+      "ref": "N :: p.27 :: « Fortune »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/009 - Dwarfs.md",
+      "ref": "N :: p.29 :: « Fate »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/009 - Dwarfs.md",
+      "ref": "N :: p.29 :: « Fluent Languages »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/010 - Halflings.md",
+      "ref": "N :: p.31 :: « Fluent Languages »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/011 - High Elves.md",
+      "ref": "N :: p.32 :: « Fluent Languages »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/011 - High Elves.md",
+      "ref": "N :: p.33 :: « Starting Talents »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/012 - Wood Elves.md",
+      "ref": "N :: p.35 :: « Fate »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/012 - Wood Elves.md",
+      "ref": "N :: p.35 :: « Fluent Languages »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/012 - Wood Elves.md",
+      "ref": "N :: p.35 :: « Starting Talents »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/017 - 6. Personality and Background.md",
+      "ref": "N :: p.41 :: « WhaT Brings YoU TogeTher? »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/017 - 6. Personality and Background.md",
+      "ref": "N :: p.41 :: « WhaT are YoUr BesT and WorsT memories? »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/017 - 6. Personality and Background.md",
+      "ref": "N :: p.41 :: « Where are YoU from? »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.101 :: « A JOB FOR ALL SEASONS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.103 :: « Priest Captain — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.104 :: « Watch Captain — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.104 :: « Watch Recruit — Brass 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.105 :: « Dabbler — Brass 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.108 :: « Wrecker Captain — Silver 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.51 :: « Beggar King — Silver 2 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.51 :: « Beggar — Brass 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.51 :: « Master Beggar — Brass 4 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.52 :: « Boathand — Brass 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.62 :: « Prophet of Doom — Brass 0 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.63 :: « Penny Thief — Brass 2 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.65 :: « Hedge Master — Brass 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.65 :: « Hedge Witch — Brass 4 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.71 :: « Barrister — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.71 :: « Lawyer — Silver 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.81 :: « Career Path »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.81 :: « Master Pilot — Silver 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.81 :: « Navigator — Silver 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.81 :: « Pilot — Silver 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.81 :: « Riverguide — Brass 4 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.89 :: « Road Captain — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.90 :: « Landsman — Brass 4 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.91 :: « Fellow — Silver 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.91 :: « Professor — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.94 :: « Dragon Slayer — Brass 2 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.94 :: « Giant Slayer — Brass 2 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.95 :: « Master Smuggler — Silver 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.96 :: « Recruit — Brass 5 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.97 :: « Agent — Gold 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "N :: p.97 :: « Spymaster — Gold 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "paragraphe-non-prouve :: p.57 :: « (Any One), Fast Shot »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/020 - Skills.md",
+      "ref": "paragraphe-non-prouve :: p.111 :: « Your  understanding  of  a  particular  type  of  animal,  and  ability »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.116 :: « Carouser »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.116 :: « Catfall »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.119 :: « Fast Shot »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.119 :: « Fearless (Enemy) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.121 :: « Impassioned Zeal (Cause) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.121 :: « Invoke (Deity) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/021 - Talents.md",
+      "ref": "N :: p.121 :: « Iron Jaw »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.130 :: « ADVANTAGE AND DISADVANTAGE »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.130 :: « CRITICALS AND FUMBLES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.130 :: « DARKNESS AND TESTS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.130 :: « MODIFIERS AND 0 SL »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.130 :: « REPEATING TESTS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.131 :: « DIFFICULTY AND CHARACTER MODIFIERS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.131 :: « EXTENDED TESTS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.131 :: « OPPOSED TESTS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/024 - Making a Test.md",
+      "ref": "N :: p.131 :: « SUMMARY & OUTCOME »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/027 - Theft and Skullduggery.md",
+      "ref": "N :: p.136 :: « EXAMPLE OUTCOMES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/027 - Theft and Skullduggery.md",
+      "ref": "N :: p.138 :: « EXAMPLE OUTCOMES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md",
+      "ref": "N :: p.142 :: « making friends (and enemies) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md",
+      "ref": "N :: p.143 :: « geTTing YoUr WaY »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md",
+      "ref": "N :: p.145 :: « Mistaken Identity »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md",
+      "ref": "N :: p.148 :: « BATTLE TONGUE »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md",
+      "ref": "N :: p.150 :: « EXAMPLE OUTCOMES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md",
+      "ref": "N :: p.151 :: « EXAMPLE OUTCOMES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md",
+      "ref": "N :: p.151 :: « TraCking »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/031 - Cunning Crafts.md",
+      "ref": "corps-introuvable :: p.154 :: « REMEDY CREATION DIFFICULTY »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/035 - Moving in Combat.md",
+      "ref": "N :: p.163 :: « Disengaging »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/035 - Moving in Combat.md",
+      "ref": "N :: p.163 :: « Fleeing »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.164 :: « 3: Determine Damage »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.164 :: « 4: Apply Damage »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.165 :: « Critical Hits »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.165 :: « Opposed Tests and Fumbles »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.167 :: « Called Shots »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.167 :: « Grappling »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.167 :: « Shooting into a Group »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.167 :: « Surrounded »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md",
+      "ref": "N :: p.167 :: « Undamaging and Unarmed Attacks »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/037 - Momentum.md",
+      "ref": "N :: p.169 :: « Drowning and Suffocation »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/037 - Momentum.md",
+      "ref": "N :: p.169 :: « Intimidate in Combat »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/037 - Momentum.md",
+      "ref": "N :: p.170 :: « Using the Heal Skill »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.171 :: « Magic, Alchemy, and Healing »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.171 :: « OPEN WOUNDS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.172 :: « Surgery »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.176 :: « Broken Bones »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.177 :: « Torn Muscles »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.178 :: « Arm »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.178 :: « Ear »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.178 :: « Eye »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.178 :: « Foot »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.178 :: « Teeth »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.179 :: « Blood Rot »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.179 :: « Toes »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/038 - Injury, Healing, and Death.md",
+      "ref": "N :: p.179 :: « Tongue »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.180 :: « Festering Wound »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.180 :: « Itching Pox »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.180 :: « Packer’s Pox »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.181 :: « Buboes »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.181 :: « Coughs and Sneezes »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.181 :: « Fever »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.181 :: « Weevil Cough »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.182 :: « Gangrene »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "N :: p.182 :: « Infection »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/039 - Disease and Infection.md",
+      "ref": "corps-introuvable :: p.182 :: « EFFECT OF PRE-PREPARED CURES »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/041 - Psychology.md",
+      "ref": "N :: p.184 :: « Frenzy »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/041 - Psychology.md",
+      "ref": "N :: p.184 :: « Terror (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/041 - Psychology.md",
+      "ref": "place-non-prouvee :: p.184 :: « COMPLETE CONDITION LIST »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.185 :: « Blinded »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.186 :: « Deafened »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.186 :: « Fatigued »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.186 :: « Poisoned »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.186 :: « Prone »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.187 :: « Minor Corruption »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.187 :: « Moderate Corruption »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "N :: p.187 :: « Unconscious »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/043 - Corruption and Mutation.md",
+      "ref": "N :: p.188 :: « Corruption Limits »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/043 - Corruption and Mutation.md",
+      "ref": "N :: p.188 :: « Dissolution of Body and Mind »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/043 - Corruption and Mutation.md",
+      "ref": "N :: p.188 :: « Major Corruption »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/043 - Corruption and Mutation.md",
+      "ref": "N :: p.188 :: « Manifestation Time »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/043 - Corruption and Mutation.md",
+      "ref": "N :: p.189 :: « Absolution »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/044 - Between Adventures.md",
+      "ref": "N :: p.190 :: « DURING DOWNTIME »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.196 :: « Advance Career »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.196 :: « Animal Training »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.196 :: « Elves and Yenlui »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.197 :: « Change Career »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.197 :: « Combat Training »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.198 :: « Foment Dissent »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.200 :: « Raise Reputation »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.201 :: « Training »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "N :: p.201 :: « Unusual Learning »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/050 - Gods of the Empire.md",
+      "ref": "N :: p.203 :: « The Chaos Gods »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/052 - The Cult of Manann, God of the Sea.md",
+      "ref": "N :: p.205 :: « Holy Sites »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/052 - The Cult of Manann, God of the Sea.md",
+      "ref": "N :: p.205 :: « Penances »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/053 - The Cult of Morr, God of Death.md",
+      "ref": "N :: p.206 :: « Holy Sites »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/054 - The Cult of Myrmidia, Goddess of Strategy.md",
+      "ref": "N :: p.207 :: « Penances »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/054 - The Cult of Myrmidia, Goddess of Strategy.md",
+      "ref": "N :: p.207 :: « Strictures »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/055 - The Cult of Ranald, God of Trickery.md",
+      "ref": "N :: p.208 :: « Holy Sites »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/056 - The Cult of Rhya, Goddess of Fertility.md",
+      "ref": "N :: p.209 :: « Penances »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/058 - The Cult of Sigmar, God of the Empire.md",
+      "ref": "paragraphe-non-prouve :: p.211 :: « IC. He was then crowned as the first emperor »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/060 - The Cult of Ulric, God of Wolves, War, and Winter.md",
+      "ref": "N :: p.213 :: « Holy Sites »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/063 - Halfling Gods.md",
+      "ref": "place-non-prouvee :: p.216 :: « CHIEF GODS OF DWARFS, ELVES, AND HALFLINGS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.220 :: « DIVINE MANIFESTATIONS »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Battle »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Breath »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Charisma »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Conscience »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Courage »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Finesse »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Fortune »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Grace »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Hardiness »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Healing »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Protection »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Recuperation »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Savagery »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Tenacity »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Wisdom »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "N :: p.221 :: « Blessing of Wit »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Enemies must make an Average (+2 SL) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « When your target next inflicts a Critical »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your  target  may  reroll  their  next  failed »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target does not need to breathe and »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Agility. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Ballistic Skill. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Dexterity. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Fellowship. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Initiative. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Intelligence. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Strength. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Toughness. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Weapon Skill. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target gains +10 Willpower. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target heals +1 Wound. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target may reduce the duration of 1 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target must pass an Average (+2 SL) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/066 - Blessings.md",
+      "ref": "paragraphe-non-prouve :: p.221 :: « Your target’s weapon counts as Magical. »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.222 :: « Drowned Man’s Face »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.222 :: « Fair Winds »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.223 :: « Dooming »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.223 :: « Last Rites »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.223 :: « Stay Morr’s Hand »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.223 :: « Waterwalk »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.224 :: « An Invitation »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.224 :: « Blazing Sun »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.224 :: « Eagle’s Eye »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.224 :: « Fury’s Call »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.224 :: « Inspiring »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Rhya’s Children »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Rhya’s Harvest »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Rhya’s Shelter »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Rhya’s Succour »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Rhya’s Touch »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « Trickster’s Glamour »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.225 :: « You Saw Nothing »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Anchorite’s Endurance »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Balm to a Wounded Mind »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Bitter Catharsis »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Heed Not the Witch »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Rhya’s Union »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Shallya’s Tears »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.226 :: « Unblemished Innocence »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Animal Instincts »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « King of the Wild »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Leaping Stag »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Lord of the Hunt »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Sigmar’s Fiery Hammer »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Twin-tailed Comet »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.227 :: « Vanquish the Unrighteous »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.228 :: « Hoarfrost’s Chill »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.228 :: « Howl of the Wolf »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.228 :: « The Snow King’s Judgement »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.228 :: « Tooth and Claw »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.228 :: « Ulric’s Fury »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.229 :: « As Verena Is My Witness »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.229 :: « Blind Justice »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.229 :: « Shackles of Truth »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.229 :: « Truth Will Out »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/067 - Miracles.md",
+      "ref": "N :: p.229 :: « Wisdom of the Owl »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.231 :: « The Lore of Light »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.231 :: « The Lore of Metal »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.232 :: « The Lore of Heavens »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.232 :: « The Lore of Shadows »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.233 :: « The Lore of Beasts »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.233 :: « The Lore of Death »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.233 :: « The Lore of Fire »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.234 :: « The Lore of Hedgecraft »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/069 - The Aethyr.md",
+      "ref": "N :: p.234 :: « Warpstone »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.235 :: « Fumbled Casting »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.236 :: « Critical and Fumbled Channelling »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.237 :: « Dispelling Persistent Spells »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.237 :: « Grimoires »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.237 :: « Memorising Spells »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.237 :: « Using Warpstone »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.240 :: « Bearings »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.240 :: « Careful Step »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.240 :: « Conserve »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.241 :: « Gust »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.241 :: « Murmured Whisper »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.241 :: « Open Lock »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Aethyric Armour »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Aethyric Arms »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Rot »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Shock »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Sleep »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.242 :: « Sly Hands »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.243 :: « Bolt »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.243 :: « Bridge »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.243 :: « Chain Attack »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.243 :: « Dark Vision »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.244 :: « Distracting »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.244 :: « Dome »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.244 :: « Drop »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.244 :: « Entangle »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.244 :: « Mundane Aura »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.245 :: « Beast Form »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.245 :: « Silence »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/070 - Magic Rules.md",
+      "ref": "N :: p.245 :: « Ward »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.246 :: « Beast Master »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.247 :: « Soul Vortex »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.247 :: « Swift Passing »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.249 :: « Comet of Casandora »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.249 :: « Purge »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.249 :: « Starcrossed »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.250 :: « The Third Portent of Amul »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.251 :: « Blinding Light »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.251 :: « Clarity of Thought »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.251 :: « Lifebloom »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.252 :: « Phâ’s Protection »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.253 :: « Crucible of Chamon »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.253 :: « Fool’s Gold »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.253 :: « Forge of Chamon »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.253 :: « Transmutation of Chamon »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.254 :: « Choking Shadows »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.254 :: « Illusion »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.254 :: « Mindslip »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.255 :: « Halétha’s Joy »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.255 :: « Shadowsteed »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "N :: p.255 :: « Shadowstep »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/072 - Witch Magic.md",
+      "ref": "N :: p.256 :: « Mirkride »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/072 - Witch Magic.md",
+      "ref": "N :: p.256 :: « Part the Branches »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/072 - Witch Magic.md",
+      "ref": "paragraphe-non-prouve :: p.257 :: « Bonus miles (with ingredient) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/073 - Dark Magic.md",
+      "ref": "N :: p.258 :: « Manifest Lesser Daemon »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/073 - Dark Magic.md",
+      "ref": "N :: p.258 :: « Octagram »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/073 - Dark Magic.md",
+      "ref": "N :: p.258 :: « Reanimate »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/073 - Dark Magic.md",
+      "ref": "N :: p.259 :: « Stream of Corruption »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/073 - Dark Magic.md",
+      "ref": "N :: p.259 :: « Vanhel’s Call »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/074 - Chaos Magic.md",
+      "ref": "N :: p.260 :: « Transformation of Tzeentch »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/075 - The Gamemaster.md",
+      "ref": "N :: p.261 :: « You Decide How the World Reacts »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/075 - The Gamemaster.md",
+      "ref": "N :: p.261 :: « You Decide When the Rules Are Needed »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/075 - The Gamemaster.md",
+      "ref": "N :: p.262 :: « You Arbitrate the Rules »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/076 - Running the Game.md",
+      "ref": "N :: p.266 :: « Extended Tests »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/076 - Running the Game.md",
+      "ref": "N :: p.266 :: « Momentum »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/076 - Running the Game.md",
+      "ref": "N :: p.269 :: « Travel Times »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.274 :: « The Hägercrybs »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.275 :: « Drachenberg »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.275 :: « THE CENTREPIECE »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.275 :: « The Vorbergland »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.276 :: « GRANDFATHER REIK »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.276 :: « The Grissenwald »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.276 :: « The Reik »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.277 :: « Grootscher Marsh »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.277 :: « THE LORLAY »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.277 :: « The Canals »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.277 :: « The Teufel »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/078 - The Lie of the Land.md",
+      "ref": "N :: p.278 :: « Uhland Bogs »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/079 - The Powers That Be.md",
+      "ref": "N :: p.282 :: « THE LONG ARM OF THE LAW »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/079 - The Powers That Be.md",
+      "ref": "N :: p.282 :: « The Cult of Sigmar »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/080 - Settlements.md",
+      "ref": "N :: p.289 :: « THE SKAVEN OF UNDER-ALTDORF »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/080 - Settlements.md",
+      "ref": "N :: p.294 :: « THE SINS OF THE PAST »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/081 - Consumer Guide.md",
+      "ref": "paragraphe-non-prouve :: p.296 :: « 1 silver shilling (1/–) = 12 brass pennies (12d) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/081 - Consumer Guide.md",
+      "ref": "paragraphe-non-prouve :: p.296 :: « This is usually abbreviated to: »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/083 - Going to Market.md",
+      "ref": "N :: p.298 :: « Lowering the Price »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/084 - Craftsmanship.md",
+      "ref": "N :: p.299 :: « Encumbrance and Travel Fatigue »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "N :: p.302 :: « BLACKPOWDER AMMUNITION »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "N :: p.304 :: « Blast (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "N :: p.304 :: « Damaging »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "N :: p.305 :: « Imprecise »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "N :: p.305 :: « Reload (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/104 - The Peoples of the Reikland.md",
+      "ref": "paragraphe-non-prouve :: p.320 :: « 50 yards, Impale, Reload 3 »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/104 - The Peoples of the Reikland.md",
+      "ref": "paragraphe-non-prouve :: p.321 :: « Tests to detect normally imperceptible »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/104 - The Peoples of the Reikland.md",
+      "ref": "paragraphe-non-prouve :: p.322 :: « Tests to detect normally imperceptible »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/106 - The Monstrous Beasts of the Reikland.md",
+      "ref": "paragraphe-non-prouve :: p.329 :: « Free Attack, and has the Penetrating »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/106 - The Monstrous Beasts of the Reikland.md",
+      "ref": "paragraphe-non-prouve :: p.330 :: « Free Attack, and has the Penetrating »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/108 - The Restless Dead.md",
+      "ref": "N :: p.340 :: « UNQUIET DEAD »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/108 - The Restless Dead.md",
+      "ref": "paragraphe-non-prouve :: p.340 :: « Easy (+4 SL) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/108 - The Restless Dead.md",
+      "ref": "paragraphe-non-prouve :: p.340 :: « Endurance Test to avoid a Festering Wound »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/114 - Ungrakk's Brayherd.md",
+      "ref": "N :: p.356 :: « Bite »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/114 - Ungrakk's Brayherd.md",
+      "ref": "N :: p.356 :: « Blessed (Deity) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.357 :: « Breath »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.357 :: « Champion »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.357 :: « Chill Grasp »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.357 :: « Daemonic (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.357 :: « Dark Vision »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.358 :: « Fear (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.358 :: « Fly (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.359 :: « Magical »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.359 :: « Mark of Chaos (God) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.359 :: « Miracles (Deity) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.360 :: « Mutation »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.360 :: « Night Vision »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.360 :: « Painless »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.361 :: « Skittish »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.361 :: « Stealthy »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.361 :: « Stomp »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.361 :: « Striding Gait  (Terrain) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.361 :: « Wounds »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.362 :: « # Tentacles »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.362 :: « Stupid »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.362 :: « Terror (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Undead »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Unstable »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Vampiric »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Venom (Difficulty) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Vomit »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Wallcrawler »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Ward (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "N :: p.363 :: « Web (Rating) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/119 - Appendix IV.md",
+      "ref": "N :: p.369 :: « Prone (page 186) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    },
+    {
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/119 - Appendix IV.md",
+      "ref": "N :: p.369 :: « Stunned (page 186) »",
+      "occurrence": 1,
+      "lot": "#1820",
+      "date": "2026-09-26"
+    }
+  ]
+}

@@ -7,7 +7,14 @@
 // sont tenus par `src/stock-primitive.test.ts` (vitest).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cleDeSite, ecartDuVolet, ecrireStockSousLot, refusDeCroissance, sitesEnEntrees, survieDeLecheance } from './stock.mjs'
+import { cleDeSite, ecartDuVolet, ecrireStockSousLot, naissanceDu, phraseDeNaissance, refusDeCroissance, sitesEnEntrees, survieDeLecheance } from './stock.mjs'
+
+test('#1739 : « à la naissance » — `naissanceDu` relit ce que `phraseDeNaissance` écrit ; une famille absente rend null', () => {
+  const comptes = { a: 3, 'b-c': 148 }
+  assert.deepEqual(naissanceDu(`Stock. ${phraseDeNaissance(comptes, ['a', 'b-c'])} Suite.`, ['a', 'b-c']), comptes)
+  assert.equal(naissanceDu(phraseDeNaissance(comptes, ['a', 'b-c']), ['a', 'b-c', 'd']), null)
+  assert.equal(naissanceDu('sans phrase', ['a']), null)
+})
 
 test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se distinguent par leur OCCURRENCE', () => {
   const entrees = sitesEnEntrees([
@@ -17,6 +24,15 @@ test('sitesEnEntrees : deux sites de la MÊME réf dans le MÊME fichier se dist
   ])
   assert.deepEqual(entrees.map((e) => e.occurrence), [1, 2, 1])
   assert.equal(new Set(entrees.map(cleDeSite)).size, entrees.length, 'la clé doit distinguer chaque site')
+})
+
+test('ecartDuVolet : un site dont le NOMBRE grandit rougit ; plus petit ou égal, il reste couvert', () => {
+  const stock = [{ famille: 'f', fichier: 'Source/X/01 - A.md', ref: '<sup>', occurrence: 1, nombre: 3 }]
+  const ecart = (nombre) => ecartDuVolet({ sites: [{ file: 'Source/X/01 - A.md', ref: '<sup>', nombre }], stock, famille: 'f', ou: 'x-stock.json' })
+  assert.deepEqual(ecart(4).neuves, ['f :: Source/X/01 - A.md :: <sup> :: 1 — nombre 4 > 3 en stock : la dette GRANDIT, corriger le site (x-stock.json).'])
+  assert.deepEqual(ecart(4).perimees, [])
+  assert.deepEqual([ecart(3).neuves, ecart(2).neuves, ecart(2).perimees], [[], [], []])
+  assert.equal(survieDeLecheance(sitesEnEntrees([{ file: 'Source/X/01 - A.md', ref: '<sup>', nombre: 2 }], { famille: 'f' }), { lot: '#1', date: '2026-09-25', ancien: stock })[0].nombre, 2, 'plus petit : la régénération recale le stock')
 })
 
 // La LIGNE DU FICHIER PORTEUR n'entre pas dans la clé : deux sites de même (fichier, réf) écrits à
@@ -187,7 +203,7 @@ test('régénération sous lot : une entrée NEUVE sans `--lot` REFUSE l’écri
   for (const args of [['--ecrire-stock'], ['--ecrire-stock', '--lot'], ['--lot', '--ecrire-stock']]) {
     const r = regenerer(args, [CONNUE, NEUVE])
     assert.equal(r.code, 1, JSON.stringify(args))
-    assert.match(r.message, /^x-stock\.json : 1 entrée\(s\) NEUVE\(s\) sans lot/)
+    assert.match(r.message, /^x-stock\.json : 1 entrée\(s\) NEUVE\(s\) ou ACCRUE\(s\) sans lot/)
     assert.ok(r.message.includes(cleDeSite(NEUVE)))
     assert.deepEqual(r.ecrits, [])
   }
@@ -200,4 +216,22 @@ test('régénération sous lot : `--lot` étiquette la NEUVE, la CONNUE garde le
   const sansNeuve = regenerer(['--ecrire-stock'], [CONNUE])
   assert.equal(sansNeuve.code, 0)
   assert.equal(sansNeuve.ecrits.length, 1)
+})
+
+test('régénérer un stock dont un nombre a GRANDI est refusé sans `--lot` ; `--lot` date la croissance', () => {
+  const tenue = { ...ANCIEN[0], nombre: 3, preuve: 'PDF p.1' }
+  const regen = (args, nombre) => {
+    const ecrits = []
+    const rendre = (lot, date) => {
+      const entrees = survieDeLecheance([{ ...CONNUE, nombre }], { lot, date, ancien: [tenue] })
+      return { entrees, texte: JSON.stringify(entrees) }
+    }
+    return { ...ecrireStockSousLot(args, rendre, (t) => ecrits.push(t), 'x-stock.json', '2026-09-25'), ecrits }
+  }
+  const refus = regen(['--ecrire-stock'], 4)
+  assert.equal(refus.code, 1)
+  assert.ok(refus.message.includes(cleDeSite(CONNUE)))
+  assert.deepEqual(refus.ecrits, [])
+  assert.deepEqual(JSON.parse(regen(['--ecrire-stock', '--lot', '#1739 x'], 4).ecrits[0]), [{ ...CONNUE, nombre: 4, lot: '#1739 x', date: '2026-09-25' }])
+  assert.deepEqual(JSON.parse(regen(['--ecrire-stock'], 2).ecrits[0]), [{ ...CONNUE, nombre: 2, lot: '#1 X', date: '2026-01-01', preuve: 'PDF p.1' }])
 })

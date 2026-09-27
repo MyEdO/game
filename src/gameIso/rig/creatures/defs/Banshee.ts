@@ -12,6 +12,6 @@ export const creature: CreatureDef = {
   plan: 'spectral',
   spectre: {
     sl: 0.96, hood: false, face: 'hurle', cheveux: true, arme: 'epee',
-    stored: { corps: '#8fa4b6', corpsO: '#232f3a', corpsH: '#dcebf5', cheveux: '#c25a28', cheveuxO: '#7c3418', cuir: '#4e5a68' },
+    palette: { corps: '#8fa4b6', corpsO: '#232f3a', corpsH: '#dcebf5', cheveux: '#c25a28', cheveuxO: '#7c3418', cuir: '#4e5a68' },
   },
 };

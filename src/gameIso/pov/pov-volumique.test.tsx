@@ -4,10 +4,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
+import { poserCapDuGroupe } from '../../state/combatants';
 import { emptyScene, isIndoor, sceneMetresPerTile, type BuildingMass, type Scene } from '../../state/scene';
 import { setRevealAll } from '../../state/visionState';
 import { bus, EVT } from '../../state/bus';
-import { partyLeaderOf } from '../../state/combatants';
+import { meneurDuMonde } from '../../state/combatants';
 import { STEP_MAX_M } from '../../state/relief';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
@@ -82,7 +83,7 @@ function poser(): { scene: Scene; heroId: string } {
   const scene = scèneCouverte();
   useGame.setState({
     screen: 'campaign', mode: 'exploration', party: [hero], scene,
-    partyPos: { x: 4, y: 4 }, facing: { [hero.id]: 'N' },
+    partyPos: { x: 4, y: 4 }, facing: poserCapDuGroupe({}, 'N'),
     dialogue: null, battle: null, povActive: true, lightLevel: 1,
   } as never);
   return { scene, heroId: hero.id };
@@ -252,7 +253,7 @@ describe('POV volumique — le marcheur suivi et la cote sous l’œil (#1176 P3
     const scene = scèneCouverte();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', party: [mort, debout], scene,
-      partyPos: { x: 4, y: 4 }, facing: { [mort.id]: 'N', [debout.id]: 'N' },
+      partyPos: { x: 4, y: 4 }, facing: poserCapDuGroupe({}, 'N'),
       dialogue: null, battle: null, povActive: true, lightLevel: 1,
     } as never);
     const mpt = sceneMetresPerTile(scene);
@@ -261,9 +262,9 @@ describe('POV volumique — le marcheur suivi et la cote sous l’œil (#1176 P3
     monter(<MondeDeCampagne />);
     expect(dernièreCaméra().position.z).toBeCloseTo(4 * mpt, 6);
 
-    // Le store émet la marche pour le meneur VALIDE (`partyLeaderOf`, `store.stepPartyRelative`) : ici
+    // Le store émet la marche pour le meneur VALIDE (`meneurDuMonde`, `store.stepPartyRelative`) : ici
     // le 2e héros, le premier étant mort.
-    const meneur = partyLeaderOf(useGame.getState().party)!;
+    const meneur = meneurDuMonde(useGame.getState())!;
     expect(meneur.id).toBe(debout.id);
     act(() => { bus.emit(EVT.ANIM_MOVE, { id: meneur.id, path: [{ x: 4, y: 4 }, { x: 4, y: 3 }] }); });
     horlogeMs = STEP_MS / 2;

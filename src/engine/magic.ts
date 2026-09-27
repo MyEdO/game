@@ -40,7 +40,7 @@ import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { armourMaterialOf } from './armourBypass';
 import { MINUTES_PER_DAY, minutesUntilNext, DAWN_MINUTE } from './clock';
 import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, DIFFICULTY_MODIFIERS, type ItemInstance } from './types';
-import { findTraitById, talentIdByLabel, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
+import { findTraitById, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
@@ -77,11 +77,10 @@ export interface SpellLike {
   ignoreBE?: boolean;
 }
 
-/** Le personnage possède-t-il le Talent nommé (structurel OU octroyé par un Trait, `effectiveTalents`) ?
+/** Le personnage possède-t-il ce Talent, par id (structurel OU octroyé par un Trait, `effectiveTalents`) ?
  *  (Diction instinctive, Harmonisation aethyrique, Savoir-vivre (Suivants de Khorne) via Marque de Khorne…) */
-export function hasTalent(c: Combatant, name: string): boolean {
-  const id = talentIdByLabel(name);
-  return effectiveTalents(c).some((t) => t.talentId === id && (t.times ?? 1) >= 1);
+export function hasTalent(c: Combatant, talentId: string): boolean {
+  return effectiveTalents(c).some((t) => t.talentId === talentId && (t.times ?? 1) >= 1);
 }
 
 /** Branche d'incantation déduite du type de sort. */

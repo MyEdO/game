@@ -25,6 +25,7 @@ import type {
   PendingBattement,
   PendingDistraire,
 } from './pendings';
+import { garanti } from './combatants';
 import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeCalme } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
@@ -119,20 +120,20 @@ export function describeCorruption(pc: PendingCorruption, name: string): string 
  *  Identification). La VALIDATION applique la conséquence chiffrée (somme, objet, PX) à part. */
 export function describeActivity(pa: PendingActivity): string {
   if (pa.roll == null || !pa.activityId) return '';
-  const def = activityById(pa.activityId);
+  const def = garanti(activityById(pa.activityId), pa.activityId, 'activité d’interlude');
   // Activité/Scène de BATAILLE (ADE II 8) : l'issue chiffrée (Puissance) est journalisée par
   // `confirmBattleActivity` ; la popin résume Succès/Échec (Test combiné : les deux compétences).
   if (pa.battle) {
     if (pa.combinedLevel) {
       return pa.combinedLevel === 'full'
-        ? t('out.testSuccess', { name: def?.label ?? '' })
-        : t('out.testFail', { name: def?.label ?? '' });
+        ? t('out.testSuccess', { name: def.label })
+        : t('out.testFail', { name: def.label });
     }
-    return pa.success ? t('out.testSuccess', { name: def?.label ?? '' }) : t('out.testFail', { name: def?.label ?? '' });
+    return pa.success ? t('out.testSuccess', { name: def.label }) : t('out.testFail', { name: def.label });
   }
   // Les 4 Activités « socle » n'ont pas de table d'issues : leur narration est propre au résolveur
   // (source unique, même règle RAW que `runActivityResolver`). Les autres dérivent des bandes.
-  switch (def?.resolver) {
+  switch (def.resolver) {
     case 'craftExtended': {
       const { total: after, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, pa.drTarget ?? 1);
       return done ? t('out.craftDone') : t('out.craftProgress', { after, target: String(pa.drTarget) });

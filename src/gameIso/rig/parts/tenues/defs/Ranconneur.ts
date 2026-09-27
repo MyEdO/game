@@ -4,9 +4,6 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 export const tenue: TenueDef = {
   label: "Rançonneur",
   id: "ranconneur",
-  // `tete` peint une CHEVELURE (mèche sur le front, 8 usages, aucun ailleurs) : les jetons
-  // `@cheveux*` de l'art restent, mais la palette ne les déclare plus — la chevelure vient du
-  // PORTEUR (`stripPorterTokens`, career.ts), jamais de la tenue (#599).
   palette: {"metal":"#caa64a","metalO":"#7a5a1e","cuirO":"#4a2814","metalH":"#e6c668","vet2O":"#566872","vet1O":"#5a3219","cuir":"#5a3a20","vet2":"#8ba0ac","vet2H":"#a6bcc6","vet1":"#7a4a28","vet1H":"#b06a40","cuirH":"#86603a"},
   set: {
     pied: BOTTE_CUIR,

@@ -21,7 +21,7 @@ function héros(patch: Partial<Combatant> = {}): Combatant {
   return {
     id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
     wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
-    conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'Humain',
+    conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
     ...patch,
   } as unknown as Combatant;
 }

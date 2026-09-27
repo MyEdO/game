@@ -35,7 +35,7 @@ export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
     const present = chef ? servingCrewPresent(chef, battle.combatants) : undefined;
     const groupLabel = p.item.weaponGroup ? weaponGroupLabel(p.item.weaponGroup) : '';
     lines.push({ text: indice > 0 ? `${p.item.label} · Arme d’équipe ${indice}` : p.item.label, color: GOLD_TINT, bold: true });
-    lines.push({ text: `Chef : ${manned ? chef?.label ?? 'aucun' : 'aucun'}`, color: 'var(--tooltip-fg)' });
+    lines.push({ text: `Chef : ${manned && chef ? chef.label : 'aucun'}`, color: 'var(--tooltip-fg)' });
     if (renforts.length) lines.push({ text: `Renforts : ${renforts.join(', ')}`, color: 'var(--tooltip-muted)' });
     if (aideNames.length) lines.push({ text: `Aides (non qual.) : ${aideNames.join(', ')}`, color: 'var(--tooltip-dim)' });
     if (indice > 0 && present != null) lines.push({ text: `Effectif (qualifié) : ${present}/${indice}${present < indice ? ' sous-effectif' : ''}`, color: present < indice ? ENEMY_CUE_TINT : RING_ALLY_TINT });

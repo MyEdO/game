@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
-import { spawnEnemy } from '../../state/spawn';
+import { ficheDEntite } from '../../state/sceneNpc';
 import { applyCriticalToTarget, firedAttackBlock } from '../../state/combatFlow';
 import { applyShipPostes } from '../../state/shipPostes';
 import { availableAttacks } from '../../state/combatManeuvers';
@@ -17,12 +17,12 @@ const GUNNER_IDS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`];
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 
 /** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-naval-<i>` — cogue, pirates
- *  ET la barge AMIE), exactement comme `combatSlice` au démarrage : on transmet `crewIds` ET `postes`. */
+ *  ET la barge AMIE), par la fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
 function spawnRoster(): Combatant[] {
   const ents = scen.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-naval-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-  return ents.map((e) => spawnEnemy(e.ref, e.statblock, e.id, e.pos, { crewIds: e.crewIds, postes: e.postes, upgrades: e.upgrades }));
+  return ents.map(ficheDEntite);
 }
 
 /**

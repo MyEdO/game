@@ -29,8 +29,8 @@ const doc = document(
     rules: z.array(speciesRuleSchema),
   },
   {
-    default: { label: 'Race par défaut', hint: 'Race de rig retenue quand aucune règle ne correspond' },
-    rules: { label: 'Règles de correspondance', hint: 'Règles ordonnées qui font correspondre une espèce à une race de rig' },
+    default: { label: 'Race par défaut', hint: 'Race d’apparence retenue quand aucune règle ne correspond' },
+    rules: { label: 'Règles de correspondance', hint: 'Règles ordonnées qui font correspondre une espèce à une race d’apparence' },
   },
   {
     codex: {

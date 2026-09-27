@@ -419,7 +419,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       }
       // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
       if (status === 'free') {
-        const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec);
+        const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
         if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       }
       msg = t('pf.advanceBought', { name: clone.label, what: lbl(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
@@ -494,7 +494,7 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
         return h;
       }
       if (status === 'free') {
-        const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec);
+        const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
         if (slot) designateSlot(clone, ctx.career, slot, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       }
       // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + attributs dérivés.

@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { EditorCanvas } from './EditorCanvas';
 import { emptyScene, type Scene } from '../../state/scene';
 import { sceneZoneTiles } from '../../state/zones';
-import { tileCenter } from '../../geometry/iso';
+import { diamondPath, tileCenter } from '../../geometry/iso';
 import { DEFAULT_LAYERS } from './editorState';
 import type { LowerLayerMode } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../state/planDefects';
@@ -226,7 +226,7 @@ describe('EditorCanvas — pelure d’oignon des TOITS (#835 FU-2)', () => {
   it('contre-épreuve appariée : la MÊME masse du rez passe en gabarit VOILÉ (sans atténuation propre) quand on édite l’étage', async () => {
     const { html, attenues } = await renderAt(1);
     expect(html).toContain('Appentis'); // seule la couche active a changé entre les deux épreuves
-    expect(html).toContain('Beffroi'); // la nappe de l'étage édité est désormais la nappe atténuée
+    expect(html).toContain('Beffroi'); // la nappe de l'étage édité est la nappe atténuée
     expect(attenues).toEqual(['Beffroi']);
     // Le voile de couche inférieure est un FILTRE CSS, appliqué au groupe du toit voilé.
     expect(html).toMatch(/filter[^;"]*(saturate|opacity|grayscale)/i);
@@ -595,5 +595,51 @@ describe('EditorCanvas — une zone se dessine par ses CASES, jamais par son rec
     await h.paint(4, 1); // hors de la boîte 3×3 : l'aire s'étend, l'emprise se matérialise
     expect(h.drawn('galerie').cases).toBe(10);
     await h.end();
+  });
+});
+
+/**
+ * CONTOUR DE SÉLECTION d'un décor : il couvre les cases de son empreinte au CAP de l'instance
+ * (`entiteFootTiles` → `propFootTiles`, la couture que lisent la marchabilité et l'Inspector), jamais
+ * la seule case d'ancre. `table-2x1` : 2×1 au cap S, 1×2 au cap E.
+ */
+describe('EditorCanvas — contour de sélection d’un décor multi-case', () => {
+  it.each([
+    ['S', [{ x: 3, y: 3 }, { x: 4, y: 3 }]],
+    ['E', [{ x: 3, y: 3 }, { x: 3, y: 4 }]],
+  ] as const)('cap %s : le contour couvre les cases de l’empreinte tournée', async (facing, attendues) => {
+    const scene: Scene = emptyScene(8, 8);
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: 'table-2x1', facing }];
+    const view = {
+      rot: 0 as const,
+      setRot: () => {},
+      viewMode: 'top' as const,
+      setViewMode: () => {},
+      view: { zoom: 1, x: 0, y: 0 },
+      setView: () => {},
+      zoomAt: () => {},
+      spaceRef: { current: false },
+      panRef: { current: null },
+      canvasRef: { current: null as SVGSVGElement | null },
+      stageRef: { current: { w: 100, h: 100 } },
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <EditorCanvas scene={scene} view={view as never} {...baseProps()} sel={{ type: 'entity', id: 'table-1' }} />,
+      );
+    });
+    const dims = { ...scene.dimensions, rot: 0 as const, view: 'top' as const };
+    const contour = [...container.querySelectorAll('path')]
+      .filter((p) => p.getAttribute('stroke') === 'var(--iso-active-halo)' && p.getAttribute('stroke-width') === '3')
+      .map((p) => p.getAttribute('d'))
+      .sort();
+    expect(contour).toEqual(attendues.map((t) => diamondPath(t.x, t.y, dims, 0)).sort());
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });

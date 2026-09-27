@@ -1,6 +1,6 @@
 *Pages PDF 259-260*
 
-# **CHAOS MAGIC**
+# <span id="page-258-0" data-folio="259"></span>**CHAOS MAGIC**
 
 Three of the four Great Powers of Chaos have a unique Lore of Magic — only Khorne, the Blood God, has no Lore of his own, abhorring magic as an insult to warrior honour. Three Spells are provided here for each of the primary Chaos Lores, which can be added to provide flavour to your Chaos cultists in addition to Arcane Spells and the Lore of Daemonology.
 
@@ -32,7 +32,7 @@ A thin mist gathers around you. All living creatures within the Area of Effect m
 
 Your maw distends horrifically before you vomit forth a foul stream of diseased filth and horror. Immediately make an Unopposed Acid- and Poison-type *Breath* attack (see page 357). It counts as a *magic missile* with a Damage equal to your Toughness Bonus, and it ignores Armour Points. Further, any targets that take more than their TB in Wounds must pass a **Challenging (+0 SL) Endurance** Test or contract *Blood Rot* (see page 179).
 
-# **Lore of Slaanesh**
+# <span id="page-259-0" data-folio="260"></span>**Lore of Slaanesh**
 
 The Lore of Slaanesh revels in torture and excess, all offered to the Prince of Pain and Pleasure for its eternal delight. It is typically wrought by twisting together the Grey, Gold, and Jade Winds into something perverse and exotic.
 

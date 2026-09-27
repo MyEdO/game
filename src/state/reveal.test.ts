@@ -133,7 +133,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
     // Haine ciblant un GROUPE du squelette présent en scène (lu sur la créature réelle, jamais deviné)
     // → `openEncounterPsych` ouvre sa cascade « Sang-froid » à l'entrée.
-    const squelette = spawnEnemy('squelette', undefined, 'squ-probe', { x: 0, y: 0 });
+    const squelette = spawnEnemy({ ref: 'squelette' }, 'squ-probe', { x: 0, y: 0 });
     hero.psychTraits = [{ type: 'haine', cible: (squelette.groups ?? [])[0] }];
     return hero;
   }

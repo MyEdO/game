@@ -138,7 +138,7 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
   function makeState(over: Record<string, unknown> = {}) {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
-    const enemy = spawnEnemy('Bandit de Grand Chemin', undefined, 'e1', { x: 7, y: 10 }); // adjacent au héros
+    const enemy = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 10 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -221,7 +221,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
 
   it('Entrée sur une case NON commettable en mode-CASE dit son refus À L’ÉCRAN, jamais muet', () => {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const door = spawnEnemy('Bandit de Grand Chemin', undefined, 'door', { x: 7, y: 10 });
+    const door = spawnEnemy({ ref: 'brigand' }, 'door', { x: 7, y: 10 });
     const battle = {
       combatants: [hero, door], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 1, action: 'teleport',
       selectedSpellId: null, reachable: new Map(), // AUCUNE case de reach : (7,10) reste occupée/non commettable

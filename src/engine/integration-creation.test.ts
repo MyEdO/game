@@ -18,7 +18,7 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
   it('un Prêtre créé (Béni) reçoit AUTOMATIQUEMENT les six Bénédictions de son culte (LDB 41)', () => {
     const h = createHero({
       speciesId: 'humains-reiklander', careerId: 'pretre', label: 'P', rng: makeRNG(7),
-      careerTalent: { talentId: 'beni', spec: 'sigmar' },
+      careerTalent: { id: 'beni', spec: 'sigmar' },
     });
     expect(casterTalents(h).some((t) => t.kind === 'beni' && t.spec === 'sigmar')).toBe(true);
     for (const b of blessingsOf('sigmar')) expect(h.spells).toContain(b); // « reçoit les SIX »
@@ -27,7 +27,7 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
   it('un Sorcier créé (Magie mineure) peut mémoriser des sorts via le grimoire (coûts par bandes)', () => {
     const h = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'S', rng: makeRNG(7),
-      careerTalent: { talentId: 'magie-mineure' }, // le talent de carrière choisi (1 seul au Niveau 1)
+      careerTalent: { id: 'magie-mineure' }, // le talent de carrière choisi (1 seul au Niveau 1)
     });
     expect(casterTalents(h).some((t) => t.kind === 'mineure')).toBe(true);
     const learnable = learnableSpells(h);
@@ -42,7 +42,7 @@ describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
   it('un Ratier créé (Coup puissant, Frappe assommante) résout dans le registre des talents câblés', () => {
     const h = createHero({
       speciesId: 'humains-reiklander', careerId: 'ratier', label: 'R', rng: makeRNG(7),
-      careerTalent: { talentId: 'coup-puissant' },
+      careerTalent: { id: 'coup-puissant' },
     });
     expect(h.talents.some((t) => talentConcrete(t) === 'Coup puissant')).toBe(true);
     expect(featuresOf(h).some(({ def }) => def.meleeDamageBonus)).toBe(true); // câblé, pas juste affiché

@@ -8,7 +8,7 @@
  *  - modificateurs de Caractéristiques/Mouvement (Élite +20 CC…, Brutal −1 M) → `TraitData.passive: GameOp[]`,
  *    lus par le collecteur passif ;
  *  - effets déclenchés / manœuvres → `TraitData.effects` / `TraitData.grantsManeuvers`.
- * Le `TraitDef` du registre ne porte donc plus que le libellé d'AFFICHAGE.
+ * Le `TraitDef` du registre porte donc seulement le libellé d'AFFICHAGE.
  */
 export interface TraitDef {
   /** Libellé FR canonique (clé de correspondance, casse/Indice/parenthèse ignorés). */

@@ -1,7 +1,7 @@
 /**
  * Migration #877 — le TYPE d'un décor se NOMME, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 12` : toute entité `kind:'prop'` sans `ref` reçoit
+ * UN geste, et le document passe en `schema: 12` au moins : toute entité `kind:'prop'` sans `ref` reçoit
  * `ref: 'tonneau'` — le type que le MONDE dessinait en dur avant ce lot (`gameIso/builders/props.ts`,
  * la voie du décor de scène). Ce que la migration ÉCRIT, c'est ce que le monde MONTRAIT : le décor
  * de scène sort inchangé. Le backend SPRITE (`entitySprite` → `tokenBodyKind`), lui, ne dessinait RIEN
@@ -42,9 +42,10 @@
  * BORNE HAUTE OUVERTE (`schema` ∈ {11, ≥ 12}) : la DERNIÈRE migration de la chaîne dans l'ordre
  * lexical est la seule à nommer un `schema` futur (`DERNIERE`, dérivée par
  * `src/scenes/migrations-format-projet.test.ts`). Un document déjà plus récent traverse donc ici
- * sans être RABAISSÉ : le document sort en `schema` = max(le sien, 12).
- * FAIL-FAST : `schema` absent, non numérique ou < 11, `scenes` non-tableau, périmètre vide → rien
- * n'est écrit, sortie 1.
+ * sans être RABAISSÉ : le document sort en `schema` = max(le sien, 12), et ses Scènes sont comptées
+ * comme celles de tout document lu.
+ * FAIL-FAST : `schema` absent, non numérique ou < 11, `scenes` non-tableau, périmètre vide →
+ * rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -54,7 +55,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-21-877-ref-de-decor-nommee';
 const RACINE = path.join(ROOT, 'src/scenes');
 
-/** Forme du document AVANT et APRÈS ce bump — la borne haute est OUVERTE (cf. en-tête). */
+/** Forme d'entrée et CIBLE de ce bump — la borne haute est OUVERTE (cf. en-tête). */
 const SCHEMA_AVANT = 11;
 const SCHEMA_APRES = 12;
 /** Le type que le rendu DONNAIT à un décor sans `ref` avant ce lot. Ce littéral FIGE un passé. */

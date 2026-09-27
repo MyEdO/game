@@ -94,7 +94,6 @@ export const scenario: TestScenario = {
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.
   interludeWeeks: 3,
   massBattle: {
-    allyName: 'Armée des Personnages',
     enemyName: 'Horde ennemie',
     allyMight: 50,
     enemyMight: 55,

@@ -1,6 +1,6 @@
 *Pages PDF 203-204*
 
-# **THE CULTS**
+# <span id="page-202-0" data-folio="203"></span>**THE CULTS**
 
 The Old World has many cults dedicated to appeasing or appealing to deities and promoting the ideals they embody. Leaders of these cults are frequently influential in local politics. They not only stand as representatives of their gods, but also command hundreds or perhaps thousands of clerics and templars — temporal power that cannot be ignored.
 
@@ -24,7 +24,7 @@ Prayers to the gods are rarely answered by those not Blessed (see page 116), but
 
 Although many hundreds of gods are worshipped across the Empire, ten are of particular importance, each worshipped by cults spanning the grand provinces and granted a special position by Magnus the Pious over two hundred years ago.
 
-# **PRIMARY GODS OF THE EMPIRE**
+<span id="page-203-0" data-folio="204"></span>**PRIMARY GODS OF THE EMPIRE**
 
 | God      | Spheres                           | Worshippers                                        | Offerings                                       |
 |----------|-----------------------------------|----------------------------------------------------|-------------------------------------------------|

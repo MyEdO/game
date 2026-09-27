@@ -1,7 +1,7 @@
 import type { GameState, RevealEntry } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
-import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, ScheduledEffect } from './pendings';
+import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
 import { revealToStep } from './revealStep';
 import { Combatant, CHAR_LABELS, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -27,7 +27,7 @@ import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
 import { trappingById, indiceById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
-import { findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
+import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
 import { harvestSizeOf, harvestYield } from '../engine/harvest';
@@ -838,6 +838,61 @@ function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Com
   return pool.filter((c) => c.kind === 'hero' && !c.dead);
 }
 
+/**
+ * VOCABULAIRE DE CIBLAGE d'un Effet de SCÈNE : une scène vise le GROUPE, ou UN héros désigné par son
+ * `heroId` (`on` absent = `party`). `target`/`caster` sont ceux du DÉCLENCHÉ — cible et lanceur résolus
+ * par sa porte (`routeTriggeredTest`, `combat/triggeredTest.ts`) —, que le marcheur de scène ne connaît
+ * pas. SOURCE UNIQUE de la LEVÉE du handler `ops`, de sa VALIDATION (`refs`, lue par `validateScene`)
+ * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
+ */
+export const CIBLES_D_EFFET_DE_SCENE = [
+  { on: 'party', label: 'Tout le groupe' },
+  { on: 'hero', label: 'Un héros' },
+] as const;
+export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
+
+/**
+ * REGISTRE des tables de cibles d'un Effet `ops`, une entrée par RACINE : chaque table offre EXACTEMENT
+ * les `on` que le marcheur de sa racine honore, sous le libellé du RÔLE réel. Sa PREMIÈRE entrée est le
+ * `on` d'une feuille qui n'en porte pas.
+ *  - `scene` : handler `ops` (`EFFECT_HANDLERS.ops`, `effectTargets`) ;
+ *  - `sort` : `runCastFlow` sur `spellFlowFor(…, 'target' | 'caster')` (`combatFlow.ts`) ;
+ *  - `declenche` : `runPureFlowLines(cible, porteur, …)` (`triggeredEffects.ts`) ; un Flow à `test` passe
+ *    par la porte `routeTriggeredTest` (voie routée) ou par `resolveInlineFlowTest` (entretien hors combat) ;
+ *  - `critique` : `routeTriggeredTest(victime, victime, …)`, depuis `applyCriticalToTarget`,
+ *    `applyHullCriticalToTarget` et `openCombatEndCascade` (`combatFlow.ts`) ;
+ *  - `maladie` : `spellOps(node.fail, 'target')` (`engine/disease.ts`, `opsDeLEchec`) ;
+ *  - `consommable` : `bakeConsumableFlow` réécrit toute feuille sur le buveur (`engine/consumables.ts`) ;
+ *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`).
+ */
+export const CIBLES_PAR_RACINE = {
+  scene: CIBLES_D_EFFET_DE_SCENE,
+  sort: [{ on: 'target', label: 'La cible' }, { on: 'caster', label: 'Le lanceur' }],
+  declenche: [{ on: 'target', label: 'La cible du déclencheur' }, { on: 'caster', label: 'Le porteur' }],
+  critique: [{ on: 'target', label: 'La victime' }],
+  maladie: [{ on: 'target', label: 'Le malade' }],
+  consommable: [{ on: 'target', label: 'Le buveur' }],
+  critiqueDeCoque: [{ on: 'target', label: 'Le marin touché' }],
+} as const;
+export type RacineDEffet = keyof typeof CIBLES_PAR_RACINE;
+export type RacineDeCatalogue = Exclude<RacineDEffet, 'scene'>;
+
+/** La table de cibles qu'une RACINE offre à ses Effets `ops` — jamais supposée. */
+export type TableDeCibles = (typeof CIBLES_PAR_RACINE)[RacineDEffet];
+
+/** `on` (défaut `party`) appartient-il au vocabulaire de scène ? Garde de type : le handler narrowe
+ *  dessus avant d'appeler `env.targets`. */
+export function estCibleDeScene(on: string | undefined): on is CibleDEffetDeScene {
+  return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (on ?? 'party'));
+}
+
+/** Le refus, dit UNE fois — même phrase à la validation d'une scène et à la levée du marcheur. */
+export function messageCibleHorsScene(e: { label?: string; on?: string }, on: string): string {
+  return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
+    + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
+    + 'Une scène vise `party` ou `hero` (+ `heroId`).';
+}
+
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y
  *  passent). `onSuccess`/`onFailure` = branches (Flows) ; `after` = continuation reprise APRÈS la
  *  branche (suite d'un `seq`). Choix du meilleur PJ effectif (malus social compris), candidats,
@@ -852,6 +907,8 @@ export function openSkillTest(
     combatAdvantage?: { combatantId: string; cap: number };
     /** Test initié en COMBAT : annulable pré-jet (l'Action n'est pas encore dépensée). */
     cancellable?: boolean;
+    /** Test SUBI : le vocabulaire de sa branche (`PendingTest.subi`) — posé par `routeTriggeredTest`. */
+    subi?: PendingTest['subi'];
   },
 ): boolean {
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
@@ -1000,6 +1057,7 @@ export function openSkillTest(
       ...(opts?.noOwnTestFailed ? { noOwnTestFailed: true } : {}),
       ...(opts?.combatAdvantage ? { combatAdvantage: opts.combatAdvantage } : {}),
       ...(opts?.cancellable ? { cancellable: true } : {}),
+      ...(opts?.subi ? { subi: opts.subi } : {}),
     },
   });
   // « Une situation = une modale » : le Test EST une cascade à une étape `jet:'test'`, rendue par
@@ -1395,12 +1453,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         recomputeLoadout(clone); // met à jour l'encombrement
         return clone;
       });
-      env.log(t('eff.recover', { name: who?.label || t('eff.party'), item: it.label }));
+      env.log(who ? t('eff.recover', { name: who.label, item: it.label }) : t('eff.recoverSansHeros', { item: it.label }));
     },
   },
   givePossession: {
     group: 'Récompenses', label: 'Donner une possession (bête/serviteur/véhicule)', icon: 'item/misc',
-    make: () => ({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } }),
+    make: () => ({ type: 'givePossession', nature: 'bete', ref: { creatureId: creatureSemee() } }),
     apply: (e, env) => {
       const owner = env.mutateHero(e.heroId, (h) => h); // pas de mutation : choisit seulement le propriétaire
       if (!owner) return;
@@ -1413,6 +1471,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       ) as unknown as PossessionInput;
       const uid = addPossession(env.get, env.set, input);
       env.log(t('eff.recover', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
+    },
+    // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
+    refs: (e) => {
+      const r = e.ref;
+      if ('creatureId' in r && !findCreatureById(r.creatureId)) return [{ level: 'error', message: `Possession → créature inexistante « ${r.creatureId || '(aucune)'} »` }];
+      if ('vehicleId' in r && !findVehicleById(r.vehicleId)) return [{ level: 'error', message: `Possession → véhicule inexistant « ${r.vehicleId || '(aucun)'} »` }];
+      return [];
     },
   },
   giveMoney: {
@@ -1536,11 +1601,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }] }),
     apply: (e, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
-      // (`party`/`hero`). `caster`/`target` = contexte d'incantation, résolu par le flux de sort → ignoré ici.
-      // `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE (untilTime/label bakés par un consommable —
-      // la branche d'un `test` suspendu garde sa durée) + programmation des ops `delayed`.
+      // (`party`/`hero`, défaut `party`). `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE
+      // (untilTime/label bakés par un consommable — la branche d'un `test` suspendu garde sa durée)
+      // + programmation des ops `delayed`.
       const on = e.on ?? 'party';
-      if (on !== 'party' && on !== 'hero') return;
+      if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(e, on));
       const targets = env.targets(on, e.heroId);
       if (!targets.length) return;
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
@@ -1552,6 +1617,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       }
       env.set(touchActors(env.get()));
       lines.forEach((l) => env.log(l));
+    },
+    // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
+    // que la levée du marcheur.
+    refs: (e) => {
+      const on = e.on ?? 'party';
+      return estCibleDeScene(on) ? [] : [{ level: 'error', message: messageCibleHorsScene(e, on) }];
     },
   },
   zoneBlast: {
@@ -1955,7 +2026,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   setVessel: {
     group: 'Navigation', label: 'Doter le groupe d\'un navire (MDG 13-15)', icon: 'travel/anchor',
-    make: () => ({ type: 'setVessel', vehicleId: '', morale: MORALE_BASE }),
+    make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `TestScenario.vessel`,
       // mais authorable. Moral neuf par défaut (MORALE_BASE) ; coque intacte sauf `hull*` authoré.
@@ -2041,7 +2112,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startPursuit: {
     group: 'Combat & social', label: 'Poursuite terrestre (LDB 15)', icon: 'travel/foot',
-    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: '' } }], encounter: '' }),
+    make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: creatureSemee() } }], encounter: '' }),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
     refs: (e, ctx) => {
       const issues: EffectRefIssue[] = [];
@@ -2059,7 +2130,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startMassBattle: {
     group: 'Combat & social', label: 'Combat de masse (Puissance de Bataille)', icon: 'map-tool/start-flag',
-    make: () => ({ type: 'startMassBattle', battle: { allyName: 'Armée des Personnages', enemyName: 'Armée ennemie', allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
+    make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().startMassBattle(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
     refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>

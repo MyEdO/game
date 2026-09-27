@@ -15,9 +15,13 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
 import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type SequenceState } from './sequenceCore';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload } from './tavernFlow';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { PendingCascade, CascadeStep } from './pendings';
+import { pnjAuProfil } from './sceneNpc';
+
+/** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
+const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 
 const get = useGame.getState.bind(useGame);
 
@@ -31,7 +35,7 @@ function partie(tieBreak: string | undefined, challengerId: string): SequenceSta
   return {
     def: TAVERN_SEQUENCE, round: 1, cum: {},
     params: { ...(tieBreak ? { tieBreak } : {}) },
-    payload: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: 'un habitué', stakeBrass: 0 },
+    payload: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0 },
   };
 }
 
@@ -44,8 +48,8 @@ function doneRound(actorId: string, playerRoll: number, opponentRoll: number, sl
     base: 40, target: 40,
     result: { roll: playerRoll, target: 40, sl, success: true },
     meta: {
-      gameId: 'dominos', opponentValue: 40, opponentName: 'un habitué', stakeBrass: 0, round: 1,
-      opposed: { aT: { roll: opponentRoll, target: 40, sl, success: true, isDouble: false, base: 40 }, attackerName: 'un habitué' },
+      gameId: 'dominos', opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0, round: 1,
+      opposed: { aT: { roll: opponentRoll, target: 40, sl, success: true, isDouble: false, base: 40 }, attackerName: NOM_HABITUE },
     },
   };
   return { title: 't', purpose: 'sequence', participants: [step], cursor: 1, log: [] };
@@ -61,7 +65,7 @@ describe('Les dominos — départage d’égalité au dé d’unités (NADJ 16 l
     expect(findTavernGameById('dominos')?.tieBreak).toBe('units-lowest');
     const [a] = heroes();
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     expect(get().sequence?.params.tieBreak, 'le paramètre voyage de la donnée au socle').toBe('units-lowest');
   });
 
@@ -80,7 +84,7 @@ describe('Les dominos — départage d’égalité au dé d’unités (NADJ 16 l
     const [a] = heroes();
     for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'opposed')) {
       useGame.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
-      get().playTavernGame({ gameId: jeu.id, challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+      get().playTavernGame({ gameId: jeu.id, challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;
       expect(seq?.def, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
       // Les paramètres ne viennent QUE de l'entrée — rien n'est câblé par id de jeu dans le moteur.

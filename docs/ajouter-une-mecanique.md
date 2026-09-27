@@ -3,7 +3,7 @@
 > ⚠️ Fichier GÉNÉRÉ par `node scripts/docs/build-mecanique.mjs` (`npm run docs:mecanique`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : le SITE réel du lecteur de
-chaque canal (`src/engine/trauma.ts:983`, `src/state/triggeredEffects.ts:471`, `src/engine/capabilities.ts:45`), les
+chaque canal (`src/engine/trauma.ts:983`, `src/state/triggeredEffects.ts:475`, `src/engine/capabilities.ts:45`), les
 20 membres d'`EffectTrigger` et les 6 formes d'`EffectTargeting`
 (`src/engine/flowCore.ts`), les 7 champs de `TriggeredEffect`, les 8 kinds
 de source réunis par `effectSourcesOf`, les 4 interfaces de capacités et leur nombre de
@@ -24,7 +24,7 @@ Toute mécanique — trait de créature, talent, atout d'arme/armure, mutation, 
 | Canal | Ce qu’il porte | Lu par |
 |---|---|---|
 | `passive: GameOp[]` | modificateur CONTINU, sans déclencheur | `passiveMods` (`src/engine/trauma.ts:983`) |
-| `effects: TriggeredEffect[]` | effet sur ÉVÉNEMENT (à la touche, en fin de Round…) | `fireTriggers` (`src/state/triggeredEffects.ts:471`) |
+| `effects: TriggeredEffect[]` | effet sur ÉVÉNEMENT (à la touche, en fin de Round…) | `fireTriggers` (`src/state/triggeredEffects.ts:475`) |
 | `capabilities` | drapeau IRRÉDUCTIBLE que le moteur INTERROGE (aucune valeur numérique ni formule) | `hasCapability` (`src/engine/capabilities.ts:45`) |
 
 Chaque champ est du **`GameOp[]`** ou du **`TriggeredEffect[]`** — jamais un type propre à
@@ -104,7 +104,7 @@ produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'enti
 
 ### Le dispatcher unique — `fireTriggers`
 
-`fireTriggers` (`src/state/triggeredEffects.ts:471`) est le **SEUL** point d'entrée pour jouer les effets
+`fireTriggers` (`src/state/triggeredEffects.ts:475`) est le **SEUL** point d'entrée pour jouer les effets
 déclenchés d'un combattant. Il réunit ses sources via `effectSourcesOf` (`src/state/triggeredEffects.ts:102`), qui
 énumère aujourd'hui **8 kinds** dans un ordre FIGÉ (déroulé RNG déterministe) :
 `trapping` → `trait` → `quality` → `talent` → `symptom` → `mutation` → `condition` → `psychology`.
@@ -136,22 +136,22 @@ un chiffre qui s'additionne.
 
 | Interface | Site | Drapeaux déclarés |
 |---|---|---|
-| `TraitCapabilities` | `src/data/index.ts:1703` | 43 |
-| `QualityCapabilities` | `src/data/index.ts:1901` | 26 |
-| `ItemCapabilities` | `src/data/index.ts:1112` | 12 |
-| `SymptomCapabilities` | `src/data/index.ts:1968` | 6 |
+| `TraitCapabilities` | `src/data/index.ts:1705` | 43 |
+| `QualityCapabilities` | `src/data/index.ts:1903` | 26 |
+| `ItemCapabilities` | `src/data/index.ts:1114` | 12 |
+| `SymptomCapabilities` | `src/data/index.ts:1970` | 6 |
 
 Lecture — un seul point d'entrée par portée, chaque canal restant disjoint par nom de capacité :
 
 | Lecteur | Site | Portée |
 |---|---|---|
-| `traitCapability` | `src/engine/traits/dispatch.ts:222` | par trait |
+| `traitCapability` | `src/engine/traits/dispatch.ts:204` | par trait |
 | `itemCapability` | `src/engine/capabilities.ts:25` | par objet |
 | `hasCapability` | `src/engine/capabilities.ts:45` | agrégat cross-source, par personnage |
 
 ### Une capacité peut être ANNULÉE par un autre trait porté
 
-`suppressesCapabilities` (lu par `traitCapability`, `src/engine/traits/dispatch.ts:226`) : un trait déclare
+`suppressesCapabilities` (lu par `traitCapability`, `src/engine/traits/dispatch.ts:208`) : un trait déclare
 les capacités qu'il annule chez **les autres traits du même porteur** — la résolution rend `false`
 même si un second trait la déclare. C'est de la DONNÉE, jamais un chemin de code par nom de trait :
 1 entrée(s) de `src/data/traits.json` l'exercent, dont `dresse-dompte`
@@ -220,4 +220,4 @@ primitives, `CLAUDE.md`). Ne pas dupliquer une op qui existe déjà sous un autr
 | `src/engine/trauma.test.ts` | traumaFromKind (LDB 18-Traumatisme) |
 | `src/state/triggered-effects.test.ts` | fireTriggers — Traits et Atouts sur le même système flow+déclencheur |
 | `src/state/combat-hardcode-guard.test.ts` | garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8) |
-<!-- sources-empreinte: 3c158b5b58ecc32d445899128a2e9533d7dc13bb (158 fichiers, 1 dossiers) corps: e147d2981ba99242fddba6b4563464841e6993e9 -->
+<!-- sources-empreinte: bd93f26cdec2d949ecc0295f422a27a74ce731d1 (158 fichiers, 1 dossiers) corps: 80c27d9dc45969b1f771e4e077da008272fc5eb3 -->

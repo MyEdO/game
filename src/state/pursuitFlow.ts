@@ -234,12 +234,7 @@ function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCasc
 function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): PursuitFoe {
   const id = f.id ?? `foe-${index + 1}`;
   const ref = f.ref;
-  const fiche = spawnEnemy(
-    'creatureId' in ref ? ref.creatureId : undefined,
-    'creatureId' in ref ? undefined : ref.custom,
-    id,
-    { x: 0, y: 0 },
-  );
+  const fiche = spawnEnemy('creatureId' in ref ? { ref: ref.creatureId } : { statblock: ref.custom }, id, { x: 0, y: 0 });
   return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, skillId) };
 }
 

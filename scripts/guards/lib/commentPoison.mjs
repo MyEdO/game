@@ -488,7 +488,7 @@ export function scanTombstones(relPath, contenu) {
  *  le volet excuses ne BLOQUE que lorsque le tri utilisateur du stock existant est fait
  *  (tag `[entériné AAAA-MM-JJ]` ou reformulation de chaque occurrence), cf. #136/#177. Le tri est
  *  FAIT (stock reformulé) → `true` : les hooks bloquent l'excuse sans tag et le test Vitest scanne
- *  tout src/**. Une nouvelle excuse sans tag `[entériné]` échoue désormais la CI et le commit. */
+ *  tout src/**. Une nouvelle excuse sans tag `[entériné]` échoue la CI et le commit. */
 export const EXCUSE_GUARD_ACTIVE = true;
 
 // Affinage 2026-07-06 (recensement : 41 faux positifs sur 44 occurrences, même méthode que les
@@ -621,6 +621,7 @@ export function scanExcuses(relPath, contenu) {
 const NB_AVANT = '(?<![a-zA-ZÀ-ÿ0-9])';
 const NB_APRES = '(?![a-zA-ZÀ-ÿ0-9])';
 const FICHIER_APRES = '(?!\\.(?:mjs|mts|tsx?|jsx?|json))';
+const MOT = '[a-zA-ZÀ-ÿ]+';
 
 /** @type {{ rx: RegExp, label: string }[]} */
 export const LEGACY_VOCAB_FAMILIES = [
@@ -631,9 +632,30 @@ export const LEGACY_VOCAB_FAMILIES = [
   { rx: new RegExp(NB_AVANT + 'déprécié\\w*', 'i'), label: 'déprécié' },
   { rx: new RegExp(NB_AVANT + 'obsol[eè]tes?' + NB_APRES, 'i'), label: 'obsolète' },
   { rx: new RegExp(NB_AVANT + 'shims?' + NB_APRES, 'i'), label: 'shim' },
-  // La coupure de ligne ne met pas la locution hors de portée (même `GAP` que les familles ci-dessus).
-  { rx: new RegExp('ne' + GAP + 'sert' + GAP + 'plus' + GAP + 'qu' + APOS, 'i'), label: 'ne sert plus qu’à' },
+  // Négation, verbe quelconque, adverbe facultatif, `plus`, `qu`. L'adverbe `pas`/`jamais` fait du
+  // COMPARATIF (« ne coûte pas plus que »), autre construction, hors famille. La coupure de ligne ne
+  // met pas la locution hors de portée (même `GAP`).
+  {
+    rx: new RegExp(
+      NB_AVANT + '(?:ne' + GAP + '|n' + APOS + ')' + MOT + GAP + '(?:(?!(?:pas|jamais)' + NB_APRES + ')' + MOT + GAP + ')?' +
+        'plus' + GAP + 'qu(?:e' + NB_APRES + '|' + APOS + ')',
+      'i',
+    ),
+    label: 'ne … plus que',
+  },
+  // Adverbe de CHANGEMENT d'état : extension de couverture mesurée le 2026-09-26 (#1486 #1509).
+  { rx: new RegExp(NB_AVANT + 'désormais' + NB_APRES, 'i'), label: 'désormais' },
 ];
+
+/** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).
+ *  Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici
+ *  omettait Ubersreik/Altdorf/T3, désynchronisée dès qu'un livre s'ajoutait à BOOKS). `ACE`
+ *  (Altdorf, Annexe I — citée en `p.NNN`, jamais `l.NNN`) est portée par `BOOKS`/`allAbbrAlternation`
+ *  (alias `Ald\w+`/`Alt\w+` en plus de la forme canonique `ACE`, ref #529) — aucune entrée en dur ici. */
+export const BOOK_REF_RX = new RegExp(
+  `\\b(${allAbbrAlternation()})\\b\\s*(\\d+|ch\\.?\\s*\\d+|l\\.\\s*\\d+|p\\.?\\s*\\d+|§)`,
+  'i',
+);
 
 // EMPLOIS VIVANTS du mot, écartés par le CONTEXTE IMMÉDIAT (jamais par une liste de fichiers) : le
 // mot y qualifie autre chose que du code de ce dépôt — une dépendance npm à monter de version, une
@@ -645,6 +667,16 @@ export const LEGACY_VOCAB_EXCLUSIONS = [
   { rx: new RegExp('shims?' + GAP + 'DEV', 'gi'), label: 'couture DEV (Playwright)' },
   { rx: new RegExp('obsol[eè]tes?' + GAP + '\\(npm', 'gi'), label: 'dépendance npm à monter de version' },
   { rx: new RegExp('motifs?' + GAP + 'obsol[eè]tes?', 'gi'), label: 'entrée de garde sans correspondance' },
+  {
+    rx: new RegExp(NB_AVANT + 'n' + APOS + 'est' + GAP + 'plus' + GAP + 'que' + GAP + 'temps' + NB_APRES, 'gi'),
+    label: 'locution « il n’est plus que temps »',
+  },
+  // Une citation n'est VERBATIM que portée par sa réf nue (réf de livre, `BOOK_REF_RX`) ou, pour un
+  // arbitrage utilisateur, par sa date — à courte portée derrière le guillemet fermant.
+  {
+    rx: new RegExp('«[^»]*»' + '[\\s*/,:;.()`—–-]{0,12}' + '(?:' + BOOK_REF_RX.source + '|\\d{4}-\\d{2}-\\d{2})', 'gi'),
+    label: 'citation VERBATIM suivie de sa réf',
+  },
 ];
 
 /** Le match `[index, index+len)` est-il RECOUVERT par un emploi vivant ? (frontière stricte : une
@@ -724,15 +756,6 @@ export const RAW_CLAIM_FAMILIES = [
   { rx: /\b(hors[- ]RAW|non[- ]RAW|pas\s+RAW)\b/i, label: 'hors-RAW nu' },
   { rx: /(laissée?s? au MJ|au choix du MJ|le MJ (décide|tranche|arbitre))/i, label: 'renvoi au MJ' },
 ];
-/** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).
- *  Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici
- *  omettait Ubersreik/Altdorf/T3, désynchronisée dès qu'un livre s'ajoutait à BOOKS). `ACE`
- *  (Altdorf, Annexe I — citée en `p.NNN`, jamais `l.NNN`) est portée par `BOOKS`/`allAbbrAlternation`
- *  (alias `Ald\w+`/`Alt\w+` en plus de la forme canonique `ACE`, ref #529) — aucune entrée en dur ici. */
-export const BOOK_REF_RX = new RegExp(
-  `\\b(${allAbbrAlternation()})\\b\\s*(\\d+|ch\\.?\\s*\\d+|l\\.\\s*\\d+|p\\.?\\s*\\d+|§)`,
-  'i',
-);
 
 // ---------------------------------------------------------------------------------------------
 // Famille 4 — REVENDICATION D'AUTORITÉ non tracée (credo : « un commentaire-excuse n'est pas une

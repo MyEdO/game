@@ -1,151 +1,163 @@
 /**
- * GARDE — `PROJECT_MIGRATIONS[12]` : un projet AUTHORÉ AVANT #1897 se charge encore.
+ * GARDE — `PROJECT_MIGRATIONS[12]` : un projet AUTHORÉ AVANT #1882 se charge encore.
  *
- * QUESTION : `narratif.presetsPnj[].profil` reprend le def créature, dont `spells` adopte
- * `refs('spell')` — la référence de sort passe de `{ id }` à l'id NU. Un `.json` exporté avant ce lot,
- * resté dans une bibliothèque utilisateur, ressort-il avec les sorts de ses PNJ ?
+ * QUESTION : la FICHE d'un personnage n'est plus facultative. Un porteur (`ref`, `statblock` ou
+ * `presetId`) est REQUIS sur une entité `kind:'personnage'` (`PORTEURS_DU_TYPE`). Un `.json` exporté
+ * avant ce lot, resté dans une bibliothèque utilisateur, ressort-il avec des personnages qui NOMMENT
+ * leur fiche — le profil standard de leur espèce (`LDB 77 l.7`) quand elle en porte un, sinon le
+ * statbloc de la branche `!ref` de `spawnEnemy` d'avant #1882 ?
  *
- * FIXTURE GELÉE : le document ci-dessous porte la forme `schema: 12` — un preset dont le profil liste
- * ses sorts en `{ id }`, un autre qui les liste déjà nus. Il est FIGÉ ; le « moderniser » détruirait ce
- * que la garde mesure.
+ * FIXTURE GELÉE : le document ci-dessous porte la forme `schema: 12` — trois personnages SANS porteur
+ * (espèce à profil, id de rig, espèce absente), un qui porte déjà sa ref. Il est FIGÉ ; le
+ * « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
 import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
-import { depot, efface, joue, lireDans, rienTouche } from '../../scripts/migrations/lib/joue.mjs';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type SceneEntity } from './scene';
+import { ficheDEntite } from './sceneNpc';
+import species from '../data/species.json';
+import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
 
-/** Document schema 12 — FIGÉ. Ne pas dénuder `sorcier` : c'est le sujet de la mesure. */
+/** Le profil standard de l'espèce authorée, LU dans `species.json` (la parité porte sur la donnée). */
+const ESPECE = 'humains-reiklander';
+const PROFIL = (species as { id: string; profilStandard?: { id: string } }[]).find((s) => s.id === ESPECE)?.profilStandard?.id;
+/** Le statbloc de la branche `!ref` de `spawnEnemy` d'avant #1882 (`state/spawn.ts`) : libellé et profil. */
+const FICHE_DU_SPAWN = { type: 'statblock', label: 'Ennemi', char: { B: 10 } };
+
+/** Document schema 12 — FIGÉ. Ne poser aucun porteur sur `aubergiste`, `rat`, `badaud`. */
 const PROJET_FORMAT_12 = {
   type: 'projet',
   schema: 12,
   id: 'campagne-gelee-12',
   label: 'Campagne gelée (format 12)',
-  versionContenu: 1,
+  versionContenu: 4,
   maison: 'fixture de test — aucun livre ne la publie',
-  narratif: {
-    affaires: [],
-    indices: [],
-    presetsPnj: [
-      { id: 'sorcier', base: 'squelette', profil: { spells: [{ id: 'flechette' }, { id: 'alerte' }] } },
-      { id: 'deja-nu', base: 'squelette', profil: { spells: ['flechette'] } },
-    ],
-    objets: [],
-  },
+  narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
   scenes: [
     {
       type: 'scene',
-      id: 'quai',
-      label: 'Le quai',
-      dimensions: { w: 1, h: 1 },
+      id: 'taverne',
+      label: 'La taverne',
+      dimensions: { w: 2, h: 2 },
       reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS },
       roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-      layers: [{ z: 0, tiles: ['herbe'] }],
-      entities: [],
+      layers: [{ z: 0, tiles: ['herbe', 'herbe', 'herbe', 'herbe'] }],
+      entities: [
+        { id: 'aubergiste', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Aubergiste', appearance: { species: ESPECE } },
+        { id: 'rat', kind: 'personnage', pos: { x: 1, y: 0 }, appearance: { species: 'rat-geant' } },
+        { id: 'badaud', kind: 'personnage', pos: { x: 0, y: 1 } },
+        { id: 'garde', kind: 'personnage', ref: 'capitaine-du-guet', pos: { x: 1, y: 1 } },
+      ],
     },
   ],
 };
 
-const presetsMigrés = () => parseProject(structuredClone(PROJET_FORMAT_12)).narratif.presetsPnj;
+const scèneMigrée = () => parseProject(structuredClone(PROJET_FORMAT_12)).scenes[0];
 
-describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la migration (#1897)', () => {
-  it('le document gelé est bien au format ANTÉRIEUR (sans quoi la garde ne mesurerait rien)', () => {
+describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la migration (#1882)', () => {
+  it('le document gelé est bien au format ANTÉRIEUR, et l’espèce porte un profil standard', () => {
     expect(PROJET_FORMAT_12.schema).toBe(12);
     expect(PROJET_FORMAT_12.schema).toBeLessThan(CURRENT_PROJECT_SCHEMA);
-    expect(PROJET_FORMAT_12.narratif.presetsPnj[0].profil.spells[0]).toEqual({ id: 'flechette' });
+    expect(PROFIL, `${ESPECE} sans profilStandard dans species.json`).toBeTruthy();
   });
 
-  it('les sorts `{ id }` d’un preset ressortent en ids NUS, dans leur ORDRE', () => {
-    expect(presetsMigrés()[0].profil?.spells).toEqual(['flechette', 'alerte']);
+  it('le personnage d’espèce à profil NOMME le profil standard de son espèce (LDB 77 l.7)', () => {
+    const [aubergiste] = scèneMigrée().entities!;
+    expect(aubergiste.ref).toBe(PROFIL);
+    expect(aubergiste.statblock).toBeUndefined();
   });
 
-  it('un preset dont les sorts sont DÉJÀ nus traverse INTACT', () => {
-    expect(presetsMigrés()[1].profil?.spells).toEqual(['flechette']);
+  it('sans profil standard (id de rig, espèce absente) : le statbloc de la branche `!ref`, en `statblock` explicite', () => {
+    const [, rat, badaud] = scèneMigrée().entities!;
+    for (const e of [rat, badaud]) {
+      expect(e.ref).toBeUndefined();
+      expect(e.statblock).toEqual(FICHE_DU_SPAWN);
+    }
   });
 
-  it('IDEMPOTENT : rejoué sur sa propre sortie, le migrateur ne change plus rien', () => {
+  it('un personnage qui NOMMAIT déjà sa fiche traverse INTACT', () => {
+    expect(scèneMigrée().entities![3].ref).toBe('capitaine-du-guet');
+  });
+
+  /** S1 — PARITÉ des DEUX implémentations du même bump : la POSITION de la clé. Le script de dépôt
+   *  (`scripts/migrations/2026-09-23-1882-fiche-de-personnage-nommee.mjs`) et le migrateur de
+   *  CHARGEMENT posent la fiche en QUEUE de l'entité. */
+  it('S1. PARITÉ : le migrateur de CHARGEMENT pose la fiche en QUEUE, comme le script de DÉPÔT', () => {
+    const migre = PROJECT_MIGRATIONS[12]!({ ...structuredClone(PROJET_FORMAT_12), version: 12 } as never) as Record<string, unknown>;
+    expect(migre.schema).toBe(13);
+    const entites = ((migre.scenes as Record<string, unknown>[])[0].entities) as Record<string, unknown>[];
+    expect(Object.keys(entites[0])).toEqual(['id', 'kind', 'pos', 'label', 'appearance', 'ref']);
+    expect(Object.keys(entites[1])).toEqual(['id', 'kind', 'pos', 'appearance', 'statblock']);
+    expect(Object.keys(entites[2])).toEqual(['id', 'kind', 'pos', 'statblock']);
+    expect(Object.keys(entites[3])).toEqual(['id', 'kind', 'ref', 'pos']);
+  });
+
+  it('S2. IDEMPOTENT : rejoué sur sa propre sortie, le migrateur ne change plus rien', () => {
     const une = PROJECT_MIGRATIONS[12]!({ ...structuredClone(PROJET_FORMAT_12), version: 12 } as never);
     const deux = PROJECT_MIGRATIONS[12]!({ ...structuredClone(une), version: 12 } as never);
     expect(JSON.stringify(deux)).toBe(JSON.stringify(une));
   });
 
-  it('SANS le migrateur, le sort `{ id }` serait REFUSÉ au parse', () => {
-    const bricole = { ...structuredClone(PROJET_FORMAT_12), schema: CURRENT_PROJECT_SCHEMA };
-    expect(() => parseProject(bricole)).toThrow(/spells/);
-  });
-
-  it('un id de sort MORT n’est pas du ressort de la migration : le schéma le NOMME', () => {
-    const mort = structuredClone(PROJET_FORMAT_12);
-    mort.narratif.presetsPnj[0].profil.spells = [{ id: 'zzz-disparu' }];
-    expect(() => parseProject(mort)).toThrow(/« zzz-disparu » est absent du catalogue des sorts \(spells\.json\)/);
-  });
-});
-
-/**
- * PARITÉ des DEUX pendants du même bump : la MÊME fixture est jouée par le script de DÉPÔT
- * (`scripts/migrations/2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs`, dans un dépôt jetable) et
- * par le CHARGEMENT (`parseProject`, donc `PROJECT_MIGRATIONS[12]`). Une forme que le chargement
- * dénude, le script la dénude À L'IDENTIQUE ; une forme que le chargement laisse à `parseProject`
- * pour qu'il la refuse, le script la refuse (sortie 1) — jamais l'un qui avale ce que l'autre refuse.
- */
-const SCRIPT_DEPOT = '2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs';
-const REL = `src/scenes/${PROJET_FORMAT_12.id}/${PROJET_FORMAT_12.id}-projet.json`;
-const canonique = (doc: unknown) => `${JSON.stringify(doc, null, 1)}\n`;
-
-/** Le document joué par le script de dépôt : `{ code, sortie, doc, touches }` — `doc` relu après la
- *  sortie 0, `touches` les fautes du témoin d'écriture après un refus. */
-function parLeDepot(doc: unknown): { code: number | null; sortie: string; doc: unknown; touches: string[] } {
-  const d = depot({ [REL]: canonique(doc) });
-  try {
-    const r = joue(d.racine, SCRIPT_DEPOT);
-    return {
-      code: r.code,
-      sortie: r.sortie,
-      doc: r.code === 0 ? JSON.parse(lireDans(d.racine, REL)) : null,
-      touches: r.code === 0 ? [] : rienTouche(d.racine, d.avant),
+  it('un porteur VIDE (`ref: \'\'`, `presetId: \'\'`) est une ABSENCE : retiré, puis la fiche se nomme en QUEUE (#1882)', () => {
+    const doc = {
+      schema: 12, version: 12,
+      scenes: [{ entities: [
+        { id: 'a', kind: 'personnage', ref: '', pos: { x: 0, y: 0 }, appearance: { species: ESPECE } },
+        { id: 'b', kind: 'personnage', ref: '', presetId: '', pos: { x: 0, y: 0 } },
+      ] }],
     };
-  } finally {
-    efface(d.racine);
-  }
-}
-
-/** Le document joué par le migrateur de chargement seul, `version` de travail retirée. */
-function parLeChargement(doc: unknown): unknown {
-  const { version: _travail, ...migre } = PROJECT_MIGRATIONS[12]!({ ...structuredClone(doc as object), version: 12 } as never) as Record<string, unknown>;
-  return migre;
-}
-
-describe('PARITÉ dépôt ⇄ chargement du bump 12 → 13 — une fixture, deux pendants (#1897)', () => {
-  it('forme SOURCE et forme CIBLE : le script écrit EXACTEMENT ce que le chargement rend, et `parseProject` l’accepte', () => {
-    const r = parLeDepot(PROJET_FORMAT_12);
-    expect(r.code, r.sortie).toBe(0);
-    expect(JSON.stringify(r.doc)).toBe(JSON.stringify(parLeChargement(PROJET_FORMAT_12)));
-    expect(() => parseProject(structuredClone(PROJET_FORMAT_12))).not.toThrow();
+    const [a, b] = (PROJECT_MIGRATIONS[12]!(doc as never) as { scenes: { entities: Record<string, unknown>[] }[] }).scenes[0].entities;
+    expect(a).toEqual({ id: 'a', kind: 'personnage', pos: { x: 0, y: 0 }, appearance: { species: ESPECE }, ref: PROFIL });
+    expect(Object.keys(a)).toEqual(['id', 'kind', 'pos', 'appearance', 'ref']);
+    expect(b).toEqual({ id: 'b', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: FICHE_DU_SPAWN });
   });
 
-  const refusees: [string, (doc: typeof PROJET_FORMAT_12) => unknown][] = [
-    ['(1) `{ id, spec }` — la `spec` ne tient pas dans un id nu', (doc) => {
-      doc.narratif.presetsPnj[0].profil.spells = [{ id: 'flechette', spec: 'x' } as never];
-      return doc;
-    }],
-    ['(2) `{ id: \'\' }` — un id VIDE', (doc) => {
-      doc.narratif.presetsPnj[0].profil.spells = [{ id: '' }];
-      return doc;
-    }],
-    ['(3) projet SANS `narratif` — exigé au format 12 (`narratif: narratifSchema`, `defs-scenes/projet.ts`)', (doc) => {
-      const { narratif: _retire, ...sans } = doc;
-      return sans;
-    }],
-  ];
+  it('au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)', () => {
+    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
+    expect(sceneEntitySchema.safeParse({ ...base, ref: '' }).error?.issues.map((i) => i.message))
+      .toEqual(['« ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+    expect(sceneEntitySchema.safeParse({ ...base, ref: 'creature-fantome' }).error?.issues.map((i) => i.message))
+      .toEqual(['« creature-fantome » ni créature, ni coque de véhicule, ni engin de siège']);
+  });
 
-  it.each(refusees)('%s : le chargement la laisse INTACTE et `parseProject` la refuse ; le script la refuse, rien d’écrit', (_cas, fabrique) => {
-    const doc = fabrique(structuredClone(PROJET_FORMAT_12));
-    const charge = parLeChargement(doc) as { narratif?: { presetsPnj: { profil?: { spells?: unknown } }[] } };
-    const avant = (doc as { narratif?: { presetsPnj: { profil?: { spells?: unknown } }[] } }).narratif?.presetsPnj[0].profil?.spells;
-    expect(charge.narratif?.presetsPnj[0].profil?.spells).toEqual(avant);
-    expect(() => parseProject(structuredClone(doc))).toThrow();
-    const r = parLeDepot(doc);
-    expect(r.code, r.sortie).toBe(1);
-    expect(r.sortie).toMatch(/ARBITRAGE REQUIS/);
-    expect(r.touches).toEqual([]);
+  it('au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)', () => {
+    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
+    for (const ref of ['baton-de-combat', 'barque'])
+      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(false);
+    for (const ref of ['humain', 'cogue'])
+      expect(sceneEntitySchema.safeParse({ ...base, ref }).success, ref).toBe(true);
+  });
+
+  it('SANS le migrateur, le personnage sans fiche serait REFUSÉ au parse, en NOMMANT l’entité', () => {
+    const bricole = { ...structuredClone(PROJET_FORMAT_12), schema: CURRENT_PROJECT_SCHEMA };
+    expect(() => parseProject(bricole)).toThrow(/entities « aubergiste » › ref: « ref », « statblock », « presetId » absents/);
+  });
+
+  /** Le combattant APRÈS le migrateur, par la fiche du spawn (`ficheDEntite`), face à ce que la branche
+   *  `!ref` de `spawnEnemy` JOUAIT avant #1882 — le passé est une DONNÉE, mesurée sur le dernier état de
+   *  cette branche (juge de diff T2a, 2026-09-23) : quelle que soit l'espèce, ce combattant-là. */
+  it('au SPAWN : libellé et Blessures inchangés sans profil standard, la forme du corps suit l’espèce ; le profil standard donne sa fiche', () => {
+    const AVANT_1882 = { label: 'Ennemi', blessures: 10, corps: 'humanoide', fiche: undefined };
+    const apres = (species: string) => {
+      const doc = { schema: 12, version: 12, scenes: [{ entities: [{ id: `p-${species}`, kind: 'personnage', pos: { x: 0, y: 0 }, appearance: { species } }] }] };
+      const migree = (PROJECT_MIGRATIONS[12]!(doc as never) as { scenes: { entities: SceneEntity[] }[] }).scenes[0].entities[0];
+      const c = ficheDEntite(migree);
+      return { label: c.label, blessures: c.wounds.max, corps: c.bodyShape, fiche: c.creatureId };
+    };
+    expect(apres('loup')).toEqual({ ...AVANT_1882, corps: 'quadrupede' });
+    expect(apres('rat-geant')).toEqual({ ...AVANT_1882, corps: 'quadrupede' });
+    expect(apres('gnomes')).toEqual(AVANT_1882);
+    expect(apres('humains-reiklander')).toEqual({ label: 'Humain', blessures: 12, corps: 'humanoide', fiche: 'humain' });
+  });
+
+  it('au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`', () => {
+    const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
+    for (const porteur of [{ ref: 'capitaine-du-guet' }, { statblock: FICHE_DU_SPAWN }, { presetId: 'baron' }])
+      expect(sceneEntitySchema.safeParse({ ...base, ...porteur }).success, Object.keys(porteur)[0]).toBe(true);
+    const r = sceneEntitySchema.safeParse(base);
+    expect(r.success).toBe(false);
+    expect(r.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['ref', '« ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)'],
+    ]);
   });
 });

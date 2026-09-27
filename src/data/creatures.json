@@ -4611,7 +4611,7 @@
       },
       {
         "id": "corruption",
-        "arg": "modérée"
+        "arg": "Modérée"
       },
       {
         "id": "demoniaque",
@@ -4718,7 +4718,7 @@
       },
       {
         "id": "corruption",
-        "arg": "modérée"
+        "arg": "Modérée"
       },
       {
         "id": "dedoublement"
@@ -4746,7 +4746,7 @@
       {
         "id": "langue-prehensile",
         "value": 6,
-        "arg": "6 mètres"
+        "range": 6
       },
       {
         "id": "mutation"
@@ -4840,7 +4840,7 @@
       {
         "id": "langue-prehensile",
         "value": 3,
-        "arg": "3 mètres"
+        "range": 3
       },
       {
         "id": "mutation"
@@ -30455,7 +30455,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -30574,7 +30574,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -30688,7 +30688,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -30809,7 +30809,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "frenesie"
@@ -30945,7 +30945,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31077,7 +31077,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31227,7 +31227,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31378,7 +31378,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31548,7 +31548,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -31705,7 +31705,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "immunite-psychologique"
@@ -31802,7 +31802,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "immunite-psychologique"
@@ -31909,7 +31909,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32025,7 +32025,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32161,7 +32161,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "immunite-psychologique"
@@ -32298,7 +32298,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -32454,7 +32454,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "perturbant"
@@ -32612,7 +32612,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "perturbant"
@@ -32720,7 +32720,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "9+"
+        "value": 9
       },
       {
         "id": "perturbant"
@@ -32836,7 +32836,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -32975,7 +32975,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -33120,7 +33120,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "feu-de-tzeentch"
@@ -33268,7 +33268,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "instable"
@@ -33409,7 +33409,7 @@
       },
       {
         "id": "demoniaque",
-        "arg": "8+"
+        "value": 8
       },
       {
         "id": "instable"

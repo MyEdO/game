@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
@@ -22,7 +23,7 @@ import { testValue } from '../engine/skills';
 import { combatValue } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { buildWeapon } from '../engine/items';
-import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake } from '../data';
+import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleOuAbsence } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
@@ -172,7 +173,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // Possession coop (audit M7) : chaque joueur mène les Activités de SES héros ; l'hôte clôt. Porte
   // UI UNIQUE (#1262) : le siège se lit par le routage d'état, jamais par une comparaison recopiée.
   const ownsHero = (id: string) => ownsLocalNet(net, id);
-  const ownerName = (id: string) => net.seatNames[net.ownership[id] ?? 0] ?? 'L’hôte';
+  const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   const isGuest = net.mode === 'guest';
   return (
     <div className="interlude-shell tx-ink">
@@ -1265,10 +1266,10 @@ function BankList({ bank, party, interlude, canDrive }: {
             id={`interlude-bank-withdraw-${i}`}
             label={<>
               <Icon id={b.kind === 'invest' ? 'resource/gold-purse' : b.kind === 'mecenat' ? 'scenario/opera' : 'item/misc'} size="sm" />
-              {' '}{owner?.label} : <CoinsB brass={b.brass} />
+              {' '}{libelleOuAbsence(owner, 'heros', b.heroId)} : <CoinsB brass={b.brass} />
               {b.kind === 'invest' && <> → <CoinsB brass={bankPayout('invest', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
             </>}
-            ariaLabel={`Retirer le dépôt de ${owner?.label ?? 'ce héros'}`}
+            ariaLabel={`Retirer le dépôt de ${libelleOuAbsence(owner, 'heros', b.heroId)}`}
             enabled={!foreign && !locked}
             reason={foreign
               ? 'Dépôt d’un héros mené par un autre joueur.'

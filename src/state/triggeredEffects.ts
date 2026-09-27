@@ -150,7 +150,9 @@ function effectsOf(actor: Combatant, weapon?: Weapon): TriggeredEffect[] {
  *  (summon, zone : grille/initiative) au SITE du trigger — elles sont inertes dans `applyOps` (moteur
  *  pur) et n'étaient résolues qu'au lancement de sort. GÉNÉRIQUE (pas limité à summon) : l'appelant
  *  (state) filtre par `op.op` et dispatche vers le résolveur idoine (applySummon, placeZoneFromOp…).
- *  `on:'self'/'caster'/'target'` désignent tous le porteur dans un effet de trait.
+ *  Sur CE chemin, le `on` de la feuille n'est pas lu : l'op impure se résout au site du porteur, chez
+ *  l'appelant (`combatFlow.ts`). Le dispatcher général (`applyTriggeredEffects`) distingue, lui, la
+ *  cible `t` du porteur `actor`.
  *
  *  La `source` voyage AVEC l'op parce que ce qu'elle produit (une zone à `crossTest`, une créature)
  *  peut à son tour exiger un jet : c'est d'elle que l'enjeu se dérive (#1262 V2 L6d). L'aplatir en
@@ -281,7 +283,7 @@ export function setTriggeredTestRouter(fn: TestRouter): void { testRouter = fn; 
  *  automatique d'un Critique de Taillade), le nœud `choice` n'est PAS offert. Un `test` ENFOUI lève
  *  toujours (`resolveInlineFlowTest`) : une branche de jet muette n'est jamais acceptable. */
 function resoudreSansRouteur(t: Combatant, actor: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
-  if (flow.kind === 'test' || !flowHasChoiceSeulement(flow)) return resolveInlineFlowTest(t, flow, ctx, get);
+  if (flow.kind === 'test' || !flowHasChoiceSeulement(flow)) return resolveInlineFlowTest(t, actor, flow, ctx, get);
   return runPureFlowLines(t, actor, flow, ctx);
 }
 
@@ -302,8 +304,10 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
 /** Résolution INLINE d'un nœud `test` TOP-LEVEL sans routeur cadence-aware (entretien HORS COMBAT) —
  *  jumeau store-free de la branche NON-interactive de `resolveFlowTest` : jet du Test (`combatTestPenalty`
  *  comme un Test simple), puis branche `success`/`fail` jouée par `runPureFlowLines` (mêmes ops). Un `test`
- *  ENFOUI (hors top-level) LÈVE — un tel cas exige la voie cadence-aware (jamais de branche succès muette). */
-function resolveInlineFlowTest(c: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
+ *  ENFOUI (hors top-level) LÈVE — un tel cas exige la voie cadence-aware (jamais de branche succès muette).
+ *  `c` SUBIT le Test (son jet) ; `porteur` est le `caster` de la branche — même paire que la voie routée
+ *  (`testRouter(get, set, t, actor, …)`). */
+function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
   if (flow.kind !== 'test') throw new Error('resolveInlineFlowTest: nœud non-`test` (un test enfoui exige un routeur cadence-aware).');
   const ft = flow.test;
   // GATE (op-level immunité/groupes + Condition générique `gate`) + difficulté DYNAMIQUE (`difficultyBy`) :
@@ -320,7 +324,7 @@ function resolveInlineFlowTest(c: Combatant, flow: Flow, ctx: OpsCtx, get?: Get)
   const rng = ctx.rng ?? defaultRNG;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c));
   const branch = res.success ? flow.success : flow.fail;
-  const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, c, branch, { ...ctx, rng, caster: c, sl: res.sl })];
+  const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
   // ICI pendant le traitement (FM de palier 2) de ré-émettre. `get` absent (appelant sans store) ⇒ inerte.

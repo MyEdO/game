@@ -140,7 +140,7 @@ function mesurer(): Mesure {
  * STOCK DÉCROISSANT des paires de bornes écrites en TUPLE `[min, max]` (volet F, #1659) — la sonde A
  * du design jugé du 2026-09-01, promue en test. 36 occurrences sur 10 sites, deux racines (99 sur 18 à
  * l'ouverture de la vague ; L-1659-2 en a soldé 72 et L-1659-3 les 11 dernières, cf. ci-dessous).
- * `exclu` = ce site n'est PAS une paire de bornes, et la chaîne dit pourquoi. Le stock n'a PLUS QUE
+ * `exclu` = ce site n'est PAS une paire de bornes, et la chaîne dit pourquoi. Le stock a seulement
  * des EXCLUS : plus une seule paire de bornes du dépôt ne s'écrit en tuple. Ce qui reste ici est donc
  * un inventaire de VIGIE — il n'a plus à décroître, il a à ne pas REPOUSSER.
  * SOLDÉ par #1659 L-1659-2 (2026-09-01) : les 72 disponibilités saisonnières — `sea-cargo.json ›

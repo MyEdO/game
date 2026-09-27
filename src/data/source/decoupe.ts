@@ -26,9 +26,10 @@
 //    est le numéro 1-based, dans le fichier du chapitre, de la ligne où commence `md` : la première
 //    ligne du segment ouvrant dont le texte, spans retirés, est non vide (un segment réduit à un
 //    marqueur de folio n'ouvre aucun bloc ; un bloc recollé garde la ligne de son premier morceau).
-//  - FOLIO COURANT : les marqueurs `data-folio` sont rares et arbitrairement placés dans le flux ; un
-//    état ROULANT sur le chapitre donne à chaque section et à chaque bloc le dernier folio rencontré
-//    à ou avant son ouverture (`folio`), en plus des marqueurs INTERNES au bloc (`folios`).
+//  - FOLIO COURANT : les marqueurs `data-folio` sont rares et arbitrairement placés dans le flux ; le
+//    folio ROULANT par ligne (`foliosRoulants`, `ancre-vide.ts`) donne à chaque bloc celui de sa ligne
+//    `line`, à chaque section celui qui court au bout de la ligne de son titre (`folio`), en plus des marqueurs
+//    INTERNES au bloc (`folios`). Une ancre VIDE (`ancreVide`) n'entre ni dans l'un ni dans l'autre.
 //  - RECOLLAGE DE FOLIO : un saut de folio coupe des paragraphes en plein milieu
 //    (`21 - Psychologie.md:45-48`, `05 - _gjdgxs.md:44`). Deux blocs séparés par une coupure PORTEUSE
 //    DE FOLIO (bloc vide réduit à son marqueur, ou bloc suivant ouvert par un marqueur) sont recollés
@@ -38,6 +39,7 @@
 //    (emphase `*`/`**`, puce, table).
 import { normalize as normalizeCitation, sansBr, brEnSaut } from './normalize.ts';
 import { hash32 } from '../hash.ts';
+import { ANCRE_FOLIO, FOLIO_ATTR, ancreVide, foliosRoulants } from './ancre-vide.ts';
 
 /** Bloc d'affichage : le markdown rendu, sa ligne de début dans le fichier du chapitre, le folio
  *  courant à son ouverture, ses marqueurs internes. */
@@ -67,13 +69,15 @@ export interface FragmentBlocs {
   sum: string;
 }
 
-/** Fragment de CELLULE : case d'une table, adressée par clé de ligne × en-tête de colonne. */
+/** Fragment de CELLULE : case d'une table, adressée par clé de ligne × en-tête de colonne. `table`
+ *  (`TableDeSection.cle`) n'est posé que si la clé de ligne est ambiguë entre les tables de la section. */
 export interface FragmentCellule {
   kind: 'cellule';
   sec: string;
   secOcc: number;
   row: string;
   col: string;
+  table?: string;
   sum: string;
 }
 
@@ -246,9 +250,8 @@ const MAX_FRAGMENTS = 3;
 const PROBE = 24;
 
 const SPAN_TAG = /<\/?span[^>]*>/g;
-const FOLIO_ATTR = /data-folio="(\d+)"/g;
 const HEADING = /^(?:<span[^>]*>\s*<\/span>\s*)*(#{1,6})\s+(.*)$/;
-const OPENS_ON_FOLIO = /^\s*<span[^>]*data-folio=/;
+const OPENS_ON_FOLIO = /^\s*<span[^>]*data-folio(?:-vide)?=/;
 const TERMINAL = /[.!?»”:;]$/;
 const TRAILING_DECOR = /[*_`~\s]+$/;
 const OPENS_EMPHASIS = /^\s*\*/;
@@ -259,6 +262,12 @@ const RANGE_KEY = /^\d+\s*[-–—]?\s*\d*$/;
 
 /** Retire les balises `<span>` (le contenu textuel est conservé). */
 export const stripSpans = (s: string): string => s.replace(SPAN_TAG, '');
+
+/** Ancres de page VIDES (`ancreVide`) marquées `data-folio-vide` : elles coupent encore un paragraphe
+ *  (`OPENS_ON_FOLIO`), mais ne portent aucun folio (`FOLIO_ATTR`) — ni roulant, ni dans `folios`. */
+const marquerAncresVides = (t: string): string =>
+  t.replace(ANCRE_FOLIO, (m: string, _folio: string, debut: number) =>
+    (ancreVide(t, debut + m.length) ? m.replace('data-folio=', 'data-folio-vide=') : m));
 
 /** Folios (`data-folio`) portés par un fragment de texte, dans l'ordre. */
 function foliosIn(s: string): number[] {
@@ -330,10 +339,11 @@ function recollable(prev: string, next: string): boolean {
  * Découpe un corps de section en blocs d'affichage (spans retirés, folios collectés, recollage des
  * paragraphes coupés par un saut de folio).
  * @param debut ligne 1-based, dans le fichier du chapitre, de `lignes[0]`
+ * @param roulant folio roulant de chaque ligne du chapitre (`foliosRoulants`, index 0-based)
  */
 function toBlocks(
-  lignes: string[], debut: number, folioIn: number | null,
-): { blocks: Bloc[]; folioOut: number | null } {
+  lignes: string[], debut: number, roulant: (number | null)[],
+): { blocks: Bloc[] } {
   const raw: { text: string; start: number }[] = [];
   let cur: string[] = [];
   let start = debut;
@@ -348,16 +358,11 @@ function toBlocks(
   if (cur.length) raw.push({ text: cur.join('\n'), start });
 
   const out: Bloc[] = [];
-  let running = folioIn;
   let carry: number[] = [];
   let carryCut = false;
   for (const { text, start } of raw) {
     const folios = foliosIn(text);
     const md = stripSpans(text).trim();
-    const at = carry.length
-      ? carry[carry.length - 1]
-      : (OPENS_ON_FOLIO.test(text) && folios.length ? folios[0] : running);
-    if (folios.length) running = folios[folios.length - 1];
     if (!md) { carry.push(...folios); carryCut = true; continue; }
     const line = start + text.split('\n').findIndex((l) => stripSpans(l).trim() !== '');
     const cut = carryCut || OPENS_ON_FOLIO.test(text);
@@ -368,10 +373,10 @@ function toBlocks(
       prev.md = `${prev.md} ${md}`;
       prev.folios.push(...blockFolios);
     } else {
-      out.push({ md, line, folio: at ?? null, folios: blockFolios });
+      out.push({ md, line, folio: roulant[line - 1], folios: blockFolios });
     }
   }
-  return { blocks: out, folioOut: running };
+  return { blocks: out };
 }
 
 /**
@@ -384,17 +389,17 @@ export function parseChapitre(texte: string): ChapitreParse {
   // Mesuré sur `21 - Psychologie.md` du livre de base : en CRLF, `HEADING` ne reconnaît aucun titre
   // (`.` ne franchit pas `\r`, et `$` sans `/m` ne se pose pas devant un `\r` final) — 1 section au
   // lieu de 17, et l'empreinte du premier bloc passe de `ad420a63fa3b93c2` à `3eef49e6fee82961`.
-  const lignes = texte.replace(/\r\n?/g, '\n').split('\n');
+  const brutes = texte.replace(/\r\n?/g, '\n').split('\n');
+  const roulant = foliosRoulants(brutes);
+  const lignes = marquerAncresVides(brutes.join('\n')).split('\n');
   const sections: Section[] = [];
   const seen = new Map<string, number>();
-  let running: number | null = null;
   let cur: Omit<Section, 'blocks'> & { lines: string[]; debut: number } =
     { slug: '', occ: 1, title: '', level: 0, line: 1, folio: null, lines: [], debut: 1 };
   const push = () => {
     const { lines: body, debut, ...rest } = cur;
-    const { blocks, folioOut } = toBlocks(body, debut, cur.folio);
+    const { blocks } = toBlocks(body, debut, roulant);
     sections.push({ ...rest, blocks });
-    running = folioOut;
   };
   for (let i = 0; i < lignes.length; i++) {
     const m = HEADING.exec(lignes[i]);
@@ -405,8 +410,7 @@ export function parseChapitre(texte: string): ChapitreParse {
     const occ = (seen.get(slug) ?? 0) + 1;
     seen.set(slug, occ);
     const head = foliosIn(lignes[i]);
-    if (head.length) running = head[head.length - 1];
-    cur = { slug, occ, title, level: m[1].length, line: i + 1, folio: running, lines: [], debut: i + 2 };
+    cur = { slug, occ, title, level: m[1].length, line: i + 1, folio: head.length ? head[head.length - 1] : roulant[i], lines: [], debut: i + 2 };
   }
   push();
   return { sections };
@@ -463,7 +467,8 @@ export const estCleDePlage = (s: string): boolean => RANGE_KEY.test(s);
 export interface TableParse {
   headers: string[];
   rows: string[][];
-  /** Bannière ABSORBÉE : le titre imprimé en bandeau devant les en-têtes. */
+  /** TITRE de la table : bannière ABSORBÉE (titre imprimé en bandeau devant les en-têtes) ; `tablesOf` y
+   *  porte aussi la légende `**X**` du paragraphe qui précède la table (#1739). */
   titre?: string;
   /** Bannière RECONNUE mais NON absorbée (texte non majuscule, ou table sans donnée après le saut) :
    *  la première ligne reste les en-têtes, exactement comme avant. C'est un résidu à trier au PDF —
@@ -511,37 +516,67 @@ export function parseTable(md: string): TableParse | null {
   return { ...corps(0), banniereRefusee: banniere };
 }
 
-/** Une table d'une section : le bloc qui la porte, et sa lecture. */
-export interface TableDeSection { block: Bloc; table: TableParse }
+/** Une table d'une section : le bloc qui la porte, sa lecture, le bloc de sa LÉGENDE `**X**` quand son
+ *  titre en vient, et, TITRÉE, sa CLÉ d'adresse `titre#occ` — titre normalisé, `occ` = rang 1-based parmi
+ *  les tables de même titre de la section. Sans titre, aucune clé : une position ne départage rien (#1739). */
+export interface TableDeSection { block: Bloc; table: TableParse; legende?: Bloc; cle?: string }
 
-/** Tables d'une section, dans l'ordre du document. */
-export const tablesOf = (section: Section): TableDeSection[] =>
-  section.blocks
-    .map((b) => ({ block: b, table: parseTable(b.md) }))
-    .filter((t): t is TableDeSection => t.table != null);
+/** Paragraphe LÉGENDE : un seul span gras, tout le bloc (#1739). */
+const LEGENDE = /^\*\*([^*]+)\*\*$/;
+
+/** Tables d'une section, dans l'ordre du document. Le `titre` est la bannière absorbée, sinon la
+ *  légende `**X**` du bloc qui précède immédiatement la table. */
+export function tablesOf(section: Section): TableDeSection[] {
+  const vus = new Map<string, number>();
+  return section.blocks.flatMap((b, i) => {
+    const lue = parseTable(b.md);
+    if (!lue) return [];
+    const legende = lue.titre == null ? LEGENDE.exec(section.blocks[i - 1]?.md ?? '')?.[1] : undefined;
+    const table = legende == null ? lue : { ...lue, titre: legende };
+    const porte = legende == null ? { block: b, table } : { block: b, table, legende: section.blocks[i - 1] };
+    const titre = normText(table.titre ?? '');
+    if (!titre) return [porte];
+    const occ = (vus.get(titre) ?? 0) + 1;
+    vus.set(titre, occ);
+    return [{ ...porte, cle: `${titre}#${occ}` }];
+  });
+}
 
 /** Ligne de table dont une cellule vaut la clé cherchée. */
-interface LigneTrouvee { block: Bloc; headers: string[]; row: string[]; cols: number[] }
+interface LigneTrouvee { block: Bloc; table?: string; headers: string[]; row: string[]; cols: number[] }
 
 /**
- * Lignes d'une section dont une cellule vaut `target` (déjà normalisé). Une ligne qui répond dans
- * plusieurs de ses colonnes ne compte qu'une fois.
+ * Lignes d'une section dont une cellule vaut `target` (déjà normalisé), dans la table de clé `table`
+ * si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte qu'une fois.
  */
-function rowsMatching(section: Section, target: string): LigneTrouvee[] {
+function rowsMatching(section: Section, target: string, table?: string): LigneTrouvee[] {
   const out: LigneTrouvee[] = [];
-  for (const { block, table } of tablesOf(section)) {
-    for (const row of table.rows) {
+  for (const t of tablesOf(section)) {
+    if (table != null && t.cle !== table) continue;
+    for (const row of t.table.rows) {
       const cols = row.map((c, i) => (normText(c) === target ? i : -1)).filter((i) => i >= 0);
-      if (cols.length) out.push({ block, headers: table.headers, row, cols });
+      if (cols.length) out.push({ block: t.block, ...(t.cle == null ? {} : { table: t.cle }), headers: t.table.headers, row, cols });
     }
   }
   return out;
 }
 
+/** Nombre de lignes de la section que la clé `target` (normalisée) désigne, dans la table de clé `table`
+ *  si elle est donnée — le critère d'adresse de `celluleBrute` et de `cellRefFor`. */
+export const lignesDesignees = (section: Section, target: string, table?: string): number =>
+  rowsMatching(section, target, table).length;
+
+/** Les tables de la section qui portent la clé de ligne `row` (brute), dans la table de clé `table` si elle
+ *  est donnée — celles des lignes de `rowsMatching`. */
+export function tablesDeLaLigne(section: Section, row: string, table?: string): TableDeSection[] {
+  const blocs = new Set(rowsMatching(section, normText(row), table).map((h) => h.block));
+  return tablesOf(section).filter((t) => blocs.has(t.block));
+}
+
 /** Désignation lisible d'un fragment, portée par ses erreurs. */
 const ouDe = (frag: Fragment): string =>
   frag.kind === 'cellule'
-    ? `§${frag.sec}#${frag.secOcc} [${frag.row}]×[${frag.col}]`
+    ? `§${frag.sec}#${frag.secOcc}${frag.table == null ? '' : ` table[${frag.table}]`} [${frag.row}]×[${frag.col}]`
     : `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`;
 
 /**
@@ -578,7 +613,7 @@ function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): Resolu | 
   const section = sectionDe(chapitre, frag);
   if (!section) return { error: 'section-inconnue', detail: `§${frag.sec}#${frag.secOcc}` };
   const ou = ouDe(frag);
-  const hits = rowsMatching(section, normText(String(frag.row ?? '')));
+  const hits = rowsMatching(section, normText(String(frag.row ?? '')), frag.table);
   if (hits.length === 0) return { error: 'ligne-introuvable', detail: ou };
   if (hits.length > 1) return { error: 'ligne-ambigue', detail: `${ou} : ${hits.length} lignes` };
   const hit = hits[0];
@@ -695,7 +730,7 @@ export function findRuns(chapitre: ChapitreParse, targetNorm: string): FragmentB
 }
 
 /** Cellule d'un chapitre portant le texte cherché. */
-export interface CelluleTrouvee { sec: string; secOcc: number; headers: string[]; row: string[]; col: number }
+export interface CelluleTrouvee { sec: string; secOcc: number; table?: string; headers: string[]; row: string[]; col: number }
 
 /** Cellules du chapitre dont le texte normalisé vaut `targetNorm`. */
 export function findCells(chapitre: ChapitreParse, targetNorm: string): CelluleTrouvee[] {
@@ -703,7 +738,7 @@ export function findCells(chapitre: ChapitreParse, targetNorm: string): CelluleT
   for (const s of chapitre.sections) {
     for (const hit of rowsMatching(s, targetNorm)) {
       for (const col of hit.cols) {
-        out.push({ sec: s.slug, secOcc: s.occ, headers: hit.headers, row: hit.row, col });
+        out.push({ sec: s.slug, secOcc: s.occ, ...(hit.table == null ? {} : { table: hit.table }), headers: hit.headers, row: hit.row, col });
       }
     }
   }
@@ -713,7 +748,8 @@ export function findCells(chapitre: ChapitreParse, targetNorm: string): CelluleT
 /**
  * Bâtit le fragment de cellule d'un `findCells` : clé de ligne = première cellule de la ligne qui la
  * désigne SANS AMBIGUÏTÉ dans sa section, les clés positionnelles (fourchette d100) passant en
- * dernier recours. Rend `null` si la ligne n'a pas de clé sûre ou la table pas d'en-têtes.
+ * dernier recours ; à défaut, dans SA table (`table`, #1739). Rend `null` si la ligne n'a pas de clé
+ * sûre ou la table pas d'en-têtes.
  */
 export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): FragmentCellule | null {
   const col = hit.headers[hit.col];
@@ -725,14 +761,16 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
     .map((c, i) => ({ c: c.trim(), i }))
     .filter(({ c, i }) => c && i !== hit.col)
     .sort((a, b) => Number(estCleDePlage(a.c)) - Number(estCleDePlage(b.c)));
-  for (const { c } of candidates) {
-    if (rowsMatching(section, normText(c)).length !== 1) continue;
-    const frag: FragmentCellule = { kind: 'cellule', sec: hit.sec, secOcc: hit.secOcc, row: c, col, sum: '' };
-    const sum = empreinteDe(chapitre, frag);
-    if (typeof sum !== 'string') continue;
-    const res = resoudreFragment(chapitre, { ...frag, sum });
-    if (estErreur(res) || normText(res.md) !== vise) continue;
-    return { ...frag, sum };
+  for (const table of hit.table == null ? [undefined] : [undefined, hit.table]) {
+    for (const { c } of candidates) {
+      if (rowsMatching(section, normText(c), table).length !== 1) continue;
+      const frag: FragmentCellule = { kind: 'cellule', sec: hit.sec, secOcc: hit.secOcc, row: c, col, ...(table == null ? {} : { table }), sum: '' };
+      const sum = empreinteDe(chapitre, frag);
+      if (typeof sum !== 'string') continue;
+      const res = resoudreFragment(chapitre, { ...frag, sum });
+      if (estErreur(res) || normText(res.md) !== vise) continue;
+      return { ...frag, sum };
+    }
   }
   return null;
 }
@@ -760,7 +798,7 @@ export function blocsCouverts(chapitre: ChapitreParse, frag: Fragment): Set<numb
     for (let i = Math.max(0, frag.b0); i <= Math.min(frag.b1, section.blocks.length - 1); i++) out.add(i);
     return out;
   }
-  const hits = rowsMatching(section, normText(String(frag.row ?? '')));
+  const hits = rowsMatching(section, normText(String(frag.row ?? '')), frag.table);
   if (hits.length !== 1) return out;
   const idx = section.blocks.indexOf(hits[0].block);
   if (idx >= 0) out.add(idx);
@@ -792,7 +830,7 @@ function chevauchementDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolutio
       const b = ref.parts[j];
       if (!memeSection(a, b)) continue;
       const couvertsA = blocsCouverts(chapitre, a);
-      const memeCellule = a.kind === 'cellule' && b.kind === 'cellule' && a.row === b.row && a.col === b.col;
+      const memeCellule = a.kind === 'cellule' && b.kind === 'cellule' && a.row === b.row && a.col === b.col && a.table === b.table;
       const croise = memeCellule || [...blocsCouverts(chapitre, b)].some((k) => couvertsA.has(k));
       // Deux CELLULES du même bloc-table qui ne désignent PAS la même case citent bien deux textes.
       if (croise && !(a.kind === 'cellule' && b.kind === 'cellule' && !memeCellule)) {

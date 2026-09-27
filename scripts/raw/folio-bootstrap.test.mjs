@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readPrintedFolio, resolveOffsetFromPdf, corpusRange, folioRuns } from './folio-bootstrap.mjs'
+import { readPrintedFolio, resolveOffsetFromPdf, corpusRange, folioRuns, texteDePage } from './folio-bootstrap.mjs'
 
 function withTempBookDir(files, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'folio-bootstrap-'))
@@ -86,6 +86,13 @@ test('readPrintedFolio : folio SEUL en pied, texte sans autre nombre nu → lu',
   const page = ['WARHAMMER FANTASY ROLEPLAY', '272 273', 'GLORIOUS REIKLAND',
     'Standing proud in the heart of the Old World.', '272'].join('\n')
   assert.equal(readPrintedFolio(page), 272)
+})
+
+test('texteDePage : le folio de pied d’une colonne, au MILIEU de l’ordre de lecture, revient en bord de texte → lu', () => {
+  const colonne = (x) => [700, 660, 620, 580, 540].map((y0, i) => ({ texte: `ligne ${x} ${i} de prose`, x0: x, y0 }))
+  const lecture = [...colonne(50), { texte: '272', x0: 60, y0: 30 }, ...colonne(320)]
+  assert.equal(readPrintedFolio(lecture.map((l) => l.texte).join('\n')), null)
+  assert.equal(readPrintedFolio(texteDePage(lecture)), 272)
 })
 
 // ---------- resolveOffsetFromPdf ----------

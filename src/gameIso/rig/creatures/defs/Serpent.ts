@@ -13,6 +13,6 @@ export const creature: CreatureDef = {
   serpent: {
     sl: 1.0, girth: 1.12, hood: false,
     markings: 'bandes', eye: '#c42222', tailUp: true,
-    stored: { corps: '#5e8a3f', corpsO: '#2c4520', corpsH: '#a9cc66', cheveux: '#c4c1d2', cheveuxO: '#8f8ba2', cuir: '#caa23a' },
+    palette: { corps: '#5e8a3f', corpsO: '#2c4520', corpsH: '#a9cc66', cheveux: '#c4c1d2', cheveuxO: '#8f8ba2', cuir: '#caa23a' },
   },
 };

@@ -26,7 +26,7 @@ function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, o
 
 /** Invocation alliée RÉSOLUE (shape 'self', op summon sur 'caster'). */
 function summonSpell(): CastableSpell {
-  const data = { id: 'invoc', label: 'Invocation', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, effects: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'summon', ref: 'Loup', count: 1, allyOfCaster: true }] } } } as unknown as SpellData;
+  const data = { id: 'invoc', label: 'Invocation', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, effects: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }] } } } as unknown as SpellData;
   return { id: 'invoc', data, cn: 0, range: 0, shape: 'self', landProb: 1, focusState: 'none', active: false };
 }
 

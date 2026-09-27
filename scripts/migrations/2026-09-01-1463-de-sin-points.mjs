@@ -1,5 +1,5 @@
 /**
- * Migration L4 #1463 (vague `de`) — le terme « (Points de Péché) » n'a plus qu'UNE graphie.
+ * Migration L4 #1463 (vague `de`) — le terme « (Points de Péché) » a seulement UNE graphie.
  *
  * Trois graphies disaient le MÊME terme du livre. Toutes passent à la composition GÉNÉRALE
  * (`sum` + `sinPoints`, `src/data/schemas/grammaire/valeurs.ts`) :

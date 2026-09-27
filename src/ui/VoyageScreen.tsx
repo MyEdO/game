@@ -19,7 +19,7 @@ import { partyItemsCargoEnc, partyLandCapacity } from '../state/carriers';
 import { moraleBand } from '../engine/crewMorale';
 import { seasonOfMonth, weatherCondition } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
-import { findVehicleById, seasonLabel } from '../data';
+import { findVehicleById, seasonLabel, libelleOuAbsence } from '../data';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
@@ -287,8 +287,8 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
 
   const sub = voyageMode(plan);
   const sea = sub === 'mer';
-  const fromLabel = worldMap ? placeById(worldMap, plan.fromPlaceId)?.label ?? '?' : '?';
-  const toLabel = worldMap ? placeById(worldMap, plan.toPlaceId)?.label ?? '?' : '?';
+  const fromLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.fromPlaceId) : undefined, 'lieu', plan.fromPlaceId);
+  const toLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.toPlaceId) : undefined, 'lieu', plan.toPlaceId);
   const log = plan.log ?? [];
   const dayNum = log.length + 1;
   const stepWord = sub === 'terre' ? 'Étape' : 'Jour';

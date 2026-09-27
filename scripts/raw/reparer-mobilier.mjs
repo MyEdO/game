@@ -4,9 +4,9 @@
 //
 // Règle utilisateur, verbatim (2026-09-20) : « Il est interdit de réécrire le texte. On peut réparer
 // le texte s'il est tronqué/mélangé car l'extraction n'est pas parfaite. »
-//  — ligne réduite au mobilier (`romain-seul`, `folio-nu`) : SUPPRIMÉE ; si ses deux voisines sont
+//  — ligne réduite au mobilier (`romain-seul`, `folio-nu`, `#` compris) : SUPPRIMÉE ; si ses deux voisines sont
 //    vides, l'une part avec elle (aucun `.md` du livre ne porte deux lignes vides consécutives) ;
-//  — jeton dans une ligne (`mot`) : retiré par `lib/mobilier.mjs#sansJeton` ;
+//  — jeton dans une ligne (`mot`, `folio-tete`) : retiré par `lib/mobilier.mjs#sansJeton` ;
 //  — jeton entre deux runs gras d'une ligne de TITRE (titre SOUDÉ) : la ligne se scinde en DEUX
 //    titres, au niveau que portent les titres frères de même gabarit au fichier (`niveauDesFreres`) ;
 //  — table que le retrait laisse SANS DONNÉE (une seule cellule non vide, dans l'en-tête : un bandeau
@@ -46,6 +46,8 @@ export function ecartDeMots(avant, apres) {
 }
 
 const TITRE = /^(#{1,6}) /
+/** Classes dont le site EST la ligne entière : elle se supprime. */
+const LIGNE_ENTIERE = new Set(['romain-seul', 'folio-nu'])
 
 /** Titre SOUDÉ : ligne de titre où le jeton sépare deux runs gras — `# **A** XII **B**`. PURE. */
 export function estTitreSoude(ligne, site) {
@@ -121,7 +123,7 @@ export function reparer(texte, sites) {
     }
     const ici = parLigne.get(i + 1)
     if (!ici) { out.push(lignes[i]); continue }
-    if (ici.some((s) => s.classe !== 'mot')) {
+    if (ici.some((s) => LIGNE_ENTIERE.has(s.classe))) {
       const avant = out.at(-1)
       const apres = lignes[i + 1]
       if (avant !== undefined && apres !== undefined && avant.trim() && apres.trim()) {

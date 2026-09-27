@@ -7,7 +7,7 @@ import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
 import { worldTransformsG, type Matrix } from '../kinematics';
-import { buildTokenMap, applyTokenMap, DEFAULT_PALETTE, type Palette } from '../palette';
+import { buildTokenMap, applyTokenMap, type Palette } from '../palette';
 import {
   QUAD_SPECIES, buildQuadSkeleton, groundQuad, quadSkeletonForView,
   type QBone, type QuadBoneId, type QuadDecoValue, type QuadProps,
@@ -107,18 +107,8 @@ export function resolveQuadFromProps(
   const parts = quadParts(p, view, wings);
   // Yeux custom (catalogue) sur les ancres data-eye de la tête (no-op sans ancre — hydre…).
   if (eyes && parts.tete) parts.tete = parts.tete.map((l) => ({ ...l, svg: applyEyes(l.svg, eyes) }));
-  // Famille de jetons d'AILE (@aile*) : base custom `aile` de `stored` si la def en donne une
-  // (pégase : ailes brun/doré ≠ robe blanche) ; SINON repli sur la famille `corps` — y compris
-  // sous recoloriage utilisateur du slot `corps` (les ailes suivent la robe, comme avant).
-  const ownWingTint = p.stored.aile != null;
-  const stored = ownWingTint ? p.stored : {
-    ...p.stored,
-    aile: p.stored.corps ?? DEFAULT_PALETTE.corps,
-    ...(p.stored.corpsO != null && { aileO: p.stored.corpsO }),
-    ...(p.stored.corpsH != null && { aileH: p.stored.corpsH }),
-  };
-  const ov = colors ?? {};
-  const tmap = buildTokenMap(stored, !ownWingTint && ov.corps != null ? ({ ...ov, aile: ov.corps } as Palette) : ov);
+  // `aile` suit `corps` (table des clés de palette) : pégase déclare la sienne.
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   // Un os → N os RÉSOLUS, un par PLAN distinct de ses calques : le plan déclaré d'un calque est
   // RELATIF à celui de l'os (`QuadDecoFragment.plan`), et le tri peintre unique ci-dessous
   // l'intercale dans la pile de la vue. Les calques sans plan déclaré restent groupés avec l'art

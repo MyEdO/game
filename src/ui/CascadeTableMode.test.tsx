@@ -665,7 +665,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
     expect(devier, 'les voies doivent s’ouvrir une fois le dé tombé').toBeDefined();
     expect(subir).toBeDefined();
     // DEUX lignes de tirage : celle de l'ÉTAPE, en TÊTE (zone stable, `extra`), et celle que porte le
-    // panneau du Critique. Une seule = la tête est tombée, et le dé de l'étape ne se lit plus qu'à
+    // panneau du Critique. Une seule = la tête est tombée, et le dé de l'étape se lit seulement à
     // l'intérieur du panneau — ce n'est plus la même fenêtre.
     const tirages = [...host.querySelectorAll('.rm-roll.table')];
     expect(tirages, 'la ligne de tirage de l’ÉTAPE a disparu de la tête de fenêtre').toHaveLength(2);

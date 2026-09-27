@@ -16,7 +16,7 @@ export const tenue: TenueDef = {
     vet1: '#77854c', vet1O: '#4a5628', vet1H: '#9aa86a',
     vet2: '#586674', vet2O: '#333d49', vet2H: '#808d9b',
     accent: '#bb392e', accentO: '#6f1c17', accentH: '#dc6149',
-    or: '#cba43e', orO: '#8a6a1e', orH: '#e6c86e',
+    or: '#cba43e', orO: '#8a6a1e', 
     cuir: '#9c7038', cuirO: '#5e4220', cuirH: '#c0965a',
   },
   set: {

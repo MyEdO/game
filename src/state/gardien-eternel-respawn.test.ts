@@ -5,7 +5,9 @@ import { seedBattleRng } from './battleRng';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { Scene } from './scene';
-import { t } from '../i18n';
+import { spawnEnemy } from './spawn';
+import { mergeCreatureProfile } from './campaignData';
+import { findCreatureById } from '../data';
 
 /**
  * Trait Gardien éternel (Prédateur sanglant — Bestiaire de Middenheim, #19) : « si l'élémentaire incarné
@@ -21,7 +23,7 @@ const GUARD_CREATURE = 'predateur-sanglant';
 const CANCEL_FLAG = 'ghur-source-securisee';
 
 const guardian = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'gardien', label: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE,
+  id: 'gardien', label: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
   characteristics: { 'capacite-de-combat': 56, 'capacite-de-tir': 0, force: 75, endurance: 62, initiative: 45, agilite: 49, dexterite: 15, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
   wounds: { current: 0, max: 104, base: 104 }, advantage: 0, conditions: [], skills: [], talents: [],
   traits: [{ id: 'gardien-eternel' }], weapons: [], armour: { corps: 0 }, pos: { x: 6, y: 6 }, dead: true,
@@ -55,16 +57,15 @@ describe('Trait Gardien éternel — reconstitution différée (op scheduleRespa
     expect(Number.isInteger(days)).toBe(true); // un multiple exact de jours
     expect(days).toBeGreaterThanOrEqual(1);
     expect(days).toBeLessThanOrEqual(10); // d10
-    expect(se[0].respawn?.summon.ref).toBe(GUARD_CREATURE); // « self » → la créature défunte (par creatureId)
+    expect(se[0].respawn?.summon.porteur).toEqual({ ref: GUARD_CREATURE }); // « self » → la fiche du défunt (son porteur)
     expect(se[0].cancelFlag).toBe(CANCEL_FLAG); // précautions désamorçables
   });
 
-  it('un porteur sans `creatureId` (statbloc d’auteur, héros) est REFUSÉ, nommé au journal : aucune reconstitution programmée', () => {
-    const c = guardian({ creatureId: undefined });
+  it('un défunt sans porteur de fiche est REFUSÉ, nommé : aucune reconstitution programmée', () => {
+    const c = guardian({ porteurDeFiche: undefined });
     const h = harness({ battle: battle([c]) });
-    const lines = notifySlain(h.get as never, h.set as never, c);
+    expect(() => notifySlain(h.get as never, h.set as never, c)).toThrow(/« gardien » n'a été spawné d'aucune fiche/);
     expect(h.state().scheduledEffects).toHaveLength(0);
-    expect(lines).toContain(t('cf.sourceRebuildsSansCreature', { name: 'Prédateur sanglant' }));
   });
 
   it('sans le trait → aucune reconstitution programmée à la mort', () => {
@@ -99,5 +100,37 @@ describe('Trait Gardien éternel — reconstitution différée (op scheduleRespa
     fireScheduledEffects(h.get as never, h.set as never);
     expect(h.state().battle.combatants.filter((x: Combatant) => x.summon).length).toBe(0);
     expect(h.state().scheduledEffects).toHaveLength(0);
+  });
+});
+describe("Gardien éternel — `ref:'self'` reconstitue la FICHE du défunt, quel qu'en soit le porteur (#1882, LDB 76 l.11)", () => {
+  beforeEach(() => seedBattleRng(20260627));
+  /** Tue un combattant SPAWNÉ par la couture réelle, franchit l'échéance, rend l'incarnation revenue. */
+  const reconstitue = (defunt: Combatant): Combatant => {
+    Object.assign(defunt, { pos: { x: 6, y: 6 }, dead: true, wounds: { ...defunt.wounds, current: 0 } });
+    const h = harness({ battle: battle([defunt]) });
+    notifySlain(h.get as never, h.set as never, defunt);
+    const se = h.state().scheduledEffects;
+    expect(se).toHaveLength(1);
+    h.set({ gameTime: se[0].executeAt });
+    fireScheduledEffects(h.get as never, h.set as never);
+    const revenus = h.state().battle.combatants.filter((x: Combatant) => x.summon);
+    expect(revenus).toHaveLength(1);
+    return revenus[0];
+  };
+
+  it('un preset de PNJ nommé revient avec SA fiche : son libellé et sa CC surchargée, pas la base', () => {
+    const preset = mergeCreatureProfile(findCreatureById(GUARD_CREATURE)!, { label: 'Gardien nommé', char: { 'capacite-de-combat': 99 } as never });
+    const defunt = spawnEnemy({ presetCreature: preset }, 'gardien-nomme', { x: 6, y: 6 });
+    expect(defunt.characteristics['capacite-de-combat']).toBe(99);
+    const revenu = reconstitue(defunt);
+    expect(revenu.label).toBe('Gardien nommé');
+    expect(revenu.characteristics['capacite-de-combat']).toBe(99);
+  });
+
+  it('un statbloc d’auteur portant le Trait revient avec SON statbloc', () => {
+    const defunt = spawnEnemy({ statblock: { type: 'statblock', label: 'Gardien de statbloc', char: { 'capacite-de-combat': 42, B: 20 }, traits: [{ id: 'gardien-eternel' }] } }, 'gardien-sb', { x: 6, y: 6 });
+    const revenu = reconstitue(defunt);
+    expect(revenu.label).toBe('Gardien de statbloc');
+    expect(revenu.characteristics['capacite-de-combat']).toBe(42);
   });
 });

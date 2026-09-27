@@ -29,7 +29,7 @@ import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, garanti, inBattleId } from './combatants';
 import {
   TRAMPLE_WEAPON, resolveAttack, firedWeapon, bestDefenseMode, effectiveSpellOf,
   disengageOutcome, castContextMods,
@@ -1654,10 +1654,9 @@ export const FLOWS = {
     },
     outcome: (p) => testOutcome(p.result),
     // ISSUE au goulot (`apply`) — canal COMBAT (`frenzyConfirm` la tisse dans son `set({ battle })`).
-    // Le porteur est garanti au site (`if (!c) return` avant l'appel) : le repli couvre le seul appel
-    // hors combat, où le flux n'a pas d'issue à dire.
+    // Le porteur est garanti au site (`if (!c) return` avant l'appel).
     issueChannel: 'battle',
-    issue: (p, s) => describeFrenzy(p, actorIn(s, p.combatantId)?.label ?? ''),
+    issue: (p, s) => describeFrenzy(p, garanti(actorIn(s, p.combatantId), p.combatantId, 'frénésie').label),
   }),
 
   /** Approche d'une source de Peur (LDB 21 l.27) : Test SEC de Calme Intermédiaire (+0) pour oser
@@ -1859,19 +1858,19 @@ export const FLOWS = {
         const target = p.roll?.target ?? rollLine({ valeur: p.skillValue, valeurEtrangere: true, difficulty: p.difficulty }).target;
         const die = bestForcedRoll(target); // dé DR-MAX policy-aware (JAMAIS 01 en dur)
         const actorT = forcedTR(die, target, Math.max(evaluateTest(die, target).sl, p.requireSl ?? 1, 1), p.skillBase);
-        if (p.opposed && p.opponentRoll) {
+        if (p.opposition && p.opponentRoll) {
           const opp = resolveOpposed(actorT, p.opponentRoll); // re-oppose vs la source FIGÉE
           return { roll: actorT, netSL: Math.max(1, opp.netSL), success: true }; // l'emporte (DR +1 mini)
         }
         return { roll: actorT, netSL: Math.max(p.requireSl ?? 1, 1), success: true };
       }
       const actorT = { ...rollTest(p.skillValue, p.difficulty, battleRng()), base: p.skillBase };
-      if (p.opposed && p.opponentValue != null) {
+      if (p.opposition) {
         // LDB 12 l.160 : les DEUX camps portent leur nue (`resolveRecoverTest`), jamais un seul.
         // Difficultés ASYMÉTRIQUES (LDB 12 l.166) : l'acteur honore `p.difficulty` (donnée), l'entrave
         // roule `intermediaire` — MÊME choix qu'à la voie IA (`runEnemyAI`, `case 'recover'`),
         // verrouillé par `combat/ai-recover-departage-nue.test`.
-        const oppT = { ...rollTest(p.opponentValue, 'intermediaire', battleRng()), base: p.opponentBase };
+        const oppT = { ...rollTest(p.opposition.value, 'intermediaire', battleRng()), base: p.opposition.base };
         const opp = resolveOpposed(actorT, oppT);
         return { roll: actorT, opponentRoll: oppT, netSL: opp.netSL, success: opp.attackerWins };
       }
@@ -1881,7 +1880,7 @@ export const FLOWS = {
     },
     reresolve: (_s, p) => {
       const actorT = { ...rollTest(p.skillValue, p.difficulty, battleRng()), base: p.skillBase };
-      if (p.opposed && p.opponentRoll) {
+      if (p.opposition && p.opponentRoll) {
         const opp = resolveOpposed(actorT, p.opponentRoll); // la source garde son jet figé
         return { roll: actorT, netSL: opp.netSL, success: opp.attackerWins };
       }

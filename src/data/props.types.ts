@@ -118,6 +118,20 @@ export interface PropSize3 { xM: number; yM: number; hM: number }
 export type PropCylinderSides = 8 | 16;
 export const PROP_CYLINDER_SIDES: readonly PropCylinderSides[] = [8, 16];
 
+/** AXE d'un cylindre : `h` vertical, `x` est-ouest, `y` nord-sud — une valeur de la table
+ *  `REPERE_D_AXE`, patron de `BAS_DE_PENTE` (#1343 lot C). */
+export type PropCylinderAxis = 'h' | 'x' | 'y';
+
+/** REPÈRE d'un cylindre selon son axe : `(a, b)` dans le plan de l'anneau, `t` le long de l'axe →
+ *  décalage LOCAL depuis le centre de la primitive. `h` est l'identité. */
+export const REPERE_D_AXE: Readonly<Record<PropCylinderAxis, (a: number, b: number, t: number) => PropPoint3>> = {
+  h: (a, b, t) => ({ xM: a, yM: b, hM: t }),
+  x: (a, b, t) => ({ xM: t, yM: a, hM: b }),
+  y: (a, b, t) => ({ xM: a, yM: t, hM: b }),
+};
+/** Les axes admis — les clés de `REPERE_D_AXE`, seule source (schéma et validateur la lisent). */
+export const PROP_CYLINDER_AXES = Object.keys(REPERE_D_AXE) as readonly PropCylinderAxis[];
+
 /**
  * FOYER d'un décor qui éclaire : la primitive de sa recette d'où part la lumière (le lit de braises
  * d'un âtre, la coupelle d'une bougie). UNE au plus par recette (`validatePropCatalog`) — une source
@@ -131,7 +145,7 @@ type PrimitiveEmettrice = { emet?: true };
 /** Volume élémentaire d'une recette : caisse droite, cylindre à N faces, ou prisme en pente. */
 export type PropPrimitive =
   | ({ kind: 'box'; center: PropPoint3; size: PropSize3; material: PropMaterialId } & PrimitiveEmettrice)
-  | ({ kind: 'cylinder'; center: PropPoint3; radiusM: number; heightM: number; sides: PropCylinderSides; material: PropMaterialId } & PrimitiveEmettrice)
+  | ({ kind: 'cylinder'; center: PropPoint3; axis: PropCylinderAxis; radiusM: number; longueurM: number; sides: PropCylinderSides; material: PropMaterialId } & PrimitiveEmettrice)
   | ({ kind: 'prism'; center: PropPoint3; size: PropSize3; slope: 'x+' | 'x-' | 'y+' | 'y-'; material: PropMaterialId } & PrimitiveEmettrice);
 
 /** Recette volumique d'un prop : la liste de ses primitives, dans le repère local.
@@ -199,21 +213,27 @@ function facesBoite(centre: PropPoint3, size: PropSize3): PropPoint3[][] {
   ];
 }
 
-/** Les `sides` faces latérales d'un cylindre, plus son dessus et son dessous. */
-function facesCylindre(centre: PropPoint3, radiusM: number, heightM: number, sides: number): PropPoint3[][] {
-  const h0 = centre.hM - heightM / 2, h1 = centre.hM + heightM / 2;
+/** Les `sides` faces latérales d'un cylindre, plus ses deux bouts. L'anneau se calcule dans `(a, b)`,
+ *  `t` avance le long de l'axe, et chaque sommet passe par `REPERE_D_AXE[axis]`. */
+function facesCylindre(centre: PropPoint3, radiusM: number, longueurM: number, sides: number, axis: PropCylinderAxis): PropPoint3[][] {
+  const repere = REPERE_D_AXE[axis];
+  const poser = ([a, b]: readonly [number, number], t: number): PropPoint3 => {
+    const d = repere(a, b, t);
+    return { xM: centre.xM + d.xM, yM: centre.yM + d.yM, hM: centre.hM + d.hM };
+  };
+  const t0 = -longueurM / 2, t1 = longueurM / 2;
   const anneau = Array.from({ length: sides }, (_, k) => {
-    const a = (k / sides) * 2 * Math.PI;
-    return { xM: centre.xM + radiusM * Math.cos(a), yM: centre.yM + radiusM * Math.sin(a) };
+    const angle = (k / sides) * 2 * Math.PI;
+    return [radiusM * Math.cos(angle), radiusM * Math.sin(angle)] as const;
   });
   const out: PropPoint3[][] = [];
   for (let k = 0; k < sides; k++) {
     const a = anneau[k];
     const b = anneau[(k + 1) % sides];
-    out.push([{ ...a, hM: h0 }, { ...b, hM: h0 }, { ...b, hM: h1 }, { ...a, hM: h1 }]);
+    out.push([poser(a, t0), poser(b, t0), poser(b, t1), poser(a, t1)]);
   }
-  out.push(anneau.map((p) => ({ ...p, hM: h0 })));
-  out.push(anneau.map((p) => ({ ...p, hM: h1 })));
+  out.push(anneau.map((p) => poser(p, t0)));
+  out.push(anneau.map((p) => poser(p, t1)));
   return out;
 }
 
@@ -263,7 +283,7 @@ function facesPrisme(centre: PropPoint3, size: PropSize3, slope: 'x+' | 'x-' | '
  */
 export function polygonesDePrimitive(p: PropPrimitive): PropPoint3[][] {
   const brutes = p.kind === 'box' ? facesBoite(p.center, p.size)
-    : p.kind === 'cylinder' ? facesCylindre(p.center, p.radiusM, p.heightM, p.sides)
+    : p.kind === 'cylinder' ? facesCylindre(p.center, p.radiusM, p.longueurM, p.sides, p.axis)
       : facesPrisme(p.center, p.size, p.slope);
   const dedans = barycentre(brutes);
   return brutes.map((poly) => versLeDehors(poly, dedans));
@@ -361,17 +381,19 @@ export interface PropData {
  *  (billboard) ; un décor à recette tire la sienne de son CORPS (`empreinteDeriveeDuProp`). */
 export const propFootOf = (prop: PropData | undefined): { w: number; h: number } => prop?.foot ?? { w: 1, h: 1 };
 
-/** Boîte englobante au plan d'une primitive dans le repère LOCAL (mètres) et la hauteur de son sommet
- *  (mètres) — mesurée sur `polygonesDePrimitive`, la seule géométrie que le catalogue possède. PURE. */
-function empriseLocaleM(p: PropPrimitive): { x0: number; x1: number; y0: number; y1: number; haut: number } {
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, haut = -Infinity;
+/** Boîte englobante d'une primitive dans le repère LOCAL, en mètres : au plan (`x0..x1`, `y0..y1`),
+ *  et en hauteur (`bas..haut`) — mesurée sur `polygonesDePrimitive`, la seule géométrie que le
+ *  catalogue possède. L'UNIQUE emprise d'une primitive : aucun lecteur ne la recalcule depuis ses
+ *  cotes. PURE. */
+export function empriseLocaleM(p: PropPrimitive): { x0: number; x1: number; y0: number; y1: number; bas: number; haut: number } {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, bas = Infinity, haut = -Infinity;
   for (const poly of polygonesDePrimitive(p))
     for (const s of poly) {
       x0 = Math.min(x0, s.xM); x1 = Math.max(x1, s.xM);
       y0 = Math.min(y0, s.yM); y1 = Math.max(y1, s.yM);
-      haut = Math.max(haut, s.hM);
+      bas = Math.min(bas, s.hM); haut = Math.max(haut, s.hM);
     }
-  return { x0, x1, y0, y1, haut };
+  return { x0, x1, y0, y1, bas, haut };
 }
 
 /**
@@ -520,26 +542,32 @@ export function placesLocalesDuProp(prop: PropData | undefined, facing: Dir8 | u
   });
 }
 
-/** Anomalies d'UNE primitive : coordonnées finies, dimensions positives, côtés admis,
- *  et FERMETURE en coquille close. La fermeture n'est mesurée que sur une géométrie déjà non ambiguë —
- *  des dimensions folles n'ajouteraient qu'un bruit d'arêtes par-dessus leur propre diagnostic. */
-function erreursDePrimitive(propId: string, primitive: PropPrimitive): string[] {
+/** Anomalies d'UNE primitive : coordonnées finies, dimensions positives, côtés et axe admis, puis,
+ *  sur la géométrie, aucun sommet SOUS LE SOL de la case (`hM < 0`) et la FERMETURE en coquille close.
+ *  La géométrie n'est mesurée que déjà non ambiguë — des dimensions folles n'ajouteraient qu'un
+ *  bruit d'arêtes par-dessus leur propre diagnostic. `mesurable` dit si cette géométrie existe. */
+function erreursDePrimitive(propId: string, primitive: PropPrimitive): { errors: string[]; mesurable: boolean } {
   const errors: string[] = [];
   const centre = [primitive.center.xM, primitive.center.yM, primitive.center.hM];
   const dimensions = primitive.kind === 'cylinder'
-    ? [primitive.radiusM, primitive.heightM]
+    ? [primitive.radiusM, primitive.longueurM]
     : [primitive.size.xM, primitive.size.yM, primitive.size.hM];
   const fini = [...centre, ...dimensions].every((n) => Number.isFinite(n));
   const positif = dimensions.every((n) => !Number.isFinite(n) || n > 0);
-  // Le JSON n'est pas typé à l'EXÉCUTION : l'union `PropCylinderSides` se re-vérifie ici.
+  // Le JSON n'est pas typé à l'EXÉCUTION : les unions `PropCylinderSides` et `PropCylinderAxis` se re-vérifient ici.
   const côtésAdmis = primitive.kind !== 'cylinder' || PROP_CYLINDER_SIDES.includes(primitive.sides);
+  const axeAdmis = primitive.kind !== 'cylinder' || PROP_CYLINDER_AXES.includes(primitive.axis);
   if (!fini) errors.push(`${propId}: coordonnée non finie`);
   if (!positif) errors.push(`${propId}: dimension non positive`);
   if (!côtésAdmis) errors.push(`${propId}: cylindre à ${(primitive as { sides: number }).sides} côtés (admis : ${PROP_CYLINDER_SIDES.join(' ou ')})`);
-  if (fini && positif && côtésAdmis)
-    for (const { arete, sens, contreSens } of aretesNonAppariees(polygonesDePrimitive(primitive).map((poly) => poly.map(sommetLocal))))
-      errors.push(`${propId}: primitive ${primitive.kind} « ${primitive.material} » — arête non appariée ${arete} (${sens} dans le sens, ${contreSens} à contre-sens)`);
-  return errors;
+  if (!axeAdmis) errors.push(`${propId}: cylindre d’axe « ${(primitive as { axis: unknown }).axis} » (admis : ${PROP_CYLINDER_AXES.join(', ')})`);
+  if (!(fini && positif && côtésAdmis && axeAdmis)) return { errors, mesurable: false };
+  const { bas } = empriseLocaleM(primitive);
+  if (bas < -1e-9)
+    errors.push(`${propId}: primitive ${primitive.kind} « ${primitive.material} » — descend à ${bas} m, sous le sol de sa case`);
+  for (const { arete, sens, contreSens } of aretesNonAppariees(polygonesDePrimitive(primitive).map((poly) => poly.map(sommetLocal))))
+    errors.push(`${propId}: primitive ${primitive.kind} « ${primitive.material} » — arête non appariée ${arete} (${sens} dans le sens, ${contreSens} à contre-sens)`);
+  return { errors, mesurable: true };
 }
 
 /**
@@ -571,7 +599,8 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     // moteur n'applique jamais. Le catalogue ne peut donc pas la porter.
     if (prop.opaque && prop.cover !== 'totale')
       errors.push(`${prop.id}: opaque avec cover ${prop.cover ? `« ${prop.cover} »` : 'absent'} — un décor opaque ne rend que « totale » (lineOfSight)`);
-    for (const primitive of prop.volume?.primitives ?? []) errors.push(...erreursDePrimitive(prop.id, primitive));
+    const formes = (prop.volume?.primitives ?? []).map((primitive) => erreursDePrimitive(prop.id, primitive));
+    for (const forme of formes) errors.push(...forme.errors);
     // FOYER D'UNE SOURCE VOLUMIQUE (#1680 ligne 5) — les trois anomalies sont les trois façons dont
     // `emet` et `light` peuvent se contredire, et aucune n'est rattrapable au rendu : une lumière dont
     // le foyer n'est pas DÉCLARÉ se devinerait, et deviner l'ancre d'une lampe est ce que ce lot supprime.
@@ -582,15 +611,20 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
       errors.push(`${prop.id}: primitive « emet » sans \`light\` — un foyer sans source n’éclaire rien`);
     if (prop.light && prop.volume && !emettrices.length)
       errors.push(`${prop.id}: \`light\` sur une recette volumique sans primitive « emet » — le foyer d’un volume se DÉCLARE, il ne se devine pas`);
+    for (const slot of prop.seatSlots ?? []) {
+      if (!slot.id.trim()) errors.push(`${prop.id}: slot sans id`);
+      else if (slots.has(slot.id)) errors.push(`${prop.id}: slot dupliqué « ${slot.id} »`);
+      slots.add(slot.id);
+    }
     // ABORD au CAP D'IDENTITÉ : c'est le seul cap auquel `approach` (écrit par l'auteur) et l'empreinte
     // sont dans le même repère. Aux autres caps, les deux tournent ENSEMBLE — la mesure est la même.
     // La case d'abord est celle que le RUNTIME posera (`placesLocalesDuProp`, la règle unique) : une
     // formule propre au validateur jugerait dans un repère que la scène n'emploie pas.
+    // L'empreinte se MESURE sur la géométrie : une primitive sans géométrie (axe inconnu, cote non
+    // finie) n'en a pas, et son diagnostic est déjà rendu.
+    if (formes.some((forme) => !forme.mesurable)) continue;
     const { w, h } = empreinteDuProp(prop, CAP_IDENTITE_PROP, mpt);
     for (const { slot, siege, abord } of placesLocalesDuProp(prop, CAP_IDENTITE_PROP, mpt)) {
-      if (!slot.id.trim()) errors.push(`${prop.id}: slot sans id`);
-      else if (slots.has(slot.id)) errors.push(`${prop.id}: slot dupliqué « ${slot.id} »`);
-      slots.add(slot.id);
       const key = `${abord.x},${abord.y}`;
       const siegeKey = `${siege.x},${siege.y}`;
       // AMBIGUÏTÉ D'ABORD — une case d'abord qui dessert DEUX SIÈGES DISTINCTS ne dit plus où l'on

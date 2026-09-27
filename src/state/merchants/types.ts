@@ -17,8 +17,8 @@ export interface MerchantArchetypeDef {
   /** Majoration d'achat : multiplie le prix listé à l'ACHAT (1 = prix listé ; >1 = ce marchand vend plus cher,
    *  ex. village isolé/monopole). Défaut 1 si absent. */
   buyMarkup?: number;
-  /** Valeur de Marchandage du marchand (opposant au Test, LDB 59 l.43). Défaut 40 si absent. */
-  bargainSkill?: number;
+  /** Valeur de Marchandage du marchand (opposant au Test, LDB 59 l.43). */
+  bargainSkill: number;
   /** Délai de réassort en JOURS (#T3) : le stock est re-tiré (nouvelle Disponibilité) après ce délai
    *  écoulé sur l'horloge ; entre deux, la déplétion persiste. Défaut 1 jour si absent. */
   restockDays?: number;

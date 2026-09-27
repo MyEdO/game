@@ -9,6 +9,6 @@ export const creature: CreatureDef = {
   plan: 'crustace',
   crab: {
     sl: 0.95, girth: 0.94,
-    stored: { corps: '#6e5a44', corpsO: '#3c3026', corpsH: '#9c8668', cheveux: '#3c3026', cheveuxO: '#221b14', cuir: '#b6a484' },
+    palette: { corps: '#6e5a44', corpsO: '#3c3026', corpsH: '#9c8668', cheveux: '#3c3026', cheveuxO: '#221b14', cuir: '#b6a484' },
   },
 };

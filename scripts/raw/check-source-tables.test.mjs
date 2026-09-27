@@ -8,10 +8,10 @@ import assert from 'node:assert/strict'
 import {
   sitesDuChapitre, scanAllBooks, scanBookDir, refDeTable, cleDeLigne, entreesDe, ecartDuStock,
   comptesParFamille, verdictDesPreuves, comptesDeTri, preuvesHorsPlage, lireLigne1Du,
-  FAMILLES, STOCK_PATH,
+  FAMILLES, STOCK_PATH, stockDe,
 } from './check-source-tables.mjs'
-import { readStock } from './stockNominatif.mjs'
-import { cleDeSite } from '../guards/lib/stock.mjs'
+import { naissanceEnPlace, readStock } from './stockNominatif.mjs'
+import { cleDeSite, naissanceDu } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 import { parseChapitre, tablesOf } from '../../src/data/source/decoupe.ts'
 
@@ -154,7 +154,7 @@ test('table-avalee-par-titre : le MOBILIER de page et les intitulés ne sont PAS
   ]) assert.equal(estAvalee(ligne), false, ligne)
 })
 
-test('cle-de-ligne-ambigue : une clé partagée par DEUX tables de la même section est un site, une par clé', () => {
+test('cle-de-ligne-ambigue : une clé partagée par DEUX tables SANS titre de la même section est un site, une par clé — une position ne départage rien (#1739)', () => {
   const texte = [
     '## Traumatisme',
     '',
@@ -168,10 +168,31 @@ test('cle-de-ligne-ambigue : une clé partagée par DEUX tables de la même sect
     '| 01-10 | Contusion |',
     '| 21-30 | Fracture |',
   ].join('\n')
-  const sites = sitesDuChapitre(texte, FICHIER).filter((s) => s.famille === 'cle-de-ligne-ambigue')
-  assert.deepEqual(sites.map((s) => s.ref), ['traumatisme#1 :: 01-10'])
+  const ambigues = (x) => sitesDuChapitre(x, FICHIER).filter((s) => s.famille === 'cle-de-ligne-ambigue').map((s) => s.ref)
+  assert.deepEqual(ambigues(texte), ['traumatisme#1 :: 01-10'])
   // Une seule table dans la section : aucune ambiguïté INTER-tables à nommer.
   assert.deepEqual(familles(texte.split('\n').slice(0, 6).join('\n')), [])
+})
+
+test('cle-de-ligne-ambigue (#1739) : l’adresse `table` (`titre#occ`, titre NON VIDE) sépare les tables titrées, même de titre répété ; une table sans titre, ou une clé répétée DANS une table, reste un site', () => {
+  const tables = (a, b) => [
+    '## Traumatisme', '',
+    ...(a ? [a, ''] : []), '| Lancer | Effet |', '| --- | --- |', '| 01-10 | Écorchure |', '',
+    ...(b ? [b, ''] : []), '| Lancer | Effet |', '| --- | --- |', '| 01-10 | Contusion |',
+  ].join('\n')
+  const ambigues = (texte) => sitesDuChapitre(texte, FICHIER).filter((s) => s.famille === 'cle-de-ligne-ambigue').map((s) => s.ref)
+  assert.deepEqual(ambigues(tables('**TÊTE**', '**BRAS**')), [])
+  assert.deepEqual(ambigues(tables(null, '**BRAS**')), ['traumatisme#1 :: 01-10'])
+  assert.deepEqual(ambigues(tables('**TÊTE**', '**TÊTE**')), [])
+  assert.deepEqual(ambigues(`${tables('**TÊTE**', '**BRAS**')}\n| 01-10 | Fracture |`), ['traumatisme#1 :: 01-10'])
+})
+
+test('stock (#1739) : les comptes « à la naissance » du `quoi` en place se gardent — l’historique ne se réécrit pas', () => {
+  const quoi = JSON.parse(stockDe([], { lot: '', date: '', naissance: naissanceDu('Compte par famille à la naissance : br-litteral 403, donnee-en-tete 14, banniere-suspecte 114, cle-de-ligne-ambigue 148, table-avalee-par-titre 36. suite', FAMILLES) })).quoi
+  assert.match(quoi, /cle-de-ligne-ambigue 148/)
+  assert.match(JSON.parse(stockDe([], { lot: '', date: '' })).quoi, /cle-de-ligne-ambigue 0/)
+  assert.equal(naissanceDu('pas de comptes', FAMILLES), null)
+  assert.ok(naissanceEnPlace(STOCK_PATH, FAMILLES), 'le stock en place porte ses comptes à la naissance')
 })
 
 test('deux SECTIONS distinctes ne partagent pas leurs clés (l’ambiguïté est bornée à la section)', () => {
@@ -249,12 +270,12 @@ test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registr
 // PLAFOND de la dette (jamais dans la lib de stock : il vit ICI, cf. `scripts/guards/lib/stock.mjs`).
 // Il ne monte QUE par une édition de cette ligne, sous `CLIQUET:` — il n'est pas le compte du jour,
 // il est la borne que le jour ne doit pas franchir.
-const PLAFOND = 715
+const PLAFOND = 680
 
 // PLAFOND de la DETTE, distinct du précédent : le fichier de stock est un INVENTAIRE des sites
 // mesurés (il ne décroît qu'en corrigeant `Source/`), la dette est ce qui reste À TRIER — les entrées
 // sans `preuve`. Celle-là descend à CHAQUE preuve lue au PDF, et ne monte que sous `CLIQUET:`.
-const PLAFOND_A_TRIER = 702
+const PLAFOND_A_TRIER = 667
 
 test('stock COMMITTÉ : PLAFOND de la DETTE — « à trier » (entrées sans preuve) ne remonte jamais', () => {
   const { aTrier, verifies } = comptesDeTri(readStock(STOCK_PATH))

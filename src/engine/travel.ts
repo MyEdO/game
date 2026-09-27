@@ -25,7 +25,8 @@ import { RNG, defaultRNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
 import { addCondition } from './conditions';
-import { effectiveMovement, encumbrancePenalties } from './encumbrance';
+import { encumbrancePenalties } from './encumbrance';
+import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
 import { rule } from './policy';
 import {
@@ -97,11 +98,10 @@ export const TRAVEL_DEFAULTS = {
   perilDie: 8,
 } as const;
 
-/** Vitesse du groupe à pied = Mouvement EFFECTIF le plus lent (LDB 51 l.193), en km/h. */
+/** Vitesse du groupe à pied (km/h) : `slowestMovement` (LDB 51 l.193) appliqué aux membres qui
+ *  MARCHENT pour le voyage — les vivants. */
 export function partyWalkSpeed(party: Combatant[]): number {
-  const alive = party.filter((c) => !c.dead);
-  if (!alive.length) return 0;
-  return Math.max(0, Math.min(...alive.map((c) => effectiveMovement(c))));
+  return slowestMovement(party.filter((c) => !c.dead));
 }
 
 /** Vitesse de voyage (km/h) selon le mode. `movementOverride` = modèle rapide/lent (M ±1, LDB 51 l.178).

@@ -70,6 +70,8 @@ const jumeauxMuets = (vocabulaires: Map<string, CompteDeNoeuds>): string[] =>
 
 /** Les vocabulaires NOMMÉS, par leurs options — un par `enumNomme` atteint depuis le registre. */
 const NOMMES = [
+  // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema`, `pregens`, `raceAppearance`.
+  'M|F',
   'N|NE|E|SE|S|SO|O|NO',
   // `domainCircumstanceSchema` (#1715) : les circonstances (météo, saison, relief, lieu, bâti) qu'un
   // modificateur de Vent attend, et que l'appelant signale — vocabulaire FERMÉ des rubriques
@@ -160,7 +162,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'Commune|Limitée|Rare|Exotique|Unique',
   'Inoffensive|Inquiétante|Menaçante|Mortelle',
   'Limitée|Rare',
-  'M|F',
   'N|E|S|O',
   'N|E|\\|/',
   'Variable|Personnelle|Très courte|Courte|Moyenne|Longue|Très longue|Considérable',
@@ -244,6 +245,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'party|hero|caster|target',
   'pas|trot|galop',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent',
+  'peau|peauO|peauH|cheveux|cheveuxO|cheveuxH|yeux|yeuxO|yeuxH',
   'pluie|averse|neige',
   'radius|diameter',
   'rafle-le-pot|reprend-mise|cible-ou-passe|remise-ou-abandon|quitte-la-manche',

@@ -1,4 +1,5 @@
 import type { TraceTransform } from './traceCalibration';
+import { ecrireDansBase, lireDansBase, type BaseIdb } from '../lib/indexedDb';
 
 /**
  * Persistance du CALQUE DE RÉFÉRENCE de l'éditeur (planche de livre décalquée, #830) — jamais de la
@@ -49,131 +50,42 @@ export interface TraceLayerBackend {
   clear(): Promise<void>;
 }
 
-const DB = 'wfrp4-trace-layers';
 const STORE = 'layers';
 const PANEL_STORE = 'panelExpanded';
-/** v1→v2 (#830 suite, jamais commité/shippé) : clé `sceneId` seule → composite `(sceneId, z)` — une
- *  planche par couche. Migration = repli honnête : le magasin `layers` v1 est DÉTRUIT et recréé (une
- *  ancienne entrée orpheline ré-émergerait sans plus savoir à quelle couche l'attacher ; cette
- *  fonctionnalité n'a jamais quitté le poste de dev, aucune perte réelle). */
-const DB_VERSION = 2;
-const IDB_OPEN_TIMEOUT_MS = 3000;
 
-const openIdbRequest: () => IDBOpenDBRequest = () => indexedDB.open(DB, DB_VERSION);
+/** Montée de `wfrp4-trace-layers` (#830) : en v2, `layers` est keyé `(sceneId, z)`. */
+export const upgradeCalques: BaseIdb['upgrade'] = (db, ancienneVersion) => {
+  if (ancienneVersion < 2) {
+    if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
+    db.createObjectStore(STORE, { keyPath: ['sceneId', 'z'] });
+  }
+  if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
+};
 
-let backendOverridden = false;
-
-function hasIdb(): boolean {
-  return backendOverridden || typeof indexedDB !== 'undefined';
-}
-
-/** N'attend jamais indéfiniment (même garde que `projectLibrary.idb` — #776) : un `open` coincé
- *  rejette après `IDB_OPEN_TIMEOUT_MS` plutôt que de geler l'appelant. */
-function idb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = openIdbRequest();
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      reject(new Error('IndexedDB open : délai dépassé'));
-    }, IDB_OPEN_TIMEOUT_MS);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      // v1 → v2 : clé composite (sceneId,z) incompatible avec l'ancien `layers` keyPath `sceneId` —
-      // le keyPath d'un object store est IMMUABLE, seule une recréation le change (repli honnête ci-dessus).
-      if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
-      db.createObjectStore(STORE, { keyPath: ['sceneId', 'z'] });
-      if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
-    };
-    req.onblocked = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(new Error('IndexedDB open : bloqué par une autre connexion ouverte'));
-    };
-    req.onsuccess = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(req.result);
-    };
-    req.onerror = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(req.error);
-    };
-  });
-}
+const BASE: BaseIdb = { nom: 'wfrp4-trace-layers', version: 2, upgrade: upgradeCalques };
 
 const realBackend: TraceLayerBackend = {
   async get(sceneId, z) {
-    if (!hasIdb()) return null;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const r = db.transaction(STORE, 'readonly').objectStore(STORE).get([sceneId, z]);
-      r.onsuccess = () => resolve((r.result as TraceLayerRecord | undefined) ?? null);
-      r.onerror = () => reject(r.error);
-    });
+    return ((await lireDansBase(BASE, STORE, (m) => m.get([sceneId, z]))) as TraceLayerRecord | undefined) ?? null;
   },
-  async put(entry) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(entry);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async delete(sceneId, z) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).delete([sceneId, z]);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
+  put: (entry) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).put(entry); }),
+  delete: (sceneId, z) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).delete([sceneId, z]); }),
   async getExpanded(sceneId) {
-    if (!hasIdb()) return null;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const r = db.transaction(PANEL_STORE, 'readonly').objectStore(PANEL_STORE).get(sceneId);
-      r.onsuccess = () => resolve((r.result as { sceneId: string; expanded: boolean } | undefined)?.expanded ?? null);
-      r.onerror = () => reject(r.error);
-    });
+    const r = (await lireDansBase(BASE, PANEL_STORE, (m) => m.get(sceneId))) as { sceneId: string; expanded: boolean } | undefined;
+    return r?.expanded ?? null;
   },
-  async putExpanded(sceneId, expanded) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(PANEL_STORE, 'readwrite');
-      tx.objectStore(PANEL_STORE).put({ sceneId, expanded });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async clear() {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE, PANEL_STORE], 'readwrite');
-      tx.objectStore(STORE).clear();
-      tx.objectStore(PANEL_STORE).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
+  putExpanded: (sceneId, expanded) =>
+    ecrireDansBase(BASE, PANEL_STORE, (tx) => { tx.objectStore(PANEL_STORE).put({ sceneId, expanded }); }),
+  clear: () => ecrireDansBase(BASE, [STORE, PANEL_STORE], (tx) => {
+    tx.objectStore(STORE).clear();
+    tx.objectStore(PANEL_STORE).clear();
+  }),
 };
 
 let backend: TraceLayerBackend = realBackend;
 
 export function __setTraceLayerBackendForTest(b: TraceLayerBackend | null): void {
   backend = b ?? realBackend;
-  backendOverridden = b !== null;
 }
 
 /** Lecture — `null` si aucun calque enregistré pour cette (scène, couche), ou si IndexedDB est
@@ -227,5 +139,5 @@ export async function panelExpandedSave(sceneId: string, expanded: boolean): Pro
 
 /** Test-only : vide les magasins pour l'isolation entre tests. */
 export async function __resetTraceLayerForTest(): Promise<void> {
-  await backend.clear().catch(() => { /* idb absent en jsdom */ });
+  await backend.clear();
 }

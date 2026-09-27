@@ -58,6 +58,7 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
     const jetee = testValue(nageur, 'natation', 'force');
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     const diff = rule('sea-shipwreck-swim') as Difficulty;
+    useGame.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] }, } as never);
 
     beginShipwreck(get, set);
     const step = get().pendingCascade!.participants.find((s) => s.kind === 'shipwreckSwim')!;

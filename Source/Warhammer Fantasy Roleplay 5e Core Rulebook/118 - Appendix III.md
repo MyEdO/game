@@ -1,10 +1,10 @@
 *Pages PDF 365-367*
 
-# **APPENDIX III**
+# <span id="page-364-0" data-folio="365"></span>**APPENDIX III**
 
 # **Critical wounds**
 
-# **ARM CRITICAL WOUNDS**
+**ARM CRITICAL WOUNDS**
 
 | d100           | Description             | Wounds | Additional Effects                                                                                                                                                                                                                                                                              |
 |----------------|-------------------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -29,7 +29,7 @@
 | 131–135        | Sliced Tendons          | 5      | The blow leaves your arm useless — Amputation (Very Hard -3 SL). Gain 3 Bleeding and 1 Stunned Condition.                                                                                                                                                                                    |
 | 136 or more | Brutal Dismemberment | Death  | Your arm is severed or torn away. You expire from shock and blood loss almost instantly.                                                                                                                                                                                                     |
 
-# **BODY CRITICAL WOUNDS**
+<span id="page-365-0" data-folio="366"></span>**BODY CRITICAL WOUNDS**
 
 | d100           | Description                   | Wounds | Additional Effects                                                                                                                                                                                                                                                       |
 |----------------|-------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -54,7 +54,7 @@
 | 111–115        | Internal Bleeding             | 5      | Gain a Bleeding Condition that can only be removed through Surgery. Contract Blood Rot (see Disease and Infection, page 179).                                                                                                                                         |
 | 116 or more | Torn Apart                    | Death  | You are hacked in two. The top half lands in a random direction, and all creatures within 2 yards are showered in blood.                                                                                                                                              |
 
-# **LEG CRITICAL WOUNDS**
+<span id="page-366-0" data-folio="367"></span>**LEG CRITICAL WOUNDS**
 
 | d100           | Description           | Wounds | Additional Effects                                                                                                                                                                                                                                                                       |
 |----------------|-----------------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

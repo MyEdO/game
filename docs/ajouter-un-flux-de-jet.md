@@ -128,7 +128,7 @@ Flux sans entrée propre dans `MODAL_DEFS` : `attack`, `defense`, `cast`, `disen
 | `opposedBinaryFlow` | `src/state/rollFlowSpecs.ts:373` | Fabrique PARTAGÉE des Tests opposés BINAIRES (issue success/tie/fail) où SEUL le jet de l'ACTEUR se (re)joue tandis que le foe reste FIGÉ — le jet de l'acteur est l'« attaquant » du Test opposé (`resolveOpposed`/`disengageOutcome`). |
 | `rollFlowActions` | `src/state/rollFlowSpecs.ts:211` | Délégués MONO d'un flux : les verbes listés, byte-identiques aux anciens `() => FLOWS.x.m(get, set)`. |
 | `rollFlowActionsMulti` | `src/state/rollFlowSpecs.ts:224` | Délégués MULTI d'un flux : `pid` en tête, byte-identiques aux anciens `(pid) => FLOWS.x.m(get, set, pid)`. |
-| `buildRollFlowActions` | `src/state/rollFlowSpecs.ts:2165` | Assemble les ~113 délégués de jet du store (`<prefix><Verbe>`) depuis `FLOW_VERBS` + `FLOW_HANDLERS` — remplace les 40 spreads `rollFlowActions(Multi)` éparpillés dans le store. |
+| `buildRollFlowActions` | `src/state/rollFlowSpecs.ts:2164` | Assemble les ~113 délégués de jet du store (`<prefix><Verbe>`) depuis `FLOW_VERBS` + `FLOW_HANDLERS` — remplace les 40 spreads `rollFlowActions(Multi)` éparpillés dans le store. |
 
 Le résolveur d'un flux est **UN SEUL** `resolve` pour tous les cas : jet normal (RNG), réussite
 forcée par défaut, dé CHOISI par le joueur, et DR imposé par la Résistance. Un flux qui n'expose pas
@@ -176,4 +176,4 @@ liste est LUE dans la garde, jamais recopiée ici :
 
 `npm run typecheck` après tout ajout : le type dérivé de `FLOW_VERBS` casse immédiatement si le
 registre et les handlers divergent.
-<!-- sources-empreinte: 9303f51a57c13ff3304ae2174b551ce6b16b9ccd (14 fichiers, 0 dossiers) corps: 1837fbdf1fc9249bae5f7273c0af66f2c4aebeb5 -->
+<!-- sources-empreinte: 0788d157f959ce9b931991857ab04b1b86d9ba35 (14 fichiers, 0 dossiers) corps: 4711c3823e317c0aa03f21b8c3c71bcc0ae98048 -->

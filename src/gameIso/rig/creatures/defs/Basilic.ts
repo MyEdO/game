@@ -20,6 +20,6 @@ export const creature: CreatureDef = {
     ears: 'courtes', foot: 'serre', ridge: 'epines-continues',
     // Robe de l'artwork : vert-jaune écailleux (+ ombre olive, reflet chartreuse), épines/crête
     // gris-sarcelle (@cheveux), serres cornées olive (@cuir).
-    stored: { corps: '#7f9038', corpsO: '#414c1d', corpsH: '#b6c46a', cheveux: '#6f9598', cheveuxO: '#324b4c', cuir: '#8f7f4c' },
+    palette: { corps: '#7f9038', corpsO: '#414c1d', corpsH: '#b6c46a', cheveux: '#6f9598', cheveuxO: '#324b4c', cuir: '#8f7f4c' },
   },
 };

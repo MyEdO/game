@@ -26,7 +26,6 @@ export function WardModal() {
   const cancel = useGame((s) => s.wardCancel);
   if (!pw || !battle) return null;
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
-  const target = battle.combatants.find((x) => x.id === pw.targetId);
   if (!attacker) return null;
   const r = pw.result;
   const rolled = !!r;
@@ -57,12 +56,12 @@ export function WardModal() {
       title={<><Icon id="action/defend" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>
-          <strong>{attacker.label}</strong> ose frapper {target?.label ?? 'la cible bénie'} (Test de FM +20)
+          <strong>{attacker.label}</strong> ose frapper {pw.targetName} (Test de FM +20)
         </>
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('info', describeWard(pw, target?.label ?? 'la cible bénie'), attacker.id, target?.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('info', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

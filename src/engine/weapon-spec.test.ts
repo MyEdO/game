@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { combatValue, defenseValue, hasWeaponGroupSkill, weaponGroupSkillMode, weaponUnmastered } from './combat';
-import { weaponGroupIdByLabel } from '../data';
 import type { Combatant, ItemInstance, Weapon } from './types';
 
 /**
@@ -18,9 +17,8 @@ function hero(over: Partial<Combatant> = {}): Combatant {
     ...over,
   } as Combatant;
 }
-// `groupLabel` = libellé de Groupe (lisibilité) → résolu en id pour `Weapon.subType` (réf).
-const wpn = (groupLabel: string, type: Weapon['type'] = 'melee'): Weapon =>
-  ({ label: groupLabel, type, damage: { plusBF: true, flat: 0, bare: true }, qualities: [], subType: weaponGroupIdByLabel(groupLabel) ?? groupLabel });
+const wpn = (subType: string, type: Weapon['type'] = 'melee'): Weapon =>
+  ({ label: subType, type, damage: { plusBF: true, flat: 0, bare: true }, qualities: [], subType });
 
 describe('combatValue — Spécialisation de Corps à corps (LDB 09 l.44)', () => {
   // `spec` = id de Groupe d'arme STABLE (Phase 3 : plus de libellé FR — cf. `SkillData.specsSource`).
@@ -29,26 +27,26 @@ describe('combatValue — Spécialisation de Corps à corps (LDB 09 l.44)', () =
 
   it('les Augmentations comptent quand la Spé correspond au Groupe de l’arme', () => {
     const c = hero({ skills: [sk('base', 20)] });
-    expect(combatValue(c, 'melee', wpn('Base'))).toBe(60); // CC 40 + 20 (Base)
+    expect(combatValue(c, 'melee', wpn('base'))).toBe(60); // CC 40 + 20 (Base)
   });
 
   it('sans la bonne Spé, on teste sur la Caractéristique brute (Sigrid)', () => {
     const c = hero({ skills: [sk('base', 20)] }); // entraîné en Base seulement
-    expect(combatValue(c, 'melee', wpn('Escrime'))).toBe(40); // CC 40, +20 ne s’applique PAS
+    expect(combatValue(c, 'melee', wpn('escrime'))).toBe(40); // CC 40, +20 ne s’applique PAS
   });
 
   it('Groupe d’arme « Deux-mains » ↔ Spé « À deux mains » (l.144)', () => {
     const c = hero({ skills: [sk('deux-mains', 15)] });
-    expect(combatValue(c, 'melee', wpn('Deux-mains'))).toBe(55); // CC 40 + 15
+    expect(combatValue(c, 'melee', wpn('deux-mains'))).toBe(55); // CC 40 + 15
     // un escrimeur ne profite PAS de sa Spé Escrime avec une arme à deux mains
     const esc = hero({ skills: [sk('escrime', 15)] });
-    expect(combatValue(esc, 'melee', wpn('Deux-mains'))).toBe(40);
+    expect(combatValue(esc, 'melee', wpn('deux-mains'))).toBe(40);
   });
 
   it('plusieurs Spés : seule celle du Groupe tenu s’applique', () => {
     const c = hero({ skills: [sk('base', 10), sk('deux-mains', 25)] });
-    expect(combatValue(c, 'melee', wpn('Base'))).toBe(50);
-    expect(combatValue(c, 'melee', wpn('Deux-mains'))).toBe(65);
+    expect(combatValue(c, 'melee', wpn('base'))).toBe(50);
+    expect(combatValue(c, 'melee', wpn('deux-mains'))).toBe(65);
   });
 
   it('arme omise (créature, affichage) → meilleure Spé disponible (historique)', () => {
@@ -57,9 +55,9 @@ describe('combatValue — Spécialisation de Corps à corps (LDB 09 l.44)', () =
   });
 
   it('Parade utilise la Spé de l’arme parante (defenseValue)', () => {
-    const c = hero({ skills: [sk('escrime', 30)], weapons: [wpn('Escrime')] });
+    const c = hero({ skills: [sk('escrime', 30)], weapons: [wpn('escrime')] });
     expect(defenseValue(c, 'parade')).toBe(70); // 40 + 30, arme = weapons[0]
-    const cBase = hero({ skills: [sk('escrime', 30)], weapons: [wpn('Base')] });
+    const cBase = hero({ skills: [sk('escrime', 30)], weapons: [wpn('base')] });
     expect(defenseValue(cBase, 'parade')).toBe(40); // pas d’Escrime sur une arme Base
   });
 });
@@ -70,21 +68,21 @@ describe('combatValue — Spécialisation de Projectiles (LDB 62 l.180/184)', ()
 
   it('les Augmentations comptent pour le bon Groupe à distance', () => {
     const c = hero({ skills: [sk('arc', 18)] });
-    expect(combatValue(c, 'ranged', wpn('Arc', 'ranged'))).toBe(58); // CT 40 + 18
+    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(58); // CT 40 + 18
   });
 
   it('Projectiles (Poudre noire) ne s’applique pas à un Arc (l.225)', () => {
     const c = hero({ skills: [sk('poudre-noire', 18)] });
-    expect(combatValue(c, 'ranged', wpn('Arc', 'ranged'))).toBe(40);
+    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(40);
   });
 
   it('Projectiles (Ingénierie) couvre Poudre noire et Explosifs (l.234)', () => {
     const c = hero({ skills: [sk('ingenierie', 22)] });
-    expect(combatValue(c, 'ranged', wpn('Poudre noire', 'ranged'))).toBe(62);
-    expect(combatValue(c, 'ranged', wpn('Explosifs', 'ranged'))).toBe(62);
-    expect(combatValue(c, 'ranged', wpn('Poudre noire et ingénierie', 'ranged'))).toBe(62);
+    expect(combatValue(c, 'ranged', wpn('poudre-noire', 'ranged'))).toBe(62);
+    expect(combatValue(c, 'ranged', wpn('explosifs', 'ranged'))).toBe(62);
+    expect(combatValue(c, 'ranged', wpn('poudre-noire-et-ingenierie', 'ranged'))).toBe(62);
     // mais pas un Arc
-    expect(combatValue(c, 'ranged', wpn('Arc', 'ranged'))).toBe(40);
+    expect(combatValue(c, 'ranged', wpn('arc', 'ranged'))).toBe(40);
   });
 });
 
@@ -94,44 +92,44 @@ describe('combatValue/weaponGroupSkillMode — exceptions Groupes d’Armes à d
 
   it('Arbalète/Lancer tirés avec N’IMPORTE QUELLE Spé de Tir → bonus intégral, mode dégradé (l.184)', () => {
     const c = hero({ skills: [sk('arc', 18)] });
-    expect(combatValue(c, 'ranged', wpn('Arbalète', 'ranged'))).toBe(58); // CT 40 + 18 (Compétence de Tir)
-    expect(weaponGroupSkillMode(c, wpn('Arbalète', 'ranged'), 'ranged')).toBe('degraded');
-    expect(combatValue(c, 'ranged', wpn('Lancer', 'ranged'))).toBe(58);
-    expect(weaponGroupSkillMode(c, wpn('Lancer', 'ranged'), 'ranged')).toBe('degraded');
+    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(58); // CT 40 + 18 (Compétence de Tir)
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('degraded');
+    expect(combatValue(c, 'ranged', wpn('lancer', 'ranged'))).toBe(58);
+    expect(weaponGroupSkillMode(c, wpn('lancer', 'ranged'), 'ranged')).toBe('degraded');
     // dégradé ≠ « Spé du Groupe » (AA 10 l.228-247, Qualification d'Arme d'équipe) : `hasWeaponGroupSkill`
     // reste strict — seul un match PLEIN qualifie une pièce servie.
-    expect(hasWeaponGroupSkill(c, wpn('Arbalète', 'ranged'), 'ranged')).toBe(false);
+    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'ranged'), 'ranged')).toBe(false);
   });
 
   it('Arbalète tirée avec la Spé Arbalète elle-même → mode plein (pas de dégradation)', () => {
     const c = hero({ skills: [sk('arbalete', 25)] });
-    expect(combatValue(c, 'ranged', wpn('Arbalète', 'ranged'))).toBe(65);
-    expect(weaponGroupSkillMode(c, wpn('Arbalète', 'ranged'), 'ranged')).toBe('full');
+    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(65);
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('full');
   });
 
   it('sans AUCUNE Spé de Projectiles → mode none, carac brute', () => {
     const c = hero({ skills: [] });
-    expect(combatValue(c, 'ranged', wpn('Arbalète', 'ranged'))).toBe(40);
-    expect(weaponGroupSkillMode(c, wpn('Arbalète', 'ranged'), 'ranged')).toBe('none');
-    expect(hasWeaponGroupSkill(c, wpn('Arbalète', 'ranged'), 'ranged')).toBe(false);
+    expect(combatValue(c, 'ranged', wpn('arbalete', 'ranged'))).toBe(40);
+    expect(weaponGroupSkillMode(c, wpn('arbalete', 'ranged'), 'ranged')).toBe('none');
+    expect(hasWeaponGroupSkill(c, wpn('arbalete', 'ranged'), 'ranged')).toBe(false);
   });
 
   it('Ingénierie utilisée via Poudre noire → bonus intégral, mode dégradé (l.188)', () => {
     const c = hero({ skills: [sk('poudre-noire', 20)] });
-    expect(combatValue(c, 'ranged', wpn('Ingénierie', 'ranged'))).toBe(60);
-    expect(weaponGroupSkillMode(c, wpn('Ingénierie', 'ranged'), 'ranged')).toBe('degraded');
+    expect(combatValue(c, 'ranged', wpn('ingenierie', 'ranged'))).toBe(60);
+    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'ranged'), 'ranged')).toBe('degraded');
   });
 
   it('Ingénierie utilisée via Ingénierie elle-même → mode plein', () => {
     const c = hero({ skills: [sk('ingenierie', 12)] });
-    expect(combatValue(c, 'ranged', wpn('Ingénierie', 'ranged'))).toBe(52);
-    expect(weaponGroupSkillMode(c, wpn('Ingénierie', 'ranged'), 'ranged')).toBe('full');
+    expect(combatValue(c, 'ranged', wpn('ingenierie', 'ranged'))).toBe(52);
+    expect(weaponGroupSkillMode(c, wpn('ingenierie', 'ranged'), 'ranged')).toBe('full');
   });
 
   it('Poudre noire/Explosifs via Ingénierie reste SANS pénalité (non-régression, l.192)', () => {
     const c = hero({ skills: [sk('ingenierie', 22)] });
-    expect(weaponGroupSkillMode(c, wpn('Poudre noire', 'ranged'), 'ranged')).toBe('full');
-    expect(weaponGroupSkillMode(c, wpn('Explosifs', 'ranged'), 'ranged')).toBe('full');
+    expect(weaponGroupSkillMode(c, wpn('poudre-noire', 'ranged'), 'ranged')).toBe('full');
+    expect(weaponGroupSkillMode(c, wpn('explosifs', 'ranged'), 'ranged')).toBe('full');
   });
 });
 
@@ -156,7 +154,7 @@ describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement 
     uid: 'u1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee',
     qualities: [], enc: 0, equipped: true, requiresMastery: true,
   };
-  const w: Weapon = { ...wpn('Base'), uid: 'u1' };
+  const w: Weapon = { ...wpn('base'), uid: 'u1' };
 
   it('non maîtrisée : carac brute (mécanique LDB 09 l.44) + Groupe réputé NON couvert (Défauts contextuels)', () => {
     const c = hero({ skills: [sk('base', 20)], items: [item] });
@@ -189,13 +187,13 @@ describe('combatValue/defenseValue — testMod{char} scopé par main (#193, weap
 
   it("pénalise l'attaque/parade avec l'arme tenue dans LA main visée (main)", () => {
     const c = withPenalty('main');
-    expect(combatValue(c, 'melee', { ...wpn('Base'), hand: 'main' })).toBe(30); // CC 40 − 10
-    expect(defenseValue(c, 'parade', { ...wpn('Base'), hand: 'main' })).toBe(30);
+    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'main' })).toBe(30); // CC 40 − 10
+    expect(defenseValue(c, 'parade', { ...wpn('base'), hand: 'main' })).toBe(30);
   });
 
   it("laisse INTACTE l'arme tenue dans L'AUTRE main (off)", () => {
     const c = withPenalty('main');
-    expect(combatValue(c, 'melee', { ...wpn('Base'), hand: 'off' })).toBe(40); // pas de −10
+    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'off' })).toBe(40); // pas de −10
   });
 
   it('sans arme (weapon absent, manœuvre générique) : le mod hand-scopé ne s’applique pas (info manquante)', () => {

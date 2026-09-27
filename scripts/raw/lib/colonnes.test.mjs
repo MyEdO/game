@@ -2,19 +2,8 @@
 // lit (`pdf-lignes.py` : boîtes et lignes), réduites à leurs boîtes (`fixtures/pages-crb/p<N>.json`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { colonnes, lignes } from './colonnes.mjs'
-
-const page = (n) => {
-  const f = JSON.parse(readFileSync(new URL(`./fixtures/pages-crb/p${n}.json`, import.meta.url), 'utf8'))
-  return f.boites.map(([x0, y0, x1, y1, ls]) => ({
-    x0,
-    y0,
-    x1,
-    y1,
-    lignes: ls.map(([lx0, ly0, lx1, texte, spans]) => ({ x0: lx0, y0: ly0, x1: lx1, texte, spans: spans.map(([t, i, taille]) => [t, f.polices[i], taille]) })),
-  }))
-}
+import { pageCrb as page } from './fixtures/page-crb.mjs'
 const arrondis = (bords) => bords.map((b) => Math.round(b * 10) / 10)
 const ligne = (ls, re) => ls.find((l) => re.test(l.texte))
 const rang = (ls, re) => ls.findIndex((l) => re.test(l.texte))
@@ -52,12 +41,18 @@ test('#1739 : p.154 — les cellules d’un tableau restent des lignes distincte
   assert.equal(ls.some((l) => /PriceEnc|EncAvailability/.test(l.texte)), false)
 })
 
-test('#1739 : p.47 et p.118 — l’encart de carrière et le tableau pleine largeur n’ouvrent pas de colonne', () => {
-  assert.deepEqual(arrondis(colonnes(page(47))), [58.1, 316.8])
-  assert.deepEqual(arrondis(colonnes(page(118))), [75.1, 318.9])
+test('#1739 : p.47 — chaque ligne porte son bord droit `x1` et la `marge` de sa boîte (preuve de la ligne coupée)', () => {
+  const b = page(47)
+  const ls = lignes(b)
+  for (const l of ls.filter((x) => b.find((y) => y.lignes.length > 1 && y.lignes.some((z) => z.y0 === x.y0 && z.texte === x.texte)))) {
+    const boite = b.find((x) => x.lignes.some((y) => y.x0 === l.x0 && y.y0 === l.y0 && y.texte === l.texte))
+    assert.deepEqual([l.x1, l.marge], [boite.lignes.find((y) => y.x0 === l.x0 && y.y0 === l.y0 && y.texte === l.texte).x1, boite.x1])
+  }
 })
 
-test('#1739 : colonnes — un encadré en retrait reste dans l’emprise de sa colonne ; une grappe d’une seule ligne n’ouvre rien', () => {
-  const b = (x0, x1, y1, n) => ({ x0, y0: y1 - 10 * n, x1, y1, lignes: Array.from({ length: n }, () => ({})) })
-  assert.deepEqual(colonnes([b(58, 292, 700, 10), b(58, 292, 500, 10), b(70, 280, 600, 3), b(70, 280, 300, 3), b(302, 536, 700, 20), b(450, 460, 100, 1)]), [58, 302])
+test('#1739 : la marge d’une boîte d’UNE ligne est celle de son bloc (même bord gauche, même colonne), jamais son propre bord (CRB p.47)', () => {
+  const l = (x0, x1, y0) => ({ x0, y0, x1, texte: 'x', spans: [] })
+  const b = (x0, x1, y1, ls) => ({ x0, y0: y1 - 12 * ls.length, x1, y1, lignes: ls })
+  const ls = lignes([b(58, 308, 700, [l(58, 306, 690), l(58, 308, 678), l(58, 250, 666)]), b(72, 268, 600, [l(72, 268, 590)]), b(72, 289, 587, [l(72, 289, 577)]), b(72, 99, 574, [l(72, 99, 564)]), b(58, 200, 500, [l(58, 200, 490)]), b(318, 536, 700, [l(318, 530, 690), l(318, 536, 678)])])
+  assert.deepEqual(ls.map((x) => [x.colonne, x.marge]), [[0, 308], [0, 308], [0, 308], [0, 289], [0, 289], [0, 289], [0, 308], [1, 536], [1, 536]])
 })

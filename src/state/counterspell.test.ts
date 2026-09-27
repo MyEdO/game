@@ -16,7 +16,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
     });
     hero.spells = ['flechette'];
     useGame.setState({ party: [hero] });

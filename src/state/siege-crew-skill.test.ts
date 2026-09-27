@@ -4,7 +4,6 @@ import { firedWeapon } from './combatFlow';
 import { crewedFireWeapon, simpleSoloFireWeapon } from '../engine/crewedWeapon';
 import { combatValue } from '../engine/combat';
 import { mannedPosteWeapon, itemFromTrappingById } from '../engine/items';
-import { weaponGroupIdByLabel } from '../data';
 import type { Combatant, ShipPoste, SkillInstance, Weapon } from '../engine/types';
 
 /**
@@ -24,8 +23,7 @@ import type { Combatant, ShipPoste, SkillInstance, Weapon } from '../engine/type
  */
 
 const CHARS = (CT = 30) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
-// `label` = libellé lisible (Arbalète/Arc/Ingénierie…) → résolu en id de Groupe stable (Phase 3 : la spec EST un id).
-const proj = (label: string, advances = 0): SkillInstance => ({ id: 'projectiles', spec: weaponGroupIdByLabel(label), characteristic: 'capacite-de-tir', advances });
+const proj = (spec: string, advances = 0): SkillInstance => ({ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances });
 
 const mkGunner = (id: string, pos: { x: number; y: number }, skills: SkillInstance[] = [], CT = 30): Combatant =>
   ({ id, name: id, kind: 'hero', characteristics: CHARS(CT), wounds: { current: 12, max: 12 }, advantage: 0,
@@ -54,8 +52,8 @@ const engineWeapon = (engineId: string): Weapon => mannedPosteWeapon(mkGunner('x
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne compte pas pour une baliste', () => {
   it('Arbalète (compte) + Arc (ne compte pas) → effectif valide 1 (sous-effectif)', () => {
-    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('Arbalète', 8)]); // CT 30 + 8 = 38
-    const sArc = mkCrew('sArc', [proj('Arc', 25)]); // 55, mais Arc ≠ groupe baliste → exclu
+    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('arbalete', 8)]); // CT 30 + 8 = 38
+    const sArc = mkCrew('sArc', [proj('arc', 25)]); // 55, mais Arc ≠ groupe baliste → exclu
     const poste = mkPoste('baliste', ['chefArb', 'sArc']);
     const all = [mkEmplacement(poste), chefArb, sArc];
     applyShipPostes(all); // pose mannedPoste sur le chef (crewIds[0])
@@ -64,8 +62,8 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
   });
 
   it('le tir de cette baliste sous-effective double sa Recharge et tire à la valeur du seul servant valide (38)', () => {
-    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('Arbalète', 8)]);
-    const sArc = mkCrew('sArc', [proj('Arc', 25)]);
+    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('arbalete', 8)]);
+    const sArc = mkCrew('sArc', [proj('arc', 25)]);
     const poste = mkPoste('baliste', ['chefArb', 'sArc']);
     const target = mkEnemy('cible', 9, 6);
     const all = [mkEmplacement(poste), chefArb, sArc, target];
@@ -78,8 +76,8 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
   });
 
   it('DEUX servants à la bonne Projectiles → équipe complète (recharge normale, Atout conservé)', () => {
-    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('Arbalète', 8)]);
-    const s2 = mkCrew('s2', [proj('Arbalète')]);
+    const chefArb = mkGunner('chefArb', { x: 5, y: 6 }, [proj('arbalete', 8)]);
+    const s2 = mkCrew('s2', [proj('arbalete')]);
     const poste = mkPoste('baliste', ['chefArb', 's2']);
     const target = mkEnemy('cible', 9, 6);
     const all = [mkEmplacement(poste), chefArb, s2, target];
@@ -97,9 +95,9 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () => {
   it('Poudre noire + Ingénierie → comptent tous deux ; un servant à Arbalète ne compte pas', () => {
-    const chef = mkGunner('chef', { x: 5, y: 6 }, [proj('Poudre noire')]); // canon-petit = groupe Poudre noire
-    const sIng = mkCrew('sIng', [proj('Ingénierie')]); // qualifiant universel Poudre noire (l.3816)
-    const sArb = mkCrew('sArb', [proj('Arbalète')]); // mauvais groupe → exclu
+    const chef = mkGunner('chef', { x: 5, y: 6 }, [proj('poudre-noire')]); // canon-petit = groupe Poudre noire
+    const sIng = mkCrew('sIng', [proj('ingenierie')]); // qualifiant universel Poudre noire (l.3816)
+    const sArb = mkCrew('sArb', [proj('arbalete')]); // mauvais groupe → exclu
     const poste = mkPoste('canon-petit', ['chef', 'sIng', 'sArb']); // Indice 2, Recharge 4
     const all = [mkEmplacement(poste), chef, sIng, sArb];
     applyShipPostes(all);
@@ -111,7 +109,7 @@ describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () 
 
   it('un servant à Ingénierie tire le canon à sa valeur de Projectiles (Ingénierie)', () => {
     const w = engineWeapon('canon-petit');
-    const chef = mkGunner('chef', { x: 0, y: 0 }, [proj('Ingénierie', 22)]);
+    const chef = mkGunner('chef', { x: 0, y: 0 }, [proj('ingenierie', 22)]);
     expect(combatValue(chef, 'ranged', w)).toBe(52); // CT 30 + 22
   });
 });

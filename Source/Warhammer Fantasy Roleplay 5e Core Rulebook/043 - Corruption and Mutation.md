@@ -1,6 +1,6 @@
 *Pages PDF 187-189*
 
-# **CORRUPTION AND MUTATION**
+# <span id="page-186-0" data-folio="187"></span>**CORRUPTION AND MUTATION**
 
 Few threats in the Old World are more insidious than the Ruinous Powers. These malign forces hunger to corrupt your mind, warp your flesh, and claim your soul. Corruption Points represent your slow descent into Chaos. Whenever you are exposed to corruption, you may gain Corruption Points. The more you accumulate, the closer you come to damnation, until, eventually, you begin to change…
 
@@ -10,7 +10,7 @@ Corruption Points are gained through exposure to places, people, or objects tain
 
 You do not Test for Corruption every time you are exposed. Instead, at the end of the session, the GM determines your greatest degree of exposure and calls for a single Corruption Test.
 
-**Surprised** Multiple exposures, or exposure to multiple sources, may increase the Test's Difficulty, change the Characteristic Tested, or increase the Corruption gained on a failure, at the GM's discretion. The stronger the Corrupting Influence, the more SL you must score to avoid gaining Corruption Points.
+Multiple exposures, or exposure to multiple sources, may increase the Test's Difficulty, change the Characteristic Tested, or increase the Corruption gained on a failure, at the GM's discretion. The stronger the Corrupting Influence, the more SL you must score to avoid gaining Corruption Points.
 
 > A Corruption Test is a **Challenging (+0 SL) Endurance or Cool** Test, as determined by the GM. Physical corruption is usually resisted with Endurance, while spiritual corruption is resisted with Cool. The stronger the Corrupting Influence, the more SL you must score to avoid gaining Corruption Points.
 
@@ -35,7 +35,7 @@ Moderate Corrupting Influences are a danger to every soul and should be avoided 
 - **Exposure** to a creature with the *Corruption (Moderate)* Trait or warpstone
 - **Prolonged Exposure** to refined warpstone or a Chaos-tainted artefact
 
-#### **Major Corruption**
+#### <span id="page-187-0" data-folio="188"></span>**Major Corruption**
 
 Few mortals can withstand a Major Corrupting Influence for long. Remain in its presence, and Chaos will begin to reshape you. For each failed Major Corruption Test, gain 3 Corruption Points. If you succeed with a Marginal Success (+0 SL), gain 2 Corruption Points. On a Success (1–3 SL), you gain 1 Corruption Point. Only if you score an Impressive Success (4+ SL) do you gain no Corruption Points.
 
@@ -81,7 +81,7 @@ A soul can withstand only so much corruption before it finally gives way. If you
 | Body | –      | 01–10    | 01–50  | 01–05  |
 | Mind | 01–100 | 11–100   | 51–100 | 06–100 |
 
-# **PHYSICAL CORRUPTION TABLE**
+<span id="page-188-0" data-folio="189"></span>**PHYSICAL CORRUPTION TABLE**
 
 | d100 | Description | Effect |
 |---|---|---|
@@ -110,7 +110,7 @@ A soul can withstand only so much corruption before it finally gives way. If you
 
 As Corruption Points mount and the grip of the Ruinous Powers tightens around your soul, you may seek absolution. But forgiveness is not so easily won. A few words with a village priest cannot cleanse the stain of Chaos. The exact means of removing Corruption are left to the GM, but they might include:
 
-# **MENTAL CORRUPTION TABLE**
+**MENTAL CORRUPTION TABLE**
 
 | d100 | Description | Effect |
 |---|---|---|

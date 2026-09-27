@@ -594,7 +594,7 @@ export interface BandFactoryDecl<I> {
  * PLUS — deux rangées de même id seraient injoignables, les surfaces keyant par id nu), l'ORDRE de
  * PREMIÈRE émission (place réservée), et la SORTIE par le mint (`bandStep`, qui pose la POSSESSION).
  *
- * Chaque famille ne DÉCLARE plus que ce qui lui est propre (clé, rangée, situation, `meta` commun) :
+ * Chaque famille DÉCLARE seulement ce qui lui est propre (clé, rangée, situation, `meta` commun) :
  * la possession et l'invariant d'unicité de rangée ne sont plus refaits à la main, donc plus
  * oubliables — c'est ce qui manquait à la Psychologie de rencontre et aux manches de poursuite
  * restaurées (fenêtres HÔTE SEUL, classe #1268).
@@ -862,7 +862,7 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   if (!split.exact && !spec.valeurEtrangere) {
     const formule = spec.combat ? (spec.combat.kind === 'test' ? 'la valeur de Test de combat brute' : 'la valeur de combat NUE') : 'le Niveau de Compétence';
     const msg = `[seam] rollLine : la valeur (${value}) ne se reconstruit pas depuis ${formule} `
-      + `(${t.skill ?? t.char ?? spec.combat?.kind ?? '?'} de « ${spec.actor?.label ?? '?'} ») + ses composantes + ${fusedSum} déclaré(s) `
+      + `(${t.skill ?? t.char ?? spec.combat?.kind ?? '?'} ${spec.actor ? `de « ${spec.actor.label} »` : 'sans acteur'}) + ses composantes + ${fusedSum} déclaré(s) `
       + '— une poche est mal remplie (modificateur non fondu, ou fondu ET redéclaré). La base affichée serait FAUSSE.';
     console.error(msg);
     if (import.meta.env?.DEV) throw new Error(msg);
@@ -1059,7 +1059,7 @@ export function openWorldTest(
  *   - BANDE  : `openBand` — une situation (une entrée de règle), N porteurs, UNE fenêtre ;
  *   - CHOIX  : `openChoice` — une décision, zéro dé.
  * `groupOwner` et `actorId` ne sont JAMAIS des champs de déclaration : le socle les pose (`bandStep`) ;
- * `interactive` ne vit plus qu'au niveau RANGÉE, où `surfaceRow` le pose. Les étapes rendues portent la
+ * `interactive` vit seulement au niveau RANGÉE, où `surfaceRow` le pose. Les étapes rendues portent la
  * marque `BuiltCascadeStep`.
  *
  * DEUX DIVERGENCES ASSUMÉES avec les trois ouvertures MONO :
@@ -1959,7 +1959,7 @@ export function pushHost(get: Get, set: Set, spec: Declaree<HostSpec>): void {
  * PORTE DE REPLI SANS-PILOTE (#918 phase 2a) — l'autre sortie du seam, jumelle d'`openRoll` : quand
  * AUCUN siège humain ne tient l'acteur, il n'y a rien à surfacer, le Test se roule et se rend BRUT.
  * Les flux bricolaient chacun le même invariant au call-site, donc rien n'empêchait qu'un chemin
- * voisin y amène un acteur piloté. L'invariant vit désormais ICI, une fois.
+ * voisin y amène un acteur piloté. L'invariant vit ICI, une fois.
  *
  * Prédicat : `surfaceOf` — LA définition de surface, la MÊME que `resolveSurface` (surface M), donc
  * SEAT-AGNOSTIQUE (le héros d'un AUTRE siège a un pilote : son jet n'a rien à faire ici) et

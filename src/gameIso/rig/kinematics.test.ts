@@ -80,7 +80,7 @@ describe('canaux de la Pose — hérités par la chaîne (standard cutout)', () 
     const repos = bout({});
     close(repos.y, 20); // deux maillons de 10
     const raccourci = bout({ b: { sy: 0.5 } } as Pose);
-    close(raccourci.y, 15); // le 2e maillon ne vaut plus que 5
+    close(raccourci.y, 15); // le 2e maillon vaut seulement 5
   });
 
   it('l’échelle se compose AVANT la rotation du même os (repère local, comme en cutout)', () => {

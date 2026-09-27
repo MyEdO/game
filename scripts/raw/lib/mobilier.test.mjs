@@ -1,5 +1,5 @@
 // Banc du prédicat de MOBILIER DE PAGE (`lib/mobilier.mjs`, #1739) : O tiré de la donnée `onglets`,
-// les deux familles de sites, l'exclusion des en-têtes de PROFIL, le retrait d'un jeton.
+// les trois familles de sites (onglet seul, folios de tête, onglet mot), l'exclusion des en-têtes de PROFIL, le retrait d'un jeton.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chiffresDes, exempter, exemptionDe, exemptionsFausses, fenetreDe, sansJeton, sitesDeMobilier, sitesDuFichier } from './mobilier.mjs'
@@ -66,4 +66,26 @@ test('sansJeton : une espace entre deux textes, rien en bord de ligne ; la cellu
   assert.equal(sansJeton('carry sceptres to XI indicate', 18, 'XI'), 'carry sceptres to indicate')
   assert.equal(sansJeton('| TITRE | V |', 10, 'V'), '| TITRE |   |')
   assert.throws(() => sansJeton('abc', 0, 'V'), /absent/)
+})
+
+test('(b) FOLIOS en tête de ligne (CRB) : seuls, derrière `#`, ou soudés en tête de prose — un site par nombre, à sa position', () => {
+  const t = ['# 274 274 275', '288 289', "298 299 *Fatigued* Conditions are accrued at the end of a day's travel", "314 315 **Wizard's Robes:** Elaborate robes"].join('\n')
+  const sites = sitesDeMobilier(t, { O: new Set(), folios: [272, 316] })
+  assert.deepEqual(sites.map((s) => [s.ligne, s.classe, s.jeton, s.debut]), [
+    [1, 'folio-nu', '274', 2], [1, 'folio-nu', '274', 6], [1, 'folio-nu', '275', 10],
+    [2, 'folio-nu', '288', 0], [2, 'folio-nu', '289', 4],
+    [3, 'folio-tete', '298', 0], [3, 'folio-tete', '299', 4],
+    [4, 'folio-tete', '314', 0], [4, 'folio-tete', '315', 4],
+  ])
+})
+
+test('(b) faux positifs réels : un nombre de tête HORS de la fenêtre, ou une suite qui en sort d’un seul, n’est pas un folio', () => {
+  const t = ['1 gold crown (1 GC) = 20 silver shillings (20/–) = 240 brass pennies (240d)', '10 Shots *or* 5 Throwing Knives, Garotte, Poison', '298 12 soldiers', '40–42: Levy'].join('\n')
+  assert.deepEqual(sitesDeMobilier(t, { O: new Set(), folios: [295, 299] }), [])
+})
+
+test('sitesDuFichier : la fenêtre des folios s’ouvre à `page - 1` — le folio de gauche de la double page (CRB 085:51)', () => {
+  const sites = sitesDuFichier('298 299 *Fatigued* Conditions', { page: 299, pageFin: 299 }, ONGLETS)
+  assert.deepEqual(sites.map((s) => s.jeton), ['298', '299'])
+  assert.deepEqual(sitesDuFichier('297 text', { page: 299, pageFin: 299 }, ONGLETS), [])
 })

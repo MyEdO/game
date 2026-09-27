@@ -3,13 +3,14 @@ import { emptyScene, type Scene, type Terrain } from './scene';
 import { type Dir8 } from './dir8';
 import { povStepDest } from './exploreNav';
 import { useGame } from './store';
+import { capDuGroupe, poserCapDuGroupe } from './combatants';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 
 /**
  * POV (vue subjective) — MOVEMENT + STATE. `povStepDest` réutilise la connectivité 8-connexe UNIQUE
  * (`walkNeighbors`), et les actions du store (`pivotParty`/`stepPartyRelative`) tournent le cap MONDE du
- * meneur puis passent par le PIPELINE de pas EXISTANT (`moveParty`). Aucun système de mouvement parallèle.
+ * GROUPE (une entrée, `CAP_GROUPE`) puis passent par le PIPELINE de pas EXISTANT (`moveParty`). Aucun système de mouvement parallèle.
  */
 
 /** Rend une case non-marchable (vide) sur z0. `emptyScene` remplit d'herbe marchable partout. */
@@ -52,7 +53,7 @@ describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
       partyPos: { x: 3, y: 3 },
       dialogue: null,
       battle: null,
-      facing: { [hero.id]: facing },
+      facing: poserCapDuGroupe({}, facing),
       povActive: true,
     });
     return hero.id;
@@ -71,38 +72,38 @@ describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
   });
 
   it('pivotParty(1) fait avancer le regard de 45° (horaire) sans déplacer le groupe', () => {
-    const id = setup('N');
+    setup('N');
     const pos0 = useGame.getState().partyPos;
     useGame.getState().pivotParty(1);
-    expect(useGame.getState().facing[id]).toBe('NE'); // N +1 cran horaire
+    expect(capDuGroupe(useGame.getState())).toBe('NE'); // N +1 cran horaire
     expect(useGame.getState().partyPos).toEqual(pos0); // aucun déplacement
   });
 
   it("pivotParty(-1) fait reculer le regard de 45° (anti-horaire)", () => {
-    const id = setup('N');
+    setup('N');
     useGame.getState().pivotParty(-1);
-    expect(useGame.getState().facing[id]).toBe('NO'); // N -1 cran anti-horaire
+    expect(capDuGroupe(useGame.getState())).toBe('NO'); // N -1 cran anti-horaire
   });
 
   it("stepPartyRelative('forward') avance d'une case le long du regard ET garde le cap", () => {
-    const id = setup('E'); // regard EST
+    setup('E'); // regard EST
     useGame.getState().stepPartyRelative('forward');
     expect(useGame.getState().partyPos).toEqual({ x: 4, y: 3 }); // un pas à l'est
-    expect(useGame.getState().facing[id]).toBe('E'); // cap conservé
+    expect(capDuGroupe(useGame.getState())).toBe('E'); // cap conservé
   });
 
   it("stepPartyRelative('left') fait un pas de côté à 90° à gauche MAIS préserve le regard", () => {
-    const id = setup('E'); // regard EST → gauche relatif = NORD (E tourné de 6 crans = N)
+    setup('E'); // regard EST → gauche relatif = NORD (E tourné de 6 crans = N)
     useGame.getState().stepPartyRelative('left');
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 2 }); // un pas au nord (y-1)
-    expect(useGame.getState().facing[id]).toBe('E'); // regard INCHANGÉ (pas latéral)
+    expect(capDuGroupe(useGame.getState())).toBe('E'); // regard INCHANGÉ (pas latéral)
   });
 
   it("stepPartyRelative('back') recule d'une case MAIS préserve le regard", () => {
-    const id = setup('E'); // dos = OUEST
+    setup('E'); // dos = OUEST
     useGame.getState().stepPartyRelative('back');
     expect(useGame.getState().partyPos).toEqual({ x: 2, y: 3 }); // un pas à l'ouest (x-1)
-    expect(useGame.getState().facing[id]).toBe('E'); // regard INCHANGÉ
+    expect(capDuGroupe(useGame.getState())).toBe('E'); // regard INCHANGÉ
   });
 
   it('no-op hors mode exploration (mode!==exploration)', () => {

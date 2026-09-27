@@ -85,6 +85,7 @@
     "raw:check-source-format": "node scripts/raw/check-source-format.mjs",
     "raw:check-source-tables": "node scripts/raw/check-source-tables.mjs",
     "raw:check-source-puces": "node scripts/raw/check-source-puces.mjs",
+    "raw:check-renvois": "node scripts/raw/check-renvois.mjs",
     "raw:implemente": "node scripts/raw/build-implemente.mjs",
     "raw:reanchor": "node scripts/raw/reanchor.mjs",
     "raw:reanchor-split": "node scripts/raw/reanchor-split.mjs",

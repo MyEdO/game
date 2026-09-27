@@ -3,7 +3,13 @@
 // Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { entries, evaluate } from './exception-add-guard.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 
 const GUARD = 'src/state/label-logic-guard.test.ts' // matche `estFichierGarde`
 const edit = (before, after, file = GUARD) => evaluate({ file, before, after, isWrite: false, exists: true })
@@ -61,4 +67,42 @@ test('fichier NON gardé (hors motif) → silence même en ajoutant des entrées
 
 test('Write sur fichier de garde EXISTANT sans ajout net → silence', () => {
   silent(evaluate({ file: GUARD, before: "const W = ['a.ts:1']", after: "const W = ['a.ts:1']", isWrite: true, exists: true }))
+})
+
+// ── Driver : le hook garde les fichiers d'un DÉPÔT, et se tait hors de tout arbre git (#1973) ──────────
+const TABLE = "export const W = ['a.ts:1']\n"
+
+/** Décision RÉELLE du hook (`spawnSync` + stdin JSON) pour un Write de `TABLE` sur `file_path`. */
+function decisionDuWrite(file_path) {
+  const run = spawnSync(process.execPath, [fileURLToPath(new URL('./exception-add-guard.mjs', import.meta.url))], {
+    input: JSON.stringify({ tool_input: { file_path, content: TABLE } }),
+    encoding: 'utf8',
+  })
+  assert.equal(run.status, 0, run.stderr)
+  return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.permissionDecision : null
+}
+const creationDeGarde = (dossier) => decisionDuWrite(join(dossier, 'run-guard.mjs'))
+
+test('DRIVER : créer un fichier de garde DANS un dépôt → ask ; le même hors dépôt (scratchpad) → silence', () => {
+  const { racine } = instanceDeDepot()
+  const scratch = mkdtempSync(join(tmpdir(), 'wfrp-scratch-'))
+  try {
+    assert.equal(creationDeGarde(racine), 'ask')
+    assert.equal(creationDeGarde(scratch), null)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : un fichier de garde EXISTANT re-sauvé sans ajout décide pareil en natif et en MSYS (silence)', { skip: process.platform !== 'win32' }, () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'run-guard.mjs')
+    writeFileSync(cible, TABLE)
+    assert.equal(decisionDuWrite(cible), null, 'natif')
+    assert.equal(decisionDuWrite('/' + cible[0].toLowerCase() + cible.slice(2).replace(/\\/g, '/')), null, 'MSYS')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

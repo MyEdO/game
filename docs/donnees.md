@@ -162,10 +162,10 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 |---|---|---|
 | `raceAppearance.json` | Apparence par race (gabarit, palette, tenue) — rig (21 entrée(s)) | `raceAppearance` — dataset `raceAppearance` |
 | `structureAppearance.json` | Apparence de structure (murs, portes) (18 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`) |
-| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (123 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (catalogue d’art, édité au fichier `src/data/props.json` — aucun écran ne l’écrit (la palette de l’éditeur de carte le LIT)) — dataset `props` |
+| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (124 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (catalogue d’art, édité au fichier `src/data/props.json` — aucun écran ne l’écrit (la palette de l’éditeur de carte le LIT)) — dataset `props` |
 | `decorPalette.json` | Palette de couleurs de décor (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette d'art éditée au fichier (aucun écran d'atelier ne l'expose)) |
 | `teintesJeu.json` | TEINTES DE JEU du terrain — surbrillances tactiques (portées, zones, bandes de tir, anneaux de cible, halos, télégraphes) et identité d'unité (anneaux réservés, équipes, une couleur par héros), `id → #rrggbb` groupé par préfixe ; servi aux peintres par `src/gameIso/highlightTints.ts` et `src/gameIso/teamColors.ts` (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette de rendu éditée au fichier (aucun écran d'atelier ne l'expose)) |
-| `materials.json` | LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief`) porté par l'entrée (15 entrée(s)) | `materials` — dataset `materials` |
+| `materials.json` | LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief`) porté par l'entrée (16 entrée(s)) | `materials` — dataset `materials` |
 | `terrains.json` | LES terrains de la grille — un document où la RÈGLE (`walkable`, `priority`, `opaque`, `built`) et le RENDU (`swatch`, `stops`, `detail`, `overlayProp`, `solidHeightM`) vivent dans la MÊME entrée ; lu par la façade `src/state/terrain` (25 entrée(s)) | `terrains` — dataset `terrains` |
 | `semences-de-scene.json` | LES semences d'une scène NEUVE (#1716) — ambiance, mètres par case, éclairage, sol de départ, matières de relief et toiture par défaut ; objet unique lu par `emptyScene` (`src/state/scene.ts`, dérivées `DEFAULT_RELIEF_DEFAULTS`/`DEFAULT_ROOF_DEFAULTS`/`DEFAULT_TERRAIN`). Les MIGRATIONS de projet ne la lisent PAS : elles reposent la valeur gelée de leur lot (objet à sous-catalogues) | `semencesDeScene` — objet single |
 | `defauts-de-compilation.json` | LES défauts du COMPILATEUR de scène (#1716) — ce que `buildScene` pose quand une section d'un `MapSpec` laisse le terrain implicite : sol du chemin de ronde et masse d'une `cells` d'enceinte (`src/state/mapSpec.ts`), tuile de pont d'une scène de bord (`buildBoardingScene`, `src/state/seaVoyageFlow.ts`). Objet unique, distinct des SEMENCES (créer une scène) — compiler une déclaration déjà écrite (objet à sous-catalogues) | `defautsDeCompilation` — objet single |
@@ -177,7 +177,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
-| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (99 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (109 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
@@ -266,8 +266,8 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   chacune à côté du SYMBOLE qu'elle porte (lignes MESURÉES à la génération, `citeLigne`) :
 
   - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1490`
-  - `test` — `talentTestSLBonus`, `src/engine/magic.ts:359`
-  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:367`
+  - `test` — `talentTestSLBonus`, `src/engine/magic.ts:358`
+  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:385`
   - `combat` — `featuresOf`, `src/engine/combatFeatures/dispatch.ts:52`
   - `combat` — `castingKindOf`, `src/engine/combatFeatures/dispatch.ts:18`
 
@@ -401,14 +401,18 @@ pas exigible (vocabulaires d'app, documents dont la source vit en profondeur) so
 
 **Les 4 exports plats du contrat `gen`** : tout def qui appelle `document(` exporte `file`, `schema`,
 `famille` et `meta` **À PLAT**. Le générateur de registre est TEXTUEL (lecture par regex, jamais un
-import) : son lecteur UNIQUE `lireExports` (`scripts/gen-registry.mjs`, formes `FORMES_D_EXPORT`) :
+import) ; son lecteur UNIQUE, `lireExports` de `scripts/gen-registry.mjs` (formes `FORMES_D_EXPORT`),
+lit `file` et `famille` à la seule forme `export const X = '…';` (guillemet SIMPLE littéral) et `meta` à
+la présence de `export const meta` :
 
-- `file` ou `meta` présent HORS de sa forme canonique (`export const file = '…';`, `export const meta`
-  à plat) : la génération **LÈVE** en nommant le def et le champ — double quote, `: string` annoté,
-  `as const`, `= doc.file`, destructuration (`src/data/schemas/gen-registry-lecteur.test.ts`).
-- `file` ABSENT : le module n'est pas un document, il sort du registre (modules de FORME partagés).
-- `meta` ABSENT : le def **RESTE au registre** sans entrée `meta` — l'atelier retombe sur la clé
-  technique, sans qu'aucun gate rougisse.
+- `file`, `famille` ou `meta` hors de sa forme canonique (guillemets doubles, `: string` annoté,
+  `as const`, littéral gabarit, `= doc.file`, destructuration, `export { … }`) : `npm run gen` **LÈVE**
+  en nommant le def et l'export — aucun def n'est écarté en silence
+  (`src/data/schemas/gen-registry-lecteur.test.ts`).
+- `file` absent : le module n'est pas une entrée du registre (module de FORME partagé, `genOne` de
+  `scripts/gen-registry.mjs`). Seul cet export décide de l'appartenance au registre.
+- `meta` absent : le def **RESTE au registre** sans entrée `meta` (`presents` de `genOne`) — l'atelier
+  retombe sur la clé technique ; seule la garde ci-dessous l'exige.
 - `schema`/`famille` destructurés (`export const { schema } = doc`) **COMPILERAIENT** : la
   destructuration crée un vrai nom importable. La garde n'y protège pas la compilation mais la
   CONVENTION — forme plate unique, lisible par un codemod.
@@ -496,4 +500,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 77a023816d3756a4cb49f72a99bafb4745874834 (380 fichiers, 2 dossiers) corps: 93c6d650df653fac0c0500663df3fbb3e53ed0da -->
+<!-- sources-empreinte: 3743018ef9d0d187242cddb6f2a90bab1da97fd2 (383 fichiers, 2 dossiers) corps: 0c88fa2f06e98ee322bd6a14d7f99c240ae39d4d -->

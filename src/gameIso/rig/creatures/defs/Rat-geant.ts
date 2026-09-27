@@ -40,7 +40,7 @@ export const creature: CreatureDef = {
         `<path d="M13 8.4 q1.6 1.2 3 1" stroke="#7a8f3a" stroke-width="0.8" fill="none" opacity="0.5"/>` +
         `</g>`,
     },
-    stored: {
+    palette: {
       corps: '#5c543e', corpsO: '#322c1d', corpsH: '#7e7657', // pelage brun-olive terne, malsain
       cheveux: '#37311f', cheveuxO: '#1e1a10', // touffes hirsutes sombres (échine/encolure)
       cuir: '#bb8878', // pattes/queue de chair rosâtre

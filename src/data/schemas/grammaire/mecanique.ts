@@ -10,7 +10,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
 
@@ -206,8 +206,10 @@ const DECLARATIONS_D_OPS = {
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
   }),
-  /** `addTraits` : instances de Trait (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est un
-   *  `z.string()` et non une feuille `idDe` — aucun slot. */
+  /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
+   *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
+   *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est un `z.string()` et non une feuille
+   *  `idDe` — aucun slot. */
   summon: z.strictObject({
     op: z.literal('summon'),
     ref: idDe('creature'),
@@ -322,7 +324,7 @@ const DECLARATIONS_D_OPS = {
     reach: reachSchema.optional(),
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
-    skin: z.record(z.string(), z.string()).optional(),
+    skin: surchargePaletteSchema.optional(),
     form: idDe('trapping').optional(),
     chooseForm: z.boolean().optional(),
   }),
@@ -594,7 +596,7 @@ export const flowTestSchema = z.strictObject({
   easierIf: z
     .strictObject({
       hasSkill: z.strictObject({ id: z.string(), spec: z.string().optional() }).optional(),
-      hasTalent: z.string().optional(),
+      hasTalent: idDe('talent').optional(),
       steps: z.number().optional(),
     })
     .optional(),

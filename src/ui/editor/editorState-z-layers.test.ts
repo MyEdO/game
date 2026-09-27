@@ -22,7 +22,7 @@ import {
 describe('#835 FU-3 — hitAt/eraseAt filtrent par couche (destructif avant correctif)', () => {
   function sceneAvecEntiteZ2(): Scene {
     const s = emptyScene(6, 6);
-    s.entities = [{ id: 'perso-0', kind: 'personnage', pos: { x: 2, y: 2 }, z: 2 }];
+    s.entities = [{ id: 'perso-0', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, z: 2 }];
     return s;
   }
 

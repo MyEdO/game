@@ -5,10 +5,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { evaluate, enteteSupersession, estLigneEntete, lignesAjoutees, estFicheMemoire } from './memoire-tombale-guard.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const HOOK = join(REPO, 'scripts', 'hooks', 'memoire-tombale-guard.mjs')
@@ -151,6 +153,46 @@ test('DRIVER : le hook décide de bout en bout, et se tait sur une écriture ord
   assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'SUPERSÉDÉ : x' }), 'ask')
   assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'La mesure du 2026-09-02 dit y.' }), null)
   assert.equal(decisionOf({ file_path: join(REPO, 'src', 'ui', 'App.tsx'), content: 'OBSOLÈTE' }), null)
+})
+
+// La mémoire de session s'écrit par `~/.claude/projects/<projet>/memory`, une JONCTION vers
+// `<dépôt>/.claude/memory` (mesuré 2026-09-26, #1973) : la fiche se juge sous son chemin RÉEL.
+test('DRIVER : une fiche écrite PAR UNE JONCTION vers la mémoire d’un dépôt reste gardée', () => {
+  const { racine } = instanceDeDepot()
+  const dehors = mkdtempSync(join(tmpdir(), 'wfrp-projets-'))
+  try {
+    const memoire = join(racine, '.claude', 'memory')
+    mkdirSync(memoire, { recursive: true })
+    const jonction = join(dehors, 'memory')
+    symlinkSync(memoire, jonction, 'junction')
+    assert.equal(decisionOf({ file_path: join(jonction, 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), 'ask')
+  } finally {
+    rmSync(dehors, { recursive: true, force: true })
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : re-sauver une fiche EXISTANTE décide pareil en natif et en MSYS (le disque se lit au chemin réel)', { skip: process.platform !== 'win32' }, () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const fiche = join(racine, '.claude', 'memory', 'game-x.md')
+    mkdirSync(dirname(fiche), { recursive: true })
+    writeFileSync(fiche, 'SUPERSÉDÉ : x\n')
+    const msys = '/' + fiche[0].toLowerCase() + fiche.slice(2).replace(/\\/g, '/')
+    assert.equal(decisionOf({ file_path: fiche, content: 'SUPERSÉDÉ : x\n' }), null, 'natif')
+    assert.equal(decisionOf({ file_path: msys, content: 'SUPERSÉDÉ : x\n' }), null, 'MSYS')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) → silence', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'wfrp-scratch-'))
+  try {
+    assert.equal(decisionOf({ file_path: join(scratch, '.claude', 'memory', 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), null)
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
 })
 
 test('les DEUX surfaces câblent le garde sur Write, Edit et ctx_patch', () => {

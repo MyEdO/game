@@ -17,7 +17,7 @@ const lys = (x: number, y: number): string =>
 const faceSail = (cx: number, yTop: number, hw: number, h: number): string =>
   `<path d="M${cx - hw - 2} ${yTop} L${cx + hw + 2} ${yTop}" stroke="@mat" stroke-width="1.8" stroke-linecap="round"/>`
   + `<path d="M${cx - hw} ${yTop + 1} Q${cx} ${yTop + 3} ${cx + hw} ${yTop + 1} Q${cx + hw + 1.5} ${yTop + h * 0.55} ${cx + hw - 2} ${yTop + h}`
-  + ` Q${cx} ${yTop + h + 3.5} ${cx - hw + 2} ${yTop + h} Q${cx - hw - 1.5} ${yTop + h * 0.55} ${cx - hw} ${yTop + 1} Z" fill="@voile" stroke="@voileO" stroke-width="1"/>`;
+  + ` Q${cx} ${yTop + h + 3.5} ${cx - hw + 2} ${yTop + h} Q${cx - hw - 1.5} ${yTop + h * 0.55} ${cx - hw} ${yTop + 1} Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`;
 
 function profile(): string {
   return '<g>'
@@ -54,7 +54,7 @@ function profile(): string {
     + '<path d="M60 -11.5 q3.2 -1.6 2.6 -5" fill="none" stroke="@coqueH" stroke-width="1.3"/>'
     // Galerie de poupe : bouteille de quart, fenêtres chaudes, moulures dorées, volutes, fanal.
     + '<path d="M-52.5 -22 q-3.5 -5.5 -1 -11 l5.5 0.8 q-1.8 5 0 9.4 Z" fill="@coque" stroke="@coqueO" stroke-width="0.9"/>'
-    + '<path d="M-49 -31 l3 0 m3.5 0 l3 0 M-35 -21.5 l3 0 m3.5 0 l3 0" stroke="@voileH" stroke-width="1.7"/>'
+    + '<path d="M-49 -31 l3 0 m3.5 0 l3 0 M-35 -21.5 l3 0 m3.5 0 l3 0" stroke="@toileDeVoileH" stroke-width="1.7"/>'
     + '<path d="M-52 -34 L-41 -31.8 M-37 -23.5 L-16 -21" stroke="@coqueH" stroke-width="0.9" opacity="0.85"/>'
     + '<path d="M-55 -36 q-3.6 2.4 -2.4 6.4" fill="none" stroke="@coqueH" stroke-width="1.2"/>'
     + spar(-55, -40, -57, -43, 1)
@@ -97,7 +97,7 @@ function back(): string {
     + spar(0, -38, 0, -86, 2.2)
     + pennant(0, -86, 8)
     + spar(-14, -56, 15, -80, 1.6)
-    + '<path d="M15 -80 L-14 -56 L10 -52 Q14 -66 15 -80 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M15 -80 L-14 -56 L10 -52 Q14 -66 15 -80 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     // VOÛTE de poupe (rentrée à l'eau) puis TABLEAU haut — la construction galion vue de dos.
     + '<path d="M-6.5 -2.5 Q0 -0.6 6.5 -2.5 L11.2 -22 L-11.2 -22 Z" fill="@coque" stroke="@coqueO" stroke-width="1.3"/>'
     + '<path d="M-11.2 -22 L-11.8 -38 L11.8 -38 L11.2 -22 Z" fill="@coque" stroke="@coqueO" stroke-width="1.3"/>'
@@ -107,7 +107,7 @@ function back(): string {
     + '<path d="M-11.3 -21 q-3.4 -5 -1.7 -10.5 l3.4 0.5 q-1.4 5 0 10 Z" fill="@coque" stroke="@coqueO" stroke-width="0.9"/>'
     + '<path d="M11.3 -21 q3.4 -5 1.7 -10.5 l-3.4 0.5 q1.4 5 0 10 Z" fill="@coque" stroke="@coqueO" stroke-width="0.9"/>'
     // Galerie : deux rangs de fenêtres chaudes entre moulures dorées, volutes, couronnement.
-    + '<path d="M-7.5 -33 l3.2 0 m2.8 0 l3.2 0 m2.8 0 l3.2 0 M-6.8 -26.5 l3 0 m2.6 0 l3 0 m2.6 0 l3 0" stroke="@voileH" stroke-width="2"/>'
+    + '<path d="M-7.5 -33 l3.2 0 m2.8 0 l3.2 0 m2.8 0 l3.2 0 M-6.8 -26.5 l3 0 m2.6 0 l3 0 m2.6 0 l3 0" stroke="@toileDeVoileH" stroke-width="2"/>'
     + '<path d="M-11.4 -30 L11.4 -30 M-11 -23.5 L11 -23.5" stroke="@coqueH" stroke-width="0.8" opacity="0.85"/>'
     + '<path d="M-11.5 -36 q-2.8 2 -1.8 5.4 M11.5 -36 q2.8 2 1.8 5.4" fill="none" stroke="@coqueH" stroke-width="1.1"/>'
     + '<path d="M-11.8 -38 L11.8 -38" stroke="@coqueH" stroke-width="1.2"/>'

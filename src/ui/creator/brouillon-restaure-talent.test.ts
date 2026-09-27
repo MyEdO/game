@@ -18,7 +18,7 @@ describe('brouillon restauré : Talent de carrière joker sans spécialisation',
   });
 
   it('« Béni » nu : refusé à l’étape des Talents, avant toute construction, message affiché', () => {
-    const d: CreatorDraft = { ...pretreComplet(), careerTalent: 'Béni' };
+    const d: CreatorDraft = { ...pretreComplet(), careerTalent: { id: 'beni' } };
     expect(premierRefus(d)).toEqual({ s: 'skills', err: 'Choisissez la spécialisation de votre Talent de carrière « Béni ».' });
     expect(talentsDone(d)).toBe(false);
     expect(skillsSubMessage(d, 'talents')).toBe('Choisissez la spécialisation de votre Talent de carrière « Béni ».');
@@ -26,7 +26,7 @@ describe('brouillon restauré : Talent de carrière joker sans spécialisation',
   });
 
   it('Talent absent du Niveau 1 : refusé de même', () => {
-    const d: CreatorDraft = { ...pretreComplet(), careerTalent: 'Acrobate' };
+    const d: CreatorDraft = { ...pretreComplet(), careerTalent: { id: 'tres-fort' } };
     expect(premierRefus(d)?.s).toBe('skills');
     expect(talentsDone(d)).toBe(false);
   });

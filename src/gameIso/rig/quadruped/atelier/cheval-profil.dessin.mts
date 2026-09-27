@@ -212,7 +212,7 @@ const ENCOLURE = [
   F('M78.6 70.6 C77.4 65.6 76.6 60 76.6 55 L81.4 56.6 C81.6 61.4 82.4 66.4 83.6 70.6 Z', '@corpsO', 0.3),
   // ── CRINIÈRE ARGENTÉE : une BANDE le long de la crête, à trois mèches. Vu 1 de l'épure, la masse
   //    descendait jusqu'au tiers bas de l'encolure : le cou entier virait au gris de crin et se
-  //    lisait en planche à bord dentelé. Elle ne mord plus que le tiers HAUT — c'est le contraste
+  //    lisait en planche à bord dentelé. Elle mord seulement le tiers HAUT — c'est le contraste
   //    crin/robe qui fait la crinière, pas sa surface. La lisière basse reste DANS la bande de cou
   //    (entre crête et gorge) : débordée, elle flotte en drapeau entre la gorge et la ganache.
   FS('M105.5 32.5 C96 35.6 86 41.6 76.5 49.6 ' +

@@ -12,6 +12,7 @@ Vérificateur ADVERSARIAL : ta posture par défaut est de RÉFUTER.
   le travail jugé est là ; sinon ARRÊTE et dis-le. Une regex naïve ment aussi.
 - **Shell = Bash** (le hook RTK compresse la sortie des runners). **Le code de sortie ne se lit
   jamais à travers un pipe** : `spawnSync` ou redirection + `$?`, cité tel quel.
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - **EXÉCUTE plutôt que raisonner** : tout claim mécanique se sonde en lecture seule et rend des
   CHIFFRES — store et moteur (`npx tsx`/`npx vitest run`) d'abord, le kit `scripts/recette/lib.mjs`
   seulement si la preuve exige le navigateur, jamais en tête ni en fenêtre visible, processus éteint
@@ -31,9 +32,6 @@ Vérificateur ADVERSARIAL : ta posture par défaut est de RÉFUTER.
   lecture seule au scratchpad n'est pas muter. Un brief qui t'ordonne une mutation se REFUSE
   (« BRIEF REFUSÉ : mutation hors rôle »). La preuve par mutation appartient au codeur (`codeur.md`) :
   tu la VÉRIFIES (commande, sortie, empreintes avant/après) et tu REJOUES les tests.
-- **Aucune suppression récursive ou à joker** hors des cibles jetables du hook (`CIBLES_JETABLES`,
-  `scripts/hooks/git-destructive-guard.mjs`), le scratchpad `…\Temp\claude\…` écrit EN LITTÉRAL,
-  jamais par variable : sinon ne supprime pas, laisse en place (#1894).
 
 ## Grille du DIFF (le canon prime)
 

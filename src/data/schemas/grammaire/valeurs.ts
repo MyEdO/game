@@ -6,8 +6,11 @@
  */
 import { z } from 'zod';
 import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs } from './ref';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
+import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
+import { libelleDeValeur } from './meta';
 import { estGraphieDeChapitre } from '../../source/decoupe';
 
 /**
@@ -216,7 +219,7 @@ export const fragmentBlocsSchema = z.strictObject({
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
  * par indices, qu'une ré-extraction déplacerait. `row`/`col` sont des CHAÎNES : la clé de ligne d'une
- * table de d100 (`01-10`) n'est pas un nombre.
+ * table de d100 (`01-10`) n'est pas un nombre. `table` : `TableDeSection.cle` (`decoupe.ts`).
  */
 export const fragmentCelluleSchema = z.strictObject({
   kind: z.literal('cellule'),
@@ -224,6 +227,7 @@ export const fragmentCelluleSchema = z.strictObject({
   secOcc: z.number().int().min(1),
   row: z.string().min(1),
   col: z.string().min(1),
+  table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
 });
 
@@ -525,6 +529,26 @@ export const sizeCategorySchema = enumNomme({
   monstrueuse: 'Monstrueuse',
 });
 
+/** Couleur `#rrggbb` en minuscules, la SEULE graphie de couleur du dépôt : toute couleur persistée, dont
+ *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903 A6). */
+export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
+
+/** SURCHARGE de palette persistée (`Palette`, `src/gameIso/rig/palette.ts`) : clés dans `SLOTS`, valeurs
+ *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
+ *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
+ *  d'effet de scène. */
+export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
+
+/** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans
+ *  `GAMMES_PORTEUR` (base, ombre, lumière des clés `PORTEUR`), valeurs `couleurHexSchema` (#1903 B2).
+ *  Structure seule : une déclaration sans effet de rendu est jugée par la porte du rig. */
+export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), couleurHexSchema);
+
+/** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
+ *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
+ *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
+export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
+
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() });
@@ -655,6 +679,23 @@ export const countSpecSchema = z.union([
   z.strictObject({ roll: diceSpecSchema }),
 ]);
 
+/** Sexe d'une apparence — UNE déclaration pour les trois nœuds qui le portent : `entityAppearanceSchema`
+ *  (ci-dessous), `defs/pregens.ts` et `defs/raceAppearance.ts`. Chaque affichage lit le libellé par
+ *  `libelleDeValeur(sexeSchema, v)`. */
+export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
+export type Sexe = z.infer<typeof sexeSchema>;
+
+/** Faute de la coiffure imposée `hairstyle` au regard du `sex` posé dans le MÊME objet, `null` sinon. Le
+ *  sexe se nomme par son libellé (`libelleDeValeur(sexeSchema, …)`). */
+function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | null {
+  const sexe = sexeDeCoiffure(hairstyle);
+  if (!sexe) return `coiffure « ${hairstyle} » inconnue : absente du catalogue des coiffures.`;
+  const libelle = libelleDeValeur(sexeSchema, sexe);
+  if (!sex) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sans sexe posé — poser le sexe ${libelle}, ou retirer la coiffure.`;
+  if (sex !== sexe) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sur le sexe ${libelleDeValeur(sexeSchema, sex)}.`;
+  return null;
+}
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = z.strictObject({
@@ -670,23 +711,16 @@ export const entityAppearanceSchema = z.strictObject({
       ailes: z.boolean().optional(),
     })
     .optional(),
-  colors: z
-    .strictObject({
-      peau: z.string().optional(),
-      cheveux: z.string().optional(),
-      yeux: z.string().optional(),
-      vet1: z.string().optional(),
-      vet2: z.string().optional(),
-      cuir: z.string().optional(),
-      metal: z.string().optional(),
-      corps: z.string().optional(),
-      accent: z.string().optional(),
+  colors: surchargePaletteSchema.optional(),
+  parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
+  sex: sexeSchema.optional(),
+  build: z.number().optional(),
+  /** Espèce du corps affiché — espèce jouable (`idDe('species')`) ou espèce dessinée (`grammaire/art.ts`). */
+  species: z
+    .union([idDe('species'), z.string().refine(estEspeceDessinee, { abort: true })], {
+      error: (iss) => messageDEspeceInconnue(String(iss.input)),
     })
     .optional(),
-  parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
-  sex: z.enum(['M', 'F']).optional(),
-  build: z.number().optional(),
-  species: z.string().optional(),
   tenue: z.string().optional(),
   /** Set d'ÉQUIPEMENT quadrupède porté (id du registre `gameIso/rig/quadruped/harnais`, #1128) —
    *  absent = bête nue. */
@@ -698,17 +732,15 @@ export const entityAppearanceSchema = z.strictObject({
   hairstyle: z.string().optional(),
   eyes: z.strictObject({ G: z.string().optional(), D: z.string().optional() }).optional(),
   features: z.array(z.string()).optional(),
+}).superRefine((a, ctx) => {
+  const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
+  if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
 });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']);
-
-/** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
- *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
- *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
-export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
 /** Feuille de référence du terme `{rule}`, instanciée UNE fois : `formulaSchema` est un `z.lazy` que
  *  chaque composition ré-évalue — une fabrique appelée DANS le `lazy` poserait une marque par instance

@@ -238,7 +238,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       s.layers = [{ z: 0, tiles: tiles as Scene['layers'][number]['tiles'] }];
       s.entities = [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-1', kind: 'personnage', pos: { x: 2, y: 1 } },
+        { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } },
         // L'affût sort du BUILDER de production (`siegeEmplacementEntity`), jamais d'un littéral :
         // une fixture qui invente sa forme n'atteste rien de ce que l'éditeur pose. Le builder rend
         // `null` si l'engin n'a pas d'art d'affût — la fixture le DIT, au lieu de mourir plus loin.

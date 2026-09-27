@@ -1,0 +1,173 @@
+{
+  "quoi": "Renvois « page N » du texte de `Source/` que le résolveur `src/data/source/renvoi.ts` ne départage pas (#1393) : famille `ambigu` (plusieurs sections candidates au folio, ou table nommée qu’aucun titre ne porte) ou `introuvable` (aucun texte au folio). Livres couverts : extraits, dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`). Une ENTRÉE par renvoi, clé `famille :: fichier :: ref :: occurrence` (régime #1711) ; la réf est `slug#occ :: p.N :: rang R` — section porteuse, folio visé, rang parmi les renvois de la section vers ce folio. Ce fichier ne fait que décroître : une entrée part quand son renvoi se résout.",
+  "entrees": [
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md",
+      "ref": "warhammer-fantasy-roleplay-5th-edition#1 :: p.364 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/006 - 1. Species.md",
+      "ref": "1-species#1 :: p.38 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/007 - Character Sheet Explained.md",
+      "ref": "there-are-three-types-of-skill#1 :: p.297 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/013 - 2. Class and Career.md",
+      "ref": "2-class-and-career#1 :: p.39 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "classes#1 :: p.39 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/018 - Class and Careers.md",
+      "ref": "non-career-advances#1 :: p.191 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/020 - Skills.md",
+      "ref": "cool-wp-basic#1 :: p.183 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/020 - Skills.md",
+      "ref": "ride-ag-basic-grouped#1 :: p.168 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md",
+      "ref": "carousing#1 :: p.183 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 #1739 étape 4",
+      "date": "2026-09-26"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/032 - Getting Around.md",
+      "ref": "drive#1 :: p.114 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/032 - Getting Around.md",
+      "ref": "riding-a-mount#1 :: p.168 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/037 - Momentum.md",
+      "ref": "exposure#1 :: p.309 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/042 - Conditions.md",
+      "ref": "conditions-and-fortune#1 :: p.133 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/048 - Endeavours.md",
+      "ref": "stash-the-loot#1 :: p.296 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/071 - Colour Magic.md",
+      "ref": "purge#1 :: p.187 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/076 - Running the Game.md",
+      "ref": "chaos-and-corruption#1 :: p.187 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/105 - The Beasts of the Reikland.md",
+      "ref": "traits#3 :: p.360 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/107 - The Orc and Goblin Hordes.md",
+      "ref": "animosity-orcs-and-goblins#1 :: p.183 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "corruption-strength#1 :: p.187 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/115 - Creature Traits.md",
+      "ref": "disease-type#1 :: p.179 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    },
+    {
+      "famille": "ambigu",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/119 - Appendix IV.md",
+      "ref": "fatigued-page-186#1 :: p.299 :: rang 1",
+      "occurrence": 1,
+      "lot": "#1393 lot 1",
+      "date": "2026-09-25"
+    }
+  ]
+}

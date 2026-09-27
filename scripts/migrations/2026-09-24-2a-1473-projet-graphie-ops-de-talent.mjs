@@ -2,22 +2,22 @@
  * Migration #1473 (train 2a) — la référence de Talent des ops `grantTalent` / `grantCareerTalent` prend la
  * graphie `talent: { id, spec? }`, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 15` : toute op de Talent du document est réécrite par la
+ * UN geste, et le document passe en `schema: 17` : toute op de Talent du document est réécrite par la
  * primitive `graphieOpsDeTalentDeep` (`src/data/graphieOpsDeTalent.ts`) — la MÊME que celle du migrateur
  * de chargement, jamais un second calcul.
  *
- * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[14]` (`src/state/worldMap.ts`), qui
+ * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[16]` (`src/state/worldMap.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur. Parité mesurée par
- * `src/state/projet-migration-14-vers-15.test.ts`, qui joue la MÊME fixture par les deux.
+ * `src/state/projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux.
  *
  * ENTRÉES : les `src/scenes/<campagne>/<campagne>-projet.json` ; `src/data/graphieOpsDeTalent.ts` (la
  * primitive, chargée par Node nu).
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT toute écriture — non
  * canonique = sortie 1, jamais un reflow silencieux. `schema` garde sa POSITION.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * BORNE HAUTE CLOSE (`schema` ∈ {14, 15}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
+ * BORNE HAUTE CLOSE (`schema` ∈ {16, 17}) : DERNIÈRE de la chaîne dans l'ordre lexical, elle NOMME un
  * `schema` futur.
- * FAIL-FAST : `schema` absent, non numérique ou ∉ {14, 15}, `scenes` non-tableau, op de Talent à DEUX
+ * FAIL-FAST : `schema` absent, non numérique ou ∉ {16, 17}, `scenes` non-tableau, op de Talent à DEUX
  * graphies (levée de la primitive), périmètre vide → rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
@@ -30,8 +30,8 @@ const NOM = '2026-09-24-2a-1473-projet-graphie-ops-de-talent';
 const RACINE = path.join(ROOT, 'src/scenes');
 
 /** Forme du document AVANT et APRÈS ce bump — la borne haute est CLOSE (cf. en-tête). */
-const SCHEMA_AVANT = 14;
-const SCHEMA_APRES = 15;
+const SCHEMA_AVANT = 16;
+const SCHEMA_APRES = 17;
 
 const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 

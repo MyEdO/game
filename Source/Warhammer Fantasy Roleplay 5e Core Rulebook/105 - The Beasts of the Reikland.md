@@ -1,6 +1,6 @@
 *Pages PDF 325-327*
 
-# **THE BEASTS OF THE REIKLAND**
+# <span id="page-324-0" data-folio="325"></span>**THE BEASTS OF THE REIKLAND**
 
 # **Boar**
 
@@ -16,9 +16,7 @@ Scavenging in the forest, boars are reclusive creatures, but when cornered will 
 
 **Hooves and Tusks:** (40/+6)
 
-**Horns (Tusks):** (40/+7) Free Attack
-
-only when Charging
+**Horns (Tusks):** (40/+7) Free Attack only when Charging
 
 #### **Armour**
 
@@ -39,6 +37,8 @@ Melee (Brawling) 40, Perception 40, Stealth (Rural) 40
 #### **Optional Traits**
 
 *Belligerent, Frenzy, Infected, Size (Large), Territorial, Trained (Broken, Magic, Mount, War)*
+
+# **Dog**
 
 While the pampered pooches of the courtiers of Altdorf pose only a threat to an adventurer's dignity, larger breeds, such as those bred for war, can be a formidable threat.
 
@@ -70,9 +70,9 @@ Dodge 35, Perception 40, Track 45
 
 **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards
 
-**Size (Small):** See page 360 for implications of size **Skittish:** Receive +3 Broken Conditions if affected by
+**Size (Small):** See page 360 for implications of size
 
-loud noise or magic
+**Skittish:** Receive +3 Broken Conditions if affected by loud noise or magic
 
 **Tracker:** The creature has the Track Skill at Int +10
 
@@ -82,7 +82,7 @@ loud noise or magic
 
 **Note:** The small but vicious dog used by Rat Catchers begins play with the **Traits:** *Frenzy, Tracker, Trained (Broken, Fetch, War)*.
 
-# **Giant Rat**
+# <span id="page-325-0" data-folio="326"></span>**Giant Rat**
 
 Rats get everywhere and are especially prevalent in the cities and towns. The more densely people are packed in, the more densely rats are packed in with them, which is especially bad when the creatures carry disease. Though typically small, they can grow to monstrous proportions, with reports of rats beneath Altdorf the size of a human and larger. Rat catchers are employed to keep them in check.
 
@@ -112,7 +112,11 @@ Melee (Brawling) 30, Perception 45, Stealth 40
 
 **Bestial:** Animal behaviour is simple and predictable, see page 356
 
-**Infected:** Wounded opponents must take an **Easy (+4 SL) Endurance** Test to avoid a Festering Wound **Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards **Size (Small):** See page 360 for implications of size **Skittish:** Receive +3 *Broken* Condition if affected by loud noise or magic
+**Infected:** Wounded opponents must take an **Easy (+4 SL) Endurance** Test to avoid a Festering Wound
+
+**Night Vision:** See clearly for 20 yards and extend the illumination distance of light sources by 20 yards **Size (Small):** See page 360 for implications of size
+
+**Skittish:** Receive +3 *Broken* Condition if affected by loud noise or magic
 
 #### **Optional Traits**
 
@@ -146,7 +150,9 @@ Dodge 40, Melee (Brawling) 40, Stealth 40
 
 **Size (Small):** See page 360 for implications of size
 
-**Wallcrawler:** Can move at full Movement across appropriate surfaces and automatically passes Climb Tests **Web 40:** On a successful hit, opponents gain 1 *Entangled*
+**Wallcrawler:** Can move at full Movement across appropriate surfaces and automatically passes Climb Tests
+
+**Web 40:** On a successful hit, opponents gain 1 *Entangled*
 
 Condition, with a Strength of 40
 
@@ -154,7 +160,7 @@ Condition, with a Strength of 40
 
 *Size (Tiny to Large), Striding Gait (Woodland), Swarm, Trained (Broken, Guard, Magic, Mount, War), Venom (Average)*
 
-# **Horse**
+# <span id="page-326-0" data-folio="327"></span>**Horse**
 
 Horses are bred for many jobs, including speedy mounts for messengers, sturdy destriers for knights, and mighty drays for farmers. They are so useful, horse trading is almost a competitive sport in the Reikland. Unscrupulous horse copers (horse salesmen) are keen to make money at the expense of the ignorant buyer, painting and filing teeth of elderly horses or stuffing rags up noses to soak mucus — so the prospective buyer should beware.
 
@@ -171,7 +177,9 @@ Horses are bred for many jobs, including speedy mounts for messengers, sturdy de
 
 **Toughness Bonus:** 3
 
-**Optional Light Armour:** +1 AP **Optional Medium Armour:** +3 AP
+**Optional Light Armour:** +1 AP
+
+**Optional Medium Armour:** +3 AP
 
 **Skills**
 

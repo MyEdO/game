@@ -29,6 +29,6 @@ export const creature: CreatureDef = {
         `<path d="M44.5 45.5 Q50 39 51 32.5 Q46 36.5 43 42.5 Z" fill="@corps" stroke="@corpsO" stroke-width="0.7"/>` +
         `</g>`,
     },
-    stored: { corps: '#3b332c', corpsO: '#171310', corpsH: '#6e6152', cheveux: '#1a1512', cheveuxO: '#0b0907', cuir: '#8a7a5e' },
+    palette: { corps: '#3b332c', corpsO: '#171310', corpsH: '#6e6152', cheveux: '#1a1512', cheveuxO: '#0b0907', cuir: '#8a7a5e' },
   },
 };

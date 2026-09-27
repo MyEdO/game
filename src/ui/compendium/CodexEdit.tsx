@@ -30,14 +30,15 @@ import { NumberField } from '../NumberField';
 import { PlageField, type PlageValue } from '../PlageField';
 import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
+import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
-import { creatureSpeciesOptions, QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
-import { coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
+import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from './CreaturePreview';
 import { porteurDApercu } from './apercuPorteur';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -440,11 +441,17 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const [needsGrant, setNeedsGrant] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
+  const fsApi = fs.fsApiDisponible();
   // Refus de SCHÉMA (contrat de donnée #176) : message champ-par-champ (validateDataset) quand la donnée
   // sérialisée ne parse pas son schéma zod — l'écriture disque est bloquée. Effacé à toute ré-édition.
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  useEffect(() => { fs.restoreDataDir().then((r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } }); }, []);
+  useEffect(() => {
+    fs.restoreDataDir().then(
+      (r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } },
+      (e) => setMsg(`Échec de la reconnexion à src/data : ${String(e)}`),
+    );
+  }, []);
   useEffect(() => { setEntry(structuredClone(src.initial)); setDirty(false); setMsg(''); setSchemaError(null); }, [src]);
 
   // L'apparence (MonsterPartsFields) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
@@ -613,7 +620,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
     setSchemaError(null);
     const text = serializeDataset(root);
     try {
-      if (fs.FS_API && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
+      if (fsApi && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
       else { fs.downloadFallback(src.file, text); setMsg(`Téléchargé ${src.file} — reposez-le dans src/data/`); }
       setDirty(false);
     } catch (e) { setMsg(`Échec : ${String(e)}`); }
@@ -622,10 +629,16 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   return (
     <div className="codex-edit">
       <div className="codex-edit-bar">
-        {!fs.FS_API && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
-        {fs.FS_API && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then((h) => { setDir(h); setNeedsGrant(false); }).catch(() => {})}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
-        {fs.FS_API && dir && needsGrant && <button className="btn small" onClick={() => dir && fs.grantPermission(dir).then((ok) => ok && setNeedsGrant(false))}>Autoriser l'écriture</button>}
-        {fs.FS_API && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
+        {!fsApi && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
+        {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
+          (h) => { if (h) { setDir(h); setNeedsGrant(false); } },
+          (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
+        )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
+        {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
+          (ok) => { if (ok) setNeedsGrant(false); },
+          (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
+        )}>Autoriser l'écriture</button>}
+        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
         <span className="de-spacer" />
         {msg && <span className="de-msg">{msg}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
@@ -646,6 +659,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
+            racine="critique"
             desc="jet de la rangée (nœud `test` — Difficulté, compétence, conséquences des deux branches)"
             value={entry.test as NoeudTest | undefined}
             onChange={(v) => edit('test', v)}
@@ -718,7 +732,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {hasConsumable && (
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
-            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }}
+            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
@@ -861,8 +875,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   );
 }
 
-/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise la brique
- *  partagée `MonsterPartsFields` (espèce + parts/couleurs/coiffure/tenue/harnachement/yeux). Édite le VRAI record
+/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise les briques
+ *  partagées `ReglagesApparence` (espèce/sexe/carrure/coiffure) et `MonsterPartsFields` (parts/couleurs/
+ *  tenue/harnachement/yeux). Édite le VRAI record
  *  `creatures.json` ; le rig le lit comme couche de défaut → l'apparence en jeu reflète l'édition. */
 function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
@@ -872,22 +887,19 @@ function AppearanceField({ label, porteur, value, onChange }: { label: string; p
   const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
     <div className="ed-field ed-appearance">
-      <span>apparence par défaut (rig) — éditée sur le record, reflétée en jeu</span>
+      <span>apparence par défaut — éditée sur le record, reflétée en jeu</span>
       <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-      <label className="ed-subfield">
-        Espèce
-        <select value={a.species ?? ''} onChange={(e) => patch({ species: e.target.value || undefined })}>
-          <option value="">(par défaut : Humain)</option>
-          {creatureSpeciesOptions().map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </select>
-      </label>
-      <MonsterPartsFields
-        monster={a.monster} colors={a.colors} sex={a.sex} build={a.build} hairstyle={a.hairstyle} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
-        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
-        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
+      <ReglagesApparence
+        species={a.species} sex={a.sex} build={a.build} hairstyle={a.hairstyle}
+        onSpecies={(id) => patch({ species: id })}
         onSex={(s) => patch({ sex: s })}
         onBuild={(b) => patch({ build: b })}
-        onHairstyle={(id) => patch({ hairstyle: id })}
+        onHairstyle={(id) => patch(coiffureChoisie(id))}
+      />
+      <MonsterPartsFields
+        monster={a.monster} colors={a.colors} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
+        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
+        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
         onTenue={(c) => patch({ tenue: c })}
         onHarnais={quadrupede ? (id) => patch({ harnais: id }) : undefined}
         onEyes={(p) => patch({ eyes: { ...(a.eyes ?? {}), ...p } })}
@@ -930,13 +942,13 @@ function ConsumableDurationField({ value, onChange }: { value: ConsumableDuratio
 /** Éditeur des EFFETS d'un sort (`SpellData.effects`) — le `Flow` ÉDITABLE (do/si/test, feuilles
  *  EffectOp). Réutilise le `FlowEditor` de l'éditeur de scène (source UNIQUE de la logique authorée) :
  *  pose des effets mécaniques `on:'target'`/`on:'caster'`, des branches conditionnelles, des Tests. Écrit
- *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). `ctx` vide :
- *  un sort n'a pas d'encounters/dialogues de scène (les transitions/dialogues n'ont pas cours ici). */
+ *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). Racine de
+ *  CATALOGUE `sort` (`ctxDeCatalogue`) : ni encounters/dialogues de scène, et la table de cibles d'un sort. */
 function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onChange: (v: Flow) => void }) {
   return (
     <div className="ed-field">
       <span>effets du sort (Flow éditable — effets mécaniques, conditions, tests)</span>
-      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={onChange} />
+      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={ctxDeCatalogue('sort')} onChange={onChange} />
     </div>
   );
 }
@@ -988,7 +1000,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>

@@ -4,6 +4,7 @@ import { flowFromEffects } from '../../state/flow';
 import { clone, makePriest, makeSorceress, makeFlagellant } from './_casters';
 import type { TestScenario } from './_shared';
 import type { Combatant, CharKey } from '../../engine/types';
+import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 
 /**
  * « Magie en combat » : LA grande bataille magique, qui réunit le concile (toutes les familles curées),
@@ -27,7 +28,7 @@ const scene = buildScene({
     'Contre-sort & dissipation des deux camps ; le Prêtre a 3 Péchés (Colère possible même sur Prière réussie) ; ' +
     'l’Envoûteuse cause Peur 2 + Terreur 2 à l’ouverture (Test de Psychologie).',
   // Influence corruptrice (LDB 19) puis ligne d'engagement : deux bandes verticales que le groupe traverse
-  // en avançant vers l'est (réfs ennemies par ID STABLE — un libellé retomberait sur un mannequin B:10).
+  // en avançant vers l'est (réfs ennemies par ID STABLE, `RefIrresoluble` sinon).
   triggers: [
     {
       id: 'trg-corruption',
@@ -110,7 +111,7 @@ function makeMagicParty(): Combatant[] {
   // Varie l'apparence des prêtres (sinon clones visuels de la même base) — alterne sexe et carrure.
   priests.forEach((pr, i) => {
     if (!pr.appearance) return;
-    pr.appearance.sex = i % 2 ? 'F' : 'M';
+    pr.appearance.sex = sexeSchema.options[i % sexeSchema.options.length];
     pr.appearance.build = 0.5 + (i % 4) * 0.06;
   });
 

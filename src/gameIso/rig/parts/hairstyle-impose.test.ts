@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resetDiagOnce } from '../devDiag';
-import { hairPool, hairIndexById, cosmeticPart, coiffureRetombee, COIFFURE_HORS_POOL } from './cosmetic';
+import { hairPool, hairIndexById, cosmeticPart, coiffureRetombee, coiffureChoisie, COIFFURE_HORS_POOL } from './cosmetic';
 import { hairstylesForSex } from './hairstyles';
 import { resolveRig } from '../composeRig';
 import { asRigSpeciesId, type Appearance } from '../appearance';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /**
  * Imposer une coiffure par ID stable (#637) — `appearance.hairstyle`. On MANIPULE des ids : forcer une
@@ -39,7 +40,7 @@ describe('coiffure imposée par id (#637)', () => {
  *  pas, il montre la chevelure d'ERREUR (#223) à la place de la part `cheveux`. */
 describe('coiffure imposée hors du pool : chevelure d’erreur visible, aucune levée', () => {
   const coiffureM = hairstylesForSex('M')[0].id;
-  const apparence = (sex: 'M' | 'F'): Appearance => ({ species: asRigSpeciesId('humain'), sex, build: 0.5, seed: 1, hairstyle: coiffureM });
+  const apparence = (sex: Sexe): Appearance => ({ species: asRigSpeciesId('humain'), sex, build: 0.5, seed: 1, hairstyle: coiffureM });
   const svgDuRig = (a: Appearance) => resolveRig(a, { weapons: [], armour: [] }, {}, 'nu', 'front').flatMap((b) => b.parts.map((p) => p.svg)).join('');
 
   it('coiffure M sur un rig F : le rig se compose et porte la chevelure d’erreur', () => {
@@ -72,5 +73,21 @@ describe('coiffureRetombee — la coiffure sortie du pool retombe dans le même 
   it('sexe non posé : rien à juger, la coiffure reste', () => {
     const a = { hairstyle: coiffureM };
     expect(coiffureRetombee(a)).toBe(a);
+  });
+
+  it('coiffure inconnue : elle reste, le schéma la nomme', () => {
+    const a = { sex: 'F' as const, hairstyle: 'zzz' };
+    expect(coiffureRetombee(a)).toBe(a);
+  });
+});
+
+describe('coiffureChoisie — choisir une coiffure pose son sexe', () => {
+  it('coiffure F choisie : le patch porte la coiffure ET le sexe F', () => {
+    const coiffureF = hairstylesForSex('F')[0].id;
+    expect(coiffureChoisie(coiffureF)).toEqual({ hairstyle: coiffureF, sex: 'F' });
+  });
+
+  it('aucune coiffure : le patch retire la coiffure sans toucher au sexe', () => {
+    expect(coiffureChoisie(undefined)).toEqual({ hairstyle: undefined });
   });
 });

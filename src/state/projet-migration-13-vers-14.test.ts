@@ -1,31 +1,21 @@
 /**
- * GARDE — `PROJECT_MIGRATIONS[13]` : un projet AUTHORÉ AVANT la fusion des sorts de #1897 se charge encore.
- *
- * QUESTION : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double
- * (`SORTS_FUSIONNES_1897`, `src/data/sortsFusionnes.ts`) et n'existent plus au catalogue. Un `.json`
- * exporté avant ce lot, resté dans une bibliothèque utilisateur, qui cite l'un d'eux à une place de sort
- * (statbloc, rôle de combat, effets `learnSpell`/`castSpell`, preset de PNJ), ressort-il avec l'entrée
- * absorbante — au lieu d'être refusé par `idDe('spell')` ?
- *
- * FIXTURE GELÉE : le document ci-dessous porte la forme `schema: 13`, un id fusionné à chaque place de
- * sort, et `nuee` (id fusionné) en TRAIT, hors place de sort. Il est FIGÉ ; le « moderniser » détruirait
- * ce que la garde mesure.
+ * #1882 (T2d) — `PROJECT_MIGRATIONS[13]` : une réf. vivante d'effet semée VIDE avant le resserrement
+ * (`livingRefSchema.creatureId`, `givePossession.ref.vehicleId`, `setVessel.vehicleId` → `idDe`) reçoit ce que l'outil sème
+ * (`creatureSemee`, `vehiculeSeme`, `navireSeme`) où que l'effet vive dans le DOCUMENT — Scène comme
+ * péril de route de `worldMap` ; pendant du script de dépôt
+ * `scripts/migrations/2026-09-24-1882-refs-vivantes-semees.mjs`, dont la PARITÉ se mesure ici.
  */
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
-import { depot, efface, joue, lireDans, rienTouche } from '../../scripts/migrations/lib/joue.mjs';
+import { creatureSemee, vehiculeSeme, navireSeme, creatures, vehicles } from '../data';
 
-/** Flow d'une action authorée : un effet `learnSpell` et un effet `castSpell`, chacun sur un id fusionné. */
-const flowDAutel = () => ({
-  kind: 'seq',
-  steps: [
-    { kind: 'do', effect: { type: 'learnSpell', spell: 'alarme' } },
-    { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'projectile' } },
-  ],
-});
-
-/** Document schema 13 — FIGÉ. Ne pas y remplacer les ids fusionnés : c'est le sujet de la mesure. */
+/** Document schema 13 — FIGÉ, porteur des trois graines vides d'avant. */
 const PROJET_FORMAT_13 = {
   type: 'projet',
   schema: 13,
@@ -33,115 +23,93 @@ const PROJET_FORMAT_13 = {
   label: 'Campagne gelée (format 13)',
   versionContenu: 1,
   maison: 'fixture de test — aucun livre ne la publie',
-  narratif: {
-    affaires: [],
-    indices: [],
-    presetsPnj: [{ id: 'mage', base: 'squelette', profil: { spells: ['alarme', 'alerte'] } }],
-    objets: [],
-  },
-  scenes: [
-    {
-      type: 'scene',
-      id: 'crypte',
-      label: 'La crypte',
-      dimensions: { w: 2, h: 1 },
-      reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS },
-      roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-      layers: [{ z: 0, tiles: ['herbe', 'herbe'] }],
-      entities: [
-        {
-          id: 'sorcier',
-          kind: 'personnage',
-          pos: { x: 0, y: 0 },
-          statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme', 'flamme'], traits: [{ id: 'nuee' }] },
-          combat: { spells: ['alarme'] },
-        },
-        { id: 'autel', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, usable: { actions: [{ id: 'prier', flow: flowDAutel() }] } },
-      ],
-    },
-  ],
+  narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+  scenes: [{
+    type: 'scene',
+    id: 'route',
+    label: 'La route',
+    dimensions: { w: 2, h: 2 },
+    reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS },
+    roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+    layers: [{ z: 0, tiles: ['herbe', 'herbe', 'herbe', 'herbe'] }],
+    entities: [],
+    encounters: [{
+      id: 'embuscade',
+      onVictory: { kind: 'seq', steps: [
+        { kind: 'do', effect: { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: '' } }], encounter: '' } },
+        { kind: 'do', effect: { type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } },
+        { kind: 'do', effect: { type: 'givePossession', nature: 'vehicule', ref: { vehicleId: '' } } },
+      ] },
+    }],
+  }],
 };
 
-const charge = () => parseProject(structuredClone(PROJET_FORMAT_13));
-
-describe('PROJECT_MIGRATIONS[13] — un projet format 13 qui cite un sort fusionné se charge (#1897)', () => {
-  it('le document gelé est bien au format ANTÉRIEUR (sans quoi la garde ne mesurerait rien)', () => {
-    expect(PROJET_FORMAT_13.schema).toBe(13);
+describe('PROJECT_MIGRATIONS[13] — les graines vides d’un effet se chargent à travers la migration (#1882)', () => {
+  it('la réf. semée est la PREMIÈRE offerte par le catalogue', () => {
+    expect([creatureSemee(), vehiculeSeme(), navireSeme()]).toEqual([creatures[0].id, vehicles[0].id, vehicles.find((v) => v.ship)!.id]);
     expect(PROJET_FORMAT_13.schema).toBeLessThan(CURRENT_PROJECT_SCHEMA);
   });
 
-  it('chaque place de sort cite l’entrée ABSORBANTE ; le trait homonyme traverse intact', () => {
-    const doc = charge();
-    const [sorcier, autel] = doc.scenes[0].entities!;
-    expect(sorcier.statblock?.spells).toEqual(['alerte', 'flamme-magique']);
-    expect(sorcier.statblock?.traits).toEqual([{ id: 'nuee' }]);
-    expect(sorcier.combat?.spells).toEqual(['alerte']);
-    expect(autel.usable?.actions?.[0].flow).toEqual({
-      kind: 'seq',
-      steps: [
-        { kind: 'do', effect: { type: 'learnSpell', spell: 'alerte' } },
-        { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'carreau' } },
-      ],
-    });
-    expect(doc.narratif.presetsPnj[0].profil?.spells, 'dédoublonnée : `alarme` ET `alerte` n’en font qu’un').toEqual(['alerte']);
+  it('chaque réf. vide reçoit la réf. semée, où que l’effet soit niché', () => {
+    const doc = parseProject(structuredClone(PROJET_FORMAT_13));
+    const flow = doc.scenes[0].encounters[0].onVictory as { steps: { effect: Record<string, unknown> }[] };
+    expect(flow.steps.map((s) => s.effect)).toEqual([
+      expect.objectContaining({ type: 'startPursuit', foes: [{ ref: { creatureId: creatureSemee() } }] }),
+      expect.objectContaining({ type: 'givePossession', ref: { creatureId: creatureSemee() } }),
+      expect.objectContaining({ type: 'givePossession', ref: { vehicleId: vehiculeSeme() } }),
+    ]);
   });
 
-  it('IDEMPOTENT : rejoué sur sa propre sortie, le migrateur ne change plus rien', () => {
-    const une = PROJECT_MIGRATIONS[13]!({ ...structuredClone(PROJET_FORMAT_13), version: 13 } as never);
-    const deux = PROJECT_MIGRATIONS[13]!({ ...structuredClone(une), version: 13 } as never);
-    expect(JSON.stringify(deux)).toBe(JSON.stringify(une));
-  });
-
-  it('SANS le migrateur, l’id fusionné serait REFUSÉ au parse', () => {
-    const bricole = { ...structuredClone(PROJET_FORMAT_13), schema: CURRENT_PROJECT_SCHEMA };
-    expect(() => parseProject(bricole)).toThrow(/« alarme » est absent du catalogue des sorts \(spells\.json\)/);
+  it('SANS le migrateur, le projet serait REFUSÉ au parse', () => {
+    let refus = '';
+    try { parseProject({ ...structuredClone(PROJET_FORMAT_13), schema: CURRENT_PROJECT_SCHEMA }); } catch (e) { refus = (e as Error).message; }
+    expect(refus).toMatch(/creatureId/);
+    expect(refus).toMatch(/vehicleId/);
   });
 });
 
-/**
- * PARITÉ des DEUX pendants du même bump : la MÊME fixture est jouée par le script de DÉPÔT
- * (`scripts/migrations/2026-09-24-1897-projet-sorts-fusionnes.mjs`, dans un dépôt jetable) et par le
- * CHARGEMENT (`PROJECT_MIGRATIONS[13]`). Le script écrit EXACTEMENT ce que le chargement rend.
- */
-const SCRIPT_DEPOT = '2026-09-24-1897-projet-sorts-fusionnes.mjs';
-const REL = `src/scenes/${PROJET_FORMAT_13.id}/${PROJET_FORMAT_13.id}-projet.json`;
-const canonique = (doc: unknown) => `${JSON.stringify(doc, null, 1)}\n`;
+const RACINE = fileURLToPath(new URL('../../', import.meta.url));
+const SCRIPT = '2026-09-24-1882-refs-vivantes-semees.mjs';
+const PERIL_POSSESSION = { type: 'givePossession', nature: 'bete', ref: { creatureId: '' } };
+const PERIL_POURSUITE = { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: '' } }], encounter: '' };
+const PERIL_NAVIRE = { type: 'setVessel', vehicleId: '' };
 
-/** Le document joué par le script de dépôt, qui importe la primitive (`src/data/sortsFusionnes.ts`). */
-function parLeDepot(doc: unknown): { code: number | null; sortie: string; doc: unknown; touches: string[] } {
-  const d = depot({ [REL]: canonique(doc) }, ['src/data/sortsFusionnes.ts']);
-  try {
-    const r = joue(d.racine, SCRIPT_DEPOT);
-    return {
-      code: r.code,
-      sortie: r.sortie,
-      doc: r.code === 0 ? JSON.parse(lireDans(d.racine, REL)) : null,
-      touches: r.code === 0 ? [] : rienTouche(d.racine, d.avant),
-    };
-  } finally {
-    efface(d.racine);
-  }
+/** Un vrai projet du dépôt ramené au format 13, dont le 1er péril de route porte les graines vides. */
+function projetAPeril13(): Record<string, unknown> {
+  const doc = JSON.parse(readFileSync(join(RACINE, 'src/scenes/diligence/diligence-projet.json'), 'utf8'));
+  doc.schema = 13;
+  doc.worldMap.routes[0].perils = [{ label: 'Péril', chancePct: 10, effects: [PERIL_POSSESSION, PERIL_POURSUITE, PERIL_NAVIRE] }];
+  return doc;
 }
 
-/** Le document joué par le migrateur de chargement seul, `version` de travail retirée. */
-function parLeChargement(doc: unknown): unknown {
-  const { version: _travail, ...migre } = PROJECT_MIGRATIONS[13]!({ ...structuredClone(doc as object), version: 13 } as never) as Record<string, unknown>;
-  return migre;
-}
-
-describe('PARITÉ dépôt ⇄ chargement du bump 13 → 14 — une fixture, deux pendants (#1897)', () => {
-  it('le script écrit EXACTEMENT ce que le chargement rend, et `parseProject` accepte ce qu’il écrit', () => {
-    const r = parLeDepot(PROJET_FORMAT_13);
-    expect(r.code, r.sortie).toBe(0);
-    expect(JSON.stringify(r.doc)).toBe(JSON.stringify(parLeChargement(PROJET_FORMAT_13)));
-    expect(() => parseProject(r.doc)).not.toThrow();
+describe('PROJECT_MIGRATIONS[13] — le DOCUMENT entier, péril de route compris (#1882)', () => {
+  it('un péril de route à graines vides se charge : chaque réf. reçoit la réf. semée', () => {
+    const doc = parseProject(projetAPeril13()) as unknown as { worldMap: { routes: { perils: { effects: unknown[] }[] }[] } };
+    expect(doc.worldMap.routes[0].perils[0].effects).toEqual([
+      expect.objectContaining({ type: 'givePossession', ref: { creatureId: creatureSemee() } }),
+      expect.objectContaining({ type: 'startPursuit', foes: [{ ref: { creatureId: creatureSemee() } }] }),
+      expect.objectContaining({ type: 'setVessel', vehicleId: navireSeme() }),
+    ]);
   });
 
-  it('schema 12 : le script le refuse (sa borne basse), rien d’écrit', () => {
-    const r = parLeDepot({ ...structuredClone(PROJET_FORMAT_13), schema: 12 });
-    expect(r.code, r.sortie).toBe(1);
-    expect(r.sortie).toMatch(/ARBITRAGE REQUIS/);
-    expect(r.sortie).toContain('`schema` inattendu 12');
-    expect(r.touches).toEqual([]);
+  it('PARITÉ : le script de dépôt et le migrateur rendent le MÊME document', () => {
+    const doc = projetAPeril13();
+    const dir = mkdtempSync(join(tmpdir(), 'mig-1882-parite-'));
+    try {
+      mkdirSync(join(dir, 'scripts', 'migrations'), { recursive: true });
+      mkdirSync(join(dir, 'src', 'data'), { recursive: true });
+      mkdirSync(join(dir, 'src', 'scenes', 'camp'), { recursive: true });
+      copyFileSync(join(RACINE, 'scripts', 'migrations', SCRIPT), join(dir, 'scripts', 'migrations', SCRIPT));
+      for (const f of ['creatures.json', 'vehicles.json']) copyFileSync(join(RACINE, 'src', 'data', f), join(dir, 'src', 'data', f));
+      const cible = join(dir, 'src', 'scenes', 'camp', 'camp-projet.json');
+      writeFileSync(cible, `${JSON.stringify(doc, null, 1)}\n`, 'utf8');
+      execFileSync(process.execPath, [join(dir, 'scripts', 'migrations', SCRIPT)], { encoding: 'utf8', stdio: 'pipe' });
+      const script = JSON.parse(readFileSync(cible, 'utf8'));
+      const { version: _v, ...migre } = PROJECT_MIGRATIONS[13](structuredClone(doc)) as Record<string, unknown>;
+      void _v;
+      expect(script).toEqual(migre);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

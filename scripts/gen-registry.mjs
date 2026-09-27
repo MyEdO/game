@@ -21,14 +21,19 @@ import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
  * (les entrées vivent dans un sous-dossier `defs/`). Mettre `.` quand les fichiers sont à plat
  * dans le même dossier que l'index (cas des scénarios).
  * `idUnion` (option PAR registre) : émet AUSSI une union de littéraux `export type <typeName> =`
- * extraite des champs `<field>: '…'` des defs — typage RÉEL des ids côté consommateurs TS.
+ * extraite des champs `<field>` littéraux des defs (`champsLitteraux`) — typage RÉEL des ids côté
+ * consommateurs TS.
  * `fields` (option PAR registre) : quand un module de def exporte PLUSIEURS noms (pas 1 seul via
  * `exportName`), liste ces noms → chaque entrée du tableau généré devient `{ champ1, champ2, … }`
  * (ex. `src/data/schemas/defs/` : `file` + `schema`).
  * `constFields` (option PAR registre, avec `fields`) : champs de VALEUR LITTÉRALE ajoutés à chaque
  * entrée générée — ce que le def ne déclare pas parce que c'est une propriété du REGISTRE (la
  * racine `root` d'un dataset : le def dit son fichier, le registre dit d'où il vient).
- * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string }, fields?:string[], constFields?:Record<string,string> }[]}
+ * `projection` (option PAR registre) : projette les ids des defs (et, avec `champ`, la valeur de ce champ
+ * par id) dans `src/data/schemas/_art.generated.ts` (`genArt`) — la forme partagée extraite vers une
+ * couche neutre (`eslint.config.js`, `AVALS_DATA`) : la donnée juge un id d'art d'auteur sans importer
+ * le rendu.
+ * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string } }[]}
  */
 export const REGISTRIES = [
   {
@@ -38,6 +43,7 @@ export const REGISTRIES = [
     arrayName: 'CREATURES',
     type: 'CreatureDef',
     typeFrom: './types',
+    projection: { nom: 'ESPECES_DE_CREATURE' },
   },
   {
     // Scénarios de test : fichiers À PLAT dans le dossier (pas de sous-dossier defs/).
@@ -191,6 +197,7 @@ export const REGISTRIES = [
     arrayName: 'HAIRSTYLE_DEFS',
     type: 'HairstyleDef',
     typeFrom: './types',
+    projection: { nom: 'SEXE_DE_COIFFURE', champ: 'sex' },
   },
   {
     // Formes de nuée (silhouette d'1 constituant + palette) : 1 forme = 1 fichier defs/.
@@ -200,6 +207,7 @@ export const REGISTRIES = [
     arrayName: 'SWARM_FORM_DEFS',
     type: 'SwarmFormDef',
     typeFrom: './formDef',
+    projection: { nom: 'FORMES_DE_NUEE' },
   },
   {
     // Éléments d'apparence (catalogue unifié — traits de corps réutilisables) : 1 élément = 1 fichier defs/.
@@ -452,10 +460,7 @@ function genOne(r) {
   // Union de littéraux des ids déclarés dans les defs (option `idUnion`) — triée, dédupliquée.
   let unionDecl = '';
   if (r.idUnion) {
-    const ids = files.flatMap((f) =>
-      [...readFileSync(join(r.dir, f), 'utf8').matchAll(new RegExp(`\\b${r.idUnion.field}:\\s*'([^']+)'`, 'g'))].map((m) => m[1]),
-    );
-    const uniq = [...new Set(ids)].sort();
+    const uniq = unionDesIds(r.dir, files, r.idUnion.field);
     // Registre encore VIDE (socle posé avant sa première def) : l'union est `never`, pas la chaîne
     // vide — un `''` accepterait silencieusement l'id vide chez les consommateurs.
     unionDecl =
@@ -477,6 +482,81 @@ function genOne(r) {
   return { arrayName: r.arrayName, dir: r.dir, files: files.length, changed, missing: false };
 }
 
+/** Littéral de chaîne TS d'une valeur, pour les modules générés. */
+const lit = (v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+
+/**
+ * Valeurs du champ `champ` écrites en LITTÉRAL (guillemets simples ou doubles, en tête de ligne) dans
+ * la source d'un def — SEULE règle de lecture d'un littéral du générateur (`idUnion`, `projection`).
+ * Un compte hors de la `cardinalite`, ou une mention du champ qui n'est pas un tel littéral, LÈVE en
+ * nommant le def : un id calculé, absent ou doublé ne sort pas du registre en silence.
+ * @param {string} src source du def
+ * @param {string} champ champ lu
+ * @param {string} def chemin du def, pour le message
+ * @param {'un' | 'auMoinsUn'} cardinalite
+ * @returns {string[]}
+ */
+export function champsLitteraux(src, champ, def, cardinalite) {
+  const vus = [...src.matchAll(new RegExp(String.raw`^\s*${champ}:\s*(['"])([^'"\\\n]+)\1`, 'gm'))].map((m) => m[2]);
+  if (cardinalite === 'un' ? vus.length !== 1 : vus.length === 0)
+    throw new Error(`gen-registry: ${def} : ${vus.length} champ(s) « ${champ} » littéral(aux) — le registre en exige ${cardinalite === 'un' ? 'EXACTEMENT' : 'AU MOINS'} un.`);
+  const mentions = [...src.matchAll(new RegExp(String.raw`\b${champ}\s*:`, 'g'))].length;
+  if (mentions !== vus.length)
+    throw new Error(`gen-registry: ${def} : ${mentions - vus.length} champ(s) « ${champ} » non littéral(aux) — le registre ne lit que des littéraux.`);
+  return vus;
+}
+
+/**
+ * Union des `field` littéraux déclarés par les defs `files` de `dir` (option `idUnion`) — triée, dédupliquée.
+ * @param {string} dir @param {string[]} files @param {string} field @returns {string[]}
+ */
+export function unionDesIds(dir, files, field) {
+  const ids = files.flatMap((f) => champsLitteraux(readFileSync(join(dir, f), 'utf8'), field, join(dir, f), 'auMoinsUn'));
+  return [...new Set(ids)].sort();
+}
+
+/**
+ * Projection d'un registre de defs : `[id]` par def, ou `[id, valeur de champ]` avec `projection.champ`.
+ * FAIL-FAST nominatif : un id porté par deux defs lève.
+ * @param {string} dir dossier des defs
+ * @param {{ nom:string, champ?:string }} projection
+ * @returns {string[][]}
+ */
+export function projeterDefs(dir, projection) {
+  const lignes = modulesDeDefs(dir).map((f) => {
+    const src = readFileSync(join(dir, f), 'utf8');
+    const [id] = champsLitteraux(src, 'id', join(dir, f), 'un');
+    return projection.champ ? [id, ...champsLitteraux(src, projection.champ, join(dir, f), 'un')] : [id];
+  });
+  const vus = new Set();
+  for (const [id] of lignes) {
+    if (vus.has(id)) throw new Error(`gen-registry: ${dir} : id « ${id} » porté par deux defs — ${projection.nom} ne peut pas se projeter.`);
+    vus.add(id);
+  }
+  return lignes.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
+/** Module des projections (`projection` des `REGISTRIES`), écrit seulement s'il change. */
+function genArt(registres = REGISTRIES, out = 'src/data/schemas/_art.generated.ts') {
+  const blocs = registres.filter((r) => r.projection).map((r) => {
+    const lignes = projeterDefs(r.dir, r.projection);
+    const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
+    if (!r.projection.champ)
+      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${lit(id)},\n`).join('')}];\n` };
+    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map(lit).join(' | ');
+    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${lit(id)}: ${lit(v)},\n`).join('')}};\n` };
+  });
+  const body =
+    `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
+    `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
+    blocs.map((b) => b.texte).join('\n');
+  let prev = '';
+  try { prev = readFileSync(out, 'utf8'); } catch { /* nouveau */ }
+  const changed = prev !== body;
+  if (changed) writeFileSync(out, body);
+  return { out, blocs: blocs.map((b) => `${b.nom}=${b.n}`), changed };
+}
+
 /**
  * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` sous `tsx` (il parse les documents par
  * leurs schémas TypeScript), dans un processus enfant. Lève si l'enfant échoue.
@@ -490,12 +570,12 @@ function genEspaces(verbose) {
 }
 
 /**
- * Régénère TOUS les registres (phase 1) puis l'INDEX DES IDS (phase 2). `verbose` (défaut `false`) :
- * en mode silencieux (appel `buildStart` du plugin Vite, donc CHAQUE run Vitest via `globalSetup`),
- * n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur (dossier absent), + UNE ligne agrégée
- * pour le reste — évite les ~15 lignes « [inchangé] » qui polluent chaque sortie de test et cassent le
- * parseur pass/fail de l'outil `rtk`. En mode verbose (exécution directe `npm run gen`), détail complet
- * (usage : audit manuel de ce que le générateur a vu).
+ * Régénère TOUS les registres (phase 1), les projections d'art (`genArt`), puis l'INDEX DES IDS
+ * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite, donc
+ * CHAQUE run Vitest via `globalSetup`), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
+ * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
+ * polluent chaque sortie de test et cassent le parseur pass/fail de l'outil `rtk`. En mode verbose
+ * (exécution directe `npm run gen`), détail complet (usage : audit manuel de ce que le générateur a vu).
  */
 export function genAll(verbose = false) {
   const results = REGISTRIES.map(genOne);
@@ -510,6 +590,12 @@ export function genAll(verbose = false) {
     } else {
       unchangedCount++;
     }
+  }
+  const artRes = genArt();
+  if (artRes.changed || verbose) {
+    console.log(`gen-registry: projections d'art ← ${artRes.blocs.join(', ')} (${artRes.out})${artRes.changed ? '' : ' [inchangé]'}`);
+  } else {
+    unchangedCount++;
   }
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);

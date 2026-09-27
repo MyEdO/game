@@ -61,9 +61,9 @@ function front(): string {
     // Mât puis voile carrée PLEIN CADRE (vent portant : le ventre vient au spectateur).
     + spar(0, -30, 0, -86, 2.6)
     + spar(-23, -69, 23, -69, 1.8)
-    + '<path d="M-20 -67 Q-25 -49 -19 -31 Q0 -27.5 19 -31 Q25 -49 20 -67 Q0 -70.5 -20 -67 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-7 -68.3 Q-9.4 -49 -6.6 -29.8 M7 -68.3 Q9.4 -49 6.6 -29.8" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
-    + '<path d="M-21 -55 Q0 -51.5 21 -55 M-20 -43 Q0 -39.8 20 -43" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.35"/>'
+    + '<path d="M-20 -67 Q-25 -49 -19 -31 Q0 -27.5 19 -31 Q25 -49 20 -67 Q0 -70.5 -20 -67 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-7 -68.3 Q-9.4 -49 -6.6 -29.8 M7 -68.3 Q9.4 -49 6.6 -29.8" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-21 -55 Q0 -51.5 21 -55 M-20 -43 Q0 -39.8 20 -43" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.35"/>'
     + hune(0, -82) + pennant(0, -86, 9)
     + stay(0, -84, -16, -23) + stay(0, -84, 16, -23)
     // Coque vue de PROUE : muraille évasée à clins, étrave en bois massif dans l'axe.
@@ -80,8 +80,8 @@ function back(): string {
   return '<g>'
     // Dos de la voile carrée, mât au premier plan.
     + spar(-23, -69, 23, -69, 1.8)
-    + '<path d="M-20 -67 Q-24 -49 -19 -31 Q0 -28.5 19 -31 Q24 -49 20 -67 Q0 -69.3 -20 -67 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M-6.8 -68 Q-9 -49 -6.4 -30.4 M6.8 -68 Q9 -49 6.4 -30.4" fill="none" stroke="@voileO" stroke-width="0.7" opacity="0.4"/>'
+    + '<path d="M-20 -67 Q-24 -49 -19 -31 Q0 -28.5 19 -31 Q24 -49 20 -67 Q0 -69.3 -20 -67 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M-6.8 -68 Q-9 -49 -6.4 -30.4 M6.8 -68 Q9 -49 6.4 -30.4" fill="none" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4"/>'
     + spar(0, -31, 0, -86, 2.6)
     + hune(0, -82) + pennant(0, -86, 9)
     // Poupe : muraille à clins resserrée sur l'ÉTAMBOT axial, safran suspendu dans l'axe.
@@ -93,7 +93,7 @@ function back(): string {
     // CHÂTEAU ARRIÈRE pleine largeur : parapet crénelé, assise sur la lisse de poupe, fenêtres.
     + '<path d="M-15 -22.2 L-15 -32.4' + merlons(-15, 15, -35, 5) + ' L15 -22.2 Q0 -26.8 -15 -22.2 Z" fill="@coque" stroke="@coqueO" stroke-width="1.2"/>'
     + '<path d="M-14.2 -28.4 L14.2 -28.4 M-14.5 -31.4 L14.5 -31.4" stroke="@coqueO" stroke-width="0.6" opacity="0.5"/>'
-    + '<path d="M-6 -30.4 l0 2.4 M6 -30.4 l0 2.4" stroke="@voileH" stroke-width="1.4"/>'
+    + '<path d="M-6 -30.4 l0 2.4 M6 -30.4 l0 2.4" stroke="@toileDeVoileH" stroke-width="1.4"/>'
     + stay(0, -84, -13, -33) + stay(0, -84, 13, -33)
     + flag(10.5, -35.4, 6, 4)
     + '</g>';

@@ -6,6 +6,8 @@ import { remapCharKeysDeep } from './charKeyMigration';
 import { remapNameToLabelDeep } from './instanceIdMigration';
 import { remapSkillIdDeep } from './skillIdMigration';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
+import { migrerClesDEmplacement } from '../engine/careerSlots';
+import { FORMAT_DES_CHOIX } from '../engine/character';
 import { t } from '../i18n';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
@@ -17,15 +19,7 @@ import { t } from '../i18n';
  *  (un Combatant seul ne retient pas ces choix). Absent → édition reconstruite.
  *
  *  NON VERSIONNÉ (cf. `rosterLoad` ci-dessous : liste nue, sans `version`, là où une partie porte
- *  `SAVE_VERSION`). Or les clés du brouillon sont des LIBELLÉS d'avancement (`advancementLabel`) :
- *  `speciesTalentChoices`, `specChoices`, `speciesPlus5`/`speciesPlus3`. MESURE L2 #1548 : 8 libellés
- *  d'avancement changent avec le passage des spécs à l'id de catalogue (« Savoir-vivre (Érudit) » →
- *  « Savoir-vivre (Érudits) »…), dont les 5 entrées « A ou B » d'espèce à `Savoir-vivre` spécifié qui
- *  KEYENT `speciesTalentChoices` (halflings Cendreplaine/Piedfoin/Havrebas/Fraisedébois/Pavéderonces —
- *  jeu figé par `ui/creator/draft.test.ts`). Un brouillon écrit avant ce lot rouvre donc le créateur
- *  avec ces choix non appariés — l'étape se re-choisit. Le héros déjà construit (`hero`), lui, EST
- *  intact : ses `SkillInstance` sont remappées à la lecture (`skillIdMigration.ts`, les deux canaux),
- *  jamais laissées à leur graphie morte ni purgées. */
+ *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`, `brouillonRelu`). */
 export interface RosterEntry {
   hero: Combatant;
   wealth: Money;
@@ -55,14 +49,26 @@ export function rosterLoad(): RosterEntry[] {
     // `skillId`→`id` des `SkillInstance` (#1548 L2) et celui des ids de sort FUSIONNÉS (#1897,
     // `remapSortsFusionnesDeep`) s'appliquent donc en repli IDEMPOTENT à chaque
     // lecture (aucun ancien token restant après un 1er passage → no-op), plutôt que via `migrateDoc`
-    // (réservé au format `EXPORT_VERSION`).
-    return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[]).filter(
-      (e): e is RosterEntry =>
-        !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string',
-    );
+    // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) de même.
+    return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
+      .filter((e): e is RosterEntry => !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string')
+      .map((e) => ({ ...e, hero: avecClesDEmplacementEnIds(e.hero), draft: brouillonRelu(e.draft) }));
   } catch {
     return [];
   }
+}
+
+/** Le brouillon persisté, s'il est au format des choix en ids (`FORMAT_DES_CHOIX`) ; sinon aucun : un
+ *  brouillon antérieur porte des libellés qu'aucune lecture ne résout, le créateur rouvre le héros par
+ *  `draftFromHero`. */
+function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
+  return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
+}
+
+/** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */
+function avecClesDEmplacementEnIds<T>(hero: T): T {
+  const choix = (hero as { careerSlotChoices?: Combatant['careerSlotChoices'] } | null)?.careerSlotChoices;
+  return choix ? { ...hero, careerSlotChoices: migrerClesDEmplacement(choix) } : hero;
 }
 
 export function rosterAdd(entry: RosterEntry): void {
@@ -89,7 +95,7 @@ export function rosterUpdate(hero: Combatant): void {
 }
 
 const EXPORT_KIND = 'wfrp4-hero';
-export const EXPORT_VERSION = 5;
+export const EXPORT_VERSION = 6;
 
 /** Migrations SÉQUENTIELLES de l'export roster. À CHAQUE bump d'`EXPORT_VERSION`, ajouter ici
  *  l'entrée `vN → vN+1` — sinon les exports antérieurs sont refusés (jamais acceptés en silence
@@ -107,6 +113,9 @@ export const ROSTER_MIGRATIONS: MigrationMap = {
   // primitive `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`). Sans elle, un sort appris est
   // perdu en silence (`findSpellById` ne le résout plus).
   4: (doc) => ({ ...doc, version: 5, hero: remapSortsFusionnesDeep(doc.hero) }),
+  // v5 → v6 (#1924) : les clés de `careerSlotChoices` se résument en ids — `migrerClesDEmplacement`
+  // (`engine/careerSlots.ts`). Sans elle, chaque joker de carrière désigné redevient à désigner.
+  5: (doc) => ({ ...doc, version: 6, hero: avecClesDEmplacementEnIds(doc.hero) }),
 };
 
 /** Sérialise un héros (avec sa Richesse) en chaîne portable — sauvegarde, transfert d'appareil,

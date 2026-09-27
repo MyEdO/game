@@ -10,8 +10,7 @@ import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } fr
 import { sceneZoneTiles } from '../../state/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
-import { footprintTiles, sizeFootprint } from '../../state/footprint';
-import { entitySize } from '../../state/spawn';
+import { entiteFootTiles } from '../../state/spawn';
 import { buildFloors } from '../../gameIso/builders/floors';
 import { floorSvg } from '../../gameIso/authoring/floorsSvg';
 import { buildRoofs } from '../../gameIso/builders/roofs';
@@ -680,7 +679,7 @@ export function EditorCanvas({
     [sceneMonde, currentLayer, modeMonde],
   );
   // Les JETONS, eux, demandent encore au builder son cadrage de couche (`activeZ`/`viewZ` de
-  // `buildTokens`) avant le prédicat unique ; le décor ci-dessus n'a plus que le prédicat (#1317).
+  // `buildTokens`) avant le prédicat unique ; le décor ci-dessus a seulement le prédicat (#1317).
   // Le prédicat reste indispensable ici : sans lui, un corps de couche basse restait sur le canevas
   // alors que TOUTES ses décorations d'auteur avaient disparu du SVG — un jeton fantôme, inéditable.
   // `ambush` : l'auteur voit le CORPS de ses embusqueurs (`hiddenUntilCombat`), que la loi de JEU
@@ -892,7 +891,7 @@ export function EditorCanvas({
                     d: depth(en.pos.x, en.pos.y, dims, ez) + 0.45,
                     el: (
                       <g key={en.id} style={dimStyle} opacity={hidden ? 0.6 : 1}>
-                        {footprintTiles(en.pos, sizeFootprint(entitySize(en))).map((t) => (
+                        {entiteFootTiles(en, mpt).map((t) => (
                           <path
                             key={`fp-${t.x}-${t.y}`}
                             d={diamondPath(t.x, t.y, dims, ez)}
@@ -1100,7 +1099,7 @@ export function EditorCanvas({
           {/* Surlignage/poignée d'une sélection portée par une couche NON DESSINÉE : rien à saisir à
               l'écran, donc rien à peindre — sans quoi une poignée dorée flotte sur du vide. */}
           {selEnt && !zHidden(selEnt.z ?? 0) &&
-            footprintTiles(selEnt.pos, sizeFootprint(entitySize(selEnt))).map((t) => (
+            entiteFootTiles(selEnt, mpt).map((t) => (
               <path key={`fp-${t.x}-${t.y}`} d={diamondPath(t.x, t.y, dims, selEnt.z ?? 0)} fill="none" stroke={SELECT} strokeWidth={3} pointerEvents="none" />
             ))}
           {zoneRect && !zHidden(selZ(scene, sel)) && (

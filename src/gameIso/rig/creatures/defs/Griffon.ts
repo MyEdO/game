@@ -29,7 +29,7 @@ export const creature: CreatureDef = {
       hautArD: `<g data-deco="rayures-cuisse" opacity="0.55" stroke="@corpsO" stroke-width="1.8" fill="none" stroke-linecap="round"><path d="M-4.6 6 q4.6 1.6 9 0.6 M-4.2 10.5 q4.2 1.6 8.4 0.6 M-3.6 15 q3.6 1.4 7.2 0.5 M-3 19.5 q3 1.2 6 0.4"/></g>`,
       hautArG: `<g data-deco="rayures-cuisse" opacity="0.55" stroke="@corpsO" stroke-width="1.8" fill="none" stroke-linecap="round"><path d="M-4.6 6 q4.6 1.6 9 0.6 M-4.2 10.5 q4.2 1.6 8.4 0.6 M-3.6 15 q3.6 1.4 7.2 0.5 M-3 19.5 q3 1.2 6 0.4"/></g>`,
     },
-    stored: {
+    palette: {
       corps: '#c08e3e', corpsO: '#59360f', corpsH: '#eed08a', // robe fauve dorée, rayures/ombres brun sombre
       cheveux: '#e6bd52', cheveuxO: '#8a5c16', // collerette/crinière dorée claire (tête-poitrail)
       cuir: '#d2a02c', // serres + tarses jaune vif (raccord au bec #d4a82e)

@@ -152,7 +152,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
     const scene: Scene = {
       type: 'scene', id: 's', label: '', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
       layers: [{ z: 0, tiles: new Array(16).fill('herbe') }],
-      entities: (['a', 'b', 'c'] as const).map((id): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 } })),
+      entities: (['a', 'b', 'c'] as const).map((id): SceneEntity => ({ id, kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } })),
       dialogues: [], triggers: [], encounters: [], flags: {},
     };
     let stored: Scene = scene;
@@ -169,7 +169,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
       layers: [{ z: 0, tiles: new Array(36).fill('herbe') }],
       entities: [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-1', kind: 'personnage', pos: { x: 2, y: 1 } }, // abord NORD : la `pos` d'un attablé
+        { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } }, // abord NORD : la `pos` d'un attablé
       ] as SceneEntity[],
       dialogues: [], triggers: [], encounters: [], flags: {},
       seatAssignments: { 'table-1': { 'place-1': assis } },

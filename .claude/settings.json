@@ -65,9 +65,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/git-destructive-guard.mjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/commande-piege-guard.mjs",
             "timeout": 10,
-            "statusMessage": "Garde git destructif (arbre partagé)"
+            "statusMessage": "Commande piège refusée (lien node_modules, git show -- <sha>)"
           }
         ]
       },

@@ -22,7 +22,7 @@ import {
   talentSlots,
   availableChars,
   designationsFor,
-  takenRefs,
+  prisParLesAutres,
   refKey,
   parseRefKey,
   talentMaxReached,
@@ -155,14 +155,14 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
     skills.push({ skillId: o.optionId, label: o.label, spec: o.spec, characteristic, advances: 0, known: false, inCareer: true, nextCost: advanceCost(0, 'skill', true) });
   }
   // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
-  const taken = takenRefs([...sSlots, ...tSlots], designations);
   const skillSlotsOpen: SkillSlotRow[] = [];
   for (const slot of sSlots) {
     if (!slot.needsChoice || designations[slot.key]) continue;
     const o = slot.options[0];
     if (!o.optionId) continue; // garde défensive (un joker a toujours un optionId en pratique)
+    const pris = prisParLesAutres(slot, [...sSlots, ...tSlots], designations);
     const options = wildcardSpecs(o, 'skill')
-      .filter((spec) => !taken.has(refKey(o.optionId!, spec)))
+      .filter((spec) => !pris.has(refKey(o.optionId!, spec)))
       .map((spec) => ({
         spec,
         display: specLabel('skills', o.optionId!, spec),
@@ -188,14 +188,14 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
       const times = hero.talents.find((t) => t.talentId === ref!.id && (t.spec ?? '') === (ref!.spec ?? ''))?.times ?? 0;
       return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, ref.id, ref.spec) };
     }
-    // Slot à choix non désigné : proposer les options concrètes non prises par la carrière.
+    // Slot à choix non désigné : proposer les options concrètes que son niveau ne tient pas.
     const options: { refKey: string; display: string; owned: boolean }[] = [];
     for (const o of slot.options) {
       if (!o.optionId) continue;
       const pool: (string | undefined)[] = o.wildcard ? wildcardSpecs(o, 'talent') : [o.spec];
       for (const spec of pool) {
         const rk = refKey(o.optionId, spec);
-        if (taken.has(rk)) continue;
+        if (prisParLesAutres(slot, [...sSlots, ...tSlots], designations).has(rk)) continue;
         options.push({
           refKey: rk,
           display: refLabel('talents', { id: o.optionId, spec }),

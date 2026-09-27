@@ -1,6 +1,6 @@
 *Pages PDF 194-195*
 
-# **CHARACTER EVENTS**
+# <span id="page-193-0" data-folio="194"></span>**CHARACTER EVENTS**
 
 Each player rolls d100 on the Character Events table to determine what's been happening to their Character during the Downtime. Some Events may impact Endeavours and other Downtime activities, while others have effects that linger for your next adventure.
 
@@ -52,6 +52,8 @@ Through your labours or a social encounter, you find yourself in the home of an 
 
 You discover a small tent in a corner of the local market square, from which wafts the scent of incense and bitter herbs. A wizened crone beckons you inside and offers to read your fortune. For the price of 1 shilling, you may acquire the *Doomed* Talent, if you do not already have it, or otherwise roll on the table of *Doomings* (page 118) replacing your previous result with the new result. Should you try to locate the tent again so your companions can get a reading, you are mysteriously unable to find it.
 
+#### <span id="page-194-0" data-folio="195"></span>**57–59: Arcane Auction**
+
 The belongings of a recently deceased neighbour are auctioned, including a dusty, old book of unknown origin. If you are able to pay the 2 GC asking price, the book is yours! Beyond any other secrets the book may reveal, as determined by the GM, you (or any other Character of your choice who can read) may undertake the *Research Lore* Endeavour without using one of your Endeavours, making any required Test with Advantage.
 
 #### **60–67: Oi! You spilled my pint!**
@@ -72,7 +74,7 @@ Whether you cheated the wrong gambler or laughed at the wrong joke, the trickste
 
 #### **85–90: Scandalous Rumours**
 
-**57–59: Arcane Auction** Through no fault of your own — or perhaps entirely through your own doing — you become embroiled in a local scandal. Awkward conversations and sidelong glances follow wherever you go. During the next adventure, you cannot spend Fortune on social Tests.
+Through no fault of your own — or perhaps entirely through your own doing — you become embroiled in a local scandal. Awkward conversations and sidelong glances follow wherever you go. During the next adventure, you cannot spend Fortune on social Tests.
 
 #### **91–92: Betrayed!**
 

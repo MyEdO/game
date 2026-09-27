@@ -88,7 +88,7 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
     const rawBras = ARMOUR.plaque.bras as string;
     const dom = dominantCloth(rawBras);
     expect(dom).toBe('metal');
-    const map = buildTokenMap(ARMOUR_PALETTES.plaque);
+    const map = buildTokenMap([ARMOUR_PALETTES.plaque]);
     const expectedBase = (applyTokenMapArt(avantBrasBase(dom), map) as { front: string }).front;
 
     expect(out.avantBras!.svg).toContain(expectedBase); // base = rect matière de plaque résolue
@@ -121,7 +121,7 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
 
       const dom = dominantCloth(ARMOUR.plaque.bras as string);
       expect(dom).toBe('metal');
-      const map = buildTokenMap(ARMOUR_PALETTES.plaque);
+      const map = buildTokenMap([ARMOUR_PALETTES.plaque]);
       const expectedBase = (applyTokenMapArt(avantBrasBase(dom), map) as Record<typeof v, string>)[v];
 
       expect(out.avantBras!.svg).toContain(expectedBase);      // couverture d'acier de plaque, résolue
@@ -142,7 +142,7 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
 
       const dom = dominantCloth(ARMOUR.plaque.bras as string);
       expect(dom).toBe('metal');
-      const map = buildTokenMap(ARMOUR_PALETTES.plaque);
+      const map = buildTokenMap([ARMOUR_PALETTES.plaque]);
       // silhouette du bras haut dérivée de l'art RAW (haut découpé au coude), résolue en acier de plaque.
       const hautRaw = splitBrasSvg(ARMOUR.plaque.bras as string).haut;
       const expectedSil = applyTokenMap(v === 'profile' ? deriveProfileBras(hautRaw) : deriveBackBras(hautRaw), map);

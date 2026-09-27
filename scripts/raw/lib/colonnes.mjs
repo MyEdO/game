@@ -41,19 +41,25 @@ export function colonnes(boites) {
 /**
  * LIGNES de la page dans l'ORDRE DE LECTURE : chaque boîte va à la colonne du plus grand bord qui ne
  * dépasse pas son `x0` (0,5 pt d'arrondi) ; colonne par colonne, boîtes du haut vers le bas, et dans
- * une boîte ses lignes dans l'ordre de pdfminer.
- * @returns {{ colonne: number, x0: number, y0: number, texte: string, spans: { texte: string, police: string, taille: number }[] }[]}
+ * une boîte ses lignes dans l'ordre de pdfminer. `marge` = le bord droit (`x1`) de la boîte de la ligne ;
+ * celle d'une boîte d'UNE ligne, qui n'a que son propre bord, est la justification de son BLOC : le plus
+ * grand `x1` des boîtes de sa colonne parties de son bord gauche (à 2 pt) — un encadré en retrait garde
+ * la sienne.
+ * @returns {{ colonne: number, x0: number, x1: number, y0: number, marge: number, texte: string, spans: { texte: string, police: string, taille: number }[] }[]}
  */
 export function lignes(boites, bords = colonnes(boites)) {
   const colonneDe = (x) => Math.max(0, ...bords.map((b, k) => (x >= b - 0.5 ? k : 0)))
-  return boites
-    .map((b) => ({ b, k: colonneDe(b.x0) }))
+  const rangees = boites.map((b) => ({ b, k: colonneDe(b.x0) }))
+  const margeDe = (k, x0) => Math.max(...rangees.filter((r) => r.k === k && Math.abs(r.b.x0 - x0) <= 2).map(({ b }) => b.x1))
+  return rangees
     .sort((a, c) => a.k - c.k || c.b.y1 - a.b.y1)
     .flatMap(({ b, k }) =>
       b.lignes.map((l) => ({
         colonne: k,
         x0: l.x0,
+        x1: l.x1,
         y0: l.y0,
+        marge: b.lignes.length > 1 ? b.x1 : margeDe(k, b.x0),
         texte: l.texte,
         spans: l.spans.map(([texte, police, taille]) => ({ texte, police, taille })),
       })),

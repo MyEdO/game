@@ -5,7 +5,7 @@ import { opValue, spellActionValue, type SpellPlacement } from './aiSpellValue';
 import { creatureToCombatant } from './spawn';
 import { emptyScene } from './scene';
 import { chebyshev } from './path';
-import { findCreature, findSpell, type SpellData } from '../data';
+import { findCreatureById, findSpell, type SpellData } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 
@@ -167,7 +167,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
 // aiOvercastPlan — Surincantation AUTOMATIQUE (LDB 47 l.28-31 : +1 Cible par +2 DR) — INCHANGÉ
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-31)', () => {
-  const eusapia = () => creatureToCombatant(findCreature('Eusapia Balacañon')!, 'e1', { x: 0, y: 0 });
+  const eusapia = () => creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'e1', { x: 0, y: 0 });
   const carreau = findSpell('Carreau')!; // NI 4, Portée (Force Mentale) mètres → FM 53 → 26 cases
 
   it('surplus de 4 DR au-dessus du NI → 2 cibles supplémentaires, les plus proches À PORTÉE', () => {
@@ -197,7 +197,7 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magic-vdm-incantation`)', () => {
   afterEach(() => resetRule('magic-vdm-incantation'));
-  const eusapia = () => creatureToCombatant(findCreature('Eusapia Balacañon')!, 'e1', { x: 0, y: 0 });
+  const eusapia = () => creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'e1', { x: 0, y: 0 });
   const carreau = findSpell('Carreau')!; // NI 4, Projectile magique
 
   it('option ON, aucune cible neuve à portée → le reliquat ENTIER rejoint l’axe Dégâts (jamais gaspillé)', () => {

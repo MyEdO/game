@@ -1,6 +1,6 @@
 *Pages PDF 156-160*
 
-# **GETTING AROUND**
+# <span id="page-155-0" data-folio="156"></span>**GETTING AROUND**
 
 You have to keep on your toes to stay ahead in the Empire, whether slipping between throngs of people baying for blood at a public execution or leaping across the crumbling rooftops of Altdorf. This section deals with moving through the space immediately around you — if you want to cover longer distances, look to **Navigation** on page 152 instead.
 
@@ -22,6 +22,8 @@ Jumping to reach high ledges, leaping from rooftop to rooftop, or failing both a
 
 Difficulty is determined by the Character's Movement, with values 3 or below increasing Difficulty, and values of 5 or greater reducing it.
 
+**EXAMPLE DIFFICULTIES OF COMMON MOVEMENT ACTIONS**
+
 | Difficulty             | Action                                                                                                                                                                                                                                      |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Very Easy (+6 SL)      | Ride (Horse): Bring a quiet horse for a gentle trot over a lush meadow.<br>Drive: Navigate a small obstacle with your horse and cart.<br>Athletics: Dash across town to catch the baker before she's sold out of fresh bread.               |
@@ -32,7 +34,7 @@ Difficulty is determined by the Character's Movement, with values 3 or below inc
 | Hard (-2 SL)           | Ride (Demigryph): Spur your beast to gallop headfirst into a wall of glittering spears.<br>Drive: Bring your damaged cart to a halt before plunging headfirst into the ditch.<br>Row: Paddle your way out of the jaws of a hungry stirpike. |
 | Very Hard (-3 SL)      | Ride (Horse): Leap across a broken bridge to safety.<br>Climb: Ascend the smooth granite face of a lofty mountain in the rain.<br>Swim: Plunge over a waterfall and dive into the water below without injury.                               |
 
-### **HOW FAR, THOUGH?**
+### <span id="page-156-0" data-folio="157"></span>**HOW FAR, THOUGH?**
 
 Generally speaking, you will only need to know if your Character made a particular jump or not. With a decent run-up and a successful Athletics Test, most Characters can leap around their Movement Characteristic in yards. Additional SL after the first can increase this by up to twice that distance, but very few save the most athletic individuals can manage further than that.
 
@@ -56,7 +58,7 @@ For more on mounts in combat, see page 168. Mounts that do not have the *Trained
 
 More complex rules for vehicles can be found in various supplements, but the following rules are more than sufficient for most circumstances.
 
-#### **Drive**
+#### <span id="page-157-0" data-folio="158"></span>**Drive**
 
 Carts, wagons, steam tanks, and odd dwarfish contraptions rely upon the Drive Skill. Tests are required only to push a vehicle beyond the speeds it was designed for, to keep a damaged vehicle moving, or to engage in thrilling **Pursuits**. Vehicle speeds vary widely, but their Movement is generally the same as that of the animals that haul it. Vehicles cannot stop instantly, and most continue travelling a distance equal to their Movement in yards even after their driver has pulled upon the reins. Ensuing crashes are dangerous for beast, vehicle, and passengers, and should be treated as Falling (page 169) a distance equal to half that travelled on the vehicle's last Turn.
 
@@ -76,7 +78,7 @@ Sail can also be used to tie various knots that can restrain others, come free w
 
 # **Pursuits**
 
-In a pursuit, those trying to escape are the Quarry, while those trying to catch them are the Pursuers. At the start of the chase, the fastest Pursuer — the one with the highest Movement makes an Opposed Test against the slowest member of the Quarry — the one with the lowest Movement. This is usually an Athletics Test, though it may instead be a Drive, Ride, or Swim Test, depending on the circumstances. If mounts or vehicles are involved, use their Movement values to determine the fastest Pursuer and slowest Quarry.
+In a pursuit, those trying to escape are the Quarry, while those trying to catch them are the Pursuers. At the start of the chase, the fastest Pursuer — the one with the highest Movement — makes an Opposed Test against the slowest member of the Quarry — the one with the lowest Movement. This is usually an Athletics Test, though it may instead be a Drive, Ride, or Swim Test, depending on the circumstances. If mounts or vehicles are involved, use their Movement values to determine the fastest Pursuer and slowest Quarry.
 
 If either side wins the Opposed Test by 6 or more SL, the pursuit immediately ends in their favour (see below). Likewise, if the slowest member of one side has at least double the Movement of the fastest member of the other, they automatically win the pursuit.
 
@@ -84,9 +86,10 @@ These rules are intended to create interesting narrative moments, and so work sl
 
 If the players are chasing one another, simply resolve the pursuit with an Opposed Athletics, Drive, Ride, Swim, or other appropriate Test instead.
 
-| PURSUIT FACTORS                                                          |                                                                         |
-|--------------------------------------------------------------------------|-------------------------------------------------------------------------|
+**PURSUIT FACTORS**
+
 | Positives while Quarry                                                   | Positives while Pursuers                                                |
+|--------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | Won the Chase Test                                                       | Won the Chase Test                                                      |
 | Terrain is dense or crowded with places to hide                       | Terrain is open with few places to hide                              |
 | Your slowest member has a higher Movement than the fastest Pursuer | Your slowest member has a higher Movement than the fastest Quarry |
@@ -97,7 +100,7 @@ It is far easier to escape a dogged pursuer in the midst of a crowded town marke
 
 Each Character involved in a Pursuit will encounter an Obstacle. How many Characters must successfully overcome their Obstacle to succeed in the Pursuit depends on the number of Pursuit Factors in their favour.
 
-**No Positive Factors**: The enemy has the upper hand! Every member of the party must successfully evade their Obstacle.
+<span id="page-158-0" data-folio="159"></span>**No Positive Factors**: The enemy has the upper hand! Every member of the party must successfully evade their Obstacle.
 
 - **1-2 Positive Factors**: Half the party, rounded up, must navigate their Obstacle.
 - **3+ Positive Factors:** Only one party member needs to overcome their Obstacle.
@@ -122,9 +125,10 @@ If you satisfy the outcome conditions imposed by your Pursuit Factors, you win, 
 
 **If you're the Pursuer and you lose:** The Quarry escapes. They may leave behind clues or evidence that could help you track them down later, but for now they have given you the slip. Any Pursuers who overcame their Obstacles may press on without the others, each gaining a single opportunity to attack or restrain the slowest member of the Quarry. Bear in mind this may leave a lone Character outnumbered and far from their companions.
 
-|     | OBSTACLE TABLE                                                                                               |                                                                               |
-|-----|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+**OBSTACLE TABLE**
+
 | d10 | Obstacle                                                                                                     | Example Tests                                                                 |
+|-----|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
 | 1   | A merchant's wagon overturns, spilling its goods across your path.                                        | Athletics to leap over the spilled goods, or Dodge to duck to one side.    |
 | 2   | An overly curious guard tries to stop you to see what the fuss is about.                                  | Charm or Intimidate to convince them to bother someone else.               |
 | 3   | A chest-deep pool, canal, or stream lies in your way.                                                        | Swim to dive in, or Athletics to leap across.                                 |
@@ -134,4 +138,4 @@ If you satisfy the outcome conditions imposed by your Pursuit Factors, you win, 
 | 7   | A shadowy alley or dense patch of foliage obscures your surroundings.                                     | Stealth to hide from Pursuers or Track to keep on your Quarry's trail.     |
 | 8   | A pothole or half-buried root makes you (or your mount) stumble.                                          | Endurance to push through the pain or Charm Animal to calm your mount.     |
 | 9   | A sudden change in elevation forces you onto rooftops or through the treetops.                            | Athletics to leap between gaps or Climb to negotiate the changing terrain. |
-| 10  | A maze of alleys or winding canyons causes you to lose sight of your Quarry or Pursuers.                  | Perception to spot them again or Navigation to avoid getting lost.         |
+| 10  | A maze of alleys or winding canyons causes you to lose sight of your Quarry or Pursuers.                  | Perception to spot them again or Navigation to avoid getting lost.         |<span id="page-159-0" data-folio="160"></span>

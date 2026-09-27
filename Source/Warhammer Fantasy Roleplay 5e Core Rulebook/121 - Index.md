@@ -1,6 +1,6 @@
 *Pages PDF 370-375*
 
-# **INDEX**
+# <span id="page-369-0" data-folio="370"></span>**INDEX**
 
 | A                                   | Armour Repels the Winds              | Blazing Sun (Miracle) 224         | Buboes 181                     |  |
 |-------------------------------------|--------------------------------------|-----------------------------------|--------------------------------|--|
@@ -62,7 +62,7 @@
 
 | Climbing (Rules) 156              | Critical Wounds 171                    | Dirty Fighting (Talent) 118       | Encumbrance and Travel Fatigue 299      |  |
 |-----------------------------------|----------------------------------------|-----------------------------------|-----------------------------------------|--|
-| Clipping Coins 297                | Criticals (on Tests) 130               | Disarm (Talent) 118               | Endeavours 196                          |  |
+<span id="page-370-0" data-folio="371"></span>| Clipping Coins 297                | Criticals (on Tests) 130               | Disarm (Talent) 118               | Endeavours 196                          |  |
 | Clothing and Accessories 308      | Criticals & Fumbles 130                | Disease (Trait) 358               | Endurance (Skill) 111                   |  |
 | Coachman (Career) 56              | Crossbows and Throwing                 | Disease and Infection 179         | Engaged 163                             |  |
 | Cold (Exposure) 170               | Ranged Weapon Group 302                | Disease Format 179                | Engineer (Career) 58                    |  |
@@ -123,7 +123,7 @@
 | Critical Casting 235              | Difficulty Table 131                   | Encumbrance 299                   | Flattery, Bribery, and Status 140       |  |
 | Critical Hits and Fumbles 165     | Dire Wolf 341                          | Encumbrance and Attributes 299    | Flee! (Talent) 120                      |  |
 
-| Fleeing 163                       | Glorious Reikland 272                 | Henchmen 317                      | J                                 |  |
+<span id="page-371-0" data-folio="372"></span>| Fleeing 163                       | Glorious Reikland 272                 | Henchmen 317                      | J                                 |  |
 |-----------------------------------|---------------------------------------|-----------------------------------|-----------------------------------|--|
 | Fleet Footed (Talent) 120         | Gnome 323                             | Herbalist (Career) 66             | Jumping Down (Rules) 157          |  |
 | Flexible (Armour Quality) 306     | Goblin 336                            | Herbs and Remedies 314            | Jump Up (Talent) 121              |  |
@@ -186,7 +186,7 @@
 |                                   | Helpless Targets 167                  | Item Flaws 299                    |                                   |  |
 |                                   | Helspire 295                          | Item Qualities 298                |                                   |  |
 
-| M                                   | Miracles of Rhya 225            | Orc 337                               | Psychological Traits 183          |   |
+<span id="page-372-0" data-folio="373"></span>| M                                   | Miracles of Rhya 225            | Orc 337                               | Psychological Traits 183          |   |
 |-------------------------------------|---------------------------------|---------------------------------------|-----------------------------------|---|
 | Magic 230                           | Miracles of Shallya 226         | Orientation (Talent) 123              | Psychology 183                    |   |
 | Magic Flame (Spell) 241             | Miracles of Sigmar 226          | Outcomes Table 131                    | Public Speaker (Talent) 124       |   |
@@ -248,7 +248,7 @@
 | Miracles of Myrmidia 224            | Opposed Tests 131               | Protection from Rain (Spell) 241      | Resolute (Talent) 124             |   |
 | Miracles of Ranald 224              | (The) Orc and Goblin Hordes 336 | Protective Charm (Spell) 255          | (The) Restless Dead 338           |   |
 
-| Reversal (Talent) 124               | Shadowstep (Spell) 255              | Status and Social Standing 140     | Terror (Psychology) 184                |  |
+<span id="page-373-0" data-folio="374"></span>| Reversal (Talent) 124               | Shadowstep (Spell) 255              | Status and Social Standing 140     | Terror (Psychology) 184                |  |
 |-------------------------------------|-------------------------------------|------------------------------------|----------------------------------------|--|
 | Rhya's Children (Miracle) 225       | Shallya's Tears (Miracle) 226       | Status and Social Tests 141        | Terror (Trait) 362                     |  |
 | Rhya's Harvest (Miracle) 225        | Sharp (Talent) 125                  | Stay Morr's Hand (Miracle) 223     | Test Examples 132                      |  |
@@ -310,7 +310,7 @@
 | Shadow (Talent) 125                 | Starting Trappings 39               | Terrifying (Spell) 245             | Unarmed Combat 167                     |  |
 | Shadowsteed (Spell) 255             | Starting Wealth 39                  | Territorial (Trait) 362            | Unbalanced (Weapon Flaw) 305           |  |
 
-| Unbreakable (Weapon Quality) 305      | Very Strong (Talent) 128          | Weapon Flaws 305                | Wrap (Weapon Quality) 305     |
+<span id="page-374-0" data-folio="375"></span>| Unbreakable (Weapon Quality) 305      | Very Strong (Talent) 128          | Weapon Flaws 305                | Wrap (Weapon Quality) 305     |
 |---------------------------------------|-----------------------------------|---------------------------------|-------------------------------|
 | Unconscious (Condition) 187           | Villager (Career) 101             | Weapon Range 302                | Wrath of the Gods 218         |
 | Undamaging (Weapon Flaw) 305          | (The) Villages, Hamlets, and Holy | Weapon Reach 300                | Wrath of the Gods Table 218   |

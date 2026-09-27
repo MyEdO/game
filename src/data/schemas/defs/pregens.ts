@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { idDe, refOuSpec } from '../grammaire/ref';
+import { sexeSchema } from '../grammaire/valeurs';
 
 export const file = 'pregens.json';
 export const famille = 'entite';
@@ -38,7 +39,7 @@ const doc = document(
      *  (construct de choix d'équipement) — aucune des 8 entrées actuelles n'a un tel slot au Niveau 1. */
     weaponChoice: idDe('trapping').optional(),
     /** Sexe visuel (cosmétique). Défaut 'M'. */
-    sex: z.enum(['M', 'F']).optional(),
+    sex: sexeSchema.optional(),
     /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
     build: z.number().optional(),
   },

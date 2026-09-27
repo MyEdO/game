@@ -6,6 +6,8 @@
  * Structurels purs (aucune valeur SVG/rendu) : les arts résolus vivent dans `gameIso/rig`.
  */
 
+import type { Sexe } from '../data/schemas/grammaire/valeurs';
+
 /** Parts monstrueuses par slot (mutant modulaire : tête/bras choisis comme un PJ).
  *  Type structurel (pas d'import rendu) ; les valeurs valides sont offertes par l'éditeur. */
 export interface MonsterPartsSel {
@@ -41,7 +43,7 @@ export interface EntityAppearance {
   /** Coiffure / visage épinglés (rig) : slot → index. */
   parts?: { cheveux?: number; visage?: number };
   /** Surcharges cosmétiques (sinon dérivées du seed). */
-  sex?: 'M' | 'F';
+  sex?: Sexe;
   build?: number;
   /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : 'Nains', 'Halflings',
    *  'Elfes'… (canonicalisée par `baseSpeciesOf`). Vide = dérivée du nom. */

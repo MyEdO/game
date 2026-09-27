@@ -30,20 +30,18 @@ import { ColorPalettePickers } from './ColorPalettePickers';
 import { prefixOf } from './PossessionsRegistry';
 import { GatedAction } from './GatedAction';
 import type { Palette } from '../gameIso/rig/palette';
+import { projectionEditeur } from '../gameIso/rig/clesDePalette';
 
 /** Raison UNIQUE du verrou d'équipement pendant un combat, partagée par les actions de sac. */
 const VERROU_COMBAT = 'Équipement verrouillé en combat (seul le changement de set d’armes est permis).';
 
 /** Emplacements de couleur d'un SKIN d'OBJET légendaire (`metal/cuir/accent` = slots de palette). */
-const WEAPON_SKIN_SLOTS: [label: string, slot: keyof Palette][] = [
-  ['Métal (lame / canon)', 'metal'],
-  ['Bois & cuir', 'cuir'],
-  ['Or & détails', 'accent'],
-];
-const ARMOUR_SKIN_SLOTS: [label: string, slot: keyof Palette][] = [
-  ['Métal (plaque / maille)', 'metal'],
-  ['Cuir / rembourrage', 'cuir'],
-];
+const WEAPON_SKIN_SLOTS = projectionEditeur(['metal', 'cuir', 'accent'], {
+  metal: 'Métal (lame / canon)', cuir: 'Bois & cuir', accent: 'Or & détails',
+});
+const ARMOUR_SKIN_SLOTS = projectionEditeur(['metal', 'cuir'], {
+  metal: 'Métal (plaque / maille)', cuir: 'Cuir / rembourrage',
+});
 const skinSlotsFor = (kind: ItemInstance['kind']) => (kind === 'armor' ? ARMOUR_SKIN_SLOTS : WEAPON_SKIN_SLOTS);
 
 const LOC_SHORT: Record<HitLocation, string> = {

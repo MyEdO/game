@@ -1,124 +1,124 @@
 # Warhammer Fantasy Roleplay 5e Core Rulebook — Index
 
-- [001 - Cover](<001 - Cover.md>) — p.1
-- [002 - Contents](<002 - Contents.md>) — p.2-4
-- [003 - Credits](<003 - Credits.md>) — p.5
-- [004 - Introduction](<004 - Introduction.md>) — p.6-21
-- [005 - Character Building](<005 - Character Building.md>) — p.22
-- [006 - 1. Species](<006 - 1. Species.md>) — p.23
-- [007 - Character Sheet Explained](<007 - Character Sheet Explained.md>) — p.24-25
-- [008 - Humans (Reiklanders)](<008 - Humans (Reiklanders).md>) — p.26-27
-- [009 - Dwarfs](<009 - Dwarfs.md>) — p.28-29
-- [010 - Halflings](<010 - Halflings.md>) — p.30-31
-- [011 - High Elves](<011 - High Elves.md>) — p.32-33
-- [012 - Wood Elves](<012 - Wood Elves.md>) — p.34-35
-- [013 - 2. Class and Career](<013 - 2. Class and Career.md>) — p.36-37
-- [014 - 3. Characteristics](<014 - 3. Characteristics.md>) — p.38
-- [015 - 4. Skills](<015 - 4. Skills.md>) — p.38-39
-- [016 - 5. Talents, Trappings, and Final Game Details](<016 - 5. Talents, Trappings, and Final Game Details.md>) — p.39-40
-- [017 - 6. Personality and Background](<017 - 6. Personality and Background.md>) — p.41-42
-- [018 - Class and Careers](<018 - Class and Careers.md>) — p.43-108
-- [019 - Skills and Talents](<019 - Skills and Talents.md>) — p.109
-- [020 - Skills](<020 - Skills.md>) — p.109-114
-- [021 - Talents](<021 - Talents.md>) — p.114-128
-- [022 - Rules](<022 - Rules.md>) — p.129
-- [023 - Tests](<023 - Tests.md>) — p.129
-- [024 - Making a Test](<024 - Making a Test.md>) — p.130-132
-- [025 - Fate and Fortune](<025 - Fate and Fortune.md>) — p.133
-- [026 - Using the Rules](<026 - Using the Rules.md>) — p.133
-- [027 - Theft and Skullduggery](<027 - Theft and Skullduggery.md>) — p.134-139
-- [028 - Flattery, Bribery, and Status](<028 - Flattery, Bribery, and Status.md>) — p.140-145
-- [029 - Nosing Around](<029 - Nosing Around.md>) — p.146-151
-- [030 - Life Beyond the Walls](<030 - Life Beyond the Walls.md>) — p.152
-- [031 - Cunning Crafts](<031 - Cunning Crafts.md>) — p.153-155
-- [032 - Getting Around](<032 - Getting Around.md>) — p.156-160
-- [033 - Combat](<033 - Combat.md>) — p.161
-- [034 - Taking Your Turn](<034 - Taking Your Turn.md>) — p.162
-- [035 - Moving in Combat](<035 - Moving in Combat.md>) — p.163
-- [036 - Attacking](<036 - Attacking.md>) — p.164-168
-- [037 - Momentum](<037 - Momentum.md>) — p.168-170
-- [038 - Injury, Healing, and Death](<038 - Injury, Healing, and Death.md>) — p.170-179
-- [039 - Disease and Infection](<039 - Disease and Infection.md>) — p.179-182
-- [040 - Poisons](<040 - Poisons.md>) — p.183
-- [041 - Psychology](<041 - Psychology.md>) — p.183-184
-- [042 - Conditions](<042 - Conditions.md>) — p.184-187
-- [043 - Corruption and Mutation](<043 - Corruption and Mutation.md>) — p.187-189
-- [044 - Between Adventures](<044 - Between Adventures.md>) — p.190
-- [045 - Spending XP](<045 - Spending XP.md>) — p.191
-- [046 - Regional Events](<046 - Regional Events.md>) — p.192-193
-- [047 - Character Events](<047 - Character Events.md>) — p.194-195
-- [048 - Endeavours](<048 - Endeavours.md>) — p.196-201
-- [049 - Religion and Belief](<049 - Religion and Belief.md>) — p.202
-- [050 - Gods of the Empire](<050 - Gods of the Empire.md>) — p.202-203
-- [051 - The Cults](<051 - The Cults.md>) — p.203-204
-- [052 - The Cult of Manann, God of the Sea](<052 - The Cult of Manann, God of the Sea.md>) — p.205
-- [053 - The Cult of Morr, God of Death](<053 - The Cult of Morr, God of Death.md>) — p.206
-- [054 - The Cult of Myrmidia, Goddess of Strategy](<054 - The Cult of Myrmidia, Goddess of Strategy.md>) — p.207
-- [055 - The Cult of Ranald, God of Trickery](<055 - The Cult of Ranald, God of Trickery.md>) — p.208
-- [056 - The Cult of Rhya, Goddess of Fertility](<056 - The Cult of Rhya, Goddess of Fertility.md>) — p.209
-- [057 - The Cult of Shallya, Goddess of Mercy](<057 - The Cult of Shallya, Goddess of Mercy.md>) — p.210
-- [058 - The Cult of Sigmar, God of the Empire](<058 - The Cult of Sigmar, God of the Empire.md>) — p.211
-- [059 - The Cult of Taal, God of the Wild](<059 - The Cult of Taal, God of the Wild.md>) — p.212
-- [060 - The Cult of Ulric, God of Wolves, War, and Winter](<060 - The Cult of Ulric, God of Wolves, War, and Winter.md>) — p.213
-- [061 - The Cult of Verena, Goddess of Wisdom](<061 - The Cult of Verena, Goddess of Wisdom.md>) — p.214
-- [062 - Dwarf Ancestor Gods](<062 - Dwarf Ancestor Gods.md>) — p.215
-- [063 - Halfling Gods](<063 - Halfling Gods.md>) — p.215-216
-- [064 - Chaos Gods](<064 - Chaos Gods.md>) — p.217
-- [065 - Prayers](<065 - Prayers.md>) — p.217-219
-- [066 - Blessings](<066 - Blessings.md>) — p.220-221
-- [067 - Miracles](<067 - Miracles.md>) — p.222-229
-- [068 - Magic](<068 - Magic.md>) — p.230
-- [069 - The Aethyr](<069 - The Aethyr.md>) — p.230-234
-- [070 - Magic Rules](<070 - Magic Rules.md>) — p.235-245
-- [071 - Colour Magic](<071 - Colour Magic.md>) — p.245-255
-- [072 - Witch Magic](<072 - Witch Magic.md>) — p.255-257
-- [073 - Dark Magic](<073 - Dark Magic.md>) — p.258-259
-- [074 - Chaos Magic](<074 - Chaos Magic.md>) — p.259-260
-- [075 - The Gamemaster](<075 - The Gamemaster.md>) — p.261-262
-- [076 - Running the Game](<076 - Running the Game.md>) — p.262-271
-- [077 - Glorious Reikland](<077 - Glorious Reikland.md>) — p.272
-- [078 - The Lie of the Land](<078 - The Lie of the Land.md>) — p.273-278
-- [079 - The Powers That Be](<079 - The Powers That Be.md>) — p.279-287
-- [080 - Settlements](<080 - Settlements.md>) — p.288-295
-- [081 - Consumer Guide](<081 - Consumer Guide.md>) — p.296
-- [082 - Money](<082 - Money.md>) — p.296-297
-- [083 - Going to Market](<083 - Going to Market.md>) — p.297-298
-- [084 - Craftsmanship](<084 - Craftsmanship.md>) — p.298-299
-- [085 - Encumbrance](<085 - Encumbrance.md>) — p.299
-- [086 - Weapons](<086 - Weapons.md>) — p.300-305
-- [087 - Armour](<087 - Armour.md>) — p.306-307
-- [088 - Packs and Containers](<088 - Packs and Containers.md>) — p.308
-- [089 - Clothing and Accessories](<089 - Clothing and Accessories.md>) — p.308-309
-- [090 - Food, Drink, and Lodging](<090 - Food, Drink, and Lodging.md>) — p.309
-- [091 - Tools and Kits](<091 - Tools and Kits.md>) — p.310
-- [092 - Books and Documents](<092 - Books and Documents.md>) — p.311
-- [093 - Trade Tools and Workshops](<093 - Trade Tools and Workshops.md>) — p.312
-- [094 - Animals and Vehicles](<094 - Animals and Vehicles.md>) — p.312-313
-- [095 - Travel Prices](<095 - Travel Prices.md>) — p.313
-- [096 - Poisons](<096 - Poisons.md>) — p.313
-- [097 - Herbs and Remedies](<097 - Herbs and Remedies.md>) — p.314
-- [098 - Prosthetics](<098 - Prosthetics.md>) — p.315
-- [099 - Magical Items](<099 - Magical Items.md>) — p.315
-- [100 - Miscellaneous Trappings](<100 - Miscellaneous Trappings.md>) — p.316
-- [101 - Hirelings](<101 - Hirelings.md>) — p.317
-- [102 - Bestiary](<102 - Bestiary.md>) — p.318
-- [103 - Creature Hit Locations](<103 - Creature Hit Locations.md>) — p.318-319
-- [104 - The Peoples of the Reikland](<104 - The Peoples of the Reikland.md>) — p.319-324
-- [105 - The Beasts of the Reikland](<105 - The Beasts of the Reikland.md>) — p.325-327
-- [106 - The Monstrous Beasts of the Reikland](<106 - The Monstrous Beasts of the Reikland.md>) — p.328-335
-- [107 - The Orc and Goblin Hordes](<107 - The Orc and Goblin Hordes.md>) — p.336-338
-- [108 - The Restless Dead](<108 - The Restless Dead.md>) — p.338-344
-- [109 - Beastmen, the Children of Chaos](<109 - Beastmen, the Children of Chaos.md>) — p.345-346
-- [110 - Cultists, the Lost and the Damned](<110 - Cultists, the Lost and the Damned.md>) — p.347-348
-- [111 - Daemons, the Gibbering Hosts](<111 - Daemons, the Gibbering Hosts.md>) — p.349-350
-- [112 - The Loathsome Ratmen](<112 - The Loathsome Ratmen.md>) — p.351-352
-- [113 - Creature Templates](<113 - Creature Templates.md>) — p.353-354
-- [114 - Ungrakk's Brayherd](<114 - Ungrakk's Brayherd.md>) — p.354-356
-- [115 - Creature Traits](<115 - Creature Traits.md>) — p.356-363
-- [116 - Appendix I](<116 - Appendix I.md>) — p.364
-- [117 - Appendix II](<117 - Appendix II.md>) — p.364
-- [118 - Appendix III](<118 - Appendix III.md>) — p.365-367
-- [119 - Appendix IV](<119 - Appendix IV.md>) — p.368-369
-- [120 - Appendix V](<120 - Appendix V.md>) — p.369
-- [121 - Index](<121 - Index.md>) — p.370-375
-- [122 - Character Sheet](<122 - Character Sheet.md>) — p.376-378
+- [Cover](<001 - Cover.md>) — folio 1
+- [Contents](<002 - Contents.md>) — folio 2
+- [Credits](<003 - Credits.md>) — folio 5
+- [Introduction](<004 - Introduction.md>) — folio 6
+- [Character Building](<005 - Character Building.md>) — folio 22
+- [1. Species](<006 - 1. Species.md>) — folio 23
+- [Character Sheet Explained](<007 - Character Sheet Explained.md>) — folio 24
+- [Humans (Reiklanders)](<008 - Humans (Reiklanders).md>) — folio 26
+- [Dwarfs](<009 - Dwarfs.md>) — folio 28
+- [Halflings](<010 - Halflings.md>) — folio 30
+- [High Elves](<011 - High Elves.md>) — folio 32
+- [Wood Elves](<012 - Wood Elves.md>) — folio 34
+- [2. Class and Career](<013 - 2. Class and Career.md>) — folio 36
+- [3. Characteristics](<014 - 3. Characteristics.md>) — folio 38
+- [4. Skills](<015 - 4. Skills.md>) — folio 38
+- [5. Talents, Trappings, and Final Game Details](<016 - 5. Talents, Trappings, and Final Game Details.md>) — folio 39
+- [6. Personality and Background](<017 - 6. Personality and Background.md>) — folio 41
+- [Class and Careers](<018 - Class and Careers.md>) — folio 43
+- [Skills and Talents](<019 - Skills and Talents.md>) — folio 109
+- [Skills](<020 - Skills.md>) — folio 109
+- [Talents](<021 - Talents.md>) — folio 114
+- [Rules](<022 - Rules.md>) — folio 129
+- [Tests](<023 - Tests.md>) — folio 129
+- [Making a Test](<024 - Making a Test.md>) — folio 130
+- [Fate and Fortune](<025 - Fate and Fortune.md>) — folio 133
+- [Using the Rules](<026 - Using the Rules.md>) — folio 133
+- [Theft and Skullduggery](<027 - Theft and Skullduggery.md>) — folio 134
+- [Flattery, Bribery, and Status](<028 - Flattery, Bribery, and Status.md>) — folio 140
+- [Nosing Around](<029 - Nosing Around.md>) — folio 146
+- [Life Beyond the Walls](<030 - Life Beyond the Walls.md>) — folio 152
+- [Cunning Crafts](<031 - Cunning Crafts.md>) — folio 153
+- [Getting Around](<032 - Getting Around.md>) — folio 156
+- [Combat](<033 - Combat.md>) — folio 161
+- [Taking Your Turn](<034 - Taking Your Turn.md>) — folio 162
+- [Moving in Combat](<035 - Moving in Combat.md>) — folio 163
+- [Attacking](<036 - Attacking.md>) — folio 164
+- [Momentum](<037 - Momentum.md>) — folio 168
+- [Injury, Healing, and Death](<038 - Injury, Healing, and Death.md>) — folio 170
+- [Disease and Infection](<039 - Disease and Infection.md>) — folio 179
+- [Poisons](<040 - Poisons.md>) — folio 183
+- [Psychology](<041 - Psychology.md>) — folio 183
+- [Conditions](<042 - Conditions.md>) — folio 184
+- [Corruption and Mutation](<043 - Corruption and Mutation.md>) — folio 187
+- [Between Adventures](<044 - Between Adventures.md>) — folio 190
+- [Spending XP](<045 - Spending XP.md>) — folio 191
+- [Regional Events](<046 - Regional Events.md>) — folio 192
+- [Character Events](<047 - Character Events.md>) — folio 194
+- [Endeavours](<048 - Endeavours.md>) — folio 196
+- [Religion and Belief](<049 - Religion and Belief.md>) — folio 202
+- [Gods of the Empire](<050 - Gods of the Empire.md>) — folio 202
+- [The Cults](<051 - The Cults.md>) — folio 203
+- [The Cult of Manann, God of the Sea](<052 - The Cult of Manann, God of the Sea.md>) — folio 205
+- [The Cult of Morr, God of Death](<053 - The Cult of Morr, God of Death.md>) — folio 206
+- [The Cult of Myrmidia, Goddess of Strategy](<054 - The Cult of Myrmidia, Goddess of Strategy.md>) — folio 207
+- [The Cult of Ranald, God of Trickery](<055 - The Cult of Ranald, God of Trickery.md>) — folio 208
+- [The Cult of Rhya, Goddess of Fertility](<056 - The Cult of Rhya, Goddess of Fertility.md>) — folio 209
+- [The Cult of Shallya, Goddess of Mercy](<057 - The Cult of Shallya, Goddess of Mercy.md>) — folio 210
+- [The Cult of Sigmar, God of the Empire](<058 - The Cult of Sigmar, God of the Empire.md>) — folio 211
+- [The Cult of Taal, God of the Wild](<059 - The Cult of Taal, God of the Wild.md>) — folio 212
+- [The Cult of Ulric, God of Wolves, War, and Winter](<060 - The Cult of Ulric, God of Wolves, War, and Winter.md>) — folio 213
+- [The Cult of Verena, Goddess of Wisdom](<061 - The Cult of Verena, Goddess of Wisdom.md>) — folio 214
+- [Dwarf Ancestor Gods](<062 - Dwarf Ancestor Gods.md>) — folio 215
+- [Halfling Gods](<063 - Halfling Gods.md>) — folio 215
+- [Chaos Gods](<064 - Chaos Gods.md>) — folio 217
+- [Prayers](<065 - Prayers.md>) — folio 217
+- [Blessings](<066 - Blessings.md>) — folio 220
+- [Miracles](<067 - Miracles.md>) — folio 222
+- [Magic](<068 - Magic.md>) — folio 230
+- [The Aethyr](<069 - The Aethyr.md>) — folio 230
+- [Magic Rules](<070 - Magic Rules.md>) — folio 235
+- [Colour Magic](<071 - Colour Magic.md>) — folio 245
+- [Witch Magic](<072 - Witch Magic.md>) — folio 255
+- [Dark Magic](<073 - Dark Magic.md>) — folio 258
+- [Chaos Magic](<074 - Chaos Magic.md>) — folio 259
+- [The Gamemaster](<075 - The Gamemaster.md>) — folio 261
+- [Running the Game](<076 - Running the Game.md>) — folio 262
+- [Glorious Reikland](<077 - Glorious Reikland.md>) — folio 272
+- [The Lie of the Land](<078 - The Lie of the Land.md>) — folio 273
+- [The Powers That Be](<079 - The Powers That Be.md>) — folio 279
+- [Settlements](<080 - Settlements.md>) — folio 288
+- [Consumer Guide](<081 - Consumer Guide.md>) — folio 296
+- [Money](<082 - Money.md>) — folio 296
+- [Going to Market](<083 - Going to Market.md>) — folio 297
+- [Craftsmanship](<084 - Craftsmanship.md>) — folio 298
+- [Encumbrance](<085 - Encumbrance.md>) — folio 299
+- [Weapons](<086 - Weapons.md>) — folio 300
+- [Armour](<087 - Armour.md>) — folio 306
+- [Packs and Containers](<088 - Packs and Containers.md>) — folio 308
+- [Clothing and Accessories](<089 - Clothing and Accessories.md>) — folio 308
+- [Food, Drink, and Lodging](<090 - Food, Drink, and Lodging.md>) — folio 309
+- [Tools and Kits](<091 - Tools and Kits.md>) — folio 310
+- [Books and Documents](<092 - Books and Documents.md>) — folio 311
+- [Trade Tools and Workshops](<093 - Trade Tools and Workshops.md>) — folio 312
+- [Animals and Vehicles](<094 - Animals and Vehicles.md>) — folio 312
+- [Travel Prices](<095 - Travel Prices.md>) — folio 313
+- [Poisons](<096 - Poisons.md>) — folio 313
+- [Herbs and Remedies](<097 - Herbs and Remedies.md>) — folio 314
+- [Prosthetics](<098 - Prosthetics.md>) — folio 315
+- [Magical Items](<099 - Magical Items.md>) — folio 315
+- [Miscellaneous Trappings](<100 - Miscellaneous Trappings.md>) — folio 316
+- [Hirelings](<101 - Hirelings.md>) — folio 317
+- [Bestiary](<102 - Bestiary.md>) — folio 318
+- [Creature Hit Locations](<103 - Creature Hit Locations.md>) — folio 318
+- [The Peoples of the Reikland](<104 - The Peoples of the Reikland.md>) — folio 319
+- [The Beasts of the Reikland](<105 - The Beasts of the Reikland.md>) — folio 325
+- [The Monstrous Beasts of the Reikland](<106 - The Monstrous Beasts of the Reikland.md>) — folio 328
+- [The Orc and Goblin Hordes](<107 - The Orc and Goblin Hordes.md>) — folio 336
+- [The Restless Dead](<108 - The Restless Dead.md>) — folio 338
+- [Beastmen, the Children of Chaos](<109 - Beastmen, the Children of Chaos.md>) — folio 345
+- [Cultists, the Lost and the Damned](<110 - Cultists, the Lost and the Damned.md>) — folio 347
+- [Daemons, the Gibbering Hosts](<111 - Daemons, the Gibbering Hosts.md>) — folio 349
+- [The Loathsome Ratmen](<112 - The Loathsome Ratmen.md>) — folio 351
+- [Creature Templates](<113 - Creature Templates.md>) — folio 353
+- [Ungrakk's Brayherd](<114 - Ungrakk's Brayherd.md>) — folio 354
+- [Creature Traits](<115 - Creature Traits.md>) — folio 356
+- [Appendix I](<116 - Appendix I.md>) — folio 364
+- [Appendix II](<117 - Appendix II.md>) — folio 364
+- [Appendix III](<118 - Appendix III.md>) — folio 365
+- [Appendix IV](<119 - Appendix IV.md>) — folio 368
+- [Appendix V](<120 - Appendix V.md>) — folio 369
+- [Index](<121 - Index.md>) — folio 370
+- [Character Sheet](<122 - Character Sheet.md>) — folio 376

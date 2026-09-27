@@ -21,7 +21,7 @@ export const creature: CreatureDef = {
     legLen: 0.75, head: 'dragon', headScale: 1.05, headgear: 'cornes', tail: 'enroulee',
     ears: 'pointues', foot: 'serre', wings: 'membrane', wingPose: 'deployees', wingSpan: 1.42,
     mane: 'sans', ridge: 'epines',
-    stored: {
+    palette: {
       corps: '#8f3430', corpsO: '#43120f', corpsH: '#c96f4e',
       aile: '#5f2136', aileO: '#2c0d18', aileH: '#c8b6bd',
       cheveux: '#b4bd93', cheveuxO: '#6b7350', cuir: '#4c3128',

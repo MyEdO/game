@@ -925,7 +925,6 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
     'paletteLiteralStock.mjs',
     'rigPartViewStock.mjs',
     'rigViewStock.mjs',
-    'fleshGradientStock.mjs',
     'entityOrphanStock.mjs',
     'tableConsumerStock.mjs',
     'jambesGabaritStock.mjs',

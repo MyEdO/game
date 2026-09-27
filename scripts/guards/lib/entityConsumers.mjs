@@ -263,8 +263,7 @@ export const isConsumed = (corpus, id) => corpus.includes(`"${id}"`) || corpus.i
 
 /** Entités de catalogue MÉTA — une ligne de TABLE RAW transcrite en entrée de catalogue pour son
  *  vocabulaire de tirage (ex. `talents:talent-aleatoire`, LDB 10 p.132 : motif « N Talent(s)
- *  aléatoire(s) » consommé par `RANDOM_ENTRY_RE`/`resolveSpeciesTalents`,
- *  `src/engine/character.ts:117,198,206`), jamais une entité POSSÉDABLE. Source UNIQUE de ce fait
+ *  aléatoire(s) » consommé par `resolveSpeciesTalents`, `src/engine/character.ts`), jamais une entité POSSÉDABLE. Source UNIQUE de ce fait
  *  structurel, consommée par LES DEUX gardes qui le traitaient jusqu'ici par deux déclarations
  *  séparées (`src/data/entity-orphans.test.ts` — via `entityOrphanStock.mjs` — ET
  *  `src/data/obtainability-guard.test.ts`) : ni l'une ni l'autre ne re-déclare le fait chez elle.

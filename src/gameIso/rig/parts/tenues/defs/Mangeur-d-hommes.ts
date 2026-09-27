@@ -14,9 +14,9 @@ export const tenue: TenueDef = {
   palette: {
     metal: '#8b94a6', metalO: '#454c58', metalH: '#b9c0cc',
     or: '#c39a3a', orO: '#7d6018', orH: '#e6c766',
-    cuir: '#4a3320', cuirO: '#241608', cuirH: '#6a4c2e',
-    vet1: '#7c413b', vet1O: '#48231f', vet1H: '#9c5a50', // pagne bordeaux en loques
-    vet2: '#43563a', vet2O: '#28331f', vet2H: '#5f7550', // rayure olive des jambières
+    cuir: '#4a3320', cuirH: '#6a4c2e',
+    vet1: '#7c413b', vet1O: '#48231f', // pagne bordeaux en loques
+    vet2: '#43563a', // rayure olive des jambières
   },
   set: {
     pied: BOTTE_CUIR,

@@ -6,7 +6,10 @@
 # restent hors de toute boîte).
 # Écrit en UTF-8 dans un FICHIER (jamais stdout : la console Windows est cp1252) :
 #   [{ "page", "largeur", "boites": [{ "x0", "y0", "x1", "y1",
-#      "lignes": [{ "x0", "y0", "x1", "y1", "texte", "spans": [[texte, police, taille]…] }] }] }]
+#      "lignes": [{ "x0", "y0", "x1", "y1", "texte", "spans": [[texte, police, taille]…] }] }],
+#      "cercles": [{ "x0", "y0", "x1", "y1" }] }]
+# `cercles` : les courbes TRACÉES (contour) d'emprise carrée à 1 pt près, de 8 à 25 pt — la pastille
+# d'un appel de figure, que la sonde des titres lit.
 # Une boîte dont le centre sort de la page (la page en regard) n'est pas rendue.
 # Usage : python scripts/raw/lib/pdf-lignes.py <id du livre> <sortie.json>
 import json
@@ -14,7 +17,7 @@ import os
 import sys
 
 from pdfminer.high_level import extract_pages
-from pdfminer.layout import LAParams, LTChar, LTContainer, LTTextBoxHorizontal, LTTextLineHorizontal
+from pdfminer.layout import LAParams, LTChar, LTContainer, LTCurve, LTTextBoxHorizontal, LTTextLineHorizontal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pdf_geometrie import pdfs_de, police_de  # noqa: E402
@@ -28,6 +31,16 @@ def boites_de(o):
     elif isinstance(o, LTContainer):
         for c in o:
             yield from boites_de(c)
+
+
+def cercles_de(o):
+    """Courbes tracées d'emprise carrée (1 pt près), de 8 à 25 pt."""
+    if isinstance(o, LTCurve):
+        if o.stroke and 8 < o.width < 25 and abs(o.width - o.height) < 1:
+            yield o
+    elif isinstance(o, LTContainer):
+        for c in o:
+            yield from cercles_de(c)
 
 
 def spans_de(ligne):
@@ -64,7 +77,7 @@ def main():
             ]
             if lignes:
                 boites.append({**bb(b), "lignes": lignes})
-        out.append({"page": n, "largeur": round(page.width, 2), "boites": boites})
+        out.append({"page": n, "largeur": round(page.width, 2), "boites": boites, "cercles": [bb(c) for c in cercles_de(page)]})
     with open(sortie, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
 

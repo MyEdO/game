@@ -47,6 +47,6 @@ export const creature: CreatureDef = {
     sl: 1.1, girth: 1.16,
     spikes: 14, eyestalk: 2.2, clawScale: 1.35, clawTeeth: true,
     deco: { corps: EPAVE },
-    stored: { corps: '#a8502e', corpsO: '#5e2818', corpsH: '#dc844a', cheveux: '#5e2818', cheveuxO: '#34160c', cuir: '#d8b89a' },
+    palette: { corps: '#a8502e', corpsO: '#5e2818', corpsH: '#dc844a', cheveux: '#5e2818', cheveuxO: '#34160c', cuir: '#d8b89a' },
   },
 };

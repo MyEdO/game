@@ -50,8 +50,8 @@ const arene = () => {
 function table(action: BattleActionMode | null, { turn = 0, mySeat = 0, mode = 'local' as 'local' | 'guest' } = {}) {
   const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
   const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
-  const e1 = spawnEnemy('capitaine-du-guet', undefined, 'e1', { x: 7, y: 6 });
-  const e2 = spawnEnemy('capitaine-du-guet', undefined, 'e2', { x: 8, y: 6 });
+  const e1 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e1', { x: 7, y: 6 });
+  const e2 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e2', { x: 8, y: 6 });
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
     scene: arene(), party: [hero, ally],

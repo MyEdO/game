@@ -12,7 +12,6 @@ import type { FireArc } from './fireArc';
 import type { Scene } from './scene';
 import type { GameState } from './store';
 import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
-import { weaponGroupIdByLabel } from '../data';
 
 /**
  * « SERVIR CETTE PIÈCE » (manning runtime, MDG 12-13) — l'action de combat KIND-AGNOSTIQUE par laquelle
@@ -372,13 +371,12 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
 //     supplémentaires non qualifiés AIDENT (déplacent/compensent) mais NE comptent PAS (AA 10 l.232).
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe de la pièce compte (AA 10 l.228-247)', () => {
-  // `label` = libellé lisible (Arbalète/Arc) → résolu en id de Groupe stable (Phase 3 : la spec EST un id).
-  const proj = (label: string) => [{ id: 'projectiles', spec: weaponGroupIdByLabel(label), characteristic: 'capacite-de-tir', advances: 10 }] as never;
+  const proj = (spec: string) => [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 10 }] as never;
 
   it('chef QUALIFIÉ (Arbalète) compte (=1) ; +1 renfort qualifié → effectif 2 (=Indice, plus de sous-effectif)', () => {
     const poste = mkPoste('baliste'); // baliste = Groupe Arbalète, Arme d'équipe 2
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('Arbalète');
-    const renfort = mkActor('renfort', 'npc', { x: 6, y: 5 }); renfort.skills = proj('Arbalète');
+    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arbalete');
+    const renfort = mkActor('renfort', 'npc', { x: 6, y: 5 }); renfort.skills = proj('arbalete');
     const all = [mkEmplacement(poste), chef, renfort];
     serveAtPoste(chef, poste, all);
     expect(servingCrewPresent(chef, all)).toBe(1); // chef seul, qualifié → effectif 1/2
@@ -388,8 +386,8 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('renfort NON qualifié (Arc sur une baliste-Arbalète) → occupe la pièce mais N’augmente PAS l’effectif (Exemple 1, AA 10 l.253)', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('Arbalète');
-    const archer = mkActor('archer', 'npc', { x: 6, y: 5 }); archer.skills = proj('Arc'); // mauvais Groupe
+    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arbalete');
+    const archer = mkActor('archer', 'npc', { x: 6, y: 5 }); archer.skills = proj('arc'); // mauvais Groupe
     const all = [mkEmplacement(poste), chef, archer];
     serveAtPoste(chef, poste, all);
     serveAtPoste(archer, poste, all); // rejoint en support…
@@ -402,7 +400,7 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('chef NON qualifié (Arc seul) → effectif 0 malgré un chef présent (le cas « Chef + 0 effectif » à expliquer)', () => {
     const poste = mkPoste('baliste');
-    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('Arc');
+    const chef = mkActor('chef', 'npc', { x: 5, y: 6 }); chef.skills = proj('arc');
     const all = [mkEmplacement(poste), chef];
     serveAtPoste(chef, poste, all);
     expect(isPosteManned(poste, all)).toBe(true); // pièce « occupée »…
@@ -411,8 +409,8 @@ describe('(H) Qualification — seul l’équipage avec la Projectiles du Groupe
 
   it('isCrewQualified — feedback « Servir » du héros actif : vrai avec la Projectiles du Groupe, faux sinon', () => {
     const poste = mkPoste('baliste');
-    const qualifie = mkActor('q', 'hero', { x: 5, y: 6 }); qualifie.skills = proj('Arbalète');
-    const profane = mkActor('p', 'hero', { x: 5, y: 6 }); profane.skills = proj('Arc');
+    const qualifie = mkActor('q', 'hero', { x: 5, y: 6 }); qualifie.skills = proj('arbalete');
+    const profane = mkActor('p', 'hero', { x: 5, y: 6 }); profane.skills = proj('arc');
     expect(isCrewQualified(qualifie, poste)).toBe(true);
     expect(isCrewQualified(profane, poste)).toBe(false);
   });

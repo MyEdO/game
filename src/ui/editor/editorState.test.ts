@@ -56,8 +56,8 @@ import { sceneZoneTiles } from '../../state/zones';
 function sceneWith(): Scene {
   const s = emptyScene(10, 10);
   s.entities = [
-    { id: 'perso-0', kind: 'personnage', pos: { x: 2, y: 2 } },
-    { id: 'enemy-0', kind: 'personnage', pos: { x: 1, y: 8 }, ref: 'Mutant', combat: { hiddenUntilCombat: true } },
+    { id: 'perso-0', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } },
+    { id: 'enemy-0', kind: 'personnage', pos: { x: 1, y: 8 }, ref: 'mutant', combat: { hiddenUntilCombat: true } },
   ];
   s.triggers = [{ id: 'trig-0', rect: { x: 4, y: 4, w: 2, h: 2 }, once: true, flow: EMPTY_FLOW }];
   s.architecture = [{
@@ -378,11 +378,16 @@ describe('editorState — pose', () => {
     expect(ent.ref).toBe('tonneau');
     expect(ent.kind).toBe('prop');
   });
-  it('placeEntity : pose un personnage d’espèce précise (appearance.species + libellé)', () => {
-    const { scene, id } = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'loup' }, { x: 1, y: 1 });
+  it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, libellé de la fiche, apparence dérivée (#1882)', () => {
+    const { scene, id } = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
-    expect(ent.appearance?.species).toBe('loup'); // id d'espèce rig (pas `ref`, réservé au profil de stats)
-    expect(ent.label).toBe('Loup');
+    expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain', label: creatureLabel('humain') });
+    expect(ent.appearance).toBeUndefined();
+    expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
+  });
+  it('placeEntity : une fiche hors bestiaire est refusée en la nommant (un libellé n’est pas un id)', () => {
+    expect(() => placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))
+      .toThrow(/« Humain » n'est pas une fiche du bestiaire/);
   });
   it('placeEntity : pose sur l’étage courant (z), absent au sol', () => {
     const ground = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 0);
@@ -416,7 +421,7 @@ describe('editorState — pose', () => {
   });
   it('addMember / removeMember : enrôle puis retire une entité existante (sans la supprimer)', () => {
     let s = emptyScene(10, 10);
-    s = { ...s, entities: [{ id: 'p1', kind: 'personnage', pos: { x: 0, y: 0 } }], encounters: [{ id: 'enc-0', members: [] }] };
+    s = { ...s, entities: [{ id: 'p1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } }], encounters: [{ id: 'enc-0', members: [] }] };
     s = addMember(s, 'enc-0', 'p1').scene;
     expect(s.encounters[0].members).toEqual([{ entityId: 'p1' }]);
     expect(addMember(s, 'enc-0', 'p1').scene.encounters[0].members).toHaveLength(1); // idempotent
@@ -500,7 +505,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('les mutations de poste sont des no-op sur une entité SANS poste', () => {
-    const s = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage' }, { x: 1, y: 1 }).scene;
+    const s = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 }).scene;
     const id = s.entities[0].id;
     expect(setPosteCrew(s, id, ['x']).entities[0].postes).toBeUndefined();
     expect(setPosteSide(s, id, 'proue').entities[0].postes).toBeUndefined();
@@ -704,7 +709,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
     const s = emptyScene(10, 10);
     s.entities = [
       { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-      { id: 'pnj-aubergiste', kind: 'personnage', pos: { x: 2, y: 1 }, label: 'Aubergiste' },
+      { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 }, label: 'Aubergiste' },
     ];
     s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
     return s;
@@ -793,7 +798,7 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
 
   it('un CORPS posé sur une case d’empreinte se désigne lui-même : la pose exacte prime', () => {
     const scene = salle('S');
-    scene.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 4, y: 3 } });
+    scene.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 3 } });
     expect(hitAt(scene, { x: 4, y: 3 }, DEFAULT_LAYERS)).toEqual({ type: 'entity', id: 'pnj' });
   });
 

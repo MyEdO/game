@@ -147,10 +147,7 @@ const dialogues: Dialogue[] = [
             // `tavernGame` de l'entité est une affordance morte — authorée, jamais atteignable au clic.
             label: 'Accepter la partie de cartes qu’il propose.',
             icon: 'nav/dice',
-            flow: flowFromEffects([
-              { type: 'endDialogue' },
-              { type: 'openTavernGames' },
-            ]),
+            flow: flowFromEffects([{ type: 'openTavernGames' }]),
           },
           {
             label: 'Le remercier et poursuivre sans se presser.',
@@ -189,16 +186,14 @@ const scene = buildScene({
   heroStart: [1, 4],
   startMessage:
     'Un homme séduisant, épée au côté et dés à la ceinture, vous fait signe depuis la clairière.',
-  // PNJ résolus par PRESET (`presetId`) : instanciés base+surcharges au spawn (`resolvePresetCreature`) ;
-  // le bloc `narratif` de ce scénario porte les 3 presets. La cross-ref `presetId` de `projetSchema` gate
-  // l'import JSON/éditeur (`parseProject`), pas ce chemin TS-authored — repli spawn silencieux si absent.
+  // Fiches par PRESET (`presetId`, #671) : `narratif` ci-dessus, `resolvePresetCreature` ; preset
+  // irrésoluble → `FicheAbsente` (`state/sceneNpc.ts`, #1882).
   entities: [
     // JOUEUR de taverne AUTHORÉ (#1279 S4) : « il leur propose une partie d'Impératrice Écarlate »
     // (`EDO 01 l.200`), et la mise plancher qu'il accepte est de 2 pistoles d'argent — « considère
     // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
-    // Le jeu que le RAW prescrit ici est l'Impératrice écarlate, qui n'est PAS au catalogue (#1279
-    // S4-a) : `dominos` tient la place en attendant, et ce n'est PAS le même Test. Substitution de
-    // scène, assumée et provisoire — à remplacer dès l'entrée ingérée.
+    // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
+    // `tavernGames.json` (#1921).
     { id: 'npc-phillipe', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'edo-phillipe-descartes', dialogueId: 'dlg-phillipe', label: 'Phillipe Descartes',
       tavernGame: { gameId: 'dominos', stakeBrass: 24 } },
     { id: 'npc-josef', kind: 'personnage', pos: { x: 3, y: 2 }, presetId: 'edo-josef-quartjin', label: 'Josef Quartjin' },

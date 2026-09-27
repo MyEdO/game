@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
 import { creatures } from '../../data';
+import { setDataset } from '../../data/overrides';
 import { mutationById } from '../../data/mutations';
 import { raceById, DEFAULT_RACE_ID } from './races';
 import { bipedDef } from './creatures';
@@ -12,6 +13,8 @@ import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armourPart } from './parts/equipment';
 import { spawnEnemy } from '../../state/spawn';
 import { hairstylesForSex } from './parts/hairstyles';
+import { COIFFURE_HORS_POOL } from './parts/cosmetic';
+import { resetDiagOnce, withDiagSubject } from './devDiag';
 import { resolveRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import type { Combatant, Weapon, ItemInstance, ArmourPoints } from '../../engine/types';
@@ -180,7 +183,7 @@ describe('enemyRigProfile', () => {
     // n'attachait donc AUCUN override → `enemyRigProfile` ne lisait que `cd?.armurePortee` (toujours
     // undefined, pas de record) → armure invisible en combat alors que visible en explo (`entityRigProfile`,
     // qui lit déjà `opts.armurePortee`). Symétrique désormais : `ov?.armurePortee ?? cd?.armurePortee`.
-    const c = spawnEnemy(undefined, { type: 'statblock', label: 'Soudard sans record', char: { B: 10 }, armour: 5 }, 'sans-record-1', { x: 0, y: 0 }, {
+    const c = spawnEnemy({ statblock: { type: 'statblock', label: 'Soudard sans record', char: { B: 10 }, armour: 5 } }, 'sans-record-1', { x: 0, y: 0 }, {
       appearance: { armurePortee: true },
     });
     expect(enemyRigProfile(c)!.equip.armour.length).toBeGreaterThan(0);
@@ -189,7 +192,7 @@ describe('enemyRigProfile', () => {
   it('parité #181/#182 EN COMBAT : override d’entité (armurePortee: false) PRIME sur le record curé (true)', () => {
     // Cas inverse : `capitaine-du-guet` est curé `armurePortee: true` au bestiaire, mais une entité
     // d'auteur peut désactiver EXPLICITEMENT le rendu de son armure de statblock (override prime).
-    const c = spawnEnemy('capitaine-du-guet', undefined, 'capitaine-desarme-1', { x: 0, y: 0 }, {
+    const c = spawnEnemy({ ref: 'capitaine-du-guet' }, 'capitaine-desarme-1', { x: 0, y: 0 }, {
       appearance: { armurePortee: false },
     });
     expect(enemyRigProfile(c)!.equip.armour).toEqual([]);
@@ -282,14 +285,59 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
   });
 });
 
+/** Sexe et coiffure posés par deux couches différentes (`rigAppearance`) : `coiffureRetombee` (#1897). */
+describe('coiffure du record, sexe de l’entité — la coiffure retombe', () => {
+  it('coiffure F au record + `sex: M` sur l’entité → coiffure par défaut de l’espèce et du sexe rendus, jamais la chevelure d’erreur', () => {
+    const avant = [...creatures];
+    const rendu = (p: NonNullable<ReturnType<typeof entityRigProfile>>) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
+    const attendu = rendu(entityRigProfile('villageois', 1, { sex: 'M' })!);
+    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      : c)));
+    try {
+      expect(entityRigProfile('villageois', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
+      const p = entityRigProfile('villageois', 1, { sex: 'M' })!;
+      expect(p.appearance.sex).toBe('M');
+      expect(p.appearance.hairstyle).toBeUndefined();
+      expect(rendu(p)).not.toContain(COIFFURE_HORS_POOL);
+      expect(rendu(p)).toBe(attendu);
+      // La contradiction posée par UNE couche reste une faute de donnée VISIBLE (le schéma la nomme).
+      expect(rendu(entityRigProfile('villageois', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
+    } finally {
+      setDataset('creatures', avant);
+    }
+  });
+  it('le retrait se DIT : un avertissement console nomme le sujet, la coiffure retirée et le sexe posé au-dessus', () => {
+    const avant = [...creatures];
+    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      : c)));
+    resetDiagOnce();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      withDiagSubject('scene-x/pnj-1', () => entityRigProfile('villageois', 1, { sex: 'M' }));
+      expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
+        "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
+      ]);
+      warn.mockClear();
+      withDiagSubject('scene-x/pnj-2', () => entityRigProfile('villageois', 1));
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+      resetDiagOnce();
+      setDataset('creatures', avant);
+    }
+  });
+});
+
 /** L'override d'apparence du combattant (`spawnEnemy`) porte TOUTE l'apparence d'auteur posée — pas une
  *  liste de champs tenue à la main : un PNJ dont la seule surcharge est une coiffure la garde en combat. */
 describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combattant', () => {
   it('coiffure imposée seule : le profil de combat la porte et le rig change', () => {
-    const sansCoiffure = spawnEnemy('mutant', undefined, 'pnj-coiffe', { x: 0, y: 0 });
+    const sansCoiffure = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 });
     const avant = enemyRigProfile(sansCoiffure)!;
     const coiffure = hairstylesForSex(avant.appearance.sex)[1].id;
-    const coiffe = spawnEnemy('mutant', undefined, 'pnj-coiffe', { x: 0, y: 0 }, { appearance: { hairstyle: coiffure } });
+    const coiffe = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 }, { appearance: { hairstyle: coiffure } });
     const apres = enemyRigProfile(coiffe)!;
     expect(apres.appearance.hairstyle).toBe(coiffure);
     const rendu = (p: typeof apres) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));

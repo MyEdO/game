@@ -4,41 +4,23 @@
  * survivre au full-reload Vite qui suit chaque sauvegarde (l'écriture d'un *.json watché recharge la
  * page). Repli `download` quand l'API est absente (Firefox/Safari). Aucun serveur.
  */
-// eslint-disable-next-line no-restricted-imports -- #518 : le repli `download` de cette persistance DEV appelle `downloadText`, qui vit dans `state/fileIo` avec ses quatre consommateurs de `src/ui` — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
-import { downloadText } from '../state/fileIo';
+import { downloadText } from '../lib/fileIo';
+import { ecrireDansBase, lireDansBase, type BaseIdb } from '../lib/indexedDb';
 
-export const FS_API = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+/** File System Access présente dans ce navigateur. */
+export function fsApiDisponible(): boolean {
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+}
 
-// ── IndexedDB minimal (les FileSystemHandle sont structured-cloneables, pas localStorage) ──
-const DB = 'wfrp4-data-editor';
 const STORE = 'handles';
 const KEY = 'dataDir';
 
-function idb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function idbGet<T>(key: string): Promise<T | undefined> {
-  const db = await idb();
-  return new Promise((resolve, reject) => {
-    const r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
-    r.onsuccess = () => resolve(r.result as T | undefined);
-    r.onerror = () => reject(r.error);
-  });
-}
-async function idbSet(key: string, val: unknown): Promise<void> {
-  const db = await idb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(val, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
+/** Montée de `wfrp4-data-editor` : un magasin à clés externes (le handle, structured-cloneable). */
+export const upgradeEditeurDeDonnees: BaseIdb['upgrade'] = (db) => {
+  db.createObjectStore(STORE);
+};
+
+const BASE: BaseIdb = { nom: 'wfrp4-data-editor', version: 1, upgrade: upgradeEditeurDeDonnees };
 
 type DirHandle = FileSystemDirectoryHandle;
 
@@ -52,18 +34,25 @@ async function perm(h: DirHandle, request: boolean): Promise<boolean> {
   return (await h.requestPermission(opts)) === 'granted';
 }
 
-/** Ouvre le sélecteur de dossier (geste utilisateur requis) et mémorise le handle. */
-export async function connectDataDir(): Promise<DirHandle> {
-  // @ts-expect-error showDirectoryPicker hors lib.dom standard
-  const h: DirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-  await idbSet(KEY, h);
+/** Ouvre le sélecteur de dossier (geste utilisateur requis) et mémorise le handle ; `null` quand
+ *  l'utilisateur annule le sélecteur (`AbortError`). Tout autre échec rejette. */
+export async function connectDataDir(): Promise<DirHandle | null> {
+  let h: DirHandle;
+  try {
+    // @ts-expect-error showDirectoryPicker hors lib.dom standard
+    h = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return null;
+    throw e;
+  }
+  await ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).put(h, KEY); });
   return h;
 }
 
 /** Handle mémorisé + permission encore accordée (sans prompt) ? Sinon il faudra reconnecter. */
 export async function restoreDataDir(): Promise<{ handle: DirHandle; granted: boolean } | null> {
-  if (!FS_API) return null;
-  const h = await idbGet<DirHandle>(KEY);
+  if (!fsApiDisponible()) return null;
+  const h = (await lireDansBase(BASE, STORE, (m) => m.get(KEY))) as DirHandle | undefined;
   if (!h) return null;
   return { handle: h, granted: await perm(h, false) };
 }

@@ -32,7 +32,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   it('Savoir-vivre : POSSESSION effective et REQUÊTABLE — sur la fiche (`effectiveTalents`) et par `hasTalent`', () => {
     const talents = effectiveTalents(bearer());
     expect(talents).toContainEqual({ talentId: 'savoir-vivre', spec: 'disciples-de-tzeentch', times: 1 });
-    expect(hasTalent(bearer(), 'Savoir-vivre')).toBe(true);
+    expect(hasTalent(bearer(), 'savoir-vivre')).toBe(true);
   });
 
   it('Animosité (Nurgle) : Cible FIXE dérivée du Trait (capabilities.psychCible)', () => {

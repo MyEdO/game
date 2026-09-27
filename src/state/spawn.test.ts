@@ -4,7 +4,7 @@ import { enemyRigProfile } from '../gameIso/rig/enemyProfile';
 import { teintesTirees } from '../gameIso/rig/parts/tirageIndividuel';
 import { raceById } from '../gameIso/rig/races';
 import { weaponFamily } from '../gameIso/rig/parts/equipment';
-import { findCreature, findCreatureById, talentConcrete } from '../data';
+import { findCreatureById, talentConcrete } from '../data';
 import { CHAR_KEYS } from '../engine/types';
 import { knowsCastingSkill, castingValue } from '../engine/magic';
 
@@ -61,7 +61,7 @@ describe('spawnEnemy — arme d’AUTHORING (weapon:) vs arme de TRAIT : pas de 
     const sb = { label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
       { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' },
     ] } as any;
-    const c = spawnEnemy(undefined, sb, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
+    const c = spawnEnemy({ statblock: sb }, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
     const ranged = c.weapons.filter((w) => w.type === 'ranged');
     expect(ranged).toHaveLength(1); // aucun doublon rendu/jeu
     expect(ranged[0].reload).toBeGreaterThan(0); // arme de JEU : Recharge dérivée de l'arbalète (LDB 62 l.333) → l'IA suit son cycle (#126)
@@ -72,17 +72,17 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
   const at = { x: 0, y: 0 };
 
   it('« – » du livre = caractéristique INEXISTANTE → 0, pas 30 (Loup : CT –)', () => {
-    const c = creatureToCombatant(findCreature('Loup')!, 'e1', at);
+    const c = creatureToCombatant(findCreatureById('loup')!, 'e1', at);
     expect(c.characteristics['capacite-de-tir']).toBe(0);
   });
 
   it('Pieuvre des tourbières : arme Tentacules +9 dérivée du trait compté', () => {
-    const c = creatureToCombatant(findCreature('Pieuvre des tourbières')!, 'e1', at);
+    const c = creatureToCombatant(findCreatureById('pieuvre-des-tourbieres')!, 'e1', at);
     expect(c.weapons[0]).toMatchObject({ label: 'Tentacules', damage: { plusBF: false, flat: 9 } });
   });
 
   it('traits FACULTATIFS (LDB 76) fusionnés : Armure, psychologie ciblée, arme à distance', () => {
-    const c = creatureToCombatant(findCreature('Loup')!, 'e1', at, {
+    const c = creatureToCombatant(findCreatureById('loup')!, 'e1', at, {
       optionals: [{ id: 'haine', arg: 'Sigmarites' }, { id: 'a-distance', value: 8, range: 50 }],
     });
     expect(c.traits).toContainEqual({ id: 'haine', arg: 'Sigmarites' }); // traits STRUCTURÉS au spawn (de-POC)
@@ -91,7 +91,7 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
   });
 
   it('Taille facultative PRIME et applique « Utiliser les Tailles » (±10 F/E, ∓5 Ag) + PB par formule', () => {
-    const wolf = findCreature('Loup')!; // Taille de base : Moyenne (aucun trait), F 35 E 35
+    const wolf = findCreatureById('loup')!; // Taille de base : Moyenne (aucun trait), F 35 E 35
     const base = creatureToCombatant(wolf, 'e1', at);
     const big = creatureToCombatant(wolf, 'e1', at, { optionals: [{ id: 'taille', arg: 'Grande' }] });
     expect(big.size).toBe('grande');
@@ -104,12 +104,12 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
   });
 
   it('sorts d’auteur posés sur le Combattant (la donnée bestiaire n’en liste pas)', () => {
-    const c = creatureToCombatant(findCreature('Mutant')!, 'e1', at, { spells: ['flechette'] });
+    const c = creatureToCombatant(findCreatureById('mutant')!, 'e1', at, { spells: ['flechette'] });
     expect(c.spells).toEqual(['flechette']); // SpawnExtras.spells = ids de sort (runtime)
   });
 
   describe('Caractéristiques aléatoires (LDB 77 l.108 : « soustrayez -10 et ajoutez 2d10 »)', () => {
-    const mutant = findCreature('Mutant')!;
+    const mutant = findCreatureById('mutant')!;
     it('chaque caractéristique tirée reste dans [v−8, v+10] ; déterministe par id ; ids ≠ → profils ≠', () => {
       const a = creatureToCombatant(mutant, 'enemy-0', at, { randomChars: true });
       const b = creatureToCombatant(mutant, 'enemy-0', at, { randomChars: true });
@@ -124,7 +124,7 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
       expect(CHAR_KEYS.some((k) => a.characteristics[k] !== c.characteristics[k])).toBe(true);
     });
     it('« Si une Caractéristique vaut 5, lancez juste 1d10 » (Pieuvre : Int 5) ; « – » reste 0', () => {
-      const p = creatureToCombatant(findCreature('Pieuvre des tourbières')!, 'enemy-0', at, { randomChars: true });
+      const p = creatureToCombatant(findCreatureById('pieuvre-des-tourbieres')!, 'enemy-0', at, { randomChars: true });
       expect(p.characteristics.intelligence).toBeGreaterThanOrEqual(1);
       expect(p.characteristics.intelligence).toBeLessThanOrEqual(10);
       expect(p.characteristics['capacite-de-tir']).toBe(0); // inexistante : pas tirée
@@ -139,7 +139,7 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
   // #614 — overlay de spawn d'une Possession : le tirage LDB 77 se FIGE dans `Possession.charsRolled`,
   // fourni ici en override DIRECT (jamais relancé) — deux projections successives = mêmes stats.
   describe('SpawnExtras.charsRolled — override direct FIGÉ (#614, Possession.charsRolled)', () => {
-    const mutant = findCreature('Mutant')!;
+    const mutant = findCreatureById('mutant')!;
     const frozen = { ...mutant.char } as any;
     for (const k of CHAR_KEYS) if (typeof frozen[k] === 'number') frozen[k] += 1; // profil distinct du catalogue
 
@@ -159,7 +159,7 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
 
   describe('SpawnExtras.learnedTraits — dresse-* appris unis aux traits de base (LDB 23 l.130 → LDB 85)', () => {
     it('un trait appris (id seul) rejoint les traits du Combatant', () => {
-      const c = creatureToCombatant(findCreature('Loup')!, 'e1', at, { learnedTraits: ['dresse-monture'] });
+      const c = creatureToCombatant(findCreatureById('loup')!, 'e1', at, { learnedTraits: ['dresse-monture'] });
       expect(c.traits?.some((t) => t.id === 'dresse-monture')).toBe(true);
     });
   });
@@ -183,7 +183,7 @@ describe('creatureToCombatant — #152 : CreatureData.followsCharacterRules prop
 
 describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia Balacañon, MSR Compagnon p.48)', () => {
   const at = { x: 0, y: 0 };
-  const eusapia = findCreature('Eusapia Balacañon')!;
+  const eusapia = findCreatureById('eusapia-balacanon')!;
 
   it('est dans creatures.json (livres de campagne admis au bestiaire)', () => {
     expect(eusapia).toBeTruthy();
@@ -261,23 +261,23 @@ describe('spawnEnemy — transport de l’apparence/carrière éditée vers le C
   const at = { x: 0, y: 0 };
 
   it('seed + sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
     expect(c.appearanceOverride).toMatchObject({ seed: 12345, sex: 'F', build: 0.7 });
     expect(c.appearance).toBeUndefined(); // rien de figé dans state — la résolution rig est différée
   });
 
   it('tenue éditée → portée par Combatant.career', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at, { appearance: { tenue: 'Soldat' } });
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'Soldat' } });
     expect(c.career).toBe('Soldat');
   });
 
   it('sans aucun override → appearanceOverride reste indéfini (rendu dérivé du nom inchangé)', () => {
-    const c = spawnEnemy('mutant', undefined, 'e1', at);
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at);
     expect(c.appearanceOverride).toBeUndefined();
   });
 
   it('override PARTIEL (seed seul) → enemyRigProfile dérive la palette non éditée du seed édité (#1882 T1)', () => {
-    const seeded = enemyRigProfile(spawnEnemy('mutant', undefined, 'e1', at, { appearance: { seed: 999 } }))!;
+    const seeded = enemyRigProfile(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 999 } }))!;
     expect(seeded.appearance.seed).toBe(999);
     // Palette NON éditée : tirage individuel par le seed édité (record `mutant` sans palette authorée).
     expect(seeded.appearance.parts).toBeUndefined();
@@ -289,19 +289,19 @@ describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', (
   const at = { x: 0, y: 0 };
 
   it('belier-ade2 : espèce DÉRIVÉE = `belier` (art propre, plus le recyclage de baliste)', () => {
-    const c = spawnEnemy('belier-ade2', undefined, 'ram1', at);
+    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram1', at);
     expect(c.species).toBe('belier');
     expect(c.bodyShape).toBe('engin');
     expect(c.inert).toBe(true);
   });
 
   it('belier-ade2 : empreinte 2 recopiée sur le Combatant (`footprintN`, ADE II 8 l.239/258)', () => {
-    const c = spawnEnemy('belier-ade2', undefined, 'ram2', at);
+    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram2', at);
     expect(c.footprint).toBe(2);
   });
 
   it('baliste (sans `siegeFootprint` en donnée) : empreinte ABSENTE — `footprintN` retombe à 1 (non-régression)', () => {
-    const c = spawnEnemy('baliste', undefined, 'bal1', at);
+    const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
     expect(c.species).toBe('baliste');
     expect(c.footprint).toBeUndefined();
   });

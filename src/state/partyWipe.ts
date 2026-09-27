@@ -23,7 +23,7 @@ export function checkPartyWiped(get: Get, set: Set): boolean {
   if (get().partyWiped) return true;
   const party = get().party;
   if (!party.length) return false;
-  if (party.some((h) => !isOutOfAction(h))) return false; // au moins un héros debout
+  if (party.some((h) => !isOutOfAction(h))) return false; // au moins un héros ENCORE EN ACTION (même prédicat que la fin de bataille)
   set({
     partyWiped: true,
     mode: 'exploration',

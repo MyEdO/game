@@ -9,6 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
+import { capDuGroupe, poserCapDuGroupe } from '../state/combatants';
 import { emptyScene } from '../state/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
@@ -126,10 +127,10 @@ describe('touche TENUE — l’auto-repeat de l’OS ne commet pas de pas', () =
   it('PIVOT du regard (POV) : cent répétitions de l’OS ne font QU’UN quart de tour', () => {
     useGame.setState({
       povActive: true,
-      party: [{ id: 'lead', label: 'L', dead: false, wounds: { current: 10, max: 10 } }],
-      facing: { lead: 'S' },
+      party: [{ id: 'lead', label: 'L', dead: false, wounds: { current: 10, max: 10 }, conditions: [] }],
+      facing: poserCapDuGroupe({}, 'S'),
     } as never);
-    const cap = () => useGame.getState().facing.lead;
+    const cap = () => capDuGroupe(useGame.getState());
     frapper('keydown', 'KeyE');
     const apres1 = cap();
     expect(apres1, 'la pression doit pivoter').not.toBe('S');

@@ -607,7 +607,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
         refuserGeste(get, set, t('cs.fearNoApproach', { name: active.label, feared: feared.label }));
         return;
       }
-      set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, intent: { kind: 'entity', id, approche: opts?.approche }, result: null }, battle: { ...get().battle!, preview: null } });
+      set({ pendingApproach: { combatantId: active.id, sourceId: feared.id, sourceName: feared.label, intent: { kind: 'entity', id, approche: opts?.approche }, result: null }, battle: { ...get().battle!, preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
       return;
     }
@@ -618,7 +618,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Résilience) → il DIFFÈRE la déclaration derrière `pendingWard`. `wardCleared` = ce gate a déjà été
   // franchi pour CE clic (relance) → on le saute.
   if (!opts?.wardCleared && hasActiveFlag(target, 'attackWardFM')) {
-    set({ pendingWard: { attackerId: active.id, targetId: target.id, approche: opts?.approche, result: null }, battle: { ...get().battle!, preview: null } });
+    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, approche: opts?.approche, result: null }, battle: { ...get().battle!, preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }

@@ -26,8 +26,8 @@ function makeDialogue(): Dialogue {
 }
 
 const entities: SceneEntity[] = [
-  { id: 'pnj-1', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Aubergiste' },
-  { id: 'pnj-2', kind: 'personnage', pos: { x: 1, y: 0 }, label: 'Garde' },
+  { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Aubergiste' },
+  { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 0 }, label: 'Garde' },
 ];
 
 describe('recordTurn (helper pur)', () => {
@@ -108,7 +108,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1' },
     });
     useGame.getState().chooseDialogue(0);
-    useGame.getState().chooseDialogue(0); // nœud n2 désormais courant
+    useGame.getState().chooseDialogue(0); // le nœud courant est n2
     const h = useGame.getState().dialogueHistory;
     expect(h.length).toBe(2);
     expect(h[1].nodeText).toBe('Autre chose ?');

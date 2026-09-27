@@ -11,7 +11,12 @@ import type { BillboardPropEl, TokenEl } from './types';
  * qu'il ne pourrait pas rattraper, c'est un halo dérivé pour un objet déjà fouillé, ou un décor
  * annoncé sous le brouillard.
  */
-function décor(id: string, x: number, y: number, extra: Partial<BillboardPropEl> = {}): BillboardPropEl {
+function décor(
+  id: string,
+  x: number,
+  y: number,
+  { span = { w: 1, h: 1 }, ...extra }: Partial<Pick<BillboardPropEl, 'ref' | 'cell' | 'span' | 'foot'>> = {},
+): BillboardPropEl {
   return {
     kind: 'prop',
     key: `prop:${id}`,
@@ -21,6 +26,7 @@ function décor(id: string, x: number, y: number, extra: Partial<BillboardPropEl
     ref: 'tonneau',
     foot: { offX: 0, offY: 0, scale: 1 },
     states: { visible: true },
+    span,
     ...extra,
   };
 }
@@ -91,7 +97,7 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
     const nu: SceneEntity = { id: 'mort', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'tonneau' };
     const els = [
       décor('mort', 1, 1),
-      { ...décor('arbre', 2, 2), source: 'terrain' as const, entId: undefined },
+      { ...décor('arbre', 2, 2), source: 'terrain' as const, entId: undefined, span: undefined },
     ];
     expect(interactionHalos([], els, scèneAvec(nu), {}, REVELE)).toHaveLength(0);
   });

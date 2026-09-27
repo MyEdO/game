@@ -96,6 +96,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "repurgateur"
     }
@@ -198,6 +201,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "repurgateur"
     }
@@ -306,6 +312,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "repurgateur"
     }
@@ -428,6 +437,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "repurgateur"
     }
@@ -536,6 +548,9 @@
       "humain",
       "tileen"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "repurgateur"
     }
@@ -655,6 +670,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "marin-cotier"
     }
@@ -775,6 +793,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "marin-cotier"
     }
@@ -895,6 +916,9 @@
     "grantGroups": [
       "humain"
     ],
+    "profilStandard": {
+      "id": "humain"
+    },
     "previewCareer": {
       "id": "marin-cotier"
     }
@@ -994,6 +1018,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1106,6 +1133,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1216,6 +1246,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1327,6 +1360,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1437,6 +1473,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1548,6 +1587,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1657,6 +1699,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1765,6 +1810,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1878,6 +1926,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -1988,6 +2039,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -2098,6 +2152,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -2212,6 +2269,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -2323,6 +2383,9 @@
     "grantGroups": [
       "halfling"
     ],
+    "profilStandard": {
+      "id": "halfling"
+    },
     "mutationBodyMax": 10,
     "previewCareer": {
       "id": "colporteur"
@@ -2440,6 +2503,9 @@
     "grantGroups": [
       "nain"
     ],
+    "profilStandard": {
+      "id": "nain"
+    },
     "mutationBodyMax": 5,
     "previewCareer": {
       "id": "tueur"
@@ -2559,6 +2625,9 @@
     "grantGroups": [
       "nain"
     ],
+    "profilStandard": {
+      "id": "nain"
+    },
     "mutationBodyMax": 5,
     "previewCareer": {
       "id": "tueur"
@@ -2818,6 +2887,9 @@
     "grantGroups": [
       "ogre"
     ],
+    "profilStandard": {
+      "id": "ogre"
+    },
     "mutationBodyMax": 10,
     "traits": [
       {
@@ -2941,6 +3013,9 @@
     "grantGroups": [
       "elfe"
     ],
+    "profilStandard": {
+      "id": "elfe-haut-et-sylvain"
+    },
     "mutationBodyMax": 0,
     "previewCareer": {
       "id": "noble"
@@ -3058,6 +3133,9 @@
     "grantGroups": [
       "elfe"
     ],
+    "profilStandard": {
+      "id": "elfe-haut-et-sylvain"
+    },
     "mutationBodyMax": 0,
     "previewCareer": {
       "id": "eclaireur"

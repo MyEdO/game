@@ -295,7 +295,7 @@
             "op": "grantTrait",
             "traitId": "langue-prehensile",
             "indice": 6,
-            "arg": "6 mètres"
+            "range": 6
           }
         ]
       },

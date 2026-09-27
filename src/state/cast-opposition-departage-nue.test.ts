@@ -30,7 +30,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
     });
     hero.spells = ['parole-de-tzeentch'];
     useGame.setState({ party: [hero] });

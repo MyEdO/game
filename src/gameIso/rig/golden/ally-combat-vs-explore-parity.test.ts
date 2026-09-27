@@ -28,7 +28,7 @@ const ID = 'servant-1';
 /** Jeton de combat d'un servant PNJ allié, tel que `startCombat` le fabrique : spawn de bestiaire,
  *  puis basculement de camp (`side:'ally'` → `kind:'hero'`) + IA (`ai:true` → `aiControlled`). */
 function allyCombatant(): Combatant {
-  const c = spawnEnemy(REF, undefined, ID, { x: 0, y: 0 });
+  const c = spawnEnemy({ ref: REF }, ID, { x: 0, y: 0 });
   c.kind = 'hero'; // combatSlice.ts : `if (m.side === 'ally') enemies[i].kind = 'hero'`
   c.aiControlled = true; // `if (m.ai) enemies[i].aiControlled = true`
   return c;
@@ -78,7 +78,7 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
   it('#774 : entité à statbloc SANS record, armurePortee en OVERRIDE d’authoring — MÊME armure en combat et en explo', () => {
     const NO_REF_ID = 'soudard-sans-record';
     const noRefCombat = () =>
-      spawnEnemy(undefined, { type: 'statblock', label: 'Soudard sans record', char: { B: 10 }, armour: 5 }, NO_REF_ID, { x: 0, y: 0 }, {
+      spawnEnemy({ statblock: { type: 'statblock', label: 'Soudard sans record', char: { B: 10 }, armour: 5 } }, NO_REF_ID, { x: 0, y: 0 }, {
         appearance: { armurePortee: true },
       });
     const noRefEntity = () =>

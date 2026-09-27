@@ -64,6 +64,17 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
    * `choice`, lui, ne doit JAMAIS passer en silence : `runPureFlowLines` n'a aucun `case 'choice'` — il
    * traverserait le nœud sans rien faire, et la branche de jet serait perdue sans un mot.
    */
+  it('#1874 — SANS routeur, la branche `on:caster` d’un Test subi par la CIBLE tombe sur le PORTEUR (parité avec la voie routée)', () => {
+    const porteur = mk({ id: 'po' });
+    const victime = mk({ id: 'vi' });
+    // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
+    const surLePorteur = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'a-terre' }] } };
+    const flow = { kind: 'test', test: { characteristic: 'force' }, success: surLePorteur, fail: surLePorteur } as unknown as Flow;
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
+    expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
+    expect(victime.conditions, 'la cible a reçu la conséquence du porteur').toEqual([]);
+  });
+
   it('CHOICE sans routeur : un `test` ENFOUI sous le choix LÈVE (jamais une branche de jet muette)', () => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });

@@ -402,6 +402,197 @@
     "solid": true,
     "cover": "totale",
     "opaque": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.09
+          },
+          "size": {
+            "xM": 0.9,
+            "yM": 0.9,
+            "hM": 0.18
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.3
+          },
+          "size": {
+            "xM": 0.66,
+            "yM": 0.66,
+            "hM": 0.24
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.02
+          },
+          "size": {
+            "xM": 0.34,
+            "yM": 0.26,
+            "hM": 1.2
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.24,
+            "yM": 0,
+            "hM": 0.87
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.26,
+            "hM": 0.9
+          },
+          "slope": "x+",
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.24,
+            "yM": 0,
+            "hM": 0.87
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.26,
+            "hM": 0.9
+          },
+          "slope": "x-",
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.2,
+            "hM": 0.87
+          },
+          "size": {
+            "xM": 0.34,
+            "yM": 0.14,
+            "hM": 0.9
+          },
+          "slope": "y+",
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.2,
+            "hM": 0.87
+          },
+          "size": {
+            "xM": 0.34,
+            "yM": 0.14,
+            "hM": 0.9
+          },
+          "slope": "y-",
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.69
+          },
+          "size": {
+            "xM": 0.5,
+            "yM": 0.3,
+            "hM": 0.14
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.79
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.06
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.95
+          },
+          "size": {
+            "xM": 0.22,
+            "yM": 0.22,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 1.77
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.12,
+            "hM": 0.7
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 2.27
+          },
+          "size": {
+            "xM": 0.07,
+            "yM": 0.07,
+            "hM": 0.5
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 2.62
+          },
+          "size": {
+            "xM": 0.28,
+            "yM": 0.76,
+            "hM": 0.28
+          },
+          "material": "albatre"
+        }
+      ]
+    },
     "maison": "couvert maison : un bloc de pierre taillée s’apparente au mur de pierre de l’étalon de couvert TOTAL (LDB 14 l.86), et il coupe la vue"
   },
   {
@@ -432,7 +623,95 @@
     "id": "colonne-brisee",
     "type": "props",
     "label": "Colonne brisée",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.1
+          },
+          "size": {
+            "xM": 0.8,
+            "yM": 0.8,
+            "hM": 0.2
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.27
+          },
+          "axis": "h",
+          "radiusM": 0.34,
+          "longueurM": 0.14,
+          "sides": 16,
+          "material": "albatre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.99
+          },
+          "axis": "h",
+          "radiusM": 0.27,
+          "longueurM": 1.3,
+          "sides": 16,
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.81
+          },
+          "size": {
+            "xM": 0.38,
+            "yM": 0.38,
+            "hM": 0.34
+          },
+          "slope": "x+",
+          "material": "albatre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0.58,
+            "yM": 0.52,
+            "hM": 0.15
+          },
+          "axis": "h",
+          "radiusM": 0.26,
+          "longueurM": 0.3,
+          "sides": 16,
+          "material": "albatre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.6,
+            "yM": 0.5,
+            "hM": 0.09
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 0.24,
+            "hM": 0.18
+          },
+          "slope": "y+",
+          "material": "pierre-atre"
+        }
+      ]
+    }
   },
   {
     "id": "autel",
@@ -542,8 +821,9 @@
             "yM": 0,
             "hM": 0.07
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.14,
+          "longueurM": 0.14,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -554,8 +834,9 @@
             "yM": 0,
             "hM": 0.44
           },
+          "axis": "h",
           "radiusM": 0.36,
-          "heightM": 0.62,
+          "longueurM": 0.62,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -566,8 +847,9 @@
             "yM": 0,
             "hM": 0.79
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.12,
+          "longueurM": 0.12,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -578,8 +860,9 @@
             "yM": 0,
             "hM": 0.26
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -590,8 +873,9 @@
             "yM": 0,
             "hM": 0.62
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -602,8 +886,9 @@
             "yM": 0,
             "hM": 0.865
           },
+          "axis": "h",
           "radiusM": 0.304,
-          "heightM": 0.03,
+          "longueurM": 0.03,
           "sides": 16,
           "material": "bois-chene"
         }
@@ -626,8 +911,9 @@
             "yM": 0,
             "hM": 0.07
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.14,
+          "longueurM": 0.14,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -638,8 +924,9 @@
             "yM": 0,
             "hM": 0.44
           },
+          "axis": "h",
           "radiusM": 0.36,
-          "heightM": 0.62,
+          "longueurM": 0.62,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -650,8 +937,9 @@
             "yM": 0,
             "hM": 0.79
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.12,
+          "longueurM": 0.12,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -662,8 +950,9 @@
             "yM": 0,
             "hM": 0.26
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -674,8 +963,9 @@
             "yM": 0,
             "hM": 0.62
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -686,8 +976,9 @@
             "yM": 0,
             "hM": 0.865
           },
+          "axis": "h",
           "radiusM": 0.304,
-          "heightM": 0.03,
+          "longueurM": 0.03,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -698,8 +989,9 @@
             "yM": 0,
             "hM": 0.07
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.14,
+          "longueurM": 0.14,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -710,8 +1002,9 @@
             "yM": 0,
             "hM": 0.44
           },
+          "axis": "h",
           "radiusM": 0.36,
-          "heightM": 0.62,
+          "longueurM": 0.62,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -722,8 +1015,9 @@
             "yM": 0,
             "hM": 0.79
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.12,
+          "longueurM": 0.12,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -734,8 +1028,9 @@
             "yM": 0,
             "hM": 0.26
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -746,8 +1041,9 @@
             "yM": 0,
             "hM": 0.62
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -758,8 +1054,9 @@
             "yM": 0,
             "hM": 0.865
           },
+          "axis": "h",
           "radiusM": 0.304,
-          "heightM": 0.03,
+          "longueurM": 0.03,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -770,8 +1067,9 @@
             "yM": 0,
             "hM": 0.95
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.14,
+          "longueurM": 0.14,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -782,8 +1080,9 @@
             "yM": 0,
             "hM": 1.32
           },
+          "axis": "h",
           "radiusM": 0.36,
-          "heightM": 0.62,
+          "longueurM": 0.62,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -794,8 +1093,9 @@
             "yM": 0,
             "hM": 1.67
           },
+          "axis": "h",
           "radiusM": 0.3,
-          "heightM": 0.12,
+          "longueurM": 0.12,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -806,8 +1106,9 @@
             "yM": 0,
             "hM": 1.1400000000000001
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -818,8 +1119,9 @@
             "yM": 0,
             "hM": 1.5
           },
+          "axis": "h",
           "radiusM": 0.374,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -830,8 +1132,9 @@
             "yM": 0,
             "hM": 1.745
           },
+          "axis": "h",
           "radiusM": 0.304,
-          "heightM": 0.03,
+          "longueurM": 0.03,
           "sides": 16,
           "material": "bois-chene"
         }
@@ -1047,8 +1350,9 @@
             "yM": 0,
             "hM": 0.43
           },
+          "axis": "h",
           "radiusM": 0.26,
-          "heightM": 0.42,
+          "longueurM": 0.42,
           "sides": 16,
           "material": "albatre"
         },
@@ -1059,8 +1363,9 @@
             "yM": 0,
             "hM": 0.71
           },
+          "axis": "h",
           "radiusM": 0.2,
-          "heightM": 0.14,
+          "longueurM": 0.14,
           "sides": 16,
           "material": "albatre"
         },
@@ -1071,8 +1376,9 @@
             "yM": 0,
             "hM": 0.83
           },
+          "axis": "h",
           "radiusM": 0.13,
-          "heightM": 0.1,
+          "longueurM": 0.1,
           "sides": 16,
           "material": "albatre"
         },
@@ -1083,8 +1389,9 @@
             "yM": 0,
             "hM": 0.91
           },
+          "axis": "h",
           "radiusM": 0.18,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "albatre"
         },
@@ -1095,8 +1402,9 @@
             "yM": 0,
             "hM": 0.975
           },
+          "axis": "h",
           "radiusM": 0.07,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 8,
           "material": "albatre"
         },
@@ -1153,9 +1461,186 @@
     "label": "Charrette",
     "solid": true,
     "cover": "moyenne",
-    "foot": {
-      "w": 2,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.7,
+            "yM": 0,
+            "hM": 0.74
+          },
+          "size": {
+            "xM": 1.8,
+            "yM": 1.2,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.7,
+            "yM": 0.57,
+            "hM": 0.95
+          },
+          "size": {
+            "xM": 1.8,
+            "yM": 0.06,
+            "hM": 0.34
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.7,
+            "yM": -0.57,
+            "hM": 0.95
+          },
+          "size": {
+            "xM": 1.8,
+            "yM": 0.06,
+            "hM": 0.34
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.57,
+            "yM": 0,
+            "hM": 0.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.08,
+            "hM": 0.34
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.17,
+            "yM": 0,
+            "hM": 0.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.08,
+            "hM": 0.34
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": 0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.54,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": 0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.46,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": 0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.09,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": -0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.54,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": -0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.46,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.7,
+            "yM": -0.68,
+            "hM": 0.54
+          },
+          "axis": "y",
+          "radiusM": 0.09,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.95,
+            "yM": 0.4,
+            "hM": 0.675
+          },
+          "size": {
+            "xM": 1.5,
+            "yM": 0.07,
+            "hM": 0.07
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.95,
+            "yM": -0.4,
+            "hM": 0.675
+          },
+          "size": {
+            "xM": 1.5,
+            "yM": 0.07,
+            "hM": 0.07
+          },
+          "material": "bois-chene"
+        }
+      ]
     },
     "maison": "couvert maison : un plateau et des ridelles de bois s’apparentent à la barrière en bois de l’étalon MOYEN (LDB 14 l.81)"
   },
@@ -1660,8 +2145,9 @@
             "yM": 0,
             "hM": 0.43
           },
+          "axis": "h",
           "radiusM": 0.18,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -1714,8 +2200,9 @@
             "yM": 0,
             "hM": 0.15
           },
+          "axis": "h",
           "radiusM": 0.124,
-          "heightM": 0.025,
+          "longueurM": 0.025,
           "sides": 8,
           "material": "bois-chene"
         }
@@ -2594,8 +3081,9 @@
             "yM": -0.14,
             "hM": 1.1
           },
+          "axis": "h",
           "radiusM": 0.025,
-          "heightM": 2.1,
+          "longueurM": 2.1,
           "sides": 8,
           "material": "bois-chene"
         },
@@ -2606,8 +3094,9 @@
             "yM": -0.14,
             "hM": 1.1
           },
+          "axis": "h",
           "radiusM": 0.025,
-          "heightM": 2.1,
+          "longueurM": 2.1,
           "sides": 8,
           "material": "bois-chene"
         },
@@ -2618,8 +3107,9 @@
             "yM": -0.14,
             "hM": 1.1
           },
+          "axis": "h",
           "radiusM": 0.025,
-          "heightM": 2.1,
+          "longueurM": 2.1,
           "sides": 8,
           "material": "bois-chene"
         },
@@ -2650,7 +3140,270 @@
     "id": "mannequin",
     "type": "props",
     "label": "Mannequin d'entraînement",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.04
+          },
+          "axis": "h",
+          "radiusM": 0.3,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.73
+          },
+          "size": {
+            "xM": 0.16,
+            "yM": 0.16,
+            "hM": 1.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.07
+          },
+          "size": {
+            "xM": 0.92,
+            "yM": 0.12,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.54
+          },
+          "axis": "h",
+          "radiusM": 0.15,
+          "longueurM": 0.32,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.465
+          },
+          "axis": "h",
+          "radiusM": 0.158,
+          "longueurM": 0.03,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.615
+          },
+          "axis": "h",
+          "radiusM": 0.158,
+          "longueurM": 0.03,
+          "sides": 8,
+          "material": "fer-noirci"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mannequin-couturier",
+    "type": "props",
+    "label": "Mannequin de couturier",
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.025
+          },
+          "size": {
+            "xM": 0.62,
+            "yM": 0.07,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.03
+          },
+          "size": {
+            "xM": 0.07,
+            "yM": 0.62,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "axis": "h",
+          "radiusM": 0.025,
+          "longueurM": 0.8,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1
+          },
+          "size": {
+            "xM": 0.24,
+            "yM": 0.2,
+            "hM": 0.3
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.18,
+            "yM": 0,
+            "hM": 1
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.2,
+            "hM": 0.3
+          },
+          "slope": "x+",
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.18,
+            "yM": 0,
+            "hM": 1
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.2,
+            "hM": 0.3
+          },
+          "slope": "x-",
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.22,
+            "yM": 0.17,
+            "hM": 0.1
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.3
+          },
+          "size": {
+            "xM": 0.34,
+            "yM": 0.24,
+            "hM": 0.1
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.43
+          },
+          "size": {
+            "xM": 0.42,
+            "yM": 0.3,
+            "hM": 0.16
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.54
+          },
+          "size": {
+            "xM": 0.48,
+            "yM": 0.22,
+            "hM": 0.06
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.62
+          },
+          "axis": "h",
+          "radiusM": 0.05,
+          "longueurM": 0.1,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.69
+          },
+          "axis": "h",
+          "radiusM": 0.045,
+          "longueurM": 0.04,
+          "sides": 8,
+          "material": "laiton-dore"
+        }
+      ]
+    }
   },
   {
     "id": "fauteuil-loge",
@@ -2751,7 +3504,124 @@
     "id": "plante-pot",
     "type": "props",
     "label": "Plante en pot",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.21
+          },
+          "axis": "h",
+          "radiusM": 0.24,
+          "longueurM": 0.42,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "axis": "h",
+          "radiusM": 0.28,
+          "longueurM": 0.06,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.73
+          },
+          "axis": "h",
+          "radiusM": 0.04,
+          "longueurM": 0.5,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.275
+          },
+          "axis": "h",
+          "radiusM": 0.1,
+          "longueurM": 0.75,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.44,
+            "yM": 0.14,
+            "hM": 0.6
+          },
+          "slope": "x-",
+          "material": "feuillage"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.3,
+            "yM": 0,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.44,
+            "yM": 0.14,
+            "hM": 0.6
+          },
+          "slope": "x+",
+          "material": "feuillage"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.3,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.44,
+            "hM": 0.6
+          },
+          "slope": "y-",
+          "material": "feuillage"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.3,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.44,
+            "hM": 0.6
+          },
+          "slope": "y+",
+          "material": "feuillage"
+        }
+      ]
+    }
   },
   {
     "id": "etal-marche",
@@ -3462,8 +4332,9 @@
             "yM": 0,
             "hM": 0.78
           },
+          "axis": "h",
           "radiusM": 0.84,
-          "heightM": 0.08,
+          "longueurM": 0.08,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3474,8 +4345,9 @@
             "yM": 0,
             "hM": 0.37
           },
+          "axis": "h",
           "radiusM": 0.28,
-          "heightM": 0.74,
+          "longueurM": 0.74,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -3486,8 +4358,9 @@
             "yM": 0,
             "hM": 0.035
           },
+          "axis": "h",
           "radiusM": 0.6,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "fer-noirci"
         },
@@ -3498,8 +4371,9 @@
             "yM": 0.96,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3510,8 +4384,9 @@
             "yM": 0.96,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         },
@@ -3522,8 +4397,9 @@
             "yM": 0,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3534,8 +4410,9 @@
             "yM": 0,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         },
@@ -3546,8 +4423,9 @@
             "yM": -0.96,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3558,8 +4436,9 @@
             "yM": -0.96,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         },
@@ -3570,8 +4449,9 @@
             "yM": 0,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3582,8 +4462,9 @@
             "yM": 0,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         }
@@ -3703,8 +4584,9 @@
             "yM": -0.4,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3715,8 +4597,9 @@
             "yM": -0.4,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         },
@@ -3727,8 +4610,9 @@
             "yM": -0.4,
             "hM": 0.425
           },
+          "axis": "h",
           "radiusM": 0.32,
-          "heightM": 0.07,
+          "longueurM": 0.07,
           "sides": 16,
           "material": "bois-chene"
         },
@@ -3739,8 +4623,9 @@
             "yM": -0.4,
             "hM": 0.195
           },
+          "axis": "h",
           "radiusM": 0.15,
-          "heightM": 0.39,
+          "longueurM": 0.39,
           "sides": 8,
           "material": "fer-noirci"
         }
@@ -3991,8 +4876,9 @@
             "yM": 0.57,
             "hM": 1.85
           },
+          "axis": "h",
           "radiusM": 0.1,
-          "heightM": 0.26,
+          "longueurM": 0.26,
           "sides": 8,
           "material": "laiton-dore"
         },
@@ -4187,8 +5073,9 @@
             "yM": -0.79,
             "hM": 1.92
           },
+          "axis": "h",
           "radiusM": 0.1,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 8,
           "material": "laiton-dore"
         },
@@ -4199,8 +5086,9 @@
             "yM": -0.79,
             "hM": 1.92
           },
+          "axis": "h",
           "radiusM": 0.1,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 8,
           "material": "laiton-dore"
         },
@@ -4211,8 +5099,9 @@
             "yM": -0.54,
             "hM": 1.98
           },
+          "axis": "h",
           "radiusM": 0.1,
-          "heightM": 0.06,
+          "longueurM": 0.06,
           "sides": 8,
           "material": "laiton-dore",
           "emet": true
@@ -4698,6 +5587,345 @@
       "radiusM": 10,
       "tone": "chandelle"
     },
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.15
+          },
+          "axis": "h",
+          "radiusM": 0.1,
+          "longueurM": 0.3,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.43
+          },
+          "axis": "h",
+          "radiusM": 0.4,
+          "longueurM": 0.26,
+          "sides": 16,
+          "material": "laiton-dore",
+          "emet": true
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.16
+          },
+          "axis": "h",
+          "radiusM": 0.07,
+          "longueurM": 1.2,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.66
+          },
+          "size": {
+            "xM": 1.88,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.67
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 1.88,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.94,
+            "yM": 0,
+            "hM": 2.83
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.94,
+            "yM": 0,
+            "hM": 2.83
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.94,
+            "hM": 2.83
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.94,
+            "hM": 2.83
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.62,
+            "hM": 2.68
+          },
+          "size": {
+            "xM": 1.32,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.62,
+            "hM": 2.68
+          },
+          "size": {
+            "xM": 1.32,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.62,
+            "yM": 0,
+            "hM": 2.69
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 1.16,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.62,
+            "yM": 0,
+            "hM": 2.69
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 1.16,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.62,
+            "yM": 0.62,
+            "hM": 2.85
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.62,
+            "yM": 0.62,
+            "hM": 2.85
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.62,
+            "yM": -0.62,
+            "hM": 2.85
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.62,
+            "yM": -0.62,
+            "hM": 2.85
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.24
+          },
+          "size": {
+            "xM": 1.12,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.25
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 1.12,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.56,
+            "yM": 0,
+            "hM": 3.41
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.56,
+            "yM": 0,
+            "hM": 3.41
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.56,
+            "hM": 3.41
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.56,
+            "hM": 3.41
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.26
+          },
+          "material": "albatre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.88
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.24
+          },
+          "material": "fer-noirci"
+        }
+      ]
+    },
     "maison": "rayon maison : le lustre PORTE des bougies (def d’art : bras porte-bougies à flammes) — calé sur l’étalon de la bougie (LDB 74 l.43, 10 m), le canon ne chiffrant pas le nombre de mèches"
   },
   {
@@ -4891,8 +6119,9 @@
             "yM": 0,
             "hM": 0.88
           },
+          "axis": "h",
           "radiusM": 0.03,
-          "heightM": 1.7,
+          "longueurM": 1.7,
           "sides": 8,
           "material": "fer-noirci"
         },
@@ -4903,8 +6132,9 @@
             "yM": 0,
             "hM": 0.88
           },
+          "axis": "h",
           "radiusM": 0.03,
-          "heightM": 1.7,
+          "longueurM": 1.7,
           "sides": 8,
           "material": "fer-noirci"
         },

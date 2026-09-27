@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   newDraft,
+  skillsSubMessage,
   withSpecies,
   withCareer,
   rollDraftSpecies,
@@ -38,16 +39,29 @@ import {
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
-import { isUnresolvedChoice, concreteLabel, splitLabel, splitTopLevelOu } from '../../engine/careerSlots';
-import { specOptionsFor, pettySpellQuota, probeHero } from './draft';
+import { pettySpellQuota, probeHero, type CreatorDraft } from './draft';
+import { adresseDeCreation, speciesSkillDefaults, designer } from '../../engine/character';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
-import { spells, advancementLabel, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
+import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
 
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
 const DEFAULT_SPECIES = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
 const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES.refCareer)[0]!;
 const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), DEFAULT_CAREER.id);
+
+/** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
+ *  40 Augmentations (`evenCareerSkillAdvances`). */
+function carrierePrete(d: CreatorDraft): Pick<CreatorDraft, 'specChoices' | 'skillAdvances'> {
+  let specChoices: Record<string, string> = {};
+  for (const { adresse, ref } of careerSkillEntries(d)) {
+    if (ref.choix == null) continue;
+    const c = careerSkillEntries({ ...d, specChoices }).find((e) => e.adresse === adresse)!;
+    specChoices = { ...specChoices, [adresse]: designer('skill', c.ref, undefined, c.libre).spec! };
+  }
+  return { specChoices, skillAdvances: evenCareerSkillAdvances({ ...d, specChoices }) };
+}
 
 /** Brouillon minimal VALIDE jusqu'à l'étape 4 (répartitions par défaut, specs résolues). */
 function readyDraft() {
@@ -56,34 +70,27 @@ function readyDraft() {
   const level = draftLevel(d)!;
   // Résolution des entrées « (Au choix) » / « (A ou B) » qui reçoivent des augmentations
   // de la carrière par défaut.
-  const specChoices: Record<string, string> = {};
-  for (const ref of level.skills) {
-    const raw = advancementLabel('skills', ref);
-    if (isUnresolvedChoice(raw)) specChoices[raw] = concreteLabel(splitLabel(raw).name, specOptionsFor(raw)[0]);
-  }
   return {
     ...d,
     charsRolled: true, // gestes « Tirer aux dés » posés (#393 agentivité : exigés par la validation)
     talentsRolled: true,
     charAdvancesAlloc: { [level.characteristics[0]]: 5 }, // une Caractéristique du Niveau 1 de la carrière
     fateSplit: { fate: Math.ceil(sp.fate.extra / 2), resilience: Math.floor(sp.fate.extra / 2) },
-    speciesPlus5: sp.skills.slice(0, 3).map((a) => advancementLabel('skills', a)),
-    speciesPlus3: sp.skills.slice(3, 6).map((a) => advancementLabel('skills', a)),
-    skillAdvances: Object.fromEntries(level.skills.map((a) => [advancementLabel('skills', a), 5])),
-    speciesTalentChoices: { 'Perspicace ou Affable': 'Affable' },
-    specChoices,
-    careerTalent: advancementLabel('talents', level.talents[0]), // un Talent du Niveau 1 de la carrière (LDB 05 l.535)
+    speciesPlus5: speciesSkillDefaults(sp).plus5,
+    speciesPlus3: speciesSkillDefaults(sp).plus3,
+    ...carrierePrete(d),
+    speciesTalentChoices: { 'espece:talents:0': 1 },
+    careerTalent: 'id' in level.talents[0] ? designer('talent', level.talents[0]) : undefined, // un Talent du Niveau 1 de la carrière (LDB 05 l.535)
     label: 'Testeur',
   };
 }
 
 describe('B3 — Répartition simple des Compétences de carrière (étape 5)', () => {
-  it('produit des LIBELLÉS (jamais "[object Object]") totalisant 40, lus par la grille/validation', () => {
+  it('produit des clés de Compétence totalisant 40, lues par la grille/validation', () => {
     const d = draft(); // 8 Compétences de Niveau 1 (LDB 05 l.535)
     const alloc = evenCareerSkillAdvances(d);
-    expect(Object.keys(alloc)).not.toContain('[object Object]');
-    // Toutes les clés sont des entrées RECONNUES de la grille (careerSkillEntries) → lisibles.
-    expect(Object.keys(alloc).every((k) => careerSkillEntries(d).includes(k))).toBe(true);
+    // Toutes les clés sont des Compétences RECONNUES de la grille (careerSkillEntries).
+    expect(Object.keys(alloc).every((k) => careerSkillEntries(d).some((c) => c.cle === k))).toBe(true);
     // +5 × 8 Compétences = 40, compté par careerAdvTotal (la grille ET validateStep).
     expect(careerAdvTotal({ ...d, skillAdvances: alloc })).toBe(40);
   });
@@ -94,8 +101,8 @@ describe('B3 — Répartition simple des Compétences de carrière (étape 5)', 
     const after = {
       ...d,
       skillAdvances: evenCareerSkillAdvances(d),
-      speciesPlus5: sp.skills.slice(0, 3).map((a) => advancementLabel('skills', a)),
-      speciesPlus3: sp.skills.slice(3, 6).map((a) => advancementLabel('skills', a)),
+      speciesPlus5: speciesSkillDefaults(sp).plus5,
+      speciesPlus3: speciesSkillDefaults(sp).plus3,
     };
     expect(careerAdvTotal(after)).toBe(40); // la carrière RESTE à 40
   });
@@ -118,8 +125,8 @@ describe('aléatoire FIGÉ (anti-savescum)', () => {
     const d = rollDraftTalents(draft()); // geste 5c posé — Reiklander : « 3 Talent aléatoire »
     expect(resolvedSpeciesTalents(d)).toEqual(resolvedSpeciesTalents(d));
     // Changer un choix « A ou B » ne re-tire pas les dés des aléatoires.
-    const d2 = { ...d, speciesTalentChoices: { 'Perspicace ou Affable': 'Affable' } };
-    const randoms = (x: string[]) => x.filter((t) => !['Perspicace', 'Affable', 'Destinée'].includes(t));
+    const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': 1 } };
+    const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
     expect(randoms(resolvedSpeciesTalents(d2))).toEqual(randoms(resolvedSpeciesTalents(d)));
   });
 });
@@ -212,7 +219,7 @@ describe('bonus de PX (LDB 04/05)', () => {
     const d3 = rollDraftCareer(d1);
     expect(d3.careerRolls).toHaveLength(3);
     expect(careerXp(withCareer(d3, d3.careerRolls[2].ids[0]))).toBe(25);
-    const dFree = rollDraftCareer(d3); // « continuez à relancer » (l.195)
+    const dFree = rollDraftCareer(d3); // « continuez à relancer » (LDB 05 l.212)
     expect(careerXp(dFree)).toBe(0);
   });
   it('caractéristiques : +50 gardées, +25 réassignées, 0 après relance ou 100 Points — et 0 sans le GESTE', () => {
@@ -279,19 +286,16 @@ describe('buildHero — bout en bout', () => {
     const d = readyDraft();
     expect(draftWealth(d)).toEqual(draftWealth(d));
   });
-  it('careerSkillEntries : les ajouts de talents (Maître artisan…) apparaissent', () => {
+  it('careerSkillEntries : les huit Compétences de départ du Niveau (LDB 05 l.535)', () => {
     const d = readyDraft();
-    // Les 8 entrées du Niveau sont présentes.
-    expect(careerSkillEntries(d).length).toBeGreaterThanOrEqual(8);
+    expect(careerSkillEntries(d).map((c) => c.adresse)).toEqual((draftLevel(d)?.skills ?? []).map((_, i) => adresseDeCreation.carriereCompetence(i)));
   });
-  it.each(['Maître artisan', 'Artiste'])('clé de grille d’un ajout à emplacement `choix` (%s) = celle qu’indexe le moteur', (careerTalent) => {
-    const d = { ...readyDraft(), careerTalent };
+  it.each(['maitre-artisan', 'artiste'])('un ajout de Talent (%s) est hors de la grille des 40 Augmentations (LDB 05 l.535)', (id) => {
+    const d = { ...readyDraft(), careerTalent: { id } };
     const adds = careerSkillAdditions(probeHero(d));
     expect(adds.length).toBeGreaterThan(0);
     const entries = careerSkillEntries(d);
-    // `engine/character.ts` indexe `opts.skillAdvances` par `advancementLabel` : la grille du
-    // créateur doit produire EXACTEMENT cette clé, sinon l'allocation est perdue au build.
-    for (const a of adds) expect(entries).toContain(advancementLabel('skills', a));
+    for (const a of adds) expect(entries.some((c) => c.adresse === adresseDeCreation.ajout(a.id))).toBe(false);
   });
 });
 
@@ -300,7 +304,7 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
 
   it('trappingChoices (id STABLE) résout l\'emplacement en l\'objet catalogue choisi', () => {
     // Prêtre Guerrier (Novice) : seule carrière du LDB à porter { wildcard: 'arme' } (l.1).
-    const d = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: 'Obstiné', trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } };
+    const d = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: { id: 'obstine' }, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } };
     const hero = buildHero(d, 'h-weapon');
     expect((hero.items ?? []).some((it) => it.trappingId === 'baton-de-combat')).toBe(true);
     // Sans choix : `resolveTrappingChoices` laisse le `{wildcard}` NON résolu — aucun objet fantôme.
@@ -309,7 +313,7 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
   });
 
   it('validateStep(\'trappings\') exige la résolution du `{wildcard}` de la carrière', () => {
-    const base = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: 'Obstiné', wealthRoll: true };
+    const base = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: { id: 'obstine' }, wealthRoll: true };
     expect(validateStep({ ...base, trappingChoices: {} }, 'trappings')).toMatch(/Arme \(au choix\)/);
     expect(validateStep({ ...base, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } }, 'trappings')).toBeNull();
   });
@@ -358,21 +362,14 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
   /** Brouillon Sorcier valide (Niveau 1 : talent « Magie mineure » choisissable). */
   function sorcererDraft() {
     const base = withCareer(readyDraft(), 'sorcier');
-    const level = draftLevel(base)!;
-    const specChoices: Record<string, string> = {};
-    for (const ref of level.skills) {
-      const raw = advancementLabel('skills', ref);
-      if (isUnresolvedChoice(raw)) specChoices[raw] = concreteLabel(splitLabel(raw).name, specOptionsFor(raw)[0]);
-    }
     return {
       ...base,
       charAdvancesAlloc: { 'force-mentale': 5 },
-      skillAdvances: Object.fromEntries(level.skills.map((a) => [advancementLabel('skills', a), 5])),
-      specChoices,
-      careerTalent: 'Magie mineure',
+      ...carrierePrete(base),
+      careerTalent: { id: 'magie-mineure' },
     };
   }
-  const minorsOf = (n: number) => spells.filter((s) => s.ecole === 'Magie mineure').slice(0, n).map((s) => s.label);
+  const minorsOf = (n: number) => spells.filter((s) => s.ecole === 'Magie mineure').slice(0, n).map((s) => s.id);
 
   it('quota = BFM final ; l\'étape 4 exige EXACTEMENT ce nombre de sorts', () => {
     const d = sorcererDraft();
@@ -387,7 +384,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
     const d = sorcererDraft();
     const picks = minorsOf(pettySpellQuota(d));
     const hero = buildHero({ ...d, pettySpells: picks }, 'h-petty');
-    for (const m of picks) expect(hero.spells).toContain(spells.find((s) => s.label === m)!.id); // hero.spells = ids
+    for (const m of picks) expect(hero.spells).toContain(m);
     expect(hero.xp).toBe(xpTotal(d)); // rien payé
   });
 
@@ -401,18 +398,12 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
    *  Humains (Tiléens) portent le choix « Imperturbable ou Affable » (Affable = Sociabilité, témoin
    *  neutre) ; BFM figé en `pointBuy` pour franchir la décade sans dépendre du tirage. */
   it('talent « +5 FM » (Imperturbable) : quota supérieur au témoin sans bonus de FM', () => {
-    const tileenSorcererDraft = (talentPick: 'Imperturbable' | 'Affable') => {
+    const tileenSorcererDraft = (talentPick: 'imperturbable' | 'affable') => {
       const base = withCareer(withSpecies(newDraft(4321), 'humains-tileens'), 'sorcier');
       const sp = draftSpecies(base)!;
-      const level = draftLevel(base)!;
-      const specChoices: Record<string, string> = {};
-      for (const ref of level.skills) {
-        const raw = advancementLabel('skills', ref);
-        if (isUnresolvedChoice(raw)) specChoices[raw] = concreteLabel(splitLabel(raw).name, specOptionsFor(raw)[0]);
-      }
-      const speciesTalentChoices: Record<string, string> = {};
-      for (const entry of speciesTalentChoiceEntries(base)) {
-        speciesTalentChoices[entry] = entry === 'Imperturbable ou Affable' ? talentPick : splitTopLevelOu(entry)[0];
+      const speciesTalentChoices: Record<string, number> = {};
+      for (const { adresse, options } of speciesTalentChoiceEntries(base)) {
+        speciesTalentChoices[adresse] = Math.max(0, options.findIndex((o) => 'id' in o && o.id === talentPick));
       }
       return {
         ...base,
@@ -420,16 +411,15 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
         pointBuy: { ...base.pointBuy, 'force-mentale': 7 }, // base 20 + 7 = 27 (bonus 2), à la frontière de décade
         charsRolled: true,
         talentsRolled: true,
-        speciesPlus5: sp.skills.slice(0, 3).map((a) => advancementLabel('skills', a)),
-        speciesPlus3: sp.skills.slice(3, 6).map((a) => advancementLabel('skills', a)),
+        speciesPlus5: speciesSkillDefaults(sp).plus5,
+        speciesPlus3: speciesSkillDefaults(sp).plus3,
         speciesTalentChoices,
-        skillAdvances: Object.fromEntries(level.skills.map((a) => [advancementLabel('skills', a), 5])),
-        specChoices,
-        careerTalent: 'Magie mineure',
+        ...carrierePrete(base),
+        careerTalent: { id: 'magie-mineure' },
       };
     };
-    const withImperturbable = pettySpellQuota(tileenSorcererDraft('Imperturbable'));
-    const withoutFmBonus = pettySpellQuota(tileenSorcererDraft('Affable'));
+    const withImperturbable = pettySpellQuota(tileenSorcererDraft('imperturbable'));
+    const withoutFmBonus = pettySpellQuota(tileenSorcererDraft('affable'));
     expect(withImperturbable).toBe(withoutFmBonus + 1);
   });
 });
@@ -476,56 +466,23 @@ describe('signe astral (ADE II 3) — étape, tirage, PX et effet', () => {
   });
 });
 
-/** Les entrées « A ou B » de Talents d'espèce ne sont pas que de l'affichage : leur LIBELLÉ, rendu par
- *  `advancementLabel`, EST la clé de `CreatorDraft.speciesTalentChoices` (`draft.ts:457-460`, `:484`,
- *  `:496`) — donc une clé d'AUTHORING persistée dans le roster (`RosterEntry.draft`, liste
- *  localStorage non versionnée). Une dérive de libellé (spéc au singulier/pluriel, ordre d'un `pick`,
- *  renommage de catalogue) déprend silencieusement les choix déjà écrits : l'étape se re-choisit sans
- *  qu'aucun type ne bronche. Ce tableau FIGE les 26 espèces porteuses, mesurées à la donnée. */
-const CLES_CHOIX_TALENTS_ESPECE: Record<string, string[]> = {
-  'humains-reiklander': ['Perspicace ou Affable'],
-  'humains-middenheim': ['Savoir-vivre (Au choix) ou Infatigable'],
-  'humains-middenland': ['Menaçant ou Guerrier né', 'Destinée ou Talent aléatoire'],
-  'humains-nordland': ['Pêcheur ou Nomade', 'Cœur vaillant ou Très résistant', 'Destinée ou Talent aléatoire'],
-  'humains-tileens': ['Ergoteur ou Pêcheur', 'Imperturbable ou Affable'],
-  'humains-bjornling-norse': ['Guerrier né ou Pied marin', 'Pêcheur ou Seigneur de guerre'],
-  'humains-sarl-norse': ['Cavalier émérite ou Pied marin', 'Claquer le fouet ou Loup de mer'],
-  'humains-skaeling-norse': ['Charge berserk ou Fuite !', 'Déterminé ou Insignifiant'],
-  'halflings-cendreplaine': ['Savoir-vivre (Soldats) ou Sens aiguisé (Vue)'],
-  'halflings-basseronce': ['Sociable ou Voyageur aguerri'],
-  'halflings-tuilecaramel': ['Maître artisan (Fermiers) ou Costaud'],
-  'halflings-piedfoin': ['Négociateur ou Savoir-vivre (Guildes)'],
-  'halflings-piedpaille': ['Maître artisan (Au choix) ou Doigts de fée'],
-  'halflings-piedfoin-piedpaille': ['Ergoteur ou Numismate'],
-  'halflings-pochegaree': ['Brouet ou Dur à cuire'],
-  'halflings-havrebas': ['Criminel ou Savoir-vivre (Criminels ou Guildes)'],
-  'halflings-rumster': ['Maître artisan (Cuisinier) ou Négociateur'],
-  'halflings-bordecharde': ['Insignifiant ou Savoir-vivre (Serviteurs)'],
-  'halflings-pavederonces': ['Lire/Écrire ou Savoir-vivre (Érudits ou Nobles)'],
-  'halflings-fraisedebois': ['Lire/Écrire ou Savoir-vivre (Citadins ou Guildes)'],
-  nains: ['Déterminé ou Obstiné', 'Lire/Écrire ou Impitoyable'],
-  'nains-norse': ['Impitoyable ou Lire/Écrire', 'Noctambule ou Obstiné'],
-  gnomes: ["Insignifiant ou Empreint d'Ulgu", 'Chanceux ou Imitation', 'Pêcheur ou Lire/Écrire', 'Seconde vue ou Sixième sens'],
-  ogres: ['Très résistant ou Très fort'],
-  'hauts-elfes': ['Imperturbable ou Perspicace', 'Seconde vue ou Sixième sens'],
-  'elfes-sylvains': ['Dur à cuire ou Seconde vue', 'Lire/Écrire ou Très résistant'],
-};
-
-describe('clés d’AUTHORING des choix de Talents d’espèce (libellés persistés du brouillon)', () => {
-  it('aucune clé ne dérive : les libellés « A ou B » rendus par la donnée sont ceux du tableau figé', () => {
-    const observe: Record<string, string[]> = {};
+/** Un choix « A ou B » de Talent d'espèce se keye par l'ADRESSE de son entrée dans `sp.talents`, jamais par
+ *  un libellé (#1923) : renommer une option ne déprend aucun brouillon écrit. */
+describe('clés des choix de Talents d’espèce : l’adresse de l’entrée', () => {
+  it('chaque entrée « A ou B » de chaque espèce est adressée par son rang dans `sp.talents`', () => {
     for (const sp of allSpecies) {
-      const cles = sp.talents
-        .map((a) => advancementLabel('talents', a).trim())
-        .filter((e) => splitTopLevelOu(e).length > 1);
-      if (cles.length) observe[sp.id] = cles;
+      const attendues = sp.talents.flatMap((a, i) => ('pick' in a ? [adresseDeCreation.especeTalent(i)] : []));
+      expect(speciesTalentChoiceEntries(withSpecies(newDraft(7), sp.id)).map((e) => e.adresse)).toEqual(attendues);
     }
-    expect(observe).toEqual(CLES_CHOIX_TALENTS_ESPECE);
   });
+});
 
-  it('la dérivation mesurée est bien CELLE que le créateur keye (`speciesTalentChoiceEntries`)', () => {
-    for (const id of Object.keys(CLES_CHOIX_TALENTS_ESPECE)) {
-      expect(speciesTalentChoiceEntries(withSpecies(newDraft(7), id))).toEqual(CLES_CHOIX_TALENTS_ESPECE[id]);
-    }
+describe('5b — un joker de carrière sur une Compétence déjà tenue (LDB 05 l.535)', () => {
+  it('le bandeau nomme le refus `slot.takenByOther`, que la sélection n\'offre plus', () => {
+    const d = withCareer(withSpecies(newDraft(1), 'humains-reiklander'), 'gladiateur');
+    const joker = careerSkillEntries(d).find((c) => c.ref.choix != null)!;
+    expect(joker.libre('bagarre')).toBe(false);
+    const pris = { ...d, specChoices: { [joker.adresse]: 'bagarre' } };
+    expect(skillsSubMessage(pris, 'career')).toBe('« Corps à corps (Bagarre) » : déjà pris par un autre emplacement de ce Niveau de Carrière.');
   });
 });

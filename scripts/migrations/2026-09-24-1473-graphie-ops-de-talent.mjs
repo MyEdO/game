@@ -3,7 +3,7 @@
  *  - les ops `grantTalent` / `grantCareerTalent` passent de `{ op, talentId, spec? }` à
  *    `{ op, talent: { id, spec? } }` (`src/data/schemas/grammaire/mecanique.ts`, champ à choix `talent`),
  *    par la primitive `graphieOpsDeTalentDeep` (`src/data/graphieOpsDeTalent.ts`), la même que
- *    `PROJECT_MIGRATIONS[14]` ;
+ *    `PROJECT_MIGRATIONS[16]` ;
  *  - `axes.json › talents[]` passe de `{ talentId, spec? }` à `{ id, spec? }` (`refOuSpec('talent')`,
  *    `src/data/schemas/defs/axes.ts`).
  *

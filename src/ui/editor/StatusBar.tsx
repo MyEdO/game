@@ -3,12 +3,13 @@
  * dimensions de la scène, et toggles de CALQUES (déplacés de la Palette — ils concernent la vue).
  */
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import { garanti } from '../../state/combatants';
 import { terrainLabel } from '../../state/terrain';
 import { Icon } from '../Icon';
 import type { Layers, Pt, Tool } from './editorState';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
-import { siegeEngines } from '../../data';
+import { creatureLabel, siegeEngines } from '../../data';
 import { layerLabel } from './LayerField';
 import { PROPS } from '../../gameIso/catalog/decor';
 
@@ -27,8 +28,8 @@ export function toolLabel(tool: Tool): ReactNode {
     case 'select': return '↖ Sélection';
     case 'tile': return <><Icon id="map-tool/paint" size="sm" /> {terrainLabel(tool.terrain) ?? tool.terrain}</>;
     case 'entity':
-      if (tool.kind === 'prop') return <><Icon id="map-tool/prop" size="sm" /> {PROPS[tool.ref ?? '']?.label ?? 'Décor'}</>;
-      if (tool.kind === 'personnage') return <><Icon id="map-tool/npc" size="sm" /> {tool.ref ?? 'Villageois'}</>;
+      if (tool.kind === 'prop') return <><Icon id="map-tool/prop" size="sm" /> {garanti(PROPS[tool.ref], tool.ref, 'décor de la palette').label}</>;
+      if (tool.kind === 'personnage') return <><Icon id="map-tool/npc" size="sm" /> {creatureLabel(tool.ref)}</>;
       return <><Icon id="map-tool/start-flag" size="sm" /> {libelleDeValeur(entityKindSchema, tool.kind)}</>;
     case 'zone': return tool.zone === 'room' ? <><Icon id="rest/home" size="sm" /> Pièce</>
       : tool.zone === 'trigger' ? <><Icon id="map-tool/zone" size="sm" /> Zone trigger</>
@@ -37,7 +38,7 @@ export function toolLabel(tool: Tool): ReactNode {
     case 'zoneTiles': return <><Icon id="map-tool/zone" size="sm" /> Emprise · {tool.paint === 'add' ? 'ajouter' : 'retirer'}</>;
     case 'entry': return <><Icon id="nav/entry-point" size="sm" /> Point d’entrée</>;
     case 'encounter': return <><Icon id="action/attack" size="sm" /> Placer des ennemis</>;
-    case 'emplacement': return <><Icon id="scenario/siege" size="sm" /> {siegeEngines().find((t) => t.id === tool.trappingId)?.label ?? 'Emplacement'}</>;
+    case 'emplacement': return <><Icon id="scenario/siege" size="sm" /> {garanti(siegeEngines().find((t) => t.id === tool.trappingId), tool.trappingId, 'engin de la palette').label}</>;
     case 'wall': return tool.paint === 'door' ? <><Icon id="map-tool/door" size="sm" /> Porte</> : tool.paint === 'diagBack' || tool.paint === 'diagFwd' ? <><Icon id="map-tool/wall" size="sm" /> Diagonale</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>;
     case 'height': return <><Icon id="map-tool/height" size="sm" /> Hauteur {tool.metres} m</>;
     case 'stair': return <>↗ Volée → {layerLabel(tool.toZ)}</>;

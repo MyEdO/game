@@ -302,10 +302,8 @@ ${tableFormes(CIBLE, PAR_CIBLE)}
 ${tableFormes(DUREE, PAR_DUREE)}
 
 \`value\`/\`n\`/\`meters\` sont des \`Formula\` (\`src/engine/ops.ts\`) : littéral \`number\`,
-\`{charOf}\` (« (Force Mentale) ») ou \`{bonusOf}\` (« (Bonus de FM) »). Les \`parseSpellRange\`/
-\`parseSpellTarget\`/\`parseSpellDuration\` ne servent qu'à la MIGRATION prose → structure
-(authoring), jamais au runtime ni à l'affichage — l'affichage est dérivé par
-\`src/engine/spellRangeFormat.ts\`. Pour un sort neuf : écrire directement la forme structurée.
+\`{charOf}\` (« (Force Mentale) ») ou \`{bonusOf}\` (« (Bonus de FM) »). L'affichage est dérivé
+par \`src/engine/spellRangeFormat.ts\`. Pour un sort neuf : écrire directement la forme structurée.
 
 ## 3. Effets mécaniques — \`effects\`
 

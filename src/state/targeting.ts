@@ -2,7 +2,7 @@
  * Ciblage au SURVOL — source unique du tooltip + réticule + ligne de visée du joueur (IsoStage).
  * Rejoue les MÊMES prédicats que le clic (via le REGISTRE DE MODES `targetingModes.ts`) pour que
  * l'affordance ne mente jamais : réticule présent = le clic aboutira, réticule interdit = il sera refusé (et pourquoi).
- * Pur (lit l'état). `hoverTargeting`/`validTargets` ne sont plus que des entrées qui délèguent au mode
+ * Pur (lit l'état). `hoverTargeting`/`validTargets` sont seulement des entrées qui délèguent au mode
  * courant ; les corps d'affordance/candidats vivent dans `targetingModes.ts` (source unique).
  */
 import { Combatant } from '../engine/types';

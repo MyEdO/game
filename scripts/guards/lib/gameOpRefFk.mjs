@@ -1,7 +1,7 @@
 // Mécanique du garde-fou « les références portées par les `GameOp` de la DONNÉE COMMITÉE résolvent »
 // (#847). `applyOps` (`src/engine/ops.ts`) empile sans valider : un `talentId` fantôme produit une op
-// silencieusement inerte, un `ref` fantôme un mannequin de repli visible (`src/state/spawn.ts ›
-// spawnEnemy`). Le gate posé à l'ÉDITION ne protège que ce qui passe par l'UI ; les `.json` commités, non.
+// silencieusement inerte, un `ref` fantôme un refus au spawn (`RefIrresoluble`, `src/state/spawn.ts`).
+// Le gate posé à l'ÉDITION ne protège que ce qui passe par l'UI ; les `.json` commités, non.
 //
 // PÉRIMÈTRE DÉRIVÉ, PAS RECOPIÉ. Les champs surveillés sont ÉNUMÉRÉS par le TypeChecker depuis l'union
 // `GameOp` de `src/engine/ops.ts` (`gameOpStringFields`) : chaque propriété dont le type admet `string`

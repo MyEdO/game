@@ -32,13 +32,13 @@ function profile(): string {
     // Cloisons étanches (construction cathayenne) : coutures verticales du bordé.
     + '<path d="M-30 -17 L-30 -6 M-8 -14 L-8 -3 M14 -14.5 L14 -3.5 M34 -17 L34 -6.5" stroke="@coqueO" stroke-width="0.8" opacity="0.4"/>'
     // ŒIL peint de l'étrave (tradition cathayenne).
-    + '<circle cx="49.5" cy="-24" r="2.8" fill="@voile" stroke="@coqueO" stroke-width="0.9"/>'
+    + '<circle cx="49.5" cy="-24" r="2.8" fill="@toileDeVoile" stroke="@coqueO" stroke-width="0.9"/>'
     + '<circle cx="50.3" cy="-24" r="1.2" fill="@matO"/>'
     // Toits-PAGODES couronnant les deux étages du château (jamais une boîte posée : les murs
     // sont la muraille elle-même) + galeries de fenêtres percées dans chaque étage.
     + pagodaRoof(-27.5, -34, 7.5)
     + pagodaRoof(-44.5, -46, 8.5)
-    + '<path d="M-33 -29 l3.5 0 m4.5 0 l3.5 0 M-50.5 -40.5 l3.5 0 m4 0 l3.5 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-33 -29 l3.5 0 m4.5 0 l3.5 0 M-50.5 -40.5 l3.5 0 m4 0 l3.5 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     + '</g>';
 }
 
@@ -46,11 +46,11 @@ function front(): string {
   return '<g>'
     // Grand mât (centre) et misaine décalée : voiles lattées vues de CHANT (lames étroites à lattes).
     + spar(-3, -28, -3, -96, 2.6)
-    + '<path d="M-6.2 -90 L0.2 -90 L1.2 -44 L-7.2 -44 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
+    + '<path d="M-6.2 -90 L0.2 -90 L1.2 -44 L-7.2 -44 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
     + '<path d="M-6.4 -80 l6.8 -0.4 M-6.6 -68 l7.2 -0.4 M-6.8 -56 l7.6 -0.4" stroke="@matO" stroke-width="0.9" opacity="0.7"/>'
     + pennant(-3, -96, 10)
     + spar(5, -30, 5, -70, 2.2)
-    + '<path d="M2.4 -66 L7.6 -66 L8.4 -36 L1.6 -36 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
+    + '<path d="M2.4 -66 L7.6 -66 L8.4 -36 L1.6 -36 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
     + '<path d="M2.2 -58 l6 -0.3 M2 -48 l6.6 -0.3" stroke="@matO" stroke-width="0.9" opacity="0.7"/>'
     + pennant(5, -70, 8)
     // ÉTRAVE-TABLEAU de jonque : muraille qui s'ÉVASE en montant, préceintes horizontales.
@@ -60,8 +60,8 @@ function front(): string {
     // Massif d'étrave central montant en pointe au-dessus du pavois.
     + '<path d="M-2 -35 L2 -35 L2.8 -3 L-2.8 -3 Z" fill="@coque" stroke="@coqueO" stroke-width="1"/>'
     // Les DEUX yeux peints, de part et d'autre de l'étrave.
-    + '<circle cx="-14" cy="-20.5" r="2.6" fill="@voile" stroke="@coqueO" stroke-width="0.9"/><circle cx="-14" cy="-21.3" r="1.1" fill="@matO"/>'
-    + '<circle cx="14" cy="-20.5" r="2.6" fill="@voile" stroke="@coqueO" stroke-width="0.9"/><circle cx="14" cy="-21.3" r="1.1" fill="@matO"/>'
+    + '<circle cx="-14" cy="-20.5" r="2.6" fill="@toileDeVoile" stroke="@coqueO" stroke-width="0.9"/><circle cx="-14" cy="-21.3" r="1.1" fill="@matO"/>'
+    + '<circle cx="14" cy="-20.5" r="2.6" fill="@toileDeVoile" stroke="@coqueO" stroke-width="0.9"/><circle cx="14" cy="-21.3" r="1.1" fill="@matO"/>'
     + '</g>';
 }
 
@@ -71,11 +71,11 @@ function back(): string {
     + spar(0, -52, 0, -96, 2.4) + pennant(0, -96, 10)
     // Étage HAUT du château (en retrait), galerie de fenêtres, toit-pagode.
     + '<path d="M-13 -36 L-14.5 -51 L14.5 -51 L13 -36 Z" fill="@coque" stroke="@coqueO" stroke-width="1.1"/>'
-    + '<path d="M-10 -46 l4 0 M-2 -46 l4 0 M6 -46 l4 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-10 -46 l4 0 M-2 -46 l4 0 M6 -46 l4 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     + pagodaRoof(0, -51, 14.5)
     // Étage BAS, plus large, dans le prolongement direct du tableau, toit-pagode débordant.
     + '<path d="M-20 -23 L-22 -38 L22 -38 L20 -23 Z" fill="@coque" stroke="@coqueO" stroke-width="1.2"/>'
-    + '<path d="M-17 -32 l3.5 0 M-9 -32 l3.5 0 M-1 -32 l3.5 0 M7 -32 l3.5 0 M14 -32 l3.5 0" stroke="@voileH" stroke-width="1.6"/>'
+    + '<path d="M-17 -32 l3.5 0 M-9 -32 l3.5 0 M-1 -32 l3.5 0 M7 -32 l3.5 0 M14 -32 l3.5 0" stroke="@toileDeVoileH" stroke-width="1.6"/>'
     + pagodaRoof(0, -38, 22)
     // SAFRAN de jonque profond dans l'axe, plongeant sous la voûte.
     + '<path d="M-3 -6 L3 -6 L2.2 7 L-2.2 7 Z" fill="@coque" stroke="@coqueO" stroke-width="1"/>'

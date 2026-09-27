@@ -640,8 +640,8 @@ export function recomputeLoadout(c: Combatant): void {
       if (offW) weapons.push(offW);
     }
     // Pas de resync `it.equipped` sur les ARMES : « équipé » d'une arme = « tenue dans ce set actif », ce que
-    // `c.weapons` (dérivé ici) exprime déjà → les lecteurs passent par `isWeaponActive`. `it.equipped` ne sert
-    // plus que pour l'armure (port) et de seed du loadout par défaut (ensureDefaultLoadout).
+    // `c.weapons` (dérivé ici) exprime déjà → les lecteurs passent par `isWeaponActive`. `it.equipped` sert
+    // seulement pour l'armure (port) et de seed du loadout par défaut (ensureDefaultLoadout).
   }
   // Le SET ACTIF tient-il une arme ? (mesuré ICI : seules les armes issues des slots main/off comptent —
   // les armes naturelles/dérivées/de poste ajoutées plus bas ne « désarment » ni n'« arment » un set.)

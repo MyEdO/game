@@ -1,6 +1,6 @@
 *Pages PDF 235-245*
 
-# **MAGIC RULES**
+# <span id="page-234-0" data-folio="235"></span>**MAGIC RULES**
 
 # **Casting Test**
 
@@ -52,7 +52,7 @@ When Spells provide bonuses or impose penalties, the best bonus and worst penalt
 
 Unless otherwise stated, you must have line of sight to your target.
 
-# **Channelling**
+# <span id="page-235-0" data-folio="236"></span>**Channelling**
 
 You can gather the magical energy needed to cast powerful Spells by channelling. To channel magic, you must decide which Wind of Magic you wish to channel and use your Action to make a **Challenging (+0 SL) Channelling** Test.
 
@@ -78,7 +78,7 @@ If a Casting Test generates SL beyond those required to cast a spell, you can sp
 - Spells with a Range of 'You' only ever target the spellcaster. Spells with a range of 'Touch' or a duration of 'Instant' or 'Special' may not be extended. Spells with no Area of Effect may not have their area increased.
 - Petty Spells cannot be Overcast.
 
-#### **OVERCAST TABLE**
+**OVERCAST TABLE**
 
 | SL  | Targets | Damage    | Range | AoE | Duration |
 |-----|---------|-----------|-------|-----|----------|
@@ -90,7 +90,7 @@ If a Casting Test generates SL beyond those required to cast a spell, you can sp
 | 13  | +2      | +6 Damage | x 3   | x 2 | x 3      |
 | 18+ | +3      | +7 Damage | x 4   | x 3 | x 3      |
 
-#### **TYPES OF MAGIC IN THE OLD WORLD**
+**TYPES OF MAGIC IN THE OLD WORLD**
 
 | Specialisation                  | Used By                                                                       | Concentrated In                                                         |
 |---------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------------------|
@@ -108,7 +108,7 @@ If a Casting Test generates SL beyond those required to cast a spell, you can sp
 | Ulgu                            | Spellcasters who study the Lore of Shadows                                    | Mist shrouded moors, shadowy forests, caves                             |
 | Waaagh!                         | Orc and goblin shamans                                                        | Wherever enough orcs and goblins gather                                 |
 
-# **Spells**
+# <span id="page-236-0" data-folio="237"></span>**Spells**
 
 The Spells presented in this book come in four varieties. Petty Spells are simple tricks involving small amounts of magic. Lore Spells are those which are exclusive to a particular tradition of magic. Arcane Spells are additional Lore Spells exclusive to their traditions that have similar effects to Arcane Spells of other traditions. Chaos Spells are practised by those who have sold their souls to Chaos.
 
@@ -158,7 +158,7 @@ Multiple spellcasters attempting to dispel the same Spell make Tests separately.
 
 An elf spellcaster may learn a number of Arcane Lores equal to their Willpower Bonus. An elf Character may not purchase a new Arcane Magic Talent until they have learned at least 8 Spells from the previous Lore. Any spellcaster may learn a single Dark Lore in addition to another Lore.
 
-#### **MINOR MISCAST TABLE**
+<span id="page-237-0" data-folio="238"></span>**MINOR MISCAST TABLE**
 
 | d100       | Effect                                                                                                                                                                                                                                                                                                                                                            |
 |------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -183,7 +183,7 @@ An elf spellcaster may learn a number of Arcane Lores equal to their Willpower B
 | 91–95      | Multiplying Misfortune: Roll twice on this table, rerolling any results between 91–00 and ignoring modifiers.                                                                                                                                                                                                                                                     |
 | 96–00      | Cascading Chaos: Roll on the Major Miscast Table. If a Minor Miscast roll is positively modified, any overflow past 00 is carried over into the Major Miscast Table.                                                                                                                                                                                              |
 
-#### **MAJOR MISCAST TABLE**
+<span id="page-238-0" data-folio="239"></span>**MAJOR MISCAST TABLE**
 
 | d100       | Effect                                                                                                                                                                                                                                                                                                                                                                   |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -208,7 +208,7 @@ An elf spellcaster may learn a number of Arcane Lores equal to their Willpower B
 | 91–95      | Slipped from Memory: The Spell you are attempting to cast becomes unfamiliar and strange to you. If held in memory, you lose access to the Spell and must learn it again.                                                                                                                                                                                                |
 | 96+        | Aethyric Feedback: Everyone within a number of yards equal to your Willpower Bonus — friend and foe alike — suffers 1d10 wounds, ignoring Toughness Bonus and Armour Points, and receives the Prone Condition. If there are no targets in range, the magic has nowhere to vent, so your head explodes, killing you instantly.                                            |
 
-# **Petty Spells**
+# <span id="page-239-0" data-folio="240"></span>**Petty Spells**
 
 For the few humans blessed — or cursed, depending upon your point of view — with the spark of magic, it generally manifests around puberty, and almost always before 25 summers have passed. The first indications of impending witchery are often little tricks, knacks, cantrips, or similar, showing the wizard-to-be should probably be trained for everyone else's safety.
 
@@ -264,7 +264,7 @@ The target gains 1 *Blinded* Condition, and gains 1 *Blinded*  Condition at the 
 
 You touch your target, draining their life. This counts as a *magic missile* with Damage +0 that ignores Armour Points. You then heal 1 Wound.
 
-#### **Eavesdrop**
+#### <span id="page-240-0" data-folio="241"></span>**Eavesdrop**
 
 **CN:** 0 **Range:** Initiative yards
 
@@ -334,7 +334,7 @@ You can keep yourself and your possessions dry whatever the weather, unaffected 
 
 You purify all water within a receptacle, such as a water flask, stein, or jug. All non-magical impurities, such as poison or contaminants are removed, leaving crisp, clear, potable water. If the vessel contains another liquid that is predominantly water — such as ale or wine — this is also purified, turning into delicious, pure, non-alcoholic water.
 
-#### **Rot**
+#### <span id="page-241-0" data-folio="242"></span>**Rot**
 
 **CN:** 0 **Range:** 1 yard **Target:** Special **Duration:** Instant
 
@@ -414,7 +414,7 @@ You gain +1 Armour Point to all Hit Locations as you wrap yourself in a protecti
 
 You conjure a *Magical* melee weapon of your choice from among the weapons in page 301.
 
-# **Arrow Shield**
+# <span id="page-242-0" data-folio="243"></span>**Arrow Shield**
 
 **CN:** 3 **Range:** You
 
@@ -482,7 +482,7 @@ You infuse yourself with magic, lending your blood a fearsome potency. You gain 
 
 You boost your Second Sight to assist your mundane senses. While the Spell is active, gain the *Dark Vision* Creature Trait (see page 357).
 
-#### **Distracting**
+#### <span id="page-243-0" data-folio="244"></span>**Distracting**
 
 **CN:** 4 **Range:** You
 
@@ -548,7 +548,7 @@ Using magic, you grab hold of a non-sentient object no larger than 1 + SL yards 
 
 You drain all the Winds of Magic from within your body and your possessions, removing any magical aura. For the duration of the Spell, you appear mundane to the *Magical Sense* Talent and similar. You effectively have no magical ability and your magical nature cannot be detected by any means. While this Spell is in effect, you cannot cast any other Spells. *Mundane Aura* immediately ends if you make a Channelling Test.
 
-#### **Push**
+#### <span id="page-244-0" data-folio="245"></span>**Push**
 
 **CN:** 6 **Range:** You
 

@@ -37,7 +37,7 @@ export const creature: CreatureDef = {
       encolure: 14, tete: 4, queue: 160,
     },
     deco: { 'piedAvD#profile': PROIE },
-    stored: {
+    palette: {
       corps: '#d7d3c6', corpsO: '#7e7868', corpsH: '#f3ecd6', // robe pâle blanc-gris, rehaut ivoire doré (face)
       cheveux: '#eae7dc', cheveuxO: '#85887e', // crinière blanche hérissée, cernée gris froid
       cuir: '#4a463c',

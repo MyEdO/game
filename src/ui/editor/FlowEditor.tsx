@@ -26,7 +26,9 @@ import {
   EFFECT_ICON,
   newEffect,
   effectSummary,
+  ctxDeCatalogue,
 } from './EffectList';
+import type { RacineDeCatalogue } from '../../state/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
 import { ConditionEditor, condSummary } from './ConditionEditor';
 
@@ -65,16 +67,20 @@ export const noeudTestNeuf = (): NoeudTest => ({ kind: 'test', test: { difficult
  * jet est la seule forme admise le passe à `false` : le bouton « Retirer » ne s'affiche pas, et le
  * nœud reste porté quoi qu'il arrive.
  *
+ * `racine` = la racine de catalogue du champ (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) : ses
+ * branches n'offrent que les cibles que le marcheur de CE champ honore.
+ *
  * `branches` = ce que le CANAL du porteur sert vraiment. `'les-deux'` (défaut) pour un jet dont
  * l'issue choisit sa branche (Blessures critiques, `engine/critical.ts`). `'echec'` pour un canal
  * qui n'applique que l'échec (cycle de maladie, `state/restFlow.ts`) : la branche de réussite n'est
  * pas rendue, et le schéma du porteur la refuse peuplée (`noeudTest`, option `echecSeulServi`) —
  * une case qui ne changerait rien n'est pas offerte.
  */
-export function NoeudTestField({ value, onChange, desc, retirable = true, branches = 'les-deux' }: {
+export function NoeudTestField({ value, onChange, desc, racine, retirable = true, branches = 'les-deux' }: {
   value: NoeudTest | undefined;
   onChange: (v: NoeudTest | undefined) => void;
   desc: string;
+  racine: RacineDeCatalogue;
   retirable?: boolean;
   branches?: 'echec' | 'les-deux';
 }) {
@@ -87,12 +93,12 @@ export function NoeudTestField({ value, onChange, desc, retirable = true, branch
           {branches === 'les-deux' && (
             <div className="branch">
               <span className="branch-label ok">Si RÉUSSITE :</span>
-              <FlowEditor flow={value.success} ctx={{ encounters: [], dialogues: [] }} onChange={(success) => onChange({ ...value, success })} />
+              <FlowEditor flow={value.success} ctx={ctxDeCatalogue(racine)} onChange={(success) => onChange({ ...value, success })} />
             </div>
           )}
           <div className="branch">
             <span className="branch-label fail">Si ÉCHEC :</span>
-            <FlowEditor flow={value.fail} ctx={{ encounters: [], dialogues: [] }} onChange={(fail) => onChange({ ...value, fail })} />
+            <FlowEditor flow={value.fail} ctx={ctxDeCatalogue(racine)} onChange={(fail) => onChange({ ...value, fail })} />
           </div>
           {retirable && <button type="button" className="btn" onClick={() => onChange(undefined)}>Retirer le jet</button>}
         </div>
@@ -176,7 +182,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
       <div className="tf-row">
         <span className="dr">Plus facile si</span>
         <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={test.easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
-        <input placeholder="ou talent" value={test.easierIf?.hasTalent ?? ''} onChange={(e) => setEase({ hasTalent: e.target.value || undefined })} />
+        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={test.easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
         <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={test.easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
         {/* Menace du talent « Résistance (Menace) » (LDB 10) : tag qui offre son auto-succès sur CE Test.
             Les options sont les SPECS AUTHORÉES du talent (`menaceIds`, lues au catalogue) — l'auteur

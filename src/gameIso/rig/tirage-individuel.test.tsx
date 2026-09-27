@@ -11,7 +11,7 @@ import type { EnemyRigProfile } from './enemyProfile';
 import { teintesTirees } from './parts/tirageIndividuel';
 import { raceById } from './races';
 import { bipedDef } from './creatures';
-import { spawnEnemy } from '../../state/spawn';
+import { ficheDEntite } from '../../state/sceneNpc';
 import { hashSeed } from '../../engine/dice';
 import { RigPortrait } from '../../ui/RigPortrait';
 import type { SceneEntity } from '../../state/scene';
@@ -25,13 +25,12 @@ const SEEDED = tire(hashSeed(ID));
 
 const entity = (extra: Partial<SceneEntity> = {}): SceneEntity =>
   ({ kind: 'personnage', id: ID, label: 'Passant', pos: { x: 0, y: 0 }, appearance: { species: 'humains-reiklander' }, ...extra }) as SceneEntity;
-const combatant = (ent: SceneEntity) => spawnEnemy(ent.ref, ent.statblock, ent.id, ent.pos, { appearance: ent.appearance });
+const combatant = ficheDEntite;
 const palette = (p: EnemyRigProfile | null) => ({ colors: p?.appearance.colors, parts: p?.appearance.parts });
 const armure = (p: EnemyRigProfile | null) => (p?.equip.armour ?? []).map((i) => `${i.label}:${i.pa}`).sort();
 
 describe('#1882 T1 — tirage individuel : même règle en exploration, en combat et au portrait', () => {
   it('poser la ref du profil standard (`humain`) garde le tirage individuel du PNJ', () => {
-    expect(palette(entityRigProfileFor(entity()))).toEqual(SEEDED);
     expect(palette(entityRigProfileFor(entity({ ref: 'humain' })))).toEqual(SEEDED);
   });
 
@@ -96,7 +95,7 @@ describe('#1882 T1 — tirage individuel : même règle en exploration, en comba
   });
 
   it('contrat : la coiffure a UNE source, le resolver par la graine de l’individu — le profil n’en pose aucune', () => {
-    for (const ent of [entity(), entity({ ref: 'humain' }), entity({ ref: 'bella-la-noire', appearance: undefined })]) {
+    for (const ent of [entity({ ref: 'humain' }), entity({ ref: 'bella-la-noire', appearance: undefined })]) {
       expect(entityRigProfileFor(ent)!.appearance.parts?.cheveux).toBeUndefined();
       expect(enemyRigProfile(combatant(ent))!.appearance.parts?.cheveux).toBeUndefined();
     }

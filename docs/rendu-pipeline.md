@@ -70,7 +70,6 @@ même matériau ; la couleur est résolue au RENDU, depuis la donnée d'apparenc
 |---|---|---|
 | `key` | `string` | Clé STABLE d'identité MONDE (`floor:x,y,z`…) — clé React/DOM, survit aux frames et rotations. |
 | `cell` | `{ x: number; y: number; z: number }` | Case d'ancrage. |
-| `span?` | `{ w: number; h: number }` | Empreinte (cases) d'un élément multi-cases (toit, prop 2×2) — profondeur au coin caméra-proche. |
 | `states` | `ElStates` | — |
 
 ### `ElStates` — les vérités de SCÈNE, camera-free
@@ -95,9 +94,9 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildFloors` | `FloorEl[]` | `src/gameIso/builders/floors.ts:318` | Éléments `floor` de la scène. |
 | `buildHighlights` | `HighlightEl[]` | `src/gameIso/builders/highlights.ts:64` | — |
 | `buildPropVolumes` | `Face[]` | `src/gameIso/builders/propVolumes.ts:52` | Les faces MONDE d'un décor volumique : recette locale × cap × ancre, posées sur `baseHeightM`. |
-| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:130` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
+| `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:128` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
 | `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1401` | Éléments `roof` de la scène. |
-| `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:80` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
+| `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
 | `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:629` | Éléments `wall` de la scène. |
 
 ## 3. L'arborescence de `src/gameIso/`
@@ -111,7 +110,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `src/gameIso/detail/` | 3 | 0 | détail de surface (matériaux v2) : recettes dépliées en primitives UV, déterministes au seed |
 | `src/gameIso/fx/` | 5 | 0 | effets de combat — hors périmètre de la garde anti-couleur (couleur d’intention, pas d’identité de matériau) |
 | `src/gameIso/pov/` | 3 | 0 | première personne : caméra, brume, boîtes de billboard, voiles d’écran |
-| `src/gameIso/rig/` | 20 | 25 | art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur |
+| `src/gameIso/rig/` | 21 | 26 | art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur |
 | `src/gameIso/stage/` | 54 | 0 | hôtes de montage : le monde et ses surcouches React, le plan de station, le tri des objets |
 
 ### Appendices du rig — UN registre, 9 ids, une seule résolution
@@ -185,7 +184,7 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 | Catalogue | Entrées |
 |---|---|
 | `src/data/structureAppearance.json` | 18 |
-| `src/data/materials.json` | 15 |
+| `src/data/materials.json` | 16 |
 | `src/data/decorPalette.json` | 435 |
 
 - **un matériau** (structure / relief / toit) : une entrée dans le catalogue correspondant ci-dessus
@@ -199,4 +198,4 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: 4b77a6fe686c8adeefeb2a90d1c3c25931a0b87f (1011 fichiers, 92 dossiers) corps: e6c4f27475fb7c20f6e922752dee1ff5862c8912 -->
+<!-- sources-empreinte: dd7087347dd48e82cc58237241b5c9e5422f1dd1 (1015 fichiers, 93 dossiers) corps: c6f40f73ebafdd022b3dd737f1489c6e82ae7a1b -->

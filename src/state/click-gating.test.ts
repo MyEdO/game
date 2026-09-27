@@ -20,8 +20,8 @@ function setup() {
   const a = makePregens()[0];
   a.pos = { x: 2, y: 0 };
   a.weapons = [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 12, qualities: [] }] as never; // ×3 = 36 m = 18 cases
-  const seen = spawnEnemy('Bandit de Grand Chemin', undefined, 'e-vu', { x: 6, y: 0 });
-  const hidden = spawnEnemy('Bandit de Grand Chemin', undefined, 'e-cache', { x: 16, y: 4 }); // mur intercalé
+  const seen = spawnEnemy({ ref: 'brigand' }, 'e-vu', { x: 6, y: 0 });
+  const hidden = spawnEnemy({ ref: 'brigand' }, 'e-cache', { x: 16, y: 4 }); // mur intercalé
   const battle = {
     combatants: [a, seen, hidden], order: [a.id, 'e-vu', 'e-cache'], baseOrder: [a.id, 'e-vu', 'e-cache'],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -52,7 +52,7 @@ describe('battleClickEntity — tir refusé AVANT la modale', () => {
     a.weapons = [{ name: 'Arc court', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }] as never; // ×3 = 6 cases
     useGame.getState().battleClickEntity('e-cache'); // à 14 cases — ET sans LdV, mais la portée seule suffirait
     expect(useGame.getState().pendingAttack).toBeNull();
-    const b2 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e-loin', { x: 10, y: 0 }); // brèche : LdV ok, 8 cases > 6
+    const b2 = spawnEnemy({ ref: 'brigand' }, 'e-loin', { x: 10, y: 0 }); // brèche : LdV ok, 8 cases > 6
     const b = useGame.getState().battle!;
     useGame.setState({ battle: { ...b, combatants: [...b.combatants, b2] } });
     useGame.getState().battleClickEntity('e-loin');

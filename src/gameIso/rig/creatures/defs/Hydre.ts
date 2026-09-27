@@ -15,6 +15,6 @@ export const creature: CreatureDef = {
     sl: 1.2, build: 'draconic', girth: 1.2, bodyLen: 1.14, neckLen: 1.55, neckAngle: -12,
     legLen: 0.66, head: 'hydre', tail: 'reptile', mane: 'sans', ears: 'pointues', foot: 'patte',
     tailLen: 1.35, markings: 'taches', tailCrest: true,
-    stored: { corps: '#5a6a34', corpsO: '#2a3616', corpsH: '#a9b56a', cheveux: '#c2571e', cheveuxO: '#6e2410', cuir: '#8a7a4e' },
+    palette: { corps: '#5a6a34', corpsO: '#2a3616', corpsH: '#a9b56a', cheveux: '#c2571e', cheveuxO: '#6e2410', cuir: '#8a7a4e' },
   },
 };

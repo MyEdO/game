@@ -28,8 +28,8 @@
  */
 import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
 import { bonus, maxWounds } from './characteristics';
-import { talentIdByLabel, findTalentById, findTraitById, blessingsOf, refLabel } from '../data';
-import { splitLabel, wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
+import { findTalentById, findTraitById, blessingsOf } from '../data';
+import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PassiveMod } from './ops';
 
@@ -72,11 +72,6 @@ export function talentCharBonusById(talentId: string): CharKey | null {
     if (op.op === 'charMod' && (CHAR_KEYS as readonly string[]).includes(op.char)) return op.char as CharKey;
   }
   return null;
-}
-
-/** Idem par LIBELLÉ — bord UI (créateur) / tests ; résout l'id puis délègue. */
-export function talentCharBonus(talentLabel: string): CharKey | null {
-  return talentCharBonusById(talentIdByLabel(splitLabel(talentLabel).name));
 }
 
 /**
@@ -196,7 +191,7 @@ function deplierAjouts(ajouts: RefASpecialisation[], kind: 'skill' | 'talent'): 
   return ajouts.flatMap((a): RefDesignee[] =>
     a.choix == null
       ? [{ id: a.id, ...(a.spec != null ? { spec: a.spec } : {}) }]
-      : wildcardSpecs({ label: refLabel(kind === 'skill' ? 'skills' : 'talents', a), optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }, kind).map((spec) => ({ id: a.id, spec })),
+      : wildcardSpecs({ optionId: a.id, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }, kind).map((spec) => ({ id: a.id, spec })),
   );
 }
 

@@ -8,7 +8,7 @@
  *      couleur → toute couleur passe par un jeton de palette ;
  *   2) chaque jeton y est RÉSOLU par la palette effective du rig → pas de jeton inventé qui
  *      fuirait tel quel dans le SVG.
- * La palette effective vient de `rigStoredPalette` — LA construction de l'empilage, celle que
+ * La palette effective vient de `couchesDuRig` — LA construction de l'empilage, celle que
  * `composeRig` appelle : la garde n'en tient AUCUNE réplique (une garde qui remonte sa propre vue
  * du pipeline reste verte pendant que le rendu diverge — c'est ce qui masquait le trou de la
  * couche ESPÈCE). Plus le contrat de la donnée : défaut = pied système inchangé ; `botte` déclarée
@@ -16,8 +16,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
-import { footPalette, rigStoredPalette, tenuePaletteFor } from './career';
-import { buildTokenMap, applyTokenMap, type StoredPalette } from '../palette';
+import { couchesDuRig, tenuePaletteFor } from './career';
+import { buildTokenMap, applyTokenMap, type PaletteDeclaree } from '../palette';
 import { CLASS_TENUE_BY_ID, SPECIFIC_TENUES } from './tenues';
 import type { View } from '../facing';
 import type { EquipCtx } from './equipment';
@@ -35,8 +35,8 @@ const LEFT_TOKEN = /@[a-zA-Z]\w*/g;
 
 const sharedSvg = (tenueId: string, view: View, slot: (typeof SHARED_SLOTS)[number]): string =>
   resolveParts('Humain', 'M', tenueId, empty, {}, 1, view)[slot]?.svg ?? '';
-/** Palette effective du rig — `rigStoredPalette` EST le chemin de composeRig (aucune réplique). */
-const rigMap = (tenueId: string, species?: StoredPalette) => buildTokenMap(rigStoredPalette(species, tenueId), {});
+/** Palette effective du rig — `couchesDuRig` EST le chemin de composeRig (aucune réplique). */
+const rigMap = (tenueId: string, species?: PaletteDeclaree) => buildTokenMap(couchesDuRig(species, tenueId), {});
 
 describe('garde-fou — parts partagées du rig : zéro couleur littérale, tout jeton résolu (#426)', () => {
   it('les détecteurs mordent', () => {
@@ -64,7 +64,7 @@ describe('garde-fou — parts partagées du rig : zéro couleur littérale, tout
 });
 
 describe('pied système — la palette PORTÉE le pilote (#426)', () => {
-  const pied = (tenueId: string, view: View, species?: StoredPalette) =>
+  const pied = (tenueId: string, view: View, species?: PaletteDeclaree) =>
     applyTokenMap(sharedSvg(tenueId, view, 'pied'), rigMap(tenueId, species));
 
   it('rien de déclaré : botte système (bruns d’origine, à l’exact)', () => {
@@ -86,14 +86,15 @@ describe('pied système — la palette PORTÉE le pilote (#426)', () => {
   });
 
   it('la TENUE prime sur la race pour la botte (ordre d’empilage : espèce → tenue)', () => {
-    const stored = rigStoredPalette({ botte: '#111111' }, 'soldat');
-    expect(stored.botte).toBe(tenuePaletteFor('soldat').botte ?? '#111111');
+    expect(tenuePaletteFor('cultiste').botte).toBe('#4a3a28');
+    const map = buildTokenMap(couchesDuRig({ botte: '#111111' }, 'cultiste'), {});
+    expect(map.botte).toBe('#4a3a28');
   });
 
   it('`botte` déclarée : TOUT le pied la suit, aucun brun système ne subsiste', () => {
     const cuir = '#2e261c';
     for (const view of VIEWS) {
-      const map = buildTokenMap({ ...footPalette({ botte: cuir }), botte: cuir }, {});
+      const map = buildTokenMap([{ botte: cuir }], {});
       const svg = applyTokenMap(sharedSvg('soldat', view, 'pied'), map);
       expect(svg).toContain(cuir);
       expect(svg).not.toMatch(SYSTEM_BROWNS);
@@ -101,21 +102,21 @@ describe('pied système — la palette PORTÉE le pilote (#426)', () => {
   });
 
   it('`semelle` déclarée avec `botte` : la semelle garde sa teinte propre', () => {
-    expect(footPalette({ botte: '#2e261c', semelle: '#101010' }).semelle).toBe('#101010');
+    expect(buildTokenMap([{ botte: '#2e261c', semelle: '#101010' }], {}).semelle).toBe('#101010');
   });
 
   // Déclaration PARTIELLE (un membre sans la tête de famille) : contrat = robuste, le membre déclaré
   // dérive SA propre ombre. Sinon `botteDos` neuf garderait le `botteDosO` brun peint par l'art.
   it('déclaration PARTIELLE (`botteDos` sans `botte`) : l’ombre du membre déclaré se dérive', () => {
     const dos = '#2e261c';
-    expect(footPalette({ botteDos: dos }).botteDosO, 'ombre dorsale système servie sous un cuir dorsal déclaré').toBeUndefined();
-    expect(footPalette({ botteDos: dos }).botte, 'la botte non déclarée doit rester système').toBe('#3a2614');
-    expect(footPalette({ botteDos: dos }).botteO).toBe('#1f1408');
-    const map = buildTokenMap({ ...footPalette({ botteDos: dos }), botteDos: dos }, {});
+    const map = buildTokenMap([{ botteDos: dos }], {});
+    expect(map.botteDosO, 'ombre dorsale dérivée du cuir dorsal déclaré').toBe('#241e16');
+    expect(map.botte, 'la botte non déclarée doit rester système').toBe('#3a2614');
+    expect(map.botteO).toBe('#1f1408');
     expect(applyTokenMap(sharedSvg('soldat', 'back', 'pied'), map)).not.toContain('#1a1208');
   });
 
   it('les griffes (pied nu) ont leur propre jeton, indépendant du cuir de la botte', () => {
-    expect(footPalette({ botte: '#2e261c' }).griffe).toBe(footPalette({}).griffe);
+    expect(buildTokenMap([{ botte: '#2e261c' }], {}).griffe).toBe(buildTokenMap([], {}).griffe);
   });
 });

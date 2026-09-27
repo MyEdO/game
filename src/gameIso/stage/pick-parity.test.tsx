@@ -852,7 +852,7 @@ describe('sonde de recette — le verdict dit la CASE, le geste nomme le PNJ (#1
   const scene = emptyScene(8, 8);
   const PNJ = 'baron-a-la-case';
   scene.entities = [
-    { id: PNJ, kind: 'personnage', pos: { x: 4, y: 4 }, dialogueId: 'dlg-baron', facing: 'S' },
+    { id: PNJ, kind: 'personnage', ref: 'humain', pos: { x: 4, y: 4 }, dialogueId: 'dlg-baron', facing: 'S' },
   ] as unknown as SceneEntity[];
   const mpt = sceneMetresPerTile(scene);
   const px = pixelVolumique(

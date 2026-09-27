@@ -42,7 +42,7 @@ const ents: SceneEntity[] = [
   // ═══════════════ COULISSES (16, z=0, rangées 1-4 derrière la scène) ═══════════════
   // Décors en attente, accessoires : châssis, mannequins de costumier, caisses, râtelier d'accessoires.
   { id: 'cl-flat-1', kind: 'prop', ref: 'decor-flat', pos: { x: 13, y: 2 } },
-  { id: 'cl-mann-1', kind: 'prop', ref: 'mannequin', pos: { x: 16, y: 2 } },
+  { id: 'cl-mann-1', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 16, y: 2 } },
   { id: 'cl-caisse-1', kind: 'prop', ref: 'caisse', pos: { x: 19, y: 3 } },
   { id: 'cl-rack', kind: 'prop', ref: 'rack-armes', pos: { x: 24, y: 2 } },
   { id: 'cl-caisse-2', kind: 'prop', ref: 'caisse', pos: { x: 27, y: 3 } },
@@ -81,8 +81,8 @@ const ents: SceneEntity[] = [
   { id: 'billet-g', kind: 'prop', ref: 'comptoir-droit', pos: { x: 3, y: 56 }, facing: 'N' },
   { id: 'billet-d', kind: 'prop', ref: 'comptoir-droit', pos: { x: 40, y: 56 }, facing: 'N' },
 
-  // LUSTRE central : suspendu au-dessus du puits (z=1 → flotte au-dessus du vide).
-  { id: 'lustre', kind: 'prop', ref: 'lustre-opera', pos: { x: 21, y: 28 }, z: 1 },
+  // LUSTRE central : pendu au-dessus de l'orchestre qu'il éclaire (la recette porte la hauteur, patron `applique-murale`).
+  { id: 'lustre', kind: 'prop', ref: 'lustre-opera', pos: { x: 21, y: 28 } },
 
   // ═══════════════ SALLES LATÉRALES GAUCHE (z=0) — DENSÉMENT meublées, pièce par pièce (plan p.40) ═══════
   // 14 SALLE VERTE / 13 VESTIAIRE (bande haute gy 1-14) : détente des artistes + coiffeuses.
@@ -102,7 +102,7 @@ const ents: SceneEntity[] = [
   { id: 'sv-chaise-3', kind: 'prop', ref: 'chaise', pos: { x: 10, y: 6 }, facing: 'O' },
   { id: 'sv-parav', kind: 'prop', ref: 'paravent', pos: { x: 12, y: 9 } },
   { id: 'sv-portant', kind: 'prop', ref: 'portant-costumes', pos: { x: 8, y: 11 } },
-  { id: 'sv-mann', kind: 'prop', ref: 'mannequin', pos: { x: 11, y: 12 } },
+  { id: 'sv-mann', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 11, y: 12 } },
 
   // 12 VESTIAIRES DES CHŒURS (Féminin) (gy 15-23).
   { id: 'v12-coif-1', kind: 'prop', ref: 'coiffeuse', pos: { x: 2, y: 16 } },
@@ -115,7 +115,7 @@ const ents: SceneEntity[] = [
   { id: 'v12-banc', kind: 'prop', ref: 'banc', pos: { x: 9, y: 19 } },
   { id: 'v12-portant', kind: 'prop', ref: 'portant-costumes', pos: { x: 2, y: 20 } },
   { id: 'v12-parav', kind: 'prop', ref: 'paravent', pos: { x: 5, y: 21 } },
-  { id: 'v12-mann', kind: 'prop', ref: 'mannequin', pos: { x: 8, y: 21 } },
+  { id: 'v12-mann', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 8, y: 21 } },
   { id: 'v12-armoire', kind: 'prop', ref: 'armoire', pos: { x: 2, y: 22 } },
 
   // 11 VESTIAIRES DES CHŒURS (Masculin) (gy 24-33).
@@ -149,7 +149,7 @@ const ents: SceneEntity[] = [
   { id: 's20-caisse-1', kind: 'prop', ref: 'caisse', pos: { x: 31, y: 8 } },
   { id: 's20-caisse-2', kind: 'prop', ref: 'caisse', pos: { x: 33, y: 9 } },
   { id: 's20-tonneaux', kind: 'prop', ref: 'tonneaux-pile', pos: { x: 35, y: 10 } },
-  { id: 's20-mann', kind: 'prop', ref: 'mannequin', pos: { x: 31, y: 12 } },
+  { id: 's20-mann', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 31, y: 12 } },
   { id: 's20-colonne', kind: 'prop', ref: 'colonne-brisee', pos: { x: 34, y: 12 } },
 
   // 22 BUREAU DU CONCIERGE / 23 GESTIONNAIRE (petites pièces NE gx37-42).
@@ -167,8 +167,8 @@ const ents: SceneEntity[] = [
   { id: 'c24-portant-2', kind: 'prop', ref: 'portant-costumes', pos: { x: 34, y: 16 } },
   { id: 'c24-portant-3', kind: 'prop', ref: 'portant-costumes', pos: { x: 37, y: 16 } },
   { id: 'c24-armoire-1', kind: 'prop', ref: 'armoire', pos: { x: 40, y: 16 } },
-  { id: 'c24-mann-1', kind: 'prop', ref: 'mannequin', pos: { x: 31, y: 19 } },
-  { id: 'c24-mann-2', kind: 'prop', ref: 'mannequin', pos: { x: 34, y: 19 } },
+  { id: 'c24-mann-1', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 31, y: 19 } },
+  { id: 'c24-mann-2', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 34, y: 19 } },
   { id: 'c24-coffre', kind: 'prop', ref: 'coffre', pos: { x: 37, y: 20 } },
   { id: 'c24-portant-4', kind: 'prop', ref: 'portant-costumes', pos: { x: 40, y: 20 } },
   { id: 'c24-armoire-2', kind: 'prop', ref: 'armoire', pos: { x: 31, y: 22 } },
@@ -177,9 +177,9 @@ const ents: SceneEntity[] = [
   { id: 'c25-table-1', kind: 'prop', ref: 'table-2x1', pos: { x: 31, y: 25 } },
   { id: 'c25-tab-1', kind: 'prop', ref: 'tabouret', pos: { x: 34, y: 25 } },
   { id: 'c25-table-2', kind: 'prop', ref: 'table-2x1', pos: { x: 36, y: 25 } },
-  { id: 'c25-mann-1', kind: 'prop', ref: 'mannequin', pos: { x: 39, y: 25 } },
+  { id: 'c25-mann-1', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 39, y: 25 } },
   { id: 'c25-portant', kind: 'prop', ref: 'portant-costumes', pos: { x: 31, y: 28 } },
-  { id: 'c25-mann-2', kind: 'prop', ref: 'mannequin', pos: { x: 34, y: 28 } },
+  { id: 'c25-mann-2', kind: 'prop', ref: 'mannequin-couturier', pos: { x: 34, y: 28 } },
   // Étagère du fond de l'atelier : dos au mur SUD de la pièce (gy 24-30), face aux tables (cap N).
   { id: 'c25-etag', kind: 'prop', ref: 'etagere', pos: { x: 37, y: 28 }, facing: 'N' },
   { id: 'c25-tab-2', kind: 'prop', ref: 'tabouret', pos: { x: 40, y: 28 } },
@@ -244,7 +244,7 @@ const ents: SceneEntity[] = [
   { id: 'bar-d-etag', kind: 'prop', ref: 'etagere', pos: { x: 29, y: 50 }, facing: 'S', z: 1 },
   { id: 'bar-d-tonneau', kind: 'prop', ref: 'tonneau', pos: { x: 25, y: 50 }, z: 1 },
 
-  // Deux lustres du foyer (z=1, flottant au-dessus du foyer du rez).
+  // Deux lustres de la galerie de l'étage, pendus dans la salle qu'ils éclairent (la recette porte la hauteur, patron `applique-murale`).
   { id: 'foy-lustre-g', kind: 'prop', ref: 'lustre-opera', pos: { x: 14, y: 49 }, z: 1 },
   { id: 'foy-lustre-d', kind: 'prop', ref: 'lustre-opera', pos: { x: 29, y: 49 }, z: 1 },
 ];

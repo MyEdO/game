@@ -24,6 +24,8 @@ import type { Combatant, Trauma } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from './scene';
 import { pruneSeatAssignments } from './seating';
+import { capDuGroupe, poserCapDuGroupe } from './combatants';
+import type { Dir8 } from './dir8';
 import { entityBlockedAt } from './sceneRules';
 import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from './flow';
@@ -218,7 +220,7 @@ describe('parseSave — la version DOIT être la courante', () => {
     const scene = emptyScene(12, 12);
     scene.entities = [
       { id: 'table-1', kind: 'prop', ref: 'table-ronde-4-tabourets', pos: { x: 5, y: 5 }, usable: { assise: true } },
-      { id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 6 } },
+      { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 6 } },
     ] as typeof scene.entities;
     const ancien = { 'table-1': { 'place-nord': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: ancien }, 4), 'l’élagage est MUET').toEqual({});
@@ -227,21 +229,21 @@ describe('parseSave — la version DOIT être la courante', () => {
     const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
-  it('MESURE du motif de bump 50 → 51 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 50 se jette', () => {
-    // Une save de 50 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
+  it('MESURE du motif de bump 54 → 55 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 54 se jette', () => {
+    // Une save de 54 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
     // a appris « Alarme » (frenchy-bzh, fusionnée dans « Alerte ») rouvrirait avec un id que plus rien
     // ne résout. D'où le REJET, et non une purge silencieuse du grimoire.
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(51);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(55);
     const heros = { id: 'h', kind: 'hero', spells: ['alarme', 'alerte'] };
-    expect(parseSave({ ...cur, version: 50, data: { party: [heros] } })).toBeNull();
+    expect(parseSave({ ...cur, version: 54, data: { party: [heros] } })).toBeNull();
     expect(findSpellById('alarme'), 'l’id fusionné n’existe plus au catalogue').toBeUndefined();
     expect(idDeSortVivant('alarme')).toBe('alerte');
   });
-  it('MESURE du motif de bump 51 → 52 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
-    // Une save de 51 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
+  it('MESURE du motif de bump 56 → 57 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
+    // Une save de 56 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
     // attachée garde `passive: [{ op: 'grantTalent', talentId }]`, et l'octroi lit `op.talent.id`. Le rejet
     // d'une version non courante est la politique testée par « version ANTÉRIEURE → null » ci-dessus.
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(52);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(57);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
   });
@@ -370,6 +372,30 @@ describe('parseSave — la version DOIT être la courante', () => {
     // −20 de Compétence, le demi-Mouvement et le plafond de mains d'arme tombent en silence. La save se jette.
     expect(SAVE_VERSION).toBeGreaterThanOrEqual(50);
     expect(parseSave({ ...cur, version: 49 })).toBeNull();
+  });
+
+  it('MESURE du motif de bump 51 → 52 (#1882, #1906) : les jets en attente sauvés portent le nom figé et l’opposition structurée', () => {
+    // `snapshotSave` persiste les pendings de jet : leur forme a changé (`RecoverOpposition`, `sourceName`,
+    // `targetName`, `attackerName` requis). Une save de 51 rouvrirait une modale sans nom : elle se jette.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(52);
+    expect(parseSave({ ...cur, version: 51 })).toBeNull();
+    const init = useGame.getInitialState();
+    const approche = { combatantId: 'H', sourceId: 'E', sourceName: 'Ogre', intent: { kind: 'entity' as const, id: 'E' }, result: null };
+    const s = snapshotSave({ ...init, pendingApproach: approche } as unknown as Record<string, unknown>, init as unknown as Record<string, unknown>, 'x');
+    expect((s.data as { pendingApproach?: unknown }).pendingApproach, 'la forme neuve est PERSISTÉE').toEqual(approche);
+  });
+
+  it('MESURE du motif de bump 52 → 53 (#1362) : le cap d’exploration est une entrée de GROUPE', () => {
+    // Le regard hors combat vit sous la clé de GROUPE (`CAP_GROUPE`), plus sous l'id de chaque héros :
+    // une save de 52 rouvre SANS entrée de groupe — le plateau et la vue subjective repartent au défaut
+    // sud, et le pivot suivant part de là. La save se jette.
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(53);
+    expect(parseSave({ ...cur, version: 52 })).toBeNull();
+    // …et la forme NEUVE fait bien le tour du snapshot : ce que le cap du groupe écrit est persisté.
+    useGame.setState({ facing: poserCapDuGroupe({}, 'E') });
+    const etat = useGame.getState() as unknown as Record<string, unknown>;
+    const data = snapshotSave(etat, etat, 'maintenant').data as { facing: Record<string, Dir8> };
+    expect(capDuGroupe({ facing: data.facing })).toBe('E');
   });
 
   it('MESURE du motif de bump 33 → 34 : la spéc en LIBELLÉ ne couvre plus son emplacement', () => {

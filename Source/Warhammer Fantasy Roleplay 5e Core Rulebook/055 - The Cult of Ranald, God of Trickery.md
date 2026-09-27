@@ -1,6 +1,6 @@
 *Pages PDF 208*
 
-# **THE CULT OF RANALD, GOD OF TRICKERY**
+# <span id="page-207-0" data-folio="208"></span>**THE CULT OF RANALD, GOD OF TRICKERY**
 
 **Seat of Power:** None officially
 
@@ -10,9 +10,7 @@
 
 **Major Festivals:** The Day of Folly
 
-**Important Holy Texts:** *The Riddles Ten*, *Midnight and the Black* 
-
-*Cat*, *The Great Joke*
+**Important Holy Texts:** *The Riddles Ten*, *Midnight and the Black Cat*, *The Great Joke*
 
 **Common Holy Symbols:** Crossed fingers, cats, magpies
 
@@ -33,6 +31,8 @@ Ranald has no formal temple organisation, although the cult maintains seemingly 
 #### **Penances**
 
 Ranald's penances usually involve stealing into locked and guarded locations to recover precious items or leave a token. Humiliating oppressors of the poor is also common — perhaps by framing a brutal watch captain for a ludicrous crime, for example, or locking him in his own cells. Ranald often sends favoured and disfavoured cultists alike on a Pilgrimage of Fingers, a set of tasks proving capability and loyalty.
+
+#### **Strictures**
 
 - One coin in ten belongs to Ranald.
 - Never betray another to the authorities; there is no greater sin than informing.

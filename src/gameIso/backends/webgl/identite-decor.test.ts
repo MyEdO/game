@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { collectBillboards, wholeSceneBillboardEls } from './sceneMeshes';
+import type { BillboardPropEl } from '../../builders/types';
 import { propSvg } from '../../catalog/decor';
 import { props } from '../../../data';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../state/scene';
@@ -76,15 +77,15 @@ describe('Identité d’un billboard de DÉCOR — la clé porte le DESSIN (#117
  * une texture qui ne montre pas le bon côté (`propSvg` prend le cap).
  */
 describe('Identité d’un prop — l’échelle et le cap en font partie (#1396)', () => {
-  const propEl = (patch: { facing?: 'S' | 'E'; scale?: number }) => ({
-    kind: 'prop' as const, source: 'entity' as const, key: 'prop:decor-1', ref: REF_A,
+  const propEl = (patch: { facing?: 'S' | 'E'; scale?: number }): BillboardPropEl => ({
+    kind: 'prop', source: 'entity', key: 'prop:decor-1', entId: 'decor-1', span: { w: 1, h: 1 }, ref: REF_A,
     cell: { x: 2, y: 2, z: 0 }, foot: { offX: 0, offY: 0, scale: patch.scale ?? 1 },
     states: { visible: true },
     ...(patch.facing ? { facing: patch.facing } : {}),
   });
   const scene = emptyScene(6, 6);
   const identité = (patch: { facing?: 'S' | 'E'; scale?: number }) =>
-    collectBillboards(scene, sceneMetresPerTile(scene), { tokens: [], props: [propEl(patch) as never] })[0].identity;
+    collectBillboards(scene, sceneMetresPerTile(scene), { tokens: [], props: [propEl(patch)] })[0].identity;
 
   it('deux ÉCHELLES d’empreinte donnent deux identités (un quad ne se partage pas)', () => {
     expect(identité({ scale: 1 })).not.toBe(identité({ scale: 2 }));

@@ -68,7 +68,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "arene-projet.json", champ: "traits", occurrences: 11, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "walls", occurrences: 235, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "weapon", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "arene-projet.json", champ: "ref", occurrences: 406, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 291 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:169`) + 115 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
+  { dataset: "arene-projet.json", champ: "ref", occurrences: 421, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 291 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 130 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 406 → 421 à la fusion de #1897 : +15 `personnage` qui NOMMENT leur fiche (`2026-09-23-1882-fiche-de-personnage-nommee.mjs`, LDB 77)
   { dataset: "barge-du-sel-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ambush", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ammo", occurrences: 8, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -76,13 +76,12 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "barge-du-sel-projet.json", champ: "b", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "crew", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "crewIds", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "barge-du-sel-projet.json", champ: "effect", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "members", occurrences: 7, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "postes", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "qualities", occurrences: 15, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "scene", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "victoryCondition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "barge-du-sel-projet.json", champ: "ref", occurrences: 6, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 1 `prop` atteint (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:169`) + 5 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
+  { dataset: "barge-du-sel-projet.json", champ: "ref", occurrences: 6, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 1 `prop` atteint (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 5 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
   { dataset: "careerLevels.json", champ: "career", occurrences: 432, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "careerLevels.json", champ: "choice", occurrences: 29, lot: "L2/L3 #1473", date: "2026-08-26" },
   // 1283 → 1286 (#1463 L-ref-0 + L-ref-1) : MÊME champ, compte rafraîchi. −4 — les 4 dotations comptées
@@ -178,7 +177,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "loup-et-saumure-projet.json", champ: "start", occurrences: 8, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "loup-et-saumure-projet.json", champ: "victoryCondition", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "loup-et-saumure-projet.json", champ: "weapon", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "loup-et-saumure-projet.json", champ: "ref", occurrences: 12, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 2 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:169`) + 10 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
+  { dataset: "loup-et-saumure-projet.json", champ: "ref", occurrences: 23, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 2 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 21 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 12 → 23 à la fusion de #1897 : +11 `personnage` qui NOMMENT leur fiche (`2026-09-23-1882-fiche-de-personnage-nommee.mjs`, LDB 77)
   { dataset: "maladies.json", champ: "dailyTest", occurrences: 1, lot: "L2/L3 #1473", date: "2026-09-01" }, // EDOC 08 l.104 (#674) — le Test quotidien DÉSIGNE son symptôme (#1657 geste A)
   { dataset: "maladies.json", champ: "symptoms", occurrences: 62, lot: "L2/L3 #1473", date: "2026-08-26" }, // +5 : Pneumonie (3) + Rhume commun (2), EDOC 08 folio 33 (#674) ; 54 → 62 : les 8 réfs à Difficulté PROPRE, jusque-là classées `test` (#1657 geste A)
   { dataset: "maneuvers.json", champ: "escapeStrength", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -269,7 +268,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "stars.json", champ: "ascendant", occurrences: 11, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "stars.json", champ: "ops", occurrences: 42, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "symptoms.json", champ: "ops", occurrences: 8, lot: "L1b #1467", date: "2026-08-28" }, // les réfs du cycle (`onTick`) comptent ici, sous la feuille `EffectOp` du nœud `test` (#1657 B2b)
-  { dataset: "symptoms.json", champ: "passive", occurrences: 3, lot: "L1b #1467", date: "2026-08-28" }, // #1599 : l'État *Exténué* du Malaise (LDB 20 l.188) s'écrit désormais en op `condition` du canal passif
+  { dataset: "symptoms.json", champ: "passive", occurrences: 3, lot: "L1b #1467", date: "2026-08-28" }, // #1599 : l'État *Exténué* du Malaise (LDB 20 l.188) s'écrit en op `condition` du canal passif
   // #1599, 2026-09-06 : la fenêtre de Détermination d'une op `condition` PASSIVE (`resolveWindow`,
   // LDB 20 l.170) vise une règle optionnelle. Aucun site ne la valide : l'op `condition` est dans
   // `OPS_NON_TYPEES` (`grammaire/mecanique.ts:114`), et `refusLoose` (`:147`) ne lit pas `resolveWindow`

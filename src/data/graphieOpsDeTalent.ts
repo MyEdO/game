@@ -5,7 +5,7 @@
  * FOIS `talentId` et `talent` LÈVE : aucune des deux graphies ne se choisit à l'aveugle.
  *
  * Primitive PARTAGÉE, chargée par Node nu (aucun import) : migration de dépôt
- * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs` et `PROJECT_MIGRATIONS[14]`
+ * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs` et `PROJECT_MIGRATIONS[16]`
  * (`src/state/worldMap.ts`).
  */
 const OPS_DE_TALENT: ReadonlySet<string> = new Set(['grantTalent', 'grantCareerTalent']);

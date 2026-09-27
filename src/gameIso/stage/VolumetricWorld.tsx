@@ -6,7 +6,7 @@
  * contient, seulement sur le REGARD porté dessus (`frame`, cf. `StageFrame`).
  *
  * Composant à part, et c'est STRUCTUREL : les abonnements au store qui n'ont de sens qu'ici y vivent.
- * `facing` en est le cas d'école — `setFacing` reforge la référence de la table à chaque orientation
+ * `facing` en est le cas d'école — toute écriture de cap reforge la référence de la table
  * (`store.ts`, à chaque pas et à chaque attaque) : lu par l'hôte, il re-rendrait le stage ENTIER.
  * Un hook conditionnel est interdit ; un composant conditionnel, non.
  *
@@ -20,10 +20,7 @@ import { useMemo, useState, type MutableRefObject } from 'react';
 import { useGame, type BattleState } from '../../state/store';
 import { hauteurDe, type Scene } from '../../state/scene';
 import type { Dir8 } from '../../state/dir8';
-import type { Pt } from '../../state/path';
-import type { SeatPose } from '../../state/seating';
 import type { LightSource } from '../../state/vision';
-import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
 import { walkGlideM, type WalkTrack } from '../fx/walkPose';
 import { buildHighlights, type HighlightEl } from '../builders/highlights';
@@ -31,7 +28,8 @@ import { NO_DYNAMIC_MARKS, type DynamicMarks } from '../builders/dynamicMarks';
 import { NO_INTERACTION_HALOS, type InteractHalo } from '../builders/interactHalos';
 import type { TokenChromeMark } from '../builders/tokenChrome';
 import type { PropEl, TokenEl } from '../builders/types';
-import { actorPoseKey, actorPoses, type ActorPose, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
+import { actorPoseKey, actorPoses, partyActorPose, type ActorPose, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
+import type { PartyToken } from '../builders/tokens';
 import { combatHighlightsView, type HighlightOpts } from './highlightLayer';
 import type { ChromeAt } from './boardPose';
 import { GameStage3D, type PercageEntrees, type StageFrame, type StageWalkAnim } from './GameStage3D';
@@ -80,7 +78,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   /** Hors combat : le jeton de GROUPE (le meneur visible), à sa position de RENDU, et la place qu'il
    *  occupe s'il est attablé (`builders/tokens.partyTokenOf` — l'ancre de la place est déjà dans
    *  `pos`). En combat, ou vu par ses propres yeux (POV) : `null`. */
-  partyToken: { leader: Combatant; pos: Pt; seat?: SeatPose } | null;
+  partyToken: PartyToken | null;
   /** Horloge de jeu (minutes) et mise en scène de lumière — la LUMIÈRE du monde volumique (P2-5) : le
    *  soleil suit l'heure et le nord de la scène, l'ambiante suit le palier. L'hôte reste la source. */
   gameTime: number;
@@ -113,10 +111,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   // personne) montent ce même monde, et un voile par hôte en ferait deux à tenir d'accord.
   const [voile, setVoile] = useState(false);
   const poses: ActorPose[] = actorPoses(tokenEls, facings);
-  if (partyToken) {
-    const z = partyToken.pos.z ?? 0;
-    poses.push({ c: partyToken.leader, x: partyToken.pos.x, y: partyToken.pos.y, z, facing: facings[partyToken.leader.id], ...(partyToken.seat ? { seat: partyToken.seat } : {}) });
-  }
+  if (partyToken) poses.push(partyActorPose(partyToken, facings));
   // RÉFÉRENCE STABLE tant que rien de ce que le billboard dessine n'a bougé — même patron de clé que
   // `visualAllies` (`stage/MondeDeCampagne`). Un tableau neuf démonte puis remonte les quads de TOUS les sujets ; la
   // clé porte donc tout ce dont la POSE et le DESSIN dépendent : identité, case LOGIQUE, orientation,

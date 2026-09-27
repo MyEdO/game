@@ -47,40 +47,37 @@ function autosaveEnMemoire(): EditorAutosaveBackend {
 const MESSAGE = "Le monde de l'éditeur a rencontré une erreur de rendu";
 
 /**
- * FILET DU MONDE DE L'ÉDITEUR — une donnée d'auteur qui fait LEVER le canevas (ici une espèce hors
- * vocabulaire rig, `gameIso/rig/appearance.ts`) n'emporte que le canevas : l'Inspecteur, l'onglet
- * Validation et la barre d'outils restent montés, et corriger la donnée relève le monde sans recharger
- * (la scène est la clé de reprise du `SceneErrorBoundary`).
+ * UNE ESPÈCE D'AUTEUR HORS DOMAINE NE FAIT PLUS TOMBER LE MONDE — le schéma la nomme (onglet
+ * Validation), le rendu la route vers le corps d'erreur `manquant` (`resolveRender`) : le canevas reste
+ * monté, aucune levée n'atteint le filet (`SceneErrorBoundary`).
  */
-describe('Éditeur — une levée du monde n’emporte que le monde', () => {
-  it('le canevas tombe, l’Inspecteur reste ; corriger la donnée relève le monde', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () => {
+  it('le canevas tient, le rendu signale le corps d’erreur, la Validation nomme l’espèce', async () => {
+    const erreurs = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const initialScene: Scene = {
       ...emptyScene(6, 6),
       id: 'filet',
-      entities: [{ id: 'pnj-faute', kind: 'personnage', pos: { x: 2, y: 2 }, appearance: { species: 'espece-hors-vocabulaire' } }],
-    } as Scene;
+      entities: [{ id: 'pnj-faute', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, appearance: { species: 'espece-hors-vocabulaire' } }],
+    };
     const container = await monter(initialScene);
 
-    expect(container.textContent).toContain(MESSAGE);
-    expect(container.querySelector('.insp-title'), 'l’Inspecteur est monté').not.toBeNull();
-    expect(container.textContent).toContain('Validation');
-    expect(container.textContent).toContain('Fichier ▾');
-
-    await act(async () => { editeur.patcherEntite!('pnj-faute', { appearance: undefined }); });
     expect(container.textContent).not.toContain(MESSAGE);
-    expect(container.querySelector('.editor-canvas-wrap svg'), 'le canevas est relevé').not.toBeNull();
+    expect(container.querySelector('.editor-canvas-wrap svg'), 'le canevas est monté').not.toBeNull();
+    expect(erreurs.mock.calls.map((c) => String(c[0])).filter((m) => m.includes('« espece-hors-vocabulaire »') && m.includes("silhouette d'erreur")).length).toBeGreaterThan(0);
+
+    const onglet = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Validation'))!;
+    await act(async () => { onglet.click(); });
+    expect(container.querySelector('.ed-validation')?.textContent).toContain('espèce « espece-hors-vocabulaire » inconnue : ni espèce jouable, ni espèce dessinée');
   });
 });
 
 /**
- * LE FILET DE CRASH NE CONTOURNE PLUS RIEN — la restauration de l'autosave ne passe que par
- * `normalizeScene` (`useEditorAutosave.ts`, `restore`), pas par le schéma : une scène qui porte un
- * décor volumique au cap refusé RENTRE. L'éditeur y survit : le monde la cuit (billboard d'erreur,
- * `buildProps`), l'onglet Validation la nomme.
+ * LE FILET DE CRASH NE CONTOURNE PLUS RIEN — la relecture de l'autosave passe par le schéma de scène
+ * (`migreSceneDeProjet`) : une scène qui porte un décor volumique au cap refusé est ÉCARTÉE, la
+ * modale de reprise nomme la faute et son lieu, et rien n'entre dans l'éditeur.
  */
-describe('Éditeur — restaurer une sauvegarde locale fautive', () => {
-  it('la scène fautive est réinjectée, le monde tient, la Validation nomme la faute', async () => {
+describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
+  it('la modale nomme la faute et son lieu, sans « Restaurer » ; la scène chargée reste', async () => {
     await __resetAutosaveForTest();
     __setAutosaveBackendForTest(autosaveEnMemoire());
     const fautive: Scene = {
@@ -91,14 +88,10 @@ describe('Éditeur — restaurer une sauvegarde locale fautive', () => {
     await autosaveSave({ sceneId: fautive.id, scene: fautive, savedAt: 999 });
     const container = await monter({ ...emptyScene(6, 6), id: fautive.id });
 
-    const restaurer = [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Restaurer')!;
-    await act(async () => { restaurer.click(); });
-    expect(editeur.listerEntites!().find((e) => e.id === 'p3'), 'la restauration a réinjecté la scène fautive').toMatchObject({ ref: 'tonneau' });
-    expect(container.textContent).not.toContain(MESSAGE);
-    expect(container.querySelector('.editor-canvas-wrap svg'), 'le canevas est monté').not.toBeNull();
-
-    const onglet = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Validation'))!;
-    await act(async () => { onglet.click(); });
-    expect(container.querySelector('.ed-validation')?.textContent).toContain('décor volumique « tonneau » au cap NE');
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Restaurer'), 'rien à restaurer').toBe(false);
+    expect(container.querySelector('[role="alert"] .chip.tone-danger')?.textContent).toBe(
+      "Restauration refusée : cette sauvegarde locale ne peut pas être restaurée. Faute : entities « p3 » › facing — décor volumique « tonneau » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+    );
+    expect(editeur.listerEntites!().find((e) => e.id === 'p3'), 'la scène fautive n’entre pas').toBeUndefined();
   });
 });

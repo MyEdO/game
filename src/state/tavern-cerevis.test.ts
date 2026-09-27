@@ -26,9 +26,13 @@ import { effectiveTarget } from './rollSeam';
 import { testValue } from '../engine/skills';
 import { addCondition, COND } from '../engine/conditions';
 import { closeSequenceRound, type SequenceState } from './sequenceCore';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernCombinedState } from './tavernFlow';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernCombinedState, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep, PendingCascade } from './pendings';
+import { pnjAuProfil } from './sceneNpc';
+
+/** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
+const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 
 const get = useGame.getState.bind(useGame);
 const CEREVIS = findTavernGameById('cerevis')!;
@@ -47,7 +51,7 @@ function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks
     def: TAVERN_SEQUENCE, round: 2, cum: { ...marks },
     params: { combined: CEREVIS.combined! },
     payload: {
-      gameId: 'cerevis', challengerId, opponentValue: OPPONENT, opponentName: 'un habitué', stakeBrass: 0,
+      gameId: 'cerevis', challengerId, opponentValue: OPPONENT, opponentName: NOM_HABITUE, stakeBrass: 0,
       combined: { fails: {}, erased: {}, tour: 1, ...etat },
     },
   };
@@ -61,10 +65,10 @@ function tour(actorId: string, mien: { roll: number; target: number; sl: number 
     label: fixtureText('Le Cerevis'), rollLabel: 'Pari', difficulty: 'accessible', base: mien.target, target: mien.target,
     result: { roll: mien.roll, target: mien.target, sl: mien.sl, success: mien.roll <= mien.target },
     meta: {
-      gameId: 'cerevis', opponentValue: OPPONENT, opponentName: 'un habitué', stakeBrass: 0, round: 2,
+      gameId: 'cerevis', opponentValue: OPPONENT, opponentName: NOM_HABITUE, stakeBrass: 0, round: 2,
       opposed: {
         aT: { roll: sien.roll, target: OPPONENT + 20, sl: sien.sl, success: true, isDouble: false, base: OPPONENT },
-        attackerName: 'un habitué',
+        attackerName: NOM_HABITUE,
       },
     },
   };
@@ -99,7 +103,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
 
   it('la partie s’ouvre sur le Test que la donnée déclare — Pari, à sa Difficulté propre', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'abstract', value: OPPONENT } });
+    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.kind).toBe(TAVERN_ROUND_KIND);
     expect(step.difficulty, '« Pari Accessible (+20) », pas le repli Intermédiaire du jeu rapide').toBe('accessible');
@@ -113,7 +117,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
    */
   it('la fenêtre porte la SECONDE LECTURE (Initiative) dès l’ouverture, sur la MÊME cible que la clôture', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'abstract', value: OPPONENT } });
+    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const attendue = effectiveTarget(get().party[0], { char: 'initiative' }, 'accessible');
     expect(step.second, 'aucun second Test caché : la rangée le DIT').toEqual({
@@ -198,7 +202,7 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
 describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', () => {
   it('avec des chouettes au tableau, la fenêtre OFFRE l’effacement — et l’effacer en retire une', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'abstract', value: OPPONENT } });
+    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Un tour PERDU met une chouette au tableau ; le tour SUIVANT s'ouvre alors sur la question de
     // l'effacement — c'est le cycle du socle qui l'ouvre, aucune fenêtre n'est forgée ici.
     const seq = get().sequence as SequenceState<TavernPayload>;

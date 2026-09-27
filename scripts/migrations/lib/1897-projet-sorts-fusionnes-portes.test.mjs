@@ -1,7 +1,7 @@
 /**
  * MORSURE des PORTES de `2026-09-24-1897-projet-sorts-fusionnes.mjs` (#1897) — un id de sort FUSIONNÉ
- * désigne, dans un document de projet, l'entrée qui l'a absorbé, et le document passe au `schema` 14.
- * Sa borne haute est OUVERTE (`schema` ∈ {13, ≥ 14}) : elle n'est plus la DERNIÈRE de la chaîne (#1473,
+ * désigne, dans un document de projet, l'entrée qui l'a absorbé, et le document passe au `schema` 16.
+ * Sa borne haute est OUVERTE (`schema` ∈ {15, ≥ 16}) : elle n'est plus la DERNIÈRE de la chaîne (#1473,
  * `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`), un `schema` futur la TRAVERSE sans rabaissement.
  *
  * La migration est jouée sur un dépôt JETABLE (`./joue.mjs`), une fois par scénario, avec la primitive
@@ -21,8 +21,8 @@ import { depot, efface, joue, lireDans, refuse, rienTouche } from './joue.mjs';
 
 const MIGRATION = '2026-09-24-1897-projet-sorts-fusionnes.mjs';
 const COPIES = ['src/data/sortsFusionnes.ts'];
-const SCHEMA_AVANT = 13;
-const SCHEMA_APRES = 14;
+const SCHEMA_AVANT = 15;
+const SCHEMA_APRES = 16;
 
 const ALPHA = 'src/scenes/alpha/alpha-projet.json';
 const BETA = 'src/scenes/beta/beta-projet.json';
@@ -58,7 +58,7 @@ const beta = (schema = SCHEMA_AVANT) => ({ type: 'projet', schema, id: 'beta', s
 
 const poses = (a, b = beta()) => ({ [ALPHA]: serialise(a, FORME_PROJET), [BETA]: serialise(b, FORME_PROJET) });
 
-test('(a) MIGRATION RÉELLE : chaque id fusionné cite l’absorbante À SA PLACE, le document passe à 14, le reste est intact', (t) => {
+test('(a) MIGRATION RÉELLE : chaque id fusionné cite l’absorbante À SA PLACE, le document passe à 16, le reste est intact', (t) => {
   const d = depot(poses(alpha()), COPIES);
   t.after(() => efface(d.racine));
   const { code, sortie } = joue(d.racine, MIGRATION);

@@ -3,8 +3,9 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant } from '../engine/types';
+import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
+import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './path';
 import type { Dir8 } from './dir8';
@@ -20,6 +21,7 @@ import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode } from '../engine/healing';
 import type { PsychType } from '../engine/psychology';
+import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
@@ -49,12 +51,12 @@ export interface PendingLoot {
   gear: LootGear[];
 }
 /** Reconstitution DIFFÉRÉE programmée à la mort (Gardien éternel) : à l'échéance d'un `ScheduledEffect`,
- *  ré-invoque la créature `summon.ref` près de `caster.pos`, dans le camp de `caster.kind`
- *  (cf. `summonFlow.applySummon`). `caster` est un INSTANTANÉ minimal du défunt — les seuls champs lus
- *  par `applySummon` (id/name/kind/pos). */
+ *  ré-invoque la fiche `summon.porteur` (celle du défunt pour `ref:'self'`, #1882) près de `caster.pos`,
+ *  dans le camp de `caster.kind` (cf. `summonFlow.applySummon`). `caster` est un INSTANTANÉ minimal du
+ *  défunt — les seuls champs lus par `applySummon` (id/name/kind/pos). */
 export interface ScheduledRespawn {
   caster: { id: string; label: string; kind: Combatant['kind']; pos: Pt };
-  summon: { ref: string; count: number; allyOfCaster?: boolean };
+  summon: { porteur: PorteurDeFiche; count: number; allyOfCaster?: boolean };
 }
 /** Entrée de la file d'effets PROGRAMMÉS (runtime, Lot 0), déclenchée quand l'horloge atteint `executeAt`
  *  (minute absolue `gameTime`), sauf si `cancelFlag` a été posé entre-temps. Deux charges possibles : un
@@ -169,6 +171,21 @@ export interface PendingTest {
   /** Ce Test EST le sous-Test d'un `onOwnTestFailed` (FM de palier 2 des Crampes routé en modale hors
    *  combat, MSRC 16) : sa résolution NE ré-émet PAS le trigger (garde de ré-entrance, `resolveTest`). */
   noOwnTestFailed?: boolean;
+  /** Test SUBI (porte `routeTriggeredTest`) : sa branche parle le vocabulaire `target`/`caster`, que
+   *  seul le marcheur d'ACTEUR honore (`runCombatFlow`, `combat/triggeredTest.ts`) ; le marcheur de
+   *  SCÈNE parle `party`/`hero`+`heroId`, que `runCombatFlow` n'honore pas. Ce marqueur NOMME le
+   *  vocabulaire de la branche : `resolveTest` la confie à `reprendreTestSubi`, qui la rejoue sur le
+   *  sujet (`actorId`). Du SÉRIALISABLE seul, jamais de référence — un pending traverse JSON (save, coop).
+   *  `casterId` = le porteur quand il DIFFÈRE du sujet ; `label` = le libellé de la source (lu par
+   *  `nomDeSource`) ; `source` = l'entité porteuse. Jumeaux de `CascadeStepMeta.casterId`/`sourceKind`/
+   *  `sourceEntityId` ; `label` et `source` sont deux champs d'`OPS_CTX_GELES` (`engine/ops.ts`).
+   *
+   *  FRONTIÈRE : `subi` ne transporte que du GELÉ ou ce qui se RÉSOUT PAR ID depuis l'état. Les deux autres
+   *  contextes par référence d'`OPS_CTX_PAR_REFERENCE` (`engine/ops.ts`) — `hull`, `crew` — ne
+   *  franchissent pas la modale : leur porte est `bandeTriggeredTest`, qui les tient au site. Une
+   *  branche qui les exige (op `fall` d'un Critique de coque) lève à la reprise plutôt que de tirer
+   *  une hauteur sur une coque absente. */
+  subi?: { casterId?: string; label?: string; source?: EffectSource };
   /** Branches du Test : des FLOWS (le nœud `test` du Flow ; `Effect.test` y est normalisé). */
   onSuccess?: Flow;
   onFailure?: Flow;
@@ -245,12 +262,8 @@ export interface PendingStateRecovery {
   /** Valeur NUE de l'acteur (`LDB 09 l.17`) — grandeur du départage à DR égal (`LDB 12 l.160`). */
   skillBase: number;
   difficulty: Difficulty;
-  /** Empêtré avec une source vivante → Test opposé ; sinon Test simple. */
-  opposed: boolean;
-  opponentValue?: number; // Force de la source (Empêtré opposé)
-  /** Valeur NUE de l'entrave (`LDB 12 l.160`), posée avec `opponentValue`. */
-  opponentBase?: number;
-  opponentName?: string;
+  /** Empêtré opposé à son entrave ; absente : Test simple. */
+  opposition?: RecoverOpposition;
   /** Seuil de DR exigé sur un Test NON opposé (Filets, Zoo Impérial p.29 : DR ≥ Indice du filet). */
   requireSl?: number;
   /** Aggravation sur ÉCHEC (Filets, Zoo Impérial p.29 : « gagne un État Empêtré supplémentaire »). */
@@ -646,6 +659,8 @@ export interface PendingApproach {
   combatantId: string;
   /** Source de Peur la plus proche dont le déplacement RAPPROCHE. */
   sourceId: string;
+  /** Son nom, FIGÉ au geste qui ouvre le Test. */
+  sourceName: string;
   /** Intention différée, relancée après un succès — avec le VERDICT D'ARMEMENT du geste d'origine
    *  (`courseArmee`/`approche`, spec HUD § ARBITRAGE 2026-08-19). Il est CAPTURÉ ici parce que le clic
    *  qui a ouvert ce gate a déjà dissous l'intention : le relire au store à la relance refuserait le
@@ -663,6 +678,8 @@ export interface PendingWard {
   attackerId: string;
   /** Cible bénie (porte le drapeau `attackWardFM`). */
   targetId: string;
+  /** Son nom, FIGÉ au geste qui ouvre le Test. */
+  targetName: string;
   /** VERDICT D'ARMEMENT capturé au clic qui a ouvert ce gate (même raison que `PendingApproach`). */
   approche?: boolean;
   result: { success: boolean; roll: number; target?: number; sl: number } | null;
@@ -1372,8 +1389,8 @@ export interface OpposedFreeze {
   /** Id de l'attaquant, quand c'est un COMBATTANT réel (`actorIn`) — porte l'en-tête A→B (`VsHeader`).
    *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
-  /** Nom de l'attaquant (affichage de la ligne d'opposition). */
-  attackerName?: string;
+  /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
+  attackerName: string;
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */

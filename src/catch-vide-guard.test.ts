@@ -6,7 +6,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * d'avaler un échec en silence, et combien de fois ? ». Un `catch` à corps vide (`catch {}` /
  * `catch (e) {}`) ou un `.catch(() => {})` fait disparaître l'erreur sans la traiter ni l'exposer.
  * Cliquet BIDIRECTIONNEL sur baseline fermée : tout nouveau site = rouge nominatif, tout site
- * soldé = plafond à abaisser. Les 3 sites UI de la baseline décroissent avec #1577.
+ * soldé = plafond à abaisser. Les 2 sites UI de la baseline décroissent avec #1577.
  */
 
 /**
@@ -51,7 +51,6 @@ const CATCH_PROMESSE_VIDE = /\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/g;
 
 const BASELINE: Record<string, number> = {
   'src/audio/engine.ts': 1, // autoplay refusé par le navigateur — silence légitime, commenté au site
-  'src/ui/compendium/CodexEdit.tsx': 1, // #1577
   'src/ui/CoopPanels.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
   'src/ui/ErrorCollectorBanner.tsx': 1, // #1577 (élargi par commentaire du 2026-08-30 aux 2 sites presse-papiers)
 };

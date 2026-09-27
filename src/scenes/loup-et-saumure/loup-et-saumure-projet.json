@@ -2,7 +2,7 @@
  "id": "loup-et-saumure",
  "type": "projet",
  "label": "Le Loup et la Saumure",
- "schema": 15,
+ "schema": 17,
  "icon": "scenario/naval",
  "versionContenu": 1,
  "maison": "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer",
@@ -227,7 +227,8 @@
       "sex": "M",
       "build": 0.5,
       "seed": 5120
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "aldo",
@@ -245,7 +246,8 @@
       "sex": "M",
       "build": 0.6,
       "seed": 31207
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "kramer",
@@ -263,7 +265,8 @@
       "sex": "F",
       "build": 0.45,
       "seed": 20471
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "griet",
@@ -281,7 +284,8 @@
       "sex": "F",
       "build": 0.4,
       "seed": 44810
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "avitailleuse",
@@ -300,7 +304,8 @@
       "tenue": "bourgeois",
       "sex": "F",
       "build": 0.55
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "armurier",
@@ -319,7 +324,8 @@
       "tenue": "artisan",
       "sex": "M",
       "build": 0.6
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "avitailleur",
@@ -338,7 +344,8 @@
       "tenue": "bourgeois",
       "sex": "M",
       "build": 0.5
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "p0",
@@ -2036,7 +2043,8 @@
       "sex": "M",
       "build": 0.6,
       "seed": 8830
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "kramer-erengrad",
@@ -2054,7 +2062,8 @@
       "sex": "F",
       "build": 0.45,
       "seed": 20471
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "charpentier",
@@ -2072,7 +2081,8 @@
       "sex": "M",
       "build": 0.6,
       "seed": 3312
-     }
+     },
+     "ref": "humain"
     },
     {
      "id": "p0",
@@ -3457,7 +3467,8 @@
       "sex": "M",
       "build": 0.5,
       "seed": 5120
-     }
+     },
+     "ref": "humain"
     }
    ],
    "dialogues": [

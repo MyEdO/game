@@ -120,7 +120,7 @@ const doc = document(
     talents: { label: 'Talents', hint: 'Talents de la créature : identifiant + spécialisation ou niveau' },
     trappings: { label: 'Possessions', hint: 'Objets portés par la créature (référence catalogue ou texte narratif)' },
     spells: { label: 'Sorts connus', hint: 'Sorts que la créature peut lancer' },
-    appearance: { label: 'Apparence', hint: 'Apparence par défaut de la créature (espèce, tenue, couleurs), lue par le rig' },
+    appearance: { label: 'Apparence', hint: 'Apparence par défaut de la créature (espèce, tenue, couleurs), affichée en jeu' },
     harvest: { label: 'Récolte', hint: 'Rareté, dangerosité et usages des organes récoltables sur cette créature' },
     followsCharacterRules: {
       label: 'Suit les règles de Personnage',

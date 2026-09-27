@@ -55,7 +55,7 @@ describe('Filet (Zoo Impérial p.29) — Empêtrement à la touche + libération
   it('résolution : Test NON opposé, DR ≥ 3 exigé (≠ opposé contre une Force)', () => {
     const c = foe('cible', { conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, sourceId: 'gobelin' }] });
     const r = resolveRecoverTest(c, 'empetre')!;
-    expect(r.opposed).toBe(false);
+    expect(r.opposition).toBeUndefined();
     expect(r.requireSl).toBe(3);
   });
 
@@ -145,8 +145,8 @@ describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB 62 l.258, fouet/las
   it('Test opposé de Force (recover) reste inchangé pour l’Immobilisante générique', () => {
     const c = foe('cible', { conditions: [{ id: 'empetre', value: 1, escapeStrength: 47 }] });
     const r = resolveRecoverTest(c, 'empetre')!;
-    expect(r.opposed).toBe(true);
-    expect(r.opponentValue).toBe(47);
+    expect(r.opposition).toBeDefined();
+    expect(r.opposition?.value).toBe(47);
     expect(r.requireSl).toBeUndefined();
     expect(r.entangleOnFail).toBeUndefined();
     expect(r.struggleDamage).toBeUndefined();

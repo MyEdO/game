@@ -20,14 +20,11 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { GLYPHES_RESERVES, glyphesReservesEnClair } from '../grammaire/carte-ascii';
-import { detailRecipeSchema } from '../grammaire/valeurs';
+import { couleurHexSchema, detailRecipeSchema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 
 export const file = 'terrains.json';
 export const famille = 'entite';
-
-/** Couleur de rendu : hexadécimal `#rrggbb` en minuscules — la SEULE graphie du dépôt. */
-const couleur = z.string().regex(/^#[0-9a-f]{6}$/);
 
 /** Offset d'un arrêt de rampe : un POURCENTAGE entier `0%` à `100%`, tel que `<stop offset>` l'écrit. */
 const offset = z
@@ -53,10 +50,10 @@ const doc = document(
           `glyphe d’authoring « ${String(iss.input)} » : UN SEUL caractère — c'est le char qui pose ce terrain dans une carte ASCII`,
       })
       .optional(),
-    swatch: couleur,
+    swatch: couleurHexSchema,
     // Record `offset → couleur` : un offset ne se répète pas sur une rampe. Au moins deux arrêts —
     // un dégradé d'un seul arrêt est un aplat, que `swatch` dit déjà.
-    stops: z.record(offset, couleur).refine((r) => Object.keys(r).length >= 2, {
+    stops: z.record(offset, couleurHexSchema).refine((r) => Object.keys(r).length >= 2, {
       message: 'une rampe porte au moins DEUX arrêts (un seul est un aplat — c’est `swatch`)',
     }),
     detail: detailRecipeSchema.optional(),

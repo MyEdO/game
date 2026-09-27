@@ -206,7 +206,7 @@ export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG)
       const arg = op.arg ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       // PROVENANCE de l'instance : la mutation elle-même (registre `TraitInstance.src`) — c'est ce que
       // son propre `removeTrait` de re-ciblage interroge, et rien d'autre.
-      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), src: { kind: 'mutation', id: m.id } });
+      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src: { kind: 'mutation', id: m.id } });
     } else if (op.op === 'grantPsychTrait') {
       const cible = op.cible ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       grantPsychTrait(c, op.psychType as PsychType, cible);
@@ -238,7 +238,7 @@ export function detachMutation(c: Combatant, m: Mutation): void {
   for (const op of attachee.passive ?? []) {
     if (op.op === 'grantTrait') {
       const value = typeof op.indice === 'number' ? op.indice : undefined;
-      removeGrantedTrait(c, { id: op.traitId, ...(op.arg ? { arg: op.arg } : {}), ...(value != null ? { value } : {}), src: { kind: 'mutation', id: attachee.id } });
+      removeGrantedTrait(c, { id: op.traitId, ...(op.arg ? { arg: op.arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src: { kind: 'mutation', id: attachee.id } });
     } else if (op.op === 'grantPsychTrait') {
       const j = (c.psychTraits ?? []).findIndex((x) => x.type === op.psychType && (x.cible ?? '') === (op.cible ?? ''));
       if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];

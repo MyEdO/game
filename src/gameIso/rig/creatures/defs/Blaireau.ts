@@ -93,7 +93,7 @@ export const creature: CreatureDef = {
       // poitrail NOIR de face (gorge + poitrine sombres entre les antérieurs)
       'tronc#front': `<path data-deco="poitrail-blaireau" d="M-10 -4 Q0 0 10 -4 Q10.5 7 5 16 Q0 20.5 -5 16 Q-10.5 7 -10 -4 Z" fill="#17140f" opacity="0.82"/>`,
     },
-    stored: {
+    palette: {
       corps: '#8f8d84', corpsO: '#3a3833', corpsH: '#c3c0b6', // dos gris argenté grossier
       cheveux: '#26231d', cheveuxO: '#141210', // touffes résiduelles sombres (barbe de gorge de base)
       cuir: '#1a1712', // pattes (griffes/coussinets) noires

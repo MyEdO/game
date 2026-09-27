@@ -7,13 +7,15 @@ import {
   initLibrary,
   __resetLibraryForTest,
   __setIdbBackendForTest,
-  __setOpenIdbRequestForTest,
   IdbBackend,
   SavedProject,
   documentDeLEntree,
   campagneDeLEntree,
   playerEntryError,
+  upgradeBibliotheque,
 } from './projectLibrary';
+import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { baseSimulee } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
 import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
 import { allBuiltinCampaigns } from '../scenes/campaign';
@@ -94,7 +96,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
     __setIdbBackendForTest(null);
-    __setOpenIdbRequestForTest(null);
+    __setOuvertureIdbForTest(null);
   });
 
   it('vide au départ', () => {
@@ -205,8 +207,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     // reload partiel…) — aucune des trois sorties ne doit la laisser ressusciter le projet supprimé.
     localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Revenant')]));
 
-    // Sortie 2 : `initLibrary()` SANS IndexedDB (`hasIdb()` faux par défaut dans cet environnement de
-    // test `node`) relit ce miroir directement.
+    // Sortie 2 : `initLibrary()` SANS IndexedDB (`idbDisponible()` faux par défaut dans cet environnement
+    // de test `node`) relit ce miroir directement.
     await initLibrary();
     expect(projectsLoad()).toEqual([]);
 
@@ -427,7 +429,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         KEY,
         JSON.stringify([proj('p1', 'Repli')]),
       );
-      __setOpenIdbRequestForTest(() => {
+      __setOuvertureIdbForTest(() => {
         const req = {} as IDBOpenDBRequest;
         queueMicrotask(() => req.onblocked?.(new Event('blocked') as unknown as IDBVersionChangeEvent));
         return req;
@@ -442,7 +444,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         KEY,
         JSON.stringify([proj('p1', 'Repli')]),
       );
-      __setOpenIdbRequestForTest(() => ({} as IDBOpenDBRequest)); // ne déclenche jamais aucun handler
+      __setOuvertureIdbForTest(() => ({} as IDBOpenDBRequest)); // ne déclenche jamais aucun handler
       const pending = initLibrary();
       await vi.advanceTimersByTimeAsync(5000);
       await pending;
@@ -585,5 +587,14 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
     expect(playerEntryError(refus, 'jouer')).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
     expect(playerEntryError(refus, 'exporter')).toBe('Cette campagne ne peut pas être exportée en l’état. Demandez-en une nouvelle version à son auteur.');
     expect(consoleErr).toHaveBeenCalledWith('Campagne de bibliothèque refusée :', (refus as ProjetRefuse).message);
+  });
+});
+
+describe('upgradeBibliotheque — montée de `wfrp4-library`', () => {
+  it('base neuve : crée `projects` keyé id', () => {
+    const base = baseSimulee();
+    upgradeBibliotheque(base.db, 0);
+    expect([...base.magasins.keys()]).toEqual(['projects']);
+    expect(base.magasins.get('projects')?.keyPath).toBe('id');
   });
 });

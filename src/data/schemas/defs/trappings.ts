@@ -218,7 +218,7 @@ const doc = document(
       label: 'Portée minimale de tir',
       hint: 'Bande sous laquelle l’arme de siège ne peut pas tirer (pas de Bout portant)',
     },
-    siegeRig: { label: 'Rig de siège', hint: 'Silhouette utilisée pour le rendu visuel de l’engin de siège' },
+    siegeRig: { label: 'Silhouette de siège', hint: 'Silhouette de l’engin de siège affichée en jeu' },
     siegeFootprint: {
       label: 'Empreinte au sol',
       hint: 'Taille occupée sur la grille par l’engin de siège une fois posé en combat',
@@ -227,7 +227,7 @@ const doc = document(
       label: 'Munition représentative',
       hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
     },
-    shape: { label: 'Forme du rig', hint: 'Forme du rig utilisée pour l’apparence' },
+    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur' },
     formChoices: {
       label: 'Formes proposées',
       hint: 'Formes visuelles alternatives que le joueur peut choisir pour cet objet',

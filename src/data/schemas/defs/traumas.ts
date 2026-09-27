@@ -64,7 +64,7 @@ const doc = document(
     severity: { label: 'Sévérité', hint: 'Mineure ou majeure' },
     prosthesis: { label: 'Prothèses compatibles', hint: 'Prothèses pouvant annuler tout ou partie de la séquelle' },
     cumul: { label: 'Règle de cumul', hint: 'Comptage/agrégation d’une séquelle qui s’accumule' },
-    rig: { label: 'Routage d’apparence', hint: 'Emplacement du rig où la séquelle s’affiche' },
+    rig: { label: 'Routage d’apparence', hint: 'Endroit de l’apparence où la séquelle s’affiche' },
     needsSurgery: { label: 'Nécessite une opération' },
     cosmetic: { label: 'Cicatrice cosmétique', hint: 'Séquelle post-guérison sans effet mécanique' },
     amputation: { label: 'Est une amputation' },

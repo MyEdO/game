@@ -66,11 +66,11 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
 
   it('le pending porte les nues des deux camps, DISTINCTES de leurs valeurs testées', () => {
     const sr = empetreCharge();
-    expect(sr.opposed).toBe(true);
+    expect(sr.opposition).toBeDefined();
     expect(sr.skillBase, 'Force nue de l’acteur (LDB 09 l.17)').toBe(60);
     expect(sr.skillValue, '3 États Exténué fondent la valeur testée').toBe(30);
-    expect(sr.opponentBase, 'Force nue de l’entrave').toBe(50);
-    expect(sr.opponentValue, '1 État Exténué fond celle de l’entrave').toBe(40);
+    expect(sr.opposition?.base, 'Force nue de l’entrave').toBe(50);
+    expect(sr.opposition?.value, '1 État Exténué fond celle de l’entrave').toBe(40);
   });
 
   it('à DR ÉGAL, la nue la plus haute l’emporte — l’acteur (60) bat l’entrave (50) que ses cibles perdraient', () => {

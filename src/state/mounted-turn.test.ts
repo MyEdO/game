@@ -15,13 +15,13 @@ function setup() {
   const hero = makePregens()[0];
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
-  const horse = spawnEnemy('Cheval', undefined, 'horse', { x: 6, y: 5 });
+  const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
   horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never; // Cheval ordinaire : Trait Nerveux, Taille Grande
   horse.size = 'grande';
   horse.mountable = true;
   horse.kind = 'hero'; // monture ALLIÉE (on n'enfourche que sa propre équipe)
   horse.initiative = 30;
-  const other = spawnEnemy('Bandit de Grand Chemin', undefined, 'other', { x: 1, y: 1 });
+  const other = spawnEnemy({ ref: 'brigand' }, 'other', { x: 1, y: 1 });
   other.initiative = 40;
   const battle = {
     combatants: [hero, horse, other], order: [hero.id, 'other', 'horse'], baseOrder: [hero.id, 'other', 'horse'],

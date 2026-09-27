@@ -72,14 +72,6 @@ function isCandidateLike(o: Record<string, unknown>): boolean {
   return !isGameOp(o) && typeof o.id === 'string' && typeof o.value === 'number' && typeof o.target === 'number';
 }
 
-/** `CreatorDraft` (#608 Lot B, `ui/creator/draft.ts`) : `speciesId`+`careerId` STRING (concept
- *  exclusif au créateur — `RosterEntry.draft`, aucun autre porteur de ce dépôt ne co-porte ces deux
- *  champs). Sans ce bearer, le brouillon roulerait avec `label: undefined` — le nom du personnage
- *  disparaît silencieusement à la réouverture du créateur. */
-function isDraftLike(o: Record<string, unknown>): boolean {
-  return !isGameOp(o) && typeof o.speciesId === 'string' && typeof o.careerId === 'string';
-}
-
 /** `pendingCampaign` (#608 Lot B, `state/store.ts`) : `scenes` TABLEAU + `startSceneId` STRING — le
  *  couple exact du champ persisté (`BuiltinCampaign`/`SavedProject`, qui portent la MÊME forme, sont
  *  déjà en `label` — aucune collision). */
@@ -104,7 +96,7 @@ export function remapNameToLabelDeep(node: unknown): unknown {
   const o = node as Record<string, unknown>;
   const bearer = isWeaponLike(o) || isItemLike(o) || isCombatantLike(o)
     || isVesselLike(o) || isStatblockLike(o) || isMedicNpcLike(o) || isArmyLike(o)
-    || isDefeatedLike(o) || isCandidateLike(o) || isDraftLike(o) || isSceneVesselOpLike(o)
+    || isDefeatedLike(o) || isCandidateLike(o) || isSceneVesselOpLike(o)
     || isPendingCampaignLike(o);
   if (bearer && typeof o.name === 'string' && !('label' in o)) {
     const { name, ...rest } = o;

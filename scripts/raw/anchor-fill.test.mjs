@@ -1,20 +1,24 @@
-// Tests de l'aligneur `anchor-fill` (node --test) : index compact, candidats de tête glissants,
-// bornage à deux côtés, et non-régression du cas RÉEL NADJ 06 (#833). Lancé par `npm run test:raw`.
+// Tests de l'aligneur `anchor-fill` (node --test) : index compact, têtes de page pdfminer, bornage à
+// deux côtés, ancre nue complétée, page sans texte, 1re page d'un chapitre, et la PORTE des têtes de
+// page RÉELLES étiquetées au PDF (#1739). Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { join } from 'node:path'
-import { livreDuSigle, readText } from './_lib.mjs'
+import { readFileSync } from 'node:fs'
 import {
-  buildCompactIndex, compactAnchor, extractContentHeads,
-  existingFolioLines, folioBounds, planChapter, nakedAnchorLines,
+  applyEdits, buildCompactIndex, compactAnchor, existingFolioLines, folioBounds, nakedAnchorLines,
+  planChapter, remonter, sequencesDeTete,
 } from './anchor-fill.mjs'
+import { lignes } from './lib/colonnes.mjs'
+import { pageCrb } from './lib/fixtures/page-crb.mjs'
+
+/** Une page synthétique : une ligne par texte, de haut en bas, dans une seule colonne. */
+const page = (...textes) => textes.map((texte, i) => ({ colonne: 0, x0: 50, x1: 500, y0: 700 - 14 * i, texte, spans: [{ texte, police: '', taille: 10 }] }))
 
 // ---------- compactAnchor ----------
 
 test('compactAnchor : retrouve une tête dont le PDF a éclaté les lettres à l’intérieur des mots', () => {
   const lines = ['Lors de chaque Round, le sorcier doit réussir un Test de Focalisation pour maintenir son sort.']
   const idx = buildCompactIndex(lines)
-  // Tête telle que pypdf la rend sur une page en petites capitales.
   const head = 'L ors de chaque Round, le sorcier doit réussir un TesT de FocalisaT ion'
   const hit = compactAnchor(idx.joined, head.toLowerCase())
   assert.equal(hit.occ.length, 1)
@@ -39,25 +43,26 @@ test('compactAnchor : le préfixe retenu commence AU DÉBUT de la tête (offset 
   assert.equal(hit.occ[0], buildCompactIndex(['pad pad pad', '']).joined.length)
 })
 
-// ---------- extractContentHeads ----------
+// ---------- têtes de page pdfminer ----------
 
-test('extractContentHeads : écarte le boilerplate de tête (folio, code de chapitre, titre courant)', () => {
-  const page = '28\nIV\nWARHAMMER FANTASY\nPendant que les aventuriers observent la source du vacarme,\nil glisse une sarbacane.'
-  const heads = extractContentHeads(page)
-  assert.ok(heads[0].head.startsWith('Pendant que les aventuriers'))
-  assert.equal(heads[0].slide, 0)
+test('sequencesDeTete : page à COLONNES (CRB p.117) — la colonne gauche d’abord, le folio de pied écarté', () => {
+  const [colonnes] = sequencesDeTete(lignes(pageCrb(117)))
+  const rang = (re) => colonnes.findIndex((t) => re.test(t))
+  assert.equal(colonnes[0], 'Combat Reflexes')
+  assert.ok(rang(/^Crack the Whip$/) > rang(/completed or not\.$/), 'la colonne droite après la gauche')
+  assert.equal(colonnes.some((t) => /^\d+$/.test(t)), false)
 })
 
-test('extractContentHeads : produit des candidats DÉCALÉS d’une ligne, dans l’ordre', () => {
-  const page = ['une premiere ligne de prose', 'une deuxieme ligne de prose', 'une troisieme ligne de prose'].join('\n')
-  const heads = extractContentHeads(page, { maxLines: 1, slideMax: 2 })
-  assert.deepEqual(heads.map((h) => h.slide), [0, 1, 2])
-  assert.equal(heads[1].head, 'une deuxieme ligne de prose')
+test('sequencesDeTete : page sans texte (planche, folio seul) → aucun ordre', () => {
+  assert.deepEqual(sequencesDeTete([{ colonne: 0, x0: 300, x1: 310, y0: 30, texte: '37', spans: [{ taille: 9 }] }]), [])
+  assert.deepEqual(sequencesDeTete([]), [])
 })
 
-test('extractContentHeads : page sans aucun mot réel (planche) → aucun candidat exploitable', () => {
-  assert.deepEqual(extractContentHeads('42\nIV\nWARHAMMER FANTASY'), [])
-  assert.deepEqual(extractContentHeads(''), [])
+test('remonter : la ligne trouvée remonte sur les lignes dont tous les mots sont parmi les lignes sautées', () => {
+  const lines = ['*Pages PDF 2-3*', '### **Ça ne nous plaît guère**', '', 'V', '', 'En plus des fruits pourris, un spectacle']
+  assert.equal(remonter(lines, 6, ['WA R H A M M E R', 'V', 'Ça ne nous plaît guère']), 2)
+  assert.equal(remonter(lines, 6, ['WA R H A M M E R', 'V']), 4)
+  assert.equal(remonter(lines, 6, ['V', 'Ça ne nous plaît guère'], 3), 4, 'jamais au-dessus de la borne basse')
 })
 
 // ---------- bornage ----------
@@ -84,17 +89,16 @@ test('folioBounds : sans voisin d’un côté, la borne reste OUVERTE', () => {
 
 test('planChapter : un candidat unique mais HORS des bornes voisines est refusé, avec sa raison', () => {
   const lines = [
-    '*Pages PDF 2-4*',                                       // folios 1 à 3 (offset 0)
+    '*Pages PDF 2-4*',
     '<span id="page-1-0" data-folio="1"></span>tete du folio un, prose assez longue pour ancrer',
     'suite du folio un, encore de la prose bien fournie ici',
     '<span id="page-3-0" data-folio="3"></span>tete du folio trois, prose assez longue pour ancrer',
     'une ligne bien plus bas qui ne peut pas appartenir au folio deux du tout',
   ]
-  const pages = { 2: 'une ligne bien plus bas qui ne peut pas appartenir au folio deux du tout' }
+  const pages = { 2: page('une ligne bien plus bas qui ne peut pas appartenir au folio deux du tout') }
   const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => pages[K])
   assert.deepEqual(plan.missing, [2])
   assert.deepEqual(plan.placed, [])
-  assert.equal(plan.skipped.length, 1)
   assert.match(plan.skipped[0].reason, /hors bornes .*folio 1.*folio 3/)
 })
 
@@ -105,87 +109,103 @@ test('planChapter : le même candidat DANS les bornes est posé', () => {
     'tete du folio deux, prose assez longue pour ancrer sans ambiguite',
     '<span id="page-3-0" data-folio="3"></span>tete du folio trois, prose assez longue pour ancrer',
   ]
-  const pages = { 2: 'tete du folio deux, prose assez longue pour ancrer sans ambiguite' }
+  const pages = { 2: page('tete du folio deux, prose assez longue pour ancrer sans ambiguite') }
   const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => pages[K])
   assert.deepEqual(plan.placed.map((p) => [p.folio, p.line]), [[2, 3]])
 })
 
-// ---------- ancres NUES de l'extraction Marker (#1739, cas CRB) ----------
+test('applyEdits : sur une ligne de titre, l’ancre se pose APRÈS la marque de bloc — la ligne reste un titre', () => {
+  const lines = ['*Pages PDF 2-3*', 'tete du folio un, prose assez longue pour ancrer', '### **Tête du folio deux**, un titre assez long pour ancrer']
+  const pages = { 1: page('tete du folio un, prose assez longue pour ancrer'), 2: page('Tête du folio deux, un titre assez long pour ancrer') }
+  const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => pages[K])
+  const out = applyEdits(lines.join('\n'), plan.edits).split('\n')
+  assert.equal(out[1], '<span id="page-1-0" data-folio="1"></span>tete du folio un, prose assez longue pour ancrer')
+  assert.equal(out[2], '### <span id="page-2-0" data-folio="2"></span>**Tête du folio deux**, un titre assez long pour ancrer')
+})
+
+// ---------- ancre NUE, page sans texte, 1re page (#1739) ----------
 
 test('nakedAnchorLines : ancre SANS data-folio → K et sa ligne ; une ancre folioée n’y entre pas', () => {
-  // Formes réelles du CRB (`04 - Introduction.md` l.5 et l.65).
   const text = [
     '*Pages PDF 5-14*',
     '# <span id="page-5-0"></span>*So, what’s drawn you to my door, wastrel?*',
     '<span id="page-6-0"></span>I **Using This Book** explique comment le jeu fonctionne.',
     '<span id="page-9-0" data-folio="10"></span>deja folioee',
   ].join('\n')
-  const map = nakedAnchorLines(text)
-  assert.deepEqual([...map.entries()], [[5, 2], [6, 3]])
+  assert.deepEqual([...nakedAnchorLines(text).entries()], [[5, 2], [6, 3]])
 })
 
-test('planChapter : une page à ancre NUE est SAUTÉE — jamais un second `id="page-K-0"`', () => {
+test('planChapter : une ancre NUE est COMPLÉTÉE de son data-folio, en place — jamais un second id', () => {
   const lines = [
-    '*Pages PDF 2-3*',                                        // folios 1 et 2 (offset 0)
-    '# <span id="page-2-0"></span>tete du folio deux, prose assez longue pour ancrer',
-    'tete du folio un, prose assez longue pour ancrer sans ambiguite',
+    '*Pages PDF 28-28*',
+    '',
+    '# <span id="page-27-0"></span>**DWARFS**',
+    'prose de la page vingt-huit, assez longue pour ancrer sans ambiguite',
   ]
-  const pages = { 1: 'tete du folio un, prose assez longue pour ancrer sans ambiguite', 2: 'tete du folio deux, prose assez longue pour ancrer' }
-  const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => pages[K])
-  assert.deepEqual(plan.placed.map((p) => p.folio), [1])
-  assert.deepEqual(plan.skipped.map((s) => s.folio), [2])
-  assert.match(plan.skipped[0].reason, /ancre nue Marker .*page-2-0.*\(l\.2\)/)
-  const texte = [...plan.edits.values()].flat().map((e) => e.span).join('')
-  assert.equal(texte.includes('id="page-2-0"'), false)
+  const plan = planChapter('009 - Dwarfs.md', lines.join('\n'), -1, () => undefined)
+  assert.deepEqual(plan.completed, [{ folio: 28, line: 3 }])
+  assert.equal(plan.alreadyCount, 1)
+  const out = applyEdits(lines.join('\n'), plan.edits).split('\n')
+  assert.equal(out[2], '# <span id="page-27-0" data-folio="28"></span>**DWARFS**')
+  assert.equal(out.join('\n').match(/id="page-27-0"/g).length, 1)
+})
+
+test('planChapter : une page SANS texte est ancrée VIDE juste avant l’ancre de la page qui la suit', () => {
+  const lines = [
+    '*Pages PDF 8-10*',
+    '',
+    '# <span id="page-7-0"></span>**INTRODUCTION**',
+    'fin de la page huit, de la prose assez longue pour ancrer',
+    '# <span id="page-9-0"></span>**CHAPTER ONE** suite',
+  ]
+  const pages = { 8: page('37').map((l) => ({ ...l, y0: 30 })) }
+  const plan = planChapter('004 - Introduction.md', lines.join('\n'), -1, (K) => pages[K])
+  assert.deepEqual(plan.placed.map((p) => [p.folio, p.line, !!p.sansTexte]), [[9, 5, true]])
+  const out = applyEdits(lines.join('\n'), plan.edits).split('\n')
+  assert.equal(out[4], '# <span id="page-8-0" data-folio="9"></span><span id="page-9-0" data-folio="10"></span>**CHAPTER ONE** suite')
+})
+
+test('planChapter : la 1re page d’un chapitre qui s’ouvre en milieu de page porte son folio — le même que le chapitre précédent', () => {
+  const lines = ['*Pages PDF 40-41*', '', '### **Talent Two**', 'suite de la page quarante et un, prose assez longue pour ancrer']
+  const pages = { 39: page('Talent One, tête de la page, dans le chapitre précédent seulement') }
+  const plan = planChapter('016 - Talents.md', lines.join('\n'), -1, (K) => pages[K])
+  assert.deepEqual(plan.placed.map((p) => [p.folio, p.line]), [[40, 3]])
+  assert.deepEqual(plan.skipped.map((s) => s.folio), [41])
 })
 
 test('planChapter : second passage sur un chapitre déjà posé → aucune pose (idempotence)', () => {
   const lines = [
     '*Pages PDF 2-3*',
     '<span id="page-1-0" data-folio="1"></span>tete du folio un, prose assez longue pour ancrer sans ambiguite',
-    '# <span id="page-2-0"></span>tete du folio deux, prose assez longue pour ancrer',
+    '# <span id="page-2-0" data-folio="2"></span>tete du folio deux, prose assez longue pour ancrer',
   ]
-  const pages = { 1: 'tete du folio un, prose assez longue pour ancrer sans ambiguite', 2: 'tete du folio deux, prose assez longue pour ancrer' }
-  const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => pages[K])
+  const plan = planChapter('01 - X.md', lines.join('\n'), 0, (K) => page(`page ${K}`))
   assert.deepEqual(plan.placed, [])
+  assert.deepEqual(plan.completed, [])
   assert.equal(plan.edits.size, 0)
-  assert.deepEqual(plan.skipped.map((s) => s.folio), [2])
 })
 
-// ---------- non-régression du cas RÉEL NADJ 06 (#833) ----------
-// Têtes de page telles que `lib/pdf-extract.py` (pypdf) les rend pour NADJ, K 25/29/30/31/32
-// (offset 1 → folios 24/28/29/30/31). La page du folio 24 ne porte AUCUN contenu : son seul mot
-// réel est le filigrane de personnalisation de l'exemplaire PDF, qui se répète hors de toute page.
-const NADJ_PAGE_HEADS = {
-  25: '24\nIV\nWARHAMMER FANTASY\nmanu mirof - emmanuel.mirof@gmail.com',
-  29: '28\nIV\nWARHAMMER FANTASY\nPendant que les aventuriers observent la source du vacarme, \nil glisse une sarbacane et un petit étui de dards empoisonnés \ndans les vêtements du Personnage qui semble le moins capable \nde repérer la tentative. Cela fonctionne comme le pickpocket, \nla seule différence étant que cela vise à faire l’inverse. Cela \ndemande donc un Test Opposé d’Escamotage/Perception \nréussi dont la difficulté est modifiée selon les circonstances \ncomme vous le jugez bon.',
-  30: '29\nUNE JOURNÉE AU TRIBUNAL\nIV\nDUEL JUDICIAIRE\nSous la loi impériale, les nobles, ainsi que d’autres \npersonnes sous certaines circonstances, peuvent faire \nappel à un duel judiciaire au lieu de faire face à un \njury. Beaucoup de nobles, et un certain nombre de \ngrands prêtres et marchands influents entretiennent des \nchampions de justice dans leurs suites pour cette raison.',
-  31: '30\nIV\nWARHAMMER FANTASY\n« Oyez ! Oyez ! » crie-t-il. « Dans l’affaire du noble baron Eberhardt \nvon Dammenblatz de Wissenberg contre la noble gravin Maria \nUlrike von Liebwitz d’Ambosstein, concernant la mort de feu le \nnoble baron Otto von Dammenblatz, seigneur de Wissenberg, que \nles champions s’avancent et que le jugement commence ! »',
-  32: '31\nUNE JOURNÉE AU TRIBUNAL\nIV\nRechtshandler pousse un cri de désarroi et agrippe son cou, \nretirant le dard et le montrant à la Gravin, qui se lève et \napproche les magistrats. Le combat est encore une fois arrêté \nsous les railleries et les huées de la foule pendant que le dard \nest examiné.',
-}
-const NADJ_FILE = '06 - Une journee au tribunal.md'
+// ---------- PORTE : têtes de page RÉELLES, ligne vraie étiquetée au PDF (#1739) ----------
+// `lib/fixtures/tetes-de-page.json` : les pages K-1 et K telles que `lib/pdf-lignes.py` les lit
+// (boîtes), la fenêtre `.md` autour de la ligne vraie (l'ancre du disque retirée), la ligne vraie
+// (`null` : la page n'a pas de texte dans ce fichier). Hors porte : LDB 85 K346, non tranché au PDF.
+// Cas CRB : têtes jugées (072 K256, 007 K24, 009 K27, 029 K146 — table imprimée deux fois, p.146 et
+// p.147), planche sans texte (004 K8), chapitre ouvert en milieu de page (016 K38), et têtes « sur K »
+// au critère du juge (la ligne ouverte est sur K, la précédente ne l'est pas).
+const FIXTURE = JSON.parse(readFileSync(new URL('./lib/fixtures/tetes-de-page.json', import.meta.url), 'utf8'))
+const boitesDe = (bs) => bs.map(([x0, y0, x1, y1, ls]) => ({ x0, y0, x1, y1, lignes: ls.map(([lx0, ly0, lx1, texte, taille]) => ({ x0: lx0, y0: ly0, x1: lx1, texte, spans: [[texte, '', taille]] })) }))
 
-test('NADJ 06 (cas réel #833) : les folios encadrés par des ancres EXISTANTES sont posés, le filigrane est refusé', () => {
-  const dir = livreDuSigle('NADJ').dir
-  const text = readText(join(dir, NADJ_FILE))
-  const known = existingFolioLines(text)
-  const plan = planChapter(NADJ_FILE, text, 1, (K) => NADJ_PAGE_HEADS[K])
-
-  // Les folios 28/29/30 se lisent entre les ancres EXISTANTES 27 et 32 : ils doivent être posés,
-  // dans cet ordre, à l'intérieur de cet intervalle. Un bornage réduit au dernier folio POSÉ du run
-  // les rejetterait (le folio 24 aurait alors été posé sur le filigrane, bien plus bas).
-  const placed = new Map(plan.placed.map((p) => [p.folio, p.line]))
-  for (const folio of [28, 29, 30]) {
-    assert.ok(placed.has(folio), `folio ${folio} non posé — le bornage a rejeté une ancre juste`)
-    assert.ok(placed.get(folio) > known.get(27), `folio ${folio} posé avant l'ancre existante du folio 27`)
-    assert.ok(placed.get(folio) < known.get(32), `folio ${folio} posé après l'ancre existante du folio 32`)
+test(`porte des têtes de page : ${FIXTURE.cas.length} pages réelles, chacune à sa ligne vraie`, () => {
+  const ecarts = []
+  for (const c of FIXTURE.cas) {
+    const folio = c.K - c.offset
+    const lines = c.premiere ? c.md : [`*Pages PDF ${c.K}-${c.K + 1}*`, ...c.md]
+    const decalage = c.premiere ? 0 : c.debut - 2
+    const pages = { [c.K]: c.boites, ...(c.precedente ? { [c.K - 1]: c.precedente } : {}) }
+    const plan = planChapter(c.fichier, lines.join('\n'), c.offset, (K) => (pages[K] ? lignes(boitesDe(pages[K])) : undefined))
+    const pose = plan.placed.find((p) => p.folio === folio)
+    const ligne = pose ? pose.line + decalage : null
+    if (ligne !== c.vraie) ecarts.push(`${c.livre} ${c.fichier} K${c.K} : l.${ligne} au lieu de l.${c.vraie}`)
   }
-  assert.ok(placed.get(28) < placed.get(29) && placed.get(29) < placed.get(30))
-
-  // Le folio 24 n'a que le filigrane pour tête : sa seule occurrence tombe hors de l'intervalle
-  // ouvert par les ancres existantes 23 et 25 → refusé, jamais posé.
-  assert.ok(!placed.has(24), 'folio 24 posé sur le filigrane de personnalisation du PDF')
-  const skip24 = plan.skipped.find((s) => s.folio === 24)
-  assert.ok(skip24, 'folio 24 ni posé ni rapporté')
-  assert.match(skip24.reason, /hors bornes/)
+  assert.deepEqual(ecarts, [])
 })

@@ -99,10 +99,8 @@ forme à 0 est déclarée mais jamais exercée par la donnée.
 | `special` | `text`, `plus?` | 52 |
 
 `value`/`n`/`meters` sont des `Formula` (`src/engine/ops.ts`) : littéral `number`,
-`{charOf}` (« (Force Mentale) ») ou `{bonusOf}` (« (Bonus de FM) »). Les `parseSpellRange`/
-`parseSpellTarget`/`parseSpellDuration` ne servent qu'à la MIGRATION prose → structure
-(authoring), jamais au runtime ni à l'affichage — l'affichage est dérivé par
-`src/engine/spellRangeFormat.ts`. Pour un sort neuf : écrire directement la forme structurée.
+`{charOf}` (« (Force Mentale) ») ou `{bonusOf}` (« (Bonus de FM) »). L'affichage est dérivé
+par `src/engine/spellRangeFormat.ts`. Pour un sort neuf : écrire directement la forme structurée.
 
 ## 3. Effets mécaniques — `effects`
 
@@ -173,8 +171,8 @@ effet de cible —, `missile` vient d'`isMagicMissile`.
 |---|---|
 | `src/state/spell-flow-completeness.test.ts` | Complétude : tout sort porte ses effets dans un Flow exécutable (SpellData.effects) |
 | `src/engine/spellspec.test.ts` | specs curées — résolution |
-| `src/engine/spellRange.test.ts` | spellRange — round-trip parse∘format = identité (valeurs parsables) |
-| `src/engine/spellDuration.test.ts` | spellDuration — round-trip parse∘format = identité |
+| `src/engine/spellRange.test.ts` | spellRangeFormat — affichage DÉRIVÉ de la Portée et de la Cible |
+| `src/engine/spellDuration.test.ts` | spellRangeFormat — affichage DÉRIVÉ de la Durée |
 | `src/data/fixed-damage-spells.test.ts` | sorts à dégâts FIXES (frenchy) — VERBATIM desc + BE selon LDB 13 (id-based) |
 | `src/state/spell-impure-ops.test.ts` | effets « lourds » présents dans le Flow éditable (données app-owned) |
 | `src/data/vdm-spells-variantes.test.ts` | donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais par le livre) |
@@ -183,4 +181,4 @@ effet de cible —, `missile` vient d'`isMagicMissile`.
 
 `npm run typecheck` en plus : les unions de portée/cible/durée et `Formula` sont strictement
 typées — une valeur mal formée casse la compilation avant le runtime.
-<!-- sources-empreinte: adde280d68bc95dbe35d43a54562da200cb82f4b (16 fichiers, 0 dossiers) corps: d83457d4fa3c2cc3ef5ec080ec36173701339b61 -->
+<!-- sources-empreinte: 4214b5f5967e90346b78daa1231c8e58f8ab4e91 (16 fichiers, 0 dossiers) corps: 211e8707ba03f419458db020598d12f2576494e8 -->

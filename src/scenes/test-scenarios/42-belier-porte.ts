@@ -74,7 +74,7 @@ setEncounters(scene, [
       // index 1 : l'EMPLACEMENT du bélier — affût INERTE 2×2 (branche siège de `spawnEnemy`, `ref` porte un
       // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
       {
-        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally', label: 'Bélier (poste)',
+        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
         postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
       },
       // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le

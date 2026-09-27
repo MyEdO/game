@@ -8,7 +8,7 @@ export const tenue: TenueDef = {
   set: {
     pied: BOTTE_CUIR,
     torse: { front: `<!-- Tueur: torse nu (chair), bardé de sangles de cuir et ceinture cloutée -->
-<path d="M-14 -28 Q0 -33 14 -28 Q15 -10 13 4 Q12 22 10 34 Q0 38 -10 34 Q-12 22 -13 4 Q-15 -10 -14 -28 Z" fill="url(#g_flesh)" stroke="@vet1O" stroke-width="0.6"/>
+<path d="M-14 -28 Q0 -33 14 -28 Q15 -10 13 4 Q12 22 10 34 Q0 38 -10 34 Q-12 22 -13 4 Q-15 -10 -14 -28 Z" fill="url(#dg-v-@peauH-@peauO)" stroke="@vet1O" stroke-width="0.6"/>
 <!-- pectoraux / ombre centrale musculature -->
 <path d="M0 -22 Q-7 -16 -8 -2 Q0 2 0 2 Q0 -10 0 -22 Z" fill="@vet1" opacity="0.45"/>
 <path d="M0 -22 Q7 -16 8 -2 Q0 2 0 2 Q0 -10 0 -22 Z" fill="@vet1" opacity="0.35"/>
@@ -31,7 +31,7 @@ export const tenue: TenueDef = {
 <circle cx="8" cy="30" r="1" fill="@metalH"/>
 <!-- boucle de ceinture en bronze -->
 <rect x="-3" y="27" width="6" height="5" rx="1" fill="@metalH" stroke="@metal" stroke-width="0.5"/>`, back: `<!-- Tueur DOS: torse nu (chair) vu de dos, dos musclé, SANS détails de face (boucle, tatouages de poitrine, ombre pectorale) -->
-<path d="M-14 -28 Q0 -33 14 -28 Q15 -10 13 4 Q12 22 10 34 Q0 38 -10 34 Q-12 22 -13 4 Q-15 -10 -14 -28 Z" fill="url(#g_flesh)" stroke="#7a4f33" stroke-width="0.6"/>
+<path d="M-14 -28 Q0 -33 14 -28 Q15 -10 13 4 Q12 22 10 34 Q0 38 -10 34 Q-12 22 -13 4 Q-15 -10 -14 -28 Z" fill="url(#dg-v-@peauH-@peauO)" stroke="#7a4f33" stroke-width="0.6"/>
 <!-- gouttière vertébrale (sillon dorsal central) -->
 <path d="M0 -24 Q1 -8 0 6 Q-1 20 0 32" fill="none" stroke="#7a4f33" stroke-width="1.1" opacity="0.55"/>
 <!-- masses des omoplates / dorsaux -->
@@ -54,14 +54,14 @@ export const tenue: TenueDef = {
 <circle cx="3" cy="31" r="1" fill="#c8a24a"/>
 <circle cx="8" cy="30" r="1" fill="#c8a24a"/>`, profile: `<!-- Tueur PROFIL (tourné à droite): torse nu de côté, ÉTROIT (~moitié largeur), une épaule/bras de profil, drapé latéral des sangles -->
 <!-- buste de profil: ventre bombé à droite, dos arqué à gauche -->
-<path d="M-6 -28 Q4 -31 8 -26 Q9 -12 8 0 Q7 16 6 34 Q-1 38 -7 34 Q-8 18 -7 2 Q-8 -12 -6 -28 Z" fill="url(#g_flesh)" stroke="#7a4f33" stroke-width="0.6"/>
+<path d="M-6 -28 Q4 -31 8 -26 Q9 -12 8 0 Q7 16 6 34 Q-1 38 -7 34 Q-8 18 -7 2 Q-8 -12 -6 -28 Z" fill="url(#dg-v-@peauH-@peauO)" stroke="#7a4f33" stroke-width="0.6"/>
 <!-- ligne du dos (arrière, à gauche) marquée pour lisibilité -->
 <path d="M-6 -26 Q-8 -10 -7 4 Q-8 18 -6 32" fill="none" stroke="#7a4f33" stroke-width="1" opacity="0.5"/>
 <!-- pectoral / ventre de côté (avant, à droite) -->
 <path d="M7 -20 Q3 -12 4 -2 Q7 0 8 -2 Q8 -12 7 -20 Z" fill="#a06a44" opacity="0.4"/>
 <path d="M5 6 Q5 16 4 24" fill="none" stroke="#8a5a38" stroke-width="0.8" opacity="0.45"/>
 <!-- épaule/bras de profil (avant-plan) -->
-<path d="M2 -28 Q9 -27 10 -20 Q11 -10 9 -2 Q5 -6 4 -16 Q3 -24 2 -28 Z" fill="url(#g_flesh)" stroke="#7a4f33" stroke-width="0.6"/>
+<path d="M2 -28 Q9 -27 10 -20 Q11 -10 9 -2 Q5 -6 4 -16 Q3 -24 2 -28 Z" fill="url(#dg-v-@peauH-@peauO)" stroke="#7a4f33" stroke-width="0.6"/>
 <ellipse cx="7" cy="-21" rx="3" ry="4" fill="#a06a44" opacity="0.3"/>
 <!-- tatouage bleu visible sur le flanc -->
 <path d="M5 -14 Q8 -8 6 0 Q4 6 6 12" fill="none" stroke="#2f5a8a" stroke-width="1.1" opacity="0.7"/>
@@ -88,7 +88,7 @@ export const tenue: TenueDef = {
 <path d="M-3.5 48 Q0 47 3.5 48 L3.5 50 L-3.5 50 Z" fill="@vet1O"/>`,
     bras: {
       front: `<!-- Tueur: bras nu (chair) musclé, brassard de cuir clouté + lanières au poignet -->
-<rect x="-3.4" y="-2" width="6.8" height="34" rx="3.2" fill="url(#g_flesh)" stroke="@vet1O" stroke-width="0.5"/>
+<rect x="-3.4" y="-2" width="6.8" height="34" rx="3.2" fill="url(#dg-v-@peauH-@peauO)" stroke="@vet1O" stroke-width="0.5"/>
 <!-- relief du biceps -->
 <path d="M-3 2 Q-4.5 8 -2.5 14" fill="none" stroke="@vet1" stroke-width="1" opacity="0.5"/>
 <!-- tatouage bleu sur le bras -->
@@ -101,7 +101,7 @@ export const tenue: TenueDef = {
 <path d="M-3.4 24 L3.4 24" stroke="@cuir" stroke-width="2"/>
 <path d="M-3.4 28 L3.4 28" stroke="@cuir" stroke-width="2"/>
 <path d="M-3.4 31 L3.4 31" stroke="@cuir" stroke-width="1.8"/>`,
-      profile: `<rect x="-3" y="-2" width="6" height="34" rx="2.9" fill="url(#g_flesh)" stroke="@vet1O" stroke-width="0.5"/>
+      profile: `<rect x="-3" y="-2" width="6" height="34" rx="2.9" fill="url(#dg-v-@peauH-@peauO)" stroke="@vet1O" stroke-width="0.5"/>
 <path d="M-3 -1.4 Q-4.4 8 -2.6 18 Q-3 26 -2.4 31.6 L-0.4 31.8 Q-1 20 -0.6 -1.8 Z" fill="@vet1O" opacity="0.5" stroke="none"/>
 <path d="M2.2 0.6 Q3.6 7 2.4 14 Q1.6 9 1.2 4 Z" fill="@vet1H" opacity="0.5" stroke="none"/>
 <path d="M-2.4 14.6 Q-3.4 18 -2.2 21.4" fill="none" stroke="@vet1O" stroke-width="0.6" opacity="0.7"/>
@@ -112,7 +112,7 @@ export const tenue: TenueDef = {
 <path d="M-3 28 L3 28" stroke="@cuir" stroke-width="2"/>
 <path d="M-3 31 L3 31" stroke="@cuir" stroke-width="1.8"/>
 <path d="M-3 23.4 L3 23.4 M-3 27.4 L3 27.4 M-3 30.4 L3 30.4" stroke="@cuirO" stroke-width="0.45" opacity="0.75"/>`,
-      back: `<rect x="-3.4" y="-2" width="6.8" height="34" rx="3.2" fill="url(#g_flesh)" stroke="@vet1O" stroke-width="0.5"/>
+      back: `<rect x="-3.4" y="-2" width="6.8" height="34" rx="3.2" fill="url(#dg-v-@peauH-@peauO)" stroke="@vet1O" stroke-width="0.5"/>
 <path d="M0.8 -1.8 Q2 10 1.4 21 Q1.8 27 1.2 31.8 L3 31.6 Q3.6 20 3.2 -1.6 Z" fill="@vet1O" opacity="0.52" stroke="none"/>
 <path d="M-2.8 0.6 Q-4.2 7 -2.8 15 Q-1.8 9 -1.4 3 Z" fill="@vet1H" opacity="0.45" stroke="none"/>
 <path d="M-2.6 11 Q0 12.6 2.6 11" fill="none" stroke="@vet1O" stroke-width="0.5" opacity="0.5"/>

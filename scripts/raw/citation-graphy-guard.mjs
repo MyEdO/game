@@ -176,7 +176,7 @@ export function detecteMultiFolioSplit(ln) {
     const extraFolios = (suffix.match(/\d+/g) || []).map(Number)
     const folios = []
     for (const folio of [Number(folioStr), ...extraFolios]) {
-      const res = folioRange(abbr, folio)
+      const res = folioRange(abbr, folio, ch)
       if (!res || res === 'ambiguous') continue // indéterminé, jamais une violation
       if (res.ch !== ch) folios.push({ folio, ch: res.ch })
     }

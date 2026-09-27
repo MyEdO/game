@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import type { NetState } from '../state/netFlow';
 import { CharFrame } from './CharFrame';
@@ -199,7 +200,7 @@ export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: st
   if (net.mode === 'host') {
     const away = Object.entries(net.presence)
       .filter(([, p]) => p === 'away')
-      .map(([s]) => net.seatNames[Number(s)] ?? `Joueur ${Number(s) + 1}`);
+      .map(([s]) => nomDuSiege(net, Number(s)));
     if (away.length) return { icone: 'ui/warning', texte: `${away.join(', ')} : reconnexion en cours…` };
   }
   return null;

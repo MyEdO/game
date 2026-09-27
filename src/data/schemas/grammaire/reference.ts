@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { countSpecSchema } from './valeurs';
+import { porteLeMarqueur } from './ref';
 
 /**
  * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
@@ -14,6 +15,32 @@ import { countSpecSchema } from './valeurs';
  * consommation ×2 ; la Taille, elle, est portée par le TALENT Massif/Petit, pas un Trait). MÊME
  * forme partout — jamais recopiée.
  */
+/** Ce que l'`arg` d'un Trait ne peut pas porter quand sa def DÉCLARE le champ qui le reçoit
+ *  (`LDB 85` l.94, l.209) : le marqueur du def (`defs/traits.ts`), la forme de la valeur, son champ. */
+const ARG_DECLARE_AILLEURS = [
+  { marqueur: 'indice', forme: /^\+?\d+\+?$/, nature: 'un Indice', champ: 'value' },
+  { marqueur: 'range', forme: /^\d+(?:[.,]\d+)?\s*(?:m|mètres?)$/i, nature: 'une Portée', champ: 'range' },
+] as const;
+
+/** Prédicats « le Trait déclare ce marqueur », construits à la PREMIÈRE validation : `npm run gen`
+ *  importe les defs avant d'avoir écrit la sous-liste que `porteLeMarqueur` exige à sa construction. */
+const declarants = new Map<string, (id: string) => boolean>();
+
+/**
+ * Refus de l'`arg` `arg` sur le Trait `id` quand cet `arg` n'est qu'un Indice ou qu'une Portée que la
+ * def du Trait DÉCLARE — message nommé (id, valeur, champ attendu), sinon `null`. Appelé par le schéma
+ * d'instance ci-dessous.
+ */
+export function refusDArgDeTrait(id: string, arg: string): string | null {
+  for (const r of ARG_DECLARE_AILLEURS) {
+    if (!r.forme.test(arg.trim())) continue;
+    let declare = declarants.get(r.marqueur);
+    if (!declare) declarants.set(r.marqueur, (declare = porteLeMarqueur('trait', r.marqueur)));
+    if (declare(id)) return `Trait « ${id} » : « ${arg} » est ${r.nature} — il s'écrit en « ${r.champ} » (nombre), jamais en « arg ».`;
+  }
+  return null;
+}
+
 export const traitInstanceSchema = z.strictObject({
   id: z.string(),
   value: z.number().optional(),
@@ -22,6 +49,9 @@ export const traitInstanceSchema = z.strictObject({
   range: z.number().optional(),
   natural: z.boolean().optional(),
   hidden: z.boolean().optional(),
+}).superRefine((t, ctx) => {
+  const refus = t.arg === undefined ? null : refusDArgDeTrait(t.id, t.arg);
+  if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
 });
 
 /**

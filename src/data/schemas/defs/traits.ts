@@ -155,7 +155,9 @@ const doc = document(
     codex: { keys: ['traits', 'psychologie'] },
     edit: { dataset: 'traits' },
   },
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS },
+  // `indice` : `LDB 85` l.94 ; `range` : `LDB 85` l.209 ; lus par `refusDArgDeTrait` (`grammaire/reference.ts`).
+  // `specsOpen` : `LDB 85` (ex. l.83), lu par `entreeOuverte` (`grammaire/ref.ts`).
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen'] } },
 );
 
 export const schema = doc.schema;

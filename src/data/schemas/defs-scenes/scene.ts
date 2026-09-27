@@ -27,6 +27,7 @@ import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSche
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
+import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF, type PartRelief } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
@@ -62,6 +63,37 @@ export const entityKindSchema = enumNomme({ heroStart: 'Départ héros', personn
 
 /** Sous-liste des décors à recette VOLUMIQUE : le marqueur `volume` de `defs/props.ts`. */
 const estVolumique = porteLeMarqueur('prop', 'volume');
+
+/** Les PORTEURS du type d'une entité, par `kind` (#877, #1882) : une entité NOMME son type, ou elle est
+ *  refusée. La PRÉSENCE se juge au parse (`superRefine` de sa branche de `sceneEntitySchema`) et dans
+ *  `validateScene` ; la RÉSOLUTION se juge au parse aussi : `idDe('prop')` (décor), `refEntiteResolue` (personnage, lue au
+ *  catalogue `src/data/index.ts`, patron `narratif.ts`). Une chaîne
+ *  vide n'est pas un porteur. L'exclusivité des porteurs d'un personnage est #1892. */
+export const PORTEURS_DU_TYPE = {
+  prop: { porteurs: ['ref'], entite: 'décor', nomme: 'son type au catalogue (props.json)' },
+  personnage: { porteurs: ['ref', 'statblock', 'presetId'], entite: 'personnage', nomme: 'sa fiche (bestiaire, statbloc ou preset de PNJ)' },
+} as const satisfies Partial<Record<z.infer<typeof entityKindSchema>, { porteurs: readonly ('ref' | 'statblock' | 'presetId')[]; entite: string; nomme: string }>>;
+
+const regleDuType = (kind: string) =>
+  (PORTEURS_DU_TYPE as Partial<Record<string, (typeof PORTEURS_DU_TYPE)[keyof typeof PORTEURS_DU_TYPE]>>)[kind];
+
+/** La faute d'une entité qui ne porte AUCUN des porteurs de son `kind`, dite SANS nommer l'entité :
+ *  au schéma, c'est le LIEU de la faute qui la nomme. `undefined` si elle porte un porteur, ou si son
+ *  `kind` n'en exige aucun. Source unique du schéma et de `typeNonNomme`. */
+export function porteurAbsent(ent: { kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+  const regle = regleDuType(ent.kind);
+  if (!regle || regle.porteurs.some((p: 'ref' | 'statblock' | 'presetId') => ent[p] !== undefined && ent[p] !== '')) return undefined;
+  const cles = regle.porteurs.map((p) => `« ${p} »`);
+  const absence = cles.length === 1 ? `${cles[0]} absente` : `${cles.join(', ')} absents`;
+  return `${absence} — un ${regle.entite} NOMME ${regle.nomme}`;
+}
+
+/** `porteurAbsent`, l'entité NOMMÉE : la faute dite hors de tout lieu (patch d'éditeur refusé, fiche
+ *  absente au spawn, migration). */
+export function typeNonNomme(ent: { id: string; kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+  const faute = porteurAbsent(ent);
+  return faute && `${regleDuType(ent.kind)!.entite} « ${ent.id} » : ${faute}`;
+}
 
 /** Une ACTION AUTHORÉE sur une instance de décor (#1687) — le vocabulaire OUVERT des gestes qu'un
  *  auteur pose. `id` : identité STABLE et non vide, unique sur l'entité (`listeCle`) ; `label` :
@@ -157,25 +189,26 @@ type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** `SceneEntity` (`state/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
  *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
- *  #877) ; celle d'un personnage est une chaîne libre (#1882). Le `superRefine` de la branche `prop`
- *  porte ses deux invariants CROSS-CHAMP : la `ref` présente, et le cap d'un décor volumique. */
+ *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
+ *  porte ses invariants CROSS-CHAMP : le type NOMMÉ (`PORTEURS_DU_TYPE`), et pour un décor le cap d'un
+ *  décor volumique. */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', z.string().optional()),
-  brancheDEntite('personnage', z.string().optional()),
+  brancheDEntite('personnage', z.string().optional()).superRefine((ent, ctx) => {
+    // TYPE NOMMÉ — verrou AU PARSE (#1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici ; rien ne la remplace.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    if (ent.ref && !refEntiteResolue(ent.ref))
+      ctx.addIssue({ code: 'custom', path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+  }),
   brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
-    // REF DE DÉCOR — verrou AU PARSE (#877) : le type est REQUIS ; sa résolution au registre est celle
-    // de la feuille `idDe('prop')`. Une ref absente se DIT ici.
-    if (ent.ref === undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['ref'],
-        message: '« ref » absente — un décor NOMME son type au catalogue (props.json)',
-      });
-    }
+    // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
+    // feuille `idDe('prop')`. Une ref absente se DIT ici.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
     // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
-    // recette ne prend qu'un cap CARDINAL. Sa recette tourne (`rotatePropLocal`) là où son empreinte
-    // solide ne tourne pas (#1509) : une diagonale poserait son corps en travers de cases restées
-    // traversables. La sous-liste se lit au régime vif, sinon au registre généré (`porteLeMarqueur`).
+    // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
+    // régime vif, sinon au registre généré (`porteLeMarqueur`).
     if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
     ctx.addIssue({
       code: 'custom',
@@ -574,9 +607,9 @@ export const encounterDefSchema = z.strictObject({
    *  (défaut historique). Défaut résolu par `banRangedActive` (SEUL point), consommé par
    *  `resolveAttack`/`firedAttackBlock` (joueur ET IA). */
   banRanged: z.boolean().optional(),
-  /** Rencontre de SIÈGE — FOYER de l'arbitrage utilisateur du 2026-09-04 (#1680, réponses verbatim à
-   *  deux questions AskUserQuestion) : « Structures ciblables en siège seul », puis, à la question de ce
-   *  qui fait d'un combat un siège, « Un drapeau de RENCONTRE, éditable ». Les STRUCTURES destructibles de la
+  /** Rencontre de SIÈGE — #1680, commentaire 5546039260 du 2026-09-04 : « Structures ciblables en
+   *  siège seul », puis, à la question de ce qui fait d'un combat un siège, « Un drapeau de RENCONTRE,
+   *  éditable ». Les STRUCTURES destructibles de la
    *  scène (porte, mur) entrent dans le choix de cible de l'IA ennemie. Défaut LITTÉRAL `false` —
    *  absent = pas de siège, AUCUNE dérivation depuis un autre champ (une rencontre
    *  `victoryCondition: destroyStructure` ne l'active pas d'elle-même). Résolu par `siegeActif`
@@ -707,7 +740,8 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
 /**
  * `Scene` (`state/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
  * `triggers`/`encounters`/`flags`, requises sur le type manuscrit, sont OPTIONNELLES ici : le
- * schéma voit le document AVANT `normalizeScene`, qui les comble au SEUL point d'entrée.
+ * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
+ * `migreSceneDeProjet`).
  */
 export const sceneSchema = z.strictObject({
   type: z.literal('scene'),
