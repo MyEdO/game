@@ -562,13 +562,18 @@ export const LANES = [
 export const TIMEOUTS = { defaut: 600, test: 900 }
 
 /**
- * Cœurs servis à la SUITE pendant les lanes. Mesuré sur cette machine, suite SEULE et sans lane :
+ * Cœurs servis à la SUITE pendant les lanes. Valeur mesurée le 2026-09-04 sur un poste de 16 cœurs
+ * et 31,2 Go, suite SEULE et sans lane, workers SANS borne de tas :
  * `[diag] mémoire système max : 31.2 Go / 31.2 Go (100 %)` à 16 cœurs (node 10 + jsdom 5). À
  * saturation, ajouter des lanes ne rend pas du parallélisme, cela rend du swap — la suite se borne
  * donc par la couture qui existe déjà (`coeurs` de `scripts/test/partition.mjs`), jamais par une
- * seconde. À 10, `repartitionWorkers` sert node 6 + jsdom 3 : 9 workers au lieu de 15.
- * La RAM ne dit RIEN du point d'équilibre (100 % dans les deux régimes, mesuré) : ce qui le dit est
- * le compteur de spawns rejoués du résumé, et `worker perdu` du bloc `[diag]` de la suite.
+ * seconde. À 10, `repartitionWorkers` sert node 6 + jsdom 3 : 9 workers au lieu de 15. Ce qui dit
+ * le point d'équilibre est le compteur de spawns rejoués du résumé, et `worker perdu` du bloc
+ * `[diag]` de la suite.
+ * `capacite` (`scripts/test/partition.mjs`) borne aussi la suite par la mémoire disponible lue AU
+ * LANCEMENT de la suite, avant que les lanes voisines n'allouent : aucune réserve n'est faite pour
+ * elles (#2035). Sur un poste de 31,2 Go, `capacite` sert au plus 8 workers (node 5 + jsdom 3) : la
+ * valeur 10 n'y mord qu'à partir de 35 306 Mo disponibles.
  * `WFRP_TEST_COEURS` posé par l'appelant PRIME — c'est par lui que la valeur se re-mesure.
  */
 export const COEURS_SUITE_EN_LANES = 10

@@ -1953,13 +1953,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/docs/build-all.mjs",
-    motif: "désormais",
-    ancre: "périmé, et la gate `docs:empreinte` refusait 7 min plus tard (#1773) ; désormais son `--check` rouge",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/gates/ecrivainsAtteints.test.mjs",
     motif: "désormais",
     ancre: "désormais pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.",
@@ -1981,23 +1974,9 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/git-hooks/pre-commit.mjs",
-    motif: "désormais",
-    ancre: "l'étape docs de `ops:publier` — qui juge désormais aussi les pieds des cibles `check: false`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/guards/lib/cssConservation.mjs",
     motif: "désormais",
     ancre: "plus, ou l'emporte désormais, sur une déclaration CONSERVÉE visant une classe",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "scripts/guards/lib/empreinteStage.mjs",
-    motif: "désormais",
-    ancre: "juge désormais aussi les pieds des cibles `check: false` (`piedsDesNonVerifiables`, #1773) ; la",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

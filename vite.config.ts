@@ -7,6 +7,7 @@ import { genAll, REGISTRIES } from './scripts/gen-registry.mjs';
 import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scripts/port-dev.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
+import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 
 /** Auto-génération des registres « dépose un fichier → intégré » : régénère l'index explicite
  *  au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère ensuite). */
@@ -82,6 +83,14 @@ export default defineConfig({
     // ici plutôt que par une règle textuelle : chaque espion est rendu après SON test, les 144
     // occurrences de `spyOn` des 48 fichiers du périmètre comprises (mesure 2026-09-02).
     restoreMocks: true,
+    // Troisième effet : un worker garde ce que ses fichiers ont retenu, et V8 taille le tas de CHAQUE
+    // processus sur la machine entière — plusieurs workers saturent alors la mémoire (#1801). La borne
+    // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs. `pool: 'forks'` est le défaut de
+    // Vitest 2.1.9, déclaré parce que `poolOptions.forks` n'agit que sous lui.
+    pool: 'forks',
+    poolOptions: { forks: { execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`] } },
+    // Tas de chaque worker en fin de fichier : relevé par le bloc `[diag]` du lanceur (scripts/test/run.mjs).
+    logHeapUsage: true,
     // Paramètre de BANC calé sur le test volumique le plus lourd mesuré en CI (#1619) — le contrat des tests ne change pas.
     testTimeout: 15_000,
     // Filet d'isolation GLOBAL : restaure les vrais timers après chaque test (cf. src/test-setup.ts) —

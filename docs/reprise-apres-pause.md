@@ -58,9 +58,12 @@ jamais. `npm run dev` imprime celui qu'il sert.
    rouvre un conflit sur des fichiers que `npm run docs:build` régénère seul.
 
 Le partage de la suite (`node scripts/test/run.mjs`) est décidé par `repartitionWorkers` : en dessous de
-7 cœurs, un seul processus Vitest ; au-delà, un processus `node` et un processus `jsdom`. La
-variable d'environnement `WFRP_TEST_COEURS` force ce nombre (seule façon de jouer l'autre chemin sur
-une machine quelconque).
+7 cœurs, un seul processus Vitest ; au-delà, un processus `node` et un processus `jsdom`. Les
+cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (`capacite`) : autant de workers que
+la mémoire en porte, à l'empreinte mesurée d'un worker sous sa borne de tas, une réserve déduite par
+processus Vitest. Les variables
+d'environnement `WFRP_TEST_COEURS` et `WFRP_TEST_MEMOIRE_MO` forcent ces deux mesures (seule façon
+de jouer l'autre chemin sur une machine quelconque).
 
 `src/data/*.json` (124 fichiers) est la **SOURCE app-owned** : rien à régénérer après le clone.
 
@@ -236,4 +239,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 4d8d3c4554742b5825ab19084fe5934315148716 (24 fichiers, 8 dossiers) corps: af2ab400479e9db79c7f43cd086ec98502ce5b96 -->
+<!-- sources-empreinte: 014a00906cbbe70dda22952d09d4979741b20358 (24 fichiers, 8 dossiers) corps: ccfd33e78a093f48761069e89081268539610589 -->

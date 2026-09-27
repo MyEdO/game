@@ -388,9 +388,12 @@ jamais. \`npm run dev\` imprime celui qu'il sert.
 ${lignesFamilles}
 
 Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWorkers\` : en dessous de
-${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. La
-variable d'environnement \`WFRP_TEST_COEURS\` force ce nombre (seule façon de jouer l'autre chemin sur
-une machine quelconque).
+${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
+cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
+la mémoire en porte, à l'empreinte mesurée d'un worker sous sa borne de tas, une réserve déduite par
+processus Vitest. Les variables
+d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
+de jouer l'autre chemin sur une machine quelconque).
 
 \`src/data/*.json\` (${NB_DATA_JSON} fichiers) est la **SOURCE app-owned** : rien à régénérer après le clone.
 
