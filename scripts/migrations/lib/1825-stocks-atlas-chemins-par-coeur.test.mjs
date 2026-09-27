@@ -1,6 +1,6 @@
 // Banc de la migration `2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs` — jouée par `joue` dans
 // un DÉPÔT JETABLE sous `os.tmpdir()`, jamais sur l'arbre réel. Sous `lib/` : un `.mjs` sans préfixe
-// daté à la racine des migrations y est inclassable (scripts/migrations/replay.mjs:90, :175-177).
+// daté à la racine des migrations y est inclassable (scripts/migrations/replay.mjs:67, :146-154).
 import { strict as assert } from 'node:assert';
 import path from 'node:path';
 import test from 'node:test';
@@ -12,7 +12,7 @@ import { depot, efface, joue, lireDans, rienTouche } from './joue.mjs';
 const MIGRATION = '2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs';
 
 /** Ce que la migration LIT hors de l'Atlas et des stocks : la couture `_lib.mjs` et ses imports. */
-const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source'];
+const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source', 'src/lib/regex.ts'];
 
 // Chemins d'Atlas composés à l'exécution : scripts/docs/check-doc-refs.mjs:262 (`DOC_REF_RE`, l.247).
 const RAWDIR = path.posix.join('docs', 'raw');
