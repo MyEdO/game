@@ -591,9 +591,9 @@ export function DispoSaisonniereField(
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 6bis) skills/talents.specs — SpecEntry[] = `{id,label}[]` (langue/chevaucher/discretion/art,
- *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition. `maison` se saisit par
- *    le MÊME contrôle qu'un sous-champ texte du Codex (`Field`, repli texte de `CodexEdit.tsx`), libellé
- *    au régime `profondeur` (`libelleDuChamp`).
+ *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition. `maison` (`maisonSchema`) se
+ *    saisit par le balisage du repli texte de `Field` (`CodexEdit.tsx`), sous le libellé de tout champ
+ *    `maison` du Codex (`libelleDuChamp`).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined; onChange: (v: SpecEntry[]) => void }) {
@@ -610,7 +610,8 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
       const { maison: _maison, ...rest } = s;
       return maison ? { ...rest, maison } : rest;
     }));
-  const libelleMaison = libelleDuChamp('maison', { niveau: 'profondeur' });
+  const libelleLabel = libelleDuChamp('label');
+  const libelleMaison = libelleDuChamp('maison');
   const setPool = (i: number, propose: boolean) =>
     set(list.map((s, j) => {
       if (j !== i) return s;
@@ -622,9 +623,9 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
       <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, `LDB 09 l.40`)</span>
       {list.map((s, i) => (
         <div key={i} className="de-reflrow">
-          <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />
+          <label className="ed-field"><span>{libelleLabel}</span><input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} /></label>
           <em className="de-hint">{specEntryId(s)}</em>
-          <input aria-label={libelleMaison} placeholder={libelleMaison} value={s.maison ?? ''} onChange={(e) => setMaison(i, e.target.value)} />
+          <label className="ed-field"><span>{libelleMaison}</span><input value={s.maison ?? ''} onChange={(e) => setMaison(i, e.target.value)} /></label>
           <OptionChooser
             layout="seg"
             options={[

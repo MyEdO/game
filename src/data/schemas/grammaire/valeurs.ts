@@ -295,10 +295,10 @@ export type DescRef = z.infer<typeof descRefSchema>;
 /**
  * ENTRÉE DE CATALOGUE DE SPÉCIALISATION (`SpecEntry`, `src/data/index.ts`) — ce qu'une def de
  * Compétence/Talent énumère sous `specs[]` : l'id STABLE manipulé par la logique, son `label` FR
- * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), la
- * RAISON d'une entrée qu'aucun folio n'atteste (`maison`, CLAUDE.md règle 7), et `pool: false` pour
- * une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). `maison` compose `maisonSchema`
- * et coexiste avec `source`. SOURCE
+ * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), sa
+ * RAISON maison (`maison`, CLAUDE.md règle 7 ; compose `maisonSchema`), seule ou à côté de `source`, et
+ * `pool: false` pour une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). Absente = dans le
+ * pool ; les écrans de RÉFÉRENCE impriment tout le catalogue (`specCatalogOf`). SOURCE
  * UNIQUE : `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
  * (`grammaire/ref.ts`, registre `SPECS_PAR_DATASET`).
  */

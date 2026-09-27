@@ -238,12 +238,19 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation', 
     expect(slotCovers(savant, 'savant', 'une-specialisation-creee')).toBe(true);
     expect(slotCovers(savant, 'savant', 'Au choix')).toBe(false);
   });
-  it('un joker de Talent sans `specsOpen` (Haine) n’est couvert que par son catalogue éditable (CLAUDE.md règle 7) ; le schéma refuse le texte libre', () => {
+  it('un joker de Talent à liste ouverte (Haine, LDB 10 l.548) est couvert par un groupe hors catalogue', () => {
     const haine = talentSlots(levelsForCareer('cavalier'), 3).find((s) => s.options.some((o) => o.optionId === 'haine' && o.wildcard))!;
     expect(haine, 'Cavalier N3 porte « Haine (Au choix) »').toBeDefined();
-    expect(slotCovers(haine, 'haine', 'Nains')).toBe(false);
+    expect(slotCovers(haine, 'haine', 'Nains')).toBe(true);
     expect(slotCovers(haine, 'haine', 'peaux-vertes')).toBe(true);
-    expect(refusDeSpec('talent', 'haine', 'Nains')).toBe('horsCatalogue');
+    expect(refusDeSpec('talent', 'haine', 'Nains')).toBeNull();
+  });
+  it('un joker de Talent sans `specsOpen` (Sens aiguisé, LDB 10 l.1091) n’est couvert que par son catalogue ; le schéma refuse le texte libre', () => {
+    const sens = talentSlots(levelsForCareer('enqueteur'), 4).find((s) => s.options.some((o) => o.optionId === 'sens-aiguise' && o.wildcard))!;
+    expect(sens, 'Enquêteur N4 porte « Sens aiguisé (Au choix) »').toBeDefined();
+    expect(slotCovers(sens, 'sens-aiguise', 'Sixième sens')).toBe(false);
+    expect(slotCovers(sens, 'sens-aiguise', 'vue')).toBe(true);
+    expect(refusDeSpec('talent', 'sens-aiguise', 'Sixième sens')).toBe('horsCatalogue');
     expect(refusDeSpec('talent', 'maitre-artisan', 'Souffleur de verre')).toBeNull();
   });
   it('freeSlotFor / designateSlot refusent Béni nu', () => {

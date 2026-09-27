@@ -903,13 +903,6 @@ export interface CareerLevelData {
   characteristics: CharKey[];
   status: string;
 }
-/** Entrée `specs[]` d'une Compétence/Talent — id STABLE (résolu par `specLabel`, cf. `langue`/
- *  `chevaucher`/`discretion`/`art`/talent `resistance`) + libellé d'affichage FR. Un domaine
- *  `specsSource` n'a PAS de `specs[]` (le pool DÉRIVE du registre partagé, cf. `specPoolOf`).
- *  `pool: false` — l'entrée est VALIDE (résolution, `testValue`, bonus de règle) mais n'est pas
- *  PROPOSÉE d'office par le créateur/l'avancement (`LDB 09 l.40`) ; les écrans de RÉFÉRENCE
- *  l'impriment (`specCatalogOf`). Absente = dans le pool. VALIDITÉ ⊇ POOL, cf. `specResolves`.
- *  `maison` — la raison d'une entrée qu'aucun folio n'atteste (CLAUDE.md règle 7). */
 export type { SpecEntry };
 /** id d'une entrée `specs[]`. */
 export function specEntryId(e: SpecEntry): string {

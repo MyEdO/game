@@ -35,6 +35,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
+import { memeRef } from './careerSlots';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
 export function reverseRoll(r: number): number {
@@ -166,7 +167,7 @@ function matchGroupSpec(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'):
   const wanted = acceptableSpecs(weapon, kind);
   for (const w of wanted) {
     if (w.spec === ANY_RANGED_SPEC) continue; // essayée en dernier, cf. plus bas
-    const sk = matching.find((s) => s.spec === w.spec);
+    const sk = matching.find((s) => memeRef(s, { id: skillId, spec: w.spec }));
     if (sk) return { advances: sk.advances, mode: w.mode, spec: w.spec };
   }
   if (wanted.some((w) => w.spec === ANY_RANGED_SPEC)) {

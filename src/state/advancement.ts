@@ -29,7 +29,7 @@ import {
   wildcardSpecs,
   memeRef,
 } from '../engine/careerSlots';
-import { competenceEnCarriere, competencesAjouteesALaCarriere, talentsAjoutesALaCarriere, baseWithTalents, type ProvenanceDAjout } from '../engine/talentEffects';
+import { competenceEnCarriere, competencesAjouteesALaCarriere, talentsAjoutesALaCarriere, baseWithTalents, type AjoutDeTalent, type AjoutHorsReference } from '../engine/talentEffects';
 import { rule } from '../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../data';
 
@@ -56,12 +56,8 @@ export interface SkillAdvanceRow {
   /** Rangée d'une Compétence ajoutée à la carrière (`competenceEnCarriere`). */
   ajout?: AjoutDeRangee;
 }
-/** Ajout de carrière d'une rangée : son porteur par id STABLE (`ProvenanceDAjout`) ; `commeEnCarriere` quand
- *  l'ajout de Talent s'achète comme en carrière hors de sa liste (EDOC 13 l.524). */
-export interface AjoutDeRangee {
-  provenance: ProvenanceDAjout;
-  commeEnCarriere?: true;
-}
+/** Ajout de carrière d'une rangée : ce que porte l'ajout hors de sa référence (`AjoutDeTalent`). */
+export type AjoutDeRangee = AjoutHorsReference<AjoutDeTalent>;
 /** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
 export interface SkillSlotRow {
   slotKey: string;

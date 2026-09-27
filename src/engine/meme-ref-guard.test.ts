@@ -5,7 +5,7 @@ import { memeRef, refKey } from './careerSlots';
 
 /**
  * Garde « même référence » (#1473) : aucun code de `src/` hors tests ne recode l'égalité (id, spec) par
- * `(… spec ?? '') ===` ni par `….id === … && ….spec ===` ; il lit `memeRef` (`careerSlots.ts`). Baseline ZÉRO,
+ * `(… spec ?? '') ===`, par `….id === … && ….spec ===` ni en deux temps (filtre par id, puis `spec`) ; il lit `memeRef` (`careerSlots.ts`). Baseline ZÉRO,
  * aucune liste de sites tolérés.
  */
 const GARDE = {
@@ -15,6 +15,7 @@ const GARDE = {
   angleMort: [
     'Une comparaison qui normalise autrement (`s.spec || \'\'`, `String(s.spec)`) échappe au motif.',
     'Une conjonction écrite sur plusieurs lignes, ou dont les membres sont inversés (`….spec === … && ….id ===`), échappe au motif.',
+    'L’identité en deux temps n’est vue que si la collection filtrée par id est un `const` d’une ligne relu par son nom ; mesuré au 2026-09-27 : 13 filtres par id au corpus, un seul relu par `spec` (`combat.ts`, soldé).',
   ],
   ticket: '#1473',
 } as const;

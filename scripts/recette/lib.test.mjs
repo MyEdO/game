@@ -540,6 +540,25 @@ test('iconeDe : un élément monté APRÈS l’appel est attendu ; absent à l�
   await assert.rejects(() => iconeDe(session, '#jamais', { delaiCibleMs: 300 }), /iconeDe « #jamais » : aucun élément après 300 ms/)
 })
 
+test('iconeDe : une cible par TEXTE visible (titre de section) ou par NOM ACCESSIBLE, l’élément le plus intérieur', async () => {
+  const { session } = sessionSurDom(`
+    <section><h2 class="mini-title"><svg class="icon" data-icon="resource/xp"></svg> Progression</h2><p>Niveau complet</p></section>
+    <span aria-label="Menu système"><svg data-icon="ui/menu"></svg></span>`)
+  assert.equal(await iconeDe(session, 'Progression'), 'resource/xp')
+  assert.equal(await iconeDe(session, 'Menu système'), 'ui/menu')
+  assert.equal(await iconeDe(session, 'Niveau complet', { delaiCibleMs: 200 }), null)
+})
+
+test('iconeDe : un texte qui est aussi un nom de balise désigne l’élément qui l’affiche, pas la balise', async () => {
+  const { session } = sessionSurDom(`
+    <menu><li>entrée</li></menu><table><tr><td>cellule</td></tr></table>
+    <button><svg data-icon="ui/menu"></svg> Menu</button>
+    <h2><svg data-icon="ui/table"></svg> Table</h2>`)
+  assert.equal(await iconeDe(session, 'Menu'), 'ui/menu')
+  assert.equal(await iconeDe(session, 'Table'), 'ui/table')
+  assert.equal(await iconeDe(session, 'menu li', { delaiCibleMs: 200 }), null)
+})
+
 // ------------------------------------------------- poserFichier : domaine DOM du CDP
 
 /** Session dont le domaine `DOM` du CDP est servi par un document jsdom : `nodeId` = rang dans

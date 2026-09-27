@@ -160,6 +160,7 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
           <span key={m.label} className="stat-chip codex-fact">
             <span className="sc-label" title={m.label}>{m.label}</span>
             <span className="sc-value">{m.value}</span>
+            {m.marque && <span className="chip">{m.marque}</span>}
           </span>
         ))}
       </Row>

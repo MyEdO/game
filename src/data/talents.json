@@ -526,7 +526,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 133
-    }
+    },
+    "specsOpen": true
   },
   {
     "id": "bonnes-jambes",
@@ -2500,7 +2501,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 138
-    }
+    },
+    "specsOpen": true
   },
   {
     "id": "haine-sacree",
@@ -3249,7 +3251,7 @@
       },
       {
         "id": "sulpteur-sur-bois",
-        "label": "Sulpteur sur bois"
+        "label": "Sculpteur sur bois"
       },
       {
         "id": "tailleur-de-pierre",
@@ -4364,11 +4366,21 @@
     "specs": [
       {
         "id": "animaux",
-        "label": "Animaux"
+        "label": "Animaux",
+        "source": {
+          "book": "livre-de-base",
+          "page": 110,
+          "note": "LDB 08 l.3514"
+        }
       },
       {
         "id": "criminels",
-        "label": "Criminels"
+        "label": "Criminels",
+        "source": {
+          "book": "livre-de-base",
+          "page": 59,
+          "note": "LDB 08 l.547"
+        }
       },
       {
         "id": "gardes",
@@ -4384,35 +4396,75 @@
       },
       {
         "id": "heretiques",
-        "label": "Hérétiques"
+        "label": "Hérétiques",
+        "source": {
+          "book": "livre-de-base",
+          "page": 80,
+          "note": "LDB 08 l.1732"
+        }
       },
       {
         "id": "intrus",
-        "label": "Intrus"
+        "label": "Intrus",
+        "source": {
+          "book": "livre-de-base",
+          "page": 71,
+          "note": "LDB 08 l.1203"
+        }
       },
       {
         "id": "miliciens",
-        "label": "Miliciens"
+        "label": "Miliciens",
+        "source": {
+          "book": "livre-de-base",
+          "page": 58,
+          "note": "LDB 08 l.490"
+        }
       },
       {
         "id": "monstres",
-        "label": "Monstres"
+        "label": "Monstres",
+        "source": {
+          "book": "livre-de-base",
+          "page": 110,
+          "note": "LDB 08 l.3520"
+        }
       },
       {
         "id": "morts-vivants",
-        "label": "Morts-vivants"
+        "label": "Morts-vivants",
+        "source": {
+          "book": "livre-de-base",
+          "page": 104,
+          "note": "LDB 08 l.3184"
+        }
       },
       {
         "id": "naufrageurs",
-        "label": "Naufrageurs"
+        "label": "Naufrageurs",
+        "source": {
+          "book": "livre-de-base",
+          "page": 100,
+          "note": "LDB 08 l.2928"
+        }
       },
       {
         "id": "patrouilleurs-fluviaux",
-        "label": "Patrouilleurs fluviaux"
+        "label": "Patrouilleurs fluviaux",
+        "source": {
+          "book": "livre-de-base",
+          "page": 94,
+          "note": "LDB 08 l.2582"
+        }
       },
       {
         "id": "patrouilleurs-routiers",
-        "label": "Patrouilleurs routiers"
+        "label": "Patrouilleurs routiers",
+        "source": {
+          "book": "livre-de-base",
+          "page": 103,
+          "note": "LDB 08 l.3125"
+        }
       },
       {
         "id": "peaux-vertes",
@@ -4420,15 +4472,30 @@
       },
       {
         "id": "primes",
-        "label": "Primes"
+        "label": "Primes",
+        "source": {
+          "book": "livre-de-base",
+          "page": 77,
+          "note": "LDB 08 l.1559"
+        }
       },
       {
         "id": "rats",
-        "label": "Rats"
+        "label": "Rats",
+        "source": {
+          "book": "livre-de-base",
+          "page": 60,
+          "note": "LDB 08 l.596"
+        }
       },
       {
         "id": "skaven",
-        "label": "Skaven"
+        "label": "Skaven",
+        "source": {
+          "book": "livre-de-base",
+          "page": 60,
+          "note": "LDB 08 l.608-610"
+        }
       },
       {
         "id": "sorciers-dissidents",
@@ -4436,7 +4503,12 @@
       },
       {
         "id": "sorcieres",
-        "label": "Sorcières"
+        "label": "Sorcières",
+        "source": {
+          "book": "livre-de-base",
+          "page": 83,
+          "note": "LDB 08 l.1907"
+        }
       },
       {
         "id": "vampires",
@@ -4448,7 +4520,7 @@
         "source": {
           "book": "livre-de-base",
           "page": 76,
-          "note": "LDB 08 l.1472"
+          "note": "LDB 08 l.1472-1474"
         }
       },
       {
@@ -4536,7 +4608,8 @@
     },
     "combat": {
       "fearImmune": true
-    }
+    },
+    "specsOpen": true
   },
   {
     "id": "saut-carpe",
@@ -5012,7 +5085,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 145
-    }
+    },
+    "specsOpen": true
   },
   {
     "id": "seconde-vue",
@@ -5677,7 +5751,7 @@
       },
       {
         "id": "sulpteur-sur-bois",
-        "label": "Sulpteur sur bois"
+        "label": "Sculpteur sur bois"
       },
       {
         "id": "tailleur-de-pierre",
@@ -6032,7 +6106,8 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 20
-    }
+    },
+    "specsOpen": true
   },
   {
     "id": "sang-neuf",

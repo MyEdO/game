@@ -481,16 +481,25 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         for (const entry of s.specs ?? []) expect(isObj(entry) && typeof entry.id === 'string' && typeof entry.label === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
       }
     });
-    // `specsOpen` (texte libre admis) : Destinée, LDB 10 l.315 ; spécialisation d'une Compétence Groupée,
-    // LDB 09 l.40 — Maître artisan (LDB 10 l.741), Travailleur qualifié (LDB 11 l.126), Savant (LDB 10 l.1059).
-    // Autres Talents à spécialisation : un groupe neuf est une ENTRÉE de `specs[]` (catalogue éditable),
-    // arbitrage d'ingénierie, CLAUDE.md règle 7 ; logique keyée par id,
-    // `.claude/memory/user-doctrine-ids-stables-labels-affichage.md:12`.
-    it('Talents `specsOpen` : Destinée et les Talents dont la spécialisation est celle d’une Compétence Groupée', () => {
-      expect(talents.filter((t) => t.specsOpen).map((t) => t.id).sort()).toEqual(['destinee', 'maitre-artisan', 'savant', 'travailleur-qualifie']);
+    // LDB 10 l.315 (Destinée) ; LDB 09 l.40 — Maître artisan (LDB 10 l.741), Travailleur qualifié (LDB 11 l.126),
+    // Savant (LDB 10 l.1059) ; LDB 10 l.117 (Bon marcheur), l.548 (Haine), l.1051 (Sans peur), l.1071
+    // (Savoir-vivre) ; ADE II 02 l.265 (Vice).
+    it('Talents `specsOpen` : les Talents dont le livre ouvre la liste', () => {
+      expect(talents.filter((t) => t.specsOpen).map((t) => t.id).sort()).toEqual([
+        'bon-marcheur', 'destinee', 'haine', 'maitre-artisan', 'sans-peur', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice',
+      ]);
       for (const id of ['maitre-artisan', 'savant', 'travailleur-qualifie']) {
         for (const entry of findTalentById(id)!.specs ?? []) expect(isObj(entry) && typeof (entry as { id: unknown }).id === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
       }
+    });
+    // LDB 10 l.117, l.548, l.1051, l.1071 ; ADE II 02 l.265 ; LDB 10 l.315.
+    it.each([
+      ['bon-marcheur', 'Jungle'], ['haine', 'Nains'], ['sans-peur', 'Elfes'], ['savoir-vivre', 'Vagabonds'], ['vice', 'Jeu'],
+      ['destinee', 'Noyé dans le Reik'],
+    ])('Talent à liste ouverte « %s » : un groupe hors catalogue (« %s ») est admis', (id, groupe) => {
+      expect((findTalentById(id)!.specs ?? []).some((e) => e.id === groupe || e.label === groupe), `${groupe} est déjà au catalogue de ${id}`).toBe(false);
+      expect(entreeOuverte('talent', id), id).toBe(true);
+      expect(refusDeSpec('talent', id, groupe), `${id} (${groupe})`).toBeNull();
     });
   });
 
@@ -722,21 +731,24 @@ describe('spec de Talent — résout au catalogue, ou texte libre d’une entré
   };
   const ouverte = (h: SpecHors) => entreeOuverte('talent', h.refId) && designee(h) === undefined;
 
-  /** STOCK NOMINATIF DÉCROISSANT de textes libres qui impriment une BORNE entre deux
-   *  terrains, `frenchy.bzh 26 l.366`, `l.413`, `l.686`, `l.950`, `l.1008` : chacun devient `choix: ['foret',
-   *  'plaine']` quand les `talents[]` de statbloc deviennent porteurs d'emplacement (E4, train 2b de #1473).
-   *  Clé `fichier|porteur|talentId|spec`. */
+  /** Texte libre qui imprime une BORNE : au moins deux termes joints par « ou », chacun une entrée du
+   *  catalogue (`frenchy.bzh 26 l.366`, `l.413`, `l.686`, `l.950`, `l.1008`). */
+  const borne = (h: SpecHors): boolean => {
+    const termes = h.spec.split(/\s+ou\s+/i).map((x) => x.trim()).filter(Boolean);
+    return termes.length > 1 && termes.every((x) => resolveSpecId('talents', h.refId, x) !== x);
+  };
+  /** STOCK NOMINATIF DÉCROISSANT des bornes en texte libre (`borne`), #1473. Clé `fichier|porteur|talentId|spec`. */
   const BORNES_EN_TEXTE_LIBRE = new Set<string>([
-    'creatures|haut-druide-de-la-foi-antique|bon-marcheur|ForêtouPlaine',
-    'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|ForêtouPlaine',
-    'creatures|maitre-des-taillis|bon-marcheur|PlaineOUForêt',
-    'creatures|pretre-rodeur-de-taal|bon-marcheur|ForêtouPlaine',
-    'creatures|rebouteux|bon-marcheur|PlaineOUForêt',
+    'creatures|haut-druide-de-la-foi-antique|bon-marcheur|Forêt ou Plaine',
+    'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|Forêt ou Plaine',
+    'creatures|maitre-des-taillis|bon-marcheur|Plaine OU Forêt',
+    'creatures|pretre-rodeur-de-taal|bon-marcheur|Forêt ou Plaine',
+    'creatures|rebouteux|bon-marcheur|Plaine OU Forêt',
   ]);
 
   it('creatures/careerLevels/species : toute spec de Talent résout au catalogue, ou est un texte libre d’entrée specsOpen', () => {
     expect(seen).toBeGreaterThan(300);
-    const bad = hors.filter((h) => !ouverte(h) && !BORNES_EN_TEXTE_LIBRE.has(h.key)).map((h) => {
+    const bad = hors.filter((h) => !ouverte(h)).map((h) => {
       const id = designee(h);
       return `${h.where} [${h.book}] : ${h.refId} → ${JSON.stringify(h.spec)}${id ? ` — désigne l'entrée « ${id} » : écrire son id` : ' — entrée sans specsOpen : créer l\'entrée sourcée dans talents.json#specs[]'}`;
     });
@@ -745,9 +757,17 @@ describe('spec de Talent — résout au catalogue, ou texte libre d’une entré
 
   it('les textes libres d’entrée ouverte existent (Destinée, LDB 10 l.315) et le stock des bornes DÉCROÎT', () => {
     expect(hors.filter(ouverte).filter((h) => h.refId === 'destinee').length).toBeGreaterThan(0);
-    const vues = new Set(hors.map((h) => h.key));
-    const perimes = [...BORNES_EN_TEXTE_LIBRE].filter((k) => !vues.has(k));
-    expect(perimes, `clé(s) du stock sans texte libre — RETIRER du stock :\n${perimes.join('\n')}`).toEqual([]);
+    const bornes = hors.filter(borne).map((h) => h.key);
+    expect(bornes.filter((k) => !BORNES_EN_TEXTE_LIBRE.has(k)), 'borne neuve en texte libre : écrire `choix: [ids]`').toEqual([]);
+    expect([...BORNES_EN_TEXTE_LIBRE].filter((k) => !bornes.includes(k)), 'clé(s) du stock sans borne — RETIRER du stock').toEqual([]);
+  });
+
+  it('CONTRÔLE POSITIF — `borne` découpe sur le MOT « ou », jamais dans un terme qui le contient', () => {
+    const vue = (refId: string, spec: string) => borne({ refId, spec } as SpecHors);
+    expect([
+      vue('bon-marcheur', 'Toundra ou Littoral'), vue('bon-marcheur', 'Forêt ou Plaine'),
+      vue('bon-marcheur', 'Plaine OU Forêt'), vue('bon-marcheur', 'Toundra'), vue('bon-marcheur', 'ForêtouPlaine'),
+    ]).toEqual([true, true, true, false, false]);
   });
 
   it('les sentinelles « Au choix » de talents[] sont ÉCARTÉES de la résolution mais COMPTÉES et BORNÉES (#1621)', () => {
@@ -767,20 +787,21 @@ describe('spec de Talent — résout au catalogue, ou texte libre d’une entré
     const fixture = {
       id: 'fixture-talent', source: { book: 'frenchy-bzh' },
       talents: [
-        { id: 'haine', spec: 'Nains' }, { id: 'maitre-artisan', spec: 'Forgeron' },
+        { id: 'sens-aiguise', spec: 'Sixième sens' }, { id: 'maitre-artisan', spec: 'Forgeron' },
         { id: 'maitre-artisan', spec: 'Souffleur de verre' }, { id: 'destinee', spec: 'Noyé dans le Reik' },
+        { id: 'haine', spec: 'Nains' },
       ],
     };
     const corpus = [['creatures', [fixture]]] as unknown as [string, { id?: string; label?: string; source?: { book?: string } }[]][];
     const { hors: mordu } = collecteSpecs('talents', (id) => findTalentById(id), corpus);
-    expect(entreeOuverte('talent', 'haine'), 'Haine : groupe neuf = entrée de specs[], CLAUDE.md règle 7').toBe(false);
     expect(mordu.filter((h) => !ouverte(h)).map((h) => `${h.key} → ${designee(h) ?? '-'}`)).toEqual([
-      'creatures|fixture-talent|haine|Nains → -',
+      'creatures|fixture-talent|sens-aiguise|Sixième sens → -',
       'creatures|fixture-talent|maitre-artisan|Forgeron → forgeron',
     ]);
     expect(mordu.filter(ouverte).map((h) => h.key)).toEqual([
       'creatures|fixture-talent|maitre-artisan|Souffleur de verre',
       'creatures|fixture-talent|destinee|Noyé dans le Reik',
+      'creatures|fixture-talent|haine|Nains',
     ]);
   });
 });

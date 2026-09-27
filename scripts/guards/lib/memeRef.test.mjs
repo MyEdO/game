@@ -20,6 +20,13 @@ test('scanMemeRef : le motif recodé est attrapé, le prédicat et la prose pass
     ["if (s.id !== ref.id || s.spec !== ref.spec) continue;", 1, 'négation de la conjonction nue'],
     ["xs.find((x) => x.id === skillId && (spec == null || x.spec === spec));", 0, 'couverture par joker'],
     ["xs.filter((s) => s.id === id && s.spec == null);", 0, 'spec absente, pas une identité à deux membres'],
+    ["const ms = xs.filter((s) => s.id === skillId);\nconst sk = ms.find((s) => s.spec === w.spec);", 1, 'identité en deux temps'],
+    ["const ms = xs.filter((s) => s.id === skillId);\nif (ms.some((m) => m.spec !== spec)) return;", 1, 'identité en deux temps, négation'],
+    ["const ms = xs.filter((s) => s.id === skillId);\nconst sk = ms.find((s) => memeRef(s, { id: skillId, spec }));", 0, 'deux temps par le prédicat'],
+    ["const ms = xs.filter((s) => s.id === skillId);\nif (wanted.some((w) => w.spec === ANY)) return;", 0, 'spec comparée sur une AUTRE collection'],
+    ["const ms = xs.filter((s) => s.advances > 0);\nconst sk = ms.find((s) => s.spec === spec);", 0, 'collection non filtrée par id'],
+    ["function a() {\n  const ms = xs.filter((s) => s.id === skillId);\n  return ms;\n}\nfunction b(ms) {\n  return ms.find((s) => s.spec === spec);\n}", 0, 'homonyme hors de la portée du filtre'],
+    ["function a() {\n  const ms = xs.filter((s) => s.id === skillId);\n  if (ok) {\n    return ms.find((s) => s.spec === spec);\n  }\n}", 1, 'deux temps dans un bloc imbriqué de la portée'],
   ]
   for (const [source, attendu, quoi] of cas) assert.equal(scanMemeRef(source).length, attendu, `${quoi} — ${source}`)
 })

@@ -199,6 +199,6 @@ export const IDS_PAR_MARQUEUR: Readonly<Record<string, Readonly<Record<string, r
     'specsOpen': ['divertissement', 'dressage', 'metier', 'representation', 'savoir', 'signes-secrets'],
   },
   'talents.json': {
-    'specsOpen': ['destinee', 'maitre-artisan', 'savant', 'travailleur-qualifie'],
+    'specsOpen': ['bon-marcheur', 'destinee', 'haine', 'maitre-artisan', 'sans-peur', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice'],
   },
 };

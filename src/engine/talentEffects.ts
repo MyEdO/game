@@ -187,8 +187,11 @@ export type AjoutDeCarriere = RefASpecialisation & { provenance: ProvenanceDAjou
  *  MDG 07 l.252). */
 export type AjoutDeTalent = AjoutDeCarriere & { commeEnCarriere?: true };
 
+/** Ce que porte un ajout de carrière hors de sa référence (sa `provenance`, et `commeEnCarriere` d'un Talent). */
+export type AjoutHorsReference<A extends AjoutDeCarriere = AjoutDeCarriere> = Omit<A, keyof RefASpecialisation>;
+
 /** Ajout de carrière déplié : une référence désignée, avec ce que l'ajout porte hors de sa référence. */
-export type AjoutDeplie<A extends AjoutDeCarriere = AjoutDeCarriere> = RefDesignee & Omit<A, keyof RefASpecialisation>;
+export type AjoutDeplie<A extends AjoutDeCarriere = AjoutDeCarriere> = RefDesignee & AjoutHorsReference<A>;
 
 /** UN ajout déplié en références désignées : son pool quand il est à `choix` (LDB 10 l.467/745 ; EDOC 13
  *  l.524). Lecture UNIQUE des ajouts, Compétences (`competencesAjouteesALaCarriere`) comme Talents

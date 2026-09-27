@@ -18644,7 +18644,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "PlaineOUForêt"
+        "spec": "Plaine OU Forêt"
       },
       {
         "id": "magie-mineure"
@@ -18838,7 +18838,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "PlaineOUForêt"
+        "spec": "Plaine OU Forêt"
       },
       {
         "id": "magie-mineure"
@@ -19503,7 +19503,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni"
@@ -20593,7 +20593,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni",
@@ -20768,7 +20768,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni",

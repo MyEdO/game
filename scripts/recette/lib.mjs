@@ -813,20 +813,39 @@ export async function cliquerSelecteur(session, selecteur, { modifiers = 0, dela
 }
 
 /**
- * ID D'ICÔNE qu'affiche l'élément désigné par `selecteur` : son `data-icon` (posé par `<Icon>` et
- * `IconG`, `src/ui/Icon.tsx`), ou celui de sa PREMIÈRE icône descendante. L'élément absent est
- * RE-CHERCHÉ jusqu'à `delaiCibleMs`, puis refusé en le nommant ; présent sans icône = `null`.
+ * LOCALISATEUR UNIQUE d'une cible désignée par SÉLECTEUR ou par TEXTE — source JS évaluée dans la page,
+ * qui pose `el` (ou `null`). Ordre : bouton (`button, [role="button"]`) dont le texte VISIBLE égale la
+ * cible ; tout élément dont le NOM ACCESSIBLE (`aria-label`) ou le texte visible égale la cible, le plus
+ * INTÉRIEUR (un titre de section, une carte) ; enfin sélecteur CSS (un texte qui n'en est pas un ne jette
+ * pas). Les égalités de texte passent AVANT le sélecteur : un texte qui est aussi un nom de balise
+ * (« Menu », « Table », « Section ») désigne l'élément qui l'affiche, pas la balise. Mêmes normalisations
+ * que `clickButtonByText` (espaces, apostrophe mixte). Composé par `survoler`, `infobulleDe` et `iconeDe`.
+ */
+const localiserCible = (cible) => `
+    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
+    const cible = ${JSON.stringify(cible)};
+    let el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+    if (!el) {
+      const nomme = (e) => norm(e.getAttribute('aria-label')) === norm(cible) || norm(e.textContent) === norm(cible);
+      el = Array.from(document.body.querySelectorAll('*')).find((e) => nomme(e) && !Array.from(e.children).some(nomme)) || null;
+    }
+    if (!el) try { el = document.querySelector(cible); } catch { el = null; }`;
+
+/**
+ * ID D'ICÔNE qu'affiche l'élément désigné par `cible` (`localiserCible` : sélecteur, texte visible ou
+ * nom accessible) : son `data-icon` (posé par `<Icon>` et `IconG`, `src/ui/Icon.tsx`), ou celui de sa
+ * PREMIÈRE icône descendante. L'élément absent est RE-CHERCHÉ jusqu'à `delaiCibleMs`, puis refusé en
+ * le nommant ; présent sans icône = `null`.
  * @returns {Promise<string | null>}
  */
-export async function iconeDe(session, selecteur, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
-  const cible = await chercherCible(session, `(() => {
-    const el = document.querySelector(${JSON.stringify(selecteur)});
+export async function iconeDe(session, cible, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const r = await chercherCible(session, `(() => {${localiserCible(cible)}
     if (!el) return null;
     const icone = el.matches('[data-icon]') ? el : el.querySelector('[data-icon]');
     return { icone: icone ? icone.getAttribute('data-icon') : null };
   })()`, delaiCibleMs);
-  if (!cible) throw new Error(`iconeDe « ${selecteur} » : aucun élément après ${delaiCibleMs} ms`);
-  return cible.icone;
+  if (!r) throw new Error(`iconeDe « ${cible} » : aucun élément après ${delaiCibleMs} ms`);
+  return r.icone;
 }
 
 /** Clic RÉEL (CDP) au point donné — le geste de clic UNIQUE de ce module : tout helper qui clique
@@ -903,7 +922,7 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
 
 /**
  * SURVOL RÉEL (CDP `Input.dispatchMouseEvent mouseMoved`) d'un contrôle désigné par un SÉLECTEUR ou
- * par son TEXTE exact de bouton — le geste par lequel une raison de refus se lit (arbitrage user
+ * par son TEXTE ou son NOM ACCESSIBLE (`localiserCible`) — le geste par lequel une raison de refus se lit (arbitrage user
  * 2026-08-24 : au survol/focus/tap, jamais inline). SCROLL-AWARE comme `clickButtonByText` : le rect
  * est lu APRÈS `scrollIntoView`, sinon la souris se pose sur ce qui n'est pas là.
  *
@@ -913,18 +932,13 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
  * Rend le point survolé `{ x, y }` ; lève si la cible est absente.
  */
 export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
-  const point = await chercherCible(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
-    const cible = ${JSON.stringify(cible)};
-    let el = null;
-    try { el = document.querySelector(cible); } catch { el = null; }
-    if (!el) el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+  const point = await chercherCible(session, `(() => {${localiserCible(cible)}
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
   })()`, delaiCibleMs);
-  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur ni texte de bouton) après ${delaiCibleMs} ms`);
+  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur, texte ni nom accessible) après ${delaiCibleMs} ms`);
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, buttons: 0, modifiers });
   await sleep(attenteMs);
   return point;
@@ -938,12 +952,7 @@ export async function survoler(session, cible, { attenteMs = 500, modifiers = 0,
  * `{ texte: null }` = aucune infobulle ouverte — un refus muet, pas une erreur de recette.
  */
 export async function infobulleDe(session, cible, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
-  const r = await chercherCible(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
-    const cible = ${JSON.stringify(cible)};
-    let el = null;
-    try { el = document.querySelector(cible); } catch { el = null; }
-    if (!el) el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+  const r = await chercherCible(session, `(() => {${localiserCible(cible)}
     if (!el) return null;
     const bulle = document.querySelector('[role="tooltip"]');
     const b = el.getBoundingClientRect();
@@ -957,7 +966,7 @@ export async function infobulleDe(session, cible, { delaiCibleMs = DELAI_CIBLE_M
       bulle: { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) },
     };
   })()`, delaiCibleMs);
-  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur ni texte de bouton) après ${delaiCibleMs} ms`);
+  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur, texte ni nom accessible) après ${delaiCibleMs} ms`);
   return r;
 }
 

@@ -9,6 +9,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { SpecsField } from './StructFields';
+import { libelleDuChamp } from './editFields';
 import type { SpecEntry } from '../../data';
 
 beforeAll(() => {
@@ -52,10 +53,25 @@ function saisir(input: HTMLInputElement, valeur: string) {
   });
 }
 
+/** Le champ d'une rangée, trouvé par son libellé VISIBLE (`libelleDuChamp`), jamais par sa position. */
+const champ = (cle: string) => [...container.querySelectorAll('label.ed-field')]
+  .find((l) => l.querySelector(':scope > span')?.textContent === libelleDuChamp(cle))!
+  .querySelector('input') as HTMLInputElement;
+
+describe('SpecsField — chaque champ de rangée porte son libellé visible', () => {
+  it('aucun `<input>` texte de la rangée hors d’un `label.ed-field` titré', () => {
+    mount([{ ...ENTREE }]);
+    const nus = [...container.querySelectorAll('.de-reflrow input')]
+      .filter((i) => !i.closest('label.ed-field')?.querySelector(':scope > span')?.textContent);
+    expect(nus).toEqual([]);
+    expect(champ('label').value).toBe(ENTREE.label);
+  });
+});
+
 describe('SpecsField — renommer une spécialisation (#1342 L3)', () => {
   it('renommer une entrée HORS POOL garde `pool: false` ET sa `source`', () => {
     mount([{ ...ENTREE }]);
-    const input = container.querySelector('input') as HTMLInputElement;
+    const input = champ('label');
     saisir(input, 'Zone de patrouille fluviale');
     expect(list[0].label).toBe('Zone de patrouille fluviale');
     expect(list[0].id).toBe('zone-de-patrouille-fluviale');
@@ -78,7 +94,8 @@ describe('SpecsField — renommer une spécialisation (#1342 L3)', () => {
 });
 
 describe('SpecsField — `maison` d’une entrée (CLAUDE.md règle 7)', () => {
-  const champMaison = () => container.querySelector('input[aria-label="maison"]') as HTMLInputElement;
+  // Le champ se trouve par son libellé VISIBLE, celui de tout champ `maison` du Codex.
+  const champMaison = () => champ('maison');
 
   it('saisir `maison` pose la raison ; le vider retire la clé', () => {
     mount([{ id: 'groupe-neuf', label: 'Groupe neuf' }]);
@@ -90,7 +107,7 @@ describe('SpecsField — `maison` d’une entrée (CLAUDE.md règle 7)', () => {
 
   it('renommer une entrée PORTE sa `maison`', () => {
     mount([{ id: 'groupe-neuf', label: 'Groupe neuf', maison: 'raison de l’arbitrage' }]);
-    const input = container.querySelector('input') as HTMLInputElement;
+    const input = champ('label');
     saisir(input, 'Groupe renommé');
     expect(list[0].id).toBe('groupe-renomme');
     expect(list[0].maison).toBe('raison de l’arbitrage');

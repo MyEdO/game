@@ -1260,7 +1260,8 @@ describe('avancement() — l’emplacement d’avancement, vocabulaire CLOS', ()
     ['graphie MORTE `{wildcard}`', { wildcard: { id: 'sens-aiguise' } }, t, false],
     ['graphie MORTE `{choice}`', { choice: [{ ref: { id: 'sens-aiguise' } }] }, t, false],
     ['Talent `specsOpen` : spéc hors catalogue', { id: 'maitre-artisan', spec: 'plombiers' }, t, true],
-    ['Talent sans `specsOpen` : spéc hors catalogue (groupe neuf = entrée de specs[], CLAUDE.md règle 7)', { id: 'savoir-vivre', spec: 'plombiers' }, t, false],
+    ['Talent `specsOpen` à liste d’exemples (LDB 10 l.1071) : spéc hors catalogue', { id: 'savoir-vivre', spec: 'plombiers' }, t, true],
+    ['Talent sans `specsOpen` (LDB 10 l.1091) : spéc hors catalogue', { id: 'sens-aiguise', spec: 'sixieme-sens' }, t, false],
     ['Compétence : spéc de catalogue', { id: 'signes-secrets', spec: 'guilde' }, s, true],
     // `signes-secrets` est une entrée OUVERTE (`entreeOuverte`) : une spéc hors catalogue passe au
     // schéma, y compris l'id `guilde-au-choix` fusionné dans `guilde` au commit 4. C'est la DONNÉE
@@ -1453,7 +1454,7 @@ describe('enumNomme — le libellé d’une valeur vit sur le NŒUD', () => {
 
 describe('entrée de `specs[]` — `maison` (CLAUDE.md règle 7)', () => {
   const entree = { id: 'groupe-neuf', label: 'Groupe neuf' };
-  it('accepte `maison` : la raison d’une entrée sans folio, seule ou à côté de `source`', () => {
+  it('accepte `maison` : la raison maison de l’entrée, seule ou à côté de `source`', () => {
     expect(specsSchema.safeParse([{ ...entree, maison: 'arbitrage : groupe hors exemples du livre' }]).success).toBe(true);
     expect(specsSchema.safeParse([{ ...entree, source: { book: 'livre-de-base', page: 138 }, maison: 'raison' }]).success).toBe(true);
   });
