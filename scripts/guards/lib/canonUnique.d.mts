@@ -1,3 +1,5 @@
+import type { SourceFile } from 'typescript';
+
 export interface Finding {
   line: number;
   detail: string;
@@ -13,5 +15,6 @@ export const SCHEMAS_DU_CANON: string[];
 export function scanUnionRecopies(
   file: ScannedFile,
   canons: { nom: string; membres: readonly string[] }[],
+  arbres?: Map<object, SourceFile>,
 ): Finding[];
-export function scanChebyshevFormula(file: ScannedFile): Finding[];
+export function scanChebyshevFormula(file: ScannedFile, arbres?: Map<object, SourceFile>): Finding[];

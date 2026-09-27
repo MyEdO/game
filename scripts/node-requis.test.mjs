@@ -1,19 +1,24 @@
 // Porte de version de Node (#1801) : la règle PURE, puis son CÂBLAGE dans chaque point d'entrée qui
-// rend un verdict, tel que `package.json` le déclare. `.npmrc` et les hooks shell du `core.hooksPath`
-// se jouent de bout en bout sur un FAUX ARBRE en dossier temporaire — `engines.node` y exige un Node
-// inexistant, et les VRAIS `.npmrc`, `scripts/node-requis.mjs` et hooks shell y sont copiés. Les
-// modules Node lancés sans hook shell (`npm run gates`, pilotes `merge.<nom>.driver`) se jugent sur
-// leur AST : leurs imports ne se copient pas.
+// rend un verdict, tel que `package.json` le déclare, joué sur un FAUX ARBRE en dossier temporaire
+// dont `engines.node` exige un Node inexistant :
+//   - `.npmrc` et les hooks shell du `core.hooksPath` : VRAIS `.npmrc`, porte et hooks shell copiés ;
+//   - les modules Node lancés sans hook shell (`npm run gates`, pilotes `merge.<nom>.driver`, hooks
+//     d'agent de `.claude/settings.json` et `.codex/hooks.json`) : chacun EXÉCUTÉ avec sa clôture
+//     d'imports copiée, sous `--no-experimental-strip-types` — le chargement d'un Node 22 < 22.18 ;
+//     sa clôture STATIQUE lue ne porte ni module TypeScript ni attribut d'import (Node < 22.18, < 20.10) ;
+//     son AST pose la porte en PREMIÈRE requête de module, donc avant toute autre évaluation.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from './agents/compat-core.mjs'
 import { scriptKindDe, typescript } from './guards/lib/dialecte.mjs'
+import { clotureDImports } from './guards/lib/importGraph.mjs'
 import { listerDossier } from './guards/lib/lister.mjs'
-import { refusDeVersion } from './node-requis.mjs'
+import { CODE_DE_REFUS, refusDeVersion } from './node-requis.mjs'
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url))
 const { scripts: SCRIPTS } = JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8'))
@@ -24,7 +29,15 @@ const HOOKS_SHELL = listerDossier(DOSSIER_HOOKS).filter((f) => !f.includes('.'))
 /** Les modules Node lancés sans hook shell : `npm run gates` et chaque pilote `merge.<nom>.driver` de
  *  `postinstall`. */
 const PILOTES = [...new Set([...SCRIPTS.postinstall.matchAll(/merge\.[\w-]+\.driver "node (\S+)/g)].map((m) => m[1]))]
-const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...PILOTES]
+/** Les hooks d'agent : chaque commande des deux configurations, aplatie par le lecteur de la parité. */
+const HOOKS_AGENT = [SURFACE_CLAUDE, SURFACE_CODEX].flatMap((surface) =>
+  aplatirHooks(JSON.parse(readFileSync(join(RACINE, surface), 'utf8')), surface),
+)
+const MODULES_HOOKS_AGENT = [...new Set(HOOKS_AGENT.filter((h) => h.script).map((h) => `scripts/hooks/${h.script}`))]
+const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...PILOTES, ...MODULES_HOOKS_AGENT]
+/** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil (même contrat que
+ *  `scripts/hooks/new-src-file-guard.mjs`). */
+const CODE_BLOQUANT_PRETOOLUSE = 2
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
 /** Les `.mjs` qu'un hook shell lance à côté de lui, `"$(dirname "$0")/<nom>.mjs"`. */
@@ -49,9 +62,8 @@ test('plage absente ou hors forme `>=M.m.p` : refus qui la nomme', () => {
   }
 })
 
-/** Faux arbre : `package.json` à l'exigence intenable, `.npmrc`, porte et hooks shell réels. Chaque
- *  `.mjs` qu'un hook shell lance est un TÉMOIN qui dépose `TEMOIN-<nom>` à la racine s'il tourne. */
-function fauxArbre() {
+/** Arbre à l'exigence intenable : `package.json` qui la porte, `.npmrc` et porte réels. */
+function arbreIntenable() {
   const racine = mkdtempSync(join(tmpdir(), 'node-requis-'))
   mkdirSync(join(racine, 'scripts', 'git-hooks'), { recursive: true })
   writeFileSync(
@@ -60,6 +72,13 @@ function fauxArbre() {
   )
   copyFileSync(join(RACINE, '.npmrc'), join(racine, '.npmrc'))
   copyFileSync(join(RACINE, 'scripts', 'node-requis.mjs'), join(racine, 'scripts', 'node-requis.mjs'))
+  return racine
+}
+
+/** Faux arbre des hooks shell : l'arbre intenable, plus les hooks shell réels. Chaque `.mjs` qu'un
+ *  hook shell lance est un TÉMOIN qui dépose `TEMOIN-<nom>` à la racine s'il tourne. */
+function fauxArbre() {
+  const racine = arbreIntenable()
   for (const hook of HOOKS_SHELL) {
     const texte = readFileSync(join(DOSSIER_HOOKS, hook), 'utf8')
     writeFileSync(join(racine, 'scripts', 'git-hooks', hook), texte)
@@ -100,13 +119,13 @@ test('câblage `.npmrc` : `npm install` refuse le Node courant, exit 1, EBADENGI
   }
 })
 
-test('câblage des hooks shell de `scripts/git-hooks/` : chacun refuse AVANT son `.mjs` — exit 1, ou 0 pour un `post-*`', () => {
+test('câblage des hooks shell de `scripts/git-hooks/` : chacun refuse AVANT son `.mjs` — `CODE_DE_REFUS`, ou 0 pour un `post-*`', () => {
   const racine = fauxArbre()
   try {
     for (const hook of HOOKS_SHELL) {
       // `rebase` : le seul `$1` qui fasse agir post-rewrite ; les autres hooks refusent avant de le lire.
       const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), 'rebase'], { cwd: racine, env: envNu(), encoding: 'utf8' })
-      assert.equal(r.status, estPostHook(hook) ? 0 : 1, `${hook} : ${r.stdout}${r.stderr}`)
+      assert.equal(r.status, estPostHook(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
       assert.match(r.stderr, REFUS, hook)
     }
     assert.deepEqual(temoins(racine), [], 'un module de hook a tourné sous un Node refusé')
@@ -115,7 +134,70 @@ test('câblage des hooks shell de `scripts/git-hooks/` : chacun refuse AVANT son
   }
 })
 
-test('câblage de `npm run gates` et des pilotes de fusion : la PREMIÈRE requête de module de chacun est la porte', () => {
+test('la porte refuse sous le code qui BLOQUE un hook d’agent `PreToolUse`', () => {
+  const racine = fauxArbre()
+  try {
+    const r = spawnSync(process.execPath, [join('scripts', 'node-requis.mjs')], { cwd: racine, env: envNu(), encoding: 'utf8' })
+    assert.equal(r.status, CODE_BLOQUANT_PRETOOLUSE, r.stdout + r.stderr)
+    assert.match(r.stderr, REFUS)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('hooks d’agent : lus sur `.claude/settings.json` et `.codex/hooks.json`, chaque commande lance un module de `scripts/hooks/`', () => {
+  assert.deepEqual(HOOKS_AGENT.filter((h) => !h.script).map((h) => h.path), [])
+  assert.ok(MODULES_HOOKS_AGENT.includes('scripts/hooks/solde-ticket-guard.mjs'), MODULES_HOOKS_AGENT.join('\n'))
+})
+
+/** Chemin POSIX relatif à `RACINE` d'un membre de clôture (rendu relatif au cwd s'il y vit). */
+const depuisRacine = (membre) => relative(RACINE, resolve(membre)).replaceAll('\\', '/')
+
+test('chargement de `npm run gates`, des pilotes de fusion et des hooks d’agent sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, son message, stdout vide', () => {
+  const racine = arbreIntenable()
+  try {
+    for (const membre of clotureDImports(MODULES_LANCES.map((m) => join(RACINE, m)))) {
+      const rel = depuisRacine(membre)
+      mkdirSync(dirname(join(racine, rel)), { recursive: true })
+      copyFileSync(join(RACINE, rel), join(racine, rel))
+    }
+    symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
+    for (const module of MODULES_LANCES) {
+      const r = spawnSync(process.execPath, ['--no-experimental-strip-types', module], { cwd: racine, env: envNu(), encoding: 'utf8' })
+      assert.equal(r.status, CODE_DE_REFUS, `${module} : ${r.stdout}${r.stderr}`)
+      assert.match(r.stderr, REFUS, module)
+      assert.equal(r.stdout, '', module)
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('clôture STATIQUE de `npm run gates`, des pilotes de fusion et des hooks d’agent : aucun module TypeScript, aucun attribut d’import', () => {
+  const ts = typescript()
+  const cache = new Map()
+  const fautes = []
+  for (const module of MODULES_LANCES) {
+    for (const membre of clotureDImports([join(RACINE, module)], { cache, dynamiques: false })) {
+      const rel = depuisRacine(membre)
+      if (/\.[cm]?tsx?$/.test(rel)) {
+        fautes.push(`${module} > ${rel} : module TypeScript`)
+        continue
+      }
+      if (!/\.[cm]?js$/.test(rel)) continue
+      const chemin = join(RACINE, rel)
+      const source = ts.createSourceFile(chemin, readFileSync(chemin, 'utf8'), ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
+      for (const s of source.statements) {
+        if ((ts.isImportDeclaration(s) || ts.isExportDeclaration(s)) && s.attributes) {
+          fautes.push(`${module} > ${rel}:${source.getLineAndCharacterOfPosition(s.getStart()).line + 1} : attribut d’import`)
+        }
+      }
+    }
+  }
+  assert.deepEqual(fautes, [])
+})
+
+test('câblage de `npm run gates`, des pilotes de fusion et des hooks d’agent : la PREMIÈRE requête de module de chacun est la porte', () => {
   assert.ok(PILOTES.length, `aucun pilote de fusion lu dans postinstall : ${SCRIPTS.postinstall}`)
   const ts = typescript()
   for (const module of MODULES_LANCES) {

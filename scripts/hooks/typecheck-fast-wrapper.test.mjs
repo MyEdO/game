@@ -76,6 +76,17 @@ test('500 erreurs TS émises en paquets : toutes listées, entête exact, code d
   }
 })
 
+test('erreur TS lue mais tsc sorti à 0 : le statut suit le COMPTE, jamais 0', () => {
+  const base = fauxDepot('process.stdout.write("src/a.ts(1,10): error TS6133: \'x\' is declared but its value is never read.\\n")\nprocess.exit(0)\n')
+  try {
+    const run = lance(base)
+    assert.match(run.stdout, /typecheck:fast — 1 erreur\(s\)/)
+    assert.notEqual(run.status, 0, `1 erreur TS comptée, code de sortie ${run.status}`)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('échec SANS erreur TS : jamais « 0 erreur(s) », la sortie brute est rendue', () => {
   const base = fauxDepot('process.stderr.write("tsc: panne du compilateur\\n")\nprocess.exit(3)\n')
   try {

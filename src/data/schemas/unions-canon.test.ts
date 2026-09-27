@@ -18,9 +18,10 @@
  * annotée (dont il exige les clés). Les sous-ensembles MÉTIER (`TestedAvailability`,
  * `APPRAISED_AVAILABILITIES`) sont nommés au foyer, jamais re-tapés au site.
  */
-import { describe, it, expect } from 'vitest';
+import { afterAll, describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { SourceFile } from 'typescript';
 import type { z } from 'zod';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { scanUnionRecopies } from '../../../scripts/guards/lib/canonUnique.mjs';
@@ -46,9 +47,14 @@ const CANONS = [
  *  (`z.enum(AVAILABILITIES)`), il ne tape rien. */
 const FOYERS = ['src/engine/types.ts', 'src/data/schemas/unions-canon.test.ts'];
 /** Corpus de `src/**`, tests compris, hors foyers. `readCorpus` le mémoïse par clé pour le worker
- *  entier : la lecture disque et les AST (keyés sur l'identité des entrées par `canonUnique`) sont
- *  payés une fois pour tous les fichiers de test qui demandent le même corpus. */
+ *  entier : la lecture disque est payée une fois pour tous les fichiers de test qui demandent le même
+ *  corpus. Les AST sont ceux de `arbres`, partagés par les scans de ce fichier et vidés en `afterAll`
+ *  (#1801). */
 const corpus = () => readCorpus(['src'], { tests: true }).filter(({ rel }) => !FOYERS.includes(rel));
+const arbres = new Map<object, SourceFile>();
+afterAll(() => {
+  arbres.clear();
+});
 /** Fixture de scan : un fichier de corpus fabriqué à la main. */
 const fixture = (text: string) => ({ rel: 'fixture.ts', text });
 
@@ -76,7 +82,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   });
 
   it('PERSONNE dans `src/` ne re-tape le littéral des unions partagées — prod ET tests', () => {
-    const fautifs = corpus().flatMap((f) => scanUnionRecopies(f, CANONS).map((x) => `${f.rel}:${x.line} — ${x.detail}`));
+    const fautifs = corpus().flatMap((f) => scanUnionRecopies(f, CANONS, arbres).map((x) => `${f.rel}:${x.line} — ${x.detail}`));
     expect(fautifs, 'importer le tuple `engine/types` (ou le schéma dérivé de `schemas/grammaire/valeurs.ts`) — #1440').toEqual([]);
   });
 
@@ -112,7 +118,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
       { rel: TYPES, text: readFileSync(resolve(__dirname, '..', '..', '..', TYPES), 'utf8') },
     ];
     const complets = corpusArete
-      .flatMap((f) => scanUnionRecopies(f, canon).map((x) => ({ rel: `${f.rel}:${x.line}`, detail: x.detail })))
+      .flatMap((f) => scanUnionRecopies(f, canon, arbres).map((x) => ({ rel: `${f.rel}:${x.line}`, detail: x.detail })))
       // L'union COMPLÈTE : les 4 membres du canon nommés ensemble par le rapport du scan.
       .filter(({ detail }) => wallSideSchema.options.every((m) => detail.includes(`'${m}'`)))
       // Le FOYER (le `z.enum` du canon lui-même) sort par FICHIER — c'est la maison de l'union, comme
@@ -146,7 +152,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   it('l’alphabet météo de VOYAGE : les 6 ids ne sont re-tapés NULLE PART hors du canon', () => {
     const canon = [{ nom: 'WEATHER_IDS', membres: weatherIdSchema.options }];
     const complets = corpus()
-      .flatMap((f) => scanUnionRecopies(f, canon).map((x) => ({ rel: `${f.rel}:${x.line}`, detail: x.detail })))
+      .flatMap((f) => scanUnionRecopies(f, canon, arbres).map((x) => ({ rel: `${f.rel}:${x.line}`, detail: x.detail })))
       // L'union COMPLÈTE : les 6 membres du canon nommés ensemble par le rapport du scan.
       .filter(({ detail }) => weatherIdSchema.options.every((m) => detail.includes(`'${m}'`)))
       // Le FOYER (le `z.enum` du canon) sort par FICHIER — c'est la maison de l'union.

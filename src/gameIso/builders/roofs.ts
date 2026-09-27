@@ -42,6 +42,7 @@ import { interiorZoneTilesById, occupiedInteriorZoneIds } from '../stage/roomFoc
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
 import type { CellSide, Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
 import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
+import { parUnitesDeCode } from '../../lib/ordre.mjs';
 
 /** Le nom PEINT sur le plan pour une pièce de nappe (`authoring/roofsSvg`) : le libellé authoré du
  *  corps, sinon celui de son TYPE de bâtiment (`buildings.json`), sinon son id technique. */
@@ -865,7 +866,7 @@ function dominantAppearance(
       const id = segAppearance(facades, seg);
       tally.set(id, (tally.get(id) ?? 0) + 1);
     }
-  return [...tally].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
+  return [...tally].sort((a, b) => b[1] - a[1] || parUnitesDeCode(a[0], b[0]))[0]?.[0];
 }
 
 /** MATIÈRE d'une fermeture d'architecture (pignon de comble, joint de nappes) — elle PROLONGE un mur,

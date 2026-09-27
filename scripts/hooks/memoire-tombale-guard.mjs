@@ -21,6 +21,7 @@
 // prescrit (re-sauver la fiche entière) se ferait refuser par les lignes qu'elle conserve.
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
+import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 

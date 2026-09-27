@@ -35,25 +35,18 @@ const ts = tsModule;
  *  `src/gameIso` et `src/data` portent les ROUTAGES D'ART et les registres chargés (le dépôt a déjà
  *  payé un routage d'art d'arme par id) ; `scripts` porte les compilateurs d'authoring, qui écrivent
  *  de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
-/** Dernier arbre construit (chemin ET contenu) — les deux scans d'un même fichier se suivent sur le
- *  corpus, l'analyse syntaxique est donc faite UNE fois pour deux : 1,7 s économisée sur les 2 116
- *  fichiers de `SCAN_DIRS`, mesuré le 2026-08-23. Cache de taille UN : rien ne s'accumule, et la
- *  clé porte le CONTENU — une fixture au chemin d'un fichier réel ne peut pas hériter de son arbre.
- *  @type {{ rel: string, src: string, sf: import('typescript').SourceFile } | null} */
-let _dernierArbre = null;
-
-/** @param {string} relPath @param {string} contenu @returns {import('typescript').SourceFile} */
-function arbreDe(relPath, contenu) {
-  if (_dernierArbre && _dernierArbre.rel === relPath && _dernierArbre.src === contenu) return _dernierArbre.sf;
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
-  _dernierArbre = { rel: relPath, src: contenu, sf };
-  return sf;
-}
 
 export const SCAN_DIRS = ['src/ui', 'src/engine', 'src/state', 'src/gameIso', 'src/data', 'scripts'];
 
 /** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
 export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
+
+/** Arbre syntaxique d'un fichier, bâti à chaque appel : l'appelant qui passe les deux scans sur le
+ *  même fichier le tient et le leur passe (`tsProgram.mjs`, en-tête, pour la durée de vie).
+ *  @param {string} relPath @param {string} contenu @returns {import('typescript').SourceFile} */
+export function arbreDe(relPath, contenu) {
+  return ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+}
 
 /**
  * Fichiers HORS périmètre, par FORME et non par nom d'offenseur :
@@ -395,10 +388,10 @@ function collectLiteralHolders(sf, origins) {
  * Est en revanche SUIVI l'ALIAS d'identité (`const k = def.id; k === 'x'`, `switch (k)`), évasion la
  * plus probable en pratique : la liaison hérite le kind `IDENTITY`, indépendamment de son nom.
  * @param {string} relPath @param {string} contenu
+ * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string, rule: 'id-equality'|'id-switch'|'id-membership'|'id-record' }[]}
  */
-export function scanRegistryIdBranch(relPath, contenu) {
-  const sf = arbreDe(relPath, contenu);
+export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
   const { collections, records } = collectLiteralHolders(sf, collectImportOrigins(sf, relPath));
   const lines = contenu.split('\n');
   const findings = [];
@@ -528,10 +521,10 @@ export function countRegistryIdBranch(rel, contenu) {
  * Compté par NŒUD et non par ligne (contrairement au garde principal) : `id === 'a' ? … : id === 'b'`
  * sur une seule ligne pèse deux comparaisons, et n'en éteindre qu'une doit se voir.
  * @param {string} relPath @param {string} contenu
+ * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanRawIdEqualities(relPath, contenu) {
-  const sf = arbreDe(relPath, contenu);
+export function scanRawIdEqualities(relPath, contenu, sf = arbreDe(relPath, contenu)) {
   const lines = contenu.split('\n');
   const findings = [];
 

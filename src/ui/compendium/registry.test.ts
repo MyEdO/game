@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
-import { codexMatch, deburr, filterItems, facetValues } from './search';
+import { codexMatch, filterItems, facetValues } from './search';
 import { isEditableCategory } from './CodexEdit';
 import { creatures, etats, trappings, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
@@ -567,9 +567,9 @@ describe('Codex registry — fiche de Carrière étoffée (#378 volet C)', () =>
 });
 
 describe('Codex search', () => {
-  it('deburr retire accents + casse', () => {
-    expect(deburr('Bénédiction')).toBe('benediction');
-    expect(deburr('À Terre')).toBe('a terre');
+  it('le repli de la recherche couvre les LIGATURES : « coeur » trouve « Cœur vaillant »', () => {
+    expect(codexMatch({ id: 'coeur-vaillant', label: 'Cœur vaillant' }, 'coeur')).toBe(true);
+    expect(codexMatch({ id: 'coeur-vaillant', label: 'Cœur vaillant' }, 'CŒUR')).toBe(true);
   });
 
   it('terme vide = tout passe', () => {

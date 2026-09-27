@@ -12,7 +12,7 @@
  * `online ? … : tout`, `mode === 'local' || …`).
  *
  * POLICE (pas verrou) : `ownsLocally` reste exporté par `netOwnership` (6 consommateurs internes) et
- * ré-exporté par `netFlow` — l'import ne peut donc pas être MURÉ. Une règle `no-restricted-imports`
+ * ré-exporté par `netFlow` — l'import ne peut donc pas être MURÉ. Le mur d'import `murs/possession`
  * (`eslint.config.js`) l'interdit sous `src/ui/**` HORS ce module ; elle échoue la CI, elle
  * n'empêche pas d'écrire la ligne. Mesurée par `ownership-lint.test.ts` sur la config RÉELLE.
  */

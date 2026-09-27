@@ -14,7 +14,12 @@
 // Chaque prérequis de la table PREREQUIS porte son propre CONSTAT (`manque`) et son BUDGET de temps :
 // le hook est rejouable sans effet, un prérequis de plus s'ajoute en une entrée, et `BUDGET_TOTAL`
 // est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
-// qu'il n'a pas pu poser, il le NOMME sur sa sortie, qui entre au contexte de la session.
+// qu'il n'a pas pu poser, il le NOMME sur sa sortie, qui entre au contexte de la session. Sous un Node
+// que refuse la porte (`scripts/node-requis.mjs`), il sort par elle avant tout constat : un
+// `SessionStart` en sortie 2 ne montre son stderr qu'à l'utilisateur, et chaque hook `PreToolUse`
+// rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
+// garde ne le déclenche pas.
+import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */

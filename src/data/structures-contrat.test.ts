@@ -1,15 +1,17 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { detenteur } from '../detenteur.testkit';
 import {
   classerValeur,
   mesurerEnveloppe,
   scanDuCorpus,
   scannerDonnees,
   scannerRedeclarations,
+  type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
@@ -1842,19 +1844,14 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
 });
 
 /**
- * LES TROIS CONTREFACTUELS DE REDÉCLARATION — un seul sous-processus, trois verdicts (#1654,
+ * LES TROIS CONTREFACTUELS DE REDÉCLARATION — une copie `avant`, trois verdicts (#1654,
  * #1463 L-gram-3).
  *
- * SOUS-PROCESSUS + racines SÉPARÉES, obligatoires : les caches de parse du scanner (`CACHE_SOURCE`,
- * `CACHE_LITTERAUX`, `scripts/docs/lib/structures-scan.mts`) sont module-level et ne sont JAMAIS
- * invalidés (angle mort déclaré au lexique) — une mutation mesurée dans le processus de la suite,
- * ou sur la MÊME racine, mesurerait le premier état lu et mentirait.
- *
- * Ce qui se BATCHE : le pilote est le même scan, et la racine `avant` est la même copie des defs +
- * de la grammaire pour les trois — trois `tsx` (~1,7 s de démarrage chacun) et trois scans de
- * `avant` rendaient trois fois les mêmes chiffres. Ce qui reste TROIS contrats : les `apres` sont
- * des mutations DISTINCTES (une def de sonde injectée ; `avail` re-tapé ; `price` re-tapé), chacune
- * sur sa racine, et chaque `it` lit SON verdict.
+ * Ce qui se BATCHE : la racine `avant` est la même copie des defs + de la grammaire pour les trois,
+ * scannée une fois. Ce qui reste TROIS contrats : les `apres` sont des mutations DISTINCTES (une def
+ * de sonde injectée ; `avail` re-tapé ; `price` re-tapé), chacune sur SA racine — `avant` reste
+ * intacte —, et chaque `it` lit SON verdict. Le scan tourne dans le processus de la suite : il ne
+ * tient aucun état entre deux racines (`structures-scan.mts`, `sourceDe`).
  */
 type VerdictRedecl = {
   avant: number; apres: number; litterauxAvant: number; litterauxApres: number; nees: string[]; perdues: string[];
@@ -1890,59 +1887,46 @@ const MUTATIONS: Record<string, (defs: string) => void> = {
   ),
 };
 
-const PILOTE_REDECL = [
-  "import { pathToFileURL } from 'node:url';",
-  "import { join } from 'node:path';",
-  'const [avantRoot, ...variantes] = process.argv.slice(2);',
-  "const SCAN = pathToFileURL(join(process.cwd(), 'scripts/docs/lib/structures-scan.mjs')).href;",
-  'const { scannerRedeclarations } = await import(SCAN);',
-  "const cle = (r) => r.def + ' | ' + (r.champ || '(racine)') + ' | ' + r.signature + ' | ' + r.concept + ' | ' + r.statut + ' | ' + r.commun;",
-  'const avant = scannerRedeclarations(avantRoot);',
-  'const clesAvant = avant.redeclarations.map(cle);',
-  'const out = {};',
-  'for (const v of variantes) {',
-  "  const coupe = v.indexOf('=');",
-  '  const apres = scannerRedeclarations(v.slice(coupe + 1));',
-  '  const clesApres = apres.redeclarations.map(cle);',
-  '  out[v.slice(0, coupe)] = {',
-  '    avant: avant.redeclarations.length,',
-  '    apres: apres.redeclarations.length,',
-  '    litterauxAvant: avant.totalLitteraux,',
-  '    litterauxApres: apres.totalLitteraux,',
-  '    nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),',
-  '    perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),',
-  '  };',
-  '}',
-  "process.stdout.write('<<<DIFF>>>' + JSON.stringify(out));",
-].join('\n');
+/** Clé d'une redéclaration : ce que la comparaison `avant`/`apres` tient pour identique. */
+const cleRedecl = (r: Redeclaration) =>
+  `${r.def} | ${r.champ || '(racine)'} | ${r.signature} | ${r.concept} | ${r.statut} | ${r.commun}`;
 
-let verdictsRedecl: Record<string, VerdictRedecl> | undefined;
-let dossierRedecl: string | undefined;
-afterAll(() => {
-  if (dossierRedecl) rmSync(dossierRedecl, { recursive: true, force: true });
-});
-
-/** Le verdict d'UNE mutation. Le pilote est joué au premier appel, une fois pour le run. */
-function verdictRedecl(nom: string): VerdictRedecl {
-  if (!verdictsRedecl) {
-    const dossier = (dossierRedecl = mkdtempSync(join(tmpdir(), 'structures-redecl-')));
+/** Les verdicts des trois mutations, mesurés au premier appel sur des copies retirées aussitôt. */
+const verdictsRedecl = detenteur((): Record<string, VerdictRedecl> => {
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-redecl-'));
+  try {
     for (const racine of ['avant', ...Object.keys(MUTATIONS)]) {
       for (const sous of ['defs', 'grammaire']) {
         cpSync(join(ROOT, 'src/data/schemas', sous), join(dossier, racine, 'src/data/schemas', sous), { recursive: true });
       }
     }
     for (const [cle, muter] of Object.entries(MUTATIONS)) muter(join(dossier, cle, 'src/data/schemas/defs'));
-    const pilote = join(dossier, 'pilote.mjs');
-    writeFileSync(pilote, PILOTE_REDECL, 'utf8');
-    const sortie = execFileSync(
-      process.execPath,
-      ['--import', 'tsx', pilote, join(dossier, 'avant'), ...Object.keys(MUTATIONS).map((cle) => `${cle}=${join(dossier, cle)}`)],
-      { cwd: ROOT, encoding: 'utf8' },
-    ).split('<<<DIFF>>>');
-    verdictsRedecl = JSON.parse(sortie[sortie.length - 1]) as Record<string, VerdictRedecl>;
+    const avant = scannerRedeclarations(join(dossier, 'avant'));
+    const clesAvant = avant.redeclarations.map(cleRedecl);
+    return Object.fromEntries(
+      Object.keys(MUTATIONS).map((cle) => {
+        const apres = scannerRedeclarations(join(dossier, cle));
+        const clesApres = apres.redeclarations.map(cleRedecl);
+        return [
+          cle,
+          {
+            avant: avant.redeclarations.length,
+            apres: apres.redeclarations.length,
+            litterauxAvant: avant.totalLitteraux,
+            litterauxApres: apres.totalLitteraux,
+            nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),
+            perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),
+          },
+        ];
+      }),
+    );
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
   }
-  return verdictsRedecl[nom]!;
-}
+});
+
+/** Le verdict d'UNE mutation. */
+const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
 
 /**
  * CONTRÔLE POSITIF du scan AST des redéclarations (#1654) — le détecteur MORD.

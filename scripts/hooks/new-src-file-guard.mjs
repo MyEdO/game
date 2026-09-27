@@ -27,6 +27,7 @@
 //
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
+import '../node-requis.mjs'
 import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'

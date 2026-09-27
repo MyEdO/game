@@ -4,7 +4,7 @@
  * survivre au full-reload Vite qui suit chaque sauvegarde (l'écriture d'un *.json watché recharge la
  * page). Repli `download` quand l'API est absente (Firefox/Safari). Aucun serveur.
  */
-// eslint-disable-next-line no-restricted-imports -- #518 : le repli `download` de cette persistance DEV appelle `downloadText`, qui vit dans `state/fileIo` avec ses quatre consommateurs de `src/ui` — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
+// eslint-disable-next-line murs/purete-imports -- #518 : le repli `download` de cette persistance DEV appelle `downloadText`, qui vit dans `state/fileIo` avec ses quatre consommateurs de `src/ui` — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
 import { downloadText } from '../state/fileIo';
 
 export const FS_API = typeof window !== 'undefined' && 'showDirectoryPicker' in window;

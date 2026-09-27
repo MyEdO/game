@@ -32,7 +32,7 @@ import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
 import { scanRollSeamExclusivity } from '../guards/lib/rollSeamExclusivity.mjs';
 import { rollSeamExcluded } from '../guards/lib/rollSeamWhitelist.mjs';
-import { scanBattleRngEngineLeak } from '../guards/lib/battleRngEngineLeak.mjs';
+import { contexteDeScanRng, scanBattleRngEngineLeak } from '../guards/lib/battleRngEngineLeak.mjs';
 import { battleRngEngineLeakExcluded } from '../guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { scanNpmLockHoisted } from '../guards/lib/npmLockHoisted.mjs';
 import { scanArbresImbriques } from '../guards/lib/arbreImbrique.mjs';
@@ -95,6 +95,8 @@ for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.
 const warnings = [];
 // Fichiers TS réellement scannés — périmètre sur lequel la péremption d'une entrée se juge.
 const scannedTs = [];
+// Un passage de scan « rng vivant → résolveur moteur » pour tous les fichiers indexés.
+const passageRng = contexteDeScanRng();
 
 for (const f of staged) {
   const rel = f.replace(/\\/g, '/');
@@ -169,7 +171,7 @@ for (const f of staged) {
   // #370 — rng vivant → résolveur moteur : resolveXxx(…, battleRng()) hors whitelist (double détente
   // avec src/state/roll-seam-exclusivity-guard.test.ts, SOURCE UNIQUE de la whitelist).
   if (!isTestFile && !battleRngEngineLeakExcluded(rel))
-    for (const x of scanBattleRngEngineLeak(rel, text)) offenders.push(`${rel}:${x.line} [rng vivant → résolveur moteur] ${x.detail}`);
+    for (const x of scanBattleRngEngineLeak(rel, text, passageRng)) offenders.push(`${rel}:${x.line} [rng vivant → résolveur moteur] ${x.detail}`);
 }
 
 // #290 — emoji dans la DONNÉE (`src/scenes/**/*.json` + `src/data/*.json`) : même tolérance zéro que le code.

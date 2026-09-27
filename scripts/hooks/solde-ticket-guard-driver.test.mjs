@@ -321,6 +321,181 @@ test('DRIVER : un pathspec à JOKER ne rend pas le garde MUET', () => {
   }
 })
 
+// Un pathspec par SUBSTITUTION : git commite l'arbre de travail de ce que le shell rend, la garde n'en
+// voit que les fragments. Pris pour des chemins résolus, ils bornaient le diff à rien, et `JUGE:` se
+// taisait sur un `src/` de plusieurs centaines de lignes (revue de palier du 2026-09-27, #1801).
+test('DRIVER : un pathspec par SUBSTITUTION ne rend pas la porte du juge MUETTE', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    const lignes = Array.from({ length: 12 }, (_, i) => `export const X${i} = ${i}`)
+    writeFileSync(join(repo, chemin), lignes.join('\n') + '\n', 'utf8')
+    writeFileSync(join(repo, 'liste.txt'), `${chemin}\n`, 'utf8')
+    writeFileSync(join(repo, 'msg.txt'), 'feat(flux): refs #7 — douze exports\n', 'utf8')
+    const refus = decisionOf('git commit -F msg.txt -- $(cat liste.txt)', repo)
+    assert.ok(refus, 'aucune décision : les fragments de la substitution ont borné le diff à rien')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /sans juge\s+adversarial/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// `xargs` ajoute les chemins HORS du texte de la commande : la garde lisait un commit d'index — vide —
+// pendant que git emportait l'arbre des chemins listés (revue de palier du 2026-09-27, #1801, H-1).
+test('DRIVER : un commit sous `xargs` ne rend pas la porte du juge MUETTE', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    const lignes = Array.from({ length: 12 }, (_, i) => `export const X${i} = ${i}`)
+    writeFileSync(join(repo, chemin), lignes.join('\n') + '\n', 'utf8')
+    writeFileSync(join(repo, 'msg.txt'), 'feat(flux): refs #7 — douze exports\n', 'utf8')
+    const refus = decisionOf('git ls-files -m | xargs git commit -F msg.txt --', repo)
+    assert.ok(refus, 'aucune décision : le commit sous xargs a été lu comme un commit d\'index vide')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /sans juge\s+adversarial/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// `find … -exec` porte `git commit` en ARGUMENTS et lui ajoute les chemins trouvés : la garde ne
+// reconnaissait aucun commit, et la porte du juge se taisait (#1801).
+test('DRIVER : un commit sous `find -exec` ne rend pas la porte du juge MUETTE', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    const lignes = Array.from({ length: 12 }, (_, i) => `export const X${i} = ${i}`)
+    writeFileSync(join(repo, chemin), lignes.join('\n') + '\n', 'utf8')
+    writeFileSync(join(repo, 'msg.txt'), 'feat(flux): refs #7 — douze exports\n', 'utf8')
+    const refus = decisionOf("find src -name '*.ts' -exec git commit -F msg.txt -- {} +", repo)
+    assert.ok(refus, 'aucune décision : le commit sous find -exec n\'a pas été vu')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /sans juge\s+adversarial/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// Une tête qui CITE `git commit` sans l'exécuter ne fait juger aucun commit : le vrai hook refusait
+// `echo git commit` au nom de la substance non stagée de l'arbre (#1801, H2-1).
+test('DRIVER : `echo git commit` sur un arbre à `src/` non stagé se tait', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    for (const commande of ['echo git commit', 'man git commit', 'grep -rn git commit src']) {
+      assert.equal(decisionOf(commande, repo), null, commande)
+    }
+    assert.ok(decisionOf('git commit -a -m "chore: x"', repo), 'le même arbre, sous un vrai commit, se juge')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// Deux commits dans une commande : la forme d'un seul ne couvre pas ce que l'autre emporte. Le
+// commit `-a` embarqué emporte la substance de `src/`, le commit direct ne nomme que `notes/` (#1801,
+// 3e juge MULTI-COMMIT-1).
+test('DRIVER : deux commits dont un embarqué `-a` — la substance de l\'arbre est jugée', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n', 'notes/a.md': '# a\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    writeFileSync(join(repo, 'notes', 'a.md'), '# a\n\nb\n', 'utf8')
+    const refus = decisionOf('find . -maxdepth 0 -exec git commit -a -m "chore: x" \\; ; git commit -m "chore: y" -- notes/a.md', repo)
+    assert.ok(refus, 'aucune décision : seul le commit direct a été mesuré')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /Commit de SUBSTANCE sans ticket/)
+    assert.match(refus.reason, /src\/state\/xFlux\.ts/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// 4e juge, MULTI-MESSAGE-1 : le -F d'un second commit était ignoré ; un commit de substance passait
+// sans ticket derrière un premier commit qui en citait un (#1801).
+test('DRIVER : deux commits `-F` — le message du SECOND est lu, sa substance sans ticket est refusée', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n', 'notes.txt': 'a\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    writeFileSync(join(repo, 'notes.txt'), 'b\n', 'utf8')
+    writeFileSync(join(repo, 'm1.txt'), 'chore: refs #7\n', 'utf8')
+    writeFileSync(join(repo, 'm3.txt'), 'fix: y sans ticket\n', 'utf8')
+    const refus = decisionOf(`git commit -F m1.txt -- notes.txt && git commit -F m3.txt -- ${chemin}`, repo)
+    assert.ok(refus, 'aucune décision : le message du second commit n\'a pas été lu')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /Commit de SUBSTANCE sans ticket/)
+    assert.doesNotMatch(refus.reason, /PRÉSUMÉ/, 'deux commits directs ne sont pas présumés')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// 4e juge, FAUX-REFUS-1 : un commit présumé se refusait avec le motif d'un vrai commit (« part à
+// l'ÉDITEUR »), que l'agent ne pouvait pas diagnostiquer (#1801).
+test('DRIVER : un commit PRÉSUMÉ (`sed` qui cite `git commit`) porte son propre motif', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n', 'f': 'git commit -a\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    const refus = decisionOf("sed -i 's/git commit -a/x/' f", repo)
+    assert.ok(refus, 'aucune décision : la présomption n\'a pas eu lieu')
+    assert.match(refus.reason, /^⚠ Commit PRÉSUMÉ/)
+    assert.match(refus.reason, /`sed`/)
+    assert.doesNotMatch(refus.reason, /ÉDITEUR/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// 5e juge, FAUX-REFUS-1 : la branche « fichier illisible » sortait avant le motif PRÉSUMÉ (#1801).
+test('DRIVER : un commit PRÉSUMÉ au `-F` illisible porte le motif PRÉSUMÉ en tête', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'f': 'x\n' }, message: 'socle' })
+  try {
+    const refus = decisionOf("sed -i 's/git commit -F absent.txt/x/' f", repo)
+    assert.ok(refus, 'aucune décision')
+    assert.match(refus.reason, /^⚠ Commit PRÉSUMÉ : `sed`/)
+    assert.match(refus.reason, /fichier illisible/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// 6e juge, PORTE-TEXTE-1 : le ticket se lit dans le message LISIBLE du commit, jamais ailleurs dans la
+// ligne (#1801).
+test('DRIVER : un message lisible sans ticket est refusé même si la ligne cite un ticket ailleurs', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    for (const suite of ['echo "refs #1801"', 'gh issue comment 1801 --body "refs #1801 publie"']) {
+      const commande = `git commit -m "chore sans ticket" -- ${chemin} && ${suite}`
+      const refus = decisionOf(commande, repo)
+      assert.ok(refus, `aucune décision : ${commande}`)
+      assert.equal(refus.decision, 'deny', commande)
+      assert.match(refus.reason, /Commit de SUBSTANCE sans ticket/, commande)
+    }
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// 7e juge, ENV-S-SUITE-1 : les arguments qui suivent la chaîne de `env -S` sont exécutés avec elle (#1801).
+test('DRIVER : `env -S \'git\' commit …` est un commit, jugé par la porte', () => {
+  const chemin = 'src/state/xFlux.ts'
+  const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
+  try {
+    writeFileSync(join(repo, chemin), 'export const X = 1\n', 'utf8')
+    const refus = decisionOf("env -S 'git' commit -a -m 'chore sans ticket'", repo)
+    assert.ok(refus, 'aucune décision : le commit porté par `env -S` n\'a pas été vu')
+    assert.equal(refus.decision, 'deny')
+    assert.match(refus.reason, /Commit de SUBSTANCE sans ticket/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
 // `-m"ajoute…"` : la valeur GLUÉE du flag court contient un `a`, et la lecture des options la prenait
 // pour un `-a` — le commit passait alors pour un `commit -a` et l'index STAGÉ n'était plus lu.
 test('DRIVER : `-m"ajoute…"` collé ne se lit pas comme un `-a` — l\'index stagé reste jugé', () => {

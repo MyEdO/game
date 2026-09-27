@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { listerDossier } from '../../guards/lib/lister.mjs'
+import { listerDossier, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { dansLaMesure } from './chemin-mesure.mjs'
 import path from 'node:path'
 
@@ -219,7 +219,7 @@ export function enfantsDeLIndex(blobs, dossier) {
 function lignes(fichiers, dossiers) {
   return [
     ...[...fichiers].sort().map(([p, h]) => `${p} ${h}`),
-    ...[...dossiers].sort(([a], [b]) => (a < b ? -1 : 1)).map(([d, h]) => `${d}/ ${h}`),
+    ...[...dossiers].sort(([a], [b]) => parUnitesDeCode(a, b)).map(([d, h]) => `${d}/ ${h}`),
   ]
 }
 

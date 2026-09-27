@@ -27,6 +27,7 @@ import {
 } from '../scripts/guards/lib/commentPoison.mjs';
 import { LEGACY_VOCAB_SITES } from '../scripts/guards/lib/legacyVocabStock.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { detenteur } from './detenteur.testkit';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -117,7 +118,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet 
 // (jamais lu par `extractComments`), il ne l'écrit pas dans sa prose.
 const CORPUS = readCorpus([...POISON_DIRS], { exts: [...POISON_EXTS], tests: true });
 /** Fichiers de test de `src/**` : périmètre du cliquet famille 4. */
-const TESTS_SRC = CORPUS.filter((f) => estSuiteVitest(f.rel) && f.rel.startsWith('src/'));
+const TESTS_SRC = detenteur(() => CORPUS.filter((f) => estSuiteVitest(f.rel) && f.rel.startsWith('src/')));
 
 describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
   it('la garde se déclare : question A→B→C, primitive, périmètre, angles morts, baseline décroissante, ticket', () => {
@@ -134,7 +135,7 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
     expect([...exts].sort()).toEqual(['.mjs', '.mts', '.ts', '.tsx']);
     expect(CORPUS.some((f) => f.rel.startsWith('src/'))).toBe(true);
     expect(CORPUS.some((f) => f.rel.startsWith('scripts/') && !f.rel.startsWith('scripts/guards/lib/'))).toBe(true);
-    expect(TESTS_SRC.length).toBeGreaterThan(0);
+    expect(TESTS_SRC().length).toBeGreaterThan(0);
   });
 });
 
@@ -912,7 +913,7 @@ describe('cliquet : revendications d’autorité dans les fichiers de test (#136
   it('aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée', () => {
     const findings: { file: string; line: number; detail: string }[] = [];
     const scanned: string[] = [];
-    for (const { rel, text } of TESTS_SRC) {
+    for (const { rel, text } of TESTS_SRC()) {
       scanned.push(rel);
       for (const x of scanDecisionClaims(rel, text)) findings.push({ file: rel, line: x.line, detail: x.detail });
     }

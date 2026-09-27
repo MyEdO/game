@@ -29,6 +29,6 @@ export function scriptKindDe(fichier, { inconnu = 'TS' } = {}) {
   const nom = String(fichier ?? '').replace(/\\/g, '/').split('/').pop() ?? ''
   const ext = nom.includes('.') ? nom.split('.').pop().toLowerCase() : ''
   const dialecte = DIALECTE[ext] ?? (inconnu === 'refus' ? null : inconnu)
-  // eslint-disable-next-line no-restricted-syntax -- la source elle-même : la table du dialecte vit ici
+  // eslint-disable-next-line murs/dialecte -- la source elle-même : la table du dialecte vit ici
   return dialecte === null ? null : typescript().ScriptKind[dialecte]
 }

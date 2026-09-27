@@ -1,13 +1,14 @@
 import { MONSTER_PARTS } from './_registry.generated';
 import type { MonsterPartDef, MonsterPartSlot } from './types';
 import type { PartArt } from '../types';
+import { parUnitesDeCode } from '../../../../lib/ordre.mjs';
 
 export type { MonsterPartDef, MonsterPartSlot } from './types';
 
 /** Parts d'un slot, triées par `order` (puis clé) — l'ordre pilote le sélecteur de l'éditeur. */
 const bySlot = (slot: MonsterPartSlot): MonsterPartDef[] =>
   MONSTER_PARTS.filter((p) => p.slot === slot).sort(
-    (a, b) => (a.order ?? 999) - (b.order ?? 999) || a.key.localeCompare(b.key),
+    (a, b) => (a.order ?? 999) - (b.order ?? 999) || parUnitesDeCode(a.key, b.key),
   );
 
 const toMap = (slot: MonsterPartSlot): Record<string, PartArt> =>

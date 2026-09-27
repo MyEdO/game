@@ -3576,7 +3576,7 @@ export function specLabel(category: string, refId: string, specId: string): stri
  * catalogue (`refLabel`, `CHAR_LABELS`). Jamais un littéral FR : même cliquet.
  */
 export function dataLabel(texte: string | undefined | null, repli?: string): PlayerText {
-  // eslint-disable-next-line no-restricted-syntax -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
   return (texte ?? repli ?? '') as PlayerText;
 }
 

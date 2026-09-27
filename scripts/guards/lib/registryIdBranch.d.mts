@@ -1,3 +1,5 @@
+import type { SourceFile } from 'typescript';
+
 export type RegistryIdBranchRule = 'id-equality' | 'id-switch' | 'id-membership' | 'id-record';
 
 export interface Finding {
@@ -13,7 +15,9 @@ export const OP_VOCABULARY: ReadonlySet<string>;
 export const VOCABULARY_TYPES: ReadonlyMap<string, string>;
 export const SCAN_EXTS: string[];
 export function isRegistryIdBranchExcluded(rel: string): boolean;
-export function scanRegistryIdBranch(relPath: string, contenu: string): Finding[];
+/** Arbre syntaxique de `contenu`, bâti à chaque appel. */
+export function arbreDe(relPath: string, contenu: string): SourceFile;
+export function scanRegistryIdBranch(relPath: string, contenu: string, sf?: SourceFile): Finding[];
 export function countRegistryIdBranch(rel: string, contenu: string): number;
 
 /** Site de la forme BRUTE « <champ d'identité> === '<littéral>' » — sans condition de liaison. */
@@ -22,4 +26,4 @@ export interface RawIdEqualityFinding {
   detail: string;
 }
 
-export function scanRawIdEqualities(relPath: string, contenu: string): RawIdEqualityFinding[];
+export function scanRawIdEqualities(relPath: string, contenu: string, sf?: SourceFile): RawIdEqualityFinding[];

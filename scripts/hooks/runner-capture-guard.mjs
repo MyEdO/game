@@ -27,6 +27,7 @@
 //     head -5`) n'en forment pas un : rien n'y tronque la sortie du runner, et le garde se tait
 //     (3 faux positifs mesurés avant ce groupement). La profondeur reste couverte : les pipelines
 //     d'un `sh -c "npx vitest | tail"` sont rendus comme les autres.
+import '../node-requis.mjs'
 import { pipelinesProfonds } from './solde-ticket-guard.mjs'
 
 /** `{ exe, args }` d'un segment : basename sans extension, en minuscules (call-operator sauté). */

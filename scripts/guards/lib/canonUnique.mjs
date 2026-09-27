@@ -12,18 +12,16 @@
 import ts from 'typescript';
 import { scriptKindDe } from './dialecte.mjs';
 
-/** AST par FICHIER, keyé sur l'IDENTITÉ de l'objet d'entrée. `readCorpus` rend le MÊME objet pour
- *  une même clé de corpus (tableau et entrées gelés) : le parse est donc payé une fois pour tous les
- *  scans du worker, par garantie de la primitive et non par discipline d'appelant. Rien ne fuit — la
- *  carte lâche avec le corpus. */
-const AST = new WeakMap();
-
-/** @param {{ rel: string, text: string }} file @returns {ts.SourceFile} */
-function ast(file) {
-  let sf = AST.get(file);
+/** AST d'un fichier, rangé dans `arbres` — carte de l'APPELANT, keyée sur l'identité de l'entrée :
+ *  elle naît et meurt avec lui (`tsProgram.mjs`, en-tête). Un appelant qui scanne plusieurs fois le
+ *  même corpus passe la même carte et la vide quand il a fini.
+ *  @param {{ rel: string, text: string }} file @param {Map<object, ts.SourceFile>} arbres
+ *  @returns {ts.SourceFile} */
+function ast(file, arbres) {
+  let sf = arbres.get(file);
   if (!sf) {
     sf = ts.createSourceFile(file.rel, file.text, ts.ScriptTarget.Latest, true, scriptKindDe(file.rel));
-    AST.set(file, sf);
+    arbres.set(file, sf);
   }
   return sf;
 }
@@ -130,13 +128,14 @@ function litterauxDeChaine(n) {
  * la divergence n'en est que la conséquence tardive.
  * @param {{ rel: string, text: string }} file
  * @param {{ nom: string, membres: readonly string[] }[]} canons
+ * @param {Map<object, ts.SourceFile>} [arbres] AST déjà bâtis, carte de l'appelant (`ast`)
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanUnionRecopies(file, canons) {
+export function scanUnionRecopies(file, canons, arbres = new Map()) {
   const cibles = canons.map((c) => ({ nom: c.nom, membres: new Set(c.membres) }));
   const present = (m) => file.text.includes(`'${m}'`) || file.text.includes(`"${m}"`) || new RegExp(`(^|[^\\w$.'"])${m}\\s*[:?]`, 'm').test(file.text);
   if (!cibles.some((c) => [...c.membres].filter(present).length >= 2)) return [];
-  const sf = ast(file);
+  const sf = ast(file, arbres);
   /** @type {{ line: number, detail: string }[]} */
   const findings = [];
   const vus = new Set();
@@ -231,11 +230,12 @@ const paireDAxes = (a, b) => [['x', 'y'], ['dx', 'dy']].some(([u, v]) => (a.has(
  * Le NOM n'entre pas dans le scan : `cheb`, `dist`, ou aucun nom du tout, c'est la même recopie du
  * canon `chebyshev` (`src/engine/grid.ts`).
  * @param {{ rel: string, text: string }} file
+ * @param {Map<object, ts.SourceFile>} [arbres] AST déjà bâtis, carte de l'appelant (`ast`)
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanChebyshevFormula(file) {
+export function scanChebyshevFormula(file, arbres = new Map()) {
   if (!file.text.includes('Math.abs')) return [];
-  const sf = ast(file);
+  const sf = ast(file, arbres);
   /** @type {{ line: number, detail: string }[]} */
   const findings = [];
   /** @param {ts.Node} n */

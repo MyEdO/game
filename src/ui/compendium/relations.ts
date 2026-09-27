@@ -30,6 +30,7 @@ import { effectiveEntry } from '../../engine/variants';
 import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
 import { codexLookupVersion } from './registry';
+import { replier } from '../../lib/ordre.mjs';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 
 /** Un référant (entité QUI pointe vers la cible) — ouvrable au Codex via (category, id). */
@@ -308,17 +309,16 @@ export function bookContents(bookId: string | undefined): { category: string; en
 }
 
 /**
- * Index d'auto-liage (LOCALE-SCOPED) : libellé normalisé (minuscule, sans accent) → (category, label)
+ * Index d'auto-liage (LOCALE-SCOPED) : libellé replié (`replier`) → (category, label)
  * de l'entité à lier. Construit depuis les libellés de la LOCALE active (ici FR) → 100 %
  * langue-agnostique de principe (dérivé des données, jamais une chaîne FR en dur). Les libellés
  * ambigus (même texte pour 2 entités) et trop courts (< 4) sont ÉCARTÉS pour ne pas sur-lier.
  * RE-CALCULÉ par version (suit une édition Codex).
  */
-const deburrLower = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const labelIndexCached = versionCached<Map<string, { category: string; label: string }>>(() => {
   const seen = new Map<string, { category: string; label: string } | null>();
   for (const e of catalog()) {
-    const key = deburrLower(e.label);
+    const key = replier(e.label);
     if (key.length < 4) continue;
     seen.set(key, seen.has(key) ? null : { category: e.category, label: e.label }); // collision → null (ambigu)
   }
@@ -333,7 +333,7 @@ export function labelIndex(): Map<string, { category: string; label: string }> {
 const LINKABLE_CATS = new Set(['characteristics', 'skills', 'talents', 'etats', 'maneuvers', 'traits', 'qualities', 'domains']);
 
 /** ── HOMONYMES du vocabulaire auto-liable (même libellé NU, catégories DIFFÉRENTES) ──
- *  Collisions RÉELLES du catalogue (relevées 2026-07-13, `deburrLower` sur libellé entier), classées
+ *  Collisions RÉELLES du catalogue (relevées 2026-07-13, `replier` sur libellé entier), classées
  *  par NATURE — c'est elle qui DÉCIDE la résolution d'un match NU (sans contexte de fiche) :
  *
  *   A. MÊME concept, deux REPRÉSENTATIONS (un match nu tombe TOUJOURS juste — on LIE, priorité à la
@@ -411,8 +411,8 @@ const linkCandidatesCached = versionCached<Map<string, LinkCandidate[]>>(() => {
   for (const e of catalog()) {
     if (!LINKABLE_CATS.has(e.category)) continue;
     const c: LinkCandidate = { category: e.category, id: e.id, label: e.label };
-    add(deburrLower(e.label), c);
-    for (const form of prefixedForms(e.category, e.label)) add(deburrLower(form), c);
+    add(replier(e.label), c);
+    for (const form of prefixedForms(e.category, e.label)) add(replier(form), c);
   }
   return idx;
 });
@@ -435,7 +435,7 @@ const idByLabelCached = versionCached<Map<string, string>>(() => {
  *  la résolution y ramène (« Attaques caudales » → « attaque caudale »). */
 const lookupCandidates = (rawText: string): LinkCandidate[] | undefined => {
   const idx = linkCandidatesCached();
-  const key = deburrLower(rawText);
+  const key = replier(rawText);
   const direct = idx.get(key);
   if (direct?.length) return direct;
   const singular = key.split(/\s+/).map((w) => (w.endsWith('s') ? w.slice(0, -1) : w)).join(' ');

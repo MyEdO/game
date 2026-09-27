@@ -1154,9 +1154,8 @@ test('argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME
 })
 
 // FRONTIÈRE mesurée : un ÉLÉMENT de stock qui nomme son fichier À TRAVERS un appel reste une
-// entrée — `scripts/test/run.test.mjs:69` (`node: [abs('src/i18n/labels.test.ts'), …]`) et
-// `scripts/hooks/settings-guard-canaux.test.mjs:27` (`[join(REPO, '.claude', 'settings.json'), …]`)
-// sont des stocks nominatifs à part entière. La règle porte sur le PORTEUR en position d'argument :
+// entrée — `scripts/test/run.test.mjs:78` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
+// stock nominatif à part entière. La règle porte sur le PORTEUR en position d'argument :
 // il n'est exempt que s'il ne nomme AUCUN fichier — un élément qui en nomme un le rend porteur.
 test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée', () => {
   assert.deepEqual(

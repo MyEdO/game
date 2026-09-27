@@ -356,4 +356,4 @@ Valeurs du champ `on` d'un `TriggeredEffect`.
 | `{ pick … }` | `sizeAtMost?`, `max` | — |
 
 _6 entrées — dérivées de `src/engine/flowCore.ts`._
-<!-- sources-empreinte: 24fcbb9d80a2a5244db53869099a66e77afc7c84 (673 fichiers, 16 dossiers) corps: caa4a0cce0a9f4e7668a035a7800946536d1acd8 -->
+<!-- sources-empreinte: 10a9a3a43fa2e3d51b03d13ac3082dad8a3ca22d (674 fichiers, 16 dossiers) corps: caa4a0cce0a9f4e7668a035a7800946536d1acd8 -->

@@ -619,7 +619,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     if (!r) return;
     skillValue = r.skillValue;
     skillLabel = r.skillLabel;
-    // eslint-disable-next-line no-restricted-syntax -- La cible est `Partial<PendingActivityFields>` (le pending d'activité), PAS une étape de cascade : ce `label` n'est pas le champ marqué #1318.
+    // eslint-disable-next-line murs/conteneur -- La cible est `Partial<PendingActivityFields>` (le pending d'activité), PAS une étape de cascade : ce `label` n'est pas le champ marqué #1318.
     Object.assign(extra, r.extra, { label: stepDetail(dataLabel(def.label), dataLabel(r.extra.label)) });
   } else if (def.resolver === 'learnTalent') {
     // Apprentissage particulier (ch.23 l.66-72) : Talent HORS carrière. Test « Difficile (-20) en

@@ -77,5 +77,6 @@ rendu.push(
 
 // Même contrainte pour NOTRE propre sortie, qui part dans un tube (npm, CI) : `process.exit()`
 // l'amputerait sur POSIX. Le code de sortie se pose, la fin naturelle du processus vide le flux.
+// Le statut suit le COMPTE : une erreur TS lue sort en échec, même si tsc a rendu 0 (#1801).
 process.stdout.write(`${rendu.join('\n')}\n`)
-process.exitCode = statut
+process.exitCode = erreurs.length > 0 && statut === 0 ? 1 : statut

@@ -1,14 +1,19 @@
 // Fabriques de `ts.Program` PARTAGÉES par les gardes qui ont besoin d'un vérificateur de TYPES
-// (#841 éditabilité des champs de scène, #1620 consommateurs par champ). Deux fabriques, une par
-// SOURCE des fichiers :
+// (#841 éditabilité des champs de scène, #847 champs des `GameOp`, #1620 consommateurs par champ).
+// Deux fabriques, une par SOURCE des fichiers :
 //   - `repoProgram` : les fichiers du dépôt, options du `tsconfig.json` racine ;
 //   - `virtualProgram` : des sources EN MÉMOIRE, pour les morsures de garde.
 //
 // AUCUNE RÉTENTION ICI. Ni cache ni mémo au niveau module : un Program du dépôt pèse ~1,3 Go de
 // tables du checker (mesuré #1620, 1 952 fichiers de `src/`), et sous Vitest `isolate: false` un
 // module reste chargé pour TOUTE la suite — le retenir ici le ferait payer à chaque fichier de test
-// qui suit. Le Program vit donc dans l'appel de son consommateur, qui décide seul de le mémoïser
-// (et pour quelle durée).
+// qui suit. Le Program vit donc dans l'appel de son consommateur ; un fichier de test qui le partage
+// entre ses cas le tient par `detenteur` (`src/detenteur.testkit.ts`), libéré en `afterAll`. Il en
+// va de même de toute structure d'ANALYSE (`SourceFile`, vérificateur, index d'AST) et de tout DÉRIVÉ
+// du corpus (liste `map`/`flatMap`/`filter`, texte `join`, mémo sur l'identité du corpus) : ils ne
+// vivent pas plus longtemps que l'appel ou le fichier de test qui les a demandés. Seuls les TEXTES du
+// corpus sont retenus pour le worker (`sourceCorpus.mjs`, PRIX). Garde :
+// `src/analyse-retention-guard.test.ts` ; formes tenues et angles morts : en-tête de `analyseRetenue.mjs`.
 import path from 'node:path';
 import ts from 'typescript';
 

@@ -43,6 +43,7 @@ import {
   GAMEOP_FIELD_TARGETS, auditFieldCoverage, collectJsonFiles, scanGameOpRefs, formatOffender,
 } from '../../scripts/guards/lib/gameOpRefFk.mjs';
 import { extractedBooks, frenchSourceDirs, isSentinel, sourceDirOf, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
+import { norm } from '../lib/normalize';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -624,8 +625,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   //    FR CONNU de sa `specs[]`, c'est une RÉGRESSION de migration (devrait être l'id) → le test ÉCHOUE.
   // Ajouter un domaine à `specs[]` = automatiquement couvert ici ; plus JAMAIS besoin d'étendre une liste.
   describe('GARDE EXHAUSTIVE — toute compétence/talent à specs[] non vide (Phase 3 complétude)', () => {
-    const norm = (s: string): string => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-    const isSentinel = (s: string): boolean => norm(s) === 'au choix';
 
     const ALL_SPEC_DEFS = [...skills, ...talents].filter((d) => d.specsSource || (Array.isArray(d.specs) && d.specs.length > 0));
     const CLOSED = new Map<string, Set<string>>();

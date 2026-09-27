@@ -39,6 +39,7 @@
 // Usage : node scripts/raw/reparer-titres.mjs <id du livre> [--sites <json> | --boites <json>] [--apply]
 // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
 import { readFileSync, writeFileSync } from 'node:fs'
+import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { decoupeDe, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
 import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
@@ -189,7 +190,7 @@ export function reparerLivre(textes, sites) {
   const fusions = new Map()
   const parLeBas = sites.filter((x) => x.forme === 'P').sort((x, y) => {
     const [a, b] = [rang(x.site), rang(y.site)]
-    return a[0] === b[0] ? b[1] - a[1] : a[0] < b[0] ? -1 : 1
+    return parUnitesDeCode(a[0], b[0]) || b[1] - a[1]
   })
   for (const site of parLeBas) {
     const { nnn, i } = lieu(site.site)

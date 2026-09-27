@@ -15,7 +15,7 @@
  * `string` n'est PAS assignable vers `PlayerText`, donc un littéral posé sur un champ marqué ne
  * compile plus.
  *
- * LIMITES, les mêmes qu'au jumeau et pour la même raison — le lint (`no-restricted-syntax`,
+ * LIMITES, les mêmes qu'au jumeau et pour la même raison — le lint (mur `murs/marques`,
  * `eslint.config.js`, mesuré par `state/built-brand-lint.test.ts`) mure les routes de FORGE
  * (`x as PlayerText`, `<PlayerText>x`, sous tableau/`readonly`/générique, et l'ALIAS de type). Restent
  * hors portée : l'ANNOTATION d'une valeur déjà élargie, le RENOMMAGE à l'import, l'alias GÉNÉRIQUE ou

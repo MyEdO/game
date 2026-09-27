@@ -1,6 +1,7 @@
 // Hook PreToolUse(Write|Edit) : le tag `[entériné AAAA-MM-JJ]` est RÉSERVÉ à l'utilisateur (credo,
 // règle 6b) — toute écriture qui l'INTRODUIT exige sa confirmation explicite : ce dialogue EST la
 // validation. Opposable aux sessions ET aux sous-agents (aucune mémoire/discipline requise).
+import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 

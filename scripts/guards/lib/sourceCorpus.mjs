@@ -9,25 +9,33 @@
 // `fichierVitest.mjs` — ce corpus le CONSOMME, il n'en tient pas une seconde copie.
 //
 // FRONTIÈRE : cette lib LIT et MÉMOÏSE sa lecture, elle n'interprète pas (aucun AST, aucun verdict).
-// Un corpus est lu UNE fois par clé — la clé est le CONTENU des paramètres (dossiers normalisés en
-// chemin POSIX depuis la racine, extensions, `tests`) — et le mémo vit aussi longtemps que le graphe
-// de modules : sous `isolate: false` (`vite.config.ts`), le worker Vitest entier, partagé par tous
-// les fichiers de test qu'il joue.
+// Un chemin est lu UNE fois par worker, quelle que soit la clé (`ENTREES`) ; la liste d'une clé est
+// marchée une fois — la clé est le CONTENU des paramètres (dossiers normalisés en chemin POSIX depuis
+// la racine, extensions, `tests`). Les deux mémos vivent aussi longtemps que le graphe de modules :
+// sous `isolate: false` (`vite.config.ts`), le worker Vitest entier, partagé par tous les fichiers de
+// test qu'il joue.
 //
 // CONDITION DE LICÉITÉ : l'arbre scanné est STATIQUE pendant un run. Sous vitest, l'unique écrivain
 // de `src/**` est `genAll()` du plugin `registryGen` (`vite.config.ts`, hook `buildStart`) : il
 // écrit `src/**/_registry.generated.ts` dans le processus vite-node PRINCIPAL, avant le démarrage
 // des workers, et seulement quand le contenu diffère (`ecrireDoc`, scripts/docs/lib/empreinte-sources.mjs).
-// Aucune gate n'écrit dans l'arbre (`photoArbre`, `scripts/gates/toutes.mjs`). Un appelant qui
-// écrirait dans un dossier scanné entre deux lectures a sa porte : `viderCorpus()`.
+// Aucune gate n'écrit dans l'arbre (`photoArbre`, `scripts/gates/toutes.mjs`). Une clé NEUVE ne relit
+// pas un chemin déjà lu : après une écriture, elle rendrait l'ancien texte des chemins connus et le
+// texte frais des chemins nouveaux. Un appelant qui écrirait dans un dossier scanné entre deux
+// lectures a sa porte : `viderCorpus()`.
 //
-// PRIX : le corpus est RETENU par le worker jusqu'à sa fin. Mesuré 2026-09-07 sur cet arbre, toutes
-// les clés des appelants co-résidentes : 132,1 Mo de texte pour 8 clés (dont 35,9 Mo pour
-// `['src','scripts']` × 5 extensions × `tests`, 4 314 fichiers).
+// PRIX : le corpus est RETENU par le worker jusqu'à sa fin — ses TEXTES, rien de dérivé. Un AST, un
+// index, une liste `map`/`flatMap`/`filter`, un texte `join`, un mémo sur l'identité du corpus vivent
+// chez l'appelant, le temps de l'appel ou du fichier de test qui les a demandés (`tsProgram.mjs`,
+// en-tête ; garde `analyseRetenue.mjs`). Un chemin n'a qu'UNE entrée, donc qu'UN texte, quelle que
+// soit la clé qui le lit (`ENTREES`) : les clés qui se recouvrent (`src` dans `['src']`,
+// `['src','scripts']`, `SCAN_DIRS` de `registryIdBranch.mjs`) ne paient qu'une fois le texte commun.
+// Mesure #1801 (2026-09-27), trois clés co-résidentes (`src` + tests ; `src`+`scripts` × 4
+// extensions + tests ; `SCAN_DIRS` × 5 extensions + tests) : 81 Mo, contre 222 Mo quand chaque clé
+// tient ses propres textes.
 //
-// IMMUABLE : tableau et entrées gelés, et deux appels de même clé rendent le MÊME tableau avec les
-// MÊMES entrées — c'est cette identité qui porte les mémos par identité des appelants (la `WeakMap`
-// d'AST de `canonUnique.mjs`), d'un fichier de test à l'autre du même worker.
+// IMMUABLE : tableau et entrées gelés ; deux appels de même clé rendent le MÊME tableau, et deux clés
+// qui lisent le même chemin rendent la MÊME entrée.
 // Les FILTRES de périmètre (exclusions nominatives, dossiers de whitelist) restent chez l'appelant :
 // ils font partie de ce que la garde MESURE.
 //
@@ -62,6 +70,17 @@ const posixDepuisRacine = (p) => relative(ROOT, p).split('\\').join('/');
 /** Corpus par CLÉ de contenu des paramètres. Vit aussi longtemps que ce module — soit, sous
  *  `isolate: false`, le worker Vitest entier. @type {Map<string, ReadonlyArray<Readonly<{ abs: string, rel: string, text: string }>>>} */
 const CORPUS = new Map();
+
+/** Entrée gelée par chemin ABSOLU, partagée par toutes les clés : un chemin n'a qu'un texte.
+ *  @type {Map<string, Readonly<{ abs: string, rel: string, text: string }>>} */
+const ENTREES = new Map();
+
+/** L'entrée de `p`, lue au disque la première fois qu'une clé la demande. @param {string} p */
+function entreeDe(p) {
+  let e = ENTREES.get(p);
+  if (!e) ENTREES.set(p, (e = Object.freeze({ abs: p, rel: posixDepuisRacine(p), text: readFileSync(p, 'utf8') })));
+  return e;
+}
 
 /**
  * Fichiers source de `dirs` (absolus, ou relatifs à la racine du dépôt), parcourus RÉCURSIVEMENT
@@ -101,10 +120,7 @@ export function readCorpus(dirs, { exts = ['.ts', '.tsx'], tests = false } = {})
   }
   const lu = Object.freeze(
     bases.flatMap((base, i) =>
-      parBase[i].map((rel) => {
-        const p = join(base, rel);
-        return Object.freeze({ abs: p, rel: posixDepuisRacine(p), text: readFileSync(p, 'utf8') });
-      }),
+      parBase[i].map((rel) => entreeDe(join(base, rel))),
     ),
   );
   CORPUS.set(cle, lu);
@@ -115,10 +131,10 @@ export function readCorpus(dirs, { exts = ['.ts', '.tsx'], tests = false } = {})
  *  condition de licéité du mémo (voir l'en-tête) — un appelant qui ÉCRIT dans un dossier scanné
  *  entre deux lectures la franchit. Aucune garde ne l'appelle : `genAll()` écrit avant les workers,
  *  et aucune gate de la CI n'écrit dans l'arbre. Les tests de cette lib l'appellent.
- *  PRIX : le relâchement est TOTAL (toutes les clés du worker, pas la sienne) et l'IDENTITÉ des
- *  tableaux et des entrées est perdue — les mémos par identité des appelants (`canonUnique.mjs`)
- *  repartent de zéro, et les corpus réels se relisent au disque. Une fixture `mkdtemp` supprimée ne
+ *  PRIX : le relâchement est TOTAL (toutes les clés et toutes les entrées du worker, pas la sienne) :
+ *  l'IDENTITÉ des tableaux et des entrées est perdue, et les corpus réels se relisent au disque. Une fixture `mkdtemp` supprimée ne
  *  la justifie pas : sa clé est unique à chaque run, elle ne peut répondre pour aucun corpus réel. */
 export function viderCorpus() {
   CORPUS.clear();
+  ENTREES.clear();
 }

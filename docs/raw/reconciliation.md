@@ -78,10 +78,10 @@
 - `src/engine/creation.test.ts:128` (l.5) — describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
 
 ### PDT 8 — 1 réf(s) code, 0 dans l'Atlas
-- `src/ui/mono-stake-ratchet.test.ts:73` (l.370) — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
+- `src/ui/mono-stake-ratchet.test.ts:76` (l.370) — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
 
 ### PDT 9 — 1 réf(s) code, 0 dans l'Atlas
-- `src/ui/mono-stake-ratchet.test.ts:73` (l.285) — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
+- `src/ui/mono-stake-ratchet.test.ts:76` (l.285) — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
 
 ## A2 — Lignes appelées par le CODE non pinées par l'Atlas (chapitre couvert, règle peut-être survolée)
 
@@ -125,7 +125,7 @@
 ### EDOC 13 — 3/9 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
 - l.137 — `src/data/index.ts:1100` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 - l.522 — `src/data/index.ts:1708` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
-- l.524 — `src/data/refs-migrated.test.ts:858` — *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
+- l.524 — `src/data/refs-migrated.test.ts:857` — *  sont au catalogue, sourcées à la desc verbatim de leur Trait (`EDOC 13 l.524` folio 83,
 
 ### MDG 15 — 3/50 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
 - l.461 — `src/data/naval-ports.test.ts:47` — it('Erengrad : Taille 4, Richesse 4, Surplus pièces-détachées-de-navire +1, Demande laine +1 (MDG 15 l.461-462, folio 138)', () => {
@@ -145,7 +145,7 @@
 - l.185 — `src/data/index.ts:1100` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 
 ### EDO 7 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.184 — `src/ui/mono-stake-ratchet.test.ts:73` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
+- l.184 — `src/ui/mono-stake-ratchet.test.ts:76` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
 
 ### MSRC 5 — 1/1 ligne(s) code hors couverture (propriétaire : —)
 - l.113 — `src/state/riverVoyageFlow.ts:876` — // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
@@ -208,4 +208,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 68a0d0662cbd877bb79183d4ffb725f30e8e3cd1 (4261 fichiers, 152 dossiers) corps: edbcaca1a1592817bbd5b4ee4a67d9aa06cd2dac -->
+<!-- sources-empreinte: 6274be4544ca9d469862bc669b403cf3e7510a52 (4266 fichiers, 152 dossiers) corps: 317fb8d8804931abf3f853e11c8e3c1c11547dbf -->

@@ -138,7 +138,7 @@ const renverse = (doc) => {
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (4,7 Go,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
  */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'docs/raw', 'Source'];
+const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'docs/raw', 'Source'];
 
 test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));

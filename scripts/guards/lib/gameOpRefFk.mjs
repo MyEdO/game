@@ -37,6 +37,7 @@ import fs from 'node:fs';
 import { parUnitesDeCode, listerArbre } from './lister.mjs';
 import path from 'node:path';
 import ts from 'typescript';
+import { repoProgram } from './tsProgram.mjs';
 
 /** Nom du type dont l'union fournit le périmètre, et le fichier qui le déclare. */
 const OPS_FILE = 'src/engine/ops.ts';
@@ -165,24 +166,10 @@ export const GAMEOP_FIELD_TARGETS = {
 
 const norm = (p) => p.replace(/\\/g, '/');
 
-const PROGRAM_CACHE = new Map();
-
+/** Program rooté sur `OPS_FILE`, bâti pour CET appel (`tsProgram.mjs`, en-tête). */
 function opsProgram(root) {
-  const key = norm(path.resolve(root));
-  const hit = PROGRAM_CACHE.get(key);
-  if (hit) return hit;
-  const cfgPath = ts.findConfigFile(key, ts.sys.fileExists, 'tsconfig.json');
-  if (!cfgPath) throw new Error(`tsconfig.json introuvable sous ${key}`);
-  const cfg = ts.parseJsonConfigFileContent(
-    ts.readConfigFile(cfgPath, ts.sys.readFile).config,
-    ts.sys,
-    path.dirname(cfgPath),
-  );
-  const entry = path.join(key, OPS_FILE);
-  const program = ts.createProgram({ rootNames: [entry], options: cfg.options });
-  const value = { program, entry: norm(entry) };
-  PROGRAM_CACHE.set(key, value);
-  return value;
+  const program = repoProgram(root, (_, key) => [path.join(key, OPS_FILE)]);
+  return { program, entry: norm(path.join(norm(path.resolve(root)), OPS_FILE)) };
 }
 
 /** Le type admet-il une `string` OUVERTE (≠ union de littéraux, déjà close par `tsc`) ? */

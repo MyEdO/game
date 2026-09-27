@@ -169,10 +169,12 @@ export function filtrerFichiers(fichiers, filtres, racine, plateforme = process.
   if (!filtres.length) return fichiers
   const fs = plateforme === 'win32' ? filtres.map((f) => f.replace(/\\/g, '/')) : filtres
   return fichiers.filter((t) => {
+    // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
     const cible = relative(racine, t).toLocaleLowerCase()
     return fs.some((f) => {
       if (isAbsolute(f) && t.startsWith(f)) return true
       const rel = f.endsWith('/') ? join(relative(racine, f), '/') : relative(racine, f)
+      // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
       return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())
     })
   })

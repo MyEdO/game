@@ -85,7 +85,7 @@ export function mutationTablePlayerLabel(table: string): PlayerText {
   const l = stripBookMarker(mutationTableLabel(table));
   // MINTEUR (b) : texte AUTHORÉ en donnée (cf. `dataLabel`, `data/index.ts`) — cast local pour ne pas
   // créer de cycle `index.ts` ⇄ `mutations.ts`.
-  // eslint-disable-next-line no-restricted-syntax -- #1318 V8a₁ : l'unique cast de ce minteur (b), même corps de métier et même cliquet que `dataLabel`.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b), même corps de métier et même cliquet que `dataLabel`.
   return (l.charAt(0).toUpperCase() + l.slice(1)) as PlayerText;
 }
 

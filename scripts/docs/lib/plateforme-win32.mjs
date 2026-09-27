@@ -20,12 +20,30 @@
 //   · `import.meta.dirname`/`filename`, `__dirname`/`__filename` (chargeur CJS),
 //     `require`/`createRequire`/`getBuiltinModule` de `path` ou `url` (hors hooks ESM) — garde
 //     `src/graphies-d-hote-guard.test.ts` ;
-//   · l'ORDRE des sorties de `readdir` (NTFS trie sans casse, ext4 rend l'ordre d'un hash) et le
-//     séparateur des chemins que rendent `readdir`/`readdirSync`/`fs.promises.readdir` en
-//     `recursive: true` — mur de l'ordre total d'`eslint.config.js` (seul `listerDossier`/`listerArbre`
-//     de `scripts/guards/lib/lister.mjs` liste un dossier, `listerArbre` joint par `/`) ;
+//   · l'ORDRE des sorties de `readdir`/`opendir`/`glob` (NTFS trie sans casse, ext4 rend l'ordre d'un
+//     hash) et le séparateur des chemins qu'ils rendent (`glob`, `recursive: true`) — mur de l'ordre total
+//     d'`eslint.config.js` (seul `listerDossier`/`listerArbre` de `scripts/guards/lib/lister.mjs` liste
+//     un dossier, `listerArbre` joint par `/`) ;
+//   · le même ORDRE quand le nom échappe au mur (le mur ferme membre, clé littérale ou gabarit,
+//     déstructuration, alias d'import TypeScript, membre JSX) : clé calculée non littérale (`fs[nom]`,
+//     `fs['gl' + 'ob']`, gabarit à expression, `const { [nom]: g } = fs`), accès réflexif
+//     (`Reflect.get(fs, 'glob')`, `Object.entries(fs)`), paquet tiers qui liste (`tinyglobby`), listing
+//     par un processus enfant (`find`, `ls`) — rien ;
 //   · la casse des chemins — rien ;
-//   · locale et ICU (`localeCompare`, `Intl`) — rien ;
+//   · locale et ICU : `localeCompare` et `toLocale*` sous toute forme de clé, toute référence à la
+//     valeur `Intl` — mur de l'ordre total d'`eslint.config.js` (globs de ses blocs et clôture des
+//     générateurs) ; `globalThis.Intl`, un nom calculé, la collation d'un module d'UI qu'aucun
+//     générateur n'atteint — rien ;
+//   · ce qui éteint le mur de l'ordre total (`murs/ordre-total`, `murs/ordre-total-imports`,
+//     `murs/ordre-total-locale`) — `scripts/guards/lib/lister.test.mjs` : un bloc d'`eslint.config.js`
+//     qui redéclare une de ces règles (UNICITÉ : chacune par UN bloc, en `error`, avec ses options) ; un
+//     ignore global qui couvre un fichier sous le mur (IGNORES) ; une directive `eslint-disable` ou un
+//     commentaire de configuration `/* eslint … */` qui la nomme — ou, pour la directive, ne nomme
+//     aucune règle —, lus par la grammaire d'ESLint elle-même (`SourceCode#getDisableDirectives`/
+//     `applyInlineConfig`, `ConfigCommentParser#parseListConfig`) : seules les exemptions AU SITE
+//     nommées passent (DIRECTIVES sous les globs ; `suppressedMessages` et la même sonde au volet
+//     CLÔTURE). Une option de ligne de commande (`--rule`, `-c`, `--ignore-pattern`, `--no-ignore`) qui
+//     redéclare le mur ou en retire un fichier — rien ;
 //   · `os.EOL` — rien ;
 //   · `process.platform` — rien ;
 //   · le lancement d'un `.cmd` — rien ;

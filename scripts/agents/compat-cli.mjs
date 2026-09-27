@@ -2,7 +2,7 @@ import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promise
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildExpectedOutputs, collectDiffs, validateHookParity, validateRolePairs } from './compat-core.mjs';
+import { SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateHookParity, validateRolePairs } from './compat-core.mjs';
 
 async function snapshot(root) {
   const files = new Map();
@@ -13,7 +13,7 @@ async function snapshot(root) {
       else files.set(child, await readFile(join(root, child)));
     }
   }
-  for (const rel of ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', '.claude/settings.json', '.codex/hooks.json']) {
+  for (const rel of ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX]) {
     const data = await readFile(join(root, rel)).catch(() => null);
     if (data) files.set(rel, data);
   }
@@ -28,13 +28,13 @@ function validationDiagnostics(files) {
     if (path.startsWith('.claude/agents/') && path.endsWith('.md')) claude.set(path.slice(15, -3), bytes.toString('utf8'));
     if (path.startsWith('.codex/agents/') && path.endsWith('.toml')) codex.set(path.slice(14, -5), bytes.toString('utf8'));
   }
-  const settings = files.get('.claude/settings.json');
-  const hooks = files.get('.codex/hooks.json');
+  const settings = files.get(SURFACE_CLAUDE);
+  const hooks = files.get(SURFACE_CODEX);
   const diagnostics = validateRolePairs(claude, codex);
-  if (!settings || !hooks) diagnostics.push({ family: 'hook', destination: !settings ? '.claude/settings.json' : '.codex/hooks.json', type: 'missing', message: 'configuration absente' });
+  if (!settings || !hooks) diagnostics.push({ family: 'hook', destination: !settings ? SURFACE_CLAUDE : SURFACE_CODEX, type: 'missing', message: 'configuration absente' });
   else {
     try { diagnostics.push(...validateHookParity(JSON.parse(settings), JSON.parse(hooks))); }
-    catch (error) { diagnostics.push({ family: 'hook', destination: '.claude/settings.json/.codex/hooks.json', type: 'parse', message: error.message }); }
+    catch (error) { diagnostics.push({ family: 'hook', destination: `${SURFACE_CLAUDE}/${SURFACE_CODEX}`, type: 'parse', message: error.message }); }
   }
   return diagnostics;
 }

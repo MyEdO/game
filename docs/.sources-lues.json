@@ -21,7 +21,8 @@
       "src/data/no-html-in-prose.test.ts",
       "src/data/schemas/grammaire/document.ts",
       "src/data/serialize.test.ts",
-      "src/data/serialize.ts"
+      "src/data/serialize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "src/data"
@@ -616,6 +617,7 @@
       "src/i18n/index.ts",
       "src/i18n/messages/fr.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/net/compress.ts",
       "src/net/intents.ts",
       "src/net/protocol.ts",
@@ -850,7 +852,8 @@
       ".claude/memory/user-vision-produit-trois-etages-2026-09-06.md",
       "scripts/docs/build-doctrines.mjs",
       "scripts/docs/lib/empreinte-sources.mjs",
-      "scripts/guards/lib/lister.mjs"
+      "scripts/guards/lib/lister.mjs",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": []
   },
@@ -1233,6 +1236,7 @@
       "src/i18n/index.ts",
       "src/i18n/messages/fr.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/state/dir8.ts",
       "src/ui/compendium/registry.ts",
       "tsconfig.json"
@@ -1252,7 +1256,8 @@
       "scripts/docs/lib/jsdocUnion.mjs",
       "scripts/guards/lib/lister.mjs",
       "src/data/schemas/defs-scenes/effets.ts",
-      "src/data/schemas/grammaire/mecanique.ts"
+      "src/data/schemas/grammaire/mecanique.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": []
   },
@@ -1602,6 +1607,7 @@
       "src/data/water-exposure.json",
       "src/data/weaponGroups.json",
       "src/data/weather.json",
+      "src/detenteur.testkit.ts",
       "src/engine/activeFlags.ts",
       "src/engine/activities.ts",
       "src/engine/actorView.ts",
@@ -2774,6 +2780,7 @@
       "src/i18n/messages/fr.ts",
       "src/i18n/playerText.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
       "src/net/compress.ts",
@@ -3851,6 +3858,7 @@
       "src/data/water-exposure.json",
       "src/data/weaponGroups.json",
       "src/data/weather.json",
+      "src/detenteur.testkit.ts",
       "src/engine/activeFlags.ts",
       "src/engine/activities.ts",
       "src/engine/actorView.ts",
@@ -5023,6 +5031,8 @@
       "src/i18n/messages/fr.ts",
       "src/i18n/playerText.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.d.mts",
+      "src/lib/ordre.mjs",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
       "src/net/compress.ts",
@@ -5803,6 +5813,7 @@
       "scripts/docs/lib/jsdocUnion.mjs",
       "scripts/guards/lib/lister.mjs",
       "src/engine/tests.ts",
+      "src/lib/ordre.mjs",
       "src/state/flowVerbs.ts",
       "src/state/jet-owner-vs-spec.test.ts",
       "src/state/maneuver-defense-cascade.test.ts",
@@ -5950,6 +5961,7 @@
       "src/data/water-exposure.json",
       "src/data/weaponGroups.json",
       "src/data/weather.json",
+      "src/lib/ordre.mjs",
       "src/ui/Icon.tsx",
       "src/ui/icons/_registry.generated.ts",
       "src/ui/icons/defs/action.ts",
@@ -6132,7 +6144,8 @@
       "src/engine/wearPenalty.ts",
       "src/engine/weatherTestMod.ts",
       "src/engine/windsOfMagic.ts",
-      "src/engine/woundsCalc.ts"
+      "src/engine/woundsCalc.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "src/engine",
@@ -6156,6 +6169,7 @@
       "src/data/props.json",
       "src/data/schemas/defs-scenes/scene.ts",
       "src/data/structureAppearance.json",
+      "src/lib/ordre.mjs",
       "src/scenes/campaign.ts",
       "src/scenes/opera/floorplan.ascii.ts",
       "src/scenes/opera/floorplan.ts",
@@ -6381,6 +6395,7 @@
       "src/engine/trauma.test.ts",
       "src/engine/trauma.ts",
       "src/engine/types.ts",
+      "src/lib/ordre.mjs",
       "src/state/combat-hardcode-guard.test.ts",
       "src/state/combatHooks.ts",
       "src/state/triggered-effects.test.ts",
@@ -6539,7 +6554,8 @@
       "src/engine/talentEffects.ts",
       "src/engine/traits/dispatch.ts",
       "src/engine/trauma.ts",
-      "src/engine/wearPenalty.ts"
+      "src/engine/wearPenalty.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "src/data/schemas/defs"
@@ -6554,7 +6570,8 @@
       "scripts/docs/lib/empreinte-sources.mjs",
       "scripts/guards/lib/cssCouches.mjs",
       "scripts/guards/lib/lister.mjs",
-      "src/data/primitives.manifest.json"
+      "src/data/primitives.manifest.json",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": []
   },
@@ -6906,6 +6923,7 @@
       "src/data/water-exposure.json",
       "src/data/weaponGroups.json",
       "src/data/weather.json",
+      "src/detenteur.testkit.ts",
       "src/engine/activeFlags.ts",
       "src/engine/activities.ts",
       "src/engine/actorView.ts",
@@ -8078,6 +8096,7 @@
       "src/i18n/messages/fr.ts",
       "src/i18n/playerText.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
       "src/net/compress.ts",
@@ -8820,6 +8839,7 @@
       "src/data/reglesOptionnelles.json",
       "src/data/schemas/defs/reglesOptionnelles.ts",
       "src/engine/policy.ts",
+      "src/lib/ordre.mjs",
       "src/state/houseRules.ts",
       "src/ui/HouseRulesModal.tsx",
       "src/ui/houseRuleTabs.ts"
@@ -9843,7 +9863,8 @@
       "src/gameIso/topoMarkers.ts",
       "src/gameIso/usePlanAnim.ts",
       "src/gameIso/useRigAnim.ts",
-      "src/gameIso/viewport.ts"
+      "src/gameIso/viewport.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "src/gameIso",
@@ -9952,6 +9973,7 @@
       ".github/workflows/deps-report.yml",
       ".gitignore",
       "package.json",
+      "scripts/agents/compat-core.mjs",
       "scripts/docs/build-reprise.mjs",
       "scripts/docs/lib/empreinte-sources.mjs",
       "scripts/gates/classerPush.mjs",
@@ -9968,7 +9990,8 @@
       "scripts/node-requis.mjs",
       "scripts/ops/ruleset-main.mjs",
       "scripts/port-dev.mjs",
-      "scripts/test/partition.mjs"
+      "scripts/test/partition.mjs",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       ".github/workflows",
@@ -9999,6 +10022,7 @@
       "src/engine/spellRange.test.ts",
       "src/engine/spellspec.test.ts",
       "src/engine/spellspec.ts",
+      "src/lib/ordre.mjs",
       "src/state/spell-flow-completeness.test.ts",
       "src/state/spell-impure-ops.test.ts",
       "src/ui/compendium/no-json-fields.test.ts"
@@ -10025,7 +10049,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": []
   },
@@ -10415,6 +10440,7 @@
       "src/i18n/index.ts",
       "src/i18n/messages/fr.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/scenes/arene/arene-projet.json",
       "src/scenes/barge-du-sel/barge-du-sel-projet.json",
       "src/scenes/diligence/diligence-projet.json",
@@ -11782,6 +11808,7 @@
       "src/i18n/messages/fr.ts",
       "src/i18n/playerText.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/net/compress.ts",
       "src/net/intents.ts",
       "src/net/protocol.ts",
@@ -12284,6 +12311,7 @@
       "scripts/docs/lib/empreinte-sources.mjs",
       "scripts/guards/lib/fichierVitest.mjs",
       "scripts/guards/lib/lister.mjs",
+      "src/lib/ordre.mjs",
       "src/scenes/test-scenarios/13-bataille-de-masse.ts",
       "src/scenes/test-scenarios/14-voyage-maritime.ts",
       "src/scenes/test-scenarios/15-commerce-fluvial.ts",
@@ -12553,6 +12581,7 @@
       "src/data/structureCriticals.ts",
       "src/data/terrains.types.ts",
       "src/data/versionDataset.ts",
+      "src/detenteur.testkit.ts",
       "src/engine/activeFlags.ts",
       "src/engine/activities.ts",
       "src/engine/actorView.ts",
@@ -13725,6 +13754,7 @@
       "src/i18n/messages/fr.ts",
       "src/i18n/playerText.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
       "src/net/compress.ts",
@@ -14937,6 +14967,7 @@
       "src/engine/weatherTestMod.ts",
       "src/engine/windsOfMagic.ts",
       "src/engine/woundsCalc.ts",
+      "src/lib/ordre.mjs",
       "src/state/actionRegistry.ts",
       "src/state/activityWorldRolls.ts",
       "src/state/advancement.ts",
@@ -15156,7 +15187,8 @@
       "scripts/docs/lib/empreinte-sources.mjs",
       "scripts/gen-quality-ids.mjs",
       "scripts/guards/lib/lister.mjs",
-      "src/data/qualities.json"
+      "src/data/qualities.json",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": []
   },
@@ -15489,6 +15521,7 @@
       "src/gameIso/rig/quadruped/tails/defs/sans.ts",
       "src/gameIso/rig/quadruped/tails/defs/touffe-basse.ts",
       "src/gameIso/rig/quadruped/tails/defs/touffe.ts",
+      "src/lib/ordre.mjs",
       "src/ui/icons/defs/action.ts",
       "src/ui/icons/defs/audio.ts",
       "src/ui/icons/defs/char.ts",
@@ -15773,6 +15806,7 @@
       "src/i18n/index.ts",
       "src/i18n/messages/fr.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/state/dir8.ts",
       "src/state/flow.ts",
       "tsconfig.json"
@@ -15797,7 +15831,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "docs/raw",
@@ -15953,7 +15988,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -16265,6 +16301,7 @@
       "scripts/raw/domaines.json",
       "scripts/raw/lib/fichiersCitants.mjs",
       "scripts/source/nom-ascii.mjs",
+      "src/analyse-retention-guard.test.ts",
       "src/audio/_registry.generated.ts",
       "src/audio/defs/critique.ts",
       "src/audio/defs/des.ts",
@@ -16763,6 +16800,8 @@
       "src/data/wounds-mitigation-declaree.test.ts",
       "src/data/zde-affects-authoring.test.ts",
       "src/data/zi-filets.test.ts",
+      "src/detenteur.testkit.test.ts",
+      "src/detenteur.testkit.ts",
       "src/dom-residu-stock.test.ts",
       "src/effective-values-guard.test.ts",
       "src/engine/active-effect-passive.test.ts",
@@ -18491,6 +18530,7 @@
       "src/i18n/playerText.ts",
       "src/identite-absente-libelle-litteral-guard.test.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.mjs",
       "src/livres-recopies-guard.test.ts",
       "src/main.tsx",
       "src/marcheurs-de-flow-guard.test.ts",
@@ -20747,7 +20787,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -20980,7 +21021,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/ordre.mjs"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -21330,6 +21372,7 @@
       "scripts/raw/reconciliation-stock.json",
       "scripts/raw/stockNominatif.mjs",
       "scripts/source/nom-ascii.mjs",
+      "src/analyse-retention-guard.test.ts",
       "src/audio/_registry.generated.ts",
       "src/audio/defs/critique.ts",
       "src/audio/defs/des.ts",
@@ -21831,6 +21874,8 @@
       "src/data/wounds-mitigation-declaree.test.ts",
       "src/data/zde-affects-authoring.test.ts",
       "src/data/zi-filets.test.ts",
+      "src/detenteur.testkit.test.ts",
+      "src/detenteur.testkit.ts",
       "src/dom-residu-stock.test.ts",
       "src/effective-values-guard.test.ts",
       "src/engine/active-effect-passive.test.ts",
@@ -23570,6 +23615,8 @@
       "src/i18n/playerText.ts",
       "src/identite-absente-libelle-litteral-guard.test.ts",
       "src/lib/normalize.ts",
+      "src/lib/ordre.d.mts",
+      "src/lib/ordre.mjs",
       "src/livres-recopies-guard.test.ts",
       "src/main.tsx",
       "src/marcheurs-de-flow-guard.test.ts",

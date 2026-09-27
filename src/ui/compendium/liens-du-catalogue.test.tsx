@@ -18,6 +18,7 @@ import { CHEMINS_ADRESSES } from '../liage';
 import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../../detenteur.testkit';
 
 interface Rangee {
   cat: string;
@@ -112,18 +113,18 @@ describe('câblage `CHEMINS_ADRESSES` ⇄ porteurs réellement émis (#1392 §10
    * chemin a son SITE DE DÉCLARATION dans les defs de scène. Recopier le triplet attendu ici ne
    * prouverait que la recopie ; on le confronte donc au CODE RÉEL des defs (corpus partagé). */
   const DEFS_SCENES = readCorpus(['src/data/schemas/defs-scenes']);
-  const DECLARES = new Set(
-    DEFS_SCENES.flatMap(({ text }) => [...text.matchAll(/proseDeScene\(\s*'([^']+)'\s*\)/g)].map((m) => m[1])),
+  const DECLARES = detenteur(
+    () => new Set(DEFS_SCENES.flatMap(({ text }) => [...text.matchAll(/proseDeScene\(\s*'([^']+)'\s*\)/g)].map((m) => m[1]))),
   );
 
   it('chaque chemin de PROJET est DÉCLARÉ par un `proseDeScene()` d’une def de scène', () => {
     const projets = CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin);
     expect(projets.length).toBeGreaterThan(0);
-    expect(projets.filter((c) => !DECLARES.has(c)).sort()).toEqual([]);
+    expect(projets.filter((c) => !DECLARES().has(c)).sort()).toEqual([]);
   });
 
   it('aucune def de scène ne déclare un chemin HORS inventaire', () => {
     const projets = new Set(CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin));
-    expect([...DECLARES].filter((c) => !projets.has(c)).sort()).toEqual([]);
+    expect([...DECLARES()].filter((c) => !projets.has(c)).sort()).toEqual([]);
   });
 });

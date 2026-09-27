@@ -24,10 +24,11 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
-import { NOT_IMPL, parseFiche } from '../raw/build-implemente.mjs'
+const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
 // Blocs préservés des catalogues : SOURCE UNIQUE partagée avec le générateur.
-import { BLOCK_START, extractPreservedBlocks } from '../raw/build-catalogs.mjs'
+const { BLOCK_START, extractPreservedBlocks } = await import('../raw/build-catalogs.mjs')
 
 export const FAMILIES = ['generes', 'catalogue', 'fiche-raw']
 

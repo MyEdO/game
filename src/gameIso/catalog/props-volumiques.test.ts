@@ -14,8 +14,8 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { validateScene } from '../../state/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
-import { memoByRef } from '../../state/sceneMemo';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../../detenteur.testkit';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG
@@ -58,10 +58,8 @@ interface DecorAuthore { source: string; id: string; kind?: string; ref?: string
  * a exactement la même frontière, pour la même raison.
  */
 const CORPUS_SCENES = () => readCorpus(['src/scenes'], { exts: ['.json'], tests: true });
-/** Le dépouillement d'un corpus donné, retenu par l'IDENTITÉ de ce corpus (`memoByRef`) : `readCorpus`
- *  rend le MÊME tableau gelé à chaque appel de la même clé, donc la moisson ne se refait pas d'un `it`
- *  à l'autre — et une relecture disque (`viderCorpus`) rend un tableau neuf, donc une moisson neuve. */
-const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] => {
+/** Le dépouillement d'un corpus donné. */
+function moissonDe(corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] {
   const out: DecorAuthore[] = [];
   const recolte = (o: unknown, fichier: string): void => {
     if (!o || typeof o !== 'object') return;
@@ -78,10 +76,9 @@ const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAutho
   const mptOpera = sceneMetresPerTile(buildOperaFloorplan());
   for (const e of scenarioEntities as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
   return out;
-});
-function entitesAuthorees(): DecorAuthore[] {
-  return moisson(CORPUS_SCENES());
 }
+/** La moisson, une fois par fichier (#1801). */
+const entitesAuthorees = detenteur(() => moissonDe(CORPUS_SCENES()));
 
 /** Emprise d'une primitive (`empriseLocaleM`, la seule) : sa boîte englobante au sol ramenée en CASES
  *  (la recette est en mètres, #1507 — c'est l'échelle de la scène qui la ramène à la grille) et ses

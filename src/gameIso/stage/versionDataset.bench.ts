@@ -17,7 +17,7 @@
  * sont des contrats de travail — ils se prouvent sans horloge (`data/versionDataset.test.ts`). Ce
  * qu'il PREND est une durée, et une durée mesure l'ordonnanceur de la machine qui joue : le même
  * ratio vaut 1,39 au calme et 2,1 sous la charge d'une suite voisine. Ce fichier est donc hors de
- * `npm test` et de la CI (`vite.config.ts:71` n'inclut que `*.test.{ts,tsx}`), et se joue par
+ * `npm test` et de la CI (`scripts/guards/lib/racinesDeLaSuite.mjs` n'inclut que `*.test.{ts,tsx}`), et se joue par
  * `npm run bench`.
  *
  * COUCHE : il vit sous `gameIso/` parce qu'il CUIT des scènes — un objet de rendu, pas de donnée.

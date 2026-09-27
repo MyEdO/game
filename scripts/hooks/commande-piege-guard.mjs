@@ -12,14 +12,16 @@
 // tokenizer quote-aware de `solde-ticket-guard` (`segmentsProfonds`/`gitSubcommand`, invariant
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
-import { segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
+import '../node-requis.mjs'
+import { argumentChaine, segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
 
-/** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté). */
+/** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté) ;
+ *  `commande` = le segment à partir de lui. */
 function executableDe(segment) {
   const start = segment[0] === '&' ? 1 : 0
-  if (segment.length <= start) return { exe: '', args: [] }
+  if (segment.length <= start) return { exe: '', args: [], commande: [] }
   const exe = segment[start].replace(/\\/g, '/').split('/').pop().replace(/\.(exe|cmd|bat)$/i, '').toLowerCase()
-  return { exe, args: segment.slice(start + 1) }
+  return { exe, args: segment.slice(start + 1), commande: segment.slice(start) }
 }
 
 /** Paramètres de `New-Item` (propres + communs) avec lesquels un préfixe pourrait être AMBIGU. */
@@ -29,9 +31,9 @@ const PARAMS_NEW_ITEM = [
   'InformationAction', 'InformationVariable', 'OutVariable', 'OutBuffer', 'PipelineVariable',
 ]
 
-/** `mklink` est un BUILTIN de `cmd` : derrière `cmd /c`, l'exécutable du segment est `cmd`, et le
- *  reste de la ligne (chaînée par `&`/`;`, quotée ou non) porte l'invocation. On la lit sur les
- *  arguments RECOLLÉS — une chaîne quotée en un seul token la porte tout entière. */
+/** `mklink` est un BUILTIN de `cmd` : derrière `cmd /c`, l'exécutable du segment est `cmd`, et la
+ *  commande qu'il porte (chaînée par `&`, quotée ou non) contient l'invocation. On la lit dans la
+ *  commande que lit `solde-ticket-guard` (`argumentChaine` : le reste de la ligne après `/c`/`/k`). */
 const MKLINK_APRES_CMD_RE = /(?:^|[\s&;|("'])mklink(?=$|[\s"'])/i
 const MKLINK_FLAG_RE = /(?:^|[\s"'])\/[jdh](?=$|[\s"'])/i
 
@@ -42,7 +44,7 @@ const MKLINK_FLAG_RE = /(?:^|[\s"'])\/[jdh](?=$|[\s"'])/i
  * nomme `node_modules`.
  */
 function lienNodeModules(segment) {
-  const { exe, args } = executableDe(segment)
+  const { exe, args, commande } = executableDe(segment)
   let forme
   if (exe === 'new-item' || exe === 'ni') {
     const type = valeurParametre(args, 'ItemType', PARAMS_NEW_ITEM)
@@ -52,7 +54,7 @@ function lienNodeModules(segment) {
     if (!args.some((a) => /^\/[jdh]$/i.test(a))) return null
     forme = 'mklink'
   } else if (exe === 'cmd') {
-    const suite = args.join(' ')
+    const suite = argumentChaine(commande) ?? ''
     if (!MKLINK_APRES_CMD_RE.test(suite) || !MKLINK_FLAG_RE.test(suite)) return null
     forme = 'cmd /c mklink'
   } else if (exe === 'ln') {

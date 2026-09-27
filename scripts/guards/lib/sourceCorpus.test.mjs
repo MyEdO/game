@@ -27,9 +27,10 @@
 //  (i) DÉCLARATION : un `*.d.ts` est hors corpus, quelles que soient les `exts` et `tests` demandés —
 //      il n'a aucun corps, donc aucun des motifs qu'une garde cherche, et il fausse tout compte de
 //      modules de production.
+//  (j) UN TEXTE PAR CHEMIN : deux clés qui lisent le même fichier rendent la MÊME entrée (#1801).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-// eslint-disable-next-line no-restricted-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
+// eslint-disable-next-line murs/ordre-total-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
 import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
@@ -127,6 +128,21 @@ test('la clé porte les dossiers, leur ORDRE, les extensions et `tests`', () => 
     assert.deepEqual(readCorpus([a], { tests: true }).map((f) => f.text), ['deux', 'un-test', 'un'])
     assert.equal(readCorpus([a], { exts: ['.tsx', '.ts'] }), readCorpus([a], { exts: ['.ts', '.tsx'] }),
       'la clé est le CONTENU des extensions, pas leur ordre d’écriture')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('deux clés qui lisent le même chemin rendent la MÊME entrée, donc un seul texte', () => {
+  const { racine, a, b } = frais()
+  try {
+    const surA = readCorpus([a])
+    const surAB = readCorpus([a, b])
+    const avecTests = readCorpus([a], { tests: true })
+    const un = (corpus) => corpus.find((f) => f.rel.endsWith('/un.ts'))
+    assert.notEqual(surAB, surA, 'deux clés, deux tableaux')
+    assert.equal(un(surAB), un(surA), 'clé `[a, b]` : la même entrée que clé `[a]`')
+    assert.equal(un(avecTests), un(surA), 'clé `tests` : la même entrée que clé `[a]`')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

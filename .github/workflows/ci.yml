@@ -62,7 +62,7 @@ jobs:
         run: npm run test:hooks
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:ops
-      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:runner
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:docs

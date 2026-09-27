@@ -104,7 +104,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 146 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 149 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
@@ -200,8 +200,8 @@ PORTE est `.github/workflows/ci.yml` (« CI », push, pull_request) : elle joue 
 gates sur CHAQUE branche `chantier/**`, et c'est son verdict — jamais un artefact local — qui
 autorise une tête à entrer dans `main`. Elle CLASSE d'abord le push
 (`scripts/gates/classerPush.mjs`) : un push dont tous les fichiers changés tombent sous
-`.claude/`, `.agents/`, `.codex/`, `AGENTS.md`, `CLAUDE.md` ne joue que les 9 gates qui LISENT un de
-ces chemins (`docs:check:tout`, `agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:docs`, `deps:unused`, `docs:empreinte`, `test:raw`) ; les 15 autres sont sautées.
+`.claude/`, `.agents/`, `.codex/`, `AGENTS.md`, `CLAUDE.md` ne joue que les 10 gates qui LISENT un de
+ces chemins (`docs:check:tout`, `agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:runner`, `test:docs`, `deps:unused`, `docs:empreinte`, `test:raw`) ; les 14 autres sont sautées.
 
 `npm run ops:publier` joue le train : rebase, docs dérivés, push de la BRANCHE, attente du run CI de
 cette branche, fast-forward de `main`, pilotage. Il refuse à la première étape rouge en la nommant,
@@ -241,4 +241,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: d318c9781cbcd5aaca01950799c218b1003c64f0 (24 fichiers, 8 dossiers) corps: 037a4ce8af8da429855f4cf9eccccab3fcd195e6 -->
+<!-- sources-empreinte: 6ef15723fe7daa29e1f1e12fdd2fefca4fc07460 (26 fichiers, 8 dossiers) corps: 4161d1daa1bf6568f142722277c4bbe91d0308aa -->

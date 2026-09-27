@@ -129,10 +129,10 @@
 | Fureur Vengeresse | 📜 | oui | Fureur Vengeresse : vous devez Charger l’ennemi impénitent le plus proche et pouvez relancer tous vos jets de Corps à corps tant que le Miracle est actif — arbitrage MJ. |
 | Inspirant | 🟡 | oui | Inspirant : +1 Talent Coude-à-coude (bonus de surnombre coopératif) — arbitrage MJ si non câblé. |
 | Lance de Myrmidia | ✅ | oui |  |
+| Œil de l'aigle | 📜 | oui | Œil de l’aigle : un aigle spectral invulnérable survole le champ ; vous percevez par ses yeux et dirigez son vol, mais vous ne percevez plus par les vôtres (vulnérable) — arbitrage MJ. |
 | Prouesses Martiales | ✅ | oui |  |
 | Soleil flamboyant | 🟡 | oui | Soleil flamboyant : ne touche que les non-Myrmidiens qui regardent dans votre direction — arbitrage MJ. |
 | Terrifier l'Ennemi | ✅ | oui |  |
-| Œil de l'aigle | 📜 | oui | Œil de l’aigle : un aigle spectral invulnérable survole le champ ; vous percevez par ses yeux et dirigez son vol, mais vous ne percevez plus par les vôtres (vulnérable) — arbitrage MJ. |
 
 ## Invocation — Ranald (6)
 
@@ -284,45 +284,6 @@
 | Varech avarié | ✅ | oui |  |
 | Vision dans l'obscurité | ✅ | oui |  |
 
-## Magie des Arcanes & de Nécromancie (8)
-
-| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
-|---|---|---|---|
-| Agression AEthyrique | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Appel de Vanhel | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Armure d’AEthyr | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Entrave | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Forme Spectrale | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Frénésie Artificielle | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Mouchard | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Télékinésie | 📜 | repli | Non curé : desc journalisée telle quelle. |
-
-## Magie des Arcanes & de Sorcellerie (5)
-
-| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
-|---|---|---|---|
-| Effigie Maudite | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Faux- Semblant | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Nuée | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Ruine | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Terreur Nocturne | 📜 | repli | Non curé : desc journalisée telle quelle. |
-
-## Magie des Arcanes & des Taillis (5)
-
-| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
-|---|---|---|---|
-| Bienveillance | 🟡 | repli | Non curé : desc journalisée telle quelle. |
-| Bouillon Revigorant | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Fertilisation | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Nostrum | 📜 | repli | Non curé : desc journalisée telle quelle. |
-| Ramanchage | 📜 | repli | Non curé : desc journalisée telle quelle. |
-
-## Magie des Arcanes Skaven (1)
-
-| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
-|---|---|---|---|
-| Avatar du Rat Cornu | 📜 | repli | Non curé : desc journalisée telle quelle. |
-
 ## Magie des Arcanes — Bête (24)
 
 | Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
@@ -384,6 +345,29 @@
 | Tempête de Shemtek | 🟡 | oui | Tempête de Shemtek : un nombre d'éclairs égal à votre Bonus d'Initiative × 2 s'échappe de votre corps vers des cibles distinctes devant vous ; quiconque assiste au Sort sans posséder le Talent Magie des Arcanes (Cieux) doit réussir un Test contre la Peur (1), et le Sort n'a pas besoin d'être lancé à ciel ouvert ; une variante moins risquée invoque un nombre d'éclairs égal à votre Bonus d'Initiative dans une zone cible à (Bonus de Force Mentale) × 2 mètres, sans État Sonné ni Peur — éclairs répartis sur des cibles distinctes et variante non modélisés, arbitrage MJ. |
 | Tornade de Thorsen | 🟡 | oui | Tornade de Thorsen : les cibles touchées sont ensuite projetées dans une direction aléatoire selon les règles du Sort Que soufflent les Quatre Vents !, et la tornade elle-même suit les règles des Vortex aléatoires — direction aléatoire de la projection et déplacement du vortex non modélisés, arbitrage MJ. |
 
+## Magie des Arcanes & de Nécromancie (8)
+
+| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
+|---|---|---|---|
+| Agression AEthyrique | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Appel de Vanhel | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Armure d’AEthyr | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Entrave | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Forme Spectrale | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Frénésie Artificielle | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Mouchard | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Télékinésie | 📜 | repli | Non curé : desc journalisée telle quelle. |
+
+## Magie des Arcanes & de Sorcellerie (5)
+
+| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
+|---|---|---|---|
+| Effigie Maudite | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Faux- Semblant | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Nuée | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Ruine | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Terreur Nocturne | 📜 | repli | Non curé : desc journalisée telle quelle. |
+
 ## Magie des Arcanes — Démonologie (4)
 
 | Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
@@ -393,6 +377,16 @@
 | Manifestation de Démon mineur | 🟡 | oui | Manifestation de Démon mineur : Test opposé de Focalisation (Dhar)/Force Mentale — sur un succès il vous obéit puis disparaît ; sur un échec il se retourne contre vous (passez-le hostile) — arbitrage MJ. |
 | Octogramme | 🟡 | oui | Octogramme : un cercle protecteur (diamètre BFM m) qu’aucune créature Démoniaque ne peut franchir, sauf si sa Force Mentale dépasse le double de la vôtre — arbitrage MJ. |
 
+## Magie des Arcanes & des Taillis (5)
+
+| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
+|---|---|---|---|
+| Bienveillance | 🟡 | repli | Non curé : desc journalisée telle quelle. |
+| Bouillon Revigorant | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Fertilisation | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Nostrum | 📜 | repli | Non curé : desc journalisée telle quelle. |
+| Ramanchage | 📜 | repli | Non curé : desc journalisée telle quelle. |
+
 ## Magie des Arcanes — Feu (24)
 
 | Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
@@ -400,11 +394,11 @@
 | Allumer le feu | 🟡 | oui | Allumer le feu : dans la Zone d'Effet, tout ce qui est normalement ininflammable peut prendre feu, même l'eau ou la pierre ; l'État En flammes et les +DR Dégâts de feu ne frappent que ce qui est DÉJÀ inflammable — inflammabilité de la matière non modélisée, arbitrage MJ. |
 | Blizzard ardent d'Ygethmor | 🟡 | oui | Blizzard ardent d'Ygethmor : le Test d'Athlétisme Intermédiaire (+0) se rejoue à chaque tour passé dans la zone ; les objets inflammables et les éléments du terrain ont 25 % de chance de prendre feu à chaque tour ; seule une couverture totale protège du blizzard — arbitrage MJ. |
 | Cautériser | 🟡 | oui | La cible hurle de douleur (Aqshy brûle en guérissant). |
+| Cœurs ardents | 🟡 | oui | Cœurs ardents : +1 Talent Coude-à-coude tant que le Sort est actif (arbitrage MJ). |
 | Cognat de l'âtre | 🟡 | oui | Cognat de l'âtre : un élémentaire mineur (Mouvement 3, Capacité de Combat égale à votre Force Mentale, attaques de Dégâts +6, Trait Peur (1), En flammes sur ses Dégâts) sort du feu de camp, reste à 12 mètres de celui-ci, obéit à la voix, ne gagne pas d'Avantages et n'est blessé que par une pinte d'eau — invocation d'une créature sans profil de bestiaire, arbitrage MJ. |
 | Colérique | 🟡 | oui | Colérique : la cible du Préjugé est nommée ou désignée par le lanceur ; la durée est de (Bonus de Force Mentale) heures, jours (+4 DR, Animosité) ou semaines (+8 DR, Haine) ; deux amis laissent à la cible un Test de Calme Accessible (+20) pour résister — cible nommée et durées longues non modélisées, arbitrage MJ. |
 | Corps de feu | 📜 | oui | Corps de feu : qui essaie de vous attraper ou de vous empoigner subit 8 + DR Dégâts, doit réussir un Test de Calme Difficile (−20) par Round ou lâcher prise, et prend 1 État En flammes plus 8 + DR Dégâts par Round d'Empoignade ; blessé au corps à corps, votre sang asperge l'assaillant (Test d'Esquive Intermédiaire (+0) ou Projectile magique de Dégâts +3 ignorant les PA) ; vos vêtements et possessions sont ignifugés — riposte passive au contact non exprimable sans Trait porteur, arbitrage MJ. |
 | Couronne de Flammes | 🟡 | oui | Couronne de Flammes : +1 Talent Seigneur de guerre tant que le Sort est actif ; par +2 DR, +1 Peur OU Seigneur de guerre repris — arbitrage MJ. |
-| Cœurs ardents | 🟡 | oui | Cœurs ardents : +1 Talent Coude-à-coude tant que le Sort est actif (arbitrage MJ). |
 | Embrasement | 🟡 | oui | Embrasement : sur une cible DÉJÀ En flammes, distribuez à la place 3 États En flammes aux autres cibles situées à 2 mètres ou moins de celle d'origine — propagation au choix du lanceur, arbitrage MJ. |
 | Épées sanguines | 📜 | oui | Épées sanguines : 1 épée volante (+1 par +2 DR, 6 au maximum) flotte devant vous ; dépenser votre action les dirige contre des cibles à portée et en Ligne de vue, une seule épée par cible, Trait Vol (20), Capacité de Combat 60, 8 Dégâts, défense normale de l'adversaire, indestructibles, sans Avantages, dissipables — attaquant autonome à Capacité de Combat propre non modélisé, arbitrage MJ. |
 | Flamme fascinante | 🟡 | oui | Flamme fascinante : la cible est un feu, l'observateur affecté est tiré au hasard parmi ceux qui regardent dans sa direction ; les hypnotisés oublient ce qui les entoure jusqu'à retirer tous les États Sonné du Sort, et attaquer une cible Sonnée les retire tous ; +2 DR ensorcelle un brasier ou un feu de camp (2 observateurs), +4 DR un bûcher ou un bâtiment en flammes (tous ceux qui l'observent) — désignation aléatoire des observateurs non modélisée, arbitrage MJ. |
@@ -625,6 +619,12 @@
 | Transmutation fantasmagorique de Colchis | 🟡 | oui | Transmutation fantasmagorique de Colchis : les Personnages et les surfaces de la Zone d'Effet sont ignifugés et ne subissent aucun Dégât de feu tant qu'ils y restent, les feux s'éteignant instantanément — immunité au feu attachée à un périmètre non modélisée, arbitrage MJ. |
 | Trouver des lignes de force telluriques | 🟡 | oui | Trouver des lignes de force telluriques : vous obtenez une carte mentale des lignes de force et des cercles de pierres à portée, dont la force globale (importante ou secondaire) et le nombre de pierres gardiennes, sans discerner de couleur de magie ; le +2 DR ne vaut que pour l'Orientation employée à localiser une ligne de force — carte mentale non modélisée, arbitrage MJ. |
 
+## Magie des Arcanes Skaven (1)
+
+| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
+|---|---|---|---|
+| Avatar du Rat Cornu | 📜 | repli | Non curé : desc journalisée telle quelle. |
+
 ## Magie du Chaos (9)
 
 | Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |
@@ -834,4 +834,4 @@
 | Vol | 📜 | repli | Non curé : desc journalisée telle quelle. |
 | WAAAGH ! | 🟡 | repli | Non curé : desc journalisée telle quelle. |
 | Z’Oeils de Mork | 📜 | repli | Non curé : desc journalisée telle quelle. |
-<!-- sources-empreinte: f97d2f88d9a3e185e4e465d87eb75643335f3628 (217 fichiers, 0 dossiers) corps: 57339bd26972a9f6c7b187ddec8028b3552b357f -->
+<!-- sources-empreinte: 9b84e7a2ee6c987fc19c7b60bb7d2db5a67ed774 (218 fichiers, 0 dossiers) corps: a9038dba7b4901b4496ba9efba460f68f450562d -->

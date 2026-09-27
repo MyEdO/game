@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
+import { arbreDe, scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -251,13 +251,18 @@ const RAW_CEILING = Object.values(RAW_KNOWN).reduce((s, n) => s + n, 0);
 /** Les DEUX détecteurs passent sur le MÊME corpus, fichier par fichier et l'un après l'autre : un
  *  seul parcours de dossiers (`readCorpus`, primitive unique de marche de corpus source — les tests
  *  sont pris puis écartés par `isRegistryIdBranchExcluded`, qui porte AUSSI l'exclusion des
- *  migrations), une seule lecture, et l'arbre syntaxique d'un fichier sert aux deux scans (cache de
- *  taille un, `registryIdBranch.mjs`). Mémoïsation PARESSEUSE par jeu de dossiers — le corpus est
+ *  migrations), une seule lecture, et l'arbre syntaxique d'un fichier (`arbreDe`) sert aux deux scans
+ *  et meurt avec son tour de boucle. Mémoïsation PARESSEUSE par jeu de dossiers — le corpus est
  *  marché au 1ᵉʳ `it` qui le demande, jamais à la collecte des tests. */
 const _analyses = new Map<string, {
   principal: { rel: string; line: number; detail: string; rule: string }[];
   brut: { rel: string; line: number; detail: string }[];
 }>();
+
+// Vidée en `afterAll` (#1801).
+afterAll(() => {
+  _analyses.clear();
+});
 
 function analyse(dirs: string[]) {
   const cle = dirs.join('|');
@@ -266,8 +271,9 @@ function analyse(dirs: string[]) {
     a = { principal: [], brut: [] };
     for (const { rel, text } of readCorpus(dirs, { exts: SCAN_EXTS, tests: true })) {
       if (isRegistryIdBranchExcluded(rel)) continue;
-      for (const fd of scanRegistryIdBranch(rel, text)) a.principal.push({ rel, ...fd });
-      for (const fd of scanRawIdEqualities(rel, text)) a.brut.push({ rel, ...fd });
+      const sf = arbreDe(rel, text);
+      for (const fd of scanRegistryIdBranch(rel, text, sf)) a.principal.push({ rel, ...fd });
+      for (const fd of scanRawIdEqualities(rel, text, sf)) a.brut.push({ rel, ...fd });
     }
     _analyses.set(cle, a);
   }

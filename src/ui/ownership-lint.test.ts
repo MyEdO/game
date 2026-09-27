@@ -1,7 +1,7 @@
 /**
  * LA POLICE DE LA POSSESSION SE MESURE (#1262 L1) — `ownsLocally` ne peut PAS être muré par export
  * (six consommateurs internes à `netOwnership`, plus un ré-export par `netFlow`) : ce qui tient la
- * porte UI (`ui/ownership.ts`) est une règle `no-restricted-imports` de `eslint.config.js`. Une règle
+ * porte UI (`ui/ownership.ts`) est le mur d'import `murs/possession` de `eslint.config.js`. Une règle
  * qu'aucun test ne lance est décorative — un `group` mal écrit ou un `importNames` oublié passerait
  * en silence, comme le sélecteur trop étroit du verrou de forge (patron `built-brand-lint.test.ts`).
  *
@@ -19,7 +19,7 @@ const LA_PORTE = 'src/ui/ownership.ts';
 
 async function messages(code: string, filePath = SOUS_LA_REGLE): Promise<string[]> {
   const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  return res.messages.filter((m) => m.ruleId === 'no-restricted-imports').map((m) => `${m.line}:${m.column}`);
+  return res.messages.filter((m) => m.ruleId === 'murs/possession').map((m) => `${m.line}:${m.column}`);
 }
 
 describe('#1262 L1 — le lint refuse le prédicat d’état importé dans une fenêtre', () => {

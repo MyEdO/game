@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-109 primitives.
+110 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -92,6 +92,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | objectif courant : tête repliable (texte, compte, échéance) et liste dépliée | `ObjectiveBanner` | `src/ui/ObjectiveBanner.tsx` | `src/ui/styles/objective-banner.css` | pile de contexte d'exploration du HUD | — |
 | structure de rangées d’un GameOp[] pour le Codex | `opRows` | `src/ui/compendium/opRows.ts` | — | vue joueur des effets et fiches du compendium | — |
 | choix d'options de jet (seg/grid/actions) | `OptionChooser/ChoiceButtons` | `src/ui/OptionChooser.tsx` | `src/ui/styles/option-chooser.css` | tout choix d'options + paire/triplet de boutons de décision | — |
+| comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm) | `parUnitesDeCode/parLibelle/replier` | `src/lib/ordre.mjs` | — | tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte | mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs |
 | textures maison (parchemin/fer/encre), filets titrés et fleurons de coin | `Fleuron/RuleDivider/CornerFlourish/OrnateFrame` | `src/ui/Ornaments.tsx` | `src/ui/styles/ornaments.css` | cartes de menu, sections titrées, cadres de planche | — |
 | schéma d'une palette d'espèce persistée : clés dans les gammes de PORTEUR (GAMMES_PORTEUR, palette.types.ts), valeurs #rrggbb ; structure seule | `paletteDEspeceSchema` | `src/data/schemas/grammaire/valeurs.ts` | — | raceAppearance.palette/paletteF (Compendium, dev-validate, CI des données) | surcharge-palette.test.ts |
 | type d'une palette déclarée : record partiel des gammes de la table (base, O, H) ; la couche PORTÉE (tenue, arme, armure) type `?: never` les gammes de sorte porteur, suiveuses comprises. Limite : refuse un littéral et un objet typé, pas un Record<string, string> non littéral | `PaletteDeclaree/PaletteDeCouchePortee` | `src/gameIso/rig/palette.ts` | — | toute palette de def du rig : créatures, compose*, nuées, navires, artkits, espèces (PaletteDeclaree) ; tenues, armes, armures (PaletteDeCouchePortee) | compilation ; morsures @ts-expect-error de clesDePalette.test.ts |
@@ -140,4 +141,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: cdada03586c25b2a698ca1b999a83d97c8ca6363 (5 fichiers, 0 dossiers) corps: 7b073d6dff79e86322d5fd9f0453c3788deccc5d -->
+<!-- sources-empreinte: 03f9e312266a29ff60f5730365e937edbceecee6 (6 fichiers, 0 dossiers) corps: 87f3a9ebb13b48ee6c69fdbd28139b8d6146f63a -->

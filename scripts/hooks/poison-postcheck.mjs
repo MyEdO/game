@@ -6,16 +6,18 @@
 // Second volet, sur .claude/** et docs/** : le POINTEUR DÉRÉFÉRENCÉ — une ligne écrite qui cite un
 // ticket par son seul numéro. « #1463 » ne se lit pas : le lecteur suivant (ou la session suivante)
 // doit ouvrir GitHub pour savoir de quoi il s'agit, et la note devient inerte au premier oubli.
+import '../node-requis.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
-  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
-} from '../guards/lib/commentPoison.mjs';
 import { scanLabelLogic } from '../guards/lib/labelLogic.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { cheminDEcriture } from './solde-ticket-guard.mjs';
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const {
+  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
+  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
+} = await import('../guards/lib/commentPoison.mjs');
 
 let raw = '';
 process.stdin.setEncoding('utf8');

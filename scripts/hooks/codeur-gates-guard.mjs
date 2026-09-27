@@ -18,6 +18,7 @@
 // hooks.md § Subagent Behavior) et n'existe pas depuis la session principale : l'orchestrateur n'est
 // jamais visé. Sous Codex (`.codex/hooks.json`, même script) ces champs n'existent pas non plus — le
 // hook y est un no-op silencieux, par construction.
+import '../node-requis.mjs'
 import { appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { segmentsProfonds, basenameExecutable } from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'

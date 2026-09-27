@@ -8,6 +8,7 @@ import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scrip
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
+import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 
 /** Auto-génération des registres « dépose un fichier → intégré » : régénère l'index explicite
  *  au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère ensuite). */
@@ -69,7 +70,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}', 'server/src/**/*.test.ts', 'scripts/map/**/*.test.ts'],
+    include: RACINES_DE_LA_SUITE.map((r) => r.motif),
     // Le graphe de modules (moteur pur + ~1 Mo de `src/data/*.json`) est ré-évalué une fois PAR
     // WORKER au lieu d'une fois par fichier de test → effondre la phase `collect` (l'essentiel du temps
     // de suite). Contrepartie : le graphe étant partagé, un mock de MODULE ne se lie plus de façon

@@ -24,6 +24,7 @@ import { gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
+import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 
 const OUTIL = 'build-reprise'
 
@@ -66,21 +67,17 @@ const HOOKS_GIT = listerDossier(chemin('scripts/git-hooks')).filter((f) => !f.in
 if (!HOOKS_GIT.includes('pre-commit')) abandon('hook Git « pre-commit » absent de scripts/git-hooks/')
 
 // Hooks de session Claude Code déclarés dans `.claude/settings.json` (versionné).
-const SETTINGS = JSON.parse(readFileSync(chemin('.claude/settings.json'), 'utf8'))
+const HOOKS_SESSION = aplatirHooks(JSON.parse(readFileSync(chemin(SURFACE_CLAUDE), 'utf8')), SURFACE_CLAUDE)
 
 function hooksDeSession(evenement) {
-  const groupes = SETTINGS.hooks?.[evenement]
-  if (!Array.isArray(groupes) || !groupes.length) {
-    abandon(`.claude/settings.json ne déclare plus d'événement « ${evenement} »`)
-  }
-  return groupes.flatMap((g) =>
-    (g.hooks ?? []).map((h) => {
-      const s = (h.command ?? '').match(/scripts\/hooks\/[\w.-]+\.mjs/)
-      if (!s) abandon(`hook « ${evenement} » sans script scripts/hooks/*.mjs : ${h.command}`)
-      chemin(s[0])
-      return { matcher: g.matcher ?? '(tous)', script: s[0], role: h.statusMessage ?? '' }
-    }),
-  )
+  const hooks = HOOKS_SESSION.filter((h) => h.phase === evenement)
+  if (!hooks.length) abandon(`${SURFACE_CLAUDE} ne déclare plus d'événement « ${evenement} »`)
+  return hooks.map((h) => {
+    if (!h.script) abandon(`hook « ${evenement} » sans script scripts/hooks/*.mjs : ${h.command}`)
+    const script = `scripts/hooks/${h.script}`
+    chemin(script)
+    return { matcher: h.matcher || '(tous)', script, role: h.statusMessage ?? '' }
+  })
 }
 
 /** Événements de session que la surface Claude DOIT déclarer. Son `SessionStart` porte la mise en

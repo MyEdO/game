@@ -95,8 +95,8 @@ export const ECRIT_LU = {
     raison:
       'les écritures sont INJECTÉES et comptées, jamais faites (scripts/agents/compat.test.mjs:65) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
-      '.claude/settings.json et .codex/hooks.json (compat.test.mjs:160,161), CLAUDE.md (l.166, contrat ' +
-      'sur la ligne `@.claude/credo.md` l.167) et AGENTS.md (l.180) — sonde `fs` du 2026-09-16 sur ' +
+      '.claude/settings.json et .codex/hooks.json (compat.test.mjs:176,177), CLAUDE.md (l.182, contrat ' +
+      'sur la ligne `@.claude/credo.md` l.183) et AGENTS.md (l.193) — sonde `fs` du 2026-09-16 sur ' +
       '`node --test scripts/agents/compat.test.mjs`',
   },
   'test:hooks': {
@@ -173,11 +173,13 @@ export const ECRIT_LU = {
   },
   'test:runner': {
     ecrit: [],
-    lit: ['scripts/', 'package.json', '.npmrc'],
+    lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
     raison:
       'chaque cas fabrique son arbre sous os.tmpdir() (`mkdtempSync`), y compris son node_modules/.cache ; ' +
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
-      'dans son faux arbre, le 2026-09-24, #1801)',
+      'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
+      '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
+      'le 2026-09-27, #1801)',
   },
   'test:docs': {
     ecrit: [],

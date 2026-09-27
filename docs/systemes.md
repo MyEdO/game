@@ -163,6 +163,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `parUnitesDeCode/parLibelle/replier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -224,4 +225,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 025de4834061056c6aea6e319491332a23de3c54 (1829 fichiers, 2 dossiers) corps: 8b31dfb770ea52043129eb7724a022ce0389611a -->
+<!-- sources-empreinte: a01990f9099badeeb26d175b81a27cfc37a13d78 (1830 fichiers, 2 dossiers) corps: 783759f67175c4a46ab7750d099cfb3f9b532daa -->

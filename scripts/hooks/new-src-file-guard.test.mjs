@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'no
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import {
   estComposantUI, estDeclare, relPath, cheminEntree, maquetteEntree, REGISTRE_DEFAUT, cheminRegistre,
   MANIFESTE_PRIMITIVES,
@@ -164,11 +165,10 @@ test('ctx_patch op=create porte le chemin en `path` : même refus que Write', ()
 })
 
 test('les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)', () => {
-  for (const surface of ['.claude/settings.json', '.codex/hooks.json']) {
-    const config = JSON.parse(readFileSync(join(REPO, surface), 'utf8'))
-    const matchers = (config.hooks?.PreToolUse ?? [])
-      .filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('new-src-file-guard.mjs')))
-      .map((e) => String(e.matcher ?? ''))
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const matchers = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
+      .filter((h) => h.phase === 'PreToolUse' && h.script === 'new-src-file-guard.mjs')
+      .map((h) => h.matcher)
     assert.ok(matchers.length > 0, `${surface} : hook non câblé`)
     for (const canal of ['Write', 'mcp__lean-ctx__ctx_patch'])
       assert.ok(matchers.some((m) => m.split('|').includes(canal)), `${surface} : canal ${canal} non matché`)
