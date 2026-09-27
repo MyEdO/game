@@ -17,7 +17,7 @@ import { spec as siegeSpec } from '../../scenes/test-scenarios/siege-enceinte';
  * chaîne de transformation de l'hôte du monde (`stage/MondeDeCampagne`) — cible ET échelle comprises. Un signe de rotation inversé, un
  * zoom appliqué au mauvais étage ou un `slice` oublié s'y voient au pixel.
  */
-const scene = buildScene(siegeSpec);
+const scene = buildScene(siegeSpec());
 const mpt = sceneMetresPerTile(scene);
 /** L'écart mesuré est de l'ordre du flottant : la tolérance n'est pas un « à peu près ». */
 const TOL = 1e-6;

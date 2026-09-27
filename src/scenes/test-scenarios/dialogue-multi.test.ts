@@ -11,8 +11,9 @@ import { useGame } from '../../state/store';
 import { ouvrirDialogue, reponsesDuNoeud } from '../../state/dialogue';
 import { runBindingById } from '../../state/keybindings';
 import { scenario } from './dialogue-multi';
+const scenarioConstruit = scenario.construire();
 
-const tablee = scenario.scene.dialogues.find((d) => d.id === 'dlg-tablee')!;
+const tablee = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-tablee')!;
 const get = useGame.getState;
 
 /** Ouvre `dlg-tablee` sur Gustav, avec les flags DU STORE (ceux que la partie a posés). */
@@ -33,8 +34,8 @@ function secondPassage() {
 describe('dialogue-multi — la reprise par `when` dans le dialogue de Gustav', () => {
   beforeEach(() => {
     useGame.setState({
-      screen: 'campaign', mode: 'exploration', battle: null, scene: scenario.scene, flags: {},
-      party: scenario.makeParty(), dialogueHistory: [], merchant: null, document: null, pendingTest: null,
+      screen: 'campaign', mode: 'exploration', battle: null, scene: scenarioConstruit.scene, flags: {},
+      party: scenario.construire().party, dialogueHistory: [], merchant: null, document: null, pendingTest: null,
     });
     parlerAGustav();
   });

@@ -209,7 +209,7 @@ Portée : fichiers top-level (hors `*.test.ts`) non atteints par la closure d'im
 manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système
 unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.
 
-18 fichier(s) :
+19 fichier(s) :
 
 - `src/engine/axes.ts`
 - `src/engine/mountedManeuvers.ts`
@@ -226,7 +226,8 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/offresUtilisables.ts`
 - `src/state/preferences.ts`
 - `src/state/registreOffres.ts`
+- `src/state/scenarioFlow.ts`
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 45cda3acc96081e7f5a5e54b0fb54600bbe97e81 (1844 fichiers, 2 dossiers) corps: 6e08a1949edb03c19163f05a4fd0e1a02cb537fc -->
+<!-- sources-empreinte: 71dbedeb17b49cc65a32723ed838908e359d9d36 (1844 fichiers, 2 dossiers) corps: 48a3dda8c8597c51b940003b3e9005dd4c040a55 -->

@@ -184,6 +184,7 @@ registerCascadeApplier('interludePurse', (get, set) => {
 
 /** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié. */
 export function startInterlude(get: Get, set: Set, weeks = 1): void {
+  if (!rule('interlude-enabled')) return; // LDB 21 l.108
   if (get().battle) {
     get().log(msg('if.inCombat'));
     return;

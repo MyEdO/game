@@ -78,7 +78,9 @@ function batirTemoins() {
   /** La géométrie triangulée de TOUTES les faces d'une scène — ce que `bakeWorldGeometry` appelle. */
   const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthOf()));
   return {
-    siege: buildScene(siegeSpec),
+    siege: buildScene(siegeSpec()),
+    arene: arene.construire().scene,
+    diligence: diligence.construire().scene,
     vitrine: buildVitrineScene(),
     opera: buildOperaFloorplan(),
     facesOf,
@@ -90,7 +92,8 @@ const temoin = detenteur(batirTemoins);
 const siege = () => temoin().siege;
 const vitrine = () => temoin().vitrine;
 const opera = () => temoin().opera;
-const areneHub = () => arene.scene;
+const areneHub = () => temoin().arene;
+const diligenceScene = () => temoin().diligence;
 const facesOf = (scene: Scene) => temoin().facesOf(scene);
 const quadsOf = (scene: Scene) => temoin().quadsOf(scene);
 const geomsOf = (scene: Scene) => temoin().geomsOf(scene);
@@ -197,8 +200,8 @@ describe('MONTANTS à 2 points — deux quads verticaux croisés, largeur AUTHOR
   });
 
   it('arène : AUCUN montant n’est entièrement noyé dans la matière des murs', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const depthOf = faceDepthOf();
     // Matière = les boîtes des faces qui SONT la matière pleine du mur (`wallPartRelief`) — depuis le
     // relief mince (#1176 P1-E), une partie en SAILLIE produit une boîte elle aussi, mais plus épaisse
@@ -296,8 +299,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
     });
 
   it('arène : les quads de MONTANT entrent dans le rang (poteaux/jambages/piliers)', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const depthOf = faceDepthOf();
     const quads: WorldPoly[] = [];
     const montant: boolean[] = [];
@@ -316,8 +319,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
   });
 
   it('facesGeometry biaise AUSSI les quads d’un montant (même liste de rangs que faceQuads)', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const geoms = facesGeometry(faces, mpt, faceDepthOf());
     const iMontant = faces.findIndex((f, i) => f.poly.length === 2 && geoms[i].rank > 0);
     expect(iMontant).toBeGreaterThanOrEqual(0);
@@ -376,7 +379,7 @@ describe('coplanarRanks — le balayage spatial rend EXACTEMENT les rangs de la 
   const cartes: [string, () => Scene][] = [
     ['arene (hub)', areneHub],
     ['siege-enceinte', siege],
-    ['diligence', () => diligence.scene],
+    ['diligence', diligenceScene],
     ['vitrine-batiments', vitrine],
     ['opera (la plus lourde du dépôt)', opera],
   ];
@@ -674,7 +677,7 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
   it('scène réelle : TOUTES les uv1 sont bornées [0,1] (montants et chants de boîte compris)', () => {
     for (const [, scène] of [
       ['siege', siege()],
-      ['arene', arene.scene],
+      ['arene', areneHub()],
     ] as [string, Scene][]) {
       const geoms = geomsOf(scène);
       const hors = geoms.flatMap((g) => g.uv1.flat()).filter((c) => c.u < 0 || c.u > 1 || c.v < 0 || c.v > 1);
@@ -763,8 +766,8 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  (bourg meublé à fort relief) se rétablit par une scène CONSTRUITE portant du relief, pas en
    *  ré-épinglant une carte livrée. */
   const SANS_EPINGLE: [string, () => Scene, string][] = [
-    ['diligence', () => diligence.scene, 'carte livrée (authoring au studio)'],
-    ['arene (hub)', () => arene.scene, 'carte livrée (générateur d’auteur)'],
+    ['diligence', diligenceScene, 'carte livrée (authoring au studio)'],
+    ['arene (hub)', areneHub, 'carte livrée (générateur d’auteur)'],
   ];
 
   /** Plafond de hausse ASSUMÉ du lot : au-delà, le relief coûte plus qu'il ne rend et la mesure remonte

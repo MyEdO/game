@@ -4,6 +4,7 @@ import { scenario } from './43-pastilles-entite';
 import { entityGestes } from '../../state/registreOffres';
 import type { OffreRendue } from '../../state/offreRendue';
 import { chebyshev } from '../../engine/grid';
+const scenarioConstruit = scenario.construire();
 
 /**
  * PASTILLES D'ENTITÉ — le scénario COUVRE-T-IL vraiment les gestes qu'il annonce ? (#1411 P2-C, R3)
@@ -14,8 +15,8 @@ import { chebyshev } from '../../engine/grid';
  * familles d'entités offrent bien leurs gestes à l'actif, à une case, sans un pas de déplacement.
  */
 function ouvrir() {
-  useGame.setState({ party: scenario.makeParty() });
-  useGame.getState().startScene(scenario.scene);
+  useGame.setState({ party: scenario.construire().party });
+  useGame.getState().startScene(scenarioConstruit.scene);
   useGame.getState().startCombat('enc-pastilles');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

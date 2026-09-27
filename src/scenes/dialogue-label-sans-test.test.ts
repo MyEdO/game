@@ -75,9 +75,9 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
   });
 
   it('aucun scénario de test (documents `.ts`) ne lève l’avertissement de libellé à la validation', () => {
-    const trouves = testScenarios.flatMap((s) => validateScene([s.scene, ...(s.extraScenes ?? [])], s.worldMap)
+    const trouves = testScenarios.flatMap((s) => { const c = s.construire(); return validateScene([c.scene, ...(c.extraScenes ?? [])], c.worldMap)
       .filter((w) => w.scope === 'dialogue' && w.message.startsWith(`Dialogue « ${w.refId} » : le libellé`))
-      .map((w) => `${s.id} › ${w.message}`));
+      .map((w) => `${s.id} › ${w.message}`); });
     expect(trouves).toEqual([]);
   });
 

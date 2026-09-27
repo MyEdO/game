@@ -8,11 +8,12 @@ import { findVehicleById } from '../../data';
 import type { Combatant } from '../../engine/types';
 
 const scen = testScenarios.find((s) => s.id === 'embuscade-fluviale')!;
+const scenConstruit = scen.construire();
 
 /** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-fluvial-<i>`) par la
  *  fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
 function spawnRoster(): Combatant[] {
-  return scen.scene.entities
+  return scenConstruit.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-fluvial-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
     .map(ficheDEntite);
@@ -20,9 +21,9 @@ function spawnRoster(): Combatant[] {
 
 describe('Embuscade fluviale — scène compilée + roster', () => {
   it('scène 18×12 terrain planches ; barque pirate (0) + équipage, pirates 1-3, anguille (4), barge amie (5)', () => {
-    expect(scen.scene.dimensions).toEqual({ w: 18, h: 12 });
-    expect(layerTiles(scen.scene, 0).every((t) => t === 'planches')).toBe(true);
-    const byId = (id: string) => scen.scene.entities.find((e) => e.id === id)!;
+    expect(scenConstruit.scene.dimensions).toEqual({ w: 18, h: 12 });
+    expect(layerTiles(scenConstruit.scene, 0).every((t) => t === 'planches')).toBe(true);
+    const byId = (id: string) => scenConstruit.scene.entities.find((e) => e.id === id)!;
     expect(byId('enemy-enc-fluvial-0').ref).toBe('barque-fluviale');
     expect(byId('enemy-enc-fluvial-0').crewIds).toEqual(['enemy-enc-fluvial-1', 'enemy-enc-fluvial-2', 'enemy-enc-fluvial-3']);
     expect(byId('enemy-enc-fluvial-1').ref).toBe('pirate-fluvial');

@@ -215,8 +215,8 @@ export function Editor({
   // Fiche que l'outil de rencontre pose : l'élue, sinon la première offerte (`premierOffert`).
   const encFiche = encRef || premierOffert(enemyCreatures, 'Fiche de rencontre');
 
-  function clone(s: Scene): Scene {
-    return JSON.parse(JSON.stringify(s));
+  function clone<T>(v: T): T {
+    return JSON.parse(JSON.stringify(v));
   }
 
   useEffect(() => {
@@ -480,7 +480,7 @@ export function Editor({
         copier: () => {
           if (sel?.type !== 'entity') return;
           const ent = scene.entities.find((x) => x.id === sel.id);
-          if (ent) setClip(JSON.parse(JSON.stringify(ent)));
+          if (ent) setClip(clone(ent));
         },
         coller: () => {
           if (!clip) return;
@@ -743,16 +743,17 @@ export function Editor({
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {
-    setOtherScenes((sc.extraScenes ?? []).map(clone));
-    setWorldMap(sc.worldMap ? JSON.parse(JSON.stringify(sc.worldMap)) : null);
+    const construit = sc.construire();
+    setOtherScenes((construit.extraScenes ?? []).map(clone));
+    setWorldMap(construit.worldMap ? clone(construit.worldMap) : null);
     setActiveAxes(undefined);
-    setNarratif(emptyNarratif());
+    setNarratif(construit.narratif ? clone(construit.narratif) : emptyNarratif());
     setIdentite(undefined);
     setProjectId(null);
     setProjectName(sc.title);
     setPublished(false);
     setSel(null);
-    resetScene(clone(sc.scene));
+    resetScene(clone(construit.scene));
     setOpenOpen(false);
   }
   /** Ouvrir une campagne BUILT-IN (Arène ou campagne du jeu) : jamais en édition directe du JSON
@@ -793,7 +794,7 @@ export function Editor({
     }
     setLoadError(null);
     setOtherScenes(scenes.slice(1).map(clone));
-    setWorldMap(wm ? JSON.parse(JSON.stringify(wm)) : null);
+    setWorldMap(wm ? clone(wm) : null);
     setActiveAxes(aa);
     setNarratif(na);
     setIdentite(ident);

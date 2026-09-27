@@ -12,6 +12,7 @@ import { useGame } from './store';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { runEnemyAI } from './combatFlow';
+const embuscadeConstruit = embuscade.construire();
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   beforeEach(() => { vi.useFakeTimers(); });
@@ -19,7 +20,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
 
   function setup() {
     useGame.setState({ party: makeShowcaseParty() });
-    useGame.getState().startScene(embuscade.scene);
+    useGame.getState().startScene(embuscadeConstruit.scene);
     useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
     useGame.getState().confirmRoundStart();
     const b = useGame.getState().battle!;

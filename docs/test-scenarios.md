@@ -8,15 +8,13 @@
 **Périmètre mesuré / angles morts** — la section « Catalogue actuel » énumère chaque fichier
 `src/scenes/test-scenarios/<NN>-<slug>.ts` (hors `_*`, `*.test.ts`, `*.ascii.ts`, `index.ts` — même
 filtre que `scripts/gen-registry.mjs`), lu par AST (`id`/`order`/`category`/`title`/`tests`/`partyNote`
-du littéral `export const scenario`), groupé par section dans le MÊME ordre que `TestScenariosScreen`
+de la FICHE, le littéral `export const scenario`), groupé par section dans le MÊME ordre que `TestScenariosScreen`
 (`SCENARIO_SECTIONS` filtré aux catégories présentes, tri `order` croissant dans chaque section) —
 un miroir du menu en jeu. Angle mort : aucun `import` runtime n'est fait (voir en-tête du générateur,
 cycle `store.ts` ⇄ `triggeredEffects.ts` sous Node ESM natif) — un scénario dont le champ `id`/`order`/
-`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique (variable, ou gabarit dont une
-substitution `${…}` ne se réduit à aucun littéral — mesuré une fois, `galerie-modeles.ts`, compte dérivé
-de `src/data` au chargement) affiche l'expression source entre accolades (`{creatures.length}`) plutôt
-que de fabriquer ou tronquer une valeur en silence. Les sections « Vérifier une feature », « Ajouter un
-scénario » et « Conventions »
+`category`/`title`/`tests`/`partyNote` n'est PAS un littéral statique fait échouer le générateur : la
+fiche ne lit aucun dataset, ce qui se construit vit dans la fabrique `construire`. Les sections
+« Vérifier une feature », « Ajouter un scénario » et « Conventions »
 ci-dessous sont de l'INTENTION ÉDITORIALE (comment écrire un scénario, pourquoi la densité) non
 dérivable d'aucune donnée — maintenue à la main DANS CE GÉNÉRATEUR, jamais dans le .md.
 
@@ -48,17 +46,25 @@ Dépose un fichier `src/scenes/test-scenarios/<NN>-<slug>.ts` exportant `scenari
 ```ts
 import { arena } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 // (+ createHero / makePregens / itemFromTrappingById selon le groupe voulu)
 
-const scene = arena({ id: 'test-xxx', nom: '…', heroStart: { x: 2, y: 4 } });
-scene.encounters = [{ id: 'enc-xxx', enemies: [{ ref: 'Gobelin', pos: { x: 9, y: 4 } }] }];
+function construireScene(): Scene {
+  const scene = arena({ id: 'test-xxx', label: '…', heroStart: { x: 2, y: 4 } });
+  scene.encounters = [{ id: 'enc-xxx', enemies: [{ ref: 'gobelin', pos: { x: 9, y: 4 } }] }];
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'xxx', order: 7, category: 'combat', icon: 'scenario/ambush', title: '…',
   tests: 'ce que ça vérifie', partyNote: 'le groupe',
-  makeParty: () => [/* … */], scene, autoCombat: 'enc-xxx',
+  construire: () => ({ party: [/* … */], scene: construireScene() }), autoCombat: 'enc-xxx',
 };
 ```
+
+La FICHE (`id`…`partyNote`, `autoCombat`, `money`, `rules`, `interludeWeeks`) ne lit aucun dataset ;
+tout ce qui se construit (groupe, scène, `extraScenes`, `worldMap`, `narratif`, `vessel`, `massBattle`)
+sort de la fabrique `construire`, appelée à chaque lancement par `lancerScenario` (`src/state/scenarioFlow.ts`).
 
 `category` est une clé SANS emoji (`'combat' | 'magie' | 'creatures' | 'survie' | 'marche' |
 'scenarios' | 'naval' | 'rendu'`, `SCENARIO_SECTIONS` dans `_shared.ts`) — le libellé/icône de
@@ -121,7 +127,7 @@ mécanique (un terrain bien agencé, des mannequins bien placés).
 | Naval | Duel naval (échelle Mer) | Modèle DEUX-ÉCHELLES couche MER (MDG 13-14) : 2 jetons-coques sur l’eau à ~150 m, équipage ABSTRAIT (passager, hors ordre/rendu), le joueur joue LE TOUR DU NAVIRE (Manœuvrer / Bordée), l’IA de coque adverse manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) reste le scénario « Combat naval ». | Groupe d’arène embarqué (passagers du Grimm) ; l’équipage abstrait sert les pièces |
 | Naval | Chute du gréement (dés à la porte) | La CHUTE passe par la porte des jets (#1508, MDG 13 l.684-688 + LDB 15 l.80) : un Critique « Gréement » impose l’Athlétisme aux matelots de la mâture ; qui rate voit s’ouvrir « Hauteur de chute (2d10) » puis « Dégâts de chute (1d10) » — deux étapes affichées, lançables et POSABLES sous « Dés fixés ». Depuis le NID-DE-PIE, la hauteur est un entier (25 m) : une seule étape. Coque MOYENNE portant l’Amélioration Nid-de-pie (aucun navire livré ne la porte). | Gabier Ott (gréement) · Vigie Nissa (nid-de-pie) — Athlétisme faible, la chute arrive |
 | Naval | Embuscade fluviale | Combat de bateau FLUVIAL (MSRC 7) distinct de la mer par ses DONNÉES : coques `barge-fluviale`/`barque-fluviale` portant `locationTable:navire-fluvial` + `criticalTable:river-criticals` → un Coup Critique tire la Localisation MSRC (Gréement/Rames/Gouvernail/Coque/Superstructure) et ses effets (États Dérive / Gouvernail brisé / Voie d’eau, Éclats +5, Test d’Initiative « sur le pont ») via le MÊME moteur naval MDG ; équipage exposé lié (crewIds) → Éclats/critique « Équipage » sur de vrais pirates ; bestiaire ch.13 : Anguille du Reik (Constricteur, Morsure +8, Taille Grande). | Groupe d’arène ; 2 héros sont l’équipage exposé de la barge (Éclats / Test d’Initiative de pont) |
-| Rendu | Galerie de modèles | Tous les modèles du monde de campagne : {creatures.length} créatures (empreintes par Taille) + TOUTES les carrières ({careers.length}) + TOUTES les armes de mêlée et de distance + mutants + démo Monstrueuse. Exploration, SANS combat. | Exploration libre, aucun combat |
+| Rendu | Galerie de modèles | Tous les modèles du monde de campagne : TOUTES les créatures (empreintes par Taille) + TOUTES les carrières + TOUTES les armes de mêlée et de distance + mutants + démo Monstrueuse. Exploration, SANS combat. | Exploration libre, aucun combat |
 | Rendu | Siège — exploration (sans combat) | La carte du siège (30×46, 2 couches) chargée en EXPLORATION, SANS démarrer le combat : déplacement et caméra libres pour inspecter le rendu (rempart, rampe du flanc gauche, chemin de ronde à 4 m, parapet, toits, relief, brouillard). Le mode combat ne gêne plus l'inspection de la carte. | Explorez librement : montez au rempart par la rampe du flanc gauche, faites le tour de l'enceinte. Aucune rencontre ne démarre. |
 | Rendu | Opéra — plan meublé (Staatsoper) | Rendu en jeu du mobilier du plan NADJ 8 : volumiques d'intérieur (comptoirs, tables, étagères, bancs, sièges du parterre, décors de scène) et billboards restants, posés pièce par pièce sur la géométrie fidèle du Staatsoper (rez + étage). Exploration libre, aucune rencontre. | Explorez librement : coulisses, scène, parterre, foyer, puis la galerie des loges par les rampes d'angle. Aucune rencontre ne démarre. |
 | Rendu | Pont — vitrine | Relief métrique 100 % données (2 couches + hauteurs parallèles) : on marche SOUS le pont (couche 0, h=0) et DESSUS (couche 1 'planches', h=2 m) ; accès par 2 RAMPES auto-dérivées (hauteurs 0→1→2, AUCUN escalier) ; un plateau à 1 m ; une FALAISE (rebord h=3 m / creux h=0) infranchissable à pied (surfaceLink → cliff). | Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat. |
@@ -131,4 +137,4 @@ mécanique (un terrain bien agencé, des mannequins bien placés).
 
 Un scénario peut embarquer **plusieurs scènes** (`extraScenes`) et une **carte du monde** (`worldMap`) :
 il est alors chargé comme un projet (`loadProject`).
-<!-- sources-empreinte: bde27fbff0f3ebdfd6df313c5cb5e0c9c7cf0e83 (46 fichiers, 1 dossiers) corps: 8081eeb03bdd564cfdbc8a5c3d7e41aabb7edfd4 -->
+<!-- sources-empreinte: 76494e5a3c6bebd805766ffe99b72a880282e517 (46 fichiers, 1 dossiers) corps: dea2ceda283384aeaace9448eab658990d0e0454 -->

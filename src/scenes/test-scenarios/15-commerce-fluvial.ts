@@ -110,59 +110,62 @@ function quay(e: ReikEntry, start: boolean): Scene {
 }
 
 // ── Génère lieux + scènes + routes depuis l'Index (RIVER_ORDER) ──────────────────────────────────────
-const entries = RIVER_ORDER.map(byId);
-const scenes: Scene[] = entries.map((e) => quay(e, e.id === START_ID));
+function construireReik(): { scenes: Scene[]; carte: WorldMap } {
+  const entries = RIVER_ORDER.map(byId);
+  const scenes: Scene[] = entries.map((e) => quay(e, e.id === START_ID));
 
-const places: MapPlace[] = entries.map((e, i) => ({
-  id: `p-${e.id}`,
-  label: e.label,
-  // Ruban fluvial schématique : x croît amont→aval, y ondule (sans chevauchement des médaillons).
-  pos: { x: Math.round(6 + (i / (RIVER_ORDER.length - 1)) * 88), y: Math.round(34 + 20 * Math.sin(i * 0.8)) },
-  scene: `quai-${e.id}`,
-  icon: 'scenario/port',
-  market: reikMarket(e),
-}));
+  const places: MapPlace[] = entries.map((e, i) => ({
+    id: `p-${e.id}`,
+    label: e.label,
+    // Ruban fluvial schématique : x croît amont→aval, y ondule (sans chevauchement des médaillons).
+    pos: { x: Math.round(6 + (i / (RIVER_ORDER.length - 1)) * 88), y: Math.round(34 + 20 * Math.sin(i * 0.8)) },
+    scene: `quai-${e.id}`,
+    icon: 'scenario/port',
+    market: reikMarket(e),
+  }));
 
-const placeIdOf = (id: string) => `p-${id}`;
+  const placeIdOf = (id: string) => `p-${id}`;
 
-/** Route de barge entre deux Lieux (voie navigable) — modes barge + pied, sans péripétie (démo commerce ;
- *  les périls de voyage sont couverts par le scénario « Voyage & temps long »). */
-function bargeRoute(aId: string, bId: string, km: number, id?: string): MapRoute {
-  return {
-    id: id ?? `r-${aId}-${bId}`,
-    a: placeIdOf(aId), b: placeIdOf(bId),
-    km,
-    modes: ['barge', 'pied'],
-    perilDie: 0,
-    inns: true, // relais d'auberges le long du fleuve : la halte de nuit propose l'auberge (et le Ragot, l.180)
+  /** Route de barge entre deux Lieux (voie navigable) — modes barge + pied, sans péripétie (démo commerce ;
+   *  les périls de voyage sont couverts par le scénario « Voyage & temps long »). */
+  function bargeRoute(aId: string, bId: string, km: number, id?: string): MapRoute {
+    return {
+      id: id ?? `r-${aId}-${bId}`,
+      a: placeIdOf(aId), b: placeIdOf(bId),
+      km,
+      modes: ['barge', 'pied'],
+      perilDie: 0,
+      inns: true, // relais d'auberges le long du fleuve : la halte de nuit propose l'auberge (et le Ragot, l.180)
+    };
+  }
+
+  // Chaîne fluviale : chaque Lieu relié au suivant (barge). Distances d'auteur (amont hâché ~30 km, bas Reik plus long).
+  const routes: MapRoute[] = [];
+  for (let i = 0; i < RIVER_ORDER.length - 1; i++) {
+    routes.push(bargeRoute(RIVER_ORDER[i], RIVER_ORDER[i + 1], 30));
+  }
+  // Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
+  // permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
+  // est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
+  // atteignable (débris flottants, l.123-125). Le chariot de convoi (porteur réel) persiste pendant la descente.
+  const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
+  grunburgAltdorf.river = true;
+  grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }];
+  // Exposition hydrique de la descente (MSRC 16, l.5) : l'équipage boit l'eau du Reik non bouillie en
+  // approchant d'Altdorf (grande ville en aval → tableau 1 « Source d'eau », −20, l.23-33). Chaque étape à
+  // flot, un tirage déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance → maladie) — data-driven.
+  grunburgAltdorf.riverExposure = { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 60 };
+  routes.push(grunburgAltdorf);
+
+  const carte: WorldMap = {
+    id: 'reik-commerce-carte',
+    label: 'Le Reik marchand (Index géographique, MSRC 13)',
+    params: { perilDie: 0 },
+    places,
+    routes,
   };
+  return { scenes, carte };
 }
-
-// Chaîne fluviale : chaque Lieu relié au suivant (barge). Distances d'auteur (amont hâché ~30 km, bas Reik plus long).
-const routes: MapRoute[] = [];
-for (let i = 0; i < RIVER_ORDER.length - 1; i++) {
-  routes.push(bargeRoute(RIVER_ORDER[i], RIVER_ORDER[i + 1], 30));
-}
-// Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
-// permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
-// est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
-// atteignable (débris flottants, l.123-125). Le chariot de convoi (porteur réel) persiste pendant la descente.
-const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
-grunburgAltdorf.river = true;
-grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }];
-// Exposition hydrique de la descente (MSRC 16, l.5) : l'équipage boit l'eau du Reik non bouillie en
-// approchant d'Altdorf (grande ville en aval → tableau 1 « Source d'eau », −20, l.23-33). Chaque étape à
-// flot, un tirage déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance → maladie) — data-driven.
-grunburgAltdorf.riverExposure = { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 60 };
-routes.push(grunburgAltdorf);
-
-const carte: WorldMap = {
-  id: 'reik-commerce-carte',
-  label: 'Le Reik marchand (Index géographique, MSRC 13)',
-  params: { perilDie: 0 },
-  places,
-  routes,
-};
 
 export const scenario: TestScenario = {
   id: 'commerce-fluvial',
@@ -178,9 +181,14 @@ export const scenario: TestScenario = {
     'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente EXERCE aussi ' +
     'l’exposition hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
-  makeParty: traders,
-  scene: scenes.find((s) => s.id === `quai-${START_ID}`)!,
-  extraScenes: scenes.filter((s) => s.id !== `quai-${START_ID}`),
-  worldMap: carte,
+  construire: () => {
+    const { scenes, carte } = construireReik();
+    return {
+      party: traders(),
+      scene: scenes.find((s) => s.id === `quai-${START_ID}`)!,
+      extraScenes: scenes.filter((s) => s.id !== `quai-${START_ID}`),
+      worldMap: carte,
+    };
+  },
   money: { gold: 5000, silver: 0, brass: 0 }, // de quoi acheter une cargaison entière (lot plein = pas de surcoût, l.131)
 };

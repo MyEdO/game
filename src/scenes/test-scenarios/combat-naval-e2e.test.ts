@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
+import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
 import { checkBattleOver } from '../../state/combatFlow';
@@ -19,15 +20,12 @@ import type { TestResult } from '../../engine/tests';
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const COGUE = 'enemy-enc-naval-0';
 
-/** Lance le scénario EXACTEMENT comme le menu (setParty → loadProject → startCombat), timers gelés pour que la
+/** Lance le scénario par le lanceur du menu (`lancerScenario`, combat direct), timers gelés pour que la
  *  boucle d'IA (setTimeout) ne se déclenche pas : on PILOTE le combat pas à pas (jets déterministes). */
 function launch(seed = 7): BattleState {
   vi.useFakeTimers(); // fige la chorégraphie d'IA (setTimeout) — restaurée par le afterEach global (test-setup)
-  const g = useGame.getState();
   seedBattleRng(seed);
-  g.setParty(scen.makeParty());
-  g.loadProject([scen.scene, ...(scen.extraScenes ?? [])], scen.scene.id, scen.worldMap ?? null);
-  g.startCombat(scen.autoCombat!);
+  lancerScenario(useGame.getState, useGame.setState, scen);
   if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
   return useGame.getState().battle!;
 }
