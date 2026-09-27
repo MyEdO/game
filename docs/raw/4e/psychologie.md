@@ -349,7 +349,7 @@ Applique exactement les mêmes règles que la Frénésie des personnages (sectio
 **Sources RAW** : `LDB 85 l.150` — renvoi LDB 21
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.122, l.150) → `TraitDef`, `scene`, `planClimb`, `scenario`, `TraverseCapability`, `maxWounds`, `moveEnv`, `spawnMutations`, `EnemyTurnInput`, `effectiveMaxWounds`, +40 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/characteristics.ts`, `src/engine/ops.ts`, +11 fichiers
+- `LDB 85` (l.122, l.150) → `TraitDef`, `construireScene`, `planClimb`, `scenario`, `TraverseCapability`, `maxWounds`, `moveEnv`, `spawnMutations`, `EnemyTurnInput`, `effectiveMaxWounds`, +40 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/characteristics.ts`, `src/engine/ops.ts`, +11 fichiers
 
 ---
 
@@ -373,7 +373,7 @@ La créature ignore **toutes** les règles de Psychologie sans Test.
 - `LDB 85 l.178-179` — définition
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.166, l.178-180) → `TraitDef`, `scene`, `planClimb`, `morsure`, `scenario`, `TraverseCapability`, `Formula`, `moveEnv`, `spawnMutations`, `EnemyTurnInput`, +59 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/magic.ts`, +15 fichiers
+- `LDB 85` (l.166, l.178-180) → `TraitDef`, `construireScene`, `planClimb`, `morsure`, `scenario`, `TraverseCapability`, `Formula`, `moveEnv`, `spawnMutations`, `EnemyTurnInput`, +59 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/magic.ts`, +15 fichiers
 
 ---
 

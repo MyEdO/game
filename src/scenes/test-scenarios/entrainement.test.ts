@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './entrainement';
 import { layerTiles } from '../../state/scene';
+const scenarioConstruit = scenario.construire();
 
 /**
  * Verrouille la Scene PRODUITE par `buildScene` dans `entrainement.ts` : dimensions, terrain 'sol' plein
@@ -11,7 +12,7 @@ import { layerTiles } from '../../state/scene';
 const W = 24, H = 14;
 
 describe('entrainement — Scene produite par buildScene', () => {
-  const s = scenario.scene;
+  const s = scenarioConstruit.scene;
 
   it('dimensions, une couche, nuit', () => {
     expect(s.dimensions).toEqual({ w: W, h: H });

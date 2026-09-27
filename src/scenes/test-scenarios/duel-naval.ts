@@ -2,7 +2,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { ShipPoste } from '../../engine/types';
-import type { SceneEntity } from '../../state/scene';
+import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
 
@@ -34,7 +34,7 @@ function marine(id: string, label: string, x: number, y: number, skills: SkillRe
 const HELM: SkillRef[] = [{ id: 'voile', value: 55 }, { id: 'ramer', value: 45 }];
 const GUN: SkillRef[] = [{ id: 'projectiles', spec: 'poudre-noire', value: 55 }];
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-duel-naval',
   label: 'Duel naval',
   desc: 'Duel de deux coques en mer ouverte (échelle MER 10 m/case).',
@@ -87,7 +87,6 @@ export const scenario: TestScenario = {
     'manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) ' +
     'reste le scénario « Combat naval ».',
   partyNote: 'Groupe d’arène embarqué (passagers du Grimm) ; l’équipage abstrait sert les pièces',
-  makeParty: makeShowcaseParty,
-  scene,
+  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
   autoCombat: 'duel',
 };

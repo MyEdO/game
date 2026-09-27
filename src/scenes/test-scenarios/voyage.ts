@@ -8,6 +8,7 @@ import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du
@@ -59,7 +60,7 @@ function groupe(): Combatant[] {
 }
 
 // ── Scènes : village de départ (auberge), hameau, bourg, cité d'arrivée (interlude), embuscade ──
-const village = buildScene({
+const construireVillage = (): Scene => buildScene({
   id: 'test-voyage-village',
   label: 'Village de Weiler',
   desc: 'Arène de test.',
@@ -97,7 +98,7 @@ const village = buildScene({
   ],
 });
 
-const hameau = buildScene({
+const construireHameau = (): Scene => buildScene({
   id: 'test-voyage-hameau',
   label: 'Hameau de Federholz',
   desc: 'Arène de test.',
@@ -108,7 +109,7 @@ const hameau = buildScene({
   startMessage: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)',
 });
 
-const bourg = buildScene({
+const construireBourg = (): Scene => buildScene({
   id: 'test-voyage-bourg',
   label: 'Bourg de Steinbruck',
   desc: 'Arène de test.',
@@ -119,7 +120,7 @@ const bourg = buildScene({
 });
 
 // Cité d'arrivée + INTERLUDE (Entre deux aventures) : marcher sur le cercle ouvre les Activités.
-const cite = buildScene({
+const construireCite = (): Scene => buildScene({
   id: 'test-voyage-cite',
   label: 'Altdorf, la capitale',
   desc: 'Arène de test.',
@@ -144,7 +145,7 @@ const cite = buildScene({
   ],
 });
 
-const embuscade = buildScene({
+const construireEmbuscade = (): Scene => buildScene({
   id: 'test-voyage-embuscade',
   label: 'Sous-bois — embuscade',
   desc: 'Arène de test.',
@@ -163,7 +164,7 @@ const embuscade = buildScene({
 });
 
 // ── Carte du monde : Weiler ↔ Federholz (piste dangereuse), Weiler ↔ Steinbruck (diligence), longue route ──
-const carte: WorldMap = {
+const construireCarte = (): WorldMap => ({
   id: 'test-voyage-carte',
   label: 'Marches de Weiler (test)',
   places: [
@@ -209,7 +210,7 @@ const carte: WorldMap = {
       ambush: { scene: 'test-voyage-embuscade', encounter: 'enc-vembuscade' },
     },
   ],
-};
+});
 
 export const scenario: TestScenario = {
   id: 'voyage',
@@ -226,10 +227,12 @@ export const scenario: TestScenario = {
     'les Activités d’Altdorf (ACE Annexe I : Pénitence, Entraînement inhabituel, Tester des objets, Mécénat, ' +
     'Recherche universitaire), gatées `where`, y deviennent atteignables.',
   partyNote: 'Bjorn (plein air) · Mira (aguets) · Aldric (cartographe, 300 PX) · Greta (fourrage faible, blessée, Vérole, cauchemars)',
-  makeParty: groupe,
-  scene: village,
-  extraScenes: [hameau, bourg, cite, embuscade],
-  worldMap: carte,
+  construire: () => ({
+    party: groupe(),
+    scene: construireVillage(),
+    extraScenes: [construireHameau(), construireBourg(), construireCite(), construireEmbuscade()],
+    worldMap: construireCarte(),
+  }),
   rules: { 'travel-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
   money: { gold: 6, silver: 10, brass: 0 },
 };

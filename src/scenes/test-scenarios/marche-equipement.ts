@@ -5,6 +5,7 @@ import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../state/flow';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Marché & équipement » : tout le cycle objets en une échoppe. Réunit le Marchand (Acheter/Vendre/
@@ -66,7 +67,7 @@ function maitreArmes(): Combatant {
   return h;
 }
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-marchand',
   label: 'Marché & équipement',
   desc: 'Arène de test.',
@@ -138,8 +139,7 @@ export const scenario: TestScenario = {
     'panneau marchand : ratio de Disponibilité, échange objet↔objet sans argent) ; Aubergiste → jeux de taverne ' +
     '(Effet openTavernGames, option `tavern-games` pré-activée, NADJ 16).',
   partyNote: 'Négociant (épée non identifiée + maille endommagée + dague) + Maître d’armes (sac garni)',
-  makeParty: () => [negociant(), maitreArmes()],
   // Jeux de taverne pré-activés (NADJ 16) — modifiable au panneau Règles maison, comme le Voyage par Étapes.
   rules: { 'tavern-games': true },
-  scene,
+  construire: () => ({ party: [negociant(), maitreArmes()], scene: construireScene() }),
 };

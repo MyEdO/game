@@ -67,7 +67,7 @@
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
 - `src/data/schemas/defs-scenes/scene.ts:155` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
-- `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
+- `src/scenes/test-scenarios/taverne-profil-standard.ts:11` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
 
@@ -104,8 +104,8 @@
 - l.5 — `src/data/schemas/defs-scenes/narratif.test.ts:26` — source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
 - l.13 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:14` — * Promesse tenue, `EDO 01 l.13` : « Deux jours de diligence, bien sûr. À pied, le trajet devrait durer
 - l.17 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:15` — * environ une semaine. » Emplacement du relais, `EDO 01 l.17` : « Son emplacement exact importe peu, du
-- l.200 — `src/scenes/test-scenarios/96-presets-edo.ts:146` — // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
-- l.202 — `src/scenes/test-scenarios/96-presets-edo.ts:194` — // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
+- l.200 — `src/scenes/test-scenarios/96-presets-edo.ts:148` — // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
+- l.202 — `src/scenes/test-scenarios/96-presets-edo.ts:196` — // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
 - l.340 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:20` — * D'où vient le `km` : `EDO 01 l.340` — « Une borne sur le bas-côté indique : « Altdorf, 180 km ». »
 
 ### MSRC 12 — 6/12 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
@@ -140,7 +140,7 @@
 
 ### NADJ 16 — 2/20 ligne(s) code hors couverture (propriétaire : 4e/tests.md)
 - l.119 — `src/engine/combat.ts:903` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
-- l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:195` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
+- l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:197` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
 
 ### ADE I 6 — 1/1 ligne(s) code hors couverture (propriétaire : —)
 - l.185 — `src/data/index.ts:1100` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
@@ -209,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 949e9be9e8e4044894c55a7e59b30e898f39820c (4312 fichiers, 154 dossiers) corps: caa2cee7fc67114058017e6bd342ca9030994c13 -->
+<!-- sources-empreinte: 01cc79b9dcfe843f107bf84cdd4c7e18f0ae6933 (4314 fichiers, 154 dossiers) corps: 418679e3e8147e4405eddb828b80e02912b1a312 -->

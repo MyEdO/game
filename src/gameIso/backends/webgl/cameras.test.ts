@@ -29,7 +29,7 @@ import { anchorAndSize, billboardHeightM, BILLBOARD_BOX_ASPECT } from './billboa
  * La fidélité n'est définie que sur les CRANS de production (0/90/180/270°) : un lacet libre n'a
  * aucune vérité SVG en face.
  */
-const scene = buildScene(siegeSpec);
+const scene = buildScene(siegeSpec());
 const mpt = sceneMetresPerTile(scene);
 const VIEWPORT = { w: 1600, h: 1000 };
 /** L'écart mesuré est 0,000000 px : la tolérance est celle du flottant, pas un « à peu près ». */

@@ -37,7 +37,7 @@ const naif = (scene: Scene, x: number, y: number, side: WallSide, z: number): Wa
 /** TOUTES les scènes LIVRÉES : un scénario du registre généré porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
-  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.scene });
+  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
   for (const c of allBuiltinCampaigns) for (const sc of c.scenes ?? []) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };

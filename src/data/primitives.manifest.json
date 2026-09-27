@@ -1124,5 +1124,23 @@
     "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
     "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
+  },
+  {
+    "id": "playerText",
+    "type": "primitives.manifest",
+    "label": "PlayerText",
+    "fichier": "src/i18n/playerText.ts",
+    "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
+    "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "dataLabel",
+    "type": "primitives.manifest",
+    "label": "dataLabel",
+    "fichier": "src/data/index.ts",
+    "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
+    "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
   }
 ]

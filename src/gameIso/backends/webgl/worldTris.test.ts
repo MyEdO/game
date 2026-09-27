@@ -52,8 +52,10 @@ import { sceneMetresPerTile, type Scene } from '../../../state/scene';
 import { memoByRef } from '../../../state/sceneMemo';
 import { TW } from '../../../geometry/iso';
 import type { Face } from '../../builders/types';
+const diligenceConstruit = diligence.construire();
+const areneConstruit = arene.construire();
 
-const siege = buildScene(siegeSpec);
+const siege = buildScene(siegeSpec());
 /** La vitrine est BÂTIE une fois : son IDENTITÉ est la clé des listes retenues ci-dessous. */
 const vitrine = buildVitrineScene();
 
@@ -93,7 +95,7 @@ describe('gpToWorld — GP (tuiles + mètres) → repère three Y-haut', () => {
 describe('Triangulation en ÉVENTAIL — le pivot n’émet que des faces planes, convexes, ≤ 4 points', () => {
   const scenes: [string, Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', arene.scene],
+    ['arene (hub)', areneConstruit.scene],
   ];
 
   for (const [name, scene] of scenes) {
@@ -181,8 +183,8 @@ describe('MONTANTS à 2 points — deux quads verticaux croisés, largeur AUTHOR
   });
 
   it('arène : AUCUN montant n’est entièrement noyé dans la matière des murs', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneConstruit.scene);
+    const faces = facesOf(areneConstruit.scene);
     const depthOf = faceDepthOf();
     // Matière = les boîtes des faces qui SONT la matière pleine du mur (`wallPartRelief`) — depuis le
     // relief mince (#1176 P1-E), une partie en SAILLIE produit une boîte elle aussi, mais plus épaisse
@@ -267,7 +269,7 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
 
   const scenes: [string, Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', arene.scene],
+    ['arene (hub)', areneConstruit.scene],
   ];
   for (const [name, scene] of scenes)
     it(`${name} : des paires coplanaires recouvrantes AVANT biais, zéro APRÈS (montants COMPRIS)`, () => {
@@ -279,8 +281,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
     });
 
   it('arène : les quads de MONTANT entrent dans le rang (poteaux/jambages/piliers)', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneConstruit.scene);
+    const faces = facesOf(areneConstruit.scene);
     const depthOf = faceDepthOf();
     const quads: WorldPoly[] = [];
     const montant: boolean[] = [];
@@ -299,8 +301,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
   });
 
   it('facesGeometry biaise AUSSI les quads d’un montant (même liste de rangs que faceQuads)', () => {
-    const mpt = sceneMetresPerTile(arene.scene);
-    const faces = facesOf(arene.scene);
+    const mpt = sceneMetresPerTile(areneConstruit.scene);
+    const faces = facesOf(areneConstruit.scene);
     const geoms = facesGeometry(faces, mpt, faceDepthOf());
     const iMontant = faces.findIndex((f, i) => f.poly.length === 2 && geoms[i].rank > 0);
     expect(iMontant).toBeGreaterThanOrEqual(0);
@@ -357,9 +359,9 @@ describe('coplanarRanks — le balayage spatial rend EXACTEMENT les rangs de la 
   }
 
   const cartes: [string, Scene][] = [
-    ['arene (hub)', arene.scene],
+    ['arene (hub)', areneConstruit.scene],
     ['siege-enceinte', siege],
-    ['diligence', diligence.scene],
+    ['diligence', diligenceConstruit.scene],
     ['vitrine-batiments', vitrine],
     ['opera (la plus lourde du dépôt)', buildOperaFloorplan()],
   ];
@@ -513,7 +515,7 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
 
   const parScene: [string, Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', arene.scene],
+    ['arene (hub)', areneConstruit.scene],
   ];
   for (const [name, scene] of parScene)
     it(`${name} : les murs offrent une surface NON NULLE vue du dessus (coiffes)`, () => {
@@ -656,7 +658,7 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
   it('scène réelle : TOUTES les uv1 sont bornées [0,1] (montants et chants de boîte compris)', () => {
     for (const [, scène] of [
       ['siege', siege],
-      ['arene', arene.scene],
+      ['arene', areneConstruit.scene],
     ] as [string, Scene][]) {
       const geoms = geomsOf(scène);
       const hors = geoms.flatMap((g) => g.uv1.flat()).filter((c) => c.u < 0 || c.u > 1 || c.v < 0 || c.v > 1);
@@ -745,8 +747,8 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  (bourg meublé à fort relief) se rétablit par une scène CONSTRUITE portant du relief, pas en
    *  ré-épinglant une carte livrée. */
   const SANS_EPINGLE: [string, () => Scene, string][] = [
-    ['diligence', () => diligence.scene, 'carte livrée (authoring au studio)'],
-    ['arene (hub)', () => arene.scene, 'carte livrée (générateur d’auteur)'],
+    ['diligence', () => diligenceConstruit.scene, 'carte livrée (authoring au studio)'],
+    ['arene (hub)', () => areneConstruit.scene, 'carte livrée (générateur d’auteur)'],
   ];
 
   /** Plafond de hausse ASSUMÉ du lot : au-delà, le relief coûte plus qu'il ne rend et la mesure remonte

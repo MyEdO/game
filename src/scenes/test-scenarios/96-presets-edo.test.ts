@@ -6,6 +6,7 @@ import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
 import { scenario } from './96-presets-edo';
 import type { Combatant } from '../../engine/types';
+const scenarioConstruit = scenario.construire();
 
 /** Preset authoré → `CreatureData` résolue → `Combatant`, par la chaîne RÉELLE du spawn. */
 function spawnPreset(presetId: string): Combatant {
@@ -16,7 +17,7 @@ function spawnPreset(presetId: string): Combatant {
 
 describe('Presets EDO — specs de Compétence keyées par ID (MSRC 7 l.13)', () => {
   beforeEach(() => {
-    useGame.setState({ campaignNarratif: scenario.narratif ?? null });
+    useGame.setState({ campaignNarratif: scenarioConstruit.narratif ?? null });
   });
 
   it('Josef Quartjin : Savoir (Voies fluviales) est INTERROGEABLE par son id', () => {

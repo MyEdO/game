@@ -30,7 +30,7 @@ import { testScenarios } from '../../../scenes/test-scenarios';
  * portes, un corps d'architecture avec sa masse de toit à deux pans, et quatre zones d'effet
  * INTÉRIEURES (le cas risqué : `buildRoofs` LIT `scene.effectZones`).
  */
-const base = scenario.scene;
+const base = scenario.construire().scene;
 const mpt = sceneMetresPerTile(base);
 
 /**
@@ -235,7 +235,7 @@ describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', 
  *  neuve entre dans le contrat sans qu'aucune liste ne soit récitée ici. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
-  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.scene });
+  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
   for (const c of allBuiltinCampaigns) for (const sc of c.scenes ?? []) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };

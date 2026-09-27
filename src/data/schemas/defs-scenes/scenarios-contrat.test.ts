@@ -24,8 +24,9 @@ import { sceneSchema } from './scene';
 
 /** Toutes les scènes qu'un scénario apporte au projet : la scène d'entrée + ses destinations. */
 function scenesDe(s: (typeof SCENARIOS)[number]): { chemin: string; scene: unknown }[] {
-  const out = [{ chemin: `${s.id}.scene`, scene: s.scene as unknown }];
-  (s.extraScenes ?? []).forEach((sc, i) => out.push({ chemin: `${s.id}.extraScenes[${i}] (${sc.id})`, scene: sc }));
+  const c = s.construire();
+  const out = [{ chemin: `${s.id}.scene`, scene: c.scene as unknown }];
+  (c.extraScenes ?? []).forEach((sc, i) => out.push({ chemin: `${s.id}.extraScenes[${i}] (${sc.id})`, scene: sc }));
   return out;
 }
 

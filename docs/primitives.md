@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-113 primitives.
+115 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -51,6 +51,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent | `coucheDEspece/TETES_A_PEAU` | `src/gameIso/rig/parts/career.ts` | — | composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche) | composeRig-peau-tete.test.ts, palettes-declarees.test.ts |
 | cérémonie de tirage du créateur : attente, roulant, rendu, gain de PX en direct | `CreatorDice` | `src/ui/creator/CreatorDice.tsx` | — | Race, Carrière, Caractéristiques, Signe astral | — |
 | gabarit d’étape du créateur : bande d’action requise, zone de choix, zone de description | `CreatorStepFrame` | `src/ui/creator/CreatorStepFrame.tsx` | `src/ui/styles/creator-step.css` | toutes les étapes du créateur | src/ui/creator/creator-ossature.test.tsx |
+| minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText` | `dataLabel` | `src/data/index.ts` | — | tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage) | src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts |
 | déclarations INERTES d'une couche : clés dont le retrait laisse buildTokenMap identique sous chaque entrée que le rig applique à la couche et chaque surcharge sonde, retirées jusqu'au point fixe (doublon de la couche défaut, rôle orphelin) | `declarationsInertes` | `src/gameIso/rig/palette.ts` | — | porte de la donnée de palette, mesure d'un retrait | palettes-declarees.test.ts (A4), palette.test.ts |
 | descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur | `descendre/enfantsDe` | `src/data/schemas/grammaire/descente.ts` | — | toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex | src/data/schemas/grammaire/descente.test.ts |
 | galerie du design system in-app (DEV) : chaque primitive montée vivante avec des données réelles | `DesignGallery` | `src/ui/gallery/DesignGallery.tsx` | — | référence de goût des primitives d’UI | — |
@@ -105,6 +106,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | le GESTE qu’une chose du champ offre, posé au-dessus de son porteur dans le SVG du plateau (#1411 P2-C) | `PastilleEntite` | `src/gameIso/stage/PastilleEntite.tsx` | `src/gameIso/stage/pastille-entite.css` | campagne, arène — monture, pièce, tas au sol | gameIso/stage/anim-css-branchee.test.ts — `.pastille-entite` est posée par son seul rendeur, qui importe `stage/pastille-entite.css` |
 | rangée-plaque sombre à rivets : préfixe codex, méta centrale, valeur à droite, états élu et roulant | `PlaqueRow/PlaqueGrid` | `src/ui/PlaqueRow.tsx` | `src/ui/styles/plaque-row.css` | registre de caractéristiques, rangées d’allocation | réflexe avant toute rangée de registre recodée |
 | le NOM d’un utilisable révélé (Alt maintenu) ou survolé, posé au-dessus de lui dans le SVG du plateau (#1687) | `PlaquesDeNom` | `src/gameIso/stage/PlaquesDeNom.tsx` | `src/gameIso/stage/plaque-nom.css` | campagne, arène — surcouche du plateau | gameIso/stage/anim-css-branchee.test.ts — `.plaque-nom` est posée par son seul rendeur, qui importe `stage/plaque-nom.css` |
+| marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable | `PlayerText` | `src/i18n/playerText.ts` | — | tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet) | src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts |
 | règle optionnelle RAW + house-rule taguée | `rule/policy` | `src/engine/policy.ts` | — | tout arbitrage editable | — |
 | affichage d'un personnage (HUD/modale/picker) | `PortraitTile/CharFrame` | `src/ui/PortraitTile.tsx` | `src/ui/styles/portrait-tile.css` | toute vignette de personnage | — |
 | rendu de prose Markdown verbatim (HTML brut neutralisé) | `Prose` | `src/ui/Prose.tsx` | — | tout champ de prose RAW | no-html-in-prose.test.ts |
@@ -144,4 +146,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 3627fcfbc46c9f5c122ccad9b6ec5b9c1933265d (6 fichiers, 0 dossiers) corps: 0a3069b85ec1df3a7bb1b323ff4470be1c2a1ef4 -->
+<!-- sources-empreinte: f08930622d1f47c68574e33baf9c58839a1ccc6b (6 fichiers, 0 dossiers) corps: c106f5bf26085bb5b1f3d896972e6cccad4a4d83 -->

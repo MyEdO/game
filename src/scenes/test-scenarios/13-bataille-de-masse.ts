@@ -1,6 +1,7 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Bataille de masse » (ADE II 08, Le théâtre de la guerre) : vitrine du sous-système de Puissance de
@@ -13,7 +14,7 @@ import type { TestScenario } from './_shared';
  * en Soutien (LDB 12) ; les combats engagent tout le groupe. Les deltas se cumulent, puis le Test
  * spectaculaire de Puissance résout l'affrontement, et le Rassemblement soigne entre les Rounds.
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-bataille-de-masse',
   label: 'Bataille de masse — le théâtre de la guerre',
   desc: 'Champ de bataille : la plaine devant les remparts.',
@@ -88,34 +89,36 @@ export const scenario: TestScenario = {
     'Intrus qui s\'impose + enchaînements), Scènes MULTI-PJ en Soutien (Test OU combat qui nourrit la Puissance en ' +
     'touches + kills), Rassemblement (Résistance), Test spectaculaire de Puissance (10 + DR, min 5), issue.',
   partyNote: '4 pré-tirés (soldat, chasseur, sorcier, tueur)',
-  makeParty: () => pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
-  scene,
   // Interlude de 3 semaines AVANT la bataille : ses Activités (max 3 par héros, LDB 23) sont le budget
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.
   interludeWeeks: 3,
-  massBattle: {
-    enemyName: 'Horde ennemie',
-    allyMight: 50,
-    enemyMight: 55,
-    plannedRounds: 3,
-    terrain: 'La plaine boueuse s\'étend devant les remparts ; la horde dévale la pente en hurlant.',
-    scenes: [
-      'motivation', 'pluie-de-fleches', 'protection', 'tenez-votre-position', 'compte-a-rebours',
-      'percee', 'ligne-de-mire', 'tuez-la-bete', 'survol', 'charge', 'duel', 'intrus',
-    ],
-    situations: [
-      ['pluie-de-fleches', 'tenez-votre-position', 'motivation'],
-      ['percee', 'compte-a-rebours', 'intrus'],
-      ['duel', 'tuez-la-bete', 'survol'],
-    ],
-    sceneEncounters: {
-      'pluie-de-fleches': 'enc-pluie',
-      charge: 'enc-charge',
-      'tuez-la-bete': 'enc-bete',
-      duel: 'enc-duel',
-      intrus: 'enc-intrus',
-      protection: 'enc-protection',
-      percee: 'enc-percee',
+  construire: () => ({
+    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    scene: construireScene(),
+    massBattle: {
+      enemyName: 'Horde ennemie',
+      allyMight: 50,
+      enemyMight: 55,
+      plannedRounds: 3,
+      terrain: 'La plaine boueuse s\'étend devant les remparts ; la horde dévale la pente en hurlant.',
+      scenes: [
+        'motivation', 'pluie-de-fleches', 'protection', 'tenez-votre-position', 'compte-a-rebours',
+        'percee', 'ligne-de-mire', 'tuez-la-bete', 'survol', 'charge', 'duel', 'intrus',
+      ],
+      situations: [
+        ['pluie-de-fleches', 'tenez-votre-position', 'motivation'],
+        ['percee', 'compte-a-rebours', 'intrus'],
+        ['duel', 'tuez-la-bete', 'survol'],
+      ],
+      sceneEncounters: {
+        'pluie-de-fleches': 'enc-pluie',
+        charge: 'enc-charge',
+        'tuez-la-bete': 'enc-bete',
+        duel: 'enc-duel',
+        intrus: 'enc-intrus',
+        protection: 'enc-protection',
+        percee: 'enc-percee',
+      },
     },
-  },
+  }),
 };

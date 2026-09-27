@@ -25,7 +25,7 @@ import { SCENARIOS } from './test-scenarios/_registry.generated';
 const SCENES_DIR = __dirname;
 const projets = listerProjetsLivres();
 const scenesDeProjet: Scene[] = projets.flatMap((f) => parseProject(JSON.parse(readFileSync(join(SCENES_DIR, f), 'utf8'))).scenes);
-const scenesDeScenario: Scene[] = (SCENARIOS as { scene?: Scene }[]).flatMap((sc) => (sc.scene?.entities ? [sc.scene] : []));
+const scenesDeScenario: Scene[] = SCENARIOS.map((sc) => sc.construire().scene);
 const SCENES: Scene[] = [...scenesDeScenario, ...scenesDeProjet];
 
 function plafondM(scene: Scene, x: number, y: number, z: number): number | undefined {
