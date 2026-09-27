@@ -51,7 +51,7 @@ describe('relations — graphe inverse id-based', () => {
     expect(careerRef!.detail).toMatch(/N\d/);
   });
 
-  it('lieux : tout `parent` est un id qui RÉSOUT (migration id-based, zéro orphelin)', () => {
+  it('lieux : tout `parent` est un id qui RÉSOUT (id-based, zéro orphelin)', () => {
     for (const l of locations) {
       expect(typeof l.id, l.label).toBe('string');
       if (l.parent) expect(findLocationById(l.parent), `${l.label} → parent ${l.parent}`).toBeTruthy();
@@ -215,10 +215,10 @@ describe('relations — graphe inverse id-based', () => {
     expect(talentForm).toEqual({ category: 'talents', id: resTalent!.id, label: 'Résistance', spec: undefined, text: 'Talent Résistance' });
   });
 
-  it('B3 : « Âme pure » — « Points de Corruption » lie la JAUGE (characteristics), jamais le TRAIT homonyme', () => {
-    // Régression B3 : l'ancienne politique liait « Points de Corruption » (desc d'Âme pure) au TRAIT
-    // Corruption (PRIORITY_CAT_ORDER traits avant characteristics). La forme de jauge « Points de X »
-    // est désormais une clé mono-catégorie → la JAUGE.
+  it('« Âme pure » — « Points de Corruption » lie la JAUGE (characteristics), jamais le TRAIT homonyme', () => {
+    // « Points de Corruption » (desc d'Âme pure) : la forme de jauge « Points de X » est une clé
+    // mono-catégorie → la JAUGE, jamais le TRAIT Corruption que `PRIORITY_CAT_ORDER` (traits avant
+    // characteristics) désignerait.
     const ame = talents.find((x) => x.id === 'ame-pure')!;
     expect(ame?.desc, 'desc d’Âme pure présente et mentionnant Points de Corruption').toMatch(/Points de Corruption/);
     const toks = tokenizeLinks(ame.desc!, 'talents', ame.id);
@@ -226,11 +226,11 @@ describe('relations — graphe inverse id-based', () => {
       { category: string } | undefined;
     expect(corr, 'la mention Corruption est bien liée').toBeTruthy();
     expect(corr!.category).toBe('characteristics'); // la JAUGE
-    // Plus AUCUN lien faux vers le trait Corruption.
+    // AUCUN lien vers le trait Corruption.
     expect(toks.some((t) => typeof t === 'object' && (t as { category: string }).category === 'traits')).toBe(false);
   });
 
-  it('B3 : forme de JAUGE « Points de X » cible la caractéristique sans ambiguïté', () => {
+  it('forme de JAUGE « Points de X » cible la caractéristique sans ambiguïté', () => {
     const corr = characteristics.find((x) => x.label === 'Corruption')!;
     expect(corr, 'caractéristique Corruption présente').toBeTruthy();
     const link = tokenizeLinks('Vous gagnez des Points de Corruption.').find((t) => typeof t === 'object') as
@@ -238,15 +238,15 @@ describe('relations — graphe inverse id-based', () => {
     expect(link).toEqual({ category: 'characteristics', id: corr.id, label: 'Corruption', spec: undefined, text: 'Points de Corruption' });
   });
 
-  it('B3 : « Corruption » NU (homonyme jauge⇄trait, concepts DISTINCTS) → aucun lien sans contexte (sûr)', () => {
-    // Nature B (cf. HOMONYM_DECISION) : la jauge d'âme et le trait de créature ne sont pas le même
+  it('« Corruption » NU (homonyme jauge⇄trait, concepts DISTINCTS) → aucun lien sans contexte (sûr)', () => {
+    // Nature B (cf. la table des HOMONYMES de `relations.ts`) : la jauge d'âme et le trait de créature ne sont pas le même
     // concept → un match nu n'est jamais tranchable → on ne lie pas.
     expect(characteristics.find((x) => x.label === 'Corruption') && traits.find((x) => x.label === 'Corruption'), 'homonyme réel Corruption').toBeTruthy();
     const toks = tokenizeLinks('Le sanctuaire répand la Corruption alentour.');
     expect(toks.every((t) => typeof t === 'string')).toBe(true);
   });
 
-  it('B3 : contexte de fiche — « Corruption » NU dans une fiche de TRAIT résout au TRAIT (selfCategory prime)', () => {
+  it('contexte de fiche — « Corruption » NU dans une fiche de TRAIT résout au TRAIT (selfCategory prime)', () => {
     const traitCorr = traits.find((x) => x.label === 'Corruption')!;
     const link = tokenizeLinks('Cette créature répand la Corruption.', 'traits').find((t) => typeof t === 'object') as
       { category: string; id: string } | undefined;
@@ -273,7 +273,7 @@ describe('relations — graphe inverse id-based', () => {
       // Figé tant que non invalidé (même comportement défensif que `codexLookup`).
       expect(groupHas(reverseGroups('traits', traitId), 'creatures', c.label)).toBe(true);
       invalidateCodexLookup();
-      // Re-projection : le graphe inverse porte le nouveau libellé, plus l'ancien.
+      // Re-projection : le graphe inverse porte le nouveau libellé, et non l'ancien.
       const groups = reverseGroups('traits', traitId);
       expect(groupHas(groups, 'creatures', renamed)).toBe(true);
       expect(groupHas(groups, 'creatures', c.label)).toBe(false);

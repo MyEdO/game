@@ -57,7 +57,7 @@ export function sansBr(texte: string): string {
 /**
  * RENDU d'une cellule : le `<br>` redevient le saut de ligne qu'il imprime (`\n`), les blancs de
  * bord sont tombés. La coupure imprimée est ainsi conservée dans la DONNÉE (la chaîne rendue), sans
- * porter de HTML (règle 5) — pas À L'ÉCRAN : `<Prose>` ne monte que `remarkGfm` (`src/ui/Prose.tsx:87`),
+ * porter de HTML (règle 5) — pas À L'ÉCRAN : `<Prose>` ne monte que `remarkGfm` (`src/ui/Prose.tsx:173`),
  * où le `\n` d'une cellule se rend en espace.
  */
 export function brEnSaut(texte: string): string {
