@@ -165,6 +165,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -224,4 +226,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 09c2f9292b0915136ffe29c13b291eb6c28ff338 (1844 fichiers, 2 dossiers) corps: b104d7d1b66ec4b4449a708a8ece8c860293e518 -->
+<!-- sources-empreinte: 37b5b7fcf3afa200635b73cb16b80c21af31e0e7 (1844 fichiers, 2 dossiers) corps: 6776f0ba5371bb5debf3517c4dffa0f20f1df266 -->
