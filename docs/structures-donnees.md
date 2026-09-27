@@ -527,7 +527,7 @@ Termes : source UNIQUE `TERMES_COLLECTION_A_CLE` (`scripts/docs/lib/structures-l
 - **clé de dataset** — le nom d’une collection que le seam de `src/data/overrides.ts` mute EN PLACE : `CLES_DE_DATASET` / `CleDeDataset` (`src/data/schemas/_cles-de-dataset.generated.ts`, phase 2 de `npm run gen`), le domaine de `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`). `collectionDuDataset` l’atteint sur la racine vivante de son fichier : liste de racine (route `dataset`, `none` + `dataset`), collection au bout de la suite de `niche.categories`, ou la racine elle-même (route `object`).
 - **`espaceDe`** — la clé d’espace qui fait autorité sur les ids d’un type d’entité (`TYPES[type].espace`, `src/data/schemas/grammaire/ref.ts`).
 
-Collections à clé relevées dans les documents des deux racines : **664**, dont **309** espaces de noms.
+Collections à clé relevées dans les documents des deux racines : **671**, dont **309** espaces de noms.
 
 ## 2. Enveloppe des documents
 
@@ -2539,14 +2539,14 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13713** objets sur **49322** ne sont portés par AUCUNE
+Au-delà des orphelines, **13703** objets sur **49322** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
 (`{x,y}` d’une tuile, bloc de caractéristiques, `{flat,plusBF}` de dégâts), les objets d’un `Flow`
 ou d’une `Formula` (`{kind,steps}`, `{bonusOf}`) et les objets à `op`, dont la grammaire est mesurée en §5.
 Ils ne sont pas au stock — ils se lisent ici, EN ENTIER : les
-**1210** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
+**1204** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
 table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 `src/data/structures-contrat.test.ts` (plafond sur le COMPTE, liste de référence = cette table).
 
@@ -2827,7 +2827,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `naval-ports.json` | `surplus` | `produits-de-luxe` | 5 |
 | `naval-ports.json` | `demande` | `armes,cereales` | 5 |
 | `naval-traits.json` | `weightEnc` | `bands,per` | 5 |
-| `pregens.json` | `speciesTalentChoices` | `espece:talents:0` | 5 |
 | `psychology.json` | `attackDR` | `amount,vs` | 5 |
 | `sea-weather.json` | `skillMods` | `mod,skills` | 5 |
 | `ship-construction.json` | `oars` | `crew,m` | 5 |
@@ -3259,7 +3258,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `criticals.json` | `value` | `dice` | 1 |
 | `criticals.json` | `escalation` | `onNextCritWhileCondition` | 1 |
 | `criticals.json` | `ops` | `den,durationRounds,num,op` | 1 |
-| `decorPalette.json` | `entries` | `arcaneFonce,arcaneFonce2,arcaneFonce3,arcaneFonce4,arcaneMoyen,arcaneSombre,arcaneSombre2,azurClair,azurFonce,azurFonce2,azurFonce3,azurFonce4,azurMoyen,azurMoyen2,azurSombre,azurTresClair,azurTresClair2,azurTresClair3,azurTresClair4,azurTresClair5,azurTresClair6,blanc,boisClair,boisClair10,boisClair11,boisClair12,boisClair2,boisClair3,boisClair4,boisClair5,boisClair6,boisClair7,boisClair8,boisClair9,boisFonce,boisFonce10,boisFonce11,boisFonce12,boisFonce13,boisFonce14,boisFonce15,boisFonce16,boisFonce17,boisFonce18,boisFonce19,boisFonce2,boisFonce20,boisFonce21,boisFonce22,boisFonce23,boisFonce24,boisFonce25,boisFonce26,boisFonce27,boisFonce28,boisFonce29,boisFonce3,boisFonce30,boisFonce31,boisFonce32,boisFonce33,boisFonce34,boisFonce35,boisFonce36,boisFonce37,boisFonce38,boisFonce39,boisFonce4,boisFonce40,boisFonce41,boisFonce42,boisFonce43,boisFonce44,boisFonce45,boisFonce46,boisFonce47,boisFonce48,boisFonce49,boisFonce5,boisFonce50,boisFonce51,boisFonce52,boisFonce6,boisFonce7,boisFonce8,boisFonce9,boisMoyen,boisMoyen10,boisMoyen11,boisMoyen12,boisMoyen13,boisMoyen14,boisMoyen15,boisMoyen16,boisMoyen17,boisMoyen18,boisMoyen19,boisMoyen2,boisMoyen20,boisMoyen21,boisMoyen22,boisMoyen23,boisMoyen24,boisMoyen25,boisMoyen3,boisMoyen4,boisMoyen5,boisMoyen6,boisMoyen7,boisMoyen8,boisMoyen9,boisSombre,boisSombre10,boisSombre11,boisSombre12,boisSombre13,boisSombre14,boisSombre15,boisSombre16,boisSombre17,boisSombre18,boisSombre19,boisSombre2,boisSombre20,boisSombre21,boisSombre22,boisSombre23,boisSombre24,boisSombre25,boisSombre3,boisSombre4,boisSombre5,boisSombre6,boisSombre7,boisSombre8,boisSombre9,boisTresClair,boisTresClair2,boisTresClair3,boisTresClair4,boisTresClair5,boisTresClair6,boisTresSombre,boisTresSombre2,boisTresSombre3,boisTresSombre4,feuillageClair,feuillageClair2,feuillageFonce,feuillageFonce10,feuillageFonce11,feuillageFonce12,feuillageFonce13,feuillageFonce14,feuillageFonce15,feuillageFonce16,feuillageFonce17,feuillageFonce18,feuillageFonce19,feuillageFonce2,feuillageFonce20,feuillageFonce21,feuillageFonce22,feuillageFonce23,feuillageFonce24,feuillageFonce3,feuillageFonce4,feuillageFonce5,feuillageFonce6,feuillageFonce7,feuillageFonce8,feuillageFonce9,feuillageMoyen,feuillageMoyen2,feuillageMoyen3,feuillageMoyen4,feuillageMoyen5,feuillageMoyen6,feuillageMoyen7,feuillageMoyen8,feuillageMoyen9,feuillageSombre,feuillageSombre10,feuillageSombre11,feuillageSombre12,feuillageSombre2,feuillageSombre3,feuillageSombre4,feuillageSombre5,feuillageSombre6,feuillageSombre7,feuillageSombre8,feuillageSombre9,feuillageTresClair,ombre,ombre10,ombre2,ombre3,ombre4,ombre5,ombre6,ombre7,ombre8,ombre9,orClair,orClair10,orClair11,orClair12,orClair13,orClair14,orClair15,orClair2,orClair3,orClair4,orClair5,orClair6,orClair7,orClair8,orClair9,orFonce,orFonce10,orFonce11,orFonce2,orFonce3,orFonce4,orFonce5,orFonce6,orFonce7,orFonce8,orFonce9,orMoyen,orMoyen10,orMoyen11,orMoyen12,orMoyen13,orMoyen2,orMoyen3,orMoyen4,orMoyen5,orMoyen6,orMoyen7,orMoyen8,orMoyen9,orSombre,orSombre2,orSombre3,orSombre4,orTresClair,orTresClair10,orTresClair11,orTresClair12,orTresClair13,orTresClair14,orTresClair15,orTresClair16,orTresClair17,orTresClair18,orTresClair19,orTresClair2,orTresClair20,orTresClair21,orTresClair3,orTresClair4,orTresClair5,orTresClair6,orTresClair7,orTresClair8,orTresClair9,osClair,osClair2,osClair3,osClair4,osClair5,osClair6,osClair7,osClair8,osMoyen,osMoyen2,osMoyen3,osMoyen4,osMoyen5,osMoyen6,osMoyen7,osMoyen8,osTresClair,osTresClair10,osTresClair2,osTresClair3,osTresClair4,osTresClair5,osTresClair6,osTresClair7,osTresClair8,osTresClair9,patineTresClair,patineTresClair2,pierreClair,pierreFonce,pierreFonce2,pierreFonce3,pierreFonce4,pierreFonce5,pierreFonce6,pierreFonce7,pierreMoyen,pierreMoyen2,pierreSombre,pierreSombre10,pierreSombre11,pierreSombre12,pierreSombre2,pierreSombre3,pierreSombre4,pierreSombre5,pierreSombre6,pierreSombre7,pierreSombre8,pierreSombre9,pierreTresClair,pierreTresClair2,pierreTresClair3,pierreTresSombre,pierreTresSombre2,pierreTresSombre3,pierreTresSombre4,pierreTresSombre5,pourpreFonce,pourpreFonce2,pourpreFonce3,pourpreFonce4,pourpreMoyen,pourpreSombre,pourpreTresClair,pourpreTresSombre,sangClair,sangFonce,sangFonce10,sangFonce11,sangFonce12,sangFonce13,sangFonce14,sangFonce15,sangFonce16,sangFonce17,sangFonce18,sangFonce19,sangFonce2,sangFonce20,sangFonce21,sangFonce22,sangFonce23,sangFonce24,sangFonce3,sangFonce4,sangFonce5,sangFonce6,sangFonce7,sangFonce8,sangFonce9,sangMoyen,sangMoyen2,sangMoyen3,sangMoyen4,sangMoyen5,sangMoyen6,sangSombre,sangSombre10,sangSombre11,sangSombre12,sangSombre13,sangSombre14,sangSombre15,sangSombre2,sangSombre3,sangSombre4,sangSombre5,sangSombre6,sangSombre7,sangSombre8,sangSombre9,sangTresSombre,sangTresSombre2,sangTresSombre3,terreFonce,terreFonce10,terreFonce11,terreFonce12,terreFonce13,terreFonce14,terreFonce15,terreFonce16,terreFonce17,terreFonce18,terreFonce2,terreFonce3,terreFonce4,terreFonce5,terreFonce6,terreFonce7,terreFonce8,terreFonce9,terreMoyen,terreMoyen2,terreMoyen3,terreMoyen4,terreMoyen5,terreMoyen6,terreMoyen7,terreMoyen8,terreSombre,terreSombre10,terreSombre11,terreSombre12,terreSombre13,terreSombre14,terreSombre15,terreSombre16,terreSombre2,terreSombre3,terreSombre4,terreSombre5,terreSombre6,terreSombre7,terreSombre8,terreSombre9,terreTresSombre,terreTresSombre2,terreTresSombre3,terreTresSombre4,villageoisBouche,villageoisCheveux,villageoisEtoffe,villageoisEtoffeClaire,villageoisPeau,villageoisPupille` | 1 |
 | `details.json` | `ageBase` | `elfe-sylvain,gnome,halfling,haut-elfe,humain,nain,ogre` | 1 |
 | `details.json` | `ageRoll` | `elfe-sylvain,gnome,halfling,haut-elfe,humain,nain,ogre` | 1 |
 | `details.json` | `heightBase` | `elfe-sylvain,gnome,halfling,haut-elfe,humain,nain,ogre` | 1 |
@@ -3524,9 +3522,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `ship-criticals.json` | `crewTarget` | `poste` | 1 |
 | `ship-criticals.json` | `ops` | `amount,ignoreAP,ignoreTB,op` | 1 |
 | `ship-criticals.json` | `ops` | `op` | 1 |
-| `sizes.json` | `rangedMod` | `enorme,grande,minuscule,monstrueuse,moyenne,petite,tresPetite` | 1 |
-| `sizes.json` | `shipboardEnc` | `enorme,grande,minuscule,monstrueuse,moyenne,petite,tresPetite` | 1 |
-| `sizes.json` | `footprintSide` | `enorme,grande,minuscule,monstrueuse,moyenne,petite,tresPetite` | 1 |
 | `skills.json` | `tool` | `capability,withoutMod` | 1 |
 | `spells.json` | `ops` | `days,oncePerDisease,op` | 1 |
 | `spells.json` | `ops` | `material,op` | 1 |
@@ -3671,7 +3666,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `tavernGames.json` | `lines` | `balayage,echec,manque,reussite` | 1 |
 | `tavernGames.json` | `roundOps` | `winner` | 1 |
 | `tavernGames.json` | `volley` | `critique,gain,manches,pick,rows,throws` | 1 |
-| `teintesJeu.json` | `entries` | `anneau-actif,anneau-ennemi,bande-bonus,bande-malus,bande-neutre,editeur-calage-aplat,editeur-calage-aretes,equipe-allie,equipe-ennemi,equipe-neutre,identite-heros-1,identite-heros-2,identite-heros-3,identite-heros-4,or-contour,or-halo,or-surbrillance,signal-allie,signal-cible,signal-engagement,signal-ennemi,signal-foule,signal-invalide,signal-menace,zone-course,zone-feu,zone-fumee,zone-intention,zone-marche` | 1 |
 | `terrains.json` | `detail` | `seedScope,tintVar` | 1 |
 | `terrains.json` | `detail` | `seedScope,tintVar,tufts` | 1 |
 | `terrains.json` | `tufts` | `colors,hM,perM2` | 1 |
@@ -4809,4 +4803,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: f72fcf13e9435e2ac10f079c0683c739ec14ee37 (395 fichiers, 10 dossiers) corps: 78b2e584ee7059e39474a700b15af851816ef8b2 -->
+<!-- sources-empreinte: 7e498bfd9b451e5e15ce0388971abf8c61ef3b7a (395 fichiers, 10 dossiers) corps: e322e9da72a003074ca90e5b137407a14272d9fe -->

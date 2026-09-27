@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -27,7 +28,9 @@ import {
   RX_CLE_REFERENCE,
   signature,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
-import { CLES_ENVELOPPE } from './schemas/grammaire/document';
+import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
+import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
+import type { SchemaDef } from './schemas/types';
 
 /**
  * Clés que `document()` pose sur TOUT document, sans qu'aucun def ne les demande — DÉRIVÉES de
@@ -83,9 +86,9 @@ const GARDE = {
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
- *  composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et
- *  c'est la MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
-const { declares: DECLARES, familles: FAMILLES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
+ *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
+ *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
+const { defs: DEFS, declares: DECLARES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
 
 /** Un ensemble de lignes en texte, trié — les diffs de vitest restent lisibles. */
@@ -1471,15 +1474,10 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const url = (p) => pathToFileURL(join(R, p)).href;",
     "const SCAN = url('scripts/docs/lib/structures-scan.mjs');",
     "const lexique = await import(url('scripts/docs/lib/structures-lexique.mjs'));",
-    "const { defsDeDocument } = await import(url('scripts/docs/lib/slots-registre.mjs'));",
-    "const { choixDeclares, introspecterDefs } = await import(url('scripts/docs/lib/zod-introspect.mjs'));",
-    'const defs = defsDeDocument();',
-    'const familles = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));',
-    'const choix = choixDeclares(defs);',
-    'const avec = (await import(SCAN)).scannerDonnees(R, familles, choix);',
+    'const avec = (await import(SCAN)).scanDuCorpus(R).scan;',
     "const retires = lexique.CONCEPTS.filter((c) => c.strate === 'Document');",
     'for (const c of retires) lexique.CONCEPTS.splice(lexique.CONCEPTS.indexOf(c), 1);',
-    "const sans = (await import(SCAN + '?sansDocument')).scannerDonnees(R, familles, choix);",
+    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
     "const ki = (i) => site(i) + ' | ' + i.signature + ' | ' + i.occurrences;",
@@ -1703,7 +1701,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
     const copie = mkdtempSync(join(tmpdir(), 'structures-text-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, FAMILLES, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX);
       expect(temoin.formes.length, 'la COPIE non mutée ne mesure pas comme l’arbre.').toBe(scan.formes.length);
       expect(forme(temoin, 'text'), 'la forme `text` déclarée a disparu du témoin.').toMatchObject({ statut: 'declaree' });
       expect(
@@ -1725,7 +1723,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
         { text: 'Assistant' },
       ];
       writeFileSync(chemin, JSON.stringify(niveaux), 'utf8');
-      const apres = scannerDonnees(copie, FAMILLES, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX);
 
       expect(
         forme(apres, 'text (résolvable)')?.occurrences,
@@ -1750,7 +1748,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, FAMILLES, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1768,7 +1766,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, FAMILLES, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
@@ -1806,8 +1804,8 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', entries: { 'zone-marche': '#123456' } }),
         'utf8',
       );
-      const famillesSonde = new Map([...FAMILLES, ['sonde-record.json', 'record']]);
-      const apres = scannerDonnees(copie, famillesSonde, CHOIX);
+      const sonde = document('sondeRecord', 'record', {}, {}, EXPO_SONDE, { valeurRecord: z.string() });
+      const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX);
       const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
       expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
         'sonde-record.json',
@@ -1820,6 +1818,67 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
     } finally {
       rmSync(copie, { recursive: true, force: true });
     }
+  });
+});
+
+const EXPO_SONDE: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+
+/**
+ * COLLECTION À CLÉ DÉCLARÉE (#1897) : une carte de record que le schéma MARQUE (`marquerCollection`)
+ * n'est jamais hors strate — ni invisible, ni orpheline — et le classement valeur/référence la lit
+ * comme tout objet (`TERMES_COLLECTION_A_CLE`, `scripts/docs/lib/structures-lexique.mts`).
+ */
+describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est jamais hors strate', () => {
+  const carte = <S extends z.ZodType>(s: S) => marquerCollection(s, marqueDeRecord());
+  const cotes = z.strictObject({ a: z.number(), b: z.number() });
+  const renvois = z.strictObject({ a: z.string(), b: z.string() });
+  const x = document(
+    'x',
+    'config',
+    { t: carte(cotes), tNue: cotes, r: carte(renvois), u: carte(z.strictObject({ fooId: z.string() })) },
+    { t: { label: 'T' }, tNue: { label: 'T nue' }, r: { label: 'R' }, u: { label: 'U' } },
+    EXPO_SONDE,
+  );
+  const alpha = document('alpha', 'entite', {}, {}, EXPO_SONDE);
+  const DEFS_FIXTURE: SchemaDef[] = [
+    { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
+    { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
+  ];
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-collection-'));
+  afterAll(() => rmSync(dossier, { recursive: true, force: true }));
+  mkdirSync(join(dossier, 'src/data'), { recursive: true });
+  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+  cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', maison: 'sonde' }, { id: 'renvoi-deux', maison: 'sonde' }]));
+  writeFileSync(
+    join(dossier, 'src/data/x.json'),
+    JSON.stringify({
+      id: 'x',
+      maison: 'sonde',
+      t: { a: 1, b: 2 },
+      tNue: { a: 3, b: 4 },
+      r: { a: 'renvoi-un', b: 'renvoi-deux' },
+      u: { fooId: 'renvoi-absent' },
+    }),
+  );
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
+  const invisible = (champ: string) => fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === champ).map((i) => i.signature);
+
+  it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
+    expect(invisible('t'), 'la carte `t`, déclarée collection à clé, est comptée hors strate.').toEqual([]);
+    expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
+    expect(invisible('tNue'), 'contrôle : la même forme SANS marque reste hors strate.').toEqual(['a,b']);
+    expect(fixture.objets.collectionsACle).toBe(3);
+  });
+
+  it('une carte marquée dont les valeurs RÉSOLVENT reste PORTEUR de références, case par case', () => {
+    expect([...(fixture.referencesParPorteur.get(brut.r)?.keys() ?? [])].sort(), 'le classement a sauté la carte marquée.').toEqual(['a', 'b']);
+  });
+
+  it('une carte marquée dont une clé `…Id` ne résout pas n’est pas orpheline', () => {
+    expect(fixture.orphelines.filter((o) => o.dataset === 'x.json').map((o) => `${o.champ} | ${o.signature}`)).toEqual([]);
+    expect(invisible('u')).toEqual([]);
   });
 });
 
