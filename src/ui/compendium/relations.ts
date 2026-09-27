@@ -7,7 +7,7 @@
  *
  * **100 % id-based → langue-agnostique** : on inverse des `id` STABLES, jamais des libellés. Le
  * `label` porté par un `Referrer` n'est QUE l'affichage (= `CodexItem.label`, résolu par
- * `codexLookup`). Aucune regex, aucune logique branchée sur du texte.
+ * `codexLookup`). Aucune logique branchée sur du texte.
  *
  * **Fraîcheur** : comme les projections du registre (`makeCategory`), les index (graphe inverse,
  * catalogue par livre, index de libellés, regex d'auto-liage) sont RE-CALCULÉS quand la version du
@@ -31,6 +31,7 @@ import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
 import { codexLookupVersion } from './registry';
 import { resolveQualities } from '../../engine/qualities/dispatch';
+import { alternationDe, espacesExtensibles } from '../../lib/regex';
 
 /** Un référant (entité QUI pointe vers la cible) — ouvrable au Codex via (category, id). */
 export interface Referrer {
@@ -209,7 +210,7 @@ const graph = versionCached<ReverseGraph>(() => {
 
   // 14) Mutation ← Table de Corruption qui la tire (inversion de mutationTable.ranges[].mutation).
   for (const tab of mutationTables) for (const r of tab.ranges) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: `${r.min}–${r.max}` }, 'Tables de Corruption la tirant');
-  // 15) Lieu ← sous-lieux (inversion de location.parent, désormais un id de parent).
+  // 15) Lieu ← sous-lieux (inversion de location.parent, un id de parent).
   for (const l of locations) if (l.parent) addReverse('locations', l.parent, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
 
   return { reverse: REVERSE, titles: TITLES };
@@ -349,8 +350,7 @@ const LINKABLE_CATS = new Set(['characteristics', 'skills', 'talents', 'etats', 
  *      LIE PAS ; comportement sûr — la forme PRÉFIXÉE cible chaque sens sans ambiguïté, cf.
  *      `prefixedForms`) :
  *      · characteristics⇄traits : `Corruption` — la JAUGE d'âme (LDB 182) ≠ le Trait de créature.
- *        Nu → aucun lien ; « Points de Corruption » → la jauge. (Régression B3 corrigée : l'ancien
- *        `PRIORITY_CAT_ORDER` liait à tort le « Points de Corruption » d'« Âme pure » au TRAIT.)
+ *        Nu → aucun lien ; « Points de Corruption » → la jauge.
  *      · skills⇄talents : `Résistance` — la Compétence ≠ le Talent. Nu → aucun lien ;
  *        « Compétence Résistance »/« Talent Résistance » tranche.
  *      · traits⇄qualities : `Infecté`, `Magique`, `Rapide`, `Taille` — Qualité d'arme ≠ Trait de
@@ -365,7 +365,7 @@ const SAME_CONCEPT_GROUPS: ReadonlySet<string>[] = [new Set(['talents', 'traits'
 
 /** Préfixe de catégorie au SINGULIER, pour les formes préfixées toujours non ambiguës (« Trait Vol »,
  *  « Sort Vol »). Dérivé du libellé PLURIEL déjà déclaré (`GENERIC_PLURAL`) — jamais une table en
- *  dur nouvelle : « Compétences » → « Compétence ». */
+ *  dur : « Compétences » → « Compétence ». */
 const catPrefix = (cat: string): string => { const p = GENERIC_PLURAL[cat] ?? cat; return p.endsWith('s') ? p.slice(0, -1) : p; };
 
 /** Formes PRÉFIXÉES non ambiguës d'une entité liable — clés d'index toujours mono-catégorie :
@@ -380,9 +380,7 @@ const prefixedForms = (cat: string, label: string): string[] =>
 interface LinkCandidate { category: string; id: string; label: string; }
 
 /** Racines de surface (CASSE ORIGINALE conservée — c'est elle qui doit matcher le texte) qui
- *  alimentent le matcher : le libellé lui-même + sa forme préfixée par catégorie, dédupliquées,
- *  plus longues d'abord (« Magie des Arcanes » avant « Magie », « Talent Résistance » avant
- *  « Résistance »). */
+ *  alimentent le matcher : le libellé lui-même + sa forme préfixée par catégorie, dédupliquées. */
 const linkRootsCached = versionCached<string[]>(() => {
   const roots = new Set<string>();
   for (const e of catalog()) {
@@ -390,14 +388,14 @@ const linkRootsCached = versionCached<string[]>(() => {
     roots.add(e.label);
     for (const form of prefixedForms(e.category, e.label)) roots.add(form);
   }
-  return [...roots].sort((a, b) => b.length - a.length);
+  return [...roots];
 });
 
 /** Index d'auto-liage LINKABLE (LOCALE-SCOPED), MULTI-VALUÉ — à la différence de `labelIndex`
  *  (général, une collision = écartée), un même libellé peut résoudre PLUSIEURS entités (homonymes
- *  RÉELS, cf. `PRIORITY_CAT_ORDER`) : on ne jette plus, la désambiguïsation se fait à la RÉSOLUTION
+ *  RÉELS, cf. `PRIORITY_CAT_ORDER`) : aucun n'est écarté, la désambiguïsation se fait à la RÉSOLUTION
  *  (`resolveLink`). Clés : libellé + formes préfixées par catégorie (le pluriel FR régulier est géré
- *  au MATCH par le pattern `linkRe` — chaque mot y accepte un « s » — et ramené au singulier à la
+ *  au MATCH par la regex `linkRe` — chaque mot y accepte un « s » — et ramené au singulier à la
  *  résolution, cf. `lookupCandidates` ; l'index reste keyé au SINGULIER, pas de clés absurdes).
  *  RE-CALCULÉ par version (suit une édition Codex). */
 const linkCandidatesCached = versionCached<Map<string, LinkCandidate[]>>(() => {
@@ -417,21 +415,8 @@ const linkCandidatesCached = versionCached<Map<string, LinkCandidate[]>>(() => {
   return idx;
 });
 
-/** Id d'une entité cataloguée par son libellé — résolution de REPLI pour les appelants de
- *  `tokenizeLinks` qui ne connaissent que le libellé de leur propre fiche (Prose hors Codex, non
- *  migrés ce lot, cf. `CodexRef`) : MÊME mécanisme que `codexLookup` (registry.ts) — un Map, pas une
- *  comparaison d'égalité — la décision finale (anti-auto-lien) reste 100 % id-based en aval. */
-const idByLabelCached = versionCached<Map<string, string>>(() => {
-  const m = new Map<string, string>();
-  // Construction seule (parcours inversé = première occurrence gagnante), aucune interrogation par
-  // libellé (#602) : c'est un index de TEXTE, alimenté par la couture tolérée.
-  const all = catalog();
-  for (let i = all.length - 1; i >= 0; i--) m.set(all[i].label, all[i].id);
-  return m;
-});
-
 /** Candidats d'un fragment matché : lookup direct, puis repli PLURIEL en retirant un « s » final par
- *  mot — le pattern `linkRe` tolère le pluriel FR régulier par mot ; l'index reste keyé au SINGULIER,
+ *  mot — la regex `linkRe` tolère le pluriel FR régulier par mot ; l'index reste keyé au SINGULIER,
  *  la résolution y ramène (« Attaques caudales » → « attaque caudale »). */
 const lookupCandidates = (rawText: string): LinkCandidate[] | undefined => {
   const idx = linkCandidatesCached();
@@ -470,7 +455,6 @@ const resolveLink = (rawText: string, selfCategory?: string): LinkCandidate | un
  *  `Écriture`), non validée contre les données (précédent GAS permissif assumé) ; `text` reste le
  *  VERBATIM affiché (libellé + parenthèse comprise). */
 export type LinkToken = string | { category: string; id: string; label: string; spec?: string; text: string };
-const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Regex des racines auto-liables (RE-CALCULÉE par version) : chaque MOT de la racine accepte un
  *  « s » optionnel (pluriel FR régulier par mot ; le singulier est reformé au lookup, cf.
  *  `lookupCandidates`), plus longues d'abord, bornée aux frontières
@@ -480,35 +464,35 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  *  lookup (`linkCandidatesCached`) reste normalisé côté index ; seule la CAPTURE dans le texte
  *  respecte la casse (et le pluriel réel) de la source. */
 const linkReCached = versionCached<RegExp>(() => {
-  const patterns = linkRootsCached().map((root) => root.split(' ').map((w) => `${escapeRe(w)}s?`).join('\\s+'));
-  return new RegExp(`(?<![\\p{L}\\p{N}])(${patterns.join('|')})(?![\\p{L}\\p{N}])`, 'gu');
+  const alternation = alternationDe(linkRootsCached(), {
+    parChaine: (e) => espacesExtensibles(e.split(' ').map((mot) => `${mot}s?`).join(' ')),
+  });
+  return new RegExp(`(?<![\\p{L}\\p{N}])(${alternation})(?![\\p{L}\\p{N}])`, 'gu');
 });
 const linkRe = (): RegExp => linkReCached();
 
 /** Parenthèse de spécialisation absorbée immédiatement APRÈS un libellé matché (« Art (Écriture) »)
  *  → une SEULE mention (au lieu de couper au milieu). Libre : contenu non validé contre les données
- *  (précédent GAS permissif assumé pour ce lot). */
+ *  (précédent GAS permissif assumé). */
 const SPEC_TAIL = /^\s*\(([^()]{1,60})\)/;
 
 /**
  * Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex,
  * façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais
  * une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés
- * inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon
- * résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés).
+ * inconnus/courts — la comparaison est 100 % id-based (`selfId`, l'id de la fiche affichante).
  * `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf.
  * `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié.
  */
-export function tokenizeLinks(text: string, selfLabel?: string, selfCategory?: string, selfId?: string): LinkToken[] {
+export function tokenizeLinks(text: string, selfCategory?: string, selfId?: string): LinkToken[] {
   const re = linkRe();
   re.lastIndex = 0;
-  const resolvedSelfId = selfId ?? (selfLabel ? idByLabelCached().get(selfLabel) : undefined);
   const out: LinkToken[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const hit = resolveLink(m[1], selfCategory);
-    if (!hit || hit.id === resolvedSelfId) continue; // inconnu / auto-référence → laissé en texte
+    if (!hit || hit.id === selfId) continue; // inconnu / auto-référence → laissé en texte
     if (m.index > last) out.push(text.slice(last, m.index));
     let end = m.index + m[1].length;
     let display = m[1];

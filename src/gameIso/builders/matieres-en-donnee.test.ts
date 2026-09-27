@@ -4,9 +4,10 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { materials, semencesDeScene, terrains } from '../../data';
+import { alternationDe, alternationDeRegex, echapperRegex } from '../../lib/regex';
 
 /**
- * GARDE DÉRIVÉE (#1691, élargie #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une
+ * GARDE DÉRIVÉE (#1691, #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une
  * matière, ni un TERRAIN : ni le SOL qu'une scène neuve reçoit (semence, #1716), ni un id de
  * `terrains.json` en littéral (#1716, #1789).
  *
@@ -20,21 +21,20 @@ import { materials, semencesDeScene, terrains } from '../../data';
  * champ) ou par une SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) — jamais par un
  * nom de fichier, jamais par un site toléré.
  *
- * Le relief était le dernier domaine de `MaterialRef` dont l'id était choisi EN CODE
- * (`floors.ts` : `'pilier'`, `'pierre'`, `'terre'`) ; il vient de la donnée comme les autres — la
- * SCÈNE (`reliefDefaults`) pour les parois de relief, le TERRAIN (`terrains.json › matiere`) pour le
- * flanc d'un bloc plein, le BÂTIMENT (`buildings.json › roofMaterial`) pour sa couverture par
- * défaut. Ce que la garde interdit, c'est le RETOUR de ce choix : un id de `materials.json` écrit en
- * dur dans une couche qui ÉMET de la géométrie ou du catalogue.
+ * Le relief vient de la donnée comme tout domaine de `MaterialRef` — la SCÈNE (`reliefDefaults`)
+ * pour les parois de relief, le TERRAIN (`terrains.json › matiere`) pour le flanc d'un bloc plein, le
+ * BÂTIMENT (`buildings.json › roofMaterial`) pour sa couverture par défaut. Ce que la garde interdit,
+ * c'est un id de `materials.json` écrit en dur dans une couche qui ÉMET de la géométrie ou du
+ * catalogue.
  *
- * PÉRIMÈTRE (les CINQ couches qui émettent — `src/ui/editor/**` depuis #1716 : la palette et le
- * redimensionnement POSENT le sol d'une scène, rien ne les tenait) : `src/gameIso/builders/**` (géométrie pure),
+ * PÉRIMÈTRE (les CINQ couches qui émettent — `src/ui/editor/**` (#1716) : la palette et le
+ * redimensionnement POSENT le sol d'une scène) : `src/gameIso/builders/**` (géométrie pure),
  * `src/gameIso/authoring/*Svg.ts` (peintres du plan et de l'éditeur), `src/gameIso/catalog/**`
  * (catalogues et façades de donnée), et `src/state/**` ENTIER — la DÉRIVATION des masses de toit y
- * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 volet b : il se résout corps > type de
+ * émet le `material` de chaque masse (`sceneEdit.ts`, #1715 : il se résout corps > type de
  * bâtiment > scène), et le reste du store pose les mutations de scène que le rendu consomme.
  * Hors périmètre : le rig, les backends et le stage, où `plan` n'est pas une matière de toiture mais
- * la VOIE DE CORPS d'une créature (`bodyPlan.ts`) — un scan naïf de `src/gameIso/**` y compte 42
+ * la VOIE DE CORPS d'une créature (`bodyPlan.ts`) — un scan de `src/gameIso/**` y compterait des
  * homonymes qui ne sont pas des émissions de matière.
  *
  * Le vocabulaire interdit est DÉRIVÉ du dataset — aucune liste récitée ici : une matière ajoutée
@@ -58,7 +58,8 @@ const COUCHES = [
 
 /** BASE de lecture d'une couche, DÉRIVÉE de son préfixe et de son dossier — chemin POSIX depuis la
  *  racine du dépôt, la forme que `readCorpus` prend et rend. La racine du store est `src/state`,
- *  celle des trois couches de rendu `src/gameIso/<dossier>`. */
+ *  celles des couches de rendu `src/gameIso/builders`, `src/gameIso/authoring` et
+ *  `src/gameIso/catalog`, celle de l'éditeur `src/ui/editor`. */
 const baseDe = (c: (typeof COUCHES)[number]) => `src/${c.prefixe}${c.dir === '.' ? 'state' : c.dir}`;
 
 /** Le STORE seul (la couche `src/state`, sans préfixe) : les autres couches portent le leur. */
@@ -71,12 +72,12 @@ const chemin = (rel: string) => (duStore(rel) ? `state/${rel}` : rel);
  * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
  * aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas une émission de matière.
  *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène ;
- *  - une déclaration `… as const satisfies <X>Defaults` est une SEMENCE d'authoring GELÉE : depuis
- *    #1716 la semence VIVANTE est de la donnée (`semences-de-scene.json`, lue par `emptyScene`), et
- *    la forme ne subsiste qu'aux MIGRATIONS de projet (`worldMap.ts`), qui reconstituent la valeur
- *    d'avant leur lot — la matière y est écrite pour être POSÉE sur un vieux document, pas émise par
- *    un builder. Le `satisfies` est ce qui distingue la semence d'un littéral libre ; la cible est
- *    `Fige<…Defaults>` (#1789), et cette reconnaissance par REGEX passe au checker (#1789 train D).
+ *  - une déclaration `… as const satisfies <X>Defaults` est une SEMENCE d'authoring GELÉE : la
+ *    semence VIVANTE est de la donnée (#1716 ; `semences-de-scene.json`, lue par `emptyScene`), et la
+ *    forme ne vit qu'aux MIGRATIONS de projet (`worldMap.ts`), qui reconstituent la valeur d'avant
+ *    leur migration — la matière y est écrite pour être POSÉE sur un vieux document, pas émise par un
+ *    builder. Le `satisfies` est ce qui distingue la semence d'un littéral libre ; la cible est
+ *    `Fige<…Defaults>`, reconnue ici par REGEX et non par le checker (#1789).
  */
 const SIGNAUX_STRUCTURELS = [
   { nom: 'clé `scope:` (portée d’un avertissement)', re: /\bscope:/, portee: 'ligne' },
@@ -85,7 +86,7 @@ const SIGNAUX_STRUCTURELS = [
 
 /** Les signaux de PORTÉE LIGNE, en une seule passe. */
 const LIGNE_STRUCTURELLE = new RegExp(
-  SIGNAUX_STRUCTURELS.filter((s) => s.portee === 'ligne').map((s) => s.re.source).join('|'),
+  alternationDeRegex(SIGNAUX_STRUCTURELS.filter((s) => s.portee === 'ligne').map((s) => s.re)),
 );
 /** La DÉCLARATION d'une semence, du `=` au `satisfies` : elle porte ses littéraux sur plusieurs lignes. */
 const SEMENCE_DECL = /=\s*\{[^{}]*\}\s*as const satisfies\s+(?:Fige<)?\w*Defaults>?\b/g;
@@ -128,9 +129,9 @@ const clesDOnglet = (src: string): Set<string> =>
 /** Neutralisation d'un CHAMP dont le vocabulaire N'EST PAS celui des matières, à l'écriture
  *  (`part: 'pilier'`) comme à la comparaison (`w.scope === 'plan'`) : c'est le NOM DU CHAMP qui est
  *  le signal, jamais le fichier. Chacun a un homonyme au dataset des matières (`pilier`, `plan`). */
-const champHorsMatiere = (champs: string) => {
-  const ecriture = new RegExp(`\\b(${champs})\\s*:\\s*(['"\`])[^'"\`]*\\2`, 'g');
-  const comparaison = new RegExp(`\\b(${champs})\\s*(===|!==|==|!=)\\s*(['"\`])[^'"\`]*\\3`, 'g');
+const champHorsMatiere = (champ: string) => {
+  const ecriture = new RegExp(`\\b(${echapperRegex(champ)})\\s*:\\s*(['"\`])[^'"\`]*\\2`, 'g');
+  const comparaison = new RegExp(`\\b(${echapperRegex(champ)})\\s*(===|!==|==|!=)\\s*(['"\`])[^'"\`]*\\3`, 'g');
   return (code: string) => code.replace(ecriture, '$1: _').replace(comparaison, '$1 $2 _');
 };
 
@@ -139,7 +140,7 @@ type Neutraliseur = { nom: string; applique: (code: string, onglets: Set<string>
 /**
  * UNE entrée de neutraliseur PAR CHAMP, produite depuis le VOCABULAIRE de chaque champ : le contrat
  * de vie se juge alors au grain du champ, et un homonyme que plus aucun site n'exerce rougit SEUL.
- * Groupés, quatre champs partageaient un verdict — trois morts passaient sous le vivant.
+ * Groupés, des champs partageraient un verdict : un champ mort passerait sous un vivant.
  */
 const neutraliseursDeChamp = (vocabulaires: Record<string, string>): Neutraliseur[] =>
   Object.entries(vocabulaires).map(([champ, vocabulaire]) => ({
@@ -154,7 +155,7 @@ const neutraliseursDeChamp = (vocabulaires: Record<string, string>): Neutraliseu
  *    `part` partie de face, `scope` portée d'un avertissement de validation, `key` clé de récap /
  *    d'IU — chacun a un homonyme au dataset des matières. `kind` (type de sélection d'un éditeur) n'y
  *    figure PAS : aucun `kind:` du périmètre ne porte d'homonyme de MATIÈRE (il n'en porte qu'au
- *    registre des TERRAINS, où le bras terrain le tient) — groupé à `key`, il passait pour vivant ;
+ *    registre des TERRAINS, où le bras terrain le tient) — groupé à `key`, il passerait pour vivant ;
  *  - l'UNION de littéraux d'un type : la DÉCLARATION d'un vocabulaire d'état, pas une émission ;
  *  - la comparaison d'un ÉTAT D'ONGLET à une clé déclarée dans le même fichier : le signal est la
  *    GAUCHE de la comparaison (un identifiant d'onglet, `…Tab`), jamais le fichier — `m.material ===
@@ -170,12 +171,7 @@ const NEUTRALISEURS: readonly Neutraliseur[] = [
   {
     nom: 'comparaison d’un état d’ONGLET à une clé déclarée',
     applique: (code, onglets) =>
-      onglets.size
-        ? code.replace(
-            new RegExp(`\\b(\\w*[Tt]ab)\\s*(===|!==|==|!=)\\s*(['"\`])(?:${[...onglets].join('|')})\\3`, 'g'),
-            '$1 $2 _',
-          )
-        : code,
+      code.replace(new RegExp(`\\b(\\w*[Tt]ab)\\s*(===|!==|==|!=)\\s*(['"\`])(?:${alternationDe(onglets)})\\3`, 'g'), '$1 $2 _'),
   },
 ];
 
@@ -202,7 +198,7 @@ function codeSeul(src: string, sauf?: string): string {
 }
 
 /** Un id CITÉ en littéral (la mesure commune des trois bras). */
-const citeId = (id: string) => new RegExp(`(['"\`])${id}\\1`);
+const citeId = (id: string) => new RegExp(`(['"\`])${echapperRegex(id)}\\1`);
 
 /** Les MEMBRES littéraux d'une UNION, déclarée (`type X = 'a' | 'b'`) comme écrite en place. */
 const membresDUnion = (union: string): string[] => [...union.matchAll(/(['"`])([^'"`\n]*)\1/g)].map((m) => m[2]);
@@ -261,7 +257,7 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; a
     nom: 'VOCABULAIRE d’union déclaré dans le fichier',
     portee: 'ligne',
     applique: (code, mots) =>
-      mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
+      code.replace(new RegExp(`(['"\`])(?:${alternationDe(mots)})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`),
   },
   {
     nom: 'UNION de littéraux écrite en place',
@@ -314,7 +310,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     for (const f of fichiers.filter((x) => duStore(x.rel))) {
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
-        if (materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l)))
+        if (materials.some((m) => citeId(m.id).test(l)))
           nus.push({ rel: f.rel, ligne: i + 1, texte: [l, sansCommentaires[i + 1] ?? '', sansCommentaires[i + 2] ?? ''].join('\n') });
       });
     }
@@ -336,7 +332,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * différence = exemption morte, à re-trier — pas à garder « au cas où ».
    */
   it('chaque NEUTRALISEUR est exercé par un site du périmètre (aucune exemption morte)', () => {
-    const cite = (l: string) => materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l));
+    const cite = (l: string) => materials.some((m) => citeId(m.id).test(l));
     for (const n of NEUTRALISEURS) {
       const exerce = fichiers.some((f) => {
         const avec = codeSeul(f.code).split('\n');
@@ -363,11 +359,10 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   it('la SEMENCE de terrain ne se nomme nulle part : le sol d’une scène neuve vient de la donnée (#1716)', () => {
     const semence = semencesDeScene.terrain;
     expect(terrains.some((t) => t.id === semence), `la semence « ${semence} » n’est pas un terrain : la garde mesure un vocabulaire mort.`).toBe(true);
-    const cite = (id: string) => new RegExp(`(['"\`])${id}\\1`);
     const fautes: string[] = [];
     for (const f of fichiers) {
       codeNu(f.code).forEach((l, i) => {
-        if (cite(semence).test(l)) fautes.push(`${f.rel}:${i + 1} — « ${semence} »`);
+        if (citeId(semence).test(l)) fautes.push(`${f.rel}:${i + 1} — « ${semence} »`);
       });
     }
     expect(
@@ -485,7 +480,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const brut = readFileSync(fichierTemoin, 'utf8');
     const partie = materials.find((m) => brut.includes(`part === '${m.id}'`) || brut.includes(`part !== '${m.id}'`));
     expect(partie, 'plus aucune comparaison `part === <homonyme d’une matière>` : le cas n’est plus exercé.').toBeDefined();
-    expect(new RegExp(`'${partie!.id}'`).test(codeSeul(brut)), `« ${partie!.id} » compté comme matière alors que c’est une PARTIE.`).toBe(false);
+    expect(new RegExp(`'${echapperRegex(partie!.id)}'`).test(codeSeul(brut)), `« ${partie!.id} » compté comme matière alors que c’est une PARTIE.`).toBe(false);
   });
 
   it('l’homonyme `plan` du RIG est hors périmètre : la voie de corps n’est pas une couverture', () => {
@@ -499,7 +494,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
       const code = codeSeul(f.code);
       const lignes = code.split('\n');
       for (const m of materials) {
-        const re = new RegExp(`(['"\`])${m.id}\\1`);
+        const re = citeId(m.id);
         lignes.forEach((l, i) => {
           if (re.test(l)) fautes.push(`${f.rel}:${i + 1} — « ${m.id} » (domaine ${m.domain})`);
         });

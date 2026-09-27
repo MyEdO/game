@@ -835,7 +835,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   `--ecrire-stock` régénère le stock après une correction.
 - `node scripts/raw/check-renvois.mjs` (#1393) — les renvois « page N » du texte, résolus en ADRESSE
   par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-phrase`, `page`),
-  pour tout livre extrait dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`, construits par comptage
+  pour tout livre extrait dont la `language` a son lexique (`LEXIQUE_DE_RENVOI`, construit par comptage
   du corpus — une langue neuve se mesure avant de s'y ajouter). Stock nominatif décroissant
   `scripts/raw/renvois-stock.json` : les renvois `ambigu` et `introuvable`, clé
   `slug#occ :: p.N :: rang R` de la section porteuse. Une entrée part quand son renvoi se résout ;

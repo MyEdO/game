@@ -1,7 +1,7 @@
 // Garde des RENVOIS « page N » du texte des livres de `Source/` (#1393, épique #1388). Le résolveur
 // PUR `src/data/source/renvoi.ts` rend chaque renvoi en ADRESSE avec son niveau de preuve ; ce script
-// l'applique à tout livre EXTRAIT dont la `language` (`src/data/books.json`) a sa table de motifs
-// (`MOTIFS_DE_RENVOI`) — aucun livre n'est nommé ici.
+// l'applique à tout livre EXTRAIT dont la `language` (`src/data/books.json`) a son lexique
+// (`LEXIQUE_DE_RENVOI`) — aucun livre n'est nommé ici.
 //
 // STOCK NOMINATIF (`scripts/raw/renvois-stock.json`, régime #1711) : une ENTRÉE par renvoi que la
 // preuve ne départage pas — famille `ambigu` ou `introuvable` —, clé
@@ -9,7 +9,7 @@
 // `slug#occ :: p.N :: rang R` : la SECTION porteuse (forme de `CLE_DE_REF`, `recouper-source.mjs`), le
 // folio visé, et le rang du renvoi parmi ceux de la section vers ce folio — jamais une ligne, jamais
 // un compte. Les deux sens sont rouges : un renvoi non résolu hors du stock, une entrée dont le
-// renvoi se résout désormais (la retirer).
+// renvoi se résout (la retirer).
 //
 // Re-run    : node scripts/raw/check-renvois.mjs
 // Régénérer : node scripts/raw/check-renvois.mjs --ecrire-stock [--lot <#N …>] — le lot est REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`, scripts/guards/lib/stock.mjs)
@@ -20,16 +20,16 @@ import { REGISTRE_LIVRES, livreExtraitDe } from './_lib.mjs'
 import { ecartDuVolet, ecrireStockSousLot, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
 import { parCleDeSite, readStock, texteDeStock } from './stockNominatif.mjs'
 import { chapitresParses } from '../source/lecteur-fs.mjs'
-import { MOTIFS_DE_RENVOI, indexerLivre, renvoisDuLivre } from '../../src/data/source/renvoi.ts'
+import { LEXIQUE_DE_RENVOI, indexerLivre, renvoisDuLivre } from '../../src/data/source/renvoi.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'renvois-stock.json')
 
 /** Les familles du stock : les niveaux où la preuve ne départage pas. */
 export const FAMILLES = ['ambigu', 'introuvable']
 
-/** Livres couverts : extraits, et dont la langue a ses motifs de renvoi. */
+/** Livres couverts : extraits, et dont la langue a son lexique de renvoi. */
 export const livresCouverts = (registre = REGISTRE_LIVRES) =>
-  registre.filter((b) => livreExtraitDe(b.id, registre) && MOTIFS_DE_RENVOI[b.language])
+  registre.filter((b) => livreExtraitDe(b.id, registre) && LEXIQUE_DE_RENVOI[b.language])
 
 /** Livre indexé depuis le disque (`scripts/source/lecteur-fs.mjs`). */
 export const livreIndexe = (livre) => indexerLivre(livre.id, livre.language, chapitresParses(livre.id))
@@ -73,7 +73,7 @@ const QUOI =
   'Renvois « page N » du texte de `Source/` que le résolveur `src/data/source/renvoi.ts` ne départage ' +
   'pas (#1393) : famille `ambigu` (plusieurs sections candidates au folio, ou table nommée qu’aucun ' +
   'titre ne porte) ou `introuvable` (aucun texte au folio). Livres couverts : extraits, dont la ' +
-  '`language` a ses motifs (`MOTIFS_DE_RENVOI`). Une ENTRÉE par renvoi, clé ' +
+  '`language` a son lexique (`LEXIQUE_DE_RENVOI`). Une ENTRÉE par renvoi, clé ' +
   '`famille :: fichier :: ref :: occurrence` (régime #1711) ; la réf est `slug#occ :: p.N :: rang R` — ' +
   'section porteuse, folio visé, rang parmi les renvois de la section vers ce folio. Ce fichier ' +
   'ne fait que décroître : une entrée part quand son renvoi se résout.'

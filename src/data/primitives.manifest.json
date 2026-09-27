@@ -1123,7 +1123,7 @@
     "fichier": "src/gameIso/rig/palette.ts",
     "concept": "déclarations INERTES d'une couche : clés dont le retrait laisse buildTokenMap identique sous chaque entrée que le rig applique à la couche et chaque surcharge sonde, retirées jusqu'au point fixe (doublon de la couche défaut, rôle orphelin)",
     "perimetre": "porte de la donnée de palette, mesure d'un retrait",
-    "verrou": "palettes-declarees.test.ts (A4), palette.test.ts"
+    "verrou": "palettes-declarees.test.ts (d), palette.test.ts"
   },
   {
     "id": "coucheDEspece",

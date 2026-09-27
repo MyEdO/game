@@ -363,7 +363,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
 
   /**
    * LE SUCCESSEUR DES HARNAIS EST SOUS LA MÊME RÈGLE (#1318 E7) — `i18n/fixtureText.ts` marque les
-   * libellés des fixtures de test. Il est réservé aux harnais par les cliquets T4/T5
+   * libellés des fixtures de test. Il est réservé aux harnais par les cliquets 4 et 5
    * (`player-text-ratchet.test.ts`), et sa fabrique reste UN cast, exempté AU SITE comme celle du
    * fossile : sans le volet symétrique ci-dessous, rien ne mesurerait qu'un 2ᵉ cast y échoue.
    */

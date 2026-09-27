@@ -20,11 +20,11 @@ import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.m
  *  La borne de mot est en TÊTE seulement (« vedette » n'est pas une dette) : `\b` est ASCII et ne se
  *  pose pas après un « é », la borne de queue rejetait donc « non implémenté » lui-même.
  *  HORS de la liste, et c'est mesuré : « en attente » et « bloqué par » sont des mots d'ÉTAT DU
- *  DOMAINE avant d'être des mots de dette — `store.ts:487` « Ouverture cérémonielle EN ATTENTE »
- *  nomme un champ du jeu, `travelFlow.ts:277` « BLOQUÉ par la porte d'heure » énonce une règle. */
+ *  DOMAINE avant d'être des mots de dette — `store.ts:517` « Ouverture cérémonielle EN ATTENTE »
+ *  nomme un champ du jeu, `travelFlow.ts:279` « BLOQUÉ par la porte d'heure » énonce une règle. */
 export const MOTIF_DETTE_RE = /\b(?:dette|todo|non\s+impl[ée]ment[ée])/i
-/** Une dette DÉCLARÉE ÉTEINTE sur la même ligne n'en est plus une (`registry.ts:104` « #563 dette
- *  soldée », `labelLogic.mjs:59` « dette #598, résorbée par le renommage »). */
+/** Une dette DÉCLARÉE ÉTEINTE sur la même ligne n'en est plus une (`labelLogic.mjs:62` « dette #598,
+ *  résorbée par le renommage »). */
 const DETTE_ETEINTE_RE = /(?:soldé|résorbé|résolu|levé)/i
 /** Citation d'un ticket dans un commentaire. */
 const TICKET_RE = /#(\d+)/g

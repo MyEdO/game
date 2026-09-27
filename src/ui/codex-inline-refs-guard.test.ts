@@ -48,7 +48,7 @@ export interface CodexRefLiteral {
 /**
  * Le vocabulaire d'une ref Codex écrite en littéral — l'identité (`category`/`id`), son affichage
  * (`label`, `instance` = la spécialisation d'une entrée générique) et les clés de la rangée `CodexRow`
- * de forme `{ t: 'ref', … }` (`t`/`show`/`badge`, `src/ui/compendium/registry.ts:119`). Un littéral qui
+ * de forme `{ t: 'ref', … }` (`t`/`show`/`badge`, `src/ui/compendium/registry.ts:158`). Un littéral qui
  * porte une clé HORS de ce jeu est d'une autre ESPÈCE : son `category` ne désigne pas une catégorie de
  * catalogue (service de ville, famille d'icône…). C'est la discrimination par la FORME — jamais une
  * exemption de fichier. Sonde ci-dessous : le jeu est PORTEUR (l'élargir ferait entrer des étrangers,

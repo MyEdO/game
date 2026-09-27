@@ -3,7 +3,7 @@
  *
  * À partir d'un ÉVÉNEMENT structuré (`CombatEvent` : `kind` + acteur/cible + texte) et de la liste
  * des combattants, dérive :
- *  - une ICÔNE unifiée, déduite du `kind` (plus aucun devinage par mots-clés) ; pour les états
+ *  - une ICÔNE unifiée, déduite du `kind` ; pour les états
  *    appliqués (`condition`/`detail`) on réutilise l'icône de `effectIcons` (source unique),
  *  - les NOMS colorés par camp (allié vert / ennemi rouge) sous forme de segments,
  *  - l'IMPORTANCE (les événements importants remontent dans le bandeau haut ; le reste reste au journal).
@@ -17,6 +17,7 @@ import {
   type CombatTone, toneOf, isImportantEvent,
 } from '../state/combatLog';
 import { conditionIdInText } from '../engine/conditions';
+import { alternationDe } from '../lib/regex';
 
 export interface NarratedSegment {
   text: string;
@@ -64,10 +65,6 @@ function iconOf(e: CombatEvent): IconId {
   return KIND_ICON[e.kind];
 }
 
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /** Découpe le texte en segments, colorant chaque occurrence d'un nom de combattant par son camp. */
 function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   const named = combatants.filter((c) => c.label && c.label.trim());
@@ -78,9 +75,7 @@ function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   // interrogation par libellé (#602) — parcours inversé pour que le PREMIER combattant l'emporte.
   for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'ally' : 'enemy');
 
-  // Noms uniques, du plus long au plus court (évite « Rat » de mordre dans « Rat géant »).
-  const names = [...new Set(named.map((c) => c.label))].sort((a, b) => b.length - a.length);
-  const re = new RegExp('(' + names.map(escapeRe).join('|') + ')', 'g');
+  const re = new RegExp(`(${alternationDe(named.map((c) => c.label))})`, 'g');
 
   const segs: NarratedSegment[] = [];
   let last = 0;

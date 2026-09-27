@@ -8,6 +8,7 @@
  * pas un composant.
  */
 import { useSyncExternalStore } from 'react';
+import { echapperRegex } from '../../lib/regex';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
@@ -22,9 +23,6 @@ import {
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
 } from '../../data';
-// #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
-// façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
-// importés directement d'`engine/massBattle`).
 import type { RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
@@ -43,6 +41,9 @@ import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
+// #157 : catalogues app-owned chargés par un module dédié plutôt que la
+// façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
+// importés directement d'`engine/massBattle`).
 import { OBSESSIONS } from '../../data/obsessions';
 import { STRUCTURE_CRITICALS } from '../../data/structureCriticals';
 import { ARTILLERY_MISFIRE } from '../../data/artilleryMisfire';
@@ -108,13 +109,12 @@ export const CODEX_GROUPS: CodexGroup[] = ['Personnage', 'Compétences', 'Équip
 /**
  * Identité GÉNÉRIQUE d'une entrée de dataset — clé STABLE servant À LA FOIS de `CodexItem.label`
  * (ce que le navigateur passe à l'éditeur) ET de cible du `findIndex` côté `CodexEdit`. Précédence
- * `label → id` : un dataset qui porte un `label` l'expose (maladies, gods, raceAppearance depuis
- * #1467 L1b V-P4…), sinon son `id` fait l'affichage. Mesuré sur les 2 racines (`src/data`, `src/scenes`) : aucune entrée
- * de premier niveau ne porte `key` ni `name` — le dernier porteur de `key` (`calendarPhases`) est
- * passé à `id` en #1467 L1b V-P1.
+ * `label → id` : un dataset qui porte un `label` l'expose (maladies, gods, raceAppearance…, #1467),
+ * sinon son `id` fait l'affichage. Aucune entrée de premier niveau de `src/data` ni de `src/scenes` ne
+ * porte `key` ni `name` (#1467).
  * EXCEPTION careerLevels : le libellé de niveau (« Recrue ») revient sur plusieurs carrières et
  * n'identifie rien seul → composite carrière + niveau, identique des deux côtés (l'éditeur réécrit la
- * bonne entrée, plus de collision sur le 1er homonyme).
+ * bonne entrée, jamais le 1er homonyme).
  */
 export function entryKey(e: Record<string, unknown>): string {
   if (typeof e.career === 'string' && typeof e.level === 'number')
@@ -123,7 +123,7 @@ export function entryKey(e: Record<string, unknown>): string {
 }
 
 /** Vue de projection Codex de `SourceRef` (`src/data/schemas/grammaire/valeurs.ts` — SEULE forme à importer,
- *  #563 dette soldée) : `book` y est déjà résolu en ABRÉVIATION affichable (`bookAbr`, cf. `src()`
+ *  #563) : `book` y est déjà résolu en ABRÉVIATION affichable (`bookAbr`, cf. `src()`
  *  ci-dessous), jamais l'id stable — projection d'AFFICHAGE, pas la donnée. */
 export type CodexSource = Pick<SourceRef, 'page'> & { book: string };
 export interface CodexFact {
@@ -148,7 +148,7 @@ export interface PorteurDeRangee {
 export type CodexRow =
   /** Prose en rangée. `porteur` (cf. `PorteurDeRangee`) = le champ d'où sort `text`, VERBATIM
    *  (notation `scripts/source/adresses.mjs`) — `CodexRowView` le complète et le passe à `<Prose>`.
-   *  ABSENT = texte SYNTHÉTISÉ ou DÉCORÉ : aucune mention n'y est liée (#1392 Lot E). */
+   *  ABSENT = texte SYNTHÉTISÉ ou DÉCORÉ : aucune mention n'y est liée (#1392). */
   | { t: 'text'; text: string; porteur?: PorteurDeRangee }
   | { t: 'kv'; k: string; v: string; kref?: { category: string; id: string; label: string } }
   /** Lien vers une autre fiche. `id` = identité STABLE de la cible (navigation) ; `label` reste la clé
@@ -158,9 +158,9 @@ export type CodexRow =
   | { t: 'ref'; category: string; id: string; label: string; show: string; badge?: string }
   /** Pastille NUE : un libellé qui ne désigne AUCUNE entité du Codex (nom d'objet authoré en clair,
    *  libellé composite « A ou B »/« au choix »). Même boîte qu'un `t:'ref'` — la borne d'objet se
-   *  voit — mais ni lien, ni popover, ni auto-liage : ce n'est pas de la prose de règle (#1392 Lot E,
-   *  verdict juge vision : une Possession rendue en PARAGRAPHE inversait la hiérarchie de la section
-   *  et fondait « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
+   *  voit — mais ni lien, ni popover, ni auto-liage : ce n'est pas de la prose de règle (#1392 :
+   *  une Possession rendue en PARAGRAPHE inverserait la hiérarchie de la section et fondrait
+   *  « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
   | { t: 'chip'; label: string; badge?: string }
   /** CHOIX « A ou B » : chaque option est un lien cross-réf cliquable, séparées par « ou ». */
   | { t: 'choice'; category: string; options: { id: string; label: string; show: string }[] }
@@ -174,7 +174,7 @@ export type CodexRow =
    *  `v` est la couleur telle que la donnée l'écrit (`#rrggbb`), jamais un nom inventé. */
   | { t: 'couleur'; k: string; v: string }
   /** Note d'atelier NON cliquable, en fin de section (« se tranchent à l'étape 5 ») — jamais un lien,
-   *  jamais une règle inventée : un simple repère de parcours (#393 P2, verdict juge vision P1 item 8). */
+   *  jamais une règle inventée : un simple repère de parcours (#393). */
   | { t: 'nb'; text: string };
 export interface CodexSection {
   title: string;
@@ -335,7 +335,7 @@ const family = (label: string): string => label.split(' (')[0].trim();
 
 /** Id résolu d'une référence par (catégorie, libellé) — même résolution que `CodexRef` (recherche
  *  exacte puis casse pliée dans les items DÉJÀ projetés de la catégorie cible) ; repli sur un slug
- *  du libellé si la cible n'est pas (encore) au catalogue (défensif — arme naturelle hors catalogue,
+ *  du libellé si la cible n'est pas au catalogue (défensif — arme naturelle hors catalogue,
  *  entrée cassée… — ne doit jamais faire échouer un build). */
 const refId = (category: string, label: string): string => codexLookup(category, label)?.id ?? slugId(label);
 
@@ -385,7 +385,7 @@ const trappingRefRow = (ref: TrappingRef): CodexRow => {
   // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
   // entité du Codex n'est désignée — donc pas de `t:'ref'` non plus, et aucun porteur : le libellé
-  // rendu n'est même pas toujours le champ (`trappingRefLabel`, `src/data/index.ts:3573-3589`, le
+  // rendu n'est même pas toujours le champ (`trappingRefLabel`, `src/data/index.ts`, le
   // DÉCORE du compte `ref.count` — « Pamphlétaire (3) »). Même boîte que ses voisines de section.
   if ('text' in ref || 'choice' in ref || 'wildcard' in ref) return { t: 'chip', label: show };
   if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
@@ -412,7 +412,7 @@ const ritualSection = (r: SpellData['ritual']): CodexSection | null =>
         layout: 'list',
         // Un sous-en-tête SYNTHÉTISÉ (nu) par rubrique, puis le CHAMP seul — le texte rendu est
         // alors le verbatim du champ, adressable (`ritual.<champ>`). Un `**Composants :** …` inline
-        // mêlait libellé fabriqué et verbatim : pas un champ, donc pas un porteur.
+        // mêlerait libellé fabriqué et verbatim : pas un champ, donc pas un porteur.
         rows: [
           { t: 'sub', label: 'Type' }, { t: 'text', text: r.type, porteur: { chemin: 'ritual.type' } },
           { t: 'sub', label: 'Composants' }, { t: 'text', text: r.components, porteur: { chemin: 'ritual.components' } },
@@ -451,7 +451,7 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
 
 /**
  * Libellé FR d'une VALEUR d'un champ ÉNUMÉRÉ, lu SUR SON NŒUD (`enumNomme`, #1694) : les noms des
- * valeurs vivent à la déclaration du champ — le Codex les LIT, il n'en tient plus la table.
+ * valeurs vivent à la déclaration du champ — le Codex les LIT, il n'en tient aucune table.
  */
 const valeurFR = (fichier: string, champ: string, valeur: string): string =>
   libelleDeValeur(noeudDuChamp(fichier, champ), valeur);
@@ -513,7 +513,7 @@ function outcomeBandsSection(bands?: OutcomeBand[]): CodexSection | null {
  * SOURCE UNIQUE du contenu structuré d'une fiche de race — onglets Profil / Carrières / Détails.
  * Consommée par le Codex (`registry.races`) ET l'étape Race du créateur (`SpeciesRaceScreen`, ses
  * sections Caractéristiques/Compétences/Talents seulement — Carrières/Détails restent au Codex), pour
- * qu'elles ne puissent plus diverger. Données tirées des MÊMES tables que le créateur
+ * qu'elles ne puissent pas diverger. Données tirées des MÊMES tables que le créateur
  * (`careersForSpecies`, `details`, `eyes`, `hairs`). Les faits-clés (M/Destin/Résilience) restent en
  * en-tête (méta), pas ici ; le tirage aléatoire (création) est ajouté PAR le créateur.
  */
@@ -539,7 +539,7 @@ export function raceSkillSection(s: (typeof species)[number]): CodexSection | nu
 }
 
 /** Section « Talents de race » — chips cliquables, « A ou B » éclaté en choix. Note d'atelier finale
- *  (#393 P2, verdict juge vision P1 item 8) : les choix/tirages (« au d100 ») ne se tranchent pas ici,
+ *  (#393) : les choix/tirages (« au d100 ») ne se tranchent pas ici,
  *  mais à l'étape 5 (Compétences & Talents) du créateur. */
 export function raceTalentSection(s: (typeof species)[number]): CodexSection | null {
   const rows = s.talents.map((a) => advancementRow('talents', a));
@@ -622,8 +622,8 @@ function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem
 export const traitItem = (t0: (typeof traits)[number], categoryKey: string): CodexItem => {
   // Entrée EFFECTIVE sous les règles optionnelles actives (#563/#564), comme la catégorie Talents :
   // desc, source, capacités, passifs et effets affichés sont ceux de la variante réglée quand elle est
-  // active. `traits.json` n'en porte AUCUNE aujourd'hui (mesuré) — la lecture s'aligne sur le schéma
-  // (`data/schemas/defs/traits.ts`, champ `variants?`) pour que la première n'arrive pas dans un écran muet.
+  // active. La lecture suit le schéma (`data/schemas/defs/traits.ts`, champ `variants?`), que
+  // `traits.json` porte une variante ou non.
   const t = effectiveEntry(t0);
   const cap = t.capabilities;
   return depuisEnveloppe(t, {
@@ -795,7 +795,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
       jet ? passiveSection(opsHorsJet(jet.fail), 'Si le jet échoue') : null,
       jet ? passiveSection(opsHorsJet(jet.success), 'Si le jet réussit') : null,
       ...jetsAmp.map((n) => passiveSection(opsHorsJet(n.fail), `${libelleDeJet(n)} — si le jet échoue`)),
-      // L'amputation que la ligne PRONONCE (22 rangées sur 26 : « Vous perdez votre main ») vit HORS des
+      // L'amputation que la ligne PRONONCE (« Vous perdez votre main ») vit HORS des
       // branches — sans cette section, le Codex ne montrerait que le jet et tairait la perte elle-même.
       passiveSection(opsHorsJet(amputation), 'Amputation — quoi que donne le jet'),
       e.traumas?.length
@@ -809,7 +809,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
 }
 
 /** Item Codex d'une entrée de table de voyage d100 (`TravelTableEntry` — Incidents de monte EDOC 7,
- *  Problèmes de véhicule EDOC 7, Rencontres EDOC 8, #157 suite) — MÊME projection pour les 3
+ *  Problèmes de véhicule EDOC 7, Rencontres EDOC 8, #157) — MÊME projection pour les 3
  *  familles : plage d100 → texte + Dégâts véhicule éventuels + effet GameOp sur les occupants. */
 function travelEntryItem(e: TravelTableEntry, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
@@ -828,7 +828,7 @@ function crewTargetLabel(cible: CrewTarget): string {
 }
 
 /** Item Codex d'une entrée de Critique de coque (`ShipCritEntry` — MDG 13 navire, MSRC 07 fluvial,
- *  #157 suite) : plage d10 → effet immédiat (`ops`) + coup à l'équipage (`crewHit` : qui encaisse, et
+ *  #157) : plage d10 → effet immédiat (`ops`) + coup à l'équipage (`crewHit` : qui encaisse, et
  *  soit l'épreuve du nœud `test` avec les ops de sa branche d'échec, soit les ops certaines), MÊME
  *  vocabulaire que les autres Critiques (`critEntryItem`). */
 function shipCritEntryItem(e: ShipCritEntry): CodexItem {
@@ -859,13 +859,13 @@ function shipCritEntryItem(e: ShipCritEntry): CodexItem {
   });
 }
 
-/** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
+/** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157) : plage de jet
  *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim. */
 function seaEventItem(e: SeaEventDef): CodexItem {
   return depuisEnveloppe(e, { sub: `${e.min}–${e.max}` });
 }
 
-/** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé
+/** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157) : effet signé
  *  (Nd10 + constante) appliqué UNE fois par navire. */
 function manannFactorItem(f: ManannFactor): CodexItem {
   const eff = f.effect;
@@ -889,10 +889,10 @@ function waterModifiersSection(mods: WaterExposureModifier[]): CodexSection | nu
   return { title: 'Modificateurs', layout: 'list', rows };
 }
 
-// ── LOT 1 #422 : famille NAVALE (MDG 12/13/15) — Ports, Progression, Navigation, Périls, Météo,
+// ── #422 : famille NAVALE (MDG 12/13/15) — Ports, Progression, Navigation, Périls, Météo,
 //    Construction navale. Ports & sous-tableaux de construction restent des CATÉGORIES-tableau (une
 //    fiche par entité, patron `criticalsTete`) ; Navigation/Périls/Météo sont des FICHES DE RÈGLE
-//    UNIQUES (dataset-objet, MÊME patron que `waterExposure`, #157 suite) — chaque config imbriquée
+//    UNIQUES (dataset-objet, MÊME patron que `waterExposure`, #157) — chaque config imbriquée
 //    (Salissures, Orientation, Détroits, Tourbillons…) devient une section plutôt qu'une entité isolée. ──
 
 /** Libellé FR d'une entrée de `production`/`surplus`/`demande` d'un Port (`naval-ports.json`) : le
@@ -939,11 +939,11 @@ function shipConstructionRulesSection(): CodexSection {
   };
 }
 
-// ── LOT 1 #422 : famille RÈGLES LDB — Coût des Augmentations (07), Disponibilité & Troc (59), Accidents
+// ── #422 : famille RÈGLES LDB — Coût des Augmentations (07), Disponibilité & Troc (59), Accidents
 //    de Conduite d'attelage / Ivresse (09), Surchargé par palier (61). Coût des Augmentations/Surchargé
 //    restent des CATÉGORIES-tableau (une bande/un palier = une entité, id/label ajoutés en donnée pour
 //    l'exposition, #422) ; Disponibilité & Troc est une FICHE DE RÈGLE UNIQUE (dataset-objet, patron
-//    `waterExposure`) ; Accidents de Conduite / Ivresse restent des CATÉGORIES-tableau (id/name déjà
+//    `waterExposure`) ; Accidents de Conduite / Ivresse restent des CATÉGORIES-tableau (id/label déjà
 //    en donnée, MÊME patron que `incidentsMonture`/`problemesVehicule`). ──
 
 /** Valeur d'une règle optionnelle rendue LISIBLE (un booléen se lit « Activée »/« Désactivée », pas
@@ -979,7 +979,7 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
   return { title: 'Ratios de Troc (donné : acquis)', layout: 'list', rows: rowsOut };
 }
 
-// ── LOT 3 #422 (FINAL) : les 3 dernières exemptions AUDIT — Empoignade (LDB 14, fiche de règle
+// ── #422 : Empoignade (LDB 14, fiche de règle
 //    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
 //    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
 //    `passiveSection`), enjeux de la cascade de nuit (`night-stakes.json`, catégorie-tableau simple). ──
@@ -1143,8 +1143,7 @@ function arcaneTableRows(t: ArcaneTable): CodexRow[] {
  */
 export function optionBody(o: { label: string; desc: string }): string {
   const sansPuce = o.desc.replace(/^\s*[-*]\s+/, '');
-  const echappe = o.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
+  return sansPuce.replace(new RegExp(`^\\*\\*${echapperRegex(o.label)}\\s*:\\*\\*\\s*`), '');
 }
 
 const CODEX_SPECS: CodexCategorySpec[] = [
@@ -1338,7 +1337,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     },
   },
 
-  // ── LOT 3 #422 (FINAL) : les 3 dernières exemptions AUDIT ──
+  // ── #422 : Empoignade, Incantations Imparfaites / Colère des dieux, enjeux de nuit ──
   {
     key: 'grapple', label: 'Empoignade — mécanique', group: 'Tables', sourceRef: 'LDB 14',
     build: () => {
@@ -1378,13 +1377,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
   },
   {
-    // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par l'id de
+    // Troisième dataset de la famille (#1117) : l'enjeu d'un JET DE MODALE MONO, keyé par l'id de
     // jet `{flow, phase}`. Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
     key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
     build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { sub: `${e.flow}/${e.phase}`, desc: e.template })),
   },
   {
-    // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
+    // Quatrième dataset de la famille (#1117) : l'enjeu d'une étape de cascade de COMBAT, keyé par
     // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
     key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
     build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template })),
@@ -1401,7 +1400,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       // Aperçu rig DATA-DRIVEN (même chemin que le créateur) : la fiche de race montre sa silhouette.
       appearance: { species: rigSpeciesId(s.id) },
       meta: facts(fact('Mouvement', s.movement), fact('Destin', s.fate?.fate), fact('Résilience', s.fate?.resilience)),
-      // Contenu = SOURCE UNIQUE partagée avec le créateur (plus de ré-implémentation divergente).
+      // Contenu = SOURCE UNIQUE partagée avec le créateur (aucune ré-implémentation divergente).
       tabs: raceFicheTabs(s),
     })),
   },
@@ -1445,7 +1444,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: c.nature === 'roll' ? facts(fact('Bonus', 'chiffre des dizaines')) : undefined,
       sections: sections(
         // DÉPENSES de la ressource (Résilience : ses deux choix) — la règle vit sur l'ENTITÉ qui la
-        // porte (amendement A, #1117) ; `regles.json` ne garde que les règles de CADRE. Même forme
+        // porte (#1117) ; `regles.json` ne garde que les règles de CADRE. Même forme
         // qu'une section dérivée d'un champ de donnée (`symptoms.onTick`) : un sous-en-tête par
         // option, son verbatim dessous — DÉDOUBLONNÉ à l'AFFICHAGE par `optionBody`.
         c.options?.length
@@ -1624,8 +1623,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       group: valeurFR('mutations.json', 'kind', m.kind),
       appearance: m.appearance,
       ...(m.appearance ? { previewPorteur: porteurDApercu('mutations') } : {}),
-      // PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /
-      // grantNaturalWeapon / grantTrait) → rendus par passiveSection ; plus de facts/chips dédiés.
+      // PA / arme naturelle / traits conférés sont des GameOps du `passive` (ap / grantNaturalWeapon /
+      // grantTrait) → rendus par passiveSection, sans fact ni chip dédié.
       sections: sections(
         passiveSection(m.passive),
         ...reverseSections('mutations', m.id), // Tables de Corruption la tirant
@@ -1786,7 +1785,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'books', label: 'Livres', group: 'Monde',
     // Fiche Livre : « contenu, par type » (index `bookContents`) projeté DANS le build (paresseux).
-    // Les entités référencent leur livre par son ABBR (`source.book`) → match sur abbr + libellé ;
+    // Les entités référencent leur livre par son `id` (`source.book`) → `bookContents(b.id)` apparie par id ;
     // `categoryByKey(...)?.label` ne lit que l'identité STATIQUE des catégories (pas leurs items :
     // aucun cycle de projection).
     build: () => books.map((b) => ({
@@ -1798,12 +1797,12 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       })),
     })),
   },
-  // ── Tables & gabarits éditables (E3a) ─────────────────────────────────────────
+  // ── Tables & gabarits éditables ─────────────────────────────────────────
   {
     key: 'careerLevels', label: 'Niveaux de carrière', group: 'Tables',
     // Le `label` reste composé par `entryKey` (même composition côté éditeur `CodexEdit`) : un même
     // libellé de niveau sert plusieurs carrières, il n'identifie rien à lui seul. L'`id`, lui, est
-    // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
+    // celui de la DONNÉE (#1467) — le registre ne recompose aucune identité.
     build: () => careerLevels.map((lv) => depuisEnveloppe(lv, {
       label: entryKey(lv as unknown as Record<string, unknown>),
       sub: lv.status, group: findCareerById(lv.career)?.label ?? lv.career,
@@ -1840,7 +1839,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'calendarPhases', label: 'Calendrier — Phases du jour', group: 'Tables', cluster: 'Calendrier',
     build: () => calendarPhases.map((p) => ({
-      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/ui/icons), plus un glyphe affichable en préfixe
+      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/ui/icons), jamais un glyphe affichable en préfixe
 
       sub: `dès ${String(Math.floor(p.start / 60)).padStart(2, '0')}:${String(p.start % 60).padStart(2, '0')}`,
     })),
@@ -1922,13 +1921,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
     })),
   },
-  // ── Combat de masse / Puissance de Bataille (ADE II 8, #148) — 5 tables verbatim NICHÉES dans
+  // ── Combat de masse / Puissance de Bataille (ADE II 8) — 5 tables verbatim NICHÉES dans
   // UN seul fichier (`mass-battle.json`, moteur `engine/massBattle.ts`). Champs déjà imprimés en
   // STRINGS par la source (prix/portée/dégâts/atouts) → faits bruts (`fact`), pas de cross-réf chips :
   // les libellés d'Atouts imprimés ici (« Explosion 15 », « Impénétrable »…) ne correspondent PAS
   // toujours tels quels aux libellés canoniques de `qualities`/`traits` (ex. qualité « À Explosion » vs
-  // « Explosion » ici, trait « Impénétrable (structure) » vs « Impénétrable » ici) — une décomposition
-  // par id resterait à faire côté donnée (hors périmètre #148, ne pas inventer un rapprochement flou). ──
+  // « Explosion » ici, trait « Impénétrable (structure) » vs « Impénétrable » ici) : aucun
+  // rapprochement flou n'est inventé (#2094). ──
   {
     key: 'massBattlePowerEstimate', label: 'Bataille de masse — Estimation de Puissance', group: 'Tables', cluster: 'Bataille de masse',
     build: () => POWER_ESTIMATE.map((p) => depuisEnveloppe(p, {
@@ -1962,7 +1961,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'massBattleHazards', label: 'Bataille de masse — Aléas de bataille', group: 'Tables', cluster: 'Bataille de masse',
     build: () => BATTLE_HAZARDS.map((h) => depuisEnveloppe(h, { sub: `1d10 = ${h.min}` })),
   },
-  // ── Datasets-OBJETS uniques (E3b) : config de création (objet) + banque de noms (Record par race) ──
+  // ── Création de personnage : config de création (objet unique `details.json`) + banque de noms (une entrée par race) ──
   {
     key: 'details', label: 'Détails de création', group: 'Tables', cluster: 'Création de personnage', sourceRef: 'LDB 05',
     // UNE seule entrée (objet `details.json`) — formules Âge/Taille par espèce + textes d'aide.
@@ -2015,15 +2014,14 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'names', label: 'Banque de noms', group: 'Tables', cluster: 'Création de personnage',
-    // LISTE de documents (#1467 L1b V-FLIP-RECORD) : chaque banque porte SON id (le `RaceKey`) et SON
+    // LISTE de documents (#1467) : chaque banque porte SON id (le `RaceKey`) et SON
     // libellé — l'affichage se lit sur le document, sans lookup transverse.
     build: () => names.map((pool) => ({
       id: pool.id, label: pool.label,
       sub: `${pool.maleFirstNames.length}♂ · ${pool.femaleFirstNames.length}♀ · ${pool.lastNames.length} noms`,
       sections: sections(
-        // RESTE ASSUMÉ : une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille
-        // elle ferait une pastille géante. Éclater la donnée en une pastille par nom est un chantier
-        // de DONNÉES, hors #1392 Lot E.
+        // Une rangée porte la LISTE entière (`join(', ')`), pas un nom — en pastille elle ferait une
+        // pastille géante ; une pastille par nom exige une donnée éclatée par nom (#1392).
         pool.maleFirstNames.length ? { title: 'Prénoms masculins', layout: 'chips', rows: [{ t: 'text', text: pool.maleFirstNames.join(', ') }] } : null,
         pool.femaleFirstNames.length ? { title: 'Prénoms féminins', layout: 'chips', rows: [{ t: 'text', text: pool.femaleFirstNames.join(', ') }] } : null,
         pool.lastNames.length ? { title: 'Noms de famille', layout: 'chips', rows: [{ t: 'text', text: pool.lastNames.join(', ') }] } : null,
@@ -2551,7 +2549,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => OBSESSIONS.map((o) => ({ id: o.id, label: o.label, sub: `2d10 ${o.min}–${o.max}` })),
   },
   {
-    // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
+    // #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
     // exposé/éditable ici comme tout catalogue. Le panneau in-game reste la porte de la VALEUR jouée
     // (surcharge runtime persistée) ; cette fiche montre le catalogue lui-même.
     key: 'reglesOptionnelles', label: 'Règles optionnelles', group: 'Tables',
@@ -2644,7 +2642,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     // Procédures / options de jeu au texte VERBATIM (Sombre Pacte, Empoignade, modes d'attaque…) —
-    // cible des tooltips `CodexRef` qui portaient une paraphrase de règle (#392).
+    // cible des tooltips `CodexRef`, qui renvoient au verbatim au lieu de paraphraser la règle (#392).
     key: 'regles', label: 'Règles de jeu', group: 'Monde',
     build: () => regles.map((r) => depuisEnveloppe(r)),
   },
@@ -2696,11 +2694,11 @@ export const codexItemKey = (category: string, id: string): string => `${categor
 // `codexLookup` est appelé par CHAQUE `CodexRef` à CHAQUE rendu → un `items.find` linéaire ne scale
 // pas (des centaines de refs × des centaines d'items). L'index (label exact → item, + repli casse
 // pliée) se construit à la 1re résolution d'une catégorie — sur les `items` COURANTS du getter
-// re-projetable — et se ré-utilise ensuite. La 1re occurrence gagne (même précédence que l'ancien
+// re-projetable — et se ré-utilise ensuite. La 1re occurrence gagne (précédence d'un
 // `find`). Invalidé par `invalidateCodexLookup` (persist d'une édition Codex) : index ET projections
 // (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useCodexVersion` fait re-rendre
-// les lecteurs (CompendiumScreen). L'état (`LOOKUP`/`LOOKUP_VERSION`) vit en tête de fichier, avec
-// la machinerie de fraîcheur.
+// les lecteurs (CompendiumScreen). L'état (`LOOKUP`/`LOOKUP_VERSION`) vit avec la machinerie de
+// fraîcheur (bloc « Fraîcheur du Codex »).
 
 /** Index (byId + label exact/casse pliée) d'une catégorie, construit à la 1re résolution — `undefined`
  *  si la catégorie est inconnue (jamais mis en cache, répond `undefined` à chaque appel). */
@@ -2712,7 +2710,7 @@ function categoryIndex(category: string): { byId: Map<string, CodexItem>; exact:
     if (!items) return undefined;
     idx = { byId: new Map(), exact: new Map(), folded: new Map() };
     // Parcours INVERSÉ + `set` nu : le dernier écrit gagne, donc la PREMIÈRE occurrence de la liste
-    // l'emporte (précédence historique du `find`), sans interroger un index par libellé (#602) —
+    // l'emporte (précédence d'un `find`), sans interroger un index par libellé (#602) —
     // remplir un index de texte est la couture tolérée, le questionner par `.label` ne l'est pas.
     for (let i = items.length - 1; i >= 0; i--) {
       const it = items[i];

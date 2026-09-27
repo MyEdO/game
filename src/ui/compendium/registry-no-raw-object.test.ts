@@ -6,12 +6,11 @@ import miscastRawJson from '../../data/miscast.json';
 /**
  * Garde-fou anti-régression de la classe de bug « [object Object] » au Codex.
  *
- * `fact(label, value)` fait `String(value)` (registry.ts:118) : un champ STRUCTURÉ (SpellRange,
+ * `fact(label, value)` fait `String(value)` (registry.ts:276) : un champ STRUCTURÉ (SpellRange,
  * ManeuverMeasure, WeaponDamageSpec, WeaponRangeSpec…) passé BRUT à `fact()` est stringifié en
  * « [object Object] » à l'écran. Ce test matérialise TOUT le Codex (CODEX est construit au chargement)
- * et échoue si un meta contient cette chaîne. Il a attrapé les sorts (Portée/Cible/Durée) et les
- * manœuvres (Portée). Tout nouveau champ objet DOIT passer par un formateur (formatSpellRange,
- * formatManeuverMeasure, damageString, rangeSpecLabel…) avant `fact()`.
+ * et échoue si un meta contient cette chaîne. Tout nouveau champ objet DOIT passer par un formateur
+ * (formatSpellRange, formatManeuverMeasure, damageString, rangeSpecLabel…) avant `fact()`.
  */
 describe('Codex — aucun champ structuré rendu brut', () => {
   it('aucun meta ne produit « [object Object] »', () => {

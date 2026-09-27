@@ -28,6 +28,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { echapperRegex } from '../../lib/regex';
 
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url)); // …/stage/ → …/gameIso/
 const SOUS_GAMEISO = 'src/gameIso/';
@@ -47,7 +48,7 @@ const MISES_EN_PAGE: readonly { classe: string; feuille: string; rendeurs: reado
 const SAUT = String.fromCharCode(10);
 
 export function importeFeuille(src: string, feuille: string): boolean {
-  const rx = new RegExp(`^import\\s+['"](?:[^'"]*/)?${feuille.replace('.', '\\.')}['"]\\s*;?`);
+  const rx = new RegExp(`^import\\s+['"](?:[^'"]*/)?${echapperRegex(feuille)}['"]\\s*;?`);
   return src.split(SAUT).some((l) => {
     const t = l.trim();
     if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return false;
@@ -70,9 +71,9 @@ export function classesReclamees(src: string, connues: readonly string[]): strin
     // La classe est réclamée si son nom apparaît dans une valeur de classe : littéral (`"proj"`,
     // `'fly crow'`) ou template (`` `es-${k}` ``). On exige une frontière de mot pour ne pas
     // confondre `.fly` avec `.flyover`.
-    const valeur = `(?:["'\`{][^"'\`]*)?\\b${c}\\b`;
+    const valeur = `(?:["'\`{][^"'\`]*)?\\b${echapperRegex(c)}\\b`;
     const rx = new RegExp(
-      `class(?:Name)?\\s*=\\s*${valeur}|classList\\.add\\([^)]*?["'\`]${c}["'\`]|setAttribute\\(\\s*["']class["']\\s*,\\s*${valeur}`,
+      `class(?:Name)?\\s*=\\s*${valeur}|classList\\.add\\([^)]*?["'\`]${echapperRegex(c)}["'\`]|setAttribute\\(\\s*["']class["']\\s*,\\s*${valeur}`,
     );
     if (rx.test(src)) out.add(c);
   }
@@ -114,7 +115,7 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
     expect(classesReclamees('<g className="proj tourne" />', ['tourne'])).toEqual(['tourne']);
     expect(classesReclamees('<g className={`es-${k}`} />', ['es-mort'])).toEqual([]);
     expect(classesReclamees('<g className="tournevis" />', ['tourne'])).toEqual([]);
-    // …et un import MIS EN COMMENTAIRE ne branche rien (c'est exactement la panne mesurée).
+    // …et un import MIS EN COMMENTAIRE ne branche rien.
     expect(importeFeuille("import '../anim.css';", 'anim.css')).toBe(true);
     expect(importeFeuille("// import '../anim.css';", 'anim.css')).toBe(false);
     expect(importeFeuille(" * import '../anim.css';", 'anim.css')).toBe(false);

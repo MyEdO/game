@@ -265,7 +265,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   `src/data/variants-integrity.test.ts`) — `talents.json` résout quatre champs, UNE CITATION PAR LIGNE,
   chacune à côté du SYMBOLE qu'elle porte (lignes MESURÉES à la génération, `citeLigne`) :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1490`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1489`
   - `test` — `talentTestSLBonus`, `src/engine/magic.ts:358`
   - `max` — `talentMaxById`, `src/engine/careerSlots.ts:376`
   - `combat` — `featuresOf`, `src/engine/combatFeatures/dispatch.ts:52`
@@ -502,4 +502,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 4311f2a422c0635466edba42aba6612ac790831f (385 fichiers, 2 dossiers) corps: 96055ca21eddc856bf7896159887165e30a73cb0 -->
+<!-- sources-empreinte: 431f6d51dd5e7c6c29dcb1bd841321daed3f52bd (386 fichiers, 2 dossiers) corps: a2e5de14285fe66adfb9e254df8fa18d23dc4541 -->
