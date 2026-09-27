@@ -4,8 +4,7 @@ import { buildQuadSkeleton, groundQuad, quadSkeletonForView, type QuadProps } fr
 import { quadInterfaces, artLine, type QuadInterface, type QuadInterfaceId } from './quadInterfaces';
 import { quadHeadBone, quadHeadDef } from './heads';
 import { worldTransformsG, type Matrix } from '../kinematics';
-import type { View } from '../facing';
-
+import { VIEWS, type View } from '../facing';
 /**
  * Contrat du module d'INTERFACES (`quadInterfaces.ts`) : les cinq lignes de rencontre du gabarit
  * quadrupède sont des FONCTIONS de l'espèce, lues sur les pivots RÉELS du squelette.
@@ -20,7 +19,6 @@ const ESPECES: [string, QuadProps][] = [
   ...Object.entries(QUAD_SPECIES),
   ...Object.entries(WINGED_SPECIES),
 ];
-const VUES: View[] = ['profile', 'front', 'back'];
 const IDS: QuadInterfaceId[] = ['gorge', 'garrot', 'epaule', 'hanche', 'naissanceQueue'];
 
 /** Point MONDE d'une interface : son point local traversé par le transform de son os. */
@@ -55,7 +53,7 @@ describe('quadInterfaces : les cinq lignes de rencontre du gabarit quadrupède',
 
   it('chaque espèce × vue rend cinq interfaces, os propriétaire ≠ os voisin, épaisseurs positives', () => {
     const defauts: string[] = [];
-    for (const [id, p] of ESPECES) for (const view of VUES) {
+    for (const [id, p] of ESPECES) for (const view of VIEWS) {
       const it = quadInterfaces(p, view);
       for (const cle of IDS) {
         const i = it[cle];
@@ -80,7 +78,7 @@ describe('quadInterfaces : les cinq lignes de rencontre du gabarit quadrupède',
    */
   it('chaque interface tombe DANS le corps (boîte de rendu, jamais sous le sol)', () => {
     const horsCorps: string[] = [];
-    for (const [id, p] of ESPECES) for (const view of VUES) {
+    for (const [id, p] of ESPECES) for (const view of VIEWS) {
       const it = quadInterfaces(p, view);
       for (const cle of IDS) {
         const i = it[cle];

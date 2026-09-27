@@ -15,7 +15,7 @@ import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
 import type { Palette } from '../palette';
 import { groundedBody } from '../staticBody';
-import { pickView, orientedArtOr, type ViewArt } from '../viewArt';
+import { nearestView, orientedArtOr, type ViewArt } from '../viewArt';
 import { ENGIN_DEFAULT } from './artkit';
 import { ENGIN_ARTS } from './_registry.generated';
 import { enginSpeciesNames } from '../creatures';
@@ -33,8 +33,8 @@ export function enginArtOf(species: string): ViewArt {
 }
 
 function art(species: string, view: View): string {
-  // Sélection vue + repli PARTAGÉS (`pickView`), jamais un ternaire ad hoc par vue.
-  return pickView(enginArtOf(species), view)();
+  // Sélection vue + repli PARTAGÉS (`nearestView`), jamais un ternaire ad hoc par vue.
+  return nearestView(enginArtOf(species), view)();
 }
 
 /** (espèce, vue, pose, couleurs) → un os statique ancré au sol. `pose.recul` = recul (tir) / bascule (mort). */

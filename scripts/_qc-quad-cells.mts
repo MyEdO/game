@@ -9,9 +9,9 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveQuad } from '../src/gameIso/rig/quadruped/composeQuad';
 import { quadWalkPose } from '../src/gameIso/rig/quadruped/quadPose';
 import { quadSpeciesNames } from '../src/gameIso/rig/quadruped/quadSkeleton';
+import { VIEWS, type View } from '../src/gameIso/rig/facing';
 
-type Cell = { species: string; view: 'profile' | 'front' | 'back'; pose: string };
-const VIEWS: Cell['view'][] = ['profile', 'front', 'back'];
+type Cell = { species: string; view: View; pose: string };
 const cells: Cell[] = [];
 for (const species of quadSpeciesNames()) {
   for (const view of VIEWS) cells.push({ species, view, pose: 'repos' });

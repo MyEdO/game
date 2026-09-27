@@ -5,6 +5,7 @@
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { useEffect, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
@@ -126,15 +127,15 @@ const OPS_FIELDS: Record<string, string[]> = {
   aaCriticalsTete: ['ops'], aaCriticalsBras: ['ops'], aaCriticalsCorps: ['ops'], aaCriticalsJambe: ['ops'],
   incidentsMonture: ['occupantOps'], problemesVehicule: ['occupantOps'],
   seaShanties: ['crewOps', 'captainOps'],
-  drunkenness: ['ops'], // LOT 1 #422 (suite) : effet mécanique optionnel d'un résultat d'Ivresse (LDB 09)
+  drunkenness: ['ops'], // #422 (suite) : effet mécanique optionnel d'un résultat d'Ivresse (LDB 09)
   stars: ['ops'], // #1467 L1b : effet du signe aux attributs de départ (ADE II 3 l.38) — GameOp[] comme les autres
-  // LOT 3 #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
+  // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
   // free`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
   // de `riverNavigation`). Incantations Imparfaites/Colère des dieux — `ops` (dialecte compilé, mais MÊMES
   // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty` que le vocabulaire `GameOp` réel).
   grapple: ['init'],
   miscastMinor: ['ops'], miscastMajor: ['ops'], miscastWrath: ['ops'],
-  ...Object.fromEntries(SHIP_CRIT_CATEGORIES.map((k) => [k, ['ops']])),
+  ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
 
@@ -327,13 +328,13 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'mutations') add('psychTraits');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
-  // #1318 E4/C-γ : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
+  // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
   // tableau d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), jamais le repli JSON.
   if (categoryKey === 'trappings') add('prosthesisTraining');
-  if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657 B2b)
+  if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657)
   if (categoryKey === 'talents') add('combat', 'test');
-  if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563 Lot 5)
-  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563 Lot 5)
+  if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563)
+  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
   if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
@@ -355,18 +356,18 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'tavernGames') add('options', 'table', 'sides');
   if (categoryKey === 'creatures') add('traits', 'optionals', 'harvest');
   if (categoryKey === 'details') add('texts');
-  if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657 B2c)
+  if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657)
   if (categoryKey === 'waterExposure') add('test', 'modifiers', 'diseases'); // #157 suite (MSRC 16)
-  // LOT 1 #422 : seules les tables NICHÉES en TABLEAU top-level d'une fiche-objet navale retombent en
+  // #422 : seules les tables NICHÉES en TABLEAU top-level d'une fiche-objet navale retombent en
   // json (repli générique) — chaque sous-objet HÉTÉROGÈNE (vitesseMax/salissures/orientation/phares/
   // poursuite/reparation…) recourt déjà au sous-formulaire récursif (`ObjectField`), hors guard.
   if (categoryKey === 'seaNavigation') add('forcerLeRythme');
   if (categoryKey === 'seaPerils') add('hazards', 'detroits', 'tourbillons', 'gestionDesPerils');
   if (categoryKey === 'seaWeather') add('table', 'precipitations', 'temperatures', 'visibilites', 'vents', 'roseDesVents');
-  // LOT 1 #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
+  // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
-  // LOT 2 #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
+  // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
   // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   // `windEffect`/`capsize`/`rowingAgility`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
   // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
@@ -509,10 +510,10 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const isDisease = categoryKey === 'maladies';
   // Talent : sa capacité de combat `combat` (CombatFeature : drapeaux + castingKind/attackModes/offHand).
   const hasCombat = categoryKey === 'talents';
-  // Variantes réglées par règle optionnelle (`variants`, #563 Lot 5) — VariantsField, dont les sous-
+  // Variantes réglées par règle optionnelle (`variants`, #563) — VariantsField, dont les sous-
   // éditeurs DÉRIVENT de la liste blanche du dataset (`VARIANT_FIELDS_BY_CATEGORY`).
   const variantFields = VARIANT_FIELDS_BY_CATEGORY[categoryKey];
-  // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563 Lot 5) — AlsoInField.
+  // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563) — AlsoInField.
   const hasAlsoIn = ['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures'].includes(categoryKey);
   // Compétence/Talent : `specs` = SpecEntry[] ({id,label}).
   const hasSpecs = categoryKey === 'skills' || categoryKey === 'talents';
@@ -547,16 +548,16 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // Exposition à l'eau (`waterExposure`, #157 suite, MSRC 16) : `test` (Compétence+Difficulté),
   // `modifiers` (WaterExposureModifier[]) et `diseases` (plages d100 → maladie) ont chacun leur éditeur.
   const isWaterExposure = categoryKey === 'waterExposure';
-  // LOT 1 #422 : fiches de règle navales UNIQUES (mode 'single', patron `waterExposure`) — leurs
+  // #422 : fiches de règle navales UNIQUES (mode 'single', patron `waterExposure`) — leurs
   // tableaux top-level NICHÉS (`forcerLeRythme`/`hazards`/…/`roseDesVents`) ont un éditeur GÉNÉRIQUE
   // commun (`GenericArrayField`, réutilise `inferFields`+`Field` — pas de forme dédiée par champ).
   const isSeaNavigation = categoryKey === 'seaNavigation';
   const isSeaPerils = categoryKey === 'seaPerils';
   const isSeaWeather = categoryKey === 'seaWeather';
-  // LOT 1 #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
+  // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches navales ci-dessus.
   const isDisponibilite = categoryKey === 'disponibilite';
-  // LOT 2 #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
+  // #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
   const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
@@ -1903,7 +1904,7 @@ function ObjectField({ label, value, noeud, onChange }: { label: string; value: 
   );
 }
 
-/** Tableau de lignes HÉTÉROGÈNES (LOT 1 #422) — une entrée par rangée, colonnes DÉRIVÉES par
+/** Tableau de lignes HÉTÉROGÈNES (#422) — une entrée par rangée, colonnes DÉRIVÉES par
  *  `inferFields` (comme `ObjectField`, mais pour un tableau top-level plutôt qu'un objet unique). Chaque
  *  champ retrouve son kind structuré (number/text/source/stringList…) ; un sous-champ COLONNE lui-même
  *  tableau-d'objets (ex. `hazards[].entanglePenalties`) reste JSON-FREE : il redescend en `GenericArrayField`

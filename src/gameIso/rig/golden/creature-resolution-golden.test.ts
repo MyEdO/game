@@ -1,6 +1,6 @@
 /**
  * Golden master de la RÉSOLUTION nom → apparence (plan / espèce / def / échelle) — filet
- * anti-régression de la refonte « tuer le match-par-nom POC » (plan P1). On fige ici ce que la
+ * anti-régression de la refonte « tuer le match-par-nom POC ». On fige ici ce que la
  * résolution actuelle (regex + priorité) produit pour CHAQUE def du registre ET chaque entrée du
  * bestiaire. La résolution par clé DOIT reproduire ces snapshots à l'identique : sinon une créature
  * changerait d'apparence.
@@ -10,6 +10,7 @@
  *   non-bipède → { plan, def, scale=creatureSpeciesScale }
  *   bipède     → { plan:'biped', species=bipedSpeciesMatch ?? 'Humain', def=bipedDef(species), scale=bipedSpeciesScale }
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { describe, it, expect } from 'vitest';
 import { CREATURES, defById, defId } from '../creatures';
 import { resolveById, resolveSpecies, type RenderResolution } from '../bodyPlan';
@@ -25,7 +26,7 @@ const shape = (r: RenderResolution): Resolved =>
 describe('golden — résolution espèce/id→apparence (anti-régression de-POC match-par-nom)', () => {
   it('defs du registre : id d’espèce → (plan, espèce, def, échelle)', () => {
     const ids = [...new Set(CREATURES.map((c) => defId(c)))].sort();
-    expect(Object.fromEntries(ids.map((id) => [id, shape(resolveSpecies(id))]))).toMatchSnapshot();
+    expect(tableTotale(ids, (id) => shape(resolveSpecies(id)))).toMatchSnapshot();
   });
   it('bestiaire (creatures.json) : label → (plan, espèce, def, échelle)', () => {
     // Clé d'affichage = label ; résolution PAR ID (record du bestiaire).

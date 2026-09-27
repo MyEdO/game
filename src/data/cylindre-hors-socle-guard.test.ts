@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { POISON_DIRS, POISON_EXTS } from '../../scripts/guards/lib/commentPoison.mjs';
+import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
 import { BRANCHE_CYLINDRE, EXEMPTIONS, SOCLE, sitesFautifs, type ExemptionCylindre } from '../../scripts/guards/lib/cylindreHorsSocle.mjs';
 
 /**
- * GARDE « géométrie recalculée à la main » (#1343 lot C, `scripts/guards/lib/cylindreHorsSocle.mjs`) :
+ * GARDE « géométrie recalculée à la main » (#1343, `scripts/guards/lib/cylindreHorsSocle.mjs`) :
  * la forme d'un cylindre ne se relit qu'au SOCLE (`src/data/props.types.ts`, schéma). Le corpus est
- * celui de la garde de poison de commentaire (`src/` + `scripts/`, tests compris) — les deux jumeaux
- * divergents que ce lot supprime vivaient dans des TESTS.
+ * le périmètre des gardes, `corpusDesGardes()`, tests compris.
  */
-const CORPUS = readCorpus([...POISON_DIRS], { exts: [...POISON_EXTS], tests: true });
+const CORPUS = corpusDesGardes();
 const FORME = 'cylinder';
 const COTE = ['longueur', 'M'].join('');
 

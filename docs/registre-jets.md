@@ -18,8 +18,8 @@ une entrée devenue vide ou une entrée sans justification échouent la garde.
 - **(F)** ne voit qu'un **littéral d'objet** : un pending assemblé par spread depuis un helper, ou monté champ
   par champ, échappe. La conjonction `skillValue` + (`target` \| `roll: null`) est un resserrement DÉLIBÉRÉ —
   `skillValue:` seul remonte 200+ faux positifs (types, paramètres de résolveur, patches de champ).
-- **(D)** résout par **nom appelé**, sans suivi de liaison : un import renommé (`import { resolveClash as x }`)
-  ou un appel indirect (référence passée en callback) échappe. Même angle mort que le garde d'exclusivité.
+- **(D)** reconnaît un appel par sa liaison d'import (`estAppelDeclare`) : un import renommé ou un appel
+  `ns.f` compte ; une référence passée en callback, qui n'est pas un appel, échappe.
 - **(D)** indexe les fonctions de `src/engine` par nom **à plat** : deux homonymes dans deux modules se
   confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.
 - **(D)** ne scanne que `src/state` et `src/ui` (les consommateurs de flux) ; **(F)** scanne tout `src`.
@@ -75,7 +75,7 @@ _15 sites mesurés dans 9 fichiers — par nature : 11 dette, 2 canonique, 2 mix
 `rollSeamExcluded` exempte `src/engine/**` de principe (le moteur reçoit un rng, il ne décide pas du
 surfaçage) — ce qui suppose que l'APPELANT passe par le seam. Un export d'engine qui roule, appelé par un
 flux, rend donc le call-site invisible aux deux gardes. **Cette supposition est désormais TENUE des deux
-côtés** (#1657 B3-3) : `battleRngEngineLeak` ferme la moitié APPELANT (un flux qui remet un rng vivant à un
+côtés** (#1657) : `battleRngEngineLeak` ferme la moitié APPELANT (un flux qui remet un rng vivant à un
 résolveur moteur), `flowTestEngineRoll` ferme la moitié DONNÉE et n'admet plus aucun site (garde BLOQUANTE,
 population attendue VIDE) : un moteur qui LIT un nœud `test` le REND ou le DIFFÈRE. La table ci-dessous
 inventorie ce qui reste : des résolveurs qui roulent LEURS PROPRES dés, sans lire de nœud authoré.
@@ -191,7 +191,7 @@ call-site à router.
 
 - `resolveFlowTest` (`src/state/combat/triggeredTest.ts`) — voie CADENCE-AWARE : ouvre `openSkillTest` (modale influençable) quand l'acteur est piloté.
 - `resolveInlineFlowTest` (`src/state/triggeredEffects.ts`) — jumeau store-free de la branche NON-interactive du précédent (jet résolu inline, journalisé).
-- `bandeTriggeredTest` (`src/state/combat/triggeredTest.ts`) — MÊME porte, N TESTEURS (#1657 B3-2) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.
+- `bandeTriggeredTest` (`src/state/combat/triggeredTest.ts`) — MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.
 
 Le premier ouvre `openSkillTest` (famille canonique), le deuxième est sa branche non-interactive, le
 troisième la même porte pour N testeurs à la fois. **Pour eux**,
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: d277f7ad274c08f1a029d7303793343ecf22ad0b (2106 fichiers, 134 dossiers) corps: 61d58b191bf112ed6ef3c9a076786f60c6da0855 -->
+<!-- sources-empreinte: 55a7ecc7ea9b92d5369e704b1e1f22c348c04ffb (2109 fichiers, 134 dossiers) corps: 3cec2b222d254d0b716f350819688493e77792dd -->

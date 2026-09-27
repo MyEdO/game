@@ -1,3 +1,4 @@
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { resolveCritique } from './critical';
@@ -6,7 +7,7 @@ import type { Combatant, HitLocation } from './types';
 import type { JeuDeCritique } from '../data/criticals';
 
 /**
- * INVARIANCE du flux de RNG des Blessures critiques (#1657 B2a, #1682, B3-1).
+ * INVARIANCE du flux de RNG des Blessures critiques (#1657, #1682).
  *
  * Ce qu'il verrouille, qu'aucun autre test ne voit : l'ORDRE de consommation des dés. Un jet déplacé
  * d'une ligne (le 1d10 de fracture avant l'amputation, un dé de plus tiré quelque part) laisse toutes
@@ -21,8 +22,8 @@ import type { JeuDeCritique } from '../data/criticals';
  * fige : le d100 de SÉVÉRITÉ (`roll`), la RANGÉE atteinte (`entryId`/`label`/`lethal`/`desc`), les
  * effets immédiats, les séquelles, et les nœuds RENDUS eux-mêmes (branches + enjeu posé).
  *
- * La RÉFÉRENCE (`crit-rng-invariance.fixture.json`) a été RE-CAPTURÉE au lot B3-1b. Mesure faite au
- * moment de la recapture, contre la référence B3-1 : les 480 cas rendent le MÊME `roll`, le MÊME
+ * La RÉFÉRENCE (`crit-rng-invariance.fixture.json`) a été RE-CAPTURÉE sous #1657. Mesure faite au
+ * moment de la recapture, contre la référence précédente : les 480 cas rendent le MÊME `roll`, le MÊME
  * `entryId`, le MÊME `label`, le MÊME `lethal` et la MÊME `desc` — 0 divergence. Ce qui bouge est
  * NOMMÉ : 36 cas d'amputation (23 aux `ops`, 36 aux `traumas`, 30 au `testFlow`) — le résolveur cesse
  * d'y consommer 1 à 2 dés, et 6 d'entre eux portent leur nœud sur `pendingAmputation`.
@@ -30,8 +31,8 @@ import type { JeuDeCritique } from '../data/criticals';
  * CE QUI NE DOIT PAS BOUGER, et que le contrat ci-dessous CHIFFRE : l'ESCALADE de la ligne, qui vit sur
  * la plaie chirurgicale et ne dépend d'aucun jet — `perRound` (« Main ouverte », LDB 18 l.122) 4 cas,
  * `awaitingMedicalAid` 12, `amputateAfterDays`/`amputateSequel` (« Pied écrasé », l.180) 4 chacun, aux
- * MÊMES cardinaux qu'avant le lot. Une première recapture les avait vus tomber à 0/8 sans que rien ne
- * rougisse : le compte est désormais ÉCRIT ici, pas seulement encodé dans la fixture.
+ * MÊMES cardinaux qu'avant la recapture. Une première recapture les avait vus tomber à 0/8 sans que rien ne
+ * rougisse : le compte est ÉCRIT ici, pas seulement encodé dans la fixture.
  */
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -47,7 +48,7 @@ function stable(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(stable);
   if (v && typeof v === 'object') {
     const o = v as Record<string, unknown>;
-    return Object.fromEntries(Object.keys(o).sort().map((k) => [k, stable(o[k])]));
+    return tableTotale(Object.keys(o).sort(), (k) => stable(o[k]));
   }
   return v;
 }

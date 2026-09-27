@@ -2,8 +2,8 @@ import type { PartArt } from '../types';
 
 // Extrémités de CHAIR (pied nu, main, cou) — Nu d'ESPÈCE servant de repli aux zones que resolve.ts
 // résout par table de priorité (override → armure → tenue → repli), au même titre que
-// tete/torse/jambes. Une tenue/armure PEUT désormais piloter ces zones (parts/*/types.ts). La botte
-// (HABIT, pas un repli de chair) vit dans `tenues/botte-gabarit.ts` (BOTTE_CUIR, #736 Lot 1).
+// tete/torse/jambes. Une tenue/armure PEUT piloter ces zones (parts/*/types.ts). La botte
+// (HABIT, pas un repli de chair) vit dans `tenues/botte-gabarit.ts` (BOTTE_CUIR, #736).
 
 // Pied NU GRIFFU (espèces nues : squelette/goule/troll…) — chair/os/pelage `@peau` + griffes
 // `@griffe` (au lieu de la botte, incohérente sur un monstre nu).
@@ -21,7 +21,7 @@ export const PLAINFOOT: PartArt = {
   profile: `<path d="M-2.4 -1 L2 -1 Q4.8 1.4 7.4 4.6 Q8.9 5.8 8.9 6.7 Q8.8 7.4 7.5 7.5 L3.8 7.6 Q1 7.7 -0.5 7.5 Q-2.6 7.3 -2.7 5.1 Q-2.8 2 -2.4 -1 Z" fill="@peau" stroke="@peauO" stroke-width="0.5"/><path d="M-0.2 7.3 Q2.4 6.2 5 7.2" fill="none" stroke="@peauO" stroke-width="0.4" opacity="0.4"/><path d="M6.6 4.9 Q7.3 5.7 7 6.9 M7.6 5.5 Q8.2 6.2 8 7.1" fill="none" stroke="@peauO" stroke-width="0.3" opacity="0.4"/><path d="M0 -0.2 Q3 1.6 6 4.4" fill="none" stroke="@peauH" stroke-width="0.4" opacity="0.3"/>`,
 };
 
-// Main (poing) directionnelle, repère os `main` (origine = poignet, +y descend). VRAIE main ancrée
+// Main (poing) orientée, repère os `main` (origine = poignet, +y descend). VRAIE main ancrée
 // au poignet réel (#633 D1) : le pivot main* = 18 (bout de l'avant-bras, skeletons.ts) — l'art
 // d'avant-bras (0..16) finit au poignet, le poing s'y emboîte. y=-2 (haut du poignet) rejoint le
 // bas de l'art d'avant-bras (18-2=16) sans trou ; +7.7 = doigts refermés. AUCUNE remontée sous le
@@ -33,7 +33,7 @@ export const HAND: PartArt = {
   profile: `<path d="M-2.4 -2 Q0.4 -2.8 2.6 -1.9 Q3.2 1.5 2.8 4.7 Q2.4 7.2 -0.2 7.5 Q-2.4 6.9 -2.6 4.5 Q-2.8 1.4 -2.4 -2 Z" fill="@peau" stroke="@peauO" stroke-width="0.5"/><path d="M2.2 0.6 Q1.2 2 1.8 4.1" fill="none" stroke="@peauO" stroke-width="0.4" opacity="0.5"/>`,
 };
 
-// Main NUE GRIFFUE (patte/poing de bête : espèces `griffues`, #736 Lot 3) — MÊME ancrage/empreinte
+// Main NUE GRIFFUE (patte/poing de bête : espèces `griffues`, #736) — MÊME ancrage/empreinte
 // que HAND (poignet y=-2, doigts refermés +7.7, largeur ±3) pour un câblage trivial (repli de main
 // des griffues). Chair `@peau`/`@peauO` + 4 GRIFFES `@griffe` recourbées à l'avant (débordent le
 // bout des doigts, y 6→10.1 — symétrique de la logique de serres de CLAWFOOT). Doit lire « main de
@@ -44,11 +44,11 @@ export const MAIN_GRIFFUE: PartArt = {
   profile: `<path d="M-2.4 -2 Q0.4 -2.8 2.6 -1.9 Q3.2 1.5 2.8 4.7 Q2.4 7.2 -0.2 7.5 Q-2.4 6.9 -2.6 4.5 Q-2.8 1.4 -2.4 -2 Z" fill="@peau" stroke="@peauO" stroke-width="0.5"/><path d="M2.2 0.6 Q1.2 2 1.8 4.1" fill="none" stroke="@peauO" stroke-width="0.4" opacity="0.5"/><path d="M2.2 4.4 Q3.6 5.8 3.4 8.2 Q2.8 6.6 1.8 5.4 Z M1.4 5.4 Q2.5 6.9 2.3 9 Q1.8 7.3 1 6.3 Z M0.2 6.2 Q1 7.6 0.8 9.4 Q0.4 8 -0.4 7.1 Z" fill="@griffe" stroke="@peauO" stroke-width="0.25"/>`,
 };
 
-// Cou SYSTÈME (os `cou`, #633 P2/P3) : cylindre de chair `@peau` couvrant TOUT l'os cou du canon
+// Cou SYSTÈME (os `cou`, #633) : cylindre de chair `@peau` couvrant TOUT l'os cou du canon
 // (`rig/SKELETON-CONTRACT.md`) — de +4.5 (plongé dans le col du torse, qui le recouvre par z) au bas
 // du crâne (y≈−16.4, attache de `tete` à −16). Le visage en couvre le haut ; la tranche visible
 // (menton→col) fait ~4 unités + les flancs derrière la mâchoire.
-// TOUJOURS peint en sous-couche (#633 P2) ; un col de tenue/armure vient PAR-DESSUS via la table de
+// TOUJOURS peint en sous-couche (#633) ; un col de tenue/armure vient PAR-DESSUS via la table de
 // priorité (resolve.ts) — z sous le torse (skeletons.ts) : le col couvre naturellement.
 export const NECK: PartArt = {
   front: '<path d="M-3.3 4.5 Q-3.8 -6 -2.9 -16.4 Q0 -17.4 2.9 -16.4 Q3.8 -6 3.3 4.5 Q0 5.6 -3.3 4.5 Z" fill="@peau"/>' +

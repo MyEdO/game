@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Barre à roue de navire (#342, chantier A2) : roue de gouvernail à 8 rayons sur son piédestal de pont.
-// Prop DIRECTIONNEL : trois vues déclarées ; la machinerie (`propSvg`) sélectionne la vue + le miroir
+// Prop ORIENTÉ : trois vues déclarées ; la machinerie (`propSvg`) sélectionne la vue + le miroir
 // via `project(dir, camRot)` (cf. `PropViz.views`). Le profil est dessiné tourné vers la DROITE.
 
 /** Piédestal de pont : socle trapèze + colonne, centré sur cx, pieds ~y=147. */

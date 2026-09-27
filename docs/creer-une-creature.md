@@ -29,10 +29,11 @@ Pour les non-bipèdes : copier le def existant le plus proche (`Basilic`, `Araig
 
 Les bêtes (plans non équipables) ne s'assemblent pas pièce à pièce : chaque vue est authorée
 comme UNE illustration continue, en coordonnées monde, dans
-`src/gameIso/rig/quadruped/atelier/<espèce>-<vue>.dessin.mts` (étalon : `boeuf-profil`), puis
-compilée par os — coordonnées cuites dans le repère local de chaque os — par
-`scripts/rig/compile-dessin-quad.mts` (`--check` en porte de commit). La sortie alimente le canal
-`QuadProps.viewArt` ; une vue non déclarée se compose au socle, comme avant. Arbitrage utilisateur
+`src/gameIso/rig/quadruped/atelier/<espèce>-<vue>.dessin.mts`, `<vue>` parmi `front`, `profile`,
+`back` (étalon : `boeuf-profile`), puis compilée par os — coordonnées cuites dans le repère local de
+chaque os — par `scripts/rig/compile-dessin-quad.mts` (`--check` en porte de commit). La sortie,
+`<espèce>Compile.ts`, est une table keyée par vue des vues dessinées ; elle alimente le canal
+`QuadProps.viewArt`, et une vue non dessinée se compose au socle. Arbitrage utilisateur
 du 2026-08-06 (validation de l'étalon bovin — verbatim consigné au ticket #1082). L'assemblage par pièces reste aux **bipèdes équipables** (qui doivent recevoir
 tenue et armes) et aux **éléments attachés** (`deco` : harnais, collier, fanon…).
 
@@ -60,7 +61,7 @@ export const creature: CreatureDef = {
   `gabarits/defs/`), `head`/`legs` monstrueux (remplacent visage/jambes), `features` de corps
   (queue, fourrure, panse…), `pose` (voûté — PROFIL uniquement), `tenue` par défaut, `eyes`.
 - **`perso`** (CreaturePerso) surcharge par-dessus : `tenue`, `sex`, `colors`
-  (⚠ couleurs de BASE seulement : `peau`/`cheveux`… — les nuances O/H sont dérivées, tsc
+  (⚠ couleurs de BASE seulement : `peau`/`cheveux`… — l'ombre et la lumière de gamme sont dérivées, tsc
   refuse `peauO`), `gabarit`, `scale` (toise : art ∈ [0.5, 1.35]), `parts` (coiffure/visage
   épinglés), `eyes` (clés du catalogue `EYE_OPTIONS` : noir, rouge, chat…), `monster`,
   `features`.
@@ -72,7 +73,7 @@ export const creature: CreatureDef = {
   SAUTÉE. À réserver aux créatures qui redéfinissent tout (Démonette).
 - **`perso.features`** (RaceFeature[]) = **ADDITIF** par-dessus la race : cornes du Prophète
   gris, griffes du Rat ogre, écailles de la Furie… C'est l'outil « race partagée + extra ».
-  Champs : `bone`, `svg` (tokens `@peau`/`@cheveux`…), `layer` (négatif = derrière la part),
+  Champs : `bone`, `svg` (jetons `@peau`/`@cheveux`…), `layer` (négatif = derrière la part),
   `view` (limiter à une vue), `scale: 'bone'` (suit l'épaisseur de l'os).
 
 ## 3. La règle d'or : corps nu ≠ tenue
@@ -90,7 +91,7 @@ import { BODIES } from '../../bodies';
 
 export const tenue: TenueDef = {
   name: 'Ma créature',     // = la tenue pointée par le def (perso.tenue / race.tenue)
-  palette: { vet1: '#9a8a6a', cuir: '#4a3a28' },   // tokens recolorables par l'éditeur
+  palette: { vet1: '#9a8a6a', cuir: '#4a3a28' },   // jetons recolorables par l'éditeur
   set: {
     // le slot REMPLACE le « Nu » : inclure la CHAIR (BODIES.nu.*) sous l'équipement, par vue
     torse: { front: `<g>${BODIES.nu.torseFront}…pagne…</g>`, back: …, profile: … },
@@ -155,10 +156,10 @@ export const tenue: TenueDef = {
 - **Tête de race + coiffe** : la tête (rat, orc…) passe SOUS le casque/capuche de la tenue —
   géré par composeRig, ne pas re-dessiner le crâne dans la coiffe. *NON gardable : rien ne
   distingue un crâne re-dessiné d'un décor de coiffe. Relecture d'art.*
-- **Pas de token vif dans un détail front-only** : `dominantCloth` prend le token le plus
+- **Pas de jeton vif dans un détail front-only** : `dominantCloth` prend le jeton le plus
   fréquent pour les silhouettes dos/profil substituées (des fioles `@metal` vertes ont déjà
   repeint un torse entier). Détails en couleurs littérales. *NON gardable en l'état (distinguer
-  un token « de détail » d'un token « de tissu » suppose l'intention), mais ce piège est un pur
+  un jeton « de détail » d'un jeton « de tissu » suppose l'intention), mais ce piège est un pur
   EFFET du format : `dominantCloth` n'est appelé que sur un slot front-only. Il s'éteint tout
   seul à mesure que `PART_VIEW_RATCHET` se vide — et disparaît à stock nul.*
 - **Dents de face** : gueule AU BOUT du museau + crocs aux commissures (un rictus à
@@ -169,7 +170,7 @@ export const tenue: TenueDef = {
   (`parts/traitVisuals.test.ts`, `parts/mutations.test.ts`).
 - **Jamais de littéral hex qui recopie un jeton de SA PROPRE `palette`** — GARDÉ
   (`parts/tenues/palette-literal.test.ts`, cliquet, #583). La chair (`@peau`/`@peauO`/`@peauH`)
-  suit TOUJOURS le token — jamais une couleur en dur, peu importe la vue (bras.back/profile
+  suit TOUJOURS le jeton — jamais une couleur en dur, peu importe la vue (bras.back/profile
   recopiant `#e2b48c` au lieu de `@peau` produit une couture au poignet sur tout personnage à
   peau non claire). Même règle pour toute autre matière déclarée dans la `palette` (cuir,
   tissu…) : si la valeur existe dans `palette`, c'est le jeton qui se peint, pas le littéral.
@@ -213,4 +214,4 @@ export const tenue: TenueDef = {
 - Morpho lourde + tenue : `Rat-ogre.ts` (fourrure/épines/couture en features, pagne en tenue).
 - Override complet : `Demonette.ts` (monster + tenue + yeux + cornes par-vue).
 - Monstre ailé : `Furie-du-chaos.ts` (ailes de cuir, écailles, cornes par-vue).
-- Nouvelle tête : `parts/monster/defs/horreur.ts` (3 vues, tokens @peau).
+- Nouvelle tête : `parts/monster/defs/horreur.ts` (3 vues, jetons @peau).

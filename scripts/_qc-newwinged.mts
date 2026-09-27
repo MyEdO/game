@@ -7,13 +7,13 @@ import { resolveWing, WINGED_SPECIES } from '../src/gameIso/rig/winged/composeWi
 import type { View } from '../src/gameIso/rig/facing';
 
 const NAMES = ['Manticore', 'Varghulf', 'Griffon'];
-const VIEWS: View[] = ['profile', 'front'];
+const SHOWN_VIEWS: View[] = ['profile', 'front'];
 const CW = 360, CH = 420, BASE = 1.45, FEET = 370;
 const cells: string[] = [];
 NAMES.forEach((name, r) => {
   const sl = WINGED_SPECIES[name].sl, SC = BASE * sl;
   cells.push(`<text x="8" y="${30 + r * CH + CH / 2}" font-size="16" fill="#d8a93b" font-family="sans-serif">${name}</text>`);
-  VIEWS.forEach((view, i) => {
+  SHOWN_VIEWS.forEach((view, i) => {
     const inner = bonesToSvg(resolveWing(name, view));
     const x = 120 + i * CW, y = 30 + r * CH, cx = (CW - 6) / 2;
     cells.push(`<g transform="translate(${x},${y})"><rect width="${CW - 6}" height="${CH - 10}" fill="#2b3142"/><line x1="0" y1="${FEET}" x2="${CW - 6}" y2="${FEET}" stroke="#e06a4a" stroke-width="0.5" opacity="0.4"/><g transform="translate(${cx - 60 * SC},${FEET - 150 * SC}) scale(${SC})">${inner}</g><text x="${cx}" y="${CH - 14}" text-anchor="middle" font-size="13" fill="#cdd" font-family="sans-serif">${view}</text></g>`);

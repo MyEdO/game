@@ -22,6 +22,7 @@
  * commerce.md` l.73-78 (table TRANSPOSÉE : une LIGNE par saison, une COLONNE par bien).
  * `00` est le 100 du d100.
  */
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -74,8 +75,8 @@ const TERRE_COLONNES = ['vivres', 'armement', 'produits-de-luxe', 'metal', 'bois
 
 /** La table terrestre, RETOURNÉE dans l'axe du document (une entrée par bien) — l'inversion est faite
  *  ICI, une fois, pour que la transcription reste celle du livre. */
-const TERRE: Record<string, CelluleAvail[]> = Object.fromEntries(
-  TERRE_COLONNES.map((id, colonne) => [id, SAISONS_IMPRIMEES.map((s) => TERRE_PAR_SAISON[s][colonne])]),
+const TERRE: Record<string, CelluleAvail[]> = tableTotale(TERRE_COLONNES, (_id, colonne) =>
+  SAISONS_IMPRIMEES.map((s) => TERRE_PAR_SAISON[s][colonne]),
 );
 
 type Entree = { id: string; label: string; echangeable?: false; avail?: Record<string, { min: number; max: number }> };

@@ -2,17 +2,17 @@ import type { QuadHeadDef } from '../types';
 import { eyeF } from '../kit';
 
 /**
- * Tête de BŒUF (EDOC 7 l.54, créature #611) — étalon d'ART du quadrupède (#1082 P1b).
+ * Tête de BŒUF (EDOC 7 l.54, créature #611) — étalon d'ART du quadrupède (#1082).
  *
  * ORDRE DU PEINTRE, IDENTIQUE SUR LES TROIS VUES — c'est le contrat de la tête :
  *
  *     OREILLES  →  CORNES  →  CRÂNE  →  MUFLE
  *
- * Verdict utilisateur du Lot 2 (2026-08-05, verbatim) : « Les cornes sont derrieres les oreilles
+ * Verdict utilisateur (2026-08-05, verbatim, #1082) : « Les cornes sont derrieres les oreilles
  * en sur la vue avant et sur la vue arriere. » La cause était de GRANULARITÉ : l'art de tête était
  * monolithique (crâne+oreilles+mufle en un bloc) et les cornes vivaient dans le canal `deco`, dont
  * le plan est RELATIF À L'OS — donc derrière le bloc ENTIER, oreilles comprises. La tête se dessine
- * désormais en FRAGMENTS nommés, et le plan relatif de chacun est son RANG dans la chaîne
+ * en FRAGMENTS nommés, et le plan relatif de chacun est son RANG dans la chaîne
  * ci-dessus : la corne naît DERRIÈRE le crâne (sa racine est couverte par la calotte, comme la
  * cheville osseuse d'un bovin) et DEVANT l'oreille (le fût passe par-dessus le pavillon, qui
  * s'implante plus bas et plus en arrière). Aucun `deco` de tête ne subsiste sur le bœuf : le canal
@@ -22,7 +22,7 @@ import { eyeF } from '../kit';
  * MATIÈRE (contrat de l'étalon, en-tête de `parts/tenues/defs/Chevalier-du-loup-blanc.ts`) :
  *  · Le VOLUME est une STRUCTURE DE VALEUR, jamais une texture. Les creux se posent au jeton QUASI
  *    NOIR `@corpsO` (#140c06, L≈5) par son OPACITÉ — jamais une teinte dérivée claire : le
- *    recoloriage joueur (#632) redérive la famille depuis la base choisie et les creux survivent.
+ *    recoloriage joueur (#632) redérive la gamme depuis la base choisie et les creux survivent.
  *  · Une surface n'est ÉCLAIRÉE que si elle franchit la mi-distance base↔lumière de sa matière
  *    (`@corps` #6b4526 L≈29,3 ; `@corpsH` #c99a5c L≈62,5 → seuil L≈45,9). Sur cette robe, un voile
  *    `@corpsH` à 0,5 rend L≈46,7 : il FRÔLE le seuil. Toute plage qui doit COMPTER comme surface
@@ -80,7 +80,7 @@ const OREILLES_DOS = `<g data-part="oreilles">${oreilleDos(-1)}${oreilleDos(1)}<
 const oreilleProfil = (near: boolean): string => {
   // La LOINTAINE n'est plus un aplat `@corpsO` : deux pavillons quasi noirs empilés faisaient, sur
   // l'épaule, une DALLE anguleuse sombre (lecture d'image) au lieu d'une paire d'oreilles. Elle est
-  // désormais de la robe, voilée d'ombre — une forme qui se devine DERRIÈRE, jamais un trou noir.
+  // de la robe, voilée d'ombre — une forme qui se devine DERRIÈRE, jamais un trou noir.
   return `<g transform="translate(${near ? 0 : 1.28} ${near ? 0 : 2.33})">` +
     `<path d="M-4.89 2.4 Q-8.1 -0.81 -11.32 0.88 Q-12.38 2.97 -10.37 4.7 Q-7.34 6.37 -4.31 5.15Z" fill="@corps" stroke="@corpsO" stroke-width="0.5"/>` +
     (near

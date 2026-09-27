@@ -1,5 +1,5 @@
 /**
- * COUPLE MONTÉ dans le monde VOLUMIQUE (#1176, P3-0h) : un cavalier en selle est UN sujet de
+ * COUPLE MONTÉ dans le monde VOLUMIQUE (#1176) : un cavalier en selle est UN sujet de
  * billboard COMPOSITE — cavalier assis sur les os réels de la monture (`seatRiderOnMount`), un seul
  * fragment SVG, jamais deux quads superposés. La chaîne mesurée est celle de l'écran : les ÉLÉMENTS
  * du builder (`buildTokens`) → les poses d'acteur (`actorPoses`, ce que `MondeDeCampagne` appelle) → les
@@ -23,7 +23,7 @@ import { mountedPlanOpts, mountedRest, seatRiderOnMount } from '../../rig/mounte
 import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
 import { isShield } from '../../rig/parts/equipment';
-import type { View } from '../../rig/facing';
+import { VIEWS, type View } from '../../rig/facing';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../../state/scene';
 import type { BattleState } from '../../../state/store';
 import type { Combatant, Weapon } from '../../../engine/types';
@@ -182,7 +182,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     const s = sujets(monture(), cavalier()).subjects[0];
     expect(s.box.w).toBe(BB_W);
     expect(s.box.h).toBeGreaterThan(BB_H); // le composite a demandé du ciel au-dessus des 150 px
-    for (const v of ['front', 'profile', 'back'] as const) {
+    for (const v of VIEWS) {
       const b = bbox(s.svg(v, false, 0));
       expect(b.minY, `vue ${v} : le haut du couple sort de sa boîte (minY ${b.minY})`).toBeGreaterThanOrEqual(0);
       expect(b.maxY, `vue ${v} : le bas du couple sort de sa boîte (maxY ${b.maxY} / ${s.box.h})`).toBeLessThanOrEqual(s.box.h);
@@ -206,8 +206,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
   it('les 3 vues et le miroir suivent le couple comme un corps simple', () => {
     const { subjects } = sujets(monture(), cavalier());
     const s = subjects[0];
-    const vues = ['front', 'profile', 'back'] as const;
-    const rendus = vues.map((v) => s.svg(v, false, 0));
+    const rendus = VIEWS.map((v) => s.svg(v, false, 0));
     expect(new Set(rendus).size).toBe(3); // trois vues distinctes
     for (const r of rendus) expect(osDe(r).has('torse')).toBe(true); // le cavalier est là dans les 3
     expect(s.svg('profile', true, 0)).toContain('scale(-1,1)'); // miroir du COMPOSITE entier
@@ -245,7 +244,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
  * `mountedPlanOpts`, donc son harnachement vient de la DONNÉE. Mesuré sur le fragment RENDU du couple,
  * pas sur la fonction seule : un call-site retombé sur `planOptsForRecord` rendrait la bête à cru sans
  * qu'aucun test de la couture ne bronche. (Ce banc vivait sur le corps affine `MountedToken`, mort à
- * C5a — il mesure désormais le MÊME canal sur le sujet volumique, seul rendu du couple.)
+ * C5a — il mesure le MÊME canal sur le sujet volumique, seul rendu du couple.)
  *
  * Le témoin est le REFUS VISIBLE (#223) d'un set non cuit pour l'espèce portée (blaireau, ADE I 07
  * l.48) : sa caisse d'alarme est posée sur le `tronc` en clé NUE, donc lisible dans les 3 vues.

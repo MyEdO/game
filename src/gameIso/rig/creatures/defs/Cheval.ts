@@ -1,12 +1,12 @@
 import type { CreatureDef } from '../types';
-import { CHEVAL_PROFIL_COMPILE } from '../../quadruped/chevalProfilCompile';
+import { CHEVAL_COMPILE } from '../../quadruped/chevalCompile';
 
 // Cheval — fidélité à l'artwork officiel (art-ref/ldb/page316_img7313.png) : robe GRIS POMMELÉ
 // (corps gris clair, ombres gris-bleu, pommelures) et crinière/queue GRIS ARGENTÉ fournies.
 //
-// LE PROFIL EST UN DESSIN, PAS UNE COMPOSITION (étalon #1082, vague P1b-MASSE) : la bête entière
-// est tracée d'un trait dans le repère du monde (`quadruped/atelier/cheval-profil.dessin.mts`) puis
-// compilée par os (`chevalProfilCompile.ts`) — silhouette, robe, crinière, queue et modelé des 16
+// LE PROFIL EST UN DESSIN, PAS UNE COMPOSITION (étalon #1082) : la bête entière
+// est tracée d'un trait dans le repère du monde (`quadruped/atelier/cheval-profile.dessin.mts`) puis
+// compilée par os (`chevalCompile.ts`, table keyée par vue) — silhouette, robe, crinière, queue et modelé des 16
 // os y vivent ensemble.
 // La BÊTE EST NUE (#1128) : le harnachement (selle, caparaçon, croupière, bride) n'appartient pas
 // à l'ESPÈCE — c'est un SET d'équipement (`quadruped/harnais/sellerie-imperiale`) qu'un record
@@ -22,7 +22,7 @@ export const creature: CreatureDef = {
     sl: 0.9, build: 'equine', girth: 1.04, bodyLen: 1.05, neckLen: 1.12, neckAngle: -50,
     legLen: 1.2, head: 'cheval', tail: 'crin', tailLen: 1.55, mane: 'crin', ears: 'courtes',
     foot: 'sabot', markings: 'taches',
-    viewArt: { profile: CHEVAL_PROFIL_COMPILE },
+    viewArt: CHEVAL_COMPILE,
     palette: {
       corps: '#c6cac5', corpsO: '#7b838c', corpsH: '#f1f2ef', // gris pommelé, ombres gris-bleu
       cheveux: '#878d93', cheveuxO: '#43484e', // crinière/queue gris argenté

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * BILLBOARDS EN PREMIÈRE PERSONNE (#1176, P3-1b) — l'art des quads suit enfin le regard de l'œil.
+ * BILLBOARDS EN PREMIÈRE PERSONNE (#1176) — l'art des quads suit enfin le regard de l'œil.
  * Trois faits, chacun réfutable seul :
  *
  *  1. la VUE d'une entité se prend au CAP Dir8 du meneur (branche `perspective` de `billboardView`),
@@ -78,7 +78,7 @@ const TINT: TintAt = () => 1;
 const KEEP = () => true;
 const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
 
-/** Un acteur au cap SUD, et un décor directionnel : l'un juge la vue d'entité, l'autre le cran d'atlas. */
+/** Un acteur au cap SUD, et un décor orienté : l'un juge la vue d'entité, l'autre le cran d'atlas. */
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
 const TONNEAU: BillboardPropEl = {
   kind: 'prop', source: 'entity', key: 'prop:tonneau', entId: 'tonneau', span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
@@ -185,7 +185,7 @@ describe('POV — la VUE d’une entité suit le cap du meneur (#1176 P3-1b)', (
       // Le décor est texturé au regard de MONTAGE en PREMIER ; la pré-chauffe des deux caps voisins
       // suit dans la même passe (contrat dédié plus bas, #1373).
       expect(prop.length, `cap ${cap} : le décor doit être texturé`).toBeGreaterThan(0);
-      // L'identité d'un décor porte sa SIGNATURE DE DESSIN depuis #1176 P3-3 (`prop:<clé>|<modèle>`,
+      // L'identité d'un décor porte sa SIGNATURE DE DESSIN depuis #1176 (`prop:<clé>|<modèle>`,
       // puis le cran d'art) : c'est le CRAN, seul, que cette garde épingle.
       expect(prop[0].identity, `cap ${cap}`).toBe(`prop:prop:tonneau|tonneau|${TONNEAU.facing}|${TONNEAU.foot.scale}|r${povArtRot(cap)}`);
       crans.add(prop[0].identity);

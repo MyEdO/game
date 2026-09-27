@@ -66,9 +66,11 @@
 // PARSE JSON (suppression de la seule clé top-level `id` avant re-sérialisation) — robuste à
 // n'importe quel ordre/forme de champs, généralisable aux 8 catalogues sans regex par fichier.
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { listerArbre, listerDossier } from './lister.mjs';
 import { join } from 'node:path';
 import { estFichierVitest } from './fichierVitest.mjs';
+import { DECROISSANT } from './stockDeSites.mjs';
 
 /** Catalogues `src/data/*.json` adressés par `id`, retenus pour la mesure d'orphelines — MÊME
  *  ensemble que `CATEGORIES` de `src/data/id-collisions.test.ts`, moins `spells`/`trappings`
@@ -101,10 +103,10 @@ export const EXCLUDED_CATEGORY_FILES = {
  * Les ORPHELINES MESURÉES, en SITES `{ file, ref }` : `file` = le dataset où l'entité est déclarée
  * (c'est lui que la porte de plage voit, et lui que l'auteur doit ouvrir), `ref` = l'id de l'entité.
  * UN assemblage de la mesure pour ses consommateurs — la garde `src/data/entity-orphans.test.ts` et
- * le régénérateur `scripts/data/regen-entity-orphan-stock.mts` : deux lectures divergentes de
+ * la régénération de `entityOrphanStock.mjs` (`regenerations`) : deux lectures divergentes de
  * « orpheline » laisseraient l'une écrire ce que l'autre refuse.
  * @param {string} dataDir @param {string} srcDir
- * @returns {{ file: string, ref: string }[]} dans l'ordre des catégories puis des ids du dataset.
+ * @returns {import('./stock.mjs').Site[]} dans l'ordre des catégories puis des ids du dataset.
  */
 export function orphelinesMesurees(dataDir, srcDir) {
   const estConsommee = predicatDeConsommation(dataDir, srcDir);
@@ -120,10 +122,32 @@ export function orphelinesMesurees(dataDir, srcDir) {
 }
 
 /**
+ * La RÉGÉNÉRATION de `entityOrphanStock.mjs` (`RegenerationDeStock`, `stockDeSites.mjs`), sur la mesure
+ * `sites` (par défaut, celle du dépôt). Commande :
+ * `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/entityConsumers.mjs [--check]`.
+ * @param {import('./stock.mjs').Site[]} [sites]
+ * @returns {import('./stockDeSites.mjs').RegenerationDeStock[]}
+ */
+export function regenerations(sites = orphelinesMesurees(
+  fileURLToPath(new URL('../../../src/data', import.meta.url)),
+  fileURLToPath(new URL('../../../src', import.meta.url)),
+)) {
+  return [{
+    chemin: fileURLToPath(new URL('./entityOrphanStock.mjs', import.meta.url)),
+    politique: DECROISSANT,
+    collections: [{
+      nom: 'ENTITY_ORPHAN_RATCHET',
+      sites,
+      motif: "Une entité neuve sans consommateur se CÂBLE (une donnée qui la référence, ou du code de prod), elle ne s'entérine pas ici.",
+    }],
+  }];
+}
+
+/**
  * LE prédicat « cette entité est-elle consommée ? » — définition UNIQUE, les trois canaux réunis :
  * MODE 1 (id cité en toutes lettres), MODE 2 (sélection par prédicat de champ) et les entités MÉTA.
  * Le corpus et les consommateurs par prédicat sont scannés UNE fois, à la construction.
- * Consommé par `orphelinesMesurees` (garde + régénérateur) ET par le rapport
+ * Consommé par `orphelinesMesurees` (garde + régénération) ET par le rapport
  * `scripts/docs/build-entity-orphans.mjs` : deux recopies du même test laisseraient le doc et le
  * stock diverger sur ce qu'est une orpheline.
  * @param {string} dataDir @param {string} srcDir

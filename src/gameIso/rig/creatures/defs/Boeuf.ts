@@ -1,6 +1,6 @@
 import type { CreatureDef } from '../types';
 import type { QuadProps } from '../../quadruped/quadSkeleton';
-import { BOEUF_PROFIL_COMPILE } from '../../quadruped/boeufProfilCompile';
+import { BOEUF_COMPILE } from '../../quadruped/boeufCompile';
 
 // Bœuf (EDOC 7 l.54, créature #611) — BÊTE DE TRAIT : masse basse et lourde portée sur des
 // pattes-poteaux courtes, encolure COURTE et épaisse fondue dans un garrot bossu, tête large au
@@ -10,7 +10,7 @@ import { BOEUF_PROFIL_COMPILE } from '../../quadruped/boeufProfilCompile';
 // pattes à longue encolure — les deux silhouettes se séparent à 40 px par la masse, le cou,
 // la coiffe et la ligne de dos.
 //
-// LA TÊTE EST UNE PART (#1082 P1b) : `head: 'boeuf'` → `quadruped/heads/defs/boeuf.ts`, qui porte
+// LA TÊTE EST UNE PART (#1082) : `head: 'boeuf'` → `quadruped/heads/defs/boeuf.ts`, qui porte
 // crâne / oreilles / cornes / mufle en FRAGMENTS et leur ordre du peintre (les cornes s'insèrent
 // entre crâne et oreilles sur les trois vues), plus la largeur de masse vue de bout (`bodyWidth`
 // 22/26 — le poitrail et la croupe de l'équin étaient trop étroits pour une bête de trait). Ce
@@ -20,7 +20,7 @@ import { BOEUF_PROFIL_COMPILE } from '../../quadruped/boeufProfilCompile';
 // deux coiffes se superposeraient).
 //
 // VOLUME : les ombres se construisent au jeton QUASI NOIR `@corpsO` (#140c06) posé à l'OPACITÉ,
-// jamais par une teinte dérivée claire — le recoloriage joueur (#632) redérive la famille depuis
+// jamais par une teinte dérivée claire — le recoloriage joueur (#632) redérive la gamme depuis
 // la base choisie et les creux survivent. Les surfaces éclairées sont de vraies PLAGES `@corpsH`
 // qui SUIVENT le contour (ligne de dos, épaule, croupe), jamais des dalles à bord droit : sans
 // surface éclairée un écart de luminance ne prouve rien (ancrage du contrat d'art #635), et une
@@ -29,7 +29,7 @@ import { BOEUF_PROFIL_COMPILE } from '../../quadruped/boeufProfilCompile';
 // surface qui doit COMPTER comme éclairée est posée à ≥ 0,6. Les hachures sont GROUPÉES et
 // COURTES dans le sens du poil (épaule, flanc, cuisse), jamais semées.
 //
-// PLANS : chaque fragment de `deco` déclare son `plan` RELATIF au plan de son os (#1082 Lot 2).
+// PLANS : chaque fragment de `deco` déclare son `plan` RELATIF au plan de son os (#1082).
 // Ici tous valent 0 : ce sont des calques de MODELÉ, peints avec l'art de leur os, dans l'ordre
 // d'apposition — ils ne s'intercalent devant/derrière aucun autre os.
 // GABARIT de la bête — déclaré AVANT l'art, parce que l'art en dépend : les lignes d'interface
@@ -62,11 +62,11 @@ const QUAD: QuadProps = {
   },
 };
 // LE PROFIL EST UN DESSIN, PAS UNE COMPOSITION (étalon #1082) : la bête entière est tracée d'un
-// trait dans le repère du monde (`quadruped/atelier/boeuf-profil.dessin.mts`) puis compilée par os
-// (`boeufProfilCompile.ts`) — silhouette, robe et modélé des 16 os y vivent ensemble. FACE et DOS
+// trait dans le repère du monde (`quadruped/atelier/boeuf-profile.dessin.mts`) puis compilée par os
+// (`boeufCompile.ts`, table keyée par vue) — silhouette, robe et modélé des 16 os y vivent ensemble. FACE et DOS
 // se composent, elles, au socle + `deco` ci-dessous.
 
-// FACE : le poitrail est désormais LARGE au socle (`bodyWidth.front = 22`, déclaré par la def de
+// FACE : le poitrail est LARGE au socle (`bodyWidth.front = 22`, déclaré par la def de
 // tête) — ce calque ne le REDESSINE plus, il le MODÈLE : ligne d'épaule éclairée qui suit le haut
 // de la masse, sternum bombé, flancs enroulés dans l'ombre profonde, et le FANON pendant sous la
 // gorge (le tell bovin de face, LARGE et COURT à festons ronds — étroit, long et à pointes il
@@ -119,7 +119,7 @@ export const creature: CreatureDef = {
     // déclare — carrure, encolure, tête, queue et les douze os de membre. FACE et DOS se composent
     // au socle (+ `deco` ci-dessous) : la direction d'art épurée n'a été jugée que sur la vue de
     // profil, et le modèle suit ce qui a été mesuré.
-    viewArt: { profile: BOEUF_PROFIL_COMPILE },
+    viewArt: BOEUF_COMPILE,
     deco: {
       // Seules les deux vues laissées au socle portent un décor : de profil, le dessin entier est
       // déjà l'art de chaque os.

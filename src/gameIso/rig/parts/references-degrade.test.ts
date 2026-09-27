@@ -1,13 +1,13 @@
 /**
- * RÉFÉRENCES DE DÉGRADÉ d'un rendu final (#1903 A4, D2). Question : un rendu final est-il entièrement
+ * RÉFÉRENCES DE DÉGRADÉ d'un rendu final (#1903). Question : un rendu final est-il entièrement
  * résolu, chaque `url(#id)` peint-il un dégradé qui existe, et chaque id défini deux fois l'est-il avec
  * le même contenu ?
  *  (0) aucun `@` ni `dg-` à `@` ne sort d'un rendu final ;
  *  (1) chaque `url(#id)` d'un rendu final vise un id de `defsGlobaux()` ou un id défini dans le même
  *      rendu ;
  *  (1') chaque `url(#id)` LITTÉRAL du source du rig (hors tests) vise un id de `defsGlobaux()`, un id
- *      défini dans le même fichier, ou un `dg-<forme>-…` dont la forme est dans `FORMES_DE_DEGRADE` avec
- *      autant d'arrêts que son arité ; un id interpolé (`${…}`) se vérifie au rendu, par (1) ;
+ *      défini dans le même fichier, ou un `dg-…` que lit `lireDegradeDerive` ; un id interpolé (`${…}`)
+ *      se vérifie au rendu, par (1) ;
  *  (2) dans un même rendu, un dégradé défini plusieurs fois l'est avec le même contenu (l'id d'un `dg-`
  *      est son contenu) ;
  *  (3) aucune définition `<linearGradient|radialGradient id=…>` dans l'art du rig hors `fxGradients.ts`
@@ -20,7 +20,10 @@ import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
-import { FORMES_DE_DEGRADE } from '../palette';
+import { lireDegradeDerive, tokensOf } from '../palette';
+import { FX_GRADIENT_IDS, rigFxGradients } from '../fxGradients';
+import { VIEWS } from '../facing';
+import { viewEntries } from '../viewArt';
 import { weaponPart, shieldPart, armourPart, objetSansPorteur } from './equipment';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
@@ -36,11 +39,9 @@ import type { ItemInstance, Weapon } from '../../../engine/types';
 import type { PartArt } from './types';
 
 const RIG = resolve(__dirname, '..');
-const VUES = ['front', 'profile', 'back'] as const;
 const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const GLOBAUX = new Set([...defsGlobaux().matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 const DEFINITION = /<(linear|radial)Gradient\b[^>]*\bid="([^"]+)"[^>]*>.*?<\/\1Gradient>/gs;
-const ARO = /@[a-zA-Z]/;
 const SURCHARGES: (Appearance['colors'] | undefined)[] = [
   undefined,
   { peau: '#000000', cheveux: '#ffffff', vet1: '#ff0000', vet2: '#00ff00', cuir: '#ffff00', metal: '#000000', yeux: '#ffffff' },
@@ -52,13 +53,16 @@ const arme = (shape: string, skin?: Record<string, string>) =>
 const armure = (label: string, skin?: Record<string, string>) =>
   ({ uid: 'a', kind: 'armor', label, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
 const MATIERES = ['Gambison', 'Jaque de cuir', 'Cotte de mailles', 'Plastron de plaque'];
-const vues = (a: PartArt) => (typeof a === 'string' ? [a] : [a.front, a.back, a.profile].filter((v): v is string => v != null));
+const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
+/** (1') Un `url(#id)` littéral du source vise un id global, un id défini dans son fichier, ou un `dg-`
+ *  que lit `lireDegradeDerive`. */
+const referenceLitterale = (id: string, locaux: ReadonlySet<string>) => GLOBAUX.has(id) || locaux.has(id) || lireDegradeDerive(id) != null;
 
 /** Fautes (0), (1) et (2) d'un corpus de rendus finaux. */
 function fautesDeReferences(rendus: Iterable<[string, string]>): string[] {
   const fautes: string[] = [];
   for (const [cle, svg] of rendus) {
-    if (ARO.test(svg)) fautes.push(`(0) \`@\` non résolu (${cle})`);
+    if (tokensOf(svg).length) fautes.push(`(0) \`@\` non résolu (${cle})`);
     const locaux = new Set([...svg.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
     const contenus = new Map<string, string>();
     for (const [def, , id] of svg.matchAll(DEFINITION)) {
@@ -74,10 +78,10 @@ function fautesDeReferences(rendus: Iterable<[string, string]>): string[] {
 
 function* corpus(): Generator<[string, string]> {
   const especes = (JSON.parse(readFileSync(resolve(__dirname, '../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
-  for (const species of especes) for (const sex of ['M', 'F'] as const) for (const { id: t } of TENUE_DEFS) for (const view of VUES)
+  for (const species of especes) for (const sex of ['M', 'F'] as const) for (const { id: t } of TENUE_DEFS) for (const view of VIEWS)
     for (const [i, colors] of SURCHARGES.entries())
       yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, { weapons: [], armour: [] }, {}, t, view))];
-  for (const species of ['humain', 'nain'].map(asRigSpeciesId)) for (const view of VUES) for (const [i, colors] of SURCHARGES.entries()) {
+  for (const species of ['humain', 'nain'].map(asRigSpeciesId)) for (const view of VIEWS) for (const [i, colors] of SURCHARGES.entries()) {
     const app = { species, sex: 'M' as const, build: 0.5, seed: 1, ...(colors && { colors }) };
     for (const d of WEAPON_DEFS) for (const skin of SKINS)
       yield [`arme|${species}|${d.slug}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [arme(d.slug, skin)], armour: [] }, {}, 'soldat', view))];
@@ -86,7 +90,7 @@ function* corpus(): Generator<[string, string]> {
     for (const l of MATIERES) for (const skin of SKINS) for (const t of ['soldat', 'nu'])
       yield [`armure|${species}|${l}|${t}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [], armour: [armure(l, skin)] }, {}, t, view))];
   }
-  for (const c of creatures) for (const view of VUES) {
+  for (const c of creatures) for (const view of VIEWS) {
     const r = resolveById(c.id);
     if (r.kind === 'rig') {
       const p = entityRigProfile(c.id, 7);
@@ -106,26 +110,37 @@ function* corpus(): Generator<[string, string]> {
   }
 }
 
-describe('références de dégradé d’un rendu final (#1903 A4)', () => {
+describe('références de dégradé d’un rendu final (#1903)', () => {
   it('(0) aucun `@` ne sort ; (1) chaque `url(#id)` a sa définition ; (2) un id défini plusieurs fois a un seul contenu', () => {
     expect(fautesDeReferences(corpus())).toEqual([]);
   });
 
   it('(1\') chaque `url(#id)` littéral du source du rig vise un id global, local au fichier, ou un `dg-` de forme et d’arité connues', () => {
-    const DG = /^dg-([a-z0-9]+)((?:-(?:@[a-zA-Z]\w*|#[0-9a-fA-F]{6}))+)$/;
     const fautes: string[] = [];
     for (const rel of listerArbre(RIG, { filtre: (r) => /\.tsx?$/.test(r) && !estFichierVitest(r) })) {
       const src = readFileSync(resolve(RIG, rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
       const locaux = new Set([...src.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]));
       for (const [, id] of src.matchAll(/url\(#([^)'"`\s]*)\)/g)) {
-        if (id.includes('${')) continue;
-        if (GLOBAUX.has(id) || locaux.has(id)) continue;
-        const dg = DG.exec(id);
-        const forme = dg ? FORMES_DE_DEGRADE[dg[1]] : undefined;
-        if (!dg || !forme || dg[2].slice(1).split('-').length !== forme.arrets.length) fautes.push(`${rel} url(#${id})`);
+        if (!id.includes('${') && !referenceLitterale(id, locaux)) fautes.push(`${rel} url(#${id})`);
       }
     }
     expect(fautes).toEqual([]);
+  });
+
+  it('(1\') un `dg-` dont un arrêt n’est ni jeton ni hex à six chiffres est une faute', () => {
+    expect(referenceLitterale('dg-v-@peauH-@peauO', new Set())).toBe(true);
+    expect(referenceLitterale('dg-v-#abc-@peauO', new Set())).toBe(false);
+  });
+
+  it('(1\') un `dg-` de forme inconnue, ou d’arité autre que celle de sa forme, est une faute', () => {
+    expect(lireDegradeDerive('dg-v3-@peauH-@peau-@peauO')).toEqual({ forme: 'v3', arrets: ['@peauH', '@peau', '@peauO'] });
+    expect(lireDegradeDerive('dg-v-@peauH-@peau-@peauO')).toBeNull();
+    expect(lireDegradeDerive('dg-v-@peauH')).toBeNull();
+    expect(lireDegradeDerive('dg-x-@peauH-@peauO')).toBeNull();
+  });
+
+  it('`FX_GRADIENT_IDS` : les ids des dégradés linéaires et radiaux de `rigFxGradients`, aucun autre', () => {
+    expect(FX_GRADIENT_IDS).toEqual(new Set([...rigFxGradients.matchAll(DEFINITION)].map((m) => m[2])));
   });
 
   it('(3) aucune définition de dégradé dans l’art du rig hors `fxGradients.ts` et la résolution `dg-`', () => {

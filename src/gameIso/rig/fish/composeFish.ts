@@ -3,7 +3,7 @@
  * dentée de brochet (à droite, +x), grande nageoire caudale fourchue (queue, -x) + dorsale/pectorale/
  * anale. Anim propre au plan : godille de la caudale au repos, ondulation à la nage, coup de queue
  * ample à l'attaque (« Queue mortelle »), affaissement à la mort. Réutilise la machinerie (FK générique,
- * palette tokenisée, rendu) — comme composeSerpent, mais squelette HORIZONTAL (≠ son tas lové).
+ * palette en jetons, rendu) — comme composeSerpent, mais squelette HORIZONTAL (≠ son tas lové).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -19,7 +19,7 @@ import { sortByZ } from '../composite';
 export type FishBoneId = 'corps' | 'caudale';
 type FBone = FKBone & { z: number };
 export interface FishProps {
-  sl: number; // échelle token
+  sl: number; // échelle du pion
   girth: number; // épaisseur (hauteur) du corps fusiforme
   palette: PaletteDeclaree; // dos (corps) / ventre (corpsH) / contour (corpsO)
 }

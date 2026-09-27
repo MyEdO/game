@@ -1,6 +1,6 @@
 import type { ArmourDef } from '../types';
 
-// Armure de cuir (jaque) — art tokenisé @cuir/@cuirO/@cuirH, front verbatim du workflow d'art.
+// Armure de cuir (jaque) — art en jetons @cuir/@cuirO/@cuirH, front verbatim du workflow d'art.
 export const armour: ArmourDef = {
   id: 'cuir',
   set: {

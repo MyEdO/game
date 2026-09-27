@@ -1,3 +1,5 @@
+import type { ViewSet } from '../types';
+
 /**
  * Art PAR-VUE d'une chevelure (coiffure du pool OU coiffure par défaut d'une tête) :
  * les 3 vues `{front, profile, back}` + DEUX composantes optionnelles PAR vue :
@@ -10,17 +12,11 @@
  * PAS de repli front→profil pour `behind`/`drop` : une composante se dessine par vue, ou ne
  * s'affiche pas dans cette vue.
  */
-export type HairArt = {
-  front: string;
-  profile: string;
-  back: string;
-  behind?: { front?: string; profile?: string; back?: string };
-  drop?: { front?: string; profile?: string; back?: string };
-};
+export type HairArt = ViewSet & { behind?: Partial<ViewSet>; drop?: Partial<ViewSet> };
 
 /**
  * Une COIFFURE = un fichier `defs/<nom>-<Sexe>.ts`. Pool PARTAGÉ par sexe (toutes espèces), art en
- * tokens @cheveux/@cheveuxO/@cheveuxH. Porte ses vues (cf. `HairArt`) : le profil/dos vit AVEC la
+ * jetons @cheveux/@cheveuxO/@cheveuxH. Porte ses vues (cf. `HairArt`) : le profil/dos vit AVEC la
  * coiffure. `order` = position dans le pool (sélection seed-déterministe). `label` = description
  * d'authoring, non consommée par la résolution (choix par sexe+ordre, jamais par nom). Ajouter une
  * coiffure = déposer un fichier.

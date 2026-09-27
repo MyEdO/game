@@ -13,6 +13,7 @@
 // (`scripts/raw/gate-catalogues.mjs`), et le verdict de git lui-même — `git ls-files` pour le
 // pathspec, `git check-attr` pour l'aiguillage. Les deux YAML ne peuvent rien importer : ils sont
 // CONFRONTÉS à la constante, texte contre texte.
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -85,7 +86,7 @@ test('la magie `glob` PORTE l’accord : sur un arbre foré où les grammaires d
   // réel et la page posée à la racine échappe au pathspec, alors que `motifDeGlob` la vise.
   const motif = 'aire/**/cible-*.md'
   const pages = ['aire/cible-a.md', 'aire/sous/cible-b.md', 'aire/sous/autre.md']
-  const { racine: depot } = instanceDeDepot({ fichiers: Object.fromEntries(pages.map((p) => [p, ''])) })
+  const { racine: depot } = instanceDeDepot({ fichiers: tableTotale(pages, () => '') })
   try {
     const gitLa = (...args) =>
       execFileSync('git', args, { cwd: depot, env: envDeDepotForge(), encoding: 'utf8' }).split('\n').filter(Boolean)

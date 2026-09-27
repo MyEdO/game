@@ -1,4 +1,4 @@
-/** Galerie des tenues SPÉCIFIQUES (rig, art tokenisé + palette par défaut), GRANDES vignettes.
+/** Galerie des tenues SPÉCIFIQUES (rig, art en jetons + palette par défaut), GRANDES vignettes.
  *  Inline SVG self-contained (`defsGlobaux` par vignette). Lancer : npx tsx scripts/gen-tenue-gallery.mts → public/tenue-gallery.html */
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -44,7 +44,7 @@ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title
   figcaption{color:#d8cce0;font-size:13px;text-align:center;padding:5px 2px 7px;max-width:${CW}px}
 </style></head>
 <body><h1>Tenues de carrière — ${tenues.length} tenues</h1>
-<p class="note">Rig humanoïde, couleurs en tokens de palette (recoloriables par l'éditeur). Rendu au défaut par carrière.</p>
+<p class="note">Rig humanoïde, couleurs en jetons de palette (recoloriables par l'éditeur). Rendu au défaut par carrière.</p>
 <div class="grid">${cells}</div></body></html>`;
 
 writeFileSync('public/tenue-gallery.html', html, 'utf8');

@@ -1,5 +1,6 @@
 /** Pilote Phase B — rendu d'un Skaven via le RIG bipède (auto tête de rat + queue + pelage
  *  + carrure Skaven). Vérifie le pipeline B de bout en bout. → public/qc/skaven.png */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -7,10 +8,8 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { hashSeed } from '../src/engine/dice';
-import type { View } from '../src/gameIso/rig/facing';
 
 const NAMES = ['Guerrier des clans'];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 250, CH = 360, SC = 2.2, FEET = 320;
 const cells: string[] = [];
 NAMES.forEach((name, r) => {

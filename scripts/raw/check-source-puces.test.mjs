@@ -1,16 +1,17 @@
 // Banc de la garde `check-source-puces` (node --test, joué par `npm run test:raw`). Le détecteur est
 // PUR au grain du chapitre : il MORD sur des chapitres SYNTHÉTIQUES, et la CONTRE-ÉPREUVE — une
 // liste réellement numérotée `0`, `1`, `2` — ne mord pas. La clé de site ne porte aucune position, et
-// le stock COMMITTÉ est exactement le rendu des sites mesurés sur l'arbre, dans les deux sens.
+// le stock COMMITTÉ est le point fixe de sa régénération sur les sites mesurés sur l'arbre, dans les
+// deux sens.
 // Aucun livre n'est nommé ici : le corpus se prend au REGISTRE (`BOOKS`), jamais par un dossier écrit.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  sitesDuChapitre, scanAllBooks, scanBookDir, jetonDeLigne, refDeSuite, entreesDe, ecartDuStock,
-  comptesParLivre, STOCK_PATH,
+  sitesDuChapitre, scanAllBooks, scanBookDir, jetonDeLigne, refDeSuite, ecartDuStock,
+  comptesParLivre, regenerations, STOCK_PATH,
 } from './check-source-puces.mjs'
-import { readStock } from './stockNominatif.mjs'
-import { cleDeSite, champsAveugles } from '../guards/lib/stock.mjs'
+import { ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
+import { CHAMPS_DE_CLE, cleDeSite, champsAveugles } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 
 /** PLAFOND du stock — il vit ICI, jamais dans la garde ni dans la lib (`guards/lib/stock.mjs`) :
@@ -114,7 +115,7 @@ test('deux suites de même ouverture dans un fichier se départagent par l’OCC
   const sites = sitesDuChapitre([...suite, 'Un paragraphe.', ...suite].join('\n'), FICHIER)
   assert.equal(sites.length, 2)
   assert.equal(sites[0].ref, sites[1].ref)
-  assert.deepEqual(entreesDe(sites, { lot: 'x', date: 'y' }).map((e) => e.occurrence), [1, 2])
+  assert.deepEqual(entreesRegenerees(sites, { lot: 'x', date: 'y' }).map((e) => e.occurrence), [1, 2])
 })
 
 test('scanBookDir : le `fichier` d’un site est le chapitre extrait, en POSIX depuis la racine du dépôt', () => {
@@ -133,30 +134,30 @@ test('COUVERTURE : le balayage voit TOUT le registre — chaque livre est class�
 })
 
 test('stock COMMITTÉ : chaque site mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuStock(scanAllBooks(), readStock(STOCK_PATH))
+  const { neuves, perimees } = ecartDuStock(scanAllBooks(), lireEntreesDeSite(STOCK_PATH))
   assert.deepEqual(neuves, [], `site(s) hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
-// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le rendu de `entreesDe(scanAllBooks())`, écrit
-// par `node scripts/raw/check-source-puces.mjs --ecrire-stock`. Ce test le vérifie à la clé ET à
-// l'ORDRE, là où l'écart ci-dessus ne juge que les ensembles.
+// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le texte de sa régénération (`regenerations`), écrit
+// par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs`. Ce test le
+// vérifie à l'octet, ORDRE compris, là où l'écart ci-dessus ne juge que les ensembles.
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’arbre', () => {
-  const attendu = entreesDe(scanAllBooks(), { lot: '', date: '' })
-  assert.deepEqual(readStock(STOCK_PATH).map(cleDeSite), attendu.map(cleDeSite))
+  for (const r of regenerations(scanAllBooks())) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
 })
 
 test('le stock est PLAFONNÉ : il ne décroît que quand un site disparaît du `Source/`', () => {
-  assert.ok(readStock(STOCK_PATH).length <= PLAFOND, `stock ${readStock(STOCK_PATH).length} > plafond ${PLAFOND}`)
+  const taille = lireEntreesDeSite(STOCK_PATH).length
+  assert.ok(taille <= PLAFOND, `stock ${taille} > plafond ${PLAFOND}`)
 })
 
 test('la CLÉ observe tout ce qui localise une entrée — aucun champ aveugle', () => {
-  assert.deepEqual(champsAveugles(readStock(STOCK_PATH), cleDeSite, ['fichier', 'ref', 'occurrence']), [])
+  assert.deepEqual(champsAveugles(lireEntreesDeSite(STOCK_PATH), cleDeSite, CHAMPS_DE_CLE), [])
 })
 
 // #1825 : l'ordre des livres vit dans `src/data/books.json`, et aucun artefact commité ne s'y
 // asservit — insérer un livre AU MILIEU du registre ne doit réécrire aucun stock. Registre INJECTÉ.
 test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registre inversé)', () => {
-  const cles = (books) => entreesDe(scanAllBooks(books), { lot: '', date: '' }).map(cleDeSite)
+  const cles = (books) => entreesRegenerees(scanAllBooks(books)).map(cleDeSite)
   assert.deepEqual(cles([...BOOKS].reverse()), cles(BOOKS))
 })

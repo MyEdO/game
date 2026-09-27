@@ -34,6 +34,15 @@ ment ne se tague pas, elle se corrige.
 Après toute fusion ou tout rebase : `npm run docs:build` (`scripts/docs/build-all.mjs`) régénère et
 nomme ce qui a bougé — les hooks `post-merge`/`post-rewrite` le lancent, le commit reste à toi.
 
+**Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
+pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
+chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
+et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
+ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
+de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, que les deux
+pilotes partagent. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
+mesure>`.
+
 ## Frontière orchestrateur · machinerie · data-driven
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
@@ -182,7 +191,7 @@ src/engine/                 Règles WFRP4, PUR + testé :
                               usages réels en donnée. À CONSULTER avant de conclure à un manque du moteur.
   spellspec.ts                spellSupport : classification mécanique/partiel/narratif d'un sort depuis
                               SpellData (duck typing — l'interface SpellSpec, le registre spellspecs/ et
-                              le repli regex fallbackSpec sont supprimés, métadonnées migrées en donnée)
+                              le repli regex fallbackSpec sont supprimés, métadonnées en donnée)
   magic.ts                    incantation/Focalisation/Péché/ZdE/portée/armure (« Repousser les Vents »)
   miscast.ts                  tables d'Imparfaites & Colère des dieux (d100 → GameOps, verbatim)
   corruption.ts               Corruption & mutations (LDB 19 : expositions, seuil, limites → damné)
@@ -277,7 +286,7 @@ src/state/
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)
-  stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176, P2-7) : cible + courant qui y
+  stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
@@ -315,7 +324,7 @@ src/state/
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Backend IndexedDB (db `wfrp4-library`, store `projects`, une source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
-                              localStorage, #766 lot B). `projectsLoad`/`publishedProjects` SYNC
+                              localStorage, #766). `projectsLoad`/`publishedProjects` SYNC
                               (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance
                               IndexedDB awaitée, ne rejette jamais — `LibraryWriteOutcome`). `cache`
                               chargé une fois par `initLibrary()` (awaité dans `main.tsx` avant le
@@ -363,7 +372,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
   iso.ts                    dérivés MÉTRIQUES de la projection (WALL_H_M, isoPxToM — besoin du monde,
                             via state/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
                             screenToTile, stageSize…) vit dans `src/geometry/iso.ts` (#161)
-  sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (gradients) — PLUS de sprite créature
+  sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (dégradés fixes) — PLUS de sprite créature
   rig/                      gabarits corporels (bipède + quadrupède/ailé/serpentin/…) — rend TOUT le bestiaire
                             AJOUTER une créature : suivre docs/creer-une-creature.md (registre defs/,
                             corps nu ≠ tenue, illustration art-ref obligatoire, pièges codifiés)
@@ -463,9 +472,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   bipèdes (carrière + arme + armure + mutations visibles) et créatures non-bipèdes via gabarit corporel
   animé (quadrupède/ailé/serpentin/…). `sprites.ts` ne fournit plus que le décor (props).
   Le sprite monolithique (`creatureSprites.json` + `enemySprite`/`creatureView`) a été retiré (juin 2026).
-- **Objets ORIENTÉS** (navires, engins de siège, véhicules terrestres, props directionnels) : un SEUL
+- **Objets ORIENTÉS** (navires, engins de siège, véhicules terrestres, props orientés) : un SEUL
   contrat de vues `ViewArt` (`src/gameIso/rig/viewArt.ts`, `front?`/`profile?`/`back?`), sélectionné par
-  l'UNIQUE résolveur `project(dir, camRot)` (`rig/facing.ts`) + repli `pickView` ; couverture de vues en
+  l'UNIQUE résolveur `project(dir, camRot)` (`rig/facing.ts`) + repli `nearestView` ; couverture de vues en
   galerie QC (`oriented-objects.html`). Les véhicules à coque sont routés par `hull.propulsion`
   (`bodyPlan.ts`) : mer/fleuve → gabarit `navire`, terrestre → gabarit `terrestre` (plus de repli
   accidentel d'un attelage vers la coque de navire). Détail : `docs/rendu-pipeline.md` § « Objets orientés ».

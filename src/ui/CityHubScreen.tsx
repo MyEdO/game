@@ -123,7 +123,7 @@ export function CityHubScreen({
   const enter = (open: () => void) => { onClose(); open(); };
 
   /** OUVREURS par écran DÉCLARÉ (`ResolvedPlaceService.opensScreen`) : la valeur du catalogue choisit
-   *  l'ouvreur ET sa garde. Table EXHAUSTIVE de l'union — un écran de plus ne compile pas sans sa ligne. */
+   *  l'ouvreur ET sa garde. Table TOTALE de l'union — un écran de plus ne compile pas sans sa ligne. */
   const SCREEN_ROUTES: Record<NonNullable<ResolvedPlaceService['opensScreen']>, { open: () => void; enabled: () => boolean; reason: string }> = {
     port: { open: openPort, enabled: () => cityHubCanEnterPort(vessel), reason: 'Aucun navire de campagne.' },
   };

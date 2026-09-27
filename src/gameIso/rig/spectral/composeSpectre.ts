@@ -3,7 +3,7 @@
  * TRANSLUCIDE qui se dissout en volutes vaporeuses (pas de jambes), bras flottants, tête à
  * regard luisant (capuche / visage hurlant / crâne). Anim propre au plan : flottement/ondulation
  * des volutes au repos, ruée spectrale à l'attaque, dissipation à la « mort ». Réutilise la
- * machinerie (FK générique, palette tokenisée, rendu) ; translucidité bakée dans l'art.
+ * machinerie (FK générique, palette en jetons, rendu) ; translucidité bakée dans l'art.
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -22,7 +22,7 @@ export interface SpectreProps {
   sl: number;
   hood: boolean; // capuche dressée (spectre) vs tête nue translucide (fantôme/banshee)
   face: 'crane' | 'cri' | 'morne' | 'hurle' | 'crane-cri'; // crâne / bouche hurlante / visage éteint / hurlement féminin mâchoire décrochée (banshee) / crâne décharné HURLANT — orbites creuses + gouffre denté (fantôme)
-  /** Chevelure longue flottante encadrant le visage (tokens @cheveux/@cheveuxO) — banshee. */
+  /** Chevelure longue flottante encadrant le visage (jetons @cheveux/@cheveuxO) — banshee. */
   cheveux?: boolean;
   /** Mains squelettiques aux longs doigts-griffes émergeant des manches (@cuir) — remplace la pointe fondue. */
   griffes?: boolean;
@@ -46,7 +46,7 @@ function buildSkeleton(): Record<SpectreBoneId, SBone> {
 
 // --- art (translucide, repère LOCAL) --------------------------------------
 // Yeux SANS pupille : orbes luisants + halo — le couple « iris+pupille » lisait peluche
-// mignonne (verdict des juges aveugles, lot 4). Le regard vide et lumineux fait le spectre.
+// mignonne (verdict des juges aveugles). Le regard vide et lumineux fait le spectre.
 const glowEyes = (x1: number, x2: number | null, y = 0): string =>
   [x1, x2].filter((x): x is number => x !== null)
     .map((x) => `<ellipse cx="${x}" cy="${y}" rx="2.6" ry="2.2" fill="#bfe6ff" opacity="0.3"/><ellipse cx="${x}" cy="${y}" rx="1.3" ry="1.7" fill="#eaf7ff"/>`)

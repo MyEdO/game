@@ -138,7 +138,7 @@ const renverse = (doc) => {
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (4,7 Go,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
  */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'docs/raw', 'Source'];
+const CORPUS = ['src/data', 'src/scenes', 'src/lib', 'scripts', 'src/gameIso/catalog', 'docs/raw', 'Source'];
 
 test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
@@ -151,7 +151,7 @@ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renvers�
 
   const data = path.join(racine, 'src/data');
   const jsons = fs.readdirSync(data).filter((f) => f.endsWith('.json'));
-  // Plancher 121 → 119 (#1686 lot 2) : les trois catalogues de matières fusionnent en `materials.json`.
+  // Plancher 121 → 119 (#1686) : les trois catalogues de matières fusionnent en `materials.json`.
   assert.ok(jsons.length >= 119, `corpus de ${jsons.length} document(s) — la copie n'a pas pris \`src/data\``);
 
   /** Le corpus RENVERSÉ, posé et gardé en référence : toute divergence ultérieure est une écriture. */

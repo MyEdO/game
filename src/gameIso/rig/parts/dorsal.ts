@@ -10,16 +10,21 @@
  *    PAR-DESSUS le bord du dos (calque d'os normal) : relégué au fond, sa racine serait
  *    occultée par la silhouette et l'appendice « flotterait » derrière le héros.
  *
- * Le miroir (regarder à gauche) est géré au niveau token : tout le svg est retourné,
+ * Le miroir (regarder à gauche) est géré au niveau du pion : tout le svg est retourné,
  * l'appendice suit. Les trois arts sont donc dessinés pour un personnage regardant +x.
  */
 import type { BoneId, RigOverlay } from '../bones';
+import { VIEWS, type View } from '../facing';
+import type { ViewSet } from './types';
 
-/** Les trois vues d'un appendice dorsal → calques prêts (plan/vue/ancrage corrects). */
-export function dorsalOverlays(bone: BoneId, art: { front: string; back: string; profile: string }): RigOverlay[] {
-  return [
-    { bone, svg: art.front, plane: 'fond', view: 'front' },
-    { bone, svg: art.back, plane: 'avant', view: 'back' },
-    { bone, svg: art.profile, view: 'profile' }, // calque d'os : la racine se pose SUR le dos
-  ];
+/** Plan de chaque vue d'un appendice dorsal (règles ci-dessus). */
+const PLAN_DORSAL = {
+  front: { plane: 'fond' },
+  profile: {}, // calque d'os : la racine se pose SUR le dos
+  back: { plane: 'avant' },
+} as const satisfies Record<View, Pick<RigOverlay, 'plane'>>;
+
+/** Les vues d'un appendice dorsal → calques prêts (plan/vue/ancrage corrects). */
+export function dorsalOverlays(bone: BoneId, art: ViewSet): RigOverlay[] {
+  return VIEWS.map((view): RigOverlay => ({ bone, svg: art[view], view, ...PLAN_DORSAL[view] }));
 }

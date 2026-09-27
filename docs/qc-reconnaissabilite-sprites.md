@@ -49,8 +49,8 @@ elfe, orc, gobelin, ogre, troll, skaven, mort-vivant, homme-bête, guerrier du C
   `scale:'fixed'` garde une taille constante (enveloppe d'échelle inverse). `layer<0` = derrière la
   part de l'os (cornes derrière la tête) ; `view` limite à une vue (crocs de face seulement).
 - **Art SVG** : itérer **à la vue** (rendre → `Read` le PNG → ajuster les chemins) ; valider par un
-  audit aveugle final. Réutiliser les tokens de palette (`@peau/@metal/@cheveux…`) pour rester
-  recoloriable. Pas de `<defs>` inventés (les gradients partagés sont émis par `defsGlobaux()`, `gameIso/sprites.ts`).
+  audit aveugle final. Réutiliser les jetons de palette (`@peau/@metal/@cheveux…`) pour rester
+  recoloriable. Pas de `<defs>` inventés (les dégradés fixes sont émis par `defsGlobaux()`, `gameIso/sprites.ts`).
 
 ### 4. Garde-fou iso-rendu : le golden master
 `src/gameIso/rig/golden/biped-golden.test.ts` fige le SVG résolu de chaque bipède (front+profil) +

@@ -18,6 +18,7 @@
  *  - ce que l'appelant allait faire APRÈS le coup (maillon de balayage, Action d'une frappe gratuite)
  *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../combatFlow';
@@ -27,7 +28,7 @@ import { setRule, resetRule } from '../../engine/policy';
 import { emptyScene } from '../scene';
 import { stepInteraction } from '../cascade';
 import type { CascadeStep } from '../pendings';
-import type { Combatant, Weapon } from '../../engine/types';
+import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -267,7 +268,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     // perdrait la chaîne en silence.
     const demon = { id: 'demoniaque', value: 8 };
     const fort = { ...CHARS, 'capacite-de-combat': 90 };
-    const faible = Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS; // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
+    const faible = tableTotale(CHAR_KEYS, () => 1); // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
     const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: fort, size: 'enorme', weapons: [griffe] } as never);
     const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: faible, aiControlled: true } as never);
@@ -308,7 +309,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     // Frappeur sûr de sa touche / démon sans défense : le contrat porte sur l'Action, pas sur le jet.
     const frappeur = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [epee], characteristics: { ...CHARS, 'capacite-de-combat': 90 } } as never);
-    const nul = Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+    const nul = tableTotale(CHAR_KEYS, () => 1);
     const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
     setBattle([frappeur, demon]);
     freeAttackHookImpl(useGame.getState, useGame.setState, frappeur,
@@ -324,7 +325,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
 describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegarde PUIS Déviation)', () => {
   // La Déviation Critique (LDB 63 l.30) rouvre une fenêtre APRÈS la sauvegarde : ce que l’appelant fera
   // après le coup doit traverser les DEUX, sans quoi la dernière reprise joue un coup amputé de sa suite.
-  const nul = (): typeof CHARS => Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
   const blindee = { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 };
 
   /** Joue la séquence jusqu'au bout comme le pilote : dés posés à 1 (toute sauvegarde RATE), choix au
@@ -421,7 +422,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
-  const nul = (): typeof CHARS => Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
 
   /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
   const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {

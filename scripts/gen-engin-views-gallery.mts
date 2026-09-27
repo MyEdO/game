@@ -7,11 +7,10 @@
 import { writeFileSync } from 'node:fs';
 import { planById } from '../src/gameIso/rig/bodyPlan';
 import { bonesToSvg } from '../src/gameIso/rig/renderBones';
-import type { View } from '../src/gameIso/rig/facing';
+import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import { ENGIN_ARTS } from '../src/gameIso/rig/engin/_registry.generated';
 import { defsGlobaux } from '../src/gameIso/sprites';
 
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const ids = ENGIN_ARTS.map((a) => a.id).slice().sort((a, b) => a.localeCompare(b, 'fr'));
 
 function cell(id: string, view: View) {

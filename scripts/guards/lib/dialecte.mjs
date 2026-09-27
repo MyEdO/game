@@ -1,4 +1,6 @@
-// Dialecte de parse d'un fichier — source UNIQUE de « extension → `ts.ScriptKind` » (#1679 L3b).
+// Dialecte de parse d'un fichier — source UNIQUE de « extension → `ts.ScriptKind` » (#1679), et
+// l'arbre syntaxique mémoïsé d'un fichier lu (`ast`), seule écriture de `createSourceFile` des
+// modules de #1903 (les autres parses du dépôt : #2012).
 // Chaque garde AST recopiait sa propre table (14 sites, de 2 à 3 branches) : une extension neuve
 // (`.mts` d'un script d'outillage, `.cts`) entrait alors en `TS` ici et en `JS` là, et un scan
 // silencieusement faux ne se voit pas — l'AST se construit quand même.
@@ -31,4 +33,31 @@ export function scriptKindDe(fichier, { inconnu = 'TS' } = {}) {
   const dialecte = DIALECTE[ext] ?? (inconnu === 'refus' ? null : inconnu)
   // eslint-disable-next-line no-restricted-syntax -- la source elle-même : la table du dialecte vit ici
   return dialecte === null ? null : typescript().ScriptKind[dialecte]
+}
+
+/** Arbre par FICHIER, keyé sur l'IDENTITÉ de l'objet d'entrée. `readCorpus` rend le MÊME objet pour
+ *  une même clé de corpus (tableau et entrées gelés) : le parse est donc payé une fois pour tous les
+ *  scans du worker, par garantie de la primitive et non par discipline d'appelant. Rien ne fuit — la
+ *  carte lâche avec le corpus. */
+const AST = new WeakMap()
+
+/**
+ * Arbre syntaxique d'un fichier lu, dans le dialecte de son extension (`scriptKindDe`), nœuds
+ * parentés. Même objet d'entrée, même `SourceFile` : le dialecte ne dépend que de `rel` et d'une
+ * option qui n'agit que sur une extension hors table.
+ * @param {{ rel: string, text: string }} fichier
+ * @param {{ inconnu?: 'TS' | 'refus' }} [options] sous `inconnu: 'refus'`, une extension hors table
+ *   rend `null`, avant toute lecture du mémo.
+ * @returns {import('typescript').SourceFile | null}
+ */
+export function ast(fichier, { inconnu = 'TS' } = {}) {
+  const kind = scriptKindDe(fichier.rel, { inconnu })
+  if (kind === null) return null
+  let sf = AST.get(fichier)
+  if (!sf) {
+    const ts = typescript()
+    sf = ts.createSourceFile(fichier.rel, fichier.text, ts.ScriptTarget.Latest, true, kind)
+    AST.set(fichier, sf)
+  }
+  return sf
 }

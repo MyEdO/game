@@ -12,7 +12,7 @@ import { resolveParts } from './parts/resolve';
 import { hairIndexById } from './parts/cosmetic';
 import { applyEyes, eyesArtFromKeys } from './parts/eyes';
 import { feat as catalogFeatures, featureMorpho } from './parts/elements';
-import { pickView } from './parts/types';
+import { viewOrFront } from './parts/types';
 import { appendageArt } from './parts/appendages';
 import { monsterInjection } from './parts/monstrous';
 import { HEADS, ARMS, LEGS } from './parts/monster';
@@ -29,9 +29,9 @@ import { VIEW_POSE } from './viewPose';
  *  'fixed' = enveloppe d'échelle inverse pour annuler l'échelle de l'os (taille constante). */
 export function featureToPart(f: RaceFeature, boneScale: [number, number], view: View): { svg: string; layer: number } {
   const layer = f.layer ?? 50;
-  // Appendice (cornes/queue) = art MULTI-VUES du registre, résolu par vue via pickView (comme têtes/
+  // Appendice (cornes/queue) = art ORIENTÉ du registre, résolu par vue via viewOrFront (comme têtes/
   // tenues) ; sinon art brut 1-vue. Un seul mécanisme de résolution partout.
-  const raw = f.appendage ? pickView(appendageArt(f.appendage), view) : f.svg;
+  const raw = f.appendage ? viewOrFront(appendageArt(f.appendage), view) : f.svg;
   if (f.scale === 'fixed' && (Math.abs(boneScale[0] - 1) > 1e-4 || Math.abs(boneScale[1] - 1) > 1e-4)) {
     const inv = `<g transform="scale(${(1 / boneScale[0]).toFixed(4)},${(1 / boneScale[1]).toFixed(4)})">${raw}</g>`;
     return { svg: inv, layer };
@@ -165,7 +165,7 @@ function buildComposition(
   const partOverrides = appearance.hairstyle != null
     ? { ...appearance.parts, cheveux: hairIndexById(appearance.species, appearance.sex, appearance.hairstyle) }
     : (appearance.parts ?? {});
-  // Nu du PIED (#736 Lot 1) : `perso.extremites` (créature non-canonique repliée sur une race
+  // Nu du PIED (#736) : `perso.extremites` (créature non-canonique repliée sur une race
   // partagée, ex. Géant/Liche → Humain) prime sur le défaut de la RACE — même résolution que le
   // corps nu (bDef/race déjà résolus ci-dessus par `groundedBodySkeleton`).
   const extremites = bDef?.perso?.extremites ?? race.extremites ?? 'lisses';
@@ -252,14 +252,14 @@ function buildComposition(
   if (!hasPersoMonster) {
     // Tête de RACE (ex. Orc) : poussée SOUS la coiffe de tenue (layer 0 < coiffe 2) —
     // visage/cheveux ont déjà été sautés au remplissage des slots ci-dessus.
-    if (raceHead) boneParts['tete'].push({ svg: pickView(raceHead, view), layer: 0 });
+    if (raceHead) boneParts['tete'].push({ svg: viewOrFront(raceHead, view), layer: 0 });
     // Membres monstrueux de RACE (REMPLACENT l'os) : jambes de chèvre (Minotaure)…
     if (race.legs) {
       const l = LEGS[race.legs];
-      if (l) { boneParts['cuisseG'] = [{ svg: pickView(l, view), layer: 5 }]; boneParts['cuisseD'] = [{ svg: pickView(l, view), layer: 5 }]; }
+      if (l) { boneParts['cuisseG'] = [{ svg: viewOrFront(l, view), layer: 5 }]; boneParts['cuisseD'] = [{ svg: viewOrFront(l, view), layer: 5 }]; }
     }
-    if (race.armG) { const a = ARMS[race.armG]; if (a) boneParts['epauleG'] = [{ svg: pickView(a, view), layer: 5 }]; }
-    if (race.armD) { const a = ARMS[race.armD]; if (a) boneParts['epauleD'] = [{ svg: pickView(a, view), layer: 5 }]; }
+    if (race.armG) { const a = ARMS[race.armG]; if (a) boneParts['epauleG'] = [{ svg: viewOrFront(a, view), layer: 5 }]; }
+    if (race.armD) { const a = ARMS[race.armD]; if (a) boneParts['epauleD'] = [{ svg: viewOrFront(a, view), layer: 5 }]; }
   }
 
   // Parts MONSTRUEUSES (mutant modulaire / perso créature) : les REMPLACEMENTS d'os (tête
@@ -270,11 +270,11 @@ function buildComposition(
   if (appearance.monster) {
     const inj = monsterInjection(appearance.monster, view);
     for (const [bone, part] of Object.entries(inj.replace) as [BoneId, import('./parts/types').PartArt][])
-      boneParts[bone] = [{ svg: pickView(part, view), layer: 5 }];
+      boneParts[bone] = [{ svg: viewOrFront(part, view), layer: 5 }];
     queue.push(...inj.overlays);
   }
   // Cape portée (emplacement Cape — cosmétique) : appendice dorsal accroché au torse, mêmes
-  // règles de profondeur que les ailes. Suit l'EquipCtx → visible partout (token, portraits…).
+  // règles de profondeur que les ailes. Suit l'EquipCtx → visible partout (pion, portraits…).
   if (equip.cape) queue.push(...dorsalOverlays('torse', CAPES.voyage));
   // Calques asymétriques DE TENUE (pauldron/fourrure débordant une SEULE épaule) — même file
   // que cape/monstre/instance, résolus par id de garde-robe (tenueOverlaysFor, career.ts).
@@ -287,9 +287,9 @@ function buildComposition(
   // `plane` extrait le calque du z de l'os hôte (ailes : derrière/devant TOUT le corps).
   for (const ov of queue) {
     if (ov.view && ov.view !== view) continue;
-    // Appendice (cornes/queue) = art MULTI-VUES du registre, résolu par vue — même mécanisme que
-    // featureToPart, pour que TOUT chemin d'overlay (état/combat inclus) soit multi-vues.
-    const ovSvg = ov.appendage ? pickView(appendageArt(ov.appendage), view) : ov.svg;
+    // Appendice (cornes/queue) = art ORIENTÉ du registre, résolu par vue — même mécanisme que
+    // featureToPart, pour que TOUT chemin d'overlay (état/combat inclus) soit orienté.
+    const ovSvg = ov.appendage ? viewOrFront(appendageArt(ov.appendage), view) : ov.svg;
     if (ov.plane) {
       if (ovSvg) planeExtras.push({ bone: ov.bone, svg: ovSvg, z: ov.plane === 'fond' ? -10 : 99 });
       continue;
@@ -300,7 +300,7 @@ function buildComposition(
   }
 
   // Traits de corps de RACE (cornes, queue, crocs, verrues…). Injectés AVANT la résolution
-  // de palette pour que leurs tokens @peau/@metal soient appliqués comme le reste.
+  // de palette pour que leurs jetons @peau/@metal soient appliqués comme le reste.
   // Sautés si appearance.monster (perso complet) — idem race.head/legs ci-dessus.
   if (!hasPersoMonster) {
     for (const feat of race.features ?? []) {
@@ -340,7 +340,7 @@ function buildComposition(
     for (const id of ['epauleG', 'avantBrasG', 'mainG'] as BoneId[]) boneParts[id] = [];
   }
 
-  // PALETTE : résout les jetons de clé de palette de chaque part. Couches (#1903 D3) : défaut <
+  // PALETTE : résout les jetons de clé de palette de chaque part. Couches (#1903) : défaut <
   // espèce (`coucheDEspece`, peau greffée par la tête comprise) < tenue < surcharges du joueur
   // (appearance.colors). Sous tout : les jetons des parts SYSTÈME du pied (botte/griffes — dessinées
   // par resolve, pas par la tenue) viennent de la couche défaut. `couchesDuRig` est la SEULE
@@ -357,7 +357,7 @@ function buildComposition(
   const zOverride: Partial<Record<BoneId, number>> = {};
   // Mains SOUS l'avant-bras : à z égal, le tri stable peignait la main PAR-DESSUS l'art de bras
   // (BONE_IDS liste avantBrasX avant mainX) → poing-disque posé SUR la manche, tangent même à
-  // trou nul. La main passe juste SOUS l'os d'AVANT-BRAS (#633 D1 : c'est lui qui porte désormais
+  // trou nul. La main passe juste SOUS l'os d'AVANT-BRAS (#633 D1 : c'est lui qui porte
   // l'art au poignet) du MÊME côté : toute manche (ou bras nu) qui atteint le poignet recouvre le
   // haut du poing/poignet (chevauchement franc). Relations conservées : G reste sous torse
   // (4→3.5 < 5) et sous bouclier, D reste devant torse (8→7.5 > 5), l'arme (z=9, ou re-z de profil
@@ -367,7 +367,7 @@ function buildComposition(
   // La profondeur proche/lointain des JAMBES (cuisseD z=6 > torse 5, skeletons.ts) n'a de sens que
   // de PROFIL (jambe proche devant le corps). De face/dos, la vue est symétrique : la jambe droite
   // s'aligne sur le z de la gauche (sous le torse), sinon elle s'imprime PAR-DESSUS l'ourlet de la
-  // tenue (jambe « détachée » du corps, #633 P3). Les bras gardent leur asymétrie (le bras armé
+  // tenue (jambe « détachée » du corps, #633). Les bras gardent leur asymétrie (le bras armé
   // passe DEVANT le corps quand une anim le fait traverser — jamais le cas d'une jambe).
   if (view !== 'profile') {
     zOverride.cuisseD = sk.cuisseG.z;
@@ -448,7 +448,7 @@ export function RigSprite({ appearance, equip, pose = {}, career, view = 'front'
   career?: string;
   view?: View;
   overlays?: RigOverlay[];
-  /** Regarde à gauche (le token applique le flip horizontal) → profondeur de profil inversée. */
+  /** Regarde à gauche (le pion applique le flip horizontal) → profondeur de profil inversée. */
   mirror?: boolean;
 }): JSX.Element {
   const bones = resolveRig(appearance, equip, pose, career, view, overlays ?? NO_OVERLAYS, mirror);

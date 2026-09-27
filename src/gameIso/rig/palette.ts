@@ -5,12 +5,13 @@
  * (`clesDePalette.ts`) au lieu de couleurs en dur : `@peau`, `@cheveux`, `@vet1` (vêtement principal),
  * `@vet2` (secondaire), `@cuir`, `@metal`. Au moment de composer le rig, `buildTokenMap` +
  * `applyTokenMap` remplacent ces jetons par les couleurs résolues. Chaque clé porte une GAMME : sa
- * base, son ombre `<clé>O` et sa lumière `<clé>H`. Un DÉGRADÉ DÉRIVÉ `url(#dg-<forme>-@<clé>-@<clé>…)`
- * se résout dans la même passe (#1903 D2). Résolu en hex (pas de var() CSS) → marche en navigateur ET
- * en rendu headless (resvg).
+ * base, son ombre et sa lumière (`gammeDe`, `palette.types.ts`). Un DÉGRADÉ DÉRIVÉ
+ * `url(#dg-<forme>-@<clé>-@<clé>…)` se résout dans la même passe (#1903). Résolu en hex (pas de var()
+ * CSS) → marche en navigateur ET en rendu headless (resvg).
  */
 import type { PartArt } from './parts/types';
-import { SLOTS, PORTEUR, gammes, type Gamme, type Slot } from '../../data/palette.types';
+import { mapViews } from './viewArt';
+import { SLOTS, PORTEUR, ROLES_DE_GAMME, gammeDe, gammes, type Gamme, type RoleDeGamme, type Slot } from '../../data/palette.types';
 import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses, type BaseDeTable, type BasePorteur } from './clesDePalette';
 import { parseHex, toHex, shade, LUMA_709 } from '../shade';
 
@@ -19,8 +20,8 @@ export { SLOTS, type Slot };
 /** Surcharge du joueur, par clé recoloriable. Tout est optionnel. */
 export type Palette = { [K in Slot]?: string };
 
-/** Rôles de la gamme hors base : ombre `O` et lumière `H`, facteur de dérivation et signe de ΔL. */
-const ROLES: readonly [suffix: 'O' | 'H', factor: number, signe: -1 | 1][] = [['O', 0.78, -1], ['H', 1.18, 1]];
+/** Dérivation de chaque rôle de la gamme depuis sa base : facteur de `shade` et signe de ΔL. */
+const DERIVATION_DE_ROLE = { ombre: [0.78, -1], lumiere: [1.18, 1] } as const satisfies Record<RoleDeGamme, readonly [facteur: number, signe: -1 | 1]>;
 
 /** Luminance Rec.709 ramenée sur 0..100 (jamais 0..255) : l'échelle du contrat de VOLUME rendu
  *  (#635, #638, `qc-contrat.ts`), mesuré sur les pixels. L'ORDRE d'une gamme se mesure en clarté
@@ -54,7 +55,7 @@ export function chroma(hex: string): number {
   return Math.max(...c) - Math.min(...c);
 }
 
-/** Chroma à partir de laquelle une couleur A UNE TEINTE (#1903 D3 point 3, v2.4), en pas 8 bits. */
+/** Chroma à partir de laquelle une couleur A UNE TEINTE (#1903), en pas 8 bits. */
 export const CHROMA_DE_TEINTE = 21 / 255;
 
 /** Hex `#rrggbb` → [teinte 0..360, saturation 0..1, clarté 0..1] (HSL). */
@@ -82,7 +83,7 @@ const PAS_D_ARRONDI_MAX = 8;
 
 /**
  * Ombre ou lumière d'une SURCHARGE `s` : l'écart de la gamme de couche (base `b` → `o`) reporté
- * (#1903 D3 point 3, v2.4). Teinte : ΔH reporté si `b` ET `o` ont une teinte (`CHROMA_DE_TEINTE`).
+ * (#1903). Teinte : ΔH reporté si `b` ET `o` ont une teinte (`CHROMA_DE_TEINTE`).
  * Chroma : `C(s)·C(o)/C(b)` si `b` a une teinte, sinon `C(s)`. Clarté : ΔL borné au signe du rôle,
  * mis à l'échelle de la place disponible au-dessus ou au-dessous de `L(s)` ; tant que la clarté
  * QUANTIFIÉE (`clarte8`) égale celle de `s` hors des bornes, elle avance d'un pas 8 bits dans le sens du
@@ -129,7 +130,7 @@ function coucheQuiDonne(pile: readonly Readonly<Record<string, string>>[], k: st
 }
 
 /**
- * Table finale jeton→hex du PORTEUR, par couches (#1903 D3) : défaut (`COUCHE_DEFAUT`) < `couches`,
+ * Table finale jeton→hex du PORTEUR, par couches (#1903) : défaut (`COUCHE_DEFAUT`) < `couches`,
  * de la plus basse à la plus haute < `surcharge`. Chaque couche propage ses clés suiveuses
  * (`propagerSuiveuses`). Pour chaque base de la table (`CLES`), la gamme de COUCHE
  * est celle de la couche la plus haute qui donne la base : son ombre/sa lumière déclarée dans CETTE
@@ -153,9 +154,11 @@ export function buildTokenMap(couches: readonly PaletteDeclaree[], surcharge: Pa
     const couche = pile[i];
     const choisie = ov[k];
     out[k] = choisie ?? couche[k];
-    for (const [suf, f, signe] of ROLES) {
-      const deCouche = couche[k + suf] ?? shade(couche[k], f);
-      out[k + suf] = choisie == null ? deCouche : ecartReporte(choisie, couche[k], deCouche, signe);
+    for (const role of ROLES_DE_GAMME) {
+      const [f, signe] = DERIVATION_DE_ROLE[role];
+      const g = gammeDe(k, role);
+      const deCouche = couche[g] ?? shade(couche[k], f);
+      out[g] = choisie == null ? deCouche : ecartReporte(choisie, couche[k], deCouche, signe);
     }
   }
   return out;
@@ -168,7 +171,7 @@ const tablesEgales = (a: Record<string, string>, b: Record<string, string>): boo
   Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => a[k] === b[k]);
 
 /**
- * Déclarations INERTES d'une couche (#1903 A4) : une clé l'est quand la retirer laisse
+ * Déclarations INERTES d'une couche (#1903) : une clé l'est quand la retirer laisse
  * `buildTokenMap([e], s)` identique pour chaque entrée `e` que le rig tire de la couche (`entrees`),
  * comparée à l'entrée de même indice, et chaque surcharge sonde `s` (`SURCHARGES_SONDES`). Des
  * entrées en nombre inégal avec et sans la clé lèvent. Retirées une à une jusqu'au point fixe : une
@@ -199,7 +202,7 @@ const estDeSortePorteur = (k: string): boolean =>
 const CLES_PORTEUR = CLES.filter(estDeSortePorteur);
 
 /**
- * Table d'un OBJET (arme, armure, bouclier ; #1903 D2) : la même résolution que `buildTokenMap`,
+ * Table d'un OBJET (arme, armure, bouclier ; #1903) : la même résolution que `buildTokenMap`,
  * sans aucune clé de sorte porteur (`estDeSortePorteur`). Un `@peau` ou un `dg-` à clé porteur de
  * l'art d'un objet traverse cette passe intact et se résout à la passe du porteur.
  */
@@ -209,29 +212,67 @@ export function tableDObjet(couches: readonly PaletteDeclaree[], surcharge: Pale
   return out;
 }
 
-/** Formes du dégradé dérivé `dg-<forme>-…` (#1903 D2) : axe du `<linearGradient>` et arrêts (%),
+/** Motif d'un jeton `@clé` d'un art, la clé en groupe 1 : SOURCE UNIQUE de la lecture d'un jeton. Une
+ *  `RegExp` SANS drapeau, que chaque lecteur rend globale (`new RegExp(TOKEN_RE, 'g')`) ou ancrée
+ *  (`new RegExp(`^${TOKEN_RE.source}$`)`). */
+export const TOKEN_RE = /@([a-zA-Z]\w*)/;
+
+/** Clés des jetons `@clé` d'un art, dans leur ordre, doublons compris : chaque clé EXACTE (`vet1O` n'est
+ *  pas `vet1`), arrêts des dégradés dérivés compris. */
+export const tokensOf = (art: string): string[] => [...art.matchAll(new RegExp(TOKEN_RE, 'g'))].map((m) => m[1]);
+
+/**
+ * Réécriture des jetons d'un art : chaque jeton ENTIER `@clé` (une correspondance de `TOKEN_RE`) est
+ * remplacé par `f(clé)`. `f` reçoit la clé sans `@` et rend le texte qui prend la place du jeton, `@`
+ * compris s'il en reste un : un jeton gardé s'écrit `` `@${key}` ``. `applyTokenMap` y résout un jeton en
+ * couleur ; `farSide` (`parts/parallax.ts`) y récrit un jeton en un autre jeton.
+ */
+export const replaceTokens = (art: string, f: (key: string) => string): string =>
+  art.replace(new RegExp(TOKEN_RE, 'g'), (_jeton, key: string) => f(key));
+
+/** Formes du dégradé dérivé `dg-<forme>-…` (#1903) : axe du `<linearGradient>` et arrêts (%),
  *  un arrêt par couleur. Un arrêt est un jeton `@clé` ou un littéral `#rrggbb` (dette de littéral). */
 export const FORMES_DE_DEGRADE: Record<string, { axe: string; arrets: readonly number[] }> = {
   v: { axe: 'x1="0" y1="0" x2="0" y2="1"', arrets: [0, 100] },
   v3: { axe: 'x1="0" y1="0" x2="0" y2="1"', arrets: [0, 55, 100] },
 };
 
-const DEGRADE_RESOLU = /url\(#dg-([a-z0-9]+)((?:-#[0-9a-fA-F]{6})+)\)/g;
+/** Un arrêt jeton ENTIER (`TOKEN_RE` ancré). */
+const ARRET_JETON = new RegExp(`^${TOKEN_RE.source}$`);
+/** Un arrêt hex à six chiffres, casse libre. */
+const ARRET_HEX = /^#[0-9a-fA-F]{6}$/;
 
 /**
- * Dégradés dérivés d'un fragment dont les `@clé` sont substituées : chaque
- * `url(#dg-<forme>-#h1-#h2…)` entièrement résolu devient `url(#dg-<forme>-h1-h2…)`, et le fragment
+ * Grammaire d'un dégradé DÉRIVÉ, SOURCE UNIQUE : l'id `dg-<forme>-<a1>-…` lu en sa forme et ses arrêts,
+ * ou `null` si la forme est inconnue (`FORMES_DE_DEGRADE`), l'arité fausse, ou un arrêt ni jeton `@clé`
+ * (`TOKEN_RE`, l'arrêt entier) ni hex `#rrggbb` (casse libre).
+ */
+export function lireDegradeDerive(id: string): { forme: string; arrets: string[] } | null {
+  const [prefixe, forme, ...arrets] = id.split('-');
+  const f = prefixe === 'dg' && forme !== undefined ? FORMES_DE_DEGRADE[forme] : undefined;
+  if (!f || arrets.length !== f.arrets.length) return null;
+  if (!arrets.every((a) => ARRET_JETON.test(a) || ARRET_HEX.test(a))) return null;
+  return { forme, arrets };
+}
+
+/** Référence d'un dégradé dérivé dans un art : `url(#<id>)`, l'id lu par `lireDegradeDerive`. */
+const REFERENCE_DE_DEGRADE = /url\(#([^)]*)\)/g;
+
+/**
+ * Dégradés dérivés d'un fragment dont les `@clé` sont substituées : chaque `url(#dg-<forme>-#h1-#h2…)`
+ * dont `lireDegradeDerive` lit tous les arrêts en hex devient `url(#dg-<forme>-h1-h2…)`, et le fragment
  * est préfixé d'un `<defs>` portant chaque `<linearGradient>` utilisé qu'il ne définit pas déjà.
  * L'id est le contenu résolu : deux passes, deux fragments, deux porteurs de même couleur partagent
  * le même id et le même contenu.
  */
 function deriverDegrades(svg: string): string {
   const neufs = new Map<string, string>();
-  const out = svg.replace(DEGRADE_RESOLU, (whole, forme: string, suite: string) => {
-    const f = FORMES_DE_DEGRADE[forme];
-    const couleurs = suite.slice(2).toLowerCase().split('-#');
-    if (!f || couleurs.length !== f.arrets.length) return whole;
-    const id = `dg-${forme}-${couleurs.join('-')}`;
+  const out = svg.replace(REFERENCE_DE_DEGRADE, (whole, ref: string) => {
+    const lu = lireDegradeDerive(ref);
+    if (!lu || !lu.arrets.every((a) => ARRET_HEX.test(a))) return whole;
+    const f = FORMES_DE_DEGRADE[lu.forme];
+    const couleurs = lu.arrets.map((a) => a.slice(1).toLowerCase());
+    const id = `dg-${lu.forme}-${couleurs.join('-')}`;
     if (!neufs.has(id) && !svg.includes(`id="${id}"`))
       neufs.set(id, `<linearGradient id="${id}" ${f.axe}>` +
         f.arrets.map((a, n) => `<stop offset="${a}%" stop-color="#${couleurs[n]}"/>`).join('') + '</linearGradient>');
@@ -240,23 +281,17 @@ function deriverDegrades(svg: string): string {
   return neufs.size ? `<defs>${[...neufs.values()].join('')}</defs>${out}` : out;
 }
 
-/** Substitue les jetons `@clé`/`@cléO`/`@cléH` d'un fragment SVG via une table prête, puis résout
- *  ses dégradés dérivés (`deriverDegrades`). Un jeton inconnu est laissé tel quel (no-op), et un
+/** Substitue les jetons `@clé` d'un fragment SVG (bases et rôles de gamme) via une table prête, puis
+ *  résout ses dégradés dérivés (`deriverDegrades`). Un jeton inconnu est laissé tel quel (no-op), et un
  *  `dg-` qui en contient un attend la passe suivante. Construire la table 1× par rig. */
 export function applyTokenMap(svg: string, map: Record<string, string>): string {
   if (!svg.includes('@') && !svg.includes('url(#dg-')) return svg;
-  return deriverDegrades(svg.replace(/@([a-zA-Z]\w*)/g, (whole, key: string) => map[key] ?? whole));
+  return deriverDegrades(replaceTokens(svg, (key) => map[key] ?? `@${key}`));
 }
 
-/** Relève `applyTokenMap` sur un `PartArt` : string → substitution directe ; art directionnel →
- *  substitution sur chaque vue présente (les clés absentes restent absentes). No-op sur un art
- *  sans `@token` (préserve l'art verbatim). Source unique pour recolorier un art tenu (arme/bouclier). */
+/** Relève `applyTokenMap` sur un `PartArt` (`mapViews`) : chaîne → substitution directe ; art orienté →
+ *  substitution sur chaque vue présente (les vues absentes restent absentes). No-op sur un art sans
+ *  jeton (préserve l'art verbatim). Source unique pour recolorier un art tenu (arme/bouclier). */
 export function applyTokenMapArt(art: PartArt, map: Record<string, string>): PartArt {
-  return typeof art === 'string'
-    ? applyTokenMap(art, map)
-    : {
-        front: applyTokenMap(art.front, map),
-        ...(art.back !== undefined && { back: applyTokenMap(art.back, map) }),
-        ...(art.profile !== undefined && { profile: applyTokenMap(art.profile, map) }),
-      };
+  return mapViews(art, (svg) => applyTokenMap(svg, map));
 }

@@ -12,8 +12,8 @@ export function genericPart(slot: Slot): PartArt {
     case 'bras':      return `<rect x="-3" y="-2" width="6" height="20" rx="3" fill="@peau"/>`; // épaule → coude (#633 D1)
     case 'avantBras': return `<rect x="-3" y="-3" width="6" height="19" rx="3" fill="@peau"/>`; // coude → poignet (#633 D1) ; -3 chevauche le bas de l'épaule (aucun pincement au coude)
     case 'jambes':  return `<rect x="-4" y="0" width="8" height="50" rx="3" fill="@vet1O"/>`;
-    case 'pied':    return ''; // le pied directionnel est fourni par resolveParts (BOTTE_CUIR/repli d'espèce)
-    case 'main':    return ''; // la main directionnelle est fournie par resolveParts (HAND)
+    case 'pied':    return ''; // le pied orienté est fourni par resolveParts (BOTTE_CUIR/repli d'espèce)
+    case 'main':    return ''; // la main orientée est fournie par resolveParts (HAND)
     case 'arme':    return '';
     case 'bouclier':return '';
   }

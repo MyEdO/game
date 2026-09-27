@@ -160,6 +160,28 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `TOKEN_RE/tokensOf/replaceTokens` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `SUFFIXE_DE_ROLE/RoleDeGamme/ROLES_DE_GAMME/gammeDe/baseDeGamme/Gamme/gammes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `VIEWS/VIEW_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `ViewSet/PartArt/ViewArt` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `declaredView/declaredViews/viewEntries/mapViews/foldView/nearestView` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `viewOrFront` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `tableTotale` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `isDrawnView` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `lireDegradeDerive` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `FX_GRADIENT_IDS` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `regenererStock` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `estEntreeNominative/entreesNominatives` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `threeWay` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `litteralJs` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `ast` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `sAppliqueA/estRetenu` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `LECTURES_DE_L_ART` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `garde de la clé de site` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -193,6 +215,19 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `InitiativeStrip` (src/ui/InitiativeStrip.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `PartyDock` (src/ui/PartyDock.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ObjectiveBanner` (src/ui/ObjectiveBanner.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `isDrawnView` (scripts/guards/lib/partViewAudit.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance` (scripts/guards/lib/stock.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance` (scripts/guards/lib/stockDeSites.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `regenererStock` (scripts/guards/lib/regenStock.mts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `estEntreeNominative/entreesNominatives` (scripts/guards/lib/stocksNominatifs.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `threeWay` (scripts/git-hooks/three-way.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `litteralJs` (scripts/guards/lib/litteralJs.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `ast` (scripts/guards/lib/dialecte.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `sAppliqueA/estRetenu` (scripts/guards/lib/sourceCorpus.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` (scripts/guards/lib/canonUnique.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `LECTURES_DE_L_ART` (scripts/guards/lib/lecturesDeLArt.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `garde de la clé de site` (src/cle-de-site-guard.test.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES` (scripts/guards/lib/commentPoison.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 
 ## Modules `src/state`/`src/engine` non rattachés à un système déclaré
 
@@ -220,4 +255,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 4260e48e8b74d7ff9d053641303805636df32809 (1828 fichiers, 2 dossiers) corps: 70d46611ce7ae02b47aa2c944eae3f0223a8c4d7 -->
+<!-- sources-empreinte: ee4eef20fb718c4c6b87a2db8151aff0a7fe21db (1827 fichiers, 2 dossiers) corps: db691347686459963a40eda8e04c90adc9093b4d -->

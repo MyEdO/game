@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildTokenMap, applyTokenMap, tableDObjet, declarationsInertes, versHsl, chroma, clarte8, CHROMA_DE_TEINTE } from './palette';
 import { CLES, COUCHE_DEFAUT, defautDe, propagerSuiveuses } from './clesDePalette';
+import { SUFFIXE_DE_ROLE, baseDeGamme, gammeDe, gammes } from '../../data/palette.types';
 import { couchesDuRig } from './parts/career';
 
 describe('palette — buildTokenMap', () => {
@@ -12,14 +13,14 @@ describe('palette — buildTokenMap', () => {
     expect(m.vet1H).toBe('#ffeedd');
   });
 
-  it('clé sans ombre déclarée : dérive O/H de la base déclarée', () => {
+  it('clé sans ombre déclarée : dérive ombre et lumière de gamme de la base déclarée', () => {
     const m = buildTokenMap([{ vet1: '#646464' }], {}); // 100,100,100
     expect(m.vet1).toBe('#646464');
     expect(m.vet1O).toBe('#4e4e4e'); // 100*0.78 = 78 = 0x4e
     expect(m.vet1H).toBe('#767676'); // 100*1.18 = 118 = 0x76
   });
 
-  it('clé surchargée : la base est le choix, l’écart de la gamme de couche s’y reporte en HSL (D3 point 3)', () => {
+  it('clé surchargée : la base est le choix, l’écart de la gamme de couche s’y reporte en HSL', () => {
     const declaree = { vet1: '#82724f', vet1O: '#112233', vet1H: '#ffeedd' };
     const m = buildTokenMap([declaree], { vet1: '#646464' });
     expect(m.vet1).toBe('#646464');
@@ -81,13 +82,19 @@ describe('palette — buildTokenMap', () => {
     expect(defaut.coque).toBeUndefined();
     for (const k of CLES) {
       if (defaut[k] == null) {
-        for (const g of [k, `${k}O`, `${k}H`]) expect(m[g], g).toBeUndefined();
+        for (const g of gammes([k])) expect(m[g], g).toBeUndefined();
         continue;
       }
       expect(m[k], k).toBe(defaut[k]);
-      expect(m[`${k}O`], `${k}O`).toMatch(/^#[0-9a-f]{6}$/);
-      expect(m[`${k}H`], `${k}H`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(m[gammeDe(k, 'ombre')], gammeDe(k, 'ombre')).toMatch(/^#[0-9a-f]{6}$/);
+      expect(m[gammeDe(k, 'lumiere')], gammeDe(k, 'lumiere')).toMatch(/^#[0-9a-f]{6}$/);
     }
+  });
+
+  it('aucune clé de la table ne finit par un suffixe de rôle : `baseDeGamme` est univoque', () => {
+    const suffixes = Object.values(SUFFIXE_DE_ROLE);
+    expect(CLES.filter((k) => suffixes.some((s) => k.endsWith(s)))).toEqual([]);
+    for (const k of CLES) for (const g of gammes([k])) expect(baseDeGamme(g), g).toBe(k);
   });
 
   it('couches : l’ombre d’une couche basse ne sert JAMAIS sous une base venue d’une couche plus haute', () => {
@@ -169,8 +176,9 @@ describe('palette — buildTokenMap', () => {
   it('table d’objet : aucune clé de sorte porteur (suiveuses d’une clé porteur comprises), le reste identique', () => {
     const porteur = buildTokenMap([{ metal: '#8899aa' }], { cuir: '#00ff00' });
     const objet = tableDObjet([{ metal: '#8899aa' }], { cuir: '#00ff00' });
-    for (const k of ['peau', 'cheveux', 'yeux', 'voilure']) for (const suf of ['', 'O', 'H']) expect(objet[k + suf], k + suf).toBeUndefined();
-    const sansPorteur = Object.fromEntries(Object.entries(porteur).filter(([k]) => !/^(peau|cheveux|yeux|voilure)(O|H)?$/.test(k)));
+    const porteuses = new Set(['peau', 'cheveux', 'yeux', 'voilure']);
+    for (const g of gammes([...porteuses])) expect(objet[g], g).toBeUndefined();
+    const sansPorteur = Object.fromEntries(Object.entries(porteur).filter(([k]) => !porteuses.has(baseDeGamme(k))));
     expect(objet).toEqual(sansPorteur);
     expect(objet.aile).toBe(porteur.aile);
   });
@@ -193,7 +201,7 @@ describe('palette — buildTokenMap', () => {
   });
 });
 
-describe('palette — déclarations inertes (#1903 A4)', () => {
+describe('palette — déclarations inertes (#1903)', () => {
   it('une base égale à la couche défaut, gamme comprise, est inerte', () => {
     expect(declarationsInertes({ cuir: defautDe('cuir'), vet1: '#646464' })).toEqual(['cuir']);
   });

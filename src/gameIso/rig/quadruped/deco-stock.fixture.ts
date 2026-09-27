@@ -1,5 +1,5 @@
 /**
- * DÉTECTEUR du canal `deco` du gabarit quadrupède (#1082), et les deux listes qui vivent encore ICI
+ * DÉTECTEUR du canal `deco` du gabarit quadrupède (#1082), et les deux listes qui vivent ICI
  * — un seul détecteur (`quadDecoCouples`), deux gardes : le CONTRAT
  * (`quad-anchor-contract.test.ts` : une clé qui vise une vue sans art rougit ; c'est lui qui
  * consomme `ANCRES_OEIL_ABSENTES_GELEES`) et le CLIQUET (`quad-vues-ratchet.test.ts` : la
@@ -19,10 +19,8 @@ import { CREATURES, QUAD_SPECIES, WINGED_SPECIES } from '../creatures';
 import { QUAD_HARNAIS } from './harnais';
 import { mergeQuadDeco } from './composeQuad';
 import { quadParts, quadDecoFragments, type QuadLayer } from './quadParts';
-import type { QuadBoneId, QuadProps } from './quadSkeleton';
-import type { View } from '../facing';
-
-export const DECO_VIEWS: View[] = ['profile', 'front', 'back'];
+import { readQuadDecoKey, type QuadProps } from './quadSkeleton';
+import { VIEWS } from '../facing';
 
 /** Art d'un os, calques concaténés dans l'ordre du peintre (plan croissant, tri STABLE) : ce que
  *  le rendu peint pour cet os, tous plans confondus — mesure de test (le rendu, lui, émet un os
@@ -53,7 +51,7 @@ export interface DecoCouples {
   applicables: string[];
   /** Couples MORTS : l'os visé ne porte AUCUN art dans cette vue → le décor est perdu. */
   morts: string[];
-  /** Couples VIVANTS dont au moins un fragment ne déclare pas son `plan` (défaut historique). */
+  /** Couples VIVANTS dont au moins un fragment ne déclare pas son `plan`. */
   sansPlan: string[];
 }
 
@@ -62,11 +60,11 @@ export function quadDecoCouples(): DecoCouples {
   const applicables: string[] = [], morts: string[] = [], sansPlan: string[] = [];
   for (const { id, quad } of quadDecoDefs()) {
     if (!quad.deco) continue;
-    for (const view of DECO_VIEWS) {
+    for (const view of VIEWS) {
       const nu = quadParts({ ...quad, deco: undefined }, view);
       for (const [cle, val] of Object.entries(quad.deco)) {
-        const [os, vue] = cle.split('#') as [QuadBoneId, View | undefined];
-        if (!val || (vue && vue !== view)) continue;
+        const { bone: os, views } = readQuadDecoKey(cle);
+        if (!val || !views.includes(view)) continue;
         applicables.push(`${id} ${view} ${cle}`);
         if (!nu[os]) morts.push(`${id} ${view} ${cle}`);
         else if (quadDecoFragments(val).some((f) => f.plan == null)) sansPlan.push(`${id} ${view} ${cle}`);
@@ -104,7 +102,7 @@ export function quadDecoCouples(): DecoCouples {
  * déjà (L2), cette liste ne les nommait pas — 66 énumérés pour 70 mesurés.
  *
  * Les QUATRE couples `<set> back/front encolure` ne sont PAS repris : la clé des deux sets vise
- * désormais `encolure#profile`, elle ne réclame plus les vues de bout (solde du stock des morts,
+ * `encolure#profile`, elle ne réclame plus les vues de bout (solde du stock des morts,
  * 8 → 4, mesuré byte-neutre). Population : 70 → 66.
  */
 export const APPLICABLES_GELES = [
@@ -185,9 +183,9 @@ export const APPLICABLES_GELES = [
  * décroître, et il ne tolère aucune entrée périmée (une ancre posée doit SORTIR d'ici).
  *
  * `boeuf profile` : l'étalon « bête entière par vue » a été dessiné avant que cette conséquence
- * soit mesurée — son œil est peint en dur dans `boeufProfilCompile.ts` (0 occurrence de
+ * soit mesurée — son œil est peint en dur dans `boeufCompile.ts`, module d'art compilé de l'espèce, keyé par vue (0 occurrence de
  * `data-eye`, vérifié à l'octet). Le solde est un geste d'ART sur le dessin bovin (poser le
- * groupe d'ancre autour du globe et du reflet, comme `cheval-profil.dessin.mts` le fait), donc
+ * groupe d'ancre autour du globe et du reflet, comme `cheval-profile.dessin.mts` le fait), donc
  * il appartient à la vague qui reprendra cette espèce, pas à un lot voisin.
  */
 export const ANCRES_OEIL_ABSENTES_GELEES = [

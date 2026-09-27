@@ -38,7 +38,7 @@ export function resolveWing(
 
 // Battement d'ailes (sinusoïde sur aileD/aileG, signes opposés). Vit DANS le plan : l'idle bat
 // doucement (créature vivante), la marche/vol bat ample. AnimatedPlanToken l'anime — plus de
-// token ailé dédié.
+// pion ailé dédié.
 const wingFlap = (phase: number, amp: number): Record<string, number> => {
   const f = Math.sin(phase * Math.PI * 2) * amp;
   return { aileD: -f, aileG: f };

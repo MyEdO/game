@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemIcon } from './ItemIcon';
 import { iconSvg } from './Icon';
 import { itemFromTrappingById } from '../engine/items';
+import { tokensOf } from '../gameIso/rig/palette';
 import type { ItemInstance, Weapon } from '../engine/types';
 
 /** Objet minimal (catégories sans art : munition/cape/consommable/divers). */
@@ -12,14 +13,14 @@ const mk = (p: Partial<ItemInstance>): ItemInstance =>
 const html = (item: ItemInstance) => renderToStaticMarkup(<ItemIcon item={item} />);
 
 describe('ItemIcon', () => {
-  it('arme du registre (tokenisée) : SVG en diagonale, sans <defs>', () => {
+  it('arme du registre (en jetons) : SVG en diagonale, sans <defs>', () => {
     const h = html(itemFromTrappingById('hallebarde')!);
     expect(h).toContain('item-icon-weapon');
     expect(h).toContain('rotate(-40)'); // arme en diagonale
-    expect(h).not.toContain('<defs'); // art tokenisé hex → pas de gradient
+    expect(h).not.toContain('<defs'); // art en jetons résolus en hex → pas de dégradé
   });
 
-  it('arme générique hors-catalogue (Weapon directe) : repli avec gradient → <defs> injecté', () => {
+  it('arme générique hors-catalogue (Weapon directe) : repli avec dégradé → <defs> injecté', () => {
     const w: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] }; // synonyme → art de repli url(#g_steelD)
     const h = renderToStaticMarkup(<ItemIcon item={w} />);
     expect(h).toContain('item-icon-weapon');
@@ -53,10 +54,10 @@ describe('ItemIcon', () => {
     expect(() => html(itemFromTrappingById('hallebarde')!)).not.toThrow();
   });
 
-  it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903 D2)', () => {
+  it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903)', () => {
     const poing: Weapon = { label: 'Coup-de-poing', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: 'poing' };
     const out = renderToStaticMarkup(<ItemIcon item={poing} />);
-    expect(out).not.toMatch(/@[a-zA-Z]/);
+    expect(tokensOf(out)).toEqual([]);
     expect(out).toContain('url(#dg-v-ffd4a5-b08c6d)');
   });
 });

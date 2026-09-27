@@ -1,3 +1,4 @@
+import type { View } from '../facing';
 import { describe, it, expect } from 'vitest';
 import {
   resolveSerpentFromProps, serpentSway, serpentStrike, SERPENT_REST, SERPENT_DEATH, SERPENT_DEFAULT,
@@ -31,7 +32,7 @@ describe('gabarit serpentin', () => {
   });
 
   it('les 3 vues produisent une tête distincte (front/back/profile)', () => {
-    const headOf = (v: 'front' | 'back' | 'profile') =>
+    const headOf = (v: View) =>
       resolveSerpentFromProps(SERPENT_DEFAULT, v, {}).find((b) => b.id === 'tete')!.parts[0].svg;
     expect(headOf('front')).not.toEqual(headOf('profile'));
     expect(headOf('back')).not.toEqual(headOf('profile'));

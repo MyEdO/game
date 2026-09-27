@@ -1,5 +1,5 @@
 /**
- * SOCLE QUADRUPÈDE — cliquets des TROIS VUES (#1082, Lot 0 : instrumentation).
+ * SOCLE QUADRUPÈDE — cliquets des TROIS VUES (#1082 : instrumentation).
  *
  * Trois contrats, tous adossés à la table publiée `QUAD_Z` :
  *
@@ -8,11 +8,11 @@
  *      nominativement et son plafond ne peut que décroître (plancher visé : 0). Un couple mort
  *      qui n'est pas dans le stock = régression. La POPULATION mesurée (les couples applicables)
  *      est gelée nominativement elle aussi : un couple applicable ne disparaît légitimement que
- *      si l'os porte désormais un art dans cette vue (solde réel) ; supprimer la clé `deco` pour
+ *      si l'os porte un art dans cette vue (solde réel) ; supprimer la clé `deco` pour
  *      faire baisser le stock des morts (blanchiment) ou substituer un couple à un autre rougit.
  *
  *  (b) ORDRE DES OS PAR VUE — la liste (os, z) triée par plan, figée depuis `QUAD_Z`. Tout
- *      changement d'ordre rougit. Ce snapshot SERA mis à jour intentionnellement au Lot 1
+ *      changement d'ordre rougit. Ce snapshot se met à jour intentionnellement
  *      (z par vue : crâne/nuque, ailes, cavalier) — la mise à jour se fait avec la table.
  *
  *  (c) SOURCE UNIQUE — le squelette (les 3 vues) et le couple monté (cavalier, harnachement)
@@ -27,21 +27,21 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CREATURES, QUAD_SPECIES, WINGED_SPECIES } from '../creatures';
 import { QUAD_Z, quadZOrder, QUAD_DECO_PLAN_MAX } from './quadZ';
-import { quadDecoCouples, APPLICABLES_GELES, quadDecoDefs, quadLayersSvg, DECO_VIEWS } from './deco-stock.fixture';
+import { quadDecoCouples, APPLICABLES_GELES, quadDecoDefs, quadLayersSvg } from './deco-stock.fixture';
 import { DECOS_MORTS_RATCHET, DECOS_SANS_PLAN_RATCHET } from '../../../../scripts/guards/lib/quadDecoStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
-import { fichierDeEspece } from '../../../../scripts/guards/lib/quadDecoAudit';
+import { cleDeSite, ecartDuVolet, type EntreeDeSite } from '../../../../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../../../../scripts/guards/lib/stockDeSites.mjs';
+import { fichierDeEspece, regenerations } from '../../../../scripts/guards/lib/quadDecoAudit';
 import { resolveQuad, resolveQuadFromProps } from './composeQuad';
-import { buildQuadSkeleton, quadSkeletonForView, type QuadBoneId, type QuadProps } from './quadSkeleton';
+import { buildQuadSkeleton, quadSkeletonForView, quadDecoKey, readQuadDecoKey, type QuadBoneId, type QuadProps } from './quadSkeleton';
 import { quadParts, quadDecoFragments, quadAnchor } from './quadParts';
 import { QUAD_HARNAIS, DEFAUT_HARNAIS_MONTE } from './harnais';
 import { QUAD_REST } from './quadPose';
 import { riderZForQuad } from '../mountedRig';
 import { rigFxGradients } from '../fxGradients';
 import type { ResolvedBone } from '../composeRig';
-import type { View } from '../facing';
+import { VIEWS, type View } from '../facing';
 
-const VIEWS: View[] = ['profile', 'front', 'back'];
 const quadDefs = CREATURES.filter((c) => c.quad).map((c) => ({ id: c.id, quad: c.quad as QuadProps }));
 
 /** Plan de fragment HORS du voisinage admis de son os : au-delà de la borne, ou non fini
@@ -54,7 +54,7 @@ const MORTS = DECOS_MORTS_RATCHET.map((e) => e.ref);
  *  plus aucun couple ne porte = périmées. Aucun PLAFOND — ce qu'une dette ne peut pas faire, c'est
  *  croître SANS SE DÉCLARER, et c'est l'entrée `{ fichier, ref, occurrence }`, qui NOMME la def de
  *  créature, que la porte de plage voit à l'append. */
-const ratchet = (couples: readonly string[], stock: Iterable<EntreeNominative>) =>
+const ratchet = (couples: readonly string[], stock: Iterable<EntreeDeSite>) =>
   ecartDuVolet({ sites: couples.map((c) => ({ file: fichierDeEspece(c.split(' ')[0]), ref: c })), stock, ou: STOCK });
 
 /** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
@@ -77,7 +77,7 @@ function artEmis(couple: string): boolean {
   const [id, view, cle] = couple.split(' ') as [string, View, string];
   const def = quadDefs.find((d) => d.id === id);
   if (!def) return false;
-  const os = cle.split('#')[0] as QuadBoneId;
+  const os = readQuadDecoKey(cle).bone;
   return !!quadParts({ ...def.quad, deco: undefined }, view)[os];
 }
 
@@ -92,7 +92,11 @@ describe('décors MORTS : le stock gelé ne peut que décroître (#1082)', () =>
     const { neuves, perimees } = ratchet(quadDecoCouples().morts, DECOS_MORTS_RATCHET);
     expect(neuves, `décor NEUF peint nulle part — câbler l'os ou créer l'art, jamais stocker :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `entrée du stock des morts dont l'os est désormais émis — la retirer\n` +
-      `(npx tsx scripts/rig/regen-quad-deco-stock.mts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
+      `(npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(quadDecoCouples())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   /** ALLONGER le stock ne s'échange plus contre un plafond relevé : une entrée de plus se DÉCLARE,
@@ -102,7 +106,7 @@ describe('décors MORTS : le stock gelé ne peut que décroître (#1082)', () =>
       fichier: 'src/gameIso/rig/creatures/defs/BeteQuiNExistePas.ts', ref: 'gonflement back encolure', occurrence: 1,
     }];
     const { perimees } = ratchet(quadDecoCouples().morts, gonfle);
-    expect(porte(perimees, ' :: gonflement back encolure :: 1')).toBe(true);
+    expect(porte(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
     expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 
@@ -190,8 +194,8 @@ describe('stock des MORTS : chaque entrée est une dette soldable BYTE-NEUTRE (#
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(deco)) {
       if (k !== cle) { out[k] = v; continue; }
-      if (k.includes('#')) continue; // clé déjà visée à une vue : le couple EST la clé
-      for (const autre of DECO_VIEWS) if (autre !== vue) out[`${k}#${autre}`] = v;
+      if (readQuadDecoKey(k).view !== undefined) continue; // clé déjà visée à une vue : le couple EST la clé
+      for (const autre of VIEWS) if (autre !== vue) out[quadDecoKey(readQuadDecoKey(k).bone, autre)] = v;
     }
     return out as NonNullable<QuadProps['deco']>;
   };
@@ -237,7 +241,7 @@ describe('décors SANS plan déclaré : stock nominatif, sans plafond (#1082)', 
     const { neuves, perimees } = ratchet(quadDecoCouples().sansPlan, DECOS_SANS_PLAN_RATCHET);
     expect(neuves, `décor authoré sans \`plan\` : le canal de calques attend un plan RELATIF à l'os :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `entrée du stock qui déclare désormais son plan — la retirer\n` +
-      `(npx tsx scripts/rig/regen-quad-deco-stock.mts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
+      `(npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
   });
 
   it("chaque entrée NOMME la def de créature à ouvrir — c'est ce que la porte de plage voit", () => {
@@ -362,7 +366,7 @@ describe('plan RELATIF d\'un fragment de décor : l\'os résolu se dédouble (#1
 });
 
 // ── (b) ORDRE DES OS PAR VUE ────────────────────────────────────────────────────────────────
-// Mis à jour au Lot 1 (2026-08-05) : c'est le CODE qui a bougé (table `QUAD_Z`), pas le détecteur —
+// Mis à jour le 2026-08-05 (#1082) : c'est le CODE qui a bougé (table `QUAD_Z`), pas le détecteur —
 // os `nuque` ajouté (calque bas de la tête), ailes portées SUR le dos en vue de dos (2 → 6).
 const ORDRE_ATTENDU: Record<View, string[]> = {
   profile: [
@@ -456,27 +460,28 @@ describe('les plans de profondeur ne vivent QUE dans QUAD_Z (#1082)', () => {
     expect(Object.keys(deco).length, 'set sans déco : la mesure serait vide').toBeGreaterThan(0);
     const vuesCouvertes = new Set<View>();
     for (const [cle, val] of Object.entries(deco)) {
-      const [os, vue] = cle.split('#') as [QuadBoneId, View | undefined];
+      const { bone: os, views } = readQuadDecoKey(cle);
       const fragments = quadDecoFragments(val!);
       for (const f of fragments) expect(Math.abs(f.plan ?? 0), `${cle} : plan hors voisinage`).toBeLessThanOrEqual(QUAD_DECO_PLAN_MAX);
-      const v: View = vue ?? 'profile';
-      vuesCouvertes.add(v);
-      const avant = nu(v).filter((b) => b.id === os), apres = selle(v).filter((b) => b.id === os);
-      expect(apres.map((b) => b.z), `${cle} : le set n'ouvre aucun plan nouveau`).toEqual(avant.map((b) => b.z));
-      const plan0 = (bs: ResolvedBone[]) => bs.find((b) => b.z === QUAD_Z[os][v])!;
-      const ajout = plan0(apres).parts.length - plan0(avant).parts.length;
-      expect(ajout, `${cle} : les fragments du set n'arrivent pas au rendu`).toBe(fragments.length);
-      // APRÈS l'art de la bête : les calques d'origine restent en tête, le harnais ferme la pile.
-      expect(plan0(apres).parts.slice(0, plan0(avant).parts.length)).toEqual(plan0(avant).parts);
+      for (const v of views) {
+        vuesCouvertes.add(v);
+        const avant = nu(v).filter((b) => b.id === os), apres = selle(v).filter((b) => b.id === os);
+        expect(apres.map((b) => b.z), `${cle} : le set n'ouvre aucun plan nouveau`).toEqual(avant.map((b) => b.z));
+        const plan0 = (bs: ResolvedBone[]) => bs.find((b) => b.z === QUAD_Z[os][v])!;
+        const ajout = plan0(apres).parts.length - plan0(avant).parts.length;
+        expect(ajout, `${cle} : les fragments du set n'arrivent pas au rendu`).toBe(fragments.length);
+        // APRÈS l'art de la bête : les calques d'origine restent en tête, le harnais ferme la pile.
+        expect(plan0(apres).parts.slice(0, plan0(avant).parts.length)).toEqual(plan0(avant).parts);
+      }
     }
     // La garde ne vaut que par sa COUVERTURE : un set qui perdrait ses vues de bout redeviendrait
     // muet de face et de dos sans qu'aucune boucle ci-dessus ne rougisse (elle n'itère que ce qui
     // est déclaré). Les trois vues sont donc exigées nominativement.
-    expect([...vuesCouvertes].sort(), 'le set doit habiller les TROIS vues').toEqual(['back', 'front', 'profile']);
+    expect([...vuesCouvertes].sort(), 'le set doit habiller les TROIS vues').toEqual([...VIEWS].sort());
   });
 });
 
-// ── (d) SÉMANTIQUE DE LA VUE DE DOS (Lot 1) ─────────────────────────────────────────────────
+// ── (d) SÉMANTIQUE DE LA VUE DE DOS ─────────────────────────────────────────────────
 /** Contenu du groupe `clip-path="url(#id)"` : l'art DÉCOUPÉ seul (le décor apposé après en est exclu). */
 function clipContent(svg: string, id: string): string {
   const open = `<g clip-path="url(#${id})">`;
@@ -494,7 +499,7 @@ function clipContent(svg: string, id: string): string {
 type Box = { x0: number; y0: number; x1: number; y1: number };
 /**
  * Boîte englobante d'un art SVG dans SON repère (M/L/Q absolus et relatifs, `circle`, `ellipse`,
- * `translate` interne). SUR-ENSEMBLE assumé : les points de contrôle des Q comptent comme des
+ * `translate` interne). SUR-ENSEMBLE : les points de contrôle des Q comptent comme des
  * sommets. Toute autre commande ou transformation lève — l'art nouveau se mesure, il ne se devine pas.
  */
 function bboxOf(svg: string): Box {

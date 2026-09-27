@@ -8,6 +8,7 @@
  * Repère CAMÉRA : `fwd` (avant, vers l'écran) et `right` (tribord) sont des vecteurs SOL unitaires en
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
+import type { View } from '../rig/facing';
 import { WALL_H_M } from '../iso';
 import { mix, parseHex } from '../shade';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
@@ -112,7 +113,7 @@ export function groundUnderM(scene: Scene, x: number, y: number, z: number): num
 /** REPÈRE SOL d'un cap Dir8, en unités de GRILLE : `fwd` = son delta unitaire (diagonale ÷ √2),
  *  `right` = (−fwd.y, fwd.x) — cap N (0,−1) → right (1,0) = est. PUR, et SOURCE UNIQUE de cette
  *  dérivation : la caméra première personne s'en bâtit, et la vue d'entité en perspective des
- *  billboards du monde volumique s'y branche (`billboardView`, #1176 P3-1b). */
+ *  billboards du monde volumique s'y branche (`billboardView`, #1176). */
 export function dir8Basis(facing: Dir8): { fwd: { x: number; y: number }; right: { x: number; y: number } } {
   const d = DIR8_DELTA[facing];
   const len = Math.hypot(d.gx, d.gy) || 1; // diagonale → √2 ; cardinale → 1
@@ -123,7 +124,7 @@ export function dir8Basis(facing: Dir8): { fwd: { x: number; y: number }; right:
 /** Construit la pose de caméra depuis la scène, la position du groupe et son cap Dir8. PUR.
  *  eye.z = sol sous le groupe + `EYE_H` ; `fwd`/`right` = le repère du cap (`dir8Basis`).
  *  `mpt` = échelle métrique de la case.
- *  `partyPos` peut être CONTINU (la marche volumique fait glisser l'œil, #1176 P3-1a) : la hauteur de
+ *  `partyPos` peut être CONTINU (la marche volumique fait glisser l'œil, #1176) : la hauteur de
  *  l'œil suit alors la pente CONTINUE du sol (`groundUnderM`) : à mi-pas d'un ressaut, l'œil est à
  *  mi-hauteur du ressaut, et sa montée s'étale sur toutes les frames du pas. */
 export function makeCamera(scene: Scene, partyPos: { x: number; y: number; z?: number }, facing: Dir8, eyeH: number = EYE_H): CamPose {
@@ -235,7 +236,7 @@ export function povView(
   fwd: { x: number; y: number },
   right: { x: number; y: number },
   entFacing: Dir8,
-): { view: 'front' | 'back' | 'profile'; mirror: boolean } {
+): { view: View; mirror: boolean } {
   const e = DIR8_DELTA[entFacing];
   const f = e.gx * fwd.x + e.gy * fwd.y;
   const s = e.gx * right.x + e.gy * right.y;

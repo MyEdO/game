@@ -10,7 +10,7 @@
  *  - haut niveau : `hero` (Combatant) — tout est dérivé via les briques canoniques
  *    (combatantAppearance/combatantOverlays/equipFromCombatant).
  *
- * AUCUN `<defs>` local : les gradients du rig (`defsGlobaux()`) sont montés UNE fois au niveau App
+ * AUCUN `<defs>` local : les dégradés fixes du rig (`defsGlobaux()`) sont montés UNE fois au niveau App
  * (GlobalSvgDefs). Tailles et ambiances en CSS (`.charprev`, components.css).
  */
 import { memo, useMemo } from 'react';

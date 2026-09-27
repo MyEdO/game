@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolveParts } from './resolve';
-import { pickView } from './types';
+import { viewOrFront } from './types';
 import { ARMOUR } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, NECK } from './bodies/extremites';
 import { BOTTE_CUIR } from './tenues/botte-gabarit';
@@ -10,7 +10,7 @@ import type { ItemInstance } from '../../../engine/types';
 
 const empty: EquipCtx = { weapons: [], armour: [] };
 
-// LOT 0 (#633/#736) — pied/main/cou résolus par la MÊME table de priorité que tete/torse/jambes.
+// #633/#736 — pied/main/cou résolus par la MÊME table de priorité que tete/torse/jambes.
 
 describe('extrémités — résolution uniforme (structure)', () => {
   const src = readFileSync(new URL('./resolve.ts', import.meta.url), 'utf8');
@@ -30,7 +30,7 @@ describe('extrémités — résolution uniforme (structure)', () => {
   });
 
   it('NECK reste la sous-couche garantie du cou (surcouche)', () => {
-    expect(src).toContain('pickView(NECK, view) +');
+    expect(src).toContain('viewOrFront(NECK, view) +');
   });
 });
 
@@ -61,31 +61,31 @@ describe('extrémités — pilotables par une armure (chair ≠ repli)', () => {
     const r = resolveParts('Humain', 'M', 'soldat', { weapons: [], armour: [item] }, {}, 1);
 
     expect(r.pied?.svg).toContain('test-soleret');
-    expect(r.pied?.svg).not.toBe(pickView(BOTTE_CUIR, 'front'));
+    expect(r.pied?.svg).not.toBe(viewOrFront(BOTTE_CUIR, 'front'));
     expect(r.main?.svg).toContain('test-gantelet');
-    expect(r.main?.svg).not.toBe(pickView(HAND, 'front'));
+    expect(r.main?.svg).not.toBe(viewOrFront(HAND, 'front'));
     // Cou = surcouche : NECK garanti DESSOUS + gorgerin par-dessus.
     expect(r.cou?.svg).toContain('test-gorgerin');
-    expect(r.cou?.svg).toContain(pickView(NECK, 'front'));
-    expect(r.cou?.svg).not.toBe(pickView(NECK, 'front'));
+    expect(r.cou?.svg).toContain(viewOrFront(NECK, 'front'));
+    expect(r.cou?.svg).not.toBe(viewOrFront(NECK, 'front'));
   });
 });
 
 describe('extrémités — sans équipement ni tenue : repli d\'espèce exact', () => {
   it('soldat (chaussé) → botte BOTTE_CUIR (habit, pas un repli), poing HAND, cou = NECK seul', () => {
     const r = resolveParts('Humain', 'M', 'soldat', empty, {}, 1);
-    expect(r.pied?.svg).toBe(pickView(BOTTE_CUIR, 'front'));
-    expect(r.main?.svg).toBe(pickView(HAND, 'front'));
-    expect(r.cou?.svg).toBe(pickView(NECK, 'front'));
+    expect(r.pied?.svg).toBe(viewOrFront(BOTTE_CUIR, 'front'));
+    expect(r.main?.svg).toBe(viewOrFront(HAND, 'front'));
+    expect(r.cou?.svg).toBe(viewOrFront(NECK, 'front'));
   });
 
   it("squelette (tenue qui ne chausse pas) + espèce griffue → pied griffu CLAWFOOT (#736 Lot 1)", () => {
     const r = resolveParts('Mort-vivant', 'M', 'squelette', empty, {}, 1, 'front', 'griffues');
-    expect(r.pied?.svg).toBe(pickView(CLAWFOOT, 'front'));
+    expect(r.pied?.svg).toBe(viewOrFront(CLAWFOOT, 'front'));
   });
 
   it('nu (civilisé va-nu-pieds, espèce lisse par défaut) → pied lisse PLAINFOOT', () => {
     const r = resolveParts('Humain', 'M', 'nu', empty, {}, 1);
-    expect(r.pied?.svg).toBe(pickView(PLAINFOOT, 'front'));
+    expect(r.pied?.svg).toBe(viewOrFront(PLAINFOOT, 'front'));
   });
 });

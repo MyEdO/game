@@ -12,6 +12,7 @@ import { SPECIFIC_TENUES } from '../src/gameIso/rig/parts/tenues';
 import { assertTenueCatalogId } from './_lib-wardrobe';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+import { VIEWS, type View } from '../src/gameIso/rig/facing';
 
 const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
 // `career` se résout par ID (`TENUE_BY_ID`) : la planche itère les ids du catalogue, le libellé
@@ -21,7 +22,7 @@ const tenues = SPECIFIC_TENUES.slice().sort((a, b) => a.label.localeCompare(b.la
 for (const t of tenues)
   assertTenueCatalogId(t.id, 'tenue-views');
 
-function cell(career: string, view: 'front' | 'profile' | 'back') {
+function cell(career: string, view: View) {
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
@@ -35,7 +36,7 @@ function cell(career: string, view: 'front' | 'profile' | 'back') {
 const rows = tenues.map((c) =>
   `<div style="display:flex;align-items:center;gap:10px;margin:4px 0;border-bottom:1px solid #222">
      <div style="width:140px;color:#eee;font:12px sans-serif">${c.label}</div>
-     <div style="display:flex;gap:8px">${cell(c.id, 'front')}${cell(c.id, 'profile')}${cell(c.id, 'back')}</div>
+     <div style="display:flex;gap:8px">${VIEWS.map((view) => cell(c.id, view)).join('')}</div>
    </div>`,
 );
 

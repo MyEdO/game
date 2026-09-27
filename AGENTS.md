@@ -109,7 +109,7 @@ grille/murs/pions/chrome en surcouches SVG React. **Zustand** (store), **Vitest*
 (`makeRNG`).
 
 ```bash
-npm install            # pose les hooks git et les pilotes de fusion des docs
+npm install            # pose les hooks git et les pilotes de fusion
 npm run dev            # dev (port dérivé en worktree lié, imprimé au lancement)
 npm test               # tests Vitest
 npm run typecheck      # tsc --noEmit

@@ -2,7 +2,14 @@ import { rotTile, type Dims, type Rot } from '../../geometry/iso';
 import { DIR8_DELTA, type Dir8 } from '../../state/dir8';
 export type { Dir8 };
 
-export type View = 'front' | 'back' | 'profile';
+/** Les vues d'un art orienté, dans l'ordre CANONIQUE (face, profil, dos) : SOURCE UNIQUE, dont dérivent
+ *  le type `View`, les formats d'art orienté (`viewArt.ts`, `parts/types.ts`) et l'ordre de proximité
+ *  des vues (`NEAREST`, `viewArt.ts`). Le profil est mitoyen de la face et du dos. */
+export const VIEWS = ['front', 'profile', 'back'] as const;
+/** Identifiant d'une vue : un membre de `VIEWS`. */
+export type View = (typeof VIEWS)[number];
+/** Libellé d'AFFICHAGE d'une vue (colonnes des planches QC) ; aucune logique ne le lit. */
+export const VIEW_LABEL = { front: 'face', profile: 'profil', back: 'dos' } as const satisfies Record<View, string>;
 
 /** Direction ÉCRAN (dx,dy px iso) → vue + miroir. PUR.
  *  Latéral net → profile ; vers le bas → front ; vers le haut → back ; mirror = regarde à gauche. */

@@ -1,6 +1,6 @@
 /**
  * AUDIT des tables d'effets SANS CONSOMMATEUR (#734) — définition UNIQUE de la mesure, partagée par
- * la garde `src/data/tables.test.ts` et le régénérateur `scripts/data/regen-table-orphan-stock.mts`.
+ * la garde `src/data/tables.test.ts` et la régénération de `tableConsumerStock.mjs` (`regenerations`).
  * Deux lectures divergentes du corpus laisseraient l'une écrire ce que l'autre refuse.
  *
  * Classe de défaut mesurée : une entrée de `tables.json` que NI une autre donnée (`src/data/*.json`,
@@ -18,6 +18,7 @@ import { listerDossier } from './lister.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 import { effectTables } from '../../../src/data/index';
 import type { Site } from './stock.mjs';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 /** Dossier des données, et le dataset que NOMMENT les entrées du stock. */
@@ -68,3 +69,11 @@ export function sitesTableOrpheline(): Site[] {
 
 export const MOTIF_TABLE_ORPHAN =
   "Une table neuve sans consommateur se CÂBLE (op `rollTable`, `tableId` d'une autre table, appel code), elle ne s'entérine pas ici.";
+
+/** La RÉGÉNÉRATION de `tableConsumerStock.mjs`, sur des sites (par défaut, la mesure du dépôt). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/tableConsumerAudit.ts [--check]`. */
+export const regenerations = (sites: readonly Site[] = sitesTableOrpheline()): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./tableConsumerStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [{ nom: 'TABLE_ORPHAN_RATCHET', sites, motif: MOTIF_TABLE_ORPHAN }],
+}];

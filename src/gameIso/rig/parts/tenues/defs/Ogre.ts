@@ -27,7 +27,7 @@ export const tenue: TenueDef = {
     pied: BOTTE_CUIR,
     // torse = chair d'OGRE (le slot remplace le « Nu ») + plaque-bedaine par-dessus la panse.
     // 3 vues DÉDIÉES : sans elles, resolve.ts substituerait sa silhouette générique (torse humain
-    // en tokens) de profil et de dos — la panse disparaîtrait sur 2 vues sur 3.
+    // en jetons) de profil et de dos — la panse disparaîtrait sur 2 vues sur 3.
     torse: {
       front: `<g stroke-linejoin="round">${OGRE.torseFront}${PLAQUE}`
         + `<path d="M-11.2 -4 L-13 -14 M11.2 -4 L13 -14" stroke="@cuir" stroke-width="2.2" stroke-linecap="round"/>` // bretelles de la plaque
@@ -57,7 +57,7 @@ export const tenue: TenueDef = {
       + `</g>`,
     // jambe de chair d'ogre + jambière de peaux lanière (le bas finit dans la botte du slot `pied`).
     // 3 vues DÉDIÉES : en string front-only, resolve.ts substituait sa jambe GÉNÉRIQUE peinte au
-    // token dominant (`vet1`) de profil et de dos → l'ogre avait des jambes OLIVE au lieu de la
+    // jeton dominant (`vet1`) de profil et de dos → l'ogre avait des jambes OLIVE au lieu de la
     // chair. Une jambe est ~symétrique en révolution : même chair aux 3 vues, la lanière suit.
     jambes: {
       front: JAMBE,

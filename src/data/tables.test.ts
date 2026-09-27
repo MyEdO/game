@@ -5,8 +5,9 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
 import { effectTables, findEffectTableById, mutationTables } from './index';
 import { TABLE_ORPHAN_RATCHET } from '../../scripts/guards/lib/tableConsumerStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../scripts/guards/lib/stock.mjs';
-import { MOTIF_DECLARATION, sitesTableOrpheline } from '../../scripts/guards/lib/tableConsumerAudit';
+import { cleDeSite, ecartDuVolet, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { MOTIF_DECLARATION, regenerations, sitesTableOrpheline } from '../../scripts/guards/lib/tableConsumerAudit';
+import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 
 /**
  * Intégrité de `tables.json` (tables d'effets référençables) + BIEN-FORMATION des ops `rollTable`/
@@ -82,10 +83,11 @@ describe('cliquet — toute table d’effets a un CONSOMMATEUR (donnée écrite,
   /** Les orphelines MESURÉES en SITES `{ file, ref }` — `file` = le dataset où la table est
    *  DÉCLARÉE —, confrontées au stock par la primitive partagée, dans les deux sens. La MESURE
    *  (corpus des consommateurs, motif de déclaration, jeton cité) vit dans
-   *  `scripts/guards/lib/tableConsumerAudit.ts` : la garde et le régénérateur
-   *  `scripts/data/regen-table-orphan-stock.mts` en partagent la SEULE lecture. */
-  const ecartOrphelines = (stock: Iterable<EntreeNominative> = TABLE_ORPHAN_RATCHET) =>
-    ecartDuVolet({ sites: sitesTableOrpheline(), stock, ou: STOCK });
+   *  `scripts/guards/lib/tableConsumerAudit.ts` : la garde et la régénération (`regenerations`) en
+   *  partagent la SEULE lecture. */
+  const sites = sitesTableOrpheline();
+  const ecartOrphelines = (stock: Iterable<EntreeDeSite> = TABLE_ORPHAN_RATCHET) =>
+    ecartDuVolet({ sites, stock, ou: STOCK });
 
   // #1467 L1b V-FLIP-ENTITE-b — le MOTIF de retrait est ce qui tient tout le cliquet : s'il rate
   // une déclaration, la table qui la porte devient sa propre consommatrice et sort du décompte des
@@ -117,6 +119,10 @@ describe('cliquet — toute table d’effets a un CONSOMMATEUR (donnée écrite,
     expect(perimees, `entrée(s) du stock désormais consommées — retirer leur ligne de tableConsumerStock.mjs :\n${perimees.join('\n')}`).toEqual([]);
   });
 
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(sites)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
+  });
+
   it('chaque entrée NOMME le dataset où la table est déclarée — c’est ce que la porte de plage voit', () => {
     const muettes = TABLE_ORPHAN_RATCHET.filter((e) => e.fichier !== 'src/data/tables.json');
     expect(muettes, `Entrées dont le \`fichier\` n'est pas le dataset des tables : elles seraient INVISIBLES\n` +
@@ -130,7 +136,7 @@ describe('cliquet — toute table d’effets a un CONSOMMATEUR (donnée écrite,
       fichier: 'src/data/tables.json', ref: 'table-qui-n-existe-pas', occurrence: 1,
     }];
     const { perimees } = ecartOrphelines(gonfle);
-    expect(perimees.some((l) => l.includes(' :: table-qui-n-existe-pas :: 1'))).toBe(true);
+    expect(perimees.some((l) => l.includes(cleDeSite(gonfle[gonfle.length - 1])))).toBe(true);
     expect(perimees.some((l) => l.includes('entrée SOLDÉE'))).toBe(true);
   });
 });

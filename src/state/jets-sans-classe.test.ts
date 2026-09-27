@@ -12,6 +12,7 @@
  * Ce fichier PROMEUT en contrat les sondes du juge du lot : la matrice des Tests de mer, le mono
  * qu'aucun humain ne tient (qui bloquait la cascade), et la bande que personne ne tient.
  */
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
@@ -54,13 +55,13 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   it('solo jour-par-jour : la fenêtre s’ouvre (M) pour tous les kinds — un jet subi n’est plus muet', () => {
     traversee('jour-par-jour');
     const mesure = KINDS_DE_MER.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
-    expect(Object.fromEntries(mesure)).toEqual(Object.fromEntries(KINDS_DE_MER.map((k) => [k, 'M'])));
+    expect(Object.fromEntries(mesure)).toEqual(tableTotale(KINDS_DE_MER, () => 'M'));
   });
 
   it('traversée COMMANDÉE : aucun de ces kinds n’ouvre de fenêtre (I) — l’ordre a été donné au départ', () => {
     traversee('commande');
     const mesure = KINDS_DE_MER.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
-    expect(Object.fromEntries(mesure)).toEqual(Object.fromEntries(KINDS_DE_MER.map((k) => [k, 'I'])));
+    expect(Object.fromEntries(mesure)).toEqual(tableTotale(KINDS_DE_MER, () => 'I'));
   });
 
   /**

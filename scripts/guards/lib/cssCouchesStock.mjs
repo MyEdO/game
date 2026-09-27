@@ -12,8 +12,8 @@
 //                                Réf : `<balise>[.<1re classe>] :: <clés triées>` (`expr` pour une
 //                                valeur non littérale, `vide` pour `style={{}}`).
 //
-// Corps GÉNÉRÉ par `npx tsx scripts/ui/regen-css-couches-stock.mts` (DÉCROISSANT-SEULEMENT) — jamais
-// édité à la main. FORME : une ENTRÉE par occurrence, `{ fichier, ref, occurrence }`, celle de TOUT
+// Corps GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts`
+// (politique `DECROISSANT`) — jamais édité à la main. FORME : une ENTRÉE par occurrence, `{ fichier, ref, occurrence }`, celle de TOUT
 // stock nominatif du dépôt (`cleDeSite`/`sitesEnEntrees`, `stock.mjs`) ; le `fichier` est ce que la
 // porte de plage voit (`croissanceDesStocks`, `stocksNominatifs.mjs`), et ce que le codeur doit
 // ouvrir pour solder.
@@ -32,7 +32,7 @@
 // homonymes) rend une périmée ET une neuve pour un seul geste ; le RENOMMAGE d'un sélecteur rend un
 // faux neuf + un faux périmé — les trois se soldent par un `regen`, net 0 pour la porte de plage.
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const CSS_IDENTITE_ECRAN_RATCHET = [
   { fichier: 'src/ui/styles/celestial-wheel.css', ref: '.cw-dot :: fill', occurrence: 1 },
   { fichier: 'src/ui/styles/celestial-wheel.css', ref: '.cw-dot :: stroke', occurrence: 1 },
@@ -1353,7 +1353,7 @@ export const CSS_IDENTITE_ECRAN_RATCHET = [
   { fichier: 'src/ui/styles/world-meta.css', ref: '.worldmap-panel.muted-panel :: color', occurrence: 1 },
 ];
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/city-hub.css', ref: '.city-hub-body :: padding :: 12px', occurrence: 1 },
   { fichier: 'src/ui/styles/city-hub.css', ref: '.city-hub-hint :: padding-left :: 18px', occurrence: 1 },
@@ -1963,7 +1963,7 @@ export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/world-meta.css', ref: '.worldmap-panel p :: margin :: 4px 0', occurrence: 1 },
 ];
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/CityHubScreen.tsx', ref: 'g :: color', occurrence: 1 },
   { fichier: 'src/ui/GlobalSvgDefs.tsx', ref: 'svg :: position', occurrence: 1 },

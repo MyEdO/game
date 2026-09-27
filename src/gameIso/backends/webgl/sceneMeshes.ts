@@ -66,7 +66,7 @@ import { RIG_GROUND_PIVOT, groundStateOf, planGroundPose, rigGroundPose, rigGrou
 import { hash32 } from '../../../data/hash';
 import { entitySize } from '../../../state/spawn';
 import { sizeFootprint } from '../../../state/footprint';
-import type { View } from '../../rig/facing';
+import { VIEWS, type View } from '../../rig/facing';
 import type { Rot } from '../../../geometry/iso';
 import type { Dir8 } from '../../../state/dir8';
 import { heightAt, type Scene, type SceneEntity, type WallSide } from '../../../state/scene';
@@ -132,7 +132,7 @@ export function worldFaces(scene: Scene): WorldFace[] {
 /** GROUPE DE SURFACE : la maille de fusion du monde. Une géométrie UNIQUE porte toute la scène (jamais
  *  un mesh par face) et se découpe en `groups` three — un par (surface × variante d'anti-périodicité ×
  *  échelle de période), plus les CUISSONS PAR FACE (colombage) et LE groupe nu des faces sans
- *  appareillage. Le nombre de dessins passe de 1 à quelques dizaines : le prix ASSUMÉ d'une texture
+ *  appareillage. Le nombre de dessins passe de 1 à quelques dizaines : le prix d'une texture
  *  répétée qui ne se répète pas à l'œil. */
 export interface SurfaceGroup {
   /** Identité du groupe (= clé de cache de sa texture). */
@@ -630,7 +630,7 @@ export function applyCutawayMask(baked: BakedWorld, keepEl: KeepEl): { geometry:
  *  pour l'appelant qui compose les deux — LA géométrie du bake, pas une copie : le dernier appel fait
  *  la couleur affichée. D'où le contrat de propriété de `BakedWorld` (un bake = un consommateur de teinte).
  *
- *  CHAMP CONTINU PAR SOMMET (#1176, C6) : la teinte s'échantillonne à la POSITION MONDE de CHAQUE
+ *  CHAMP CONTINU PAR SOMMET (#1176) : la teinte s'échantillonne à la POSITION MONDE de CHAQUE
  *  sommet, ramenée en coordonnées de grille (`baked.mpt`), à l'étage de l'élément. La grille est du
  *  système de jeu ; la lumière et la vue n'en dépendent pas. Une masse qui couvre 17 cases n'est donc
  *  plus teintée d'un bloc par sa case d'ancrage, et un mur d'arête — à cheval sur deux cases — reçoit
@@ -642,7 +642,7 @@ export function applyCutawayMask(baked: BakedWorld, keepEl: KeepEl): { geometry:
  *  (`sunFade`, `stage/stageLights.ts`). `fade = 1` (plein soleil) est le NEUTRE de cette porte : le
  *  modelé s'efface entièrement, la directionnelle le faisant seule. C'est pourquoi un appelant qui
  *  n'a pas de soleil à déclarer (gardes de géométrie, cadrage) obtient exactement les couleurs
- *  d'avant le lot.
+ *  sans modelé.
  *
  *  Rend aussi ce qui a RÉELLEMENT été écrit (`bouge`, même patron que son jumeau ci-dessus) : deux
  *  champs de vision qui donnent les mêmes couleurs ne valent pas une image. */
@@ -887,7 +887,7 @@ export function collectBillboards(scene: Scene, mpt: number, els: SceneBillboard
     const gy = el.cell.y + el.foot.offY;
     const h = heightAt(scene, el.cell.x, el.cell.y, el.cell.z) + (el.liftM ?? 0);
     out.push({
-      // IDENTITÉ = la clé de l'élément ET sa SIGNATURE DE DESSIN (#1176, P3-3) — même doctrine que
+      // IDENTITÉ = la clé de l'élément ET sa SIGNATURE DE DESSIN (#1176) — même doctrine que
       // l'acteur (`ActorDrawInputs`/`combatantRenderSignature`). La clé seule ne suffit PAS : elle
       // porte l'id de l'ENTITÉ (`prop:decor-1`) ou la CASE d'un overlay de terrain (`ov:x,y,z`), donc
       // deux modèles de décor différents — ou deux terrains à décor différents sur la même case —
@@ -970,7 +970,7 @@ export function memesBillboardEls(a: SceneBillboardEls, b: SceneBillboardEls): b
 
 /** ACTEUR à billboarder : le combattant (groupe en exploration, combattants en combat) et sa case
  *  LOGIQUE — l'ancre CUITE du quad. Le GLISSEMENT de marche n'entre pas ici : la boucle de rendu le
- *  redemande par frame (`StageWalkAnim.glide`) et ne décale que la matrice du quad (#1176, P2-4). */
+ *  redemande par frame (`StageWalkAnim.glide`) et ne décale que la matrice du quad (#1176). */
 export interface ActorPose {
   c: Combatant;
   x: number;
@@ -1177,9 +1177,6 @@ export function reposerActeurs(
   return { ancres, caps };
 }
 
-/** Les trois vues d'un corps. La boîte d'un sujet est UNE (le quad ne change pas quand la caméra
- *  tourne) : une boîte dérivée du dessin se mesure donc sur les trois. */
-const VUES: readonly View[] = ['front', 'profile', 'back'];
 
 /** Couple MONTÉ (LDB 14 l.175-187) rendu comme UN SEUL corps : le cavalier est ASSIS sur les os réels
  *  de la monture (`seatRiderOnMount` : ancre de selle dérivée de l'os `tronc`, z du cavalier remappé
@@ -1224,8 +1221,9 @@ function mountedSvg(
   const osMonture = (view: View) => plan.resolve(mr.species, view, couché ?? plan.restPose(), opts);
   const assise = (view: View) => ({ view, mountScale: 1, riderScale: k });
   // Haut de la boîte du cavalier (0..150, contrat du rig) ramenée dans la boîte de la monture, pris
-  // à la vue la plus haute : négatif = ce qui manque de ciel au-dessus des 150 px.
-  const haut = Math.min(...VUES.map((v) => seatPlacement(osMonture(v), assise(v))[5]));
+  // à la vue la plus haute : négatif = ce qui manque de ciel au-dessus des 150 px. La boîte d'un sujet
+  // est UNE (le quad ne change pas quand la caméra tourne) : elle se mesure sur toutes les vues.
+  const haut = Math.min(...VIEWS.map((v) => seatPlacement(osMonture(v), assise(v))[5]));
   const débord = Math.max(0, Math.ceil(-haut));
   return {
     box: { w: BB_W, h: BB_H + débord },
@@ -1677,7 +1675,7 @@ export function povBackgroundIndoor(ambianceLum = 1): THREE.Color {
  *  jour à minuit. La multiplication est ici directement en composantes de travail (linéaires), le
  *  même espace que celui d'`ambientDimmed`.
  *
- *  ESPACE DE MÉLANGE (réf juge de design P3-1c) : three mélange la brume en LINÉAIRE (le fragment
+ *  ESPACE DE MÉLANGE (#1176) : three mélange la brume en LINÉAIRE (le fragment
  *  travaille après conversion), là où le POV la mélange en sRGB (`pov/camera.mixHex`). À facteur égal,
  *  les deux rendent donc des octets différents : 13,3/255 par canal à mi-course sur un couple gris
  *  sombre → brume claire, 8,1/255 à trois quarts. Le FACTEUR, lui, est le même des deux côtés (courbe
@@ -1763,7 +1761,7 @@ export function installFogGamma(): void {
  *  (`pow( x, 2 )` ne compile pas). Quatre décimales : un gamma sous 0,00005 s'écrirait « 0.0000 », donc
  *  `pow(x, 0) = 1` — une brume PLEINE partout, sans un mot. Le schéma de la donnée le borne déjà
  *  (`fogGamma` ≥ 0,1, `src/data/schemas/defs/ambiance.ts`) ; ce garde-fou tient le site du littéral,
- *  qu'un gamma vienne de la donnée ou d'un appelant. #1176 P3-1c */
+ *  qu'un gamma vienne de la donnée ou d'un appelant. #1176 */
 const littéralGlsl = (v: number): string => {
   const s = v.toFixed(4);
   if (!(Number(s) > 0)) throw new Error(`gamma de brume irreprésentable au shader : ${v} → « ${s} »`);
@@ -1854,7 +1852,7 @@ export function billboardViewDepth(camera: THREE.Camera, p: THREE.Vector3): numb
  *  (`stage/interactHaloPose`) : son glyphe se décale en PIXELS d'écran, donc son élévation doit suivre
  *  le haut de l'écran, même couché dans le plan du sol. Les CORPS, eux, ne passent plus par ici : leur
  *  centre se prend à `stage/boardPose.boardCenter`, qui bascule sur la VERTICALE MONDE quand ce haut
- *  d'écran dégénère (#1176, P3-5c). */
+ *  d'écran dégénère (#1176). */
 export function billboardPose(anchor: THREE.Vector3, centerLiftM: number, camQuat: THREE.Quaternion): THREE.Vector3 {
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camQuat);
   return anchor.clone().addScaledVector(up, centerLiftM);

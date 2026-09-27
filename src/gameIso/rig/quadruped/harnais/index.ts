@@ -6,7 +6,7 @@
 import { QUAD_HARNAIS_DEFS } from './_registry.generated';
 import type { QuadHarnaisDef } from './types';
 import type { QuadProps } from '../quadSkeleton';
-import { MISSING_ART, pickView } from '../../viewArt';
+import { MISSING_ART, nearestView } from '../../viewArt';
 import renduMonteJson from '../../../../data/renduMonte.json';
 
 export type { QuadHarnaisDef } from './types';
@@ -28,7 +28,7 @@ export function harnaisOptions(): { id: string; label: string }[] {
 /** REFUS VISIBLE (#223) d'un set non servi : la caisse d'alarme sur le `tronc`, l'os qu'aucune vue
  *  n'omet — jamais une bête silencieusement nue là où la donnée demandait un équipement. */
 const MISSING_HARNAIS: NonNullable<QuadProps['deco']> = {
-  tronc: [{ svg: pickView(MISSING_ART, 'profile')(), plan: 0 }],
+  tronc: [{ svg: nearestView(MISSING_ART, 'profile')(), plan: 0 }],
 };
 
 /**

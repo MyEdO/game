@@ -1,12 +1,13 @@
 /**
  * Compare le rendu d'armes via weaponPart (art RÉSOLU) — sert avant (original, no-op) et après
- * (tokenisé @défaut) la tokenisation, pour vérifier la LOSSLESSNESS.
+ * (en jetons @défaut) la mise en jetons, pour vérifier la LOSSLESSNESS.
  * Usage : npx tsx scripts/_qc-weapon-color-cmp.mts <tag>   → public/qc/wcolor-<tag>.png
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { weaponPart, objetSansPorteur } from '../src/gameIso/rig/parts/equipment';
+import { declaredView } from '../src/gameIso/rig/viewArt';
 import type { Weapon } from '../src/engine/types';
 
 const tag = process.argv[2] ?? 'x';
@@ -22,7 +23,7 @@ mkdirSync('public/qc', { recursive: true });
 const CW = 80, CH = 120;
 const tiles = NAMES.map(([name, type], i) => {
   const art = objetSansPorteur(weaponPart(W(name, type)));
-  const svg = typeof art === 'string' ? art : (art.front ?? '');
+  const svg = declaredView(art, 'front') ?? '';
   return `<g transform="translate(${i * CW},0)"><rect width="${CW}" height="${CH}" fill="#1d2230"/>` +
     `<g transform="translate(${CW / 2},${CH - 22})">${svg}</g>` +
     `<text x="${CW / 2}" y="${CH - 4}" text-anchor="middle" font-size="6.5" fill="#cdd">${name}</text></g>`;

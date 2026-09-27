@@ -492,7 +492,7 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     const toutes = { bois: '#000000', pierre: '#ffffff' };
     expect(teintes.schema.safeParse({ ...ENV('palette-jouet'), entries: toutes }).success).toBe(true);
     expect(teintes.schema.safeParse({ ...ENV('palette-jouet'), entries: { ...toutes, lave: '#000000' } }).success).toBe(false);
-    // zod 4.4.3, mesuré : une clé ÉNUMÉRÉE rend le record EXHAUSTIF — une clé déclarée qui manque est
+    // zod 4.4.3, mesuré : une clé ÉNUMÉRÉE rend le record TOTAL — une clé déclarée qui manque est
     // refusée. C'est la forme du def réel `defs/teintesJeu.ts:134` (`z.record(z.enum(TEINTE_KEYS), …)`).
     expect(teintes.schema.safeParse({ ...ENV('palette-jouet'), entries: { bois: '#000000' } }).success).toBe(false);
     expect(() =>
@@ -612,7 +612,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     // #1467 L1b V-FLIP-ENTITE, vagues 11a puis 11b (2026-08-28) : 42 defs `entite` ont adopté
     // `document()` — ils rendent un nœud SCELLÉ, donc ils quittent la population MESURÉE pour la
     // population SCELLÉE (75 → 33, 2 → 44). Ce que la mesure perd, `options.exiges` le PORTE
-    // désormais au def, et le verrou d'exigence ci-dessous le prouve entrée par entrée.
+    // au def, et le verrou d'exigence ci-dessous le prouve entrée par entrée.
     //   11a : desc −5 (astrology, classes, crew-roles, peripeties, sea-shanties),
     //         source −3 (astrology, classes, sea-shanties), icon −1 (calendarPhases).
     //   11b : desc −6 (careers, characteristics, interludeEvents, mutations, qualities, regles),
@@ -628,7 +628,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         (12 → 0, 65 → 77). La population MESURÉE est ÉTEINTE : plus AUCUN def `entite` ne
     //         porte son enveloppe à la main.
     //   14  : `oups` (V-UNION) était DÉJÀ compté en `scelles` — son union n'avait pas plus de
-    //         `.shape` que le nœud scellé qu'il rend désormais — donc le total ne bouge PAS (77).
+    //         `.shape` que le nœud scellé qu'il rend — donc le total ne bouge PAS (77).
     //         Ce qu'il gagne, c'est d'y être pour la BONNE raison, et son `source` exigée au verrou.
     // L'ADOPTION est la cause du recalage, pas une dérive du détecteur — le témoin ci-dessus le
     // prouve en faisant mordre l'instrument sur un schéma non adopté.
@@ -642,7 +642,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     // Les deux renvois viennent NOMMÉMENT de `2026-08-27-l1b-3h-desc-null.mjs:25-28`, verbatim :
     // « Les deux autres — `species.json[4]` et `talents.json[0]` — sont déclarés `desc: z.string()`
     // REQUIS […] Ils meurent avec le lot qui posera `min(1)` sur ces deux defs, pas ici. » Les deux
-    // sont désormais morts (12a puis 12b) : le renvoi de 3h est INTÉGRALEMENT soldé. Les écarts sont
+    // sont morts (12a puis 12b) : le renvoi de 3h est INTÉGRALEMENT soldé. Les écarts sont
     // ici, pas dans un silence.
     //   #677 : `reseau-routier` est un def `entite` NEUF, adopté dès sa création et `source` exigée
     //         — il naît donc dans la population SCELLÉE (77 → 78), sans jamais passer par la mesure.
@@ -650,12 +650,12 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         chacun à sa charge `entries` par `options.rangee`) — un def SCELLÉ de plus dans la
     //         population de ce mesureur, qui GAGNE là une couverture (78 → 79) : la famille qu'il
     //         portait sortait ce def de tout filtre `entite` de ce fichier.
-    //   #1657 B2a : `criticals` fait de même (79 → 80) — les deux racines-objet `criticals`/
+    //   #1657 : `criticals` fait de même (79 → 80) — les deux racines-objet `criticals`/
     //         `aa-criticals` fusionnent en UNE liste de 8 documents-tables, famille `entite` à charge
     //         `entries` ; le def d'`aa-criticals` meurt, celui de `criticals` entre dans la population.
-    //   #1657 B3-2b-a : `ship-stations` naît SCELLÉ (80 → 81) — catalogue FERMÉ des présences à bord
+    //   #1657 : `ship-stations` naît SCELLÉ (80 → 81) — catalogue FERMÉ des présences à bord
     //         que les livres nomment, `exiges: ['desc']` dès sa première écriture.
-    //   #1686 lot 2 : `propMaterials`/`roofMaterials`/`reliefMaterials` fusionnent en UN def
+    //   #1686 : `propMaterials`/`roofMaterials`/`reliefMaterials` fusionnent en UN def
     //         `materials` (81 → 79) — trois defs SCELLÉS en deviennent un, la population perd 2.
     //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
     //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
@@ -835,7 +835,7 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // est donc exigible dès la création. `desc` ne l'est pas (les 6 compagnies de la liste l.27-34
     // n'ont que leur nom au Source — aucune prose à recopier, aucune à inventer).
     'reseau-routier.json · source',
-    // #1657 B3-2b-a — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
+    // #1657 — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
     // clause qui la nomme (MDG 13 l.714/730/751, MDG 12 l.303, MSRC 07 l.94), `desc` est donc exigible
     // dès la création. `source` ne l'est pas au def : c'est déjà l'enveloppe qui refuse une entrée sans
     // `source` NI `maison`.

@@ -11,7 +11,8 @@
  * ZÉRO `battleRng()`/`rollTest`/`Math.random` : le planning doit rester déterministe (coop/tests
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
  */
-import { Combatant, Weapon, Characteristics, ArmourPoints, CHAR_KEYS } from '../engine/types';
+import { tableTotale } from '../lib/tableTotale';
+import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../engine/types';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../engine/combat';
 import { effectiveWeaponDamage } from '../engine/weaponDamage';
@@ -88,7 +89,7 @@ export function isNeutralized(h: Combatant): boolean {
 /** Cible neutre STABLE pour `bestAttackEV` quand aucun ennemi de référence n'existe (carac. moyennes). */
 const GENERIC_DUMMY: Combatant = {
   id: '__ai-dummy__', label: 'cible', kind: 'enemy',
-  characteristics: Object.fromEntries(CHAR_KEYS.map((k) => [k, 30])) as Characteristics,
+  characteristics: tableTotale(CHAR_KEYS, () => 30),
   wounds: { current: 12, max: 12, base: 12 },
   advantage: 0, conditions: [], weapons: [], armour: {} as ArmourPoints,
   skills: [], talents: [], movement: 4,

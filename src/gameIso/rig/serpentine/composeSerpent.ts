@@ -2,7 +2,7 @@
  * Gabarit SERPENTIN (serpent / sangsue) — limbless. Pas de pattes : un corps LOVÉ (mound de
  * boucles empilées, statique) + un cou dressé et une tête qui ONDULENT (FK générique). C'est
  * l'anim propre au plan : balancement de cobra au repos, lunge à l'attaque, tête affaissée à la
- * mort. Réutilise INTÉGRALEMENT la machinerie (FK worldTransformsG, palette tokenisée, rendu).
+ * mort. Réutilise INTÉGRALEMENT la machinerie (FK worldTransformsG, palette en jetons, rendu).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -18,7 +18,7 @@ import { sortByZ } from '../composite';
 export type SerpentBoneId = 'corps' | 'cou' | 'tete' | 'queue';
 type SBone = FKBone & { z: number };
 export interface SerpentProps {
-  sl: number; // échelle token (taille relative en jeu)
+  sl: number; // échelle du pion (taille relative en jeu)
   girth: number; // épaisseur du corps lové
   hood: boolean; // capuchon de cobra (déployé derrière la tête)
   /** Robe à motif : bandes transversales sombres (@corpsO) + mouchetures claires (@corpsH)
@@ -51,7 +51,7 @@ function coil(p: SerpentProps): string {
   const g = p.girth;
   // Boucles DÉCALÉES qui se chevauchent (croissants d'ombre = sens d'enroulement) + QUEUE qui
   // émerge du lové — les ellipses concentriques empilées lisaient « pile de pneus / poterie »
-  // (verdict des juges aveugles, lot 4).
+  // (verdict des juges aveugles).
   const bands = p.markings === 'bandes';
   // bandes transversales par boucle (suivent la courbure de chaque anneau), dessinées SUR la
   // boucle concernée avant que la suivante la recouvre — motif de l'artwork LDB 79 p.319.

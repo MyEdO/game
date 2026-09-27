@@ -19,6 +19,7 @@
  * l'effet `transition: { scene }` et `worldMap.places[].scene`. Le `type` est posé sur la donnée
  * existante par `PROJECT_MIGRATIONS[6]` (`src/state/worldMap.ts`, `schema` 6 → 7).
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
@@ -29,7 +30,7 @@ import { PROPS_VOLUMIQUES } from '../_ids.generated';
 import { idDe } from '../grammaire/ref';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
-import { PARTS_RELIEF, type PartRelief } from '../../materials.types';
+import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
 import type { OptionalEntry } from '../../../engine/statEntry';
 
@@ -309,10 +310,7 @@ const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief'
  * (`terrains.json › matiere`) : ce record ne couvre que le relief du sol lui-même.
  */
 export const reliefDefaultsSchema = z.strictObject(
-  Object.fromEntries(PARTS_RELIEF.map((part) => [part, matiereReliefSchema])) as Record<
-    PartRelief,
-    typeof matiereReliefSchema
-  >,
+  tableTotale(PARTS_RELIEF, () => matiereReliefSchema),
 );
 /**
  * AMBIANCE d'une scène — dedans/dehors, ce qui décide si l'éclairage suit l'horloge du monde.

@@ -1,4 +1,4 @@
-import type { EntreeNominative } from './stock.mjs';
+import type { EntreeDeSite } from './stock.mjs';
 
-export const JAMBE_INLINE_RATCHET: readonly EntreeNominative[];
-export const JAMBE_SILHOUETTE_OVERRIDES: readonly EntreeNominative[];
+export const JAMBE_INLINE_RATCHET: readonly EntreeDeSite[];
+export const JAMBE_SILHOUETTE_OVERRIDES: readonly EntreeDeSite[];

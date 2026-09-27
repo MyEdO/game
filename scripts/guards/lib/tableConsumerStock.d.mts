@@ -1,3 +1,3 @@
-import type { EntreeNominative } from './stock.mjs';
+import type { EntreeDeSite } from './stock.mjs';
 
-export const TABLE_ORPHAN_RATCHET: readonly EntreeNominative[];
+export const TABLE_ORPHAN_RATCHET: readonly EntreeDeSite[];

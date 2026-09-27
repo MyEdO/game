@@ -51,7 +51,7 @@ interface AncrageDecorBase {
   solM: number;
   /** Surélévation métrique déclarée au-dessus de cette surface (défaut 0). */
   liftM?: number;
-  /** Cap du décor. Absent = décor non directionnel ; le volume, lui, retombe sur le cap canonique `S`. */
+  /** Cap du décor. Absent = décor non orienté ; le volume, lui, retombe sur le cap canonique `S`. */
   facing?: Dir8;
   /** Échelle du DESSIN billboard (défaut 1) — un volume tient ses dimensions de sa recette. */
   echelle?: number;

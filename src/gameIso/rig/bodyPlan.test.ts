@@ -3,6 +3,7 @@ import { bodyPlanById, resolveSpecies, planById, planOptsForRecord, resolveById 
 import { EYE_OPTIONS } from './parts/eyes';
 import { creatures } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
+import { VIEWS, type View } from './facing';
 
 /** Plan d'un ID d'espèce canonique (slug de def) et plan d'un ID de record — les deux chemins explicites. */
 const planOfSpecies = (id: string): string => resolveSpecies(id).plan;
@@ -83,15 +84,15 @@ describe('planById(engin) — engin de siège statique, ANCRÉ au sol', () => {
   it('enregistré (auto-découverte plans/defs/) et 3 vues distinctes par type', () => {
     const p = planById('engin');
     expect(p?.id).toBe('engin');
-    const baliste = (v: 'front' | 'profile' | 'back') => JSON.stringify(p.resolve('baliste', v, {}));
-    const canon = (v: 'front' | 'profile' | 'back') => JSON.stringify(p.resolve('canon-petit', v, {}));
+    const baliste = (v: View) => JSON.stringify(p.resolve('baliste', v, {}));
+    const canon = (v: View) => JSON.stringify(p.resolve('canon-petit', v, {}));
     // Les 3 vues d'un engin diffèrent entre elles…
-    expect(new Set([baliste('front'), baliste('profile'), baliste('back')]).size).toBe(3);
+    expect(new Set(VIEWS.map(baliste)).size).toBe(3);
     // …et la baliste ≠ le canon (silhouettes propres par espèce).
     expect(baliste('profile')).not.toEqual(canon('profile'));
   });
   it('base ANCRÉE à la ligne de sol (y=150) — pas de lévitation', () => {
-    for (const v of ['front', 'profile', 'back'] as const) {
+    for (const v of VIEWS) {
       const bones = planById('engin').resolve('canon-petit', v, {});
       expect(bones.length).toBe(1);
       expect(bones[0].matrix[5]).toBe(150); // contact au sol exactement sur l'ancrage aux pieds
@@ -154,7 +155,7 @@ describe('planOptsForRecord — apparence du RECORD → opts de gabarit (#1128 L
   it("l'override VIVANT prime sur le record — précédence PAR CHAMP : `colors` bascule EN ENTIER", () => {
     const out = planOptsForRecord(SQUIGS, { colors: { peau: '#112233' } });
     expect(out.colors).toEqual({ peau: '#112233' });
-    // Contrat assumé (même formule que `rigAppearance`, le pendant bipède) : `corps` du record ne
+    // Contrat (même formule que `rigAppearance`, le pendant bipède) : `corps` du record ne
     // survit pas à un override qui porte `colors` — l'objet remplace, il ne fusionne pas.
     expect(out.colors?.corps).toBeUndefined();
   });

@@ -1,6 +1,7 @@
 import type { Slot } from '../bones';
-import { pickView, type Part, type PartArt } from './types';
+import { viewOrFront, type Part, type PartArt } from './types';
 import type { View } from '../facing';
+import { declaredView, mapViews } from '../viewArt';
 import { toViewSet, splitBrasSvg, avantBrasBase, dominantCloth } from './derive';
 import { cosmeticPart } from './cosmetic';
 import { genericPart } from './generic';
@@ -10,11 +11,11 @@ import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
 import { tableDObjet, applyTokenMap } from '../palette';
 
-/** Nu du PIED par ESPÈCE (#736 Lot 1) — repli quand aucune tenue/armure ne chausse la zone :
+/** Nu du PIED par ESPÈCE (#736) — repli quand aucune tenue/armure ne chausse la zone :
  *  civilisé lisse (défaut) ou monstrueux griffu (`race.extremites`/`perso.extremites`). */
 const PIED_NU: Record<'lisses' | 'griffues', PartArt> = { lisses: PLAINFOOT, griffues: CLAWFOOT };
 
-/** Nu de la MAIN par ESPÈCE (#736 Lot 3) — même principe que `PIED_NU` : civilisé (poing HAND,
+/** Nu de la MAIN par ESPÈCE (#736) — même principe que `PIED_NU` : civilisé (poing HAND,
  *  défaut) ou monstrueux griffu (`MAIN_GRIFFUE`). */
 const MAIN_NUE: Record<'lisses' | 'griffues', PartArt> = { lisses: HAND, griffues: MAIN_GRIFFUE };
 
@@ -26,23 +27,7 @@ const BODY_SLOTS: Slot[] = ['tete', 'torse', 'jambes'];
 /** Applique la découpe au coude à CHAQUE VUE DÉCLARÉE d'un art `bras` pleine longueur (`side` = `haut`
  *  pour l'os épaule, `bas` pour l'os avant-bras rebasé). Une string = front-only (les vues absentes
  *  sont dérivées ensuite par `toViewSet`, déjà scindées au coude) ; un objet garde ses vues déclarées. */
-function splitBrasArt(art: PartArt, side: 'haut' | 'bas'): PartArt {
-  if (typeof art === 'string') return splitBrasSvg(art)[side];
-  const out: { front: string; back?: string; profile?: string } = { front: splitBrasSvg(art.front)[side] };
-  if (art.back != null) out.back = splitBrasSvg(art.back)[side];
-  if (art.profile != null) out.profile = splitBrasSvg(art.profile)[side];
-  return out;
-}
-
-const frontOf = (art: PartArt): string => (typeof art === 'string' ? art : art.front);
-
-/** Vue `view` d'un art de DÉTAIL uniquement si la source la DÉCLARE (front toujours ; back/profile
- *  seulement s'ils sont présents) — sans FABRIQUER de silhouette (contrairement à `toViewSet`). Une vue
- *  non déclarée ⇒ '' : c'est la sous-couche de matière seule qui la couvre. */
-function declaredView(art: PartArt, view: View): string {
-  if (typeof art === 'string') return view === 'front' ? art : '';
-  return art[view] ?? '';
-}
+const splitBrasArt = (art: PartArt, side: 'haut' | 'bas'): PartArt => mapViews(art, (svg) => splitBrasSvg(svg)[side]);
 
 /**
  * Résolution du MEMBRE SUPÉRIEUR (`bras`+`avantBras`) comme une UNITÉ (#633 D1).
@@ -55,15 +40,15 @@ function declaredView(art: PartArt, view: View): string {
  * PAR-DESSUS — mais UNIQUEMENT dans les vues que l'art `bras` source DÉCLARE (`declaredView`) : un art
  * front-only (cas ARMURE, string) n'a de détail QU'EN FRONT, ses back/profile = la sous-couche seule
  * (déjà correcte : acier pour la plaque, tissu pour la manche) — jamais un détail fabriqué par
- * `toViewSet` à partir du seul front, qui retomberait sur un fallback `@vet1` (l'incohérence front↔profil,
- * Lot 2c). Un art `bras` objet {front, back?, profile?} porte son propre `.bas` dans chaque vue déclarée.
+ * `toViewSet` à partir du seul front, qui retomberait sur un repli `@vet1` (l'incohérence front↔profil).
+ * Un art `bras` objet {front, back?, profile?} porte son propre `.bas` dans chaque vue déclarée.
  * Bras de chair (dominante `peau` : Nu/monstre) → l'avant-bras reste chair ; sinon le rect de peau dédié
  * `genericPart('avantBras')`. GAGNANT D'ARMURE (front-only) : la découpe ET la dérive de vues des DEUX
- * segments partent de l'art RAW de l'armure (`ARMOUR[mat].bras`, `@tokens` intacts) — ainsi
- * `dominantCloth`/les silhouettes dérivées voient `@metal` (pas le fallback `@vet1` d'un art déjà résolu
- * en hex, l'incohérence front↔profil du haut ET du bas, Lot 2c/2d) — PUIS `matterResolve` recolorie le
+ * segments partent de l'art RAW de l'armure (`ARMOUR[mat].bras`, jetons `@clé` intacts) — ainsi
+ * `dominantCloth`/les silhouettes dérivées voient `@metal` (pas le repli `@vet1` d'un art déjà résolu
+ * en hex, l'incohérence front↔profil du haut ET du bas) — PUIS `matterResolve` recolorie le
  * SVG FINAL des deux segments contre la palette de l'armure gagnante (le bras ne suit pas la palette du
- * porteur). Pour une TENUE, `matterResolve` est nul : les `@tokens` sont gardés et `composeRig` les résout
+ * porteur). Pour une TENUE, `matterResolve` est nul : les jetons `@clé` sont gardés et `composeRig` les résout
  * contre la palette du porteur.
  */
 function resolveUpperLimb(
@@ -75,12 +60,12 @@ function resolveUpperLimb(
 ): { bras: Part; avantBras: Part } {
   const brasTenue = tenue.bras;
   const armItem = overridden ? undefined : equip.armour.find((it) => armourPart(it, 'bras') != null);
-  let matterArt: PartArt;                                        // art RAW porteur des tokens de matière
+  let matterArt: PartArt;                                        // art RAW porteur des jetons de matière
   let matterResolve: ((svg: string) => string) | null = null;   // recoloriage palette de l'armure gagnante
   let brasEstPleineLongueur: boolean;
   if (armItem) {
     const mat = armourMaterial(armItem);
-    matterArt = ARMOUR[mat]?.bras ?? '';                         // tokens @metal/@cuir… intacts
+    matterArt = ARMOUR[mat]?.bras ?? '';                         // jetons @metal/@cuir… intacts
     const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin as Record<string, string> | undefined);
     matterResolve = (svg) => applyTokenMap(svg, map);
     brasEstPleineLongueur = true;
@@ -99,11 +84,11 @@ function resolveUpperLimb(
   if (avantTenue != null) {
     avantSvg = toViewSet('avantBras', avantTenue, { boot })[view];      // écoutille C : honoré tel quel
   } else if (brasEstPleineLongueur) {
-    const base = avantBrasBase(dominantCloth(frontOf(matterArt)));      // couverture-matière (tokens RAW)
+    const base = avantBrasBase(dominantCloth(declaredView(matterArt, 'front') ?? ''));  // couverture-matière (jetons RAW)
     const under = toViewSet('avantBras', base, { boot })[view];         // couverture en 3 vues, DERRIÈRE le détail
-    const detail = declaredView(splitBrasArt(matterArt, 'bas'), view);  // détail .bas SEULEMENT si la vue est déclarée
+    const detail = declaredView(splitBrasArt(matterArt, 'bas'), view) ?? '';  // détail .bas SEULEMENT si la vue est déclarée, sans silhouette fabriquée
     avantSvg = under + detail;
-    if (matterResolve) avantSvg = matterResolve(avantSvg);              // matière d'armure résolue (tenue : tokens gardés)
+    if (matterResolve) avantSvg = matterResolve(avantSvg);              // matière d'armure résolue (tenue : jetons gardés)
   } else {
     avantSvg = toViewSet('avantBras', genericPart('avantBras'), { boot })[view];
   }
@@ -117,7 +102,7 @@ function resolveUpperLimb(
 /** Gagnant de la table de priorité pour une zone d'EXTRÉMITÉ (pied/main/cou), SANS repli : override
  *  éditeur (force la tenue, comme les slots de corps) > armure équipée > tenue. `undefined` = aucune
  *  source ne pilote la zone → l'appelant applique le repli d'espèce (extremites.ts). Miroir exact de
- *  la boucle `BODY_SLOTS`, hors `toViewSet` (ces parts restent en `pickView` direct, iso-rendu). */
+ *  la boucle `BODY_SLOTS`, hors `toViewSet` (ces parts restent en `viewOrFront` direct, iso-rendu). */
 function equipWinner(
   slot: Slot,
   overridden: boolean,
@@ -147,17 +132,17 @@ export function resolveParts(
 ): Record<Slot, Part | null> {
   const tenue = tenueFor(tenueKey);
   const out = {} as Record<Slot, Part | null>;
-  const P = (art: PartArt | null | undefined): Part => ({ svg: pickView(art, view) });
+  const P = (art: PartArt | null | undefined): Part => ({ svg: viewOrFront(art, view) });
 
   // Cosmétique (toujours). overrides priment, sinon variante dérivée du seed.
   out.visage = P(cosmeticPart('visage', species, sex, overrides.visage ?? seed % 2));
   out.cheveux = P(cosmeticPart('cheveux', species, sex, overrides.cheveux ?? (seed >> 2)));
 
-  // Corps : PURE table de priorité (override → armure équipée → carrière → générique) → art `PartArt`
-  // legacy, ENROBÉ en `ViewSet` TOTAL par le shim `toViewSet` (P1), qui matérialise les vues absentes
-  // (silhouette dérivée, `derive.ts`) — plus AUCUNE branche par vue ni génération de silhouette ici.
+  // Corps : PURE table de priorité (override → armure équipée → carrière → générique) → art `PartArt`,
+  // ingéré en `ViewSet` TOTAL par `toViewSet` (#2000), qui matérialise les vues qu'il ne déclare pas
+  // (silhouette dérivée, `derive.ts`) : aucune branche par vue ni génération de silhouette ici.
   // `boot` = bas de jambe nu (@peau) quand la tenue ne chausse pas le pied (`tenue.pied` absent),
-  // cuir sinon (#736 Lot 1).
+  // cuir sinon (#736).
   const boot = tenue.pied == null ? 'peau' : 'cuir';
   for (const slot of BODY_SLOTS) {
     const bslot = slot as 'torse' | 'jambes' | 'tete';
@@ -182,19 +167,19 @@ export function resolveParts(
 
   // Pieds : même table de priorité que les slots de corps (override → armure → tenue → repli). Le
   // repli d'espèce = le Nu de l'ESPÈCE (`extremites`, lisse civilisé ou griffu monstrueux) —
-  // aucune botte n'est plus un repli, une botte est TOUJOURS un habit porté (`tenue.pied`, #736 Lot 1).
+  // une botte est un habit porté (`tenue.pied`, #736), jamais un repli.
   out.pied = P(equipWinner('pied', overrides.pied != null, equip, tenue.pied) ?? PIED_NU[extremites]);
 
   // Mains : même table de priorité, repli = Nu de l'ESPÈCE (poing HAND civilisé ou MAIN_GRIFFUE
-  // monstrueux, #736 Lot 3) → agrippe l'arme/le bouclier, sinon l'arme « flotte » au bout de la manche ;
+  // monstrueux, #736) → agrippe l'arme/le bouclier, sinon l'arme « flotte » au bout de la manche ;
   // sous l'arme par z.
   out.main = P(equipWinner('main', overrides.main != null, equip, tenue.main) ?? MAIN_NUE[extremites]);
 
-  // Cou : SURCOUCHE — NECK (chair d'espèce) TOUJOURS peint en sous-couche garantie (#633 P2), puis le
+  // Cou : SURCOUCHE — NECK (chair d'espèce) TOUJOURS peint en sous-couche garantie (#633), puis le
   // gagnant de la table (override → armure → tenue) peint PAR-DESSUS (col/gorgerin). Le cou nu reste
   // donc garanti même quand rien ne le pilote.
   const couGagnant = equipWinner('cou', overrides.cou != null, equip, tenue.cou);
-  out.cou = { svg: pickView(NECK, view) + (couGagnant != null ? pickView(couGagnant, view) : '') };
+  out.cou = { svg: viewOrFront(NECK, view) + (couGagnant != null ? viewOrFront(couGagnant, view) : '') };
 
   // Mains : arme principale (1re non-bouclier) à l'os `arme` ; main secondaire (os `bouclier`) =
   // bouclier si présent, sinon la 2e arme tenue (dual-wield non-bouclier : dague, main-gauche…) —

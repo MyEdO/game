@@ -1,10 +1,10 @@
 /**
- * AUDIT du LITTÉRAL == JETON dans les tenues (#583 point 1) — définition UNIQUE, partagée par la
- * garde `src/gameIso/rig/parts/tenues/palette-literal.test.ts` et le régénérateur
- * `scripts/rig/regen-palette-literal-stock.mts`.
+ * AUDIT du LITTÉRAL == JETON dans les tenues (#583) — définition UNIQUE, partagée par la
+ * garde `src/gameIso/rig/parts/tenues/palette-literal.test.ts` et la régénération de
+ * `paletteLiteralStock.mjs` (`regenerations`).
  *
  * Classe de défaut mesurée : un littéral hex (`fill`/`stroke`/`stop-color`, ou arrêt d'un dégradé
- * dérivé `url(#dg-<forme>-…)`, #1903 A3) qui vaut EXACTEMENT
+ * dérivé `url(#dg-<forme>-…)`, #1903) qui vaut EXACTEMENT
  * (distance ZÉRO, insensible à la casse) une valeur déclarée dans la `palette` du MÊME def. Ce
  * littéral devait être le jeton `@<clé>` correspondant — quelle que soit la MATIÈRE peinte (chair,
  * cuir, tissu, plume…), la réponse mécanique est identique. Interdiction MÉCANISABLE SANS FAUX
@@ -34,22 +34,21 @@
 import { fichierDeDef, REGISTRE_TENUES } from './registreDeDefs';
 import { TENUE_DEFS } from '../../../src/gameIso/rig/parts/tenues/_registry.generated';
 import type { TenueDef } from '../../../src/gameIso/rig/parts/tenues/types';
-import type { PartArt } from '../../../src/gameIso/rig/parts/types';
+import { lireDegradeDerive } from '../../../src/gameIso/rig/palette';
+import { viewEntries } from '../../../src/gameIso/rig/viewArt';
 import { slugId } from '../../../src/data/slug';
+import { fileURLToPath } from 'node:url';
+import type { Site } from './stock.mjs';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 export const BODY_SLOTS = ['torse', 'jambes', 'bras', 'tete'] as const;
 export type BodySlot = (typeof BODY_SLOTS)[number];
-export const VIEWS = ['front', 'back', 'profile'] as const;
-export type View = (typeof VIEWS)[number];
 
-const LITERAL = /(?:fill|stroke|stop-color)\s*=\s*("|')(#[0-9a-fA-F]{3,8})\1|url\(#dg-[a-z0-9]+((?:-(?:@[a-zA-Z]\w*|#[0-9a-fA-F]{6}))+)\)/g;
+const LITERAL = /(?:fill|stroke|stop-color)\s*=\s*("|')(#[0-9a-fA-F]{3,8})\1|url\(#([^)]*)\)/g;
 
-/** Littéraux hex d'une correspondance de `LITERAL` : l'attribut, ou chaque arrêt littéral d'un `dg-`. */
-const litterauxDe = (m: RegExpExecArray): string[] => (m[2] ? [m[2]] : m[3].split('-').filter((a) => a.startsWith('#')));
-
-function viewsOf(art: PartArt): Partial<Record<View, string>> {
-  return typeof art === 'string' ? { front: art } : art;
-}
+/** Littéraux hex d'une correspondance de `LITERAL` : l'attribut, ou chaque arrêt littéral d'un dégradé
+ *  dérivé (`lireDegradeDerive`). */
+const litterauxDe = (m: RegExpExecArray): string[] => (m[2] ? [m[2]] : (lireDegradeDerive(m[3])?.arrets ?? []).filter((a) => a.startsWith('#')));
 
 /** Le fichier de def d'une tenue : la résolution PARTAGÉE par identité d'objet sur l'index généré
  *  (`registreDeDefs.ts`), servie ici par la description `REGISTRE_TENUES`. */
@@ -58,12 +57,12 @@ export const fichierDeTenue = (def: TenueDef): string => fichierDeDef(REGISTRE_T
 /**
  * Un SITE par occurrence d'un littéral == une valeur de la `palette` du même def, dans l'ordre du
  * balayage : `{ file: <le def qui porte la faute>, ref: '<tenueId>:<slot>:<vue>' }`. C'est la forme
- * de site que `sitesEnEntrees` (guards/lib/stock.mjs) ordinalise en entrées nominatives. Le FICHIER
+ * de site que `sitesEnEntrees` (guards/lib/stock.mjs) ordinalise en entrées de site. Le FICHIER
  * est dans la clé parce qu'un stock ne se relit pas sans lui : c'est lui que la
  * porte de plage voit, et lui que l'artiste doit ouvrir pour solder.
  */
-export function sitesPaletteLiteral(defs: readonly TenueDef[] = TENUE_DEFS): { file: string; ref: string }[] {
-  const sites: { file: string; ref: string }[] = [];
+export function sitesPaletteLiteral(defs: readonly TenueDef[] = TENUE_DEFS): Site[] {
+  const sites: Site[] = [];
   for (const def of defs) {
     const palette = def.palette;
     if (!palette) continue;
@@ -73,7 +72,7 @@ export function sitesPaletteLiteral(defs: readonly TenueDef[] = TENUE_DEFS): { f
     for (const slot of BODY_SLOTS) {
       const art = def.set[slot];
       if (art == null) continue;
-      for (const [view, svg] of Object.entries(viewsOf(art))) {
+      for (const [view, svg] of viewEntries(art)) {
         if (!svg) continue;
         LITERAL.lastIndex = 0;
         let m: RegExpExecArray | null;
@@ -88,3 +87,11 @@ export function sitesPaletteLiteral(defs: readonly TenueDef[] = TENUE_DEFS): { f
 /** Le MOTIF du volet, dernière phrase du refus de `refusDeCroissance` (`stock.mjs`). */
 export const MOTIF_PALETTE_LITERAL =
   "Un nouveau def qui recopie un littéral == jeton se corrige (le jeton), il ne s'entérine pas ici.";
+
+/** La RÉGÉNÉRATION de `paletteLiteralStock.mjs`, sur des sites (par défaut, la mesure du dépôt). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/paletteLiteralAudit.ts [--check]`. */
+export const regenerations = (sites: readonly Site[] = sitesPaletteLiteral()): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./paletteLiteralStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [{ nom: 'PALETTE_LITERAL_RATCHET', sites, motif: MOTIF_PALETTE_LITERAL }],
+}];

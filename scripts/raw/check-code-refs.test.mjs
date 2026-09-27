@@ -5,12 +5,11 @@
 // check-code-refs.mjs). Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import {
-  scanDeadCodeRefs, scanEmptyLineCodeRefs, isExcludedSrc, STOCK_PATH, EMPTY_LINE_STOCK_PATH,
-} from './check-code-refs.mjs'
+import { scanDeadCodeRefs, scanEmptyLineCodeRefs, isExcludedSrc, regenerations, sitesDeCode } from './check-code-refs.mjs'
+import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 
 // LDB 06 (Source/…/06 - Classes.md) fait 6 lignes (split('\n').length) — chapitre réel, court, stable :
 // sert d'ancrage pour planter une réf hors borne sans toucher au vrai src/.
@@ -117,8 +116,11 @@ test('plage l.X-Y : vide seulement si TOUTE la plage est blanche', () => {
   })
 })
 
+test('sitesDeCode : le site d’une réf du code est son fichier et sa réf, rien d’autre de la mesure', () => {
+  const mesure = { file: 'src/a.ts', row: 3, ref: 'LDB 6 l.2', abbr: 'LDB', nn: '06', hi: 2, chapterFile: 'x.md' }
+  assert.deepEqual(sitesDeCode([mesure]), [{ file: 'src/a.ts', ref: 'LDB 6 l.2' }])
+})
+
 test('régime ZÉRO-TOLÉRANCE (#583, #1898) : les deux stocks restent ABSENTS', () => {
-  for (const chemin of [STOCK_PATH, EMPTY_LINE_STOCK_PATH]) {
-    assert.equal(existsSync(chemin), false, `${chemin} doit rester ABSENT (zéro-tolérance) — sa réapparition doit porter, dans chaque entrée, le résidu irréductible qu'elle déclare`)
-  }
+  for (const r of regenerations()) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
 })

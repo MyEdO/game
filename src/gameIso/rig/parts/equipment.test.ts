@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipFromCombatant, isShield } from './equipment';
-import { pickView } from './types';
+import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = []): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q } as Weapon);
-const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => pickView(weaponPart(wep(name, type)), 'front');
+const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(wep(name, type)), 'front');
 /** Arme routée PAR SHAPE (id stable) — plus aucun routage par libellé au runtime. */
 const wepShape = (shape: string, type: 'melee' | 'ranged' = 'melee'): Weapon =>
   ({ label: 'x', type, damage: { plusBF: false, flat: 4 }, qualities: [], shape } as Weapon);
@@ -67,7 +67,7 @@ describe('armourMaterial — corrections audit', () => {
 describe('armourPart', () => {
   const mail: ItemInstance = { uid: '1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true };
   it('mappe une pièce de corps sur le slot torse', () => {
-    expect(pickView(armourPart(mail, 'torse'), 'front')).toContain('<');
+    expect(viewOrFront(armourPart(mail, 'torse'), 'front')).toContain('<');
   });
   it('ne renvoie rien si la pièce ne couvre pas l’emplacement', () => {
     expect(armourPart(mail, 'jambes')).toBeNull();
@@ -76,7 +76,7 @@ describe('armourPart', () => {
 
 describe('shieldPart', () => {
   it('renvoie un SVG de bouclier non vide', () => {
-    expect(pickView(shieldPart(wep('Bouclier', 'melee')), 'front')).toContain('<');
+    expect(viewOrFront(shieldPart(wep('Bouclier', 'melee')), 'front')).toContain('<');
   });
 });
 
@@ -109,8 +109,8 @@ describe('equipFromCombatant', () => {
     const e = equipFromCombatant(c);
     expect(e.armour.map((i) => i.label)).toEqual(['Plastron', 'Chemise de mailles', 'Veste de cuir']);
     // resolve.ts prend la 1re pièce couvrant le slot → torse = plate, bras = cuir (seule à couvrir).
-    expect(pickView(armourPart(e.armour.find((i) => (i.locs ?? []).includes('corps'))!, 'torse'), 'front'))
-      .toBe(pickView(armourPart(e.armour[0], 'torse'), 'front'));
+    expect(viewOrFront(armourPart(e.armour.find((i) => (i.locs ?? []).includes('corps'))!, 'torse'), 'front'))
+      .toBe(viewOrFront(armourPart(e.armour[0], 'torse'), 'front'));
   });
 
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {

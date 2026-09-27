@@ -56,7 +56,7 @@ describe('arts de coque par id (SHIP_ARTS, patron ENGIN_ARTS)', () => {
     expect(svgOf('cogue')).not.toBe(svgOf('croiseur'));
     // un id de navire INCONNU du registre tombe sur la silhouette d'erreur partagée (plus de procédural)
     expect(shipArtOf('id-de-navire-inconnu-xyz')).toBe(MISSING_ART);
-    // palette à jetons entièrement résolue après composition (recolorable, aucun @token résiduel)
+    // palette à jetons entièrement résolue après composition (recolorable, aucun jeton résiduel)
     expect(svgOf('galion-bretonnien')).not.toContain('@');
   });
 

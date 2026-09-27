@@ -7,6 +7,6 @@
 export interface EyeDef {
   id: string;             // 'chat','caprin','verre','perdu','cache-oeil','enorme'… — clé de référence
   label: string;          // libellé FR
-  art: string;            // SVG (peut utiliser socle() + tokens @peau)
+  art: string;            // SVG (peut utiliser socle() + jetons @peau)
   catalogOrder?: number;  // présent = listé dans EYE_OPTIONS (sélecteur éditeur), à cet ordre
 }

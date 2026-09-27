@@ -1,11 +1,11 @@
 /**
- * Rapport heuristique #633 B-P1 (LOT 5) — DIAGNOSTIC, jamais bloquant.
+ * Rapport heuristique (#633) — DIAGNOSTIC, jamais bloquant.
  *
- * Le membre supérieur est migré en 2 segments par DÉRIVE : l'art `bras` PLEINE LONGUEUR
+ * Le membre supérieur se découpe en 2 segments par DÉRIVE : l'art `bras` PLEINE LONGUEUR
  * (repère épaule, y ~ -2..34) est découpé au coude (`ELBOW_Y = 18`, cf. `parts/derive.ts`) ;
  * le bas rebasé habille l'avant-bras. La dérive suffit pour un art de manche « droit » ; elle
  * couvre MAL les arts `bras` atypiques (manche courte, revers/rabat qui traverse le coude en
- * diagonale, poignet bouffant). Ce script LISTE les defs suspects pour piloter la revue B-P4 —
+ * diagonale, poignet bouffant). Ce script LISTE les defs suspects pour piloter leur revue —
  * il ne corrige rien, il ne bloque rien. L'écoutille de correction est `TenueSet.avantBras`
  * (override honoré tel quel par `resolveUpperLimb`).
  *
@@ -15,7 +15,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as pathResolve } from 'node:path';
 import { TENUE_DEFS } from '../../src/gameIso/rig/parts/tenues/_registry.generated';
-import type { PartArt } from '../../src/gameIso/rig/parts/types';
+import { declaredView } from '../../src/gameIso/rig/viewArt';
 
 // Coude = pivot avant-bras dans le repère épaule (SKELETON-CONTRACT, cf. derive.ts ELBOW_Y).
 const ELBOW_Y = 18;
@@ -48,10 +48,6 @@ function coords(svg: string): { pts: Array<{ x: number; y: number }>; irregular:
   return { pts, irregular };
 }
 
-function frontOf(art: PartArt): string {
-  return typeof art === 'string' ? art : art.front;
-}
-
 type Row = {
   id: string;
   label: string;
@@ -67,7 +63,7 @@ const rows: Row[] = [];
 for (const def of TENUE_DEFS) {
   const brasArt = def.set.bras;
   if (brasArt == null) continue; // pas d'art bras → dérive du générique (hors champ de ce rapport)
-  const front = frontOf(brasArt);
+  const front = declaredView(brasArt, 'front') ?? '';
   const { pts, irregular } = coords(front);
   if (pts.length === 0) continue;
   const yMax = Math.max(...pts.map((p) => p.y));

@@ -6,13 +6,13 @@
  * CORPS (tenues + armures) ont leur propre cliquet (`parts/tenues/part-view-format.test.ts`) ; les
  * autres plans de corps (quadrupède, nuées, navires) ne sont PAS mesurés ici.
  *
- * Ces deux familles ne passent pas par `resolveParts` : leur repli est SILENCIEUX — `pickView`
+ * Ces deux familles ne passent pas par `resolveParts` : leur repli est SILENCIEUX — `viewOrFront`
  * (`parts/types.ts`) sert le front tel quel côté monstre, et le filtre
  * `if (ov.view && ov.view !== view) continue` (`composeRig.tsx`) émet un overlay sans `view` à
  * l'identique dans les trois vues.
  *
- * La MESURE vit dans `scripts/guards/lib/partViewAudit.ts` (`auditRigPartViews`) — partagée avec le
- * régénérateur `scripts/rig/regen-rig-view-stock.mts`. Ici : les quatre invariants du cliquet.
+ * La MESURE vit dans `scripts/guards/lib/partViewAudit.ts` (`auditRigPartViews`) — partagée avec la
+ * régénération (`regenerations`). Ici : les quatre invariants du cliquet.
  *   1. FORMAT — la vue est déclarée quelque part.
  *   2. ANTI-ALIAS — une vue déclarée n'a pas la géométrie du front.
  *   3. ANTI-TRANSFORM — une vue déclarée ne réutilise pas le contenu du front sous un `<g transform>`.
@@ -22,25 +22,27 @@
  * le def à ouvrir — que la porte de plage (`croissanceDesStocks`) voit à l'append.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { MONSTER_PARTS } from './_registry.generated';
 import { ELEMENT_DEFS } from '../elements/_registry.generated';
 import type { ElementOverlay } from '../elements/types';
-import { auditRigPartViews, isTransformDerived } from '../../../../../scripts/guards/lib/partViewAudit';
-import type { Site } from '../../../../../scripts/guards/lib/stock.mjs';
+import { auditPartViews, auditRigPartViews, isDrawnView, isTransformDerived, regenerations } from '../../../../../scripts/guards/lib/partViewAudit';
+import { fichierDeDef, REGISTRE_ELEMENTS, REGISTRE_PARTS_MONSTRUEUSES } from '../../../../../scripts/guards/lib/registreDeDefs';
+import { DECROISSANT, ecartDeRegeneration, texteEnPlace, texteRegenere } from '../../../../../scripts/guards/lib/stockDeSites.mjs';
+import type { ViewSet } from '../types';
+import { replaceTokens } from '../../palette';
+import { gammeDe } from '../../../../data/palette.types';
 import {
   RIG_VIEW_FORMAT_RATCHET,
   RIG_VIEW_ALIAS_RATCHET,
   RIG_VIEW_TRANSFORM_RATCHET,
 } from '../../../../../scripts/guards/lib/rigViewStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
 
 const STOCK = 'scripts/guards/lib/rigViewStock.mjs';
 
 /** Cliquet générique : sites hors stock = neuves (échec) ; entrées que plus aucun site ne porte =
  *  périmées (échec). La primitive PARTAGÉE du dépôt, jamais une comparaison locale. */
-const ratchet = (sites: readonly Site[], stock: Iterable<EntreeNominative>) =>
+const ratchet = (sites: readonly Site[], stock: Iterable<EntreeDeSite>) =>
   ecartDuVolet({ sites, stock, ou: STOCK });
 
 /** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
@@ -56,12 +58,16 @@ describe('vues des parts monstre + éléments : cliquet à trois dimensions (#10
     expect(new Set(elements).size).toBe(elements.length);
   });
 
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(auditPartViews(), { format, alias, transform })) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
+  });
+
   it('aucune vue NEUVE non déclarée, et le stock ne peut que DÉCROÎTRE', () => {
     const { neuves, perimees } = ratchet(format, RIG_VIEW_FORMAT_RATCHET);
     expect(neuves, `Vues NON DÉCLARÉES neuves — l'art de face est servi à cette vue (repli de\n` +
-      `pickView / du filtre d'overlay). Déclarer la vue :\n  ${neuves.join('\n  ')}`).toEqual([]);
+      `viewOrFront / du filtre d'overlay). Déclarer la vue :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `Entrées de RIG_VIEW_FORMAT_RATCHET qui ne violent plus — les RETIRER de\n` +
-      `${STOCK} (ou : npx tsx scripts/rig/regen-rig-view-stock.mts) :\n` +
+      `${STOCK} (ou : npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts) :\n` +
       `  ${perimees.join('\n  ')}`).toEqual([]);
   });
 
@@ -104,12 +110,16 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
   /** Premier def monstre déclarant profile ET back — support des mutations. */
   const target = (() => {
     for (const p of MONSTER_PARTS)
-      if (typeof p.art === 'object' && p.art.profile && p.art.back)
-        return { part: p, art: p.art as { front: string; back: string; profile: string } };
+      if (isDrawnView(p.art, 'profile') && isDrawnView(p.art, 'back'))
+        return { part: p, art: p.art as ViewSet };
     throw new Error('aucune part monstre à 3 vues — le corpus a changé, la morsure n\'a plus de support');
   })();
   /** La violation attendue, telle que le remède l'imprime : la CLÉ nominative du site. */
-  const KEY = ` :: monstre:${target.part.slot}:${target.part.key}:back :: 1`;
+  const KEY = cleDeSite({
+    fichier: fichierDeDef(REGISTRE_PARTS_MONSTRUEUSES, target.part),
+    ref: `monstre:${target.part.slot}:${target.part.key}:back`,
+    occurrence: 1,
+  });
 
   function withBack(back: string | undefined, dim: 'format' | 'alias' | 'transform') {
     const saved = target.part.art;
@@ -122,9 +132,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
   }
 
   it('une part rendue front-only rougit la dimension FORMAT, en NOMMANT son def', () => {
-    const neuves = withBack(undefined, 'format');
-    expect(porte(neuves, KEY)).toBe(true);
-    expect(porte(neuves, `src/gameIso/rig/parts/monster/defs/${target.part.key}.ts`)).toBe(true);
+    expect(porte(withBack(undefined, 'format'), KEY)).toBe(true);
   });
 
   it('une vue de dos recopiée du front rougit la dimension ALIAS', () => {
@@ -150,7 +158,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
     part.art = { front: '<path d="M0 0 L1 1"/>', profile: '<path d="M2 2 L7 3"/>', back: '<path d="M4 8 L9 5"/>' };
     try {
       const { perimees } = ratchet(auditRigPartViews().format, RIG_VIEW_FORMAT_RATCHET);
-      expect(porte(perimees, ` :: ${entree!.ref} :: ${entree!.occurrence}`)).toBe(true);
+      expect(porte(perimees, cleDeSite(entree!))).toBe(true);
     } finally { part.art = saved; }
   });
 
@@ -163,7 +171,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
   });
 
   it('une vue de dos = front recoloré, sans transform, rougit la dimension ALIAS (géométrie identique)', () => {
-    const recolore = target.art.front.replace(/fill=("|')@(\w+)("|')/g, 'fill=$1@$2O$3');
+    const recolore = replaceTokens(target.art.front, (key) => `@${gammeDe(key, 'ombre')}`);
     expect(recolore).not.toBe(target.art.front);
     expect(porte(withBack(recolore, 'alias'), KEY)).toBe(true);
   });
@@ -176,7 +184,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
       ref: 'element:gonflement:back', occurrence: 1,
     }];
     const { perimees } = ratchet(auditRigPartViews().transform, gonfle);
-    expect(porte(perimees, ' :: element:gonflement:back :: 1')).toBe(true);
+    expect(porte(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
     expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });
@@ -203,6 +211,9 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
     throw new Error("aucun def d'apparence hors stock sur SES DEUX vues — la morsure n'a plus de support");
   })();
   const K = support.key;
+  /** La clé du site de la vue `vue` du def support. */
+  const cleDe = (vue: 'back' | 'profile') =>
+    cleDeSite({ fichier: fichierDeDef(REGISTRE_ELEMENTS, support), ref: `element:${K}:${vue}`, occurrence: 1 });
 
   function withElement(overlays: ElementOverlay[]): Site[] {
     const saved = support.overlays;
@@ -214,9 +225,8 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
 
   it('un calque `svg` sans `view` rougit les DEUX vues en FORMAT, en NOMMANT le def', () => {
     const neuves = neuvesFormat([{ bone: 'tete', svg: '<path d="M0 0 L5 5"/>' }]);
-    expect(porte(neuves, ` :: element:${K}:back :: 1`)).toBe(true);
-    expect(porte(neuves, ` :: element:${K}:profile :: 1`)).toBe(true);
-    expect(porte(neuves, `src/gameIso/rig/parts/elements/defs/${K}.ts`)).toBe(true);
+    expect(porte(neuves, cleDe('back'))).toBe(true);
+    expect(porte(neuves, cleDe('profile'))).toBe(true);
   });
 
   it('un calque `svg` sans `view` rougit MÊME quand un autre calque déclare la vue', () => {
@@ -224,7 +234,7 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
       { bone: 'tete', svg: '<path d="M9 9 L1 4"/>', view: 'back' },
       { bone: 'torse', svg: '<path d="M0 0 L5 5"/>' },
     ]);
-    expect(porte(neuves, ` :: element:${K}:back :: 1`)).toBe(true);
+    expect(porte(neuves, cleDe('back'))).toBe(true);
   });
 
   it('une vue DÉCLARÉE dont l\'art rend vide compte en FORMAT : rien n\'est servi à cette vue', () => {
@@ -232,26 +242,29 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
       { bone: 'tete', svg: '<path d="M0 0 L5 5"/>', view: 'front' },
       { bone: 'tete', svg: '', view: 'back' },
     ]);
-    expect(porte(neuves, ` :: element:${K}:back :: 1`)).toBe(true);
+    expect(porte(neuves, cleDe('back'))).toBe(true);
   });
 });
 
 /**
- * BARRIÈRE du régénérateur (`scripts/rig/regen-rig-view-stock.mts`) — elle porte sur l'APPARTENANCE
- * des sites, jamais sur la taille des ensembles, et c'est la MÊME lecture de « ce qui est neuf » que
- * le cliquet ci-dessus : `refusDeCroissance`, dans `scripts/guards/lib/stock.mjs`. Deux lectures
- * divergentes laisseraient l'une écrire ce que l'autre refuse. Le contrat de cette barrière est tenu
- * sur fixture synthétique dans `scripts/guards/lib/stock.test.mjs` ; ici, le CÂBLAGE réel.
+ * BARRIÈRE de la régénération (`regenerations`, politique `DECROISSANT`) — elle porte sur
+ * l'APPARTENANCE des sites, jamais sur la taille des ensembles, et c'est la MÊME lecture de « ce qui
+ * est neuf » que le cliquet ci-dessus : `refusDeCroissance`, dans `scripts/guards/lib/stock.mjs`. Deux
+ * lectures divergentes laisseraient l'une écrire ce que l'autre refuse. Le contrat de cette barrière
+ * est tenu sur fixture synthétique dans `scripts/guards/lib/stockDeSites.test.mjs` ; ici, le CÂBLAGE
+ * réel, lu sur la VALEUR de la déclaration.
  */
 describe('barrière du régénérateur de stock (#1082)', () => {
   it('le régénérateur refuse par `refusDeCroissance`, pas par une comparaison de tailles', () => {
-    const src = readFileSync(
-      fileURLToPath(new URL('../../../../../scripts/rig/regen-rig-view-stock.mts', import.meta.url)), 'utf8');
-    expect(src).toContain("import { regenererStock } from '../guards/lib/regenStock.mts';");
-    expect(src).toContain('stock: RIG_VIEW_FORMAT_RATCHET');
-    const regen = readFileSync(
-      fileURLToPath(new URL('../../../../../scripts/guards/lib/regenStock.mts', import.meta.url)), 'utf8');
-    expect(regen).toContain('const refus = refusDeCroissance(c.mesurees, c.stock, { nom: c.nom, motif: c.motif });');
-    expect(regen, "une barrière de TAILLES blanchit l'échange à somme nulle").not.toMatch(/\.length\s*[<>]=?\s*\w+\.length/);
+    const regeneration = regenerations(auditPartViews(), auditRigPartViews())
+      .find((r) => r.chemin.endsWith('/rigViewStock.mjs'));
+    expect(regeneration?.politique).toBe(DECROISSANT);
+    const solde = { fichier: 'src/solde.ts', ref: 'element:solde:back', occurrence: 1 };
+    const echange = texteRegenere(
+      { ...regeneration!, collections: [{ nom: 'RIG_VIEW_FORMAT_RATCHET', sites: [{ file: 'src/neuf.ts', ref: 'element:neuf:back' }] }] },
+      { enPlace: `export const RIG_VIEW_FORMAT_RATCHET = [\n  { fichier: '${solde.fichier}', ref: '${solde.ref}', occurrence: 1 },\n]\n` },
+    );
+    expect('refus' in echange, "une barrière de TAILLES blanchit l'échange à somme nulle").toBe(true);
+    expect('refus' in echange && echange.refus).toContain(cleDeSite({ fichier: 'src/neuf.ts', ref: 'element:neuf:back', occurrence: 1 }));
   });
 });

@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Un SEUL fauteuil d'opéra (1×1) : velours rouge + dorures. Contrairement à `rangee-sieges` (bloc 3×1
 // figé), un siège occupe UNE case → trois sièges alignés se RÉORIENTENT correctement quand on tourne la
-// caméra. Prop DIRECTIONNEL : il déclare ses trois vues ; la machinerie (`propSvg`) choisit la vue + le
+// caméra. Prop ORIENTÉ : il déclare ses trois vues ; la machinerie (`propSvg`) choisit la vue + le
 // miroir via `project(dir, camRot)` (cf. `PropViz.views` / `rig/facing.ts`). Le profil est dessiné
 // tourné vers la DROITE (le profil gauche = miroir, appliqué par la machinerie).
 

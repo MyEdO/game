@@ -297,7 +297,7 @@ export interface BattleState {
    *  `resolveRoundBoundary` (qui peut SUSPENDRE pour un héros à Destin). `deathLine` = la ligne de
    *  journal pré-formée, annoncée APRÈS la décision de Destin. Purgé une fois tous finalisés. */
   bleedDoomed?: { id: string; deathLine: string }[];
-  /** Instantané positionnel pris au PREMIER segment de Mouvement du Tour (R6/LOT 6) : permet
+  /** Instantané positionnel pris au PREMIER segment de Mouvement du Tour (R6) : permet
    *  d'ANNULER tout le déplacement tant qu'aucune Action n'a été prise (`cancelMove`). Restaure
    *  positions de TOUS les combattants (un grand a pu en déplacer d'autres), orientation et
    *  `movedPreAction`. Effacé à l'annulation ou écrasé au 1ᵉʳ segment du Tour suivant. */
@@ -349,7 +349,7 @@ export interface CampaignDoc {
   startSceneId: string;
 }
 
-/** Déplacement-puis-interaction (P5) : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
+/** Déplacement-puis-interaction : le décor visé, l'offre NOMMÉE qu'on lui destine (absente quand
  *  le décor en porte plusieurs — sa pastille les sert à l'arrivée) et la case où la marche se termine.
  *  UN type, lu par l'état comme par son poseur : les deux ne peuvent plus diverger. */
 export type PendingInteract = { id: string; actionId?: string; at: Pt };
@@ -491,7 +491,7 @@ export interface GameState extends RollFlowActionsMap {
   setKeyBinding: (id: string, code: string) => void;
   resetKeyBindings: () => void;
   partyPos: Pt;
-  /** Niveau de lumière de scène (Lot L, mise en scène) : 0 = noir, 1 = plein jour ; null = auto
+  /** Niveau de lumière de scène (mise en scène) : 0 = noir, 1 = plein jour ; null = auto
    *  (horloge/ambiance). Posé par l'Effet `setLight`, lu par le rendu (overlay d'assombrissement). */
   lightLevel: number | null;
   flags: Record<string, boolean>;
@@ -562,7 +562,7 @@ export interface GameState extends RollFlowActionsMap {
    *  persistance snapshot est déférée (#766). */
   campaignNarratif: NarratifBlock | null;
   /** Document source du paquet de campagne chargé (#766) — snapshotté (via `stateFields`), re-registre
-   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = chemin Arène / save legacy. */
+   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = chemin Arène / save sans paquet de campagne. */
   campaignDoc: CampaignDoc | null;
   /** Instances runtime de scène (#707) — delta capturé au départ (entités retirées, flags de porte/
    *  structure) par `sceneId`, réappliqué au clone frais au revisit (`transitionTo`). SURVIT aux
@@ -599,7 +599,7 @@ export interface GameState extends RollFlowActionsMap {
   pendingAuContact: PendingAuContact | null;
   /** Empoignade (LDB 14 l.161) : action à son tour — Test opposé de Force OU « Briser » (Avantage supérieur). */
   pendingGrapple: PendingGrapple | null;
-  /** Déplacement-puis-interaction (P5) : le décor visé ET la case où la marche PLANIFIÉE se termine
+  /** Déplacement-puis-interaction : le décor visé ET la case où la marche PLANIFIÉE se termine
    *  (`ExploreMovePlan.dest` — abord d'une place, ou case adjacente d'un décor fouillable). L'interaction
    *  se consomme À CETTE CASE : une adjacence CROISÉE en chemin ne l'ouvre pas (le chemin vers l'abord
    *  d'une place longe la table, et la fouille/assise s'y déclenchait à mi-parcours, hors de l'abord). */
@@ -685,7 +685,7 @@ export interface GameState extends RollFlowActionsMap {
    *  branchement au canal `OpsCtx.onCondition` (V8d-B, #1330). AUCUN ne le pose encore : son absence
    *  ne dit RIEN de la ligne aujourd'hui — surtout pas qu'elle ne parle d'aucun État. */
   pendingLogQueue: { line: string; cid?: string; stateId?: string }[];
-  /** File d'effets PROGRAMMÉS (Lot 0 : minuteries `delayedEffect`) — déclenchés au franchissement de
+  /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `advanceTime`. */
   scheduledEffects: ScheduledEffect[];
   /** Piétinement en cours (modale interactive). */
@@ -743,10 +743,10 @@ export interface GameState extends RollFlowActionsMap {
   /** Ferme l'écran de défaite ; dans une Scène de combat de bataille de masse, la bataille CONTINUE
    *  (défaite tactique = `combatLost`, groupe repoussé mais relevé). */
   dismissDefeat: () => void;
-  /** VOL TERRESTRE en cours (#327 A5.1) : le combat courant est né d'une péripétie dangereuse terrestre —
+  /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —
    *  la cargaison du convoi est en jeu, dénouée au teardown de combat (`resolveCargoRaid`). */
   cargoRaid: boolean;
-  /** Dénoue le vol terrestre GRADUÉ (#327 A5.1) : applique la perte d'Enc du convoi selon l'issue
+  /** Dénoue le vol terrestre GRADUÉ (#327) : applique la perte d'Enc du convoi selon l'issue
    *  (`applyLandCargoRaid`, params maison) et éteint `cargoRaid`. No-op hors vol en cours. */
   resolveCargoRaid: (outcome: import('../engine/cargo').CargoRaidOutcome) => void;
   /** Butin HORS combat (fouille/Test/dialogue/trigger) — fenêtre « qui l'emporte ? » (même brique). */
@@ -769,7 +769,7 @@ export interface GameState extends RollFlowActionsMap {
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
-   *  null = « Nouvelle partie » standard (campagne par défaut). `id` optionnel (#608 Lot B) : plombé
+   *  null = « Nouvelle partie » standard (campagne par défaut). `id` optionnel (#608) : plombé
    *  à la sélection (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label` ;
    *  absent sur une vieille save migrée = pas de surlignage, pas de crash. */
   pendingCampaign: { id?: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
@@ -884,7 +884,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Donne un objet d'un héros à un autre (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transferItem: (uid: string, fromHeroId: string, toHeroId: string) => void;
-  /** Skin cosmétique d'un objet (override de palette token→hex ; clé à `undefined` = reset).
+  /** Skin cosmétique d'un objet (override de palette clé→hex ; clé à `undefined` = reset).
    *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
   setItemSkin: (heroId: string, uid: string, patch: Record<string, string | undefined>) => void;
   /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
@@ -1209,7 +1209,7 @@ export interface GameState extends RollFlowActionsMap {
   // Charge, spec § 2026-08-19) manquait déjà de cette copie, et TypeScript ne pouvait pas le dire.
   battleClickTile: (pt: Pt, opts?: TileClickOpts) => void;
   battleClickEntity: (id: string, opts?: BattleClickOpts) => void;
-  /** Annule TOUT le déplacement décomposé du Tour (R6/LOT 6) tant qu'aucune Action n'a été prise :
+  /** Annule TOUT le déplacement décomposé du Tour (R6) tant qu'aucune Action n'a été prise :
    *  restaure positions/orientation depuis `battle.moveSnapshot`. No-op après l'Action. */
   cancelMove: () => void;
   battleEndTurn: () => void;
@@ -1374,7 +1374,7 @@ export interface GameState extends RollFlowActionsMap {
   battleManPoste: (target?: { hullId: string; posteUid: string }) => void;
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   battleLeavePoste: () => void;
-  /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
+  /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
    *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
    *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
    *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
@@ -1616,8 +1616,8 @@ export interface GameState extends RollFlowActionsMap {
 }
 
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
- *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Les champs
- *  du lot 7b sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
+ *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
+ *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
  *  défaut (coque intacte, humeur neutre, cale vide) — migration par défauts, jamais de corruption. */
 export interface CampaignVessel {
   vehicleId: string;
@@ -2199,7 +2199,7 @@ export const useGame = create<GameState>((set, get) => ({
     // Gestes VIVANTS de la frontière (`stageGestes`) : la carte s'ouvre à son cran, CENTRÉE, et sans
     // qu'aucune marche tenue de l'écran précédent n'y commette de pas.
     resetStageGestes();
-    // Semis des Possessions de dotation (#617/#618 Lot 1) — ICI, jamais `loadGame` (qui restaure
+    // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
     // `data.possessions` de la save) : `startScene` est le SEUL seam qui repart d'un registre
     // `possessions` vidé (le reset ci-dessus), pour toute partie neuve (créateur → campagne,
     // devtools scenario()/campaign()) — `transitionTo`/`loadProject` (scène suivante d'un même
@@ -2324,7 +2324,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (from.x !== pt.x || from.y !== pt.y) set((s) => ({ facing: poserCapDuGroupe(s.facing, facingToward(from, pt)) }));
     bus.emit(EVT.SCENE_DIRTY);
     checkTriggers(get, set);
-    // P5 (déplacement-puis-interaction) : l'interaction s'ouvre à la case D'ARRIVÉE du plan qui l'a
+    // Déplacement-puis-interaction : l'interaction s'ouvre à la case D'ARRIVÉE du plan qui l'a
     // armée (`pendingInteract.at`), jamais à une adjacence croisée en chemin — le chemin vers l'abord
     // d'une place passe par des cases voisines du meuble qui ne SONT pas cet abord.
     const pi = get().pendingInteract;
@@ -2476,7 +2476,7 @@ export const useGame = create<GameState>((set, get) => ({
     const horsPortee = !aPorteeDe(partyPos, ent);
     // Trop loin ou autre étage : la portée se lit à la SOURCE UNIQUE (`exploreNav.aPorteeDe`, qui
     // compte l'étage). Ici, aucune des affordances de proximité ne s'ouvre ; le déplacement-puis-fouille
-    // (P5) est armé par l'UI (setPendingInteract).
+    // est armé par l'UI (setPendingInteract).
     if (!horsPortee) {
       const offres = actionsDe(scene, ent, get().flags).filter((o) => o.origine !== 'assise');
       // UNE offre → on la joue ; N → rien ici : le PANNEAU borné de la pastille les sert (« Que faire ? »),
@@ -2537,7 +2537,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   /** Arme (ou annule via null) un déplacement-puis-interaction : l'UI le pose au clic d'un décor
    *  éloigné AVEC la case d'arrivée du plan de marche, consommé par `moveParty` à CETTE case ;
-   *  annulé sur tout autre clic (P5). */
+   *  annulé sur tout autre clic. */
   setPendingInteract: (pending) => set({ pendingInteract: pending }),
 
   chooseDialogue: (choiceIndex) => {
@@ -2641,7 +2641,7 @@ export const useGame = create<GameState>((set, get) => ({
     }
   },
   dismissVictory: () => {
-    get().resolveCargoRaid('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327 A5.1)
+    get().resolveCargoRaid('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
     const pv = get().pendingVictory;
     const leftoverGear = (pv?.gear ?? []).map((g) => g.effect); // équipement non attribué → 1er héros par défaut
     const cont = pv?.onContinue;
@@ -2667,7 +2667,7 @@ export const useGame = create<GameState>((set, get) => ({
    *  abstraction), l'issue `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge),
    *  et la bataille CONTINUE. Hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
   dismissDefeat: () => {
-    get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327 A5.1)
+    get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
     // Anéantissement HORS COMBAT (`checkPartyWiped`) : pas de bataille à reprendre — retour au menu.
     if (get().partyWiped) { set({ partyWiped: false, battle: null, screen: 'menu' }); return; }
     const inMassBattleCombat = !!get().massBattle?.combatScene;
@@ -3072,7 +3072,7 @@ export const useGame = create<GameState>((set, get) => ({
     } else {
       get().transitionTo(then.scene, then.entry);
       get().startCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
-      // Vol terrestre (#327 A5.1) : cette embuscade terrestre met la cargaison du convoi en jeu — la
+      // Vol terrestre (#327) : cette embuscade terrestre met la cargaison du convoi en jeu — la
       // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS startCombat (le reset `combatStart`
       // n'efface donc pas le marqueur).
       if (get().battle) set({ cargoRaid: true });

@@ -12,6 +12,7 @@
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
+import { litteralJs } from './guards/lib/litteralJs.mjs';
 
 /**
  * `importDir` : chemin (relatif au fichier `out`) d'où importer chaque entrée. Défaut `./defs`
@@ -89,8 +90,9 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadManeId', field: 'key' },
   },
   {
-    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit par vue depuis
-    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts`) : 1 set = 1 fichier defs/. Même patron que
+    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit depuis
+    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts` en une table keyée par vue,
+    // `harnais/<id>Compile.ts`) : 1 set = 1 fichier defs/. Même patron que
     // les têtes/queues/crinières ; l'union `QuadHarnaisId` est GÉNÉRÉE des ids déclarés (#1128).
     dir: 'src/gameIso/rig/quadruped/harnais/defs',
     out: 'src/gameIso/rig/quadruped/harnais/_registry.generated.ts',
@@ -101,7 +103,7 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadHarnaisId', field: 'id' },
   },
   {
-    // Appendices (cornes/queue, art multi-vues) : 1 appendice = 1 fichier defs/. Source UNIQUE de
+    // Appendices (cornes/queue, art orienté) : 1 appendice = 1 fichier defs/. Source UNIQUE de
     // l'art de corne/queue, référencé par id (monster.cornes / appendageFeature / traitVisuals).
     dir: 'src/gameIso/rig/parts/appendages/defs',
     out: 'src/gameIso/rig/parts/appendages/_registry.generated.ts',
@@ -172,7 +174,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Têtes (visage + coiffure défaut par Race:Sexe, art tokenisé) : 1 tête = 1 fichier defs/.
+    // Têtes (visage + coiffure défaut par Race:Sexe, art en jetons) : 1 tête = 1 fichier defs/.
     dir: 'src/gameIso/rig/parts/heads/defs',
     out: 'src/gameIso/rig/parts/heads/_registry.generated.ts',
     exportName: 'head',
@@ -226,7 +228,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Armures (matériau × emplacement, art tokenisé) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
+    // Armures (matériau × emplacement, art en jetons) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
     dir: 'src/gameIso/rig/parts/armour/defs',
     out: 'src/gameIso/rig/parts/armour/_registry.generated.ts',
     exportName: 'armour',
@@ -323,7 +325,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Schémas zod du contrat de donnée (Lot 1) : 1 dataset `src/data/*.json` = 1 fichier defs/,
+    // Schémas zod du contrat de donnée : 1 dataset `src/data/*.json` = 1 fichier defs/,
     // exportant `file` (nom du .json) + `schema` (zod). `fields` (2 exports par module, pas 1
     // seul) → entrées `{ file, schema }` plutôt qu'un tableau plat d'un seul type.
     dir: 'src/data/schemas/defs',
@@ -376,7 +378,7 @@ function genOne(r) {
   // Alias suffixé (`e0_champ`) UNIQUEMENT pour les registres multi-champs : les registres
   // « 1 def = 1 valeur » gardent `e0` — leur sortie générée reste byte-identique.
   // `optionalFields` : champ qu'un module de def exporte OU NON (`meta`, #1466 — posée par
-  // `document()`, absente des defs sans export `meta` ; adoption par def : lot L1b #1467).
+  // `document()`, absente des defs sans export `meta` ; adoption par def : #1467).
   // Détection par CONVENTION D'EXPORT NOMMÉ,
   // comme `file`/`schema`/`famille` : le générateur est TEXTUEL (readdirSync + regex, jamais d'import
   // runtime), donc un export absent doit être vu AVANT d'être importé, sinon le module généré ne compile pas.
@@ -491,7 +493,7 @@ const estUnLibelle = (v) => /^[A-ZÀ-Þ]/.test(v) || /\s/.test(v);
  * contrat `verifieExhaustiviteDesIds` ci-dessous : le commit qui donne au document des ids de premier
  * niveau, OU celui qui le RE-ÉTIQUETTE dans une famille qui n'en attend aucun (`config` — c'est par
  * cette seconde voie que les tables d'Aux Armes sont sorties d'ici, V-FLIP-CONFIG #1467 : leurs 4
- * familles étaient des CHAMPS de document, pas des clés de record — elles sont depuis #1657 B2a 4 des
+ * familles étaient des CHAMPS de document, pas des clés de record — elles sont depuis #1657 4 des
  * 8 documents de `criticals.json`, famille `entite` à ids de premier niveau). Un dataset ni registré ni inscrit ici fait ROUGIR
  * `npm run gen` ; une entrée survivante sur un document `config` aussi.
  */
@@ -649,7 +651,6 @@ function genIds() {
     .filter((p) => p && typeof p.id === 'string' && p.volume && Array.isArray(p.volume.primitives) && p.volume.primitives.length)
     .map((p) => p.id)
     .sort();
-  const lit = (v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
   const body =
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -665,7 +666,7 @@ function genIds() {
     ` *    vivante, \`src/data/schemas/grammaire/idsVivants.ts\` la sert à \`ref.ts\`.\n` +
     ` */\n` +
     `export const IDS_PAR_DATASET: Readonly<Record<string, readonly string[]>> = {\n` +
-    ids.map(([f, l]) => `  ${lit(f)}: [${l.map(lit).join(', ')}],\n`).join('') +
+    ids.map(([f, l]) => `  ${litteralJs(f)}: [${l.map(litteralJs).join(', ')}],\n`).join('') +
     `};\n\n` +
     `/**\n` +
     ` * Pool de VALIDITÉ des spécialisations déclarées par une entrée (\`specs[].id\`), par dataset puis\n` +
@@ -673,7 +674,7 @@ function genIds() {
     ` */\n` +
     `export const SPECS_PAR_DATASET: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {\n` +
     specs
-      .map(([f, entrees]) => `  ${lit(f)}: {\n${entrees.map(([id, l]) => `    ${lit(id)}: [${l.map(lit).join(', ')}],\n`).join('')}  },\n`)
+      .map(([f, entrees]) => `  ${litteralJs(f)}: {\n${entrees.map(([id, l]) => `    ${litteralJs(id)}: [${l.map(litteralJs).join(', ')}],\n`).join('')}  },\n`)
       .join('') +
     `};\n\n` +
     `/**\n` +
@@ -682,7 +683,7 @@ function genIds() {
     ` * runtime. Un tel décor ne prend qu'un cap CARDINAL : \`data/props.types.ts\` \`capVolumique\`.\n` +
     ` * Refusé AU PARSE par \`sceneEntitySchema\` (\`defs-scenes/scene.ts\`).\n` +
     ` */\n` +
-    `export const PROPS_VOLUMIQUES: readonly string[] = [${volumiques.map(lit).join(', ')}];\n\n` +
+    `export const PROPS_VOLUMIQUES: readonly string[] = [${volumiques.map(litteralJs).join(', ')}];\n\n` +
     `/**\n` +
     ` * SOUS-LISTES d'ids d'un dataset DISCRIMINÉ, par valeur de son champ discriminant (le def le\n` +
     ` * déclare : \`export const discriminant\`, cf. \`defs/materials.ts\`) — la cible du refine de\n` +
@@ -692,7 +693,7 @@ function genIds() {
     `export const IDS_PAR_DISCRIMINANT: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {\n` +
     sousListes
       .map(([f, parValeur]) =>
-        `  ${lit(f)}: {\n${Object.entries(parValeur).map(([v, l]) => `    ${lit(v)}: [${l.map(lit).join(', ')}],\n`).join('')}  },\n`)
+        `  ${litteralJs(f)}: {\n${Object.entries(parValeur).map(([v, l]) => `    ${litteralJs(v)}: [${l.map(litteralJs).join(', ')}],\n`).join('')}  },\n`)
       .join('') +
     `};\n`;
   let prev = '';

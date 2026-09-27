@@ -5,7 +5,7 @@
 // EXISTANTE du garde-fou commentaires — jamais un `git grep` sur le texte brut : un motif écrit dans
 // une CHAÎNE n'est pas un commentaire (faux positif mesuré sur une fixture de test qui cite une
 // ligne de dette dans un littéral). Périmètre de fichiers = celui des trois portes anti-poison
-// (`estFichierScanne` : `src/**` et `scripts/**`, extensions TS/TSX/MTS/MJS).
+// (`estFichierScanne`, qui lit `PERIMETRE_DES_GARDES`).
 //
 // HORS de ce volet, dit : le canal DONNÉE (un stock JSON/MJS qui déclare un blocage dans une VALEUR,
 // et non dans un commentaire) — la sémantique des stocks se traite avec eux.

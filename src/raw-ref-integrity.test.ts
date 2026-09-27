@@ -3,18 +3,21 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  scanBlindRefs, sitesAveugles, ecartDesRefsAveugles, readStock, STOCK_PATH, isBlindRef,
-  chapterFile, readText, significantWords, SITE_EXEMPTIONS, WINDOW, MIN_WORD_LEN,
+  scanBlindRefs, sitesAveugles, ecartDesRefsAveugles, lireEntreesDeSite, STOCK_PATH, isBlindRef,
+  chapterFile, readText, significantWords, SITE_EXEMPTIONS, WINDOW, MIN_WORD_LEN, regenerations,
+  type SiteExemption,
 } from '../scripts/guards/lib/rawRefIntegrity.mjs';
+import { cleDeSite, type Site } from '../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../scripts/guards/lib/stockDeSites.mjs';
 
 /**
- * Garde « réf RAW AVEUGLE » (#1318 axe B, verrou P5) — volet complémentaire de
+ * Garde « réf RAW AVEUGLE » (#1318) — volet complémentaire de
  * `scripts/raw/check-code-refs.mjs` (qui, lui, ne borne que la ligne : hors borne du chapitre =
  * réf morte). Ici : la réf est DANS les bornes mais la ou les lignes citées sont VIDES, et la
  * fenêtre ±2 du chapitre ne partage AUCUN mot signifiant (≥5 lettres) avec le contexte porteur du
  * code. C'est la forme qu'avait la réf morte du chapitre 17 du LDB, ligne 84 : ligne vide d'un chapitre de 87
  * lignes, adossant une règle absente du livre (mesure : aucune occurrence de « ne transforme »/
- * « Degré de plus » dans tout le LDB) — l'appui RAW était fabriqué, la garde le refuse désormais à
+ * « Degré de plus » dans tout le LDB) — l'appui RAW était fabriqué, la garde le refuse à
  * l'écriture. NOTE DE GRAPHIE : ce fichier n'écrit AUCUNE réf en graphie canonique `LDB <ch> l.<n>`
  * (elles sont construites par `fixtureRef`, cf. plus bas) — les scanners du dépôt liraient un
  * spécimen de test comme une citation vivante.
@@ -35,14 +38,14 @@ import {
  *
  * ANGLE MORT ASSERTÉ (mesuré, pas supposé) : une réf pointant une ligne PLEINE mais ÉTRANGÈRE au
  * passage est invisible aux DEUX volets — ni `check-code-refs` (elle est dans les bornes du
- * chapitre) ni celui-ci (la ligne n'est pas vide). Le lot E3-L1 en a mesuré 18 dans le seul
+ * chapitre) ni celui-ci (la ligne n'est pas vide). #1318 en a mesuré 18 dans le seul
  * chapitre 85 du LDB, où la section Taille a glissé d'environ 65 lignes après la ré-extraction
  * Marker : les réfs tombaient en plein texte de « Régénération »/« Résistance à la Magie ». Les
  * détecter exigerait un recouvrement SÉMANTIQUE généralisé (le recouvrement lexical à ±2 lignes ne
  * mord pas ici : la ligne visée est pleine, donc jamais soumise au test) — coût à chiffrer, hors E3.
  * Ce qui les rend TRIABLES sans garde assertive : `node scripts/raw/audit-refs-chapitre.mjs LDB 85`
  * confronte TOUTE réf d'un chapitre au texte de sa ligne, triée par ligne citée — le verdict reste
- * humain (lecture du `Source/`). C'est l'outil qui a levé 13 sites survivants au lot E3-L11, tous
+ * humain (lecture du `Source/`). C'est l'outil qui a levé 13 sites survivants sous #1318, tous
  * verts pour les trois gardes.
  */
 
@@ -58,7 +61,7 @@ const fixtureLine = (texte: string, ch: number, line: number): string =>
   `// ${texte} ${fixtureRef(ch, line)}\nexport const zzz = 1;\n`;
 describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvrement (#1318 P5)', () => {
   const blind = scanBlindRefs();
-  const stock = readStock(STOCK_PATH);
+  const stock = lireEntreesDeSite(STOCK_PATH);
   const { neuves, perimees } = ecartDesRefsAveugles(blind, stock);
 
   it('aucune réf aveugle NEUVE (ligne vide + zéro recouvrement) hors du stock', () => {
@@ -115,8 +118,12 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
   });
 
   it('RÉGIME CIBLE : l’arbre réel ne porte AUCUNE réf aveugle, et le stock est ABSENT', () => {
-    expect(blind.map((b: { file: string; row: number; ref: string }) => `${b.file}:${b.row} — ${b.ref}`)).toEqual([]);
+    expect(blind.map((b: Site & { row: number }) => `${b.file}:${b.row} — ${b.ref}`)).toEqual([]);
     expect(stock).toEqual([]);
+  });
+
+  it('le stock en place est un POINT FIXE de sa régénération', () => {
+    for (const r of regenerations(blind)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('CLIQUET sur une MESURE RÉELLE : un site aveugle scanné sur un chapitre RÉEL est NEUF, l’inscrire l’éteint, le retirer le rend SOLDÉ', () => {
@@ -128,13 +135,14 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
       // Le stock confronté est CONSTRUIT ici, jamais dérivé du stock du dépôt : ce test doit mordre à
       // l'identique quand le stock réel se repeuple (une entrée étrangère y serait SOLDÉE).
       // (a) stock VIDE : le site mesuré n'y figure pas → rouge nominatif.
-      expect(ecartDesRefsAveugles(mesure, []).neuves.some((o: string) => o.includes(`${fichier} :: ${ref} :: 1`))).toBe(true);
+      const cle = cleDeSite({ fichier, ref, occurrence: 1 });
+      expect(ecartDesRefsAveugles(mesure, []).neuves.some((o: string) => o.includes(cle))).toBe(true);
       // (b) inscrit à sa mesure → plus rien.
       const inscrit = [{ fichier, ref, occurrence: 1 }];
       const aligne = ecartDesRefsAveugles(mesure, inscrit);
       expect([aligne.neuves, aligne.perimees]).toEqual([[], []]);
       // (c) le site disparaît, l'entrée reste → soldée.
-      expect(ecartDesRefsAveugles([], inscrit).perimees.some((s: string) => s.includes(`${fichier} :: ${ref} :: 1`))).toBe(true);
+      expect(ecartDesRefsAveugles([], inscrit).perimees.some((s: string) => s.includes(cle))).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -147,7 +155,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
     expect(lines[86].trim()).not.toBe(''); // l.87 = dernière ligne de texte du chapitre
     expect(lines[83].trim()).toBe(''); // ligne 84 = VIDE
 
-    // Contexte porteur historique, tel qu'il vivait dans rollFlowSpecs.ts avant ce lot.
+    // Contexte porteur historique, tel qu'il vivait dans rollFlowSpecs.ts.
     const contexteHistorique = "DR, `success`/`roll` INTACTS (un Degré de plus ne transforme pas un échec en réussite).";
     expect(isBlindRef(lines, 84, 84, contexteHistorique, WINDOW, MIN_WORD_LEN)).toBe(true);
 
@@ -200,7 +208,7 @@ describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvremen
 
   it('toute exemption AU SITE porte sa raison ET sa date (jamais une exemption au fichier)', () => {
     const mal = SITE_EXEMPTIONS.filter(
-      (e: { file?: string; row?: number; ref?: string; raison?: string; date?: string }) =>
+      (e: Partial<SiteExemption>) =>
         !e.file || !e.row || !e.ref || !e.raison || !/^\d{4}-\d{2}-\d{2}$/.test(e.date ?? ''),
     );
     expect(mal, `Exemption(s) incomplète(s) : ${JSON.stringify(mal)}`).toEqual([]);

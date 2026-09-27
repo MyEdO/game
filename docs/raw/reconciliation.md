@@ -66,7 +66,7 @@
 - `src/ui/compendium/registry-enveloppe.test.ts:164` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
-- `src/data/schemas/defs-scenes/scene.ts:157` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
+- `src/data/schemas/defs-scenes/scene.ts:158` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
 - `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
@@ -75,7 +75,7 @@
 - `src/data/index.ts:850` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
 - `src/data/reglesOptionnelles.json:542` (l.5) — "ref": "NADJ 14 l.5",
 - `src/data/schemas/defs/species.ts:60` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
-- `src/engine/creation.test.ts:128` (l.5) — describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
+- `src/engine/creation.test.ts:129` (l.5) — describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
 
 ### PDT 8 — 1 réf(s) code, 0 dans l'Atlas
 - `src/ui/mono-stake-ratchet.test.ts:73` (l.370) — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
@@ -208,4 +208,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 15e1ef14ac4e0d77d9722872a15b7195836b6d96 (4247 fichiers, 152 dossiers) corps: edbcaca1a1592817bbd5b4ee4a67d9aa06cd2dac -->
+<!-- sources-empreinte: c357f030288aac53e2de1ef84ed8e522f812f56c (4251 fichiers, 152 dossiers) corps: ab2e956e562cba6cafeb202c763dde9ebe43c4d4 -->

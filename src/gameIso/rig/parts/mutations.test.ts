@@ -1,3 +1,4 @@
+import { VIEWS, type View } from '../facing';
 import { describe, it, expect } from 'vitest';
 import { idsPhysiques, idsMentales, mutationById } from '../../../data/mutations';
 import { combatantOverlays, combatantAppearance } from './combatantVisuals';
@@ -62,7 +63,7 @@ describe('apparence data-driven des mutations (LDB 19)', () => {
 });
 
 describe('rendu rig des mutations (resolveRig)', () => {
-  const partsOf = (view: 'front' | 'back' | 'profile', c: Combatant) =>
+  const partsOf = (view: View, c: Combatant) =>
     resolveRig(combatantAppearance(APP, c), NO_EQUIP, {}, undefined, view, combatantOverlays(c)).flatMap((b) => b.parts);
 
   it('détail de visage : visible de face, absent de dos', () => {
@@ -71,7 +72,7 @@ describe('rendu rig des mutations (resolveRig)', () => {
   });
 
   it('cornes : toutes vues, rendues DERRIÈRE la part de tête (behind → layer -2)', () => {
-    for (const view of ['front', 'back', 'profile'] as const) {
+    for (const view of VIEWS) {
       const corne = partsOf(view, cm('cornes-asymetriques')).find((p) => p.svg.includes('data-mut="cornes-asymetriques"'));
       expect(corne, view).toBeTruthy();
       expect(corne!.layer).toBe(-2);

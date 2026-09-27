@@ -1,3 +1,4 @@
+import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
 import { wallPartDepthM, wallPartRelief, WALL_PARTS, type WallPart, type WallPartRelief } from './index';
 import { structureAppearance } from './index';
@@ -5,7 +6,7 @@ import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from '../roofs';
 import { WALL_PART_KEYS, RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';
 import type { StructureAppearanceDef } from './types';
 
-/** CALIBRAGE épinglé du relief mince (#1176 P1-E) — ce test garde les VALEURS, jamais la topologie :
+/** CALIBRAGE épinglé du relief mince (#1176) — ce test garde les VALEURS, jamais la topologie :
  *  les comptes de triangles et de paires coplanaires (`worldTris.test.ts`) sont insensibles à une
  *  profondeur (une boîte reste une boîte), et laissaient donc passer une saillie ramenée à 2 cm. Toucher
  *  une profondeur, c'est toucher ce tableau — la justification voyage dans le même diff. Le calibrage
@@ -46,7 +47,7 @@ function thickDe(part: WallPart): number {
 describe('RELIEF MINCE — le CALIBRAGE des profondeurs, épinglé valeur par valeur', () => {
   it('les 23 parties de mur portent EXACTEMENT les profondeurs du catalogue', () => {
     expect(WALL_PARTS.length).toBe(23);
-    expect(Object.fromEntries(WALL_PARTS.map((p) => [p, wallPartRelief(p)]))).toEqual(CALIBRAGE);
+    expect(tableTotale(WALL_PARTS, (p) => wallPartRelief(p))).toEqual(CALIBRAGE);
   });
 
   it('la planche de rive d’un toit suit le même calibrage que les saillies de mur', () => {

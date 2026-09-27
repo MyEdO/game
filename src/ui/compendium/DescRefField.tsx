@@ -45,7 +45,7 @@ import { Prose } from '../Prose';
 
 /**
  * Ce que chaque code de refus du parseur veut dire À L'AUTEUR, et ce qu'il doit faire. La table est
- * EXHAUSTIVE par le TYPE (`satisfies Record<CodeErreur, string>`) : un code neuf sans phrase ne
+ * TOTALE par le TYPE (`satisfies Record<CodeErreur, string>`) : un code neuf sans phrase ne
  * compile pas. Le détail technique du parseur reste disponible, en second rang — un code moteur brut
  * en première ligne n'est pas un texte d'auteur.
  */

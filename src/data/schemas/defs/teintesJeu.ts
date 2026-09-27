@@ -147,7 +147,7 @@ const doc = document(
     edit: { none: "palette de rendu éditée au fichier (aucun écran d'atelier ne l'expose)" },
   },
   {
-    // CLÉS FERMÉES par construction : `z.enum` rend le record EXHAUSTIF (zod 4.4.3) — une teinte
+    // CLÉS FERMÉES par construction : `z.enum` rend le record TOTAL (zod 4.4.3) — une teinte
     // manquante ou étrangère est refusée au sceau, sans refine. C'est aussi ce qui rend INATTEIGNABLE
     // un refine « préfixe connu » : toute clé admise est déjà l'une des `TEINTE_KEYS`, dont la parité
     // aux préfixes déclarés est mesurée par `src/gameIso/highlightTints.test.ts`.

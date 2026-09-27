@@ -15,17 +15,17 @@
 // 88 de LDB 08 a décalé la fin du chapitre de +44 lignes, 7 réfs committées tombées sur du vide ou sur
 // un autre paragraphe). Stock PROPRE (`scripts/raw/empty-line-code-refs-stock.json`, même écart) pour
 // que l'un des deux contrôles ne dilue pas la tolérance de l'autre.
-// Les deux stocks sont soldés (#583, #1898) : leurs fichiers sont ABSENTS en régime nominal → tolérance
-// ZÉRO (tout site échoue nominativement, `readStock` traite un fichier absent comme zéro entrée). Si un
-// résidu IRRÉDUCTIBLE réapparaît, son stock se recrée à sa mesure MINIMALE, chaque entrée portant son
-// lot et sa date — jamais un cliquet tacite qui masque une future régression.
+// Les deux stocks sont soldés (#583, #1898). Soldé, le stock est un fichier ABSENT, lu comme zéro entrée
+// (`lireEntreesDeSite`) : tolérance ZÉRO. Il se régénère par
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-code-refs.mjs` ; un site différé y entre
+// par `--lot <#N>`, et un solde total retire le fichier.
 // Re-run : node scripts/raw/check-code-refs.mjs (npm run raw:check-code-refs).
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { fichiersCitants } from './lib/fichiersCitants.mjs'
 
 export const SRC_DIR = 'src'
@@ -114,10 +114,37 @@ export function scanEmptyLineCodeRefs(srcDir = SRC_DIR) {
   return vides
 }
 
+/** Les SITES de réfs du code : le fichier et la réf, rien d'autre (la mesure porte aussi la ligne, le
+ *  livre, le chapitre et la cause, qui ne sont pas l'identité du site). */
+export const sitesDeCode = (refs) => refs.map(({ file, ref }) => ({ file, ref }))
+
+const QUOI = {
+  mortes:
+    'Réfs MORTES du CODE (`scripts/raw/check-code-refs.mjs`, #434 #487) : une réf `<ABRÉV> NN l.X[-Y|+n…]` ' +
+    'des citants de `src/**` dont la borne haute dépasse le nombre de lignes du chapitre résolu, ou dont ' +
+    'le chapitre est introuvable. Une ENTRÉE par SITE, clé `fichier :: ref :: occurrence` (régime #1711) ; ' +
+    '`fichier` = le fichier de `src/` qui cite, `ref` = la réf, borne haute comprise. Une entrée se solde ' +
+    'en lisant le `Source/` et en réancrant la réf ; le fichier se régénère par ' +
+    '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-code-refs.mjs`, et un solde total le retire.',
+  vides:
+    'Réfs du CODE sur une ligne VIDE (`scripts/raw/check-code-refs.mjs`, #1457) : une réf dans les bornes ' +
+    'de son chapitre dont la ligne (ou toute la plage) citée est blanche. Une ENTRÉE par SITE, clé ' +
+    '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le fichier de `src/` qui cite, `ref` = la ' +
+    'réf. Une entrée se solde en lisant le `Source/` et en repointant la réf ; le fichier se régénère par ' +
+    '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-code-refs.mjs`, et un solde total le retire.',
+}
+
+/** Les RÉGÉNÉRATIONS des deux stocks (`RegenerationDeStock`, `stockDeSites.mjs`), sur des réfs mortes
+ *  et des réfs sur ligne vide (par défaut, celles de `src/**`). */
+export const regenerations = (mortes = scanDeadCodeRefs(), vides = scanEmptyLineCodeRefs()) => [
+  { chemin: STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.mortes, collections: [{ nom: 'entrees', sites: sitesDeCode(mortes) }] },
+  { chemin: EMPTY_LINE_STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.vides, collections: [{ nom: 'entrees', sites: sitesDeCode(vides) }] },
+]
+
 function main() {
   const dead = scanDeadCodeRefs()
   const { neuves, perimees } = ecartDuVolet({
-    sites: dead, stock: readStock(STOCK_PATH), ou: 'dead-code-refs-stock.json',
+    sites: sitesDeCode(dead), stock: lireEntreesDeSite(STOCK_PATH), ou: 'dead-code-refs-stock.json',
   })
 
   console.log(`réfs de code mortes (ligne hors borne du chapitre, ou chapitre introuvable) : ${dead.length} site(s)`)
@@ -141,7 +168,7 @@ function main() {
 
   const vides = scanEmptyLineCodeRefs()
   const { neuves: neuvesV, perimees: perimeesV } = ecartDuVolet({
-    sites: vides, stock: readStock(EMPTY_LINE_STOCK_PATH), ou: 'empty-line-code-refs-stock.json',
+    sites: sitesDeCode(vides), stock: lireEntreesDeSite(EMPTY_LINE_STOCK_PATH), ou: 'empty-line-code-refs-stock.json',
   })
 
   console.log(`réfs de code sur ligne VIDE (dans les bornes, mais la ligne citée est blanche) : ${vides.length} site(s)`)

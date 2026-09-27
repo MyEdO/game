@@ -7,14 +7,16 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  folioGapsInText, chapterFolioSpan, scanBookDir, scanAllBooks, sitesDeSauts, entreesDeSauts, STOCK_PATH,
+  folioGapsInText, chapterFolioSpan, scanBookDir, scanAllBooks, sitesDeSauts, regenerations, STOCK_PATH,
   emptyFolioAnchorsInText, scanEmptyFoliosInBook, scanAllEmptyFolios, entreesDAncresVides,
   assertEmptyFoliosAgainstStock, lireStocksAncresVides, EMPTY_PERDUES_PATH, EMPTY_BENIGNES_PATH,
   chapterTexts, SEUIL_UTILE,
 } from './check-folio-continuity.mjs'
-import { cleDeSite, ecartDuVolet, refusDeCroissance } from '../guards/lib/stock.mjs'
-import { stocksEnTexte, trier } from './lib/empty-folios-stock.mjs'
-import { lireStockJson, readStock, texteDeStock } from './stockNominatif.mjs'
+import { cleDeSite, ecartDuVolet } from '../guards/lib/stock.mjs'
+import { regenerations as regenerationsDesAncres, trier } from './lib/empty-folios-stock.mjs'
+import {
+  FORMAT_JSON, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, texteEnPlace, texteRegenere,
+} from '../guards/lib/stockDeSites.mjs'
 import { BOOKS, livreDuSigle } from './_lib.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
@@ -157,14 +159,14 @@ test('scanBookDir : `path` est le chemin POSIX du chapitre, celui que la porte d
 
 test('stock COMMITTÉ : chaque saut mesuré y a son entrée, et aucune entrée n’est soldée', () => {
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesDeSauts(scanAllBooks()), stock: readStock(STOCK_PATH), ou: 'folio-gaps-stock.json',
+    sites: sitesDeSauts(scanAllBooks()), stock: lireEntreesDeSite(STOCK_PATH), ou: 'folio-gaps-stock.json',
   })
   assert.deepEqual(neuves, [], `saut(s) de folio hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
 test('stock COMMITTÉ : PLAFOND de la dette d’extraction — 76 sauts, aucun de plus (le relever exige de changer CE test)', () => {
-  const entrees = readStock(STOCK_PATH)
+  const entrees = lireEntreesDeSite(STOCK_PATH)
   assert.equal(entrees.length, 76)
   for (const e of entrees) {
     assert.match(e.fichier, /^Source\/.+\.md$/, `entrée sans chapitre extrait : ${JSON.stringify(e)}`)
@@ -172,42 +174,44 @@ test('stock COMMITTÉ : PLAFOND de la dette d’extraction — 76 sauts, aucun d
   }
 })
 
-// Le stock EST le rendu de `entreesDeSauts(scanAllBooks())`, écrit par
-// `node scripts/raw/check-folio-continuity.mjs --ecrire-stock` : ce test le vérifie à la clé ET à
-// l'ORDRE, là où `ecartDuVolet` ci-dessus ne juge que les ensembles. Un stock ré-ordonné à la main
-// rougit ici.
+// Le stock EST le point fixe de `regenerations()`, régénéré par
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs` : ce test le
+// vérifie à l'octet, donc à la clé ET à l'ORDRE, là où `ecartDuVolet` ci-dessus ne juge que les
+// ensembles. Un stock ré-ordonné à la main rougit ici.
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’arbre', () => {
-  const attendu = entreesDeSauts(scanAllBooks())
-  const stock = readStock(STOCK_PATH)
-  assert.deepEqual(stock.map(cleDeSite), attendu.map(cleDeSite))
+  for (const r of regenerations()) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
 })
 
-// L'ÉCHÉANCE (`lot`, `date`) n'est PAS un paramètre du régénérateur, et ce test dit pourquoi :
-// `survieDeLecheance` ne pose une échéance NEUVE que sur une entrée dont la clé manque au stock, et
-// c'est exactement la classe que `refusDeCroissance` empêche d'être écrite. Les deux volets se
-// mesurent ENSEMBLE : sur le stock réel, zéro entrée neuve ; sur un stock amputé, l'entrée neuve
-// existe ET la barrière la nomme.
+// L'ÉCHÉANCE (`lot`, `date`) n'est PAS un paramètre de la régénération sous `DECROISSANT`, et ce test
+// dit pourquoi : `survieDeLecheance` ne pose une échéance NEUVE que sur une entrée dont la clé manque au
+// stock, et c'est exactement la classe que `DECROISSANT` refuse d'écrire. Les deux volets se mesurent
+// ENSEMBLE : sur le stock réel, zéro entrée neuve ; sur un stock amputé, l'entrée neuve existe ET la
+// barrière la nomme.
 test('échéance : seule une entrée HORS du stock la prendrait — et celle-là est REFUSÉE', () => {
-  const ancien = readStock(STOCK_PATH)
+  const [r] = regenerations()
+  const enPlace = texteEnPlace(r.chemin)
+  const image = FORMAT_JSON.lire(enPlace)
+  const ancien = image.collections.get('entrees')
+  const sites = r.collections[0].sites
   const sansEcheance = (entrees) => entrees.filter((e) => !e.lot && !e.date)
-  assert.deepEqual(sansEcheance(entreesDeSauts(scanAllBooks(), { ancien })), [],
+  assert.deepEqual(sansEcheance(entreesRegenerees(sites, { ancien })), [],
     'une entrée écrite sans échéance : elle vient d’ailleurs que du stock commité')
 
   const ampute = ancien.slice(1)
-  const neuves = sansEcheance(entreesDeSauts(scanAllBooks(), { ancien: ampute }))
+  const neuves = sansEcheance(entreesRegenerees(sites, { ancien: ampute }))
   assert.equal(neuves.length, 1, 'le volet est inerte : retirer une entrée n’en rend aucune neuve')
-  const refus = refusDeCroissance(entreesDeSauts(scanAllBooks(), { ancien: ampute }), ampute,
-    { nom: 'folio-gaps-stock.json', motif: '' })
+  const { refus } = texteRegenere(r, {
+    enPlace: FORMAT_JSON.ecrire({ horsCollections: image.horsCollections, collections: new Map([['entrees', ampute]]) }),
+  })
   assert.ok(refus?.includes(ancien[0].ref), `la barrière NOMME le saut neuf : ${refus}`)
 })
 
-// Le RÉGÉNÉRATEUR (`--ecrire-stock`) rend le fichier COMMITTÉ à l'octet — échéances manuscrites
-// (`lot`, `date`) comprises, par `survieDeLecheance`. Sans cette épreuve, un régénérateur qui
-// rajeunit les dates ou reformate le JSON passerait inaperçu jusqu'au prochain commit.
+// La RÉGÉNÉRATION rend le fichier COMMITTÉ à l'octet — échéances manuscrites (`lot`, `date`)
+// comprises, par `survieDeLecheance`. Sans cette épreuve, une régénération qui rajeunit les dates ou
+// reformate le JSON passerait inaperçue jusqu'au prochain commit.
 test('régénérateur : ré-écrire le stock en place rend le MÊME octet', () => {
-  const doc = lireStockJson(STOCK_PATH)
-  const mesurees = entreesDeSauts(scanAllBooks(), { ancien: doc.entrees })
-  assert.equal(texteDeStock(doc.quoi, mesurees), readFileSync(STOCK_PATH, 'utf8'))
+  const [r] = regenerations()
+  assert.equal(texteRegenere(r, { enPlace: texteEnPlace(r.chemin) }).texte, readFileSync(STOCK_PATH, 'utf8'))
 })
 
 // #1825 : l'ordre des livres vit dans `src/data/books.json` et n'a aucune raison d'être figé.
@@ -216,15 +220,15 @@ test('régénérateur : ré-écrire le stock en place rend le MÊME octet', () =
 // UNE entrée de books.json » tomberait. Registre INJECTÉ (`scanAllBooks(books)`), jamais le fichier.
 test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registre inversé)', () => {
   const sitesDe = (books) => sitesDeSauts(scanAllBooks(books)).map((s) => `${s.file} :: ${s.ref}`)
-  const rendu = (books) => entreesDeSauts(scanAllBooks(books)).map(cleDeSite)
+  const rendu = (books) => texteRegenere(regenerations(scanAllBooks(books))[0], { enPlace: texteEnPlace(STOCK_PATH) }).texte
   const inverse = [...BOOKS].reverse()
   assert.notDeepEqual(sitesDe(inverse), sitesDe(BOOKS), 'le balayage rend le même ordre : sonde inerte')
-  assert.deepEqual(rendu(inverse), rendu(BOOKS))
+  assert.equal(rendu(inverse), rendu(BOOKS))
 })
 
 test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans site est SOLDÉE', () => {
   const sites = sitesDeSauts(scanAllBooks())
-  const stock = readStock(STOCK_PATH)
+  const stock = lireEntreesDeSite(STOCK_PATH)
   const ampute = ecartDuVolet({ sites, stock: stock.slice(1), ou: 'folio-gaps-stock.json' })
   assert.equal(ampute.neuves.length, 1)
   assert.match(ampute.neuves[0], /site NEUF/)
@@ -238,7 +242,7 @@ test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans 
   assert.match(gonfle.perimees[0], /entrée SOLDÉE/)
 })
 
-// ---------- passe 2 : ancre SANS CONTENU (#1457 lot A1) ----------
+// ---------- passe 2 : ancre SANS CONTENU (#1457) ----------
 
 test('emptyFolioAnchorsInText : ancres COLLÉES (0 octet) → page sans contenu détectée', () => {
   const text = `prose ${span(87)}page 87\n${span(88)}${span(89)}page 89\n`
@@ -340,9 +344,10 @@ test('un `--seuil` complaisant ne vit que dans l’INSTRUMENT : le stock qu’il
   const large = trier(mesures, 5000)
   assert.deepEqual(large.perdues, [], 'régénérer avec `--seuil 5000` vide la classe PERDUES…')
   assert.equal(large.benignes.length, 2)
-  const r = assertEmptyFoliosAgainstStock([MESURE_PERDUE, MESURE_BENIGNE], large)
+  const stockLarge = { perdues: entreesRegenerees(large.perdues), benignes: entreesRegenerees(large.benignes) }
+  const r = assertEmptyFoliosAgainstStock([MESURE_PERDUE, MESURE_BENIGNE], stockLarge)
   assert.deepEqual(r.malClassees.map(cleDeSite), [cleDeSite(PERDUE)], '… et la garde, qui ne connaît que SEUIL_UTILE, nomme l’entrée blanchie')
-  assert.deepEqual(trier(mesures, SEUIL_UTILE).perdues.map(cleDeSite), [cleDeSite(PERDUE)], 'au seuil du code, elle est PERDUE')
+  assert.deepEqual(entreesRegenerees(trier(mesures, SEUIL_UTILE).perdues).map(cleDeSite), [cleDeSite(PERDUE)], 'au seuil du code, elle est PERDUE')
 })
 
 test('assertEmptyFoliosAgainstStock : entrée sans `pdfChars` → INAUDITABLE, donc mal classée', () => {
@@ -372,7 +377,7 @@ test('stock : le folio 88 du LDB (carrière de Juriste) est RESTITUÉ — porteu
 
 test('stock : chaque ancre sans contenu du corpus est triée, et aucune entrée périmée', () => {
   const r = assertEmptyFoliosAgainstStock(scanAllEmptyFolios(), STOCK)
-  assert.deepEqual(r.inconnues.map(cleDeSite), [], 'ancre sans contenu non triée (relancer lib/empty-folios-stock.mjs)')
+  assert.deepEqual(r.inconnues.map(cleDeSite), [], 'ancre sans contenu non triée (relancer npx tsx scripts/guards/lib/regenStock.mts scripts/raw/lib/empty-folios-stock.mjs)')
   assert.deepEqual(r.restituees.map(cleDeSite), [], 'page restituée : supprimer l’entrée du stock')
   assert.deepEqual(r.benignesDisparues.map(cleDeSite), [], 'entrée bénigne périmée : la supprimer du stock')
   assert.deepEqual(r.malClassees.map(cleDeSite), [], 'classement démenti par le pdfChars mesuré')
@@ -380,7 +385,7 @@ test('stock : chaque ancre sans contenu du corpus est triée, et aucune entrée 
 
 test('stock : les DEUX fichiers committés SONT ce que la fonction d’ÉCRITURE du générateur rend, à l’octet', () => {
   // Les mesures telles que le générateur les tenait : le PDF n'est pas suivi, `pdfChars` se RELIT
-  // au stock, il ne se re-mesure pas. L'ordre est celui du générateur (réf puis folio).
+  // au stock, il ne se re-mesure pas.
   const mesures = [...STOCK.perdues, ...STOCK.benignes]
     .map((e) => {
       const m = /^(.+) folio (-?\d+)$/.exec(e.ref)
@@ -388,12 +393,33 @@ test('stock : les DEUX fichiers committés SONT ce que la fonction d’ÉCRITURE
       return { fichier: e.fichier, ref: m[1], folio: Number(m[2]), pdfChars: e.pdfChars }
     })
     .sort((a, b) => parUnitesDeCode(a.ref, b.ref) || a.folio - b.folio)
-  const rendu = stocksEnTexte(mesures, SEUIL_UTILE)
-  for (const chemin of [EMPTY_PERDUES_PATH, EMPTY_BENIGNES_PATH]) {
-    assert.equal(rendu.get(chemin), readFileSync(chemin, 'utf8'), `${chemin} : le fichier committé et le rendu du générateur divergent — régénérer, jamais éditer à la main`)
+  const declarations = regenerationsDesAncres({ mesures, manque: [] }, SEUIL_UTILE)
+  assert.deepEqual(declarations.map((r) => r.chemin), [EMPTY_PERDUES_PATH, EMPTY_BENIGNES_PATH])
+  for (const r of declarations) {
+    assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null, `${r.chemin} : le fichier committé et le rendu du générateur divergent — régénérer, jamais éditer à la main`)
   }
   const { perdues, benignes } = trier(mesures, SEUIL_UTILE)
   assert.deepEqual([perdues.length, benignes.length], [STOCK.perdues.length, STOCK.benignes.length], 'le tri au seuil du code redonne les deux classes committées')
+})
+
+test('le stock committé est un point fixe de sa régénération', (t) => {
+  for (const r of regenerationsDesAncres()) {
+    if (r.manque.length > 0) {
+      t.skip(r.manque.join(' ; '))
+      return
+    }
+    assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
+  }
+})
+
+test('une mesure incomplète refuse, rien n’est écrit', () => {
+  const phrase = 'ZI — NON TRIABLE (PDF absent) : 3 candidat(s)'
+  const declarations = regenerationsDesAncres({ mesures: [], manque: [phrase] }, SEUIL_UTILE)
+  assert.equal(declarations.length, 2)
+  for (const r of declarations) {
+    const ecart = ecartDeRegeneration(r, texteEnPlace(r.chemin))
+    assert.ok(ecart?.includes('mesure incomplète') && ecart.includes(phrase), `${r.chemin} : ${ecart}`)
+  }
 })
 
 test('stock COMMITTÉ truqué : déplacer une PERDUE vers `benignes` → rouge NOMINATIF (le compte baissait sans un mot)', () => {

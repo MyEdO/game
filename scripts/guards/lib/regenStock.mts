@@ -1,93 +1,143 @@
 /**
- * ÉCRITURE d'un fichier de stock NOMINATIF depuis sa mesure — le geste commun aux régénérateurs
- * `scripts/rig/regen-*-stock.mts` : refuser la croissance SITE PAR SITE (`refusDeCroissance`,
- * `stock.mjs`), puis réécrire les tableaux `export const <NOM> = [ … ]` du fichier.
+ * ENTRÉES-SORTIES de la régénération d'un stock de sites, pour ses deux formats (`FORMATS`,
+ * `stockDeSites.mjs`) : lire le fichier en place, appeler le cœur pur (`texteRegenere`), écrire,
+ * retirer ou juger (`--check`, `ecartDeRegeneration`). C'est la SEULE écriture d'un fichier de stock
+ * de sites, et la SEULE commande de sa régénération :
  *
- * Ce qui reste au régénérateur appelant : SA mesure, le NOM de ses collections et leur MOTIF de
- * refus. Convertir un stock de plus n'écrit donc aucune mécanique : une description et un appel.
+ *   npx tsx scripts/guards/lib/regenStock.mts <module qui mesure> [--check] [--amorce] [--lot <#N …>]
  *
- * FRONTIÈRE : ici on ÉCRIT et on rend un code de sortie ; le VERDICT de garde reste au test, et le
- * calcul d'écart à `stock.mjs`. Aucun plafond n'est touché — il n'y en a plus.
+ * Le module qui mesure déclare sa régénération (`regenerations()`, une liste de
+ * `RegenerationDeStock`) ; la commande l'importe sans l'exécuter, et refuse un chemin de stock dont
+ * l'attribut git `merge` n'est pas `stocks` (le pilote de fusion, `.gitattributes`).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { refusDeCroissance, type EntreeNominative } from './stock.mjs';
-import { parUnitesDeCode } from './lister.mjs';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { RACINE } from './bindingsVifs.mjs';
+import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
-export interface CollectionAReecrire {
-  /** Le nom exporté par le fichier de stock (`export const <nom> = [`). */
-  nom: string;
-  /** Les sites MESURÉS aujourd'hui, en entrées nominatives. */
-  mesurees: readonly EntreeNominative[];
-  /** Le stock EN PLACE, importé du fichier. */
-  stock: Iterable<EntreeNominative>;
-  /** Dernière phrase du refus — ce que le lecteur doit faire d'un site neuf. */
-  motif: string;
+/** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
+export function lotDeLaLigne(args: readonly string[]): string | null {
+  const i = args.indexOf('--lot');
+  const v = i >= 0 ? String(args[i + 1] ?? '').trim() : '';
+  return v && !v.startsWith('--') ? v : null;
 }
 
-/** Ordre d'écriture STABLE : fichier, puis réf, puis occurrence — un stock se relit par fichier, et
- *  c'est ce qui rend son diff lisible (un solde ne montre que la ligne partie). Comparaison par
- *  UNITÉS DE CODE (#1679 L3b) : un ordre qui suit la locale du processus ferait diverger le stock
- *  généré d'une machine à l'autre, et `--check` rougirait sans qu'une dette ait bougé. */
-export const ordreDeStock = (entrees: readonly EntreeNominative[]): EntreeNominative[] =>
-  [...entrees].sort((a, b) =>
-    parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref) || a.occurrence - b.occurrence);
-
-/** Une réf peut porter les guillemets de son propre langage — un sélecteur CSS d'attribut
- *  (`.grid[data-min='sm']`) casserait le littéral qui l'accueille. */
-const litteral = (v: string) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-
-const ligne = (e: EntreeNominative) =>
-  `  { fichier: ${litteral(e.fichier)}, ref: ${litteral(e.ref)}, occurrence: ${e.occurrence} },`;
-
 /**
- * Refuse toute croissance, puis écrit (ou vérifie, sous `--check`) le fichier de stock.
- * @returns le code de sortie du régénérateur (0 = rien à dire, 1 = refus ou stock périmé).
+ * Régénère (ou juge, sous `--check`) chaque déclaration de la liste, dans son ordre, et rend le PLUS
+ * GRAND des codes de sortie (0 = rien à dire, 1 = refus ou stock périmé). AMORÇAGE (`--amorce`) : la
+ * politique de chaque déclaration dit ce qu'il lui fait ; il est légal au seul commit qui CRÉE le stock,
+ * et tout usage ultérieur est visible au diff, que la porte de plage compte.
  */
-export function regenererStock(p: {
-  chemin: string;
-  collections: readonly CollectionAReecrire[];
-  check: boolean;
-  outil: string;
-  /** AMORÇAGE : saute la barrière décroissante et écrit le stock depuis la MESURE. Un stock VIDE
-   *  face à N sites mesurés est un refus — sans cette porte, un stock nominatif ne pourrait jamais
-   *  naître. LÉGALE au seul commit qui CRÉE le stock : tout usage ultérieur est un contournement,
-   *  visible au diff, et la porte de plage le compte. */
-  amorce?: boolean;
-}): number {
-  if (p.amorce) {
-    console.warn(`AMORÇAGE : la barrière décroissante est SAUTÉE pour ${p.chemin} — légal au seul commit qui CRÉE ce stock.`);
+export function regenererStock(
+  regenerations: readonly RegenerationDeStock[],
+  { outil, args = process.argv.slice(2), date = new Date().toISOString().slice(0, 10) }: {
+    outil: string;
+    args?: readonly string[];
+    date?: string;
+  },
+): number {
+  const check = args.includes('--check');
+  const amorce = args.includes('--amorce');
+  const lot = lotDeLaLigne(args);
+  if (amorce) {
+    for (const r of regenerations) {
+      console.warn(`AMORÇAGE : ${r.chemin}, politique ${r.politique.nom} : légal au seul commit qui CRÉE ce stock ; la politique dit ce que l'amorce lui fait.`);
+    }
   }
-  for (const c of p.collections) {
-    const refus = refusDeCroissance(c.mesurees, c.stock, { nom: c.nom, motif: c.motif });
-    if (refus && !p.amorce) { console.error(refus); return 1; }
-  }
+  let code = 0;
+  for (const r of regenerations) code = Math.max(code, regenererUn(r, { check, amorce, lot, date, outil }));
+  return code;
+}
 
-  const src = readFileSync(p.chemin, 'utf8');
-  let next = src;
-  for (const c of p.collections) {
-    const OPEN = `export const ${c.nom} = [`;
-    const head = next.indexOf(OPEN);
-    if (head < 0) throw new Error(`borne d'ouverture de ${c.nom} introuvable dans ${p.chemin}`);
-    const tail = next.indexOf('\n]', head);
-    if (tail < 0) throw new Error(`borne de fermeture de ${c.nom} introuvable dans ${p.chemin}`);
-    const corps = ordreDeStock(c.mesurees).map(ligne).join('\n');
-    next = next.slice(0, head + OPEN.length) + (corps ? `\n${corps}` : '') + next.slice(tail);
-  }
-
-  const tailles = p.collections.map((c) => `${c.nom}=${c.mesurees.length}`).join(', ');
+function regenererUn(
+  r: RegenerationDeStock,
+  p: { check: boolean; amorce: boolean; lot: string | null; date: string; outil: string },
+): number {
+  const enPlace = texteEnPlace(r.chemin);
   if (p.check) {
-    if (next !== src) {
-      console.error(`Stock PÉRIMÉ (${tailles}). Relancer : ${p.outil}`);
+    const ecart = ecartDeRegeneration(r, enPlace);
+    if (ecart !== null) {
+      console.error(`${ecart}\nRelancer : ${p.outil}`);
       return 1;
     }
-    console.log(`Stock à jour (${tailles}).`);
+    console.log(`${r.chemin} : Stock à jour`);
     return 0;
   }
-  if (next !== src) {
-    writeFileSync(p.chemin, next);
-    console.log(`Stock régénéré (${tailles}).`);
+  const rendu = texteRegenere(r, { enPlace, lot: p.lot, date: p.date, amorce: p.amorce });
+  if ('refus' in rendu && rendu.refus) {
+    console.error(rendu.refus);
+    return 1;
+  }
+  const { texte, tailles } = rendu as { texte: string | null; tailles: string };
+  if (texte === null) {
+    if (existsSync(r.chemin)) {
+      rmSync(r.chemin);
+      console.log(`${r.chemin} : Stock soldé, fichier retiré`);
+    } else {
+      console.log(`${r.chemin} : Stock inchangé (absent)`);
+    }
+    return 0;
+  }
+  if (texte !== enPlace) {
+    writeFileSync(r.chemin, texte);
+    console.log(`${r.chemin} : Stock régénéré (${tailles})`);
   } else {
-    console.log(`Stock inchangé (${tailles}).`);
+    console.log(`${r.chemin} : Stock inchangé (${tailles})`);
   }
   return 0;
 }
+
+const USAGE = 'Usage : npx tsx scripts/guards/lib/regenStock.mts <module qui mesure> [--check] [--amorce] [--lot <#N …>]';
+
+/** Les arguments de la commande : le module (seul positionnel), ou `null` si la ligne est hors usage. */
+function moduleDeLaLigne(args: readonly string[]): string | null {
+  const positionnels: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '--check' || a === '--amorce') continue;
+    if (a === '--lot') { i++; continue; }
+    if (a.startsWith('--')) return null;
+    positionnels.push(a);
+  }
+  return positionnels.length === 1 ? positionnels[0] : null;
+}
+
+/** L'attribut git `merge` du fichier `chemin`, ou `null` si `git check-attr` échoue. */
+function attributDeFusion(chemin: string): string | null {
+  const r = spawnSync('git', ['check-attr', 'merge', '--', relative(RACINE, resolve(chemin))], { cwd: RACINE, encoding: 'utf8' });
+  if (r.status !== 0) return null;
+  const m = /: merge: (.*)$/m.exec(r.stdout);
+  return m ? m[1].trim() : null;
+}
+
+async function main(): Promise<number> {
+  const args = process.argv.slice(2);
+  const module = moduleDeLaLigne(args);
+  if (module === null) {
+    console.error(USAGE);
+    return 2;
+  }
+  const M = await import(pathToFileURL(resolve(RACINE, module)).href);
+  if (typeof M.regenerations !== 'function') {
+    console.error(`${module} : aucun export \`regenerations\`.`);
+    return 2;
+  }
+  const liste = await M.regenerations();
+  if (!Array.isArray(liste)) {
+    console.error(`${module} : \`regenerations()\` ne rend pas une liste.`);
+    return 2;
+  }
+  for (const r of liste as RegenerationDeStock[]) {
+    const attribut = attributDeFusion(r.chemin);
+    if (attribut !== 'stocks') {
+      console.error(`${r.chemin} : l'attribut git merge vaut ${attribut ?? '(git check-attr en échec)'}, pas \`stocks\` (.gitattributes) : rien n'est écrit.`);
+      return 2;
+    }
+  }
+  return regenererStock(liste, { outil: `npx tsx scripts/guards/lib/regenStock.mts ${module}`, args });
+}
+
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) process.exitCode = await main();

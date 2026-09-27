@@ -4,9 +4,9 @@
  * DROITE). Une seule illustration : ligne de dos, croupe, poitrail, encolure et gorge sont tracées
  * d'un trait, PUIS réparties en groupes d'os. Robe, crinière, queue, sabots et modelé des 16 os y
  * vivent ensemble — le HARNACHEMENT, lui, est un SET D'ÉQUIPEMENT porté par la DONNÉE (#1128 :
- * `atelier/harnais/sellerie-imperiale@cheval-profil.dessin.mts`, servi au canal `deco` par le
+ * `atelier/harnais/sellerie-imperiale@cheval-profile.dessin.mts`, servi au canal `deco` par le
  * registre `quadruped/harnais/`) : un cheval de labour n'est pas sellé, un destrier l'est.
- * C'est la SOURCE de l'art ; `chevalProfilCompile.ts` en est la sortie.
+ * C'est la SOURCE de l'art ; `chevalCompile.ts` en est la sortie.
  *
  *   npx tsx scripts/rig/compile-dessin-quad.mts cheval     (--check = porte)
  *
@@ -264,7 +264,7 @@ const TETE = [
   // d'yeux (montures mortes-vivantes à œil rouge…), centré sur `data-ec`. Sans l'ancre, l'art de
   // vue faisait taire le canal en silence sur TOUTE la famille équine — le cheval est l'espèce de
   // REPLI de `resolveQuad`. `data-ec` est en coordonnées de l'OS : le compilateur ne cuit que les
-  // `d`, jamais un attribut — il se relit dans `chevalProfilCompile.ts` (début du `d` du globe,
+  // `d`, jamais un attribut — il se relit dans `chevalCompile.ts` (début du `d` du globe,
   // décalé du rayon) si le squelette de la tête bouge.
   F(disque(108.6, 45.4, 3.4), '@corpsO', 0.4),
   `<g data-eye="D" data-ec="-0.53 8.06">` +

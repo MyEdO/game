@@ -1,8 +1,9 @@
 // STOCK CLIQUETÉ des SIGNATURES HORS STRATE des documents authorés (#1463 L0, #1727 T0d) — consommé
 // par la garde `src/data/structures-contrat.test.ts`. La MESURE vit dans `scannerDonnees`
 // (`scripts/docs/lib/structures-scan.mts`, champ `invisibles`), traduite en SITES par
-// `horsStrateAudit.ts`, partagée avec le régénérateur
-// `npx tsx scripts/data/regen-hors-strate-stock.mts` (DÉCROISSANT-SEULEMENT, refus SITE PAR SITE).
+// `horsStrateAudit.ts`, partagée avec sa régénération,
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` (politique `DECROISSANT`,
+// refus SITE PAR SITE).
 //
 // FORME DES ENTRÉES — `{ fichier, ref, occurrence }`, la forme UNIQUE de tout stock nominatif du
 // dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) : `fichier` = le document à OUVRIR, à son
@@ -28,7 +29,7 @@
 // borné à `PROFONDEUR_MEMO = 12` — borne ATTEIGNANTE, mesurée sur `arene-projet.json` : 452 clés
 // visitées à 12 contre 488 à 20 et au-delà. Le PREMIER chemin qui atteint un nœud décide donc s'il
 // est vu, et une retouche de SCHÉMA — sans un octet de donnée changé — déplace des objets entre
-// strates. Quatre objets `effect` d'`arene-projet.json` en donnent la mesure (#1687 lot 3-I) : le
+// strates. Quatre objets `effect` d'`arene-projet.json` en donnent la mesure (#1687) : le
 // chemin court `interact` cède à `usable → refine → actions[] → flow` (plus profond), `ouvreReference`
 // (`structures-scan.mts`) ne tient plus leur littéral d'enum DÉCLARÉ pour une clé étrangère, et ces
 // quatre objets comptent ici — leur donnée, elle, n'a pas bougé d'un octet.

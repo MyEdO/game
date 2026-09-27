@@ -99,7 +99,7 @@ const scannedTs = [];
 for (const f of staged) {
   const rel = f.replace(/\\/g, '/');
   // MÊME périmètre que la suite Vitest et le hook au stylo : `estFichierScanne` (source unique,
-  // `commentPoison.mjs`) — `src/**` ET `scripts/**`, quatre extensions, tests compris.
+  // `commentPoison.mjs`), qui lit `PERIMETRE_DES_GARDES`.
   if (!estFichierScanne(rel)) continue;
   // Familles de COMMENTAIRES (tombale / excuse / vocabulaire de l'ancien état / revendications RAW / revendications d'autorité) : tests compris,
   // « le poison écrit dans un test est du poison » (commentPoison.mjs). Familles CODE (label-logic,
@@ -145,7 +145,7 @@ for (const f of staged) {
         offenders.push(`${rel}:${x.line} [logique par label — hors exception ratchet] ${x.detail}`);
     }
   }
-  // #142 LOT 7 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
+  // #142 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
   // stock PAR FICHIER que `label-logic-guard.test.ts` (`LABEL_LITERAL_STOCK`, partagé par la lib).
   // Le hook ne voit qu'un fichier à la fois : seul un compte SUPÉRIEUR au stock y bloque — le volet
   // « dette soldée non retirée » reste à la CI, qui scanne le corpus entier.
@@ -153,7 +153,7 @@ for (const f of staged) {
     const n = scanLabelLiteralCompare(rel, text).length;
     if (n > (LABEL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [logique par LIBELLÉ] ${n} site(s), stock = ${LABEL_LITERAL_STOCK[rel] ?? 0}`);
   }
-  // #1694 B3 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
+  // #1694 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
   // par fichier `LABEL_CALL_LITERAL_STOCK` : même double détente que ci-dessus, le volet « dette
   // soldée » restant à la CI (`label-logic-guard.test.ts`), qui scanne le corpus entier.
   if (!isTestFile && strictRe.test(rel)) {
@@ -261,7 +261,7 @@ if (docsPourLaPorte.length) {
 // que ce commit n'embarque pas. Une SOURCE stagée sans régénération n'arme rien ici : le pied qu'elle
 // périme porte un doc qui ne part pas dans ce commit, et armer sur les sources coûterait un
 // `docs:build` à 59,3 % des commits (mesuré 2026-09-02) pour un pied re-signé UNE fois par train, à
-// l'étape docs de `ops:publier` — qui juge désormais aussi les pieds des cibles `check: false`
+// l'étape docs de `ops:publier` — qui juge aussi les pieds des cibles `check: false`
 // (`piedsDesNonVerifiables`, #1773). La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
 // régénère RIEN (recalcul sur l'index, `git ls-files -s`), contre 49,8 s pour la régénération des 13
 // générateurs qu'un `src/data/*.json` arme (mesuré 2026-09-02).
@@ -299,7 +299,7 @@ if (armes.length) {
 //       fichier porteur ;
 //   (c) une ligne AJOUTÉE qui NOMME un plan déjà supprimé (registre lu par `--registre`, 0,45 s) —
 //       consulté uniquement si le diff ajoute un nom de fichier plausible, sinon on ne paie rien.
-// Reste hors pre-commit (assumé, couvert par `npm run docs:check` et le canari) : une violation
+// Reste hors pre-commit (couvert par `npm run docs:check` et le canari) : une violation
 // PRÉEXISTANTE d'un fichier que ce commit ne touche pas.
 const ajoutees = (() => {
   try {

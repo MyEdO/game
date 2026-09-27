@@ -4,6 +4,7 @@
  * dataset, `src/data/schemas/defs/details.ts:19`) : l'atelier ne doit pouvoir POSER qu'une clé du
  * sceau, une seule fois, et ne rien supprimer sans geste explicite. Gestes RÉELS sur le champ monté.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -74,7 +75,7 @@ describe('DetailsTextsField — la clé d’espèce se CHOISIT (#1525)', () => {
   });
 
   it('7/7 posées : l’action est GATÉE avec sa raison atteignable (jamais `disabled` nu)', () => {
-    const bySpecies = Object.fromEntries(raceKeySchema.options.map((k) => [k, k]));
+    const bySpecies = tableTotale(raceKeySchema.options, (k) => k);
     mount({ nom: { all: 'g', bySpecies } });
     const b = bouton();
     expect(b.getAttribute('aria-disabled')).toBe('true');
@@ -96,7 +97,7 @@ describe('DetailsTextsField — la clé d’espèce se CHOISIT (#1525)', () => {
   it('6/7 posées : la rangée n’offre que sa clé + l’unique libre, et un renommage LIBÈRE l’ancienne', () => {
     const cles = raceKeySchema.options as readonly string[];
     const [libre, ...posees] = cles;
-    mount({ nom: { all: 'g', bySpecies: Object.fromEntries(posees.map((k) => [k, k])) } });
+    mount({ nom: { all: 'g', bySpecies: tableTotale(posees, (k) => k) } });
     const s = selects()[0];
     expect(s.value).toBe(posees[0]);
     expect(options(s).slice().sort()).toEqual([posees[0], libre].slice().sort());
@@ -110,7 +111,7 @@ describe('DetailsTextsField — la clé d’espèce se CHOISIT (#1525)', () => {
   });
 
   it('7/7 posées : chaque rangée n’offre plus QUE sa propre clé', () => {
-    const bySpecies = Object.fromEntries(raceKeySchema.options.map((k) => [k, k]));
+    const bySpecies = tableTotale(raceKeySchema.options, (k) => k);
     mount({ nom: { all: 'g', bySpecies } });
     for (const s of selects()) expect(options(s)).toEqual([s.value]);
   });

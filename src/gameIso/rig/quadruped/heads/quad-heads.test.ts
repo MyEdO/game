@@ -1,5 +1,5 @@
 /**
- * CONTRAT des defs de TÊTE quadrupèdes (#1082 P2) : exhaustivité des vues, couverture des espèces,
+ * CONTRAT des defs de TÊTE quadrupèdes (#1082) : exhaustivité des vues, couverture des espèces,
  * axes DÉCLARÉS mesurés à l'exécution (design v2 §1 : « le socle ÉCHOUE si un axe consommé n'est pas
  * déclaré »), et repli VISIBLE d'une clé sans def (#223).
  */
@@ -13,9 +13,7 @@ import type { QuadArt } from '../partArt';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../creatures';
 import { MISSING_TONE } from '../../viewArt';
 import type { QuadProps } from '../quadSkeleton';
-import type { View } from '../../facing';
-
-const VIEWS: View[] = ['profile', 'front', 'back'];
+import { VIEWS, type View } from '../../facing';
 const SPECIES: Record<string, QuadProps> = { ...QUAD_SPECIES, ...WINGED_SPECIES };
 
 /** Props d'une espèce qui PORTE cette tête (l'art se juge sur la donnée réelle qui l'appelle). */

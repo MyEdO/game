@@ -5,10 +5,10 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { boitesDuPdf, classer, ecartDuStock, glypheFuite, grasDeTete, plusLongueCroissante, sansGlyphe, sondeDuLivre, STOCK_PATH } from './sonde-titres.mjs'
+import { boitesDuPdf, classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe, STOCK_PATH } from './sonde-titres.mjs'
 import { infidelite, reparerLivre } from './reparer-titres.mjs'
 import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, pdfDe, readText } from './_lib.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { lignes } from './lib/colonnes.mjs'
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
 
@@ -684,13 +684,24 @@ let boitesCrb = null
 const boitesDuCrb = () => (boitesCrb ??= boitesDuPdf('core-rulebook-5e'))
 
 test('#1820 le stock de la sonde est PLAFONNÉ : il ne décroît que quand un site disparaît', () => {
-  assert.ok(readStock(STOCK_PATH).length <= PLAFOND, `stock ${readStock(STOCK_PATH).length} > plafond ${PLAFOND}`)
+  assert.ok(lireEntreesDeSite(STOCK_PATH).length <= PLAFOND, `stock ${lireEntreesDeSite(STOCK_PATH).length} > plafond ${PLAFOND}`)
 })
 
-test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne` y a son entrée, aucune entrée n’est soldée', { skip: PDF_CRB ? false : 'PDF du CRB absent de cet arbre' }, () => {
-  const { neuves, perimees } = ecartDuStock(sondeDuLivre('core-rulebook-5e', boitesDuCrb()), readStock(STOCK_PATH))
-  assert.deepEqual(neuves, [], `site(s) hors du stock :\n${neuves.join('\n')}`)
-  assert.deepEqual(perimees, [], `entrée(s) soldée(s) :\n${perimees.join('\n')}`)
+test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne` y a son entrée, aucune entrée n’est soldée', (t) => {
+  for (const r of regenerations()) {
+    if (r.manque.length > 0) {
+      t.skip(r.manque.join(' ; '))
+      return
+    }
+    assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
+  }
+})
+
+test('une mesure incomplète refuse, rien n’est écrit', () => {
+  const phrase = 'core-rulebook-5e — NON SONDABLE (PDF absent)'
+  for (const r of regenerations({ mesures: [], manque: [phrase] })) {
+    assert.match(ecartDeRegeneration(r, texteEnPlace(r.chemin)) ?? '', new RegExp(`mesure incomplète[^]*${phrase.replace(/[()]/g, '\\$&')}`))
+  }
 })
 
 test('#1739 : présent ≠ absent — un corps CANDIDAT trouvé par une clé de RANGÉES (table lue colonne par colonne) n’est jamais rapporté ; seul le candidat d’une clé de CORPS l’est (CRB p.184 COMPLETE CONDITION LIST)', () => {

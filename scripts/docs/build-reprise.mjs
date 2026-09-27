@@ -56,9 +56,17 @@ const CONFIGS = [...new Set([...POSTINSTALL.matchAll(/git config ([\w.-]+)/g)].m
 if (!CONFIGS.includes('core.hooksPath')) {
   abandon('`postinstall` ne pose plus `core.hooksPath` — le runbook de reprise repose dessus')
 }
-const DRIVERS_FUSION = CONFIGS.filter((c) => c.startsWith('merge.') && c.endsWith('.driver')).map((c) =>
-  c.slice('merge.'.length, -'.driver'.length),
+/** Pilotes de fusion posés par `postinstall` : nom → MODULE qui les sert. */
+const PILOTES_DE_FUSION = new Map(
+  [...POSTINSTALL.matchAll(/git config merge\.([\w-]+)\.driver "node (\S+)/g)].map((m) => [m[1], m[2]]),
 )
+/** Les noms des pilotes servis par `module`. */
+const pilotesDe = (module) => [...PILOTES_DE_FUSION].filter(([, m]) => m === module).map(([nom]) => nom)
+/** Vrai si `c` est une clé `merge.<nom>.driver` ou `.name` d'un pilote servi par `module`. */
+const clePiloteDe = (module) => (c) => {
+  const m = /^merge\.([\w-]+)\.(?:driver|name)$/.exec(c)
+  return m !== null && PILOTES_DE_FUSION.get(m[1]) === module
+}
 
 // Hooks Git : les fichiers SANS extension sont ceux que git invoque par nom. La liste est DÉRIVÉE du
 // dossier — un hook posé ou retiré change le runbook sans qu'on touche à ce script. Ce qui est exigé,
@@ -262,13 +270,21 @@ const FAMILLES_POSTINSTALL = [
    après un \`build\` vert sur \`main\`, qui joue \`${script('ops:fermer')} <before>..<sha>\`.`,
   },
   {
-    porte: (c) => /^merge\..+\.(?:driver|name)$/.test(c),
-    texte: () =>
-      `Les pilotes de fusion des docs dérivés (${listeCode(DRIVERS_FUSION)}), déclarés par
-   \`.gitattributes\` et servis par \`scripts/git-hooks/merge-docs.mjs\` : sans eux, chaque rebase
-   rouvre un conflit sur des fichiers que \`npm run docs:build\` régénère seul.`,
+    module: 'scripts/git-hooks/merge-docs.mjs',
+    texte: (module) =>
+      `Les pilotes de fusion des docs dérivés (${listeCode(pilotesDe(module))}), déclarés par
+   \`.gitattributes\` et servis par \`${module}\` : sans eux, chaque rebase rouvre un conflit sur
+   des fichiers que \`npm run docs:build\` régénère seul.`,
   },
-]
+  {
+    module: 'scripts/git-hooks/merge-stocks.mjs',
+    texte: (module) =>
+      `Le pilote de fusion des stocks de sites (${listeCode(pilotesDe(module))}), déclaré par
+   \`.gitattributes\` et servi par \`${module}\` : fusion par groupe de site ; sans lui, deux soldes
+   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
+  },
+].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
 for (const c of CONFIGS) {
   if (!FAMILLES_POSTINSTALL.some((f) => f.porte(c))) {
     abandon(
@@ -277,7 +293,7 @@ for (const c of CONFIGS) {
   }
 }
 const FAMILLES = FAMILLES_POSTINSTALL.filter((f) => CONFIGS.some(f.porte))
-const lignesFamilles = FAMILLES.map((f, i) => `${i + 1}. ${f.texte()}`).join('\n')
+const lignesFamilles = FAMILLES.map((f, i) => `${i + 1}. ${f.texte(f.module)}`).join('\n')
 
 /** Une porte vise le sous-projet `server/` sous DEUX formes : l'invocation directe
  *  (`npm --prefix server ci`) et le script racine qui la délègue (`npm run server:<x>` — package.json

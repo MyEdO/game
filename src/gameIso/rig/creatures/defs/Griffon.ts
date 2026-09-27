@@ -1,7 +1,7 @@
 import type { CreatureDef } from '../types';
 
 // Griffon — fidélité à l'artwork officiel (art-ref/ldb/page322_img7643.png) : TRICOLORE net —
-// ailes brun-roux FONCÉ (famille @aile* propre, patron pégase), tête/encolure/poitrail plumage
+// ailes brun-roux FONCÉ (gamme @aile* propre, patron pégase), tête/encolure/poitrail plumage
 // DORÉ clair (robe + crinière hirsute dorées), arrière-train de LION fauve RAYÉ TIGRÉ (markings
 // 'rayures' + rayures de cuisse en deco). Ailes portées DRESSÉES à demi-ouvertes (wingPose,
 // le port de l'artwork — plus l'aile couchée plate). Avant-train d'AIGLE : serres jaunes

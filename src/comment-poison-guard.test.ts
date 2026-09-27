@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import {
   EXCUSE_GUARD_ACTIVE,
-  POISON_DIRS,
-  POISON_EXTS,
+  PERIMETRE_DES_GARDES,
+  corpusDesGardes,
+  estFichierScanne,
   tombstonesIn,
   scanTombstones,
   untaggedExcuseMatch,
@@ -40,10 +40,10 @@ const GARDE = {
     'tombale n’ont AUCUN stock (tolérance zéro : le site se reformule dans le geste).',
   primitive:
     '`extractComments` + `scanTombstones`/`scanExcuses`/`scanLegacyVocab`/`scanDecisionClaims` ' +
-    '(`scripts/guards/lib/commentPoison.mjs`), sur le corpus de `readCorpus` ' +
-    '(`scripts/guards/lib/sourceCorpus.mjs`, #1462) — plus aucun parcours de dossiers local.',
+    '(`scripts/guards/lib/commentPoison.mjs`), sur `corpusDesGardes()`, le corpus de `readCorpus` ' +
+    '(`scripts/guards/lib/sourceCorpus.mjs`, #1462) sur `PERIMETRE_DES_GARDES`.',
   perimetre:
-    '`src/**` + `scripts/**`, extensions `.ts`, `.tsx`, `.mts`, `.mjs`. Familles excuse, tombale et (e) : TESTS ' +
+    '`PERIMETRE_DES_GARDES` (`scripts/guards/lib/commentPoison.mjs`). Familles excuse, tombale et (e) : TESTS ' +
     'INCLUS (le poison écrit dans un test est du poison). ' +
     'Cliquet des revendications d’autorité : les tests de `src/**`.',
   angleMort: [
@@ -115,7 +115,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet 
 // #828 : les gardes sont soumises à la règle qu'elles font respecter — la mécanique de détection est
 // scannée par elle-même. Un détecteur qui doit citer un motif le plante en LITTÉRAL DE CHAÎNE ici
 // (jamais lu par `extractComments`), il ne l'écrit pas dans sa prose.
-const CORPUS = readCorpus([...POISON_DIRS], { exts: [...POISON_EXTS], tests: true });
+const CORPUS = corpusDesGardes();
 /** Fichiers de test de `src/**` : périmètre du cliquet famille 4. */
 const TESTS_SRC = CORPUS.filter((f) => estSuiteVitest(f.rel) && f.rel.startsWith('src/'));
 
@@ -123,18 +123,19 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
   it('la garde se déclare : question A→B→C, primitive, périmètre, angles morts, baseline décroissante, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('sourceCorpus.mjs');
-    expect(GARDE.perimetre, 'le périmètre doit NOMMER les deux racines scannées.').toMatch(/src\/\*\*.*scripts\/\*\*/s);
+    expect(GARDE.perimetre, 'le périmètre doit NOMMER sa déclaration.').toContain('PERIMETRE_DES_GARDES');
     expect(GARDE.angleMort.length).toBeGreaterThanOrEqual(4);
     expect(GARDE.baseline).toMatchObject({ fichier: 'scripts/guards/lib/legacyVocabStock.mjs', decroissant: true });
     expect(GARDE.ticket).toBe('#1486');
   });
 
-  it('le corpus scanné couvre bien les DEUX racines et les quatre extensions (preuve de câblage)', () => {
+  it('le corpus scanné couvre chaque racine et chaque extension de `PERIMETRE_DES_GARDES` (preuve de câblage)', () => {
     const exts = new Set(CORPUS.map((f) => f.rel.slice(f.rel.lastIndexOf('.'))));
-    expect([...exts].sort()).toEqual(['.mjs', '.mts', '.ts', '.tsx']);
-    expect(CORPUS.some((f) => f.rel.startsWith('src/'))).toBe(true);
-    expect(CORPUS.some((f) => f.rel.startsWith('scripts/') && !f.rel.startsWith('scripts/guards/lib/'))).toBe(true);
+    expect([...exts].sort()).toEqual([...PERIMETRE_DES_GARDES.extensions].sort());
+    for (const racine of PERIMETRE_DES_GARDES.racines) expect(CORPUS.some((f) => f.rel.startsWith(`${racine}/`)), racine).toBe(true);
     expect(TESTS_SRC.length).toBeGreaterThan(0);
+    expect(CORPUS.filter((f) => !estFichierScanne(f.rel)).map((f) => f.rel)).toEqual([]);
+    expect(estFichierScanne('src/vite-env.d.ts')).toBe(false);
   });
 });
 
@@ -481,7 +482,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
     // Contrôles négatifs : un PÉRIMÈTRE décrit au présent, et un « reste » sans verbe de réparation.
     expect(untaggedExcuseMatch('// ce champ est hors périmètre de la garde (mesure de #1486).')).toBeNull();
     expect(untaggedExcuseMatch('// le compte reste à 0 tant que le motif tient.')).toBeNull();
-    // ANGLE MORT ASSUMÉ du motif (consigné à `ALIBI_PERIMETRE`, `commentPoison.mjs`) : la même forme
+    // ANGLE MORT du motif (consigné à `ALIBI_PERIMETRE`, `commentPoison.mjs`) : la même forme
     // au PASSÉ portant un complément de SOURCE est une prose DESCRIPTIVE, pas une dette laissée — elle
     // MORD quand même. 0 occurrence dans le corpus le 2026-08-30 : motif tenu STRICT tant que c'est 0.
     expect(untaggedExcuseMatch("// ce champ était hors périmètre de l'extraction FR.")).not.toBeNull();
@@ -629,18 +630,97 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
 // du détecteur. Stock nominatif daté : `scripts/guards/lib/legacyVocabStock.mjs`.
 // ---------------------------------------------------------------------------------------------
 
+/** Un chemin hors de l'art du rig (`estArtDuRig`) : les familles à `domaine` s'y jouent selon lui. */
+const HORS_ART = 'src/x.ts';
+
+/** Les seconds noms (#1903) : `[commentaire, chemin, sites attendus]`, joués par `scanLegacyVocab`. */
+const CAS_DES_SECONDS_NOMS: [string, string, number][] = [
+  ['// le token @peau', 'src/gameIso/rig/x.ts', 1],
+  ['// le token @peau', 'src/ui/x.ts', 0],
+  ['// le token @peau', 'scripts/rig/x.mts', 1],
+  ['// le token @peau', 'scripts/qc/x.mts', 1],
+  ['// le token @peau', 'scripts/_qc-x.mts', 1],
+  ['// le token @peau', 'scripts/_tokenize-x.mts', 1],
+  ['// le token @peau', 'scripts/x.mts', 0],
+  ['// `token` cité', 'src/gameIso/rig/x.ts', 0],
+  ['// TOKEN_RE lit', 'src/gameIso/rig/x.ts', 0],
+  ['// RigToken', 'src/gameIso/rig/x.ts', 0],
+  ['// solo/hôte', 'src/gameIso/rig/x.ts', 0],
+  ['// variante où', 'src/ui/x.ts', 0],
+  ['// variante O du jeton', 'src/ui/x.ts', 1],
+  ['// O/H', 'src/gameIso/rig/x.ts', 1],
+  ['// O/H', 'src/ui/x.ts', 0],
+  ['// o/h', 'src/gameIso/rig/x.ts', 1],
+  ['// palette token→hex', 'src/engine/x.ts', 1],
+  ['// gammes (base, O, H)', 'scripts/x.mjs', 1],
+  ['// un Gradient partagé', 'src/gameIso/rig/x.ts', 1],
+  ['// des gradients partagés', 'src/ui/x.ts', 1],
+  ['// art tokenisé', 'scripts/gen-x.mjs', 1],
+  ['// art tokenisé', 'scripts/rig/x.mts', 1],
+  ['// prose tokenisée', 'scripts/gen-x.mjs', 0],
+  ['// texte tokenisé pour l’auto-liage', 'src/ui/compendium/x.ts', 0],
+  ['// art dédié à gradients', 'scripts/gen-x.mts', 1],
+  ['// un gradient de ciel', 'src/gameIso/catalog/x.ts', 0],
+  ['// le token @peau [entériné 2026-09-27]', 'src/gameIso/rig/x.ts', 0],
+  ['// Prop DIRECTIONNEL', 'src/gameIso/catalog/x.ts', 1],
+  ['// art multi-vues', 'src/ui/x.ts', 1],
+  ['// art multi-vues', 'src/gameIso/rig/x.ts', 1],
+  ['// la directionnelle rasante', 'src/gameIso/stage/x.ts', 0],
+  ['// croix directionnelle', 'src/ui/x.ts', 0],
+  ['// contrat bidirectionnel', 'src/ui/x.ts', 0],
+  ['// biais directionnel', 'src/gameIso/rig/x.ts', 0],
+  ['// famille @aile*', 'src/gameIso/rig/x.ts', 1],
+  ['// la famille `botte`', 'src/gameIso/rig/x.ts', 1],
+  ['// tête de famille', 'src/gameIso/rig/x.ts', 1],
+  ['// famille de palette', 'src/gameIso/rig/x.ts', 1],
+  ['// famille d’arme', 'src/gameIso/rig/x.ts', 0],
+  ['// famille équine', 'src/gameIso/rig/x.ts', 0],
+  ['// famille @aile*', 'src/ui/x.ts', 0],
+  ['// la famille `.rm-*`', 'src/ui/x.ts', 0],
+  ['// les props ORIENTABLES du catalogue', 'src/gameIso/rig/x.ts', 1],
+  ['// props orientables', 'scripts/gen-x.mts', 1],
+  ['// un globe oculaire orientable', 'src/gameIso/rig/x.ts', 0],
+  ['// teinte sombre de la robe (@corpsO)', 'src/gameIso/rig/x.ts', 1],
+  ['// teinte sombre lisible sur le losange', 'src/ui/x.ts', 0],
+  ['// dont directionnels en 3 vues', 'scripts/gen-x.mjs', 1],
+  ['// un prop\n// DIRECTIONNEL (`views`)', 'src/gameIso/catalog/x.ts', 1],
+  ['// Croix directionnelle TACTILE de la vue subjective', 'src/ui/x.ts', 0],
+  ['// Main (poing) directionnelle', 'src/gameIso/rig/x.ts', 1],
+  ['// art absent/directionnel', 'scripts/x.mts', 1],
+  ['// `tok` = famille de\n//  palette', 'src/gameIso/rig/x.ts', 1],
+  ['/** la famille de\n *  jetons `robe*` */', 'src/gameIso/rig/x.ts', 1],
+  ['// la famille `robe*`', 'src/gameIso/rig/x.ts', 1],
+  ['// vues des familles `parts/monster/defs/`', 'scripts/rig/x.mts', 0],
+  ['// table EXHAUSTIVE keyée par une union', 'src/ui/x.ts', 1],
+  ['// `Record` EXHAUSTIF (TS force sa complétude)', 'src/ui/x.ts', 1],
+  ['// rend le record EXHAUSTIF', 'src/data/x.ts', 1],
+  ['// La table est\n// EXHAUSTIVE par le TYPE', 'src/ui/x.ts', 1],
+  ['// table TOTALE', 'src/ui/x.ts', 0],
+  ['// relevé exhaustif', 'scripts/x.mjs', 0],
+  ['// switchs EXHAUSTIFS', 'scripts/x.mjs', 0],
+  ['// garde d’exhaustivité', 'src/x.ts', 0],
+  ['// table exhaustive [entériné 2026-09-27]', 'src/ui/x.ts', 0],
+];
+
 describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1)', () => {
+  it('les seconds noms de l’art, d’un concept de l’art et de la table totale : chaque cas à son compte, selon le chemin', () => {
+    for (const [texte, rel, attendu] of CAS_DES_SECONDS_NOMS) {
+      const sites = scanLegacyVocab(rel, texte).filter((x) => /^\[second nom/.test(x.detail));
+      expect(sites.length, `${rel} : ${JSON.stringify(texte)}`).toBe(attendu);
+    }
+  });
+
   it('cas plantés : chaque mot qui nomme l’état d’avant est détecté (preuve TDD)', () => {
-    expect(legacyVocabIn('// repli conservé pour le stock legacy des projets')).toContain('legacy');
-    expect(legacyVocabIn('// `target` (optionnel — rétro-compat) sert le combat au contact')).toContain('rétro-compat');
-    expect(legacyVocabIn('// Absent = tous les pas alloués (défaut, IA/rétrocompatibilité).')).toContain('rétro-compat');
-    expect(legacyVocabIn('// kept for backward compatibility with the old export')).toContain('backward-compat');
-    expect(legacyVocabIn('// @deprecated — passer par le registre')).toContain('deprecated');
-    expect(legacyVocabIn('// `PCFSoftShadowMap` est DÉPRÉCIÉ depuis three 0.185')).toContain('déprécié');
-    expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture')).toContain('obsolète');
-    expect(legacyVocabIn('// enrobé en `ViewSet` par le shim `toViewSet`')).toContain('shim');
-    expect(legacyVocabIn('// le registre porte désormais le libellé')).toContain('désormais');
-    expect(legacyVocabIn('// DÉSORMAIS, la file appartient à la scène')).toContain('désormais');
+    expect(legacyVocabIn('// repli conservé pour le stock legacy des projets', HORS_ART)).toContain('legacy');
+    expect(legacyVocabIn('// `target` (optionnel — rétro-compat) sert le combat au contact', HORS_ART)).toContain('rétro-compat');
+    expect(legacyVocabIn('// Absent = tous les pas alloués (défaut, IA/rétrocompatibilité).', HORS_ART)).toContain('rétro-compat');
+    expect(legacyVocabIn('// kept for backward compatibility with the old export', HORS_ART)).toContain('backward-compat');
+    expect(legacyVocabIn('// @deprecated — passer par le registre', HORS_ART)).toContain('deprecated');
+    expect(legacyVocabIn('// `PCFSoftShadowMap` est DÉPRÉCIÉ depuis three 0.185', HORS_ART)).toContain('déprécié');
+    expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture', HORS_ART)).toContain('obsolète');
+    expect(legacyVocabIn('// enrobé en `ViewSet` par le shim `toViewSet`', HORS_ART)).toContain('shim');
+    expect(legacyVocabIn('// le registre porte désormais le libellé', HORS_ART)).toContain('désormais');
+    expect(legacyVocabIn('// DÉSORMAIS, la file appartient à la scène', HORS_ART)).toContain('désormais');
     for (const site of [
       '// ce point d’entrée ne sert plus qu’aux étapes déjà mintées',
       '// le SVG de catalogue n’est plus qu’une vignette de palette',
@@ -651,27 +731,27 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
       '// ce champ n’est désormais plus qu’un alias',
       '// la voie n’était plus qu’un repli',
     ])
-      expect(legacyVocabIn(site), site).toContain('ne … plus que');
+      expect(legacyVocabIn(site, HORS_ART), site).toContain('ne … plus que');
   });
 
   it('faux positifs écartés : le COMPARATIF, le mot plus long, la locution et la citation VERBATIM ne sont pas « ne … plus que »', () => {
-    expect(legacyVocabIn('// le SVG de catalogue est la vignette de palette')).toEqual([]);
-    expect(legacyVocabIn('// la cible n’est plus quelconque : elle est nommée')).toEqual([]);
-    expect(legacyVocabIn('// ce total n’est pas plus que la somme des parts')).toEqual([]);
-    expect(legacyVocabIn('// le pot ne rend jamais plus qu’il n’a reçu')).toEqual([]);
-    expect(legacyVocabIn('// il n’est plus que temps de clore la manche')).toEqual([]);
-    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu » (NADJ 16 l.17)')).toEqual([]);
-    expect(legacyVocabIn('// « le module n’est plus que du bruit » (2026-07-27)')).toEqual([]);
-    expect(legacyVocabIn('// « la cible est désormais à couvert » (NADJ 16 l.17)')).toEqual([]);
-    expect(legacyVocabIn('// la cible est désormais à couvert')).toContain('désormais');
+    expect(legacyVocabIn('// le SVG de catalogue est la vignette de palette', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// la cible n’est plus quelconque : elle est nommée', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// ce total n’est pas plus que la somme des parts', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// le pot ne rend jamais plus qu’il n’a reçu', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// il n’est plus que temps de clore la manche', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu » (NADJ 16 l.17)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// « le module n’est plus que du bruit » (2026-07-27)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// « la cible est désormais à couvert » (NADJ 16 l.17)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// la cible est désormais à couvert', HORS_ART)).toContain('désormais');
     // L'exclusion ne vaut que si elle RECOUVRE le match : hors guillemets, la même phrase est un site.
-    expect(legacyVocabIn('// jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu')).toContain('ne … plus que');
+    expect(legacyVocabIn('// jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu', HORS_ART)).toContain('ne … plus que');
   });
 
   it('des guillemets SANS réf ne font pas une citation : la tombale y reste un site, toutes familles', () => {
-    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu »')).toContain('ne … plus que');
-    expect(legacyVocabIn('// « ce module n’est plus qu’un relais », puis la suite du commentaire (NADJ 16 l.17)')).toContain('ne … plus que');
-    expect(legacyVocabIn('// « enrobé par le shim `toViewSet` »')).toContain('shim');
+    expect(legacyVocabIn('// « jusqu’à ce qu’il n’y ait plus qu’un seul joueur en jeu »', HORS_ART)).toContain('ne … plus que');
+    expect(legacyVocabIn('// « ce module n’est plus qu’un relais », puis la suite du commentaire (NADJ 16 l.17)', HORS_ART)).toContain('ne … plus que');
+    expect(legacyVocabIn('// « enrobé par le shim `toViewSet` »', HORS_ART)).toContain('shim');
   });
 
   it('ÉTAT DE JEU au présent : un site de la forme, que seul le tag [entériné AAAA-MM-JJ] du MÊME commentaire neutralise (`scanLegacyVocab`, `ENTERINE_TAG_RX`)', () => {
@@ -680,19 +760,19 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
   });
 
   it('cas planté : une CONSTANTE citée en commentaire est un site (le tiret bas n’est pas une frontière)', () => {
-    expect(legacyVocabIn('// `LEGACY_KEY` nettoie les clés des versions antérieures')).toContain('legacy');
+    expect(legacyVocabIn('// `LEGACY_KEY` nettoie les clés des versions antérieures', HORS_ART)).toContain('legacy');
   });
 
   it('cas planté : la coupure de ligne ne met pas la locution hors de portée', () => {
-    expect(legacyVocabIn('/** ce point d’entrée ne sert\n *  plus qu’aux étapes mintées. */')).toContain('ne … plus que');
-    expect(legacyVocabIn('/** ce qui distingue une région n’est\n *  plus que ses alvéoles */')).toContain('ne … plus que');
+    expect(legacyVocabIn('/** ce point d’entrée ne sert\n *  plus qu’aux étapes mintées. */', HORS_ART)).toContain('ne … plus que');
+    expect(legacyVocabIn('/** ce qui distingue une région n’est\n *  plus que ses alvéoles */', HORS_ART)).toContain('ne … plus que');
   });
 
   it('faux positifs écartés : l’IDENTIFIANT et le NOM DE FICHIER cités en commentaire ne sont pas des sites', () => {
-    expect(legacyVocabIn('// `legacyVocabIn` rend les motifs portés par un commentaire')).toEqual([]);
-    expect(legacyVocabIn('// scanner `charKeyLegacy.mjs` (clés de caractéristique)')).toEqual([]);
-    expect(legacyVocabIn('// stock nominatif : `legacyVocabStock.mjs`')).toEqual([]);
-    expect(legacyVocabIn('// Message du joueur par CAUSE de rejet (`ObsoleteCause`)')).toEqual([]);
+    expect(legacyVocabIn('// `legacyVocabIn` rend les motifs portés par un commentaire', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// scanner `charKeyLegacy.mjs` (clés de caractéristique)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// stock nominatif : `legacyVocabStock.mjs`', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// Message du joueur par CAUSE de rejet (`ObsoleteCause`)', HORS_ART)).toEqual([]);
   });
 
   it('faux positif écarté : le mot dans une CHAÎNE n’est pas un commentaire (preuve TDD)', () => {
@@ -700,9 +780,9 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
   });
 
   it('hors périmètre mesuré : la quantité, le vocabulaire de JEU et la citation RAW ne sont pas des sites', () => {
-    expect(legacyVocabIn('// à plus de 3 cases, la portée longue s’applique')).toEqual([]);
-    expect(legacyVocabIn('// remis à zéro à la fin du tour (LDB 13 l.106)')).toEqual([]);
-    expect(legacyVocabIn('// « le personnage était étourdi »')).toEqual([]);
+    expect(legacyVocabIn('// à plus de 3 cases, la portée longue s’applique', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// remis à zéro à la fin du tour (LDB 13 l.106)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// « le personnage était étourdi »', HORS_ART)).toEqual([]);
   });
 
   it('cas planté : le tag [entériné AAAA-MM-JJ] du MÊME commentaire neutralise la famille (preuve TDD)', () => {
@@ -711,18 +791,18 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
   });
 
   it('cas planté : un commentaire neutre ne matche aucune famille (contrôle négatif)', () => {
-    expect(legacyVocabIn('// Calcule le total des dégâts appliqués à la cible.')).toEqual([]);
+    expect(legacyVocabIn('// Calcule le total des dégâts appliqués à la cible.', HORS_ART)).toEqual([]);
   });
 
   it('emplois VIVANTS écartés : la dépendance npm, la couture DEV Playwright, l’entrée de garde sans correspondance', () => {
     // Aucun de ces sites ne peut « mourir » : le mot n'y nomme pas un état révolu de CE dépôt.
-    expect(legacyVocabIn('// dépendances inutilisées (knip) + majeures obsolètes (npm outdated), en issue')).toEqual([]);
-    expect(legacyVocabIn('// Simule un BOUTON de manette en passant par le shim DEV installé par `useGamepad`')).toEqual([]);
-    expect(legacyVocabIn('// le hook (vraie manette) ET le shim DEV (Playwright, `__wfrpPad`)')).toEqual([]);
-    expect(legacyVocabIn('// un motif de cette liste sans AUCUNE correspondance est une erreur (motif obsolète).')).toEqual([]);
+    expect(legacyVocabIn('// dépendances inutilisées (knip) + majeures obsolètes (npm outdated), en issue', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// Simule un BOUTON de manette en passant par le shim DEV installé par `useGamepad`', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// le hook (vraie manette) ET le shim DEV (Playwright, `__wfrpPad`)', HORS_ART)).toEqual([]);
+    expect(legacyVocabIn('// un motif de cette liste sans AUCUNE correspondance est une erreur (motif obsolète).', HORS_ART)).toEqual([]);
     // L'exclusion ne vaut que si elle RECOUVRE le match : le mot NU reste un site.
-    expect(legacyVocabIn('// le shim `toViewSet` enrobe l’art partiel')).toContain('shim');
-    expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture')).toContain('obsolète');
+    expect(legacyVocabIn('// le shim `toViewSet` enrobe l’art partiel', HORS_ART)).toContain('shim');
+    expect(legacyVocabIn('// une entrée obsolète est refusée à la lecture', HORS_ART)).toContain('obsolète');
   });
 
   it('tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée', () => {

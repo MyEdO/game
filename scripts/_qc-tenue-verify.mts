@@ -1,4 +1,4 @@
-/** Rend l'état ACTUEL (tokenisé + CAREER_PALETTES défaut) de carrières données → public/qc/tenue-new/<slug>.png
+/** Rend l'état ACTUEL (en jetons + CAREER_PALETTES défaut) de carrières données → public/qc/tenue-new/<slug>.png
  *  À comparer aux originaux public/qc/tenue/<slug>.png. Lancer : npx tsx scripts/_qc-tenue-verify.mts */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
@@ -23,6 +23,6 @@ for (const career of CAREERS) {
   const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150"><defs>${defsGlobaux()}</defs>${inner}</svg>`;
   writeFileSync(`public/qc/tenue-new/${career}.png`, new Resvg(full, { background: '#2b3142', fitTo: { mode: 'width', value: 320 } }).render().asPng());
 }
-// Montage côte à côte : original (rendu pré-tokenisation, à gauche) n'est pas réimportable ici
+// Montage côte à côte : original (rendu d'avant la mise en jetons, à gauche) n'est pas réimportable ici
 // → on rend juste les NOUVEAUX ; comparer avec public/qc/tenue/<slug>.png (originaux).
 console.log('OK → public/qc/tenue-new/*.png (comparer aux public/qc/tenue/*.png)');

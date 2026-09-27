@@ -37,44 +37,44 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *    par la re-visite de l'initialiseur : AUCUNE boucle n'était vue) ;
  *  - l'identité `book` ajoutée à `ID_NAME_RX` (`source.book`, sigle de livre).
  * Les entrées neuves portent leur motif NOMINATIF ci-dessous : stock avoué, à faire DÉCROÎTRE.
- * Descente mesurée depuis : 60 → 58 (lots E4/C0+C1, `bc54767e`), puis 58 → 54 (lot E4/C2+C3,
- * 2026-08-17) — `creation.ts` et `CharacterCreator.tsx` (gate d'espèce passé au champ
+ * Descente mesurée depuis : 60 → 58 (`bc54767e`), puis 58 → 54 (2026-08-17)
+ * — `creation.ts` et `CharacterCreator.tsx` (gate d'espèce passé au champ
  * `SpeciesData.gatedByRule`), `combat.ts` et `draft.ts` (tables `Record<union fermée, …>`), puis
- * 54 → 50 (lot E4/C4-groups, 2026-08-17) — `groups.ts` sort de la liste : l'appartenance à un
+ * 54 → 50 (2026-08-17) — `groups.ts` sort de la liste : l'appartenance à un
  * Groupe est DÉCLARÉE en donnée (`grantGroups` d'espèce/carrière/classe/culte/créature,
- * `matchesAll`/`exceptGroups` du Groupe joker), puis 50 → 46 (lot E4/C4-δ1, 2026-08-17) —
+ * `matchesAll`/`exceptGroups` du Groupe joker), puis 50 → 46 (2026-08-17) —
  * `persistence.ts` et `exposure.ts` sortent de la liste (persistance d'État déclarée par
  * `EtatData.persistsAfterCombat`, dissipation au répit par `ActiveEffect.expiresOnRespite`) et
- * `seaVoyageFlow.ts` passe de 2 à 1 (`DiseaseDef.contaminatesWaterBarrel`), puis 46 → 37 (lot E4/C4-δ2,
- * 2026-08-17) — `creatureEquip.ts`, `polymorph.ts`, `items.ts`, `conjuredWeapons.ts`, `skills.ts` et
+ * `seaVoyageFlow.ts` passe de 2 à 1 (`DiseaseDef.contaminatesWaterBarrel`), puis 46 → 37 (2026-08-17)
+ * — `creatureEquip.ts`, `polymorph.ts`, `items.ts`, `conjuredWeapons.ts`, `skills.ts` et
  * `careerSlots.ts` sortent de la liste : Trait exclu d'un octroi en masse
  * (`TraitData.nonTransferable`), Mains nues / Arme improvisée (`TrappingData.unarmed`/`improvised`),
  * Domaine arcanique octroyé (`TalentData.grantsArcaneDomain`) et caractéristique alternative sous règle
  * (`SkillData.altChar`) sont DÉCLARÉS sur l'entrée ; l'armement de créature et « une Compétence de
  * Corps à corps » se lisent, eux, sur le `specsSource` que l'entrée déclarait DÉJÀ (aucun champ neuf
  * à tenir synchrone : `weaponFromTrait` passe cette source telle quelle à son résolveur de catalogue),
- * puis 37 → 27 (lot E4/C4-δ3, 2026-08-17) — la couche ACTIVITÉS/UI : `mountTravel.ts`, `massBattleFlow.ts`,
+ * puis 37 → 27 (2026-08-17) — la couche ACTIVITÉS/UI : `mountTravel.ts`, `massBattleFlow.ts`,
  * `seaVoyageFlow.ts`, `CityHubScreen.tsx`, `CouncilModal.tsx`, `CrewTestModal.tsx` et `InterludeScreen.tsx`
- * sortent de la liste, `combatFlow.ts` passe de 2 à 1. Ce que l'entrée DÉCLARE désormais : la séquelle
+ * sortent de la liste, `combatFlow.ts` passe de 2 à 1. Ce que l'entrée DÉCLARE : la séquelle
  * d'un Incident de monte (`mount.riderTest`/`ridingPenalty`/`forcedAllure`/`preventsMount`/
  * `notHealedByCare`), le réservoir de modificateur qu'un Test dépense (`testModFrom`) et la difficulté
  * DÉRIVÉE d'un écart d'armées (`difficultyFrom`), le Test d'équipage qui coûte du Moral sur DR négatif
  * (`moraleOnNegativeDR`) et celui qui DIRIGE le navire (`steering`), le choix de paie mis en avant
  * (`recommendedPay`), l'écran vers lequel un service PORTE (`opensScreen`), et la catégorie Codex de
- * chaque table de Maladresse (`codexCategory`, `miscast.json` déclarant désormais ses tables), puis
- * 27 → 20 (lot E4/C4-δ4, 2026-08-17) — l'OUTILLAGE `scripts/` : les deux compilateurs de campagne
+ * chaque table de Maladresse (`codexCategory`, `miscast.json` déclarant ses tables), puis
+ * 27 → 20 (2026-08-17) — l'OUTILLAGE `scripts/` : les deux compilateurs de campagne
  * déclarent l'offre de couchage à l'AUTHORING (`scene({ rest })` → `MapSpec.rest`, les deux tables
  * `REST_OFFERS[s.id]` supprimées), `obtainabilityGraph` lit la famille de Sort qu'un Talent ouvre sur
  * son entrée (`combat.castingKind`), `gen-toise-gallery` passe par la primitive `sizeFromTraits`, la
  * planche `_qc-decor-sheet` prend sa liste de mise en avant EN ARGUMENT (`--new=id1,id2`) et
  * `reconcile.mjs` lit le CŒUR d'un livre au registre (`coeurDe`, champ `coeur` de `books.json`), puis
- * 20 → 9 (lot E4/C-γ, 2026-08-17) — le cluster AMPUTATION/comptage : `critical.ts`, `trauma.ts`,
- * `injuries.ts` et `CharacterSheet.tsx` sortent de la liste. Ce que l'entrée DÉCLARE désormais : la règle
+ * 20 → 9 (2026-08-17) — le cluster AMPUTATION/comptage : `critical.ts`, `trauma.ts`,
+ * `injuries.ts` et `CharacterSheet.tsx` sortent de la liste. Ce que l'entrée DÉCLARE : la règle
  * de COMPTAGE d'une séquelle cumulative (`TraumaFiche.cumul` — portée, unité, effet par palier, seuil
  * d'escalade `remplace`/`ajoute`), son routage d'APPARENCE sur le rig (`TraumaFiche.rig`), les PALIERS
  * d'entraînement d'une prothèse (`TrappingData.prosthesisTraining`) et les deux escalades de Blessure
  * critique, chacune en AXE paramétré (`escalation.perRound`/`apresDelai` : séquelle visée + cadence/délai),
- * puis 9 → 6 (lot E4/Cε, 2026-08-17) — DEUX formes SAINES de plus dans le scanner, chacune avec sa
+ * puis 9 → 6 (2026-08-17) — DEUX formes SAINES de plus dans le scanner, chacune avec sa
  * contre-épreuve (aucun site de code assaini par déclaration ici, sauf le masque du harnais de volume) :
  * le VOCABULAIRE `GameOp` (`op.ref === 'self'` — mot réservé, `OP_VOCABULARY` ; `combatFlow.ts` sort de
  * la liste) et les ids de GÉOMÉTRIE d'union fermée (`VOCABULARY_TYPES` = `BoneId` ; `skeletons.ts` sort,
@@ -120,35 +120,35 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
  * Deux sens, comme le plafond principal : une hausse est nominative (un branchement brut de plus),
  * une baisse non répercutée est « périmée » (le compte doit descendre dans ce fichier). Ce compte NE
  * DOIT JAMAIS MONTER, et chaque lot d'assainissement doit le faire DESCENDRE.
- * Mesure du 2026-08-17 (#1318 E4/C0-a), par NŒUD (deux comparaisons sur une même ligne pèsent 2) :
- * 169 au moment de la pose du cliquet, 165 après le lot C1 (marqueurs de cargaison passés en donnée —
- * `registry.ts` et `PortView.tsx` sortent de la liste), 163 après le lot C2 (gate d'espèce en champ
- * déclaré : `creation.ts` sort de la liste, `CharacterCreator.tsx` passe de 8 à 7), 160 après le lot
- * C4-groups (appartenance de Groupe déclarée en donnée : `groups.ts` sort de la liste), 158 après le
- * lot C4-δ1 (politique de dissipation déclarée sur l'effet : `exposure.ts` sort de la liste), 146 après
- * le lot C4-δ2 (Trait intransférable, Mains nues / Arme improvisée, Domaine arcanique octroyé et
+ * Mesure du 2026-08-17 (#1318), par NŒUD (deux comparaisons sur une même ligne pèsent 2) :
+ * 169 au moment de la pose du cliquet, 165 (marqueurs de cargaison passés en donnée —
+ * `registry.ts` et `PortView.tsx` sortent de la liste), 163 (gate d'espèce en champ
+ * déclaré : `creation.ts` sort de la liste, `CharacterCreator.tsx` passe de 8 à 7), 160
+ * (appartenance de Groupe déclarée en donnée : `groups.ts` sort de la liste), 158
+ * (politique de dissipation déclarée sur l'effet : `exposure.ts` sort de la liste), 146
+ * (Trait intransférable, Mains nues / Arme improvisée, Domaine arcanique octroyé et
  * caractéristique alternative déclarés sur l'entrée ; armement de créature et « Compétence de Corps à
  * corps » lus sur le `specsSource` déjà déclaré : `creatureEquip.ts`, `polymorph.ts`, `items.ts`,
  * `conjuredWeapons.ts`, `skills.ts` et `combat.ts` sortent de la liste, `careerSlots.ts` passe de 2 à 1
- * et `CharacterCreator.tsx` de 7 à 6), 136 après le lot C4-δ3 (couche activités/UI : `mountTravel.ts`,
+ * et `CharacterCreator.tsx` de 7 à 6), 136 (couche activités/UI : `mountTravel.ts`,
  * `massBattleFlow.ts`, `CityHubScreen.tsx`, `CouncilModal.tsx` et `CrewTestModal.tsx` sortent de la liste,
  * `seaVoyageFlow.ts` passe de 6 à 4, `combatSlice.ts` de 3 à 2 et `InterludeScreen.tsx` de 3 à 2),
- * 131 après le lot C4-δ4 (outillage : `obtainabilityGraph.ts`, `gen-toise-gallery.mts` et
+ * 131 (outillage : `obtainabilityGraph.ts`, `gen-toise-gallery.mts` et
  * `reconcile.mjs` sortent de la liste — famille de Sort lue sur le Talent, Taille lue par
- * `sizeFromTraits`, cœur d'un livre lu au registre `books.json`), 112 après le lot E4/C-γ (cluster
+ * `sizeFromTraits`, cœur d'un livre lu au registre `books.json`), 112 (cluster
  * amputation/comptage : `CharacterSheet.tsx` et `partyFlow.ts` sortent de la liste — paliers de prothèse
  * déclarés au catalogue —, `critical.ts` passe de 5 à 1, `trauma.ts` de 10 à 4 et `injuries.ts` de 5 à 2 ;
- * la prose de ce lot annonçait 113, la SOMME de la table valait 112 — écart de prose corrigé au lot Cε,
- * mesure re-faite), puis 110 après le lot E4/Cε (mot de VOCABULAIRE `'self'` hors champ des DEUX
+ * la prose annonçait 113, la SOMME de la table valait 112 — écart de prose corrigé,
+ * mesure re-faite), puis 110 (mot de VOCABULAIRE `'self'` hors champ des DEUX
  * détecteurs : `combatFlow.ts` passe de 4 à 3 ; masque de tronc du harnais de volume écrit en collection
- * `BoneId[]` : `mesure-volume.mts` sort de la liste), puis 109 après le lot « anneau ami en donnée »
- * (le MODE de ciblage déclare son anneau de candidats sur son entrée — `tmode.anneauCandidats`, plus de
- * `tmode.id === 'heal'` : `highlightLayer.tsx` sort de la liste), puis 108 après le lot #1479 (la
+ * `BoneId[]` : `mesure-volume.mts` sort de la liste), puis 109
+ * (anneau ami en donnée : le MODE de ciblage déclare son anneau de candidats sur son entrée — `tmode.anneauCandidats`, plus de
+ * `tmode.id === 'heal'` : `highlightLayer.tsx` sort de la liste), puis 108 (#1479 : la
  * conséquence d'une collision en mer lit la DONNÉE qui ouvre l'issue — `entangleChancePct`, symétrique
  * de `strandChancePct` — au lieu de l'id du péril : `seaVoyageFlow.ts` passe de 4 à 3).
  *
  * MONTÉE DE COUVERTURE (L2 #1548), la seule qui fasse MONTER ce plafond sans qu'un site soit né : la
- * mesure brute résout désormais les CONSTANTES DE MODULE (`const X = 'lit'` → `=== X`). Quatre sites
+ * mesure brute résout les CONSTANTES DE MODULE (`const X = 'lit'` → `=== X`). Quatre sites
  * PRÉEXISTANTS redeviennent visibles — `healing.ts` (1, dont le littéral venait d'être factorisé en
  * `HEAL_SKILL` : la comparaison n'avait pas bougé), `commandTeam.ts` (1) et `CarnetScreen.tsx` (2),
  * jusque-là comptés 0 par le seul effet de leur écriture. Aucun d'eux n'est un branchement nouveau.
@@ -177,7 +177,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/equipCompare.ts': 2,
   // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `careerSlots` ('focalisation')
   // et `critical` ('resistance') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des
-  // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout désormais
+  // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout
   // les constantes de module (L2 #1548), une factorisation n'assainit rien.
   'src/engine/healing.ts': 1,
   'src/engine/magic.ts': 3,
@@ -210,7 +210,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/gameIso/tokenBodyKind.tsx': 1,
   'src/state/aiSpellValue.ts': 2,
   'src/state/combatEffects.ts': 3,
-  'src/state/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp, lot Cε)
+  'src/state/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/state/combatGeometry.ts': 1,
   'src/state/combatManeuvers.ts': 4,
   'src/state/combatSlice.ts': 1, // 2 → 1 (#1599) : la pose de l'annulateur `determination` part chez son propriétaire (`engine/trauma.ts`)
@@ -356,7 +356,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       "const has = c.talents.some((t) => t.talentId === 'frenesie');",
       // (4) sentinelle de vide.
       "function pick(id: string) { return id === '' ? null : byId.get(id); }",
-      // (5) table EXHAUSTIVE par type : la clé est une union fermée, le compilateur exige l'entrée.
+      // (5) table TOTALE par type : la clé est une union fermée, le compilateur exige l'entrée.
       "const META: Record<StepId, string> = { species: 'Race', career: 'Carrière' };",
       'export function stepLabel(id: StepId) { return META[id]; }',
       // (6) index CALCULÉ : il suit le registre au lieu de le figer.
@@ -421,6 +421,15 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     const autreModule = shadow.replace('type BoneId = string;', "import type { BoneId } from './mesOs';");
     expect(rules(autreModule, 'src/state/fixture.ts')).toEqual(['id-membership']);
 
+    // Le nom EXPORTÉ fait foi (`origineImportee`) : `BoneId` importé sous un autre nom reste exempté…
+    const renomme = geometrie
+      .replace(/BoneId/g, 'Os')
+      .replace('type Os }', 'type BoneId as Os }');
+    expect(rules(renomme, 'src/gameIso/rig/fixture.ts')).toEqual([]);
+    // …et un autre type du module importé SOUS le nom `BoneId` ne l'est pas.
+    const usurpe = shadow.replace('type BoneId = string;', "import { type Slot as BoneId } from '../gameIso/rig/bones';");
+    expect(rules(usurpe, 'src/state/fixture.ts')).toEqual(['id-membership']);
+
     // MÊME forme, annotée par un type d'IDENTITÉ DE REGISTRE : `ConditionId` (`src/engine/types.ts`) est
     // un alias `= string`, donc OUVERT — c'est ce qui interdit le proxy lexical général « l'annotation
     // nomme un type non primitif » et impose la table `VOCABULARY_TYPES`. Le site reste COMPTÉ.
@@ -437,7 +446,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     // Étendre l'une de ces listes SE FAIT JUGER, jamais au geste de confort : un mot de plus
     // blanchirait des branchements réels sans que rien ne le dise. Le contenu est donc figé ICI.
     expect([...OP_VOCABULARY].sort()).toEqual(['', 'self']);
-    expect([...VOCABULARY_TYPES.entries()]).toEqual([['BoneId', 'src/gameIso/rig/bones']]);
+    expect([...VOCABULARY_TYPES.entries()]).toEqual([['BoneId', 'src/gameIso/rig/bones.ts']]);
   });
 
   it('CONTRE-ÉPREUVE : un nom déclaré littéral ICI et calculé LÀ n’accuse plus le second', () => {
@@ -497,7 +506,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     expect(rules(byBook)).toEqual(['id-equality']);
   });
 
-  it('MORSURE : l’identité d’un livre nommée `abbr`/`ab` est vue comme un `id` (#1825 E1b)', () => {
+  it('MORSURE : l’identité d’un livre nommée `abbr`/`ab` est vue comme un `id` (#1825)', () => {
     // Sigles INVENTÉS : ce banc éprouve le NOM DU CHAMP, il ne recopie aucune identité du registre.
     const byAbbr = ['export function dossier(b: BookData) {', "  return b.abbr === 'XYZ' ? special() : generic(b);", '}'].join('\n');
     expect(rules(byAbbr)).toEqual(['id-equality']);
@@ -598,7 +607,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       [scanRegistryIdBranch('fixture.ts', src).length, scanRawIdEqualities('fixture.ts', src).length];
 
     // (1) ALIAS RENOMMÉ dans un prédicat : l'évasion COMPLÈTE — le nom porteur a changé, les deux
-    //     détecteurs sont aveugles. C'est la limite haute de ce cliquet, assumée.
+    //     détecteurs sont aveugles. C'est la limite haute de ce cliquet.
     expect(mesure("const has = (defs: E[]) => defs.some((t) => {\n  const cle = t.id;\n  return cle === 'commerce';\n});")).toEqual([0, 0]);
     // (2) …et hors prédicat, même aveuglement.
     expect(mesure("const noyau = REG[0];\nconst cle = noyau.id;\nconst x = cle === 'commerce';")).toEqual([0, 0]);
@@ -623,7 +632,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     // (7) VARIABLE d'identité hors convention : un id de registre transporté par un paramètre nommé
     //     `decision`/`choix`/`kind` échappe aux DEUX gardes — angle mort MESURÉ sur le terrain
     //     (`shipCrew.resolveVesselWeek(…, decision)` nommait 'pas-de-paie' sans jamais être compté ;
-    //     assaini à la main sous #1318 E4/C4-δ3, pas par le détecteur). Élargir `ID_NAME_RX` à ces
+    //     assaini à la main sous #1318, pas par le détecteur). Élargir `ID_NAME_RX` à ces
     //     noms est un choix OUVERT : il rougirait ICI d'abord, et se déclarerait.
     expect(mesure("function paie(decision: string) { return decision === 'pas-de-paie'; }")).toEqual([0, 0]);
     expect(mesure("function svc(s: S) { return s.kind === 'auberge'; }")).toEqual([0, 0]);

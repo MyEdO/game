@@ -9,7 +9,8 @@
  * `state/combat/flowEval.ts` compose ce constructeur et l'enrichit du contexte de RÉSOLUTION (DR,
  * localisation, géométrie d'arène) que seul le combat connaît.
  */
-import { type Combatant, type CharKey, CHAR_KEYS } from './types';
+import { tableTotale } from '../lib/tableTotale';
+import { type Combatant, CHAR_KEYS } from './types';
 import { effectiveChar } from './characteristics';
 import { SIZE_ORDER, effectiveSize } from './size';
 import { campOf } from './relations';
@@ -30,7 +31,7 @@ export function buildActorView(c: Combatant | undefined): ActorView | undefined 
     ...(chaosDomainOf(c) ? { chaosDomain: chaosDomainOf(c) } : {}),
     // États psy ACTIFS (un trait ciblé RÉSISTÉ — `active:false` — ne compte pas comme « possédé »).
     psych: (c.psychState ?? []).filter((p) => p.active !== false).map((p) => p.type),
-    chars: Object.fromEntries(CHAR_KEYS.map((k) => [k, effectiveChar(c, k)])) as Record<CharKey, number>,
+    chars: tableTotale(CHAR_KEYS, (k) => effectiveChar(c, k)),
   };
   // `visiblePassive` est PARESSEUX : `aPassifVisible` rebalaie tout le collecteur `passiveMods`
   // (séquelles, maladies, faim/soif, ivresse…), et une seule famille de `Condition` le lit. La vue se

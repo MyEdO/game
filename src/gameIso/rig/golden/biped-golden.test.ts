@@ -4,7 +4,7 @@
  *
  * CE QUE LES SNAPSHOTS `back` FIGENT — ce n'est PAS une couverture d'art (#559). Sans art `back`
  * dédié sur une part, `parts/resolve.ts` (~l.185-189) FABRIQUE une silhouette dorsale générique en
- * tokens (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Mesuré sur cette suite : 29 snapshots `back`, dont
+ * jetons (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Mesuré sur cette suite : 29 snapshots `back`, dont
  * 11 (38 %) portent au moins une part dorsale inventée (11 torse, 6 jambe, 0 tête). Ces snapshots
  * figent donc le REPLI, pas un dos authoré : ils protègent d'une régression de composition, ils
  * n'attestent d'aucune intention d'artiste. Ils ont vocation à être REMPLACÉS à mesure que #559 vide
@@ -18,7 +18,7 @@ import { findCreatureById } from '../../../data';
 import { weaponFromId } from '../../../engine/creatureEquip';
 import { resolveSpecies } from '../bodyPlan';
 import { slugId } from '../../../data/slug';
-import type { View } from '../facing';
+import { VIEWS } from '../facing';
 import type { Appearance } from '../appearance';
 import { asRigSpeciesId } from '../appearance';
 import type { EquipCtx } from '../parts/equipment';
@@ -36,7 +36,6 @@ const NAMES = ['Humain', 'Nain', 'Halfling', 'Haut-Elfe', 'Elfe sylvain', 'Gnome
 // (`findCreatureById` → `resolveRender(undefined, rec.traits, id)`, = `resolveById`), sans espèce en
 // opts : un slug de LIBELLÉ ne résout aucun record.
 const RECORDS = ['cultiste', 'mutant'];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 
 describe('golden master — rendu bipède (anti-régression migration gabarit/race)', () => {
   for (const name of NAMES)

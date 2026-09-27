@@ -238,6 +238,10 @@ export const ongletsDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(joi
  *  nulle part ailleurs. @param {string} bookId @param {string} [dir] */
 export const gabaritTitreDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).gabaritTitre
 
+/** Les ids des livres dont la liste de découpe porte un `gabaritTitre` — la SEULE liste des livres à
+ *  gabarit de titre. */
+export const livresATitres = () => livresDecoupes().filter((id) => gabaritTitreDe(id))
+
 // PDF d'un livre et sorties Marker — #1739 (2026-09-19, bloquant 3). Les PDF et `Source/_marker/` sont
 // gitignorés (`.gitignore`) : ils n'existent que dans l'ARBRE PRINCIPAL, jamais dans un worktree
 // lié. `Source/` s'y résout par `arbrePrincipal` (`scripts/guards/lib/gitPorte.mjs`) : l'IMPORT de
@@ -331,7 +335,7 @@ export const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // Alternation d'abréviations DÉRIVÉE de BOOKS (#434 défaut 10 : une alternation écrite à la main
 // avait oublié MDG ; citation-graphy-guard écrivait la sienne, désynchronisée dès que BOOKS gagne un
 // livre). Tri par longueur décroissante OBLIGATOIRE : sinon "MSR" matcherait avant "MSRC", "EDO"
-// avant "EDOC". Plus de graphies tolérées (#585 lot B) : un livre, UNE abréviation canonique
+// avant "EDOC". Plus de graphies tolérées (#585) : un livre, UNE abréviation canonique
 // (SOURCE UNIQUE `books.json`), l'identité stricte suffit — aucune variante à couvrir.
 // Calculée UNE fois : `refRe()` est une fabrique appelée par ligne scannée.
 export const alternationDe = (books) => books.map(([a]) => esc(a)).sort((a, b) => b.length - a.length).join('|')
@@ -368,7 +372,7 @@ export const looseRe = () => looseReDe(ABBR_ALT)
 // pour une réf de livre entier) · m[3] ligne · m[4] suffixe.
 // `ch.` optionnel devant le numéro de chapitre (#434 défaut 3) : le code écrit indifféremment
 // `LIVRE NN l.X` et `LIVRE ch.NN l.X` — le groupe livre reste OBLIGATOIRE.
-// Suffixe : `-fin` (plage) · `+n…` (points) · `/n…` (forme COMPACTE `l.298/315/369`, #1318 E3-L4 —
+// Suffixe : `-fin` (plage) · `+n…` (points) · `/n…` (forme COMPACTE `l.298/315/369`, #1318 —
 // jusque-là seul le PREMIER numéro était vu, les suivants échappaient à toute garde : `l.222/999`
 // passait vert). Le `(?!\d)(?!\s*l\.)` (nombre ENTIER, puis pas de ` l.` derrière — sans le garde
 // de chiffre la regex se rabattrait sur `/2` de `/20 l.72`) distingue `/315` (ligne du MÊME chapitre) de `/20 l.72` (réf
@@ -385,7 +389,7 @@ export const refFolioReDe = (alt) =>
 export const refFolioRe = () => refFolioReDe(ABBR_ALT)
 
 // Canonicalise le texte brut matché par refRe (m[1]) vers l'abréviation BOOKS (#434 défaut 11).
-// Identité stricte (#585 lot B) — une seule graphie par livre, aucune variante à résoudre.
+// Identité stricte (#585) — une seule graphie par livre, aucune variante à résoudre.
 export const bookOfDe = (books) => {
   const abbrs = new Set(books.map(([a]) => a))
   return (text) => (abbrs.has(text) ? text : null)
@@ -398,7 +402,7 @@ export const bookOf = bookOfDe(BOOKS)
 export const isRangeSuffix = (suffix) => !!suffix && /^-\d+/.test(suffix)
 
 // Tous les numéros de ligne EXPLICITEMENT cités par une réf : `l.10` → [10] · `l.10-25` → [10,25]
-// (bornes) · `l.10+17` → [10,17] · `l.298/315/369` → [298,315,369] (forme COMPACTE, #1318 E3-L4).
+// (bornes) · `l.10+17` → [10,17] · `l.298/315/369` → [298,315,369] (forme COMPACTE, #1318).
 export function refNums(line, suffix) {
   const a = Number(line)
   if (!suffix) return [a]
@@ -579,7 +583,7 @@ function findAnchor(lines, locator) {
 
 export { normalize, ELLIPSIS_SENTINEL }
 
-// --- Exclusions PARTAGÉES de fiches docs/raw (#454 DoD, #585 lot A) ---
+// --- Exclusions PARTAGÉES de fiches docs/raw (#454 DoD, #585) ---
 // Deux ensembles nommés (périmètres RÉELLEMENT différents, pas une fusion aveugle) :
 // - RAWDOC_META_GENERATED : rapports RÉ-GÉNÉRÉS à chaque run (jamais des citations vivantes d'auteur)
 //   — hors sujet pour TOUT scan (bornes de ligne comme prose de citation) : check-refs, check-code-refs

@@ -18,6 +18,7 @@
  * `talentsRolled`, `wealthRoll`) ; le geste ne fait que DÉCOUVRIR un résultat déjà déterminé
  * (zéro savescum), et la validation d'étape EXIGE le geste.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, TalentInstance } from '../../engine/types';
 import { garanti } from '../../state/combatants';
 import { makeRNG } from '../../engine/dice';
@@ -123,7 +124,7 @@ export interface CreatorDraft {
    *  choix d'équipement) — clé = `trappingRefLabel` de l'EMPLACEMENT (même convention que
    *  `resolveTrappingChoices`), valeur = libellé de la branche (`choice`) ou id de trapping (`wildcard`). */
   trappingChoices?: Record<string, string>;
-  /** Bourse de départ TIRÉE (LDB 05 l.578) — geste explicite requis (#393 P5 correctif
+  /** Bourse de départ TIRÉE (LDB 05 l.578) — geste explicite requis (#393 correctif
    *  d'agentivité : le montant, bien que déterministe côté `draftWealth`, ne s'affiche PLUS avant
    *  que le joueur ait pressé « Tirer aux dés » — jamais un résultat pré-rempli au montage). */
   wealthRoll?: boolean;
@@ -170,8 +171,8 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
     charMode: 'rolled',
     charsRolled: false,
     charRerolls: 0,
-    assignment: Object.fromEntries(CHAR_KEYS.map((k, i) => [k, i])) as Record<CharKey, number>,
-    pointBuy: Object.fromEntries(CHAR_KEYS.map((k) => [k, 10])) as Record<CharKey, number>,
+    assignment: tableTotale(CHAR_KEYS, (_k, indice) => indice),
+    pointBuy: tableTotale(CHAR_KEYS, () => 10),
     charAdvancesAlloc: {},
     fateSplit: { fate: 0, resilience: 0 },
     speciesPlus5: [],
@@ -296,7 +297,7 @@ export const careerRollPool = (d: CreatorDraft): typeof careers => {
 /** Bascule Riverains ↔ Côtiers (MDG 09 l.9 : « avant de lancer les dés ») — VERROUILLÉE dès qu'un
  *  jet existe (`careerRolls` non vide) : sans cette garde, cocher/décocher effaçait les jets et
  *  offrait une relance GRATUITE illimitée (contourne la limite RAW des 2 relances + l'économie de
- *  PX, #393 P2 correctif utilisateur). Garde posée ICI (pas seulement côté UI désactivée) — aucun
+ *  PX, #393 correctif utilisateur). Garde posée ICI (pas seulement côté UI désactivée) — aucun
  *  appelant ne peut la contourner. Se réactive seulement quand les jets sont vides (choix libre, ou
  *  un futur reset d'étape explicite). */
 export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorDraft {
@@ -637,7 +638,7 @@ export function draftWealth(d: CreatorDraft): Money {
 }
 /** Pose le geste « Tirer aux dés » de la bourse — FIGÉ (aucune relance, LDB 05 l.578 n'en offre
  *  aucune) : le montant lui-même est déjà déterminé par `d.seed`, ce geste n'en découvre que
- *  l'affichage (anti-résultat-pré-rempli, #393 P5). */
+ *  l'affichage (anti-résultat-pré-rempli, #393). */
 export function rollDraftWealth(d: CreatorDraft): CreatorDraft {
   return d.wealthRoll ? d : { ...d, wealthRoll: true };
 }
@@ -677,7 +678,7 @@ export type StepId = 'species' | 'career' | 'chars' | 'star' | 'skills' | 'trapp
 /** Étapes du créateur dans l'ordre — `star` insérée après `chars` quand la règle optionnelle ADE II
  *  `creation-signes-astraux` est active. SOURCE UNIQUE de l'ordre ET de la présence des étapes (le
  *  rendu et la validation en dérivent — plus d'index positionnel fragile). Étape 8 renommée
- *  « Présentation » (#393 P5, arbitrage README maquettes : « le personnage se PRÉSENTE »). */
+ *  « Présentation » (#393, arbitrage README maquettes : « le personnage se PRÉSENTE »). */
 export function stepIds(): StepId[] {
   const ids: StepId[] = ['species', 'career', 'chars', 'skills', 'trappings', 'details', 'presentation'];
   if (rule('creation-signes-astraux')) ids.splice(3, 0, 'star');
@@ -689,7 +690,7 @@ export function stepIds(): StepId[] {
 interface StepCtx { d: CreatorDraft; sp: ReturnType<typeof draftSpecies>; level: ReturnType<typeof draftLevel> }
 
 /**
- * Validateurs PAR étape — table EXHAUSTIVE `Record<StepId, …>` : ajouter une étape à `StepId` force
+ * Validateurs PAR étape — table TOTALE `Record<StepId, …>` : ajouter une étape à `StepId` force
  * son entrée ICI à la compilation. `star` et `presentation` n'imposent aucune saisie (`null`).
  */
 const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {

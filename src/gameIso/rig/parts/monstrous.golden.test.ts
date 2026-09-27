@@ -1,3 +1,4 @@
+import { VIEWS } from '../facing';
 import { describe, it, expect } from 'vitest';
 import {
   monsterInjection,
@@ -10,7 +11,6 @@ import {
 // monster/defs/. Le refactor (extraction des parts en fichiers) doit préserver à l'octet
 // près chaque part (front/back/profile) + chaque branche d'overlay. Si un snapshot bouge,
 // c'est une régression — surtout PAS `-u` à l'aveugle.
-const VIEWS = ['front', 'back', 'profile'] as const;
 const BOOL_OVERLAYS = ['griffes', 'verrues', 'plaie', 'cape', 'membresRouges'] as const;
 
 describe('monsterInjection — golden master', () => {

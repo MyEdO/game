@@ -27,7 +27,7 @@ const TRUTH: [string, string][] = [
   ['Skaven', 'Dague'],
 ];
 // Pour chaque case : face + profil côte à côte (aide l'identification 3D).
-const VIEWS: View[] = ['front', 'profile'];
+const SHOWN_VIEWS: View[] = ['front', 'profile'];
 const COLS = 4;
 const CW = 300, CH = 340, SC = 1.95, FEET = 285, SUB = CW / 2;
 const cells: string[] = [];
@@ -38,7 +38,7 @@ TRUTH.forEach(([name, weapon], idx) => {
   cells.push(`<rect x="${ox}" y="${oy}" width="${CW - 8}" height="${CH - 10}" fill="#2b3142" stroke="#3a4156"/>`);
   cells.push(`<text x="${ox + 8}" y="${oy + 18}" font-size="15" fill="#e8c25a" font-family="sans-serif" font-weight="bold">#${idx + 1}</text>`);
   if (!prof) { cells.push(`<text x="${ox + 40}" y="${oy + 60}" font-size="12" fill="#e06a4a">NON-RIG</text>`); return; }
-  VIEWS.forEach((view, i) => {
+  SHOWN_VIEWS.forEach((view, i) => {
     const inner = bonesToSvg(resolveRig(prof.appearance, prof.equip, {}, prof.tenue, view));
     const sx = ox + i * SUB + SUB / 2;
     cells.push(`<g transform="translate(${sx - 60 * SC},${oy + FEET - 150 * SC}) scale(${SC})">${inner}</g>`);

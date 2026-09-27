@@ -19,6 +19,8 @@
 // MESURÉ hors du stock échoue, une entrée sans saut mesuré (extraction réparée) échoue aussi et se
 // retire. Les folios de la clé sont ceux du PDF, stables là où un numéro de ligne dériverait.
 // Re-run : node scripts/raw/check-folio-continuity.mjs
+// Régénération (`regenerations`, politique `DECROISSANT`) :
+//   npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,9 +29,8 @@ import { BOOKS, readText } from './_lib.mjs'
 // son numéro d'extraction (`AA 0 folio -2`). D'où `estNomDExtraction` / `numeroDExtraction`, et non
 // le prédicat de CHAPITRE.
 import { estNomDExtraction, numeroDExtraction, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
-import { writeFileSync } from 'node:fs'
-import { cleDeSite, ecartDuVolet, refusDeCroissance, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { lireStockJson, parCleDeSite, readStock, texteDeStock } from './stockNominatif.mjs'
+import { cleDeSite, ecartDuVolet, sitesEnEntrees } from '../guards/lib/stock.mjs'
+import { DECROISSANT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 export const STOCK_PATH = join(ICI, 'folio-gaps-stock.json')
@@ -112,21 +113,6 @@ export function scanBookDir(abbr, dir) {
  *  qui est l'unité du cliquet. */
 export const sitesDeSauts = (gaps) => gaps.map((g) => ({ file: g.path, ref: `${g.ref} ${g.from}→${g.to}` }))
 
-/**
- * Les ENTRÉES du stock des sauts, en ORDRE CANONIQUE (`parCleDeSite`) — c'est CE rendu que
- * `folio-gaps-stock.json` porte, et que `--ecrire-stock` écrit. L'ordre du BALAYAGE n'y entre pas :
- * réordonner `src/data/books.json` ne réécrit pas ce fichier (#1825).
- * AUCUNE ÉCHÉANCE À POSER ICI, et c'est mesuré : `survieDeLecheance` n'emploie le `lot`/`date` qu'on
- * lui passe que pour une entrée dont la CLÉ manque à `ancien` — la classe même que `--ecrire-stock`
- * REFUSE d'écrire (`refusDeCroissance`). Toute entrée écrite porte donc l'échéance que le stock
- * commité lui donnait déjà ; les valeurs vides ci-dessous sont inatteignables, et le test
- * « échéance : seule une entrée HORS du stock la prendrait » le tient.
- * @param {{ path: string, ref: string, from: number, to: number }[]} gaps
- * @param {{ ancien?: Iterable<object> }} [p]
- */
-export const entreesDeSauts = (gaps, { ancien = [] } = {}) =>
-  survieDeLecheance(sitesEnEntrees(sitesDeSauts(gaps)), { lot: '', date: '', ancien }).sort(parCleDeSite)
-
 /** Balaie tous les livres de `books` (BOOKS par défaut) → sauts de folios agrégés. */
 export function scanAllBooks(books = BOOKS) {
   const out = []
@@ -134,7 +120,7 @@ export function scanAllBooks(books = BOOKS) {
   return out
 }
 
-// ---------- passe 2 : ancre SANS CONTENU (#1457 lot A1) ----------
+// ---------- passe 2 : ancre SANS CONTENU (#1457) ----------
 // La séquence peut être parfaitement consécutive et la PAGE tout de même perdue : deux ancres
 // `data-folio` ADJACENTES sans un octet utile entre elles (87→88→89, delta 1 partout, mais la page
 // 88 n'a aucun texte). C'est la vérité citable de `Source/` qui manque, invisible à la passe 1.
@@ -189,20 +175,45 @@ export function scanAllEmptyFolios(books = BOOKS) {
   return out
 }
 
-/** Ancres sans contenu MESURÉES → entrées NOMINATIVES `{ fichier, ref, occurrence }`, la forme même
- *  du stock (`sitesEnEntrees`, définition unique de `guards/lib/stock.mjs`). Le LIEU est le chapitre
- *  extrait (`fichier`), le FAIT est le folio (`<ABBR NN> folio <F>`) — même partage que
- *  `sitesDeSauts`, où `ref` porte le saut : aucun champ n'est écrit deux fois, et la clé
- *  `cleDeSite` se CALCULE, elle ne se grave pas. `line` suit pour l'affichage seul : elle dérive. */
-export function entreesDAncresVides(vides) {
-  const sites = sitesEnEntrees(vides.map((e) => ({ file: e.fichier, ref: `${e.ref} folio ${e.folio}` })))
-  return sites.map((s, i) => ({ fichier: s.fichier, ref: s.ref, occurrence: s.occurrence, line: vides[i].line }))
-}
+const QUOI =
+  "Sauts de la séquence `data-folio` des chapitres extraits : une ENTRÉE par saut mesuré (`<ABBR NN> " +
+  "<from>→<to>`, des folios du PDF), sous le chapitre qui le porte. Dette d'EXTRACTION, pas de " +
+  "rédaction : une entrée se solde en ré-extrayant la ou les pages manquantes. Mise à la forme " +
+  "nominative le 2026-09-12 (#1711 T4) par conversion du compte par chapitre qui le précédait, à " +
+  "somme égale chapitre par chapitre (76 sites, 46 chapitres). Ce fichier EST le rendu de " +
+  "regenerations() de scripts/raw/check-folio-continuity.mjs, clé pour clé et dans l'ORDRE CANONIQUE " +
+  "de la clé (parCleDeSite) — jamais dans l'ordre du balayage, donc réordonner src/data/books.json ne " +
+  "le réécrit pas. Après une ré-extraction Marker il se réécrit par `npx tsx " +
+  "scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs`, qui refuse d'entériner " +
+  "un saut NEUF (refusDeCroissance) et fait survivre les échéances posées à la main — il n'en pose " +
+  "donc jamais lui-même ; scripts/raw/check-folio-continuity.test.mjs le vérifie."
+
+/** La RÉGÉNÉRATION du stock des sauts (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sauts (par
+ *  défaut, ceux de tous les livres). */
+export const regenerations = (gaps = scanAllBooks()) => [{
+  chemin: STOCK_PATH,
+  politique: DECROISSANT,
+  horsCollections: QUOI,
+  collections: [{
+    nom: 'entrees',
+    sites: sitesDeSauts(gaps),
+    motif: 'Un saut NEUF se corrige en ré-extrayant la ou les pages manquantes ; le déclarer exige un `CLIQUET:` au message de commit.',
+  }],
+}]
+
+/** Le SITE d'une ancre sans contenu, seule écriture de sa réf : le LIEU est le chapitre extrait, le
+ *  FAIT est le folio (`<ABBR NN> folio <F>`) — même partage que `sitesDeSauts`, où `ref` porte le saut. */
+export const siteDAncreVide = (ancre) => ({ file: ancre.fichier, ref: `${ancre.ref} folio ${ancre.folio}` })
+
+/** Ancres sans contenu MESURÉES → entrées de site (`sitesEnEntrees`, définition unique de
+ *  `guards/lib/stock.mjs`) : la clé `cleDeSite` se CALCULE, elle ne se grave pas. La `line` suit
+ *  l'entrée hors clé, pour l'affichage seul : elle dérive. */
+export const entreesDAncresVides = (vides) => sitesEnEntrees(vides.map((a) => ({ ...siteDAncreVide(a), line: a.line })))
 
 /**
  * Seuil de caractères utiles au-dessus duquel la page PDF est jugée PORTEUSE de texte : c'est LUI qui
  * partage `perdues` de `benignes`, et il n'en existe pas d'autre écriture. Mesuré sur le corpus
- * (rapport `--dry` de `lib/empty-folios-stock.mjs`) : les pages bénignes plafonnent bas (titre courant
+ * (rapport de `lib/empty-folios-stock.mjs`) : les pages bénignes plafonnent bas (titre courant
  * + légende, la plus haute à 114), les pages perdues sont des pages de prose (la plus basse à 263).
  * IL VIT ICI, chez la GARDE, et pas chez l'instrument qui trie au PDF : le sens de l'import est
  * garde ← instrument, et le retourner fermerait un cycle ESM (l'instrument importe déjà la garde) et
@@ -216,8 +227,8 @@ export const SEUIL_UTILE = 200
 
 /** Les DEUX stocks d'ancres sans contenu, lus sur le disque (`{ perdues, benignes }`). */
 export const lireStocksAncresVides = () => ({
-  perdues: readStock(EMPTY_PERDUES_PATH),
-  benignes: readStock(EMPTY_BENIGNES_PATH),
+  perdues: lireEntreesDeSite(EMPTY_PERDUES_PATH),
+  benignes: lireEntreesDeSite(EMPTY_BENIGNES_PATH),
 })
 
 // Confronte les ancres sans contenu MESURÉES aux DEUX stocks triés
@@ -261,7 +272,7 @@ export function assertEmptyFoliosAgainstStock(measured, stock) {
 function reportGaps() {
   const gaps = scanAllBooks()
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesDeSauts(gaps), stock: readStock(STOCK_PATH), ou: 'folio-gaps-stock.json',
+    sites: sitesDeSauts(gaps), stock: lireEntreesDeSite(STOCK_PATH), ou: 'folio-gaps-stock.json',
   })
 
   console.log(`sauts de folio (data-folio non consécutif) : ${gaps.length} site(s) sur ${new Set(gaps.map((g) => g.ref)).size} chapitre(s)-réf`)
@@ -299,7 +310,7 @@ function reportEmptyFolios() {
   const situe = (e) => `${e.ref} (${e.fichier})${e.line ? ` l.${e.line}` : ''}`
 
   if (inconnues.length) {
-    console.log('RÉGRESSION — ancre sans contenu ABSENTE du stock (à trier au PDF : node scripts/raw/lib/empty-folios-stock.mjs) :')
+    console.log('RÉGRESSION — ancre sans contenu ABSENTE du stock (à trier au PDF : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/lib/empty-folios-stock.mjs) :')
     for (const e of inconnues) console.log(`  ${situe(e)}`)
   }
   if (restituees.length) {
@@ -321,25 +332,7 @@ function reportEmptyFolios() {
   return true
 }
 
-// Régénérer le stock des sauts : node scripts/raw/check-folio-continuity.mjs --ecrire-stock
-// BARRIÈRE DÉCROISSANT-SEULEMENT (`refusDeCroissance`) : un saut MESURÉ hors du stock en place ne
-// s'entérine pas par une réécriture, il se déclare. C'est elle qui rend l'échéance sans objet ici :
-// aucune entrée NEUVE n'est jamais écrite, donc aucun `lot` à estampiller (cf. `entreesDeSauts`).
-function ecrireStock() {
-  const ancien = readStock(STOCK_PATH)
-  const mesurees = entreesDeSauts(scanAllBooks(), { ancien })
-  const refus = refusDeCroissance(mesurees, ancien, {
-    nom: 'folio-gaps-stock.json',
-    motif: 'Un saut NEUF se corrige en ré-extrayant la ou les pages manquantes ; le déclarer exige un `CLIQUET:` au message de commit.',
-  })
-  if (refus) { console.log(refus); process.exitCode = 1; return }
-  writeFileSync(STOCK_PATH, texteDeStock(lireStockJson(STOCK_PATH).quoi, mesurees), 'utf8')
-  console.log(`stock écrit : ${STOCK_PATH} — ${mesurees.length} entrée(s)`)
-}
-
 function main() {
-  const args = process.argv.slice(2)
-  if (args.includes('--ecrire-stock')) return ecrireStock()
   const koGaps = reportGaps()
   const koEmpty = reportEmptyFolios()
   if (koGaps || koEmpty) process.exitCode = 1

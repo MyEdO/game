@@ -25,9 +25,9 @@ import { QUAD_REST } from './quadruped/quadPose';
 import { bonesToSvg } from './renderBones';
 import { MISSING_TONE } from './viewArt';
 import { findCreatureById } from '../../data';
-import type { View } from './facing';
+import { VIEWS, type View } from './facing';
 
-/** Rendu d'un record par le chemin de PROD, PORTÉ (couture montée) ou LIBRE (token de bête). */
+/** Rendu d'un record par le chemin de PROD, PORTÉ (couture montée) ou LIBRE (pion de bête). */
 const svg = (id: string, porte: boolean, over?: Parameters<typeof planOptsForRecord>[1], vue: View = 'profile'): string => {
   const r = resolveById(id);
   const opts = porte ? mountedPlanOpts(id, over) : planOptsForRecord(id, over);
@@ -66,7 +66,7 @@ describe('la monture PORTÉE rend le set au pixel (chemin de prod)', () => {
   // Couverture PAR VUE : le set est cuit pour les trois vues jouées. Un art de bout manquant
   // (front/back) rendrait la monture à cru de face ou de dos sans que le profil ne bronche.
   it('aux TROIS vues, la monture portée rend autre chose que la même monture nue', () => {
-    for (const vue of ['profile', 'front', 'back'] as View[]) {
+    for (const vue of VIEWS) {
       const libre = svg('cheval', false, undefined, vue);
       const porte = svg('cheval', true, undefined, vue);
       expect(porte, `vue ${vue} : le set n'atteint pas le rendu, la monture porterait à cru`).not.toBe(libre);

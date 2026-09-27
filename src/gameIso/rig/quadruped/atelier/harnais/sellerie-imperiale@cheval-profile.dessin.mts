@@ -4,7 +4,7 @@
  * rouge liseré d'or, selle matelassée verte à pommeau et troussequin, étrivière et étrier doré,
  * sangle de ventre, bride à ferret, muserolle, anneau de mors et rêne. C'est un SET
  * D'ÉQUIPEMENT : il s'ajoute à la bête (canal `deco`), il ne la remplace pas — le cheval est
- * dessiné NU dans `atelier/cheval-profil.dessin.mts`, robe, crinière et anatomie comprises.
+ * dessiné NU dans `atelier/cheval-profile.dessin.mts`, robe, crinière et anatomie comprises.
  *
  *   npx tsx scripts/rig/compile-dessin-quad.mts sellerie-imperiale     (--check = porte)
  *

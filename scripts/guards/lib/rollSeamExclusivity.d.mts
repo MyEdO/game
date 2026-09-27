@@ -27,7 +27,7 @@ export function engineHomonyms(
 export function scanEngineDelegatedRoll(
   relPath: string,
   contenu: string,
-  rollerNames: Iterable<string>,
+  table: Readonly<Record<string, readonly string[]>>,
 ): { line: number; name: string }[];
 
 /** Garde SŒUR (#1508) — famille (X) « tout dé tiré hors porte » : le SITE OÙ LE DÉ TOMBE. */
@@ -36,9 +36,9 @@ export const AMORCE_DES: readonly string[];
 export const DES_HORS_PORTE_RX: RegExp;
 export function engineDiceRollers(
   engineFiles: { rel: string; text: string }[],
-): Set<string>;
+): Readonly<Record<string, readonly string[]>>;
 export function scanDesHorsPorte(
   relPath: string,
   contenu: string,
-  rollerNames: Iterable<string>,
+  table: Readonly<Record<string, readonly string[]>>,
 ): { line: number; name: string }[];
