@@ -1028,11 +1028,11 @@
   {
     "id": "suiteDuCoup",
     "type": "primitives.manifest",
-    "label": "jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense",
+    "label": "applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense",
     "fichier": "src/state/combatFlow.ts",
-    "concept": "ce qu'un site fera APRÈS son coup, déclaré en DONNÉE à l'entrée (enchaînement, attaque gratuite, drapeaux du coup) et joué par une écriture unique à la reprise — y compris quand une fenêtre de défense s'interpose",
-    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation",
-    "verrou": "src/state/defense-suite.test.ts"
+    "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
+    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
+    "verrou": "src/state/apres-coup.test.ts"
   },
   {
     "id": "indexedDb",

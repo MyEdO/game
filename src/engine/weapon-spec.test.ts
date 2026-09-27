@@ -213,3 +213,15 @@ describe('defenseValue — Esquive scopée par movementOnly (#193)', () => {
     expect(defenseValue(c, 'esquive')).toBe(30); // Ag 40 − 10
   });
 });
+
+// ACE 12 l.17-21 : la maîtrise se lit sur l'OBJET SOURCE, y compris la pièce du poste servi (`weaponLoad.objetSourceDeLArme`).
+describe('weaponUnmastered — pièce SERVIE en poste', () => {
+  it('une pièce Inhabituelle non maîtrisée est non maîtrisée ; maîtrisée, elle ne l’est plus', () => {
+    const poste = { item: { uid: 'piece-1', trappingId: 'piece-rare', label: 'Pièce', kind: 'ranged', requiresMastery: true }, crewIds: ['chef'] };
+    const c = { id: 'chef', items: [], weapons: [], mannedPoste: poste } as unknown as Combatant;
+    const w = { uid: 'piece-1', label: 'Pièce', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
+    expect(weaponUnmastered(c, w)).toBe(true);
+    c.masteredWeapons = ['piece-rare'];
+    expect(weaponUnmastered(c, w)).toBe(false);
+  });
+});

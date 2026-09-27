@@ -1042,8 +1042,10 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 // #1508 — LE SIGNAL « DIFFÉRÉ » NE TOMBE JAMAIS PAR TERRE
 // ---------------------------------------------------------------------------------------------
 
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects`). */
-const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow'];
+/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
+ *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
+ *  `applyOups`/`applyBladeTrap`, #1508 T3b-4). */
+const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap'];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
 const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
 

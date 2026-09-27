@@ -143,7 +143,7 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire
   'state/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
   'state/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
-  'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc }', // ops d'une Blessure critique en combat
+  'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
   'state/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
   'state/interludeFlow.ts | ops | { rng: battleRng(), now: get().gameTime }', // issues DIFFÉRÉES à la clôture d'un interlude
   'state/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté

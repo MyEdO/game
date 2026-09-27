@@ -6,6 +6,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { cannotWieldTwoHanded } from '../engine/trauma';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
+import { recomputeLoadout } from '../engine/items';
 import type { RNG } from '../engine/dice';
 
 /**
@@ -116,6 +117,7 @@ describe('#38 — branchements AA au site de résolution (applyCriticalToTarget)
       loadouts: [{ id: 'l1', main: 'w1' }] as never,
       activeLoadoutId: 'l1',
     });
+    recomputeLoadout(target);
     const crit = resolveCritique('aa', target, 'brasD', seq(5), { overkill: 0 }); // 01-10 → Choc au poignet (trivial, op disarm)
     applyCriticalToTarget(target, 'brasD', true, 0, [], noop, { prerolled: crit, get: getStub });
     expect(target.loadouts![0].main).toBeUndefined(); // brasD → main → l'Épée est lâchée

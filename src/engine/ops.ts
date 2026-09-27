@@ -39,11 +39,12 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, buildWeapon, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem } from './items';
+import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
 import { itemCapability } from './capabilities';
+import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
 import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon } from './conjuredWeapons';
@@ -1037,9 +1038,10 @@ export type GameOp =
    *  canal `ActiveEffect.passive` — même collecteur que la séquelle permanente). */
   | { op: 'maxWeaponHands'; hands: number; durationRounds?: Formula }
   /** Lâche l'objet tenu dans UNE main (Aux Armes, bras/corps « Vous lâchez ce que vous teniez dans
-   *  cette main ») — vide le slot de loadout (`main`/`off`) et `recomputeLoadout` (même patron que
-   *  `breakBacleArmour` : mutation de l'ItemInstance/loadout puis re-dérivation, PAS un ground-item —
-   *  aucun tel concept dans le moteur). Main RÉSOLUE depuis `ctx.location` (convention DROITIER
+   *  cette main ») — l'arme TENUE dans cette main (`items.estUneVraieArme`, lue dans `c.weapons`) quitte
+   *  les mains par `items.lacherLArme`, sauf un objet source `disarmImmune` ; une arme DÉRIVÉE
+   *  (`derivedFromItem`) ne se lâche pas ; une arme à deux mains (`Weapon.hands`) est tenue par les deux.
+   *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER
    *  partagée avec `handAmputated` : `brasD`→`main`, `brasG`→`off`) ; localisation `corps` ou absente
    *  (« Choisissez au hasard l'un de vos deux bras ») → tirage aléatoire (`ctx.rng`). Sans objet tenu
    *  dans cette main : inerte (journalisé). */
@@ -1244,6 +1246,12 @@ export interface OpsCtx {
    *  re-jouées, et sur elles seules : la dérivation `imbrique` l'ôte à toute descente (table, seuil,
    *  forme, échelon). */
   rejeuRecurrent?: boolean;
+  /** Reçoit chaque ligne rendue AVEC le rang de l'op qui l'a produite (son indice dans `ops`), dans
+   *  l'ordre des lignes rendues, une fois l'application finie. La ligne AGRÉGÉE d'une suite de `charMod`
+   *  va au DERNIER de la suite : elle n'est complète qu'avec lui. `rang: null` = la réconciliation qui
+   *  clôt l'application (`syncDerivedConditions`), qui n'appartient à aucune op seule. `imbrique` l'ôte à
+   *  toute descente : une op imbriquée rend ses lignes à l'op qui la porte. */
+  surLigne?: (rang: number | null, ligne: string) => void;
   /** ENTITÉ SOURCE des ops en cours (sort, talent, trait, objet, maladie, mutation…) — marquée sur TOUT
    *  `ActiveEffect` posé par cet `applyOps` (`ActiveEffect.source`). Ancrage de règle GÉNÉRAL : c'est
    *  elle qui donne sa fiche Codex à une pastille d'effet, quel que soit le TYPE de source (arbitrage
@@ -1604,9 +1612,9 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
 export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE sur une feuille qui veut différer
  *  est un fail-fast NOMMÉ (`state/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
- *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude et du bus de
- *  triggers, qui n'appellent pas `applyLeafOps`). */
-export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'onOpposingAdvantage'] as const;
+ *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude, du bus de
+ *  triggers et du site du Critique — `surLigne` —, qui n'appellent pas `applyLeafOps`). */
+export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'onOpposingAdvantage', 'surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
@@ -1669,12 +1677,13 @@ export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: Op
 /**
  * Exécute une liste d'ops sur `target`. Les `charMod` consécutifs d'une même
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
- * historique de l'incantation). Renvoie les lignes de journal.
+ * historique de l'incantation). Renvoie les lignes de journal ; `ctx.surLigne` les reçoit avec leur rang.
  */
 export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): string[] {
   const rng = ctx.rng ?? defaultRNG;
   const ref = ctx.caster ?? target;
   const lines: string[] = [];
+  const debuts: number[] = [];
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
   // en fin d'op, QUE ceux posés par CE sort source (robuste au dédoublonnage en place de `applyActiveEffect`).
   const preEffects = (ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || ctx.source) ? new Set(target.activeEffects ?? []) : null;
@@ -1703,7 +1712,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
   // ctx est vivant pendant la boucle (`ctx.woundsDealt`), un instantané pris ici le figerait.
   //  Les DÉS POSÉS n'y descendent pas non plus : leurs clés (`cleDeDe`) sont indexées sur le rang de
   //  l'op dans CE tableau, et le rang 0 d'une descente collisionnerait avec le rang 0 du parent.
-  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, ...extra, rejeuRecurrent: undefined, des: undefined });
+  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, ...extra, rejeuRecurrent: undefined, des: undefined, surLigne: undefined });
   // LE DÉ D'UNE OP (#1508), seul point de consommation du canal : la valeur POSÉE par la porte pour le
   // champ DÉCLARÉ (`DES_DUNE_OP`), à défaut le tirage — au même point du rng qu'avant le canal. Le
   // `case` ne connaît ni la clé ni sa graphie : il nomme son CHAMP, comme la déclaration.
@@ -1719,6 +1728,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
   };
   for (const [iOp, o] of ops.entries()) {
     if (o.op !== 'charMod') flushCharMods();
+    debuts.push(lines.length);
     switch (o.op) {
       case 'wounds': {
         if (!groupGate(o.onlyGroups)) break;
@@ -2264,7 +2274,8 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           const chef = lost.crewIds?.[0] ? ctx.crew?.find((c) => c.id === lost.crewIds![0]) : undefined;
           if (chef?.mannedPoste === lost) { // il ne sert plus rien
             chef.mannedPoste = undefined;
-            chef.weapons = (chef.weapons ?? []).filter((w) => w.uid !== lost.item.uid);
+            const piece = (chef.weapons ?? []).find((w) => w.uid === lost.item.uid);
+            if (piece) lacherLArme(chef, piece);
           }
           lines.push(t('op.removeShipPoste', { name: lost.item.label }));
         }
@@ -2539,13 +2550,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       }
       case 'grantNaturalWeapon': {
         const n = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
-        const plusBF = o.plusBF !== false; // attaques naturelles = SB-relatives par défaut
-        const weapon = buildWeapon({
-          label: o.label, attackKind: o.attackKind, subType: o.subType,
-          damage: { plusBF, flat: n, bare: o.bare ? true : undefined },
-          qualities: (o.qualities ?? []).map((id) => ({ id })), uid: o.uid ?? { prefix: `nat-${norm(o.label)}` },
-          source: ctx.source,
-        });
+        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source: ctx.source });
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: ctx.label ?? o.label, bonus: 0,
@@ -2633,7 +2638,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           domeWard: { radiusMeters: zone.rayonM, ward },
         });
         lines.push(t(zone.porteur ? 'op.domeWard' : 'op.domeWardCouvert', {
-          name: target.label, diametre: zone.diametreM, trait: formatWardSave(ward.id, ward.value), src: nomDeSource(ctx),
+          name: target.label, diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, ward.value), src: nomDeSource(ctx),
         }));
         break;
       }
@@ -2829,16 +2834,15 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         // Main RÉSOLUE depuis la localisation du coup courant (convention DROITIER, `handAmputated`) ;
         // `corps`/absente (« au hasard l'un de vos deux bras ») → tirage aléatoire.
         const hand: 'main' | 'off' = ctx.location === 'brasG' ? 'off' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'off';
-        const lo = activeLoadout(target);
-        const uid = hand === 'main' ? lo?.main : lo?.off;
-        const held = uid ? (target.items ?? []).find((i) => i.uid === uid) : undefined;
-        if (held && itemCapability(held, 'disarmImmune')) {
+        const tenue = (target.weapons ?? []).find((w) => estUneVraieArme(w) && w.derivedFromItem == null
+          && (w.hands === 2 || (w.hand === 'off') === (hand === 'off')));
+        const source = tenue ? objetSourceDeLArme(target, tenue) : undefined;
+        if (source && itemCapability(source, 'disarmImmune')) {
           // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
-          lines.push(t('op.disarmImmune', { name: target.label, item: held.label }));
-        } else if (held && lo) {
-          if (hand === 'main') lo.main = undefined; else lo.off = undefined;
-          recomputeLoadout(target);
-          lines.push(t('op.disarm', { name: target.label, item: held.label }));
+          lines.push(t('op.disarmImmune', { name: target.label, item: source.label }));
+        } else if (tenue) {
+          lacherLArme(target, tenue);
+          lines.push(t('op.disarm', { name: target.label, item: tenue.label }));
         } else {
           lines.push(t('op.disarmNothing', { name: target.label }));
         }
@@ -2908,6 +2912,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
     }
   }
   flushCharMods();
+  const finDesOps = lines.length;
   // Marque les effets actifs POSÉS par ce sort source (durables) : identité + NI → Dissipation (Sorts
   // seulement, `sourceSpell`) ET id du sort → anti-spam IA (TOUT lancement, Prières comprises, `sourceSpellId`)
   // ET id STABLE de l'effet en cours (`effectId` — transform/chansons de marin…, retrait par IDENTITÉ).
@@ -2924,5 +2929,10 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
   // `grantSymptom`/`contractDisease`/`suppressSymptom`…) : la réconciliation clôt l'application, une fois,
   // au lieu d'être recopiée sur chaque case. IDEMPOTENTE — les descentes imbriquées n'écrivent rien de plus.
   lines.push(...syncDerivedConditions(target, ctx.onCondition));
+  const surLigne = ctx.surLigne;
+  if (surLigne) {
+    debuts.forEach((d, rang) => { for (const l of lines.slice(d, debuts[rang + 1] ?? finDesOps)) surLigne(rang, l); });
+    for (const l of lines.slice(finDesOps)) surLigne(null, l);
+  }
   return lines;
 }
