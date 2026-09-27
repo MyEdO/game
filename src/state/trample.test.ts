@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { trampleTarget, aiCreatureFreeAttacks, applyTrample, runEnemyAI } from './combatFlow';
+import { trampleTarget, aiCreatureFreeAttacks, runEnemyAI } from './combatFlow';
 import { mountMovement } from './mount';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
@@ -252,20 +252,6 @@ describe('Piétinement en combat (store)', () => {
     H.advantage = 0;
     useGame.getState().battleTrample(E.id);
     expect(useGame.getState().pendingTrample).toBeNull();
-  });
-
-  it('Se cabrer (applyTrample, résolution instantanée) : consomme le plein Mouvement, préserve l’Avantage', () => {
-    useGame.getState().seedRng(2);
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.characteristics['capacite-de-combat'] = 85;
-    H.characteristics.force = 45;
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 0;
-    applyTrample(useGame.getState, useGame.setState, H, E);
-    const st = useGame.getState();
-    expect(st.battle!.movementUsed).toBe(mountMovement(st.battle!, H));
-    expect(st.battle!.acted).toBe(false); // action GRATUITE : n'a pas consommé l'Action
   });
 
   it('IA : Se cabrer piétine même à 0 Avantage SI l’Action de Mouvement est encore entière (coût 0 Avantage, movementUsed → plein M)', () => {

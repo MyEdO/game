@@ -19,9 +19,9 @@ import { useGame, type BattleState } from './store';
 import type { SeuilDeSauvegarde } from './pendings';
 import type { Combatant } from '../engine/types';
 
-const PROTECTION: SeuilDeSauvegarde = { indice: 6, traitId: 'protection', dome: false };
-const DOME: SeuilDeSauvegarde = { indice: 6, traitId: 'protection', dome: true };
-const DEMONIAQUE: SeuilDeSauvegarde = { indice: 8, traitId: 'demoniaque', dome: false };
+const PROTECTION: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: false };
+const DOME: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true };
+const DEMONIAQUE: SeuilDeSauvegarde = { indice: 8, source: { kind: 'trait', id: 'demoniaque' }, dome: false };
 
 describe('lireEnSeuil — la 3ᵉ lecture d’un dé d’étape', () => {
   it('SAUVE au-dessus de l’Indice, et À l’Indice (LDB 85 l.278 : « supérieur ou égal »)', () => {
