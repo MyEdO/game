@@ -2700,6 +2700,7 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -4967,6 +4968,7 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -8044,6 +8046,7 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -9999,7 +10002,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/regex.ts"
     ],
     "dossiers": []
   },
@@ -13742,6 +13746,7 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.ts",
       "src/main.tsx",
       "src/monterRacine.testkit.ts",
@@ -15430,7 +15435,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "docs/raw",
@@ -15586,7 +15592,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -18158,6 +18165,8 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.test.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.test.ts",
       "src/lib/stockageWeb.ts",
       "src/livres-recopies-guard.test.ts",
@@ -20436,7 +20445,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -20670,7 +20680,8 @@
       "src/data/source/ancre-vide.ts",
       "src/data/source/decoupe.ts",
       "src/data/source/livre-extrait.ts",
-      "src/data/source/normalize.ts"
+      "src/data/source/normalize.ts",
+      "src/lib/regex.ts"
     ],
     "dossiers": [
       "Source/WH - V4 - Aux Armes",
@@ -23295,6 +23306,8 @@
       "src/lib/indexedDb.testkit.ts",
       "src/lib/indexedDb.ts",
       "src/lib/normalize.ts",
+      "src/lib/regex.test.ts",
+      "src/lib/regex.ts",
       "src/lib/stockageWeb.test.ts",
       "src/lib/stockageWeb.ts",
       "src/livres-recopies-guard.test.ts",

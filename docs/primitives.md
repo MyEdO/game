@@ -27,12 +27,14 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-115 primitives.
+119 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
 | panneau d’activité ou de service : en-tête, corps défilable, pied fixe (pré-jet, coût, action) | `ActivityPane` | `src/ui/ActivityPane.tsx` | — | interlude, hub de cité | réflexe avant tout volet en-tête/corps/pied recodé |
 | combattant par id — combat-ou-groupe vs en-combat-seulement | `actorIn/inBattleId` | `src/state/combatants.ts` | — | toute résolution d'acteur | in-battle-find-guard.test.ts |
+| alternation de chaînes, échappées, la plus longue d'abord | `alternationDe` | `src/lib/regex.ts` | — | toute alternation de chaînes cherchées telles quelles ; une variation par chaîne passe par `parChaine` | regex.test.ts |
+| alternation de fragments de regex, ordre gardé | `alternationDeRegex` | `src/lib/regex.ts` | — | toute alternation dont un élément est un fragment de regex | regex.test.ts |
 | tout effet mécanique (soin/état/dégâts/corruption/octroi) | `applyOps/GameOp` | `src/engine/ops.ts` | — | toute conséquence appliquée à une cible | applyOps unique (aucun effet ad hoc) |
 | bande titrée de rubrique : titre, compteur ou jauge ancrés à droite, contenu dessous | `Band` | `src/ui/Band.tsx` | `src/ui/styles/band.css` | étapes du créateur, bandes de section du registre État de la fiche | réflexe avant tout bandeau de rubrique recodé |
 | modificateurs de combat bruts (Avantage×10 + État) | `baseTestMods` | `src/engine/combat.ts` | — | tout Test de combat | — |
@@ -58,8 +60,10 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | cadre de détail de l’élue : nom, chips méta, rubriques, prose scrollable | `DetailFrame` | `src/ui/DetailFrame.tsx` | — | créateur, pickers, Codex | — |
 | le DÉ comme matière : gemme, chiffre gravé, roulis, matière dorée, scène centrale qui voile son hôte | `DiceRoll` | `src/ui/DiceRoll.tsx` | `src/ui/styles/dice-roll.css` | roulis d’une fenêtre de jet, encrier du créateur, d100 textuel d’une ligne de jet | aucune face de dé redessinée hors de ce module (tone="gold" couvre l’Atelier) |
 | barre de Test ÉTENDU (LDB 154) : DR cumulés vers la cible, cran de seuil, valeur gravée | `DrBar` | `src/ui/DrBar.tsx` | `src/ui/styles/dr-bar.css` | toute épreuve étendue (rituel, poursuite, jeu de taverne) | — |
+| échapper une chaîne pour une regex | `echapperRegex` | `src/lib/regex.ts` | — | toute chaîne insérée telle quelle dans une regex, en `src/` comme en `scripts/` | regex.test.ts |
 | panneau d’ÉQUIPEMENT : emplacements en cellules (localisation × couche) + cartes de set d’armes + récap en main | `EquipmentPanel` | `src/ui/EquipmentPanel.tsx` | `src/ui/styles/equipment-panel.css` | onglet Possessions de la fiche de personnage | aucun mannequin (mort, #492) — le rig grand format vit dans la colonne de la fiche |
 | filet d’un crash de RENDU : capture, journalise, et montre un panneau de reprise en français au lieu de l’écran noir | `SceneErrorBoundary` | `src/ui/SceneErrorBoundary.tsx` | `src/ui/styles/error-boundary.css` | autour du stage (scène iso/POV), autour de tout l’écran de jeu (#225) | seule forme possible est une classe React (`componentDidCatch`) ; l’erreur part à `recordError`, source unique du bandeau DEV |
+| chaque espace accepte une suite de blancs | `espacesExtensibles` | `src/lib/regex.ts` | — | toute chaîne échappée dont les espaces acceptent des blancs variables, seule ou en `parChaine` d'`alternationDe` | regex.test.ts |
 | cadre-figurine unique : boîte à hauteur fixe, nom et compte dessous, sceau optionnel ; variante hero = présence plein format, prop zoneBadges donnant un badge par HitLocation ancré anatomiquement (l'appelant fournit la donnée par zone, jamais la position) | `FigTile` | `src/ui/FigTile.tsx` | `src/ui/styles/frames.css` | races, carrières, candidats, colonne aside de la fiche | seule définition des classes fig-tile (src/ui/styles/frames.css) ; AUCUNE ambiance CharacterPreview exposée (la tuile porte SA matière) ; réflexe avant tout cadre dans un cadre |
 | lookup d'une table d100 par fourchette [min,max] | `findTableEntry` | `src/engine/tables.ts` | — | toute table à fourchettes RAW | table-lookup-guard.test.ts |
 | dispatcher UNIQUE d'effet déclenché (donnée) | `fireTriggers` | `src/state/triggeredEffects.ts` | — | Trait/Talent/Atout/État pour un Trigger | triggered-effects.test.ts (dispatcher unique) |
@@ -146,4 +150,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 3e87a66d4815e4a8b49299484ab16dd564825e06 (6 fichiers, 0 dossiers) corps: 26043f31a32c32feec1ecdfa0956bea105d34415 -->
+<!-- sources-empreinte: 852b2e7c173a0e144749c225100ed9c825ce0a96 (6 fichiers, 0 dossiers) corps: 0b82a3f481e79193734201214e73a01434b406ea -->
