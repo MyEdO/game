@@ -96,7 +96,7 @@ import { RefField, refFieldCfg } from '../compendium/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 
-// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVES (#1692) ──
+// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
 export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] => {
   const parFamille = new Map<string, typeof species>();
@@ -131,7 +131,7 @@ function TokenSwatches() {
     { label: '--text', token: 'var(--text)', role: 'encre principale' },
     { label: '--muted', token: 'var(--muted)', role: 'encre atténuée' },
     { label: '--gold', token: 'var(--gold)', role: 'or — bordures/focus' },
-    { label: '--gold2', token: 'var(--gold2)', role: 'or vif — titres/valeurs' },
+    { label: '--gold2', token: 'var(--gold2)', role: 'or vivant — titres/valeurs' },
     { label: '--accent', token: 'var(--accent)', role: 'rouge sang — primaire' },
     { label: '--accent2', token: 'var(--accent2)', role: 'rouge sang haut' },
     { label: '--danger', token: 'var(--danger)', role: 'alerte' },

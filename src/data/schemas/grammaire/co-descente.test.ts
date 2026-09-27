@@ -1,6 +1,6 @@
 /**
  * Contrats de la CO-DESCENTE (#1463) — `ouverts`, `pasDeDonnee`, `coDescendre` (`grammaire/descente.ts`)
- * segment par segment, et ce que `collectionsDuDocument` / `collectionALaCle`
+ * segment par segment, et ce que `collectionsDuDocument` / `atteindre` / `collectionALaCle`
  * (`grammaire/collection-cle.ts`) en tirent, arbres invalides compris. Garde : aucune collection
  * marquée des deux registres n'est atteinte à travers une union SIMPLE.
  */
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { coDescendre, defDe, descendre, enfantsDe, type PointDeDonnee } from './descente';
-import { collectionALaCle, collectionDe, collectionsDuDocument, listeCle } from './collection-cle';
+import { atteindre, collectionALaCle, collectionDe, collectionsDuDocument, listeCle } from './collection-cle';
 import { idsDeCollection } from './cle-d-espace';
 import { noyauEnum } from './meta';
 
@@ -137,9 +137,11 @@ describe('`collectionALaCle` — une suite désigne UN point, ou lève', () => {
     expect(() => collectionALaCle(schema, donnee, 'top[].sub')).toThrow(/« top\[\]\.sub » porte un pas « \[\] »/);
   });
 
-  it('deux points de la donnée sous la même suite (clé en double) : lève en les comptant', () => {
+  it('deux points de la donnée sous la même suite (clé en double) : `collectionALaCle` lève en les comptant, `atteindre` lit le premier', () => {
     const double = { lots: [], top: [{ id: 'x', sub: [{ id: 'c' }] }, { id: 'x', sub: [{ id: 'd' }] }] };
     expect(() => collectionALaCle(schema, double, 'top[x].sub')).toThrow(/« top\[x\]\.sub » désigne 2 points de la donnée/);
+    expect(atteindre(schema, double, 'top[x].sub')?.valeur).toEqual([{ id: 'c' }]);
+    expect(atteindre(schema, double, 'top[x].sub')?.marque).toBe(collectionALaCle(schema, donnee, 'top[y].sub').marque);
   });
 
   it('`null` se lit comme absent : `valeur: undefined`, comme une collection que la donnée ne porte pas', () => {

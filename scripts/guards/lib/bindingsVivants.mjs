@@ -1,16 +1,17 @@
 /**
- * VOCABULAIRE des bindings VIFS (#1692) — dérivé du SEAM lui-même (`src/data/overrides.ts`), jamais
- * une liste tenue à la main : le bloc `const ARRAYS = { … }` est la déclaration UNIQUE des datasets
- * mutés en place, et il donne les deux choses dont une garde a besoin — la CLÉ de dataset (celle que
+ * VOCABULAIRE des bindings VIVANTS (#1692) — un binding vivant est la collection de la RACINE VIVANTE
+ * qu'une clé de dataset désigne (`racines-vivantes.test.ts`) —, dérivé du SEAM lui-même (`src/data/overrides.ts`), jamais
+ * une liste tenue à la main : les blocs `const ARRAYS = { … }` et `const OBJECTS = { … }` sont la
+ * déclaration UNIQUE des datasets mutés en place, et ils donnent les deux choses dont une garde a besoin — la CLÉ de dataset (celle que
  * `versionDuDataset` connaît) et le NOM du binding exporté que les modules importent.
  *
  * Sert aux deux gardes structurelles :
- *  - « aucun index figé au niveau module sur un dataset mutable » (`index-vif-guard.test.ts`) ;
+ *  - « aucun index figé au niveau module sur un dataset mutable » (`index-vivant-guard.test.ts`) ;
  *  - « aucune écriture hors du seam » (`seam-ecriture-guard.test.ts`).
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import ts from 'typescript';
 import { listerArbre } from './lister.mjs';
 import { scriptKindDe } from './dialecte.mjs';
@@ -34,7 +35,7 @@ export function sansCommentaires(src) {
 /** Le corps du littéral `const <nom> = { … }` d'un module (accolades équilibrées). */
 function corpsDuLitteral(src, nom) {
   const debut = src.indexOf(`const ${nom} = {`);
-  if (debut < 0) throw new Error(`bindingsVifs : \`const ${nom} = {\` introuvable dans overrides.ts`);
+  if (debut < 0) throw new Error(`bindingsVivants : \`const ${nom} = {\` introuvable dans overrides.ts`);
   const i = src.indexOf('{', debut);
   let profondeur = 0;
   for (let j = i; j < src.length; j++) {
@@ -44,7 +45,7 @@ function corpsDuLitteral(src, nom) {
       if (profondeur === 0) return src.slice(i + 1, j);
     }
   }
-  throw new Error(`bindingsVifs : littéral \`${nom}\` non refermé`);
+  throw new Error(`bindingsVivants : littéral \`${nom}\` non refermé`);
 }
 
 /** Découpe un corps de littéral en entrées, aux virgules de PROFONDEUR 0. */
@@ -77,48 +78,67 @@ function bindingSurveille(cle, valeur) {
   return membre ? membre[1] : cle;
 }
 
-/** Les entrées du littéral `ARRAYS` du seam : `[clé de dataset, nom du binding]`. Un même binding
- *  peut porter PLUSIEURS clés (`shipConstruction.standard`/`.speedTraits`…) : la liste les garde
- *  toutes, l'index par binding n'en retient qu'une (il ne sert qu'à NOMMER le fautif). */
-function entreesDuSeam() {
+/** Les entrées du littéral `litteral` du seam (`ARRAYS`, `OBJECTS`) : `[clé de dataset, nom du
+ *  binding]`. Un même binding peut porter PLUSIEURS clés (`shipConstruction.standard`/`.speedTraits`…) :
+ *  la liste les garde toutes, l'index par binding n'en retient qu'une (il ne sert qu'à NOMMER le
+ *  fautif). */
+function entreesDuSeam(litteral) {
   const src = sansCommentaires(readFileSync(join(RACINE, 'src/data/overrides.ts'), 'utf8'));
   const out = [];
-  for (const e of entrees(corpsDuLitteral(src, 'ARRAYS'))) {
+  for (const e of entrees(corpsDuLitteral(src, litteral))) {
     const avecCle = e.match(/^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]+)$/);
     if (avecCle) { out.push([avecCle[1], bindingSurveille(avecCle[1], avecCle[2].trim())]); continue; }
     const seul = e.match(/^([A-Za-z_$][\w$]*)$/);
     if (seul) out.push([seul[1], seul[1]]);
   }
-  if (out.length < 100) throw new Error(`bindingsVifs : ${out.length} entrées lues, le littéral ARRAYS a changé de forme`);
+  if (out.length < (litteral === 'ARRAYS' ? 100 : 10)) throw new Error(`bindingsVivants : ${out.length} entrées lues, le littéral ${litteral} a changé de forme`);
   return out;
 }
 
 /** Les CLÉS de dataset-tableau déclarées par le seam — doit être exactement `DATASET_KEYS`. */
 export function clesDuSeam() {
-  return entreesDuSeam().map(([cle]) => cle);
+  return entreesDuSeam('ARRAYS').map(([cle]) => cle);
 }
 
-/** Nom du binding VIF → clé de dataset, pour tout dataset-tableau du seam. */
-export function bindingsVifs() {
+/** Nom du binding VIVANT → clé de dataset, pour tout dataset du seam, tableau (`ARRAYS`) ou objet
+ *  (`OBJECTS`). */
+export function bindingsVivants() {
   const parBinding = new Map();
-  for (const [cle, binding] of entreesDuSeam()) if (!parBinding.has(binding)) parBinding.set(binding, cle);
+  for (const [cle, binding] of [...entreesDuSeam('ARRAYS'), ...entreesDuSeam('OBJECTS')]) if (!parBinding.has(binding)) parBinding.set(binding, cle);
   return parBinding;
 }
 
-/** Les noms LOCAUX d'un fichier qui désignent un binding vif — un nom IMPORTÉ, éventuellement renommé
+/** Les DOCUMENTS qui portent une clé de dataset, en chemins relatifs à la racine du dépôt : les imports
+ *  du module généré `src/data/schemas/_racines-vivantes.generated.ts` (`scripts/gen-espaces.mts`, un
+ *  import par document de l'image de `DATASET_FICHIER_DERIVE`), résolus depuis son dossier. */
+let _documents = null;
+const MODULE_DES_RACINES = 'src/data/schemas/_racines-vivantes.generated.ts';
+export function documentsDesRacinesVivantes() {
+  if (_documents) return _documents;
+  const src = readFileSync(join(RACINE, MODULE_DES_RACINES), 'utf8');
+  const out = new Set();
+  for (const m of src.matchAll(/^import\s+r\d+\s+from\s+'([^']+\.json)';$/gm)) out.add(posix.join(posix.dirname(MODULE_DES_RACINES), m[1]));
+  if (out.size < 100) throw new Error(`documentsDesRacinesVivantes : ${out.size} documents lus, ${MODULE_DES_RACINES} a changé de forme`);
+  _documents = out;
+  return out;
+}
+
+/** Les noms LOCAUX d'un fichier qui désignent un binding vivant — un nom IMPORTÉ, éventuellement renommé
  *  (`import { props as propsData }`), ou EXPORTÉ par le module propriétaire du dataset lui-même
  *  (`export const MOUNT_PROFILES`). Un homonyme local non exporté (`const props = []` dans une scène)
  *  n'est PAS le dataset : le vocabulaire ne le retient pas.
  *
  *  S'y ajoutent les deux formes par lesquelles un module ATTEINT son dataset sans jamais nommer le
  *  seam :
- *   - l'IMPORT JSON DIRECT (`import vehiclesJson from '../data/vehicles.json'`) — le document importé
- *     EST le singleton que le seam splice, et le nom de fichier PORTE la clé de dataset ;
+ *   - l'IMPORT JSON DIRECT (`import vehiclesJson from '../data/vehicles.json'`) d'un document qui porte
+ *     une clé de dataset (`documentsDesRacinesVivantes`) — le document importé EST la racine vivante
+ *     que le seam mute, quel que soit le nom de sa clé (`miscast.json` porte `miscastMinor`…). Le nom
+ *     local désigne alors le DOCUMENT (`'vehicles.json'`), jamais une clé devinée du nom de fichier ;
  *   - l'ALIAS NU de niveau module (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`,
  *     `export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths`) — il ne copie rien, il donne
- *     un second nom au MÊME tableau vif. Le nom dérivé hérite du dataset (même contamination par nom
+ *     un second nom au MÊME tableau vivant. Le nom dérivé hérite du dataset (même contamination par nom
  *     que celle d'`indexFiges`), et les chaînes d'alias suivent, les déclarations étant en ordre. */
-export function nomsVifsDuFichier(src, parBinding) {
+export function nomsVivantsDuFichier(chemin, src, parBinding) {
   const noms = new Map();
   for (const m of src.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)) {
     for (const spec of m[1].split(',')) {
@@ -126,9 +146,10 @@ export function nomsVifsDuFichier(src, parBinding) {
       if (parBinding.has(source)) noms.set(alias || source, parBinding.get(source));
     }
   }
-  const cles = new Set(parBinding.values());
-  for (const m of src.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s*['"][^'"]*?([\w$-]+)\.json['"]/g)) {
-    if (cles.has(m[2])) noms.set(m[1], m[2]);
+  const documents = documentsDesRacinesVivantes();
+  for (const m of src.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s*['"](\.{1,2}\/[^'"]+\.json)['"]/g)) {
+    const cible = posix.join(posix.dirname(chemin), m[2]);
+    if (documents.has(cible)) noms.set(m[1], posix.basename(cible));
   }
   for (const [binding, cle] of parBinding) {
     if (new RegExp(`^export (const|let|var) ${binding}\\b`, 'm').test(src)) noms.set(binding, cle);
@@ -151,12 +172,12 @@ export function espacesDeNomsDuFichier(src) {
   return [...src.matchAll(/import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*['"][^'"]+['"]/g)].map((m) => m[1]);
 }
 
-/** Les ACCESSEURS VIFS du dépôt : tout `const <nom> = memoParVersion|indexParId|indexParChamp(…)`
+/** Les ACCESSEURS VIVANTS du dépôt : tout `const <nom> = memoParVersion|indexParId|indexParChamp(…)`
  *  déclaré sous `src/`. Les APPELER au niveau module (`const ENGINS = siegeEngines().filter(…)`)
  *  re-fige exactement ce que l'accesseur vient de dévier : la valeur rendue est celle de la version
  *  courante, capturée une fois pour toute la vie du module. Vocabulaire DÉRIVÉ, jamais recopié. */
 let _accesseurs = null;
-export function accesseursVifs() {
+export function accesseursVivants() {
   if (_accesseurs) return _accesseurs;
   const out = new Set();
   for (const chemin of fichiersSources()) {
@@ -169,14 +190,14 @@ export function accesseursVifs() {
   return out;
 }
 
-/** Les noms LOCAUX d'un fichier qui désignent un ACCESSEUR VIF — importé (éventuellement renommé) ou
- *  déclaré sur place. Même règle que `nomsVifsDuFichier` : un homonyme local non vif n'y entre pas. */
-export function accesseursDuFichier(src, vifs) {
+/** Les noms LOCAUX d'un fichier qui désignent un ACCESSEUR VIVANT — importé (éventuellement renommé) ou
+ *  déclaré sur place. Même règle que `nomsVivantsDuFichier` : un homonyme local non vivant n'y entre pas. */
+export function accesseursDuFichier(src, vivants) {
   const noms = new Set();
   for (const m of src.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)) {
     for (const spec of m[1].split(',')) {
       const [source, alias] = spec.trim().split(/\s+as\s+/).map((x) => x.trim());
-      if (vifs.has(source)) noms.add(alias || source);
+      if (vivants.has(source)) noms.add(alias || source);
     }
   }
   for (const m of src.matchAll(/(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:memoParVersion|indexParId|indexParChamp)\s*\(/g)) {
@@ -286,7 +307,7 @@ function finDeDeclaration(src, i) {
   return src.length;
 }
 
-const PRIMITIVES_VIVES = /\b(indexParId|indexParChamp|memoParVersion)\s*\(/;
+const PRIMITIVES_VIVANTES = /\b(indexParId|indexParChamp|memoParVersion)\s*\(/;
 /** Toute méthode qui rend une valeur DÉRIVÉE du contenu : l'APPELER au niveau module fige ce contenu,
  *  qu'on en fasse une `Map` (index) ou un tableau (vue). Les deux ont le même défaut de fond. La
  *  parenthèse d'APPEL fait partie du motif : `FILE.entries` (champ d'un document JSON) n'est pas
@@ -322,7 +343,7 @@ function motifsDeLecture(noms, espaces, parBinding, accesseurs = new Set()) {
     out.push([nom, `^\\s*(?:export\\s+)?(?:const|let|var)?\\s*[\\[{][^=;]*[\\]}]\\s*=\\s*${nom}(?![\\w$(])`]);
     for (const m of enveloppes(nom)) out.push([nom, m]);
   }
-  // ACCESSEUR VIF RE-FIGÉ : `const ENGINS = siegeEngines().filter(…)`, `new Map(oupsTable().map(…))`.
+  // ACCESSEUR VIVANT RE-FIGÉ : `const ENGINS = siegeEngines().filter(…)`, `new Map(oupsTable().map(…))`.
   // L'appel au niveau module capture la valeur de la version COURANTE — la dévie de l'accesseur ne
   // change rien, le module servira cette valeur-là jusqu'au rechargement.
   for (const nom of accesseurs) out.push([`${nom}()`, `(?<![.\\w])${nom}\\s*\\(\\s*\\)`]);
@@ -352,9 +373,9 @@ const FRONTIERES_DE_CORPS = /=>|\bfunction\b|\b(?:get|set)\s+[A-Za-z_$][\w$]*\s*
 const EST_IIFE = (texte) => /=\s*\(\s*(?:async\s+)?(?:function\b|\()/.test(texte) && /\)\s*\(\s*\)\s*;?\s*$/.test(texte.trim());
 
 /** Une lecture est ÉVALUÉE À L'IMPORT si aucune frontière de corps ne la précède DANS son déclarateur :
- *  après l'une d'elles, elle vit dans un corps, donc à chaque APPEL (lecture vive) — sauf si ce corps
+ *  après l'une d'elles, elle vit dans un corps, donc à chaque APPEL (lecture vivante) — sauf si ce corps
  *  est celui d'une IIFE, appelée sur place. */
-function positionVive(texte, index) {
+function positionVivante(texte, index) {
   if (EST_IIFE(texte)) return false;
   return FRONTIERES_DE_CORPS.test(texte.slice(0, index));
 }
@@ -367,7 +388,7 @@ function declarateurs(texte) {
   for (let i = 0; i < texte.length; i++) {
     const c = texte[i];
     // Commentaires TRAVERSÉS : une parenthèse de prose (« // 1) Espèces ») déséquilibrerait le
-    // compteur et couperait le déclarateur en deux, ce qui rend vif ce qui ne l'est pas.
+    // compteur et couperait le déclarateur en deux, ce qui rend vivant ce qui ne l'est pas.
     if (c === '/' && texte[i + 1] === '/') { const f = texte.indexOf('\n', i); if (f < 0) break; i = f; continue; }
     if (c === '/' && texte[i + 1] === '*') { const f = texte.indexOf('*/', i); if (f < 0) break; i = f + 1; continue; }
     if (c === "'" || c === '"' || c === '`') { i = finDeChaine(texte, i) - 1; continue; }
@@ -381,27 +402,27 @@ function declarateurs(texte) {
 
 /** Les VALEURS FIGÉES d'un source : index (`new Map(traits.map(…))`) ET vues dérivées
  *  (`const armes = trappings.filter(…)`) bâtis au niveau module sur un dataset du seam OU sur le
- *  retour d'un ACCESSEUR VIF appelé là (`siegeEngines().filter(…)`), sans passer par les primitives
- *  vives. Une valeur figée SERT L'ANCIEN MONDE après une édition au Codex.
+ *  retour d'un ACCESSEUR VIVANT appelé là (`siegeEngines().filter(…)`), sans passer par les primitives
+ *  vivantes. Une valeur figée SERT L'ANCIEN MONDE après une édition au Codex.
  *  Le nom qu'une déclaration fautive DÉCLARE rejoint le vocabulaire : l'index bâti ensuite sur cette
  *  vue (`new Map(armes.map(…))`) est nommé lui aussi. Rend des lignes `fichier:ligne — …`. */
-export function indexFiges(chemin, src, parBinding, vifs = accesseursVifs()) {
-  const noms = nomsVifsDuFichier(src, parBinding);
+export function indexFiges(chemin, src, parBinding, vivants = accesseursVivants()) {
+  const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const espaces = espacesDeNomsDuFichier(src);
-  const accesseurs = accesseursDuFichier(src, vifs);
+  const accesseurs = accesseursDuFichier(src, vivants);
   if (!noms.size && !espaces.length && !accesseurs.size && !src.includes('datasetArray')) return [];
   const out = [];
   // Motifs COMPILÉS une fois, refaits seulement quand le vocabulaire grandit (contamination par nom
   // dérivé) : les recompiler à chaque déclaration coûtait |déclarations| × |motifs| regex par fichier.
   let motifs = motifsDeLecture(noms, espaces, parBinding, accesseurs).map(([nom, m]) => [nom, new RegExp(m)]);
   for (const decl of declarationsDeNiveauModule(src)) {
-    if (PRIMITIVES_VIVES.test(decl.texte)) continue;
+    if (PRIMITIVES_VIVANTES.test(decl.texte)) continue;
     const morceaux = decl.boucle ? [decl.texte] : declarateurs(decl.texte);
     let vu = false;
     for (const [nom, rx] of motifs) {
       for (const morceau of morceaux) {
         const m = morceau.match(rx);
-        if (!m || (!decl.boucle && positionVive(morceau, m.index))) continue;
+        if (!m || (!decl.boucle && positionVivante(morceau, m.index))) continue;
         out.push(`${chemin}:${decl.ligne} — valeur figée à l’import sur la source vivante « ${nom} » : ${decl.texte.split('\n')[0].trim()}`);
         const declare = decl.texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)/);
         if (declare && !noms.has(declare[1])) {
@@ -419,7 +440,7 @@ export function indexFiges(chemin, src, parBinding, vifs = accesseursVifs()) {
 
 /** Les TROIS FORMES sous lesquelles `src/data` EXPORTE un résolveur, mesurées sur son source : la
  *  fonction qui rend un accesseur, l'ALIAS NU de l'accesseur, et la FLÈCHE qui l'appelle. Le nom
- *  capturé est le résolveur, le second l'accesseur — retenu s'il est vif. */
+ *  capturé est le résolveur, le second l'accesseur — retenu s'il est vivant. */
 const FORMES_RESOLVEUR = [
   // `export function findConditionById(id) { return etatParId(id); }`
   /export\s+function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)[^{]{0,200}\{\s*return\s+([A-Za-z_$][\w$]*)\s*\(/g,
@@ -430,17 +451,17 @@ const FORMES_RESOLVEUR = [
 ];
 
 /** Les RÉSOLVEURS D'ENTRÉE du dépôt : tout export de `src/data` qui donne accès à la donnée d'un
- *  dataset par un ACCESSEUR VIF (`indexParId`/`indexParChamp`/`memoParVersion`), sous l'une des
+ *  dataset par un ACCESSEUR VIVANT (`indexParId`/`indexParChamp`/`memoParVersion`), sous l'une des
  *  `FORMES_RESOLVEUR`. Ce qu'un tel résolveur atteint n'est pas une copie : c'est l'ENTRÉE que le
  *  seam splice. La muter écrit dans le dataset sans le versionner (aucun index mémoïsé ne l'apprend)
  *  et change l'ORDRE D'INSERTION de ses clés, dont `JSON.stringify` dépend (#1717).
  *  La flèche qui rend un CHAMP de l'entrée (`… ?.abr ?? k`) entre dans le vocabulaire comme les
- *  autres : le critère est l'ACCÈS à la donnée vive, et le classer au cas par cas rouvrirait la
+ *  autres : le critère est l'ACCÈS à la donnée vivante, et le classer au cas par cas rouvrirait la
  *  liste tenue à la main que cette dérivation remplace. */
 let _resolveurs = null;
 export function resolveursDentree() {
   if (_resolveurs) return _resolveurs;
-  const accesseurs = accesseursVifs();
+  const accesseurs = accesseursVivants();
   const out = new Set();
   for (const chemin of fichiersSources()) {
     if (!chemin.startsWith('src/data/') || estFichierVitest(chemin)) continue;
@@ -468,7 +489,7 @@ const EST_ENVELOPPE = (n) =>
   (ts.isSatisfiesExpression ? ts.isSatisfiesExpression(n) : false);
 
 /** La BASE d'une chaîne d'accès : `ed.recover!.difficulty` → `ed`, `(etats as E[])[0]` → `etats`,
- *  `findConditionById('x')!.perStack` → l'APPEL lui-même (la chaîne part de la donnée vive). */
+ *  `findConditionById('x')!.perStack` → l'APPEL lui-même (la chaîne part de la donnée vivante). */
 function baseDe(n) {
   for (;;) {
     if (ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n) || EST_ENVELOPPE(n)) { n = n.expression; continue; }
@@ -483,36 +504,36 @@ function porteeDe(n) {
 }
 
 /**
- * La CIBLE VIVE d'une expression, nommée — `null` si rien de vif. Sa BASE tranche à elle seule :
- * un binding importé EST le dataset ; un appel de résolveur, une tireuse posée sur du vif, ou une
+ * La CIBLE VIVANTE d'une expression, nommée — `null` si rien de vivant. Sa BASE tranche à elle seule :
+ * un binding importé EST le dataset ; un appel de résolveur, une tireuse posée sur du vivant, ou une
  * variable que la portée résout comme entrée, DÉSIGNENT une entrée. Une seule fonction sert les
  * deux usages du détecteur : dire d'où sort une valeur, et dire ce qu'une écriture atteint.
  */
-function cibleVive(expr, noms, resolveurs, resoudre) {
+function cibleVivante(expr, noms, resolveurs, resoudre) {
   const b = baseDe(expr);
   if (ts.isIdentifier(b)) {
     if (noms.has(b.text)) return `le dataset « ${b.text} »`;
-    return resoudre(b.text, expr) ? `une ENTRÉE VIVE du dataset « ${b.text} »` : null;
+    return resoudre(b.text, expr) ? `une ENTRÉE VIVANTE du dataset « ${b.text} »` : null;
   }
   if (ts.isCallExpression(b)) {
     const appele = b.expression;
-    if (ts.isIdentifier(appele) && resolveurs.has(appele.text)) return `une ENTRÉE VIVE du dataset (« ${appele.text}(…) »)`;
+    if (ts.isIdentifier(appele) && resolveurs.has(appele.text)) return `une ENTRÉE VIVANTE du dataset (« ${appele.text}(…) »)`;
     if (ts.isPropertyAccessExpression(appele) && TIREUSES.has(appele.name.text)) {
-      const source = cibleVive(appele.expression, noms, resolveurs, resoudre);
-      return source ? `une ENTRÉE VIVE tirée de ${source}` : null;
+      const source = cibleVivante(appele.expression, noms, resolveurs, resoudre);
+      return source ? `une ENTRÉE VIVANTE tirée de ${source}` : null;
     }
   }
   return null;
 }
 
 /**
- * Les DÉCLARATIONS d'un source, par portée : `nom → est-ce une ENTRÉE VIVE d'un dataset ?`. Une
- * déclaration non-vive y entre AUSSI — c'est elle qui OMBRE l'homonyme d'une portée englobante (une
+ * Les DÉCLARATIONS d'un source, par portée : `nom → est-ce une ENTRÉE VIVANTE d'un dataset ?`. Une
+ * déclaration non-vivante y entre AUSSI — c'est elle qui OMBRE l'homonyme d'une portée englobante (une
  * variable de boucle `for (const c of heroes)` n'est pas l'entrée `const c = findCreatureById(…)`
  * déclarée ailleurs dans le fichier). La vivacité se propage par FIXPOINT sur trois chemins : le
  * déclarateur nommé (`const rec = ed.recover`), le liant DÉSTRUCTURÉ (`const { recover } = ed` —
  * chaque élément hérite de l'initialiseur) et la RÉAFFECTATION d'un identifiant déjà déclaré
- * (`let ed = null; ed = findConditionById('x')`), qui rend vif le nom dans la portée qui le déclare.
+ * (`let ed = null; ed = findConditionById('x')`), qui rend vivant le nom dans la portée qui le déclare.
  */
 function declarationsParPortee(sf, noms, resolveurs) {
   const parPortee = new Map();
@@ -536,7 +557,7 @@ function declarationsParPortee(sf, noms, resolveurs) {
     return null;
   };
   // La portée d'où l'on résout est celle de l'EXPRESSION elle-même : ses parents mènent au liant.
-  const estVif = (expr) => !!expr && !!cibleVive(expr, noms, resolveurs, resoudre);
+  const estVivant = (expr) => !!expr && !!cibleVivante(expr, noms, resolveurs, resoudre);
   const declarateurs = [];
   const promotions = [];
   /** Les noms qu'un liant DÉCLARE : identifiant nu, ou tous les éléments d'un motif imbriqué. */
@@ -567,11 +588,11 @@ function declarationsParPortee(sf, noms, resolveurs) {
   for (let tour = 0; tour <= declarateurs.length + promotions.length; tour++) {
     let bouge = false;
     for (const d of declarateurs) {
-      if (!estVif(d.init)) continue;
+      if (!estVivant(d.init)) continue;
       for (const nom of d.noms) if (!parPortee.get(d.portee).get(nom)) { poser(nom, d.portee, true); bouge = true; }
     }
     for (const p of promotions) {
-      if (!estVif(p.init)) continue;
+      if (!estVivant(p.init)) continue;
       const portee = porteeQuiDeclare(p.nom, p.depuis);
       if (portee && !parPortee.get(portee).get(p.nom)) { poser(p.nom, portee, true); bouge = true; }
     }
@@ -582,9 +603,9 @@ function declarationsParPortee(sf, noms, resolveurs) {
 
 /**
  * Les ÉCRITURES HORS SEAM d'un source, par analyse STRUCTURELLE (AST) — une seule lecture pour les
- * deux cibles, que `cibleVive` distingue :
+ * deux cibles, que `cibleVivante` distingue :
  *  - le BINDING d'un dataset (`traits.push(…)`, `traits.length = 0`, `traits[0].label = …`) ;
- *  - une ENTRÉE VIVE tirée du dataset (`const ed = findConditionById('brise')!` puis
+ *  - une ENTRÉE VIVANTE tirée du dataset (`const ed = findConditionById('brise')!` puis
  *    `delete ed.perStack`, `const { recover } = ed`, `findManeuverById('x')!.effects = …`) :
  *    l'objet muté EST celui du tableau.
  * Les gestes reconnus sont ceux qui changent l'objet en place : affectation (simple ou composée) à
@@ -592,20 +613,20 @@ function declarationsParPortee(sf, noms, resolveurs) {
  *
  * ANGLE MORT, dit : la passe est LOCALE À LA PORTÉE. Une entrée passée en ARGUMENT
  * (`muter(findConditionById('x'))`, puis `e.perStack = false` dans le corps de `muter`) sort de ce
- * que la pile de portées sait relier — le paramètre y est déclaré non-vif, et le suivre demanderait
+ * que la pile de portées sait relier — le paramètre y est déclaré non-vivant, et le suivre demanderait
  * un graphe d'appels inter-procédural (le vérificateur de types de `tsProgram`, ~1,3 Go par
  * programme, pour une forme qu'aucun site du dépôt ne pratique). Ce qui reste couvert dans ce cas :
  * l'écriture faite DANS la portée qui résout l'entrée.
  */
 export function ecrituresHorsSeam(chemin, src, parBinding, resolveurs = resolveursDentree()) {
-  const noms = nomsVifsDuFichier(src, parBinding);
+  const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const candidateEntree = [...resolveurs].some((r) => src.includes(r));
   if (!noms.size && !candidateEntree) return [];
   const sf = ts.createSourceFile(chemin, src, ts.ScriptTarget.Latest, true, scriptKindDe(chemin));
   const resoudre = declarationsParPortee(sf, noms, resolveurs);
   const lignes = src.split('\n');
   const out = [];
-  const cible = (expr) => cibleVive(expr, noms, resolveurs, resoudre);
+  const cible = (expr) => cibleVivante(expr, noms, resolveurs, resoudre);
   /** Un MEMBRE de la cible, jamais la variable elle-même : réaffecter le nom local (`ed = autre`)
    *  ne touche pas la donnée, muter `ed.perStack` si. */
   const membre = (acces) =>

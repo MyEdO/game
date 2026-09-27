@@ -17,7 +17,7 @@ import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTableLabel, mutationTableRows, type MutationTable } from './mutations';
-import { rollMiscast, miscastRowAt, MISCAST_TABLE_ROWS, type MiscastTableRow } from '../engine/miscast';
+import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableStepDef, tableStepIds } from '../state/cascade';
 import { stageWeatherRows } from '../state/travelFlow';
@@ -144,7 +144,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   });
 
   it('une saison RETIRÉE de `weather` quitte le REGISTRE des tables d’étape, pour tout lecteur', () => {
-    // Le registre des tables tirables est VIF : la famille de `travelFlow` rend ses ids et ses defs à
+    // Le registre des tables tirables est VIVANT : la famille de `travelFlow` rend ses ids et ses defs à
     // CHAQUE lecture. Avec l'enregistrement posé par effet de bord d'un mémo, la table survivait à la
     // suppression de sa saison, et n'existait pour un lecteur (cascade reprise d'une sauvegarde,
     // fenêtre de pose) qu'après le passage du site qui ouvrait l'étape.
@@ -194,7 +194,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une rangée d’Incantation Imparfaite ÉDITÉE : `rollMiscast` joue la NOUVELLE, comme `miscastRowAt`', () => {
     // `RUNTIME_ROWS` dépliait les rangées (ops closées, Tests) une fois à l'import : `rollMiscast`
     // servait le libellé d'AVANT pendant que `miscastRowAt` servait déjà le nouveau.
-    const rangees = MISCAST_TABLE_ROWS['miscast-mineure'];
+    const rangees = MISCAST_TABLES.find((t) => t.id === 'miscast-mineure')!.entries;
     const premiere = rangees[0];
     const de = premiere.min;
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe(premiere.label);

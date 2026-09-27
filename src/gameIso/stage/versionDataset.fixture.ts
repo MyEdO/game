@@ -34,6 +34,6 @@ export const bakerLesScenes = (scenes: readonly Scene[]): number => {
 
 /** Éléments de DÉCOR réellement émis par le bake (décor authoré + décor de tuile) : chacun coûte un
  *  nombre BORNÉ de lectures de l'index `props` (recette, volume, matières). C'est la grandeur à
- *  laquelle le surcoût d'une lecture vive se compare. */
+ *  laquelle le surcoût d'une lecture vivante se compare. */
 export const emisDeDecor = (scenes: readonly Scene[]): number =>
   scenes.reduce((n, s) => n + buildProps(s).length, 0);

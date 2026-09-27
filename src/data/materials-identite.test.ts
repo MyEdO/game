@@ -20,7 +20,7 @@ import { terrains } from './index';
  * entrées de même id n'y seraient plus séparables du tout.
  *
  * Le contrat est DÉRIVÉ du dataset (aucune liste d'ids récitée ici) et il porte le TIE-BREAK : les
- * trois vues résolvent par `catalogEntry` sur un balayage VIF du document construit à l'identique
+ * trois vues résolvent par `catalogEntry` sur un balayage VIVANT du document construit à l'identique
  * (`matieresDe(domaine).find`), donc un id en double y ferait gagner la PREMIÈRE déclaration en
  * silence. L'unicité, refusée au parse (collection à clé, `schemas/grammaire/collection-cle.ts`), rend
  * ce départage sans objet, et laisse UN seul chemin de résolution.

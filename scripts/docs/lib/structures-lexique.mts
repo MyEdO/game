@@ -184,11 +184,11 @@ export const TERMES_COLLECTION_A_CLE: readonly (readonly [terme: string, definit
   ],
   [
     'racine vivante',
-    'la racine d’un document de `src/data` en mémoire : le module JSON singleton que la façade et le moteur importent, et que le seam mute EN PLACE ; `RACINES_VIVANTES` (`src/data/schemas/_racines-vivantes.generated.ts`, phase 1 de `npm run gen`) la donne par fichier, un import statique par `file` des defs. Ce que le save sérialise, et ce que le régime vivant navigue le long d’une clé d’espace.',
+    'la racine d’un document de `src/data` qui porte une clé de dataset, en mémoire : le module JSON singleton que le seam mute EN PLACE ; `RACINES_VIVANTES` (`src/data/schemas/_racines-vivantes.generated.ts`, phase 2 de `npm run gen`) la donne par fichier, un import statique par document de l’image de `DATASET_FICHIER_DERIVE`. Ce que le save sérialise, et ce que le régime vivant navigue le long d’une clé d’espace.',
   ],
   [
     'régime vivant',
-    'le second régime de lecture des ids (`src/data/schemas/grammaire/idsVivants.ts`) : les ids d’un espace calculés sur les racines vivantes par le calcul de la phase 2 (`idsDeLEspace`), posé par la couche donnée (`src/data/overrides.ts`) et daté par la version des clés de dataset du fichier (`memoParVersion`) — une entité créée ou renommée à l’atelier est référençable avant tout `npm run gen`. Sans régime posé (scripts, gardes), l’INDEX DES IDS généré fait foi.',
+    'le second régime de lecture des ids (`src/data/schemas/grammaire/idsVivants.ts`) : les ids d’un espace calculés sur les racines vivantes par le calcul de la phase 2 (`idsDeLEspace`), posé par la couche donnée (`src/data/overrides.ts`) et daté par la version des clés de dataset du fichier (`memoParVersion`) — une entité créée ou renommée à l’atelier est référençable avant tout `npm run gen`. Sans régime posé (scripts, gardes), ou pour un espace d’un fichier hors des racines vivantes, l’INDEX DES IDS généré fait foi.',
   ],
   [
     'clé de dataset',

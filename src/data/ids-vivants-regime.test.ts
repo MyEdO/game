@@ -6,11 +6,11 @@ import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { sceneEntitySchema } from './schemas/defs-scenes/scene';
 
 /**
- * RÉGIME VIVANT DES IDS (#1897, #1463) — tout espace de noms se lit sur la RACINE VIVANTE de son
- * fichier (`RACINES_VIVANTES`, `data/overrides.ts`), qu'il ait une route d'édition au Codex ou non
- * (`props.json` est `edit: none` : aucun écran ne l'écrit), niché ou non. Chaque cas LIT d'abord (le
- * mémo de `data/overrides.ts` se remplit), ÉCRIT au seam, puis relit : un mémo qui ignorerait la version
- * servirait l'ancien monde.
+ * RÉGIME VIVANT DES IDS (#1897, #1463) — tout espace de noms d'un fichier qui porte une clé de
+ * dataset se lit sur la RACINE VIVANTE de ce fichier (`RACINES_VIVANTES`, `data/overrides.ts`), qu'il
+ * ait une route d'édition au Codex ou non (`props.json` est `edit: none` : aucun écran ne l'écrit),
+ * niché ou non. Chaque cas LIT d'abord (le mémo de `data/overrides.ts` se remplit), ÉCRIT au seam, puis
+ * relit : un mémo qui ignorerait la version servirait l'ancien monde.
  */
 
 const DECORS_LIVRES: PropData[] = [...props];
@@ -77,6 +77,17 @@ describe('régime vivant — l’admission d’une spécialisation suit l’ENTR
     expect(refusDeSpec('skill', 'focalisation', 'domaine-neuf')).toBe('horsCatalogue');
     setDataset('domains', [...DOMAINES_LIVRES, { ...DOMAINES_LIVRES[0], id: 'domaine-neuf', label: 'Domaine neuf' }]);
     expect(refusDeSpec('skill', 'focalisation', 'domaine-neuf')).toBeNull();
+  });
+});
+
+describe('régime vivant — un arbre posé à deux éléments de même clé se lit au premier, sans lever', () => {
+  it('`[art].specs` d’une compétence en double : l’espace et l’admission lisent la première', () => {
+    const art = skills.find((s) => s.id === 'art')!;
+    const specs = [...lireLEspace('skills.json#[art].specs')!];
+    setDataset('skills', [...COMPETENCES_LIVREES, { ...art, specs: [{ id: 'spec-du-double', label: 'Spec du double' }] }]);
+    expect([...lireLEspace('skills.json#[art].specs')!]).toEqual(specs);
+    expect(refusDeSpec('skill', 'art', specs[0])).toBeNull();
+    expect(refusDeSpec('skill', 'art', 'spec-du-double')).toBe('horsCatalogue');
   });
 });
 

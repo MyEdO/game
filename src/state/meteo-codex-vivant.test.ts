@@ -48,12 +48,12 @@ const editee = (patch: Record<string, Partial<Range>>): Saison[] =>
     ranges: s.ranges.map((r) => (patch[r.weather] ? { ...r, ...patch[r.weather] } : r)),
   }));
 
-describe('météo éditée au Codex — refus transactionnel et table VIVE', () => {
+describe('météo éditée au Codex — refus transactionnel et table VIVANTE', () => {
   it('une borne éditée SEULE est refusée (trou d100) et l’état d’avant est REPRIS', () => {
     const maxAvant = printemps().ranges.find((r) => r.weather === 'pluie')!.max;
     const saisons = editee({ pluie: { max: maxAvant - 10 } });
 
-    // Preview VIVE : la pose mémoire est vue par la table de cascade avant toute validation.
+    // Preview VIVANTE : la pose mémoire est vue par la table de cascade avant toute validation.
     setDataset('weather', saisons);
     expect(rangee('pluie').max).toBe(maxAvant - 10);
 

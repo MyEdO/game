@@ -15,7 +15,7 @@
  */
 
 /** Ce que la couche donnée pose : les ids d'un espace, par sa clé d'espace, sur les racines vivantes —
- *  `undefined` : l'espace n'existe pas. */
+ *  `undefined` : l'espace n'existe pas, ou son fichier n'est pas une racine vivante. */
 export type RegimeVivant = (cle: string) => ReadonlySet<string> | undefined;
 
 let regime: RegimeVivant | undefined;
@@ -31,8 +31,9 @@ export function poserRegimeVivant(r: RegimeVivant | undefined): RegimeVivant | u
 
 /**
  * Ids d'un espace, par sa CLÉ D'ESPACE (`grammaire/cle-d-espace.ts`), tels que les racines vivantes
- * les portent, dans l'ordre de la donnée — `undefined` si aucun régime n'est posé ou si l'espace
- * n'existe pas : l'appelant lit alors l'INDEX DES IDS généré.
+ * les portent, dans l'ordre de la donnée — `undefined` si aucun régime n'est posé, si l'espace
+ * n'existe pas ou si son fichier n'est pas une racine vivante : l'appelant lit alors l'INDEX DES IDS
+ * généré.
  */
 export function idsVivants(cle: string): ReadonlySet<string> | undefined {
   return regime?.(cle);

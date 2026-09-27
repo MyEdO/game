@@ -145,13 +145,13 @@ const ARRAYS = {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
-  // mutation en place, et c'est lui qui rend vive la lecture des vues par domaine (`matieresDe`,
+  // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
   // `exposition.edit` = `dataset` (lot 3a-2) : la clé a sa route de sauvegarde vers `materials.json`,
   // et l'onglet Codex « Matières » l'édite.
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
-  // seam de mutation en place, et c'est lui qui rend vive la lecture de la façade `src/state/terrain`
+  // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/state/terrain`
   // et du catalogue `gameIso/catalog/terrain` — tous deux indexent le TABLEAU et revérifient son
   // contenu à chaque accès (`indexDesTerrains`), un splice étant invisible à l'identité du tableau.
   terrains,

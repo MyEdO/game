@@ -35,7 +35,7 @@ const FACE_NEUVE = '#0d0d0d';
 
 afterEach(() => resetData());
 
-describe('matières — toute vue du document est VIVE (aucun index figé à l’import)', () => {
+describe('matières — toute vue du document est VIVANTE (aucun index figé à l’import)', () => {
   it('les trois domaines, les trois façades de rendu et `findPropMaterialById` voient la valeur ÉDITÉE', () => {
     const prop = matieresDe('prop')[0];
     const roof = matieresDe('roof').find((m) => m.N !== undefined)!;
@@ -55,7 +55,7 @@ describe('matières — toute vue du document est VIVE (aucun index figé à l�
     expect(matieresDe('prop').find((m) => m.id === prop.id)!.color).toBe(COULEUR_NEUVE);
     expect(matieresDe('roof').find((m) => m.id === roof.id)!.N).toBe(PENTE_NEUVE);
     expect(matieresDe('relief').find((m) => m.id === relief.id)!.face).toBe(FACE_NEUVE);
-    // … façades de RENDU (`catalogEntry` sur une résolution vive) …
+    // … façades de RENDU (`catalogEntry` sur une résolution vivante) …
     expect(propMaterial(prop.id).color).toBe(COULEUR_NEUVE);
     expect(roofMaterial(roof.id).N).toBe(PENTE_NEUVE);
     expect(reliefMaterial(relief.id).face).toBe(FACE_NEUVE);

@@ -2328,7 +2328,7 @@ export interface NamePool {
 }
 
 import { indexParChamp, indexParId, memoParVersion } from './versionDataset';
-/** Les primitives d'INDEX VIF (#1692), REEXPORTÉES par la façade : un lecteur hors `src/data` compose
+/** Les primitives d'INDEX VIVANT (#1692), REEXPORTÉES par la façade : un lecteur hors `src/data` compose
  *  l'accesseur d'ici plutôt que de rebâtir son propre index sur un dataset muté en place. */
 export { indexParChamp, indexParId, memoParVersion, versionDuDataset } from './versionDataset';
 
@@ -2493,12 +2493,12 @@ export const materials = materialsJson as MaterialEntry[];
 
 /** LES terrains du monde (#1690) — règle (franchissabilité, raccord, opacité, bâti) ET rendu (teinte,
  *  rampe, recette, décor posé, bloc plein) dans UNE entrée. Binding muté EN PLACE par `setDataset`
- *  (`data/overrides.ts`) : la façade `src/state/terrain` et le catalogue de rendu le lisent VIF. */
+ *  (`data/overrides.ts`) : la façade `src/state/terrain` et le catalogue de rendu le lisent VIVANT. */
 export const terrains = terrainsJson as unknown as TerrainDef[];
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
- *  `src/state/buildings` le lit VIF. */
+ *  `src/state/buildings` le lit VIVANT. */
 export const buildings = buildingsJson as unknown as BuildingDef[];
 
 /**
@@ -2516,12 +2516,12 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
 /** Matières POSABLES sur une masse de toit : les entrées de domaine `roof` que la DONNÉE déclare
  *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`state/validateScene.ts`) et des
  *  sélecteurs de l'éditeur (`ui/editor/Inspector.tsx`), qui vivent dans deux couches et ne peuvent pas
- *  s'importer l'une l'autre. Lecture VIVE, comme `matieresDe`. */
+ *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);
 
 /** L'entrée du PLAN vu du dessus — celle que la DONNÉE marque `vueDeDessus` (#1691), jamais un id
  *  littéral au call-site. Le schéma en garantit l'unicité (`schemas/defs/materials.ts`,
- *  `affinerDataset`) ; le premier marqué est donc LE plan. Lecture VIVE, comme `matieresCouvrantes`. */
+ *  `affinerDataset`) ; le premier marqué est donc LE plan. Lecture VIVANTE, comme `matieresCouvrantes`. */
 export const matierePlan = (): RoofMaterialDef => {
   const plan = matieresDe('roof').find((m) => m.vueDeDessus);
   if (!plan) throw new Error('matierePlan() : aucune entrée `roof` ne porte `vueDeDessus` — materials.json');
@@ -2784,7 +2784,7 @@ export interface LightToneDef { id: string; type: 'lightTones'; label: string; c
 export const lightTones = lightTonesJson as LightToneDef[];
 /** Lookup LIVE par BALAYAGE, et non par `indexParId` : à QUATRE entrées, l'index ne rachète pas son
  *  coût — même choix MESURÉ que `matieresDe` (`+4,1 ms` contre un index sur 18 026 lookups, #1686 lot
- *  3a-1, cf. `findPropMaterialById` ci-dessous). Le balayage est vif par construction : le catalogue
+ *  3a-1, cf. `findPropMaterialById` ci-dessous). Le balayage est vivant par construction : le catalogue
  *  se mute EN PLACE (`data/overrides.ts`). */
 export const findLightToneById = (id: string): LightToneDef | undefined => lightTones.find((t) => t.id === id);
 /** Ton SERVI à une source qui n'en nomme aucun — le feu, le cas du monde (brasero, feu de camp). */
@@ -2803,7 +2803,7 @@ export const findPropById = indexParId('props', props);
  *  aucun type résolu, donc aucun volume : la même absence qu'une ref hors registre (#877). */
 const decorVolumique = porteLeMarqueur('prop', 'volume');
 export const refEstVolumique = (ref: string | undefined): boolean => ref !== undefined && decorVolumique(ref);
-/** Matière de rendu d'une recette volumique de décor, par id — lecture VIVE du document (`matieresDe`),
+/** Matière de rendu d'une recette volumique de décor, par id — lecture VIVANTE du document (`matieresDe`),
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
  *  `data/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
@@ -3002,7 +3002,7 @@ export function conditionLabel(id: string): string {
 export function psychologyLabel(id: string): string {
   return refLabel('psychologies', { id });
 }
-/** ids d'États du catalogue, dans l'ordre du dataset — vue VIVE (`memoParVersion`), reconstruite
+/** ids d'États du catalogue, dans l'ordre du dataset — vue VIVANTE (`memoParVersion`), reconstruite
  *  après une édition au Codex. Consommée par le scan du journal (`engine/conditions.conditionIdInText`)
  *  qui itère des ids et n'obtient le libellé que pour le chercher dans un texte FRANÇAIS. */
 export const conditionIds = memoParVersion('etats', () => etats.map((e) => e.id));

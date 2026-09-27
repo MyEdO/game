@@ -318,17 +318,6 @@ export interface MiscastTableRow {
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
 export const MISCAST_TABLES: MiscastTableDef[] = data;
 
-/** Rangées par id de table — source unique du couple id ⇄ rangées : le registre d'étapes de cascade
- *  (`registerTableStep`, state) et la résolution (`miscastTables`) lisent LES MÊMES tableaux. */
-export const MISCAST_TABLE_ROWS: Record<string, MiscastTableRow[]> = Object.fromEntries(
-  MISCAST_TABLES.map((t) => [t.id, t.entries]),
-);
-
-/** Libellé JOUEUR de chaque table (rangée de tirage), tel que la déclaration le porte. */
-export const MISCAST_TABLE_LABELS: Record<string, string> = Object.fromEntries(
-  MISCAST_TABLES.map((t) => [t.id, t.label]),
-);
-
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };
 
@@ -338,7 +327,7 @@ const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineu
  *  vérités sur le même tirage. Les deux tables VDM ne sont pas exposées au seam (3 des 5 documents le
  *  sont) : leur version ne bouge jamais, leur dépliage suit celui des trois autres. */
 const runtimeRows = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, Row[]> =>
-  Object.fromEntries(Object.entries(MISCAST_TABLE_ROWS).map(([id, rows]) => [id, (rows as JsonRow[]).map(buildRow)])),
+  Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, t.entries.map(buildRow)])),
 );
 
 /** Id de la table d'une sévérité sous le jeu de tables EN VIGUEUR — `VDM 02 l.218-263` sous la règle
@@ -363,14 +352,11 @@ function estSourceKind(categorie: string): categorie is EffectSourceKind {
   return categorie in CATEGORY_BY_SOURCE_KIND;
 }
 
-/** Index CALCULÉ des tables (il SUIT `MISCAST_TABLE_ROWS` au lieu de le figer). */
-const ROWS_BY_TABLE = new Map(Object.entries(MISCAST_TABLE_ROWS));
-
 /** Ligne atteinte par un dé EFFECTIF sur une table déclarée (lookup partagé `findTableEntry`) —
  *  SOURCE UNIQUE du texte rendu par l'étape à table. */
 export function miscastRowAt(tableId: string, die: number): MiscastTableRow {
-  const rows = ROWS_BY_TABLE.get(tableId);
-  if (!rows) throw new Error(`miscastRowAt : table « ${tableId} » inconnue (cf. MISCAST_TABLE_ROWS).`);
+  const rows = MISCAST_TABLES.find((t) => t.id === tableId)?.entries;
+  if (!rows) throw new Error(`miscastRowAt : table « ${tableId} » inconnue (cf. MISCAST_TABLES).`);
   return findTableEntry(rows, die);
 }
 
