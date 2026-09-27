@@ -27,7 +27,7 @@
  * trois taches — vert au sommet, rouge aux deux flancs, deux points d'or sur les cuirs de croupe.
  * Aucune nappe à bord visible.
  *
- * JETONS : `@sangle` (selle), `@drap` (caparaçon), `@sellerieCuir` (cuirs), `@accent` (or) — jamais
+ * JETONS : `@sangle` (selle), `@drap` (caparaçon), `@harnaisCuir` (cuirs), `@accent` (or) — jamais
  * `@cuir`, jeton du SABOT chez le cheval.
  *
  * LANGAGE RESTREINT : uniquement des `<path>` en commandes ABSOLUES (M/L/C/Q/Z), aucun `<circle>`,
@@ -72,7 +72,7 @@ const TRONC = [
   //    hanches, de part et d'autre de la naissance de la queue. Un brin unique au CENTRE serait
   //    entièrement recouvert : de dos, la queue passe DEVANT le tronc (plan 6 > 5) et occupe
   //    x∈[47..57] dès y=60 — mesuré au rendu, il n'en restait que le médaillon.
-  F('M52.6 54 L55 54.4 L45.4 73.4 L42.4 71.8 Z M58.4 54 L56 54.4 L65.6 73.4 L68.6 71.8 Z', '@sellerieCuir'),
+  F('M52.6 54 L55 54.4 L45.4 73.4 L42.4 71.8 Z M58.4 54 L56 54.4 L65.6 73.4 L68.6 71.8 Z', '@harnaisCuir'),
   medaillon(55.5, 57, 2.4),
   //    Second point d'or, BAS sur le brin gauche (t≈0.80 le long de la sangle, centre du brin
   //    mesuré à cette hauteur : x∈[44.1..47.7]) : monté, le cavalier assis couvre le haut de la

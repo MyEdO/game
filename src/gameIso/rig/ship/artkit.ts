@@ -6,7 +6,7 @@
  * `composeShip`. Coords LOCALES : origine = quille au centre (y=0 = flottaison/contact case),
  * le navire monte en y NÉGATIF, la PROUE regarde à DROITE (le profil gauche s'obtient par MIROIR
  * dans la machinerie, jamais dans l'art). Jetons palette CONSERVÉS (recoloration Compendium) :
- * `@coque` (bois de carène), `@voile` (toile), `@mat` (espars/rames), `@pavillon` (flammes/
+ * `@coque` (bois de carène), `@toileDeVoile` (voiles), `@mat` (espars/rames), `@pavillon` (flammes/
  * emblèmes) + nuances O/H dérivées par `buildTokenMap`.
  */
 import type { ViewArt } from '../viewArt';
@@ -38,22 +38,22 @@ export const flag = (x: number, y: number, w = 8, h = 5): string =>
   + `<path d="M${n(x)} ${n(y - h - 4)} l${n(-w)} 0.6 l0 ${n(h - 1.2)} l${n(w)} 0.6 Z" fill="@pavillon"/>`;
 
 /** Voile CARRÉE gonflée sous sa vergue (vent portant → ventre vers la proue, à droite).
- *  `seams` = coutures verticales, `reefs` = bandes de ris horizontales (accents @voileO). */
+ *  `seams` = coutures verticales, `reefs` = bandes de ris horizontales (accents @toileDeVoileO). */
 export function squareSail(cx: number, yTop: number, h: number, hw: number, opts: { seams?: number; reefs?: number } = {}): string {
   const yB = yTop + h;
   let s = spar(cx - hw - 2, yTop, cx + hw + 2, yTop, 1.8);
   s += `<path d="M${n(cx - hw)} ${n(yTop + 1)} Q${n(cx - hw + h * 0.16)} ${n(yTop + h * 0.55)} ${n(cx - hw * 0.82)} ${n(yB)}`
     + ` L${n(cx + hw * 0.9)} ${n(yB)} Q${n(cx + hw + h * 0.24)} ${n(yTop + h * 0.5)} ${n(cx + hw)} ${n(yTop + 1)} Z"`
-    + ` fill="@voile" stroke="@voileO" stroke-width="1"/>`;
+    + ` fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`;
   const seams = opts.seams ?? 0;
   for (let i = 1; i <= seams; i++) {
     const x = cx - hw + (2 * hw * i) / (seams + 1);
-    s += `<path d="M${n(x)} ${n(yTop + 1.5)} Q${n(x + h * 0.13)} ${n(yTop + h * 0.55)} ${n(x)} ${n(yB - 1)}" stroke="@voileO" stroke-width="0.7" opacity="0.4" fill="none"/>`;
+    s += `<path d="M${n(x)} ${n(yTop + 1.5)} Q${n(x + h * 0.13)} ${n(yTop + h * 0.55)} ${n(x)} ${n(yB - 1)}" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4" fill="none"/>`;
   }
   const reefs = opts.reefs ?? 0;
   for (let j = 1; j <= reefs; j++) {
     const y = yTop + (h * j) / (reefs + 1);
-    s += `<path d="M${n(cx - hw * 0.92)} ${n(y)} Q${n(cx)} ${n(y + 2)} ${n(cx + hw * 0.95)} ${n(y)}" stroke="@voileO" stroke-width="0.7" opacity="0.35" fill="none"/>`;
+    s += `<path d="M${n(cx - hw * 0.92)} ${n(y)} Q${n(cx)} ${n(y + 2)} ${n(cx + hw * 0.95)} ${n(y)}" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.35" fill="none"/>`;
   }
   return s;
 }
@@ -64,14 +64,14 @@ export function lateenSail(peak: [number, number], tack: [number, number], clew:
   const [px, py] = peak, [tx, ty] = tack, [cx, cy] = clew;
   const mx = (px + cx) / 2 + bulge[0], my = (py + cy) / 2 + bulge[1];
   return spar(px, py, tx, ty, 1.8)
-    + `<path d="M${n(px)} ${n(py)} L${n(tx)} ${n(ty)} L${n(cx)} ${n(cy)} Q${n(mx)} ${n(my)} ${n(px)} ${n(py)} Z" fill="@voile" stroke="@voileO" stroke-width="1"/>`;
+    + `<path d="M${n(px)} ${n(py)} L${n(tx)} ${n(ty)} L${n(cx)} ${n(cy)} Q${n(mx)} ${n(my)} ${n(px)} ${n(py)} Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`;
 }
 
 /** Voile de JONQUE lattée en éventail (plus large en tête), lattes horizontales @matO. */
 export function junkSail(cx: number, yTop: number, h: number, hwTop: number, hwBot: number, battens = 4): string {
   const yB = yTop + h;
   let s = spar(cx - hwTop - 2, yTop + 1, cx + hwTop + 2, yTop, 1.6);
-  s += `<path d="M${n(cx - hwTop)} ${n(yTop + 1)} L${n(cx + hwTop)} ${n(yTop)} L${n(cx + hwBot)} ${n(yB)} L${n(cx - hwBot)} ${n(yB - 1.5)} Z" fill="@voile" stroke="@voileO" stroke-width="1"/>`;
+  s += `<path d="M${n(cx - hwTop)} ${n(yTop + 1)} L${n(cx + hwTop)} ${n(yTop)} L${n(cx + hwBot)} ${n(yB)} L${n(cx - hwBot)} ${n(yB - 1.5)} Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`;
   for (let i = 1; i <= battens; i++) {
     const t = i / (battens + 1);
     const y = yTop + h * t;
@@ -96,7 +96,7 @@ export function shieldRow(x0: number, x1: number, count: number, y: number, r = 
   let s = '';
   for (let i = 0; i < count; i++) {
     const x = x0 + (i * (x1 - x0)) / (count - 1);
-    s += `<circle cx="${n(x)}" cy="${n(y)}" r="${r}" fill="${i % 2 ? '@voileO' : '@pavillon'}" stroke="@coqueO" stroke-width="0.8"/>`;
+    s += `<circle cx="${n(x)}" cy="${n(y)}" r="${r}" fill="${i % 2 ? '@toileDeVoileO' : '@pavillon'}" stroke="@coqueO" stroke-width="0.8"/>`;
   }
   return s;
 }

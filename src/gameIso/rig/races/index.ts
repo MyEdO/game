@@ -12,7 +12,7 @@ import speciesRaceJson from '../../../data/speciesRace.json';
  */
 const resolve = memoByRef((rec: RaceAppearanceData): RaceDef => {
   const { featureKeys, ...rest } = rec;
-  return { ...rest, ...(featureKeys?.length ? { features: feat(...featureKeys) } : {}) } as unknown as RaceDef;
+  return { ...rest, ...(featureKeys?.length ? { features: feat(...featureKeys) } : {}) };
 });
 
 export type { RaceDef, RaceFeature } from './types';

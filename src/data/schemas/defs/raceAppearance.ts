@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { surchargePaletteSchema } from '../grammaire/valeurs';
+import { paletteDEspeceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
 
 export const file = 'raceAppearance.json';
@@ -18,8 +18,8 @@ const doc = document(
   {
     gabarit: z.string(),
     gabaritOverride: z.record(z.string(), z.number()).optional(),
-    palette: z.record(z.string(), z.string()).optional(),
-    paletteF: z.record(z.string(), z.string()).optional(),
+    palette: paletteDEspeceSchema.optional(),
+    paletteF: paletteDEspeceSchema.optional(),
     head: z.string().optional(),
     legs: z.string().optional(),
     armG: z.string().optional(),

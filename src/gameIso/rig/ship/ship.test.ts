@@ -15,7 +15,7 @@ describe('Gabarit NAVIRE — rendu via le système de plans (réutilisé, pas du
   it('la coque est routée PAR ID (art dédié SHIP_ARTS) ; palette à jetons entièrement résolue', () => {
     const svg = svgOf('cogue');
     expect(svg.length).toBeGreaterThan(0);
-    expect(svg).not.toContain('@'); // tous les jetons @coque/@voile/@mat substitués par la palette
+    expect(svg).not.toContain('@'); // tous les jetons @coque/@toileDeVoile/@mat substitués par la palette
   });
 
   it('id FUTUR sans art dédié → REPLI VISIBLE (#223), jamais un générique silencieux', () => {

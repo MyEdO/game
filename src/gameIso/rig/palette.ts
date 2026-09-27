@@ -10,8 +10,8 @@
  * en rendu headless (resvg).
  */
 import type { PartArt } from './parts/types';
-import { SLOTS, PORTEUR, type Slot } from '../../data/palette.types';
-import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses } from './clesDePalette';
+import { SLOTS, PORTEUR, gammes, type Gamme, type Slot } from '../../data/palette.types';
+import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses, type BaseDeTable, type BasePorteur } from './clesDePalette';
 import { parseHex, toHex, shade, LUMA_709 } from '../shade';
 
 export { SLOTS, type Slot };
@@ -103,10 +103,17 @@ function ecartReporte(s: string, b: string, o: string, signe: -1 | 1): string {
 }
 
 /**
- * Palette DÉCLARÉE d'une couche (def de tenue, arme, armure, espèce…) : des bases (`vet1`, `cuir`…)
- * et, le cas échéant, l'ombre et la lumière EXACTES de leur gamme (`vet1O`, `vet1H`…).
+ * Palette DÉCLARÉE d'une couche (def de créature, espèce, nuée, navire, artkit…) : des bases de la
+ * table (`clesDePalette.ts`) et, le cas échéant, l'ombre et la lumière EXACTES de leur gamme (`vet1O`,
+ * `vet1H`…). Une clé hors table est refusée à la compilation.
  */
-export type PaletteDeclaree = Record<string, string>;
+export type PaletteDeclaree = { [G in Gamme<BaseDeTable>]?: string };
+
+/**
+ * Palette d'une couche PORTÉE (tenue, arme, armure) : une `PaletteDeclaree` sans aucune gamme de sorte
+ * porteur (`BasePorteur`, `?: never`) — la peau, la chevelure et les yeux viennent de l'espèce.
+ */
+export type PaletteDeCouchePortee = { [G in Gamme<Exclude<BaseDeTable, BasePorteur>>]?: string } & { [G in Gamme<BasePorteur>]?: never };
 
 function stripUndef(p: Palette): Record<string, string> {
   const out: Record<string, string> = {};
@@ -124,14 +131,14 @@ function coucheQuiDonne(pile: readonly Readonly<Record<string, string>>[], k: st
 /**
  * Table finale jeton→hex du PORTEUR, par couches (#1903 D3) : défaut (`COUCHE_DEFAUT`) < `couches`,
  * de la plus basse à la plus haute < `surcharge`. Chaque couche propage ses clés suiveuses
- * (`propagerSuiveuses`). Pour chaque base (clés de la table ∪ bases déclarées), la gamme de COUCHE
+ * (`propagerSuiveuses`). Pour chaque base de la table (`CLES`), la gamme de COUCHE
  * est celle de la couche la plus haute qui donne la base : son ombre/sa lumière déclarée dans CETTE
  * couche, sinon dérivée de la base. Sous surcharge, la base est la couleur choisie et son ombre/sa
  * lumière reportent l'écart de la gamme de couche (`ecartReporte`) ; une suiveuse suit la surcharge
  * de sa clé suivie, sauf si la couche qui donne sa base la déclare elle-même.
  */
 export function buildTokenMap(couches: readonly PaletteDeclaree[], surcharge: Palette = {}): Record<string, string> {
-  const declarees = [COUCHE_DEFAUT, ...couches];
+  const declarees: readonly Readonly<Record<string, string>>[] = [COUCHE_DEFAUT, ...couches];
   const pile = declarees.map(propagerSuiveuses);
   const ov = stripUndef(surcharge);
   for (const [f, s] of SUIVEUSES) {
@@ -139,10 +146,8 @@ export function buildTokenMap(couches: readonly PaletteDeclaree[], surcharge: Pa
     const i = coucheQuiDonne(pile, f);
     if (i < 0 || declarees[i][f] == null) ov[f] = ov[s];
   }
-  const bases = new Set<string>(CLES);
-  for (const c of pile) for (const k of Object.keys(c)) bases.add(k.replace(/(O|H)$/, ''));
   const out: Record<string, string> = {};
-  for (const k of bases) {
+  for (const k of CLES) {
     const i = coucheQuiDonne(pile, k);
     if (i < 0) continue;
     const couche = pile[i];
@@ -156,9 +161,41 @@ export function buildTokenMap(couches: readonly PaletteDeclaree[], surcharge: Pa
   return out;
 }
 
+/** Surcharges SONDES d'une déclaration : aucune, puis chaque `Slot` sous trois couleurs saturées. */
+const SURCHARGES_SONDES: readonly Palette[] = [{}, ...SLOTS.flatMap((s) => ['#ff0000', '#00ff00', '#0000ff'].map((c) => ({ [s]: c })))];
+
+const tablesEgales = (a: Record<string, string>, b: Record<string, string>): boolean =>
+  Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => a[k] === b[k]);
+
+/**
+ * Déclarations INERTES d'une couche (#1903 A4) : une clé l'est quand la retirer laisse
+ * `buildTokenMap([e], s)` identique pour chaque entrée `e` que le rig tire de la couche (`entrees`),
+ * comparée à l'entrée de même indice, et chaque surcharge sonde `s` (`SURCHARGES_SONDES`). Des
+ * entrées en nombre inégal avec et sans la clé lèvent. Retirées une à une jusqu'au point fixe : une
+ * base doublon de la couche défaut part, puis le rôle qu'elle laisse orphelin.
+ */
+export function declarationsInertes(
+  couche: PaletteDeclaree,
+  entrees: (c: PaletteDeclaree) => readonly PaletteDeclaree[] = (c) => [c],
+): string[] {
+  const retirees: string[] = [];
+  let reste: Readonly<Record<string, string>> = stripUndef(couche);
+  for (;;) {
+    const ref = entrees(reste).map((e) => SURCHARGES_SONDES.map((s) => buildTokenMap([e], s)));
+    const k = Object.keys(reste).find((cle) => {
+      const sans = entrees(Object.fromEntries(Object.entries(reste).filter(([c]) => c !== cle)));
+      if (sans.length !== ref.length) throw new Error(`declarationsInertes : ${ref.length} entrée(s) avec « ${cle} », ${sans.length} sans`);
+      return sans.every((e, j) => SURCHARGES_SONDES.every((s, i) => tablesEgales(buildTokenMap([e], s), ref[j][i])));
+    });
+    if (k == null) return retirees;
+    retirees.push(k);
+    reste = Object.fromEntries(Object.entries(reste).filter(([c]) => c !== k));
+  }
+}
+
 /** Sorte porteur : une clé de `PORTEUR`, ou une suiveuse (`SUIVEUSES`) d'une clé de sorte porteur. */
 const estDeSortePorteur = (k: string): boolean =>
-  (PORTEUR as readonly string[]).includes(k) || SUIVEUSES.some(([f, s]) => f === k && estDeSortePorteur(s));
+  PORTEUR.some((p) => p === k) || SUIVEUSES.some(([f, s]) => f === k && estDeSortePorteur(s));
 const CLES_PORTEUR = CLES.filter(estDeSortePorteur);
 
 /**
@@ -168,7 +205,7 @@ const CLES_PORTEUR = CLES.filter(estDeSortePorteur);
  */
 export function tableDObjet(couches: readonly PaletteDeclaree[], surcharge: Palette = {}): Record<string, string> {
   const out = buildTokenMap(couches, surcharge);
-  for (const k of CLES_PORTEUR) for (const suf of ['', 'O', 'H']) delete out[k + suf];
+  for (const g of gammes(CLES_PORTEUR)) delete out[g];
   return out;
 }
 

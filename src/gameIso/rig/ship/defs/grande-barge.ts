@@ -28,11 +28,11 @@ function profile(): string {
     + '<rect x="-31" y="-18" width="16" height="8" fill="@coque" stroke="@coqueO" stroke-width="1.1"/>'
     + '<path d="M-32 -10.7 L-14 -10.7" stroke="@coqueO" stroke-width="1.6"/>'
     + '<path d="M-32 -18 Q-23 -19.8 -14 -18" stroke="@matO" stroke-width="1.9" stroke-linecap="round" fill="none"/>'
-    + '<circle cx="-27.5" cy="-14" r="1.2" fill="@voileH"/><circle cx="-22.5" cy="-14" r="1.2" fill="@voileH"/><circle cx="-17.5" cy="-14" r="1.2" fill="@voileH"/>'
+    + '<circle cx="-27.5" cy="-14" r="1.2" fill="@toileDeVoileH"/><circle cx="-22.5" cy="-14" r="1.2" fill="@toileDeVoileH"/><circle cx="-17.5" cy="-14" r="1.2" fill="@toileDeVoileH"/>'
     + spar(-29, -19.5, -29, -23, 1.4)
     // Fret en pontée : ballot BÂCHÉ saisi au pont entre les mâts + tonneau vers la proue.
-    + '<path d="M2 -10.8 Q9 -17.5 16.5 -10.8 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M5.5 -11 L6.5 -15 M9 -11 L9 -16.2 M12.5 -11 L12 -15" stroke="@voileO" stroke-width="0.7" opacity="0.5"/>'
+    + '<path d="M2 -10.8 Q9 -17.5 16.5 -10.8 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M5.5 -11 L6.5 -15 M9 -11 L9 -16.2 M12.5 -11 L12 -15" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.5"/>'
     + '<rect x="24.6" y="-15.8" width="4.4" height="4.6" rx="1.8" fill="@mat" stroke="@coqueO" stroke-width="0.8"/>'
     + '<path d="M24.6 -13.5 l4.4 0" stroke="@coqueO" stroke-width="0.7" opacity="0.6"/>'
     // Timon de godille à l’étambot.
@@ -46,12 +46,12 @@ function front(): string {
     + spar(0, -26, 0, -52, 2)
     + pennant(0, -52, 8)
     + '<path d="M-13 -46.5 L13 -46.5" stroke="@mat" stroke-width="1.6" stroke-linecap="round"/>'
-    + '<path d="M-12 -45.5 L12 -45.5 L13.6 -27 Q0 -22 -13.6 -27 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
+    + '<path d="M-12 -45.5 L12 -45.5 L13.6 -27 Q0 -22 -13.6 -27 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
     // Misaine au premier plan, voile carrée pleine face plus courte.
     + spar(0, -11, 0, -40, 2.2)
     + '<path d="M-10 -37 L10 -37" stroke="@mat" stroke-width="1.6" stroke-linecap="round"/>'
-    + '<path d="M-9.2 -36 L9.2 -36 L10.6 -20 Q0 -15.5 -10.6 -20 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
-    + '<path d="M-4.6 -36.2 Q-4.9 -27 -5.2 -18.6 M4.6 -36.2 Q4.9 -27 5.2 -18.6" stroke="@voileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
+    + '<path d="M-9.2 -36 L9.2 -36 L10.6 -20 Q0 -15.5 -10.6 -20 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
+    + '<path d="M-4.6 -36.2 Q-4.9 -27 -5.2 -18.6 M4.6 -36.2 Q4.9 -27 5.2 -18.6" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
     // MURAILLE frontale à fond plat : trapèze bas et LARGE, virures horizontales.
     + '<path d="M-11 -10.5 L11 -10.5 L8.2 -1 L-8.2 -1 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
     + '<path d="M-11 -10.5 L11 -10.5" stroke="@coqueH" stroke-width="1.3"/>'
@@ -68,12 +68,12 @@ function back(): string {
     // Grand mât vu de poupe, voile carrée pleine face (la misaine plus basse est masquée).
     + spar(0, -19, 0, -52, 2.2) + pennant(0, -52, 8)
     + '<path d="M-12 -46.5 L12 -46.5" stroke="@mat" stroke-width="1.6" stroke-linecap="round"/>'
-    + '<path d="M-11.2 -45.5 L11.2 -45.5 L12.6 -26 Q0 -21 -12.6 -26 Z" fill="@voile" stroke="@voileO" stroke-width="0.9"/>'
-    + '<path d="M-5.6 -45.7 Q-6 -35 -6.3 -24.6 M5.6 -45.7 Q6 -35 6.3 -24.6" stroke="@voileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
+    + '<path d="M-11.2 -45.5 L11.2 -45.5 L12.6 -26 Q0 -21 -12.6 -26 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.9"/>'
+    + '<path d="M-5.6 -45.7 Q-6 -35 -6.3 -24.6 M5.6 -45.7 Q6 -35 6.3 -24.6" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
     // ROUF, face ARRIÈRE : toit cambré débordant, hublots, cheminée du poêle.
     + '<rect x="-8" y="-18" width="16" height="8" fill="@coque" stroke="@coqueO" stroke-width="1.1"/>'
     + '<path d="M-9.2 -18 Q0 -19.8 9.2 -18" stroke="@matO" stroke-width="1.9" stroke-linecap="round" fill="none"/>'
-    + '<circle cx="-3.6" cy="-14" r="1.3" fill="@voileH"/><circle cx="3.6" cy="-14" r="1.3" fill="@voileH"/>'
+    + '<circle cx="-3.6" cy="-14" r="1.3" fill="@toileDeVoileH"/><circle cx="3.6" cy="-14" r="1.3" fill="@toileDeVoileH"/>'
     + spar(-6, -19.6, -6, -23, 1.4)
     // TABLEAU arrière plat et large (fond plat, étambot droit), virures horizontales.
     + '<path d="M-11 -10.5 L11 -10.5 L8.6 -1 L-8.6 -1 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
