@@ -157,7 +157,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ViewControls` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
-| `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -167,6 +167,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -206,7 +208,7 @@ Portée : fichiers top-level (hors `*.test.ts`) non atteints par la closure d'im
 manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système
 unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.
 
-18 fichier(s) :
+19 fichier(s) :
 
 - `src/engine/axes.ts`
 - `src/engine/mountedManeuvers.ts`
@@ -223,7 +225,8 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/offresUtilisables.ts`
 - `src/state/preferences.ts`
 - `src/state/registreOffres.ts`
+- `src/state/scenarioFlow.ts`
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 6589f47978df881dbb168e33f3f9a7554dbdf7bc (1848 fichiers, 2 dossiers) corps: a02c7b2bc5eaf7e67fdb329933caa2c6b2cd1c23 -->
+<!-- sources-empreinte: b32a8b00eece7bbc545c15ed5e8738c50ae7e9ec (1848 fichiers, 2 dossiers) corps: 5638e48754556baff3340f1b12043f06daef9894 -->

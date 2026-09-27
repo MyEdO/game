@@ -9,6 +9,7 @@ import { resolveFormula, applyOps, applyActiveEffect, isValidFormula, formulaExp
 import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
+import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -381,6 +382,7 @@ describe('applyOps — opérations unitaires', () => {
       const c = hero({ items: [{ uid: 'w1', label: 'Épée', kind: 'melee', equipped: true, qualities: [], enc: 1 } as never] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
+      recomputeLoadout(c);
       return c;
     };
 
@@ -415,9 +417,53 @@ describe('applyOps — opérations unitaires', () => {
       const c = hero({ items: [{ uid: 'w1', trappingId: 'poing-de-fer', label: 'Poing de fer', kind: 'melee', equipped: true, qualities: [], enc: 2 } as never] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
+      recomputeLoadout(c);
       const lines = applyOps(c, [{ op: 'disarm' }], { location: 'brasD' });
       expect(c.loadouts![0].main).toBe('w1'); // toujours tenu
       expect(lines[0]).toMatch(/impossible de le désarmer/);
+    });
+
+    // L'op `disarm` est l'entrée DONNÉE de `items.lacherLArme` : l'arme TENUE se lit dans `c.weapons`.
+    it('statbloc (armes sans objet) : l’épée quitte les mains, les Mains nues la remplacent, le journal la nomme', () => {
+      const c = hero({ kind: 'enemy', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
+      const lines = applyOps(c, [{ op: 'disarm' }], { location: 'brasD' });
+      expect(c.weapons.map(isUnarmed)).toEqual([true]);
+      expect(lines[0]).toMatch(/lâche Épée/);
+    });
+
+    it('héros à DEUX sets tenant la même lame : aucun set ne la référence plus, elle reste lâchée après recomputeLoadout', () => {
+      const c = hero({ items: [{ ...itemFromTrappingById('arme-simple')!, uid: 'w1', equipped: true }] });
+      c.loadouts = [{ id: 'l1', main: 'w1' }, { id: 'l2', main: 'w1' }];
+      c.activeLoadoutId = 'l1';
+      recomputeLoadout(c);
+      applyOps(c, [{ op: 'disarm' }], { location: 'brasD' });
+      expect(c.loadouts!.map((lo) => lo.main)).toEqual([undefined, undefined]);
+      c.activeLoadoutId = 'l2';
+      recomputeLoadout(c);
+      expect(c.weapons.some((w) => w.uid === 'w1')).toBe(false);
+      expect(c.items!.some((i) => i.uid === 'w1'), 'la lame reste dans l’inventaire').toBe(true);
+    });
+
+    it('héros à Crochet seul (arme DÉRIVÉE de l’objet porté) : rien n’est lâché, le Crochet reste en main', () => {
+      const c = hero({ items: [{ ...itemFromTrappingById('crochet')!, uid: 'crochet-1', equipped: true }] });
+      recomputeLoadout(c);
+      expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(true);
+      const lines = applyOps(c, [{ op: 'disarm' }], { location: 'brasD' });
+      expect(lines.some((l) => /lâche Crochet/.test(l)), lines.join(' | ')).toBe(false);
+      recomputeLoadout(c);
+      expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(true);
+    });
+
+    // `criticals.json` « Vous lâchez immédiatement ce que vous teniez dans la main correspondante ».
+    it('arme à DEUX mains (Hallebarde) : un Critique sur brasG la fait lâcher', () => {
+      const c = hero({ items: [{ ...itemFromTrappingById('hallebarde')!, uid: 'h1', equipped: true }] });
+      c.loadouts = [{ id: 'l1', main: 'h1' }];
+      c.activeLoadoutId = 'l1';
+      recomputeLoadout(c);
+      expect(c.weapons.find((w) => w.uid === 'h1')?.hands).toBe(2);
+      const lines = applyOps(c, [{ op: 'disarm' }], { location: 'brasG' });
+      expect(lines[0]).toMatch(/lâche Hallebarde/);
+      expect(c.weapons.some((w) => w.uid === 'h1')).toBe(false);
     });
 
     it('une arme ORDINAIRE (sans disarmImmune) reste désarmable normalement', () => {
@@ -683,5 +729,30 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
     const c = hero({ fortune: 1 });
     applyOps(c, [{ op: 'gainResource', resource: 'fortune', amount: 2 }], { rng: makeRNG(1) });
     expect(c.fortune).toBe(3);
+  });
+});
+
+describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', () => {
+  const cible = (): Combatant => ({ id: 't', label: 'Cible', kind: 'enemy', characteristics: { agilite: 40, endurance: 30 }, wounds: { current: 10, max: 10 }, conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
+  const ops = [
+    { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
+    { op: 'charMod', char: 'agilite', mod: -10, durationRounds: 3 },
+    { op: 'charMod', char: 'endurance', mod: -10, durationRounds: 3 },
+    { op: 'condition', id: 'sonne', value: 1 },
+  ] as never[];
+
+  it('chaque ligne arrive avec son rang ; la ligne agrégée des charMod va au dernier de la suite', () => {
+    const recues: [number | null, string][] = [];
+    const lignes = applyOps(cible(), ops, { rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
+    expect(recues.map(([rang]) => rang)).toEqual([0, 2, 3]);
+    expect(recues.map(([, l]) => l)).toEqual(lignes);
+    expect(recues[2][1]).toBe('Cible reçoit 1 État Sonné.');
+  });
+
+  it('une op IMBRIQUÉE rend ses lignes à l’op qui la porte, une seule fois', () => {
+    const recues: [number | null, string][] = [];
+    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
+    expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
+    expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
   });
 });

@@ -10,9 +10,6 @@ import type { TestScenario } from './_shared';
  * carte du monde) : échelle des 13 portes via le Maître, taverne/chapelle/forge, contrats et
  * voyage (#T2). Point d'entrée Playwright de la recette navigateur.
  */
-const { scenes, worldMap } = parseProject(areneProjet);
-const hub = scenes.find((s) => s.id === 'arene-hub')!;
-
 function groupe() {
   const party = makeShowcaseParty();
   // De quoi tester voyage (rations) et marchands sans grinder la zone 1.
@@ -31,8 +28,13 @@ export const scenario: TestScenario = {
   title: 'Arène 2.0 — le Bourg',
   tests: 'campagne vitrine complète : Bourg (bâtiments/intérieurs), échelle des 13 zones, contrats, carte du monde, marchands, fouilles',
   partyNote: 'Groupe d’arène pré-tiré (+1 ration chacun)',
-  makeParty: groupe,
-  scene: hub,
-  extraScenes: scenes.filter((s) => s.id !== 'arene-hub'),
-  worldMap,
+  construire: () => {
+    const { scenes, worldMap } = parseProject(areneProjet);
+    return {
+      party: groupe(),
+      scene: scenes.find((s) => s.id === 'arene-hub')!,
+      extraScenes: scenes.filter((s) => s.id !== 'arene-hub'),
+      worldMap,
+    };
+  },
 };

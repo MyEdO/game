@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, setDoorOpen } from './scene';
 import { useGame } from './store';
 import { buildApi } from './devtools';
-import { partyMoneyTotal } from './bourseFlow';
+import { bourseOf, partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
@@ -692,8 +692,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       title: 'Plateau vide (garde du refus nommé)',
       tests: 'le refus de plateau vide',
       partyNote: 'pré-tirés',
-      makeParty: () => makePregens().slice(0, 1),
-      scene: emptyScene(),
+      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene() }),
     };
     const api = () => buildApi([...testScenarios, vide]); // registre LOCAL : le tableau importé n'est pas touché
     api().scenario('entrainement', 5); // mémoire d'onglet posée par un lancement QUI ABOUTIT
@@ -703,6 +702,24 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
     // rejouera jamais le scénario qui jette.
     expect(JSON.parse(store.get('wfrp.dev.lastScenario')!)).toEqual({ id: 'entrainement', seed: 5 });
     expect(testScenarios.some((s) => s.id === 'plateau-vide-1734')).toBe(false); // registre partagé intact
+  });
+
+  it('scène qui charge VIDE : le refus jette AVANT tout démarrage (ni bourse, ni écran)', () => {
+    const vide: TestScenario = {
+      id: 'plateau-vide-demarrage',
+      order: 9999,
+      category: 'combat',
+      icon: 'scenario/bestiary',
+      title: 'Plateau vide (refus avant démarrage)',
+      tests: 'le refus de plateau vide avant le démarrage',
+      partyNote: 'pré-tirés',
+      money: { gold: 7, silver: 0, brass: 0 },
+      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene() }),
+    };
+    useGame.getState().setScreen('menu');
+    expect(() => buildApi([...testScenarios, vide]).scenario('plateau-vide-demarrage', 3)).toThrowError(/VIDE/);
+    expect(useGame.getState().screen).toBe('menu');
+    expect(bourseOf(useGame.getState().party[0])).toEqual(bourseOf(makePregens()[0]));
   });
 });
 

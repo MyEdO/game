@@ -31,8 +31,9 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    useGame.setState({ party: scenario.makeParty() });
-    useGame.getState().startScene(scenario.scene);
+    const { party, scene } = scenario.construire();
+    useGame.setState({ party });
+    useGame.getState().startScene(scene);
     useGame.getState().startCombat('siege-belier');
     useGame.getState().confirmRoundStart();
     const b0 = useGame.getState().battle!;
@@ -56,8 +57,9 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.test.ts)', async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    useGame.setState({ party: scenario.makeParty() });
-    useGame.getState().startScene(scenario.scene);
+    const { party, scene } = scenario.construire();
+    useGame.setState({ party });
+    useGame.getState().startScene(scene);
     useGame.getState().startCombat('siege-belier');
     useGame.getState().confirmRoundStart();
     const b0 = useGame.getState().battle!;

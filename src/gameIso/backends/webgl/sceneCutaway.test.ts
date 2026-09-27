@@ -25,8 +25,9 @@ import type { SceneEl } from '../../builders/types';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
 import { sceneMetresPerTile, type Scene } from '../../../state/scene';
+const areneConstruit = arene.construire();
 
-const scene = arene.scene;
+const scene = areneConstruit.scene;
 const mpt = sceneMetresPerTile(scene);
 
 /** Le bake d'une scène-témoin, RETENU par son read-set réel (`worldBakeDeps`) — exactement le patron

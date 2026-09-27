@@ -31,11 +31,12 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
  *  posées sur le plan par leurs ancres authorées), par la porte du jeu `startMassBattle`. */
 beforeEach(() => {
   seedBattleRng(1234);
+  const { party, scene, massBattle } = scenario.construire();
   useGame.setState({
-    party: scenario.makeParty!(), scene: scenario.scene, battle: null, interlude: null,
+    party, scene, battle: null, interlude: null,
     journal: [], partyPos: { x: 3, y: 8 },
   });
-  useGame.getState().startMassBattle(scenario.massBattle!);
+  useGame.getState().startMassBattle(massBattle!);
 });
 
 /** Monte l'écran ET sélectionne une Scène sur le plan : son détail (donc sa case) s'ouvre à droite.

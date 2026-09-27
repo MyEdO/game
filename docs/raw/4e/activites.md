@@ -564,7 +564,7 @@ Contexte : préparation d'une bataille (siège, campagne militaire). Les Activit
 **Option coût de la guerre** : entretien = Σ Statuts des soldats/jour (réduction 50 % → −10 à tous les Tests de Puissance ; aucun entretien → armée se disperse en 2 jours).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ADE II 8` (l.89-131) → `scene`, `MassBattleView`, `ActivityContext`, `RESOLVER_OWNER`, `doc`, `inspire`, `planification`, `infiltration`, `rassembler-des-forces`, `reperage`, +2 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/activities.ts`, `src/engine/activities.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/state/combatFlow.ts`, +1 fichiers
+- `ADE II 8` (l.89-131) → `construireScene`, `MassBattleView`, `ActivityContext`, `RESOLVER_OWNER`, `doc`, `inspire`, `planification`, `infiltration`, `rassembler-des-forces`, `reperage`, +2 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/activities.ts`, `src/engine/activities.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/state/combatFlow.ts`, +1 fichiers
 
 ---
 
@@ -708,7 +708,7 @@ Dessiner une carte revendable et utile à l'orientation. **Test de Métier (Cart
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-15), [Opérations Bancaires](#opérations-bancaires) (Planque, découverte sur 10 ou moins), [Activités de Voyage — EDOC 5](#activités-de-voyage--edoc-5) (Établir des Cartes — équivalent terrestre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `activites-en-mer`, `PendingExtendedTest`, `bankWithdrawInner`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +7 fichiers
+- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `activites-en-mer`, `bankWithdrawInner`, `PendingExtendedTest`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +7 fichiers
 
 ---
 
@@ -771,7 +771,7 @@ Les cinq Activités : *Pénitence*, *Entraînement avec une arme inhabituelle*, 
 **Voir aussi** : [Cadre général « Entre deux aventures »](#cadre-général--entre-deux-aventures-), [Activités Répandues (LDB 23)](#activités-répandues-ldb-23) (Opérations Bancaires — Mécénat en est une variante), [Pénitence (LDB 41)](religion.md#pénitence) (renvoi — pénitence MJ-arbitrée en réponse à la Colère des dieux, distincte de l'Activité *Pénitence* ci-dessous), [Colère des dieux — déclencheur Maladresse](religion.md#colère-des-dieux--déclencheur-maladresse), [Corruption & mutation](corruption.md) (Tester des objets magiques — Exposition mineure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ACE 12` (l.3-7) → `InterludeHeroState`, `combatSkillPick`, `matchOutcomes`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, `runActivityResolver`, `ItemInstance`, +4 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +1 fichiers
+- `ACE 12` (l.3-7) → `InterludeHeroState`, `matchOutcomes`, `combatSkillPick`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, `runActivityResolver`, `ItemInstance`, +4 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +1 fichiers
 
 ---
 
@@ -791,7 +791,7 @@ Pèlerinage à Altdorf (ou parcours des chemins saints si déjà sur place) pour
 **Voir aussi** : [Points de Péché — définition et accumulation](religion.md#points-de-péché--définition-et-accumulation), [Colère des dieux — déclencheur Maladresse](religion.md#colère-des-dieux--déclencheur-maladresse), [Table d100 — Colère des dieux (verbatim)](religion.md#table-d100--colère-des-dieux-verbatim).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ACE 12` (l.9-15) → `InterludeHeroState`, `combatSkillPick`, `matchOutcomes`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, `openCatalogActivity`, +7 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +2 fichiers
+- `ACE 12` (l.9-15) → `InterludeHeroState`, `matchOutcomes`, `combatSkillPick`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, `openCatalogActivity`, +7 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +2 fichiers
 
 ---
 
@@ -808,7 +808,7 @@ Maîtriser une arme trop singulière pour un usage immédiat (ex. l'arme de Hara
 - Échec → nouvelle tentative reportée au prochain interlude.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ACE 12` (l.17-21) → `InterludeHeroState`, `OutcomeBand`, `combatSkillPick`, `matchOutcomes`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, +8 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +2 fichiers
+- `ACE 12` (l.17-21) → `InterludeHeroState`, `OutcomeBand`, `matchOutcomes`, `combatSkillPick`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `entrainement-arme-inhabituelle`, `tester-objets-magiques`, +8 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +2 fichiers
 
 ---
 
@@ -832,7 +832,7 @@ Table des résultats (`ACE 12 l.31-42`) :
 **Voir aussi** : [Corruption & mutation](corruption.md) (Exposition mineure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ACE 12` (l.23-42) → `InterludeHeroState`, `BankDeposit`, `OutcomeBand`, `combatSkillPick`, `matchOutcomes`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `PendingActivityFields`, +17 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +3 fichiers
+- `ACE 12` (l.23-42) → `InterludeHeroState`, `BankDeposit`, `OutcomeBand`, `matchOutcomes`, `combatSkillPick`, `weaponUnmastered`, `weaponGroupSkillMode`, `itemFromTrappingById`, `penitence`, `PendingActivityFields`, +17 — `src/data/activities.json`, `src/data/index.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/items.ts`, `src/engine/types.ts`, +3 fichiers
 
 ---
 

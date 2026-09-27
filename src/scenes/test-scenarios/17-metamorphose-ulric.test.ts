@@ -12,6 +12,7 @@ import { emptyScene } from '../../state/scene';
 import { findCreatureById } from '../../data';
 import { scenario } from './17-metamorphose-ulric';
 import type { Combatant } from '../../engine/types';
+const scenarioConstruit = scenario.construire();
 
 const scene = emptyScene(16, 16);
 const hero = (): Combatant => ({
@@ -38,10 +39,10 @@ describe('Scénario 17 — Métamorphose Enfant d’Ulric (records réels)', () 
   });
 
   it("le scénario spawne deux lycanthropes en forme humaine transformable", () => {
-    const enc = scenario.scene.encounters.find((x) => x.id === 'enc-ulric')!;
+    const enc = scenarioConstruit.scene.encounters.find((x) => x.id === 'enc-ulric')!;
     const members = enc.members ?? [];
     expect(members.length).toBe(2);
-    const refs = members.map((m) => scenario.scene.entities.find((e) => e.id === m.entityId)?.ref);
+    const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.ref);
     expect(refs.every((r) => r === 'enfant-d-ulric-humain')).toBe(true);
   });
 });

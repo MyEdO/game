@@ -204,7 +204,7 @@ Le trait **Endurant** ajoute +BE aux Blessures calculées (appliqué avant tout 
 **Voir aussi** : [Modificateurs de Taille en combat](#modificateurs-de-taille-en-combat) ; [Taille dans combat.md](combat.md#taille--catégories-et-modificateurs-de-combat) (récapitulatif en-combat, renvoi ici pour le détail des Blessures).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.343-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `weaponFromTrait`, `sizeDamageMultiplier`, `sizeGrantedQualities`, +66 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/character.ts`, +19 fichiers
+- `LDB 85` (l.343-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `weaponFromTrait`, `sizeDamageMultiplier`, `sizeGrantedQualities`, +65 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/character.ts`, +19 fichiers
 
 ---
 
@@ -295,7 +295,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `combat-deux-armes`, `grappleTierMod`, `grapple`, `main-secondaire`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
-- `LDB 85` (l.357-387) → `TraitDef`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, +32 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/character.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +13 fichiers
+- `LDB 85` (l.357-387) → `TraitDef`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, +31 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/character.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +13 fichiers
 
 ---
 
@@ -353,7 +353,7 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
-- `LDB 85` (l.1-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +232 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +45 fichiers
+- `LDB 85` (l.1-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +233 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +45 fichiers
 
 ---
 
@@ -409,7 +409,7 @@ Créatures MDG portant ce Trait : Anguille mâcheprise, Stylet, Élémentaire de
 **Voir aussi** : [Index des Traits de créature](#index-des-traits-de-créature) ; Trait *Aquatique* (MSRC) — `combat.md` § *Traits de mouvement* ; Trait *Amphibie* — `deplacement.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 16` (l.15-19, l.63-305) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +35 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, +14 fichiers
+- `MDG 16` (l.15-19, l.63-305) → `construireScene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +35 — `src/data/creatures.json`, `src/data/domains.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/skills.json`, `src/data/voyage-stakes.json`, +14 fichiers
 
 ---
 
@@ -433,7 +433,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `ZI 14` (l.1045) → `fouissement` — `src/data/traits.json`
-- `MDG 16` (l.9-13, l.152) → `scene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +19 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/voyage-stakes.json`, `src/engine/combat.ts`, `src/engine/encumbrance.ts`, +12 fichiers
+- `MDG 16` (l.9-13, l.152) → `construireScene`, `placeCombatant`, `scenario`, `fireTurnEdgeTriggers`, `effectiveMovement`, `suffocationTick`, `reconcileAdvantageToPool`, `creditOpposingAdvantage`, `DECLARATIONS_D_OPS`, `sea-scorbut`, +19 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/voyage-stakes.json`, `src/engine/combat.ts`, `src/engine/encumbrance.ts`, +12 fichiers
 
 ## Bilan de fidélité
 

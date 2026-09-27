@@ -26,8 +26,9 @@ import { tintOf, visibilityField } from './visibilityTint';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
 import { sceneMetresPerTile, type Scene } from '../../../state/scene';
+const areneConstruit = arene.construire();
 
-const scene = arene.scene;
+const scene = areneConstruit.scene;
 const mpt = sceneMetresPerTile(scene);
 
 /** Le bake d'une scène, RETENU par son read-set réel (`worldBakeDeps`) — exactement le patron de

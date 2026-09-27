@@ -10,6 +10,7 @@ import { perimeterEdges } from './sceneEdit.testkit';
 import { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
 import { tousLesTerrains } from './terrain';
+const zonesPiecesConstruit = zonesPieces.construire();
 
 /** GOLDEN = spécification exécutable du format `MapSpec`. Chaque bloc verrouille une section de la
  *  compilation `buildScene` (headless-editor). L'ordre de compilation est figé par ces attentes. */
@@ -811,7 +812,7 @@ describe('buildScene — architecture authorée', () => {
 
 describe('scénario zones-pieces — architecture liée aux zones intérieures', () => {
   it('lie le corps et son étage aux quatre ids de pièces ; la masse de toiture couvre exactement leur emprise', () => {
-    const s = zonesPieces.scene;
+    const s = zonesPiecesConstruit.scene;
     const roomIds = ['cave', 'chambre', 'cuisine', 'salle-commune'];
     expect(s.effectZones?.map((zone) => zone.id)).toEqual(roomIds);
     expect(s.effectZones?.every((zone) => zone.presentation === 'interior')).toBe(true);

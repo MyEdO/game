@@ -4,6 +4,7 @@ import { buildScene } from '../../state/mapSpec';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * BÉLIER — PORTE (ADE II 8 « Le théâtre de la guerre » l.233) : consommateur LIVE du modèle ENGIN DE
@@ -25,7 +26,7 @@ import type { TestScenario } from './_shared';
  * puis le reliquat de 1) amènent l'empreinte au contact DIRECT de la porte (dx=0, jamais en diagonale) : la
  * démonstration reste courte, zéro dérive de trajectoire. Un gobelin défend l'autre côté de la porte (5,2).
  * `heroStart` pose le GROUPE (4 héros) en colonne à `x−1` (`startCombat`, combatSlice.ts) → le Soldat (1er
- * du groupe, `makeParty` ci-dessous) atterrit en (3,8), qui EST le flanc gauche de la formation
+ * du groupe que rend `construire` ci-dessous) atterrit en (3,8), qui EST le flanc gauche de la formation
  * (`crewFormationSlots` en (px−1,py) pour un affût posé en (4,8)) — les 5 servants occupent les autres
  * cases de la formation, aucune sur la colonne des 3 autres héros ((3,9)/(3,10)/(3,11)) ni sur l'affût.
  */
@@ -47,47 +48,50 @@ const HERO_COLUMN_X = 3; // heroStart=[4,8] → colonne du groupe (partyPos.x−
 const SERVANT_SLOTS = crewFormationSlots({ pos: RAM_POS, footprint: 2 }, { crewIds: RAM_CREW }, { heading: RAM_HEADING })
   .filter((p) => p.x !== HERO_COLUMN_X); // écarte tout le flanc gauche (colonne des héros, dont le Soldat)
 
-const scene = buildScene({
-  id: 'belier-porte',
-  label: 'Bélier — porte',
-  desc: "Un petit fort de siège : une porte de ville barre le passage, gardée par un gobelin.",
-  size: [10, 15],
-  terrain: 'pave',
-  metresPerTile: 2,
-  ambiance: 'exterieur',
-  ambientLight: 'jour',
-  heroStart: [4, 8], // le Soldat (1er du groupe) atterrit en (3,8) — flanc gauche de la formation, à 3 cases de la porte
-  startMessage: "Le Soldat sert le bélier (poste, Équipe de 6) : poussez-le jusqu'à la porte (Action « Pousser », mouvement simple) puis enfoncez-la (Test de Force) — la VICTOIRE se joue sur la porte ABATTUE, pas sur le défenseur qui la garde.",
-  walls: [{ x: 5, y: 4, side: 'N', structure: 'porte-de-ville' }],
-});
-setEncounters(scene, [
-  {
-    id: 'siege-belier',
-    // Objectif de victoire (#197) : la porte ABATTUE, pas la mort du gobelin — `checkBattleOver`
-    // consultait exclusivement les ennemis avant #197, ce qui déclarait la victoire dès le gobelin
-    // hors d'action alors que la porte tenait toujours (bug du ticket).
-    victoryCondition: { type: 'destroyStructure', edge: { x: 5, y: 4, side: 'N' } },
-    // Rencontre de SIÈGE déclarée — champ SÉPARÉ de `victoryCondition` : l'objectif ne l'active pas.
-    siege: true,
-    enemies: [
-      { ref: 'gobelin', pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
-      // index 1 : l'EMPLACEMENT du bélier — affût INERTE 2×2 (branche siège de `spawnEnemy`, `ref` porte un
-      // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
-      {
-        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-        postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
-      },
-      // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
-      // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
-      // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-    ],
-  },
-]);
+function construireScene(): Scene {
+  const scene = buildScene({
+    id: 'belier-porte',
+    label: 'Bélier — porte',
+    desc: "Un petit fort de siège : une porte de ville barre le passage, gardée par un gobelin.",
+    size: [10, 15],
+    terrain: 'pave',
+    metresPerTile: 2,
+    ambiance: 'exterieur',
+    ambientLight: 'jour',
+    heroStart: [4, 8], // le Soldat (1er du groupe) atterrit en (3,8) — flanc gauche de la formation, à 3 cases de la porte
+    startMessage: "Le Soldat sert le bélier (poste, Équipe de 6) : poussez-le jusqu'à la porte (Action « Pousser », mouvement simple) puis enfoncez-la (Test de Force) — la VICTOIRE se joue sur la porte ABATTUE, pas sur le défenseur qui la garde.",
+    walls: [{ x: 5, y: 4, side: 'N', structure: 'porte-de-ville' }],
+  });
+  setEncounters(scene, [
+    {
+      id: 'siege-belier',
+      // Objectif de victoire (#197) : la porte ABATTUE, pas la mort du gobelin — `checkBattleOver`
+      // consultait exclusivement les ennemis avant #197, ce qui déclarait la victoire dès le gobelin
+      // hors d'action alors que la porte tenait toujours (bug du ticket).
+      victoryCondition: { type: 'destroyStructure', edge: { x: 5, y: 4, side: 'N' } },
+      // Rencontre de SIÈGE déclarée — champ SÉPARÉ de `victoryCondition` : l'objectif ne l'active pas.
+      siege: true,
+      enemies: [
+        { ref: 'gobelin', pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
+        // index 1 : l'EMPLACEMENT du bélier — affût INERTE 2×2 (branche siège de `spawnEnemy`, `ref` porte un
+        // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
+        {
+          ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+        },
+        // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
+        // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
+        // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+      ],
+    },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'belier-porte',
@@ -103,7 +107,9 @@ export const scenario: TestScenario = {
     "jusqu'à une VRAIE porte (structure brèchable, `Weapon.resolveChar`) puis l'assène : le jet se résout " +
     "sur sa Force, jamais sa CC ; seule la porte encaisse des Dégâts (Atout Bélier).",
   partyNote: 'Le Soldat sert le bélier (chef de pièce) ; 5 servants PNJ complètent l’Équipe requise.',
-  makeParty: () => pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
-  scene,
+  construire: () => ({
+    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    scene: construireScene(),
+  }),
   autoCombat: 'siege-belier',
 };

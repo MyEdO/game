@@ -29,7 +29,29 @@ export const SCENARIO_SECTIONS = [
 
 export type ScenarioCategory = (typeof SCENARIO_SECTIONS)[number]['key'];
 
-/** Un scénario de test = un groupe fixé + une scène adaptée (+ combat direct optionnel). */
+/** Ce qu'un scénario CONSTRUIT, à chaque appel de sa fabrique `construire`, sur les datasets VIVANTS
+ *  (#1692) : rien de ce qui lit un dataset ne se calcule au niveau module d'un fichier de scénario. */
+export interface ScenarioConstruit {
+  party: Combatant[];
+  scene: Scene;
+  /** Scènes supplémentaires du scénario (destinations de voyage, intérieurs…) — chargées en projet. */
+  extraScenes?: Scene[];
+  /** Carte du monde du scénario (#T2 Voyage). */
+  worldMap?: WorldMap;
+  /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`loadProject`)
+   *  pour que les `presetId` des entités de scène résolvent (#671). */
+  narratif?: import('../../state/campaignNarratif').NarratifBlock;
+  /** Bataille de masse (ADE II 08) : amorce le sous-système de Puissance de Bataille après le chargement
+   *  de la scène (les Scènes de combat démarrent les rencontres de cette scène). */
+  massBattle?: import('../../engine/massBattle').MassBattleSpec;
+  /** Navire de campagne (MDG 13-15) posé au lancement, APRÈS le reset de scène (comme `money`) — pour
+   *  un scénario de voyage/combat maritime (appareillage sur `state.vessel`). */
+  vessel?: import('../../state/store').CampaignVessel;
+}
+
+/** Un scénario de test = sa FICHE (valeurs qui ne lisent aucun dataset : menu, doc générée, lancement)
+ *  + UNE fabrique, `construire`, qui rend tout son contenu construit. Lancé par `lancerScenario`
+ *  (`src/state/scenarioFlow.ts`). */
 export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
@@ -38,31 +60,17 @@ export interface TestScenario {
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »
-  makeParty: () => Combatant[];
-  scene: Scene;
+  construire: () => ScenarioConstruit;
   autoCombat?: string; // id d'encounter → démarre le combat directement
-  /** Scènes supplémentaires du scénario (destinations de voyage, intérieurs…) — chargées en projet. */
-  extraScenes?: Scene[];
-  /** Carte du monde du scénario (#T2 Voyage). */
-  worldMap?: WorldMap;
-  /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`loadProject`)
-   *  pour que les `presetId` des entités de scène résolvent (#671). */
-  narratif?: import('../../state/campaignNarratif').NarratifBlock;
   /** Bourse de départ (le lancement écrase la richesse par défaut) — ex. payer la diligence. */
   money?: { gold: number; silver: number; brass: number };
   /** Règles optionnelles pré-activées au lancement (mêmes ids que le panneau Règles maison, donc
    *  modifiables en jeu) — ex. `{ 'travel-etapes': true }` pour le Voyage par Étapes EDOC. */
   rules?: Record<string, import('../../engine/policy').RuleValue>;
-  /** Bataille de masse (ADE II 08) : amorce le sous-système de Puissance de Bataille après le chargement
-   *  de la scène (les Scènes de combat démarrent les rencontres de cette scène). */
-  massBattle?: import('../../engine/massBattle').MassBattleSpec;
   /** Ouvre un interlude (« Entre deux aventures », LDB 23) AVANT la bataille de masse — le budget
    *  d'Activités (max 3) qu'il alloue est CELUI dans lequel puise la préparation (ADE II 8 l.65).
    *  Sans lui, une `massBattle` démarre au Round 1 sans préparation. Valeur = nombre de semaines. */
   interludeWeeks?: number;
-  /** Navire de campagne (MDG 13-15) posé au lancement, APRÈS le reset de scène (comme `money`) — pour
-   *  un scénario de voyage/combat maritime (appareillage sur `state.vessel`). */
-  vessel?: import('../../state/store').CampaignVessel;
 }
 
 /** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE

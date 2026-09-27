@@ -7,6 +7,7 @@ import { stageSize, tileCenter, type Dims, type Rot } from '../../geometry/iso';
 import { metricToLift } from '../../state/relief';
 import { sceneMetresPerTile } from '../../state/scene';
 import { scenario } from '../../scenes/test-scenarios/zones-pieces';
+const scenarioConstruit = scenario.construire();
 
 /**
  * CADRE GÉNÉRALISÉ (#1176, P3-3) — la SECONDE convention d'écran du dépôt : le VIEWBOX MOBILE de
@@ -19,7 +20,7 @@ import { scenario } from '../../scenes/test-scenarios/zones-pieces';
  * `xMidYMid meet` que le navigateur applique au viewBox), à droite la caméra three montée depuis le
  * cadre (`viewBoxScreen` → `affineCamera` → `projectToScreen`).
  */
-const scene = scenario.scene;
+const scene = scenarioConstruit.scene;
 const mpt = sceneMetresPerTile(scene);
 const TOL = 1e-6;
 

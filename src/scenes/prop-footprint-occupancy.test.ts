@@ -20,7 +20,7 @@ import { sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene
 function scenesLivrees(): { source: string; scene: Scene }[] {
   return [
     ...allBuiltinCampaigns.flatMap((c) => c.scenes.map((scene) => ({ source: c.id, scene }))),
-    ...testScenarios.map((s) => ({ source: `test-scenarios/${s.id}`, scene: s.scene })),
+    ...testScenarios.map((s) => ({ source: `test-scenarios/${s.id}`, scene: s.construire().scene })),
   ];
 }
 

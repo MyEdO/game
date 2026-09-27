@@ -229,15 +229,16 @@ export function damageWeapon(w: Weapon): void {
   w.damageTaken = (w.damageTaken ?? 0) + 1;
 }
 
-/** Détruit l'arme (sauf Incassable) — inutilisable. */
-export function destroyWeapon(w: Weapon): void {
-  if (isUnbreakable(w)) return;
-  w.destroyed = true;
-}
-
 /** Seuil de Sauvegarde (1d10 ≥ seuil ⇒ l'arme résiste) contre une cassure instantanée pour une arme
- *  Solide(N) : 9+ pour N=1, amélioré de 1 par Indice (8+ pour N=2…), LDB 60 l.30-32. null si non Solide. */
+ *  Solide(N) : 9+ pour N=1, amélioré de 1 par Indice (8+ pour N=2…), LDB 60 l.30. null si non Solide. */
 export function solideSaveThreshold(w: Weapon): number | null {
   const n = qualityIndice(w, 'solide');
-  return n && n > 0 ? Math.max(2, 10 - n) : null;
+  return n && n > 0 ? 10 - n : null;
 }
+
+/** Ce seuil est-il IMPERDABLE ? `1` (ou moins) : aucun résultat d'un 1d10 ne le rate. Conséquence
+ *  mécanique d'un Indice de Solide ≥ 9, que `LDB 60 l.30` autorise (« Cet Atout peut être pris
+ *  plusieurs fois. Chaque fois qu'il est pris, le Test de Sauvegarde est amélioré de 1 ») sans borner
+ *  l'amélioration. Lu par la porte — qui n'ouvre PAS un dé qui ne décide rien — et par l'écriture de
+ *  l'usure — qui sauve alors sans dé : UNE définition, deux consommateurs. */
+export const sauvegardeImperdable = (seuil: number): boolean => seuil <= 1;

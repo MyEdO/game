@@ -8,9 +8,10 @@ import type { ChoixDeCreation } from '../../../engine/character';
 import type { MetaChamp } from './meta';
 import { idDe, refOuSpec } from './ref';
 import { avancement } from './avancement';
+import { marquerCollection, marqueDeRecord } from './collection-cle';
 
 /** Choix par adresse d'emplacement (`adresseDeCreation`). */
-const parAdresse = <T extends z.ZodType>(valeur: T) => z.record(z.string(), valeur).optional();
+const parAdresse = <T extends z.ZodType>(valeur: T) => marquerCollection(z.record(z.string(), valeur), marqueDeRecord()).optional();
 
 export const champsDeChoix = {
   seed: z.number().int(),

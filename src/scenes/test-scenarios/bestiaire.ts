@@ -6,6 +6,7 @@ import { makePriest } from './_casters';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Bestiaire, traits & états » : une ménagerie qui réunit les anciens tests Traits de créature,
@@ -29,7 +30,14 @@ function mutate(c: Combatant, rolls: number[]): Combatant {
   return c;
 }
 
-const scene = buildScene({
+function groupe(): Combatant[] {
+  const heroes = makeShowcaseParty().map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
+  const ans = pregenParty(PREGEN.pretre)[0];
+  const shallya = makePriest(ans, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
+  return [...heroes, shallya];
+}
+
+const construireScene = (): Scene => buildScene({
   id: 'test-bestiaire',
   label: 'Bestiaire, traits & états',
   desc: 'Arène de test.',
@@ -87,12 +95,6 @@ export const scenario: TestScenario = {
     '(Griffon), statblocs d’auteur (Pieuvre 8-tentacules, Sorcier mutant lanceur, Squelette facultatif Élite + ' +
     'Caractéristiques aléatoires), 19 mutations physiques sur les héros (calques/morpho/portraits), Psychologie.',
   partyNote: '4 pré-tirés MUTÉS (19 mutations) + Sœur Greta, Prêtresse de Shallya (purge)',
-  makeParty: () => {
-    const heroes = makeShowcaseParty().map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
-    const ans = pregenParty(PREGEN.pretre)[0];
-    const shallya = makePriest(ans, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
-    return [...heroes, shallya];
-  },
-  scene,
+  construire: () => ({ party: groupe(), scene: construireScene() }),
   autoCombat: 'enc-bestiaire',
 };

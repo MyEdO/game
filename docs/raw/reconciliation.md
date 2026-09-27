@@ -67,12 +67,12 @@
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
 - `src/data/schemas/defs-scenes/scene.ts:160` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
-- `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
+- `src/scenes/test-scenarios/taverne-profil-standard.ts:11` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
 
 ### NADJ 14 — 5 réf(s) code, 0 dans l'Atlas
-- `src/data/index.ts:850` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
+- `src/data/index.ts:854` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
 - `src/data/reglesOptionnelles.json:542` (l.5) — "ref": "NADJ 14 l.5",
 - `src/data/schemas/defs/species.ts:60` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
 - `src/engine/creation.test.ts:135` (l.5) — describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
@@ -104,14 +104,14 @@
 - l.5 — `src/data/schemas/defs-scenes/narratif.test.ts:26` — source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
 - l.13 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:14` — * Promesse tenue, `EDO 01 l.13` : « Deux jours de diligence, bien sûr. À pied, le trajet devrait durer
 - l.17 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:15` — * environ une semaine. » Emplacement du relais, `EDO 01 l.17` : « Son emplacement exact importe peu, du
-- l.200 — `src/scenes/test-scenarios/96-presets-edo.ts:146` — // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
-- l.202 — `src/scenes/test-scenarios/96-presets-edo.ts:194` — // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
+- l.200 — `src/scenes/test-scenarios/96-presets-edo.ts:148` — // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
+- l.202 — `src/scenes/test-scenarios/96-presets-edo.ts:196` — // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
 - l.340 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:20` — * D'où vient le `km` : `EDO 01 l.340` — « Une borne sur le bas-côté indique : « Altdorf, 180 km ». »
 
 ### MSRC 12 — 6/12 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.85 — `src/data/index.ts:2595` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.85 — `src/data/index.ts:2599` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.107 — `src/engine/naval-traits.test.ts:301` — it('Plat-bord : palier de LONGUEUR (grande barge ~30 m, bande ouverte au-delà de 20 m) → 45 CO / 60 Enc (MSRC 12 l.107/109)', () => {
-- l.111 — `src/data/index.ts:2595` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.111 — `src/data/index.ts:2599` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.117 — `src/engine/naval-traits.test.ts:304` — it('Allégement : ALLÈGE la coque — weightEnc NÉGATIF (grande barge → −80 Enc, MSRC 12 l.117)', () => {
 - l.137 — `src/data/schemas/defs/sea-weather.ts:104` — /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
 - l.140 — `src/engine/naval-traits.test.ts:191` — it('Gréement de course → −10 au Test de Navigation (MSRC 12 l.140) ; converti −1 DR d’équipage', () => {
@@ -124,8 +124,8 @@
 
 ### EDOC 13 — 4/10 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
 - l.125 — `src/data/mutations.json:1640` — "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
-- l.137 — `src/data/index.ts:1103` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-- l.522 — `src/data/index.ts:1711` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
+- l.137 — `src/data/index.ts:1107` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
+- l.522 — `src/data/index.ts:1715` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
 - l.524 — `src/data/talents.json:4968` — "note": "EDOC 13 l.524"
 
 ### MDG 15 — 3/51 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
@@ -136,14 +136,14 @@
 ### VDM 14 — 3/7 ligne(s) code hors couverture (propriétaire : 4e/magie.md)
 - l.353 — `src/data/arcanePhenomena.ts:77` — /** Modificateurs de NIVEAU D'INCANTATION apportés par le lieu (`VDM 14 l.353`, l.437, l.489) —
 - l.437 — `src/engine/castingNumber.test.ts:28` — it('Caverne de l’Attache : moitié ARRONDIE À L’INFÉRIEUR, Sorts de la Bête (VDM 14 l.437)', () => {
-- l.489 — `src/data/index.ts:2139` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
+- l.489 — `src/data/index.ts:2143` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
 
 ### NADJ 16 — 2/20 ligne(s) code hors couverture (propriétaire : 4e/tests.md)
 - l.119 — `src/engine/combat.ts:903` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
-- l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:195` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
+- l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:197` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
 
 ### ADE I 6 — 1/1 ligne(s) code hors couverture (propriétaire : —)
-- l.185 — `src/data/index.ts:1103` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
+- l.185 — `src/data/index.ts:1107` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 
 ### EDO 7 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
 - l.184 — `src/ui/mono-stake-ratchet.test.ts:73` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
@@ -209,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 5e257b34e8364c8766028db5aaf6192496a5d582 (4315 fichiers, 154 dossiers) corps: bec46c503025e9f1d490665f2564e9afbf80dd84 -->
+<!-- sources-empreinte: 3eface951cae4aa9cfd4af0360c30bb18a2a1cfa (4320 fichiers, 154 dossiers) corps: 40c907b1c89f6c4b7056e72c79dd59da5fcfb7ff -->

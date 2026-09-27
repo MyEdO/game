@@ -64,7 +64,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const h = live(H.id), e = live(E.id);
     const woundsBefore = e.wounds.current;
     // grapple=true (10ᵉ arg) : sur une touche, pose l'Empoignade au lieu de blesser.
-    applyAttackResult(useGame.getState, useGame.setState, h, e, unarmedWeapon(), { ...hitRes }, undefined, undefined, { grapple: true });
+    applyAttackResult(useGame.getState, useGame.setState, h, e, unarmedWeapon(), { ...hitRes }, { suite: { grapple: true } });
     expect(areGrappling(live(H.id), live(E.id))).toBe(true);
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
     expect(live(E.id).wounds.current).toBe(woundsBefore); // pas de Dégâts sur l'initiation
@@ -75,7 +75,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     activate(H, E);
-    applyAttackResult(useGame.getState, useGame.setState, live(H.id), live(E.id), unarmedWeapon(), { ...missRes }, undefined, undefined, { grapple: true });
+    applyAttackResult(useGame.getState, useGame.setState, live(H.id), live(E.id), unarmedWeapon(), { ...missRes }, { suite: { grapple: true } });
     expect(areGrappling(live(H.id), live(E.id))).toBe(false);
     expect(hasCondition(live(E.id), COND.empetre)).toBe(false);
   });

@@ -2,6 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * Recette des 4 nouveaux kinds de `Condition` PARTY-LEVEL (#711, moteur `f0de1956`) : `skill`,
@@ -10,7 +11,7 @@ import type { TestScenario } from './_shared';
  * joueur voit POURQUOI le choix lui est offert. Prose de FIXTURE (test-scenario dev, pas du contenu
  * de campagne livré).
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-conditions-etendues',
   label: 'Conditions étendues — démo',
   desc: 'Arène de test.',
@@ -77,6 +78,5 @@ export const scenario: TestScenario = {
     '`species`, `status` — gate de choix de dialogue sur les VIVANTS du groupe, convention ' +
     'de préfixe « [Descripteur] » côté prose.',
   partyNote: 'Pré-tirés',
-  makeParty: () => makePregens(),
-  scene,
+  construire: () => ({ party: makePregens(), scene: construireScene() }),
 };

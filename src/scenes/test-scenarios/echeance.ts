@@ -2,6 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Échéance & compte à rebours » (#668) : `setObjective`/`delayedEffect` posés avec une même
@@ -9,7 +10,7 @@ import type { TestScenario } from './_shared';
  * à rebours, `ObjectiveBanner`) à mesure que le joueur DORT (`rest`, aubergiste), jusqu'au tir du
  * `delayedEffect` à l'échéance (journal + flag).
  */
-const auberge = buildScene({
+const construireAuberge = (): Scene => buildScene({
   id: 'test-echeance-auberge',
   label: 'Auberge du Cor Fêlé',
   desc: 'Arène de test.',
@@ -77,7 +78,9 @@ export const scenario: TestScenario = {
     'deux résolus par `scheduleAt` (`engine/clock`). Dormir chez l’aubergiste (`rest`, jour par jour) fait ' +
     'avancer le temps et progresser le compte à rebours jusqu’au tir.',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
-  makeParty: () => pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
-  scene: auberge,
+  construire: () => ({
+    party: pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    scene: construireAuberge(),
+  }),
   money: { gold: 2, silver: 0, brass: 0 }, // #668 : de quoi payer une nuit d'auberge à 4 (2 chambres privées + 4 repas ≈ 24s, LDB 66 l.13/16/28) du premier clic
 };

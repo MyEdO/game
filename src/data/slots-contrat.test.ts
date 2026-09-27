@@ -203,7 +203,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
       writeFileSync(join(dossier, 'src/data/grille.json'), JSON.stringify([[{ skillId: 'alpha' }, { skillId: 'beta' }], [{ skillId: 'beta' }]]));
-      const fixture = scannerDonnees(dossier);
+      const fixture = scannerDonnees(dossier, []);
       const grille = fixture.brutParNom.get('grille.json') as { skillId: string }[][];
       const slots: Slot[] = grille.flat().map((porteur) => ({
         dataset: 'grille.json',

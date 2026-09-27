@@ -2,6 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Effets scriptés » (#96/#97) : quatre moteurs faits+testés Vitest (`fall`+`inflictTrauma`,
@@ -9,7 +10,7 @@ import type { TestScenario } from './_shared';
  * posé ici sur un déclencheur réel (trigger de zone, dialogue, décor interactif) d'un petit village.
  * Quatre interactions indépendantes, une seule chacune : rien à répéter (anti-grind trivial).
  */
-const village = buildScene({
+const construireVillage = (): Scene => buildScene({
   id: 'test-effets-scriptes-village',
   label: 'Ebendorf — place du village',
   desc: 'Arène de test.',
@@ -113,7 +114,6 @@ export const scenario: TestScenario = {
     '`petitePriere` (autel interactif, LDB 25, option `prayer-petites`), `ambitionLost` (dialogue du ' +
     'messager, ADE II Annexe I), `fall`+`inflictTrauma` (trappe vermoulue, LDB 15/18, repositionnement).',
   partyNote: 'Pré-tirés',
-  makeParty: () => makePregens(),
-  scene: village,
+  construire: () => ({ party: makePregens(), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
 };

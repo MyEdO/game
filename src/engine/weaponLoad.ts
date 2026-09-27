@@ -1,4 +1,4 @@
-import type { Combatant, ShipPoste, Weapon } from './types';
+import type { Combatant, ItemInstance, ShipPoste, Weapon } from './types';
 
 /**
  * ÉTAT DE CHARGE — module FEUILLE (aucun import runtime) : les LECTEURS purs du cycle de charge.
@@ -15,6 +15,16 @@ export interface WeaponLoadState {
   chambered?: number;
 }
 
+/** L'OBJET SOURCE de l'arme tenue : l'objet PORTÉ d'une arme dérivée (`derivedFromItem`), la pièce du poste
+ *  SERVI (`mannedPoste.item`), sinon l'objet possédé de même `uid` (`c.items`). `undefined` pour une arme
+ *  sans objet (statbloc, arme naturelle, Mains nues). */
+export function objetSourceDeLArme(c: Combatant, weapon: Weapon): ItemInstance | undefined {
+  if (weapon.derivedFromItem != null) return (c.items ?? []).find((i) => i.uid === weapon.derivedFromItem);
+  if (weapon.uid == null) return undefined;
+  if (c.mannedPoste?.item?.uid === weapon.uid) return c.mannedPoste.item;
+  return (c.items ?? []).find((i) => i.uid === weapon.uid);
+}
+
 /** REGISTRE de charge de CETTE arme — SOURCE UNIQUE de lecture/écriture, dans cet ordre :
  *  1. la PIÈCE servie quand l'arme est la sienne (son cycle vit sur elle, MDG 12) ;
  *  2. l'OBJET possédé de même `uid` (`c.items`) — porteur PERSISTANT : il survit au re-dérivage du set
@@ -27,7 +37,7 @@ export function loadRegister(c: Combatant, weapon: Weapon): WeaponLoadState {
   const poste: ShipPoste | undefined = c.mannedPoste;
   if (poste && weapon.uid != null && poste.item?.uid === weapon.uid) return poste;
   if (weapon.uid == null) return weapon;
-  return (c.items ?? []).find((i) => i.uid === weapon.uid)
+  return objetSourceDeLArme(c, weapon)
     ?? (c.weapons ?? []).find((w) => w.uid === weapon.uid)
     ?? weapon;
 }

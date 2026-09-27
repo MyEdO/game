@@ -1,6 +1,5 @@
 import { useGame } from '../state/store';
-import { creditBourse } from '../state/bourseFlow';
-import { setRule } from '../engine/policy';
+import { lancerScenario } from '../state/scenarioFlow';
 import { testScenarios, type TestScenario, type ScenarioCategory } from '../scenes/test-scenarios';
 import { SCENARIO_SECTIONS } from '../scenes/test-scenarios/_shared';
 import { Icon } from './Icon';
@@ -23,26 +22,6 @@ function groupBySection(list: TestScenario[]): { section: Section; items: TestSc
 /** Sous-écran « Scénarios de test » : chaque scénario fixe un groupe et une scène adaptée. */
 export function TestScenariosScreen() {
   const setScreen = useGame((s) => s.setScreen);
-  const setParty = useGame((s) => s.setParty);
-  const startScene = useGame((s) => s.startScene);
-  const loadProject = useGame((s) => s.loadProject);
-  const startCombat = useGame((s) => s.startCombat);
-
-  const launch = (sc: TestScenario) => {
-    if (sc.rules) for (const [id, v] of Object.entries(sc.rules)) setRule(id, v); // règles pré-activées (modifiables en jeu)
-    setParty(sc.makeParty());
-    // Scénario multi-scènes / avec carte du monde (#T2) / avec narratif (presets #671) → chargé comme
-    // un projet (le narratif est posé pour résoudre les `presetId`) ; sinon scène simple.
-    if (sc.extraScenes?.length || sc.worldMap || sc.narratif) loadProject([sc.scene, ...(sc.extraScenes ?? [])], sc.scene.id, sc.worldMap ?? null, sc.narratif);
-    else startScene(sc.scene);
-    const scLead = useGame.getState().party[0];
-    if (sc.money && scLead) creditBourse(useGame.getState, useGame.setState, scLead.id, sc.money); // seed de bourse du scénario (après le reset du lancement)
-    if (sc.vessel) useGame.setState({ vessel: sc.vessel }); // navire de campagne (voyage/combat maritime) — après le reset
-    if (sc.autoCombat) startCombat(sc.autoCombat);
-    // Bataille de masse (ADE II 08) : startMassBattle bascule lui-même sur l'écran dédié.
-    if (sc.massBattle) { useGame.getState().startMassBattle(sc.massBattle); return; }
-    setScreen('campaign');
-  };
 
   return (
     <div className="menu">
@@ -68,7 +47,7 @@ export function TestScenariosScreen() {
                     <p className="hint">{sc.partyNote}</p>
                     {/* Ancrage de RECETTE (#1335) : l'id du scénario, stable au reload — le libellé et
                         l'ordre des cartes ne le sont pas. Aucun effet de style. */}
-                    <button className="btn btn-primary" data-testid={`scenario-launch-${sc.id}`} onClick={() => launch(sc)}>
+                    <button className="btn btn-primary" data-testid={`scenario-launch-${sc.id}`} onClick={() => lancerScenario(useGame.getState, useGame.setState, sc)}>
                       Lancer
                     </button>
                   </Stack>

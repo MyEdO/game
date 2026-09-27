@@ -2,6 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * POURSUITE TERRESTRE JOUABLE (#95, LDB 15 l.88-108) : le groupe fuit trois brigands sur un chemin
@@ -9,7 +10,7 @@ import type { TestScenario } from './_shared';
  * manches, cascade influençable `purpose:'pursuite'`) dès le premier pas. Rattrapé (Distance ≤ 0),
  * la fuite se dénoue en COMBAT (`enc-rattrapage`, mêmes brigands) ; semé, elle se dénoue au récit.
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-poursuite-terrestre',
   label: 'Chemin de crête — poursuite',
   desc: 'Chemin découvert entre deux talus, aucun couvert avant la lisière au loin.',
@@ -66,6 +67,5 @@ export const scenario: TestScenario = {
     "influençable purpose:'pursuite', UNE bande par manche — une rangée par coureur) dès l'entrée ; rattrapage " +
     '(Distance ≤ 0) bascule en combat contre les mêmes brigands, évasion (Distance ≥ 10) se dénoue au récit.',
   partyNote: 'Groupe fixe (pré-tirés)',
-  makeParty: () => makePregens(),
-  scene,
+  construire: () => ({ party: makePregens(), scene: construireScene() }),
 };

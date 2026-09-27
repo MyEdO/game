@@ -5,7 +5,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { useModalA11y } from './Modal';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './Tabs';
-import { isWeaponActive, weaponHands, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -510,8 +510,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   if (!lo) return null;
   const isMain = lo.main === it.uid;
   const isOff = lo.off === it.uid;
-  const mainItem = lo.main ? (hero.items ?? []).find((i) => i.uid === lo.main) : undefined;
-  const mainTwoH = mainItem ? weaponHands(mainItem) === 2 : false;
+  const mainTwoH = setADeuxMains(hero, lo);
   const offOk = isOffHandEligible(it) && !mainTwoH;
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">

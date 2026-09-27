@@ -917,9 +917,10 @@ describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais 
   it('scénarios de test (scene + extraScenes + party) : tout appearance.species résout dans le vocabulaire', () => {
     const bad: string[] = [];
     for (const s of SCENARIOS) {
-      collect(s.scene, `${s.id}.scene`, bad);
-      if (s.extraScenes) collect(s.extraScenes, `${s.id}.extraScenes`, bad);
-      collect(s.makeParty(), `${s.id}.party`, bad);
+      const c = s.construire();
+      collect(c.scene, `${s.id}.scene`, bad);
+      if (c.extraScenes) collect(c.extraScenes, `${s.id}.extraScenes`, bad);
+      collect(c.party, `${s.id}.party`, bad);
     }
     expect(bad, bad.join('\n')).toEqual([]);
   });
@@ -1006,9 +1007,10 @@ describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, l
   it('scénarios de test (scene + extraScenes + party) : ref/weapon/tenue de chaque entité résolvent', () => {
     const bad: string[] = [];
     for (const s of SCENARIOS) {
-      sweep(s.scene, `${s.id}.scene`, bad);
-      if (s.extraScenes) sweep(s.extraScenes, `${s.id}.extraScenes`, bad);
-      sweep(s.makeParty(), `${s.id}.party`, bad);
+      const c = s.construire();
+      sweep(c.scene, `${s.id}.scene`, bad);
+      if (c.extraScenes) sweep(c.extraScenes, `${s.id}.extraScenes`, bad);
+      sweep(c.party, `${s.id}.party`, bad);
     }
     expect(bad, bad.join('\n')).toEqual([]);
   });
@@ -1040,9 +1042,10 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
     walkPostes(areneProject, 'arene-projet.json', hard);
     walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
     for (const s of SCENARIOS) {
-      walkPostes(s.scene, `${s.id}.scene`, hard);
-      if (s.extraScenes) walkPostes(s.extraScenes, `${s.id}.extraScenes`, hard);
-      walkPostes(s.makeParty(), `${s.id}.party`, hard);
+      const c = s.construire();
+      walkPostes(c.scene, `${s.id}.scene`, hard);
+      if (c.extraScenes) walkPostes(c.extraScenes, `${s.id}.extraScenes`, hard);
+      walkPostes(c.party, `${s.id}.party`, hard);
     }
     expect(bad, bad.join('\n')).toEqual([]);
   });

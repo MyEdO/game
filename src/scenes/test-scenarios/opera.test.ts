@@ -7,6 +7,7 @@ import { useGame } from '../../state/store';
 import { applyEffects } from '../../state/combatEffects';
 import { createHero } from '../../engine/character';
 import { scenario } from './opera';
+const scenarioConstruit = scenario.construire();
 
 /**
  * La salle est désormais COMPILÉE depuis un `MapSpec` par `buildScene` (headless-editor) : la grille
@@ -16,7 +17,7 @@ import { scenario } from './opera';
  * impérative les posait (mêmes choix : '#'/'D' en tuiles pleines, scène +1 m, rampes 0→1→2 m, étage à 2 m).
  */
 describe('Scénario « Opéra — Théâtre » : Scene produite par buildScene(MapSpec)', () => {
-  const scene = scenario.scene;
+  const scene = scenarioConstruit.scene;
   const idx = (x: number, y: number) => y * scene.dimensions.w + x;
 
   it('a l’id/nom/dimensions/ambiance attendus (scalaires du spec)', () => {
@@ -115,8 +116,8 @@ describe('Scénario « Opéra — Théâtre » : Scene produite par buildScene(M
 });
 
 describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', () => {
-  const arm = scenario.scene.triggers.find((t) => t.id === 'armer-bombe')!;
-  const plante = scenario.scene.entities.find((e) => e.id === 'plante-bombe')!;
+  const arm = scenarioConstruit.scene.triggers.find((t) => t.id === 'armer-bombe')!;
+  const plante = scenarioConstruit.scene.entities.find((e) => e.id === 'plante-bombe')!;
   const detect = plante.usable!.actions![0].flow as Extract<Flow, { kind: 'test' }>;
   /** Le nœud Test « voleur » niché dans le flow du delayedEffect des pétards (à 20h30). */
   const spotNode = (): Extract<Flow, { kind: 'test' }> => {
@@ -173,7 +174,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   });
 
   it('la Comtesse remercie si la bombe a été déjouée (branche gatée par flag)', () => {
-    const dlg = scenario.scene.dialogues.find((d) => d.id === 'dlg-comtesse')!;
+    const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-comtesse')!;
     const grateful = dlg.nodes.find((n) => n.id === 'n0')!.choices.find((c) => c.when?.kind === 'flag' && c.when.expr === 'bombeDesamorcee');
     expect(grateful?.next).toBe('merci');
     const merci = dlg.nodes.find((n) => n.id === 'merci')!;
@@ -185,13 +186,13 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
       (effs ?? []).filter((e): e is Extract<Effect, { type: 'giveXp' }> => e.type === 'giveXp').reduce((n, e) => n + e.amount, 0);
     expect(xpIn(flowEffects(detect.success))).toBe(50); // bombe déjouée (l.275)
     expect(xpIn(flowEffects(spotNode().success))).toBe(15); // vol de clés empêché (l.297)
-    expect(xpIn(flowEffects(scenario.scene.encounters.find((e) => e.id === 'enc-etudiants')!.onVictory ?? EMPTY_FLOW))).toBe(10); // étudiants arrêtés (l.277)
+    expect(xpIn(flowEffects(scenarioConstruit.scene.encounters.find((e) => e.id === 'enc-etudiants')!.onVictory ?? EMPTY_FLOW))).toBe(10); // étudiants arrêtés (l.277)
   });
 
   it('confronter les étudiants offre un combat optionnel (les arrêter)', () => {
-    const enc = scenario.scene.encounters.find((e) => e.id === 'enc-etudiants')!;
+    const enc = scenarioConstruit.scene.encounters.find((e) => e.id === 'enc-etudiants')!;
     expect(enc.members?.map((m) => m.entityId)).toEqual(['etudiant-1', 'etudiant-2']);
-    const dlg = scenario.scene.dialogues.find((d) => d.id === 'dlg-etudiants')!;
+    const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-etudiants')!;
     const fight = dlg.nodes.flatMap((n) => n.choices).flatMap((c) => c.flow ? flowEffects(c.flow) : []);
     expect(fight.some((e) => e.type === 'startCombat' && e.encounter === 'enc-etudiants')).toBe(true);
   });

@@ -1,6 +1,6 @@
 import { makeShowcaseParty } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
-import type { SceneEntity } from '../../state/scene';
+import type { Scene, SceneEntity } from '../../state/scene';
 import type { TestScenario } from './_shared';
 
 /**
@@ -62,49 +62,52 @@ const TABLIER = String.raw`
 ................
 `;
 
-// Décor d'extérieur (props purs) : repères visuels des trois reliefs.
-const decor: SceneEntity[] = [
-  { id: 'arbre-0', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 2 } },
-  { id: 'arbre-1', kind: 'prop', ref: 'arbre', pos: { x: 15, y: 4 } },
-  { id: 'arbre-2', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 9 } },
-  { id: 'panneau', kind: 'prop', ref: 'panneau', pos: { x: 6, y: 4 } }, // au pied de la rampe ouest
-  { id: 'rocher-falaise', kind: 'prop', ref: 'rocher', pos: { x: 13, y: 11 } }, // sur le rebord de la falaise (h=3)
-  { id: 'buisson-creux', kind: 'prop', ref: 'buisson', pos: { x: 13, y: 14 } }, // au fond du creux
-];
+function construireScene(): Scene {
+  // Décor d'extérieur (props purs) : repères visuels des trois reliefs.
+  const decor: SceneEntity[] = [
+    { id: 'arbre-0', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 2 } },
+    { id: 'arbre-1', kind: 'prop', ref: 'arbre', pos: { x: 15, y: 4 } },
+    { id: 'arbre-2', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 9 } },
+    { id: 'panneau', kind: 'prop', ref: 'panneau', pos: { x: 6, y: 4 } }, // au pied de la rampe ouest
+    { id: 'rocher-falaise', kind: 'prop', ref: 'rocher', pos: { x: 13, y: 11 } }, // sur le rebord de la falaise (h=3)
+    { id: 'buisson-creux', kind: 'prop', ref: 'buisson', pos: { x: 13, y: 14 } }, // au fond du creux
+  ];
 
-const scene = buildScene({
-  id: 'pont-vitrine',
-  label: 'Pont — vitrine du relief',
-  size: [16, 16],
-  desc:
-    "Vitrine du relief métrique : un chemin de pierre traverse une clairière en passant SOUS un pont de bois " +
-    "(tablier à 2 m, couche 1) que l'on rejoint par deux rampes ; un petit plateau à 1 m ; et un rebord de " +
-    "falaise à 3 m dominant un creux. Marchez sous le pont, montez la rampe pour marcher dessus, escaladez le " +
-    "plateau — mais la falaise ne se descend pas à pied.",
-  ambiance: 'exterieur',
-  ambientLight: 'jour',
-  levels: { z0: SOL, z1: TABLIER },
-  // Char sets DISJOINTS par étage (z0 : R/S/X ; z1 : P) → une légende partagée sans collision.
-  legend: { R: 'route', S: 'pierre', X: 'vide', P: 'planches' },
-  relief: [
-    // Couche 0 — Rampe OUEST du pont : col 3 → 1 m, col 4 → 2 m (rejoint le tablier à 2 m sur la rive ouest).
-    { rect: [3, 6, 3, 8], height: 1 }, { rect: [4, 6, 4, 8], height: 2 },
-    // Couche 0 — Rampe EST du pont : col 12 → 1 m, col 11 → 2 m (rejoint le tablier à 2 m sur la rive est).
-    { rect: [12, 6, 12, 8], height: 1 }, { rect: [11, 6, 11, 8], height: 2 },
-    // Couche 0 — Petit relief : plateau à 1 m (rampe douce de 1 m sur tout son pourtour).
-    { rect: [1, 12, 4, 14], height: 1 },
-    // Couche 0 — Falaise : rampe d'accès (col 9 → 1 m, col 10 → 2 m) puis REBORD à 3 m (rangée 11, cols 11-15).
-    { cell: [9, 11], height: 1 }, { cell: [10, 11], height: 2 }, { rect: [11, 11, 15, 11], height: 3 },
-    // Couche 1 — le tablier du pont est à 2 m (les rampes de la couche 0 le rejoignent à hauteur égale).
-    { rect: [5, 6, 10, 8], height: 2, z: 1 },
-  ],
-  entities: decor,
-  heroStart: [7, 1], // sur le chemin, au nord (couche 0)
-  startMessage:
-    "Vous tenez le chemin, au nord. Suivez-le vers le sud : il passe SOUS le pont. Pour marcher DESSUS, prenez " +
-    "l'une des deux rampes (est ou ouest). À l'ouest, un plateau se gravit ; au sud-est, un rebord de falaise " +
-    "surplombe un creux — infranchissable à pied.",
-});
+  const scene = buildScene({
+    id: 'pont-vitrine',
+    label: 'Pont — vitrine du relief',
+    size: [16, 16],
+    desc:
+      "Vitrine du relief métrique : un chemin de pierre traverse une clairière en passant SOUS un pont de bois " +
+      "(tablier à 2 m, couche 1) que l'on rejoint par deux rampes ; un petit plateau à 1 m ; et un rebord de " +
+      "falaise à 3 m dominant un creux. Marchez sous le pont, montez la rampe pour marcher dessus, escaladez le " +
+      "plateau — mais la falaise ne se descend pas à pied.",
+    ambiance: 'exterieur',
+    ambientLight: 'jour',
+    levels: { z0: SOL, z1: TABLIER },
+    // Char sets DISJOINTS par étage (z0 : R/S/X ; z1 : P) → une légende partagée sans collision.
+    legend: { R: 'route', S: 'pierre', X: 'vide', P: 'planches' },
+    relief: [
+      // Couche 0 — Rampe OUEST du pont : col 3 → 1 m, col 4 → 2 m (rejoint le tablier à 2 m sur la rive ouest).
+      { rect: [3, 6, 3, 8], height: 1 }, { rect: [4, 6, 4, 8], height: 2 },
+      // Couche 0 — Rampe EST du pont : col 12 → 1 m, col 11 → 2 m (rejoint le tablier à 2 m sur la rive est).
+      { rect: [12, 6, 12, 8], height: 1 }, { rect: [11, 6, 11, 8], height: 2 },
+      // Couche 0 — Petit relief : plateau à 1 m (rampe douce de 1 m sur tout son pourtour).
+      { rect: [1, 12, 4, 14], height: 1 },
+      // Couche 0 — Falaise : rampe d'accès (col 9 → 1 m, col 10 → 2 m) puis REBORD à 3 m (rangée 11, cols 11-15).
+      { cell: [9, 11], height: 1 }, { cell: [10, 11], height: 2 }, { rect: [11, 11, 15, 11], height: 3 },
+      // Couche 1 — le tablier du pont est à 2 m (les rampes de la couche 0 le rejoignent à hauteur égale).
+      { rect: [5, 6, 10, 8], height: 2, z: 1 },
+    ],
+    entities: decor,
+    heroStart: [7, 1], // sur le chemin, au nord (couche 0)
+    startMessage:
+      "Vous tenez le chemin, au nord. Suivez-le vers le sud : il passe SOUS le pont. Pour marcher DESSUS, prenez " +
+      "l'une des deux rampes (est ou ouest). À l'ouest, un plateau se gravit ; au sud-est, un rebord de falaise " +
+      "surplombe un creux — infranchissable à pied.",
+  });
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'pont-vitrine',
@@ -117,6 +120,5 @@ export const scenario: TestScenario = {
     "et DESSUS (couche 1 'planches', h=2 m) ; accès par 2 RAMPES auto-dérivées (hauteurs 0→1→2, AUCUN escalier) ; " +
     'un plateau à 1 m ; une FALAISE (rebord h=3 m / creux h=0) infranchissable à pied (surfaceLink → cliff).',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  makeParty: makeShowcaseParty,
-  scene,
+  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
 };

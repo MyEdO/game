@@ -5,6 +5,7 @@ import { crewFormationSlots } from '../../state/shipPostes';
 import { buildScene } from '../../state/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — le banc de recette des gestes qui SORTENT
@@ -39,51 +40,54 @@ const RESERVE = [SOLDAT_POS, { x: 5, y: 5 }, { x: 5, y: 7 }];
 const SERVANT_SLOTS = crewFormationSlots({ pos: RAM_POS, footprint: 2 }, { crewIds: RAM_CREW }, { heading: RAM_HEADING })
   .filter((p) => !RESERVE.some((r) => r.x === p.x && r.y === p.y));
 
-const scene = buildScene({
-  id: 'pastilles-entite',
-  label: 'Pastilles d’entité — les gestes vivent sur ce qui les offre',
-  desc: 'Une cour de manœuvre : un bélier servi, un cheval libre, un coffre entrouvert.',
-  size: [14, 12],
-  terrain: 'pave',
-  ambiance: 'exterieur',
-  ambientLight: 'jour',
-  heroStart: [6, 6],
-  startMessage:
-    'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
-    'le coffre à deux objets (Ramasser, panneau borné à ses deux candidats) et l’engin lui-même ' +
-    '(Pousser). Chaque geste se clique SUR la chose, jamais dans la barre ; un geste refusé reste ' +
-    'visible et dit pourquoi ; Échap referme un panneau sans rien engager.',
-  entities: [
-    {
-      id: 'coffre-de-cour', kind: 'prop', ref: 'coffre', pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',
-      usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
-          { type: 'giveTrapping', trappingId: 'dague' },
-          { type: 'giveTrapping', custom: 'Fiole d’huile' },
-        ]) }] },
-    },
-  ],
-});
-setEncounters(scene, [
-  {
-    id: 'enc-pastilles',
-    // Aucune mort n'est requise : la recette porte sur les AFFORDANCES. Le combat reste ouvert le temps
-    // de les exercer (`surviveRounds`, évalué sur `battle.round`).
-    victoryCondition: { type: 'surviveRounds', rounds: 3 },
-    enemies: [
-      // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
+function construireScene(): Scene {
+  const scene = buildScene({
+    id: 'pastilles-entite',
+    label: 'Pastilles d’entité — les gestes vivent sur ce qui les offre',
+    desc: 'Une cour de manœuvre : un bélier servi, un cheval libre, un coffre entrouvert.',
+    size: [14, 12],
+    terrain: 'pave',
+    ambiance: 'exterieur',
+    ambientLight: 'jour',
+    heroStart: [6, 6],
+    startMessage:
+      'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
+      'le coffre à deux objets (Ramasser, panneau borné à ses deux candidats) et l’engin lui-même ' +
+      '(Pousser). Chaque geste se clique SUR la chose, jamais dans la barre ; un geste refusé reste ' +
+      'visible et dit pourquoi ; Échap referme un panneau sans rien engager.',
+    entities: [
       {
-        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-        postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+        id: 'coffre-de-cour', kind: 'prop', ref: 'coffre', pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',
+        usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
+            { type: 'giveTrapping', trappingId: 'dague' },
+            { type: 'giveTrapping', custom: 'Fiole d’huile' },
+          ]) }] },
       },
-      { ref: 'cheval', pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-      { ref: 'garde-du-village', pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
     ],
-  },
-]);
+  });
+  setEncounters(scene, [
+    {
+      id: 'enc-pastilles',
+      // Aucune mort n'est requise : la recette porte sur les AFFORDANCES. Le combat reste ouvert le temps
+      // de les exercer (`surviveRounds`, évalué sur `battle.round`).
+      victoryCondition: { type: 'surviveRounds', rounds: 3 },
+      enemies: [
+        // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
+        {
+          ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+        },
+        { ref: 'cheval', pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { ref: 'garde-du-village', pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+      ],
+    },
+  ]);
+  return scene;
+}
 
 export const scenario: TestScenario = {
   id: 'pastilles-entite',
@@ -100,7 +104,6 @@ export const scenario: TestScenario = {
     'avec sa raison (`equipage-suffisant` si l’Équipe du bélier fond), l’annulation gratuite (Échap, ' +
     're-clic sur « Pousser »), et le picking : cliquer la pastille ne vaut jamais un clic-monde.',
   partyNote: 'Soldat solo, chef de pièce du bélier — cheval et coffre à une case.',
-  makeParty: () => [pregen(PREGEN.soldat)],
-  scene,
+  construire: () => ({ party: [pregen(PREGEN.soldat)], scene: construireScene() }),
   autoCombat: 'enc-pastilles',
 };
