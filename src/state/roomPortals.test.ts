@@ -64,7 +64,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
 
     expect(portals).toEqual([
       {
-        id: '0:1,1:E:room-a:room-b',
+        id: '1,1,E,0:room-a:room-b',
         z: 0,
         edge: { x: 1, y: 1, side: 'E' },
         fromZoneId: 'room-a',
@@ -75,7 +75,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
         to: { x: 2, y: 1 },
       },
       {
-        id: '0:1,1:E:room-b:room-a',
+        id: '1,1,E,0:room-b:room-a',
         z: 0,
         edge: { x: 1, y: 1, side: 'E' },
         fromZoneId: 'room-b',
@@ -226,7 +226,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
     const portals = portalsForParty(sceneWithExteriorDoors(), { x: 0, y: 1 }, new Set());
 
     expect(portals).toEqual([expect.objectContaining({
-      id: '0:0,1:E:exterior:room-a',
+      id: '0,1,E,0:exterior:room-a',
       fromZoneId: null,
       toZoneId: 'room-a',
       exterior: true,
@@ -239,7 +239,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
     const portals = portalsForParty(sceneWithExteriorDoors(true), { x: 0, y: 1 }, new Set());
 
     expect(portals).toEqual([expect.objectContaining({
-      id: '0:0,1:E:exterior:room-a',
+      id: '0,1,E,0:exterior:room-a',
       kind: 'door-closed',
       from: { x: 0, y: 1 },
       to: { x: 1, y: 1 },

@@ -44,7 +44,7 @@ function sommetsSurbrillance(tile: { x: number; y: number }, dims: Dims): { x: n
 }
 
 const PORTE: RoomPortal = {
-  id: '0:4,3:E:room-a:room-b',
+  id: '4,3,E,0:room-a:room-b',
   z: 0,
   edge: { x: 4, y: 3, side: 'E' },
   fromZoneId: 'room-a',

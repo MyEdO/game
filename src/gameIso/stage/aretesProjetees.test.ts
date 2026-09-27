@@ -33,7 +33,7 @@ function scèneAuxQuatreCapacités(): Scene {
 }
 
 const passage: RoomPortal = {
-  id: '0:0,1:E:room-a:room-b',
+  id: '0,1,E,0:room-a:room-b',
   z: 0,
   edge: { x: 0, y: 1, side: 'E' },
   fromZoneId: 'room-a',

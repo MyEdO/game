@@ -9,6 +9,7 @@ import {
 } from './scene';
 import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
+import { aretesA, cleArete } from './wallIndex';
 import { sceneZoneTiles } from './zones';
 
 export type RoomPortalKind = 'passage' | 'door-open' | 'door-closed';
@@ -31,21 +32,7 @@ interface IndexedTile {
 }
 
 const pointAt = (x: number, y: number, z: number): Pt => (z ? { x, y, z } : { x, y });
-/** Clé canonique d'une ARÊTE — UNE seule dans ce module : elle identifie aussi bien un accès (dans
- *  son `id`) qu'un segment de mur dans l'index ci-dessous. */
-const edgeKey = (x: number, y: number, side: WallSeg['side'], z: number) => `${z}:${x},${y}:${side}`;
 
-/** Segments de mur indexés PAR ARÊTE — bâti une fois par scène (`memoByRef`, patron canonique) au lieu
- *  d'un balayage linéaire des murs à chaque arête candidate. Premier segment RENCONTRÉ gagné : c'est
- *  exactement ce que rendait la recherche linéaire quand deux segments partagent une arête. */
-const wallsByEdge = memoByRef((scene: Scene): ReadonlyMap<string, WallSeg> => {
-  const index = new Map<string, WallSeg>();
-  for (const wall of scene.walls ?? []) {
-    const key = edgeKey(wall.x, wall.y, wall.side, wall.z ?? 0);
-    if (!index.has(key)) index.set(key, wall);
-  }
-  return index;
-});
 
 function interiorTiles(scene: Scene): Map<string, IndexedTile> {
   const indexed = new Map<string, IndexedTile>();
@@ -63,7 +50,7 @@ function interiorTiles(scene: Scene): Map<string, IndexedTile> {
 }
 
 function wallAt(scene: Scene, edge: RoomPortal['edge'], z: number): WallSeg | undefined {
-  return wallsByEdge(scene).get(edgeKey(edge.x, edge.y, edge.side, z));
+  return aretesA(scene, edge.x, edge.y, edge.side, z)[0];
 }
 
 /** Nature de l'ACCÈS que porte une arête, tranchée sur le prédicat CANONIQUE d'ouverture
@@ -108,7 +95,7 @@ function roomPortalsUncached(scene: Scene): RoomPortal[] {
         const destinations = toZoneIds.filter((zoneId) => zoneId !== fromZoneId);
         if (!destinations.length && toZoneIds.includes(fromZoneId)) continue;
         for (const toZoneId of destinations.length ? destinations : [null]) {
-          const id = `${edgeKey(edge.x, edge.y, edge.side, z)}:${fromZoneId}:${toZoneId ?? 'exterior'}`;
+          const id = `${cleArete(edge.x, edge.y, edge.side, z)}:${fromZoneId}:${toZoneId ?? 'exterior'}`;
           portals.set(id, {
             id,
             z,
@@ -178,7 +165,7 @@ export function portalsForParty(
       && reached(portal.to))
     .map((portal) => ({
       ...portal,
-      id: `${edgeKey(portal.edge.x, portal.edge.y, portal.edge.side, portal.z)}:exterior:${portal.fromZoneId}`,
+      id: `${cleArete(portal.edge.x, portal.edge.y, portal.edge.side, portal.z)}:exterior:${portal.fromZoneId}`,
       fromZoneId: null,
       toZoneId: portal.fromZoneId,
       from: portal.to,

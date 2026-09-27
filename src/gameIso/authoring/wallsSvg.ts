@@ -114,7 +114,7 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 
 /** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
  *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
- *  fermée, fermeture fixe) se dessine bouchée — vantail entre les jambages, barreaux de herse — ; seule la
+ *  fermée, fermeture fixe) se dessine bouchée — trait fin de ferrure entre les jambages, barreaux de herse — ; seule la
  *  porte ouverte laisse le vide. */
 function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
@@ -139,7 +139,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
   if (estBaie(el.forme)) {
     const jambages = seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP));
-    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 5, wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail')) : '';
+    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 2.5, wallPartColor(app, 'poignee')) : '';
     return `<g>${jambages + bouchee}</g>`;
   }
   return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;

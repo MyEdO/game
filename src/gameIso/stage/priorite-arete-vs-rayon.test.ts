@@ -141,7 +141,7 @@ function scèneÀUnePorte(): { scene: Scene; portail: RoomPortal } {
   return {
     scene,
     portail: {
-      id: '0:2,2:E:a:b', z: 0, edge: { x: 2, y: 2, side: 'E' },
+      id: '2,2,E,0:a:b', z: 0, edge: { x: 2, y: 2, side: 'E' },
       fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
       from: { x: 2, y: 2 }, to: { x: 3, y: 2 },
     },

@@ -26,7 +26,8 @@ import {
   closureAppearance, edgeAppearance, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
   WALL_NB, type RoofField,
 } from './roofs';
-import { edgeKey, facadeEdges, type FacadeEdge } from '../../state/facadeEdges';
+import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
+import { cleArete } from '../../state/wallIndex';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une baie dont l'apparence ne déclare pas de bloc `door` : arête que `validateScene` refuse
@@ -160,7 +161,9 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
       // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
       // (abattu) + linteau.
       const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie();
-      return [...passage, slab('linteau', H1 - isoPxToM(app.door.lintelPx), H1), ...crest];
+      const { lintelPx } = app.door;
+      if (lintelPx === undefined) throw new Error(`${app.id} : corps de garde sans \`door.lintelPx\` — le schéma de \`structureAppearance.json\` l’exige.`);
+      return [...passage, slab('linteau', H1 - isoPxToM(lintelPx), H1), ...crest];
     }
     if (down) return breach();
     return [
@@ -334,7 +337,7 @@ const envelopeEdgesOf = memoByRef((scene: Scene): ReadonlySet<string> => {
   for (const w of scene.walls ?? []) {
     const z = w.z ?? 0;
     const [nx, ny] = NB[w.side];
-    if (isDehors(w.x, w.y, z) !== isDehors(w.x + nx, w.y + ny, z)) out.add(edgeKey(w));
+    if (isDehors(w.x, w.y, z) !== isDehors(w.x + nx, w.y + ny, z)) out.add(cleArete(w.x, w.y, w.side, z));
   }
   return out;
 });
@@ -601,13 +604,12 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
   const activeZ = view?.activeZ ?? 0;
   const viewZ = view?.viewZ ?? null;
   const out: Viewed<WallEl>[] = [];
-  const authoredEdges = facadeEdges(scene);
   const envelope = envelopeEdgesOf(scene);
   for (const w of scene.walls ?? []) {
     const z = w.z ?? 0;
     if (view && (viewZ != null ? z !== viewZ : z > activeZ)) continue;
     const baseH = heightAt(scene, w.x, w.y, z);
-    const facade = authoredEdges.get(edgeKey(w));
+    const facade = facadeDeLArete(scene, w);
     const app = edgeAppearance(facade, w);
     const wallHeightM = app.wallHeightM ?? WALL_H_M;
     const down = !!w.structure && structureIsDown(scene, w);
@@ -636,7 +638,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
         ],
         states: { visible: false, down, open },
       },
-      rule: envelope.has(edgeKey(w))
+      rule: envelope.has(cleArete(w.x, w.y, w.side, z))
         ? { kind: 'toujours' } // ENVELOPPE du bâtiment (#818) : la façade n'est pas un secret
         : { kind: 'enVue', keys: [`${w.x},${w.y},${z}`, `${w.x + nx},${w.y + ny},${z}`] },
     });

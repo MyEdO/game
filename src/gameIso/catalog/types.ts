@@ -1,5 +1,4 @@
 import type { Dims } from '../../geometry/iso';
-import type { FacadeFeature } from '../../state/scene';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import type { ViewArt } from '../rig/viewArt';
 
@@ -18,25 +17,6 @@ export interface RenderCtx {
   dir?: Dir8;
   /** Scène nocturne → fenêtres éclairées. */
   night?: boolean;
-}
-
-export interface FacadeFeatureViz {
-  prop: string;
-  /** SURFACE dont `liftM` compte le décalage. `'sol'` (défaut) = la surface de la case porteuse.
-   *  `'toit'` = la COUVERTURE à l'aplomb de l'ancre, lue sur le champ des nappes
-   *  (`resolveNappes`/`fieldHeightAt`, source unique des hauteurs de toit) : un `liftM` négatif
-   *  ENCASTRE alors le décor dans la couverture qu'il perce. Aucune nappe ne couvre l'ancre ⇒ repli
-   *  DÉCLARÉ sur le sol, sans décalage — un décalage relatif à une couverture ne se lit pas sans elle. */
-  base?: 'sol' | 'toit';
-  liftM?: number;
-  scale?: number;
-}
-
-export interface FacadeAppearanceDef {
-  id: string;
-  wallAppearance: string;
-  wallFeatures: Partial<Record<FacadeFeature['kind'], string>>;
-  features: Partial<Record<FacadeFeature['kind'], FacadeFeatureViz>>;
 }
 
 /** Vues d'un prop DIRECTIONNEL — variante PARAMÉTRÉE (args `(params, ctx)`) du contrat d'art orienté

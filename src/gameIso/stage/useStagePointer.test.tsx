@@ -59,7 +59,7 @@ function stageEl(): SVGSVGElement {
 }
 
 const portal: RoomPortal = {
-  id: '0:2,2:N:room-a:room-b',
+  id: '2,2,N,0:room-a:room-b',
   z: 0,
   edge: { x: 2, y: 2, side: 'N' },
   fromZoneId: 'room-a',
@@ -70,7 +70,7 @@ const portal: RoomPortal = {
   to: { x: 2, y: 2 },
 };
 const closedExteriorPortal: RoomPortal = {
-  id: '0:0,1:E:exterior:room-a',
+  id: '0,1,E,0:exterior:room-a',
   z: 0,
   edge: { x: 0, y: 1, side: 'E' },
   fromZoneId: null,

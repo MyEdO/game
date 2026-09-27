@@ -70,7 +70,7 @@ function barreaux(faces: Faces): string[] {
 const GRAVATS_GC = ['gravats[0-0.16]', 'gravats-tas[0-0.32]', 'poteau[0-0.224]', 'poteau[0-0.176]'];
 const GRAVATS_HERSE = ['gravats[0-0.64]', 'gravats-tas[0-1.28]', 'poteau[0-0.896]', 'poteau[0-0.704]'];
 const COURONNE_PDV = ['linteau[3.833-4]', 'parapet[4-5.28]', 'bande[4.922-5.022]', 'arase[5.155-5.28]', 'merlon×3[5.28-5.53]'];
-const HERSE_FERMEE = ['poteau[0-4]', 'barreau×7[0-3.4]', 'traverse[1.7-1.783]', 'face[3.4-4]', 'chambranle[3.4-3.567]', 'couronnement[3.44-4]', 'jambage×2[0-3.4]', 'poteau[0-4]'];
+const HERSE_FERMEE = ['poteau[0-4]', 'barreau×7[0-3.44]', 'traverse[1.72-1.803]', 'face[3.44-4]', 'chambranle[3.44-3.607]', 'couronnement[3.44-4]', 'jambage×2[0-3.44]', 'poteau[0-4]'];
 const BARREAUX_PDV = ['barreau×7[0-3.6]', 'traverse[1.44-1.523]', 'traverse[2.808-2.891]'];
 /** Six intervalles, sept barreaux : un barreau à chaque sixième de l'arête, rogné aux deux bouts. */
 const SEPT_BARREAUX = [
@@ -88,12 +88,15 @@ const ATTENDU: Record<string, Record<string, { parties: string[]; barreaux: stri
     'mur-nu|abattu': { parties: GRAVATS_GC, barreaux: [] },
   },
   herse: {
-    'mur-nu|intact': { parties: ['poteau[0-4]', 'barreau×7[0-3.4]', 'traverse[1.7-1.783]', 'poteau[0-4]'], barreaux: SEPT_BARREAUX },
+    'mur-nu|intact': {
+      parties: ['poteau[0-4]', 'barreau×7[0-3.44]', 'traverse[1.72-1.803]', 'couronnement[3.44-4]', 'couronnement[4-4.167]', 'poteau[0-4]'],
+      barreaux: SEPT_BARREAUX,
+    },
     'mur-nu|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
     'porte-fermee|intact': { parties: HERSE_FERMEE, barreaux: SEPT_BARREAUX },
     'porte-fermee|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
     'porte-ouverte|intact': {
-      parties: ['poteau[0-4]', 'face[3.4-4]', 'chambranle[3.4-3.567]', 'couronnement[3.44-4]', 'jambage×2[0-3.4]', 'poteau[0-4]'],
+      parties: ['poteau[0-4]', 'face[3.44-4]', 'chambranle[3.44-3.607]', 'couronnement[3.44-4]', 'jambage×2[0-3.44]', 'poteau[0-4]'],
       barreaux: [],
     },
     'porte-ouverte|abattu': { parties: GRAVATS_HERSE, barreaux: [] },
@@ -150,7 +153,7 @@ describe('buildWalls — contrats des apparences à claire-voie, par variante po
     expect(parts).toContain('face');
   });
 
-  it('la herse FERMÉE (sa forme posable) : ni plinthe ni main courante — son seul couronnement est celui du cadre de porte, au-dessus des barreaux', () => {
+  it('la herse FERMÉE : pas de plinthe, un seul couronnement — celui du cadre de porte, au-dessus des barreaux (sa main courante ne se dessine qu’en mur nu)', () => {
     const herse = rendu('herse', PAR_FORME['porte-fermee'], false);
     const couronnements = herse.filter((f) => f.material.part === 'couronnement');
     const hautBarreaux = Math.max(...herse.filter((f) => f.material.part === 'barreau').flatMap((f) => points(f).map((p) => p.h)));

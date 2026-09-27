@@ -21,6 +21,7 @@
 import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from './scene';
 import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
 import { sceneZoneTiles } from './zones';
+import { cleArete } from './wallIndex';
 import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
 import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
 
@@ -67,7 +68,6 @@ function mostFrequentTerrain(scene: Scene, z: number): Terrain | null {
   return best;
 }
 
-const edgeKey = (x: number, y: number, side: 'N' | 'E', z: number) => `${x},${y},${side},z${z}`;
 const diagKey = (x: number, y: number, z: number) => `${x},${y},z${z}`;
 /** Séparateur des clés de catégorie (US, U+001F) : un char qu'aucune valeur d'overlay ne peut porter,
  *  et surtout aucun mot de la grammaire du plan — une clé interne ne s'écrit pas dans le vocabulaire
@@ -152,7 +152,7 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
   for (const seg of scene.walls ?? []) {
     const z = seg.z ?? 0;
     if (seg.side === '\\' || seg.side === '/') diagAt.set(diagKey(seg.x, seg.y, z), seg);
-    else edgeAt.set(edgeKey(seg.x, seg.y, seg.side, z), seg);
+    else edgeAt.set(cleArete(seg.x, seg.y, seg.side, z), seg);
     if (seg.climb) lostClimb++;
     if (seg.closed) lostClosed++;
   }
@@ -231,13 +231,13 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
         if (ry % 2 === 0 && rx % 2 === 0) { row += GRAMMAIRE_ASCII.jonction; continue; }
         if (ry % 2 === 0) {
           const x = (rx - 1) / 2, ye = ry / 2;
-          const seg = edgeAt.get(edgeKey(x, ye, 'N', z));
+          const seg = edgeAt.get(cleArete(x, ye, 'N', z));
           row += seg ? wallGlyph(seg, 'N') : ' ';
           continue;
         }
         if (rx % 2 === 0) {
           const y = (ry - 1) / 2, xe = rx / 2 - 1;
-          const seg = edgeAt.get(edgeKey(xe, y, 'E', z));
+          const seg = edgeAt.get(cleArete(xe, y, 'E', z));
           row += seg ? wallGlyph(seg, 'E') : ' ';
           continue;
         }

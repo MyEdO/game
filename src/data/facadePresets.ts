@@ -1,10 +1,32 @@
 /**
- * PRÉSETS DE FAÇADE — les ids que porte `FacadeSection.appearance` quand il nomme un préset plutôt
- * qu'une apparence de mur (`structureAppearance.json`). Donnée d'application, lue par la résolution
+ * PRÉSETS DE FAÇADE — les seuls ids que porte `FacadeSection.appearance` (un autre id est une erreur
+ * nommée de `validateScene`). Donnée d'application, lue par la résolution
  * d'apparence d'arête (`state/formeArete.ts`, `apparenceDeLArete`) et par le rendu
  * (`gameIso/catalog/facades`).
  */
-import type { FacadeAppearanceDef } from '../gameIso/catalog/types';
+import type { z } from 'zod';
+import type { facadeFeatureKindSchema } from './schemas/defs-scenes/scene';
+
+type FacadeFeatureKind = z.infer<typeof facadeFeatureKindSchema>;
+
+export interface FacadeFeatureViz {
+  prop: string;
+  /** SURFACE dont `liftM` compte le décalage. `'sol'` (défaut) = la surface de la case porteuse.
+   *  `'toit'` = la COUVERTURE à l'aplomb de l'ancre, lue sur le champ des nappes
+   *  (`resolveNappes`/`fieldHeightAt`, source unique des hauteurs de toit) : un `liftM` négatif
+   *  ENCASTRE alors le décor dans la couverture qu'il perce. Aucune nappe ne couvre l'ancre ⇒ repli
+   *  DÉCLARÉ sur le sol, sans décalage — un décalage relatif à une couverture ne se lit pas sans elle. */
+  base?: 'sol' | 'toit';
+  liftM?: number;
+  scale?: number;
+}
+
+export interface FacadeAppearanceDef {
+  id: string;
+  wallAppearance: string;
+  wallFeatures: Partial<Record<FacadeFeatureKind, string>>;
+  features: Partial<Record<FacadeFeatureKind, FacadeFeatureViz>>;
+}
 
 export const FACADE_PRESETS: readonly FacadeAppearanceDef[] = [
   {
@@ -44,7 +66,7 @@ export function facadePreset(id?: string): FacadeAppearanceDef | undefined {
   return id ? PAR_ID.get(id) : undefined;
 }
 
-/** Apparence de MUR d'une façade : celle de son préset, sinon l'id lui-même (une apparence de mur). */
-export function murDeFacade(id: string): string {
-  return facadePreset(id)?.wallAppearance ?? id;
+/** Apparence de MUR d'une façade : celle de son préset ; `undefined` = l'id n'est pas un préset. */
+export function murDeFacade(id: string): string | undefined {
+  return facadePreset(id)?.wallAppearance;
 }

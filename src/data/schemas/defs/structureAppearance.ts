@@ -81,7 +81,7 @@ const doc = document(
     door: z
       .strictObject({
         openingFrac: z.number(),
-        lintelPx: z.number(),
+        lintelPx: z.number().optional(),
         jamb: z.string().optional(),
         jambCap: z.string().optional(),
         leaf: z.string().optional(),
@@ -94,7 +94,6 @@ const doc = document(
       .strictObject({
         glass: z.string(),
         lit: z.string(),
-        frame: z.string(),
         mullion: z.string(),
       })
       .optional(),
@@ -146,6 +145,16 @@ const doc = document(
       },
     },
     edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
+  },
+  {
+    /** `door.lintelPx` n'est lu que par le corps de garde (`gameIso/builders/walls.ts`, branche `parapet`) :
+     *  exigé là, et seulement là. */
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const e = v as { id: string; parapet?: unknown; door?: { lintelPx?: unknown } };
+        if (e.parapet && e.door && e.door.lintelPx == null)
+          ctx.addIssue({ code: 'custom', path: ['door', 'lintelPx'], message: `${e.id} : \`door.lintelPx\` absent d’une apparence à parapet — le corps de garde dessine son linteau.` });
+      }),
   },
 );
 

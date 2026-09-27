@@ -464,7 +464,7 @@ describe('buildProps — features de façade authorées', () => {
     expect(el.facing).toBe('N'); // côté sortant de l'arête (2,5)-(3,5) côté N
     expect(el.faces.every((f) => f.entId === undefined)).toBe(true);
     // Ancre = l'arête N de la case (3,5) parcourue à 25 % → (2.75, 4.5) ; base = sol + `liftM` de la
-    // vignette d'enseigne (2.2 m, `facades/defs/auberge-relais-imperiale`).
+    // vignette d'enseigne (2.2 m, préset `auberge-relais-imperiale`, `data/facadePresets.ts`).
     expect(el.faces).toEqual(buildPropVolumes(findPropById('armoire')!, {
       ancre: { x: 2.75, y: 4.5 }, facing: 'N', baseHeightM: 2.2,
     }, MPT));

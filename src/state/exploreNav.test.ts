@@ -250,7 +250,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
     expect(plan).toEqual({
       dest: { x: 2, y: 1 },
       path: [{ x: 1, y: 1 }, { x: 2, y: 1 }],
-      portalId: '0:1,1:E:room-a:room-b',
+      portalId: '1,1,E,0:room-a:room-b',
     });
   });
 
@@ -272,7 +272,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
     )).toEqual({
       dest: { x: 1, y: 1 },
       path: [{ x: 0, y: 1 }, { x: 1, y: 1 }],
-      portalId: '0:0,1:E:exterior:room-a',
+      portalId: '0,1,E,0:exterior:room-a',
     });
   });
 });

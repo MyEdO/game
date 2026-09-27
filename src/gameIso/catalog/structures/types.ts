@@ -29,9 +29,10 @@ export interface StructureAppearanceDef {
     bands: number[]; bandThickPx: number; parapetBandFrac: number; arasePx: number;
   };
   /** Ouverture (porte bois ajourée / corps de garde béant `openingFrac ≥ 1`). `leaf`/`plank`/`handle` =
-   *  couleurs du VANTAIL (porte FERMÉE : panneau + joints de planches + poignée). */
+   *  couleurs du VANTAIL (porte FERMÉE : panneau + joints de planches + poignée). `lintelPx` = linteau du
+   *  corps de garde, exigé sur une apparence à `parapet` (schéma), seule à le lire. */
   door?: {
-    openingFrac: number; lintelPx: number;
+    openingFrac: number; lintelPx?: number;
     jamb?: string; jambCap?: string;
     leaf?: string; plank?: string; handle?: string;
   };
@@ -44,8 +45,8 @@ export interface StructureAppearanceDef {
     plinthe: boolean; mainCourante: boolean;
   };
   /** FENÊTRE (croisée décorative sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
-   *  ÉMISSIF de la NUIT (halo chaud), `frame` = cadre/dormant, `mullion` = meneau + traverse (croisillon). */
-  window?: { glass: string; lit: string; frame: string; mullion: string };
+   *  ÉMISSIF de la NUIT (halo chaud), `mullion` = meneau + traverse (croisillon). */
+  window?: { glass: string; lit: string; mullion: string };
   /** RELIEF MINCE (m) des parties, consommé par le backend VOLUMIQUE qui en fait une BOÎTE centrée sur
    *  le plan médian du mur (`wallPartDepthM`). Deux quantités, une par FAMILLE de partie :
    *  `jut` = SAILLIE par CÔTÉ d'une partie posée devant de la matière pleine (épaisseur totale =

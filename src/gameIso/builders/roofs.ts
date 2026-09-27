@@ -25,20 +25,20 @@
  * une croupe (`hip`) n'en a aucune, ses rampants rejoignent déjà chaque bord. Ce sont des
  * pièces de la NAPPE — même `rule` de dégagement que ses pans, donc jamais un pignon qui reste quand
  * son toit part — dont la MATIÈRE est celle du MUR qu'elles prolongent (`closureAppearance`, face
- * `domain:'structure'`). C'est pourquoi ce module tient aussi l'indexation des murs et des façades
- * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
+ * `domain:'structure'`). La résolution de cette matière (`edgeAppearance`, dérivée de `apparenceDeLArete`) et
+ * la table des voisins d'arête (`WALL_NB`) vivent ici, relues par `walls.ts`.
  */
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { sceneZoneTiles } from '../../state/zones';
 import { memoByRef } from '../../state/sceneMemo';
-import { edgeKey, facadeEdges, type FacadeEdge } from '../../state/facadeEdges';
-import { apparenceDeclaree } from '../../state/formeArete';
+import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
+import { apparenceDeclaree, apparenceDeLArete } from '../../state/formeArete';
 import { aretesA } from '../../state/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta } from '../../state/buildings';
-import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
-import { wallApp, type StructureAppearanceDef } from '../catalog/structures';
+import { facadeWallFeatureAppearance } from '../catalog/facades';
+import { structureAppearance, type StructureAppearanceDef } from '../catalog/structures';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { interiorZoneTilesById, occupiedInteriorZoneIds } from '../stage/roomFocus';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
@@ -786,17 +786,17 @@ export function gableEnds(
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
 /** Apparence d'une ARÊTE de mur — SOURCE UNIQUE des deux rendus (`wallGeometry` de `walls.ts` et les
- *  fermetures d'architecture d'ici) : la façade authorée sur l'arête l'emporte tant que le segment ne
- *  pose ni structure ni override, sinon `wallApp` — une DONNÉE de la carte, jamais une cote (#1180).
- *  Un seul site : les deux rendus ne peuvent pas diverger. */
+ *  fermetures d'architecture d'ici), DÉRIVÉE de la résolution d'état (`apparenceDeLArete`) : une DONNÉE
+ *  de la carte, jamais une cote (#1180). La façade qui l'emporte marque ses faces de l'id de son préset,
+ *  que la matière relit (`facadeStructureAppearance`). */
 export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
-  return facade && !apparenceDeclaree(seg)
-    ? facadeStructureAppearance(facade.appearance)
-    : wallApp(seg);
+  const id = apparenceDeLArete(seg, facade?.appearance);
+  if (facade && !apparenceDeclaree(seg)) return { ...structureAppearance(id ?? facade.appearance), id: facade.appearance };
+  return structureAppearance(id);
 }
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
- *  PARTAGÉ (`state/wallIndex.ts`, même clé `x,y,side,z` qu'`edgeKey`) : `aretesA` rend la liste des
+ *  PARTAGÉ (`state/wallIndex.ts`, même clé `cleArete`) : `aretesA` rend la liste des
  *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
  *  (37 scénarios + 4 campagnes, 3 143 murs) : ZÉRO arête porte plus d'un segment — premier et dernier
  *  sont le même mur, le verdict est celui d'ici. */
@@ -814,14 +814,14 @@ const wallCellIndexOf = memoByRef((scene: Scene) => {
 });
 
 /** Apparence RÉSOLUE d'un segment de mur — par la loi d'arête PARTAGÉE (`edgeAppearance`). */
-function segAppearance(facades: ReadonlyMap<string, FacadeEdge>, seg: WallSeg): string {
-  return edgeAppearance(facades.get(edgeKey(seg)), seg).id;
+function segAppearance(scene: Scene, seg: WallSeg): string {
+  return edgeAppearance(facadeDeLArete(scene, seg), seg).id;
 }
 
 /** Apparence DOMINANTE des murs bordant un ensemble de cases `x,y,z` (ordre d'id à égalité : verdict
  *  déterministe, jamais dépendant de l'ordre d'itération). */
 function dominantAppearance(
-  facades: ReadonlyMap<string, FacadeEdge>,
+  scene: Scene,
   index: { byCell: Map<string, WallSeg[]> },
   space: Iterable<string>,
 ): string | undefined {
@@ -831,7 +831,7 @@ function dominantAppearance(
     for (const seg of index.byCell.get(key) ?? []) {
       if (seen.has(seg)) continue;
       seen.add(seg);
-      const id = segAppearance(facades, seg);
+      const id = segAppearance(scene, seg);
       tally.set(id, (tally.get(id) ?? 0) + 1);
     }
   return [...tally].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
@@ -851,19 +851,18 @@ export function closureAppearance(
   space: Iterable<string>,
   bodySpace: Iterable<string>,
 ): string | undefined {
-  const facades = facadeEdges(scene);
   const index = wallCellIndexOf(scene);
   for (const edge of edges) {
-    const facade = facades.get(edgeKey(edge));
+    const facade = facadeDeLArete(scene, edge);
     const routed = facade && facadeWallFeatureAppearance(facade.appearance, 'gable');
     if (routed) return routed;
   }
   for (const edge of edges) {
     const seg = aretesA(scene, edge.x, edge.y, edge.side, edge.z)[0];
-    if (seg) return segAppearance(facades, seg);
+    if (seg) return segAppearance(scene, seg);
   }
-  return dominantAppearance(facades, index, space)
-    ?? dominantAppearance(facades, index, bodySpace);
+  return dominantAppearance(scene, index, space)
+    ?? dominantAppearance(scene, index, bodySpace);
 }
 
 /** Vérité de JEU pilotant le cutaway (PAS une caméra) : positions des ALLIÉS, ÉTAGE COMPRIS. Le `z`

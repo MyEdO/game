@@ -1,14 +1,11 @@
 /**
- * Panneaux de FAÇADE authorés (`Scene.architecture[].facades`), indexés par ARÊTE — lus par la
+ * Panneaux de FAÇADE authorés (`Scene.architecture[].facades`), indexés par ARÊTE (`cleArete`) — lus par la
  * résolution d'apparence d'arête (`state/formeArete.ts`, que `validateScene` consulte) et par le rendu
  * (`gameIso/builders/walls.ts`, `roofs.ts`).
  */
-import type { FacadeFeature, Scene, WallSeg } from './scene';
+import type { FacadeFeature, Scene, WallSide } from './scene';
+import { cleArete } from './wallIndex';
 import { memoByRef } from './sceneMemo';
-
-/** Clé d'ARÊTE (`x,y,side,z`) — SOURCE UNIQUE de l'indexation des murs et des façades authorées. */
-export const edgeKey = (edge: Pick<WallSeg, 'x' | 'y' | 'side'> & { z?: number }): string =>
-  `${edge.x},${edge.y},${edge.side},${edge.z ?? 0}`;
 
 export interface FacadeEdge {
   bodyId: string;
@@ -25,7 +22,7 @@ export const facadeEdges = memoByRef((scene: Pick<Scene, 'architecture'>): Reado
   for (const body of scene.architecture ?? [])
     for (const section of body.facades)
       for (const edge of section.edges) {
-        const key = edgeKey({ ...edge, z: edge.z ?? section.z });
+        const key = cleArete(edge.x, edge.y, edge.side, edge.z ?? section.z);
         if (indexed.has(key)) continue;
         indexed.set(key, {
           bodyId: body.id,
@@ -33,8 +30,16 @@ export const facadeEdges = memoByRef((scene: Pick<Scene, 'architecture'>): Reado
           appearance: section.appearance,
           ...(section.roomZoneIds ? { roomZoneIds: [...section.roomZoneIds] } : {}),
           features: (section.features ?? []).filter((feature) =>
-            edgeKey({ ...feature.edge, z: feature.edge.z ?? section.z }) === key),
+            cleArete(feature.edge.x, feature.edge.y, feature.edge.side, feature.edge.z ?? section.z) === key),
         });
       }
   return indexed;
 });
+
+/** Panneau de façade authoré sur l'arête `arete` (`z` absent = 0), s'il y en a un. */
+export function facadeDeLArete(
+  scene: Pick<Scene, 'architecture'>,
+  arete: { x: number; y: number; side: WallSide; z?: number },
+): FacadeEdge | undefined {
+  return facadeEdges(scene).get(cleArete(arete.x, arete.y, arete.side, arete.z ?? 0));
+}

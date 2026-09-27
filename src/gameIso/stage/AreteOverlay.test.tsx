@@ -22,7 +22,7 @@ import { AreteOverlay } from './AreteOverlay';
 
 const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
 const interior: RoomPortal = {
-  id: '0:1,1:E:room-a:room-b',
+  id: '1,1,E,0:room-a:room-b',
   z: 0,
   edge: { x: 1, y: 1, side: 'E' },
   fromZoneId: 'room-a',
@@ -34,7 +34,7 @@ const interior: RoomPortal = {
 };
 const exterior: RoomPortal = {
   ...interior,
-  id: '0:1,1:N:room-a:exterior',
+  id: '1,1,N,0:room-a:exterior',
   edge: { x: 1, y: 1, side: 'N' },
   toZoneId: null,
   kind: 'door-open',
@@ -43,7 +43,7 @@ const exterior: RoomPortal = {
 };
 const closed: RoomPortal = {
   ...interior,
-  id: '0:2,1:E:room-b:room-c',
+  id: '2,1,E,0:room-b:room-c',
   edge: { x: 2, y: 1, side: 'E' },
   fromZoneId: 'room-b',
   toZoneId: 'room-c',

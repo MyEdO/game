@@ -59,7 +59,7 @@ const bataille = (combatants: Combatant[]): BattleState =>
 
 /** Porte : un passage intérieur sur l'arête (1,1,E). */
 const passage: RoomPortal = {
-  id: '0:1,1:E:room-a:room-b',
+  id: '1,1,E,0:room-a:room-b',
   z: 0,
   edge: { x: 1, y: 1, side: 'E' },
   fromZoneId: 'room-a',

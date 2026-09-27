@@ -318,7 +318,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
   describe('SONDE D’INVARIANCE — ce que le PIXEL du centre de l’arête rend', () => {
     /** La MÊME arête, percée d'une porte : en combat l'enceinte prime (`PRIORITE_ARETES`). */
     const porte: RoomPortal = {
-      id: '0:1,1:E:a:b', z: 0, edge: { x: 1, y: 1, side: 'E' },
+      id: '1,1,E,0:a:b', z: 0, edge: { x: 1, y: 1, side: 'E' },
       fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
       from: { x: 1, y: 1 }, to: { x: 2, y: 1 },
     };

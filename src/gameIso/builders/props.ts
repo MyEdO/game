@@ -25,7 +25,7 @@ import { WALL_H_M } from '../iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
-import { edgeKey } from '../../state/facadeEdges';
+import { cleArete } from '../../state/wallIndex';
 import type { FloorView } from './floors';
 import type { BillboardPropEl, PropEl } from './types';
 import { CARD_NB, outwardSide, wallEnds } from './walls';
@@ -177,18 +177,18 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
       states: { visible: !visible || visible.has(`${ent.pos.x},${ent.pos.y},${z}`) },
     }, mpt));
   }
-  const physicalEdges = new Set((scene.walls ?? []).map((wall) => edgeKey(wall)));
+  const physicalEdges = new Set((scene.walls ?? []).map((wall) => cleArete(wall.x, wall.y, wall.side, wall.z ?? 0)));
   const emittedFeatures = new Set<string>();
   const nappes = resolveNappes(scene);
   for (const body of scene.architecture ?? []) {
     for (const section of body.facades) {
       const sectionEdges = new Set(section.edges.map((edge) =>
-        edgeKey({ ...edge, z: edge.z ?? section.z })));
+        cleArete(edge.x, edge.y, edge.side, edge.z ?? section.z)));
       for (const feature of section.features ?? []) {
         const edge = { ...feature.edge, z: feature.edge.z ?? section.z };
         const z = edge.z;
         if (viewZ != null && z !== viewZ) continue;
-        const edgeId = edgeKey(edge);
+        const edgeId = cleArete(edge.x, edge.y, edge.side, z);
         const featureId = `${body.id}:${section.id}:${feature.id}`;
         if (emittedFeatures.has(featureId) || !sectionEdges.has(edgeId) || !physicalEdges.has(edgeId)) continue;
         const viz = facadeFeatureViz(section.appearance, feature.kind);

@@ -29,12 +29,12 @@ export function scèneÀDeuxPièces(): Scene {
  *  montage porte la CHAÎNE, pas le zonage de pièces. */
 export const PORTAILS: readonly RoomPortal[] = [
   {
-    id: '0:3,2:E:a:b', z: 0, edge: { x: 3, y: 2, side: 'E' },
+    id: '3,2,E,0:a:b', z: 0, edge: { x: 3, y: 2, side: 'E' },
     fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
     from: { x: 3, y: 2 }, to: { x: 4, y: 2 },
   },
   {
-    id: '0:3,6:E:a:b', z: 0, edge: { x: 3, y: 6, side: 'E' },
+    id: '3,6,E,0:a:b', z: 0, edge: { x: 3, y: 6, side: 'E' },
     fromZoneId: 'a', toZoneId: 'b', kind: 'passage', exterior: false,
     from: { x: 3, y: 6 }, to: { x: 4, y: 6 },
   },

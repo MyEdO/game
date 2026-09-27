@@ -26,12 +26,10 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     },
     "door": {
-      "openingFrac": 0.52,
-      "lintelPx": 4
+      "openingFrac": 0.52
     }
   },
   {
@@ -67,12 +65,10 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     },
     "door": {
-      "openingFrac": 0.52,
-      "lintelPx": 4
+      "openingFrac": 0.52
     }
   },
   {
@@ -108,12 +104,10 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     },
     "door": {
-      "openingFrac": 0.52,
-      "lintelPx": 4
+      "openingFrac": 0.52
     }
   },
   {
@@ -150,7 +144,6 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
       "mullion": "#3b2e1f"
     }
   },
@@ -180,7 +173,6 @@
     },
     "door": {
       "openingFrac": 0.52,
-      "lintelPx": 4,
       "jamb": "#6e5940",
       "jambCap": "#8a7048",
       "leaf": "#5a4632",
@@ -214,7 +206,6 @@
     },
     "door": {
       "openingFrac": 0.52,
-      "lintelPx": 4,
       "jamb": "#6e5940",
       "jambCap": "#8a7048",
       "leaf": "#5a4632",
@@ -396,17 +387,16 @@
     "claireVoie": {
       "bars": 6,
       "bottomFrac": 0,
-      "topFrac": 0.85,
+      "topFrac": 0.86,
       "traverseFracs": [
         0.5
       ],
       "traverseColor": "#4a4d54",
       "plinthe": false,
-      "mainCourante": false
+      "mainCourante": true
     },
     "door": {
-      "openingFrac": 0.85,
-      "lintelPx": 4,
+      "openingFrac": 0.86,
       "jamb": "#4a4d54",
       "jambCap": "#6b6f76"
     }
@@ -580,8 +570,7 @@
     "window": {
       "glass": "#7d95a1",
       "lit": "#ffc271",
-      "frame": "#7c6647",
-      "mullion": "#3b2e1f"
+      "mullion": "#3c362a"
     }
   },
   {
@@ -671,7 +660,6 @@
     },
     "door": {
       "openingFrac": 0.5,
-      "lintelPx": 4,
       "jamb": "#4a3a28",
       "jambCap": "#6b5638",
       "leaf": "#3f3122",
