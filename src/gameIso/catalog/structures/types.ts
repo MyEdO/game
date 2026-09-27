@@ -28,11 +28,10 @@ export interface StructureAppearanceDef {
     merlonCount: number; merlonStep: number; merlonHeightPx: number;
     bands: number[]; bandThickPx: number; parapetBandFrac: number; arasePx: number;
   };
-  /** Ouverture (porte bois ajourée / corps de garde béant `openingFrac ≥ 1`). `leaf`/`plank`/`handle` =
-   *  couleurs du VANTAIL (porte FERMÉE : panneau + joints de planches + poignée). `lintelPx` = linteau du
-   *  corps de garde, exigé sur une apparence à `parapet` (schéma), seule à le lire. */
+  /** Ouverture d'une porte de mur ordinaire (sans `parapet`). `leaf`/`plank`/`handle` = couleurs du
+   *  VANTAIL (porte FERMÉE : panneau + joints de planches + poignée). */
   door?: {
-    openingFrac: number; lintelPx?: number;
+    openingFrac: number;
     jamb?: string; jambCap?: string;
     leaf?: string; plank?: string; handle?: string;
   };
@@ -44,6 +43,9 @@ export interface StructureAppearanceDef {
     bars: number; bottomFrac: number; topFrac: number; traverseFracs: number[]; traverseColor: string;
     plinthe: boolean; mainCourante: boolean;
   };
+  /** CORPS DE GARDE : la baie d'un mur à `parapet` — passage béant sous un linteau de `lintelPx`, barré
+   *  de la claire-voie de l'apparence quand il est fermé. */
+  corpsDeGarde?: { lintelPx: number };
   /** FENÊTRE (croisée décorative sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
    *  ÉMISSIF de la NUIT (halo chaud), `mullion` = meneau + traverse (croisillon). */
   window?: { glass: string; lit: string; mullion: string };

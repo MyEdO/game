@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { structureAppearance, wallApp, wallPartColor } from './index';
+import { structureAppearance, wallPartColor } from './index';
 import { structureAppearances } from '../../../data';
 import { MISSING_ID, MISSING_TONE } from '../missing';
 import { buildWalls } from '../../builders/walls';
@@ -62,18 +62,12 @@ describe('apparence de structure (JSON partagé iso/POV)', () => {
     expect(wood).not.toHaveProperty('faceN');
   });
 
-  it('id ABSENT = aucune structure posée → mur nu ; id PRÉSENT hors catalogue → repli VISIBLE (#877)', () => {
-    expect(structureAppearance(undefined).id).toBe('plain');
+  it('id ABSENT (façade hors préset) ou PRÉSENT hors catalogue → repli VISIBLE, jamais le mur nu (#877)', () => {
+    expect(structureAppearance(undefined).id).toBe(MISSING_ID);
     const missing = structureAppearance('inconnu');
     expect(missing.id).toBe(MISSING_ID);
     expect(missing.face).toBe(MISSING_TONE);
     expect(structureAppearances.map((s) => s.id)).not.toContain(MISSING_ID); // hors catalogue : jamais posable
-  });
-
-  it('wallApp : appearance, sinon structure, sinon mur nu — la hauteur n’y entre pas (#1180)', () => {
-    expect(wallApp({ x: 0, y: 0, side: 'N', appearance: 'mur-en-pierre', structure: 'porte-de-ville' } as WallSeg).id).toBe('mur-en-pierre');
-    expect(wallApp({ x: 0, y: 0, side: 'N', structure: 'porte-de-ville' } as WallSeg).id).toBe('porte-de-ville');
-    expect(wallApp({ x: 0, y: 0, side: 'N' } as WallSeg).id).toBe('plain');
   });
 
   it('le pipeline murs (buildWalls + backend affine) consomme la donnée : la face du JSON apparaît dans le SVG', () => {

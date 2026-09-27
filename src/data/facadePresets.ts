@@ -70,3 +70,8 @@ export function facadePreset(id?: string): FacadeAppearanceDef | undefined {
 export function murDeFacade(id: string): string | undefined {
   return facadePreset(id)?.wallAppearance;
 }
+
+/** Kinds d'ornement rendus en DÉCOR ANCRÉ au bâtiment (`gameIso/builders/props`, vignette
+ *  `FacadeFeatureViz` du préset), jamais dans le plan du mur ; les autres kinds se peignent dans le mur,
+ *  à l'apparence que nomme l'ornement ou que route le préset (`wallFeatures`). */
+export const KINDS_DE_DECOR: ReadonlySet<FacadeFeatureKind> = new Set(['chimney', 'sign', 'belfry']);

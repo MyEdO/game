@@ -3,8 +3,9 @@ import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
-import { structureAppearance } from '../catalog/structures';
+import { structureAppearance, wallPartColor } from '../catalog/structures';
 import { structureAppearances } from '../../data';
+import { distanceTeinte, SEUIL_IDENTITE_HEROS } from '../../data/schemas/defs/teintesJeu';
 import { shade, SIDE_N } from '../shade';
 import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 
@@ -162,7 +163,8 @@ describe('wallSvg — apparence de façade authorée', () => {
     const svg = wallSvg(wall, d);
     const timber = structureAppearance('mur-a-ossature-en-bois');
     const [a, b] = tileEdge(2, 2, 'E', d, 0);
-    expect(wall.appearance).toBe('auberge-relais-imperiale');
+    expect(wall.appearance).toBe('mur-a-ossature-en-bois'); // l'apparence de MUR que résout `apparenceDeLArete`
+    expect(wall.facadeAppearance).toBe('auberge-relais-imperiale');
     expect(svg).toContain(timber.detail!.timber!.color);
     expect(svg).toContain(`${a.cx},${a.cy}`);
     expect(svg).toContain(`${b.cx},${b.cy}`);
@@ -245,7 +247,7 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée').toBe(3);
   });
 
-  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée ; seule la porte OUVERTE laisse le vide', () => {
+  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux, détaché des jambages au plancher perceptuel ; seule la porte OUVERTE laisse le vide', () => {
     const lignes = (svg: string) => (svg.match(/<line /g) ?? []).length;
     const traits = (svg: string) => [...svg.matchAll(/<line [^>]*stroke="([^"]+)"/g)].map((m) => m[1]);
     const porte = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
@@ -254,7 +256,8 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
       for (const seg of [{ structure: 'porte', door: true, closed: true }, { structure: 'porte' }]) {
         const [jambeA, jambeB, bouchee] = traits(wallSvg(el({ x: 2, y: 2, side: 'N', ...seg, appearance: a.id }), top));
         expect(bouchee, `${a.id} ${seg.door ? 'porte fermée' : 'fermeture fixe'} : baie bouchée`).toBeDefined();
-        expect(bouchee, `${a.id} : le trait de baie fermée se distingue des jambages`).not.toBe(jambeA);
+        expect(distanceTeinte(bouchee, jambeA), `${a.id} : distance perceptuelle trait de baie ⇄ jambages`).toBeGreaterThanOrEqual(SEUIL_IDENTITE_HEROS);
+        expect(bouchee).toBe(shade(wallPartColor(a, a.claireVoie ? 'barreau' : 'vantail'), 2.2));
         expect(jambeB).toBe(jambeA);
       }
     const corpsDeGarde = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);

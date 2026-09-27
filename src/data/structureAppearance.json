@@ -308,7 +308,7 @@
     "claireVoie": {
       "bars": 6,
       "bottomFrac": 0,
-      "topFrac": 0.9,
+      "topFrac": 0.9583333333333334,
       "traverseFracs": [
         0.4,
         0.78
@@ -317,8 +317,7 @@
       "plinthe": false,
       "mainCourante": false
     },
-    "door": {
-      "openingFrac": 1,
+    "corpsDeGarde": {
       "lintelPx": 4
     }
   },

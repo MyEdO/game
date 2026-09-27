@@ -4,6 +4,7 @@ import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../state/relief';
 import { structureAppearance } from '../catalog/structures';
+import { MISSING_ID } from '../catalog/missing';
 import { emptyScene, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 
@@ -170,6 +171,17 @@ describe('buildWalls — façades architecturales authorées', () => {
     return s;
   };
 
+  it('une façade hors préset n’a pas d’apparence (`apparenceDeLArete`) : le mur se peint au repli VISIBLE, jamais en pierre', () => {
+    const s: Scene = {
+      ...emptyScene(4, 4),
+      walls: [{ x: 1, y: 1, side: 'N' }],
+      architecture: [{ id: 'b', storeys: [], masses: [], facades: [{ id: 'f', z: 0, edges: [{ x: 1, y: 1, side: 'N' }], appearance: 'mur-en-pierre' }] }],
+    };
+    const [el] = buildWalls(s);
+    expect(el.appearance).toBe(MISSING_ID);
+    expect(el.facadeAppearance).toBe('mur-en-pierre');
+  });
+
   it('enrichit seulement les murs physiques indexés par arête canonique', () => {
     const scene = facadeScene();
     const walls = buildWalls(scene);
@@ -181,13 +193,13 @@ describe('buildWalls — façades architecturales authorées', () => {
       roomZoneIds: wall.roomZoneIds,
     }))).toEqual([
       {
-        appearance: 'auberge-relais-imperiale',
+        appearance: 'mur-a-ossature-en-bois',
         bodyId: 'corps-auberge',
         facadeSectionId: 'facade-sud',
         roomZoneIds: ['salle', 'vestibule'],
       },
       {
-        appearance: 'auberge-relais-imperiale',
+        appearance: 'mur-a-ossature-en-bois',
         bodyId: 'corps-auberge',
         facadeSectionId: 'facade-sud',
         roomZoneIds: ['salle', 'vestibule'],

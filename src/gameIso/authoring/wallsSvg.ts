@@ -10,9 +10,8 @@
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
-import { estBaie, estBaieFermee } from '../../state/formeArete';
-import { wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
-import { facadeStructureAppearance } from '../catalog/facades';
+import { APPARENCE_MUR_NU, estBaie, estBaieFermee } from '../../state/formeArete';
+import { structureAppearance, wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
@@ -26,6 +25,10 @@ const JAMBCAP = 1.25; // chapiteau de jambage clair (repli sans couleur de def)
 const POST_W = 3.8, POST_CAP_H = 2.4, POST_BASE_H = 3; // montant d'extrémité
 const JAMB_W = 3.6, JAMB_CAP_H = 1.8; // jambage de porte
 const FRAME_W = 1.3, BAR_W = 1.7; // moulure bois / barreau de claire-voie (lignes médianes)
+/** Éclat du trait de baie FERMÉE en vue du dessus : la couleur de sa claire-voie (barreaux) ou de son
+ *  vantail, éclaircie pour se détacher des jambages (`shade(post, POST_CAP)`) au plancher de distance
+ *  perceptuelle des teintes qui se touchent (`SEUIL_IDENTITE_HEROS`, `data/schemas/defs/teintesJeu.ts`). */
+const BAIE_ECLAT = 2.2;
 
 /** Parties ombrées par ORIENTATION (arête N assombrie). La PIERRE (hex
  *  depuis la palette unifiée du JSON) est désormais ombrée comme le bois : sa face N recule dans l'ombre,
@@ -114,8 +117,8 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 
 /** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
  *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
- *  fermée, fermeture fixe) se dessine bouchée — trait fin de ferrure entre les jambages, barreaux de herse — ; seule la
- *  porte ouverte laisse le vide. */
+ *  fermée, fermeture fixe) se dessine bouchée — trait de vantail ou de barreaux entre les jambages
+ *  (`BAIE_ECLAT`), barreaux de herse au corps de garde — ; seule la porte ouverte laisse le vide. */
 function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
   const seg = (p: Pt2, q: Pt2, w: number, col: string, dash?: string) =>
@@ -123,7 +126,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   if (app.parapet) {
     if (el.states.down) return `<g>${seg(a, b, 6, app.rubble ?? app.face, '3 5')}</g>`;
-    if (app.door && estBaie(el.forme)) {
+    if (app.corpsDeGarde && estBaie(el.forme)) {
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
@@ -139,7 +142,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
   if (estBaie(el.forme)) {
     const jambages = seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP));
-    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 2.5, wallPartColor(app, 'poignee')) : '';
+    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 3, shade(wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'), BAIE_ECLAT)) : '';
     return `<g>${jambages + bouchee}</g>`;
   }
   return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;
@@ -155,8 +158,8 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
  * ils doivent donc se lire pareil. Sans ce trait, un bloc plein vu du dessus rend sa face du dessus :
  * une dalle pâle, lue comme du SOL.
  */
-export function solidEdgeTopSvg(a: Pt2, b: Pt2, appearanceId?: string): string {
-  const app = facadeStructureAppearance(appearanceId);
+export function solidEdgeTopSvg(a: Pt2, b: Pt2): string {
+  const app = structureAppearance(APPARENCE_MUR_NU);
   const seg = (w: number, col: string) =>
     `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
   return `<g>${seg(8, shade(app.face, OUTLINE)) + seg(5, app.face)}</g>`;
@@ -167,11 +170,11 @@ export function solidEdgeTopSvg(a: Pt2, b: Pt2, appearanceId?: string): string {
  *  `timber`, LOD ≥ 1) : pans de bois PAR-DESSUS la façade assemblée (poteaux + écharpes devant le
  *  panneau) — jamais sur une travée de porte (l'ouverture couperait les écharpes) ni une brèche. */
 export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
-  const app = facadeStructureAppearance(el.appearance);
+  const app = structureAppearance(el.appearance);
   if (isSquareView(dims.view)) return topSvg(el, app, dims);
   const tintK = el.side === 'N' ? SIDE_N : SIDE_LIT;
   const renderFaces = (faces: Face[]) => faces.map((f) => {
-    const faceApp = facadeStructureAppearance(f.material.id);
+    const faceApp = structureAppearance(f.material.id);
     const rendered = faceSvg(f, el, faceApp, tintK, dims, opts);
     return f.architectureFeatureId
       ? `<g data-architecture-feature="${f.architectureFeatureId}">${rendered}</g>`
@@ -210,7 +213,7 @@ export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
 export function structureFaceSvg(f: Face, keyTag: string, cell: { x: number; y: number; z: number }, dims: Dims, opts?: DetailOpts): string {
   const pts = f.poly.map((gp) => projGP(gp, dims));
   if (pts.length < 3) return '';
-  const app = facadeStructureAppearance(f.material.id);
+  const app = structureAppearance(f.material.id);
   const side: WallSide = f.side === 'N' || f.side === 'S' ? 'N' : 'E';
   const tintK = side === 'N' ? SIDE_N : SIDE_LIT;
   const body = `<polygon points="${polyPts(pts)}" fill="${shade(wallPartColor(app, 'face'), tintK)}"${strokeAttr(shade(app.face, OUTLINE), 0.7)}/>`;
@@ -251,7 +254,7 @@ export function wallAccentsSvg(el: WallEl, dims: Dims, opts?: DetailOpts): strin
   for (const f of el.faces) {
     if (f.material.part !== 'face' || f.poly.length !== 4) continue;
     if (hasFeatureFaces && !f.architectureFeatureId) continue;
-    const app = facadeStructureAppearance(f.material.id);
+    const app = structureAppearance(f.material.id);
     if (!app.detail) continue;
     const thick = isoPxToM(app.parapet?.bandThickPx ?? 0);
     const reservedV = (app.parapet?.bands ?? []).map((t): [number, number] => [WALL_H_M * (1 - t) - thick, WALL_H_M * (1 - t)]);

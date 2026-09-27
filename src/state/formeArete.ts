@@ -8,7 +8,7 @@
  */
 import type { Scene, WallSeg } from './scene';
 import { facadeDeLArete } from './facadeEdges';
-import { facadePreset, murDeFacade } from '../data/facadePresets';
+import { facadePreset, KINDS_DE_DECOR, murDeFacade } from '../data/facadePresets';
 import { findStructureById, premierOffert, structureAppearances, structures } from '../data';
 import { isDoorEdgeStructure, structureEdgeKind } from '../engine/structures';
 
@@ -62,6 +62,7 @@ export function formeRendue(seg: Pick<WallSeg, 'door' | 'window' | 'structure'>,
 export interface BlocsDApparence {
   window?: unknown;
   door?: unknown;
+  corpsDeGarde?: unknown;
   parapet?: unknown;
 }
 
@@ -71,22 +72,29 @@ export interface BlocsDApparence {
  *  - mur nu → toujours : chaque branche dessine un pan plein depuis les champs de l'apparence (courtine
  *    d'un `parapet`, claire-voie, panneau) ;
  *  - mur fenêtré → bloc `window`, hors `parapet` (la branche de courtine ne dessine pas de croisée) ;
- *  - porte fermée, ouverte, fermeture fixe → bloc `door`.
+ *  - porte fermée, ouverte, fermeture fixe → bloc `corpsDeGarde` sur une courtine (`parapet`), bloc `door`
+ *    sinon.
  */
 export function formesAdmises(app: BlocsDApparence): readonly FormeArete[] {
   return FORMES_ARETE.filter((f) =>
-    f === 'mur-nu' || (f === 'mur-fenetre' ? !!app.window && !app.parapet : !!app.door));
+    f === 'mur-nu' || (f === 'mur-fenetre' ? !!app.window && !app.parapet : !!(app.parapet ? app.corpsDeGarde : app.door)));
 }
 
 /** Apparence du MUR NU : celle d'une arête qui n'en déclare aucune, hors façade. */
 export const APPARENCE_MUR_NU = 'plain';
 
-/** Apparence de MUR que l'arête porte, telle que le rendu la résout (`edgeAppearance`,
- *  `gameIso/builders/roofs.ts`) : l'apparence déclarée, sinon celle de la façade authorée sur l'arête
- *  (`facadeAppearance`, un préset — `murDeFacade`), sinon le mur nu. `undefined` = la façade n'est pas
- *  un préset (`facadesHorsCompatibilite` le nomme). */
-export function apparenceDeLArete(seg: Pick<WallSeg, 'appearance' | 'structure'>, facadeAppearance?: string): string | undefined {
-  return apparenceDeclaree(seg) ?? (facadeAppearance !== undefined ? murDeFacade(facadeAppearance) : APPARENCE_MUR_NU);
+/** Apparence de MUR que l'arête porte — la SEULE résolution, que le rendu consomme telle quelle
+ *  (`structureAppearance(apparenceDeLArete(scene, seg))`) : l'apparence déclarée, sinon celle du préset
+ *  de la façade authorée sur l'arête (`murDeFacade`), sinon le mur nu. `undefined` = la façade n'est pas
+ *  un préset : `facadesHorsCompatibilite` le nomme, le rendu peint le repli visible. */
+export function apparenceDeLArete(
+  scene: Pick<Scene, 'architecture'>,
+  seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z' | 'appearance' | 'structure'>,
+): string | undefined {
+  const declaree = apparenceDeclaree(seg);
+  if (declaree) return declaree;
+  const facade = facadeDeLArete(scene, seg);
+  return facade ? murDeFacade(facade.appearance) : APPARENCE_MUR_NU;
 }
 
 /** Formes que l'arête prend et que l'apparence n'admet pas — vide = compatible. */
@@ -157,8 +165,8 @@ export function patchVersType(seg: WallSeg, type: TypeDArete): Partial<WallSeg> 
 
 /** Patch qui pose la Structure `structure` sur l'arête en restant COHÉRENTE : la fenêtre part si la
  *  nouvelle apparence ne l'habille pas, l'override d'apparence part s'il n'habille plus l'arête. */
-export function patchVersStructure(seg: WallSeg, structure: string | undefined, facadeAppearance?: string): Partial<WallSeg> {
-  const app = structureAppearances.find((a) => a.id === apparenceDeLArete({ ...seg, structure }, facadeAppearance));
+export function patchVersStructure(scene: Pick<Scene, 'architecture'>, seg: WallSeg, structure: string | undefined): Partial<WallSeg> {
+  const app = structureAppearances.find((a) => a.id === apparenceDeLArete(scene, { ...seg, structure }));
   const window = seg.window && app && !formesHorsCompatibilite({ ...seg, structure, window: true }, app).length ? true : undefined;
   return avecApparenceCompatible(seg, { structure, window });
 }
@@ -167,18 +175,19 @@ const libelles = (formes: readonly FormeArete[]): string => formes.map((f) => `�
 
 const apparenceParId = (id: string) => structureAppearances.find((a) => a.id === id);
 
-/** Un message nommé par arête dont l'apparence RÉSOLUE (`apparenceDeLArete` : déclarée, de façade ou
- *  mur nu, lue au catalogue `structureAppearance.json`) est introuvable, ou n'habille pas une des formes
- *  que l'arête prend (lu par `validateScene`). */
+/** Un message nommé par arête dont l'apparence RÉSOLUE (`apparenceDeLArete`) est absente du catalogue
+ *  `structureAppearance.json`, ou n'habille pas une des formes que l'arête prend (lu par `validateScene`).
+ *  Une arête sous une façade hors préset n'a pas d'apparence : `facadesHorsCompatibilite` dit la faute,
+ *  une fois. */
 export function aretesHorsCompatibilite(scene: Pick<Scene, 'walls' | 'architecture'>): string[] {
   const out: string[] = [];
   for (const w of scene.walls ?? []) {
     const ou = `Arête (${w.x},${w.y}) ${w.side}${w.z ? ` étage ${w.z}` : ''}`;
-    const facade = facadeDeLArete(scene, w)?.appearance;
-    const id = apparenceDeLArete(w, facade);
-    const app = id === undefined ? undefined : apparenceParId(id);
+    const id = apparenceDeLArete(scene, w);
+    if (id === undefined) continue;
+    const app = apparenceParId(id);
     if (!app) {
-      out.push(`${ou} : l’apparence « ${id ?? facade} » est absente du catalogue des apparences de mur et des présets de façade.`);
+      out.push(`${ou} : l’apparence « ${id} » est absente du catalogue des apparences de mur.`);
       continue;
     }
     const hors = formesHorsCompatibilite(w, app);
@@ -188,9 +197,10 @@ export function aretesHorsCompatibilite(scene: Pick<Scene, 'walls' | 'architectu
   return out;
 }
 
-/** Un message nommé par section de façade dont l'apparence n'est pas un préset (`FACADE_PRESETS`), et
- *  par feature `window-band` dont l'apparence (`feature.appearance`, sinon celle que le préset route)
- *  n'habille pas le mur fenêtré (lu par `validateScene`). */
+/** Un message nommé par section de façade dont l'apparence n'est pas un préset (`FACADE_PRESETS`) ; par
+ *  ornement de DÉCOR (`KINDS_DE_DECOR`) sans vignette au préset ; par ornement de MUR sans apparence (ni
+ *  `feature.appearance`, ni routage du préset) ou d'apparence inconnue ; par bandeau de fenêtres dont
+ *  l'apparence n'habille pas le mur fenêtré (lu par `validateScene`). */
 export function facadesHorsCompatibilite(scene: Pick<Scene, 'architecture'>): string[] {
   const out: string[] = [];
   for (const body of scene.architecture ?? [])
@@ -201,12 +211,17 @@ export function facadesHorsCompatibilite(scene: Pick<Scene, 'architecture'>): st
         continue;
       }
       for (const feature of section.features ?? []) {
-        if (feature.kind !== 'window-band') continue;
-        const id = feature.appearance ?? preset.wallFeatures['window-band'];
-        if (id === undefined) continue;
-        const app = apparenceParId(id);
-        if (!app || !formesAdmises(app).includes('mur-fenetre'))
-          out.push(`Façade « ${section.id} » (${body.id}), bandeau de fenêtres « ${feature.id} » : l’apparence « ${app?.label ?? id} » n’habille pas la forme « ${LIBELLE_FORME['mur-fenetre']} ».`);
+        const ou = `Façade « ${section.id} » (${body.id}), ornement « ${feature.id} » (${feature.kind})`;
+        if (KINDS_DE_DECOR.has(feature.kind)) {
+          if (!preset.features[feature.kind]) out.push(`${ou} : le préset « ${preset.id} » n’a pas de décor pour ce kind.`);
+          continue;
+        }
+        const id = feature.appearance ?? preset.wallFeatures[feature.kind];
+        const app = id === undefined ? undefined : apparenceParId(id);
+        if (id === undefined) out.push(`${ou} : aucune apparence — ni la sienne, ni celle que route le préset « ${preset.id} ».`);
+        else if (!app) out.push(`${ou} : l’apparence « ${id} » est absente du catalogue des apparences de mur.`);
+        else if (feature.kind === 'window-band' && !formesAdmises(app).includes('mur-fenetre'))
+          out.push(`${ou} : l’apparence « ${app.label} » n’habille pas la forme « ${LIBELLE_FORME['mur-fenetre']} ».`);
       }
     }
   return out;

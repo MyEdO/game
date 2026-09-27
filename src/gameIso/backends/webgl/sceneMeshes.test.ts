@@ -52,9 +52,8 @@ import { tintOf } from './visibilityTint';
 import { faceSurface, tintVarFactor } from './faceColors';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
 import { coursesPeriodM, groundPeriodM, roofCourseStepM, variantOf, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
 import { FASCIA_THICK_M, roofMaterial } from '../../catalog/roofs';
-import { wallPartRelief, WALL_PARTS } from '../../catalog/structures';
+import { structureAppearance, wallPartRelief, WALL_PARTS } from '../../catalog/structures';
 import { ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../state/terrain';
@@ -896,7 +895,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
     const nu = faceGroup(wf({ domain: 'terrain', id: sansAssises.id }), mpt);
     const pierre = faceGroup(wf({ domain: 'structure', id: 'mur-en-pierre', part: 'face' }), mpt);
     expect(pierre.kind).toBe('wall');
-    expect(pierre.periodM).toEqual(coursesPeriodM(facadeStructureAppearance('mur-en-pierre').detail!.courses!));
+    expect(pierre.periodM).toEqual(coursesPeriodM(structureAppearance('mur-en-pierre').detail!.courses!));
     expect(pierre.key).not.toBe(nu.key);
     // La face nue n'emporte ni recette ni période : rien à texturer.
     expect([nu.kind, nu.periodM, nu.recipe]).toEqual([null, undefined, undefined]);

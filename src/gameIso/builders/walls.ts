@@ -3,13 +3,13 @@
  * scène, les FACES MONDE (GP : grille + MÈTRES) de son assemblage — courtine/panneau de face, plinthe/
  * bandes/arase, parapet + merlons, montants d'extrémité, ouverture/linteau de porte, barreaux +
  * traverses de claire-voie, tas de gravats d'une structure ABATTUE — et les VÉRITÉS DE SCÈNE (visible/down/
- * open). TOUT vient des CHAMPS de l'apparence d'arête partagée (`edgeAppearance`, def JSON iso+POV) : parapet/porte/
+ * open). TOUT vient des CHAMPS de l'apparence d'arête partagée (`apparenceDeLArete`, def JSON iso+POV) : parapet/porte/
  * bois routés par la PRÉSENCE des champs, jamais par un id/type en dur. PUR et projection-agnostique :
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
-import { formeRendue, estBaie } from '../../state/formeArete';
+import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { apparenceDeLArete, formeRendue, estBaie } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
@@ -17,13 +17,15 @@ import { viewedBuilder, type Viewed } from './viewTruth';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { structureAppearance, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeWallFeatureAppearance } from '../catalog/facades';
+import { MISSING_ID } from '../catalog/missing';
+import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../../state/relief';
 import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
 import type { Face, GP, WallEl } from './types';
 import type { FloorView } from './floors';
 import {
-  closureAppearance, edgeAppearance, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
+  closureAppearance, fieldHeightAt, massFootprintCells, massSpaceCells, nappeKey, resolveNappes,
   WALL_NB, type RoofField,
 } from './roofs';
 import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
@@ -157,13 +159,11 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (poteaux montant à H1+P)
     const crest = crownFaces(app, A, B, H1);
 
-    if (app.door && estBaie(forme)) {
+    if (app.corpsDeGarde && estBaie(forme)) {
       // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
       // (abattu) + linteau.
       const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie();
-      const { lintelPx } = app.door;
-      if (lintelPx === undefined) throw new Error(`${app.id} : corps de garde sans \`door.lintelPx\` — le schéma de \`structureAppearance.json\` l’exige.`);
-      return [...passage, slab('linteau', H1 - isoPxToM(lintelPx), H1), ...crest];
+      return [...passage, slab('linteau', H1 - isoPxToM(app.corpsDeGarde.lintelPx), H1), ...crest];
     }
     if (down) return breach();
     return [
@@ -342,15 +342,10 @@ const envelopeEdgesOf = memoByRef((scene: Scene): ReadonlySet<string> => {
   return out;
 });
 
-/**
- * Kinds de feature rendus en DÉCOR ANCRÉ au bâtiment (`builders/props` : recette volumique ou
- * billboard), et JAMAIS dans le plan du mur — leur `appearance` authorable
- * (`data/schemas/defs-scenes/scene.ts`) nomme alors un DÉCOR, pas une apparence de mur. Le verrou est
- * ICI, par CONSTRUCTION : sans lui, une apparence posée par l'auteur ferait sortir la même feature
- * DEUX fois — sa géométrie de décor et un panneau plaqué sur la façade (#1624).
- */
-const KINDS_DE_DECOR: ReadonlySet<FacadeFeature['kind']> = new Set(['chimney', 'sign', 'belfry']);
-
+/** Faces des ornements de MUR d'une façade. Les kinds de DÉCOR (`KINDS_DE_DECOR`, `data/facadePresets.ts`)
+ *  n'y entrent JAMAIS — leur `appearance` authorable nomme un DÉCOR, pas une apparence de mur ; sans ce
+ *  verrou, une apparence posée ferait sortir la même feature DEUX fois (#1624). Un ornement de mur sans
+ *  apparence se peint au repli visible (`MISSING_ID`), que `validateScene` nomme. */
 function facadeFeatureFaces(
   seg: WallSeg,
   facade: FacadeEdge,
@@ -368,8 +363,7 @@ function facadeFeatureFaces(
     if (KINDS_DE_DECOR.has(feature.kind)) continue;
     if (feature.kind === 'window-band' && seg.window) continue;
     const appearance = feature.appearance ??
-      facadeWallFeatureAppearance(facade.appearance, feature.kind);
-    if (!appearance) continue;
+      facadeWallFeatureAppearance(facade.appearance, feature.kind) ?? MISSING_ID;
     const id = `${facade.bodyId}:${facade.sectionId}:${feature.id}`;
     const center = feature.offset ?? 0.5;
     const width = feature.width ?? 0.6;
@@ -426,12 +420,12 @@ function tagExistingFacadeFaces(faces: Face[], seg: WallSeg, facade: FacadeEdge,
   if (!feature) return faces;
   const id = `${facade.bodyId}:${facade.sectionId}:${feature.id}`;
   const appearance = feature.appearance ??
-    facadeWallFeatureAppearance(facade.appearance, feature.kind);
+    facadeWallFeatureAppearance(facade.appearance, feature.kind) ?? MISSING_ID;
   return faces.map((face) =>
     face.material.part === 'vitre' || face.material.part === 'meneau'
       ? {
           ...face,
-          ...(appearance ? { material: { ...face.material, id: appearance } } : {}),
+          material: { ...face.material, id: appearance },
           architectureFeatureId: id,
           architectureFeatureKind: feature.kind,
         }
@@ -610,7 +604,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
     if (view && (viewZ != null ? z !== viewZ : z > activeZ)) continue;
     const baseH = heightAt(scene, w.x, w.y, z);
     const facade = facadeDeLArete(scene, w);
-    const app = edgeAppearance(facade, w);
+    const app = structureAppearance(apparenceDeLArete(scene, w));
     const wallHeightM = app.wallHeightM ?? WALL_H_M;
     const down = !!w.structure && structureIsDown(scene, w);
     const open = !!w.door && doorIsOpen(scene, w);

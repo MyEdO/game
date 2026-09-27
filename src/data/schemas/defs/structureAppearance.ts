@@ -81,7 +81,6 @@ const doc = document(
     door: z
       .strictObject({
         openingFrac: z.number(),
-        lintelPx: z.number().optional(),
         jamb: z.string().optional(),
         jambCap: z.string().optional(),
         leaf: z.string().optional(),
@@ -90,6 +89,7 @@ const doc = document(
       })
       .optional(),
     claireVoie: claireVoieSchema.optional(),
+    corpsDeGarde: z.strictObject({ lintelPx: z.number() }).optional(),
     window: z
       .strictObject({
         glass: z.string(),
@@ -126,7 +126,8 @@ const doc = document(
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
     parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
-    door: { label: 'Porte', hint: 'Ouverture, linteau, jambages, vantail et poignée' },
+    door: { label: 'Porte', hint: 'Ouverture, jambages, vantail et poignée' },
+    corpsDeGarde: { label: 'Corps de garde', hint: 'Passage d’un mur à parapet : épaisseur du linteau' },
     claireVoie: {
       label: 'Claire-voie',
       hint: 'Barreaux ajourés (herse, garde-corps) : nombre, bornes basse et haute en fraction de hauteur, traverses ; plinthe et main courante quand elle tient lieu de mur',
@@ -145,16 +146,6 @@ const doc = document(
       },
     },
     edit: { none: 'presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
-  },
-  {
-    /** `door.lintelPx` n'est lu que par le corps de garde (`gameIso/builders/walls.ts`, branche `parapet`) :
-     *  exigé là, et seulement là. */
-    affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as { id: string; parapet?: unknown; door?: { lintelPx?: unknown } };
-        if (e.parapet && e.door && e.door.lintelPx == null)
-          ctx.addIssue({ code: 'custom', path: ['door', 'lintelPx'], message: `${e.id} : \`door.lintelPx\` absent d’une apparence à parapet — le corps de garde dessine son linteau.` });
-      }),
   },
 );
 

@@ -28,8 +28,7 @@
 import { AMBIANCE } from '../../catalog/ambiance';
 import { reliefMaterial } from '../../catalog/relief';
 import { roofMaterial } from '../../catalog/roofs';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor, type WallPart } from '../../catalog/structures';
+import { structureAppearance, wallPartColor, type WallPart } from '../../catalog/structures';
 import { terrainDef } from '../../catalog/terrain';
 import { propMaterial } from '../../catalog/propMaterials';
 import { MISSING_TONE } from '../../catalog/missing';
@@ -89,7 +88,7 @@ function faceRecipe(face: Face): DetailRecipe | undefined {
   const { domain, id } = face.material;
   switch (domain) {
     case 'structure':
-      return facadeStructureAppearance(id).detail;
+      return structureAppearance(id).detail;
     case 'relief':
       return reliefMaterial(id).detail;
     case 'roof':
@@ -105,7 +104,7 @@ function faceBaseColor(face: Face): string {
   const { domain, id, part } = face.material;
   switch (domain) {
     case 'structure':
-      return wallPartColor(facadeStructureAppearance(id), part as WallPart);
+      return wallPartColor(structureAppearance(id), part as WallPart);
     case 'relief':
       return reliefColor(id, part);
     case 'roof':

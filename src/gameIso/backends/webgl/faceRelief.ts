@@ -8,8 +8,7 @@
  * `worldTris.ts` reste PUR et sans catalogue : il reçoit cette profondeur en paramètre et ne décide que
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { uprightCrossM, wallMatterM, wallPartDepthM, type WallPart } from '../../catalog/structures';
+import { structureAppearance, uprightCrossM, wallMatterM, wallPartDepthM, type WallPart } from '../../catalog/structures';
 import { roofFasciaThickM, roofMaterial } from '../../catalog/roofs';
 import type { FaceDepth } from './worldTris';
 import type { Face } from '../../builders/types';
@@ -32,7 +31,7 @@ export function faceDepthM(face: Face): number | undefined {
   // donner une épaisseur d'arête doublerait sa matière.
   if (domain === 'prop') return undefined;
   if (!part) return undefined;
-  const app = domain === 'structure' ? facadeStructureAppearance(id) : undefined;
+  const app = domain === 'structure' ? structureAppearance(id) : undefined;
   if (face.poly.length === 2) return uprightCrossM(part, wallMatterM(app));
   if (domain === 'structure') return wallPartDepthM(app!, part as WallPart, wallMatterM(app));
   if (domain === 'roof' && part === 'fascia') return roofFasciaThickM(roofMaterial(id));

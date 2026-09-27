@@ -1,6 +1,4 @@
 import type { StructureAppearanceDef, WallPart } from './types';
-import type { WallSeg } from '../../../state/scene';
-import { APPARENCE_MUR_NU, apparenceDeclaree } from '../../../state/formeArete';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../missing';
@@ -18,18 +16,13 @@ const MISSING: StructureAppearanceDef = {
   post: MISSING_TONE_DARK,
 };
 
-/** Apparence d'une structure par id. `id` absent = INTENTIONNEL (aucune structure posée) → mur nu.
- *  Un `id` PRÉSENT mais SANS entrée dans `structureAppearance.json` est une donnée à corriger (#832) :
- *  repli VISIBLE + avertissement DEV, jamais l'identité d'une autre apparence. */
-export function structureAppearance(id?: string): StructureAppearanceDef {
-  if (!id) return MAP[APPARENCE_MUR_NU];
-  return catalogEntry((cle) => MAP[cle], id, 'structure', MISSING);
-}
-
-/** Apparence d'un mur d'arête — SOURCE UNIQUE iso + POV : override visuel, puis structure, sinon mur
- *  nu. L'apparence est une DONNÉE de la carte ; la hauteur n'y entre pas (#1180). */
-export function wallApp(seg: WallSeg): StructureAppearanceDef {
-  return structureAppearance(apparenceDeclaree(seg));
+/** Apparence d'une structure par id — l'id que résout `apparenceDeLArete` (`state/formeArete.ts`), seule
+ *  résolution d'apparence d'arête : le rendu la consomme, il ne la recalcule pas. Un id ABSENT
+ *  (`undefined` : façade hors préset) ou SANS entrée dans `structureAppearance.json` est une donnée que
+ *  `validateScene` nomme (#832) : repli VISIBLE + avertissement DEV, jamais l'identité d'une autre
+ *  apparence. */
+export function structureAppearance(id: string | undefined): StructureAppearanceDef {
+  return catalogEntry((cle) => MAP[cle], id ?? MISSING_ID, 'structure', MISSING);
 }
 
 /** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — celle du bloc `window` de la def. Source unique iso + POV. */

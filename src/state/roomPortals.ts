@@ -33,7 +33,6 @@ interface IndexedTile {
 
 const pointAt = (x: number, y: number, z: number): Pt => (z ? { x, y, z } : { x, y });
 
-
 function interiorTiles(scene: Scene): Map<string, IndexedTile> {
   const indexed = new Map<string, IndexedTile>();
   for (const zone of scene.effectZones ?? []) {

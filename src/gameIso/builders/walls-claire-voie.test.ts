@@ -71,7 +71,7 @@ const GRAVATS_GC = ['gravats[0-0.16]', 'gravats-tas[0-0.32]', 'poteau[0-0.224]',
 const GRAVATS_HERSE = ['gravats[0-0.64]', 'gravats-tas[0-1.28]', 'poteau[0-0.896]', 'poteau[0-0.704]'];
 const COURONNE_PDV = ['linteau[3.833-4]', 'parapet[4-5.28]', 'bande[4.922-5.022]', 'arase[5.155-5.28]', 'merlon×3[5.28-5.53]'];
 const HERSE_FERMEE = ['poteau[0-4]', 'barreau×7[0-3.44]', 'traverse[1.72-1.803]', 'face[3.44-4]', 'chambranle[3.44-3.607]', 'couronnement[3.44-4]', 'jambage×2[0-3.44]', 'poteau[0-4]'];
-const BARREAUX_PDV = ['barreau×7[0-3.6]', 'traverse[1.44-1.523]', 'traverse[2.808-2.891]'];
+const BARREAUX_PDV = ['barreau×7[0-3.833]', 'traverse[1.533-1.617]', 'traverse[2.99-3.073]'];
 /** Six intervalles, sept barreaux : un barreau à chaque sixième de l'arête, rogné aux deux bouts. */
 const SEPT_BARREAUX = [
   'barreau[0-0.02]', 'barreau[0.147-0.187]', 'barreau[0.313-0.353]', 'barreau[0.48-0.52]',

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formesDeLArete, formeRendue, formesAdmises, formesHorsCompatibilite, fenetrePosable, aretesHorsCompatibilite, facadesHorsCompatibilite, apparenceDeLArete, type FormeArete } from './formeArete';
-import { emptyScene, type Scene, type WallSeg } from './scene';
+import { emptyScene, type FacadeFeature, type Scene, type WallSeg } from './scene';
 import { validateScene } from './validateScene';
 import { structureAppearances } from '../data';
 import { allBuiltinCampaigns } from '../scenes/campaign';
@@ -49,10 +49,13 @@ describe('formeArete — la forme vient de la nature de la Structure ET de `door
   });
 
   it('l’apparence RÉSOLUE d’une arête : déclarée, sinon celle du préset de sa façade, sinon le mur nu', () => {
-    expect(apparenceDeLArete({ structure: 'herse' }, 'forge')).toBe('herse');
-    expect(apparenceDeLArete({}, 'auberge-relais-imperiale')).toBe('mur-a-ossature-en-bois');
-    expect(apparenceDeLArete({}, 'mur-en-pierre')).toBeUndefined();
-    expect(apparenceDeLArete({})).toBe('plain');
+    const sous = (appearance: string) => ({ architecture: [{ id: 'b', storeys: [], masses: [], facades: [{ id: 'f', z: 0, edges: [{ x: 1, y: 1, side: 'N' as const }], appearance }] }] });
+    const arete = (seg: Partial<WallSeg> = {}) => ({ x: 1, y: 1, side: 'N' as const, ...seg });
+    expect(apparenceDeLArete(sous('forge'), arete({ structure: 'herse' }))).toBe('herse');
+    expect(apparenceDeLArete(sous('chapelle'), arete({ appearance: 'mur-en-bois', structure: 'mur-en-pierre' }))).toBe('mur-en-bois');
+    expect(apparenceDeLArete(sous('auberge-relais-imperiale'), arete())).toBe('mur-a-ossature-en-bois');
+    expect(apparenceDeLArete(sous('mur-en-pierre'), arete())).toBeUndefined();
+    expect(apparenceDeLArete({}, arete())).toBe('plain');
   });
 });
 
@@ -75,25 +78,33 @@ describe('validateScene — une arête hors compatibilité est une erreur nommé
       .toContain('n’habille pas la forme « porte fermée », « porte ouverte »');
   });
 
-  it('une arête SANS apparence déclarée est jugée sur sa FAÇADE ; une façade qui ne nomme pas un préset est refusée, et son arête aussi', () => {
+  it('une arête SANS apparence déclarée est jugée sur sa FAÇADE ; une façade hors préset est UNE erreur, qui dit sa faute', () => {
     expect(erreurs([{ x: 1, y: 1, side: 'N', door: true }], facade('auberge-relais-imperiale'))).toEqual([]);
-    expect(erreurs([{ x: 1, y: 1, side: 'N', door: true }], facade('mur-en-pierre'))).toEqual([
-      'Arête (1,1) N : l’apparence « mur-en-pierre » est absente du catalogue des apparences de mur et des présets de façade.',
-    ]);
+    expect(erreurs([{ x: 1, y: 1, side: 'N', door: true }], facade('mur-en-pierre'))).toEqual([]);
     expect(erreursFacade(facade('mur-en-pierre'))).toEqual(['Façade « f » (b) : « mur-en-pierre » n’est pas un préset de façade.']);
+    expect(erreurs([{ x: 1, y: 1, side: 'N', appearance: 'inconnue-xyz' }])).toEqual([
+      'Arête (1,1) N : l’apparence « inconnue-xyz » est absente du catalogue des apparences de mur.',
+    ]);
   });
 
-  it('un bandeau de fenêtres dont l’apparence n’habille pas le mur fenêtré est refusé', () => {
-    const bandeau = (appearance?: string): Scene['architecture'] => [{
+  it('un ornement de façade se résout : bandeau de fenêtres sans apparence ou qui n’habille pas le mur fenêtré, décor sans vignette — refusés', () => {
+    const orne = (preset: string, kind: FacadeFeature['kind'], appearance?: string): Scene['architecture'] => [{
       id: 'b', storeys: [], masses: [], facades: [{
-        id: 'f', z: 0, edges: [{ x: 1, y: 1, side: 'N' }], appearance: 'auberge-relais-imperiale',
-        features: [{ id: 'w', kind: 'window-band', edge: { x: 1, y: 1, side: 'N' }, ...(appearance ? { appearance } : {}) }],
+        id: 'f', z: 0, edges: [{ x: 1, y: 1, side: 'N' }], appearance: preset,
+        features: [{ id: 'w', kind, edge: { x: 1, y: 1, side: 'N' }, ...(appearance ? { appearance } : {}) }],
       }],
     }];
-    expect(erreursFacade(bandeau())).toEqual([]);
-    expect(erreursFacade(bandeau('mur-en-pierres-seches'))).toEqual([]);
-    expect(erreursFacade(bandeau('terrassement'))).toEqual([
-      'Façade « f » (b), bandeau de fenêtres « w » : l’apparence « Terrassement » n’habille pas la forme « mur fenêtré ».',
+    expect(erreursFacade(orne('auberge-relais-imperiale', 'window-band'))).toEqual([]);
+    expect(erreursFacade(orne('auberge-relais-imperiale', 'window-band', 'mur-en-pierres-seches'))).toEqual([]);
+    expect(erreursFacade(orne('auberge-relais-imperiale', 'window-band', 'terrassement'))).toEqual([
+      'Façade « f » (b), ornement « w » (window-band) : l’apparence « Terrassement » n’habille pas la forme « mur fenêtré ».',
+    ]);
+    expect(erreursFacade(orne('forge', 'window-band'))).toEqual([
+      'Façade « f » (b), ornement « w » (window-band) : aucune apparence — ni la sienne, ni celle que route le préset « forge ».',
+    ]);
+    expect(erreursFacade(orne('forge', 'chimney'))).toEqual([]);
+    expect(erreursFacade(orne('forge', 'sign'))).toEqual([
+      'Façade « f » (b), ornement « w » (sign) : le préset « forge » n’a pas de décor pour ce kind.',
     ]);
   });
 

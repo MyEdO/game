@@ -7,13 +7,12 @@
 import { describe, expect, it } from 'vitest';
 import { periodTextureData, jointFactor, PERIOD_PX_PER_M } from './periodTexture';
 import { coursesPeriod, coursesPeriodM, coursesKey, patternWM, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor } from '../../catalog/structures';
+import { structureAppearance, wallPartColor } from '../../catalog/structures';
 import { matieresDe } from '../../../data';
 import type { DetailRecipe } from '../../detail/types';
 
 /** Une recette d'appareillage RÉELLE, lue dans la DONNÉE : le mur de pierre (`structureAppearance.json`). */
-const APP = facadeStructureAppearance('mur-en-pierre');
+const APP = structureAppearance('mur-en-pierre');
 const PIERRE = APP.detail as DetailRecipe;
 const BASE = wallPartColor(APP, 'face');
 

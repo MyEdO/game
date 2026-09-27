@@ -26,6 +26,7 @@ import { capVolumique, empreinteDuProp } from '../../data/props.types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
 import { cleArete } from '../../state/wallIndex';
+import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import type { FloorView } from './floors';
 import type { BillboardPropEl, PropEl } from './types';
 import { CARD_NB, outwardSide, wallEnds } from './walls';
@@ -185,6 +186,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
       const sectionEdges = new Set(section.edges.map((edge) =>
         cleArete(edge.x, edge.y, edge.side, edge.z ?? section.z)));
       for (const feature of section.features ?? []) {
+        if (!KINDS_DE_DECOR.has(feature.kind)) continue;
         const edge = { ...feature.edge, z: feature.edge.z ?? section.z };
         const z = edge.z;
         if (viewZ != null && z !== viewZ) continue;
@@ -192,6 +194,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
         const featureId = `${body.id}:${section.id}:${feature.id}`;
         if (emittedFeatures.has(featureId) || !sectionEdges.has(edgeId) || !physicalEdges.has(edgeId)) continue;
         const viz = facadeFeatureViz(section.appearance, feature.kind);
+        // Un décor sans vignette au préset n'a rien à dessiner : `validateScene` le refuse (`facadesHorsCompatibilite`).
         if (!viz) continue;
         emittedFeatures.add(featureId);
         const offset = feature.offset ?? 0.5;

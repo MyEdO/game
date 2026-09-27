@@ -139,13 +139,12 @@ describe('SCHÉMA de `structureAppearance.json` — les clés de relief sont CON
   });
 });
 
-describe('SCHÉMA de `structureAppearance.json` — `door.lintelPx` exigé là où il est lu (corps de garde)', () => {
-  const PARAPET = { heightLevelFrac: 0.32, merlonCount: 6, merlonStep: 2, merlonHeightPx: 3, bands: [], bandThickPx: 2, parapetBandFrac: 0.7, arasePx: 3 };
+describe('SCHÉMA de `structureAppearance.json` — le linteau du corps de garde vit dans SON bloc', () => {
   const entree = (extra: object) => [{ id: 'x', type: 'structureAppearance', label: 'X', face: '#111', post: '#222', ...extra }];
 
-  it('une porte de bois s’en passe ; un corps de garde (parapet + porte) l’exige', () => {
-    expect(schema.safeParse(entree({ door: { openingFrac: 0.5 } })).success).toBe(true);
-    expect(schema.safeParse(entree({ parapet: PARAPET, door: { openingFrac: 1, lintelPx: 4 } })).success).toBe(true);
-    expect(schema.safeParse(entree({ parapet: PARAPET, door: { openingFrac: 1 } })).success).toBe(false);
+  it('`corpsDeGarde.lintelPx` est requis ; `door` ne porte pas de linteau', () => {
+    expect(schema.safeParse(entree({ corpsDeGarde: { lintelPx: 4 } })).success).toBe(true);
+    expect(schema.safeParse(entree({ corpsDeGarde: {} })).success).toBe(false);
+    expect(schema.safeParse(entree({ door: { openingFrac: 0.5, lintelPx: 4 } })).success).toBe(false);
   });
 });

@@ -25,20 +25,20 @@
  * une croupe (`hip`) n'en a aucune, ses rampants rejoignent déjà chaque bord. Ce sont des
  * pièces de la NAPPE — même `rule` de dégagement que ses pans, donc jamais un pignon qui reste quand
  * son toit part — dont la MATIÈRE est celle du MUR qu'elles prolongent (`closureAppearance`, face
- * `domain:'structure'`). La résolution de cette matière (`edgeAppearance`, dérivée de `apparenceDeLArete`) et
- * la table des voisins d'arête (`WALL_NB`) vivent ici, relues par `walls.ts`.
+ * `domain:'structure'`, l'id que résout `apparenceDeLArete`, ou le repli visible `MISSING_ID`). La table des
+ * voisins d'arête (`WALL_NB`) vit ici, relue par `walls.ts`.
  */
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { sceneZoneTiles } from '../../state/zones';
 import { memoByRef } from '../../state/sceneMemo';
-import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
-import { apparenceDeclaree, apparenceDeLArete } from '../../state/formeArete';
+import { facadeDeLArete } from '../../state/facadeEdges';
+import { apparenceDeLArete } from '../../state/formeArete';
 import { aretesA } from '../../state/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta } from '../../state/buildings';
 import { facadeWallFeatureAppearance } from '../catalog/facades';
-import { structureAppearance, type StructureAppearanceDef } from '../catalog/structures';
+import { MISSING_ID } from '../catalog/missing';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { interiorZoneTilesById, occupiedInteriorZoneIds } from '../stage/roomFocus';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
@@ -785,15 +785,6 @@ export function gableEnds(
  *  partagée avec `walls.ts` — deux tables qui divergent, c'est un mur qui change de camp. */
 export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 0], '\\': [0, 0], '/': [0, 0] };
 
-/** Apparence d'une ARÊTE de mur — SOURCE UNIQUE des deux rendus (`wallGeometry` de `walls.ts` et les
- *  fermetures d'architecture d'ici), DÉRIVÉE de la résolution d'état (`apparenceDeLArete`) : une DONNÉE
- *  de la carte, jamais une cote (#1180). La façade qui l'emporte marque ses faces de l'id de son préset,
- *  que la matière relit (`facadeStructureAppearance`). */
-export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
-  const id = apparenceDeLArete(seg, facade?.appearance);
-  if (facade && !apparenceDeclaree(seg)) return { ...structureAppearance(id ?? facade.appearance), id: facade.appearance };
-  return structureAppearance(id);
-}
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
  *  PARTAGÉ (`state/wallIndex.ts`, même clé `cleArete`) : `aretesA` rend la liste des
@@ -813,11 +804,6 @@ const wallCellIndexOf = memoByRef((scene: Scene) => {
   return { byCell };
 });
 
-/** Apparence RÉSOLUE d'un segment de mur — par la loi d'arête PARTAGÉE (`edgeAppearance`). */
-function segAppearance(scene: Scene, seg: WallSeg): string {
-  return edgeAppearance(facadeDeLArete(scene, seg), seg).id;
-}
-
 /** Apparence DOMINANTE des murs bordant un ensemble de cases `x,y,z` (ordre d'id à égalité : verdict
  *  déterministe, jamais dépendant de l'ordre d'itération). */
 function dominantAppearance(
@@ -831,7 +817,7 @@ function dominantAppearance(
     for (const seg of index.byCell.get(key) ?? []) {
       if (seen.has(seg)) continue;
       seen.add(seg);
-      const id = segAppearance(scene, seg);
+      const id = apparenceDeLArete(scene, seg) ?? MISSING_ID;
       tally.set(id, (tally.get(id) ?? 0) + 1);
     }
   return [...tally].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
@@ -859,7 +845,7 @@ export function closureAppearance(
   }
   for (const edge of edges) {
     const seg = aretesA(scene, edge.x, edge.y, edge.side, edge.z)[0];
-    if (seg) return segAppearance(scene, seg);
+    if (seg) return apparenceDeLArete(scene, seg) ?? MISSING_ID;
   }
   return dominantAppearance(scene, index, space)
     ?? dominantAppearance(scene, index, bodySpace);
