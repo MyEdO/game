@@ -2,13 +2,7 @@
  * Calendrier impérial WFRP4 (CI) — pur, sans état. Le CONTENU (mois, jours intercalaires, jours de
  * semaine, phases du jour) vit en DONNÉE ÉDITABLE (datasets `calendarMonths`/`calendarIntercalary`/
  * `calendarWeekdays`/`calendarPhases`, éditables au Codex). Ce module ne porte que la MÉCANIQUE
- * temporelle + les scalaires de config (époque, fenêtre de nuit). Source FR vérifiée (EiS Annexe 3
- * l.20/34/68 croisée ADE II/Middenheim/VO ; cf. plan #T1) :
- *
- * Année = 400 jours (orbite de Mallus autour de Söll) ; 6 intercalaires INCLUS dans les 400 → les 12
- * mois somment à 394 = 2 mois à 32 j (Nachhexen & Nachgeheim, après les 2 lunes pleines) + 10 à 33 j.
- * Les jours intercalaires sont HORS du cycle hebdomadaire (« the eight-day weeks bridge the months
- * uninterrupted, even if a week is broken by a festival »).
+ * temporelle + les scalaires de config (époque, fenêtre de nuit). EDO 12 l.13, l.17, l.19-47, l.60-203.
  *
  * La DÉRIVATION (slots de l'année) est mémoïsée par `memoParVersion` sur les versions de
  * `calendarMonths` et `calendarIntercalary` (`src/data/versionDataset.ts`).

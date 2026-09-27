@@ -7,7 +7,7 @@
 > après crédit du folio d'une donnée et de la dette de fiche déclarée au manifest.
 > Tolérance ligne = ±20.
 
-**Sens A — code → Atlas (tous livres)** : 12 chapitre(s)-livre cités par le code & absents de l'Atlas · 11 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
+**Sens A — code → Atlas (tous livres)** : 13 chapitre(s)-livre cités par le code & absents de l'Atlas · 11 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
 **Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 50 · 0 crédité(s) par une source folio de `src/data` · 50 sous dette de fiche déclarée).
 
 ## A0 — Résumé Sens A par livre
@@ -16,7 +16,7 @@
 |---|---|---|---|---|
 | ADE I | — | 1 | 1 | 0 |
 | ADE II | — | 0 | 1 | 0 |
-| EDO | — | 1 | 2 | 0 |
+| EDO | — | 2 | 2 | 0 |
 | EDOC | — | 2 | 2 | 0 |
 | MCLB | — | 1 | 0 | 0 |
 | MDG | — | 2 | 1 | 0 |
@@ -33,6 +33,9 @@
 
 ### EDO 10 — 1 réf(s) code, 0 dans l'Atlas
 - `src/data/skills.json:1896` (l.736) — "note": "EDO 10 l.736"
+
+### EDO 12 — 1 réf(s) code, 0 dans l'Atlas
+- `src/engine/clock.ts:5` (l.13) — * temporelle + les scalaires de config (époque, fenêtre de nuit). EDO 12 l.13, l.17, l.19-47, l.60-203.
 
 ### EDOC 9 — 5 réf(s) code, 0 dans l'Atlas
 - `src/engine/disease.ts:587` (l.21) — *  voyage (EDOC 09 l.21) passent par ici. No-op sur une maladie déjà active. */
@@ -207,4 +210,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 7b13ec2f3ac939ba1d2067362d7c1c14a18c11d1 (4235 fichiers, 152 dossiers) corps: a59b9297afaeddfd854eab60b2fd0104a873a345 -->
+<!-- sources-empreinte: 7b13ec2f3ac939ba1d2067362d7c1c14a18c11d1 (4235 fichiers, 152 dossiers) corps: d911ed9f1a7c520f6a9342a62c37d4d0d5a9cd50 -->

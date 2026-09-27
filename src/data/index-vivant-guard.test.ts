@@ -35,7 +35,7 @@
  * située DANS un corps de fonction (flèche, `function`, accesseur `get x()`, méthode abrégée) qui
  * n'est pas appelé sur place — elle se refait à chaque appel.
  *
- * CE QUE CETTE GARDE NE VOIT PAS, mesuré par injection (chaque cas rend 0 ligne aujourd'hui) :
+ * CE QUE CETTE GARDE NE VOIT PAS, mesuré par injection (chaque cas rend 0 ligne) :
  *  - CHAMP STATIQUE DE CLASSE — `export class R { static PAR_ID = new Map(traits.map((t) => [t.id, t])); }`
  *    (le corps de classe est à profondeur > 0 : aucune déclaration de niveau module n'y est vue) ;
  *  - FABRIQUE INTER-MODULE — `const PAR_ID = construire();` où `construire()` (autre fichier) lit le
@@ -109,7 +109,8 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect(parBinding.get('shipConstruction')).toBe('shipHullSizes');
     expect(parBinding.get('criticalsTete')).toBe('criticalsTete');
 
-    // Et le détecteur VOIT désormais un index figé sur ce nom, injecté dans une copie en mémoire.
+    // Un index figé sur la CLÉ d'une entrée à valeur d'appel (`miscastMinor`) ou shorthand
+    // (`criticalsTete`), injecté dans une copie en mémoire, rend 1 ligne chacun.
     const fige = `import { miscastMinor } from '../data/overrides';\nconst PAR_ID = new Map(miscastMinor.map((r) => [r.id, r]));\n`;
     expect(indexFiges('copie.ts', fige, parBinding)).toHaveLength(1);
     const figeCrit = `import { criticalsTete } from '../data/overrides';\nconst PREMIER = criticalsTete[0];\n`;
