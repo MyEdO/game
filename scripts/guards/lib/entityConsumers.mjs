@@ -67,7 +67,8 @@
 // n'importe quel ordre/forme de champs, généralisable aux 8 catalogues sans regex par fichier.
 import { readFileSync } from 'node:fs';
 import { listerArbre, listerDossier } from './lister.mjs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { dossierDesProjetsLivres, listerProjetsLivres } from './projetsLivres.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 
 /** Catalogues `src/data/*.json` adressés par `id`, retenus pour la mesure d'orphelines — MÊME
@@ -172,15 +173,11 @@ function fichiersDeProduction(srcDir) {
   return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) });
 }
 
-/** Documents de PROJET de scène (`src/scenes/<projet>/<projet>-projet.json`), découverts par
- *  STRUCTURE (tout sous-dossier de `src/scenes`, tout fichier `*-projet.json`) — jamais une liste de
- *  chemins en dur : une liste à tenir manque le prochain projet en silence, fail-OPEN. */
+/** Documents de PROJET de scène : le corpus des projets livrés (`projetsLivres.mjs`), sous la racine
+ *  dont `srcDir` est le `src`. */
 function sceneProjectFiles(srcDir) {
-  const dir = join(srcDir, 'scenes');
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.includes('/'),
-    filtre: (rel) => rel.includes('/') && rel.endsWith('-projet.json'),
-  }).map((rel) => join(dir, rel));
+  const racine = dirname(srcDir);
+  return listerProjetsLivres(racine).map((rel) => join(dossierDesProjetsLivres(racine), rel));
 }
 
 /** FRONTIÈRE « déclaré SIEN » vs « référencé » d'un document de scène — symétrique du

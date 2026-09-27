@@ -2,6 +2,7 @@ import type { GameState, RevealEntry } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
+import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, CHAR_LABELS, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -1267,6 +1268,9 @@ export interface EffectHandler<T extends Effect = Effect> {
   apply(e: T, env: EffectEnv): EffectApplyResult;
   /** Réfs cassées / valeurs invalides. Absent = rien à valider. */
   refs?(e: T, ctx: EffectRefCtx): EffectRefIssue[];
+  /** Le dialogue de la scène que cet effet OUVRE — `validateScene` avertit d'un dialogue qu'aucun
+   *  ouvreur ne cite. Absent = l'effet n'en ouvre aucun. */
+  ouvreDialogue?(e: T): string;
 }
 
 /** Noms des maladies câblées (LDB 20) — défaut de la fabrique `inflictDisease.make`. */
@@ -1346,9 +1350,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
       const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
-      if (dlg) env.set({ dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: e.speakerId } });
+      if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
     refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {
     group: 'Narration', label: 'Fermer le dialogue', icon: 'ui/close',

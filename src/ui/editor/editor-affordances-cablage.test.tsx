@@ -585,7 +585,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
       const boxRoot = createRoot(el);
       boxes.push({ el, root: boxRoot });
       await act(async () => {
-        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1' }, party: pregenParty(PREGEN.soldat) });
+        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(PREGEN.soldat) });
         boxRoot.render(<DialogueBox />);
       });
       return el;

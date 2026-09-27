@@ -191,7 +191,7 @@ export function makeZone10() {
         desc: '« Psst ! Par ici ! Les hommes-rats m’engraissent pour leur table — la serrure est grossière, sortez-moi de là ! »',
         choices: [
           {
-            label: 'Crocheter la cage (Test de Crochetage).',
+            label: 'Crocheter la cage.',
             icon: 'ui/lock',
             when: flagWhen('!prisonnier_libre'),
             flow: testNode(

@@ -10,10 +10,11 @@ import type { TestScenario } from './_shared';
  * (`dialogueId: 'dlg-tablee'`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
  * SESSION posé par `interactEntity` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
  * vers Isolde puis Phillipe (`speakerId` explicite), avant de revenir à Gustav (session, par défaut).
- * `dlg-gustav-repeat` illustre le PATRON DE REPRISE : les CHOIX du nœud d'accueil sont gatés par
- * `when` sur un flag — un premier passage propose la présentation, les suivants un accueil différent
- * (rien au niveau du nœud lui-même : la reprise est un branchement ORDINAIRE de `Condition`, pas un
- * mécanisme séparé).
+ * PATRON DE REPRISE, dans le dialogue même de l'entité (`dialogueId` est fixe : une reprise ne peut
+ * vivre qu'à l'intérieur) : les CHOIX du nœud d'accueil sont gatés par `when` sur le flag que pose la
+ * fin du premier passage — la reprise est un branchement ORDINAIRE de `Condition`, pas un mécanisme
+ * séparé. La réponse du 1ᵉʳ passage est déclarée AVANT celles du 2ᵉ : masquée, elle ne consomme pas
+ * de numéro, et la 1ʳᵉ réponse visible du 2ᵉ passage porte le 1.
  */
 const auberge = buildScene({
   id: 'test-dialogue-multi-auberge',
@@ -39,7 +40,11 @@ const auberge = buildScene({
           // Pas de speakerId : hérite du locuteur de SESSION (Gustav, l'entité cliquée par interactEntity).
           id: 'a1',
           desc: '« Vous tombez bien — on refaisait le monde. Isolde soutient qu’un dragon a survolé le Nordland la semaine dernière. »',
-          choices: [{ label: '« Un dragon ? »', next: 'a2' }],
+          choices: [
+            { label: '« Un dragon ? »', when: { kind: 'flag', expr: '!tablee_faite' }, next: 'a2' },
+            { label: '« Encore ce dragon ? »', when: { kind: 'flag', expr: 'tablee_faite' }, next: 'a2' },
+            { label: '« Une autre fois. »', when: { kind: 'flag', expr: 'tablee_faite' }, flow: flowFromEffects([{ type: 'endDialogue' }]) },
+          ],
         },
         {
           id: 'a2',
@@ -61,31 +66,6 @@ const auberge = buildScene({
         },
       ],
     },
-    {
-      // Patron de reprise : le nœud d'accueil est unique, mais ses CHOIX se gatent par `when` sur un
-      // flag (posé au premier passage) — un état déjà atteint change ce qui est PROPOSÉ, sans nouveau
-      // mécanisme (juste des `Condition` ordinaires sur `DialogueChoice.when`).
-      id: 'dlg-gustav-repeat',
-      start: 'accueil',
-      nodes: [
-        {
-          id: 'accueil',
-          desc: 'Gustav lève les yeux de sa chope.',
-          choices: [
-            {
-              label: '(Se présenter)',
-              when: { kind: 'flag', expr: '!repeat_presente' },
-              flow: flowFromEffects([{ type: 'setFlag', flag: 'repeat_presente' }, { type: 'journal', desc: 'Gustav vous serre la main. « Enchanté, on se reverra. »' }, { type: 'endDialogue' }]),
-            },
-            {
-              label: '(Reprendre la conversation)',
-              when: { kind: 'flag', expr: 'repeat_presente' },
-              flow: flowFromEffects([{ type: 'journal', desc: '« Encore vous ! Asseyez-vous. »' }, { type: 'endDialogue' }]),
-            },
-          ],
-        },
-      ],
-    },
   ],
 });
 
@@ -98,7 +78,8 @@ export const scenario: TestScenario = {
   tests:
     'Dialogue #669 : `DialogueNode.speakerId` (id d’entité de scène → portrait + nom) alterne le ' +
     'locuteur d’un nœud à l’autre — Gustav (session, `interactEntity`) → Isolde → Phillipe → Gustav ; ' +
-    'ZÉRO nom en clair dans la donnée. `dlg-gustav-repeat` illustre le patron de reprise (`when` sur flag).',
+    'ZÉRO nom en clair dans la donnée. Reparler à Gustav après la tablée : reprise par `when` sur flag ' +
+    'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
   makeParty: () => pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
   scene: auberge,

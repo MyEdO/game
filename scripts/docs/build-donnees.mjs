@@ -413,7 +413,7 @@ out += [
   "`DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.",
   "",
   "Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à",
-  "`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les quatre defs de projet partagent",
+  "`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les defs de projet partagent",
   "le même `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`), composé des formes de scène",
   "(`scene.ts`), de carte du monde (`worldmap.ts`) et du bloc narratif (`narratif.ts`).",
   "",

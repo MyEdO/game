@@ -242,7 +242,7 @@ export function CodexRef({
   }, [pinned, unpin, wrap]);
   // Une couche ouverte AU-DESSUS (modale, panneau-paramètre) recouvre la surface : le popover, qui
   // n'était qu'une infobulle posée sur l'écran d'en dessous, se retire au lieu de rester dessous.
-  useDismissLayer('popover-codex', congedier, pinned || !!pos, congedier);
+  useDismissLayer('popover-codex', 'popover', congedier, pinned || !!pos, congedier);
 
   useEffect(() => {
     if (!pinned && !pos) return;

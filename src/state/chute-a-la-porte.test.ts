@@ -553,7 +553,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
     });
     useGame.getState().chooseDialogue(0);
     expect(useGame.getState().pendingCascade, 'le saut a ouvert son dé de chute').not.toBeNull();
@@ -577,7 +577,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
-      dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
     });
     useGame.getState().chooseDialogue(0);
     expect(useGame.getState().gameTime, 'l’horloge attend le dé').toBe(1000);
@@ -619,7 +619,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
     });
     useGame.getState().chooseDialogue(0);
     poseLeDe(8);
@@ -651,7 +651,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
     });
     useGame.getState().chooseDialogue(0);
     poseLeDe(8);

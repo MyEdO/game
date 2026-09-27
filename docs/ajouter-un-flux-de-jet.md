@@ -176,4 +176,4 @@ liste est LUE dans la garde, jamais recopiée ici :
 
 `npm run typecheck` après tout ajout : le type dérivé de `FLOW_VERBS` casse immédiatement si le
 registre et les handlers divergent.
-<!-- sources-empreinte: f0aa6fc7458025a503145b12ffe91f83a109e49f (14 fichiers, 0 dossiers) corps: 4711c3823e317c0aa03f21b8c3c71bcc0ae98048 -->
+<!-- sources-empreinte: d56f863634ee1cae93b03d5b6c03882647bff827 (14 fichiers, 0 dossiers) corps: 4711c3823e317c0aa03f21b8c3c71bcc0ae98048 -->

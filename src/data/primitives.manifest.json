@@ -1068,5 +1068,23 @@
     "concept": "couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent",
     "perimetre": "composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche)",
     "verrou": "composeRig-peau-tete.test.ts, palettes-declarees.test.ts"
+  },
+  {
+    "id": "reponsesDuNoeud",
+    "type": "primitives.manifest",
+    "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
+    "fichier": "src/state/dialogue.ts",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
+    "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
+  },
+  {
+    "id": "surfaceTientLaMain",
+    "type": "primitives.manifest",
+    "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
+    "fichier": "src/state/modalArbiter.ts",
+    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modalKindsOpen)",
+    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
+    "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
   }
 ]
