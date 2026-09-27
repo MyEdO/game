@@ -151,7 +151,6 @@
     "src/ui/editor/JsonField.tsx",
     "src/ui/editor/LayerField.tsx",
     "src/ui/editor/LogicDock.tsx",
-    "src/ui/editor/MonsterPartsFields.tsx",
     "src/ui/editor/NarratifEditor.tsx",
     "src/ui/editor/OptionalTraitsPicker.tsx",
     "src/ui/editor/Palette.tsx",
