@@ -17,12 +17,15 @@ import {
   talentMaxReached,
   heldArcaneDomains,
   arcaneDomainCap,
-  arcaneDomainGate,
+  refusDApprentissage,
+  libelleDuRefus,
+  acquerirTalent,
   wildcardSpecs,
   parseAdvancement,
   prisParLesAutres,
 } from './careerSlots';
-import { CareerLevelData, levelsForCareer, specLabel } from '../data';
+import { CareerLevelData, levelsForCareer, specLabel, species, careers, talents as talentsData, type AdvancementRef } from '../data';
+import { schema as talentsSchema } from '../data/schemas/defs/talents';
 
 /** Fixtures : libellés d'avancement → `AdvancementRef[]` (la donnée est structurée). */
 const A = (xs: string[]) => xs.map(parseAdvancement);
@@ -290,15 +293,17 @@ describe('Domaines magiques multiples (Talent Magie des Arcanes — VDM 02 l.190
     expect(arcaneDomainCap(elf)).toBe(4); // Bonus FM 42 → 4
   });
 
+  const domaine = (spec: string) => ({ id: 'magie-des-arcanes', spec });
+
   it('1er Domaine non sombre : toujours autorisé (aucun plafond franchi)', () => {
-    expect(arcaneDomainGate(hero(), 'feu').ok).toBe(true);
+    expect(refusDApprentissage(hero(), domaine('feu'))).toBeNull();
   });
 
   it('REFUSÉ : un lanceur non-elfe ne peut pas apprendre un 2e Domaine non sombre (plafond 1)', () => {
     const h = hero({ talents: [domainTalent('feu')] });
-    const gate = arcaneDomainGate(h, 'metal');
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toMatch(/plafond/);
+    const refus = refusDApprentissage(h, domaine('metal'));
+    expect(refus).toEqual({ kind: 'plafondDeDomaines', plafond: 1 });
+    expect(libelleDuRefus(refus!)).toMatch(/plafond/);
   });
 
   it('REFUSÉ : un lanceur elfe sous le plafond mais Domaine précédent pas assez maîtrisé', () => {
@@ -308,9 +313,9 @@ describe('Domaines magiques multiples (Talent Magie des Arcanes — VDM 02 l.190
       talents: [domainTalent('feu')],
       skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 5 }],
     });
-    const gate = arcaneDomainGate(h, 'metal');
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toMatch(/Domaine précédent.*Feu.*5\/20.*0\/8/);
+    const refus = refusDApprentissage(h, domaine('metal'));
+    expect(refus).toEqual({ kind: 'domainePrecedent', domaine: 'feu', augmentations: 5, sorts: 0 });
+    expect(libelleDuRefus(refus!)).toMatch(/Domaine précédent.*Feu.*5\/20.*0\/8/);
   });
 
   it('AUTORISÉ : le même lanceur elfe, Domaine précédent MAÎTRISÉ (20 Améliorations Focalisation + 8 Sorts)', () => {
@@ -321,30 +326,30 @@ describe('Domaines magiques multiples (Talent Magie des Arcanes — VDM 02 l.190
       skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 20 }],
       spells: FEU_SPELLS,
     });
-    expect(arcaneDomainGate(h, 'metal').ok).toBe(true);
+    expect(refusDApprentissage(h, domaine('metal'))).toBeNull();
   });
 
   it('Domaine sombre : autorisé EN PLUS d\'un Domaine non sombre, même hors carrière elfe (l.192)', () => {
     const h = hero({ talents: [domainTalent('feu')] });
-    expect(arcaneDomainGate(h, 'necromancie').ok).toBe(true);
+    expect(refusDApprentissage(h, domaine('necromancie'))).toBeNull();
   });
 
   it('REFUSÉ : un Domaine sombre ne peut pas être le PREMIER Domaine appris (LDB 46 l.177 : « en plus d\'un autre Domaine »)', () => {
-    const gate = arcaneDomainGate(hero(), 'necromancie');
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toMatch(/en plus d.un autre Domaine/);
+    const refus = refusDApprentissage(hero(), domaine('necromancie'));
+    expect(refus).toEqual({ kind: 'domaineSombreSansDomaine' });
+    expect(libelleDuRefus(refus!)).toMatch(/en plus d.un autre Domaine/);
   });
 
   it('REFUSÉ : un 2e Domaine sombre (un seul autorisé)', () => {
     const h = hero({ talents: [domainTalent('necromancie')] });
-    const gate = arcaneDomainGate(h, 'demonologie');
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toMatch(/sombre/);
+    const refus = refusDApprentissage(h, domaine('demonologie'));
+    expect(refus).toEqual({ kind: 'domaineSombreUnique' });
+    expect(libelleDuRefus(refus!)).toMatch(/sombre/);
   });
 
-  it('Domaine déjà possédé : toujours autorisé (relève de talentMaxReached, pas de ce gate)', () => {
+  it('Domaine déjà possédé : refusé par le Maxi par Domaine (LDB 10 l.18, LDB 46 l.177)', () => {
     const h = hero({ talents: [domainTalent('feu')] });
-    expect(arcaneDomainGate(h, 'feu').ok).toBe(true);
+    expect(refusDApprentissage(h, domaine('feu'))).toEqual({ kind: 'maxi' });
   });
 });
 
@@ -373,5 +378,47 @@ describe('portée de l\'exclusion : les emplacements du MÊME niveau (LDB 05 l.5
     const glad = skillSlots(levelsForCareer('gladiateur'), 1);
     const joker1 = glad.find((s) => s.needsChoice)!;
     expect(designateSlot(hero({ career: 'gladiateur', careerSlotChoices: {} }), 'gladiateur', joker1, 'corps-a-corps', 'bagarre', glad).ok).toBe(false);
+  });
+});
+
+describe('Exclusions d\'apprentissage (`TalentData.exclusion` — LDB 10 l.625, l.696-698)', () => {
+  const porteurDe = (...ids: string[]) => hero({ talents: ids.map((talentId) => ({ talentId, times: 1 })) });
+
+  it.each([
+    ['beni', 'magie-des-arcanes'],
+    ['invocation', 'magie-des-arcanes'],
+    ['magie-mineure', 'invocation'],
+    ['magie-des-arcanes', 'invocation'],
+  ])('%s : refusé au porteur de %s, accepté sans lui', (appris, possede) => {
+    expect(refusDApprentissage(porteurDe(possede), { id: appris })).toEqual({ kind: 'exclusion' });
+    expect(refusDApprentissage(porteurDe(), { id: appris })).toBeNull();
+  });
+
+  it('un OCTROI (mutation, op, signe astral) passe outre : `acquerirTalent` ne lit que le Maxi', () => {
+    const h = porteurDe('magie-des-arcanes');
+    expect(acquerirTalent(h, { id: 'beni', spec: 'sigmar' })).toBe(true);
+  });
+
+  it('création (LDB 05 l.535) : aucune espèce ni aucun Niveau 1 de carrière ne réunit un Talent et celui qui l\'exclut', () => {
+    const idsDe = (refs: AdvancementRef[]): string[] => refs.flatMap((r) => ('id' in r ? [r.id] : 'of' in r ? idsDe(r.of) : []));
+    const conflits: string[] = [];
+    for (const sp of species) {
+      for (const c of careers) {
+        const n1 = levelsForCareer(c.id).find((l) => l.level === 1);
+        const ids = [...new Set([...idsDe(sp.talents), ...idsDe(n1?.talents ?? [])])];
+        for (const appris of ids) for (const possede of ids) {
+          if (appris !== possede && refusDApprentissage(porteurDe(possede), { id: appris })?.kind === 'exclusion') conflits.push(`${sp.id}/${c.id} : ${appris} exclu par ${possede}`);
+        }
+      }
+    }
+    expect(conflits).toEqual([]);
+  });
+
+  it('le parse refuse une exclusion qui lit autre chose que les Talents du porteur', () => {
+    const beni = structuredClone(talentsData.find((t) => t.id === 'beni')!);
+    beni.exclusion = { ...beni.exclusion!, when: { kind: 'has', who: 'target', what: 'trait', value: 'x' } };
+    const r = talentsSchema.safeParse([beni]);
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.message).join('\n')).toMatch(/contexte d'apprentissage/);
   });
 });

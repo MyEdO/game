@@ -26,8 +26,9 @@ import {
   refKey,
   parseRefKey,
   talentAcquisitions,
-  talentMaxReached,
+  refusDApprentissage,
   wildcardSpecs,
+  type RefusDApprentissage,
 } from '../engine/careerSlots';
 import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../engine/talentEffects';
 import { rule } from '../engine/policy';
@@ -82,11 +83,12 @@ export interface TalentSlotRow {
   times: number;
   /** Coût de la prochaine acquisition (`talentAcquisitions`) ; slot à choix non désigné : le moindre de ses options. */
   nextCost: number;
-  /** Slot à choix non désigné : au Maxi quand TOUTES ses options le sont. */
-  maxReached: boolean;
+  /** Refus d'apprentissage (`refusDApprentissage`) ; slot à choix non désigné : celui de sa première
+   *  option quand TOUTES ses options sont refusées. */
+  refus: RefusDApprentissage | null;
   /** Slot à choix non désigné : options proposées — `refKey` = clé de câblage OPAQUE id+spec (produite
    *  par `careerSlots.refKey`, jamais un libellé), `display` = texte montré (résolu via `refLabel`). */
-  options?: { refKey: string; display: string; owned: boolean; nextCost: number; maxReached: boolean }[];
+  options?: { refKey: string; display: string; owned: boolean; nextCost: number; refus: RefusDApprentissage | null }[];
 }
 export interface CareerTarget {
   career: string;
@@ -190,7 +192,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
       // Match de l'entité possédée par id+spec — le libellé (`refLabel`) reste l'AFFICHAGE seul.
       const label = refLabel('talents', ref);
       const times = hero.talents.find((t) => t.talentId === ref!.id && (t.spec ?? '') === (ref!.spec ?? ''))?.times ?? 0;
-      return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, ref.id, ref.spec)), maxReached: talentMaxReached(hero, ref.id, ref.spec) };
+      return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, ref.id, ref.spec)), refus: refusDApprentissage(hero, ref) };
     }
     // Slot à choix non désigné : proposer les options concrètes que son niveau ne tient pas.
     const options: NonNullable<TalentSlotRow['options']> = [];
@@ -205,14 +207,14 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
           display: refLabel('talents', { id: o.optionId, spec }),
           owned: (hero.talents.find((t) => t.talentId === o.optionId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0) > 0,
           nextCost: talentCost(talentAcquisitions(hero, o.optionId, spec)),
-          maxReached: talentMaxReached(hero, o.optionId, spec),
+          refus: refusDApprentissage(hero, { id: o.optionId, spec }),
         });
       }
     }
     return {
       slotKey: slot.key, entry: slot.entry, times: 0, options,
       nextCost: options.length ? Math.min(...options.map((o) => o.nextCost)) : talentCost(0),
-      maxReached: options.length > 0 && options.every((o) => o.maxReached),
+      refus: options.every((o) => o.refus) ? options[0]?.refus ?? null : null,
     };
   });
   // Talents AJOUTÉS à la carrière (`talentsAjoutesALaCarriere`, la définition que lit l'achat) : apprenables
@@ -222,7 +224,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
     if (talents.some((r) => (r.talentId === add.id && (r.spec ?? '') === (add.spec ?? '')) || r.options?.some((o) => o.refKey === rk))) continue;
     const label = refLabel('talents', add);
     const times = hero.talents.find((t) => t.talentId === add.id && (t.spec ?? '') === (add.spec ?? ''))?.times ?? 0;
-    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, add.id, add.spec)), maxReached: talentMaxReached(hero, add.id, add.spec) });
+    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, add.id, add.spec)), refus: refusDApprentissage(hero, add) });
   }
 
   const completed = cur

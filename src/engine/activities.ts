@@ -29,7 +29,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
 import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, refusDApprentissage, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
@@ -936,9 +936,9 @@ export interface LearnOption {
 
 /** Talents apprenables par Apprentissage particulier : « apprendre un Talent en dehors de
  *  votre Carrière » (ch.23 l.59) → exclut les talents offerts par la Carrière courante
- *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (`talentMaxReached`), et
+ *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux que `refusDApprentissage` refuse, et
  *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
- *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
+ *  ne produirait pas l'identité `(talentId, spec)` que lit `refusDApprentissage` (`careerSlots.ts`). */
 export function learnableTalents(hero: Combatant): LearnOption[] {
   const levels = levelsForCareer(hero.career ?? '');
   const slots = talentSlotsUpTo(levels, hero.careerLevel ?? 1);
@@ -947,7 +947,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
     .filter((t) => {
       if (specCatalogOf(t).length > 0) return false; // pas de sélecteur de spec dans ce catalogue
       if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return false; // de carrière → Avancement
-      if (talentMaxReached(hero, t.id)) return false;
+      if (refusDApprentissage(hero, { id: t.id })) return false;
       return true;
     })
     .map((t) => {

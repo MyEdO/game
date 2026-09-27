@@ -425,13 +425,21 @@ function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
  *  groupe, contexte de résolution d'une touche) est absent de ce contexte. */
 export const SUJETS_DE_VERROU = new Set(['always', 'compare', 'capability', 'has', 'relation', 'casterChaosDomain', 'visiblePassive'] as const);
 
-/** Les `kind` d'une Condition de verrou que le contexte ne garantit pas (récursif sur `all`/`any`/`not`). */
-export function sujetsNonGarantis(cond: unknown): string[] {
+const estSujetDeVerrou = (feuille: Record<string, unknown>): boolean => (SUJETS_DE_VERROU as ReadonlySet<unknown>).has(feuille.kind);
+
+/** Feuille qu'un contexte d'APPRENTISSAGE garantit (`conditionApprentissageCtx`, engine/actorView.ts) :
+ *  la possession d'un Talent (`has`, `what: 'talent'`), seule appartenance que porte un personnage
+ *  en création. */
+export const estSujetDApprentissage = (feuille: Record<string, unknown>): boolean => feuille.kind === 'has' && feuille.what === 'talent';
+
+/** Les `kind` d'une Condition que son contexte ne garantit pas (récursif sur `all`/`any`/`not`) ;
+ *  `garantit` juge une feuille — défaut : le contexte de VERROU (`SUJETS_DE_VERROU`). */
+export function sujetsNonGarantis(cond: unknown, garantit: (feuille: Record<string, unknown>) => boolean = estSujetDeVerrou): string[] {
   if (!cond || typeof cond !== 'object') return [];
   const c = cond as Record<string, unknown>;
-  if (c.kind === 'all' || c.kind === 'any') return (Array.isArray(c.of) ? c.of : []).flatMap(sujetsNonGarantis);
-  if (c.kind === 'not') return sujetsNonGarantis(c.of);
-  return typeof c.kind === 'string' && !(SUJETS_DE_VERROU as ReadonlySet<string>).has(c.kind) ? [c.kind] : [];
+  if (c.kind === 'all' || c.kind === 'any') return (Array.isArray(c.of) ? c.of : []).flatMap((x) => sujetsNonGarantis(x, garantit));
+  if (c.kind === 'not') return sujetsNonGarantis(c.of, garantit);
+  return typeof c.kind === 'string' && !garantit(c) ? [c.kind] : [];
 }
 
 

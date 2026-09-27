@@ -4,11 +4,11 @@
  * (`ChoixDeCreation`) sont AUTHORÉS (#421) ; tout choix absent (Caractéristiques, Compétences, Talents
  * aléatoires, équipement de classe+carrière, Bénédictions du Talent Béni…) suit la recette RAW
  * normale, seedée pour la reproductibilité (zéro savescum). La Richesse initiale (LDB 05 l.578-583,
- * `rollInitialWealth`) n'est PAS produite par `createHero` (créditée au groupe par l'appelant) —
+ * `bourseDeCreation`) n'est PAS produite par `createHero` (créditée au groupe par l'appelant) —
  * exposée séparément par `makePregensWithWealth`.
  *
  * `src/data` ne doit JAMAIS importer `src/ui` (inversion de couche, #421 REDO) : ce module ne
- * consomme QUE des primitives `engine` (`createHero`, `rollInitialWealth`, `pettySpellQuotaFor`,
+ * consomme QUE des primitives `engine` (`createHero`, `bourseDeCreation`, `pettySpellQuotaFor`,
  * `fillPettySpellsToQuota`), jamais `ui/creator`.
  *
  * Les DÉFINITIONS (espèce/carrière/seed/talent/sorts…) vivent dans `pregens.json` (éditable, comme
@@ -17,9 +17,9 @@
  */
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
-import { createHero, fluxDeCreation, type ChoixDeCreation } from '../engine/character';
+import { createHero, bourseDeCreation, type ChoixDeCreation } from '../engine/character';
 import type { ChoixDesPretires } from './schemas/defs/pregens';
-import { rollInitialWealth, parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
+import { parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
 import { levelsForCareer, pregens } from './index';
 import type { Sexe } from './schemas/grammaire/valeurs';
 
@@ -74,9 +74,8 @@ function buildPregenHero(d: PregenDef): Combatant {
   return hero;
 }
 
-/** Fabrique tous les pré-tirés + leur Richesse initiale (LDB 05 l.578, tirée par
- *  `rollInitialWealth` — même formule et même flux, `fluxDeCreation(seed, 'bourse')`, que le créateur). Résilient : un pré-tiré fautif est ignoré
- *  plutôt que de faire planter l'écran. */
+/** Fabrique tous les pré-tirés + leur Richesse initiale (LDB 05 l.578, `bourseDeCreation`, le jet du
+ *  créateur). Résilient : un pré-tiré fautif est ignoré plutôt que de faire planter l'écran. */
 export function makePregensWithWealth(): { hero: Combatant; wealth: Money }[] {
   const out: { hero: Combatant; wealth: Money }[] = [];
   for (const d of pregens) {
@@ -85,7 +84,7 @@ export function makePregensWithWealth(): { hero: Combatant; wealth: Money }[] {
       const level = levelsForCareer(d.career).find((l) => l.level === 1);
       if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
       const status = parseStatus(level.status);
-      const wealth = rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
+      const { wealth } = bourseDeCreation(d.seed, status);
       out.push({ hero, wealth });
     } catch (e) {
       console.error(`Pré-tiré « ${d.label} » ignoré :`, e);

@@ -429,6 +429,19 @@
     "desc": "Vous êtes protégé par l'un des dieux et vous pouvez intensifier le pouvoir de simples Prières. Vous pouvez à présent utiliser les Bénédictions de votre divinité listées au Chapitre 7 : Religions et Croyances. Dans des conditions normales, vous ne pouvez connaître qu'un seul Savoir divin pour le Talent Béni.",
     "specsSource": "cultBlessings",
     "grantSpecGroups": true,
+    "exclusion": {
+      "when": {
+        "kind": "has",
+        "who": "target",
+        "what": "talent",
+        "value": "magie-des-arcanes"
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 140,
+        "note": "LDB 10 l.696"
+      }
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2692,6 +2705,19 @@
     "test": null,
     "desc": "Vous êtes béni par l'un des dieux, et pouvez donc effectuer l'un des Miracles de votre culte. De plus, vous pouvez acheter des Miracles supplémentaires pour 100 PX par Miracle que vous connaissez actuellement. Donc, si vous connaissez déjà 3 Miracles, votre prochain Miracle vous coûtera 300 PX. Les règles complètes sur l'apprentissage de nouveaux Miracles se trouvent au Chapitre 7 : Religions et Croyances. Dans des conditions normales, vous ne pouvez pas apprendre plus d'un Talent Invocation (Savoir divin). De plus, vous ne pouvez pas apprendre les Talents Magie mineure ou Magie des Arcanes quand vous possédez le Talent Invocation. Vous pouvez désapprendre ce Talent pour 100 PX, mais vous perdrez tous vos Miracles si vous le faites, et vous encourrez l'extrême défaveur de votre Dieu, dont les effets sont déterminés par le MJ.",
     "specsSource": "cultMiracles",
+    "exclusion": {
+      "when": {
+        "kind": "has",
+        "who": "target",
+        "what": "talent",
+        "value": "magie-des-arcanes"
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 140,
+        "note": "LDB 10 l.698"
+      }
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2908,6 +2934,19 @@
     "specsSource": "arcaneDomains",
     "grantsArcaneDomain": true,
     "desc": "Vous connaissez l'un des huit Domaines de Magie – Bête, Cieux, Mort, Feu, Métal, Ombres, Lumière ou Vie –, ou pratiquez un Savoir moins connu, comme la Magie naturelle ou la Nécromancie. Vous pouvez à présent mémoriser des Sorts du Domaine choisi pour le prix en PX suivant.\n\n| Nbre de Sorts actuellement connus | Coût en PX pour un nouveau sort |\n| --- | --- |\n| Bonus d'Intelligence x 1 | 100 PX |\n| Bonus d'Intelligence x 2 | 200 PX |\n| Bonus d'Intelligence x 3 | 300 PX |\n| Bonus d'Intelligence x 4 | 400 PX |\n| ... et ainsi de suite. |  |\n\nDonc, si votre Bonus d'Intelligence est de 4, les 4 premiers Sorts vous coûteront 100 PX chacun, puis 200 PX pour les 4 suivants, et ainsi de suite. Les règles complètes sur l'apprentissage de nouveaux Sorts se trouvent dans le Chapitre 8 : Magie. Dans des conditions normales, vous ne pouvez pas apprendre plus d'un Talent Magie des Arcanes (Domaine). De plus, vous ne pouvez pas apprendre les Talents Béni ou Invocation quand vous possédez le Talent Magie des Arcanes. Vous pouvez désapprendre ce Talent pour 100 PX, mais si vous le faites, vous perdez immédiatement tous vos Sorts.",
+    "exclusion": {
+      "when": {
+        "kind": "has",
+        "who": "target",
+        "what": "talent",
+        "value": "invocation"
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 139,
+        "note": "LDB 10 l.625"
+      }
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2943,6 +2982,19 @@
     "test": null,
     "desc": "Vous portez en vous l'étincelle de la magie et maîtrisez les techniques pour la contrôler au niveau le plus élémentaire. Quand vous prenez ce Talent, vous pratiquez, et mémorisez de façon permanente, un nombre de Sorts égal à votre Bonus de Force Mentale. Vous pouvez apprendre des Sorts de Magie mineure supplémentaires pour le prix en PX suivant.\n\n| Nombre de Sorts connus actuels | Coût en PX pour un nouveau sort supplémentaire |\n| --- | --- |\n| Jusqu'à Bonus FM x 1 | 50 PX |\n| Jusqu'à Bonus FM x 2 | 100 PX |\n| Jusqu'à Bonus FM x 3 | 150 PX |\n| Jusqu'à Bonus FM x 4 | 200 PX |\n| ... et ainsi de suite. |  |\n\nDonc, si votre Bonus de Force Mentale est de 3 et que vous disposez déjà de 3 Sorts mineurs, il vous en coûtera 50 PX pour le premier, puis 100 PX pour les 3 suivants, et ainsi de suite. Les règles complètes pour l'apprentissage de nouveaux Sorts se trouvent au Chapitre 8 : Magie.",
     "specs": [],
+    "exclusion": {
+      "when": {
+        "kind": "has",
+        "who": "target",
+        "what": "talent",
+        "value": "invocation"
+      },
+      "source": {
+        "book": "livre-de-base",
+        "page": 139,
+        "note": "LDB 10 l.625"
+      }
+    },
     "rand": null,
     "source": {
       "book": "livre-de-base",

@@ -201,17 +201,22 @@ describe('Richesse initiale (LDB 05 l.578-583)', () => {
     expect(parseStatus('Or 7')).toEqual({ tier: 'Or', standing: 7 });
     expect(parseStatus('Agent 1')).toEqual({ tier: 'Argent', standing: 1 });
   });
-  it('Bronze N : 2N d10 sous ; Argent N : N d10 pistoles ; Or N : N CO ; Standing 0 : rien', () => {
+  it('Bronze 3 : 6d10 sous ; Argent 3 : 3d10 pistoles ; Or 3 : 3 CO ; Standing 0 : rien (LDB 05 l.578, l.580)', () => {
+    const somme = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
     const bronze = rollInitialWealth({ tier: 'Bronze', standing: 3 }, makeRNG(1));
-    expect(bronze.gold).toBe(0);
-    expect(bronze.silver).toBe(0);
-    expect(bronze.brass).toBeGreaterThanOrEqual(6); // 6d10
-    expect(bronze.brass).toBeLessThanOrEqual(60);
+    expect(bronze.dice).toHaveLength(6);
+    expect(bronze.wealth).toEqual({ gold: 0, silver: 0, brass: somme(bronze.dice) });
     const silver = rollInitialWealth({ tier: 'Argent', standing: 3 }, makeRNG(1));
-    expect(silver.silver).toBeGreaterThanOrEqual(3);
-    expect(silver.silver).toBeLessThanOrEqual(30);
-    expect(rollInitialWealth({ tier: 'Or', standing: 3 }, makeRNG(1))).toEqual({ gold: 3, silver: 0, brass: 0 });
-    expect(rollInitialWealth({ tier: 'Bronze', standing: 0 }, makeRNG(1))).toEqual({ gold: 0, silver: 0, brass: 0 });
+    expect(silver.dice).toHaveLength(3);
+    expect(silver.wealth).toEqual({ gold: 0, silver: somme(silver.dice), brass: 0 });
+    for (const face of [...bronze.dice, ...silver.dice]) expect(face >= 1 && face <= 10).toBe(true);
+    expect(rollInitialWealth({ tier: 'Or', standing: 3 }, makeRNG(1))).toEqual({ wealth: { gold: 3, silver: 0, brass: 0 }, dice: [] });
+    expect(rollInitialWealth({ tier: 'Bronze', standing: 0 }, makeRNG(1))).toEqual({ wealth: { gold: 0, silver: 0, brass: 0 }, dice: [] });
+  });
+  it('les faces sont celles du flux, dans son ordre : un seul jet (LDB 05 l.578)', () => {
+    const rng = makeRNG(7);
+    const attendues = Array.from({ length: 4 }, () => rng.int(1, 10));
+    expect(rollInitialWealth({ tier: 'Bronze', standing: 2 }, makeRNG(7)).dice).toEqual(attendues);
   });
 });
 

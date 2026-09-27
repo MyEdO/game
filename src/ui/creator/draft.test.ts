@@ -13,6 +13,7 @@ import {
   charsXp,
   xpTotal,
   charRolls,
+  charRollPairs,
   draftChars,
   speciesTalentRandomCount,
   speciesTalentRandomDrawn,
@@ -41,9 +42,10 @@ import {
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
-import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
+import { pettySpellQuota, probeHero, draftFromHero, careerTalentOptions, careerTalentMessage, type CreatorDraft } from './draft';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
-import { adresseDeCreation, speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
+import { adresseDeCreation, speciesSkillDefaults, designer, createHero, resolveSpeciesTalents, rollCharacteristics, fluxDeCreation } from '../../engine/character';
+import { parseStatus } from '../../engine/creation';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
@@ -402,9 +404,30 @@ describe('buildHero — bout en bout', () => {
     const draftSum = CHAR_KEYS.reduce((a, k) => a + draftChars(d)[k], 0);
     expect(sum).toBeGreaterThanOrEqual(draftSum + 5); // + 5 Augmentations (+ éventuels +5 de talents)
   });
-  it('la richesse initiale est figée et conforme au Statut', () => {
+  it('la richesse initiale est figée, conforme au Statut, et ses faces sont celles du même jet (LDB 05 l.578)', () => {
     const d = readyDraft();
     expect(draftWealth(d)).toEqual(draftWealth(d));
+    const { wealth, dice } = draftWealth(d);
+    const { tier, standing } = parseStatus(draftLevel(d)!.status);
+    const somme = dice.reduce((a, b) => a + b, 0);
+    if (tier === 'Bronze') expect([wealth, dice.length]).toEqual([{ gold: 0, silver: 0, brass: somme }, 2 * standing]);
+    else if (tier === 'Argent') expect([wealth, dice.length]).toEqual([{ gold: 0, silver: somme, brass: 0 }, standing]);
+    else expect([wealth, dice.length]).toEqual([{ gold: standing, silver: 0, brass: 0 }, 0]);
+  });
+  it('un Talent tiré non découvert ne se trahit pas au Talent de carrière (#393 ; graine 1, Cavalier : Réflexes foudroyants)', () => {
+    const d = withCareer(withSpecies(newDraft(1), 'humains-reiklander'), 'cavalier');
+    const reflexes = (x: CreatorDraft) => careerTalentOptions(x).find((o) => o.selected?.id === 'reflexes-foudroyants')!;
+    const cache = { ...d, talentsRolled: false };
+    expect(reflexes(cache).refus).toBeNull();
+    expect(careerTalentMessage({ ...cache, careerTalent: { id: 'reflexes-foudroyants' } })).toBeNull();
+    expect(reflexes({ ...d, talentsRolled: true }).refus).toEqual({ kind: 'maxi' });
+  });
+  it('les dix 2d10 du brouillon sont ceux de `createHero` (LDB 05 l.337)', () => {
+    const d = readyDraft();
+    const sp = draftSpecies(d)!;
+    const pairs = charRollPairs({ ...d, charRerolls: 0 });
+    const chars = rollCharacteristics(sp, fluxDeCreation(d.seed, 'caracteristiques', 0));
+    CHAR_KEYS.forEach((k, i) => expect(chars[k]).toBe((sp.baseChar[k] ?? 20) + pairs[i][0] + pairs[i][1]));
   });
   it('careerSkillEntries : les huit Compétences de départ du Niveau (LDB 05 l.535)', () => {
     const d = readyDraft();

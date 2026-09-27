@@ -10,7 +10,7 @@
  *     carrière, 40 augmentations (max 10), 1 Talent de carrière — qui peut être un talent
  *     d'espèce déjà possédé → times 2 (l.535, LDB 10 l.9), dans la limite du Maxi (LDB 10).
  *  5) Possessions : équipement de classe + de carrière (la Richesse initiale est créditée au
- *     groupe par l'appelant — cf. engine/creation.rollInitialWealth).
+ *     groupe par l'appelant — cf. `bourseDeCreation`).
  *  6) Détails : âge/taille/yeux/cheveux/ambitions (cosmétique).
  *  Blessures (+ Dur à cuire), Mouvement (+ Véloce), Chance/Détermination (Chanceux/Obstiné) et
  *  « +5 Caractéristique de départ » appliqués via engine/talentEffects.
@@ -18,7 +18,7 @@
  * Choix et Spécialisations en ids (`ChoixDeCreation`) ; les emplacements de carrière utilisés sont
  * DÉSIGNÉS dans `careerSlotChoices` (cf. engine/careerSlots.ts).
  */
-import { RNG, roll, fluxDerive } from './dice';
+import { RNG, d10, roll, fluxDerive } from './dice';
 import { buildInventory, recomputeLoadout, emptyArmour } from './items';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails } from './types';
@@ -39,10 +39,10 @@ import {
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
+import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, refusDApprentissage, wildcardSpecs, prisParLesAutres, acquerirTalent } from './careerSlots';
 import { resolveTrappingChoices } from './trappingChoices';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
-import { applyStarOps, pettySpellQuotaFor } from './creation';
+import { applyStarOps, pettySpellQuotaFor, rollInitialWealth, type Status } from './creation';
 import { sizeFromTalents } from './size';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
@@ -81,6 +81,11 @@ export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'car
 /** Le flux figé d'une étape de création, dérivé de la graine racine `seed` (`fluxDerive`). */
 export function fluxDeCreation(seed: number, etape: EtapeDeFlux, ...suite: readonly (string | number)[]): RNG {
   return fluxDerive(seed, etape, ...suite);
+}
+
+/** Bourse de départ d'une création (LDB 05 l.578) : `rollInitialWealth` sur le flux `bourse`. */
+export function bourseDeCreation(seed: number, status: Status): ReturnType<typeof rollInitialWealth> {
+  return rollInitialWealth(status, fluxDeCreation(seed, 'bourse'));
 }
 
 /** Clé de COMPARAISON d'une option d'une entrée « A ou B » : `refKey(id, spec)` d'un Talent, `tirage:<n>`
@@ -308,13 +313,14 @@ export interface CreateHeroOptions extends ChoixDeCreation {
 
 let heroCounter = 0;
 
+/** Les dix 2d10 des Caractéristiques (LDB 05 l.337), faces dans l'ordre de `CHAR_KEYS`. */
+export function rollCharacteristicDice(rng: RNG): [number, number][] {
+  return CHAR_KEYS.map(() => [d10(rng), d10(rng)]);
+}
+
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {
-  const chars = {} as Characteristics;
-  for (const k of CHAR_KEYS) {
-    const base = sp.baseChar[k] ?? 20;
-    chars[k] = base + roll(2, 10, rng);
-  }
-  return chars;
+  const des = rollCharacteristicDice(rng);
+  return Object.fromEntries(CHAR_KEYS.map((k, i) => [k, (sp.baseChar[k] ?? 20) + des[i][0] + des[i][1]])) as Characteristics;
 }
 
 /** Une Compétence d'espèce désignée sans spécialisation alors que son emplacement est un joker reçoit la
@@ -348,20 +354,20 @@ export function createHero(opts: CreateHeroOptions): Combatant {
 
   // 4a) Talents : Talents d'espèce + 1 Talent de carrière (LDB 05 l.535, LDB 10 l.9, Maxi respecté).
   const speciesTalents = resolveSpeciesTalents(sp, opts);
-  const acquis: PorteurDeTalents = { characteristics: chars, talents: [] };
+  const heroSoFar = { characteristics: chars, talents: [] as TalentInstance[] } as Combatant;
   const addTalentRef = (ref: RefDesignee) => {
-    acquerirTalent(acquis, ref);
+    acquerirTalent(heroSoFar, ref);
   };
   for (const t of speciesTalents) addTalentRef(t);
 
   let chosenTalent = opts.careerTalent;
   if (!chosenTalent) {
-    // Défaut : 1re entrée du Niveau dont le Maxi n'est pas atteint (les Maxi 1 déjà possédés
-    // via l'espèce sont sautés — cas Nain Lire/Écrire + Agitateur).
+    // Défaut : 1re entrée du Niveau que `refusDApprentissage` ne refuse pas (LDB 05 l.535 ; les Maxi 1
+    // déjà possédés via l'espèce sont sautés — cas Nain Lire/Écrire + Agitateur).
     for (const ref of level?.talents ?? []) {
       if (!('id' in ref)) continue;
       const candidate = designer('talent', ref);
-      if (!talentMaxReached(acquis, candidate.id, candidate.spec)) {
+      if (!refusDApprentissage(heroSoFar, candidate)) {
         chosenTalent = candidate;
         break;
       }
@@ -370,15 +376,14 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   if (chosenTalent) addTalentRef(chosenTalent);
 
   // Signe astral (ADE II 3) : effet appliqué AUX ATTRIBUTS DE DÉPART (±carac) + Talents octroyés,
-  // AVANT heroSoFar (careerSkillAdditions voit un « Maître artisan » du signe) et avant les effets
+  // AVANT les Compétences de carrière (careerSkillAdditions voit un « Maître artisan » du signe) et avant les effets
   // d'acquisition des Talents.
   if (opts.starId) applyStarOps(opts.starId, chars, (ref, k) => addTalentRef(designer('talent', ref, specChoices[adresseDeCreation.signe(k)])));
 
-  const talents: TalentInstance[] = acquis.talents ?? [];
+  const talents: TalentInstance[] = heroSoFar.talents;
 
   // 4b) Compétences de carrière : 40 Augmentations (`repartitionDeCarriere` par défaut), UNE part par
   // Compétence (LDB 05 l.535) ; un ajout de Talent est acquis sans Augmentation.
-  const heroSoFar: Combatant = { characteristics: chars, talents } as Combatant;
   const skills: SkillInstance[] = [];
   const addSkill = ({ id, spec }: RefDesignee, adv: number) => {
     const existing = skills.find((s) => s.id === id && (s.spec ?? '') === (spec ?? ''));

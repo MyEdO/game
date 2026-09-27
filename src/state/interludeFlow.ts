@@ -51,7 +51,7 @@ import { effectiveEntry } from '../engine/variants';
 import { effectiveChar } from '../engine/characteristics';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
-import { talentAcquisitions } from '../engine/careerSlots';
+import { libelleDuRefus, refusDApprentissage, talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
 import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
@@ -629,6 +629,11 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // pistoles d'argent par 100PX » ; PX + argent gatés AVANT (dépensés MÊME sur échec, cf. resolver).
     const t = opts.talentId ? findTalentById(opts.talentId) : undefined;
     if (!t) { get().log(msg('if.talentUnknown', { id: opts.talentId ?? '' })); return; }
+    const refus = refusDApprentissage(h, { id: t.id });
+    if (refus) {
+      get().log(msg('pf.refused', { name: h.label, what: refLabel('talents', { id: t.id }), reason: libelleDuRefus(refus) }));
+      return;
+    }
     const xpCost = talentCost(talentAcquisitions(h, t.id));
     if ((h.xp ?? 0) < xpCost) {
       get().log(msg('if.entrainementXpKo', { name: h.label, cost: xpCost, label: refLabel('talents', { id: t.id }) }));
@@ -871,7 +876,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const talentId = pa.talent;
       if (!talentId) return { lines: [] };
       const talentLabel = refLabel('talents', { id: talentId });
-      // Tuteur payé dans TOUS les cas — débité APRÈS les mutations de `h` (l'allocation clone le
+      // Tuteur payé sur succès comme sur échec du Test, jamais sur un refus d'apprentissage — débité APRÈS les mutations de `h` (l'allocation clone le
       // héros, capturant l'acquisition du Talent au passage).
       const payTutor = () => payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.tutorBrass ?? 0)), recipient: h.id, purpose: 'tuteur' });
       if (pa.success) {
@@ -887,8 +892,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           payTutor();
           return { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
         }
-        payTutor();
-        return { lines: [] };
+        return { lines: [msg('pf.refused', { name: h.label, what: talentLabel, reason: r.reason ?? '' })] };
       }
       h.xp = Math.max(0, (h.xp ?? 0) - (pa.xpCost ?? 0)); // PX perdus en vain (échec)
       const learnFails = { ...(st.learnFails ?? {}) };

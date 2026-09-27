@@ -26,8 +26,6 @@ import {
   designationsFor,
   freeSlotFor,
   designateSlot,
-  talentMaxReached,
-  arcaneDomainGate,
 } from '../engine/careerSlots';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
@@ -38,7 +36,7 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost } from '../engine/grimoire';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
+import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX } from './combatants';
@@ -460,7 +458,7 @@ export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey:
 
 /** Achète une Augmentation de Talent — identité (talentId, spec). In-carrière = `talentEnCarriere` : un
  *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
- *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
+ *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; refus d'apprentissage : `refusDApprentissage`, relayé par l'achat du moteur. Applique les effets d'acquisition
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
 export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
   let msg = '';
@@ -474,17 +472,6 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
       if (!status) {
         msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
         return h;
-      }
-      if (talentMaxReached(clone, talentId, spec)) {
-        msg = t('pf.talentMaxed', { name: clone.label, label: talentLabel });
-        return h;
-      }
-      if (spec != null && findTalentById(talentId)?.grantsArcaneDomain) {
-        const gate = arcaneDomainGate(clone, spec);
-        if (!gate.ok) {
-          msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: gate.reason ?? '' });
-          return h;
-        }
       }
       const fortuneBefore = fortuneMax(clone);
       const resolveBefore = resolveMax(clone);

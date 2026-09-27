@@ -61,7 +61,7 @@ seam (`ROLL_SEAM_CORE`) sont hors périmètre — leur pending EST le foyer.
 | `src/state/combatEffects.ts` | 1 | canonique | 1048 | canonique : le corps d'`openSkillTest` (combatEffects.ts:326) — LA fabrique du `pendingTest` de la famille Flow authorée, le pending y est monté UNE fois pour tous ses appelants. |
 | `src/state/combatFlow.ts` | 2 | mixte | 3371, 7983 | 1 gate de main (`pendingHandGate`, `openAttackCascade`) monté à la main -> #1064 ; 1 `PendingReload` d'ennemi construit APRÈS un `rollSansPilote` déjà scellé — canonique : objet de RENDU (journal/popin), aucun jet à ouvrir. |
 | `src/state/combatSlice.ts` | 5 | dette | 2042, 2088, 2199, 2658, 3058 | 2 `pendingReload` (pièce servie / poste de navire), 1 `pendingStateRecovery`, 1 `pendingHandGate` (2ᵉ main), 1 `pendingHeal` -> #1064 (le lot d'affichage les re-route ; 6 -> 5 : le `pendingTest` de `battleGainAdvantage` passe par `openSkillTest`). |
-| `src/state/interludeFlow.ts` | 1 | dette | 749 | `pendingActivity` du catalogue d'Activités (`openCatalogActivity`) — fabrique UNIQUE de toutes les Activités à jet d'interlude -> #1064. |
+| `src/state/interludeFlow.ts` | 1 | dette | 754 | `pendingActivity` du catalogue d'Activités (`openCatalogActivity`) — fabrique UNIQUE de toutes les Activités à jet d'interlude -> #1064. |
 | `src/state/massBattleFlow.ts` | 1 | dette | 354 | `openBattleActivity` — fabrique PARTAGÉE, atteinte par 6 call-sites (prep ×3/round ×2/resistance) -> #1067 (surfaçage massBattle). |
 | `src/state/medicFlow.ts` | 2 | dette | 176, 202 | `pendingHeal` et `pendingSurgery` du soigneur PNJ hors combat -> #1064. |
 | `src/state/merchantFlow.ts` | 1 | dette | 881 | `pendingAppraise` (Évaluation / Intuition de détection) -> #1064. |
@@ -135,7 +135,6 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 |---|---|---|---|---|
 | `src/data/mutations.ts` | 1 | dette | `deMonde` | mesuré : deMonde×1. A (`deMonde` de la table de mutation) -> #1508 T4. |
 | `src/data/obsessions.ts` | 1 | dette | `rollExpr` | mesuré : rollExpr×1. C (`rollExpr` d'une magnitude authorée) -> #1508 T5. |
-| `src/data/pregens.ts` | 1 | dette | `rollInitialWealth` | mesuré : rollInitialWealth×1. C (fortune de départ) -> #1508 T5. |
 | `src/state/activityWorldRolls.ts` | 1 | dette | `applyOps` | mesuré : applyOps×1 — celui de l'APPLIER des issues (`registerCascadeApplier(ACTIVITY_WORLD_ROLL_KIND)`), qui applique `wr.ops` une fois le seuil tombé. Le dé de MONDE lui-même passe par la porte (`worldStep`, évaluation `seuil`) et sa CIBLE se LIT sans rng (`formulaExpectation`) : AUCUN dé ne se tire ici aujourd'hui — la seule issue authorée est `statusMod` (`activities.json › mendier.worldRolls`), sans magnitude. L'entrée reste au stock parce que le détecteur compte `applyOps` comme SURFACE de dé, pas parce qu'un dé y roule. B (magnitudes d'`applyOps`) -> #1508 T2. |
 | `src/state/aiSpellValue.ts` | 1 | dette | `applyOps` | mesuré : applyOps×1. B (`applyOps` en ÉVALUATION d'IA) -> #1508 T2. |
 | `src/state/combat/roundHooks.ts` | 3 | dette | `bleedDeathRoll`, `rollTest`, `rollWindsOfMagic` | mesuré : bleedDeathRoll×1, rollTest×1, rollWindsOfMagic×1. B + Hémorragie mortelle roulée en fin de ronde -> #1508 T2/T3. |
@@ -176,10 +175,10 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 | `src/state/triggeredEffects.ts` | 1 | dette | `rollTest` | mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3. |
 | `src/state/upkeep.ts` | 3 | dette | `applyOps`, `dailyFoodUpkeep`, `dailyWaterUpkeep` | mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2. |
 | `src/state/zones.ts` | 4 | dette | `applyOps`, `resolveFormula` | mesuré : applyOps×2, resolveFormula×2. B (magnitudes d'`applyOps`/`resolveFormula` de zone) -> #1508 T2. |
-| `src/ui/creator/CharacterCreator.tsx` | 2 | dette | `generateName`, `rng.int` | mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6. |
-| `src/ui/creator/draft.ts` | 15 | dette | `resolveSpeciesTalentsDetail`, `rng.int`, `rollAge`, `rollCareer`, `rollEyes`, `rollHair`, `rollHeight`, `rollInitialWealth`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6. |
+| `src/ui/creator/CharacterCreator.tsx` | 1 | dette | `generateName` | mesuré : generateName×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6. |
+| `src/ui/creator/draft.ts` | 14 | dette | `resolveSpeciesTalentsDetail`, `rollAge`, `rollCareer`, `rollCharacteristicDice`, `rollEyes`, `rollHair`, `rollHeight`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rollAge×1, rollCharacteristicDice×1, rollEyes×1, rollHair×1, rollHeight×1, rollSpecies×1. La bourse passe par `bourseDeCreation` (engine/character), qui franchit la frontière exportée `rollInitialWealth` : hors mesure, comme `createHero` (`engineDiceRollers`) — son dé tombe toujours hors porte, ici et dans `src/data/pregens.ts`. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T5, T6. |
 
-_304 dés mesurés dans 45 fichiers, pour 121 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 304 dette._
+_301 dés mesurés dans 44 fichiers, pour 121 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 301 dette._
 
 ## Population AUTHORÉE (donnée, pas code)
 
@@ -249,4 +248,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: 4367446a1869c06e6115f456a643987936f2100c (2124 fichiers, 136 dossiers) corps: 4099a5bac260e606aede292664d1d36f216579f8 -->
+<!-- sources-empreinte: e333ddf32656d343247f1e39d82dabdfdf86689e (2124 fichiers, 136 dossiers) corps: 0ea639be7ca18391453c518a66131556d775132e -->

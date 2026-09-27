@@ -141,10 +141,60 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
     h.talents.push({ talentId: 'haine', spec: 'peaux-vertes', times: 1 });
     expect(buyTalent(h, 'haine', 'morts-vivants')).toEqual({ ok: true, cost: 200 });
   });
-  it('buyTalent : un nouveau Domaine est un nouveau Talent Magie des Arcanes (LDB 46 l.177)', () => {
+});
+
+describe('buyTalent — refus d\'apprentissage (LDB 10 l.625, l.696-698 ; LDB 46 l.177)', () => {
+  const FEU_SPELLS = ['cauteriser', 'coeurs-ardents', 'couronne-de-flammes', 'grands-feux-d-u-zhul', 'l-egide-d-aqshy', 'l-epee-ardente-de-rhuin', 'mur-de-feu', 'purification'];
+  const porteur = (...talents: [string, string?][]): Combatant => {
     const h = hero(1000);
-    h.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
+    h.talents = talents.map(([talentId, spec]) => ({ talentId, ...(spec ? { spec } : {}), times: 1 }));
+    return h;
+  };
+  const refuse = (h: Combatant, id: string, spec?: string) => {
+    const avant = structuredClone(h.talents);
+    const r = buyTalent(h, id, spec);
+    expect(r.ok, `${id}${spec ? ` (${spec})` : ''}`).toBe(false);
+    expect(h.talents).toEqual(avant);
+    expect(h.xp).toBe(1000);
+    return r.reason;
+  };
+
+  it('non-elfe : un second Domaine est refusé (LDB 10 l.696)', () => {
+    expect(refuse(porteur(['magie-des-arcanes', 'feu']), 'magie-des-arcanes', 'cieux')).toMatch(/plafond/);
+  });
+  it('elfe, Bonus de FM 4, 20 Augmentations de Focalisation (Feu) et 8 Sorts du Feu : le second Domaine est accepté (LDB 46 l.177)', () => {
+    const h = porteur(['magie-des-arcanes', 'feu']);
+    h.species = 'hauts-elfes';
+    h.characteristics['force-mentale'] = 42;
+    h.skills.push({ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 20 });
+    h.spells = FEU_SPELLS;
     expect(buyTalent(h, 'magie-des-arcanes', 'cieux')).toEqual({ ok: true, cost: 100 });
+  });
+  it('elfe dont le Domaine précédent n\'est pas maîtrisé : refusé (LDB 46 l.177)', () => {
+    const h = porteur(['magie-des-arcanes', 'feu']);
+    h.species = 'hauts-elfes';
+    h.characteristics['force-mentale'] = 42;
+    expect(refuse(h, 'magie-des-arcanes', 'cieux')).toMatch(/Domaine précédent/);
+  });
+  it('un Domaine sombre en plus d\'un autre : accepté ; un second Domaine sombre : refusé (LDB 46 l.177)', () => {
+    const h = porteur(['magie-des-arcanes', 'feu']);
+    expect(buyTalent(h, 'magie-des-arcanes', 'necromancie')).toEqual({ ok: true, cost: 100 });
+    const avant = h.xp;
+    const r = buyTalent(h, 'magie-des-arcanes', 'demonologie');
+    expect(r.ok).toBe(false);
+    expect(h.xp).toBe(avant);
+  });
+  it('Béni et Invocation sont refusés à un porteur de Magie des Arcanes (LDB 10 l.696-698)', () => {
+    expect(refuse(porteur(['magie-des-arcanes', 'feu']), 'beni', 'sigmar')).toMatch(/incompatible/);
+    expect(refuse(porteur(['magie-des-arcanes', 'feu']), 'invocation', 'sigmar')).toMatch(/incompatible/);
+  });
+  it('Magie des Arcanes et Magie mineure sont refusées à un porteur d\'Invocation (LDB 10 l.625)', () => {
+    expect(refuse(porteur(['invocation', 'sigmar']), 'magie-des-arcanes', 'feu')).toMatch(/incompatible/);
+    expect(refuse(porteur(['invocation', 'sigmar']), 'magie-mineure')).toMatch(/incompatible/);
+  });
+  it('sans Talent excluant, Béni et Magie mineure s\'apprennent', () => {
+    expect(buyTalent(porteur(), 'beni', 'sigmar').ok).toBe(true);
+    expect(buyTalent(porteur(['beni', 'sigmar']), 'magie-mineure').ok).toBe(true);
   });
 });
 

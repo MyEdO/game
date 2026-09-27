@@ -20,13 +20,11 @@
  */
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../state/combatants';
-import { Money } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
   validatePointBuy,
   parseStatus,
-  rollInitialWealth,
   rollAge,
   rollHeight,
   rollEyes,
@@ -55,11 +53,13 @@ import {
   adresseDeCreation,
   FORMAT_DES_CHOIX,
   fluxDeCreation,
+  bourseDeCreation,
+  rollCharacteristicDice,
   cleDOption,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
-import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
+import { refKey, refusDApprentissage, libelleDuRefus, talentMaxReached, acquerirTalent, type PorteurDeTalents, type RefusDApprentissage, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
@@ -353,13 +353,9 @@ export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
 }
 
 // ── 3) Caractéristiques ──
-/** Les dix jets 2d10 figés (paire RÉELLE [d10, d10], l'ordre suit CHAR_KEYS) — relancés en bloc par
- *  `charRerolls`. Tirée dé par dé (au lieu de `roll(2, 10, rng)`) pour EXPOSER chaque face physique
- *  à l'animation (`CreatorDice`/`DiceRoll`) — même séquence RNG que `roll(2, 10, rng)` (deux tirages
- *  `rng.int(1, 10)` consécutifs par Caractéristique), donc `charRolls` reste bit-à-bit identique. */
+/** Les dix jets 2d10 figés (`rollCharacteristicDice`), relancés en bloc par `charRerolls`. */
 export function charRollPairs(d: CreatorDraft): [number, number][] {
-  const rng = fluxDeCreation(d.seed, 'caracteristiques', d.charRerolls);
-  return CHAR_KEYS.map(() => [rng.int(1, 10), rng.int(1, 10)] as [number, number]);
+  return rollCharacteristicDice(fluxDeCreation(d.seed, 'caracteristiques', d.charRerolls));
 }
 export function charRolls(d: CreatorDraft): number[] {
   return charRollPairs(d).map(([a, b]) => a + b);
@@ -621,8 +617,8 @@ export function pettySpellQuota(d: CreatorDraft): number {
 }
 
 /** Refus du Talent de carrière du brouillon, ou `null` : même lecture des emplacements du Niveau 1
- *  que `createHero` (`statutOuRefus`), puis le Maxi. Un brouillon restauré passe par ici avant
- *  toute construction. */
+ *  que `createHero` (`statutOuRefus`), puis `refusDApprentissage` (LDB 05 l.535). Un brouillon restauré
+ *  passe par ici avant toute construction. */
 export function careerTalentMessage(d: CreatorDraft): string | null {
   if (!d.careerTalent) return 'Choisissez votre Talent de carrière.';
   const { id, spec } = d.careerTalent;
@@ -634,30 +630,29 @@ export function careerTalentMessage(d: CreatorDraft): string | null {
     case 'sansSpec': return `Choisissez la spécialisation de votre Talent de carrière « ${nom} ».`;
     case 'nonCouvert': return `« ${nom} » n'est proposé par aucun Talent de votre premier niveau de carrière : choisissez-en un autre.`;
   }
-  if (talentMaxReached(probeHero(d, false), id, spec)) return `« ${nom} » : Maxi déjà atteint.`;
-  return null;
+  const refus = refusDApprentissage(probeHero(d, false), d.careerTalent);
+  return refus ? `« ${nom} » : ${libelleDuRefus(refus)}.` : null;
 }
 
 /** Options du Talent de carrière (emplacements du Niveau 1) : les désignations proposées par un joker
  *  (`choices`, sinon `null`), la désignation portée par CET emplacement (`selected` : la sienne pour un
- *  emplacement fixe, le Talent de carrière qu'il couvre pour un joker) et son Maxi. */
-export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation; choices: RefDesignee[] | null; selected: RefDesignee | null; maxed: boolean }[] {
+ *  emplacement fixe, le Talent de carrière qu'il couvre pour un joker) et son refus d'apprentissage. */
+export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation; choices: RefDesignee[] | null; selected: RefDesignee | null; refus: RefusDApprentissage | null }[] {
   const probe = probeHero(d, false);
   return (draftLevel(d)?.talents ?? []).flatMap((ref) => {
     if (!('id' in ref)) return [];
     const choices = ref.choix == null ? null : poolDuJoker('talent', ref).map((spec) => ({ id: ref.id, spec }));
     const t = d.careerTalent;
     const selected = !choices ? designer('talent', ref) : t && choices.some((c) => refKey(c.id, c.spec) === refKey(t.id, t.spec)) ? t : null;
-    return [{ ref, choices, selected, maxed: !!selected && talentMaxReached(probe, selected.id, selected.spec) }];
+    return [{ ref, choices, selected, refus: selected ? refusDApprentissage(probe, selected) : null }];
   });
 }
 
 // ── 5) Possessions ──
-/** Montant de la bourse — PUR/déterministe (`d.seed`), jamais une relance (LDB 05 : un seul jet).
- *  La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI, pas ici. */
-export function draftWealth(d: CreatorDraft): Money {
-  const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  return rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
+/** Jet de la bourse du brouillon (`bourseDeCreation`) — un seul jet (LDB 05 l.578) ; la découverte
+ *  (`wealthRoll`) vit dans l'UI. */
+export function draftWealth(d: CreatorDraft): ReturnType<typeof bourseDeCreation> {
+  return bourseDeCreation(d.seed, parseStatus(draftLevel(d)?.status ?? 'Bronze 0'));
 }
 /** Pose le geste « Tirer aux dés » de la bourse — FIGÉ (aucune relance, LDB 05 l.578 n'en offre
  *  aucune) : le montant lui-même est déjà déterminé par `d.seed`, ce geste n'en découvre que

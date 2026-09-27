@@ -780,7 +780,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // peuplé (`source`) ne partage donc plus une même porte en deux buckets : la PROJECTION réunit.
       // Cliquet REMONTÉ 97 → 99 (#1473 R1) : les 2 objets `etats.json › value` sortis de la forme
       // `char+…` ci-dessus, mêmes objets, autre stock.
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 99],
+      // Cliquet REMONTÉ 99 → 100 (#1897 2e-i-2d-4b, 2026-09-27) : `talents.json › exclusion` porte sa
+      // `source` (LDB 10 l.625, l.696-698 : la règle vit dans la description d'un AUTRE Talent) — même
+      // famille que les blocs sourcés déjà stockés ici, qui tombera avec le volet #1553.
+      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 100],
       // Cliquet DESCENDU 403 → 400 (L2 #1548, commit 3c) : 5 signatures d'op portant le `spec` FRÈRE
       // s'éteignent (`bonus,op,skill,spec` de spells/tables, `blocked,op,rounds,skill`/`mod,op,rounds,skill`
       // de spells dont le `skill: "all"` disparaît au profit de l'ABSENCE) et 2 se fondent dans des
@@ -1042,7 +1045,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
       // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
       // (objet des ops / chaîne nue de 79 sites) entre, +1.
-      'L3 #1463': 372,
+      // … puis 372 → 373 (#1897 2e-i-2d-4b, 2026-09-27) : `talents.json › exclusion.when`, Condition `has`
+      // canonique à `value` nu — INSTANCE de la famille `value+…` déjà stockée (`domains.json › of`),
+      // qui s'éteint quand `conditionSchema` adopte `idDe` par `what` (#1473 L2/L3).
+      'L3 #1463': 373,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
@@ -1119,7 +1125,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 98 → 97 (#1633) — `diligence-projet.json › ouverture` sort : le concept `ouverture` de
       // la strate `Document` la classe à sa forme CIBLE, elle n'annonce plus rien qu'elle ne résolve.
       // … puis 97 → 99 (#1473 R1) — les 2 objets `etats.json › value` quittent la forme `char+…` de `L3 #1463`.
-      '#1553': 99,
+      // … puis 99 → 100 (#1897 2e-i-2d-4b) — `talents.json › exclusion` et sa `source` embarquée (même motif).
+      '#1553': 100,
     };
     expect(
       Object.keys(plafonds).sort(),

@@ -6,7 +6,7 @@
  * VERBATIM du Tableau de Coût des Augmentations (LDB 07 l.51-70) — aucune invention.
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
+import { CareerSlot, acquerirTalent, libelleDuRefus, parseRefKey, refusDApprentissage, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
@@ -88,13 +88,15 @@ export function buySkillAdvance(hero: Combatant, skillId: string, spec: string |
 
 /** Achète UNE Augmentation de Talent (le crée à `times` 1 s'il est absent, sinon +1) si les PX
  *  suffisent. Identité STABLE par `talentId` + `spec` (déjà résolus par l'appelant ; jamais un
- *  libellé). Les Talents hors carrière ne sont pas achetables (LDB 07 l.93) et le Maxi doit être respecté
- *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. Coût : LDB 07
- *  l.105, l.156, `talentAcquisitions`. */
+ *  libellé). Hors carrière (LDB 07 l.93) : vérifié par l'appelant ; refus d'apprentissage :
+ *  `refusDApprentissage`. Coût : LDB 07 l.105, l.156, `talentAcquisitions`. */
 export function buyTalent(hero: Combatant, talentId: string, spec?: string): AdvanceResult {
+  const ref = { id: talentId, spec };
   const cost = talentCost(talentAcquisitions(hero, talentId, spec));
+  const refus = refusDApprentissage(hero, ref);
+  if (refus) return { ok: false, cost, reason: libelleDuRefus(refus) };
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
-  if (!acquerirTalent(hero, { id: talentId, spec })) return { ok: false, cost, reason: t('adv.talentMax') };
+  acquerirTalent(hero, ref);
   hero.xp = (hero.xp ?? 0) - cost;
   return { ok: true, cost };
 }

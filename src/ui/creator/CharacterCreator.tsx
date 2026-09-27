@@ -55,8 +55,8 @@ import {
   DEFAULT_FABRICATION_ATOUT,
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
-import { refKey, splitLabel } from '../../engine/careerSlots';
-import { adresseDeCreation, cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { refKey, splitLabel, libelleDuRefus } from '../../engine/careerSlots';
+import { adresseDeCreation, cleDOption, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -173,7 +173,7 @@ import {
   probeHero,
   xpTotal,
 } from './draft';
-import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAllowed } from '../../engine/creation';
+import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, speciesAllowed } from '../../engine/creation';
 import { PARTY_MAX, garanti } from '../../state/combatants';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
@@ -305,7 +305,7 @@ export function CharacterCreator() {
 
   const create = () => {
     const hero = buildHero(d, editing?.heroId); // édition : on conserve l'id du héros
-    const wealth = draftWealth(d);
+    const { wealth } = draftWealth(d);
     rosterAdd({ hero, wealth, draft: d }); // roster persistant + brouillon EXACT (round-trip futur)
     if (editing) {
       // Remplacement EN PLACE (primitive atomique) : préserve l'index/ordre et transfère la
@@ -1838,9 +1838,9 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
           <Band title={<>De carrière<small>un au choix</small></>} right={<b className={d.careerTalent ? 'ok-text' : 'warn-text'}>{d.careerTalent ? 1 : 0}/1</b>}>
             {(() => {
               // Roving tabindex : seules les entrées SÉLECTIONNABLES (`selected` non nul et pas
-              // `maxed`) sont focalisables — un bouton `disabled` ne peut de toute façon pas recevoir
+              // sans `refus`) sont focalisables — un bouton `disabled` ne peut de toute façon pas recevoir
               // le focus (`.focus()` y est un no-op), le cursor roving doit donc les ignorer.
-              const enabledChoices = careerChoices.filter((c) => c.selected && !c.maxed);
+              const enabledChoices = careerChoices.filter((c) => c.selected && !c.refus);
               const activeCareerIdx = Math.max(0, enabledChoices.findIndex((c) => memeRef(c.selected, d.careerTalent)));
               const careerRef: { current: HTMLDivElement | null } = { current: null };
               const onCareerKeyDown = rovingKeyDown<HTMLDivElement>({
@@ -1853,9 +1853,9 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
               });
               return (
                 <div ref={careerRef} className="talent-options-grid" role="radiogroup" aria-label="Talent de carrière" onKeyDown={onCareerKeyDown}>
-                {careerChoices.map(({ ref, choices, selected, maxed }, n) => {
+                {careerChoices.map(({ ref, choices, selected, refus }, n) => {
                   const isSel = memeRef(selected, d.careerTalent);
-                  const enabled = !!selected && !maxed;
+                  const enabled = !!selected && !refus;
                   const enabledIdx = enabled ? enabledChoices.findIndex((c) => c.ref === ref) : -1;
                   return (
                   <div key={n} className={`talent-option ${isSel ? 'selected' : ''}`}>
@@ -1868,14 +1868,14 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                       type="button"
                       role="radio"
                       aria-checked={isSel}
-                      disabled={!selected || maxed}
+                      disabled={!selected || !!refus}
                       tabIndex={enabled ? (enabledIdx === activeCareerIdx ? 0 : -1) : undefined}
                       className="talent-option-btn"
                       onClick={() => selected && setD({ ...d, careerTalent: selected })}
                     >
                       <b>{selected ? refLabel('talents', selected) : advancementLabel('talents', ref)}</b>
-                      {maxed && <em className="hint">Maxi atteint (déjà possédé)</em>}
-                      {!maxed && selected && probe.talents.some((t) => memeRef({ id: t.talentId, spec: t.spec }, selected)) && <em className="hint">déjà possédé via la race → passera ×2</em>}
+                      {refus && <em className="hint">{libelleDuRefus(refus)}</em>}
+                      {!refus && selected && probe.talents.some((t) => memeRef({ id: t.talentId, spec: t.spec }, selected)) && <em className="hint">déjà possédé via la race → passera ×2</em>}
                       <p className="hint talent-desc">{talentTip(ref.id)}</p>
                     </button>
                     {choices && (
@@ -2032,23 +2032,11 @@ function trappingMeta(id: string): string {
 //      montant, jet figé sans dés à rejouer) / « La classe » (prose RAW verbatim). Mécanique INCHANGÉE
 //      (draftWealth/trappingChoices, draft.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
 //      arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
-/** Faces INDIVIDUELLES du jet de bourse — même flux/ordre RNG que `draftWealth`
- *  (`fluxDeCreation(d.seed, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
- *  les dés à l'écran (mock7 : faces + total) au lieu du seul total texte (retouche juge vision
- *  #393 P5). Bronze N : 2N d10 ; Argent N : N d10 ; Or (aucun dé, CO=Standing) : []. */
-function draftWealthDice(d: CreatorDraft): number[] {
-  const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  if (status.standing <= 0 || status.tier === 'Or') return [];
-  const n = status.tier === 'Bronze' ? 2 * status.standing : status.standing;
-  const rng = fluxDeCreation(d.seed, 'bourse');
-  return Array.from({ length: n }, () => d10Face(rng.int(1, 10)));
-}
-
 export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   const level = draftLevel(d);
   const career = findCareerById(d.careerId);
   const klass = findClassById(career?.class);
-  const wealth = draftWealth(d);
+  const { wealth, dice } = draftWealth(d);
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftWealth(d)));
   const careerTrappings = level?.trappings ?? []; // TrappingRef[]
   const choiceSlots = careerTrappings.filter(
@@ -2108,14 +2096,13 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
             </span>
           </button>
         ) : (
-          // Faces RÉELLES figées (draftWealthDice, même graine/ordre RNG que draftWealth) — jamais une
-          // face fabriquée ; le total est porté par la barre (`right`).
+          // Faces RÉELLES du jet (`draftWealth`) ; le total est porté par la barre (`right`).
           <>
             {/* `Row` : la bande est une COLONNE flex (ses enfants s'étirent) — le plateau doit
                 rester à la taille de ses dés, pas s'allonger en bandeau vide. */}
             <Row>
               <span className="dicewell-tray">
-                {draftWealthDice(d).map((n, i) => (
+                {dice.map(d10Face).map((n, i) => (
                   <span key={i} className="rm-die dicewell-die"><DieFace n={n} landed tone="gold" /></span>
                 ))}
               </span>
@@ -2379,7 +2366,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
             <span><Icon id="resource/movement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
             <span><Icon id="resource/fate" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
             <span><Icon id="resource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
-            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d)} /></b></span>
+            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d).wealth} /></b></span>
             <span>PX création <b>+{xpTotal(d)}</b></span>
           </div>
         </Rubrique>

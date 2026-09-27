@@ -135,16 +135,16 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
   const haineAuChoix = (times: number) =>
     buildAdvancementView(hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
       .talents.find((r) => r.options?.some((o) => o.refKey.startsWith('haine|')))!;
-  it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont au Maxi', () => {
+  it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont refusés au Maxi', () => {
     const row = haineAuChoix(3);
-    expect(row.maxReached).toBe(true);
-    expect(row.options!.filter((o) => !o.owned).every((o) => o.maxReached)).toBe(true);
+    expect(row.refus).toEqual({ kind: 'maxi' });
+    expect(row.options!.filter((o) => !o.owned).every((o) => o.refus?.kind === 'maxi')).toBe(true);
   });
   it('sous le Maxi : les groupes neufs sont achetables, au coût de la 3e acquisition', () => {
     const row = haineAuChoix(2);
-    expect(row.maxReached).toBe(false);
+    expect(row.refus).toBeNull();
     const neuf = row.options!.find((o) => o.refKey === 'haine|morts-vivants')!;
-    expect(neuf.maxReached).toBe(false);
+    expect(neuf.refus).toBeNull();
     expect(neuf.nextCost).toBe(300);
   });
 });

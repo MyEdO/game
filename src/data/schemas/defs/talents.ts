@@ -14,9 +14,9 @@
  * `min(1)` » — est PURGÉE par la migration de ce lot ; exiger `desc` ici refuserait cette entrée.
  */
 import { z } from 'zod';
-import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { charKeySchema, combatFeatureSchema, sizeCategorySchema, sourceRefSchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, estSujetDApprentissage, mecaniqueDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'talents.json';
@@ -45,6 +45,22 @@ const testMatchSchema = z.strictObject({
       message: `TestMatch « ${String((v.skill as { id?: string }).id)} (${spec}) » : « ${cle} » et « skill.spec » désignent tous deux la spécialisation — un seul régime à la fois (matchApplies, src/engine/magic.ts).`,
     });
   }
+});
+
+/** `TalentData.exclusion` : évaluée contre le contexte d'APPRENTISSAGE (`conditionApprentissageCtx`,
+ *  engine/actorView.ts), qui ne porte que les Talents du porteur — tout autre sujet serait évalué FAUX
+ *  en silence, il est refusé ici. */
+const exclusionSchema = z.strictObject({
+  when: conditionSchema.superRefine((v, ctx) => {
+    for (const kind of sujetsNonGarantis(v, estSujetDApprentissage)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Exclusion d'apprentissage : la Condition « ${kind} » lit un état que le contexte d'apprentissage ne porte pas `
+          + "(`conditionApprentissageCtx`, engine/actorView.ts — les seuls Talents du porteur, Condition `has` `what: 'talent'`).",
+      });
+    }
+  }),
+  source: sourceRefSchema,
 });
 
 const talentTestSchema = z.strictObject({
@@ -81,11 +97,14 @@ const doc = document(
     grantSpecGroups: z.literal(true).optional(),
     /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que son porteur PRATIQUE : il
      *  compte alors dans les Domaines tenus et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` et `arcaneDomainGate` (engine/careerSlots, câblé
-     *  à l'achat par `buyTalent`, state/partyFlow). Son Maxi se compte alors PAR Domaine
+     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` et `refusDApprentissage` (engine/careerSlots,
+     *  consulté par `buyTalent`, engine/advancement). Son Maxi se compte alors PAR Domaine
      *  (`talentMaxReached`, `LDB 46 l.177`). Distinct de `specsSource`, qui ne décrit que le POOL de
      *  spécialisations proposé. */
     grantsArcaneDomain: z.literal(true).optional(),
+    /** Ce Talent ne s'APPREND pas quand `when` est vraie du porteur (`refusDApprentissage`,
+     *  engine/careerSlots) ; un octroi (mutation, op, signe astral) passe outre. */
+    exclusion: exclusionSchema.optional(),
     specsOpen: z.boolean().optional(),
     rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
@@ -106,6 +125,10 @@ const doc = document(
       hint: 'La spécialisation nomme un culte dont les Groupes sont accordés au porteur',
     },
     grantsArcaneDomain: { label: 'Ouvre un Domaine arcanique' },
+    exclusion: {
+      label: 'Apprentissage exclu',
+      hint: 'Condition sur les Talents du porteur qui interdit d’apprendre celui-ci, avec sa source',
+    },
     specsOpen: { label: 'Spécialisation ouverte' },
     rand: { label: 'Seuil aléatoire (d100)' },
     effects: { label: 'Effets déclenchés' },

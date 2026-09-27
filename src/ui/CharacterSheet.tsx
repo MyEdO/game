@@ -10,7 +10,7 @@ import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
-import { refKey, parseRefKey } from '../engine/careerSlots';
+import { refKey, parseRefKey, libelleDuRefus } from '../engine/careerSlots';
 import { buildAdvancementView } from '../state/advancement';
 import { hasHealSkill, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
@@ -662,8 +662,9 @@ function SlotChoiceRow({
   onPick,
 }: {
   entry: string;
-  /** `cost` : coût propre de l'option (sinon `acquireCost`) ; `maxReached` : non achetable, désignable si possédée. */
-  options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; maxReached?: boolean }[];
+  /** `cost` : coût propre de l'option (sinon `acquireCost`) ; `refus` : texte du refus d'apprentissage —
+   *  non achetable, désignable si possédée. */
+  options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; refus?: string }[];
   acquireCost: number;
   afford: (c: number) => boolean;
   onPick: (key: string, owned: boolean) => void;
@@ -672,7 +673,7 @@ function SlotChoiceRow({
   const opt = options.find((o) => o.key === choice);
   const optCost = opt?.cost ?? acquireCost;
   const cost = opt?.owned ? 0 : optCost;
-  const bloquee = !!opt && !opt.owned && !!opt.maxReached;
+  const bloquee = !!opt && !opt.owned && !!opt.refus;
   return (
     <div className="adv-row acquire">
       <span className="adv-name">
@@ -685,7 +686,7 @@ function SlotChoiceRow({
             {o.display ?? o.key}
             {o.hint ? ` ${o.hint}` : ''}
             {o.owned ? ' (possédé)' : ''}
-            {o.maxReached ? ' (Maxi atteint)' : ''}
+            {o.refus ? ` (${o.refus})` : ''}
           </option>
         ))}
       </select>
@@ -798,8 +799,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 {t.label}
                 {t.times > 0 ? ` ×${t.times}` : ''} {pill(true)}
               </span>
-              <span className="adv-meta">{t.maxReached ? 'Maxi atteint' : ''}</span>
-              <button className="btn small" disabled={t.maxReached || !afford(t.nextCost)} onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}>
+              <span className="adv-meta">{t.refus ? libelleDuRefus(t.refus) : ''}</span>
+              <button className="btn small" disabled={!!t.refus || !afford(t.nextCost)} onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}>
                 {t.times > 0 ? '+1' : 'Acquérir'} · {t.nextCost} PX
               </button>
             </div>
@@ -809,7 +810,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               entry={t.entry}
               acquireCost={t.nextCost}
               afford={afford}
-              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached }))}
+              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, ...(o.refus ? { refus: libelleDuRefus(o.refus) } : {}) }))}
               onPick={(key, owned) => {
                 const { id, spec } = parseRefKey(key);
                 if (owned) designateCareerSlot(hero.id, t.slotKey, id, spec);

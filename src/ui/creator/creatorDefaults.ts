@@ -39,7 +39,7 @@ import {
 } from './draft';
 import { species, careersForSpecies, levelsForCareer, spells } from '../../data';
 import type { CharKey } from '../../engine/types';
-import { talentMaxReached } from '../../engine/careerSlots';
+import { refusDApprentissage } from '../../engine/careerSlots';
 import { designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
@@ -112,12 +112,12 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
     if (!c.designee && (cur.skillAdvances[c.cle] ?? 0) > 0) cur = withCareerSkillSpec(cur, c, designer('skill', c.ref, undefined, c.libre).spec ?? '');
   }
 
-  // 5c — Talent de carrière : première option dont le Maxi n'est pas atteint (1re spécialisation d'un joker).
+  // 5c — Talent de carrière : première option que `refusDApprentissage` ne refuse pas (1re spécialisation d'un joker).
   if (!cur.careerTalent) {
     const probe = probeHero(cur, false);
     const pick = careerTalentOptions(cur)
       .map((o) => o.selected ?? o.choices?.[0])
-      .find((t) => t && !talentMaxReached(probe, t.id, t.spec));
+      .find((t) => t && !refusDApprentissage(probe, t));
     if (pick) cur = { ...cur, careerTalent: pick };
   }
 

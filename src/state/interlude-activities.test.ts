@@ -244,6 +244,28 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(hero().xp).toBe(100);
   });
 
+  it('Apprentissage particulier refusé (`refusDApprentissage`, LDB 10 l.625) : aucun Test ouvert, et sur un refus à la résolution ni PX ni tuteur débités', () => {
+    const h = hero();
+    h.xp = 300;
+    const itl = useGame.getState().interlude!;
+    itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
+    useGame.setState({ interlude: { ...itl } });
+    creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(5000));
+    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'magie-mineure' });
+    expect(useGame.getState().pendingActivity?.activityId).toBe('learn');
+    useGame.getState().activityRoll();
+    const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
+    const invoque = { ...hero(), talents: [...hero().talents, { talentId: 'invocation', spec: 'sigmar', times: 1 }] };
+    useGame.setState({ party: [invoque, ...useGame.getState().party.slice(1)], pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 1 } });
+    useGame.getState().activityConfirm();
+    expect(hero().talents.some((t) => t.talentId === 'magie-mineure')).toBe(false);
+    expect(hero().xp).toBe(300);
+    expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore);
+    expect(useGame.getState().journal.join('\n')).toMatch(/incompatible avec un Talent déjà appris/);
+    useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'magie-mineure' });
+    expect(useGame.getState().pendingActivity).toBeFalsy();
+  });
+
   it('Passer commande : objet du stock ordinaire refusé ; Exotique payé maintenant, livré à l’interlude SUIVANT', () => {
     const h = hero();
     const itl = useGame.getState().interlude!;

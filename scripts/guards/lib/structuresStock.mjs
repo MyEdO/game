@@ -567,6 +567,10 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "talents.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "ops", signature: "type+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "when", signature: "rule", statut: "divergente", strate: "Référence", occurrences: 12, lot: "L3 #1463", date: "2026-08-23" },
+  // +1 (#1897 2e-i-2d-4b, 2026-09-27) : `TalentData.exclusion.when`, Condition `has` canonique (LDB 10 l.625,
+  // l.696-698) — son `value` est un id nu, comme toute Condition `has` tant que `conditionSchema` n'adopte pas
+  // la fabrique de référence par `what` (#1473 L2/L3).
+  { concept: "reference", dataset: "talents.json", champ: "when", signature: "value+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tavernGames.json", champ: "attrition", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tavernGames.json", champ: "combined", signature: "stopCondition+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "amount", signature: "bonusOf", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -895,14 +899,14 @@ export const STRUCTURES_ENVELOPPE = [
  *  ne résout vers RIEN, sans être un document ni une op : HORS STRATE. `L1a #1466` quand le NOM de
  *  la clé annonçait une FK (`clé de référence non résolue`) — branche VIDE à ce jour, 0 ligne —,
  *  `#1553` sinon. CE QUE LE MOTIF DIT, ligne à ligne (mesuré 2026-09-23, #1473) : `clé réservée`
- *  97 lignes / 409 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
+ *  98 lignes / 413 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
  *  ci-dessous — la garde `src/data/plage-bornes-contrat.test.ts` (sonde D) les recalcule et exige
  *  que cet en-tête les CITE, elle ne les compare plus à un littéral recopié. Le motif `clé
  *  réservée` ne décrit PAS une valeur qui pointerait vers rien — le déclencheur est le NOM
  *  (`CLES_RESERVEES` du lexique : skill, char, talent, price, cost, count, source), et le contenu
- *  est légitime : `source` à lui seul déclenche 64 des 97 lignes (145 occurrences), qui portent de
+ *  est légitime : `source` à lui seul déclenche 65 des 98 lignes (149 occurrences), qui portent de
  *  vraies références de livre. Il se solde donc au VOCABULAIRE (#1463 S2 : un nom de concept est
- *  réservé à son type), jamais en curant un contenu. Les 99 lignes de ce volet ne sont pas du
+ *  réservé à son type), jamais en curant un contenu. Les 100 lignes de ce volet ne sont pas du
  *  ressort de `L1b #1467`, dont le dénominateur (205) les comptait ; elles portent leur lot ligne
  *  à ligne. */
 export const STRUCTURES_ORPHELINES = [
@@ -987,6 +991,9 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "spells.json", champ: "variants", signature: "desc,duration,source,when", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "spells.json", champ: "variants", signature: "desc,effects,source,when", motif: "clé réservée", occurrences: 5, lot: "#1553", date: "2026-08-23" },
   { dataset: "spells.json", champ: "variants", signature: "desc,source,when", motif: "clé réservée", occurrences: 11, lot: "#1553", date: "2026-08-23" },
+  // +1 (#1897 2e-i-2d-4b, 2026-09-27) : `TalentData.exclusion` porte sa `source` (LDB 10 l.625, l.696-698),
+  // même forme que `spells.json › variants` (`source,when`).
+  { dataset: "talents.json", champ: "exclusion", signature: "source,when", motif: "clé réservée", occurrences: 4, lot: "#1553", date: "2026-08-23" },
   { dataset: "talents.json", champ: "matches", signature: "char,manual", motif: "clé réservée", occurrences: 7, lot: "#1553", date: "2026-08-23" },
   { dataset: "talents.json", champ: "variants", signature: "combat,desc,max,source,when", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "talents.json", champ: "variants", signature: "combat,desc,source,test,when", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },

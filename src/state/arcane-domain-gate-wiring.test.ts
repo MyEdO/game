@@ -1,7 +1,7 @@
 /**
- * Câblage store — `arcaneDomainGate` (`src/engine/careerSlots.ts`) sur le chemin RÉEL d'achat
- * (`useGame.getState().buyTalent`, `partyFlow.ts`). La suite pure `careerSlots.test.ts` verrouille
- * le gate en isolation ; celle-ci verrouille qu'il est bien BRANCHÉ dans le store.
+ * Câblage store — `refusDApprentissage` (`src/engine/careerSlots.ts`) sur le chemin RÉEL d'achat
+ * (`useGame.getState().buyTalent`, `partyFlow.ts`, qui relaie la raison de l'achat du moteur). La suite
+ * pure `careerSlots.test.ts` verrouille le prédicat en isolation ; celle-ci, qu'il est BRANCHÉ.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
@@ -49,7 +49,7 @@ beforeEach(() => {
   useGame.getState().seedRng(1);
 });
 
-describe('buyTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () => {
+describe('buyTalent — refus de Domaine câblé (VDM 02 l.190-192)', () => {
   it('REFUSE un 2e Domaine (Cieux) tant que le Domaine précédent (Feu) n\'est pas assez maîtrisé', () => {
     const h = elfProphete();
     useGame.setState({ party: [h] });
@@ -90,6 +90,18 @@ describe('buyTalent — Maxi de Magie des Arcanes compté par Domaine (LDB 46 l.
     const after = useGame.getState().party[0];
     expect(after.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(after.xp).toBe(500);
-    expect(useGame.getState().journal.join('\n')).toMatch(/Maxi atteint/);
+    expect(useGame.getState().journal.join('\n')).toMatch(/Maxi du Talent atteint/);
+  });
+});
+
+describe('buyTalent — exclusion câblée (LDB 10 l.625)', () => {
+  it('REFUSE Magie mineure, Talent de Sorcier Niveau 1, à un porteur d\'Invocation', () => {
+    const h: Combatant = { ...pregen(PREGEN.sorcier), career: 'sorcier', careerLevel: 1, careerSlotChoices: {}, talents: [{ talentId: 'invocation', spec: 'sigmar', times: 1 }], xp: 500 };
+    useGame.setState({ party: [h] });
+    useGame.getState().buyTalent(h.id, 'magie-mineure');
+    const after = useGame.getState().party[0];
+    expect(after.talents.some((t) => t.talentId === 'magie-mineure')).toBe(false);
+    expect(after.xp).toBe(500);
+    expect(useGame.getState().journal.join('\n')).toMatch(/incompatible avec un Talent déjà appris/);
   });
 });

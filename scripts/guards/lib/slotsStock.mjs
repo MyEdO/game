@@ -284,7 +284,9 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "talents.json", champ: "gate", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "matches", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "talents.json", champ: "ops", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "talents.json", champ: "when", occurrences: 12, lot: "L2/L3 #1473", date: "2026-08-26" },
+  // 12 -> 16 (#1897 2e-i-2d-4b, 2026-09-27) : `TalentData.exclusion.when`, Condition `has` canonique dont le
+  // `value` n'est pas un slot tant que `conditionSchema` n'adopte pas `idDe` par `what` (#1473 L2/L3).
+  { dataset: "talents.json", champ: "when", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "tavernGames.json", champ: "attrition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "tavernGames.json", champ: "combined", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "affectsGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },

@@ -652,7 +652,7 @@ nombre d’entrées qui la portent.
 | `src/data/symptoms.json` | array | liste | entité | 18 | `capabilities`:object(6) `desc`:string(18) `effects`:array(1) `id`:string(18) `label`:string(18) `maison`:string(1) `onTick`:object(4) `passive`:array(10) `passiveBySeverity`:object(2) `source`:object(18) `type`:string(18) `visibleLocations`:array(1) `visiblePassive`:array(1) |
 | `src/data/systemes.manifest.json` | array | liste | entité | 16 | `etat`:string(16) `id`:string(16) `label`:string(16) `modules`:array(16) `notes`:string(16) `ticket`:null/string(16) `type`:string(16) |
 | `src/data/tables.json` | array | liste | entité | 21 | `die`:string(21) `id`:string(21) `label`:string(21) `maison`:string(1) `rows`:array(21) `source`:object(21) `type`:string(21) |
-| `src/data/talents.json` | array | liste | entité | 187 | `alsoIn`:array(1) `codexOnly`:boolean(6) `combat`:object(54) `desc`:string(186) `effects`:array(4) `grantSpecGroups`:boolean(1) `grantsArcaneDomain`:boolean(1) `id`:string(187) `label`:string(187) `maison`:string(9) `max`:null/number/object(187) `passive`:array(21) `rand`:null/number(187) `size`:string(2) `source`:object(187) `specs`:array(182) `specsOpen`:boolean(8) `specsSource`:string(5) `test`:null/object(187) `type`:string(187) `variants`:array(12) |
+| `src/data/talents.json` | array | liste | entité | 187 | `alsoIn`:array(1) `codexOnly`:boolean(6) `combat`:object(54) `desc`:string(186) `effects`:array(4) `exclusion`:object(4) `grantSpecGroups`:boolean(1) `grantsArcaneDomain`:boolean(1) `id`:string(187) `label`:string(187) `maison`:string(9) `max`:null/number/object(187) `passive`:array(21) `rand`:null/number(187) `size`:string(2) `source`:object(187) `specs`:array(182) `specsOpen`:boolean(8) `specsSource`:string(5) `test`:null/object(187) `type`:string(187) `variants`:array(12) |
 | `src/data/tavernGames.json` | array | liste | entité | 13 | `campScore`:string(3) `characteristic`:string(6) `combined`:object(1) `dancers`:number(1) `desc`:string(13) `drBonus`:string(4) `drCap`:number(1) `id`:string(13) `label`:string(13) `mode`:string(12) `options`:array(5) `phases`:object(2) `pot`:object(1) `roundOps`:object(2) `roundShape`:string(7) `scoreThreshold`:number(1) `scoreUnit`:string(5) `sides`:array(1) `skill`:object(9) `source`:object(13) `table`:array(1) `target`:number(3) `team`:object(2) `throwerPenalty`:object(1) `tieBreak`:string(2) `type`:string(13) `volley`:object(4) |
 | `src/data/teintesJeu.json` | object | record | record | 0 | — |
 | `src/data/terrains.json` | array | liste | entité | 25 | `absence`:boolean(1) `ascii`:string(5) `bordDuMonde`:boolean(1) `built`:boolean(8) `detail`:object(21) `id`:string(25) `label`:string(25) `maison`:string(25) `matiere`:string(1) `opaque`:boolean(2) `overlayProp`:string(1) `priority`:number(25) `solidHeightM`:number(1) `stops`:object(25) `swatch`:string(25) `type`:string(25) `walkable`:boolean(25) |
@@ -672,7 +672,7 @@ nombre d’entrées qui la portent.
 
 ### 2.2 Fréquence globale des signatures d’entrée
 
-Signatures distinctes d’entrée de document : **641**. Les 40 plus fréquentes :
+Signatures distinctes d’entrée de document : **643**. Les 40 plus fréquentes :
 
 | Signature d’entrée | Entrées |
 |---|---|
@@ -696,8 +696,8 @@ Signatures distinctes d’entrée de document : **641**. Les 40 plus fréquentes
 | `alsoIn,cn,curated,desc,domainId,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 42 |
 | `alsoIn,cn,curated,desc,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 40 |
 | `default,group,hint,id,kind,label,ref,source,type` | 39 |
-| `combat,desc,id,label,max,rand,source,specs,test,type` | 39 |
 | `appearance,desc,id,kind,label,passive,source,type` | 38 |
+| `combat,desc,id,label,max,rand,source,specs,test,type` | 38 |
 | `blessings,desc,id,label,miracles,source,title,type` | 34 |
 | `concept,css,fichier,id,label,perimetre,type,verrou` | 34 |
 | `appearance,char,desc,folder,followsCharacterRules,id,label,named,optionals,skills,source,spells,talents,title,traits,trappings,type` | 33 |
@@ -1145,7 +1145,7 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 | formule | `sinPoints` | cible | 10 |
 | formule | `minimum,of` | cible | 2 |
 | source | `book,page` | cible | 3223 |
-| source | `book,note,page` | cible | 1259 |
+| source | `book,note,page` | cible | 1263 |
 | source | `book,page,quote` | cible | 121 |
 | source | `book,note,page,quote` | cible | 4 |
 | source | `book,chapter` | historique | 0 |
@@ -1172,7 +1172,7 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **875** (cible 434 · declaree 6 · historique 130 · divergente 305). Objets JSON parcourus : **49322**, dont **31722** portent une forme
+Lignes concept × dataset × champ × forme : **876** (cible 434 · declaree 6 · historique 130 · divergente 306). Objets JSON parcourus : **49334**, dont **31730** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **87**.
 
 Entrées de racine sans concept de valeur : **4107** sur **4194** —
@@ -1181,7 +1181,7 @@ Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause `
 
 ### 3.1 référence à une entité — `reference` (strate Référence)
 
-484 ligne(s), 24117 occurrence(s).
+485 ligne(s), 24121 occurrence(s).
 Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou GRAPHIE du lexique sous un champ porteur mesuré
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Résolvables | Cibles résolues | Note |
@@ -1601,6 +1601,7 @@ Reconnu par : RÉSOLUTION vers l’index des ids (cible majoritaire du site), ou
 | entité | `skills` | `id` | cible | `talents.json` | 7 | — | `skills.json` |  |
 | entité | `skills` | `id,spec` | cible | `talents.json` | 2 | — | `axes.json` `careers.json` `creatures.json` `skills.json` `talents.json` |  |
 | entité | `when` | `rule` | divergente | `talents.json` | 12 | — | `reglesOptionnelles.json` |  |
+| entité | `when` | `value+…` | divergente | `talents.json` | 4 | — | `talents.json` |  |
 | entité | `attrition` | `id,value+…` | divergente | `tavernGames.json` | 1 | — | `etats.json` |  |
 | entité | `combined` | `stopCondition+…` | divergente | `tavernGames.json` | 1 | — | `etats.json` `water-exposure.json` |  |
 | entité | `skill` | `id` | cible | `tavernGames.json` | 6 | — | `skills.json` |  |
@@ -1852,7 +1853,7 @@ Reconnu par : son noyau `sum` `sinPoints` `minimum` (≥ 1)
 
 ### 3.9 référence de source (livre/folio) — `source` (strate Valeur)
 
-121 ligne(s), 4718 occurrence(s).
+121 ligne(s), 4722 occurrence(s).
 Reconnu par : son noyau `book`
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Cibles résolues | Note |
@@ -1960,7 +1961,7 @@ Reconnu par : son noyau `book`
 | entité | `source` | `book,page` | cible | `tables.json` | 19 | — |  |
 | entité | `alsoIn` | `book,note,page,quote` | cible | `talents.json` | 2 | — | idem, avec la précision `note` |
 | entité | `alsoIn` | `book,page,quote` | cible | `talents.json` | 1 | — | emplacement secondaire + sa preuve verbatim (`secondarySourceRefSchema`) |
-| entité | `source` | `book,note,page` | cible | `talents.json` | 32 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
+| entité | `source` | `book,note,page` | cible | `talents.json` | 36 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
 | entité | `source` | `book,page` | cible | `talents.json` | 198 | — |  |
 | entité | `source` | `book,page` | cible | `tavernGames.json` | 13 | — |  |
 | entité | `alsoIn` | `book,page` | cible | `traits.json` | 3 | — |  |
@@ -2435,7 +2436,7 @@ lexique), pas une valeur qui pointerait vers rien — le contenu de ces objets e
 clé `source` à elle seule en déclenche la majorité. Ce motif-là se solde au VOCABULAIRE (#1463 S2 :
 un nom de concept est réservé à son type), pas en curant un contenu ni en posant une enveloppe.
 
-**99** signatures orphelines, **411** occurrences. Par motif : `clé de référence non résolue` 0 · `clé réservée` 97 · `identité non résolue` 2. Le lot `L1a #1466` porte donc 0 ligne(s) ici, `#1553` en porte 99.
+**100** signatures orphelines, **415** occurrences. Par motif : `clé de référence non résolue` 0 · `clé réservée` 98 · `identité non résolue` 2. Le lot `L1a #1466` porte donc 0 ligne(s) ici, `#1553` en porte 100.
 
 | Dataset | Champ | Signature | Motif | Occurrences |
 |---|---|---|---|---|
@@ -2462,6 +2463,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `ship-construction.json` | `manoeuvrability` | `costPct,manDR,source` | clé réservée | 4 |
 | `spells.json` | `opposed` | `char,kind` | clé réservée | 4 |
 | `talents.json` | `matches` | `skill,when` | clé réservée | 4 |
+| `talents.json` | `exclusion` | `source,when` | clé réservée | 4 |
 | `arcane-phenomena.json` | `saturation` | `desc,levelsPerMonth,source` | clé réservée | 3 |
 | `sea-navigation.json` | `lowMPenalty` | `dr,m,source` | clé réservée | 3 |
 | `sea-perils.json` | `gestionDesPerils` | `avoid,distanceM,source,spot` | clé réservée | 3 |
@@ -2539,7 +2541,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13713** objets sur **49322** ne sont portés par AUCUNE
+Au-delà des orphelines, **13713** objets sur **49334** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -3768,7 +3770,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 
 ## 4. Redéclarations locales dans `src/data/schemas/defs/*.ts`
 
-Littéraux d’objet zod lus : **471** ; **46** recoupent le lexique
+Littéraux d’objet zod lus : **472** ; **46** recoupent le lexique
 ou un littéral de `src/data/schemas/grammaire/`. « Schéma commun candidat » = même signature EXACTE
 qu’un littéral de la grammaire (candidat à examiner, cf. angles morts).
 
@@ -3845,7 +3847,7 @@ porteur dans l’arbre, le chiffre ne se recopie pas.
 | `spells.ts` | 47 | — | — | hors lexique | `kind` | `conditionSchema` |
 | `spells.ts` | 50 | — | — | hors lexique | `kind` | `conditionSchema` |
 | `steam-breakdown.ts` | 28 | `restart` | test | divergente | `char,difficulty,skill+…` | — |
-| `talents.ts` | 74 | `max` | — | hors lexique | `bonusOf` | `formulaSchema` |
+| `talents.ts` | 90 | `max` | — | hors lexique | `bonusOf` | `formulaSchema` |
 | `tavernGames.ts` | 76 | `options` | test | divergente | `char,difficulty,skill+…` | — |
 | `tavernGames.ts` | 103 | `rows` | plage | cible | `max,min+…` | — |
 | `tavernGames.ts` | 140 | `throwerPenalty` | test | divergente | `difficulty+…` | — |
@@ -3859,16 +3861,16 @@ porteur dans l’arbre, le chiffre ne se recopie pas.
 `gameOpSchema` est un `looseObject` (`src/data/schemas/grammaire/mecanique.ts`) : seul `op` est contraint.
 Mesure : **2287** objets portent un `op` = **2228** ops de jeu + **59**
 Conditions dont l’`op` est un COMPARATEUR (`kind` reconnu par `conditionSchema`, kinds lus par AST).
-**253** Conditions au total, dont **194** sans `op` :
+**257** Conditions au total, dont **198** sans `op` :
 celles-là n’ont jamais été comptées en op — le retrait des Conditions du compte d’ops vaut
-2287 → 2228, jamais 2287 → 2034.
+2287 → 2228, jamais 2287 → 2030.
 Noms d’op distincts : **106**, signatures distinctes : **237**.
 
 | `kind` de Condition | Avec `op` | Sans `op` |
 |---|---|---|
 | `flag` | — | 84 |
+| `has` | — | 33 |
 | `compare` | 30 | — |
-| `has` | — | 29 |
 | `slThreshold` | 20 | — |
 | `all` | — | 18 |
 | `relation` | — | 18 |
@@ -4759,7 +4761,7 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 | `talents.json` | `gate` | 1 | 0 |
 | `talents.json` | `matches` | 1 | 0 |
 | `talents.json` | `ops` | 3 | 0 |
-| `talents.json` | `when` | 12 | 0 |
+| `talents.json` | `when` | 16 | 0 |
 | `tavernGames.json` | `attrition` | 1 | 0 |
 | `tavernGames.json` | `combined` | 1 | 0 |
 | `traits.json` | `affectsGroups` | 2 | 0 |
@@ -4809,4 +4811,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: f72fcf13e9435e2ac10f079c0683c739ec14ee37 (395 fichiers, 10 dossiers) corps: 78b2e584ee7059e39474a700b15af851816ef8b2 -->
+<!-- sources-empreinte: ff5f4e293d6a10fdb5e57fadb66bd3b0942af377 (395 fichiers, 10 dossiers) corps: f6d734920c5b5980c66a408278d42ae81b572144 -->

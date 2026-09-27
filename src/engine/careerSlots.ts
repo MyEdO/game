@@ -4,6 +4,7 @@
  *  - Disponibilité : Compétences LDB 07 l.76 ; Talents LDB 07 l.103.
  *  - Compétences groupées : LDB 09 l.34-44.
  *  - Talents, utilisation et Maxi : LDB 10 l.17-18 ; `grantsArcaneDomain` : LDB 46 l.177.
+ *  - Refus d'apprentissage (`refusDApprentissage`) : LDB 10 l.18, l.625, l.696-698 ; LDB 46 l.177.
  *
  * Modèle maison des emplacements « (Au choix) » (LDB 07/09/10 — silence, valeur maison) :
  *  - un slot se « désigne » sur une spec concrète gratuitement (la désignation ne donne rien, elle
@@ -27,6 +28,8 @@ import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/gr
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
+import { evalCondition } from './flowCore';
+import { conditionApprentissageCtx } from './actorView';
 import { t } from '../i18n';
 
 // `splitLabel` (split nom↔spécialisation) est la primitive UNIQUE de `statEntry` — ré-exportée ici
@@ -388,7 +391,7 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
 
 /** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
  *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105, l.156). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
- *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `arcaneDomainGate`. */
+ *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `refusDApprentissage`. */
 export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
   const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
   return (hero.talents ?? [])
@@ -434,7 +437,7 @@ export function retirerTalent(porteur: PorteurDeTalents, ref: RefDesignee): void
     : talents.filter((x) => !meme(x));
 }
 
-/** `VDM 02 l.190-192` (texte identique `LDB 46 l.177`). Voir `arcaneDomainCap`/`arcaneDomainGate`. */
+/** `VDM 02 l.190-192` (texte identique `LDB 46 l.177`). Voir `arcaneDomainCap`/`refusDApprentissage`. */
 export interface ArcaneDomains { normal: string[]; dark: string[] }
 
 /** Domaines déjà TENUS par le héros — spec de tout Talent dont l'entrée déclare `grantsArcaneDomain`
@@ -458,27 +461,59 @@ export function arcaneDomainCap(hero: Combatant): number {
   return bonusOf ? Math.max(1, bonus(hero.characteristics[bonusOf])) : 1;
 }
 
-/** Achat d'un NOUVEAU Domaine (spec d'un Talent `grantsArcaneDomain`) : autorisé/refusé avec raison
- *  LISIBLE (`LDB 46 l.177`, repris `VDM 02 l.190-192`). `domainId` déjà possédé → toujours autorisé
- *  (relève de `talentMaxReached`, pas de ce gate). */
-export function arcaneDomainGate(hero: Combatant, domainId: string): { ok: boolean; reason?: string } {
+/** Pourquoi un porteur ne peut pas APPRENDRE une référence de Talent — une raison nommée (`kind`), le texte se
+ *  dérivant à l'affichage (`libelleDuRefus`). */
+export type RefusDApprentissage =
+  | { kind: 'maxi' }
+  | { kind: 'exclusion' }
+  | { kind: 'domaineSombreUnique' }
+  | { kind: 'domaineSombreSansDomaine' }
+  | { kind: 'plafondDeDomaines'; plafond: number }
+  | { kind: 'domainePrecedent'; domaine: string; augmentations: number; sorts: number };
+
+/** Nouveau Domaine `domainId` (`LDB 46 l.177`, repris `VDM 02 l.190-192`) ; un Domaine déjà tenu relève
+ *  du Maxi. */
+function refusDeDomaine(hero: Combatant, domainId: string): RefusDApprentissage | null {
   const held = heldArcaneDomains(hero);
-  if (held.normal.includes(domainId) || held.dark.includes(domainId)) return { ok: true };
+  if (held.normal.includes(domainId) || held.dark.includes(domainId)) return null;
   if (findDomainById(domainId)?.dark) {
-    if (held.dark.length > 0) return { ok: false, reason: t('slot.darkOnlyOne') };
-    if (held.normal.length === 0) return { ok: false, reason: t('slot.darkNeedsNormal') };
-    return { ok: true };
+    if (held.dark.length > 0) return { kind: 'domaineSombreUnique' };
+    if (held.normal.length === 0) return { kind: 'domaineSombreSansDomaine' };
+    return null;
   }
-  const cap = arcaneDomainCap(hero);
-  if (held.normal.length >= cap) return { ok: false, reason: t('slot.domainCap', { cap }) };
+  const plafond = arcaneDomainCap(hero);
+  if (held.normal.length >= plafond) return { kind: 'plafondDeDomaines', plafond };
   if (held.normal.length > 0) {
-    const prev = held.normal[held.normal.length - 1];
-    const advances = hero.skills.find((s) => s.id === 'focalisation' && (s.spec ?? '') === prev)?.advances ?? 0;
-    const known = domainSpellsKnown(hero, prev);
-    if (advances < 20 || known < 8) {
-      const prevLabel = findDomainById(prev)?.label ?? prev;
-      return { ok: false, reason: t('slot.prevDomain', { domain: prevLabel, advances, known }) };
-    }
+    const domaine = held.normal[held.normal.length - 1];
+    const augmentations = hero.skills.find((s) => s.id === 'focalisation' && (s.spec ?? '') === domaine)?.advances ?? 0;
+    const sorts = domainSpellsKnown(hero, domaine);
+    if (augmentations < 20 || sorts < 8) return { kind: 'domainePrecedent', domaine, augmentations, sorts };
   }
-  return { ok: true };
+  return null;
+}
+
+/**
+ * REFUS d'apprentissage de `ref` par `porteur`, ou `null` : le Maxi (`talentMaxReached`), l'exclusion
+ * déclarée par le Talent (`TalentData.exclusion`), puis les Domaines d'un Talent `grantsArcaneDomain`.
+ * Seul prédicat que consultent l'achat (`buyTalent`, engine/advancement) et les écrans qui proposent un
+ * Talent ; un OCTROI (mutation, op, signe astral) ne lit que le Maxi, via `acquerirTalent`.
+ */
+export function refusDApprentissage(porteur: Combatant, ref: RefDesignee): RefusDApprentissage | null {
+  if (talentMaxReached(porteur, ref.id, ref.spec)) return { kind: 'maxi' };
+  const talent = findTalentById(ref.id);
+  if (talent?.exclusion && evalCondition(talent.exclusion.when, conditionApprentissageCtx(porteur))) return { kind: 'exclusion' };
+  return talent?.grantsArcaneDomain && ref.spec != null ? refusDeDomaine(porteur, ref.spec) : null;
+}
+
+/** Texte FR d'un refus d'apprentissage. */
+export function libelleDuRefus(refus: RefusDApprentissage): string {
+  switch (refus.kind) {
+    case 'maxi': return t('adv.talentMax');
+    case 'exclusion': return t('slot.exclusion');
+    case 'domaineSombreUnique': return t('slot.darkOnlyOne');
+    case 'domaineSombreSansDomaine': return t('slot.darkNeedsNormal');
+    case 'plafondDeDomaines': return t('slot.domainCap', { cap: refus.plafond });
+    case 'domainePrecedent':
+      return t('slot.prevDomain', { domain: findDomainById(refus.domaine)?.label ?? refus.domaine, advances: refus.augmentations, known: refus.sorts });
+  }
 }

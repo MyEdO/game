@@ -174,9 +174,14 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
   });
   it('exclut les Talents à spécialisation (aucun sélecteur de spec dans ce catalogue)', () => {
     // « Magie des Arcanes » (specsSource: arcaneDomains) ne doit jamais apparaître : l'Activité
-    // achèterait sans spec (`engineBuyTalent(h, talentId)`), contournant `arcaneDomainGate`.
+    // achèterait sans spec (`engineBuyTalent(h, talentId)`), sans le Domaine que lit `refusDApprentissage`.
     const labels = learnableTalents(hero).map((t) => t.label);
     expect(labels).not.toContain('Magie des Arcanes');
+  });
+  it('exclut les Talents que `refusDApprentissage` refuse : Magie mineure au porteur d\'Invocation (LDB 10 l.625)', () => {
+    expect(learnableTalents(hero).map((t) => t.id)).toContain('magie-mineure');
+    const pretre = { ...hero, talents: [...hero.talents, { talentId: 'invocation', spec: 'sigmar', times: 1 }] };
+    expect(learnableTalents(pretre).map((t) => t.id)).not.toContain('magie-mineure');
   });
   it('coût PX de la prochaine acquisition + fourchette tuteur 2d10 pa/100 PX', () => {
     const lt = learnableTalents(hero);

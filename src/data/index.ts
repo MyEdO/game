@@ -1073,6 +1073,9 @@ export interface TalentData {
    *  `specsSource: 'arcaneDomains'`, qui ne décrit que le POOL de spécialisations offert au picker : un
    *  Talent futur pourrait nommer un Domaine sans en octroyer la pratique. */
   grantsArcaneDomain?: true;
+  /** Ce Talent ne s'APPREND pas quand `when` est vraie du porteur (`refusDApprentissage`,
+   *  `engine/careerSlots`), évaluée contre le contexte d'apprentissage (`conditionApprentissageCtx`). */
+  exclusion?: { when: import('../engine/flowCore').Condition; source: SourceRef };
   /** Le domaine de ce Talent accepte-t-il un TEXTE LIBRE hors `specs[]` ? Même sémantique que
    *  `SkillData.specsOpen` (absent/`false` = FERMÉ, `spec` DOIT être un id de `specs[]`). */
   specsOpen?: boolean;
@@ -2042,7 +2045,7 @@ export interface DomainData {
    *  (SPEC_SOURCES) — fin de la liste `specs[]` maintenue à la main sur `magie-des-arcanes`. Les Lores de
    *  sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas. */
   arcane?: boolean;
-  /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
+  /** `VDM 02 l.192` (`careerSlots.refusDApprentissage`) — Nécromancie, Démonologie (LDB 50). */
   dark?: boolean;
   /** Tables d'effets (`tables.json`) DÉCLARÉES par le Domaine, par CLÉ de rôle — résolues par l'op
    *  `rollDomainTable` (`engine/ops.ts`). Clé `arcaneMark` : Marques Arcaniques du Vent

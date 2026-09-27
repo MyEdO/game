@@ -14,7 +14,7 @@
  *    Elfe 30+10d10 ; taille Humain 145+5d10 cm, Nain 130+3d10, Halfling 90+2d10,
  *    Elfe 180+2d10 ; yeux/cheveux : 2d10 sur les tables (eyes.json / hairs.json).
  */
-import { RNG, defaultRNG, roll } from './dice';
+import { RNG, defaultRNG, d10, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money } from './money';
@@ -122,15 +122,16 @@ export function parseStatus(s: string): Status {
   return { tier, standing };
 }
 
-/** Richesse initiale (LDB 05 l.578) : Bronze 2d10 sc × Standing ; Argent 1d10 pa ×
- *  Standing ; Or 1 CO × Standing. Standing 0 (ex. Mendiant « Bronze 0 ») → rien. */
-export function rollInitialWealth(status: Status, rng: RNG = defaultRNG): Money {
-  const m: Money = { gold: 0, silver: 0, brass: 0 };
-  if (status.standing <= 0) return m;
-  if (status.tier === 'Bronze') m.brass = roll(2 * status.standing, 10, rng);
-  else if (status.tier === 'Argent') m.silver = roll(status.standing, 10, rng);
-  else m.gold = status.standing;
-  return m;
+/** Jet de richesse initiale (LDB 05 l.578, l.580) : la bourse (`wealth`) et les faces de ses d10
+ *  (`dice`, dans l'ordre du flux). */
+export function rollInitialWealth(status: Status, rng: RNG = defaultRNG): { wealth: Money; dice: number[] } {
+  const wealth: Money = { gold: 0, silver: 0, brass: 0 };
+  if (status.standing <= 0) return { wealth, dice: [] };
+  if (status.tier === 'Or') return { wealth: { ...wealth, gold: status.standing }, dice: [] };
+  const bronze = status.tier === 'Bronze';
+  const dice = Array.from({ length: bronze ? 2 * status.standing : status.standing }, () => d10(rng));
+  const total = dice.reduce((a, b) => a + b, 0);
+  return { wealth: bronze ? { ...wealth, brass: total } : { ...wealth, silver: total }, dice };
 }
 
 /** Formule « base + N d10 » des tables de détails (details.json), colonne `refChar` (id `RaceKey`,

@@ -514,7 +514,6 @@ export const LABEL_LITERAL_STOCK = {
   // Axe Statut social (Bronze/Argent/Or) — `Status.tier` porte le libellé, lu du texte des carrières.
   'src/engine/creation.ts': 2,
   'src/engine/social.ts': 2,
-  'src/ui/creator/CharacterCreator.tsx': 2,
   // Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
   'src/state/clues.ts': 2,
   'src/state/combatEffects.ts': 1,
