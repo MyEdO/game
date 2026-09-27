@@ -18,7 +18,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -38,7 +37,7 @@ const get = useGame.getState;
 const set = useGame.setState;
 
 function h(id: string, over: Partial<Combatant> = {}): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, rng: makeRNG(4) });
+  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
   c.id = id;
   Object.assign(c, over);
   return c;

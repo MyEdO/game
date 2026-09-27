@@ -13,10 +13,10 @@ import {
   projectsLoad,
   publishedProjects,
   __resetLibraryForTest,
-  __setIdbBackendForTest,
-  type IdbBackend,
   type SavedProject,
 } from '../state/projectLibrary';
+import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testkit';
 import { emptyScene, type Scene } from '../state/scene';
 import { useGame } from '../state/store';
 
@@ -26,6 +26,11 @@ beforeAll(() => {
 beforeEach(async () => {
   await __resetLibraryForTest();
 });
+
+/** Branche la bibliothèque IndexedDB sur une base simulée en `panne`. */
+function brancherBibliotheque(panne: PanneSimulee): void {
+  brancherBasesSimulees().base('wfrp4-library').panne = panne;
+}
 
 /** Document de projet PORTABLE valide au format ANTÉRIEUR (schema 3), construit depuis une
  *  campagne du jeu : l'import le fait traverser TOUTE la chaîne de migration (3→7). Son identité
@@ -394,13 +399,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
       // localStorage (500 000 caractères), pour exercer le chemin de PERTE RÉEL.
       meta: { id: 'big-fixture', label: 'Grosse campagne', version: 1, desc: 'x'.repeat(600_000) },
     });
-    const idb: IdbBackend = {
-      async getAll() { return []; },
-      async put(entry) { if (entry.id === 'big-fixture') throw new Error('put refusé'); },
-      async delete() { /* non exercé ici */ },
-      async clear() { /* non exercé ici */ },
-    };
-    __setIdbBackendForTest(idb);
+    brancherBibliotheque((q) => (q.geste === 'put' && (q.valeur as SavedProject).id === 'big-fixture' ? new DOMException('put refusé', 'QuotaExceededError') : null));
 
     await mount();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -422,7 +421,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     // bien emprunté le chemin d'échec de sauvegarde, pas juste un alert qui ressemble.
     expect(txt.toLowerCase()).toMatch(/volumineuse/);
 
-    __setIdbBackendForTest(null);
+    __setOuvertureIdbForTest(null);
     await unmount();
   });
 
@@ -432,13 +431,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     entry.label = 'Del fail';
     await projectSave(entry);
 
-    const idb: IdbBackend = {
-      async getAll() { return []; },
-      async put() { /* non exercé ici */ },
-      async delete(id) { if (id === 'del-fail-fixture') throw new Error('delete refusé'); },
-      async clear() { /* non exercé ici */ },
-    };
-    __setIdbBackendForTest(idb);
+    brancherBibliotheque((q) => (q.geste === 'delete' && q.cle === 'del-fail-fixture' ? new DOMException('delete refusé', 'UnknownError') : null));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     // Force aussi l'écriture des TOMBES en échec (sinon `projectRemove` masque l'échec IndexedDB :
     // la tombe seule suffit à empêcher la résurrection, cf. `LibraryWriteOutcome`).
@@ -468,7 +461,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(txt.toLowerCase()).toMatch(/réapparaître/);
 
     setItemSpy.mockRestore();
-    __setIdbBackendForTest(null);
+    __setOuvertureIdbForTest(null);
     await unmount();
   });
 

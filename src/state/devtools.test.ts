@@ -4,7 +4,6 @@ import { useGame } from './store';
 import { buildApi } from './devtools';
 import { bourseOf, partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
 import { itemFromTrappingById } from '../engine/items';
@@ -24,7 +23,9 @@ import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
 import { careerTalentAdditions } from '../engine/talentEffects';
-import { projectsLoad, __resetLibraryForTest, __setIdbBackendForTest, type SavedProject } from './projectLibrary';
+import { projectsLoad, __resetLibraryForTest } from './projectLibrary';
+import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { parseProject } from './worldMap';
 
 describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, victoire normale)', () => {
@@ -43,7 +44,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
   });
 
   it('en combat : tous les ennemis hors de combat + victoire par le flux normal (pendingVictory)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');
@@ -75,7 +76,7 @@ describe('__wfrp — autres commandes de recette', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().startScene(testScene);
     vi.clearAllTimers();
@@ -231,16 +232,10 @@ describe('__wfrp — autres commandes de recette', () => {
 
 describe('__wfrp.projectMinimal / projectSave — poser un projet en bibliothèque sans recharger (#1343)', () => {
   beforeEach(async () => {
-    const store = new Map<string, SavedProject>();
-    __setIdbBackendForTest({
-      getAll: async () => [...store.values()],
-      put: async (e: SavedProject) => void store.set(e.id, e),
-      delete: async (id: string) => void store.delete(id),
-      clear: async () => store.clear(),
-    });
+    brancherBasesSimulees();
     await __resetLibraryForTest();
   });
-  afterEach(() => __setIdbBackendForTest(null));
+  afterEach(() => __setOuvertureIdbForTest(null));
 
   it('projectMinimal rend une entrée que la porte du document accepte', () => {
     const entree = buildApi().projectMinimal('p-recette', 'Recette');
@@ -311,7 +306,7 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
   });
 
   it('place() d’un combattant SIMPLE (ni coque ni crew) reste une téléportation directe inchangée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.pos = { x: 1, y: 1 };
     const battle: BattleState = {
       combatants: [hero], order: [hero.id], turn: 0, round: 1, action: null, selectedSpellId: null,
@@ -328,7 +323,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

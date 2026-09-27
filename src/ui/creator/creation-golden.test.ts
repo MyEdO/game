@@ -3,7 +3,6 @@ import type { Combatant } from '../../engine/types';
 import { makePregens } from '../../data/pregens';
 import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../engine/character';
 import { firstLevel } from '../../data';
-import { makeRNG } from '../../engine/dice';
 import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './draft';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
@@ -40,13 +39,13 @@ const brouillon = (seed: number, speciesId: string, careerId: string, choix: Par
  *  Magie mineure, Béni. */
 const TEMOINS: Record<string, () => CreatorDraft> = {
   'A ou B d\'espèce + joker Savoir': () => brouillon(11, 'humains-reiklander', 'erudit', {
-    speciesTalentChoices: { 'espece:talents:0': 1 },
+    speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
     specChoices: { 'carriere:competences:7': 'histoire' },
     skillAdvances: { 'divertissement|narration': 5, 'langue|classique': 5, marchandage: 5, pari: 5, ragot: 5, recherche: 5, 'resistance-a-l-alcool': 0, 'savoir|histoire': 10 },
     careerTalent: { id: 'perspicace' },
   }),
   'joker de Métier espèce × carrière + Maître artisan': () => brouillon(22, 'humains-middenheim', 'artisan', {
-    speciesTalentChoices: { 'espece:talents:1': 0 },
+    speciesTalentChoices: { 'espece:talents:1': { id: 'savoir-vivre' } },
     specChoices: { 'espece:talents:1': 'guildes', 'carriere:competences:5': 'forgeron' },
     speciesPlus5: [{ id: 'metier', spec: 'forgeron' }, { id: 'calme' }, { id: 'charme' }],
     speciesPlus3: [{ id: 'divertissement', spec: 'chant' }, { id: 'ragot' }, { id: 'marchandage' }],
@@ -54,13 +53,13 @@ const TEMOINS: Record<string, () => CreatorDraft> = {
     careerTalent: { id: 'maitre-artisan', spec: 'forgeron' },
   }),
   'signe astral à Talent « Au choix »': () => brouillon(33, 'nains', 'artisan', {
-    speciesTalentChoices: { 'espece:talents:1': 1, 'espece:talents:2': 1 },
+    speciesTalentChoices: { 'espece:talents:1': { id: 'obstine' }, 'espece:talents:2': { id: 'impitoyable' } },
     specChoices: { 'carriere:competences:5': 'brasseur', 'signe:1': 'brasseur' },
     star: 'les-deux-boeufs',
     careerTalent: { id: 'tres-fort' },
   }),
   'Magie mineure': () => brouillon(44, 'humains-reiklander', 'sorcier', {
-    speciesTalentChoices: { 'espece:talents:0': 0 },
+    speciesTalentChoices: { 'espece:talents:0': { id: 'perspicace' } },
     specChoices: { 'carriere:competences:3': 'cieux' },
     careerTalent: { id: 'magie-mineure' },
     pettySpells: ['putrefaction', 'choc'],
@@ -69,7 +68,7 @@ const TEMOINS: Record<string, () => CreatorDraft> = {
     careerTalent: { id: 'beni', spec: 'ulric' },
   }),
   'A ou B à joker d\'espèce + Talent aléatoire': () => brouillon(66, 'halflings-piedpaille', 'erudit', {
-    speciesTalentChoices: { 'espece:talents:4': 0 },
+    speciesTalentChoices: { 'espece:talents:4': { id: 'maitre-artisan' } },
     specChoices: { 'espece:talents:4': 'tanneur', 'carriere:competences:7': 'droit' },
     speciesPlus5: [{ id: 'discretion', spec: 'rurale' }, { id: 'metier', spec: 'tanneur' }, { id: 'charme' }],
     speciesPlus3: [{ id: 'escamotage' }, { id: 'perception' }, { id: 'evaluation' }],
@@ -93,9 +92,9 @@ describe('40 Augmentations de carrière — plafond PAR Compétence (LDB 05 l.53
   // Intendant : « Savoir (Région) » au Niveau 1 ; Voyageur aguerri (Talent d'espèce halfling de
   // Basseronce) l'ajoute aussi (`grantCareerSkill`). C'est UNE Compétence (LDB 10 l.70, l.745, l.891 ;
   // LDB 11 l.204).
-  const choixVoyageur = { 'espece:talents:4': 1 };
+  const choixVoyageur = { 'espece:talents:4': { id: 'voyageur-aguerri' } };
   it('10 Augmentations allouées à une Compétence donnent 10, même si un Talent l\'ajoute aussi', () => {
-    const hero = createHero({ speciesId: 'halflings-basseronce', careerId: 'intendant', label: 'x', rng: makeRNG(1),
+    const hero = createHero({ speciesId: 'halflings-basseronce', careerId: 'intendant', label: 'x', seed: 1,
       speciesTalentChoices: choixVoyageur, skillAdvances: { 'savoir|region': 10 } });
     expect(hero.skills.find((s) => s.id === 'savoir' && s.spec === 'region')?.advances).toBe(10);
   });
@@ -106,15 +105,15 @@ describe('40 Augmentations de carrière — plafond PAR Compétence (LDB 05 l.53
   });
   it('une Compétence AJOUTÉE par un Talent est acquise hors des 40 Augmentations (LDB 05 l.535)', () => {
     const base = { speciesId: 'halflings-basseronce', careerId: 'artisan', label: 'x', speciesTalentChoices: choixVoyageur };
-    const entrees = competencesDeCarriere(firstLevel('artisan'), createHero({ ...base, rng: makeRNG(1) }), {});
+    const entrees = competencesDeCarriere(firstLevel('artisan'), createHero({ ...base, seed: 1 }), {});
     const ajout = entrees.filter((c) => c.ajout);
     expect(ajout.map((c) => c.ref.id)).toContain('savoir');
     const allocation = Object.fromEntries(ajout.map((c) => [c.cle, 10]));
     const d = { ...withCareer(withSpecies(newDraft(1), 'halflings-basseronce'), 'artisan'), speciesTalentChoices: choixVoyageur, skillAdvances: allocation };
     expect(careerSkillEntries(d).some((c) => c.ajout)).toBe(false);
     expect(careerAdvTotal(d)).toBe(0);
-    const sans = createHero({ ...base, rng: makeRNG(1) });
-    const avec = createHero({ ...base, rng: makeRNG(1), skillAdvances: { ...repartitionDeCarriere(entrees), ...allocation } });
+    const sans = createHero({ ...base, seed: 1 });
+    const avec = createHero({ ...base, seed: 1, skillAdvances: { ...repartitionDeCarriere(entrees), ...allocation } });
     expect(avec.skills).toEqual(sans.skills);
   });
 });

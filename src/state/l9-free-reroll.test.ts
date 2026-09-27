@@ -6,7 +6,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { EMPTY_FLOW } from './flow';
 
@@ -19,7 +18,7 @@ function reset() {
 }
 
 function blessedHero(fortune = 0) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Béni', rng: makeRNG(5) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Béni', seed: 5 });
   hero.fortune = fortune;
   hero.activeEffects = [{ label: 'Bénédiction de Chance', bonus: 0, duration: { scale: 'rounds', left: 6 }, freeReroll: true }];
   return hero;
@@ -53,7 +52,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
   });
 
   it('fortune 0 SANS drapeau : la relance reste impossible', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sec', rng: makeRNG(6) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sec', seed: 6 });
     hero.fortune = 0;
     useGame.setState({ party: [hero] });
     openFailedTest(hero.id, hero.label);

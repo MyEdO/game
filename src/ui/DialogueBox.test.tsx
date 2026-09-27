@@ -17,7 +17,6 @@ import type { Dialogue, SceneEntity } from '../state/scene';
 import type { Scene } from '../state/scene';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import { makeRNG } from '../engine/dice';
 import { spellMoney, toMoney } from '../engine/money';
 
 beforeAll(() => {
@@ -148,7 +147,7 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
   let container: HTMLDivElement;
   let root: Root;
   const hero = (gold: number) =>
-    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) }), { gold, silver: 0, brass: 0 });
+    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold, silver: 0, brass: 0 });
 
   beforeEach(() => {
     useGame.setState({

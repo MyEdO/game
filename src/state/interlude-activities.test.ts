@@ -24,7 +24,7 @@ describe('Activités d’interlude (LDB 23)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
     useGame.getState().startScene(testScene);
     vi.clearAllTimers();
@@ -478,7 +478,7 @@ describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE,
     vi.useFakeTimers();
     vi.clearAllTimers();
     const party = [1, 2, 3, 4].map((i) => ({
-      ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i) }),
+      ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }),
       id: `h${i}`,
     }));
     useGame.setState({ party, battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingTest: null, journal: [] });

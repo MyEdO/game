@@ -4,7 +4,6 @@ import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { avanceEtapeCascade } from '../cascadeTestKit';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { summarizeEffects, chipCodex } from '../../gameIso/effectIcons';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
@@ -29,7 +28,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

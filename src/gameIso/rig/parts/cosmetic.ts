@@ -131,11 +131,35 @@ export function coiffureRetombee<T extends { sex?: Sexe; hairstyle?: string }>(a
   return sans;
 }
 
-/** Patch d'auteur du CHOIX d'une coiffure : elle pose son sexe avec elle (`sexeDeCoiffure`) ; aucune
- *  coiffure choisie la retire. PURE. */
-export function coiffureChoisie(id: string | undefined): { hairstyle?: string; sex?: Sexe } {
-  const sex = id === undefined ? undefined : sexeDeCoiffure(id);
-  return sex ? { hairstyle: id, sex } : { hairstyle: undefined };
+/** Forme commune des apparences éditées à l'écran (`Appearance` sans son espèce, `EntityAppearance`). */
+export interface ApparenceEditee {
+  species?: string;
+  sex?: Sexe;
+  build?: number;
+  seed?: number;
+  hairstyle?: string;
+  colors?: object;
+  monster?: object;
+  eyes?: object;
+  features?: string[];
+}
+
+const SOUS_OBJETS: ReadonlySet<string> = new Set(['colors', 'monster', 'eyes']);
+
+/** L'UNIQUE mutation d'une apparence depuis un écran : le patch fusionne les sous-objets (`colors`,
+ *  `monster`, `eyes`), une clé à `undefined` est retirée, une liste de `features` vide aussi ; une
+ *  coiffure choisie pose son sexe (`sexeDeCoiffure`), puis `coiffureRetombee`. PURE. */
+export function apparenceSuivante<T extends ApparenceEditee>(a: T, patch: Partial<T>): T {
+  const avant = a as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...avant };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) delete next[k];
+    else next[k] = SOUS_OBJETS.has(k) ? { ...(avant[k] as object | undefined), ...(v as object) } : v;
+  }
+  if (Array.isArray(next.features) && next.features.length === 0) delete next.features;
+  const sexe = patch.hairstyle === undefined ? undefined : sexeDeCoiffure(patch.hairstyle);
+  if (sexe) next.sex = sexe;
+  return coiffureRetombee(next as T);
 }
 
 /** Part cosmétique (toujours espèce×sexe). slot ∈ {visage, cheveux}.

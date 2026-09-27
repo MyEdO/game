@@ -29,7 +29,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
 import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
@@ -937,11 +937,9 @@ export interface LearnOption {
 
 /** Talents apprenables par Apprentissage particulier : « apprendre un Talent en dehors de
  *  votre Carrière » (ch.23 l.59) → exclut les talents offerts par la Carrière courante
- *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (LDB 10), et ceux
- *  à spécialisation (`specCatalogOf(t).length > 0`) : le catalogue n'a aucun sélecteur de spec
- *  (`LearnOption` n'en porte pas), l'achat via cette Activité ne peut donc pas produire une
- *  identité `(talentId, spec)` cohérente — le gate `arcaneDomainGate` (`careerSlots.ts`) et le
- *  Maxi par spécialisation resteraient contournables sinon. */
+ *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (`talentMaxReached`), et
+ *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
+ *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
 export function learnableTalents(hero: Combatant): LearnOption[] {
   const levels = levelsForCareer(hero.career ?? '');
   const slots = talentSlotsUpTo(levels, hero.careerLevel ?? 1);
@@ -954,7 +952,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
       return true;
     })
     .map((t) => {
-      const xpCost = talentCost(hero.talents.find((k) => k.talentId === t.id)?.times ?? 0);
+      const xpCost = talentCost(talentAcquisitions(hero, t.id));
       const { minBrass, maxBrass } = tutorCostRange(xpCost);
       return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
     })

@@ -213,9 +213,9 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/state/possessionsFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : possessionGrantsFromRefs×1. C (octrois tirés) -> #1508 T5.' }],
   ['src/state/pursuitFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test de poursuite roulé en direct -> #1508 T3.' }],
   ['src/state/restFlow.ts', { n: 8, kind: 'dette', why: 'mesuré : applyExposureFailure×2, applyFaimTest×1, applyOps×1, applySoifTest×1, restRecovery×1, rng.int×1, rollContraction×1. B, C (Exposition, faim/soif) -> #1508 T2/T5.' }],
-  ['src/state/riverVoyageFlow.ts', { n: 13, kind: 'dette', why: 'mesuré : rollTest×3, resolveRiverImpact×2, rollExpr×2, applyCrewHit×1, deMonde×1, rollBarrage×1, rollBarrageClearing×1, rollRiverWind×1, rollShipCritical×1. A (péril fluvial), C (dégâts d\'impact) -> #1508 T4/T5.' }],
+  ['src/state/riverVoyageFlow.ts', { n: 14, kind: 'dette', why: 'mesuré : rollTest×3, resolveRiverImpact×2, rollExpr×2, applyCrewHit×1, deMonde×1, rollBarrage×1, rollBarrageClearing×1, rollRiverWind×1, rollShipCritical×1, tickRiverWindDay×1. A (péril fluvial), C (dégâts d\'impact) -> #1508 T4/T5.' }],
   ['src/state/seaActivities.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
-  ['src/state/seaVoyageFlow.ts', { n: 54, kind: 'dette', why: 'mesuré : roll×16, d10×7, rollShipCritical×5, applyOps×4, rollTest×4, deMonde×3, rng.int×2, rollDaysToNextEvent×2, rollSeaWeather×2, rollWindDirection×2, applyCrewHit×1, pickSeaHazard×1, resolveFastVoyage×1, rollCourseChange×1, rollPortEvent×1, rollWeeklyFouling×1, tickWindForce×1. A (dés de monde), C (magnitudes maritimes) -> #1508 T4/T5.' }],
+  ['src/state/seaVoyageFlow.ts', { n: 54, kind: 'dette', why: 'mesuré : roll×16, d10×7, rollShipCritical×5, applyOps×4, rollTest×4, deMonde×3, rng.int×2, rollDaysToNextEvent×2, rollSeaWeather×2, rollWindDirection×2, applyCrewHit×1, pickSeaHazard×1, resolveFastVoyage×1, rollCourseChange×1, rollPortEvent×1, rollWeeklyFouling×1, tickWindForceDay×1. A (dés de monde), C (magnitudes maritimes) -> #1508 T4/T5.' }],
   ['src/state/sequenceCore.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
   ['src/state/shipCollision.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
   ['src/state/shipCrew.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, deMonde×1, recalcMorale×1. A (désertion `deMonde`, un dé par marin), B -> #1508 T2/T4.' }],
@@ -230,7 +230,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/state/upkeep.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2.' }],
   ['src/state/zones.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, resolveFormula×2. B (magnitudes d\'`applyOps`/`resolveFormula` de zone) -> #1508 T2.' }],
   ['src/ui/creator/CharacterCreator.tsx', { n: 2, kind: 'dette', why: 'mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6.' }],
-  ['src/ui/creator/draft.ts', { n: 13, kind: 'dette', why: 'mesuré : rollCareer×4, rollStar×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6.' }],
+  ['src/ui/creator/draft.ts', { n: 15, kind: 'dette', why: 'mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6.' }],
 ]);
 
 /**

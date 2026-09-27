@@ -45,6 +45,7 @@ import {
   careerSkillsDone,
   speciesTalentChoicesDone,
   speciesTalentRandomCount,
+  tiragesSansUtilisation,
 } from './draft';
 import { Row } from '../Layout';
 
@@ -98,10 +99,10 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
     return out;
   }, [hero, baseChars]);
   const started = hasSpecies(d); // au moins une race choisie → la fiche commence à vivre
-  const careerLabel = d.careerId ? careerLabelFor({ career: d.careerId, appearance: { sex: d.sex } }) : '';
+  const careerLabel = d.careerId ? careerLabelFor({ career: d.careerId, appearance: { sex: d.apparence.sex } }) : '';
   // Repli si le brouillon ne construit aucun héros valide : apparence du brouillon (race choisie), sans équipement.
   const appearance: Appearance | null = sp
-    ? { species: rigSpeciesId(d.speciesId), sex: d.sex, build: d.build, seed: d.appSeed, colors: d.colors, parts: d.parts }
+    ? { ...d.apparence, species: rigSpeciesId(d.speciesId) }
     : null;
   const wealth = d.careerId ? draftWealth(d) : null;
 
@@ -142,12 +143,13 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
                   <RoadmapChip>{speciesTalentRandomCount(d)} à tirer au d100 — étape {stepNo('skills')}</RoadmapChip>
                 )}
               </>
-            ) : !speciesTalentChoicesDone(d) || (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) ? (
+            ) : !speciesTalentChoicesDone(d) || (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) || tiragesSansUtilisation(d).length > 0 ? (
               <>
                 {!speciesTalentChoicesDone(d) && <RoadmapChip>au choix — 5c</RoadmapChip>}
                 {speciesTalentRandomCount(d) > 0 && !d.talentsRolled && (
                   <RoadmapChip>{speciesTalentRandomCount(d)} à tirer au d100 — 5c</RoadmapChip>
                 )}
+                {tiragesSansUtilisation(d).length > 0 && <RoadmapChip>utilisation à choisir — 5c</RoadmapChip>}
               </>
             ) : undefined,
             possessions: ahead('trappings') ? <RoadmapChip>dotations — étape {stepNo('trappings')}</RoadmapChip> : undefined,

@@ -60,7 +60,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
 }
 
 function mageSolo(seed = 3): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(seed) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
   h.wounds.max = 200;
   h.wounds.current = 200;
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] });

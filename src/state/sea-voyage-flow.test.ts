@@ -15,7 +15,8 @@ import { partyMoneyTotal, bourseOf, creditBourse } from './bourseFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
-import { byId, maladies } from '../data';
+import { byId, maladies, species } from '../data';
+import { setDataset, resetData } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import { buildEncounter } from './encounterAuthoring';
 import { emptyScene, type Scene } from './scene';
@@ -38,6 +39,7 @@ import { overspeedRow } from '../engine/seaNavigation';
 import { setRule, resetRule } from '../engine/policy';
 import { contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
+import { hullNavalTraits } from '../engine/navalTraits';
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -582,6 +584,34 @@ describe('progression — message « Encalminé »/« Voiles affalées » pilot�
     const journal = get().journal;
     expect(journal.some((l) => l.includes('affalées'))).toBe(true);
     expect(journal.some((l) => l.includes('Encalminé'))).toBe(false);
+  });
+});
+
+describe('voiles affalées sans ancre : la dérive est créditée le long du trajet (MDG 13 l.294, l.262-270)', () => {
+  function derive(windFrom: 'ouest' | 'est' | 'nord', upgrades?: { id: string }[]): { miles: number; ligne: string | undefined } {
+    freshState();
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    const vehicle = upgrades ? { ...plan.vehicle!, upgrades } : plan.vehicle!;
+    set({ travelPlan: { ...plan, vehicle, kmDone: 100, sea: { ...plan.sea!, windFrom, sailsDown: true } } });
+    runSeaDay(get, set);
+    return { miles: get().travelPlan!.sea!.milesToday, ligne: get().journal.find((l) => l.includes('affalées')) };
+  }
+
+  it('cap est : vent d’ouest → vers l’avant, vent d’est → vers l’arrière, vent du nord → nul ; même dérive', () => {
+    const arriere = derive('ouest');
+    const face = derive('est');
+    const lateral = derive('nord');
+    expect(hullNavalTraits(get().travelPlan!.vehicle!).some((r) => r.id === 'ancre')).toBe(false);
+    expect(arriere.miles).toBeGreaterThan(0);
+    expect(face.miles).toBe(-arriere.miles);
+    expect(lateral.miles).toBe(0);
+    expect(arriere.ligne).toContain(`${arriere.miles} milles gagnés`);
+    expect(face.ligne).toContain(`${arriere.miles} milles perdus`);
+    expect(lateral.ligne).toContain('aucun mille');
+  });
+
+  it('ancre jetée : aucune dérive', () => {
+    expect(derive('ouest', [{ id: 'ancre' }]).miles).toBe(0);
   });
 });
 
@@ -1425,6 +1455,19 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     // Aucune maladie déclenchée du tout ce jour (ni tonneau — pas d'eau suivie — ni scorbut) : routine.
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
+  });
+
+  it('l’immunité suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → testé', async () => {
+    const { setGmSeat } = await import('./netFlow');
+    setGmSeat(get, set, 1);
+    setDataset('species', species.map((s) => (s.id === 'hauts-elfes' ? { ...s, grantGroups: s.grantGroups.filter((g) => g !== 'elfe') } : s)));
+    set({ party: get().party.map((h) => ({ ...h, species: 'hauts-elfes' })) });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 0, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const bandes = get().pendingCascade?.participants.filter((s) => s.kind === 'sea-mal-de-mer') ?? [];
+    resetData();
+    expect(bandes).toHaveLength(1);
   });
 
   it('déjà immunisé (`diseaseImmunities`) → aucune étape reposée', async () => {

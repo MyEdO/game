@@ -4,7 +4,6 @@ import { castSpell, routeCounterspell, counterspellCandidates, counterspellChant
 import { effectivelyHostile } from '../engine/relations';
 import type { SpellLike } from '../engine/magic';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
@@ -28,7 +27,7 @@ const CRIT = { roll: 11, target: 60, sl: 1, isCritical: true, isFumble: false, l
 
 function setup() {
   const mk = (label: string, seed: number) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, rng: makeRNG(seed) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
     h.spells = ['flechette'];
     return h;
   };

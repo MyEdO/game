@@ -6,4 +6,4 @@ import type { PaletteDeclaree } from '../palette';
  * (enveloppe translate+scale) dans `forms.ts`. `aerial` = flock en hauteur (oiseaux). Ajouter une
  * nuée = déposer un fichier ; « l'utiliser » = `appearance.species = '<id>'` d'un record Nuée.
  */
-export type SwarmFormDef = { id: string; draw: string; palette: PaletteDeclaree; aerial?: boolean };
+export type SwarmFormDef = { id: string; label: string; draw: string; palette: PaletteDeclaree; aerial?: boolean };

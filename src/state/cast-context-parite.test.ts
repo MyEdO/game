@@ -8,7 +8,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { castingValue } from '../engine/magic';
 import { castContextMods } from './combatFlow';
 import { domainEnvironmentBonus } from '../engine/domainAttributes';
@@ -23,7 +22,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const mage = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', rng: makeRNG(3) });
+    const mage = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
     useGame.setState({ party: [mage] });
     useGame.getState().startScene({ ...testScene, environment: 'rural' } as never);
     useGame.getState().startCombat('enc-mutants');

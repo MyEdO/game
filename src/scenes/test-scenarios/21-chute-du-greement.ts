@@ -1,5 +1,4 @@
 import { createHero, skillCharacteristicById } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Combatant, SkillInstance } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
@@ -39,14 +38,14 @@ function skill(c: Combatant, skillId: string, advances: number, spec?: string): 
  * sous « Dés fixés »).
  */
 function equipage(): Combatant[] {
-  const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', rng: makeRNG(1508), id: 'gabier' });
+  const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
   skill(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   skill(gabier, 'voile', 45);
   gabier.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.45 };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', rng: makeRNG(1509), id: 'vigie' });
+  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   skill(vigie, 'athletisme', 5);

@@ -9,7 +9,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { draineCascade } from '../state/cascadeTestKit';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { fromBrass } from '../engine/money';
 import { partyMoneyTotal, distributeCredit } from '../state/bourseFlow';
 import { testScene } from '../scenes/test-fixture';
@@ -30,9 +29,9 @@ const mdToPlain = (html: string) => html
   .replace(/&amp;/g, '&');
 
 function buildSeam(weeks = 3): InterludeSeam {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', rng: makeRNG(1601) });
+  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   a.xp = 300;
-  const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', rng: makeRNG(1602) });
+  const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'Forgeron', characteristic: 'dexterite', advances: 10 });
   useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
   useGame.getState().startScene(testScene);

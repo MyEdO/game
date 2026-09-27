@@ -6,11 +6,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Flow } from './flow';
 import type { Dialogue } from './scene';
 
-const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
 
 /** Dialogue à deux nœuds ; le choix `withFlow` porte un Test + un `next` vers n2. */

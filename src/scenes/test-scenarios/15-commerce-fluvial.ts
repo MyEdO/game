@@ -1,5 +1,4 @@
 import { createHero, skillCharacteristicById } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById } from '../../engine/items';
 import type { Combatant, SkillInstance } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
@@ -37,7 +36,7 @@ function skill(c: Combatant, skillId: string, advances: number, spec?: string): 
  *  Ragot (dénicher une rumeur commerciale au marché, l.180) et Évaluation + Résistance à l'alcool
  *  (jauger la qualité secrète d'une cargaison de vin, l.95). Les trois autres sont l'équipage de barge. */
 function traders(): Combatant[] {
-  const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', rng: makeRNG(1501), id: 'com-berta' });
+  const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', seed: 1501, id: 'com-berta' });
   skill(berta, 'marchandage', 65);
   skill(berta, 'ragot', 55);
   skill(berta, 'evaluation', 50);
@@ -48,16 +47,16 @@ function traders(): Combatant[] {
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', rng: makeRNG(1502), id: 'com-gunnar' });
+  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar' });
   skill(gunnar, 'ramer', 50);
   skill(gunnar, 'voile', 40);
   gunnar.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.58 };
 
-  const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', rng: makeRNG(1503), id: 'com-otto' });
+  const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
   skill(otto, 'intimidation', 40);
   otto.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.62 };
 
-  const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', rng: makeRNG(1504), id: 'com-lise' });
+  const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', seed: 1504, id: 'com-lise' });
   skill(lise, 'metier', 40, 'Cartographe');
   lise.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 

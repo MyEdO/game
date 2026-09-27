@@ -120,6 +120,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `PlaqueRow/PlaqueGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CreatorStepFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Band` |  |  |  |  | U |  | U |  | U | U |  |  |  |  | U |  |
+| `ReglagesApparence/MonsterPartsFields` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `HeroSheet` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `DesignGallery` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Stack/Row/Grid/Split` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -158,7 +159,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `ouvrirBase/lireDansBase/ecrireDansBase` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -167,6 +168,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `parUnitesDeCode/parLibelle/replier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
@@ -230,4 +232,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: d99d70298dbc25848950f4141fbf8a6132362ac7 (1844 fichiers, 2 dossiers) corps: dbc93a103308b4f13d390d0b03590ce151dd76db -->
+<!-- sources-empreinte: 2c01bb68ed3ab7e58685f14d07e7218a3ec46256 (1847 fichiers, 2 dossiers) corps: 0aaf496f6fb78ba8c9546451cf3aa382d75e8e92 -->

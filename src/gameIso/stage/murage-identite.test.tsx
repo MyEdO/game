@@ -42,7 +42,6 @@ import type * as THREE from 'three';
 import { useGame } from '../../state/store';
 import { capDuGroupe } from '../../state/combatants';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { parseProject } from '../../state/worldMap';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
@@ -261,7 +260,7 @@ function murage(nom: string, avant: Relevé, après: Relevé): { fautes: string[
 // LES DEUX THÉÂTRES
 // ————————————————————————————————————————————————
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(7) });
+const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** La scène RÉELLE du jeu (le hub de l'arène) : bâtiments, toitures, une soixantaine de sujets. Sur une
  *  carte nue, « rien n'a bougé » serait vrai sans rien prouver. */

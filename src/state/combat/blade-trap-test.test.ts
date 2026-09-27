@@ -6,7 +6,6 @@ import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : enregistre l'applier 'bladeTrap' + installe les hooks (breakBlade…)
 import { pushChoice } from '../rollSeam';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { resolveOpposed } from '../../engine/tests';
 import { skillBaseValue } from '../../engine/skills';
@@ -39,7 +38,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

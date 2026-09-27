@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { openRoundEndCascade } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { endOfRound, pendingPlusExtensions, addCondition, COND } from '../../engine/conditions';
 import { testValue } from '../../engine/skills';
@@ -25,7 +24,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { fleeReachable } from './path';
 import { emptyScene } from './scene';
@@ -41,7 +40,7 @@ describe('Fuite intégrée à la modale (store)', () => {
   });
 
   it('Fuir : coup dans le dos (témoin IA) + Test de Calme DIFFÉRÉ (flux flee) ; fuite complétée au confirm, sans révélation', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene);
@@ -88,7 +87,7 @@ describe('Fuite intégrée à la modale (store)', () => {
   });
 
   it("Fuir — Chance « +1 DR » réduit le nombre d'États Brisés sans réécrire `success` (LDB 17 l.24 ; LDB 12 l.11)", () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene);
@@ -149,8 +148,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   /** Deux héros ENGAGÉS l'un contre l'autre (allié sous Frénésie/charme) : le frappeur est alors
    *  piloté-humain, ce qui rend son coup dans le dos INFLUENÇABLE (slot interactif). */
   function duelHeros(seed = 3) {
-    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
-    const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', rng: makeRNG(2) });
+    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     useGame.setState({ party: [A, B] });
     useGame.getState().seedRng(seed);
     useGame.getState().startScene(testScene);
@@ -262,7 +261,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   });
 
   it('100 % IA (ennemi qui fuit un ennemi) : résolution HEADLESS par le même flux, aucun pending qui traîne', () => {
-    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [A] });
     useGame.getState().seedRng(6);
     useGame.getState().startScene(testScene);

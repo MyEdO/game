@@ -2,7 +2,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
 import { spyApplier } from './cascadeTestKit';
@@ -26,7 +25,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
   afterEach(() => resetCadence());
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     useGame.setState({ party: [h] });
     return h;
   }
@@ -74,7 +73,7 @@ describe('Auto-combat — choix de cascade tranché par le défaut authoré', ()
   });
 
   it('choix AVEC défaut → auto-tranché sur le défaut (pas de hang)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [h] });
     startCascade(useGame.getState, useGame.setState, { title: 'C', purpose: 'combat', steps: [choix('dev', h.id, true)] });
     tickCombatAuto(useGame.getState, useGame.setState);
@@ -83,7 +82,7 @@ describe('Auto-combat — choix de cascade tranché par le défaut authoré', ()
   });
 
   it('choix SANS défaut → NON auto-résolu (décision au joueur, la modale reste)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [h] });
     startCascade(useGame.getState, useGame.setState, { title: 'C', purpose: 'combat', steps: [choix('dev', h.id, false)] });
     tickCombatAuto(useGame.getState, useGame.setState);

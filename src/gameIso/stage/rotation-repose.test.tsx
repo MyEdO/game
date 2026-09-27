@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import type { Dir8 } from '../../state/dir8';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Rot } from '../../geometry/iso';
 import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
@@ -46,7 +45,7 @@ vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 const TAILLE = { w: 800, h: 600 };
 const SCENE: Scene = emptyScene(12, 12);
 const MPT = sceneMetresPerTile(SCENE);
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
 /** Teinte et dégagement STABLES : le groupe de billboards se rebâtit sur l'IDENTITÉ de ses entrées —
  *  une lambda par rendu le remonterait à chaque image, et la mesure porterait sur le banc. */

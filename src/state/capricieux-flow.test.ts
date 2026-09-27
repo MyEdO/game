@@ -4,7 +4,9 @@ import { runFlow } from './combatFlow';
 import { testFlow, EMPTY_FLOW } from './flow';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
+
+/** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
+const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
 
 /**
  * Capricieux (Trait de créature, MSRC 15 l.149-159) : « Lorsqu'un Personnage effectue un Test de
@@ -18,7 +20,7 @@ import { makeRNG } from '../engine/dice';
  */
 describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 15 l.149-159)', () => {
   function openCharme(vsCapricieux?: boolean) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = 60;
     h.skills = []; // pas d'avances → testValue = Sociabilité brute
     useGame.setState({ party: [h], pendingTest: null, battle: null });

@@ -9,8 +9,8 @@
  *    les 3 = +25 PX ; sinon choix libre / « continuez à relancer » = 0 PX (relances RAW l.212).
  *  - Caractéristiques (LDB 05 l.337-341) : tirage gardé = +50 ; réassignation des dix jets = +25 ;
  *    relance (RAW, 0 PX) ou répartition de 100 Points = 0.
- *  - Talents d'espèce aléatoires (LDB 05 l.484, table l.514) : résolus par un RNG seedé fixe → re-résoudre avec
- *    d'autres choix « A ou B » ne re-tire pas les dés.
+ *  - Talents d'espèce aléatoires (LDB 05 l.484, table l.514) : un flux par tirage et par rang de relance
+ *    (`talentRerolls`) → re-résoudre avec d'autres choix « A ou B » ne re-tire pas les dés.
  *
  * AGENTIVITÉ (#393, amendement « ossature enforcée » 2026-07-15) : figé par le seed ≠ pré-affiché.
  * AUCUN résultat aléatoire n'existe à l'écran avant le GESTE du joueur — chaque famille de tirage
@@ -20,7 +20,6 @@
  */
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../state/combatants';
-import { makeRNG } from '../../engine/dice';
 import { Money } from '../../engine/money';
 import {
   rollSpecies,
@@ -55,14 +54,15 @@ import {
   poolDuJoker,
   adresseDeCreation,
   FORMAT_DES_CHOIX,
+  fluxDeCreation,
+  cleDOption,
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, rigSpeciesId, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
-import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
 
@@ -77,12 +77,10 @@ export const CAREER_CHAR_ADVANCES = 5;
 
 /** Le brouillon = les choix de création (`ChoixDeCreation`, en ids) + l'état de l'assistant. */
 export interface CreatorDraft
-  extends Required<Pick<ChoixDeCreation, 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'skillAdvances' | 'pettySpells'>>,
-    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices'> {
+  extends Required<Pick<ChoixDeCreation, 'seed' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
+    Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'> {
   /** Format des choix (`FORMAT_DES_CHOIX`) — un brouillon persisté sans lui n'est pas relu. */
   v: typeof FORMAT_DES_CHOIX;
-  /** Seed unique de l'assistant — tous les flux aléatoires en dérivent (figés). */
-  seed: number;
   // 1) Espèce
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -122,10 +120,6 @@ export interface CreatorDraft
   /** Compétences d'espèce à +5 / +3 (LDB 05 l.484) — `ChoixDeCreation.speciesSkillAdvances`. */
   speciesPlus5: RefDesignee[];
   speciesPlus3: RefDesignee[];
-  /** Talents d'espèce aléatoires TIRÉS (geste « Tirer aux dés » de l'étape 5c, #393 agentivité) :
-   *  avant le geste, les d100 n'apparaissent NULLE PART (ni volet ni fiche vivante) — la résolution
-   *  reste figée par le seed, le geste n'en découvre que l'affichage. */
-  talentsRolled?: boolean;
   // 5) Possessions
   /** Bourse de départ TIRÉE (LDB 05 l.578) — geste explicite requis (#393 P5 correctif
    *  d'agentivité : le montant, bien que déterministe côté `draftWealth`, ne s'affiche PLUS avant
@@ -153,11 +147,8 @@ export interface CreatorDraft
    *  effet mécanique (l.492 : « pas directement liés aux mécaniques de jeu »). */
   ascendant?: string;
   dwellings?: { house: string; sign: string }[];
-  sex: Sexe;
-  build: number;
-  appSeed: number;
-  colors?: Appearance['colors'];
-  parts?: Appearance['parts'];
+  /** Apparence du héros d'un seul tenant ; l'espèce de rendu se dérive de `speciesId` (`createHero`). */
+  apparence: Omit<Appearance, 'species'>;
 }
 
 export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff) | 0)): CreatorDraft {
@@ -183,6 +174,7 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
     speciesPlus3: [],
     speciesTalentChoices: {},
     randomSpecPicks: {},
+    talentRerolls: {},
     talentsRolled: false,
     specChoices: {},
     skillAdvances: {},
@@ -191,9 +183,7 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
     motivation: '',
     ambitionShort: '',
     ambitionLong: '',
-    sex: 'M',
-    build: 0.5,
-    appSeed: (seed >> 2) & 0xffff,
+    apparence: { sex: 'M', build: 0.5, seed: (seed >> 2) & 0xffff },
   };
 }
 
@@ -208,11 +198,12 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
  * héros d'avant cette fonctionnalité). */
 export function draftFromHero(hero: Combatant): CreatorDraft {
   const d = newDraft();
-  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est une clé de rig (libellé) → on
+  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est un id de rig → on
   // reconstruit le brouillon depuis l'id rules, pas depuis l'apparence.
   const speciesId = hero.species ?? d.speciesId;
   const withSp = withSpecies(d, speciesId);
   const withCa = hero.career ? withCareer(withSp, hero.career) : withSp;
+  const { species: _espece, ...apparence } = hero.appearance ?? { species: undefined, ...d.apparence };
   return {
     ...withCa,
     speciesId,
@@ -228,11 +219,7 @@ export function draftFromHero(hero: Combatant): CreatorDraft {
     star: hero.star,
     ascendant: hero.details?.ascendant,
     dwellings: hero.details?.dwellings,
-    sex: hero.appearance?.sex ?? d.sex,
-    build: hero.appearance?.build ?? d.build,
-    appSeed: hero.appearance?.seed ?? d.appSeed,
-    colors: hero.appearance?.colors,
-    parts: hero.appearance?.parts,
+    apparence,
   };
 }
 
@@ -252,7 +239,7 @@ export const careerCharKeys = (d: CreatorDraft): CharKey[] =>
 // ── 1) Espèce ──
 export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
   if (d.speciesRoll) return d; // FIGÉ : pas de relance (LDB 04 — aucune n'est offerte)
-  const r = rollSpecies(makeRNG(d.seed ^ 0x51ec));
+  const r = rollSpecies(fluxDeCreation(d.seed, 'espece'));
   // La borne tirée propose `ids` ; on sélectionne la 1ʳᵉ par défaut, le joueur peut choisir une autre.
   return withSpecies({ ...d, speciesRoll: r }, r.ids[0]);
 }
@@ -260,9 +247,13 @@ export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
 export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
-/** `specChoices` privé des adresses (`adresseDeCreation`) aux préfixes donnés. */
-function horsAdresses(specChoices: Record<string, string>, ...prefixes: string[]): Record<string, string> {
-  return Object.fromEntries(Object.entries(specChoices).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
+/** Choix par adresse (`adresseDeCreation`) privés des adresses aux préfixes donnés. */
+function horsAdresses<V>(parAdresse: Record<string, V>, ...prefixes: string[]): Record<string, V> {
+  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
+}
+/** Choix par adresse privés de l'adresse `adresse`. */
+function sansAdresse<V>(parAdresse: Record<string, V>, adresse: string): Record<string, V> {
+  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => a !== adresse));
 }
 
 export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
@@ -276,6 +267,7 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     speciesPlus3: [],
     speciesTalentChoices: {},
     randomSpecPicks: {},
+    talentRerolls: {},
     specChoices: horsAdresses(d.specChoices, 'espece:', 'ajout:'),
     talentsRolled: false,
     pettySpells: [],
@@ -322,20 +314,20 @@ export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const pool = careerRollPool(d);
   const n = d.careerRolls.length;
   if (n === 0) {
-    const r = rollCareer(pool, sp, makeRNG(d.seed ^ 0xca1));
+    const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere'));
     // Chaque jet désigne une borne (`ids`) ; défaut = 1ʳᵉ carrière, le joueur peut en choisir une autre.
     return r ? withCareer({ ...d, careerRolls: [r] }, r.ids[0]) : d;
   }
   if (n === 1) {
     // « Faites deux lancers de plus, ce qui porte votre total à 3 choix » (LDB 05 l.211).
-    const rng = makeRNG(d.seed ^ 0xca2);
+    const rng = fluxDeCreation(d.seed, 'carriere:deux-de-plus');
     const r2 = rollCareer(pool, sp, rng);
     const r3 = rollCareer(pool, sp, rng);
     if (!r2 || !r3) return d;
     return { ...d, careerRolls: [...d.careerRolls, r2, r3] };
   }
   // « continuez à relancer jusqu'à obtenir quelque chose qui vous plaît » (l.212) — 0 PX.
-  const r = rollCareer(pool, sp, makeRNG(d.seed ^ (0xca3 + d.careerFreeRolls)));
+  const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
   return r ? withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]) : d;
 }
 export function careerXp(d: CreatorDraft): number {
@@ -366,7 +358,7 @@ export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
  *  à l'animation (`CreatorDice`/`DiceRoll`) — même séquence RNG que `roll(2, 10, rng)` (deux tirages
  *  `rng.int(1, 10)` consécutifs par Caractéristique), donc `charRolls` reste bit-à-bit identique. */
 export function charRollPairs(d: CreatorDraft): [number, number][] {
-  const rng = makeRNG((d.seed ^ 0xc4a5) + d.charRerolls * 7919);
+  const rng = fluxDeCreation(d.seed, 'caracteristiques', d.charRerolls);
   return CHAR_KEYS.map(() => [rng.int(1, 10), rng.int(1, 10)] as [number, number]);
 }
 export function charRolls(d: CreatorDraft): number[] {
@@ -408,7 +400,7 @@ export const xpTotal = (d: CreatorDraft): number => speciesXp(d) + careerXp(d) +
 /** Tirage 1d100 FIGÉ du signe (anti-savescum, comme l'espèce) : on le garde (+25 PX) ou on choisit
  *  librement ensuite (+0 PX, RAW l.36). Pas de relance — RAW n'en offre aucune. */
 export function rollDraftStar(d: CreatorDraft): CreatorDraft {
-  const { roll: r, id } = rollStar(makeRNG(d.seed ^ 0x57a2)); // `id` STABLE du signe (≠ libellé)
+  const { roll: r, id } = rollStar(fluxDeCreation(d.seed, 'signe')); // `id` STABLE du signe (≠ libellé)
   return { ...d, starRoll: id, starRollValue: r, star: id };
 }
 
@@ -417,37 +409,45 @@ export function rollDraftStar(d: CreatorDraft): CreatorDraft {
  *  (ids internes, libellés à l'affichage) ; `sign` reste un libellé lisible (flavor stocké sur la
  *  fiche, aucune mécanique n'y référence un signe). */
 export function rollDraftAstrology(d: CreatorDraft): CreatorDraft {
-  const rng = makeRNG(d.seed ^ 0xa57e);
+  const rng = fluxDeCreation(d.seed, 'astrologie');
   const signLabel = (): string => { const id = rollStar(rng).id; return garanti(findStarById(id), id, 'signe astral').label; };
   return { ...d, ascendant: signLabel(), dwellings: celestialHouses.map((h) => ({ house: h.id, sign: signLabel() })) };
 }
 
 // ── 4) Compétences & Talents ──
-/** Résolution COMPLÈTE (tirages d100 compris) — INTERNE : l'exposition publique passe par
- *  `resolvedSpeciesTalents`, qui retient les tirés tant que le geste 5c n'est pas fait. */
-function resolvedSpeciesTalentsAll(d: CreatorDraft): { ref: RefDesignee; tire: boolean }[] {
-  const sp = draftSpecies(d);
-  if (!sp) return [];
-  return resolveSpeciesTalentsDetail(sp, {
-    rng: makeRNG(d.seed ^ 0x7a1e),
-    choices: d.speciesTalentChoices,
-    specChoices: d.specChoices,
-    pickSpec: (talentId, free) => (d.randomSpecPicks[talentId] && free.includes(d.randomSpecPicks[talentId]) ? d.randomSpecPicks[talentId] : null),
-  });
-}
-
 /** Talents d'espèce résolus (choix appliqués, tirages aléatoires FIGÉS par le seed) — les TIRÉS AU
- *  D100 n'y figurent qu'une fois le geste « Tirer aux dés » posé (`talentsRolled`, #393 agentivité :
- *  un talent non encore lancé n'apparaît NULLE PART, ni volet ni fiche vivante). */
-export function resolvedSpeciesTalents(d: CreatorDraft): RefDesignee[] {
-  return resolvedSpeciesTalentsAll(d).filter((t) => d.talentsRolled || !t.tire).map((t) => t.ref);
+ *  D100 n'y figurent qu'une fois le geste « Tirer aux dés » posé (`talentsRolled`, #393). */
+function resolvedSpeciesTalents(d: CreatorDraft): RefDesignee[] {
+  const sp = draftSpecies(d);
+  return sp ? resolveSpeciesTalentsDetail(sp, d).map((t) => t.ref) : [];
 }
 
-/** Geste « Tirer aux dés » des Talents d'espèce aléatoires (LDB 05 l.484, table l.514 ; un doublon déjà possédé
- *  est relancé D'OFFICE par `resolveSpeciesTalents`, l.484) — tirages figés par le seed, découverts
- *  ici ; RAW n'offre aucune relance au joueur. */
+/** Geste « Tirer aux dés » des Talents d'espèce aléatoires (LDB 05 l.484, table l.514) — tirages figés
+ *  par le seed, découverts ici ; la relance d'un doublon passe par `rerollDraftTalent`. */
 export function rollDraftTalents(d: CreatorDraft): CreatorDraft {
   return d.talentsRolled ? d : { ...d, talentsRolled: true };
+}
+
+/** Relance du tirage à `adresse` (LDB 05 l.484) : son rang effectif + 1, s'il est un doublon ; efface
+ *  l'utilisation choisie à cette adresse (`randomSpecPicks`). */
+export function rerollDraftTalent(d: CreatorDraft, adresse: string): CreatorDraft {
+  const tirage = speciesTalentRandomDrawn(d).find((t) => t.adresse === adresse);
+  if (!tirage?.doublon) return d;
+  return { ...d, talentRerolls: { ...d.talentRerolls, [adresse]: tirage.rang + 1 }, randomSpecPicks: sansAdresse(d.randomSpecPicks, adresse) };
+}
+
+/** Utilisation `spec` du Talent tiré à `adresse` (LDB 10 l.17 ; `randomSpecPicks`, lu par `rollRandomTalent`). */
+export function withRandomTalentSpec(d: CreatorDraft, adresse: string, spec: string): CreatorDraft {
+  return { ...d, randomSpecPicks: spec ? { ...d.randomSpecPicks, [adresse]: spec } : sansAdresse(d.randomSpecPicks, adresse) };
+}
+
+/** Option `option` (une option de `of`) de l'entrée « A ou B » à `adresse` ; changer d'option (`cleDOption`)
+ *  remet à zéro les relances et les spécialisations des tirages de CETTE entrée (`talentRerolls`, `randomSpecPicks`). */
+export function withSpeciesTalentChoice(d: CreatorDraft, adresse: string, option: AdvancementRef): CreatorDraft {
+  const speciesTalentChoices = { ...d.speciesTalentChoices, [adresse]: option };
+  const avant = d.speciesTalentChoices[adresse];
+  if (avant != null && cleDOption(avant) === cleDOption(option)) return { ...d, speciesTalentChoices };
+  return { ...d, speciesTalentChoices, talentRerolls: horsAdresses(d.talentRerolls, `${adresse}:`), randomSpecPicks: horsAdresses(d.randomSpecPicks, `${adresse}:`) };
 }
 
 /** Talents d'espèce en TROIS lots (LDB 05 l.484, écran Talents — 5c), dérivés de la DONNÉE
@@ -462,10 +462,36 @@ export function speciesTalentChoiceEntries(d: CreatorDraft): { adresse: string; 
 export function speciesTalentRandomCount(d: CreatorDraft): number {
   return (draftSpecies(d)?.talents ?? []).reduce((n, a) => n + ('random' in a ? a.random : 0), 0);
 }
-/** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514), tels que le geste 5c les découvre — VIDE tant que le
- *  joueur n'a pas tiré (#393 agentivité). */
-export function speciesTalentRandomDrawn(d: CreatorDraft): RefDesignee[] {
-  return d.talentsRolled ? resolvedSpeciesTalentsAll(d).filter((t) => t.tire).map((t) => t.ref) : [];
+/** Un Talent tiré au d100 (`TalentDEspece.tirage`) ; `auMaxi` : doublon dont le Maxi est déjà atteint
+ *  (LDB 10 l.18), sans effet s'il est gardé ; `utilisations` : le pool de `rollRandomTalent`
+ *  (`specPoolOf`, LDB 10 l.17) ; `utilisationChoisie` : `randomSpecPicks[adresse]` s'il est de ce pool. */
+export interface TirageDeTalent {
+  ref: RefDesignee;
+  adresse: string;
+  rang: number;
+  doublon: boolean;
+  auMaxi: boolean;
+  utilisations: string[];
+  utilisationChoisie: string | null;
+}
+/** Les N talents TIRÉS au d100 (LDB 05 l.484, table l.514-531), tels que le geste 5c les découvre — VIDE tant que le
+ *  joueur n'a pas tiré (#393 agentivité). Utilisation : `withRandomTalentSpec` ; relance : `rerollDraftTalent`. */
+export function speciesTalentRandomDrawn(d: CreatorDraft): TirageDeTalent[] {
+  const sp = draftSpecies(d);
+  if (!sp || !d.talentsRolled) return [];
+  const partiel: Combatant = { ...probeHero(d, false, true), talents: [] };
+  return resolveSpeciesTalentsDetail(sp, d).flatMap(({ ref, tirage }) => {
+    const auMaxi = !!tirage?.doublon && talentMaxReached(partiel, ref.id, ref.spec);
+    acquerirTalent(partiel, ref);
+    if (!tirage) return [];
+    const utilisations = specPoolOf(garanti(findTalentById(ref.id), ref.id, 'Talent'));
+    const choisie = d.randomSpecPicks[tirage.adresse];
+    return [{ ref, ...tirage, auMaxi, utilisations, utilisationChoisie: choisie != null && utilisations.includes(choisie) ? choisie : null }];
+  });
+}
+/** Les Talents tirés dont l'utilisation reste à choisir (LDB 10 l.17 ; `withRandomTalentSpec`). */
+export function tiragesSansUtilisation(d: CreatorDraft): TirageDeTalent[] {
+  return speciesTalentRandomDrawn(d).filter((t) => t.utilisations.length > 0 && t.utilisationChoisie == null);
 }
 /** Toutes les décisions de Talents d'espèce « A ou B » sont-elles tranchées ? */
 export function speciesTalentChoicesDone(d: CreatorDraft): boolean {
@@ -631,7 +657,7 @@ export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation;
  *  La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI, pas ici. */
 export function draftWealth(d: CreatorDraft): Money {
   const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  return rollInitialWealth(status, makeRNG(d.seed ^ 0x901d));
+  return rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
 }
 /** Pose le geste « Tirer aux dés » de la bourse — FIGÉ (aucune relance, LDB 05 l.578 n'en offre
  *  aucune) : le montant lui-même est déjà déterminé par `d.seed`, ce geste n'en découvre que
@@ -666,7 +692,7 @@ export function unresolvedTrappingSlots(d: CreatorDraft): string[] {
 export function rolledDetails(d: CreatorDraft): { age: number; height: number; eyes: string; hair: string } {
   const sp = draftSpecies(d);
   if (!sp) return { age: 0, height: 0, eyes: '', hair: '' };
-  const rng = makeRNG(d.seed ^ 0xde7a);
+  const rng = fluxDeCreation(d.seed, 'details');
   return { age: rollAge(sp, rng), height: rollHeight(sp, rng), eyes: rollEyes(sp, rng), hair: rollHair(sp, rng) };
 }
 
@@ -755,7 +781,11 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
       plus5: d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? d.speciesPlus5 : defauts.plus5,
       plus3: d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? d.speciesPlus3 : defauts.plus3,
     },
-    speciesTalentsResolved: resolvedSpeciesTalents(d),
+    seed: d.seed,
+    speciesTalentChoices: d.speciesTalentChoices,
+    randomSpecPicks: d.randomSpecPicks,
+    talentRerolls: d.talentRerolls,
+    talentsRolled: d.talentsRolled,
     specChoices: d.specChoices,
     starId: d.star,
     fateSplit: d.fateSplit,
@@ -773,11 +803,9 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
       dwellings: d.dwellings?.length ? d.dwellings : undefined,
     },
     motivation: d.motivation.trim() || undefined,
-    rng: makeRNG(d.seed ^ 0xf17a1),
+    apparence: d.apparence,
     id,
   });
-  // appearance.species = id d'espèce RIG (slug, via rigSpeciesId) ≠ Combatant.species (id rules).
-  hero.appearance = { species: rigSpeciesId(d.speciesId), sex: d.sex, build: d.build, seed: d.appSeed, colors: d.colors, parts: d.parts };
   if (d.star) hero.star = d.star;
   return hero;
 }
@@ -805,6 +833,8 @@ function messageDesTalentsDeRace(d: CreatorDraft): string | null {
   const ouvert = speciesTalentChoiceEntries(d).find((e) => d.speciesTalentChoices[e.adresse] == null);
   if (ouvert) return `Choisissez : « ${advancementLabel('talents', ouvert.ref)} ».`;
   if (speciesTalentRandomCount(d) > 0 && !d.talentsRolled) return 'Tirez vos Talents aléatoires aux dés.';
+  const [sansUtilisation] = tiragesSansUtilisation(d);
+  if (sansUtilisation) return `Choisissez l'utilisation du Talent tiré « ${refLabel('talents', { id: sansUtilisation.ref.id })} ».`;
   return null;
 }
 /** 5b — les 40 Augmentations réparties, 10 au plus par Compétence, Spécialisations choisies (LDB 05 l.535). */

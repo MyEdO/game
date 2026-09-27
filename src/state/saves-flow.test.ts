@@ -60,7 +60,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     vi.useFakeTimers();
     vi.clearAllTimers();
     deleteSlot(1); deleteSlot(2); deleteSlot(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', rng: makeRNG(4) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
     useGame.getState().startScene(testScene);
     vi.clearAllTimers();
@@ -180,7 +180,7 @@ describe('parseSave — la version DOIT être la courante', () => {
   it('la forme persistée nomme `id` le champ d’identité d’une `SkillInstance` (L2 #1548, bump 36) : 35 se jette', () => {
     // MESURE du motif : une instance à la graphie de 35 n'est appariée par AUCUN Test — le moteur
     // apparie sur `id`, donc la valeur retombe sur la Caractéristique nue, Augmentations perdues.
-    const nu = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', rng: makeRNG(1) }), skills: [] };
+    const nu = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
     const avecAncienneGraphie = { ...nu, skills: [{ skillId: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     const avecGraphieCourante = { ...nu, skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     expect(testValue(avecAncienneGraphie, 'resistance')).toBe(testValue(nu, 'resistance'));
@@ -244,7 +244,7 @@ describe('parseSave — la version DOIT être la courante', () => {
     // attachée garde `passive: [{ op: 'grantTalent', talentId }]`, et l'octroi lit `op.talent.id`. Le rejet
     // d'une version non courante est la politique testée par « version ANTÉRIEURE → null » ci-dessus.
     expect(SAVE_VERSION).toBeGreaterThanOrEqual(58);
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
   });
   it('MESURE du motif de bump 41 → 42 (#1509) : l’empreinte d’un décor à recette TOURNE avec son cap', () => {

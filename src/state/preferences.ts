@@ -14,6 +14,8 @@
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { useGame } from './store';
+import { HOUSE_RULES_STORAGE_KEY } from './houseRules';
+import { stockageWeb } from '../lib/stockageWeb';
 
 export type PrefValue = boolean | number | string;
 export type PrefKind = 'flag' | 'mode';
@@ -81,15 +83,12 @@ export function savePreferences(): void {
   try {
     const o: Record<string, PrefValue> = {};
     for (const p of PREFERENCES) if (p.get() !== p.default) o[p.id] = p.get();
-    if (Object.keys(o).length) globalThis.localStorage?.setItem(KEY, JSON.stringify(o));
-    else globalThis.localStorage?.removeItem(KEY);
+    if (Object.keys(o).length) stockageWeb('localStorage')?.setItem(KEY, JSON.stringify(o));
+    else stockageWeb('localStorage')?.removeItem(KEY);
   } catch {
     /* stockage indisponible (mode privé, quota…) : le réglage reste effectif pour la session */
   }
 }
-
-/** Magasin des règles maison (`state/houseRules.ts`) — d'où provient tout réglage devenu préférence. */
-const HOUSE_RULES_KEY = 'wfrp4.house-rules.v1';
 
 /**
  * REPRISE d'un réglage qui vivait dans le magasin des RÈGLES MAISON avant d'être reconnu comme une
@@ -100,7 +99,7 @@ const HOUSE_RULES_KEY = 'wfrp4.house-rules.v1';
  * le choix le plus récent.
  */
 function adoptHouseRulePreferences(already: Record<string, PrefValue>): void {
-  const raw = globalThis.localStorage?.getItem(HOUSE_RULES_KEY);
+  const raw = stockageWeb('localStorage')?.getItem(HOUSE_RULES_STORAGE_KEY);
   if (!raw) return;
   const o = JSON.parse(raw) as Record<string, PrefValue>;
   if (!o || typeof o !== 'object') return;
@@ -110,14 +109,14 @@ function adoptHouseRulePreferences(already: Record<string, PrefValue>): void {
     if (!(p.id in already)) p.set(o[p.id]);
     delete o[p.id];
   }
-  globalThis.localStorage?.setItem(HOUSE_RULES_KEY, JSON.stringify(o));
+  stockageWeb('localStorage')?.setItem(HOUSE_RULES_STORAGE_KEY, JSON.stringify(o));
   savePreferences();
 }
 
 /** Charge les préférences persistées (démarrage de l'app) — sans jouer les `onChange`. */
 export function loadPreferences(): void {
   try {
-    const raw = globalThis.localStorage?.getItem(KEY);
+    const raw = stockageWeb('localStorage')?.getItem(KEY);
     const o = raw ? (JSON.parse(raw) as Record<string, PrefValue>) : {};
     if (!o || typeof o !== 'object') return;
     for (const p of PREFERENCES) if (p.id in o) p.set(o[p.id]);

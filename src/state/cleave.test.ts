@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { cleaveTargets, doAttack, autoCleave } from './combatFlow';
 import { occupiesTile, footprintN } from './footprint';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -62,7 +61,7 @@ describe('Balayage en combat (store)', () => {
   /** Prépare un combat enc-mutants avec `nHeroes` héros, puis renvoie le state. */
   function setupBattle(nHeroes: number) {
     const party = Array.from({ length: nHeroes }, (_, i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i + 1) }),
+      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
     );
     useGame.setState({ party });
     useGame.getState().startScene(testScene);

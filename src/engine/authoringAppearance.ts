@@ -45,8 +45,8 @@ export interface EntityAppearance {
   /** Surcharges cosmétiques (sinon dérivées du seed). */
   sex?: Sexe;
   build?: number;
-  /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : 'Nains', 'Halflings',
-   *  'Elfes'… (canonicalisée par `baseSpeciesOf`). Vide = dérivée du nom. */
+  /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : id RIG (`rigSpeciesVocab`, ex.
+   *  `nain`, `halflings`), jamais un libellé (canonicalisée par `baseSpeciesOf`). Vide = dérivée du nom. */
   species?: string;
   /** Tenue CHOISIE — id STABLE de garde-robe (tenue ∪ carrière ∪ classe ∪ 'nu', jamais un libellé) :
    *  un PNJ porte n'importe quelle tenue (`mendiant`, `soldat`, `skaven`, `nu`…). Vide = dérivée du nom/espèce. */

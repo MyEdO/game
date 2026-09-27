@@ -21,7 +21,6 @@ import { combatEndBands } from './combatEndBands';
 import { splitBandRows } from './nightBands';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
 import { seatOwns } from './netOwnership';
@@ -40,7 +39,7 @@ const bandes = (k: string) => etapes().filter((s) => s.kind === k);
 function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;
   const party = Array.from({ length: n }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, rng: makeRNG(i + 1) }));
+    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
   g().startScene(testScene);
   g().startCombat('enc-mutants');

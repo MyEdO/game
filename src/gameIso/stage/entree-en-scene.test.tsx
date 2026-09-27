@@ -38,7 +38,6 @@ import {
   type Rasterisation,
 } from './banc-volumique';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -387,7 +386,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
  * aucun voile — sur la moitié du jeu.
  */
 describe('Vue de plateau — le centre de proximité vient des HÉROS', () => {
-  const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+  const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const héros = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id }, x, y, z: 0 });
   const ennemi = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id, kind: 'enemy' }, x, y, z: 0 });
 

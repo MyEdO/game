@@ -46,6 +46,31 @@ export const LABEL_EQ_RX = /\.label\s*===|===\s*[\w.]+\.label\b/;
  *  qui distingue des cas par IDENTITÉ de libellé plutôt que par `id` stable. */
 export const LABEL_PREDICATE_RX = /\.test\([^)]*\.label\b|\.label\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(/;
 
+// Espèce en RÉCEPTEUR : identifiant `species*` (`species`, `x.species`, `speciesId`), accès indexé
+// `x['species']`, ou groupe parenthésé qui la contient (`(x.species ?? '')`, `String(x.species)`) —
+// un appel `f({ species })` n'en est pas un.
+const ESPECE = String.raw`(?:\bspecies\w*|\[\s*['"]species\w*['"]\s*\])`;
+const RECEPTEUR_ESPECE = String.raw`(?:${ESPECE}|(?:(?<![\w$\])\]])|\bString)\([^()]*\bspecies[^()]*\))`;
+const LITTERAUX = String.raw`(?:'[^']*'|"[^"]*")(?:\s*,\s*(?:'[^']*'|"[^"]*"))*\s*,?`;
+
+/** PRÉDICAT de MOTIF sur une espèce : méthode de chaîne prédicative sur son récepteur (`!`/`?.`
+ *  compris, après `split`/`toLowerCase`/`toUpperCase` éventuels), `.test(` d'une regex, liste
+ *  LITTÉRALE d'ids qui la teste (`[…].includes`, `new Set([…]).has`), comparaison à un littéral (hors
+ *  `typeof`). L'appartenance d'une espèce se lit dans sa DONNÉE (`grantGroups`, `groupsFor`), jamais
+ *  dans la forme de son id ni de son libellé (#1897). Une liste NOMMÉE (`allowed.includes(x.species)`)
+ *  et un prédicat sur un alias (`const s = species.toLowerCase()`) échappent : lexicalement
+ *  indiscernables d'un lookup par id. */
+export const SPECIES_PREDICATE_RX = new RegExp(
+  [
+    String.raw`${RECEPTEUR_ESPECE}\s*!?(?:\??\.(?:split|toLowerCase|toUpperCase)\([^()]*\))*\??\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(`,
+    String.raw`\.test\([^)]*\bspecies`,
+    String.raw`\[\s*${LITTERAUX}\s*\]\s*\.(?:includes|indexOf)\([^)]*\bspecies`,
+    String.raw`new Set\(\s*\[\s*${LITTERAUX}\s*\]\s*\)\s*\.has\([^)]*\bspecies`,
+    String.raw`(?<!\btypeof\s+[\w$.?]*)${ESPECE}\s*[!=]==?\s*['"]`,
+    String.raw`['"]\s*[!=]==?\s*[\w$.?]*${ESPECE}`,
+  ].join('|'),
+);
+
 /** `switch` sur `.label` : un aiguillage par libellé est la même famille de logique-par-label qu'une
  *  carte `BY_LABEL`, juste écrite en `switch`. */
 export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
@@ -145,6 +170,7 @@ export function scanLabelLogic(relPath, contenu) {
       BY_LABEL_RX.test(line) ||
       LABEL_EQ_RX.test(line) ||
       LABEL_PREDICATE_RX.test(line) ||
+      SPECIES_PREDICATE_RX.test(line) ||
       LABEL_SWITCH_RX.test(line) ||
       SLUG_FROM_LABEL_RX.test(line);
     // Une ligne qui viole les DEUX est rapportée sous `label-logic` (la règle la plus stricte prime,

@@ -90,6 +90,7 @@ import { actionsDe } from './usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -415,18 +416,9 @@ function coerceSetting(d: SettingDef, value: RuleValue): { v: RuleValue } | { er
 const LAST_SCENARIO_KEY = 'wfrp.dev.lastScenario';
 type LastScenario = { id: string; seed?: number };
 
-/** sessionStorage quand il existe et répond (module chargé aussi hors navigateur : tests en env node). */
-function scenarioMemory(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
 function rememberScenario(entry: LastScenario): void {
   try {
-    scenarioMemory()?.setItem(LAST_SCENARIO_KEY, JSON.stringify(entry));
+    stockageWeb('sessionStorage')?.setItem(LAST_SCENARIO_KEY, JSON.stringify(entry));
   } catch {
     // stockage refusé (quota / navigation privée) : la reprise n'est qu'un confort de recette
   }
@@ -435,7 +427,7 @@ function rememberScenario(entry: LastScenario): void {
 function recallScenario(): LastScenario | null {
   let raw: string | null;
   try {
-    raw = scenarioMemory()?.getItem(LAST_SCENARIO_KEY) ?? null;
+    raw = stockageWeb('sessionStorage')?.getItem(LAST_SCENARIO_KEY) ?? null;
   } catch {
     return null;
   }

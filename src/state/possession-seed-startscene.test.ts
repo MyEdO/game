@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedStartingPossessions } from './possessionsFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { emptyScene } from './scene';
 import { deleteSlot } from './saves';
 import type { Possession } from '../engine/possession';
@@ -45,7 +44,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });
 
   it('dotation {vehicleId} (contrebandier niv.2 → barque, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2; // la dotation barque est portée par ce Niveau, pas le 1
     useGame.getState().setParty([hero]);
     const sc = emptyScene(6, 6);
@@ -69,7 +68,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   });
 
   it('loadGame NE redéclenche PAS le semis — la save fait foi, jamais de doublon (#617/#618 §3)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2;
     useGame.getState().setParty([hero]);
     const sc = emptyScene(6, 6);

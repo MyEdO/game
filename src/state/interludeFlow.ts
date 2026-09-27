@@ -46,10 +46,12 @@ import { applyMiscast } from './combatFlow';
 import { buySpell as partyBuySpell } from './partyFlow';
 import { testValue, type SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
+import { groupsFor } from '../engine/groups';
 import { effectiveEntry } from '../engine/variants';
 import { effectiveChar } from '../engine/characteristics';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
+import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
 import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
@@ -235,9 +237,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity) left -= 1;
-  // « les elfes ne perdent une Activité que si la durée est d'au moins trois semaines » (ch.23 l.50).
-  // Règle optionnelle (LDB 23 l.54-56) : le devoir elfique peut être ignoré (désactiver `interlude-elf-duty`).
-  const elfDuty = rule('interlude-elf-duty') && /elfe/i.test(hero.species ?? '') && itl.weeks >= 3;
+  // LDB 23 l.56 ; règle optionnelle `interlude-elf-duty` (LDB 23 l.54).
+  const elfDuty = rule('interlude-elf-duty') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
     left -= 1;
     lines.push(msg('if.elfDuty', { name: hero.label }));
@@ -629,7 +630,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // pistoles d'argent par 100PX » ; PX + argent gatés AVANT (dépensés MÊME sur échec, cf. resolver).
     const t = opts.talentId ? findTalentById(opts.talentId) : undefined;
     if (!t) { get().log(msg('if.talentUnknown', { id: opts.talentId ?? '' })); return; }
-    const xpCost = talentCost(h.talents.find((k) => k.talentId === t.id)?.times ?? 0);
+    const xpCost = talentCost(talentAcquisitions(h, t.id));
     if ((h.xp ?? 0) < xpCost) {
       get().log(msg('if.entrainementXpKo', { name: h.label, cost: xpCost, label: refLabel('talents', { id: t.id }) }));
       return;

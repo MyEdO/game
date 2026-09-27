@@ -136,10 +136,13 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
                             `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
-                            `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
-                            bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
-                            promesse, une connexion par opération) — bibliothèque de projets, calque
-                            de référence, sauvegarde automatique, dossier `src/data` du Codex (#1956).
+                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
+                            `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
+                            `accesBase` (magasins typés, `vider`) — bibliothèque de projets, calque de
+                            référence, sauvegarde automatique, dossier `src/data` du Codex (#1956) ;
+                            doublure `indexedDb.testkit.ts` (`brancherBasesSimulees`).
+                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
+                            (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
@@ -322,7 +325,7 @@ src/state/
                               `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
                               `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
-                              Backend IndexedDB (db `wfrp4-library`, store `projects`, une source de
+                              Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
                               localStorage, #766 lot B). `projectsLoad`/`publishedProjects` SYNC
                               (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance

@@ -81,7 +81,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('cast self → Zone sacrée centrée sur le lanceur (barrière profane + Brisé + noCorruption + durée BFM)', () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', rng: makeRNG(3) });
+    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

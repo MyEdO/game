@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { hoverTargeting } from './targeting';
 import type { Scene } from './scene';
@@ -26,7 +25,7 @@ function sceneWithStructure(structId: string): Scene {
 
 function start(structId: string, seed = 1) {
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(seed) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithStructure(structId));
   useGame.getState().startCombat('enc-mutants');

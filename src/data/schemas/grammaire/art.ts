@@ -4,14 +4,18 @@
  * possèdent la déclaration, la donnée en reçoit la projection sans importer le rendu. Le rendu importe
  * ces prédicats (sens permis) : UNE computation du domaine, pour le schéma comme pour `resolveRender`.
  */
-import { idDe } from './ref';
+import { idsDe } from './ref';
 import { ESPECES_DE_CREATURE, FORMES_DE_NUEE, SEXE_DE_COIFFURE } from '../_art.generated';
 
 /** Espèces DESSINÉES : celles dont le code déclare le corps — defs de créature et formes de nuée. */
 const ESPECES_DESSINEES: ReadonlySet<string> = new Set([...ESPECES_DE_CREATURE, ...FORMES_DE_NUEE]);
 const FORMES: ReadonlySet<string> = new Set(FORMES_DE_NUEE);
-/** Porte des espèces JOUABLES (`species.json`), lue vivante (entité créée au Compendium comprise). */
-const especeJouable = idDe('species');
+
+/** Domaine de saisie de `appearance.species` ÉNUMÉRÉ par groupe : espèces jouables (`species.json`, lues
+ *  vivantes), créatures dessinées, formes de nuée. Mêmes ensembles que `fauteDEspece`. */
+export function domaineDEspeces(): { jouables: readonly string[]; creatures: readonly string[]; nuees: readonly string[] } {
+  return { jouables: [...idsDe('species')], creatures: ESPECES_DE_CREATURE, nuees: FORMES_DE_NUEE };
+}
 
 /** L'espèce `id` est-elle DESSINÉE (defs de créature ou forme de nuée) ? */
 export function estEspeceDessinee(id: string): boolean {
@@ -27,7 +31,7 @@ export function messageDEspeceInconnue(id: string): string {
 /** Faute de l'espèce `id` écrite par l'auteur (`appearance.species`), hors du domaine de saisie, `null`
  *  sinon. Appelée par le rendu (`resolveRender`), hors de tout parse. */
 export function fauteDEspece(id: string): string | null {
-  if (estEspeceDessinee(id) || especeJouable.safeParse(id).success) return null;
+  if (estEspeceDessinee(id) || idsDe('species').has(id)) return null;
   return messageDEspeceInconnue(id);
 }
 

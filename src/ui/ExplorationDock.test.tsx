@@ -15,7 +15,6 @@ import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { WorldMap } from '../state/worldMap';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
@@ -47,7 +46,7 @@ function monter() {
 
 /** Combat en cours (un héros, son tour) : la console de combat prend le pont. */
 function enCombat() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(7) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
   h.id = 'h1';
   h.pos = { x: 5, y: 5 };
   useGame.setState({

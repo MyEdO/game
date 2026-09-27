@@ -29,6 +29,7 @@ import riverNavJson from '../data/river-navigation.json';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
+import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, d100, rollExpr, type RNG, defaultRNG } from './dice';
 import { bonus } from './characteristics';
@@ -100,23 +101,14 @@ export function rollRiverWind(rng: RNG = defaultRNG): { force: RiverWindForceId;
   };
 }
 
-/** Mise à jour du vent (l.21 : « lancez un nouveau d10 à l'aube, à midi, au crépuscule et à minuit : sur un 1,
- *  la force du vent change d'une catégorie »). Autant de chance de forcir que de mollir ; bornes : Calme →
- *  Léger, Très fort → Fort. PUR — renvoie la nouvelle force. */
+/** UNE mise à jour de la force du vent (l.21). PUR. */
 export function tickRiverWind(current: RiverWindForceId, rng: RNG = defaultRNG): RiverWindForceId {
-  if (d10(rng) !== DATA.windTickThreshold) return current;
-  const forces = riverForces();
-  const i = forces.indexOf(current);
-  const up = d10(rng) <= 5;
-  const next = i === 0 ? 1 : i === forces.length - 1 ? forces.length - 2 : i + (up ? 1 : -1);
-  return forces[next];
+  return basculesDeForce(riverForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
 }
 
 /** Nombre de crans de force appliqués sur une JOURNÉE (4 tirages, l.21). PUR. */
 export function tickRiverWindDay(current: RiverWindForceId, rng: RNG = defaultRNG): RiverWindForceId {
-  let f = current;
-  for (let i = 0; i < DATA.windTicksPerDay; i++) f = tickRiverWind(f, rng);
-  return f;
+  return basculesDeForce(riverForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
 /** Effet du vent pour une force × direction relative (Tableau des vents, l.29-33). PUR. */

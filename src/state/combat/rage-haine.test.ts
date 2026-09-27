@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { runEnemyAI } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { isFrenzied } from '../../engine/psychology';
 import { psychDRAdjust } from '../../engine/combat';
@@ -29,7 +28,7 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     seedBattleRng(777);

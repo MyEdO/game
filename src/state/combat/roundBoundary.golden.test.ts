@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { advanceTurn } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng, battleRng } from '../battleRng';
 import { addCondition, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
@@ -19,7 +18,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('lignes de journal + position RNG inchangées', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     seedBattleRng(777);

@@ -14,7 +14,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { startCascade, registerCascadeApplier } from '../state/cascade';
 import { dieStep } from '../state/rollSeam';
 import type { SeuilDeSauvegarde } from '../state/pendings';
@@ -163,7 +162,7 @@ describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AV
 
   /** Ouvre la sauvegarde d'un héros NOMMÉ, telle que la porte la pousse (`combatFlow.pousserSauvegarde`). */
   function openSauvegarde() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: NOM, rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: NOM, seed: 1 });
     useGame.setState({
       battle: null, party: [hero], suspendedCascades: [], journal: [], pendingCascade: null,
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

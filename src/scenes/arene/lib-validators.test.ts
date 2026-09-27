@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 // @ts-expect-error — outil d'auteur .mjs sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
 import { sceneMetresPerTile } from '../../state/scene';
+import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 
 /** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi `ref` — sert à exercer
  *  `creatureId()` (branché dans `normalizeEnemy`) sans dépendre d'un catalogue de créature particulier. */
@@ -36,6 +37,12 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
 
   it('NPC : un LIBELLÉ d’espèce → throw', () => {
     expect(() => NPC('t', 0, 0, 'Test', { appearance: { species: 'Humains (Reiklander)' } })).toThrow(/species/i);
+  });
+
+  it('NPC : chaque forme de nuée du domaine de saisie passe ; un id inconnu → throw', () => {
+    for (const forme of domaineDEspeces().nuees)
+      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: forme } }).appearance.species).toBe(forme);
+    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: 'espece-imaginaire' } })).toThrow(/species/i);
   });
 
   it('NPC : un LIBELLÉ de tenue → throw', () => {

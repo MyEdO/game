@@ -50,7 +50,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
 
   /** Héros ACTIF en combat, frappé par le palier de « Purifier la chair » — le journal de pose est rendu. */
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene);
     useGame.getState().startCombat('enc-mutants');

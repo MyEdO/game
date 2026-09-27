@@ -16,7 +16,6 @@ import { psychDRAdjust } from '../engine/combat';
 import { refreshDefendedPsych, refreshAllDefendedPsych, fearSourceFor, targetCausedTrigger, psychBranchOps } from '../engine/psychology';
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { Scene, SceneEntity } from './scene';
 
@@ -33,7 +32,7 @@ const ARAI = (id: string) => ent({ id, statblock: { label: 'Araignée', char: { 
 
 /** Héros au Calme plancher (FM 1, aucune avance) : son Test de rencontre échoue de façon déterministe. */
 function phobique(label = 'H') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
   h.characteristics['force-mentale'] = 1;
   h.skills = [];
   h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];

@@ -621,6 +621,16 @@
     "verrou": "réflexe avant tout bandeau de rubrique recodé"
   },
   {
+    "id": "reglagesApparence",
+    "type": "primitives.manifest",
+    "label": "ReglagesApparence/MonsterPartsFields",
+    "fichier": "src/ui/editor/MonsterPartsFields.tsx",
+    "css": "src/ui/styles/reglages-apparence.css",
+    "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "verrou": "apparence-une-rubrique.test.tsx"
+  },
+  {
     "id": "heroSheet",
     "type": "primitives.manifest",
     "label": "HeroSheet",
@@ -1046,9 +1056,9 @@
   {
     "id": "indexedDb",
     "type": "primitives.manifest",
-    "label": "ouvrirBase/lireDansBase/ecrireDansBase",
+    "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
+    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1123,6 +1133,15 @@
     "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
     "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
     "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+  },
+  {
+    "id": "stockageWeb",
+    "type": "primitives.manifest",
+    "label": "stockageWeb",
+    "fichier": "src/lib/stockageWeb.ts",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
+    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",

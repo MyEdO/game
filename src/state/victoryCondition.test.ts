@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { checkBattleOver } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from './scene';
 import type { Scene } from './scene';
@@ -28,7 +27,7 @@ function drainCombatEndCascade(): void {
 }
 
 function startFixtureCombat(scene: Scene = testScene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');

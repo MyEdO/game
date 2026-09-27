@@ -13,7 +13,7 @@ import { landBuyCargo, landSellCargo } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { draineCascadeDifferee } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { d100, makeRNG } from '../engine/dice';
+import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { testValue } from '../engine/skills';
 import type { Possession } from '../engine/possession';
@@ -181,7 +181,7 @@ const convoiPossession = (ownerId: string): Possession =>
 /** Marché terrestre ouvert, un convoi porteur, un meneur à `nue` en Marchandage + 2 soutiens éligibles. */
 function setupLand(nue: number): Combatant {
   const mk = (id: string, fel: number): Combatant => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: id, motivation: 'x', rng: makeRNG(11), id });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: id, motivation: 'x', seed: 11, id });
     h.characteristics = { ...h.characteristics, Fel: fel } as Combatant['characteristics'];
     return h;
   };

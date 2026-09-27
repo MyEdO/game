@@ -4,7 +4,8 @@ import { Tabs, type TabItem } from '../Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
-import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { isSwarm } from '../../engine/traits/dispatch';
+import { mergeCreatureProfile } from '../../state/campaignData';
 import { creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
@@ -601,11 +602,8 @@ function PresetForm({ preset, onRename, onPatch, onRemove }: {
     else char[k] = v;
     patchProfil({ char: Object.keys(char).length ? char : undefined });
   };
-  /** Fusionne un patch d'apparence (retire `apparence` si elle redevient vide). */
-  const patchAppearance = (patch: Partial<EntityAppearance>) => {
-    const next = coiffureRetombee({ ...appearance, ...patch });
-    onPatch({ apparence: Object.keys(next).length ? next : undefined });
-  };
+  /** Pose l'apparence suivante (retire `apparence` si elle redevient vide). */
+  const poserApparence = (next: EntityAppearance) => onPatch({ apparence: Object.keys(next).length ? next : undefined });
 
   return (
     <div className="preset-form">
@@ -650,29 +648,10 @@ function PresetForm({ preset, onRename, onPatch, onRemove }: {
       </div>
       <div className="ed-field">
         <span>Apparence</span>
-        <ReglagesApparence
-          species={appearance.species}
-          sex={appearance.sex}
-          build={appearance.build}
-          hairstyle={appearance.hairstyle}
-          onSpecies={(id) => patchAppearance({ species: id })}
-          onSex={(s) => patchAppearance({ sex: s })}
-          onBuild={(b) => patchAppearance({ build: b })}
-          onHairstyle={(id) => patchAppearance(coiffureChoisie(id))}
-        />
+        <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
+          nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
       </div>
-      <MonsterPartsFields
-        monster={appearance.monster}
-        colors={appearance.colors}
-        tenue={appearance.tenue}
-        eyes={appearance.eyes}
-        features={appearance.features}
-        onMonster={(patch) => patchAppearance({ monster: { ...(appearance.monster ?? {}), ...patch } })}
-        onColors={(patch) => patchAppearance({ colors: { ...(appearance.colors ?? {}), ...patch } })}
-        onTenue={(c) => patchAppearance({ tenue: c })}
-        onEyes={(patch) => patchAppearance({ eyes: { ...(appearance.eyes ?? {}), ...patch } })}
-        onFeatures={(f) => patchAppearance({ features: f.length ? f : undefined })}
-      />
+      <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
       <label className="ed-field">
         Portrait (id d'illustration)
         <input

@@ -135,6 +135,12 @@ export function idsDeCollection(marque: MarqueDeCollection, valeur: unknown, fil
         })
       : [];
   if (filtre) throw new Error(`filtre « ${filtre.champ} » sur un record : un filtre d'espace ne se lit que sur une liste.`);
-  const carte = marque.sous === undefined ? valeur : estObjet(valeur) ? valeur[marque.sous] : undefined;
+  const carte = carteDuRecord(marque, valeur);
   return estObjet(carte) ? Object.keys(carte) : [];
+}
+
+/** La CARTE d'un record marqué dans sa valeur : la valeur elle-même, ou son champ `sous`. Lue par
+ *  `idsDeCollection` et le scan des strates (`scripts/docs/lib/structures-scan.mts`). */
+export function carteDuRecord(marque: Extract<MarqueDeCollection, { forme: 'record' }>, valeur: unknown): unknown {
+  return marque.sous === undefined ? valeur : estObjet(valeur) ? valeur[marque.sous] : undefined;
 }

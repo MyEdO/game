@@ -14,9 +14,8 @@ import { asRigSpeciesId, type Appearance, type RigSpeciesId } from './appearance
 import type { EquipCtx } from './parts/equipment';
 import { PLAN_LIST } from './plans/_registry.generated';
 import { defById, speciesScale } from './creatures';
-import { findCreatureById, findTrappingById, findVehicleById } from '../../data';
+import { findCreatureById, findTrappingById, findVehicleById, DEFAULT_RACE_ID } from '../../data';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { DEFAULT_RACE_ID } from './races';
 import { diagOnce, diagSubject } from './devDiag';
 import { eyesArtFromKeys } from './parts/eyes';
 import type { EntityAppearance } from '../../engine/authoringAppearance';

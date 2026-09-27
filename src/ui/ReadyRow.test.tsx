@@ -11,7 +11,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { ReadyRow } from './ReadyRow';
 
@@ -20,7 +19,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(2) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 2 });
   h.id = id;
   return Object.assign(h, over);
 }
