@@ -5,7 +5,7 @@
 // POURQUOI UN MODULE À LUI : l'instrument a DEUX formes — le `.test.` (`vitest run`, seul inclus
 // par `vite.config.ts:71`) et le `.bench.` (`vitest bench`, `npm run bench`, hors suite et hors CI).
 // Une garde qui n'exclut que la première prend le banc pour de la production et rougit sur ce qu'il
-// fait À DESSEIN — l'index FIGÉ d'un banc est le témoin qu'il compare au vif —, ce qui pousse à
+// fait À DESSEIN — l'index FIGÉ d'un banc est le témoin qu'il compare au vivant —, ce qui pousse à
 // l'exempter par son NOM : une garde qui valide des défauts. Le prédicat vit donc en UN exemplaire,
 // et chaque garde qui distingue production / instrument le consomme. Aucun bundle n'embarque un
 // banc : il importe l'API `bench` de vitest par construction.

@@ -2,7 +2,7 @@
  * CONTRAT DE L'INDEX DES IDS (#1463) — `IDS_PAR_ESPACE` (`_ids.generated.ts`, phase 2 de `npm run gen`,
  * `scripts/gen-espaces.mts`), keyé par CLÉ D'ESPACE (`grammaire/cle-d-espace.ts`).
  *
- * La construction d'un schéma ne lit plus la table (`grammaire/ref.ts`, `idsVivants.ts:9-11`) : ce qui
+ * La construction d'un schéma ne lit plus la table (`grammaire/ref.ts`, `idsVivants.ts`, en-tête) : ce qui
  * s'y attrapait s'attrape ici — chaque espace DÉSIGNÉ (`idDe`, `porteLeMarqueur`) a sa cible, chaque
  * document `entite`/`record` a son espace de racine, chaque source de spécialisations ses espaces.
  */
@@ -18,7 +18,7 @@ import './_registry-scenes.generated';
 import '../index';
 import { espacesDesignes, idDe, mesureDuParse, refOuSpec } from './grammaire/ref';
 import { collectionsDuDocument, listeCle } from './grammaire/collection-cle';
-import { HORS_DE_LA_GRAPHIE, cleDesSpecs, cleFiltree, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, type PasDeSuite } from './grammaire/cle-d-espace';
+import { HORS_DE_LA_GRAPHIE, baseDe, cleDesSpecs, cleFiltree, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, type PasDeSuite } from './grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './grammaire/sourcesDeSpecs';
 
 const CLES = Object.keys(IDS_PAR_ESPACE);
@@ -76,9 +76,8 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
   it('la GRAPHIE est univoque : une clé se relit à l’identique, aucun pas `[clé]` ni filtre ne porte `[`, `]`, `#`, `?` ou `=`', () => {
     const fautes = CLES.flatMap((cle) => {
       const lue = lireCleDEspace(cle);
-      const pas = [...(lue.niche ?? '').matchAll(/\[([^\]]*)\]/g)].map((m) => m[1]);
-      const base = lue.niche === undefined ? lue.fichier : `${lue.fichier}#${lue.niche}`;
-      const relue = lue.filtre ? cleFiltree(base, lue.filtre) : base;
+      const pas = pasDeLaSuite(lue.niche ?? '').flatMap((p) => ('cle' in p ? [p.cle] : []));
+      const relue = lue.filtre ? cleFiltree(baseDe(lue), lue.filtre) : baseDe(lue);
       const ennemis = [...pas, ...(lue.filtre ? [lue.filtre.champ, lue.filtre.vaut ?? ''] : [])].filter((p) => HORS_DE_LA_GRAPHIE.test(p) || /[[\]]/.test(p));
       return relue !== cle || ennemis.length ? [cle] : [];
     });
@@ -123,7 +122,7 @@ describe('AMORÇAGE — `npm run gen` répare un index illisible', () => {
       `register('data:text/javascript,' + encodeURIComponent(${JSON.stringify(crochets)}));`,
       "const { IDS_PAR_ESPACE } = await import('./src/data/schemas/_ids.generated.ts');",
       "const { indexDesIds } = await import('./scripts/gen-espaces.mts');",
-      'console.log(JSON.stringify({ vue: Object.keys(IDS_PAR_ESPACE).length, index: Object.fromEntries(await indexDesIds()) }));',
+      'console.log(JSON.stringify({ vue: Object.keys(IDS_PAR_ESPACE).length, index: Object.fromEntries((await indexDesIds()).table) }));',
     ].join('\n');
     const r = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', code], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     expect(r.status, r.stderr).toBe(0);

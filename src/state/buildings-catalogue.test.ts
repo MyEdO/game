@@ -57,7 +57,7 @@ describe('catalogue des bâtiments — la façade rend le DATASET (#1715)', () =
     expect(buildings.some((b) => (b.features?.length ?? 0) > 0), 'plus aucun ornement authoré : la lecture n’est plus exercée.').toBe(true);
   });
 
-  it('la lecture est VIVE : une entrée éditée au seam se voit sans rechargement', () => {
+  it('la lecture est VIVANTE : une entrée éditée au seam se voit sans rechargement', () => {
     const [premier] = buildings;
     // L'index est AMORCÉ avant l'édition : sans cette lecture, le mémo se construirait pour la
     // première fois APRÈS l'écriture et rendrait la valeur neuve même sans témoin de version.

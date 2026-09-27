@@ -39,7 +39,7 @@ const ALIAS_GROUP: Record<string, string> = {
  * COUTURE texte→id (#602) : libellé d'arme SAISI (arme custom, statbloc sans identité de catalogue) →
  * Groupe canonique. Prend du TEXTE, jamais une entité en main — une arme qui porte son `subType` se
  * résout par son ID (cf. `weaponGroup`). null si non catalogué. La conversion libellé→id est DÉLÉGUÉE
- * au résolveur VIF `weaponGroupIdByWeaponLabel` (`src/data/index.ts`, seule couture tolérée).
+ * au résolveur VIVANT `weaponGroupIdByWeaponLabel` (`src/data/index.ts`, seule couture tolérée).
  */
 export function weaponGroupFromText(text: string): string | null {
   return weaponGroupIdByWeaponLabel(text) ?? null;

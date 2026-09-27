@@ -25,7 +25,7 @@ export function warnMissing(kind: string, id: string): void {
 
 /** Entrée d'un registre de catalogue par id ; à défaut l'entrée de REPLI VISIBLE + l'avertissement DEV.
  *  Le premier paramètre est une RÉSOLUTION, jamais un index : un catalogue dont la donnée se mute en
- *  place (les matières, `src/data/materials.json`) y passe sa lecture VIVE, un catalogue à index figé y
+ *  place (les matières, `src/data/materials.json`) y passe sa lecture VIVANTE, un catalogue à index figé y
  *  passe son index (`(id) => MAP[id]`) — le repli visible reste le MÊME chemin pour les deux. */
 export function catalogEntry<T>(trouve: (id: string) => T | undefined, id: string, kind: string, missing: T): T {
   const found = trouve(id);

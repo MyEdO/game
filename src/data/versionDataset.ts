@@ -12,10 +12,7 @@
  * en TDZ). Même patron que `schemas/grammaire/idsVivants.ts`, l'autre module feuille posé par la
  * couche donnée.
  */
-import type { DatasetKey, ObjectDatasetKey } from './overrides';
-
-/** Clé de dataset versionnée : les tableaux (`ARRAYS`) ET les datasets-objets (`OBJECTS`) du seam. */
-export type CleDeDataset = DatasetKey | ObjectDatasetKey;
+import type { CleDeDataset } from './schemas/_cles-de-dataset.generated';
 
 /** Le compteur d'UN dataset, dans une CELLULE que le mémo capture UNE fois : une lecture chaude n'est
  *  plus une recherche par chaîne dans une `Map` mais une lecture de champ. */
@@ -53,7 +50,7 @@ export function bumperDataset(cle: CleDeDataset): void {
 
 /**
  * Mémo d'une valeur DÉRIVÉE d'un dataset, invalidé par sa version — le NOYAU partagé de tout index
- * vif (`indexParId`/`indexParChamp`, `src/data/index.ts`) et de toute vue dérivée (`TRAITS`,
+ * vivant (`indexParId`/`indexParChamp`, `src/data/index.ts`) et de toute vue dérivée (`TRAITS`,
  * `siegeEngines`, `indexDesTerrains`, `defsGlobaux`). Le calcul est PARESSEUX : rien ne se construit à
  * l'import, la première lecture paie.
  */
@@ -80,7 +77,7 @@ export function memoParVersion<T>(cle: CleDeDataset | readonly CleDeDataset[], c
 }
 
 /**
- * INDEX VIF par un CHAMP quelconque (libellé, libellé minuscule, Vent, manœuvre octroyée…) : rend
+ * INDEX VIVANT par un CHAMP quelconque (libellé, libellé minuscule, Vent, manœuvre octroyée…) : rend
  * l'ACCESSEUR, jamais la `Map` — l'index se reconstruit tout seul à la première lecture qui suit une
  * écriture au seam. `entrees` est le binding VIVANT du dataset (muté en place, identité stable) ;
  * une clef `undefined` écarte l'entrée de l'index (filtre porté par la clef, jamais par un
@@ -102,7 +99,7 @@ export function indexParChamp<T, K>(
   return (k) => (k == null ? undefined : index().get(k));
 }
 
-/** INDEX VIF par `id` STABLE — la forme de très loin la plus fréquente d'`indexParChamp`. */
+/** INDEX VIVANT par `id` STABLE — la forme de très loin la plus fréquente d'`indexParChamp`. */
 export function indexParId<T extends { id: string }>(
   cle: CleDeDataset,
   entrees: readonly T[],

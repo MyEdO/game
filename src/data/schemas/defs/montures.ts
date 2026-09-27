@@ -37,7 +37,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['montures'] },
-    edit: { niche: { categories: ['montures'] } },
+    edit: { niche: { categories: { montures: 'entries' } } },
   },
   { rangee: montureSchema },
 );

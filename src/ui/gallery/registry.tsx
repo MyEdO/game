@@ -96,7 +96,7 @@ import { RefField, refFieldCfg } from '../compendium/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 
-// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVES (#1692) ──
+// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
 export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] => {
   const parFamille = new Map<string, typeof species>();

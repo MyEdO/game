@@ -175,7 +175,7 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
     // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
     // recette ne prend qu'un cap CARDINAL. Sa recette tourne (`rotatePropLocal`) là où son empreinte
     // solide ne tourne pas (#1509) : une diagonale poserait son corps en travers de cases restées
-    // traversables. La sous-liste se lit au régime vif, sinon au registre généré (`porteLeMarqueur`).
+    // traversables. La sous-liste se lit au régime vivant, sinon au registre généré (`porteLeMarqueur`).
     if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
     ctx.addIssue({
       code: 'custom',

@@ -3409,8 +3409,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
       run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
-    ACTIONS.push(fabrique);
     vi.useFakeTimers();
+    ACTIONS.push(fabrique);
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');
@@ -3506,8 +3506,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
       run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
-    ACTIONS.push(fabrique);
     vi.useFakeTimers();
+    ACTIONS.push(fabrique);
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');

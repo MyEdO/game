@@ -55,7 +55,7 @@ const doc = document(
   { perils: { label: 'Dangers fluviaux', hint: 'Catalogue des dangers (Débris/Barrage/Rochers/Eaux peu profondes)' } },
   {
     codex: { keys: ['riverPerils'] },
-    edit: { niche: { categories: ['riverPerils'] } },
+    edit: { niche: { categories: { riverPerils: 'perils' } } },
   },
 );
 
