@@ -53,8 +53,8 @@ Documents qu’AUCUNE def ne déclare : **0**.
 
 ### 1bis. Index des ids (le cœur du détecteur)
 
-Identités indexées : **5941** (entrées de racine + documents embarqués) ; libellés
-normalisés : **5177**. Un id vu dans PLUSIEURS datasets rend la résolution
+Identités indexées : **5942** (entrées de racine + documents embarqués) ; libellés
+normalisés : **5178**. Un id vu dans PLUSIEURS datasets rend la résolution
 AMBIGUË (jamais fausse) : **398** collisions, et **3432** ids
 sont aussi le libellé d’une entité (faux positif possible sur la résolvabilité d’un `{text}`).
 
@@ -560,7 +560,7 @@ nombre d’entrées qui la portent.
 | `src/data/careers.json` | array | liste | entité | 108 | `class`:string(108) `desc`:string(108) `grantGroups`:array(6) `id`:string(108) `label`:string(108) `labelF`:string(79) `rand`:object(108) `source`:object(108) `tenue`:string(15) `type`:string(108) |
 | `src/data/characteristics.json` | array | liste | entité | 19 | `abr`:string(19) `desc`:string(19) `id`:string(19) `label`:string(19) `nature`:string(19) `options`:array(1) `source`:object(19) `type`:string(19) |
 | `src/data/classes.json` | array | liste | entité | 9 | `desc`:string(9) `grantGroups`:array(1) `id`:string(9) `label`:string(9) `source`:object(9) `trappings`:array(9) `type`:string(9) |
-| `src/data/combat-stakes.json` | array | liste | entité | 37 | `entryCategory`:string(11) `entryFromSource`:boolean(1) `form`:string(32) `id`:string(37) `kind`:string(37) `label`:string(37) `rule`:string(25) `ruleCategory`:string(25) `source`:object(37) `template`:string(32) `type`:string(37) |
+| `src/data/combat-stakes.json` | array | liste | entité | 38 | `entryCategory`:string(12) `entryFromSource`:boolean(1) `form`:string(33) `id`:string(38) `kind`:string(38) `label`:string(38) `rule`:string(25) `ruleCategory`:string(25) `source`:object(38) `template`:string(33) `type`:string(38) |
 | `src/data/creatures.json` | array | liste | entité | 493 | `alsoIn`:array(5) `appearance`:object(485) `char`:object(493) `desc`:string(196) `folder`:string(493) `followsCharacterRules`:boolean(163) `grantGroups`:array(90) `harvest`:object(54) `id`:string(493) `label`:string(493) `maison`:string(1) `named`:boolean(66) `optionals`:array(493) `purchase`:object(14) `skills`:array(493) `source`:object(493) `spells`:array(493) `talents`:array(493) `title`:null/string(493) `traits`:array(493) `trappings`:array(493) `type`:string(493) |
 | `src/data/crew-morale.json` | object | pipe à la racine | config | 1 | `bands`:array(1) `base`:number(1) `factors`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/crew-roles.json` | array | liste | entité | 9 | `desc`:string(9) `id`:string(9) `label`:string(9) `maison`:string(7) `skills`:array(9) `source`:object(2) `type`:string(9) `wage`:object(9) |
@@ -1145,7 +1145,7 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 | formule | `sinPoints` | cible | 10 |
 | formule | `minimum,of` | cible | 2 |
 | source | `book,page` | cible | 3223 |
-| source | `book,note,page` | cible | 1259 |
+| source | `book,note,page` | cible | 1260 |
 | source | `book,page,quote` | cible | 121 |
 | source | `book,note,page,quote` | cible | 4 |
 | source | `book,chapter` | historique | 0 |
@@ -1172,10 +1172,10 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **875** (cible 434 · declaree 6 · historique 130 · divergente 305). Objets JSON parcourus : **49324**, dont **31722** portent une forme
+Lignes concept × dataset × champ × forme : **875** (cible 434 · declaree 6 · historique 130 · divergente 305). Objets JSON parcourus : **49326**, dont **31723** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **87**.
 
-Entrées de racine sans concept de valeur : **4109** sur **4196** —
+Entrées de racine sans concept de valeur : **4110** sur **4197** —
 un document n’est ni orphelin ni hors strate : ce compte est le seul porteur de ce qu’aucun concept ne revendique.
 Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause `horsDesignation` du lexique : `activities.json` 52.
 
@@ -1852,7 +1852,7 @@ Reconnu par : son noyau `sum` `sinPoints` `minimum` (≥ 1)
 
 ### 3.9 référence de source (livre/folio) — `source` (strate Valeur)
 
-121 ligne(s), 4718 occurrence(s).
+121 ligne(s), 4719 occurrence(s).
 Reconnu par : son noyau `book`
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Cibles résolues | Note |
@@ -1874,7 +1874,7 @@ Reconnu par : son noyau `book`
 | entité | `source` | `book,note,page` | cible | `characteristics.json` | 3 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
 | entité | `source` | `book,page` | cible | `characteristics.json` | 18 | — |  |
 | entité | `source` | `book,page` | cible | `classes.json` | 9 | — |  |
-| entité | `source` | `book,note,page` | cible | `combat-stakes.json` | 37 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
+| entité | `source` | `book,note,page` | cible | `combat-stakes.json` | 38 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
 | entité | `alsoIn` | `book,page` | cible | `creatures.json` | 3 | — |  |
 | entité | `alsoIn` | `book,page,quote` | cible | `creatures.json` | 2 | — | emplacement secondaire + sa preuve verbatim (`secondarySourceRefSchema`) |
 | entité | `source` | `book,note,page` | cible | `creatures.json` | 7 | — | note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`) |
@@ -2539,7 +2539,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13703** objets sur **49324** ne sont portés par AUCUNE
+Au-delà des orphelines, **13703** objets sur **49326** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -4803,4 +4803,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: a5d9de21ad3b272a28525b2f6357c34dba6499a0 (395 fichiers, 10 dossiers) corps: 74f4587feec76e3b4cb221bc2c756cc6130985b3 -->
+<!-- sources-empreinte: eb3d7135a53154cb16cfb58ff5893f109b7469bb (395 fichiers, 10 dossiers) corps: 4586380959cf213ba4c3e1e2272b3ae3530f6345 -->

@@ -157,7 +157,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ViewControls` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
-| `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -229,4 +229,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: ab84740c79780ad651c645fce54645ec83fdff7b (1847 fichiers, 2 dossiers) corps: 1b86b63a91bc22a5c67dd614654469e526970829 -->
+<!-- sources-empreinte: 5bf77732cc6aa3ea293810b03205e0eb3614a349 (1847 fichiers, 2 dossiers) corps: 5638e48754556baff3340f1b12043f06daef9894 -->
