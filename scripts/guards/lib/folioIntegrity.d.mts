@@ -80,6 +80,7 @@ export function bookDocs(abbr: string): {
   folios: [number, number][];
   heads: [number, string][];
 }[];
+export function marqueursDeFolio(raw: string): [number, number][];
 export function bookMaxFolio(abbr: string): number;
 export function folioRange(folios: [number, number][], a: number, b: number): { lo: number; hi: number | null } | null;
 export function normHeading(title: string): string;

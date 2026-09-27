@@ -5,7 +5,7 @@ import {
   orphelinesMesurees, buildConsumerCorpus, isConsumed, sceneConsumerCorpus, EXCLUDED_CATEGORY_FILES,
 } from '../../scripts/guards/lib/entityConsumers.mjs';
 import { ENTITY_ORPHAN_RATCHET } from '../../scripts/guards/lib/entityOrphanStock.mjs';
-import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
+import { ecartDuVolet, remedeNomme } from '../../scripts/guards/lib/stock.mjs';
 
 /**
  * Cliquet décroissant des entités de catalogue SANS CONSOMMATEUR (généralise `tables.json`/#734 à
@@ -23,9 +23,6 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = `${ROOT}src/data`;
 const SRC_DIR = `${ROOT}src`;
 const STOCK = 'scripts/guards/lib/entityOrphanStock.mjs';
-
-/** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
-const porte = (lignes: readonly string[], cle: string) => lignes.some((l) => l.includes(cle));
 
 describe('cliquet — toute entité de catalogue retenu a un CONSOMMATEUR (curée, non atteinte = dette)', () => {
   const sites = orphelinesMesurees(DATA_DIR, SRC_DIR);
@@ -57,8 +54,8 @@ describe('cliquet — toute entité de catalogue retenu a un CONSOMMATEUR (curé
     expect(substitue, 'la forge doit rester à taille CONSTANTE, sinon elle ne prouve rien')
       .toHaveLength(ENTITY_ORPHAN_RATCHET.length);
     const ecart = ecartDuVolet({ sites, stock: substitue, ou: STOCK });
-    expect(porte(ecart.neuves, ` :: ${ENTITY_ORPHAN_RATCHET[0].ref} :: `), 'la découverte doit ressortir NEUVE').toBe(true);
-    expect(porte(ecart.perimees, ' :: creature-qui-n-existe-pas :: 1'), "l'entrée bidon doit ressortir SOLDÉE").toBe(true);
+    expect(remedeNomme(ecart.neuves, ` :: ${ENTITY_ORPHAN_RATCHET[0].ref} :: `), 'la découverte doit ressortir NEUVE').toBe(true);
+    expect(remedeNomme(ecart.perimees, ' :: creature-qui-n-existe-pas :: 1'), "l'entrée bidon doit ressortir SOLDÉE").toBe(true);
   });
 });
 

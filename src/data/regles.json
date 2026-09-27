@@ -171,7 +171,7 @@
     "desc": "Lorsque vous êtes sous le coup de la *Peur*, vous subissez -1 DR à tous les Tests en rapport avec la source de votre peur. Vous êtes incapable de vous rapprocher de ce qui provoque cette *Peur* à moins de réussir un Test de **Calme Intermédiaire (+0)**. Si la source de votre *Peur* se rapproche de vous, vous devez réussir un Test de **Calme Intermédiaire (+0)** ou gagner un État *Brisé*.",
     "source": {
       "book": "livre-de-base",
-      "page": 191,
+      "page": 190,
       "note": "LDB 7 « Peur (Indice) »"
     }
   },
@@ -402,7 +402,7 @@
     "desc": "Ramer est une Compétence de base, ce qui veut dire que tous les Personnages ont le droit de faire des Tests de **Ramer**, qu'ils aient augmenté la compétence ou pas. Ce n'est pas le cas de la Compétence Voile. Les Personnages qui ne l'ont pas ont peu de chance de réussir à faire quoi que ce soit d'utile sur un voilier. Au début de chaque jour de voyage, demandez aux Personnages concernés un Test d'**Agilité Intermédiaire (+0)**. Si le Test est un échec, la vitesse de déplacement du bateau est réduite ce jour-là de 20%. Toutefois, si le résultat est un Échec spectaculaire (-6DR), la vitesse de mouvement du bateau est divisée par deux pour la journée.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
+      "page": 28,
       "note": "MSRC 7 l.17"
     }
   },
@@ -413,7 +413,7 @@
     "desc": "- 2. Le bateau dérive en aval à 25 % de sa vitesse de mouvement normale ; les Tests de **Navigation** subissent un malus de –10.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
+      "page": 28,
       "note": "MSRC 7 l.38"
     }
   },
@@ -424,7 +424,7 @@
     "desc": "- 3. Cette augmentation de la vitesse n'est possible qu'en faisant louvoyer le bateau ; pour cela, un Test de **Navigation Accessible (+20)** est nécessaire.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
+      "page": 28,
       "note": "MSRC 7 l.39"
     }
   },
@@ -435,7 +435,7 @@
     "desc": "- 4. Un Test de **Navigation Accessible (+20)** doit être effectué pour retirer la voile avant que le bateau ne soit renversé. Si le Test échoue, la voile et le gréement tombent, le bateau se renverse et commence à prendre l'eau. Les Personnages peuvent faire un seul Test de **Navigation Accessible (+20)** par Round pour essayer de redresser le bateau ; chaque Test échoué ajoute un malus de -5 au Test suivant. S'il n'est pas redressé, le bateau coule en un nombre de tours égal à son Bonus d'Endurance.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
+      "page": 28,
       "note": "MSRC 7 l.40"
     }
   },
@@ -446,7 +446,7 @@
     "desc": "- 5. Un Test de **Navigation Accessible (+20)** est nécessaire pour éviter que la voile et le gréement subissent des dégâts. Si le Test échoue, traitez le résultat comme un Coup Critique au gréement (voir plus bas). Le bateau dérive, hors de contrôle, à 25 % de sa vitesse normale, sans compter la force et la direction du vent qu'il faudra aussi ajouter. Les Tests de **Navigation** pour tenter de diriger le bateau subissent un malus de -20.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
-      "page": 29,
+      "page": 28,
       "note": "MSRC 7 l.41"
     }
   },

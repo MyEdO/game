@@ -295,7 +295,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
     it('editEntity — cap CARDINAL : document propre ; cap DIAGONAL : erreur NOMMÉE (le seam ne le tait pas)', () => {
       expect(erreurs(editEntity(hostile(), 'table-1', { facing: 'E' }))).toEqual([]);
       expect(erreurs(editEntity(hostile(), 'table-1', { facing: 'SE' }))).toEqual([
-        "table-1 : décor volumique « table-ronde-4-tabourets » au cap SE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+        "table-1 › facing : décor volumique « table-ronde-4-tabourets » au cap SE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
       ]);
       // Un BILLBOARD au même cap reste licite : la règle est celle du catalogue, pas du `kind`.
       const avecBillboard = hostile();

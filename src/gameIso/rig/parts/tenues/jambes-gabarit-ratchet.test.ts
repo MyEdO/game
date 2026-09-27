@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DOSSIER_DEFS, sitesJambeInline } from '../../../../../scripts/guards/lib/jambesGabaritAudit';
 import { JAMBE_INLINE_RATCHET, JAMBE_SILHOUETTE_OVERRIDES } from '../../../../../scripts/guards/lib/jambesGabaritStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../../../../scripts/guards/lib/stock.mjs';
+import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../../scripts/guards/lib/stock.mjs';
 
 /**
  * CLIQUET — migration de la jambe vers le GABARIT partagé (#633 Lot 0).
@@ -32,9 +32,6 @@ const stockComplet = (): EntreeNominative[] => [...JAMBE_INLINE_RATCHET, ...JAMB
 
 const ecart = (stock: Iterable<EntreeNominative> = stockComplet(), dossier?: string) =>
   ecartDuVolet({ sites: sitesJambeInline(dossier), stock, ou: STOCK });
-
-/** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
-const porte = (lignes: readonly string[], cle: string) => lignes.some((l) => l.includes(cle));
 
 describe('jambe : migration vers le gabarit partagé (cliquet #633 Lot 0)', () => {
   it('aucune jambe inline NEUVE, et un id soldé ne traîne pas hors stock', () => {
@@ -65,8 +62,8 @@ describe('jambe : migration vers le gabarit partagé (cliquet #633 Lot 0)', () =
       fichier: `${DOSSIER_DEFS}/TenueQuiNExistePas.ts`, ref: 'gonflement:jambes:inline', occurrence: 1,
     }];
     const { perimees } = ecart(gonfle);
-    expect(porte(perimees, ' :: gonflement:jambes:inline :: 1')).toBe(true);
-    expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
+    expect(remedeNomme(perimees, ' :: gonflement:jambes:inline :: 1')).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });
 
@@ -90,8 +87,8 @@ describe('morsure : migrer un def le rend PÉRIMÉ au stock (#633 Lot 0)', () =>
       const copie = join(tmp, cible.fichier.slice(`${DOSSIER_DEFS}/`.length));
       writeFileSync(copie, `${readFileSync(copie, 'utf8')}\n// jambeVetue( — migration forgée par la morsure\n`);
       const { perimees } = ecart(stockComplet(), tmp);
-      expect(porte(perimees, ` :: ${cible.ref} :: ${cible.occurrence}`)).toBe(true);
-      expect(porte(perimees, cible.fichier)).toBe(true);
+      expect(remedeNomme(perimees, ` :: ${cible.ref} :: ${cible.occurrence}`)).toBe(true);
+      expect(remedeNomme(perimees, cible.fichier)).toBe(true);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

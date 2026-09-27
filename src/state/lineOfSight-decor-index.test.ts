@@ -30,18 +30,13 @@ describe('index de décor de la Ligne de Vue (mémoïsé par identité de `scene
     expect(statueDAbord).toEqual({ blocked: false, cover: 'totale' });
   });
 
-  it('MÊME réf `entities` → l’index n’est pas rebâti (une mutation EN PLACE n’est pas vue) ; NOUVELLE réf → il l’est', () => {
-    const entities = [prop('a', 'arbre', 1, 0)];
-    const sc = scene(3, 1, entities);
+  it('NOUVELLE réf `entities` → l’index est rebâti ; l’ancienne réf garde le sien', () => {
+    const sc = scene(3, 1, [prop('a', 'arbre', 1, 0)]);
     const from = { x: 0, y: 0 };
     const to = { x: 2, y: 0 };
     expect(lineOfSightCover(sc, from, to, []).cover).toBe('imparfaite');
-    // Mutation EN PLACE du MÊME tableau : jamais produite en production (tout passe par un
-    // nouveau tableau, cf. `sceneMemo.ts`) — ici, sonde d’identité : l’index tient toujours.
-    entities[0] = prop('s', 'statue', 1, 0);
-    expect(lineOfSightCover(sc, from, to, []).cover).toBe('imparfaite');
-    // NOUVEAU tableau (le geste réel d’ajout/retrait) : index rebâti, la statue est vue.
-    const sc2 = { ...sc, entities: [...entities] } as unknown as Scene;
+    const sc2 = { ...sc, entities: [prop('s', 'statue', 1, 0)] } as Scene;
     expect(lineOfSightCover(sc2, from, to, []).cover).toBe('totale');
+    expect(lineOfSightCover(sc, from, to, []).cover).toBe('imparfaite');
   });
 });

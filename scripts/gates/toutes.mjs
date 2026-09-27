@@ -140,7 +140,10 @@ export const ECRIT_LU = {
       '`migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs` forge son dépôt sous `mkdtempSync` de ' +
       'os.tmpdir() (`rmSync` en `t.after`) et y joue la migration par `migrations/lib/joue.mjs`, qui COPIE la ' +
       'migration dans ce dépôt (`copyFileSync`) — sonde `git status --porcelain` avant/après identique, et ' +
-      'aucun résidu dans os.tmpdir() ; +1 lecture le 2026-09-23 (#1739) : la garde du dépôt ' +
+      'aucun résidu dans os.tmpdir() ; +1 écrivain le 2026-09-23 (#1897) : `migrations/lib/joue.test.mjs` ' +
+      'réécrit (`writeFileSync`) les fichiers du dépôt jetable de `joue.mjs:depot` (`mkdtempSync` de ' +
+      'os.tmpdir(), `efface` en `t.after`) pour faire mordre `crees`/`rienTouche` — sonde `git status ' +
+      '--porcelain` avant/après identique, et aucun résidu `migr-` dans os.tmpdir() ; +1 lecture le 2026-09-23 (#1739) : la garde du dépôt ' +
       '`guards/lib/pdfHorsCouture.test.mjs` LIT tout fichier de code et tout JSON de configuration, suivi ou ' +
       'non indexé — son banc exige que chaque racine de `racinesBalayees` soit couverte par ce `lit` ' +
       '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts)',

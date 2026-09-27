@@ -28,15 +28,13 @@ const LANCEUR = ['Sorcier', 'Sorcière', 'Skaven', 'Démon', 'démon', 'Rebouteu
 type Portee = { id: string; range?: SpellRange | null; target?: SpellTarget | null };
 const CATALOGUE = spells as unknown as Portee[];
 
-/** Les 32 Sorts du livre `frenchy-bzh` dont la Portée disait le lanceur — la LISTE est le cardinal. */
+/** Les Sorts du livre `frenchy-bzh` dont la Portée disait le lanceur — la LISTE est le cardinal. */
 const SORTS_SUR_SOI = [
-  'ame-devoilee', 'armure-d-aethyr', 'armure-d-obscurite', 'avatar-du-rat-cornu', 'belier',
-  'bienveillance', 'bouclier', 'cacophonie-scabreuse', 'crevasse', 'desarroi', 'faux-semblant',
-  'faveur-du-rat-cornu', 'flamme', 'forme-spectrale', 'furoncle-infecte', 'langue-des-gors',
-  'langue-des-pestigors', 'langue-des-slaangors', 'langue-des-tzaangors', 'maitrise-du-destin',
-  'nuee-de-mouches', 'pattes-gluantes', 'pied-leger', 'poids-plume', 'position',
-  'poudre-d-escampette', 'rafale-hurlante', 'secousse-tellurique', 'shurikens-enchantes', 'trouble',
-  'vol', 'waaagh',
+  'armure-d-aethyr', 'armure-d-obscurite', 'avatar-du-rat-cornu', 'bouclier-ruine',
+  'cacophonie-scabreuse', 'crevasse', 'desarroi', 'faux-semblant', 'faveur-du-rat-cornu',
+  'forme-spectrale', 'furoncle-infecte', 'langue-des-gors', 'maitrise-du-destin', 'nuee-de-mouches',
+  'pattes-gluantes', 'poids-plume', 'poudre-d-escampette', 'rafale-hurlante', 'secousse-tellurique',
+  'shurikens-enchantes', 'trouble', 'vol', 'waaagh',
 ];
 
 const dummy = { id: 'x', characteristics: {} } as unknown as Combatant;
@@ -50,7 +48,7 @@ describe('spells.json — Portée/Cible ne désigne jamais le lanceur en toutes 
     expect(fautifs, `Portées/Cibles désignant le lanceur (→ {kind:'self'}) :\n${fautifs.join('\n')}`).toEqual([]);
   });
 
-  it('les 32 Sorts concernés portent une Portée CHIFFRABLE par le moteur (`self` → 0 case)', () => {
+  it('les Sorts concernés portent une Portée CHIFFRABLE par le moteur (`self` → 0 case)', () => {
     const muets = SORTS_SUR_SOI.filter((id) => {
       const s = CATALOGUE.find((e) => e.id === id);
       expect(s, `sort absent du catalogue : ${id}`).toBeTruthy();
@@ -59,22 +57,21 @@ describe('spells.json — Portée/Cible ne désigne jamais le lanceur en toutes 
     expect(muets, `Portées encore non chiffrables (null) : ${muets.join(', ')}`).toEqual([]);
   });
 
-  it('leur Cible est `self` quand le livre y disait aussi le lanceur (22 des 54 occurrences)', () => {
+  it('leur Cible est `self` quand le livre y disait aussi le lanceur', () => {
     const surSoi = CATALOGUE.filter((s) => SORTS_SUR_SOI.includes(s.id) && s.target?.kind === 'self').map((s) => s.id);
     expect(surSoi).toEqual([
-      'ame-devoilee', 'armure-d-aethyr', 'armure-d-obscurite', 'avatar-du-rat-cornu', 'belier',
-      'faux-semblant', 'faveur-du-rat-cornu', 'flamme', 'forme-spectrale', 'furoncle-infecte',
-      'langue-des-gors', 'langue-des-pestigors', 'langue-des-slaangors', 'langue-des-tzaangors',
-      'maitrise-du-destin', 'pattes-gluantes', 'pied-leger', 'poids-plume', 'position',
-      'poudre-d-escampette', 'trouble', 'vol',
+      'armure-d-aethyr', 'armure-d-obscurite', 'avatar-du-rat-cornu', 'faux-semblant',
+      'faveur-du-rat-cornu', 'forme-spectrale', 'furoncle-infecte', 'langue-des-gors',
+      'maitrise-du-destin', 'pattes-gluantes', 'poids-plume', 'poudre-d-escampette', 'trouble', 'vol',
+      'bouclier-ruine',
     ]);
   });
 
   /** La colonne « Cible » ne disait PAS toujours le lanceur : quand le livre y imprime une ZdE, elle
-   *  reste une ZdE — la migration n'a touché que la Portée de ces quatre-là (`43 - Ungors…` l.593
-   *  et l.804, `49 - Démons de Slaanesh` l.289, `67 - Orcs` l.605). */
+   *  reste une ZdE — la migration n'a touché que la Portée de ces trois-là (`43 - Ungors…` l.804,
+   *  `49 - Démons de Slaanesh` l.289, `67 - Orcs` l.605). */
   it('les Cibles en ZONE des mêmes Sorts restent des ZdE (jamais aplaties en `self`)', () => {
-    for (const id of ['bouclier', 'desarroi', 'secousse-tellurique', 'waaagh']) {
+    for (const id of ['desarroi', 'secousse-tellurique', 'waaagh']) {
       const s = CATALOGUE.find((e) => e.id === id)!;
       expect(s.target?.kind, id).toBe('area');
       expect(s.range?.kind, id).toBe('self');

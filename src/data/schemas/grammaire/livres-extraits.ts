@@ -11,7 +11,7 @@ import booksJson from '../../books.json';
 import { memoParVersion } from '../../versionDataset';
 import { estLivreExtrait, type EntreeDeLivre } from '../../source/livre-extrait';
 
-/** Ids des livres EXTRAITS du registre vif. */
+/** Ids des livres EXTRAITS du registre vivant. */
 export const extraits = memoParVersion('books', (): ReadonlySet<string> => new Set(
   (booksJson as (EntreeDeLivre & { id: string })[])
     .filter(estLivreExtrait)

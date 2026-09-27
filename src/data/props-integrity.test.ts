@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
-import { PROPS_VOLUMIQUES } from './schemas/_ids.generated';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, polygonesDePrimitive, sommetLocal, validatePropCatalog, type PropData, type PropPrimitive } from './props.types';
 import { sceneMetresPerTile } from '../state/scene';
@@ -490,29 +489,6 @@ describe('AXE — un cylindre dit son axe, et un cylindre couché ne passe pas s
       expect.stringMatching(/^x: primitive box « bois-chene » — descend à -0\.3\d* m, sous le sol de sa case$/),
       expect.stringMatching(/^x: approche « place-1 » \(0,0\) tombe sur la case \(0,0\) de l’empreinte 1×1/),
     ]);
-  });
-});
-
-/**
- * REGISTRE GÉNÉRÉ des décors À RECETTE (`PROPS_VOLUMIQUES`, `schemas/_ids.generated.ts`) — le
- * canal par lequel le schéma de scène sait, au parse, qu'un `ref` désigne un volume. Ce contrat le tient ÉGAL à
- * la mesure sur `props.json` : une recette ajoutée sans `npm run gen` est rouge ici, et le verrou de
- * cap du schéma ne peut donc pas se périmer en silence.
- */
-describe('PROPS_VOLUMIQUES — le registre généré == la mesure sur props.json', () => {
-  it('exactement les ids qui portent des primitives, triés', () => {
-    const mesure = props
-      .filter((p) => (p.volume?.primitives.length ?? 0) > 0)
-      .map((p) => p.id)
-      .sort();
-    expect(mesure.length, 'aucune recette : ce contrat mesurerait du néant').toBeGreaterThan(10);
-    expect([...PROPS_VOLUMIQUES]).toEqual(mesure);
-  });
-
-  it('un décor SANS recette n’y figure pas (le registre n’est pas la liste des props)', () => {
-    const billboards = props.filter((p) => !p.volume?.primitives.length).map((p) => p.id);
-    expect(billboards.length).toBeGreaterThan(10);
-    expect(billboards.filter((id) => PROPS_VOLUMIQUES.includes(id))).toEqual([]);
   });
 });
 

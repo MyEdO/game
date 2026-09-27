@@ -28,6 +28,7 @@ import {
   refusSansReference,
 } from './croissance.mjs';
 import { pagesDeLAtlas } from '../../raw/_lib.mjs';
+import { efface } from './joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -58,7 +59,7 @@ test('croitre : ce qui n’a pas d’entrée à cloner est LAISSÉ tel quel', ()
 
 test('croitreDocuments : les documents grandissent, le NON CANONIQUE reste INTACT', (t) => {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'croissance-'));
-  t.after(() => fs.rmSync(racine, { recursive: true, force: true }));
+  t.after(() => efface(racine));
   fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
   fs.mkdirSync(path.join(racine, 'src/scenes/arene'), { recursive: true });
 

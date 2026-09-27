@@ -61,7 +61,7 @@ export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number
   petrifie: { label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
 };
 
-/** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIF + marqueurs
+/** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
  *  cherché dans un texte FRANÇAIS. SOURCE UNIQUE du scan, partagée par l'importance d'un évènement
  *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
@@ -480,10 +480,10 @@ function dropWorst(cand: PoolCandidate[], n: number): PoolCandidate[] {
   return cand.filter((_, i) => !dropped.has(i));
 }
 
-/** Le gagnant du POOL : « vous choisissez la pénalité la plus importante » (LDB 16 l.13). Le RAW ne
- *  départage PAS deux candidats de même magnitude ; arbitrage maison DÉTERMINISTE : le PREMIER dans
- *  l'ordre de collecte (États dans l'ordre de `Combatant.conditions`, puis états psychologiques,
- *  puis auras projetées) — comparaison STRICTE, un ex æquo ne détrône pas le tenant. */
+/** Le gagnant du POOL (LDB 16 l.13). Deux candidats de même magnitude portent la MÊME pénalité : seule
+ *  la SOURCE affichée les distingue, celle du PREMIER dans l'ordre de collecte (États dans l'ordre de
+ *  `Combatant.conditions`, puis états psychologiques, puis auras projetées) — comparaison STRICTE, un
+ *  ex æquo ne détrône pas le tenant. */
 function poolWinner(cand: PoolCandidate[]): PoolCandidate | undefined {
   return cand.reduce<PoolCandidate | undefined>((best, x) => (best == null || x.amount < best.amount ? x : best), undefined);
 }
@@ -608,7 +608,7 @@ export function testStatePenaltyParts(c: Combatant, skill?: string): ModLine[] {
       if (m.op.combatOnly) continue; // Aveuglé (vue) : non classé hors combat (faute de classification du Test)
       if (m.op.movementOnly && !competenceParId(skill)?.movement) continue; // À Terre/Empêtré : Tests de déplacement seuls
       if (m.op.hearingOnly && !competenceParId(skill)?.hearing) continue; // Assourdi : Tests d'audition seuls (Perception)
-      if (m.op.exceptSkills?.includes(skill ?? '')) continue; // Brisé : sauf course (Athlétisme) / dissimulation (Discrétion)
+      if (m.op.exceptSkills?.some((r) => r.id === skill)) continue; // LDB 16 l.52
       cand.push({ amount: m.op.amount, nature: 'État', src: m.src });
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)

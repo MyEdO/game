@@ -84,8 +84,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     startFixtureCombat();
     // Badaud non enrôlé (PNJ d'ambiance) : doit survivre à la fin du combat.
     const sc = useGame.getState().scene!;
-    sc.entities.push({ id: 'badaud', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'mutant' });
-    useGame.setState({ scene: { ...sc } });
+    useGame.setState({ scene: { ...sc, entities: [...sc.entities, { id: 'badaud', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'mutant' }] } });
 
     const ids = enrolledEntityIds();
     const b = useGame.getState().battle!;

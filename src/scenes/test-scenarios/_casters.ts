@@ -9,9 +9,9 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } from '../../data';
 import { slugId } from '../../data/slug';
-import { splitLabel } from '../../engine/careerSlots';
+import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
-import type { Combatant, CharKey, SkillInstance, TalentInstance, ItemInstance } from '../../engine/types';
+import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
 
 /** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
 export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Combatant;
@@ -33,7 +33,7 @@ export function addTalents(c: Combatant, names: string[]): void {
   for (const name of names) {
     const { name: base, spec } = splitLabel(name);
     const talentId = findTalent(base)?.id ?? slugId(base);
-    if (!c.talents.some((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))) c.talents.push({ talentId, spec, times: 1 } as TalentInstance);
+    if (!c.talents.some((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))) acquerirTalent(c, { id: talentId, spec });
   }
 }
 

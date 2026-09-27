@@ -2,6 +2,7 @@
 // (`scripts/docs/build-field-consumers.mts`) et la garde (`src/data/field-consumers.test.ts`) :
 // une seule source pour `TARGETS`, jamais une liste dupliquée entre les deux. Périmètre candidat et
 // raisons d'exclusion : en-tête de `scripts/docs/build-field-consumers.mts`.
+import { enfantsDe } from '../../../src/data/schemas/grammaire/descente'
 import * as valeurs from '../../../src/data/schemas/grammaire/valeurs'
 import * as reference from '../../../src/data/schemas/grammaire/reference'
 import { avancement } from '../../../src/data/schemas/grammaire/avancement'
@@ -21,7 +22,7 @@ export const TARGETS = [
   { schema: valeurs.sourceRefSchema, type: 'SourceRef', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: valeurs.detailRecipeSchema, type: 'DetailRecipe', home: 'src/gameIso/detail/types.ts' },
   { schema: valeurs.diceSpecSchema, type: 'DiceSpec', home: 'src/engine/dice.ts' },
-  { schema: reference.refSchema, type: 'Ref', home: 'src/data/index.ts' },
+  { schema: reference.refSchema, type: 'RefDesignee', home: 'src/data/schemas/grammaire/ref.ts' },
   { schema: reference.qualityRefSchema, type: 'QualityRef', home: 'src/data/index.ts' },
   { schema: valeurs.castingNumberModSchema, type: 'CastingNumberMod', home: 'src/engine/castingNumber.ts' },
   { schema: valeurs.countSpecSchema, type: 'CountSpec', home: 'src/data/index.ts' },
@@ -53,12 +54,8 @@ export function fieldsOf(schema) {
   // Une cible peut fournir ses clés TELLES QUELLES (`cles` d'un handle `document()`) : le nœud scellé
   // n'expose plus de `.shape`, et un rendu vide serait une perte muette.
   if (Array.isArray(schema)) return [...schema]
-  if (schema?.shape) return Object.keys(schema.shape)
-  const def = schema?._zod?.def ?? schema?.def
-  if (def?.options) {
-    const set = new Set()
-    for (const o of def.options) for (const f of fieldsOf(o)) set.add(f)
-    return [...set]
-  }
-  return []
+  const enfants = enfantsDe(schema)
+  const cles = enfants.flatMap((e) => (e.cle === undefined ? [] : [e.cle]))
+  if (cles.length) return cles
+  return [...new Set(enfants.filter((e) => e.segment.startsWith('|')).flatMap((e) => fieldsOf(e.noeud)))]
 }

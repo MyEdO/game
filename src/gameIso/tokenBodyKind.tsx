@@ -165,7 +165,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // Une coque de véhicule (ref = id `vehicles.json` à facette `hull`, ex. navire) est résolue via la
   // même ref (`resolveRender`, branche véhicule ci-dessus l.117) → pas non plus un défaut perdu (#224).
   if (import.meta.env.DEV && ent.kind === 'personnage' && ent.ref && !ent.appearance?.species && !findCreatureById(ent.ref) && !findTrappingById(ent.ref)?.siegeRig && !findVehicleById(ent.ref)?.hull)
-    diagOnce(`tokenBodyKind:ref:${sujet}`, () => console.warn(`[tokenBodyKind] entité « ${ent.id} » : ref « ${ent.ref} » non résolue (pas un id de créature) et sans Espèce (rig) → bipède Humain par défaut. Choisis une Espèce (rig) ou une réf de créature valide.`));
+    diagOnce(`tokenBodyKind:ref:${sujet}`, () => console.warn(`[tokenBodyKind] entité « ${ent.id} » : ref « ${ent.ref} » non résolue (pas un id de créature) et sans Espèce → bipède Humain par défaut. Choisis une Espèce ou une réf de créature valide.`));
   const prof = ent.kind === 'personnage' ? withDiagSubject(sujet, () => entityRigProfileFor(ent, subject.enrolled)) : null;
   if (prof) {
     if (top) {

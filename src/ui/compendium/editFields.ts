@@ -6,7 +6,7 @@
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
-import { defDe } from '../../data/schemas/grammaire/slots';
+import { enfantsDe } from '../../data/schemas/grammaire/descente';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select';
 
@@ -156,7 +156,7 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     // (`enumNomme`, #1694), jamais de la donnée observée — une valeur qu'aucune entrée ne porte encore
     // reste proposable, et une valeur inconnue de l'enum n'est pas proposée. Le NŒUD vaut à TOUTE
     // profondeur : un champ énuméré de sous-formulaire se nomme comme un champ de racine.
-    const noeud = (defDe(regime.noeud)?.shape ?? {})[key];
+    const noeud = enfantsDe(regime.noeud).find((e) => e.cle === key)?.noeud;
     const valeurs = valeursDe(noeud);
     const nullable = sawNull || sample === undefined;
     if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: 'select' as FieldKind, nullable, valeurs, noeud };

@@ -24,8 +24,7 @@ import { rule } from '../engine/policy';
 import { canAfford, toMoney, formatMoney } from '../engine/money';
 import { bourseOf } from '../state/bourseFlow';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
-import { spellSupport } from '../engine/spellspec';
-import { spellEffectOps } from '../state/flow';
+import { spellSupportOf } from '../engine/spellspec';
 import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
@@ -349,7 +348,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
       <div className="spell-list">
         {spells.map((sp) => {
           const offensive = isMagicMissile(sp);
-          const support = spellSupport(spellEffectOps(sp.effects), sp, offensive);
+          const support = spellSupportOf(sp);
           const castBlocked = enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue');
           return (
             <div className="spell-row" key={sp.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé (cf. docs/sorts-implementation.md).' : undefined}>
@@ -828,7 +827,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
           <AdvSection title="Sorts — mémorisation" count={learnable.length}>
             <div className="adv-grid">
               {learnable.map(({ spell, cost }) => {
-                const support = spellSupport(spellEffectOps(spell.effects), spell, isMagicMissile(spell));
+                const support = spellSupportOf(spell);
                 return (
                 <div className="adv-row acquire" key={spell.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé.' : undefined}>
                   <span className="adv-name">

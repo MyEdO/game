@@ -1,21 +1,17 @@
 /**
  * Recensement de la prise en charge MÉCANIQUE des sorts — mesure rejouable.
  *
- * Utilise le classifieur de l'application (`spellSupport`), jamais une heuristique locale :
+ * Utilise le classifieur de l'application (`spellSupportOf`), jamais une heuristique locale :
  * un sort est `mecanique` / `partiel` / `narratif` exactement comme la fiche de personnage l'affiche.
  * Sortie : ventilation par livre, par famille et par domaine, puis la liste des `narratif`.
  *
  * `npx tsx scripts/qc/spell-support-census.mts [--list]`
  */
 import { spells } from '../../src/data/index';
-import { spellSupport } from '../../src/engine/spellspec';
-import { spellEffectOps } from '../../src/engine/flowCore';
-import { isMagicMissile } from '../../src/engine/magic';
+import { spellSupportOf as supportOf } from '../../src/engine/spellspec';
+import { sortsNarratifs } from '../data/lib/sortsNarratifs';
 
-type Support = 'mecanique' | 'partiel' | 'narratif';
-
-const supportOf = (s: (typeof spells)[number]): Support =>
-  spellSupport(spellEffectOps(s.effects), s, isMagicMissile(s));
+type Support = ReturnType<typeof supportOf>;
 
 const tally = <K extends string>(keyOf: (s: (typeof spells)[number]) => K) => {
   const m = new Map<K, Record<Support, number>>();
@@ -48,7 +44,7 @@ for (const [k, e] of tally((s) => s.family ?? '(sans famille)')) console.log(lin
 console.log('\n--- par domaine ---');
 for (const [k, e] of tally((s) => s.domainId ?? '(hors domaine)')) console.log(line(k, e));
 
-const narr = spells.filter((s) => supportOf(s) === 'narratif');
+const narr = sortsNarratifs();
 console.log(`\n--- NARRATIFS : ${narr.length} (aucun effet appliqué par le moteur) ---`);
 if (process.argv.includes('--list')) {
   for (const s of narr) {

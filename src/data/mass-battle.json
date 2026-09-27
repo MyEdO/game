@@ -438,7 +438,7 @@
       "desc": "une violente tempête se lève alors que la bataille s'éternise. Le sol devient boueux et humide, ou est recouvert de neige. Tous les combattants au corps à corps d'une Taille inférieure à Grande subissent une pénalité de –10 à tous les Tests de Combat et leurs Mouvements sont réduits de moitié. À cause du vent violent et d'un manque de visibilité, les attaquants à distance et les montures volantes ont une pénalité de –20 à tous les Tests de Combat, tandis que les Tests de Discrétion bénéficient d'un bonus de +20. La tempête accorde aux sorciers du Domaine des Cieux un bonus de +10 pour tous les Tests d'Incantation et de Focalisation",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -450,7 +450,7 @@
       "desc": "l'ennemi a dispersé des pièges sur tout le champ de bataille. Il peut s'agir de n'importe quel type de pièges : fosses avec des pointes, explosifs sur un déclencheur à pression, ou peut même être de nature magique. Lorsqu'un Personnage se déplace, il doit réussir un Test de Perception Intermédiaire (+0) sous peine de déclencher un piège. Le Personnage qui déclenche le piège doit réussir un Test d'Esquive Intermédiaire (+0) pour éviter ses effets. Les pièges infligent 8 Dégâts et les Personnages subissent des États en fonction de la nature du piège. Un piège à ours provoque Empêtré et une fosse laisse les Personnages À Terre dans un trou. Chaque fois qu'ils déclenchent un piège, les Personnages peuvent effectuer un Test de Perception Difficile (–20) pour ne plus se faire avoir. Quelque part sur le champ de bataille se trouve l'ingénieur ennemi avec un plan où sont marqués les emplacements de tous les pièges. Si le plan est récupéré, tous les pièges peuvent être neutralisés.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -462,7 +462,7 @@
       "desc": "l'ennemi attaque avec des armes de siège, par exemple des canons ou des catapultes qui lancent des rochers. À la fin de chaque Round de bataille, tous les Personnages doivent réussir un Test d'Esquive Facile (+40) ou recevoir une Blessure Critique. Cet effet prend fin si les Personnages parviennent à vaincre les Équipes qui manœuvrent les armes de siège. Ensuite, ils peuvent même les utiliser contre l'armée adverse.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -474,7 +474,7 @@
       "desc": "l'armée ennemie est fortement corrompue par le Chaos, et sa concentration l'a rendue puissante. À la fin de chaque Round de bataille, tous les Personnages doivent effectuer un Test de Résistance Intermédiaire (+0) ou gagner 1 point de Corruption. Le MJ peut effectuer un Test de Résistance Facile (+40) avec l'Endurance moyenne des troupes (généralement, 35). En cas d'échec, un allié proche mute brutalement et se met à attaquer sans distinction entre ses amis et ses ennemis.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -486,7 +486,7 @@
       "desc": "que ce soit à l'aide de la magie ou d'une arme puissante, l'ennemi a libéré un nuage de gaz toxique. Le nuage dissimule l'environnement autant que du brouillard. À la fin de chaque Round d'un combat, tous les Personnages à l'intérieur du nuage doivent effectuer un Test de Résistance Intermédiaire (+0) ou subir un État Empoisonné. Le nuage peut s'enflammer et inflige alors 3 États En flammes aux Personnages qui sont à l'intérieur.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -498,7 +498,7 @@
       "desc": "l'herbe et les plantes rendent le combat difficile, tous les Mouvements sont réduits de moitié. Un Personnage qui souffre d'une Maladresse subit également un État Empêtré en plus des autres effets habituels. À l'aide d'une lame, un Personnage peut passer une Scène cinématique à retirer les broussailles en réussissant un Test de Corps à corps",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -510,7 +510,7 @@
       "desc": "une rivière à fort courant traverse le champ de bataille. Les Personnages d'une Taille inférieure à Grande reçoivent une pénalité de –20 à tous les Tests de Combat durant la traversée. Un Personnage qui termine son tour dans la rivière doit réussir un Test de Force Intermédiaire (+0) sous peine d'être emporté. Prendre le contrôle d'un pont à proximité obligera l'ennemi à traverser la rivière.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -522,7 +522,7 @@
       "desc": "un terrible incendie d'origine alchimique ou magique ravage le champ de bataille. En se déplaçant sur le champ de bataille, les Personnages doivent réussir un Test d'Athlétisme Intermédiaire (+0) ou subir 1 État En flammes. Trouver la source de l'incendie, comme un alchimiste, un sorcier ou un engin de siège, et l'empêcher de nuire, permet de mettre fin à l'incendie après 1 Round de bataille.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -534,7 +534,7 @@
       "desc": "un puissant nécromancien se cache parmi les troupes ennemies. Pour chaque réduction de Puissance de votre armée, celle de l'ennemi augmente de 1 tandis que vos morts la rejoignent sous forme de squelettes et de zombies. Vaincre le nécromancien met fin à l'effet, et toute la Puissance gagnée par l'ennemi est perdue lorsque les morts tombent en morceaux.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     },
@@ -546,7 +546,7 @@
       "desc": "l'ennemi transporte une structure avec une image terrifiante. Il peut s'agir d'une sculpture du Chaos, ou d'une plateforme exhibant des écorchés vifs hurlant de douleur. L'armée subit une pénalité de –10 à tous les Tests de Puissance tant que la structure est intacte.",
       "source": {
         "book": "archives-de-l-empire-2",
-        "page": 88,
+        "page": 90,
         "note": "ch.8 « Théâtre de guerre » — Facteurs environnementaux (l.307-323)."
       }
     }

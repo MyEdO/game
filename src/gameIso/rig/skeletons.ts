@@ -2,6 +2,7 @@ import { BONE_IDS, type BoneId, type Bone, type Skeleton } from './bones';
 import { worldTransforms, apply } from './kinematics';
 import { gabaritById, type GabaritDef } from './gabarits';
 import speciesRaceJson from '../../data/speciesRace.json';
+import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 function mk(spec: Record<BoneId, Omit<Bone, 'id'>>): Skeleton {
   const sk = {} as Skeleton;
@@ -89,7 +90,7 @@ export function baseSpeciesOf(species: string): string {
 }
 
 
-export function baseSkeleton(p: GabaritDef, sex: 'M' | 'F'): Skeleton {
+export function baseSkeleton(p: GabaritDef, sex: Sexe): Skeleton {
   let sk = scaleSkeleton(HUMAIN_M, p.sl, p.st);
   // Jambes spécifiques (Nain/Halfling courtes, Elfe longues). On raccourcit la
   // LONGUEUR des os de jambe ET le pivot des joints enfants (tibia sur cuisse,

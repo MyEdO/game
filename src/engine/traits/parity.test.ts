@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { TRAITS } from './registry';
-import { parseTrait, formatTrait } from './dispatch';
+import { parseTraitInstance, formatTrait } from './dispatch';
 import type { TraitInstance } from '../statEntry';
 import { slugId } from '../../data/slug';
 
@@ -287,16 +287,15 @@ describe('parité — registre des Traits dérivé de traits.json', () => {
     expect(dupes).toEqual([]);
   });
 
-  it('parseTrait normalise Indice/argument/casse', () => {
-    expect(parseTrait('Démoniaque 8+')).toEqual({ id: 'demoniaque', indice: 8, arg: undefined });
-    expect(parseTrait('Toile 40')).toEqual({ id: 'toile', indice: 40, arg: undefined });
-    expect(parseTrait('Immunité (Poison)')).toEqual({ id: 'immunite', indice: undefined, arg: 'Poison' });
-    expect(parseTrait('À Sang-froid')?.id).toBe('a-sang-froid'); // casse de la donnée ≠ id canonique
-    expect(parseTrait('Vol 100')).toEqual({ id: 'vol', indice: 100, arg: undefined });
-    expect(parseTrait('Nuée')?.id).toBe('nuee');
-    expect(parseTrait('Taille (Énorme)')).toEqual({ id: 'taille', indice: undefined, arg: 'Énorme' });
-    expect(parseTrait('Armure 4')).toEqual({ id: 'armure', indice: 4, arg: undefined });
-    expect(parseTrait('Trait inconnu')).toBeNull();
+  it('parseTraitInstance normalise Indice/argument/casse', () => {
+    expect(parseTraitInstance('Démoniaque 8+')).toEqual({ id: 'demoniaque', value: 8 });
+    expect(parseTraitInstance('Toile 40')).toEqual({ id: 'toile', value: 40 });
+    expect(parseTraitInstance('Immunité (Poison)')).toEqual({ id: 'immunite', arg: 'Poison' });
+    expect(parseTraitInstance('À Sang-froid').id).toBe('a-sang-froid'); // casse de la donnée ≠ id canonique
+    expect(parseTraitInstance('Vol 100')).toEqual({ id: 'vol', value: 100 });
+    expect(parseTraitInstance('Nuée').id).toBe('nuee');
+    expect(parseTraitInstance('Taille (Énorme)')).toEqual({ id: 'taille', arg: 'Énorme' });
+    expect(parseTraitInstance('Armure 4')).toEqual({ id: 'armure', value: 4 });
   });
 
   // La nature d'affichage est DÉRIVÉE de la donnée (jamais une liste en dur) :

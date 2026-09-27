@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scene } from '../../state/scene';
-import { autosaveLoad, autosaveSave, autosaveDelete, type EditorAutosaveRecord } from '../../state/editorAutosave';
+import { autosaveLoad, autosaveSave, autosaveDelete, type RepriseLocale } from '../../state/editorAutosave';
 
 /** Délai de débattue avant écriture (pas à chaque frappe/pas de pinceau — cf. `editorAutosave.ts`). */
 const DEBOUNCE_MS = 1500;
@@ -22,9 +22,8 @@ const MAX_WAIT_MS = 5000;
  * périmé pour le reste de la session). `show` referme la fenêtre de suspension.
  */
 export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => void) {
-  const [recovery, setRecovery] = useState<EditorAutosaveRecord | null>(null);
+  const [recovery, setRecovery] = useState<RepriseLocale | null>(null);
   const [hidden, setHidden] = useState(false);
-  const [ecartee, setEcartee] = useState<string | null>(null); // raison d'un enregistrement écarté à la lecture
   const [ready, setReady] = useState(false); // reste faux tant que la vérification de reprise n'a pas conclu pour CETTE scène
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkedRef = useRef<string | null>(null); // id de scène déjà vérifié cette session
@@ -38,15 +37,19 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     checkedRef.current = scene.id;
     setReady(false);
     let cancelled = false;
-    autosaveLoad(scene.id).then((lu) => {
-      if (cancelled) return;
-      const rec = lu && 'ecartee' in lu ? null : lu;
-      setEcartee(lu && 'ecartee' in lu ? lu.ecartee : null);
-      const stale = !!rec && JSON.stringify(rec.scene) !== JSON.stringify(scene);
-      setRecovery(stale ? rec : null);
-      setHidden(false);
-      setReady(true);
-    });
+    // Une faute du jeu à la relecture (`relire` ne rend que les refus de la porte) se PROPAGE jusqu'au
+    // capteur `unhandledrejection` (`errorCollector.ts`) ; l'écriture débattue reprend quand même.
+    autosaveLoad(scene.id)
+      .then((lu) => {
+        if (cancelled) return;
+        // Un enregistrement ÉCARTÉ se montre toujours : l'auteur apprend pourquoi, et le supprime.
+        const stale = !!lu && (!lu.ok || JSON.stringify(lu.record.scene) !== JSON.stringify(scene));
+        setRecovery(stale ? lu : null);
+        setHidden(false);
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -91,11 +94,11 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     };
   }, []);
 
-  /** La scène proposée a DÉJÀ traversé la chaîne de migrations canonique à la lecture
-   *  (`autosaveLoad`, `sceneAuSchemaCourant`) : elle est restaurée telle quelle. */
+  /** La scène proposée est DÉJÀ montée au format courant par `autosaveLoad` (chaîne de forme du
+   *  projet) : un enregistrement écarté n'a rien à restaurer. */
   function restore(): void {
-    if (!recovery) return;
-    applyRecovered(recovery.scene);
+    if (!recovery?.ok) return;
+    applyRecovered(recovery.record.scene);
     setRecovery(null);
     setHidden(false);
   }
@@ -113,14 +116,12 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
 
   /** Geste EXPLICITE et nommé (« Ignorer et supprimer ») : supprime la sauvegarde locale. */
   function dismiss(): void {
-    if (recovery) autosaveDelete(recovery.sceneId);
+    if (recovery) autosaveDelete(recovery.ok ? recovery.record.sceneId : recovery.sceneId);
     setRecovery(null);
     setHidden(false);
   }
 
   return {
-    ecartee,
-    oublierEcartee: () => setEcartee(null),
     recovery: hidden ? null : recovery,
     hasHiddenRecovery: hidden && !!recovery,
     restore,

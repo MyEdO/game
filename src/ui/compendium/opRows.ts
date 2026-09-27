@@ -68,10 +68,9 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
     case 'ap':
       return { t: 'text', text: `+${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' (toutes Localisations)'}` };
     case 'grantTalent':
-      return { t: 'ref', category: 'talents', id: o.talentId, label: statName(refLabel('talents', { id: o.talentId, spec: o.spec })), show: refLabel('talents', { id: o.talentId, spec: o.spec }) };
     case 'grantCareerTalent': {
-      const l = refLabel('talents', { id: o.talentId, spec: o.spec });
-      return { t: 'ref', category: 'talents', id: o.talentId, label: statName(l), show: l };
+      const l = refLabel('talents', o.talent);
+      return { t: 'ref', category: 'talents', id: o.talent.id, label: statName(l), show: l };
     }
     case 'grantCareerSkill': {
       const l = refLabel('skills', o.skill);
@@ -88,7 +87,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
     }
     case 'grantTrait': {
       const label = traitLabelById(o.traitId);
-      return { t: 'ref', category: 'traits', id: o.traitId, label, show: formatTrait({ id: o.traitId, arg: o.arg }), badge: o.indice != null ? humanizeFormula(o.indice) : undefined };
+      return { t: 'ref', category: 'traits', id: o.traitId, label, show: formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range }), badge: o.indice != null && typeof o.indice !== 'number' ? humanizeFormula(o.indice) : undefined };
     }
     case 'grantPsychTrait': {
       const label = psychologyLabel(o.psychType);

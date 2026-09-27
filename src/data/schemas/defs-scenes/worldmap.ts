@@ -11,6 +11,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
@@ -103,7 +104,7 @@ export const placePoiSchema = z
     if ((poi.sceneId === undefined) === (poi.serviceKind === undefined)) {
       ctx.addIssue({
         code: 'custom',
-        message: `POI « ${poi.id} » : cible EXCLUSIVE — « sceneId » (transition) OU « serviceKind » (service résolu du lieu), jamais les deux ni aucun.`,
+        message: 'cible EXCLUSIVE — « sceneId » (transition) OU « serviceKind » (service résolu du lieu), jamais les deux ni aucun.',
       });
     }
   });
@@ -165,7 +166,7 @@ export const mapPlaceSchema = z.strictObject({
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
   services: z.array(placeServiceSchema).optional(),
-  poi: z.array(placePoiSchema).optional(),
+  poi: listeCle(placePoiSchema, 'id').optional(),
   /** Bande d'ambiance du hub (id du registre `src/ui/backdrops`). */
   backdrop: z.string().optional(),
   /** EXISTENCE du lieu sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
@@ -228,7 +229,7 @@ export const mapRouteSchema = z.strictObject({
     if (route.when !== undefined && route.refus === undefined) {
       ctx.addIssue({
         code: 'custom',
-        message: `Route « ${route.id} » : « when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).`,
+        message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
       });
     }
   });
@@ -243,13 +244,26 @@ export const worldMapParamsSchema = z.strictObject({
   perilDie: z.number().optional(),
 });
 
-/** `WorldMap` — graphe de LIEUX et de ROUTES au niveau PROJET. */
-export const worldMapSchema = z.strictObject({
-  id: z.string(),
-  label: z.string(),
-  params: worldMapParamsSchema.optional(),
-  /** Image de fond : présente ⇒ les lieux sont rendus à leurs `pos` EXACTS (aucun déchevauchement). */
-  background: z.string().optional(),
-  places: z.array(mapPlaceSchema),
-  routes: z.array(mapRouteSchema),
-});
+/** `WorldMap` — graphe de LIEUX et de ROUTES au niveau PROJET. Un POI est unique dans son lieu
+ *  (`listeCle`) ET sur la carte : le `superRefine` en pied refuse l'id qu'un AUTRE lieu porte déjà. */
+export const worldMapSchema = z
+  .strictObject({
+    id: z.string(),
+    label: z.string(),
+    params: worldMapParamsSchema.optional(),
+    /** Image de fond : présente ⇒ les lieux sont rendus à leurs `pos` EXACTS (aucun déchevauchement). */
+    background: z.string().optional(),
+    places: listeCle(mapPlaceSchema, 'id'),
+    routes: listeCle(mapRouteSchema, 'id'),
+  })
+  .superRefine((carte, ctx) => {
+    const lieuDuPoi = new Map<string, string>();
+    carte.places.forEach((lieu, i) => {
+      (lieu.poi ?? []).forEach((poi, j) => {
+        const autre = lieuDuPoi.get(poi.id);
+        if (autre !== undefined && autre !== lieu.id)
+          ctx.addIssue({ code: 'custom', path: ['places', i, 'poi', j], message: `POI « ${poi.id} » déjà posé au lieu « ${autre} » : un id de POI est unique sur la carte.` });
+        else lieuDuPoi.set(poi.id, lieu.id);
+      });
+    });
+  });

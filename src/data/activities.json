@@ -126,7 +126,7 @@
       },
       {
         "id": "art",
-        "spec": "Dessin"
+        "spec": "dessin"
       }
     ],
     "difficulty": "intermediaire",
@@ -1765,7 +1765,7 @@
     ],
     "source": {
       "book": "aux-armes",
-      "page": 138
+      "page": 137
     },
     "skills": [
       {

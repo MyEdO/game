@@ -1,7 +1,7 @@
 /**
  * Migration #1882 — la FICHE d'un personnage se NOMME, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 13` : toute entité `kind:'personnage'` qui ne porte ni
+ * UN geste, et le document passe en `schema: 13` au moins : toute entité `kind:'personnage'` qui ne porte ni
  * `ref`, ni `statblock`, ni `presetId` reçoit `ref` = le profil standard de son espèce authorée
  * (`LDB 77 l.7`, `species.json › profilStandard`).
  *
@@ -34,10 +34,13 @@
  * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/state/worldMap.ts`).
  * Parité avec `PROJECT_MIGRATIONS[12]` mesurée par `src/state/projet-migration-12-vers-13.test.ts`.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * BORNE HAUTE OUVERTE (`schema` ≥ 12) : `2026-09-24-1882-refs-vivantes-semees.mjs` porte le document
- * plus loin ; un document déjà au-delà de 13 traverse, jamais rabaissé.
- * FAIL-FAST : `schema` absent, non numérique ou < 12, `scenes` non-tableau, personnage sans
- * profil standard, périmètre vide → rien n'est écrit, sortie 1.
+ * BORNE HAUTE OUVERTE (`schema` ∈ {12, ≥ 13}) : la DERNIÈRE migration de la chaîne dans l'ordre
+ * lexical est la seule à nommer un `schema` futur (`DERNIERE`, dérivée par
+ * `src/scenes/migrations-format-projet.test.ts`). Un document déjà plus récent traverse donc ici
+ * sans être RABAISSÉ : le document sort en `schema` = max(le sien, 13), et ses Scènes sont comptées
+ * comme celles de tout document lu.
+ * FAIL-FAST : `schema` absent, non numérique ou < 12, `scenes` non-tableau, personnage sans profil
+ * standard, périmètre vide → rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,7 +51,7 @@ const NOM = '2026-09-23-1882-fiche-de-personnage-nommee';
 const RACINE = path.join(ROOT, 'src/scenes');
 const SPECIES = path.join(ROOT, 'src/data/species.json');
 
-/** Forme du document AVANT et APRÈS ce bump — la borne haute est OUVERTE (cf. en-tête). */
+/** Forme d'entrée et CIBLE de ce bump — la borne haute est OUVERTE (cf. en-tête). */
 const SCHEMA_AVANT = 12;
 const SCHEMA_APRES = 13;
 
@@ -137,7 +140,8 @@ if (echecs.length) {
 }
 
 for (const r of rapports) {
-  // Le document ne REDESCEND jamais : porté plus loin par un passage postérieur, il garde son numéro.
+  // Le document ne REDESCEND jamais : un projet déjà porté plus loin par un passage postérieur garde
+  // son numéro, ce passage-ci n'ayant à garantir que le plancher de SA cible.
   const cible = Math.max(r.doc.schema, SCHEMA_APRES);
   const sortie = Object.fromEntries(
     Object.entries(r.doc).map(([k, v]) => (k === 'scenes' ? [k, r.scenes] : k === 'schema' ? [k, cible] : [k, v])),

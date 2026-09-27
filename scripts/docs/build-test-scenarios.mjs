@@ -97,7 +97,7 @@ function scenarioLiteral(sf) {
 const FIELDS = ['id', 'order', 'category', 'icon', 'title', 'tests', 'partyNote']
 
 /** L'EXPRESSION que porte un champ du littéral : sa valeur (`tests: '…'`) ou, pour un champ rendu à
- *  la LECTURE (`get tests() { return \`…\` }` — un scénario dont le compte se lit vif dans la donnée),
+ *  la LECTURE (`get tests() { return \`…\` }` — un scénario dont le compte se lit vivant dans la donnée),
  *  l'expression de son unique `return`. Toute autre forme n'est pas évaluable ici. */
 function valeurDuChamp(prop) {
   if (ts.isPropertyAssignment(prop)) return prop.initializer

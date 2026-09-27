@@ -7,21 +7,21 @@ import { sceneMetresPerTile } from '../../state/scene';
  *  `creatureId()` (branché dans `normalizeEnemy`) sans dépendre d'un catalogue de créature particulier. */
 const sceneWithEnemyRef = (ref: string) =>
   scene({
-    id: 'v', nom: 'V', base: 'eau', rows: ['......', '......', '......', '......', '......', '......'],
+    id: 'v', label: 'V', base: 'eau', rows: ['......', '......', '......', '......', '......', '......'],
     entities: [{ id: 'start', kind: 'heroStart', pos: { x: 0, y: 0 } }],
     encounters: [{ id: 'e', enemies: [{ ref, pos: { x: 3, y: 3 } }] }],
   });
 
 const sceneWithOptional = (optional: unknown) =>
   scene({
-    id: 'optional', nom: 'Optional', base: 'terre', rows: ['......', '......', '......', '......', '......', '......'],
+    id: 'optional', label: 'Optional', base: 'terre', rows: ['......', '......', '......', '......', '......', '......'],
     entities: [{ id: 'start', kind: 'heroStart', pos: { x: 0, y: 0 } }],
     encounters: [{ id: 'e', enemies: [{ ref: 'zombie', pos: { x: 3, y: 3 }, optionals: [optional] }] }],
   });
 
 const sceneWithStatblockTraits = (traits: unknown[]) =>
   scene({
-    id: 'statblock', nom: 'Statblock', base: 'terre', rows: ['......', '......', '......', '......', '......', '......'],
+    id: 'statblock', label: 'Statblock', base: 'terre', rows: ['......', '......', '......', '......', '......', '......'],
     entities: [{ id: 'start', kind: 'heroStart', pos: { x: 0, y: 0 } }],
     encounters: [{ id: 'e', enemies: [{ pos: { x: 3, y: 3 }, statblock: { ...NUEE_DE_RATS, traits } }] }],
   });
@@ -124,12 +124,19 @@ describe('lib.mjs — poste() : forme référence #222, trappingId à art d’af
 
 describe('lib.mjs — `scene()` FORWARDE l’échelle demandée au MapSpec compilé', () => {
   it('une scène qui déclare `metresPerTile` la retrouve à la lecture', () => {
-    const sc = scene({ id: 'tmp-mer', nom: 'Mer ouverte', base: 'eau', rows: ['====', '===='], metresPerTile: 8 });
+    const sc = scene({ id: 'tmp-mer', label: 'Mer ouverte', base: 'eau', rows: ['====', '===='], metresPerTile: 8 });
     expect(sceneMetresPerTile(sc)).toBe(8);
   });
 
   it('une scène qui n’en déclare pas retombe sur le défaut du monde', () => {
-    const sc = scene({ id: 'tmp-terre', nom: 'Plaine', base: 'terre', rows: ['....', '....'] });
+    const sc = scene({ id: 'tmp-terre', label: 'Plaine', base: 'terre', rows: ['....', '....'] });
     expect(sceneMetresPerTile(sc)).toBe(sceneMetresPerTile({ layers: [] } as never));
+  });
+});
+
+describe('lib.mjs — `scene()` refuse une option qu’elle ne lit pas', () => {
+  it('une clé inconnue LÈVE en se nommant, au lieu d’être perdue en silence', () => {
+    expect(() => scene({ id: 'faute', nom: 'Faute', label: 'Faute', base: 'terre', rows: ['..'] }))
+      .toThrow(/scène « faute » — option\(s\) inconnue\(s\) de scene\(\) : nom\./);
   });
 });

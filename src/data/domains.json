@@ -941,7 +941,7 @@
     "desc": "Les Sorts de Sorcellerie se nourrissent de tous les Vents disponibles, sans se soucier des mélanges et d'éventuels résultats catastrophiques. À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. De plus, vous pouvez infliger un État *Hémorragique* à toute cible d'un Sort du Domaine de la Sorcellerie. Enfin, le fait de focaliser ou lancer des Sorts de ce Domaine nécessite systématiquement un lancer sur le Tableau des Incantations Imparfaites Mineures à moins d'être lancé avec un ingrédient, ou bien ce composant ne servira à rien si un jet sur le Tableau des Incantations Imparfaites doit malgré tout être effectué. Par chance, les ingrédients du Domaine de la Sorcellerie sont bon marché et facilement disponibles : la plupart du temps, ce sont des morceaux d'animaux de petite taille. Les composants coûtent le NI du Sort en sous de cuivre, à la place des pistoles d'argent habituelles.",
     "source": {
       "book": "livre-de-base",
-      "page": 49
+      "page": 255
     },
     "sorcery": true
   },
@@ -965,7 +965,7 @@
     "desc": "La Nécromancie est un antique art magique qui cherche à maîtriser la mort et à obtenir la vie éternelle, en utilisant le plus souvent des corps en décomposition. Considérée comme la forme la plus infecte de la Magie, une pure hérésie, l'étude de ses secrets n'est jamais prise à la légère, car l'horreur que représentent la mort et les morts-vivants ne doit jamais être sous-estimée.",
     "source": {
       "book": "livre-de-base",
-      "page": 50
+      "page": 256
     }
   },
   {
@@ -977,7 +977,7 @@
     "desc": "Le Domaine de Démonologie, dont l'usage est proscrit, s'intéresse à l'invocation, au lien et au contrôle des démons, et ce dans le but de rendre plus puissant le lanceur du Sort. Son utilisation est extrêmement dangereuse, entraînant le plus souvent la soumission de l'âme du démonologue aux Puissances de la Ruine, donnant ainsi naissance à un nouveau Sorcier du Chaos.",
     "source": {
       "book": "livre-de-base",
-      "page": 50
+      "page": 256
     }
   },
   {

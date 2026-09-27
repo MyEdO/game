@@ -191,7 +191,8 @@ Spec de relief EN COORDONNÉES (repli bas niveau ; préférer `elevate` piloté 
                   celles dérivées du plancher réel — plus d'obligation de tout couvrir à la main.
   9. validation : masses de bâtiment (`validateBuildingMasses`, garde-fou des SURCHARGES) + support
                    de plancher (`validateFloorSupport`) + ids de catalogue authorés
-                   (`assertAuthoredIds`) — fail-fast, une fois zones/plancher réel connus.
+                   (`assertAuthoredIds`) + schéma de scène (`validateDocument(sceneSchema, …)`) —
+                   fail-fast, une fois zones/plancher réel connus.
 ```
 
 ## Pièges
@@ -331,4 +332,4 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: 8ffea5bdd9ae5e3613234022334749e82509dabb (65 fichiers, 7 dossiers) corps: 0cf3a85725e6616358b80f72966db4d310aa7014 -->
+<!-- sources-empreinte: 312257626e882853f826f6139b94e6f7240db0ea (65 fichiers, 7 dossiers) corps: fb6af6de7e520dbfb16adbcdd419b8ab2b8ab986 -->

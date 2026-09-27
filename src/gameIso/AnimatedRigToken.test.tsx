@@ -5,7 +5,7 @@ import type { Combatant } from '../engine/types';
 
 const hero = {
   id: 'h1', name: 'Test', kind: 'hero', career: 'Soldat',
-  appearance: { species: 'Humain', sex: 'M', build: 0.5 },
+  appearance: { species: 'humains-reiklander', sex: 'M', build: 0.5 },
 } as unknown as Combatant;
 
 describe('AnimatedRigToken', () => {

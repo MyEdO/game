@@ -4,7 +4,7 @@ import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { creatureToCombatant } from '../state/spawn';
-import { findCreature } from '../data';
+import { findCreatureById } from '../data';
 
 /** L'inspection rend le statbloc COMPLET via le composant partagé du Codex (CodexSections) +
  *  une tête vivante (nom, PB, psychologie, États). On vérifie la présence des données clés. */
@@ -25,7 +25,7 @@ describe('InspectPanel', () => {
   });
 
   it('ennemi du bestiaire : « – » pour une carac inexistante, traits cliquables (CodexRef)', () => {
-    const wolf = creatureToCombatant(findCreature('Loup')!, 'e1', { x: 0, y: 0 });
+    const wolf = creatureToCombatant(findCreatureById('loup')!, 'e1', { x: 0, y: 0 });
     const html = render(wolf);
     expect(html).toContain('–'); // carac « – » (Schéma des Profils, LDB 76)
     expect(html).toContain('Vision nocturne'); // trait
@@ -35,7 +35,7 @@ describe('InspectPanel', () => {
   });
 
   it('badge Lanceur de sorts + section Sorts si l’ennemi connaît des sorts', () => {
-    const caster = creatureToCombatant(findCreature('Mutant')!, 'e1', { x: 0, y: 0 }, { spells: ['flechette'] });
+    const caster = creatureToCombatant(findCreatureById('mutant')!, 'e1', { x: 0, y: 0 }, { spells: ['flechette'] });
     const html = render(caster);
     expect(html).toContain('Lanceur de sorts');
     expect(html).toContain('Sorts');

@@ -21,7 +21,7 @@ const doc = document(
         raison: 'vocabulaire de catégorisation (id+label uniquement) — aucune fiche autonome.',
       },
     },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'damageTypes' },
   },
 );
 

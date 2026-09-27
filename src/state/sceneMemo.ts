@@ -1,3 +1,29 @@
+/** Le contrat d'identité de `memoByRef` (ci-dessous), ASSERTÉ : en développement et en test
+ *  (`import.meta.env?.DEV` ; `?.` car `import.meta.env` n'existe pas sous `tsx`), toute clé mémorisée
+ *  est gelée en profondeur à son entrée, et une écriture en place LÈVE au site fautif au lieu de servir
+ *  un cache périmé en silence. En production, rien. */
+const GELER_LES_CLES = import.meta.env?.DEV === true;
+
+/** Objets déjà gelés en profondeur : une scène éditée partage presque tout avec la précédente (spread),
+ *  seul le neuf se parcourt. */
+const gelesEnProfondeur = new WeakSet<object>();
+
+/** Gèle la DONNÉE — objets littéraux et tableaux —, récursivement. Une instance de classe (`Map`,
+ *  `Set`, tableau typé, objet three.js…) n'est pas de la donnée de scène : elle n'est ni gelée ni
+ *  parcourue. */
+function gelerProfond(racine: object): void {
+  const pile: object[] = [racine];
+  while (pile.length) {
+    const o = pile.pop()!;
+    if (gelesEnProfondeur.has(o)) continue;
+    const proto = Object.getPrototypeOf(o);
+    if (!Array.isArray(o) && proto !== Object.prototype && proto !== null) continue;
+    gelesEnProfondeur.add(o);
+    Object.freeze(o);
+    for (const v of Object.values(o)) if (v !== null && typeof v === 'object') pile.push(v);
+  }
+}
+
 /**
  * Mémoïsation par IDENTITÉ de référence — le patron CANONIQUE de tout cache dérivé de la `Scene`
  * (opacité de vision, arêtes de murs, empreintes de décor…). Sûr car TOUTE mutation de la donnée
@@ -12,6 +38,7 @@ export function memoByRef<K extends object, V>(build: (key: K) => V): (key: K) =
   const cache = new WeakMap<K, V>();
   return (key: K) => {
     if (cache.has(key)) return cache.get(key)!;
+    if (GELER_LES_CLES) gelerProfond(key);
     const value = build(key);
     cache.set(key, value);
     return value;

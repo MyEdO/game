@@ -306,6 +306,24 @@
     "verrou": "src/point-d-entree-guard.test.ts"
   },
   {
+    "id": "descendre",
+    "type": "primitives.manifest",
+    "label": "descendre/enfantsDe",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
+    "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",
+    "verrou": "src/data/schemas/grammaire/descente.test.ts"
+  },
+  {
+    "id": "coDescendre",
+    "type": "primitives.manifest",
+    "label": "coDescendre/ouverts/pasDeDonnee",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
+    "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
+    "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
+  },
+  {
     "id": "menuCard",
     "type": "primitives.manifest",
     "label": "MenuCard/MenuSection/MenuButton/MenuToggle",
@@ -844,7 +862,8 @@
     "css": "src/ui/styles/error-boundary.css",
     "poseurs": [
       "src/ui/App.tsx",
-      "src/ui/CampaignView.tsx"
+      "src/ui/CampaignView.tsx",
+      "src/ui/editor/Editor.tsx"
     ],
     "concept": "filet d’un crash de RENDU : capture, journalise, et montre un panneau de reprise en français au lieu de l’écran noir",
     "perimetre": "autour du stage (scène iso/POV), autour de tout l’écran de jeu (#225)",
@@ -1025,6 +1044,15 @@
     "verrou": "src/state/defense-suite.test.ts"
   },
   {
+    "id": "indexedDb",
+    "type": "primitives.manifest",
+    "label": "ouvrirBase/lireDansBase/ecrireDansBase",
+    "fichier": "src/lib/indexedDb.ts",
+    "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
+    "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
+    "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
     "id": "clesDePalette",
     "type": "primitives.manifest",
     "label": "CLES/communes/vocabulaire",
@@ -1095,5 +1123,23 @@
     "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
     "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
     "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+  },
+  {
+    "id": "playerText",
+    "type": "primitives.manifest",
+    "label": "PlayerText",
+    "fichier": "src/i18n/playerText.ts",
+    "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
+    "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "dataLabel",
+    "type": "primitives.manifest",
+    "label": "dataLabel",
+    "fichier": "src/data/index.ts",
+    "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
+    "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
   }
 ]

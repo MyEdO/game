@@ -24,6 +24,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { suiteAvecPas } from '../grammaire/cle-d-espace';
 import { difficultySchema, enumNomme, hitLocationSchema, plageSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
 import { gameOpSchema, flowSchema, noeudTest } from '../grammaire/mecanique';
 
@@ -118,11 +119,11 @@ const critEntrySchema = z.strictObject({
   source: sourceRefSchema,
 });
 
-/** Catégorie Codex de chaque document-table, dans l'ordre de la donnée (LDB puis Aux Armes). */
-const CATEGORIES = [
-  'criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe',
-  'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe',
-] as const;
+/** Catégorie Codex de chaque document-table → son id, dans l'ordre de la donnée (LDB puis Aux Armes). */
+const CATEGORIES = {
+  criticalsTete: 'criticals-ldb-tete', criticalsBras: 'criticals-ldb-bras', criticalsCorps: 'criticals-ldb-corps', criticalsJambe: 'criticals-ldb-jambe',
+  aaCriticalsTete: 'criticals-aa-tete', aaCriticalsBras: 'criticals-aa-bras', aaCriticalsCorps: 'criticals-aa-corps', aaCriticalsJambe: 'criticals-aa-jambe',
+} as const;
 
 const doc = document(
   'criticals',
@@ -141,8 +142,14 @@ const doc = document(
     localisation: { label: 'Localisation', hint: 'Famille de Localisation couverte par ce tableau' },
   },
   {
-    codex: { keys: [...CATEGORIES] },
-    edit: { niche: { categories: [...CATEGORIES] } },
+    codex: { keys: Object.keys(CATEGORIES) },
+    edit: {
+      niche: {
+        categories: Object.fromEntries(
+          Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'entries' })]),
+        ),
+      },
+    },
   },
   { rangee: critEntrySchema },
 );

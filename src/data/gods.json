@@ -69,35 +69,17 @@
     "type": "gods",
     "label": "Déesse-Araignée",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-la-chasse"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      }
+      "benediction-de-bataille",
+      "benediction-de-chance",
+      "benediction-de-courage",
+      "benediction-de-grace",
+      "benediction-de-la-chasse",
+      "benediction-de-sauvagerie"
     ],
     "miracles": [
-      {
-        "id": "bon-baiser-d-la-fosse-noire"
-      },
-      {
-        "id": "nuee-d-escampette"
-      },
-      {
-        "id": "toile-surprise"
-      }
+      "bon-baiser-d-la-fosse-noire",
+      "nuee-d-escampette",
+      "toile-surprise"
     ],
     "source": {
       "book": "zoo-imperial",
@@ -136,35 +118,17 @@
     "label": "Evawn",
     "title": "Déesse des voyages",
     "blessings": [
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-finesse"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-charisme",
+      "benediction-de-courage",
+      "benediction-de-chance",
+      "benediction-de-finesse",
+      "benediction-de-protection",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "invitation"
-      },
-      {
-        "id": "abri-de-rhya"
-      },
-      {
-        "id": "riche-pauvre-mendiant-voleur"
-      }
+      "invitation",
+      "abri-de-rhya",
+      "riche-pauvre-mendiant-voleur"
     ],
     "desc": "**Sphères:** Voyage, Commerce, Vol\n\n**Adorateurs:** Marchands, Or, mendiants, objets volés, voleurs artefacts étrangers\n\nEvawn est la déesse des voyages, du commerce et du vol. Elle apparaît comme une gnome inoffensive d'âge moyen portant sur son dos une haute pile de marchandises, au sommet de laquelle est perchée une pie. Ceux qui suivent ses enseignements errent à travers le monde, échangeant leurs biens contre des produits locaux tout en dérobant tout ce qui peut être utile aux gnomes du monde entier.\n\n**\n\n### Commandements\n\n**\n\n-   Une pièce sur dix appartient à Evawn.\n-   Réaliser un profit chaque jour, que ce soit par le vol ou par le négoce.\n-   Ne jamais être pris en train de mentir.\n-   Ne jamais rester au même endroit plus d'un mois.\n-   Voler les objets utiles aux gnomes et les ramener à son clan.",
     "source": {
@@ -334,35 +298,17 @@
     "label": "Mabyn",
     "title": "Déesse gnome des ombres",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-droiture"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "benediction-de-sagesse"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-droiture",
+      "benediction-de-protection",
+      "benediction-de-tenacite",
+      "benediction-de-sagesse",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "masque-mortuaire"
-      },
-      {
-        "id": "vous-ne-m-avez-pas-vu-n-est-ce-pas"
-      },
-      {
-        "id": "epee-de-justice"
-      }
+      "masque-mortuaire",
+      "vous-ne-m-avez-pas-vu-n-est-ce-pas",
+      "epee-de-justice"
     ],
     "desc": "**Sphères:** Ombres, Vengeance, Magie\n\n**Adorateurs:** Assassins, Ennemis morts des sorciers, gnomes, épées, victimes d'injustice artefacts magiques\n\nMabyn est la déesse gnome des ombres, de la vengeance et de la magie. Dépourvue d'une forme permanente, elle n'est généralement représentée que sous la forme d'un manteau et d'un chapeau pointu gris, et d'une lame argentée, que portent habituellement aussi ses dévots. Elle est connue pour son dévouement fanatique à la race gnome, et pour son absence totale de ce que la plupart des mortels considéreraient comme une morale. Le culte de Mabyn a nettement augmenté à Glimdwarrow après la destruction de ses galeries par Grom la Panse il y a un siècle. Elle est la divinité principale de la Garde du Dwarrow.\n\n**\n\n### Commandements\n\n**\n\n-   Protéger les galeries des gnomes quel qu'en soit le coût.\n-   Toujours prendre sa revanche pour tout tort caus�� à soi, à son clan ou à son terrier.\n-   Ne jamais révéler à l'extérieur l'emplacement de son terrier.\n-   S'exercer au maniement de l'épée pendant au moins une heure par jour.\n-   Ne jamais être repéré lorsqu'on cherche à passer inaperçu.",
     "source": {
@@ -376,68 +322,28 @@
     "label": "Manann",
     "title": "Dieu de la mer",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-sauvagerie",
+      "benediction-de-souffle",
+      "benediction-de-tenacite",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "apaiser-les-eaux"
-      },
-      {
-        "id": "benediction-de-l-albatros"
-      },
-      {
-        "id": "benediction-du-marinier"
-      },
-      {
-        "id": "contre-courants"
-      },
-      {
-        "id": "encalmine"
-      },
-      {
-        "id": "generosite-de-manann"
-      },
-      {
-        "id": "malediction-de-la-mer"
-      },
-      {
-        "id": "marcher-sur-les-eaux"
-      },
-      {
-        "id": "mer-dechainee"
-      },
-      {
-        "id": "navigation-benie"
-      },
-      {
-        "id": "repousser-une-creature-marine"
-      },
-      {
-        "id": "respiration-aquatique"
-      },
-      {
-        "id": "vents-favorables"
-      },
-      {
-        "id": "visage-de-l-homme-noye"
-      }
+      "apaiser-les-eaux",
+      "benediction-de-l-albatros",
+      "benediction-du-marinier",
+      "contre-courants",
+      "encalmine",
+      "generosite-de-manann",
+      "malediction-de-la-mer",
+      "marcher-sur-les-eaux",
+      "mer-dechainee",
+      "navigation-benie",
+      "repousser-une-creature-marine",
+      "respiration-aquatique",
+      "vents-favorables",
+      "visage-de-l-homme-noye"
     ],
     "desc": "**Sphères:** Mers, océans, Wasteland\n\n**Adorateurs:** Marins, pêcheurs, marchands\n\n**Offrandes:** Poisson, gemmes, or\n\n**Siège du pouvoir:** Marienburg, le Wasteland\n\n**Chef du Culte:** Matriarche de la Mer\n\n**Principaux Ordres:** Ordre de l'Albatros, Ordre du Marinier\n\n**Festivités majeures:** Équinoxe de printemps, équinoxe d'automne\n\n**Livres sacrés populaires:** Les 1000 chants de marins, Contes de l'Albatros, Liber Manann\n\n**Symboles sacrés courants:** Couronne à cinq pointes, vagues, ancres\n\nL'imprévisible Manann, fils de Taal et Rhya, est le capricieux Roi de la Mer, le Maître des Maelstroms, et l'Invocateur de Tempêtes. Connu pour ses idées noires et son tempérament inconstant, les gens affirment que son culte est plus nécessaire que n'importe quel autre, car s'il y a bien un dieu qui doit être apaisé, c'est Manann. On le décrit comme un homme énorme à la barbe noire, avec des algues dans les cheveux et une grande couronne à cinq pointes d'acier noir sur son front inquiet. On dit qu'il demeure au fond de l'océan, que les mouvements de sa poitrine massive forment vagues et marées et que les plus grands monstres des profondeurs constituent sa cour.\n\n**\n\n### Les adorateurs\n\n**Manann est vénéré le long des côtes à travers le Vieux Monde, là où les gens tirent leur subsistance de la mer ou vivent assez près pour que tempêtes et inondations menacent leurs habitations. Même ceux qui connaissent peu Manann lanceront une pièce ou un autre petit trésor dans l'eau au début d'un voyage en mer dans l'espoir d'une croisière paisible.\n\nLe culte possède un nombre important d'ordres, principalement monastiques, chargés de garder des îles sacrées isolées. L'Ordre de l'Albatros est le plus important, composé de prêtres qui entretiennent les temples à travers le Vieux Monde et bénissent les marchands ou les bâtiments navals de leur présence. On les voit souvent accompagnés par l'Ordre du Marinier, le bras armé de Manann, la marine templière du culte, protecteurs assermentés de Marienburg.\n\nLes religieux de Manann portent généralement des robes d'un bleu-vert sombre ou bleu-gris, ornées de motifs blancs de vagues.\n\n**\n\n### Les sites sacrés\n\n**On trouve des temples de Manann dans toutes les villes et cités côtières et dans la plupart des ports de fleuve où mouillent des navires de mer. Le Grand temple se trouve dans la cité-port de Marienburg : un gigantesque complexe richement décoré et ouvert sur les marées. La Matriarche de la Mer, chef de l'Ordre de l'Albatros, y est établie ; une femme qui dirige ostensiblement le Culte de Manann dans son ensemble, bien qu'en pratique les religieux du dieu marin soient aussi lunatiques que leur dieu, et aussi susceptibles d'être bornés que serviables. Le culte entretient également beaucoup de monastères et abbayes sur de petites îles isolées, la plupart dédiés à l'un des nombreux saints de Manann.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Manann impliquent souvent des pèlerinages maritimes hasardeux, des tests de maîtrise de son bateau ou des expéditions contre les ennemis du dieu marin, en particulier les adeptes du culte hérétique de Stromfels, le dieu des pirates, des naufrageurs et des requins.\n\n**\n\n### Commandements\n\n**\n\n-   Pas de sifflement ou de juron en mer ou sur un sol sacré.\n-   Ne jamais blesser un albatros.\n-   La première prise revient à Manann.\n-   Une pièce d'argent et un poisson pour chaque temple et sanctuaire manannites approchés.\n-   Traquer les serviteurs de Stromfels partout où ils peuvent se cacher.",
     "source": {
@@ -477,44 +383,20 @@
     "label": "Morr",
     "title": "Dieu de la mort",
     "blessings": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-droiture"
-      },
-      {
-        "id": "benediction-de-sagesse"
-      },
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      }
+      "benediction-de-chance",
+      "benediction-de-courage",
+      "benediction-de-droiture",
+      "benediction-de-sagesse",
+      "benediction-de-souffle",
+      "benediction-de-tenacite"
     ],
     "miracles": [
-      {
-        "id": "aneantir-les-morts-vivants"
-      },
-      {
-        "id": "condamne"
-      },
-      {
-        "id": "main-de-morr"
-      },
-      {
-        "id": "masque-mortuaire"
-      },
-      {
-        "id": "rites-funeraires"
-      },
-      {
-        "id": "seuil-du-portail"
-      }
+      "aneantir-les-morts-vivants",
+      "condamne",
+      "main-de-morr",
+      "masque-mortuaire",
+      "rites-funeraires",
+      "seuil-du-portail"
     ],
     "desc": "**Sphères:** Mort et rêves, Ostermark\n\n**Adorateurs:** Fossoyeurs, endeuillés, chasseurs de morts-vivants, mystiques\n\n**Offrandes:** Pièces d'argent, encens, bougies\n\n**Siège du pouvoir:** Luccini, Tilée\n\n**Chef du Culte:** Custode del Portale (Gardien du portail)\n\n**Principaux Ordres:** Ordre du Linceul, Ordre de la Garde noire, Ordre des Augures\n\n**Festivités majeures:** Hexensnacht, Geheimnisnacht\n\n**Livres sacrés populaires:** Le Livre des portes, Libro Dei Morti (Le Livre des morts), Les Psaumes du Corbeau\n\n**Symboles sacrés courants:** Portails, corbeaux, roses noires\n\nLe courtois Morr, dieu de la Mort et roi du Monde souterrain, est le mari de Verena, le frère du meurtrier Khaine, et le père de Myrmidia et Shallya. Il envoie des corbeaux divins pour guider les âmes défuntes jusqu'au Portail, la passerelle à colonnes entre les royaumes des mortels et celui des dieux. Il mène ensuite chaque âme jusqu'à son dernier lieu de repos : soit dans le Monde souterrain de Morr, soit dans l'au-delà d'un autre dieu. Il est couramment décrit comme un homme de haute taille affichant un air fort maussade, aux cheveux sombres et au port aristocratique.\n\n**\n\n### Les adorateurs\n\n**En dehors de l'Ostermark, où Morr jouit d'une importance particulière, bien peu désirent attirer l'attention du dieu de la Mort. Donc, en principe, seules les personnes en deuil le prient. Cependant, les désespérés ou les courageux peuvent prier pour rêver de ce que l'avenir peut apporter, même si l'on assure qu'il ne divulgue que rarement ce qui n'est pas associé à la mort.\n\nL'Ordre du Linceul domine le culte, contrôlant directement tous les autres ordres et la Guilde des Pleureuses, responsable de la surveillance des sépultures et des cimetières. La Garde noire est le plus important ordre Templier du culte, aidant à garder les temples et à traquer les morts-vivants. L'Ordre des Augures est peut-être plus modeste, mais il guide le dirigeant de ses prédictions et organise l'Ordre des Prophètes du Destin. Ces prêtres de Morr itinérants visitent la région pour interpréter les Destinées de tous les enfants humains lors de leur dixième année. Tous les dix ans, un grand rassemblement du clergé de Morr se tient à Luccini en Tilée, où il est question de l'avenir du culte, avec des festivités à l'échelle de la cité.\n\nTous les religieux de Morr portent de simples coules (vêtements à capuchon) noires sans parure ni ornement.\n\n**\n\n### Les sites sacrés\n\n**Les Temples de Morr s'élèvent dans les Jardins de Morr : de grands cimetières envahis de roses noires qui fleurissent toute l'année, et rarement utilisés pour autre chose que les services funéraires. La plupart sont des structures simples en pierre noire, qui se distinguent par une grande porte au lourd linteau de pierre – représentant le Portail de Morr. Les portes sont toujours ouvertes, comme celles du Royaume de la Mort. L'intérieur des lieux de culte sont sobres. Les fournitures nécessaires et autres équipements sont conservés dans un entrepôt en attendant qu'ils servent aux services funéraires. Les sanctuaires de Morr prennent aussi la forme de passages, composés généralement de deux piliers simples et d'un linteau. Dans certains cas, un pilier est de marbre blanc et l'autre de basalte noir.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Morr impliquent en général la chasse aux nécromants et la destruction de morts-vivants, ou la découverte et la restauration de lieux de sépulture et de sites sacrés abandonnés en ruine. De temps à autre, il exige que les serviteurs de Khaine soient arrêtés dans l'accomplissement de leurs sombres faits.\n\n**\n\n### Commandements\n\n**\n\n-   Respecter et protéger les morts\n-   Traquer les nécromants et les morts-vivants où qu'ils se rassemblent.\n-   Prêter attention aux rêves.\n-   Ne jamais refuser de conduire un service funéraire.\n-   Ne jamais être complice d'une résurrection des morts, sauf avec la permission de Morr.",
     "source": {
@@ -528,71 +410,29 @@
     "label": "Myrmidia",
     "title": "Déesse de la stratégie",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-droiture"
-      },
-      {
-        "id": "benediction-de-protection"
-      }
+      "benediction-de-bataille",
+      "benediction-de-chance",
+      "benediction-de-conscience",
+      "benediction-de-courage",
+      "benediction-de-droiture",
+      "benediction-de-protection"
     ],
     "miracles": [
-      {
-        "id": "appel-a-la-fureur"
-      },
-      {
-        "id": "bouclier-de-myrmidia"
-      },
-      {
-        "id": "inspirant"
-      },
-      {
-        "id": "lance-de-myrmidia"
-      },
-      {
-        "id": "oeil-de-l-aigle"
-      },
-      {
-        "id": "soleil-flamboyant"
-      },
-      {
-        "id": "commander-la-legion"
-      },
-      {
-        "id": "terrifier-l-ennemi"
-      },
-      {
-        "id": "en-bon-ordre"
-      },
-      {
-        "id": "connais-ton-ennemi"
-      },
-      {
-        "id": "en-terrain-dangereux"
-      },
-      {
-        "id": "frappe-rapide"
-      },
-      {
-        "id": "devotion-de-la-vierge-guerriere"
-      },
-      {
-        "id": "prouesses-martiales"
-      },
-      {
-        "id": "fureur-vengeresse"
-      }
+      "appel-a-la-fureur",
+      "bouclier-de-myrmidia",
+      "inspirant",
+      "lance-de-myrmidia",
+      "oeil-de-l-aigle",
+      "soleil-flamboyant",
+      "commander-la-legion",
+      "terrifier-l-ennemi",
+      "en-bon-ordre",
+      "connais-ton-ennemi",
+      "en-terrain-dangereux",
+      "frappe-rapide",
+      "devotion-de-la-vierge-guerriere",
+      "prouesses-martiales",
+      "fureur-vengeresse"
     ],
     "desc": "**Sphères:** Stratégie martiale, Tilée, Estalie\n\n**Adorateurs:** Estaliens, stratèges, Tiléens\n\n**Offrandes:** Lances, boucliers, vœu de devoir, trophées\n\n**Siège du pouvoir:** Magritta, Estalie\n\n**Chef du Culte:** La Aguila Ultima (L'Aigle suprême)\n\n**Principaux Ordres:** Ordre de l'Aigle, Ordre de la Lance vertueuse, Ordre du Soleil flamboyant\n\n**Festivités majeures:** Aucune dans l'Empire\n\n**Livres sacrés populaires:** Bellona Myrmidia, Bellum Strategia, Le Livre de la Guerre\n\n**Symboles sacrés courants:** Lance derrière un bouclier, aigles, soleils\n\nDans l'Empire, Myrmidia au teint halé, fille de Verena et de Morr, sœur de Shallya, est la déesse de la stratégie et de la science militaire. Mais dans le sud ensoleillé, Myrmidia est bien plus que cela. Divinité tutélaire à la fois du royaume estalien et des cités-États de Tilée, elle est vénérée avec fanatisme dans les deux royaumes. Son culte est donc le plus répandu dans le Vieux Monde, mais sa présence dans l'Empire est limitée. Elle est généralement représentée comme une jeune femme musclée et de haute taille, armée et équipée dans un style archaïque du Sud. Elle est réputée pour son calme, son approche honorable de tous les sujets, et ses prêtres font de leur mieux pour copier cette attitude.\n\n**\n\n### Les adorateurs\n\n**Myrmidia octroie aux généraux l'étincelle pour gagner les batailles avec des pertes minimales, et aux soldats les compétences d'arme pour vaincre rapidement les ennemis. De ce fait, son culte ne cesse de croître dans les armées et les garnisons de l'Empire, en particulier au Reikland, Averland et Wissenland. Dans l'Empire, le culte possède trois ordres importants. L'Ordre de l'Aigle s'occupe des temples et de leurs communautés environnantes. Il est dirigé depuis Nuln par « l'Aigle du Nord », le plus puissant Myrmidien au nord des Remparts. L'ordre templier de la Lance vertueuse possède un chapitre rattaché à chacun de ses temples, tous dirigés par le Grand Prêtre local. Un second ordre Templier, l'Ordre du Soleil flamboyant, est le plus ancien ordre myrmidien de l'Empire, et agit indépendamment de l'Ordre de l'Aigle.\n\nLes religieux de Myrmidia dans l'Empire portent en principe des robes blanches à liseré rouge et capuchon bleu, avec son symbole cousu sur le côté gauche de la poitrine ou agrafé sous forme de broche.\n\n**\n\n### Les sites sacrés\n\n**La plupart des sites sacrés de Myrmidia se trouvent en Estalie et Tilée, et sont associés aux campagnes de la déesse à travers ces royaumes en tant que mortelle, il y a plus de deux mille ans. Dans l'Empire, elle est beaucoup moins présente, ses temples s'élevant uniquement dans les villes et les cités majeures, avec un seul ordre monastique cloîtré dans le Monastère de la Vierge noire au Wissenland. Les temples de Myrmidia suivent en général les styles architecturaux de Tilée et Estalie, avec des coupoles recouvrant des halls carrés ou rectangulaires. Leurs extérieurs sont souvent ornés des bas-reliefs représentant des scènes de bataille ou des armes accompagnées de boucliers. Les sanctuaires peuvent prendre la forme de temples miniatures, de statues de la déesse ou de sculptures d'armes, de boucliers et d'armures empilés. Les sites sacrés de Myrmidia sont aussi connus pour leurs représentations scandaleuses de la déesse et de ses saints, souvent présentés juste ceints d'une écharpe à la taille, ce que beaucoup de sigmarites considèrent comme parfaitement inacceptable.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Myrmidia sont en général de nature martiale. Un cultiste peut se voir ordonner de vaincre un champion ennemi en combat singulier, ou d'entraîner un groupe de paysans et de le diriger dans la défense de leur village. Protéger les routes de pèlerinage vers des sites importants pour Myrmidia est également une pénitence récurrente.\n\n**\n\n### Commandements\n\n**\n\n-   Agir avec honneur et dignité en toutes circonstances.\n-   Respecter les prisonniers de guerre et ne jamais tuer un ennemi qui se rend.\n-   Ne montrer aucune pitié pour les ennemis impénitents de l'humanité.\n-   Obéir à tous les ordres honorables.\n-   Préserver les faibles des horreurs de la guerre.",
     "source": {
@@ -608,9 +448,7 @@
     "blessings": [],
     "miracles": [],
     "chaosSpells": [
-      {
-        "id": "flot-de-corruption"
-      }
+      "flot-de-corruption"
     ],
     "desc": "Les dieux démoniaques des Royaumes du Chaos constituent la plus grande menace du Vieux Monde, car chacun d'entre eux est déterminé à apporter la ruine absolue sur le royaume des mortels. Khorne, Nurgle, Tzeentch et Slaanesh : respectivement dieux de la Rage, du Désespoir, de l'Ambition et de l'Excès. Bien peu osent chuchoter leurs noms corrupteurs, car ils détiennent un pouvoir malveillant et répandent mutation et horreur dans leur sillage.\n\n### Les Puissances de la Ruine\n\nLes Puissances de la Ruine du Chaos constituent la principale menace existentielle du Vieux Monde, mais demeurent en grande partie un mystère. Le simple fait de rechercher de telles connaissances sans l'autorisation du Culte de Sigmar est passible de la peine de mort. Réclamer une telle permission rarement accordée entraîne un examen minutieux de votre personne et de vos motivations.\n\nLes Puissances de la Ruine sont considérées par le commun des mortels comme une punition du péché, et c'est la raison pour laquelle tous doivent se comporter convenablement sur le plan social, comme les cultes le préconisent. Se livrer à la violence, à la luxure, à la négligence ou à une curiosité inconvenante a des répercussions directes sur l'individu (corrompu et voué à une fin terrible) et sur sa communauté, car son comportement déviant attire l'attention destructrice des forces diaboliques.\n\nLa plupart des gens connaîtront la plus puissante de ces forces à travers des euphémismes, tels que le dieu du Sang, le Seigneur de la Peste, le Seigneur du Changement, et le Prince de la Douleur. Mêmes les érudits les plus instruits de ces savoirs interdits peuvent seulement présumer de ce qui motive ces puissances obscènes, ou du but qu'elles poursuivent au-delà de leurs pulsions primaires.\n\nIl semblerait qu'il y ait des factions rivales dédiées à différents aspects de la Ruine, aussi ennemis les uns des autres que du reste du Vieux Monde. Mais quand, à de rares occasions, ils coopèrent comme ils le firent il y a plus de deux cents ans pendant la Grande Guerre contre le Chaos, le monde tremble. Certains affirment que des cultes dédiés aux dieux du Chaos ont infiltré l'Empire. La plupart des gens trouvent cette idée absurde, car aucun individu sensé ne serait assez stupide pour vénérer l'une des Puissances de la Ruine.\n\n### Le Domaine de Nurgle\n\nLe Domaine de Nurgle répand d'horribles maladies et immondices, mélangeant les excès boursouflés du Vent de Jade avec toute la corruption disponible, avant de les recracher dans tous les endroits possibles.",
     "source": {
@@ -637,44 +475,20 @@
     "label": "Ranald",
     "title": "Dieu de la ruse",
     "blessings": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-finesse"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-vivacite"
-      }
+      "benediction-de-chance",
+      "benediction-de-charisme",
+      "benediction-de-conscience",
+      "benediction-de-finesse",
+      "benediction-de-protection",
+      "benediction-de-vivacite"
     ],
     "miracles": [
-      {
-        "id": "grace-de-ranald"
-      },
-      {
-        "id": "invitation"
-      },
-      {
-        "id": "que-la-chance-persiste"
-      },
-      {
-        "id": "riche-pauvre-mendiant-voleur"
-      },
-      {
-        "id": "vous-ne-m-avez-pas-vu-n-est-ce-pas"
-      },
-      {
-        "id": "yeux-de-chat"
-      }
+      "grace-de-ranald",
+      "invitation",
+      "que-la-chance-persiste",
+      "riche-pauvre-mendiant-voleur",
+      "vous-ne-m-avez-pas-vu-n-est-ce-pas",
+      "yeux-de-chat"
     ],
     "desc": "**Sphères:** Duperie, voleurs, chance, pauvres\n\n**Adorateurs:** Voleurs, parieurs, pauvres\n\n**Offrandes:** Cartes, pièces, dés, nourriture\n\n**Siège du pouvoir:** Aucun officiel\n\n**Chef du Culte:** Aucun officiel, bien que courent des rumeurs sur un chef marqué de dix croix\n\n**Principaux Ordres:** Les Croix, la Confrérie, les Doigts crochus\n\n**Festivités majeures:** Le Jour de la Folie\n\n**Livres sacrés populaires:** Les Mystères des Dix, Minuit et le Chat noir, La Grande Farce\n\n**Symboles sacrés courants:** Doigts croisés, chats, pies\n\nSelon le mythe, Ranald était autrefois mortel, un bandit au grand cœur qui dépouillait les riches pour donner aux pauvres. Shallya, charmée, en tomba amoureuse. Un jour fatidique, elle trouva Ranald mourant, fatalement atteint par les pestes du Seigneur des Mouches. Incapable d'accepter sa mort, elle fit boire Ranald à son calice sacré, accordant la vie éternelle au roublard. Mais ce n'était qu'une ruse mise en scène par Ranald en personne. Rieur, le nouveau dieu entra dans les cieux en dansant joyeusement. Bien que généralement décrit comme un humain élégant au perpétuel sourire, la taille, le poids, la couleur de peau ou même le genre de Ranald ne font pas l'objet d'un consensus, même si, dans l'Empire le dieu est plus généralement représenté comme un mâle. Ranald est souvent considéré plus comme un joyeux farceur qu'un véritable criminel, aimant atteindre les orgueilleux par des tours et des ruses intelligentes.\n\n**\n\n### Les adorateurs\n\n**Ranald se présente le plus couramment comme le dieu des voleurs et des malandrins, mais le culte attire aussi les parieurs, menteurs, marchands, farceurs et les pauvres opprimés.\n\nLe Culte de Ranald comprend, selon l'opinion générale, une foule désorganisée de charlatans, voleurs et bons à rien. Cependant, il est bien plus coordonné qu'il n'en a l'air, et se divise en trois ordres principaux. Celui des Croix est le mieux accepté – un clergé surveillant les maisons de jeu du culte et utilisant généralement les recettes pour aider les pauvres. La Confrérie est moins ouverte, et s'approche plus d'une société secrète de marchands, qui utilise les affaires pour mettre à genoux les pompeux et les avares. Le dernier et le plus répandu, celui des Doigts crochus, rassemble les voleurs, brigands et menteurs de Ranald, et est publiquement désavoué et vertement condamné.\n\nLes adeptes de Ranald n'arborent pas de tenues conventionnelles les identifiant, mais portent toujours des symboles de croix, un motif récurrent, quelque part sur leurs vêtements.\n\n**\n\n### Les sites sacrés\n\n**Ranald ne possède aucune organisation formelle, bien que le culte entretienne des maisons de jeu, apparemment indépendantes, dans la plupart des villes et cités. De petits sanctuaires se dressent dans les quartiers généraux de beaucoup de gangs criminels et de Chambres de Commerce. Les quartiers les plus pauvres de beaucoup de cités possèdent des oratoires à tous les coins de rue dédiés au dieu de la Chance. Ces derniers sont souvent entretenus par des « clubs-sanctuaires » utilisés à la fois comme organismes sociaux et religieux, souvent dirigés par un membre des Doigts crochus. Les oratoires sont très simples, consistant souvent en une simple statue souriante aux doigts croisés derrière le dos, ou le dessin sommaire d'un chat ou d'une pie, semblant souvent sourire.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Ranald impliquent généralement un vol dans des endroits verrouillés et gardés pour récupérer des objets précieux ou laisser une preuve de leur présence. Humilier les oppresseurs des pauvres est aussi courant – peut-être en accusant un capitaine brutal de la Garde d'un crime ridicule, par exemple, ou en l'enfermant dans ses propres geôles. Ranald envoie souvent des adeptes, qu'ils soient riches ou défavorisés à un « Pèlerinage des Doigts », un ensemble de tâches visant à prouver leurs capacités et leur loyauté.\n\n**\n\n### Commandements\n\n**\n\n-   Une pièce sur dix appartient à Ranald.\n-   Ne jamais trahir quelqu'un auprès des autorités ; il n'y a pas plus grand péché que de dénoncer.\n-   La violence est prohibée sauf pour la légitime défense.\n-   Il vaut mieux être libre et mourir que de vivre sous l'oppression.\n-   Il n'y a pas d'honneur parmi les voleurs, mais il y en a parmi les ranaldiens.",
     "source": {
@@ -688,44 +502,20 @@
     "label": "Rhya",
     "title": "Déesse de la festilité",
     "blessings": [
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-convalescence"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-souffle"
-      }
+      "benediction-de-conscience",
+      "benediction-de-convalescence",
+      "benediction-de-grace",
+      "benediction-de-guerison",
+      "benediction-de-protection",
+      "benediction-de-souffle"
     ],
     "miracles": [
-      {
-        "id": "abri-de-rhya"
-      },
-      {
-        "id": "caresse-de-rhya"
-      },
-      {
-        "id": "enfants-de-rhya"
-      },
-      {
-        "id": "recolte-de-rhya"
-      },
-      {
-        "id": "secours-de-rhya"
-      },
-      {
-        "id": "union-de-rhya"
-      }
+      "abri-de-rhya",
+      "caresse-de-rhya",
+      "enfants-de-rhya",
+      "recolte-de-rhya",
+      "secours-de-rhya",
+      "union-de-rhya"
     ],
     "desc": "**Sphères:** Fertilité, vie, été\n\n**Adorateurs:** Fermiers, herboristes, sages-femmes\n\n**Offrandes:** Premières récoltes, froment, fruit\n\n**Siège du pouvoir:** Aucun siège officiel\n\n**Chef du Culte:** Aucun\n\n**Principaux Ordres:** Aucun\n\n**Festivités majeures:** Le Solstice d'été et les équinoxes\n\n**Livres sacrés populaires:** Aucun, mais beaucoup de traditions orales existent\n\n**Symboles sacrés courants:** Gerbes de blé, fruit, spirales\n\nRhya la généreuse est la déesse de la Fertilité et de l'Été, souvent reconnue comme la Terre Mère et Celle qui maintient la Vie. Bien que généralement décrite comme la femme de Taal, les mythes la lie à beaucoup de dieux, et ses enfants sont issus de nombre de ces relations. Elle est le plus souvent représentée comme une très belle femme de haute taille, couronnée de feuilles et parée de fruits, et en principe nue, enceinte et entourée de ses enfants. Beaucoup de théologiens associent Rhya à l'Ancienne Foi, un culte préhistorique de fermiers et chasseurs de jadis, qui vivaient de la terre avant la naissance de l'Empire, vivant encore à ce jour dans les communautés isolées.\n\n**\n\n### Les adorateurs\n\n**La population rurale à travers le Vieux Monde vénère Rhya, comptant sur elle pour fournir les récoltes dont dépendent leurs vies. Les femmes forment le gros du culte, et la plupart des sages-femmes approuvent au moins du bout des lèvres la Sagesse de Rhya, un ensemble de traditions orales entourant la naissance. Bien qu'elle ne soit pas explicitement vénérée dans les villes – les citadins se tournent plus souvent vers Shallya – son nom est fréquemment associé à celui de Taal, et y reste donc populaire.\n\nParce que le culte ne possède pas de grands temples et ne protège ni livres sacrés ni reliques importantes, beaucoup d'érudits pensent que sa vénération est en déclin, et probablement déjà oubliée. Et ses nombreux adeptes ne font rien pour les contredire.\n\nLes adeptes de Rhya n'ont pas de tenues préférées ou particulières, bien que les tons de vert soient très appréciés, tout comme l'utilisation de plantes, de fleurs ou d'herbes pour orner les vêtements. Ils s'habillent souvent d'une façon jugée beaucoup trop révélatrice par la doctrine de Sigmar, ce qui peut causer des tensions, car les rhyens croient que céder à un tel puritanisme équivaut à encourager le Prince des excès dans nos vies, car cela fait naître des désirs interdits. Les dévots de Sigmar les désapprouvent systématiquement, persuadés que l'abstinence et l'absence de tentations sont de meilleures réponses à de tels dangers que la complaisance.\n\n**\n\n### Les sites sacrés\n\n**Rhya ne possède pas de grands temples, bien que beaucoup d'anciens sites constitués d'oghams (des pierres dressées) sont au centre des croyances de son culte. Certains résonnent encore à chaque équinoxe des cris de fervents célébrants.\n\nLes sanctuaires de Rhya consistent généralement en de simples statues de la déesse, devant lesquelles s'entassent souvent des offrandes de nourriture et de boisson. Les plus anciens oratoires sont souvent constitués de petites pierres dressées et gravées de motifs usés de spirales.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Rhya peuvent impliquer de replanter des zones dévastées, d'aider les ménages brisés et d'entretenir les clairières sacrées. Des rhyens se chargent souvent de protéger des familles sans défense, ce qui crée généralement des conflits avec les forces de l'ordre et les huissiers locaux.\n\n**\n\n### Commandements\n\n**\n\n-   Défendre les familles, les enfants et les cultures contre tous les maux.\n-   Ne jamais avoir honte de la chair que Rhya vous a donnée.\n-   La vie est sacrée, ne jamais faire de mal à moins qu'une autre vie soit en danger.\n-   Ne jamais juger les amours d'autrui.\n-   Interrompre l'œuvre du Prince des excès partout où il intervient.",
     "source": {
@@ -739,35 +529,17 @@
     "label": "Ringil",
     "title": "Dieu du divertissement",
     "blessings": [
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-charisme"
-      },
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-grace"
-      },
-      {
-        "id": "benediction-de-la-chasse"
-      },
-      {
-        "id": "benediction-de-vivacite"
-      }
+      "benediction-de-souffle",
+      "benediction-de-charisme",
+      "benediction-de-conscience",
+      "benediction-de-grace",
+      "benediction-de-la-chasse",
+      "benediction-de-vivacite"
     ],
     "miracles": [
-      {
-        "id": "grace-de-ranald"
-      },
-      {
-        "id": "justice-aveugle"
-      },
-      {
-        "id": "bondissant-comme-un-cerf"
-      }
+      "grace-de-ranald",
+      "justice-aveugle",
+      "bondissant-comme-un-cerf"
     ],
     "desc": "**Sphères:** Divertissement, Espionnage, Tromperie\n\n**Adorateurs:** Charlatans, Secrets, argent, vin amuseurs, espions\n\nRingil est le dieu du divertissement, de la gaieté et de la supercherie. Il est généralement dépeint sous les traits d'un bouffon âgé et espiègle portant des vêtements hétéroclites. Cependant, malgré son apparence peu sérieuse, Ringil est également le protecteur des espions, des subterfuges et de la détection, connu pour braver tout danger avant de s'en échapper afin de recueillir des renseignements utiles à la protection de son peuple.\n\n**\n\n### Commandements\n\n**\n\n-   Ne jamais refuser une demande raisonnable de divertir autrui.\n-   Ne jamais partager un secret en dehors de son clan, de son culte ou de ses amis.\n-   Ne jamais passer un moment sérieux sans faire une plaisanterie, chanter une chanson ou jouer un tour.\n-   Une farce est la meilleure des vengeances.\n-   Apprendre un secret utile chaque semaine.",
     "source": {
@@ -781,44 +553,20 @@
     "label": "Shallya",
     "title": "Déesse de la miséricorde",
     "blessings": [
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-convalescence"
-      },
-      {
-        "id": "benediction-de-guerison"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      }
+      "benediction-de-conscience",
+      "benediction-de-convalescence",
+      "benediction-de-guerison",
+      "benediction-de-protection",
+      "benediction-de-souffle",
+      "benediction-de-tenacite"
     ],
     "miracles": [
-      {
-        "id": "amere-catharsis"
-      },
-      {
-        "id": "baume-pour-un-esprit-blesse"
-      },
-      {
-        "id": "endurance-de-l-anachorete"
-      },
-      {
-        "id": "innocence-immaculee"
-      },
-      {
-        "id": "larmes-de-shallya"
-      },
-      {
-        "id": "martyr"
-      }
+      "amere-catharsis",
+      "baume-pour-un-esprit-blesse",
+      "endurance-de-l-anachorete",
+      "innocence-immaculee",
+      "larmes-de-shallya",
+      "martyr"
     ],
     "desc": "**Sphères:** Miséricorde et guérison\n\n**Adorateurs:** Pauvres, médecins, malades, femmes battues\n\n**Offrandes:** Nourriture, remèdes, pièces\n\n**Siège du pouvoir:** Couronne, Bretonnie\n\n**Chef du Culte:** La Grande Matriarche\n\n**Principaux Ordres:** Ordre du Cœur sanglant, Ordre du Calice\n\n**Festivités majeures:** Aucun\n\n**Livres sacrés populaires:** Le Livre de la Souffrance, le Livre des Larmes, Le Testament de Pergunda\n\n**Symboles sacrés courants:** Colombes blanches, clefs, cœur orné d'une goutte de sang\n\nShallya est la déesse de la Guérison, de la Miséricorde et de la Compassion. Fille de Verena et de Morr, et sœur de Myrmidia, elle apparaît généralement sous les traits d'une jeune et belle vierge dont les yeux pleurent sans cesse pour la douleur du monde. On prétend que la compassion de Shallya ne connaît aucune limite, et dans certains mythes – tels que les histoires de Ranald la dupant pour obtenir l'immortalité, ou Manann la piégeant au fond de la mer – elle semble incroyablement naïve. Mais ses adeptes soutiennent que sa miséricorde s'étend à tous, sans aucun jugement. La véritable folie serait de présumer de qui est digne de la grâce de Shallya et qui ne l'est pas.\n\n**\n\n### Les adorateurs\n\n**La plupart des habitants du Vieux Monde pensent que le Culte de Shallya n'est composé que de guérisseurs et de médecins, mais ceux qui travaillent à alléger des souffrances d'autres sortes en font également partie : les âmes charitables qui aident les pauvres, ceux qui travaillent dans les orphelinats, les asiles et les refuges, et même de braves gens à la recherche de personnes perdues ou disparues au nom de leurs proches. Le culte est dirigé par l'important Ordre du Cœur sanglant, qui entretient tous les temples, hospices, les maisons de miséricorde et autres sites sacrés. L'Ordre du Calice, beaucoup plus modeste, charge ses mendiants de purger l'influence du Seigneur des Mouches, en s'attaquant aux pires maladies et pestes partout où elles peuvent sévir.\n\nLes adeptes de Shallya portent tous des robes immaculées, souvent à capuche, avec un symbole de cœur sanglant brodé sur le côté gauche de la poitrine.\n\n**\n\n### Les sites sacrés\n\n**Le Grand temple du Culte de Shallya se trouve à Couronne, en Bretonnie, édifié sur une célèbre source curative. Les gens du coin affirment que les eaux magiques ont autrefois coulé du même calice que celui utilisé par Shallya pour accorder l'immortalité à Ranald. On prétend qu'il s'agit du saint graal de la Dame, la déesse tutélaire de Bretonnie. Peu importe la vérité, l'endroit repésente une destination populaire de pèlerinages, et beaucoup s'y rendent pour être soignés d'une maladie incurable. Ailleurs, chaque ville ou cité, quelle que soit sa taille, possède un temple de Shallya, et les plus petites colonies détiennent au moins un sanctuaire qui lui est dédié. Les temples de Shallya se composent normalement d'une cour avec un oratoire d'un côté et une infirmerie de l'autre, tous construits dans des styles méridionaux. Les plus grands possèdent de plus petites chapelles subsidiaires, couramment équipées par les familles locales et souvent rattachées aux hôpitaux. Les oratoires sont généralement assez simples, avec souvent gravés dans la pierre la colombe ou le cœur de Shallya, ou de petites fontaines faisant jaillir des larmes éternelles de simples statues.\n\n**\n\n### Les pénitences\n\n**Les pénitences établies par Shallya impliquent toujours d'aider les malades, les pauvres ou les oppressés. Un adepte peut être envoyé dans un village frappé par la peste pour s'occuper des malades jusqu'à complète guérison. Shallya charge souvent ses serviteurs d'aider les blessés de guerre, ou de patrouiller sur les routes populaires de pèlerinage pour aider ceux qui sont incapables d'achever leur périple pour des raisons de santé.\n\n**\n\n### Commandements\n\n**\n\n-   Toujours prêter assistance sans jugement, en se basant uniquement sur les besoins d'une personne.\n-   Ne jamais tuer, sauf en cas de légitime défense ou face aux cultistes du Seigneur des Mouches.\n-   Traquer les serviteurs du Seigneur des Mouches partout où ils sévissent.\n-   L'œuvre de Shallya n'est jamais terminée, alors pas de laisser-aller.\n-   Ne jamais prendre les armes ; un bâton de marche et du courage suffiront.",
     "source": {
@@ -835,44 +583,20 @@
     ],
     "title": "Dieu de l'Empire",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-droiture"
-      },
-      {
-        "id": "benediction-de-puissance"
-      },
-      {
-        "id": "benediction-de-protection"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-droiture",
+      "benediction-de-puissance",
+      "benediction-de-protection",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "comete-a-deux-queues"
-      },
-      {
-        "id": "feu-de-l-ame"
-      },
-      {
-        "id": "flambeau-de-vertu"
-      },
-      {
-        "id": "marteau-ardent-de-sigmar"
-      },
-      {
-        "id": "n-ecoutez-point-la-sorciere"
-      },
-      {
-        "id": "vaincre-les-impies"
-      }
+      "comete-a-deux-queues",
+      "feu-de-l-ame",
+      "flambeau-de-vertu",
+      "marteau-ardent-de-sigmar",
+      "n-ecoutez-point-la-sorciere",
+      "vaincre-les-impies"
     ],
     "desc": "**Sphères:** L'Empire, Reikland\n\n**Adorateurs:** Le peuple de l'Empire\n\n**Offrandes:** Marteaux, pièces, nourriture\n\n**Siège du pouvoir:** Altdorf, Reikland\n\n**Chef du Culte:** Le Grand Théogoniste\n\n**Principaux Ordres:** Ordre de l'Enclume, Ordre de la Flamme purificatrice, Ordre du Marteau d'argent, Ordre de la Torche\n\n**Festivités majeures:** Le Jour de Sigmar (28e Sigmarzeit)\n\n**Livres sacrés populaires:** Le Livre de Sigmar, Deus Sigmar, Le Geistbuch\n\n**Symboles sacrés courants:** Ghal-maraz (le Marteau de guerre de Sigmar), comètes à Deux Queues (bifides), griffons\n\nSigmar est le dieu tutélaire de l'Empire, et son culte domine le royaume. Parce que Sigmar était autrefois l'empereur, son culte est étroitement lié à la politique, et trois des membres de haut rang du culte sont directement impliqués dans l'élection des nouveaux empereurs. Selon la légende, la naissance de Sigmar, premier-né du chef de la tribu Unberogen, fut annoncée par une comète bifide. Plus tard, il reçut le marteau de guerre magique Ghal-maraz (« Briseur de crânes ») en cadeau du roi nain Kurgan Barbe de fer pour lui avoir sauvé la vie contre les peaux-vertes. Sigmar s'allia par la suite aux nains et ils combinèrent leurs forces pour vaincre ces ennemis communs. Il fut ensuite couronné comme Premier empereur des tribus humaines qu'il avait unifiées. Après cinquante ans d'un règne extraordinaire, Sigmar disparut mystérieusement, pour accéder plus tard à la divinité, élevé à ce rang par Ulric, le dieu tutélaire de Sigmar lorsqu'il était mortel.\n\n**\n\n### Les adorateurs\n\n**La plupart des habitants de l'Empire lui manifestent, au moins en apparence, un intérêt. Dans la plupart des provinces pratiquantes, telles que le Reikland, la croyance en Sigmar fait incontestablement partie de la vie quotidienne. Le peuple assiste à des assemblées hebdomadaires pour écouter les prêches de Sigmar. Beaucoup se rendent également au temple pour s'entraîner dans la milice locale, confesser leurs péchés et purifier leur âme, ou recevoir des conseils sur la façon de ressembler davantage au Dieu-Roi de jadis. Le Culte de Sigmar est composé d'un nombre incalculable d'ordres différents. Le plus important est l'Ordre de la Torche : les prêtres de Sigmar qui dirigent leurs communautés locales. Les autres ordres majeurs incluent : l'Ordre de la Flamme purificatrice, composé d'inquisiteurs et de Répurgateurs ; l'Ordre du Marteau d'argent, qui compte des prêtres guerriers et encore plus de Répurgateurs ; et l'Ordre de l'Enclume, un ordre monastique soucieux de préserver les actes et les lois de Sigmar. Le culte possède aussi beaucoup d'ordres Templiers. Le plus célèbre étant les glorieux Chevaliers du Sang de Sigmar, les fanatiques Chevaliers du Cœur flamboyant et les militaristes Chevaliers Griffons. Étant donné l'étendue du culte, on peut y voir beaucoup d'uniformes, vêtements et robes différentes, aux couleurs et aux coupes diverses, parés d'accessoires variés selon les traditions et exigences locales.\n\n**\n\n### Les sites sacrés\n\n**Chaque cité, ville et village dans l'Empire possèdent au moins un temple de Sigmar. La Grande cathédrale d'Altdorf est gérée par des centaines de prêtres et employés laïcs, et gardée par au moins deux ordres Templiers ; à l'autre extrémité de l'échelle, une chapelle de village peut n'être visitée qu'une fois chaque semaine par un prêtre itinérant, qui répond aux besoins de plusieurs petits hameaux. Des sanctuaires peuvent être installés dans la plupart des habitations, et le long de toutes les grandes routes majeures, surtout indiqués par des symboles de marteaux ou de comètes.\n\n**\n\n### Les pénitences\n\n**Les adeptes sigmarites peuvent se voir ordonner de détruire des cellules d'adorateurs du Chaos, ou de dénoncer un fonctionnaire corrompu, secrètement lié aux Puissances de la Ruine ou à des puissances étrangères. Ils peuvent être également chargés de construire, ou restaurer, des communautés locales afin de mieux promouvoir la force et l'unité de l'Empire.\n\n**\n\n### Commandements\n\n**\n\n-   Obéir aux ordres\n-   Aider le peuple nain, et ne jamais lui faire de mal.\n-   Promouvoir l'unité de l'Empire.\n-   Porter une véritable allégeance au trône impérial.\n-   Éradiquer sans pitié les peaux-vertes, les adorateurs du Chaos et les immondes sorcières.",
     "source": {
@@ -888,9 +612,7 @@
     "blessings": [],
     "miracles": [],
     "chaosSpells": [
-      {
-        "id": "consentement"
-      }
+      "consentement"
     ],
     "desc": "Les dieux démoniaques des Royaumes du Chaos constituent la plus grande menace du Vieux Monde, car chacun d'entre eux est déterminé à apporter la ruine absolue sur le royaume des mortels. Khorne, Nurgle, Tzeentch et Slaanesh : respectivement dieux de la Rage, du Désespoir, de l'Ambition et de l'Excès. Bien peu osent chuchoter leurs noms corrupteurs, car ils détiennent un pouvoir malveillant et répandent mutation et horreur dans leur sillage.\n\n### Les Puissances de la Ruine\n\nLes Puissances de la Ruine du Chaos constituent la principale menace existentielle du Vieux Monde, mais demeurent en grande partie un mystère. Le simple fait de rechercher de telles connaissances sans l'autorisation du Culte de Sigmar est passible de la peine de mort. Réclamer une telle permission rarement accordée entraîne un examen minutieux de votre personne et de vos motivations.\n\nLes Puissances de la Ruine sont considérées par le commun des mortels comme une punition du péché, et c'est la raison pour laquelle tous doivent se comporter convenablement sur le plan social, comme les cultes le préconisent. Se livrer à la violence, à la luxure, à la négligence ou à une curiosité inconvenante a des répercussions directes sur l'individu (corrompu et voué à une fin terrible) et sur sa communauté, car son comportement déviant attire l'attention destructrice des forces diaboliques.\n\nLa plupart des gens connaîtront la plus puissante de ces forces à travers des euphémismes, tels que le dieu du Sang, le Seigneur de la Peste, le Seigneur du Changement, et le Prince de la Douleur. Mêmes les érudits les plus instruits de ces savoirs interdits peuvent seulement présumer de ce qui motive ces puissances obscènes, ou du but qu'elles poursuivent au-delà de leurs pulsions primaires.\n\nIl semblerait qu'il y ait des factions rivales dédiées à différents aspects de la Ruine, aussi ennemis les uns des autres que du reste du Vieux Monde. Mais quand, à de rares occasions, ils coopèrent comme ils le firent il y a plus de deux cents ans pendant la Grande Guerre contre le Chaos, le monde tremble. Certains affirment que des cultes dédiés aux dieux du Chaos ont infiltré l'Empire. La plupart des gens trouvent cette idée absurde, car aucun individu sensé ne serait assez stupide pour vénérer l'une des Puissances de la Ruine.\n\n### Le Domaine de Slaanesh\n\nLe Domaine de Slaanesh n'est que tortures et excès, destinés à être exhibés devant le Prince du Plaisir et de la Souffrance pour son éternel amusement. Il est en général composé du mélange perverti des vents d'Améthyste, d'Or et de Jade, aussi tordu qu'original.",
     "source": {
@@ -904,47 +626,21 @@
     "label": "Stromfels",
     "title": "Dieu Requin",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-sauvagerie",
+      "benediction-de-souffle",
+      "benediction-de-tenacite",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "faire-fi-de-l-humeur-de-manann"
-      },
-      {
-        "id": "flairer-le-sang"
-      },
-      {
-        "id": "lame-de-fond"
-      },
-      {
-        "id": "mal-de-mer"
-      },
-      {
-        "id": "malediction-de-la-maitresse-cruelle"
-      },
-      {
-        "id": "sacrifice-a-stromfels"
-      },
-      {
-        "id": "vents-de-tempete"
-      }
+      "faire-fi-de-l-humeur-de-manann",
+      "flairer-le-sang",
+      "lame-de-fond",
+      "mal-de-mer",
+      "malediction-de-la-maitresse-cruelle",
+      "sacrifice-a-stromfels",
+      "vents-de-tempete"
     ],
     "sinLocks": {
       "invocation": 2,
@@ -962,44 +658,20 @@
     "label": "Taal",
     "title": "Dieu de la nature",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-la-chasse"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "benediction-de-souffle"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-conscience",
+      "benediction-de-la-chasse",
+      "benediction-de-sauvagerie",
+      "benediction-de-souffle",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "bondissant-comme-un-cerf"
-      },
-      {
-        "id": "dent-et-griffe"
-      },
-      {
-        "id": "enchevetrement-2"
-      },
-      {
-        "id": "instincts-animaux"
-      },
-      {
-        "id": "roi-de-la-nature"
-      },
-      {
-        "id": "seigneur-de-la-chasse"
-      }
+      "bondissant-comme-un-cerf",
+      "dent-et-griffe",
+      "enchevetrement-2",
+      "instincts-animaux",
+      "roi-de-la-nature",
+      "seigneur-de-la-chasse"
     ],
     "desc": "**Sphères:** Régions sauvages, printemps, Talabecland\n\n**Adorateurs:** Bergers, forestiers, et autre population rurale\n\n**Offrandes:** Les régions sauvages, premier gibier tué lors d'une chasse, animaux\n\n**Siège du pouvoir:** Talabheim, Talabecland\n\n**Chef du Culte:** Le Hiérarque\n\n**Principaux Ordres:** Ordre de la Ramure, Les Coureurs des bois\n\n**Festivités majeures:** Équinoxe de printemps (on fête également l'équinoxe d'automne et les solstices)\n\n**Livres sacrés populaires:** Le Livre des verts feuillages, Les Rites de l'ancien bosquet, Les sentiers de l'Été\n\n**Symboles sacrés courants:** Ramures, chênes, haches de pierre\n\nTaal est le dieu des régions sauvages et des animaux, et le Roi de la Nature, mari de Rhya et père de Manann. Il est considéré par les taalites comme le roi des dieux, ce qui bien sûr est contesté par d'autres cultes. Toute la nature est sous sa responsabilité, des rivières sinueuses aux plus grandes montagnes, du plus petit insecte à la plus grande bête. Généralement décrit comme un homme viril à l'imposante carrure et aux longs cheveux en bataille, il est couronné d'une majestueuse ramure. Ses humeurs changeantes et son besoin de chasser sont notoires.\n\n**\n\n### Les adorateurs\n\n**La population rurale du Vieux Monde vénère Taal, et ceux qui tirent leur subsistance des régions sauvages prennent garde de ne pas l'offenser. Taal est la divinité tutélaire de Talabecland dans l'Empire, où son culte exerce une influence significative sur tous les niveaux de la société.\n\nLe Culte de Taal englobe de plus petits ordres dédiés aux sites sacrés et aux clairières à travers le Vieux Monde, mais deux ordres font progresser le Culte. L'Ordre de la Ramure est constitué des prêtres chargés d'enseigner les voies de Taal et de protéger les régions sauvages des intrusions.\n\nCes taalites sont particulièrement répandus en Talabecland, et leurs temples sylvestres offrent des centres d'activités à la population rurale. Les Coureurs des bois comprennent à la fois des prêtres guerriers et des Templiers errant généralement seuls, pour purifier les régions sauvages de Taal de la Corruption et veillant à ce que les communautés rurales ne contrarient en rien Père Taal.\n\n**\n\n### Les sites sacrés\n\n**En principe, les temples de Taal sont petits, rustiques, toujours construits de la même façon, de bois et de pierres brutes, depuis un nombre incalculable de siècles. Ils se trouvent généralement près de merveilles naturelles, comme des chutes d'eau, des bassins tourbillonnants et des montagnes, et sont souvent dotés de petites huttes. Le Grand temple de Taal en Talabheim ressemble, en comparaison, à une anomalie. Noble jardin joliment entretenu, bien que sauvage, plus qu'un temple, il propose des services importants chaque semaine sous les branches des sorbiers.\n\nOfficiellement, le Hiérarque dirige le culte depuis ce temple, bien qu'il passe la majeure partie de son temps dans les clairières sauvages de la forêt Taalgrunhaar toute proche. Les sanctuaires de Taal sont à peine des structures. Certains vieux arbres sont considérés comme sacrés, et les offrandes s'entassent à leur pied. Les grottes, les clairières et autres endroits naturels sont aussi utilisés comme sanctuaires, et seul un habitant du coin, ou un adepte dévoué de Taal, peut généralement les dénicher.\n\n**\n\n### Les pénitences\n\n**Les pénitences de Taal impliquent en général l'élimination des monstres malades ou mutants des régions sauvages, la plantation des arbres sacrés et l'entretien des clairières importantes pour le culte. Un adepte peut aussi se voir ordonner d'escalader une haute montagne pour y laisser une pierre au sommet d'un cairn, ou de se rendre en amont d'une chute d'eau pour ôter ce qui l'obstrue. Quelle que soit la tâche spécifique entreprise, les pénitences de Taal mettent presque toujours les adeptes au défi de survivre dans la nature.\n\n**\n\n### Commandements\n\n**\n\n-   Offrir une Prière de remerciements pour chaque animal tué.\n-   Passer une semaine une fois par an, tout seul à communier avec la nature.\n-   Éviter les armures en métal ; se revêtir des peaux de Taal.\n-   Se fier à ses propres compétences, non aux progrès de la poudre et des armes technologiques.\n-   Ne jamais blesser un animal, sauf en cas de légitime défense, pour se nourrir ou pour un sacrifice.",
     "source": {
@@ -1015,51 +687,21 @@
     "blessings": [],
     "miracles": [],
     "chaosSpells": [
-      {
-        "id": "trahison-de-tzeentch"
-      },
-      {
-        "id": "aura-doree-de-tzeentch"
-      },
-      {
-        "id": "avantage-de-tzeentch"
-      },
-      {
-        "id": "eclair-du-changement"
-      },
-      {
-        "id": "feu-bleu-de-tzeentch"
-      },
-      {
-        "id": "feu-rose-de-tzeentch"
-      },
-      {
-        "id": "feu-spirituel"
-      },
-      {
-        "id": "flammes-vacillantes-du-capricieux-destin"
-      },
-      {
-        "id": "la-main-pourpre"
-      },
-      {
-        "id": "malediction-de-tzeentch"
-      },
-      {
-        "id": "maitre-du-destin"
-      },
-      {
-        "id": "parole-de-tzeentch"
-      },
-      {
-        "id": "percevoir-l-echeveau"
-      },
-      {
-        "id": "tempete-de-feu-de-tzeentch"
-      },
-      {
-        "id": "transformation-de-tzeentch"
-      }
+      "trahison-de-tzeentch",
+      "aura-doree-de-tzeentch",
+      "avantage-de-tzeentch",
+      "eclair-du-changement",
+      "feu-bleu-de-tzeentch",
+      "feu-rose-de-tzeentch",
+      "feu-spirituel",
+      "flammes-vacillantes-du-capricieux-destin",
+      "la-main-pourpre",
+      "malediction-de-tzeentch",
+      "maitre-du-destin",
+      "parole-de-tzeentch",
+      "percevoir-l-echeveau",
+      "tempete-de-feu-de-tzeentch",
+      "transformation-de-tzeentch"
     ],
     "desc": "Les dieux démoniaques des Royaumes du Chaos constituent la plus grande menace du Vieux Monde, car chacun d'entre eux est déterminé à apporter la ruine absolue sur le royaume des mortels. Khorne, Nurgle, Tzeentch et Slaanesh : respectivement dieux de la Rage, du Désespoir, de l'Ambition et de l'Excès. Bien peu osent chuchoter leurs noms corrupteurs, car ils détiennent un pouvoir malveillant et répandent mutation et horreur dans leur sillage.\n\n### Les Puissances de la Ruine\n\nLes Puissances de la Ruine du Chaos constituent la principale menace existentielle du Vieux Monde, mais demeurent en grande partie un mystère. Le simple fait de rechercher de telles connaissances sans l'autorisation du Culte de Sigmar est passible de la peine de mort. Réclamer une telle permission rarement accordée entraîne un examen minutieux de votre personne et de vos motivations.\n\nLes Puissances de la Ruine sont considérées par le commun des mortels comme une punition du péché, et c'est la raison pour laquelle tous doivent se comporter convenablement sur le plan social, comme les cultes le préconisent. Se livrer à la violence, à la luxure, à la négligence ou à une curiosité inconvenante a des répercussions directes sur l'individu (corrompu et voué à une fin terrible) et sur sa communauté, car son comportement déviant attire l'attention destructrice des forces diaboliques.\n\nLa plupart des gens connaîtront la plus puissante de ces forces à travers des euphémismes, tels que le dieu du Sang, le Seigneur de la Peste, le Seigneur du Changement, et le Prince de la Douleur. Mêmes les érudits les plus instruits de ces savoirs interdits peuvent seulement présumer de ce qui motive ces puissances obscènes, ou du but qu'elles poursuivent au-delà de leurs pulsions primaires.\n\nIl semblerait qu'il y ait des factions rivales dédiées à différents aspects de la Ruine, aussi ennemis les uns des autres que du reste du Vieux Monde. Mais quand, à de rares occasions, ils coopèrent comme ils le firent il y a plus de deux cents ans pendant la Grande Guerre contre le Chaos, le monde tremble. Certains affirment que des cultes dédiés aux dieux du Chaos ont infiltré l'Empire. La plupart des gens trouvent cette idée absurde, car aucun individu sensé ne serait assez stupide pour vénérer l'une des Puissances de la Ruine.\n\n### Le Domaine de Tzeentch\n\nTzeentch est le Maître de la Magie, de la traîtrise et du mensonge. Le Domaine de Tzeentch en est l'incarnation, composé en grande partie de Sorts se concentrant sur le changement, ces derniers s'appuyant sur les Vents Gris, Améthyste et Blanc.",
     "source": {
@@ -1076,44 +718,20 @@
     ],
     "title": "Dieu de la guerre",
     "blessings": [
-      {
-        "id": "benediction-de-bataille"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-puissance"
-      },
-      {
-        "id": "benediction-de-sauvagerie"
-      },
-      {
-        "id": "benediction-de-tenacite"
-      },
-      {
-        "id": "benediction-de-vigueur"
-      }
+      "benediction-de-bataille",
+      "benediction-de-courage",
+      "benediction-de-puissance",
+      "benediction-de-sauvagerie",
+      "benediction-de-tenacite",
+      "benediction-de-vigueur"
     ],
     "miracles": [
-      {
-        "id": "frisson-du-givre"
-      },
-      {
-        "id": "fureur-d-ulric"
-      },
-      {
-        "id": "hurlement-du-loup"
-      },
-      {
-        "id": "jugement-du-roi-de-la-neige"
-      },
-      {
-        "id": "morsure-de-l-hiver"
-      },
-      {
-        "id": "peau-de-loup-d-hiver"
-      }
+      "frisson-du-givre",
+      "fureur-d-ulric",
+      "hurlement-du-loup",
+      "jugement-du-roi-de-la-neige",
+      "morsure-de-l-hiver",
+      "peau-de-loup-d-hiver"
     ],
     "desc": "**Sphères:** Guerre, hiver, loups, Middenland\n\n**Adorateurs:** Guerriers, Middenlanders\n\n**Offrandes:** Armes, trophées, bière, peaux de loups\n\n**Siège du pouvoir:** Middenheim, Middenland\n\n**Chef du Culte:** Ar-Ulric\n\n**Principaux Ordres:** Ordre du Loup hurlant, Ordre des Chevaliers du Loup blanc\n\n**Festivités majeures:** Le Début des Campagnes, Hochwinter, la Fin des Campagnes\n\n**Livres sacrés populaires:** Le Liber Lupus (Livre du Loup), Le Teutognengeschichte, Le Credo d'Ulric\n\n**Symboles sacrés courants:** Loups blancs, « U » stylisés, griffes\n\nUlric est le féroce dieu des Loups, de l'hiver et de la guerre, frère de Taal et, selon le savoir ulrican, le roi des dieux, bien que d'autres cultes le contestent. Décrit comme un barbare massif à la barbe imposante, il porte une cape en peau de loup, et tient une immense hache de guerre nommée Blitzbeil. C'est un dieu distant, dur et impitoyable qui attend de ses adeptes qu'ils comptent sur leurs propres forces et prouesses. Il méprise la faiblesse, la couardise et la duperie, et favorise l'approche directe dans tous les domaines.\n\n**\n\n### Les adorateurs\n\n**Le Culte d'Ulric est plus puissant dans le nord de l'Empire. La cité-État de Middenheim, où se trouve le gigantesque Grand temple d'Ulric, est au cœur de ce culte, et le dieu est considéré comme la divinité tutélaire de la cité. Ailleurs, il est principalement vénéré par les guerriers et les soldats. Les dévots d'Ulric peuvent généralement être identifiés à leurs longues chevelures et barbes, que la plupart choisissent de ne jamais couper, imitant ainsi leur féroce divinité. Le Culte d'Ulric est divisé en seulement deux ordres : le Loup hurlant composé de prêtres, et le Loup blanc rassemblant des Templiers. Le Loup hurlant n'est pas très populaire en dehors du Middenland et du Nordland, considéré par la majorité de la population comme trop grossier pour cette ère éclairée. En comparaison, les Chevaliers du Loup blanc sont très populaires, aisément le plus grand ordre chevaleresque de l'Empire et le plus vieil ordre Templier du Vieux Monde. Les prêtres d'Ulric portent des robes noires avec l'emblème d'un loup blanc hurlant sur la poitrine. Une peau de loup est souvent jetée sur leurs épaules, et leurs vêtements sont fourrés.\n\n**\n\n### Les sites sacrés\n\n**Le Grand temple d'Ulric se trouve en Middenheimet le dirigeant du culte, Ar-Ulric (ce qui signifie fils d'Ulric), jouit d'une importante emprise politique et spirituelle. À l'arrière du Grand temple se trouve la Flamme d'Ulric, un énorme feu argenté et éternel offert par le dieu de l'hiver pour guider son peuple. Ce Miracle est au centre de plusieurs routes de pèlerinages, et tous les adorateurs d'Ulric du Middenland sont censés se baigner dans sa lumière froide au moins une fois dans leur vie. S'ils sont plus grands et plus nombreux dans le Nord, des temples se trouvent aussi dans toutes les villes et cités quelles que soient leurs tailles. Les chapelles et sanctuaires peuvent être installées dans les casernes et les ports du Vieux Monde.\n\nLes temples ressemblent à des donjons fortifiés généralement de forme carrée. L'intérieur du hall principal est éclairé par de petites fenêtres situées haut dans les murs, et par un feu alimenté en permanence dans un foyer circulaire, entretenu par le clergé. Derrière le feu, généralement contre le mur du fond, se trouve une statue d'Ulric sur son trône, souvent flanqué d'une paire d'énormes loups. Les sanctuaires sont semblables, mais plus petits, avec une lampe à la place du feu et de petites statues d'à peine un mètre de haut.\n\n**\n\n### Les pénitences\n\n**Les pénitences établies par Ulric sont presque toujours des Tests de force, de courage ou de compétence martiale. Tuer un monstre puissant et nettoyer un repaire d'hommes-bêtes ou de hors-la-loi sont des tâches classiques.\n\n**\n\n### Commandements\n\n**\n\n-   Obéir à ses supérieurs.\n-   Défendre son honneur dans tous les domaines, et ne jamais refuser un défi.\n-   Rester honnête et loyal ; en dehors d'une embuscade, la duperie et la ruse sont interdites.\n-   Porter uniquement des peaux de loups tués par des armes faites de vos propres mains.\n-   La Poudre noire, les heaumes, les arbalètes et la technologie ne font pas partie des voies d'Ulric.",
     "source": {
@@ -1140,44 +758,20 @@
     "label": "Verena",
     "title": "Déesse de la sagesse",
     "blessings": [
-      {
-        "id": "benediction-de-chance"
-      },
-      {
-        "id": "benediction-de-conscience"
-      },
-      {
-        "id": "benediction-de-courage"
-      },
-      {
-        "id": "benediction-de-droiture"
-      },
-      {
-        "id": "benediction-de-sagesse"
-      },
-      {
-        "id": "benediction-de-vivacite"
-      }
+      "benediction-de-chance",
+      "benediction-de-conscience",
+      "benediction-de-courage",
+      "benediction-de-droiture",
+      "benediction-de-sagesse",
+      "benediction-de-vivacite"
     ],
     "miracles": [
-      {
-        "id": "entraves-a-la-verite"
-      },
-      {
-        "id": "epee-de-justice"
-      },
-      {
-        "id": "justice-aveugle"
-      },
-      {
-        "id": "la-verite-eclatera"
-      },
-      {
-        "id": "sagesse-de-la-chouette"
-      },
-      {
-        "id": "verena-est-mon-temoin"
-      }
+      "entraves-a-la-verite",
+      "epee-de-justice",
+      "justice-aveugle",
+      "la-verite-eclatera",
+      "sagesse-de-la-chouette",
+      "verena-est-mon-temoin"
     ],
     "desc": "**Sphères:** Apprentissage, justice, sagesse\n\n**Adorateurs:** Scribes, juristes, érudits\n\n**Offrandes:** Livres, connaissances, actions justes\n\n**Siège du pouvoir:** Aucun\n\n**Chef du Culte:** Aucun\n\n**Principaux Ordres:** L'Ordre des Porteurs de la Balance, l'Ordre des Gardiens du Savoir, L'Ordre des Mystères, l'Ordre de la Lumière éternelle\n\n**Festivités majeures:** Bénédiction de l'année\n\n**Livres sacrés populaires:** Canticum Verena (Cantique de Verena), Eulogium Verena (Éloge de Verena), Le Livre des Épées\n\n**Symboles sacrés courants:** Balances de justice, chouettes, épées à la pointe vers le sol.\n\nLa sage Verena, déesse de l'apprentissage et de la Justice, est la femme du sombre Morr et la mère de Myrmidia et Shallya. Elle est généralement décrite comme une femme de haute taille à la beauté classique, et portant une épée et une balance. En tant que divinité de la justice, elle est soucieuse de l'équité plutôt que des textes de loi : elle s'oppose à la tyrannie et à l'oppression plutôt qu'au crime.\n\n**\n\n### Les adorateurs\n\n**Verena est adorée à travers le Vieux Monde, en particulier dans le Sud. Ses adeptes comptent des érudits, des juristes et des magistrats, ainsi que certains Magisters des Collèges de Magie, en particulier des Ordres Gris et de la Lumière.\n\nLe Culte de Verena ne possède pas de hiérarchie rigide : on dit qu'elle seule dirige le culte, et qu'aucun intermédiaire mortel n'est nécessaire, car la vérité saute aux yeux et ne requiert aucune interprétation. Les prêtres du temple de l'Ordre des Gardiens du Savoir sont chargés de préserver la connaissance et de la communiquer à la communauté. Ils entretiennent entre eux une volumineuse correspondance, échangeant informations et nouvelles.\n\nLes prêtres de l'Ordre des Porteurs de la Balance les plus influents sont très recherchés en tant que juges, arbitres et médiateurs en raison de leur célèbre impartialité et de leur maîtrise de la loi. L'Ordre des Mystères, bien plus modeste et moins célèbre, compte des prêtres guerriers à la recherche de savoirs perdus et oubliés, où qu'ils puissent se trouver. Le dernier ordre majeur est celui des Chevaliers de la Lumière éternelle, des Templiers célèbres pour leur maniement de l'épée, leur sens de l'équité et leur légendaire malchance. Les adeptes de Verena portent généralement de simples robes blanches, symbole de pure vérité et d'impartialité.\n\n**\n\n### Les sites sacrés\n\n**Les temples de Verena peuvent être dénichés dans la plupart des cités et des grandes villes, en général dans les quartiers administratifs ou universitaires. La plupart des bibliothèques et des palais de justice possèdent un sanctuaire de la déesse, et de plus petits oratoires sont installés dans les habitations de beaucoup d'érudits et juristes. La façade des temples arbore des colonnes et des bas-reliefs représentant des symboles de la déesse et des figures allégoriques de l'apprentissage. À l'intérieur se trouve une grande statue de Verena, en général assise, un livre sur les genoux, une balance dans la main gauche et la main droite reposant sur la garde d'une épée. De plus petites salles contigües incluent une bibliothèque et des chambres pour les prêtres intendants. Chaque temple possède au moins une salle de réunion où des négociations se déroulent sous le regard de la déesse.\n\n**\n\n### Les pénitences\n\n**Les pénitences établies par Verena impliquent en général la récupération ou la préservation des connaissances, la réparation d'une injustice ou la résolution d'une dispute. Les adeptes peuvent aussi être envoyés pour retrouver un ouvrage au savoir depuis longtemps oublié, ou servir de médiateur dans une querelle compliquée, comme un différend frontalier entre fermiers ou les difficultés politiques de deux royaumes au bord de la guerre.\n\n**\n\n### Commandements\n\n**\n\n-   Ne jamais refuser d'arbitrer une dispute lorsqu'on le demande.\n-   Toujours dire la vérité sans peur ou faveur.\n-   Protéger les connaissances à tous prix.\n-   Le combat doit être l'ultime ressort lorsque toutes les autres alternatives ont échoué.\n-   Ne jamais devenir un outil d'injustice ou d'hérésie.",
     "source": {

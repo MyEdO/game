@@ -163,13 +163,17 @@
       "skillMods": [
         {
           "skills": [
-            "athletisme",
-            "escalade",
-            "projectiles"
+            {
+              "id": "athletisme"
+            },
+            {
+              "id": "escalade"
+            },
+            {
+              "id": "projectiles",
+              "spec": "poudre-noire"
+            }
           ],
-          "spec": {
-            "projectiles": "poudre-noire"
-          },
           "mod": -10
         }
       ],
@@ -186,22 +190,36 @@
       "skillMods": [
         {
           "skills": [
-            "athletisme",
-            "escalade",
-            "projectiles"
+            {
+              "id": "athletisme"
+            },
+            {
+              "id": "escalade"
+            },
+            {
+              "id": "projectiles",
+              "spec": "poudre-noire"
+            }
           ],
-          "spec": {
-            "projectiles": "poudre-noire"
-          },
           "mod": -20
         },
         {
           "skills": [
-            "commandement",
-            "orientation",
-            "perception",
-            "ramer",
-            "voile"
+            {
+              "id": "commandement"
+            },
+            {
+              "id": "orientation"
+            },
+            {
+              "id": "perception"
+            },
+            {
+              "id": "ramer"
+            },
+            {
+              "id": "voile"
+            }
           ],
           "mod": -10
         }
@@ -219,22 +237,36 @@
       "skillMods": [
         {
           "skills": [
-            "athletisme",
-            "escalade",
-            "projectiles"
+            {
+              "id": "athletisme"
+            },
+            {
+              "id": "escalade"
+            },
+            {
+              "id": "projectiles",
+              "spec": "poudre-noire"
+            }
           ],
-          "spec": {
-            "projectiles": "poudre-noire"
-          },
           "mod": -30
         },
         {
           "skills": [
-            "commandement",
-            "orientation",
-            "perception",
-            "ramer",
-            "voile"
+            {
+              "id": "commandement"
+            },
+            {
+              "id": "orientation"
+            },
+            {
+              "id": "perception"
+            },
+            {
+              "id": "ramer"
+            },
+            {
+              "id": "voile"
+            }
           ],
           "mod": -20
         }

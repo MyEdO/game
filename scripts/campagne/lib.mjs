@@ -136,7 +136,9 @@ function validateFlowRefs(node) {
  *  réfs par ids stables des rencontres et des flows sont validées SUR LE SPEC avant compilation.
  *  `hidden` (défaut false = VISIBLE, RAW : le groupe voit
  *  ses adversaires) pose `combat.hiddenUntilCombat` sur les entités enrôlées. */
-export function scene({ id, label, desc, ambiance = 'exterieur', weather, music, startMessage, rows, base, legend, metresPerTile, rest, entities = [], architecture = [], walls = [], terrainRects = [], effectZones = [], dialogues = [], triggers = [], encounters = [], entryPoints, flags = {} }) {
+export function scene({ id, label, desc, ambiance = 'exterieur', weather, music, startMessage, rows, base, legend, metresPerTile, rest, entities = [], architecture = [], walls = [], terrainRects = [], effectZones = [], dialogues = [], triggers = [], encounters = [], entryPoints, flags = {}, ...inconnues }) {
+  const cles = Object.keys(inconnues);
+  if (cles.length) throw new Error(`campagne : scène « ${id} » — option(s) inconnue(s) de scene() : ${cles.join(', ')}.`);
   const spec = {
     id,
     label,

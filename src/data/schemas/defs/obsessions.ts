@@ -24,7 +24,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['obsessions'] },
-    edit: { niche: { categories: ['obsessions'] } },
+    edit: { niche: { categories: { obsessions: 'entries' } } },
   },
   { rangee: obsessionEntrySchema },
 );

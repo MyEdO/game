@@ -46,7 +46,7 @@ const doc = document(
     pdf: z.string().endsWith('.pdf').nullable().optional(),
     /** Chemin d'extraction `Source/…` d'un livre HORS Atlas RAW (`scripts/raw/_lib.mjs#BOOKS`
      *  ne le porte pas, donc pas de pont folio ni de fiche RAW) dont les chapitres sont néanmoins
-     *  sur disque et citables — `frenchy-bzh`. Lu par `skillSpecWalk.mjs#sourceDirOf`. */
+     *  sur disque et citables — `frenchy-bzh`. Lu par `scripts/raw/_lib.mjs#sourceDirOf`. */
     extractionDir: z.string().nullable().optional(),
     language: z.string().nullable(),
     /** Corps de règles dont ce livre est le CŒUR — absent d'un supplément. Graphie NORMALISÉE

@@ -2,7 +2,7 @@
 /**
  * `parseProject` est la porte UNIQUE des documents de projet (#811, #877) : « Exporter JSON »,
  * « Importer JSON… » et « ▶ Tester » la passent comme « Enregistrer ». La modale « Avancé » passe
- * sa propre porte, le schéma des blocs (`SCHEMA_BLOCS_AVANCES` + `formatZodError`, `saveAdvanced`).
+ * sa propre porte, le schéma des blocs (`SCHEMA_BLOCS_AVANCES` + `validateDocument`, `saveAdvanced`).
  * Mesuré sur le chemin RÉEL : `<Editor>` monté, menu Fichier déroulé, et le Blob que
  * `downloadText` fabrique intercepté.
  *
@@ -180,7 +180,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
     expect(refus, 'rien n’a jamais été ouvert ni écrit : la conséquence le DIT')
       .toContain('ce fichier ne peut pas être ouvert');
     expect(refus, 'le fragment de localisation est INTRODUIT, jamais recollé nu après le point')
-      .toContain('. Faute : scène');
+      .toContain('. Faute : Scènes');
     expect(refus, 'la scène est nommée').toContain('Salle importée');
     expect(refus, 'l’entité fautive est nommée').toContain('Le ponton');
     expect(refus, 'et la règle enfreinte est dite').toContain('« ref » absente');

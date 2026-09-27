@@ -155,7 +155,24 @@ import type { Scene } from './scene';
 // rouvre un dialogue en cours et des transitions SANS session, et un historique sans regroupement :
 // les tours d'avant se recolleraient à la conversation suivante, et le prochain id (dérivé du max
 // archivé) repartirait de 1. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 55;
+// 55 → 56 (#1897) : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double
+// (`SORTS_FUSIONNES_1897`, `src/data/sortsFusionnes.ts`) et n'existent plus. `snapshotSave` recopie le `state`
+// ENTIER, `Combatant.spells` des héros et des pions de la scène vivante comprise : une save de 55 rouvrirait
+// un héros dont `findSpellById` ne résout plus le sort appris (`grimoire.ts`) — il disparaît de son
+// grimoire EN SILENCE. La save se jette (politique 2 ci-dessus).
+// 56 → 57 (#1924) : la clé d'un emplacement de carrière (`Combatant.careerSlotChoices`,
+// `engine/careerSlots.ts`) se résume en ids, plus en libellés. Une save de 56 rouvrirait des héros dont
+// aucune désignation n'est plus appariée à son emplacement : chaque joker de carrière redevient à désigner.
+// La save se jette (politique 2 ci-dessus).
+// 57 → 58 (#1473, train 2a) : les ops `grantTalent` / `grantCareerTalent` persistées passent de
+// `{ talentId, spec? }` à `{ talent: { id, spec? } }` — `Combatant.mutations[].passive`,
+// `ActiveEffect.grantedMutation.passive` / `.passive` / `.opsPerRound`, `ItemInstance.consumable`, les `Flow`
+// de la scène vivante, du `campaignDoc` et de `scheduledEffects`, et les étapes de `pendingCascade` /
+// `suspendedCascades` — et une mutation attachée porte `Combatant.mutations[].talentsAcquis`.
+// Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
+// mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
+// jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 58;
 
 export interface SaveMeta {
   version: number;

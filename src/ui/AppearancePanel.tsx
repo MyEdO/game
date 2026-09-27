@@ -3,7 +3,10 @@ import type { Appearance } from '../gameIso/rig/appearance';
 import type { EquipCtx } from '../gameIso/rig/parts/equipment';
 import { ColorPalettePickers } from './ColorPalettePickers';
 import { hairstylesForSex } from '../gameIso/rig/parts/hairstyles';
+import { coiffureChoisie, coiffureRetombee } from '../gameIso/rig/parts/cosmetic';
 import { Icon } from './Icon';
+import { sexeSchema } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 
 /**
  * Panneau d'apparence réutilisable (créateur de personnage). GRAND aperçu live du rig (c'est la
@@ -22,7 +25,7 @@ export function AppearancePanel({
   career?: string;
   onChange: (a: Appearance) => void;
 }) {
-  const set = (patch: Partial<Appearance>) => onChange({ ...value, ...patch });
+  const set = (patch: Partial<Appearance>) => onChange(coiffureRetombee({ ...value, ...patch }));
   return (
     <div className="appear-panel">
       <svg viewBox="0 0 120 150" className="appear-figure">
@@ -33,16 +36,19 @@ export function AppearancePanel({
         <div className="appear-fields">
           <label>
             Sexe
-            <select value={value.sex} onChange={(e) => set({ sex: e.target.value as 'M' | 'F' })}>
-              <option value="M">Masculin</option>
-              <option value="F">Féminin</option>
+            <select value={value.sex} onChange={(e) => set({ sex: sexeSchema.parse(e.target.value) })}>
+              {sexeSchema.options.map((s) => (
+                <option key={s} value={s}>
+                  {libelleDeValeur(sexeSchema, s)}
+                </option>
+              ))}
             </select>
           </label>
           <label>
             Coiffure
             <select
               value={value.hairstyle ?? ''}
-              onChange={(e) => set({ hairstyle: e.target.value || undefined })}
+              onChange={(e) => set(coiffureChoisie(e.target.value || undefined))}
             >
               <option value="">Défaut (espèce)</option>
               {hairstylesForSex(value.sex).map((h) => (

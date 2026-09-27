@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIR4_ORDER, type Dir4, type Dir8 } from '../../state/dir8';
 import { findPropById } from '../../data';
-import { capVolumique, type PropData } from '../../data/props.types';
+import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../data/props.types';
 import { polyNormal } from '../backends/webgl/worldTris';
 import { buildPropVolumes, type AncrageVolume } from './propVolumes';
 import type { Face } from './types';
@@ -36,7 +36,7 @@ const cuire = (prop: PropData, ancrage: AncrageVolume): Face[] => buildPropVolum
 
 /** L'ANCRAGE d'un meuble posé : son point monde, son cap, l'altitude de son pied, l'entité porteuse. */
 function ancrageDe({ id, ancre, facing, baseHeightM = 0 }: { id?: string; ancre: { x: number; y: number }; facing?: Dir8; baseHeightM?: number }): AncrageVolume {
-  return { ancre, facing: capVolumique(facing, id ?? 'sonde'), baseHeightM, ...(id ? { entId: id } : {}) };
+  return { ancre, facing: capVolumique(facing)!, baseHeightM, ...(id ? { entId: id } : {}) };
 }
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000;
@@ -172,12 +172,18 @@ describe('buildPropVolumes — la recette locale devient de la géométrie monde
 
   /**
    * CAP CARDINAL SEULEMENT (#1680 ligne 3) : le type d'`AncrageVolume` refuse déjà la diagonale au
-   * compilateur ; `capVolumique` est la porte qui la refuse à la DONNÉE, nominativement. La rotation
-   * générique (`rotatePropLocal`), elle, garde ses huit caps — elle sert aussi aux places assises.
+   * compilateur ; `capVolumique` la refuse à la DONNÉE par `capDecorAdmis`, sans lever (la faute se
+   * NOMME au schéma et au validateur). La rotation générique (`rotatePropLocal`), elle, garde ses huit
+   * caps — elle sert aussi aux places assises.
    */
-  it.each<Dir8>(['NE', 'SE', 'SO', 'NO'])('refuse le cap diagonal %s, en le nommant', (diagonal) => {
-    expect(() => ancrageDe({ id: 'meuble', ancre: { x: 4, y: 6 }, facing: diagonal }))
-      .toThrow(`meuble : cap ${diagonal} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`);
+  it.each<Dir8>(['NE', 'SE', 'SO', 'NO'])('refuse le cap diagonal %s, sans lever', (diagonal) => {
+    expect(capVolumique(diagonal)).toBeUndefined();
+  });
+  it.each<Dir8>(['N', 'E', 'S', 'O'])('admet le cap cardinal %s tel quel', (cardinal) => {
+    expect(capVolumique(cardinal)).toBe(cardinal);
+  });
+  it('sans cap : le cap d’identité', () => {
+    expect(capVolumique(undefined)).toBe(CAP_IDENTITE_PROP);
   });
 
   /**

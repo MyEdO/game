@@ -10,6 +10,7 @@ import { useSceneHistory } from './useSceneHistory';
 import { useEditorView } from './useEditorView';
 import { EditorToolbar } from './EditorToolbar';
 import { EditorCanvas } from './EditorCanvas';
+import { SceneErrorBoundary } from '../SceneErrorBoundary';
 import { StatusBar } from './StatusBar';
 import { Palette } from './Palette';
 import { Inspector } from './Inspector';
@@ -18,7 +19,7 @@ import { WorldMapEditor } from './WorldMapEditor';
 import { NarratifEditor } from './NarratifEditor';
 import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
 import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
-import { downloadText } from '../../state/fileIo';
+import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
@@ -46,8 +47,8 @@ import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
 import { z } from 'zod';
-import { dialogueSchema, triggerSchema, encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
-import { formatZodError } from '../../data/schemas/validate';
+import { dialoguesSchema, triggersSchema, encountersSchema } from '../../data/schemas/defs-scenes/scene';
+import { rapportDeFautes, validateDocument } from '../../data/schemas/validate';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -67,17 +68,17 @@ export function ouCaCasse(erreur: unknown): string {
   return pos ? ` — caractère n° ${Number(pos[1]) + 1}` : '';
 }
 
-/** Les TROIS blocs de logique que la modale « Avancé » édite en masse. Les ÉLÉMENTS sont ceux du
- *  schéma de Scène (`dialogueSchema`/`triggerSchema`/`encounterDefSchema`, `scene.ts:785-787`), pas
- *  une redite : ce que l'auteur colle est tenu à la même exigence que ce que le document porte. Le
+/** Les TROIS blocs de logique que la modale « Avancé » édite en masse. Les LISTES sont celles du
+ *  schéma de Scène (`dialoguesSchema`/`triggersSchema`/`encountersSchema`, clé comprise), pas une
+ *  redite : ce que l'auteur colle est tenu à la même exigence que ce que le document porte. Le
  *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
  *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
- *  EXPORTÉ pour que la porte de cette modale (`saveAdvanced` : ce schéma + `formatZodError`) soit
+ *  EXPORTÉ pour que la porte de cette modale (`saveAdvanced` : ce schéma + `validateDocument`) soit
  *  mesurable hors montage — c'est elle qui rend le refus que l'auteur lit (#1588). */
 export const SCHEMA_BLOCS_AVANCES = z.strictObject({
-  dialogues: z.array(dialogueSchema).optional(),
-  triggers: z.array(triggerSchema).optional(),
-  encounters: z.array(encounterDefSchema).optional(),
+  dialogues: dialoguesSchema.optional(),
+  triggers: triggersSchema.optional(),
+  encounters: encountersSchema.optional(),
 });
 
 export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {
@@ -126,8 +127,6 @@ export function Editor({
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
   // (Ctrl+Z, #834 audit-2 défaut 5) — rien ne prouve la fraîcheur relative d'un enregistrement local.
   const {
-    ecartee: autosaveEcartee,
-    oublierEcartee: oublierAutosaveEcartee,
     recovery: autosaveRecovery,
     hasHiddenRecovery: autosaveRecoveryHidden,
     restore: restoreAutosave,
@@ -647,8 +646,8 @@ export function Editor({
   // --- Fichier : import/export/bibliothèque/test ---
   /**
    * L'identité du document en cours : celle du paquet chargé, ou celle que NOMME le geste
-   * d'enregistrement — le champ pré-rempli de `SaveProjectModal` (arbitrage utilisateur
-   * 2026-08-31 : « Un projet se NOMME avant d'être enregistré »). Un brouillon jamais nommé ne
+   * d'enregistrement — le champ pré-rempli de `SaveProjectModal` (#1552, commentaire 5481625275 du
+   * 2026-08-31 : « Un projet se NOMME avant d'être enregistré (Recommandé) »). Un brouillon jamais nommé ne
    * franchit plus `parseProject` : l'enveloppe exige `id`/`label` et une provenance.
    */
   function identiteCourante(nom: string, id: string): ProjectIdentite {
@@ -666,7 +665,7 @@ export function Editor({
       parseProject(doc);
       return null;
     } catch (refus) {
-      return refusDeLaPorteDuProjet(refus, doc, geste);
+      return refusDeLaPorteDuProjet(refus, geste);
     }
   }
   function exportJson() {
@@ -701,7 +700,7 @@ export function Editor({
       try {
         paquet = parseProject(data);
       } catch (refus) {
-        setRefusDuGeste({ titre: TITRE_IMPORT, ...refusDeLaPorteDuProjet(refus, data, 'import') });
+        setRefusDuGeste({ titre: TITRE_IMPORT, ...refusDeLaPorteDuProjet(refus, 'import') });
         return;
       }
       const { scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = paquet;
@@ -788,7 +787,7 @@ export function Editor({
     try {
       ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = parseProject(doc)); // même validation/migration que l'import JSON
     } catch (e) {
-      const refus = refusDeLaPorteDuProjet(e, doc, 'ouverture');
+      const refus = refusDeLaPorteDuProjet(e, 'ouverture');
       setLoadError(refus);
       return refus;
     }
@@ -888,17 +887,18 @@ export function Editor({
       setAdvError(`Ce texte n’est pas du JSON${ouCaCasse(erreur)}.`);
       return;
     }
-    const lu = SCHEMA_BLOCS_AVANCES.safeParse(brut);
-    if (!lu.success) {
-      setAdvError(formatZodError('Blocs de logique', lu.error));
+    const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, brut);
+    if (fautes) {
+      setAdvError(rapportDeFautes('Blocs de logique', fautes));
       return;
     }
+    const lu = SCHEMA_BLOCS_AVANCES.parse(brut);
     setAdvError(null);
     setScene({
       ...scene,
-      ...(lu.data.dialogues !== undefined ? { dialogues: lu.data.dialogues } : {}),
-      ...(lu.data.triggers !== undefined ? { triggers: lu.data.triggers } : {}),
-      ...(lu.data.encounters !== undefined ? { encounters: lu.data.encounters } : {}),
+      ...(lu.dialogues !== undefined ? { dialogues: lu.dialogues } : {}),
+      ...(lu.triggers !== undefined ? { triggers: lu.triggers } : {}),
+      ...(lu.encounters !== undefined ? { encounters: lu.encounters } : {}),
     });
     setAdvOpen(false);
   }
@@ -973,6 +973,16 @@ export function Editor({
         {/* Colonne centrale de la grille (1 enfant par colonne, sinon la grille 3 colonnes déborde en
             ligne implicite et s'effondre) : le canvas + la barre d'étages en OVERLAY ancré dessus. */}
         <div className="editor-canvas-col">
+        {/* Le FILET du monde (patron `gameIso/stage/MondeDeCampagne.tsx`) : une erreur de rendu n'emporte
+            ni l'Inspecteur, ni la Validation, ni la barre d'outils ; la scène est sa CLÉ DE REPRISE — la
+            modifier relève le monde sans recharger. */}
+        <SceneErrorBoundary
+          className="scene-error-boundary editor-canvas-wrap"
+          message="Le monde de l'éditeur a rencontré une erreur de rendu : il se relève dès que la scène change, ou par « Réessayer »."
+          retryLabel="Réessayer"
+          onRetry={() => {}}
+          cleDeReprise={scene}
+        >
         <EditorCanvas
           scene={scene}
           view={view}
@@ -1004,6 +1014,7 @@ export function Editor({
           traceCalibStep={traceCalib.step}
           onTraceCalibClick={onTraceCalibClick}
         />
+        </SceneErrorBoundary>
 
         <TraceLayerPanel
           hasLayer={!!traceLayer}
@@ -1151,11 +1162,6 @@ export function Editor({
         </button>
       </div>
 
-      {autosaveEcartee && (
-        <button type="button" className="btn small autosave-recovery-pill" role="status" onClick={oublierAutosaveEcartee}>
-          <Icon id="ui/warning" size="sm" /> Sauvegarde locale écartée : {autosaveEcartee} — Compris
-        </button>
-      )}
       {autosaveRecoveryHidden && (
         <button type="button" className="btn small autosave-recovery-pill" onClick={showAutosaveRecovery}>
           <Icon id="ui/undo" size="sm" /> Sauvegarde locale en attente…
@@ -1167,18 +1173,29 @@ export function Editor({
           title="Reprendre une sauvegarde locale ?"
           onClose={hideAutosaveRecovery}
         >
-          <p className="hint">
-            Une sauvegarde automatique de « {autosaveRecovery.scene.label || autosaveRecovery.scene.id} » diffère de
-            la version actuellement chargée. Elle date du {new Date(autosaveRecovery.savedAt).toLocaleString('fr-FR')}.
-            La restaurer, ou l'ignorer et repartir de la version chargée ?
-          </p>
+          {autosaveRecovery.ok ? (
+            <p className="hint">
+              Une sauvegarde automatique de « {autosaveRecovery.record.scene.label || autosaveRecovery.record.sceneId} » diffère de
+              la version actuellement chargée. Elle date du {new Date(autosaveRecovery.record.savedAt).toLocaleString('fr-FR')}.
+              La restaurer, ou l'ignorer et repartir de la version chargée ?
+            </p>
+          ) : (
+            <>
+              <p className="hint">
+                Une sauvegarde automatique de « {autosaveRecovery.sceneId} » date du {new Date(autosaveRecovery.savedAt).toLocaleString('fr-FR')}.
+              </p>
+              <ChipDeRefus refus={refusDeLaPorteDuProjet(autosaveRecovery.refus, 'reprise')} />
+            </>
+          )}
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={dismissAutosave}>
               Ignorer et supprimer
             </button>
-            <button type="button" className="btn" onClick={restoreAutosave} title="Annulable ensuite par Ctrl+Z — rien ne prouve que cette sauvegarde locale est plus récente que la version chargée">
-              Restaurer
-            </button>
+            {autosaveRecovery.ok && (
+              <button type="button" className="btn" onClick={restoreAutosave} title="Annulable ensuite par Ctrl+Z — rien ne prouve que cette sauvegarde locale est plus récente que la version chargée">
+                Restaurer
+              </button>
+            )}
           </div>
         </Modal>
       )}

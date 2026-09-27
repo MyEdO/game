@@ -105,7 +105,9 @@ const CLES: Record<string, string> = {
   "maneuvers": '30d7e463b2575792',
   "psychologie": '2287ac1af26a59cb',
   "domains": '4e7ed40a32f916d6',
-  "spells": '81267fd5d0e86a78',
+  // #1897 : 54 sorts du livre fan fusionnés dans l'entrée qui les double (ids retirés), 4 créés, et
+  // 52 entrées absorbantes gagnent `alsoIn` — empreinte recalée à la MESURE.
+  "spells": 'a5cea4643778e1ce',
   "gods": 'd49beaef5ebba230',
   "ventsTourbillonnants": '9a979156867c5f47',
   // +1 : Chien de trait, EDOC 07 folio 22, #673.

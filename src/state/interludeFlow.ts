@@ -1241,7 +1241,7 @@ export function confirmActivity(get: Get, set: Set): void {
         lines.push(...applyOps(h, immediate, {
           rng: battleRng(), label: def.label, now: get().gameTime, source: { kind: 'activity', id: def.id }, sl: pa.sl,
           onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
-          onCorruptionExposure: (level: ExposureLevel, skill?: import('../engine/skills').SkillRef) => {
+          onCorruptionExposure: (level: ExposureLevel, skill?: import('../data/schemas/grammaire/ref').RefDesignee) => {
             // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
             poseCorruptionPending(get, set, { heroId: h.id, level, skill: testDeCorruption(skill), skillLocked: skill != null, menace: 'corruption' });
             return [msg('if.corruptionTest', { name: h.label, level })];

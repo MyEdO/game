@@ -67,7 +67,7 @@ const doc = document(
   },
   {
     codex: { keys: ['flowStakes'] },
-    edit: { none: 'exposé en LECTURE seule au Codex (catégorie `flowStakes`) — absent de `CodexEdit.CATEGORY_DATASET`' },
+    edit: { none: 'exposé en LECTURE seule au Codex (catégorie `flowStakes`) — absent de `CodexEdit.CATEGORY_DATASET`', dataset: 'flowStakes' },
   },
   {
     exiges: ['source'],

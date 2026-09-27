@@ -219,3 +219,17 @@ describe('terme `{rule}` d’une Formula — la VALEUR au joueur, la règle nomm
     expect(humanizeFormula({ rule: nonParam.id })).toBe(`la règle « ${nonParam.label} »`);
   });
 });
+
+describe('humanizeOp — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => {
+  it('la phrase dit la Portée de l’op', () => {
+    expect(humanizeOp({ op: 'grantTrait', traitId: 'langue-prehensile', indice: 5, range: 12 })).toBe('gagne le Trait Langue préhensile +5 (12)');
+  });
+
+  it('une attaque dit son Indice littéral en « +Dégâts »', () => {
+    expect(humanizeOp({ op: 'grantTrait', traitId: 'morsure', indice: 4 })).toBe('gagne le Trait Morsure +4');
+  });
+
+  it('un Indice Formula suit le nom du Trait', () => {
+    expect(humanizeOp({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } })).toBe(`gagne le Trait Vol ${humanizeFormula({ charOf: 'agilite' })}`);
+  });
+});

@@ -16,7 +16,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { fileURLToPath } from 'node:url';
 import { schema as characteristicsSchema } from './schemas/defs/characteristics';
-import { DEFS_DE_DOCUMENT, formatZodError } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import type { RacineDocument } from './schemas/types';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -39,8 +39,7 @@ describe('contrat de donnée — les documents des deux racines valident leur sc
   for (const def of DEFS_DE_DOCUMENT) {
     it(`${def.root}/${def.file} valide ${def.schema === characteristicsSchema ? '(schéma characteristics)' : 'son schéma'}`, () => {
       const raw = JSON.parse(readFileSync(`${DIR_DE_RACINE[def.root]}${def.file}`, 'utf8'));
-      const result = def.schema.safeParse(raw);
-      expect(result.success, result.success ? '' : formatZodError(def.file, result.error)).toBe(true);
+      expect(validateDataset(def.file, raw)).toBeNull();
     });
   }
 

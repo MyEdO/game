@@ -18,49 +18,15 @@
  */
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../guards/lib/lister.mjs';
-import { joue } from './joue.mjs';
+import { FORME_PROJET, serialise } from './croissance.mjs';
+import { depot, efface, joue, lireArbre, lireDans, rienTouche } from './joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-09-1715-roof-defaults-scenes.mjs';
-
-const lire = (rel) => fs.readFileSync(path.join(RACINE, rel), 'utf8');
-/** Formatage canonique d'un document de projet de scène. */
-const serialise = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
-
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
-
-/** Dépôt jetable portant EXACTEMENT les fichiers demandés, plus la migration. */
-function depot(fichiers) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1715-'));
-  const avant = new Map();
-  for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.mkdirSync(path.dirname(cible), { recursive: true });
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  return { racine, avant };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-
-/** Les fichiers posés sont INTACTS (octet + horodatage). */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) { fautes.push(`${rel} : SUPPRIMÉ`); continue; }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  return fautes;
-}
 
 /** Les projets de scène de l'arbre (listage par la primitive `listerDossier` — ordre total ; une
  *  entrée qui n'est pas un dossier de campagne ne porte aucun document et tombe au filtre). */
@@ -70,10 +36,10 @@ const PROJETS = listerDossier(path.join(RACINE, 'src/scenes'))
 assert.ok(PROJETS.length > 0, 'aucun projet de scène — la fixture ne mesure rien');
 
 /** Cardinaux LUS sur les documents migrés — jamais récités. */
-const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lire(rel)).scenes.length]));
+const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).scenes.length]));
 for (const rel of PROJETS)
   assert.ok(
-    JSON.parse(lire(rel)).scenes.every((s) => s.roofDefaults),
+    JSON.parse(lireArbre(rel)).scenes.every((s) => s.roofDefaults),
     `${rel} : une Scène sans \`roofDefaults\` — l’arbre n’est pas migré`,
   );
 
@@ -83,21 +49,21 @@ for (const rel of PROJETS)
 const SCHEMA_AVANT = 8;
 const SCHEMA_APRES = 9;
 /** Le `schema` que l'arbre porte AUJOURD'HUI — lu, jamais récité. */
-const SCHEMA_ARBRE = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lire(rel)).schema]));
+const SCHEMA_ARBRE = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).schema]));
 for (const rel of PROJETS)
   assert.ok(SCHEMA_ARBRE[rel] >= SCHEMA_APRES, `${rel} : \`schema\` ${SCHEMA_ARBRE[rel]} < ${SCHEMA_APRES} — l’arbre n’est pas migré`);
 
 /** PROJECTION INVERSE d'un projet : `roofDefaults` retiré de chaque Scène. Le `schema` de l'arbre est
  *  CONSERVÉ — c'est ce que la borne ouverte doit traverser sans rien rabaisser. */
 function projetAvant(rel) {
-  const doc = JSON.parse(lire(rel));
+  const doc = JSON.parse(lireArbre(rel));
   return { ...doc, scenes: doc.scenes.map(({ roofDefaults: _pose, ...reste }) => reste) };
 }
 
 const depotScenes = (fabrique) => depot(Object.fromEntries(PROJETS.map((rel) => [rel, fabrique(rel)])));
 
 test('(a) ALLER-RETOUR : l’état d’avant projeté → chaque projet BYTE-IDENTIQUE à l’arbre', (t) => {
-  const d = depotScenes((rel) => serialise(projetAvant(rel)));
+  const d = depotScenes((rel) => serialise(projetAvant(rel), FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -107,12 +73,12 @@ test('(a) ALLER-RETOUR : l’état d’avant projeté → chaque projet BYTE-IDE
       sortie.includes(`${rel} — schema ${SCHEMA_ARBRE[rel]} → ${SCHEMA_ARBRE[rel]}, roofDefaults posés : ${SCENES_PAR_PROJET[rel]}`),
       `${rel} : le bump ou la pose ne DIT pas son compte : ${sortie.slice(0, 1200)}`,
     );
-    assert.equal(fs.readFileSync(path.join(d.racine, rel), 'utf8'), lire(rel), `${rel} produit ≠ arbre`);
+    assert.equal(lireDans(d.racine, rel), lireArbre(rel), `${rel} produit ≠ arbre`);
   }
 });
 
 test('(b) REJEU sur arbre migré : sortie 0, rien d’écrit', (t) => {
-  const d = depotScenes((rel) => lire(rel));
+  const d = depotScenes((rel) => lireArbre(rel));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -123,13 +89,13 @@ test('(b) REJEU sur arbre migré : sortie 0, rien d’écrit', (t) => {
 
 test('(c) `roofDefaults` INCOMPLET (la couverture manquante) → sortie 1 NOMMANT le champ, rien d’écrit', (t) => {
   const d = depotScenes((rel) => {
-    const doc = JSON.parse(lire(rel));
+    const doc = JSON.parse(lireArbre(rel));
     const scenes = doc.scenes.map((s, i) => {
       if (i > 0) return s;
       const { material: _absent, ...reste } = s.roofDefaults;
       return { ...s, roofDefaults: reste };
     });
-    return serialise({ ...doc, scenes });
+    return serialise({ ...doc, scenes }, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -141,9 +107,9 @@ test('(c) `roofDefaults` INCOMPLET (la couverture manquante) → sortie 1 NOMMAN
 
 test('(c bis) `roofDefaults` de TYPE inattendu (pente en chaîne) → sortie 1 NOMMANT le champ, rien d’écrit', (t) => {
   const d = depotScenes((rel) => {
-    const doc = JSON.parse(lire(rel));
+    const doc = JSON.parse(lireArbre(rel));
     const scenes = doc.scenes.map((s, i) => (i > 0 ? s : { ...s, roofDefaults: { ...s.roofDefaults, pitchDeg: '45' } }));
-    return serialise({ ...doc, scenes });
+    return serialise({ ...doc, scenes }, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -170,7 +136,7 @@ test('(e) CARDINAL DÉPLACÉ (une Scène retirée) : le passage PASSE et pose ce
   const restantes = SCENES_PAR_PROJET[ampute] - 1;
   const d = depotScenes((rel) => {
     const doc = projetAvant(rel);
-    return serialise(rel === ampute ? { ...doc, scenes: doc.scenes.slice(1) } : doc);
+    return serialise(rel === ampute ? { ...doc, scenes: doc.scenes.slice(1) } : doc, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -188,20 +154,20 @@ test('(f) `schema` FUTUR : la borne haute est OUVERTE depuis #1687 — le docume
   // sait ce qui existe après elle. Ici, la porte mesurée est l'inverse — un `schema` plus récent ne
   // doit ni ARRÊTER, ni redescendre à 9.
   const futur = Math.max(...Object.values(SCHEMA_ARBRE)) + 1;
-  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: futur }));
+  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: futur }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — un schema futur doit TRAVERSER : ${sortie.slice(0, 1200)}`);
   for (const rel of PROJETS) {
     assert.ok(sortie.includes(`${rel} — schema ${futur} → ${futur},`), `${rel} : le schema a été RABAISSÉ : ${sortie.slice(0, 1200)}`);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(d.racine, rel), 'utf8')).schema, futur, `${rel} : \`schema\` écrit ≠ ${futur}`);
+    assert.equal(JSON.parse(lireDans(d.racine, rel)).schema, futur, `${rel} : \`schema\` écrit ≠ ${futur}`);
   }
 });
 
 test('(f bis) `schema` ANTÉRIEUR à la chaîne → sortie 1 NOMMANT le numéro : la borne BASSE reste close', (t) => {
   const ancien = SCHEMA_AVANT - 1;
-  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: ancien }));
+  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: ancien }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -224,7 +190,7 @@ test('(g) PARITÉ au RÉEL : sur les projets LIVRÉS, chaque Scène porte `roofD
   // `reliefDefaults`, `roofDefaults`, puis `layers`), donc à ce que la migration reposerait au rejeu.
   const fautes = [];
   for (const rel of PROJETS) {
-    const scenes = JSON.parse(lire(rel)).scenes;
+    const scenes = JSON.parse(lireArbre(rel)).scenes;
     assert.ok(scenes.length > 0, `${rel} : aucune Scène — la parité ne mesure rien`);
     for (const s of scenes) {
       const k = Object.keys(s);

@@ -27,8 +27,9 @@ import { CODEX } from './registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';
 import { metaPourFichier, DEFS_DE_DOCUMENT, noeudObjet, schemaForFile } from '../../data/schemas/validate';
 import { enumNomme } from '../../data/schemas/grammaire/valeurs';
-import { defDe } from '../../data/schemas/grammaire/slots';
+import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
+import { lireExports } from '../../../scripts/gen-registry.mjs';
 
 const handleDemo = () => document(
   'demo', 'entite',
@@ -292,13 +293,12 @@ describe('cliquet — part des champs de premier niveau qui portent un libellé'
 
 /**
  * CONVENTION D'EXPORT du générateur de registre (`scripts/gen-registry.mjs`) : il est TEXTUEL et
- * lit chaque nom PAR REGEX — `fields: ['file', 'schema', 'famille', 'exposition']` plus
- * `optionalFields: ['meta']`, pour les DEUX registres de schémas. Conséquences MESURÉES, une par export :
- *  - `file` non conforme au filtre `genOne` de `scripts/gen-registry.mjs` (`^export const file = '`, guillemet
- *    SIMPLE littéral) : le def est ÉCARTÉ du registre, en silence — double quote, `: string` annoté,
- *    littéral gabarit et `= doc.file` compilent tous et sortent pourtant du registre ;
- *  - `meta` non PLAT : invisible de `presents()` (`genOne`, `scripts/gen-registry.mjs`), donc absent de
- *    l'entrée générée — l'atelier retombe sur la clé technique sans qu'aucun gate ne rougisse ;
+ * lit `file` et `meta` par son lecteur UNIQUE `lireExports` — `fields: ['file', 'schema', 'famille',
+ * 'exposition']` plus `optionalFields: ['meta', …]`, pour les DEUX registres de schémas. Conséquences, une
+ * par export :
+ *  - `file` hors de sa forme canonique (double quote, `: string` annoté, littéral gabarit, `= doc.file`,
+ *    destructuration) : la génération LÈVE — ces formes compilent toutes, le gen les refuse ;
+ *  - `meta` non PLAT (`export { meta }`, destructuration) : la génération LÈVE aussi ;
  *  - `schema`/`famille` destructurés (`export const { schema } = doc`) COMPILERAIENT (la destructuration
  *    crée un vrai nom importé) : ici la garde ne protège pas la compilation mais la CONVENTION du lot
  *    — forme plate unique sur les adoptions, lisible par le codemod. C'est cette garde qui la tient.
@@ -311,11 +311,11 @@ const RACINES_DE_DEFS = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes'
 const APPELLE_DOCUMENT = /\bdocument\s*\(/;
 /**
  * Ce qui fait d'un module un DEF : nommer un fichier de données. C'est le critère du générateur
- * lui-même (`genOne` de `scripts/gen-registry.mjs`, registre à champ `file`) — un module du dossier qui ne
+ * lui-même (`lireExports`, registre à champ `file`) — un module du dossier qui ne
  * déclare aucun `export const file` n'entre pas au registre : c'est un module de FORME partagé entre
  * defs (`defs-scenes/projet.ts` déclare LE document de projet, que chaque def de campagne nomme
  * pour SON fichier). Ici cette forme large (`export const file`, guillemet libre) borne la
- * POPULATION ; le verdict d'appartenance, lui, reste la regex STRICTE du gen (`FILE_DU_GEN`), si bien
+ * POPULATION ; le verdict d'appartenance, lui, reste le lecteur STRICT du gen (`luParLeGen`), si bien
  * qu'un `file` à double quote/annoté/indirect reste ROUGE au lieu de sortir du périmètre.
  * La forme large couvre AUSSI la destructuration (`export const { file, … } = doc`) : ce module-là
  * PRÉTEND nommer un fichier, il reste donc jugé — et rouge, la forme n'étant pas celle du gen.
@@ -325,11 +325,16 @@ const APPELLE_DOCUMENT = /\bdocument\s*\(/;
 const NOMME_UN_FICHIER = /^export const (?:file\b|\{[^}]*\bfile\b[^}]*\})/m;
 /** Les quatre exports PLATS lus par le gen, dans l'ordre du message d'échec. */
 const EXPORTS_PLATS = ['file', 'schema', 'famille', 'meta'] as const;
-/** LA regex du générateur pour `file`, recopiée de `genOne` (`scripts/gen-registry.mjs`) — guillemet SIMPLE
- *  littéral : elle seule décide de l'appartenance au registre. */
-const FILE_DU_GEN = /^export const file = '/m;
-const exportPlat = (nom: string) =>
-  nom === 'file' ? FILE_DU_GEN : new RegExp(`^export const ${nom}\\b`, 'm');
+/** Verdict DU GEN sur un export qu'il lit : `lireExports` le rend (forme canonique) ou lève. */
+const luParLeGen = (src: string, nom: 'file' | 'meta'): boolean => {
+  try {
+    return lireExports(src, [nom], 'fixture')[nom] !== undefined;
+  } catch {
+    return false;
+  }
+};
+const exportPlat = (nom: (typeof EXPORTS_PLATS)[number], src: string): boolean =>
+  nom === 'file' || nom === 'meta' ? luParLeGen(src, nom) : new RegExp(`^export const ${nom}\\b`, 'm').test(src);
 
 /**
  * Defs qui déclarent un document sans exporter les quatre noms À PLAT — une ligne
@@ -340,13 +345,13 @@ export function defsSansExportsPlats(sources: { file: string; src: string }[]): 
   // à la fabrique, et l'import nommé de `document` non plus — seuls les SITES d'appel comptent.
   return sources
     .filter((s) => APPELLE_DOCUMENT.test(stripComments(s.src)) && NOMME_UN_FICHIER.test(stripComments(s.src)))
-    .map((s) => ({ file: s.file, manquants: EXPORTS_PLATS.filter((nom) => !exportPlat(nom).test(s.src)) }))
+    .map((s) => ({ file: s.file, manquants: EXPORTS_PLATS.filter((nom) => !exportPlat(nom, s.src)) }))
     .filter((r) => r.manquants.length > 0)
     .map((r) => `${r.file} : manque ${r.manquants.join(', ')}`);
 }
 
 /** Les modules DIRECTS des racines de defs : la population est celle du générateur, qui liste chaque
- *  racine À PLAT (`genOne` et `genIds`, `scripts/gen-registry.mjs` — aucune récursion) ; un module posé dans un
+ *  racine À PLAT (`scripts/gen-registry.mjs › modulesDeDefs` — aucune récursion) ; un module posé dans un
  *  sous-dossier n'entre pas au registre, il n'a donc pas la convention à tenir. Le corpus est
  *  récursif : la profondeur se borne ICI, comme la garde le mesure. */
 function sourcesDesDefs(): { file: string; src: string }[] {
@@ -393,8 +398,8 @@ describe('convention d’export lue par le générateur de registre', () => {
   });
 
   it('le bras `file` rend le verdict DU GEN, forme par forme (un `file` qui compile peut être hors registre)', () => {
-    // Verdicts du générateur MESURÉS sur son filtre `genOne` de `scripts/gen-registry.mjs` : seule la forme
-    // `= '…'` (guillemet SIMPLE littéral) entre au registre — les quatre autres compilent et en sortent.
+    // Verdicts du générateur MESURÉS sur son lecteur `lireExports` : seule la forme `= '…';`
+    // (guillemet SIMPLE littéral) se lit — les quatre autres compilent et font lever la génération.
     const formes: { nom: string; ligne: string; auRegistre: boolean }[] = [
       { nom: 'simple-quote', ligne: "export const file = 'z.json';", auRegistre: true },
       { nom: 'double-quote', ligne: 'export const file = "z.json";', auRegistre: false },
@@ -409,7 +414,7 @@ describe('convention d’export lue par le générateur de registre', () => {
     });
     expect(
       verdicts.filter((v) => v.gardeAccepte !== v.genAccepte),
-      'la garde diverge du filtre du gen : une forme qu’elle accepte serait ÉCARTÉE du registre en silence',
+      'la garde diverge du filtre du gen : une forme qu’elle accepte ferait lever `npm run gen`',
     ).toEqual([]);
     expect(verdicts.map((v) => v.gardeAccepte)).toEqual([true, false, false, false, false]);
   });
@@ -431,7 +436,7 @@ describe('convention d’export lue par le générateur de registre', () => {
     for (const nom of listerProjetsLivres().map((rel) => rel.split('/')[0])) {
       const src = parFichier.get(`src/data/schemas/defs-scenes/${nom}.ts`)!;
       expect(NOMME_UN_FICHIER.test(stripComments(src)), `${nom}.ts nomme son fichier de campagne`).toBe(true);
-      expect(FILE_DU_GEN.test(src), `${nom}.ts : \`file\` à la forme que le gen collecte`).toBe(true);
+      expect(luParLeGen(src, 'file'), `${nom}.ts : \`file\` à la forme que le gen collecte`).toBe(true);
     }
   });
 });
@@ -451,7 +456,7 @@ const docNiche = () => document(
 );
 
 describe('libellés de VALEURS à toute profondeur', () => {
-  const noeudDesRangees = (): unknown => (defDe(noeudObjet(docNiche().schema))?.shape ?? {})['rangees'];
+  const noeudDesRangees = (): unknown => enfantsDe(noeudObjet(docNiche().schema)).find((e) => e.cle === 'rangees')?.noeud;
 
   it('inferFields en PROFONDEUR rend les valeurs de l’enum niché', () => {
     const cols = inferFields([{ nature: 'physique' }], { niveau: 'profondeur', noeud: noeudObjet(noeudDesRangees()) });
@@ -474,7 +479,7 @@ describe('libellés de VALEURS à toute profondeur', () => {
    * (`grammaire/records-de-libelles.test.ts`).
    */
   it('cas RÉEL niché — `arcane-phenomena.json` `phenomena[].kind` rend un select nommé', () => {
-    const phenomena = (defDe(noeudObjet(schemaForFile('arcane-phenomena.json')))?.shape ?? {})['phenomena'];
+    const phenomena = enfantsDe(noeudObjet(schemaForFile('arcane-phenomena.json'))).find((e) => e.cle === 'phenomena')?.noeud;
     const cols = inferFields([{ kind: 'nexus' }], { niveau: 'profondeur', noeud: noeudObjet(phenomena) });
     const kind = cols.find((f) => f.key === 'kind')!;
     expect(kind.kind).toBe('select');
@@ -485,7 +490,7 @@ describe('libellés de VALEURS à toute profondeur', () => {
   it('cas RÉEL en RANGÉE — `drunkenness.json` `outcome` rend un select nommé', () => {
     // Un document à `rangee` porte sa charge en `entries` (`grammaire/document.ts`) : le nœud du
     // sous-formulaire est celui de la RANGÉE, pas celui de l'enveloppe.
-    const entries = (defDe(noeudObjet(schemaForFile('drunkenness.json')))?.shape ?? {})['entries'];
+    const entries = enfantsDe(noeudObjet(schemaForFile('drunkenness.json'))).find((e) => e.cle === 'entries')?.noeud;
     const cols = inferFields([{ outcome: 'blackout' }], { niveau: 'profondeur', noeud: noeudObjet(entries) });
     const outcome = cols.find((f) => f.key === 'outcome')!;
     expect(outcome.kind).toBe('select');

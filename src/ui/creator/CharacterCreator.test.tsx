@@ -9,6 +9,7 @@ import {
   withCareer,
   rollDraftSpecies,
   withSpeciesSkillTier,
+  speciesSkillRefs,
   speciesSkillTier,
   speciesSkillStep,
   SPECIES_SKILLS_PLUS5,
@@ -20,7 +21,7 @@ import {
   stepIds,
   draftLevel,
 } from './draft';
-import { species as allSpecies, careersForSpecies, findCareerById, advancementLabel } from '../../data';
+import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
 import { CHAR_LABELS } from '../../engine/types';
 
 // Défauts dérivés (page blanche : plus de pré-tiré dans newDraft) — 1ʳᵉ espèce LDB + sa 1ʳᵉ carrière.
@@ -141,7 +142,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   });
 
   it('étape 4 — Magie mineure choisie : la section des sorts inclus apparaît (compteur n/BFM)', () => {
-    const d = { ...withCareer(withSpecies(newDraft(7), SP.id), 'Sorcier'), careerTalent: 'Magie mineure' };
+    const d = { ...withCareer(withSpecies(newDraft(7), SP.id), 'sorcier'), careerTalent: { id: 'magie-mineure' } };
     const html = renderToStaticMarkup(<PettySpellsSection d={d} setD={() => {}} />);
     expect(html).toContain('Sorts de Magie mineure (inclus au Talent)');
     expect(html).toContain('Fléchette'); // la liste des sorts de Magie mineure est proposée
@@ -290,7 +291,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
 
   it('draft — palier de Compétence de race (Stepper) : quotas 3×+5 / 3×+3 respectés, + saute +3 quand son quota est plein', () => {
     const base = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
-    const names = SP.skills.map((a) => advancementLabel('skills', a));
+    const names = speciesSkillRefs(base);
     // On pose 3 Compétences à +3 : le quota +3 est plein, un 4ᵉ +3 est refusé (brouillon inchangé).
     let d = base;
     d = withSpeciesSkillTier(d, names[0], 3);

@@ -18,7 +18,8 @@ import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
  * de noms — un document déposé demain y entre sans qu'on l'inscrive.
  *
  * ANGLE MORT DIT : les espaces de noms NICHÉS (jetons de scène, sous-entrées) ne sont pas relevés —
- * seul le PREMIER NIVEAU l'est, qui est le seul que `IDS_PAR_DATASET` indexe.
+ * seul le PREMIER NIVEAU l'est ; ceux de `src/data` que l'INDEX DES IDS indexe (`IDS_PAR_ESPACE`,
+ * clés `fichier#…`) y sont uniques par la marque de leur collection (`grammaire/collection-cle.ts`).
  */
 
 const RACINES = [fileURLToPath(new URL('./', import.meta.url)), fileURLToPath(new URL('../scenes/', import.meta.url))];

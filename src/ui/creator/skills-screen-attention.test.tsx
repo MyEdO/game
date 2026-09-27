@@ -11,8 +11,9 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { SkillsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, SPECIES_SKILLS_PLUS5, SPECIES_SKILLS_PLUS3, type CreatorDraft } from './draft';
-import { species as allSpecies, careersForSpecies, advancementLabel } from '../../data';
+import { newDraft, withSpecies, withCareer, type CreatorDraft } from './draft';
+import { speciesSkillDefaults } from '../../engine/character';
+import { species as allSpecies, careersForSpecies } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -56,8 +57,8 @@ describe("SkillsScreen (étape 5) — auto-scroll de la 1ʳᵉ rangée d'allocat
     Element.prototype.scrollIntoView = scrollSpy;
     mount('race', (d) => ({
       ...d,
-      speciesPlus5: SP.skills.slice(0, SPECIES_SKILLS_PLUS5).map((a) => advancementLabel('skills', a)),
-      speciesPlus3: SP.skills.slice(SPECIES_SKILLS_PLUS5, SPECIES_SKILLS_PLUS5 + SPECIES_SKILLS_PLUS3).map((a) => advancementLabel('skills', a)),
+      speciesPlus5: speciesSkillDefaults(SP).plus5,
+      speciesPlus3: speciesSkillDefaults(SP).plus3,
     }));
     expect(scrollSpy).not.toHaveBeenCalled();
   });

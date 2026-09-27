@@ -16,7 +16,7 @@ export const famille = 'entite';
 
 // `difficulty?` = Difficulté PROPRE à cette voie quand le RAW en attache une différente par
 // Compétence (Punchausen, AA 12 l.45-49) — absente, la voie retombe sur `difficulty` de l'Activité.
-const skillRefSchema = refOuSpec('skill', { difficulty: difficultySchema.optional() });
+const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: difficultySchema.optional() });
 
 /** Termes de `Formula` dont la valeur ne se connaît QU'AU jet. Un modificateur de Test d'Activité est
  *  affiché AVANT l'engagement (`activityTestMod` → volet d'Activité, ligne de pré-jet) : la valeur
@@ -127,7 +127,7 @@ const doc = document(
   {
     contexts: z.array(activityContextSchema),
     // ── TestSpec (src/engine/skills.ts) ──
-    skills: z.array(skillRefSchema).optional(),
+    skills: z.array(voieDeCompetenceSchema).optional(),
     char: z.string().optional(),
     difficulty: difficultySchema.optional(),
     combined: z.boolean().optional(),
@@ -293,19 +293,19 @@ const doc = document(
       entree.superRefine((v, ctx) => {
         const a = v as { id: string; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
         if (a.stake && !a.stakeForm) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : enjeu sans forme déclarée (stakeForm)` });
+          ctx.addIssue({ code: 'custom', message: `${a.id} : enjeu sans forme déclarée (stakeForm)` });
         }
         if (a.stakeForm && !a.stake) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : forme d’enjeu déclarée sans enjeu` });
+          ctx.addIssue({ code: 'custom', message: `${a.id} : forme d’enjeu déclarée sans enjeu` });
         }
         if (a.rule && !a.ruleCategory) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : rule sans ruleCategory` });
+          ctx.addIssue({ code: 'custom', message: `${a.id} : rule sans ruleCategory` });
         }
         for (const m of (v as { testMods?: { mod?: unknown; label?: string }[] }).testMods ?? []) {
           const terme = termeAleatoire(m.mod);
           if (terme) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: 'custom',
               path: ['testMods'],
               message: `${a.id} : testMods${m.label ? ` « ${m.label} »` : ''} — le terme \`{${terme}}\` est tiré au jet, or un modificateur de Test est AFFICHÉ avant l'engagement. Emploie un littéral ou un \`{rule}\` éditable.`,
             });

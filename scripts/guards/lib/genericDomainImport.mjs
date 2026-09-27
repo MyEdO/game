@@ -6,21 +6,25 @@
 // (`primitives.manifest.json`) qui IMPORTE (directement, imports relatifs) un module appartenant à
 // un système unique importe du domaine dans le générique — exactement la faute-souche relevée par
 // #329 (ex. `cascade.ts` → `shipManeuver.ts`, `CascadeModal.tsx` → `crewMorale.ts`/`data` naval).
+// L'appartenance se juge SANS la primitive : un système qui n'atteint la cible qu'en traversant la
+// primitive elle-même (seul poseur de celle-ci) lui transmet un propriétaire HÉRITÉ, qui ne dit rien
+// du domaine de la cible — la cible n'est domaniale que si le système l'atteint par un autre chemin.
 // Module ESM pur (node nu), même patron que `combatEventPort.mjs`/`inBattleFind.mjs`.
 
 import { readFileSync } from 'node:fs';
-import { closureOf, directImportsOf } from './importGraph.mjs';
+import { resolve } from 'node:path';
+import { closureOf, clotureDImports, directImportsOf } from './importGraph.mjs';
 
 /**
  * Calcule, pour chaque module atteint par au moins une closure système, le NOMBRE de systèmes qui
  * l'atteignent. Un module compté par exactement 1 système est « domanial » (single-system) ; un
  * module compté par ≥2 est de l'infra partagée légitime.
  * @param {{ id: string, modules: string[] }[]} systemes
+ * @param {Map<string, string[]|null>} [cache] enfants résolus, partageable (`clotureDImports`)
  * @returns {Map<string, string[]>} module (chemin POSIX) -> liste des ids système qui l'atteignent
  */
-export function computeOwnerSystems(systemes) {
+export function computeOwnerSystems(systemes, cache = new Map()) {
   const owners = new Map();
-  const cache = new Map(); // les closures des N systèmes se recouvrent : un module résolu une fois
   for (const s of systemes) {
     for (const rel of closureOf(s.modules, cache)) {
       const list = owners.get(rel) ?? [];
@@ -61,14 +65,31 @@ export function scanGenericDomainImport(primitiveFile, contenu, ownerSystems) {
  * @returns {{ primitiveId: string, fichier: string, target: string, systemId: string }[]}
  */
 export function scanAllPrimitives(primitives, systemes, readFile = (p) => readFileSync(p, 'utf8')) {
-  const ownerSystems = computeOwnerSystems(systemes);
+  const cache = new Map();
+  const ownerSystems = computeOwnerSystems(systemes, cache);
   const findings = [];
   for (const p of primitives) {
     if (p.nature === 'organisme') continue;
     const contenu = readFile(p.fichier);
     for (const f of scanGenericDomainImport(p.fichier, contenu, ownerSystems)) {
+      const systeme = systemes.find((s) => s.id === f.systemId);
+      if (!atteintSansLaPrimitive(systeme.modules, p.fichier, f.target, cache)) continue;
       findings.push({ primitiveId: p.id, fichier: p.fichier, target: f.target, systemId: f.systemId });
     }
   }
   return findings;
+}
+
+/**
+ * Le système atteint-il `target` par un chemin qui ne traverse PAS la primitive ? Sinon, son unique
+ * propriétaire est HÉRITÉ de la primitive elle-même (le seul système qui la pose) et ne dit rien du
+ * domaine de `target`.
+ * @param {string[]} roots racines du système @param {string} primitiveFile @param {string} target
+ * @param {Map<string, string[]|null>} cache
+ * @returns {boolean}
+ */
+function atteintSansLaPrimitive(roots, primitiveFile, target, cache) {
+  const primitiveAbs = resolve(primitiveFile).split('\\').join('/');
+  const retenir = (abs) => abs.includes('/src/') && abs !== primitiveAbs;
+  return clotureDImports(roots, { retenir, cache }).has(target);
 }

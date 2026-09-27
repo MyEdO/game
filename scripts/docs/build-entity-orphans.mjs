@@ -24,10 +24,8 @@
 //   `trappings` — le stock marchand est bâti par PRÉDICAT sur des catégories déclarées EN DONNÉE
 //   (`state/merchantFlow.ts:194-201` filtre `trappings` par `arch.category` de `merchants.json`),
 //   chaîne hors grammaire MODE 2 (son `.map` rend un objet, pas `t.id`) — #1631.
-//   Le canal LABEL (`findSpell`/`findTrappingByLabel`/`findCreature`, src/data/index.ts) n'est PAS
-//   cette raison : mesuré 2026-09, `findTrappingByLabel` et `findCreature` n'ont AUCUN appelant, et
-//   `findSpell` en a trois (`data/pregens.ts:72`, `gameIso/rig/anim/spellClips.ts:57`,
-//   `ui/creator/draft.ts:819`) — un détecteur id-OU-label ne réconcilierait pas ces catalogues.
+//   Le canal LABEL (`findSpell`, src/data/index.ts) n'est PAS cette raison : un détecteur
+//   id-OU-label ne réconcilierait pas ces catalogues.
 //   Les ~99 autres `src/data/*.json` (hors ces 10 catalogues) sont HORS PÉRIMÈTRE de ce générateur.
 //
 // `creatures` EST AU PÉRIMÈTRE depuis #1553 L3 (2026-09), et le passage a tranché ce qui la retenait :

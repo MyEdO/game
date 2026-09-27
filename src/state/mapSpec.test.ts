@@ -789,16 +789,14 @@ describe('buildScene — architecture authorée', () => {
     const scene = buildScene(spec);
     expect(scene.effectZones?.[0]?.id).toBe('salle');
     expect(scene.architecture?.[0]?.masses[0]?.id).toBe('toit-nef');
-    scene.architecture![0].storeys[0].parts[0].foot.x = 7;
-    expect(spec.architecture[0].storeys[0].parts[0].foot.x).toBe(1);
-    scene.architecture![0].facades[0].edges[0].x = 7;
-    scene.architecture![0].facades[0].features![0].edge.x = 7;
-    scene.architecture![0].masses[0].footprint[0].y = 7;
-    scene.architecture![0].masses[0].footprint[1].x = 7;
-    expect(spec.architecture[0].facades[0].edges[0].x).toBe(1);
-    expect(spec.architecture[0].facades[0].features![0].edge.x).toBe(1);
-    expect(spec.architecture[0].masses[0].footprint[0].y).toBe(1);
-    expect(spec.architecture[0].masses[0].footprint[1].x).toBe(4);
+    const corps = scene.architecture![0];
+    const source = spec.architecture[0];
+    expect(corps.storeys[0].parts[0].foot).not.toBe(source.storeys[0].parts[0].foot);
+    expect(corps.facades[0].edges[0]).not.toBe(source.facades[0].edges[0]);
+    expect(corps.facades[0].features![0].edge).not.toBe(source.facades[0].features[0].edge);
+    expect(corps.masses[0].footprint[0]).not.toBe(source.masses[0].footprint[0]);
+    expect(corps.masses[0].footprint[1]).not.toBe(source.masses[0].footprint[1]);
+    expect(corps.storeys[0].parts[0].foot).toEqual(source.storeys[0].parts[0].foot);
   });
 
   it('refuse un id de zone descriptive dupliqué', () => {
@@ -807,7 +805,7 @@ describe('buildScene — architecture authorée', () => {
       levels: { z0: '..\n..', z1: '..\n..' },
       zoneMap: { z0: 'A.\n..', z1: 'B.\n..' },
       zoneLegend: { A: { id: 'salle', label: 'Salle' }, B: { id: 'salle', label: 'Chambre' } },
-    })).toThrow(/id dupliqué/i);
+    })).toThrow(/effectZones « salle ».*« salle » dupliqué/);
   });
 });
 

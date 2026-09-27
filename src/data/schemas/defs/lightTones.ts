@@ -47,7 +47,7 @@ const doc = document(
           "tons de lumière (rendu volumique #1245 : couleur/intensité/vacillement d'une source ponctuelle), vocabulaire d'APPARENCE — aucune conséquence de règle, le rayon RAW vit sur la source elle-même.",
       },
     },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'lightTones' },
   },
 );
 

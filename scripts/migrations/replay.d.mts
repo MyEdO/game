@@ -38,9 +38,3 @@ export function mesurerParGit(params: {
   diffAvant: string;
   neufsAvant: Set<string>;
 }): { rouges: string[]; lignes: string[] };
-
-/**
- * Migrations dont le FAIL-FAST est ATTENDU sur l'arbre sain — `<script>` → raison mesurée et
- * échéance. Source UNIQUE de cette liste : le banc d'idempotence l'IMPORTE plutôt que la recopier.
- */
-export const ATTENDU_ROUGE: Readonly<Record<string, string>>;

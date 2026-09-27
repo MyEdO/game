@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
-import { plageSchema } from '../grammaire/valeurs';
+import { deDeTableSchema, plageSchema } from '../grammaire/valeurs';
 
 export const file = 'tables.json';
 export const famille = 'entite';
@@ -15,7 +15,7 @@ const doc = document(
   'tables',
   famille,
   {
-    die: z.enum(['d10', 'd100']),
+    die: deDeTableSchema,
     rows: z.array(
       z.strictObject({
         ...plageSchema.shape,

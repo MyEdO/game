@@ -9,6 +9,7 @@ import { armourPart, armourMaterial, weaponPart, shieldPart, isShield, type Equi
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
 import { tableDObjet, applyTokenMap } from '../palette';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /** Nu du PIED par ESPÈCE (#736 Lot 1) — repli quand aucune tenue/armure ne chausse la zone :
  *  civilisé lisse (défaut) ou monstrueux griffu (`race.extremites`/`perso.extremites`). */
@@ -137,7 +138,7 @@ function equipWinner(
  */
 export function resolveParts(
   species: string,
-  sex: 'M' | 'F',
+  sex: Sexe,
   tenueKey: string | undefined,
   equip: EquipCtx,
   overrides: Partial<Record<Slot, number>>,

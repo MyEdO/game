@@ -1,5 +1,5 @@
 // Contrat de la définition UNIQUE de « livre EXTRAIT » (`livre-extrait.ts`, #1739) : son prédicat sur
-// une entrée du registre, et sa lecture VIVE par l'app (`estExtrait`) après une édition au seam.
+// une entrée du registre, et sa lecture VIVANTE par l'app (`estExtrait`) après une édition au seam.
 import { describe, it, expect, afterEach } from 'vitest';
 import { estLivreExtrait } from './livre-extrait';
 import { estExtrait } from '../schemas/grammaire/livres-extraits';
@@ -31,7 +31,7 @@ describe('estLivreExtrait — `abbr` ET `dir` non vides', () => {
   });
 });
 
-describe('estExtrait — l’app lit le registre VIF', () => {
+describe('estExtrait — l’app lit le registre VIVANT', () => {
   it('un livre extrait dont on vide le `dir` au seam cesse d’être extrait, et le redevient restauré', () => {
     const extrait = REGISTRE_LIVRE.find((b) => estLivreExtrait(b));
     expect(extrait, 'aucun livre extrait au registre livré').toBeDefined();

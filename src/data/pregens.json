@@ -31,10 +31,12 @@
     "motivation": "Connaissance",
     "ambitionShort": "Maîtriser un nouveau sortilège",
     "ambitionLong": "Percer les secrets des Vents de Magie",
-    "careerTalent": "Magie mineure",
+    "careerTalent": {
+      "id": "magie-mineure"
+    },
     "pettySpells": [
-      "Fléchette",
-      "Choc"
+      "flechette",
+      "choc"
     ],
     "sex": "F",
     "build": 0.42
@@ -49,7 +51,10 @@
     "motivation": "Foi",
     "ambitionShort": "Protéger les fidèles sur la route",
     "ambitionLong": "Bâtir un temple à la gloire de Sigmar",
-    "careerTalent": "Béni (Sigmar)"
+    "careerTalent": {
+      "id": "beni",
+      "spec": "sigmar"
+    }
   },
   {
     "id": "aelindra-feuille-d-argent",

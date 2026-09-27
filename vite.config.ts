@@ -10,8 +10,9 @@ import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 
-/** Auto-génération des registres « dépose un fichier → intégré » : régénère l'index explicite
- *  au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère ensuite). */
+/** Auto-génération des registres « dépose un fichier → intégré » et de l'INDEX DES IDS (`genAll`,
+ *  phases 1 et 2) au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère
+ *  ensuite). */
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));

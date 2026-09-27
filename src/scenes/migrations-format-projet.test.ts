@@ -20,14 +20,13 @@
  * tant que la pénultième n'a pas ouvert sa borne, sans qu'on édite ce banc.
  */
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from '../state/scene';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { FORME_PROJET, serialise } from '../../scripts/migrations/lib/croissance.mjs';
+import { depot, efface, joue as jouerDans, lireArbre, lireDans } from '../../scripts/migrations/lib/joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 const SCRIPT_3I = '2026-08-27-l1b-3i-projet-schema-4.mjs';
@@ -41,6 +40,9 @@ const SCRIPT_1687_ACTIONS = '2026-09-11-1687-actions-authorees.mjs';
 const SCRIPT_877 = '2026-09-21-877-ref-de-decor-nommee.mjs';
 const SCRIPT_1882 = '2026-09-23-1882-fiche-de-personnage-nommee.mjs';
 const SCRIPT_1882_REFS = '2026-09-24-1882-refs-vivantes-semees.mjs';
+const SCRIPT_1897 = '2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs';
+const SCRIPT_1897_FUSIONS = '2026-09-24-1897-projet-sorts-fusionnes.mjs';
+const SCRIPT_1473 = '2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs';
 
 /** La CHAÎNE du format projet, DÉRIVÉE du dossier : tout script daté qui lit le `schema` d'un
  *  `<campagne>-projet.json`, dans l'ordre lexical du rejeu (`scripts/migrations/replay.mjs`). */
@@ -48,14 +50,11 @@ const DOSSIER_MIGRATIONS = join(RACINE, 'scripts', 'migrations');
 const CHAINE = listerDossier(DOSSIER_MIGRATIONS)
   .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
   .filter((f) => {
-    const source = readFileSync(join(DOSSIER_MIGRATIONS, f), 'utf8');
+    const source = lireArbre(`scripts/migrations/${f}`);
     return source.includes('-projet.json') && /\bdoc\.schema\b/.test(source);
   });
 /** La DERNIÈRE de la chaîne dans l'ordre lexical — celle qui NOMME un `schema` inconnu. */
 const DERNIERE = CHAINE[CHAINE.length - 1];
-
-/** Sérialiseur des documents de SCÈNE (indentation 1) — les deux scripts l'exigent avant de lire. */
-const canonique = (doc: unknown) => `${JSON.stringify(doc, null, 1)}\n`;
 
 /** Document de projet minimal à la forme demandée, GELÉ ici. */
 function projet(over: Record<string, unknown>): Record<string, unknown> {
@@ -68,38 +67,25 @@ function projet(over: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-/** Joue `script` sur un arbre jetable portant `doc` ; rend le code de sortie et l'état APRÈS. */
-function joue(script: string, doc: Record<string, unknown>): { code: number; err: string; avant: string; apres: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'mig-projet-'));
+/** Le document de projet posé dans le dépôt jetable. */
+const CIBLE = 'src/scenes/camp/camp-projet.json';
+
+/** Joue `script` sur un dépôt jetable portant `doc` (`scripts/migrations/lib/joue.mjs`) ; rend le code
+ *  de sortie, la sortie (le MOTIF d'un refus : deux refus distincts sortent tous deux 1) et l'état
+ *  APRÈS. `src/data/props.json` (les TYPES de décor à places, lus par `2026-09-10-1687-usable-sieges.mjs`),
+ *  `src/data/species.json` (les PROFILS STANDARD lus par `2026-09-23-1882-fiche-de-personnage-nommee.mjs`),
+ *  `src/data/creatures.json` et `src/data/vehicles.json` (la réf. SEMÉE lue par `2026-09-24-1882-refs-vivantes-semees.mjs`)
+ *  `src/data/sortsFusionnes.ts` (la primitive importée par `2026-09-24-1897-projet-sorts-fusionnes.mjs`)
+ *  et `src/data/graphieOpsDeTalent.ts` (celle de `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`)
+ *  sont des ENTRÉES déclarées de la chaîne : le dépôt les porte, sinon le script mourrait sur un fichier
+ *  absent au lieu de rendre le refus qu'on mesure. */
+function joue(script: string, doc: Record<string, unknown>): { code: number | null; err: string; avant: string; apres: string } {
+  const d = depot({ [CIBLE]: serialise(doc, FORME_PROJET) }, ['src/data/props.json', 'src/data/species.json', 'src/data/creatures.json', 'src/data/vehicles.json', 'src/data/sortsFusionnes.ts', 'src/data/graphieOpsDeTalent.ts']);
   try {
-    mkdirSync(join(dir, 'scripts', 'migrations'), { recursive: true });
-    mkdirSync(join(dir, 'src', 'scenes', 'camp'), { recursive: true });
-    const cible = join(dir, 'src', 'scenes', 'camp', 'camp-projet.json');
-    copyFileSync(join(RACINE, 'scripts', 'migrations', script), join(dir, 'scripts', 'migrations', script));
-    // `src/data/props.json` est une ENTRÉE déclarée de la chaîne (les TYPES de décor à places, lus par
-    // `2026-09-10-1687-usable-sieges.mjs`) : l'arbre jetable la porte, sinon le script mourrait sur
-    // un fichier absent au lieu de rendre le refus qu'on mesure.
-    mkdirSync(join(dir, 'src', 'data'), { recursive: true });
-    copyFileSync(join(RACINE, 'src', 'data', 'props.json'), join(dir, 'src', 'data', 'props.json'));
-    // `src/data/species.json` : les PROFILS STANDARD lus par `2026-09-23-1882-fiche-de-personnage-nommee.mjs`,
-    // même régime d'entrée déclarée.
-    copyFileSync(join(RACINE, 'src', 'data', 'species.json'), join(dir, 'src', 'data', 'species.json'));
-    // `creatures.json`, `vehicles.json` : la réf. SEMÉE lue par `2026-09-24-1882-refs-vivantes-semees.mjs`.
-    for (const f of ['creatures.json', 'vehicles.json']) copyFileSync(join(RACINE, 'src', 'data', f), join(dir, 'src', 'data', f));
-    writeFileSync(cible, canonique(doc), 'utf8');
-    const avant = readFileSync(cible, 'utf8');
-    let code = 0;
-    let err = '';
-    try {
-      execFileSync(process.execPath, [join(dir, 'scripts', 'migrations', script)], { encoding: 'utf8', stdio: 'pipe' });
-    } catch (e) {
-      code = (e as { status?: number }).status ?? 1;
-      // Le MOTIF du refus, pas seulement son code : deux refus distincts sortent tous deux 1.
-      err = String((e as { stderr?: string; stdout?: string }).stderr ?? '') + String((e as { stdout?: string }).stdout ?? '');
-    }
-    return { code, err, avant, apres: readFileSync(cible, 'utf8') };
+    const { code, sortie } = jouerDans(d.racine, script);
+    return { code, err: sortie, avant: d.avant.get(CIBLE) ?? '', apres: lireDans(d.racine, CIBLE) };
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    efface(d.racine);
   }
 }
 
@@ -146,11 +132,11 @@ describe(`${SCRIPT_13} — le bump de forme 4 → 5 (aplatissement de la poche \
   it('t6. RATTRAPAGE : un `schema` FUTUR, avalé par TOUTES les amont, est REFUSÉ par la DERNIÈRE de la chaîne', () => {
     // La DÉRIVATION couvre la chaîne connue : un script qui perdrait sa marque sortirait du banc en
     // silence, et la « dernière » dérivée mentirait.
-    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877, SCRIPT_1882, SCRIPT_1882_REFS]));
+    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877, SCRIPT_1882, SCRIPT_1882_REFS, SCRIPT_1897, SCRIPT_1897_FUSIONS, SCRIPT_1473]));
     const schemaFutur = SCHEMA_PROJET + 1;
     // Un TYPE de décor à places, LU au catalogue : sans entité à places, `SCRIPT_1687` s'arrête sur
     // un périmètre vide au lieu de mesurer sa borne.
-    const props = JSON.parse(readFileSync(join(RACINE, 'src', 'data', 'props.json'), 'utf8')) as { id: string; seatSlots?: unknown[] }[];
+    const props = JSON.parse(lireArbre('src/data/props.json')) as { id: string; seatSlots?: unknown[] }[];
     const typeAPlaces = props.find((p) => p.seatSlots?.length)?.id;
     expect(typeAPlaces, 'aucun type de décor à places au catalogue').toBeTruthy();
     // Le document est à la forme d'ARRIVÉE de chaque amont (annoncé, provenance posée, relief et
@@ -331,6 +317,33 @@ describe(`${SCRIPT_15B} — le bump 5 → 6 (\`label\` de scène/carte, statbloc
     expect((apres15b.scenes as Record<string, unknown>[])[0].label).toBe('Une salle');
     // La CONDITION que la prose énonce : le tri des NOMS suit l'ordre des bumps.
     expect([SCRIPT_3I, SCRIPT_13, SCRIPT_15B].slice().sort()).toEqual([SCRIPT_3I, SCRIPT_13, SCRIPT_15B]);
+  });
+});
+
+describe('la QUEUE de la chaîne (#1882, #1897, #1473) — l’ordre lexical suit l’ordre des bumps 13 → 17', () => {
+  it('un document au format 13 traverse, DANS l’ordre du rejeu, chaque migration qui suit la 1882 et sort au format courant', () => {
+    const queue = CHAINE.slice(CHAINE.indexOf(SCRIPT_1882) + 1);
+    expect(queue).toEqual([SCRIPT_1882_REFS, SCRIPT_1897, SCRIPT_1897_FUSIONS, SCRIPT_1473]);
+    const creature = (JSON.parse(lireArbre('src/data/creatures.json')) as { id: string }[])[0].id;
+    let doc: Record<string, unknown> = {
+      type: 'projet', schema: 13, id: 'camp', label: 'C', versionContenu: 1, maison: 'fixture',
+      narratif: { affaires: [], indices: [], presetsPnj: [{ id: 'sorcier', base: 'squelette', profil: { spells: [{ id: 'alarme' }] } }], objets: [] },
+      scenes: [{ type: 'scene', id: 's1', label: 'Une salle', triggers: [
+        { id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: '' } }] } } },
+        { id: 'autel', flow: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'grantTalent', talentId: 'chanceux' }, { op: 'grantTalent', talentId: 'sens-aiguise', spec: 'odorat' }] } } },
+      ] }],
+    };
+    for (const script of queue) {
+      const r = joue(script, doc);
+      expect(r.code, `${script} : ${r.err.slice(0, 600)}`).toBe(0);
+      doc = JSON.parse(r.apres) as Record<string, unknown>;
+    }
+    expect(doc.schema).toBe(SCHEMA_PROJET);
+    expect(doc.narratif).toEqual({ affaires: [], indices: [], presetsPnj: [{ id: 'sorcier', base: 'squelette', profil: { spells: ['alerte'] } }], objets: [] });
+    expect(doc.scenes).toEqual([{ type: 'scene', id: 's1', label: 'Une salle', triggers: [
+      { id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: creature } }] } } },
+      { id: 'autel', flow: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'grantTalent', talent: { id: 'chanceux' } }, { op: 'grantTalent', talent: { id: 'sens-aiguise', spec: 'odorat' } }] } } },
+    ] }]);
   });
 });
 

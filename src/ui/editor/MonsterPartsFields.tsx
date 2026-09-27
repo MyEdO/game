@@ -10,18 +10,79 @@ import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { tenueOptions } from '../../gameIso/rig/parts/career';
 import { harnaisOptions } from '../../gameIso/rig/quadruped/harnais';
 import { elementsOf } from '../../gameIso/rig/parts/elements';
+import { creatureSpeciesOptions } from '../../gameIso/rig/creatures';
 import type { MonsterPartsSel, ColorsSel } from '../../engine/authoringAppearance';
+import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 
 /** Armes équipables proposées (une par forme/groupe — affichées par le rig). */
 export const EDITOR_WEAPONS = ['Épée', 'Hache', 'Masse', 'Dague', 'Lance', 'Hallebarde', 'Bâton de combat', 'Arc', 'Arbalète', 'Pistolet', 'Fronde', 'Fouet'];
+
+/**
+ * Réglages d'APPARENCE partagés (Espèce, Sexe, Carrure, Coiffure) : des `.ed-subfield` SANS titre de
+ * rubrique — l'hôte les range sous SON unique titre « Apparence » (`Fold` de l'inspecteur, `.ed-field`
+ * du narratif et du Codex).
+ */
+export function ReglagesApparence({
+  species,
+  sex,
+  build,
+  hairstyle,
+  onSpecies,
+  onSex,
+  onBuild,
+  onHairstyle,
+}: {
+  species?: string;
+  sex?: Sexe;
+  build?: number;
+  hairstyle?: string;
+  onSpecies: (id: string | undefined) => void;
+  onSex: (s: Sexe) => void;
+  onBuild: (b: number) => void;
+  onHairstyle: (id: string | undefined) => void;
+}) {
+  return (
+    <>
+      <label className="ed-subfield">
+        Espèce
+        <select value={species ?? ''} onChange={(e) => onSpecies(e.target.value || undefined)}>
+          <option value="">(par défaut : Humain)</option>
+          {creatureSpeciesOptions().map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+      </label>
+      <label className="ed-subfield">
+        Sexe
+        <select value={sex ?? ''} onChange={(e) => onSex(sexeSchema.parse(e.target.value))}>
+          {sex == null && <option value="" disabled>Tiré au rendu</option>}
+          {sexeSchema.options.map((s) => <option key={s} value={s}>{libelleDeValeur(sexeSchema, s)}</option>)}
+        </select>
+      </label>
+      <label className="ed-subfield">
+        Carrure
+        <input type="range" min={0} max={1} step={0.05} value={build ?? 0.5} onChange={(e) => onBuild(Number(e.target.value))} />
+      </label>
+      <label className="ed-subfield">
+        Coiffure
+        <select value={hairstyle ?? ''} onChange={(e) => onHairstyle(e.target.value || undefined)}>
+          <option value="">Défaut (espèce)</option>
+          {sex
+            ? hairstylesForSex(sex).map((h) => <option key={h.id} value={h.id}>{h.label}</option>)
+            : sexeSchema.options.map((s) => (
+              <optgroup key={s} label={`Sexe : ${libelleDeValeur(sexeSchema, s)}`}>
+                {hairstylesForSex(s).map((h) => <option key={h.id} value={h.id}>{h.label}</option>)}
+              </optgroup>
+            ))}
+        </select>
+      </label>
+    </>
+  );
+}
 
 export function MonsterPartsFields({
   monster,
   weapon,
   colors,
-  sex,
-  build,
-  hairstyle,
   tenue,
   harnais,
   eyes,
@@ -29,9 +90,6 @@ export function MonsterPartsFields({
   onMonster,
   onWeapon,
   onColors,
-  onSex,
-  onBuild,
-  onHairstyle,
   onTenue,
   onHarnais,
   onEyes,
@@ -40,9 +98,6 @@ export function MonsterPartsFields({
   monster?: MonsterPartsSel;
   weapon?: string;
   colors?: ColorsSel;
-  sex?: 'M' | 'F';
-  build?: number;
-  hairstyle?: string;
   tenue?: string;
   harnais?: string;
   eyes?: { G?: string; D?: string };
@@ -53,9 +108,6 @@ export function MonsterPartsFields({
    *  l'arme vient des Traits, pas de l'apparence). */
   onWeapon?: (w: string | undefined) => void;
   onColors: (patch: Partial<ColorsSel>) => void;
-  onSex?: (s: 'M' | 'F') => void;
-  onBuild?: (b: number) => void;
-  onHairstyle?: (id: string | undefined) => void;
   onTenue?: (c: string | undefined) => void;
   /** Optionnel : si absent, le sélecteur « Harnachement » est masqué (il n'a de sens que là où
    *  l'apparence peut porter un gabarit quadrupède — l'apparence par défaut d'une créature). */
@@ -67,30 +119,7 @@ export function MonsterPartsFields({
   return (
     <>
       <div className="ed-field">
-        <span>Apparence (rig)</span>
-        <label className="ed-subfield">
-          Sexe
-          <select value={sex ?? 'M'} onChange={(e) => onSex?.(e.target.value as 'M' | 'F')}>
-            <option value="M">Masculin</option>
-            <option value="F">Féminin</option>
-          </select>
-        </label>
-        <label className="ed-subfield">
-          Carrure
-          <input type="range" min={0} max={1} step={0.05} value={build ?? 0.5} onChange={(e) => onBuild?.(Number(e.target.value))} />
-        </label>
-        <label className="ed-subfield">
-          Coiffure
-          <select value={hairstyle ?? ''} onChange={(e) => onHairstyle?.(e.target.value || undefined)}>
-            <option value="">Défaut (espèce)</option>
-            {hairstylesForSex(sex ?? 'M').map((h) => (
-              <option key={h.id} value={h.id}>{h.label}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="ed-field">
-        <span>Mutations (rig humanoïde)</span>
+        <span>Mutations</span>
         {([
           ['Tête', 'tete', MONSTER_HEAD_OPTIONS],
           ['Bras gauche', 'brasG', MONSTER_ARM_OPTIONS],

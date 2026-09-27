@@ -231,7 +231,7 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
     expect(carto.extended?.drPerStage).toBe(2);
     expect(carto.skills).toEqual([
       { id: 'metier', spec: 'cartographe' },
-      { id: 'art', spec: 'Dessin' },
+      { id: 'art', spec: 'dessin' },
     ]);
   });
 });
@@ -260,14 +260,14 @@ describe('resolveTravelActivity — résolveur PUR par POSTE (un héros désign�
   it('compétence « au choix » spec-aware : la MEILLEURE de L’ACTEUR l’emporte (Cartographe vs Dessin)', () => {
     const hero = mk();
     hero.skills.push({ id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 60 });
-    hero.skills.push({ id: 'art', spec: 'Dessin', characteristic: 'dexterite', advances: 10 });
+    hero.skills.push({ id: 'art', spec: 'dessin', characteristic: 'dexterite', advances: 10 });
     const r = resolveTravelActivity(hero, activityById('etablir-cartes')!, makeRNG(5), { stages: 3 });
     // cible = meilleure des DEUX spec de l'acteur (Cartographe +60 > Dessin +10), Difficulté Intermédiaire (+0).
     // Les specs se demandent par ID (#1341) : par libellé, `testValue` ne trouvait RIEN et l'attendu
     // tombait sur la caractéristique nue — l'égalité tenait entre deux valeurs FAUSSES.
     const expected = Math.max(
       testValue(hero, 'metier', undefined, 'cartographe'),
-      testValue(hero, 'art', undefined, 'Dessin'), // `art` n'a pas d'id `dessin` au catalogue (dit au rendu)
+      testValue(hero, 'art', undefined, 'dessin'),
     );
     expect(r.target).toBe(expected);
     expect(r.drTarget).toBe(6); // Test étendu : drPerStage(2) × Étapes(3)

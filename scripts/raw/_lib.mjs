@@ -55,14 +55,25 @@ export const booksDe = (registre) => registre.filter(estLivreExtrait).map((b) =>
 // part ailleurs, pour que tout consommateur puisse recevoir un registre FIXTURE par injection.
 export const REGISTRE_LIVRES = booksData
 export const BOOKS = booksDe(booksData)
+/** Dossier d'extraction d'un livre, quel que soit le champ qui le porte : `dir` pour les livres de
+ *  l'Atlas RAW, `extractionDir` pour une extraction citable HORS Atlas (`frenchy-bzh`) — ou `null`. */
+export function sourceDirOf(book) {
+  const d = book?.dir ?? book?.extractionDir
+  return typeof d === 'string' && d ? d : null
+}
+/** Livre CITABLE : EXTRAIT pour l'Atlas (`estLivreExtrait`), ou porteur d'une extraction hors Atlas
+ *  (`extractionDir`). Le prédicat que passe aux résolutions ci-dessous un outil qui atteste une citation
+ *  sans relever de l'Atlas (emplacements secondaires, `folioIntegrity.mjs`). */
+export const estLivreCitable = (b) => estLivreExtrait(b) || Boolean(b?.abbr && b?.extractionDir)
 /** L'entrée du registre d'un livre EXTRAIT (porteur d'un `dir`), par son id STABLE — ou `null`.
- *  SEULE résolution id → livre de l'outillage : un outil reçoit un id, il ne compare rien lui-même. */
-export const livreExtraitDe = (id, registre = REGISTRE_LIVRES) =>
-  registre.find((b) => b.id === id && estLivreExtrait(b)) ?? null
+ *  SEULE résolution id → livre de l'outillage : un outil reçoit un id, il ne compare rien lui-même.
+ *  `retenu` élargit le périmètre à `estLivreCitable`, jamais au-delà du registre. */
+export const livreExtraitDe = (id, registre = REGISTRE_LIVRES, retenu = estLivreExtrait) =>
+  registre.find((b) => b.id === id && retenu(b)) ?? null
 /** L'entrée du registre d'un livre EXTRAIT par son SIGLE — ou `null`. SEULE résolution sigle → livre
  *  de l'outillage, pour les outils qui reçoivent un sigle (ligne de commande, réf `<ABRÉV> <ch>`). */
-export const livreDuSigle = (abbr, registre = REGISTRE_LIVRES) =>
-  registre.find((b) => b.abbr === abbr && estLivreExtrait(b)) ?? null
+export const livreDuSigle = (abbr, registre = REGISTRE_LIVRES, retenu = estLivreExtrait) =>
+  registre.find((b) => b.abbr === abbr && retenu(b)) ?? null
 /** L'entrée du registre d'un livre EXTRAIT par son DOSSIER `Source/…` (séparateurs `\` ou `/`, barre
  *  finale indifférente) — ou `null`. SEULE résolution dossier → livre de l'outillage. */
 export function livreDuDossier(dir, registre = REGISTRE_LIVRES) {
@@ -72,7 +83,8 @@ export function livreDuDossier(dir, registre = REGISTRE_LIVRES) {
 }
 /** Le SIGLE d'un livre EXTRAIT par son id STABLE — ou `null`. SEULE traduction id → sigle de
  *  l'outillage : le sigle est de l'affichage (dossiers, réfs `<ABRÉV> <ch>`). */
-export const sigleDe = (id, registre = REGISTRE_LIVRES) => livreExtraitDe(id, registre)?.abbr ?? null
+export const sigleDe = (id, registre = REGISTRE_LIVRES, retenu = estLivreExtrait) =>
+  livreExtraitDe(id, registre, retenu)?.abbr ?? null
 
 // CŒUR de règles d'un livre (`books.json`, champ `coeur`) : le corps de règles dont ce livre est le
 // livre de base, ou `null` pour un supplément. C'est LUI qui porte le régime de réconciliation

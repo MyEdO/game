@@ -23,13 +23,11 @@
  */
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-import { joue } from './joue.mjs';
+import { FORME_DATA, serialise } from './croissance.mjs';
+import { crees, depot, efface, joue, lireArbre, lireDans, rienTouche } from './joue.mjs';
 
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-05-1686-materials.mjs';
 
 const SOURCES = [
@@ -39,10 +37,7 @@ const SOURCES = [
 ];
 const CIBLE = 'src/data/materials.json';
 
-/** Formatage canonique de `src/data/*.json`, EXIGÉ par la migration en entrée comme en sortie. */
-const serialise = (doc) => JSON.stringify(doc, null, 2);
-
-const TEXTE_CIBLE = fs.readFileSync(path.join(RACINE, CIBLE), 'utf8');
+const TEXTE_CIBLE = lireArbre(CIBLE);
 const CIBLE_DOC = JSON.parse(TEXTE_CIBLE);
 
 /**
@@ -58,57 +53,17 @@ const sourceDepuisCible = ({ domain, type }) =>
   }));
 
 const DOC_SOURCE = Object.fromEntries(SOURCES.map((s) => [s.rel, sourceDepuisCible(s)]));
-const TEXTE_SOURCE = Object.fromEntries(Object.entries(DOC_SOURCE).map(([rel, doc]) => [rel, serialise(doc)]));
+const TEXTE_SOURCE = Object.fromEntries(Object.entries(DOC_SOURCE).map(([rel, doc]) => [rel, serialise(doc, FORME_DATA)]));
 
 /** Cardinal LU sur le dataset — jamais récité. */
 const CARDINAL = Object.fromEntries(Object.entries(DOC_SOURCE).map(([rel, doc]) => [rel, doc.length]));
 for (const s of SOURCES) assert.ok(CARDINAL[s.rel] > 0, `${s.rel} : projection VIDE — la fixture ne mesure rien`);
 
-/** Horodatage ANTIDATÉ : toute écriture, même à contenu égal, le remonte — le rejeu est mesurable. */
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
-
-/**
- * Dépôt jetable portant EXACTEMENT les fichiers demandés (`{ <rel>: texte }`), plus la migration.
- * REND `{ racine, avant }`, `avant` étant la table des textes posés.
- */
-function depot(fichiers) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1686-mat-'));
-  fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
-
-  const avant = new Map();
-  for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  return { racine, avant };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-
-/** Les fichiers posés sont INTACTS (octet + horodatage), et AUCUN autre `src/data/*.json` n'existe. */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) {
-      fautes.push(`${rel} : SUPPRIMÉ`);
-      continue;
-    }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  const poses = new Set([...avant.keys()].map((rel) => path.basename(rel)));
-  for (const f of fs.readdirSync(path.join(racine, 'src/data'))) if (!poses.has(f)) fautes.push(`src/data/${f} : fichier CRÉÉ`);
-  return fautes;
-}
-
 /** Les trois sources projetées, en copies fraîches — `mute` les modifie en place avant sérialisation. */
 function sourcesMutees(mute) {
   const docs = Object.fromEntries(SOURCES.map((s) => [s.rel, JSON.parse(TEXTE_SOURCE[s.rel])]));
   mute(docs);
-  return Object.fromEntries(Object.entries(docs).map(([rel, doc]) => [rel, serialise(doc)]));
+  return Object.fromEntries(Object.entries(docs).map(([rel, doc]) => [rel, serialise(doc, FORME_DATA)]));
 }
 
 test('(a) ALLER-RETOUR : les 3 sources projetées → `materials.json` BYTE-IDENTIQUE à celui de l’arbre', (t) => {
@@ -122,7 +77,7 @@ test('(a) ALLER-RETOUR : les 3 sources projetées → `materials.json` BYTE-IDEN
     `la fusion ne DIT pas son compte : ${sortie.slice(0, 800)}`,
   );
 
-  const produit = fs.readFileSync(path.join(racine, CIBLE), 'utf8');
+  const produit = lireDans(racine, CIBLE);
   assert.equal(produit, TEXTE_CIBLE, 'le `materials.json` produit diffère à l’octet de celui de l’arbre');
   for (const s of SOURCES) assert.equal(fs.existsSync(path.join(racine, s.rel)), false, `${s.rel} survit à la fusion`);
 });
@@ -136,7 +91,7 @@ test('(b) REJEU sur arbre migré : sortie 0, taille et horodatage INCHANGÉS', (
   assert.equal(code, 0, `sortie ${code} — un rejeu doit être un no-op vert : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /déjà migrée/, `le no-op ne se DIT pas : ${sortie.slice(0, 800)}`);
   assert.equal(fs.statSync(path.join(racine, CIBLE)).size, tailleAvant, 'la taille de la cible a bougé au rejeu');
-  assert.deepEqual(rienTouche(racine, avant), [], 'le rejeu a écrit');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'le rejeu a écrit');
 });
 
 test('(c) état MIXTE (une source recréée à côté de la cible) → sortie 1 NOMINATIVE, rien d’écrit', (t) => {
@@ -147,7 +102,7 @@ test('(c) état MIXTE (une source recréée à côté de la cible) → sortie 1 
   assert.equal(code, 1, `sortie ${code} — un état mixte doit ARRÊTER la migration : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /état MIXTE/, `arrêt sans NOMMER l’état : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /roofMaterials\.json/, `arrêt sans NOMMER la source survivante : ${sortie.slice(0, 800)}`);
-  assert.deepEqual(rienTouche(racine, avant), [], 'la migration a écrit alors que l’arrêt précède toute écriture');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'la migration a écrit alors que l’arrêt précède toute écriture');
 });
 
 test('(d) FORME ÉTRANGÈRE (une entrée de source portant déjà son `domain`) → sortie 1 NOMINATIVE, rien d’écrit ni de supprimé', (t) => {
@@ -169,7 +124,7 @@ test('(d) FORME ÉTRANGÈRE (une entrée de source portant déjà son `domain`) 
   assert.match(sortie, /propMaterials\.json/, `arrêt sans NOMMER le document fautif : ${sortie.slice(0, 800)}`);
   assert.match(sortie, new RegExp(porteuse), `arrêt sans NOMMER l’entrée fautive : ${sortie.slice(0, 800)}`);
   assert.match(sortie, /porte déjà un `domain`/, `arrêt sans DIRE la forme rencontrée : ${sortie.slice(0, 800)}`);
-  assert.deepEqual(rienTouche(racine, avant), [], 'la migration a écrit ou supprimé alors que l’arrêt précède toute écriture');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'la migration a écrit ou supprimé alors que l’arrêt précède toute écriture');
 });
 
 /**
@@ -188,7 +143,7 @@ test('(d-bis) CARDINAL DÉPLACÉ (une matière retirée d’une source) : la fus
 
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — un cardinal déplacé n'est PAS une anomalie : ${sortie.slice(0, 800)}`);
-  const produit = JSON.parse(fs.readFileSync(path.join(racine, CIBLE), 'utf8'));
+  const produit = JSON.parse(lireDans(racine, CIBLE));
   assert.equal(produit.length, CIBLE_DOC.length - 1, 'la fusion n’a pas porté le périmètre mesuré');
   assert.equal(produit.some((e) => e.id === retiree.id), false, `${retiree.id} survit à son retrait`);
   assert.equal(
@@ -217,5 +172,5 @@ test('(e) CLÉ ÉTRANGÈRE (une clé `N` de toit injectée dans une entrée prop
   // Le verdict PRÉCÈDE l'écriture — un `POST` ici voudrait dire fichiers écrits puis rouge.
   assert.doesNotMatch(sortie, /POST/, `le verdict est rendu APRÈS écriture : ${sortie.slice(0, 800)}`);
   // Les trois sources vivent encore, la cible n'existe pas.
-  assert.deepEqual(rienTouche(racine, avant), [], 'la migration a laissé un ÉTAT MIXTE derrière un rouge');
+  assert.deepEqual([...rienTouche(racine, avant), ...crees(racine, avant, 'src/data')], [], 'la migration a laissé un ÉTAT MIXTE derrière un rouge');
 });

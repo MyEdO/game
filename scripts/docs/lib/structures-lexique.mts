@@ -35,9 +35,11 @@ export type StatutSignature = 'cible' | 'historique' | 'declaree';
  * d'entité — concepts lotés L3).
  *
  * Le DATASET seul ne suffit pas et c'est mesuré : `creatures.json` porte `{id,value}` sur `skills`
- * (cible) ET sur `traits`/`optionals` (historique). Le champ entre donc dans la clé.
+ * (cible) ET sur `traits`/`optionals` (historique). Le champ entre donc dans la clé. `datasets`
+ * absent = le champ, dans TOUT dataset : un champ d'ENVELOPPE (`alsoIn`, `grammaire/document.ts`)
+ * est le même nœud partout où la fabrique `document()` le pose.
  */
-export type SiteDeSignature = { readonly datasets: readonly string[]; readonly champs: readonly string[] };
+export type SiteDeSignature = { readonly datasets?: readonly string[]; readonly champs: readonly string[] };
 export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; site?: SiteDeSignature };
 
 /** Les documents qui portent un STATBLOC à valeurs de Test imprimées : le bestiaire et les statblocs
@@ -47,6 +49,10 @@ export const SITE_STATBLOC: SiteDeSignature = {
   datasets: ['creatures.json', ...listerProjetsLivres().map((rel) => basename(rel))],
   champs: ['skills'],
 };
+
+/** L'emplacement SECONDAIRE d'une entrée (`alsoIn`, `secondarySourceRefSchema` de
+ *  `grammaire/valeurs.ts`) : la référence de source plus sa preuve `quote`, dans tout document. */
+export const SITE_EMPLACEMENT_SECONDAIRE: SiteDeSignature = { champs: ['alsoIn'] };
 
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
@@ -138,15 +144,62 @@ export const MANDAT_SLOTS =
   'Ce volet est le REMPLAÇANT committé du « test FK générique » re-scopé au commentaire #1466 du 2026-08-23 : « le registre des SLOTS pour `docs/structures-donnees.md` (déclaré × observé) ».';
 
 /**
- * ANGLES MORTS du volet SLOTS — SOURCE UNIQUE, même patron que `ANGLES_MORTS` (le doc les émet, la
- * garde les référence, l'en-tête du stock en porte la copie et la garde compare les trois).
+ * ANGLES MORTS du volet SLOTS — SOURCE UNIQUE, même patron que `ANGLES_MORTS` : le doc les émet, la
+ * garde les référence, les autres sites y RENVOIENT.
  */
 export const ANGLES_MORTS_SLOTS: readonly string[] = [
-  'L’espèce `acteur` (`actorRefSchema`) est HORS résolution : elle désigne l’acteur d’une mécanique par un ENUM, pas l’id d’une entité d’un dataset — ce n’est pas une FK.',
-  'Un slot dont le `type` n’est pas un type du registre `_ids.generated` (entité INTERNE à une scène : pion, nœud de dialogue) n’est pas résoluble ici — l’index qui les porte est celui du scan (documents EMBARQUÉS), pas le registre généré. Ces slots sont au stock `SLOTS_INTERNES`, listés et jamais résolus ; l’unification passe par `typedRef` en L2 (#1473).',
-  'La PROJECTION path → champ retient le DERNIER segment-clé : deux paths distincts qui finissent sur la même clé se joignent au même champ observé, et la couverture y est SUR-estimée — jusqu’à couvrir un champ ENTIER qu’aucun slot ne déclare. Mesuré le 2026-09-22 : la déclaration de `worldMap.places[].port.ref` (`idDe(\'navalPort\')`) se joint aux `ref` des entités de scène des 4 paquets `*-projet.json` (444 occurrences : 314 `prop`, 130 `personnage`), qui ne portent AUCUN slot déclaré à leur path — le `ref` d’un décor est résolu par le `superRefine` par `kind` de `sceneEntitySchema` (`idDe(\'prop\')`, #877), celui d’un personnage par aucun schéma (`defs-scenes/scene.ts`).',
-  'Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.',
-  '`valeursAuPath` traverse une branche d’union (`|N`) sans la discriminer : la donnée ne porte pas la branche qui la parse, chaque branche lit donc les valeurs de toutes — mesuré le 2026-09-22 sur `props.json › [].volume.primitives[]|0..2.material`, 297 valeurs à chacune des trois branches : la résolution y est comptée une fois par branche.',
+  'Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.',
+  'Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.',
+];
+
+/**
+ * TERMES de la COLLECTION À CLÉ (#1463) — SOURCE UNIQUE : le doc les émet (§1ter), le code y renvoie.
+ */
+export const TERMES_COLLECTION_A_CLE: readonly (readonly [terme: string, definition: string])[] = [
+  [
+    'collection à clé',
+    'collection dont chaque élément a une IDENTITÉ déclarée au nœud du schéma qui la porte (`marquerCollection`, `src/data/schemas/grammaire/collection-cle.ts`) : une LISTE, dont la clé se lit dans chaque élément (`listeCle`), ou un RECORD, dont les ids sont les noms de propriété.',
+  ],
+  [
+    'espace de noms',
+    'les ids d’une collection à clé dont la marque porte `espace`, éventuellement filtrée : la racine d’un document `entite`/`record` (`document()`), les `specs` d’une Compétence ou d’un Talent, `sizes.json#rangedMod`. Les paramètres `discriminant` et `marqueurs` de `espace` (`EspaceDeNoms`) y ajoutent les espaces FILTRÉS. Une collection dont la clé d’élément est une feuille `idDe` (une liste de RÉFÉRENCES) n’en ouvre jamais.',
+  ],
+  [
+    'clé de collection',
+    'le nom d’une collection à clé : `fichier` pour une racine, `fichier#<suite nichée>` pour une collection nichée (`cleNichee`, `src/data/schemas/grammaire/cle-d-espace.ts` ; `criticals.json#[criticals-ldb-tete].entries`, `skills.json#[art].specs`), relevée par la co-descente (`collectionsDuDocument`, `src/data/schemas/grammaire/collection-cle.ts`).',
+  ],
+  [
+    'co-descente',
+    'la descente ENSEMBLE d’une donnée et de son schéma (`coDescendre`, `src/data/schemas/grammaire/descente.ts`) : chaque point de la donnée reçoit ses nœuds de schéma `ouverts` — enveloppes, côtés d’intersection, branches d’union (d’une union discriminée, celles qu’admet le discriminant de la donnée, toutes sans valeur lisible) — et un pas de donnée passe par `pasDeDonnee`. Elle ne valide pas : un arbre invalide garde ses collections. Seule lecture des collections à clé d’un document (`collectionsDuDocument`, `collectionALaCle`) et du lieu d’une faute (`lieuDe`, `src/data/schemas/validate.ts`). Faux ami : l’option `descendre` de `scripts/guards/lib/lister.mjs`.',
+  ],
+  [
+    'suite nichée',
+    'le chemin d’une collection à clé depuis la racine de son document, ce qui suit `#` dans sa clé de collection (`[art].specs`, `rangedMod`, `[criticals-ldb-tete].entries`) : premier pas sans point, `.champ` ensuite, `[clé]` pour un élément d’une liste marquée lu par sa marque, `[]` pour un élément d’une liste non marquée ; la suite vide désigne la racine. Seul écrivain : `suiteAvecPas` (`src/data/schemas/grammaire/cle-d-espace.ts`). La décision d’une visite de descente, elle, est une `DecisionDeVisite`.',
+  ],
+  [
+    'clé d’espace',
+    'le nom d’un espace de noms (`src/data/schemas/grammaire/cle-d-espace.ts`) : la clé de collection d’une collection à clé dont la marque porte `espace` (`skills.json`, `skills.json#[art].specs`), suffixée d’un FILTRE — `?champ=valeur` pour le paramètre `discriminant` (`materials.json?domain=prop`), `?champ` pour un des `marqueurs` (`props.json?volume`). Un pas `[clé]`, une valeur ou un marqueur ne porte jamais `[`, `]`, `#`, `?` ni `=` (`src/data/schemas/espaces-contrat.test.ts`).',
+  ],
+  [
+    '`IDS_PAR_ESPACE`',
+    'l’INDEX DES IDS généré (`src/data/schemas/_ids.generated.ts`, `scripts/gen-espaces.mts`, phase 2 de `npm run gen`) : clé d’espace → ids, dans l’ORDRE DE LA DONNÉE, par `idsDeLEspace` (`src/data/schemas/grammaire/collection-cle.ts`) sur le JSON disque co-descendu, sans parse — un espace neuf et son premier désignateur entrent dans le même commit. Une entrée à `specsSource` y a pour espace de ses `specs` l’univers de sa source (`grammaire/sourcesDeSpecs.ts`).',
+  ],
+  [
+    'racine vivante',
+    'la racine d’un document de `src/data` qui porte une clé de dataset, en mémoire : le module JSON singleton que le seam mute EN PLACE ; `RACINES_VIVANTES` (`src/data/schemas/_racines-vivantes.generated.ts`, phase 2 de `npm run gen`) la donne par fichier, un import statique par document de l’image de `DATASET_FICHIER_DERIVE`. Ce que le save sérialise, et ce que le régime vivant navigue le long d’une clé d’espace.',
+  ],
+  [
+    'régime vivant',
+    'le second régime de lecture des ids (`src/data/schemas/grammaire/idsVivants.ts`) : les ids d’un espace calculés sur les racines vivantes par le calcul de la phase 2 (`idsDeLEspace`), posé par la couche donnée (`src/data/overrides.ts`) et daté par la version des clés de dataset du fichier (`memoParVersion`) — une entité créée ou renommée à l’atelier est référençable avant tout `npm run gen`. Sans régime posé (scripts, gardes), ou pour un espace d’un fichier hors des racines vivantes, l’INDEX DES IDS généré fait foi.',
+  ],
+  [
+    'clé de dataset',
+    'le nom d’une collection que le seam de `src/data/overrides.ts` mute EN PLACE : `CLES_DE_DATASET` / `CleDeDataset` (`src/data/schemas/_cles-de-dataset.generated.ts`, phase 2 de `npm run gen`), le domaine de `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`). `collectionDuDataset` l’atteint sur la racine vivante de son fichier : liste de racine (route `dataset`, `none` + `dataset`), collection au bout de la suite de `niche.categories`, ou la racine elle-même (route `object`).',
+  ],
+  [
+    '`espaceDe`',
+    'la clé d’espace qui fait autorité sur les ids d’un type d’entité (`TYPES[type].espace`, `src/data/schemas/grammaire/ref.ts`).',
+  ],
 ];
 
 /**
@@ -233,7 +286,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'id', statut: 'cible' },
       { sig: 'id,spec', statut: 'cible' },
       { sig: 'choix,id', statut: 'cible', note: 'choix borné / libre (DESIGN v2 S2)' },
-      { sig: 'id,type', statut: 'cible', note: 'slot de dotation polymorphe' },
+      { sig: 'id,type', statut: 'cible', note: 'référence de dotation polymorphe' },
       { sig: 'count,id,type', statut: 'cible' },
       { sig: 'of,pick', statut: 'cible', note: 'tirage parmi un ensemble borné' },
       { sig: 'pick,table', statut: 'cible', note: 'tirage sur une table nommée' },
@@ -383,6 +436,8 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'book,page', statut: 'cible' },
       { sig: 'book,note,page', statut: 'cible', note: 'note = précision optionnelle de `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`)' },
+      { sig: 'book,page,quote', statut: 'cible', site: SITE_EMPLACEMENT_SECONDAIRE, note: 'emplacement secondaire + sa preuve verbatim (`secondarySourceRefSchema`)' },
+      { sig: 'book,note,page,quote', statut: 'cible', site: SITE_EMPLACEMENT_SECONDAIRE, note: 'idem, avec la précision `note`' },
       { sig: 'book,chapter', statut: 'historique', note: 'folio obligatoire (#1463, 2026-08-23)' },
       { sig: 'book,chapter,page', statut: 'historique' },
     ],
@@ -560,6 +615,14 @@ export const CONCEPT_REFERENCE = CONCEPTS.find((c) => c.resolvables)!;
 export const GRAPHIE_REFERENCE: ReadonlySet<string> = new Set(
   CONCEPT_REFERENCE.signatures.flatMap((s) => s.sig.split(',')).filter((k) => !k.includes('-')),
 );
+
+/**
+ * Clés de SPÉCIALISATION d'une référence (`RefASpecialisation`, `src/data/schemas/grammaire/ref.ts:215`) :
+ * membres de `GRAPHIE_REFERENCE` qui QUALIFIENT la référence posée à `id` sans en porter une. Le scan
+ * ne les inscrit jamais comme CASE d'une occurrence (`inscrireReference`, #1473) : une valeur qui y
+ * résout vers l'index par homonymie ne rend pas l'occurrence inatteignable.
+ */
+export const CLES_DE_SPECIALISATION: ReadonlySet<string> = new Set(['spec', 'choix']);
 
 /**
  * Clés de PROSE : leur valeur est un texte d'affichage, jamais une référence — même quand le texte

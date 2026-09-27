@@ -98,7 +98,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 **Voir aussi** : [`carrieres.md`](carrieres.md) pour la structure du Schéma de Progression par Carrière.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.41-72) → `adv-0-5`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `adv-16-20`, `adv-21-25`, `buyCharAdvance`, `doc`, +17 — `src/data/advancementCosts.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/tables.ts`, +1 fichiers
+- `LDB 7` (l.41-72) → `adv-0-5`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `adv-16-20`, `adv-21-25`, `buyCharAdvance`, `doc`, +18 — `src/data/advancementCosts.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/tables.ts`, +2 fichiers
 
 ---
 
@@ -119,8 +119,8 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 **Voir aussi** : [`competences.md`](competences.md) pour la définition des Compétences et la règle des Spécialisations.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.75-84) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `doc`, +28 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/activities.ts`, +5 fichiers
-- `LDB 9` (l.44) → `specIdOf`, `CibleDeType`, `art`, `athletisme`, `buySkillAdvance`, `wildcardSpecs`, `estSpecialisable`, `buildAdvancementView`, `designateSpec`, `combatBaseValue`, +15 — `src/data/index.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, +13 fichiers
+- `LDB 7` (l.75-84) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `doc`, +29 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/activities.ts`, +7 fichiers
+- `LDB 9` (l.44) → `specIdOf`, `art`, `buySkillAdvance`, `doc`, `athletisme`, `buildAdvancementView`, `designateSpec`, `entreeOuverte`, `estSpecialisable`, `combatBaseValue`, +17 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +15 fichiers
 
 ---
 
@@ -143,7 +143,7 @@ Résumé :
 **Sources RAW** : `LDB 07 l.88-93`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.88-93) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `adv-26-30`, `buySkillAdvance`, +25 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, +4 fichiers
+- `LDB 7` (l.88-93) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `adv-26-30`, `buySkillAdvance`, +25 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, +5 fichiers
 
 ---
 
@@ -176,7 +176,7 @@ Formule : **coût de la N+1ᵉ acquisition = 100 × (N + 1)** où N = nombre d'a
 **Voir aussi** : [`talents.md`](talents.md) pour la liste des Talents et les restrictions de multi-achat.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `careerChangeCost`, `buildAdvancementView`, `talentSlots`, +9 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/state/advancement.ts`, +2 fichiers
+- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `careerChangeCost`, `buildAdvancementView`, `talentSlots`, +10 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
 
 ---
 
@@ -205,7 +205,7 @@ Pour compléter un Niveau de Carrière, il faut (`LDB 07 l.124`) :
 **Sources RAW** : `LDB 07 l.121-133`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.121-133) → `feu`, `careerCompletionAdvances`, `lumiere`, `isCareerLevelComplete`, `careerChangeCost`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, +9 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.121-133) → `feu`, `careerCompletionAdvances`, `lumiere`, `isCareerLevelComplete`, `careerChangeCost`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, +8 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 
 ---
 
@@ -228,7 +228,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.136-139`, `LDB 07 l.140`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +8 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 
 ---
 
@@ -253,7 +253,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.144-148`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +8 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 - `LDB 23` (l.104) → `craft`, `learn`, `entrainement`, `interlude-elf-duty`, `dressage`, `Combatant` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/types.ts`
 
 ---
@@ -272,7 +272,7 @@ Verbatim depuis `LDB 07 l.152-159` (tableau « Coût des Changements de Carrièr
 **Sources RAW** : `LDB 07 l.152-159`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.152-159) → `AdvancementView`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `changeCareer`, `advancement-career-jump`, `sorcellerie` — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`
+- `LDB 7` (l.152-159) → `AdvancementView`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `changeCareer`, `advancement-career-jump` — `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`
 
 ---
 

@@ -18,6 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { sexeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 import { FORMES_DE_DEGRADE } from '../palette';
@@ -74,7 +75,7 @@ function fautesDeReferences(rendus: Iterable<[string, string]>): string[] {
 
 function* corpus(): Generator<[string, string]> {
   const especes = (JSON.parse(readFileSync(resolve(__dirname, '../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
-  for (const species of especes) for (const sex of ['M', 'F'] as const) for (const { id: t } of TENUE_DEFS) for (const view of VUES)
+  for (const species of especes) for (const sex of sexeSchema.options) for (const { id: t } of TENUE_DEFS) for (const view of VUES)
     for (const [i, colors] of SURCHARGES.entries())
       yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, { weapons: [], armour: [] }, {}, t, view))];
   for (const species of ['humain', 'nain'].map(asRigSpeciesId)) for (const view of VUES) for (const [i, colors] of SURCHARGES.entries()) {

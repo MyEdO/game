@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { detenteur } from '../detenteur.testkit';
 import {
   classerValeur,
+  listerDocuments,
   mesurerEnveloppe,
   scanDuCorpus,
   scannerDonnees,
@@ -160,8 +161,7 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  * `scripts/guards/lib/horsStrateStock.mjs`, GÉNÉRÉE par
  * `npx tsx scripts/data/regen-hors-strate-stock.mts` depuis la mesure `scan.invisibles` que ce
  * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
- * `ecartDuVolet` ci-dessous, et le DÉFAUT D'INSTRUMENT qui fait bouger ce stock sans qu'un octet de
- * donnée change (`PROFONDEUR_MEMO`, `zod-introspect.mts`) est dit en tête du stock.
+ * `ecartDuVolet` ci-dessous.
  * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
  * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
  */
@@ -215,8 +215,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(
       lignes(neuves),
       'signature(s) HORS STRATE NEUVE(s) — une structure neuve se pose à la forme CIBLE du lexique ' +
-        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock. Une paire périmée/neuve d’un ' +
-        'MÊME dataset sans un octet de donnée changé est le bruit d’instrument dit en tête du stock.',
+        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock.',
     ).toEqual([]);
     expect(
       lignes(perimees),
@@ -462,7 +461,11 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // entrées « Choc au bras » (AA 07 l.113, LDB 18 l.88) que le moteur portait au site d'appel.
       // Elle ne blanchit AUCUN étalement : la graphie naît avec le terme, et `minimum` ne nomme que
       // lui (`atLeast`, lui, est déjà le seuil d'un palier et d'une Condition — il n'entre pas au noyau).
-      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 40],
+      // Cliquet REMONTÉ 40 → 42 (#1897) : `source | book,page,quote` et `source | book,note,page,quote`,
+      // CIBLES au seul site `alsoIn` — l'emplacement secondaire et sa preuve (`secondarySourceRefSchema`).
+      // 10 lignes `source | alsoIn` (69 occurrences) sortent de `STRUCTURES_FORMES` ; aucune donnée
+      // n'est réécrite.
+      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 42],
       // Cliquet DESCENDU 671 → 670 (#1467 L1b V-P7) : le statbloc à `size` d'`arene-projet.json` quitte
       // ce stock — le profil embarqué s'ANNONCE (`type: 'statblock'`) et sa forme est déclarée champ par
       // champ (`defs-scenes/communs.ts`), donc sa signature n'est plus lue comme une référence non
@@ -601,7 +604,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // et `buildBoardingScene` portaient EN DUR, devenus mesurables et refinés au parse
       // (`idDe('terrain')`). MÊMES forme et solde que `semences-de-scene.json › terrain` (#1716) : les
       // quatre lignes meurent d'un seul geste au lot L3.
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 471],
+      // Cliquet DESCENDU 471 → 459 (#1473 R1) : 12 lignes `reference` sortent — `char` (`charKeySchema`)
+      // et `act` y sont des littéraux d'enum DÉCLARÉS que `choixDeclares` atteint sans borne.
+      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 459],
       // 8ᵉ stock, né du volet A : les clés déclarées jamais observées des DEUX racines (dont 5
       // apportées par les 4 projets de scène qui entrent au déclaré).
       // Cliquet DESCENDU 24 → 23 (#1467 L1b V-FLIP-ENTITE-c) : `creatures.json › group` est SOLDÉ —
@@ -775,7 +780,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // sortir 7 lignes sans le resserrer), et `diligence-projet.json › ouverture` sort à son tour —
       // le concept `ouverture` la CLASSE, et le classement précède la route orpheline. Un optionnel
       // peuplé (`source`) ne partage donc plus une même porte en deux buckets : la PROJECTION réunit.
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 97],
+      // Cliquet REMONTÉ 97 → 99 (#1473 R1) : les 2 objets `etats.json › value` sortis de la forme
+      // `char+…` ci-dessus, mêmes objets, autre stock.
+      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 99],
       // Cliquet DESCENDU 403 → 400 (L2 #1548, commit 3c) : 5 signatures d'op portant le `spec` FRÈRE
       // s'éteignent (`bonus,op,skill,spec` de spells/tables, `blocked,op,rounds,skill`/`mod,op,rounds,skill`
       // de spells dont le `skill: "all"` disparaît au profit de l'ABSENCE) et 2 se fondent dans des
@@ -896,7 +903,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (« surpris à mendier », `l.99`) et `condition {id, op}` dans `tables.json`. Les deux autres ops du
       // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
       // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
-      'L1c #1468': 398,
+      // … puis 398 → 393 (#1473 train 2a) : les 13 lignes `op,talentId`/`op,spec,talentId` des ops de Talent deviennent 8 lignes `op,talent` (`refOuSpec('talent')`).
+      // … puis 393 → 394 (#1957 lot 1, 2026-09-24) : la signature `grantTrait {indice, op, range,
+      // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
+      // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
+      // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
+      'L1c #1468': 394,
       // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.
@@ -911,7 +923,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 55 → 53 (#1686 lot 2) : les TROIS lignes « `source` absente » des catalogues de matières
       // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
       // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
-      'L1d #1469': 53 /* 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). Le +2 antérieur (alsoIn creatures/species posés par e89a836d3 SANS leur ligne de stock, sillage C1 #1457) reste à SOLDER par la vague L1d (#1469) */,
+      'L1d #1469': 43 /* 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
       // L2 #1463 : 57 → 48 (commit 3b) — les 9 lignes de référence de Compétence à graphie `skillId`
       // (donnée + defs) meurent ; ce qui reste du lot est la référence PLATE `skill: "<id>"` des ops.
       // … puis 48 → 18 (commit 3c) : cette référence PLATE MEURT à SON TOUR — 30 lignes s'éteignent avec
@@ -1010,18 +1022,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // catalogue de BÂTIMENTS passé en donnée (`buildings.json › roofMaterial` et `› features`,
       // `diligence-projet.json › style` ; `arene-projet.json › style` s'éteint). MÊME graphie que leurs
       // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1687 lot 3-I (2026-09-11) : 394 → 391 — TROIS lignes MEURENT, aucune ne naît, et ce n'est PAS une
-      // migration : les graphies `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et
-      // `type+…` (1) vivent sous `.scenes[].dialogues[].nodes[].choices[].flow.steps[]` et
-      // `.scenes[].triggers[].flow.steps[]` — jamais sous `interact` — et leur donnée n'a pas bougé d'un
-      // octet. Cause MESURÉE (quatre scans {defs} × {données}) : ce que `choixDeclares('arene-projet.json')`
-      // ATTEINT change — `phase` et `lodging` sont déclarés à HEAD comme ici (`defs-scenes/effets.ts`), mais
-      // la marche de l'instrument est mémoïsée et bornée (`PROFONDEUR_MEMO = 12`, borne atteignante :
-      // 452 clés à 12 contre 488 à 20), donc le chemin par lequel un nœud est atteint décide s'il est vu —
-      // et `interact` (court) cède à `usable → refine → actions[] → flow` (profond). `ouvreReference`
-      // (`structures-scan.mts:501`) ne tenant pas un littéral d'enum DÉCLARÉ pour une clé étrangère, ces 4
-      // objets cessent d'être des références et passent au dénominateur HORS STRATE (ils y sont
-      // quatre ENTRÉES de `scripts/guards/lib/horsStrateStock.mjs`, dont l'en-tête nomme ce défaut).
+      // #1687 lot 3-I (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
+      // `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et `type+…` (1), dont
+      // `choixDeclares` (`zod-introspect.mts`) atteint le littéral d'enum DÉCLARÉ ; `ouvreReference`
+      // (`structures-scan.mts`) ne l'ouvre pas en référence.
       // #1716 (2026-09-18) : 391 → 394 — TROIS lignes de référence NEUVES, posant en DONNÉE ce que
       // `emptyScene` (`state/scene.ts`) choisissait en littéraux : `semences-de-scene.json › terrain`
       // (id nu du sol dont la couche 0 est remplie), `› reliefDefaults` et `› roofDefaults` (les deux
@@ -1032,7 +1036,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // trois terrains que le COMPILATEUR (`state/mapSpec.ts`, `buildBoardingScene`) choisissait en
       // littéraux. Ids nus scalaires, MÊME graphie que `semences-de-scene.json › terrain` : même lot,
       // même extinction.
-      'L3 #1463': 397,
+      // #1473 R1 : 397 → 385 — DOUZE lignes `char+…`/`act+…` sortent sans un octet de donnée changé :
+      // `char` et `act` sont des littéraux d'enum DÉCLARÉS, que `choixDeclares` atteint depuis que sa
+      // descente n'est plus bornée.
+      // #1473 R1-bis : 385 → 384 — `sea-weather.json › spec` (record `{ projectiles: 'poudre-noire' }`)
+      // meurt : la spécialisation vit DANS la référence de `skills[]` (`refOuSpec('skill')`).
+      // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
+      // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
+      // (objet des ops / chaîne nue de 79 sites) entre, +1.
+      'L3 #1463': 372,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
@@ -1108,7 +1120,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // `prosthesisTraining` ×3 ; 29 occurrences).
       // … puis 98 → 97 (#1633) — `diligence-projet.json › ouverture` sort : le concept `ouverture` de
       // la strate `Document` la classe à sa forme CIBLE, elle n'annonce plus rien qu'elle ne résolve.
-      '#1553': 97,
+      // … puis 97 → 99 (#1473 R1) — les 2 objets `etats.json › value` quittent la forme `char+…` de `L3 #1463`.
+      '#1553': 99,
     };
     expect(
       Object.keys(plafonds).sort(),
@@ -1666,50 +1679,19 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
   });
 
   it('§5 : les Conditions retirées du compte d’ops sont celles qui PORTAIENT un `op`', () => {
-    // #862 : +3 ops authorées (re-ciblage `[removeTrait, grantTrait]` de Haine sporadique, État Exténué
-    // du réveil du Désespoir).
-    // #674 : +2 ops authorées (`aggravateSymptom` + son échelon `grantSymptom`, cycle quotidien de la
-    // Pneumonie, EDOC 08 l.104-108).
-    // #1657 B2a : +70 ops authorées — la colonne « Blessures » d'Aux Armes (AA 07 l.40) était
-    // construite en TypeScript (`{op:'wounds', amount}` fabriqué au vol par l'ancien lecteur AA) ;
-    // elle descend en DONNÉE avec sa mitigation écrite. 70 rangées la portent (les 6 autres valent
-    // « T » et ne posent aucune op).
-    // #1657 B3-2b-a : +6 ops authorées — les 6 rangées MDG dont le Test ne vivait qu'en prose `note`
-    // (MDG 13 l.730/734/736/738/751/756) posent chacune l'État À Terre de leur échec ; le coup certain
-    // du Gouvernail fluvial (MSRC 07 l.86) troque son `shrapnel: 1` contre une op `wounds`, à somme
-    // nulle sur ce compte (l'op naît, l'Indice n'en était pas une).
-    // #1657 B3-2b-c : +5 ops `fall` (MDG 13 l.678-688) — les 5 rangées du gréement font TOMBER, et la
-    // hauteur se lit dans la table par (Taille de coque × station), jamais authorée au site.
-    // #1653 train A : +1 op authorée — la CAUSE récurrente de « Purifier la chair » (LDB 40 l.75) est une
-    // seconde op `condition` de la même rangée, pas un champ de plus sur la première.
-    // #1661 : +1 op authorée — le 2ᵉ État Hémorragique de Taillade (`AA 08 l.87`), MÊME op `condition`
-    // que l'État automatique du Critique, portée par la branche `yes` du choix.
-    // #1599 : +2 ops authorées — les États PORTÉS par un canal passif s'écrivent en DONNÉE : l'État
-    // *Inconscient* du palier Grave de la Fièvre (LDB 20 l.170) et l'État *Exténué* du Malaise (l.188),
-    // qui cessent d'être des drapeaux nommés dans le moteur. Le palier S'AJOUTANT à `passive` au lieu de
-    // le remplacer, aucune pénalité n'est recopiée : les 6 charMod de `severePassive` se DÉPLACENT vers
-    // `passiveBySeverity.moderee`, le total ne les compte pas deux fois.
-    // #1612 (2026-09-06) : 2272 → 2279 — +7 objets à `op`, tous posés par Mendier et sa table MAISON.
-    // Côté `activities.json` : 2 `money` (le gain horaire, le sou de consolation), 1 `rollTable` (la
-    // bande d'Échec Stupéfiant renvoie aux ennuis), 1 `statusMod` (« surpris à mendier », `l.99`).
-    // Côté `tables.json` : 1 `money` (l'AMENDE des gardes locaux — `LDB 09 l.97` nomme l'ennui sans le
-    // chiffrer, le montant vit en règle optionnelle `mendier-amende-sous`), 1 `condition` et 1 `wounds`
-    // (la rançon des autres mendiants).
-    // #1678 (2026-09-20) : 2279 → 2280 — le verrou de TYPE d'À Terre (`LDB 18 l.15`) descend en DONNÉE
-    // (`etats.json › lockedUntil`) : c'est un `compare`, et son `op` compte ici.
-    expect(scan.totalConditionsAvecOp + scan.totalOps, 'objets portant un `op` = ops de jeu + Conditions à `op`.').toBe(2280);
-    // #684 L4+solde : +2 Conditions sans `op` — le MÊME drapeau de révélation d'Altdorf porté par ses
-    // deux axes sur la carte du chapitre 1 : le `when` du LIEU et le `when` de la ROUTE.
-    // #717 : +1 Condition sans `op` — le `when` de la CLÔTURE du chapitre 1 (`narratif.cloture`), le
-    // MÊME drapeau de révélation d'Altdorf que les deux axes de carte ci-dessus, sur un troisième
-    // porteur : le fait de donnée qui dit « le chapitre se ferme ».
-    // #684+#717 sur « La Barge du Sel » : +3 Conditions sans `op` — les MÊMES trois porteurs, un
-    // chapitre plus loin (le `when` du LIEU de l'îlot et celui de sa ROUTE, sur le drapeau du cap ;
-    // le `when` de la CLÔTURE, sur le drapeau d'accostage).
-    // #1612 (2026-09-06) : +3 Conditions sans `op` — celles de l'Activité Mendier : le `when`
-    // `visiblePassive` de son modificateur d'apparence, et les DEUX nœuds de l'exemption de son dé de
-    // monde (`not` + le `status` qu'il enveloppe, `LDB 09 l.99`).
-    expect(scan.totalConditionsSansOp, 'des Conditions sans `op` n’ont jamais été comptées en op : elles ne se « retirent » pas.').toBe(194);
+    let objetsAOp = 0;
+    const marche = (v: unknown): void => {
+      if (Array.isArray(v)) { v.forEach(marche); return; }
+      if (!v || typeof v !== 'object') return;
+      if (typeof (v as { op?: unknown }).op === 'string') objetsAOp += 1;
+      Object.values(v).forEach(marche);
+    };
+    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+    expect(objetsAOp, 'la marche brute ne voit aucun `op` : l’égalité ci-dessous ne mesurerait rien.').toBeGreaterThan(0);
+    expect(
+      scan.totalConditionsAvecOp + scan.totalOps,
+      'ops de jeu + Conditions à `op` = objets portant un `op` chaîne (marche brute des documents du scan) : une Condition sans `op` comptée en op, ou un `op` qui échappe aux deux, rompt l’égalité.',
+    ).toBe(objetsAOp);
   });
 });
 

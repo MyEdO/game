@@ -75,7 +75,7 @@ Documents porteurs :
 
 ## 3. Canal `effects` — le déclenché
 
-Un `TriggeredEffect` (`src/engine/flowCore.ts:567`) est un Flow d'ops appliqué à `on` quand `trigger` se
+Un `TriggeredEffect` (`src/engine/flowCore.ts:573`) est un Flow d'ops appliqué à `on` quand `trigger` se
 produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'entité.
 
 | Champ | Type | Rôle (JSDoc) |
@@ -88,12 +88,12 @@ produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'enti
 | `optional?` | `boolean` | Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT de le déclencher. |
 | `source?` | `EffectSource` | ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf` (`src/state/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. |
 
-### Les 20 déclencheurs (`EffectTrigger`, `src/engine/flowCore.ts:538`)
+### Les 20 déclencheurs (`EffectTrigger`, `src/engine/flowCore.ts:544`)
 
 `onHit` · `onCrit` · `onWoundLoss` · `onSlain` · `onRoundStart` · `onStartled` · `onKill` · `onCharged` · `onGainCondition` · `onCombatStart` · `onCombatEnd` · `onRoundEnd` · `onTurnStart` · `onTurnEnd` · `onDayStart` · `onWake` · `onAttackResolved` · `onCastResolved` · `onMiscast` · `onOwnTestFailed`
 
 
-### Les 6 formes de ciblage (`EffectTargeting`, `src/engine/flowCore.ts:564`)
+### Les 6 formes de ciblage (`EffectTargeting`, `src/engine/flowCore.ts:570`)
 
 - `'self'`
 - `'victim'`
@@ -122,7 +122,7 @@ Documents porteurs :
 | `src/data/mutations.json` | `effects` | `src/data/schemas/defs/mutations.ts` | 1 / 116 |
 | `src/data/psychology.json` | `effects` | `src/data/schemas/defs/psychology.ts` | 1 / 9 |
 | `src/data/qualities.json` | `effects` | `src/data/schemas/defs/qualities.ts` | 10 / 59 |
-| `src/data/spells.json` | `effects` | `src/data/schemas/defs/spells.ts` | 576 / 576 |
+| `src/data/spells.json` | `effects` | `src/data/schemas/defs/spells.ts` | 526 / 526 |
 | `src/data/symptoms.json` | `effects` | `src/data/schemas/defs/symptoms.ts` | 1 / 18 |
 | `src/data/talents.json` | `effects` | `src/data/schemas/defs/talents.ts` | 4 / 187 |
 | `src/data/traits.json` | `effects` | `src/data/schemas/defs/traits.ts` | 25 / 132 |
@@ -136,22 +136,22 @@ un chiffre qui s'additionne.
 
 | Interface | Site | Drapeaux déclarés |
 |---|---|---|
-| `TraitCapabilities` | `src/data/index.ts:1704` | 43 |
-| `QualityCapabilities` | `src/data/index.ts:1902` | 26 |
-| `ItemCapabilities` | `src/data/index.ts:1113` | 12 |
-| `SymptomCapabilities` | `src/data/index.ts:1969` | 6 |
+| `TraitCapabilities` | `src/data/index.ts:1703` | 43 |
+| `QualityCapabilities` | `src/data/index.ts:1901` | 26 |
+| `ItemCapabilities` | `src/data/index.ts:1112` | 12 |
+| `SymptomCapabilities` | `src/data/index.ts:1968` | 6 |
 
 Lecture — un seul point d'entrée par portée, chaque canal restant disjoint par nom de capacité :
 
 | Lecteur | Site | Portée |
 |---|---|---|
-| `traitCapability` | `src/engine/traits/dispatch.ts:222` | par trait |
+| `traitCapability` | `src/engine/traits/dispatch.ts:204` | par trait |
 | `itemCapability` | `src/engine/capabilities.ts:25` | par objet |
 | `hasCapability` | `src/engine/capabilities.ts:45` | agrégat cross-source, par personnage |
 
 ### Une capacité peut être ANNULÉE par un autre trait porté
 
-`suppressesCapabilities` (lu par `traitCapability`, `src/engine/traits/dispatch.ts:226`) : un trait déclare
+`suppressesCapabilities` (lu par `traitCapability`, `src/engine/traits/dispatch.ts:208`) : un trait déclare
 les capacités qu'il annule chez **les autres traits du même porteur** — la résolution rend `false`
 même si un second trait la déclare. C'est de la DONNÉE, jamais un chemin de code par nom de trait :
 1 entrée(s) de `src/data/traits.json` l'exercent, dont `dresse-dompte`
@@ -160,7 +160,7 @@ même si un second trait la déclare. C'est de la DONNÉE, jamais un chemin de c
 ### Une capacité est un marqueur de PRÉSENCE, jamais un nombre
 
 Le drapeau dit qu'une mécanique s'applique ; sa VALEUR (Salve N, Protectrice N, Solide N…) vit sur
-l'INSTANCE portée par l'objet — `QualityInstance.value` (`src/engine/types.ts:362`), que le
+l'INSTANCE portée par l'objet — `QualityInstance.value` (`src/engine/types.ts:359`), que le
 dispatcher runtime expose sous `indice` (`resolveQualities`, `src/engine/qualities/dispatch.ts:56`).
 La saisie en prose (« Solide 3 ») n'est convertie en instance qu'à l'AUTHORING, par
 `parseQuality` (`src/engine/qualities/normalize.ts:31`) — le runtime ne re-parse jamais un libellé
@@ -220,4 +220,4 @@ primitives, `CLAUDE.md`). Ne pas dupliquer une op qui existe déjà sous un autr
 | `src/engine/trauma.test.ts` | traumaFromKind (LDB 18-Traumatisme) |
 | `src/state/triggered-effects.test.ts` | fireTriggers — Traits et Atouts sur le même système flow+déclencheur |
 | `src/state/combat-hardcode-guard.test.ts` | garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8) |
-<!-- sources-empreinte: 6d0993070b5e4b32be0a31c6ca85fe65d3eb7392 (159 fichiers, 1 dossiers) corps: 98e28f7b5766877461749bba6575b18d2ae5bf88 -->
+<!-- sources-empreinte: d2670cd59b1ca1f92affc27b4bb84b3a4cfc9b2c (159 fichiers, 1 dossiers) corps: a6d0ed57d3a164618e2cc19e11a84b2e561e53b2 -->

@@ -32,7 +32,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   it('Savoir-vivre : POSSESSION effective et REQUÊTABLE — sur la fiche (`effectiveTalents`) et par `hasTalent`', () => {
     const talents = effectiveTalents(bearer());
     expect(talents).toContainEqual({ talentId: 'savoir-vivre', spec: 'disciples-de-tzeentch', times: 1 });
-    expect(hasTalent(bearer(), 'Savoir-vivre')).toBe(true);
+    expect(hasTalent(bearer(), 'savoir-vivre')).toBe(true);
   });
 
   it('Animosité (Nurgle) : Cible FIXE dérivée du Trait (capabilities.psychCible)', () => {
@@ -94,16 +94,17 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
 
   it('Les 10 Talents achetables hors-Carrière au tarif normal (grantCareerTalent, étendu aux Traits)', () => {
     expect(careerTalentAdditions(bearer())).toEqual([
-      { id: 'magie-des-arcanes', spec: undefined },
-      { id: 'diction-instinctive', spec: undefined },
-      { id: 'harmonisation-aethyrique', spec: undefined },
+      // EDOC 13 l.524 : « Magie des Arcanes (n'importe laquelle) ».
+      { id: 'magie-des-arcanes', choix: true },
+      { id: 'diction-instinctive' },
+      { id: 'harmonisation-aethyrique' },
       { id: 'magie-du-chaos', spec: 'tzeentch' },
-      { id: 'mage-de-guerre', spec: undefined },
-      { id: 'magie-mineure', spec: undefined },
-      { id: 'mains-agiles', spec: undefined },
-      { id: 'perception-de-la-magie', spec: undefined },
-      { id: 'seconde-vue', spec: undefined },
-      { id: 'sorcier', spec: undefined },
+      { id: 'mage-de-guerre' },
+      { id: 'magie-mineure' },
+      { id: 'mains-agiles' },
+      { id: 'perception-de-la-magie' },
+      { id: 'seconde-vue' },
+      { id: 'sorcier' },
     ]);
   });
 

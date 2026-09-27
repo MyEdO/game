@@ -81,8 +81,8 @@ Producteurs nommés, avec leur site réel :
 |---|---|---|
 | `diseasePassiveOps` | `src/engine/disease.ts:299` | Passifs de TOUTES les maladies ACTIVES (collecte unifiée, reprise telle quelle par `passiveMods`). |
 | `qualityWearMods` | `src/engine/wearPenalty.ts:45` | Pénalités de port → ops `skillMod` skill-qualifiées (kind `intrinseque`, Σ) pour le collecteur passif unifié, chacune ATTRIBUÉE à la pièce qui la porte (`src`) pour que le détail de jet la NOMME. |
-| `talentPassiveMods` | `src/engine/talentEffects.ts:255` | Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…, ou Frénésie → `grantFreeAttack`) en `GameOp[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`). |
-| `traitPassiveMods` | `src/engine/traits/dispatch.ts:195` | PassiveMod[] de PROFIL des traits — la DONNÉE éditable `TraitData.passive` (vocab GameOp unifié, éditée par GameOpEditor comme un sort). |
+| `talentPassiveMods` | `src/engine/talentEffects.ts:293` | Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…, ou Frénésie → `grantFreeAttack`) en `GameOp[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`). |
+| `traitPassiveMods` | `src/engine/traits/dispatch.ts:177` | PassiveMod[] de PROFIL des traits — la DONNÉE éditable `TraitData.passive` (vocab GameOp unifié, éditée par GameOpEditor comme un sort). |
 | `traumaPassiveMods` | `src/engine/trauma.ts:962` | Ops PASSIVES des SÉQUELLES seules (`c.traumas`), `kind` résolu (surcharge de fiche > `traumaOpKind`) et gating `modSurvives` appliqué. |
 | `wornSocialMods` | `src/engine/wearPenalty.ts:52` | Modificateurs de Sociabilité (≤ 0) des objets ÉQUIPÉS de `c` (objet Laid −10, LDB 60 l.54), UN PAR QUALITÉ émettrice : le `src` porte la qualité, donc le détail de jet la NOMME (« −10 Laid ») au lieu d'un total anonyme. |
 
@@ -163,4 +163,4 @@ Tout passe par le Compendium in-app (écran Codex) :
   champ à part (§7).
 - **Ajouter une table de Corruption** (un dieu du Chaos) : Codex → Tables de Corruption → une entrée
   dont les plages référencent des mutations EXISTANTES par id.
-<!-- sources-empreinte: 6fc5a10bda60bc73eb90fd8b3763651484df9268 (145 fichiers, 1 dossiers) corps: 9be3df941a12e1842016c8cf6b1a62acad36fd8a -->
+<!-- sources-empreinte: 5cc6dfb5d2eaebc480a736ee9e89da8e1e8011d0 (145 fichiers, 1 dossiers) corps: bfe6a2cf1feb0aee5c651c05207d445645d25146 -->

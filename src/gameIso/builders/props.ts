@@ -83,8 +83,8 @@ function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
     ...origine,
   };
   const prop = !a.sansVolume && refEstVolumique(a.ref) ? findPropById(a.ref) : undefined;
-  if (a.ref !== undefined && prop?.volume) {
-    const facing = capVolumique(a.facing, `décor volumique « ${a.ref} » (${a.entId ?? a.key})`);
+  const facing = prop?.volume ? capVolumique(a.facing) : undefined;
+  if (a.ref !== undefined && prop?.volume && facing) {
     return {
       ...commun,
       ref: a.ref,
@@ -101,6 +101,8 @@ function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
   }
   return {
     ...commun,
+    // Cap refusé d'un décor volumique (`capVolumique`) : billboard d'ERREUR (#877), jamais son art.
+    ...(prop?.volume ? { ref: undefined } : {}),
     ...(a.facing ? { facing: a.facing } : {}),
     ...(a.architectureFeatureId ? { architectureFeatureId: a.architectureFeatureId } : {}),
     foot: { offX: a.ancre.x - a.cell.x, offY: a.ancre.y - a.cell.y, scale: a.echelle ?? 1 },
@@ -244,10 +246,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
       // Égout et FAÎTE lus sur le CHAMP de la nappe (`resolveNappes`) — la MÊME hauteur que les pans
       // que `buildRoofs` émet, jamais une seconde formule. Un ornement de FAÎTE se pose à ~60 % de la
       // pente sous l'apex.
-      // Masse sans nappe : son ornement est OMIS (le reste des props se construit).
-      const nappe = nappes.get(nappeKey(body.id, mass.id));
-      if (!nappe) continue;
-      const { cells, field, roomZoneIds } = nappe;
+      const { cells, field, roomZoneIds } = nappes.get(nappeKey(body.id, mass.id))!;
       const eaveM = field.shape.eaveHeightM;
       let apexM = eaveM;
       for (const key of cells) {

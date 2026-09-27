@@ -130,33 +130,6 @@ const ATTENDU = {
     // fait `migrations:replay` — elle est en `--dry` et n'écrit rien. L'arbre n'est jamais touché.
     'scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs',
     'scripts/migrations/lib/1699-source-chemins-ascii.test.mjs',
-    // +1 le 2026-09-22 (#1873) : le banc de la migration #1825 des stocks de l'Atlas ; son dépôt
-    // jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs',
-    // +3 le 2026-09-05 : morsure des portes des trois migrations #1686 (lot 1 ids composés, lot 2
-    // fusion des matières, lot 3a-2 purge de `structureAppearance.material`) ; leur dépôt jetable vit
-    // sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1686-ardoise-portes.test.mjs',
-    'scripts/migrations/lib/1686-materials-portes.test.mjs',
-    'scripts/migrations/lib/1686-structure-material-portes.test.mjs',
-    // +1 le 2026-09-07 (#1691 lot 2) : morsure des portes des deux migrations #1691 (relief) ; son
-    // dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1691-relief-portes.test.mjs',
-    // +1 le 2026-09-09 (#1715 volet b) : morsure des portes de la migration #1715 (toiture par défaut
-    // de la scène) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1715-roof-defaults-portes.test.mjs',
-    // +1 le 2026-09-10 (#1687 lot 2) : morsure des portes de la migration #1687 (activation des
-    // décors à places) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1687-usable-sieges-portes.test.mjs',
-    // +1 le 2026-09-23 (#1343 lot B) : morsure des portes de la migration #877 (ref de décor
-    // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/877-ref-de-decor-portes.test.mjs',
-    // +1 le 2026-09-23 (#1882) : morsure des portes de la migration #1882 (fiche de personnage
-    // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1882-fiche-de-personnage-portes.test.mjs',
-    // +1 le 2026-09-24 (#1882 T2d) : morsure des portes de la migration 13 → 14 (réf. vivantes d'effet
-    // semées) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1882-refs-vivantes-portes.test.mjs',
     // +2 le 2026-09-18 (#1812) : le mode CROISSANCE fait grandir les documents d'un EXPORT jetable
     // (`os.tmpdir()`, `replay-head.mjs:exporter`) avant de rejouer les migrations — l'arbre n'est
     // jamais écrit, et son banc travaille sur un dépôt `mkdtemp`.
@@ -166,7 +139,15 @@ const ATTENDU = {
     'scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs',
     // +1 le 2026-09-22 (#1873) : `joue.mjs` COPIE la migration jouée dans le dépôt jetable que lui donne
     // chaque banc de migration (`copyFileSync`, sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
+    // −8 le 2026-09-23 (#1897) : les bancs de migration fabriquent leur dépôt jetable par `joue.mjs`
+    // (`depot`, `efface`), unique écrivain de la famille ; −2 le 2026-09-24 (#1897) : les bancs #877
+    // et #1882 de `main` passent au même régime à la fusion ; −1 le 2026-09-26 (#1897) : le banc
+    // `1882-refs-vivantes-portes` de `main` aussi. +1 le 2026-09-23 (#1897) : son banc
+    // `joue.test.mjs` réécrit (`writeFileSync`) les fichiers du dépôt jetable de `depot()` pour faire
+    // mordre `crees`/`rienTouche` ; ce dépôt vit sous `os.tmpdir()` (`efface` en `t.after`), l'arbre
+    // n'est jamais écrit.
     'scripts/migrations/lib/joue.mjs',
+    'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',

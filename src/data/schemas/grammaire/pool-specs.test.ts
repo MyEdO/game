@@ -1,44 +1,50 @@
 /**
- * CONTRAT DE DONNÉE du pool de spécialisations (#1466 L1a) — ce que `SPECS_PAR_DATASET`
- * (`npm run gen`) expose doit être CE QUE L'APPLICATION RÉSOUT, et la donnée authorée doit y tenir.
+ * CONTRAT DE DONNÉE du catalogue de spécialisations (#1466 L1a, #1897) — ce que l'INDEX DES IDS
+ * (`IDS_PAR_ESPACE`, espace `<fichier>#[<id>].specs`, `npm run gen`) expose doit être CE QUE L'APPLICATION ADMET, et la donnée authorée doit y tenir.
  *
- * Deux verrous, tous deux mesurés sur les données réelles du dépôt :
- *  1. le miroir outillage `POOLS_DERIVES` (`scripts/gen-registry.mjs`) et le catalogue applicatif
- *     `SPEC_SOURCES`/`specCatalogOf` (`src/data/index.ts`) rendent le MÊME pool, source par source ;
- *  2. toute spécialisation AUTHORÉE sur une entrée à pool DÉRIVÉ d'un type à pool FERMÉ appartient au
- *     pool exposé — donc passe `specRef`. Sans la résolution de `specsSource` au générateur, ces
- *     entrées ont un pool VIDE et 34 spécialisations réelles sont rejetées au parse.
+ *  1. une entrée à `specsSource` expose l'UNIVERS de sa source (`SOURCES_DE_SPECS`, déclaration unique
+ *     lue par le générateur et par `SPEC_SOURCES`), qui contient son POOL de choix : un statbloc porte
+ *     une spécialisation réelle hors du pool joueur (le Triton, `MDG 16 l.283`) ;
+ *  2. toute spécialisation AUTHORÉE sur une entrée FERMÉE à `specsSource` appartient à cet univers —
+ *     donc passe `specRef`.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
-import { SPECS_PAR_DATASET } from '../_ids.generated';
-import { specRef } from './ref';
-import { skills, talents, traits, specCatalogOf } from '../../index';
+import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { entreeOuverte, specRef, type TypeEntite } from './ref';
+import { skills, talents, traits, creatures, specCatalogOf, specResolves } from '../../index';
 
-const DATASETS: { fichier: string; entrees: { id: string; specsSource?: string }[]; ferme: boolean }[] = [
-  { fichier: 'skills.json', entrees: skills as never, ferme: false },
-  { fichier: 'talents.json', entrees: talents as never, ferme: true },
-  { fichier: 'traits.json', entrees: traits as never, ferme: true },
+const DATASETS: { fichier: string; type: TypeEntite; entrees: { id: string; specsSource?: string }[] }[] = [
+  { fichier: 'skills.json', type: 'skill', entrees: skills as never },
+  { fichier: 'talents.json', type: 'talent', entrees: talents as never },
+  { fichier: 'traits.json', type: 'trait', entrees: traits as never },
 ];
 
-describe('pool de spécialisations — le registre généré et le catalogue applicatif s’accordent', () => {
-  it('rend le MÊME pool que `specCatalogOf` pour CHAQUE entrée à `specsSource`', () => {
-    const vus = new Set<string>();
+describe('catalogue de spécialisations — le registre généré et le catalogue applicatif s’accordent', () => {
+  it('une entrée à `specsSource` expose l’UNIVERS de sa source : il contient le pool, et chacun de ses ids résout', () => {
     let compares = 0;
     for (const { fichier, entrees } of DATASETS) {
       for (const e of entrees) {
         if (!e.specsSource) continue;
-        vus.add(e.specsSource);
         compares++;
-        const genere = [...(SPECS_PAR_DATASET[fichier]?.[e.id] ?? [])].sort();
-        const applicatif = [...specCatalogOf(e as never)].sort();
-        expect(genere, `${fichier} « ${e.id} » (specsSource ${e.specsSource})`).toEqual(applicatif);
-        expect(genere.length).toBeGreaterThan(0);
+        const genere = IDS_PAR_ESPACE[`${fichier}#[${e.id}].specs`] ?? [];
+        expect(genere.length, `${fichier} « ${e.id} »`).toBeGreaterThan(0);
+        expect(specCatalogOf(e as never).filter((id) => !genere.includes(id)), `${fichier} « ${e.id} » : pool hors univers`).toEqual([]);
+        expect(genere.filter((id) => !specResolves(e as never, id)), `${fichier} « ${e.id} » : univers non résolu`).toEqual([]);
       }
     }
     expect(compares).toBeGreaterThan(0);
-    expect(vus.size).toBeGreaterThan(0);
+  });
+
+  it('le Triton (`MDG 16 l.283`) focalise « magie-des-mers-de-triton », hors du pool des Vents : admis ; une spec hors univers est refusée', () => {
+    const triton = (creatures as unknown as { id: string; skills: { id: string; spec?: string }[] }[]).find((c) => c.id === 'triton')!;
+    const focalisation = triton.skills.find((s) => s.id === 'focalisation')!;
+    expect(focalisation.spec).toBe('magie-des-mers-de-triton');
+    expect(specCatalogOf(skills.find((s) => s.id === 'focalisation')!)).not.toContain(focalisation.spec);
+    expect(specRef('skill').safeParse({ id: 'focalisation', spec: focalisation.spec }).success).toBe(true);
+    expect(specRef('skill').safeParse({ id: 'focalisation', spec: 'plate' }).success).toBe(false);
+    expect(specRef('skill').safeParse({ id: 'corps-a-corps', spec: 'plate' }).success).toBe(false);
   });
 
   it('rend le MÊME catalogue que `specCatalogOf` pour une entrée à `specs[]` inline', () => {
@@ -47,7 +53,7 @@ describe('pool de spécialisations — le registre généré et le catalogue app
         if (e.specsSource) continue;
         const applicatif = [...specCatalogOf(e as never)].sort();
         if (!applicatif.length) continue;
-        expect([...(SPECS_PAR_DATASET[fichier]?.[e.id] ?? [])].sort(), `${fichier} « ${e.id} »`).toEqual(applicatif);
+        expect([...(IDS_PAR_ESPACE[`${fichier}#[${e.id}].specs`] ?? [])].sort(), `${fichier} « ${e.id} »`).toEqual(applicatif);
       }
     }
   });
@@ -84,14 +90,13 @@ describe('pool DÉRIVÉ — la donnée authorée passe la porte `specRef`', () =
     DATASETS.flatMap(({ entrees }) => entrees.map((e) => e.id)).filter((id, i, tous) => tous.indexOf(id) !== i),
   );
 
-  it('toute spec authorée sur une entrée à pool dérivé d’un type FERMÉ appartient au pool exposé', () => {
+  it('toute spec authorée sur une entrée FERMÉE à `specsSource` appartient à l’univers exposé', () => {
     const rejets: string[] = [];
     let verifiees = 0;
-    for (const { fichier, entrees, ferme } of DATASETS) {
-      if (!ferme) continue;
+    for (const { fichier, type, entrees } of DATASETS) {
       for (const e of entrees) {
-        if (!e.specsSource || homonymes.has(e.id)) continue;
-        const pool = SPECS_PAR_DATASET[fichier]?.[e.id] ?? [];
+        if (!e.specsSource || homonymes.has(e.id) || entreeOuverte(type, e.id)) continue;
+        const pool = IDS_PAR_ESPACE[`${fichier}#[${e.id}].specs`] ?? [];
         for (const spec of authorees.get(e.id) ?? []) {
           verifiees++;
           if (!pool.includes(spec)) rejets.push(`${fichier} ${e.id} :: « ${spec} » (pool=${pool.length})`);

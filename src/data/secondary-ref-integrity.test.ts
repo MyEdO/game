@@ -84,22 +84,74 @@ describe('auditSecondaryRef — attestation POSITIVE (#563 Lot 1 item 2, morsure
     expect(r.via).toBe('quote');
   });
 
+  it('livre FAN (`extractionDir`, pied de page `N sur M`) : `Alarme` imprimé avant le pied `455 sur 630` est ATTESTÉ en folio 455 (frenchy.bzh 65 l.757)', () => {
+    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 455, label: undefined, quote: 'Alarme' });
+    expect(r.verdict).toBe('attesté');
+    expect(r.via).toBe('quote');
+  });
+
+  it('MORSURE (d) — livre FAN, folio VOISIN : `Alarme` déclaré en folio 454 → non-attesté (rouge)', () => {
+    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 454, label: undefined, quote: 'Alarme' });
+    expect(r.verdict).toBe('non-attesté');
+  });
+
+  it('MORSURE (e) — livre FAN, quote absent du folio 455 → non-attesté (rouge)', () => {
+    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 455, label: undefined, quote: 'Bidule' });
+    expect(r.verdict).toBe('non-attesté');
+  });
+
+  // Pied FUSIONNÉ à une note et queue de chapitre (#1897, sonde du juge du socle) : frenchy.bzh 84
+  // l.10 imprime « … 620 sur  630 » au bout d'une note ; frenchy.bzh 50 finit sur un pied fusionné
+  // « … 316 sur  630 » (l.397), après la rubrique « Putréfaction » (l.395).
+  it.each([
+    ['Adolf Stockhausen Albert Amrhein', 620, 'attesté'],
+    ['Adolf Stockhausen Albert Amrhein', 621, 'non-attesté'],
+    ['Le démon fait pourrir ou tourner toute la', 316, 'attesté'],
+    ['Le démon fait pourrir ou tourner toute la', 600, 'non-attesté'],
+    ['Le démon fait pourrir ou tourner toute la', 315, 'non-attesté'],
+  ] as const)('livre FAN, pied fusionné et queue de chapitre : « %s » en folio %i → %s', (quote, page, verdict) => {
+    expect(auditSecondaryRef({ book: 'frenchy-bzh', page, label: undefined, quote }).verdict).toBe(verdict);
+  });
+
+  // Tête de chapitre (#1897) : ZI 11 - Chat sauvage.md l.27, avant le premier marqueur (l.47 = 83) ;
+  // 10 - Macareux a bec tranchant.md finit sur 82.
+  it.each([
+    [82, 'attesté'],
+    [83, 'non-attesté'],
+  ] as const)('tête de chapitre, située par continuité : quote en folio %i → %s', (page, verdict) => {
+    const quote = "En présence d'une créature Déstabilisante, une créature Instable compte ses Avantages";
+    expect(auditSecondaryRef({ book: 'zoo-imperial', page, label: undefined, quote }).verdict).toBe(verdict);
+  });
+
   it('livre-hors-atlas si le livre déclaré n\'a pas d\'extraction FR', () => {
     const r = auditSecondaryRef({ book: 'inexistant', page: 1, label: 'X', quote: undefined });
     expect(r.verdict).toBe('livre-hors-atlas');
   });
 });
 
-describe('auditSecondaries — 71 entrées `alsoIn` réelles sur src/data/*.json (Lot 2, #563 ; +1 VDM #734 ; +7 Hysh #729 ; +6 Chamon #729 ; +5 attributs de Domaine republiés #729 ; +6 Ghyran #729 ; +7 Azyr #729 ; +5 Ulgu #729 ; +6 Shyish #729 ; +2 Aqshy #729 ; +5 Ghur #729 et son attribut de Domaine ; +2 VDM #731 : Bête des marais et Prédateur sanglant ; +1 VDM couronne-de-flammes ; +1 ZI #1225 : Halagrundsor, récit en folio 34 et statblock en folio 35 ; +1 ADE I #1342 : la spéc `signes-secrets/rodeur`, dont ADE I 07 l.197 imprime la variante « Ranger » ; +1 L2 #1548 : la spéc `signes-secrets/guilde`, dont LDB 09 l.504 imprime la graphie de catalogue « Guildes (au choix) » là où LDB 08 l.250 imprime « Signes secrets (guilde) » ; +3 #1457 : `triton` et `wulfrik`, dont MDG 16 imprime le récit en folio 148/154 et la ligne de stats en folio 149/155, et `ogres`, dont ADE II 02 imprime la prose en folio 15 et le TABLEAU DES ATTRIBUTS DES OGRES en folio 20)', () => {
+/** Nombre d'éléments de TOUT tableau `alsoIn` du document, quelle que soit leur forme — le compte que
+ *  l'audit doit avoir VU, mesuré sans passer par son marcheur (`secondaryEntriesOf`). */
+function alsoInPoses(node: unknown): number {
+  if (!node || typeof node !== 'object') return 0;
+  if (Array.isArray(node)) return node.reduce((n: number, x) => n + alsoInPoses(x), 0);
+  return Object.entries(node).reduce(
+    (n, [k, v]) => n + (k === 'alsoIn' && Array.isArray(v) ? v.length : 0) + alsoInPoses(v),
+    0,
+  );
+}
+
+describe('auditSecondaries — les entrées `alsoIn` réelles de src/data/*.json', () => {
   it('toutes les entrées `alsoIn` réelles sont ATTESTÉES (aucune violation)', () => {
-    const { violations, total } = auditSecondaries(DIR);
-    expect(total).toBe(76);
+    const { violations } = auditSecondaries(DIR);
     expect(violations).toEqual([]);
   });
 
-  it('EXHAUSTIF : les fichiers portant `alsoIn` sont exactement les datasets migrés (Lot 2 + talents #734 + creatures #731 + species #1457)', () => {
-    const offenders = DATASETS.filter((f) => readFileSync(join(DIR, f), 'utf8').includes('"alsoIn"'));
-    expect(offenders).toEqual(['creatures.json', 'domains.json', 'naval-traits.json', 'qualities.json', 'skills.json', 'species.json', 'spells.json', 'talents.json', 'traits.json', 'trappings.json']);
+  it('l’audit VOIT chaque `alsoIn` posé : aucun emplacement secondaire ne sort de la mesure en silence', () => {
+    const poses = DATASETS.filter((f) => f !== 'books.json')
+      .reduce((n, f) => n + alsoInPoses(JSON.parse(readFileSync(join(DIR, f), 'utf8'))), 0);
+    const { total } = auditSecondaries(DIR);
+    expect(poses, 'aucun `alsoIn` posé : la garde ne mesurerait rien').toBeGreaterThan(0);
+    expect(total, `${poses} emplacement(s) posé(s), ${total} audité(s)`).toBe(poses);
   });
 });
 

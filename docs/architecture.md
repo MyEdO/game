@@ -70,7 +70,7 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau
                             module se bâtit donc par `indexParId`/`indexParChamp`/`memoParVersion`
-                            (#1692) ; deux gardes structurelles le tiennent : `index-vif-guard.test.ts`
+                            (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
@@ -133,6 +133,15 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             jetable de la tête, mesuré par EMPREINTE (`lib/empreinteRejeu.mjs` —
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
+src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
+                            plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
+                            `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
+                            `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
+                            bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
+                            promesse, une connexion par opération) — bibliothèque de projets, calque
+                            de référence, sauvegarde automatique, dossier `src/data` du Codex (#1956).
+                            `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
+                            sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection

@@ -63,7 +63,9 @@ function sitesZCustom(dir: string): string[] {
       .forEach((ligne) => {
         if (!ligne.includes('z.custom')) return;
         if (/^\s*(\/\/|\/?\*)/.test(ligne)) return; // ligne de COMMENTAIRE (la liste se cite elle-même)
-        const nomme = /export\s+const\s+(\w+)\s*=/.exec(ligne) ?? /(\w+)\s*:\s*z\./.exec(ligne);
+        // Le champ porteur d'un `z.custom` inline, nu (`objets: z.custom…`) ou élément d'une fabrique de
+        // liste (`objets: listeCle(z.custom…)`).
+        const nomme = /export\s+const\s+(\w+)\s*=/.exec(ligne) ?? /(\w+)\s*:\s*(?:\w+\()?z\./.exec(ligne);
         out.push(`${f}:${nomme ? nomme[1] : '<site non nommé>'}`);
       });
   }

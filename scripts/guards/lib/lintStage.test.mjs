@@ -8,7 +8,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defautsDeRapport, fichiersALinter, lancerLint } from './lintStage.mjs'
+import { defautsDeRapport, fichiersALinter, lancerLint, lotsDeLigne } from './lintStage.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const NBSP = String.fromCharCode(0x00a0)
@@ -141,6 +141,39 @@ test('LIGNE DE PROD (`cwd` = racine) : la config du dépôt juge un fichier rée
   assert.deepEqual(defauts, [], `défauts inattendus : ${JSON.stringify(defauts)}`)
   const juges = JSON.parse(stdout).map((f) => String(f.filePath).replace(/\\/g, '/'))
   assert.deepEqual(juges, [join(RACINE, rel).replace(/\\/g, '/')], 'eslint a bien jugé ce fichier, et lui seul')
+})
+
+test('lots de ligne : ordre gardé, chaque lot tient dans le budget, un chemin trop long part seul', () => {
+  const chemins = ['aaaa', 'bb', 'cccccc', 'd', 'eeeeeeeeeeee', 'ff']
+  const lots = lotsDeLigne(chemins, 8)
+  assert.deepEqual(lots, [['aaaa', 'bb'], ['cccccc'], ['d'], ['eeeeeeeeeeee'], ['ff']])
+  assert.deepEqual(lots.flat(), chemins)
+  for (const lot of lots.filter((l) => l.length > 1)) assert.ok(lot.reduce((n, f) => n + f.length + 1, 0) <= 8)
+})
+
+test('MORSURE EN PLUSIEURS LANCEMENTS : les défauts de chaque lot s’additionnent, aucun fichier ne se perd', () => {
+  const dossier = dossierDeFixtures()
+  try {
+    writeFileSync(join(dossier, 'fautif-a.ts'), `export const a =${NBSP}1\n`)
+    writeFileSync(join(dossier, 'sain.ts'), 'export const b = 1\n')
+    writeFileSync(join(dossier, 'fautif-c.ts'), `export const c =${NBSP}1\n`)
+    // Budget 1 : chaque fichier part dans SON lancement.
+    const { defauts, stdout } = lancerLint(RACINE, ['fautif-a.ts', 'sain.ts', 'fautif-c.ts'], { cwd: dossier, budget: 1 })
+    assert.deepEqual(defauts.map((d) => `${d.site.split(':')[0]} ${d.regle}`), ['fautif-a.ts no-irregular-whitespace', 'fautif-c.ts no-irregular-whitespace'])
+    assert.deepEqual(JSON.parse(stdout).map((f) => String(f.filePath).replace(/\\/g, '/').split('/').pop()), ['fautif-a.ts', 'sain.ts', 'fautif-c.ts'])
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
+test('LIGNE DE PROD au-delà de 32 767 caractères de chemins : le lot est JUGÉ, jamais refusé sans rapport', () => {
+  const rel = 'src/state/rollSeam.ts'
+  const fichiers = Array.from({ length: 2000 }, () => rel)
+  assert.ok(fichiers.join(' ').length > 32767, 'le lot dépasse la ligne de commande que Windows sait créer')
+  const { defauts, stdout } = lancerLint(RACINE, fichiers)
+  assert.deepEqual(defauts, [], `défauts inattendus : ${JSON.stringify(defauts)}`)
+  const juges = new Set(JSON.parse(stdout).map((f) => String(f.filePath).replace(/\\/g, '/')))
+  assert.deepEqual([...juges], [join(RACINE, rel).replace(/\\/g, '/')])
 })
 
 test('lot vide : aucun processus lancé, aucun défaut', () => {

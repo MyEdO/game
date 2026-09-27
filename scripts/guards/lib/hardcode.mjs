@@ -32,7 +32,7 @@ export function stripComments(src) {
 export const TRAIT_TALENT_RX = /isBestial|id: '(bestial-fire-fear|determination)|isUnstable/;
 
 /**
- * Appels dont la nocivité se juge à l'ARGUMENT-entité : `hasTraitKey(traits, id)` / `hasTalent(c, name)`.
+ * Appels dont la nocivité se juge à l'ARGUMENT-entité : `hasTraitKey(traits, id)` / `hasTalent(c, talentId)`.
  * Le 2e argument est le nom d'entité. LITTÉRAL de chaîne (`'…'`/`"…"`/gabarit sans interpolation) =>
  * réaction par-nom en dur (signalée) ; variable, accès de propriété ou paramètre => data-driven
  * (non signalé). Affinage STRUCTUREL (#385, même standard que le volet excuses #177 : les faux

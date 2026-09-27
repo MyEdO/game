@@ -4,6 +4,7 @@ import { raceAppearance, type RaceAppearanceData } from '../../../data';
 import { feat } from '../parts/elements';
 import { memoByRef } from '../../../state/sceneMemo';
 import speciesRaceJson from '../../../data/speciesRace.json';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /**
  * Apparence d'espèce = DONNÉE app-owned éditable (`src/data/raceAppearance.json`, lu live via la
@@ -33,7 +34,7 @@ export function raceById(id: string | undefined): RaceDef {
   return resolve(rec ?? raceAppearance.find((r) => r.id === DEFAULT_RACE_ID)!);
 }
 /** Palette de peau/cheveux d'une race pour un sexe (variante F si définie, sinon la palette commune). */
-export function racePalette(id: string, sex: 'M' | 'F'): PaletteDeclaree {
+export function racePalette(id: string, sex: Sexe): PaletteDeclaree {
   const r = raceById(id);
   return sex === 'F' && r.paletteF ? r.paletteF : (r.palette ?? {});
 }

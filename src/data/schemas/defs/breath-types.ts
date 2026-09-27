@@ -22,7 +22,7 @@ const doc = document(
           'vocabulaire de catégorisation (id+label uniquement) — aucune fiche autonome, la RÈGLE (souffle de créature) vit sur la créature elle-même.',
       },
     },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'breathTypes' },
   },
 );
 

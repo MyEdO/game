@@ -24,7 +24,8 @@
  *                   celles dérivées du plancher réel — plus d'obligation de tout couvrir à la main.
  *   9. validation : masses de bâtiment (`validateBuildingMasses`, garde-fou des SURCHARGES) + support
  *                    de plancher (`validateFloorSupport`) + ids de catalogue authorés
- *                    (`assertAuthoredIds`) — fail-fast, une fois zones/plancher réel connus.
+ *                    (`assertAuthoredIds`) + schéma de scène (`validateDocument(sceneSchema, …)`) —
+ *                    fail-fast, une fois zones/plancher réel connus.
  */
 import type {
   Scene,
@@ -52,7 +53,8 @@ import { defautsDeCompilation } from '../data';
 // PLAGE de pente : la source UNIQUE est le schéma de scène, qui en borne DÉJÀ le parse
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
 // silence de la porte qui refuse une scène authorée.
-import { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
+import { rapportDeFautes, validateDocument } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
 import { groundTerrains } from './planDefects';
@@ -930,11 +932,6 @@ export function buildScene(spec: MapSpec): Scene {
       tiles: b.tiles,
       z: b.z,
     }));
-    const zoneIds = new Set<string>();
-    for (const zone of [...(s.effectZones ?? []), ...namedZones]) {
-      if (zoneIds.has(zone.id)) throw new Error(`buildScene: zone id dupliqué « ${zone.id} »`);
-      zoneIds.add(zone.id);
-    }
     if (namedZones.length) s = { ...s, effectZones: [...(s.effectZones ?? []), ...namedZones] };
   }
   if (spec.triggers?.length) s = { ...s, triggers: [...s.triggers, ...spec.triggers] };
@@ -979,6 +976,9 @@ export function buildScene(spec: MapSpec): Scene {
   if (spec.architecture?.length) validateBuildingMasses(s);
   validateFloorSupport(s, new Set((spec.knownUnsupportedFloor ?? []).map((c) => `${c.x},${c.y},${c.z}`)));
   assertAuthoredIds(spec, s);
+  // La scène compilée passe la porte de TOUT document de scène (unicité des ids à clé comprise).
+  const fautes = validateDocument(sceneSchema, s);
+  if (fautes) throw new Error(rapportDeFautes(`buildScene « ${spec.id} »`, fautes));
 
   return s;
 }

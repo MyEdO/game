@@ -502,7 +502,7 @@ describe('meuble HAUT — le rayon décide, la case dessinée n’est qu’un re
   /** Sommet MONDE d'un décor POSÉ dans la scène, cap et altitude de son pied compris. */
   const sommet = (ent: SceneEntity): number => sommetDuDecor(findPropById(ent.ref)!, {
     ancre: ent.pos,
-    facing: capVolumique(ent.facing, ent.id),
+    facing: capVolumique(ent.facing)!,
     baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, ent.z ?? 0),
     entId: ent.id,
   }, mpt);

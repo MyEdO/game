@@ -117,7 +117,7 @@ choisit**.
 (rôles parallèles) · `MDG 14 l.53` (cumul = +2 crans).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `scene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `sea-navigation`, `lighthouseOrientationDR`, `pursuitLowMPenalty`, `WorldMapPlacePanel`, `pursuitDistanceGain`, +12 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +10 fichiers
+- `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `scene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `sea-navigation`, `lighthouseOrientationDR`, `WorldMapPlacePanel`, `pursuitLowMPenalty`, `pursuitDistanceGain`, +12 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +10 fichiers
 - `MDG 14` (l.37, l.53) → `skill`, `progression`, `progression-poursuite`, `rollCrewRole`, `ShipBatteryModal`, `isPassengerInBattle`, `ShipManeuverModal`, `resolveVolley`, `CrewTestModalView`, `withCrewActed`, +27 — `src/data/crew-test-types.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, `src/engine/types.ts`, +14 fichiers
 
 **État du code.** ✅ (R3) `battle.crewActed` (par navire, reset au round-start `enterRoundStartPause`) recense les
@@ -145,7 +145,7 @@ M ≤ 3 subit des pénalités de Poursuite (M3 = −1 DR, M2 = −2, M1 = −3, 
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 12` (l.92-94) → `shipboardSouls`, `sea-cargo` — `src/data/sea-cargo.json`, `src/gameIso/rig/ship/defs/bateau-de-patrouille.ts`, `src/state/shipCrew.ts`
-- `MDG 13` (l.173, l.304, l.376, l.378-399) → `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `OrientationOutcome`, `aucune`, `orientationOutcome`, `legeres`, `voyageTiles`, `sea-navigation`, `abondantes`, `pursuitLowMPenalty`, +34 — `src/data/flow-stakes.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +5 fichiers
+- `MDG 13` (l.173, l.304, l.376, l.378-399) → `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `OrientationOutcome`, `aucune`, `orientationOutcome`, `legeres`, `voyageTiles`, `sea-navigation`, `pursuitLowMPenalty`, `abondantes`, +34 — `src/data/flow-stakes.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +5 fichiers
 
 **État du code.** ✅ Test d'équipage (Timonier ★), virage = réussite du d100 (≠ dr≥0), Man en ±DR, Progression,
 placement des pièces (Contenance), « Peu maniable »/« Lissage ». ⬜ Vent (direction/force → M), affaler les voiles.

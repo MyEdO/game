@@ -6,7 +6,7 @@
 import { findTableEntry } from './tables';
 import type { StageOutcome } from './activities';
 import type { Difficulty } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
 import rencontresJson from '../data/rencontres-edoc.json';
@@ -17,7 +17,7 @@ import rencontresJson from '../data/rencontres-edoc.json';
  *  voyage (soins d'étape) — jamais déduite de l'id de l'entrée. */
 export interface MountIncidentEffects {
   /** Test du CAVALIER, sous peine d'une chute de `fallM` mètres (l.166/l.171). */
-  riderTest?: { skill: SkillRef; char?: string; difficulty: Difficulty; fallM: number };
+  riderTest?: { skill: RefDesignee; char?: string; difficulty: Difficulty; fallM: number };
   /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
   ridingPenalty?: number;
   /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */

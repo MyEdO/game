@@ -47,22 +47,22 @@ import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../state/dir8';
 import type { PropMaterialData } from './materials.types';
 
 /**
- * Le CAP d'un décor volumique, résolu et VERROUILLÉ. Une entité sans `facing` vaut `S` : le défaut du
- * monde, et le CAP D'IDENTITÉ des recettes (`CAP_IDENTITE_PROP`, cf. l'en-tête de ce module) — un
- * décor posé sans cap explicite sort donc exactement tel qu'il est authoré.
- * Ce que cette porte verrouille, c'est la DIAGONALE, refusée nominativement, pour deux raisons
- * MESURÉES : (1) l'empreinte est un RECTANGLE d'axes de grille, et la boîte englobante d'un corps
- * tourné de 45° enfle jusqu'à ×√2 par axe — une table 2×1 en diagonale muterait 2×2 cases pour un
- * corps qui n'en occupe vraiment aucune entière : du SUR-blocage, pas du débordement ; (2) le
- * cuiseur du monde LÈVE sur un cap diagonal (`gameIso/builders/props.ts`), donc une telle donnée ne
- * se rend même pas. Dernier filet d'une chaîne : le schéma de scène la refuse au parse
- * (`schemas/defs-scenes/scene.ts`), l'éditeur ne l'offre pas (`ui/editor/Inspector.tsx`) et
- * `state/validateScene.ts` la nomme à l'écran. PURE.
+ * Le CAP d'un décor volumique, résolu. Une entité sans `facing` vaut `S` : le défaut du monde, et le
+ * CAP D'IDENTITÉ des recettes (`CAP_IDENTITE_PROP`, cf. l'en-tête de ce module) — un décor posé sans
+ * cap explicite sort donc exactement tel qu'il est authoré.
+ * La DIAGONALE est refusée, pour deux raisons MESURÉES : (1) l'empreinte est un RECTANGLE d'axes de
+ * grille, et la boîte englobante d'un corps tourné de 45° enfle jusqu'à ×√2 par axe — une table 2×1 en
+ * diagonale muterait 2×2 cases pour un corps qui n'en occupe vraiment aucune entière : du
+ * SUR-blocage, pas du débordement ; (2) le corps ne se cuit qu'au cap cardinal (`AncrageVolume`).
+ * Le prédicat est `capDecorAdmis`, lu tel quel : `undefined` = cap refusé, que le cuiseur du monde
+ * rend en billboard d'ERREUR (`gameIso/builders/props.ts`, #877) sans lever. La chaîne : le schéma de
+ * scène la refuse au parse (`schemas/defs-scenes/scene.ts`), `changePropRef` la fait retomber au cap
+ * d'identité (`ui/editor/propDefaults.ts`), le sélecteur d'orientation ne l'offre pas
+ * (`ui/editor/Inspector.tsx`), `state/validateScene.ts` la nomme à l'écran. PURE.
  */
-export function capVolumique(facing: Dir8 | undefined, quoi: string): Dir4 {
-  const cap = facing ?? 'S';
-  if (!estCardinal(cap)) throw new Error(`${quoi} : cap ${cap} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`);
-  return cap;
+export function capVolumique(facing: Dir8 | undefined): Dir4 | undefined {
+  const cap = facing ?? CAP_IDENTITE_PROP;
+  return capDecorAdmis(true, cap) ? cap as Dir4 : undefined;
 }
 
 /**
@@ -442,8 +442,8 @@ const empreintesDerivees = new WeakMap<PropVolumeRecipe, WeakMap<readonly PropSe
  * 1 m/case —, donc elle se calcule À LA CONSOMMATION et ne se fige jamais en donnée.
  *
  * Prend les HUIT caps : cette fonction MESURE, elle n'arbitre pas. Le refus de la diagonale sur un
- * décor à recette est la porte de `capVolumique`, tenue en amont par le schéma de scène, le validateur
- * et l'émetteur ; une empreinte qui lèverait aussi ferait tomber la MARCHABILITÉ d'une scène fautive,
+ * décor à recette est `capDecorAdmis`, tenu par le schéma de scène, le validateur et l'émetteur
+ * (`capVolumique`) ; une empreinte qui lèverait ferait tomber la MARCHABILITÉ d'une scène fautive,
  * donc l'éditeur où l'auteur doit justement lire l'erreur.
  * PURE (mémoïsée par identité de recette, cap et échelle).
  */

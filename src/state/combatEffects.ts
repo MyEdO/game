@@ -2106,7 +2106,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (hasHullWrite) setVesselHull(env.get, env.set, hullCurrent!, hullMax!);
       env.log(t('eff.vesselDone', { parts: parts.join(', ') }));
     },
-    refs: () => [],
   },
 
   // ── Combat & social ────────────────────────────────────────────────────
@@ -2217,12 +2216,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
       get().oocCastSpell(caster.id, spell.id, target.id);
     },
-    refs: (e) => {
-      const issues: EffectRefIssue[] = [];
-      if (!e.casterId) issues.push({ level: 'error', message: 'Effet Incanter : lanceur manquant' });
-      if (!e.spellId || !findSpellById(e.spellId)) issues.push({ level: 'error', message: `Effet Incanter : sort inexistant « ${e.spellId} »` });
-      return issues;
-    },
+    // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
+    refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
   },
 
   // ── Tests ──────────────────────────────────────────────────────────────

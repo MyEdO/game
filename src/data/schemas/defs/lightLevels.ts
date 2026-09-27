@@ -30,7 +30,7 @@ const doc = document(
           'niveaux de lumière (rendu iso/vision), vocabulaire moteur — la RÈGLE de vision est ailleurs, sourcée et exposée via `regles`/`etats`.',
       },
     },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'lightLevels' },
   },
 );
 

@@ -38,7 +38,7 @@ function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol
   const el = buildProps(sc).find((e) => e.entId === entId)!;
   expect(estPropVolumique(el), `${ent.ref} doit sortir en VOLUME (sinon rien n’est mesuré)`).toBe(true);
   const posees = estPropVolumique(el) ? el.faces : [];
-  const locales = buildPropVolumes(prop, { ancre: { x: 0, y: 0 }, facing: capVolumique(ent.facing, entId), baseHeightM: 0 }, mpt);
+  const locales = buildPropVolumes(prop, { ancre: { x: 0, y: 0 }, facing: capVolumique(ent.facing)!, baseHeightM: 0 }, mpt);
   expect(posees.length).toBe(locales.length);
   const deltas = posees.flatMap((f, i) => f.poly.map((p, j) => ({ x: p.x - locales[i].poly[j].x, y: p.y - locales[i].poly[j].y, h: p.h - locales[i].poly[j].h })));
   const ecart = Math.max(...deltas.map((d) => Math.max(chebyshev(d, deltas[0]), Math.abs(d.h - deltas[0].h))));
@@ -53,7 +53,7 @@ function ancreDeLaPlace(sc: Scene, entId: string, slotId: string): { x: number; 
   const prop = findPropById(ent.ref) as PropData;
   const place = seatSlotsOf(sc, entId).find((s) => s.slotId === slotId)!;
   const slot = prop.seatSlots!.find((s) => s.id === slotId)!;
-  const [rx, ry] = rotatePropLocal(slot.anchor.xM / sceneMetresPerTile(sc), slot.anchor.yM / sceneMetresPerTile(sc), capVolumique(ent.facing, entId));
+  const [rx, ry] = rotatePropLocal(slot.anchor.xM / sceneMetresPerTile(sc), slot.anchor.yM / sceneMetresPerTile(sc), capVolumique(ent.facing)!);
   return { x: place.anchor.x - rx, y: place.anchor.y - ry };
 }
 

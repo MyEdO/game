@@ -22,7 +22,8 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 - **Compilation** `scene()` construit un `MapSpec` déclaratif puis délègue à `buildScene()`
   (`src/state/mapSpec.ts`) — MÊME compilateur headless-editor que l'éditeur. L'ASCII (`rows`/`legend`/
   `base`) est parsé, les bâtiments composés par `addBuilding`, les rencontres terse expansées par
-  `buildEncounter()` (`src/state/encounterAuthoring.ts`). Jamais poser une tuile à la main.
+  `buildEncounter()` (`src/state/encounterAuthoring.ts`). Jamais poser une tuile à la main. Une option
+  que `scene()` ne lit pas LÈVE en se nommant.
 - **Chargement** `parseProject()` (`src/state/worldMap.ts`) relit le JSON et résout les réfs sparse
   (ports, cf. §5). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
   `tenueId`/`weaponId`) FAIL-FAST à l'authoring — un libellé qui s'y glisse lève.

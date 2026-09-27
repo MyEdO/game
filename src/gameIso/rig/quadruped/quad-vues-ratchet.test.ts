@@ -29,7 +29,7 @@ import { CREATURES, QUAD_SPECIES, WINGED_SPECIES } from '../creatures';
 import { QUAD_Z, quadZOrder, QUAD_DECO_PLAN_MAX } from './quadZ';
 import { quadDecoCouples, APPLICABLES_GELES, quadDecoDefs, quadLayersSvg, DECO_VIEWS } from './deco-stock.fixture';
 import { DECOS_MORTS_RATCHET, DECOS_SANS_PLAN_RATCHET } from '../../../../scripts/guards/lib/quadDecoStock.mjs';
-import { ecartDuVolet, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
+import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
 import { fichierDeEspece } from '../../../../scripts/guards/lib/quadDecoAudit';
 import { resolveQuad, resolveQuadFromProps } from './composeQuad';
 import { buildQuadSkeleton, quadSkeletonForView, type QuadBoneId, type QuadProps } from './quadSkeleton';
@@ -56,9 +56,6 @@ const MORTS = DECOS_MORTS_RATCHET.map((e) => e.ref);
  *  créature, que la porte de plage voit à l'append. */
 const ratchet = (couples: readonly string[], stock: Iterable<EntreeNominative>) =>
   ecartDuVolet({ sites: couples.map((c) => ({ file: fichierDeEspece(c.split(' ')[0]), ref: c })), stock, ou: STOCK });
-
-/** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
-const porte = (lignes: readonly string[], cle: string) => lignes.some((l) => l.includes(cle));
 
 const planHorsBorne = (plan: number): boolean =>
   !Number.isFinite(plan) || Math.abs(plan) > QUAD_DECO_PLAN_MAX;
@@ -102,8 +99,8 @@ describe('décors MORTS : le stock gelé ne peut que décroître (#1082)', () =>
       fichier: 'src/gameIso/rig/creatures/defs/BeteQuiNExistePas.ts', ref: 'gonflement back encolure', occurrence: 1,
     }];
     const { perimees } = ratchet(quadDecoCouples().morts, gonfle);
-    expect(porte(perimees, ' :: gonflement back encolure :: 1')).toBe(true);
-    expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
+    expect(remedeNomme(perimees, ' :: gonflement back encolure :: 1')).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 
   it('aucun couple applicable GELÉ n\'a disparu sans que son art soit émis', () => {

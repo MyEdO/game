@@ -513,12 +513,6 @@ const V8C3: Site[] = [
     apres: t('crew.crewDelta', { delta: `${'−'}${3}`, left: 17, nominal: 20 }),
   },
   {
-    // CORRIGÉ : `windAspect` rend un id — le flux écrivait « vent arriere », sans accent.
-    site: 'seaVoyageFlow.ts:439 — ASPECT du vent (id de `windAspect` rendu à l’écran)',
-    avant: 'vent arrière',
-    apres: t('sv.windArriere'),
-  },
-  {
     // CORRIGÉ (micro-passe) : la clé rendait « babord » ; MDG 13 l.322 écrit « bâbord ».
     site: 'seaVoyageFlow.ts:1739 — changement de cap (CÔTÉ de dérive lu au catalogue, MDG 13 l.322)',
     avant: `Changement de cap (d10 ${3}, dérive ${'bâbord'}) : ${'Le navire pique vers la côte.'}`,
@@ -856,10 +850,12 @@ describe('#1318 V8b/V8b₂/V8c₀/V8c₁/V8c₂ — la migration au catalogue es
     // 23 → 22 (#1657 B3-2) : le site « éclats du Critique » de `riverVoyageFlow` est MORT — le coup à
     // l'équipage passe par la porte, sa ligne est celle du dériveur de jet, plus une phrase de flux.
     expect(V8C2.length, 'échantillons des cinq fichiers passés MIGRÉS par V8c₂ (effets / store / voyage terrestre / fluvial / maladies)').toBe(22);
-    expect(V8C3.length, 'échantillons des fichiers passés MIGRÉS par V8c₃ (mer / guérison / repos / nuit / équipage / séquelles)').toBe(19);
+    // 19 → 18 (#1473) : le site « ASPECT du vent » de `seaVoyageFlow` est MORT — `effectiveSeaM` ne rend
+    // plus de libellé, aucun de ses appelants ne le lisait.
+    expect(V8C3.length, 'échantillons des fichiers passés MIGRÉS par V8c₃ (mer / guérison / repos / nuit / équipage / séquelles)').toBe(18);
     expect(V8C4.length, 'échantillons des QUATORZE fichiers de la longue traîne passés MIGRÉS par V8c₄').toBe(19);
     expect(V8C5.length, 'échantillons de la TRANCHE FINALE (18 fichiers gelés + advancement/careerSlots)').toBe(29);
-    expect(TOUS.length).toBe(133); // 134 → 133 (#1657 B3-2, même site mort que V8c₂)
+    expect(TOUS.length).toBe(132); // 133 → 132 (#1473, même site mort que V8c₃)
   });
 
   it('MUTATION : l’oracle est SENSIBLE — un tiret cadratin changé en tiret court diverge', () => {

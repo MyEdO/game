@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { refSchema } from '../grammaire/reference';
 import { document } from '../grammaire/document';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'traits.json';
 export const famille = 'entite';
@@ -92,7 +92,8 @@ const doc = document(
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(refSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`state/advancement.ts`). */
+    passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),
@@ -154,7 +155,9 @@ const doc = document(
     codex: { keys: ['traits', 'psychologie'] },
     edit: { dataset: 'traits' },
   },
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS },
+  // `indice` : `LDB 85` l.94 ; `range` : `LDB 85` l.209 ; lus par `refusDArgDeTrait` (`grammaire/reference.ts`).
+  // `specsOpen` : `LDB 85` (ex. l.83), lu par `entreeOuverte` (`grammaire/ref.ts`).
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen'] } },
 );
 
 export const schema = doc.schema;

@@ -33,7 +33,10 @@
  * sortie 1, jamais un reflow silencieux.
  * POSITION : `ref` va en QUEUE de l'entité — la place que l'éditeur donne à un champ posé sur une
  * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/state/worldMap.ts`).
- * Parité avec `PROJECT_MIGRATIONS[11]` mesurée par `src/state/projet-migration-11-vers-12.test.ts`.
+ * Pendant de chargement : `PROJECT_MIGRATIONS[11]` (`src/state/worldMap.ts`). Aucune mesure ne joue
+ * les deux sur un même document : chacun est confronté à SA fixture, qui récite la même POSITION —
+ * `src/state/projet-migration-11-vers-12.test.ts` (chargement), `lib/877-ref-de-decor-portes.test.mjs`
+ * (dépôt).
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0 (plus aucun décor sans
  * `ref`).
  * BORNE HAUTE OUVERTE (`schema` ∈ {11, ≥ 12}) : la DERNIÈRE migration de la chaîne dans l'ordre

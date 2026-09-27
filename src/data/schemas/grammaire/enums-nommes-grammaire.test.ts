@@ -113,12 +113,6 @@ describe('enums de GRAMMAIRE nommés (#1694 B2) — le libellé de chaque VALEUR
     expect(Object.keys(valeursDe(specsSourceSchema)!)).toEqual(Object.keys(SPEC_SOURCES));
   });
 
-  it('la marque de slot d’`actorRefSchema` et ses libellés vivent sur le MÊME nœud', async () => {
-    const { marqueDe } = await import('./slots');
-    expect(marqueDe(actorRefSchema)?.site).toBe('actorRefSchema');
-    expect(valeursDe(actorRefSchema)).toBeDefined();
-  });
-
   it('un enum de grammaire est UNE instance — deux nœuds de même vocabulaire ne coexistent pas', () => {
     // `mutationKindSchema` (B1) est le témoin du patron : un vocabulaire partagé = une const importée.
     expect(valeursDe(mutationKindSchema)).toEqual({ physique: 'Physique', mentale: 'Mentale' });

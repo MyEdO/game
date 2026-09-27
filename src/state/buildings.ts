@@ -10,7 +10,7 @@
  * `src/gameIso`, alors que le rendu dépend du store et jamais l'inverse (CLAUDE.md règle 3, garde
  * `state/frontiere-state-gameiso.test.ts`).
  *
- * LECTURE VIVE, index O(1). Le tableau exporté par `src/data/index.ts` est le binding que `setDataset`
+ * LECTURE VIVANTE, index O(1). Le tableau exporté par `src/data/index.ts` est le binding que `setDataset`
  * mute EN PLACE (`data/overrides.ts`) : son IDENTITÉ ne change jamais, et le témoin est la VERSION du
  * dataset posée par le seam d'écriture (`memoParVersion`, `data/versionDataset.ts`, #1692). Des
  * accesseurs, jamais une const de module : une entrée éditée au Codex se voit dans l'éditeur et au

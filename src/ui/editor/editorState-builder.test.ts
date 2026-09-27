@@ -190,7 +190,7 @@ describe('renameActionAuthoree — l’unicité d’un id d’action se garde au
     const double = avant.map((a) => (a.id === 'crocheter' ? { ...a, id: 'fouiller' } : a));
     const verdict = sceneEntitySchema.safeParse(decor(double));
     expect(verdict.success, 'deux actions homonymes : un document que le schéma refuse').toBe(false);
-    expect(JSON.stringify(verdict.error?.issues)).toContain('même `id`');
+    expect(JSON.stringify(verdict.error?.issues)).toContain('« fouiller » dupliqué');
   });
 
   it('id vide, inchangé, ou action absente : rien n’est écrit', () => {

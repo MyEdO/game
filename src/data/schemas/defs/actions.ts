@@ -170,37 +170,37 @@ const doc = document(
       entree.superRefine((v, ctx) => {
         const a = v as EntreeAction;
     if (a.rule && !a.ruleCategory) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : rule sans ruleCategory` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : rule sans ruleCategory` });
     }
     if (!a.run && !a.intent && !a.blocked) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)` });
     }
     if ((a.run === 'battleToggleStance') !== !!a.stance) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : la bascule de posture et le champ stance vont ensemble (run battleToggleStance ⇔ stance)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : la bascule de posture et le champ stance vont ensemble (run battleToggleStance ⇔ stance)` });
     }
     if ((a.run || a.intent) && a.blocked) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : dette déclarée alors que l’action s’exécute (run) ou s’arme (intent)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : dette déclarée alors que l’action s’exécute (run) ou s’arme (intent)` });
     }
     if (a.surface === 'interlude' && (!a.mode || !a.run || a.exitSafe === undefined)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : action d’interlude sans mode de ciblage, sans dispatcher de sortie ou sans exitSafe` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : action d’interlude sans mode de ciblage, sans dispatcher de sortie ou sans exitSafe` });
     }
     if (a.exitSafe !== undefined && a.surface !== 'interlude') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : exitSafe hors d’une action d’interlude (aucune touche d’annulation ne la vise)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : exitSafe hors d’une action d’interlude (aucune touche d’annulation ne la vise)` });
     }
     if (a.surface === 'interlude' && !a.role) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : sortie d’interlude sans role (valide/renonce) — sa proéminence ne peut pas se déduire` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : sortie d’interlude sans role (valide/renonce) — sa proéminence ne peut pas se déduire` });
     }
     if (a.role && a.surface !== 'interlude') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : role hors d’une action d’interlude (aucun bandeau de phase ne la rend)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : role hors d’une action d’interlude (aucun bandeau de phase ne la rend)` });
     }
     if (a.surface === 'pastille-entite' && !a.candidates) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : pastille d'entité sans population portée (candidates) — aucune entité ne pourrait la porter` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : pastille d'entité sans population portée (candidates) — aucune entité ne pourrait la porter` });
     }
     if (a.surface === 'geste-secondaire' && (!a.hote || !a.candidates)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : geste secondaire sans entrée hôte (hote) ou sans population couverte (candidates)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : geste secondaire sans entrée hôte (hote) ou sans population couverte (candidates)` });
     }
     if (a.hote && a.surface !== 'geste-secondaire') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : hote hors d’un geste secondaire (aucune alvéole ne le porterait)` });
+      ctx.addIssue({ code: 'custom', message: `${a.id} : hote hors d’un geste secondaire (aucune alvéole ne le porterait)` });
     }
       }),
     affinerDataset: (dataset) =>
@@ -211,9 +211,9 @@ const doc = document(
           if (!a.hote) continue;
           const hote = par.get(a.hote);
           if (!hote) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : hote « ${a.hote} » absent du registre` });
+            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote} » absent du registre` });
           } else if (hote.surface === 'geste-secondaire') {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${a.id} : hote « ${a.hote} » est lui-même un geste secondaire (aucune alvéole au bout)` });
+            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote} » est lui-même un geste secondaire (aucune alvéole au bout)` });
           }
         }
       }),
