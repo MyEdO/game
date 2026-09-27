@@ -27,7 +27,7 @@
 // appel d'écriture, aucun Project requis ; `--sans-fetch` y tolère un `origin` injoignable) ·
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
 import { fileURLToPath } from 'node:url'
-import { arbrePrincipal, fetchOrigin, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { TRONC, arbrePrincipal, fetchOrigin, lireGit, sortieOuNull } from '../guards/lib/gitPorte.mjs'
 import { inventaire } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
 
@@ -36,7 +36,7 @@ export const PROPRIETAIRE = 'cgauche'
 /** Le titre qui IDENTIFIE le Project : un second Project de même titre serait le même board. */
 export const TITRE_PROJECT = 'Chantiers'
 /** La référence de base de toute mesure d'avance/retard. */
-export const BASE = 'origin/main'
+export const BASE = TRONC.suivi
 /** Au-delà de ce nombre de jours sans commit, un chantier en avance est DORMANT. */
 export const JOURS_DORMANT = 7
 /** Fenêtre de lecture des tickets cités par les commits de la base. */

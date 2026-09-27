@@ -8,8 +8,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import {
@@ -18,6 +18,7 @@ import {
   COMMANDE_CLASSER,
   CONDITION_PRODUIT,
   classer,
+  classerPush,
   gatesSautables,
 } from './classerPush.mjs'
 import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
@@ -125,7 +126,7 @@ test('le step de classement précède `npm ci` dans chaque job qui le porte', ()
     assert.ok(iClasser >= 0 && iInstall >= 0, `${job} : classement ou installation absents`)
     assert.ok(
       iClasser < iInstall,
-      `${job} : le classement doit précéder \`npm ci\` — il n’importe que node:*, et c’est lui qui décide ` +
+      `${job} : le classement doit précéder \`npm ci\` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ` +
         'de ce que le reste du job paie',
     )
   }
@@ -354,6 +355,78 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
     const r = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=true')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// ── Avant `npm ci` : la fermeture des imports n'atteint aucun paquet ─────────────────────────────
+
+/** Imports statiques, réexports, imports nus et `import()` dynamiques d'un source. */
+const IMPORTS = /(?:^|\n)\s*(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
+
+/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt). */
+function fermetureDesImports(depart) {
+  const fichiers = new Set()
+  const paquets = []
+  const visiter = (absolu) => {
+    const rel = relative(RACINE, absolu)
+    if (fichiers.has(rel)) return
+    fichiers.add(rel)
+    for (const m of readFileSync(absolu, 'utf8').matchAll(IMPORTS)) {
+      const cible = m[1] ?? m[2] ?? m[3]
+      if (cible.startsWith('node:')) continue
+      if (!cible.startsWith('.')) { paquets.push(`${cible} <- ${rel}`); continue }
+      const chemin = resolve(dirname(absolu), cible)
+      assert.ok(existsSync(chemin), `${rel} importe \`${cible}\`, introuvable`)
+      visiter(chemin)
+    }
+  }
+  visiter(depart)
+  return { fichiers: [...fichiers], paquets }
+}
+
+test('le classement tourne AVANT `npm ci` : la fermeture de ses imports n’atteint aucun paquet', () => {
+  const { fichiers, paquets } = fermetureDesImports(CLASSEUR)
+  assert.ok(fichiers.includes('scripts/guards/lib/gitPorte.mjs'), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
+  assert.deepEqual(paquets, [], `imports hors node:* et hors dépôt dans la fermeture de ${fichiers.join(', ')}`)
+})
+
+// ── Chemins d'ÉCHEC : jamais DOCUMENTAIRE ─────────────────────────────────────────────────────────
+
+test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classement CONSERVATEUR', () => {
+  const { racine, git } = depotJetable()
+  try {
+    git(['checkout', '-q', '--orphan', 'orpheline'])
+    git(['rm', '-q', '-f', 'README.md'])
+    ecrire(racine, '.claude/memory/x.md', 'fiche\n')
+    git(['add', '.claude/memory/x.md'])
+    git(['commit', '-q', '-m', 'fiche orpheline'])
+    const v = classerPush({ ref: 'refs/heads/orpheline', sha: 'HEAD', cwd: racine })
+    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec : conservateur']])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('ÉCHEC — sur `main`, un commit RACINE sans `BEFORE` n’a pas de `SHA^` : classement CONSERVATEUR', () => {
+  const { racine, git } = depotJetable()
+  try {
+    const sha = git(['rev-parse', 'main'])
+    const v = classerPush({ ref: 'refs/heads/main', before: '0'.repeat(40), sha, cwd: racine })
+    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`main sans parent lisible pour ${sha} : conservateur`]])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('ÉCHEC — un `diff` illisible LÈVE, et le CLI sort 1 sans rien écrire sur stdout (le step est rouge)', () => {
+  const { racine } = depotJetable()
+  try {
+    const faux = 'f'.repeat(40)
+    assert.throws(() => classerPush({ ref: 'refs/heads/main', before: faux, sha: 'HEAD', cwd: racine }), /git diff .* : en échec/)
+    const r = jouerCli(racine, { REF: 'refs/heads/main', BEFORE: faux, SHA: 'HEAD' })
+    assert.deepEqual([r.code, r.stdout], [1, ''])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

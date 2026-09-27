@@ -30,6 +30,7 @@ import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { jobsCi } from '../gates/gatesDeCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
+import { TRONC } from '../guards/lib/gitPorte.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const NOM = 'main'
@@ -55,7 +56,7 @@ export function corpsDuRuleset(contextes) {
     name: NOM,
     target: 'branch',
     enforcement: 'active',
-    conditions: { ref_name: { include: ['refs/heads/main'], exclude: [] } },
+    conditions: { ref_name: { include: [TRONC.branche], exclude: [] } },
     rules: [
       {
         type: 'required_status_checks',

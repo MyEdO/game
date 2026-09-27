@@ -19,7 +19,7 @@ import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { arbrePrincipal, fetchOrigin, lireGit, natureDuChemin, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { TRONC, arbrePrincipal, fetchOrigin, lireGit, natureDuChemin, sortieOuNull } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
@@ -174,13 +174,13 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, git = lire
     return { ok: false, refus: `origin non consultable, le chantier ne peut pas partir d'origin/main : ${vuFetch.raison}` }
   }
 
-  const vuAdd = git(['worktree', 'add', '-b', branche, cible, 'origin/main'], { cwd: principal, site: 'git worktree add' })
+  const vuAdd = git(['worktree', 'add', '-b', branche, cible, TRONC.suivi], { cwd: principal, site: 'git worktree add' })
   if (!vuAdd.disponible) return { ok: false, refus: `git worktree add a échoué : ${vuAdd.raison}`, cible, branche }
   if (vuAdd.absent || vuAdd.valeur.status !== 0) {
     return { ok: false, refus: `git worktree add a échoué (code ${vuAdd.absent ? 'objet absent' : vuAdd.valeur.status})`, cible, branche }
   }
 
-  const base = (sortieOuNull(git(['rev-parse', '--short', 'origin/main'], { cwd: principal, site: 'git rev-parse' })) ?? '').trim() || 'inconnue'
+  const base = (sortieOuNull(git(['rev-parse', '--short', TRONC.suivi], { cwd: principal, site: 'git rev-parse' })) ?? '').trim() || 'inconnue'
   const resume = resumeDeChantier({ cible, branche, base, port: portDev(cible), url: urlDev(cible) })
 
   if (sansCi) return { ok: true, cible, branche, base, resume, npmJoue: false }

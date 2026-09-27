@@ -485,15 +485,27 @@ function texteDEntree(touchees, entrees) {
  *   est un lecteur : le repli juge alors, et la porte le sait.
  */
 export function croissanceDesStocks(diffU0, images) {
+  return croissancesDuBilan(bilanDesStocks(diffU0, images));
+}
+
+/**
+ * Le BILAN SIGNÉ d'un diff, porteur par porteur : `parCle` = clé → croissance nette, NÉGATIVE comprise,
+ * pour TOUT porteur touché. `croissanceDesStocks` en est la lecture positive ; deux bilans se
+ * SOUSTRAIENT clé par clé (`bilanSoustrait`, `plageStock.mjs`, #1806). Mêmes paramètres et mêmes
+ * levées que `croissanceDesStocks`, qui les lui délègue.
+ * @param {string} diffU0 @param {Parameters<typeof croissanceDesStocks>[1]} images
+ * @returns {{ fichier: string, retenues: string[], perdues: string[], parCle: Map<string, number> }[]}
+ */
+export function bilanDesStocks(diffU0, images) {
   if (typeof diffU0 !== 'string') {
     throw new TypeError(
-      `croissanceDesStocks(diffU0, images) attend le diff en CHAÎNE, reçu ${typeof diffU0} `
-      + '— la signature est POSITIONNELLE : croissanceDesStocks(diff, { lirePostImage, lirePreImage })',
+      `bilanDesStocks(diffU0, images) attend le diff en CHAÎNE, reçu ${typeof diffU0} `
+      + '— la signature est POSITIONNELLE : bilanDesStocks(diff, { lirePostImage, lirePreImage })',
     );
   }
   if (typeof images?.lirePostImage !== 'function') {
     throw new Error(
-      "croissanceDesStocks : aucun lecteur d'image post — un compte sans image ment. Passer "
+      "bilanDesStocks : aucun lecteur d'image post — un compte sans image ment. Passer "
       + '`{ lirePostImage: (chemin) => string | null }` ; un lecteur qui rend `null` laisse le REPLI '
       + 'de ligne juger.',
     );
@@ -580,25 +592,35 @@ export function croissanceDesStocks(diffU0, images) {
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
   apparierLesDeplacements(lus);
-  return lus
-    .map(({ fichier, retenues, perdues }) => {
-      /** @type {Map<string, number>} clé → croissance nette */
-      const parCle = new Map();
-      for (const t of retenues) {
-        const k = fichierNommePar(t);
-        parCle.set(k, (parCle.get(k) ?? 0) + 1);
-      }
-      for (const t of perdues) {
-        const k = fichierNommePar(t);
-        const reportee = renommages.get(k) ?? k;
-        parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
-      }
+  return lus.map(({ fichier, retenues, perdues }) => {
+    /** @type {Map<string, number>} clé → croissance nette */
+    const parCle = new Map();
+    for (const t of retenues) {
+      const k = fichierNommePar(t);
+      parCle.set(k, (parCle.get(k) ?? 0) + 1);
+    }
+    for (const t of perdues) {
+      const k = fichierNommePar(t);
+      const reportee = renommages.get(k) ?? k;
+      parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
+    }
+    return { fichier, retenues, perdues, parCle };
+  });
+}
+
+/** Croissance d'un porteur lue sur ses clés : la somme des nets POSITIFS (#1806 D5″). */
+export const croissanceDesCles = (parCle) => [...parCle.values()].reduce((s, n) => s + Math.max(0, n), 0);
+
+/** La lecture POSITIVE d'un bilan : les porteurs qui croissent, trois exemples sous une clé qui croît. */
+function croissancesDuBilan(bilan) {
+  return bilan
+    .map(({ fichier, retenues, perdues, parCle }) => {
       const croit = (t) => (parCle.get(fichierNommePar(t)) ?? 0) > 0;
       return {
         fichier,
         ajoutees: retenues.length,
         retirees: perdues.length,
-        net: [...parCle.values()].reduce((s, n) => s + Math.max(0, n), 0),
+        net: croissanceDesCles(parCle),
         exemples: retenues.filter(croit).slice(0, 3),
       };
     })
@@ -671,7 +693,12 @@ export function declarationLue(r) {
  * @throws {Error} propagé de `croissanceDesStocks` : sans `images.lirePostImage`, le compte ment.
  */
 export function croissancesNonCouvertes({ diff, message }, images) {
-  const mesures = croissanceDesStocks(diff, images).map((c) => ({ ...c, n: c.net }));
+  return nonCouvertesDuBilan(bilanDesStocks(diff, images), message);
+}
+
+/** `croissancesNonCouvertes` sur un bilan DÉJÀ lu (`bilanDesStocks`) : la plage le lit une fois. */
+export function nonCouvertesDuBilan(bilan, message) {
+  const mesures = croissancesDuBilan(bilan).map((c) => ({ ...c, n: c.net }));
   return mesuresNonCouvertes(mesures, cliquetsDuMessage(message)).map(({ n: _n, ...c }) => c);
 }
 

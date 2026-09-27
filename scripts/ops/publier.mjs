@@ -36,7 +36,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cheminsDe, estAncetre, etatsDe, fetchOrigin, lireGit, raisonCourte, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, cheminsDe, estAncetre, etatsDe, fetchOrigin, lireGit, raisonCourte, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ANNULEE, ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
@@ -503,7 +503,7 @@ export function commandeInterdite(args) {
   // réécrit l'histoire de la branche à chaque tour, et le bail n'écrase que ce qu'on vient de lire.
   // `main` n'entre jamais autrement qu'en fast-forward — la règle `non_fast_forward` du ruleset l'exige.
   if (sous === 'push' && porte('--force', '-f')) return '`git push --force` : jamais, sous aucune forme'
-  if (sous === 'push' && porte('--force-with-lease') && a.some((x) => /(^|:)(main|refs\/heads\/main)$/.test(String(x))))
+  if (sous === 'push' && porte('--force-with-lease') && a.some((x) => [TRONC.nom, TRONC.branche].includes(String(x).split(':').pop())))
     return '`git push --force-with-lease` vers `main` : main n’entre qu’en fast-forward'
   if (sous === 'reset' && porte('--hard')) return '`git reset --hard` : le train ne détruit aucun travail'
   if (sous === 'branch' && porte('-D')) return '`git branch -D` : le train ne supprime aucune branche'
@@ -528,7 +528,7 @@ export const REFUS_SANS_TICKET =
  * vient d'être fetché par la préflight.
  */
 export const plageDeCitations = (journal) =>
-  journal?.base && journal?.tete ? `${journal.base}..${journal.tete}` : 'origin/main..HEAD'
+  journal?.base && journal?.tete ? `${journal.base}..${journal.tete}` : `${TRONC.suivi}..HEAD`
 
 /**
  * Message du commit de docs dérivés. PURE — une seule forme pour les deux étapes qui commettent.
@@ -765,7 +765,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     tronc() {
       const vu = fetchOrigin({ cwd: racine })
       if (!vu.disponible) return { disponible: false, raison: vu.raison }
-      return { disponible: true, sha: lu(['rev-parse', 'origin/main'], racine) }
+      return { disponible: true, sha: lu(['rev-parse', TRONC.suivi], racine) }
     },
     git(args) {
       const interdit = commandeInterdite(args)
@@ -862,12 +862,12 @@ export const ETAPES = [
   {
     nom: 'rebase',
     dejaFaite(ctx, journal) {
-      return Boolean(journal.base) && journal.base === lu(['rev-parse', 'origin/main'], ctx.racine) && journal.tete === ctx.tete
+      return Boolean(journal.base) && journal.base === lu(['rev-parse', TRONC.suivi], ctx.racine) && journal.tete === ctx.tete
     },
     jouer(ctx, journal) {
       const { racine } = ctx
       const teteAvant = ctx.tete
-      const vu = ctx.git(['rebase', 'origin/main'])
+      const vu = ctx.git(['rebase', TRONC.suivi])
       if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
         const conflits = cheminsDe(lecteur(racine), ['diff', '--name-only', '--diff-filter=U'])
         const entame = ['rebase-merge', 'rebase-apply'].some((nom) => {
@@ -887,7 +887,7 @@ export const ETAPES = [
           raison: `rebase sur origin/main en CONFLIT (abandonné)${conflits.length ? ` — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}` : ''}`,
         }
       }
-      journal.base = lu(['rev-parse', 'origin/main'], racine)
+      journal.base = lu(['rev-parse', TRONC.suivi], racine)
       journal.tete = ctx.tete
       journal.teteAvant = teteAvant
       const commits = lu(['rev-list', `${journal.base}..HEAD`], racine)
@@ -1003,7 +1003,7 @@ export const ETAPES = [
     nom: 'ff-main',
     dejaFaite(ctx, journal) {
       if (!journal.tete) return false
-      const vu = estAncetre(journal.tete, 'origin/main', { cwd: ctx.racine })
+      const vu = estAncetre(journal.tete, TRONC.suivi, { cwd: ctx.racine })
       return vu.disponible && !vu.absent && vu.valeur === true
     },
     jouer(ctx, journal) {
@@ -1011,7 +1011,7 @@ export const ETAPES = [
       if (!avant.disponible) return { ok: false, raison: `origin non consultable avant le fast-forward : ${avant.raison}` }
       const vuAvant = jugerLeTronc(journal, avant.sha, 'origin/main a bougé pendant l’attente CI')
       if (vuAvant) return vuAvant
-      const vu = ctx.git(['push', 'origin', 'HEAD:main'])
+      const vu = ctx.git(['push', 'origin', `HEAD:${TRONC.nom}`])
       if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
         // Le tronc se REMESURE après un refus : origin/main peut recevoir des commits entre la
         // lecture d'amont et le push, et git refuse alors en `non-fast-forward` — c'est la MÊME

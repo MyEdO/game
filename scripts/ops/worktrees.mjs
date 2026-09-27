@@ -21,7 +21,7 @@
 //
 // Usage : `npm run ops:worktrees` (inventaire seul) ou `npm run ops:worktrees -- --purger`.
 import { fileURLToPath } from 'node:url'
-import { estAncetre, fetchOrigin, lireGit, natureDuChemin } from '../guards/lib/gitPorte.mjs'
+import { TRONC, estAncetre, fetchOrigin, lireGit, natureDuChemin } from '../guards/lib/gitPorte.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 
 /** Racine de l'arbre qui porte CE script (le dépôt commun répond pour tous ses worktrees). */
@@ -166,7 +166,7 @@ export function inventaire({ racine = RACINE, cwd = process.cwd(), git = lireGit
     }
     let fusionne = null
     if (fusionLue && !absent && w.head) {
-      const vu = estAncetre(w.head, 'origin/main', { cwd: principal })
+      const vu = estAncetre(w.head, TRONC.suivi, { cwd: principal })
       fusionne = vu.disponible && !vu.absent ? vu.valeur === true : null
     }
     const enrichi = { ...w, absent, sale, fusionne }

@@ -33,7 +33,7 @@
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { estAncetre, lireGit, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, estAncetre, lireGit, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
@@ -41,7 +41,7 @@ import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
 const ZERO = '0'.repeat(40)
 
 /** La ref distante que le ruleset protège — la seule dont le contenu doit être VERT avant d'entrer. */
-export const REF_PROTEGEE = 'refs/heads/main'
+export const REF_PROTEGEE = TRONC.branche
 
 /** Les refs dont l'histoire se réécrit par construction : un écrivain, rebasées par le train. */
 export const PREFIXE_CHANTIER = 'refs/heads/chantier/'
@@ -121,7 +121,7 @@ export function jugerPush({ cwd, stdin, env = process.env }) {
 
   for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
     // Stocks nominatifs de la PLAGE poussée : par commit, filtrés par la croissance cumulée.
-    const stocks = croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal })
+    const stocks = croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante })
     for (const n of stocks.notes) notes.push(n)
     if (stocks.indisponible)
       refus.push(`${refLocale} → ${refDistante} : plage \`${stocks.plage}\` illisible : ${stocks.indisponible}`)

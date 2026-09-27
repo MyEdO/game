@@ -43,13 +43,21 @@ function porteEnVigueur() {
 
 /** Début de la plage à juger. En CI, l'événement de push le porte (`GITHUB_EVENT_PATH` → `before`) ;
  *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de début. Sans événement lisible, le
- *  début reste nul et `croissancesDeLaPlage` juge HEAD seul en le DISANT (jamais un silence). */
+ *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc, ou juge HEAD seul en le
+ *  DISANT (jamais un silence). */
 function debutDeLaPlage(env = process.env) {
   if (!env.GITHUB_EVENT_PATH) return SHA_NUL
   try {
     const debut = String(JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8'))?.before ?? '')
     return /^[0-9a-f]{40}$/.test(debut) && debut !== SHA_NUL ? debut : SHA_NUL
   } catch { return SHA_NUL }
+}
+
+/** La ref POUSSÉE : en CI `GITHUB_REF` (= `github.ref`, la ref que l'événement a poussée, celle que
+ *  classe `.github/workflows/ci.yml:40`) ; hors CI, la branche de HEAD. */
+function refPoussee(env = process.env) {
+  if (env.GITHUB_REF) return env.GITHUB_REF
+  try { return git('symbolic-ref', '-q', 'HEAD').trim() } catch { return null }
 }
 
 // ── La règle, sur des diffs FABRIQUÉS (ce que la porte voit, et ce qu'elle ne voit pas) ──────────
@@ -1124,7 +1132,7 @@ test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence'
   }
   exigerHistoireComplete()
   const { refus, notes, commits } = croissancesDeLaPlage({
-    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(),
+    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(),
   })
   for (const n of notes) t.diagnostic(n)
   if (commits !== undefined) t.diagnostic(`${commits} commit(s) jugé(s)`)

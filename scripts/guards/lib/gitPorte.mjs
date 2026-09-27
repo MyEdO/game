@@ -561,10 +561,13 @@ export function arbrePrincipal(cwd, git = lireGit) {
  *  porte au push et la préflight de publication refusent l'une comme l'autre un `origin` étranger. */
 export const urlOrigineAcceptee = (url) => /github\.com[:/]cgauche\/game(?:\.git)?$/.test(String(url ?? '').trim())
 
+/** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
+export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
+
 /**
  * MUTATION de refs : met `refs/remotes/origin/<branche>` à jour. Une panne RÉSEAU rend
  * `indisponible` — la porte qui l'appelle dit « CI non consultable », elle ne conclut pas.
  */
-export function fetchOrigin({ branche = 'main', ...opts } = {}) {
+export function fetchOrigin({ branche = TRONC.nom, ...opts } = {}) {
   return lireGit(['fetch', '--quiet', 'origin', branche], { site: 'git fetch', timeout: 60000, ...opts })
 }

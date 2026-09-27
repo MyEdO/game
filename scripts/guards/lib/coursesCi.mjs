@@ -18,7 +18,7 @@
 //     qui rejoue une liste PÉRIMÉE puis sa relecture (session #1508), et les deux fenêtres 30/300.
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { classer, fait, indisponible } from './gitPorte.mjs'
+import { TRONC, classer, fait, indisponible } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 import { PORTE } from '../../gates/workflowsDuDepot.mjs'
 
@@ -74,7 +74,7 @@ export function triees(courses) {
  */
 export function coursesCi({
   cwd = process.cwd(), env = process.env, limit = 30, workflow = PORTE,
-  branche = 'main', commit = null, spawn = spawnSync,
+  branche = TRONC.nom, commit = null, spawn = spawnSync,
 } = {}) {
   if (env.WFRP_GH_STUB) return listeDuStub(env.WFRP_GH_STUB)
   const args = [
