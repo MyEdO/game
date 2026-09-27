@@ -81,8 +81,10 @@ const doc = document(
     grantSpecGroups: z.literal(true).optional(),
     /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que son porteur PRATIQUE : il
      *  compte alors dans les Domaines tenus et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` (engine/careerSlots). Distinct de `specsSource`,
-     *  qui ne décrit que le POOL de spécialisations proposé. */
+     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` et `arcaneDomainGate` (engine/careerSlots, câblé
+     *  à l'achat par `buyTalent`, state/partyFlow). Son Maxi se compte alors PAR Domaine
+     *  (`talentMaxReached`, `LDB 46 l.177`). Distinct de `specsSource`, qui ne décrit que le POOL de
+     *  spécialisations proposé. */
     grantsArcaneDomain: z.literal(true).optional(),
     specsOpen: z.boolean().optional(),
     rand: z.number().nullable(),

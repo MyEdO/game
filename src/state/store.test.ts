@@ -1452,6 +1452,17 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     expect(h0().xp).toBe(900);
   });
 
+  it('buyTalent : Haine au Maxi (Bonus de Force Mentale) refuse un groupe neuf (LDB 10 l.18, l.548)', () => {
+    // Flagellant Niveau 2 : « Haine (Hérétiques) » in-carrière ; FM 30 → Maxi 3.
+    set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times: 3 }] }));
+    useGame.getState().buyTalent('h', 'haine', 'heretiques');
+    expect(h0().talents.some((t) => t.talentId === 'haine' && t.spec === 'heretiques')).toBe(false);
+    expect(h0().xp).toBe(1000);
+    set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times: 2 }] }));
+    useGame.getState().buyTalent('h', 'haine', 'heretiques');
+    expect(h0().talents.find((t) => t.talentId === 'haine' && t.spec === 'heretiques')?.times).toBe(1);
+  });
+
   it('buyTalent : « +5 Caractéristique de départ » passif à l\'achat (Guerrier né, LDB 10)', () => {
     set1(mkHero({ xp: 1000, career: 'soldat' })); // Recrue : Guerrier né in-carrière
     useGame.getState().buyTalent('h', 'guerrier-ne');

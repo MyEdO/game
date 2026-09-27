@@ -136,6 +136,16 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
     expect(h.talents.find((t) => t.talentId === 'sang-froid')!.times).toBe(2);
     expect(h.xp).toBe(1000 - 100 - 200);
   });
+  it('buyTalent : le coût compte les acquisitions du Talent, toutes utilisations (LDB 07 l.105 ; LDB 10 l.17-18)', () => {
+    const h = hero(1000);
+    h.talents.push({ talentId: 'haine', spec: 'peaux-vertes', times: 1 });
+    expect(buyTalent(h, 'haine', 'morts-vivants')).toEqual({ ok: true, cost: 200 });
+  });
+  it('buyTalent : un nouveau Domaine est un nouveau Talent Magie des Arcanes (LDB 46 l.177)', () => {
+    const h = hero(1000);
+    h.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
+    expect(buyTalent(h, 'magie-des-arcanes', 'cieux')).toEqual({ ok: true, cost: 100 });
+  });
 });
 
 describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', () => {

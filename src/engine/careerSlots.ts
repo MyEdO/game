@@ -4,10 +4,9 @@
  *  - Compétences groupées (LDB 09 l.33-43) : chaque Spécialisation est UNE Compétence distincte
  *    (l.42, ex. Sigrid). Quand l'entrée de carrière porte « (Au choix) », le joueur choisit la
  *    Spécialisation AU MOMENT où il alloue une Augmentation (l.38, ex. Théodora).
- *  - Talents (LDB 10 l.13-20) : la parenthèse est une « utilisation » distincte — Sens aiguisé
- *    (Vue) ≠ Sens aiguisé (Goût) ; le Maxi (1 ou « Bonus de X ») se compte par spécialisation.
- *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.76),
- *    Talents du niveau courant uniquement (l.103).
+ *  - Talents : utilisation et Maxi — LDB 10 l.17-18 ; dérogation `grantsArcaneDomain` — LDB 46 l.177.
+ *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.78),
+ *    Talents du niveau courant uniquement (l.100).
  *
  * Modèle des emplacements « (Au choix) » : chaque entrée de liste d'un Niveau de Carrière est un
  * EMPLACEMENT (slot). Le livre fixe QUOI est disponible (Compétences/Talents ci-dessus) mais reste
@@ -376,17 +375,15 @@ export function designateSlot(
 }
 
 /**
- * Maxi d'un Talent (LDB 10 « Schéma des Talents ») par son `id` STABLE : 1, « Bonus de X »
- * (recalculé sur les Caractéristiques courantes) ou illimité (« Aucun »/absent). Le Maxi se
- * compte PAR spécialisation (côté appelant : le libellé concret porte la spec). Le Maxi lu est celui
- * de l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts`) : une variante réglée qui
- * republie « Maxi » (AA 13 l.54-59, l.70-74) fait autorité sur la forme de base.
+ * Maxi d'un Talent par son `id` STABLE (LDB 10 l.18) : 1, Bonus de Caractéristique (LDB 05 l.406)
+ * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
+ * AA 13 l.54-59, l.70-74).
  */
 export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
-  if (max == null) return null; // sans limite
+  if (max == null) return null;
   if (typeof max === 'number') return max;
-  return bonus(hero.characteristics[max.bonusOf]); // Maxi = Bonus de carac (valeur de base du héros)
+  return bonus(hero.characteristics[max.bonusOf]); // LDB 07 l.47 : `characteristics` porte les Augmentations (`buyCharAdvance`)
 }
 
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */
@@ -395,13 +392,20 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
   return typeof max === 'number' ? String(max) : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
 }
 
-/** Le héros a-t-il atteint le Maxi de ce Talent, par `(talentId, spec)` — identité STABLE, jamais
- *  un libellé re-parsé. */
+/** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
+ *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
+ *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `arcaneDomainGate`. */
+export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
+  const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
+  return (hero.talents ?? [])
+    .filter((t) => t.talentId === talentId && (!parDomaine || (t.spec ?? '') === (spec ?? '')))
+    .reduce((n, t) => n + t.times, 0);
+}
+
+/** Le héros a-t-il atteint le Maxi de ce Talent (`talentAcquisitions`). */
 export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
   const max = talentMaxById(hero, talentId);
-  if (max == null) return false;
-  const times = (hero.talents ?? []).find(estLInstanceDe({ id: talentId, spec }))?.times ?? 0;
-  return times >= max;
+  return max != null && talentAcquisitions(hero, talentId, spec) >= max;
 }
 
 /** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */

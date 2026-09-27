@@ -98,7 +98,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 **Voir aussi** : [`carrieres.md`](carrieres.md) pour la structure du Schéma de Progression par Carrière.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.41-72) → `adv-0-5`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `adv-16-20`, `adv-21-25`, `buyCharAdvance`, `doc`, +18 — `src/data/advancementCosts.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/tables.ts`, +2 fichiers
+- `LDB 7` (l.41-72) → `adv-0-5`, `BandeOuverte`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `adv-16-20`, `adv-21-25`, `buyCharAdvance`, `doc`, +19 — `src/data/advancementCosts.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/tables.ts`, +2 fichiers
 
 ---
 
@@ -176,7 +176,7 @@ Formule : **coût de la N+1ᵉ acquisition = 100 × (N + 1)** où N = nombre d'a
 **Voir aussi** : [`talents.md`](talents.md) pour la liste des Talents et les restrictions de multi-achat.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `careerChangeCost`, `buildAdvancementView`, `talentSlots`, +10 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
+- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `careerChangeCost`, `buildAdvancementView`, `talentSlots`, +11 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
 
 ---
 

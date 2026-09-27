@@ -25,6 +25,7 @@ import {
   prisParLesAutres,
   refKey,
   parseRefKey,
+  talentAcquisitions,
   talentMaxReached,
   wildcardSpecs,
 } from '../engine/careerSlots';
@@ -77,12 +78,15 @@ export interface TalentSlotRow {
   spec?: string;
   /** Libellé D'AFFICHAGE seulement (résolu via `refLabel`). */
   label?: string;
+  /** Acquisitions de CETTE utilisation (affichage « ×N »). */
   times: number;
+  /** Coût de la prochaine acquisition (`talentAcquisitions`) ; slot à choix non désigné : le moindre de ses options. */
   nextCost: number;
+  /** Slot à choix non désigné : au Maxi quand TOUTES ses options le sont. */
   maxReached: boolean;
   /** Slot à choix non désigné : options proposées — `refKey` = clé de câblage OPAQUE id+spec (produite
    *  par `careerSlots.refKey`, jamais un libellé), `display` = texte montré (résolu via `refLabel`). */
-  options?: { refKey: string; display: string; owned: boolean }[];
+  options?: { refKey: string; display: string; owned: boolean; nextCost: number; maxReached: boolean }[];
 }
 export interface CareerTarget {
   career: string;
@@ -186,10 +190,10 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
       // Match de l'entité possédée par id+spec — le libellé (`refLabel`) reste l'AFFICHAGE seul.
       const label = refLabel('talents', ref);
       const times = hero.talents.find((t) => t.talentId === ref!.id && (t.spec ?? '') === (ref!.spec ?? ''))?.times ?? 0;
-      return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, ref.id, ref.spec) };
+      return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, ref.id, ref.spec)), maxReached: talentMaxReached(hero, ref.id, ref.spec) };
     }
     // Slot à choix non désigné : proposer les options concrètes que son niveau ne tient pas.
-    const options: { refKey: string; display: string; owned: boolean }[] = [];
+    const options: NonNullable<TalentSlotRow['options']> = [];
     for (const o of slot.options) {
       if (!o.optionId) continue;
       const pool: (string | undefined)[] = o.wildcard ? wildcardSpecs(o, 'talent') : [o.spec];
@@ -200,10 +204,16 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
           refKey: rk,
           display: refLabel('talents', { id: o.optionId, spec }),
           owned: (hero.talents.find((t) => t.talentId === o.optionId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0) > 0,
+          nextCost: talentCost(talentAcquisitions(hero, o.optionId, spec)),
+          maxReached: talentMaxReached(hero, o.optionId, spec),
         });
       }
     }
-    return { slotKey: slot.key, entry: slot.entry, times: 0, nextCost: talentCost(0), maxReached: false, options };
+    return {
+      slotKey: slot.key, entry: slot.entry, times: 0, options,
+      nextCost: options.length ? Math.min(...options.map((o) => o.nextCost)) : talentCost(0),
+      maxReached: options.length > 0 && options.every((o) => o.maxReached),
+    };
   });
   // Talents AJOUTÉS à la carrière (`talentsAjoutesALaCarriere`, la définition que lit l'achat) : apprenables
   // en carrière même hors emplacement de niveau. Dédupe contre les slots déjà projetés (par id+spec).
@@ -212,7 +222,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
     if (talents.some((r) => (r.talentId === add.id && (r.spec ?? '') === (add.spec ?? '')) || r.options?.some((o) => o.refKey === rk))) continue;
     const label = refLabel('talents', add);
     const times = hero.talents.find((t) => t.talentId === add.id && (t.spec ?? '') === (add.spec ?? ''))?.times ?? 0;
-    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, add.id, add.spec) });
+    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(talentAcquisitions(hero, add.id, add.spec)), maxReached: talentMaxReached(hero, add.id, add.spec) });
   }
 
   const completed = cur

@@ -172,12 +172,18 @@ describe('Maxi des Talents (LDB 10 « Schéma des Talents »)', () => {
     expect(talentMaxReached(h, 'lire-ecrire')).toBe(true);
     expect(talentMaxReached(h, 'baratiner')).toBe(false);
   });
-  it('Maxi « Bonus de Caractéristique » : par spécialisation, recalculé sur la valeur courante', () => {
+  it('Maxi « Bonus de Caractéristique » : compte les acquisitions de TOUTES les utilisations (LDB 10 l.17-18)', () => {
     // Sens aiguisé : Maxi = Bonus d'Initiative (I 30 → 3).
-    const h = hero({ talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 3 }, { talentId: 'sens-aiguise', spec: 'ouie', times: 1 }] });
-    expect(talentMaxById(h, 'sens-aiguise')).toBe(3);
-    expect(talentMaxReached(h, 'sens-aiguise', 'gout')).toBe(true);
-    expect(talentMaxReached(h, 'sens-aiguise', 'ouie')).toBe(false); // spec distincte
+    const auMaxi = hero({ talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 3 }] });
+    expect(talentMaxById(auMaxi, 'sens-aiguise')).toBe(3);
+    expect(talentMaxReached(auMaxi, 'sens-aiguise', 'ouie')).toBe(true);
+    const sous = hero({ talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 2 }] });
+    expect(talentMaxReached(sous, 'sens-aiguise', 'ouie')).toBe(false);
+  });
+  it('Magie des Arcanes (`grantsArcaneDomain`) : Maxi 1 PAR Domaine (LDB 46 l.177)', () => {
+    const h = hero({ talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }] });
+    expect(talentMaxReached(h, 'magie-des-arcanes', 'feu')).toBe(true);
+    expect(talentMaxReached(h, 'magie-des-arcanes', 'cieux')).toBe(false);
   });
 });
 

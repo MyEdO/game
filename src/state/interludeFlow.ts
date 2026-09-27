@@ -50,6 +50,7 @@ import { effectiveEntry } from '../engine/variants';
 import { effectiveChar } from '../engine/characteristics';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
+import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
 import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
@@ -628,7 +629,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // pistoles d'argent par 100PX » ; PX + argent gatés AVANT (dépensés MÊME sur échec, cf. resolver).
     const t = opts.talentId ? findTalentById(opts.talentId) : undefined;
     if (!t) { get().log(msg('if.talentUnknown', { id: opts.talentId ?? '' })); return; }
-    const xpCost = talentCost(h.talents.find((k) => k.talentId === t.id)?.times ?? 0);
+    const xpCost = talentCost(talentAcquisitions(h, t.id));
     if ((h.xp ?? 0) < xpCost) {
       get().log(msg('if.entrainementXpKo', { name: h.label, cost: xpCost, label: refLabel('talents', { id: t.id }) }));
       return;
