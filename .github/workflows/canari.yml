@@ -37,6 +37,12 @@ jobs:
       - id: install
         run: npm ci
 
+      # PREMIÈRE gate : `test` et `build` passent par `vite.config.ts`, dont `buildStart` appelle
+      # `genAll()` et réécrit les `*.generated.ts` (même ordre que `ci.yml`).
+      - id: docs-check-tout
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run docs:check:tout
       - id: agents-check
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -68,15 +74,6 @@ jobs:
         run: |
           npm run agents:sync
           git diff --exit-code -- AGENTS.md .agents/skills .codex/credo.md
-      # src/data/*.json sont la SOURCE app-owned (commitée) — plus de régénération build:data.
-      - name: Dérive des registres générés
-        # Glob sur TOUS les fichiers générés, pas les seuls `_registry` : `_ids.generated.ts`,
-        # `_registry-scenes.generated.ts` et `qualityId.generated.ts` en tombaient dehors, si bien
-        # qu'une recette ajoutée sans `npm run gen` périmait le registre en silence (#1680).
-        id: registres-generes
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run gen && git diff --exit-code -- '*.generated.ts'
       - id: typecheck
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -93,10 +90,6 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build
-      - id: docs-check
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run docs:check
       # Le seul volet des plans datés qui exige le réseau : un `Ticket:` dont TOUTES les issues sont
       # fermées = plan exécuté que la politique `docs/` veut SUPPRIMÉ. `gh issue list --limit N` impose
       # un plafond numérique à re-relever quand le stock grossit (849 ouvertes pour un `--limit 1000`) :
@@ -113,19 +106,6 @@ jobs:
           gh api --paginate --jq '.[] | {number}' 'repos/{owner}/{repo}/issues?state=open&per_page=100' \
             < /dev/null | jq -s '.' > /tmp/issues-ouvertes.json
           node scripts/docs/check-plans-anchors.mjs --online /tmp/issues-ouvertes.json
-      - name: Fraîcheur des catalogues Atlas RAW
-        id: raw-catalogs
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:catalogs && git diff --exit-code -- ':(glob)docs/raw/**/catalogue-*.md'
-      - id: raw-coverage
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:coverage
-      - id: raw-reconcile
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:reconcile
       - id: test-raw
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -138,10 +118,6 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run raw:check-code-refs
-      - id: raw-reanchor
-        continue-on-error: true
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:reanchor
       - id: server-install
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -150,6 +126,12 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
+      # Filet des écrivains par nature (`genAll()` de `build` et de la suite), comme `ci.yml`.
+      - name: Arbre inchangé
+        id: arbre-inchange
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
 
       # Les deux mesures d'ÉTAT (le dépôt npm, les fermetures GitHub)
       # écrivent leur rapport dans `$RUNNER_TEMP/canari` : le résumé les recolle dans le commentaire.
@@ -181,6 +163,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           RESULTATS: |
             install=${{ steps.install.outcome }}
+            docs-check-tout=${{ steps.docs-check-tout.outcome }}
             agents-check=${{ steps.agents-check.outcome }}
             test-agents=${{ steps.test-agents.outcome }}
             test-hooks=${{ steps.test-hooks.outcome }}
@@ -188,22 +171,17 @@ jobs:
             test-docs=${{ steps.test-docs.outcome }}
             test-recette=${{ steps.test-recette.outcome }}
             agents-idempotence=${{ steps.agents-idempotence.outcome }}
-            registres-generes=${{ steps.registres-generes.outcome }}
             typecheck=${{ steps.typecheck.outcome }}
             lint=${{ steps.lint.outcome }}
             test=${{ steps.test.outcome }}
             build=${{ steps.build.outcome }}
-            docs-check=${{ steps.docs-check.outcome }}
             plans-dates=${{ steps.plans-dates.outcome }}
-            raw-catalogs=${{ steps.raw-catalogs.outcome }}
-            raw-coverage=${{ steps.raw-coverage.outcome }}
-            raw-reconcile=${{ steps.raw-reconcile.outcome }}
             test-raw=${{ steps.test-raw.outcome }}
             raw-check-refs=${{ steps.raw-check-refs.outcome }}
             raw-check-code-refs=${{ steps.raw-check-code-refs.outcome }}
-            raw-reanchor=${{ steps.raw-reanchor.outcome }}
             server-install=${{ steps.server-install.outcome }}
             server-typecheck=${{ steps.server-typecheck.outcome }}
+            arbre-inchange=${{ steps.arbre-inchange.outcome }}
             audit-stock=${{ steps.audit-stock.outcome }}
             fermetures=${{ steps.fermetures.outcome }}
         run: |

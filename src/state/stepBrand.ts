@@ -6,7 +6,7 @@
  * par la migration de save, qui ne peut pas tirer `rollSeam`).
  *
  * La propriété est REQUISE : un littéral nu n'est plus assignable à `BuiltCascadeStep`, et le SEUL
- * moyen d'en produire une est le cast interne d'un minteur (lint `no-restricted-syntax`,
+ * moyen d'en produire une est le cast interne d'un minteur (lint `murs/marques`,
  * `eslint.config.js` : `as BuiltCascadeStep` hors des minteurs échoue ; `saves.ts` est SOUS la règle,
  * exempté AU SITE — chaque cast de réhydratation porte sa directive avec sa raison).
  *

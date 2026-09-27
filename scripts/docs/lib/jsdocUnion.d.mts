@@ -36,12 +36,3 @@ export function readUnionMembers(
 
 export function renderFields(fieldGroups: string[][]): string;
 
-export function emitOrCheck(args: {
-  out: string;
-  path: string;
-  check: boolean;
-  staleMsg: string;
-  rerunMsg: string;
-  okMsg: string;
-  writeMsg: string;
-}): void;

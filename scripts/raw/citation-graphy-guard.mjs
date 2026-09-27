@@ -104,9 +104,9 @@ export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternat
 // mémoïsé par clé (dossiers + extensions). Ce qui coûtait n'était pas l'I/O (~2 s) mais le RE-SCAN
 // du même corpus par famille, sept fois (mesure #1709 D2 : 18,9 s pour 3 743 fichiers de `src/`).
 // MÉMO : il porte le RÉSULTAT de la passe, pas le texte lu (`readCorpus`, scripts/guards/lib) ;
-// même condition de licéité — l'arbre scanné est STATIQUE pendant un run (les gates écrivantes
-// jouent en série avant les lectrices, `scripts/gates/toutes.mjs` `AVANT_LES_LANES`). Les familles
-// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs:96,100`) : un `push`/`sort`
+// même condition de licéité — l'arbre scanné est STATIQUE pendant un run (aucune gate n'écrit dans
+// l'arbre, `photoArbre` de `scripts/gates/toutes.mjs` le vérifie). Les familles
+// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs`) : un `push`/`sort`
 // d'appelant ne peut pas s'écrire dans le mémo.
 // LECTEUR : la marche reste `fichiersCitants` (sur `listerArbre`) et non `readCorpus`, parce que ce garde
 // scanne des corpus que ce dernier ne sait pas dire — une base à 0 fichier (il la refuse, par base)
@@ -462,5 +462,4 @@ function main() {
   if (src.length || docs.length || implProse.length || stockFail || unknownAbbr.length || multiFolioSplit.length) process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

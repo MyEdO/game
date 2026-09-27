@@ -1,6 +1,7 @@
 // Hook PreToolUse(Write|Edit) : rappel de GROUNDING quand une donnée app-owned (src/data/*.json) est
 // éditée. Non bloquant — injecte du contexte (le hard-gate reste `npm test`). Atteint aussi les
 // SOUS-AGENTS, où les skills ne se déclenchent jamais. Motivé par l'incident #148 (doublon « Bélier »).
+import '../node-requis.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 let raw = ''

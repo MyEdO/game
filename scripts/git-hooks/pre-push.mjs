@@ -31,7 +31,6 @@
 //
 // MESURE : `WFRP_GH_STUB=<fichier json>` fournit les courses au lieu de `gh` (`coursesCi.mjs`).
 import { readFileSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
@@ -167,7 +166,7 @@ export function jugerPush({ cwd, stdin, env = process.env }) {
   return { refus, notes }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (import.meta.main) {
   const cwd = process.cwd()
   const stdin = (() => {
     try {

@@ -15,16 +15,15 @@
  * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, famille
  * `merge=docs-generes`) : `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
- * Mode --check (chaîné dans `npm run docs:check` et au pre-commit dès qu'une fiche `user-*` ou
- * `docs/doctrines.md` est stagé) : régénère en mémoire, compare au fichier committé, exit 1 si divergence.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`
+ * et au pre-commit dès qu'une fiche `user-*` ou `docs/doctrines.md` est stagé.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
  */
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
 const OUTIL = 'build-doctrines'
@@ -218,7 +217,7 @@ function main() {
   const fiches = chemins.map((fichier) => ({ fichier, texte: readFileSync(resolve(cwd, fichier), 'utf8') }))
   const out = construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) })
   const poids = Buffer.byteLength(out, 'utf8')
-  emitOrCheck({
+  ecrireOuVerifier({
     out,
     path: resolve(cwd, CIBLE),
     check,
@@ -229,5 +228,4 @@ function main() {
   })
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

@@ -10,8 +10,7 @@
 // un cœur, une classe de plus coûte zéro ligne ici.
 // Cette garde n'écrit RIEN.
 // Re-run : node scripts/raw/check-ancres.mjs (npm run raw:check-ancres).
-import { posix, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { posix } from 'node:path'
 import { CLASSES_DE_PAGE, pagesDeLAtlas, readText } from './_lib.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { tableDAncres } from './lib/ancres.mjs'
@@ -73,5 +72,4 @@ function main(rawDir = RAWDIR) {
   console.log('OK — chaque renvoi d’ancre de l’Atlas désigne une ancre existante de la page qu’il vise.')
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

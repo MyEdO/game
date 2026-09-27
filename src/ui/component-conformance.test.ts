@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Gardes du SYSTÈME DE COMPOSANTS unifié (#236). Une garde par classe de conformité, scan de source
@@ -12,10 +13,12 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 const UI = 'src/ui';
 
 /** Les composants de `src/ui`, hors tests — chemin relatif POSIX à `src/ui/`. */
-const FILES = readCorpus([UI], { exts: ['.tsx'] }).map(({ rel, text }) => ({
-  rel: rel.slice(UI.length + 1),
-  src: text,
-}));
+const FILES = detenteur(() =>
+  readCorpus([UI], { exts: ['.tsx'] }).map(({ rel, text }) => ({
+    rel: rel.slice(UI.length + 1),
+    src: text,
+  })),
+);
 
 /** Valeurs de tous les attributs `className=` (double/simple/accolade+template) d'un fichier. */
 function classNames(src: string): string[] {
@@ -52,7 +55,7 @@ describe('#236 — gardes du système de composants unifié', () => {
   // ── (ii) Le voile plein écran est une PRIMITIVE : `modal-overlay`/`worldmap-overlay` n'apparaissent
   //    en className qu'au sein de `Modal`/`ScreenShell`, plus une whitelist EXPLICITE de semi-canoniques. ──
   it('(ii) modal-overlay / worldmap-overlay : hors Modal/ScreenShell + whitelist des semi-canoniques', () => {
-    const offenders = FILES.filter(
+    const offenders = FILES().filter(
       (f) =>
         !OVERLAY_OWNERS.includes(f.rel) &&
         !OVERLAY_WHITELIST.includes(f.rel) &&
@@ -67,7 +70,7 @@ describe('#236 — gardes du système de composants unifié', () => {
   // ── (iii) Tout markup portant `role="dialog"` câble l'a11y partagée (`useModalA11y`) DANS LE MÊME
   //    fichier — un dialogue sans focus/Échap/piège Tab est un cul-de-sac clavier. ──
   it('(iii) role="dialog" ⇒ useModalA11y dans le même fichier', () => {
-    const offenders = FILES.filter((f) => f.src.includes('role="dialog"') && !f.src.includes('useModalA11y')).map((f) => f.rel);
+    const offenders = FILES().filter((f) => f.src.includes('role="dialog"') && !f.src.includes('useModalA11y')).map((f) => f.rel);
     expect(offenders, 'role="dialog" sans useModalA11y — câbler l’a11y (ou passer par <Modal>/<ScreenShell>) :\n' + offenders.join('\n')).toEqual([]);
   });
 
@@ -75,7 +78,7 @@ describe('#236 — gardes du système de composants unifié', () => {
   //    hand-rollé OU `aria-modal`) importe une primitive canonique — pas de coquille orpheline. ──
   it('(i) toute coquille montée importe une primitive canonique (Modal/ScreenShell/RollShell)', () => {
     const IMPORTS_SHELL = (src: string) => /from '\.{1,2}\/(Modal|ScreenShell|RollShell)'/.test(src);
-    const offenders = FILES.filter((f) => {
+    const offenders = FILES().filter((f) => {
       if (OVERLAY_OWNERS.includes(f.rel) || OVERLAY_WHITELIST.includes(f.rel)) return false;
       const isShell = f.src.includes('aria-modal') || divClassNames(f.src).some((c) => /\b[\w-]*-overlay\b/.test(c));
       return isShell && !IMPORTS_SHELL(f.src);
@@ -87,7 +90,7 @@ describe('#236 — gardes du système de composants unifié', () => {
   //    champ `kind` a disparu de `RollAction` (déduction par rôle dans RollShell). Le TYPAGE l'impose
   //    déjà (excess property) ; cette garde ferme la porte à sa réintroduction textuelle. ──
   it('(vi) aucune action de jet ne porte de style de proéminence au call-site (kind supprimé)', () => {
-    const offenders = FILES.filter((f) => /kind:\s*'(?:primary|ghost|resource)'/.test(f.src)).map((f) => f.rel);
+    const offenders = FILES().filter((f) => /kind:\s*'(?:primary|ghost|resource)'/.test(f.src)).map((f) => f.rel);
     expect(offenders, 'Style de proéminence au call-site — retirer `kind` (RollShell déduit par rôle) :\n' + offenders.join('\n')).toEqual([]);
   });
 
@@ -99,7 +102,7 @@ describe('#236 — gardes du système de composants unifié', () => {
   //    (`<>…</>` — pas un template literal JS). ──
   it('(vii) titre de RollShell : pas de template literal `${…} — …` composé au call-site', () => {
     const offenders: string[] = [];
-    for (const f of FILES) {
+    for (const f of FILES()) {
       const re = /<RollShell[\s\S]{0,600}?\btitle=\{(`[^`]*`)\}/g;
       let m: RegExpExecArray | null;
       while ((m = re.exec(f.src))) {

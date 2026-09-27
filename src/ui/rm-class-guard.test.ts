@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde STRUCTURELLE (#1117) — une classe `rm-*` posée dans le markup DOIT avoir une règle CSS.
  * Une classe sans règle ne fait rien : soit le style manque (le rendu ment sur son intention),
  * soit le `className` est mort. Les deux se corrigent, aucun ne se tolère.
  */
-const css = readCorpus(['src'], { exts: ['.css'], tests: true }).map(({ text }) => text).join('\n');
+const css = detenteur(() => readCorpus(['src'], { exts: ['.css'], tests: true }).map(({ text }) => text).join('\n'));
 
 describe('classes rm-* — aucune classe fantôme', () => {
   const used = new Map<string, string>();
@@ -22,8 +23,9 @@ describe('classes rm-* — aucune classe fantôme', () => {
   /** Recherche SANS regex construite : un sélecteur `.classe` suivi d'un caractère qui termine le nom. */
   const hasRule = (cls: string): boolean => {
     const needle = `.${cls}`;
-    for (let i = css.indexOf(needle); i >= 0; i = css.indexOf(needle, i + 1)) {
-      const next = css[i + needle.length] ?? ' ';
+    const feuilles = css();
+    for (let i = feuilles.indexOf(needle); i >= 0; i = feuilles.indexOf(needle, i + 1)) {
+      const next = feuilles[i + needle.length] ?? ' ';
       if (!/[-\w]/.test(next)) return true;
     }
     return false;

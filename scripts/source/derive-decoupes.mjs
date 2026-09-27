@@ -16,7 +16,7 @@
 // comprises), son texte normalisé re-comparé à la desc normalisée ; une divergence est rapportée en
 // `verification` (bug de la chaîne, jamais un verdict silencieux).
 import { readFileSync } from 'node:fs'
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   cellRefFor, estErreur, findCells, findRuns, joinNorm, normText, resoudreAdresse,
@@ -165,5 +165,5 @@ function main() {
 }
 
 // Le module est IMPORTABLE (la migration du pilote monte `judge`) : le rapport ne part que si ce
-// fichier est le point d'entrée du process — patron de `scripts/migrations/replay.mjs:262`.
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) main()
+// fichier est le point d'entrée du process — patron de `scripts/migrations/replay.mjs`.
+if (import.meta.main) main()

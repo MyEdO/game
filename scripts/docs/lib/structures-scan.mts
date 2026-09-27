@@ -1199,15 +1199,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 // looseObject dont la signature recoupe le lexique ou un schéma de la grammaire partagée.
 // ---------------------------------------------------------------------------
 
-/** Un `createSourceFile` par fichier et par run (T9). */
-const CACHE_SOURCE = new Map<string, ts.SourceFile>();
-const sourceDe = (fichier: string, texte: () => string) => {
-  const vu = CACHE_SOURCE.get(fichier);
-  if (vu) return vu;
-  const sf = ts.createSourceFile(fichier, texte(), ts.ScriptTarget.Latest, true);
-  CACHE_SOURCE.set(fichier, sf);
-  return sf;
-};
+/** AST d'un fichier, bâti pour l'appel qui le demande (`scripts/guards/lib/tsProgram.mjs`, en-tête). */
+const sourceDe = (fichier: string) =>
+  ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest, true);
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
@@ -1215,7 +1209,7 @@ const fichiersGrammaire = (root: string) =>
 const sourcesGrammaire = (root: string) =>
   fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
-    return sourceDe(fichier, () => readFileSync(fichier, 'utf8'));
+    return sourceDe(fichier);
   });
 
 /** `kind` reconnus par `conditionSchema` (`src/data/schemas/grammaire/mecanique.ts`) — lus par AST,
@@ -1336,21 +1330,15 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
 
 type LitteralDef = { def: string; ligne: number; champ: string; cles: string[] };
 
-/** Cache par racine : les `defs/*.ts` ne sont parsés qu'UNE fois par run. */
-const CACHE_LITTERAUX = new Map<string, LitteralDef[]>();
-
 /** Tous les littéraux d'objet zod des `defs/*.ts`, avec leur `def:ligne`, leur champ et leurs clés. */
 function litterauxDefs(root: string): LitteralDef[] {
-  const cache = CACHE_LITTERAUX.get(root);
-  if (cache) return cache;
   const dir = join(root, 'src/data/schemas/defs');
   const out: LitteralDef[] = [];
   for (const f of listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))) {
     const chemin = join(dir, f);
-    const sf = sourceDe(chemin, () => readFileSync(chemin, 'utf8'));
+    const sf = sourceDe(chemin);
     for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
   }
-  CACHE_LITTERAUX.set(root, out);
   return out;
 }
 

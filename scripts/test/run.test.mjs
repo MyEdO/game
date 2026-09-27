@@ -3,6 +3,7 @@
 // se mesure par `npm test`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import os from 'node:os'
 import {
   argumentsEnfant,
   bornesWorkers,
@@ -23,6 +24,14 @@ import {
   SENTINELLES,
   compterSentinelles,
   bilanDiagnostic,
+  coeurs,
+  capacite,
+  memoireDisponibleMo,
+  memoireDisponibleOctets,
+  EMPREINTE_WORKER_MO,
+  PARENT_MO,
+  TAS_UTILISE,
+  TAS_WORKER_MO,
 } from './partition.mjs'
 
 // `filterFiles` de Vitest résout ses filtres relatifs contre le CWD (`relative(dir, f)`) : la
@@ -178,6 +187,119 @@ test('plafond mono : min(4, cœurs − 1), plancher 1 — la CI 4 vCPU sert 3 wo
   assert.equal(maxWorkersMono(1), 1)
 })
 
+/** Workers TOTAUX servis sur `cpus` cœurs : mono `maxWorkersMono`, partagé `node + jsdom`. */
+const workersServis = (cpus) => {
+  const r = repartitionWorkers(cpus)
+  return r.split ? r.node + r.jsdom : maxWorkersMono(cpus)
+}
+
+test('machine vue : entier > 0 forcé par l’environnement, sinon la mesure', () => {
+  const mesure = () => 42
+  assert.equal(coeurs({ WFRP_TEST_COEURS: '16' }, mesure), 16)
+  assert.equal(memoireDisponibleMo({ WFRP_TEST_MEMOIRE_MO: '5000' }, mesure), 5000)
+  for (const env of [{}, { WFRP_TEST_COEURS: '0', WFRP_TEST_MEMOIRE_MO: '-3' }, { WFRP_TEST_COEURS: '2.5', WFRP_TEST_MEMOIRE_MO: 'x' }]) {
+    assert.equal(coeurs(env, mesure), 42)
+    assert.equal(memoireDisponibleMo(env, mesure), 42)
+  }
+})
+
+test('mémoire disponible : sans contrainte de cgroup, la mesure par défaut lit `process.availableMemory`, jamais `os.freemem`', () => {
+  const { availableMemory, constrainedMemory } = process
+  const { freemem } = os
+  process.availableMemory = () => 1000 * 2 ** 20
+  process.constrainedMemory = () => 0
+  os.freemem = () => 2000 * 2 ** 20
+  try {
+    assert.equal(memoireDisponibleMo({}), 1000)
+  } finally {
+    process.availableMemory = availableMemory
+    process.constrainedMemory = constrainedMemory
+    os.freemem = freemem
+  }
+})
+
+test('mémoire disponible sous cgroup : le cache de fichiers est disponible, borné par la mémoire libre', () => {
+  const Mo = 2 ** 20
+  const stat = (prefixe) => `cache 1\n${prefixe}inactive_file ${480 * Mo}\n${prefixe}active_file ${1150 * Mo}\nfile 999999999999\n`
+  const fichiers = {
+    '/sys/fs/cgroup/memory/api/bash/memory.stat': stat('total_'),
+    '/sys/fs/cgroup/api/v2/memory.stat': stat(''),
+  }
+  const lire = (f) => {
+    if (!(f in fichiers)) throw new Error(`ENOENT ${f}`)
+    return fichiers[f]
+  }
+  const V1 = '4:memory:/api/bash\n3:cpuset:/\n'
+  const V2 = '0::/api/v2\n'
+  const HYBRIDE = '4:memory:/api/bash\n0::/api/v2\n'
+  const nombres = { disponible: 11955 * Mo, contrainte: 13681 * Mo, libre: 15332 * Mo, totale: 16095 * Mo }
+  // v1 : `total_inactive_file + total_active_file` = 1 630 Mo ajoutés à `availableMemory`.
+  assert.equal(memoireDisponibleOctets(V1, lire, nombres) / Mo, 13585)
+  // v2 : `inactive_file + active_file`, jamais `file`.
+  assert.equal(memoireDisponibleOctets(V2, lire, nombres) / Mo, 13585)
+  // Hybride : le contrôleur v1 `memory` prime (sa ligne est lue, la v2 pointerait ailleurs).
+  const v1Seul = (f) => (f.startsWith('/sys/fs/cgroup/memory/') ? lire(f) : '')
+  assert.equal(memoireDisponibleOctets(HYBRIDE, v1Seul, nombres) / Mo, 13585)
+  // Borné par la mémoire libre de la machine.
+  assert.equal(memoireDisponibleOctets(V1, lire, { ...nombres, libre: 12000 * Mo }) / Mo, 12000)
+  // Illisible, ou aucune ligne de cgroup (hors Linux) : cache 0, retombe sur `availableMemory`.
+  assert.equal(memoireDisponibleOctets('4:memory:/ailleurs\n', lire, nombres) / Mo, 11955)
+  assert.equal(memoireDisponibleOctets('', lire, nombres) / Mo, 11955)
+  assert.equal(memoireDisponibleOctets(V1, () => 'total_active_file 5\n', nombres) / Mo, 11955)
+  // Non contraint : contrainte nulle, ou au-delà de la mémoire totale (ancêtre à 2^63 − 4 096).
+  assert.equal(memoireDisponibleOctets(V1, lire, { ...nombres, contrainte: 0 }) / Mo, 11955)
+  assert.equal(memoireDisponibleOctets(V1, lire, { ...nombres, contrainte: 9223372036854771712 }) / Mo, 11955)
+})
+
+test('invariant mémoire : parents × PARENT_MO + W × EMPREINTE_WORKER_MO ≤ mémoire disponible, plancher 1, jamais plus que les cœurs', () => {
+  for (let cpus = 1; cpus <= 32; cpus++) {
+    for (let memoire = 1000; memoire <= 64000; memoire += 250) {
+      const c = capacite(cpus, memoire)
+      const w = workersServis(c.servis)
+      const partage = repartitionWorkers(c.servis).split
+      const parents = partage ? 2 : 1
+      const cas = `${cpus} cœurs, ${memoire} Mo disponibles → ${w} workers, ${parents} parent(s)`
+      assert.ok(w >= 1, cas)
+      if (memoire < PARENT_MO + EMPREINTE_WORKER_MO) assert.equal(w, 1, `plancher : ${cas}`)
+      else assert.ok(parents * PARENT_MO + w * EMPREINTE_WORKER_MO <= memoire, `mémoire dépassée : ${cas}`)
+      // Mono IMPOSÉ après coup (`--coverage`, filtre d'un seul côté) sur une capacité qui partageait.
+      if (partage) {
+        assert.ok(PARENT_MO + maxWorkersMono(c.servis) * EMPREINTE_WORKER_MO <= memoire, `mono imposé : ${cas}`)
+      }
+      assert.ok(w <= workersServis(cpus), `plus que les cœurs : ${cas}`)
+    }
+  }
+})
+
+test('capacité : cas choisis, attendus écrits à la main', () => {
+  // Conteneur de 4 cœurs, 15 424 Mo disponibles : les cœurs bornent, mono à 3 workers.
+  assert.deepEqual(capacite(4, 15424), { cpus: 4, memoireMo: 15424, servis: 4, portes: 3, parents: 1, borne: 'cœurs' })
+  assert.equal(workersServis(4), 3)
+  // 16 cœurs, 24 000 Mo : un parent partagerait (7 cœurs servis), deux retombent sous le seuil.
+  assert.deepEqual(capacite(16, 24000), { cpus: 16, memoireMo: 24000, servis: 6, portes: 5, parents: 1, borne: 'mémoire' })
+  assert.equal(workersServis(6), 4)
+  // 16 cœurs, 25 000 Mo : la mémoire borne, partage à node 4 + jsdom 2, deux parents.
+  assert.deepEqual(capacite(16, 25000), { cpus: 16, memoireMo: 25000, servis: 7, portes: 6, parents: 2, borne: 'mémoire' })
+  assert.deepEqual(repartitionWorkers(7), { split: true, node: 4, jsdom: 2 })
+  // Poste de 31,2 Go : au plus node 5 + jsdom 3 ; la borne de 10 cœurs des lanes mord à 35 306 Mo.
+  assert.deepEqual(capacite(16, 31948), { cpus: 16, memoireMo: 31948, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
+  assert.deepEqual(repartitionWorkers(9), { split: true, node: 5, jsdom: 3 })
+  assert.deepEqual(capacite(10, 35305), { cpus: 10, memoireMo: 35305, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
+  assert.deepEqual(capacite(10, 35306), { cpus: 10, memoireMo: 35306, servis: 10, portes: 9, parents: 2, borne: 'cœurs' })
+  // Mémoire riche : les cœurs bornent, node 10 + jsdom 5.
+  assert.deepEqual(capacite(16, 65536), { cpus: 16, memoireMo: 65536, servis: 16, portes: 17, parents: 2, borne: 'cœurs' })
+  // Mémoire qui ne porte pas un worker : le plancher en sert un, et le dit.
+  assert.deepEqual(capacite(16, 5000), { cpus: 16, memoireMo: 5000, servis: 2, portes: 0, parents: 1, borne: 'plancher' })
+  assert.equal(workersServis(2), 1)
+  assert.deepEqual(capacite(1, 1000), { cpus: 1, memoireMo: 1000, servis: 1, portes: -1, parents: 1, borne: 'plancher' })
+})
+
+test('tas d’un worker : relevé sur la ligne de fichier du reporter, préfixée ou non', () => {
+  assert.equal(' ✓ src/engine/dice.test.ts (7 tests) 12ms 245 MB heap used'.match(TAS_UTILISE)?.[1], '245')
+  assert.equal('[jsdom]  ✓ src/ui/x.test.tsx (3 tests) 2601 MB heap used'.match(TAS_UTILISE)?.[1], '2601')
+  assert.equal(' ✓ src/engine/dice.test.ts (7 tests) 12ms'.match(TAS_UTILISE), null)
+})
+
 test('environnement des enfants : NO_COLOR posé, FORCE_COLOR SUPPRIMÉ (pas mis à zéro)', () => {
   const env = envEnfant({ PATH: '/bin', FORCE_COLOR: '3' })
   assert.equal(env.NO_COLOR, '1')
@@ -301,13 +423,23 @@ test('comptage : cumul par libellé sur un mélange, zéros sur une sortie saine
   )
 })
 
-test('bloc [diag] : trois lignes, mode et bornes RENDUS (jamais déduits des cœurs)', () => {
+test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des cœurs)', () => {
   const compte = compterSentinelles([ECHANTILLONS['test expiré']])
-  const mesure = { cpus: 16, memGo: 31.9, memMaxGo: 12.75, rssMaxMo: 84.4, secondes: 97.83 }
+  const mesure = {
+    capacite: capacite(16, 65536),
+    memGo: 31.9,
+    memMaxGo: 12.75,
+    rssMaxMo: 84.4,
+    secondes: 97.83,
+    tasMaxMo: 2043,
+  }
   const mono = bilanDiagnostic(compte, { ...mesure, partage: false, maxWorkers: '4' })
   const lignes = mono.trimEnd().split('\n')
-  assert.equal(lignes.length, 3)
-  assert.equal(lignes[0], '[diag] machine : 16 cœurs · 31.9 Go · mono (seuil 7) · maxWorkers=4')
+  assert.equal(lignes.length, 4)
+  assert.equal(
+    lignes[0],
+    '[diag] machine : 16 cœurs · 31.9 Go · disponible 64.0 Go → 17 workers portés · réserve de 2 parents · borné par cœurs · mono (seuil 7) · maxWorkers=4',
+  )
   assert.equal(
     lignes[1],
     '[diag] mémoire système max : 12.8 Go / 31.9 Go (40 %) · rss lanceur max 84 Mo · fenêtre 97.8 s',
@@ -316,8 +448,24 @@ test('bloc [diag] : trois lignes, mode et bornes RENDUS (jamais déduits des cœ
     lignes[2],
     '[diag] sentinelles : act hors act 0 · act chevauchants 0 · unmount pendant rendu 0 · React coincé 0 · test expiré 1 · worker perdu 0',
   )
+  assert.equal(lignes[3], `[diag] tas max d'un worker : 2043 Mo / ${TAS_WORKER_MO} Mo (67 %)`)
   // À cœurs IDENTIQUES, le mode dépend du run (`--coverage` impose le mono à 16 cœurs).
   const partage = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 10+jsdom 5' })
-  assert.match(partage, /^\[diag\] machine : 16 cœurs · 31\.9 Go · partagé \(seuil 7\) · maxWorkers=node 10\+jsdom 5$/m)
+  assert.match(partage, /^\[diag\] machine : 16 cœurs · .* · partagé \(seuil 7\) · maxWorkers=node 10\+jsdom 5$/m)
   assert.ok(mono.endsWith('\n'), 'le bloc doit clore sa dernière ligne')
+})
+
+test('bloc [diag] : la mémoire qui borne et le plancher sont dits, le tas alerte à 85 % et se dit non relevé', () => {
+  const compte = compterSentinelles([])
+  const mesure = { capacite: capacite(16, 25000), memGo: 31.2, memMaxGo: 20, rssMaxMo: 60, secondes: 10 }
+  const borne = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 4+jsdom 2', tasMaxMo: 2612 })
+  const [machine, , , tas] = borne.trimEnd().split('\n')
+  assert.match(machine, / · disponible 24\.4 Go → 6 workers portés · réserve de 2 parents · borné par mémoire \(7 cœurs servis\) · partagé /)
+  assert.equal(tas, `[diag] tas max d'un worker : 2612 Mo / ${TAS_WORKER_MO} Mo (85 %) · ALERTE ≥ 85 %`)
+  const sousSeuil = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: 2611 })
+  assert.ok(!sousSeuil.includes('ALERTE'), sousSeuil)
+  const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000), partage: false, maxWorkers: '1', tasMaxMo: null })
+  assert.match(pauvre, / · disponible 4\.9 Go → mémoire insuffisante pour un worker \(5000 Mo < 5060 Mo\) · réserve de 1 parent · borné par plancher \(2 cœurs servis\) · mono /)
+  const muet = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: null })
+  assert.match(muet, new RegExp(`^\\[diag\\] tas max d'un worker : non relevé / ${TAS_WORKER_MO} Mo$`, 'm'))
 })

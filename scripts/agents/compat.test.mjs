@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, validateHookParity, buildExpectedOutputs, collectDiffs,
-  HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE, SURFACE_CODEX,
+  HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks,
 } from './compat-core.mjs';
 import { atomicWrite, runCompat } from './compat-cli.mjs';
 
@@ -173,12 +173,12 @@ test('CONTRAT — un hook mono-surface est EXIGÉ chez son propriétaire, REFUS�
 
 test('CONTRAT — `.claude/settings.json` n’a PAS de SessionStart credo, `.codex/hooks.json` en a un', async () => {
   const racine = new URL('../../', import.meta.url);
-  const claude = JSON.parse(await readFile(new URL('.claude/settings.json', racine), 'utf8'));
-  const codex = JSON.parse(await readFile(new URL('.codex/hooks.json', racine), 'utf8'));
-  const credos = (config) => (config.hooks?.SessionStart ?? []).flatMap((g) => g.hooks ?? [])
-    .filter((h) => String(h.command ?? '').includes('inject-project-credo.mjs'));
-  assert.equal(credos(claude).length, 0, 'Claude importe le credo par `@.claude/credo.md`, il ne l’injecte pas');
-  assert.equal(credos(codex).length, 1, 'Codex n’a pas d’import : sa surface INJECTE le credo');
+  const claude = JSON.parse(await readFile(new URL(SURFACE_CLAUDE, racine), 'utf8'));
+  const codex = JSON.parse(await readFile(new URL(SURFACE_CODEX, racine), 'utf8'));
+  const credos = (config, surface) => aplatirHooks(config, surface)
+    .filter((h) => h.phase === 'SessionStart' && h.script === 'inject-project-credo.mjs');
+  assert.equal(credos(claude, SURFACE_CLAUDE).length, 0, 'Claude importe le credo par `@.claude/credo.md`, il ne l’injecte pas');
+  assert.equal(credos(codex, SURFACE_CODEX).length, 1, 'Codex n’a pas d’import : sa surface INJECTE le credo');
   const guide = await readFile(new URL('CLAUDE.md', racine), 'utf8');
   assert.match(guide, /^@\.claude\/credo\.md$/m, 'la ligne d’import du credo manque à CLAUDE.md');
   assert.deepEqual(validateHookParity(claude, codex), []);
@@ -205,6 +205,13 @@ test('&& et /dev/null restent interdits sur les deux surfaces', () => {
   const claudeBad = partage('node scripts/hooks/poison-postcheck.mjs && true');
   assert.equal(validateHookParity(...paire(claudeBad, partage()))[0].type, 'reference');
   const codexBad = partage('node scripts/hooks/poison-postcheck.mjs > /dev/null');
+  assert.equal(validateHookParity(...paire(partage(), codexBad))[0].type, 'reference');
+});
+
+test('`;` et `|` restent interdits sur les deux surfaces : une commande de hook lance UN processus', () => {
+  const claudeBad = partage('node scripts/hooks/poison-postcheck.mjs; node scripts/x.mjs');
+  assert.equal(validateHookParity(...paire(claudeBad, partage()))[0].type, 'reference');
+  const codexBad = partage('node scripts/hooks/poison-postcheck.mjs | node scripts/x.mjs');
   assert.equal(validateHookParity(...paire(partage(), codexBad))[0].type, 'reference');
 });
 

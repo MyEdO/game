@@ -10,6 +10,8 @@
  * deux écritures canon de la monnaie (`formatMoney`, `spellMoney`).
  */
 
+import { replier } from '../lib/ordre.mjs';
+
 /** Vocabulaire du tag dérivé, injecté depuis ses sources. */
 export interface VocabulaireDuTag {
   competence: (id: string) => string | undefined;
@@ -26,14 +28,11 @@ export interface Montant { gold: number; silver: number; brass: number }
 /** Nœud de flux tel que la DONNÉE le porte (document JSON ou `Flow` typé) : lu champ à champ. */
 type NoeudBrut = Record<string, unknown> | null | undefined;
 
-/** Clé de comparaison : accents déposés, casse repliée. */
-const cle = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-
 /** Le terme apparaît-il en MOT ENTIER dans ce libellé ? (« Soin » ne se lit pas dans « Soigner ».) */
 function contientLeTerme(label: string, terme: string): boolean {
   if (terme.length < 2) return false;
-  const motif = new RegExp(`(^|[^\\p{L}\\p{N}])${cle(terme).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}\\p{N}])`, 'u');
-  return motif.test(cle(label));
+  const motif = new RegExp(`(^|[^\\p{L}\\p{N}])${replier(terme).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}\\p{N}])`, 'u');
+  return motif.test(replier(label));
 }
 
 /** Le MOT que le jeu emploie pour NOMMER un jet (« (Test de …) », « (Test étendu, 5 DR) »). */
@@ -90,7 +89,7 @@ function termesDuCout(cost: unknown, voc: VocabulaireDuTag): string[] {
     if (!n) continue;
     const seul: Montant = { gold: 0, silver: 0, brass: 0, [piece]: n };
     const epele = voc.monnaie.epeler(seul);
-    const mots = epele.replace(/^\s*\d+\s*/, '').split(/[\s'’]+/).filter((m) => m && !MOTS_OUTILS.has(cle(m)));
+    const mots = epele.replace(/^\s*\d+\s*/, '').split(/[\s'’]+/).filter((m) => m && !MOTS_OUTILS.has(replier(m)));
     out.push(voc.monnaie.formater(seul), epele);
     if (mots.length) out.push(`${n} ${mots[0]}`, `${n} ${mots.map((m) => m[0]).join('')}`);
   }

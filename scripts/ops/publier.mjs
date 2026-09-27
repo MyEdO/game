@@ -54,6 +54,7 @@ import {
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
+import { GENERATORS } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { ETAPES } from './etapesDuTrain.mjs'
 
@@ -173,17 +174,16 @@ export function citerArgv(valeur) {
 }
 
 /**
- * Le seul site de détachement du TRAIN (#1784) — `scripts/gates/toutes.mjs:700` en détache aussi ses
+ * Le seul site de détachement du TRAIN (#1784) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses
  * gates, mais sous POSIX seulement (`detached: process.platform !== 'win32'`) : sous win32 elles
  * héritent de la console de l'appelant. Sous win32, `spawn({ detached: true })` pose
  * `DETACHED_PROCESS` (libuv) : le train n'a AUCUNE console, et chacun de ses enfants console
- * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan — mesuré le 2026-09-17 sur 15
- * commandes : 9 consoles neuves, contre 1 (celle du train, CACHÉE, dont ses enfants héritent) par
- * `Start-Process -WindowStyle Hidden`. Le pid rendu est celui du NODE du train (`-PassThru`), jamais
- * celui du `powershell` intermédiaire, qui rend la main aussitôt (mesuré : 253 ms) et meurt sans
- * emporter le train. Aucune redirection n'est demandée à `Start-Process` : le train ouvre LUI-MÊME
- * son journal (`modeDuLog`) et le passe en stdio à ses enfants, et `-RedirectStandard*` retiendrait
- * le `powershell` jusqu'à la fin du train (mesuré : 16,14 s au lieu de 253 ms).
+ * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ; `Start-Process -WindowStyle
+ * Hidden` n'en ouvre qu'une, celle du train, CACHÉE, dont ses enfants héritent. Le pid rendu est
+ * celui du NODE du train (`-PassThru`), jamais celui du `powershell` intermédiaire, qui rend la main
+ * aussitôt et meurt sans emporter le train. Aucune redirection n'est demandée à `Start-Process` : le
+ * train ouvre LUI-MÊME son journal (`modeDuLog`) et le passe en stdio à ses enfants, et
+ * `-RedirectStandard*` retiendrait le `powershell` jusqu'à la fin du train.
  * @param {{script:string, args:string[], cwd:string, fdLog:number, envSupplementaire?:Record<string,string>,
  *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
  * @returns {number|undefined} pid du processus NODE du train
@@ -525,7 +525,8 @@ function numeroDeTicket(geste, numero) {
  * par un geste d'ici. Écrivains nommés de l'hôte :
  * `commit`, `rebaser`, `abandonnerRebase`, `pousser`, `tronc`. Hors git : `npm` (un NOM de script),
  * `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `lireTicket` (un numéro), `commenter`
- * (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
+ * (un numéro et un corps) ; chacun valide ses arguments avant tout spawn. Donnée : `generators`
+ * (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit `estDocDerive`.
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
   const depot = depotDuTrain(racine)
@@ -537,6 +538,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     options,
     journaliser,
     fdLog,
+    generators: GENERATORS,
     npm(script) {
       if (typeof script !== 'string' || !/^[\w:.-]+$/.test(script)) throw new Error(`ctx.npm : un NOM de script \`npm run\`, jamais une commande — refusé : ${JSON.stringify(script)}`)
       const { executable, args, shell } = lancementNpm(script, process.platform)
@@ -544,7 +546,11 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     },
     docs(mode) {
       if (!MODES_DES_DOCS.includes(mode)) throw new Error(`ctx.docs : mode de build-all inconnu — ${JSON.stringify(mode)}`)
-      return spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), mode], { cwd: racine, stdio })
+      const vu = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), mode], {
+        cwd: racine, stdio: ['ignore', fdLog, 'pipe'], encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
+      })
+      if (vu.stderr) writeSync(fdLog, vu.stderr)
+      return vu
     },
     coursesCi(sha) {
       if (typeof sha !== 'string' || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) throw new Error(`ctx.coursesCi : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
@@ -683,5 +689,4 @@ function mainNomme() {
   }
 }
 
-const estMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (estMain) process.exit(mainNomme())
+if (import.meta.main) process.exit(mainNomme())

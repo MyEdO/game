@@ -205,6 +205,14 @@ test('borne DITE de la récursion : au-delà de PROFONDEUR_MAX_ENROBEURS l\'anal
   assert.deepEqual(segmentsProfonds(cmd, 5), [], 'au-delà de la borne, aucun segment n\'est rendu : la commande PASSE')
 })
 
+// 4e juge, BUDGET-CONSOMMATEURS-1 : la borne de segments ne vaut que pour la ré-analyse des
+// arguments de la garde de commit ; les gardes consommatrices voient TOUS les segments (#1801).
+test('les gardes consommatrices voient tous les segments, au-delà de 2000', () => {
+  const cmd = `${'true ; '.repeat(2100)}gh issue create --title t --body b`
+  assert.deepEqual(segmentsProfonds(cmd).at(-1), ['gh', 'issue', 'create', '--title', 't', '--body', 'b'])
+  assert.ok(evaluateLabel(cmd), 'la création sans label au 2101e segment est refusée')
+})
+
 test('#591 : un `git commit` CITÉ dans le corps d\'un gh issue create reste une citation', () => {
   const cmd = 'gh issue create --label sev:mineur --title "x" --body "reproduire avec git commit -m corrige #42"'
   assert.equal(isGitCommitCommand(cmd), false)
@@ -220,9 +228,10 @@ test('`command -v git` ne lance rien : aucun flag n\'est épluché derrière `co
   assert.equal(isGitCommitCommand('command -v git commit'), false)
 })
 
-test('le segment ENROBANT est rendu lui aussi (l\'invocation `cmd /c mklink …` vit sur ses arguments)', () => {
+test('le segment ENROBANT est rendu après le segment qu\'il porte (`cmd /c mklink …`)', () => {
   const segments = segmentsProfonds('cmd /c mklink /J node_modules cible')
   assert.ok(segments.some((s) => s[0] === 'cmd'), 'le segment cmd a disparu : la règle des liens devient aveugle')
+  assert.deepEqual(segments[0], ['mklink', '/J', 'node_modules', 'cible'], '`cmd /c` porte le RESTE de la ligne')
 })
 
 // ── extractTargetDir : le répertoire où le commit s'exécute VRAIMENT ──────────────────────────────

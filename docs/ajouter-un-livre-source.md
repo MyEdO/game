@@ -342,9 +342,10 @@ séquence est celle du § 7 (`reanchor --apply --remap` AVANT de committer, `pro
 
 Les PORTES après la re-découpe, dans le même commit : `npm run -s test:raw`,
 `raw:check-source-format`, `raw:check-source-tables`, `raw:check-source-puces`, `raw:check-renvois`,
-`raw:check-folio-continuity`, `raw:check-refs`, `raw:check-code-refs`, `raw:coverage`,
-`raw:reconcile`, `raw:check-catalogue-complete` — plus le recalage des références (§ 4,
-`reanchor.mjs`) et des coordonnées citées hors `docs/raw/`.
+`raw:check-folio-continuity`, `raw:check-refs`, `raw:check-code-refs`,
+`raw:check-catalogue-complete`, et `docs:check`, qui vérifie les dérivés de l'Atlas (catalogues,
+`coverage.md`, `reconciliation.md`, `reanchor.md`) et joue leurs cliquets — plus le recalage des
+références (§ 4, `reanchor.mjs`) et des coordonnées citées hors `docs/raw/`.
 
 ### Découper un livre NEUF depuis la sortie Marker
 
@@ -620,9 +621,9 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    les fiches de domaine, **idempotent** via un sentinel `<!-- <ABRÉV>-INTEGRATION -->` (sigle en
    argument, libellé lu au registre ; le motif du marqueur est dérivé du registre dans `_lib.mjs`,
    donc un sigle à espace ou à point reste préservé par `build-catalogs.mjs`).
-5. **Gardes** — `npm run raw:coverage`, `raw:reconcile` (dont le refus d'une fiche qui cite le livre
-   de cœur d'un AUTRE cœur que celui de son dossier),
-   `raw:implemente`, `raw:check-refs`, `node scripts/raw/check-atlas-counts.mjs`.
+5. **Gardes** — `npm run docs:check`, qui rejoue `raw:coverage`, `raw:reconcile` (dont le refus d'une
+   fiche qui cite le livre de cœur d'un AUTRE cœur que celui de son dossier), `raw:implemente` et
+   `scripts/raw/check-atlas-counts.mjs` ; puis `raw:check-refs`.
 
 - **Catalogues de données verbatim** (`docs/raw/<coeur>/catalogue-*.md`) : régénérés par
   `node scripts/raw/build-catalogs.mjs`, qui concatène **verbatim** les chapitres de données des

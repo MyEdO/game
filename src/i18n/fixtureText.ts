@@ -28,5 +28,5 @@
 import type { PlayerText } from './playerText';
 
 /** Marque un libellé de FIXTURE (cf. JSDoc — tests uniquement, cliquets dans `player-text-ratchet.test.ts`). */
-// eslint-disable-next-line no-restricted-syntax -- #1318 E7 : l'unique cast de ce module, réservé aux harnais et gardé par chemin d'import.
+// eslint-disable-next-line murs/marques -- #1318 E7 : l'unique cast de ce module, réservé aux harnais et gardé par chemin d'import.
 export const fixtureText = (s: string): PlayerText => s as PlayerText;

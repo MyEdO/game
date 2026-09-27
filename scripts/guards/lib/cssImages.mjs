@@ -22,8 +22,8 @@ import {
 /** Racine où cherchent les importeurs. */
 export const RACINE_DES_SOURCES = 'src'
 
-/** Ce qui échappe à une ERE. */
-const echapper = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Chargé après la porte de version des hooks qui l'importent : scripts/node-requis.mjs (#1801).
+const { alternationDe } = await import('../../../src/lib/regex.ts')
 
 /**
  * Les NOMS par lesquels un spécificateur atteint `chemin` sous l'ordre de repli de `resolveImport`
@@ -55,7 +55,7 @@ export function nomsDImport(manifeste) {
 export function motifDeCitation(manifeste) {
   const noms = nomsDImport(manifeste)
   if (!noms.size) return null
-  return `/(${[...noms].map(echapper).join('|')})([^A-Za-z0-9_$]|$)|['"](([^'"]*/)?\\.\\.?|[^'"]*/)['"]`
+  return `/(${alternationDe(noms)})([^A-Za-z0-9_$]|$)|['"](([^'"]*/)?\\.\\.?|[^'"]*/)['"]`
 }
 
 /**

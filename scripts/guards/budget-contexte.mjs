@@ -30,7 +30,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { cliquetsDuMessage } from './lib/stocksNominatifs.mjs'
 
 /**
@@ -218,7 +217,7 @@ export function refusDeBudget({ mesure, reference, plafond, message }) {
 }
 
 // ── Driver (n'exécute QUE lancé en direct, jamais à l'import d'un test) ────────────────────────
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+if (import.meta.main) {
   const mesure = mesurerBudget(process.cwd())
   for (const p of mesure.postes) process.stdout.write(`${String(p.octets).padStart(6)}  ${p.nom}\n`)
   process.stdout.write(

@@ -26,7 +26,6 @@
 // Usage : `npm run ops:board` (mesurer puis synchroniser) · `-- --liste` (mesurer et IMPRIMER, aucun
 // appel d'écriture, aucun Project requis ; `--sans-fetch` y tolère un `origin` injoignable) ·
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
-import { fileURLToPath } from 'node:url'
 import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe } from '../guards/lib/gitPorte.mjs'
 import { inventaire } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
@@ -798,4 +797,4 @@ function main() {
     + `anomalies ${vu.anomalies.length}\n`)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
+if (import.meta.main) main()

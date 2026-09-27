@@ -15,8 +15,8 @@ import { chebyshev } from './grid';
 
 /** Le SEUL fichier où la formule a le droit de s'écrire : le canon lui-même. */
 const FOYER = 'src/engine/grid.ts';
-/** Corpus de `src/**`, tests compris, hors foyer — lecture disque et AST payés une fois par worker
- *  (`readCorpus` mémoïse par clé, `canonUnique` garde l'AST par identité d'entrée). */
+/** Corpus de `src/**`, tests compris, hors foyer — lecture disque payée une fois par worker
+ *  (`readCorpus` mémoïse par clé) ; l'AST naît et meurt avec le scan. */
 const corpus = () => readCorpus(['src'], { tests: true }).filter(({ rel }) => rel !== FOYER);
 const fixture = (text: string) => ({ rel: 'fixture.ts', text });
 

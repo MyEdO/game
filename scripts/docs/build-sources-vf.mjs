@@ -6,13 +6,11 @@
  * dérivable de la donnée — elle vit ICI, en dur, comme les préambules de
  * `scripts/docs/build-systemes.mjs` / `scripts/gen-sorts-doc.mts`.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
- * Composé via `emitOrCheck` de scripts/docs/lib/jsdocUnion.mjs.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-sources-vf.mjs
  */
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { REGISTRE_LIVRES as BOOKS, estLivreExtrait, livreExtraitDe } from '../raw/_lib.mjs'
 
 // TOUT livre du registre, EXTRAIT ou non (`label`, `extractionDir` du livre fan) : `livreExtraitDe`
@@ -208,7 +206,7 @@ if (absents.length) {
   process.exit(1)
 }
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/sources-vf.md',
   check: process.argv.includes('--check'),

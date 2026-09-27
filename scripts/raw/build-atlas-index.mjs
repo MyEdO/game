@@ -8,10 +8,10 @@
 // aucun chemin de cœur n'est écrit.
 // Le reste de chaque page est MANUSCRIT : seuls les blocs entre marqueurs sont réécrits (patron
 // `injecte` de `scripts/docs/build-all.mjs`).
-// Re-run : node scripts/raw/build-atlas-index.mjs (`--check` : compare sans écrire, exit 1 si périmé).
+// Re-run : node scripts/raw/build-atlas-index.mjs (`--check` : `declarerCorpsPerime`).
 import { readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
+import { declarerCorpsPerime } from '../docs/lib/empreinte-sources.mjs'
 import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, pagesDeLAtlas, REGISTRE_LIVRES } from './_lib.mjs'
 
 export const RAWDIR = 'docs/raw'
@@ -114,7 +114,7 @@ function regenerer() {
       console.log(`build-atlas-index — OK (bloc des ${bloc.quoi} à jour dans ${bloc.chemin})`)
       continue
     }
-    perimes.push(bloc)
+    perimes.push(attendu)
     if (check) {
       console.error(`build-atlas-index — ${bloc.chemin} PÉRIMÉ (bloc des ${bloc.quoi})`)
       continue
@@ -124,9 +124,8 @@ function regenerer() {
   }
   if (check && perimes.length) {
     console.error('build-atlas-index — relancer `node scripts/raw/build-atlas-index.mjs` et committer.')
-    process.exit(1)
+    declarerCorpsPerime(...perimes)
   }
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

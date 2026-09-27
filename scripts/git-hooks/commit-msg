@@ -2,4 +2,5 @@
 # scripts/git-hooks/commit-msg — porte au MESSAGE : sujet ≤ 100 caractères, preuves dans le corps.
 # Toute la logique vit dans commit-msg.mjs (règle PURE scripts/guards/lib/sujetDeCommit.mjs).
 # Contrat : ce hook DOIT pouvoir refuser le commit (exit != 0). git passe le fichier du message en $1.
+node "$(dirname "$0")/../node-requis.mjs" </dev/null || exit $?
 exec node "$(dirname "$0")/commit-msg.mjs" "$@"

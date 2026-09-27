@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import { builtinRules } from 'eslint/use-at-your-own-risk';
 
 /**
  * Configuration ESLint « plate » (flat config), volontairement PRAGMATIQUE :
@@ -9,13 +10,26 @@ import globals from 'globals';
  * établir une base sans bloquer le développement en cours. À durcir au fil de l'eau.
  */
 
+/** Les MURS, chacun sous SON nom de règle (plugin local `murs`) : un mur de syntaxe est la règle du cœur
+ *  `no-restricted-syntax`, un mur d'import la règle du cœur `no-restricted-imports`. Une directive nomme
+ *  le mur qu'elle éteint, et un bloc qui pose un mur ne remplace jamais les options d'un autre — en flat
+ *  config, le dernier bloc qui déclare une règle REMPLACE ses options : un nom partagé forçait chaque bloc
+ *  à redire les murs voisins. */
+const MURS_DE_SYNTAXE = ['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'purete'];
+const MURS_D_IMPORT = ['ordre-total-imports', 'possession', 'canal-issue', 'purete-imports'];
+const MURS = {
+  meta: { name: 'murs' },
+  rules: Object.fromEntries([
+    ...MURS_DE_SYNTAXE.map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
+    ...MURS_D_IMPORT.map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
+  ]),
+};
+
 /** Un NOM de marque, cherché en DESCENDANT (le cast se forge tout autant sous un tableau/`readonly`). */
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText)$/';
 const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, ou par un minteur de texte (`t`, `refLabel`, `composeRollLabel`).';
 
-/** VERROU DES MARQUES — les trois ROUTES DE FORGE (cast `as`, cast `<T>`, alias qui déguiserait le nom).
- *  Défini ICI parce que DEUX blocs le déclarent : en flat config, le dernier bloc qui pose une règle
- *  REMPLACE ses options — un bloc qui l'omettrait désarmerait le verrou au lieu de s'y ajouter. */
+/** VERROU DES MARQUES — les trois ROUTES DE FORGE (cast `as`, cast `<T>`, alias qui déguiserait le nom). */
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,
   message: MSG_FORGE,
@@ -47,27 +61,24 @@ const VERROU_CONTENEUR = [{
   message: 'Contournement de conteneur (#1318 T2) : caster en `CascadeStep` fait entrer un littéral entier, `label` compris. Passer par une porte du seam (`monoStep`/`tableStep`/`choiceStep`/`quantityStep`/`displayStep`/`bandStep`/`hostStep`).',
 }];
 /** MUR DU DIALECTE DE PARSE (#1679 L3b) : le `ts.ScriptKind` d'un fichier se déduit de son extension
- *  par `scriptKindDe` (`scripts/guards/lib/dialecte.mjs`), source unique. Défini ICI parce que DEUX
- *  blocs le posent : en flat config, le dernier bloc qui déclare une règle REMPLACE ses options — le
- *  bloc de l'ordre total (plus bas, plus étroit) doit donc le REDIRE, sinon `scripts/guards/lib/**`
- *  sortirait du mur. Un kind CONSTANT légitime se dit AU SITE (`eslint-disable-next-line` + raison),
- *  jamais par une exemption de fichier. */
+ *  par `scriptKindDe` (`scripts/guards/lib/dialecte.mjs`), source unique. Un kind CONSTANT légitime se
+ *  dit AU SITE (`eslint-disable-next-line murs/dialecte` + raison), jamais par une exemption de fichier. */
 const VERROU_DIALECTE = [{
   selector: "MemberExpression[property.name='ScriptKind']",
   message: 'Dialecte de parse (#1679 L3b) : le `ts.ScriptKind` se déduit de l’extension par `scriptKindDe` (`scripts/guards/lib/dialecte.mjs`) — une table recopiée au site fait lire un `.mts` en TS ici et en JS là, et un scan silencieusement faux ne se voit pas.',
 }];
 
 /** MUR DE L'ORDRE TOTAL (#1679 L3b, incident #1620 ; étendu aux tests de `src` par #1709 C3c) — les
- *  NOMS de la marche brute, et les trois messages. Définis ICI parce que DEUX blocs les posent : la
- *  clôture des générateurs et les tests de `src` (par couche). Une recopie divergerait au premier nom
- *  ajouté. `readCorpus` est nommé dans le message : un test qui balaie l'arbre lit un CORPUS. */
-const MARCHE_BRUTE = ['readdirSync', 'readdir', 'opendirSync', 'opendir', 'globSync'];
+ *  NOMS de la marche brute, et les trois messages, que posent `REGLES_MARCHE` (clôture des générateurs
+ *  et tests de `src`) et `REGLES_LOCALE` (clôture des générateurs). `readCorpus` est nommé dans le message :
+ *  un test qui balaie l'arbre lit un CORPUS. */
+const MARCHE_BRUTE = ['readdirSync', 'readdir', 'opendirSync', 'opendir', 'globSync', 'glob'];
 const MSG_ORDRE_TOTAL =
   'Ordre total (#1679 L3b) : lister un dossier passe par `listerDossier`/`listerArbre` (`scripts/guards/lib/lister.mjs`), et LIRE un corpus source par `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`) — un listing brut suit l’ordre du système de fichiers et périme le doc dérivé sur l’autre OS.';
 const MSG_LOCALE_COMPARE =
-  'Ordre total (#1679 L3b) : comparer deux chaînes par `parUnitesDeCode` (`scripts/guards/lib/lister.mjs`) — unités de code, jamais `localeCompare`, dont le verdict suit la locale du processus.';
+  'Ordre total (#1679 L3b) : `localeCompare`, `toLocale*` et `Intl` suivent la locale et l’ICU du processus — le doc dérivé change avec la machine. Comparer par `parUnitesDeCode` (chemin, id, clé) ou `parLibelle` (libellé lu par le joueur), de `src/lib/ordre.mjs` ; formater sans locale.';
 
-/** Volet IMPORT du mur : les quatre modules `fs`, chacun avec les cinq noms de la marche brute. */
+/** Volet IMPORT du mur : les quatre modules `fs`, chacun avec tous les noms de la marche brute. */
 const ORDRE_TOTAL_IMPORTS = {
   paths: ['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].map((name) => ({
     name,
@@ -76,25 +87,72 @@ const ORDRE_TOTAL_IMPORTS = {
   })),
 };
 
-/** Volet SYNTAXE du LISTAGE : accès par membre et déstructuration. */
-const VERROU_LISTAGE = [
-  { selector: `MemberExpression[property.name=/^(${MARCHE_BRUTE.join('|')})$/]`, message: MSG_ORDRE_TOTAL },
-  { selector: `ObjectPattern > Property[key.name=/^(${MARCHE_BRUTE.join('|')})$/]`, message: MSG_ORDRE_TOTAL },
+/** Les trois formes d'une CLÉ de nom `noms` sous le champ `champ` d'un nœud : nommée, littérale
+ *  (`x['n']`) ou gabarit sans expression (`` x[`n`] ``). */
+const cles = (champ, noms) => [
+  `[computed=false][${champ}.name=${noms}]`,
+  `[${champ}.type='Literal'][${champ}.value=${noms}]`,
+  `[${champ}.type='TemplateLiteral'][${champ}.expressions.length=0][${champ}.quasis.0.value.cooked=${noms}]`,
 ];
 
-/** POLICE DE LA POSSESSION À L'AFFICHAGE (#1262 L1) — le motif d'import restreint, DÉFINI ICI parce
- *  que DEUX blocs le posent : la police de `src/ui/**` et, après le mur de l'ordre total (qui
- *  déclare `no-restricted-imports` et REMPLACERAIT donc ses options), les TESTS de `src/ui`. */
+/** Volet SYNTAXE du LISTAGE : un nom de la marche brute, sur TOUT receveur sauf `import.meta` (un
+ *  `MetaProperty`, pas un module : `import.meta.glob` de Vite), en accès par membre (optionnel
+ *  compris), en clé de déstructuration, en alias d'import TypeScript (`import r = fs.readdirSync`) et
+ *  en membre JSX (`<fs.glob />`). Ce qui reste hors du mur est au NON SIMULÉ de
+ *  `scripts/docs/lib/plateforme-win32.mjs`. */
+const NOMS_MARCHE = `/^(${MARCHE_BRUTE.join('|')})$/`;
+const VERROU_LISTAGE = [
+  ...cles('property', NOMS_MARCHE).map((c) => `MemberExpression[object.type!='MetaProperty']${c}`),
+  ...cles('key', NOMS_MARCHE).map((c) => `ObjectPattern > Property${c}`),
+  `TSImportEqualsDeclaration TSQualifiedName[right.name=${NOMS_MARCHE}]`,
+  `JSXMemberExpression[property.name=${NOMS_MARCHE}]`,
+].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
+
+/** POLICE DE LA POSSESSION À L'AFFICHAGE (#1262 L1) — le motif d'import restreint. */
 const POLICE_POSSESSION = [{
   group: ['**/state/netOwnership', '**/state/netFlow'],
   importNames: ['ownsLocally'],
   message: 'Possession à l’affichage (#1262) : passer par `ui/ownership.ts` (`ownsLocal`/`useOwns`) — le terme `net.mode === "local"` y est déjà mort.',
 }];
 
-/** Volet COMPARAISON DE CHAÎNES — porté par la seule clôture des générateurs (cf. le bloc des tests). */
+/** Volet LOCALE — porté par la seule clôture des générateurs (cf. le bloc des tests) : ce qui suit la
+ *  locale ou l'ICU du processus. `localeCompare` et les `toLocale*` sous toute forme de clé (membre,
+ *  optionnel compris, et déstructuration), et toute référence à la valeur `Intl` (hors position de
+ *  type, sans exécution). */
+const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
 const VERROU_LOCALE_COMPARE = [
-  { selector: "CallExpression[callee.property.name='localeCompare']", message: MSG_LOCALE_COMPARE },
+  ...cles('property', NOMS_LOCALE).map((c) => `MemberExpression${c}`),
+  ...cles('key', NOMS_LOCALE).map((c) => `ObjectPattern > Property${c}`),
+  "Identifier[name='Intl']:not(TSQualifiedName > Identifier, MemberExpression[computed=false] > Identifier.property, Property[computed=false] > Identifier.key)",
+].map((selector) => ({ selector, message: MSG_LOCALE_COMPARE }));
+
+/** Le mur de l'ordre total, en deux blocs dont chacun déclare SEUL ses règles (volet UNICITÉ de
+ *  `scripts/guards/lib/lister.test.mjs` : un bloc postérieur qui redéclarerait une règle l'éteindrait) :
+ *  la MARCHE (listage de dossier) arme la clôture des générateurs et les tests de `src` ; la LOCALE, la
+ *  seule clôture des générateurs. */
+const REGLES_MARCHE = {
+  'murs/ordre-total-imports': ['error', ORDRE_TOTAL_IMPORTS],
+  'murs/ordre-total': ['error', ...VERROU_LISTAGE],
+};
+const REGLES_LOCALE = {
+  'murs/ordre-total-locale': ['error', ...VERROU_LOCALE_COMPARE],
+};
+/** Toutes les règles du mur. Exportées : le volet CLÔTURE de `scripts/guards/lib/lister.test.mjs` les
+ *  applique aux modules de la clôture qui vivent hors des globs du mur. */
+export const REGLES_ORDRE_TOTAL = { ...REGLES_MARCHE, ...REGLES_LOCALE };
+
+/** Globs de la clôture des générateurs de dérivés (volet MUR de `scripts/guards/lib/lister.test.mjs`). */
+const GLOBS_GENERATEURS = [
+  'scripts/docs/**', 'scripts/raw/**', 'scripts/guards/lib/**',
+  // Les racines du registre qui ne vivent dans aucun de ces trois dossiers.
+  'scripts/gen-registry.mjs', 'scripts/gen-quality-ids.mjs', 'scripts/gen-sorts-doc.mts',
+  'scripts/data/check-progression-schemas.mjs',
+  // Un module de la clôture qui porte une exemption AU SITE : sous le mur, le lint la lit (hors du
+  // mur, elle serait une directive inutilisée).
+  'scripts/test/partition.mjs',
 ];
+/** La source du mur elle-même (précédent `flowOutcomes.ts`, « la source elle-même »). */
+const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
 /** PURETÉ DE COUCHE (#1709 C3b-2 ; CLAUDE.md règle stricte 3, issues #8 et #161) : la couche AMONT
  *  n'a AUCUNE arête d'EXÉCUTION vers la couche AVAL. Le critère est STRUCTUREL, jamais nominatif :
@@ -107,7 +165,7 @@ const VERROU_LOCALE_COMPARE = [
  *  `src/eslint-ordre-total-et-purete.test.ts` qui rejoue la table sur la config RÉSOLUE) :
  *  `no-restricted-imports` ne visite que `ImportDeclaration` / `ExportNamedDeclaration[source]` /
  *  `ExportAllDeclaration` (`node_modules/eslint/lib/rules/no-restricted-imports.js` — aucun
- *  `ImportExpression`), donc l'import DYNAMIQUE lui échappe et revient à `no-restricted-syntax`.
+ *  `ImportExpression`), donc l'import DYNAMIQUE lui échappe et revient au mur `murs/purete` (`no-restricted-syntax` du cœur).
  *  Précédent du dépôt : le mur de l'ordre total, plus bas, « DEUX règles, parce qu'aucune ne suffit
  *  seule ». `allowTypeImports` est porté par la règle CORE d'ESLint 10 (la variante
  *  `@typescript-eslint` est DÉPRÉCIÉE depuis 8.64.0 au profit d'elle).
@@ -150,6 +208,7 @@ export default tseslint.config(
   // grammaire, schémas générés, gardes) passent sous les mêmes verrous et la même pureté de couche ;
   // ses `.json` restent ignorés par `**/*.json` — la DONNÉE n'est pas ce qu'un lint juge.
   { ignores: ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '*.config.*', '.claude/**', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**'] },
+  { plugins: { murs: MURS } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -202,7 +261,7 @@ export default tseslint.config(
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     ignores: ['src/state/rollSeam.ts', 'src/state/revealStep.ts', 'src/ui/rollRowBuild.ts', 'src/i18n/index.ts'],
     rules: {
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES],
+      'murs/marques': ['error', ...VERROU_MARQUES],
     },
   },
   {
@@ -224,10 +283,7 @@ export default tseslint.config(
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     ignores: ['src/state/rollSeam.ts', 'src/state/revealStep.ts', 'src/ui/rollRowBuild.ts', 'src/i18n/index.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
-      // Les marques sont REDITES ici : en flat config, le DERNIER bloc qui déclare une règle REMPLACE
-      // ses options — les omettre désarmerait le verrou #1262/#1318 sur tout le code de production
-      // (mesuré : les `eslint-disable` d'un fichier exempté AU SITE devenaient INUTILISÉS, symptôme du désarmement).
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES, ...VERROU_CONTENEUR],
+      'murs/conteneur': ['error', ...VERROU_CONTENEUR],
     },
   },
   {
@@ -239,7 +295,7 @@ export default tseslint.config(
     files: ['src/ui/**/*.ts', 'src/ui/**/*.tsx'],
     ignores: ['src/ui/ownership.ts'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: POLICE_POSSESSION }],
+      'murs/possession': ['error', { patterns: POLICE_POSSESSION }],
     },
   },
   {
@@ -258,15 +314,11 @@ export default tseslint.config(
       'src/state/**/*.test.ts', 'src/state/**/*.test.tsx', // les tests mesurent les describeX eux-mêmes
     ],
     rules: {
-      // La PURETÉ DE COUCHE de `src/state` est REDITE ici : en flat config, le dernier bloc qui
-      // déclare une règle REMPLACE ses options — deux blocs `src/state/**` déclarant
-      // `no-restricted-imports` s'écraseraient l'un l'autre. Les trois goulots exemptés ci-dessus le
-      // sont du seul CANAL D'ISSUE : ils restent sous la pureté par le bloc qui les nomme, plus bas.
-      'no-restricted-imports': ['error', {
+      'murs/canal-issue': ['error', {
         patterns: [{
           group: ['**/flowOutcomes'],
           message: 'Canal d’issue (#1262 V3 Lj) : déclarer `issue` au flux (`RollFlowSpec.issue`) et acquitter par `flow.apply(get, …)` — un site ne rédige plus sa ligne d’issue.',
-        }, ...pureteImports('state', AVALS_STATE).patterns],
+        }],
       }],
     },
   },
@@ -277,7 +329,7 @@ export default tseslint.config(
     // son exemption AU SITE avec sa raison : c'est là que la table se lit.
     files: ['scripts/**'],
     rules: {
-      'no-restricted-syntax': ['error', ...VERROU_DIALECTE],
+      'murs/dialecte': ['error', ...VERROU_DIALECTE],
     },
   },
   {
@@ -287,72 +339,64 @@ export default tseslint.config(
     // différents selon la machine (NTFS trie sans casse, ext4 rend l'ordre d'un hash ; `localeCompare`
     // suit l'ICU du processus) et la CI rougit MUETTE sur un doc simplement périmé.
     //
-    // La PORTÉE de ce bloc est vérifiée, pas postulée : `scripts/guards/lib/lister.test.mjs` marche la
-    // clôture d'imports NON bornée de `GENERATORS` ∪ `NON_GENERATOR_CHECKS` (`scripts/docs/build-all.mjs`)
-    // et échoue en NOMMANT tout module atteint qui ne serait sous aucun des globs ci-dessous — la liste
-    // se lit DEPUIS ce fichier, jamais recopiée.
+    // La PORTÉE de ce bloc est vérifiée, pas postulée : `scripts/guards/lib/lister.test.mjs` exige que
+    // chaque racine de `GENERATORS` ∪ `NON_GENERATOR_CHECKS` (`scripts/docs/build-all.mjs`) soit sous un
+    // des globs ci-dessous, et lint par `REGLES_ORDRE_TOTAL` chaque module de leur clôture d'imports NON
+    // bornée qui vit hors de ces globs, en le NOMMANT — les globs et les règles se lisent DEPUIS ce
+    // fichier, jamais recopiés.
     //
-    // DEUX règles, parce qu'aucune ne suffit seule (mesuré sur 11 formes d'écriture) :
-    // `no-restricted-imports` prend l'import nommé, l'alias et le namespace ; `no-restricted-syntax`
-    // prend l'accès par membre (`fs.readdirSync`, `fs.promises.readdir`, `(await import('fs')).readdirSync`,
-    // `require('fs').readdirSync`) et la déstructuration. `no-restricted-properties` a été mesurée
-    // INSUFFISANTE : elle ne sait pas exprimer `fs.promises.readdir` (4 formes sur 11 la franchissent).
-    // Exemption au FICHIER pour la source elle-même (précédent `flowOutcomes.ts` ci-dessus, « la source
-    // elle-même ») ; le crochet de l'enregistreur de lectures porte ses exemptions AU SITE, avec leur raison.
-    files: [
-      'scripts/docs/**', 'scripts/raw/**', 'scripts/guards/lib/**',
-      // Les deux racines du registre qui ne vivent dans aucun de ces trois dossiers.
-      'scripts/gen-sorts-doc.mts', 'scripts/data/check-progression-schemas.mjs',
-    ],
-    ignores: ['scripts/guards/lib/lister.mjs'],
-    rules: {
-      'no-restricted-imports': ['error', ORDRE_TOTAL_IMPORTS],
-      // `VERROU_DIALECTE` est REDIT ici : en flat config, le dernier bloc qui déclare une règle REMPLACE
-      // ses options — l'omettre désarmerait le mur du dialecte sur `scripts/guards/lib/**`, où vivent 12
-      // des 14 sites migrés.
-      'no-restricted-syntax': ['error', ...VERROU_DIALECTE, ...VERROU_LISTAGE, ...VERROU_LOCALE_COMPARE],
-    },
+    // DEUX règles, parce qu'aucune ne suffit seule — mesuré sur la table `FORMES_MARCHE` de
+    // `src/eslint-ordre-total-et-purete.test.ts`, pour `readdirSync` comme pour `glob`, par la config
+    // résolue : `murs/ordre-total-imports` seule prend l'import nommé et l'alias ; les deux prennent le
+    // namespace ; `murs/ordre-total` seule prend tout le reste — membre (optionnel compris) de
+    // `fs`, de `fs.promises`, d'un `import()`, de son `.default`, d'un `require`, de
+    // `process.getBuiltinModule`, d'un receveur quelconque ; clé littérale ou gabarit ; déstructuration.
+    // `no-restricted-properties` ne remplace pas ce mur de syntaxe : son `allowObjects` se lit sur
+    // le NOM du receveur (`node_modules/eslint/lib/rules/no-restricted-properties.js`), et
+    // `import.meta` n'en a pas — elle refuserait `import.meta.glob`.
+    // Exemption au FICHIER pour la source elle-même (`SOURCE_DU_MUR`) ; le crochet de l'enregistreur de
+    // lectures porte ses exemptions AU SITE, avec leur raison.
+    //
+    // LES TESTS DE `src` (#1709 C3c-1) sont sous la MARCHE. Une garde qui balaie l'arbre réel lit un
+    // CORPUS : `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`, mémoïsé, gelé, ordre total, refus du
+    // vide par base) ; un LISTAGE de dossier passe par `listerDossier`/`listerArbre`. La marche brute
+    // n'est plus écrivable ici — ni par import nommé, ni par membre, ni par déstructuration.
+    // PÉRIMÈTRE (#1709 C3c-3b) : TOUT test de `src`, en UNE paire de globs — un dossier neuf sous
+    // `src/` naît donc SOUS le mur, sans qu'on ait à y penser.
+    files: [...GLOBS_GENERATEURS, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    ignores: SOURCE_DU_MUR,
+    rules: REGLES_MARCHE,
+  },
+  {
+    // MUR DE L'ORDRE TOTAL — LA LOCALE, sur la seule clôture des générateurs. Les tests de `src` n'y sont
+    // pas : l'ordre total vise le déterminisme cross-OS des docs DÉRIVÉS ; un test qui asserte l'ordre
+    // que le PRODUIT rend par locale (`src/ui/compendium/relations.test.ts` compare la donnée réelle à
+    // `localeCompare(b, 'fr')` ; deux scénarios trient des ids en `{ numeric: true }`, que `lister.mjs`
+    // ne sait pas exprimer) mesure un contrat PRODUIT, pas un listing — le refuser ici exigerait des
+    // exemptions au site.
+    files: GLOBS_GENERATEURS,
+    ignores: SOURCE_DU_MUR,
+    rules: REGLES_LOCALE,
   },
   {
     // PURETÉ DU MOTEUR (#1709 C3b-2 ; CLAUDE.md règle 3, issue #8) — `src/engine` est la couche RÈGLES,
     // PURE : `state`/`ui`/`gameIso` en dépendent, JAMAIS l'inverse. Les fichiers de TEST sont hors
     // portée : ils exercent légitimement le runtime des couches aval (`runPureFlowLines`,
     // `applyTriggeredEffects`, `combatantVisuals`…) — ce sont des consommateurs, pas le moteur.
-    // `VERROU_MARQUES`/`VERROU_CONTENEUR` sont REDITS : en flat config, le dernier bloc qui déclare
-    // `no-restricted-syntax` REMPLACE ses options — les omettre désarmerait #1262/#1318 sur `src/engine`.
     files: ['src/engine/**/*.ts', 'src/engine/**/*.tsx'],
     ignores: ['src/engine/**/*.test.ts', 'src/engine/**/*.test.tsx'],
     rules: {
-      'no-restricted-imports': ['error', pureteImports('engine', AVALS_ENGINE)],
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES, ...VERROU_CONTENEUR, ...pureteSyntaxe('engine', AVALS_ENGINE)],
+      'murs/purete-imports': ['error', pureteImports('engine', AVALS_ENGINE)],
+      'murs/purete': ['error', ...pureteSyntaxe('engine', AVALS_ENGINE)],
     },
   },
   {
-    // PURETÉ DE `state` — volet IMPORT DYNAMIQUE (#1709 C3b-2 ; règle 3, #161). Le volet statique est
-    // déclaré plus haut, DANS le bloc du canal d'issue (une seule déclaration de `no-restricted-imports`
-    // par périmètre). Tests hors portée, même raison que pour le moteur. `rollSeam`/`revealStep` sont
-    // traités par le bloc suivant : ils sont MINTEURS des marques, donc hors `VERROU_MARQUES`.
+    // PURETÉ DE `state` (#1709 C3b-2 ; règle 3, #161). Tests hors portée, même raison que pour le moteur.
     files: ['src/state/**/*.ts', 'src/state/**/*.tsx'],
-    ignores: ['src/state/**/*.test.ts', 'src/state/**/*.test.tsx', 'src/state/rollSeam.ts', 'src/state/revealStep.ts'],
+    ignores: ['src/state/**/*.test.ts', 'src/state/**/*.test.tsx'],
     rules: {
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES, ...VERROU_CONTENEUR, ...pureteSyntaxe('state', AVALS_STATE)],
-    },
-  },
-  {
-    // Les deux MINTEURS de `src/state` : exemptés des verrous de marque (forger la marque EST leur
-    // corps de métier), JAMAIS de la pureté de couche — sans ce bloc, la règle du dessus les ferait
-    // sortir du radar de l'import dynamique.
-    files: ['src/state/rollSeam.ts', 'src/state/revealStep.ts'],
-    rules: {
-      'no-restricted-syntax': ['error', ...pureteSyntaxe('state', AVALS_STATE)],
-    },
-  },
-  {
-    // Les trois goulots du canal d'issue restent SOUS la pureté de couche : leur exemption ne porte
-    // que sur `flowOutcomes` (bloc du canal, plus haut, qui les `ignores`).
-    files: ['src/state/flowOutcomes.ts', 'src/state/rollFlowSpecs.ts', 'src/state/encounterPsychFlow.ts'],
-    rules: {
-      'no-restricted-imports': ['error', pureteImports('state', AVALS_STATE)],
+      'murs/purete-imports': ['error', pureteImports('state', AVALS_STATE)],
+      'murs/purete': ['error', ...pureteSyntaxe('state', AVALS_STATE)],
     },
   },
   {
@@ -364,46 +408,11 @@ export default tseslint.config(
     // VIVANTES sont visibles à leur site, avec leur ticket : `fsPersist.ts` (#518) et `props.types.ts`
     // (#1506) portent chacune un `eslint-disable-next-line` motivé — jamais un nom de fichier en liste.
     // Tests hors portée, même raison que pour le moteur : ils exercent légitimement le runtime aval.
-    // `VERROU_MARQUES`/`VERROU_CONTENEUR` sont REDITS : en flat config, le dernier bloc qui déclare
-    // `no-restricted-syntax` REMPLACE ses options — ce sont exactement les deux que les fichiers
-    // non-test de `src/data` résolvent (mesuré par `calculateConfigForFile` sur `data/index.ts`).
     files: ['src/data/**/*.ts', 'src/data/**/*.tsx'],
     ignores: ['src/data/**/*.test.ts', 'src/data/**/*.test.tsx'],
     rules: {
-      'no-restricted-imports': ['error', pureteImports('data', AVALS_DATA)],
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES, ...VERROU_CONTENEUR, ...pureteSyntaxe('data', AVALS_DATA)],
-    },
-  },
-  {
-    // MUR DE L'ORDRE TOTAL — LES TESTS DE `src` (#1709 C3c-1). Une garde qui balaie l'arbre réel lit un
-    // CORPUS : `readCorpus` (`scripts/guards/lib/sourceCorpus.mjs`, mémoïsé, gelé, ordre total, refus du
-    // vide par base) ; un LISTAGE de dossier passe par `listerDossier`/`listerArbre`. La marche brute
-    // n'est plus écrivable ici — ni par import nommé, ni par membre, ni par déstructuration.
-    // PÉRIMÈTRE (#1709 C3c-3b) : TOUT test de `src`, en UNE paire de globs — un dossier neuf sous
-    // `src/` naît donc SOUS le mur, sans qu'on ait à y penser.
-    // `VERROU_MARQUES` est REDIT : en flat config, le dernier bloc qui déclare `no-restricted-syntax`
-    // REMPLACE ses options — c'est la seule option que ces tests résolvent aujourd'hui (mesuré sur la
-    // config résolue, cf. `src/eslint-ordre-total-et-purete.test.ts`), l'omettre désarmerait #1262/#1318.
-    // `VERROU_LOCALE_COMPARE` n'est PAS repris : l'ordre total vise le déterminisme cross-OS des docs
-    // DÉRIVÉS ; un test qui asserte l'ordre que le PRODUIT rend par locale (`src/ui/compendium/
-    // relations.test.ts` compare la donnée réelle à `localeCompare(b, 'fr')` ; deux scénarios trient des
-    // ids en `{ numeric: true }`, que `lister.mjs` ne sait pas exprimer) mesure un contrat PRODUIT, pas
-    // un listing — le refuser ici exigerait des exemptions au site.
-    files: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    rules: {
-      'no-restricted-imports': ['error', ORDRE_TOTAL_IMPORTS],
-      'no-restricted-syntax': ['error', ...VERROU_MARQUES, ...VERROU_LISTAGE],
-    },
-  },
-  {
-    // … et la POLICE DE LA POSSESSION redite pour les TESTS de `src/ui` : le bloc ci-dessus déclare
-    // `no-restricted-imports`, donc il REMPLACE les options que ces fichiers résolvaient (mesuré :
-    // eux seuls, parmi les sept couches, portaient une `no-restricted-imports`). Les deux volets se
-    // posent ICI dans la MÊME option — `paths` pour la marche brute, `patterns` pour la possession —,
-    // chacun depuis sa constante : rien n'est recopié, et le mur reste le même pour toutes les couches.
-    files: ['src/ui/**/*.test.ts', 'src/ui/**/*.test.tsx'],
-    rules: {
-      'no-restricted-imports': ['error', { ...ORDRE_TOTAL_IMPORTS, patterns: POLICE_POSSESSION }],
+      'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
+      'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
     },
   },
 );

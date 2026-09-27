@@ -303,12 +303,6 @@ const estMetavariable = (tok) => /(^|\/)[A-Za-z](\.[A-Za-z0-9]+)?$/.test(tok)
  *  `*-guard.test.ts`), pas un chemin : il ne se confronte pas au disque. SEULE définition — les sens
  *  6 et 7 la partagent. */
 const estMotif = (tok) => /[*?[]/.test(String(tok ?? ''))
-// Exemptions AU SITE (`fichier:ligne|jeton`), jamais au fichier : une occurrence de plus du même
-// jeton AILLEURS dans le fichier reste jugée. Une exemption qui ne matche plus se voit — son site
-// redevient rouge dès que la ligne bouge, et c'est le moment de la re-mesurer.
-const HOOK_SITES_EXEMPTS = new Set([
-  'scripts/git-hooks/pre-push.mjs:94|src/database', // contre-exemple de la comparaison par SEGMENT (`src/database` n’est pas `src/data`)
-])
 // Un hook nomme aussi ses tests-scanners par leur SEUL nom de fichier (`label-logic-guard.test.ts`,
 // EXCLUDED de telle famille) : ce nom se confronte à l'index des tests de `src/`, sinon un renommage
 // laisse la liste mentir. Un MOTIF (`*-guard.test.ts`, `-guard\.test\.ts` d'une regex) n'est pas un nom.
@@ -325,7 +319,7 @@ for (const dir of HOOKS_DIRS) {
     while ((m = CHEMIN_RE.exec(text))) {
       const tok = cheminCite(text, m)
       const ligne = lineAt(text, m.index)
-      if (estMetavariable(tok) || HOOK_SITES_EXEMPTS.has(`${f}:${ligne}|${tok}`)) continue
+      if (estMetavariable(tok)) continue
       if (!pathExists(tok)) problems.push({ file: f, line: ligne, kind: 'chemin cité par un hook, absent du disque', tok })
     }
     while ((m = NOM_DE_TEST_RE.exec(text))) {

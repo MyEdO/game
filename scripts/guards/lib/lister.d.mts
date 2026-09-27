@@ -1,5 +1,4 @@
-export const parUnitesDeCode: (a: string, b: string) => number;
-export const parLibelle: (a: string, b: string) => number;
+export { parUnitesDeCode, parLibelle } from '../../../src/lib/ordre.mjs';
 export function listerDossier(dir: string, options?: { absent?: 'lever' | 'vide' }): string[];
 export function listerArbre(
   dir: string,

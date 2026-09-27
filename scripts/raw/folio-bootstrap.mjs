@@ -17,8 +17,7 @@
 // Usage   : node scripts/raw/folio-bootstrap.mjs <ABBR> [--apply]
 import { writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { join, resolve, basename } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, basename } from 'node:path'
 import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
 import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { lireBoites, pagesEnLignes, runBook } from './anchor-fill.mjs'
@@ -164,5 +163,4 @@ function main() {
   }
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

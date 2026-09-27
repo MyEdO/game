@@ -90,6 +90,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `import.meta.main` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `descendre/enfantsDe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coDescendre/ouverts/pasDeDonnee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
@@ -164,6 +165,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `espacesExtensibles` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -171,6 +176,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `parUnitesDeCode/parLibelle/replier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -179,6 +185,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 
 - `ItemIcon` (src/ui/ItemIcon.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `gen-registry (_registry.generated)` (scripts/gen-registry.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `import.meta.main` (scripts/guards/lib/pointDEntree.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `useLongPress` (src/ui/useLongPress.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CreatorDice` (src/ui/creator/CreatorDice.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CharacterPreview` (src/ui/CharacterPreview.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -206,6 +213,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `InitiativeStrip` (src/ui/InitiativeStrip.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `PartyDock` (src/ui/PartyDock.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ObjectiveBanner` (src/ui/ObjectiveBanner.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `echapperRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDe` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDeRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `espacesExtensibles` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 
 ## Modules `src/state`/`src/engine` non rattachés à un système déclaré
 
@@ -234,4 +245,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 65ef9cf9fa737960ac635dfc816f1d31e5eeb75f (1853 fichiers, 2 dossiers) corps: 1a60b2098d643a7a3ef064df428910f9858c52f1 -->
+<!-- sources-empreinte: 12a5b065cd17e2aa2c7343b3c2ae321034308043 (1853 fichiers, 2 dossiers) corps: 3c8b27b5e5e715877e8b18fc9f85f95a4bd5831c -->

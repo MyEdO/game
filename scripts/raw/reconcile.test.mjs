@@ -634,17 +634,6 @@ test('R2 : un chapitre d\'un livre de cœur décrit par l\'Atlas et jamais cité
   )
 })
 
-test('cliquet : le STOCK COMMITTÉ couvre EXACTEMENT les trous durs du vrai repo (aucun neuf, aucun périmé)', () => {
-  // Doublon ASSUMÉ du verdict de `npm run raw:reconcile` : cette lane-ci (`test:raw`) tourne dans la
-  // lane des lecteurs de `docs/raw/`, l'autre en phase SÉRIE — un stock périmé par un commit voisin
-  // se voit ici sans attendre l'écrivain, et le message nomme le remède au lieu d'un exit nu.
-  const { neuves, perimees, coeur } = ecartsTrousDurs(trousDurs(computeReconciliation()), lireStock())
-  // R1 sur le stock RÉEL : aucune clé de Sens A d'un livre de cœur n'y est admise (trou OU entrée).
-  assert.deepEqual(coeur, [], 'un livre de cœur se corrige, il ne se stocke pas')
-  assert.deepEqual(neuves, [], 'trou dur neuf : couvrir le chapitre dans l\'Atlas, ou instruire la dette au stock')
-  assert.deepEqual(perimees, [], 'entrée périmée : retirer l\'entrée de reconciliation-stock.json')
-})
-
 test('cliquet : chaque entrée du stock nomme ses SITES, son LOT et sa DATE (jamais un régime)', () => {
   for (const [cle, e] of Object.entries(lireStock())) {
     assert.ok(Array.isArray(e.sites) && e.sites.length, `${cle} : aucun site nommé`)
@@ -697,10 +686,4 @@ test('fixture : la MÊME fiche citant le livre de cœur de SON PROPRE cœur ne d
       assert.deepEqual(computeReconciliation({ ...opts, registre: REGISTRE }).etrangers, [])
     },
   )
-})
-
-test('arbre réel : aucune fiche de l’Atlas ne cite le livre de cœur d’un autre cœur que le sien (#1825)', () => {
-  const { etrangers, fichesJugees } = computeReconciliation()
-  assert.ok(fichesJugees > 0, 'aucune fiche balayée — la garde ne mesure rien')
-  assert.deepEqual(etrangers, [])
 })

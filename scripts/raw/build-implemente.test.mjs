@@ -8,7 +8,7 @@ import {
   slugify, refsWithSpans, declNameOf, symbolFor, refMatches, mergeSpans,
   parseFiche, renderBlock, regenerateFiche, validerDette, estHorsImplementation, indexCode, isDeadExport,
   GUARD_LEAK_RE, GEN_TAG, NOT_IMPL,
-  buildAbbrMap, folioCitationsFromJson, orphelinsDeDette, etatsDesTopics, etatDuTopic, computeFolioWinners,
+  buildAbbrMap, folioCitationsFromJson, orphelinsDeDette, etatsDesTopics, etatDuTopic,
   libelleDe, MANIFEST_PATH, ordreDesPuces, registresDeFiches, dettesDeFicheSansObjet,
 } from './build-implemente.mjs'
 import { closureOf } from '../guards/lib/importGraph.mjs'
@@ -525,26 +525,6 @@ test('folioCitationsFromJson : accolades DANS une prose ne déplacent pas la pro
   const out = folioCitationsFromJson('src/data/x.json', content, { ...AA_MAP, stats: freshStats() })
   assert.equal(out.length, 1)
   assert.equal(out[0].sym, 'porteur')
-})
-
-test('computeFolioWinners : deux topics sur la même plage → meilleur recouvrement seul ; égalité → les deux', () => {
-  // Deux citations folio de MÊME plage LDB 23 l.100-140 ; trois topics candidats.
-  const cA = { book: 'LDB', ch: 23, lo: 100, hi: 140, folio: true, sym: 'a', file: 'src/data/x.json', row: 1, isTs: false }
-  const index = { impl: [cA], tests: [], fileLines: new Map(), nonCommentText: new Map() }
-  const mkFiche = (defs) => ({ parsed: { fields: defs.map(([topic, refs]) => ({ topic, refs })) } })
-  const fiches = [mkFiche([
-    ['big', [{ book: 'LDB', ch: 23, lo: 110, hi: 135 }]],  // recouvre 26 l. → gagne
-    ['small', [{ book: 'LDB', ch: 23, lo: 130, hi: 133 }]], // recouvre 4 l. → perd
-  ])]
-  const w = computeFolioWinners(fiches, index, 10)
-  assert.deepEqual([...w.get(cA)], ['big'])
-  // égalité : deux topics au même recouvrement → les deux gardent
-  const fiches2 = [mkFiche([
-    ['t1', [{ book: 'LDB', ch: 23, lo: 110, hi: 120 }]], // 11 l.
-    ['t2', [{ book: 'LDB', ch: 23, lo: 125, hi: 135 }]], // 11 l.
-  ])]
-  const w2 = computeFolioWinners(fiches2, index, 10)
-  assert.deepEqual([...w2.get(cA)].sort(), ['t1', 't2'])
 })
 
 // --- Garde manifest (Sens B, #434) ---

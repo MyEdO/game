@@ -15,6 +15,7 @@
  */
 import type { View } from '../facing';
 import type { QuadBoneId } from './quadSkeleton';
+import { parUnitesDeCode } from '../../../lib/ordre.mjs';
 
 /** z d'un os pour chacune des 3 vues. Table TOTALE : tout `QuadBoneId` y figure. */
 export type QuadZTable = Record<QuadBoneId, Record<View, number>>;
@@ -54,7 +55,7 @@ export const QUAD_Z: QuadZTable = {
 export function quadZOrder(view: View): { id: QuadBoneId; z: number }[] {
   return (Object.entries(QUAD_Z) as [QuadBoneId, Record<View, number>][])
     .map(([id, byView]) => ({ id, z: byView[view] }))
-    .sort((a, b) => a.z - b.z || a.id.localeCompare(b.id));
+    .sort((a, b) => a.z - b.z || parUnitesDeCode(a.id, b.id));
 }
 
 /**

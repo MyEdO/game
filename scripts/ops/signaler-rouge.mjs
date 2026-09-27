@@ -18,7 +18,6 @@
 // ferme pas stdin pour `gh`, qui attend alors une saisie (scripts/ops/signaler-rouge.test.mjs).
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 
 /** Les deux verdicts qu'un workflow peut rendre. */
 export const VERDICTS = ['vert', 'rouge']
@@ -110,7 +109,7 @@ export function signaler({ titre, prefixe, label, corps, verdict, spawn = spawnS
   return recit(gestes)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (import.meta.main) {
   try {
     console.log(signaler(options(process.argv.slice(2))))
   } catch (e) {

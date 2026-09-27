@@ -84,13 +84,17 @@ export const aliasDuDepot = (racine = '.') => {
 
 /** Extensions qu'un spécificateur peut porter LUI-MÊME (le chemin désigne alors le fichier). */
 const EXTS_EXPLICITES = [...EXTS, '.json'];
+/** Source TypeScript d'un spécificateur à extension JS émise : `./x.mjs` désigne `x.mts` quand
+ *  `x.mjs` n'existe pas (TypeScript, `moduleResolution: "bundler"`, Handbook « Modules Reference »,
+ *  extension substitution) — la forme de `src/**` vers `scripts/docs/lib/*.mts`. */
+const EXTS_TS_DE = { '.js': ['.ts', '.tsx'], '.mjs': ['.mts'], '.cjs': ['.cts'] };
 
 /**
  * Résout un spécificateur d'import RELATIF (`./foo`, `../bar`) vers un fichier source réel :
  * spécificateur portant DÉJÀ son extension (`./x.mjs`, `./data.json` — la forme des 109 imports de
- * `src/**` vers les libs de garde), sinon extension déduite d'`EXTS`, sinon repli `index.*`. Un
- * spécificateur qui commence par un ALIAS (`alias`, `@/…`) se résout sous sa cible ; un paquet npm
- * rend `null` (hors périmètre).
+ * `src/**` vers les libs de garde) ou, absent, sa source TypeScript (`EXTS_TS_DE`), sinon extension
+ * déduite d'`EXTS`, sinon repli `index.*`. Un spécificateur qui commence par un ALIAS (`alias`, `@/…`)
+ * se résout sous sa cible ; un paquet npm rend `null` (hors périmètre).
  * `existe` (chemin absolu POSIX → présent ?) et `alias` disent quel ARBRE fait foi : le disque du
  * répertoire courant par défaut, la liste de fichiers et le `tsconfig.json` d'une ref pour qui juge un
  * autre arbre que l'arbre de travail (#1806).
@@ -102,7 +106,11 @@ export function resolveImport(fromFile, spec, existe = existsSync, alias = alias
   const a = spec.startsWith('.') ? null : alias.find(({ prefixe }) => spec.startsWith(prefixe));
   if (!spec.startsWith('.') && !a) return null;
   const base = a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec).split('\\').join('/');
-  if (EXTS_EXPLICITES.some((e) => spec.endsWith(e))) return existe(base) ? base : null;
+  if (EXTS_EXPLICITES.some((e) => spec.endsWith(e))) {
+    if (existe(base)) return base;
+    const [, radical, ext] = /^(.*)(\.[^./]+)$/.exec(base);
+    return (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f)) ?? null;
+  }
   for (const ext of EXTS) if (existe(base + ext)) return base + ext;
   for (const ext of EXTS) if (existe(`${base}/index${ext}`)) return `${base}/index${ext}`;
   return null;
@@ -112,9 +120,11 @@ export function resolveImport(fromFile, spec, existe = existsSync, alias = alias
  * Enfants d'un module : TOUS ses imports relatifs résolus, sans borne. `null` = fichier absent (hors
  * closure) ; `[]` = membre qui n'est pas un module (`estModule` : `.json`, #487) ou illisible.
  * `typesEffaces` lit le source À L'EXÉCUTION (`sourceALExecution`) : les arcs effacés n'y sont plus.
- * @param {string} abs @param {string} rel @param {boolean} typesEffaces @returns {string[]|null}
+ * `dynamiques` faux écarte les `import('…')` (m[2]) : il reste les arcs que le CHARGEMENT lie.
+ * @param {string} abs @param {string} rel @param {boolean} typesEffaces @param {boolean} dynamiques
+ * @returns {string[]|null}
  */
-function enfantsDe(abs, rel, typesEffaces) {
+function enfantsDe(abs, rel, typesEffaces, dynamiques) {
   if (!existsSync(abs)) return null;
   if (!estModule(rel)) return [];
   let text;
@@ -126,6 +136,7 @@ function enfantsDe(abs, rel, typesEffaces) {
   if (typesEffaces) text = sourceALExecution(abs, text);
   const enfants = [];
   for (const m of text.matchAll(IMPORT_RE)) {
+    if (m[2] !== undefined && !dynamiques) continue;
     const resolved = resolveImport(abs, m[1] ?? m[2] ?? m[3]);
     if (resolved) enfants.push(resolved);
   }
@@ -144,11 +155,13 @@ function enfantsDe(abs, rel, typesEffaces) {
  * `typesEffaces` marche les arcs d'EXÉCUTION seuls (cf. `sourceALExecution`) : c'est ce que demande un
  * appelant qui suit un EFFET DE MODULE plutôt qu'une dépendance de typage. Le cache porte les enfants
  * SOUS CE RÉGIME : deux marches de régimes différents ne le partagent pas.
+ * `dynamiques: false` marche la clôture STATIQUE, celle qu'ESM charge et lie avant d'évaluer quoi
+ * que ce soit (ECMA-262, Cyclic Module Records : `Link` avant `Evaluate`) : un `import('…')` n'y entre pas.
  * @param {string[]} roots
- * @param {{ retenir?: (abs: string) => boolean, cache?: Map<string, string[]|null>, typesEffaces?: boolean }} [options]
+ * @param {{ retenir?: (abs: string) => boolean, cache?: Map<string, string[]|null>, typesEffaces?: boolean, dynamiques?: boolean }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à la racine du repo
  */
-export function clotureDImports(roots, { retenir, cache = new Map(), typesEffaces = false } = {}) {
+export function clotureDImports(roots, { retenir, cache = new Map(), typesEffaces = false, dynamiques = true } = {}) {
   const seen = new Set();
   const cwdPosix = resolve('.').split('\\').join('/') + '/';
   const stack = [...roots.map((r) => resolve(r).split('\\').join('/'))];
@@ -159,7 +172,7 @@ export function clotureDImports(roots, { retenir, cache = new Map(), typesEfface
     if (seen.has(rel)) continue;
     let enfants = cache.get(abs);
     if (enfants === undefined) {
-      enfants = enfantsDe(abs, rel, typesEffaces);
+      enfants = enfantsDe(abs, rel, typesEffaces, dynamiques);
       cache.set(abs, enfants);
     }
     if (enfants === null) continue;

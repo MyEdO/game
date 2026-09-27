@@ -42,7 +42,7 @@
  * le repère est dans la donnée, pas dans la tête de l'auteur. Matérialisé par
  * `builders/propVolumes.test.ts`.
  */
-// eslint-disable-next-line no-restricted-imports -- #1506 : `DIR8_ORDER`/`estCardinal` sont des VALEURS du module FEUILLE `state/dir8` (zéro import, donc aucune contamination de graphe #421) — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
+// eslint-disable-next-line murs/purete-imports -- #1506 : `DIR8_ORDER`/`estCardinal` sont des VALEURS du module FEUILLE `state/dir8` (zéro import, donc aucune contamination de graphe #421) — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../state/dir8';
 import type { PropMaterialData } from './materials.types';
 

@@ -49,7 +49,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -243,4 +243,4 @@ function main() {
 
 // Le module est IMPORTABLE (la garde de `neufsDe` le monte, comme `replay-head.mjs` et le pre-push) :
 // le rejeu ne part que si ce fichier est le point d'entrée du process.
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) main();
+if (import.meta.main) main();

@@ -5,6 +5,7 @@ import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.
 import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde du rapport « consommateurs par champ » (#903 — `scripts/docs/build-field-consumers.mts`,
@@ -24,9 +25,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  *  assertions qui le lisent (cas fondateur, déterminisme, champs recouvrés, cliquet des « 0 lecteur »).
  *  Il coûte ~17 s et ~1,3 Go (Program du dépôt, 1 952 fichiers) : d'où les timeouts explicites posés
  *  sur les `it` qui le paient. PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de
- *  vitest. */
-let _rapport: ReturnType<typeof buildFieldConsumersMd> | null = null;
-const rapport = () => (_rapport ??= buildFieldConsumersMd());
+ *  vitest (#1801). */
+const rapport = detenteur(buildFieldConsumersMd);
 
 /**
  * L'ÉCART entre DEUX rendus du rapport, en une phrase — vide = identiques. Trois cas NOMMÉS, mordus

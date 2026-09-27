@@ -18,7 +18,7 @@
 // <corps>` → HTTP 422, verbatim : « Actor GitHub Actions integration must be part of the ruleset
 // source or owner organization ». Sur un dépôt PERSONNEL, cette intégration n'est pas un acteur
 // exonérable. Le ruleset n'exonère donc AUCUN acteur, et rien dans le dépôt n'en a besoin : aucun
-// workflow ne commet sur `main`. (`deploy.yml:49` pousse sur le dépôt de PROD, pas sur `main` : le
+// workflow ne commet sur `main`. (le `git push` de `deploy.yml` pousse sur le dépôt de PROD, pas sur `main` : le
 // ruleset ne le voit jamais.)
 //
 // Usage : `npm run ops:ruleset -- --dry-run` (imprime le corps, n'écrit rien) ou `npm run ops:ruleset`
@@ -129,5 +129,5 @@ export function executer({
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1])
+if (import.meta.main)
   process.exit(executer({ argv: process.argv.slice(2) }))

@@ -1,7 +1,7 @@
 // Index du MOTEUR — GÉNÉRÉ depuis les exports publics de `src/engine` (AST TypeScript, jamais une
 // recopie à la main). Sortie : docs/index-moteur.md. Re-run : node scripts/docs/build-index-moteur.mjs
-// (npm run docs:index-moteur). Mode --check (chaîné dans npm run docs:check) : régénère en mémoire,
-// compare au .md committé, exit 1 avec message actionnable si diff — jamais d'écriture en --check.
+// (npm run docs:index-moteur).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 //
 // Incident fondateur (#903bis) : `rollCareer` (src/engine/creation.ts:73) porte depuis 2026-06-18 un
 // JSDoc en français qui explique que plusieurs Carrières peuvent partager une borne de tirage — deux
@@ -9,11 +9,11 @@
 // de recherche par SENS entre une question en français et un symbole en anglais. Cet index EST cette
 // surface : une ligne par export, indexée par concept français.
 //
-// Socle AST/JSDoc PARTAGÉ : scripts/docs/lib/jsdocUnion.mjs (`emitOrCheck`) et
+// Socle PARTAGÉ : scripts/docs/lib/empreinte-sources.mjs (`ecrireOuVerifier`) et
 // scripts/docs/lib/engineExports.mjs (`allEngineExports` — MÊME mesure que le cliquet
 // src/data/index-moteur-ratchet.test.ts, jamais deux comptages qui pourraient diverger).
 // Lexique : scripts/docs/lib/engineConcepts.mjs (`FILE_CONCEPTS` + `CROSS_CONCEPTS`).
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { allEngineExports, fichiersMoteur, ENGINE_ROOT } from './lib/engineExports.mjs'
 import { FILE_CONCEPTS, CROSS_CONCEPTS } from './lib/engineConcepts.mjs'
 import { parLibelle } from '../guards/lib/lister.mjs'
@@ -133,7 +133,7 @@ for (const file of [...byFile.keys()].sort()) {
   out += '\n'
 }
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: OUT,
   check: process.argv.includes('--check'),

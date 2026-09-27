@@ -1,7 +1,7 @@
 // LECTURE DES TICKETS GITHUB — la couture REST des scripts qui LISENT une issue depuis une session
 // Claude Code (#1813) : `fermer-depuis-main.mjs`, `fermetures-non-citees.mjs` et le train de
 // publication, et la MESURE de `board.mjs` (`issuesDeGh`). Ce n'est PAS la seule ROUTE `gh` du
-// dépôt : `synchroniser` (`board.mjs`), `signaler-rouge.mjs` (signaler-rouge.mjs:92-108) et
+// dépôt : `synchroniser` (`board.mjs`), `signaler` (signaler-rouge.mjs) et
 // `deps-report.mjs` (deps-report.mjs:85,89) parlent d'une issue ou d'un Project en GraphQL ou par
 // sous-commande CLI — ils tournent sur RUNNER, où GraphQL n'est pas refusé, et le solde de #1804 les
 // en ÉCARTE explicitement, mesurés CI-seulement.
@@ -20,7 +20,7 @@
 // CONTRAT différent posé sur ce spawn-ci, pas un second spawn. Deux enrobeurs vivent hors d'elle,
 // avec le même contrat de sortie : le train de publication garde le sien (`spawnSync` borné en
 // temps, contrainte qu'il est seul à porter), et `signaler-rouge.mjs` le sien
-// (signaler-rouge.mjs:77-83), qui LÈVE au lieu de rendre un verdict — un signalement muet ne sert à
+// (`gh` de signaler-rouge.mjs), qui LÈVE au lieu de rendre un verdict — un signalement muet ne sert à
 // rien.
 //
 // Aucune FERMETURE ici. Le dépôt en compte DEUX sites, recensés et déclarés par

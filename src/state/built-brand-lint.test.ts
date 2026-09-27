@@ -1,6 +1,6 @@
 /**
  * LE VERROU DE FORGE se mesure (#1262) — la marque `BuiltCascadeStep` est REQUISE, donc le type seul
- * suffirait… si le cast n'existait pas. Le lint (`no-restricted-syntax`, `eslint.config.js`) mure les
+ * suffirait… si le cast n'existait pas. Le lint (murs `murs/marques` et `murs/conteneur`, `eslint.config.js`) mure les
  * routes de forge ; ce test les LANCE sur la config RÉELLE (API ESLint, pas une copie de règle) et
  * exige le rouge. Sans lui, un sélecteur trop étroit laisse passer en silence : la sonde d'origine
  * (`TSAsExpression > TSTypeReference`, enfant DIRECT) rendait 0 erreur sur trois des quatre routes.
@@ -18,9 +18,12 @@ const SOUS_LA_REGLE = 'src/state/__sonde-verrou-marque.ts';
 
 const eslint = new ESLint({ cwd: process.cwd() });
 
+/** Les deux murs de la marque d'origine (`eslint.config.js`, plugin `murs`). */
+const MURS_DE_MARQUE = new Set(['murs/marques', 'murs/conteneur']);
+
 async function messagesDeVerrou(code: string): Promise<string[]> {
   const [res] = await eslint.lintText(code, { filePath: SOUS_LA_REGLE });
-  return res.messages.filter((m) => m.ruleId === 'no-restricted-syntax').map((m) => `${m.line}:${m.column}`);
+  return res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')).map((m) => `${m.line}:${m.column}`);
 }
 
 const ENTETE = "import type { BuiltCascadeStep } from './stepBrand';\ndeclare const o: unknown;\n";
@@ -105,7 +108,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   it('les MINTEURS restent exemptés : leur cast interne est la seule fabrique légitime', async () => {
     const [res] = await eslint.lintText(`${ENTETE}export const h = o as BuiltCascadeStep;\n`, { filePath: 'src/state/rollSeam.ts', warnIgnored: false });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
   });
 
   /**
@@ -118,9 +121,9 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   it('`saves.ts` ne forge AUCUNE marque : zéro cast, zéro directive d’exemption, lint propre', async () => {
     const reel = readFileSync('src/state/saves.ts', 'utf8');
     expect(reel, 'plus aucun cast de marque dans ce fichier').not.toMatch(/as\s+Built(CascadeStep|RollRow)/);
-    expect(reel, 'et donc plus aucune directive qui l’exempterait').not.toContain('no-restricted-syntax');
+    expect(reel, 'et donc plus aucune directive qui l’exempterait').not.toMatch(/murs\/(marques|conteneur)/);
     const [res] = await eslint.lintFiles(['src/state/saves.ts']);
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     expect(res.errorCount, 'aucune autre erreur de lint sur le fichier').toBe(0);
   });
 
@@ -128,7 +131,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     const reel = readFileSync('src/state/saves.ts', 'utf8');
     const augmente = `${reel}\ndeclare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;\n`;
     const [res] = await eslint.lintText(augmente, { filePath: 'src/state/saves.ts' });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'un cast non justifié doit rougir').toHaveLength(1);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 });
 
@@ -358,7 +361,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
 
   it('le MINTEUR `i18n/index.ts` est exempté AU FICHIER : son cast interne est la fabrique légitime', async () => {
     const [res] = await eslint.lintText(`${ENTETE_TEXTE}export const g = o as PlayerText;\n`, { filePath: 'src/i18n/index.ts', warnIgnored: false });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
   });
 
   /**
@@ -369,7 +372,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
    */
   it('le MINTEUR DE FIXTURE `i18n/fixtureText.ts` passe la règle : son unique cast porte sa directive AU SITE', async () => {
     const [res] = await eslint.lintFiles(['src/i18n/fixtureText.ts']);
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'la directive posée couvre le cast du minteur de fixture').toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la directive posée couvre le cast du minteur de fixture').toHaveLength(0);
     expect(res.errorCount, 'aucune autre erreur de lint sur le minteur de fixture').toBe(0);
   });
 
@@ -377,7 +380,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
     const reel = readFileSync('src/i18n/fixtureText.ts', 'utf8');
     const second = `${reel}\ndeclare const sonde: unknown;\nexport const forge2 = sonde as PlayerText;\n`;
     const [res] = await eslint.lintText(second, { filePath: 'src/i18n/fixtureText.ts' });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'un 2ᵉ cast non justifié doit rougir').toHaveLength(1);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un 2ᵉ cast non justifié doit rougir').toHaveLength(1);
   });
 });
 
@@ -469,13 +472,13 @@ describe('#1318 V8a₀ T1/T2 — le lint mure les CONTENEURS qui blanchissent le
   it('T2 : `x as CascadeStep` est REFUSÉ dans un fichier de flux', async () => {
     const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const a = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.ts' });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(1);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(1);
   });
 
   it('T2 : le même cast dans un fichier de TEST passe — le stock y est GELÉ au cliquet, pas muré', async () => {
     const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const b = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.test.ts' });
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
   });
 
 });

@@ -18,6 +18,7 @@ import type { MerchantArchetypeDef } from '../state/merchants/types';
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../state/scene';
 import { slugId } from './slug';
+import { parLibelle } from '../lib/ordre.mjs';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
@@ -3279,7 +3280,7 @@ export function findTrappingById(id: string): TrappingData | undefined {
 export const armesChoisissables = memoParVersion('trappings', () => trappings
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))
-  .sort((a, b) => a.label.localeCompare(b.label, 'fr')));
+  .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
   return qualiteParId(id);
@@ -3507,7 +3508,7 @@ export function specLabel(category: string, refId: string, specId: string): stri
  * catalogue (`refLabel`, `CHAR_LABELS`). Jamais un littéral FR : même cliquet.
  */
 export function dataLabel(texte: string | undefined | null, repli?: string): PlayerText {
-  // eslint-disable-next-line no-restricted-syntax -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
   return (texte ?? repli ?? '') as PlayerText;
 }
 

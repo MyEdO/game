@@ -1,7 +1,7 @@
 // USAGES du système de jet — GÉNÉRÉ depuis le code des consommateurs (`scripts/docs/lib/rollShellUsage.mjs`,
 // scan AST). Sortie : docs/usages-jets.md. Re-run : node scripts/docs/build-usages-jets.mjs
-// (npm run docs:usages-jets). Mode --check (chaîné dans npm run docs:check) : régénère en mémoire,
-// compare au .md committé, exit 1 si diff.
+// (npm run docs:usages-jets).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 //
 // Pourquoi ce fichier (#1078) : `docs/registre-jets.md` répond à « par où PART ce jet ? » (les
 // producteurs). Il manquait le pendant CÔTÉ AFFICHAGE : « comment chacun UTILISE la coquille de
@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs'
 import { parUnitesDeCode, listerArbre } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { shellZones, rowZones, scanRollShellUsage } from './lib/rollShellUsage.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
@@ -225,7 +225,7 @@ out += `  un jet du jeu.\n`
 out += `- Les **ids de zone** (\`Zn\`) affichés sont ceux que le JSDoc des props DÉCLARE. Une zone du contrat non\n`
 out += `  encore taguée à la primitive n'a pas d'id ici — ce document RELÈVE les ids, il ne les attribue pas.\n\n`
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: OUT,
   check,

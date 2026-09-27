@@ -10,14 +10,13 @@
  * aucun manifeste d'iconographie n'existe, et la charte de dessin est DÉJÀ écrite en tête de
  * `src/ui/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-icones.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
 
 const OUTIL = 'build-icones'
@@ -416,7 +415,7 @@ emoji, même « juste pour l'instant ».
   (\`${UNION}\` est une union fermée).
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/ajouter-une-icone.md',
   check: process.argv.includes('--check'),

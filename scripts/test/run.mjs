@@ -18,6 +18,7 @@ import {
   argumentsEnfant,
   bilanDiagnostic,
   bornesWorkers,
+  capacite,
   coeurs,
   codeAgrege,
   codeEnfant,
@@ -30,9 +31,11 @@ import {
   resumeLancement,
   SENTINELLES,
   cotesRequis,
+  memoireDisponibleMo,
   separerArguments,
   cheminsGlobSuspects,
   suiteComplete,
+  TAS_UTILISE,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
 import { estPidVivant, prendreVerrou, verrouRequis } from './verrou.mjs'
@@ -111,7 +114,13 @@ const ENV = envEnfant(process.env)
 // la suite. Un appelant qui pose déjà la variable garde la sienne (re-mesure à la main).
 const REGISTRE_DOM = path.join(CACHE, `dom-residu-${process.pid}.txt`)
 ENV.WFRP_DOM_RESIDU_REGISTRE = process.env.WFRP_DOM_RESIDU_REGISTRE ?? REGISTRE_DOM
-const CPUS = coeurs(process.env, () => os.availableParallelism?.() ?? os.cpus().length)
+// Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
+// cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
+const CAPACITE = capacite(
+  coeurs(process.env, () => os.availableParallelism()),
+  memoireDisponibleMo(process.env),
+)
+const CPUS = CAPACITE.servis
 const WORKERS = repartitionWorkers(CPUS)
 // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup
 // (drapeau global à un seul processus, filtre qui ne touche qu'un côté, chemin à métacaractère).
@@ -159,8 +168,11 @@ const empiler = (file, ligne) => {
   if (file.length > 20) file.shift()
 }
 const compteSentinelles = compterSentinelles([])
+let tasMaxMo = null
 const observer = (ligne, erreur) => {
   if (porteBilan(ligne)) vu.bilan = true
+  const tas = ligne.match(TAS_UTILISE)
+  if (tas) tasMaxMo = Math.max(tasMaxMo ?? 0, Number(tas[1]))
   const ajout = compterSentinelles([ligne])
   for (const [libelle] of SENTINELLES) compteSentinelles[libelle] += ajout[libelle]
   empiler(erreur ? vu.erreur : vu.tout, ligne)
@@ -317,7 +329,7 @@ echantillonnerMemoire()
 // Le bloc `[diag]` précède le résumé (dont la ligne `capture :` clôt la sortie) et, dans le
 // fichier, la ligne `status:` — un run lu à travers un pont d'outillage garde ainsi sa mesure.
 const diagnostic = bilanDiagnostic(compteSentinelles, {
-  cpus: CPUS,
+  capacite: CAPACITE,
   memGo: os.totalmem() / 2 ** 30,
   memMaxGo: memoire.systemeMax / 2 ** 30,
   rssMaxMo: memoire.rssMax / 2 ** 20,
@@ -326,6 +338,7 @@ const diagnostic = bilanDiagnostic(compteSentinelles, {
   maxWorkers: partageEffectif
     ? `node ${WORKERS.node}+jsdom ${WORKERS.jsdom}`
     : (bornesWorkers(ARGV, CPUS).find((b) => b.startsWith('--maxWorkers=')) ?? '=appelant').split('=')[1],
+  tasMaxMo,
 })
 process.stdout.write(diagnostic)
 ecrireCapture(diagnostic)

@@ -2,14 +2,13 @@
 // rubrique, description d'une ligne, règle d'or, pièges d'homonymes) vit dans
 // src/data/donnees.manifest.json ; tout ce que l'arbre permet de DÉRIVER (liste des fichiers réels,
 // nombre d'entrées, présence d'un schéma zod, complétude du manifeste) est CALCULÉ ici. Sortie :
-// docs/donnees.md. Re-run : node scripts/docs/build-donnees.mjs (npm run docs:donnees). Mode --check
-// (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé, exit 1 avec
-// message actionnable si diff — jamais d'écriture en mode --check. Mécanique d'émission partagée :
-// emitOrCheck (scripts/docs/lib/jsdocUnion.mjs), patron `scripts/docs/build-systemes.mjs`.
+// docs/donnees.md. Re-run : node scripts/docs/build-donnees.mjs (npm run docs:donnees).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Patron : `scripts/docs/build-systemes.mjs`.
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { FOLIO_RATCHET } from '../guards/lib/folioRatchetStock.mjs'
 
 const DATA_DIR = 'src/data'
@@ -496,7 +495,7 @@ if (errors.length) {
 }
 
 const CHECK = process.argv.includes('--check')
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/donnees.md',
   check: CHECK,

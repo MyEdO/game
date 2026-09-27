@@ -17,6 +17,8 @@ import {
   validateRefFile,
   evaluateAntiEsquive,
   evaluatePorteDuTicket,
+  argumentChaine,
+  messagesDesCommits,
   analyzeDiffDuCommit,
   extractMessageSources,
   evaluateAmendInvisible,
@@ -32,6 +34,10 @@ import {
   formeDuCommit,
   readChangedNames,
   diffDuCommit,
+  segmentsProfonds,
+  pipelinesProfonds,
+  motifDuCommitPresume,
+  ancrerScriptsNpm,
   repoRoot,
   readSoldeFile,
   readRefFile,
@@ -948,9 +954,10 @@ test('isGitCommitCommand : here-string PowerShell git commit -m @\'...\'@ → tr
   assert.equal(isGitCommitCommand('git commit -m @\'\nfeat: truc\n\'@'), true)
 })
 
-test('extractCommitPathspecs : "git commit -- <paths> -m <msg>" → les 2 chemins, message exclu', () => {
+// git 2.43 : `git commit --dry-run -- a -m x` → « pathspec '-m' did not match » — après `--`, tout est chemin.
+test('extractCommitPathspecs : "git commit -- <paths> -m <msg>" → `-m` et le message sont des chemins, comme dans git', () => {
   const cmd = 'git commit -- scripts/hooks/x.mjs .claude/settings.json -m "corrige #591"'
-  assert.deepEqual(extractCommitPathspecs(cmd), ['scripts/hooks/x.mjs', '.claude/settings.json'])
+  assert.deepEqual(extractCommitPathspecs(cmd), ['scripts/hooks/x.mjs', '.claude/settings.json', '-m', 'corrige #591'])
 })
 
 test('extractCommitPathspecs : pas de pathspec (commit -m seul) → []', () => {
@@ -1001,6 +1008,582 @@ test('formeDuCommit : un pathspec à JOKER rend `tout` — jamais `index`, qui s
   assert.equal(formeDuCommit('git commit -m "x"').forme, 'index')
 })
 
+test('pathspecsDuCommit : une SUBSTITUTION ou une EXPANSION shell est non résolue, quel que soit le fragment', () => {
+  for (const commande of [
+    'git commit -q -F /tmp/m.txt -- $(cat /tmp/liste.txt) > /tmp/log 2>&1',
+    "git commit -q -F /tmp/m.txt -- $(git status --porcelain | awk '{print $NF}')",
+    'git commit -F m.txt -- $FICHIERS',
+    'git commit -F m.txt -- `cat l`',
+    'git commit -F m.txt -- ${FICHIERS}',
+    'git commit -F m.txt -- src/{a,b}.ts',
+    'git commit -F m.txt -- ~/src/a.ts',
+    // Chemins fournis HORS du texte : l'enrobeur `xargs` et `--pathspec-from-file` (#1801, H-1).
+    'git ls-files -m | xargs git commit -F m --',
+    'git commit -F m --pathspec-from-file=l',
+    'git commit -F m --pathspec-from-file l',
+    'git commit -F m --pathspec-from-file=l --pathspec-file-nul',
+    // Sous quote double, `$` et le backtick restent vus par le shell.
+    'git commit -F m -- "$x"',
+    'git commit -F m -- "`cat l`"',
+    // Joker et magie de pathspec : git les interprète, quelle que soit la quote.
+    "git commit -F m -- 'src/*.ts'",
+    "git commit -F m -- ':(top)src/a.ts'",
+  ]) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+  const litteraux = 'git commit -F m.txt -- src/a.ts scripts/b.mjs 2>&1 | tail -3'
+  assert.deepEqual(pathspecsDuCommit(litteraux), { chemins: ['src/a.ts', 'scripts/b.mjs'], nonResolus: false })
+  assert.equal(formeDuCommit(litteraux).forme, 'pathspec')
+})
+
+// La provenance quotée d'un jeton décide ce que le shell en change (#1801, H-2) : un chemin suivi de
+// `Source/` porte des parenthèses, et le lire comme une substitution faisait mesurer le WIP partagé.
+test('pathspecsDuCommit : un jeton sous quote simple est littéral, sous quote double seuls `$` et le backtick comptent', () => {
+  const chemin = 'Source/Middenheim - City of the White Wolf/14 - Humans (Middenheimer).md'
+  for (const quote of ["'", '"']) {
+    const commande = `git commit -F m -- ${quote}${chemin}${quote}`
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [chemin], nonResolus: false }, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'pathspec', pathspecs: [chemin] }, commande)
+  }
+  assert.deepEqual(pathspecsDuCommit("git commit -F m -- '$x'"), { chemins: ['$x'], nonResolus: false })
+  assert.deepEqual(pathspecsDuCommit('git commit -F m -- "$x"'), { chemins: [], nonResolus: true })
+  // Un mot qui mêle nu et quoté n'est pas ENTIÈREMENT sous quote : lu comme nu.
+  assert.equal(pathspecsDuCommit('git commit -F m -- Source/a"(b)".md').nonResolus, true)
+})
+
+// #1801 H-3, #1806 A6
+test('formeDuCommit : `-i`/`--include`, groupé compris, rend `inclus` avec ses chemins', () => {
+  for (const commande of [
+    'git commit -F m -i src/a.ts',
+    'git commit -F m -qi src/a.ts',
+    'git commit -F m --include src/a.ts',
+    'git commit -im "x" src/a.ts',
+  ]) {
+    assert.deepEqual(formeDuCommit(commande), { forme: 'inclus', pathspecs: ['src/a.ts'] }, commande)
+  }
+  assert.equal(formeDuCommit('git commit -mi src/a.ts').forme, 'pathspec', 'la valeur « i » d\'un `-m` n\'est pas `-i`')
+  assert.equal(formeDuCommit('git commit -F m src/a.ts').forme, 'pathspec')
+})
+
+// Toutes les options à valeur de `git commit` (`--help-all`, git 2.43) : leur valeur n'est jamais un
+// pathspec. `-C HEAD` passait pour `pathspec ["HEAD"]` — un diff vide sur un commit d'index (#1801).
+test('jetonsDuCommit : la valeur d\'une option n\'est jamais un pathspec — `-C`, `-c`, `-t`, `--cleanup`, `-S`', () => {
+  for (const commande of ['git commit -C HEAD', 'git commit -c HEAD', 'git commit -t tpl.txt', 'git commit --reuse-message HEAD']) {
+    assert.deepEqual(formeDuCommit(commande), { forme: 'index', pathspecs: [] }, commande)
+  }
+  for (const commande of [
+    'git commit -CHEAD src/a.ts',
+    'git commit --cleanup strip src/a.ts',
+    'git commit --cleanup=strip src/a.ts',
+    'git commit --author "A <a@b>" src/a.ts',
+    // Valeur OPTIONNELLE : collée seulement — le mot suivant reste un chemin.
+    'git commit -S src/a.ts',
+    'git commit -Skey src/a.ts',
+    'git commit --gpg-sign src/a.ts',
+    'git commit -uno src/a.ts',
+  ]) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: ['src/a.ts'], nonResolus: false }, commande)
+  }
+})
+
+// parse-options accepte le préfixe UNIQUE d'une option longue ; ambigu ou inconnu, git refuse la
+// commande et la garde retombe sur le sur-ensemble (#1801).
+test('jetonsDuCommit : une option longue ABRÉGÉE se résout ; ambiguë ou inconnue, elle est non résolue', () => {
+  assert.deepEqual(formeDuCommit('git commit --incl src/a.ts'), { forme: 'inclus', pathspecs: ['src/a.ts'] })
+  assert.deepEqual(pathspecsDuCommit('git commit --mess x src/a.ts'), { chemins: ['src/a.ts'], nonResolus: false })
+  assert.deepEqual(pathspecsDuCommit('git commit --no-verif -m x src/a.ts'), { chemins: ['src/a.ts'], nonResolus: false })
+  for (const commande of [
+    'git commit -F m --pathspec-fr=l',
+    'git commit --al -m x',
+    'git commit --no-ver -m x src/a.ts',
+    'git commit -x -m y src/a.ts',
+  ]) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+    assert.equal(formeDuCommit(commande).forme, 'tout', commande)
+  }
+  assert.equal(formeDuCommit('git commit -a --no-all -m x').forme, 'index', 'la négation qui suit l\'emporte')
+  assert.ok(evaluateAmendInvisible({ command: 'git commit --amen', stagedTouchesSrc: true }), '`--amen` est `--amend`')
+  assert.equal(evaluateAmendInvisible({ command: 'git commit --amen --mess x', stagedTouchesSrc: true }), null)
+})
+
+// Une tête INCONNUE qui porte `git commit` dans ses arguments l'exécute peut-être, et lui ajoute des
+// chemins hors du texte (#1801) : la garde voit le commit, sur le sur-ensemble.
+test('isGitCommitCommand : `find -exec`, `parallel` — un commit EMBARQUÉ est vu, non résolu', () => {
+  for (const commande of [
+    "find src -name '*.ts' -exec git commit -F m -- {} +",
+    "find . -execdir git commit -F m {} ';'",
+    'parallel git commit -F m -- ::: a b',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+  assert.equal(isGitCommitCommand('git log --grep x'), false)
+})
+
+// CITER se reconnaît (table fermée des CITEURS), EXÉCUTER se présume : une citation reste une
+// citation, quotée ou non (contrat #591) ; toute autre tête qui porte `git commit` l'embarque (#1801).
+test('isGitCommitCommand : une tête CITEUSE ne commite pas ; toute autre tête EMBARQUE le commit', () => {
+  for (const commande of [
+    'echo git commit',
+    'man git commit',
+    'which git commit',
+    'type git commit',
+    'tldr git commit',
+    'ls git commit',
+    'grep -rn git commit x',
+    "printf '%s\\n' git commit | head",
+    "bash -c 'echo git commit'",
+    'gh issue comment 5 --body x git commit',
+    'command -v git commit',
+    'git log --grep "git commit"',
+    "watch 'echo git commit'",
+    "watch -x sh -c 'echo git commit'",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+  // `parallel` n'est pas un citeur : la garde ne sait pas qu'`echo` y est la commande, elle présume.
+  for (const commande of [
+    'parallel -k echo git commit ::: a',
+    'find . -name x -exec git commit -F m \\;',
+    'find . -okdir git commit -F m {} +',
+    'parallel git commit ::: a b',
+    'parallel -j 4 git commit -F m ::: a',
+    'watch -n 2 git commit -F m',
+    "git rebase -x 'git commit --amend --no-edit' HEAD~2",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+  }
+})
+
+// Un argument qui contient une espace est une chaîne de commande possible : `watch` hors `-x` la passe
+// à `sh -c` (`watch --help`, procps-ng), `parallel` aussi, en y remplaçant `{}` (#1801).
+test('isGitCommitCommand : la CHAÎNE portée en argument par une tête non citeuse est ré-analysée', () => {
+  for (const commande of [
+    "watch 'git commit -F m'",
+    'watch -n 2 "git commit -F m -- src/a.ts"',
+    'watch -tn 2 git commit -F m',
+    'watch --interval=2 -- git commit -F m',
+    'watch -x git commit -F m',
+    "parallel 'git commit -F {}' ::: a",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+  }
+  assert.deepEqual(segmentsProfonds("watch -n 2 'git status && git commit -F m'"),
+    [['watch', '-n', '2', 'git status && git commit -F m']], 'la ré-analyse ne crée pas de segment pour les autres gardes')
+})
+
+// 3e juge, EXEC-ARGV-1 : la commande qu'un exécuteur lance en argv peut elle-même être enrobée.
+test('isGitCommitCommand : un exécuteur en argv qui ENROBE le commit l\'embarque', () => {
+  for (const commande of [
+    'find . -maxdepth 0 -exec env git commit -a -m "chore: x" \\;',
+    'find . -maxdepth 0 -exec sh -c \'git commit -a -m "chore: x"\' \\;',
+    'watch -x env git commit -a -m "chore: x"',
+    'find . -exec timeout 30 git commit -m x \\;',
+    "watch -x sh -c 'git commit -m x'",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+})
+
+// 3e juge, SOUS-SHELL-1 : un sous-shell ou un mot réservé hors du tout début de segment.
+test('isGitCommitCommand : sous-shell après `time`/`{`/`(`/`!`, et mots réservés POSIX en tête', () => {
+  for (const commande of [
+    'time (git commit -a -m "chore: x")',
+    '{ (git commit -a -m "chore: x"); }',
+    'if git commit -a -m "chore: x"; then echo ok; fi',
+    'for f in a; do git commit -a -m "chore: x"; done',
+    '( (git commit -m x) )',
+    '! (git commit -m x)',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+  }
+  assert.deepEqual(formeDuCommit('time (git commit -F m -- src/a.ts)'), { forme: 'pathspec', pathspecs: ['src/a.ts'] })
+})
+
+// 3e juge, MULTI-COMMIT-1 : la forme d'un seul commit ne couvre pas ce qu'un second emporte.
+test('formeDuCommit : deux commits ou plus rendent `tout` ; le message de CHAQUE commit est lu', () => {
+  for (const commande of [
+    'find . -maxdepth 0 -exec git commit -a -m "chore: x" \\; ; git commit -m "chore: y" -- notes/a.md',
+    'parallel git commit -a -m "chore: x" ::: -q && git commit -m "chore: y" -- notes/a.md',
+    'git commit -m y -- notes/a.md && git commit -a -m x',
+  ]) {
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+  const lire = () => 'fix: corrige #12'
+  const deux = 'find . -exec git commit -F autre.txt {} + ; git commit -F msg.txt -- src/a.ts'
+  assert.equal(extractMessageSources(deux, { readFile: (p) => (p.endsWith('msg.txt') ? lire() : 'autre') }).text,
+    `${deux}\nautre\nfix: corrige #12`, 'les -F de tous les commits sont lus, dans l\'ordre')
+  const cite = 'echo git commit && git commit -F msg.txt -- src/a.ts'
+  assert.equal(extractMessageSources(cite, { readFile: lire }).text, `${cite}\nfix: corrige #12`)
+  assert.deepEqual(formeDuCommit(cite), { forme: 'pathspec', pathspecs: ['src/a.ts'] }, 'une citation n\'est pas un commit')
+  assert.equal(formeDuCommit('echo avant git commit ; git commit -F msg.txt').forme, 'index')
+})
+
+// 4e juge, MULTI-MESSAGE-1 : le message d'un second commit `-F` n'était jamais lu.
+test('extractMessageSources : le -F de CHAQUE commit est lu ; le premier illisible est fail-closed', () => {
+  const fichiers = {
+    'm1.txt': 'chore: refs #1801\n',
+    'm2.txt': 'fix: corrige #99999 — y\n',
+    'm3.txt': 'fix: y sans ticket\n',
+  }
+  const readFile = (p) => {
+    const nom = p.split(/[/\\]/).pop()
+    if (!(nom in fichiers)) throw new Error('ENOENT')
+    return fichiers[nom]
+  }
+  const m12 = 'git commit -F m1.txt -- notes.txt && git commit -F m2.txt -- src/engine/activeFlags.ts'
+  const lu12 = extractMessageSources(m12, { readFile })
+  assert.equal(lu12.fileError, null)
+  assert.deepEqual(extractClosedIssues(lu12.text), [99999], 'la fermeture du second commit est vue')
+  const m13 = 'git commit -F m1.txt -- notes.txt && git commit -F m3.txt -- src/engine/activeFlags.ts'
+  const lu13 = extractMessageSources(m13, { readFile })
+  assert.deepEqual(lu13.messages.map((m) => m.texte), [fichiers['m1.txt'], fichiers['m3.txt']])
+  const refus = evaluatePorteDuTicket({ command: lu13.text, fichiersEmportes: ['src/engine/activeFlags.ts'], messages: lu13.messages })
+  assert.match(refus?.reason ?? '', /Commit de SUBSTANCE sans ticket/, 'le second commit ne cite aucun ticket')
+  assert.doesNotMatch(refus.reason, /ÉDITEUR/)
+  assert.equal(evaluatePorteDuTicket({ command: lu12.text, fichiersEmportes: ['src/engine/activeFlags.ts'], messages: lu12.messages }), null)
+  assert.equal(extractMessageSources('git commit -F m1.txt && git commit -F absent.txt && git commit -F aussi.txt', { readFile }).fileError,
+    'absent.txt')
+  assert.deepEqual(extractMessageSources('git commit -m "a refs #1" -m b && git commit -a', { readFile }).messages,
+    [{ texte: 'a refs #1\n\nb', fichier: false, direct: true, tete: 'git', herite: false },
+      { texte: null, fichier: false, direct: true, tete: 'git', herite: false }])
+})
+
+// 4e juge, FAUX-REFUS-1 : un commit PRÉSUMÉ ne se dit pas comme un vrai commit.
+test('motifDuCommitPresume : la tête, l\'extrait et la sortie ; rien quand un commit direct existe', () => {
+  const motif = motifDuCommitPresume("sed -i 's/git commit -a/x/' f")
+  assert.match(motif, /PRÉSUMÉ/)
+  assert.match(motif, /`sed`/)
+  assert.match(motif, /s\/git commit -a\/x\//)
+  assert.match(motifDuCommitPresume('find . -exec env git commit -a \\;'), /`find` porte `git commit` en argument \(`git commit`\)/)
+  assert.match(motifDuCommitPresume(`x "${'echo a ; '.repeat(2100)}"`), /dépasse ses bornes/)
+  assert.equal(motifDuCommitPresume('echo git commit && git commit -a -m x'), null)
+  assert.equal(motifDuCommitPresume('echo git commit'), null)
+  const refus = evaluatePorteDuTicket({ command: "sed -i 's/git commit -a/x/' f", fichiersEmportes: ['src/a.ts'] })
+  assert.doesNotMatch(refus.reason, /ÉDITEUR/, 'un commit sans jetons ne part pas à l\'éditeur')
+})
+
+// 3e et 4e juges, COUT-PARALLEL-1 et QUADRATIQUE-1 : coût linéaire, bornes, retombée sans exception.
+test('isGitCommitCommand : coût linéaire ; au-delà des bornes, un commit EMBARQUÉ présumé, sans exception', () => {
+  for (const [nom, commande] of [
+    ['parallel -j ×50', `parallel ${'-j '.repeat(50)}git commit -F m ::: a`],
+    ['parallel -j ×100', `parallel ${'-j '.repeat(100)}git commit -F m ::: a`],
+    ['git ×50 000', `x ${'git '.repeat(50000)}; git commit -a -m y`],
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, nom)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, nom)
+  }
+  // 7e juge, FLAKY-200MS ; 8e juge, COUT-MARGE-1 : la linéarité se mesure par RAPPORT (médiane de 5,
+  // chaîne neuve à chaque mesure : le mémo ne sert pas) — N ×20 : linéaire ≈ 20, quadratique ≈ 400.
+  let essai = 0
+  const cout = (n) => {
+    const temps = []
+    for (let i = 0; i < 5; i++) {
+      const commande = `x ${'git '.repeat(n)}; git commit -a -m y${essai++}`
+      const t0 = performance.now()
+      isGitCommitCommand(commande)
+      formeDuCommit(commande)
+      temps.push(performance.now() - t0)
+    }
+    return temps.sort((a, b) => a - b)[2]
+  }
+  cout(5000)
+  const rapport = cout(100000) / cout(5000)
+  assert.ok(rapport < 80, `N ×20 coûte ×${rapport.toFixed(1)} : la lecture n'est plus linéaire`)
+  const reanalysee = `x "${'echo a ; '.repeat(2100)}"`
+  assert.equal(isGitCommitCommand(reanalysee), true, 'au-delà du budget de la ré-analyse, un commit est présumé')
+  assert.deepEqual(formeDuCommit(reanalysee), { forme: 'tout', pathspecs: [] })
+  assert.equal(isGitCommitCommand('true ; '.repeat(2100) + 'echo fin'), false, 'le premier niveau n\'est pas borné')
+  let imbriquee = 'echo x'
+  for (let i = 0; i < 6; i++) imbriquee = `sh -c ${JSON.stringify(imbriquee)}`
+  assert.equal(isGitCommitCommand(imbriquee), true, 'au-delà de la profondeur, un commit est présumé')
+})
+
+// 4e juge, TETE-A-ESPACE-1 : une chaîne de commande portée en tête, collée à son flag, ou échappée.
+test('isGitCommitCommand : `env -S`, valeur collée `--opt=<commande>`, antislash d\'un mot nu', () => {
+  for (const commande of [
+    "env -S 'git commit -a -m chore:x'",
+    'env -S "git commit -a -m chore:x"',
+    "env --split-string='git commit -a -m x'",
+    "su --command='git commit -a -m x' root",
+    "script --command='git commit -a -m x' /dev/null",
+    "git rebase --exec='git commit -a -m \"chore: x\"' HEAD~1",
+    'g\\it commit -a -m x',
+    "env -S'git commit -a -m x'",
+    "env -iS 'git commit -a -m x'",
+    "env -u HOME -S 'git commit -a -m x'",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+  }
+  assert.deepEqual(formeDuCommit("env -S 'git commit -F m -- src/a.ts'"), { forme: 'pathspec', pathspecs: ['src/a.ts'] },
+    'la chaîne de `env -S` est exécutée : son commit est direct')
+})
+
+// 7e juge, ENV-S-SUITE-1 et PORTEURS-RESTE-1 : ce que l'hôte lit APRÈS l'argument porteur (#1801).
+test('argumentChaine : `env -S` suivi de ses arguments ; `cmd /c`, `-Command`, `eval` prennent le reste', () => {
+  for (const commande of [
+    "env -S 'git' commit -a -m x", 'env -S git commit -a -m x', "env --split-string='git' commit -a -m x",
+    "env -S'git' commit -a -m x",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+  }
+  const { messages } = messagesDesCommits(`env -S 'git' commit -a -m "c'est refs #1801"`)
+  assert.equal(messages[0]?.texte, 'c\'est refs #1801', 'les arguments suivants gardent leur valeur exacte, quote simple comprise')
+  // 8e juge, ENV-PROVENANCE-1 : les arguments suivants gardent leur PROVENANCE — un jeton nu non
+  // résolu reste non résolu (#1801).
+  for (const commande of ['env -S git commit -m x -- $F', 'env -S git commit -m "refs #1801" -- $(git diff --name-only)', 'env -S git commit -m x -- ~/a.ts']) {
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+  assert.deepEqual(formeDuCommit('env -S git commit -m x -- "src/a b.ts"'), { forme: 'pathspec', pathspecs: ['src/a b.ts'] })
+  for (const commande of [
+    'cmd /c git commit -a -m x', 'cmd /C git commit -a -m x', 'cmd.exe /c git commit -a -m x',
+    'powershell -Command git commit -a -m x', 'pwsh -c git commit -a -m x', 'powershell -NoProfile -Command git commit -a -m x',
+    'eval git commit -a -m x', 'eval -- git commit -a -m x',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, commande)
+  }
+  assert.equal(argumentChaine(['Invoke-Expression', 'echo a', 'b']), 'echo a', '`Invoke-Expression` lit son premier argument')
+  assert.equal(argumentChaine(['sh', '-c', 'echo "$1"', '_', 'x']), 'echo "$1"', 'les arguments suivants de `sh -c` sont ses positionnels')
+})
+
+// 7e juge, GIT-H-1 : l'aide de git ne committe pas (#1801).
+test('isGitCommitCommand : `git commit -h`/`--help` rend l\'aide, aucun commit', () => {
+  for (const commande of ['git commit -h', 'git commit --help', 'git commit -ah', 'git --version; git commit -h 2>&1 | head -60']) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+  assert.equal(isGitCommitCommand('git commit -m -h'), true, '`-h` valeur de `-m` n\'est pas l\'aide')
+  assert.equal(isGitCommitCommand('git commit -a -x'), true, 'une lettre inconnue reste un commit présumé')
+  assert.deepEqual(formeDuCommit('git commit -a -x'), { forme: 'tout', pathspecs: [] })
+})
+
+// NON COUVERT (en-tête du garde) : ces formes se TAISENT aujourd'hui. #2071 les juge dans le hook git
+// `commit-msg`, qui voit le vrai commit ; il retourne ces bancs.
+test('#2071 NON COUVERT — un commit dans une substitution `$(…)`, backtick ou `<(…)` n\'est pas vu', () => {
+  for (const commande of [
+    'out=$(git commit -a -m "chore: x" 2>&1); echo "$out"',
+    'echo "$(git commit -a -m x)"',
+    'echo `git commit -a -m x`',
+    'cat <(git commit -a -m x)',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — une sous-commande git lue comme citeuse qui exécute (alias `!`, filter-branch, `-c core.pager`)', () => {
+  for (const commande of [
+    "git -c alias.ci='!git commit -a -m x' ci",
+    "git filter-branch --tree-filter 'git commit -a -m x' HEAD",
+    "git -c core.pager='git commit -a -m x' log -1",
+    "git difftool --extcmd='git commit -a -m x' HEAD",
+    "git -c core.editor='git commit -a -m x' tag -a v9",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+  for (const commande of [
+    "git rebase -x 'git commit --amend --no-edit' HEAD~2",
+    "git rebase --exec='git commit --amend --no-edit' HEAD~2",
+    'git bisect run git commit -a -m x',
+    "git submodule foreach 'git commit -a -m x'",
+    "git -c sequence.editor='sh -c \"git commit -a -m x\"' rebase -i HEAD~2",
+    "git -c core.editor='git commit -a -m x' rebase -i HEAD~2",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), true, `vu par SOUS_COMMANDES_GIT_EXECUTANTES : ${commande}`)
+  }
+})
+
+test('#2071 NON COUVERT — le corps lu sur stdin par un shell ou un exécuteur n\'est pas vu', () => {
+  for (const commande of [
+    "bash <<'EOF'\ngit commit -a -m x\nEOF",
+    "sh -s <<'EOF'\ncd . && git commit -a -m x\nEOF",
+    "echo 'git commit -a -m x' | sh",
+    "echo 'git commit -a -m x' | bash -s",
+    "echo 'git commit -a -m x' | at now",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+  assert.equal(isGitCommitCommand("cat > f.md <<'EOF'\ngit commit -a -m x\nEOF"), false, 'un heredoc de donnée reste une donnée')
+})
+
+test('#2071 NON COUVERT — des arguments venus de stdin (`xargs git`) ne sont pas vus', () => {
+  assert.equal(isGitCommitCommand("printf 'commit -a -m x' | xargs git"), false)
+})
+
+test('#2071 NON COUVERT — un exécutable ou une sous-commande par variable n\'est pas vu', () => {
+  for (const commande of ['G=git; $G commit -a -m x', 'C=commit; git $C -a -m x', 'eval "$CMD"']) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — un commit dans un fichier de script n\'est pas vu', () => {
+  for (const commande of [
+    'bash ./x.sh', 'source ./x.sh', '. ./x.sh', 'node x.mjs', 'pwsh -File x.ps1', 'make release',
+    'npm --prefix ../autre run c', 'node --run c', 'yarn c',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — une porcelaine qui crée un commit sans `git commit` n\'est pas vue', () => {
+  for (const commande of [
+    'git merge --no-ff -m "sans ticket" autre', 'git cherry-pick abc123', 'git revert --no-edit HEAD',
+    'git am 0001.patch', 'git pull --no-rebase', 'git commit-tree HEAD^{tree} -m x',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — un alias git défini hors de la ligne n\'est pas vu', () => {
+  assert.equal(isGitCommitCommand('git ci -a -m x'), false)
+  const alias = "alias gc='git commit'; gc -a -m x"
+  assert.equal(isGitCommitCommand(alias), true, '`alias` porte `git commit` : commit PRÉSUMÉ')
+  assert.match(motifDuCommitPresume(alias) ?? '', /PRÉSUMÉ : `alias`/, 'présumé par sa tête, pas un alias développé')
+})
+
+test('#2071 NON COUVERT — une variable de tête consommée comme commande par git n\'est pas vue', () => {
+  for (const commande of [
+    `GIT_SEQUENCE_EDITOR="sh -c 'git commit -a -m x'" git rebase -i HEAD~1`,
+    `GIT_PAGER="sh -c 'git commit -a -m x'" git log -1`,
+    'GIT_EDITOR="git commit -a -m x #" git tag -a v9',
+    'env GIT_EDITOR="git commit -a -m x #" git tag -a v9',
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — une tête citeuse qui exécute (`gh alias set --shell`) n\'est pas vue', () => {
+  assert.equal(isGitCommitCommand("gh alias set --shell ci 'git commit -a -m x' && gh ci"), false)
+})
+
+// 6e juge, KV-FAUX-REFUS-1 : une affectation par builtin CITE sa valeur, elle ne l'exécute pas (#1801).
+test('isGitCommitCommand : les builtins d\'affectation citent (`export`, `declare`, `local`, `readonly`, `typeset`)', () => {
+  for (const tete of ['export', 'declare', 'local', 'readonly', 'typeset']) {
+    const commande = `${tete} MSG="git commit -a -m x"`
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+test('#2071 NON COUVERT — un commit dans le code d\'un interpréteur non shell n\'est pas vu', () => {
+  for (const commande of [
+    `python3 -c "import os; os.system('git commit -a -m x')"`,
+    `node -e "require('child_process').execSync('git commit -a -m x')"`,
+    "Start-Process git -ArgumentList 'commit -a'",
+  ]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+})
+
+// 5e juge, PORTE-MULTI-1 ; 6e juge, HERITE-C-1 et EMBARQUE-MSG-1 : chaque message lisible cite un
+// ticket ; un `--amend` sans message ni `-C`/`-c` hérite du commit direct qui le précède ; un embarqué
+// sans message est un commit PRÉSUMÉ sans ticket (#1801).
+test('evaluatePorteDuTicket : plusieurs commits — directs jugés, amend hérité, présumé nommé', () => {
+  const juger = (command) => {
+    const { text, messages } = extractMessageSources(command, { readFile: () => { throw new Error('ENOENT') } })
+    return evaluatePorteDuTicket({ command: text, fichiersEmportes: ['src/engine/activeFlags.ts'], messages })
+  }
+  assert.equal(juger('git commit -a -m "chore: refs #1801" && git commit --amend --no-edit'), null,
+    'l\'amend hérite du message du commit direct qui le précède')
+  for (const [command, tete] of [
+    ['git commit -a -m "chore: refs #1801" && sed -i \'s/git commit -a/x/\' notes.txt', 'sed'],
+    ['git commit -a -m "chore: refs #1801" && node scripts/x.mjs --titre "git commit -a oublie"', 'node'],
+  ]) {
+    const refus = juger(command)
+    assert.match(refus?.reason ?? '', new RegExp(`Commit de SUBSTANCE sans ticket \\(commit n°2 de la commande, \`${tete}\`\\)`), command)
+    assert.doesNotMatch(refus.reason, /ÉDITEUR/, command)
+    assert.match(motifDuCommitPresume(command) ?? '', new RegExp(`PRÉSUMÉ : \`${tete}\``), command)
+  }
+  assert.match(juger('git commit -a -m "chore: refs #1801" && find . -exec git commit -a -m "chore sans ticket" \\;')?.reason ?? '',
+    /commit n°2 de la commande, `find`/, 'un embarqué à message lisible sans ticket est fautif comme l\'embarqué sans message')
+  assert.equal(juger('git commit -a -m "chore: refs #1801" && find . -exec git commit -a -m "chore: refs #1801" \\;'), null,
+    'un embarqué dont le message lisible cite un ticket passe')
+  assert.match(juger('git commit -a -m "chore: refs #1801" && git commit --amend -C HEAD~3')?.reason ?? '',
+    /commit n°2 de la commande, `git`/, 'un `--amend -C` prend le message de HEAD~3 : rien n\'est hérité de la commande')
+  assert.match(juger('git commit -a -m "chore: refs #1801" && git commit --amend -c HEAD~3')?.reason ?? '',
+    /commit n°2 de la commande, `git`/, 'idem sous `-c`')
+  const sansTicket = juger('git commit -a -m "chore: refs #1801" && git commit -m "fix: rien"')
+  assert.match(sansTicket.reason, /commit n°2 de la commande, `git`/)
+  assert.match(juger('git commit -a -m "chore: refs #1801" && git commit -a').reason, /ÉDITEUR/, 'un direct sans message part à l\'éditeur')
+  assert.equal(juger('git commit --amend --no-edit && git commit -m "chore: refs #1801"').reason.includes('commit n°1'), true,
+    'un amend sans commit direct AVANT lui hérite de HEAD, invisible ici')
+  // 7e juge, ECART-NON-FIGE : un direct au message invisible compte les tickets cités HORS des
+  // messages lisibles de la ligne — l'écart accepté, figé des deux côtés.
+  assert.equal(juger('git commit -a -m "refs #1801" && git commit -a && echo "refs #1802"'), null,
+    'un ticket cité hors des messages lisibles vaut pour le commit invisible')
+  assert.match(juger('git commit -a -m "refs #1801" && git commit -a && echo "refs #1801"')?.reason ?? '',
+    /commit n°2 de la commande, `git`/, 'le ticket d\'un autre commit n\'est pas le sien')
+})
+
+// 5e juge, MEMO-ANCRE-1 : la lecture d'un `npm run` dépend du dépôt ancré, le mémo aussi.
+test('isGitCommitCommand : le mémo suit la racine d\'ancrage npm', () => {
+  const base = mkdtempSync(join(tmpdir(), 'memo-ancre-'))
+  try {
+    for (const [d, c] of [['pa', 'git commit -a -m x'], ['pb', 'echo rien']]) {
+      mkdirSync(join(base, d))
+      writeFileSync(join(base, d, 'package.json'), JSON.stringify({ scripts: { c } }))
+    }
+    ancrerScriptsNpm(join(base, 'pa'))
+    assert.equal(isGitCommitCommand('npm run c'), true)
+    ancrerScriptsNpm(join(base, 'pb'))
+    assert.equal(isGitCommitCommand('npm run c'), false, 'le résultat ancré sur pa ne vaut pas pour pb')
+  } finally {
+    ancrerScriptsNpm(null)
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// Le shell retire l'antislash d'un mot nu avant git : `src/a\ b.ts` est UN chemin que la garde ne
+// lit pas tel quel (#1801, H2-3).
+test('pathspecsDuCommit : un antislash dans un mot nu le rend non résolu', () => {
+  for (const commande of ['git commit -F m -- src/a\\ b.ts', 'git commit -F m -- src\\a.ts']) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'tout', pathspecs: [] }, commande)
+  }
+  assert.deepEqual(pathspecsDuCommit("git commit -F m -- 'src/a\\ b.ts'"), { chemins: ['src/a\\ b.ts'], nonResolus: false },
+    'sous quote simple, l\'antislash est littéral')
+})
+
+// `( … )` en tête de segment est un SOUS-SHELL : sa parenthèse fermante n'appartient pas au dernier
+// chemin ; `$( … )` reste une substitution (#1801, H2-4).
+test('pathspecsDuCommit : un sous-shell parenthésé rend ses chemins ; une substitution reste non résolue', () => {
+  for (const commande of [
+    '(cd x && git commit -F m -- src/a.ts)',
+    '(cd x && git commit -F m -- src/a.ts) && git push',
+    '( git commit -F m -- src/a.ts ) | tail -3',
+  ]) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: ['src/a.ts'], nonResolus: false }, commande)
+    assert.deepEqual(formeDuCommit(commande), { forme: 'pathspec', pathspecs: ['src/a.ts'] }, commande)
+  }
+  for (const commande of [
+    'git commit -F m -- $(cat l)',
+    '(git commit -F m -- $(cat l))',
+    '(cd x && git commit -F m -- $( cat l ))',
+  ]) {
+    assert.deepEqual(pathspecsDuCommit(commande), { chemins: [], nonResolus: true }, commande)
+  }
+  assert.deepEqual(segmentsProfonds('(cd x && git push) | tail -3'), [['cd', 'x'], ['git', 'push'], ['tail', '-3']])
+  assert.deepEqual(pipelinesProfonds('(cd x && git push) | tail -3'), [[['cd', 'x']], [['git', 'push'], ['tail', '-3']]],
+    'la parenthèse fermante ne rompt pas le pipeline')
+})
+
+// Sous `-i`, git stage l'arbre des chemins PAR-DESSUS l'index puis commite l'index entier : le texte
+// « ignore l'index » y était faux (#1801).
+test('evaluateHunksEmportes : sous `-i`/`--include`, le texte dit que l\'index ENTIER part', () => {
+  for (const command of ['git commit -F m -i src/a.ts', 'git commit -F m --incl src/a.ts']) {
+    const refus = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: ['src/a.ts'] })
+    assert.equal(refus.decision, 'deny', command)
+    assert.match(refus.reason, /git commit -i <paths>.*index ENTIER/, command)
+    assert.doesNotMatch(refus.reason, /ignore l'index/, command)
+    const note = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: [] })
+    assert.match(note.contexte, /git commit -i <paths>.*index entier/, command)
+  }
+  const nu = evaluateHunksEmportes({ command: 'git commit -F m -- src/a.ts', fichiersModifies: ['src/a.ts'], fichiersStages: ['src/a.ts'] })
+  assert.match(nu.reason, /ignore l'index/)
+})
+
 test('formeDuCommit : la VALEUR d\'un `-m` collé n\'est pas une liste d\'options courtes', () => {
   assert.equal(formeDuCommit('git commit -m"ajoute deux entrees"').forme, 'index')
   assert.equal(formeDuCommit('git commit -m"Refonte du stock"').forme, 'index')
@@ -1021,12 +1604,16 @@ test('extractCommitPathspecs : "-am" (shorts groupés) → le message n\'est PAS
   assert.deepEqual(extractCommitPathspecs('git commit -am "feat: refonte truc"'), [])
 })
 
-test('extractCommitPathspecs : "-am" + pathspec après -- → le pathspec seul, message exclu', () => {
+// Après `--`, git lit TOUT jeton comme un chemin : `-am` et le message sont des pathspecs (#1801).
+test('extractCommitPathspecs : "-am" APRÈS -- est un chemin, comme le message qui le suit', () => {
   const cmd = 'git commit -- src/ui/Foo.tsx -am "feat: refonte truc"'
-  assert.deepEqual(extractCommitPathspecs(cmd), ['src/ui/Foo.tsx'])
+  assert.deepEqual(extractCommitPathspecs(cmd), ['src/ui/Foo.tsx', '-am', 'feat: refonte truc'])
+  assert.equal(formeDuCommit(cmd).forme, 'pathspec', '`-a` après `--` n\'est pas une option')
 })
 
-test('extractCommitPathspecs : "-cam" est `-c am` (`-c` prend une valeur, git : « could not lookup commit \'am\' »), le token suivant est un pathspec', () => {
+// `-c` est `--reedit-message <commit>` (`git commit --help-all`, git 2.43) : il prend le RÉSIDU `am`, et
+// le mot suivant est un chemin positionnel.
+test('extractCommitPathspecs : "-cam" est `-c am` — le mot suivant est un chemin, comme dans git', () => {
   assert.deepEqual(extractCommitPathspecs('git commit -cam "feat: refonte truc"'), ['feat: refonte truc'])
   assert.deepEqual(extractCommitPathspecs('git commit -sam "feat: refonte truc"'), [])
 })
@@ -1105,9 +1692,11 @@ test('extractCommitPathspecs : "--message=solo" (mono-mot, déjà vert) reste []
   assert.deepEqual(extractCommitPathspecs('git commit --message=solo'), [])
 })
 
-test('extractCommitPathspecs : "--message=" multi-mots + pathspec réel après -- → seul le pathspec', () => {
+test('extractCommitPathspecs : "--message=" APRÈS -- est un chemin, jamais un message', () => {
   const cmd = 'git commit -- src/ui/Foo.tsx --message="feat refonte ref #501"'
-  assert.deepEqual(extractCommitPathspecs(cmd), ['src/ui/Foo.tsx'])
+  assert.deepEqual(extractCommitPathspecs(cmd), ['src/ui/Foo.tsx', '--message=feat refonte ref #501'])
+  assert.equal(evaluateAmendInvisible({ command: 'git commit --amend -- src/a.ts -m x', stagedTouchesSrc: true }) !== null, true,
+    '`-m` après `--` ne porte aucun message')
 })
 
 test('extractCommitPathspecs : "-cam" groupé + valeur COLLÉE ("-cam\\"a b c\\"") reste []', () => {
@@ -1455,7 +2044,7 @@ test('extractMessageSources : -F présent mais fichier illisible → fileError r
 })
 
 test('extractMessageSources : commande vide → texte vide, pas d\'erreur', () => {
-  assert.deepEqual(extractMessageSources(''), { text: '', fileError: null })
+  assert.deepEqual(extractMessageSources(''), { text: '', fileError: null, messages: [] })
 })
 
 // ── evaluate/evaluateAntiEsquive sur le texte étendu (-F) — intégration bout en bout ───────────────
@@ -1501,6 +2090,32 @@ test('evaluateAmendInvisible : --amend sans -m/-F, diff staged touche src → de
   const d = evaluateAmendInvisible({ command: 'git commit --amend', stagedTouchesSrc: true })
   assert.ok(d)
   assert.match(d.reason, /--amend/)
+})
+
+// `-C`/`-c <commit>` reprennent le message d'un autre commit : invisible comme sous `--amend` (#1801).
+test('evaluateAmendInvisible : `-C`/`-c <commit>`, graphies longues et abrégées comprises → deny', () => {
+  for (const command of [
+    'git commit -C HEAD', 'git commit -c HEAD', 'git commit --reuse-message=HEAD',
+    'git commit --reedit-message HEAD', 'git commit --reus HEAD', 'git commit -qCHEAD',
+  ]) {
+    const d = evaluateAmendInvisible({ command, stagedTouchesSrc: true })
+    assert.ok(d, command)
+    assert.match(d.reason, /-C\/-c <commit>/, command)
+  }
+  assert.equal(evaluateAmendInvisible({ command: 'git commit -C HEAD --no-reuse-message -m x', stagedTouchesSrc: true }), null)
+  assert.equal(evaluateAmendInvisible({ command: 'git commit -C HEAD', stagedTouchesSrc: false }), null)
+})
+
+// `--fixup`/`--squash <commit>` : le sujet du commit nommé reste en tête, même sous `-m`
+// (`squash! <sujet>` puis le `-m`, sonde git 2.43) — échec fermé (#1801).
+test('evaluateAmendInvisible : `--fixup`/`--squash <commit>` → deny, avec ou sans -m/-F', () => {
+  for (const command of [
+    'git commit --fixup HEAD', 'git commit --fixup=amend:HEAD', 'git commit --squash=HEAD', 'git commit --fix HEAD',
+    'git commit --squash HEAD -m x', 'git commit --fixup HEAD -F msg.txt',
+  ]) {
+    assert.ok(evaluateAmendInvisible({ command, stagedTouchesSrc: true }), command)
+  }
+  assert.equal(evaluateAmendInvisible({ command: 'git commit --squash HEAD -m x', stagedTouchesSrc: false }), null)
 })
 
 test('evaluateAmendInvisible : --amend sans -m/-F, diff staged ne touche pas src → silence', () => {

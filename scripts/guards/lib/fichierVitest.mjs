@@ -3,7 +3,7 @@
 // que `codeSeul.mjs`.
 //
 // POURQUOI UN MODULE À LUI : l'instrument a DEUX formes — le `.test.` (`vitest run`, seul inclus
-// par `vite.config.ts:71`) et le `.bench.` (`vitest bench`, `npm run bench`, hors suite et hors CI).
+// par `scripts/guards/lib/racinesDeLaSuite.mjs`) et le `.bench.` (`vitest bench`, `npm run bench`, hors suite et hors CI).
 // Une garde qui n'exclut que la première prend le banc pour de la production et rougit sur ce qu'il
 // fait À DESSEIN — l'index FIGÉ d'un banc est le témoin qu'il compare au vivant —, ce qui pousse à
 // l'exempter par son NOM : une garde qui valide des défauts. Le prédicat vit donc en UN exemplaire,

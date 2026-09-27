@@ -30,8 +30,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import {
   estErreur, findAllRuns, findCells, cellRefFor, normText, parseChapitre,
   resoudreAdresse, resoudreFragment,
@@ -323,5 +322,4 @@ function main(argv = process.argv.slice(2)) {
   if (bilan.restantes.length > 0 || bilan.echecs.length > 0) process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

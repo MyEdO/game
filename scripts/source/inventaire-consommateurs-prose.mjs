@@ -58,7 +58,7 @@ export function inventaire(racine = RACINE) {
   return out.sort((a, b) => a.fichier.localeCompare(b.fichier))
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (import.meta.main) {
   const trouves = inventaire()
   for (const { fichier, voie, sites } of trouves) {
     for (const s of sites) console.log(`[${voie}] ${fichier}:${s.ligne}  ${s.texte.slice(0, 120)}`)

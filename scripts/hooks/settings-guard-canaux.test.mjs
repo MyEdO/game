@@ -19,12 +19,15 @@ import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents : `.codex/hooks.json` est le miroir de `.claude/settings.json`
-// (parité par clef `phase|matcher|script|timeout`, `scripts/agents/compat-core.mjs:167`).
+// (parité par la clef `key` de `validateHookParity`, `scripts/agents/compat-core.mjs`).
 // Étendre un matcher d'un seul côté casse `npm run agents:check` au pre-commit du repo ENTIER.
-const SURFACES = [join(REPO, '.claude', 'settings.json'), join(REPO, '.codex', 'hooks.json')]
+const SURFACES = [SURFACE_CLAUDE, SURFACE_CODEX]
+/** Les hooks d'une surface, à plat, par le lecteur de la parité. */
+const hooksDe = (surface) => aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
 
 /** Gardes de COMMANDES : nom de script → canaux qui doivent tous matcher. */
 const GARDES_COMMANDE = [
@@ -41,10 +44,7 @@ const CANAUX_REQUIS = CANAUX_GARDABLES
 
 /** Matchers PreToolUse d'une surface dont au moins un hook lance `<script>.mjs`. */
 function matchersFor(surface, script) {
-  const config = JSON.parse(readFileSync(surface, 'utf8'))
-  return (config.hooks?.PreToolUse ?? [])
-    .filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes(`${script}.mjs`)))
-    .map((entry) => String(entry.matcher ?? ''))
+  return hooksDe(surface).filter((h) => h.phase === 'PreToolUse' && h.script === `${script}.mjs`).map((h) => h.matcher)
 }
 
 test('les gardes de commande sont câblées en PreToolUse sur les DEUX surfaces (pas de passe à vide)', () => {
@@ -113,18 +113,10 @@ const OUTILS_CONNUS = [
 ]
 const MCP_TOOL = /^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_]+$/
 
-/** Tous les matchers déclarés, toutes phases confondues, avec leur provenance. */
+/** Tous les matchers déclarés, toutes phases confondues, avec leur provenance. Un matcher vide ou
+ *  absent vaut « tout outil » : il n'a aucun segment à confronter. */
 function tousLesMatchers(surface) {
-  const config = JSON.parse(readFileSync(surface, 'utf8'))
-  const out = []
-  for (const [phase, entrees] of Object.entries(config.hooks ?? {})) {
-    for (const entree of entrees ?? []) {
-      if (entree.matcher == null) continue
-      const scripts = (entree.hooks ?? []).map((h) => String(h.command ?? '')).join(' ')
-      out.push({ phase, matcher: String(entree.matcher), scripts })
-    }
-  }
-  return out
+  return hooksDe(surface).filter((h) => h.matcher !== '').map((h) => ({ phase: h.phase, matcher: h.matcher, scripts: h.command }))
 }
 
 test('tout segment de matcher est un NOM D’OUTIL réel — pas de désactivation par préfixe magique (#1053)', () => {

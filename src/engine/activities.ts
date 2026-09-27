@@ -35,6 +35,7 @@ import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
 import { isTradable } from './disponibilite';
 import activitiesJson from '../data/activities.json';
+import { parLibelle } from '../lib/ordre.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // CATALOGUE d'ACTIVITÉS data-driven (`src/data/activities.json`) — FOYER UNIQUE des Activités, tous
@@ -836,7 +837,7 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       });
     }
   }
-  return [...chars, ...skillOptions.sort((a, b) => a.label.localeCompare(b.label))];
+  return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
 /** Retrait bancaire (ch.23 l.157-159) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
@@ -914,7 +915,7 @@ export function craftCatalog(): CraftOption[] {
       const target = craftTarget(spec.tier, spec.avail, 0, 0);
       return [{ id: t.id, label: t.label, categorie: t.categorie, ...spec, dr: target.dr, difficulty: target.difficulty }];
     })
-    .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : a.categorie.localeCompare(b.categorie)));
+    .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : parLibelle(a.categorie, b.categorie)));
 }
 
 /** Fourchette du prix du tuteur (« 2D10 pistoles d'argent par 100PX », ch.23 l.63) — pour
@@ -955,7 +956,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
       const { minBrass, maxBrass } = tutorCostRange(xpCost);
       return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => parLibelle(a.label, b.label));
 }
 
 /** Ce qui interdit « Passer commande » sur un équipement, ou `null` s'il est commandable. Porte

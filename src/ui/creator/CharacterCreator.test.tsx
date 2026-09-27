@@ -31,6 +31,7 @@ import {
 } from './draft';
 import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
 import { CHAR_LABELS } from '../../engine/types';
+import { echapperRegex } from '../../lib/regex';
 
 // Défauts dérivés (page blanche : plus de pré-tiré dans newDraft) — 1ʳᵉ espèce LDB + sa 1ʳᵉ carrière.
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
@@ -42,7 +43,7 @@ const ready = () => withCareer(withSpecies(newDraft(7), SP.id), CAREER.id);
  *  fonction depuis #1689 T2, et l'ordre y a changé sans que rien de visible ne bouge. */
 /** L'option `label` est-elle RETENUE (`aria-pressed`, `selected` d'`OptionChooser`) ? */
 const estRetenue = (html: string, label: string) =>
-  /aria-pressed="true"/.test(html.match(new RegExp(`<button([^>]*)>${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))?.[1] ?? '');
+  /aria-pressed="true"/.test(html.match(new RegExp(`<button([^>]*)>${echapperRegex(label)}`))?.[1] ?? '');
 
 describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () => {
   it('étape 1 (Race, #393 P1) : ossature 2 ZONES « Atelier du scribe » (CreatorStepFrame) ; aucune race pré-tirée', () => {

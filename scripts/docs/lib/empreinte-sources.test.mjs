@@ -1,13 +1,17 @@
-// Contrat du DELTA de `docs/.sources-lues.json` (#1679 L2) et de l'APERÇU des divergences de CORPS
-// (#1709) : un rouge de fraîcheur NOMME ce qui a bougé — générateur, champ, chemins d'un côté,
+// Contrat du DELTA de `docs/.sources-lues.json` (#1679 L2), de l'APERÇU des divergences de CORPS
+// (#1709) et de la primitive `ecrireOuVerifier` (#1801) : un rouge de fraîcheur NOMME ce qui a bougé — générateur, champ, chemins d'un côté,
 // lignes divergentes des deux côtés de l'autre — au lieu de dire « PÉRIMÉ » et rien d'autre.
 //   node --test scripts/docs/lib/empreinte-sources.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { apercuDivergences, deltaSourcesLues } from './empreinte-sources.mjs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import {
+  apercuDivergences, avecPied, CODE_CORPS_PERIME, deltaSourcesLues, lirePied, estUnDocMarkdown, retirerPied,
+} from './empreinte-sources.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -106,15 +110,62 @@ test('apercuDivergences : une ligne longue est BORNÉE à 240 caractères', () =
   assert.ok(!apercu.includes('z'.repeat(241)))
 })
 
-test('le rouge de fraîcheur d’emitOrCheck PASSE par apercuDivergences', () => {
-  const source = readFileSync(path.join(ICI, 'jsdocUnion.mjs'), 'utf8')
-  assert.match(source, /import \{[\s\S]*?\bapercuDivergences\b[\s\S]*?\} from '\.\/empreinte-sources\.mjs'/)
-  assert.match(source, /console\.error\(staleMsg\)\n\s*console\.error\(apercuDivergences\(out, current\)\)/)
+/**
+ * `ecrireOuVerifier` joué dans un PROCESSUS À PART : il déclare au code de sortie, que le banc ne
+ * doit pas porter. `avant` est le code posé AVANT l'appel (un cliquet). REND `{ status, stderr,
+ * stdout, contenu }` — `contenu` = le fichier cible APRÈS l'appel.
+ */
+function jouerPrimitive({ committe, out, check, avant = 0 }) {
+  const dossier = mkdtempSync(path.join(tmpdir(), 'ecrire-ou-verifier-'))
+  try {
+    const cible = path.join(dossier, 'cible.md')
+    if (committe !== null) writeFileSync(cible, committe)
+    const code = [
+      `import { ecrireOuVerifier } from ${JSON.stringify(pathToFileURL(path.join(ICI, 'empreinte-sources.mjs')).href)}`,
+      avant ? `process.exitCode = ${avant}` : '',
+      `const aJour = ecrireOuVerifier({ out: ${JSON.stringify(out)}, path: ${JSON.stringify(cible)}, check: ${check}, staleMsg: 'PÉRIMÉ-témoin', rerunMsg: 'RELANCER-témoin', okMsg: 'OK-témoin', writeMsg: 'ÉCRIT-témoin' })`,
+      "console.log(`aJour=${aJour}`)",
+    ].join('\n')
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], { encoding: 'utf8' })
+    return { status: r.status, stderr: r.stderr, stdout: r.stdout, contenu: existsSync(cible) ? readFileSync(cible, 'utf8') : null }
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+}
+
+const SIGNE = (corps) => avecPied(corps, { empreinte: 'a'.repeat(40), fichiers: 1, dossiers: 1 })
+
+test('ecrireOuVerifier --check : corps à jour (pied compris) → vert, rien d’écrit', () => {
+  const r = jouerPrimitive({ committe: SIGNE('# doc\n'), out: '# doc\n', check: true })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /OK-témoin\naJour=true/)
+  assert.equal(r.contenu, SIGNE('# doc\n'))
 })
 
-test('le rouge de fraîcheur de build-all.mjs PASSE par deltaSourcesLues', () => {
-  const source = readFileSync(path.join(ICI, '..', 'build-all.mjs'), 'utf8')
-  assert.match(source, /import \{[\s\S]*?\bdeltaSourcesLues\b[\s\S]*?\} from '\.\/lib\/empreinte-sources\.mjs'/)
-  assert.match(source, /\bdeltaSourcesLues\(avant, mesure\)/)
-  assert.match(source, /if \(actuel !== rendu\) \{\n\s*process\.stderr\.write\(diagnosticSourcesLues\(/)
+test('ecrireOuVerifier --check : corps PÉRIMÉ → bit CODE_CORPS_PERIME, divergence NOMMÉE, rien d’écrit', () => {
+  const r = jouerPrimitive({ committe: SIGNE('# vieux\n'), out: '# neuf\n', check: true })
+  assert.equal(r.status, CODE_CORPS_PERIME)
+  assert.match(r.stderr, /PÉRIMÉ-témoin\nligne 1 — committé : "# vieux" \/ régénéré : "# neuf"[\s\S]*RELANCER-témoin/)
+  assert.match(r.stdout, /aJour=false/, 'la primitive REND la main : le processus peut encore parler')
+  assert.equal(r.contenu, SIGNE('# vieux\n'), '`--check` n’écrit jamais')
+})
+
+test('ecrireOuVerifier --check : un cliquet posé AVANT garde son bit — les deux rouges se lisent au code', () => {
+  const r = jouerPrimitive({ committe: '# vieux\n', out: '# neuf\n', check: true, avant: 1 })
+  assert.equal(r.status, 1 | CODE_CORPS_PERIME)
+})
+
+test('ecrireOuVerifier en écriture : réécrit le corps en CONSERVANT le pied, rend l’état d’avant', () => {
+  const r = jouerPrimitive({ committe: SIGNE('# vieux\n'), out: '# neuf\n', check: false })
+  assert.equal(r.status, 0, r.stderr)
+  assert.match(r.stdout, /ÉCRIT-témoin\naJour=false/)
+  assert.equal(retirerPied(r.contenu), '# neuf\n')
+  assert.equal(lirePied(r.contenu).empreinte, 'a'.repeat(40))
+  assert.match(jouerPrimitive({ committe: null, out: '# neuf\n', check: false }).stdout, /aJour=false/, 'une cible absente n’était pas à jour')
+})
+
+test('estUnDocMarkdown : un doc Markdown, jamais une cible de code', () => {
+  assert.equal(estUnDocMarkdown(doc('x')), true)
+  assert.equal(estUnDocMarkdown('docs/raw/**/catalogue-*.md'), true)
+  assert.equal(estUnDocMarkdown('src/x/_registry.generated.ts'), false)
 })

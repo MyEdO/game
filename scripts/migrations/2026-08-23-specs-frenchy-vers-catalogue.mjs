@@ -34,7 +34,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isSentinel, norm, walkSkillRefs, extractedBooks } from '../data/lib/skillSpecWalk.mjs';
+import { isSentinel, walkSkillRefs, extractedBooks } from '../data/lib/skillSpecWalk.mjs';
+import { norm } from '../../src/lib/normalize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');

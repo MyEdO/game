@@ -1,5 +1,8 @@
 // Logique PURE du lanceur de suite `scripts/test/run.mjs` : partition des fichiers de test par
-// environnement, répartition des workers, routage des filtres. Aucun accès disque, aucun spawn.
+// environnement, répartition des workers, routage des filtres. Aucun spawn ; le seul accès disque
+// est la mesure système `mesureMemoireDisponibleMo`.
+import { readFileSync } from 'node:fs'
+import os from 'node:os'
 import { relative, isAbsolute, join } from 'node:path'
 
 /** Docblock d'environnement — copie VERBATIM de la regex que Vitest 2.1.9 applique lui-même dans
@@ -37,12 +40,126 @@ export function repartitionWorkers(n) {
   return { split: true, node, jsdom: Math.max(1, n - 1 - node) }
 }
 
+/** Entier > 0 posé par l'environnement, sinon la mesure système. */
+function forceOuMesure(valeur, mesure) {
+  const force = Number(valeur)
+  return Number.isInteger(force) && force > 0 ? force : mesure()
+}
+
 /** Cœurs pris en compte pour décider du partage. La mesure système est la règle ; `WFRP_TEST_COEURS`
  *  la FORCE — seule façon de jouer le chemin PARTAGÉ (ou le chemin mono) sur une machine quelconque,
  *  et de le tenir sous test (`run-capture.test.mjs`) plutôt que à la merci du matériel du runner. */
 export function coeurs(env, mesure) {
-  const force = Number(env.WFRP_TEST_COEURS)
-  return Number.isInteger(force) && force > 0 ? force : mesure()
+  return forceOuMesure(env.WFRP_TEST_COEURS, mesure)
+}
+
+/** Cache de fichiers du cgroup mémoire de ce processus, en octets : `inactive_file + active_file` de
+ *  son `memory.stat`. `procCgroup` est le texte de `/proc/self/cgroup`, `lire` un lecteur de
+ *  fichier. Le contrôleur v1 `memory` (`/sys/fs/cgroup/memory<chemin>`, champs `total_*`) prime sur
+ *  la ligne v2 `0::<chemin>` (`/sys/fs/cgroup<chemin>`) ; le champ v2 `file` n'est pas lu, il compte
+ *  `shmem`. Illisible, absent ou champ manquant : 0. */
+function cacheFichiersCgroup(procCgroup, lire) {
+  const v1 = procCgroup
+    .split('\n')
+    .map((l) => l.match(/^\d+:([^:]*):(.*)$/))
+    .find((m) => m?.[1].split(',').includes('memory'))
+  const v2 = procCgroup.match(/^0::(.*)$/m)
+  const [racine, champs] = v1
+    ? [`/sys/fs/cgroup/memory${v1[2]}`, ['total_inactive_file', 'total_active_file']]
+    : v2
+      ? [`/sys/fs/cgroup${v2[1]}`, ['inactive_file', 'active_file']]
+      : [null, []]
+  if (racine === null) return 0
+  let stat
+  try {
+    stat = lire(`${racine.replace(/\/$/, '')}/memory.stat`)
+  } catch {
+    return 0
+  }
+  const valeurs = champs.map((c) => Number(stat.match(new RegExp(`^${c} (\\d+)$`, 'm'))?.[1]))
+  return valeurs.every(Number.isFinite) ? valeurs[0] + valeurs[1] : 0
+}
+
+/** Mémoire DISPONIBLE pour ce processus, en octets, de `disponible` (`process.availableMemory()`),
+ *  `contrainte` (`process.constrainedMemory()`), `libre` (`os.freemem()`) et `totale`
+ *  (`os.totalmem()`). Sans contrainte de cgroup (nulle, ou ≥ la mémoire totale) : `disponible`. Sous
+ *  contrainte : libuv `uv_get_available_memory` rend limite − usage, et l'usage d'un cgroup compte
+ *  la mémoire anonyme ET le cache de fichiers, que le noyau reprend avant tout OOM. La définition
+ *  retenue est celle de `MemAvailable` : le cache de fichiers est disponible, borné par `libre`.
+ *  Sonde du 2026-09-27, conteneur de la suite (cgroup v1) : limite 13 681 Mo, usage 1 719 Mo dont
+ *  cache 1 630 Mo (`active_file` 1 149, `inactive_file` 480) et rss 3 Mo ; `availableMemory`
+ *  11 955 Mo, `freemem` 15 332 Mo. */
+export function memoireDisponibleOctets(procCgroup, lire, { disponible, contrainte, libre, totale }) {
+  if (!contrainte || contrainte >= totale) return disponible
+  return Math.min(libre, disponible + cacheFichiersCgroup(procCgroup, lire))
+}
+
+/** Mesure système de `memoireDisponibleOctets`, en Mo. Couvre Linux (cgroup v1/v2) et Windows
+ *  (libuv `ullAvailPhys`) ; macOS non mesuré (libuv s'y rabat sur les pages libres). */
+const mesureMemoireDisponibleMo = () => {
+  const lire = (f) => readFileSync(f, 'utf8')
+  const procCgroup = (() => {
+    try {
+      return lire('/proc/self/cgroup')
+    } catch {
+      return ''
+    }
+  })()
+  const nombres = {
+    disponible: process.availableMemory(),
+    contrainte: process.constrainedMemory(),
+    libre: os.freemem(),
+    totale: os.totalmem(),
+  }
+  return memoireDisponibleOctets(procCgroup, lire, nombres) / 2 ** 20
+}
+
+/** Mémoire disponible au lancement, en Mo. Même lecture que `coeurs` : `WFRP_TEST_MEMOIRE_MO` la
+ *  FORCE. */
+export function memoireDisponibleMo(env, mesure = mesureMemoireDisponibleMo) {
+  return forceOuMesure(env.WFRP_TEST_MEMOIRE_MO, mesure)
+}
+
+/** Borne du vieil espace V8 d'un worker de la suite, en Mo (`--max-old-space-size`, posée par
+ *  `vite.config.ts`, vérifiée par `src/tasDesWorkers.testkit.ts`). Paramètre de BANC, mesuré le
+ *  2026-09-26 sur un conteneur de 4 cœurs et 15,7 Go, 3 workers (#1801) : sans borne, V8 taille le
+ *  tas de chaque processus sur la machine (8 240 Mo par worker) ; à 2 048 Mo deux workers meurent
+ *  (2 043 Mo vivants après compaction) ; à 3 072 Mo, suite en 339 s, pic système 11,8 Go,
+ *  `worker perdu 0`. */
+export const TAS_WORKER_MO = 3072
+
+/** Empreinte RSS d'un worker sous `TAS_WORKER_MO`, en Mo. Paramètre de BANC : maximum de deux
+ *  runs de la suite du 2026-09-26 sur le conteneur de `TAS_WORKER_MO` (3 workers, borne 3 072 Mo,
+ *  RSS échantillonnée toutes les 3 s), somme des RSS des workers à l'échantillon du pic de la somme,
+ *  divisée par 3 : run par `NODE_OPTIONS` 10 794 Mo → 3 598 ; run par la config 10 298 Mo → 3 433.
+ *  Pic transitoire d'UN worker : 5 413 Mo et 4 909 Mo. */
+export const EMPREINTE_WORKER_MO = 3598
+
+/** RSS d'un processus Vitest parent, en Mo, réservée par processus Vitest lancé. Paramètre de BANC,
+ *  mêmes deux runs, en mono seulement : pic du parent 1 205 Mo (`NODE_OPTIONS`) et 1 462 Mo
+ *  (config), maximum retenu. */
+export const PARENT_MO = 1462
+
+/** Capacité servie par le lanceur : cœurs mesurés bornés par les workers que la mémoire disponible
+ *  porte, plus le cœur du parent (même convention que `repartitionWorkers`/`maxWorkersMono`).
+ *  Calculée avec un parent ; si ce résultat partage, recalculée avec deux (node et jsdom) — elle
+ *  peut alors retomber sous le seuil, en mono, qui n'a qu'un parent. `portes` est le compte AVANT
+ *  plancher ; sous un worker, le lanceur en sert un quand même et `borne` vaut `'plancher'`. */
+export function capacite(cpus, memoireMo) {
+  const avec = (parents) => {
+    const portes = Math.floor((memoireMo - parents * PARENT_MO) / EMPREINTE_WORKER_MO)
+    return { portes, servis: Math.min(cpus, 1 + Math.max(1, portes)) }
+  }
+  const mono = avec(1)
+  const { portes, servis } = repartitionWorkers(mono.servis).split ? avec(2) : mono
+  return {
+    cpus,
+    memoireMo,
+    servis,
+    portes,
+    parents: repartitionWorkers(servis).split ? 2 : 1,
+    borne: portes < 1 ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
+  }
 }
 
 /** Filtrage positionnel de Vitest — reproduction de `filterFiles`
@@ -52,10 +169,12 @@ export function filtrerFichiers(fichiers, filtres, racine, plateforme = process.
   if (!filtres.length) return fichiers
   const fs = plateforme === 'win32' ? filtres.map((f) => f.replace(/\\/g, '/')) : filtres
   return fichiers.filter((t) => {
+    // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
     const cible = relative(racine, t).toLocaleLowerCase()
     return fs.some((f) => {
       if (isAbsolute(f) && t.startsWith(f)) return true
       const rel = f.endsWith('/') ? join(relative(racine, f), '/') : relative(racine, f)
+      // eslint-disable-next-line murs/ordre-total-locale -- reproduction de `filterFiles` de Vitest (réf. ci-dessus), qui replie par `toLocaleLowerCase` : c'est le filtre de Vitest que ce site doit rendre
       return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())
     })
   })
@@ -212,6 +331,13 @@ export const SENTINELLES = [
   ['worker perdu', /worker exited unexpectedly|JS heap out of memory/i],
 ]
 
+/** Tas utilisé d'un worker en fin de fichier, en Mo — fragment VERBATIM du reporter sous
+ *  `logHeapUsage` (node_modules/vitest/dist/chunks/index.DsZFoqi9.js:3452). */
+export const TAS_UTILISE = /(\d+) MB heap used/
+
+/** Part de `TAS_WORKER_MO` dont le bloc `[diag]` alerte. Paramètre maison. */
+const SEUIL_ALERTE_TAS = 0.85
+
 /** Compte, par libellé, les lignes portant chaque sentinelle. Une ligne peut en porter plusieurs. */
 export function compterSentinelles(lignes) {
   const compte = Object.fromEntries(SENTINELLES.map(([libelle]) => [libelle, 0]))
@@ -221,21 +347,38 @@ export function compterSentinelles(lignes) {
   return compte
 }
 
-/** Bloc `[diag]` du run : machine (ce que le lanceur a RÉELLEMENT servi), pic de mémoire relevé au
- *  fil du run, comptes de sentinelles. `partage` et `maxWorkers` sont FOURNIS et non déduits de
- *  `cpus` : un drapeau global à un seul processus (`--coverage`) impose le mono même à 16 cœurs. */
+/** Bloc `[diag]` du run : machine (ce que le lanceur a RÉELLEMENT servi, et ce qui l'a borné), pic
+ *  de mémoire relevé au fil du run, comptes de sentinelles, pic de tas d'un worker. `capacite`,
+ *  `partage` et `maxWorkers` sont FOURNIS et non déduits des cœurs : un drapeau global à un seul
+ *  processus (`--coverage`) impose le mono même à 16 cœurs. `tasMaxMo` vaut `null` sans aucune ligne
+ *  de tas. */
 export function bilanDiagnostic(
   compte,
-  { cpus, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers },
+  { capacite, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers, tasMaxMo },
 ) {
+  const { cpus, memoireMo, servis, portes, parents } = capacite
+  const reserve = parents * PARENT_MO + EMPREINTE_WORKER_MO
   const pourcent = memGo > 0 ? Math.round((memMaxGo / memGo) * 100) : 0
   const comptes = SENTINELLES.map(([libelle]) => `${libelle} ${compte[libelle] ?? 0}`).join(' · ')
+  const borne = capacite.borne === 'cœurs' ? 'cœurs' : `${capacite.borne} (${servis} cœurs servis)`
+  const porte =
+    capacite.borne === 'plancher'
+      ? `mémoire insuffisante pour un worker (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
+      : `${portes} worker${portes > 1 ? 's' : ''} porté${portes > 1 ? 's' : ''}`
+  const tasPourcent = tasMaxMo === null ? 0 : Math.round((tasMaxMo / TAS_WORKER_MO) * 100)
+  const tas =
+    tasMaxMo === null
+      ? `non relevé / ${TAS_WORKER_MO} Mo`
+      : `${tasMaxMo} Mo / ${TAS_WORKER_MO} Mo (${tasPourcent} %)` +
+        (tasMaxMo >= SEUIL_ALERTE_TAS * TAS_WORKER_MO ? ` · ALERTE ≥ ${Math.round(SEUIL_ALERTE_TAS * 100)} %` : '')
   return [
-    `[diag] machine : ${cpus} cœurs · ${memGo.toFixed(1)} Go · ${partage ? 'partagé' : 'mono'}` +
-      ` (seuil ${SEUIL_PARTAGE}) · maxWorkers=${maxWorkers}`,
+    `[diag] machine : ${cpus} cœurs · ${memGo.toFixed(1)} Go · disponible ${(memoireMo / 2 ** 10).toFixed(1)} Go` +
+      ` → ${porte} · réserve de ${parents} parent${parents > 1 ? 's' : ''} · borné par ${borne}` +
+      ` · ${partage ? 'partagé' : 'mono'} (seuil ${SEUIL_PARTAGE}) · maxWorkers=${maxWorkers}`,
     `[diag] mémoire système max : ${memMaxGo.toFixed(1)} Go / ${memGo.toFixed(1)} Go (${pourcent} %)` +
       ` · rss lanceur max ${Math.round(rssMaxMo)} Mo · fenêtre ${secondes.toFixed(1)} s`,
     `[diag] sentinelles : ${comptes}`,
+    `[diag] tas max d'un worker : ${tas}`,
     '',
   ].join('\n')
 }

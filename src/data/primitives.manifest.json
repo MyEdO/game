@@ -346,7 +346,16 @@
     "fichier": "scripts/gen-registry.mjs",
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
-    "verrou": "npm run gen && git diff --exit-code"
+    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+  },
+  {
+    "id": "pointDEntree",
+    "type": "primitives.manifest",
+    "label": "import.meta.main",
+    "fichier": "scripts/guards/lib/pointDEntree.mjs",
+    "concept": "ce module est-il le point d'entrée du processus (lancé, pas importé)",
+    "perimetre": "tout script de scripts/ et server/ qui porte un main",
+    "verrou": "src/point-d-entree-guard.test.ts"
   },
   {
     "id": "descendre",
@@ -1106,6 +1115,42 @@
     "verrou": "src/lib/indexedDb.test.ts"
   },
   {
+    "id": "echapperRegex",
+    "type": "primitives.manifest",
+    "label": "echapperRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "échapper une chaîne pour une regex",
+    "perimetre": "toute chaîne insérée telle quelle dans une regex, en `src/` comme en `scripts/`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDe",
+    "type": "primitives.manifest",
+    "label": "alternationDe",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de chaînes, échappées, la plus longue d'abord",
+    "perimetre": "toute alternation de chaînes cherchées telles quelles ; une variation par chaîne passe par `parChaine`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDeRegex",
+    "type": "primitives.manifest",
+    "label": "alternationDeRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de fragments de regex, ordre gardé",
+    "perimetre": "toute alternation dont un élément est un fragment de regex",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "espacesExtensibles",
+    "type": "primitives.manifest",
+    "label": "espacesExtensibles",
+    "fichier": "src/lib/regex.ts",
+    "concept": "chaque espace accepte une suite de blancs",
+    "perimetre": "toute chaîne échappée dont les espaces acceptent des blancs variables, seule ou en `parChaine` d'`alternationDe`",
+    "verrou": "regex.test.ts"
+  },
+  {
     "id": "clesDePalette",
     "type": "primitives.manifest",
     "label": "CLES/communes/vocabulaire",
@@ -1167,6 +1212,15 @@
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+  },
+  {
+    "id": "ordreTotal",
+    "type": "primitives.manifest",
+    "label": "parUnitesDeCode/parLibelle/replier",
+    "fichier": "src/lib/ordre.mjs",
+    "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
+    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
+    "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
     "id": "stockageWeb",

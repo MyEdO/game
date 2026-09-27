@@ -16,20 +16,19 @@
  * `grammaire/ref.ts`) ne se chargent.
  *
  * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `npm run gen` et `buildStart`
- * (`vite.config.ts`).
+ * (`vite.config.ts`) ; `--check` compare sans écrire (`npm run gen -- --check`).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier } from '../src/data/schemas/grammaire/collection-cle';
 import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE } from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
+import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
+import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 
-const SORTIE = 'src/data/schemas/_ids.generated.ts';
-const SORTIE_CLES = 'src/data/schemas/_cles-de-dataset.generated.ts';
-const SORTIE_RACINES = 'src/data/schemas/_racines-vivantes.generated.ts';
+const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
 
 /** Table VIDE : ce que la phase 2 pose à la place d'un index illisible. */
 export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {};\n';
@@ -119,17 +118,9 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
 
 const lit = (v: string) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
-/** Écrit `chemin` seulement si son contenu change ; rend `true` s'il a changé. */
-function ecrire(chemin: string, body: string): boolean {
-  let prev = '';
-  try {
-    prev = readFileSync(chemin, 'utf8');
-  } catch {
-    /* nouveau */
-  }
-  if (prev === body) return false;
-  writeFileSync(chemin, body);
-  return true;
+/** Écrit `chemin` seulement si son contenu change — en `check`, compare sans écrire ; rend `true` s'il a changé. */
+function ecrire(chemin: string, body: string, check: boolean): boolean {
+  return !ecrireOuVerifier({ out: body, path: chemin, check, ...MESSAGES_DE(chemin) });
 }
 
 /** Spécificateur d'import de `chemin` (sous le dépôt) depuis le module généré `sortie`. */
@@ -139,15 +130,22 @@ function specificateur(sortie: string, chemin: string): string {
 }
 
 /** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
- *  Un index illisible est d'abord remplacé par la table vide. */
-async function genEspaces(): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number }> {
+ *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
+async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
   let prev = '';
   try {
     prev = readFileSync(SORTIE, 'utf8');
   } catch {
     /* nouveau */
   }
-  if (!indexChargeable(prev)) writeFileSync(SORTIE, TABLE_VIDE);
+  if (!indexChargeable(prev)) {
+    if (check) {
+      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
+      process.exitCode = (Number(process.exitCode) || 0) | 1;
+      return null;
+    }
+    writeFileSync(SORTIE, TABLE_VIDE);
+  }
   const { table, clesDeDataset, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
@@ -189,9 +187,9 @@ async function genEspaces(): Promise<{ changed: boolean; espaces: number; ids: n
     `export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {\n` +
     racines.map((r, i) => `  ${lit(r.fichier)}: r${i},\n`).join('') +
     `};\n`;
-  const changed = ecrire(SORTIE, body);
-  const clesChangees = ecrire(SORTIE_CLES, cles);
-  const racinesChangees = ecrire(SORTIE_RACINES, modRacines);
+  const changed = ecrire(SORTIE, body, check);
+  const clesChangees = ecrire(SORTIE_CLES, cles, check);
+  const racinesChangees = ecrire(SORTIE_RACINES, modRacines, check);
   return {
     changed: changed || clesChangees || racinesChangees,
     espaces: table.size,
@@ -202,9 +200,9 @@ async function genEspaces(): Promise<{ changed: boolean; espaces: number; ids: n
 }
 
 // Point d'entrée seulement. `--silencieux` (appel de `buildStart`) : n'imprime que si l'index change.
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const r = await genEspaces();
-  if (r.changed || !process.argv.includes('--silencieux'))
+if (import.meta.main) {
+  const r = await genEspaces(process.argv.includes('--check'));
+  if (r && (r.changed || !process.argv.includes('--silencieux')))
     console.log(
       `gen-espaces: IDS_PAR_ESPACE ← ${r.ids} ids / ${r.espaces} espaces (${SORTIE}), CLES_DE_DATASET ← ${r.clesDeDataset} clés (${SORTIE_CLES}), RACINES_VIVANTES ← ${r.racines} documents (${SORTIE_RACINES})${r.changed ? '' : ' [inchangé]'}`,
     );

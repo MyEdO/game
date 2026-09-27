@@ -2,8 +2,8 @@
 //   `GameOp`                                            → src/engine/ops.ts
 //   `Condition` / `Flow` / `EffectTrigger` / `EffectTargeting` → src/engine/flowCore.ts
 // Sortie : docs/vocabulaire-mecanique.md. Re-run : node scripts/docs/build-vocabulaire.mjs
-// (npm run docs:vocabulaire). Mode --check (chaîné dans npm run docs:check) : régénère en mémoire,
-// compare au .md committé, exit 1 avec message actionnable si diff — jamais d'écriture en --check.
+// (npm run docs:vocabulaire).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 // Même socle AST/JSDoc que build-effects.mjs : scripts/docs/lib/jsdocUnion.mjs.
 //
 // Trois colonnes MESURÉES (jamais recopiées à la main) :
@@ -22,7 +22,8 @@ import { readFileSync } from 'node:fs'
 import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { basename } from 'node:path'
-import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields, emitOrCheck } from './lib/jsdocUnion.mjs'
+import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 
 const OPS_SRC = 'src/engine/ops.ts'
@@ -397,7 +398,7 @@ out += section(
   { allowLiterals: true },
 )
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: OUT,
   check: process.argv.includes('--check'),

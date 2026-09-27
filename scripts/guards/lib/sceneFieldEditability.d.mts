@@ -37,8 +37,8 @@ export function fossileAudit(
  *  `sceneSchema`, nœuds-frontière exclus. */
 export function documentDeclarations(program: Program, root: string): Set<Node>;
 
-/** Le Program du périmètre de cette garde, MÉMOÏSÉ par racine (la fabrique, elle, ne retient rien). */
-export function programmeMemoise(root: string): Program;
+/** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
+export function programmeDuPerimetre(root: string): Program;
 export function sceneScope(program: Program, root: string): SceneField[];
 /** Portées d'exécution atteintes depuis `src/ui/**` par fermeture transitive des appels. */
 export function uiReachableScopes(checker: TypeChecker, program: Program, root: string): Set<Node>;
@@ -49,5 +49,6 @@ export function fieldsWrittenIn(
   fieldNames: Set<string>,
   creditable?: (node: Node) => boolean
 ): Set<string>;
+/** `program` absent : bâti pour CET appel (~8 s). */
 export function auditSceneFieldEditability(root: string, program?: Program): FieldEditability[];
 export function orphanFields(rows: FieldEditability[]): FieldEditability[];

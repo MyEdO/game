@@ -12,15 +12,18 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 const UI = 'src/ui';
 
 /** Les modales de la RACINE de `src/ui` — c'est là que vivent les coquilles de jet ; les
  *  sous-dossiers (atelier, créateur, compendium) ne montent pas de `RollShell`. Nom NU du fichier,
  *  la forme que porte le message. */
-const MODALES = readCorpus([UI], { exts: ['.tsx'] })
-  .filter(({ rel }) => !rel.slice(UI.length + 1).includes('/'))
-  .map(({ rel, text }) => ({ nom: rel.slice(UI.length + 1), code: text }));
+const MODALES = detenteur(() =>
+  readCorpus([UI], { exts: ['.tsx'] })
+    .filter(({ rel }) => !rel.slice(UI.length + 1).includes('/'))
+    .map(({ rel, text }) => ({ nom: rel.slice(UI.length + 1), code: text })),
+);
 
 /** Balise JSX ouvrante qui contient l'index `i` : de son `<` jusqu'au `>` de même profondeur. */
 function openingTag(src: string, i: number): string {
@@ -78,7 +81,7 @@ const BASELINE: Record<string, string> = {
 describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
   it('aucune coquille NEUVE sans enjeu, et toute baseline soldée est RETIRÉE', () => {
     const muets = new Map<string, string[]>(); // flowKey → fichiers
-    for (const { nom, code } of MODALES) {
+    for (const { nom, code } of MODALES()) {
       for (const k of shellsWithoutStake(code)) {
         muets.set(k, [...(muets.get(k) ?? []), nom]);
       }

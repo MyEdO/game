@@ -6,6 +6,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { reglesCss, FEUILLES_PARTAGEES } from '../../scripts/guards/lib/cssCouches.mjs';
 import { OWNERS } from '../../scripts/guards/lib/marqueursPossedes.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 const RACINE_REPO = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -92,7 +93,9 @@ function recopies(fichiers: readonly { chemin: string; code: string }[]): string
 }
 
 describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée)', () => {
-  const found = composants().map(({ chemin, code }) => ({ path: chemin, hits: markersIn(stripComments(code)) }));
+  const found = detenteur(() =>
+    composants().map(({ chemin, code }) => ({ path: chemin, hits: markersIn(stripComments(code)) })),
+  );
 
   it('aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré', () => {
     const offenders = recopies(composants());
@@ -116,7 +119,7 @@ describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (r
 
   it('la baseline est DÉCROISSANTE — aucune entrée périmée', () => {
     const live = new Set(
-      found.flatMap(({ path, hits }) => hits.filter((h) => !OWNERS[h.marker].includes(path)).map((h) => `${path}|${h.marker}`)),
+      found().flatMap(({ path, hits }) => hits.filter((h) => !OWNERS[h.marker].includes(path)).map((h) => `${path}|${h.marker}`)),
     );
     const stale = Object.entries(BASELINE)
       .flatMap(([path, marks]) => marks.map((m) => `${path}|${m}`))
@@ -126,7 +129,7 @@ describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (r
   });
 
   it('chaque primitive propriétaire pose bien son marqueur (table non périmée)', () => {
-    const posed = new Set(found.flatMap(({ path, hits }) => hits.map((h) => `${path}|${h.marker}`)));
+    const posed = new Set(found().flatMap(({ path, hits }) => hits.map((h) => `${path}|${h.marker}`)));
     const dead = Object.entries(OWNERS)
       .filter(([marker, owners]) => !owners.some((o) => posed.has(`${o}|${marker}`)))
       .map(([marker, owners]) => `"${marker}" : plus posé par ${owners.join(' / ')} — table OWNERS à mettre à jour`);

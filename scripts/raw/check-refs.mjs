@@ -9,7 +9,7 @@
 // est ABSENT en régime nominal → tolérance ZÉRO (`readStock` traite un fichier absent comme zéro
 // entrée). S'il renaît, il se recrée à sa mesure MINIMALE, chaque entrée portant son lot et sa date.
 // Re-run : node scripts/raw/check-refs.mjs
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { refRe, span, chapterFile, bookOf, pagesDeLAtlas, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
@@ -86,5 +86,4 @@ function main() {
   process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

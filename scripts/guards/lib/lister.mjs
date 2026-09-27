@@ -11,24 +11,9 @@
 import { lstatSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Comparateur d'ORDRE TOTAL : unités de code UTF-16 (`<`/`>`), soit exactement l'ordre de `.sort()`
- *  sans comparateur. Jamais `localeCompare` : son verdict dépend de la locale et de l'ICU du
- *  processus — même classe de rouge que l'ordre du système de fichiers, sur des chaînes.
- *  EMPLOI : chemins, identifiants, clés — tout ce qui n'est pas lu comme du texte par un humain.
- *  @type {(a: string, b: string) => number} */
-export const parUnitesDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
-
-/** Clé de comparaison d'un LIBELLÉ : accents déposés (NFD puis marques retirées) et casse repliée.
- *  Déterministe sans ICU — `normalize`/`toLowerCase` ne consultent aucune locale. */
-const cle = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-
-/** Comparateur d'ORDRE TOTAL pour un LIBELLÉ LU PAR UN HUMAIN (titre de section, concept français,
- *  nom d'entité, nom d'export d'un index) : alphabétique accents et casse IGNORÉS, puis — pour que
- *  l'ordre reste TOTAL — départage par unités de code brutes (« Béni » vs « beni »).
- *  EMPLOI : la table d'un doc que quelqu'un PARCOURT de l'œil. Un chemin ou une clé prend
- *  `parUnitesDeCode` — y replier la casse rendrait deux chemins distincts égaux à la première passe.
- *  @type {(a: string, b: string) => number} */
-export const parLibelle = (a, b) => parUnitesDeCode(cle(a), cle(b)) || parUnitesDeCode(a, b)
+/** Les comparateurs d'ordre total vivent dans `src/lib/ordre.mjs`, module pur ; ce lecteur les
+ *  ré-exporte pour ses consommateurs. */
+export { parUnitesDeCode, parLibelle } from '../../../src/lib/ordre.mjs'
 
 /**
  * Noms des enfants DIRECTS de `dir`, triés par unités de code.
@@ -55,10 +40,9 @@ export function listerDossier(dir, { absent = 'lever' } = {}) {
  *   · `**` entre deux `/` vaut ZÉRO ou PLUSIEURS dossiers : le motif atteint la page posée à la
  *     racine comme celle posée sous un dossier de cœur.
  * C'est la grammaire que ce dépôt ÉCRIT (le motif des catalogues de l'Atlas,
- * `scripts/raw/gate-catalogues.mjs`, en aiguillage de fusion et en cible de générateur). Le PATHSPEC
+ * `scripts/raw/motif-catalogues.mjs`, en aiguillage de fusion et en cible de générateur). Le PATHSPEC
  * git nu ne la partage PAS — il est en `fnmatch` sans `FNM_PATHNAME`, où `*` traverse `/` et où
- * `**` suivi d'un `/` exige un dossier réel. C'est la magie `:(glob)` qui la lui donne, et c'est pourquoi
- * `gate-catalogues.mjs` DÉRIVE son pathspec du motif au lieu de l'écrire deux fois.
+ * `**` suivi d'un `/` exige un dossier réel ; seule la magie `:(glob)` la lui donne.
  * SEUL site du dépôt qui sait lire un motif.
  * @param {string} motif @returns {RegExp}
  */

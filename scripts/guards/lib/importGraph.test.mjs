@@ -11,7 +11,9 @@
 //      atteinte par un générateur, là où `closureOf` ne rend AUCUN module `scripts/` ;
 //   4. `typesEffaces` retranche les arcs de TYPE PUR — un appelant qui suit un EFFET DE MODULE (la
 //      locale zod posée au chargement, #1588) conclurait sinon à une atteignabilité que le bundle ne
-//      réalise pas, un `import type` étant effacé à la compilation.
+//      réalise pas, un `import type` étant effacé à la compilation ;
+//   5. `dynamiques: false` retranche les `import('…')` — la clôture que le CHARGEMENT lie avant toute
+//      évaluation, celle que `scripts/node-requis.test.mjs` exige chargeable sous un Node refusé.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -36,6 +38,23 @@ test('l’extension `.mjs` se déduit aussi d’un spécificateur SANS extension
     writeFileSync(join(racine, 'src', 'a.ts'), "import { x } from './b'\n")
     writeFileSync(join(racine, 'src', 'b.mjs'), 'export const x = 1\n')
     assert.match(resolveImport(join(racine, 'src', 'a.ts'), './b'), /\/src\/b\.mjs$/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('un spécificateur `.mjs` sans `.mjs` sur disque désigne sa source `.mts` (substitution TypeScript)', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'importgraph-mts-'))
+  try {
+    mkdirSync(join(racine, 'src'))
+    mkdirSync(join(racine, 'scripts'))
+    writeFileSync(join(racine, 'src', 'a.test.ts'), "import { x } from '../scripts/lib.mjs'\n")
+    writeFileSync(join(racine, 'scripts', 'lib.mts'), 'export const x = 1\n')
+    writeFileSync(join(racine, 'src', 'b.ts'), "import { y } from './c.js'\n")
+    writeFileSync(join(racine, 'src', 'c.ts'), 'export const y = 1\n')
+    assert.match(resolveImport(join(racine, 'src', 'a.test.ts'), '../scripts/lib.mjs'), /\/scripts\/lib\.mts$/)
+    assert.match(resolveImport(join(racine, 'src', 'b.ts'), './c.js'), /\/src\/c\.ts$/)
+    assert.equal(resolveImport(join(racine, 'src', 'b.ts'), './absent.mjs'), null)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -103,6 +122,25 @@ test('MARCHE NON BORNÉE : depuis une racine de `scripts/`, `clotureDImports` at
     // Contre-épreuve : la MEME racine sous `closureOf` ne rend AUCUN module `scripts/`.
     const bornee = [...closureOf([join(racine, 'scripts', 'docs', 'g.mjs')])]
     assert.deepEqual(bornee.filter((m) => m.includes('/scripts/guards/')), [])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('`dynamiques: false` : un `import(…)` n’est pas lié au chargement, la marche ne le suit pas', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-graph-'))
+  try {
+    mkdirSync(join(racine, 'scripts'), { recursive: true })
+    writeFileSync(join(racine, 'scripts', 'a.mjs'),
+      "import './porte.mjs'\nexport { s } from './statique.mjs'\nconst { d } = await import('./dynamique.mjs')\n")
+    for (const f of ['porte', 'statique', 'dynamique']) writeFileSync(join(racine, 'scripts', `${f}.mjs`), 'export const s = 1, d = 1\n')
+    const depart = [join(racine, 'scripts', 'a.mjs')]
+    const nom = (marche) => marche.map((m) => m.replace(/^.*\/scripts\//, '')).sort()
+
+    assert.deepEqual(nom([...clotureDImports(depart)]), ['a.mjs', 'dynamique.mjs', 'porte.mjs', 'statique.mjs'],
+      'la marche PAR DÉFAUT suit l’import dynamique')
+    assert.deepEqual(nom([...clotureDImports(depart, { dynamiques: false })]), ['a.mjs', 'porte.mjs', 'statique.mjs'],
+      'sans `dynamiques`, effet de bord et ré-export restent, l’import dynamique sort')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

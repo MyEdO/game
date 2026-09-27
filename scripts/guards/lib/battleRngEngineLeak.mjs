@@ -131,35 +131,39 @@ function findFnParams(sf, name) {
   return params;
 }
 
-const sourceFileCache = new Map(); // chemin absolu → SourceFile
-const rngDecisionCache = new Map(); // clé composite → boolean
+/** Contexte d'un PASSAGE de scan : AST des modules moteur lus (chemin absolu → SourceFile) et
+ *  décisions déjà prises (clé composite → boolean). Objet de l'appelant, qui le passe à chaque
+ *  fichier d'un même passage et le lâche ensuite (`tsProgram.mjs`, en-tête). */
+export function contexteDeScanRng() {
+  return { sources: new Map(), decisions: new Map() };
+}
 
-/** SourceFile TS mis en cache par chemin absolu. @param {string} absPath */
-function sourceFileFor(absPath) {
-  let sf = sourceFileCache.get(absPath);
+/** SourceFile TS du passage, par chemin absolu. @param {string} absPath */
+function sourceFileFor(ctx, absPath) {
+  let sf = ctx.sources.get(absPath);
   if (sf) return sf;
   const src = readFileSync(absPath, 'utf8');
   sf = ts.createSourceFile(absPath, src, ts.ScriptTarget.Latest, true, scriptKindDe(absPath));
-  sourceFileCache.set(absPath, sf);
+  ctx.sources.set(absPath, sf);
   return sf;
 }
 
 /** La fonction moteur `name` importée depuis `modulePath` (relatif à `fromRelPath`) accepte-t-elle un
  *  `RNG` en paramètre ? FAIL-CLOSED (retourne `true`, donc « signaler ») si le fichier ou la fonction
  *  n'ont pas pu être résolus/trouvés — cf. angles morts en en-tête. @returns {boolean} */
-function resolverAcceptsRng(fromRelPath, name, modulePath) {
+function resolverAcceptsRng(ctx, fromRelPath, name, modulePath) {
   const key = `${fromRelPath}::${modulePath}::${name}`;
-  const cached = rngDecisionCache.get(key);
+  const cached = ctx.decisions.get(key);
   if (cached !== undefined) return cached;
   const absPath = resolveEngineFile(fromRelPath, modulePath);
   let decision;
   if (!absPath) {
     decision = true;
   } else {
-    const params = findFnParams(sourceFileFor(absPath), name);
+    const params = findFnParams(sourceFileFor(ctx, absPath), name);
     decision = params === null ? true : params.some((p) => typeReferencesRng(p.type));
   }
-  rngDecisionCache.set(key, decision);
+  ctx.decisions.set(key, decision);
   return decision;
 }
 
@@ -180,9 +184,11 @@ function resolverAcceptsRng(fromRelPath, name, modulePath) {
  * Ce que ce contrat coûte et ce qu'il garde est mesuré par les deux cas #1788 de
  * `src/state/roll-seam-exclusivity-guard.test.ts`.
  * @param {string} relPath @param {string} contenu
+ * @param {{ sources: Map<string, ts.SourceFile>, decisions: Map<string, boolean> }} [ctx] passage
+ *   partagé (`contexteDeScanRng`) ; absent, un passage pour CET appel
  * @returns {{ line: number, name: string, detail: string }[]}
  */
-export function scanBattleRngEngineLeak(relPath, contenu) {
+export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng()) {
   const engineImports = collectEngineImports(contenu);
   if (engineImports.length === 0) return [];
   const stripped = codeSeul(contenu);
@@ -190,7 +196,7 @@ export function scanBattleRngEngineLeak(relPath, contenu) {
   const findings = [];
   const lines = stripped.split('\n');
   for (const { name, modulePath } of engineImports) {
-    if (!resolverAcceptsRng(relPath, name, modulePath)) continue;
+    if (!resolverAcceptsRng(ctx, relPath, name, modulePath)) continue;
     const callRx = new RegExp(`\\b${escapeRegex(name)}\\s*\\(`);
     lines.forEach((line, i) => {
       if (/^\s*import/.test(line)) return;

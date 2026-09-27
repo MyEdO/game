@@ -49,6 +49,7 @@ import { NARRATIVE_MARKERS } from '../engine/conditions';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
 import { sourceDirOf } from '../../scripts/raw/_lib.mjs';
+import { norm } from '../lib/normalize';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -523,7 +524,6 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   //    libellé FR CONNU de ses `specs[]` est une régression de migration (devrait être l'id) ;
   //  - les pré-tirés RUNTIME (`makePregens()`), composés en mémoire, jamais parsés par un schéma.
   describe('GARDE — libellés connus sur entrée OUVERTE, et pré-tirés runtime', () => {
-    const norm = (s: string): string => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
     const OPEN = new Map<string, { ids: Set<string>; byLabel: Map<string, string> }>();
     for (const [type, defs] of [['skill', skills], ['talent', talents]] as const) {

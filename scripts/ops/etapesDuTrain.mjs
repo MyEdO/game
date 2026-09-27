@@ -19,7 +19,8 @@ import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
-import { GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { natureDuRouge, rougesNommes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
 import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
@@ -59,16 +60,17 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
 
 /**
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Trois familles, toutes déclarées
- * ailleurs : les `targets`/`injecte` des `GENERATORS`, la mesure `docs/.sources-lues.json`
+ * ailleurs : les `targets`/`injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le
+ * contexte du train, `ctx.generators`), la mesure `docs/.sources-lues.json`
  * (`build-all.mjs` REFUSE si elle n'est pas dans l'index), et les sorties de `npm run agents:sync`
  * (le pre-commit joue `agents:check` à chaque commit). PURE.
  */
-export function estDocDerive(chemin, generators = GENERATORS, { sourcesLues = SOURCES_LUES, racinesAgents = MANAGED_ROOTS } = {}) {
+export function estDocDerive(chemin, generators, { sourcesLues = SOURCES_LUES, racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
   if (c === sourcesLues) return true
   if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
-  return (generators ?? []).some((g) =>
+  return generators.some((g) =>
     [...(g.targets ?? []), ...(g.injecte ?? [])].some((motif) => correspondGlob(c, motif)),
   )
 }
@@ -78,13 +80,13 @@ export function estDocDerive(chemin, generators = GENERATORS, { sourcesLues = SO
  * le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, le hook
  * `post-rewrite` régénère les docs dérivés SANS les committer (`scripts/git-hooks/docs-rebuild.mjs`)
  * — sans ce partage, la préflight refusait le train pour une saleté que l'étape `docs` commet.
- * @param {string[]} chemins
+ * @param {string[]} chemins @param {readonly object[]} generators
  * @returns {{derives:string[], manuscrits:string[]}}
  */
-export function partitionSales(chemins, ...reste) {
+export function partitionSales(chemins, generators, ...reste) {
   const derives = []
   const manuscrits = []
-  for (const c of chemins ?? []) (estDocDerive(c, ...reste) ? derives : manuscrits).push(c)
+  for (const c of chemins ?? []) (estDocDerive(c, generators, ...reste) ? derives : manuscrits).push(c)
   return { derives, manuscrits }
 }
 
@@ -135,7 +137,7 @@ export const finDeSortie = (texte, max = 400) => {
  * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
  * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
  * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout, `scripts/guards/lib/gitPorte.mjs:164`). PURE.
+ * quand git n'écrit que sur stdout). PURE.
  * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
  * @returns {string} '' quand git n'a rien imprimé
  */
@@ -301,7 +303,7 @@ export const ETAPES = [
       }
       if (questions.brancheDe() === null)
         return { ok: false, raison: 'HEAD DÉTACHÉ : le train publie une branche, pas un sha errant' }
-      const { derives, manuscrits } = partitionSales(questions.cheminsSales())
+      const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
       if (manuscrits.length)
         return {
           ok: false,
@@ -333,11 +335,11 @@ export const ETAPES = [
     // faisait que déplacer le refus d'une étape.
     nom: 'derives',
     dejaFaite(ctx) {
-      return partitionSales(ctx.questions.cheminsSales()).derives.length === 0
+      return partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
     },
     jouer(ctx, journal) {
       const { questions } = ctx
-      const { derives, manuscrits } = partitionSales(questions.cheminsSales())
+      const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
       if (manuscrits.length)
         return {
           ok: false,
@@ -414,8 +416,17 @@ export const ETAPES = [
       if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
         const check = ctx.docs('--check')
-        if (check.status !== 0) {
-          ctx.journaliser('[publier] docs — `--check` non vert : passe COMPLÈTE de build-all\n')
+        // Seul un rouge que la régénération GUÉRIT la déclenche (`executer`, build-all.mjs) : un
+        // cliquet, un vérificateur ou un refus rendrait un `docs:build` vain, ou le masquerait.
+        if (check.status !== 0 && check.status !== CODE_CORPS_PERIME) {
+          const nommes = rougesNommes(check.stderr)
+          return {
+            ok: false,
+            raison: `\`build-all --check\` rouge, que \`docs:build\` ne guérit pas (${natureDuRouge({ status: check.status, signal: check.signal, code: check.error?.code ?? null })})${nommes.length ? ` :\n${nommes.map((r) => `    ${r}`).join('\n')}` : ''}`,
+          }
+        }
+        if (check.status === CODE_CORPS_PERIME) {
+          ctx.journaliser('[publier] docs — `--check` : dérivés périmés, passe COMPLÈTE de build-all\n')
           const passe = ctx.docs('--quiet')
           if (passe.status !== 0)
             return {
@@ -427,7 +438,7 @@ export const ETAPES = [
       const agents = synchroniserAgents(ctx)
       if (!agents.ok) return agents
       const chemins = ctx.questions.cheminsSales()
-      const { manuscrits } = partitionSales(chemins)
+      const { manuscrits } = partitionSales(chemins, ctx.generators)
       if (manuscrits.length)
         return { ok: false, raison: `doc MANUSCRIT modifié par la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
       if (!chemins.length) return { ok: true, dit: 'docs dérivés déjà à jour : rien à committer' }

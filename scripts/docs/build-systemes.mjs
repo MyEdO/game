@@ -3,13 +3,12 @@
 // d'adoption primitive×système est GÉNÉRÉE du graphe d'imports réel (closure transitive des
 // modules porteurs déclarés par système). Sortie : docs/systemes.md.
 // Re-run : node scripts/docs/build-systemes.mjs (npm run docs:systemes).
-// Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
-// exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { resolve } from 'node:path'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
 const PRIMITIVES = JSON.parse(readFileSync('src/data/primitives.manifest.json', 'utf8'))
 const SYSTEMES = JSON.parse(readFileSync('src/data/systemes.manifest.json', 'utf8'))
@@ -106,7 +105,7 @@ if (errors.length) {
   process.exit(1)
 }
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/systemes.md',
   check: process.argv.includes('--check'),
