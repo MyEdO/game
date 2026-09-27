@@ -22,7 +22,7 @@ describe('Effet castSpell (#98)', () => {
       const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       useGame.setState({ party: [wiz, ally] });
-      useGame.getState().startScene(testScene);
+      useGame.getState().startScene(testScene());
       useGame.getState().startCombat('enc-mutants');
       useGame.getState().confirmRoundStart();
       vi.clearAllTimers();

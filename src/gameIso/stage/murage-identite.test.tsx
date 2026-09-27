@@ -334,7 +334,7 @@ const monterHub = (): Promise<void> => monterÉcran(HUB, DÉPART, 30);
  *  c'est l'état où un tour se joue et où la frise se survole. */
 async function monterCombat(): Promise<void> {
   useGame.setState({ party: [{ ...HÉROS }] });
-  await act(async () => { useGame.getState().startScene(testScene); });
+  await act(async () => { useGame.getState().startScene(testScene()); });
   viderCaptures();
   hôte = document.createElement('div');
   document.body.appendChild(hôte);

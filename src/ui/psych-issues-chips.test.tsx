@@ -46,7 +46,7 @@ let root: Root;
 function terreur() {
   const h = hero();
   useGame.setState({
-    party: [h], battle: null, scene: testScene, net: SOLO as never,
+    party: [h], battle: null, scene: testScene(), net: SOLO as never,
     pendingCascade: null, pendingLogQueue: [],
   } as never);
   openScriptedPsych(useGame.getState, useGame.setState, 'terreur', 2, 'Une vision terrifiante', [h]);

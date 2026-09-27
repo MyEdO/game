@@ -122,7 +122,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   useGame.setState({
     battle,
     mode: 'battle',
-    scene: { ...testScene, weather: opts.fog ? 'brouillard' : 'clair' },
+    scene: { ...testScene(), weather: opts.fog ? 'brouillard' : 'clair' },
     gameTime: 12 * 60, // plein jour : l'obscurité de nuit ne se surajoute pas au brouillard mesuré
     pendingAttack: null,
     pendingCascade: null,

@@ -194,6 +194,7 @@ export const fr = {
   'party.campaign.pick.current': 'Actuelle',
   'party.campaign.pick.choose': 'Choisir',
   'party.campaign.pick.close': 'Fermer',
+  'party.launch.refused': 'Lancement impossible',
   // Sélecteur d'aventurier dédié (HeroSelector) et cartes-portraits (CandidateCard).
   'picker.title.replace': 'Remplacer {name}',
   'picker.tab.roster': 'Mes personnages',

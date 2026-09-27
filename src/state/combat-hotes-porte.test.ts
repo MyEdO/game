@@ -54,7 +54,7 @@ function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net: 
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingDefense: null, pendingAttack: null, pendingDisengage: null, pendingCast: null,
     pendingCascade: null, suspendedCascades: [],
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {}, ...net },
@@ -176,7 +176,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     useGame.setState({
-      battle, mode: 'battle', scene: testScene, party: [wiz, cible],
+      battle, mode: 'battle', scene: testScene(), party: [wiz, cible],
       pendingCast: null, pendingCastOpposition: null, pendingCascade: null, suspendedCascades: [],
       net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 } },
     } as never);

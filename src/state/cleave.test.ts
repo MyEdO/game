@@ -64,7 +64,7 @@ describe('Balayage en combat (store)', () => {
       createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
     );
     useGame.setState({ party });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers(); // on pilote l'ordre nous-mêmes

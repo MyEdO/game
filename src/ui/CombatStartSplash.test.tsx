@@ -33,7 +33,7 @@ function ouvrir(surprise?: 'party') {
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
   useGame.setState({ party: [guetteur] });
-  useGame.getState().startScene({ ...testScene, encounters: testScene.encounters.map((e) => ({ ...e, surprise })) });
+  useGame.getState().startScene({ ...testScene(), encounters: testScene().encounters.map((e) => ({ ...e, surprise })) });
   act(() => { useGame.getState().startCombat('enc-mutants'); });
 }
 

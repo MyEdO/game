@@ -34,7 +34,7 @@ export function setPickProbe(p: PickProbe | null): void {
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, MAISON_PROJET_AUTHORE, type MapRoute, type WorldMap } from './worldMap';
+import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, MAISON_PROJET_AUTHORE, type MapRoute, type WorldMap } from './worldMap';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
@@ -63,7 +63,7 @@ import { grantTrait } from '../engine/grantedTraits';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
-import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu } from '../scenes/campaign';
+import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { projectsLoad, projectSave, type SavedProject } from './projectLibrary';
 import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
@@ -143,7 +143,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           groupe canonique (`makeShowcaseParty`, MÊME 4 piliers que l'Arène — les
  *                           campagnes built-in ne portent pas leurs propres pré-tirés, seul le picker
  *                           `PartyScreen` propose `pregens.json` en libre-service), `setPendingCampaign` +
- *                           `loadProject` (MÊME chemin que le picker `CampaignSelect`), écran 'campaign'.
+ *                           `lancerCampagne` (MÊME chemin que « Lancer » de `PartyScreen`), écran 'campaign'.
  *                           `sceneId` (optionnel) démarre ailleurs qu'à l'entrée par défaut de la
  *                           campagne. `seed` (optionnel) ré-ensemence le RNG de bataille AVANT le
  *                           chargement (déterminisme des rencontres). Sans arg : liste les ids.
@@ -980,19 +980,26 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Charge une CAMPAGNE BUILT-IN sans dérouler le character creator ×4 à la main :
      *  __wfrp.campaign('loup-et-saumure', 42). Sans argument : liste les ids. `sceneId` (optionnel)
      *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`setParty` +
-     *  `setPendingCampaign` + `loadProject`) — jamais une reconstruction parallèle de l'état. */
+     *  `setPendingCampaign` + `lancerCampagne`) — jamais une reconstruction parallèle de l'état. */
     campaign: (id?: string, seed?: number, sceneId?: string) => {
       if (!id) return builtinCampaigns.map((c) => `${c.id} — ${c.label}`);
       const c = builtinCampaigns.find((b) => b.id === id);
       if (!c) return `✗ « ${id} » introuvable — ids : ${builtinCampaigns.map((b) => b.id).join(', ')}`;
-      if (sceneId !== undefined && !c.scenes.some((sc) => sc.id === sceneId)) {
-        return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${c.scenes.map((sc) => sc.id).join(', ')}`;
+      let lancee: ReturnType<typeof campagneDuJeu>;
+      try {
+        lancee = campagneDuJeu(c);
+      } catch (err) {
+        exigerUnRefus(err);
+        return `✗ campagne « ${c.label} » refusée — ${err.message}`;
+      }
+      if (sceneId !== undefined && !lancee.scenes.some((sc) => sc.id === sceneId)) {
+        return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${lancee.scenes.map((sc) => sc.id).join(', ')}`;
       }
       const s = g();
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
-      s.setPendingCampaign(campagneDuJeu(c));
-      s.loadProject(c.scenes, sceneId ?? c.startSceneId, c.worldMap ?? null, c.narratif);
+      s.setPendingCampaign(lancee);
+      lancerCampagne(g, lancee, sceneId);
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;

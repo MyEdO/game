@@ -19,7 +19,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     });
     hero.spells = ['flechette'];
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

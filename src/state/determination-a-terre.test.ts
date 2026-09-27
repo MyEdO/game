@@ -20,7 +20,7 @@ import type { Combatant, ConditionInstance } from '../engine/types';
 function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {}) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

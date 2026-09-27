@@ -6,7 +6,7 @@ import { sceneZoneTiles } from './zones';
 import { effectiveArchitecture } from './sceneEdit';
 import { massFootprintCells } from '../gameIso/builders/roofs';
 import { occupiedInteriorZoneIds } from '../gameIso/stage/roomFocus';
-import { campaign, diligenceCampaign } from '../scenes/campaign';
+import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 
 function sceneWithRooms(
   walls: WallSeg[] = [],
@@ -264,7 +264,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
  * jour, ce test tombe avec elle.
  */
 describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La Diligence', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
 
   /** Signature COMPLÈTE d'un accès, hors `id` — lequel est dérivé de champs tous présents ici
    *  (arête, étage, zone de rattachement) : deux accès de même signature portent le même `id`. */
@@ -391,7 +391,7 @@ describe('roomPortals — mémoïsé par scène, et rafraîchi dès qu’elle ch
  * largeur plein-carte. Deux contrats verrouillent l'échange : le résultat est le MÊME (équivalence
  * avec l'exploration, gardée ici comme ORACLE), et son coût ne vit plus dans le pas.
  */
-const sceneDe = (id: string): Scene => campaign.find((c) => c.id === id)!.scene;
+const sceneDe = (id: string): Scene => paquetDuJeu(areneCampaign).scenes.find((s) => s.id === id)!;
 
 /** L'ANCIENNE formulation, gardée comme oracle : une exploration en largeur par appel. */
 function parExplorationEnLargeur(scene: Scene, from: Pt, occupiedZoneIds: ReadonlySet<string>): RoomPortal[] {
@@ -429,7 +429,7 @@ describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur
     ['arene-hub', sceneDe('arene-hub')],
     ['arene-exp-village', sceneDe('arene-exp-village')],
     ['arene-zone13', sceneDe('arene-zone13')],
-    ['diligence', diligenceCampaign.scenes[0]],
+    ['diligence', paquetDuJeu(diligenceCampaign).scenes[0]],
   ];
 
   /** Échantillon de positions : cases MARCHABLES réparties sur toute la carte (toutes couches) ET

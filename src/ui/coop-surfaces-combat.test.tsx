@@ -53,7 +53,7 @@ function combatCoop(mode: NetMode = 'host') {
   const sien = hero('h2', 'Wilhelm');
   act(() => {
     useGame.setState({
-      party: [mien, sien], scene: testScene, mode: 'battle', pendingCascade: null,
+      party: [mien, sien], scene: testScene(), mode: 'battle', pendingCascade: null,
       net: { ...useGame.getState().net, mode, mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
       battle: {
         combatants: [mien, sien], order: ['h2', 'h1'], baseOrder: ['h2', 'h1'], turn: 0, round: 2,

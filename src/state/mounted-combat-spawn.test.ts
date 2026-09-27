@@ -21,7 +21,7 @@ function makeHero() {
 
 function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Possession[]) {
   useGame.setState({ party: [hero], battle: null });
-  useGame.getState().startScene(testScene); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
+  useGame.getState().startScene(testScene()); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
   useGame.setState({ possessions });
   useGame.getState().startCombat('enc-mutants');
 }
@@ -127,9 +127,9 @@ function cavalerieScene(preMonte: boolean): { scene: Scene; montureId: string; c
     ],
   });
   const scene: Scene = {
-    ...testScene,
+    ...testScene(),
     id: 'test-cavalerie',
-    entities: [...testScene.entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
+    entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
     encounters: [enc.encounter],
   };
   return { scene, montureId: enc.entities[0].id, cavalierId: enc.entities[1].id };

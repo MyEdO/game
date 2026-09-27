@@ -65,7 +65,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
     seedBattleRng(7);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     useGame.setState({ party: [hero], battle: null, pendingCascade: null, pendingRoundStart: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

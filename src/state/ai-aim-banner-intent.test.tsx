@@ -56,7 +56,7 @@ function setup() {
     log: [ev('attack', STALE, hero.id, enemy.id)], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, pendingDefense: null, pendingAttack: null, pendingCascade: null, actorAim: null,
+    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, actorAim: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   });
   seedBattleRng(3);

@@ -29,7 +29,7 @@ function drainCombatEndCascade(): void {
   }
 }
 
-function setup(scene: Scene = testScene) {
+function setup(scene: Scene = testScene()) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);

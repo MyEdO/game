@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildFloors } from './floors';
-import { allBuiltinCampaigns } from '../../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { tileAt, type Scene } from '../../state/scene';
 import { terrainMatiere, terrainSolidHeightM } from '../../state/terrain';
@@ -23,7 +23,7 @@ import { matieresDe } from '../../data';
 /** Toutes les scènes LIVRÉES : un scénario du registre porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => [
   ...testScenarios.map((s) => ({ nom: `scenario:${s.id}`, scene: s.construire().scene })),
-  ...allBuiltinCampaigns.flatMap((c) => (c.scenes ?? []).map((scene) => ({ nom: `campagne:${c.id}/${scene.id}`, scene }))),
+  ...allBuiltinCampaigns.flatMap((c) => paquetDuJeu(c).scenes.map((scene) => ({ nom: `campagne:${c.id}/${scene.id}`, scene }))),
 ];
 
 /** `<scène> (x,y,z) <part> <side> : id émis ≠ id posé par la donnée` — une ligne par écart. */
@@ -56,7 +56,7 @@ describe('matières de relief — l’id émis est celui de la DONNÉE (toutes s
   it('chaque gisement de scènes livrées alimente le balayage, et le balayage émet des faces de relief', () => {
     expect(testScenarios.length, 'le registre des scénarios ne porte plus aucune scène').toBeGreaterThan(0);
     for (const c of allBuiltinCampaigns) {
-      expect(c.scenes?.length ?? 0, `campagne « ${c.id} » : aucune scène livrée — elle n’entre plus dans la mesure`).toBeGreaterThan(0);
+      expect(c.paquet.scenes.length, `campagne « ${c.id} » : aucune scène livrée — elle n’entre plus dans la mesure`).toBeGreaterThan(0);
     }
     expect(mesures.reduce((n, m) => n + m.faces, 0), 'aucune face de relief émise : le contrat porterait sur rien').toBeGreaterThan(0);
   });

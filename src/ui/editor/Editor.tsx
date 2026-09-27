@@ -121,7 +121,7 @@ export function Editor({
   const loadProject = useGame((s) => s.loadProject);
   const party = useGame((s) => s.party);
 
-  const { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene));
+  const { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -519,7 +519,12 @@ export function Editor({
               : `✓ projet enregistré « ${p.label} » ouvert`;
           }
           const bc = allBuiltinCampaigns.find((x) => x.id === id);
-          if (bc) { loadBuiltin(bc); return `✓ campagne « ${bc.label} » ouverte (copie)`; }
+          if (bc) {
+            const refus = loadBuiltin(bc);
+            return refus
+              ? `✗ campagne « ${bc.label} » refusée — ${refus.message}`
+              : `✓ campagne « ${bc.label} » ouverte (copie)`;
+          }
           const sc = testScenarios.find((x) => x.id === id);
           if (sc) { loadScenario(sc); return `✓ scénario de test « ${sc.title} » ouvert`; }
           return `✗ « ${id} » introuvable — projets : ${projets.map((x) => x.id).join(', ') || '(aucun)'}`
@@ -756,11 +761,20 @@ export function Editor({
     resetScene(clone(construit.scene));
     setOpenOpen(false);
   }
-  /** Ouvrir une campagne BUILT-IN (Arène ou campagne du jeu) : jamais en édition directe du JSON
-   *  commité — `projectId` reste `null`, donc « Enregistrer » crée un NOUVEAU projet localStorage
-   *  (#367, même garantie que `loadScenario` pour les scénarios de test). */
-  function loadBuiltin(bc: BuiltinCampaign) {
-    const copie = copieDuJeu(bc);
+  /** Ouvrir une campagne du jeu (Arène comprise) : jamais en édition directe du JSON commité —
+   *  `projectId` reste `null`, donc « Enregistrer » crée un NOUVEAU projet localStorage (#367, même
+   *  garantie que `loadScenario` pour les scénarios de test). Son paquet passe la porte au geste :
+   *  rend le REFUS comme `loadSaved`, `null` quand la scène est posée. */
+  function loadBuiltin(bc: BuiltinCampaign): RefusRendu | null {
+    let copie: ReturnType<typeof copieDuJeu>;
+    try {
+      copie = copieDuJeu(bc);
+    } catch (e) {
+      const refus = refusDeLaPorteDuProjet(e, 'ouverture');
+      setLoadError(refus);
+      return refus;
+    }
+    setLoadError(null);
     setOtherScenes(copie.autresScenes);
     setWorldMap(copie.worldMap);
     setActiveAxes(copie.activeAxes);
@@ -773,6 +787,7 @@ export function Editor({
     setSel(null);
     resetScene(copie.depart);
     setOpenOpen(false);
+    return null;
   }
   /** Rend le REFUS quand le document ne s'ouvre pas (porte du document), `null`
    *  quand la scène est posée. La modale ignore cette valeur (elle lit `loadError`) ; le pont de

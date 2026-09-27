@@ -76,7 +76,7 @@ const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAutho
   };
   for (const f of corpus) recolte(JSON.parse(f.text), f.rel.replace(/^src\/scenes\//, ''));
   const mptOpera = sceneMetresPerTile(buildOperaFloorplan());
-  for (const e of scenarioEntities as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
+  for (const e of scenarioEntities() as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
   return out;
 });
 function entitesAuthorees(): DecorAuthore[] {

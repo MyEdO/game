@@ -67,9 +67,9 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
     ],
   });
   const scene: Scene = {
-    ...testScene,
+    ...testScene(),
     id: 'test-nuee',
-    entities: [...testScene.entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
+    entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
     encounters: [enc.encounter],
   };
   return { scene, nueeId: enc.entities[0].id, temoinId: enc.entities[1].id };

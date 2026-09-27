@@ -17,7 +17,7 @@ import { draineCascade } from './cascadeTestKit';
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 
 function sceneWithParapet(): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: 'porte-de-ville' }];
   // Chemin de ronde au 1ᵉʳ étage : grille marchable surplombant le sol et la herse.
   s.layers = [...s.layers, { z: 1, tiles: new Array(s.dimensions.w * s.dimensions.h).fill('herbe') as Terrain[] }];

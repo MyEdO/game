@@ -124,7 +124,7 @@ describe('intégration : startCombat sème les pièges de la scène dans battle.
   it('une scène avec effectZones → zone permanente dans le combat', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene: Scene = {
-      ...testScene,
+      ...testScene(),
       effectZones: [
         { id: 'pit', label: 'Fosse à pieux', area: { kind: 'rect', x: 16, y: 11, w: 1, h: 1 }, onCross: [{ op: 'wounds', amount: 9, ignoreTB: false, ignoreAP: true }] },
       ],

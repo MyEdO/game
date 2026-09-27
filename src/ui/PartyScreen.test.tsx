@@ -5,7 +5,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroSelector, PartyScreen, PartyScreenView, slotKeyNav } from './PartyScreen';
 import { projectSave, __resetLibraryForTest, type SavedProject } from '../state/projectLibrary';
-import { builtinCampaigns } from '../scenes/campaign';
+import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
+import { datasetArray, setDataset } from '../data/overrides';
 import { CURRENT_PROJECT_SCHEMA, resolveActiveAxes } from '../state/worldMap';
 import { emptyScene } from '../state/scene';
 import { allAxes } from '../data';
@@ -280,7 +281,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
   beforeEach(async () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     await __resetLibraryForTest();
-    useGame.setState({ pendingCampaign: null, scene: null, net: initialNet() } as never);
+    useGame.setState({ pendingCampaign: null, scene: null, net: initialNet() });
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -330,10 +331,11 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     const pc = useGame.getState().pendingCampaign;
     expect(pc?.id).toBe(c.id);
     expect(pc?.label).toBe(c.label);
-    expect(pc?.startSceneId).toBe(c.startSceneId);
-    expect(pc?.scenes).toEqual(c.scenes);
-    expect(pc?.worldMap).toEqual(c.worldMap);
-    expect(pc?.narratif).toEqual(c.narratif);
+    const paquet = paquetDuJeu(c);
+    expect(pc?.startSceneId).toBe(paquet.scenes[0].id);
+    expect(pc?.scenes).toEqual(paquet.scenes);
+    expect(pc?.worldMap).toEqual(paquet.worldMap);
+    expect(pc?.narratif).toEqual(paquet.narratif);
     expect(document.querySelector('.picker-modal'), 'modale fermée').toBeNull();
   });
 
@@ -354,5 +356,58 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     expect(resolveActiveAxes(useGame.getState().pendingCampaign ?? {})).toEqual(axes.map((a) => a.id));
     const rail = Array.from(document.querySelectorAll('.compo-ax')).map((el) => el.textContent);
     expect(rail, 'le rail de composition montre les axes de la campagne').toEqual(axes.map((a) => a.label));
+  });
+});
+
+/** « Lancer » (#1692) : la campagne choisie, et sans choix l'Arène, se lancent par le MÊME geste — le
+ *  paquet passe la porte à cet instant, un refus s'affiche au joueur et rien n'est posé. */
+describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte des projets', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens().slice(0, 1), net: initialNet() });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  async function lancer() {
+    await act(async () => root.render(<PartyScreen />));
+    const bouton = container.querySelector('.party-start button') as HTMLButtonElement;
+    await act(async () => bouton.click());
+  }
+
+  it('sans choix : l’Arène est lancée par `loadProject` — sa scène d’entrée, sa carte, son paquet au snapshot', async () => {
+    await lancer();
+    const paquet = paquetDuJeu(areneCampaign);
+    const s = useGame.getState();
+    expect(s.screen).toBe('campaign');
+    expect(s.scene?.id).toBe(paquet.scenes[0].id);
+    expect(s.worldMap?.id).toBe(paquet.worldMap?.id);
+    expect(s.campaignDoc?.scenes.map((sc) => sc.id)).toEqual(paquet.scenes.map((sc) => sc.id));
+  });
+
+  it('un id que l’Arène référence, renommé au Codex : le refus s’affiche, aucune scène n’est posée', async () => {
+    const avant = [...datasetArray('props')];
+    expect(JSON.stringify(areneCampaign.paquet), 'l’Arène référence le décor `tonneau`').toContain('"ref":"tonneau"');
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
+    try {
+      await lancer();
+      expect(document.querySelector('[role="alert"]')?.textContent).toBe(
+        'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.',
+      );
+      expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
+      expect(useGame.getState().screen).toBe('party');
+    } finally {
+      setDataset('props', avant);
+      consoleErr.mockRestore();
+    }
   });
 });

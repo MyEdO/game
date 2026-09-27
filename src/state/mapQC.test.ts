@@ -4,7 +4,7 @@ import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-
 import { reachableCells, unreachableDescriptiveZones, reachedFloors, startOf } from './mapQC';
 import { walkNeighbors, type Pt } from './path';
 import type { Scene } from './scene';
-import { campaign, diligenceCampaign } from '../scenes/campaign';
+import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire();
 
 describe('mapQC — harnais QC de cartes (#778)', () => {
@@ -135,8 +135,8 @@ describe('reachableCells — mêmes cases que le parcours en largeur (#1416)', (
     ['zones-pieces', zonesPiecesScenarioConstruit.scene, [startOf(zonesPiecesScenarioConstruit.scene)!, { x: 0, y: 0 }]],
     ['cellule scellée', cellule, [{ x: 1, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 2 }]],
     ['deux étages', deuxEtages, [{ x: 0, y: 1 }, { x: 3, y: 0, z: 1 }, { x: 0, y: 0 }]],
-    ['arene-hub', campaign.find((c) => c.id === 'arene-hub')!.scene, [{ x: 25, y: 20 }, { x: 1, y: 1 }, { x: 0, y: 0 }]],
-    ['diligence', diligenceCampaign.scenes[0], [{ x: 16, y: 19 }, { x: 5, y: 7, z: 1 }, { x: 0, y: 0 }]],
+    ['arene-hub', paquetDuJeu(areneCampaign).scenes.find((s) => s.id === 'arene-hub')!, [{ x: 25, y: 20 }, { x: 1, y: 1 }, { x: 0, y: 0 }]],
+    ['diligence', paquetDuJeu(diligenceCampaign).scenes[0], [{ x: 16, y: 19 }, { x: 5, y: 7, z: 1 }, { x: 0, y: 0 }]],
   ];
 
   it.each(cartes)('%s — mêmes cases atteignables, départ par départ', (nom, scene, departs) => {

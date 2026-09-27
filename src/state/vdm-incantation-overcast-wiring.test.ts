@@ -23,7 +23,7 @@ function openCast() {
   W.spells = ['allure-demoniaque'];
   W.characteristics.sociabilite = 40;
   useGame.setState({ party: [W] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

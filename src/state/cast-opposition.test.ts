@@ -27,7 +27,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     });
     hero.spells = ['fauche-demon', 'parole-de-tzeentch'];
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -147,7 +147,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     caster.spells = ['fauche-demon'];
     const cible = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 31 });
     useGame.setState({ party: [caster, cible] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -221,7 +221,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     caster.spells = ['parole-de-tzeentch'];
     const allie = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'PNJ', seed: 31 });
     useGame.setState({ party: [caster, allie] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

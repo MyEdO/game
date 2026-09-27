@@ -300,7 +300,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   const carte = (): WorldMap => ({
     id: 'w', label: 'Carte',
     places: [{
-      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene.id,
+      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene().id,
       market: { taille: 2, richesse: 2, produits: [] } as never,
     }],
     routes: [],
@@ -312,7 +312,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingActivity: null, journal: [], pendingCascade: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.setState({ worldMap: carte() });
     vi.clearAllTimers();
     useGame.getState().seedRng(13);

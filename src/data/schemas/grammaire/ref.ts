@@ -130,9 +130,27 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
-/** L'ensemble ADMIS par une feuille `idDe(type, valeur?)`, lu à chaque validation. */
-function admisDe(type: TypeEntite, valeur: string | undefined, site: string): ReadonlySet<string> {
-  return idsDesignes(valeur === undefined ? espaceDe(type) : cleDeSousListe(type, valeur, site), site);
+/**
+ * SOUS-LISTE qu'une feuille `idDe` retient de l'espace de son type : une chaîne, la sous-liste
+ * DISCRIMINÉE de cette valeur (`idDe('material', 'prop')`) ; `{ horsMarqueur }`, l'espace PRIVÉ de sa
+ * sous-liste MARQUÉE (celle que lit `porteLeMarqueur`) — `idDe('trapping', { horsMarqueur: 'service' })`.
+ */
+type SousListe = string | { readonly horsMarqueur: string };
+
+/** Clé de la sous-liste marquée `marqueur` de l'espace d'un type (paramètre `espace.marqueurs` du def). */
+const cleDuMarqueur = (type: TypeEntite, marqueur: string): string => cleFiltree(espaceDe(type), { champ: marqueur });
+
+/** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
+function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
+  if (sousListe === undefined) return idsDesignes(espaceDe(type), site).has(id) ? null : refMorte(type, id);
+  if (typeof sousListe === 'string')
+    return idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
+      ? null
+      : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+  if (!idsDesignes(espaceDe(type), site).has(id)) return refMorte(type, id);
+  return idsDesignes(cleDuMarqueur(type, sousListe.horsMarqueur), site).has(id)
+    ? `« ${id} » porte le marqueur « ${sousListe.horsMarqueur} » : cette référence l'exclut du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`
+    : null;
 }
 
 /** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
@@ -149,7 +167,7 @@ export function idsDe(type: TypeEntite): ReadonlySet<string> {
  * pas LÈVE à l'appel.
  */
 export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string) => boolean {
-  const cle = cleFiltree(espaceDe(type), { champ: marqueur });
+  const cle = cleDuMarqueur(type, marqueur);
   const site = `porteLeMarqueur('${type}', '${marqueur}')`;
   DESIGNATIONS.add(cle);
   return (id) => idsDesignes(cle, site).has(id);
@@ -206,8 +224,9 @@ const FEUILLES_D_ID = new WeakMap<object, TypeEntite>();
 export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined =>
   typeof noeud === 'object' && noeud !== null ? FEUILLES_D_ID.get(noeud) : undefined;
 
-/** Les espaces que les feuilles `idDe` et les `porteLeMarqueur` construits désignent : une clé d'espace,
- *  ou `<espace>\0<valeur>` pour une sous-liste discriminée — la cible que `espaces-contrat.test.ts` exige à l'INDEX DES IDS. */
+/** Les espaces que les feuilles `idDe` et les `porteLeMarqueur` construits désignent : une clé d'espace
+ *  (sous-liste marquée comprise), ou `<espace>\0<valeur>` pour une sous-liste discriminée — la cible que
+ *  `espaces-contrat.test.ts` exige à l'INDEX DES IDS. */
 const DESIGNATIONS = new Set<string>();
 
 /** Chaque désignation construite, en clé d'espace (la valeur discriminée résolue par `cleDeSousListe`). */
@@ -237,27 +256,30 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * la table (`idsVivants.ts`, en-tête) : un espace désigné et absent LÈVE au parse, et
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
  */
-export function idDe<T extends TypeEntite>(type: T, valeur?: string): z.ZodType<Id<T>, string> {
-  const espace = espaceDe(type);
-  const site = valeur === undefined ? `idDe('${type}')` : `idDe('${type}', '${valeur}')`;
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe): z.ZodType<Id<T>, string> {
+  const site =
+    sousListe === undefined
+      ? `idDe('${type}')`
+      : typeof sousListe === 'string'
+        ? `idDe('${type}', '${sousListe}')`
+        : `idDe('${type}', { horsMarqueur: '${sousListe.horsMarqueur}' })`;
   const feuille = z
     .string()
     .superRefine((v, ctx) => {
-      if (admisDe(type, valeur, site).has(v)) {
+      const refus = refusDe(type, sousListe, site, v);
+      if (refus === null) {
         if (parseDeMesure) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
         return;
       }
-      ctx.addIssue({
-        code: 'custom',
-        message:
-          valeur === undefined
-            ? refMorte(type, v)
-            : `« ${v} » est hors de la sous-liste « ${valeur} » du catalogue des ${TYPES[type].catalogue} (${espace}).`,
-      });
+      ctx.addIssue({ code: 'custom', message: refus });
     })
     .transform((v) => v as Id<T>);
   FEUILLES_D_ID.set(feuille, type);
-  DESIGNATIONS.add(valeur === undefined ? espaceDe(type) : `${espaceDe(type)}\u0000${valeur}`);
+  if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
+  else {
+    DESIGNATIONS.add(espaceDe(type));
+    if (sousListe !== undefined) DESIGNATIONS.add(cleDuMarqueur(type, sousListe.horsMarqueur));
+  }
   return feuille;
 }
 
@@ -384,11 +406,12 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
  * `z.array(idDe(...))` écrit au site en serait une seconde, sur le ticket même qui chasse les
  * divergences de forme). `min` borne la liste quand le porteur EXIGE au moins une référence :
  * `ShipCrewHit.crewTarget.stations` vise au moins une présence, une liste vide ne désignant
- * personne. Le retour n'est PAS érasé en `z.ZodType` — sinon `.min()` ne survivrait pas à l'appel,
- * et le site le réécrirait à la main.
+ * personne. `sousListe` restreint chaque référence comme `idDe` (`merchants.json › curated` exclut les
+ * tarifs de service). Le retour n'est PAS érasé en `z.ZodType` — sinon `.min()` ne survivrait pas à
+ * l'appel, et le site le réécrirait à la main.
  */
-export function refs<T extends TypeEntite>(type: T, opts?: { min?: number }): z.ZodArray<z.ZodType<Id<T>, string>> {
-  const liste = z.array(idDe(type));
+export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>> {
+  const liste = z.array(idDe(type, opts?.sousListe));
   return opts?.min === undefined ? liste : liste.min(opts.min);
 }
 

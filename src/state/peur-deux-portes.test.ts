@@ -17,7 +17,7 @@ const mk = (id: string, kind: Combatant['kind'], over: Partial<Combatant> = {}):
 
 /** `get` minimal des collectes de Round : elles ne lisent que la bataille et la scène. */
 const getOf = (combatants: Combatant[], round = 1) =>
-  (() => ({ battle: { combatants, round, log: [] }, scene: testScene })) as never;
+  (() => ({ battle: { combatants, round, log: [] }, scene: testScene() })) as never;
 
 const at = (c: Combatant, x: number, y: number): Combatant => { c.pos = { x, y }; return c; };
 

@@ -76,7 +76,7 @@ describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
     useGame.getState().seedRng(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     const ent = scene.entities.find((e) => e.id === 'enemy-enc-mutants-0')!;
     ent.z = 1; // posté sur une couche supérieure
     useGame.getState().startScene(scene);
@@ -96,7 +96,7 @@ describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattan
     useGame.getState().seedRng(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     useGame.getState().startScene(scene);
     useGame.setState({ partyPos: { ...useGame.getState().partyPos, z: 1 } });
     useGame.getState().startCombat('enc-mutants');
@@ -111,7 +111,7 @@ describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattan
     useGame.getState().seedRng(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     useGame.getState().startScene(scene);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

@@ -29,7 +29,7 @@ import { ambientScalar, buildOpaque, computeLightField, mapLights, type LightSou
 import { AUCUN_CHROME, TEINTE_PLEINE, poseBoards, type Board } from './boardPose';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { lightLevels } from '../../data';
-import { areneCampaign } from '../../scenes/campaign';
+import { areneCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import type { Dims } from '../../geometry/iso';
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
@@ -286,7 +286,7 @@ describe('Le PROFIL d’une flaque — épinglé, et calé sous la saturation', 
     let pire = 0;
     let où = '';
     let recouvrements = 0;
-    for (const scene of areneCampaign.scenes) {
+    for (const scene of paquetDuJeu(areneCampaign).scenes) {
       const src = mapLights(scene);
       if (!src.length) continue;
       const mpt = sceneMetresPerTile(scene);

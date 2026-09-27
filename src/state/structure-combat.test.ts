@@ -33,7 +33,7 @@ const belier = mkWeapon({ label: 'Bélier', type: 'melee', qualities: [{ id: 'si
 /** Arête E de (2,2) — sépare (2,2) de (3,2). On y pose la structure `structId` (intacte sauf `down`). */
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 function sceneWithStructure(structId: string, down = false): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: structId }];
   if (down) s.flags = { ...s.flags, [structureDownKey(EDGE.x, EDGE.y, EDGE.side, 0)]: true };
   return s;
