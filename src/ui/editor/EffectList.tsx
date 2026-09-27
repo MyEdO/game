@@ -34,6 +34,7 @@ import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
 import { formatMoney, toMoney } from '../../engine/money';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
@@ -56,7 +57,7 @@ function CrewRosterFields({ e, upd }: { e: any; upd: (patch: any) => void }) {
           <button type="button" className="btn small" onClick={() => upd({ crew: (e.crew ?? []).filter((_: unknown, j: number) => j !== i) })}>Retirer</button>
         </div>
       ))}
-      <button type="button" className="btn small" onClick={() => upd({ crew: [...(e.crew ?? []), { roleId: crewRoles[0].id, count: 1 }] })}>+ poste salarié</button>
+      <AjoutRangee libelle="poste salarié" onAjout={() => upd({ crew: [...(e.crew ?? []), { roleId: crewRoles[0].id, count: 1 }] })} />
     </>
   );
 }
@@ -787,7 +788,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               </select>
             </label>
             <div className="eff-list-head">Adversaires
-              <button type="button" className="btn small" onClick={() => upd({ foes: [...(e.foes ?? []), { ref: { creatureId: '' } }] })}>+ adversaire</button>
+              <AjoutRangee libelle="adversaire" onAjout={() => upd({ foes: [...(e.foes ?? []), { ref: { creatureId: '' } }] })} />
             </div>
             <span className="branch-label">Chaque adversaire est une créature du bestiaire : son Mouvement et sa valeur de Test se lisent sur SA fiche.</span>
             {(e.foes ?? []).map((f: { id?: string; ref: { creatureId?: string } }, i: number) => {
@@ -990,7 +991,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
           <button className="btn small danger" title="Retirer la Scène" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, firstUnusedScene(list)])}>+ Scène</button>
+      <AjoutRangee libelle="Scène" onAjout={() => set([...list, firstUnusedScene(list)])} />
       {!list.length && placeholder && <span className="branch-label">{placeholder}</span>}
     </div>
   );
@@ -1040,7 +1041,7 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
             <SceneMultiSelect value={sit} onChange={(next) => setSituations(situations.map((s, j) => (j === i ? next : s)))} placeholder="Situation vide (seuls imposés / menaces présentés)." />
           </div>
         ))}
-        <button className="btn small" onClick={() => setSituations([...situations, []])}>+ Situation (Round {situations.length + 1})</button>
+        <AjoutRangee libelle={<>Situation (Round {situations.length + 1})</>} onAjout={() => setSituations([...situations, []])} />
       </div>
       <div className="branch">
         <span className="branch-label">Rencontres des Scènes de combat / menace (rencontre de la scène courante ; vide = rencontre par défaut de la Scène).</span>

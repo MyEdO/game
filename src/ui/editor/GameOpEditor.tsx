@@ -34,6 +34,7 @@ import { NumberField } from '../NumberField';
 import type { IconIdInput } from '../icons';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
@@ -379,8 +380,7 @@ export function FormulaField({ label, value, onChange, min }: {
                   onClick={() => onChange({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
               </span>
             ))}
-            <button type="button" className="btn small" title="ajouter un terme" aria-label="ajouter un terme"
-              onClick={() => onChange({ sum: [...value.sum, 0] })}>+</button>
+            <AjoutRangee libelle="terme" onAjout={() => onChange({ sum: [...value.sum, 0] })} />
           </span>
         )}
       </span>
@@ -801,7 +801,7 @@ function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: numb
           <FamilleFermee><GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} /></FamilleFermee>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...rows, { min: 1, max: 1, ops: [] }])}>+ Rangée</button>
+      <AjoutRangee libelle="Rangée" onAjout={() => onChange([...rows, { min: 1, max: 1, ops: [] }])} />
     </div>
   );
 }

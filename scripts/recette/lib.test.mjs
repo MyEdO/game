@@ -9,6 +9,9 @@ import {
   ALT,
   INDICATEURS_CHROMIUM_CONTENEUR,
   lancementChrome,
+  expressionListeParNom,
+  expressionTourActif,
+  avancerJusquAuTourDe,
   DELAI_EVALUATE,
   champParLibelle,
   clickButtonByText,
@@ -632,8 +635,93 @@ test('lancementChrome : chemin EXPLICITE — indicateurs seulement s’il vit so
   assert.deepEqual(lancementChrome('/opt/pw-browsers-autre/chrome', aucun).indicateurs, [])
 })
 
+test('lancementChrome : Chrome Windows ET Chromium Playwright présents → Windows gagne, SANS indicateur malgré PLAYWRIGHT_BROWSERS_PATH', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const racine = '/opt/pw-browsers'
+  const presents = new Set([win, racine, `${racine}/chromium-1194/chrome-linux/chrome`])
+  const r = lancementChrome(undefined, {
+    env: { PLAYWRIGHT_BROWSERS_PATH: racine },
+    existe: (p) => presents.has(p),
+    lister: () => ['chromium-1194'],
+    cwd: '/',
+  })
+  assert.deepEqual(r, { chemin: win, indicateurs: [] })
+})
+
+test('lancementChrome : chemin EXPLICITE ET Chrome Windows présent → l’explicite gagne', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const r = lancementChrome('/usr/bin/chromium', { env: {}, existe: (p) => p === win, lister: () => [], cwd: '/' })
+  assert.deepEqual(r, { chemin: '/usr/bin/chromium', indicateurs: [] })
+})
+
+test('lancementChrome : un chemin RELATIF se résout contre le `cwd` injecté, jamais contre celui du processus', () => {
+  const aucun = { env: { PLAYWRIGHT_BROWSERS_PATH: '/opt/pw-browsers' }, existe: () => false, lister: () => [] }
+  const relatif = 'pw-browsers/chromium-1194/chrome-linux/chrome'
+  assert.deepEqual(lancementChrome(relatif, { ...aucun, cwd: '/opt' }).indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(lancementChrome(relatif, { ...aucun, cwd: '/home' }).indicateurs, [])
+})
+
 test('lancementChrome : ni Chrome Windows ni Playwright → 1er candidat Windows, sans indicateur', () => {
   const r = lancementChrome(undefined, { env: {}, existe: () => false, lister: () => [] })
   assert.deepEqual(r.indicateurs, [])
   assert.match(r.chemin, /chrome\.exe$/)
+})
+
+test('expressionListeParNom : nom et marque échappés en JSON, expression qui se compile', () => {
+  const nom = 'L’épée "longue"'
+  const e = expressionListeParNom(nom, 'recette-liste-x')
+  assert.ok(e.includes(JSON.stringify(nom)))
+  assert.ok(e.includes('[role="group"]'))
+  assert.ok(e.includes('aria-labelledby'))
+  assert.ok(!/class|\.de-reflrow|\.ed-field/.test(e), 'repérage par rôle et nom, jamais par classe')
+  assert.doesNotThrow(() => new Function(`return ${e}`))
+})
+
+test('expressionTourActif : expression qui se compile, lit la frise et la case « Fin du tour »', () => {
+  const e = expressionTourActif()
+  assert.ok(e.includes('[aria-current="step"]'))
+  assert.ok(e.includes('[data-action="end-turn"]'))
+  assert.doesNotThrow(() => new Function(`return ${e}`))
+})
+
+/** Horloge et lecture simulées : chaque lecture rend l'état suivant de `etats` (le dernier se répète). */
+function tourSimule(etats) {
+  let t = 0
+  let i = 0
+  const clics = []
+  return {
+    clics,
+    opts: {
+      echeanceMs: 1000,
+      pauseMs: 100,
+      lire: async () => etats[Math.min(i++, etats.length - 1)],
+      finirTour: async () => { clics.push(t) },
+      attendre: async (ms) => { t += ms },
+      maintenant: () => t,
+    },
+  }
+}
+
+test('avancerJusquAuTourDe : clique « Fin du tour » au tour d’un héros, attend l’IA, s’arrête au nom voulu', async () => {
+  const { clics, opts } = tourSimule([
+    { actif: 'Sigmund', finTour: { disabled: false } },
+    { actif: 'Gobelin', finTour: null },
+    { actif: 'Gobelin', finTour: { disabled: true } },
+    { actif: 'Aelindra', finTour: { disabled: false } },
+    { actif: 'Mannequin', finTour: null },
+  ])
+  const r = await avancerJusquAuTourDe(null, 'Mannequin', opts)
+  assert.deepEqual(r, { actif: 'Mannequin', clics: 2 })
+  assert.equal(clics.length, 2)
+})
+
+test('avancerJusquAuTourDe : déjà au trait → aucun clic', async () => {
+  const { clics, opts } = tourSimule([{ actif: 'Sigmund', finTour: { disabled: false } }])
+  assert.deepEqual(await avancerJusquAuTourDe(null, 'Sigmund', opts), { actif: 'Sigmund', clics: 0 })
+  assert.equal(clics.length, 0)
+})
+
+test('avancerJusquAuTourDe : échéance bornée → refus NOMMANT le combattant au trait et les clics', async () => {
+  const { opts } = tourSimule([{ actif: 'Gobelin', finTour: null }])
+  await assert.rejects(() => avancerJusquAuTourDe(null, 'Mannequin', opts), /« Mannequin » : pas au trait après 1000 ms — au trait : « Gobelin », 0 clic/)
 })

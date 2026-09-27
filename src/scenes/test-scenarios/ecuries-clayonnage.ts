@@ -1,4 +1,4 @@
-import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import { addItemToHero, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { pregen, PREGEN } from '../../data/pregens';
 import { diligenceCampaign } from '../campaign';
@@ -34,11 +34,9 @@ function poserDepart(base: Scene): Scene {
 /** Aelindra (Chasseur) l'arc EN MAIN et son carquois — le pré-tiré ne porte qu'une fronde rangée, et
  *  le set d'armes par défaut (`ensureDefaultLoadout`) tient sa mêlée : on rend ACTIF un set à l'arc. */
 function chasseurArme(): Combatant {
-  const h = pregen(PREGEN.chasseur);
-  const arc = itemFromTrappingById('arc')!;
-  arc.equipped = true;
-  const fleches = itemFromTrappingById('fleche')!;
-  h.items = [...(h.items ?? []), arc, fleches];
+  const avecArc = addItemToHero(pregen(PREGEN.chasseur), 'arc');
+  const arc = avecArc.items![avecArc.items!.length - 1];
+  const h = addItemToHero(avecArc, 'fleche');
   loadoutSetSlot(h, loadoutCreate(h), 'main', arc.uid);
   recomputeLoadout(h);
   return h;

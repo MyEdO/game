@@ -2,7 +2,7 @@ import { flowFromEffects } from '../../state/flow';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
-import { itemFromTrappingById } from '../../engine/items';
+import { addItemToHero } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
@@ -20,10 +20,9 @@ import { renforceCompetence, type TestScenario } from './_shared';
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
 function groupe(): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
-  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', rng: makeRNG(2401), id: 'bjorn' });
+  const bjorn = ['ration', 'ration', 'ration'].reduce(addItemToHero, createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', rng: makeRNG(2401), id: 'bjorn' }));
   bjorn.travelRole = 'plein-air';
   renforceCompetence(bjorn, 'survie-en-exterieur', 60);
-  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.

@@ -15,6 +15,7 @@ import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { Row, Stack } from '../Layout';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -74,9 +75,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
               </ListRow>
             );
           })}
-          <button className="btn small" onClick={addNode}>
-            + Nœud
-          </button>
+          <AjoutRangee libelle="Nœud" onAjout={addNode} />
         </div>
 
         {node && (
@@ -194,9 +193,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                   </div>
                 </details>
               ))}
-              <button className="btn small" onClick={() => updNode({ choices: [...node.choices, { label: '' }] })}>
-                + Choix
-              </button>
+              <AjoutRangee libelle="Choix" onAjout={() => updNode({ choices: [...node.choices, { label: '' }] })} />
             </Stack>
           </div>
         )}

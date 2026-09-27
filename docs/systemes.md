@@ -89,6 +89,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
 | `rovingKeyDown` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
+| `AjoutRangee / ListeRangees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `useRamenerEnVue / ramenerEnVue` |  |  |  |  | U |  | U |  |  | U |  |  |  |  | U | U |
 | `useLongPress` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CoopInvite / CoopCodeInput / SeatList / CoopAssignRow / CoopBanner` |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |  |
@@ -207,4 +208,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 8ff110cb92e549804c5ad44db49cc64b4181e3d0 (1830 fichiers, 2 dossiers) corps: 04c923afae03369b7f056c83456ea5175ba37eab -->
+<!-- sources-empreinte: 8ff110cb92e549804c5ad44db49cc64b4181e3d0 (1830 fichiers, 2 dossiers) corps: 79ce592e7e2280c8de66f64c90ed624c97f96c6e -->

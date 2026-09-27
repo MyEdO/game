@@ -19,6 +19,7 @@ import { MasterDetail } from '../MasterDetail';
 import { ListRow } from '../ListRow';
 import { Tabs } from '../Tabs';
 import { Row } from '../Layout';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Clé de navigation d'un `CodexFocus` (identité qualifiée `category+id`) — le focus PORTE l'id. */
 const focusItemKey = (focus: CodexFocus | null | undefined): string | null =>
@@ -263,7 +264,7 @@ export function CompendiumScreen({ focus: focusProp, onClose }: { focus?: CodexF
                     {editing ? '↩︎ Voir la fiche' : <><Icon id="ui/edit" size="sm" /> Éditer</>}
                   </button>
                 )}
-                <button className="btn small" onClick={() => { setEditing(false); setCreating(true); }}><Icon id="ui/add" size="sm" /> Nouveau</button>
+                <AjoutRangee libelle="Nouveau" onAjout={() => { setEditing(false); setCreating(true); }} />
               </div>
             )}
             {creating && atelier && cat && isEditableCategory(cat.key)

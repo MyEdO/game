@@ -648,11 +648,6 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
   const { extraits: EXTRAITS, dirManquant } = extractedBooks(books, ROOT);
   const { hors, nues, seen } = collecteSpecs('skills', (id) => byId('skill', id));
 
-  // Le stock « la ligne imprime un CHOIX, pas une spéc » (6 clés : « Artisanat (Armurier OU
-  // Forgeron) », « Savoir (Rivières_ou_Chemins) » ×2, « Savoir (Divinité) » ×3) est ÉTEINT au commit
-  // 4bis de L2 #1548 : ces lignes portent désormais `choix: [ids]`, que la marche ci-dessus rend au
-  // régime `choix` (ligne 721) et ne confronte plus au catalogue en tant que spéc.
-
   it('creatures/careerLevels/species : zéro spec hors catalogue sous un livre extrait dans Source/', () => {
     // NON-VACUITÉ : sans lignes scannées ni extraction sur disque, le contrat serait vert à vide.
     expect(seen).toBeGreaterThan(500);

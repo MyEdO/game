@@ -10,6 +10,7 @@ import { planChrome } from '../PlanChrome';
 import { NumberField } from '../NumberField';
 import { WorldMapPlacePanel } from './WorldMapPlacePanel';
 import { WorldMapRoutePanel } from './WorldMapRoutePanel';
+import { AjoutRangee } from '../AjoutRangee';
 
 /**
  * Éditeur de la CARTE DU MONDE (#T2 Voyage) — overlay plein écran de l'éditeur de niveau.
@@ -123,7 +124,7 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
       className="wme-shell"
       actions={
         <>
-          <button className="btn small" onClick={() => addPlace({ x: 50, y: 50 })}>+ Lieu</button>
+          <AjoutRangee libelle="Lieu" onAjout={() => addPlace({ x: 50, y: 50 })} />
           <button
             className={`btn small ${linkFrom ? 'btn-primary' : ''}`}
             onClick={() => setLinkFrom(linkFrom ? null : selPlace?.id ?? m.places[0]?.id ?? null)}

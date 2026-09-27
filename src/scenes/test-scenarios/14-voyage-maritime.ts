@@ -1,6 +1,6 @@
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { itemFromTrappingById } from '../../engine/items';
+import { addItemToHero } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { WorldMap } from '../../state/worldMap';
@@ -20,11 +20,10 @@ import { rigSpeciesId } from '../../data';
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
 function crew(): Combatant[] {
-  const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', rng: makeRNG(4801), id: 'mar-cap' });
+  const cap = ['ration', 'ration'].reduce(addItemToHero, createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', rng: makeRNG(4801), id: 'mar-cap' }));
   cap.shipRole = 'capitaine';
   renforceCompetence(cap, 'commandement', 50);
   renforceCompetence(cap, 'voile', 40);
-  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', rng: makeRNG(4802), id: 'mar-timo' });

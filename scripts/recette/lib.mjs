@@ -185,17 +185,17 @@ function chromiumPlaywright(racine, { existe, lister }) {
 /**
  * Le navigateur que lance `launchSession`, et ses indicateurs propres. Ordre : `explicite`, puis le
  * Chrome Windows (`CHROME_CANDIDATES`), puis le Chromium de Playwright (`env.PLAYWRIGHT_BROWSERS_PATH`).
- * Un chemin sous `PLAYWRIGHT_BROWSERS_PATH` reçoit `INDICATEURS_CHROMIUM_CONTENEUR`. PUR : `existe` et
- * `lister` sont injectables.
+ * Un chemin sous `PLAYWRIGHT_BROWSERS_PATH` reçoit `INDICATEURS_CHROMIUM_CONTENEUR` ; un chemin relatif se
+ * résout contre `cwd`. PUR : `env`, `existe`, `lister` et `cwd` sont injectables.
  * @returns {{ chemin: string, indicateurs: string[] }}
  */
-export function lancementChrome(explicite, { env = process.env, existe = existsSync, lister = readdirSync } = {}) {
+export function lancementChrome(explicite, { env = process.env, existe = existsSync, lister = readdirSync, cwd = process.cwd() } = {}) {
   const racinePw = env.PLAYWRIGHT_BROWSERS_PATH;
   const chemin = explicite
     ?? CHROME_CANDIDATES.find((p) => existe(p))
     ?? chromiumPlaywright(racinePw, { existe, lister })
     ?? CHROME_CANDIDATES[0];
-  const sousPlaywright = !!racinePw && resolve(chemin).startsWith(join(resolve(racinePw), '/'));
+  const sousPlaywright = !!racinePw && resolve(cwd, chemin).startsWith(join(resolve(cwd, racinePw), '/'));
   return { chemin, indicateurs: sousPlaywright ? [...INDICATEURS_CHROMIUM_CONTENEUR] : [] };
 }
 
@@ -1081,6 +1081,85 @@ export async function champParLibelle(session, libelle, { exact = true, dans } =
     return true;
   })()`)
   return trouve ? `[data-recette="${marque}"]` : null
+}
+
+/**
+ * Expression qui repère le CHAMP DE LISTE nommé `nom` — le groupe (`role="group"`) dont le NOM ACCESSIBLE
+ * (`aria-label`, ou texte des éléments d'`aria-labelledby`) vaut `nom` après normalisation des espaces
+ * et des apostrophes — et y pose `data-recette="<marque>"`. Rend `true`, ou `null` si aucun groupe ne
+ * porte ce nom. Le conteneur de rangées d'un éditeur de liste est `ListeRangees` (`src/ui/AjoutRangee.tsx`).
+ */
+export function expressionListeParNom(nom, marque) {
+  return `(() => {
+    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
+    const target = norm(${JSON.stringify(nom)});
+    const nomDe = (g) => {
+      const par = (g.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean)
+        .map((id) => (document.getElementById(id) || {}).textContent || '').join(' ');
+      return norm(g.getAttribute('aria-label') || par);
+    };
+    const el = Array.from(document.querySelectorAll('[role="group"]')).find((g) => nomDe(g) === target);
+    if (!el) return null;
+    el.setAttribute('data-recette', ${JSON.stringify(marque)});
+    return true;
+  })()`;
+}
+
+/**
+ * SÉLECTEUR du champ de liste nommé `nom` (rôle et nom accessibles, jamais une classe) : à passer en
+ * `dans` à `clickButtonByText`/`champParLibelle`, ou à `evaluate`. Même marquage inerte que
+ * `champParLibelle`, tiré NEUF à chaque appel. `null` si aucun groupe ne porte ce nom.
+ */
+export async function listeParNom(session, nom) {
+  const marque = `recette-liste-${Math.random().toString(36).slice(2, 8)}`;
+  const trouve = await evaluate(session, expressionListeParNom(nom, marque));
+  return trouve ? `[data-recette="${marque}"]` : null;
+}
+
+/** Expression de l'état du tour : nom accessible du combattant AU TRAIT dans la frise d'initiative
+ *  (`[aria-current="step"]`, sans le suffixe « — cibler » du mode visée) et case « Fin du tour » de la
+ *  console (`data-action="end-turn"`) : offerte ou non, désactivée ou non. */
+export function expressionTourActif() {
+  return `(() => {
+    const tuile = document.querySelector('[aria-current="step"] [aria-label]');
+    const fin = document.querySelector('.combat-console [data-action="end-turn"]');
+    return {
+      actif: tuile ? tuile.getAttribute('aria-label').replace(/ \u2014 cibler$/, '').trim() : null,
+      finTour: fin ? { disabled: !!fin.disabled } : null,
+    };
+  })()`;
+}
+
+/**
+ * AVANCE LE COMBAT jusqu'au tour du combattant nommé `nom` (nom accessible de sa tuile de frise) : au
+ * tour d'un héros, clic RÉEL sur « Fin du tour » (`cliquerAction` `end-turn` ; le second clic confirme
+ * un « Finir quand même ») ; au tour de l'IA, attente. Rend `{ actif, clics }` quand `nom` est au trait.
+ * REFUSE en le nommant à l'échéance `echeanceMs` : combattant au trait, clics faits — une modale qui
+ * réclame le joueur (jet opposé, cascade) bloque l'avance et se lit dans ce refus.
+ * `lire`, `finirTour`, `attendre`, `maintenant` : coutures des tests purs.
+ */
+export async function avancerJusquAuTourDe(session, nom, {
+  echeanceMs = 60000,
+  pauseMs = 400,
+  lire = () => evaluate(session, expressionTourActif()),
+  finirTour = () => cliquerAction(session, 'end-turn'),
+  attendre = sleep,
+  maintenant = Date.now,
+} = {}) {
+  const fin = maintenant() + echeanceMs;
+  let clics = 0;
+  for (;;) {
+    const etat = await lire();
+    if (etat && etat.actif === nom) return { actif: etat.actif, clics };
+    if (maintenant() >= fin) {
+      throw new Error(`avancerJusquAuTourDe « ${nom} » : pas au trait après ${echeanceMs} ms — au trait : « ${etat?.actif ?? '(aucun)'} », ${clics} clic(s) sur « Fin du tour »`);
+    }
+    if (etat && etat.finTour && !etat.finTour.disabled) {
+      await finirTour();
+      clics += 1;
+    }
+    await attendre(pauseMs);
+  }
 }
 
 /**

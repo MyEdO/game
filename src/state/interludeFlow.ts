@@ -21,7 +21,7 @@ import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
 import { partyMoneyTotal, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
-import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
+import { addItemToHero, itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -201,14 +201,13 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   // Passer commande (ch.23 l.170) : « L'objet sera achevé après votre prochaine aventure » —
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
-    const hero = party.find((h) => h.id === o.heroId);
-    const it = hero ? itemFromTrappingById(o.trappingId) : null;
-    if (hero && it) {
-      hero.items = [...(hero.items ?? []), it];
-      autoStowNewItem(hero, it); // #204 : rangement par défaut
-      recomputeLoadout(hero);
-      lines.push(msg('if.orderDelivered', { name: hero.label, label: trappingLabelOf(o.trappingId) }));
-    }
+    const i = party.findIndex((h) => h.id === o.heroId);
+    if (i < 0) continue;
+    const livre = addItemToHero(party[i], o.trappingId);
+    if (livre === party[i]) continue;
+    set((s) => ({ party: s.party.map((h) => (h.id === livre.id ? livre : h)) }));
+    party[i] = livre;
+    lines.push(msg('if.orderDelivered', { name: livre.label, label: trappingLabelOf(o.trappingId) }));
   }
   const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (ch.23 l.6)
   const perHero: Record<string, InterludeHeroState> = {};

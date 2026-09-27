@@ -1,6 +1,6 @@
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { itemFromTrappingById } from '../../engine/items';
+import { addItemToHero } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { Scene } from '../../state/scene';
@@ -29,7 +29,7 @@ import { rigSpeciesId } from '../../data';
  *  Ragot (dénicher une rumeur commerciale au marché, l.180) et Évaluation + Résistance à l'alcool
  *  (jauger la qualité secrète d'une cargaison de vin, l.95). Les trois autres sont l'équipage de barge. */
 function traders(): Combatant[] {
-  const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', rng: makeRNG(1501), id: 'com-berta' });
+  const berta = ['ration', 'ration'].reduce(addItemToHero, createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', rng: makeRNG(1501), id: 'com-berta' }));
   renforceCompetence(berta, 'marchandage', 65);
   renforceCompetence(berta, 'ragot', 55);
   renforceCompetence(berta, 'evaluation', 50);
@@ -37,7 +37,7 @@ function traders(): Combatant[] {
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
-  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
+  berta.items = [...(berta.items ?? []), convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
   const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', rng: makeRNG(1502), id: 'com-gunnar' });

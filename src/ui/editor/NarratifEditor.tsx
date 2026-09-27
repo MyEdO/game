@@ -15,6 +15,7 @@ import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
+import { AjoutRangee } from '../AjoutRangee';
 
 /**
  * Éditeur du bloc NARRATIF d'un paquet de campagne (#765) — overlay plein-champ (`ScreenShell`, même
@@ -233,9 +234,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                       <span className="chip">{a.id}</span>
                     </ListRow>
                   ))}
-              <button type="button" className="btn small" onClick={addAffaire}>
-                <Icon id="ui/add" size="sm" /> Ajouter une affaire
-              </button>
+              <AjoutRangee libelle="Ajouter une affaire" onAjout={addAffaire} />
             </>
           }
           detail={
@@ -264,15 +263,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                       <span className="chip">{i.id}</span>
                     </ListRow>
                   ))}
-              <button
-                type="button"
-                className="btn small"
-                disabled={narratif.affaires.length === 0}
-                title={narratif.affaires.length === 0 ? 'Créez d\'abord une affaire.' : undefined}
-                onClick={addIndice}
-              >
-                <Icon id="ui/add" size="sm" /> Ajouter un indice
-              </button>
+              <AjoutRangee libelle="Ajouter un indice" refus={narratif.affaires.length === 0 ? 'Créez d\'abord une affaire.' : undefined} onAjout={addIndice} />
             </>
           }
           detail={
@@ -301,9 +292,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                       <span className="chip">{p.id}</span>
                     </ListRow>
                   ))}
-              <button type="button" className="btn small" onClick={addPreset}>
-                <Icon id="ui/add" size="sm" /> Ajouter un PNJ
-              </button>
+              <AjoutRangee libelle="Ajouter un PNJ" onAjout={addPreset} />
             </>
           }
           detail={
@@ -351,9 +340,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
     <div className="preset-form">
       <h4 className="mini-title">Ouverture cérémonielle</h4>
       {!ouverture ? (
-        <button type="button" className="btn small" onClick={() => onOuverture({ titre: '', pitch: '' })}>
-          <Icon id="ui/add" size="sm" /> Ajouter une ouverture
-        </button>
+        <AjoutRangee libelle="Ajouter une ouverture" onAjout={() => onOuverture({ titre: '', pitch: '' })} />
       ) : (
         <>
           <label className="ed-field">
@@ -390,9 +377,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
       )}
       <h4 className="mini-title">Clôture du chapitre</h4>
       {!cloture ? (
-        <button type="button" className="btn small" onClick={() => onCloture({ titre: '', when: { kind: 'flag', expr: '' } })}>
-          <Icon id="ui/add" size="sm" /> Ajouter une clôture
-        </button>
+        <AjoutRangee libelle="Ajouter une clôture" onAjout={() => onCloture({ titre: '', when: { kind: 'flag', expr: '' } })} />
       ) : (
         <>
           <label className="ed-field">
@@ -568,9 +553,7 @@ function IndiceForm({ indice, affaires, otherIndices, onRename, onPatch, onRemov
             </button>
           </div>
         ))}
-        <button type="button" className="btn small" onClick={addStade}>
-          <Icon id="ui/add" size="sm" /> Ajouter un stade
-        </button>
+        <AjoutRangee libelle="Ajouter un stade" onAjout={addStade} />
       </div>
       <button type="button" className="btn small danger" onClick={onRemove}>
         <Icon id="ui/delete" size="sm" /> Supprimer cet indice

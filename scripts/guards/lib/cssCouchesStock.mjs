@@ -1989,7 +1989,6 @@ export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/compendium/CodexEntry.tsx', ref: 'span.swatch :: background', occurrence: 1 },
   { fichier: 'src/ui/compendium/CompendiumScreen.tsx', ref: 'details.fold :: flexBasis', occurrence: 1 },
   { fichier: 'src/ui/compendium/RefField.tsx', ref: 'input :: width', occurrence: 1 },
-  { fichier: 'src/ui/compendium/StructFields.tsx', ref: 'button.btn :: marginLeft', occurrence: 1 },
   { fichier: 'src/ui/compendium/StructFields.tsx', ref: 'div.de-reflrow :: marginLeft', occurrence: 1 },
   { fichier: 'src/ui/compendium/StructFields.tsx', ref: 'input :: width', occurrence: 1 },
   { fichier: 'src/ui/creator/CharacterCreator.tsx', ref: 'button.btn :: marginTop', occurrence: 1 },

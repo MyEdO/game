@@ -17,6 +17,7 @@ import { findTrappingById } from '../../data';
 import { formatMoney } from '../../engine/money';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
 const trappingLabelOrId = (id?: string): string => (id ? findTrappingById(id)?.label ?? id : '');
@@ -425,9 +426,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
               <button className="btn small danger" title="Retirer cette sous-condition" onClick={() => onChange({ ...cond, of: cond.of.filter((_, j) => j !== i) })}>✕</button>
             </div>
           ))}
-          <button className="btn small" onClick={() => onChange({ ...cond, of: [...cond.of, { kind: 'flag', expr: '' }] })}>
-            + {cond.kind === 'all' ? 'ET' : 'OU'}
-          </button>
+          <AjoutRangee libelle={cond.kind === 'all' ? 'ET' : 'OU'} onAjout={() => onChange({ ...cond, of: [...cond.of, { kind: 'flag', expr: '' }] })} />
         </div>
       )}
       {cond.kind === 'not' && (

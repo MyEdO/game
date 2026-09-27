@@ -305,7 +305,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
     await h.mount();
 
     const addSkill = Array.from(h.container.querySelectorAll('button'))
-      .find((b) => b.textContent?.includes('+ Ajouter') && b.closest('.ed-field')?.textContent?.includes('Compétences ajoutées')) as HTMLButtonElement;
+      .find((b) => b.textContent?.trim() === 'Ajouter' && b.closest('.ed-field')?.textContent?.includes('Compétences ajoutées')) as HTMLButtonElement;
     await act(async () => {
       addSkill.click();
     });
@@ -333,7 +333,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
     await h.mount();
 
     const addUpgrade = Array.from(h.container.querySelectorAll('button'))
-      .find((b) => b.textContent?.includes('+ Ajouter') && b.closest('.ed-field')?.textContent?.includes("Améliorations d'instance")) as HTMLButtonElement;
+      .find((b) => b.textContent?.trim() === 'Ajouter' && b.closest('.ed-field')?.textContent?.includes("Améliorations d'instance")) as HTMLButtonElement;
     await act(async () => {
       addUpgrade.click();
     });
@@ -348,7 +348,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
 
     expect(h.container.textContent).toContain('Emplacement de siège');
     const addUpgrade = Array.from(h.container.querySelectorAll('button'))
-      .find((b) => b.textContent?.includes('+ Ajouter') && b.closest('.ed-field')?.textContent?.includes("Améliorations d'instance")) as HTMLButtonElement;
+      .find((b) => b.textContent?.trim() === 'Ajouter' && b.closest('.ed-field')?.textContent?.includes("Améliorations d'instance")) as HTMLButtonElement;
     await act(async () => {
       addUpgrade.click();
     });

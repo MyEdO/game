@@ -75,10 +75,10 @@ describe('ConditionEditor — conditions party-level (skill/career/species/statu
 });
 
 describe('ConditionEditor — éditeur récursif de l’algèbre close', () => {
-  it('un OU (any) rend ses sous-conditions + le bouton « + OU »', () => {
+  it('un OU (any) rend ses sous-conditions et le bouton d’ajout « OU »', () => {
     const cond: Condition = { kind: 'any', of: [{ kind: 'flag', expr: 'cle' }, { kind: 'flag', expr: 'crochete' }] };
     const html = renderToStaticMarkup(<ConditionEditor cond={cond} onChange={() => {}} />);
-    expect(html).toContain('+ OU'); // composition OU
+    expect(html).toMatch(/data-icon="ui\/add"[\s\S]*?(<!-- -->)?OU<\/button>/);
     expect(html).toContain('value="cle"');
     expect(html).toContain('value="crochete"');
   });
