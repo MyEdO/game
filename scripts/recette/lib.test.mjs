@@ -7,6 +7,8 @@ import assert from 'node:assert/strict'
 import { isAbsolute } from 'node:path'
 import {
   ALT,
+  INDICATEURS_CHROMIUM_CONTENEUR,
+  lancementChrome,
   DELAI_EVALUATE,
   champParLibelle,
   clickButtonByText,
@@ -601,4 +603,37 @@ test('poserFichier : racine `dans` absente = refus NOMMANT la racine', async () 
   const { poses, session } = sessionDomCdp(DEUX_IMPORTS)
   await assert.rejects(() => poserFichier(session, 'input[type=file]', 'x.json', { dans: '.modal-overlay' }), /\.modal-overlay/)
   assert.deepEqual(poses, [])
+})
+
+test('lancementChrome : Chrome Windows présent → lancé tel quel, SANS indicateur de conteneur', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const r = lancementChrome(undefined, { env: {}, existe: (p) => p === win, lister: () => [] })
+  assert.deepEqual(r, { chemin: win, indicateurs: [] })
+})
+
+test('lancementChrome : sans Chrome Windows → Chromium de Playwright (révision la plus haute), AVEC les indicateurs', () => {
+  const racine = '/opt/pw-browsers'
+  const presents = new Set([racine, `${racine}/chromium-1194/chrome-linux/chrome`, `${racine}/chromium-1100/chrome-linux/chrome`])
+  const r = lancementChrome(undefined, {
+    env: { PLAYWRIGHT_BROWSERS_PATH: racine },
+    existe: (p) => presents.has(p),
+    lister: () => ['chromium', 'chromium-1100', 'chromium-1194', 'chromium_headless_shell-1194', 'ffmpeg-1011'],
+  })
+  assert.equal(r.chemin, `${racine}/chromium-1194/chrome-linux/chrome`)
+  assert.deepEqual(r.indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(INDICATEURS_CHROMIUM_CONTENEUR, ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+})
+
+test('lancementChrome : chemin EXPLICITE — indicateurs seulement s’il vit sous PLAYWRIGHT_BROWSERS_PATH', () => {
+  const env = { PLAYWRIGHT_BROWSERS_PATH: '/opt/pw-browsers' }
+  const aucun = { env, existe: () => false, lister: () => [] }
+  assert.deepEqual(lancementChrome('/opt/pw-browsers/chromium', aucun).indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(lancementChrome('/usr/bin/google-chrome', aucun), { chemin: '/usr/bin/google-chrome', indicateurs: [] })
+  assert.deepEqual(lancementChrome('/opt/pw-browsers-autre/chrome', aucun).indicateurs, [])
+})
+
+test('lancementChrome : ni Chrome Windows ni Playwright → 1er candidat Windows, sans indicateur', () => {
+  const r = lancementChrome(undefined, { env: {}, existe: () => false, lister: () => [] })
+  assert.deepEqual(r.indicateurs, [])
+  assert.match(r.chemin, /chrome\.exe$/)
 })

@@ -27,6 +27,8 @@ test('scanMemeRef : le motif recodé est attrapé, le prédicat et la prose pass
     ["const ms = xs.filter((s) => s.advances > 0);\nconst sk = ms.find((s) => s.spec === spec);", 0, 'collection non filtrée par id'],
     ["function a() {\n  const ms = xs.filter((s) => s.id === skillId);\n  return ms;\n}\nfunction b(ms) {\n  return ms.find((s) => s.spec === spec);\n}", 0, 'homonyme hors de la portée du filtre'],
     ["function a() {\n  const ms = xs.filter((s) => s.id === skillId);\n  if (ok) {\n    return ms.find((s) => s.spec === spec);\n  }\n}", 1, 'deux temps dans un bloc imbriqué de la portée'],
+    ["function a() { const ms = xs.filter((s) => s.id === skillId);\n  return ms; }\nfunction b(ms) {\n  return ms.find((s) => s.spec === spec);\n}", 0, 'déclaration après l’accolade ouvrante de sa ligne, homonyme hors portée'],
+    ["function a() {\n  if (q) { r(); } const ms = xs.filter((s) => s.id === skillId);\n  return ms.find((s) => s.spec === spec);\n}", 1, 'bloc refermé puis déclaration sur la même ligne'],
   ]
   for (const [source, attendu, quoi] of cas) assert.equal(scanMemeRef(source).length, attendu, `${quoi} — ${source}`)
 })

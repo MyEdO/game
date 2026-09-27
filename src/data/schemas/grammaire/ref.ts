@@ -426,8 +426,8 @@ export interface RefDesignee { id: string; spec?: string }
 export interface RefASpecialisation extends RefDesignee { choix?: true | string[] }
 
 /**
- * Le littéral que le livre imprime à la place d'une spécialisation — Compétence : `LDB 09 l.40` ;
- * Talent : `LDB 10 l.17`. Ce n'est pas une
+ * Le littéral que le livre imprime à la place d'une spécialisation — `LDB 08 l.140` ; Compétence
+ * Groupée : `LDB 09 l.40`. Ce n'est pas une
  * spécialisation, c'est un EMPLACEMENT non désigné — la grammaire l'écrit `choix`. Refusé AU SCHÉMA
  * (et non par un seul contrat de dataset) : le verrou couvre du même geste `src/data` et `src/scenes`,
  * y compris les entrées OUVERTES (`entreeOuverte`) que le catalogue ne filtre pas.

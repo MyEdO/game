@@ -732,13 +732,16 @@ describe('spec de Talent — résout au catalogue, ou texte libre d’une entré
   const ouverte = (h: SpecHors) => entreeOuverte('talent', h.refId) && designee(h) === undefined;
 
   /** Texte libre qui imprime une BORNE : au moins deux termes joints par « ou », chacun une entrée du
-   *  catalogue (`frenchy.bzh 26 l.366`, `l.413`, `l.686`, `l.950`, `l.1008`). */
+   *  catalogue (`frenchy.bzh 26 l.366`, `l.413`, `l.645`, `l.686`, `l.950`, `l.1008`). */
   const borne = (h: SpecHors): boolean => {
     const termes = h.spec.split(/\s+ou\s+/i).map((x) => x.trim()).filter(Boolean);
     return termes.length > 1 && termes.every((x) => resolveSpecId('talents', h.refId, x) !== x);
   };
-  /** STOCK NOMINATIF DÉCROISSANT des bornes en texte libre (`borne`), #1473. Clé `fichier|porteur|talentId|spec`. */
+  /** STOCK NOMINATIF DÉCROISSANT des bornes en texte libre (`borne`), #1473. Clé `fichier|porteur|talentId|spec`.
+   *  `talentRefSchema` (`schemas/grammaire/reference.ts`) n'a pas de `choix` : la borne d'un statbloc
+   *  n'a pas d'autre graphie que ce texte libre gelé ici, #1621. */
   const BORNES_EN_TEXTE_LIBRE = new Set<string>([
+    'creatures|druide-de-la-foi-antique|bon-marcheur|Forêt ou Plaine',
     'creatures|haut-druide-de-la-foi-antique|bon-marcheur|Forêt ou Plaine',
     'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|Forêt ou Plaine',
     'creatures|maitre-des-taillis|bon-marcheur|Plaine OU Forêt',
@@ -758,7 +761,7 @@ describe('spec de Talent — résout au catalogue, ou texte libre d’une entré
   it('les textes libres d’entrée ouverte existent (Destinée, LDB 10 l.315) et le stock des bornes DÉCROÎT', () => {
     expect(hors.filter(ouverte).filter((h) => h.refId === 'destinee').length).toBeGreaterThan(0);
     const bornes = hors.filter(borne).map((h) => h.key);
-    expect(bornes.filter((k) => !BORNES_EN_TEXTE_LIBRE.has(k)), 'borne neuve en texte libre : écrire `choix: [ids]`').toEqual([]);
+    expect(bornes.filter((k) => !BORNES_EN_TEXTE_LIBRE.has(k)), 'borne neuve en texte libre : porteur d’emplacement → écrire `choix: [ids]` ; statbloc (`talentRefSchema` sans `choix`, #1621) → la geler dans BORNES_EN_TEXTE_LIBRE').toEqual([]);
     expect([...BORNES_EN_TEXTE_LIBRE].filter((k) => !bornes.includes(k)), 'clé(s) du stock sans borne — RETIRER du stock').toEqual([]);
   });
 

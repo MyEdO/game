@@ -8,6 +8,7 @@
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
 import { RefField, type RefFieldCfg } from './RefField';
+import { useFocusRangeeNeuve } from '../useFocusRangeeNeuve';
 import { datasetArray } from '../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../engine/types';
 import type { DiseaseSymptom } from '../../engine/disease';
@@ -618,8 +619,9 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
       const { pool: _pool, ...rest } = s;
       return propose ? rest : { ...rest, pool: false as const };
     }));
+  const { refListe, ajouter } = useFocusRangeeNeuve();
   return (
-    <div className="ed-field">
+    <div className="ed-field" ref={refListe}>
       <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, `LDB 09 l.40`)</span>
       {list.map((s, i) => (
         <div key={i} className="de-reflrow">
@@ -636,7 +638,7 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
           <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '', label: '' }])}>+ Ajouter</button>
+      <button className="btn small" onClick={() => ajouter(() => set([...list, { id: '', label: '' }]))}>+ Ajouter</button>
     </div>
   );
 }
@@ -722,8 +724,9 @@ export function TraitListField(
   const set = (next: TraitInstance[]) => onChange(next);
   const dlId = `dl-traitlist-${label.replace(/\s+/g, '-')}`;
   const opts = suggestions ?? traitDatalistOptions();
+  const { refListe, ajouter } = useFocusRangeeNeuve();
   return (
-    <div className="ed-field">
+    <div className="ed-field" ref={refListe}>
       <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
@@ -732,7 +735,7 @@ export function TraitListField(
         </div>
       ))}
       <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter un trait</button>
+      <button className="btn small" onClick={() => ajouter(() => set([...list, { id: '' }]))}>+ Ajouter un trait</button>
     </div>
   );
 }
@@ -748,8 +751,9 @@ export function OptionalsListField(
   const list = value ?? [];
   const dlId = `dl-optlist-${label.replace(/\s+/g, '-')}`;
   const opts = traitDatalistOptions();
+  const { refListe, ajouter } = useFocusRangeeNeuve();
   return (
-    <div className="ed-field">
+    <div className="ed-field" ref={refListe}>
       <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
@@ -762,7 +766,7 @@ export function OptionalsListField(
         </div>
       ))}
       <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Ajouter un trait optionnel</button>
+      <button className="btn small" onClick={() => ajouter(() => onChange([...list, { id: '' }]))}>+ Ajouter un trait optionnel</button>
     </div>
   );
 }

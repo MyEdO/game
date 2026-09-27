@@ -51,6 +51,11 @@ Vite. L'arrêt passe par `node scripts/recette/arreter-dev.mjs <port>`, qui tue 
 > profil temporaire dédié (`launchSession`), donc jamais ce conflit. N'invoquer `playwright-MCP` que
 > si le besoin dépasse ce que `lib.mjs`/`shot-screen.mjs` couvrent (vécu diagnostic #506).
 >
+> **Navigateur lancé** (`lancementChrome`) : `chromePath` explicite, sinon Chrome Windows, sinon le
+> Chromium de Playwright sous `PLAYWRIGHT_BROWSERS_PATH` (conteneur Linux), lancé avec
+> `INDICATEURS_CHROMIUM_CONTENEUR` (rendu logiciel SwiftShader, sans lesquels THREE.js n'obtient aucun
+> contexte WebGL).
+>
 > **NUANCE mesurée (recette #1117, 2026-08-05)** : sur les CASCADES à re-render fréquent (une étape
 > valide, la suivante se monte — le DOM change sous la main), `playwright-MCP` s'est montré PLUS
 > FIABLE que le socle, dont les refs se périment entre deux gestes. La préférence `lib.mjs` reste la

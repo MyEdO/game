@@ -85,7 +85,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
     expect(v.talents).toHaveLength(4);
   });
 
-  it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 10 l.17)', () => {
+  it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 08 l.140)', () => {
     const v = buildAdvancementView(hero({ career: 'pretre' }));
     const row = v.talents.find((r) => r.entry === 'Béni (Au choix)')!;
     expect(row.options?.map((o) => o.refKey)).toContain('beni|sigmar');

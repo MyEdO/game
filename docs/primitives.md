@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-98 primitives.
+99 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -123,10 +123,11 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | onglets (flat/pill/sub/dock) : role tablist, aria-selected, roving tabindex | `Tabs` | `src/ui/Tabs.tsx` | — | fiche, écran plein-champ, dock repliable, sous-onglets ; styles src/ui/styles/tabs.css | réflexe avant toute liste d’onglets recodée |
 | texte découpé en segments TONÉS PAR CAMP : les noms cités en gras, allié ou ennemi | `TeamSegments` | `src/ui/TeamSegments.tsx` | `src/ui/styles/team-segments.css` | journal de combat, ligne de récap, fil d’événements | les deux vocabulaires de segments (NarratedSegment, RecapSegment) passent par ce rendu |
 | table de négoce : colonnes de stats, prix, action par rangée, groupes de rubrique | `TradeTable` | `src/ui/TradeTable.tsx` | — | marchand, port, marché terrestre | réflexe avant tout tableau d’achat/vente recodé |
+| « + Ajouter » d’un éditeur de liste : le focus va au premier champ saisissable de la rangée neuve, reconnue par différence des champs du conteneur | `useFocusRangeeNeuve` | `src/ui/useFocusRangeeNeuve.ts` | — | listes du Codex : chaînes et nombres, tableaux d’objets, références, spécialisations, Traits et Traits optionnels | src/ui/useFocusRangeeNeuve.test.tsx — tout bouton « + Ajouter » de src/ui passe par `ajouter` |
 | appui long 450 ms tactile et souris, geste secondaire d’une alvéole | `useLongPress` | `src/ui/useLongPress.ts` | — | alvéoles de la console de combat | réflexe avant tout minuteur de pression recodé |
 | ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom) | `useRamenerEnVue / ramenerEnVue` | `src/ui/useRamenerEnVue.ts` | — | rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche | aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point |
 | rangée de commandes de CAMÉRA : orientation, affichage, zoom — chacune vissée sur la peau partagée « tôle » | `ViewControls` | `src/ui/ViewControls.tsx` | `src/ui/styles/view-controls.css` | éditeur de scène et galerie QC — sur l'écran de jeu la caméra se pilote au geste et au clavier, sans plaque | src/ui/camera-sans-plaque.test.ts — montée dans l'éditeur, jamais dans le HUD de jeu |
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 3e93fd12180f23d85dd6fd36ba6e5691d3ce61ad (6 fichiers, 0 dossiers) corps: 06c3cfc94654ab0e799104687fc2798a51bcecb0 -->
+<!-- sources-empreinte: 3e93fd12180f23d85dd6fd36ba6e5691d3ce61ad (6 fichiers, 0 dossiers) corps: d0f59e82710710c9b429827afaf96dc54390d683 -->

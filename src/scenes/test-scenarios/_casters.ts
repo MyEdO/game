@@ -10,8 +10,8 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findTalent, findDomainById, rigSpeciesId } from '../../data';
 import { slugId } from '../../data/slug';
 import { acquerirTalent, memeRef, splitLabel } from '../../engine/careerSlots';
-import { activeLoadout, ensureDefaultLoadout, itemFromTrappingById, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
+import { activeLoadout, addItemToHero, ensureDefaultLoadout, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import type { Combatant, CharKey, SkillInstance } from '../../engine/types';
 
 /** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
 export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Combatant;
@@ -81,20 +81,19 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
 }
 
 /**
- * Prêtre-guerrier FRÉNÉTIQUE (flagellant) : prêtre complet d'un culte + Frénésie + grande hache à deux
- * mains + Caractéristiques de combat — teste l'arbitrage IA invoquer/enchanter PUIS charger en Frénésie.
+ * Prêtre-guerrier FRÉNÉTIQUE (flagellant) : prêtre complet d'un culte + Frénésie + Hache d'armes (Armes
+ * d'hast, 2M, `AA 08 l.301`) + Caractéristiques de combat — teste l'arbitrage IA invoquer/enchanter PUIS
+ * charger en Frénésie.
  */
 export function makeFlagellant(base: Combatant, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>, pos: { x: number; y: number }): Combatant {
-  const f = makePriest(base, id, name, cult, chars);
-  addTalents(f, ['Frénésie']);
-  boostSkill(f, 'corps-a-corps', 'armes-d-hast', 'capacite-de-combat', 45);
-  const axe = itemFromTrappingById('hache-d-armes');
-  if (axe) {
-    f.items = [...(f.items ?? []), axe] as ItemInstance[];
-    ensureDefaultLoadout(f);
-    loadoutSetSlot(f, activeLoadout(f)!.id, 'main', axe.uid);
-    recomputeLoadout(f);
-  }
+  const pretre = makePriest(base, id, name, cult, chars);
+  addTalents(pretre, ['Frénésie']);
+  boostSkill(pretre, 'corps-a-corps', 'armes-d-hast', 'capacite-de-combat', 45);
+  const f = addItemToHero(pretre, 'hache-d-armes');
+  if (f === pretre) throw new Error('makeFlagellant : « hache-d-armes » absente du catalogue des objets.');
+  ensureDefaultLoadout(f);
+  loadoutSetSlot(f, activeLoadout(f)!.id, 'main', f.items![f.items!.length - 1].uid);
+  recomputeLoadout(f);
   f.pos = { ...pos };
   return f;
 }

@@ -333,6 +333,15 @@
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
   },
   {
+    "id": "useFocusRangeeNeuve",
+    "type": "primitives.manifest",
+    "label": "useFocusRangeeNeuve",
+    "fichier": "src/ui/useFocusRangeeNeuve.ts",
+    "concept": "« + Ajouter » d’un éditeur de liste : le focus va au premier champ saisissable de la rangée neuve, reconnue par différence des champs du conteneur",
+    "perimetre": "listes du Codex : chaînes et nombres, tableaux d’objets, références, spécialisations, Traits et Traits optionnels",
+    "verrou": "src/ui/useFocusRangeeNeuve.test.tsx — tout bouton « + Ajouter » de src/ui passe par `ajouter`"
+  },
+  {
     "id": "useRamenerEnVue",
     "type": "primitives.manifest",
     "label": "useRamenerEnVue / ramenerEnVue",

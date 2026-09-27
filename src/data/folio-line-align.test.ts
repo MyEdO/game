@@ -141,18 +141,14 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318 E8)',
     expect(nonJugees).toHaveLength(2); // 54 posés − 52 vérifiés
   });
 
-  it('COUVERTURE : aucune entrée n\'est jugée depuis un span à TROU, et les non-jugeables sont ceux du stock', () => {
-    const geles = new Set(FOLIO_LINE_ALIGN_NON_JUGEABLE.map((e) => `${e.fichier} :: ${e.ref}`));
-    const trous = ignored
-      .filter((i) => i.reason === 'span-a-trou' && !geles.has(`${DOSSIER_DATA}/${i.file} :: ${i.id}`))
-      .map((i) => `${i.key} (« ${i.cite} »)`);
+  it('COUVERTURE : aucune entrée n\'est jugée depuis un span à TROU — les non-jugeables sont ceux du stock', () => {
+    const motifs = ignored.map((i) => [`${DOSSIER_DATA}/${i.file} :: ${i.id} ::`, `${i.reason}, « ${i.cite} »`] as const);
+    const bouge = [...ecartNonJugeables.neuves, ...ecartNonJugeables.perimees]
+      .map((l) => `${l}${motifs.filter(([cle]) => l.includes(cle)).map(([, m]) => ` (${m})`).join('')}`);
     expect(
-      trous,
-      'Entrée(s) citant une ligne dans un span sans ancre intermédiaire — le folio n\'y est PAS ' +
-        `mesurable : les geler dans FOLIO_LINE_ALIGN_NON_JUGEABLE :\n${trous.join('\n')}`,
+      bouge,
+      'La liste des entrées non jugeables a bougé — un site NEUF (span sans ancre intermédiaire : le folio ' +
+        `n'y est PAS mesurable) se gèle dans FOLIO_LINE_ALIGN_NON_JUGEABLE ; régénérer (${REGEN}) :\n${bouge.join('\n')}`,
     ).toEqual([]);
-
-    const bouge = [...ecartNonJugeables.neuves, ...ecartNonJugeables.perimees];
-    expect(bouge, `La liste des entrées non jugeables a bougé — régénérer (${REGEN}) :\n${bouge.join('\n')}`).toEqual([]);
   });
 });

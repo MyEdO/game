@@ -19340,7 +19340,8 @@
     ],
     "talents": [
       {
-        "id": "bon-marcheur"
+        "id": "bon-marcheur",
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni"

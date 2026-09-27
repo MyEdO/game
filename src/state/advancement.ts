@@ -54,10 +54,8 @@ export interface SkillAdvanceRow {
   inCareer: boolean;
   nextCost: number;
   /** Rangée d'une Compétence ajoutée à la carrière (`competenceEnCarriere`). */
-  ajout?: AjoutDeRangee;
+  ajout?: AjoutHorsReference<AjoutDeTalent>;
 }
-/** Ajout de carrière d'une rangée : ce que porte l'ajout hors de sa référence (`AjoutDeTalent`). */
-export type AjoutDeRangee = AjoutHorsReference<AjoutDeTalent>;
 /** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
 export interface SkillSlotRow {
   slotKey: string;
@@ -89,7 +87,7 @@ export interface TalentSlotRow {
    *  par `careerSlots.refKey`, jamais un libellé), `display` = texte montré (résolu via `refLabel`). */
   options?: { refKey: string; display: string; owned: boolean }[];
   /** Rangée d'un ajout de carrière (`talentsAjoutesALaCarriere`). */
-  ajout?: AjoutDeRangee;
+  ajout?: AjoutHorsReference<AjoutDeTalent>;
 }
 export interface CareerTarget {
   career: string;

@@ -9,9 +9,9 @@ import { isWeaponActive, weaponHands, isOffHandEligible, maxEncumbrance, totalEn
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { baseWithTalents } from '../engine/talentEffects';
+import { baseWithTalents, type AjoutDeTalent, type AjoutHorsReference } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
-import { buildAdvancementView, type AjoutDeRangee } from '../state/advancement';
+import { buildAdvancementView } from '../state/advancement';
 import { hasHealSkill, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
@@ -710,7 +710,7 @@ function AdvSection({ title, count, badge, children }: { title: string; count?: 
 
 /** Porteur d'un ajout de carrière (LDB 10 l.467), par le chip canonique de son type ; `commeEnCarriere`
  *  (EDOC 13 l.524), libellé du champ au schéma de l'op. */
-function ProvenanceDAjoutChips({ ajout }: { ajout: AjoutDeRangee }) {
+function ProvenanceDAjoutChips({ ajout }: { ajout: AjoutHorsReference<AjoutDeTalent> }) {
   const p = ajout.provenance;
   return (
     <>

@@ -165,9 +165,38 @@ process.on('exit', () => {
   }
 });
 
-function resolveChromePath(explicit) {
-  if (explicit) return explicit;
-  return CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
+/** Indicateurs du rendu LOGICIEL : sans GPU ni bac à sable de conteneur, THREE.js ne crée aucun
+ *  contexte WebGL sans eux. Réservés au Chromium de Playwright, jamais au Chrome Windows. */
+export const INDICATEURS_CHROMIUM_CONTENEUR = [
+  '--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
+];
+
+/** Chromium fourni par Playwright sous `racine` (`PLAYWRIGHT_BROWSERS_PATH`) : `chromium-<rév>/chrome-linux/chrome`,
+ *  révision la plus haute d'abord. */
+function chromiumPlaywright(racine, { existe, lister }) {
+  if (!racine || !existe(racine)) return null;
+  const revisions = lister(racine)
+    .map((nom) => /^chromium-(\d+)$/.exec(nom))
+    .filter(Boolean)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+  return revisions.map((m) => join(racine, m[0], 'chrome-linux', 'chrome')).find((p) => existe(p)) ?? null;
+}
+
+/**
+ * Le navigateur que lance `launchSession`, et ses indicateurs propres. Ordre : `explicite`, puis le
+ * Chrome Windows (`CHROME_CANDIDATES`), puis le Chromium de Playwright (`env.PLAYWRIGHT_BROWSERS_PATH`).
+ * Un chemin sous `PLAYWRIGHT_BROWSERS_PATH` reçoit `INDICATEURS_CHROMIUM_CONTENEUR`. PUR : `existe` et
+ * `lister` sont injectables.
+ * @returns {{ chemin: string, indicateurs: string[] }}
+ */
+export function lancementChrome(explicite, { env = process.env, existe = existsSync, lister = readdirSync } = {}) {
+  const racinePw = env.PLAYWRIGHT_BROWSERS_PATH;
+  const chemin = explicite
+    ?? CHROME_CANDIDATES.find((p) => existe(p))
+    ?? chromiumPlaywright(racinePw, { existe, lister })
+    ?? CHROME_CANDIDATES[0];
+  const sousPlaywright = !!racinePw && resolve(chemin).startsWith(join(resolve(racinePw), '/'));
+  return { chemin, indicateurs: sousPlaywright ? [...INDICATEURS_CHROMIUM_CONTENEUR] : [] };
 }
 
 /**
@@ -271,9 +300,10 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), `recette-cdp-profile-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
   mkdirSync(profile, { recursive: true });
-  const chrome = spawn(resolveChromePath(chromePath), [
+  const { chemin, indicateurs } = lancementChrome(chromePath);
+  const chrome = spawn(chemin, [
     '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
-    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
+    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', ...indicateurs, 'about:blank',
   ], { stdio: 'ignore' });
   const childEntry = { chrome, profile };
   activeChildren.add(childEntry);

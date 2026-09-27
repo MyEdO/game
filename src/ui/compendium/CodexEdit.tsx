@@ -68,6 +68,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../engine/poli
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../data/schemas/defs/spells';
 import { Grid } from '../Layout';
+import { useFocusRangeeNeuve } from '../useFocusRangeeNeuve';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -1745,12 +1746,13 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
   // `key` = IDENTITÉ du champ (jointures de valeurs, `REF_LIST_DATASET`) ; `label` = AFFICHAGE (#1466).
   const { key, kind, label } = field;
   const refDs = REF_LIST_DATASET[key];
+  const { refListe, ajouter } = useFocusRangeeNeuve();
 
   if (kind === 'stringList') {
     const list = (value as string[]) ?? [];
     const set = (next: string[]) => onChange(next);
     return (
-      <div className="ed-field">
+      <div className="ed-field" ref={refListe}>
         <span>{label}{refDs && <em className="de-hint"> (autocomplétion {refDs})</em>}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
@@ -1759,7 +1761,7 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
             <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, ''])}>+ Ajouter</button>
+        <button className="btn small" onClick={() => ajouter(() => set([...list, '']))}>+ Ajouter</button>
         {refDs && <RefDatalist ds={refDs} />}
       </div>
     );
@@ -1768,7 +1770,7 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
     const list = (value as number[]) ?? [];
     const set = (next: number[]) => onChange(next);
     return (
-      <div className="ed-field">
+      <div className="ed-field" ref={refListe}>
         <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
@@ -1776,7 +1778,7 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
             <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, 0])}>+ Ajouter</button>
+        <button className="btn small" onClick={() => ajouter(() => set([...list, 0]))}>+ Ajouter</button>
       </div>
     );
   }
@@ -1905,8 +1907,9 @@ function GenericArrayField({ label, value, noeud, onChange, columns }: { label: 
     return map;
   }, [list, cols]);
   const setRow = (i: number, key: string, v: unknown) => onChange(list.map((r, j) => (j === i ? { ...r, [key]: v } : r)));
+  const { refListe, ajouter } = useFocusRangeeNeuve();
   return (
-    <div className="ed-field ed-subform">
+    <div className="ed-field ed-subform" ref={refListe}>
       <span>{label}</span>
       {list.map((row, i) => (
         <div className="ed-subfield" key={i}>
@@ -1916,7 +1919,7 @@ function GenericArrayField({ label, value, noeud, onChange, columns }: { label: 
           <button className="btn small danger" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, {}])}>+ Ajouter</button>
+      <button className="btn small" onClick={() => ajouter(() => onChange([...list, {}]))}>+ Ajouter</button>
     </div>
   );
 }

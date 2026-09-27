@@ -22,6 +22,9 @@ export const FILTRE_PAR_ID_RX = /\bconst\s+([\w$]+)\s*=[^;]*\.filter\(\s*\(?\s*(
 const specSurFiltre = (nom) =>
   new RegExp(`\\b${nom.replace(/\$/g, '\\$')}\\.(?:find|findIndex|some|every|filter)\\(\\s*\\(?\\s*([\\w$]+)\\s*\\)?\\s*=>\\s*\\1\\.spec\\s*[!=]==`);
 
+/** Accolades ouvertes moins accolades fermées d'un fragment de code. */
+const soldeAccolades = (code) => [...code].reduce((n, c) => (c === '{' ? n + 1 : c === '}' ? n - 1 : n), 0);
+
 /**
  * Lignes d'un fichier source qui recodent l'égalité de spécialisation.
  * @param {string} contenu @returns {{ line: number, detail: string }[]}
@@ -35,7 +38,7 @@ export function scanMemeRef(contenu) {
     const deuxTemps = filtres.some((f) => f.rx.test(ligne));
     if (MEME_SPEC_RX.test(ligne) || MEME_ID_SPEC_RX.test(ligne) || deuxTemps) findings.push({ line: i + 1, detail: lignes[i].trim() });
     const filtre = FILTRE_PAR_ID_RX.exec(ligne);
-    if (filtre) filtres.push({ rx: specSurFiltre(filtre[1]), profondeur });
+    if (filtre) filtres.push({ rx: specSurFiltre(filtre[1]), profondeur: profondeur + soldeAccolades(ligne.slice(0, filtre.index)) });
     for (const c of ligne) {
       if (c === '{') profondeur++;
       else if (c === '}') {

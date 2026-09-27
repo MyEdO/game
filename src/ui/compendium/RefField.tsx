@@ -12,6 +12,7 @@
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useMemo, useState } from 'react';
+import { useFocusRangeeNeuve } from '../useFocusRangeeNeuve';
 import { datasetArray, typeDuDataset, type DatasetKey } from '../../data/overrides';
 import { specCatalogOf, specLabel, specResolves, type SpecEntry, type SpecsSource } from '../../data';
 import { entreeOuverte, type RefASpecialisation, type RegimeDePorteur } from '../../data/schemas/grammaire/ref';
@@ -259,8 +260,9 @@ function ListRefField(
   const options = useOptions(cfg);
   const list = (value as RefEntry[]) ?? [];
   const set = (next: RefEntry[]) => onChange(next);
+  const { refListe, ajouter } = useFocusRangeeNeuve();
   return (
-    <div className="ed-field">
+    <div className="ed-field" ref={refListe}>
       <span>{label}<em className="de-hint"> (réf {cfg.ds} par id)</em></span>
       {list.map((ref, i) => (
         <div key={i} className="de-reflrow">
@@ -278,7 +280,7 @@ function ListRefField(
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter</button>
+      <button className="btn small" onClick={() => ajouter(() => set([...list, { id: '' }]))}>+ Ajouter</button>
     </div>
   );
 }
