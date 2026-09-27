@@ -5,9 +5,9 @@
  * RICHE (`CodexEntry` : sections + liens cross-réf). Ouverture ciblée via `store.openCodex(...)`,
  * qui porte aussi l'« instance » paramétrée (« 8 Tentacules +8 ») montrée en tête de fiche.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
-import { useModalA11y } from '../Modal';
+import { Modal } from '../Modal';
 import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexItemKey, useCodexVersion, type CodexCategory, type CodexGroup, type CodexItem } from './registry';
 import type { CodexFocus } from '../../state/codexFocus';
 import { filterItems, facetValues, type FacetSelection } from './search';
@@ -24,14 +24,17 @@ import { Row } from '../Layout';
 const focusItemKey = (focus: CodexFocus | null | undefined): string | null =>
   focus ? codexItemKey(focus.category, focus.id) : null;
 
-export function CompendiumScreen({ focus: focusProp, onClose }: { focus?: CodexFocus | null; onClose?: () => void } = {}) {
+export function CompendiumScreen({ focus: focusProp }: {
+  /** Présent : drill-in EN MODALE (`CodexOverlay`), dont le cadre porte la croix (`CadreFermer`). */
+  focus?: CodexFocus | null;
+} = {}) {
   const setScreen = useGame((s) => s.setScreen);
   const focusStore = useGame((s) => s.compendiumFocus);
   const back = useGame((s) => s.compendiumReturn);
-  // En MODALE (drill-in : `focusProp`/`onClose` fournis) le focus et la fermeture viennent des props ;
+  // En MODALE (drill-in : `focusProp` fourni) le focus vient de la prop et la fermeture du cadre ;
   // en ÉCRAN plein (depuis le menu) ils viennent du store.
-  const focus = focusProp !== undefined ? focusProp : focusStore;
-  const close = onClose ?? (() => setScreen(back));
+  const enModale = focusProp !== undefined;
+  const focus = enModale ? focusProp : focusStore;
 
   // État initial : si on a été ouvert sur une entrée précise, s'y poser ; sinon 1re catégorie.
   const initialCat = (focus && categoryByKey(focus.category)) || CODEX[0];
@@ -149,9 +152,9 @@ export function CompendiumScreen({ focus: focusProp, onClose }: { focus?: CodexF
   return (
     <div className="screen codex">
       <header className="codex-top">
-        {/* Plein écran : « ← Retour » (navigation). En modale, la fermeture est le ✕ en haut à droite. */}
-        {!onClose && <button className="btn small" onClick={close}>← Retour</button>}
-        <h1 className="codex-h1"><Icon id="nav/compendium" size="sm" /> Compendium</h1>
+        {/* Plein écran : « ← Retour » et le titre. En modale, le titre et la croix sont la tête du cadre. */}
+        {!enModale && <button className="btn small" onClick={() => setScreen(back)}>← Retour</button>}
+        {!enModale && <h1 className="codex-h1"><Icon id="nav/compendium" size="sm" /> Compendium</h1>}
         <div className="codex-groups">
           <Tabs
             label="Groupes du Codex"
@@ -160,18 +163,15 @@ export function CompendiumScreen({ focus: focusProp, onClose }: { focus?: CodexF
             onChange={pickGroup}
           />
         </div>
-        {/* Bascule ATELIER (édition des fiches) — composée sur la primitive `.btn` (état ON = `.btn-primary`,
-            `aria-pressed`). Découvrable, sobre ; désactiver ferme toute édition en cours. */}
+        {/* Bascule ATELIER (édition des fiches) — composée sur la primitive `.btn` (état ON = `aria-pressed`). Découvrable, sobre ; désactiver ferme toute édition en cours. */}
         <button
-          className={`btn small${atelier ? ' btn-primary' : ''}`}
+          className="btn small"
           aria-pressed={atelier}
           onClick={() => { if (atelier) { setEditing(false); setCreating(false); } setAtelierMode(!atelier); }}
           title="Mode atelier : éditer les fiches du Compendium"
         >
           <Icon id="ui/edit" size="sm" /> Atelier
         </button>
-        {/* En modale : fermeture à droite, dans le même langage de bouton que le reste (.btn small). */}
-        {onClose && <button className="btn small" onClick={close} aria-label="Fermer le Compendium" title="Fermer">✕</button>}
       </header>
 
       <Row className="codex-cats">
@@ -279,21 +279,17 @@ export function CompendiumScreen({ focus: focusProp, onClose }: { focus?: CodexF
 }
 
 /** Drill-in d'une réf Codex EN JEU : la fiche s'ouvre en MODALE par-dessus la partie — l'écran,
- *  la musique et la fiche perso restent intacts derrière (cf. `openCodex`). Réutilise le voile
- *  `.modal-overlay` et l'a11y partagée `useModalA11y` (Échap ferme la modale du dessus, piège de
- *  focus) ; le contenu est le MÊME `CompendiumScreen` (zéro renderer dupliqué), paramétré par
- *  `focus`/`onClose`. */
+ *  la musique et la fiche perso restent intacts derrière (cf. `openCodex`). Boîte vaste de `Modal`
+ *  (Échap ferme la modale du dessus, piège de focus) ; le contenu est le MÊME `CompendiumScreen`
+ *  (zéro renderer dupliqué), paramétré par `focus` ; le titre et la croix (`croix`) forment la tête
+ *  du cadre, seul en-tête de la fenêtre. */
 export function CodexOverlay() {
   const focus = useGame((s) => s.codexOverlay);
   const close = useGame((s) => s.closeCodexOverlay);
-  const boxRef = useRef<HTMLDivElement>(null);
-  useModalA11y(boxRef, close, { kind: 'codex', actif: !!focus }); // même condition que l'early-return ci-dessous
   if (!focus) return null;
   return (
-    <div className="modal-overlay" onClick={close}>
-      <div ref={boxRef} role="dialog" aria-modal="true" className="modal codex-modal" onClick={(e) => e.stopPropagation()}>
-        <CompendiumScreen focus={focus} onClose={close} />
-      </div>
-    </div>
+    <Modal title={<><Icon id="nav/compendium" size="sm" /> Compendium</>} kind="codex" taille="vaste" className="codex-modal" onClose={close} croix backdropClose>
+      <CompendiumScreen focus={focus} />
+    </Modal>
   );
 }

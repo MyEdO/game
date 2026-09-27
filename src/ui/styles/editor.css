@@ -292,11 +292,6 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  white-space: nowrap;
-}
-.trace-layer-panel-chevron {
-  font-size: 11px;
-  opacity: 0.8;
 }
 .trace-layer-panel input[type='range'] {
   width: 100%;

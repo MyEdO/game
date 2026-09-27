@@ -14,16 +14,11 @@
 }
 
 /* Drill-in d'une réf Codex EN JEU : grande boîte modale contenant l'écran Codex SANS quitter la
-   partie (cf. CodexOverlay). Override le 100vh de .screen.codex pour qu'il remplisse la boîte. */
-.modal.codex-modal {
-  width: min(1100px, 94vw);
-  height: min(820px, 92vh);
-  max-height: 92vh;
-  padding: 0;
-  overflow: hidden;
-}
+   partie (cf. CodexOverlay, `Modal` `taille='vaste'`). L'écran remplit le corps de la boîte au lieu de 100vh. */
 .codex-modal .screen.codex {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   max-width: none;
   margin: 0;
 }

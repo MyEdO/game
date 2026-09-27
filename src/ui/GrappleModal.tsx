@@ -82,6 +82,7 @@ export function GrappleModal() {
     // Le VAINQUEUR tranche l'issue de l'Empoignade. Panneau résolu conservé.
     return (
       <RollShell
+        etape={pd.phase}
         flowKey="grapple"
         title="Empoignade"
         extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
@@ -93,7 +94,7 @@ export function GrappleModal() {
           <>
             <p className="modal-log">Tu l'emportes : choisis l'issue de l'Empoignade.</p>
             <OptionChooser
-              layout="actions"
+              layout="grid"
               options={[
                 { key: 'damage', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => choose('damage'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
                 { key: 'entangle', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => choose('entangle'), title: 'Conférer l’État Empêtré à l’adversaire.' },
@@ -118,6 +119,7 @@ export function GrappleModal() {
 
   return (
     <RollShell
+      etape={pd.phase}
       flowKey="grapple"
       title="Empoignade"
       extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}

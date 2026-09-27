@@ -1,5 +1,6 @@
 import { useGame } from '../state/store';
-import { flowStakeRef } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
+import type { PendingAuContact } from '../state/pendings';
 import { baseTestModLines, combatValue } from '../engine/combat';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
@@ -10,6 +11,9 @@ import { ev } from '../state/combatLog';
 import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
+
+/** Enjeu servi par chaque fenêtre d'Au contact. */
+const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
 
 /**
  * Modale « Au Contact » (LDB 62 l.176, Option « Longueur d'arme »). Test OPPOSÉ de Corps à corps
@@ -89,8 +93,9 @@ export function AuContactModal() {
     // Le VAINQUEUR (héros) tranche : « Au contact » / « Combat normal ». Panneau résolu conservé.
     return (
       <RollShell
+        etape={pd.phase}
         flowKey="auContact"
-        stake={flowStakeRef('auContact', pd.phase)}
+        stake={flowStakeRef(AU_CONTACT_STAKE[pd.phase])}
         title="Au contact"
         extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/close-in" />}
         rows={[foeRow, actorRow]}
@@ -101,7 +106,7 @@ export function AuContactModal() {
           <>
             <p className="modal-log">Tu l'emportes : choisis comment se poursuit le corps à corps.</p>
             <OptionChooser
-              layout="actions"
+              layout="grid"
               options={[
                 { key: 'contact', label: <><Icon id="melee/close-in" size="sm" /> Au contact</>, primary: true, onSelect: () => choose('contact'), title: 'Entrer dans la longueur d’arme : toute arme plus longue que Courte est traitée comme une Arme improvisée (les deux camps)' },
                 { key: 'normal', label: <><Icon id="action/attack" size="sm" /> Combat normal</>, onSelect: () => choose('normal'), title: 'Le combat se poursuit à distance d’arme normale' },
@@ -116,8 +121,9 @@ export function AuContactModal() {
 
   return (
     <RollShell
+      etape={pd.phase}
       flowKey="auContact"
-      stake={flowStakeRef('auContact', pd.phase)}
+      stake={flowStakeRef(AU_CONTACT_STAKE[pd.phase])}
       title="Au contact"
       extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/close-in" />}
       rows={[foeRow, actorRow]}

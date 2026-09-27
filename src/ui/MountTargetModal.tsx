@@ -21,14 +21,19 @@ export function MountTargetModal() {
   const mount = battle.combatants.find((c) => c.id === pmt.mountId);
   if (!rider || !mount) return null;
   return (
-    /* Décision DE COMBAT : coquille de jet (voile allégé + ancrage haut) — voir le champ de bataille sous la fenêtre sert le choix. */
-    <Modal title="Combat monté — cibler ?" onClose={cancel}>
+    /* Décision DE COMBAT, champ lisible : voir le champ de bataille sous la fenêtre sert le choix. */
+    <Modal
+      title="Combat monté — cibler ?"
+      champ
+      onClose={cancel}
+      footer={<ChoiceButtons options={[{ key: 'cancel', label: 'Annuler', ghost: true, onSelect: cancel }]} />}
+    >
       <p className="modal-log">
         {rider.label} chevauche {mount.label} (même case — qui frapper ?) : viser le cavalier impose −10 si vous êtes
         plus petit que la monture ; abattre la monture désarçonne le cavalier.
       </p>
-      {/* Choix = picker de PORTRAITS mutualisé (`PortraitPicker`), pas des boutons. Seule la barre
-          d'action ci-dessous passe par <ChoiceButtons>. */}
+      {/* Choix = picker de PORTRAITS mutualisé (`PortraitPicker`) dans le corps ; le pied porte le
+          seul geste de sortie. */}
       <div className="rm-options">
         <PortraitPicker
           choices={[
@@ -38,7 +43,6 @@ export function MountTargetModal() {
           onPick={(id) => select(id)}
         />
       </div>
-      <ChoiceButtons options={[{ key: 'cancel', label: 'Annuler', ghost: true, onSelect: cancel }]} />
     </Modal>
   );
 }

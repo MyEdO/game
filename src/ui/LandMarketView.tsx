@@ -63,7 +63,6 @@ export function LandMarketView() {
 
   return (
     <ScreenShell
-      className="port-overlay"
       title={<>Marché de {market.label}</>}
       onClose={close}
       meta={{ money }}

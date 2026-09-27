@@ -1,5 +1,6 @@
-import { type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Icon } from './Icon';
+import { GatedAction } from './GatedAction';
 import type { IconIdInput } from './icons';
 import { RuleDivider } from './Ornaments';
 import { t } from '../i18n';
@@ -125,8 +126,9 @@ export function MenuSection({ label, rule = true, ruleClassName, className, chil
 }
 
 /** Grand bouton de menu : `<Icon>` + libellé, pleine largeur. `href` → lien (`<a>`, ex. galeries) ;
- *  `tone` mappe les variantes canon `.btn-primary`/`.btn-test`. */
-export function MenuButton({ icon, tone, onClick, href, target, rel, title, disabled, children }: {
+ *  `tone` mappe les variantes canon `.btn-primary`/`.btn-test` ; `refus` ferme le bouton sur sa raison
+ *  (`GatedAction`). */
+export function MenuButton({ icon, tone, onClick, href, target, rel, title, refus, children }: {
   icon: IconIdInput;
   tone?: 'primary' | 'test';
   onClick?: () => void;
@@ -134,10 +136,13 @@ export function MenuButton({ icon, tone, onClick, href, target, rel, title, disa
   target?: string;
   rel?: string;
   title?: string;
-  disabled?: boolean;
+  /** Raison pour laquelle le bouton est fermé. */
+  refus?: string;
   children: ReactNode;
 }) {
-  const cls = `btn menu-btn${tone === 'primary' ? ' btn-primary' : tone === 'test' ? ' btn-test' : ''}`;
+  const id = useId();
+  const primary = tone === 'primary';
+  const cls = `btn menu-btn${primary ? ' btn-primary' : tone === 'test' ? ' btn-test' : ''}`;
   if (href) {
     return (
       <a className={`${cls} menu-link`} href={href} target={target} rel={rel} title={title}>
@@ -145,8 +150,21 @@ export function MenuButton({ icon, tone, onClick, href, target, rel, title, disa
       </a>
     );
   }
+  if (refus) {
+    return (
+      <GatedAction
+        id={id}
+        label={<><Icon id={icon} /> {children}</>}
+        enabled={false}
+        reason={refus}
+        onClick={() => {}}
+        primary={primary}
+        btnClassName={`menu-btn${tone === 'test' ? ' btn-test' : ''}`}
+      />
+    );
+  }
   return (
-    <button type="button" className={cls} onClick={onClick} title={title} disabled={disabled}>
+    <button type="button" className={cls} onClick={onClick} title={title}>
       <Icon id={icon} /> {children}
     </button>
   );

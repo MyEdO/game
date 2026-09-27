@@ -3,13 +3,6 @@
    `.chip`/`.panel`/`.parchment-card`…) et les nouvelles primitives (`creator.css`) — cette feuille
    ne redéfinit AUCUNE de ces classes. */
 
-/* Scroll de l'écran ENTIER (patron `.port-overlay{overflow-y:auto}`, world-meta.css) — posé sur le
-   voile racine (`className="gallery-screen"` de `ScreenShell`) : `.screen-body`/`.split`
-   sont dimensionnés à leur contenu (hauteur `auto`), un `overflow` posé plus bas dans l'arbre n'a
-   aucune boîte bornée contre laquelle défiler. */
-.gallery-screen {
-  overflow-y: auto;
-}
 .gallery-body {
   display: flex;
   flex-direction: column;

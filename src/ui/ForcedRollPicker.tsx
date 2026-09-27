@@ -22,7 +22,7 @@ export function CritLocationPicker({ current, onSet, shape = 'humanoide' }: {
   shape?: BodyShape;
 }) {
   const options: RollOption[] = CRIT_LOCS.map((l) => ({
-    key: l, label: locationLabel(l, shape), primary: current === l, onSelect: () => onSet(l),
+    key: l, label: locationLabel(l, shape), selected: current === l, onSelect: () => onSet(l),
   }));
   return (
     <div className="rm-options">
@@ -92,12 +92,12 @@ export function ForcedRollPicker({ roll, target, onSet, critable = true, fixed =
   return (
     <div className="rm-die-pick">
       {!fixed && (
-        <button className={`btn small ${roll === 1 ? 'btn-primary' : ''}`} title="Le score le plus bas → DR maximum" onClick={() => poser(1)}>
+        <button className="btn small" aria-pressed={roll === 1} title="Le score le plus bas → DR maximum" onClick={() => poser(1)}>
           01 · DR max
         </button>
       )}
       {!fixed && critable && maxRoll >= 11 && (
-        <button className={`btn small ${roll === 11 ? 'btn-primary' : ''}`} title="Le plus bas double réussi → Critique au meilleur DR" onClick={() => poser(11)}>
+        <button className="btn small" aria-pressed={roll === 11} title="Le plus bas double réussi → Critique au meilleur DR" onClick={() => poser(11)}>
           11 · Critique
         </button>
       )}

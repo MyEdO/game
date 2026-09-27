@@ -1,16 +1,20 @@
 import { useGame } from '../state/store';
-import { flowStakeRef } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
+import type { PendingFall } from '../state/pendings';
 import { testValue } from '../engine/skills';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import { ChoiceButtons } from './OptionChooser';
+import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
 import { resultLines, freeCons } from '../state/rollSeam';
 
+/** Enjeu servi par chaque fenêtre de la chute. */
+const FALL_STAKE: Record<PendingFall['phase'], FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
+
 /**
  * Modale de Chute VOLONTAIRE (LDB 15 l.82) : le pré-jet est le CHOIX RAW « vous pouvez tenter un Test
- * d'Athlétisme » — `ChoiceButtons` (Sauter directement / Tenter le Test), patron `ShantyModal` (menu
+ * d'Athlétisme » — `OptionChooser` en grille (Sauter directement / Tenter le Test), patron `ShantyModal` (menu
  * pré-jet). Choisir « Sauter » résout IMMÉDIATEMENT (`fallChoose(false)`, hors modale) ; choisir
  * « Tenter » ouvre le jet (Lancer → Chance/Pacte/Résilience → Appliquer, patron `RunModal`).
  */
@@ -34,14 +38,16 @@ export function FallModal() {
   if (p.phase === 'choice') {
     return (
       <RollShell
+        etape={p.phase}
         flowKey="fall"
-        stake={flowStakeRef('fall', p.phase, { values: { metres: p.metres } })}
+        stake={flowStakeRef(FALL_STAKE[p.phase], { values: { metres: p.metres } })}
         title={<><Icon id="melee/flee" size="sm" /> Chute volontaire</>}
         subtitle={<><strong>{c.label}</strong> se tient au bord d'un dénivelé de {p.metres} m</>}
         rows={[]}
         rolled={false}
         setup={
-          <ChoiceButtons
+          <OptionChooser
+            layout="grid"
             options={[
               { key: 'jump', label: `Sauter (chute pleine, ${p.metres} m)`, onSelect: () => choose(false) },
               { key: 'attempt', label: "Tenter un Test d'Athlétisme", primary: true, onSelect: () => choose(true) },
@@ -78,8 +84,9 @@ export function FallModal() {
 
   return (
     <RollShell
+      etape={p.phase}
       flowKey="fall"
-      stake={flowStakeRef('fall', p.phase, { values: { metres: p.metres } })}
+      stake={flowStakeRef(FALL_STAKE[p.phase], { values: { metres: p.metres } })}
       title={<><Icon id="melee/flee" size="sm" /> Chute volontaire</>}
       /* Z1 : acteur + la SITUATION que rien d'autre ne porte (la hauteur). La Compétence est le label
          de la ligne et le « +20 » sa Difficulté (`accessible`, `.rm-roll-diff` #1072) — pas ici. */

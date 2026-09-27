@@ -122,12 +122,12 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
     <ScreenShell
       title={<><Icon id="nav/campaign" size="sm" /> {named ? <>Carte du monde — {m.label}</> : m.label}</>}
       onClose={() => { setMap(m); onClose(); }}
-      className="wme-shell"
       actions={
         <>
           <button className="btn small" onClick={() => addPlace({ x: 50, y: 50 })}>+ Lieu</button>
           <button
-            className={`btn small ${linkFrom ? 'btn-primary' : ''}`}
+            className="btn small"
+            aria-pressed={!!linkFrom}
             onClick={() => setLinkFrom(linkFrom ? null : selPlace?.id ?? m.places[0]?.id ?? null)}
             disabled={m.places.length < 2}
             title="Cliquez un 1ᵉʳ lieu (sélection), activez, puis cliquez le 2ᵉ lieu"
@@ -141,7 +141,7 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
         </>
       }
     >
-      <div className="wme-body">
+      <div className="screen-scroll wme-body">
         <div className="wme-canvas">
           <svg
             ref={svgRef}

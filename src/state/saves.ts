@@ -149,7 +149,13 @@ import type { Scene } from './scene';
 // hors combat ; `resolveTest` aiguille sa branche sur ce champ (`reprendreTestSubi`). Une save de 53
 // rouvre un `pendingTest` sans `subi`, dont la branche `target`/`caster` part au marcheur de SCÈNE. La
 // save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 54;
+// 54 → 55 (2026-09-24, #1920) : la clé d'un enjeu de modale PERSISTÉ (`StakeKey.kind` du dataset
+// `flow`) devient l'`id` de l'entrée (`surgery/roll` → `surgery-roll`). `snapshotSave` recopie le
+// `state` ENTIER, dont l'opération armée de l'infirmerie (`medic.surgery.stake`, `medicAct`) et les
+// étapes d'un Test étendu (`combatEffects.ts`, `flowStakeRef('extended-test-roll')`). Une save de 54
+// rouvrirait avec une clé que `resolveStake` ne trouve plus : la fenêtre jetterait à l'ouverture au
+// lieu de dire son enjeu. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 55;
 
 export interface SaveMeta {
   version: number;

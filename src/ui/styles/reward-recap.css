@@ -1,33 +1,19 @@
 /* ── Récapitulatif de GAIN (`RewardRecap`) ── Messages d'ambiance, récompenses chiffrées, sections
-   titrées, geste de sortie : la matière commune de l'écran de victoire et de la fenêtre de butin.
-   L'ANCRAGE (ferrage, marges) appartient à l'écran hôte (`loot-modal.css`, `combat-start-splash.css`). */
-.reward-messages {
-  margin: var(--sp-xs) 0 var(--sp-lg);
-  max-width: 520px;
-  text-align: center;
-}
+   titrées : la matière commune de l'écran de victoire et de la fenêtre de butin. Le PLACEMENT est
+   celui des primitives qu'elle compose (`Stack`, `Row`) ; le geste de sortie est le pied du cadre
+   (`CadrePied`, modal.css), jamais redéfini ici. */
 .reward-msg {
   color: var(--gold);
   font-size: 14px;
-  margin: 4px 0;
+  margin: 0;
   line-height: 1.5;
 }
-.reward-stats {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
 .reward-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 19px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 8px 18px;
+  padding: var(--sp-md) var(--sp-xl);
 }
 .reward-stat b {
   color: var(--gold2);
@@ -36,31 +22,19 @@
   color: var(--muted);
   font-size: 14px;
 }
-.reward-ico {
-  font-size: 20px;
-}
-.reward-section {
-  margin: 14px 0;
-}
 .reward-section h3 {
   font-family: var(--font-display);
   font-size: 16px;
   letter-spacing: 0.5px;
   color: var(--gold);
   border-bottom: 1px solid var(--border);
-  padding-bottom: 5px;
-  margin: 0 0 10px;
+  padding-bottom: var(--sp-xs);
+  margin: 0 0 var(--sp-md);
 }
 /* Rubrique à TOUCHER (#377) : le cadre de la surface remplace le filet de séparation du titre, qui
    prend une gouttière d'icône. La surface elle-même est `.panel.gold`, posée par la primitive. */
 .reward-section[data-avant] h3 {
-  gap: 6px;
+  gap: var(--sp-sm);
   border-bottom: none;
   padding-bottom: 0;
-}
-.reward-continue {
-  display: block;
-  margin: 20px auto 0;
-  font-size: 17px;
-  padding: 11px 40px;
 }

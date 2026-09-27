@@ -37,6 +37,17 @@ export function CampaignOpeningScreen() {
       closeLabel={t('ouv.retour')}
       body="centered"
       ambiance={ouv.ambiance ?? 'veillee'}
+      footer={
+        <>
+          <GatedAction
+            id="ouv-prendre-la-route"
+            label={t('ouv.prendreLaRoute')}
+            enabled={!invite}
+            reason={t('ouv.refusHote')}
+            onClick={acquitterOuverture}
+          />
+        </>
+      }
     >
       {ouv.surtitre && <p className="section-label">{ouv.surtitre}</p>}
       <RuleDivider />
@@ -51,15 +62,6 @@ export function CampaignOpeningScreen() {
           ))}
         </FigRow>
       </Band>
-      <div className="modal-actions">
-        <GatedAction
-          id="ouv-prendre-la-route"
-          label={t('ouv.prendreLaRoute')}
-          enabled={!invite}
-          reason={t('ouv.refusHote')}
-          onClick={acquitterOuverture}
-        />
-      </div>
     </ScreenShell>
   );
 }

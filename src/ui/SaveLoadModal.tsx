@@ -93,27 +93,26 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
   return (
     <Modal
       title={<><Icon id={mode === 'save' ? 'file/save' : 'file/open'} /> {mode === 'save' ? t('saveload.title.save') : t('saveload.title.load')}</>}
-      /* Fenêtre HORS jet : la géométrie de jet (voile allégé + ancrage haut, `roll-shell.css`) sert
-         à garder le champ de bataille lisible sous la fenêtre — elle n'a pas lieu d'être ici. */
-      variant="plain"
       onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn small" onClick={() => fileRef.current?.click()} title={t('saveload.import.btn.title')}>
+            <Icon id="file/import" /> {t('saveload.import.btn')}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => void onImportFile(e.target.files?.[0])}
+          />
+          <button type="button" className="btn" onClick={onClose}>{t('saveload.btn.close')}</button>
+        </>
+      }
     >
       <div className="save-slots">
         {SAVE_SLOTS.map((slot) => slotRow(slot, t('saveload.slot.label', { n: slot }), metas[slot - 1], mode === 'save'))}
         {autoMeta && slotRow(AUTO_SLOT, 'Auto ⟳', autoMeta, false)}
-      </div>
-      <div className="modal-actions">
-        <button type="button" className="btn small" onClick={() => fileRef.current?.click()} title={t('saveload.import.btn.title')}>
-          <Icon id="file/import" /> {t('saveload.import.btn')}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: 'none' }}
-          onChange={(e) => void onImportFile(e.target.files?.[0])}
-        />
-        <button type="button" className="btn" onClick={onClose}>{t('saveload.btn.close')}</button>
       </div>
       {error && <p className="save-error">{error}</p>}
     </Modal>

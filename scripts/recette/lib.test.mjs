@@ -402,6 +402,14 @@ test('realKey : une touche d’un seul caractère émet aussi le `char`, et le c
   assert.equal(s.emis[0].windowsVirtualKeyCode, 'E'.charCodeAt(0))
 })
 
+test('realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé', async () => {
+  const s = sessionClavier()
+  await realKey(s, { key: 'Enter' })
+  assert.deepEqual(s.emis.map((e) => e.type), ['rawKeyDown', 'char', 'keyUp'])
+  assert.equal(s.emis[1].text, '\r')
+  assert.equal(s.emis[0].windowsVirtualKeyCode, 13)
+})
+
 test('realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI', async () => {
   const s = sessionClavier()
   await realKeyDown(s, { ...ALT, modifiers: MOD_ALT })

@@ -16,7 +16,7 @@ import type { Combatant, ConditionInstance, ItemInstance, ShipPoste, Weapon } fr
 import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon } from '../engine/items';
 import { weaponLoaded } from '../engine/weaponLoad';
 import { t } from '../i18n';
-import { visibleFocusables } from './Modal';
+import { visibleFocusables } from './focus';
 import { sousLayoutJsdom } from './layoutJsdom.testkit';
 import { hotbar } from '../state/hotbarBridge';
 import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../data/index';
@@ -2662,7 +2662,14 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     // LISIBLE : l'état ferré `aria-pressed`, une règle qui le PEINT, ET un mot à l'écran (un état
     // qu'aucune règle ne peint ne marque rien : sonde du juge vision).
     expect(candidats().map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
-    expect(ruleOf(baseSection(BASE_CSS), ".btn[aria-pressed='true']"), 'l’état pressé n’est peint nulle part').toMatch(/border-color|box-shadow|background/);
+    const peintes = [...baseSection(BASE_CSS).matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter((b) => b[1].split(/,(?![^()]*\))/).map(norm).includes(".btn[aria-pressed='true']"));
+    expect(peintes.length, 'une seule règle peint l’état pressé').toBe(1);
+    expect(peintes[0][2], 'l’état pressé n’est peint nulle part').toMatch(/border-color|box-shadow|background/);
+    // L'anneau marque la surface flottante OUVERTE (bouton de menu, `aria-haspopup`), jamais une
+    // divulgation (WAI-ARIA APG, Disclosure : son état est le chevron).
+    const ouvertsPeints = peintes[0][1].split(/,(?![^()]*\))/).map(norm).filter((sel) => sel.includes('aria-expanded'));
+    expect(ouvertsPeints, 'l’anneau ne peint un `aria-expanded` que sous `aria-haspopup`').toEqual([".btn[aria-haspopup][aria-expanded='true']"]);
     expect(candidats().map((b) => b.querySelector('[data-actuel]')?.textContent ?? null)).toEqual(['valeur actuelle', null]);
   });
 

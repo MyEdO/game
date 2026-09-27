@@ -97,7 +97,7 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
   return (
     <RollShell
       flowKey="crewTest"
-      stake={flowStakeRef('crewTest', 'roll', { entryId: p.testTypeId })}
+      stake={flowStakeRef('crew-test-roll', { entryId: p.testTypeId })}
       title={<><Icon id="travel/anchor" size="sm" /> {testType.label} — Test d’équipage</>}
       subtitle={<><strong>{ship.label}</strong> — Moral {p.moraleScore}{p.extraDR ? ` · sabotage ${sign(p.extraDR)} DR` : ''}</>}
       extra={p.extraDR

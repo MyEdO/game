@@ -1,0 +1,70 @@
+/* ══════════════════ Coquille d'écran plein-champ (`ScreenShell.tsx`) ══════════════════
+   Voile plein écran, en-tête (titre, méta, actions, fermeture), barre d'outils, bande d'ambiance, et
+   la colonne bornée : le corps dans le rail défilant `.screen-scroll` (layout.css), puis le pied
+   `CadrePied` (cadre.css) sous le rail, à la même largeur. */
+.worldmap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90; /* sous les modales de jet (.modal-overlay = 130) */
+  /* Opaque (#358 correctif) : le HUD de scène (dock de portraits, commandes de vue — z-index bien
+     SOUS 90 mais peint dans le MÊME contexte d'empilement) ne doit JAMAIS transparaître à travers le
+     voile. Un `rgba(...)` avec alpha < 1 (même 0.97) laisse un résidu visible sur les chips vives du
+     dock — le token `--bg` (opacité 1, pas un hex à alpha fractionnaire) coupe le fond net. */
+  background:
+    radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--gold) 7%, transparent), transparent 55%),
+    radial-gradient(ellipse at 50% 115%, color-mix(in srgb, var(--blood) 18%, transparent), transparent 60%),
+    var(--bg); /* ambiance de la coquille partagée (politique grand écran, charte-ui.md) — pas un aplat nu quand le corps est borné en large */
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 8px;
+}
+/* En-tête : une `Row` (titre ↔ actions, elle s'enroule). */
+.worldmap-head {
+  /* Bande opaque dédiée : l'en-tête (titre, actions, fermeture) reste lisible même si le voile
+     doit un jour redevenir plus transparent — la zone où « Réduire » vit ne dépend pas du voile seul. */
+  background: var(--panel2);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin: -2px -2px 0;
+}
+.worldmap-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+/* Barre d'outils optionnelle (`tabs` prop), une `Row` — pose la primitive `<Tabs>` et/ou du contenu
+ * libre (badges, bourse…), sous l'en-tête. */
+.screen-toolbar {
+  width: min(900px, 96vw);
+  margin: 0 auto;
+}
+/* COLONNE BORNÉE/CENTRÉE (prop `body='centered'`) : un écran de PANNEAUX borne et centre son corps
+   pour ne pas laisser un océan vide en large ; son pied suit la même colonne. */
+.screen-colonne {
+  width: min(960px, 96vw);
+  max-width: 100%;
+  margin-inline: auto;
+}
+/* Variante GRILLE/CATALOGUE (`body='centered-wide'`, politique grand écran de docs/charte-ui.md) —
+   sous 1440px, identique à la colonne bornée. */
+@media (min-width: 1440px) {
+  .screen-colonne[data-large] {
+    width: min(1400px, 96vw);
+  }
+}
+/* En-tête mobile compact (#359, #362) : titre plus petit, actions resserrées — 2 rangées max. */
+@media (max-width: 560px) {
+  .worldmap-head h2 {
+    font-size: 15px;
+  }
+  .worldmap-head-actions {
+    gap: 6px;
+  }
+}
+/* Bande d'ambiance de la coquille (`ScreenShell` prop `backdrop`, #371 lot 2) — même primitive
+   `SceneBackdrop` que dans un `.panel`, mais SANS le bleed négatif pensé pour un bord de panel : ici
+   enfant direct du voile plein écran. */
+.worldmap-overlay > .scene-backdrop {
+  margin: 0;
+  border-radius: 10px;
+}

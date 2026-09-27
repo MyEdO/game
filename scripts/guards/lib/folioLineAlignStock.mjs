@@ -66,8 +66,6 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-ammo', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-bleed', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-wounds', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'recover-empetre', occurrence: 1 },
-  { fichier: 'src/data/flow-stakes.json', ref: 'recover-en-flammes', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'shanty-roll', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'exposition-hydrique', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'navigation-agilite-de-rame', occurrence: 1 },

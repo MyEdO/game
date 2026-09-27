@@ -24,6 +24,7 @@ import { seatOwns, influencesLocally } from './netOwnership';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
 import { scheduleCombatTimer } from './combatTimers';
+import { fateSaveOptions } from '../engine/fortune';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -212,12 +213,12 @@ export function tickCombatAuto(get: Get, set: Set): void {
     case 'hostOnly':
       return;
     case 'choice':
-      // Auto-combat seul : le Sauvetage par Destin est dépensé automatiquement pour éviter la mort
-      // (RAW : `fateNegate` « Comment ça a pu rater ? » sur un coup, sinon `fateSurvive` « Meurs un
-      // autre jour »). En Rapide, on NE touche PAS (la modale reste — vrai choix du joueur).
-      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave') {
-        const hit = s.pendingFateSave?.source === 'hit';
-        scheduleCombatTimer(() => (hit ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
+      // Auto-combat seul : le Sauvetage par Destin est dépensé automatiquement pour éviter la mort,
+      // `negate` s'il est offert (`fateSaveOptions`), sinon `survive`. En Rapide, on NE touche PAS (la
+      // modale reste — vrai choix du joueur).
+      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
+        const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
+        scheduleCombatTimer(() => (negate ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':

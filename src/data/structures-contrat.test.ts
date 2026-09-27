@@ -1030,7 +1030,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // trois terrains que le COMPILATEUR (`state/mapSpec.ts`, `buildBoardingScene`) choisissait en
       // littéraux. Ids nus scalaires, MÊME graphie que `semences-de-scene.json › terrain` : même lot,
       // même extinction.
-      'L3 #1463': 397,
+      // #1920 B14 (2026-09-24) : 397 → 395 — `flow-stakes.json › flow` et `› phase` s'éteignent : l'enjeu
+      // de modale se keye par son `id` (`FlowStakeId`, généré).
+      'L3 #1463': 395,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en

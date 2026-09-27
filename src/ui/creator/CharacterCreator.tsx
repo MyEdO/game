@@ -1949,13 +1949,13 @@ export function TrappingChoiceSlot({ slot, choices, onChoicesChange }: {
   const key = trappingRefLabel(slot);
   const value = choices[key];
   if ('choice' in slot) {
+    // Branche EFFECTIVE (défaut miroir de `resolveTrappingChoices` : sans choix, la 1re branche) —
+    // l'option RETENUE de la grille, et ce qui décide si le picker d'Atout NESTED se déroule dessous.
+    const selectedBranch = (value && slot.choice.find((b) => trappingRefLabel(b) === value)) || slot.choice[0];
     const options = slot.choice.map((branch) => {
       const label = trappingRefLabel(branch);
-      return { key: label, label, primary: value === label, onSelect: () => onChoicesChange(key, label) };
+      return { key: label, label, selected: branch === selectedBranch, onSelect: () => onChoicesChange(key, label) };
     });
-    // Branche EFFECTIVE (défaut miroir de `resolveTrappingChoices` : sans choix, la 1re branche) —
-    // détermine si le picker d'Atout NESTED se déroule sous la grille de branches.
-    const selectedBranch = (value && slot.choice.find((b) => trappingRefLabel(b) === value)) || slot.choice[0];
     return (
       <>
         <OptionChooser layout="grid" options={options} />
@@ -1967,7 +1967,7 @@ export function TrappingChoiceSlot({ slot, choices, onChoicesChange }: {
   }
   if ('wildcard' in slot) {
     if (slot.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(key, v)} />;
-    return <p className="hint">Catégorie « {slot.wildcard} » sans picker dédié pour l'instant.</p>;
+    return <p className="hint">Aucun catalogue d'objets pour la catégorie « {slot.wildcard} » : cet emplacement ne peut pas être choisi.</p>;
   }
   if ('id' in slot && slot.qualityChoice) {
     const options = fabricationAtouts().map((atoutId) => {
@@ -1980,7 +1980,7 @@ export function TrappingChoiceSlot({ slot, choices, onChoicesChange }: {
             {q?.desc && <em className="hint" style={{ display: 'block', fontStyle: 'normal', fontWeight: 'normal' }}>{q.desc}</em>}
           </>
         ),
-        primary: value ? value === atoutId : atoutId === DEFAULT_FABRICATION_ATOUT,
+        selected: (value || DEFAULT_FABRICATION_ATOUT) === atoutId,
         onSelect: () => onChoicesChange(key, atoutId),
       };
     });

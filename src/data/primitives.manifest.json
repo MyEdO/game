@@ -4,9 +4,61 @@
     "type": "primitives.manifest",
     "label": "ScreenShell",
     "fichier": "src/ui/ScreenShell.tsx",
-    "concept": "coquille d'écran plein-champ (voile + en-tête + corps, a11y dialogue)",
+    "css": "src/ui/styles/screen-shell.css",
+    "concept": "coquille d'écran plein-champ (voile + en-tête avec croix `CadreFermer` + corps ; un corps borné défile dans le rail `.screen-scroll`, et sa colonne `.screen-colonne` porte le pied `footer` sous le rail, `CadrePied`), a11y dialogue",
     "perimetre": "carte du monde, port/escale, marché, dossier de navire, négoce",
     "verrou": "aucune modale/écran bespoke (existant)"
+  },
+  {
+    "id": "cadre",
+    "type": "primitives.manifest",
+    "label": "CadrePied / CadreFermer",
+    "fichier": "src/ui/Cadre.tsx",
+    "css": "src/ui/styles/cadre.css",
+    "concept": "gestes des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`) : pied `CadrePied` (gestes de sortie hors du défileur, à la largeur du corps) et croix `CadreFermer`",
+    "perimetre": "pied et croix de toute modale, étape embarquée et écran plein-champ",
+    "verrou": "primitive-owners-guard.test.ts — aucune classe posée hors de `Cadre.tsx` ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
+  },
+  {
+    "id": "planche",
+    "type": "primitives.manifest",
+    "label": "Planche",
+    "fichier": "src/ui/Planche.tsx",
+    "css": "src/ui/styles/planche.css",
+    "concept": "lecteur passif en deux colonnes dans la boîte `planche` de `Modal` (voile de référence, croix) : `nom` du dialogue, posé en titre visible (`.planche-nom`) en tête de la colonne `aside` (permanente), onglets `tabs` au-dessus du corps d'onglet ; un défileur par colonne au-delà de 700px, la planche entière en dessous",
+    "perimetre": "fiche de personnage, feuille de navire ou de batterie de siège",
+    "verrou": "primitive-owners-guard.test.ts — `sheet-layout`, `sheet-aside`, `sheet-main`, `sheet-tabbody`, `planche-nom` posées par `Planche.tsx` seul ; planche.test.tsx — structure et défileurs"
+  },
+  {
+    "id": "modal",
+    "type": "primitives.manifest",
+    "label": "Modal",
+    "fichier": "src/ui/Modal.tsx",
+    "css": "src/ui/styles/modal.css",
+    "poseurs": [
+      "src/ui/ModalSubject.tsx"
+    ],
+    "concept": "cadre de modale (voile + boîte en colonne : tête avec croix `croix`, bandeau sujet, corps défilant, pied `footer`) ; états `data-*` (voile, champ lisible, plein écran, taille, gangrène), a11y dialogue (focus initial `focusTarget`, piège Tab, congédiement) ; son emprunt du focus passe par `useFocusEmprunte` (`src/ui/focus.ts`)",
+    "perimetre": "toute fenêtre de dialogue : jet, décision, récapitulatif, planche de fiche, Codex en jeu",
+    "verrou": "primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
+  },
+  {
+    "id": "focus",
+    "type": "primitives.manifest",
+    "label": "useFocusEmprunte / focusSansIntention / poserFocus / visibleFocusables",
+    "fichier": "src/ui/focus.ts",
+    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à son invocateur (le nœud qui l'avait à CETTE ouverture, s'il est encore dans le document) pour toute surface qui emprunte le focus ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
+    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), bulle épinglée de `CodexRef`, manette (`useGamepad`)",
+    "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
+  },
+  {
+    "id": "dismissLayer",
+    "type": "primitives.manifest",
+    "label": "useDismissLayer / dialogueDuDessus / surfaceFocalisee",
+    "fichier": "src/ui/useDismissLayer.ts",
+    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture et, s'il en a une, inscrit sa surface (boîte et nature, dialogue ou bulle) ; `dialogueDuDessus` répond à « qui est au-dessus ? » (sauvetage du focus, piège Tab, registre clavier, manette), comme Échap (`resoudreEchap`) ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
+    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), bulle de `CodexRef`, panneaux et menus qui se congédient, `useGameKeyboard`, `useGamepad`",
+    "verrou": "dialogue-du-dessus.test.tsx — l'ordre des ouvertures, jamais celui du document ; echap-pile-lifo.test.tsx — Échap congédie la couche du dessus"
   },
   {
     "id": "rollShell",
@@ -14,7 +66,7 @@
     "label": "RollShell",
     "fichier": "src/ui/RollShell.tsx",
     "css": "src/ui/styles/roll-shell.css",
-    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer)",
+    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
     "verrou": "roll-modal-invariant.test.ts"
   },
@@ -58,7 +110,7 @@
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
-    "concept": "choix d'options de jet (seg/grid/actions)",
+    "concept": "choix d'options de jet (seg/grid ; l'option retenue se marque `selected` → `aria-pressed`, jamais `primary` ; une grille dont une option porte sa `note` passe en rangées verbe | conséquence, la note de rangée sans icône) et gestes de décision posés au pied d'un cadre (ChoiceButtons)",
     "perimetre": "tout choix d'options + paire/triplet de boutons de décision",
     "verrou": "—"
   },
@@ -492,9 +544,9 @@
   {
     "id": "gatedAction",
     "type": "primitives.manifest",
-    "label": "GatedAction",
+    "label": "GatedAction / classeBouton",
     "fichier": "src/ui/GatedAction.tsx",
-    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap",
+    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
     "perimetre": "toute action refusable de la console et des écrans",
     "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
   },

@@ -1927,13 +1927,6 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/ui/ui-ratchets.test.ts",
     motif: "désormais",
-    ancre: "`.hero-present-chips` repassent mono-consommateur — le détail candidat compose désormais `SkillChip`/",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/ui-ratchets.test.ts",
-    motif: "désormais",
     ancre: "rejoints au #1153 (sa rangée adverse existe désormais dès l'ouverture, masquée par le calendrier).",
     lot: "L7 désormais",
     date: "2026-09-26",

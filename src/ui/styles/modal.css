@@ -1,0 +1,165 @@
+/* ══════════════════ Cadre de modale (`Modal.tsx`) ══════════════════
+   Voile + boîte en COLONNE : tête (titre, croix), bandeau `subject`, corps `.modal-body` qui défile,
+   pied `.cadre-pied` (cadre.css) qui reste. Ses états se lisent en `data-*` sur le voile (patron `SpectatorChip`) :
+   `data-voile` (rang et opacité), `data-champ` (champ lisible : voile allégé, ancrage par bandes),
+   `data-plein` (plein écran ≤560), `data-taille` (boîte), `data-gangrene` (matière ternie).
+   Aucune autre feuille ne vise ces classes (garde §5.3 étendue, `css-modules-guard.test.ts`). */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42); /* voile allégé : on garde le CHAMP visible derrière la modale (R2/R10) */
+  display: grid;
+  place-items: center;
+  z-index: 130; /* au-dessus du voile opaque (120) : Évaluer/Détecter le butin ouvre une modale PAR-DESSUS */
+}
+/* Voile OPAQUE : la scène n'a plus à rester lisible (fin de combat), et le rang laisse passer
+   au-dessus la modale qu'une action de la boîte ouvre. */
+.modal-overlay[data-voile='opaque'] {
+  background: rgba(8, 6, 12, 0.92);
+  z-index: 120;
+}
+/* Voile de RÉFÉRENCE (fiche, planche de navire) : lecteur passif, SOUS les modales actives (130)
+   pour qu'un jet lancé depuis la fiche s'affiche au-dessus ; au-dessus de la victoire (120). */
+.modal-overlay[data-voile='reference'] {
+  z-index: 125;
+}
+
+/* Matière « Atelier du scribe » (#414, planche ratifiée de la fiche) : halo or radial en tête +
+   dégradé bois froid, bandeau or de tête, bordures chaudes, ombre profonde. */
+.modal {
+  position: relative; /* ancre la scène centrale du roulis de dés (#396, `.rm-scene`) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* le défilement est celui du corps ; la boîte ne bouge plus */
+  background:
+    radial-gradient(520px 300px at 50% 0%, rgba(224, 181, 90, 0.07), transparent 62%),
+    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
+  border: 1px solid var(--atelier-wood-liseret);
+  border-top: 4px solid var(--gold);
+  border-radius: 14px;
+  padding: 22px;
+  width: min(520px, 94vw); /* jamais plus large que l'écran (mobile : pas de débord horizontal) */
+  max-height: 86vh;
+  box-shadow: 0 40px 110px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.modal-overlay[data-taille='apercu'] > .modal {
+  width: min(380px, 94vw);
+}
+.modal-overlay[data-taille='lecture'] > .modal {
+  width: min(560px, 94vw);
+}
+.modal-overlay[data-taille='large'] > .modal {
+  width: min(760px, 94vw);
+}
+/* Planche (fiche de personnage, planche de navire) : hauteur STABLE — changer d'onglet ne
+   redimensionne pas la fenêtre (L1). Le corps d'une planche ou d'une boîte vaste est une colonne
+   qui ne défile pas : le contenu hébergé y prend la place et défile chez lui. */
+.modal-overlay[data-taille='planche'] > .modal {
+  width: 880px;
+  max-width: 94vw;
+  height: 88vh;
+  padding-top: 16px;
+}
+/* Vaste (Codex en jeu) : l'écran hébergé remplit la boîte, bord à bord. */
+.modal-overlay[data-taille='vaste'] > .modal {
+  width: min(1100px, 94vw);
+  height: min(820px, 92vh);
+  max-height: 92vh;
+  padding: 0;
+}
+.modal-overlay[data-taille='planche'] > .modal > .modal-body,
+.modal-overlay[data-taille='vaste'] > .modal > .modal-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Gangrène du cadre (#492) : l'or du bandeau de tête et le halo se ternissent de violet-noir depuis
+   un coin (`ronge`), jusqu'au bandeau lui-même (`seuil`). */
+.modal-overlay[data-gangrene='ronge'] > .modal {
+  background:
+    radial-gradient(360px 260px at 100% 0%, color-mix(in srgb, var(--corruption-violet) 14%, transparent), transparent 62%),
+    radial-gradient(520px 300px at 50% 0%, rgba(224, 181, 90, 0.07), transparent 62%),
+    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
+}
+.modal-overlay[data-gangrene='seuil'] > .modal {
+  border-top-color: var(--corruption-violet);
+  background:
+    radial-gradient(420px 320px at 100% 0%, color-mix(in srgb, var(--corruption-violet) 28%, transparent), transparent 66%),
+    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
+}
+/* Titre : aucune marge d'agent utilisateur au-dessus — l'air de tête est le `padding` de la boîte,
+   le même que celui du pied. */
+.modal-title {
+  flex: 0 0 auto;
+  margin: 0 0 var(--sp-lg);
+}
+/* Tête qui porte la croix (`croix`) : une `Row`, titre au début, croix à la fin. */
+.modal-tete {
+  flex: 0 0 auto;
+  margin: 0 0 var(--sp-md);
+}
+.modal-tete > .modal-title {
+  margin: 0;
+}
+/* Bandeau « sujet » (`ModalSubject`) : l'air qui le sépare du titre est la marge du titre. */
+.modal-subject {
+  flex: 0 0 auto;
+  margin: 0 0 var(--sp-md);
+}
+/* Corps : ferré au DÉBUT à toute largeur (`docs/charte-ui.md` § invariant de géométrie). */
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0; /* sans quoi un enfant flex refuse de rétrécir sous son contenu */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* ── CHAMP LISIBLE (`data-champ`) ── */
+.modal-overlay[data-champ] > .modal {
+  min-width: 340px;
+}
+/* Voile ALLÉGÉ sur l'écran qui porte le champ de bataille (verdict vision #942 L7) : on VOIT
+   l'action sous la fenêtre. Ailleurs, le voile plein sépare les plans. */
+.app-campaign .modal-overlay[data-champ] {
+  background: rgba(0, 0, 0, 0.28);
+}
+/* CE QUE RÉCLAME UNE FENÊTRE DE JET (#1847) — le CONTRAT lisible que le voile publie (sonde
+   `scripts/recette/hauteur-reelle.mjs`). `--roll-fenetre` : 736px = 1080 − 248 de bande − 96 de pied,
+   mesuré sur la cascade d'Initiative d'ouverture de combat. `--roll-band-min` / `--roll-dock-min` :
+   planchers des deux bandes quand l'écran est trop bas pour la boîte entière. */
+.app-campaign .modal-overlay[data-champ] {
+  --roll-fenetre: 736px;
+  --roll-band-min: 12px;
+  --roll-dock-min: 8px;
+  --roll-dock-max: 96px;
+}
+/* INVARIANT DE GÉOMÉTRIE (#1142, `docs/charte-ui.md` § « Invariant de GÉOMÉTRIE d'une fenêtre de
+   jet ») : le bord HAUT est fixé. Les deux bandes ne sont fonctions que de `100vh`. ORDRE DE
+   CESSION : la bande haute cède la première, le pied ensuite, chacun jusqu'à son plancher.
+   Tranche ≤560 EXCLUE : la fenêtre y prend tout l'écran. */
+@media (min-width: 561px) {
+  .app-campaign .modal-overlay[data-champ] {
+    --roll-band: clamp(var(--roll-band-min), calc(100vh - var(--roll-dock-max) - var(--roll-fenetre)), min(23vh, 260px));
+    --roll-dock: clamp(var(--roll-dock-min), calc(100vh - var(--roll-band-min) - var(--roll-fenetre)), var(--roll-dock-max));
+    align-items: start;
+    padding-top: var(--roll-band);
+    padding-bottom: var(--roll-dock);
+  }
+  .app-campaign .modal-overlay[data-champ] > .modal {
+    max-height: calc(100vh - var(--roll-band) - var(--roll-dock));
+  }
+}
+@media (max-width: 560px) {
+  /* Design 2026-07-31 §12 : une fenêtre de jet prend TOUT l'écran. */
+  .modal-overlay[data-plein] {
+    place-items: stretch;
+    padding: 0;
+  }
+  .modal-overlay[data-plein] > .modal {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    max-height: 100%;
+    border-radius: 0;
+    padding: 14px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+}

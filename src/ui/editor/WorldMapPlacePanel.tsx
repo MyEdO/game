@@ -319,7 +319,8 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                     <div className="bar">
                       <button
                         type="button"
-                        className={`btn small${activePoiId === poi.id ? ' btn-primary' : ''}`}
+                        className="btn small"
+                        aria-pressed={activePoiId === poi.id}
                         onClick={() => setPoiSel(activePoiId === poi.id ? null : poi.id)}
                       >
                         {activePoiId === poi.id ? 'Cliquez le plan pour placer…' : 'Placer sur le plan'}

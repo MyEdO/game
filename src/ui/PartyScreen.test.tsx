@@ -15,6 +15,7 @@ import { makePregens } from '../data/pregens';
 import { rosterAdd } from '../state/roster';
 import { initialNet, type NetState } from '../state/netFlow';
 import { Combatant } from '../engine/types';
+import { t } from '../i18n';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -55,7 +56,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
     expect(html).toContain('Pré-tirés');
     expect(html).toContain('Mes personnages');
     expect(html).toContain('candidate-card');
-    expect(html).not.toContain('candidate-modal'); // recrutement = grandes cartes (gallery)
+    expect(html).not.toContain('candidate-remplacement'); // recrutement = grandes cartes (gallery)
   });
 
   it('roster non vide : MÊME carte-portrait (nom complet + recruter + outils export/suppr)', () => {
@@ -72,7 +73,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
     rosterAdd({ hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
     const html = renderToStaticMarkup(<HeroSelector party={[h]} mode="replace" replaceName={h.label} onPick={noop} onClose={noop} />);
     expect(html).toContain('Remplacer Aventurière Sauvegardée'); // titre du mode remplacement
-    expect(html).toContain('candidate-modal');
+    expect(html).toContain('candidate-remplacement');
     expect(html).toContain('Déjà choisi');
   });
 });
@@ -290,12 +291,16 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     container.remove();
   });
 
+  /** La modale de choix, trouvée par son NOM accessible (le titre rendu par `Modal`). */
+  const modaleDeChoix = () => Array.from(document.querySelectorAll('[role="dialog"]'))
+    .find((d) => document.getElementById(d.getAttribute('aria-labelledby') ?? '')?.textContent === String(t('party.campaign.pick.title'))) ?? null;
+
   /** Ouvre la modale de choix par « Changer », puis clique « Choisir » sur la rangée nommée `nom`. */
   async function choisir(nom: string) {
     await act(async () => root.render(<PartyScreen />));
     const changer = Array.from(document.querySelectorAll('button')).find((b) => b.textContent === 'Changer') as HTMLButtonElement;
     await act(async () => changer.click());
-    const rangee = Array.from(document.querySelectorAll('.picker-modal .pregen-row')).find((r) => r.textContent?.includes(nom))!;
+    const rangee = Array.from(modaleDeChoix()!.querySelectorAll('.pregen-row')).find((r) => r.textContent?.includes(nom))!;
     await act(async () => (rangee.querySelector('button') as HTMLButtonElement).click());
   }
 
@@ -312,7 +317,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     const alertes = document.querySelectorAll('[role="alert"]');
     expect(alertes).toHaveLength(1);
     const alerte = alertes[0];
-    expect(alerte.closest('.picker-modal'), 'dans la modale de choix').not.toBeNull();
+    expect(modaleDeChoix()?.contains(alerte), 'dans la modale de choix').toBe(true);
     expect(alerte.classList.contains('chip') && alerte.classList.contains('tone-danger')).toBe(true);
     const txt = alerte.textContent ?? '';
     expect(txt).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
@@ -334,7 +339,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     expect(pc?.scenes).toEqual(c.scenes);
     expect(pc?.worldMap).toEqual(c.worldMap);
     expect(pc?.narratif).toEqual(c.narratif);
-    expect(document.querySelector('.picker-modal'), 'modale fermée').toBeNull();
+    expect(modaleDeChoix(), 'modale fermée').toBeNull();
   });
 
   it('un projet PUBLIÉ aux `activeAxes` déclarés : ses axes deviennent ceux de la compagnie (#409)', async () => {

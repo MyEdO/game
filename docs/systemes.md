@@ -55,6 +55,11 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | Primitive | combat | magie | corruption | psychologie | voyage-terre | voyage-fluvial | voyage-maritime | combat-naval | bataille-masse | interlude | commerce | equipage | repos-survie | coop | editeur | codex |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `ScreenShell` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
+| `CadrePied / CadreFermer` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `Planche` |  |  |  |  |  |  |  | U |  |  |  |  |  |  |  |  |
+| `Modal` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useFocusEmprunte / focusSansIntention / poserFocus / visibleFocusables` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useDismissLayer / dialogueDuDessus / surfaceFocalisee` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `RollShell` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `RollRow` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `makeRollFlow/FLOWS` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -101,12 +106,12 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `QtyStepper` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `NumberField` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `FREE_ATTACK_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
+| `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `opRows` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `suspendActiveCascade/resumeSuspendedCascade` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `CreatorDice` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CharacterPreview` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `GatedAction` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `GatedAction / classeBouton` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `RoseAxes` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MetalStatus` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `WaxSeal/SealedPlaque` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -220,4 +225,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: f7731369ff7a4671e7a0832e40d5430f50a4347b (1829 fichiers, 2 dossiers) corps: 4e4fa73d4d6b14ddbcc660bf7c292e3e55d90bd1 -->
+<!-- sources-empreinte: 4ea4aea57b3f2c15b8bb4b8877bee35e80fa397c (1834 fichiers, 2 dossiers) corps: 5651b4702272360f90c80282695f90a4025e999c -->

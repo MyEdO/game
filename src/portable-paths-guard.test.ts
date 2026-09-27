@@ -21,9 +21,13 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * lignes, donc les `fichier:ligne` du rapport valent pour la source d'origine.
  *
  * Détection STRUCTURELLE (aucune liste d'exception par fichier) :
- *   - lettre de lecteur Windows suivie d'un séparateur, non précédée d'une autre lettre — ce qui
- *     écarte les schémas d'URL (`http://`, `file://`) sans avoir à les nommer ;
+ *   - lettre de lecteur Windows suivie d'un séparateur, qui ne termine pas un jeton plus long : ni
+ *     précédée d'un caractère d'identifiant ou d'un tiret (schémas d'URL `http://`, `file://`, propriété
+ *     `overflow-y:`), ni ÉCHAPPÉE par un nombre impair de `\` (échappement de regex `/\d\d:\d\d/`) ;
+ *     un `\\` pair est une barre littérale, le préfixe long `\\?\` reste vu ;
  *   - racine de profil POSIX (`home`/`Users` + nom d'utilisateur).
+ * ANGLE MORT DÉCLARÉ : un lecteur écrit derrière une barre UNIQUE dans un `String.raw` (préfixe long
+ * brut) se lit comme un échappement ; le cas « angle mort déclaré » du contrôle négatif le fixe.
  * Les cas plantés ci-dessous sont ASSEMBLÉS à l'exécution : ce fichier ne porte lui-même aucun
  * littéral de chemin absolu, il est donc soumis à sa propre garde comme le reste du périmètre.
  */
@@ -34,7 +38,7 @@ const SCAN_ROOTS: { dir: string; exts: string[] }[] = [
   { dir: 'scripts', exts: ['.mjs', '.mts'] },
 ];
 
-const WIN_DRIVE = /(?<![A-Za-z])[A-Za-z]:[\\/]+[A-Za-z0-9._-]/g;
+const WIN_DRIVE = /(?<![A-Za-z0-9_-])(?<!(?<!\\)(?:\\\\)*\\)[A-Za-z]:[\\/]+[A-Za-z0-9._-]/g;
 const POSIX_HOME = /\/(?:home|Users)\/[A-Za-z0-9._-]+\//;
 /** Racines d'INSTALLATION de la plateforme : identiques sur toute machine Windows, elles ne nomment
  *  aucune machine (`C:\Program Files\Git\git.exe` vaut sur n'importe quel poste). SYMÉTRIQUE du côté
@@ -65,6 +69,10 @@ describe('garde-fou chemins portables — aucun chemin absolu de machine dans le
     const p = DRIVE + '/Users/' + 'dev' + '/projet/src/ui/styles/x.css';
     expect(absoluteMachinePathIn("readFileSync('" + p + "', 'utf8')")).not.toBeNull();
     expect(absoluteMachinePathIn("const d = '" + DRIVE + "\\projets\\jeu\\src';")).not.toBeNull();
+    expect(absoluteMachinePathIn("const d = '" + DRIVE + "\\\\Users\\\\moi';"), 'barre doublée de source').not.toBeNull();
+    expect(absoluteMachinePathIn('const d = "D' + ':\\\\foo";'), 'lecteur après un guillemet').not.toBeNull();
+    expect(absoluteMachinePathIn("const p = '\\\\\\\\?\\\\" + DRIVE + "\\\\projet';"), 'préfixe long, barres paires').not.toBeNull();
+    expect(absoluteMachinePathIn('[a, ' + DRIVE + '/x]'), 'lecteur après un espace').not.toBeNull();
   });
 
   it('cas planté : une racine de profil POSIX est détectée (preuve TDD)', () => {
@@ -79,6 +87,14 @@ describe('garde-fou chemins portables — aucun chemin absolu de machine dans le
     expect(absoluteMachinePathIn("fileURLToPath(new URL('./styles/creator.css', import.meta.url))")).toBeNull();
     expect(absoluteMachinePathIn("const ratio = 'w:h';")).toBeNull();
     expect(absoluteMachinePathIn("const img = 'data:image/svg+xml;base64,AA';")).toBeNull();
+  });
+
+  it('faux positifs écartés : une lettre qui termine un jeton plus long n’est pas un lecteur (contrôle négatif)', () => {
+    expect(absoluteMachinePathIn('const v = /overflow-y' + ':\\s*([\\w-]+)/.exec(c);'), 'propriété à tiret').toBeNull();
+    expect(absoluteMachinePathIn("const s = 'mon_x" + ":/a';"), 'identifiant').toBeNull();
+    expect(absoluteMachinePathIn('expect(s).toMatch(/\\d\\d' + ':\\d\\d/);'), 'échappement de regex').toBeNull();
+    expect(absoluteMachinePathIn('/\\w' + ':\\s+/'), 'échappement de regex').toBeNull();
+    expect(absoluteMachinePathIn('String.raw`' + '\\\\?\\' + DRIVE + '\\x`'), 'angle mort déclaré').toBeNull();
   });
 
   it('faux positif écarté : une racine d’INSTALLATION de la plateforme ne nomme aucune machine', () => {

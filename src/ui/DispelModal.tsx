@@ -62,7 +62,7 @@ export function DispelModal() {
   return (
     <RollShell
       flowKey="dispel"
-      stake={flowStakeRef('dispel', 'roll', { values: { ni: pd.ni } })}
+      stake={flowStakeRef('dispel-roll', { values: { ni: pd.ni } })}
       title={<><Icon id="action/dispel" size="sm" /> Dissipation</>}
       /* Z1 : QUI dissipe QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone
          unique, la barre de DR de la rangée (`extendedDr`, ci-dessus). */

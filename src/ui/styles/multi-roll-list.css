@@ -2,7 +2,7 @@
    La pile de jets d'un même temps (nuit de repos, journée de voyage, conseil de bord) : portrait,
    libellé, ligne de jet, note. Importée APRÈS `roll-line.css` : `.mrl-roll .rm-roll-block` borne la
    ligne de jet dans la colonne étroite de la pile. */
-.mrl { display: flex; flex-direction: column; gap: 6px; max-height: min(46vh, 420px); overflow-y: auto; }
+.mrl { display: flex; flex-direction: column; gap: 6px; max-height: min(46vh, 420px); overflow-y: auto; margin-bottom: 10px; }
 .mrl-row { display: flex; gap: 8px; align-items: flex-start; }
 .mrl-port { flex: 0 0 34px; display: flex; justify-content: center; padding-top: 2px; }
 /* Corps en COLONNE : libellé (icône incluse) au-dessus, ligne de jet / note en dessous. */

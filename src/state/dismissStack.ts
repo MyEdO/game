@@ -80,6 +80,9 @@ export function dismissTop(): DismissResult {
 
 export const dismissStackSize = (): number => pile.length;
 
+/** Couches de la pile, du bas vers le haut, en lecture seule : qui est au-dessus de qui. */
+export const dismissStackHandles = (): readonly DismissHandle[] => [...pile];
+
 /** Libellés de la pile, du bas vers le haut — DIAGNOSTIC (tests, journal) uniquement. */
 export const dismissStackKinds = (): readonly string[] => pile.map((c) => c.kind);
 

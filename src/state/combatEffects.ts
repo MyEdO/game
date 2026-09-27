@@ -2223,7 +2223,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
     group: 'Tests', label: 'Test Étendu (DR cumulé : crocheter/forcer un mécanisme)', icon: 'ui/key',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extendedTest', 'roll') }),
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extended-test-roll') }),
     apply: (e, env) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
       // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Adjacence (l.196) : même
@@ -2241,7 +2241,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extendedTest', 'roll'), ...(best.support.count > 0 ? { support: best.support } : {}) });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}) });
       return 'suspend';
     },
   },

@@ -2515,7 +2515,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
   });
 });
 
-describe('Destin sacrifié (LDB 17 l.31-35)', () => {
+describe('Destin sacrifié (LDB 17 l.29-32)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); reset(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 

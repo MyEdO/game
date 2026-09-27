@@ -552,7 +552,8 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, none, own
         enabled={canDrive && !(none && pane !== key)}
         reason={canDrive ? 'Plus d’Activité d’interlude pour ce héros.' : `Mené par ${ownerName ?? 'un autre joueur'}.`}
         onClick={() => onPane(pane === key ? null : key)}
-        primary={pane === key}
+        primary={false}
+        ariaPressed={pane === key}
         btnClassName="small interlude-activity-btn"
       />
     ),
@@ -1307,7 +1308,14 @@ function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }:
   const kept = bank.reduce((a, b) => a + b.brass, 0);
   const crafts = heroes.filter((h) => h.craft);
   return (
-    <Modal title={t('interlude.recap.title')} variant="plain" className="interlude-recap" onClose={onCancel}>
+    <Modal title={t('interlude.recap.title')} onClose={onCancel}
+      footer={
+        <>
+          <button className="btn" onClick={onCancel}>{t('interlude.recap.cancel')}</button>
+          <button className="btn btn-primary" onClick={end}>{t('interlude.recap.confirm')}</button>
+        </>
+      }
+    >
       <ul className="interlude-recap-list">
         <li>
           <Icon id="resource/gold-purse" size="sm" /> {wasted > 0
@@ -1346,10 +1354,6 @@ function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }:
           convalescence comprises) — reprise <GameDate time={gameTime + interlude.weeks * 7 * MINUTES_PER_DAY} />.
         </li>
       </ul>
-      <div className="modal-actions">
-        <button className="btn" onClick={onCancel}>{t('interlude.recap.cancel')}</button>
-        <button className="btn btn-primary" onClick={end}>{t('interlude.recap.confirm')}</button>
-      </div>
     </Modal>
   );
 }

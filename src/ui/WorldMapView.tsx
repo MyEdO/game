@@ -32,7 +32,7 @@ import { formatImperial } from '../engine/clock';
 import { VB_W, VB_H, fitViewport, type Viewport } from './worldMapViewport';
 import { MapCanvas, type MapMarker, type MapPath } from './MapCanvas';
 import { CompassRose } from './PlanChrome';
-import { Split } from './Layout';
+import { Row, Split } from './Layout';
 
 /** Hash déterministe d'un id → sens de courbure stable d'une route (pas de Math.random). */
 function hashStr(s: string): number {
@@ -456,7 +456,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               ? `${routeDistanceLabel(travelPlan.km - travelPlan.kmDone, resumeRoute?.sea)} restants.`
               : `le groupe est aux portes de ${resumeDest.label}.`}
           </p>
-          <div className="modal-actions">
+          <Row justify="end">
             <GatedAction
               id="worldmap-resume"
               label="▶ Reprendre le voyage"
@@ -465,7 +465,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               reason="L’hôte décide des départs."
               onClick={resumeTravel}
             />
-          </div>
+          </Row>
         </div>
       )}
 
@@ -498,7 +498,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               {/* Allure (EDOC 07 l.140-144) : vitesse ET endurance des bêtes en dépendent. */}
               <div className="wm-modes">
                 {allures.map((a) => (
-                  <button key={a} type="button" className={`btn small ${allure === a ? 'btn-primary' : ''}`} onClick={() => setAllure(a)}>
+                  <button key={a} type="button" className="btn small" aria-pressed={allure === a} onClick={() => setAllure(a)}>
                     {allureLabel(a)}
                   </button>
                 ))}
@@ -525,7 +525,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
             <div className="wm-modes">
               <button
                 type="button"
-                className={`btn small ${!seaFast && seaCadence === 'commande' ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={!seaFast && seaCadence === 'commande'}
                 onClick={() => { setSeaFast(false); setSeaCadence('commande'); }}
                 title="Traversée COMMANDÉE : vous fixez l'allure et les ordres permanents ; les Tests d'équipage de routine (progression, orientation, entretien…) s'auto-résolvent et défilent au procès-verbal du jour. Seules les crises, les événements à choix, les embuscades et les urgences interrompent."
               >
@@ -533,7 +534,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               </button>
               <button
                 type="button"
-                className={`btn small ${!seaFast && seaCadence === 'jour-par-jour' ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={!seaFast && seaCadence === 'jour-par-jour'}
                 onClick={() => { setSeaFast(false); setSeaCadence('jour-par-jour'); }}
                 title="Cadence MANUELLE : chaque Test d'équipage de Navigation ouvre sa modale (jour par jour)."
               >
@@ -541,7 +543,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               </button>
               <button
                 type="button"
-                className={`btn small ${seaFast ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={seaFast}
                 onClick={() => { setSeaFast(true); setSeaPace(0); }}
                 title="Tout le trajet se résout en UN Test d'équipage de Rude épreuve, modulé par l'Humeur de Manann et la durée."
               >
@@ -557,7 +560,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                   <button
                     key={b}
                     type="button"
-                    className={`btn small ${seaPace === b ? 'btn-primary' : ''}`}
+                    className="btn small"
+                    aria-pressed={seaPace === b}
                     onClick={() => setSeaPace(b)}
                     title={b && diff
                       ? `Test de ${seaRig === 'voile' ? 'Voile' : 'Ramer'} ${DIFFICULTY_LABELS[diff]} chaque jour — réussi : +${b} M ; le soir, Test de Résistance Complexe (−10) sous peine d'Exténué.`
@@ -615,7 +619,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               postes d'équipage (MSRC 7 ne connaît ni rôles MDG ni Moral) : les stations y sont
               seules, et c'est ce que le livre demande. */}
           {stationsTraits && <ShipStationsPanel traits={stationsTraits} />}
-          <div className="modal-actions">
+          <Row justify="end">
             <button type="button" className="btn" onClick={() => setSelId(null)}>Annuler</button>
             {/* Les provisions insuffisantes n'entrent PAS dans le refus : le départ reste PERMIS, et
                 c'est le LIBELLÉ qui porte l'alerte (« Appareiller quand même »). `GatedAction` ne rend
@@ -641,7 +645,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 cadence: mode === 'mer' && !seaFast ? seaCadence : undefined,
               })}
             />
-          </div>
+          </Row>
         </div>
       )}
 
@@ -652,7 +656,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
           <div className="wm-trip">
             <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{destFermee.label}</b> · {routeDistanceLabel(selFerme.km, selFerme.sea)}</span>
           </div>
-          <div className="modal-actions">
+          <Row justify="end">
             <button type="button" className="btn" onClick={() => setSelId(null)}>Annuler</button>
             <GatedAction
               id={`wm-route-fermee-${selFerme.id}`}
@@ -662,7 +666,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               reason={selFerme.refus ?? ROUTE_FERMEE_REFUS}
               onClick={() => {}}
             />
-          </div>
+          </Row>
         </div>
       )}
 

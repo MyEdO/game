@@ -117,7 +117,6 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
   'styles/codex-edit.css': 2,
   'styles/gear-assign-list.css': 1,
-  'styles/reward-recap.css': 1,
   'styles/compendium.css': 3,
   // +1 : `.creator-race-lineages` (#393 P2, correction structurelle Race) — rangée de chips de
   // lignée en tête du détail, s'enroule (motif `.bar` non composable ici, boutons de largeur variable).
@@ -146,7 +145,7 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // navire vit au module de CET écran.
   // +1 (#1806 2a) : `.medic-patients` (bandeau de patients de l'infirmerie, qui s'enroule) a suivi
   // son écran depuis `hud.css` — même site, autre foyer, -3 en regard côté HUD.
-  'styles/world-meta.css': 21,
+  'styles/world-meta.css': 18,
   'styles/city-hub.css': 1,
   'styles/voyage.css': 3,
   // +1 (lot #492 « chevet ») : `.plaque-fx` (chips d'effet net sous le nom, `PlaqueRow.tsx`) — enroule
@@ -254,6 +253,10 @@ const BARE_BUTTON_EXEMPT_FILES = new Set([
   // pour que plus aucun panneau ne recode la rangée : 13 sites de l'éditeur la composent désormais,
   // et l'ÉLECTION s'y dit `aria-current`, une seule grammaire pour tous.
   'ListRow.tsx',
+  // GatedAction.tsx : primitive canon du bouton d'ENGAGEMENT (table `docs/primitives.md`), qui exporte
+  // la composition de la classe de bouton (`classeBouton` : `btn`, ton, variantes) lue aussi par
+  // OptionChooser/RollShell — son `className` est cette composition, jamais un `<button>` nu.
+  'GatedAction.tsx',
 ]);
 // `dicewell` : bouton-encrier canon de `CreatorDice` (#414, langage `.c-dicewell.act` du kit
 // « Atelier du scribe ») — même famille que `.btn`/`.chip`, sa propre classe de composant.
@@ -607,17 +610,17 @@ describe('#236 — cliquets d’hygiène UI', () => {
     assertRatchet(scanFrozenValueRows(files), FROZEN_WITNESS_BASELINE, 'rangée témoin à valeur figée hors du calendrier de découverte `frozenOpposedRow` (#990)');
   });
 
-  // ── (xvi) LARGEUR d'une classe de MODALE : elle appartient à la COQUILLE partagée (`.modal`,
-  //    `components.css`), jamais à une variante d'enveloppe. Défaut mesuré : `.test-modal { width:
+  // ── (xvi) LARGEUR d'une classe de MODALE : elle appartient au CADRE (`.modal`, `modal.css`, état
+  //    `data-taille`), jamais à une variante d'enveloppe. Défaut mesuré : `.test-modal { width:
   //    340px }`, importée APRÈS la couche partagée, écrasait `min(520px, 94vw)` pour SEPT modales —
   //    les rangées de jet (bâties pour ~520px) s'empilaient et débordaient horizontalement. Deux
   //    volets, tous deux structurels : une largeur en px doit rester BORNÉE à la fenêtre
   //    (`max-width` en vw dans la MÊME règle), et aucune ne descend SOUS la largeur standard —
   //    rétrécir est le travail du contenu, pas d'une classe d'enveloppe.
   it('(xvi) largeur d’une classe de modale : bornée à la fenêtre et jamais plus étroite que la coquille standard', () => {
-    const shared = readFileSync(join(UI, 'styles', 'components.css'), 'utf8');
-    const standard = shared.match(/\.modal\s*\{[^}]*?width:\s*min\((\d+)px/);
-    expect(standard, '`.modal` ne pose plus `width: min(<n>px, …)` dans components.css : le standard de largeur a bougé, cette garde le lit.').toBeTruthy();
+    const cadre = readFileSync(join(UI, 'styles', 'modal.css'), 'utf8');
+    const standard = cadre.match(/\.modal\s*\{[^}]*?width:\s*min\((\d+)px/);
+    expect(standard, '`.modal` ne pose plus `width: min(<n>px, …)` dans modal.css : le standard de largeur a bougé, cette garde le lit.').toBeTruthy();
     const standardPx = Number(standard![1]);
     const offenders: string[] = [];
     for (const f of FICHIERS_UI().filter(estCss)) {
@@ -632,7 +635,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
         if (Number(px[1]) < standardPx) offenders.push(`${rel(f)} — ${sel} : width: ${px[1]}px < ${standardPx}px (coquille standard \`.modal\`)`);
       }
     }
-    expect(offenders, `Largeur FIXE posée par une classe de modale — la largeur appartient à la coquille (\`.modal\`, components.css) :\n${offenders.join('\n')}`).toEqual([]);
+    expect(offenders, `Largeur FIXE posée par une classe de modale — la largeur appartient au cadre (\`.modal\`, modal.css, état \`data-taille\`) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });
 
@@ -1021,18 +1024,6 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     }
   });
 
-  // La barre d'actions est une primitive de la couche d'identité : sa tranche ≤700 (enroulement et
-  // centrage, pour que deux boutons ne débordent pas d'une fenêtre étroite) vit AVEC elle. Posée
-  // dans un module d'ÉCRAN, elle ne valait que tant que cet écran gardait la règle — et TOUTES les
-  // modales la perdaient avec lui.
-  it('≤700 : la barre d’actions des modales s’enroule et se centre, chez sa primitive', () => {
-    const at700 = reglesCss(readFileSync(join(UI, 'styles', 'components.css'), 'utf8'))
-      .filter((r) => r.media?.includes('max-width: 700px') && r.selecteurs.includes('.modal-actions'));
-    expect(at700.length, '`.modal-actions` a une tranche ≤700 dans `components.css`').toBe(1);
-    expect(at700[0].corps).toMatch(/flex-wrap:\s*wrap/);
-    expect(at700[0].corps).toMatch(/justify-content:\s*center/);
-  });
-
   // Une piste `fr` NUE vaut `minmax(auto, …)` : son plancher est le contenu, et la boîte déborde.
   it('`Split` / `Grid` : aucune piste `fr` nue dans `layout.css` — toujours second terme d’un `minmax`', () => {
     const nues = reglesCss(readFileSync(join(UI, 'styles', 'layout.css'), 'utf8')).flatMap((r) =>
@@ -1051,18 +1042,6 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     expect(enfants.length, '`.de-reflrow > *` a sa règle dans `codex-edit.css`').toBe(1);
     expect(enfants[0].corps).toMatch(/min-width:\s*0\b/);
     expect(enfants[0].corps).toMatch(/max-width:\s*100%/);
-  });
-
-  it('les modales de jet occupent l’écran sous 560, corps défilable et pied fixe', () => {
-    // design 2026-07-31 §12, <=560 × Dock et modales.
-    const css = read('roll-shell.css');
-    expect(css).toMatch(/\.modal:has\(>\s*\.rs-scroll\)\s*\{[^}]*overflow:\s*hidden/); // le corps défile, pas la boîte
-    expect(css).toMatch(/\.modal:has\(>\s*\.rs-scroll\)\s*>\s*\.modal-actions/); // pied hors du scrollport
-    const at560 = mediaBlock(css, '@media (max-width: 560px)');
-    expect(at560).toContain('.rs-scroll');
-    // Le cadre tombe SUR LA MODALE de jet : `border-radius: 0` posé sur n'importe quelle autre règle
-    // de la tranche satisfaisait l'ancienne formulation sans que la fenêtre prenne l'écran.
-    expect(at560).toMatch(/\.modal:has\(>\s*\.rs-scroll\)\s*\{[^}]*border-radius:\s*0/);
   });
 });
 
@@ -1158,19 +1137,11 @@ function widthBreakpoints(css: string): string[] {
 //    d'actions, segment — tous composés par `OptionBouton`), la prop `refus`/`refusId`.
 //    Baseline JOUEUR = 0 (les 53 sites appelants migrés) ; l'ATELIER reste gelé à son stock, dont la
 //    migration est un lot à part (les outils d'édition n'ont pas la même contrainte manette/tactile).
-//    EXEMPTIONS AU SITE (`fichier:ligne`, jamais au FICHIER — un fichier blanchi cache le site NEUF
-//    qu'on y ajouterait) : un MODÈLE DE PROPS de socle n'est PAS un site de refus — le composant
-//    expose `disabled`/`title` dans son API, et c'est l'APPELANT qui déciderait d'une raison. Chaque
-//    ligne porte sa raison ; une ligne périmée (le site a bougé ou a été migré) échoue aussi.
-const REFUS_MUET_EXEMPT_SITES = new Map<string, string>([
-  ['GatedAction.tsx:155', 'la primitive elle-même : `title={ariaLabel}` y est le NOM accessible, pas une raison'],
-  ['OptionChooser.tsx:108', '`OptionBouton` : la composition partagée des trois layouts, dont la branche gatée compose déjà `GatedAction`'],
-  ['RollShell.tsx:299', 'modèle de props de la coquille de jet — passage à `GatedAction` = train T9'],
-  ['MenuCard.tsx:149', 'modèle de props du menu — train T9'],
-  ['MediaSelect.tsx:59', 'modèle de props du sélecteur média — train T9'],
-  ['QtyStepper.tsx:64', 'modèle de props du stepper (décrément) — train T9'],
-  ['QtyStepper.tsx:72', 'modèle de props du stepper (incrément) — train T9'],
-]);
+//    Aucune exemption : un modèle de props (coquille de jet, bouton de menu, stepper, option) expose
+//    `refus` et compose `GatedAction` ; son contrôle fermé SANS raison ne porte pas de `title`.
+//    `aria-disabled` n'est pas `disabled` : c'est la forme ATTEIGNABLE du refus.
+/** L'ATTRIBUT `disabled` d'une balise — jamais le suffixe d'`aria-disabled`. */
+const ATTR_DISABLED = /(?<![\w-])disabled\b/;
 const REFUS_MUET_BASELINE: Record<string, number> = {
   'editor/Editor.tsx': 1,
   'editor/EditorToolbar.tsx': 3,
@@ -1184,7 +1155,7 @@ const REFUS_MUET_BASELINE: Record<string, number> = {
   'editor/WorldMapEditor.tsx': 1,
 };
 
-/** Balises ouvrantes d'un fichier, avec leur LIGNE — l'exemption se pose au site, pas au fichier. */
+/** Balises ouvrantes d'un fichier, avec leur LIGNE — le site d'un refus se nomme `fichier:ligne`. */
 function tagsAvecLigne(src: string, tag: string): { tag: string; ligne: number }[] {
   const propre = src
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
@@ -1241,26 +1212,26 @@ function optionsRefusMuet(src: string): number[] {
   return lignes;
 }
 
-/** Un REFUS MUET : `<button>` portant À LA FOIS `disabled` et `title` (la raison qu'aucun lecteur
+/** Les SITES (`fichier:ligne`) d'un REFUS MUET : `<button>` portant À LA FOIS `disabled` et `title` (la raison qu'aucun lecteur
  *  d'écran, aucune manette et aucun doigt n'atteint), OU un `title` de refus posé sur un élément
  *  `aria-hidden` — forme PIRE encore, l'arbre a11y ne voit même plus le porteur —, OU un refus routé
  *  en PROP d'option (`{disabled, title}`), qui échappait au scan de balises. Les trois se mesurent
  *  sur la FORME, jamais sur un nom de variable. */
-function sitesRefusMuet(f: Fichier): { cle: string; ligne: number }[] {
+function sitesRefusMuet(f: Fichier): string[] {
   const r = rel(f);
   const src = f.text;
-  const out: { cle: string; ligne: number }[] = [];
+  const out: string[] = [];
   for (const tag of ['button', 'span', 'div', 'a'] as const) {
     for (const { tag: t, ligne } of tagsAvecLigne(src, tag)) {
       if (!/\btitle\s*=/.test(t)) continue;
-      const muet = tag === 'button' ? /\bdisabled\b/.test(t) : /\baria-hidden\b/.test(t);
-      if (muet) out.push({ cle: `${r}:${ligne}`, ligne });
+      const muet = tag === 'button' ? ATTR_DISABLED.test(t) : /\baria-hidden\b/.test(t);
+      if (muet) out.push(`${r}:${ligne}`);
     }
   }
   const propre = src
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
     .replace(/(^|[^:])\/\/.*$/gm, (_m, p) => p);
-  for (const ligne of optionsRefusMuet(propre)) out.push({ cle: `${r}:${ligne}`, ligne });
+  for (const ligne of optionsRefusMuet(propre)) out.push(`${r}:${ligne}`);
   return out;
 }
 
@@ -1268,10 +1239,8 @@ function scanRefusMuet(files: readonly Fichier[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const f of files) {
     const r = rel(f);
-    for (const s of sitesRefusMuet(f)) {
-      if (REFUS_MUET_EXEMPT_SITES.has(s.cle)) continue;
-      counts[r] = (counts[r] ?? 0) + 1;
-    }
+    const n = sitesRefusMuet(f).length;
+    if (n) counts[r] = n;
   }
   return counts;
 }
@@ -1295,33 +1264,12 @@ describe('#1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints)', ()
     expect(joueur, `Refus MUET sur un écran JOUEUR — composer \`GatedAction\` (ou \`OptionChooser\` prop \`refus\`) :\n${joueur.join('\n')}`).toEqual([]);
   });
 
-  it('(xix) chaque exemption est un SITE encore RÉEL — une ligne périmée se retire', () => {
-    const reels = new Set(
-      FICHIERS_UI().filter((f) => estTsx(f) && !estFichierVitest(f.rel)).flatMap((f) => sitesRefusMuet(f).map((s) => s.cle)),
-    );
-    const perimees = [...REFUS_MUET_EXEMPT_SITES.keys()].filter((k) => !reels.has(k));
-    expect(perimees, `Exemption(s) PÉRIMÉE(S) — le site a bougé ou a été migré, retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
-  });
-
-  it('(xix) un site NEUF dans un fichier déjà exempté rougit — l’exemption est au SITE, pas au fichier', () => {
-    // `GatedAction.tsx` porte une exemption (sa propre balise) : un SECOND refus muet dans ce
-    // fichier ne doit PAS en hériter. On l'éprouve sur la source réelle du fichier exempté.
-    const src = readFileSync(join(UI, 'GatedAction.tsx'), 'utf8');
-    const dejaExempt = [...REFUS_MUET_EXEMPT_SITES.keys()].filter((k) => k.startsWith('GatedAction.tsx:'));
-    expect(dejaExempt).toHaveLength(1);
-    const neuf = `${src}\nexport const Faux = () => <button disabled title="raison muette">x</button>;\n`;
-    const sites = tagsAvecLigne(neuf, 'button')
-      .filter(({ tag }) => /\bdisabled\b/.test(tag) && /\btitle\s*=/.test(tag))
-      .map(({ ligne }) => `GatedAction.tsx:${ligne}`)
-      .filter((cle) => !REFUS_MUET_EXEMPT_SITES.has(cle));
-    expect(sites, 'le site NEUF doit rester compté malgré l’exemption du site voisin').toHaveLength(1);
-  });
-
   it('(xix) le détecteur voit un refus muet, et ne confond pas `disabled` seul ni `title` seul', () => {
     // Le scan travaille sur des BALISES ouvrantes : on l'éprouve sur une source en mémoire plutôt que
     // sur un fichier fantôme — `openTags` est la seule dépendance de forme.
-    const tags = (src: string) => openTags(src, 'button').filter((t) => /\bdisabled\b/.test(t) && /\btitle\s*=/.test(t));
+    const tags = (src: string) => openTags(src, 'button').filter((t) => ATTR_DISABLED.test(t) && /\btitle\s*=/.test(t));
     expect(tags('<button disabled={x} title="pourquoi">a</button>')).toHaveLength(1);
+    expect(tags('<button aria-disabled={x} title="nom accessible">a</button>'), '`aria-disabled` : le refus atteignable, pas un refus muet').toHaveLength(0);
     expect(tags('<button disabled={x}>a</button>')).toHaveLength(0);
     expect(tags('<button title="nom accessible">a</button>')).toHaveLength(0);
     // Un `title` DANS une accolade d'attribut (ternaire) ne coupe pas la balise trop tôt.

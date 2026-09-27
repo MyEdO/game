@@ -52,7 +52,7 @@ export function WardModal() {
   return (
     <RollShell
       flowKey="ward"
-      stake={flowStakeRef('ward', 'roll')}
+      stake={flowStakeRef('ward-roll')}
       title={<><Icon id="action/defend" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>

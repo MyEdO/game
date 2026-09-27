@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canReroll } from './fortune';
+import { canReroll, fateSaveOptions } from './fortune';
 import { evaluateTest } from './tests';
 import { rederivePassiveAttack } from './combat';
 import { rederiveCastSL, type SpellLike } from './magic';
@@ -35,6 +35,15 @@ const cible = (E = 30): Combatant =>
     wounds: { current: 10, max: 10 }, skills: [],
   }) as unknown as Combatant;
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+
+describe('fateSaveOptions — options offertes du sacrifice de Destin (LDB 17 l.29-32)', () => {
+  it('sur le coup qui porte : « Meurs un autre jour » puis « Comment ça a pu rater ? », ordre du livre', () => {
+    expect(fateSaveOptions('hit')).toEqual(['survive', 'negate']);
+  });
+  it('sur une mort lente : « Meurs un autre jour » seul (lecture de LDB 17 l.32)', () => {
+    expect(fateSaveOptions('slow')).toEqual(['survive']);
+  });
+});
 
 describe('rederivePassiveAttack — +1 DR (re-dérive un tir figé sans relancer)', () => {
   it('+1 DR augmente les Dégâts d’un tir réussi (BE+PA constants)', () => {

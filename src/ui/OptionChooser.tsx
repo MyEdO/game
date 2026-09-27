@@ -1,5 +1,6 @@
-import { useId, type ReactNode } from 'react';
-import { GatedAction } from './GatedAction';
+import { Fragment, useId, type ReactNode } from 'react';
+import { GatedAction, classeBouton } from './GatedAction';
+import { NoteDeRangee } from './StakeNote';
 
 /**
  * Une « option de jet » sélectionnable : libellé + (valeur effective) + disponibilité + action.
@@ -17,9 +18,9 @@ export interface RollOption {
   hidden?: boolean;
   /** Option RETENUE (état ferré : `aria-pressed`, peint par `base.css`). */
   selected?: boolean;
-  /** layout `grid`/`actions` : bouton mis en avant (classe `btn-primary`). */
+  /** layout `grid`, `ChoiceButtons` : bouton mis en avant (classe `btn-primary`). */
   primary?: boolean;
-  /** layout `actions` : bouton discret (classe `btn-ghost`, ex. « Renoncer »/« Subir »). */
+  /** `ChoiceButtons` : geste discret (classe `btn-ghost`, ex. « Annuler »/« Subir »). */
   ghost?: boolean;
   /** Rendu custom à la place de `label value` (ex. portraits de Cible montée). */
   content?: ReactNode;
@@ -27,8 +28,8 @@ export interface RollOption {
 }
 
 /**
- * Option porteuse d'une RAISON DE REFUS — MÊME forme pour les trois layouts (`grid`, `seg`,
- * `actions`), parce que c'est le même bouton : `GatedAction`, le bouton d'engagement unique du jeu,
+ * Option porteuse d'une RAISON DE REFUS — MÊME forme pour les deux layouts (`grid`, `seg`) et pour
+ * `ChoiceButtons`, parce que c'est le même bouton : `GatedAction`, le bouton d'engagement unique du jeu,
  * qui compose lui-même l'infobulle unique (`CodexRef refus`, que d'autres sites portent directement).
  * Deux formes, selon qui tient le texte :
  *  - `refus`   : la cause est PROPRE à l'option — rendue au survol/focus/tap, jamais en texte inline
@@ -46,6 +47,10 @@ export interface RollGridOption extends RollOption {
    *  une TABLE au lieu d'un menu. Rendue au ton `hint`, après le libellé — la valeur qui compte reste
    *  le nom de la ligne. */
   range?: ReactNode;
+  /** layout `grid` : ce que l'option met en jeu (`StakeNote`), rendu à côté de son bouton, dans la
+   *  MÊME rangée (`.rm-option`) — l'appariement note/option est porté par la structure, jamais par
+   *  l'ordre. Une grille dont une option porte une note passe en rangées (verbe | conséquence). */
+  note?: ReactNode;
 }
 
 /** Option d'une barre d'ACTIONS : MÊME contrat de refus que la grille, parce que c'est le même
@@ -65,7 +70,7 @@ export type RollActionOption = RollGridOption;
 export type RollSegOption = RollGridOption & { disabled?: never };
 
 /**
- * Composition UNIQUE d'une option-bouton, partagée par les TROIS layouts : l'option qui porte une
+ * Composition UNIQUE d'une option-bouton, partagée par les deux layouts et `ChoiceButtons` : l'option qui porte une
  * raison compose `GatedAction`, l'option muette reste un `<button>`. Une seule fonction pour tous les
  * layouts — la forme du refus ne se décline pas par layout, seule la MATIÈRE change (`bare`).
  */
@@ -104,14 +109,10 @@ function OptionBouton({
       />
     );
   }
+  const classe = bare ? (btnClassName ?? '') : classeBouton({ primary, btnClassName });
+  if (o.disabled) return <button className={classe} aria-pressed={ariaPressed} disabled>{children}</button>;
   return (
-    <button
-      className={bare ? (btnClassName ?? '') : `btn${primary ? ' btn-primary' : ''}${btnClassName ? ` ${btnClassName}` : ''}`}
-      aria-pressed={ariaPressed}
-      disabled={o.disabled}
-      onClick={o.onSelect}
-      title={o.title}
-    >
+    <button className={classe} aria-pressed={ariaPressed} onClick={o.onSelect} title={o.title}>
       {children}
     </button>
   );
@@ -125,9 +126,8 @@ function OptionBouton({
  *
  * - `seg`     → segmented control (`.rm-loc-inline` + `.seg`) ; option retenue = `aria-pressed`, valeur affichée.
  * - `grid`    → grille de boutons (`.rm-loc-grid` de `.btn small`) — menus dans le corps de la modale.
- * - `actions` → barre d'actions (`.modal-actions` de `.btn`) — choix binaires (cf. `<ChoiceButtons>`).
  *
- * Les trois passent par `OptionBouton` : une option refusée y porte sa raison SOUS LA MÊME FORME,
+ * Les deux passent par `OptionBouton` : une option refusée y porte sa raison SOUS LA MÊME FORME,
  * seule la matière change (le `seg` compose en variante nue, sans `.btn`).
  */
 export function OptionChooser({
@@ -146,7 +146,6 @@ export function OptionChooser({
   idPrefix?: string;
 } & (
   | { layout: 'grid'; options: RollGridOption[] }
-  | { layout: 'actions'; options: RollActionOption[] }
   | { layout: 'seg'; options: RollSegOption[] }
 )) {
   const shown = options.filter((o) => !o.hidden);
@@ -184,12 +183,12 @@ export function OptionChooser({
     );
   }
 
-  if (layout === 'grid') {
-    return (
-      <div className="rm-loc-grid">
-        {(shown as RollGridOption[]).map((o) => (
+  const rangees = (shown as RollGridOption[]).some((o) => o.note != null);
+  return (
+    <div className="rm-loc-grid" data-notes={rangees || undefined}>
+      {(shown as RollGridOption[]).map((o) => {
+        const bouton = (
           <OptionBouton
-            key={o.key}
             o={o}
             id={`${idPrefix}-${uid}-${o.key}`}
             /* `selected` = l'option RETENUE (état `aria-pressed`, que `base.css` peint — même
@@ -208,15 +207,26 @@ export function OptionChooser({
               </>
             )}
           </OptionBouton>
-        ))}
-      </div>
-    );
-  }
+        );
+        return rangees
+          ? <div key={o.key} className="rm-option">{bouton}<NoteDeRangee.Provider value>{o.note}</NoteDeRangee.Provider></div>
+          : <Fragment key={o.key}>{bouton}</Fragment>;
+      })}
+    </div>
+  );
+}
 
-  // layout === 'actions'
+/**
+ * GESTES de décision d'une popin (Renoncer, Cible montée, relâche à terre…) :
+ * les boutons SEULS, sans conteneur — le cadre qui les reçoit les pose dans son pied (`Modal`
+ * `footer`), un panneau dans sa rangée (`Row`). Un groupe de CHOIX dans le corps est
+ * `OptionChooser layout="grid"`, jamais ceci.
+ */
+export function ChoiceButtons({ options, idPrefix = 'choix' }: { options: RollActionOption[]; idPrefix?: string }) {
+  const uid = useId();
   return (
-    <div className="modal-actions">
-      {(shown as RollActionOption[]).map((o) => (
+    <>
+      {options.filter((o) => !o.hidden).map((o) => (
         <OptionBouton
           key={o.key}
           o={o}
@@ -227,15 +237,6 @@ export function OptionChooser({
           {o.content ?? o.label}
         </OptionBouton>
       ))}
-    </div>
+    </>
   );
-}
-
-/**
- * Choix à boutons d'une popin de décision (Renoncer, Sauvegarde Destin, Piège à lame, Cible montée) —
- * `OptionChooser` en barre d'actions. Source UNIQUE des paires de boutons de choix, jusqu'ici
- * réécrites à la main (`.modal-actions` copié-collé).
- */
-export function ChoiceButtons({ options, idPrefix }: { options: RollActionOption[]; idPrefix?: string }) {
-  return <OptionChooser options={options} layout="actions" idPrefix={idPrefix} />;
 }

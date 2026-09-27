@@ -12,8 +12,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { FLOW_STAKES } from '../data';
-import { FLOW_VERBS } from '../state/flowVerbs';
 
 const UI = 'src/ui';
 
@@ -92,17 +90,9 @@ describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
     expect(perimees, ['Baseline PÉRIMÉE : ces flux ont désormais leur enjeu — retirer leur ligne :', ...perimees].join('\n')).toEqual([]);
   });
 
-  it('chaque enjeu de modale mono nomme un FLUX réel (ou la fenêtre de décision du Destin)', () => {
-    // `fateSave` n'est pas un flux de jet (aucun dé) : c'est la fenêtre de DÉCISION du Destin, dont
-    // l'enjeu se rend par la même primitive. Tout autre `flow` doit exister au vocabulaire des flux.
-    const connus = new Set([...Object.keys(FLOW_VERBS), 'fateSave']);
-    const inconnus = FLOW_STAKES.filter((e) => !connus.has(e.flow)).map((e) => `${e.id} → ${e.flow}`);
-    expect(inconnus, 'enjeu keyé sur un flux qui n’existe pas').toEqual([]);
-  });
-
   it('FAIL-CLOSED : une coquille synthétique sans enjeu est DÉTECTÉE, avec enjeu elle ne l’est pas', () => {
     const sans = `<RollShell flowKey="run" title="X" rows={[]} />`;
-    const avec = `<RollShell flowKey="run" stake={flowStakeRef('run', 'roll')} title="X" rows={[]} />`;
+    const avec = `<RollShell flowKey="run" stake={flowStakeRef('run-roll')} title="X" rows={[]} />`;
     // Une prop d'une AUTRE balise ne doit pas compter — l'enjeu doit être SUR la coquille.
     const voisin = `<div stake={x}><RollShell flowKey="run" title="X" /></div>`;
     // `flowKey` d'une RANGÉE (RollRowData) : hors périmètre, l'enjeu est porté par la coquille.

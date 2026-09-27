@@ -9,6 +9,7 @@ import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, 
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
+import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
@@ -1599,10 +1600,10 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
 }
 
 /** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
- *  (LDB 17 l.31-35) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
+ *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
  *  `foe` = « l'individu ou l'élément qui l'a presque tué » (coup direct) → Cible d'une éventuelle
  *  Animosité si le Destin est dépensé (ADE II Annexe I, règle facultative) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: 'hit' | 'slow', restoreWounds?: number, foe?: Pick<Combatant, 'label' | 'groups'>): void {
+export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Pick<Combatant, 'label' | 'groups'>): void {
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
@@ -7055,7 +7056,7 @@ export function advanceTurn(get: Get, set: SetFn) {
 export function resolveRoundBoundary(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  // (1) Un héros mourant à Destin non résolu → suspend (LDB 17 l.31-35).
+  // (1) Un héros mourant à Destin non résolu → suspend (LDB 17 l.29).
   const dying = battle.combatants.find((c) => c.kind === 'hero' && (c.fate ?? 0) > 0 && inDeathCondition(c));
   if (dying) {
     set({ pendingFateSave: { heroId: dying.id, source: 'slow' } });

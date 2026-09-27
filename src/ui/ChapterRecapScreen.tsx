@@ -6,7 +6,7 @@ import { ParchmentCard } from './ParchmentCard';
 import { Band } from './Band';
 import { RecapLineSections } from './RecapLine';
 import { XpBadge } from './creator/CreatorStepFrame';
-import { SessionEndBody } from './SessionEndModal';
+import { useSessionEnd } from './SessionEndModal';
 import { GatedAction } from './GatedAction';
 import { Grid, Row } from './Layout';
 
@@ -15,7 +15,8 @@ import { Grid, Row } from './Layout';
  * soldés, tombés en chemin), les PX du chapitre, les lieux révélés, puis la clôture de séance.
  *
  * UN seul écran, DEUX volets : le volet 1 raconte et montre l'étape suivante en APERÇU inerte, le
- * volet 2 la rend interactive (`SessionEndBody`, MÊME formulaire que la modale du menu système).
+ * volet 2 la rend interactive (`useSessionEnd`, MÊME formulaire que la modale du menu système) ;
+ * le pied de l'écran porte le geste du volet courant.
  * Fermer l'écran (Échap) ne fait qu'AJOURNER : le récap se re-pose au prochain lot d'effets tant que
  * la clôture n'a pas été CONSOMMÉE par « Terminer la séance » (`clotureConsommee`, `store.ts`).
  * « Annuler », dans le volet interactif, AJOURNE lui aussi — il ne clôt rien.
@@ -31,6 +32,7 @@ export function ChapterRecapScreen() {
   const invite = useGame((s) => s.net.mode === 'guest');
   const [volet, setVolet] = useState<1 | 2>(1);
   const [masque, setMasque] = useState(false);
+  const seance = useSessionEnd({ apercu: volet === 1, onDone: cloreChapitre, onCancel: ajourner });
   if (!recap || masque) return null;
 
   return (
@@ -40,6 +42,16 @@ export function ChapterRecapScreen() {
       closeLabel={invite ? t('chap.masquer') : t('chap.ajourner')}
       body="centered"
       ambiance="veillee"
+      etape={volet}
+      footer={volet === 1 ? (
+        <GatedAction
+          id="chap-poursuivre"
+          label={t('chap.poursuivre')}
+          enabled={!invite}
+          reason={t('chap.refusHote')}
+          onClick={() => setVolet(2)}
+        />
+      ) : seance.gestes}
     >
       <Band title={t('chap.chronique')} right={<XpBadge value={recap.px} />}>
         <ParchmentCard>
@@ -61,18 +73,7 @@ export function ChapterRecapScreen() {
         </Band>
       </Grid>
       <Band title={t('chap.seance')}>
-        {volet === 1 && (
-          <div className="modal-actions">
-            <GatedAction
-              id="chap-poursuivre"
-              label={t('chap.poursuivre')}
-              enabled={!invite}
-              reason={t('chap.refusHote')}
-              onClick={() => setVolet(2)}
-            />
-          </div>
-        )}
-        <SessionEndBody apercu={volet === 1} onDone={cloreChapitre} onCancel={ajourner} />
+        {seance.corps}
       </Band>
     </ScreenShell>
   );

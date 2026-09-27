@@ -1,0 +1,55 @@
+/* ══════════════════ Planche (`Planche.tsx`) ══════════════════
+   Deux colonnes dans la boîte `planche` de `Modal` : `aside` permanente à gauche, onglets et corps
+   d'onglet à droite. Au-delà de 700px, un défileur par colonne (la hauteur de la boîte ne bouge pas
+   d'un onglet à l'autre) ; en dessous, colonnes empilées, la planche entière est le seul défileur. */
+.sheet-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--sp-xl);
+}
+.sheet-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+  border-right: 1px solid var(--border);
+  padding-right: var(--sp-xl);
+  min-height: 0;
+  overflow-y: auto;
+}
+.planche-nom {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.05;
+  color: var(--gold2);
+}
+.sheet-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+  min-width: 0;
+  min-height: 0;
+}
+.sheet-tabbody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+@media (max-width: 700px) {
+  .sheet-layout {
+    grid-template-columns: 1fr;
+    grid-auto-rows: max-content;
+    overflow-y: auto;
+  }
+  .sheet-aside {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: var(--sp-lg);
+    overflow-y: visible;
+  }
+  .sheet-tabbody {
+    overflow-y: visible;
+  }
+}

@@ -10,11 +10,12 @@ import { RenounceModal } from './RenounceModal';
 import type { Combatant } from '../engine/types';
 
 /**
- * `.roll-modal` porte la GÉOMÉTRIE DE JET (voile allégé + ancrage par le bord haut, `roll-shell.css`) :
- * elle existe pour qu'on VOIE le champ de bataille sous la fenêtre pendant qu'un jet se résout. Une
- * fenêtre qui ne résout aucun jet — sauvegarde, décision d'escale/d'accostage, « Je te renie ! » après
- * un Test déjà résolu — n'a rien à montrer dessous : elle prend la coquille nue (`variant="plain"`).
- * Le contrat se mesure sur le RENDU (la classe posée), jamais sur la prop passée.
+ * Deux états DISTINCTS du voile (`modal.css`) : `data-champ` (champ lisible : voile allégé, ancrage
+ * par bandes) et `data-plein` (plein écran ≤560). Le champ lisible sert une décision DE COMBAT, le
+ * plein écran le seul jet (`RollShell`). Une fenêtre qui ne résout aucun jet — sauvegarde, décision
+ * d'escale/d'accostage, « Je te renie ! » après un Test déjà résolu — n'a rien à montrer dessous :
+ * elle ne porte ni l'un ni l'autre, sans rien écrire (la valeur par défaut est le cas courant).
+ * Le contrat se mesure sur le RENDU (l'état posé), jamais sur la prop passée.
  *
  * Rendu DOM et non SSR : ces fenêtres sont CONNECTÉES au store, et `renderToStaticMarkup` sert
  * l'instantané serveur (chaîne vide) — le contrat n'y mesurerait aucune boîte.
@@ -73,14 +74,35 @@ const NON_JET: [string, () => JSX.Element][] = [
   ['RenounceModal', () => <RenounceModal />],
 ];
 
-describe('géométrie de jet : réservée aux fenêtres QUI RÉSOLVENT un jet', () => {
+describe('champ lisible et plein écran : réservés aux fenêtres de combat et de jet', () => {
   for (const [name, node] of NON_JET) {
-    it(`${name} rend sa boîte SANS la classe de fenêtre de jet`, () => {
+    it(`${name} rend son voile SANS champ lisible ni plein écran`, () => {
       act(() => root.render(node()));
       const box = host.querySelector('[role="dialog"]');
       // Sans cette borne, une fenêtre rendue `null` (pending absent) passerait le contrat pour rien.
       expect(box, `${name} n'a rendu aucune boîte : le contrat ci-dessous ne mesurerait rien.`).not.toBeNull();
-      expect([...box!.classList]).not.toContain('roll-modal');
+      expect(box!.parentElement!.hasAttribute('data-champ')).toBe(false);
+      expect(box!.parentElement!.hasAttribute('data-plein')).toBe(false);
+    });
+  }
+});
+
+/**
+ * FORME UNIQUE du cadre (#1920) : le voile porte les ÉTATS, la boîte est une colonne titre → corps →
+ * pied, et le pied est un ENFANT DIRECT de la boîte — jamais dans le corps qui défile. Les gestes d'une
+ * décision arrivent au pied par `footer` ; un corps partagé ne pose jamais de barre.
+ */
+describe('Modal — voile à états, boîte titre / corps / pied', () => {
+  for (const [name, node] of NON_JET) {
+    it(`${name} : titre, corps, pied — dans cet ordre, le pied hors du corps`, () => {
+      act(() => root.render(node()));
+      const box = host.querySelector<HTMLElement>('[role="dialog"]')!;
+      expect(box.parentElement!.classList.contains('modal-overlay')).toBe(true);
+      const enfants = [...box.children];
+      expect(enfants[enfants.length - 2].classList.contains('modal-body')).toBe(true);
+      expect(enfants[enfants.length - 1].classList.contains('cadre-pied')).toBe(true);
+      expect(box.querySelectorAll('.cadre-pied')).toHaveLength(1);
+      expect(box.querySelector('.modal-body .cadre-pied')).toBeNull();
     });
   }
 });

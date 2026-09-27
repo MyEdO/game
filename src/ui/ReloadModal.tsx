@@ -71,7 +71,7 @@ export function ReloadModalView({
   return (
     <RollShell
       flowKey="reload"
-      stake={flowStakeRef('reload', 'roll', { values: { indice: pr.reload } })}
+      stake={flowStakeRef('reload-roll', { values: { indice: pr.reload } })}
       title="Recharger"
       subtitle={<>{weaponName}</>}
       /* QUI recharge → portrait dans la ligne de jet ; Projectiles/cible vivent dans le cadre, le cumul dans la rangée. */

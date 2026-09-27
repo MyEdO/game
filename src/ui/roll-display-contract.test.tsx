@@ -390,23 +390,25 @@ describe('sous-ligne d’une rangée — CANAL UNIQUE `note` (#1078)', () => {
 });
 
 /**
- * Enfants DIRECTS de `.rs-scroll`, dans l'ordre du document — lus sur le markup rendu (l'environnement
- * de test est `node`, sans DOM). Le compteur de profondeur ne s'appuie que sur la syntaxe
+ * Enfants DIRECTS de la pile du corps (`.modal-body > .stack`, `RollShell.tsx`) de la coquille, dans
+ * l'ordre du document — lus sur le markup rendu (l'environnement de test est `node`, sans DOM). Le compteur de profondeur ne s'appuie que sur la syntaxe
  * auto-fermante émise par `react-dom/server` (`<br/>`, `<img …/>`) : aucune liste de balises vides à
  * tenir à jour, donc aucun angle mort quand un rendu SVG entre dans une zone.
  */
 function scrollChildren(html: string): string[] {
-  const marker = '<div class="rs-scroll">';
+  const marker = '<div class="modal-body">';
   const start = html.indexOf(marker);
-  expect(start, 'la coquille rend bien son corps défilable `.rs-scroll`').toBeGreaterThanOrEqual(0);
+  expect(start, 'la coquille rend bien son corps défilable `.modal-body`').toBeGreaterThanOrEqual(0);
+  const pile = /^<div class="stack"[^>]*>/.exec(html.slice(start + marker.length));
+  expect(pile, 'le corps est une pile `Stack`').not.toBeNull();
   const out: string[] = [];
   let depth = 0;
   const tagRe = /<(\/?)([a-zA-Z][-\w]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
-  tagRe.lastIndex = start + marker.length;
+  tagRe.lastIndex = start + marker.length + pile![0].length;
   for (let m = tagRe.exec(html); m; m = tagRe.exec(html)) {
     const [, fermante, tag, attrs, autoFermante] = m;
     if (fermante) {
-      if (depth === 0) break; // le `</div>` de `.rs-scroll` lui-même : fin des enfants directs
+      if (depth === 0) break; // le `</div>` de la pile elle-même : fin des enfants directs
       depth--;
       continue;
     }
@@ -434,7 +436,7 @@ describe('RollShell — ORDRE DU DOCUMENT : rien de volatile au-dessus des rang�
   const preRow = buildRollRow({ row: { pending: testPending('Athlétisme', 45) }, onRoll: noop });
   const setupNode = <div className="rm-options">Parade / Esquive</div>;
   /** Nœuds STABLES d'un site, servis en Fragment : présents aux deux états, ils décalent l'index
-   *  des enfants directs de `.rs-scroll` sans toucher à l'ordre relatif que le contrat mesure. */
+   *  des enfants directs de la pile du corps sans toucher à l'ordre relatif que le contrat mesure. */
   const extraNode = <><div className="rm-portraits">Gustav</div><div className="rm-subtitle">Portée</div></>;
   /** Zones VOLATILES : elles n'existent qu'APRÈS le jet. Les trois premières sont rendues par la
    *  coquille elle-même (`RollShell.tsx` : `.rm-journal`, `.rm-netsl`, `.rm-summary`) ; les deux

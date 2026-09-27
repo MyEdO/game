@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { evalCondition, conditionCtx } from '../state/flow';
@@ -10,7 +10,7 @@ import type { IconIdInput } from './icons';
 import { SpeakerBanner } from './SpeakerBanner';
 import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision, groupDecisionSeat } from './ownership';
-import { useDismissLayer } from './useDismissLayer';
+import { useModalA11y } from './Modal';
 import { GatedAction } from './GatedAction';
 
 export function DialogueBox() {
@@ -27,9 +27,16 @@ export function DialogueBox() {
   const owns = useOwnsGroupDecision();
   const net = useGame((s) => s.net);
   const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
-  // COUCHE BLOQUANTE : une conversation en cours consomme le congédiement sans rien fermer — on en
-  // sort par une réponse, jamais par Échap (`onDismiss: null`, l'équivalent de `closedBy="none"`).
-  useDismissLayer('dialogue', null, !!dialogue);
+  // DIALOGUE de la pile (`useModalA11y`) : la conversation suspend le jeu — registre clavier et manette
+  // muets, Tab piégé dans ses choix, focus emprunté à l'ouverture et à chaque nœud — par la même source
+  // que toute surface du dessus (`dialogueDuDessus`). Sans `onClose`, sa couche est BLOQUANTE : on en
+  // sort par une réponse, jamais par Échap (l'équivalent de `closedBy="none"`). Porteur du piège, elle
+  // déclare sa boîte en dialogue modal nommé (`ScreenShell.tsx`, WAI-ARIA APG « Dialog (Modal) Pattern ») :
+  // nom = le locuteur, description = la réplique.
+  const boite = useRef<HTMLDivElement>(null);
+  const nomId = useId();
+  const repliqueId = useId();
+  useModalA11y(boite, undefined, { kind: 'dialogue', actif: !!dialogue, etape: dialogue?.nodeId });
   if (!dialogue) return null;
   const node = dialogue.dialogue.nodes.find((n) => n.id === dialogue.nodeId);
   if (!node) return null;
@@ -45,7 +52,12 @@ export function DialogueBox() {
     .filter(({ c }) => !c.when || evalCondition(c.when, conditionCtx({ flags, gameTime, party, money })));
 
   return (
-    <SpeakerBanner ent={speakerEnt} label={speakerName} variant="dialogue" choices={<>
+    <SpeakerBanner
+      ref={boite} ent={speakerEnt} label={speakerName} variant="dialogue"
+      role="dialog" aria-modal="true"
+      aria-labelledby={speakerName ? nomId : undefined} aria-label={speakerName ? undefined : 'Conversation'}
+      aria-describedby={node.desc ? repliqueId : undefined} labelId={nomId} textId={repliqueId}
+      choices={<>
       {visible.map(({ c, i }) => {
         // Option payante : affiche le prix et se désactive si on ne peut pas payer (répétable sinon).
         const cost = c.cost && toMoney(c.cost);

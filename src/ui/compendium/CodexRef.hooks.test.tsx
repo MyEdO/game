@@ -115,6 +115,52 @@ describe('CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épin
   });
 });
 
+describe('CodexRef — bascule `tooltipOnly` en TOGGLETIP : la bulle est ANNONCÉE par une région `role="status"`', () => {
+  beforeAll(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  });
+  let container: HTMLDivElement;
+  let root: Root;
+  afterEach(() => {
+    act(() => { root.unmount(); });
+    container.remove();
+  });
+  const terme = <CodexRef category="characteristics" id="mouvement" label="Mouvement" tooltipOnly>Mouvement</CodexRef>;
+  const region = () => container.querySelector<HTMLElement>('[role="status"]');
+  const touche = (el: HTMLElement, key: string) => act(() => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key, code: key === ' ' ? 'Space' : key, bubbles: true, cancelable: true }));
+  });
+
+  it('Entrée, Espace et clic : le texte de la bulle entre dans la région ; Entrée, Échap et clic ailleurs la vident', () => {
+    ({ container, root } = mount(terme));
+    const declencheur = container.querySelector<HTMLElement>('.codex-ref')!;
+    expect(region(), 'la région existe AVANT l’activation (sinon rien n’est annoncé)').toBeTruthy();
+    expect(region()!.textContent, 'fermée : région vide').toBe('');
+    expect(declencheur.hasAttribute('aria-expanded'), 'le déclencheur d’un toggletip n’a pas d’état déplié').toBe(false);
+    const ouvertures: [string, () => void][] = [
+      ['Entrée', () => touche(declencheur, 'Enter')],
+      ['Espace', () => touche(declencheur, ' ')],
+      ['clic', () => act(() => { declencheur.click(); })],
+    ];
+    const fermetures: [string, () => void][] = [
+      ['Entrée', () => touche(declencheur, 'Enter')],
+      ['Échap', () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); })],
+      ['clic ailleurs', () => act(() => { document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); })],
+    ];
+    for (const [i, [geste, ouvrir]] of ouvertures.entries()) {
+      ouvrir();
+      const bulle = document.querySelector<HTMLElement>('.codex-pop');
+      expect(bulle, `${geste} ouvre la bulle`).toBeTruthy();
+      expect(region()!.textContent, `${geste} : la région annonce la bulle`).toContain('Mouvement');
+      expect(region()!.textContent!.length, `${geste} : la région porte le corps de la bulle`).toBeGreaterThan('Mouvement'.length);
+      const [fermeture, fermer] = fermetures[i];
+      fermer();
+      expect(document.querySelector('.codex-pop'), `${fermeture} ferme la bulle`).toBeNull();
+      expect(region()!.textContent, `${fermeture} : la région est vidée`).toBe('');
+    }
+  });
+});
+
 /**
  * #1117 — les deux CHEMINS distincts du popover, chacun sa preuve :
  *  - ÉPINGLÉ (le focus est parti DANS le popover) : Échap doit RENDRE le focus au contrôle englobé ;
@@ -138,18 +184,41 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     </CodexRef>
   );
 
-  it('ÉPINGLÉ (↓ depuis le contrôle) : Échap referme ET rend le focus au contrôle englobé', () => {
+  it('ÉPINGLÉ (↓ depuis le contrôle focalisé) puis désépinglé (Échap) : le focus revient au contrôle englobé, et ce retour n’ouvre pas la bulle', () => {
     ({ container, root } = mount(chip));
-    const trigger = container.querySelector('.codex-ref') as HTMLElement;
     const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
-    act(() => { trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    act(() => { inner.focus(); });
+    expect(document.querySelector('.codex-pop'), 'le focus du joueur ouvre la bulle').toBeTruthy();
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
     expect(document.querySelector('.codex-pop'), 'le popover est épinglé').toBeTruthy();
-    expect(document.activeElement, 'le focus est ENTRÉ dans le popover (sa porte)').not.toBe(inner);
+    expect(document.activeElement, 'le focus est ENTRÉ dans le popover, sur sa porte')
+      .toBe(document.querySelector('.codex-pop button'));
     sommetEstLePopover('le popover épinglé doit être la couche que l’appui adresse');
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
-    expect(document.querySelector('.codex-pop'), 'Échap referme l’épinglé').toBeNull();
-    expect(dismissStackKinds(), 'refermé, il n’est plus une couche').toEqual([]);
     expect(document.activeElement, 'le focus REVIENT au contrôle, jamais dans le vide').toBe(inner);
+    expect(document.querySelector('.codex-pop'), 'le retour du focus ne rouvre pas la bulle').toBeNull();
+    expect(dismissStackKinds(), 'refermé, il n’est plus une couche').toEqual([]);
+  });
+
+  it('ÉPINGLÉ puis désépinglé par un clic sur un AUTRE contrôle : le focus reste sur ce contrôle, l’invocateur ne le vole pas', () => {
+    ({ container, root } = mount(
+      <>
+        {chip}
+        <button type="button" id="autre">Autre</button>
+      </>,
+    ));
+    const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
+    const autre = container.querySelector('#autre') as HTMLButtonElement;
+    act(() => { inner.focus(); });
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    expect(document.activeElement, 'épinglé : le focus est sur la porte').toBe(document.querySelector('.codex-pop button'));
+    // Un clic réel : `mousedown` (qui désépingle) puis, action par défaut, le focus du contrôle cliqué.
+    act(() => {
+      autre.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      autre.focus();
+    });
+    expect(document.querySelector('.codex-pop'), 'le clic dehors désépingle').toBeNull();
+    expect(document.activeElement, 'le focus reste sur le contrôle cliqué').toBe(autre);
   });
 
   it('NON épinglé : un bouton SOUS le popover reçoit bien le clic (plus d’interception)', () => {

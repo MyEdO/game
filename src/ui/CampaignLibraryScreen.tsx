@@ -239,13 +239,13 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
         {selected.kind === 'library' && selected.sp.project.auteur && (
           <p className="mini-title">Par {selected.sp.project.auteur}</p>
         )}
-        <div className="modal-actions">
+        <Row justify="end">
           <button type="button" className="btn btn-primary" onClick={() => play(selected)}>Jouer</button>
           <button type="button" className="btn" onClick={() => exportEntry(selected)}>Exporter</button>
           {selected.kind === 'library' && (
             <button type="button" className="btn danger" onClick={() => remove(selected)}>Supprimer</button>
           )}
-        </div>
+        </Row>
         {refusEntree && <p className="chip tone-danger" role="alert">{refusEntree}</p>}
       </Stack>
     );

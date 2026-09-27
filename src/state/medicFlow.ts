@@ -19,7 +19,7 @@ import { type Combatant, type Difficulty } from '../engine/types';
 import { rollLine } from './rollSeam';
 import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
-import { flowStakeRef, type StakeRef, type SkillRef } from '../data';
+import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { extendedTestStep } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
@@ -120,6 +120,12 @@ export function closeMedic(get: Get, set: Set): void {
   set({ medic: null });
 }
 
+/** Enjeu servi par chaque acte de soin ; `surgery`/`recovery` : celui de l'opération que l'acte arme. */
+export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
+  wounds: 'heal-wounds', bleed: 'heal-bleed', trauma: 'heal-trauma', ammo: 'heal-ammo',
+  surgery: 'surgery-roll', recovery: 'surgery-recovery',
+};
+
 /** Lance un ACTE sur le patient courant : wounds/bleed/trauma → jet différé (pendingHeal) ;
  *  surgery/recovery → ARME l'opération étendue (les passes suivent). PNJ : débite le tarif de l'acte. */
 export function medicAct(get: Get, set: Set, act: HealMode): void {
@@ -165,7 +171,7 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
           kind: act, difficulty: recovery ? 'accessible' : 'intermediaire',
           healerId: healer.id, healerName: healer.label, skill: healer.skill, support: healer.support, intBonus: healer.intBonus,
           traumaIdx: 0, targetDR, cumDR: 0, paidCost,
-          stake: flowStakeRef('surgery', recovery ? 'recovery' : 'roll', { values: { targetDR } }),
+          stake: flowStakeRef(HEAL_STAKE[act], { values: { targetDR } }),
         },
       },
     });
@@ -271,6 +277,14 @@ export function surgeryNext(get: Get, set: Set): void {
   set({ medic: { ...m, surgery: { ...sg, cumDR: cum, last: { roll: ps.roll, sl: ps.sl } } }, pendingSurgery: null, ...touchActors(get()) });
   get().log(log[0]);
   openSurgeryPass(get, set);
+}
+
+/** Annule la PASSE posée, avant son jet : l'opération armée (`medic.surgery`), son cumul et l'acte payé
+ *  restent ; `openSurgeryPass` la repose. */
+export function surgeryPassCancel(get: Get, set: Set): void {
+  const ps = get().pendingSurgery;
+  if (!ps || ps.roll != null) return;
+  set({ pendingSurgery: null });
 }
 
 /** Annule la Chirurgie : le cumul du Test étendu (LDB 12 l.170-174) est perdu. Jamais commencée

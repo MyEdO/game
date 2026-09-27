@@ -9,6 +9,7 @@ import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
 import type { TypeEntite } from './schemas/grammaire/ref';
+import type { IdsParDataset } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from '../state/merchants/types';
@@ -241,16 +242,13 @@ export interface VoyageStakeEntry {
 }
 export const VOYAGE_STAKES = voyageStakesJson as VoyageStakeEntry[];
 
-/** ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par l'id de jet `{flow, phase}` — `phase` est LU
- *  dans l'état du pending, jamais écrit au site de rendu. Le foyer de la règle est l'entité qui la
- *  PORTE (`rule` + `ruleCategory`), ou l'ENTRÉE jouée quand `entryCategory` la déclare :
- *  cf. `schemas/defs/flow-stakes.ts`. */
+/** ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par son `id` (`FlowStakeId`). Le foyer de la
+ *  règle est l'entité qui la PORTE (`rule` + `ruleCategory`), ou l'ENTRÉE jouée quand `entryCategory`
+ *  la déclare : cf. `schemas/defs/flow-stakes.ts`. */
 export interface FlowStakeEntry {
-  id: string;
+  id: FlowStakeId;
   type: 'flow-stakes';
   label: string;
-  flow: string;
-  phase: string;
   template: string;
   form: StakeForm;
   rule?: string;
@@ -260,6 +258,8 @@ export interface FlowStakeEntry {
   source: SourceRef;
 }
 export const FLOW_STAKES = flowStakesJson as FlowStakeEntry[];
+/** Id d'un enjeu de modale mono : l'union GÉNÉRÉE des ids de `flow-stakes.json` (`scripts/gen-registry.mjs`). */
+export type FlowStakeId = IdsParDataset['flow-stakes.json'];
 
 /** ENJEU d'un `kind` d'étape de CASCADE (#1117 L2) — jumeau de `FlowStakeEntry`, keyé par un `kind`
  *  au lieu du couple `{flow, phase}` : cf. `schemas/defs/combat-stakes.ts`. Le `kind` est celui de
@@ -346,13 +346,9 @@ export const ACTIONS = actionsJson as ActionDef[];
 /** Action par id STABLE (jamais par libellé). */
 export const findActionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
-/** Id de JET d'une modale mono : le couple `{flow, phase}` aplati en `kind` de `StakeKey`. SOURCE
- *  UNIQUE de la composition — la donnée porte les deux moitiés séparément, la clé les recolle ici. */
-const flowKind = (flow: string, phase: string) => `${flow}/${phase}`;
-
 /** DATASET d'enjeux servant une famille de jets (#1117). Union FERMÉE : ajouter une famille = ajouter
  *  son dataset ICI et sa branche dans `resolveStake` — jamais une N-ième porte de résolution. */
-export type StakeDataset = 'night' | 'voyage' | 'weather' | 'flow' | 'activity' | 'combat';
+export type StakeDataset = 'night' | 'voyage' | 'weather' | 'flow' | 'activity' | 'combat' | 'etat';
 
 /** CLÉ d'enjeu — la coordonnée de la DONNÉE, jamais son texte. `entryId` fait DESCENDRE la résolution
  *  à l'ENTRÉE jouée quand elle existe (le symptôme d'une étape de maladie, la psychologie affrontée,
@@ -375,7 +371,7 @@ export interface StakeKey {
  *  ses trous. Seule forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas
  *  (arbitrage Z5 appliqué à la zone d'enjeu), les producteurs passent par les portes fail-closed
  *  (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`, `voyageStakeRef`, `activityStakeRef`,
- *  `weatherStakeRef`). */
+ *  `weatherStakeRef`, `stateRecoveryStakeRef`). */
 export interface CatalogStake {
   key: StakeKey;
   values?: Record<string, string | number>;
@@ -522,7 +518,7 @@ const STAKE_ENTRY_CATALOG: Record<string, { category: string; has: (id: string) 
   ...Object.fromEntries(
     (flowStakesJson as FlowStakeEntry[])
       .filter((e) => e.entryCategory)
-      .map((e) => [flowKind(e.flow, e.phase), { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
+      .map((e) => [e.id, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
   ),
   ...Object.fromEntries(
     (combatStakesJson as CombatStakeEntry[])
@@ -592,10 +588,16 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     const rt = weatherData.conditions.find((c) => c.id === key.kind)?.resistanceTest;
     return rt?.enjeu ? { text: rt.enjeu } : undefined;
   }
+  if (key.dataset === 'etat') {
+    // RÉCUPÉRATION d'un État : l'enjeu vit sur l'État (`etats.json`, `recover.enjeu`) — key.kind = l'id
+    // de l'État, qui est aussi le foyer de la règle.
+    const r = etats.find((x) => x.id === key.kind)?.recover;
+    return r ? { text: r.enjeu, rule: { category: 'etats', id: key.kind } } : undefined;
+  }
   if (key.dataset === 'flow') {
-    // MODALES MONO : `key.kind` = l'id de jet `{flow, phase}` aplati. Le FOYER est l'entité porteuse
-    // déclarée par l'entrée ; l'ENTRÉE JOUÉE (chanson, type de Test d'équipage) prime quand la clé la nomme.
-    const e = FLOW_STAKES.find((x) => flowKind(x.flow, x.phase) === key.kind);
+    // MODALES MONO : `key.kind` = l'id de l'entrée. Le FOYER est l'entité porteuse déclarée par
+    // l'entrée ; l'ENTRÉE JOUÉE (chanson, type de Test d'équipage) prime quand la clé la nomme.
+    const e = FLOW_STAKES.find((x) => x.id === key.kind);
     if (!e) return undefined;
     const rule = kindRule(e.rule, e.ruleCategory ?? 'regles');
     return { text: entryText(key) ?? e.template, ...(rule ? { rule } : {}) };
@@ -694,37 +696,28 @@ export function weatherStakeRef(weatherId: string): StakeRef {
   return { key: { dataset: 'weather', kind: weatherId } };
 }
 
-/** RÉFÉRENCE d'enjeu d'une MODALE MONO (#1117 L1b) — patron `voyageStakeRef` : le couple `{flow, phase}`
- *  se valide À LA CONSTRUCTION (fail-closed au plus tôt), la `phase` venant TOUJOURS d'un champ d'état
- *  du pending. `entryId` = l'ENTRÉE JOUÉE quand le jet en nomme une (la chanson chantée, le type de
- *  Test d'équipage) : le renvoi descend alors à SA fiche ; un id inconnu replie sur le foyer du jet.
- *
- *  ASYMÉTRIE ASSUMÉE vs `nightStakeRef` (dont le TYPE ferme le vocabulaire, `NightTestKind`) : ici les
- *  deux moitiés sont des `string`. Une union TS dérivée du dataset est impraticable sans codegen
- *  (`resolveJsonModule` élargit tout littéral JSON en `string`), et une union manuscrite serait une 2ᵉ
- *  source du même vocabulaire (le péché que #1117 combat). La fermeture vit donc au TEST, où les deux
- *  vraies autorités sont confrontables : `state/flow-stake-coverage.test.ts` croise l'union de phase de
- *  CHAQUE pending câblé (`Record<union, true>` → `tsc` rouge si l'union s'élargit) et la donnée éditable
- *  (`etats.recover`, dans les deux sens) avec ce dataset. Le throw ci-dessous reste le SECOND rideau. */
-/** L'id de jet `{flow, phase}` a-t-il son entrée d'enjeu ? PRÉDICAT de la MÊME porte que
- *  `flowStakeRef` (aucune seconde résolution) — pour les surfaces qui listent des jets dont SEULS
- *  CERTAINS sont authorés (le menu d'infirmerie : ses actes de Guérison le sont, la rééducation non).
- *  Elles n'ont ainsi ni à connaître le stock, ni à rattraper un throw. */
-export function hasFlowStake(flow: string, phase: string): boolean {
-  return !!stakeEntry({ dataset: 'flow', kind: flowKind(flow, phase) });
+/** RÉFÉRENCE d'enjeu de RÉCUPÉRATION d'un État — l'appelant n'appelle QUE pour un État qui déclare
+ *  `recover` (`etats.json`), dont `enjeu` est exigé au schéma ; un État sans `recover` JETTE. */
+export function stateRecoveryStakeRef(etatId: string): StakeRef {
+  if (!stakeEntry({ dataset: 'etat', kind: etatId })) {
+    throw new Error(`stateRecoveryStakeRef('${etatId}') : aucun enjeu déclaré (etats.json, recover.enjeu)`);
+  }
+  return { key: { dataset: 'etat', kind: etatId } };
 }
 
+/** RÉFÉRENCE d'enjeu d'une MODALE MONO (#1117 L1b) — patron `voyageStakeRef`. Le TYPE ferme l'id
+ *  (`FlowStakeId`, généré) en PREMIER rideau, le throw est le second. `entryId` = l'ENTRÉE JOUÉE quand
+ *  le jet en nomme une (la chanson chantée, le type de Test d'équipage) : le renvoi descend alors à SA
+ *  fiche ; un id inconnu replie sur le foyer du jet. */
 export function flowStakeRef(
-  flow: string,
-  phase: string,
+  id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
 ): StakeRef {
-  const kind = flowKind(flow, phase);
-  if (!stakeEntry({ dataset: 'flow', kind })) {
-    throw new Error(`flowStakeRef('${kind}') : aucune entrée d'enjeu (flow-stakes.json) — une modale qui LANCE dit ce qu'elle met en jeu`);
+  if (!stakeEntry({ dataset: 'flow', kind: id })) {
+    throw new Error(`flowStakeRef('${id}') : aucune entrée d'enjeu (flow-stakes.json) — une modale qui LANCE dit ce qu'elle met en jeu`);
   }
   return {
-    key: { dataset: 'flow', kind, ...(opts?.entryId ? { entryId: opts.entryId } : {}) },
+    key: { dataset: 'flow', kind: id, ...(opts?.entryId ? { entryId: opts.entryId } : {}) },
     ...(opts?.values ? { values: opts.values } : {}),
   };
 }
@@ -1470,7 +1463,7 @@ export interface EtatData extends StatusData {
    *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
    *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
    *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: Ref; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
+  recover?: { skill?: Ref; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
   /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
    *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
    *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */

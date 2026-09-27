@@ -2,7 +2,7 @@
  * LAYOUT PROTHÉSÉ POUR jsdom — source UNIQUE de la boîte non nulle attendue par `Modal`.
  *
  * jsdom n'a AUCUN moteur de layout : `getClientRects()` y rend une liste VIDE pour tout élément.
- * Or `visibleFocusables`/`choiceOptions`/`focusTarget` (`src/ui/Modal.tsx`) filtrent dessus — sans
+ * Or `visibleFocusables` (`src/ui/focus.ts`), `choiceOptions`/`focusTarget` (`src/ui/Modal.tsx`) filtrent dessus — sans
  * prothèse, tout focusable est jugé invisible et un banc clavier passe (ou échoue) pour la mauvaise
  * raison. La boîte est la seule chose que ce filtre mesure vraiment en navigateur.
  *

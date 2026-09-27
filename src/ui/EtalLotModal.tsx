@@ -42,7 +42,7 @@ export function EtalLotModal() {
       title={<><Icon id="nav/dice" size="sm" /> {p.label}</>}
       instruction="Les dés de l’étal sont tombés — posez ceux que vous voulez fixer, puis ouvrez."
       rows={rows}
-      stake={flowStakeRef('etalLot', 'pose')}
+      stake={flowStakeRef('etal-lot')}
       rolled
       actions={actions}
       onCancel={cancel}

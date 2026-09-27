@@ -3,7 +3,7 @@
  * Chips de modificateur CODEX-LIÉES (#1078 LOT B3a). Trois contrats :
  *  1. une ligne qui porte sa RÈGLE (`ModLine.ref`) rend un `CodexRef` CLIQUABLE (la chip EST
  *     l'affordance — il n'y a plus d'ⓘ voisin) ;
- *  2. son popover s'ouvre DANS le corps DÉFILABLE d'une `RollShell` (`.rs-scroll`) sans être
+ *  2. son popover s'ouvre DANS le corps DÉFILABLE d'une `RollShell` (`.modal-body` de `Modal`) sans être
  *     coupé : `CodexRef` le rend en PORTAL sur `document.body`, hors du scrollport ;
  *  3. la PROVENANCE se NOMME au rendu : aucun producteur ne passe de résolveur (recette B3a —
  *     un site qui l'oubliait affichait « pregen-101 » à l'écran).
@@ -68,9 +68,9 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     expect(avantage.getAttribute('role')).toBeNull();
   });
 
-  it('POPOVER dans le corps DÉFILÉ (.rs-scroll) : porté sur document.body, hors du scrollport', () => {
+  it('POPOVER dans le corps DÉFILÉ (.modal-body) : porté sur document.body, hors du scrollport', () => {
     ({ container, root } = mount(shell([{ label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser }])));
-    const scroll = container.querySelector('.rs-scroll');
+    const scroll = container.querySelector('.modal-body');
     expect(scroll, 'la coquille rend bien son corps défilable').not.toBeNull();
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
     expect(scroll!.contains(chip), 'la chip vit DANS le scrollport').toBe(true);

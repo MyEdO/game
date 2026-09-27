@@ -338,8 +338,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                         center={c.qty}
                         onDec={() => onDecCart(c.id)}
                         onInc={() => onAddToCart(c.id)}
-                        incDisabled={sealed || c.qty >= stockQty}
-                        incTitle={sealed ? 'Marché négocié — vous ne pouvez plus ajouter' : undefined}
+                        incDisabled={c.qty >= stockQty}
+                        refus={{ id: `panier-${c.id}`, inc: sealed ? 'Marché négocié — vous ne pouvez plus ajouter' : undefined }}
                         decLabel="Un de moins"
                         incLabel="Un de plus"
                       />
@@ -439,14 +439,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   label={(l) => (
                     isUnitCat ? (
                       // Unité (#619 Lot A) : aucune fiche de détail à déplier (pas d'`ItemInstance` de
-                      // trapping) — un caret sans contenu serait une affordance morte.
+                      // trapping) — un chevron sans contenu serait une affordance morte.
                       <span className="merch-name">
                         {labelOf(l.id)}
                         <span className="merch-qty" title="En stock">×{l.qty}</span>
                       </span>
                     ) : (
                       <button className="merch-name as-link" onClick={() => toggleDetails(l.id)} aria-expanded={details === l.id} title="Voir les détails de l’objet">
-                        <span className="caret">{details === l.id ? '▾' : '▸'}</span> {labelOf(l.id)}
+                        {labelOf(l.id)}
                         <span className="merch-qty" title="En stock">×{l.qty}</span>
                       </button>
                     )
@@ -640,9 +640,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 {getStockQty < count && <span className="cart-warn"> Stock insuffisant.</span>}
               </p>
             )}
-            <div className="modal-actions">
+            <Row justify="end">
               <button className="btn btn-primary" disabled={!ok} onClick={() => give && onBarter({ giveHeroId: give.heroId, giveTrappingId: give.trappingId, getStockId: getId, getCount: count })}>Échanger</button>
-            </div>
+            </Row>
           </>
         )}
       </div>

@@ -30,6 +30,9 @@ export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
         purifié. Payez <Coins money={p.cost} /> pour une bénédiction, ou refusez et laissez l'Humeur
         de Manann chuter de 4d10.
       </p>
+    </>
+  );
+  const footer = (
       <ChoiceButtons
         idPrefix="manann"
         options={[
@@ -37,11 +40,9 @@ export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
           { key: 'refuser', label: <><Icon id="faith/trident" size="sm" /> Refuser (−4d10 Humeur de Manann)</>, refus: isGuest ? 'L\'hôte décide.' : undefined, onSelect: () => resolve(false), title: isGuest ? undefined : 'Refuser la bénédiction — Manann reste courroucé' },
         ]}
       />
-    </>
   );
-  if (embedded) return <EmbeddedShell title={title}>{body}</EmbeddedShell>;
-  // Fenêtre HORS jet (décision d'escale) : pas de géométrie de jet (voile allégé + ancrage haut).
-  return <Modal title={title} variant="plain">{body}</Modal>;
+  if (embedded) return <EmbeddedShell title={title} footer={footer}>{body}</EmbeddedShell>;
+  return <Modal title={title} footer={footer}>{body}</Modal>;
 }
 
 export function ManannPriestModal() {

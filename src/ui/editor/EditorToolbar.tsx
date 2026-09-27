@@ -99,7 +99,7 @@ export function EditorToolbar({
       <h2 title={projectName}>Éditeur</h2>
 
       <div className="editor-file" ref={menuRef}>
-        <button className={`btn small${fileOpen ? ' btn-primary' : ''}`} onClick={() => setFileOpen(!fileOpen)} aria-haspopup="menu" aria-expanded={fileOpen}>
+        <button className="btn small" onClick={() => setFileOpen(!fileOpen)} aria-haspopup="menu" aria-expanded={fileOpen}>
           Fichier ▾
         </button>
         {fileOpen && (

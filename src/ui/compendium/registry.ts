@@ -1384,10 +1384,10 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => datasetArray('voyageStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
   },
   {
-    // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par l'id de
-    // jet `{flow, phase}`. Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
+    // Troisième dataset de la famille (#1117 L1b) : l'enjeu d'un JET DE MODALE MONO, keyé par son `id`.
+    // Éditable comme ses jumeaux — le contenu est un descripteur mécanique.
     key: 'flowStakes', label: 'Enjeux — modales de jet', group: 'Tables', sourceRef: 'LDB 15/16/19/46/62 · MDG 09/12/14',
-    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { sub: `${e.flow}/${e.phase}`, desc: e.template })),
+    build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template })),
   },
   {
     // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par

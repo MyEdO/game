@@ -341,7 +341,9 @@
     "perStack": true,
     "recover": {
       "characteristic": "force",
-      "opposedBy": "source"
+      "opposedBy": "source",
+      "enjeu": "Test opposé de Force contre la source — réussi : 1 pion Empêtré retiré, et 1 de plus par DR.",
+      "form": "descripteur"
     },
     "gating": {
       "movement": "none"
@@ -509,7 +511,9 @@
     "recover": {
       "skill": {
         "id": "athletisme"
-      }
+      },
+      "enjeu": "Test d’Athlétisme — réussi : 1 pion En flammes retiré, et 1 de plus par DR.",
+      "form": "descripteur"
     },
     "icon": "condition/ablaze",
     "severity": 58,

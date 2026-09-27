@@ -1,5 +1,5 @@
 import { useGame, type PendingAppraise } from '../state/store';
-import { flowStakeRef, refLabel } from '../data';
+import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import type { Combatant } from '../engine/types';
 import { influencesLocally } from '../state/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
@@ -9,6 +9,9 @@ import { APPRAISE_SKILL } from '../state/merchantFlow';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
 import { describeAppraise } from '../state/flowOutcomes';
+
+/** Enjeu servi par chaque mode d'Évaluation. */
+const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
 
 /** Vue pure de la modale d'Évaluation (testable sans store). */
 export function AppraiseModalView({
@@ -73,7 +76,7 @@ export function AppraiseModalView({
   return (
     <RollShell
       flowKey="appraise"
-      stake={flowStakeRef('appraise', pa.mode ?? 'evaluate')}
+      stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluate'])}
       title={detect ? "Détecter l'aura" : 'Évaluer'}
       /* QUI évalue → portrait dans la ligne de jet (plus de nom en clair) ; la cible/DR vit dans le cadre. */
       subtitle={<>{pa.itemName}</>}

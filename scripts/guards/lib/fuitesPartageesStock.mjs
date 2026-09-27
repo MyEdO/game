@@ -16,7 +16,6 @@ export const FUITES_COUCHE_PARTAGEE = [
   { fichier: 'src/ui/styles.css', ref: '.error-collector-msg', occurrence: 1 },
   { fichier: 'src/ui/styles.css', ref: '.error-collector-stack', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.footnote', occurrence: 1 },
-  { fichier: 'src/ui/styles/base.css', ref: '.hero-present-actions', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-amb', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-aside', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-body', occurrence: 1 },

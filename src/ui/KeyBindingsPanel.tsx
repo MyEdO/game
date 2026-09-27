@@ -5,6 +5,7 @@ import {
   type KeyBindingSection,
 } from '../state/keybindings';
 import { Icon } from './Icon';
+import { Row } from './Layout';
 
 /**
  * Panneau Options — REMAP clavier (onglet « Clavier » de l'écran Options). Liste les raccourcis de jeu
@@ -95,7 +96,8 @@ export function KeyBindingsPanel() {
                   </span>
                   <button
                     type="button"
-                    className={`btn small ${rebinding === b.id ? 'btn-primary' : ''}`}
+                    className="btn small"
+                    aria-pressed={rebinding === b.id}
                     onClick={() => setRebinding(b.id)}
                     title={remapped ? 'Touche personnalisée — clic pour réassigner' : 'Clic pour réassigner'}
                   >
@@ -108,9 +110,9 @@ export function KeyBindingsPanel() {
         ))}
       </div>
       <p className="hint">Touches par POSITION physique (le binding suit l’endroit de la touche, AZERTY comme QWERTY). Échap pendant la capture = annuler.</p>
-      <div className="modal-actions">
+      <Row justify="end">
         <button type="button" className="btn small" onClick={() => resetKeyBindings()}>Réinitialiser les touches</button>
-      </div>
+      </Row>
     </div>
   );
 }

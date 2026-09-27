@@ -40,6 +40,16 @@ export const lieeA = (id: string | undefined | null): PropsDeRaison =>
  * Dans TOUTES les formes, un contrôle refusé porte `aria-disabled` et JAMAIS `disabled` : il reste
  * atteignable au clavier, à la manette et au doigt (table des primitives, CLAUDE.md).
  */
+/** TON d'un bouton, en STRUCTURE : mis en avant (`primary`), classe d'appelant (`btnClassName`). */
+export type TonBouton = { primary: boolean; btnClassName?: string };
+
+/** Classe d'un bouton de ce ton : `btn`, `btn-primary` s'il est mis en avant, les variantes de la
+ *  primitive (`bare` → `btn-nu`, `tactile` → `btn-tactile`), puis la classe d'appelant. Source UNIQUE
+ *  de la composition, lue par `GatedAction`, `OptionChooser` et `RollShell`. */
+export function classeBouton({ primary, btnClassName, bare = false, tactile = false }: TonBouton & { bare?: boolean; tactile?: boolean }): string {
+  return ['btn', primary && 'btn-primary', bare && 'btn-nu', tactile && 'btn-tactile', btnClassName].filter(Boolean).join(' ');
+}
+
 export function GatedAction({
   id,
   label,
@@ -155,7 +165,7 @@ export function GatedAction({
     <button
       type="button"
       ref={btnRef}
-      className={`btn ${primary ? 'btn-primary' : ''}${bare ? ' btn-nu' : ''}${tactile ? ' btn-tactile' : ''}${btnClassName ? ` ${btnClassName}` : ''}`}
+      className={classeBouton({ primary, btnClassName, bare, tactile })}
       aria-disabled={!enabled || undefined}
       aria-label={ariaLabel}
       aria-pressed={ariaPressed}

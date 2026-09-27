@@ -33,7 +33,14 @@ export function ErrorCollectorBanner() {
         {entries.length} erreur{entries.length > 1 ? 's' : ''} (DEV)
       </button>
       {open && (
-        <Modal title="Erreurs collectées (session)" variant="plain" className="error-collector-panel" onClose={() => setOpen(false)} backdropClose>
+        <Modal title="Erreurs collectées (session)" onClose={() => setOpen(false)} backdropClose
+          footer={
+            <>
+              <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Fermer</button>
+              <button type="button" className="btn" onClick={exportAll}>Exporter (JSON + presse-papier)</button>
+            </>
+          }
+        >
           <ul className="error-collector-list">
             {entries.map((e, i) => (
               <li key={i}>
@@ -45,10 +52,6 @@ export function ErrorCollectorBanner() {
               </li>
             ))}
           </ul>
-          <div className="modal-actions">
-            <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Fermer</button>
-            <button type="button" className="btn" onClick={exportAll}>Exporter (JSON + presse-papier)</button>
-          </div>
         </Modal>
       )}
     </>

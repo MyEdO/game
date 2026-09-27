@@ -1,4 +1,5 @@
-import { createElement, Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { Stack } from './Layout';
 import type { Combatant } from '../engine/types';
 import { refLabel } from '../data';
 import type { PanelRowData } from './RollPanel';
@@ -87,7 +88,9 @@ export function buildParticipantRows<P extends ParticipantRow>(
     const note = bundle.note && res ? bundle.note(part, actor, res) : undefined;
     const issues = bundle.issues ? bundle.issues(part, actor, res) : undefined;
     // Sous-ligne UNIQUE de la rangée : les issues (avant/après le jet) puis la conséquence subie.
-    const sub = issues != null || note != null ? createElement(Fragment, null, issues, note) : undefined;
+    const sub = issues != null && note != null
+      ? <Stack gap="xs">{issues}<div>{note}</div></Stack>
+      : issues ?? note ?? undefined;
     // La rangée naît de la PORTE (#1262) — `rolled` y est dérivé de la donnée affichée (`row.d`),
     // définition unique du socle : le multi ne la recalcule plus depuis `part.result`.
     return [participantRow({

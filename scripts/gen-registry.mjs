@@ -664,9 +664,12 @@ function genIds() {
     ` *    référence avant le prochain \`npm run gen\`. CÂBLÉ (#1686) : \`src/data/overrides.ts\` pose la source\n` +
     ` *    vivante, \`src/data/schemas/grammaire/idsVivants.ts\` la sert à \`ref.ts\`.\n` +
     ` */\n` +
-    `export const IDS_PAR_DATASET: Readonly<Record<string, readonly string[]>> = {\n` +
+    `const IDS = {\n` +
     ids.map(([f, l]) => `  ${lit(f)}: [${l.map(lit).join(', ')}],\n`).join('') +
-    `};\n\n` +
+    `} as const;\n\n` +
+    `export const IDS_PAR_DATASET: Readonly<Record<string, readonly string[]>> = IDS;\n\n` +
+    `/** Union LITTÉRALE des ids de chaque dataset, dérivée de \`IDS\` : un id absent de la donnée ne compile pas. */\n` +
+    `export type IdsParDataset = { readonly [D in keyof typeof IDS]: (typeof IDS)[D][number] };\n\n` +
     `/**\n` +
     ` * Pool de VALIDITÉ des spécialisations déclarées par une entrée (\`specs[].id\`), par dataset puis\n` +
     ` * par id d'entrée — la cible du refine de \`spec\` pour un type à pool FERMÉ (\`specsOpen: false\`).\n` +

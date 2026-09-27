@@ -2,7 +2,7 @@
    Sélecteur visuel partagé (déclencheur + popover de rangées « média + texte ») là où un `<select>`
    natif ne peut pas porter d'icône : sélecteurs d'armes/armure de la fiche, menu « Donner » d'une
    ligne d'inventaire (objet → héros). Identité entière ici (#1806 2a, arbitrage A1 du 2026-09-18).
-   `.ms-trigger` est le DÉFAUT de la prop `triggerClassName` (`MediaSelect.tsx:61`) : quand un
+   `.ms-trigger` est le DÉFAUT de la prop `triggerClassName` (`MediaSelect.tsx:60`) : quand un
    appelant la surcharge (panneau d'équipement, registre Possessions), c'est SA classe qui règne et
    `.ms-trigger .ms-label` ne s'applique plus — aucune règle de rattrapage ici, ce serait repeindre
    la classe d'un autre module. ══ */
@@ -64,7 +64,7 @@
 }
 .media-select.align-left .ms-list { left: 0; }
 .media-select.align-right .ms-list { right: 0; }
-.media-select.open .ms-list { display: flex; }
+.media-select > [aria-expanded='true'] + .ms-list { display: flex; }
 .ms-opt {
   display: flex;
   align-items: center;
@@ -76,14 +76,14 @@
   text-align: left;
   font-size: 13px;
 }
-.ms-opt:hover:not(.disabled) {
+.ms-opt:hover:not([aria-disabled='true']) {
   background: var(--panel);
 }
-.ms-opt.sel {
+.ms-opt[aria-selected='true'] {
   background: var(--panel);
   outline: 1px solid var(--border);
 }
-.ms-opt.disabled {
+.ms-opt[aria-disabled='true'] {
   opacity: 0.4;
   cursor: not-allowed;
 }

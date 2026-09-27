@@ -110,7 +110,21 @@ export function VictoryScreen() {
   }
 
   return (
-    <Modal title="Victoire" variant="plain" voile="opaque" kind="victoire">
+    <Modal
+      title="Victoire"
+      voile="opaque"
+      kind="victoire"
+      footer={online ? (
+        <>
+          <ReadyRow ready={ready} />
+          <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={() => victoryReady(net.mySeat)}>
+            {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
+          </button>
+        </>
+      ) : (
+        <button className="btn btn-primary" onClick={dismiss}>Continuer</button>
+      )}
+    >
       {/* #9 : messages de journal de la victoire (ex. annonce de l'arène) affichés ICI. */}
       <RewardRecap
         messages={pv?.messages}
@@ -118,16 +132,6 @@ export function VictoryScreen() {
         gold={pv?.gold}
         emptyNote="Ni or ni gloire sonnante sur ces adversaires — le groupe repart les mains vides, mais entier."
         sections={sections}
-        action={online ? (
-          <>
-            <ReadyRow ready={ready} />
-            <button className="btn btn-primary reward-continue" disabled={!!ready[net.mySeat]} onClick={() => victoryReady(net.mySeat)}>
-              {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
-            </button>
-          </>
-        ) : (
-          <button className="btn btn-primary reward-continue" onClick={dismiss}>Continuer</button>
-        )}
       />
     </Modal>
   );

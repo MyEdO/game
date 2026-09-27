@@ -89,6 +89,12 @@ export function CampaignView() {
   const travelRecap = useGame((s) => s.travelRecap);
   const setScreen = useGame((s) => s.setScreen);
   const startScene = useGame((s) => s.startScene);
+  /** Sortie de la défaite (ADE II 08 : la bataille de masse continue ; sinon la scène reprend). */
+  const sortirDeLaDefaite = () => {
+    const g = useGame.getState();
+    if (g.massBattle?.combatScene || g.scene) g.dismissDefeat();
+    else startScene(campaign[0].scene);
+  };
   const partyWiped = useGame((s) => s.partyWiped);
   const party = useGame((s) => s.party);
   const povActive = useGame((s) => s.povActive);
@@ -384,32 +390,22 @@ export function CampaignView() {
         {mode === 'battle' && battle?.over === 'defeat' && (
           <Modal
             title={useGame.getState().massBattle?.combatScene ? 'Repoussés…' : 'Défaite…'}
-            variant="plain"
-            className="defeat-modal"
-            onClose={() => {
-              const g = useGame.getState();
-              if (g.massBattle?.combatScene || g.scene) g.dismissDefeat();
-              else startScene(campaign[0].scene);
-            }}
-          >
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                const g = useGame.getState();
-                if (g.massBattle?.combatScene || g.scene) g.dismissDefeat();
-                else startScene(campaign[0].scene);
-              }}
-            >
-              {useGame.getState().massBattle?.combatScene ? 'Poursuivre la bataille' : 'Reprendre'}
-            </button>
-          </Modal>
+            onClose={sortirDeLaDefaite}
+            footer={
+              <button className="btn btn-primary" onClick={sortirDeLaDefaite}>
+                {useGame.getState().massBattle?.combatScene ? 'Poursuivre la bataille' : 'Reprendre'}
+              </button>
+            }
+          />
         )}
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
             bataille (aucun `battle`) — le groupe entier est tombé (faim, exposition, damnation…). */}
         {partyWiped && (
-          <Modal title="Le groupe a péri…" variant="plain" className="defeat-modal" onClose={() => useGame.getState().dismissDefeat()}>
-            <button className="btn btn-primary" onClick={() => useGame.getState().dismissDefeat()}>Retour au menu</button>
-          </Modal>
+          <Modal
+            title="Le groupe a péri…"
+            onClose={() => useGame.getState().dismissDefeat()}
+            footer={<button className="btn btn-primary" onClick={() => useGame.getState().dismissDefeat()}>Retour au menu</button>}
+          />
         )}
       </main>
 

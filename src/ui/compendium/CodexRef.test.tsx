@@ -47,8 +47,9 @@ describe('CodexRef — affordance clic (#tooltipOnly bascule le popover, jamais 
     const h = renderToStaticMarkup(<CodexRef category="characteristics" id="mouvement" label="Mouvement" tooltipOnly>Mouvement</CodexRef>);
     expect(h).toContain('role="button"');
     expect(h).toContain('tabindex="0"');
-    // Fermé initialement : `aria-expanded="false"`, pas encore de popover porté (pinned=false au 1er rendu).
-    expect(h).toContain('aria-expanded="false"');
+    // Toggletip (Inclusive Components, « Tooltips & Toggletips ») : l'état se dit par l'ANNONCE de la
+    // bulle dans sa région `role="status"` (`CodexRef.hooks.test.tsx`), pas par `aria-expanded`.
+    expect(h).toContain('role="status"');
     // Le clic ne doit PAS ouvrir la fiche Codex en mode `tooltipOnly` — aucune affordance « Ouvrir la fiche ».
     expect(h).not.toContain('codex-pop-open');
   });

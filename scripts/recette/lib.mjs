@@ -856,14 +856,23 @@ export const CASCADE_LABELS = ['Tout lancer', 'Commencer', 'Lancer', 'Continuer'
  * Lève, en nommant les boutons offerts, si aucun des deux gestes ne s'applique — et lève aussi si
  * l'option cliquée NE FAIT RIEN : une fenêtre dont les boutons et l'option offerte sont identiques
  * après deux clics est un BLOCAGE, pas une lenteur, et la recette le nomme au lieu d'épuiser `max`.
+ *
+ * La fin se juge au STORE, pas au DOM : tant qu'une étape de cascade est en cours (`pendingCascade`),
+ * sa fenêtre va monter — la carte d'entrée de scène (`startScene`, `store.ts`) attend le montage du
+ * monde. Aucune fenêtre au DOM avec une étape en cours : on attend sa fenêtre, `attenteMs` au plus,
+ * puis on lève en nommant l'étape.
  */
-export async function resoudreModales(session, etape, { labels = CASCADE_LABELS, max = 40, pauseMs = 600 } = {}) {
+export async function resoudreModales(session, etape, { labels = CASCADE_LABELS, max = 40, pauseMs = 600, attenteMs = 30000 } = {}) {
   let precedent = null;
   let immobile = 0;
-  for (let i = 0; i < max; i++) {
+  let sansFenetreDepuis = null;
+  for (let i = 0; i < max; ) {
     const etat = await evaluate(session, `(() => {
       const modale = document.querySelector('.modal-overlay');
-      if (!modale) return null;
+      if (!modale) {
+        const pc = window.__game.getState().pendingCascade;
+        return pc ? { enCours: (pc.participants[pc.cursor]?.reveal?.kind ?? pc.participants[pc.cursor]?.kind ?? pc.purpose ?? '?') + '' } : null;
+      }
       const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
       const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true';
       const boutons = [...modale.querySelectorAll('button')].filter(ouvert).map((b) => norm(b.textContent)).filter(Boolean);
@@ -877,6 +886,16 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
       return { boutons, option: point };
     })()`);
     if (!etat) return;
+    if (etat.enCours) {
+      sansFenetreDepuis ??= Date.now();
+      if (Date.now() - sansFenetreDepuis > attenteMs) {
+        throw new Error(`[${etape}] étape « ${etat.enCours} » en cours au store, aucune fenêtre au DOM après ${attenteMs} ms`);
+      }
+      await sleep(pauseMs);
+      continue;
+    }
+    sansFenetreDepuis = null;
+    i += 1;
     const signature = `${etat.boutons.join('|')}##${etat.option ? etat.option.texte : ''}`;
     immobile = signature === precedent ? immobile + 1 : 0;
     precedent = signature;
@@ -1162,8 +1181,17 @@ function champsCDP(touche) {
 export async function realKey(session, touche) {
   const common = champsCDP(touche);
   await session.rpc('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...common });
-  if (touche.key.length === 1) await session.rpc('Input.dispatchKeyEvent', { type: 'char', text: touche.key, ...common });
+  const texte = texteDeTouche(touche.key);
+  if (texte !== null) await session.rpc('Input.dispatchKeyEvent', { type: 'char', text: texte, ...common });
   await session.rpc('Input.dispatchKeyEvent', { type: 'keyUp', ...common });
+}
+
+/** Le TEXTE qu'une touche produit, ce qui fait d'elle une frappe qui AGIT : un caractère se tape,
+ *  Entrée produit `\r` — c'est lui qui active le bouton focalisé (sans, Chrome ne clique rien).
+ *  Les touches sans texte (Échap, flèches, Tab, modificateurs) rendent `null`. */
+function texteDeTouche(key) {
+  if (key.length === 1) return key;
+  return key === 'Enter' ? '\r' : null;
 }
 
 /** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor.reveler`). */

@@ -11,7 +11,7 @@
      .stat-chip          cartouche « label + valeur » (PV, carac, ressource…)
      .listrow            rangée de liste : nom (flex:1) + méta + action
      .chip               badge/pastille (alias de .tag) ; .count = pastille numérique
-     .modal-overlay/.modal  cadre de modale partagé (+ .modal-actions/.modal-subject/.btn-ghost/.rm-influence)
+     .btn-ghost / .rm-influence  bouton discret ; rangée « influencer le jet » (le cadre de modale : modal.css)
      .charprev           aperçu « perso en pied » (CharacterPreview) : tailles + ambiances
      .icon               icône SVG maison (primitive <Icon> — src/ui/Icon.tsx, registre src/ui/icons/)
      .clamp              texte tronqué à N lignes (`--clamp`, défaut 3)
@@ -45,6 +45,11 @@
 }
 .panel.flush {
   padding: 0;
+}
+/* Survol de DÉPÔT (`data-depot`) : la surface cible d'un glisser-déposer répond elle-même, jamais le
+   ton d'un bouton qu'elle contient (`choix-retenu-guard.test.ts`). */
+.panel[data-depot] {
+  box-shadow: inset 0 0 0 1px var(--atelier-brass-vif);
 }
 /* Contenu CANONIQUE d'une surface : son titre de section et ses champs. Ils vivent avec `.panel`
    (#1834) — base et tranche responsive dans la MÊME feuille, une seule section ≤700px. */
@@ -158,13 +163,26 @@ label.radio {
 .fold > summary::-webkit-details-marker {
   display: none;
 }
-.fold > summary::after {
+/* Chevron de DIVULGATION (WAI-ARIA APG, Disclosure) : la section repliable et tout contrôle qui
+   déplie une région en ligne (`aria-expanded` sans `aria-haspopup`), quelle que soit sa matière. */
+.fold > summary::after,
+[aria-expanded]:not([aria-haspopup])::after {
   content: '▾';
-  margin-left: auto;
+  content: '▾' / '';
   color: var(--muted);
+  font-size: 0.75em;
   transition: transform 0.15s;
 }
-.fold[open] > summary::after {
+.fold > summary::after {
+  margin-left: auto;
+}
+[aria-expanded]:not([aria-haspopup])::after {
+  display: inline-block;
+  margin-inline-start: var(--sp-sm);
+  line-height: 1;
+}
+.fold[open] > summary::after,
+[aria-expanded='true']:not([aria-haspopup])::after {
   transform: rotate(180deg);
 }
 .fold-title {
@@ -463,68 +481,6 @@ button.chip:hover {
 .tabs .tab-btn .count { margin-left: 6px; }
 .tabs .tab-btn.alert .count { background: var(--danger); color: var(--on-accent); }
 
-/* ── MODALE (cadre partagé de TOUTES les modales) ── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.42); /* voile allégé : on garde le CHAMP visible derrière la modale (R2/R10) */
-  display: grid;
-  place-items: center;
-  z-index: 130; /* au-dessus du voile opaque (120) : Évaluer/Détecter le butin ouvre une modale PAR-DESSUS */
-}
-/* Voile OPAQUE : la scène n'a plus à rester lisible (fin de combat), et le rang laisse passer
-   au-dessus la modale qu'une action de la boîte ouvre. */
-.modal-overlay[data-voile='opaque'] {
-  background: rgba(8, 6, 12, 0.92);
-  z-index: 120;
-}
-/* L'allègement de voile des modales de JET (ancrage par bandes + voile plus léger) appartient au
-   DOMAINE qui le motive — `roll-shell.css`, scopé à `.app-campaign` : il existe pour garder le CHAMP
-   DE BATAILLE lisible sous la fenêtre. En couche partagée, il s'appliquerait à tout écran portant une
-   modale de jet et n'y séparerait plus les plans (deux fenêtres empilées, lues comme une seule). */
-
-/* Matière « Atelier du scribe » (#414, planche ratifiée de la fiche, `.sheet-modal`) : halo or
-   radial en tête + dégradé bois froid, bandeau or de tête, bordures chaudes, ombre profonde. TOUTE
-   modale hérite du bandeau — `.sheet-modal` (sheet.css) ne le redéclare plus (doublon identique). */
-.modal {
-  position: relative; /* ancre la scène centrale du roulis de dés (#396, `.rm-scene`) */
-  background:
-    radial-gradient(520px 300px at 50% 0%, rgba(224, 181, 90, 0.07), transparent 62%),
-    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
-  border: 1px solid var(--atelier-wood-liseret);
-  border-top: 4px solid var(--gold);
-  border-radius: 14px;
-  padding: 22px;
-  width: min(520px, 94vw); /* jamais plus large que l'écran (mobile : pas de débord horizontal) */
-  max-height: 86vh;
-  overflow: auto;
-  box-shadow: 0 40px 110px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.5);
-}
-.modal.wide {
-  width: min(760px, 94vw);
-}
-.picker-modal > h3 {
-  margin: 0 0 10px;
-  color: var(--gold2);
-  font-size: 20px;
-}
-/* Bandeau « sujet » d'une modale (`ModalSubject`) : sa respiration sous le titre. La rangée est un
-   `Row` — ici, la marge seule. */
-.modal-subject {
-  margin: 4px 0 10px;
-}
-/* Barre d'actions normée des modales : 2 boutons max — [Annuler/Subir discret à gauche] [primaire
-   à droite, largeur min fixe]. Les dépenses de ressources vivent dans `.rm-influence`, pas ici. */
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-.modal .modal-actions .btn-primary {
-  min-width: 132px;
-}
 /* Annuler/Subir : bouton discret, ancré à gauche de la barre. */
 .btn-ghost {
   background: transparent;
@@ -534,9 +490,6 @@ button.chip:hover {
 .btn-ghost:hover:not(:disabled) {
   border-color: var(--border);
   background: var(--panel2);
-}
-.modal-actions .btn-ghost {
-  margin-right: auto;
 }
 /* Rangée « influencer le jet » : ressources contextuelles (Chance, Pacte, Résilience,
    Détermination) en petits boutons normés de taille identique. Vide → invisible. */
@@ -558,13 +511,11 @@ button.chip:hover {
   line-height: 1.3;
 }
 @media (max-width: 560px) {
-  /* Mobile : ressources centrées sur leur rangée, primaire pleine largeur restante. */
+  /* Mobile : ressources centrées sur leur rangée, primaire pleine largeur restante. L'élément qui
+     grandit est l'ENFANT de la barre qui porte le primaire — le bouton lui-même, ou l'enveloppe d'une
+     primitive qui le rend (`GatedAction` : `.gated-action`, colonne flex qui étire son bouton). */
   .rm-influence {
     justify-content: center;
-  }
-  .modal .modal-actions .btn-primary {
-    flex: 1;
-    min-width: 0;
   }
 }
 
@@ -917,12 +868,6 @@ button.chip:hover {
 @media (max-width: 700px) {
   .activity-pane-actions { margin-left: 0; width: 100%; }
   .activity-pane-actions .btn { flex: 1 1 auto; }
-  /* Barre d'actions des modales : à l'étroit, les deux boutons s'ENROULENT et se CENTRENT plutôt
-     que de déborder de la fenêtre. Règle de la primitive, valable pour TOUTES les modales. */
-  .modal-actions {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
 }
 
 /* ── MENU (primitive MenuCard.tsx) : patron « vrai menu » partagé — menu principal (`.menu-card`,
@@ -1066,28 +1011,19 @@ button.chip:hover {
   margin: var(--sp-md) 0 10px;
 }
 
-/* Note secondaire d'une modale de jet (7 sites : enjeu d'une étape de cascade, acte de soin en cours,
-   cadence d'un Test étendu, nuit sans histoire, opposition annulée). Six d'entre eux sont des <p> à
-   contenu INLINE : aucun sélecteur ne les vise, leur rendu est inchangé (typographie et marges restent
-   celles de leur contexte — les toucher serait un restylage non recetté). Le septième porte une icône
-   suivie d'une <Prose> de BLOC : l'icône FLOTTE (les lignes se composent autour) plutôt que de créer un
-   contexte flex, qui aurait dégauchi l'alignement des six autres. */
-.rm-note:not([data-ton]) > svg,
-.rm-note:not([data-ton]) > .icon {
-  float: left;
-  margin: 2px 6px 0 0;
-}
+/* Note secondaire d'une modale de jet, sans ton (acte de soin en cours, cadence d'un Test étendu, nuit
+   sans histoire, opposition annulée) : des <p> à contenu INLINE, que leur conteneur place. */
 .rm-note p {
   margin: 0;
 }
 .rm-note p + p {
   margin-top: 4px;
 }
-/* TONS de la note (`data-ton`) — un ton nommé compose ses enfants lui-même (l'icône y reste EN LIGNE,
-   d'où le `:not([data-ton])` du flottement ci-dessus, réservé à la note à prose de bloc) :
+/* TONS de la note (`data-ton`) — un ton nommé compose ses enfants lui-même (l'icône y reste EN LIGNE) :
    `discret` = précision sous un contrôle ; `etat` = posture ANNONCÉE, non cliquable (armée sous
    `[data-armee]`) ; `bloque` = jet impossible (pas de ligne de vue, hors de portée) ; `attente` =
-   verdict suspendu à une fenêtre qui va s'interposer (#1004) ; `menace` = danger SUBI, fond rouge. */
+   verdict suspendu à une fenêtre qui va s'interposer (#1004) ; `menace` = danger SUBI, fond rouge.
+   Aucune marge externe : le conteneur la place (le `gap` de sa pile). */
 .rm-note[data-ton='discret'] {
   font-size: 11px;
   color: var(--muted);
@@ -1107,10 +1043,9 @@ button.chip:hover {
   text-align: center;
   color: var(--danger-soft);
   font-weight: 600;
-  margin: 10px 0;
 }
 .rm-note[data-ton='attente'] {
-  margin: 8px 0;
+  margin: 0;
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
@@ -1126,7 +1061,6 @@ button.chip:hover {
   border: 1px solid rgba(200, 90, 70, 0.4);
   border-radius: 6px;
   padding: 5px 8px;
-  margin: 0 0 10px;
 }
 .rm-note[data-ton='menace'] b {
   color: var(--danger-bright);
@@ -1134,21 +1068,27 @@ button.chip:hover {
 
 /* Z3b — ENJEU d'un jet (`StakeNote`, #1117). Classe PROPRIÉTAIRE de la zone : `.rm-note` reste la note
    générique (6 sites au contenu inline) et son ton `menace` porte l'autre sens (danger SUBI, fond rouge).
-   Ton NEUTRE assumé : un enjeu ANNONCE ce que le jet met en jeu, il n'alarme pas. L'icône FLOTTE, comme
-   sur `.rm-note`, pour que la prose de bloc se compose autour d'elle. */
+   Ton NEUTRE assumé : un enjeu ANNONCE ce que le jet met en jeu, il n'alarme pas. L'icône tient SA
+   colonne : la prose garde un retrait constant. Aucune marge externe : le conteneur la place. */
 .rm-stake {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--sp-sm);
+  align-items: start;
   font-size: 12px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.035);
   border-left: 2px solid var(--line);
   border-radius: 0 6px 6px 0;
-  padding: 6px 8px;
-  margin: 0 0 10px;
+  padding: var(--sp-sm) var(--sp-md);
 }
 .rm-stake > svg,
 .rm-stake > .icon {
-  float: left;
-  margin: 2px 6px 0 0;
+  margin-top: 2px;
+}
+/* Sans icône (note de rangée : le verbe la porte), la prose prend toute la largeur. */
+.rm-stake > :only-child {
+  grid-column: 1 / -1;
 }
 .rm-stake p {
   margin: 0;

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { reglesCss, FEUILLES_PARTAGEES } from '../../scripts/guards/lib/cssCouches.mjs';
+import { OWNERS } from '../../scripts/guards/lib/marqueursPossedes.mjs';
 
 const RACINE_REPO = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -20,15 +21,14 @@ const RACINE_REPO = fileURLToPath(new URL('../../', import.meta.url));
  * qui écrit lui-même `className="activity-pane-desc"` a recopié le markup. Un modificateur d'appelant
  * passé en prop `className` (`<Tabs className="port-tabs">`) n'est pas un marqueur.
  *
- * PORTÉE MESURÉE — 86 marqueurs, 20 fichiers propriétaires ; le scan couvre les `.tsx` de `src/ui`
- * (récursif, hors fichiers de test). Hors `src/ui`, le stock de ces marqueurs est mesuré VIDE au
- * 2026-08-16 (sonde sur tous les `.tsx` de `src` : 0 occurrence) — étendre le scan le jour où un
- * marqueur y apparaîtra.
+ * PORTÉE — le scan couvre les `.tsx` de `src/ui` (récursif, hors fichiers de test). Hors `src/ui`,
+ * le stock de ces marqueurs est mesuré VIDE au 2026-08-16 (sonde sur tous les `.tsx` de `src` :
+ * 0 occurrence) — étendre le scan le jour où un marqueur y apparaîtra.
  *
  * CALIBRAGE — seules les classes appartenant à un COMPOSANT de la table sont gatées. Les primitives
- * CSS GLOBALES de `styles.css` (`.bar`, `.grid`, `.split`, `.btn`, `.chip`, `.seg`,
- * `.modal-actions`, textures `.tx-*` d'`ornaments.css`) sont FAITES pour être posées partout : les
- * gater serait du bruit, elles restent hors table.
+ * CSS GLOBALES de `styles.css` (`.bar`, `.grid`, `.split`, `.btn`, `.chip`, `.seg`, textures `.tx-*`
+ * d'`ornaments.css`) sont FAITES pour être posées partout : les gater serait du bruit, elles restent
+ * hors table.
  */
 
 const UI = 'src/ui';
@@ -47,142 +47,6 @@ const blank = (m: string) => m.replace(/[^\n]/g, ' ');
 const stripComments = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/\/\/.*$/gm, blank);
 
-/**
- * Marqueur → fichier(s) PROPRIÉTAIRE(S). Justification par primitive : chaque classe listée est posée
- * par le composant de la table `docs/primitives.md` et par lui seul ; la recopier ailleurs, c'est refaire à la
- * main la structure qu'il rend (en-tête/corps/pied, piste+remplissage, tuile+lueur, rangée+colonnes…).
- */
-const OWNERS: Record<string, string[]> = {
-  // ScreenShell — coquille d'écran plein-champ : voile + en-tête + barre d'outils + corps borné.
-  'worldmap-overlay': ['ScreenShell.tsx'],
-  'worldmap-head': ['ScreenShell.tsx'],
-  'worldmap-head-actions': ['ScreenShell.tsx'],
-  'screen-toolbar': ['ScreenShell.tsx'],
-  'screen-body': ['ScreenShell.tsx'],
-
-  // MenuCard — carte de menu (principal ET système) : en-tête, titre, pile de grands boutons.
-  'menu-card': ['MenuCard.tsx'],
-  'menu-card-head': ['MenuCard.tsx'],
-  'menu-card-title': ['MenuCard.tsx'],
-  'menu-card-meta': ['MenuCard.tsx'],
-  'menu-card-sub': ['MenuCard.tsx'],
-  'menu-buttons': ['MenuCard.tsx'],
-  'menu-toggle': ['MenuCard.tsx'],
-  'menu-link': ['MenuCard.tsx'],
-
-  // FigTile — cadre-figurine UNIQUE (#430/#431) ; `frames.css` porte déjà « SEULE définition ».
-  'fig-tile': ['FigTile.tsx'],
-  'fig-row': ['FigTile.tsx'],
-  'fig-tile-fig': ['FigTile.tsx'],
-  'fig-tile-name': ['FigTile.tsx'],
-  'fig-tile-sub': ['FigTile.tsx'],
-  'fig-tile-seal': ['FigTile.tsx'],
-  'fig-zone-badges': ['FigTile.tsx'],
-  'fig-zone-badge': ['FigTile.tsx'],
-
-  // PlaqueRow — rangée-plaque à rivets (préfixe/label/nom/méta/valeur) + sa grille 2 colonnes.
-  'plaque-row': ['PlaqueRow.tsx'],
-  'plaque-grid': ['PlaqueRow.tsx'],
-  'plaque-prefix': ['PlaqueRow.tsx'],
-  'plaque-label': ['PlaqueRow.tsx'],
-  'plaque-name': ['PlaqueRow.tsx'],
-  'plaque-meta': ['PlaqueRow.tsx'],
-  'plaque-value': ['PlaqueRow.tsx'],
-  'plaque-fx': ['PlaqueRow.tsx'],
-
-  // ActivityPane — panneau d'activité : en-tête, corps DÉFILABLE, pied FIXE (pré-jet/coût/actions).
-  'activity-pane': ['ActivityPane.tsx'],
-  'activity-pane-head': ['ActivityPane.tsx'],
-  'activity-pane-body': ['ActivityPane.tsx'],
-  'activity-pane-desc': ['ActivityPane.tsx'],
-  'activity-pane-blocked': ['ActivityPane.tsx'],
-  'activity-pane-foot': ['ActivityPane.tsx'],
-  'activity-pane-terms': ['ActivityPane.tsx'],
-  'activity-pane-detail': ['ActivityPane.tsx'],
-  'activity-pane-actions': ['ActivityPane.tsx'],
-
-  // TradeTable — table de négoce (colonnes de stats + prix + action par rangée + rubriques).
-  'trade-table': ['TradeTable.tsx'],
-  'trade-row': ['TradeTable.tsx'],
-
-  // ParchmentCard — carte-parchemin narrative (sceau d100 + titre + corps). NB : la TEXTURE
-  // `.tx-parchment` (ornaments.css) est globale et reste hors table — seule la CARTE est gatée.
-  'parchment-card': ['ParchmentCard.tsx'],
-  'parchment-card-body': ['ParchmentCard.tsx'],
-  'parchment-card-title': ['ParchmentCard.tsx'],
-  'parchment-seal': ['ParchmentCard.tsx'],
-
-  // Band — bande titrée de rubrique (barre bois/laiton + ancrage droit).
-  'creator-band': ['Band.tsx'],
-  'creator-band-head': ['Band.tsx'],
-  'creator-band-right': ['Band.tsx'],
-
-  // MasterDetail — gabarit de layout liste GAUCHE + détail CENTRE, composé sur `Split`/`Stack`
-  // (couche LAYOUT) : la seule classe qui lui reste en propre est la géométrie de son rail.
-  'master-detail-list': ['MasterDetail.tsx'],
-
-  // Tabs — le bouton d'onglet (roving tabindex + aria-selected vivent dans la primitive).
-  'tab-btn': ['Tabs.tsx'],
-
-  // LifeBar — barre de remplissage LISSE (piste + remplissage + libellé/valeur).
-  'life-bar': ['LifeBar.tsx'],
-  'life-bar__track': ['LifeBar.tsx'],
-  'life-bar__fill': ['LifeBar.tsx'],
-  'life-bar__label': ['LifeBar.tsx'],
-  'life-bar__value': ['LifeBar.tsx'],
-
-  // QtyStepper — stepper [−][centre][+] (moissonné de MerchantPanel). `.btn-step` en est EXCLU :
-  // c'est la PEAU de bouton carré 24px de la couche atomique, catalogué en propre à `docs/charte-ui.md`
-  // et porté aussi par des boutons hors stepper (✕ d'une rangée de panier) ; ce qui fait la primitive,
-  // c'est la STRUCTURE `.cart-step` + `.cart-n`, gatée ici.
-  'cart-step': ['QtyStepper.tsx'],
-  'cart-n': ['QtyStepper.tsx'],
-
-  // GroupedPickGrid — grille de sélection en sections (listbox + roving tabindex).
-  'gpg-grid': ['GroupedPickGrid.tsx'],
-  'gpg-section': ['GroupedPickGrid.tsx'],
-  'gpg-row': ['GroupedPickGrid.tsx'],
-  'gpg-heading': ['GroupedPickGrid.tsx'],
-
-  // DetailFrame — cadre de détail (nom + chips méta + prose scrollable).
-  'detail-frame': ['DetailFrame.tsx'],
-  'detail-frame-head': ['DetailFrame.tsx'],
-  'detail-frame-name': ['DetailFrame.tsx'],
-  'detail-frame-sub': ['DetailFrame.tsx'],
-  'detail-frame-meta': ['DetailFrame.tsx'],
-  'detail-frame-prose': ['DetailFrame.tsx'],
-
-  // HeroSheet — corps de fiche héros (bande d'en-tête + caracs + dérivées).
-  'hero-sheet': ['HeroSheet.tsx'],
-  'hero-sheet-head': ['HeroSheet.tsx'],
-  'hero-sheet-id': ['HeroSheet.tsx'],
-  'hero-sheet-stats': ['HeroSheet.tsx'],
-  'hero-sheet-derived': ['HeroSheet.tsx'],
-
-  // PortraitTile — tuile de portrait (visage + jauge + caret d'activation).
-  'ptile': ['PortraitTile.tsx'],
-  'ptile-wrap': ['PortraitTile.tsx'],
-  'ptile-face': ['PortraitTile.tsx'],
-  'ptile-gauge': ['PortraitTile.tsx'],
-  'ptile-caret': ['PortraitTile.tsx'],
-
-  // CreatorStepFrame — gabarit d'étape du créateur (bande d'action / choix / desc).
-  'creator-step': ['creator/CreatorStepFrame.tsx'],
-  'creator-step-choice': ['creator/CreatorStepFrame.tsx'],
-  'creator-step-desc': ['creator/CreatorStepFrame.tsx'],
-
-  // RollShell — chrome de la modale de jet (rail défilant, variante encastrée).
-  'rs-scroll': ['RollShell.tsx'],
-  'rs-embedded': ['RollShell.tsx'],
-
-  // SearchFilterField — champ de filtre de liste.
-  'search-filter': ['SearchFilterField.tsx'],
-  'pal-search-row': ['SearchFilterField.tsx'],
-
-  // ScreenMeta — méta d'en-tête date+bourse, partagée écran plein-champ / menu système.
-  'hud-clock': ['ScreenMeta.tsx'],
-  'port-purse': ['ScreenMeta.tsx'],
-};
 
 /**
  * Stock hors-propriétaire : VIDE (2026-08-16). Les 12 recopies mesurées à la pose de la garde ont été
@@ -212,21 +76,42 @@ function markersIn(src: string): { marker: string; line: number }[] {
   return out;
 }
 
+/** Les RECOPIES : marqueurs posés hors de leur fichier propriétaire, au-delà du stock mesuré. */
+function recopies(fichiers: readonly { chemin: string; code: string }[]): string[] {
+  const offenders: string[] = [];
+  for (const { chemin, code } of fichiers) {
+    for (const { marker, line } of markersIn(stripComments(code))) {
+      if (OWNERS[marker].includes(chemin)) continue;
+      if (BASELINE[chemin]?.includes(marker)) continue;
+      offenders.push(
+        `${chemin}:${line} → "${marker}" recopié — composer ${OWNERS[marker].join(' / ')} au lieu de réécrire son markup`,
+      );
+    }
+  }
+  return offenders;
+}
+
 describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée)', () => {
   const found = composants().map(({ chemin, code }) => ({ path: chemin, hits: markersIn(stripComments(code)) }));
 
   it('aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré', () => {
-    const offenders: string[] = [];
-    for (const { path, hits } of found) {
-      for (const { marker, line } of hits) {
-        if (OWNERS[marker].includes(path)) continue;
-        if (BASELINE[path]?.includes(marker)) continue;
-        offenders.push(
-          `${path}:${line} → "${marker}" recopié — composer ${OWNERS[marker].join(' / ')} au lieu de réécrire son markup`,
-        );
-      }
-    }
+    const offenders = recopies(composants());
     expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('preuve par mutation côté MARKUP — un écran qui recopie le cadre rougit, celui qui le compose non', () => {
+    const recopie = [
+      '<div className="cadre-pied"><button /></div>',
+      '<div className="modal-body" />',
+      '<h3 className="modal-title" />',
+      '<div className="modal-overlay"><div className="modal x" /></div>',
+      '<button className="btn small cadre-fermer" />',
+    ].join('\n');
+    const compose = '<Modal title="t" croix footer={<button className="btn">ok</button>}>corps</Modal>';
+    expect(recopies([{ chemin: 'FauxEcran.tsx', code: recopie }]).map((o) => o.split(' → ')[1].split(' ')[0])).toEqual([
+      '"cadre-pied"', '"modal-body"', '"modal-title"', '"modal-overlay"', '"modal"', '"cadre-fermer"',
+    ]);
+    expect(recopies([{ chemin: 'FauxEcran.tsx', code: compose }])).toEqual([]);
   });
 
   it('la baseline est DÉCROISSANTE — aucune entrée périmée', () => {
@@ -254,7 +139,7 @@ describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (r
  * `fichier`, un `poseurs` déclaré au manifeste (fichier ou préfixe de dossier), ou un composant qui
  * la reçoit en enfant. Au-delà de DEUX poseurs étrangers, la classe n'est plus la propriété d'un
  * module : c'est un contrat de couche, qui monte en `components.css` + catalogue. Complète la table
- * OWNERS ci-dessus, qui garde le MARKUP ; celle-ci garde la FEUILLE.
+ * OWNERS (`scripts/guards/lib/marqueursPossedes.mjs`), qui garde le MARKUP ; celle-ci garde la FEUILLE.
  *
  * Calibrage : seule la classe que la règle DÉFINIT compte (sélecteur sans combinateur, première
  * classe du compound). Une classe de la couche PARTAGÉE ou d'un AUTRE module de primitive citée en

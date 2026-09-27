@@ -3,18 +3,18 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Garde de MATIÈRE (#414, lot « matière modale + onglets ») — la primitive `.modal` (components.css)
- * porte la peau « Atelier du scribe » (planche ratifiée de la fiche, `.sheet-modal`) : halo or
+ * Garde de MATIÈRE (#414, lot « matière modale + onglets ») — la primitive `.modal` (modal.css)
+ * porte la peau « Atelier du scribe » (planche ratifiée de la fiche) : halo or
  * radial en tête + dégradé bois chaud, bandeau or 4px, bordures chaudes, ombre profonde. jsdom ne
  * calcule pas la cascade des fichiers CSS externes (pas de `<link>` chargé) — on parse donc le bloc
  * `.modal` SOURCE, comme `ui-ratchets`/`component-conformance`, plutôt que de monter du DOM.
  * Cliquet : si `.modal` retombe à l'aplat (`background: var(--panel)` nu, sans bandeau), la CI rougit.
  */
 
-const COMPONENTS = fileURLToPath(new URL('./styles/components.css', import.meta.url));
-const css = readFileSync(COMPONENTS, 'utf8');
+const css = readFileSync(fileURLToPath(new URL('./styles/components.css', import.meta.url)), 'utf8');
+const cadre = readFileSync(fileURLToPath(new URL('./styles/modal.css', import.meta.url)), 'utf8');
 
-/** Isole le bloc `{...}` d'un sélecteur EXACT (ex. `.modal {`) — pas `.modal.wide`/`.modal-overlay`. */
+/** Isole le bloc `{...}` d'un sélecteur EXACT (ex. `.modal {`) — pas `.modal-overlay`/`.modal-body`. */
 function ruleBlock(src: string, selector: string): string {
   const re = new RegExp(`(?:^|\\n)${selector.replace(/[.[\]]/g, '\\$&')}\\s*\\{`);
   const m = re.exec(src);
@@ -30,7 +30,7 @@ function ruleBlock(src: string, selector: string): string {
 }
 
 describe('#414 — garde de matière « Atelier du scribe » (.modal)', () => {
-  const modal = ruleBlock(css, '.modal');
+  const modal = ruleBlock(cadre, '.modal');
 
   it('dégradé composé (halo or radial + dégradé linéaire bois), pas un aplat', () => {
     expect(modal).toMatch(/radial-gradient\(/);
@@ -38,7 +38,7 @@ describe('#414 — garde de matière « Atelier du scribe » (.modal)', () => {
     expect(modal).not.toMatch(/background:\s*var\(--panel\)\s*;/);
   });
 
-  it('bandeau or 4px en tête (`.sheet-modal` ne le redéclare plus — cf. sheet.css)', () => {
+  it('bandeau or 4px en tête', () => {
     expect(modal).toMatch(/border-top:\s*4px solid var\(--gold\)/);
   });
 

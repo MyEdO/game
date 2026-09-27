@@ -1,8 +1,6 @@
 /**
- * Schéma de `flow-stakes.json` — ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par l'id de jet
- * `{flow, phase}` : `flow` = la clé du flux de `FLOWS` (`src/state/rollFlowSpecs.ts`), `phase` = le
- * champ d'ÉTAT du pending qui distingue les fenêtres d'un même flux (`PendingDisengage.phase`,
- * `PendingFall.phase`, `PendingHeal.mode`, `PendingCorruption.level`…). Jamais une constante de rendu.
+ * Schéma de `flow-stakes.json` — ENJEU d'un JET DE MODALE MONO (#1117 L1b), keyé par son `id` : le
+ * code désigne l'entrée que sa fenêtre sert par `flowStakeRef(id)`, typé `FlowStakeId` (union générée).
  *
  * Troisième dataset de la famille (après `night-stakes` et `voyage-stakes`), même contrat de forme
  * DÉCLARÉE (`form`) : `verbatim` = contigu au Source bloc par bloc ; `descripteur` = assemblage
@@ -26,10 +24,6 @@ const doc = document(
   'flow-stakes',
   famille,
   {
-    /** Clé du flux servi (`FLOWS`) — moitié « flux » de l'id de jet. */
-    flow: z.string(),
-    /** Phase LUE dans l'état du pending — moitié « phase » de l'id de jet. */
-    phase: z.string(),
     /** Gabarit du texte d'enjeu, dont les trous sont remplis par le producteur (valeurs calculées). */
     template: z.string(),
     /** FORME DÉCLARÉE (garde `night-stake-form.test.ts`, étendue à ce dataset). EXIGÉE ici, alors
@@ -37,7 +31,7 @@ const doc = document(
      *  `night-stakes` laisse `form` absente parce que son type déclare `verbatim` par DÉFAUT
      *  (13 entrées sur 15 en profitent), `combat-stakes` l'omet exactement quand `template` est
      *  absent (3 sur 3 — il n'y a alors aucun texte à qualifier). Ici `template` est REQUIS : tout
-     *  enjeu porte un texte, donc tout enjeu déclare sa forme (33 sur 33 en donnée). */
+     *  enjeu porte un texte, donc tout enjeu déclare sa forme. */
     form: stakeFormSchema,
     /** Id du FOYER de la règle (entité porteuse, ou fiche de `regles.json` à défaut). */
     rule: z.string().optional(),
@@ -48,8 +42,6 @@ const doc = document(
     entryCategory: z.string().optional(),
   },
   {
-    flow: { label: 'Flux servi', hint: 'Flux de jet servi' },
-    phase: { label: 'Phase servie', hint: 'Fenêtre du flux — l’état qui distingue deux jets d’un même flux' },
     template: { label: 'Gabarit du texte', hint: 'Trous remplis par le producteur avec les valeurs calculées' },
     form: {
       label: 'Forme de l’enjeu',

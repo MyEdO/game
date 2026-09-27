@@ -74,7 +74,7 @@ const CLES: Record<string, string> = {
   "miscastWrath": '3da49a322927f1e7',
   "nightStakes": '54a15ad6883f8c31',
   "voyageStakes": '9ce6e042bf3b10d8',
-  "flowStakes": '5991b421e4d718b4',
+  "flowStakes": '82659cc46dc0ab9c', // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré
   "combatStakes": 'db6c17396c10c31b',
   "races": '0728d04812275962',
   "careers": '128ef2031ede96cd',
@@ -237,7 +237,7 @@ const FORME: Record<string, string> = {
   "miscastWrath": 'id label meta sections source sub',
   "nightStakes": 'desc id label source',
   "voyageStakes": 'desc id label source',
-  "flowStakes": 'desc id label source sub',
+  "flowStakes": 'desc id label source', // #1920 B14 (2026-09-24) : `sub` (`flow/phase`) retiré
   "combatStakes": 'desc id label source sub',
   "races": 'appearance desc group id label meta source tabs',
   "careers": 'desc group id label meta source sub tabs',

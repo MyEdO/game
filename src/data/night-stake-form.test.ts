@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, regles } from './index';
+import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, etats, regles } from './index';
 import { ACTIVITIES } from '../engine/activities';
 import { STAKE_FORMS, type StakeForm } from '../engine/types';
 
@@ -106,12 +106,26 @@ describe('flow-stakes — la FORME de chaque enjeu de modale mono est déclarée
     expect(sans, 'descripteur sans foyer ni catégorie d’entrée').toEqual([]);
   });
 
-  it('chaque entrée est couverte par l’un des deux régimes, et son id de jet est UNIQUE', () => {
+  it('chaque entrée est couverte par l’un des deux régimes', () => {
     expect(FLOW_STAKES.length).toBeGreaterThan(0);
     const inconnus = FLOW_STAKES.filter((e) => !STAKE_FORMS.includes(e.form as StakeForm)).map((e) => e.id);
     expect(inconnus, 'régime de forme inconnu').toEqual([]);
-    const kinds = FLOW_STAKES.map((e) => `${e.flow}/${e.phase}`);
-    expect(kinds.length, 'deux entrées se disputent le MÊME id de jet {flow, phase}').toBe(new Set(kinds).size);
+  });
+});
+
+/** MÊME contrat de forme pour l'enjeu de RÉCUPÉRATION porté par l'État (`etats.json`, `recover.enjeu`). */
+describe('etats — la FORME de chaque enjeu de récupération est tenue', () => {
+  it('tout `recover.enjeu` déclaré VERBATIM est localisable ET contigu au chapitre cité, bloc par bloc', () => {
+    const defauts: string[] = [];
+    for (const e of etats.filter((x) => x.recover?.form === 'verbatim')) {
+      const note = (e.source as { note?: string }).note;
+      if (!note) { defauts.push(`${e.id} : verbatim sans source.note — passage non localisable`); continue; }
+      const lines = chapterLines(e.source.book, note);
+      for (const bloc of e.recover!.enjeu.split('\n\n')) {
+        if (!contigu(lines, bloc)) defauts.push(`${e.id} : bloc NON contigu au Source (${note}) — « ${bloc.slice(0, 70)}… »`);
+      }
+    }
+    expect(defauts, 'le déclarer `descripteur` ou le rendre contigu').toEqual([]);
   });
 });
 

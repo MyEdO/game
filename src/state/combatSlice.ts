@@ -124,6 +124,7 @@ import { closeSequenceRound } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS } from './rollFlowSpecs';
 import { actionsAuthorees } from './usable';
+import { fateSaveOptions } from '../engine/fortune';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
  *  2ᵉ frappe, Surincantation +Cible, pose de zone) :
@@ -1909,10 +1910,10 @@ export function createCombatSlice(get: Get, set: Set) {
       maybeRunEnemyTurn(get, set);
     },
 
-    // ── Destin sacrifié (LDB 17 l.31-35) — résolution de la suspension pendingFateSave ──
+    // ── Destin sacrifié (LDB 17 l.29-32) — résolution de la suspension pendingFateSave ──
     fateNegate: () => {
       const { battle, pendingFateSave: p } = get();
-      if (!battle || !p || p.source !== 'hit') return; // « Comment ça a pu rater ? » : coup létal seulement
+      if (!battle || !p || !fateSaveOptions(p.source).includes('negate')) return;
       const hero = inBattleId(battle, p.heroId);
       set({ pendingFateSave: null });
       if (!hero) return;
@@ -3084,7 +3085,8 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. state/medicFlow ──
 
     // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — surgeryNext applique
-    // (medicFlow), surgeryCancel annule. openSurgeryPass POSE la passe (cf. délégations medic, store.ts).
+    // (medicFlow), surgeryPassCancel annule la passe, surgeryCancel l'opération. openSurgeryPass POSE la
+    // passe (cf. délégations medic, store.ts).
 
     /** « Appliquer » : applique le soin (le jet est déjà figé). Coûte l'Action en combat. L'infirmerie
      *  (`medic`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */

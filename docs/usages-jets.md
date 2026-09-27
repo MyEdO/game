@@ -13,7 +13,7 @@ d'affichage chaque consommateur remplit, et quelles particularités MÉCANIQUES 
 Le contrat lui-même (ce que chaque zone doit porter, et où) est DÉFINI par `docs/charte-ui.md` : ce
 document ne le redéfinit pas, il MESURE qui en consomme quoi.
 
-**Population mesurée : 37 consommateurs** — 49 sites JSX `<RollShell …>` (J) et 6 producteurs de
+**Population mesurée : 38 consommateurs** — 48 sites JSX `<RollShell …>` (J) et 8 producteurs de
 props `ComponentProps<typeof RollShell>` (H, les hooks qui paramètrent la coquille sans la rendre).
 
 ## Zones de COQUILLE (légende des colonnes)
@@ -39,51 +39,53 @@ props `ComponentProps<typeof RollShell>` (H, les hooks qui paramètrent la coqui
 | `actions` | `actions` | — | **non** |
 | `onCancel` | `onCancel` | — | oui |
 | `flowKey` | `flowKey` | — | oui |
+| `etape` | `etape` | — | oui |
 
-_19 zones de coquille. L'**id de zone** (`Zn`) est celui que le JSDoc de la prop DÉCLARE ;
+_20 zones de coquille. L'**id de zone** (`Zn`) est celui que le JSDoc de la prop DÉCLARE ;
 sa définition vit à la charte. Une prop non encore taguée affiche « — » et sa colonne porte son nom._
 
 ## Matrice — consommateur × zones de COQUILLE
 
-| Consommateur | Sites | Rangées | `title` | **Z1** | **Z2** | `embedded` | `disableEscClose` | `stake` | `extra` | `setup` | `rows` | `rolled` | `winnerIndex` | `netSL` | `outcome` | `summary` | `postRollExtra` | `forcedExtra` | `actions` | `onCancel` | `flowKey` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `src/ui/ActivityModal.tsx` | `ActivityModal` (J) | variable | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/AppraiseModal.tsx` | `AppraiseModalView` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ApproachModal.tsx` | `ApproachModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/AuContactModal.tsx` | `AuContactModal` (J) ×2 | 2 | ✓ | · | · | · | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ |
-| `src/ui/BargainModal.tsx` | `BargainModalView` (J) | 2 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/BattementModal.tsx` | `BattementModal` (J) | 1 | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/CascadeModal.tsx` | `CascadeBody` (J) ×9, `attack` (J), `defense` (J), `extended` (J), `fumble` (J), `test` (J), `trample` (J) | appel / — / variable / 0 / 2+ | ✓ | ✓ | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | · | · |
-| `src/ui/CastModal.tsx` | `CastModal` (J) | 1 | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ |
-| `src/ui/CorruptionModal.tsx` | `CorruptionModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | · | ✓ |
-| `src/ui/CrewTestModal.tsx` | `CrewTestModalView` (J) | variable | ✓ | ✓ | · | · | · | ✓ | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ |
-| `src/ui/DisengageModal.tsx` | `DisengageModal` (J) ×2 | variable / 2 | ✓ | · | · | · | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | · | ✓ |
-| `src/ui/DispelModal.tsx` | `DispelModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/DistraireModal.tsx` | `DistraireModal` (J) | 2 | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/EtalLotModal.tsx` | `EtalLotModal` (J) | variable | ✓ | · | ✓ | · | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/FallModal.tsx` | `FallModal` (J) ×2 | 0 / 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/FocusModal.tsx` | `FocusModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ForceDoorModal.tsx` | `ForceDoorModal` (J) | variable | ✓ | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ |
-| `src/ui/FrenzyModal.tsx` | `FrenzyModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/GrappleModal.tsx` | `GrappleModal` (J) ×2 | 2 | ✓ | · | · | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ |
-| `src/ui/HandGateModal.tsx` | `HandGateModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/HealModal.tsx` | `HealRollFlow` (J) | 1 | ✓ | · | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ManeuverModal.tsx` | `ManeuverModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/MedicModal.tsx` | `SurgeryRollFlow` (J) | 1 | ✓ | · | · | ✓ | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ReloadModal.tsx` | `ReloadModalView` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/RunModal.tsx` | `RunModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ShantyModal.tsx` | `ShantyModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ShipBatteryModal.tsx` | `ShipBatteryModal` (J) | variable | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ |
-| `src/ui/ShipManeuverModal.tsx` | `ShipManeuverModal` (J) | variable | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ |
-| `src/ui/StateRecoveryModal.tsx` | `StateRecoveryModalView` (J) | variable | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/SteamSaveModal.tsx` | `SteamSaveModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | · | ✓ |
-| `src/ui/WardModal.tsx` | `WardModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/jetProps/useAttackJetProps.tsx` | `useAttackJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `src/ui/jetProps/useDefenseJetProps.tsx` | `useDefenseJetProps` (H) | hook | ✓ | ✓ | · | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ |
-| `src/ui/jetProps/useExtendedTestJetProps.tsx` | `useExtendedTestJetProps` (H) | hook | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
-| `src/ui/jetProps/useFumbleJetProps.tsx` | `useFumbleJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | · | · |
-| `src/ui/jetProps/useTestJetProps.tsx` | `useTestJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | · | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ |
-| `src/ui/jetProps/useTrampleJetProps.tsx` | `useTrampleJetProps` (H) | hook | ✓ | · | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ |
+| Consommateur | Sites | Rangées | `title` | **Z1** | **Z2** | `embedded` | `disableEscClose` | `stake` | `extra` | `setup` | `rows` | `rolled` | `winnerIndex` | `netSL` | `outcome` | `summary` | `postRollExtra` | `forcedExtra` | `actions` | `onCancel` | `flowKey` | `etape` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `src/ui/ActivityModal.tsx` | `ActivityModal` (J) | variable | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/AppraiseModal.tsx` | `AppraiseModalView` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ApproachModal.tsx` | `ApproachModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/AuContactModal.tsx` | `AuContactModal` (J) ×2 | 2 | ✓ | · | · | · | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | ✓ |
+| `src/ui/BargainModal.tsx` | `BargainModalView` (J) | 2 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/BattementModal.tsx` | `BattementModal` (J) | 1 | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/CascadeModal.tsx` | `CascadeBody` (J) ×9, `attack` (J), `defense` (J), `extended` (J), `fumble` (J), `test` (J), `trample` (J) | appel / — / variable / 0 / 2+ | ✓ | ✓ | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | · | · | ✓ |
+| `src/ui/CastModal.tsx` | `CastModal` (J) | 1 | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | · |
+| `src/ui/CorruptionModal.tsx` | `CorruptionModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | · | ✓ | · |
+| `src/ui/CrewTestModal.tsx` | `CrewTestModalView` (J) | variable | ✓ | ✓ | · | · | · | ✓ | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/DisengageModal.tsx` | `DisengageModal` (J) ×2 | variable / 2 | ✓ | · | · | · | · | ✓ | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | · | ✓ | ✓ |
+| `src/ui/DispelModal.tsx` | `DispelModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/DistraireModal.tsx` | `DistraireModal` (J) | 2 | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/EtalLotModal.tsx` | `EtalLotModal` (J) | variable | ✓ | · | ✓ | · | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/FallModal.tsx` | `FallModal` (J) ×2 | 0 / 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ |
+| `src/ui/FocusModal.tsx` | `FocusModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ForceDoorModal.tsx` | `ForceDoorModal` (J) | variable | ✓ | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/FrenzyModal.tsx` | `FrenzyModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/GrappleModal.tsx` | `GrappleModal` (J) ×2 | 2 | ✓ | · | · | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | ✓ |
+| `src/ui/HandGateModal.tsx` | `HandGateModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/HealModal.tsx` | `HealModal` (J) | — | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · |
+| `src/ui/ManeuverModal.tsx` | `ManeuverModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ReloadModal.tsx` | `ReloadModalView` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/RunModal.tsx` | `RunModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ShantyModal.tsx` | `ShantyModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ShipBatteryModal.tsx` | `ShipBatteryModal` (J) | variable | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/ShipManeuverModal.tsx` | `ShipManeuverModal` (J) | variable | ✓ | ✓ | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/StateRecoveryModal.tsx` | `StateRecoveryModalView` (J) | variable | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/SteamSaveModal.tsx` | `SteamSaveModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | · | ✓ | · |
+| `src/ui/WardModal.tsx` | `WardModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useAttackJetProps.tsx` | `useAttackJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useDefenseJetProps.tsx` | `useDefenseJetProps` (H) | hook | ✓ | ✓ | · | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | · | ✓ | · |
+| `src/ui/jetProps/useExtendedTestJetProps.tsx` | `useExtendedTestJetProps` (H) | hook | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useFumbleJetProps.tsx` | `useFumbleJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | · | · | · |
+| `src/ui/jetProps/useHealJetProps.tsx` | `useHealJetProps` (H) | hook | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useSurgeryJetProps.tsx` | `useSurgeryJetProps` (H) | hook | ✓ | · | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useTestJetProps.tsx` | `useTestJetProps` (H) | hook | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | ✓ | · | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | · |
+| `src/ui/jetProps/useTrampleJetProps.tsx` | `useTrampleJetProps` (H) | hook | ✓ | · | · | · | · | · | ✓ | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
 
 _`✓` = la zone est remplie par au moins un site du fichier ; `·` = jamais. **Sites** : le SYMBOLE englobant
 (fonction/composant qui contient le site) — `(J)` = site JSX, `(H)` = producteur de props, `×n` = n sites
@@ -99,8 +101,9 @@ qu'il étale. La matrice ci-dessus le montre par une ligne quasi vide — c'est 
 | Consommateur | Spreads mesurés |
 |---|---|
 | `src/ui/CascadeModal.tsx` | `attackProps!`, `defenseProps!`, `extendedProps!`, `fumbleProps!`, `stakeProps`, `testProps!`, `trampleProps!` |
+| `src/ui/HealModal.tsx` | `jet` |
 
-_1 consommateurs sur 37._
+_2 consommateurs sur 38._
 
 ## Matrice — consommateur × zones de RANGÉE
 
@@ -130,9 +133,8 @@ seraient une colonne vide de bout en bout.
 | `src/ui/FrenzyModal.tsx` | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | · | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/GrappleModal.tsx` | ✓ | · | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/HandGateModal.tsx` | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
-| `src/ui/HealModal.tsx` | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
+| `src/ui/HealModal.tsx` | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/ManeuverModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
-| `src/ui/MedicModal.tsx` | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/ReloadModal.tsx` | ✓ | ✓ | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · | ✓ |
 | `src/ui/RunModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/ShantyModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
@@ -145,6 +147,8 @@ seraient une colonne vide de bout en bout.
 | `src/ui/jetProps/useDefenseJetProps.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | · | · | ✓ | · |
 | `src/ui/jetProps/useExtendedTestJetProps.tsx` | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | · | · | · | · | · | · | · | ✓ |
 | `src/ui/jetProps/useFumbleJetProps.tsx` | · | · | · | ✓ | ✓ | · | · | · | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · | · | · | ✓ | · |
+| `src/ui/jetProps/useHealJetProps.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | · | · | · | · | · | · | · | · |
+| `src/ui/jetProps/useSurgeryJetProps.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | · | · | · | · | · | · | · | · |
 | `src/ui/jetProps/useTestJetProps.tsx` | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | ✓ | · | ✓ | · | ✓ | · | · | · | · |
 | `src/ui/jetProps/useTrampleJetProps.tsx` | ✓ | · | · | ✓ | ✓ | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | · | · | · | · | · |
 
@@ -171,15 +175,14 @@ Aucune n'est déclarée par un nom de fichier : chacune est la conjonction de zo
 | `src/ui/DispelModal.tsx` | · | · | · | ✓ | · | · | · | `Icon` |
 | `src/ui/DistraireModal.tsx` | ✓ | · | · | · | · | · | · | `OptionChooser`, `VsHeader` |
 | `src/ui/EtalLotModal.tsx` | · | · | · | · | · | · | · | `Icon` |
-| `src/ui/FallModal.tsx` | · | · | · | · | · | · | · | `ChoiceButtons`, `Icon` |
+| `src/ui/FallModal.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser` |
 | `src/ui/FocusModal.tsx` | · | · | · | ✓ | · | · | · | `Icon` |
 | `src/ui/ForceDoorModal.tsx` | · | ✓ | · | · | · | · | · | `Icon` |
 | `src/ui/FrenzyModal.tsx` | · | · | · | · | · | · | · | `Icon` |
 | `src/ui/GrappleModal.tsx` | ✓ | · | · | · | · | · | · | `Icon`, `OptionChooser`, `VsHeader` |
 | `src/ui/HandGateModal.tsx` | · | · | · | · | · | · | · | `Icon` |
-| `src/ui/HealModal.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser`, `VsHeader` |
+| `src/ui/HealModal.tsx` | · | · | · | · | · | · | · | — |
 | `src/ui/ManeuverModal.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser` |
-| `src/ui/MedicModal.tsx` | · | · | · | · | · | · | · | `Icon` |
 | `src/ui/ReloadModal.tsx` | · | · | · | ✓ | · | · | · | — |
 | `src/ui/RunModal.tsx` | · | · | · | · | · | · | · | `Icon` |
 | `src/ui/ShantyModal.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser` |
@@ -192,6 +195,8 @@ Aucune n'est déclarée par un nom de fichier : chacune est la conjonction de zo
 | `src/ui/jetProps/useDefenseJetProps.tsx` | ✓ | · | · | · | · | · | · | `CodexRef`, `DeterminationButton`, `Icon`, `OptionChooser`, `VsHeader` |
 | `src/ui/jetProps/useExtendedTestJetProps.tsx` | · | · | · | ✓ | · | · | · | `Icon` |
 | `src/ui/jetProps/useFumbleJetProps.tsx` | · | · | ✓ | · | · | · | · | `Icon`, `TableRollLine` |
+| `src/ui/jetProps/useHealJetProps.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser`, `VsHeader` |
+| `src/ui/jetProps/useSurgeryJetProps.tsx` | · | · | · | · | · | · | · | `Icon` |
 | `src/ui/jetProps/useTestJetProps.tsx` | · | · | · | · | · | · | · | `CodexRef`, `PortraitPicker` |
 | `src/ui/jetProps/useTrampleJetProps.tsx` | · | · | · | · | · | · | · | `Icon`, `VsHeader` |
 
@@ -242,4 +247,4 @@ est un angle mort, et les voici :
 - Les **ids de zone** (`Zn`) affichés sont ceux que le JSDoc des props DÉCLARE. Une zone du contrat non
   encore taguée à la primitive n'a pas d'id ici — ce document RELÈVE les ids, il ne les attribue pas.
 
-<!-- sources-empreinte: 50cb444740494a75eaf39df5a08cc76bd6f8a6a8 (1976 fichiers, 134 dossiers) corps: 8f1ee698aaa823822390b65a5262b101aae75e43 -->
+<!-- sources-empreinte: be868cb7ddbdaefee81b9fab14e6fe278912802e (1981 fichiers, 134 dossiers) corps: 24ea5f99dcf1d7226121260694ac71341399c65f -->

@@ -3,7 +3,8 @@ import { availableResistance, resistanceImproves } from '../engine/menace';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { exposureLevelSchema } from '../data/schemas/grammaire/valeurs';
 import { testValue } from '../engine/skills';
-import { flowStakeRef, refLabel, libelleOuAbsence } from '../data';
+import { flowStakeRef, libelleOuAbsence, refLabel, type FlowStakeId } from '../data';
+import type { ExposureLevel } from '../engine/corruption';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
@@ -12,6 +13,9 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
 import { describeCorruption } from '../state/flowOutcomes';
+
+/** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
+const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
 
 /**
  * Exposition à une Influence corruptrice (LDB 19 l.23-75) : Test de Résistance
@@ -73,7 +77,7 @@ export function CorruptionModal() {
   return (
     <RollShell
       flowKey="corruption"
-      stake={flowStakeRef('corruption', seuil ? 'seuil' : (pc.level ?? 'mineure'))}
+      stake={flowStakeRef(seuil ? 'corruption-seuil' : CORRUPTION_STAKE[pc.level ?? 'mineure'])}
       title={seuil ? <><Icon id="nav/mutation" size="sm" /> Seuil de Corruption ({hero?.corruption ?? '?'} Points)</> : <><Icon id="nav/mutation" size="sm" /> Influence corruptrice ({libelleDeValeur(exposureLevelSchema, pc.level ?? 'mineure')})</>}
       subtitle={
         <>

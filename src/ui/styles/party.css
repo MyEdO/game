@@ -7,7 +7,7 @@
    dans `creator.css`/`rose.css`, GLOBAUX, jamais redéfinis ici).
    STRUCTURE (arbitrage user 2026-07-13, transposée #417) : l'écran = LA COMPAGNIE (grille de sièges) +
    le RAIL du registre (campagne + composition collective) ; le vivier de candidats vit dans un écran
-   plein-champ à part (`.hero-selector`). Responsive : rail s'empile ≤900px, grille 1 colonne ≤700px ;
+   plein-champ à part (`HeroSelector`, `PartyScreen.tsx`). Responsive : rail s'empile ≤900px, grille 1 colonne ≤700px ;
    breakpoints canon 900/700/560. */
 
 /* ── Le REGISTRE : rail + compagnie côte à côte (≤900px empilé) ── */
@@ -413,7 +413,7 @@
   color: var(--muted);
 }
 .party-actions-buttons {
-  flex: none;
+  flex: 0 1 auto;
   align-items: flex-start;
 }
 .party-actions .btn {
@@ -434,13 +434,6 @@
   font-family: var(--font-display);
   font-size: 17px;
   letter-spacing: 0.4px;
-}
-
-/* ── SÉLECTEUR DÉDIÉ (HeroSelector, écran plein-champ ScreenShell) : onglets + grille de cartes-portraits.
-   Le corps est borné/centré large (`body='centered-wide'`) — écran-grille/catalogue. ── */
-.hero-selector .sheet-tabnav {
-  margin: 0 0 10px;
-  justify-content: center;
 }
 
 /* ── GRILLE + CARTE-PORTRAIT de candidat (CandidateCard) — l'étal du sélecteur, source unique ──

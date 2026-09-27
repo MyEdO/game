@@ -44,7 +44,7 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, onEndSession, in
   // Échap / bouton Retour : UN APPUI = UN ÉCHELON — depuis un sous-écran on remonte au menu, et le
   // menu RESTE à l'écran, donc sa couche reste empilée (`false`, #1752) ; à la racine, on ferme.
   const back = (): boolean | void => { if (view !== 'root') { setView('root'); return false; } close(); };
-  useModalA11y(boxRef, back, { kind: 'menu-systeme', actif: open }); // monté en PERMANENCE : fermé, il n'est aucune couche
+  useModalA11y(boxRef, back, { kind: 'menu-systeme', actif: open, etape: view }); // monté en PERMANENCE : fermé, il n'est aucune couche
 
   return (
     <div className="game-menu">
@@ -53,6 +53,7 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, onEndSession, in
         className="gm-btn skin-tole"
         data-ton="laiton"
         aria-label={open ? t('gameMenu.close') : t('gameMenu.menu')}
+        aria-haspopup="dialog"
         aria-expanded={open}
         title={open ? t('gameMenu.close') : t('gameMenu.menu')}
         onClick={() => (open ? close() : setOpen(true))}
@@ -72,10 +73,10 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, onEndSession, in
             >
               <MenuSection rule={false}>
                 <MenuButton icon="ui/round-start" onClick={close}>{t('gameMenu.resume')}</MenuButton>
-                <MenuButton icon="file/save" disabled={!onSaveLoad} onClick={act(onSaveLoad)} title={onSaveLoad ? undefined : 'Indisponible en combat'}>{t('gameMenu.saveLoad')}</MenuButton>
+                <MenuButton icon="file/save" onClick={act(onSaveLoad)} refus={onSaveLoad ? undefined : 'Indisponible en combat'}>{t('gameMenu.saveLoad')}</MenuButton>
                 <MenuButton icon="nav/online" onClick={() => setView('coop')}>{t('gameMenu.section.coop')}</MenuButton>
                 <MenuButton icon="ui/settings" onClick={() => setView('options')}>{t('gameMenu.options')}</MenuButton>
-                <MenuButton icon="resource/xp" disabled={!onEndSession} onClick={act(onEndSession)} title={onEndSession ? undefined : 'Indisponible en combat'}>{t('gameMenu.endSession')}</MenuButton>
+                <MenuButton icon="resource/xp" onClick={act(onEndSession)} refus={onEndSession ? undefined : 'Indisponible en combat'}>{t('gameMenu.endSession')}</MenuButton>
                 <MenuButton icon="map-tool/door" onClick={onQuit}>{t('gameMenu.quit')}</MenuButton>
               </MenuSection>
             </MenuCard>

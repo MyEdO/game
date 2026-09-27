@@ -18,6 +18,10 @@ import { useGame } from '../../state/store';
 import { codexLookup, codexLookupById } from './registry';
 import { mdToText } from '../Prose';
 import { useDismissLayer } from '../useDismissLayer';
+import { focusSansIntention, useFocusEmprunte } from '../focus';
+
+/** Entrée de la bulle épinglée sous `wrap` : sa porte vers la fiche, son seul bouton. */
+const porteDeLaBulle = (bulle: HTMLElement): HTMLElement | null => bulle.querySelector<HTMLElement>('button');
 
 const truncate = (s: string, n = 400): string => (s.length > n ? `${s.slice(0, n).trimEnd()}…` : s);
 
@@ -178,7 +182,6 @@ export function CodexRef({
   const boiteAtteignable = wrap && (porte || !!fallback);
   const ref = useRef<HTMLSpanElement>(null);
   const popRef = useRef<HTMLSpanElement>(null);
-  const openBtnRef = useRef<HTMLButtonElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pos, setPos] = useState<PopoverPlacement | null>(null);
   // Épinglé (mode `tooltipOnly` : clic/Entrée/Espace ; mode `wrap` : ↓ depuis le contrôle) — le
@@ -232,17 +235,11 @@ export function CodexRef({
   // démonterait avant que le `click` n'atteigne le bouton.
   // COUCHE de la pile partagée (`dismissStack`, #1476) tant que le popover est À L'ÉCRAN : le
   // congédiement (Échap, B) le referme, et s'arrête là — il n'ouvre plus le menu système derrière.
-  const congedier = useCallback(() => {
-    const wasPinned = pinned;
-    unpin();
-    // Le focus ne revient au contrôle englobé QUE s'il était parti DANS le popover (épinglage) —
-    // sinon il n'a jamais bougé, et le re-focaliser rouvrirait le popover à l'instant même par
-    // `onFocus={show}` : Échap semblait alors « ne rien fermer » (recette #1117).
-    if (wrap && wasPinned) ref.current?.querySelector('button')?.focus();
-  }, [pinned, unpin, wrap]);
   // Une couche ouverte AU-DESSUS (modale, panneau-paramètre) recouvre la surface : le popover, qui
   // n'était qu'une infobulle posée sur l'écran d'en dessous, se retire au lieu de rester dessous.
-  useDismissLayer('popover-codex', congedier, pinned || !!pos, congedier);
+  // Sa bulle est inscrite comme surface NON modale : jamais le dialogue du dessus, mais la manette y
+  // navigue quand elle tient le focus (`surfaceFocalisee`).
+  useDismissLayer('popover-codex', unpin, pinned || !!pos, unpin, { boite: popRef, dialogue: false });
 
   useEffect(() => {
     if (!pinned && !pos) return;
@@ -255,11 +252,10 @@ export function CodexRef({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [pinned, pos, unpin]);
 
-  // Épinglage clavier sous `wrap` : le focus ENTRE dans le popover, sur sa porte — sans quoi la
-  // fiche ne serait atteignable qu'à la souris (le portal est en fin de `body`, hors ordre de Tab).
-  useEffect(() => {
-    if (pinned && wrap) openBtnRef.current?.focus();
-  }, [pinned, wrap]);
+  // Épinglée sous `wrap`, la bulle EMPRUNTE le focus (`useFocusEmprunte`) : il entre sur sa porte —
+  // sans quoi la fiche ne serait atteignable qu'à la souris (le portal est en fin de `body`, hors ordre
+  // de Tab) — et revient au contrôle englobé quand elle se désépingle.
+  useFocusEmprunte(popRef, pinned && wrap, porteDeLaBulle);
 
   // Sans entrée catalogue NI fallback : icône-déclencheur → rien ; libellé → texte simple. La classe
   // `codex-ref` reste portée — elle habille l'affordance (`.codex-ref.ab-codex-info`), et sans elle
@@ -300,108 +296,117 @@ export function CodexRef({
   // l'entoure — un appelant qui prêtait son propre titre nommait la mauvaise fiche.
   const derive = ariaPrefix ? `${ariaPrefix} : ${title}` : title;
   const accessibleName = ariaLabel ?? (nodeHasText(children ?? label) ? undefined : derive);
+  // BASCULE `tooltipOnly` = patron TOGGLETIP (Inclusive Components, « Tooltips & Toggletips ») : le
+  // déclencheur n'a pas d'état déplié ; à l'activation, le texte de la bulle est écrit dans une région
+  // `role="status"` montée avec lui, et vidée à la fermeture.
+  const annonce = togglePopover
+    ? [refus, inst ?? title, inst ? title : undefined, popSub, metaLine, provenances?.join(' · '), body].filter(Boolean).join('. ')
+    : null;
 
   return (
-    <span
-      ref={ref}
-      className={`codex-ref${inline ? ' codex-inline' : ''}${clickable ? '' : ' codex-static'}${className ? ` ${className}` : ''}`}
-      tabIndex={clickable ? 0 : undefined}
-      role={clickable ? 'button' : undefined}
-      aria-expanded={togglePopover ? pinned : undefined}
-      {...(accessibleName ? { 'aria-label': accessibleName } : null)}
-      {...(pos ? { 'aria-describedby': tipId } : null)}
-      {...(pinFromWrap ? {
-        // La porte clavier ne se DEVINE pas : elle s'annonce (lecteur d'écran + infobulle native).
-        'aria-keyshortcuts': 'ArrowDown',
-        title: `${title} — ↓ : fiche`,
-      } : null)}
-      onClick={activate ?? (tapRefus ? toggle : undefined)}
-      onKeyDown={(e) => {
-        // ↓ épingle et entre dans le popover (le contrôle englobé ignore cette touche : son
-        // Entrée/Espace reste SA dépense). Même idiome qu'un bouton de menu.
-        // `stopPropagation` : la touche est CONSOMMÉE ici — sans quoi le listener global de jeu
-        // (`useGameKeyboard`) la voit aussi et le curseur tactique de combat court avec elle
-        // (recette B3a, capture 04). Ceinture ET bretelles avec `notWhenControlFocused` posé sur
-        // les bindings `cursor-*` : le socle protège TOUT contrôle focalisé, ceci protège ce geste
-        // même si un listener futur ne consultait pas le registre.
-        if (pinFromWrap && e.key === 'ArrowDown') {
-          e.preventDefault();
-          e.stopPropagation();
-          e.nativeEvent.stopImmediatePropagation();
-          showAt();
-          setPinned(true);
-          return;
-        }
-        if (activate && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          activate();
-        }
-      }}
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={hide}
-    >
-      {children ?? label}
-      {pos &&
-        createPortal(
-          <span
-            ref={popRef}
-            id={tipId}
-            className="codex-pop"
-            // Placement CALCULÉ → variables CSS lues par `.codex-pop` (arbitrage user A2, 2026-09-18).
-            // Sous `wrap` le popover est ACTIONNABLE (il porte la porte) : un ÉTAT est un ATTRIBUT,
-            // jamais une variable — `[data-atteignable]` lui rend les événements de pointeur que
-            // `.codex-pop` neutralise pour le pur tooltip.
-            style={{
-              '--pop-top': pos.top != null ? `${pos.top}px` : 'auto',
-              '--pop-bottom': pos.bottom != null ? `${pos.bottom}px` : 'auto',
-              '--pop-left': `${pos.left}px`,
-              '--pop-w': `${pos.width}px`,
-              '--pop-h': `${pos.maxHeight}px`,
-            } as CSSProperties}
-            data-atteignable={boiteAtteignable ? '' : undefined}
-            role="tooltip"
-            onMouseEnter={cancelHide}
-            onMouseLeave={hide}
-          >
-            {/* Le REFUS ouvre le popover : c'est la réponse à « pourquoi je ne peux pas ? », avant
-                toute règle. Il ne s'écrit nulle part ailleurs à l'écran (arbitrage 2026-08-24). */}
-            {refus && <span data-refus="">{refus}</span>}
-            <CodexTitre title={inst ?? title} sub={inst ? title : undefined} />
-            {popSub && <span className="codex-pop-sub">{popSub}</span>}
-            {metaLine && <span className="codex-pop-meta">{metaLine}</span>}
-            {/* PROVENANCES de la chip (qui soutient, qui octroie) — arbitrage user 2026-08-05 :
-                « Normalement les informations de ce genre sont dans le hover codex non ? ». Elles
-                vivent DANS le popover, jamais en badges flottants à côté de la chip. */}
-            {provenances?.length ? <span className="codex-pop-meta">{provenances.join(' · ')}</span> : null}
-            {body && <span className="codex-pop-body">{body}</span>}
-            {(src || openFiche) && (
-              <span className="codex-pop-foot">
-                {src && <span className="codex-src">{src.book} p.{src.page}</span>}
-                {/* La PORTE vers la fiche. Sous `wrap` c'est un vrai bouton (clic ET clavier) :
-                    le déclencheur, lui, garde son action propre. Sinon, mention : c'est le
-                    déclencheur qui est cliquable. */}
-                {openFiche && (wrap
-                  ? (
-                    <button
-                      ref={openBtnRef}
-                      type="button"
-                      /* Contrôle RÉEL → il compose le token de bouton partagé (`.btn.btn-ghost`,
-                         `components.css`) ; `.codex-pop-open` ne garde que son placement en pied. */
-                      className="btn btn-ghost codex-pop-open"
-                      data-atteignable=""
-                      onClick={() => { open(); unpin(); }}
-                    >
-                      Ouvrir la fiche
-                    </button>
-                  )
-                  : <span className="codex-pop-open">Ouvrir la fiche</span>)}
-              </span>
-            )}
-          </span>,
-          document.body,
-        )}
-    </span>
+    <>
+      <span
+        ref={ref}
+        className={`codex-ref${inline ? ' codex-inline' : ''}${clickable ? '' : ' codex-static'}${className ? ` ${className}` : ''}`}
+        tabIndex={clickable ? 0 : undefined}
+        role={clickable ? 'button' : undefined}
+        {...(accessibleName ? { 'aria-label': accessibleName } : null)}
+        {...(pos ? { 'aria-describedby': tipId } : null)}
+        {...(pinFromWrap ? {
+          // La porte clavier ne se DEVINE pas : elle s'annonce (lecteur d'écran + infobulle native).
+          'aria-keyshortcuts': 'ArrowDown',
+          title: `${title} — ↓ : fiche`,
+        } : null)}
+        onClick={activate ?? (tapRefus ? toggle : undefined)}
+        onKeyDown={(e) => {
+          // ↓ épingle et entre dans le popover (le contrôle englobé ignore cette touche : son
+          // Entrée/Espace reste SA dépense). Même idiome qu'un bouton de menu.
+          // `stopPropagation` : la touche est CONSOMMÉE ici — sans quoi le listener global de jeu
+          // (`useGameKeyboard`) la voit aussi et le curseur tactique de combat court avec elle
+          // (recette B3a, capture 04). Ceinture ET bretelles avec `notWhenControlFocused` posé sur
+          // les bindings `cursor-*` : le socle protège TOUT contrôle focalisé, ceci protège ce geste
+          // même si un listener futur ne consultait pas le registre.
+          if (pinFromWrap && e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            showAt();
+            setPinned(true);
+            return;
+          }
+          if (activate && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            activate();
+          }
+        }}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        // Un focus posé par une surface (ouverture d'un dialogue, retour à l'invocateur) n'est pas une
+        // intention du joueur : il n'ouvre rien (`focusSansIntention`).
+        onFocus={() => { if (!focusSansIntention()) show(); }}
+        onBlur={hide}
+      >
+        {children ?? label}
+        {pos &&
+          createPortal(
+            <span
+              ref={popRef}
+              id={tipId}
+              className="codex-pop"
+              // Placement CALCULÉ → variables CSS lues par `.codex-pop` (arbitrage user A2, 2026-09-18).
+              // Sous `wrap` le popover est ACTIONNABLE (il porte la porte) : un ÉTAT est un ATTRIBUT,
+              // jamais une variable — `[data-atteignable]` lui rend les événements de pointeur que
+              // `.codex-pop` neutralise pour le pur tooltip.
+              style={{
+                '--pop-top': pos.top != null ? `${pos.top}px` : 'auto',
+                '--pop-bottom': pos.bottom != null ? `${pos.bottom}px` : 'auto',
+                '--pop-left': `${pos.left}px`,
+                '--pop-w': `${pos.width}px`,
+                '--pop-h': `${pos.maxHeight}px`,
+              } as CSSProperties}
+              data-atteignable={boiteAtteignable ? '' : undefined}
+              role="tooltip"
+              onMouseEnter={cancelHide}
+              onMouseLeave={hide}
+            >
+              {/* Le REFUS ouvre le popover : c'est la réponse à « pourquoi je ne peux pas ? », avant
+                  toute règle. Il ne s'écrit nulle part ailleurs à l'écran (arbitrage 2026-08-24). */}
+              {refus && <span data-refus="">{refus}</span>}
+              <CodexTitre title={inst ?? title} sub={inst ? title : undefined} />
+              {popSub && <span className="codex-pop-sub">{popSub}</span>}
+              {metaLine && <span className="codex-pop-meta">{metaLine}</span>}
+              {/* PROVENANCES de la chip (qui soutient, qui octroie) — arbitrage user 2026-08-05 :
+                  « Normalement les informations de ce genre sont dans le hover codex non ? ». Elles
+                  vivent DANS le popover, jamais en badges flottants à côté de la chip. */}
+              {provenances?.length ? <span className="codex-pop-meta">{provenances.join(' · ')}</span> : null}
+              {body && <span className="codex-pop-body">{body}</span>}
+              {(src || openFiche) && (
+                <span className="codex-pop-foot">
+                  {src && <span className="codex-src">{src.book} p.{src.page}</span>}
+                  {/* La PORTE vers la fiche. Sous `wrap` c'est un vrai bouton (clic ET clavier) :
+                      le déclencheur, lui, garde son action propre. Sinon, mention : c'est le
+                      déclencheur qui est cliquable. */}
+                  {openFiche && (wrap
+                    ? (
+                      <button
+                        type="button"
+                        /* Contrôle RÉEL → il compose le token de bouton partagé (`.btn.btn-ghost`,
+                           `components.css`) ; `.codex-pop-open` ne garde que son placement en pied. */
+                        className="btn btn-ghost codex-pop-open"
+                        data-atteignable=""
+                        onClick={() => { open(); unpin(); }}
+                      >
+                        Ouvrir la fiche
+                      </button>
+                    )
+                    : <span className="codex-pop-open">Ouvrir la fiche</span>)}
+                </span>
+              )}
+            </span>,
+            document.body,
+          )}
+      </span>
+      {annonce !== null && <span className="hors-ecran" role="status">{pinned ? annonce : ''}</span>}
+    </>
   );
 }

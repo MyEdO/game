@@ -104,7 +104,7 @@ describe('PanneauParametre — paramètre BORNÉ, ancré, annulable', () => {
   // (`useModalA11y`) : sans lui, un joueur clavier qui ouvre le panneau perd son point de
   // navigation et ne retrouve jamais l'alvéole d'où il vient.
   // PORTÉE MESURÉE ICI : le RETOUR de focus. Le focus D'ENTRÉE, lui, est hors de portée de jsdom —
-  // `visibleFocusables`/`choiceOptions` (`Modal.tsx`) filtrent sur `getClientRects()`, qui rend
+  // `visibleFocusables` (`focus.ts`)/`choiceOptions` (`Modal.tsx`) filtrent sur `getClientRects()`, qui rend
   // toujours 0 sans moteur de rendu ; l'affirmer ici serait mesurer jsdom, pas le panneau.
   it('A11Y : à la fermeture, le focus REVIENT au déclencheur (hook `useModalA11y` câblé)', () => {
     ancre.focus();

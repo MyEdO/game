@@ -87,8 +87,9 @@ describe('rangée de jet — les classes du bloc « dé fixé » sont chartrées
 
   /**
    * VOILE des fenêtres de jet (#942 L7, verdict vision) : l'allègement (voile clair + ancrage par
-   * bandes) existe pour garder le CHAMP DE BATAILLE lisible sous la fenêtre — il vit donc dans la
-   * feuille du DOMAINE et porte le scope de l'écran qui affiche ce champ. En couche PARTAGÉE il
+   * bandes) existe pour garder le CHAMP DE BATAILLE lisible sous la fenêtre — il vit donc dans le
+   * module du cadre (`modal.css`, état `data-champ`) et porte le scope de l'écran qui
+   * affiche ce champ. En couche PARTAGÉE il
    * s'appliquait à tout écran (interlude compris), où il ne séparait plus les plans, et il a fallu
    * une contre-règle par écran (dérive « classe mono-écran »). jsdom ne calcule pas la cascade : ce
    * qui se verrouille ici est la DÉCLARATION (où vit la règle et à quoi elle est scopée) ; la preuve
@@ -98,11 +99,11 @@ describe('rangée de jet — les classes du bloc « dé fixé » sont chartrées
     const overlayRules = rulesFor('modal-overlay').filter((r) => /background:\s*rgba\(0,\s*0,\s*0,\s*0\.2/.test(r.body));
     expect(overlayRules.length, 'aucun allègement de voile déclaré — le combat a perdu sa lisibilité du champ').toBeGreaterThan(0);
     for (const r of overlayRules) {
-      expect(r.file, 'allègement de voile déclaré en couche PARTAGÉE : il s’appliquerait à tout écran portant une modale de jet').toMatch(/roll-shell\.css$/);
+      expect(r.file, 'allègement de voile déclaré en couche PARTAGÉE : il s’appliquerait à tout écran portant une modale de jet').toMatch(/modal\.css$/);
     }
-    const combat = SHEETS.find((s) => /roll-shell\.css$/.test(s.file))!.css;
+    const combat = SHEETS.find((s) => /\/modal\.css$/.test(s.file))!.css;
     expect(combat, 'l’allègement n’est pas scopé à l’écran qui porte le champ de bataille').toMatch(
-      /\.app-campaign\s+\.modal-overlay:has\(\.roll-modal\)\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.28\)/,
+      /\.app-campaign\s+\.modal-overlay\[data-champ\]\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,\s*0\.28\)/,
     );
   });
 
@@ -115,17 +116,17 @@ describe('rangée de jet — les classes du bloc « dé fixé » sont chartrées
    * verrouille la DÉCLARATION, la preuve pixel est la mesure de recette navigateur.
    */
   it('la géométrie ancre le bord HAUT et RÉSERVE la bande basse (tranche ≥561px)', () => {
-    const combat = SHEETS.find((s) => /roll-shell\.css$/.test(s.file))!.css;
+    const combat = SHEETS.find((s) => /\/modal\.css$/.test(s.file))!.css;
     const slice = mediaSlice(combat, /@media\s*\(min-width:\s*561px\)\s*\{/);
-    expect(slice, 'plus de tranche `@media (min-width: 561px)` dans la feuille de la coquille de jet').toBeTruthy();
-    const overlay = /\.app-campaign\s+\.modal-overlay:has\(\.roll-modal\)\s*\{([^{}]*)\}/.exec(slice!)?.[1] ?? '';
+    expect(slice, 'plus de tranche `@media (min-width: 561px)` dans la feuille du cadre de modale').toBeTruthy();
+    const overlay = /\.app-campaign\s+\.modal-overlay\[data-champ\]\s*\{([^{}]*)\}/.exec(slice!)?.[1] ?? '';
     expect(overlay, 'la bande haute n’est plus nommée : rien ne fixe le bord haut').toMatch(/--roll-band:/);
     expect(overlay, 'sans `align-items: start` la fenêtre se recentre — le bord haut redevient variable').toMatch(/align-items:\s*start/);
     expect(overlay, 'sans `padding-top: var(--roll-band)` le bord haut ne tient plus à la bande').toMatch(/padding-top:\s*var\(--roll-band\)/);
     const bas = /padding-bottom:\s*([^;]+);/.exec(overlay)?.[1]?.trim();
     expect(bas, 'aucune bande basse réservée : une fenêtre haute recouvre le dock d’action et le tiroir de journal').toBeTruthy();
     expect(bas, 'bande basse nulle : idem').not.toMatch(/^0(px)?$/);
-    const modal = /\.app-campaign\s+\.modal-overlay:has\(\.roll-modal\)\s*>\s*\.modal\s*\{([^{}]*)\}/.exec(slice!)?.[1] ?? '';
+    const modal = /\.app-campaign\s+\.modal-overlay\[data-champ\]\s*>\s*\.modal\s*\{([^{}]*)\}/.exec(slice!)?.[1] ?? '';
     const maxH = /max-height:\s*([^;]+);/.exec(modal)?.[1] ?? '';
     expect(maxH, 'le plafond de hauteur ne retire pas la bande HAUTE : la fenêtre crève le bas de l’écran').toContain('var(--roll-band)');
     expect(maxH, 'le plafond de hauteur ne retire pas la bande BASSE : la fenêtre redescend sur le dock').toContain(bas!);
@@ -143,8 +144,9 @@ describe('rangée de jet — les classes du bloc « dé fixé » sont chartrées
     const porteuses = REGLES.filter((r) => /--roll-band\s*:/.test(r.corps));
     expect(porteuses.length, 'la bande haute est déclarée à plusieurs adresses : elle peut diverger d’un état à l’autre').toBe(1);
     // Un sélecteur d'ÉTAT : attribut de donnée, pseudo-classe d'interaction, classe d'état montée
-    // par le runtime. `:has(.roll-modal)` NOMME la fenêtre visée, il ne décrit aucun état.
-    const ETAT = /\[data-|:hover|:focus|:active|:checked|\.open(?![\w-])|\.is-[\w-]+|\.active(?![\w-])/;
+    // par le runtime. `[data-champ]` NOMME la fenêtre visée — `Modal` le fixe au montage
+    // depuis sa prop `champ`, il ne change jamais pendant un jet.
+    const ETAT = /\[data-(?!champ\])|:hover|:focus|:active|:checked|\.open(?![\w-])|\.is-[\w-]+|\.active(?![\w-])/;
     for (const sel of porteuses[0].selecteurs) {
       expect(ETAT.test(sel), `la bande haute est déclarée sous un sélecteur d’ÉTAT (« ${sel} ») : le bord haut bougerait en cours de jet`).toBe(false);
     }

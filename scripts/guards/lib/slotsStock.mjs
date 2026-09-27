@@ -220,9 +220,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "etats.json", champ: "subject", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "etats.json", champ: "value", occurrences: 2, lot: "L1b #1467", date: "2026-08-28" },
   { dataset: "etats.json", champ: "skill", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "flow-stakes.json", champ: "flow", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "flow-stakes.json", champ: "phase", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "flow-stakes.json", champ: "rule", occurrences: 33, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "flow-stakes.json", champ: "rule", occurrences: 35, lot: "L2/L3 #1473", date: "2026-08-26" }, // 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
   { dataset: "gods.json", champ: "blessings", occurrences: 90, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "gods.json", champ: "chaosSpells", occurrences: 17, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "gods.json", champ: "grantGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },

@@ -172,6 +172,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     : null;
 
   if (!p) return null;
+  // Étape du cadre (`useFocusEmprunte`) : purpose et id de l'étape, jamais le curseur (`cascade.ts`, `startCascade`).
+  const etape = `${p.purpose}:${p.participants[p.cursor]?.id ?? 'bilan'}`;
   const pool: Combatant[] = battle?.combatants ?? party;
   const actorOf = (s: CascadeStep) => (s.actorId ? pool.find((c) => c.id === s.actorId) : undefined);
   /** POUR QUI le dé tombe — écrit UNE fois, servi par les DEUX phases d'une étape à dé NU (branche
@@ -323,7 +325,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         rolled
         rows={p.participants.flatMap(stepWitnessRows)}
         actions={[{ key: 'finish', label: 'Terminer', onClick: () => finish(), when: 'always' }]}
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -435,12 +437,12 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // les props du hook : celui qui porte DÉJÀ son enjeu (Test étendu, dont le pending le transporte)
   // garde le sien, sans jamais deux `StakeNote`.
   const JET_RENDERERS: Record<NonNullable<CascadeStep['jet']>, () => JSX.Element> = {
-    attack: () => <RollShell {...stakeProps} {...attackProps!} embedded={embedded} />,
-    trample: () => <RollShell {...stakeProps} {...trampleProps!} embedded={embedded} />,
-    defense: () => <RollShell {...stakeProps} {...defenseProps!} embedded={embedded} />,
-    fumble: () => <RollShell {...stakeProps} {...fumbleProps!} embedded={embedded} />,
-    test: () => <RollShell {...stakeProps} {...testProps!} embedded={embedded} />,
-    extended: () => <RollShell {...stakeProps} {...extendedProps!} embedded={embedded} />,
+    attack: () => <RollShell {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
+    trample: () => <RollShell {...stakeProps} {...trampleProps!} embedded={embedded} etape={etape} />,
+    defense: () => <RollShell {...stakeProps} {...defenseProps!} embedded={embedded} etape={etape} />,
+    fumble: () => <RollShell {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
+    test: () => <RollShell {...stakeProps} {...testProps!} embedded={embedded} etape={etape} />,
+    extended: () => <RollShell {...stakeProps} {...extendedProps!} embedded={embedded} etape={etape} />,
     disengage: () => <DisengageModal />,
     forceDoor: () => <ForceDoorModal />,
     cast: () => <CastModal />,
@@ -509,7 +511,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         label: r.label ?? '',
         range: fourchette(r.min, r.max, dieMax),
         disabled: nat == null,
-        primary: decl.result?.id === r.id,
         selected: decl.result?.id === r.id, // ligne ÉLUE = état ferré (aria-pressed), pas un simple style
         /* Refus MUTUALISÉ : les N lignes hors d'atteinte le sont par la MÊME cause (le modificateur),
            déjà énoncée une fois sous la grille — forme `reasonId` de `GatedAction`, l'unique grammaire
@@ -561,7 +562,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         setup={aff.lines}
         actions={tableActions}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -588,7 +589,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         extra={<TableRollLine table={dieLineLabel(cur)} result={cur.de?.seuil ? `≥ ${seuilLabel(cur.de.seuil)}` : undefined} />}
         actions={dieActions}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -616,7 +617,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
           postRollExtra={<><RevealBody entry={rev} actor={revActor} subject={revSubject} />{autoCloseBar}</>}
           actions={[continueAction]}
           disableEscClose
-          embedded={embedded}
+          embedded={embedded} etape={etape}
         />
       );
     }
@@ -651,7 +652,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         ) : undefined}
         actions={[continueAction]}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -688,7 +689,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         }
         actions={[continueAction]}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -734,7 +735,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
               options={(cur.options ?? []).map((o) => ({
                 key: o.key, label: o.label, title: o.detail,
                 ...(o.refus ? { refus: o.refus } : {}),
-                selected: cur.chosen === o.key, primary: cur.chosen === o.key,
+                selected: cur.chosen === o.key,
                 onSelect: () => choose(cur.id, o.key),
               }))}
             />
@@ -742,7 +743,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         }
         actions={[continueAction]}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -851,7 +852,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         rows={[...(oppRow ? [oppRow] : []), ...rows]}
         actions={batchActions}
         disableEscClose
-        embedded={embedded}
+        embedded={embedded} etape={etape}
       />
     );
   }
@@ -935,7 +936,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       rows={[...(oppRow ? [oppRow] : []), curRow]}
       actions={jetActions}
       disableEscClose
-      embedded={embedded}
+      embedded={embedded} etape={etape}
     />
   );
 }

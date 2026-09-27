@@ -32,13 +32,12 @@ export interface MediaSelectProps {
   triggerClassName?: string;
   /** Alignement du popover sous le déclencheur. */
   align?: 'left' | 'right';
-  disabled?: boolean;
   title?: string;
   className?: string;
 }
 
 export function MediaSelect({
-  options, value, onSelect, placeholder, trigger, triggerClassName, align = 'left', disabled, title, className,
+  options, value, onSelect, placeholder, trigger, triggerClassName, align = 'left', title, className,
 }: MediaSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,16 +54,15 @@ export function MediaSelect({
   const pick = (key: string) => { setOpen(false); onSelect(key); };
 
   return (
-    <div ref={rootRef} className={`media-select align-${align}${open ? ' open' : ''}${className ? ' ' + className : ''}`}>
+    <div ref={rootRef} className={`media-select align-${align}${className ? ' ' + className : ''}`}>
       <button
         type="button"
-        className={`${triggerClassName ?? 'ms-trigger'}${open ? ' open' : ''}`}
-        disabled={disabled}
+        className={triggerClassName ?? 'ms-trigger'}
         title={title}
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => { if (!disabled) setOpen((v) => !v); }}
+        onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
       >
         {trigger ?? (selected
@@ -79,7 +77,7 @@ export function MediaSelect({
             role="option"
             aria-selected={o.key === value}
             aria-disabled={o.disabled}
-            className={`ms-opt${o.key === value ? ' sel' : ''}${o.disabled ? ' disabled' : ''}`}
+            className="ms-opt"
             tabIndex={o.disabled ? -1 : 0}
             onClick={() => { if (!o.disabled) pick(o.key); }}
             onKeyDown={(e) => { if (!o.disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(o.key); } }}

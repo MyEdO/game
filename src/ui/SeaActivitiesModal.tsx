@@ -44,7 +44,13 @@ export function SeaActivitiesModal() {
   const set = (id: string, pick: SeaActivityPick | null) => setPicks((p) => ({ ...p, [id]: pick }));
 
   return (
-    <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} variant="plain" className="sea-activities">
+    <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
+      footer={
+        <>
+          <button type="button" className="btn btn-primary" onClick={() => confirm(picks)}>Valider la semaine</button>
+        </>
+      }
+    >
       {intro?.desc && (
         <div className="sea-act-intro">
           <Prose md={intro.desc} porteur={{ type: 'regles', id: intro.id, chemin: 'desc' }} />
@@ -65,13 +71,13 @@ export function SeaActivitiesModal() {
               <OptionChooser
                 layout="grid"
                 options={[
-                  { key: 'repos', label: 'Repos', primary: !chosen, onSelect: () => set(h.id, null) },
+                  { key: 'repos', label: 'Repos', selected: !chosen, onSelect: () => set(h.id, null) },
                   ...catalog.map((def) => {
                     const blocked = seaActivityBlocked(useGame.getState, def);
                     return {
                       key: def.id,
                       label: def.label,
-                      primary: chosen === def.id,
+                      selected: chosen === def.id,
                       ...(blocked ? { refus: blocked } : { title: def.label }),
                       onSelect: () => set(h.id, { activityId: def.id }),
                     };
@@ -114,9 +120,6 @@ export function SeaActivitiesModal() {
         })}
       </Grid>
       <p className="sea-act-purse">Bourse du groupe : <b><Coins money={money} /></b> · Cale libre : <b>{freeEnc} Enc</b></p>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-primary" onClick={() => confirm(picks)}>Valider la semaine</button>
-      </div>
     </Modal>
   );
 }

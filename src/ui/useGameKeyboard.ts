@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useGame } from '../state/store';
 import { KEYBINDINGS, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
 import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
+import { dialogueDuDessus } from './useDismissLayer';
 
 /** Touches de NAVIGATION : elles ne sont à personne par défaut — un bouton focalisé ne les possède
  *  que s'il est un item d'un conteneur à roving tabindex (`ui/rovingFocus.ts`). */
@@ -25,6 +26,10 @@ const CONTENEUR_ROVING = '[role="listbox"],[role="tablist"],[role="menu"],[role=
  * Entrée) ; les FLÈCHES ne lui appartiennent que s'il est l'item d'un conteneur à roving tabindex
  * (liste, onglets, menu, radiogroupe). Sinon un focus RÉSIDUEL — le bouton de palette qu'on vient de
  * cliquer — mangerait les flèches de l'application (sélection de l'éditeur, curseur tactique).
+ *
+ * Sous un DIALOGUE de la pile (`dialogueDuDessus`), le registre se tait, Échap excepté : même verdict
+ * que `padContext` de la manette (`useGamepad.ts`). Une modale pilotée par la carte (désignation de
+ * cibles) n'a pas de fenêtre, donc pas de dialogue dans la pile : le ciblage au clavier y reste vivant.
  */
 export function useGameKeyboard() {
   useEffect(() => {
@@ -57,14 +62,13 @@ export function useGameKeyboard() {
       if (saisie) return;
       // ANNULATION : couture unique `resoudreEchap` (pile de couches, puis échelle métier du
       // registre). La porte clavier de la pile la tranche déjà en capture quand une couche existe ;
-      // ce chemin-ci est celui de la pile VIDE. La sourdine du dialogue PNJ est une couche bloquante
-      // poussée par `DialogueBox`, plus un cas particulier de ce hook.
+      // ce chemin-ci est celui de la pile VIDE.
       if (e.code === CODE_ECHAP) {
         const pris = resoudreEchap(useGame.getState, { controlFocused, repeat: e.repeat, mods: eventMods(e) });
         if (pris !== null) e.preventDefault();
         return;
       }
-      if (useGame.getState().dialogue) return; // pas de raccourci pendant un dialogue
+      if (dialogueDuDessus()) return;
       const b = trouver(e, controlFocused);
       if (!b) return;
       e.preventDefault();

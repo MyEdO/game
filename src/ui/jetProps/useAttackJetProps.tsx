@@ -277,7 +277,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
           {canHarpoonRopeCut && (
             <Row gap="md" align="center">
               <button
-                className={`btn small ${pa.harpoonRopeCut ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={!!pa.harpoonRopeCut}
                 onClick={() => setHarpoonRopeCut(!pa.harpoonRopeCut)}
               >
                 <Icon id="action/aim" size="sm" /> Tirer sans la corde (60 m, sans Immobilisante)
@@ -290,7 +291,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
           {canWithhold && (
             <Row gap="md" align="center">
               <button
-                className={`btn small ${pa.withhold ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={!!pa.withhold}
                 onClick={() => setWithhold(!pa.withhold)}
               >
                 <Icon id="melee/pulled-punch" size="sm" /> Retenir ses coups
@@ -302,7 +304,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
           {canGrapple && (
             <Row gap="md" align="center">
               <button
-                className={`btn small ${pa.grapple ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-pressed={!!pa.grapple}
                 onClick={() => setGrapple(!pa.grapple)}
               >
                 <Icon id="melee/grapple" size="sm" /> Empoigner
