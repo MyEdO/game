@@ -188,7 +188,7 @@ import { findSpell, findSpellById } from '../data/index';
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
-import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
+import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, etageSoutenu, heightAt, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
 import { STEP_MAX_M } from './relief';
 import { placeCombatant } from './spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
@@ -1945,16 +1945,16 @@ export function applyStructureCriticalToTarget(
  *  → pas de clobber. No-op (réf inchangée pour la scène) si la cible n'a pas d'arête (structure hors scène). */
 export function collapseStructure(get: Get, set: SetFn, target: Combatant): void {
   const e = target.structureEdge;
-  // L'arête ET sa Structure (id posé sur `creatureId` au build) : `parapetTilesAbove` lit si elle porte l'étage.
+  // L'arête ET sa Structure (id posé sur `creatureId` au build) : `etageSoutenu` lit si elle soutient un étage.
   const seg = e && { ...e, structure: target.creatureId };
   // QUI tombe et de QUELLE hauteur — LU AVANT la transaction, sur la scène et la file courantes : un
   // updater Zustand est une fonction PURE de l'état, il ne remplit pas un tableau au passage (il peut
   // être rejoué). Le 1d10 des Dégâts est un dé comme un autre et part à la porte APRÈS (#1508,
   // `ouvrirChute`) — la transaction ci-dessous ne fait que la brèche, le déplacement et le journal.
   const avant = get();
-  const tombants = !seg || !avant.scene ? [] : parapetTilesAbove(avant.scene, seg).flatMap((tl) => {
+  const tombants = !seg || !avant.scene ? [] : etageSoutenu(avant.scene, seg).flatMap((tl) => {
     const sc = avant.scene!;
-    // Hauteur de chute = vraie hauteur métrique (relief) de la passerelle (`tl.z`) au-dessus de l'étage de
+    // Hauteur de chute = vraie hauteur métrique (relief) de l'étage soutenu (`tl.z`) au-dessus de l'étage de
     // l'arête (`tl.z - 1`), où l'occupant retombe.
     const metres = Math.abs(heightAt(sc, tl.x, tl.y, tl.z) - heightAt(sc, tl.x, tl.y, tl.z - 1));
     return (avant.battle?.combatants ?? [])
@@ -1968,9 +1968,9 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
     if (seg && scene) {
       // Brèche : pose le flag `structureDown` sur l'arête (le Combattant-structure inerte est déjà retiré).
       scene = setStructureDown(scene, seg.x, seg.y, seg.side, seg.z ?? 0, true);
-      // Effondrement de la PASSERELLE (`seg.z + 1`) portée par la structure abattue : ses occupants CHUTENT
+      // Effondrement de l'ÉTAGE SOUTENU (`seg.z + 1`) par la structure abattue : ses occupants CHUTENT
       // à l'étage de l'arête (dégâts de chute, LDB 15) et les tuiles deviennent infranchissables (`setTileCollapsed`).
-      for (const tl of parapetTilesAbove(scene, seg)) {
+      for (const tl of etageSoutenu(scene, seg)) {
         const sc = scene; // réf non-null capturée pour les closures (scene est un `let` réassigné plus bas)
         combatants = combatants.map((c) => {
           if (c.pos?.x !== tl.x || c.pos?.y !== tl.y || (c.pos?.z ?? 0) !== tl.z) return c;

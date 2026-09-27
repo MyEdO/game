@@ -234,4 +234,13 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     const breche = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }, (s) => setStructureDown(s, 2, 2, 'N', 0, true)), top);
     expect(breche).toContain('stroke-dasharray="3 5"');
   });
+  it('la branche de porte suit la FORME, pas le bloc `door` : une apparence porte de ville posée en mur nu ne dessine aucun passage ; une fermeture fixe, si', () => {
+    const murNu = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', appearance: 'porte-de-ville' }), top);
+    expect(murNu).not.toContain('<path');
+    expect(murNu).toContain('stroke-width="11"');
+    const fixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
+    expect(fixe).toContain('<path');
+    const herseFixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'herse' }), top);
+    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages').toBe(2);
+  });
 });

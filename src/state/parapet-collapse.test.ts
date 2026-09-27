@@ -5,7 +5,7 @@ import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
-import { isWalkable, tileCollapsed, structureIsDown, parapetTilesAbove, heightAt, type Scene, type Terrain } from './scene';
+import { isWalkable, tileCollapsed, structureIsDown, etageSoutenu, heightAt, type Scene, type Terrain } from './scene';
 import { testScene } from '../scenes/test-fixture';
 import { scenario as operaPlan } from '../scenes/test-scenarios/opera-plan';
 import { parseProject } from './worldMap';
@@ -15,8 +15,8 @@ import { draineCascade } from './cascadeTestKit';
 import { schema as schemaStructures } from '../data/schemas/defs/structures';
 
 /**
- * Effondrement de PASSERELLE (AA 10 l.127) : abattre un MUR de sol qui `soutientEtage` fait s'effondrer
- * le chemin de ronde (tuiles z=1) qui le surmonte — ses occupants CHUTENT (dégâts de chute LDB 15) et
+ * Effondrement de l'ÉTAGE SOUTENU (AA 10 l.127) : abattre un MUR de sol qui `soutientEtage` fait s'effondrer
+ * l'étage soutenu (tuiles z=1) qui le surmonte — ses occupants CHUTENT (dégâts de chute LDB 15) et
  * les tuiles deviennent infranchissables. Déterministe (RNG seedé). On pose un mur de château sur l'arête
  * E de (2,2) + un 1ᵉʳ étage marchable AU-DESSUS, puis on `collapseStructure`.
  */
@@ -26,12 +26,12 @@ const REMPART = 'mur-de-chateau';
 function sceneWithParapet(): Scene {
   const s = structuredClone(testScene);
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: REMPART }];
-  // Chemin de ronde au 1ᵉʳ étage : grille marchable surplombant le sol et le rempart.
+  // Étage soutenu au 1ᵉʳ étage : grille marchable surplombant le sol et le rempart.
   s.layers = [...s.layers, { z: 1, tiles: new Array(s.dimensions.w * s.dimensions.h).fill('herbe') as Terrain[] }];
   return s;
 }
 
-/** Lance un combat sur la scène à rempart + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
+/** Lance un combat sur la scène à rempart + étage soutenu, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
 function start() {
   useGame.getState().seedRng(1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
@@ -46,14 +46,14 @@ function start() {
   return { S, foes };
 }
 
-describe('Effondrement de passerelle quand la structure portante est abattue', () => {
+describe('Effondrement de l’étage soutenu quand la structure qui le soutient est abattue', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it("le défenseur SUR la passerelle au-dessus du rempart chute au sol ; sa tuile z=1 devient infranchissable", () => {
+  it("le défenseur SUR l’étage soutenu au-dessus du rempart chute au sol ; sa tuile z=1 devient infranchissable", () => {
     const { S, foes } = start();
-    const onPara = foes[0];   // sur la passerelle, au-dessus du rempart
-    const elsewhere = foes[1]; // sur la passerelle, AILLEURS (pas au-dessus)
+    const onPara = foes[0];   // sur l’étage soutenu, au-dessus du rempart
+    const elsewhere = foes[1]; // sur l’étage soutenu, AILLEURS (pas au-dessus)
     onPara.pos = { x: EDGE.x, y: EDGE.y, z: 1 };  // (2,2) z=1 = directement au-dessus de l'arête E
     onPara.characteristics = { ...onPara.characteristics, endurance: 30 }; // BE 3 → chute de 4 m garantit l'À Terre
     elsewhere.pos = { x: 10, y: 5, z: 1 };
@@ -79,7 +79,7 @@ describe('Effondrement de passerelle quand la structure portante est abattue', (
     expect(fell.wounds.current).toBeLessThan(beforeWounds);
     expect(hasCondition(fell, 'a-terre')).toBe(true);
 
-    // Sa tuile de passerelle est effondrée → plus marchable.
+    // Sa tuile d’étage soutenu est effondrée → plus marchable.
     expect(tileCollapsed(after.scene!, EDGE.x, EDGE.y, 1)).toBe(true);
     expect(isWalkable(after.scene!, EDGE.x, EDGE.y, 1)).toBe(false);
 
@@ -90,7 +90,7 @@ describe('Effondrement de passerelle quand la structure portante est abattue', (
     expect(isWalkable(after.scene!, 10, 5, 1)).toBe(true);
   });
 
-  it("le sol (z=0) reste marchable inchangé après l'effondrement de la passerelle", () => {
+  it("le sol (z=0) reste marchable inchangé après l'effondrement de l’étage soutenu", () => {
     const { S, foes } = start();
     foes[0].pos = { x: EDGE.x, y: EDGE.y, z: 1 };
     useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants] } });
@@ -125,12 +125,12 @@ function abattre(scene: Scene, edge: { x: number; y: number; side: 'N' | 'E'; z?
 }
 
 /**
- * #1883 — la passerelle qui s'écroule est celle de l'étage qui SURMONTE l'arête abattue (`seg.z + 1`),
+ * #1883 — l'étage soutenu qui s'écroule est celui qui SURMONTE l'arête abattue (`seg.z + 1`),
  * et seulement si la Structure `soutientEtage` (`structures.json`, valeur maison) : un mur porte ; un
  * garde-corps, une porte, une herse ou une clôture ne portent rien. L'occupant retombe à l'étage de
  * l'arête (`seg.z`), pas au sol.
  */
-describe('parapetTilesAbove — l’étage qui surmonte l’arête (#1883)', () => {
+describe('etageSoutenu — l’étage qui surmonte l’arête (#1883)', () => {
   const Z1 = { x: 2, y: 2, side: 'E' as const, z: 1 };
 
   function sceneAEtages(structure: string, etages = 1): Scene {
@@ -143,10 +143,10 @@ describe('parapetTilesAbove — l’étage qui surmonte l’arête (#1883)', () 
   }
 
   it('arête à z=1 : aucune tuile de SON étage ; l’étage z=2 est porté par un mur, jamais par un garde-corps', () => {
-    expect(parapetTilesAbove(sceneAEtages('mur-a-ossature-en-bois'), { ...Z1, structure: 'mur-a-ossature-en-bois' })).toEqual([]);
-    expect(parapetTilesAbove(sceneAEtages('mur-a-ossature-en-bois', 2), { ...Z1, structure: 'mur-a-ossature-en-bois' }))
+    expect(etageSoutenu(sceneAEtages('mur-a-ossature-en-bois'), { ...Z1, structure: 'mur-a-ossature-en-bois' })).toEqual([]);
+    expect(etageSoutenu(sceneAEtages('mur-a-ossature-en-bois', 2), { ...Z1, structure: 'mur-a-ossature-en-bois' }))
       .toEqual([{ x: 2, y: 2, z: 2 }, { x: 3, y: 2, z: 2 }]);
-    expect(parapetTilesAbove(sceneAEtages('garde-corps', 2), { ...Z1, structure: 'garde-corps' })).toEqual([]);
+    expect(etageSoutenu(sceneAEtages('garde-corps', 2), { ...Z1, structure: 'garde-corps' })).toEqual([]);
   });
 
   it('abattre un garde-corps d’étage sous un étage z=2 : rien ne tombe, les deux étages tiennent', () => {
@@ -169,14 +169,14 @@ describe('parapetTilesAbove — l’étage qui surmonte l’arête (#1883)', () 
     expect(chute?.meta?.chuteMetres).toBe(z2z1);
   });
 
-  it('la Diligence : une porte abattue laisse le plancher z=1 intact ; un mur abattu l’effondre', () => {
+  it('la Diligence : une porte abattue laisse l’étage soutenu z=1 intact ; un mur abattu l’effondre', () => {
     const diligence = parseProject(JSON.parse(readFileSync(join(process.cwd(), 'src/scenes/diligence/diligence-projet.json'), 'utf8'))).scenes[0];
     const PORTE = { x: 14, y: 8, side: 'E' as const };
     const MUR = { x: 14, y: 6, side: 'E' as const };
     const au = (e: { x: number; y: number; side: string }) => diligence.walls?.find((w) => w.x === e.x && w.y === e.y && w.side === e.side && !(w.z ?? 0))?.structure;
     expect(au(PORTE)).toBe('solide-porte-en-bois');
     expect(au(MUR)).toBe('mur-a-ossature-en-bois');
-    expect(isWalkable(diligence, 14, 8, 1), 'un plancher marchable surmonte la porte — sinon ce contrat ne mesure rien').toBe(true);
+    expect(isWalkable(diligence, 14, 8, 1), 'un étage marchable surmonte la porte — sinon ce contrat ne mesure rien').toBe(true);
 
     const porte = abattre(diligence, PORTE, { x: 14, y: 8, z: 1 });
     expect(porte.after.battle!.combatants.find((c) => c.id === porte.foeId)!.pos?.z).toBe(1);
@@ -200,15 +200,16 @@ describe('parapetTilesAbove — l’étage qui surmonte l’arête (#1883)', () 
       for (const w of sc.walls ?? []) {
         if (!w.structure || !(w.z ?? 0)) continue;
         aretesDEtage++;
-        for (const t of parapetTilesAbove(sc, w)) if (t.z === (w.z ?? 0)) fautives.push(`${id} ${w.x},${w.y}${w.side} z${w.z}`);
+        for (const t of etageSoutenu(sc, w)) if (t.z === (w.z ?? 0)) fautives.push(`${id} ${w.x},${w.y}${w.side} z${w.z}`);
       }
     expect(aretesDEtage, 'les deux scènes portent des arêtes à structure d’étage — sinon ce contrat ne mesure rien').toBeGreaterThan(0);
     expect(fautives).toEqual([]);
   });
 });
 
-/** #1883 — `soutientEtage` : OBLIGATOIRE sur chaque Structure (aucun défaut implicite), et valeur maison
- *  nommée par son `maison` (aucun folio ne dit quelle Structure porte un étage, AA 10 l.127). */
+/** #1883 — `soutientEtage` : OBLIGATOIRE sur chaque Structure d'ARÊTE (aucun défaut implicite), INTERDIT
+ *  sur un véhicule (jamais posé sur une arête, `structureEdgeKind`), et valeur maison nommée par son
+ *  `maison` (aucun folio ne dit quelle Structure porte un étage, AA 10 l.127). */
 describe('structures.json — `soutientEtage` se déclare, et se justifie', () => {
   const base = {
     id: 'x-banc', type: 'structures', label: 'X', kind: 'mur',
@@ -222,9 +223,15 @@ describe('structures.json — `soutientEtage` se déclare, et se justifie', () =
     expect(parse(base).success).toBe(true);
   });
 
-  it('absent : REFUSÉ — aucune entrée ne porte l’étage par défaut', () => {
+  it('absent d’une Structure d’arête : REFUSÉ, nominativement — aucune entrée ne soutient d’étage par défaut', () => {
     const { soutientEtage: _s, ...sans } = base;
-    expect(refus(sans)).toContain('soutientEtage');
+    expect(refus(sans)).toContain('soutientEtage: x-banc : `soutientEtage` absent d’une Structure d’arête');
+  });
+
+  it('posé sur un véhicule : REFUSÉ, nominativement ; absent d’un véhicule : accepté', () => {
+    expect(refus({ ...base, vehicle: true, soutientEtage: false })).toContain('soutientEtage: x-banc : `soutientEtage` sur un véhicule');
+    const { soutientEtage: _s, ...vehicule } = { ...base, vehicle: true };
+    expect(parse(vehicule).success).toBe(true);
   });
 
   it('sans `maison` : REFUSÉ, nominativement', () => {

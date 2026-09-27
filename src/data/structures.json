@@ -19,7 +19,7 @@
       "book": "archives-de-l-empire-2",
       "page": 89
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : battant d’une habitation ordinaire, l’encombrement d’une créature Grande — il n’a ni la masse ni l’épaisseur d’un ouvrage d’enceinte. Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », colonne absente de la table d’ADE II) : un battant se franchit, rien ne se tient sur son dessus — il ne porte aucun étage."
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : battant d’une habitation ordinaire, l’encombrement d’une créature Grande — il n’a ni la masse ni l’épaisseur d’un ouvrage d’enceinte. Étage maison (aucun folio ne dit quelle Structure porte un étage) : un battant se franchit, rien ne se tient sur son dessus — il ne porte aucun étage soutenu."
   },
   {
     "id": "porte-blindee",
@@ -41,7 +41,7 @@
       "book": "archives-de-l-empire-2",
       "page": 89
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même battant qu’une porte ordinaire, bardé de métal : le renfort change son Bonus d’Endurance, pas son encombrement — Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », colonne absente de la table d’ADE II) : un battant renforcé reste un battant — il ne porte aucun étage."
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même battant qu’une porte ordinaire, bardé de métal : le renfort change son Bonus d’Endurance, pas son encombrement — Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : un battant renforcé reste un battant — il ne porte aucun étage soutenu."
   },
   {
     "id": "porte-de-ville",
@@ -64,7 +64,7 @@
       "book": "archives-de-l-empire-2",
       "page": 89
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : vantail d’une enceinte urbaine, à l’échelle du rempart qu’il perce — Énorme, comme le mur de pierre de l’exemple RAW. Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », colonne absente de la table d’ADE II) : le chemin de ronde qui surplombe le vantail repose sur le rempart, pas sur la porte — elle ne porte aucun étage."
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : vantail d’une enceinte urbaine, à l’échelle du rempart qu’il perce — Énorme, comme le mur de pierre de l’exemple RAW. Étage maison (aucun folio ne dit quelle Structure porte un étage) : l’étage soutenu qui surplombe le vantail repose sur le rempart, pas sur la porte — elle n’en porte aucun."
   },
   {
     "id": "mur-en-bois",
@@ -86,7 +86,7 @@
       "book": "archives-de-l-empire-2",
       "page": 89
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : paroi de bois d’un bâtiment ou d’un enclos, à hauteur d’homme — encombrement d’une créature Grande, pas d’un rempart. Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », colonne absente de la table d’ADE II) : un mur porte le plancher ou la passerelle qui le surmonte."
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : paroi de bois d’un bâtiment ou d’un enclos, à hauteur d’homme — encombrement d’une créature Grande, pas d’un rempart. Étage maison (aucun folio ne dit quelle Structure porte un étage) : un mur porte l’étage soutenu qui le surmonte."
   },
   {
     "id": "mur-en-pierre",
@@ -109,7 +109,7 @@
       "book": "archives-de-l-empire-2",
       "page": 89
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : rempart de pierre maçonné (Impénétrable) — c’est la Structure de l’exemple RAW, « un mur de pierre Énorme ». Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », colonne absente de la table d’ADE II) : un mur porte le plancher ou le chemin de ronde qui le surmonte."
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : rempart de pierre maçonné (Impénétrable) — c’est la Structure de l’exemple RAW, « un mur de pierre Énorme ». Étage maison (aucun folio ne dit quelle Structure porte un étage) : un mur porte l’étage soutenu qui le surmonte."
   },
   {
     "id": "charrette",
@@ -126,12 +126,11 @@
     "encLimit": 30,
     "couvertPenalty": "intermediaire",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : véhicule à deux roues tiré par un âne : l’encombrement de la bête qui le tire, une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : véhicule à deux roues tiré par un âne : l’encombrement de la bête qui le tire, une créature Grande.",
     "desc": "Les petits véhicules à deux roues, par exemple les carrioles à âne et les chars à deux roues de transport ou de combat. Les charrettes à passagers incluent un siège avec de la place pour jusqu'à deux personnes et celles transportant des marchandises ont un seul siège et un plateau pour la cargaison."
   },
   {
@@ -149,12 +148,11 @@
     "encLimit": 30,
     "couvertPenalty": "complexe",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : chariot attelé à deux chevaux — encombrement d’un attelage, une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : chariot attelé à deux chevaux — encombrement d’un attelage, une créature Grande.",
     "desc": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
   },
   {
@@ -172,12 +170,11 @@
     "encLimit": 60,
     "couvertPenalty": "difficile",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même gabarit de chariot attelé que le chariot léger ; sa charge change son profil, pas son encombrement — Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même gabarit de chariot attelé que le chariot léger ; sa charge change son profil, pas son encombrement — Grande.",
     "desc": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
   },
   {
@@ -195,12 +192,11 @@
     "encLimit": 80,
     "couvertPenalty": "difficile",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même gabarit de chariot attelé, monté plus lourd : sa charge change son profil, pas son encombrement — Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : même gabarit de chariot attelé, monté plus lourd : sa charge change son profil, pas son encombrement — Grande.",
     "desc": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
   },
   {
@@ -218,12 +214,11 @@
     "encLimit": 80,
     "couvertPenalty": "complexe",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : voiture fermée à quatre roues, plus haute qu’un chariot mais toujours à l’échelle de son attelage — Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : voiture fermée à quatre roues, plus haute qu’un chariot mais toujours à l’échelle de son attelage — Grande.",
     "desc": "Une diligence est un véhicule fermé à quatre roues, tiré par 2 à 6 chevaux. Les riches ont tendance à les utiliser pour les voyages sur de longues distances, et l'Empire abrite plusieurs compagnies de diligences qui exploitent des lignes régulières."
   },
   {
@@ -241,12 +236,11 @@
     "encLimit": 300,
     "couvertPenalty": "complexe",
     "taille": "enorme",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : bateau d’une vingtaine de mètres : hors de l’échelle des créatures Grandes, Énorme comme un ouvrage d’enceinte. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : bateau d’une vingtaine de mètres : hors de l’échelle des créatures Grandes, Énorme comme un ouvrage d’enceinte.",
     "desc": "Les barges sur le Reik mesurent généralement environ 20 mètres de long. Elles sont conçues pour transporter de grosses cargaisons pour leur taille et sont propulsées à la fois à voile et à rames."
   },
   {
@@ -264,12 +258,11 @@
     "encLimit": 50,
     "couvertPenalty": "difficile",
     "taille": "enorme",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : navire d’environ vingt-cinq mètres bâti pour encaisser — Énorme, à l’échelle d’un ouvrage d’enceinte. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : navire d’environ vingt-cinq mètres bâti pour encaisser — Énorme, à l’échelle d’un ouvrage d’enceinte.",
     "desc": "Les équipages de patrouilleurs fluviaux utilisent des navires rapides propulsés par des rangées de rames pour les poursuites à grande vitesse ou par des voiles pour les patrouilles menées à un rythme plus posé. Ces bateaux font environ 25 mètres de long et sont construits pour pouvoir résister à beaucoup de dommages."
   },
   {
@@ -287,12 +280,11 @@
     "encLimit": 60,
     "couvertPenalty": "intermediaire",
     "taille": "grande",
-    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : petite embarcation de dix mètres au plus, à quelques rameurs — encombrement d’une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : véhicule, jamais posé sur une arête (#830) — il ne surmonte aucune arête, donc ne porte aucun étage de scène.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : petite embarcation de dix mètres au plus, à quelques rameurs — encombrement d’une créature Grande.",
     "desc": "Les chaloupes sont de petits vaisseaux mesurant 10 mètres de longueur maximum, par exemple les petits bateaux de pêche du Reikland ou les chalands de Marienburg."
   },
   {
@@ -313,7 +305,7 @@
       "book": "aux-armes",
       "page": 119
     },
-    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.65 : une barrière d’enclos se regarde par-dessus, elle ne coupe pas la Ligne de Vue. Elle garde son couvert Intermédiaire (AA 10 l.41) et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : barrière d’enclos tressée, à hauteur d’homme — encombrement d’une créature Grande, jamais celui d’un rempart. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite N/A, AA 10 l.41) : elle ne porte aucun étage.",
+    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.65 : une barrière d’enclos se regarde par-dessus, elle ne coupe pas la Ligne de Vue. Elle garde son couvert Intermédiaire (AA 10 l.41) et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : barrière d’enclos tressée, à hauteur d’homme — encombrement d’une créature Grande, jamais celui d’un rempart. Étage maison (aucun folio ne dit quelle Structure porte un étage) : une barrière d’enclos tressée n’offre aucun dessus où se tenir — elle ne porte aucun étage soutenu.",
     "desc": "Les clôtures en clayonnage sont tressées avec de minces branches de saule. Elles sont faciles à fabriquer et résistantes si leur tressage est bon. Cependant, elles conviennent davantage pour des enclos d'animaux que pour des fortifications. Elles restent employées comme couvert par ceux qui n'ont pas le temps de trouver autre chose ou qui ne disposent pas d'une meilleure alternative."
   },
   {
@@ -335,7 +327,7 @@
       "page": 161,
       "note": "LDB 14 l.81"
     },
-    "maison": "Arbitrage utilisateur du 2026-09-26 (#1883) : « Couvert moyen (Recommandé) ». Couvert : LDB 14 l.81 « Cible protégée par une couverture moyenne (une barrière en bois, par exemple). » — Difficile. Aucune ligne du tableau d’AA 10 n’imprime de garde-corps : sa robustesse est reprise de la Clôture en clayonnage (AA 10 l.41, Endurance 25, Blessures 10). Opacité maison, au patron de la Clôture en clayonnage : une rambarde ajourée se regarde au travers, elle ne coupe pas la Ligne de Vue et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : une rambarde de 1 m de haut sur une arête de 2 m a l’encombrement d’un humain — Moyenne (LDB 14 l.128 : « Jusqu'à 2.10m »), non la Grande de la Clôture en clayonnage, dont le profil couvre une bande de 5 m (AA 10 l.53). Étage maison (aucun folio ne dit quelle Structure porte un étage ; AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter », et aucune ligne d’AA 10 n’imprime de garde-corps) : une rambarde borde le plancher, elle ne le porte pas."
+    "maison": "Arbitrage utilisateur du 2026-09-26 (#1883) : « Couvert moyen (Recommandé) ». Couvert : LDB 14 l.81 « Cible protégée par une couverture moyenne (une barrière en bois, par exemple). » — Difficile. Aucune ligne du tableau d’AA 10 n’imprime de garde-corps : sa robustesse est reprise de la Clôture en clayonnage (AA 10 l.41, Endurance 25, Blessures 10). Opacité maison, au patron de la Clôture en clayonnage : une rambarde ajourée se regarde au travers, elle ne coupe pas la Ligne de Vue et reste INFRANCHISSABLE. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : une rambarde de 1 m de haut sur une arête de 2 m a l’encombrement d’un humain, une créature Moyenne. Étage maison (aucun folio ne dit quelle Structure porte un étage) : une rambarde borde l’étage soutenu, elle ne le porte pas."
   },
   {
     "id": "herse",
@@ -355,7 +347,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.70 : on voit à travers une grille. Elle n’a aucune Pénalité de Couvert (N/A, AA 10 l.42) et reste INFRANCHISSABLE une fois baissée. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : grille de fer qui ferme l’entrée principale d’une forteresse, à l’échelle de la porte de ville et du rempart qu’elle défend — Énorme. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite N/A, AA 10 l.42) : une grille qui s’abaisse ne porte aucun étage.",
+    "maison": "opacité maison : aucun folio ne déclare une Structure transparente (LDB 14 l.86, LDB 85 l.329). Décision maison déduite d’AA 10 l.70 : on voit à travers une grille. Elle n’a aucune Pénalité de Couvert (N/A, AA 10 l.42) et reste INFRANCHISSABLE une fois baissée. Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : grille de fer qui ferme l’entrée principale d’une forteresse, à l’échelle de la porte de ville et du rempart qu’elle défend — Énorme. Étage maison (aucun folio ne dit quelle Structure porte un étage) : une grille qui s’abaisse ne porte aucun étage soutenu.",
     "desc": "Une grille de fer qui peut être abaissée pour protéger l'entrée principale d'une forteresse."
   },
   {
@@ -376,7 +368,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : panneau de bois mobile fait pour couvrir quelques hommes en progression — encombrement d’une créature Grande. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite N/A, AA 10 l.43) : défense mobile, elle ne porte aucun étage.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : panneau de bois mobile fait pour couvrir quelques hommes en progression — encombrement d’une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : défense mobile, elle ne porte aucun étage soutenu.",
     "desc": "Les mantelets sont de grandes planches de bois solides fixées sur des supports ou des chariots à roues, ce qui permet de les prendre et de les déplacer relativement facilement pour leur taille.\n\nLors des batailles et des sièges, ce sont des défenses mobiles qui peuvent être avancées pour couvrir les troupes et le matériel au fur et à mesure qu'ils se repositionnent ou progressent."
   },
   {
@@ -397,7 +389,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : mur d’habitation à colombage, une cloison de bâtiment à hauteur d’étage — encombrement d’une créature Grande. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 30, AA 10 l.44) : mur de résidence (AA 10 l.76) — il porte le plancher de l’étage qui le surmonte.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : mur d’habitation à colombage, une cloison de bâtiment à hauteur d’étage — encombrement d’une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : mur de résidence (AA 10 l.76 : « ce mur est typique de beaucoup de résidences du Vieux Monde ») — une résidence à étage repose sur ses murs : il porte l’étage soutenu qui le surmonte.",
     "desc": "Ce mur est typique de beaucoup de résidences du Vieux Monde. Il a pour ossature une solide charpente en bois qui accueille ensuite des matériaux tels que des briques, de la pierre ou du clayonnage et du torchis. Ces murs ne sont généralement pas faits pour y monter une arme, mais la Limite d'Encombrement est indiquée pour prendre en compte le cas où un Personnage utilise un rebord de fenêtre bien pratique pour y poser son arme."
   },
   {
@@ -418,7 +410,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : courtine de château en pierre maçonnée : l’exemple littéral du RAW, « un mur de pierre Énorme (avec un BE de 6) ». Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 150, AA 10 l.45) : il porte le chemin de ronde qui le surmonte.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : courtine de château en pierre maçonnée : l’exemple littéral du RAW, « un mur de pierre Énorme (avec un BE de 6) ». Étage maison (aucun folio ne dit quelle Structure porte un étage) : une courtine porte l’étage soutenu qui la surmonte.",
     "desc": "Les murs de château sont normalement composés de deux faces de pierres étroitement ajustées les unes dans les autres et fixées par du mortier entre lesquelles se trouve une cavité remplie d'un mélange de gravier, de mortier ou de coquilles d'huître."
   },
   {
@@ -439,7 +431,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muraille de blocs de pierre massive, au moins aussi épaisse qu’une courtine de château — Énorme. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 200, AA 10 l.46) : il porte le chemin de ronde qui le surmonte.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muraille de blocs de pierre massive, au moins aussi épaisse qu’une courtine de château — Énorme. Étage maison (aucun folio ne dit quelle Structure porte un étage) : une muraille porte l’étage soutenu qui la surmonte.",
     "desc": "Les nains ont tendance à bâtir les murs de leurs forteresses à partir d'énormes blocs de roche, taillés pour s'emboîter impeccablement les uns dans les autres. Ils sont aussi épais que les murs des châteaux des humains, si ce n'est plus, mais sont donc composés uniquement de pierre massive et bien plus résistants.\n\nLes murs des cités humaines comme Altdorf, Ubersreik et Marienburg sont construits et entretenus par les nains, contre rémunération significative."
   },
   {
@@ -460,7 +452,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : mur de pierre permanent d’un relais fortifié — la Structure que nomme l’exemple RAW, « un mur de pierre Énorme ». Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 100, AA 10 l.47) : il porte le chemin de ronde qui le surmonte.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : mur de pierre permanent d’un relais fortifié — la Structure que nomme l’exemple RAW, « un mur de pierre Énorme ». Étage maison (aucun folio ne dit quelle Structure porte un étage) : un mur de pierre permanent porte l’étage soutenu qui le surmonte.",
     "desc": "Un « mur de pierre » désigne un mur assemblés par leurs formes taillées, du mortier, ou les deux pour donner une Structure permanente, plus stable qu'un mur de pierres sèches, mais moins épaisse qu'un mur de château. Un relais de poste fortifié est généralement entouré d'un mur de pierre."
   },
   {
@@ -476,12 +468,12 @@
     "encLimit": 30,
     "couvertPenalty": "complexe",
     "taille": "grande",
-    "soutientEtage": true,
+    "soutientEtage": false,
     "source": {
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muret de pierres empilées sans mortier, à hauteur d’appui (Limite d’Encombrement 30) — encombrement d’une créature Grande. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 30, AA 10 l.48) : il porte ce qui se tient sur son dessus.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : muret de pierres empilées sans mortier, à hauteur d’appui (Limite d’Encombrement 30) — encombrement d’une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : muret à hauteur d’appui, de rochers ni taillés ni fixés (AA 10 l.86) : rien ne se tient sur son dessus — il ne porte aucun étage soutenu.",
     "desc": "Les murs en pierres sèches incluent toutes les Structures de pierre fabriquées avec des rochers qui ne sont ni taillés ni fixés pour rester en place."
   },
   {
@@ -502,7 +494,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : clôture de pieux de bois plantés, à hauteur d’homme — encombrement d’une créature Grande, à la différence du terrassement continu qu’elle borde. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 60, AA 10 l.49 ; AA 10 l.88 : « des passerelles en bois sont construites par-dessus ces remparts ») : elle porte sa passerelle.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : clôture de pieux de bois plantés, à hauteur d’homme — encombrement d’une créature Grande, à la différence du terrassement continu qu’elle borde. Étage maison (aucun folio ne dit quelle Structure porte un étage) : AA 10 l.88 : « **Palissade de pieux :** une palissade est construite en érigeant une clôture de pieux de bois enfoncés dans la terre. Des remparts de terre sont élevés derrière la ligne de pieux et des passerelles en bois sont construites par-dessus ces remparts. » — les remparts de terre qui portent les passerelles font partie de la Structure : elle porte l’étage soutenu qui la surmonte.",
     "desc": "Une palissade est construite en érigeant une clôture de pieux de bois enfoncés dans la terre. Des remparts de terre sont élevés derrière la ligne de pieux et des passerelles en bois sont construites par-dessus ces remparts."
   },
   {
@@ -522,7 +514,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : battant épais bardé de fer d’une forteresse ou d’un grand bâtiment : une porte, donc l’encombrement d’une créature Grande. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite N/A, AA 10 l.50) : un battant se franchit — il ne porte aucun étage.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : battant épais bardé de fer d’une forteresse ou d’un grand bâtiment : une porte, donc l’encombrement d’une créature Grande. Étage maison (aucun folio ne dit quelle Structure porte un étage) : un battant se franchit — il ne porte aucun étage soutenu.",
     "desc": "Les portes généralement présentes dans une maison d'habitation ordinaire sont totalement détruites lorsqu'elles sont touchées par une arme un tant soit peu puissante. Cependant, une « solide porte en bois » fait ici référence aux portes épaisses renforcées par des bandes de fer présentes dans les forteresses et autres grands bâtiments."
   },
   {
@@ -543,7 +535,7 @@
       "book": "aux-armes",
       "page": 120
     },
-    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : contrefort de terre empilée sur toute une ligne de défense — une masse à l’échelle du rempart de l’exemple RAW, Énorme. Étage maison (AA 10 l.19 : « La Limite d'Encombrement indique en revanche combien de points d'Encombrement la Structure elle-même peut supporter » ; Limite 60, AA 10 l.51) : le contrefort de terre porte ce qui se tient sur son dessus.",
+    "maison": "Taille maison (AA 10 l.98 : « Le MJ doit déterminer la Taille de la Structure attaquée ») : contrefort de terre empilée sur toute une ligne de défense — une masse à l’échelle du rempart de l’exemple RAW, Énorme. Étage maison (aucun folio ne dit quelle Structure porte un étage) : le contrefort de terre porte l’étage soutenu qui le surmonte.",
     "desc": "Les terrassements sont des contreforts de terre volontairement empilée pour servir de fortifications."
   }
 ]

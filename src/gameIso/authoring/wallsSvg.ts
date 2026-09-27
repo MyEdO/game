@@ -10,6 +10,7 @@
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
+import { estFermeture } from '../../state/formeArete';
 import { wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeStructureAppearance } from '../catalog/facades';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
@@ -120,7 +121,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   if (app.parapet) {
     if (el.states.down) return `<g>${seg(a, b, 6, app.rubble ?? app.face, '3 5')}</g>`;
-    if (app.door) {
+    if (app.door && estFermeture(el.forme)) {
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
@@ -134,7 +135,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
     return `<g>${seg(a, b, 11, app.band ?? app.face) + seg(a, b, 7, app.face)}</g>`;
   }
   if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
-  if (el.door) return `<g>${seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP))}</g>`;
+  if (estFermeture(el.forme)) return `<g>${seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP))}</g>`;
   return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;
 }
 
@@ -174,7 +175,7 @@ export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
   const featureFaces = el.faces.filter((face) => face.architectureFeatureId);
   let svg = renderFaces(physicalFaces);
   const { lod, mpt } = detailOf(opts);
-  if (lod >= 1 && app.detail?.timber && !el.door && !el.states.down) {
+  if (lod >= 1 && app.detail?.timber && !estFermeture(el.forme) && !el.states.down) {
     const f = physicalFaces.find((x) => x.material.part === 'face');
     if (f) {
       const [A, B] = el.ends;
@@ -266,7 +267,7 @@ export function wallAccentsSvg(el: WallEl, dims: Dims, opts?: DetailOpts): strin
     });
     // COLOMBAGE re-tracé PAR-DESSUS les nuances de planches : cette couche se peint APRÈS `wallSvg`,
     // une planche nuancée recouvrirait sinon les pans de bois (le colombage vit DEVANT le bardage).
-    if (svg && app.detail.timber && !el.door) svg += timberOverlaySvg({ recipe: app.detail, quad, faceWM, faceHM, dims });
+    if (svg && app.detail.timber && !estFermeture(el.forme)) svg += timberOverlaySvg({ recipe: app.detail, quad, faceWM, faceHM, dims });
   }
   return svg;
 }

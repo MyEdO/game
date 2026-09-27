@@ -51,11 +51,12 @@ const doc = document(
      */
     taille: sizeCategorySchema,
     /**
-     * Porte-t-elle l'étage qui SURMONTE son arête (`AA 10 l.127` : « Les Personnages qui se trouvent sur
-     * ou dans la Structure ») ? Lu par le seul `parapetTilesAbove` (`state/scene.ts`). Aucun folio ne le
-     * dit — valeur MAISON par entrée, OBLIGATOIRE (aucun défaut implicite), dont `maison` porte la raison.
+     * Soutient-elle l'ÉTAGE qui surmonte son arête (`AA 10 l.127` : « Les Personnages qui se trouvent sur
+     * ou dans la Structure ») ? Lu par le seul `etageSoutenu` (`state/scene.ts`). Aucun folio ne le dit —
+     * valeur MAISON, dont `maison` porte la raison. OBLIGATOIRE pour une Structure d'ARÊTE (aucun défaut
+     * implicite), INTERDITE pour un véhicule, que `structureEdgeKind` ne pose jamais sur une arête.
      */
-    soutientEtage: z.boolean(),
+    soutientEtage: z.boolean().optional(),
   },
   {
     kind: { label: 'Nature de la Structure', hint: 'Porte ou Mur, pour la résolution mécanique' },
@@ -82,7 +83,7 @@ const doc = document(
       hint: 'Compte son Bonus d’Endurance une fois de plus par catégorie au-dessus de l’attaquant ; exige un arbitrage maison',
     },
     soutientEtage: {
-      label: 'Porte l’étage du dessus',
+      label: 'Soutient l’étage du dessus',
       hint: 'Abattue, elle effondre l’étage qui surmonte son arête et fait chuter ses occupants ; exige un arbitrage maison',
     },
   },
@@ -99,7 +100,7 @@ const doc = document(
      */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown; soutientEtage?: unknown };
+        const e = v as { id: string; vehicle?: unknown; occulte?: unknown; maison?: unknown; taille?: unknown; soutientEtage?: unknown };
         const sansRaison = typeof e.maison !== 'string' || !e.maison;
         if (e.occulte === false && sansRaison)
           ctx.addIssue({
@@ -112,6 +113,18 @@ const doc = document(
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : \`taille\` sans \`maison\` — aucune table de source n’imprime la Taille d’une Structure (AA 10 l.98 la laisse à déterminer), l’arbitrage se nomme.`,
+          });
+        if (e.vehicle === true && e.soutientEtage != null)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['soutientEtage'],
+            message: `${e.id} : \`soutientEtage\` sur un véhicule — un véhicule ne se pose jamais sur une arête (#830), il ne surmonte aucun étage.`,
+          });
+        if (e.vehicle !== true && e.soutientEtage == null)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['soutientEtage'],
+            message: `${e.id} : \`soutientEtage\` absent d’une Structure d’arête — aucun défaut implicite, l’arbitrage se nomme.`,
           });
         if (e.soutientEtage != null && sansRaison)
           ctx.addIssue({

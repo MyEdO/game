@@ -769,14 +769,14 @@ export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: numb
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
 }
 
-/** Tuiles de PASSERELLE marchables situées « au-dessus » d'une arête de structure — la case porteuse
- *  `(seg.x,seg.y)` et sa voisine à travers l'arête (`N` → (x,y-1), `E` → (x+1,y)), prises à l'étage qui
- *  SURMONTE l'arête (`seg.z + 1`) et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la structure portant la
- *  passerelle est abattue, ces tuiles s'effondrent (cf. `collapseStructure`). Ne renvoie QUE celles
- *  réellement praticables (la passerelle réelle) ; les arêtes obliques (`\\`,`/`) n'ont pas de voisine.
+/** Tuiles marchables de l'ÉTAGE SOUTENU par une arête de structure — la case porteuse `(seg.x,seg.y)` et
+ *  sa voisine à travers l'arête (`N` → (x,y-1), `E` → (x+1,y)), prises à l'étage qui SURMONTE l'arête
+ *  (`seg.z + 1`) et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la
+ *  structure qui soutient l'étage est abattue, ces tuiles s'effondrent (cf. `collapseStructure`). Ne
+ *  renvoie QUE celles réellement praticables ; les arêtes obliques (`\\`,`/`) n'ont pas de voisine.
  *  Vide si la Structure de l'arête ne `soutientEtage` pas (`structures.json`) — ou si l'arête n'en porte
  *  aucune du catalogue (AA 10 l.127). */
-export function parapetTilesAbove(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z' | 'structure'>): { x: number; y: number; z: number }[] {
+export function etageSoutenu(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z' | 'structure'>): { x: number; y: number; z: number }[] {
   if (!seg.structure || !findStructureById(seg.structure)?.soutientEtage) return [];
   const z = (seg.z ?? 0) + 1;
   if (!scene.layers.some((l) => l.z === z)) return []; // aucun étage au-dessus : `tileAt` relirait la 1ʳᵉ couche

@@ -335,4 +335,4 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: 4e681e3ea0cfa717f6ee2f3824f11affd5f40df8 (65 fichiers, 7 dossiers) corps: 21b4b878d9c6f1a32015f75f43265ef0920ec25f -->
+<!-- sources-empreinte: 3d9581aaceb9411ad49cf60c2b0f570e5aed2128 (65 fichiers, 7 dossiers) corps: 21b4b878d9c6f1a32015f75f43265ef0920ec25f -->

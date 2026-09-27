@@ -1,5 +1,6 @@
 import type { StructureAppearanceDef, WallPart } from './types';
 import type { WallSeg } from '../../../state/scene';
+import { apparenceDeclaree } from '../../../state/formeArete';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../shade';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../missing';
@@ -28,11 +29,7 @@ export function structureAppearance(id?: string): StructureAppearanceDef {
 /** Apparence d'un mur d'arête — SOURCE UNIQUE iso + POV : override visuel, puis structure, sinon mur
  *  nu. L'apparence est une DONNÉE de la carte ; la hauteur n'y entre pas (#1180). */
 export function wallApp(seg: WallSeg): StructureAppearanceDef {
-  return seg.appearance
-    ? structureAppearance(seg.appearance)
-    : seg.structure
-      ? structureAppearance(seg.structure)
-      : structureAppearance('plain');
+  return structureAppearance(apparenceDeclaree(seg) ?? 'plain');
 }
 
 /** Croisée de repli (def SANS bloc `window`) = celle de `plain` (DONNÉE JSON : verre froid + ambre allumé) —

@@ -8,6 +8,8 @@ import { lightTones } from '../../data';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema } from '../../data/schemas/defs-scenes/scene';
 import type { Sel } from './editorState';
+import { validateScene } from '../../state/validateScene';
+import { typeDArete } from '../../state/formeArete';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -103,6 +105,139 @@ describe('Inspector — apparence visuelle des murs', () => {
       appearance: 'cloison-basse-a-ossature-en-bois',
     });
     expect(roundTrip(latest).walls?.[0]).toEqual(latest.walls?.[0]);
+  });
+
+  /** Monte l'Inspecteur sur UNE arête et rend ce qu'il PROPOSE : les apparences du sélecteur et la case
+   *  « Fenêtre décorative ». La compatibilité vient de `state/formeArete.ts`. */
+  async function propositions(seg: Omit<import('../../state/scene').WallSeg, 'x' | 'y' | 'side'>) {
+    const scene: Scene = { ...emptyScene(4, 4), walls: [{ x: 1, y: 1, side: 'E', ...seg }] };
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(
+      <Inspector
+        scene={scene}
+        otherScenes={[]}
+        worldMap={null}
+        setScene={() => undefined}
+        sel={{ type: 'wall', x: 1, y: 1, side: 'E', z: 0 }}
+        setSel={() => undefined}
+        enemyCreatures={[]}
+        openLogic={() => undefined}
+        resizeScene={() => undefined}
+        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        tool={{ mode: 'select' }}
+        armZoneTiles={() => undefined}
+        zoneFocusKey={null}
+      />,
+    ));
+    const select = Array.from(montage.container.querySelectorAll('select'))
+      .find((el) => el.closest('label')?.textContent?.includes('Apparence visuelle')) as HTMLSelectElement;
+    return {
+      apparences: Array.from(select.options).map((o) => o.value).filter(Boolean),
+      fenetre: Array.from(montage.container.querySelectorAll('label')).some((l) => l.textContent?.includes('Fenêtre décorative')),
+    };
+  }
+
+  it('ne propose que les apparences qui habillent la forme de l’arête, et la fenêtre seulement là où elle se rend', async () => {
+    const mur = await propositions({ structure: 'mur-a-ossature-en-bois' });
+    expect(mur.fenetre).toBe(true);
+    expect(mur.apparences).toContain('garde-corps');
+    expect(mur.apparences).not.toContain('porte-de-ville');
+    expect(mur.apparences).not.toContain('herse');
+
+    const gardeCorps = await propositions({ structure: 'garde-corps' });
+    expect(gardeCorps.fenetre).toBe(false);
+
+    const porte = await propositions({ door: true });
+    expect(porte.fenetre).toBe(false);
+    expect(porte.apparences).toContain('herse');
+    expect(porte.apparences).not.toContain('garde-corps');
+
+    const fixe = await propositions({ structure: 'porte-de-ville' });
+    expect(fixe.fenetre).toBe(false);
+    expect(fixe.apparences).toContain('porte-de-ville');
+    expect(fixe.apparences).not.toContain('garde-corps');
+  });
+});
+
+describe('Inspector — les trois types d’arête s’authorent (cloison, porte ouvrable, fermeture fixe)', () => {
+  /** Monte l'Inspecteur sur UNE arête ; chaque `setScene` re-rend et devient la scène courante. */
+  async function monterArete(seg: Omit<import('../../state/scene').WallSeg, 'x' | 'y' | 'side'>) {
+    let latest: Scene = { ...emptyScene(4, 4), walls: [{ x: 1, y: 1, side: 'E', ...seg }] };
+    const montage = monterRacine(null);
+    const render = (next: Scene) => montage.rendre(
+      <Inspector
+        scene={next}
+        otherScenes={[]}
+        worldMap={null}
+        setScene={(updated) => { latest = updated; render(updated); }}
+        sel={{ type: 'wall', x: 1, y: 1, side: 'E', z: 0 }}
+        setSel={() => undefined}
+        enemyCreatures={[]}
+        openLogic={() => undefined}
+        resizeScene={() => undefined}
+        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        tool={{ mode: 'select' }}
+        armZoneTiles={() => undefined}
+        zoneFocusKey={null}
+      />,
+    );
+    await act(() => render(latest));
+    const typeBouton = (texte: string) => Array.from(montage.container.querySelectorAll('.ed-field button'))
+      .find((b) => b.textContent?.trim().endsWith(texte)) as HTMLButtonElement;
+    return {
+      container: montage.container,
+      arete: () => latest.walls![0],
+      erreurs: () => validateScene([latest]).filter((w) => w.level === 'error').map((w) => w.message),
+      cliquer: async (texte: string) => { await act(async () => { typeBouton(texte).click(); }); },
+      actif: () => Array.from(montage.container.querySelectorAll('.ed-field button.btn-primary'))
+        .map((b) => b.textContent?.trim())
+        .filter((t) => t === 'Cloison' || t === 'Porte' || t === 'Fermeture fixe'),
+      structuresListees: () => {
+        const champ = Array.from(montage.container.querySelectorAll('.ed-field'))
+          .find((f) => f.querySelector('span')?.textContent?.startsWith('Matériau du mur'))!;
+        return Array.from(champ.querySelectorAll('option')).map((o) => ({ v: o.value, t: o.textContent ?? '' }));
+      },
+    };
+  }
+
+  it('cloison → PORTE ouvrable au clic : `door` posé, Structure de mur retirée, scène valide', async () => {
+    const h = await monterArete({ structure: 'mur-a-ossature-en-bois' });
+    await h.cliquer('Porte');
+    expect(h.arete()).toEqual({ x: 1, y: 1, side: 'E', door: true });
+    expect(typeDArete(h.arete())).toBe('porte');
+    expect(h.erreurs()).toEqual([]);
+  });
+
+  it('cloison → FERMETURE FIXE au clic : Structure de nature porte, sans `door`, scène valide', async () => {
+    const h = await monterArete({ structure: 'mur-a-ossature-en-bois' });
+    await h.cliquer('Fermeture fixe');
+    expect(h.arete().door).toBeUndefined();
+    expect(typeDArete(h.arete())).toBe('fermeture-fixe');
+    expect(h.erreurs()).toEqual([]);
+  });
+
+  it('cloison FENÊTRÉE au clic, puis porte → cloison (mur nu) : scènes valides', async () => {
+    const h = await monterArete({ structure: 'mur-a-ossature-en-bois' });
+    const fenetre = Array.from(h.container.querySelectorAll('label'))
+      .find((l) => l.textContent?.includes('Fenêtre décorative'))!.querySelector('input') as HTMLInputElement;
+    await act(async () => { fenetre.click(); });
+    expect(h.arete().window).toBe(true);
+    expect(h.erreurs()).toEqual([]);
+    await h.cliquer('Porte');
+    expect(h.arete().window).toBeUndefined();
+    await h.cliquer('Cloison');
+    expect(h.arete()).toEqual({ x: 1, y: 1, side: 'E' });
+    expect(typeDArete(h.arete())).toBe('cloison');
+    expect(h.erreurs()).toEqual([]);
+  });
+
+  it('une fermeture fixe existante s’affiche en Fermeture fixe avec sa Structure listée', async () => {
+    const h = await monterArete({ structure: 'porte-de-ville' });
+    expect(h.actif()).toEqual(['Fermeture fixe']);
+    const listees = h.structuresListees();
+    expect(listees.map((o) => o.v)).toContain('porte-de-ville');
+    expect(listees.some((o) => o.t.includes('(inconnu)'))).toBe(false);
+    expect(listees.map((o) => o.v)).not.toContain('mur-en-bois');
   });
 });
 

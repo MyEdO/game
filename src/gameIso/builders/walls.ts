@@ -9,6 +9,7 @@
  * chacun à sa résolution.
  */
 import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { formeRendue, estFermeture } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
@@ -132,6 +133,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   };
 
   const H1 = b + wallHeightM; // sommet de la face pleine
+  const forme = formeRendue(seg, open);
   /** CLAIRE-VOIE (`app.claireVoie`) : barreaux + traverses, SOURCE UNIQUE des deux branches. */
   const claireVoie = (): Face[] => {
     const cv = app.claireVoie;
@@ -152,10 +154,10 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (poteaux montant à H1+P)
     const crest = crownFaces(app, A, B, H1);
 
-    if (app.door) {
+    if (app.door && estFermeture(forme)) {
       // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
       // (abattu) + linteau.
-      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : open ? [] : claireVoie();
+      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie();
       return [...passage, slab('linteau', H1 - isoPxToM(app.door.lintelPx), H1), ...crest];
     }
     if (down) return breach();
@@ -168,15 +170,15 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     ];
   }
 
-  // MUR ORDINAIRE (bois) : panneau encadré + moulures + plinthe, ou porte ajourée (routée par le SEG).
+  // MUR ORDINAIRE (bois) : panneau encadré + moulures + plinthe, ou porte ajourée (routée par la FORME).
   if (down) return breach();
-  if (seg.door) {
+  if (estFermeture(forme)) {
     const op = wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
     // OUVERTE → l'ouverture est un TROU : AUCUNE face ne la remplit (jambages et chambranle la bordent
     // déjà, et les joues du mur se voient de part et d'autre) — on voit la pièce derrière, comme par une
     // porte ouverte. FERMÉE → sa CLAIRE-VOIE quand l'apparence en porte une (herse), sinon le VANTAIL
     // (panneau + planches + poignée) : la porte se LIT comme une porte.
-    const leaf: Face[] = open
+    const leaf: Face[] = forme === 'porte-ouverte'
       ? []
       : app.claireVoie ? claireVoie() : [
           span('vantail', LEAF_T0, LEAF_T1, b, b + op),
@@ -194,7 +196,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
       upright('poteau', 1, b, H1),
     ];
   }
-  if (seg.window) {
+  if (forme === 'mur-fenetre') {
     // FENÊTRE : vraie OUVERTURE — le mur est un CADRE de `face` (trumeau bas + linteau haut + 2 jambages)
     // autour du vide vitré, et la vitre est TRANSPARENTE → on VOIT l'intérieur derrière (le mur reste
     // opaque à la MÉCANIQUE — vision/passage inchangés). Croisée : cadre → vitre → meneau + traverse.
@@ -470,7 +472,7 @@ function crestGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           out.push({
             off: {
               kind: 'wall', key: `crest:${e.x},${e.y},${e.side},${z}`, cell: { x: e.x, y: e.y, z }, side: e.side,
-              door: false, appearance: cApp.id,
+              forme: 'mur-nu', appearance: cApp.id,
               ends: [{ ...A, h: surfaceH }, { ...B, h: surfaceH }],
               faces: crownFaces(cApp, A, B, surfaceH),
               states: { visible: false, down: false, open: false },
@@ -573,7 +575,7 @@ function roofSeamGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           bodyId: a.bodyId,
           roomZoneIds,
           side,
-          door: false,
+          forme: 'mur-nu',
           appearance,
           ends: [gp0lo, gp1lo],
           faces: [{ poly: [gp0hi, gp1hi, gp1lo, gp0lo], material: { domain: 'structure', id: appearance, part: 'face' }, oriented: false }],
@@ -622,7 +624,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           ...(facade.roomZoneIds ? { roomZoneIds: [...facade.roomZoneIds] } : {}),
         } : {}),
         side: w.side,
-        door: !!w.door,
+        forme: formeRendue(w, open),
         appearance: app.id,
         ends: [{ ...A, h: baseH }, { ...B, h: baseH }],
         faces: [

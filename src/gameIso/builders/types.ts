@@ -16,6 +16,7 @@ export type { CellSide };
 import type { Combatant } from '../../engine/types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import type { SeatPose } from '../../state/seating';
+import type { FormeArete } from '../../state/formeArete';
 
 /** Point MONDE : (x,y) en unités de GRILLE continues (coins de case à ±0.5), `h` en MÈTRES.
  *  Jamais de rotation ni d'écran ici — backend affine : `tileCenter(x, y, dims, metricToLift(h))` ;
@@ -110,8 +111,9 @@ export interface WallEl extends ElBase {
   ends: [GP, GP];
   /** Id d'apparence de structure (`wallApp`) : chaque backend résout les couleurs par `part` depuis la def. */
   appearance: string;
-  /** Le segment porte une PORTE (vantail bois / corps de garde) — route la représentation 'top'. */
-  door: boolean;
+  /** FORME rendue de l'arête (`formeRendue`, `state/formeArete.ts`) — route la représentation 'top'
+   *  comme les faces : une fermeture (porte ouvrable ou fixe) y dessine son ouverture. */
+  forme: FormeArete;
   faces: Face[];
 }
 /** Ligne SÉMANTIQUE d'un toit, en MONDE : faîte (crête horizontale), arêtier (crête/noue diagonale),

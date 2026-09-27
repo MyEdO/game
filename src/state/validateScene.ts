@@ -8,6 +8,7 @@ import { realFloorAt } from './sceneEdit';
 import { CHAR_KEYS } from '../engine/types';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
 import { refEstVolumique, stakeSpeaks, findPropById, matieresCouvrantes } from '../data';
+import { aretesHorsCompatibilite } from './formeArete';
 import { capDecorAdmis } from '../data/props.types';
 import { PENTE_TOIT_DEG, typeNonNomme } from '../data/schemas/defs-scenes/scene';
 // Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
@@ -184,6 +185,10 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
     for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
+    // FORME × APPARENCE d'arête (`state/formeArete.ts`) : l'apparence DÉCLARÉE doit savoir habiller
+    // chaque forme que l'arête prend. Une arête sans apparence déclarée porte celle de sa façade ou le mur
+    // nu, que le rendu résout (`edgeAppearance`, gameIso — hors de portée d'ici).
+    for (const message of aretesHorsCompatibilite(s.walls ?? [])) add('error', 'scene', undefined, message);
     // Les familles qui MARCHENT (départ, connectivité, empreinte au sol) n'ont de sujet qu'à l'échelle du
     // PAS : à l'échelle MER (`isMerScene`, source unique — case ≥ 4 m, navire-unité), la grille est de l'eau
     // de bout en bout et tout le monde y flotte à bord. Mesuré sur les paquets livrés : les 3 scènes

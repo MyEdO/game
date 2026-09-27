@@ -171,7 +171,7 @@ describe('structures.json — le schéma n’accepte qu’une graphie par état 
   const base = {
     id: 'x-banc', type: 'structures', label: 'X', kind: 'mur',
     char: { BE: 1, B: 1 }, traits: [], source: { book: 'aux-armes', page: 119 },
-    // `taille` (AA 10 l.98) et `soutientEtage` (AA 10 l.127) sont EXIGÉS de toute entrée et exigent à
+    // `taille` (AA 10 l.98) et `soutientEtage` (AA 10 l.127) sont EXIGÉS de toute Structure d'arête et exigent à
     // leur tour son `maison` : le banc d'opacité les porte pour n'éprouver QUE la graphie d'`occulte`.
     taille: 'grande', soutientEtage: false, maison: 'banc — Taille, étage et raison hors sujet ici',
   };

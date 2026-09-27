@@ -53,7 +53,9 @@ import { Sel, type Tool, changePropRef, deleteSel, renameEntry, renameEffectZone
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS } from '../../engine/types';
-import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
+import { structureEdgeKind } from '../../engine/structures';
+import { fenetrePosable, formesHorsCompatibilite, natureDuType, patchVersType, typeDArete, type TypeDArete } from '../../state/formeArete';
+import { wallApp } from '../../gameIso/catalog/structures';
 import { RefField } from '../compendium/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
@@ -80,6 +82,17 @@ const CAPS_OFFERTS_CARDINAUX = CAPS_OFFERTS.filter(([cap]) => estCardinal(cap));
  *  option. Ce n'est PAS un id de repli : aucune entrée de `props.json` ne la porte, son option n'est
  *  pas élisible, et rien ne l'écrit jamais sur une entité (#877). */
 const REF_DECOR_NON_NOMMEE = '';
+
+/** Types d'arête AUTHORABLES (`TypeDArete`, `state/formeArete.ts`) — boutons du choix de type. */
+const TYPES_D_ARETE: readonly { type: TypeDArete; titre: ReactNode; aide: string }[] = [
+  { type: 'cloison', titre: <><Icon id="map-tool/wall" size="sm" /> Cloison</>, aide: 'Cloison pleine ou fenêtrée (bloque vue et passage)' },
+  { type: 'porte', titre: <><Icon id="map-tool/door" size="sm" /> Porte</>, aide: 'Porte ouvrable (arête franchissable)' },
+  { type: 'fermeture-fixe', titre: <><Icon id="ui/lock" size="sm" /> Fermeture fixe</>, aide: 'Fermeture qui ne s’ouvre pas : on ne la franchit qu’en l’abattant' },
+];
+
+function titreTypeDArete(type: TypeDArete): ReactNode {
+  return TYPES_D_ARETE.find((t) => t.type === type)!.titre;
+}
 
 /** Section repliable de l'inspecteur (primitive .fold). */
 function Fold({ title, open, children }: { title: ReactNode; open?: boolean; children: ReactNode }) {
@@ -336,7 +349,7 @@ export function Inspector({
           : efz
             ? <><Icon id="ui/warning" size="sm" /> {efz.label || 'Piège'}</>
             : selW
-              ? (selW.door ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>)
+              ? titreTypeDArete(typeDArete(selW))
               : entry
                 ? <><Icon id="nav/entry-point" size="sm" /> {sel?.type === 'entry' ? sel.id : ''}</>
                 : sel?.type === 'architectureBody' && architectureBody
@@ -1078,17 +1091,16 @@ export function Inspector({
 
           {selW && sel?.type === 'wall' && (
             <>
-              <Fold title={selW.door ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>} open>
+              <Fold title={titreTypeDArete(typeDArete(selW))} open>
                 <p className="hint">Arête @ ({sel.x},{sel.y}) {sel.side}{sel.z ? ` · étage ${sel.z}` : ''}.</p>
                 <div className="ed-field">
                   <span>Type</span>
                   <Row>
-                    <button className={`btn small ${selW.door ? '' : 'btn-primary'}`} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
-                      ▮ Cloison
-                    </button>
-                    <button className={`btn small ${selW.door ? 'btn-primary' : ''}`} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true })}>
-                      <Icon id="map-tool/door" size="sm" /> Porte
-                    </button>
+                    {TYPES_D_ARETE.map(({ type, titre, aide }) => (
+                      <button key={type} className={`btn small ${typeDArete(selW) === type ? 'btn-primary' : ''}`} title={aide} onClick={() => patchSelW(patchVersType(selW, type))}>
+                        {titre}
+                      </button>
+                    ))}
                   </Row>
                 </div>
                 {selW.door && (
@@ -1097,7 +1109,7 @@ export function Inspector({
                     <Icon id="ui/lock" size="sm" /> Fermée au départ
                   </label>
                 )}
-                {!selW.door && (
+                {(selW.window || fenetrePosable(selW, wallApp(selW))) && (
                   <label className="ed-check">
                     <input type="checkbox" checked={!!selW.window} onChange={(e) => patchSelW({ window: e.target.checked || undefined })} />
                     Fenêtre décorative
@@ -1107,18 +1119,18 @@ export function Inspector({
                   cfg={{
                     ds: 'structures',
                     single: true,
-                    filter: (e) => (selW.door ? isDoorEdgeStructure(e as unknown as StructureData) : isWallEdgeStructure(e as unknown as StructureData)),
+                    filter: (e) => structureEdgeKind(e as unknown as StructureData) === natureDuType(typeDArete(selW)),
                   }}
                   fieldKey="Matériau du mur"
                   value={selW.structure}
                   onChange={(v) => patchSelW({ structure: (v as string | null) || undefined })}
-                  nullable
+                  nullable={typeDArete(selW) !== 'fermeture-fixe'}
                 />
                 <label className="ed-field">
                   <span>Apparence visuelle</span>
                   <select value={selW.appearance ?? ''} onChange={(e) => patchSelW({ appearance: e.target.value || undefined })}>
                     <option value="">— Dérivée de la structure/façade —</option>
-                    {structureAppearances.map((appearance) => (
+                    {structureAppearances.filter((appearance) => appearance.id === selW.appearance || formesHorsCompatibilite(selW, appearance).length === 0).map((appearance) => (
                       <option key={appearance.id} value={appearance.id}>{appearance.label}</option>
                     ))}
                   </select>

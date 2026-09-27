@@ -1198,7 +1198,7 @@ Notes mécaniques par arme (`AA 08 l.228-260`) :
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 10` (l.773) → `useAttackJetProps`, `PendingAttack`, `PendingDualStrike`, `dualAffordance`, `resolveDualSecond`, `defenseModifiers`, `dualStrikeTargets`, `SuiteDeCoup`, `GameState`, `Combatant`, +12 — `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/types.ts`, `src/state/combat/roundHooks.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
-- `LDB 14` (l.101-115, l.134-140, l.142-151, l.153-169, l.171-173) → `GrappleModal`, `areGrappling`, `woundsFromHit`, `fr`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `combat-deux-armes`, `combatOrder`, +92 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +41 fichiers
+- `LDB 14` (l.101-115, l.134-140, l.142-151, l.153-169, l.171-173) → `GrappleModal`, `areGrappling`, `woundsFromHit`, `fr`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `combat-deux-armes`, `combatOrder`, +92 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +40 fichiers
 - `AA 8` (l.224-261) → `immobilisante-fixe`, `filet-leste`, `gantelet-verrouille`, `cape-2` — `src/data/qualities.json`, `src/data/trappings.json`
 
 ---
@@ -1357,7 +1357,7 @@ Aptitudes d'entraînement des animaux (LDB 85 l.110) qui neutralisent ce Trait :
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 10` (l.24-30, l.152-154) → `talent-aleatoire`, `restoreFortune`, `acrobaties-equestres`, `affable`, `affinite-avec-les-animaux`, `ambidextre`, `ame-pure`, `artilleur`, `CrewContributor`, `artiste`, +30 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/talents.json`, `src/engine/careerSlots.ts`, `src/engine/combat.ts`, `src/engine/crewMorale.ts`, +3 fichiers
-- `LDB 14` (l.118-131, l.175-177, l.179, l.180, l.181, l.182, l.183, l.184, l.187) → `advantageCapFor`, `woundsFromHit`, `RunModal`, `isControlledMount`, `combat-deux-armes`, `combatOrder`, `grappleTierMod`, `grapple`, `main-secondaire`, `effectiveSize`, +54 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +27 fichiers
+- `LDB 14` (l.118-131, l.175-177, l.179, l.180, l.181, l.182, l.183, l.184, l.187) → `advantageCapFor`, `woundsFromHit`, `RunModal`, `isControlledMount`, `combat-deux-armes`, `combatOrder`, `grappleTierMod`, `grapple`, `main-secondaire`, `effectiveSize`, +54 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +26 fichiers
 - `LDB 85` (l.110, l.248-250, l.357-362) → `TraitDef`, `morsure`, `SIZE_LABEL`, `cannotStopOn`, `applySwarmBuild`, `sizeDamageMultiplier`, `spawnMutations`, `sizeGrantedQualities`, `doc`, `Condition`, +93 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/traits.ts`, `src/data/traits.json`, +17 fichiers
 
 ---

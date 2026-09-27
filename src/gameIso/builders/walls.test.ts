@@ -214,7 +214,7 @@ describe('buildWalls — façades architecturales authorées', () => {
 
   it('préserve la géométrie des portes et fenêtres existantes', () => {
     const [door, window] = buildWalls(facadeScene());
-    expect(door.door).toBe(true);
+    expect(door.forme).toBe('porte-fermee');
     expect(door.states.open).toBe(false);
     expect(parts(door)).toContain('vantail');
     expect(parts(window)).toContain('vitre');

@@ -281,12 +281,13 @@ export interface StructureData {
    *  Aucune table de source ne l'imprime : c'est une valeur MAISON par entrée, éditable au Codex, dont la
    *  raison vit dans `maison`. */
   taille: import('./size').SizeCategory;
-  /** Porte-t-elle l'étage qui SURMONTE son arête (`AA 10 l.127`) ? Valeur MAISON par entrée, obligatoire,
-   *  dont la raison vit dans `maison`. Lu par le seul `parapetTilesAbove` (`state/scene.ts`). */
-  soutientEtage: boolean;
+  /** Soutient-elle l'ÉTAGE qui surmonte son arête (`AA 10 l.127`) ? Valeur MAISON, dont la raison vit dans
+   *  `maison` ; obligatoire pour une Structure d'arête, interdite pour un `vehicle` (schéma
+   *  `defs/structures.ts`). Lu par le seul `etageSoutenu` (`state/scene.ts`). */
+  soutientEtage?: boolean;
   /** Provenance RAW au FOLIO imprimé (ADE II 89 ; AA 119-120) — même forme que `SourceRef`. */
   source: { book: string; page: number };
-  /** Raison MAISON — exigée par le schéma pour `taille` et `soutientEtage` (toujours) et pour `occulte: false`. */
+  /** Raison MAISON — exigée par le schéma pour `taille` (toujours), `soutientEtage` (s'il est posé) et `occulte: false`. */
   maison?: string;
   desc?: string;
 }
