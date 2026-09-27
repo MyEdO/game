@@ -1804,7 +1804,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', entries: { 'zone-marche': '#123456' } }),
         'utf8',
       );
-      const sonde = document('sondeRecord', 'record', {}, {}, EXPO_SONDE, { valeurRecord: z.string() });
+      const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde(), { valeurRecord: z.string() });
       const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX);
       const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
       expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
@@ -1821,7 +1821,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
   });
 });
 
-const EXPO_SONDE: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+const expositionDeSonde = (): Exposition => ({ codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } });
 
 /**
  * COLLECTION À CLÉ DÉCLARÉE (#1897) : une carte de record que le schéma MARQUE (`marquerCollection`)
@@ -1837,9 +1837,9 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
     'config',
     { t: carte(cotes), tNue: cotes, r: carte(renvois), u: carte(z.strictObject({ fooId: z.string() })) },
     { t: { label: 'T' }, tNue: { label: 'T nue' }, r: { label: 'R' }, u: { label: 'U' } },
-    EXPO_SONDE,
+    expositionDeSonde(),
   );
-  const alpha = document('alpha', 'entite', {}, {}, EXPO_SONDE);
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde());
   const DEFS_FIXTURE: SchemaDef[] = [
     { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
     { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
