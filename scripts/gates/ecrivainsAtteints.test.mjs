@@ -201,7 +201,7 @@ const ATTENDU = {
     // · `ruleset-main.test.mjs` écrit ses fixtures `ci.yml` sous `os.tmpdir()` (`mkdtempSync`) ; sa
     //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (ruleset-main.test.mjs:27), qui
     //   ne fait que LIRE `.github/workflows/ci.yml`.
-    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs:129-150).
+    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs:149-174).
     'scripts/ops/ruleset-main.mjs',
     'scripts/ops/ruleset-main.test.mjs',
     // +1 le 2026-09-16 (#1779) : le banc du signaleur pose le CORPS du rapport (`--body-file` de `gh`)
@@ -395,11 +395,10 @@ const ATTENDU = {
     'scripts/raw/reparer-titres.mjs',
   ],
   'raw:check-refs': [],
-  // +1 le 2026-09-11 (#925) : la gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE
-  // `fieldBlockMask` de `build-implemente.mjs` (frontière du bloc de champ généré, source unique) ;
-  // la réécriture des fiches de ce module vit derrière sa porte `isMain` (build-implemente.mjs:670).
-  // Mesure du 2026-09-11 (`scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI) :
-  // 4 137 lectures, ZÉRO écriture.
+  // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
+  // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
+  // des fiches de ce module vit derrière sa porte `isMain` (build-implemente.mjs:711-712). Mesurée par
+  // `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
   'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté

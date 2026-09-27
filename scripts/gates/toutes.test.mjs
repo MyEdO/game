@@ -300,7 +300,7 @@ function depotDeGates(gatesFactices) {
     join(racine, '.github', 'workflows', 'ci.yml'),
     ['name: CI', 'jobs:', '  build:', '    steps:', ...gatesFactices.map((g) => `      - run: npm run ${g.nom}`), ''].join('\n'),
   )
-  // Le lanceur écrit ses sorties et ses durées sous `node_modules/.cache/gates/` (toutes.mjs:435,450) :
+  // Le lanceur écrit ses sorties et ses durées sous `node_modules/.cache/gates/` (toutes.mjs:626,629) :
   // sans cet ignore, tout run réel finirait sur « l'arbre a CHANGÉ », et le code du lanceur ne
   // discriminerait plus rien.
   writeFileSync(join(racine, '.gitignore'), 'node_modules/\n')
@@ -393,7 +393,7 @@ test('DEUX rouges dans DEUX lanes distinctes sont rendus par UN SEUL run', async
 })
 
 test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes, exit 1', async () => {
-  // La morsure de `lanesAJouer` (l.139) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
+  // La morsure de `lanesAJouer` (l.104) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
   // rien des VERDICTS. Ici c'est `principal` entier qui est rejoué en `--serie` sur le même cas que
   // le test des deux lanes distinctes : `--serie` ne change que la COMPOSITION des lanes.
   const { racine } = depotDeGates([

@@ -4,12 +4,12 @@
 // scripts/git-hooks/merge-docs.test.mjs refuse toute dérive entre les deux listes.
 // Une cible n'est pas toujours un `docs/*.md` ÉCRIT EN ENTIER : `build-implemente.mjs` injecte un
 // champ dans les fiches raw — il déclare `targets: []` et se joue comme les autres.
-// Ordre motivé : les rapports d'Atlas LISENT les fiches docs/raw (coverage.mjs:309, reconcile.mjs:54,
-// reanchor.mjs:207), ils passent donc APRÈS build-catalogs/build-implemente qui les écrivent. C'est
+// Ordre motivé : les rapports d'Atlas LISENT les fiches docs/raw (coverage.mjs:277, reconcile.mjs:116,
+// reanchor.mjs:204), ils passent donc APRÈS build-catalogs/build-implemente qui les écrivent. C'est
 // cet ordre qui autorise une source elle-même GÉNÉRÉE : une source écrite par un générateur PLUS TARD
 // dans la liste serait lue périmée, et se fait refuser par nom.
 //
-// EMPREINTE DE SOURCES (#1679 L1b) — chaîne complète, aucun maillon écrit à la main :
+// EMPREINTE DE SOURCES (#1679) — chaîne complète, aucun maillon écrit à la main :
 //   1. chaque générateur est lancé avec `scripts/docs/lib/enregistreur-lectures.mjs` en préchargeur
 //      (`NODE_OPTIONS`, donc les sous-processus node en héritent) : ce qu'il lit se MESURE ;
 //   2. le set fusionné (un fichier par PID) part dans le dérivé `docs/.sources-lues.json` ;
@@ -21,10 +21,8 @@
 // écrit — un commit ne le bouge que s'il ajoute/retire une source ou un dossier lu (fichier neuf
 // sous `src/`, import de plus, fiche `docs/raw` de plus), pas parce qu'une source a changé de
 // contenu (c'est le PIED du doc qui bouge, lui, à chaque régénération).
-// Cinq générateurs étaient AVEUGLES à toute mesure naïve, mesuré 2026-09-02 : les trois `runner: 'tsx'`
-// (`tsx/dist/cli.mjs` RE-SPAWNE un processus — ils sont lancés ici par `node --import tsx/esm`) et les
-// deux qui appelaient `npx tsx <dumper>` (`build-donnees.mjs`, `build-codex-relations.mjs`, passés à
-// `resoudreOutilLocal` + `envIsole`, qui transmettent l'env).
+// Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
+// processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path, { resolve } from 'node:path'
@@ -44,8 +42,8 @@ import { ignoresGit } from './lib/chemin-mesure.mjs'
  *  seuls eux reçoivent le pied « sources-empreinte » ; `injecte` = fichiers dont le générateur ne
  *  réécrit QU'UN BLOC (il les relit, ils ne sont donc pas ses sources) ;
  *  `check: false` = pas de mode `--check` (le script écrit toujours) : `--check` ne le JOUE pas, mais
- *  il confronte le PIED de ses cibles à l'index (`piedsDesNonVerifiables`, #1773) — sans quoi leur
- *  péremption n'était dite que par la gate `docs:empreinte`, 7 min plus tard dans `ops:publier`.
+ *  il confronte le PIED de ses cibles à l'index (`piedsDesNonVerifiables`, #1773), avant la gate
+ *  `docs:empreinte` d'`ops:publier`.
  *  Ordre = ordre d'exécution. */
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: [], injecte: ['docs/raw/**/00-index.md'] },
@@ -78,7 +76,7 @@ export const GENERATORS = [
   { runner: 'tsx', script: 'scripts/docs/build-field-consumers.mts', targets: ['docs/consommateurs-de-champs.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-structures.mts', targets: ['docs/structures-donnees.md'] },
   // Rapports 100 % dérivés de l'Atlas : le .md est écrit AVANT la porte de régression (reanchor.mjs
-  // l.343 puis l.354+), donc `docs:build` régénère le fichier ET laisse remonter l'exit 1.
+  // l.346 puis l.353+), donc `docs:build` régénère le fichier ET laisse remonter l'exit 1.
   { runner: 'node', script: 'scripts/raw/coverage.mjs', targets: ['docs/raw/coverage.md'], check: false },
   { runner: 'node', script: 'scripts/raw/reconcile.mjs', targets: ['docs/raw/reconciliation.md'], check: false },
   { runner: 'node', script: 'scripts/raw/reanchor.mjs', targets: ['docs/raw/reanchor.md'], check: false },
@@ -463,9 +461,8 @@ export function fraicheurDesGenerateurs(cwd, blobs, lues, ignores, generateurs =
  * Pieds des cibles que `--check` ne peut PAS juger en rejouant leur générateur : celles déclarées
  * `check: false` dans `GENERATORS` (leur script écrit toujours, il n'a pas de mode de vérification).
  * Le pied reste jugeable, lui, et par le MÊME calcul que `--empreinte` (`refusDuPiedAuCommit`).
- * Sans cela, l'étape docs de `ops:publier` sortait VERTE (`--check` vert) sur un `reconciliation.md`
- * périmé, et la gate `docs:empreinte` refusait 7 min plus tard (#1773) ; désormais son `--check` rouge
- * déclenche la passe COMPLÈTE, qui re-signe. REND les messages de refus, chacun NOMMANT sa cible.
+ * Un pied périmé rend le `--check` rouge (#1773), et ce rouge déclenche la passe COMPLÈTE, qui
+ * re-signe. REND les messages de refus, chacun NOMMANT sa cible.
  * Les cibles sont celles que la MESURE porte (`entree.cibles`, globs déjà résolus), comme `--empreinte`.
  */
 export function piedsDesNonVerifiables(cwd, blobs, lues, generateurs = GENERATORS) {

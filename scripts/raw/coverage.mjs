@@ -1,7 +1,7 @@
 // Registre de couverture de l'Atlas RAW — le backbone de « l'Atlas remplace la source ».
 // Déterministe : pour chaque chapitre des livres autorisés, vérifie s'il est CITÉ (`ABBR NN l.`)
 // par au moins une fiche docs/raw/*.md. Un chapitre non cité = trou (à couvrir ou à marquer hors-règle).
-// #454 défaut A/7 : granularité SECTION en sus du chapitre — un chapitre à sujets multiples peut être
+// #454 : granularité SECTION en sus du chapitre — un chapitre à sujets multiples peut être
 // ✅ au total (une section porte l'essentiel des refs) tout en enfouissant une section SANS AUCUNE réf.
 // `sectionsOf`/`refSpansFor`/`annotateSections`/`classifyHole` sont PURES (testées) ; seule `classify`
 // touche le disque (chapterFile). Re-run après chaque domaine pour voir les trous se réduire à zéro.
@@ -9,9 +9,9 @@
 // leurs chapitres en H3, pas H2 ; un simple argmax de comptage brut s'y ferait piéger par les listes
 // profondément imbriquées (chronologies AA en gras, qui gonflent H4 même dans des livres réellement
 // structurés en H2 — mesuré, cf. #604). Zéro masquage silencieux : un chapitre crédité par CATALOGUE ne
-// supprime plus ses trous de section, il les ÉTIQUETTE (`classifyHole`) — fiche / catalogue / scénario /
+// supprime pas ses trous de section, il les ÉTIQUETTE (`classifyHole`) — fiche / catalogue / scénario /
 // hors-règle / trou. Le dénominateur de la ligne de résumé est DÉRIVÉ (jamais un compte recopié).
-// #1825 lot E : ce script ne NOMME aucun livre — un livre de plus, c'est de la DONNÉE. Ce qu'on sait
+// #1825 : ce script ne NOMME aucun livre — un livre de plus, c'est de la DONNÉE. Ce qu'on sait
 // du LIVRE (teneur, niveau de section) vit dans son entrée de `src/data/books.json` ; ce qu'on sait de
 // ses CHAPITRES (hors-règle, catalogues) dans `scripts/raw/chapitres.json`. Les deux se lisent par les
 // accesseurs de `_lib.mjs` — zéro ligne ici.
@@ -20,7 +20,8 @@ import { existsSync } from 'node:fs'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BOOKS, coeurDe, esc, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, pagesDeLAtlas, readText, teneurDe } from './_lib.mjs'
+import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, pagesDeLAtlas, readText, teneurDe } from './_lib.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireDoc } from '../docs/lib/empreinte-sources.mjs'
 export const RAWDIR = 'docs/raw'
@@ -32,21 +33,17 @@ export const CLASSES = ['fiche', 'catalogue', 'auteur', 'epreuve']
 const isFrontMatter = (t) => /^index$|^introduction|avant-?propos|préface|^preface|^sommaire|^\*+$/i.test(t.trim())
 
 // Nettoie un titre de heading Markdown brut (span d'ancre folio, gras) → texte comparable.
-// Exportée (#604 défaut latent, `check-catalogue-complete.mjs`) : même nettoyage des DEUX côtés
+// Exportée (#604, `check-catalogue-complete.mjs`) : même nettoyage des DEUX côtés
 // (section de chapitre / heading de bloc catalogue), jamais une resaisie divergente.
 export function cleanTitle(t) {
   return t.replace(/<span[^>]*>/g, '').replace(/<\/span>/g, '').replace(/\*\*/g, '').trim()
 }
 
-// --- ARTEFACT d'extraction : jugé sur le CONTENU, jamais sur le titre de fichier (#1279 S4-a) ---
+// --- ARTEFACT d'extraction : jugé sur le CONTENU, jamais sur le titre de fichier (#1279) ---
 
 // Marker nomme un fichier de découpe d'après la PREMIÈRE ancre HTML qu'il y rencontre : un chapitre
-// entier peut donc s'appeler `_GoBack` ou `_Hlk18182212`. Juger « artefact » sur ce nom est un
-// non-sequitur, et il a coûté cher : `NADJ 17 - _GoBack.md` porte la SUITE du chapitre 16 — quatre
-// jeux de taverne complets, chacun avec son bloc « Jeu : » (LES MOULINS, QUESTIONS-RÉPONSES,
-// L'IMPÉRATRICE ÉCARLATE, LES PIERRES) — et n'a jamais été listé en trou parce qu'il était écarté
-// AVANT toute analyse. Douze autres chapitres subissaient le même sort, dont `LDB 45` (ouverture
-// « • MAGIE • ») et `LDB 58` (« • GUIDE DE L'ÉQUIPEMENT • »).
+// entier peut s'appeler `_GoBack` ou `_Hlk18182212` (ex. `NADJ 17 - _GoBack.md`, suite du chapitre 16).
+// Le nom de fichier est une ancre Marker, jamais un verdict : l'artefact se juge au CONTENU.
 //
 // Le VRAI artefact a une signature de CONTENU, posée par l'extraction elle-même : le fichier ne
 // contient que la note de page partagée, sans une ligne de source. PURE (testée).
@@ -74,14 +71,14 @@ export function chapterTitleOf(title, text) {
 
 // Chapitres crédités par un CATALOGUE (catalogue-*.md = données mécaniques verbatim ré-extraites, sans
 // réf `l.X` ligne — créditées au niveau CHAPITRE via `ABBR NN`) → Set de clés « ABBR NN » (tous livres).
-// Extraite de `main()` (#604 défaut latent) : SOURCE UNIQUE consommée par `classify` (mark `📖`) ET par
+// Extraite de `main()` (#604) : SOURCE UNIQUE consommée par `classify` (mark `📖`) ET par
 // `check-catalogue-complete.mjs` (vérifie que la convention qui justifie ce mark tient vraiment).
 export function catalogChaptersOf(docs) {
   const catalogCh = new Set()
   for (const d of docs) {
     if (d.classe !== 'catalogue') continue
     for (const [ab] of BOOKS) {
-      const re = new RegExp(`\\b${esc(ab)} (\\d+)\\b`, 'g')
+      const re = new RegExp(`\\b${echapperRegex(ab)} (\\d+)\\b`, 'g')
       let m
       while ((m = re.exec(d.text))) catalogCh.add(`${ab} ${Number(m[1])}`)
     }
@@ -102,9 +99,9 @@ export function catalogChaptersOf(docs) {
 // un titre de CHAPITRE rétrogradé, donc les boundaries normales qui le suivent lui appartiennent (ce sont
 // SES sous-sections), au même titre que « Le dressage » appartient à « LE COMBAT MONTÉ » (H1). Sa plage
 // s'étend jusqu'au PROCHAIN enfoui du fichier (nouveau chapitre embarqué), ou à défaut jusqu'à la fin du
-// fichier — jamais juste jusqu'à la prochaine boundary littérale (mesuré : `AA 09 l.191` réduit à 4
-// lignes de titre au lieu des ~311 lignes réelles avant #454 juge, absorbant à tort 10 sous-sections
-// comme sœurs). `splitLevel` par défaut 2 (comportement historique, tests synthétiques H2 inchangés).
+// fichier — jamais juste jusqu'à la prochaine boundary littérale (#454 : sans cette règle,
+// `AA 09 l.191` se réduit à 4 lignes de titre au lieu des ~311 lignes réelles, et absorbe à tort 10
+// sous-sections comme sœurs). `splitLevel` vaut 2 par défaut.
 export function sectionsOf(text, splitLevel = 2) {
   const lines = text.split('\n')
   const headingRe = /^(#{1,6})\s*(.*)$/
@@ -168,8 +165,8 @@ export function sectionsOf(text, splitLevel = 2) {
 // (optionnel, `{ ignoredFolios }`) accumule les folios ignores proprement (ancre absente,
 // ambigue, ou resolue vers un AUTRE chapitre — jamais un throw, #606).
 export function refSpansFor(ab, nn, docs, stats) {
-  const reLine = new RegExp(`\\b${esc(ab)} 0*${Number(nn)} l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
-  const rePage = new RegExp(`\\b${esc(ab)} 0*${Number(nn)} p\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
+  const reLine = new RegExp(`\\b${echapperRegex(ab)} 0*${Number(nn)} l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
+  const rePage = new RegExp(`\\b${echapperRegex(ab)} 0*${Number(nn)} p\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
   const spans = []
   for (const d of docs) {
     reLine.lastIndex = 0
@@ -209,7 +206,7 @@ export function annotateSections(sections, spans) {
 //     ou front-matter détecté au titre) — hors sujet
 //     par construction, quel que soit le contenu de la section.
 //   - 'catalogue'  : le chapitre est crédité par un `catalogue-*.md` (transcription verbatim au chapitre,
-//     jamais en ligne) — la section n'est pas TRAITÉE, elle est RECOPIÉE (#604 DoD : transcrit ≠ traité).
+//     jamais en ligne) — la section n'est pas TRAITÉE, elle est RECOPIÉE (#604 : transcrit ≠ traité).
 //   - 'scenario'   : livre de teneur `scenario` (campagne pure) — bruit de scénario, jamais une règle propre.
 //   - 'trou'       : candidat trou de RÈGLE — aucune des exemptions ci-dessus ne s'applique.
 /** Campagne PURE (#454) : seule teneur dont une section sans fiche est du bruit, jamais un trou de règle. */
@@ -226,11 +223,11 @@ export function classifyHole(refs, { cat = false, horsRegle = false, isPur = fal
 // Classe un chapitre : ✅ fiche (propriétaire ≥3 refs ligne) · 📖 catalogue SEUL (transcrit, pas traité) ·
 // 🟡 effleuré (1-2 refs, sans catalogue) · ⬜ trou (aucune ref, aucun catalogue).
 // `sections` : détail section-granulaire (trous ET chapitres enfouis), calculé quel que soit le mark
-// chapitre — un chapitre ✅ (des refs abondantes ailleurs) peut enfouir une section SANS AUCUNE réf ;
-// c'est exactement le défaut A (#454) : ne JAMAIS gater le détail par le mark chapitre.
+// chapitre — un chapitre ✅ peut enfouir une section SANS AUCUNE réf (#454) : ne JAMAIS gater le détail
+// par le mark chapitre.
 function classify(ab, nn, horsRegle, isPur, docs, catalogCh) {
   // (l|p) : les deux graphies canoniques de citation d'un chapitre comptent pour sa couverture (#606)
-  const re = new RegExp(`\\b${esc(ab)} 0*${Number(nn)} (?:l|p)\\.`, 'g')
+  const re = new RegExp(`\\b${echapperRegex(ab)} 0*${Number(nn)} (?:l|p)\\.`, 'g')
   let total = 0, owner = '', ownerN = 0
   for (const d of docs) {
     const n = (d.text.match(re) || []).length
@@ -253,10 +250,10 @@ function classify(ab, nn, horsRegle, isPur, docs, catalogCh) {
     const spans = refSpansFor(ab, nn, docs, folioStats)
     const annotated = annotateSections(sections, spans)
     enfoui = annotated.filter((s) => s.enfoui)
-    // #604 : ZÉRO masquage silencieux — un chapitre catalogué ou hors-règle ne suppprime plus ses
+    // #604 : ZÉRO masquage silencieux — un chapitre catalogué ou hors-règle ne supprime pas ses
     // sections non-fiche, il les ÉTIQUETTE via `classifyHole` (jamais `holes = []`). Un chapitre de livre
     // à teneur déclarée mais crédité ✅ par des refs de règle embarquées (ex. NADJ 16 « Jeux de taverne »,
-    // crédité pour PRÉCISÉMENT ce contenu, #454 faux vert) n'y perd rien : `isPur` (book-level, PAS
+    // crédité pour PRÉCISÉMENT ce contenu, #454) n'y perd rien : `isPur` (book-level, PAS
     // `horsRegle`) ventile alors ses sections vides en 'scenario' seulement pour les campagnes PURES.
     holes = annotated
       .filter((s) => !s.enfoui)
@@ -278,7 +275,7 @@ export const pagesLues = (rawDir = RAWDIR) => pagesDeLAtlas(rawDir, { classes: C
 function main(rawDir = RAWDIR) {
   // Profondeur-conscient : on garde chaque fiche séparée pour compter les refs et trouver la fiche PROPRIÉTAIRE.
   const docs = pagesLues(rawDir)
-  // Chapitres crédités par un catalogue : source unique `catalogChaptersOf` (#604 défaut latent —
+  // Chapitres crédités par un catalogue : source unique `catalogChaptersOf` (#604 —
   // extraite pour être réutilisée par `check-catalogue-complete.mjs`, jamais une resaisie).
   const catalogCh = catalogChaptersOf(docs)
 
@@ -312,7 +309,7 @@ function main(rawDir = RAWDIR) {
     if (!parGroupe.has(cle)) parGroupe.set(cle, { ok: 0, cat: 0, mid: 0, hole: 0 })
     return parGroupe.get(cle)
   }
-  // ANOMALIE (#1279 S4-a) : stubs de découpe CITÉS par l'Atlas — des réfs qui pointent dans le vide.
+  // ANOMALIE (#1279) : stubs de découpe CITÉS par l'Atlas — des réfs qui pointent dans le vide.
   const stubsCites = []
   const info0 = (ab, nn) => chapterFile(ab, nn)?.path ?? `${ab} ${nn}`
   for (const [ab, dir] of BOOKS) {
@@ -346,8 +343,8 @@ function main(rawDir = RAWDIR) {
         // pour un hors-règle déduit du front-matter : c'est le TITRE qui le dit.
         const motif = motifHorsRegle(ab, nn)
         lines2.push(`| ${nn} | ${shown} | ➖ hors-règle |${motif ? ` ${motif} ` : ' '}|`)
-        // #604 : ZÉRO masquage — le chapitre reste hors du dénominateur chapitre (contrat inchangé), mais
-        // ses sections ne disparaissent plus de la ventilation section-granulaire (juste comptées, sans
+        // #604 : ZÉRO masquage — le chapitre reste hors du dénominateur chapitre, et ses sections restent
+        // dans la ventilation section-granulaire (juste comptées, sans
         // le détail exhaustif — le point d'entrée « ➖ hors-règle » de la ligne ci-dessus reste la preuve).
         const info = chapterFile(ab, nn)
         if (info) {
@@ -365,9 +362,8 @@ function main(rawDir = RAWDIR) {
       const holeRows = c.holes.map((s) => `  - ${HOLE_MARK[s.hole]} l.${s.lo}-${s.hi - 1} « ${s.title} » — ${HOLE_LABEL[s.hole]}, 0 réf`)
       // Ordre de branchement EXHAUSTIF (miroir de `classifyHole`) : un chapitre `✅`/`📖` peut
       // rester hors-règle/front-matter par ailleurs (ex. `AA 02 INTRODUCTION`, `EDOC 13`, `MDG 03`) — sa
-      // section 0-réf classe alors 'hors-regle', JAMAIS absorbée dans le compte `gSecHolesRegle` (défaut
-      // mesuré par le juge adversarial : 41 sections `undefined` dans coverage.md + `gSecHolesRegle` gonflé
-      // de +18 %). `else` final = 'trou' STRICT, plus un fourre-tout.
+      // section 0-réf classe alors 'hors-regle', JAMAIS absorbée dans le compte `gSecHolesRegle`.
+      // `else` final = 'trou' STRICT.
       for (const s of c.holes) {
         if (s.hole === 'catalogue') gSecCatalogue++
         else if (s.hole === 'hors-regle') gSecHorsRegle++
@@ -419,7 +415,7 @@ function main(rawDir = RAWDIR) {
   const lignesGroupe = [...parGroupe]
     .sort((a, b) => (a[0] === null) - (b[0] === null) || parUnitesDeCode(String(a[0]), String(b[0])))
     .map(([cle, g]) => `- **${cle ? `Cœur ${cle}` : 'Livres sans cœur déclaré'}** : ✅ ${g.ok} traités par une fiche · 📖 ${g.cat} transcrits par un catalogue seul (jamais traités) · 🟡 ${g.mid} effleurés · ⬜ ${g.hole} trous, sur ${g.ok + g.cat + g.mid + g.hole} chapitres-règles (hors artefacts OCR).`)
-  const summaryLine = ['**Couverture (profondeur), par groupe de livres** :', '', ...lignesGroupe, '', `Section-granulaire (niveau de heading ADAPTATIF par livre — ${niveauxTxt}, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur ${gSecCatalogue + gSecHorsRegle + gSecHoles} section(s) non couvertes par une fiche : **${gSecCatalogue} transcrite(s) en catalogue** (recopiées, pas traitées) · **${gSecHorsRegle} hors-règle** (chapitre explicitement exclu) · **${gSecHolesScenario} bruit de scénario** (livres de teneur \`scenario\` ${campagnesPures} : prose de campagne, aucune règle) · **${gSecHolesRegle} candidat(s) trou de règle** (reste : ${resteDesLivres} — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et ${gSecEnfoui} titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 DoD « la sortie ne liste pas l'exhaustif »). Réfs folio (\`ABBR NN p.X\`, #606) : ${gIgnoredFolios} ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : ${perBook.join(' · ')}.`].join('\n')
+  const summaryLine = ['**Couverture (profondeur), par groupe de livres** :', '', ...lignesGroupe, '', `Section-granulaire (niveau de heading ADAPTATIF par livre — ${niveauxTxt}, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur ${gSecCatalogue + gSecHorsRegle + gSecHoles} section(s) non couvertes par une fiche : **${gSecCatalogue} transcrite(s) en catalogue** (recopiées, pas traitées) · **${gSecHorsRegle} hors-règle** (chapitre explicitement exclu) · **${gSecHolesScenario} bruit de scénario** (livres de teneur \`scenario\` ${campagnesPures} : prose de campagne, aucune règle) · **${gSecHolesRegle} candidat(s) trou de règle** (reste : ${resteDesLivres} — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et ${gSecEnfoui} titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 « la sortie ne liste pas l'exhaustif »). Réfs folio (\`ABBR NN p.X\`, #606) : ${gIgnoredFolios} ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : ${perBook.join(' · ')}.`].join('\n')
   const summaryIdx = out.indexOf(SUMMARY_PLACEHOLDER)
   out[summaryIdx] = summaryLine
   ecrireDoc(join(rawDir, 'coverage.md'), out.join('\n'))

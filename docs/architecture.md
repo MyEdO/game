@@ -134,13 +134,16 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
-                            plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
-                            `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
+                            plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
+                            normalisation d'un nom (`norm`).
+                            `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
+                            de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
+                            `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
+                            son chemin relatif, extension comprise.
                             `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
                             `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
-                            `accesBase` (magasins typés, `vider`) — bibliothèque de projets, calque de
-                            référence, sauvegarde automatique, dossier `src/data` du Codex (#1956) ;
-                            doublure `indexedDb.testkit.ts` (`brancherBasesSimulees`).
+                            `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
+                            (`brancherBasesSimulees`).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
                             (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier

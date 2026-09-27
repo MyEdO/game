@@ -25,9 +25,9 @@ const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
  * Format UNIQUE du pied, dernière ligne du doc généré. Il signe DEUX choses : l'empreinte des
  * SOURCES lues à la génération, et le sha1 du CORPS signé (le doc sans son pied).
  * Le corps est signé parce que les sources ne le disent pas : aucune cible n'est mesurée comme
- * source d'elle-même (0 générateur sur 30, sonde `q3b.mjs` 2026-09-04), si bien qu'un doc dérivé
+ * source d'elle-même, si bien qu'un doc dérivé
  * ÉDITÉ À LA MAIN resterait « frais » par ses seules sources, et pour toujours.
- * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 T1d ne le portent pas, et
+ * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 ne le portent pas, et
  * `retirerPied` doit savoir les retirer pour qu'une re-signature n'en empile pas deux.
  */
 export const PIED_RX =
@@ -80,11 +80,10 @@ export function motifDeRejeu(texte, empreinteSources) {
  * la signature posée par `docs:build`, et le dépôt sortirait sale. Le pied redevient juste au
  * prochain `docs:build` ; s'il ment sur un doc STAGÉ, `--empreinte` le nomme.
  *
- * N'ÉCRIT QUE SI LE RENDU DIFFÈRE. Les trois rapports d'Atlas réécrivaient leur `.md` à CHAQUE run
- * (`coverage.mjs:422`, `reconcile.mjs:367`, `reanchor.mjs:344`) pendant que la suite lit ce même
- * dossier (`src/oversize-search-blindspot.test.ts:86`, `scripts/docs/manual-docs-ratchet.test.mjs:32`) :
- * jouées en LANES parallèles (`scripts/gates/toutes.mjs`), c'était un lecteur sur un fichier en
- * cours d'écriture. Patron : `genOne` et `genArt` de `scripts/gen-registry.mjs`, `scripts/gen-espaces.mts` (`if (changed) writeFileSync`).
+ * N'ÉCRIT QUE SI LE RENDU DIFFÈRE : un rapport d'Atlas (`coverage.mjs:421`, `reconcile.mjs:526`,
+ * `reanchor.mjs:346`) réécrit à chaque run serait un fichier en cours d'écriture sous un lecteur de
+ * la suite (`src/oversize-search-blindspot.test.ts:86`, `scripts/docs/manual-docs-ratchet.test.mjs:32`)
+ * joué en LANE parallèle (`scripts/gates/toutes.mjs`). Patron : `genOne` et `genArt` de `scripts/gen-registry.mjs`, `scripts/gen-espaces.mts` (`if (changed) writeFileSync`).
  */
 export function ecrireDoc(chemin, contenu) {
   let actuel

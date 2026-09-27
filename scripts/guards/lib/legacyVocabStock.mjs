@@ -1876,13 +1876,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/docs/build-all.mjs",
-    motif: "désormais",
-    ancre: "périmé, et la gate `docs:empreinte` refusait 7 min plus tard (#1773) ; désormais son `--check` rouge",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/gates/ecrivainsAtteints.test.mjs",
     motif: "désormais",
     ancre: "désormais pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.",
