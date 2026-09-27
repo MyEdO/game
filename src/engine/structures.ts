@@ -17,7 +17,8 @@
  * Module FEUILLE : n'importe QUE `qualities/dispatch` (caps de l'arme) + `capabilities` (caps de la cible) +
  * la donnée/`items` (le BUILDER), JAMAIS `combat`/`ops` → aucun cycle (`woundsCalc` peut le greffer).
  */
-import type { Combatant, Weapon, StructureData } from './types';
+import type { Combatant, Weapon, StructureData, WallEdgeSide } from './types';
+import { cleArete } from '../geometry/arete';
 import { resolveQualities } from './qualities/dispatch';
 import { hasCapability } from './capabilities';
 import { findStructureById } from '../data';
@@ -153,6 +154,11 @@ export function structureAimCell(from: { x: number; y: number }, target: Pick<Co
   const cheb = (p: { x: number; y: number }) => chebyshev(p, from);
   return faces.reduce((best, f) => (cheb(f) < cheb(best) ? f : best));
 }
+
+/** Id du Combattant-structure enrôlé depuis l'arête `e` (`state/combatSlice.ts`), relu par `state/aretes.ts`
+ *  — l'identité de l'arête (`cleArete`), séparée par des tirets. */
+export const idCombattantStructure = (e: { x: number; y: number; side: WallEdgeSide; z: number }): string =>
+  `structure-${cleArete(e.x, e.y, e.side, e.z).split(',').join('-')}`;
 
 /** Adaptateur de `inanimateCombatant` (builder UNIQUE des objets inanimés) pour une structure de siège
  *  (`structures.json`). `E = BE × 10` (la table ADE II donne le Bonus d'Endurance ⇒ `bonus(E)` retrouve

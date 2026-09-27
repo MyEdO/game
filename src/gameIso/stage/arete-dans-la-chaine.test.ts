@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cleArete } from '../../state/wallIndex';
+import { cleArete } from '../../geometry/arete';
 import { worldToScreen } from './projection';
 import { areteSousLePixel, resoudrePixel, type EtatDePick, type Verdict } from './pickResolve';
 import { acteur, etat, milieu, montage } from './arete-dans-la-chaine.fixture';

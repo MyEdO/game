@@ -3,6 +3,7 @@ import { Scene, isWalkable, edgeOf, surfaceLink, climbEdgeBetween, wallIsOpen } 
 import { hasTrait, hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
 import type { Combatant } from '../engine/types';
 import { memoByRef } from './sceneMemo';
+import { cleArete } from '../geometry/arete';
 import { chebyshev } from '../engine/grid';
 
 export interface Pt {
@@ -44,7 +45,7 @@ const NEIGHBORS = [
   [-1, -1],
 ];
 
-/** Arêtes BARRIÈRES prébâties pour le BFS : clé « x,y,side,z » (même canonique que `wallBetween`).
+/** Arêtes BARRIÈRES prébâties pour le BFS, par `cleArete`.
  *  Réutilise `wallIsOpen` (SOURCE UNIQUE porte OU structure, `scene.ts`) — une porte reste une porte
  *  quel que soit son matériau : `door: true` suit son état RUNTIME (`doorIsOpen`) même si elle porte
  *  une structure intacte (la structure n'AJOUTE que la destructibilité, elle ne retire jamais la
@@ -54,7 +55,7 @@ function wallEdgesUncached(scene: Scene): Set<string> {
   const s = new Set<string>();
   for (const w of scene.walls ?? []) {
     const open = wallIsOpen(scene, w);
-    if (!open) s.add(`${w.x},${w.y},${w.side},${w.z ?? 0}`);
+    if (!open) s.add(cleArete(w.x, w.y, w.side, w.z ?? 0));
   }
   return s;
 }
@@ -66,7 +67,7 @@ const wallEdges = memoByRef(wallEdgesUncached);
 function walled(edges: Set<string>, ax: number, ay: number, bx: number, by: number, z: number): boolean {
   if (!edges.size) return false;
   const e = edgeOf(ax, ay, bx, by);
-  return e ? edges.has(`${e.x},${e.y},${e.side},${z}`) : false;
+  return e ? edges.has(cleArete(e.x, e.y, e.side, z)) : false;
 }
 
 /** Capacités de TRAVERSÉE du mover consommées par le BFS, au-delà du pas normal (petit objet dérivé

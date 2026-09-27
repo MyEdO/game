@@ -21,7 +21,7 @@
 import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from './scene';
 import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
 import { sceneZoneTiles } from './zones';
-import { cleArete } from './wallIndex';
+import { cleArete } from '../geometry/arete';
 import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
 import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
 

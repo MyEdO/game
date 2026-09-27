@@ -787,7 +787,7 @@ export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 
 
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
- *  PARTAGÉ (`state/wallIndex.ts`, même clé `cleArete`) : `aretesA` rend la liste des
+ *  PARTAGÉ (`state/wallIndex.ts`, même clé `cleArete`, `geometry/arete.ts`) : `aretesA` rend la liste des
  *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
  *  (37 scénarios + 4 campagnes, 3 143 murs) : ZÉRO arête porte plus d'un segment — premier et dernier
  *  sont le même mur, le verdict est celui d'ici. */

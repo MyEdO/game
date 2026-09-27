@@ -10,6 +10,7 @@ import { findStructureById } from '../../data';
 import { estAbsent } from '../../state/terrain';
 import { wallEnds } from '../builders/walls';
 import { Dims, tileCenter, diamondPath } from '../../geometry/iso';
+import { cleArete } from '../../geometry/arete';
 
 export function DebugMapLabels({ scene, dims, liftAt }: { scene: Scene; dims: Dims; liftAt: (x: number, y: number, z?: number) => number }) {
   const W = scene.dimensions.w, H = scene.dimensions.h;
@@ -45,7 +46,7 @@ export function DebugMapLabels({ scene, dims, liftAt }: { scene: Scene; dims: Di
     const role = findStructureById(w.structure ?? '')?.kind === 'porte' ? 'var(--dbg-door)' : 'var(--dbg-wall)';
     const z = w.z ?? 0;
     const [a, b] = edgePts(w, z);
-    const key = `${w.x}-${w.y}-${w.side}-${w.z ?? 0}`;
+    const key = cleArete(w.x, w.y, w.side, z);
     els.push(<line key={`dbgwall-${key}`} x1={a.cx} y1={a.cy} x2={b.cx} y2={b.cy} stroke={role} strokeWidth={4} strokeLinecap="round" opacity={0.92} pointerEvents="none" />);
     els.push(<circle key={`dbgwalldot-${key}`} cx={(a.cx + b.cx) / 2} cy={(a.cy + b.cy) / 2} r={3.2} fill={role} stroke="var(--dbg-ink)" strokeWidth={0.8} pointerEvents="none" />);
   }

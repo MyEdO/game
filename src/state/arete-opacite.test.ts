@@ -14,6 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, areteOcculte, wallBetween, wallIsOpen, setDoorOpen, setStructureDown, type Scene, type WallSeg } from './scene';
 import { wallOnSight, couvertDArete } from './lineOfSight';
 import { buildOpaque } from './vision';
+import { cleArete } from '../geometry/arete';
 import { structures, findStructureById } from '../data';
 import diligenceCampaign from '../scenes/diligence/diligence-projet.json';
 import { schema as schemaStructures } from '../data/schemas/defs/structures';
@@ -106,7 +107,7 @@ describe('PARITÉ des deux lecteurs — combat et vision ne divergent jamais sur
     // Lecteur 1 — défaut d'`edgeBlocks` de `wallOnSight` (combat), sur le couple de cases que l'arête sépare.
     expect(wallOnSight(s, { x: 0, y: 1 }, { x: 1, y: 1 }, 0)).toBe(bloque);
     // Lecteur 2 — Set d'arêtes précalculé de `buildOpaque` (vision/brouillard), MÊME arête.
-    expect(buildOpaque(s).walls.has('0,1,E')).toBe(bloque);
+    expect(buildOpaque(s).walls.has(cleArete(0, 1, 'E', 0))).toBe(bloque);
   });
 });
 

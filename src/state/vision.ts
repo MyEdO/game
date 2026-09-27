@@ -23,6 +23,7 @@ import { findLightLevelById, findTraitById, findPropById, findTrappingById } fro
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../data/props.types';
 import type { Dir8 } from './dir8';
 import { memoByRef } from './sceneMemo';
+import { cleArete } from '../geometry/arete';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -117,7 +118,7 @@ function buildOpaqueUncached(scene: Scene): Occ {
   for (const seg of scene.walls ?? []) {
     if ((seg.z ?? 0) !== 0 || (seg.side !== 'N' && seg.side !== 'E')) continue;
     if (!areteOcculte(scene, seg)) continue;
-    walls.add(`${seg.x},${seg.y},${seg.side}`);
+    walls.add(cleArete(seg.x, seg.y, seg.side, 0));
   }
   return { g, topH, w, h, walls };
 }
@@ -130,7 +131,7 @@ const SAMPLES_PER_TILE = 4;
  *  rayon : c'est le même pour tous les rayons d'une scène, et il en part un par case regardée. */
 const edgeBlockerOf = memoByRef((occ: Occ) => (ax: number, ay: number, bx: number, by: number): boolean => {
   const e = edgeOf(ax, ay, bx, by);
-  return e ? occ.walls.has(`${e.x},${e.y},${e.side}`) : false;
+  return e ? occ.walls.has(cleArete(e.x, e.y, e.side, 0)) : false;
 });
 
 /** La vue `from`→`to` est-elle OCCULTÉE (vision) ? RAPIDE : grille d'opacité O(1) + murs d'arête + fumée.

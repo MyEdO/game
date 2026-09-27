@@ -86,7 +86,7 @@ import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToS
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
-import { structureCombatant } from '../engine/structures';
+import { idCombattantStructure, structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './fireArc';
 import { facingToward } from './dir8';
 import { bearingPostes, mostArmedSide } from './shipBattery';
@@ -2872,9 +2872,10 @@ export function createCombatSlice(get: Get, set: Set) {
         .map((w) => {
           const data = findStructureById(w.structure!);
           if (!data) return null;
-          const c = structureCombatant(data, `structure-${w.x}-${w.y}-${w.side}-${w.z ?? 0}`);
+          const arete = { x: w.x, y: w.y, side: w.side, z: w.z ?? 0 };
+          const c = structureCombatant(data, idCombattantStructure(arete));
           c.pos = { x: w.x, y: w.y, ...(w.z ? { z: w.z } : {}) };
-          c.structureEdge = { x: w.x, y: w.y, side: w.side, z: w.z ?? 0 };
+          c.structureEdge = arete;
           return c;
         })
         .filter((c): c is Combatant => !!c);

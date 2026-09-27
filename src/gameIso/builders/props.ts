@@ -25,7 +25,7 @@ import { WALL_H_M } from '../iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
-import { cleArete } from '../../state/wallIndex';
+import { cleArete } from '../../geometry/arete';
 import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import type { FloorView } from './floors';
 import type { BillboardPropEl, PropEl } from './types';

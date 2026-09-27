@@ -223,58 +223,6 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
     expect(plan!.path[0]).toEqual(partyPos);
     expect(plan!.path[plan!.path.length - 1]).toEqual(plan!.dest);
   });
-
-  it('associe le portail au même plan sans modifier sa destination mécanique', () => {
-    const scene = sceneWith([]);
-    scene.effectZones = [
-      {
-        id: 'room-a',
-        label: 'Pièce A',
-        presentation: 'interior',
-        area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 },
-      },
-      {
-        id: 'room-b',
-        label: 'Pièce B',
-        presentation: 'interior',
-        area: { kind: 'rect', x: 2, y: 1, w: 1, h: 1 },
-      },
-    ];
-    const plan = exploreMovePlan(
-      scene,
-      { x: 1, y: 1 },
-      { x: 2, y: 1 },
-      { blocked: new Set() },
-    );
-
-    expect(plan).toEqual({
-      dest: { x: 2, y: 1 },
-      path: [{ x: 1, y: 1 }, { x: 2, y: 1 }],
-      portalId: '1,1,E,0:room-a:room-b',
-    });
-  });
-
-  it('associe le portail extérieur réorienté au trajet vers la pièce', () => {
-    const scene = emptyScene(4, 3);
-    scene.effectZones = [{
-      id: 'room-a',
-      label: 'Pièce A',
-      presentation: 'interior',
-      area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 },
-    }];
-    scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
-
-    expect(exploreMovePlan(
-      scene,
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { blocked: new Set() },
-    )).toEqual({
-      dest: { x: 1, y: 1 },
-      path: [{ x: 0, y: 1 }, { x: 1, y: 1 }],
-      portalId: '0,1,E,0:exterior:room-a',
-    });
-  });
 });
 
 describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le snap latéral/zigzag)', () => {

@@ -4,7 +4,7 @@
  * (`gameIso/builders/walls.ts`, `roofs.ts`).
  */
 import type { FacadeFeature, Scene, WallSide } from './scene';
-import { cleArete } from './wallIndex';
+import { cleArete } from '../geometry/arete';
 import { memoByRef } from './sceneMemo';
 
 export interface FacadeEdge {

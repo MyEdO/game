@@ -12,6 +12,7 @@
 import type { Scene, WallSeg } from './scene';
 import { canonEdge, setEdgeWall } from './sceneEdit';
 import type { CellSide } from './scene';
+import { cleArete } from '../geometry/arete';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
 export interface PlanRect { x: number; y: number; w: number; h: number }
@@ -41,7 +42,7 @@ export function perimeterWallSegs(rects: readonly PlanRect[], z = 0): WallSeg[] 
   const out: WallSeg[] = [];
   for (const e of perimeterEdges(rects)) {
     const c = canonEdge(e.x, e.y, e.side);
-    const key = `${c.x},${c.y},${c.side}`;
+    const key = cleArete(c.x, c.y, c.side, z);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ ...c, ...(z ? { z } : {}) });

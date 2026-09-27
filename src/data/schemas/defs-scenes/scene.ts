@@ -32,6 +32,7 @@ import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF, type PartRelief } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
 import type { OptionalEntry } from '../../../engine/statEntry';
+import { cleArete } from '../../../geometry/arete';
 
 /** `Dir8` (`state/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
@@ -701,9 +702,6 @@ export const wallSegSchema = z.strictObject({
   climb: wallClimbSchema.optional(),
 });
 
-/** Clé d'ARÊTE d'un segment — la MÊME graphie que l'index d'arêtes (`state/wallIndex.ts`). */
-const cleDArete = (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},${w.side},${w.z ?? 0}`;
-
 /**
  * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`state/wallIndex.ts`) est la
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
@@ -715,7 +713,7 @@ const cleDArete = (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},$
 const refuseAretesDupliquees = (walls: z.infer<typeof wallSegSchema>[], ctx: z.RefinementCtx): void => {
   const parArete = new Map<string, number[]>();
   walls.forEach((w, i) => {
-    const k = cleDArete(w);
+    const k = cleArete(w.x, w.y, w.side, w.z ?? 0);
     const vus = parArete.get(k);
     if (vus) vus.push(i);
     else parArete.set(k, [i]);

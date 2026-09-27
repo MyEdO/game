@@ -36,7 +36,8 @@
  */
 import { t } from '../i18n';
 import { heightAt, edgeOf, structureIsDown, type Scene, type WallSide } from './scene';
-import { cleArete } from './wallIndex';
+import { cleArete } from '../geometry/arete';
+import { idCombattantStructure } from '../engine/structures';
 import { planFall } from './fallMove';
 import { inBattleId } from './combatants';
 import type { RoomPortal } from './roomPortals';
@@ -69,7 +70,7 @@ export const LARGEUR_PRISE_ARETE: Readonly<Record<CapaciteArete, number>> = {
 
 /** Une arête et le geste qu'elle offre au contrôleur. */
 export interface AreteUtilisable {
-  /** Clé canonique de l'arête (`wallIndex.cleArete`) — l'identité qui départage les capacités. */
+  /** Clé canonique de l'arête (`geometry/arete.cleArete`) — l'identité qui départage les capacités. */
   cle: string;
   x: number;
   y: number;
@@ -238,7 +239,7 @@ function structures(ctx: ContexteAretes): AreteUtilisable[] {
     if (!w.structure || (w.z ?? 0) !== activeZ || (w.side !== 'N' && w.side !== 'E')) continue;
     if (structureIsDown(scene, w)) continue;
     const z = w.z ?? 0;
-    const cid = `structure-${w.x}-${w.y}-${w.side}-${z}`;
+    const cid = idCombattantStructure({ x: w.x, y: w.y, side: w.side, z });
     const sc = inBattleId(battle, cid);
     if (!sc) continue;
     const [c1, c2] = cotes(w.x, w.y, w.side);

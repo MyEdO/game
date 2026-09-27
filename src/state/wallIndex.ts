@@ -23,14 +23,11 @@
  */
 import { memoByRef } from './sceneMemo';
 import type { Scene, WallSeg, WallSide } from './scene';
+import { cleArete } from '../geometry/arete';
 
 /** Tableau STABLE (identité fixe) pour une scène sans mur — clé de mémoïsation valide, et réponse
  *  partagée des arêtes vides. */
 const AUCUNE: readonly WallSeg[] = [];
-
-/** Clé CANONIQUE d'une arête — la forme d'identité de cet index, et celle que tout dériveur d'arête
- *  reprend pour départager deux lectures de la MÊME arête (`state/aretes.ts`). */
-export const cleArete = (x: number, y: number, side: WallSide, z: number): string => `${x},${y},${side},${z}`;
 
 const index = memoByRef((walls: readonly WallSeg[]): ReadonlyMap<string, WallSeg[]> => {
   const parArete = new Map<string, WallSeg[]>();

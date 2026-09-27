@@ -140,6 +140,9 @@ src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via state/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
+                            `arete.ts` : `cleArete`, l'identité (case, côté, étage) d'une arête de mur,
+                            seule construction admise (garde `cle-arete-guard.test.ts`) — feuille,
+                            importable par `data/schemas` et `engine` (#1883).
 src/engine/                 Règles WFRP4, PUR + testé :
   types.ts                    Caractéristiques, Combatant, Weapon, ItemInstance, Difficulty…
   tests.ts                    Tests & Degrés de Réussite (DR), tests opposés.

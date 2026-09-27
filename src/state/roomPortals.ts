@@ -9,7 +9,8 @@ import {
 } from './scene';
 import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
-import { aretesA, cleArete } from './wallIndex';
+import { aretesA } from './wallIndex';
+import { cleArete } from '../geometry/arete';
 import { sceneZoneTiles } from './zones';
 
 export type RoomPortalKind = 'passage' | 'door-open' | 'door-closed';

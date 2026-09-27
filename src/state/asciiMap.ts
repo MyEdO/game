@@ -1,5 +1,6 @@
 import type { Terrain, WallOverlay, WallSeg } from './scene';
-import { wallOverlayOf } from './scene';
+import { edgeOf, wallOverlayOf } from './scene';
+import { cleArete } from '../geometry/arete';
 import { terrainWalkable, terrainsAvecGlyphe } from './terrain';
 import { FOND_ECRIT, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
 
@@ -179,12 +180,14 @@ export function zonesFromSeeds(
   const blocked = tiles.map((t) => !terrainWalkable(t));
   const edges = new Set<string>();
   for (const seg of walls) {
-    if (seg.side === 'N' || seg.side === 'E') edges.add(`${seg.x},${seg.y},${seg.side}`);
+    if (seg.side === 'N' || seg.side === 'E') edges.add(cleArete(seg.x, seg.y, seg.side, 0));
     else blocked[seg.y * W + seg.x] = true; // cloison DIAGONALE en travers de la case
   }
-  /** Une arête murale sépare-t-elle (x,y) de son voisin ? Les arêtes O/S sont celles E/N du voisin. */
-  const barre = (x: number, y: number, nx: number, ny: number) =>
-    edges.has(ny < y ? `${x},${y},N` : ny > y ? `${x},${ny},N` : nx < x ? `${nx},${y},E` : `${x},${y},E`);
+  /** Une arête murale sépare-t-elle (x,y) de son voisin ? (`edgeOf`) */
+  const barre = (x: number, y: number, nx: number, ny: number) => {
+    const e = edgeOf(x, y, nx, ny);
+    return !!e && edges.has(cleArete(e.x, e.y, e.side, 0));
+  };
   const owner: (string | undefined)[] = new Array(W * H);
   for (const seed of seeds) {
     const { x0 = 0, x1 = W - 1, y0 = 0, y1 = H - 1 } = seed.clip ?? {};

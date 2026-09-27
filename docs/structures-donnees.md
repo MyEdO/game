@@ -636,7 +636,7 @@ nombre d’entrées qui la portent.
 | `src/data/stars.json` | array | liste | entité | 23 | `apparence`:string(23) `ascendant`:string(23) `classique`:string(23) `dates`:string(23) `desc`:string(23) `dieux`:string(23) `id`:string(23) `label`:string(23) `ops`:array(23) `rand`:number(23) `signe`:string(23) `source`:object(23) `sub`:object(4) `type`:string(23) |
 | `src/data/steam-breakdown.json` | array | liste | table | 6 | `compartmentDamage`:number(1) `coolMinutes`:string(1) `desc`:string(6) `durationRounds`:string(1) `engineDestroyed`:boolean(1) `failDamage`:string(1) `hullCritical`:boolean(1) `id`:string(6) `label`:string(6) `mMod`:number(2) `mSet`:number(2) `max`:number(6) `min`:number(6) `restart`:array(3) `source`:object(6) `type`:string(6) |
 | `src/data/structure-criticals.json` | object | pipe à la racine | config | 1 | `die`:string(1) `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
-| `src/data/structureAppearance.json` | array | liste | entité | 19 | `band`:string(5) `cap`:string(5) `claireVoie`:object(3) `detail`:object(17) `door`:object(8) `face`:string(19) `id`:string(19) `label`:string(19) `parapet`:object(4) `post`:string(19) `recess`:string(1) `rubble`:string(7) `rubbleHi`:string(7) `type`:string(19) `wallHeightM`:number(3) `window`:object(5) `wood`:object(11) |
+| `src/data/structureAppearance.json` | array | liste | entité | 19 | `band`:string(5) `cap`:string(5) `claireVoie`:object(3) `corpsDeGarde`:object(1) `detail`:object(17) `door`:object(7) `face`:string(19) `id`:string(19) `label`:string(19) `parapet`:object(4) `post`:string(19) `recess`:string(1) `rubble`:string(7) `rubbleHi`:string(7) `type`:string(19) `wallHeightM`:number(3) `window`:object(5) `wood`:object(11) |
 | `src/data/structures.json` | array | liste | entité | 25 | `char`:object(25) `couvertPenalty`:string(18) `desc`:string(19) `edgeKind`:string(1) `enc`:number(10) `encLimit`:number(15) `fortified`:boolean(2) `id`:string(25) `kind`:string(25) `label`:string(25) `maison`:string(25) `occulte`:boolean(3) `source`:object(25) `soutientEtage`:boolean(17) `taille`:string(25) `traits`:array(25) `type`:string(25) `vehicle`:boolean(8) |
 | `src/data/surincantation.json` | object | pipe à la racine | config | 1 | `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/symptoms.json` | array | liste | entité | 18 | `capabilities`:object(6) `desc`:string(18) `effects`:array(1) `id`:string(18) `label`:string(18) `maison`:string(1) `onTick`:object(4) `passive`:array(10) `passiveBySeverity`:object(2) `source`:object(18) `type`:string(18) `visibleLocations`:array(1) `visiblePassive`:array(1) |
@@ -2551,7 +2551,7 @@ documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{�
 (`{x,y}` d’une tuile, bloc de caractéristiques, `{flat,plusBF}` de dégâts), les objets d’un `Flow`
 ou d’une `Formula` (`{kind,steps}`, `{bonusOf}`) et les objets à `op`, dont la grammaire est mesurée en §5.
 Ils ne sont pas au stock — ils se lisent ici, EN ENTIER : les
-**1181** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
+**1182** signatures hors strate, triées par occurrences décroissantes. Le diff de cette
 table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 `src/data/structures-contrat.test.ts` (plafond sur le COMPTE, liste de référence = cette table).
 
@@ -2830,7 +2830,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `steps` | `kind,no,prompt,yes` | 5 |
 | `spells.json` | `ops` | `level,op` | 5 |
 | `spells.json` | `ritual` | `components,conditions,consequences,domains,sacrifices,type,xp` | 5 |
-| `structureAppearance.json` | `window` | `frame,glass,lit,mullion` | 5 |
+| `structureAppearance.json` | `window` | `glass,lit,mullion` | 5 |
 | `structureAppearance.json` | `detail` | `courses,seedScope,timber` | 5 |
 | `tables.json` | `amount` | `dice` | 5 |
 | `talents.json` | `passive` | `op,skill` | 5 |
@@ -2870,7 +2870,6 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `duration` | `kind,plus,text` | 4 |
 | `spells.json` | `meters` | `times` | 4 |
 | `spells.json` | `then` | `fail,kind,success,test` | 4 |
-| `structureAppearance.json` | `door` | `lintelPx,openingFrac` | 4 |
 | `structureAppearance.json` | `parapet` | `arasePx,bandThickPx,bands,heightLevelFrac,merlonCount,merlonHeightPx,merlonStep,parapetBandFrac` | 4 |
 | `symptoms.json` | `success` | `kind,steps` | 4 |
 | `symptoms.json` | `fail` | `effect,kind` | 4 |
@@ -2948,8 +2947,9 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `test` | `characteristic,opposed` | 3 |
 | `spells.json` | `opposed` | `attacker` | 3 |
 | `spells.json` | `ops` | `mod,op` | 3 |
+| `structureAppearance.json` | `door` | `openingFrac` | 3 |
 | `structureAppearance.json` | `timber` | `braces,color,postEveryM,wM` | 3 |
-| `structureAppearance.json` | `door` | `handle,jamb,jambCap,leaf,lintelPx,openingFrac,plank` | 3 |
+| `structureAppearance.json` | `door` | `handle,jamb,jambCap,leaf,openingFrac,plank` | 3 |
 | `structureAppearance.json` | `detail` | `courses,seedScope,speckle` | 3 |
 | `structureAppearance.json` | `speckle` | `colors,perM2,rM,vBias` | 3 |
 | `symptoms.json` | `effects` | `flow,on,trigger` | 3 |
@@ -3560,7 +3560,8 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `spells.json` | `ops` | `op,radiusMeters,shape` | 1 |
 | `spells.json` | `ops` | `char,durationRounds,mod,op` | 1 |
 | `spells.json` | `ritual` | `components,conditions,consequences,domains,reduced,sacrifices,type,xp` | 1 |
-| `structureAppearance.json` | `door` | `jamb,jambCap,lintelPx,openingFrac` | 1 |
+| `structureAppearance.json` | `corpsDeGarde` | `lintelPx` | 1 |
+| `structureAppearance.json` | `door` | `jamb,jambCap,openingFrac` | 1 |
 | `symptoms.json` | `passiveBySeverity` | `grave` | 1 |
 | `symptoms.json` | `resolveWindow` | `minutes,scale` | 1 |
 | `symptoms.json` | `passiveBySeverity` | `moderee` | 1 |
@@ -3744,7 +3745,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 
 ## 4. Redéclarations locales dans `src/data/schemas/defs/*.ts`
 
-Littéraux d’objet zod lus : **471** ; **46** recoupent le lexique
+Littéraux d’objet zod lus : **472** ; **46** recoupent le lexique
 ou un littéral de `src/data/schemas/grammaire/`. « Schéma commun candidat » = même signature EXACTE
 qu’un littéral de la grammaire (candidat à examiner, cf. angles morts).
 
@@ -5127,4 +5128,4 @@ pèse **2990** slots sur 3449.
 - Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.
 - `valeursAuPath` traverse une branche d’union (`|N`) sans la discriminer : la donnée ne porte pas la branche qui la parse, chaque branche lit donc les valeurs de toutes — mesuré le 2026-09-22 sur `props.json › [].volume.primitives[]|0..2.material`, 297 valeurs à chacune des trois branches : la résolution y est comptée une fois par branche.
 
-<!-- sources-empreinte: f6765fb1e5d170faec3ef035ac6e0e4b60fc233f (387 fichiers, 10 dossiers) corps: dbd1f63f8a160b33c5c4a6909e7fd2bf32c41468 -->
+<!-- sources-empreinte: c0bb27e0dc40047865639d7c77ce541877d18740 (388 fichiers, 10 dossiers) corps: 26760b4ac483506eba852181750882e13c5ac41a -->

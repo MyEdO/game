@@ -29,7 +29,7 @@ import {
   WALL_NB, type RoofField,
 } from './roofs';
 import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
-import { cleArete } from '../../state/wallIndex';
+import { cleArete } from '../../geometry/arete';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une baie dont l'apparence ne déclare pas de bloc `door` : arête que `validateScene` refuse
@@ -471,7 +471,7 @@ function crestGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           const [A, B] = wallEnds({ x: e.x, y: e.y, side: e.side });
           out.push({
             off: {
-              kind: 'wall', key: `crest:${e.x},${e.y},${e.side},${z}`, cell: { x: e.x, y: e.y, z }, side: e.side,
+              kind: 'wall', key: `crest:${cleArete(e.x, e.y, e.side, z)}`, cell: { x: e.x, y: e.y, z }, side: e.side,
               forme: 'mur-nu', appearance: cApp.id,
               ends: [{ ...A, h: surfaceH }, { ...B, h: surfaceH }],
               faces: crownFaces(cApp, A, B, surfaceH),
@@ -570,7 +570,7 @@ function roofSeamGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
       out.push({
         off: {
           kind: 'wall',
-          key: `seam:${a.bodyId}:${a.massId}:${b.bodyId}:${b.massId}:${x},${y}:${side}`,
+          key: `seam:${a.bodyId}:${a.massId}:${b.bodyId}:${b.massId}:${cleArete(edgeCell.x, edgeCell.y, side, z)}`,
           cell: { x: edgeCell.x, y: edgeCell.y, z },
           bodyId: a.bodyId,
           roomZoneIds,
@@ -614,7 +614,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
     out.push({
       off: {
         kind: 'wall',
-        key: `wall:${w.x},${w.y},${w.side},${z}`,
+        key: `wall:${cleArete(w.x, w.y, w.side, z)}`,
         cell: { x: w.x, y: w.y, z },
         ...(facade ? {
           bodyId: facade.bodyId,
