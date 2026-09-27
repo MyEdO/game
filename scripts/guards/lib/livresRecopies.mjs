@@ -1,4 +1,4 @@
-// Mécanique de scan du garde-fou « liste de LIVRES recopiée dans le code » (#1825 E1b).
+// Mécanique de scan du garde-fou « liste de LIVRES recopiée dans le code » (#1825).
 //
 // INVARIANT : le code ne nomme AUCUN livre — un livre de plus, c'est de la DONNÉE
 // (`src/data/books.json`), zéro ligne de code. Une CITATION n'est pas une identité : un commentaire
@@ -115,14 +115,14 @@ const nomDePropriete = (p) =>
   p.name && (ts.isStringLiteral(p.name) || ts.isIdentifier(p.name)) ? p.name.text : null;
 
 /**
- * Membres d'une ALTERNATIVE, qu'elle soit écrite en littéral d'expression régulière (`/A|B/`) ou en
- * CHAÎNE destinée à en fabriquer une (la forme que le dépôt écrit pour DÉRIVER du registre — et
- * donc celle sous laquelle une recopie manuelle se déguiserait le plus naturellement). Les
- * antislashs d'échappement sont retirés AVANT le découpage (`frenchy\.bzh` est UN membre, pas
- * deux), puis le motif se coupe sur tout ce qu'une identité de livre ne peut pas contenir — elle
- * n'est faite que de lettres, de chiffres, d'espaces, de points, de tirets et de soulignés.
+ * Chaînes d'une ALTERNATION, écrite en littéral de regex (`/A|B/`) ou en texte destiné à en
+ * construire une, la forme sous laquelle une recopie manuelle du registre se déguiserait le plus
+ * naturellement. Les antislashs d'échappement sont retirés avant le découpage (`frenchy\.bzh` est
+ * UNE chaîne, pas deux), puis le texte se coupe sur tout caractère qu'une identité de livre ne
+ * contient pas : une identité n'est faite que de lettres ASCII, de chiffres, d'espaces, de points,
+ * de tirets et de soulignés.
  */
-const membresDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0-9_ .-]+/);
+const chainesDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0-9_ .-]+/);
 
 /**
  * Sites d'un fichier où une ÉNUMÉRATION LITTÉRALE recopie le registre des livres.
@@ -132,8 +132,8 @@ const membresDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0
  *  - `tableau-objets` : tableau d'objets littéraux où un MÊME champ porte l'identité d'entrée après
  *    entrée — un registre recopié entrée par entrée ;
  *  - `objet-cles` / `objet-valeurs` : objet littéral, par ses clés ou par ses valeurs littérales ;
- *  - `regex` : alternative d'un littéral d'expression régulière ;
- *  - `chaine` : chaîne littérale portant une alternative ;
+ *  - `regex` : alternation d'un littéral de regex ;
+ *  - `chaine` : chaîne littérale portant une alternation ;
  *  - `union` : union de types littéraux TypeScript ;
  *  - `enum` : `enum` dont les noms de membres ou leurs initialiseurs sont des identités.
  *
@@ -192,7 +192,7 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES) {
       juger(n.properties.map(nomDePropriete), n, 'objet-cles');
       juger(n.properties.map((p) => (ts.isPropertyAssignment(p) ? texteLitteral(p.initializer) : null)), n, 'objet-valeurs');
     } else if (ts.isRegularExpressionLiteral(n)) {
-      juger(membresDAlternation(n.text), n, 'regex');
+      juger(chainesDAlternation(n.text), n, 'regex');
     } else if (ts.isUnionTypeNode(n)) {
       juger(
         n.types.map((t) => (ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal) ? t.literal.text : null)),
@@ -204,9 +204,9 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES) {
       juger(n.members.map((m) => (m.initializer ? texteLitteral(m.initializer) : null)), n, 'enum');
     } else {
       const t = texteLitteral(n);
-      // Une chaîne ne se juge QUE si elle porte une alternative : hors d'un `|`, un texte qui
+      // Une chaîne ne se juge QUE si elle porte une alternation : hors d'un `|`, un texte qui
       // contient deux noms de livre est de la PROSE (un libellé, un message), pas une population.
-      if (t !== null && t.includes('|')) juger(membresDAlternation(t), n, 'chaine');
+      if (t !== null && t.includes('|')) juger(chainesDAlternation(t), n, 'chaine');
     }
     ts.forEachChild(n, visit);
   };

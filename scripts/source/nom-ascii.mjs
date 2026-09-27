@@ -26,7 +26,7 @@
  *   7. espaces de fin retirés (y compris avant l'extension) ; un titre de chapitre qui se VIDE
  *      (`12 - ￼.md` → `12 - .md`) devient `12 - Sans titre.md`. Le nom RESTE dans la forme
  *      canonique `NN - <titre>.md` : sept scanners du dépôt la tiennent pour acquise
- *      (`scripts/raw/_lib.mjs:198`, `scripts/raw/folio-bootstrap.mjs:96`…) et `buildFolioToc`
+ *      (`scripts/raw/_lib.mjs:496`, `scripts/raw/folio-bootstrap.mjs:96`…) et `buildFolioToc`
  *      SUPPRIMERAIT de l'index un `12.md` hors forme. Le titre posé est le seul mot injecté, et il
  *      l'est parce que la forme l'exige — pas pour décrire le chapitre ;
  *   8. tout résidu hors ASCII imprimable (0x20-0x7E) → `throw` ; un nom qui se réduit au VIDE aussi.

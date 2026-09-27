@@ -4,8 +4,8 @@
 // scripts/git-hooks/merge-docs.test.mjs refuse toute dérive entre les deux listes.
 // Une cible n'est pas toujours un `docs/*.md` ÉCRIT EN ENTIER : `build-implemente.mjs` injecte un
 // champ dans les fiches raw — il déclare `targets: []` et se joue comme les autres.
-// Ordre motivé : les rapports d'Atlas LISENT les fiches docs/raw (coverage.mjs:309, reconcile.mjs:54,
-// reanchor.mjs:207), ils passent donc APRÈS build-catalogs/build-implemente qui les écrivent. C'est
+// Ordre motivé : les rapports d'Atlas LISENT les fiches docs/raw (coverage.mjs:281, reconcile.mjs:116,
+// reanchor.mjs:204), ils passent donc APRÈS build-catalogs/build-implemente qui les écrivent. C'est
 // cet ordre qui autorise une source elle-même GÉNÉRÉE : une source écrite par un générateur PLUS TARD
 // dans la liste serait lue périmée, et se fait refuser par nom.
 //

@@ -1044,6 +1044,42 @@
     "verrou": "src/lib/indexedDb.test.ts"
   },
   {
+    "id": "echapperRegex",
+    "type": "primitives.manifest",
+    "label": "echapperRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "échapper une chaîne pour une regex",
+    "perimetre": "toute chaîne insérée telle quelle dans une regex, en `src/` comme en `scripts/`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDe",
+    "type": "primitives.manifest",
+    "label": "alternationDe",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de chaînes, échappées, la plus longue d'abord",
+    "perimetre": "toute alternation de chaînes cherchées telles quelles ; une variation par chaîne passe par `parChaine`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDeRegex",
+    "type": "primitives.manifest",
+    "label": "alternationDeRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de fragments de regex, ordre gardé",
+    "perimetre": "toute alternation dont un élément est un fragment de regex",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "espacesExtensibles",
+    "type": "primitives.manifest",
+    "label": "espacesExtensibles",
+    "fichier": "src/lib/regex.ts",
+    "concept": "chaque espace accepte une suite de blancs",
+    "perimetre": "toute chaîne échappée dont les espaces acceptent des blancs variables, seule ou en `parChaine` d'`alternationDe`",
+    "verrou": "regex.test.ts"
+  },
+  {
     "id": "clesDePalette",
     "type": "primitives.manifest",
     "label": "CLES/communes/vocabulaire",

@@ -134,8 +134,12 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
-                            plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
-                            `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
+                            plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
+                            normalisation d'un nom (`norm`).
+                            `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
+                            de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
+                            `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
+                            son chemin relatif, extension comprise.
                             `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
                             bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
                             promesse, une connexion par opération) — bibliothèque de projets, calque

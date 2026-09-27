@@ -9,7 +9,7 @@ import {
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * Garde-fou « liste de LIVRES recopiée dans le code » (#1825 E1b).
+ * Garde-fou « liste de LIVRES recopiée dans le code » (#1825).
  *
  * Le code ne nomme AUCUN livre : un livre de plus est UNE entrée de `src/data/books.json`, zéro
  * ligne de code. Une CITATION reste libre (réf nue en commentaire, `source.book` en donnée, sigle
@@ -69,9 +69,9 @@ describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)',
     expect(formes("export const R = [{ id: 'livre-alpha' }, { id: 'livre-beta' }];")).toEqual(['tableau-objets']);
   });
 
-  it('MORSURE : ALTERNATION, qu’elle soit en littéral d’expression régulière ou en CHAÎNE', () => {
+  it('MORSURE : ALTERNATION, qu’elle soit en littéral de regex ou en CHAÎNE', () => {
     expect(formes('export const R = /\\b(ALF|BTA)\\s+\\d+/;')).toEqual(['regex']);
-    // La forme que le dépôt écrit pour DÉRIVER — donc celle sous laquelle une recopie se déguise.
+    // Un texte destiné à construire une regex : la forme sous laquelle une recopie se déguise.
     expect(formes("export const A = 'ALF|BTA';")).toEqual(['chaine']);
     expect(formes("export const A = new RegExp('\\\\b(ALF|BTA)\\\\s+\\\\d+');")).toEqual(['chaine']);
   });
@@ -96,7 +96,7 @@ describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)',
     // Les DEUX noms d'un MÊME livre (`id` et `abbr`) : le compte porte sur les LIVRES, pas sur les
     // chaînes — une paire de `Map` de sigles cite, elle ne liste pas.
     expect(formes("export const f = { abbrOf: new Map([['livre-alpha', 'ALF']]) };")).toEqual([]);
-    // Deux livres dans de la PROSE, sans alternative : un libellé n'est pas une population.
+    // Deux livres dans de la PROSE, sans alternation : un libellé n'est pas une population.
     expect(formes("export const g = 'Voir ALF puis BTA pour le détail.';")).toEqual([]);
   });
 

@@ -1,4 +1,4 @@
-// Test de la graphie de réf partagée (`refRe`, #434 défaut 3, #1825 lot A) : UNE fabrique couvre
+// Test de la graphie de réf partagée (`refRe`, #434, #1825) : UNE fabrique couvre
 // TOUS les livres de BOOKS, les livres de cœur compris, avec les MÊMES groupes — m[1] livre · m[2] chapitre
 // (optionnel) · m[3] ligne · m[4] suffixe. La forme `LIVRE ch.NN l.X` (écrite en parallèle de
 // `LIVRE NN l.X` dans le code) est vue au même titre. Lancé par `npm run test:raw`.
@@ -33,7 +33,7 @@ import booksData from '../../src/data/books.json' with { type: 'json' }
 // rend TOUS — un banc qui ne jugerait que le premier laisserait le cœur N+1 hors de sa couverture.
 const SIGLES_COEUR = siglesDeCoeur()
 
-// #1825 lot B : `books.json` possède l'ORDRE des livres (= l'ordre du fichier, celui que le
+// #1825 : `books.json` possède l'ORDRE des livres (= l'ordre du fichier, celui que le
 // Compendium affiche), `_lib.mjs` n'en tient aucune liste. Le contrat se juge sur une FIXTURE —
 // le FILTRE (`dir`) et l'ORDRE du registre, sans recopier le registre réel ni aucun cardinal.
 // Sigles volontairement en ordre DÉCROISSANT : un tri glissé dans `booksDe` les remettrait dans
@@ -57,7 +57,7 @@ test('BOOKS : le registre RÉEL passé par `booksDe` — aucune liste de livres 
   assert.ok(BOOKS.every(([abbr, dir]) => abbr && dir), 'une entrée de BOOKS sans sigle ni dossier')
 })
 
-// #1825 lot C : le CŒUR d'un livre est une donnée du registre, lue par `abbr`.
+// #1825 : le CŒUR d'un livre est une donnée du registre, lue par `abbr`.
 // Sigles ET cœurs INVENTÉS : un nom de cœur réel écrit ici rendrait le banc homonyme de l'arbre,
 // et ferait juger l'identité d'un corpus là où seul le régime est en cause.
 const COEUR_C = 'coeur-c', COEUR_D = 'coeur-d'
@@ -102,7 +102,7 @@ test('coeursDuRegistre : les cœurs déclarés, dans l’ORDRE DU FICHIER, sans 
   assert.deepEqual(coeursDuRegistre(REGISTRE_ATLAS), ['alpha', 'beta'])
 })
 
-// #1825 lot E : ce qu'on sait du LIVRE vit sur son entrée de `books.json` (`teneur`,
+// #1825 : ce qu'on sait du LIVRE vit sur son entrée de `books.json` (`teneur`,
 // `niveauDeSection`), ce qu'on sait de ses CHAPITRES dans le registre d'outillage
 // `scripts/raw/chapitres.json`, qui désigne son livre par son `id` STABLE. Le code n'en tient aucune
 // table. Contrat jugé sur des FIXTURES — aucun sigle réel recopié ici.
@@ -206,7 +206,7 @@ test('refRe : suffixe points "l.10+17" préservé avec la forme ch.', () => {
   assert.equal(span(m[0][3], m[0][4]).join(','), '10,17')
 })
 
-// --- UNE graphie : un livre de cœur n'a pas de grammaire propre (#1825 lot A) ---
+// --- UNE graphie : un livre de cœur n'a pas de grammaire propre (#1825) ---
 test('refRe : TOUT livre de CŒUR et un AUTRE livre rendent les MÊMES groupes', () => {
   const [o] = [...'MDG 17 l.25-30'.matchAll(refRe())]
   assert.deepEqual([o[1], o[2], o[3], o[4]], ['MDG', '17', '25', '-30'])
@@ -234,12 +234,6 @@ test('allAbbrAlternation : TOUS les livres de BOOKS, les livres de cœur compris
   assert.deepEqual([...toutes].sort(), BOOKS.map(([a]) => a).sort())
 })
 
-test('allAbbrAlternation : tri par longueur DÉCROISSANTE (MSRC avant MSR, EDOC avant EDO)', () => {
-  const alt = allAbbrAlternation().split('|')
-  assert.ok(alt.indexOf('MSRC') < alt.indexOf('MSR'))
-  assert.ok(alt.indexOf('EDOC') < alt.indexOf('EDO'))
-})
-
 test('refFolioRe : miroir FOLIO, mêmes groupes, livres de cœur compris', () => {
   const [o] = [...'ADE II 08 p.233'.matchAll(refFolioRe())]
   assert.deepEqual([o[1], o[2], o[3], o[4]], ['ADE II', '08', '233', ''])
@@ -249,10 +243,9 @@ test('refFolioRe : miroir FOLIO, mêmes groupes, livres de cœur compris', () =>
   }
 })
 
-// --- Forme COMPACTE `l.A/B/C` (#1318 E3-L4) ---
-// Avant extension, la grammaire ne rendait que le PREMIER numéro : une compacte dont le 2e membre
-// dépassait les bornes du chapitre passait VERTE à `check-code-refs`, alors que le même numéro cité
-// seul échouait. Les numéros suivants étaient INVISIBLES à TOUTES les gardes de réf.
+// --- Forme COMPACTE `l.A/B/C` (#1318) ---
+// La grammaire rend CHAQUE numéro d'une compacte : un numéro qui dépasse les bornes du chapitre
+// rougit à `check-code-refs` à n'importe quelle place de la compacte, comme cité seul.
 //
 // SPÉCIMENS CONSTRUITS, jamais écrits en graphie canonique (patron `fixtureRef` de
 // `src/raw-ref-integrity.test.ts`) : ce fichier est lui-même scanné par les gardes de réf du dépôt,
@@ -295,10 +288,10 @@ test('isRangeSuffix : seule `-fin` est un intervalle ; `+pts` et `/compacte` son
 })
 
 // ANGLES MORTS ASSERTÉS (mesurés, pas supposés) — patron de `src/raw-ref-integrity.test.ts` :
-//  a) une réf MULTI-CHAPITRES ne rend QUE son premier chapitre (les membres suivants n'ont pas de
+//  a) une réf MULTI-CHAPITRES ne rend QUE son premier chapitre (les chapitres suivants n'ont pas de
 //     sigle de livre, la grammaire les ignore) ;
 //  b) une réf ENROULÉE (coupée par un retour à la ligne au milieu de la réf) est invisible : tous
-//     les scanners lisent LIGNE À LIGNE. Le site rencontré en E3-L4 a été corrigé à la main.
+//     les scanners lisent LIGNE À LIGNE (#1318).
 test('ANGLES MORTS : multi-chapitres partiel, et réf ENROULÉE sur deux lignes — non vus, dit ici', () => {
   for (const sigle of SIGLES_COEUR)
     assert.deepEqual([...`${spec(sigle, 18, '5')}/20 l.14`.matchAll(refRe())].map((m) => m[2]), ['18']) // le `20` non rendu
@@ -319,7 +312,7 @@ test('refRe : "AA 5 l.12" (sans ch.) matche toujours comme avant', () => {
   assert.equal(m[0][3], '12')
 })
 
-test('refRe : "MDG 12 l.221" matche (#434 défaut 10 : MDG dérivé de BOOKS)', () => {
+test('refRe : "MDG 12 l.221" matche (#434)', () => {
   const m = [...'MDG 12 l.221'.matchAll(refRe())]
   assert.equal(m.length, 1)
   assert.equal(m[0][1], 'MDG')
@@ -355,7 +348,7 @@ test('refRe : "ADE II 08 l.233" matche toujours (abréviation à espace)', () =>
   assert.equal(m[0][3], '233')
 })
 
-test('refRe : "ADE2 ch.8 l.65" ne matche PAS (ancienne graphie, plus tolérée, #585 lot B)', () => {
+test('refRe : "ADE2 ch.8 l.65" ne matche PAS (ancienne graphie, plus tolérée, #585)', () => {
   const m = [...'ADE2 ch.8 l.65'.matchAll(refRe())]
   assert.equal(m.length, 0)
 })
@@ -370,7 +363,7 @@ test('refRe : "ch.23 l.75" SANS livre ne matche pas (second spécimen, sans sigl
   assert.equal(m.length, 0)
 })
 
-test('bookOf : "ADE2" (ancienne variante) résout à null (identité stricte, #585 lot B)', () => {
+test('bookOf : "ADE2" (ancienne variante) résout à null (identité stricte, #585)', () => {
   assert.equal(bookOf('ADE2'), null)
 })
 
@@ -442,7 +435,7 @@ test('refRe : instances FRAÎCHES à chaque appel (lastIndex non partagé)', () 
   assert.equal(re2.lastIndex, 0)
 })
 
-// --- #1825 lot F0 : `pagesDeLAtlas`, l'ÉNUMÉRATION UNIQUE de `docs/raw/` ---
+// --- #1825 : `pagesDeLAtlas`, l'ÉNUMÉRATION UNIQUE de `docs/raw/` ---
 // Registre FIXTURE à sigles ET à cœurs INVENTÉS : le contrat est la PARTITION PAR CŒUR, jamais
 // l'identité d'un cœur réel. Deux cœurs, pour que le contrat se juge sur N et pas sur 1.
 const REGISTRE_ATLAS = [

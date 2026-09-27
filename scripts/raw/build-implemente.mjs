@@ -7,7 +7,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { refRe, span, bookOf, BOOKS, estLivreExtrait, esc, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
+import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
@@ -55,8 +56,7 @@ const COMMENT_OR_BLANK = /^\s*(?:\/\/|\/\*|\*|$)/
 // Marqueur généré (SEULE graphie du non-implémenté) — et sa contre-épreuve d'invisibilité des gardes.
 export const GEN_TAG = '_(généré — `npm run raw:implemente`)_'
 export const NOT_IMPL = '(non implémenté)'
-// Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici se
-// désynchronisait dès qu'un livre s'ajoutait à BOOKS — cf. allAbbrAlternation, source unique).
+// Sigles des livres extraits : `allAbbrAlternation` (`_lib.mjs`, #434).
 export const GUARD_LEAK_RE = new RegExp(`\\b(?:${allAbbrAlternation()}) ?\\d* l\\.`)
 
 export function slugify(s) {
@@ -361,7 +361,7 @@ export function isDeadExport(name, defFile, index) {
     if (dn === name) { declIdx = i; exported = /^export\b/.test(defLines[i]); break }
   }
   if (declIdx < 0 || !exported) return false
-  const re = new RegExp(`\\b${esc(name)}\\b`)
+  const re = new RegExp(`\\b${echapperRegex(name)}\\b`)
   for (let i = 0; i < defLines.length; i++) {
     if (i === declIdx || COMMENT_OR_BLANK.test(defLines[i])) continue
     if (re.test(defLines[i])) return false // appelant local (hors commentaire, hors déclaration)
