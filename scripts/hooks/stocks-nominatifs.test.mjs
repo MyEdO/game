@@ -981,7 +981,7 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
   const f = 'scripts/guards/lib/paletteLiteralStock.mjs'
   const entree = (occ) => `  { fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:torse:front', occurrence: ${occ} },`
   const image = (...lignes) => [
-    "/** @type {import('./stock.mjs').EntreeNominative[]} */",
+    "/** @type {import('./stock.mjs').EntreeDeSite[]} */",
     'export const PALETTE_LITERAL_RATCHET = [', ...lignes, ']', '',
   ].join('\n')
   const avant = image(entree(1))

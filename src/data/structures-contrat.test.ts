@@ -1087,7 +1087,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // graphie propriétaire (−2), et le nœud partagé rend UNE forme par document porteur
       // (`symptoms.json › test {difficulty}` 3, `maladies.json › test {difficulty}` 1, +2) : solde 0.
       // Le terrain gagné est de SIGNATURE, pas de compte — les deux lignes neuves portent l'exacte
-      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test` depuis B2a, là où la
+      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test`, là où la
       // graphie propriétaire projetait `difficulty+…`. Le décompte L3 (−2), lui, baisse.
       // … #1657 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
       // (1 → 39), la seule graphie que la porte sache tester. Ce que le silence coûtait : le moteur

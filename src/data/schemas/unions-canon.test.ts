@@ -130,8 +130,8 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * `communs.ts` l'est pour l'arête) et les deux narrowings RAW de `stageExposureDifficulty` (EDOC 8 l.90, modéré
    * pluie/neige vs extrême diluvienne/blizzard) — un `case` sur une valeur DÉJÀ typée `Weather` n'est
    * pas une recopie de type, le compilateur le borne (même verdict que `builders/walls.ts:66` ci-dessus).
-   * Sous `complet`, `pluie`+`neige` ne suffisent plus : seule une vraie recopie des 6 rougit — la
-   * classe que ce lot vient d'éteindre (`rule-refs.test.ts` énumérait les 6 en dur).
+   * Sous `complet`, `pluie`+`neige` ne suffisent pas : seule une vraie recopie des 6 rougit, une
+   * énumération des 6 en dur.
    */
   it('l’alphabet météo de VOYAGE : les 6 ids ne sont re-tapés NULLE PART hors du canon', () => {
     const meteo = {
@@ -139,8 +139,8 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
       foyer: ['src/data/schemas/defs/weather.ts', ICI],
     };
     expect(constructionsReserveesDuCorpus(corpusDesGardes(), [meteo])).toEqual([]);
-    // DENTS : un vert ne prouve rien si la déclaration ne peut PAS mordre. La recopie que ce lot vient
-    // d'éteindre, rejouée en fixture, doit être vue ; le chevauchement à 2 noms de l'axe SCÈNE, non.
+    // DENTS : un vert ne prouve rien si la déclaration ne peut PAS mordre. Une recopie des 6, rejouée
+    // en fixture, doit être vue ; le chevauchement à 2 noms de l'axe SCÈNE, non.
     const vu = (text: string) => scanConstructionsReservees(fixture(text), [meteo]);
     expect(vu(`const meteos: Weather[] = ['sec', 'beau', 'pluie', 'pluie-diluvienne', 'neige', 'blizzard'];`)).toHaveLength(1);
     expect(vu(`weather?: 'clair' | 'pluie' | 'brouillard' | 'neige' | 'tempete';`), 'axe SCÈNE (#1585) : 2 noms partagés ne font pas une recopie').toEqual([]);

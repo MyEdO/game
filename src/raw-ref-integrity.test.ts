@@ -42,7 +42,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../scripts/guards/lib/stockDe
  * chapitre 85 du LDB, où la section Taille a glissé d'environ 65 lignes après la ré-extraction
  * Marker : les réfs tombaient en plein texte de « Régénération »/« Résistance à la Magie ». Les
  * détecter exigerait un recouvrement SÉMANTIQUE généralisé (le recouvrement lexical à ±2 lignes ne
- * mord pas ici : la ligne visée est pleine, donc jamais soumise au test) — coût à chiffrer, hors E3.
+ * mord pas ici : la ligne visée est pleine, donc jamais soumise au test).
  * Ce qui les rend TRIABLES sans garde assertive : `node scripts/raw/audit-refs-chapitre.mjs LDB 85`
  * confronte TOUTE réf d'un chapitre au texte de sa ligne, triée par ligne citée — le verdict reste
  * humain (lecture du `Source/`). C'est l'outil qui a levé 13 sites survivants sous #1318, tous
@@ -59,7 +59,7 @@ const fixtureRef = (ch: number, line: number): string => ['LDB', String(ch), `l.
 /** Commentaire de fixture porteur d'une réf construite (même raison). */
 const fixtureLine = (texte: string, ch: number, line: number): string =>
   `// ${texte} ${fixtureRef(ch, line)}\nexport const zzz = 1;\n`;
-describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvrement (#1318 P5)', () => {
+describe('garde « réf RAW aveugle » — ligne citée VIDE et sans recouvrement (#1318)', () => {
   const blind = scanBlindRefs();
   const stock = lireEntreesDeSite(STOCK_PATH);
   const { neuves, perimees } = ecartDesRefsAveugles(blind, stock);

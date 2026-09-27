@@ -128,7 +128,7 @@ export function isBlindRef(chapterLines, lo, hi, contextText, w = WINDOW, minLen
 
 /** Ancres JUGEABLES d'une réf : une PLAGE `-fin` reste UN intervalle `[lo,hi]` ; les autres formes
  *  (`+pts`, compacte `/n…`) sont des ancres DISTINCTES — chacune se juge seule, sinon `l.202/213`
- *  se lirait 202→213 et sa ligne 213 VIDE resterait invisible (#1318, défaut D5). */
+ *  se lirait 202→213 et sa ligne 213 VIDE resterait invisible (#1318). */
 function* anchorsOf(line, suffix) {
   if (isRangeSuffix(suffix)) { yield span(line, suffix); return }
   for (const n of refNums(line, suffix)) yield [n, n]
