@@ -453,7 +453,7 @@ export function spawnEnemy(
   // « archer » : trait Arme mêlée générique + `weapon:'arc'`) reste additif, légitime (ne duplique rien).
   // `renderWeaponsFromTraits` = armes EXPLICITES sans repli générique.
   if (opts?.weapon) {
-    const idWeapon = weaponFromId(opts.weapon); // null (+ console.error #223) si le trappingId ne résout pas
+    const idWeapon = weaponFromId(opts.weapon); // null (+ console.error #223) si le trapping n'est pas une arme
     if (idWeapon && !renderWeaponsFromTraits(c.traits ?? []).some((w) => w.type === idWeapon.type)) {
       c.weapons = [idWeapon, ...c.weapons];
     }

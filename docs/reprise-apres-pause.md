@@ -116,7 +116,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
   `src/data/schemas/defs/` : 133 fichiers, un par catalogue, et
-  `src/data/schemas/defs-scenes/` : 17 fichiers pour les documents de scène).
+  `src/data/schemas/defs-scenes/` : 18 fichiers pour les documents de scène).
 - `scripts/art-ref/` — le PIPELINE d'extraction d'images (`extract.py`, `ldb_extract.py`, `ldb_map.py`, `probe.py`) : le code est
   tracké, ses SORTIES (images) ne le sont pas (§ 3).
 
@@ -245,4 +245,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: ee5b7c6c38a72a4e456953adb5f84833ab3de271 (25 fichiers, 8 dossiers) corps: 6586d012ac134f220cab9c58ecdab35bcd96e65a -->
+<!-- sources-empreinte: 73fdb286891c27104a843f2a09af70bf562e97f9 (25 fichiers, 8 dossiers) corps: 6c52d92b373941704cde492848429d3741986285 -->

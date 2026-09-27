@@ -12,6 +12,7 @@
  */
 import type { Effect, Fige, ReliefDefaults, Scene, SceneRoofDefaults } from './scene';
 import { graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
+import { armesDEntiteEnIds } from '../data/armesDEntiteEnIds';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
@@ -1080,6 +1081,14 @@ export const PROJECT_MIGRATIONS = {
    * (parité mesurée par `projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux).
    */
   16: (doc) => ({ ...(graphieOpsDeTalentDeep(doc) as Record<string, unknown>), version: 17, schema: 17 }),
+  /**
+   * `17` écrit l'arme d'une entité de scène (`scenes[].entities[].weapon`, sous-listes `melee`/`ranged` de
+   * `idDe('trapping', …)`) en id (#1897) — primitive `armesDEntiteEnIds` (`src/data/armesDEntiteEnIds.ts`), table GELÉE. Ce qu'elle ne
+   * transforme pas SANS PERTE traverse tel quel, et `parseProject` le refuse en le nommant.
+   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-27-1897-projet-armes-d-entite-ids.mjs`
+   * (parité mesurée par `projet-migration-17-vers-18.test.ts`, qui joue la MÊME fixture par les deux).
+   */
+  17: (doc) => ({ ...armesDEntiteEnIds(doc), version: 18, schema: 18 }),
 } satisfies MigrationMap;
 
 /** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,

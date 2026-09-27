@@ -175,8 +175,7 @@ export function billboardExposure(
  * (LDB 74) ; un ton ne change aucun champ de lumière, aucune visibilité, aucun jet.
  *
  * `tone` absent = `flamme` : une source de feu — le cas du monde — n'a AUCUNE donnée à porter.
- * Un id hors catalogue retombe sur le défaut et se signale UNE fois (même politique que
- * `weaponFromId` : lookup exact, warn hors catalogue — jamais un repli muet).
+ * Un id hors catalogue retombe sur le défaut et se signale UNE fois (lookup exact, jamais un repli muet).
  */
 const TONS_INCONNUS = new Set<string>();
 export function resolveTone(id: string | undefined): LightToneDef {

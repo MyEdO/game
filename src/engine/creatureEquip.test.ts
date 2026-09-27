@@ -101,12 +101,8 @@ describe('creatureEquip — weaponFromId (canal d’authoring de scène `weapon`
     expect(weaponFromId('arbalete')!.reload).toBe(1);
   });
 
-  it('trappingId INCONNU → console.error bruyant (#223) + AUCUNE arme devinée (null)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const w = weaponFromId('Arc'); // un LIBELLÉ n'est pas un id
-    expect(w).toBeNull();
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('Arc'));
-    err.mockRestore();
+  it('trappingId INCONNU (un libellé) a franchi la porte `idDe(\'trapping\')` → LÈVE, aucune arme devinée', () => {
+    expect(() => weaponFromId('Arc')).toThrow(/« Arc » introuvable/);
   });
 
   it('trapping qui n’est PAS une arme → console.error + null (aucune arme inventée depuis un objet)', () => {

@@ -173,7 +173,13 @@ import { stockageWeb } from '../lib/stockageWeb';
 // Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
 // mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
 // jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 58;
+// 58 → 59 (#1897) : le document de SCÈNE change de forme — `SceneEntity.weapon` passe du libellé à l'id
+// d'une possession de catégorie `melee`/`ranged`, et `weaponFromId` LÈVE sur un id introuvable.
+// `snapshotSave` recopie le `state` ENTIER, `state.scene.entities` comprise : une save de 58 rouvrirait
+// une scène vivante dont les entités armées portent un libellé, sur lequel le rendu et le spawn lèvent,
+// et que le seam `parseProject` refuse au prochain export/import de son projet. La save se jette
+// (politique 2 ci-dessus).
+export const SAVE_VERSION = 59;
 
 export interface SaveMeta {
   version: number;

@@ -127,8 +127,13 @@ const baseDEntiteSchema = z.strictObject({
   appearance: entityAppearanceSchema.optional(),
   /** Animation d'ambiance en boucle (clé de `AMBIENT_CLIPS`). */
   anim: z.string().optional(),
-  /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
-  weapon: z.string().optional(),
+  /** Arme ÉQUIPÉE — union des sous-listes `melee` et `ranged` du catalogue des possessions
+   *  (`idDe('trapping', …)`, discriminant `categorie`), résolue par `weaponFromId`. */
+  weapon: z
+    .union([idDe('trapping', 'melee'), idDe('trapping', 'ranged')], {
+      error: (iss) => `« ${String(iss.input)} » n'est pas une arme : hors des sous-listes « melee » et « ranged » du catalogue des possessions (trappings.json).`,
+    })
+    .optional(),
   /** Empreinte D'INSTANCE d'un projet pré-migration : fossile TOLÉRÉ au parse, DÉPOUILLÉ au
    *  chargement par `stripLegacyFoot` (`src/state/scene.ts`) — jamais une donnée de scène, jamais
    *  lue par le moteur (la physique d'un décor vient de `PropData.foot`). Meurt au reset des saves.

@@ -55,11 +55,8 @@ describe('#1882 — réf. irrésoluble : aucun mannequin, le spawn LÈVE', () =>
 });
 
 describe('#223/#258 — arme d’authoring (trappingId) au spawn de combat', () => {
-  it('trappingId inconnu → console.error, et AUCUNE arme fabriquée depuis l’id (rien d’inventé)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const c = spawnEnemy({ statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 } } }, 'w1', POS, { weapon: 'hache-inconnue' });
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('« hache-inconnue »'));
-    expect(c.weapons.some((w) => w.label === 'hache-inconnue')).toBe(false);
+  it('trappingId inconnu : il a franchi la porte `idDe(\'trapping\')` → le spawn LÈVE, aucune arme fabriquée', () => {
+    expect(() => spawnEnemy({ statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 } } }, 'w1', POS, { weapon: 'hache-inconnue' })).toThrow(/« hache-inconnue » introuvable/);
   });
 
   it('trappingId de catalogue → aucune plainte, arme COMPLÈTE (Dégâts + Groupe du catalogue)', () => {

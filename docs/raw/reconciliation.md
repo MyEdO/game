@@ -66,7 +66,7 @@
 - `src/ui/compendium/registry-enveloppe.test.ts:166` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
-- `src/data/schemas/defs-scenes/scene.ts:155` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
+- `src/data/schemas/defs-scenes/scene.ts:160` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
 - `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
 - `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
@@ -209,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 5544789d1a0f98f8bc0988221d316405eb1e48dc (4312 fichiers, 154 dossiers) corps: adf2bbec7bc23d4ef560ac29b13db83b9e819b0c -->
+<!-- sources-empreinte: 5e257b34e8364c8766028db5aaf6192496a5d582 (4315 fichiers, 154 dossiers) corps: bec46c503025e9f1d490665f2564e9afbf80dd84 -->

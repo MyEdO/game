@@ -2712,7 +2712,7 @@ Autrement dit, lorsqu'un Coup Critique frappe un membre exotique (tentacule, que
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.132-153) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `Condition`, `hitModifiers`, `FLOWS`, `createCombatSlice`, `previewDefense`, +7 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, +5 fichiers
-- `LDB 76` (l.16-19, l.21-26, l.40, l.41) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
+- `LDB 76` (l.16-19, l.21-26, l.40, l.41) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
 
 ---
 
@@ -3022,7 +3022,7 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 **Voir aussi** : Localisation et Tableaux de Critiques (localisation inversée, Tableau des Bras pour membres sans table) ; Taille et combat (Dévastatrice/Percutante, Frappe Mortelle, Piétinement) ; Psychologie (Peur, Terreur, Frénésie, Animosité, Haine, Préjugé) ; États (Empêtré, Sonné, Inconscient, Hémorragique — infligés par les Traits MSRC) ; Blessures et Bonus de caractéristique (BF+2×BE+BFM) ; Corruption et Mutations ; Attaques gratuites et Avantage.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 76` (l.9-13, l.16-28, l.31-37, l.38-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
+- `LDB 76` (l.9-13, l.16-28, l.31-37, l.38-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
 - `LDB 77` (l.7-68) → `ESPECE`, `PorteurDeFiche`, `ChoixDeProfil`, `doc`, `humain`, `pnjAuProfil`, `TavernGameModal`, `TavernOpponent`, `nain`, `Palette`, +7 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/defs/species.ts`, `src/engine/statblock.ts`, `src/scenes/test-scenarios/taverne-profil-standard.ts`, `src/state/sceneNpc.ts`, +4 fichiers
 - `LDB 85` (l.9-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +232 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +45 fichiers
 - `ZI 14` (l.1013-1035, l.1037-1087) → `ethere`, `fouissement` — `src/data/traits.json`
@@ -3800,7 +3800,7 @@ Côté inverse, l'adversaire **plus petit** gagne toujours **+10 pour toucher** 
 **Voir aussi** : Trait Taille — ajustement de profil et Points de Blessure ; Modificateur d'à-toucher au Tir selon la Taille de la cible ; Atouts d'arme Dévastatrice & Percutante ; règle optionnelle Frappe Mortelle ; Peur & Terreur (psychologie) ; Désengagement ; Tests opposés.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.339-340, l.343-355, l.357-387, l.391-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `sizeDamageMultiplier`, `weaponFromTrait`, `sizeGrantedQualities`, +67 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +21 fichiers
+- `LDB 85` (l.339-340, l.343-355, l.357-387, l.391-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `weaponFromTrait`, `sizeDamageMultiplier`, `sizeGrantedQualities`, +67 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +21 fichiers
 - `ZI 14` (l.1075, l.1162) → `ethere`, `miracles` — `src/data/traits.json`
 - sans code : `ADE II 2` (l.563-589), `ZI 14` (l.1070)
 

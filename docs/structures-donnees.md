@@ -4309,7 +4309,7 @@ dans `src/data/slots-contrat.test.ts`.
 
 Ce volet est le REMPLAÇANT committé du « test FK générique » re-scopé au commentaire #1466 du 2026-08-23 : « le registre des SLOTS pour `docs/structures-donnees.md` (déclaré × observé) ».
 
-Slots déclarés : **31207**, sur **200** paths de donnée.
+Slots déclarés : **31214**, sur **202** paths de donnée.
 
 ### 6.1 Registre des slots — une ligne par (document, path, type)
 
@@ -4334,6 +4334,7 @@ ces slots sont des cases (jointure par occurrence) — « — » quand ils n’e
 | `arene-projet.json` | `scenes[].entities[].ref` | `prop` | 291 | `arene-projet.json \| ref` |
 | `arene-projet.json` | `scenes[].entities[].usable.actions[].flow.steps[].effect.spell` | `spell` | 1 | `arene-projet.json \| effect` |
 | `arene-projet.json` | `scenes[].entities[].usable.actions[].flow.test.skill.id` | `skill` | 4 | `arene-projet.json \| skill` |
+| `arene-projet.json` | `scenes[].entities[].weapon` | `trapping` | 6 | `arene-projet.json \| weapon` |
 | `arene-projet.json` | `scenes[].layers[].tiles[]` | `terrain` | 13940 | `arene-projet.json \| tiles` |
 | `arene-projet.json` | `scenes[].reliefDefaults.cliff` | `material` | 18 | `arene-projet.json \| reliefDefaults` |
 | `arene-projet.json` | `scenes[].reliefDefaults.deck` | `material` | 18 | `arene-projet.json \| reliefDefaults` |
@@ -4394,6 +4395,7 @@ ces slots sont des cases (jointure par occurrence) — « — » quand ils n’e
 | `loup-et-saumure-projet.json` | `scenes[].entities[].appearance.species` | `species` | 19 | `loup-et-saumure-projet.json \| appearance` |
 | `loup-et-saumure-projet.json` | `scenes[].entities[].ref` | `prop` | 2 | `loup-et-saumure-projet.json \| ref` |
 | `loup-et-saumure-projet.json` | `scenes[].entities[].statblock.skills[].id` | `skill` | 12 | `loup-et-saumure-projet.json \| skills` |
+| `loup-et-saumure-projet.json` | `scenes[].entities[].weapon` | `trapping` | 1 | `loup-et-saumure-projet.json \| weapon` |
 | `loup-et-saumure-projet.json` | `scenes[].layers[].tiles[]` | `terrain` | 1086 | `loup-et-saumure-projet.json \| tiles` |
 | `loup-et-saumure-projet.json` | `scenes[].reliefDefaults.cliff` | `material` | 5 | `loup-et-saumure-projet.json \| reliefDefaults` |
 | `loup-et-saumure-projet.json` | `scenes[].reliefDefaults.deck` | `material` | 5 | `loup-et-saumure-projet.json \| reliefDefaults` |
@@ -4521,7 +4523,7 @@ ces slots sont des cases (jointure par occurrence) — « — » quand ils n’e
 | `vehicles.json` | `[].ship.traits[].id` | `navalTrait` | 20 | `vehicles.json \| traits` |
 | `water-exposure.json` | `test.skill.id` | `skill` | 1 | — |
 
-Couples porteurs de réfs OBSERVÉES dont le déclaré ATTEINT toutes les occurrences : **98** — `activities.json | cible` `activities.json | factor` `activities.json | mod` `activities.json | skills` `arcane-phenomena.json | spellIds` `arene-projet.json | material` `arene-projet.json | reliefDefaults` `arene-projet.json | roofDefaults` `arene-projet.json | skill` `arene-projet.json | spells` `arene-projet.json | tiles` `axes.json | skills` `axes.json | talents` `barge-du-sel-projet.json | effect` `barge-du-sel-projet.json | reliefDefaults` `barge-du-sel-projet.json | roofDefaults` `barge-du-sel-projet.json | skills` `barge-du-sel-projet.json | tiles` `buildings.json | features` `buildings.json | roofMaterial` `careerLevels.json | of` `careerLevels.json | skills` `careerLevels.json | talents` `creatures.json | skills` `creatures.json | spells` `crew-roles.json | skills` `criticals.json | skill` `defauts-de-compilation.json | cheminDeRonde` `defauts-de-compilation.json | masse` `defauts-de-compilation.json | pont` `diligence-projet.json | ref` `diligence-projet.json | reliefDefaults` `diligence-projet.json | roofDefaults` `diligence-projet.json | style` `diligence-projet.json | tiles` `domains.json | requiresSkill` `domains.json | skill` `etats.json | exceptSkills` `etats.json | skill` `gods.json | blessings` `gods.json | chaosSpells` `gods.json | miracles` `incidents-monture.json | skill` `loup-et-saumure-projet.json | port` `loup-et-saumure-projet.json | reliefDefaults` `loup-et-saumure-projet.json | roofDefaults` `loup-et-saumure-projet.json | skill` `loup-et-saumure-projet.json | skills` `loup-et-saumure-projet.json | tiles` `maladies.json | mutation` `maladies.json | ops` `maladies.json | otherwise` `maneuvers.json | skill` `merchants.json | curated` `miscast.json | skill` `mutations.json | skill` `mutations.json | talent` `naval-traits.json | skill` `pregens.json | career` `pregens.json | careerTalent` `pregens.json | espece:talents:0` `pregens.json | pettySpells` `pregens.json | species` `props.json | primitives` `psychology.json | skill` `qualities.json | skill` `river-criticals.json | stations` `sea-shanties.json | skill` `sea-weather.json | skills` `semences-de-scene.json | reliefDefaults` `semences-de-scene.json | roofDefaults` `semences-de-scene.json | terrain` `ship-criticals.json | skill` `ship-criticals.json | stations` `ship-stations.json | requiresTrait` `species.json | previewCareer` `species.json | profilStandard` `species.json | skills` `spells.json | skill` `spells.json | talent` `stars.json | talent` `steam-breakdown.json | skill` `structures.json | traits` `symptoms.json | skill` `tables.json | of` `tables.json | skill` `tables.json | talent` `talents.json | skill` `talents.json | skills` `tavernGames.json | skill` `terrains.json | matiere` `terrains.json | overlayProp` `traits.json | skill` `traits.json | talent` `trappings.json | diseases` `trappings.json | skill` `traumas.json | skill` `vehicles.json | traits`. Une jointure VIDE rendrait ce volet muet :
+Couples porteurs de réfs OBSERVÉES dont le déclaré ATTEINT toutes les occurrences : **100** — `activities.json | cible` `activities.json | factor` `activities.json | mod` `activities.json | skills` `arcane-phenomena.json | spellIds` `arene-projet.json | material` `arene-projet.json | reliefDefaults` `arene-projet.json | roofDefaults` `arene-projet.json | skill` `arene-projet.json | spells` `arene-projet.json | tiles` `arene-projet.json | weapon` `axes.json | skills` `axes.json | talents` `barge-du-sel-projet.json | effect` `barge-du-sel-projet.json | reliefDefaults` `barge-du-sel-projet.json | roofDefaults` `barge-du-sel-projet.json | skills` `barge-du-sel-projet.json | tiles` `buildings.json | features` `buildings.json | roofMaterial` `careerLevels.json | of` `careerLevels.json | skills` `careerLevels.json | talents` `creatures.json | skills` `creatures.json | spells` `crew-roles.json | skills` `criticals.json | skill` `defauts-de-compilation.json | cheminDeRonde` `defauts-de-compilation.json | masse` `defauts-de-compilation.json | pont` `diligence-projet.json | ref` `diligence-projet.json | reliefDefaults` `diligence-projet.json | roofDefaults` `diligence-projet.json | style` `diligence-projet.json | tiles` `domains.json | requiresSkill` `domains.json | skill` `etats.json | exceptSkills` `etats.json | skill` `gods.json | blessings` `gods.json | chaosSpells` `gods.json | miracles` `incidents-monture.json | skill` `loup-et-saumure-projet.json | port` `loup-et-saumure-projet.json | reliefDefaults` `loup-et-saumure-projet.json | roofDefaults` `loup-et-saumure-projet.json | skill` `loup-et-saumure-projet.json | skills` `loup-et-saumure-projet.json | tiles` `loup-et-saumure-projet.json | weapon` `maladies.json | mutation` `maladies.json | ops` `maladies.json | otherwise` `maneuvers.json | skill` `merchants.json | curated` `miscast.json | skill` `mutations.json | skill` `mutations.json | talent` `naval-traits.json | skill` `pregens.json | career` `pregens.json | careerTalent` `pregens.json | espece:talents:0` `pregens.json | pettySpells` `pregens.json | species` `props.json | primitives` `psychology.json | skill` `qualities.json | skill` `river-criticals.json | stations` `sea-shanties.json | skill` `sea-weather.json | skills` `semences-de-scene.json | reliefDefaults` `semences-de-scene.json | roofDefaults` `semences-de-scene.json | terrain` `ship-criticals.json | skill` `ship-criticals.json | stations` `ship-stations.json | requiresTrait` `species.json | previewCareer` `species.json | profilStandard` `species.json | skills` `spells.json | skill` `spells.json | talent` `stars.json | talent` `steam-breakdown.json | skill` `structures.json | traits` `symptoms.json | skill` `tables.json | of` `tables.json | skill` `tables.json | talent` `talents.json | skill` `talents.json | skills` `tavernGames.json | skill` `terrains.json | matiere` `terrains.json | overlayProp` `traits.json | skill` `traits.json | talent` `trappings.json | diseases` `trappings.json | skill` `traumas.json | skill` `vehicles.json | traits`. Une jointure VIDE rendrait ce volet muet :
 la garde l’exige NON VIDE.
 
 ### 6.2 Couverture — réfs observées qu’AUCUN slot ne déclare
@@ -4531,7 +4533,7 @@ La dette d’ADOPTION du registre : un `(dataset, champ)` porteur de référence
 (`scripts/guards/lib/slotsStock.mjs`, garde `src/data/slots-contrat.test.ts`) — il se solde concept
 par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 
-**268** couples (dataset, champ) sans slot déclaré.
+**266** couples (dataset, champ) sans slot déclaré.
 
 | Dataset | Champ | Occurrences observées | Atteintes |
 |---|---|---|---|
@@ -4572,7 +4574,6 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 | `arene-projet.json` | `start` | 9 | 0 |
 | `arene-projet.json` | `traits` | 11 | 0 |
 | `arene-projet.json` | `walls` | 235 | 0 |
-| `arene-projet.json` | `weapon` | 6 | 0 |
 | `barge-du-sel-projet.json` | `a` | 1 | 0 |
 | `barge-du-sel-projet.json` | `ambush` | 1 | 0 |
 | `barge-du-sel-projet.json` | `ammo` | 8 | 0 |
@@ -4676,7 +4677,6 @@ par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.
 | `loup-et-saumure-projet.json` | `services` | 6 | 0 |
 | `loup-et-saumure-projet.json` | `start` | 8 | 0 |
 | `loup-et-saumure-projet.json` | `victoryCondition` | 2 | 0 |
-| `loup-et-saumure-projet.json` | `weapon` | 1 | 0 |
 | `maladies.json` | `dailyTest` | 1 | 0 |
 | `maladies.json` | `symptoms` | 62 | 0 |
 | `maneuvers.json` | `escapeStrength` | 2 | 0 |
@@ -4811,4 +4811,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: ff5f4e293d6a10fdb5e57fadb66bd3b0942af377 (395 fichiers, 10 dossiers) corps: f6d734920c5b5980c66a408278d42ae81b572144 -->
+<!-- sources-empreinte: 72dbd482806bb80e2dbab1d832dbe028ee416231 (395 fichiers, 10 dossiers) corps: 949f1c3dccb492e36a98dafdc6b36d62e5072f08 -->

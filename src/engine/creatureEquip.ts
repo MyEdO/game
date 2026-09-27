@@ -11,19 +11,18 @@ import type { ItemInstance, WeaponDamageSpec } from './types';
 import { findResolvedTrait, traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
 
-/** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`) : lookup EXACT au catalogue
- *  (`findTrappingById`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
- *  la spec `{bf}` des armes de JET), Groupe (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge,
- *  forme, Taille prévue, effets à la touche et bande de portée MINIMALE viennent TOUS du catalogue, jamais
- *  d'un littéral : cette arme est jouable (bandes de tir `effectiveWeaponRange`, Spécialisation
- *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
- *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
+/** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`, sous-listes `melee`/`ranged`
+ *  de `idDe('trapping', …)`) : lookup EXACT au catalogue (`findTrappingById`) puis PROJECTION UNIQUE
+ *  `weaponFromItem` (engine/items) — Dégâts, Portée (y compris la spec `{bf}` des armes de JET), Groupe
+ *  (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge, forme, Taille prévue, effets à la touche
+ *  et bande de portée MINIMALE viennent TOUS du catalogue, jamais d'un littéral : cette arme est jouable
+ *  (bandes de tir `effectiveWeaponRange`, Spécialisation `weaponGroupSkillMode`) autant que dessinée. Un id
+ *  introuvable a franchi la porte du schéma : bogue du jeu, levé. Un trapping qui n'est pas une arme →
+ *  `null` + `console.error`, l'entité reste désarmée : la porte juge la catégorie au parse, le catalogue se
+ *  réécrit au Compendium après (`idsVivants`). */
 export function weaponFromId(trappingId: string): Weapon | null {
   const trapping = findTrappingById(trappingId);
-  if (!trapping) {
-    console.error(`[weapon] trappingId « ${trappingId} » introuvable au catalogue d'armes (#223) — entité désarmée, rien d'inventé.`);
-    return null;
-  }
+  if (!trapping) throw new Error(`[weapon] trappingId « ${trappingId} » introuvable : il a franchi la porte de \`SceneEntity.weapon\` (\`idDe('trapping', …)\`).`);
   if (trapping.categorie !== 'melee' && trapping.categorie !== 'ranged') {
     console.error(`[weapon] trapping « ${trappingId} » (catégorie « ${trapping.categorie} ») n'est pas une arme — entité désarmée, rien d'inventé.`);
     return null;

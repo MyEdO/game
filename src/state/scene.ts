@@ -129,7 +129,7 @@ export interface SceneEntity {
   /** Animation d'ambiance en boucle (clé de AMBIENT_CLIPS) — rend l'entité via le rig. */
   anim?: string;
   /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — affichée par le rig (tenue prête si à
-   *  distance). Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
+   *  distance). Ex. `'arbalete'`. Prouvée au parse (sous-listes `melee`/`ranged` de `idDe('trapping', …)`), résolue par `weaponFromId`. */
   weapon?: string;
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
    *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`state/vision.ts`) qui le ramène aux

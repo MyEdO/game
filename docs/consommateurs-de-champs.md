@@ -21,8 +21,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | `value` | 14 | `src/engine/creatureAttacks.ts:80` |
 | `arg` | 18 | `src/engine/creatureAttacks.ts:77` |
 | `count` | 4 | `src/engine/creatureAttacks.ts:85` |
-| `range` | 7 | `src/engine/creatureEquip.ts:81` |
-| `natural` | 1 | `src/engine/creatureEquip.ts:87` |
+| `range` | 7 | `src/engine/creatureEquip.ts:80` |
+| `natural` | 1 | `src/engine/creatureEquip.ts:86` |
 | `hidden` | 1 | `src/engine/groups.ts:57` |
 
 ### `SourceRef` (src/data/schemas/grammaire/valeurs.ts)
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: dda1ceea3e0a30d20647b1260a36b561b817cd5d (2122 fichiers, 174 dossiers) corps: 49592b470e0da598c4956aaae582c15fc6f56e5d -->
+<!-- sources-empreinte: f799c8140ba8f4add3dd1dff93192a3541e1dc36 (2123 fichiers, 174 dossiers) corps: 8d2f9dee526fa9b4ff9224defc6c03d63c742867 -->

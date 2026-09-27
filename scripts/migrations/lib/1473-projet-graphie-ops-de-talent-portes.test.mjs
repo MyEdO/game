@@ -1,7 +1,7 @@
 /**
  * MORSURE des PORTES de `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs` (#1473) — une op de Talent
- * d'un document de projet prend la graphie `talent: { id, spec? }`, et le document passe au `schema` 17.
- * Sa borne haute est CLOSE (`schema` ∈ {16, 17}) : DERNIÈRE de la chaîne, elle NOMME un `schema` futur.
+ * d'un document de projet prend la graphie `talent: { id, spec? }`, et le document passe au `schema` 17 au moins.
+ * Sa borne haute est OUVERTE (`schema` ∈ {16, ≥ 17}) : un `schema` plus récent traverse sans être rabaissé.
  *
  * La migration est jouée sur un dépôt JETABLE (`./joue.mjs`), une fois par scénario, avec la primitive
  * qu'elle importe (`src/data/graphieOpsDeTalent.ts`, COPIÉE de l'arbre) ; les rouges d'avant-écriture
@@ -64,18 +64,22 @@ test('(b) IDEMPOTENCE : rejouée sur l’état d’arrivée, la migration sort 0
   assert.deepEqual(rienTouche(d.racine, d.avant), [], 'le rejeu a écrit');
 });
 
-test('(c) BORNE HAUTE CLOSE : un `schema` FUTUR est refusé et NOMMÉ, rien d’écrit', () => {
-  const futur = SCHEMA_APRES + 1;
-  refuse(MIGRATION, poses(alphaApres(futur)), `${ALPHA} : \`schema\` inattendu ${futur} (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`, COPIES);
+test('(c) BORNE HAUTE OUVERTE : un `schema` plus récent sort 0, NON rabaissé, rien d’écrit', (t) => {
+  const recent = SCHEMA_APRES + 1;
+  const d = depot(poses(alphaApres(recent), beta(recent)), COPIES);
+  t.after(() => efface(d.racine));
+  const { code, sortie } = joue(d.racine, MIGRATION);
+  assert.equal(code, 0, `sortie ${code} : ${sortie.slice(0, 1200)}`);
+  assert.deepEqual(rienTouche(d.racine, d.avant), [], 'un `schema` plus récent a été réécrit');
 });
 
 test('(d) BORNE BASSE : un `schema` antérieur est refusé et NOMMÉ, rien d’écrit', () => {
-  refuse(MIGRATION, poses(alpha(SCHEMA_AVANT - 1)), `${ALPHA} : \`schema\` inattendu ${SCHEMA_AVANT - 1} (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`, COPIES);
+  refuse(MIGRATION, poses(alpha(SCHEMA_AVANT - 1)), `${ALPHA} : \`schema\` inattendu ${SCHEMA_AVANT - 1} (${SCHEMA_AVANT} ou plus récent attendu)`, COPIES);
 });
 
 test('(e) FAIL-FAST `schema` ABSENT → sortie 1 NOMINATIVE, rien d’écrit', () => {
   const { schema: _retire, ...sansSchema } = alpha();
-  refuse(MIGRATION, poses(sansSchema), `${ALPHA} : \`schema\` inattendu undefined (${SCHEMA_AVANT} ou ${SCHEMA_APRES} attendus)`, COPIES);
+  refuse(MIGRATION, poses(sansSchema), `${ALPHA} : \`schema\` inattendu undefined (${SCHEMA_AVANT} ou plus récent attendu)`, COPIES);
 });
 
 test('(f) FAIL-FAST `scenes` NON-TABLEAU → sortie 1 NOMINATIVE, rien d’écrit', () => {

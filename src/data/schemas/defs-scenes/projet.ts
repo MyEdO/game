@@ -28,7 +28,7 @@ import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 17;
+export const SCHEMA_PROJET = 18;
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(
