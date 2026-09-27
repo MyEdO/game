@@ -4,7 +4,7 @@
 > exit 1 sur dérive non appliquée, ambiguïté, ou hausse de réf FAUSSE (❌) — voir en-tête du script.
 > Pour chaque citation verbatim « … » d'une fiche, on relocalise le texte dans le `.md` source
 > courant et on vérifie le n° de ligne cité. ✅ juste · 🔧 dérive corrigée (HIGH, unique) · 🟡 ambigu
-**Bilan : ✅ 660 · 🔧 0 dérives (relancer --apply) · 🟡 0 ambigus · ❌ 0 introuvables · ➖ 3594 synthèses** (⛔ 0 hors-fichier · ⚠️ 0 sans source) sur 4254 réfs · 660 citations · 29 fiches.
+**Bilan : ✅ 662 · 🔧 0 dérives (relancer --apply) · 🟡 0 ambigus · ❌ 0 introuvables · ➖ 3593 synthèses** (⛔ 0 hors-fichier · ⚠️ 0 sans source) sur 4255 réfs · 662 citations · 29 fiches.
 
 > (MEDIUM, manuel) · ❌ introuvable (LOW, paraphrase/mauvais chapitre) · ➖ synthèse (réf sans citation).
-<!-- sources-empreinte: ee404458ecd753aa5e0226299efcbaabe3ca43a7 (205 fichiers, 18 dossiers) corps: bc4c60bfb8a16ad91c482a33c5c0a41257a1dde5 -->
+<!-- sources-empreinte: 45ddf2dc5f93e6023d474853c1ec344d5c436945 (205 fichiers, 18 dossiers) corps: 2f9b80455f5d340fafb9c9a67cc261cce737d9b6 -->

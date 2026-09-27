@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed } from './items';
+import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandName } from './combat';
 import { trappings, type TrappingRef } from '../data';
@@ -874,5 +874,55 @@ describe('isUnarmed — la marque du catalogue est lue par les DEUX porteurs d�
   it('une arme réelle du catalogue n’est jamais « mains nues », ni une arme sans identité', () => {
     expect(isUnarmed(w({ trappingId: 'epee', label: 'Épée' }))).toBe(false);
     expect(isUnarmed(w({ label: 'Arme de créature' }))).toBe(false);
+  });
+});
+
+// `LDB 62 l.28` : les Mains nues ne sont pas une VRAIE arme tenue (`tientUneArme`), et le repli ne les double jamais.
+describe('lacherLArme — idempotent sur les Mains nues', () => {
+  it('tientUneArme([Mains nues]) est faux, et deux lâchers rendent [Mains nues]', () => {
+    expect(tientUneArme([unarmedWeapon()])).toBe(false);
+    const epee = { uid: 'sb-1', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
+    const c = { id: 'e', kind: 'enemy', items: [], weapons: [epee] } as unknown as Combatant;
+    lacherLArme(c, epee);
+    lacherLArme(c, epee);
+    expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']);
+  });
+});
+
+// Arme DÉRIVÉE d'un objet porté (`derivedWeapon`) : son objet source est l'objet porté ; détruit, il ne dérive plus rien.
+describe('arme dérivée (Crochet) — objet source et destruction', () => {
+  it('l’arme porte `derivedFromItem`, et un Crochet détruit n’est plus dérivé', () => {
+    const crochet = { ...itemFromTrappingById('crochet')!, uid: 'crochet-1', equipped: true };
+    const c = { id: 'h', kind: 'hero', items: [crochet], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
+    recomputeLoadout(c);
+    expect(c.weapons.find((w) => w.label === 'Crochet')?.derivedFromItem).toBe('crochet-1');
+    crochet.destroyed = true;
+    recomputeLoadout(c);
+    expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(false);
+  });
+});
+
+// LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains ».
+describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
+  const cavalier = (monte: boolean): Combatant => {
+    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin')!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier')!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', off: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
+    if (monte) c.mountId = 'cheval';
+    return c;
+  };
+
+  it('monté : le Marteau à bec-de-corbin choisi en main principale laisse le Bouclier en secondaire', () => {
+    const c = cavalier(true);
+    loadoutSetSlot(c, 'lo', 'main', 'm1');
+    recomputeLoadout(c);
+    expect(c.loadouts![0]).toMatchObject({ main: 'm1', off: 'b1' });
+    expect(c.weapons.map((x) => x.uid).sort()).toEqual(['b1', 'm1']);
+    expect(setADeuxMains(c, c.loadouts![0])).toBe(false);
+  });
+
+  it('à pied : la même arme est à deux mains, la main secondaire se vide', () => {
+    const c = cavalier(false);
+    loadoutSetSlot(c, 'lo', 'main', 'm1');
+    expect(c.loadouts![0].off).toBeUndefined();
+    expect(setADeuxMains(c, c.loadouts![0])).toBe(true);
   });
 });

@@ -11,6 +11,7 @@ import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { t } from '../i18n';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
  *  Snapshot À LA CRÉATION : le héros tel que sorti de `buildHero`, plus sa
@@ -21,7 +22,8 @@ import { t } from '../i18n';
  *  (un Combatant seul ne retient pas ces choix). Absent → édition reconstruite.
  *
  *  NON VERSIONNÉ (cf. `rosterLoad` ci-dessous : liste nue, sans `version`, là où une partie porte
- *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`, `brouillonRelu`). */
+ *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`), `brouillonRelu` écarte tout
+ *  format autre que `FORMAT_DES_CHOIX`. */
 export interface RosterEntry {
   hero: Combatant;
   wealth: Money;
@@ -30,16 +32,8 @@ export interface RosterEntry {
 
 const KEY = 'wfrp4.roster.v1';
 
-function storage(): Storage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null; // accès refusé (mode privé strict, iframe sandbox…)
-  }
-}
-
 export function rosterLoad(): RosterEntry[] {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) return [];
   try {
     const raw = s.getItem(KEY);
@@ -61,9 +55,8 @@ export function rosterLoad(): RosterEntry[] {
   }
 }
 
-/** Le brouillon persisté, s'il est au format des choix en ids (`FORMAT_DES_CHOIX`) ; sinon aucun : un
- *  brouillon antérieur porte des libellés qu'aucune lecture ne résout, le créateur rouvre le héros par
- *  `draftFromHero`. */
+/** Le brouillon persisté s'il est au format `FORMAT_DES_CHOIX` ; tout autre format (`v` absent, antérieur
+ *  ou autre) est écarté, le créateur rouvre alors le héros par `draftFromHero`. */
 function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
   return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
 }
@@ -214,7 +207,7 @@ export function rosterImport(str: string): RosterImportResult {
 
 function save(list: RosterEntry[]): void {
   try {
-    storage()?.setItem(KEY, JSON.stringify(list));
+    stockageWeb('localStorage')?.setItem(KEY, JSON.stringify(list));
   } catch {
     // quota plein / stockage indisponible : on ne casse pas la création pour ça
   }

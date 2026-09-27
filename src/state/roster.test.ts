@@ -101,17 +101,21 @@ describe('roster — persistance des personnages créés', () => {
   it('rosterLoad ÉCARTE un `draft` sans format (choix en libellés, #1923) : le héros reste, le brouillon ne se relit pas', () => {
     const ancien = { speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Ancien', careerTalent: 'Magie mineure', pettySpells: ['Putréfaction'] };
     const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'] };
+    const v2 = { ...actuel, v: 2, label: 'Tirages de Talents par id (#1897)' };
     localStorage.setItem(
       'wfrp4.roster.v1',
       JSON.stringify([
         { hero: { id: 'avant', label: 'Héros intact', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: ancien },
         { hero: { id: 'apres', label: 'Héros', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: actuel },
+        { hero: { id: 'format-2', label: 'Héros v2', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: v2 },
       ]),
     );
-    const [avant, apres] = rosterLoad();
+    const [avant, apres, format2] = rosterLoad();
     expect(avant.hero.label).toBe('Héros intact');
     expect(avant.draft).toBeUndefined();
     expect(apres.draft).toEqual(actuel);
+    expect(format2.hero.label).toBe('Héros v2');
+    expect(format2.draft).toBeUndefined();
   });
 
   it('sans localStorage (environnement sans stockage) : load → [], add/remove ne jettent pas', () => {

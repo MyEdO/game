@@ -60,7 +60,46 @@ import { hoverClickCommits } from './pointerCaps';
 import { controlsActive, controlsCombatant } from '../state/netOwnership';
 import { combatantClickActs } from '../state/combatOrParty';
 import { useGamepad } from './useGamepad';
-import { campaign } from '../scenes/campaign';
+import { lancerCampagne } from '../scenes/campaign';
+
+/** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
+ *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
+ *  de la modale, et chaque nouvel essai le remplace. */
+function ModaleDeDefaite() {
+  const [refus, setRefus] = useState<string | null>(null);
+  const repli = useGame((s) => s.massBattle?.combatScene != null);
+  const setScreen = useGame((s) => s.setScreen);
+  const reprendre = () => {
+    const g = useGame.getState();
+    if (g.massBattle?.combatScene || g.scene) {
+      setRefus(null);
+      g.dismissDefeat();
+      return;
+    }
+    setRefus(lancerCampagne(useGame.getState, null));
+  };
+  return (
+    <Modal
+      title={repli ? 'Repoussés…' : 'Défaite…'}
+      className="defeat-modal"
+      onClose={reprendre}
+      footer={
+        <>
+          <button className="btn btn-primary" onClick={reprendre}>
+            {repli ? 'Poursuivre la bataille' : 'Reprendre'}
+          </button>
+          {refus && (
+            <button className="btn" onClick={() => setScreen('menu')}>
+              Menu principal
+            </button>
+          )}
+        </>
+      }
+    >
+      {refus && <p className="chip tone-danger" role="alert">{refus}</p>}
+    </Modal>
+  );
+}
 
 export function CampaignView() {
   useGamepad(); // couche manette : dispatche les MÊMES intentions que le clavier (registre partagé)
@@ -88,13 +127,6 @@ export function CampaignView() {
   const travelPlan = useGame((s) => s.travelPlan);
   const travelRecap = useGame((s) => s.travelRecap);
   const setScreen = useGame((s) => s.setScreen);
-  const startScene = useGame((s) => s.startScene);
-  /** Sortie de la défaite (ADE II 08 : la bataille de masse continue ; sinon la scène reprend). */
-  const sortirDeLaDefaite = () => {
-    const g = useGame.getState();
-    if (g.massBattle?.combatScene || g.scene) g.dismissDefeat();
-    else startScene(campaign[0].scene);
-  };
   const partyWiped = useGame((s) => s.partyWiped);
   const party = useGame((s) => s.party);
   const povActive = useGame((s) => s.povActive);
@@ -387,17 +419,7 @@ export function CampaignView() {
         {/* Défaite : overlay centré (la victoire a son écran plein, VictoryScreen). Dans une Scène de
             combat de bataille de masse (ADE II 08), `dismissDefeat` fait CONTINUER la bataille (repli
             tactique, pas game-over) ; hors bataille de masse, il rend la main à la scène. */}
-        {mode === 'battle' && battle?.over === 'defeat' && (
-          <Modal
-            title={useGame.getState().massBattle?.combatScene ? 'Repoussés…' : 'Défaite…'}
-            onClose={sortirDeLaDefaite}
-            footer={
-              <button className="btn btn-primary" onClick={sortirDeLaDefaite}>
-                {useGame.getState().massBattle?.combatScene ? 'Poursuivre la bataille' : 'Reprendre'}
-              </button>
-            }
-          />
-        )}
+        {mode === 'battle' && battle?.over === 'defeat' && <ModaleDeDefaite />}
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
             bataille (aucun `battle`) — le groupe entier est tombé (faim, exposition, damnation…). */}
         {partyWiped && (

@@ -23,7 +23,6 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { landSellCargo, openLandMarket } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from './worldMap';
@@ -233,7 +232,7 @@ function carte(): WorldMap {
 /** Marché ouvert à Altdorf, un lot de 40 Enc sur le convoi, option « Dés fixés » ACTIVE (le dé se pose). */
 function marcheAvecLot(): void {
   seedBattleRng(7);
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', rng: makeRNG(11), id: 't-artur' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   skill(h, 'marchandage', 60);
   get().setParty([h]);
   get().loadProject([marche('marche-b', 'Altdorf')], 'marche-b', carte());

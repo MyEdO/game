@@ -18,7 +18,6 @@ import { emptyScene, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { capDuGroupe, meneurDuMonde } from '../../state/combatants';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Combatant } from '../../engine/types';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { actorPoseKey, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
@@ -51,7 +50,7 @@ afterEach(() => {
 });
 
 const héros = (label: string, graine: number): Combatant =>
-  ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(graine) }), id: label }) as Combatant;
+  ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
 
 function scène(): Scene {
   return emptyScene(12, 12);

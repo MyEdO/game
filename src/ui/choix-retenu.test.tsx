@@ -10,7 +10,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { PendingSeaActivities, SeaActivityPick } from '../state/seaActivities';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
@@ -44,7 +43,7 @@ const actif = () => (document.activeElement?.textContent ?? '').trim();
 
 describe('Activités en mer — le choix posé est RETENU, le focus va au geste qui valide', () => {
   it('à l’ouverture : « Repos » est retenue (`aria-pressed`), le focus est sur « Valider la semaine », Entrée valide', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', rng: makeRNG(42) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
     const valides: Record<string, SeaActivityPick | null>[] = [];
     useGame.setState({
       party: [hero],

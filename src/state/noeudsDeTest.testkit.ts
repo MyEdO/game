@@ -21,7 +21,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types';
 import { contractDisease, tickDisease } from '../engine/disease';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
@@ -100,7 +99,7 @@ export function noeudsDeTest(): Noeud[] {
  *  (défaut de `partyBest`) : une conséquence qui tombe sur h3 y est tombée par ROUTAGE. */
 export function groupeDeQuatre(): Combatant[] {
   return [1, 2, 3, 4].map((i) => createHero({
-    speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, motivation: 'Sonde', rng: makeRNG(i), id: `h${i}`,
+    speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, motivation: 'Sonde', seed: i, id: `h${i}`,
   }));
 }
 

@@ -224,13 +224,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/state/store.ts",
-    motif: "legacy",
-    ancre: "les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = chemin Arène / save legacy. */",
-    lot: "L1b #1467 / L5",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/ui/editor/Editor.tsx",
     motif: "legacy",
     ancre: "/** Identité de campagne (#765/#766) — préservée au round-trip, absente d'un projet legacy sans identité. */",

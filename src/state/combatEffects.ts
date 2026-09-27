@@ -461,12 +461,12 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, e: EffectOp, ba
 
 /**
  * REFUS NOMMÉ d'un contexte que la reprise ne saurait pas rebâtir (#1508) — les hooks classés
- * `OPS_CTX_HORS_CANAL` (`onCondition`, `onCorruptionExposure`, `onOpposingAdvantage`) ne survivent ni à
+ * `OPS_CTX_HORS_CANAL` (`onCondition`, `onCorruptionExposure`, `onOpposingAdvantage`, `surLigne`) ne survivent ni à
  * une sauvegarde ni au réseau, et aucun chemin nommé ne les redonne. Une feuille qui en porte un ne se
  * DIFFÈRE donc pas : elle lève ICI plutôt que de s'appliquer plus tard AMPUTÉE.
  *
  * Mesuré : aucune donnée du dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de
- * l'interlude et du bus de triggers, qui n'appellent pas `applyLeafOps`). Le jour où l'un y arrive,
+ * l'interlude, du bus de triggers et du site du Critique, qui n'appellent pas `applyLeafOps`). Le jour où l'un y arrive,
  * c'est un fait à instruire, pas une perte à découvrir au journal.
  */
 function refuserSiHorsCanal(ctx: OpsCtx): void {

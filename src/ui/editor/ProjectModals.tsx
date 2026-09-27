@@ -155,7 +155,16 @@ export function OpenProjectModal({
   };
 
   return (
-    <Modal taille="large" title="Ouvrir" onClose={onClose}>
+    <Modal
+      taille="large"
+      title="Ouvrir"
+      onClose={onClose}
+      footer={
+        <button className="btn" onClick={onClose}>
+          Fermer
+        </button>
+      }
+    >
       {error && <ChipDeRefus refus={error} />}
       {delError && <p className="chip tone-danger" role="alert">{delError}</p>}
       {projects.length > 0 && (

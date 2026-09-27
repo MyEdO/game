@@ -26,7 +26,7 @@ function setup(heroWeapons: Weapon[], enemyPos: { x: number; y: number }) {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  useGame.setState({ battle, mode: 'battle', scene: testScene, pendingDefense: null });
+  useGame.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null });
   return { enemy, hero };
 }
 

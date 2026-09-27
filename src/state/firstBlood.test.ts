@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { applyAttackResult, checkBattleOver, firedAttackBlock, resolveAttack, doAttack } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 import type { Scene } from './scene';
@@ -30,8 +29,8 @@ function drainCombatEndCascade(): void {
   }
 }
 
-function setup(scene: Scene = testScene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+function setup(scene: Scene = testScene()) {
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');

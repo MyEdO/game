@@ -22,6 +22,7 @@ import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
+import speciesRaceJson from './speciesRace.json';
 import classesJson from './classes.json';
 import careersJson from './careers.json';
 import careerLevelsJson from './careerLevels.json';
@@ -37,6 +38,7 @@ import mutationTablesJson from './mutationTables.json';
 import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
 import structureCriticalsRawJson from './structure-criticals.json';
+import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
 import trappingsJson from './trappings.json';
 import vehiclesJson from './vehicles.json';
@@ -462,6 +464,8 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
+  // Incidents de Tir par Salve (AA 10 l.270-277) : la LIGNE tirée est l'entrée jouée, comme un Critique.
+  artilleryMisfire: (id) => artilleryMisfireRows.some((e) => e.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
@@ -484,6 +488,7 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
 /** Rangées BRUTES des tables tirées par une étape, réduites à leur id — le résolveur d'enjeu n'a
  *  besoin que du pool d'ids, et les lit sur le MÊME JSON que le Codex édite. */
 const structureCriticalRows = (structureCriticalsRawJson as { entries: { id: string }[] }).entries;
+const artilleryMisfireRows = (artilleryMisfireRawJson as { entries: { id: string }[] }).entries;
 
 /** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
  *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)
@@ -3045,14 +3050,13 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
 }
-/** id d'espèce RIG (slug, clé `appearance.species`) dérivé d'un id d'espèce RULES (ou chaîne libre) :
- *  slug du LIBELLÉ d'espèce. Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance).
- *  Sortie = l'id species.json de l'entrée trouvée (invariant `slugId(label) === id`, 27/27, gardé par
- *  `refs-migrated.test.ts`). DEUX branches sortent de ce vocabulaire : sans entrée, le `rulesId` est
- *  slugué tel quel (identité sur un id inconnu) ; sans argument, la sortie est `humain` — un id de
- *  `raceAppearance.json`, PAS de species.json. */
+/** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
+export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
+/** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
+ *  `species.json` est un id du domaine de saisie, `grammaire/art.ts`) ; sans argument, `DEFAULT_RACE_ID`.
+ *  Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance). */
 export function rigSpeciesId(rulesId: string | undefined): RigSpeciesId {
-  return slugId(findSpeciesById(rulesId)?.label ?? rulesId ?? 'Humain') as RigSpeciesId;
+  return (rulesId ?? DEFAULT_RACE_ID) as RigSpeciesId;
 }
 /** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
  *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
@@ -3270,6 +3274,12 @@ const possessionParId = indexParId('trappings', trappings);
 export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
 }
+/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+export const armesChoisissables = memoParVersion('trappings', () => trappings
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
+  .map((t) => ({ id: t.id, label: t.label }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'fr')));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
   return qualiteParId(id);

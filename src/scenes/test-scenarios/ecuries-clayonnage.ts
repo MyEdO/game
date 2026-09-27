@@ -1,7 +1,7 @@
 import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { pregen, PREGEN } from '../../data/pregens';
-import { diligenceCampaign } from '../campaign';
+import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Scene } from '../../state/scene';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -45,7 +45,7 @@ function chasseurArme(): Combatant {
 }
 
 function construireScene(): Scene {
-  const scene = poserDepart(structuredClone(diligenceCampaign.scenes[0]));
+  const scene = poserDepart(structuredClone(paquetDuJeu(diligenceCampaign).scenes[0]));
   setEncounters(scene, [
     {
       id: 'enc-clayonnage',

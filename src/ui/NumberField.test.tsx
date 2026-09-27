@@ -236,6 +236,20 @@ describe('NumberField — commit `geste` : refus honnête, jamais un clamp silen
     expect(onChange).toHaveBeenCalledWith(33);
   });
 
+  it('`commitRef` : la poignée SURVIT au double montage de StrictMode (le montage RÉEL de l’app)', () => {
+    const poignee: { current: null | (() => boolean) } = { current: null };
+    mount(
+      <StrictMode>
+        <NumberField variant="champ" label="Dé" min={1} max={100} commit="geste" commitOnBlur={false} commitRef={poignee} vide value={null} onChange={vi.fn()} />
+      </StrictMode>,
+    );
+    expect(poignee.current, 'le nettoyage JETÉ de StrictMode ne doit pas laisser l’hôte sans poignée').not.toBeNull();
+    saisir('44');
+    let pose = false;
+    act(() => { pose = poignee.current!(); });
+    expect(pose, 'et la poignée POSE encore').toBe(true);
+  });
+
   it('le MODÈLE reprend la main : un dé changé ailleurs (bouton « 01 ») se reflète dans le champ', () => {
     mount(<NumberField variant="champ" label="Dé" min={1} max={100} commit="geste" vide value={null} onChange={vi.fn()} />);
     saisir('88');

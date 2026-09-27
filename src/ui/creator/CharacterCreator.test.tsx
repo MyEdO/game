@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { act, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
 import { trappingRefLabel, type TrappingRef } from '../../data';
 import { CreatorSummary } from './CreatorSummary';
@@ -18,8 +22,12 @@ import {
   rollDraftWealth,
   rollDraftChars,
   rollDraftTalents,
+  speciesTalentRandomDrawn,
+  withRandomTalentSpec,
   stepIds,
   draftLevel,
+  buildHero,
+  type CreatorDraft,
 } from './draft';
 import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
 import { CHAR_LABELS } from '../../engine/types';
@@ -264,6 +272,23 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(after).toContain('— d100 — 3 Talents rendus');
   });
 
+  it('étape 5c — LDB 05 l.484 « vous pouvez relancer » : repère et « Relancer » sur le SEUL tirage doublon', () => {
+    const talents = (seed: number, speciesTalentChoices: CreatorDraft['speciesTalentChoices'] = {}) =>
+      renderToStaticMarkup(<SkillsScreen d={{ ...rollDraftTalents(withCareer(withSpecies(newDraft(seed), SP.id), 'soldat')), speciesTalentChoices }} setD={() => {}} skillsSub="talents" setSkillsSub={() => {}} />);
+    const compte = (html: string, motif: string) => html.split(motif).length - 1;
+    const sansDoublon = talents(7);
+    expect(compte(sansDoublon, ' Relancer</button>')).toBe(0);
+    expect(sansDoublon).not.toContain('Déjà possédé');
+    // Graine 169 : Doué en calcul aux tirages 0 et 1, le second est le doublon.
+    const doublon = talents(169);
+    expect(compte(doublon, 'Déjà possédé')).toBe(1);
+    expect(compte(doublon, ' Relancer</button>')).toBe(1);
+    // Graine 5 : Perspicace (choix « A ou B », Maxi 1) retiré au tirage 1.
+    const auMaxi = talents(5, { 'espece:talents:0': { id: 'perspicace' } });
+    expect(auMaxi).toContain('Maxi atteint : sans effet si gardé');
+    expect(compte(auMaxi, ' Relancer</button>')).toBe(1);
+  });
+
   it('fiche vivante — l\'emplacement des talents aléatoires reste « à tirer » (compte dérivé de la donnée) tant que le geste 5c n\'est pas fait', () => {
     const d = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
     const atSkills = stepIds().indexOf('skills');
@@ -271,6 +296,15 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(before).toContain('3 à tirer au d100 — 5c');
     const after = renderToStaticMarkup(<CreatorSummary d={rollDraftTalents(d)} step={atSkills} />);
     expect(after).not.toContain('à tirer au d100');
+  });
+
+  it('fiche vivante — un Talent tiré « (un au choix) » sans utilisation porte « utilisation à choisir — 5c » ; choisie, la puce tombe (LDB 10 l.17)', () => {
+    // Graine 21, halflings : Sens aiguisé au tirage 0.
+    const d = rollDraftTalents(withCareer(withSpecies(newDraft(21), 'halflings'), 'agitateur'));
+    const atSkills = stepIds().indexOf('skills');
+    expect(renderToStaticMarkup(<CreatorSummary d={d} step={atSkills} />)).toContain('utilisation à choisir — 5c');
+    const choisi = withRandomTalentSpec(d, speciesTalentRandomDrawn(d)[0].adresse, 'odorat');
+    expect(renderToStaticMarkup(<CreatorSummary d={choisi} step={atSkills} />)).not.toContain('utilisation à choisir');
   });
 
   // Le sceau de cire marque LE CHOIX, au moment où il se fait (demande user 2026-07-15, verbatim :
@@ -422,7 +456,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(withoutChoice).toContain('signe de statut social');
     expect(withoutChoice).toContain('Point d&#x27;Encombrement');
     expect(withoutChoice).toContain('DR à un Test raté');
-    expect(withoutChoice).toContain('Robuste');
+    expect(withoutChoice).toContain('matériaux robustes');
     // Raffiné (défaut du résolveur) pré-sélectionné sans que rien ne soit stocké.
     expect(estRetenue(withoutChoice, 'Raffiné')).toBe(true);
     expect(estRetenue(withoutChoice, 'Solide')).toBe(false);
@@ -440,12 +474,12 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     const branchKey = trappingRefLabel(qualityBranch);
     // Défaut (aucun choix) : la 1re branche (Miroir) est effective, aucun picker d'Atout imbriqué.
     const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot slot={slot} choices={{}} onChoicesChange={() => {}} />);
-    expect(beforeBranch).not.toContain('Robuste'); // desc de Solide, absent : picker imbriqué non déroulé
+    expect(beforeBranch).not.toContain('matériaux robustes'); // desc de Solide, absent : picker imbriqué non déroulé
     // Branche « Fleuret de qualité » choisie + Atout Solide choisi dans le picker imbriqué.
     const afterBranch = renderToStaticMarkup(
       <TrappingChoiceSlot slot={slot} choices={{ [outerKey]: branchKey, [branchKey]: 'solide' }} onChoicesChange={() => {}} />,
     );
-    expect(afterBranch).toContain('Robuste'); // picker imbriqué déroulé
+    expect(afterBranch).toContain('matériaux robustes'); // picker imbriqué déroulé
     expect(estRetenue(afterBranch, 'Solide')).toBe(true);
     // La branche EFFECTIVE est retenue, choisie ou par défaut (la 1re).
     expect(estRetenue(afterBranch, branchKey)).toBe(true);
@@ -481,10 +515,10 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     }
   });
 
-  it('étape Détails — bouton « Visage → Variante » (appSeed) change réellement le rig rendu (#bug visage figé)', () => {
+  it('étape Détails — bouton « Visage → Variante » (apparence.seed) change réellement le rig rendu (#bug visage figé)', () => {
     const d1 = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
     const html1 = renderToStaticMarkup(<DetailsScreen d={d1} setD={() => {}} />);
-    const d2 = { ...d1, appSeed: (d1.appSeed ?? 0) + 1 };
+    const d2 = { ...d1, apparence: { ...d1.apparence, seed: (d1.apparence.seed ?? 0) + 1 } };
     const html2 = renderToStaticMarkup(<DetailsScreen d={d2} setD={() => {}} />);
     expect(html1).not.toBe(html2);
   });
@@ -516,5 +550,57 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(html).toContain('Bourse');
     // Les 10 caractéristiques sont rendues
     for (const k of ['CC', 'CT', 'FM', 'Soc']) expect(html).toContain(`>${k}<`);
+  });
+});
+
+beforeAll(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+});
+afterEach(demonterRacines);
+
+/** Écran Détails monté sur un brouillon d'état ; `dernier()` rend le brouillon courant. */
+function monterDetails(depart: CreatorDraft): { container: HTMLElement; dernier: () => CreatorDraft } {
+  let courant = depart;
+  function Harnais() {
+    const [d, setD] = useState(depart);
+    courant = d;
+    return <DetailsScreen d={d} setD={setD} />;
+  }
+  const { container } = monterRacine(<Harnais />);
+  return { container, dernier: () => courant };
+}
+
+function choisirCoiffure(container: HTMLElement, id: string): void {
+  const select = [...container.querySelectorAll<HTMLLabelElement>('.appear-panel label')].find((l) => l.textContent?.trim().startsWith('Coiffure'))!.querySelector('select')!;
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, id);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
+/** La bascule de Sexe de l'état civil (`PlaqueRow` « Sexe »). */
+function basculerSexe(container: HTMLElement): void {
+  const bouton = [...container.querySelectorAll<HTMLElement>('.plaque-row')]
+    .find((r) => r.querySelector('.plaque-label')?.textContent === 'Sexe')!.querySelector('button')!;
+  act(() => { bouton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+}
+
+describe('créateur — la coiffure choisie à l’écran Détails survit (#1897)', () => {
+  it('(a) une coiffure choisie à l’écran Détails se retrouve sur le héros créé', () => {
+    const coiffureM = hairstylesForSex('M')[0].id;
+    const { container, dernier } = monterDetails(ready());
+    choisirCoiffure(container, coiffureM);
+    expect(buildHero(dernier()).appearance?.hairstyle).toBe(coiffureM);
+  });
+
+  it('(b) coiffure F choisie, puis bascule du sexe à la bande Identité : la coiffure tombe', () => {
+    const coiffureF = hairstylesForSex('F')[0].id;
+    const depart = ready();
+    const { container, dernier } = monterDetails({ ...depart, apparence: { ...depart.apparence, sex: 'F' } });
+    choisirCoiffure(container, coiffureF);
+    expect(dernier().apparence.hairstyle).toBe(coiffureF);
+    basculerSexe(container);
+    expect(dernier().apparence.sex).toBe('M');
+    expect(buildHero(dernier()).appearance?.hairstyle).toBeUndefined();
   });
 });

@@ -58,7 +58,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
     movementUsed: 0, movedPreAction: false, acted: false, loadoutSwapped: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    ...initialFields(), battle, mode: 'battle', scene: testScene, party: [h2, h3],
+    ...initialFields(), battle, mode: 'battle', scene: testScene(), party: [h2, h3],
     net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
            slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' }, ...net },
   });

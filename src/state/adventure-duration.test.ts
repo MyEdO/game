@@ -10,7 +10,6 @@ import { draineCascade } from './cascadeTestKit';
 import { heroStatus } from './interludeFlow';
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { fromBrass } from '../engine/money';
 import { creditBourse } from './bourseFlow';
@@ -19,9 +18,9 @@ describe('statusMod (LDB 23 l.228-234) — Standing temporaire « pour la procha
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, fromBrass(1000));
   });

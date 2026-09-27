@@ -287,7 +287,8 @@ const doc = document(
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  { exiges: ['source'], espace: { discriminant: 'categorie' } },
+  // `service` : exclu de `merchants.json › curated` (`defs/merchants.ts`, `idDe` `horsMarqueur`).
+  { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
 );
 
 export const schema = doc.schema;

@@ -444,8 +444,6 @@ export interface Weapon {
   bypass?: ArmourBypass;
   /** Dégâts subis par l'arme (LDB 62 l.135) : réduit les Dégâts de 1/point ; à +0 → improvisée. */
   damageTaken?: number;
-  /** Arme détruite (Incident de Tir, LDB 14) : inutilisable. */
-  destroyed?: boolean;
   /** SKIN cosmétique (objets uniques/légendaires) : override de palette token→hex appliqué au
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
@@ -467,6 +465,9 @@ export interface Weapon {
    *  ≠ `natural` (le rendu garde sa silhouette générique, `weaponFamily`) — exempte SEULEMENT du
    *  mismatch de Taille (`attackModifiers`), n'étant pas une POSSESSION manufacturée réelle. */
   sizeless?: boolean;
+  /** Uid de l'objet PORTÉ dont l'arme est DÉRIVÉE (`TrappingData.derivedWeapon`, prothèse-arme : Crochet),
+   *  posé par `recomputeLoadout` : une arme dérivée n'est pas une arme tenue que l'on lâche. */
+  derivedFromItem?: string;
   /** Effets « à la touche » : repliés depuis l'enchantement de l'arme (op `augmentWeapon` / arme
    *  invoquée) par `recomputeLoadout`, OU portés en DONNÉE par le catalogue (`TrappingData.onHitEffects` —
    *  Canon à flammes nain « 2 + DR En flammes à chaque cible affectée », ADE II 8 l.243) → lus par

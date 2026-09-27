@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
-import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isOffHandEligible, isUnarmed, type ArmourLayer } from '../engine/items';
+import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isOffHandEligible, isUnarmed, setADeuxMains, type ArmourLayer } from '../engine/items';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
@@ -13,6 +13,7 @@ import { Band } from './Band';
 import { Grid } from './Layout';
 import { GatedAction } from './GatedAction';
 import { resolveQualities } from '../engine/qualities/dispatch';
+import { objetSourceDeLArme } from '../engine/weaponLoad';
 
 /** Raison UNIQUE du verrou des SETS d'armes pendant un combat. */
 const VERROU_SETS = 'Équipement verrouillé en combat (changez de set depuis la barre d’action).';
@@ -259,7 +260,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           const setActive = hero.activeLoadoutId === lo.id;
           const mainItem = weapons.find((w) => w.uid === lo.main);
           const offItem = weapons.find((w) => w.uid === lo.off);
-          const mainTwoHanded = mainItem ? weaponHands(mainItem) === 2 : false;
+          const mainTwoHanded = setADeuxMains(hero, lo);
           const canDelete = !conjured && (hero.loadouts?.length ?? 0) > 1; // garder ≥1 set
           return (
             <div key={lo.id} className={`set-card ${setActive ? 'active' : ''} ${conjured ? 'conjured' : ''}`}>
@@ -357,7 +358,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                 <div className="weap" key={i}>
                   <ItemIcon item={w} size="sm" />
                   <span className="weap-text">
-                    <CodexRef category="trappings" id={items.find((it) => it.uid === w.uid)?.trappingId} label={w.label}>{w.label}</CodexRef>{' '}
+                    <CodexRef category="trappings" id={objetSourceDeLArme(hero, w)?.trappingId} label={w.label}>{w.label}</CodexRef>{' '}
                     <em>{weaponStatParts(w, strBonus).join(' · ')}</em>
                     {(() => {
                       const resolved = resolveQualities(w);

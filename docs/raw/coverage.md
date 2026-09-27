@@ -27,7 +27,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 02 | Introduction | ➖ hors-règle | |
 | 03 | *(artefact OCR)* | ➖ | |
 | 04 | Cités et villes | ✅ | 7 (4e/creation.md ×7) |
-| 05 | Points de vue | ✅ | 90 (4e/creation.md ×52) |
+| 05 | Points de vue | ✅ | 91 (4e/creation.md ×52) |
 | 06 | *(artefact OCR)* | ➖ | |
 | 07 | Carrieres | ✅ | 83 (4e/avancement.md ×61) |
 | 08 | Statut | ✅ | 26 (4e/carrieres.md ×22) |
@@ -2136,4 +2136,4 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.9-10 « La Compétence » — bruit de scénario, 0 réf
 - **PDT 13** (POINTS D'EXPERIENCE) :
   - ⬜ l.81-82 « ANNEXE V » — bruit de scénario, 0 réf
-<!-- sources-empreinte: 5752c92dec730c8a4ef8b4758542b7f40aa0c874 (468 fichiers, 20 dossiers) corps: 5d52872f3c9dc268a83664d57b805fc249ece000 -->
+<!-- sources-empreinte: 91477c20f60ce922f283fe71db3edf9ac3eadc67 (468 fichiers, 20 dossiers) corps: 21843b7a83d1443cafc7dc96cd7a9d1f0734942f -->

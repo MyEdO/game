@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyCast, applyAttackResult, attackWardGate, doAttack } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG, type RNG } from '../engine/dice';
+import { type RNG } from '../engine/dice';
 import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -28,10 +28,10 @@ describe('L13 — gates & redirections', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
-    const P = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', rng: makeRNG(2) });
+    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const P = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     useGame.setState({ party: [H, P] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

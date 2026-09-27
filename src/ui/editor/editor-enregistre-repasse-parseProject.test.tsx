@@ -9,32 +9,39 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { __setIdbBackendForTest, __resetLibraryForTest, initLibrary, type IdbBackend, type SavedProject } from '../../state/projectLibrary';
+import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
+import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { brancherBasesSimulees, type BaseSimulee } from '../../lib/indexedDb.testkit';
 import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
 import { Editor } from './Editor';
-import { allBuiltinCampaigns, type BuiltinCampaign } from '../../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 afterEach(async () => {
   demonterRacines();
   await __resetLibraryForTest();
-  __setIdbBackendForTest(null);
+  __setOuvertureIdbForTest(null);
   localStorage.clear();
 });
+
+const BIBLIOTHEQUE = 'wfrp4-library';
+
+/** Branche la bibliothèque IndexedDB sur une base simulée amorcée avec `entrees`. */
+function bibliotheque(entrees: SavedProject[] = []): BaseSimulee {
+  const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } });
+  for (const e of entrees) base.magasins.get('projects')!.contenu.set(e.id, e);
+  return base;
+}
+
+/** Les entrées réellement écrites dans la bibliothèque, dans l'ordre. */
+const ecritsDe = (base: BaseSimulee) => base.ecritures.filter((q) => q.geste === 'put').map((q) => q.valeur as SavedProject);
 
 /** Joue « Fichier → Enregistrer… → Enregistrer » sur un éditeur fraîchement monté et rend ce que le
  *  geste PRODUIT : les entrées réellement écrites, et le refus AFFICHÉ s'il y en a un. */
 async function enregistre(initialScene: Scene): Promise<{ ecrits: SavedProject[]; refus: string | null }> {
-  const ecrits: SavedProject[] = [];
-  const idb: IdbBackend = {
-    async getAll() { return [] as SavedProject[]; },
-    async put(entry) { ecrits.push(entry); },
-    async delete() { /* non exercé */ },
-    async clear() { /* non exercé */ },
-  };
-  __setIdbBackendForTest(idb);
+  const base = bibliotheque();
 
   const { container, rendre } = monterRacine(null);
   await act(async () => {
@@ -49,7 +56,7 @@ async function enregistre(initialScene: Scene): Promise<{ ecrits: SavedProject[]
   await act(async () => { saveBtn.click(); });
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
-  return { ecrits, refus: container.querySelector('[role="alert"]')?.textContent ?? null };
+  return { ecrits: ecritsDe(base), refus: container.querySelector('[role="alert"]')?.textContent ?? null };
 }
 
 /** Le document de projet TEL QU'ÉCRIT par l'application sur le chemin nominal. */
@@ -148,16 +155,10 @@ function entreeAncienne(over: Partial<SavedProject> = {}): SavedProject {
 /** Monte l'éditeur sur une bibliothèque donnée, joue « Fichier → Ouvrir… → Ouvrir » sur la 1ʳᵉ entrée,
  *  et rend ce que l'écran montre : le titre de scène chargé et le refus AFFICHÉ s'il y en a un. */
 async function ouvreLaPremiereEntree(entrees: SavedProject[]): Promise<{ refus: string | null; texte: string; ecrits: SavedProject[]; enregistre: () => Promise<string> }> {
-  const ecrits: SavedProject[] = [];
-  const idb: IdbBackend = {
-    async getAll() { return entrees; },
-    async put(entry) { ecrits.push(entry); },
-    async delete() { /* non exercé */ },
-    async clear() { /* non exercé */ },
-  };
   await __resetLibraryForTest();
-  __setIdbBackendForTest(idb);
+  const base = bibliotheque(entrees);
   await initLibrary();
+  const ecrits: SavedProject[] = [];
 
   const { container, rendre } = monterRacine(null);
   await act(async () => {
@@ -182,6 +183,7 @@ async function ouvreLaPremiereEntree(entrees: SavedProject[]): Promise<{ refus: 
     const saveBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Enregistrer')!;
     await act(async () => { saveBtn.click(); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    ecrits.splice(0, ecrits.length, ...ecritsDe(base));
     return nomPreRempli;
   };
   return { refus, texte, ecrits, enregistre };
@@ -216,8 +218,8 @@ describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', ()
   });
 
   it('copie d’une campagne du jeu d’AVANT E5 (document au nom du paquet, entrée au nom de l’auteur) : s’ouvre et se réenregistre sous le nom de l’ENTRÉE', async () => {
-    const paquet = allBuiltinCampaigns[0];
-    const { scenes: _sc, startSceneId: _st, worldMap: _wm, narratif: _na, label: _lb, ...identiteDuPaquet } = paquet;
+    const paquet = paquetDuJeu(allBuiltinCampaigns[0]);
+    const { scenes: _sc, worldMap: _wm, activeAxes: _aa, narratif: _na, label: _lb, ...identiteDuPaquet } = paquet;
     const projet = {
       ...identiteDuPaquet,
       type: 'projet',
@@ -287,15 +289,8 @@ describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', ()
  * le document garde le sien : entrée et document divergents, le nom du document masqué à l'écran.
  */
 async function importePuisEnregistre(docJson: string): Promise<SavedProject[]> {
-  const ecrits: SavedProject[] = [];
-  const idb: IdbBackend = {
-    async getAll() { return [] as SavedProject[]; },
-    async put(entry) { ecrits.push(entry); },
-    async delete() { /* non exercé */ },
-    async clear() { /* non exercé */ },
-  };
   await __resetLibraryForTest();
-  __setIdbBackendForTest(idb);
+  const base = bibliotheque();
   await initLibrary();
 
   const { container, rendre } = monterRacine(null);
@@ -320,7 +315,7 @@ async function importePuisEnregistre(docJson: string): Promise<SavedProject[]> {
   const saveBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Enregistrer')!;
   await act(async () => { saveBtn.click(); });
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-  return ecrits;
+  return ecritsDe(base);
 }
 
 describe('Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibliothèque', () => {
@@ -353,15 +348,8 @@ describe('Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibl
  * la modale.
  */
 async function ouvreEnCopiePuisEnregistre(paquet: BuiltinCampaign, nom: string): Promise<SavedProject[]> {
-  const ecrits: SavedProject[] = [];
-  const idb: IdbBackend = {
-    async getAll() { return [] as SavedProject[]; },
-    async put(entry) { ecrits.push(entry); },
-    async delete() { /* non exercé */ },
-    async clear() { /* non exercé */ },
-  };
   await __resetLibraryForTest();
-  __setIdbBackendForTest(idb);
+  const base = bibliotheque();
   await initLibrary();
 
   const { container, rendre } = monterRacine(null);
@@ -386,7 +374,7 @@ async function ouvreEnCopiePuisEnregistre(paquet: BuiltinCampaign, nom: string):
   const saveBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Enregistrer')!;
   await act(async () => { saveBtn.click(); });
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-  return ecrits;
+  return ecritsDe(base);
 }
 
 describe('Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI', () => {
@@ -400,10 +388,10 @@ describe('Éditeur — une campagne du jeu ouverte en copie s’enregistre sous 
   });
 
   it('la copie garde le BLOC NARRATIF de son paquet : le document écrit le porte', async () => {
-    const paquet = allBuiltinCampaigns.find((bc) => bc.narratif.ouverture !== undefined);
-    expect(paquet, 'une campagne du jeu porte un narratif non vide (sans quoi on ne mesurerait rien)').toBeDefined();
-    const ecrits = await ouvreEnCopiePuisEnregistre(paquet!, 'Copie narrative');
+    const campagne = allBuiltinCampaigns.find((bc) => paquetDuJeu(bc).narratif.ouverture !== undefined);
+    expect(campagne, 'une campagne du jeu porte un narratif non vide (sans quoi on ne mesurerait rien)').toBeDefined();
+    const ecrits = await ouvreEnCopiePuisEnregistre(campagne!, 'Copie narrative');
     expect(ecrits).toHaveLength(1);
-    expect((ecrits[0].project as Record<string, unknown>).narratif).toEqual(paquet!.narratif);
+    expect((ecrits[0].project as Record<string, unknown>).narratif).toEqual(paquetDuJeu(campagne!).narratif);
   });
 });

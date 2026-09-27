@@ -274,7 +274,7 @@ registerHitModifier({
     // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
     if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
     const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, sceneMetresPerTile(get().scene))
-      .map(({ thr, trait, dome }) => ({ indice: thr, traitId: trait.id, dome }));
+      .map(({ thr, trait, dome }) => ({ indice: thr, source: { kind: 'trait' as const, id: trait.id }, dome }));
     // GRAPPE DÉPENDANTE : les seuils partent ENSEMBLE à la porte, qui n'en ouvre qu'UN à la fois — le
     // suivant n'existe que si le précédent a raté, aucun dé n'est minté d'avance.
     if (seuils.length) ouvrirSauvegarde(seuils, res);

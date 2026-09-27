@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { applyEffects } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Effect } from './scene';
 
 /**
@@ -17,7 +16,7 @@ describe('Tranche verticale — la bombe compose en données (Lot 0 + Lot 3)', (
   beforeEach(() => useGame.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60 + 2 }));
 
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = { current: wounds, max: wounds };
     useGame.setState({ party: [h] });
     return h;

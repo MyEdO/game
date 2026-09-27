@@ -9,7 +9,6 @@ import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { readSlot, deleteSlot } from './saves';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
@@ -58,9 +57,9 @@ describe('#194 — persistance save/load de l\'historique de critiques', () => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
     vi.useFakeTimers();
     deleteSlot(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', rng: makeRNG(4) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });

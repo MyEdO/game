@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { setRule, resetRule } from '../engine/policy';
 
 /** Test Étendu SÉQUENTIEL (LDB 12 l.172-174 : « atteindre un certain DR … les DR obtenus à chaque
@@ -12,7 +11,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
   beforeEach(() => { useGame.setState({ battle: null, pendingExtendedTest: null }); });
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     h.fortune = 2; h.resilience = 1;
     useGame.setState({ party: [h] });
     return h;
@@ -87,7 +86,7 @@ describe('Test Étendu — règle « DR 0 = ±1 minimum » (LDB 12 l.185)', () =
   afterEach(() => resetRule('test-extended-min-sl'));
 
   function setRound(total: number, sl: number, success: boolean) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 1 });
     useGame.setState({ party: [h] });
     useGame.getState().startExtendedTest({ actorId: h.id, label: 'X', skillLabel: 'Force', target: 50, targetDR: 30 });
     const p = useGame.getState().pendingExtendedTest!;

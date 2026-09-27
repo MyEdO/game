@@ -4,7 +4,6 @@ import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { draineCascade } from '../cascadeTestKit';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { setRule, resetRule } from '../../engine/policy';
 import { hasTalent, talentTestSLBonus } from '../../engine/magic';
 import { effectiveTalents } from '../../engine/talentEffects';
@@ -40,9 +39,9 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
   });
 
   function setup(): Combatant {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyAttackResult, availableAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { areGrappling, setGrapple } from '../engine/grapple';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
@@ -33,9 +32,9 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -65,7 +64,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const h = live(H.id), e = live(E.id);
     const woundsBefore = e.wounds.current;
     // grapple=true (10ᵉ arg) : sur une touche, pose l'Empoignade au lieu de blesser.
-    applyAttackResult(useGame.getState, useGame.setState, h, e, unarmedWeapon(), { ...hitRes }, undefined, undefined, { grapple: true });
+    applyAttackResult(useGame.getState, useGame.setState, h, e, unarmedWeapon(), { ...hitRes }, { suite: { grapple: true } });
     expect(areGrappling(live(H.id), live(E.id))).toBe(true);
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
     expect(live(E.id).wounds.current).toBe(woundsBefore); // pas de Dégâts sur l'initiation
@@ -76,7 +75,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     activate(H, E);
-    applyAttackResult(useGame.getState, useGame.setState, live(H.id), live(E.id), unarmedWeapon(), { ...missRes }, undefined, undefined, { grapple: true });
+    applyAttackResult(useGame.getState, useGame.setState, live(H.id), live(E.id), unarmedWeapon(), { ...missRes }, { suite: { grapple: true } });
     expect(areGrappling(live(H.id), live(E.id))).toBe(false);
     expect(hasCondition(live(E.id), COND.empetre)).toBe(false);
   });

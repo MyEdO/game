@@ -17,14 +17,13 @@ import { pursuitOf, PURSUIT_POLICY_DEFAUT, type PursuitPayload } from './pursuit
 import type { PursuitFoe } from '../engine/pursuit';
 import { closeSequenceRound, type SequenceState } from './sequenceCore';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PendingCascade, CascadeStep } from './pendings';
 
 function heroes(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', rng: makeRNG(1) });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', rng: makeRNG(2) });
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', rng: makeRNG(3) });
+  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
+  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', seed: 3 });
   // Mouvements ÉGAUX : aucun DR de vitesse (l.105-108) ne vient troubler l'arithmétique mesurée ici ;
   // le plus lent se départage alors au DR de la manche (`pursuitLaggard`).
   for (const h of [a, b, c]) h.movement = 4;

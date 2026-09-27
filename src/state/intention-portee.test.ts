@@ -30,15 +30,14 @@ import { applyNetSnapshot, netSnapshot } from './netFlow';
 import { GUEST_INTENTS } from '../net/intents';
 import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   const b = useGame.getState().battle!;

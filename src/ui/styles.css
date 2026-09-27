@@ -68,6 +68,7 @@
 @import './styles/frames.css'; /* cadre-figurine UNIQUE (FigTile, #430/#431) : SEULE définition de .fig-tile* — le doublon de creator.css est purgé */
 @import './styles/plaque-row.css'; /* rangée-plaque à rivets d'or (PlaqueRow, #393) — matière .c-plate/.ck-cell de la planche FINALE */
 @import './styles/band.css'; /* bande titrée (Band, #492 Lot 1c) — extraite du créateur, partagée avec le registre État de la fiche */
+@import './styles/reglages-apparence.css'; /* réglages d'apparence (ReglagesApparence, MonsterPartsFields) : libellé + contrôle bridé à sa piste */
 @import './styles/celestial-wheel.css'; /* astrolabe de laiton (CelestialWheel, #393) — matières du cadran, valeurs du svg « 4 — Signe astral » de la planche FINALE */
 @import './styles/creator-presentation.css'; /* mise en scène finale du créateur (PresentationScreen, #393) : registre ⇄ scène ⇄ rubriques, valeurs .fin-col/.fin-stage de la planche */
 @import './styles/coop-lobby.css'; /* salon coop (CoopLobby) : étirement des actions de l'hôte */

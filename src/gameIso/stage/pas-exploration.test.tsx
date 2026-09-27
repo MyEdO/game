@@ -21,7 +21,6 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Combatant } from '../../engine/types';
 import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
@@ -62,7 +61,7 @@ afterEach(() => {
 // LE PAS, AU CHEMIN RÉEL — `MondeDeCampagne` monté sur le store, pas clavier compris
 // ————————————————————————————————————————————————————————————————
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(7) });
+const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe (assez de sujets pour qu'un rebuild se voie)
  *  et un MUR qui coupe la vue — sans lui, tout est vu dès le montage et un pas ne découvre RIEN : le

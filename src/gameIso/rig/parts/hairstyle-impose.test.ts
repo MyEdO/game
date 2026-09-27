@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resetDiagOnce } from '../devDiag';
-import { hairPool, hairIndexById, cosmeticPart, coiffureRetombee, coiffureChoisie, COIFFURE_HORS_POOL } from './cosmetic';
+import { hairPool, hairIndexById, cosmeticPart, coiffureRetombee, COIFFURE_HORS_POOL } from './cosmetic';
 import { hairstylesForSex } from './hairstyles';
 import { resolveRig } from '../composeRig';
 import { asRigSpeciesId, type Appearance } from '../appearance';
@@ -78,16 +78,5 @@ describe('coiffureRetombee — la coiffure sortie du pool retombe dans le même 
   it('coiffure inconnue : elle reste, le schéma la nomme', () => {
     const a = { sex: 'F' as const, hairstyle: 'zzz' };
     expect(coiffureRetombee(a)).toBe(a);
-  });
-});
-
-describe('coiffureChoisie — choisir une coiffure pose son sexe', () => {
-  it('coiffure F choisie : le patch porte la coiffure ET le sexe F', () => {
-    const coiffureF = hairstylesForSex('F')[0].id;
-    expect(coiffureChoisie(coiffureF)).toEqual({ hairstyle: coiffureF, sex: 'F' });
-  });
-
-  it('aucune coiffure : le patch retire la coiffure sans toucher au sexe', () => {
-    expect(coiffureChoisie(undefined)).toEqual({ hairstyle: undefined });
   });
 });

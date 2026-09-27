@@ -940,6 +940,12 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
     expect(exclusivite).toEqual([['d100', 1], ['d10', 0], ['rollDice', 0], ['rollExpr', 0], ['deMonde', 0]]);
   });
 
+  it('AMORCE COMPLÈTE : tout export de `src/engine/dice.ts` qui tire un dé est une primitive de `AMORCE_DES`', () => {
+    const dice = prodFiles('src/engine').filter((f) => f.rel === 'src/engine/dice.ts');
+    expect(dice).toHaveLength(1);
+    expect([...engineDiceRollers(dice)], 'primitive de dé absente de `AMORCE_DES` (scripts/guards/lib/rollSeamExclusivity.mjs)').toEqual([]);
+  });
+
   it('MORSURE : un `d10` NEUF dans un applier de `src/state` est vu (fail-closed)', () => {
     const regresse = "import { d10 } from '../engine/dice';\nexport function applyChute(c, rng) { c.wounds -= d10(rng); }\n";
     expect(scanDesHorsPorte('src/state/x.ts', regresse, desRollers()).map((s) => s.name)).toEqual(['d10']);
@@ -1042,8 +1048,10 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 // #1508 — LE SIGNAL « DIFFÉRÉ » NE TOMBE JAMAIS PAR TERRE
 // ---------------------------------------------------------------------------------------------
 
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects`). */
-const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow'];
+/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
+ *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
+ *  `applyOups`/`applyBladeTrap`, #1508 T3b-4). */
+const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap'];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
 const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
 

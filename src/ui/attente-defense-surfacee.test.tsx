@@ -58,7 +58,7 @@ function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atk
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCast: null,
     pendingCastOpposition: null, pendingCounterspell: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: opts?.gmSeat ?? 0, ownership: {} },

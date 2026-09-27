@@ -24,10 +24,10 @@ import {
   areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
-import { allBuiltinCampaigns, diligenceCampaign } from '../scenes/campaign';
+import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScenarios } from '../scenes/test-scenarios';
 
-const carte: Scene = diligenceCampaign.scenes[0];
+const carte: Scene = paquetDuJeu(diligenceCampaign).scenes[0];
 const murs = (): readonly WallSeg[] => carte.walls ?? [];
 
 /** Le balayage NAÏF que l'index remplace — l'étalon du contrat, écrit ici une fois. */
@@ -38,13 +38,13 @@ const naif = (scene: Scene, x: number, y: number, side: WallSide, z: number): Wa
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
   for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
-  for (const c of allBuiltinCampaigns) for (const sc of c.scenes ?? []) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
+  for (const c of allBuiltinCampaigns) for (const sc of paquetDuJeu(c).scenes) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };
 /** Plancher DÉRIVÉ du nombre de scènes attendues — un scan vide (registre non chargé, campagne sans
  *  scène) ne peut pas rester vert. */
 const plancherScenes = (): number =>
-  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + (c.scenes?.length ?? 0), 0);
+  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + c.paquet.scenes.length, 0);
 
 describe('wallIndex — contrat', () => {
   it('La Diligence porte bien des murs (sans quoi le banc ne mesure rien)', () => {

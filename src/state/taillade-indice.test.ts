@@ -14,7 +14,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { emitCombatEvent } from './combatEvents';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { battleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
@@ -60,9 +59,9 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -238,9 +237,9 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('une touche avec un fléau d’armes ouvre le choix « Renverser (2 Av) »', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

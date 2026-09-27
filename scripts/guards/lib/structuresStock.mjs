@@ -708,7 +708,6 @@ export const STRUCTURES_DEFAUT = [
   { dataset: "merchants.json", cle: "buyMarkup", date: "2026-08-26" },
   { dataset: "merchants.json", cle: "restockDays", date: "2026-08-26" },
   { dataset: "pregens.json", cle: "age", date: "2026-08-26" },
-  { dataset: "pregens.json", cle: "weaponChoice", date: "2026-08-26" },
   { dataset: "psychology.json", cle: "gating", date: "2026-08-26" },
   { dataset: "raceAppearance.json", cle: "armD", date: "2026-08-26" },
   { dataset: "raceAppearance.json", cle: "armG", date: "2026-08-26" },

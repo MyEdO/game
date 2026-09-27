@@ -60,6 +60,7 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
     expect(designes.length, 'aucune désignation construite : la preuve serait vacante').toBeGreaterThan(20);
     expect(designes).toContain('materials.json?domain=roof');
     expect(designes).toContain('props.json?volume');
+    expect(designes).toContain('trappings.json?service');
     expect(designes.filter((c) => !(c in IDS_PAR_ESPACE))).toEqual([]);
   });
 

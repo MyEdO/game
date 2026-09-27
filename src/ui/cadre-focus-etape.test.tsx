@@ -18,7 +18,6 @@ import { resetDismissLayers } from './useDismissLayer';
 import { useGame } from '../state/store';
 import { startCascade } from '../state/cascade';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {
@@ -37,8 +36,8 @@ beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  sigmund = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', rng: makeRNG(1) });
-  aelindra = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', rng: makeRNG(2) });
+  sigmund = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 1 });
+  aelindra = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', seed: 2 });
   useGame.setState({
     battle: null, party: [sigmund, aelindra], suspendedCascades: [], journal: [], pendingCascade: null,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} },

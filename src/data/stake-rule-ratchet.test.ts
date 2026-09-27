@@ -17,6 +17,7 @@ import {
 import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
+import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
 
 
@@ -195,6 +196,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       // Familles à TABLE (vague 4b) : la ligne tirée est l'entrée jouée — les pools sont lus sur les
       // MÊMES fichiers que le Codex édite, jamais sur une copie du résolveur.
       mutations, mutationTables, interludeEvents,
+      artilleryMisfire: ARTILLERY_MISFIRE,
       structureCriticals: STRUCTURE_CRITICALS,
       miscastWrath: (miscastRawJson as unknown as { id: string; entries: { id: string }[] }[]).find((d) => d.id === 'miscast-colere')!.entries,
     };

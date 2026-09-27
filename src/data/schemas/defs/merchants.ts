@@ -28,8 +28,10 @@ const doc = document(
     buyMarkup: z.number().optional(),
     bargainSkill: z.number(),
     restockDays: z.number().optional(),
-    /** Sélection d'objets proposés d'office — clés étrangères vers `trappings.json`. */
-    curated: refs('trapping').optional(),
+    /** Sélection d'objets proposés d'office — clés étrangères vers `trappings.json`, hors tarifs de
+     *  SERVICE (LDB 66 l.12-14) : `curated` ignore la Disponibilité et le filtre `!t.service` de
+     *  `computeFreshStockLines`. */
+    curated: refs('trapping', { sousListe: { horsMarqueur: 'service' } }).optional(),
     boniment: z.string().optional(),
     unitKinds: z.array(z.enum(['bete', 'vehicule-terrestre'])).optional(), // 'navire' non géré à l'achat (payCart) -> #748
   },

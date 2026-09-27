@@ -9,7 +9,7 @@ import type { MaterialEntry } from '../../../data/materials.types';
 import type { TerrainDef } from '../../../data/terrains.types';
 import { effectiveArchitecture } from '../../../state/sceneEdit';
 import { roofMaterial } from '../../catalog/roofs';
-import { allBuiltinCampaigns } from '../../../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
 import { testScenarios } from '../../../scenes/test-scenarios';
 
 /**
@@ -236,13 +236,13 @@ describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', 
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
   for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
-  for (const c of allBuiltinCampaigns) for (const sc of c.scenes ?? []) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
+  for (const c of allBuiltinCampaigns) for (const sc of paquetDuJeu(c).scenes) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };
 /** Plancher DÉRIVÉ du registre : un scan vide (registre non chargé, campagne sans scène) ne peut pas
  *  rester vert. */
 const plancherScenes = (): number =>
-  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + (c.scenes?.length ?? 0), 0);
+  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + c.paquet.scenes.length, 0);
 
 /**
  * SUR-ENSEMBLE DU READ-SET DES TOITURES (#1686 lot 3a-1) — `buildRoofs` résout la couverture de CHAQUE

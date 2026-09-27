@@ -13,13 +13,12 @@ import { GUEST_INTENTS } from '../net/intents';
 import { useGame, type BattleState } from './store';
 import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { findActionById } from '../data/index';
 import { serializeMessage, parseMessage } from '../net/protocol';
 import type { Combatant } from '../engine/types';
 
 function combat(mode: 'local' | 'host' | 'guest' = 'host') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(4) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   useGame.setState({

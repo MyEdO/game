@@ -246,11 +246,14 @@ export const OPERA_ZONE_SEEDS: Record<string, readonly ZoneSeed[]> = { z0: seeds
 
 /** CALQUE de zones DÉRIVÉ, par étage — la donnée que `buildScene` consomme ET celle que `map:check`
  *  interroge pour dire dans quelle pièce tombe un défaut : une seule dérivation, faite ici, où vivent la
- *  grille, la `base` et la `legend`. La redériver côté outil rouvrirait deux lectures à tenir d'accord. */
-export const OPERA_ZONE_LAYERS: Record<string, string> = {
-  z0: zonesFromSeeds(walledRowsOf(REZ_ASCII, W), OPERA_BASE, OPERA_LEGEND, OPERA_ZONE_SEEDS.z0, { wallLegend: OPERA_WALL_LEGEND }),
-  z1: zonesFromSeeds(walledRowsOf(ETAGE_ASCII, W), OPERA_BASE, OPERA_LEGEND, OPERA_ZONE_SEEDS.z1, { wallLegend: OPERA_WALL_LEGEND }),
-};
+ *  grille, la `base` et la `legend`. La redériver côté outil rouvrirait deux lectures à tenir d'accord.
+ *  Dérivé à l'appel : la dérivation lit `terrains` (#1692). */
+export function operaZoneLayers(): Record<string, string> {
+  return {
+    z0: zonesFromSeeds(walledRowsOf(REZ_ASCII, W), OPERA_BASE, OPERA_LEGEND, OPERA_ZONE_SEEDS.z0, { wallLegend: OPERA_WALL_LEGEND }),
+    z1: zonesFromSeeds(walledRowsOf(ETAGE_ASCII, W), OPERA_BASE, OPERA_LEGEND, OPERA_ZONE_SEEDS.z1, { wallLegend: OPERA_WALL_LEGEND }),
+  };
+}
 
 /** CORPS architectural du théâtre — la donnée SANS laquelle aucune masse n'est dérivée (`buildScene` §9
  *  n'itère que `scene.architecture`), donc sans laquelle la loi de dégagement (`clearedSpace`,
@@ -285,7 +288,7 @@ export function buildOperaFloorplan(): Scene {
     walled: { z0: REZ_ASCII, z1: ETAGE_ASCII },
     wallLegend: OPERA_WALL_LEGEND,
     architecture: [OPERA_BODY],
-    zoneMap: OPERA_ZONE_LAYERS,
+    zoneMap: operaZoneLayers(),
     zoneLegend: { ...ZONES_REZ, ...ZONES_ETAGE },
     relief: operaRelief(),
     entryPoints: { 'entree-principale': [Math.round(AX), FACY], 'entree-artistes': [BX1, 0] },

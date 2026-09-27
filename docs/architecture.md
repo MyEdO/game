@@ -136,10 +136,13 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
                             `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
-                            `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
-                            bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
-                            promesse, une connexion par opération) — bibliothèque de projets, calque
-                            de référence, sauvegarde automatique, dossier `src/data` du Codex (#1956).
+                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
+                            `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
+                            `accesBase` (magasins typés, `vider`) — bibliothèque de projets, calque de
+                            référence, sauvegarde automatique, dossier `src/data` du Codex (#1956) ;
+                            doublure `indexedDb.testkit.ts` (`brancherBasesSimulees`).
+                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
+                            (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
@@ -322,7 +325,7 @@ src/state/
                               `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
                               `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
-                              Backend IndexedDB (db `wfrp4-library`, store `projects`, une source de
+                              Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
                               localStorage, #766 lot B). `projectsLoad`/`publishedProjects` SYNC
                               (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance
@@ -417,7 +420,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             projet v2 {scenes, worldMap} — 20 scènes : Bourg+intérieurs, 13 zones, 3 expéditions,
                             embuscade ; AUTHORING par `scripts/arene/generate.mjs`, cartes ASCII → JSON canonique
                             qui RESTE la source éditable dans l'éditeur)
-                            + test-fixture.ts (scène neutre `testScene` + rencontre `enc-mutants` des tests de combat)
+                            + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/state/asciiMap.ts       AUTHORING de map en ASCII — la MÉTHODE À PRIVILÉGIER pour tout contenu de
                             map (scène/scénario) plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing

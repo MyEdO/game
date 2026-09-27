@@ -3,7 +3,6 @@ import { emptyScene, type Scene, type WallClimb } from './scene';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { placeCombatant } from './spawn';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascadeTestKit';
@@ -31,7 +30,7 @@ const top = { x: 2, y: 0 };
 
 describe('climbAcross — aucun grimpeur (#1906)', () => {
   it('seul héros à 0 PB, conscient : refus NOMMÉ au journal, le groupe ne bouge pas, rien ne lève', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.wounds.current = 0;
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
@@ -44,7 +43,7 @@ describe('climbAcross — aucun grimpeur (#1906)', () => {
 
 describe('climbAcross — exploration', () => {
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene({ kind: 'ladder' }) });
   });
 
@@ -80,9 +79,9 @@ describe('climbAcross — combat', () => {
   });
 
   function setup(climb: WallClimb, atPos = foot) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

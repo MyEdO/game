@@ -10,6 +10,7 @@ import { emptyScene } from '../scene';
 import { trappings, findTrappingById } from '../../data';
 import { itemFromTrappingById } from '../../engine/items';
 import { MERCHANT_ARCHETYPES, MERCHANTS } from './index';
+import { schema as merchantsSchema } from '../../data/schemas/defs/merchants';
 import type { Combatant } from '../../engine/types';
 
 const SERVICE_IDS = ['chambre-commune-nuit', 'chambre-privee-nuit', 'ecurie-nuit'];
@@ -51,26 +52,22 @@ describe('stock marchand — exclut les services', () => {
     for (const id of SERVICE_IDS) expect(stock.some((l) => l.id === id)).toBe(false);
   });
 
-  it('curated de la Tavernière ne référence aucun service (repas-auberge = objet, resté curated)', () => {
-    const arch = MERCHANTS.taverniere;
-    for (const id of arch.curated ?? []) expect(findTrappingById(id)?.service).not.toBe(true);
-    expect(arch.curated).toContain('repas-auberge');
+  it('repas-auberge (objet) reste au curated de la Tavernière', () => {
+    expect(MERCHANTS.taverniere.curated).toContain('repas-auberge');
   });
 });
 
-describe('curated-service = garde fail-fast au chargement du registre', () => {
-  it('un archétype dont curated pointe un service ferait échouer le module (garde src/state/merchants/index.ts)', () => {
-    // Le registre RÉEL charge déjà sans lever (sinon ce test ne s'exécuterait pas) — on prouve la
-    // garde en rejouant sa logique sur une entrée délibérément invalide, sans construire un 2e registre.
-    const brokenCurated = ['chambre-commune-nuit'];
-    const check = () => {
-      for (const id of brokenCurated) {
-        const t = findTrappingById(id);
-        if (t?.service) throw new Error(`curated "${id}" est un tarif de service`);
-      }
-    };
-    expect(check).toThrow(/tarif de service/);
-    expect(MERCHANT_ARCHETYPES.length).toBeGreaterThan(0); // le registre réel, lui, a bien chargé
+describe('curated — référence de trapping hors marqueur `service`, refusée au parse (`defs/merchants.ts`)', () => {
+  it('un archétype dont curated nomme un tarif de service est refusé par le schéma de merchants.json', () => {
+    const doc = structuredClone(MERCHANT_ARCHETYPES).map((m) =>
+      m.id === 'taverniere' ? { ...m, curated: [...(m.curated ?? []), 'chambre-commune-nuit'] } : m,
+    );
+    const r = merchantsSchema.safeParse(doc);
+    expect(r.success).toBe(false);
+    expect(r.error!.issues.map((i) => i.message)).toContain(
+      '« chambre-commune-nuit » porte le marqueur « service » : cette référence l\'exclut du catalogue des objets (trappings.json).',
+    );
+    expect(merchantsSchema.safeParse(MERCHANT_ARCHETYPES).success, 'le registre réel passe').toBe(true);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diligenceCampaign } from '../campaign';
+import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Characteristics, Combatant } from '../../engine/types';
 import { travelSpeed, travelPlanCalc } from '../../engine/travel';
 import { baseHoursPerDay } from '../../state/travelFlow';
@@ -63,7 +63,7 @@ function hero(id: string): Combatant {
 }
 
 const party = ['a', 'b', 'c', 'd'].map(hero);
-const map = diligenceCampaign.worldMap!;
+const map = paquetDuJeu(diligenceCampaign).worldMap!;
 const route = map.routes.find((r) => r.id === 'route-la-diligence-altdorf')!;
 const heures = baseHoursPerDay(map);
 const ctx = (flags: Record<string, boolean> = {}): ConditionCtx => ({ flags, gameTime: 0 });

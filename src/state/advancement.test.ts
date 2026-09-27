@@ -130,6 +130,25 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 // Issue #10 : les entités POSSÉDÉES (talents/compétences) sont appariées contre les emplacements
 // de carrière par id (+spec), plus par libellé round-trippé. Ces cas verrouillent le chemin de
 // match-possédé (faiblement couvert auparavant). Les libellés D'AFFICHAGE restent inchangés.
+describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix) » (LDB 10 l.17-18, l.548 ; LDB 07 l.105)', () => {
+  // Patrouilleur routier Niveau 3 : « Haine (Au choix) » ; FM 30 → Maxi 3.
+  const haineAuChoix = (times: number) =>
+    buildAdvancementView(hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
+      .talents.find((r) => r.options?.some((o) => o.refKey.startsWith('haine|')))!;
+  it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont au Maxi', () => {
+    const row = haineAuChoix(3);
+    expect(row.maxReached).toBe(true);
+    expect(row.options!.filter((o) => !o.owned).every((o) => o.maxReached)).toBe(true);
+  });
+  it('sous le Maxi : les groupes neufs sont achetables, au coût de la 3e acquisition', () => {
+    const row = haineAuChoix(2);
+    expect(row.maxReached).toBe(false);
+    const neuf = row.options!.find((o) => o.refKey === 'haine|morts-vivants')!;
+    expect(neuf.maxReached).toBe(false);
+    expect(neuf.nextCost).toBe(300);
+  });
+});
+
 describe('buildAdvancementView — match d\'entité possédée par id+spec (Issue #10)', () => {
   it('Talent EXPLICITE possédé : times lu par id (Artisan N3 → Bricoleur)', () => {
     const v = buildAdvancementView(hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'bricoleur', times: 1 }] }));

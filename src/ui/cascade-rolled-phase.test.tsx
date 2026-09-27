@@ -16,7 +16,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { CascadeBody } from './CascadeModal';
 import type { CascadeStep, CascadeRoll } from '../state/pendings';
 
@@ -32,7 +31,7 @@ const jetStep = (actorId: string, result: CascadeRoll | null): CascadeStep =>
   ({ id: 'j1', kind: 'tally', actorId, label: 'Résistance', rollLabel: 'Résistance', base: 40, target: 40, result, interactive: true } as unknown as CascadeStep);
 
 function ouvrir(result: CascadeRoll | null) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

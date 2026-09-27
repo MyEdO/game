@@ -90,6 +90,8 @@ const champs = {
     }),
   ),
   vents: z.array(z.strictObject({ id: z.string(), label: z.string(), source: sourceRefSchema })),
+  windTickThreshold: z.number(),
+  windTicksPerDay: z.number(),
   roseDesVents: z.array(
     z.strictObject({
       ...plageSchema.shape,
@@ -127,6 +129,11 @@ const doc = document(
     temperatures: { label: 'Températures', hint: "Catalogue des paliers de température et de leur exigence de Test/exposition" },
     visibilites: { label: 'Visibilités', hint: 'Catalogue des paliers de visibilité et de leur pénalité/portée' },
     vents: { label: 'Forces de vent', hint: 'Libellés des 6 forces de vent, du calme plat à la violente tempête' },
+    windTickThreshold: {
+      label: 'Résultat de bascule du vent',
+      hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran',
+    },
+    windTicksPerDay: { label: 'Bascules par jour', hint: 'Nombre de tirages de vent par journée en mer' },
     roseDesVents: { label: 'Rose des vents', hint: 'Tirage d10 de la direction du vent (« dominant » = vents dominants du plan d’eau)' },
     effetDuVent: { label: 'Effet du vent', hint: 'Table croisée force×aspect (% voiles/autre, encalminage, affalage, virement)' },
     effetDuVentClinfoc: { label: 'Effet du vent (clinfoc)', hint: 'Même table, variante clinfoc' },

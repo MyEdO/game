@@ -10,6 +10,7 @@ import { combatDistance } from '../../state/footprint';
 import { attackWeaponOf, crowdEligible, previewAttack, previewDefense, defenseDodgeMod, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
 import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
+import { objetSourceDeLArme } from '../../engine/weaponLoad';
 import { attackModesFor, offHandPenalty } from '../../engine/combatFeatures/dispatch';
 import { CritLocationPicker } from '../ForcedRollPicker';
 import { DeterminationButton } from '../DeterminationButton';
@@ -104,8 +105,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const crowdSansObjet = !pa.intoCrowd && crowdArme && !!crowdBlock;
   const showCrowd = !res && tir && (!!pa.intoCrowd || !crowdBlock || crowdSansObjet);
   // ADE II 02 l.677
-  const weaponItem = weapon ? attacker.items?.find((it) => it.uid === weapon.uid) : undefined;
-  const canHarpoonRopeCut = !res && weapon?.type === 'ranged' && attacker.kind === 'hero' && !!weaponItem && itemCapability(weaponItem, 'ropeMode');
+  const objetSource = weapon ? objetSourceDeLArme(attacker, weapon) : undefined;
+  const canHarpoonRopeCut = !res && weapon?.type === 'ranged' && attacker.kind === 'hero' && !!objetSource && itemCapability(objetSource, 'ropeMode');
   // AA 07 l.59-61
   const canWithhold = !res && weapon?.type === 'melee' && attacker.kind === 'hero' && !weaponInflictsFlames(weapon);
   // LDB 14 l.159

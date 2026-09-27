@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { collapseStructure } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { hasCondition } from '../engine/conditions';
 import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from './scene';
@@ -18,7 +17,7 @@ import { draineCascade } from './cascadeTestKit';
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 
 function sceneWithParapet(): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: 'porte-de-ville' }];
   // Chemin de ronde au 1ᵉʳ étage : grille marchable surplombant le sol et la herse.
   s.layers = [...s.layers, { z: 1, tiles: new Array(s.dimensions.w * s.dimensions.h).fill('herbe') as Terrain[] }];
@@ -28,7 +27,7 @@ function sceneWithParapet(): Scene {
 /** Lance un combat sur la scène à herse + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
 function start() {
   useGame.getState().seedRng(1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithParapet());
   useGame.getState().startCombat('enc-mutants');

@@ -10,7 +10,7 @@ import { MISSING_ID, MISSING_TONE } from '../catalog/missing';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../state/scene';
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../state/sceneEdit';
 import { encloseRect, perimeterWallSegs } from '../../state/sceneEdit.testkit';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { buildings } from '../../data';
 
 /**
@@ -560,7 +560,7 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
    *  son emprise, à un niveau qu'elle couvre. Aucune déclaration de zone n'entre ici — l'auteur
    *  déclare ce qui est à ciel ouvert, plus ce qui est bâti (#881). */
   const traveesDeLaDiligence = () => {
-    const carte = diligenceCampaign.scenes[0];
+    const carte = paquetDuJeu(diligenceCampaign).scenes[0];
     const masses = effectiveArchitecture(carte)
       .flatMap((corps) => corps.masses.map((masse) => ({ masse, cells: massFootprintCells(masse.footprint) })));
     const postes = masses.map(({ masse, cells }) => {
@@ -1199,7 +1199,7 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
  * compte ni une cote recopiés (#1709) ; les comptes exacts se prennent sur la fixture qui suit.
  */
 describe('La Diligence — les nappes de l’étage se REJOIGNENT (#1186)', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const masses = () => effectiveArchitecture(scene).find((b) => b.id === 'diligence')!.masses.filter((m) => m.z === 1);
   const nappeOf = (massId: string) => resolveNappes(scene).get(nappeKey('diligence', massId))!;
 

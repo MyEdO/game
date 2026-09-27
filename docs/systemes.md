@@ -124,6 +124,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `PlaqueRow/PlaqueGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CreatorStepFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Band` |  |  |  |  | U |  | U |  | U | U |  |  |  |  | U |  |
+| `ReglagesApparence/MonsterPartsFields` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `HeroSheet` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `DesignGallery` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Stack/Row/Grid/Split` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -161,8 +162,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ViewControls` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
-| `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `ouvrirBase/lireDansBase/ecrireDansBase` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -170,6 +171,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
@@ -232,4 +234,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 700035f94190d3952927ad3563879a0fb8a13a13 (1850 fichiers, 2 dossiers) corps: 56beeb1e042c9c7a5878fc97c9c013e8328f28bd -->
+<!-- sources-empreinte: 65ef9cf9fa737960ac635dfc816f1d31e5eeb75f (1853 fichiers, 2 dossiers) corps: 1a60b2098d643a7a3ef064df428910f9858c52f1 -->

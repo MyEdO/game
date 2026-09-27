@@ -134,7 +134,7 @@ describe('ANGLE INITIAL — une partie arrivée en vue de face repart d’un cra
   it('une sauvegarde qui PORTE la vue de face (camEdge sérialisé) se recharge en vue de coin', () => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
     deleteSlot(1);
-    g().startScene(testScene);
+    g().startScene(testScene());
     useGame.setState({ camEdge: true, battle: null });
     expect(g().saveGame(1)).toBe(true);
     expect((readSlot(1)!.data as { camEdge?: boolean }).camEdge).toBe(true); // la save porte bien la vue de face
@@ -146,9 +146,9 @@ describe('ANGLE INITIAL — une partie arrivée en vue de face repart d’un cra
   });
 
   it("l'entrée de scène (transitionTo) ramène la vue au cran diagonal", () => {
-    g().startScene(testScene);
+    g().startScene(testScene());
     useGame.setState({ camEdge: true });
-    g().transitionTo(testScene.id);
+    g().transitionTo(testScene().id);
     expect(g().camEdge).toBe(false);
   });
 });

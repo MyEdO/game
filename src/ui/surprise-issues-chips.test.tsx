@@ -61,7 +61,7 @@ function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
     party: heroes,
     battle: { combatants: [...heroes, foe], order: ids, baseOrder: ids, turn: -1, round: 1, action: null,
       reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null } as unknown as BattleState,
-    mode: 'battle', scene: testScene, net: SOLO as never, pendingCascade: null, pendingLogQueue: [],
+    mode: 'battle', scene: testScene(), net: SOLO as never, pendingCascade: null, pendingLogQueue: [],
   });
   applySurprise(useGame.getState, useGame.setState, 'party');
 }

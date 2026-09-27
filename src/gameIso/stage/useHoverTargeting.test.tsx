@@ -3,7 +3,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { testScene } from '../../scenes/test-fixture';
 import { useGame } from '../../state/store';
 import { startCascade } from '../../state/cascade';
@@ -35,9 +34,9 @@ function cliqueLaCase(pt: { x: number; y: number }) {
 }
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   const battle = useGame.getState().battle!;
@@ -79,7 +78,7 @@ describe('useHoverTargeting — intention de déplacement', () => {
     const hover = { x: active.pos!.x + 2, y: active.pos!.y };
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -100,7 +99,7 @@ describe('useHoverTargeting — intention de déplacement', () => {
     const hover = { x: active.pos!.x - 1, y: active.pos!.y };
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -127,7 +126,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
   function probe(hover: { x: number; y: number }) {
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -216,7 +215,7 @@ describe('useHoverTargeting — au-delà de la Marche, la case ne se peint pas e
   function probeRun(hover: { x: number; y: number }) {
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -280,7 +279,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
   function probeAim(hover: { x: number; y: number }) {
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));
@@ -328,7 +327,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
   function probeAim(hover: { x: number; y: number }) {
     let result: ReturnType<typeof useHoverTargeting> | undefined;
     const Probe = () => {
-      result = useHoverTargeting(testScene, hover, true);
+      result = useHoverTargeting(testScene(), hover, true);
       return null;
     };
     root = createRoot(document.createElement('div'));

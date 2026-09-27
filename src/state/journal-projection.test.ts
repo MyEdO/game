@@ -2,7 +2,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { deElide } from '../i18n';
 import { startCascade, runCascadeImmediate } from './cascade';
@@ -93,7 +92,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     spyApplier('tally', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }));
   });
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     useGame.setState({ party: [h] });
     return h;
   }
@@ -130,7 +129,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
   });
 
   it('canal NARRATIF (Test de scène) : `apply` journalise l’issue déclarée, et l’acquittement n’en écrit pas une seconde', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     useGame.setState({ party: [h] });
     const pt: PendingTest = {
       actorId: h.id, actorName: h.label, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',

@@ -15,7 +15,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie } from './forcedDieRow';
 import { RollRow } from './RollRow';
 import { RollShell } from './RollShell';
-import { buildRollRow } from './rollRowBuild';
+import { buildRollRow, drawRow } from './rollRowBuild';
 import { Modal } from './Modal';
 import { rendreVisible } from './layoutJsdom.testkit';
 import { testPending, testBreakdown } from './breakdown';
@@ -603,6 +603,63 @@ describe('CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé sai
     type(input, '95');
     act(() => { cta.click(); });
     expect(rolls).toHaveLength(1);
+  });
+});
+
+/**
+ * #1508 T3b-4 (recette navigateur) — la coquille RESTE MONTÉE d'une étape-jet à la suivante, donc sa
+ * poignée de commit (`RollShell.hoistDieCommit`) survit au champ « Fixer le dé » de l'étape d'avant.
+ * Le champ démonté la RELÂCHE (`NumberField`) : sans cela, la garde `withPickedDie` reçoit `true` d'un
+ * brouillon orphelin, avale le clic, et le CTA de l'étape suivante ne lance rien (Maladresse insoluble).
+ */
+describe('CTA HISSÉ d’une étape SANS champ de dé — le brouillon de l’étape précédente n’avale pas le clic (#1508)', () => {
+  /** L'étape Maladresse : un tirage VIF, sans `flowKey` donc sans sélecteur de dé. */
+  const oupsRows = (tire: () => void) => [drawRow({
+    key: 'oups', row: { note: undefined }, rollLabel: 'Lancer sur le Tableau des Oups !', onRoll: tire, rollFrisson: false,
+  })];
+  const ctaOups = (): HTMLButtonElement =>
+    [...host.querySelectorAll('.cadre-pied button')].find((b) => /Tableau des Oups/.test(b.textContent ?? '')) as HTMLButtonElement;
+
+  it('un dé SAISI non validé à l’étape d’avant : le « Lancer sur le Tableau des Oups ! » de la Maladresse tire quand même', () => {
+    setDesFixes(true);
+    setupPreRoll();
+    const tires: string[] = [];
+    act(() => {
+      root.render(
+        <RollShell flowKey="attack" title="Attaque" rolled={false}
+          rows={[buildRollRow(
+            { actor: VIEW, row: { combatant: VIEW, pending: testPending('Corps à corps', 45) }, onRoll: () => { resolveRoll(); } },
+            { key: 'r', interactive: true, rollFrisson: false },
+          )]}
+          actions={[]} onCancel={() => {}} />,
+      );
+    });
+    const input = dieInput()!;
+    act(() => input.focus());
+    type(input, '8');
+    type(input, '88'); // frappé, JAMAIS validé : le joueur a laissé son brouillon en plan
+    // MÊME instance de coquille (sa poignée de commit survit), étape suivante : la Maladresse.
+    act(() => {
+      root.render(
+        <RollShell title="Maladresse" rolled={false} rows={oupsRows(() => tires.push('oups'))} actions={[]} onCancel={() => {}} />,
+      );
+    });
+    expect(dieInput(), 'la Maladresse n’offre aucun champ de dé').toBeNull();
+    act(() => { ctaOups().click(); });
+    expect(tires, 'le tirage sur le Tableau des Oups ! part').toEqual(['oups']);
+  });
+
+  it('coquille montée À NEUF sur la Maladresse : le CTA hissé tire (non-régression)', () => {
+    setDesFixes(true);
+    setupPreRoll();
+    const tires: string[] = [];
+    act(() => {
+      root.render(
+        <RollShell title="Maladresse" rolled={false} rows={oupsRows(() => tires.push('oups'))} actions={[]} onCancel={() => {}} />,
+      );
+    });
+    act(() => { ctaOups().click(); });
+    expect(tires).toEqual(['oups']);
   });
 });
 

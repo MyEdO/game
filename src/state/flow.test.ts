@@ -8,7 +8,6 @@ import {
   evalCondition, flattenFlow, flowFromEffects, flowHasTest, sanitizeFlow, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
 } from './flow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 
 const REIK = 'humains-reiklander';
 
@@ -124,7 +123,7 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
     expect(evalCondition({ kind: 'species', id: 'nains', who: 'all' }, { ...base, party: [{ species: 'nains' }, { species: 'nains' }] })).toBe(true);
   });
   it('status : dérivé d’un VRAI Combatant (createHero) — carrière/niveau réels', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', rng: makeRNG(3) }); // niveau 1 → « Argent 1 »
+    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 }); // niveau 1 → « Argent 1 »
     const party = [hero];
     expect(evalCondition({ kind: 'status', atLeast: 'Bronze 1' }, { ...base, party })).toBe(true); // Échelon supérieur
     expect(evalCondition({ kind: 'status', atLeast: 'Argent 1' }, { ...base, party })).toBe(true); // seuil atteint pile

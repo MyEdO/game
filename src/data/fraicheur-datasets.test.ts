@@ -33,7 +33,7 @@ import {
   tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods, rowingAgilityDifficulty,
   capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
 } from '../engine/riverNavigation';
-import { tickWindForce, type SeaWindForceId } from '../engine/seaWeather';
+import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
@@ -330,6 +330,14 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe(second.id);
     setObjectDataset('seaWeather', { ...fiche, vents: fiche.vents.map((v, i) => (i === 1 ? { ...v, id: 'brise-mer-qc' } : v)) });
     expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe('brise-mer-qc');
+  });
+
+  it('la mise à jour du vent de mer ÉDITÉE : `tickWindForceDay` lit le seuil et le nombre de tirages NEUFS', () => {
+    const fiche = structuredClone(datasetObject('seaWeather'));
+    const [calme, second] = fiche.vents;
+    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(calme.id);
+    setObjectDataset('seaWeather', { ...fiche, windTickThreshold: 2, windTicksPerDay: 1 });
+    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(second.id);
   });
 
   it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {

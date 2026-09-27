@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
 import type { Combatant } from '../../engine/types';
 import { occludesActor, type Dims } from '../../geometry/iso';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { buildRoofs, massFootprintCells } from '../builders/roofs';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { chebyshev } from '../../engine/grid';
@@ -43,7 +43,7 @@ import { useGame } from '../../state/store';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE = diligenceCampaign.scenes[0];
+const SCENE = paquetDuJeu(diligenceCampaign).scenes[0];
 const DIMS: Dims = { ...SCENE.dimensions, rot: 0, view: 'iso' };
 const CADRE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 };
 /** LA MÊME carte, sous l'averse : le semis d'intempéries est un motif CONTINU (`useBattementContinu`),

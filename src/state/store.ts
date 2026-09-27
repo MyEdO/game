@@ -67,7 +67,7 @@ import type { CodexFocus } from './codexFocus';
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
 
 /** Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
- *  module ne connaît sinon que l'Arène + la scène courante → transitions/portes vers les AUTRES scènes du
+ *  module ne connaît sinon que la scène courante → transitions/portes vers les AUTRES scènes du
  *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `saves.ts`).
  *  Lue par la reprise de save et par le snapshot coop de l'invité (`netFlow.applyNetSnapshot`). */
 export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Partial<GameState> {
@@ -157,7 +157,7 @@ import { placeCombatant } from './spawn';
 import { chebyshev, Pt } from './path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
 import { bus, EVT } from './bus';
-import { campaign, campaignWorldMap } from '../scenes/campaign';
+import { emptyWorldMap } from './worldMap';
 import type { NarratifBlock, OuvertureBlock } from './campaignNarratif';
 import { emptyNarratif } from './campaignNarratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
@@ -186,18 +186,17 @@ import { createCombatSlice } from './combatSlice';
 export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test', 'interlude', 'coop', 'compendium', 'massBattle', 'gallery', 'webglSpike'] as const;
 export type Screen = typeof SCREENS[number];
 
-/** Registre des scènes (pour les transitions de campagne). */
+/** Registre des scènes (pour les transitions de campagne) : les scènes d'une campagne y entrent
+ *  quand elle se lance (`loadProject`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import. */
 const sceneRegistry: Record<string, Scene> = {};
-for (const c of campaign) sceneRegistry[c.scene.id] = c.scene;
 export function registerScene(s: Scene) {
   sceneRegistry[s.id] = s;
 }
-/** TEST-ONLY (#777) : vide le `sceneRegistry` et le ré-initialise aux scènes `campaign` par défaut —
- *  simule un « registre reparti de zéro » (reload) SANS `vi.resetModules()`, incompatible avec la
- *  suite sous `isolate:false` (fuite de registre de modules entre fichiers du worker partagé). */
+/** TEST-ONLY (#777) : vide le `sceneRegistry` — simule un « registre reparti de zéro » (reload) SANS
+ *  `vi.resetModules()`, incompatible avec la suite sous `isolate:false` (fuite de registre de modules
+ *  entre fichiers du worker partagé). */
 export function resetSceneRegistry(): void {
   for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
-  for (const c of campaign) sceneRegistry[c.scene.id] = c.scene;
 }
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
@@ -341,9 +340,9 @@ export interface Objective {
 /** DOCUMENT SOURCE de la partie en cours (#766) — snapshot AUTO-SUFFISANT du paquet de campagne chargé
  *  par `loadProject` (scènes + carte + narratif + scène d'entrée). Embarqué au save (via `stateFields`)
  *  pour que le chargement RÉ-ENREGISTRE toutes les scènes (`registerScene`) et RE-DÉRIVE `campaignNarratif`
- *  — sans lui, une save reloadée ne connaîtrait que l'Arène + la scène courante et les transitions vers
- *  les AUTRES scènes du paquet échoueraient en silence. `null` = chemin Arène (scènes déjà seedées au
- *  module init de `sceneRegistry`) ou vieille save pré-#766. */
+ *  — sans lui, une save reloadée ne connaîtrait que la scène courante et les transitions vers les
+ *  AUTRES scènes du paquet échoueraient en silence. `null` = aucun paquet chargé (partie posée par
+ *  `startScene` seule). */
 export interface CampaignDoc {
   scenes: Scene[];
   worldMap?: import('./worldMap').WorldMap | null;
@@ -566,7 +565,7 @@ export interface GameState extends RollFlowActionsMap {
    *  persistance snapshot est déférée (#766). */
   campaignNarratif: NarratifBlock | null;
   /** Document source du paquet de campagne chargé (#766) — snapshotté (via `stateFields`), re-registre
-   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = chemin Arène / save legacy. */
+   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = aucun paquet chargé. */
   campaignDoc: CampaignDoc | null;
   /** Instances runtime de scène (#707) — delta capturé au départ (entités retirées, flags de porte/
    *  structure) par `sceneId`, réappliqué au clone frais au revisit (`transitionTo`). SURVIT aux
@@ -1846,7 +1845,7 @@ export const useGame = create<GameState>((set, get) => ({
   possessions: [],
   tradeRumours: [],
   landMarket: null,
-  worldMap: campaignWorldMap,
+  worldMap: emptyWorldMap(),
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
@@ -2227,15 +2226,15 @@ export const useGame = create<GameState>((set, get) => ({
     if (!entry) throw new Error(`loadProject : scène d’entrée « ${entryId} » absente (${scenes.map((s) => s.id).join(', ')})`);
     for (const s of scenes) registerScene(s);
     get().startScene(entry, narratif);
-    // La carte du PROJET remplace celle de la campagne (restaurée par le reset de startScene) ;
-    // un projet sans carte n'offre pas de voyage.
+    // La carte du PROJET remplace la carte vide de l'état de départ (remise par le reset de
+    // startScene) ; un projet sans carte n'offre pas de voyage.
     if (worldMap !== undefined) set({ worldMap });
     // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
     // l'init. Absente du paquet = démarrage direct.
     set({ pendingOuverture: narratif?.ouverture ?? null });
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
-    // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init) — jamais sur le chemin Arène.
+    // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
     set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
   },
 

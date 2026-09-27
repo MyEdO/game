@@ -295,7 +295,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
 
   it('DÉPASSER 501 annule le lancer ET TERMINE LE TOUR : les fléchettes restantes ne sont pas lancées', () => {
     aDeuxDoigts(500);
-    poseLancer(26, 2); // réussite : 2, 6, 20 ou 60 au choix
+    poseLancer(12, 2); // réussite : 1, 2, 10 ou 20 au choix
     trancher('tavern-throw-gain', '20'); // 520 > 501
     // Le passage du lanceur s'arrête là : la main passe au vis-à-vis, qui joue le sien d'office — la
     // manche se clôt donc dans la foulée. Ce que l'on mesure est ce qu'il en RESTE : le score n'a

@@ -9,14 +9,10 @@ import type { Scene } from '../../state/scene';
  * folio 38 rez / folio 39 étage, images) chargée en EXPLORATION avec son MOBILIER (`opera/furnished.ts`) : la scène DÉDIÉE où le
  * meublage se juge à l'écran (#1644), sans toucher au scénario jouable « Opéra », qui a sa propre
  * carte 21 cases et ses propres entités.
- *
- * Le mobilier est CLONÉ : `scenarioEntities` est un tableau exporté, lu par ailleurs (les gardes de
- * population, `scripts/qc/opera-furniture-check.mts`) — la scène ne doit rien lui prendre ni rien
- * lui rendre.
  */
 function construireScene(): Scene {
   const s = buildOperaFloorplan();
-  return { ...s, entities: [...s.entities, ...structuredClone(scenarioEntities)] };
+  return { ...s, entities: [...s.entities, ...scenarioEntities()] };
 }
 
 export const scenario: TestScenario = {

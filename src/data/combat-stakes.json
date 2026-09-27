@@ -201,6 +201,20 @@
     }
   },
   {
+    "id": "artillery-salve-misfire",
+    "type": "combat-stakes",
+    "label": "Incident de Tir par Salve",
+    "kind": "artillerySalveMisfire",
+    "template": "Un d10 sur les Incidents de Tir d’Artillerie par Salve : la ligne tirée dit la Localisation touchée, combien de fois l’équipe encaisse, et si la pièce est détruite.",
+    "form": "descripteur",
+    "entryCategory": "artilleryMisfire",
+    "source": {
+      "book": "aux-armes",
+      "page": 126,
+      "note": "AA 10 l.270-277"
+    }
+  },
+  {
     "id": "structure-critical",
     "type": "combat-stakes",
     "label": "Critique de Structure",

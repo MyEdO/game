@@ -37,7 +37,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(7) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 7 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;

@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCounterspell } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
@@ -16,11 +15,11 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, seed: 707,
     });
     hero.spells = ['flechette'];
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

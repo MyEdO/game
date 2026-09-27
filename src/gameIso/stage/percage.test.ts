@@ -11,12 +11,12 @@ import { effectiveArchitecture } from '../../state/sceneEdit';
 import { chebyshev } from '../../engine/grid';
 import { heightAt } from '../../state/scene';
 import { actorCapsuleOf } from './actorCapsule';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import type { Lid } from './architectureVisibility';
 import { avancerRayon, centrePercage, clePercage, creerPercage, verdictPercage, type ActeurPerce, type Percage } from './percage';
 import { PERCAGE_FONDU_MS, PERCAGE_MAX_HEROS, PERCAGE_RAYON_PX, trousPercage } from '../backends/webgl/percageLocal';
 
-const scene = diligenceCampaign.scenes[0];
+const scene = paquetDuJeu(diligenceCampaign).scenes[0];
 const dims: Dims = { ...scene.dimensions, rot: 0, view: 'iso' };
 /** Le montage de l'hôte, mot pour mot (`stage/MondeDeCampagne`) : une nappe par masse de toit, projetée. */
 const lids: Lid[] = buildRoofs(scene).map((el) => ({

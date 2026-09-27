@@ -106,7 +106,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 155 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 156 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
@@ -245,4 +245,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 7d54334034c6888cb389f89fd3ff4daad6c86681 (25 fichiers, 8 dossiers) corps: 8ca32d3aeacca00b4292c0098f8f24515e0b9dec -->
+<!-- sources-empreinte: 9c798198744efd95588db2ccb2cc86e83ffcc0de (25 fichiers, 8 dossiers) corps: 5e3f96c57a0b9965bbb27ffcfdcd8d96f202651f -->

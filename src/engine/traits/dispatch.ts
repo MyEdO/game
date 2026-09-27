@@ -7,7 +7,7 @@
 import type { CharKey, Combatant } from '../types';
 import { TRAITS, TraitDef } from './registry';
 import { parseStatEntry, isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
-import { traitIdByLabel, findTraitById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
+import { traitIdByLabel, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import { slugId } from '../../data/slug';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
@@ -235,11 +235,22 @@ export function markMutationsAtSpawn(traits: TraitList | undefined): NonNullable
 }
 
 // ── Mathématique de combat ────────────────────────────────────────────────────────────────────────
-/** NOTATION RAW d'une sauvegarde « 1d10 ≥ Indice » — `LDB 47 l.410` écrit « Protection (6+) ».
- *  GRAPHIE UNIQUE du seuil, partout où il s'affiche (journal de combat, Codex, atelier d'op) : le nom du
- *  Trait, son Indice, le « + ». L'Indice peut être une `Formula` déjà résumée (atelier). */
-export function formatWardSave(traitId: string, indice: number | string): string {
-  return `${traitLabelById(traitId)} (${indice}+)`;
+/** CE QUI OFFRE une sauvegarde « 1d10 ≥ Indice » — un TRAIT du porteur (Démoniaque `LDB 85 l.98`,
+ *  Protection `LDB 85 l.278`, celui qu'un Dôme octroie `LDB 47 l.410`) ou une QUALITÉ de l'objet
+ *  (Solide `LDB 60 l.30`, contre la cassure instantanée). Id STABLE + son dataset : la LOGIQUE ne
+ *  connaît que ces deux-là, la graphie se rend ici. JSON-sérialisable (il voyage sur l'étape). */
+export interface SourceDeSauvegarde {
+  kind: 'trait' | 'qualite';
+  id: string;
+}
+
+/** NOTATION RAW d'une sauvegarde « 1d10 ≥ Indice » — `LDB 47 l.410` écrit « Protection (6+) »,
+ *  `LDB 60 l.32` « Solide 3 […] un Test de Sauvegarde de 7+ ». GRAPHIE UNIQUE du seuil, partout où il
+ *  s'affiche (journal de combat, Codex, atelier d'op) : le nom de la SOURCE, son Indice, le « + ».
+ *  L'Indice peut être une `Formula` déjà résumée (atelier). */
+export function formatWardSave(source: SourceDeSauvegarde, indice: number | string): string {
+  const label = source.kind === 'trait' ? traitLabelById(source.id) : (findQualityById(source.id)?.label ?? source.id);
+  return `${label} (${indice}+)`;
 }
 
 /** Sauvegardes « 1d10 ≥ Indice → coup ignoré » (Démoniaque 8+, Protection N). Liste des seuils. */

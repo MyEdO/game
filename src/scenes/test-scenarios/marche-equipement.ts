@@ -1,5 +1,4 @@
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { trappings, rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
@@ -19,7 +18,7 @@ import type { Scene } from '../../state/scene';
 /** Négociant : épée magique NON identifiée (qualité cachée + skin), maille endommagée, dague à vendre,
  *  selle et harnais (charger une monture/déplacer vers la mule, DoD Possessions testable). */
 function negociant(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', rng: makeRNG(2510), id: 'test-negociant' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', seed: 2510, id: 'test-negociant' });
   // Épée bâtarde « légendaire » : qualité MAGIQUE cachée (« De plaies atroces », ADE II) + skin bleuté ;
   // identified:false → masquée tant qu'une Évaluation ne l'a pas révélée (mais ACTIVE en combat).
   const epee = itemFromTrappingById('epee-batarde')!;
@@ -40,7 +39,7 @@ function negociant(): Combatant {
 
 /** Maître d'armes : sac garni pour l'écran d'EMPLACEMENTS (couches d'armure LDB 63 + 2 sets d'armes + cape). */
 function maitreArmes(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', rng: makeRNG(2606), id: 'test-equipement' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', seed: 2606, id: 'test-equipement' });
   const take = (label: string, equipped = false) => {
     const id = trappings.find((t) => t.label === label)!.id; // libellé → id de catalogue
     const it = itemFromTrappingById(id)!;

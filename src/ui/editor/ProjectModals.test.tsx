@@ -54,6 +54,27 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
     container.remove();
   });
 
+  it('sortie visible : « Fermer » dans la zone d’actions appelle onClose (le refus s’y affiche)', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    const onClose = vi.fn();
+    try {
+      await act(async () => {
+        root.render(<OpenProjectModal onScenario={() => {}} onProject={() => {}} onBuiltin={() => {}} onClose={onClose} />);
+      });
+      const fermer = document.querySelector('[role="dialog"] .cadre-pied button') as HTMLButtonElement | null;
+      expect(fermer?.textContent).toBe('Fermer');
+      await act(async () => fermer!.click());
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
   it('« Scénarios de test » : l’icône de chaque scénario est DESSINÉE, jamais son id écrit en texte', () => {
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(

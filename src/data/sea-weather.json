@@ -440,6 +440,8 @@
       }
     }
   ],
+  "windTickThreshold": 1,
+  "windTicksPerDay": 4,
   "roseDesVents": [
     {
       "min": 1,

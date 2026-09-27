@@ -3,7 +3,6 @@ import { useGame } from './store';
 import { applyEffects, fireScheduledEffects } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
 import { bus, EVT } from './bus';
 import type { Effect } from './scene';
@@ -43,7 +42,7 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
   beforeEach(() => useGame.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 5 * MINUTES_PER_DAY + 8 * 60 }));
 
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = { current: wounds, max: wounds };
     useGame.setState({ party: [h] });
     return h;

@@ -172,15 +172,6 @@
 .appear-fields .btn {
   align-self: flex-start;
 }
-/* Un `<select>` se dimensionne sur son option la PLUS LONGUE (largeur intrinsèque, `min-width:auto`)
-   et ne se replie pas dans sa piste : le choix de chevelure (« cheveux courts soignés, raie sur le
-   côté ») s'étalait sur 421px et sortait la colonne de choix du gabarit de 231px — barre de
-   défilement horizontale sur toute l'étape Détails. Il se BRIDE à sa piste ; c'est le menu déroulant
-   qui élide son option au repos, jamais l'écran qui déborde. */
-.appear-fields select {
-  min-width: 0;
-  max-width: 100%;
-}
 /* Couleurs : grille de pastilles compactes (fini les 7 longues rangées). */
 .color-pickers-title {
   display: block;
