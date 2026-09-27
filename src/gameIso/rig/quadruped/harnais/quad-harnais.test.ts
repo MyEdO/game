@@ -163,7 +163,7 @@ describe('compilation d\'un dessin de SET (gabarit lu du suffixe @espèce)', () 
 
 // ── SERVICE du set à la DONNÉE committée (#1128 L3) ──────────────────────────────────────────
 /** Jetons de palette d'un SVG — MÊME lecture que `applyTokenMap` (un jeton hors table y est un
- *  no-op SILENCIEUX : l'art sort avec « @sellerieCuir » en valeur de `fill`). */
+ *  no-op SILENCIEUX : l'art sort avec « @harnaisCuir » en valeur de `fill`). */
 const jetons = (svg: string): string[] => [...svg.matchAll(/@([a-zA-Z]\w*)/g)].map((m) => m[1]);
 
 /** Les records de `creatures.json` qui déclarent un set, avec l'espèce que le rendu leur résout. */

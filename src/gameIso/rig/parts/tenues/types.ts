@@ -1,5 +1,5 @@
 import type { PartArt } from '../types';
-import type { PaletteDeclaree } from '../../palette';
+import type { PaletteDeCouchePortee } from '../../palette';
 import type { RigOverlay } from '../../bones';
 
 /**
@@ -24,7 +24,7 @@ export type TenueSet = Partial<Record<'torse' | 'jambes' | 'bras' | 'avantBras' 
  * Les slots portent une string (FRONT) ou les 3 vues `{front, back, profile}`. Ajouter un
  * humanoïde habillé = DÉPOSER ce fichier (+ un def de race/PNJ pointant `tenue: '<name>'`).
  *
- * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeclaree = hex exact) → rendu
+ * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeCouchePortee = hex exact) → rendu
  * sans perte + recoloriage cohérent. Résolue par `tenuePaletteFor` (tenue > classe).
  * Elle pilote aussi les parts SYSTÈME du pied/main (`CLAWFOOT`/`PLAINFOOT`/`HAND` de
  * `bodies/extremites.ts`, `BOTTE_CUIR` de `botte-gabarit.ts`, #426) : `botte` (cuir de la botte ;
@@ -48,7 +48,7 @@ export type TenueDef = {
   /** Libellé d'AFFICHAGE (nom authoré, slugifié une fois en `id`). N'est PAS la clé. */
   label: string;
   set: TenueSet;
-  palette?: PaletteDeclaree;
+  palette?: PaletteDeCouchePortee;
   /** Calques ASYMÉTRIQUES attachés à un os précis (pauldron/fourrure qui déborde une SEULE
    *  épaule) — même vocabulaire que `dorsalOverlays`/`monsterInjection` (`RigOverlay`, `plane`
    *  pour échapper au z inégal des bras epauleG/epauleD, `view` pour une vue). Optionnel :

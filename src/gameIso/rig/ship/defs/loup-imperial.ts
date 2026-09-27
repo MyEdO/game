@@ -22,7 +22,7 @@ function stripedSail(cx: number, yTop: number, h: number, hw: number): string {
 /** Voile carrée rayée vue de FACE/DOS (vent portant, bandes verticales droites). */
 function stripedSailOn(cx: number, yTop: number, h: number, hw: number): string {
   let s = spar(cx - hw - 2, yTop, cx + hw + 2, yTop, 1.8);
-  s += `<path d="M${cx - hw} ${yTop + 1} Q${cx - hw - 3} ${yTop + h * 0.5} ${cx - hw + 1.5} ${yTop + h} L${cx + hw - 1.5} ${yTop + h} Q${cx + hw + 3} ${yTop + h * 0.5} ${cx + hw} ${yTop + 1} Z" fill="@voile" stroke="@voileO" stroke-width="1"/>`;
+  s += `<path d="M${cx - hw} ${yTop + 1} Q${cx - hw - 3} ${yTop + h * 0.5} ${cx - hw + 1.5} ${yTop + h} L${cx + hw - 1.5} ${yTop + h} Q${cx + hw + 3} ${yTop + h * 0.5} ${cx + hw} ${yTop + 1} Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>`;
   for (let i = 0; i < 3; i++) {
     const x = cx - hw + ((2 * hw) * (2 * i + 1)) / 6;
     s += `<path d="M${x - 2.2} ${yTop + 2} L${x + 2.2} ${yTop + 2} L${x + 2.2} ${yTop + h - 1.5} L${x - 2.2} ${yTop + h - 1.5} Z" fill="@pavillon" opacity="0.8"/>`;
@@ -54,7 +54,7 @@ function profile(): string {
     + gunports(-30, 28, 10, -11.6, 2.6)
     + '<path d="M-44 -5.5 Q0 -1.2 44 -5" fill="none" stroke="@coqueO" stroke-width="0.8" opacity="0.5"/>'
     // Château ARRIÈRE : rangées de fenêtres, tourelles en poivrière, pavillon.
-    + '<path d="M-51 -28 l3.5 0 M-45 -28 l3.5 0 M-51.5 -21.5 l3.5 0 M-45.5 -21.5 l3.5 0 M-39.5 -21.5 l3 0" stroke="@voileH" stroke-width="1.5"/>'
+    + '<path d="M-51 -28 l3.5 0 M-45 -28 l3.5 0 M-51.5 -21.5 l3.5 0 M-45.5 -21.5 l3.5 0 M-39.5 -21.5 l3 0" stroke="@toileDeVoileH" stroke-width="1.5"/>'
     + '<path d="M-54 -35 L-36 -33" fill="none" stroke="@coqueH" stroke-width="1.2"/>'
     + turret(-51, -34.6) + turret(-39, -33.2)
     + flag(-45, -34, 8, 5)
@@ -106,13 +106,13 @@ function back(): string {
     + '<path d="M-15 -19 Q0 -22 15 -19 L9 0.5 Q0 3 -9 0.5 Z" fill="@coque" stroke="@coqueO" stroke-width="1.5"/>'
     + '<path d="M-12.5 -11 Q0 -14.5 12.5 -11 M-10.5 -4 Q0 -7.5 10.5 -4" fill="none" stroke="@coqueO" stroke-width="0.8" opacity="0.5"/>'
     + '<path d="M-14 -19 L-15.5 -32 L15.5 -32 L14 -19 Z" fill="@coque" stroke="@coqueO" stroke-width="1.2"/>'
-    + '<path d="M-12 -27 l3.2 0 M8.8 -27 l3.2 0" stroke="@voileH" stroke-width="1.5"/>'
+    + '<path d="M-12 -27 l3.2 0 M8.8 -27 l3.2 0" stroke="@toileDeVoileH" stroke-width="1.5"/>'
     + castle(-12, 12, -42, -32, 4)
-    + '<path d="M-8 -37 l3.2 0 M-1.6 -37 l3.2 0 M4.8 -37 l3.2 0" stroke="@voileH" stroke-width="1.5"/>'
+    + '<path d="M-8 -37 l3.2 0 M-1.6 -37 l3.2 0 M4.8 -37 l3.2 0" stroke="@toileDeVoileH" stroke-width="1.5"/>'
     + turret(-13.5, -42) + turret(13.5, -42)
     + flag(0, -44, 8, 5)
     // BLASON au loup sur le tableau : écu clair, tête de loup sombre.
-    + '<path d="M-4 -30.5 L4 -30.5 L4 -24.5 Q4 -21.8 0 -20.8 Q-4 -21.8 -4 -24.5 Z" fill="@voile" stroke="@coqueO" stroke-width="0.9"/>'
+    + '<path d="M-4 -30.5 L4 -30.5 L4 -24.5 Q4 -21.8 0 -20.8 Q-4 -21.8 -4 -24.5 Z" fill="@toileDeVoile" stroke="@coqueO" stroke-width="0.9"/>'
     + '<path d="M-2.4 -26.6 L0.6 -28 L2.7 -26.2 L1 -25.6 L1.7 -24.2 L-2 -24.8 Z" fill="@matO"/>'
     + '<path d="M-0.8 -27.8 L-0.3 -29.4 L0.9 -27.9 Z" fill="@matO"/>'
     + '</g>';

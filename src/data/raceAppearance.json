@@ -318,8 +318,7 @@
       "peauO": "#d98e6a",
       "peau": "#e0b48a",
       "peauH": "#e9c39c",
-      "cheveuxO": "#54341a",
-      "cheveuxH": "#6a4423"
+      "cheveuxO": "#54341a"
     },
     "paletteF": {
       "cheveux": "#7a5230",
@@ -517,7 +516,6 @@
     "palette": {
       "peau": "#8e8a7a",
       "peauO": "#605c4d",
-      "peauH": "#a8a390",
       "cheveux": "#454c36",
       "cheveuxO": "#2c3024",
       "cheveuxH": "#5a6248"

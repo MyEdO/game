@@ -11,6 +11,7 @@
  * pourra alors override `palette` pour un skin personnalisé sans toucher au def.
  */
 import type { RigHeldDef } from '../types';
+import type { PaletteDeCouchePortee } from '../../palette';
 
 /** Def d'ARME = base commune `RigHeldDef` (slug/label/target/art, comme les boucliers) + métadonnées
  *  de COMBAT. `art` (hérité) peut porter des `@tokens` palette (skins légendaires) résolus via `palette`. */
@@ -19,5 +20,5 @@ export interface WeaponDef extends RigHeldDef {
   /** Groupe canonique WFRP4 (subType) — métadonnée de FORME (l'anim, elle, passe par handling.ts). */
   group: string;
   /** Table par défaut token→couleur pour les `@tokens` de `art` (override possible par objet légendaire). */
-  palette?: Record<string, string>;
+  palette?: PaletteDeCouchePortee;
 }

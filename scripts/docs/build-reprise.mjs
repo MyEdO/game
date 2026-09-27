@@ -372,7 +372,9 @@ chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantie
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
 \`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\` et son \`log\`. Le train rebase sur \`origin/main\`, régénère les docs
+du harnais, et imprime son \`pid\` et son \`log\`. Le train rebase sur \`origin/main\` — sans rebase quand
+\`origin/main\` est déjà ancêtre de la tête, refus quand la branche porte des fusions hors tronc :
+fusionner \`origin/main\` dans la branche, puis \`--reprendre\` (#1998) —, régénère les docs
 dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (borné par
 \`--ci-timeout-min\`) et, sur vert, fait entrer \`main\` en FAST-FORWARD ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le

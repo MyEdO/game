@@ -15,10 +15,12 @@
 // commet), derives (les docs dérivés laissés non commités par le hook `post-rewrite` d'un rebase
 // MANUEL sont commis AVANT le rebase — mesuré le 2026-09-14 : `git rebase origin/main` refuse de
 // DÉMARRER sur un arbre sale, « cannot rebase: You have unstaged changes »), rebase sur
-// origin/main, docs dérivés régénérés — la plage sans source de doc saute la RÉGÉNÉRATION, jamais
-// le COMMIT —, push de la branche, attente bornée du verdict CI de la TÊTE, fast-forward de `main`,
-// pilotage des tickets cités, fin. Un tronc qui a bougé pendant l'attente RELANCE rebase → docs →
-// push-branche → ci (#1751), borné par le compteur `reprises`.
+// origin/main — sauté quand `origin/main` est déjà ancêtre de HEAD, REFUSÉ quand la branche porte des
+// fusions hors tronc : une publication ne réécrit jamais une histoire qui contient le tronc, ne
+// linéarise jamais des fusions (#1998) —, docs dérivés régénérés — la plage sans source de doc
+// saute la RÉGÉNÉRATION, jamais le COMMIT —, push de la branche, attente bornée du verdict CI de la
+// TÊTE, fast-forward de `main`, pilotage des tickets cités, fin. Un tronc qui a bougé pendant
+// l'attente RELANCE rebase → docs → push-branche → ci (#1751), borné par le compteur `reprises`.
 //
 // INTERDITS, gravés — `commandeInterdite` les refuse AVANT tout spawn, et ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI) :
@@ -589,6 +591,38 @@ export function verdictDuTronc({ distant, base, reprises = 0 }) {
   return (reprises ?? 0) >= 1 ? 'rouge-deux-fois' : 'relancer'
 }
 
+/** Refus de l'étape `rebase` sur un train de FUSION qui ne contient pas le tronc (#1998). */
+export const REFUS_TRAIN_DE_FUSION =
+  'train de fusion : fusionner `origin/main` dans la branche, puis `--reprendre` — jamais un rebase qui linéarise les fusions'
+
+/**
+ * Ce que l'étape `rebase` fait de la relation d'`origin/main` à HEAD (#1998). PURE.
+ * @param {{contenu:boolean, fusions:boolean}} p `contenu` = `origin/main` ancêtre de HEAD ;
+ *   `fusions` = `origin/main..HEAD` porte au moins un commit de fusion.
+ * @returns {'contenu'|'fusions'|'rebase'}
+ */
+export function decisionDeRebase({ contenu, fusions }) {
+  if (contenu) return 'contenu'
+  return fusions ? 'fusions' : 'rebase'
+}
+
+/**
+ * La lecture git que `decisionDeRebase` juge : `origin/main` ancêtre de HEAD (`estAncetre`), et
+ * sinon les fusions de `origin/main..HEAD`.
+ * @param {string} racine
+ * @returns {{disponible:true, contenu:boolean, fusions:boolean}|{disponible:false, raison:string}}
+ */
+export function relationAuTronc(racine) {
+  const vu = estAncetre(TRONC.suivi, 'HEAD', { cwd: racine })
+  if (!vu.disponible) return { disponible: false, raison: vu.raison }
+  if (vu.absent) return { disponible: false, raison: 'origin/main ou HEAD introuvable' }
+  if (vu.valeur) return { disponible: true, contenu: true, fusions: false }
+  const merges = lireGit(['rev-list', '--merges', `${TRONC.suivi}..HEAD`], { cwd: racine, site: 'git rev-list' })
+  const sortie = sortieOuNull(merges)
+  if (sortie === null) return { disponible: false, raison: merges.disponible ? 'origin/main..HEAD illisible' : merges.raison }
+  return { disponible: true, contenu: false, fusions: sortie.trim() !== '' }
+}
+
 /** Première ligne d'un message de commit, bornée. PURE. */
 export const titreDeCommit = (message, max = 120) => {
   const ligne = String(message ?? '').split('\n')[0].trim()
@@ -867,8 +901,12 @@ export const ETAPES = [
     jouer(ctx, journal) {
       const { racine } = ctx
       const teteAvant = ctx.tete
-      const vu = ctx.git(['rebase', TRONC.suivi])
-      if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
+      const relation = relationAuTronc(racine)
+      if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
+      const decision = decisionDeRebase(relation)
+      if (decision === 'fusions') return { ok: false, raison: REFUS_TRAIN_DE_FUSION }
+      const vu = decision === 'rebase' ? ctx.git(['rebase', TRONC.suivi]) : null
+      if (vu && (!vu.disponible || vu.absent || vu.valeur.status !== 0)) {
         const conflits = cheminsDe(lecteur(racine), ['diff', '--name-only', '--diff-filter=U'])
         const entame = ['rebase-merge', 'rebase-apply'].some((nom) => {
           const chemin = lu(['rev-parse', '--git-path', nom], racine)
@@ -892,7 +930,12 @@ export const ETAPES = [
       journal.teteAvant = teteAvant
       const commits = lu(['rev-list', `${journal.base}..HEAD`], racine)
       if (!commits) return { ok: false, raison: `rien à publier : ${journal.base?.slice(0, 9)}..HEAD est VIDE` }
-      return { ok: true, detail: { base: journal.base, tete: journal.tete, reecrit: teteAvant !== journal.tete }, dit: `base ${journal.base.slice(0, 9)} → tête ${journal.tete.slice(0, 9)}` }
+      const dit = `base ${journal.base.slice(0, 9)} → tête ${journal.tete.slice(0, 9)}`
+      return {
+        ok: true,
+        detail: { base: journal.base, tete: journal.tete, reecrit: teteAvant !== journal.tete },
+        dit: decision === 'contenu' ? `tronc déjà contenu — ${dit}` : dit,
+      }
     },
   },
   {

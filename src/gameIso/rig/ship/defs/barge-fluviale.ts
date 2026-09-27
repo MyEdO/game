@@ -12,8 +12,8 @@ function profile(): string {
     // Gréement à LIVARDE : mât court à l'avant du rouf, voile aurique établie vers l'arrière,
     // espar diagonal du talon du mât au pic.
     + spar(13, -8, 13, -42, 2.2)
-    + '<path d="M13 -38 L0 -41 Q-3 -29.5 0.5 -18.5 L13 -16 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
-    + '<path d="M8.4 -37.6 Q6.6 -27.5 8.4 -17" stroke="@voileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
+    + '<path d="M13 -38 L0 -41 Q-3 -29.5 0.5 -18.5 L13 -16 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
+    + '<path d="M8.4 -37.6 Q6.6 -27.5 8.4 -17" stroke="@toileDeVoileO" stroke-width="0.7" opacity="0.4" fill="none"/>'
     + spar(13, -13, 0, -41, 1.6)
     + pennant(13, -42, 6)
     // Coque à FOND PLAT : lisse rectiligne, tableau arrière quasi vertical, proue-rampe inclinée.
@@ -30,7 +30,7 @@ function profile(): string {
     + '<rect x="-20" y="-17" width="21" height="7.5" fill="@coque" stroke="@coqueO" stroke-width="1.1"/>'
     + '<path d="M-21 -9.7 L2 -9.7" stroke="@coqueO" stroke-width="1.6"/>'
     + '<path d="M-21.5 -17 Q-9.5 -18.8 2.5 -17" stroke="@matO" stroke-width="1.9" stroke-linecap="round" fill="none"/>'
-    + '<circle cx="-16" cy="-13.2" r="1.2" fill="@voileH"/><circle cx="-10.5" cy="-13.2" r="1.2" fill="@voileH"/><circle cx="-5" cy="-13.2" r="1.2" fill="@voileH"/>'
+    + '<circle cx="-16" cy="-13.2" r="1.2" fill="@toileDeVoileH"/><circle cx="-10.5" cy="-13.2" r="1.2" fill="@toileDeVoileH"/><circle cx="-5" cy="-13.2" r="1.2" fill="@toileDeVoileH"/>'
     + '<rect x="-2.4" y="-15.4" width="3.1" height="5.7" fill="@matO" stroke="@coqueO" stroke-width="0.7"/>'
     + spar(-17, -18, -17, -21.5, 1.4)
     // Fret en pontée sur le pont avant.
@@ -49,7 +49,7 @@ function front(): string {
     + '<rect x="-1.8" y="-14.6" width="3.6" height="5.3" fill="@matO" stroke="@coqueO" stroke-width="0.7"/>'
     // Mât au centre, voile à livarde vue de CHANT (mince fuseau fuyant vers l'arrière).
     + spar(0, -10, 0, -42, 2.2)
-    + '<path d="M1.1 -40 L2.9 -38.4 L3.5 -19 L1.1 -17.5 Z" fill="@voile" stroke="@voileO" stroke-width="0.8"/>'
+    + '<path d="M1.1 -40 L2.9 -38.4 L3.5 -19 L1.1 -17.5 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.8"/>'
     + pennant(0, -42, 6)
     // PROUE-RAMPE frontale : muraille trapézoïdale, fond plat étroit, virures horizontales.
     + '<path d="M-9.5 -9.5 L9.5 -9.5 L7 -1 L-7 -1 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'
@@ -64,12 +64,12 @@ function back(): string {
   return '<g>'
     // Mât au-dessus du rouf, voile de chant côté opposé, flamme.
     + spar(0, -16, 0, -42, 2)
-    + '<path d="M-1 -40 L-2.8 -38.4 L-3.4 -19.5 L-1 -18 Z" fill="@voile" stroke="@voileO" stroke-width="0.8"/>'
+    + '<path d="M-1 -40 L-2.8 -38.4 L-3.4 -19.5 L-1 -18 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="0.8"/>'
     + pennant(0, -42, 6)
     // Rouf, face ARRIÈRE : toit débordant, deux hublots, cheminée du poêle.
     + '<rect x="-7.5" y="-17" width="15" height="7.5" fill="@coque" stroke="@coqueO" stroke-width="1.1"/>'
     + '<path d="M-8.6 -17 Q0 -18.8 8.6 -17" stroke="@matO" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
-    + '<circle cx="-3.4" cy="-13.4" r="1.3" fill="@voileH"/><circle cx="3.4" cy="-13.4" r="1.3" fill="@voileH"/>'
+    + '<circle cx="-3.4" cy="-13.4" r="1.3" fill="@toileDeVoileH"/><circle cx="3.4" cy="-13.4" r="1.3" fill="@toileDeVoileH"/>'
     + spar(-5.6, -18.6, -5.6, -22, 1.4)
     // TABLEAU arrière plat : planche trapézoïdale à virures horizontales, fond plat étroit.
     + '<path d="M-9.5 -9.5 L9.5 -9.5 L7.5 -1 L-7.5 -1 Z" fill="@coque" stroke="@coqueO" stroke-width="1.4"/>'

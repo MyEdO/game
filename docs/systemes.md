@@ -155,6 +155,11 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -215,4 +220,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: c12ab3cfc5f7cc80a97b1a626cf36cf950eb38d2 (1829 fichiers, 2 dossiers) corps: c639a928551707c1a89f5e3fe7613e9587b6528d -->
+<!-- sources-empreinte: f7731369ff7a4671e7a0832e40d5430f50a4347b (1829 fichiers, 2 dossiers) corps: 4e4fa73d4d6b14ddbcc660bf7c292e3e55d90bd1 -->
