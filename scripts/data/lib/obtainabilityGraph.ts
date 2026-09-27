@@ -13,7 +13,8 @@
  * `chaos`, exclusivement dépendants du Talent `magie-du-chaos` (lui-même `codexOnly`), sont exemptés
  * de `spellNever` pour la même raison — verdicts RAW cités sur les entrées, pas un silence.
  */
-import { readFileSync, globSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
 import {
   talents, spells, careerLevels, species, creatures, mutations, stars, trappings, gods, effectTables,
@@ -60,22 +61,22 @@ export function computeObtainability(root: string): ObtainabilityResult {
   for (const cl of careerLevels) walkAdvancement(cl.talents, `carriere:${cl.career}#${cl.level}`);
   for (const cr of creatures) for (const t of cr.talents ?? []) addTalentSource(t.id, `creature:${cr.id}`);
 
-  for (const m of mutations) walkNode(m, (n) => { if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `mutation:${m.id}`); });
-  for (const s of stars) walkNode(s, (n) => { if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `etoile:${s.id}`); });
-  for (const tr of trappings) walkNode(tr, (n) => { if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `possession:${tr.id}`); });
-  for (const sp of spells) walkNode(sp, (n) => { if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `sort:${sp.id}`); });
-  for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `table:${t.id}`); });
+  for (const m of mutations) walkNode(m, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `mutation:${m.id}`); });
+  for (const s of stars) walkNode(s, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `etoile:${s.id}`); });
+  for (const tr of trappings) walkNode(tr, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `possession:${tr.id}`); });
+  for (const sp of spells) walkNode(sp, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `sort:${sp.id}`); });
+  for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `table:${t.id}`); });
 
   if (sawRandomEntry) for (const t of talents) if (t.rand != null) addTalentSource(t.id, 'table-talents-aleatoires');
 
   const learnSpellIds = new Set<string>();
-  for (const f of globSync('src/scenes/**/*.json', { cwd: root })) {
+  for (const f of listerProjetsLivres(root).map((rel) => `${PROJETS_LIVRES.dossier}/${rel}`)) {
     const text = readFileSync(join(root, f), 'utf8');
     if (!text.includes('"grantTalent"') && !text.includes('"learnSpell"')) continue;
     let json: unknown;
     try { json = JSON.parse(text); } catch { continue; }
     walkNode(json, (n) => {
-      if (n.op === 'grantTalent') addTalentSource(n.talentId as string, `scene:${f}`);
+      if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `scene:${f}`);
       if (n.type === 'learnSpell' && typeof n.spell === 'string') learnSpellIds.add(n.spell);
     });
   }

@@ -5,7 +5,7 @@ import { rangeBandName } from './combat';
 import { trappings, type TrappingRef } from '../data';
 import { Combatant, ItemInstance, Weapon } from './types';
 
-/** Shim de test : résout un LIBELLÉ d'objet → instance par id (authoring). Inconnu → null. */
+/** Résolveur de test : résout un LIBELLÉ d'objet → instance par id (authoring). Inconnu → null. */
 const itemFromTrapping = (label: string): ItemInstance | null => {
   const t = trappings.find((x) => x.label === label);
   return t ? itemFromTrappingById(t.id) : null;

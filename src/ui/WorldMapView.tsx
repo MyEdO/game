@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { nomDuNavire } from '../state/carriers';
 import { useGame } from '../state/store';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
 import { baseHoursPerDay, maxHoursPerDay } from '../state/travelFlow';
@@ -205,7 +206,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Traversée MARITIME (routes `sea`, MDG 13/15) : sur le navire de campagne — estimation en milles/jour.
   const vessel = useGame((s) => s.vessel);
   const vesselData = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  const vesselLabel = vessel?.label ?? vesselData?.label ?? ''; // #230 — nom d'instance prioritaire
+  const vesselLabel = vessel ? nomDuNavire(vessel) : '';
   // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
   // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
   // campagne en mer, le bateau du trajet sur une route FLUVIALE jouée (même condition qu'au départ,

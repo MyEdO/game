@@ -209,13 +209,23 @@ export function resetIds() {
 /** Personnage (PNJ) : apparence/dialogue/marchand via opts. `weapon`/`appearance.species`/`appearance.tenue`
  *  sont VALIDÉS (ids stables, fail-fast). `species` absent n'est PAS un défaut : sans réf de créature, le
  *  rendu retombe sur la race par défaut de `speciesRace.json` EN DIAGNOSTIQUANT la donnée manquante
- *  (`resolveRender`, `src/gameIso/rig/bodyPlan.ts`) — l'espèce se pose au site d'authoring. */
+ *  (`resolveRender`, `src/gameIso/rig/bodyPlan.ts`) — l'espèce se pose au site d'authoring.
+ *  FICHE (#1882) : sans `ref`/`statblock`/`presetId`, la `ref` est le profil standard de son espèce
+ *  (`LDB 77 l.7`, `species.json › profilStandard`), posée en QUEUE ; une espèce sans profil → throw. */
 export function NPC(id, x, y, label, opts = {}, knownPresetIds) {
   const e = { id, kind: 'personnage', pos: { x, y }, label, ...opts };
   if (e.weapon != null) e.weapon = weaponId(e.weapon);
   if (e.presetId != null) e.presetId = presetRef(e.presetId, knownPresetIds); // #671 : PNJ nommé instancié base+surcharges
   if (e.appearance != null) e.appearance = validateAppearance(e.appearance);
+  if (e.ref == null && e.statblock == null && e.presetId == null) e.ref = profilStandardDe(id, e.appearance?.species);
   return e;
+}
+
+/** Profil standard (`LDB 77 l.7`) de l'espèce d'un PNJ sans fiche — throw si l'espèce n'en porte pas. */
+function profilStandardDe(id, speciesId) {
+  const profil = SPECIES_CATALOG.find((s) => s.id === speciesId)?.profilStandard?.id;
+  if (profil) return profil;
+  throw new Error(`campagne : PNJ « ${id} » sans fiche — ni ref, ni statblock, ni presetId, et l'espèce « ${speciesId} » ne porte aucun profil standard (species.json › profilStandard, LDB 77 l.7).`);
 }
 
 export function hero(x, y) {

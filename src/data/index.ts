@@ -7,8 +7,8 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
-import type { SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
-import { lireLEspace, porteLeMarqueur, type TypeEntite } from './schemas/grammaire/ref';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
+import { lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
@@ -17,7 +17,6 @@ import type { MerchantArchetypeDef } from '../state/merchants/types';
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../state/scene';
 import { slugId } from './slug';
-import { norm } from '../lib/normalize';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
@@ -116,7 +115,7 @@ import seaPerilsJson from './sea-perils.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
-import { CharKey, CHAR_LABELS, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
+import { CharKey, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from '../engine/disease'; // type-only (le runtime de disease.ts importe `maladies` d'ici)
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
@@ -135,13 +134,12 @@ import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type { SeaWeatherData } from './schemas/defs/sea-weather';
 import type { ShipConstructionData } from './schemas/defs/ship-construction';
 import type { RiverNavigationData } from './schemas/defs/river-navigation';
-import type { SkillRef as EngineSkillRef } from '../engine/skills'; // type-only (aliasé : `SkillRef` est déjà pris ci-dessous, id Codex)
 
 /** Compétence AU CHOIX d'une Activité (`ActivityDef.skills`, `src/engine/skills.ts` `TestSpec`) —
  *  `difficulty?` porte la Difficulté PROPRE à cette voie quand le RAW en attache une différente par
  *  Compétence (Punchausen, AA 12 l.45-49 : Charme Complexe OU Divertissement (Narration)
  *  Intermédiaire) ; absente, la voie retombe sur `ActivityDef.difficulty`. */
-export interface ActivitySkill extends EngineSkillRef {
+export interface ActivitySkill extends RefDesignee {
   difficulty?: Difficulty;
 }
 
@@ -195,7 +193,7 @@ export interface WaterExposureData {
   id: string;
   label: string;
   desc: string;
-  test: { skill: EngineSkillRef; difficulty: import('../engine/types').Difficulty };
+  test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
   rollModPerNegativeSL: number;
   modifiers: WaterExposureModifier[];
   diseases: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[];
@@ -823,6 +821,9 @@ export interface SpeciesData {
    *  quand elle porte son propre Groupe (« Humains (Tiléens) » → `humain` + `tileen`). Lus tels
    *  quels par `groupsFor` (`engine/groups`), qui ne dérive plus rien du `label`. */
   grantGroups: string[];
+  /** Profil standard du PNJ de l'espèce (`LDB 77 l.7`) — réf à `creatures.json`, posée par espèce.
+   *  Absent = aucun profil standard (`gnomes`). */
+  profilStandard?: { id: string };
   /** Seuil d100 de mutation PHYSIQUE (LDB 19 l.78-81 : d100 ≤ seuil → corps, sinon esprit) :
    *  Elfe 0, Nain 5, Halfling 10, Humain 50. Ogre 10 (ADE II « Ogres et Mutations »). ABSENT = défaut
    *  Humain (50) — le Gnome y est rattaché par NADJ « Gnomes et Corruption » (« mutent comme les humains »). */
@@ -1019,7 +1020,7 @@ export interface SkillData {
  *  « (Au choix) » → matche la spec CHOISIE de l'instance (`t.spec`). `when` = contexte MÉCANISABLE (Condition combat — auto si vraie) ; `manual` =
  *  contexte NARRATIF inmécanisable (« quand vous soulevez ») → advisory, JAMAIS auto-appliqué. */
 export interface TestMatch {
-  skill?: Ref;
+  skill?: RefDesignee;
   char?: import('../engine/types').CharKey;
   specFromInstance?: boolean;
   /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
@@ -1468,7 +1469,7 @@ export interface EtatData extends StatusData {
    *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
    *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
    *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: Ref; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
+  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty };
   /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
    *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
    *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
@@ -1574,7 +1575,7 @@ export interface PsychologyData extends StatusData {
    *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
    *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
    *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
-  test?: { skill?: Ref; difficulty?: import('../engine/types').Difficulty };
+  test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
 }
 /** Tables Couleur des Yeux / Cheveux (LDB 05 l.698-744) : 2d10, par colonne `RaceKey` (#313). */
 export interface DetailColorData {
@@ -1849,10 +1850,10 @@ export interface TraitData {
    *  Sang corrosif, Régénération…) appliqués par `state/triggeredEffects`, jamais par un handler en dur.
    *  Type-only (le moteur reste pur : la donnée référence le Flow sans en dépendre à l'exécution). */
   effects?: import('../state/flow').TriggeredEffect[];
-  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `Ref[]` vers le dataset
+  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `RefDesignee[]` vers le dataset
    *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
    *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
-  grantsManeuvers?: Ref[];
+  grantsManeuvers?: RefDesignee[];
   /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `GameOp[]` — le MÊME vocabulaire
    *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
    *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
@@ -1936,7 +1937,7 @@ export interface QualityCapabilities {
 /** Atout/Défaut d'arme (LDB 62-63) : libellé + desc VERBATIM + effets déclenchés authorés (mêmes
  *  `TriggeredEffect` que les Traits — un Atout « à la touche : 1d10 + Empêtré » s'édite au Codex). */
 export interface QualityData {
-  /** id STABLE (slug du libellé) — cible des `Ref` de qualité, robuste au renommage. */
+  /** id STABLE (slug du libellé) — cible des `RefDesignee` de qualité, robuste au renommage. */
   id: string;
   type: 'qualities';
   label: string;
@@ -2159,7 +2160,7 @@ export interface SpellData {
     consequences: string;
   };
   /** Famille d'incantation STABLE (id, multilangue) — DISCRIMINANT moteur (familyOf / isArcaneSpell /
-   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus n'est plus qu'un libellé d'affichage. */
+   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus est un libellé d'affichage. */
   family: import('../engine/combatFeatures/types').CastingKind;
   /** Niveau d'Incantation (NI). `null` pour les Prières (Béni/Invocation). */
   cn: number | null;
@@ -2199,7 +2200,7 @@ export interface SpellData {
     /** Caractéristique opposée (`resist` uniquement). */
     char?: import('../engine/types').CharKey;
     /** Compétence opposée (`resist` uniquement, rare) — référence `{ id, spec? }`. */
-    skill?: Ref;
+    skill?: RefDesignee;
   };
   /**
    * EFFETS du sort — `Flow` ÉDITABLE (système logique unique : `do`/`if`/`test`), source des effets
@@ -2295,8 +2296,8 @@ export interface RaceAppearanceData {
   label: string;
   gabarit: string;
   gabaritOverride?: Record<string, number>;
-  palette?: Record<string, string>;
-  paletteF?: Record<string, string>;
+  palette?: import('./palette.types').PaletteDEspece;
+  paletteF?: import('./palette.types').PaletteDEspece;
   head?: string;
   legs?: string;
   armG?: string;
@@ -2307,7 +2308,7 @@ export interface RaceAppearanceData {
   pose?: Record<string, number>;
   tenue?: string;
   colors?: Record<string, string>;
-  sex?: 'M' | 'F';
+  sex?: Sexe;
   parts?: { cheveux?: number; visage?: number };
   scale?: number;
   eyes?: { G?: string; D?: string };
@@ -2321,10 +2322,8 @@ export interface NamePool {
   maleFirstNames: string[];
   femaleFirstNames: string[];
   lastNames: string[];
-  /** Suffixes de patronyme par sexe du PERSONNAGE (Nain, LDB 05 l.627-633 : « –sson » fils de…, « –snev »
-   *  neveu de…, « –sdottir » fille de…, « –sniz » nièce de…) — le nom de famille est généré depuis le
-   *  parent + suffixe quand `lastNames` est vide. Absent = pas de génération par suffixe. */
-  lastNameSuffixes?: { M: string[]; F: string[] };
+  /** Suffixes de patronyme par sexe du personnage (LDB 05 l.627-633). */
+  lastNameSuffixes?: Record<Sexe, string[]>;
 }
 
 import { indexParChamp, indexParId, memoParVersion } from './versionDataset';
@@ -2387,7 +2386,7 @@ const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.to
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
  *  `undefined` si le texte ne nomme aucun trait du catalogue. La couture label→id vit ICI, au
  *  CHARGEMENT de la donnée (CLAUDE.md § Pour TOUT agent) : `src/engine` délègue à ce résolveur d'ID
- *  et ne manipule que des ids ; le runtime résout par `findTraitById`. Patron `talentIdByLabel`. */
+ *  et ne manipule que des ids ; le runtime résout par `findTraitById`. */
 export const traitIdByLabel = (label: string): string | undefined => traitParLabelMinuscule(label.toLowerCase())?.id;
 const traitParId = indexParId('traits', traits);
 /** Trait par `id` STABLE (slug) — lookup runtime indépendant de la langue. */
@@ -2717,7 +2716,7 @@ export interface CrewRoleData {
   id: string;
   type: 'crew-roles';
   label: string;
-  skills: EngineSkillRef[];
+  skills: RefDesignee[];
   desc: string;
   wage?: CrewWage;
 }
@@ -2809,10 +2808,8 @@ export const refEstVolumique = (ref: string | undefined): boolean => ref !== und
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
- *  `findDomainById`) ; `domainByLabel`/`findDomain` restent pour l'authoring/affichage. */
+ *  `findDomainById`). */
 export const domains = domainsJson as DomainData[];
-const domaineParLabel = indexParChamp('domains', domains, (d) => d.label);
-export const findDomain: (label: string | null | undefined) => DomainData | undefined = domaineParLabel;
 /** Index des Domaines par `id` STABLE — lookup RUNTIME indépendant de la langue (sort→domaine). */
 const domaineParId = indexParId('domains', domains);
 export const findDomainById: (id: string | null | undefined) => DomainData | undefined = domaineParId;
@@ -2861,7 +2858,16 @@ export const weather = weatherData.seasons;
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
 export function seasonLabel(id: string): string {
-  return weatherData.seasons.find((s) => s.id === id)?.label ?? `saison « ${id} » (sans fiche)`;
+  return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
+}
+
+/** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
+ *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+/** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
+ *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
+export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): string {
+  return e ? e.label : t(`absent.${nature}`, { id });
 }
 /** Effets par météo (visibilité, mods de tir, poudre, Tests physiques, plafond de mouvement…). */
 export const weatherConditions = weatherData.conditions;
@@ -3006,30 +3012,44 @@ export function psychologyLabel(id: string): string {
  *  après une édition au Codex. Consommée par le scan du journal (`engine/conditions.conditionIdInText`)
  *  qui itère des ids et n'obtient le libellé que pour le chercher dans un texte FRANÇAIS. */
 export const conditionIds = memoParVersion('etats', () => etats.map((e) => e.id));
-const etatParLabelMinuscule = indexParChamp('etats', etats, (e) => e.label.toLowerCase());
-/** Résout un `id` d'État depuis un LIBELLÉ (authoring : parsing de desc/texte) — insensible à la casse. */
-export function conditionIdByLabel(label: string): string | undefined {
-  return etatParLabelMinuscule(label.toLowerCase())?.id;
-}
-/** Inverse de `CHAR_LABELS` (engine/types) : nom FR complet (« Force Mentale ») → `CharKey` (« FM »).
- *  Couture UNIQUE label→id des Caractéristiques — consommée par `engine/spellRange.ts` pour parser
- *  la prose des Portées/ZdE de sort (« (Bonus de Force Mentale) mètres »), jamais recopiée ailleurs. */
-const CHAR_KEY_BY_LABEL = new Map<string, CharKey>((Object.entries(CHAR_LABELS) as [CharKey, string][]).map(([k, v]) => [v, k]));
-export function charKeyByLabel(label: string): CharKey | undefined {
-  return CHAR_KEY_BY_LABEL.get(label);
-}
 const especeParId = indexParId('species', species);
 /** Résout une Espèce par son `id` STABLE (slug du libellé) — réf runtime/données (Combatant.species,
  *  pregens, draft). Le libellé ne sert qu'à l'affichage (`speciesSingular`). */
 export function findSpeciesById(id: string | undefined): SpeciesData | undefined {
   return especeParId(id);
 }
+/** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
+ *  sans doublon, dans l'ordre du dataset. */
+export function profilsStandard(): string[] {
+  return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
+}
+/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
+ *  (`vehicles.json` facette `hull`, MDG 13), affût d'engin de siège (`trappings.json` `siegeRig`, AA 10).
+ *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
+ *  spawn (`spawnEnemy`) la lisent ici. */
+export function refEntiteResolue(ref: string): boolean {
+  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+}
+/**
+ * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
+ * catalogue (#877, #1882). Un catalogue VIDE n'a PAS de défaut : l'appelant le DIT, jamais un littéral.
+ */
+export const premierOffert = (catalogue: readonly { id: string }[], quoi: string): string => {
+  const premier = catalogue[0];
+  if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
+  return premier.id;
+};
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
+ *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
+export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
+export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
 /** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
  *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572).
  *  Même vocabulaire que `sizeFromTalents` (engine/character.ts) : la plus grande catégorie parmi
  *  `TalentData.size`. */
 export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCategory {
-  const ids = sp.talents.filter((t): t is Ref => 'id' in t && t.choix == null).map((t) => t.id);
+  const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
 }
 /** id d'espèce RIG (slug, clé `appearance.species`) dérivé d'un id d'espèce RULES (ou chaîne libre) :
@@ -3083,12 +3103,12 @@ export function findCareerById(id: string | undefined): CareerData | undefined {
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
  *  `label`. Le sexe vit dans l'apparence cosmétique (`Combatant.appearance.sex`), jamais dans le moteur. */
-export function displayLabelForSex(sex: 'M' | 'F' | undefined, label: string, labelF?: string): string {
+export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): string {
   return sex === 'F' && labelF ? labelF : label;
 }
 /** Libellé de Carrière à AFFICHER pour un personnage (forme féminine si sexe F). Bord UI — le
  *  retour est du texte d'affichage, JAMAIS une clé. */
-export function careerLabelFor(c: { career?: string; appearance?: { sex?: 'M' | 'F' } }): string {
+export function careerLabelFor(c: { career?: string; appearance?: { sex?: Sexe } }): string {
   const career = findCareerById(c.career);
   if (!career) return c.career ?? '';
   return displayLabelForSex(c.appearance?.sex, career.label, career.labelF);
@@ -3108,12 +3128,6 @@ export function findSkill(label: string): SkillData | undefined {
   // Exact d'abord, puis casse ignorée (les statblocs de campagne écrivent « Corps à Corps »).
   return skills.find((s) => s.label === label) ?? skills.find((s) => s.label.toLowerCase() === label.toLowerCase());
 }
-/** Résout un `id` de Compétence depuis un LIBELLÉ d'AUTHORING (entrée de carrière/espèce, texte
- *  saisi) — repli `slugId` si le libellé n'est pas au catalogue (dette de donnée, jamais un crash).
- *  Couture label→id (doctrine CLAUDE.md) : SEULE définition, `src/engine` délègue ici. */
-export function skillIdByLabel(label: string): string {
-  return findSkill(label)?.id ?? slugId(label);
-}
 /** REGISTRE de la porte `byId` : type d'entité de la grammaire → index de son dataset par `id`
  *  STABLE. Un type y entre AVEC le lot qui migre son concept (patron `TYPES`,
  *  `schemas/grammaire/ref.ts`) — ce qui n'y est pas déclaré ne se résout pas par la porte. */
@@ -3132,13 +3146,6 @@ type EntiteDe<T extends TypeResolu> = NonNullable<ReturnType<(typeof PAR_ID)[T]>
 export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | undefined {
   return PAR_ID[type](id) as EntiteDe<T> | undefined;
 }
-/** Noyau de RÉFÉRENCE structurée par `id` STABLE — partagé par toutes les refs de la donnée
- *  (compétences, talents, sorts, qualités, possessions, bénédictions…). `id` = slug du libellé
- *  (robuste au renommage) ; `spec` = spécialisation/type concret libre (« Ghur », « Reikland »), non un id. */
-export interface Ref {
-  id: string;
-  spec?: string;
-}
 /**
  * Référence STRUCTURÉE à une Compétence — la réf de la grammaire (`refOuSpec('skill')`, régimes
  * `spec` DÉSIGNÉE XOR `choix` à faire) + `value`, le nombre IMPRIMÉ au statbloc.
@@ -3146,10 +3153,7 @@ export interface Ref {
  * `choix` ne survit PAS au spawn : `skillsFromBook` (`state/spawn.ts`) DÉSIGNE une spécialisation, et
  * la `SkillInstance` runtime est toujours concrète.
  */
-export interface SkillRef extends Ref {
-  choix?: true | string[];
-  value: number;
-}
+export type SkillRef = RefASpecialisation & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
 export function skillRefLabel(ref: SkillRef): string {
@@ -3159,26 +3163,13 @@ export function skillRefLabel(ref: SkillRef): string {
 export function findTalent(label: string): TalentData | undefined {
   return talents.find((t) => t.label === label);
 }
-/** Résout un `id` de Talent depuis un LIBELLÉ d'AUTHORING (entrée de carrière/espèce, texte saisi) —
- *  repli `slugId` si le libellé n'est pas au catalogue (dette de donnée, jamais un crash). Couture
- *  label→id (doctrine CLAUDE.md) : SEULE définition, `src/engine` délègue ici. */
-export function talentIdByLabel(label: string): string {
-  return findTalent(label)?.id ?? slugId(label);
-}
-/** Specs PROPOSÉES par un libellé d'AUTHORING à joker (« Nom (Au choix) ») — résout Compétence OU
- *  Talent par libellé puis délègue à `specPoolOf` (hoisté plus bas dans ce module). `[]` si le nom
- *  ne porte aucune spec ou n'est pas au catalogue. */
-export function wildcardSpecIds(name: string): string[] {
-  const def = findSkill(name) ?? findTalent(name);
-  return def ? specPoolOf(def) : [];
-}
 const talentParId = indexParId('talents', talents);
 /** Résout un Talent par son `id` STABLE (référence structurée — fin du lookup par libellé parsé). */
 export function findTalentById(id: string): TalentData | undefined {
   return talentParId(id);
 }
-/** Référence STRUCTURÉE à un Talent (`Ref` + niveau `times` ≥2) — fin des chaînes « Maîtrise du combat 2 ». */
-export interface TalentRef extends Ref {
+/** Référence STRUCTURÉE à un Talent (`RefDesignee` + niveau `times` ≥2) — fin des chaînes « Maîtrise du combat 2 ». */
+export interface TalentRef extends RefDesignee {
   times?: number;
 }
 /** Libellé d'affichage d'une `TalentRef` : « Magie des Arcanes (Ghur) », « Maîtrise du combat 2 »
@@ -3222,23 +3213,6 @@ export function weaponGroupLabel(id: string | null | undefined): string {
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
 export type TrappingTypeId = 'melee' | 'ranged' | 'ammunition' | 'armor' | 'trapping';
-const armeParLabelNormalise = indexParChamp('trappings', trappings, (t) =>
-  (t.categorie === 'melee' || t.categorie === 'ranged') && t.subType ? norm(t.label) : undefined);
-/** `id` de Groupe d'arme (`TrappingData.subType`) depuis un LIBELLÉ d'arme SAISI (arme custom, statbloc
- *  sans identité de catalogue) — libellé normalisé, `undefined` hors catalogue. La couture label→id vit
- *  ICI, au chargement de la donnée (CLAUDE.md § Pour TOUT agent) : `engine/weaponGroup` délègue et ne
- *  manipule que des ids. Patron `traitIdByLabel`/`qualityIdByLabel`. */
-export function weaponGroupIdByWeaponLabel(label: string): string | undefined {
-  return armeParLabelNormalise(norm(label))?.subType ?? undefined;
-}
-const groupeObjetParLabelMinuscule = indexParChamp('weaponGroups', weaponGroups, (g) => g.label.toLowerCase());
-/** Résout un `id` de Groupe depuis un LIBELLÉ (authoring/données de Sort « subType » par libellé) —
- *  insensible à la casse. Renvoie l'id si déjà un id connu, sinon résout le libellé. */
-export function weaponGroupIdByLabel(label: string | null | undefined): string | undefined {
-  if (!label) return undefined;
-  if (groupeObjetParId(label)) return label; // déjà un id
-  return groupeObjetParLabelMinuscule(label.toLowerCase())?.id;
-}
 const groupeParId = indexParId('groups', groups);
 /** Résout un Groupe d'APPARTENANCE par son `id` STABLE (cible de Trait psy, filtre onlyGroups/exceptGroups). */
 export function findGroupById(id: string | null | undefined): GroupData | undefined {
@@ -3288,17 +3262,9 @@ export function creatureLabel(id: string): string {
 export function isNamed(c: CreatureData): boolean {
   return c.named === true;
 }
-/** Lookup par LIBELLÉ — réservé à l'AUTHORING/affichage (picker éditeur, Codex) ; le runtime résout par id. */
-export function findCreature(label: string): CreatureData | undefined {
-  return creatures.find((c) => c.label === label);
-}
 /** Sort par LIBELLÉ — bord AUTHORING/affichage ; rend l'entrée EFFECTIVE, comme `findSpellById`. */
 export function findSpell(label: string): SpellData | undefined {
   return effectiveEntry(spells.find((s) => s.label === label));
-}
-/** Signe astral par LIBELLÉ — bord AUTHORING/affichage (l'éditeur, le tirage qui produit un libellé). */
-export function findStar(label: string): StarData | undefined {
-  return stars.find((s) => s.label === label);
 }
 const signeAstralParId = indexParId('stars', stars);
 /** Signe astral par `id` STABLE — lookup RUNTIME indépendant de la langue (`Combatant.star` = id). */
@@ -3307,16 +3273,9 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 }
 
 const possessionParId = indexParId('trappings', trappings);
-/** Résout une Possession par son `id` STABLE (référence structurée — ≠ `findTrapping` par libellé, authoring). */
+/** Résout une Possession par son `id` STABLE. */
 export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
-}
-const possessionParLabelNormalise = indexParChamp('trappings', trappings, (t) => norm(t.label));
-/** Résout une Possession par LIBELLÉ normalisé — bord AUTHORING (texte libre saisi par l'auteur : override
- *  de scène `weapon:'X'`, fixtures de test), JAMAIS au runtime moteur (qui reste sur `findTrappingById`,
- *  seule la couture label→id à l'authoring/chargement est tolérée, cf. CLAUDE.md règle stricte 7). */
-export function findTrappingByLabel(label: string): TrappingData | undefined {
-  return possessionParLabelNormalise(norm(label));
 }
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
@@ -3394,8 +3353,8 @@ export function chaosSpellsOf(god: string): string[] {
   return findGodById(god)?.chaosSpells ?? [];
 }
 
-/** Référence à une Qualité d'objet (`Ref` + Indice éventuel : « Solide 3 » → value 3). */
-export interface QualityRef extends Ref {
+/** Référence à une Qualité d'objet (`RefDesignee` + Indice éventuel : « Solide 3 » → value 3). */
+export interface QualityRef extends RefDesignee {
   value?: number;
 }
 /** Quantité d'une possession conférée : nombre fixe (« (3) ») ou jet de dés structuré (« (1d10) »). */
@@ -3413,7 +3372,7 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
 export type TrappingRef =
-  | (Ref & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
+  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
   | { text: string; count?: CountSpec }
   | { vehicleId: string; count?: CountSpec; label?: string }
   | { creatureId: string; count?: CountSpec; label?: string }
@@ -3425,7 +3384,7 @@ export type TrappingRef =
  *  borné « Fléau ou À deux mains »), « n parmi » (`{pick, of}` — le « A ou B » des listes), ou
  *  tirage (`{random: n}`, « N Talent aléatoire »). */
 export type AdvancementRef =
-  | (Ref & { choix?: true | string[] })
+  | RefASpecialisation
   | { pick: number; of: AdvancementRef[] }
   | { random: number };
 
@@ -3514,13 +3473,13 @@ export function specCatalogOf(def: { specsSource?: SpecsSource; specs?: SpecEntr
 }
 /** VALIDITÉ d'une spéc pour une def : l'id existe au catalogue inline (pool ou non) OU dans le REGISTRE
  *  d'une `specsSource` (⊇ son pool joueur — un statbloc RAW porte une spéc réelle non choisissable).
- *  Porte de la RÉSOLUTION (`resolveSpecId`, `testValue` par id, bonus de règle) et des gardes. */
+ *  Porte de la RÉSOLUTION (`testValue` par id, bonus de règle) et des gardes. */
 export function specResolves(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }, specId: string): boolean {
   return def.specsSource
     ? SPEC_SOURCES[def.specsSource].resolves(specId)
     : (def.specs ?? []).some((e) => specEntryId(e) === specId);
 }
-/** Libellé d'affichage d'une spéc (`Ref.spec`) : si la def désigne une `specsSource`, résout via le
+/** Libellé d'affichage d'une spéc (`RefDesignee.spec`) : si la def désigne une `specsSource`, résout via le
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;
  *  sinon cherche l'id dans `def.specs` (`SpecEntry[]`, résolu en label FR) ; sinon verbatim (texte
  *  libre / id inconnu — jamais d'erreur d'affichage). SOURCE UNIQUE de résolution de spéc. */
@@ -3550,7 +3509,7 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
 }
 
 /**
- * CLÉ RUNTIME concrète d'une `Ref` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec.
+ * CLÉ RUNTIME concrète d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec.
  * SOURCE UNIQUE de l'index utilisé par les registres (`opts.skillAdvances` dans `engine/character.ts`,
  * `combatFeatures`, grimoire).
  *
@@ -3559,15 +3518,16 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
  * cassé des lookups silencieusement. `refLabel` ci-dessous en est la face AFFICHAGE, et la seule à
  * minter.
  */
-export function refConcrete(category: string, ref: Ref): string {
+export function refConcrete(category: string, ref: RefDesignee): string {
   const base = findById(category, ref.id)?.label ?? ref.id;
   return ref.spec ? `${base} (${specLabel(category, ref.id, ref.spec)})` : base;
 }
 
-/** Libellé CONCRET d'une `Ref` pour l'AFFICHAGE : « Magie des Arcanes (Ghur) ». Face minteuse de
- *  `refConcrete` (cf. son JSDoc pour la scission). Un site qui INDEXE avec ce texte appelle `refConcrete`. */
-export function refLabel(category: string, ref: Ref): PlayerText {
-  return dataLabel(refConcrete(category, ref));
+/** Libellé CONCRET d'une `RefDesignee` pour l'AFFICHAGE : « Magie des Arcanes (Ghur) », ou d'un emplacement
+ *  `choix` par `choixLabel`. Face minteuse de `refConcrete` (cf. son JSDoc pour la scission). Un site qui
+ *  INDEXE avec ce texte appelle `refConcrete`. */
+export function refLabel(category: string, ref: RefASpecialisation): PlayerText {
+  return dataLabel(ref.choix == null ? refConcrete(category, ref) : choixLabel(category, ref.id, ref.choix));
 }
 /** Copie une `QualityRef` de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}`) — objet neuf
  *  (le runtime mute `qualities` : enchantements, munitions). Plus d'aplatissement en chaîne « id value ». */
@@ -3630,7 +3590,7 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
 }
 /** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
  *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refConcrete` comme toute autre
- *  `Ref` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
+ *  `RefDesignee` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
  *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
 export function trappingRefLabel(ref: TrappingRef): string {
   if ('choice' in ref) return ref.choice.map(trappingRefLabel).join(' ou ');

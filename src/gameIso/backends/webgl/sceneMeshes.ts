@@ -1010,6 +1010,25 @@ export function actorPoses(tokenEls: readonly TokenEl[], facings: Record<string,
   return out;
 }
 
+/** POSE du jeton de GROUPE hors combat — la seule que le builder de jetons ne produit pas (le groupe
+ *  n'est pas un combattant posté). Son CAP se lit à la clé que PUBLIE le constructeur du jeton
+ *  (`builders/tokens.partyTokenOf` → `capKey`), jamais à l'id du meneur : le regard est une valeur du
+ *  GROUPE, que le changement de meneur ne fait pas sauter. Assis, c'est le cap de la PLACE qui sert
+ *  (`capActeur`). */
+export function partyActorPose(
+  partyToken: { leader: Combatant; pos: { x: number; y: number; z?: number }; seat?: SeatPose; capKey: string },
+  facings: Record<string, Dir8 | undefined>,
+): ActorPose {
+  return {
+    c: partyToken.leader,
+    x: partyToken.pos.x,
+    y: partyToken.pos.y,
+    z: partyToken.pos.z ?? 0,
+    facing: facings[partyToken.capKey],
+    ...(partyToken.seat ? { seat: partyToken.seat } : {}),
+  };
+}
+
 /** Tout ce dont le DESSIN d'un acteur dépend, résolu à UN seul endroit : le tracé (`actorBillboards`)
  *  et la SIGNATURE (`combatantRenderSignature`) lisent la MÊME structure. Aucun des deux ne peut donc
  *  consommer une entrée que l'autre ignore — c'était la double péremption mesurée (#1176) : une tenue,

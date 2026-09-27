@@ -42,7 +42,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   function setupAiAreaCaster() {
     // Lanceur IA fort (DR ≥ NI d'Explosion d'un seul jet), deux héros COLLÉS → un centre couvre les deux.
-    const e = spawnEnemy('Bandit de Grand Chemin', undefined, 'caster', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'caster', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.characteristics.intelligence = 70; e.characteristics['force-mentale'] = 70;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];

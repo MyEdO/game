@@ -13,6 +13,6 @@ export const creature: CreatureDef = {
     // dressé au-dessus du garrot, longue queue reptilienne.
     sl: 1.15, build: 'draconic', girth: 1.15, bodyLen: 1.05, neckLen: 1.35, neckAngle: -14, legLen: 0.7,
     head: 'dechiqueteur', tail: 'reptile', mane: 'sans', ears: 'pointues', foot: 'serre', ridge: 'epines', tailLen: 1.25,
-    stored: { corps: '#5e6880', corpsO: '#252a34', corpsH: '#9aa0c2', cheveux: '#b23c28', cheveuxO: '#571812', cuir: '#454c5c' },
+    palette: { corps: '#5e6880', corpsO: '#252a34', corpsH: '#9aa0c2', cheveux: '#b23c28', cheveuxO: '#571812', cuir: '#454c5c' },
   },
 };

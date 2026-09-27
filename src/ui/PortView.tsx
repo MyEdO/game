@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { nomDuNavire } from '../state/carriers';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../state/bourseFlow';
 import { findVehicleById, NAVAL_TRAITS, findNavalPortById, crewRoles, type NavalPortData } from '../data';
@@ -161,7 +162,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   return (
     <ScreenShell
       className="port-overlay"
-      title={<><Icon id="travel/anchor" size="sm" /> Port de {port.label} — {vessel.label ?? vd.label}</>}
+      title={<><Icon id="travel/anchor" size="sm" /> Port de {port.label} — {nomDuNavire(vessel)}</>}
       onClose={close}
       meta={{ money }}
       body="centered-wide"

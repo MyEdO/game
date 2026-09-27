@@ -1,14 +1,12 @@
 *Pages PDF 206*
 
-# **THE CULT OF MORR, GOD OF DEATH**
+# <span id="page-205-0" data-folio="206"></span>**THE CULT OF MORR, GOD OF DEATH**
 
 **Seat of Power:** Luccini, Tilea
 
 **Head of the Cult:** Kirste, Custode del Portale
 
-**Primary Orders:** Order of the Shroud, Order of the Black
-
-Guard, Order of the Augurs
+**Primary Orders:** Order of the Shroud, Order of the Black Guard, Order of the Augurs
 
 **Major Festivals:** Hexensnacht, Geheimnisnacht
 
@@ -33,6 +31,8 @@ Temples of Morr are within gardens of Morr: great graveyards wrapped with black 
 #### **Penances**
 
 Morr's penances typically involve hunting necromancers and destroying undead, or finding and restoring burial places and holy sites fallen to disuse and disrepair. He also occasionally requires servants of Khaine be stopped from fulfilling their dark deeds.
+
+#### **Strictures**
 
 - Respect and protect the dead.
 - Hunt down necromancers and the undead wherever they may gather.

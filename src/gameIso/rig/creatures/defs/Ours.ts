@@ -13,6 +13,6 @@ export const creature: CreatureDef = {
   quad: {
     sl: 1.05, build: 'ursine', girth: 1.32, bodyLen: 0.92, neckLen: 0.36, neckAngle: -12, legLen: 0.68,
     head: 'ours', tail: 'courte', ears: 'rondes', foot: 'patte', mane: 'sans', headScale: 1.34,
-    stored: { corps: '#6f5c3a', corpsO: '#392a10', corpsH: '#b29b62', cheveux: '#93805a', cheveuxO: '#4a3a22', cuir: '#15100a' },
+    palette: { corps: '#6f5c3a', corpsO: '#392a10', corpsH: '#b29b62', cheveux: '#93805a', cheveuxO: '#4a3a22', cuir: '#15100a' },
   },
 };

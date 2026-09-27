@@ -24,7 +24,7 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
+import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import { planClimb } from './climbMove';
@@ -65,6 +65,16 @@ import type { CodexFocus } from './codexFocus';
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
 
+/** Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
+ *  module ne connaît sinon que l'Arène + la scène courante → transitions/portes vers les AUTRES scènes du
+ *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `saves.ts`).
+ *  Lue par la reprise de save et par le snapshot coop de l'invité (`netFlow.applyNetSnapshot`). */
+export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Partial<GameState> {
+  if (!doc) return {};
+  for (const s of doc.scenes) registerScene(s);
+  return { campaignNarratif: doc.narratif };
+}
+
 /** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
  *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
  *  Le merge partiel de zustand préserve les actions du store. */
@@ -90,14 +100,7 @@ function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): 
     ? { ...chargee, seatAssignments: pruneSeatAssignments(chargee, (data.party ?? []).length) }
     : chargee;
   set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', camEdge: false, net: useGame.getState().net });
-  // Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
-  // module ne connaît sinon que l'Arène + la scène courante → transitions/portes vers les AUTRES scènes du
-  // paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (non persistée, `saves.ts`).
-  const doc = data.campaignDoc as CampaignDoc | null | undefined;
-  if (doc) {
-    for (const s of doc.scenes) registerScene(s);
-    set({ campaignNarratif: doc.narratif });
-  }
+  set(reposerPaquetDeCampagne(data.campaignDoc as CampaignDoc | null | undefined));
   // Règles maison de la save : on les applique au registre (parité avec la partie sauvegardée).
   // Save d'avant ce champ (rules absent) → on garde les règles courantes de la machine.
   if (save.rules) loadRuleOverrides(save.rules);
@@ -114,7 +117,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
-import { inBattleId } from './combatants';
+import { capDuGroupe, inBattleId, meneurDeboutDuMonde, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -132,7 +135,7 @@ import type {
   PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
-  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, CascadeStepMeta, Cloture, CounterDeclaration,
+  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
@@ -146,8 +149,9 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, Dialogue, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
+import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
 import { chebyshev, Pt } from './path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
@@ -381,7 +385,6 @@ export interface GameState extends RollFlowActionsMap {
   rotateCam: (dir: 1 | -1) => void;
   /** Orientation MONDE vivante par entité/combattant (Dir8) — projetée au rendu (camRot). */
   facing: Record<string, Dir8>;
-  setFacing: (id: string, dir: Dir8) => void;
   faceToward: (id: string, from?: Pt, to?: Pt) => void;
   faceFromPath: (id: string, path?: Pt[] | null) => void;
   faceAtCombatStart: () => void;
@@ -539,7 +542,9 @@ export interface GameState extends RollFlowActionsMap {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`startScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
-  dialogue: { dialogue: Dialogue; nodeId: string; speakerId?: string } | null;
+  /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
+   *  fabrique `ouvrirDialogue` (`state/dialogue.ts`), jamais bâtie à la main. */
+  dialogue: EtatDialogue | null;
   /** Archive verbatim des tours de dialogue (#718) — CAMPAGNE-scopée : survit aux transitions de
    *  scène, vidée en nouvelle partie (`startScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
    *  du `journal` (dont le cap 40 éjecterait l'historique de dialogue). */
@@ -920,7 +925,9 @@ export interface GameState extends RollFlowActionsMap {
   trainProsthesis: (heroId: string, uid: string) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changeCareer: (heroId: string, newCareer: string, newLevel: number) => void;
-  startScene: (scene: Scene) => void;
+  /** `narratif` : couche narrative du projet, posée AVANT l'entrée en scène — la Psychologie à la
+   *  rencontre y résout les presets de PNJ (#1882). Absente = couche vidée. */
+  startScene: (scene: Scene, narratif?: NarratifBlock) => void;
   /** Enregistre plusieurs scènes (projet multi-scènes) puis démarre l'entrée. `worldMap` = carte du
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
   loadProject: (scenes: Scene[], entryId: string, worldMap?: import('./worldMap').WorldMap | null, narratif?: NarratifBlock) => void;
@@ -959,7 +966,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique) / fermer. */
   openTavernGames: (npcId?: string) => void;
-  playTavernGame: (opts: { gameId: string; challengerId: string; opponent: tavernFlow.TavernOpponent; stakeBrass?: number; allyValue?: number; tablePlayers?: number }) => void;
+  playTavernGame: (opts: { gameId: string; challengerId: string; opponent: tavernFlow.TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number }) => void;
   closeTavernGames: () => void;
   /** Troc (LDB 59 l.64-76) : céder N exemplaires d'un objet contre M exemplaires du stock, sans argent. */
   barterExchange: (opts: { giveHeroId: string; giveTrappingId: string; getStockId: string; getCount?: number }) => void;
@@ -1749,9 +1756,9 @@ registerCloture('teardownDeVictoire', (get, set, c) => {
  * exécuteur, et il n'existe pas de `if (actionId === …)` pour en ajouter une.
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
-  parler: (_get, set, ent, scene) => {
+  parler: (get, set, ent, scene) => {
     const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId);
-    if (dlg) set({ dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: ent.id } });
+    if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().openMerchant(ent.id),
 };
@@ -1767,7 +1774,7 @@ function placesDe(scene: Scene, entityId: string) {
  *  c'est la bascule du même intent, prioritaire sur toute autre affordance du meuble. */
 function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   const { scene } = get();
-  if (!scene || !get().party[0]) return false;
+  if (!scene || !meneurDuMonde(get())) return false;
   const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
@@ -1782,7 +1789,7 @@ function seLeverDe(get: Get, set: Set, entityId: string): boolean {
  *  quand le joueur a choisi l'offre `sasseoir`. */
 function sasseoirA(get: Get, set: Set, entityId: string): void {
   const { scene, partyPos } = get();
-  const leaderId = get().party[0]?.id;
+  const leaderId = meneurDuMonde(get())?.id;
   if (!scene || !leaderId) return;
   const places = placesDe(scene, entityId);
   if (!places.length) return;
@@ -1796,7 +1803,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
     // décor posé sur la case déclarée bascule la place sur son repli).
     const gagnee: { pose: SeatPose | null } = { pose: null };
     set((s) => {
-      if (!s.scene || s.party[0]?.id !== leaderId) return {};
+      if (!s.scene || meneurDuMonde(s)?.id !== leaderId) return {};
       const place = placesJouables(s.scene, entityId).find((p) => p.slotId === cible.slotId);
       if (!place || !memeCase(s.partyPos, place.approach)) return {};
       const res = assignSeat(s.scene, entityId, place.slotId, occupant, s.party.length);
@@ -1806,9 +1813,9 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
     });
     if (gagnee.pose) {
       get().log(t('seating.sat'));
-      // POSE UNIQUE : le cap d'ÉTAT suit celui de la place — le corps, la vue subjective et tout
-      // ce qui lit `facing` regardent la table, pas la direction d'où l'on venait.
-      get().setFacing(leaderId, gagnee.pose.facing);
+      // POSE UNIQUE : le cap du GROUPE suit celui de la place — le corps, la vue subjective et tout
+      // ce qui lit le regard d'exploration regardent la table, pas la direction d'où l'on venait.
+      set((s) => ({ facing: poserCapDuGroupe(s.facing, gagnee.pose!.facing) }));
       bus.emit(EVT.SCENE_DIRTY);
       return;
     }
@@ -1859,7 +1866,6 @@ export const useGame = create<GameState>((set, get) => ({
     set((s) => ({ camEdge: false, camRot: (((s.camRot + (dir === 1 ? 1 : 3)) % 4) as 0 | 1 | 2 | 3), camPan: { x: 0, y: 0 } }));
   },
   facing: {},
-  setFacing: (id, dir) => set((s) => ({ facing: { ...s.facing, [id]: dir } })),
   faceToward: (id, from, to) => {
     if (!from || !to) return;
     set((s) => ({ facing: { ...s.facing, [id]: facingToward(from, to) } }));
@@ -2166,7 +2172,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   setParty: (p) => set({ party: p }),
 
-  startScene: (scene) => {
+  startScene: (scene, narratif) => {
     registerScene(scene);
     const start = scene.entities.find((e) => e.kind === 'heroStart');
     const pos = start ? { ...start.pos } : findFreeTile(scene);
@@ -2178,6 +2184,7 @@ export const useGame = create<GameState>((set, get) => ({
     // navigation/vue (screen, caméra, zoom), le groupe (posé par `setParty`) et la SESSION COOP
     // (net : héberger une partie PUIS la lancer ne doit pas dissoudre le salon — Jalon 7).
     const { screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net } = get();
+    const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
     set({
       ...(JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>),
       screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net,
@@ -2186,10 +2193,11 @@ export const useGame = create<GameState>((set, get) => ({
       partyPos: pos,
       // Orientation d'ENTRÉE du meneur : authorée (facing du heroStart) sinon vers le CONTENU
       // (spawnFacing — en POV, un spawn au bord sud ne doit pas contempler le vide hors-carte).
-      facing: party[0] ? { [party[0].id]: start?.facing ?? spawnFacing(pos, scene.dimensions) } : {},
+      facing: poserCapDuGroupe({}, capEntrant),
       flags: { ...scene.flags },
       campaignSceneId: scene.id,
       journal: scene.startMessage ? [scene.startMessage] : [],
+      campaignNarratif: narratif ?? null,
     });
     // Gestes VIVANTS de la frontière (`stageGestes`) : la carte s'ouvre à son cran, CENTRÉE, et sans
     // qu'aucune marche tenue de l'écran précédent n'y commette de pas.
@@ -2215,15 +2223,12 @@ export const useGame = create<GameState>((set, get) => ({
     const entry = scenes.find((s) => s.id === entryId);
     if (!entry) throw new Error(`loadProject : scène d’entrée « ${entryId} » absente (${scenes.map((s) => s.id).join(', ')})`);
     for (const s of scenes) registerScene(s);
-    get().startScene(entry);
+    get().startScene(entry, narratif);
     // La carte du PROJET remplace celle de la campagne (restaurée par le reset de startScene) ;
     // un projet sans carte n'offre pas de voyage.
     if (worldMap !== undefined) set({ worldMap });
-    // Couche NARRATIVE du paquet posée APRÈS startScene (qui remet l'état à l'init, donc null) — lue
-    // par id via `campaignData.ts` ; absente = couche vidée (campagne sans narratif).
-    set({ campaignNarratif: narratif ?? null });
-    // Ouverture cérémonielle du chapitre (#717) : MÊME raison d'être posée ICI que le narratif —
-    // `startScene` vient de remettre l'état à l'init. Absente du paquet = démarrage direct.
+    // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
+    // l'init. Absente du paquet = démarrage direct.
     set({ pendingOuverture: narratif?.ouverture ?? null });
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
@@ -2278,7 +2283,7 @@ export const useGame = create<GameState>((set, get) => ({
       sceneInstances,
       mode: 'exploration',
       partyPos: { ...start },
-      facing: s.party[0] ? { ...s.facing, [s.party[0].id]: authored ?? spawnFacing(start, target.dimensions) } : s.facing,
+      facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, target.dimensions)),
       lightLevel: null, // nouvelle scène → lumière auto (un setLight ne se propage pas d'une scène à l'autre)
       // flags persistants : on conserve l'état narratif et on ajoute les
       // valeurs par défaut de la nouvelle scène pour les clés absentes.
@@ -2316,8 +2321,10 @@ export const useGame = create<GameState>((set, get) => ({
     // à une place dont il s'est déjà éloigné. Scène sans assise → aucun delta (même référence).
     const debout = get().party.length ? releaseSeat(scene, { kind: 'party', rang: RANG_MENEUR }) : scene;
     set(debout === scene ? { partyPos: pt } : { partyPos: pt, scene: debout });
-    const leadId = get().party[0]?.id;
-    if (leadId) get().faceFromPath(leadId, [from, pt]);
+    // CAP DU GROUPE le long du pas (écrivain unique) — `faceFromPath` reste la couture des caps
+    // INDIVIDUELS du combat. DELTA NUL : un pas qui ne change que l'ÉTAGE (escalier, `z` seul) ne
+    // touche pas au regard ; `facingToward` y rendrait son défaut sud et claquerait la vue.
+    if (from.x !== pt.x || from.y !== pt.y) set((s) => ({ facing: poserCapDuGroupe(s.facing, facingToward(from, pt)) }));
     bus.emit(EVT.SCENE_DIRTY);
     checkTriggers(get, set);
     // P5 (déplacement-puis-interaction) : l'interaction s'ouvre à la case D'ARRIVÉE du plan qui l'a
@@ -2343,13 +2350,16 @@ export const useGame = create<GameState>((set, get) => ({
     // Grimpeur (LDB 15 l.57) : porté par le meneur (exploration) ou le héros actif (combat). Grimpant
     // (LDB 85 l.160-162, créature, combat seulement) : `autoClimb` dispense de tout Test — et de la garde
     // `requiresGrimpeur`, réservée au Talent joueur (`planClimb` arbitre `autoSucceed`, réf ci-dessous).
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : get().party.find((h) => !h.dead && h.wounds.current > 0);
+    // Sans Point de Blessure, un héros ne peut que ramper (LDB 16 l.35) ; Inconscient : LDB 16 l.113.
+    // Aucun grimpeur, refus NOMMÉ.
+    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
+    if (!mover) { get().log(t('climb.personne')); return; }
     const hasGrimpeur = !!mover?.talents?.some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
     const autoClimb = mode === 'battle' && hasAutoClimb(mover?.traits);
     const plan = planClimb(scene, from, to, hasGrimpeur, mode === 'battle' ? mover?.id : undefined, autoClimb);
     if (!plan) return; // arête non grimpable → refus silencieux (aucun marqueur ne s'y affiche)
     if (plan.kind === 'impossible') {
-      get().log(t('climb.tooHard', { name: mover?.label ?? t('store.climberFallback') }));
+      get().log(t('climb.tooHard', { name: mover.label }));
       return;
     }
     if (mode === 'exploration') {
@@ -2383,7 +2393,7 @@ export const useGame = create<GameState>((set, get) => ({
   fallAcross: (from, to) => {
     const { scene, mode, battle } = get();
     if (!scene) return;
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : get().party.find((h) => !h.dead && h.wounds.current > 0);
+    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
     if (!mover) return;
     if (mode === 'battle' && (!battle || battle.over || !controlsCombatant(get(), mover))) return;
     const plan = planFall(scene, from, to);
@@ -2408,43 +2418,41 @@ export const useGame = create<GameState>((set, get) => ({
   fallCancel: () => set({ pendingFall: null }),
 
   stepPartyDir: (dir) => {
-    const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge, party } = get();
+    const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge } = get();
     if (!scene || mode !== 'exploration' || dialogue) return;
     const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
     const dest = exploreStepDest(scene, partyPos, dir, dims);
     if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
     // Glisse d'1 case via l'anim de marche EXISTANTE (ANIM_MOVE → walkPosOf), puis `moveParty` (z-aware :
     // facing, triggers, déplacement-puis-fouille) — le leader VISIBLE est le même qu'IsoStage.
-    const leader = party.find((h) => !h.dead && h.wounds.current > 0) ?? party[0];
+    const leader = meneurDuMonde(get());
     if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [partyPos, dest] });
     get().moveParty(dest);
   },
 
   pivotParty: (turn) => {
-    const lead = get().party[0]?.id;
-    if (!lead) return;
+    if (!meneurDuMonde(get())) return; // groupe vide : personne à faire pivoter
     // Pivot du regard SEUL (aucun déplacement → pas de réorientation par `faceFromPath`). ±1 cran = 45°.
-    get().setFacing(lead, rotateDir8(get().facing[lead] ?? 'S', turn));
+    set((s) => ({ facing: poserCapDuGroupe(s.facing, rotateDir8(capDuGroupe(s) ?? 'S', turn)) }));
   },
 
   stepPartyRelative: (rel) => {
     const s = get();
     if (s.mode !== 'exploration') return;
     const scene = s.scene;
-    const lead = s.party[0]?.id;
-    if (!scene || !lead) return;
-    const cur = s.facing[lead] ?? 'S';
+    if (!scene || !meneurDuMonde(s)) return;
+    const cur = capDuGroupe(s) ?? 'S';
     // Cap MONDE du pas = regard tourné de 0/2/4/6 crans (2 crans = 90° par cadran relatif).
     const worldDir = rotateDir8(cur, { forward: 0, right: 2, back: 4, left: 6 }[rel]);
     const dest = povStepDest(scene, s.partyPos, worldDir);
     if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
     // Glisse d'1 case via l'anim de marche EXISTANTE (même forme d'émission que stepPartyDir).
-    const leader = s.party.find((h) => !h.dead && h.wounds.current > 0) ?? s.party[0];
+    const leader = meneurDuMonde(s);
     if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [s.partyPos, dest] });
     s.moveParty(dest);
-    // Un pas ≠ avant ne doit pas tourner le regard : `moveParty`→`faceFromPath` l'a réorienté le long du
+    // Un pas ≠ avant ne doit pas tourner le regard : `moveParty` a posé le cap du groupe le long du
     // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
-    if (rel !== 'forward') get().setFacing(lead, cur);
+    if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
   },
 
   interactEntity: (entityId) => {
@@ -2463,7 +2471,7 @@ export const useGame = create<GameState>((set, get) => ({
     // couture `state/seating`), qui peut tomber hors du voisinage de la case d'ancrage.
     // Le MENEUR est l'emplacement 1 du groupe ; son id ne sert qu'à re-vérifier, à l'écriture, que
     // le meneur n'a pas changé entre le clic et le commit (coop).
-    const leaderId = get().party[0]?.id;
+    const leaderId = meneurDuMonde(get())?.id;
     // Places JOUABLES, pas la géométrie : un décor que l'auteur n'a pas ACTIVÉ n'offre pas l'assise
     // (#1687, `placesJouables`) — le clic y reste inerte au lieu de servir une raison de refus.
     const places = placesDe(scene, entityId);
@@ -2537,8 +2545,21 @@ export const useGame = create<GameState>((set, get) => ({
 
   chooseDialogue: (choiceIndex) => {
     const st = get();
-    if (!st.dialogue) return;
-    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue!.nodeId);
+    // LE VERBE VALIDE, pas la surface : la fenêtre grise, la touche se tait, mais c'est ICI que
+    // « cette réponse est-elle jouable MAINTENANT ? » se tranche — un intent coop forgé, une touche
+    // restée vive sous une modale et un clic arrivent tous par ce chemin. Deux portes, nommées :
+    //  · `conversationRepond` — conversation ouverte, CE siège décide, aucune surface ne tient la
+    //    main (`surfaceTientLaMain` : la fenêtre de jet ou le marché qu'une réponse vient d'ouvrir
+    //    SUSPEND la conversation) ;
+    //  · `reponsesDuNoeud` — la réponse est VISIBLE (son `when`) et OFFERTE (bourse), par le MÊME
+    //    sélecteur que les deux surfaces. Un index qui n'y figure pas n'existe pas pour le joueur.
+    if (!conversationRepond(st)) return;
+    const r = reponsesDuNoeud(st).find((x) => x.index === choiceIndex);
+    if (!r?.enabled) {
+      if (r?.refus === 'argent') get().log(t('store.dialogueNoMoney'));
+      return;
+    }
+    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
     const choice = node?.choices[choiceIndex];
     if (!node || !choice) return;
     // Option payante (auberge, péage, pot-de-vin) : dépense de groupe (aucun bénéficiaire héros
@@ -2548,7 +2569,7 @@ export const useGame = create<GameState>((set, get) => ({
       if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().log(t('store.dialogueNoMoney')); return; }
     }
     const transition: DialogueTransition = choice.next
-      ? { dialogue: st.dialogue.dialogue, nodeId: choice.next, speakerId: st.dialogue.speakerId }
+      ? { ...st.dialogue, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
@@ -2562,6 +2583,7 @@ export const useGame = create<GameState>((set, get) => ({
       at: st.gameTime,
       sceneId: st.scene?.id,
       dialogueId: st.dialogue.dialogue.id,
+      session: st.dialogue.session,
     };
     set((s) => ({ dialogueHistory: recordTurn(s.dialogueHistory, turn) }));
     // Logique du choix (effets + branches) → runFlow ; objet/argent reçu = fenêtre d'attribution (titrée du donateur).
@@ -2905,10 +2927,14 @@ export const useGame = create<GameState>((set, get) => ({
       if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
       set({ battle: { ...markActed(get, set, battle), action: null } });
     }
-    // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`) — exécutées par runFlow
-    // (butin de Test → fenêtre d'attribution ; if/test imbriqués gérés).
+    // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
+    // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
+    // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
+    // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
     const branch = effSuccess ? pt.onSuccess : pt.onFailure;
-    const issue = runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+    const issue = pt.subi
+      ? reprendreTestSubi(get, set, pt, effSuccess)
+      : runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
     // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
     //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
     //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes
@@ -2963,7 +2989,7 @@ export const useGame = create<GameState>((set, get) => ({
       const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
       if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines, severity: 'minor' });
       // La file porte des BANDES comme tout le reste de la nuit (#1117 L3) : la fenêtre est formée
-      // ICI, à l'émission — `openCombatEndCascade` n'a plus qu'à trier ses rangées par pilote.
+      // ICI, à l'émission — `openCombatEndCascade` a seulement à trier ses rangées par pilote.
       const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
       if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
     } else {

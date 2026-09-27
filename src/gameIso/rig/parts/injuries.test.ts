@@ -37,7 +37,7 @@ describe('visuels des amputations/prothèses (injuries)', () => {
   });
 
   it('œil perdu : REMPLACE l’œil peint en place (cicatrice → cache-œil → œil de verre)', () => {
-    const APP = { species: 'Humain', sex: 'M', build: 0.5 } as Appearance;
+    const APP = { species: 'humains-reiklander', sex: 'M', build: 0.5 } as Appearance;
     const eye = traumaById('oeil-perdu', undefined, 'tete');
     expect(injuryAppearance(APP, mk([eye])).eyes?.G).toContain('data-injury="oeil-perdu"');
     expect(injuryAppearance(APP, mk([eye], [item('cache-oeil')])).eyes?.G).toContain('data-injury="cache-oeil"');
@@ -47,7 +47,7 @@ describe('visuels des amputations/prothèses (injuries)', () => {
   });
 
   it('Cécité : bandage sur le visage (et pas de remplacement d’œil)', () => {
-    const APP = { species: 'Humain', sex: 'M', build: 0.5 } as Appearance;
+    const APP = { species: 'humains-reiklander', sex: 'M', build: 0.5 } as Appearance;
     const eye = traumaById('oeil-perdu', undefined, 'tete');
     const blindT = [eye, eye, traumaById('cecite', undefined, 'tete')];
     const blind = injuryOverlaysFor(mk(blindT));
@@ -95,7 +95,7 @@ describe('visuels des amputations/prothèses (injuries)', () => {
     expect(injuryOverlaysFor(mk([decoyNez]))[0].svg).toContain('data-injury="nez-ampute"');
 
     const decoyOeil: Trauma = { ...traumaById('oeil-perdu', undefined, 'tete'), label: 'WRONG_LABEL_EYE' };
-    const APP = { species: 'Humain', sex: 'M', build: 0.5 } as Appearance;
+    const APP = { species: 'humains-reiklander', sex: 'M', build: 0.5 } as Appearance;
     expect(injuryAppearance(APP, mk([decoyOeil])).eyes?.G).toContain('data-injury="oeil-perdu"');
 
     const decoyCecite: Trauma = { ...traumaById('cecite', undefined, 'tete'), label: 'WRONG_LABEL_BLIND' };

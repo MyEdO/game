@@ -27,7 +27,7 @@ import type { RuleValue } from '../engine/policy';
 import type { Scene } from './scene';
 
 // 32 → 33 (L2 #1548, geste modèle) : une personne se RÉFÉRENCE. Le document de scène (`scene`) perd
-// les deux pseudo-PNJ écrits en clair — l'effet `medicalAid` ne porte plus que son `entityId` (la
+// les deux pseudo-PNJ écrits en clair — l'effet `medicalAid` porte seulement son `entityId` (la
 // Guérison et le Bonus d'Int se lisent sur la fiche du PNJ), et les adversaires de `startPursuit`
 // sont des références de vivant (`{ ref }`) là où vivaient `label`+`movement`+`skill`. Une save de 32
 // rouvrirait une infirmerie sans soigneur et une poursuite sans coureurs : elle se jette
@@ -41,7 +41,7 @@ import type { Scene } from './scene';
 // Caractéristique nue : la save se jette (politique 2 ci-dessus).
 // 34 → 35 (L2 #1548, commit 4bis) : la `SkillInstance` d'une créature SPAWNÉE change de forme. La
 // sentinelle `spec: "au choix"` du bestiaire descendait TELLE QUELLE dans l'instance persistée (une
-// spéc qu'aucun catalogue ne résout) ; elle est désormais DÉSIGNÉE au spawn (`skillsFromBook`, seedée
+// spéc qu'aucun catalogue ne résout) ; elle est DÉSIGNÉE au spawn (`skillsFromBook`, seedée
 // sur l'uid) et l'instance porte une spéc CONCRÈTE. PORTÉE EXACTE DE LA PERTE, mesurée à
 // `src/engine/skills.ts` (`s.id === skill && (spec == null || s.spec === spec)`) : un appelant
 // SANS spec appariait l'instance et lisait sa valeur — c'est le Test SPÉCIALISÉ qui n'appariait rien
@@ -58,7 +58,7 @@ import type { Scene } from './scene';
 // `pendingOuverture`/`pendingChapterRecap`. Une save de 36 rouvrirait sans borne : le récap de fin de
 // chapitre compterait les PX depuis le néant, et une séance déjà close se ré-armerait au premier lot
 // d'effets (la Condition de clôture, elle, est restée vraie).
-// 37 → 38 (#1552) : le document de SCÈNE change de forme — une scène s'annonce désormais
+// 37 → 38 (#1552) : le document de SCÈNE change de forme — une scène s'annonce
 // (`type: 'scene'`, exigé par `sceneSchema`). `snapshotSave` recopie le `state` ENTIER dans `data`,
 // `state.scene` comprise : une save de 37 rouvrirait sur une scène vivante sans `type`, que le seam
 // `parseProject` refuserait au prochain export/import de son projet. La save se jette
@@ -110,11 +110,11 @@ import type { Scene } from './scene';
 // ne sont plus ceux de la porte : une save de 45 rouvrirait une fenêtre déjà montée dont la cible est
 // celle d'avant (jusqu'à +30 en faveur du joueur sur un héros sous États), sans qu'aucun applier ne
 // puisse la recalculer. La save se jette (politique 2 ci-dessus).
-// 46 → 47 (#1599) : les États PORTÉS par un canal passif sont désormais MARQUÉS (`ConditionInstance.
+// 46 → 47 (#1599) : les États PORTÉS par un canal passif sont MARQUÉS (`ConditionInstance.
 // derivedFrom`) et réconciliés (`syncDerivedConditions`). Une save de 46 porte les mêmes pions SANS
 // marquage : à la première réconciliation, la cible (1) et les pions dérivés comptés (0) divergent — le
 // porteur regagne un Inconscient/Exténué par-dessus celui qu'il a déjà. La save se jette (politique 2).
-// 47 → 48 (#1599) : la suspension d'un fait passif est GÉNÉRALE — l'`ActiveEffect` porte désormais
+// 47 → 48 (#1599) : la suspension d'un fait passif est GÉNÉRALE — l'`ActiveEffect` porte
 // `suppressedSource` (identité Codex) là où il portait `suppressedSymptom` (id nu). Une save de 47 rouvre
 // avec des fenêtres de suspension (Racine de terre, fenêtre de Détermination) que plus aucun lecteur ne
 // voit : le symptôme réémet ses passifs et l'État qu'il porte revient, sans que rien ne le dise. La save
@@ -129,12 +129,50 @@ import type { Scene } from './scene';
 // rouvre avec des effets qui portent ces champs et plus rien ne les lit : le −10 d'Esquive du sort, le
 // demi-Mouvement et le plafond de mains d'arme disparaissent en silence. La save se jette (politique 2
 // ci-dessus).
-// 50 → 51 (#1897) : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double
+// 50 → 51 (#1882) : le document de SCÈNE change de forme — un personnage NOMME sa fiche (`ref`,
+// `statblock` ou `presetId`, exigé par `sceneEntitySchema`). `snapshotSave` recopie le `state` ENTIER,
+// `state.scene.entities` comprise : une save de 50 rouvrirait sur une scène vivante dont les personnages
+// sans fiche sont refusés par `validateScene` et par le seam `parseProject` au prochain export/import de
+// son projet. Même bump : `ScheduledRespawn.summon` (file `scheduledEffects`, sauvée) porte le
+// `PorteurDeFiche` du défunt au lieu d'une réf. nue. La save se jette (politique 2 ci-dessus).
+// 51 → 52 (#1882, #1906) : les jets en attente SAUVÉS changent de forme — `pendingStateRecovery` porte
+// `opposition: RecoverOpposition` au lieu de `opposed`/`opponentValue`/`opponentBase`/`opponentName` ;
+// `pendingApproach.sourceName` et `pendingWard.targetName` sont figés au geste ; `OpposedFreeze.attackerName`
+// (`pendingCascade`, `sequence`) est requis ; `TavernPayload.allyValue` est posé à l'ouverture d'un jeu
+// d'équipe. Une save de 51 rouvrirait une modale sans nom ni opposition. La save se jette (politique 2).
+// 52 → 53 (#1362) : le CAP D'EXPLORATION est une entrée de GROUPE de `facing` (clé `CAP_GROUPE`,
+// `state/combatants.ts`), là où chaque héros portait la sienne. Une save de 52 rouvre avec des caps
+// keyés par des id de héros que plus personne ne lit, et SANS entrée de groupe : le regard du plateau
+// et la vue subjective repartent au défaut sud, le pivot suivant aussi. La save se jette (politique 2
+// ci-dessus).
+// 53 → 54 (#1874) : `PendingTest` porte `subi` (`{ casterId?, label?, source? }`) sur un Test SUBI
+// hors combat ; `resolveTest` aiguille sa branche sur ce champ (`reprendreTestSubi`). Une save de 53
+// rouvre un `pendingTest` sans `subi`, dont la branche `target`/`caster` part au marcheur de SCÈNE. La
+// save se jette (politique 2 ci-dessus).
+// 54 → 55 (#1869) : la CONVERSATION porte sa `session` (`EtatDialogue.session`, requis) — dans
+// `GameState.dialogue`, dans chaque `DialogueTurn` de `dialogueHistory`, et dans les transitions
+// SAUVÉES (`pendingTest.dialogueNext`, clôture `dialogueSuivant` de `pendingCascade`). Une save de 54
+// rouvre un dialogue en cours et des transitions SANS session, et un historique sans regroupement :
+// les tours d'avant se recolleraient à la conversation suivante, et le prochain id (dérivé du max
+// archivé) repartirait de 1. La save se jette (politique 2 ci-dessus).
+// 55 → 56 (#1897) : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double
 // (`SORTS_FUSIONNES_1897`, `src/data/sortsFusionnes.ts`) et n'existent plus. `snapshotSave` recopie le `state`
-// ENTIER, `Combatant.spells` des héros et des pions de la scène vivante comprise : une save de 50 rouvrirait
+// ENTIER, `Combatant.spells` des héros et des pions de la scène vivante comprise : une save de 55 rouvrirait
 // un héros dont `findSpellById` ne résout plus le sort appris (`grimoire.ts`) — il disparaît de son
 // grimoire EN SILENCE. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 51;
+// 56 → 57 (#1924) : la clé d'un emplacement de carrière (`Combatant.careerSlotChoices`,
+// `engine/careerSlots.ts`) se résume en ids, plus en libellés. Une save de 56 rouvrirait des héros dont
+// aucune désignation n'est plus appariée à son emplacement : chaque joker de carrière redevient à désigner.
+// La save se jette (politique 2 ci-dessus).
+// 57 → 58 (#1473, train 2a) : les ops `grantTalent` / `grantCareerTalent` persistées passent de
+// `{ talentId, spec? }` à `{ talent: { id, spec? } }` — `Combatant.mutations[].passive`,
+// `ActiveEffect.grantedMutation.passive` / `.passive` / `.opsPerRound`, `ItemInstance.consumable`, les `Flow`
+// de la scène vivante, du `campaignDoc` et de `scheduledEffects`, et les étapes de `pendingCascade` /
+// `suspendedCascades` — et une mutation attachée porte `Combatant.mutations[].talentsAcquis`.
+// Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
+// mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
+// jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 58;
 
 export interface SaveMeta {
   version: number;
@@ -161,7 +199,7 @@ export const AUTO_SLOT = 'auto' as const;
 export type AnySlot = SaveSlot | typeof AUTO_SLOT;
 // #898 : la clé n'embarque plus la version (un bump de `SAVE_VERSION` rendait toute save existante
 // invisible — `readSlot`/`listSaves` sondaient une clé qui n'avait jamais été écrite). La version vit
-// SEULE dans le contenu (`SaveGame.version`). `LEGACY_KEY` ne sert plus qu'à NETTOYER les clés
+// SEULE dans le contenu (`SaveGame.version`). `LEGACY_KEY` sert seulement à NETTOYER les clés
 // versionnées écrites par le code d'avant #898 : aucune ne porte la version courante.
 const KEY = (slot: AnySlot) => `wfrp4.save.${slot}`;
 const LEGACY_KEY = (version: number, slot: AnySlot) => `wfrp4.save.v${version}.${slot}`;
@@ -185,7 +223,7 @@ function storage(): Storage | null {
 const HORS_SAVE: Record<string, string> = {
   // #767 — couche runtime posée par `loadProject` ; sa persistance (forme + golden + bump
   // `SAVE_VERSION`) est le périmètre de #766.
-  campaignNarratif: 'couche runtime de projet, repostée au chargement',
+  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, store.ts)',
   // #1687 — état de la TOUCHE Alt à l'instant, pas une préférence : une save qui le porterait
   // rechargerait une partie aux utilisables révélés, touche relâchée.
   reveler: 'geste clavier en cours, jamais un état de partie',
@@ -292,9 +330,8 @@ export function takeObsoleteNotice(): ObsoleteCause | null {
   return c;
 }
 
-/** Clé de mise à l'écart d'une save FUTURE, écrite par le code d'AVANT l'arbitrage 2026-08-17 (une
- *  save plus récente que l'app y était sauvegardée avant écrasement). Plus personne ne l'écrit : elle
- *  n'est plus qu'à PURGER, comme le reste de l'emplacement. */
+/** Clé de mise à l'écart d'une save FUTURE, plus récente que l'app (arbitrage 2026-08-17). Aucun code
+ *  ne l'écrit : elle se PURGE avec le reste de l'emplacement. */
 const FUTURE_KEY = (slot: AnySlot) => `wfrp4.save.future.${slot}`;
 
 /** TOUTES les clés de stockage d'un emplacement : la clé stable, la clé de QUARANTAINE historique et

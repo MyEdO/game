@@ -72,7 +72,7 @@ setEncounters(scene, [
     enemies: [
       // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
       {
-        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally', label: 'Bélier (poste)',
+        ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
         postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
       },
       { ref: 'cheval', pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },

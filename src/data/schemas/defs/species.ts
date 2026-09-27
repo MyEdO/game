@@ -40,6 +40,9 @@ const doc = document(
      *  quand elle a son propre Groupe (« Humains (Tiléens) » → `humain` + `tileen`). DONNÉE requise
      *  (27/27) : `groupsFor` les lit, il ne dérive plus rien du `label`. */
     grantGroups: z.array(z.string()),
+    /** Profil standard du PNJ de l'espèce (`LDB 77 l.7`) — réf à `creatures.json`, posée PAR ESPÈCE,
+     *  jamais dérivée de `family`. Absent = l'espèce n'a pas de profil standard (`gnomes`). */
+    profilStandard: ref('creature').optional(),
     /** Seuil d100 de mutation PHYSIQUE (LDB 19 l.78-81). Absent = défaut Humain (50). */
     mutationBodyMax: z.number().optional(),
     /** Habillage de l'APERÇU (créateur, carte de race #431) — id de carrière ICONIQUE et COMMUNE à
@@ -72,6 +75,10 @@ const doc = document(
     skills: { label: 'Compétences d’espèce' },
     talents: { label: 'Talents d’espèce' },
     grantGroups: { label: 'Groupes accordés' },
+    profilStandard: {
+      label: 'Profil standard',
+      hint: 'LDB 77 l.7 — fiche du bestiaire d’un PNJ ordinaire de l’espèce',
+    },
     mutationBodyMax: { label: 'Seuil de mutation physique' },
     previewCareer: {
       label: 'Aperçu (carrière type)',

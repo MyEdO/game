@@ -20,7 +20,7 @@ const hero = (): Combatant =>
 const sceneWithTaverniere = () => {
   const sc = emptyScene(4, 4);
   sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, merchant: { archetype: 'taverniere' } });
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'taverniere' } });
   return sc;
 };
 

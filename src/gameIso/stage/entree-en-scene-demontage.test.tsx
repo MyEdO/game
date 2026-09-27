@@ -56,7 +56,7 @@ const KEEP: KeepEl = () => true;
 const SANS_ACTEUR: ActorPose[] = [];
 
 const décor = (id: string, x: number): BillboardPropEl => ({
-  kind: 'prop', source: 'entity', key: `prop:${id}`, ref: 'tonneau', facing: 'S',
+  kind: 'prop', source: 'entity', key: `prop:${id}`, entId: id, span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
   cell: { x, y: GROUPE.y, z: 0 }, foot: { offX: 0, offY: 0, scale: 1 },
   states: { visible: true },
 });

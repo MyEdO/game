@@ -1,6 +1,6 @@
 *Pages PDF 22*
 
-# <span id="page-21-0"></span>• **CHARACTER BUILDING** •
+# <span id="page-21-0" data-folio="22"></span>• **CHARACTER BUILDING** •
 
 You'll experience a life of adventure in the Empire through the eyes of your Character. Follow the steps here to create your Character using a combination of game information describing their abilities, and the personality and background story you invent for them.
 

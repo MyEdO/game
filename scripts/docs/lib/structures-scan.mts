@@ -25,6 +25,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
+import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
 import ts from 'typescript';
@@ -56,7 +57,7 @@ export type Racine = {
 
 export const RACINES: readonly Racine[] = [
   { id: 'src/data', dir: 'src/data', motif: '*.json', suffixe: '.json', recursif: false },
-  { id: 'src/scenes', dir: 'src/scenes', motif: '*-projet.json', suffixe: '-projet.json', recursif: true },
+  { id: PROJETS_LIVRES.dossier, dir: PROJETS_LIVRES.dossier, motif: `*${PROJETS_LIVRES.suffixe}`, suffixe: PROJETS_LIVRES.suffixe, recursif: PROJETS_LIVRES.recursif },
 ];
 
 export type Document = { racine: string; chemin: string; nom: string };

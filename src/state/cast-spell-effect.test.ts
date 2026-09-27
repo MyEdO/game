@@ -20,7 +20,7 @@ describe('Effet castSpell (#98)', () => {
 
   describe('EN COMBAT', () => {
     function setup() {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707) });
+      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
       const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(13) });
       useGame.setState({ party: [wiz, ally] });
       useGame.getState().startScene(testScene);
@@ -81,7 +81,7 @@ describe('Effet castSpell (#98)', () => {
 
   describe('HORS COMBAT (couture D)', () => {
     it('un héros du groupe route par `oocCastSpell` (jet réel, `pendingCast` ouvert)', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707) });
+      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
       useGame.setState({ party: [wiz], battle: null, pendingCast: null });
       applyEffects(useGame.getState, useGame.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'chute' }]);
       const pc = useGame.getState().pendingCast;
@@ -91,7 +91,7 @@ describe('Effet castSpell (#98)', () => {
     });
 
     it('un PNJ (pas un héros du groupe, pas en combat) est refusé — pas de pseudo-combat inventé', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707) });
+      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
       useGame.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
       applyEffects(useGame.getState, useGame.setState, [{ type: 'castSpell', casterId: 'pnj-rituel', spellId: 'chute' }]);
       expect(useGame.getState().pendingCast).toBeNull();
@@ -99,7 +99,7 @@ describe('Effet castSpell (#98)', () => {
     });
 
     it('mode "forceSuccess" HORS COMBAT : applique les effets du sort directement (aucun `pendingCast`)', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707) });
+      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
       const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(13) });
       ally.wounds.current = Math.max(0, ally.wounds.current - 3);
       const before = ally.wounds.current;
@@ -114,7 +114,7 @@ describe('Effet castSpell (#98)', () => {
   });
 
   it('sort introuvable → refus journalisé', () => {
-    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707) });
+    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
     useGame.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'inexistant' }]);
     expect(useGame.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);

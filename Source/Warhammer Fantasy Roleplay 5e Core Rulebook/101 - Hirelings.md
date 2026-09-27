@@ -1,6 +1,6 @@
 *Pages PDF 317*
 
-# **HIRELINGS**
+# <span id="page-316-0" data-folio="317"></span>**HIRELINGS**
 
 If you need extra muscle or brains whilst adventuring, you may pay Hireling NPCs to accompany you. You can hire any Career with GM permission, and they are paid an amount of coin equal to their Social Status for a quick job, or paid triple for a full day's work. The GM may increase or decrease this amount according to individual personality and local circumstances.
 

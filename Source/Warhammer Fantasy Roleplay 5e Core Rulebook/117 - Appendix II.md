@@ -1,6 +1,6 @@
 *Pages PDF 364*
 
-# **APPENDIX II**
+# <span id="page-363-0" data-folio="364"></span>**APPENDIX II**
 
 # **Individual Characteristic Advances**
 
@@ -8,7 +8,7 @@ Characteristic and Skill Advances are bought in +5 increments. However, in some 
 
 Use the table below to determine the XP cost for individual Advances. Once you switch to this method, you need to have bought a number Advances that is a multiple of 5 if you wish to return to the method presented on page 191.
 
-# **ADVANCEMENT XP COSTS**
+**ADVANCEMENT XP COSTS**
 
 |          | Cost of Advance (+1) |        |
 |----------|----------------------|--------|

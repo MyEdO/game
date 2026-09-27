@@ -1,6 +1,6 @@
 *Pages PDF 43-108*
 
-# • **CLASS AND CAREERS** •
+# <span id="page-42-0" data-folio="43"></span>• **CLASS AND CAREERS** •
 
 *'Well, I play a classless knave who would sell his own grandmother for a promotion and, when called upon regarding his shortcomings, blames those who do the actual work.'*
 
@@ -42,7 +42,7 @@ Every Career has an *Advance Scheme* governing its Characteristic Advances. The 
 
 The three marked h are Characteristics you can Advance in the Career's first level. When you enter a Career's second level, the Characteristic also becomes available, and so on. You can Advance any Characteristic at or below your current career level. See page 191 for how to spend XP.
 
-#### **SOLDIER ADVANCE SCHEME** 2
+#### **SOLDIER ADVANCE SCHEME**
 
 | WS | BS | S | T | I | Ag | Dex | Int | WP | Fel |
 |----|----|---|---|---|----|-----|-----|----|-----|
@@ -50,16 +50,19 @@ The three marked h are Characteristics you can Advance in the Career's first lev
 
 ## **Career Path**
 
-- **Recruit Brass 5** 1 6
-- **Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), *Melee (Any One)*, Melee (Basic), Ranged (Any One) 3
-- **Talents:** Drilled, Etiquette (Soldiers), Strong Back, Warrior Born 4
-- **Trappings:** Leather Breastplate, Uniform, Weapon (Any One) 5
+#### **Recruit — Brass 5**
 
-## **3. Skills**
+**Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), ***Melee (Any One)***, Melee (Basic), Ranged (Any One)
+
+**Talents:** Drilled, Etiquette (Soldiers), Strong Back, Warrior Born
+
+**Trappings:** Leather Breastplate, Uniform, Weapon (Any One)
+
+## <span id="page-43-0" data-folio="44"></span>**3. Skills**
 
 You can Advance all the Skills listed for your current Career level and lower. So, if you were a Recruit (Soldier level 1), you could only access the Skills listed under Recruit (level 1). But, if you were a Sergeant (level 3), you could access all the Skills for Sergeant (level 3), Soldier (level 2), and Recruit (level 1).
 
-**Note:** One of the Skills in your Career's first level will be marked in *bold italics*. This is the Skill you Test when earning money with the *Income* Endeavour during Downtime (see page 199).
+**Note:** One of the Skills in your Career's first level will be marked in ***bold italics***. This is the Skill you Test when earning money with the *Income* Endeavour during Downtime (see page 199).
 
 ## **NON-CAREER ADVANCES**
 
@@ -77,7 +80,7 @@ These are the Trappings typical of a Character at each Career Level. When creati
 
 This shows the Status of your current Career Level. As long as you have at least one Trapping from your current Career level, you can use this Status. If you don't, or if you have otherwise disgraced yourself, your Status is lowered (see page 141).
 
-## **ADVISER**
+## <span id="page-44-0" data-folio="45"></span>**ADVISER**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -99,29 +102,33 @@ Advisers provide counsel to those they serve. Well-versed in the social conditio
 
 #### **Aide — Silver 1**
 
-**Skills:** Bribery, Charm, Evaluate, Gossip, Haggle, Intuition, Lore (Local), *Lore (Politics)*, Research, Secret Signs (Any One)
+**Skills:** Bribery, Charm, Evaluate, Gossip, Haggle, Intuition, Lore (Local), ***Lore (Politics)***, Research, Secret Signs (Any One)
 
-**Talents:** Beneath Notice, Etiquette (All), Gregarious,
+**Talents:** Beneath Notice, Etiquette (All), Gregarious, Read/Write
 
-Read/Write **Trappings:** Writing Kit
+**Trappings:** Writing Kit
 
- **Adviser — Silver 3 Skills:** Consume Alcohol, Cool, Gamble, Intimidate, Language (Classical, Guilder, or Thieves Tongue), Lore (Heraldry)
+#### **Adviser — Silver 3**
 
-**Talents:** Criminal, Embezzle, Schemer, Supportive **Trappings:** Livery
+**Skills:** Consume Alcohol, Cool, Gamble, Intimidate, Language (Classical, Guilder, or Thieves Tongue), Lore (Heraldry)
+
+**Talents:** Criminal, Embezzle, Schemer, Supportive
+
+**Trappings:** Livery
 
 #### **Counsellor — Silver 5**
 
 **Skills:** Entertain (Storytelling), Language (Any One), Leadership, Lore (Any One)
 
-**Talents:** Argumentative, Briber, Cat-tongued, Kingpin **Trappings:** Aide, Quality Clothing
+**Talents:** Argumentative, Briber, Cat-tongued, Kingpin
+
+**Trappings:** Aide, Quality Clothing
 
 #### **Chancellor — Gold 3**
 
 **Skills:** Perform (Dancing), Ride (Horse)
 
-**Talents:** Carouser, Commanding Presence, Noble Blood,
-
-Suave
+**Talents:** Carouser, Commanding Presence, Noble Blood, Suave
 
 **Trappings:** Quality Courtly Garb, Riding Horse, Staff of Advisers and Aides
 
@@ -131,7 +138,7 @@ Advisers are wily enough to know when it is best to leave a patron, whether temp
 
 Playing as an Adviser is an opportunity to access the corridors of power, read political and social situations, and use your considerable acumen to make the right call.
 
-## **AGITATOR**
+## <span id="page-45-0" data-folio="46"></span>**AGITATOR**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -165,11 +172,13 @@ As an Agitator, you can sway crowds in your favour and help your party negotiate
 
 #### **Pamphleteer — Brass 1**
 
-**Skills:** Art (Writing), *Charm*, Consume Alcohol, Entertain (Storytelling), Gossip, Haggle, Lore (Local), Lore (Politics), Trade (Printing), Stealth (Urban) **Talents:** Blather, Gregarious, Panhandle, Read/Write **Trappings:** Hammer and Nails, Pile of Leaflets, Writing
+**Skills:** Art (Writing), ***Charm***, Consume Alcohol, Entertain (Storytelling), Gossip, Haggle, Lore (Local), Lore (Politics), Trade (Printing), Stealth (Urban)
+
+**Talents:** Blather, Gregarious, Panhandle, Read/Write
+
+**Trappings:** Hammer and Nails, Pile of Leaflets, Writing Kit
 
 #### **Agitator — Brass 2**
-
-Kit
 
 **Skills:** Cool, Dodge, Gamble, Intuition, Leadership, Melee (Brawling)
 
@@ -181,15 +190,19 @@ Kit
 
 **Skills:** Athletics, Intimidate, Perception, Ranged (Throwing)
 
-**Talents:** Cat-tongued, Dirty Fighting, Flee!, Step Aside **Trappings:** Hand Weapon, Pamphleteer
+**Talents:** Cat-tongued, Dirty Fighting, Flee!, Step Aside
+
+**Trappings:** Hand Weapon, Pamphleteer
 
 #### **Demagogue — Brass 5**
 
 **Skills:** Bribery, Lore (Heraldry)
 
-**Talents:** Etiquette (All), Master Orator, Schemer, Suave **Trappings:** Impressive Hat, 3 Pamphleteers, Patron, Printing Press
+**Talents:** Etiquette (All), Master Orator, Schemer, Suave
 
-## **APOTHECARY**
+**Trappings:** Impressive Hat, 3 Pamphleteers, Patron, Printing Press
+
+## <span id="page-46-0" data-folio="47"></span>**APOTHECARY**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -219,29 +232,27 @@ Playing an Apothecary lets you heal or harm with equal skill. You can become an 
 
 #### **Apothecary's Apprentice — Brass 3**
 
-**Skills:** Consume Alcohol, Endurance, Haggle, Heal, Language (Classical), Lore (Chemistry), Lore (Medicine), Perception, *Trade (Apothecary)*, Trade (Poisoner) **Talents:** Acute Sense (Taste), Concoct, Craftsman
+**Skills:** Consume Alcohol, Endurance, Haggle, Heal, Language (Classical), Lore (Chemistry), Lore (Medicine), Perception, ***Trade (Apothecary)***, Trade (Poisoner)
 
-(Apothecary), Read/Write
+**Talents:** Acute Sense (Taste), Concoct, Craftsman (Apothecary), Read/Write
 
-**Trappings:** Book (Blank), Leather Jerkin, Pestle and
-
-Mortar
+**Trappings:** Book (Blank), Leather Jerkin, Pestle and Mortar
 
 #### **Apothecary — Silver 1**
 
-**Skills:** Charm, Evaluate, Gossip, Language (Guilder),
+**Skills:** Charm, Evaluate, Gossip, Language (Guilder), Secret Signs (Guilder), Stealth (Urban)
 
-Secret Signs (Guilder), Stealth (Urban)
-
-**Talents:** Criminal, Dealmaker, Etiquette (Guilder),
-
-Pharmacist
+**Talents:** Criminal, Dealmaker, Etiquette (Guilder), Pharmacist
 
 **Trappings:** Guild Licence, Trade Tools (Apothecary)
 
 #### **Master Apothecary — Silver 3**
 
-**Skills:** Intuition, Leadership, Lore (Science), Research **Talents:** Bookish, Etiquette (Criminals *or* Scholars), Master Tradesman (Apothecary), Resistant (Poison) **Trappings:** Apprentice, Book (Apothecary), Workshop (Apothecary)
+**Skills:** Intuition, Leadership, Lore (Science), Research
+
+**Talents:** Bookish, Etiquette (Criminals *or* Scholars), Master Tradesman (Apothecary), Resistant (Poison)
+
+**Trappings:** Apprentice, Book (Apothecary), Workshop (Apothecary)
 
 #### **Apothecary General — Gold 1**
 
@@ -249,11 +260,9 @@ Pharmacist
 
 **Talents:** Coolheaded, Kingpin, Savant (Chemistry), Savvy
 
-**Trappings:** Commission Papers, Large Workshop
+**Trappings:** Commission Papers, Large Workshop (Apothecary)
 
-(Apothecary)
-
-## **ARTISAN**
+## <span id="page-47-0" data-folio="48"></span>**ARTISAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -281,7 +290,7 @@ This selection of crafts may inspire a trade for your Artisan Character: Armoure
 
 #### **Apprentice Artisan — Brass 2**
 
-**Skills:** Art (Any One), Athletics, Consume Alcohol, Cool, Dodge, Haggle, Endurance, Evaluate, Pick Lock, *Trade (Any One)*
+**Skills:** Art (Any One), Athletics, Consume Alcohol, Cool, Dodge, Haggle, Endurance, Evaluate, Pick Lock, ***Trade (Any One)***
 
 **Talents:** Craftsman (as Trade), Strong Back, Tenacious, Very Strong
 
@@ -311,7 +320,7 @@ This selection of crafts may inspire a trade for your Artisan Character: Armoure
 
 **Trappings:** Guild, Quality Clothing
 
-## **ARTIST**
+## <span id="page-48-0" data-folio="49"></span>**ARTIST**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -337,15 +346,15 @@ Artists of all stripes find themselves travelling abroad in search of patronage 
 
 #### **Apprentice Artist — Brass 2**
 
-**Skills:** *Art (Any One)*, Charm, Climb, Consume Alcohol, Evaluate, Gossip, Intuition, Lore (Art), Perception, Trade (Art Supplies)
+**Skills:** ***Art (Any One)***, Charm, Climb, Consume Alcohol, Evaluate, Gossip, Intuition, Lore (Art), Perception, Trade (Art Supplies)
 
-**Talents:** Artistic, Read/Write, Sharp, Strong Back **Trappings:** Brush or Chisel or Writing Kit
+**Talents:** Artistic, Read/Write, Sharp, Strong Back
+
+**Trappings:** Brush or Chisel or Writing Kit
 
 #### **Artist — Silver 1**
 
-**Skills:** Endurance, Entertain (Storytelling), Gamble,
-
-Haggle, Lore (Heraldry), Melee (Fencing)
+**Skills:** Endurance, Entertain (Storytelling), Gamble, Haggle, Lore (Heraldry), Melee (Fencing)
 
 **Talents:** Attractive, Carouser, Gregarious, Nimble-fingered
 
@@ -363,15 +372,11 @@ Haggle, Lore (Heraldry), Melee (Fencing)
 
 **Skills:** Cool, Secret Signs (Any One)
 
-**Talents:** Ambidextrous, Magnum Opus, Savant (Art),
+**Talents:** Ambidextrous, Magnum Opus, Savant (Art), Wealthy
 
-Wealthy
+**Trappings:** 3 Apprentices, Large Workshop (Artist), Library (Art)
 
-**Trappings:** 3 Apprentices, Large Workshop (Artist),
-
-Library (Art)
-
-## **BAILIFF**
+## <span id="page-49-0" data-folio="50"></span>**BAILIFF**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -403,9 +408,9 @@ Playing a Bailiff lets you wield your lord's authority and act in their name. Yo
 
 #### **Tax Collector — Silver 1**
 
-**Skills:** Athletics, Cool, Dodge, Endurance, Evaluate, Gossip, *Intimidate*, Melee (Basic), Perception, Pick Lock **Talents:** Break and Enter, Embezzle, Numismatics, Strong
+**Skills:** Athletics, Cool, Dodge, Endurance, Evaluate, Gossip, ***Intimidate***, Melee (Basic), Perception, Pick Lock
 
-Back
+**Talents:** Break and Enter, Embezzle, Numismatics, Strong Back
 
 **Trappings:** Hand Weapon, Small Lock Box
 
@@ -413,9 +418,7 @@ Back
 
 **Skills:** Bribery, Charm, Haggle, Intuition, Leadership, Lore (Local)
 
-**Talents:** Criminal, Menacing, Public Speaker, Strike to
-
-Stun
+**Talents:** Criminal, Menacing, Public Speaker, Strike to Stun
 
 **Trappings:** Leather Jack, 3 Tax Collectors
 
@@ -423,7 +426,7 @@ Stun
 
 **Skills:** Animal Care, Lore (Heraldry), Navigation, Ride (Horse)
 
-**Talents:** Argumentative, Kingpin, Nose for Trouble, Read/ Write
+**Talents:** Argumentative, Kingpin, Nose for Trouble, Read/Write
 
 **Trappings:** Bailiff, Breastplate, Riding Horse
 
@@ -431,13 +434,11 @@ Stun
 
 **Skills:** Language (Classical), Lore (Law)
 
-**Talents:** Commanding Presence, Iron Will, Savvy,
-
-Schemer
+**Talents:** Commanding Presence, Iron Will, Savvy, Schemer
 
 **Trappings:** Library (Law), Quality Robes, Seal of Office
 
-## **BEGGAR**
+## <span id="page-50-0" data-folio="51"></span>**BEGGAR**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -463,7 +464,7 @@ Beggars live by their wits, the generosity of strangers, and anything they can s
 
 #### **Pauper — Brass 0**
 
-**Skills:** *Charm*, Consume Alcohol, Dodge, Endurance, Gossip, Intuition, Outdoor Survival, Perception, Secret Signs (Vagabond), Stealth (Rural *or* Urban)
+**Skills:** ***Charm***, Consume Alcohol, Dodge, Endurance, Gossip, Intuition, Outdoor Survival, Perception, Secret Signs (Vagabond), Stealth (Rural *or* Urban)
 
 **Talents:** Beneath Notice, Panhandle, Resistant (Disease), Stone Soup
 
@@ -471,9 +472,7 @@ Beggars live by their wits, the generosity of strangers, and anything they can s
 
 ## **Beggar — Brass 1**
 
-**Skills:** Athletics, Cool, Entertain (Acting), Entertain (Any
-
-One), Lore (Local), Sleight of Hand
+**Skills:** Athletics, Cool, Entertain (Acting), Entertain (Any One), Lore (Local), Sleight of Hand
 
 **Talents:** Alley Cat, Blather, Criminal, Etiquette (Criminals)
 
@@ -483,7 +482,9 @@ One), Lore (Local), Sleight of Hand
 
 **Skills:** Charm Animal, Haggle, Leadership, Melee (Brawling)
 
-**Talents:** Dirty Fighting, Hardy, Step Aside, Very Resilient **Trappings:** Disguise Kit, Hiding Place, Pauper Follower
+**Talents:** Dirty Fighting, Hardy, Step Aside, Very Resilient
+
+**Trappings:** Disguise Kit, Hiding Place, Pauper Follower
 
 ### **Beggar King — Silver 2**
 
@@ -499,7 +500,7 @@ Those tough and clever enough to survive may gather bands of wretches to beg on 
 
 Playing a Beggar lets you see the Old World from beneath society's notice. You are effectively invisible to most people, allowing you to witness what happens on the streets or gather information from the local underclass. Few Characters are better at scraping a living in the direst circumstances, making you a surprisingly valuable companion.
 
-## **BOATMAN**
+## <span id="page-51-0" data-folio="52"></span>**BOATMAN**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -533,11 +534,9 @@ As a Boatman, you are strong, tough, and accustomed to handling yourself in roug
 
 #### **Boathand — Brass 3**
 
-**Skills:** Athletics, Charm, Consume Alcohol, Dodge, Endurance, Gossip, Melee (Brawling), Row, *Sail*, Swim
+**Skills:** Athletics, Charm, Consume Alcohol, Dodge, Endurance, Gossip, Melee (Brawling), Row, ***Sail***, Swim
 
-**Talents:** Fisherman, Strong Back, Strong Swimmer,
-
-Waterman
+**Talents:** Fisherman, Strong Back, Strong Swimmer, Waterman
 
 **Trappings:** Hand Weapon (Boat Hook), Leather Jack, Pole
 
@@ -545,9 +544,7 @@ Waterman
 
 **Skills:** Entertain (Storytelling), Haggle, Navigation, Lore (Riverways), Perception, Secret Signs (Guilder)
 
-**Talents:** Dirty Fighting, Etiquette (Guilder), Seasoned
-
-Traveller, Very Strong
+**Talents:** Dirty Fighting, Etiquette (Guilder), Seasoned Traveller, Very Strong
 
 **Trappings:** Rope, Rowboat
 
@@ -555,9 +552,7 @@ Traveller, Very Strong
 
 **Skills:** Climb, Heal, Intuition, Trade (Boatbuilder)
 
-**Talents:** Craftsman (Boatbuilder), Dealmaker, Embezzle,
-
-Nose for Trouble
+**Talents:** Craftsman (Boatbuilder), Dealmaker, Embezzle, Nose for Trouble
 
 **Trappings:** Backpack, Trade Tools (Carpenter), Trade Tools (Physician)
 
@@ -565,13 +560,11 @@ Nose for Trouble
 
 **Skills:** Cool, Leadership
 
-**Talents:** Orientation, Pilot, Public Speaker, Savant
-
-(Riverways)
+**Talents:** Orientation, Pilot, Public Speaker, Savant (Riverways)
 
 **Trappings:** Barge and Crew, Hat
 
-## **BOUNTY HUNTER**
+## <span id="page-52-0" data-folio="53"></span>**BOUNTY HUNTER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -605,17 +598,25 @@ Playing a Bounty Hunter lets you track dangerous foes, pursue leads across the O
 
 #### **Thief-taker — Silver 1**
 
-**Skills:** Athletics, Charm, Cool, Gossip, Haggle, Intuition, *Melee (Basic)*, Perception, Pick Lock, Stealth (Any One) **Talents:** Break and Enter, Shadow, Strike to Stun, Suave **Trappings:** Hand Weapon, Leather Jerkin, Rope
+**Skills:** Athletics, Charm, Cool, Gossip, Haggle, Intuition, ***Melee (Basic)***, Perception, Pick Lock, Stealth (Any One)
+
+**Talents:** Break and Enter, Shadow, Strike to Stun, Suave
+
+**Trappings:** Hand Weapon, Leather Jerkin, Rope
 
 #### **Bounty Hunter — Silver 3**
 
-**Skills:** Bribery, Endurance, Intimidate, Outdoor Survival, Ranged (Crossbow, Entangling, *or* Throwing), Track **Talents:** Marksman, Relentless, Seasoned Traveller, Strong Back
+**Skills:** Bribery, Endurance, Intimidate, Outdoor Survival, Ranged (Crossbow, Entangling, *or* Throwing), Track
+
+**Talents:** Marksman, Relentless, Seasoned Traveller, Strong Back
 
 **Trappings:** 2 Bolas *or* Crossbow with 10 Bolts *or* Lasso, Leather Skullcap, Manacles, Net, Warrant Papers
 
 #### **Master Bounty Hunter — Silver 5**
 
-**Skills:** Animal Care, Climb, Ride (Horse), Swim **Talents:** Accurate Shot, Careful Strike, Dual Wielder, Sprinter
+**Skills:** Animal Care, Climb, Ride (Horse), Swim
+
+**Talents:** Accurate Shot, Careful Strike, Dual Wielder, Sprinter
 
 **Trappings:** Mail Shirt, Riding Horse
 
@@ -623,13 +624,11 @@ Playing a Bounty Hunter lets you track dangerous foes, pursue leads across the O
 
 **Skills:** Drive, Lore (Law)
 
-**Talents:** Deadeye Shot, Fearless (Bounties), Hardy, Sure
-
-Shot
+**Talents:** Deadeye Shot, Fearless (Bounties), Hardy, Sure Shot
 
 **Trappings:** Draught Horse and Cart, 4 Pairs of Manacles
 
-## **CAVALRYMAN**
+## <span id="page-53-0" data-folio="54"></span>**CAVALRYMAN**
 
 **Warrior Class:** High Elf, Human, Wood Elf
 
@@ -659,39 +658,37 @@ Playing a Cavalryman gives you exceptional riding skills, a horse, and formidabl
 
 #### **Horseman — Silver 3**
 
-**Skills:** Animal Care, Charm Animal, Consume Alcohol, Cool, Language (Battle), Melee (Cavalry), Outdoor Survival, Perception, Ranged (Blackpowder *or* Bow), *Ride (Horse)*
+**Skills:** Animal Care, Charm Animal, Consume Alcohol, Cool, Language (Battle), Melee (Cavalry), Outdoor Survival, Perception, Ranged (Blackpowder *or* Bow), ***Ride (Horse)***
 
-**Talents:** Combat Aware, Dual Wielder, Lightning
+**Talents:** Combat Aware, Dual Wielder, Lightning Reflexes, Roughrider
 
-Reflexes, Roughrider
-
-**Trappings:** Bow with 10 Arrows *or* Pistol with 10 Shots,
-
-Leather Jack, Light Warhorse
+**Trappings:** Bow with 10 Arrows *or* Pistol with 10 Shots, Leather Jack, Light Warhorse
 
 #### **Cavalryman — Silver 4**
 
 **Skills:** Charm, Endurance, Gamble, Gossip, Melee (Basic), Play (Horn)
 
-**Talents:** Etiquette (Soldiers), Gunner, Seasoned Traveller,
-
-Trick Rider
+**Talents:** Etiquette (Soldiers), Gunner, Seasoned Traveller, Trick Rider
 
 #### **Trappings:** Breastplate, Open Helm
 
- **Cavalry Sergeant — Gold 1 Skills:** Intimidate, Leadership, Lore (Warfare), Ranged
+#### **Cavalry Sergeant — Gold 1**
 
-(Engineering) **Talents:** Combat Reflexes, Fast Shot, Hatred (Any One),
+**Skills:** Intimidate, Leadership, Lore (Warfare), Ranged (Engineering)
 
-War Leader **Trappings:** Sash
+**Talents:** Combat Reflexes, Fast Shot, Hatred (Any One), War Leader
 
- **Cavalry Officer — Gold 2 Skills:** Intuition, Lore (Heraldry)
+**Trappings:** Sash
+
+#### **Cavalry Officer — Gold 2**
+
+**Skills:** Intuition, Lore (Heraldry)
 
 **Talents:** Accurate Shot, Inspiring, Read/Write, Robust
 
 **Trappings:** Deck of Cards, Quality Clothing
 
-# **CHARLATAN**
+# <span id="page-54-0" data-folio="55"></span>**CHARLATAN**
 
 **Rogue Class:** Halfling, High Elf, Human
 
@@ -713,9 +710,11 @@ A Charlatan builds trust with their victims before selling them something too go
 
 #### **Swindler — Brass 3**
 
-**Skills:** *Charm*, Consume Alcohol, Cool, Entertain (Acting), Entertain (Storytelling), Gamble, Gossip, Haggle, Intuition, Sleight of Hand
+**Skills:** ***Charm***, Consume Alcohol, Cool, Entertain (Acting), Entertain (Storytelling), Gamble, Gossip, Haggle, Intuition, Sleight of Hand
 
-**Talents:** Cardsharp, Criminal, Dicer, Fast Hands **Trappings:** Deck of Cards, Dice, 2 Sets of Clothing
+**Talents:** Cardsharp, Criminal, Dicer, Fast Hands
+
+**Trappings:** Deck of Cards, Dice, 2 Sets of Clothing
 
 #### **Charlatan — Brass 5**
 
@@ -729,15 +728,15 @@ A Charlatan builds trust with their victims before selling them something too go
 
 **Skills:** Language (Any One), Lore (Art), Lore (Heraldry), Pick Lock
 
-**Talents:** Attractive, Cat-tongued, Dealmaker, Read/Write **Trappings:** Disguise Kit, Multiple Forged Documents
+**Talents:** Attractive, Cat-tongued, Dealmaker, Read/Write
+
+**Trappings:** Disguise Kit, Multiple Forged Documents
 
 #### **Scoundrel — Silver 4**
 
 **Skills:** Lore (Genealogy), Research
 
-**Talents:** Gregarious, Master of Disguise, Nose for
-
-Trouble, Suave
+**Talents:** Gregarious, Master of Disguise, Nose for Trouble, Suave
 
 **Trappings:** Forged Seal, Writing Kit
 
@@ -747,7 +746,7 @@ To avoid suspicion, Charlatans rarely stay in one place for long. Few Swindlers 
 
 Playing a Charlatan lets you bluff, deceive, and talk your way through almost any situation. Your fellow adventurers may never entirely trust you, but your silver tongue can get them out of — and into — all manner of trouble.
 
-## **COACHMAN**
+## <span id="page-55-0" data-folio="56"></span>**COACHMAN**
 
 **Ranger Class:** Dwarf, Halfling, Human
 
@@ -777,11 +776,9 @@ Playing a Coachman gives you expertise with horses, transport, and blackpowder w
 
 #### **Postilion — Silver 1**
 
-**Skills:** Animal Care, Charm Animal, Climb, *Drive*, Endurance, Gossip, Melee (Basic), Perception, Play (Horn), Ride (Horse)
+**Skills:** Animal Care, Charm Animal, Climb, ***Drive***, Endurance, Gossip, Melee (Basic), Perception, Play (Horn), Ride (Horse)
 
-**Talents:** Animal Affinity, Combat Aware, Seasoned
-
-Traveller, Tenacious
+**Talents:** Animal Affinity, Combat Aware, Seasoned Traveller, Tenacious
 
 **Trappings:** Coach Horn, Hat, Leather Jerkin, Warm Coat
 
@@ -797,9 +794,7 @@ Traveller, Tenacious
 
 **Skills:** Animal Training (Horse), Intimidate, Language (Any One), Lore (Routes)
 
-**Talents:** Accurate Shot, Fearless (Outlaws), Marksman,
-
-Nose for Trouble
+**Talents:** Accurate Shot, Fearless (Outlaws), Marksman, Nose for Trouble
 
 **Trappings:** Pistol with 10 Shots, Quality Cloak
 
@@ -807,13 +802,11 @@ Nose for Trouble
 
 **Skills:** Haggle, Leadership
 
-**Talents:** Dealmaker, Etiquette (Any One), Orientation,
-
-Read/Write
+**Talents:** Dealmaker, Etiquette (Any One), Orientation, Read/Write
 
 **Trappings:** Fleet of Coaches and Horses, Maps
 
-# **DUELLIST**
+# <span id="page-56-0" data-folio="57"></span>**DUELLIST**
 
 **Courtier Class:** Dwarf, High Elf, Human
 
@@ -843,11 +836,11 @@ Playing a Duellist means you can face almost any foe in single combat, sure in y
 
 #### **Fencer — Silver 3**
 
-**Skills:** Athletics, Charm, Cool, Dodge, Gamble, Heal, Intuition, Language (Classical), *Melee (Any One)*, Perception
+**Skills:** Athletics, Charm, Cool, Dodge, Gamble, Heal, Intuition, Language (Classical), ***Melee (Any One)***, Perception
 
-**Talents:** Beat Blade, Distract, Feint, Step Aside **Trappings:** Melee Weapon (Any), Sling Bag containing
+**Talents:** Beat Blade, Distract, Feint, Step Aside
 
-Clothing and 1d10 Bandages
+**Trappings:** Melee Weapon (Any), Sling Bag containing Clothing and 1d10 Bandages
 
 #### **Duellist — Silver 4**
 
@@ -861,9 +854,7 @@ Clothing and 1d10 Bandages
 
 #### **Duelmaster — Gold 1**
 
-**Skills:** Leadership, Lore (Warfare), Melee (Any One),
-
-Perform (Acrobatics)
+**Skills:** Leadership, Lore (Warfare), Melee (Any One), Perform (Acrobatics)
 
 **Talents:** Ambidextrous, Disarm, Reversal, Riposte
 
@@ -873,13 +864,11 @@ Perform (Acrobatics)
 
 **Skills:** Lore (Law), Melee (Any One)
 
-**Talents:** Combat Master, Menacing, Reaction Strike,
-
-Strike to Injure
+**Talents:** Combat Master, Menacing, Reaction Strike, Strike to Injure
 
 **Trappings:** 2 Quality Weapons
 
-## **ENGINEER**
+## <span id="page-57-0" data-folio="58"></span>**ENGINEER**
 
 **Academic Class:** Dwarf, Halfling, Human
 
@@ -907,7 +896,7 @@ Engineers tend to be eccentric, and playing one allows you to bring a spark of w
 
 #### **Student Engineer — Brass 4**
 
-**Skills:** Art (Drawing), Consume Alcohol, Cool, Endurance, Evaluate, Language (Classical), Lore (Engineering), Ranged (Engineering), Research, *Trade (Engineer)*
+**Skills:** Art (Drawing), Consume Alcohol, Cool, Endurance, Evaluate, Language (Classical), Lore (Engineering), Ranged (Engineering), Research, ***Trade (Engineer)***
 
 **Talents:** Craftsman (Engineer), Read/Write, Tinker, Unshakeable
 
@@ -915,7 +904,9 @@ Engineers tend to be eccentric, and playing one allows you to bring a spark of w
 
 #### **Engineer — Silver 3**
 
-**Skills:** Drive, Language (Guilder), Lore (Science), Navigation, Ride (Horse), Secret Signs (Guilder) **Talents:** Etiquette (Guilder), Etiquette (Scholars), Gunner, Marksman
+**Skills:** Drive, Language (Guilder), Lore (Science), Navigation, Ride (Horse), Secret Signs (Guilder)
+
+**Talents:** Etiquette (Guilder), Etiquette (Scholars), Gunner, Marksman
 
 **Trappings:** Guild Licence, Trade Tools (Engineer)
 
@@ -923,9 +914,7 @@ Engineers tend to be eccentric, and playing one allows you to bring a spark of w
 
 **Skills:** Animal Training (Pigeon), Dodge, Language (Khazalid), Leadership
 
-**Talents:** Master Tradesman (Engineer), Orientation,
-
-Sniper, Super Numerate
+**Talents:** Master Tradesman (Engineer), Orientation, Sniper, Super Numerate
 
 **Trappings:** Workshop (Engineer)
 
@@ -935,11 +924,9 @@ Sniper, Super Numerate
 
 **Talents:** Embezzle, Magnum Opus, Rapid Reload, Savant (Engineering)
 
-**Trappings:** Library (Engineering), Quality Trade Tools
+**Trappings:** Library (Engineering), Quality Trade Tools (Engineer), Large Workshop (Engineer)
 
-(Engineer), Large Workshop (Engineer)
-
-## **ENTERTAINER**
+## <span id="page-58-0" data-folio="59"></span>**ENTERTAINER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -965,7 +952,7 @@ The open road, a new village every night, the smell of greasepaint, and the roar
 
 #### **Busker — Brass 3**
 
-**Skills:** Athletics, Charm, Consume Alcohol, Dodge, *Entertain (Any One)*, Gossip, Haggle, Perform (Any One), Play (Any One), Sleight of Hand
+**Skills:** Athletics, Charm, Consume Alcohol, Dodge, ***Entertain (Any One)***, Gossip, Haggle, Perform (Any One), Play (Any One), Sleight of Hand
 
 **Talents:** Attractive, Mimic, Perfect Pitch, Suave
 
@@ -991,13 +978,11 @@ The open road, a new village every night, the smell of greasepaint, and the roar
 
 **Skills:** Drive, Leadership
 
-**Talents:** Dealmaker, Etiquette (Any One), Seasoned
-
-Traveller, Sharp
+**Talents:** Dealmaker, Etiquette (Any One), Seasoned Traveller, Sharp
 
 **Trappings:** Draught Horses and Wagon (Stage), Troupe of Entertainers, Wardrobe of Costumes and Props
 
-## **ENVOY**
+## <span id="page-59-0" data-folio="60"></span>**ENVOY**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1029,9 +1014,11 @@ Playing an Envoy lets you wield the authority of whomever you represent, while y
 
 #### **Herald — Silver 2**
 
-**Skills:** Art (Writing), Athletics, *Charm*, Dodge, Drive, Endurance, Haggle, Lore (Heraldry), Lore (Politics), Ride (Horse)
+**Skills:** Art (Writing), Athletics, ***Charm***, Dodge, Drive, Endurance, Haggle, Lore (Heraldry), Lore (Politics), Ride (Horse)
 
-**Talents:** Blather, Etiquette (Nobles), Read/Write, Suave **Trappings:** Leather Jack, Livery, Scroll Case
+**Talents:** Blather, Etiquette (Nobles), Read/Write, Suave
+
+**Trappings:** Leather Jack, Livery, Scroll Case
 
 #### **Envoy — Silver 4**
 
@@ -1053,15 +1040,11 @@ Playing an Envoy lets you wield the authority of whomever you represent, while y
 
 **Skills:** Lore (All), Secret Signs (Any One)
 
-**Talents:** Briber, Commanding Presence, Noble Blood,
+**Talents:** Briber, Commanding Presence, Noble Blood, Savant (Politics)
 
-Savant (Politics)
+**Trappings:** Best Quality Courtly Clothes, Herald, Staff of Diplomats
 
-**Trappings:** Best Quality Courtly Clothes, Herald, Staff of
-
-Diplomats
-
-## **FENCE**
+## <span id="page-60-0" data-folio="61"></span>**FENCE**
 
 **Rogue Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1093,15 +1076,17 @@ Playing a Fence lets you move comfortably between respectable society and the cr
 
 #### **Broker — Brass 5**
 
-**Skills:** Bribery, Charm, Consume Alcohol, *Evaluate*, Gamble, Gossip, Haggle, Lore (Local), Melee (Basic), Stealth (Urban)
+**Skills:** Bribery, Charm, Consume Alcohol, ***Evaluate***, Gamble, Gossip, Haggle, Lore (Local), Melee (Basic), Stealth (Urban)
 
-**Talents:** Cardsharp, Criminal, Gregarious, Numismatics **Trappings:** Hand Weapon, Stolen Goods worth 1d10 Shillings
+**Talents:** Cardsharp, Criminal, Gregarious, Numismatics
+
+**Trappings:** Hand Weapon, Stolen Goods worth 1d10 Shillings
 
 #### **Fence — Silver 1**
 
 **Skills:** Cool, Intuition, Language (Thieves Tongue), Lore (Heraldry), Secret Signs (Thief ), Trade (Engraver)
 
-**Talents:** Briber, Dealmaker, Etiquette (Criminals), Read/ Write
+**Talents:** Briber, Dealmaker, Etiquette (Criminals), Read/Write
 
 **Trappings:** Eyeglass, Trade Tools (Engraver), Writing Kit
 
@@ -1117,13 +1102,11 @@ Playing a Fence lets you move comfortably between respectable society and the cr
 
 **Skills:** Intimidate, Leadership
 
-**Talents:** Iron Will, Menacing, Savvy, Super Numerate **Trappings:** Gang of Racketeers, Network of Informers,
+**Talents:** Iron Will, Menacing, Savvy, Super Numerate
 
-Warehouse
+**Trappings:** Gang of Racketeers, Network of Informers, Warehouse
 
-for the world.
-
-## **FLAGELLANT**
+## <span id="page-61-0" data-folio="62"></span>**FLAGELLANT**
 
 **Ranger Class:** Human
 
@@ -1131,7 +1114,7 @@ for the world.
 
 *'We scourge this flesh and spill this blood, for his Empire, in Sigmar's name!'* — Viktorina Schwefel, Flagellant
 
-Flagellants travel the Empire, flogging themselves in penance for their own sins and the sins of others. The vast majority are devout followers of Sigmar, though a rare few dedicate themselves to other gods. Whatever their creed, all believe the End Times are imminent, and only through suffering can they hope to win divine deliverance
+Flagellants travel the Empire, flogging themselves in penance for their own sins and the sins of others. The vast majority are devout followers of Sigmar, though a rare few dedicate themselves to other gods. Whatever their creed, all believe the End Times are imminent, and only through suffering can they hope to win divine deliverance for the world.
 
 Most Flagellants wander in large bands led by a Prophet of Doom who interprets Sigmar's will. They wear little more than rags, chains, and outlandish garments intended to cause discomfort and pain. Some follow armies, whipping themselves into a frenzy as battle is joined and fighting without thought for their own safety. Others
 
@@ -1151,7 +1134,7 @@ Flagellants eagerly join any group they believe will earn their god's favour, gl
 
 #### **Penitent — Brass 0**
 
-**Skills:** Athletics, Cool, Dodge, Endurance, Heal, Intimidate, Intuition, Lore (Sigmar), *Melee (Flail)*, Outdoor Survival
+**Skills:** Athletics, Cool, Dodge, Endurance, Heal, Intimidate, Intuition, Lore (Sigmar), ***Melee (Flail)***, Outdoor Survival
 
 **Talents:** Berserk Charge, Flagellant, Frenzy, Stone Soup
 
@@ -1169,9 +1152,7 @@ Flagellants eagerly join any group they believe will earn their god's favour, gl
 
 **Skills:** Charm, Language (Any One), Lore (Theology), Perception
 
-**Talents:** Furious Assault, Implacable, Menacing, Seasoned
-
-Traveller
+**Talents:** Furious Assault, Implacable, Menacing, Seasoned Traveller
 
 **Trappings:** Religious Relic
 
@@ -1179,13 +1160,11 @@ Traveller
 
 **Skills:** Entertain (Speeches), Leadership
 
-**Talents:** Battle Rage, Frightening, Impassioned Zeal,
-
-Jump Up
+**Talents:** Battle Rage, Frightening, Impassioned Zeal, Jump Up
 
 **Trappings:** Book (Religion), Followers (including Penitents, Flagellants, and Zealots)
 
-## **GRAVE ROBBER**
+## <span id="page-62-0" data-folio="63"></span>**GRAVE ROBBER**
 
 **Rogue Class:** Halfling, Human
 
@@ -1205,7 +1184,7 @@ Grave robbing is illegal, sacrilegious, and perilously close to necromancy. Afte
 
 Many Grave Robbers hire out their expertise to antiquarians seeking forgotten tombs, while others embrace the life of an itinerant adventurer to escape unsympathetic authorities.
 
-Playing a Grave Robber lets you explore the darkest places of the Old World in search of hidden riches. You are at home in the shadows, comfortable among the criminal underworld, and more than capable of escaping trouble when the dead — or the living come looking for you.
+Playing a Grave Robber lets you explore the darkest places of the Old World in search of hidden riches. You are at home in the shadows, comfortable among the criminal underworld, and more than capable of escaping trouble when the dead — or the living — come looking for you.
 
 #### **GRAVE ROBBER ADVANCE SCHEME**
 
@@ -1217,9 +1196,11 @@ Playing a Grave Robber lets you explore the darkest places of the Old World in s
 
 #### **Penny Thief — Brass 2**
 
-**Skills:** Athletics, Climb, Consume Alcohol, Cool, Dodge, Endurance, Gossip, Melee (Basic), Perception, *Stealth (Any One)*
+**Skills:** Athletics, Climb, Consume Alcohol, Cool, Dodge, Endurance, Gossip, Melee (Basic), Perception, ***Stealth (Any One)***
 
-**Talents:** Alley Cat, Criminal, Flee!, Strong Back **Trappings:** Crowbar, Hooded Cloak, Sack, Shovel
+**Talents:** Alley Cat, Criminal, Flee!, Strong Back
+
+**Trappings:** Crowbar, Hooded Cloak, Sack, Shovel
 
 #### **Grave Robber — Brass 4**
 
@@ -1245,7 +1226,7 @@ Playing a Grave Robber lets you explore the darkest places of the Old World in s
 
 **Trappings:** Bedroll, Maps, Tent, Trade Tools (Engineer), Writing Kit
 
-## **GUARD**
+## <span id="page-63-0" data-folio="64"></span>**GUARD**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1275,31 +1256,25 @@ Playing a Guard lets you stand between danger and those under your protection. Y
 
 #### **Sentry — Brass 5**
 
-**Skills:** Consume Alcohol, Cool, Entertain (Storytelling), Gamble, Gossip, Intimidate, Intuition, Melee (Basic),
+**Skills:** Consume Alcohol, Cool, Entertain (Storytelling), Gamble, Gossip, Intimidate, Intuition, Melee (Basic), Melee (Brawling), ***Perception***
 
-Melee (Brawling), *Perception*
+**Talents:** Dicer, Etiquette (Servants), Robust, Strike to Stun
 
-**Talents:** Dicer, Etiquette (Servants), Robust, Strike to
-
-Stun
-
-**Trappings:** Buckler, Leather Jerkin, Storm Lantern with
-
-Oil
+**Trappings:** Buckler, Leather Jerkin, Storm Lantern with Oil
 
 #### **Guard — Silver 2**
 
 **Skills:** Athletics, Dodge, Endurance, Heal, Melee (Polearm), Ranged (Bow)
 
-**Talents:** Drilled, Reversal, Shieldsman, Stout-hearted **Trappings:** Bow with 10 Arrows, Sleeved Mail Shirt, Shield, Spear
+**Talents:** Drilled, Reversal, Shieldsman, Stout-hearted
+
+**Trappings:** Bow with 10 Arrows, Sleeved Mail Shirt, Shield, Spear
 
 #### **Honour Guard — Silver 4**
 
 **Skills:** Language (Battle), Lore (Heraldry), Melee (Two-handed), Ride (Horse)
 
-**Talents:** Etiquette (Any One), Fearless (Intruders),
-
-Reaction Strike, Unshakeable
+**Talents:** Etiquette (Any One), Fearless (Intruders), Reaction Strike, Unshakeable
 
 **Trappings:** Great Weapon *or* Halberd, Helmet, Uniform
 
@@ -1307,13 +1282,11 @@ Reaction Strike, Unshakeable
 
 **Skills:** Leadership, Lore (Warfare)
 
-**Talents:** Combat Master, Furious Assault, Iron Will, Nose
-
-for Trouble
+**Talents:** Combat Master, Furious Assault, Iron Will, Nose for Trouble
 
 **Trappings:** Breastplate, Squad of Guards
 
-## **HEDGE WITCH**
+## <span id="page-64-0" data-folio="65"></span>**HEDGE WITCH**
 
 **Peasant Class:** Human
 
@@ -1337,7 +1310,7 @@ Hedge Witches wield ancient magics. Most live in rural communities, hiding away 
 
 #### **Hedge Apprentice — Brass 1**
 
-**Skills:** Channelling (Magick), Charm, Cool, Intuition, Language (Magick), *Lore (Folklore)*, Lore (Herbs), Lore (Theology), Outdoor Survival, Trade (Herbalist)
+**Skills:** Channelling (Magick), Charm, Cool, Intuition, Language (Magick), ***Lore (Folklore)***, Lore (Herbs), Lore (Theology), Outdoor Survival, Trade (Herbalist)
 
 **Talents:** Craftsman (Herbalist), Petty Magic, Read/Write, Second Sight
 
@@ -1347,19 +1320,23 @@ Hedge Witches wield ancient magics. Most live in rural communities, hiding away 
 
 **Skills:** Heal, Lore (Local), Lore (Magic), Lore (Spirits), Pray, Secret Signs (Hedgefolk)
 
-**Talents:** Aethyric Attunement, Arcane Magic (Hedgecraft), Sixth Sense, Striding Gait (Any One) **Trappings:** Healing Poultice, Trade Tools (Herbalist)
+**Talents:** Aethyric Attunement, Arcane Magic (Hedgecraft), Sixth Sense, Striding Gait (Any One)
+
+**Trappings:** Healing Poultice, Trade Tools (Herbalist)
 
 #### **Hedge Master — Brass 5**
 
-**Skills:** Animal Care, Gossip, Leadership, Perception **Talents:** Instinctive Diction, Magical Sense, Master Tradesman (Herbalist), Savant (Folklore) **Trappings:** Apprentice, Isolated Hut
+**Skills:** Animal Care, Gossip, Leadership, Perception
+
+**Talents:** Instinctive Diction, Magical Sense, Master Tradesman (Herbalist), Savant (Folklore)
+
+**Trappings:** Apprentice, Isolated Hut
 
 #### **Hedgewise — Silver 2**
 
 **Skills:** Endurance, Lore (Genealogy)
 
-**Talents:** Acute Sense (Any One), Pure Soul, Resistant
-
-(Disease), Strong-minded
+**Talents:** Acute Sense (Any One), Pure Soul, Resistant (Disease), Strong-minded
 
 **Trappings:** Assortment of Animal Skulls, Ceremonial Cloak and Garland
 
@@ -1369,7 +1346,7 @@ Hedge Witches take their duty to their people seriously, but that does not mean 
 
 Playing a Hedge Witch lets you wield subtle magic beyond the teachings of the Colleges. You can ward against evil, commune with nature spirits, and support your companions with healing, wisdom, and hard-earned knowledge of life on the edge of civilisation.
 
-## **HERBALIST**
+## <span id="page-65-0" data-folio="66"></span>**HERBALIST**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1395,9 +1372,9 @@ Playing a Herbalist lets you do far more than heal. Your preparations can streng
 
 #### **Herb Gatherer — Brass 1**
 
-**Skills:** Athletics, Climb, Endurance, Heal, Lore (Herbs), Outdoor Survival, Perception, Swim, *Trade (Herbalist)*,
+**Skills:** Athletics, Climb, Endurance, Heal, Lore (Herbs), Outdoor Survival, Perception, Swim, ***Trade (Herbalist)***, Trade (Poisoner)
 
-Trade (Poisoner) **Talents:** Craftsman (Herbalist), Hardy, Orientation, Striding Gait (Any One)
+**Talents:** Craftsman (Herbalist), Hardy, Orientation, Striding Gait (Any One)
 
 **Trappings:** Boots, Cloak, Hand Weapon (Sickle), Sling Bag containing Assortment of Herbs
 
@@ -1405,9 +1382,7 @@ Trade (Poisoner) **Talents:** Craftsman (Herbalist), Hardy, Orientation, Stridin
 
 **Skills:** Charm, Evaluate, Gossip, Haggle, Lore (Local), Navigation
 
-**Talents:** Acute Sense (Taste), Field Dressing, Nimble-
-
-fingered, Sharp
+**Talents:** Acute Sense (Taste), Field Dressing, Nimble-fingered, Sharp
 
 **Trappings:** Trade Tools (Herbalist)
 
@@ -1423,13 +1398,11 @@ fingered, Sharp
 
 **Skills:** Charm Animal, Drive
 
-**Talents:** Etiquette (Scholars), Read/Write, Resistant
-
-(Poison), Savant (Herbs)
+**Talents:** Etiquette (Scholars), Read/Write, Resistant (Poison), Savant (Herbs)
 
 **Trappings:** Book (Herbs), Pony and Cart
 
-## **HUNTER**
+## <span id="page-66-0" data-folio="67"></span>**HUNTER**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1457,15 +1430,11 @@ Playing a Hunter lets you thrive where others struggle. Your keen eyes can spot 
 
 #### **Trapper — Brass 2**
 
-**Skills:** Animal Care, Athletics, Charm Animal, Climb, Endurance, *Outdoor Survival*, Perception, Set Trap,
-
-Stealth (Rural), Track
+**Skills:** Animal Care, Athletics, Charm Animal, Climb, Endurance, ***Outdoor Survival***, Perception, Set Trap, Stealth (Rural), Track
 
 **Talents:** Hardy, Rover, Striding Gait (All), Trapper
 
-**Trappings:** Hand Weapon (Axe), Selection of Animal
-
-Traps, Sturdy Boots and Cloak
+**Trappings:** Hand Weapon (Axe), Selection of Animal Traps, Sturdy Boots and Cloak
 
 #### **Hunter — Brass 4**
 
@@ -1477,7 +1446,9 @@ Traps, Sturdy Boots and Cloak
 
 #### **Tracker — Silver 1**
 
-**Skills:** Entertain (Storytelling), Haggle, Navigation, Swim **Talents:** Acute Sense (Any One), Deadeye Shot, Fearless (Beasts), Sure Shot
+**Skills:** Entertain (Storytelling), Haggle, Navigation, Swim
+
+**Talents:** Acute Sense (Any One), Deadeye Shot, Fearless (Beasts), Sure Shot
 
 **Trappings:** Backpack, Bedroll, Tent
 
@@ -1485,9 +1456,11 @@ Traps, Sturdy Boots and Cloak
 
 **Skills:** Animal Training (Hawk), Ride (Horse)
 
-**Talents:** Etiquette (Servants), Fast Shot, Robust, Sniper **Trappings:** Hawk Mews *or* Kennel of Hunting Dogs, Riding Horse
+**Talents:** Etiquette (Servants), Fast Shot, Robust, Sniper
 
-## **INVESTIGATOR**
+**Trappings:** Hawk Mews *or* Kennel of Hunting Dogs, Riding Horse
+
+## <span id="page-67-0" data-folio="68"></span>**INVESTIGATOR**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1519,7 +1492,11 @@ Playing an Investigator lets you uncover secrets others overlook. You bring prof
 
 #### **Enquirer — Silver 1**
 
-**Skills:** Charm, Climb, Cool, Dodge, Gossip, Intuition, Melee (Brawling), *Perception*, Stealth (Urban), Track **Talents:** Alley Cat, Beneath Notice, Read/Write, Sharp **Trappings:** Lamp Oil, Lantern, Journal, Writing Kit
+**Skills:** Charm, Climb, Cool, Dodge, Gossip, Intuition, Melee (Brawling), ***Perception***, Stealth (Urban), Track
+
+**Talents:** Alley Cat, Beneath Notice, Read/Write, Sharp
+
+**Trappings:** Lamp Oil, Lantern, Journal, Writing Kit
 
 #### **Investigator — Silver 2**
 
@@ -1531,15 +1508,21 @@ Playing an Investigator lets you uncover secrets others overlook. You bring prof
 
 #### **Sleuth — Silver 3**
 
-**Skills:** Leadership, Lore (Any One), Lore (Law), Research **Talents:** Bookish, Break and Enter, Sixth Sense, Suave **Trappings:** Assistant, Office
+**Skills:** Leadership, Lore (Any One), Lore (Law), Research
+
+**Talents:** Bookish, Break and Enter, Sixth Sense, Suave
+
+**Trappings:** Assistant, Office
 
 #### **Detective — Silver 5**
 
-**Skills:** Lore (Any One), Secret Signs (Any One) **Talents:** Acute Sense (Any One), Savant (Any One), Speedreader, Tower of Memories
+**Skills:** Lore (Any One), Secret Signs (Any One)
+
+**Talents:** Acute Sense (Any One), Savant (Any One), Speedreader, Tower of Memories
 
 **Trappings:** Network of Informers, Spyglass
 
-## **KNAVE**
+## <span id="page-68-0" data-folio="69"></span>**KNAVE**
 
 **Rogue Class:** Halfling, High Elf, Human
 
@@ -1569,7 +1552,7 @@ Playing a Knave lets you navigate the Old World's criminal underworld with ease.
 
 #### **Hustler — Brass 2**
 
-**Skills:** Bribery, *Charm*, Consume Alcohol, Entertain (Any One), Gamble, Gossip, Haggle, Intuition, Lore (Local), Stealth (Urban)
+**Skills:** Bribery, ***Charm***, Consume Alcohol, Entertain (Any One), Gamble, Gossip, Haggle, Intuition, Lore (Local), Stealth (Urban)
 
 **Talents:** Attractive, Blather, Criminal, Gregarious
 
@@ -1579,25 +1562,27 @@ Playing a Knave lets you navigate the Old World's criminal underworld with ease.
 
 **Skills:** Endurance, Language (Thieves Tongue), Lore (Any One), Melee (Basic), Perception, Secret Signs (Thief )
 
-**Talents:** Carouser, Etiquette (Any One), Resistant
-
-(Disease *or* Poison), Suave
+**Talents:** Carouser, Etiquette (Any One), Resistant (Disease *or* Poison), Suave
 
 **Trappings:** Dose of Weirdroot, Quality Clothing
 
 #### **Procurer — Silver 1**
 
-**Skills:** Cool, Dodge, Evaluate, Leadership **Talents:** Briber, Dealmaker, Embezzle, Numismatics **Trappings:** A Ring of Hustlers
+**Skills:** Cool, Dodge, Evaluate, Leadership
+
+**Talents:** Briber, Dealmaker, Embezzle, Numismatics
+
+**Trappings:** A Ring of Hustlers
 
 #### **Ringleader — Silver 3**
 
 **Skills:** Intimidate, Lore (Law)
 
-**Talents:** Kingpin, Read/Write, Savant (Local), Schemer **Trappings:** A Ring of Knaves, Townhouse with Discreet
+**Talents:** Kingpin, Read/Write, Savant (Local), Schemer
 
-Back Entrance
+**Trappings:** A Ring of Knaves, Townhouse with Discreet Back Entrance
 
-## **KNIGHT**
+## <span id="page-69-0" data-folio="70"></span>**KNIGHT**
 
 **Warrior Class:** High Elf, Human, Wood Elf
 
@@ -1623,7 +1608,7 @@ Even the strictest order grants its Knights a degree of independence. Some adven
 
 #### **Squire — Silver 3**
 
-**Skills:** Animal Care, Athletics, Charm Animal, Cool, Heal, Lore (Heraldry), Melee (Basic), *Melee (Cavalry)*, Ride (Horse), Trade (Farrier)
+**Skills:** Animal Care, Athletics, Charm Animal, Cool, Heal, Lore (Heraldry), Melee (Basic), ***Melee (Cavalry)***, Ride (Horse), Trade (Farrier)
 
 **Talents:** Etiquette (Nobles, *or* Soldiers), Noble Blood, Strike Mighty Blow, Warrior Born
 
@@ -1633,9 +1618,9 @@ Even the strictest order grants its Knights a degree of independence. Some adven
 
 **Skills:** Dodge, Endurance, Intimidate, Language (Battle), Melee (Any One), Play (Horn)
 
-**Talents:** Coolheaded, Roughrider, Seasoned Traveller, Sturdy **Trappings:** Destrier, Melee Weapon (Any), Lance, Plate
+**Talents:** Coolheaded, Roughrider, Seasoned Traveller, Sturdy
 
-Armour, Sword
+**Trappings:** Destrier, Melee Weapon (Any), Lance, Plate Armour, Sword
 
 #### **First Knight — Gold 2**
 
@@ -1647,9 +1632,13 @@ Armour, Sword
 
 #### **Knight of the Inner Circle — Gold 4**
 
-**Skills:** Lore (Any One), Secret Signs (Knightly Order) **Talents:** Inspiring, Iron Will, Read/Write, Strike to Injure **Trappings:** Large Unit of Knights or Several Small Units of Knights, Plumed Great Helm, Squire
+**Skills:** Lore (Any One), Secret Signs (Knightly Order)
 
-## **LAWYER**
+**Talents:** Inspiring, Iron Will, Read/Write, Strike to Injure
+
+**Trappings:** Large Unit of Knights or Several Small Units of Knights, Plumed Great Helm, Squire
+
+## <span id="page-70-0" data-folio="71"></span>**LAWYER**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1677,7 +1666,7 @@ Lawyers navigate the tangled web of the Empire's laws, where feudal, ecclesiasti
 
 **Skills:** Bribery, Charm, Consume Alcohol, Entertain (Storytelling), Gossip, Intuition, Language (Classical),
 
-*Lore (Law)*, Lore (Theology), Research
+***Lore (Law)***, Lore (Theology), Research
 
 **Talents:** Blather, Etiquette (Scholars), Read/Write, Speedreader
 
@@ -1685,13 +1674,9 @@ Lawyers navigate the tangled web of the Empire's laws, where feudal, ecclesiasti
 
 ### **Lawyer — Silver 3**
 
-**Skills:** Cool, Haggle, Intimidate, Language (Guilder),
+**Skills:** Cool, Haggle, Intimidate, Language (Guilder), Lore (Local), Secret Signs (Guilder)
 
-Lore (Local), Secret Signs (Guilder)
-
-**Talents:** Argumentative, Briber, Etiquette (Criminals),
-
-Etiquette (Guilder)
+**Talents:** Argumentative, Briber, Etiquette (Criminals), Etiquette (Guilder)
 
 **Trappings:** Court Robes, Guild Licence, Writing Kit
 
@@ -1707,9 +1692,7 @@ Etiquette (Guilder)
 
 **Skills:** Leadership, Lore (Any One)
 
-**Talents:** Bookish, Commanding Presence, Master Orator,
-
-Savvy
+**Talents:** Bookish, Commanding Presence, Master Orator, Savvy
 
 **Trappings:** Gavel, Ostentatious Wig
 
@@ -1717,9 +1700,9 @@ Most Lawyers study at a university before earning the right to practise through 
 
 Lawyers are not always deskbound. They often seek out evidence firsthand, unravel mysteries behind a case, or travel in search of wealthy patrons, employment, or expertise in unfamiliar jurisdictions. Some idealists even devote themselves to bringing justice to those denied it.
 
-Playing a Lawyer lets you turn the law into a weapon. You can defend your companions from the authorities, exploit legal procedure to outwit officials, and use your knowledge to uncover — or hide crimes.
+Playing a Lawyer lets you turn the law into a weapon. You can defend your companions from the authorities, exploit legal procedure to outwit officials, and use your knowledge to uncover — or hide — crimes.
 
-## **MERCHANT**
+## <span id="page-71-0" data-folio="72"></span>**MERCHANT**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -1749,13 +1732,17 @@ Playing a Merchant lets you find opportunities wherever you travel. You know how
 
 #### **Trader — Silver 2**
 
-**Skills:** Animal Care, Bribery, Charm Animal, Consume Alcohol, Drive, Evaluate, Gossip, *Haggle*, Intuition, Navigation
+**Skills:** Animal Care, Bribery, Charm Animal, Consume Alcohol, Drive, Evaluate, Gossip, ***Haggle***, Intuition, Navigation
 
-**Talents:** Blather, Dealmaker, Read/Write, Suave **Trappings:** Abacus, Canvas Tarpaulin, Mule and Cart, 3d10 Shillings
+**Talents:** Blather, Dealmaker, Read/Write, Suave
+
+**Trappings:** Abacus, Canvas Tarpaulin, Mule and Cart, 3d10 Shillings
 
 #### **Merchant — Silver 5**
 
-**Skills:** Charm, Gamble, Language (Any One), Language (Guilder), Lore (Local), Secret Signs (Guilder) **Talents:** Briber, Embezzle, Etiquette (Guilder), Savvy
+**Skills:** Charm, Gamble, Language (Any One), Language (Guilder), Lore (Local), Secret Signs (Guilder)
+
+**Talents:** Briber, Embezzle, Etiquette (Guilder), Savvy
 
 **Trappings:** Barge *or* 2 Wagons, 20 GC, Guild Licence
 
@@ -1763,11 +1750,9 @@ Playing a Merchant lets you find opportunities wherever you travel. You know how
 
 **Skills:** Cool, Language (Any), Language (Classical), Leadership
 
-**Talents:** Cat-tongued, Etiquette (Any One),
+**Talents:** Cat-tongued, Etiquette (Any One), Numismatics, Super Numerate
 
-Numismatics, Super Numerate **Trappings:** 100 GC, Townhouse with Servants,
-
-Warehouse
+**Trappings:** 100 GC, Townhouse with Servants, Warehouse
 
 #### **Merchant Prince — Gold 3**
 
@@ -1777,7 +1762,7 @@ Warehouse
 
 **Trappings:** 2 Barges and 4 Wagons, Large Town Estate, 1000 GC, Quality Clothing, 2 Warehouses
 
-## **MESSENGER**
+## <span id="page-72-0" data-folio="73"></span>**MESSENGER**
 
 **Ranger Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1805,7 +1790,7 @@ Playing a Messenger will make you one of the swiftest characters in the game, ab
 
 #### **Runner — Brass 3**
 
-**Skills:** Athletics, Climb, Cool, Dodge, *Endurance*, Haggle, Melee (Basic), Navigation, Perception, Secret Signs (Ranger *or* Thief )
+**Skills:** Athletics, Climb, Cool, Dodge, ***Endurance***, Haggle, Melee (Basic), Navigation, Perception, Secret Signs (Ranger *or* Thief )
 
 **Talents:** Criminal, Flee!, Fleet-footed, Sprinter
 
@@ -1813,13 +1798,9 @@ Playing a Messenger will make you one of the swiftest characters in the game, ab
 
 #### **Messenger — Silver 2**
 
-**Skills:** Animal Care, Charm Animal, Lore (Local),
+**Skills:** Animal Care, Charm Animal, Lore (Local), Outdoor Survival, Ride (Horse), Swim
 
-Outdoor Survival, Ride (Horse), Swim
-
-**Talents:** Iron Will, Read/Write, Seasoned Traveller,
-
-Striding Gait (All)
+**Talents:** Iron Will, Read/Write, Seasoned Traveller, Striding Gait (All)
 
 **Trappings:** Hand Weapon, Leather Jack, Riding Horse
 
@@ -1827,9 +1808,7 @@ Striding Gait (All)
 
 **Skills:** Charm, Consume Alcohol, Gossip, Lore (Geography)
 
-**Talents:** Nose for Trouble, Step Aside, Tenacious, Trick
-
-Rider
+**Talents:** Nose for Trouble, Step Aside, Tenacious, Trick Rider
 
 **Trappings:** Backpack, Saddlebags, Shield
 
@@ -1837,13 +1816,11 @@ Rider
 
 **Skills:** Leadership, Research
 
-**Talents:** Dealmaker, Hatred (Outlaws), Orientation,
-
-Schemer
+**Talents:** Dealmaker, Hatred (Outlaws), Orientation, Schemer
 
 **Trappings:** Couriers, Mail Shirt, Writing Kit
 
-## **MINER**
+## <span id="page-73-0" data-folio="74"></span>**MINER**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -1873,7 +1850,7 @@ Playing a Miner lets you tackle dangers that would stop others in their tracks. 
 
 #### **Prospector — Brass 2**
 
-**Skills:** Climb, Cool, *Endurance*, Gossip, Lore (Local), Melee (Basic), Melee (Two-handed), Outdoor Survival, Perception, Secret Signs (Vagabond)
+**Skills:** Climb, Cool, ***Endurance***, Gossip, Lore (Local), Melee (Basic), Melee (Two-handed), Outdoor Survival, Perception, Secret Signs (Vagabond)
 
 **Talents:** Robust, Striding Gait (Rocky), Strong Back, Tenacious
 
@@ -1903,7 +1880,7 @@ Playing a Miner lets you tackle dangers that would stop others in their tracks. 
 
 **Trappings:** Crew of Miners, Writing Kit
 
-## **MYSTIC**
+## <span id="page-74-0" data-folio="75"></span>**MYSTIC**
 
 **Peasant Class:** High Elf, Human, Wood Elf
 
@@ -1935,9 +1912,11 @@ Playing a Mystic lets you peer beyond the veil of the present. Whether reading o
 
 #### **Fortune Teller — Brass 1**
 
-**Skills:** Bribery, Charm, Dodge, Entertain (Fortune-telling), Gossip, *Intuition*, Lore (Astrology), Lore (Theology), Perception, Sleight of Hand
+**Skills:** Bribery, Charm, Dodge, Entertain (Fortune-telling), Gossip, ***Intuition***, Lore (Astrology), Lore (Theology), Perception, Sleight of Hand
 
-**Talents:** Holy Visions, Luck, Second Sight, Suave **Trappings:** Cheap Jewellery, Deck of Cards *or* Dice
+**Talents:** Holy Visions, Luck, Second Sight, Suave
+
+**Trappings:** Cheap Jewellery, Deck of Cards *or* Dice
 
 #### **Mystic — Brass 3**
 
@@ -1959,13 +1938,11 @@ Playing a Mystic lets you peer beyond the veil of the present. Whether reading o
 
 **Skills:** Charm Animal, Lore (Prophecy)
 
-**Talents:** Arcane Magic (Heavens), Menacing, Strong-
-
-minded, Witch!
+**Talents:** Arcane Magic (Heavens), Menacing, Strong-minded, Witch!
 
 **Trappings:** Trade Tools (Astrology)
 
-## **NOBLE**
+## <span id="page-75-0" data-folio="76"></span>**NOBLE**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -1993,11 +1970,11 @@ Playing a Noble grants you privilege and power. Your title protects you from the
 
 ## **Career Path**
 
-h **Scion — Gold 1**
+#### **Scion — Gold 1**
 
-**Skills:** Consume Alcohol, Gamble, Gossip, Intimidate, Language (Classical), *Leadership*, Lore (Heraldry), Melee (Fencing), Perform (Dancing), Ride (Horse)
+**Skills:** Consume Alcohol, Gamble, Gossip, Intimidate, Language (Classical), ***Leadership***, Lore (Heraldry), Melee (Fencing), Perform (Dancing), Ride (Horse)
 
-**Talents:** Etiquette (Nobles), Luck, Noble Blood, Read/ Write
+**Talents:** Etiquette (Nobles), Luck, Noble Blood, Read/Write
 
 **Trappings:** Courtly Garb, Foil *or* Hand Mirror, Velvet Cloak, Jewellery worth 3d10 GC, Personal Servant
 
@@ -2005,7 +1982,9 @@ h **Scion — Gold 1**
 
 **Skills:** Bribery, Charm, Language (Any One), Lore (Politics), Melee (Parry) *or* Ranged (Blackpowder), Play (Any One)
 
-**Talents:** Briber, Carouser, Menacing, Suave **Trappings:** Coach *or* Riding Horse, 4 Household Servants, Jewellery worth 50 GC, Main-gauche *or* Pistol with 10 Shots, Quality Courtly Garb
+**Talents:** Briber, Carouser, Menacing, Suave
+
+**Trappings:** Coach *or* Riding Horse, 4 Household Servants, Jewellery worth 50 GC, Main-gauche *or* Pistol with 10 Shots, Quality Courtly Garb
 
 #### **Grandee — Gold 5**
 
@@ -2019,9 +1998,11 @@ h **Scion — Gold 1**
 
 **Skills:** Charm Animal, Intuition
 
-**Talents:** Coolheaded, Iron Will, War Leader, Wealthy **Trappings:** 500 GC, Jewellery worth 500 GC, Province
+**Talents:** Coolheaded, Iron Will, War Leader, Wealthy
 
-## **NUN**
+**Trappings:** 500 GC, Jewellery worth 500 GC, Province
+
+## <span id="page-76-0" data-folio="77"></span>**NUN**
 
 **Academic Class:** Human
 
@@ -2051,9 +2032,9 @@ Playing a Nun lets you bring faith, compassion, and authority wherever you trave
 
 #### **Novice — Brass 1**
 
-**Skills:** Art (Calligraphy), Charm, Cool, Endurance, Heal, Language (Classical), *Lore (Theology)*, Outdoor Survival, Pray, Trade (Brewer)
+**Skills:** Art (Calligraphy), Charm, Cool, Endurance, Heal, Language (Classical), ***Lore (Theology)***, Outdoor Survival, Pray, Trade (Brewer)
 
-**Talents:** Bless (Any One), Holy Visions, Panhandle, Read/ Write
+**Talents:** Bless (Any One), Holy Visions, Panhandle, Read/Write
 
 **Trappings:** Religious Symbol, Robes
 
@@ -2069,9 +2050,7 @@ Playing a Nun lets you bring faith, compassion, and authority wherever you trave
 
 **Skills:** Intimidate, Leadership, Lore (Politics), Perception
 
-**Talents:** Inspiring, Resistant (Any One), Savant
-
-(Theology), Stout-hearted
+**Talents:** Inspiring, Resistant (Any One), Savant (Theology), Stout-hearted
 
 **Trappings:** Abbey, Library (Theology)
 
@@ -2079,13 +2058,11 @@ Playing a Nun lets you bring faith, compassion, and authority wherever you trave
 
 **Skills:** Lore (Any One), Research
 
-**Talents:** Commanding Presence, Iron Will, Pure Soul,
-
-Strong-minded
+**Talents:** Commanding Presence, Iron Will, Pure Soul, Strong-minded
 
 **Trappings:** Religious Order
 
-## **OUTLAW**
+## <span id="page-77-0" data-folio="78"></span>**OUTLAW**
 
 **Rogue Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2117,13 +2094,17 @@ Playing an Outlaw lets you thrive beyond the reach of civilisation. You know peo
 
 #### **Brigand — Brass 3**
 
-**Skills:** Athletics, Cool, Dodge, Endurance, Gamble, *Intimidate*, Melee (Basic), Outdoor Survival, Perception, Stealth (Rural)
+**Skills:** Athletics, Cool, Dodge, Endurance, Gamble, ***Intimidate***, Melee (Basic), Outdoor Survival, Perception, Stealth (Rural)
 
-**Talents:** Criminal, Menacing, Rover, Very Resilient **Trappings:** Bedroll, Hand Weapon, Leather Jerkin, Tinderbox
+**Talents:** Criminal, Menacing, Rover, Very Resilient
+
+**Trappings:** Bedroll, Hand Weapon, Leather Jerkin, Tinderbox
 
 #### **Outlaw — Brass 5**
 
-**Skills:** Consume Alcohol, Gossip, Lore (Local), Ranged (Bow *or* Crossbow), Secret Signs (Scout), Set Trap **Talents:** Marksman, Robust, Striding Gait (Any One), Trapper
+**Skills:** Consume Alcohol, Gossip, Lore (Local), Ranged (Bow *or* Crossbow), Secret Signs (Scout), Set Trap
+
+**Talents:** Marksman, Robust, Striding Gait (Any One), Trapper
 
 **Trappings:** Bow with 10 Arrows *or* Crossbow with 10 Bolts *or* Shield, Tent
 
@@ -2131,9 +2112,7 @@ Playing an Outlaw lets you thrive beyond the reach of civilisation. You know peo
 
 **Skills:** Bribery, Leadership, Navigation, Ranged (Blackpowder)
 
-**Talents:** Deadeye Shot, Dual Wielder, Fearless
-
-(Roadwardens), Seasoned Traveller
+**Talents:** Deadeye Shot, Dual Wielder, Fearless (Roadwardens), Seasoned Traveller
 
 **Trappings:** Band of Outlaws, Helmet, Sleeved Mail Shirt
 
@@ -2145,7 +2124,7 @@ Playing an Outlaw lets you thrive beyond the reach of civilisation. You know peo
 
 **Trappings:** 'Fiefdom' of Outlaw Chiefs, Lair
 
-## **PEDLAR**
+## <span id="page-78-0" data-folio="79"></span>**PEDLAR**
 
 **Ranger Class:** Dwarf, Halfling, Human
 
@@ -2177,7 +2156,9 @@ Always on the move, Pedlars take naturally to the adventuring life in search of 
 
 #### **Vagabond — Brass 1**
 
-**Skills:** Athletics, Charm, Endurance, Entertain (Storytelling), Gossip, *Haggle*, Navigation, Outdoor Survival, Secret Signs (Vagabond), Stealth (Rural) **Talents:** Flee!, Gregarious, Stone Soup, Striding Gait (Any One)
+**Skills:** Athletics, Charm, Endurance, Entertain (Storytelling), Gossip, ***Haggle***, Navigation, Outdoor Survival, Secret Signs (Vagabond), Stealth (Rural)
+
+**Talents:** Flee!, Gregarious, Stone Soup, Striding Gait (Any One)
 
 **Trappings:** Basket, Blanket, Goods worth 2d10 Pennies, Small Tent
 
@@ -2185,13 +2166,17 @@ Always on the move, Pedlars take naturally to the adventuring life in search of 
 
 **Skills:** Consume Alcohol, Drive, Evaluate, Lore (Local), Perception, Trade (Tinker)
 
-**Talents:** Seasoned Traveller, Sturdy, Tinker, Well-prepared **Trappings:** Backpack *or* Handcart, Bedroll, Goods worth 8d20 Pennies, Pots and Pans, Trade Tools (Tinker)
+**Talents:** Seasoned Traveller, Sturdy, Tinker, Well-prepared
+
+**Trappings:** Backpack *or* Handcart, Bedroll, Goods worth 8d20 Pennies, Pots and Pans, Trade Tools (Tinker)
 
 #### **Carter — Silver 2**
 
 **Skills:** Animal Care, Charm Animal, Intuition, Ranged (Sling)
 
-**Talents:** Dealmaker, Orientation, Sixth Sense, Tenacious **Trappings:** Mule and Cart, Goods worth at least 2d10 Shillings, Sling with 10 Bullets
+**Talents:** Dealmaker, Orientation, Sixth Sense, Tenacious
+
+**Trappings:** Mule and Cart, Goods worth at least 2d10 Shillings, Sling with 10 Bullets
 
 #### **Wandering Trader — Silver 3**
 
@@ -2201,7 +2186,7 @@ Always on the move, Pedlars take naturally to the adventuring life in search of 
 
 **Trappings:** Draught Horse and Wagon, Goods worth at least 3d10 Shillings, 4d10 Shillings
 
-## **PHYSICIAN**
+## <span id="page-79-0" data-folio="80"></span>**PHYSICIAN**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2227,19 +2212,17 @@ Playing a Physician means understanding the body better than almost anyone else.
 
 #### **Physician's Apprentice — Brass 4**
 
-**Skills:** Charm, Consume Alcohol, Cool, Endurance, Gossip, *Heal*, Language (Classical), Lore (Medicine), Research, Trade (Barber)
+**Skills:** Charm, Consume Alcohol, Cool, Endurance, Gossip, ***Heal***, Language (Classical), Lore (Medicine), Research, Trade (Barber)
 
-**Talents:** Bookish, Craftsman (Barber), Field Dressing,
-
-Read/Write
+**Talents:** Bookish, Craftsman (Barber), Field Dressing, Read/Write
 
 **Trappings:** Bandages, Healing Draught
 
 #### **Physician — Silver 3**
 
-**Skills:** Bribery, Haggle, Language (Guilder), Lore (Science), Secret Signs (Guilder), Sleight of Hand **Talents:** Etiquette (Guilder), Etiquette (Scholars),
+**Skills:** Bribery, Haggle, Language (Guilder), Lore (Science), Secret Signs (Guilder), Sleight of Hand
 
-Nimble-fingered, Surgery
+**Talents:** Etiquette (Guilder), Etiquette (Scholars), Nimble-fingered, Surgery
 
 **Trappings:** Book (Medicine), Guild Licence, Trade Tools (Physician)
 
@@ -2255,13 +2238,11 @@ Nimble-fingered, Surgery
 
 **Skills:** Lore (Genealogy), Perform (Dancing)
 
-**Talents:** Carouser, Etiquette (Nobles), Savant (Medicine),
-
-Strong-minded
+**Talents:** Carouser, Etiquette (Nobles), Savant (Medicine), Strong-minded
 
 **Trappings:** Courtly Attire, Letter of Appointment
 
-## **PILOT**
+## <span id="page-80-0" data-folio="81"></span>**PILOT**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2291,11 +2272,7 @@ As a Pilot, you are canny and perceptive, with a keen eye and deep local knowled
 
 ### **Riverguide — Brass 4**
 
-**Skills:** Consume Alcohol, Gossip, Intuition, Lore
-
-(Local), *Lore (Riverways)*, Navigation, Outdoor Survival,
-
-Perception, Row, Swim
+**Skills:** Consume Alcohol, Gossip, Intuition, Lore (Local), ***Lore (Riverways)***, Navigation, Outdoor Survival, Perception, Row, Swim
 
 **Talents:** Fisherman, Orientation, River Guide, Waterman
 
@@ -2303,13 +2280,9 @@ Perception, Row, Swim
 
 #### **Pilot — Silver 1**
 
-**Skills:** Athletics, Charm, Cool, Entertain (Storytelling),
+**Skills:** Athletics, Charm, Cool, Entertain (Storytelling), Haggle, Language (Any One)
 
-Haggle, Language (Any One)
-
-**Talents:** Etiquette (Guilder), Night Vision, Nose for
-
-Trouble, Pilot
+**Talents:** Etiquette (Guilder), Night Vision, Nose for Trouble, Pilot
 
 **Trappings:** Leather Jerkin, Rope, Rowboat
 
@@ -2317,9 +2290,9 @@ Trouble, Pilot
 
 **Skills:** Endurance, Intimidate, Lore (Local), Lore (Wrecks)
 
-**Talents:** Acute Sense (Sight), Dealmaker, Savant
+**Talents:** Acute Sense (Sight), Dealmaker, Savant (Riverways), Strong Swimmer
 
-(Riverways), Strong Swimmer **Trappings:** Pole, Storm Lantern and Oil
+**Trappings:** Pole, Storm Lantern and Oil
 
 #### **Master Pilot — Silver 5**
 
@@ -2329,7 +2302,7 @@ Trouble, Pilot
 
 **Trappings:** Boathand, Small Riverboat
 
-## **PIT FIGHTER**
+## <span id="page-81-0" data-folio="82"></span>**PIT FIGHTER**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2361,7 +2334,7 @@ Playing a Pit Fighter lets you dominate close-quarters combat through toughness,
 
 #### **Pugilist — Brass 4**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Entertain (Taunt), Gamble, Intimidate, *Melee (Any One)*, Melee (Brawling)
+**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Entertain (Taunt), Gamble, Intimidate, ***Melee (Any One)***, Melee (Brawling)
 
 **Talents:** Dirty Fighting, Enclosed Fighter, In-fighter, Iron Jaw
 
@@ -2387,13 +2360,11 @@ Playing a Pit Fighter lets you dominate close-quarters combat through toughness,
 
 **Skills:** Charm, Ranged (Any One)
 
-**Talents:** Frightening, Furious Assault, Implacable,
-
-Reaction Strike
+**Talents:** Frightening, Furious Assault, Implacable, Reaction Strike
 
 **Trappings:** Quality Helmet
 
-## **PRIEST**
+## <span id="page-82-0" data-folio="83"></span>**PRIEST**
 
 **Academic Class:** Human
 
@@ -2421,7 +2392,7 @@ Priests tend to the faithful throughout the Old World. While many serve a single
 
 **Skills:** Charm, Cool, Endurance, Entertain (Storytelling), Heal, Intuition, Language (Classical), Lore (Theology),
 
-*Pray*, Research
+***Pray***, Research
 
 Suave
 
@@ -2431,21 +2402,15 @@ Suave
 
 #### **Priest — Silver 2**
 
-**Skills:** Gossip, Intimidate, Leadership, Lore (Any One),
+**Skills:** Gossip, Intimidate, Leadership, Lore (Any One), Melee (Basic), Outdoor Survival
 
-Melee (Basic), Outdoor Survival
-
-**Talents:** Blather, Bookish, Etiquette (Cultists), Invoke
-
-(Any One)
+**Talents:** Blather, Bookish, Etiquette (Cultists), Invoke (Any One)
 
 **Trappings:** Book (Religion), Ceremonial Robes
 
 #### **High Priest — Gold 1**
 
-**Skills:** Art (Writing), Entertain (Speeches), Lore
-
-(Politics), Perception
+**Skills:** Art (Writing), Entertain (Speeches), Lore (Politics), Perception
 
 **Talents:** Acute Sense (Any One), Hatred (Any One), Impassioned Zeal, Strong-minded
 
@@ -2455,9 +2420,7 @@ Melee (Basic), Outdoor Survival
 
 **Skills:** Language (Any One), Lore (Heraldry)
 
-**Talents:** Master Orator, Pure Soul, Resistant (Any One),
-
-Savant (Theology)
+**Talents:** Master Orator, Pure Soul, Resistant (Any One), Savant (Theology)
 
 **Trappings:** Library (Theology), Subordinate High Priests
 
@@ -2467,7 +2430,7 @@ A Priest's duties touch every aspect of life in the Empire. Priests of Manann co
 
 Playing a Priest makes you the spiritual heart of your party. You can inspire your companions, guide the faithful, and call upon your deity's Blessings and Miracles. Whether preaching to a crowd or standing against the enemies of your cult, your words carry the power and authority of your faith.
 
-## **PROTAGONIST**
+## <span id="page-83-0" data-folio="84"></span>**PROTAGONIST**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2499,11 +2462,7 @@ Playing a Protagonist means you are equally at home intimidating foes, fighting 
 
 #### **Braggart — Brass 3**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Dodge,
-
-Endurance, Entertain (Taunt), Gossip, Intimidate, *Melee* 
-
-*(Basic)*, Melee (Brawling)
+**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Entertain (Taunt), Gossip, Intimidate, ***Melee (Basic)***, Melee (Brawling)
 
 **Talents:** Criminal, Dirty Fighting, In-fighter, Menacing
 
@@ -2511,13 +2470,9 @@ Endurance, Entertain (Taunt), Gossip, Intimidate, *Melee*
 
 #### **Protagonist — Brass 5**
 
-**Skills:** Bribery, Intuition, Perception, Pick Lock, Ride
+**Skills:** Bribery, Intuition, Perception, Pick Lock, Ride (Horse), Stealth (Any One)
 
-(Horse), Stealth (Any One)
-
-**Talents:** Combat Reflexes, Etiquette (Criminals), Strike
-
-to Stun, Warrior Born
+**Talents:** Combat Reflexes, Etiquette (Criminals), Strike to Stun, Warrior Born
 
 **Trappings:** Mail Shirt, Riding Horse, Shield
 
@@ -2527,25 +2482,19 @@ to Stun, Warrior Born
 
 *or* Crossbow *or* Throwing), Trade (Poisoner)
 
-**Talents:** Alley Cat, Careful Strike, Shadow, Strike to
+**Talents:** Alley Cat, Careful Strike, Shadow, Strike to Injure
 
-Injure
-
-**Trappings:** Cloak, Crossbow with 10 Bolts *or* Pistol with
-
-10 Shots *or* 5 Throwing Knives, Garotte, Poison
+**Trappings:** Cloak, Crossbow with 10 Bolts *or* Pistol with 10 Shots *or* 5 Throwing Knives, Garotte, Poison
 
 #### **Assassin — Gold 1**
 
 **Skills:** Animal Care, Charm
 
-**Talents:** Dual Wielder, Furious Assault, Mimic, Secret
-
-Identity
+**Talents:** Dual Wielder, Furious Assault, Mimic, Secret Identity
 
 **Trappings:** Disguise Kit
 
-## **RACKETEER**
+## <span id="page-84-0" data-folio="85"></span>**RACKETEER**
 
 **Rogue Class:** Dwarf, Halfling, Human
 
@@ -2573,7 +2522,7 @@ Playing a Racketeer lets you command respect through fear. You understand how th
 
 #### **Thug — Brass 3**
 
-**Skills:** Consume Alcohol, Cool, Dodge, Endurance, Gamble, *Intimidate*, Lore (Local), Melee (Basic), Melee (Brawling), Stealth (Urban)
+**Skills:** Consume Alcohol, Cool, Dodge, Endurance, Gamble, ***Intimidate***, Lore (Local), Melee (Basic), Melee (Brawling), Stealth (Urban)
 
 **Talents:** Break and Enter, Criminal, Dirty Fighting, Menacing
 
@@ -2581,13 +2530,9 @@ Playing a Racketeer lets you command respect through fear. You understand how th
 
 #### **Racketeer — Brass 5**
 
-**Skills:** Bribery, Climb, Gossip, Language (Thieves
+**Skills:** Bribery, Climb, Gossip, Language (Thieves Tongue), Perception, Secret Signs (Thief )
 
-Tongue), Perception, Secret Signs (Thief )
-
-**Talents:** Alley Cat, Embezzle, Etiquette (Criminals),
-
-Strike to Stun
+**Talents:** Alley Cat, Embezzle, Etiquette (Criminals), Strike to Stun
 
 **Trappings:** Hat, Mail Shirt
 
@@ -2595,9 +2540,7 @@ Strike to Stun
 
 **Skills:** Charm, Intuition, Leadership, Ranged (Crossbow)
 
-**Talents:** Fearless (Watchmen), Nose for Trouble,
-
-Numismatics, Robust
+**Talents:** Fearless (Watchmen), Nose for Trouble, Numismatics, Robust
 
 **Trappings:** Crossbow Pistol with 10 Bolts, Gang of Thugs and Racketeers, Lair
 
@@ -2605,13 +2548,11 @@ Numismatics, Robust
 
 **Skills:** Lore (Law), Lore (Politics)
 
-**Talents:** Commanding Presence, Frightening, Iron Will,
-
-Kingpin
+**Talents:** Commanding Presence, Frightening, Iron Will, Kingpin
 
 **Trappings:** Network of Informers, Quality Clothing and Hat, Subordinate Gang Bosses
 
-### **RAT CATCHER**
+### <span id="page-85-0" data-folio="86"></span>**RAT CATCHER**
 
 **Burgher Class:** Dwarf, Halfling, Human
 
@@ -2643,23 +2584,17 @@ Playing a Rat Catcher lets you go where few others dare. You are at home in sewe
 
 **Skills:** Animal Care, Animal Training (Dog), Charm Animal, Endurance, Haggle, Melee (Basic), Perception,
 
-*Set Trap*, Stealth (Underground), Stealth (Urban)
+***Set Trap***, Stealth (Underground), Stealth (Urban)
 
-**Talents:** Enclosed Fighter, Night Vision, Resistant
+**Talents:** Enclosed Fighter, Night Vision, Resistant (Disease), Trapper
 
-(Disease), Trapper
-
-**Trappings:** Hand Weapon, Sack, Small Animal Traps,
-
-Small but Vicious Dog
+**Trappings:** Hand Weapon, Sack, Small Animal Traps, Small but Vicious Dog
 
 #### **Rat Catcher — Brass 5**
 
 **Skills:** Drive, Gossip, Language (Guilder), Lore (Rats), Track, Trade (Poisoner)
 
-**Talents:** Acute Sense (Hearing), Etiquette (Guilder),
-
-Fearless (Rats), Tunnel Fighter
+**Talents:** Acute Sense (Hearing), Etiquette (Guilder), Fearless (Rats), Tunnel Fighter
 
 **Trappings:** Pole for Dead Rats, Rat Poison
 
@@ -2667,9 +2602,7 @@ Fearless (Rats), Tunnel Fighter
 
 **Skills:** Cool, Dodge, Intimidate, Ranged (Crossbow)
 
-**Talents:** Hardy, Stout-hearted, Strike to Injure, Very
-
-Resilient
+**Talents:** Hardy, Stout-hearted, Strike to Injure, Very Resilient
 
 **Trappings:** Crossbow with 10 Bolts *or* Spear, Feinkopf Lantern, Leather Jack
 
@@ -2677,13 +2610,11 @@ Resilient
 
 **Skills:** Leadership, Navigation
 
-**Talents:** Menacing, Resistant (Poison), Robust, Strong-
-
-minded
+**Talents:** Menacing, Resistant (Poison), Robust, Strong-minded
 
 **Trappings:** Assistant, Sack of Poisoned Bait
 
-## **RIVERWARDEN**
+## <span id="page-86-0" data-folio="87"></span>**RIVERWARDEN**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -2713,23 +2644,17 @@ Playing a Riverwarden combines the skills of a sailor, investigator, and fighter
 
 #### **River Recruit — Brass 4**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, *Melee (Basic)*, Perception, Row, Sail, Swim
+**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, ***Melee (Basic)***, Perception, Row, Sail, Swim
 
-**Talents:** Strong Back, Strong Swimmer, Very Strong,
-
-Waterman
+**Talents:** Strong Back, Strong Swimmer, Very Strong, Waterman
 
 **Trappings:** Hand Weapon, Leather Jack, Uniform
 
 #### **Riverwarden — Silver 2**
 
-**Skills:** Charm, Climb, Gossip, Intimidate, Intuition,
+**Skills:** Charm, Climb, Gossip, Intimidate, Intuition, Ranged (Blackpowder)
 
-Ranged (Blackpowder)
-
-**Talents:** Criminal, Gunner, Night Vision, Seasoned
-
-Traveller
+**Talents:** Criminal, Gunner, Night Vision, Seasoned Traveller
 
 **Trappings:** Lantern and Oil, Pistol with 10 Shots, Shield
 
@@ -2745,13 +2670,11 @@ Traveller
 
 **Skills:** Lore (Law), Navigation
 
-**Talents:** Commanding Presence, Kingpin, Menacing,
-
-Orientation
+**Talents:** Commanding Presence, Kingpin, Menacing, Orientation
 
 **Trappings:** Patrol Boats and Crew, Symbol of Rank
 
-### **RIVERWOMAN**
+### <span id="page-87-0" data-folio="88"></span>**RIVERWOMAN**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -2783,27 +2706,17 @@ Playing a Riverwoman makes you a practical and dependable companion. Whether row
 
 #### **Greenfish — Brass 2**
 
-**Skills:** Athletics, Consume Alcohol, Dodge, *Endurance*, Gossip, Lore (Local), Outdoor Survival, Row, Stealth
+**Skills:** Athletics, Consume Alcohol, Dodge, ***Endurance***, Gossip, Lore (Local), Outdoor Survival, Row, Stealth (Rural), Swim
 
-(Rural), Swim
+**Talents:** Fisherman, Gregarious, Striding Gait (Wetland), Strong Swimmer
 
-**Talents:** Fisherman, Gregarious, Striding Gait (Wetland),
-
-Strong Swimmer
-
-**Trappings:** Bucket, Fishing Rod and Bait, Leather
-
-Leggings
+**Trappings:** Bucket, Fishing Rod and Bait, Leather Leggings
 
 #### **Riverwoman — Brass 3**
 
-**Skills:** Charm, Entertain (Storytelling), Lore (Riverways),
+**Skills:** Charm, Entertain (Storytelling), Lore (Riverways), Melee (Polearm), Set Trap, Trade (Boatbuilder)
 
-Melee (Polearm), Set Trap, Trade (Boatbuilder)
-
-**Talents:** Craftsman (Boatbuilder), Rover, Strong Back,
-
-Tenacious
+**Talents:** Craftsman (Boatbuilder), Rover, Strong Back, Tenacious
 
 **Trappings:** Eel Trap, Leather Jerkin, Net, Spear
 
@@ -2819,13 +2732,11 @@ Tenacious
 
 **Skills:** Lore (Folklore), Sail
 
-**Talents:** Master Tradesman (Boatbuilder), Public Speaker,
-
-Savant (Riverways), Waterman
+**Talents:** Master Tradesman (Boatbuilder), Public Speaker, Savant (Riverways), Waterman
 
 **Trappings:** Barge *or* Hut
 
-## **ROADWARDEN**
+## <span id="page-88-0" data-folio="89"></span>**ROADWARDEN**
 
 **Ranger Class:** Halfling, Human
 
@@ -2855,9 +2766,11 @@ Playing a Roadwarden lets you bring law and order to the wilderness between sett
 
 #### **Toll Keeper — Brass 5**
 
-**Skills:** Consume Alcohol, Cool, Evaluate, Gamble, Gossip, Intimidate, Intuition, Melee (Basic), *Perception*, Ranged (Crossbow)
+**Skills:** Consume Alcohol, Cool, Evaluate, Gamble, Gossip, Intimidate, Intuition, Melee (Basic), ***Perception***, Ranged (Crossbow)
 
-**Talents:** Coolheaded, Embezzle, Marksman, Numismatics **Trappings:** Crossbow with 10 Bolts, Hand Weapon, Leather Jack
+**Talents:** Coolheaded, Embezzle, Marksman, Numismatics
+
+**Trappings:** Crossbow with 10 Bolts, Hand Weapon, Leather Jack
 
 #### **Roadwarden — Silver 3**
 
@@ -2881,13 +2794,11 @@ Playing a Roadwarden lets you bring law and order to the wilderness between sett
 
 **Skills:** Lore (The Empire), Navigation
 
-**Talents:** Combat Aware, Commanding Presence, Kingpin,
-
-Roughrider
+**Talents:** Combat Aware, Commanding Presence, Kingpin, Roughrider
 
 **Trappings:** Quality Hat and Cloak, Unit of Roadwardens
 
-## **SAILOR**
+## <span id="page-89-0" data-folio="90"></span>**SAILOR**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -2919,9 +2830,9 @@ Playing a Sailor makes you a hardy and dependable companion. Used to hard work, 
 
 #### **Landsman — Brass 4**
 
-**Skills:** Athletics, Climb, Consume Alcohol, Cool, Endurance, Gamble, Melee (Brawling), Row, *Sail*, Swim **Talents:** Sea Legs, Striding Gait (Coastal), Strong Back,
+**Skills:** Athletics, Climb, Consume Alcohol, Cool, Endurance, Gamble, Melee (Brawling), Row, ***Sail***, Swim
 
-Strong Swimmer
+**Talents:** Sea Legs, Striding Gait (Coastal), Strong Back, Strong Swimmer
 
 **Trappings:** Brush, Bucket, Mop
 
@@ -2929,9 +2840,7 @@ Strong Swimmer
 
 **Skills:** Dodge, Entertain (Singing), Gossip, Language (Any One), Melee (Basic), Play (Pennywhistle)
 
-**Talents:** Catfall, Seasoned Traveller, Strong Legs,
-
-Tenacious
+**Talents:** Catfall, Seasoned Traveller, Strong Legs, Tenacious
 
 **Trappings:** Hand Weapon (Boat Hook), Leather Jerkin
 
@@ -2939,13 +2848,9 @@ Tenacious
 
 **Skills:** Heal, Leadership, Lore (Oceans), Trade (Boatbuilder)
 
-**Talents:** Craftsman (Boatbuilder), Old Salt, Strike
+**Talents:** Craftsman (Boatbuilder), Old Salt, Strike Mighty Blow, Surgery
 
-Mighty Blow, Surgery
-
-**Trappings:** Trade Tools (Carpenter), Trade Tools
-
-(Physician)
+**Trappings:** Trade Tools (Carpenter), Trade Tools (Physician)
 
 Charts, Spyglass
 
@@ -2953,9 +2858,11 @@ Charts, Spyglass
 
 **Skills:** Charm, Navigation
 
-**Talents:** Orientation, Pilot, Public Speaker, Savvy **Trappings:** Sailing Ship and Crew, Sextant, Shipping
+**Talents:** Orientation, Pilot, Public Speaker, Savvy
 
-## **SCHOLAR**
+**Trappings:** Sailing Ship and Crew, Sextant, Shipping
+
+## <span id="page-90-0" data-folio="91"></span>**SCHOLAR**
 
 **Academic Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -2987,9 +2894,7 @@ Playing a Scholar lets you bring learning and reason to your party. Whether deci
 
 #### **Student — Brass 3**
 
-**Skills:** Art (Writing), Consume Alcohol, Cool, Entertain (Storytelling), Evaluate, Gamble, Gossip, Language
-
-(Classical), *Lore (Any One)*, Research
+**Skills:** Art (Writing), Consume Alcohol, Cool, Entertain (Storytelling), Evaluate, Gamble, Gossip, Language (Classical), ***Lore (Any One)***, Research
 
 **Talents:** Bookish, Etiquette (Scholars), Read/Write, Savvy
 
@@ -2999,19 +2904,15 @@ Playing a Scholar lets you bring learning and reason to your party. Whether deci
 
 **Skills:** Charm, Intuition, Language (Any One), Lore (Any One), Melee (Brawling), Navigation
 
-**Talents:** Linguistics, Numismatics, Speedreader, Super
+**Talents:** Linguistics, Numismatics, Speedreader, Super Numerate
 
-Numerate **Trappings:** Access to a Library, Degree
+**Trappings:** Access to a Library, Degree
 
 ### **Fellow — Silver 5**
 
-**Skills:** Entertain (Lecture), Intimidate, Language (Any
+**Skills:** Entertain (Lecture), Intimidate, Language (Any One), Lore (Any One)
 
-One), Lore (Any One)
-
-**Talents:** Blather, Public Speaker, Savant (Any One),
-
-Tower of Memories
+**Talents:** Blather, Public Speaker, Savant (Any One), Tower of Memories
 
 **Trappings:** Mortarboard, Robes
 
@@ -3019,11 +2920,11 @@ Tower of Memories
 
 **Skills:** Entertain (Rhetoric), Language (Any One) *or* Lore (Any One)
 
-**Talents:** Argumentative, Magnum Opus, Master Orator,
+**Talents:** Argumentative, Magnum Opus, Master Orator, Savant (Any One)
 
-Savant (Any One) **Trappings:** Study
+**Trappings:** Study
 
-## **SCOUT**
+## <span id="page-91-0" data-folio="92"></span>**SCOUT**
 
 **Peasant Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3033,7 +2934,7 @@ Savant (Any One) **Trappings:** Study
 
 — Athanloc Weaveborn, Wood Elf Scout
 
-*'And so we set forth, my brother confident that journeying to the east would reveal the overland route to Lustria and its many riches. I was unconvinced needless to say, I had the last laugh.'*
+*'And so we set forth, my brother confident that journeying to the east would reveal the overland route to Lustria and its many riches. I was unconvinced — needless to say, I had the last laugh.'*
 
 — *The Account of Ricco of Verezzo*, Explorer
 
@@ -3055,31 +2956,39 @@ Playing a Scout makes you the eyes of the party, able to lead your companions sa
 
 #### **Guide — Brass 3**
 
-**Skills:** Athletics, Climb, Endurance, Gossip, Lore (Local), Melee (Basic), *Navigation*, Outdoor Survival, Perception, Stealth (Rural)
+**Skills:** Athletics, Climb, Endurance, Gossip, Lore (Local), Melee (Basic), ***Navigation***, Outdoor Survival, Perception, Stealth (Rural)
 
-**Talents:** Orientation, Night Vision, Rover, Striding Gait (All) **Trappings:** Hand Weapon, Leather Jack, Sturdy Boots and Cloak, Rope
+**Talents:** Orientation, Night Vision, Rover, Striding Gait (All)
+
+**Trappings:** Hand Weapon, Leather Jack, Sturdy Boots and Cloak, Rope
 
 #### **Scout — Brass 5**
 
-**Skills:** Charm Animal, Cool, Ranged (Bow, Crossbow, *or* Sling), Secret Signs (Scout), Stealth (Underground), Swim, Track **Talents:** Acute Sense (Sight), Flee!, Seasoned Traveller, Sixth Sense
+**Skills:** Charm Animal, Cool, Ranged (Bow, Crossbow, *or* Sling), Secret Signs (Scout), Stealth (Underground), Swim, Track
+
+**Talents:** Acute Sense (Sight), Flee!, Seasoned Traveller, Sixth Sense
 
 **Trappings:** Bow with 10 Arrows *or* Crossbow with 10 Bolts *or* Sling with 10 Lead Bullets, Mail Shirt
 
 #### **Pathfinder — Silver 1**
 
-**Skills:** Animal Care, Haggle, Lore (Geography), Ride (Horse) **Talents:** Combat Aware, Hardy, Shadow, Sharp **Trappings:** Map, Riding Horse, Saddlebags with 2 weeks'
+**Skills:** Animal Care, Haggle, Lore (Geography), Ride (Horse)
 
- **Explorer — Silver 5**
+**Talents:** Combat Aware, Hardy, Shadow, Sharp
 
-**Skills:** Language (Any One), Trade (Cartographer) **Talents:** Craftsman (Cartographer), Linguistics, Read/Write,
+**Trappings:** Map, Riding Horse, Saddlebags with 2 weeks'
 
-Well-prepared
+#### **Explorer — Silver 5**
+
+**Skills:** Language (Any One), Trade (Cartographer)
+
+**Talents:** Craftsman (Cartographer), Linguistics, Read/Write, Well-prepared
 
 Rations, Tent
 
 **Trappings:** Selection of Maps, Trade Tools (Cartographer)
 
-# **SERVANT**
+# <span id="page-92-0" data-folio="93"></span>**SERVANT**
 
 **Courtier Class:** Dwarf, Halfling, Human
 
@@ -3101,7 +3010,7 @@ New Menials learn their duties from experienced staff, while trusted Servants ta
 
 Favoured Servants are, on occasion, entrusted with duties that take them beyond their familiar surroundings, or even loaned to other family members or peers. Others simply leave their employment, swapping servitude for a life of adventure.
 
-Playing a Servant lets you move easily through every level of society. You can roll up your sleeves with common folk, pass unnoticed where others attract attention, and understand how great households function. Few know the habits of the powerful — or their secrets better than those who wait upon them.
+Playing a Servant lets you move easily through every level of society. You can roll up your sleeves with common folk, pass unnoticed where others attract attention, and understand how great households function. Few know the habits of the powerful — or their secrets — better than those who wait upon them.
 
 #### **SERVANT ADVANCE SCHEME**
 
@@ -3113,11 +3022,11 @@ Playing a Servant lets you move easily through every level of society. You can r
 
 #### **Menial — Brass 3**
 
-**Skills:** Animal Care, Athletics, Climb, Consume Alcohol, Dodge, *Endurance*, Gossip, Haggle, Intuition, Stealth (Any One)
+**Skills:** Animal Care, Athletics, Climb, Consume Alcohol, Dodge, ***Endurance***, Gossip, Haggle, Intuition, Stealth (Any One)
 
-**Talents:** Beneath Notice, Etiquette (Servants), Strong
+**Talents:** Beneath Notice, Etiquette (Servants), Strong Back, Tenacious
 
-Back, Tenacious **Trappings:** Floor Brush
+**Trappings:** Floor Brush
 
 #### **Servant — Brass 4**
 
@@ -3129,7 +3038,9 @@ Back, Tenacious **Trappings:** Floor Brush
 
 #### **Attendant — Silver 3**
 
-**Skills:** Cool, Evaluate, Intimidate, Lore (Politics) **Talents:** Read/Write, Resistant (Poison), Suave, Supportive
+**Skills:** Cool, Evaluate, Intimidate, Lore (Politics)
+
+**Talents:** Read/Write, Resistant (Poison), Suave, Supportive
 
 **Trappings:** Lamp Oil, Quality Livery, Storm Lantern, Tinderbox
 
@@ -3137,13 +3048,11 @@ Back, Tenacious **Trappings:** Floor Brush
 
 **Skills:** Leadership, Melee (Basic)
 
-**Talents:** Commanding Presence, Embezzle, Savvy,
-
-Schemer
+**Talents:** Commanding Presence, Embezzle, Savvy, Schemer
 
 **Trappings:** Hand Weapon, Fine Clothes, Servant
 
-## **SLAYER**
+## <span id="page-93-0" data-folio="94"></span>**SLAYER**
 
 **Warrior Class:** Dwarf
 
@@ -3177,15 +3086,19 @@ Playing a Slayer is unlike any other Career. You seek power or riches, but a wor
 
 #### **Troll Slayer — Brass 2**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Heal, Language (Battle), Lore (Trolls), *Melee (Basic)*, Play (Horn)
+**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Heal, Language (Battle), Lore (Trolls), ***Melee (Basic)***, Play (Horn)
 
-**Talents:** Dual Wielder, Fearless (Everything), Frenzy,
+**Talents:** Dual Wielder, Fearless (Everything), Frenzy, Slayer
 
-Slayer **Trappings:** Flask of Spirits, Hand Weapon (Dwarf Axe), Tattoos
+**Trappings:** Flask of Spirits, Hand Weapon (Dwarf Axe), Tattoos
 
 ### **Giant Slayer — Brass 2**
 
-**Skills:** Climb, Entertain (Storytelling), Intimidate, Lore (Giants), Melee (Two-handed), Outdoor Survival **Talents:** Hardy, Implacable, Menacing, Reversal **Trappings:** Great Weapon (Dwarf Greataxe)
+**Skills:** Climb, Entertain (Storytelling), Intimidate, Lore (Giants), Melee (Two-handed), Outdoor Survival
+
+**Talents:** Hardy, Implacable, Menacing, Reversal
+
+**Trappings:** Great Weapon (Dwarf Greataxe)
 
 #### **Dragon Slayer — Brass 2**
 
@@ -3199,11 +3112,11 @@ Slayer **Trappings:** Flask of Spirits, Hand Weapon (Dwarf Axe), Tattoos
 
 **Skills:** Lore (Daemons), Navigation
 
-**Talents:** Combat Master, Frightening, Strike Mighty
+**Talents:** Combat Master, Frightening, Strike Mighty Blow, Very Strong
 
-Blow, Very Strong **Trappings:** Rune Axe
+**Trappings:** Rune Axe
 
-## **SMUGGLER**
+## <span id="page-94-0" data-folio="95"></span>**SMUGGLER**
 
 **Riverfolk Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3235,9 +3148,9 @@ Playing a Smuggler lets you stay one step ahead of the law. You are resourceful,
 
 #### **River Runner — Brass 4**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Endurance, Lore (Local), Perception, Row, Sail, *Stealth (Rural* **or**
+**Skills:** Athletics, Consume Alcohol, Cool, Endurance, Lore (Local), Perception, Row, Sail, ***Stealth (Rural*** **or**
 
-*Urban)*, Swim
+***Urban)***, Swim
 
 **Talents:** Criminal, Fisherman, Striding Gait (Wetland), Strong Back
 
@@ -3255,7 +3168,9 @@ Playing a Smuggler lets you stay one step ahead of the law. You are resourceful,
 
 **Skills:** Intuition, Leadership, Lore (Riverways), Ranged (Blackpowder)
 
-**Talents:** Dealmaker, Fast Shot, Pilot, Seasoned Traveller **Trappings:** Pistol with 10 Shots, River Runners, Speedy Barge
+**Talents:** Dealmaker, Fast Shot, Pilot, Seasoned Traveller
+
+**Trappings:** Pistol with 10 Shots, River Runners, Speedy Barge
 
 ### **Smuggler King — Gold 3**
 
@@ -3265,7 +3180,7 @@ Playing a Smuggler lets you stay one step ahead of the law. You are resourceful,
 
 **Trappings:** Disguise Kit, Small Fleet of Barges
 
-## **SOLDIER**
+## <span id="page-95-0" data-folio="96"></span>**SOLDIER**
 
 **Warrior Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3275,9 +3190,7 @@ Playing a Smuggler lets you stay one step ahead of the law. You are resourceful,
 
 — Holger Kass, 1st Bögenhafen Halberdiers
 
-By decree of Emperor Magnus the Pious following the Great War Against Chaos, every province of the Empire must maintain a standing State Army. Soldiers are the mainstay of these armies, drilled to fight as part of a larger group with individual
-
-skill supplemented by strength in number. Beyond the State Troops are countless militias, mercenary companies, and private armies. Wherever you travel in the Old World, you are never far from a Soldier.
+By decree of Emperor Magnus the Pious following the Great War Against Chaos, every province of the Empire must maintain a standing State Army. Soldiers are the mainstay of these armies, drilled to fight as part of a larger group with individual skill supplemented by strength in number. Beyond the State Troops are countless militias, mercenary companies, and private armies. Wherever you travel in the Old World, you are never far from a Soldier.
 
 Soldiers begin their military life as a Recruit, and those who prove their courage and leadership can rise through the ranks to Sergeant and Officer, commanding troops of their own on the battlefield.
 
@@ -3295,11 +3208,9 @@ Playing a Soldier makes you a disciplined and dependable warrior. Used to fighti
 
 #### **Recruit — Brass 5**
 
-**Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), *Melee (Any One)*, Melee
+**Skills:** Athletics, Climb, Cool, Dodge, Endurance, Gamble, Language (Battle), ***Melee (Any One)***, Melee (Basic), Ranged (Any One)
 
-(Basic), Ranged (Any One) **Talents:** Drilled, Etiquette (Soldiers), Strong Back,
-
-Warrior Born
+**Talents:** Drilled, Etiquette (Soldiers), Strong Back, Warrior Born
 
 **Trappings:** Leather Breastplate, Uniform, Weapon (Any One)
 
@@ -3307,11 +3218,15 @@ Warrior Born
 
 **Skills:** Consume Alcohol, Entertain (Storytelling), Intimidate, Outdoor Survival, Perception, Play (Drum, Flute, Horn, *or* Trumpet)
 
-**Talents:** Dicer, Marksman, Rapid Reload, Shieldsman **Trappings:** Breastplate, Helmet, Weapon (Any)
+**Talents:** Dicer, Marksman, Rapid Reload, Shieldsman
+
+**Trappings:** Breastplate, Helmet, Weapon (Any)
 
 #### **Sergeant — Silver 3**
 
-**Skills:** Heal, Leadership, Lore (Warfare), Navigation **Talents:** Combat Aware, Enclosed Fighter, Unshakeable, War Leader
+**Skills:** Heal, Leadership, Lore (Warfare), Navigation
+
+**Talents:** Combat Aware, Enclosed Fighter, Unshakeable, War Leader
 
 **Trappings:** Symbol of Rank, Regiment of Recruits
 
@@ -3323,7 +3238,7 @@ Warrior Born
 
 **Trappings:** Letter of Commission, Light Warhorse, Map, Orders, Quality Uniform, Symbol of Rank, Regiment of Soldiers
 
-## **SPY**
+## <span id="page-96-0" data-folio="97"></span>**SPY**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3349,23 +3264,23 @@ Spies are brave (or foolhardy) individuals who gather information and uncover se
 
 #### **Informer — Brass 4**
 
-**Skills:** Bribery, Charm, Consume Alcohol, Cool, Gamble, *Gossip*, Intuition, Melee (Basic), Perception, Stealth (Any One)
+**Skills:** Bribery, Charm, Consume Alcohol, Cool, Gamble, ***Gossip***, Intuition, Melee (Basic), Perception, Stealth (Any One)
 
-**Talents:** Beneath Notice, Etiquette (Any One),
-
-Gregarious, Read/Write
+**Talents:** Beneath Notice, Etiquette (Any One), Gregarious, Read/Write
 
 **Trappings:** Charcoal Stick, Sling Bag containing 2 different sets of Clothing and Hooded Cloak
 
 #### **Spy — Silver 3**
 
-**Skills:** Climb, Entertain (Acting), Language (Any One), Pick Lock, Secret Signs (Any One), Sleight of Hand **Talents:** Attractive, Mimic, Secret Identity, Shadow **Trappings:** Disguise Kit, Informer, Telescope
+**Skills:** Climb, Entertain (Acting), Language (Any One), Pick Lock, Secret Signs (Any One), Sleight of Hand
+
+**Talents:** Attractive, Mimic, Secret Identity, Shadow
+
+**Trappings:** Disguise Kit, Informer, Telescope
 
 ### **Agent — Gold 1**
 
-**Skills:** Animal Care, Animal Training (Pigeon),
-
-Leadership, Research
+**Skills:** Animal Care, Animal Training (Pigeon), Leadership, Research
 
 **Talents:** Carouser, Cat-tongued, Lip Reading, Master of Disguise
 
@@ -3385,7 +3300,7 @@ A Spy's work takes them wherever secrets are hidden. They may infiltrate a noble
 
 Playing a Spy lets you skulk in the shadows, infiltrate dangerous organisations, and manipulate people. Your travelling companions benefit from your ability to work incognito, gather intelligence, and, where your objectives align, call upon the resources and influence of those you serve.
 
-## **STEVEDORE**
+## <span id="page-97-0" data-folio="98"></span>**STEVEDORE**
 
 **Riverfolk Class:** Dwarf, Halfling, Human
 
@@ -3419,25 +3334,19 @@ Playing a Stevedore makes you a tough and dependable companion. You can handle y
 
 **Skills:** Athletics, Climb, Consume Alcohol, Dodge,
 
-*Endurance*, Gossip, Intimidate, Melee (Basic), Melee
+***Endurance***, Gossip, Intimidate, Melee (Basic), Melee (Brawling), Swim
 
-(Brawling), Swim
+**Talents:** Dirty Fighting, Strong Back, Sturdy, Tenacious
 
-**Talents:** Dirty Fighting, Strong Back, Sturdy, Tenacious **Trappings:** Hand Weapon (Boat Hook), Leather Gloves
+**Trappings:** Hand Weapon (Boat Hook), Leather Gloves
 
 #### **Stevedore — Brass 5**
 
-**Skills:** Bribery, Cool, Gamble, Haggle, Lore (Local),
+**Skills:** Bribery, Cool, Gamble, Haggle, Lore (Local), Secret Signs (Guilder)
 
-Secret Signs (Guilder)
+**Talents:** Criminal, Etiquette (Criminals), Etiquette (Guilders), Very Strong
 
-**Talents:** Criminal, Etiquette (Criminals), Etiquette
-
-(Guilders), Very Strong
-
-**Trappings:** Guild Licence, Leather Jerkin, Pipe and
-
-Tobacco, Porter Cap
+**Trappings:** Guild Licence, Leather Jerkin, Pipe and Tobacco, Porter Cap
 
 #### **Foreman — Silver 3**
 
@@ -3451,13 +3360,11 @@ Tobacco, Porter Cap
 
 **Skills:** Intuition, Lore (Taxes)
 
-**Talents:** Fearless (Merchants), Kingpin, Numismatics,
-
-Read/Write
+**Talents:** Fearless (Merchants), Kingpin, Numismatics, Read/Write
 
 **Trappings:** Office and Staff, Writing Kit
 
-## **THIEF**
+## <span id="page-98-0" data-folio="99"></span>**THIEF**
 
 **Rogue Class:** Dwarf, Halfling, Human, Wood Elf
 
@@ -3477,7 +3384,7 @@ altogether, slipping into homes and businesses to carry off portable valuables. 
 
 Most begin by picking pockets or waylaying victims in rat-infested alleyways. More accomplished Thieves avoid confrontation
 
-A Thief 's career is a risky one, and sooner or later thir luck runs out. Some flee the authorities after a robbery goes wrong, while others steal something that proves far more valuable — or dangerous than they ever imagined. Adventure often offers the safest place to disappear for a while.
+A Thief 's career is a risky one, and sooner or later thir luck runs out. Some flee the authorities after a robbery goes wrong, while others steal something that proves far more valuable — or dangerous — than they ever imagined. Adventure often offers the safest place to disappear for a while.
 
 Playing a Thief makes you a very useful recruit to an adventuring party, since many investigations require stealth or a little robbery. Your affinity for the underworld gives you helpful contacts and your skills mean that you can usually liberate some coin wherever your travels take you.
 
@@ -3491,7 +3398,7 @@ Playing a Thief makes you a very useful recruit to an adventuring party, since m
 
 #### **Prowler — Brass 3**
 
-**Skills:** Athletics, Climb, Cool, Dodge, Intimidate, Melee (Basic), Perception, Pick Lock, Sleight of Hand, *Stealth (Urban)*
+**Skills:** Athletics, Climb, Cool, Dodge, Intimidate, Melee (Basic), Perception, Pick Lock, Sleight of Hand, ***Stealth (Urban)***
 
 **Talents:** Alley Cat, Criminal, Fast Hands, Flee!
 
@@ -3499,11 +3406,9 @@ Playing a Thief makes you a very useful recruit to an adventuring party, since m
 
 #### **Thief — Brass 4**
 
-**Skills:** Evaluate, Gossip, Language (Thieves Tongue), Lore
+**Skills:** Evaluate, Gossip, Language (Thieves Tongue), Lore (Local), Secret Signs (Thief ), Set Trap
 
-(Local), Secret Signs (Thief ), Set Trap **Talents:** Break and Enter, Etiquette (Criminals), Night
-
-Vision, Shadow
+**Talents:** Break and Enter, Etiquette (Criminals), Night Vision, Shadow
 
 **Trappings:** Fence Contact, Rope, Trade Tools (Thief )
 
@@ -3511,19 +3416,19 @@ Vision, Shadow
 
 **Skills:** Bribery, Entertain (Acting), Intuition, Ranged (Crossbow)
 
-**Talents:** Lip Reading, Secret Identity, Step Aside, Trapper **Trappings:** Crossbow Pistol with 10 Bolts, Grappling Hook, Several Fence Contacts
+**Talents:** Lip Reading, Secret Identity, Step Aside, Trapper
+
+**Trappings:** Crossbow Pistol with 10 Bolts, Grappling Hook, Several Fence Contacts
 
 #### **Cat Burglar — Silver 3**
 
 **Skills:** Endurance, Gamble
 
-**Talents:** Catfall, Dual Wielder, Scale Sheer Surface,
-
-Strong Legs
+**Talents:** Catfall, Dual Wielder, Scale Sheer Surface, Strong Legs
 
 **Trappings:** Calling Card, Dark Clothing
 
-### **TOWNSMAN**
+### <span id="page-99-0" data-folio="100"></span>**TOWNSMAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3553,15 +3458,17 @@ Playing a Townsman lets you navigate the bustle of urban life with confidence. Y
 
 #### **Clerk — Brass 5**
 
-**Skills:** Charm, Consume Alcohol, Evaluate, Gamble, Gossip, *Haggle*, Intuition, Lore (Local), Research, Secret Signs (Guilder)
+**Skills:** Charm, Consume Alcohol, Evaluate, Gamble, Gossip, ***Haggle***, Intuition, Lore (Local), Research, Secret Signs (Guilder)
 
 **Talents:** Dealmaker, Embezzle, Read/Write, Speedreader
 
-#### **Townsman — Silver 1**
-
 **Trappings:** Lodgings
 
-**Skills:** Bribery, Cool, Entertain (Any One), Language (Any One), Melee (Brawling), Trade (Any One) **Talents:** Blather, Etiquette (Any One), Gregarious, Savvy
+#### **Townsman — Silver 1**
+
+**Skills:** Bribery, Cool, Entertain (Any One), Language (Any One), Melee (Brawling), Trade (Any One)
+
+**Talents:** Blather, Etiquette (Any One), Gregarious, Savvy
 
 **Trappings:** Modest Shop
 
@@ -3577,9 +3484,11 @@ Playing a Townsman lets you navigate the bustle of urban life with confidence. Y
 
 **Skills:** Entertain (Speeches), Lore (Politics)
 
-**Talents:** Briber, Public Speaker, Schemer, Wealthy **Trappings:** Chains of Office, Coach and Footman, Large Townhouse with Gardens and Servants, Quality Clothing
+**Talents:** Briber, Public Speaker, Schemer, Wealthy
 
-## **VILLAGER**
+**Trappings:** Chains of Office, Coach and Footman, Large Townhouse with Gardens and Servants, Quality Clothing
+
+## <span id="page-100-0" data-folio="101"></span>**VILLAGER**
 
 **Peasant Class:** Dwarf, Halfling, Human
 
@@ -3607,7 +3516,7 @@ Playing a Villager makes you a sturdy and resourceful companion. You understand 
 
 #### **Peasant — Brass 2**
 
-**Skills:** Animal Care, Athletics, Charm Animal, Consume Alcohol, Dodge, *Endurance*, Gossip, Lore (Local), Melee (Brawling), Outdoor Survival
+**Skills:** Animal Care, Athletics, Charm Animal, Consume Alcohol, Dodge, ***Endurance***, Gossip, Lore (Local), Melee (Brawling), Outdoor Survival
 
 **Talents:** Hardy, Stone Soup, Strong Back, Tenacious
 
@@ -3633,15 +3542,15 @@ Playing a Villager makes you a sturdy and resourceful companion. You understand 
 
 **Skills:** Intuition, Lore (Folklore)
 
-**Talents:** Master Tradesman (as Trade), Nimble-fingered,
+**Talents:** Master Tradesman (as Trade), Nimble-fingered, Public Speaker, Savant (Local)
 
-Public Speaker, Savant (Local) **Trappings:** The Respect of the Village
+**Trappings:** The Respect of the Village
 
 #### **A JOB FOR ALL SEASONS**
 
 If you are playing a Villager, this list of jobs may help you choose a vocation: Beekeeper, Charcoal Burner, Farmer, Herder, Miller, Ploughman, Poultryman, Reaper, Shearer, Slaughterman, Spinner, Woodsman
 
-## **WARDEN**
+## <span id="page-101-0" data-folio="102"></span>**WARDEN**
 
 **Courtier Class:** Dwarf, Halfling, High Elf, Human, Wood Elf
 
@@ -3673,7 +3582,7 @@ Playing a Warden gives you the keen eye of a watchman, the resilience of an outd
 
 #### **Custodian — Brass 4**
 
-**Skills:** Animal Care, Athletics, Charm Animal, Consume Alcohol, Cool, Endurance, *Evaluate*, Intuition, Lore (Local), Perception
+**Skills:** Animal Care, Athletics, Charm Animal, Consume Alcohol, Cool, Endurance, ***Evaluate***, Intuition, Lore (Local), Perception
 
 **Talents:** Animal Affinity, Etiquette (Servants), Night Vision, Sharp
 
@@ -3685,17 +3594,13 @@ Playing a Warden gives you the keen eye of a watchman, the resilience of an outd
 
 **Talents:** Menacing, Rover, Striding Gait (Any One), Strike to Stun
 
-**Trappings:** Bow with 10 Arrows *or* Hand Weapon,
-
-Leather Jack, Riding Horse
+**Trappings:** Bow with 10 Arrows *or* Hand Weapon, Leather Jack, Riding Horse
 
 #### **Seneschal — Gold 1**
 
 **Skills:** Bribery, Charm, Gossip, Leadership
 
-**Talents:** Embezzle, Etiquette (Any One), Public Speaker,
-
-Read/Write
+**Talents:** Embezzle, Etiquette (Any One), Public Speaker, Read/Write
 
 **Trappings:** Breastplate, Rod of Office, Staff of Custodians
 
@@ -3703,13 +3608,11 @@ Read/Write
 
 **Skills:** Language (Classical), Lore (Politics)
 
-**Talents:** Carouser, Commanding Presence, Savant (Local),
-
-Wealthy
+**Talents:** Carouser, Commanding Presence, Savant (Local), Wealthy
 
 **Trappings:** Aide, Governor's Residence, Servant
 
-## **WARRIOR PRIEST**
+## <span id="page-102-0" data-folio="103"></span>**WARRIOR PRIEST**
 
 **Warrior Class:** Human
 
@@ -3737,39 +3640,39 @@ Playing a Warrior Priest lets you stand at the forefront of battle, inspiring yo
 
 #### **Neophyte — Brass 2**
 
-**Skills:** Athletics, Cool, Dodge, Endurance, Heal, Language (Classical), *Leadership*, Lore (Theology), Melee (Any One), Pray
+**Skills:** Athletics, Cool, Dodge, Endurance, Heal, Language (Classical), ***Leadership***, Lore (Theology), Melee (Any One), Pray
 
-**Talents:** Bless (Any One), Etiquette (Cultists), Holy
-
-Visions, Read/Write
+**Talents:** Bless (Any One), Etiquette (Cultists), Holy Visions, Read/Write
 
 Sturdy
 
-**Trappings:** Book (Religion), Melee Weapon (Any),
-
-Leather Jerkin, Religious Symbol, Robes
+**Trappings:** Book (Religion), Melee Weapon (Any), Leather Jerkin, Religious Symbol, Robes
 
 #### **Warrior Priest — Silver 3**
 
-**Skills:** Charm, Entertain (Speeches), Intimidate, Language (Battle), Melee (Any One), Ranged (Any One) **Talents:** Dual Wielder, Inspiring, Invoke (Any One),
+**Skills:** Charm, Entertain (Speeches), Intimidate, Language (Battle), Melee (Any One), Ranged (Any One)
+
+**Talents:** Dual Wielder, Inspiring, Invoke (Any One),
 
 **Trappings:** Breastplate, Weapon (Any)
 
 #### **Priest Sergeant — Silver 5**
 
-**Skills:** Animal Care, Intuition, Perception, Ride (Horse) **Talents:** Combat Aware, Pure Soul, Seasoned Traveller,
+**Skills:** Animal Care, Intuition, Perception, Ride (Horse)
 
-Stout-hearted **Trappings:** Light Warhorse
+**Talents:** Combat Aware, Pure Soul, Seasoned Traveller, Stout-hearted
+
+**Trappings:** Light Warhorse
 
 ### **Priest Captain — Gold 1**
 
 **Skills:** Drive, Lore (Warfare)
 
-**Talents:** Fearless (Any One), Furious Assault, Holy
+**Talents:** Fearless (Any One), Furious Assault, Holy Hatred, War Leader
 
-Hatred, War Leader **Trappings:** Religious Relic
+**Trappings:** Religious Relic
 
-### **WATCHMAN**
+### <span id="page-103-0" data-folio="104"></span>**WATCHMAN**
 
 **Burgher Class:** Dwarf, Halfling, High Elf, Human
 
@@ -3801,9 +3704,11 @@ Playing a Watchman lets you uphold the law on your own terms. You are observant,
 
 #### **Watch Recruit — Brass 3**
 
-**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Gamble, Gossip, Intimidate, Melee (Basic),
+**Skills:** Athletics, Consume Alcohol, Cool, Dodge, Endurance, Gamble, Gossip, Intimidate, Melee (Basic), *Perception*
 
-*Perception* **Talents:** Criminal, Drilled, Sprinter, Strike to Stun **Trappings:** Hand Weapon, Leather Jack, Uniform
+**Talents:** Criminal, Drilled, Sprinter, Strike to Stun
+
+**Trappings:** Hand Weapon, Leather Jack, Uniform
 
 #### **Watchman — Silver 1**
 
@@ -3827,11 +3732,9 @@ Playing a Watchman lets you uphold the law on your own terms. You are observant,
 
 **Talents:** Kingpin, Public Speaker, Robust, Schemer
 
-**Trappings:** Quality Hand Weapon, Quality Hat, Quality
+**Trappings:** Quality Hand Weapon, Quality Hat, Quality Symbol of Rank, Riding Horse
 
-Symbol of Rank, Riding Horse
-
-## **WITCH**
+## <span id="page-104-0" data-folio="105"></span>**WITCH**
 
 **Rogue Class:** Human
 
@@ -3861,7 +3764,7 @@ Playing a Witch lets you wield magic beyond the strictures of the Colleges. Free
 
 #### **Dabbler — Brass 3**
 
-**Skills:** Bribery, Channelling (Magick), Charm, Cool, Gossip, Heal, *Language (Magick)*, Perception, Research, Stealth (Rural *or* Urban)
+**Skills:** Bribery, Channelling (Magick), Charm, Cool, Gossip, Heal, ***Language (Magick)***, Perception, Research, Stealth (Rural *or* Urban)
 
 **Talents:** Instinctive Diction, Petty Magic, Read/Write, Second Sight
 
@@ -3879,15 +3782,19 @@ Playing a Witch lets you wield magic beyond the strictures of the Colleges. Free
 
 **Skills:** Leadership, Lore (Any One), Lore (Magic), Ride (Horse)
 
-**Talents:** Aethyric Attunement, Magical Sense, Menacing **Trappings:** Assistant, Enchanted Staff, Tomes of Forbidden Knowledge
+**Talents:** Aethyric Attunement, Magical Sense, Menacing
+
+**Trappings:** Assistant, Enchanted Staff, Tomes of Forbidden Knowledge
 
 #### **Warlock — Gold 2**
 
 **Skills:** Dodge, Entertain (Speeches)
 
-**Talents:** Briber, Frightening, Iron Will, Kingpin **Trappings:** Minions, Library (Magic), Remote Lair
+**Talents:** Briber, Frightening, Iron Will, Kingpin
 
-### **WITCH HUNTER**
+**Trappings:** Minions, Library (Magic), Remote Lair
+
+### <span id="page-105-0" data-folio="106"></span>**WITCH HUNTER**
 
 **Ranger Class:** Human
 
@@ -3917,7 +3824,9 @@ Playing a Witch Hunter lets you combine keen investigative skills with martial p
 
 #### **Interrogator — Silver 1**
 
-**Skills:** Athletics, Cool, Dodge, Gossip, Heal, *Intimidate*, Intuition, Lore (Witches), Melee (Brawling), Perception **Talents:** Coolheaded, Menacing, Read/Write, Strike to Stun
+**Skills:** Athletics, Cool, Dodge, Gossip, Heal, ***Intimidate***, Intuition, Lore (Witches), Melee (Brawling), Perception
+
+**Talents:** Coolheaded, Menacing, Read/Write, Strike to Stun
 
 **Trappings:** Hand Weapon, Instruments of Torture
 
@@ -3925,9 +3834,7 @@ Playing a Witch Hunter lets you combine keen investigative skills with martial p
 
 **Skills:** Entertain (Speeches), Melee (Basic *or* Fencing), Ranged (Blackpowder *or* Crossbow), Ride (Horse), Secret Signs (Any One), Stealth (Urban)
 
-**Talents:** Combat Reflexes, Dual Wielder, Nose for
-
-Trouble, Shadow
+**Talents:** Combat Reflexes, Dual Wielder, Nose for Trouble, Shadow
 
 **Trappings:** Pistol with 10 Shots, Hat, Leather Jack, Riding Horse, Rapier *or* Silvered Sword, Rope
 
@@ -3935,9 +3842,7 @@ Trouble, Shadow
 
 **Skills:** Charm, Endurance, Leadership, Lore (Law)
 
-**Talents:** Fearless (Witches), Relentless, Seasoned
-
-Traveller, Strong-minded
+**Talents:** Fearless (Witches), Relentless, Seasoned Traveller, Strong-minded
 
 **Trappings:** Quality Clothing, Subordinate Interrogators
 
@@ -3945,15 +3850,11 @@ Traveller, Strong-minded
 
 **Skills:** Lore (Chaos), Lore (Politics)
 
-**Talents:** Frightening, Iron Will, Magic Resistance, Pure
+**Talents:** Frightening, Iron Will, Magic Resistance, Pure Soul
 
-Soul
+**Trappings:** Quality Courtly Garb, Subordinate Witch Hunters
 
-**Trappings:** Quality Courtly Garb, Subordinate Witch
-
-Hunters
-
-### **WIZARD**
+### <span id="page-106-0" data-folio="107"></span>**WIZARD**
 
 **Academic Class:** High Elf, Human, Wood Elf
 
@@ -3983,11 +3884,9 @@ Playing a Wizard lets you wield some of the most powerful magic in the Old World
 
 #### **Wizard's Apprentice — Brass 3**
 
-**Skills:** Channelling (Any Colour), Cool, Gossip, Language (Classical), *Language (Magick)*, Lore (Any One), Lore (Magic), Melee (Polearm), Perception, Research
+**Skills:** Channelling (Any Colour), Cool, Gossip, Language (Classical), ***Language (Magick)***, Lore (Any One), Lore (Magic), Melee (Polearm), Perception, Research
 
-**Talents:** Aethyric Attunement, Petty Magic, Read/
-
-Write, Second Sight
+**Talents:** Aethyric Attunement, Petty Magic, Read/Write, Second Sight
 
 **Trappings:** Grimoire, Quarterstaff
 
@@ -3995,21 +3894,15 @@ Write, Second Sight
 
 **Skills:** Charm, Endurance, Evaluate, Intimidate, Intuition, Language (Battle)
 
-**Talents:** Arcane Magic (Any Colour Lore), Etiquette
-
-(Scholars), Seasoned Traveller, Sixth Sense
+**Talents:** Arcane Magic (Any Colour Lore), Etiquette (Scholars), Seasoned Traveller, Sixth Sense
 
 **Trappings:** Enchanted Staff, Magic Licence, Robes
 
 #### **Master Wizard — Gold 1**
 
-**Skills:** Animal Care, Drive *or* Ride (Any One),
+**Skills:** Animal Care, Drive *or* Ride (Any One), Leadership, Lore (Warfare)
 
-Leadership, Lore (Warfare)
-
-**Talents:** Craftsman (Any One), Instinctive Diction,
-
-Magical Sense, Menacing
+**Talents:** Craftsman (Any One), Instinctive Diction, Magical Sense, Menacing
 
 **Trappings:** Apprentice, Light Warhorse, Magical Item
 
@@ -4017,13 +3910,11 @@ Magical Sense, Menacing
 
 **Skills:** Language (Any One), Lore (Any One)
 
-**Talents:** Detect Artefact, Frightening, Iron Will, War
-
-Wizard
+**Talents:** Detect Artefact, Frightening, Iron Will, War Wizard
 
 **Trappings:** Library (Magic), Workshop (Magic)
 
-## **WRECKER**
+## <span id="page-107-0" data-folio="108"></span>**WRECKER**
 
 **Riverfolk Class:** Dwarf, Halfling, Human, Wood Elf
 
@@ -4051,31 +3942,27 @@ Playing a Wrecker means you are adept at ambushes, stealth, and intimidation, wi
 
 #### **Cargo Scavenger — Brass 2**
 
-**Skills:** Climb, Consume Alcohol, Dodge, Endurance, *Melee (Basic)*, Outdoor Survival, Pick Lock, Row, Stealth
+**Skills:** Climb, Consume Alcohol, Dodge, Endurance, ***Melee (Basic)***, Outdoor Survival, Pick Lock, Row, Stealth (Rural), Swim
 
-(Rural), Swim
+**Talents:** Break and Enter, Criminal, Flee!, Rover
 
-**Talents:** Break and Enter, Criminal, Flee!, Rover **Trappings:** Crowbar, Large Sack, Leather Gloves
+**Trappings:** Crowbar, Large Sack, Leather Gloves
 
 #### **Wrecker — Brass 3**
 
 **Skills:** Bribery, Cool, Intuition, Navigation, Perception, Set Trap
 
-**Talents:** Etiquette (Criminals), Night Vision, Strong
+**Talents:** Etiquette (Criminals), Night Vision, Strong Swimmer, Trapper
 
-Swimmer, Trapper
-
-**Trappings:** Hand Weapon (Boat Hook), Leather Jack,
-
-Storm Lantern and Oil
+**Trappings:** Hand Weapon (Boat Hook), Leather Jack, Storm Lantern and Oil
 
 #### **River Pirate — Brass 5**
 
 **Skills:** Gossip, Intimidate, Melee (Brawling), Ranged (Crossbow *or* Throwing)
 
-**Talents:** In-fighter, Menacing, Strong Legs, Waterman **Trappings:** Crossbow with 10 Bolts *or* Javelin, Grappling
+**Talents:** In-fighter, Menacing, Strong Legs, Waterman
 
-Hook and Rope
+**Trappings:** Crossbow with 10 Bolts *or* Javelin, Grappling Hook and Rope
 
 ### **Wrecker Captain — Silver 5**
 
@@ -4083,6 +3970,4 @@ Hook and Rope
 
 **Talents:** Frightening, Furious Assault, Pilot, Warrior Born
 
-**Trappings:** Barge and Wrecker Crew, Keg of Ale,
-
-Manacles
+**Trappings:** Barge and Wrecker Crew, Keg of Ale, Manacles

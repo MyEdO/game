@@ -46,7 +46,7 @@ export const creature: CreatureDef = {
         `<path d="M-14 -6 l2.4 -1 M-6 -3 l2.4 -1 M2 -6 l2.4 -0.8 M10 -4 l2.4 -0.8 M-10 3 l2.4 -0.8 M0 5 l2.4 -0.8 M-20 1 l2.4 -0.8 M8 5 l2.4 -0.8 M16 -8 l2.4 -0.8" stroke="@corpsH" stroke-width="0.9" stroke-linecap="round" opacity="0.55"/>` +
         `</g>`,
     },
-    stored: {
+    palette: {
       corps: '#544b3f', corpsO: '#2c251c', corpsH: '#aea489', // robe gris-brun grisonnante, mouchetée par markings
       cheveux: '#c4b89f', cheveuxO: '#5a4f3c', // soies PÂLES argentées (crête, hure, épi de nuque)
       cuir: '#96907e', // petits sabots clairs (l'artwork montre des pinces blanchâtres)

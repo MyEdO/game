@@ -54,7 +54,7 @@ const QUAD: QuadProps = {
   },
   head: 'boeuf', headScale: 1.2, tail: 'touffe-basse', tailLen: 1.05, mane: 'sans',
   ears: 'courtes', foot: 'sabot',
-  stored: {
+  palette: {
     corps: '#6b4526', corpsO: '#140c06', corpsH: '#c99a5c', // robe brune, ombre QUASI NOIRE, lumière franche
     cheveux: '#33210f', cheveuxO: '#0f0904', // touffe de queue + toupet frontal sombres
     cuir: '#241a12', // sabots

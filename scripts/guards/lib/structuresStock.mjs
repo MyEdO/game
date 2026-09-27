@@ -32,7 +32,7 @@
 //   - Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.
 //   - La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).
 //   - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
-//   - Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les quatre projets de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.
+//   - Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.
 //   - Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).
 //   - La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` NUMÉRIQUES est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto`). Ce qui reste hors candidature est le TYPE : une borne non numérique (`null` d’une bande ouverte comprise) n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.
 //   - Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 36 tuples à l’arbre sur 10 sites (2 racines, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 34 paramètres de recette de rendu (`detail.courses.blockWM` 15, `detail.speckle.rM` 17, `detail.tufts.hM` 2, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (`sea-cargo.json › cargoes[].avail` 44, `land-cargo.json › cargoes[].avail` 28, L-1659-2), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 36 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.
@@ -83,7 +83,7 @@ export const STRUCTURES_CIBLES = [
   // RECLASSEMENT AU SITE (L2 #1548, commit 4bis) — trois graphies passent CIBLE au SEUL site du
   // STATBLOC (`SITE_STATBLOC` du lexique : bestiaire + statblocs embarqués des projets de scène,
   // champ `skills`). Elles restent HISTORIQUES partout ailleurs, et le stock des formes le montre :
-  // `creatures.json › traits {id,value}` (914) et `trappings.json › qualities {id,value}` y sont
+  // `creatures.json › traits {id,value}` (937) et `trappings.json › qualities {id,value}` y sont
   // toujours, lot L3. Ce que le site tranche, c'est que la valeur IMPRIMÉE est un champ de la
   // référence de Compétence (#1463, « Faits tranchés au Source » : « `value` = le seul nom du NOMBRE
   // IMPRIMÉ au statbloc » ; clause de composition : « `value` requis sur un statbloc »). AUCUNE
@@ -189,7 +189,7 @@ export const STRUCTURES_FORMES = [
   // #1612 (2026-09-06) — 4ᵉ porteur du même terme `{rule}` : le `times.of` de l'amende des gardes
   // (`mendier-ennuis`), dont le montant vit en règle optionnelle. Même forme, même solde que ses sœurs.
   { concept: "reference", dataset: "tables.json", champ: "of", signature: "rule", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  // Les 2 voies de Compétence d’une Activité qui portent leur Difficulté PROPRE (`skillRefSchema`,
+  // Les 2 voies de Compétence d’une Activité qui portent leur Difficulté PROPRE (`voieDeCompetenceSchema`,
   // `defs/activities.ts:19`) : une RÉFÉRENCE à charge utile, mesurée comme telle depuis que le
   // concept `test` cède les objets qui DÉSIGNENT (#1657 geste A).
   { concept: "reference", dataset: "activities.json", champ: "skills", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L2 #1463", date: "2026-09-01" },
@@ -228,7 +228,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "arene-projet.json", champ: "merchant", signature: "archetype", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-30", motif: "référence d’ARCHÉTYPE de marchand" },
   { concept: "reference", dataset: "arene-projet.json", champ: "optionals", signature: "arg,id", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
   { concept: "reference", dataset: "arene-projet.json", champ: "optionals", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "arene-projet.json", champ: "ref", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 406, lot: "L3 #1463", date: "2026-08-30", motif: "référence de PION de scène" }, // 293→406 : +113 OCCURRENCES — 24 ids de décor sont posés dans cette scène, 23 n'y résolvaient rien faute d'entrée `props.json` (#1680 ligne 14) ; `toile` ×4 résolvait déjà, par le Trait homonyme
+  { concept: "reference", dataset: "arene-projet.json", champ: "ref", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 421, lot: "L3 #1463", date: "2026-08-30", motif: "référence de PION de scène" }, // 406→421 : +15 OCCURRENCES — les 15 PNJ sans fiche nomment le profil standard de leur espèce (#1882, LDB 77 l.7) ; 293→406 : +113 OCCURRENCES — 24 ids de décor sont posés dans cette scène, 23 n'y résolvaient rien faute d'entrée `props.json` (#1680 ligne 14) ; `toile` ×4 résolvait déjà, par le Trait homonyme
   // #1691 : `<scène> › reliefDefaults` — la matière de chaque PARTIE de relief que le builder de sols
   // émet (`cliff`/`ramp`/`deck`/`pilier`). Quatre ids NUS sous une enveloppe par PARTIE, forme CIBLE de la
   // grammaire (`idDe('material', 'relief')` les refine au parse) ; la mesure classe l'enveloppe d'ids nus
@@ -247,8 +247,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "arene-projet.json", champ: "traits", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "arene-projet.json", champ: "walls", signature: "structure+…", statut: "divergente", strate: "Référence", occurrences: 235, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "arene-projet.json", champ: "weapon", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "axes.json", champ: "talents", signature: "spec,talentId", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TALENT" },
-  { concept: "reference", dataset: "axes.json", champ: "talents", signature: "talentId", statut: "historique", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "barge-du-sel-projet.json", champ: "a", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "barge-du-sel-projet.json", champ: "ambush", signature: "encounter,scene+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "barge-du-sel-projet.json", champ: "ammo", signature: "kind,subType,trappingId+…", statut: "divergente", strate: "Référence", occurrences: 8, lot: "L3 #1463", date: "2026-08-23" },
@@ -310,20 +308,20 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "creatures.json", champ: "spec", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L2 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "monster", signature: "tete", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-30", motif: "apparence de MONSTRE par localisation" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id", statut: "historique", strate: "Référence", occurrences: 133, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
-  { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id,value", statut: "historique", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
+  { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id,value", statut: "historique", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-30", motif: "paramètre d’ENTITÉ (trait, talent)" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "arg,id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "count,id,value", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 23, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 7, lot: "L3 #1463", date: "2026-08-23" },
+  { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 9, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "optionals", signature: "size+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "talents", signature: "id,times", statut: "historique", strate: "Référence", occurrences: 48, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "arg,id", statut: "historique", strate: "Référence", occurrences: 408, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TRAIT paramétré" },
+  { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "arg,id", statut: "historique", strate: "Référence", occurrences: 385, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TRAIT paramétré" },
   { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "arg,id,value", statut: "historique", strate: "Référence", occurrences: 118, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "arg,id,value+…", statut: "divergente", strate: "Référence", occurrences: 43, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "arg,id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "count,id,value", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 914, lot: "L3 #1463", date: "2026-08-23" }, // +1 : Chien de trait (Arme +5), EDOC 07 folio 22, #673
+  { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 937, lot: "L3 #1463", date: "2026-08-23" }, // +1 : Chien de trait (Arme +5), EDOC 07 folio 22, #673
   { concept: "reference", dataset: "creatures.json", champ: "traits", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "trappings", signature: "count,id", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "creatures.json", champ: "trappings", signature: "creatureId", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -342,7 +340,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "diligence-projet.json", champ: "reliefDefaults", signature: "cliff,deck,pilier,ramp", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "diligence-projet.json", champ: "roofDefaults", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-09-09" },
   { concept: "reference", dataset: "diligence-projet.json", champ: "scene", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-31" },
-  // #1715 : le TYPE de bâtiment d'un corps architectural (`ArchitectureBody.style`) résout désormais
+  // #1715 : le TYPE de bâtiment d'un corps architectural (`ArchitectureBody.style`) résout
   // contre `buildings.json` (`idDe('building')`, `defs-scenes/scene.ts`) — la même valeur `maison`
   // qu'avant, mesurée comme la référence qu'elle est. La ligne sœur `arene-projet.json | style` (2) est
   // MORTE au même geste : ses deux corps COMPOSITES (le Bourg, Felsbach) ne portent aucun type de
@@ -394,7 +392,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "port", signature: "ref", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "postes", signature: "trappingId+…", statut: "divergente", strate: "Référence", occurrences: 12, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "qualities", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 16, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "ref", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 12, lot: "L3 #1463", date: "2026-08-30", motif: "référence de PION de scène" },
+  { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "ref", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 23, lot: "L3 #1463", date: "2026-08-30", motif: "référence de PION de scène" }, // 12→23 : +11 OCCURRENCES — les 11 PNJ sans fiche nomment le profil standard de leur espèce (#1882, LDB 77 l.7)
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "reliefDefaults", signature: "cliff,deck,pilier,ramp", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "roofDefaults", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-09-09" },
   { concept: "reference", dataset: "loup-et-saumure-projet.json", champ: "scene", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
@@ -411,7 +409,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "maladies.json", champ: "symptoms", signature: "symptomId", statut: "divergente", strate: "Référence", occurrences: 47, lot: "L3 #1463", date: "2026-08-23" }, // +5 : Pneumonie (3) + Rhume commun (2), EDOC 08 folio 33 (#674)
   // 13 → 14 (#1657 B2b) : la 8ᵉ réf de symptôme à Difficulté PROPRE avait sa ligne à elle, sa valeur
   // `difficile` RÉSOLVANT vers un id de `sea-events.json`. En adoptant `noeudTest(flowSchema)`, le
-  // document déclare désormais `difficulty` par `difficultySchema` (`z.enum`, `grammaire/valeurs.ts`)
+  // document déclare `difficulty` par `difficultySchema` (`z.enum`, `grammaire/valeurs.ts`)
   // au lieu du `z.string()` de son `dailyTest` propre — et une clé dont la valeur est un LITTÉRAL
   // D'ENUM du schéma n'ouvre jamais de référence : l'homonyme meurt, la projection replie en `+…`.
   { concept: "reference", dataset: "maladies.json", champ: "symptoms", signature: "symptomId+…", statut: "divergente", strate: "Référence", occurrences: 14, lot: "L3 #1463", date: "2026-08-23" },
@@ -431,8 +429,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "mutations.json", champ: "eyes", signature: "G", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "mutations.json", champ: "passive", signature: "arg,traitId+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TRAIT paramétré" },
   { concept: "reference", dataset: "mutations.json", champ: "passive", signature: "psychType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "mutations.json", champ: "passive", signature: "spec,talentId+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "mutations.json", champ: "passive", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   // #862 : re-ciblage quotidien de Haine sporadique — les DEUX graphies de référence de Trait que
   // `passive` porte déjà, vues cette fois sous une op authorée (`[removeTrait, grantTrait]`).
   { concept: "reference", dataset: "mutations.json", champ: "ops", signature: "argFrom,traitId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-31" },
@@ -445,7 +441,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "pregens.json", champ: "career", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 8, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CARRIÈRE" },
   { concept: "reference", dataset: "pregens.json", champ: "species", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 8, lot: "L3 #1463", date: "2026-08-30", motif: "référence d’ESPÈCE" },
   { concept: "reference", dataset: "props.json", champ: "light", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-23" }, // 3→6 : +3 OCCURRENCES — les trois luminaires allumés par #1680 ligne 5 (`applique-murale`, `lustre-opera`, `lanterne-de-poupe`) portent un `light.tone`, de la MÊME forme que les trois déjà comptés
-  { concept: "reference", dataset: "props.json", champ: "primitives", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 297, lot: "L3 #1463", date: "2026-08-23" }, // 89 → 172 : les 11 recettes du LOT A #1644 ; 172 → 297 (#1343 lot B, 2026-09-21) : les 17 recettes du mobilier d'opéra/théâtre, même forme à l'identique
+  { concept: "reference", dataset: "props.json", champ: "primitives", signature: "material+…", statut: "divergente", strate: "Référence", occurrences: 379, lot: "L3 #1463", date: "2026-08-23" }, // 89 → 172 : les 11 recettes du LOT A #1644 ; 172 → 297 (#1343 lot B, 2026-09-21) : les 17 recettes du mobilier d'opéra/théâtre, même forme à l'identique ; 297 → 379 (#1343 lot C, 2026-09-26) : les 7 recettes des décors organiques (dont les deux mannequins), même forme, roues de la `charrette` en cylindres couchés
   { concept: "reference", dataset: "psychology.json", champ: "becomes", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "psychology.json", champ: "failCondition", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "psychology.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -524,11 +520,9 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "ref+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CRÉATURE invoquée" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "removeType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "requiresWeapon+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "spells.json", champ: "ops", signature: "spec,talentId+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TALENT" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "spells.json", champ: "ops", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 15, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
-  // 34 -> 35 (#1508 T3, 2026-09-07) : l'op `domeWard` du sort Dôme NOMME désormais le Trait qu'elle
+  // 34 -> 35 (#1508 T3, 2026-09-07) : l'op `domeWard` du sort Dôme NOMME le Trait qu'elle
   // octroie (`traitId`, `LDB 47 l.410`) au lieu de le taire ; même graphie, une occurrence de plus.
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 35, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "trappingId+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
@@ -539,8 +533,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "spells.json", champ: "when", signature: "rule", statut: "divergente", strate: "Référence", occurrences: 18, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "stars.json", champ: "ascendant", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 11, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "stars.json", champ: "ops", signature: "char+…", statut: "divergente", strate: "Référence", occurrences: 42, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "stars.json", champ: "ops", signature: "spec,talentId+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TALENT" },
-  { concept: "reference", dataset: "stars.json", champ: "ops", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 11, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "symptoms.json", champ: "ops", signature: "disease+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" }, // la conséquence du cycle vit sous la feuille `EffectOp` du nœud `test` (#1657 B2b)
   // #1599 : `severePassive` (6, « char+… ») est mort — les passifs s'indexent PAR PALIER
   // (`passiveBySeverity`), et le scan nomme le champ PORTEUR : `moderee` (Convulsions −20, LDB 20
@@ -559,23 +551,21 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "symptoms.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "symptoms.json", champ: "passive", signature: "cible,psychType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "symptoms.json", champ: "passive", signature: "psychType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "tables.json", champ: "ops", signature: "arg,traitId+…", statut: "divergente", strate: "Référence", occurrences: 7, lot: "L3 #1463", date: "2026-08-23" },
+  { concept: "reference", dataset: "tables.json", champ: "ops", signature: "arg,traitId+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "char+…", statut: "divergente", strate: "Référence", occurrences: 15, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "cible,psychType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "disease+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "table+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "tables.json", champ: "ops", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 12, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tables.json", champ: "ops", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "tables.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 30, lot: "L3 #1463", date: "2026-08-23" },
+  { concept: "reference", dataset: "tables.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 31, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "effects", signature: "condition+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "gate", signature: "value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "matches", signature: "exceptSpec,skill", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L2 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "ops", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "ops", signature: "type+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "talents.json", champ: "passive", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "talents.json", champ: "when", signature: "rule", statut: "divergente", strate: "Référence", occurrences: 12, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tavernGames.json", champ: "attrition", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "tavernGames.json", champ: "combined", signature: "stopCondition+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -598,8 +588,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "traits.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "passive", signature: "attackKind,subType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "passive", signature: "mode+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "traits.json", champ: "passive", signature: "spec,talentId+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TALENT" },
-  { concept: "reference", dataset: "traits.json", champ: "passive", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 19, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "passive", signature: "terrain+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "subject", signature: "condition+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traits.json", champ: "value", signature: "bonusOf", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -620,7 +608,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "op+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "symptomId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "talentId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "passive", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   // #1661 : 115 → 120 — les CINQ armes de Taillade (`AA 08 l.136/210/304/364/375`) quittent la spec
@@ -761,7 +748,7 @@ export const STRUCTURES_DEFAUT = [
 ];
 
 /** Nom du lexique porté par PLUSIEURS classes de valeur à la fois (#1463 S2 : un nom de concept est
- *  réservé à son type) : une ligne disparaît quand le nom ne porte plus qu'UNE classe.
+ *  réservé à son type) : une ligne disparaît quand le nom porte seulement UNE classe.
  *  `cost` est sorti au L-monnaie-4 (2026-09-01) : les 55 coûts du Tour (`actions.json` → `coutAction`),
  *  les 21 barèmes d'installation navale (→ `installation`), les 6 paliers de prothèse (→ `px`, LDB 73
  *  l.19/23), le coût d'Avantage d'une réaction de défense (→ `avantage`) et les deux coûts d'Avantage du
@@ -777,6 +764,7 @@ export const STRUCTURES_HOMONYMES = [
   { cle: "char", classes: ["object","string"], occurrences: 863, lot: "L4 #1463", date: "2026-08-23" }, // +3 : profils vides Mouton + Cochon (object) + Trait Entêté (string), EDOC 07 folios 22 et 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673 ; −2 (#1657 B2c) : les 2 `crewTest.char` de `river-criticals.json` adoptent `characteristic`, la clé de `flowTestSchema` (le fichier en sort avec ZERO `char` — pas d'état mixte, #1658)
   { cle: "price", classes: ["null","number","object","string"], occurrences: 520, lot: "L4 #1463", date: "2026-08-23" }, // +1 : Anneau d'Opsianon, EDO 11 folio 148 (#672) ; +3 : achat Chien + Mouton + Cochon, EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
   { cle: "count", classes: ["number","object"], occurrences: 92, lot: "L4 #1463", date: "2026-08-23" },
+  { cle: "talent", classes: ["object","string"], occurrences: 79, lot: "L3 #1463", date: "2026-08-23" }, // #1473 train 2a : la clé `talent` des ops de Talent (objet, `refOuSpec`) rejoint les 79 `talent: "<id>"` à chaîne nue.
 ];
 
 /** Littéral d'objet zod d'un `defs/*.ts` qui REDÉCLARE localement un concept du lexique (ou la
@@ -801,7 +789,7 @@ export const STRUCTURES_REDECLARATIONS = [
   { def: "land-cargo.ts", champ: "gossip", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "bonusOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "charOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
-  { def: "miscast.ts", champ: "", concept: "", signature: "dice", statut: "hors lexique", commun: "prixTireSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" }, // `commun` recalé au 2026-09-01 (#1463 L-gram-3) : le littéral `{dice}` de la grammaire que le scan nomme est désormais `prixTireSchema` — MÊME signature, même ligne, aucun déplacement de porteur
+  { def: "miscast.ts", champ: "", concept: "", signature: "dice", statut: "hors lexique", commun: "prixTireSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" }, // `commun` recalé au 2026-09-01 (#1463 L-gram-3) : le littéral `{dice}` de la grammaire que le scan nomme est `prixTireSchema` — MÊME signature, même ligne, aucun déplacement de porteur
   { def: "miscast.ts", champ: "", concept: "", signature: "engagedAdvantageGap", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "indiceOf", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
   { def: "miscast.ts", champ: "", concept: "", signature: "rolled", statut: "hors lexique", commun: "formulaSchema", occurrences: 1, lot: "L1a #1466", date: "2026-08-23" },
@@ -956,7 +944,7 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "disponibilite.json", champ: "dispoPct", signature: "availability,pct,source", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "domains.json", champ: "cancelledBy", signature: "circumstance,desc,requiresSkill,source,sustained,test", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "domains.json", champ: "windModifiers", signature: "cancelledBy,desc,dr,source,tests", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
-  // 17 → 19 (#1715, 2026-09-09) : AUCUNE donnée neuve. Les circonstances de `when` sont désormais un
+  // 17 → 19 (#1715, 2026-09-09) : AUCUNE donnée neuve. Les circonstances de `when` sont un
   // vocabulaire FERMÉ (`domainCircumstanceSchema`, `defs/domains.ts`) — elles n'ouvrent plus de
   // référence, et les 2 rangs qui résolvaient par HOMONYMIE (`tour`, `middenheim`) rejoignent leurs 17
   // sœurs sous la signature commune.
@@ -1219,9 +1207,14 @@ export const STRUCTURES_OPS = [
   { op: "giveTrapping", signature: "op,trappingId", dataset: "spells.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "giveTrapping", signature: "op,perSL,trappingId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantCareerSkill", signature: "op,skill", dataset: "talents.json", occurrences: 5, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantCareerTalent", signature: "op,talentId", dataset: "traits.json", occurrences: 18, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantCareerTalent", signature: "op,spec,talentId", dataset: "traits.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantCareerTalent", signature: "op,talentId", dataset: "talents.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantCareerTalent", signature: "op,talent", dataset: "talents.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantCareerTalent", signature: "op,talent", dataset: "traits.json", occurrences: 20, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "mutations.json", occurrences: 7, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "spells.json", occurrences: 21, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "stars.json", occurrences: 13, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "tables.json", occurrences: 12, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "traits.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTalent", signature: "op,talent", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantFreeAttack", signature: "advantageOrMovement,op,weapon,when", dataset: "talents.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantFreeAttack", signature: "op,perChargerOncePerRound,weapon,when", dataset: "talents.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantFreeAttack", signature: "op,weapon,when", dataset: "psychology.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
@@ -1236,18 +1229,8 @@ export const STRUCTURES_OPS = [
   { op: "grantPsychTrait", signature: "op,psychType", dataset: "mutations.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantPsychTrait", signature: "op,psychType", dataset: "symptoms.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantReverseToken", signature: "op", dataset: "activities.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "spells.json", occurrences: 15, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "tables.json", occurrences: 12, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "stars.json", occurrences: 11, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,spec,talentId", dataset: "spells.json", occurrences: 6, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,spec,talentId", dataset: "mutations.json", occurrences: 5, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,spec,talentId", dataset: "stars.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,spec,talentId", dataset: "traits.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "mutations.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "traits.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTalent", signature: "op,talentId", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "op,traitId", dataset: "mutations.json", occurrences: 19, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTrait", signature: "op,traitId", dataset: "spells.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" }, // −1 (#862) : le Désespoir accordé porte désormais sa durée (ligne suivante)
+  { op: "grantTrait", signature: "op,traitId", dataset: "spells.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" }, // −1 (#862) : le Désespoir accordé porte sa durée (ligne suivante)
   { op: "grantTrait", signature: "durationHours,op,traitId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "mutations.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "op,traitId", dataset: "tables.json", occurrences: 16, lot: "L1c #1468", date: "2026-08-23" },
@@ -1256,7 +1239,7 @@ export const STRUCTURES_OPS = [
   { op: "grantTrait", signature: "arg,op,traitId", dataset: "mutations.json", occurrences: 4, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "arg,op,traitId", dataset: "tables.json", occurrences: 4, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "maneuvers.json", occurrences: 4, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantTrait", signature: "arg,indice,op,traitId", dataset: "tables.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTrait", signature: "arg,indice,op,traitId", dataset: "tables.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "arg,op,traitId", dataset: "spells.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "op,traitId", dataset: "symptoms.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "argFrom,op,traitId", dataset: "mutations.json", occurrences: 3, lot: "L1c #1468", date: "2026-08-23" }, // +1 (#862) : re-ciblage `onDayStart`
@@ -1267,6 +1250,7 @@ export const STRUCTURES_OPS = [
   { op: "grantTrait", signature: "op,traitId", dataset: "trappings.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "arg,indice,op,traitId", dataset: "mutations.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "durationRounds,indice,op,traitId", dataset: "domains.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantTrait", signature: "indice,op,range,traitId", dataset: "tables.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "onlyGroups,op,traitId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantWeapon", signature: "chooseForm,damage,label,op,qualities,skin", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },

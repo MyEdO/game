@@ -230,7 +230,7 @@ export const spec: MapSpec = {
     },
     // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
     G: {
-      entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1, label: 'Guetteur du corps de garde' },
+      entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1 },
       member: { enc: 'assaut', side: 'ally', ai: true },
     },
     // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).

@@ -4,10 +4,10 @@
  * MÊME pattern que les armes/créatures/tenues : « dépose un fichier → intégré », routé par id, jamais de
  * name-matcher ni de table à la main). Coords LOCALES : origine = contact sol au centre, l'objet monte en
  * y NÉGATIF (cf. `groundedBody`). Jetons : `@bois` (charpente), `@fonte`/`@fer` (tube/ferrures), `@corde`
- * (cordage) — les variantes d'ombre/reflet (`@boisO`/`@boisH`/`@ferH`/`@cordeO`/`@cordeH`/`@fonteH`/
+ * (cordage) — les variantes d'ombre/lumière (`@boisO`/`@boisH`/`@ferH`/`@cordeO`/`@cordeH`/`@fonteH`/
  * `@fonteO`) sont dérivées automatiquement par `buildTokenMap`.
  */
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import type { ViewArt } from '../viewArt';
 
 /** Def d'ART d'engin = id d'espèce (clé de `appearance.species` / `siegeRig`) + son art ORIENTÉ (contrat
@@ -19,7 +19,7 @@ export interface EnginArtDef extends ViewArt {
 }
 
 /** Palette par défaut d'un engin (bases CUSTOM, ≠ slots créature). */
-export const ENGIN_DEFAULT: StoredPalette = { bois: '#6e4a28', fonte: '#3e3a35', fer: '#2c2822', corde: '#c2a86e' };
+export const ENGIN_DEFAULT: PaletteDeclaree = { bois: '#6e4a28', fonte: '#3e3a35', fer: '#2c2822', corde: '#c2a86e' };
 
 /** Roue à rayons vue de FACE (cercle), centrée à l'origine locale. */
 export const wheelFace = (r: number): string =>

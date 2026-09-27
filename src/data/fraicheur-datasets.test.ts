@@ -41,7 +41,6 @@ import { SEA_BOARD_EVENT_TABLE } from '../state/seaVoyageFlow';
 import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
 import type { RNG } from '../engine/dice';
 import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';
-import { weaponGroupFromText } from '../engine/weaponGroup';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
 import { emptyScene, sceneMetresPerTile } from '../state/scene';
@@ -146,13 +145,6 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const depsApres = worldBakeDeps(scene, mpt);
     expect(depsApres.length).toBe(depsAvant.length);
     expect(depsApres.filter((d, i) => d !== depsAvant[i]), 'le bake se déclencherait sur une édition qui ne cuit rien').toEqual([]);
-  });
-
-  it('une arme RENOMMÉE : le Groupe se résout sur le NOUVEAU libellé (couture déléguée à `src/data`)', () => {
-    expect(weaponGroupFromText('Hallebarde')).toBe('armes-d-hast');
-    setDataset('trappings', trappings.map((t) => (t.id === 'hallebarde' ? { ...t, label: 'Vouge' } : t)));
-    expect(weaponGroupFromText('Vouge')).toBe('armes-d-hast');
-    expect(weaponGroupFromText('Hallebarde')).toBeNull();
   });
 
   it('un État RENOMMÉ : le journal reconnaît le NOUVEAU libellé, et son importance suit l’id', () => {

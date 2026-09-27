@@ -7,7 +7,7 @@
 // REFUS quand elle est rompue, l'IDEMPOTENCE, et le recalage d'une entrée de stock AVEC sa `preuve`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { aUneCleDeSection, carteDesSlugs, suiviBloque, contenuDe, fluxDe, indexDe, planDe, recalerStock, recouper } from './recouper-source.mjs'
+import { aUneCleDeSection, carteDesSlugs, entreesScindees, rapporteeEnLigne, suiviBloque, contenuDe, fluxDe, indexDe, planDe, recalerStock, recouper } from './recouper-source.mjs'
 import { carteDeLignes } from './lib/carte-lignes.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 
@@ -182,6 +182,15 @@ test('#1739 : la carte de slugs se branche sur `recalerStock` — la clé suit, 
   assert.deepEqual(orphelines, [`${racine}/09 - X.md :: alpha-beta#1 :: a|b`])
 })
 
+test('#1739 : un titre devenu LÉGENDE de table suit la section qui porte l’en-tête de sa table ; devenu prose, il reste RAPPORTÉ (CRB 027:47)', () => {
+  const head = ['### **SNEAKING AROUND**', '', 'texte', '', '## <span id="p"></span>**EXAMPLES**', '', '| Difficulty | Action |', '|---|---|', '| Easy | Hide |', '', '### **NOTE**', '', 'fin', ''].join('\n')
+  const arbre = ['### **SNEAKING AROUND**', '', 'texte', '', '<span id="p"></span>**EXAMPLES**', '', '| Difficulty | Action |', '|---|---|', '| Easy | Hide |', '', '**NOTE**', '', 'fin', ''].join('\n')
+  const diff = '@@ -5 +5 @@\n-## <span id="p"></span>**EXAMPLES**\n+<span id="p"></span>**EXAMPLES**\n@@ -11 +11 @@\n-### **NOTE**\n+**NOTE**\n'
+  const { carte, rapportees } = carteDesSlugs('027 - X.md', head, arbre, carteDeLignes(hunksDe(diff)))
+  assert.equal(carte.get('027 - X.md :: examples#1')?.ref, 'sneaking-around#1')
+  assert.deepEqual(rapportees, ["027 - X.md :: note#1 (l.11) — l.11 n'est plus un titre"])
+})
+
 test('#1739 : compte ÉGAL sans correspondance (scission + ligne vide ôtée, diff git réel) — le titre est RAPPORTÉ, jamais réécrit', () => {
   const head = 'a\n\n#### **Bounce** XII **Cold-blooded**\n\nbody\n'
   const arbre = 'a\n\n#### **Bounce**\n#### **Cold-blooded**\nbody\n'
@@ -198,8 +207,45 @@ test('#1739 : --suivre-diff ne porte que les clés de SECTION — une clé de fi
   assert.deepEqual(r, { entrees, recalees: [], orphelines: [] })
 })
 
-test('#1739 : --suivre-diff est BLOQUÉ (rien écrit, sortie en échec) tant qu’un titre est rapporté ou une entrée orpheline', () => {
-  assert.equal(suiviBloque([], [{ orphelines: [] }]), false)
-  assert.equal(suiviBloque(['x.md :: a#1 (l.3) — ligne supprimée'], []), true)
-  assert.equal(suiviBloque([], [{ orphelines: ['Source/L/x.md :: a#1 :: k'] }]), true)
+test('#1739 : --suivre-diff est BLOQUÉ (rien écrit, sortie en échec) par une entrée orpheline — un titre rapporté ne bloque que si une entrée le keye', () => {
+  assert.equal(suiviBloque([{ orphelines: [] }]), false)
+  assert.equal(suiviBloque([{ orphelines: ['Source/L/x.md :: a#1 :: k'] }]), true)
+})
+
+test('#1739 : un titre RAPPORTÉ sans entrée keyée est listé « aucun stock keyé » et ne bloque pas ; keyé, son entrée orpheline BLOQUE (CRB 018, hunk ambigu)', () => {
+  const racine = 'Source/Livre forge'
+  const { carte, rapportees } = carteDesSlugs('09 - X.md', HEAD_EDITE, ARBRE_EDITE, carteDeLignes(hunksDe(DIFF_EDITE)))
+  const sans = [recalerStock([{ famille: 'br-litteral', fichier: `${racine}/09 - X.md`, ref: 'leaping#1 :: a|b', occurrence: 1 }], racine, carte, { portee: aUneCleDeSection })]
+  assert.equal(suiviBloque(sans), false)
+  assert.deepEqual(rapportees.map((r) => rapporteeEnLigne(r, racine, sans.flatMap((s) => s.orphelines))), ['09 - X.md :: alpha-beta#1 (l.8) — hunk ambigu, candidates l.7/8 — aucun stock keyé'])
+  const avec = [recalerStock([{ famille: 'br-litteral', fichier: `${racine}/09 - X.md`, ref: 'alpha-beta#1 :: a|b', occurrence: 1 }], racine, carte, { portee: aUneCleDeSection })]
+  assert.equal(suiviBloque(avec), true)
+  assert.deepEqual(rapportees.map((r) => rapporteeEnLigne(r, racine, avec.flatMap((s) => s.orphelines))), ['09 - X.md :: alpha-beta#1 (l.8) — hunk ambigu, candidates l.7/8'])
+  assert.equal(rapporteeEnLigne('10 - Y.md — absent de HEAD', racine, [`${racine}/10 - Y.md :: z#1 :: k`]), '10 - Y.md — absent de HEAD')
+})
+
+// Titres réparés (#1739, 3b-3b-2) : un titre DÉPLACÉ suit sa ligne neuve ; un titre NEUF scinde la
+// section qui le précède, et les entrées qui y sont keyées sont RAPPORTÉES. Diff git réel (-U0).
+const HEAD_TITRES = ['*P*', '', '### **Wounds**', '', 'table', '', '### **Spellcaster**', '', 'corps S', '', '### **Skittish**', '', 'corps K', '', '### **Stupid**', '', 'Aimed body', ''].join('\n')
+const ARBRE_TITRES = ['*P*', '', '### **Wounds**', '', 'table', '', '### **Skittish**', '', 'corps K', '', '### **Spellcaster**', '', 'corps S', '', '### **Stupid**', '', '#### **Aimed Shots**', '', 'Aimed body', ''].join('\n')
+const DIFF_TITRES = ['@@ -6,0 +7,4 @@', '+### **Skittish**', '+', '+corps K', '+', '@@ -11,4 +14,0 @@', '-### **Skittish**', '-', '-corps K', '-', '@@ -16,0 +17,2 @@', '+#### **Aimed Shots**', '+'].join('\n')
+
+test('#1739 : un titre DÉPLACÉ (sa ligne ôtée, son slug sur UNE ligne neuve) suit sa ligne neuve ; un titre NEUF scinde la section qui le précède', () => {
+  const { carte, rapportees, scindees } = carteDesSlugs('115 - X.md', HEAD_TITRES, ARBRE_TITRES, carteDeLignes(hunksDe(DIFF_TITRES)))
+  assert.deepEqual(rapportees, [])
+  assert.equal(carte.get('115 - X.md :: skittish#1').ref, 'skittish#1')
+  assert.deepEqual(scindees, [{ cle: '115 - X.md :: wounds#1', par: 'skittish#1 (l.7)' }, { cle: '115 - X.md :: stupid#1', par: 'aimed-shots#1 (l.17)' }])
+})
+
+test('#1739 : une entrée keyée sur une section SCINDÉE est rapportée et BLOQUE le suivi ; les autres passent', () => {
+  const racine = 'Source/Livre forge'
+  const scindees = [{ cle: '036 - X.md :: melee#1', par: 'aimed-shots#1 (l.168)' }]
+  const entrees = [
+    { famille: 'donnee-en-tete', fichier: `${racine}/036 - X.md`, ref: 'melee#1 :: a|b', occurrence: 1 },
+    { famille: 'donnee-en-tete', fichier: `${racine}/036 - X.md`, ref: 'scatter#1 :: 1|2|3', occurrence: 1 },
+  ]
+  const sur = entreesScindees(entrees, racine, scindees)
+  assert.deepEqual(sur, [`${racine}/036 - X.md :: melee#1 :: a|b  ← section scindée par aimed-shots#1 (l.168)`])
+  assert.equal(suiviBloque([], sur), true)
+  assert.equal(suiviBloque([], []), false)
 })

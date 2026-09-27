@@ -8,7 +8,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -33,7 +33,7 @@ export interface SerpentProps {
   /** Queue PÂLE dressée qui se déploie en S au-dessus du lové (os `queue` dédié, animé) —
    *  colorée par @cheveux/@cheveuxO. Absent = pas de queue dressée (comportement historique). */
   tailUp?: boolean;
-  stored: StoredPalette; // robe par défaut (corps/corpsO/corpsH…)
+  palette: PaletteDeclaree; // robe par défaut (corps/corpsO/corpsH…)
 }
 
 function buildSkeleton(p: SerpentProps): Partial<Record<SerpentBoneId, SBone>> {
@@ -170,7 +170,7 @@ export function resolveSerpentFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton(p) as Record<SerpentBoneId, SBone>;
   const world = worldTransformsG(sk, pose) as Record<SerpentBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<SerpentBoneId, string> = { corps: coil(p), cou: neck(p), tete: headFor(p, view), queue: raisedTail() };
   return sortByZ((Object.keys(sk) as SerpentBoneId[])
     .map((id) => ({
@@ -185,7 +185,7 @@ export function resolveSerpentFromProps(
 /** Props par défaut (serpent générique) — repli si une espèce n'est pas dans le registre. */
 export const SERPENT_DEFAULT: SerpentProps = {
   sl: 1.0, girth: 1.0, hood: true,
-  stored: { corps: '#5a7a44', corpsO: '#37502a', corpsH: '#82a05e', cheveux: '#2c3a20', cheveuxO: '#1a2410', cuir: '#caa23a' },
+  palette: { corps: '#5a7a44', corpsO: '#37502a', corpsH: '#82a05e', cheveux: '#2c3a20', cheveuxO: '#1a2410', cuir: '#caa23a' },
 };
 
 /** (espèce, vue, pose, couleurs) → os résolus, depuis la table d'espèces du registre. */

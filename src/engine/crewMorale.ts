@@ -18,7 +18,8 @@ import crewMoraleJson from '../data/crew-morale.json';
 import { findTableEntry } from './tables';
 import { rollExpr, type RNG, defaultRNG } from './dice';
 import { rollTest, easeDifficulty } from './tests';
-import { bestForSkills, type SkillRef } from './skills';
+import { bestForSkills } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { talentTestSLBonus } from './magic';
 import { skillDRBonus } from './ops';
 import { rule } from './policy';
@@ -160,8 +161,8 @@ export interface CrewContributor {
   value: number;
   /** Rôle ESSENTIEL (MDG 14) : « Tout DR, ou DR négatif, qu'il génère est alors doublé. » */
   essential?: boolean;
-  /** Étiquette d'affichage (journal). */
-  label?: string;
+  /** Étiquette d'affichage (journal) — le rôle tenu. */
+  label: string;
   /** Difficulté PROPRE à ce contributeur (sinon celle du Test) — sert au double-rôle « Manque de bras » (+2 crans). */
   difficulty?: Difficulty;
   /** +DR de Talent sur SON jet RÉUSSI (règle LDB 10 l.19, contexte Test d'équipage — Commandant émérite,
@@ -171,7 +172,7 @@ export interface CrewContributor {
 
 export interface CrewTestResult {
   /** Détail par contributeur (DR brut puis doublé si essentiel). */
-  contributions: { label?: string; sl: number; essential: boolean; counted: number }[];
+  contributions: { label: string; sl: number; essential: boolean; counted: number }[];
   /** Somme des DR (rôles essentiels doublés). */
   baseTotal: number;
   /** ±DR de la bande de Moral courante (MDG 14, EFFETS DU MORAL). */
@@ -204,7 +205,7 @@ export function resolveCrewTest(
   const moraleDR = moraleBand(moraleScore).crewTestDR;
   const total = baseTotal + moraleDR + extraDR;
   const lines = contributions.map((c) =>
-    `${c.label ?? 'Rôle'} : ${c.sl >= 0 ? '+' : ''}${c.sl} DR${c.essential ? ` (essentiel ×2 → ${c.counted})` : ''}.`);
+    `${c.label} : ${c.sl >= 0 ? '+' : ''}${c.sl} DR${c.essential ? ` (essentiel ×2 → ${c.counted})` : ''}.`);
   if (moraleDR) lines.push(`Moral : ${moraleDR >= 0 ? '+' : ''}${moraleDR} DR.`);
   if (extraDR) lines.push(`Modificateur : ${extraDR >= 0 ? '+' : ''}${extraDR} DR.`);
   return { contributions, baseTotal, moraleDR, total, lines };
@@ -324,7 +325,7 @@ export function crewTestModOf(c: Combatant): number {
  *  (optionnel) : sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie qui « voit la lumière d'un
  *  phare », MDG 13 l.337 — visuel, transmis par l'appelant) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
-export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): { value: number; used?: SkillRef } {
+export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): { value: number; used?: RefDesignee } {
   const b = bestForSkills([crew], role.skills ?? [], undefined, sense);
   return { value: (b?.value ?? 0) + crewTestModOf(crew), used: b?.skillId ? { id: b.skillId, spec: b.spec } : undefined };
 }

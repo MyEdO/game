@@ -28,7 +28,7 @@ const CRIT = { roll: 11, target: 60, sl: 1, isCritical: true, isFumble: false, l
 
 function setup() {
   const mk = (label: string, seed: number) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(seed) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, rng: makeRNG(seed) });
     h.spells = ['flechette'];
     return h;
   };

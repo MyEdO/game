@@ -17,7 +17,7 @@ import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema
 import { ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, talentConcrete, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
+import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
 import { findFallTable, fallTables } from '../../data/shipCriticals';
 import { terrainLabel, terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
@@ -479,9 +479,9 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'removeTrait': return { op: 'removeTrait', traitId: '' };
     case 'grantPsychTrait': return { op: 'grantPsychTrait', psychType: '' };
     case 'removePsychTrait': return { op: 'removePsychTrait' };
-    case 'grantTalent': return { op: 'grantTalent', talentId: '' };
+    case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
     case 'grantCareerSkill': return { op: 'grantCareerSkill', skill: { id: '' } };
-    case 'grantCareerTalent': return { op: 'grantCareerTalent', talentId: '' };
+    case 'grantCareerTalent': return { op: 'grantCareerTalent', talent: { id: '' } };
     case 'augmentWeapon': return { op: 'augmentWeapon' };
     case 'cureDisease': return { op: 'cureDisease', count: 1 };
     case 'reduceDiseaseDays': return { op: 'reduceDiseaseDays', days: 1 };
@@ -586,8 +586,8 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   grantTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   removeTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   domeWard: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  grantTalent: [{ field: 'talentId', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerTalent: [{ field: 'talentId', ds: 'talents', label: 'Talent', required: true }],
+  grantTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
+  grantCareerTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
   grantCareerSkill: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillMod: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillDRBonus: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
@@ -682,9 +682,9 @@ export function opSummary(o: GameOp): string {
     case 'grantTrait': return `${formatTrait({ id: o.traitId, arg: o.arg })}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'removeTrait': return `${formatTrait({ id: o.traitId })}`;
     case 'grantPsychTrait': return `${o.psychType}${o.cible ? ` (${o.cible})` : ''}`;
-    case 'grantTalent': return `${talentConcrete(o)}`;
+    case 'grantTalent': return `${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
-    case 'grantCareerTalent': return `${refLabel('talents', { id: o.talentId, spec: o.spec })}`;
+    case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
     case 'augmentWeapon': return `${[
       ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })),
       o.damageBonus != null ? `+${formulaSummary(o.damageBonus)} Dégâts` : '',
@@ -1056,8 +1056,8 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
         )}
         {op.op === 'grantTalent' && (
           <RefField cfg={{ ds: 'talents', single: true, spec: true }} fieldKey="Talent"
-            value={{ id: o.talentId ?? '', spec: o.spec }}
-            onChange={(v) => { const r = typeof v === 'string' ? { id: v } : (v as { id: string; spec?: string }); upd({ talentId: r.id, spec: r.spec }); }} />
+            value={{ id: o.talent?.id ?? '', spec: o.talent?.spec }}
+            onChange={(v) => { const r = typeof v === 'string' ? { id: v } : (v as { id: string; spec?: string }); upd({ talent: r }); }} />
         )}
         {op.op === 'grantNaturalWeapon' && (
           <>

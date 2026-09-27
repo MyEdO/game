@@ -37,14 +37,19 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     checkedRef.current = scene.id;
     setReady(false);
     let cancelled = false;
-    autosaveLoad(scene.id).then((lu) => {
-      if (cancelled) return;
-      // Un enregistrement ÉCARTÉ se montre toujours : l'auteur apprend pourquoi, et le supprime.
-      const stale = !!lu && (!lu.ok || JSON.stringify(lu.record.scene) !== JSON.stringify(scene));
-      setRecovery(stale ? lu : null);
-      setHidden(false);
-      setReady(true);
-    });
+    // Une faute du jeu à la relecture (`relire` ne rend que les refus de la porte) se PROPAGE jusqu'au
+    // capteur `unhandledrejection` (`errorCollector.ts`) ; l'écriture débattue reprend quand même.
+    autosaveLoad(scene.id)
+      .then((lu) => {
+        if (cancelled) return;
+        // Un enregistrement ÉCARTÉ se montre toujours : l'auteur apprend pourquoi, et le supprime.
+        const stale = !!lu && (!lu.ok || JSON.stringify(lu.record.scene) !== JSON.stringify(scene));
+        setRecovery(stale ? lu : null);
+        setHidden(false);
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
     };

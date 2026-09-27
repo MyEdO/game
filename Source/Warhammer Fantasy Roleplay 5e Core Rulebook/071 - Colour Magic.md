@@ -1,14 +1,12 @@
 *Pages PDF 245-255*
 
-# **COLOUR MAGIC**
+# <span id="page-244-0" data-folio="245"></span>**COLOUR MAGIC**
 
 The following provides eight lists of eight Spells, with one list for each Colour of Magic.
 
 # **Lore of Beasts**
 
-**Lore Attribute:** The Amber Wind, *Ghur*, carries with it a chill, primal ferocity that is unnerving to beasts and sapient creatures alike. Whenever you cast a Spell from the
-
-Lore of Beasts, you may also cause *Fear* (see page 183) for the next Willpower Bonus Rounds.
+**Lore Attribute:** The Amber Wind, *Ghur*, carries with it a chill, primal ferocity that is unnerving to beasts and sapient creatures alike. Whenever you cast a Spell from the Lore of Beasts, you may also cause *Fear* (see page 183) for the next Willpower Bonus Rounds.
 
 **Ingredients:** Shamans use animal fur, skin, bone, and pelt, wrapped in sinews and daubed with blood runes to focus the Amber Wind. Often claws are scrimshawed, organs dried, and feathers dipped in rare humours, and it's not uncommon to find excrement, urine, and other excretions also used.
 
@@ -30,7 +28,7 @@ You infuse your very bones and flesh with *Ghur*, warping your body into that of
 
  While transformed, you look like a normal version of the animal, with amber and brown colouring. You cannot speak, cast Spells, or dispel. Critical Wounds and lost Wounds carry over when you revert to your true form, but you cannot be reduced below 0 Wounds in this way.
 
-# **Beast Master**
+# <span id="page-245-0" data-folio="246"></span>**Beast Master**
 
 **CN:** 10 **Range:** Willpower Bonus yards **Target:** 1 **Duration:** Willpower Bonus days
 
@@ -74,7 +72,7 @@ You hurl a great spear of pure *Ghur* with uncanny accuracy. This is a *magic mi
 
 You call on the wild power of *Ghur* to infuse you, surrendering to its savage delights. Gain +1 Movement, +30 Strength and Toughness, and the following Creature Traits (see pages 356–361): *Belligerent, Bite (Strength Bonus + 1), Fear 1, Frenzy, Magical, Striding Gait (Woodland)*. While the Spell is active, you are incapable of using any Language or Lore Skills.
 
-# **Lore of Death**
+# <span id="page-246-0" data-folio="247"></span>**Lore of Death**
 
 **Lore Attribute:** The Purple Wind of *Shyish*  carries with it dry, dusty draughts and the insistent rustling of sand passing through time's hourglass. Targets afflicted by spells from the Lore of Death are drained of life, enervated, and listless. You may assign 1 *Fatigued* Condition to any living target affected by a Spell from this Lore. A target may only ever have a single *Fatigued* Condition gained in this manner at any time.
 
@@ -96,7 +94,7 @@ Reaching out an ebon hand, you draw out your target's soulstuff. This is a *magi
 
 Touching the body of a recently departed soul (one that passed away within the last day), you call its soul back briefly. For the Spell's duration, you can communicate with the dead soul, though they cannot take any action other than talking. They are not compelled to answer you, but the dead do not lie.
 
-# **Purple Pall of** *Shyish*
+# **Purple Pall of** ***Shyish***
 
 **CN:** 9 **Range:** You
 
@@ -112,7 +110,7 @@ You pull about you a pall fashioned from fine strands of *Shyish*. Gain +WPB Arm
 
 Inscribing a magical circle, you ward it with *Shyish*, forming an impenetrable barrier to the undead. Creatures with the *Undead*  Creature Trait cannot enter or leave the circle.
 
-# **Scythe of** *Shyish*
+# **Scythe of** ***Shyish***
 
 **CN:** 6 **Range:** You
 
@@ -140,13 +138,13 @@ Thin strands of purple mist connect you briefly to your target, who wastes away 
 
 Your touch brings the release of death to a single creature standing at Morr's threshold. If the target has 0 Wounds remaining, death swiftly follows. Furthermore, they cannot be raised as Undead.
 
-# **Lore of Fire**
+# <span id="page-247-0" data-folio="248"></span>**Lore of Fire**
 
 **Lore Attribute:** The Lore of Fire, and the Bright Wind of *Aqshy*, are anything but subtle. Bright spells are bellowed with fervour and manifest themselves in bombastic fashion, with bright flame and searing heat. You may inflict 1 *Ablaze*  Condition on anyone targeted by Spells from the Lore of Fire unless they also possess the *Arcane Magic (Fire)* Talent.
 
 **Ingredients:** Pyromancers use a wide selection of flammable materials as ingredients, which are often immolated as the spell is cast, including coal, oils, fats, and ruddy woods. Trappings immune to fire are also common, such as iron keys, carved sections of fire grate, and small oven stones.
 
-# *Aqshy's* **Aegis**
+# ***Aqshy's*** **Aegis**
 
 **CN:** 5 **Range:** You
 
@@ -208,7 +206,7 @@ You hurl an explosive blast of *Aqshy*. The flames erupt into a furious blaze, b
 
 Other targets in the Area of Effect suffer a Damage +5 *magic missile* hit ignoring AP. The Spell stops behaving like a *magic missile* as the fire continues to burn in the Area of Effect for the duration. Anyone within the Area of Effect at the end of a Round suffers WPB + 5 Damage, ignoring AP, and gains 1 *Ablaze* Condition.
 
-#### **Purge**
+#### <span id="page-248-0" data-folio="249"></span>**Purge**
 
 **CN:** 10 **Range:** Willpower yards **Target:** AoE (Willpower Bonus yards) **Duration:** Willpower Bonus Rounds
 
@@ -270,7 +268,7 @@ You can spend Fortune Points to force the target to reroll Tests.
 
 You read signs about what the future holds. For the duration of the spell you gain +1 Fortune Point. For every +2 SL, you may gain +1 more.
 
-#### **The Second Portent of Amul**
+#### <span id="page-249-0" data-folio="250"></span>**The Second Portent of Amul**
 
 **CN:** 6 **Range:** You
 
@@ -328,7 +326,7 @@ After successfully casting *Earthpool*, you immediately disappear into the groun
 
 You flood the target's body with nourishing *Ghyran*. The target need not eat or drink. They still excrete as normal, though their leavings are verdant green.
 
-# **Forest of Thorns**
+# <span id="page-250-0" data-folio="251"></span>**Forest of Thorns**
 
 **CN:** 6 **Range:** Willpower yards **Target:** AoE (Willpower Bonus yards) **Duration:** Willpower Bonus Rounds
 
@@ -393,7 +391,7 @@ You emit a blinding flash of light from your hand or staff. Everyone looking at 
 
 You calm your target's mind, allowing them to think clearly. The target ignores any negative modifiers to their mental processes, such as Conditions like *Stunned*, Mental Mutations, Psychologies, and so forth while the Spell is in effect.
 
-# **Daemonbane**
+# <span id="page-251-0" data-folio="252"></span>**Daemonbane**
 
 **CN:** 10 **Range:** Willpower Bonus yards
 
@@ -437,7 +435,7 @@ A lattice of *Hysh* overlays your mind, allowing you to think rapidly. Gain +20 
 
 **Ingredients:** Heavy metals of all types, esoterically inlaid or carved, comprise the majority of ingredients, though many spells also use trappings associated with a forge, including sections of a bellows marked with mathematical formula, inscribed chunks of an anvil, or fragments of a furnace.
 
-# **Crucible of** *Chamon*
+# <span id="page-252-0" data-folio="253"></span>**Crucible of** ***Chamon***
 
 **CN:** 7 **Range:** Willpower Bonus yards
 
@@ -476,7 +474,7 @@ You weave *Chamon* into a non-magical object made of metal, fundamentally alteri
 
 Gold is easier to work than steel. Though this Spell is unsuitable for forging new Trappings, it makes smaller projects faster and easier. Examples include repairing armour, adjusting fittings, engraving, embossing, or creating ornate finishes that would normally take a great deal of time. The details depend on the project and are up to the GM.
 
-# **Forge of** *Chamon*
+# **Forge of** ***Chamon***
 
 **CN:** 9 **Range:** Willpower Bonus yards **Target:** Special **Duration:** Willpower minutes
 
@@ -498,13 +496,13 @@ You conjure a shimmering, luminous cloak of scales that dazzles the enemy. The r
 
 You touch a non-magical object made of metal, which instantly becomes warm to the touch as you squeeze *Chamon* into it. You may bend and mangle the object with your bare hands. If you wish to make a more complex alteration and the GM agrees, you may attempt a pertinent **Average (+2 SL) Art** or **Trade** Test instead, depending on what you are trying to achieve.
 
-#### **Transmutation of** *Chamon*
+#### **Transmutation of** ***Chamon***
 
 **CN:** 12 **Range:** Willpower yards **Target:** AoE (Willpower Bonus yards) **Duration:** Willpower Bonus Rounds
 
 You wrench *Chamon* from the metals worn by your foes, and the earth itself, briefly transforming the flesh of your enemies into metal. This is a Damage +WPB *magic missile* affecting all in the Area of Effect; the Spell ignores TB and AP and inflicts +1 *Blinded*, *Deafened*, and *Stunned* Condition, all of which last for the duration. All affected targets gain +1 AP from the gold wrapped about their bodies, but also endure Suffocation (see page 169). If targets die while the Spell is in effect, they are permanently encased in a shell of base metals, a macabre reminder of the risks of sorcery.
 
-# **Lore of Shadows**
+# <span id="page-253-0" data-folio="254"></span>**Lore of Shadows**
 
 **Lore Attribute:** Spells cast from the Lore of Shadows are surreptitious and sly: the Magick may be muttered stealthily. Any protective Spells you cast wreathe you in shadows and billowing smoke, providing +2 SL to Stealth Tests for the duration of the Spell.
 
@@ -532,7 +530,7 @@ You weave a cloak of *Ulgu*, assuming the likeness of another humanoid creature 
 
 **Duration:** Intelligence minutes
 
-You spin a web of intricate strands of *Ulgu*, obfuscating the Area of Effect with an illusory image of your choosing. You automatically fool anyone without the *Second Sight* Talent. Those with that Talent must win an **Opposed Difficult (-1 SL) Intuition** Test against the Casting Test to notice the illusion. This does not let them see through the Spell or end its effects they merely understand it is an illusion. The illusion is typically unmoving. For your Action, you may make a **Hard (-2 SL) Channelling (***Ulgu***)** Test to make the illusion move within its space for that Round.
+You spin a web of intricate strands of *Ulgu*, obfuscating the Area of Effect with an illusory image of your choosing. You automatically fool anyone without the *Second Sight* Talent. Those with that Talent must win an **Opposed Difficult (-1 SL) Intuition** Test against the Casting Test to notice the illusion. This does not let them see through the Spell or end its effects — they merely understand it is an illusion. The illusion is typically unmoving. For your Action, you may make a **Hard (-2 SL) Channelling (***Ulgu***)** Test to make the illusion move within its space for that Round.
 
 # **Mindslip**
 
@@ -548,7 +546,7 @@ You conjure delicate threads of *Ulgu* in your target's mind, causing all prior 
 
 You conjure forth a swirling mass of mist shot through with roiling shadows that confounds the senses. Anyone within the mist without the *Arcane Magic (Shadows)* Talent is affected by the miasma, gaining 1 *Blinded*, *Deafened*, and *Fatigued* Condition, which remain for the Spell's duration. Affected creatures that attempt to use their Move must pass a **Challenging (+0 SL) Perception** Test or gain the *Prone* Condition.
 
-#### **Shadowsteed**
+#### <span id="page-254-0" data-folio="255"></span>**Shadowsteed**
 
 **CN:** 6 **Range:** Willpower Bonus yards **Target:** 1 **Duration:** Until the next dawn
 

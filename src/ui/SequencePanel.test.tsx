@@ -125,7 +125,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     const [a] = makePregens().slice(0, 1) as [Combatant];
     a.characteristics.force = 45; // Bonus de Force 4 (l.34) — la partie tient plusieurs manches
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'abstract', value: 20 } });
+    get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'halfling' } });
     render();
     expect(texte(), 'au départ, les deux camps sont à zéro').toContain('0/10 DR');
 
@@ -151,7 +151,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   it('MANCHE PERDUE : le challenger reste à 0/10 (plancher RAW) — et le camp adverse, lui, PROGRESSE', () => {
     const [a] = makePregens().slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     poseMancheMono(-4, 2); // Test raté : −4 DR ; l'adversaire prend sa manche
     render();
     const cum = get().sequence!.cum as Record<string, number>;
@@ -218,7 +218,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     useGame.setState({ party: [a] });
     // Dominos contre la salle : une manche UNIQUE sans cible de cumul — rien à suivre d'une manche à
     // l'autre (un jeu de LANCERS, lui, a un passage en cours à montrer : il porte un tableau).
-    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'abstract', value: 40 } });
+    get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     render();
     expect(get().pendingCascade, 'la fenêtre de manche est bien ouverte').not.toBeNull();
     expect(board()).toBeNull();
@@ -230,7 +230,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   it('Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', () => {
     const party = makePregens().slice(0, 2) as Combatant[];
     useGame.setState({ party });
-    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'abstract', value: 35 } });
+    get().playTavernGame({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     // Un tour joué : options tranchées, puis 11 rangées à 3 DR contre 11 à 1 DR.
     for (let i = 0; i < 4; i++) {
       const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];

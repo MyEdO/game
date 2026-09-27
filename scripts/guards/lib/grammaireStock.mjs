@@ -76,7 +76,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/effets.ts:startPursuitSchema|alias|skill': e('Effet `startPursuit` désignant la Compétence de course par `skill`.', L2),
 
   // ── Graphies historiques de RÉFÉRENCE à une autre entité (`ref`, `talentId`, `trappingId`) ────
-  'src/data/schemas/defs/axes.ts:talentRefSchema|alias|talentId': e('Réf de Talent d’un axe de profil en `{talentId, spec}`.', L3),
   'src/data/schemas/defs/reglesOptionnelles.ts:doc|alias|ref': e('Règle optionnelle désignant l’entité concernée par une enveloppe `ref`.', L3),
   'src/data/schemas/defs/river-perils.ts:doc.perils|alias|ref': e('Péril fluvial désignant son entité (créature/structure) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs/traumas.ts:rigSchema.byProsthesis|alias|trappingId': e('Rig de trauma keyé par `trappingId` (prothèse) — graphie d’objet de catalogue.', L3),

@@ -3,6 +3,7 @@ import { diligenceCampaign } from '../campaign';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { assignSeat, seatSlotsOf } from '../../state/seating';
 import type { TestScenario } from './_shared';
+import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 /** Où le groupe entre : au milieu de la salle, entre les tables (zone `zone-S-z0`) — case LIBRE, hors
  *  du passage d'entrée traversant (colonne 12), hors de l'allée de service du tenancier (à l'ouest du
@@ -15,7 +16,7 @@ interface Convive {
   id: string;
   label: string;
   species: string;
-  sex: 'M' | 'F';
+  sex: Sexe;
   tenue: string;
 }
 

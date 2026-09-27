@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt } from '../../state/scene';
-import { resizeGrid, editEntity } from '../../state/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
 import { testScene } from '../../scenes/test-fixture';
-import { creatures } from '../../data';
+import { creatures, premierOffert } from '../../data';
 import { useSceneHistory } from './useSceneHistory';
 import { useEditorView } from './useEditorView';
 import { EditorToolbar } from './EditorToolbar';
@@ -19,7 +19,7 @@ import { WorldMapEditor } from './WorldMapEditor';
 import { NarratifEditor } from './NarratifEditor';
 import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
 import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
-import { downloadText } from '../../state/fileIo';
+import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
@@ -212,6 +212,8 @@ export function Editor({
 
   const view = useEditorView();
   const enemyCreatures = creatures.filter((c) => typeof c.char.B === 'number');
+  // Fiche que l'outil de rencontre pose : l'élue, sinon la première offerte (`premierOffert`).
+  const encFiche = encRef || premierOffert(enemyCreatures, 'Fiche de rencontre');
 
   function clone(s: Scene): Scene {
     return JSON.parse(JSON.stringify(s));
@@ -548,7 +550,12 @@ export function Editor({
           // `undefined` vaut ABSENT : c'est la convention du modèle de scène, celle que l'inspecteur
           // applique déjà (`updateSel({ statblock: undefined })`, `Inspector.tsx`) — le champ ne part
           // pas au document (`JSON.stringify`) et le schéma le lit comme manquant.
-          setScene(editEntity(scene, entityId, patch as Partial<typeof ent>));
+          try {
+            setScene(editEntity(scene, entityId, patch as Partial<typeof ent>));
+          } catch (e) {
+            if (e instanceof TypeNonNomme) return `✗ « ${entityId} » : ${e.message}`;
+            throw e;
+          }
           const nommer = (garde: boolean) => cles.filter(([, v]) => (v !== undefined) === garde).map(([c]) => c).join(', ') || '(rien)';
           return `✓ entité « ${entityId} » patchée — posé : ${nommer(true)} | retiré : ${nommer(false)}`;
         },
@@ -639,8 +646,8 @@ export function Editor({
   // --- Fichier : import/export/bibliothèque/test ---
   /**
    * L'identité du document en cours : celle du paquet chargé, ou celle que NOMME le geste
-   * d'enregistrement — le champ pré-rempli de `SaveProjectModal` (arbitrage utilisateur
-   * 2026-08-31 : « Un projet se NOMME avant d'être enregistré »). Un brouillon jamais nommé ne
+   * d'enregistrement — le champ pré-rempli de `SaveProjectModal` (#1552, commentaire 5481625275 du
+   * 2026-08-31 : « Un projet se NOMME avant d'être enregistré (Recommandé) »). Un brouillon jamais nommé ne
    * franchit plus `parseProject` : l'enveloppe exige `id`/`label` et une provenance.
    */
   function identiteCourante(nom: string, id: string): ProjectIdentite {
@@ -942,7 +949,7 @@ export function Editor({
           setTerrainRect={setTerrainRect}
           encTarget={encTarget}
           setEncTarget={setEncTarget}
-          encRef={encRef}
+          encRef={encFiche}
           setEncRef={setEncRef}
           enemyCreatures={enemyCreatures}
           currentLayer={currentLayer}
@@ -987,7 +994,7 @@ export function Editor({
           terrainRect={terrainRect}
           encTarget={encTarget}
           setEncTarget={setEncTarget}
-          encRef={encRef || enemyCreatures[0]?.id || 'mutant'}
+          encRef={encFiche}
           layers={layers}
           sel={sel}
           planFocus={planFocus}
@@ -1173,10 +1180,12 @@ export function Editor({
               La restaurer, ou l'ignorer et repartir de la version chargée ?
             </p>
           ) : (
-            <p className="hint">
-              Une sauvegarde automatique de « {autosaveRecovery.sceneId} », datée du {new Date(autosaveRecovery.savedAt).toLocaleString('fr-FR')},
-              ne peut pas être restaurée : {autosaveRecovery.refus}.
-            </p>
+            <>
+              <p className="hint">
+                Une sauvegarde automatique de « {autosaveRecovery.sceneId} » date du {new Date(autosaveRecovery.savedAt).toLocaleString('fr-FR')}.
+              </p>
+              <ChipDeRefus refus={refusDeLaPorteDuProjet(autosaveRecovery.refus, 'reprise')} />
+            </>
           )}
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={dismissAutosave}>

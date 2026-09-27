@@ -2,9 +2,9 @@
  * MORSURE des PORTES de la migration #877 — le TYPE d'un décor se NOMME.
  *
  *  - `2026-09-21-877-ref-de-decor-nommee.mjs` (racine `src/scenes`) : pose `ref` en QUEUE de toute
- *    entité `kind:'prop'` qui n'en porte pas, et porte le document au `schema` 12. Sa borne haute
- *    est OUVERTE (`schema` ∈ {11, ≥ 12}) depuis le bump 12 → 13 (#1897) : un `schema` futur la
- *    traverse sans être RABAISSÉ, la sentinelle est la DERNIÈRE de la chaîne.
+ *    entité `kind:'prop'` qui n'en porte pas, et porte le document au `schema` 12 au moins. Sa borne
+ *    haute est OUVERTE (`schema` ∈ {11, ≥ 12}) : un document plus récent traverse à l'octet, seule la
+ *    DERNIÈRE de la chaîne (`src/scenes/migrations-format-projet.test.ts`) nomme un `schema` futur.
  *
  * Une déclaration n'est pas une porte tant qu'on ne l'a pas vue MORDRE : ce banc joue la migration
  * sur un dépôt JETABLE (`os.tmpdir()`), une fois par scénario, et exige la sortie attendue, un
@@ -124,7 +124,7 @@ test('(b) IDEMPOTENT : rejouée sur l’état final, sortie 0 et rien d’écrit
 
 test('(c) BORNE HAUTE OUVERTE : un `schema` FUTUR traverse en NO-OP nommé — aucun RABAISSEMENT', (t) => {
   const futur = SCHEMA_APRES + 7;
-  const d = depot({ [ALPHA]: serialise(alphaApres(futur), FORME_PROJET) });
+  const d = depot({ [ALPHA]: serialise(alphaApres(futur), FORME_PROJET), [BETA]: serialise(beta(futur), FORME_PROJET) });
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);

@@ -32,9 +32,9 @@ import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
 import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
-import { ecartDuVolet, sitesEnEntrees, cleDeSite, ecrireStockSousLot, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { parCleDeSite, readStock } from './stockNominatif.mjs'
-import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
+import { ecartDuVolet, sitesEnEntrees, cleDeSite, ecrireStockSousLot, phraseDeNaissance, survieDeLecheance } from '../guards/lib/stock.mjs'
+import { naissanceEnPlace, parCleDeSite, readStock } from './stockNominatif.mjs'
+import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/source/decoupe.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-tables-stock.json')
 
@@ -133,10 +133,13 @@ export function sitesDuChapitre(texte, file) {
       if (table.banniereRefusee != null) out.push({ famille: 'banniere-suspecte', file, ref })
     }
     // Clés de ligne PARTAGÉES : une clé présente dans DEUX tables de la même section rend
-    // `ligne-ambigue` à la résolution (`celluleBrute` cherche dans toute la section). Une entrée par
+    // `ligne-ambigue` à la résolution (`celluleBrute` cherche dans toute la section), sauf si l'adresse
+    // la sépare dans CHAQUE table (`FragmentCellule.table` = `TableDeSection.cle`, titre non vide,
+    // `lignesDesignees`, #1739). Une entrée par
     // CLÉ, jamais par section : au grain section, réparer 19 clés sur 20 ne se verrait pas (#1727).
     // COUVERTURE DITE — cette famille ne nomme QUE les clés partagées ENTRE tables, parce que c'est
-    // le périmètre exact d'UN geste : restituer les headings imprimés qui séparent les tables. Le
+    // le périmètre exact d'UN geste : restituer les titres imprimés qui séparent les tables — heading
+    // de section, ou légende de table. Le
     // prédicat réel de `rowsMatching` est bien plus large, et mesuré le 2026-09-14 sur les 16 livres :
     // 145 clés partagées entre tables (ce qui suit), 220 si l'on compte aussi les clés DUPLIQUÉES
     // dans une même table, 2 289 si l'on compte toute VALEUR de cellule répétée dans la section.
@@ -152,6 +155,7 @@ export function sitesDuChapitre(texte, file) {
       })
       for (const [cle, dansTables] of parCle) {
         if (dansTables.size < 2) continue
+        if ([...dansTables].every((i) => lignesDesignees(section, cle, tables[i].cle) === 1)) continue
         out.push({ famille: 'cle-de-ligne-ambigue', file, ref: `${section.slug}#${section.occ} :: ${cle}` })
       }
     }
@@ -309,9 +313,7 @@ export function ecartDuStock(sites, stock) {
 
 const QUOI = (comptes) =>
   'Tables du `Source/` que leur FORME rend inadressables (#1384, épique #1388) : une ENTRÉE par SITE, ' +
-  `clé \`famille :: fichier :: ref :: occurrence\` (régime #1711). Compte par famille à la naissance : ${
-    FAMILLES.map((f) => `${f} ${comptes[f]}`).join(', ')
-  }. ` +
+  `clé \`famille :: fichier :: ref :: occurrence\` (régime #1711). ${phraseDeNaissance(comptes, FAMILLES)} ` +
   'CE FICHIER EST UN INVENTAIRE des sites mesurés, PLAFONNÉ en nombre d\'entrées : il ne décroît que ' +
   'quand un site disparaît du `Source/`. La DETTE, elle, est le compte « à trier » — les entrées SANS ' +
   '`preuve` — et celle-là décroît vers zéro, sous son propre plafond (`PLAFOND_A_TRIER`, ' +
@@ -351,9 +353,10 @@ const QUOI = (comptes) =>
   'légendes numérotées qui n\'ont jamais été une table : elles se tranchent au PDF par la `preuve` ' +
   'de leur entrée, comme tout site, jamais par une liste de titres dans la garde.'
 
-/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). */
-export const stockDe = (sites, { lot, date, ancien = [] }) =>
-  `${JSON.stringify({ quoi: QUOI(comptesParFamille(sites)), entrees: entreesDe(sites, { lot, date, ancien }) }, null, 2)}\n`
+/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). Les comptes
+ *  à la naissance sont ceux du stock en place (`naissance`), sinon ceux du jour. */
+export const stockDe = (sites, { lot, date, ancien = [], naissance = null }) =>
+  `${JSON.stringify({ quoi: QUOI(naissance ?? comptesParFamille(sites)), entrees: entreesDe(sites, { lot, date, ancien }) }, null, 2)}\n`
 
 function main() {
   const args = process.argv.slice(2)
@@ -364,7 +367,7 @@ function main() {
   if (args.includes('--ecrire-stock')) {
     const r = ecrireStockSousLot(
       args,
-      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, ancien: stock }) }),
+      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, ancien: stock, naissance: naissanceEnPlace(STOCK_PATH, FAMILLES) }) }),
       (texte) => writeFileSync(STOCK_PATH, texte),
       STOCK_PATH,
     )

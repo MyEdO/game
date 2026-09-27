@@ -11,6 +11,7 @@ import { BONE_IDS } from '../rig/bones';
 import { sizeTokenScale } from '../sizeScale';
 import { COMBAT_TOKEN_BASE } from '../builders/dynamicMarks';
 import type { SizeCategory } from '../../engine/size';
+import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 
 /**
  * LA CAPSULE EST CALÉE SUR LE CORPS DESSINÉ (#907). Elle sert la visée CAMÉRA du sujet et la loi de
@@ -31,7 +32,7 @@ describe('actorCapsuleOf — la boîte du jeton est calée sur le CORPS DESSINÉ
    *  production (`groundedBodySkeleton`, composeRig.tsx) : FK de la pose de repos, extrémités de
    *  chaque os élargies de sa demi-épaisseur, écart maximal à l'axe du bassin — l'axe que le jeton
    *  aligne sur le centre de la tuile. */
-  const drawnHalfWidth = (g: GabaritDef, sex: 'M' | 'F', build: number, scale: number) => {
+  const drawnHalfWidth = (g: GabaritDef, sex: Sexe, build: number, scale: number) => {
     const sk = groundSkeleton(applyBuild(baseSkeleton(g, sex), build));
     const world = worldTransforms(sk, {});
     let half = 0;
@@ -62,7 +63,7 @@ describe('actorCapsuleOf — la boîte du jeton est calée sur le CORPS DESSINÉ
     const r = raceById(raceId);
     return { ...gabaritById(r.gabarit), ...(r.gabaritOverride ?? {}) };
   };
-  const SEXES = ['M', 'F'] as const;
+  const SEXES = sexeSchema.options;
   const BUILDS = [0, 0.5, 1]; // `Appearance.build` est libre sur [0,1] — la carrure MAXIMALE compte
 
   const widestHeroBody = () => Math.max(...HERO_RIGS.flatMap(({ race, size }) =>

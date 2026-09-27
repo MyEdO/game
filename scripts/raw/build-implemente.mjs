@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, esc, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { closureOf } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
+import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
 export const RAWDIR = 'docs/raw'
 export const SRC_DIR = 'src'
@@ -331,7 +332,7 @@ export function indexCode(srcDir = SRC_DIR, abbrMap = null) {
   for (const f of fichiersCitants(srcDir, EXTS_IMPLEMENTANTES)) {
     const rel = f.replace(/\\/g, '/')
     if (estHorsImplementation(rel)) continue
-    const isTest = /\.(test|spec)\./.test(rel)
+    const isTest = estFichierVitest(rel)
     const content = readFileSync(f, 'utf8')
     const lines = content.split('\n')
     const isTs = /\.tsx?$/.test(rel)

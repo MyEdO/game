@@ -10,7 +10,7 @@ export const tenue: TenueDef = {
   id: "suiveur-de-camp",
   palette: {
     vet1: '#a06e7a', vet1H: '#c08d97', vet1O: '#6d4650', // doublet rose poussiéreux
-    vet2: '#6c5a38', vet2H: '#8a7549', vet2O: '#463720', // jupe brune boueuse
+    vet2: '#6c5a38', vet2O: '#463720', // jupe brune boueuse
     cuir: '#2f2820', cuirH: '#4d4132', cuirO: '#171009', // cuir sombre (corset, sangles, bottes)
     metal: '#5c6472', metalH: '#8b93a2', metalO: '#333a46', // cuir bleu-acier (gorgerin, boucles)
     toile: '#d7cdb2', // papiers / lettres crème

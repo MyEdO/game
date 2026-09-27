@@ -7,10 +7,11 @@ import { resolveRig } from '../src/gameIso/rig/composeRig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { View } from '../src/gameIso/rig/facing';
+import type { Sexe } from '../src/data/schemas/grammaire/valeurs';
 
 const bare = { weapons: [], armour: [] };
 // F idx: 1=longs lâchés, 2=chignon, 3=queue haute, 4=tresses ; M idx 4=queue basse
-const cases: { sex: 'M' | 'F'; idx: number; label: string }[] = [
+const cases: { sex: Sexe; idx: number; label: string }[] = [
   { sex: 'F', idx: 1, label: 'F longs lâchés' },
   { sex: 'F', idx: 3, label: 'F queue haute' },
   { sex: 'F', idx: 4, label: 'F tresses' },

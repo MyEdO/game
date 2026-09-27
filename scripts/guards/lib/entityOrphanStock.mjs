@@ -55,9 +55,8 @@
 //   — `creatures` HORS bestiaires de livre : 7 PNJ `named` (`pol-dankels`, `isrogdal-lempresse`,
 //     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau`, `p-tarix-celui-qui-ecrit`,
 //     `xirat-p-celui-qui-lit`) — un personnage de scénario n'a de chemin que par la scène qui le
-//     pose ; et 11 entrées de bestiaire isolé (`elfe-haut-et-sylvain` profil de peuple absent de
-//     `speciesRace.json` ; `hyppogriffe`/`demigriffon-adulte` absentes de `montures.json` donc
-//     jamais montables ; `chauve-souris-vampire-varghulf` absente de `groups.json` ;
+//     pose ; et 10 entrées de bestiaire isolé (`hyppogriffe`/`demigriffon-adulte` absentes de
+//     `montures.json` donc jamais montables ; `chauve-souris-vampire-varghulf` absente de `groups.json` ;
 //     `brochet-du-stir-fluvial` doublon de libellé de `brochet-du-stir` (seul l'exemplaire ZI a un
 //     chemin) ; `sangsue-geante`/`sangsue-des-arbres`/`naiade` du « Bestiaire fluvial », qu'aucune
 //     rencontre fluviale ne tire ; `familier-de-combat`/`familier-de-pouvoir`/`familier-de-sorts`
@@ -150,7 +149,6 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'eclaireur-gobelin', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'eclaireur-orc', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'elementaire-de-mer', occurrence: 1 },
-  { fichier: 'src/data/creatures.json', ref: 'elfe-haut-et-sylvain', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'emmille-munzstatter', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'enqueteur-chevronne', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'erudit-de-renom', occurrence: 1 },

@@ -9,7 +9,7 @@
  * Utilisé par les scènes de test (`src/scenes/**`). Le générateur de campagne (`scripts/campagne/lib.mjs`,
  * Node pur) délègue à `buildScene` (`tsx`, MÊME compilateur) — pas de mirroir JS séparé à maintenir.
  */
-import type { CustomStatblock, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
+import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { Flow } from './flow';
 import type { OptionalEntry } from '../engine/statEntry';
@@ -18,12 +18,9 @@ import type { SkillRef } from '../data';
 import type { Dir8 } from './dir8';
 import type { ThreatTier } from '../engine/advantagePool';
 
-export interface AuthoredEnemy {
-  ref?: string;
-  statblock?: CustomStatblock;
-  /** Id d'un preset de PNJ nommé (`narratif.presetsPnj`, #671) : présent = l'entité générée est
-   *  instanciée base+surcharges du preset au lieu de `ref`/`statblock`. Recopié tel quel sur la `SceneEntity`. */
-  presetId?: string;
+/** Un ennemi authoré NOMME sa fiche (`AuMoinsUnPorteurDeFiche`, #1882) : `ref`, `statblock` ou `presetId`
+ *  (`narratif.presetsPnj`, #671), recopiés tels quels sur la `SceneEntity`. */
+export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   pos: { x: number; y: number };
   appearance?: EntityAppearance;
   weapon?: string;
@@ -57,7 +54,7 @@ export interface AuthoredEnemy {
   upgrades?: NavalTraitRef[];
   /** Surcharge la visibilité de la rencontre pour CET ennemi. */
   hidden?: boolean;
-}
+};
 
 export interface AuthoredEncounter {
   id: string;
@@ -90,10 +87,12 @@ export interface BuiltEncounter {
 export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
   const ids = a.enemies.map((_, i) => `enemy-${a.id}-${i}`);
   const entities: SceneEntity[] = a.enemies.map((e, i) => {
-    const ent: SceneEntity = { id: ids[i], kind: 'personnage', pos: { ...e.pos } };
-    if (e.ref) ent.ref = e.ref;
-    if (e.statblock) ent.statblock = e.statblock;
-    if (e.presetId) ent.presetId = e.presetId;
+    const ent: SceneEntity = {
+      id: ids[i], kind: 'personnage', pos: { ...e.pos },
+      ...(e.ref !== undefined ? { ref: e.ref } : {}),
+      ...(e.statblock ? { statblock: e.statblock } : {}),
+      ...(e.presetId !== undefined ? { presetId: e.presetId } : {}),
+    };
     if (e.crewIds) ent.crewIds = e.crewIds;
     if (e.postes) ent.postes = e.postes;
     if (e.upgrades) ent.upgrades = e.upgrades;

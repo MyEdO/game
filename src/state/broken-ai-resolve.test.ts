@@ -63,7 +63,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('ennemi Brisé+Détermination, Engagé → spendResolveCondition retire le Brisé (−1 Détermination), action réelle dispatchée', () => {
-    const e = spawnEnemy('Bandit de Grand Chemin', undefined, 'e', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'brigand' }, 'e', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.conditions = [{ id: 'brise', value: 1 }];
     e.resolve = 1;

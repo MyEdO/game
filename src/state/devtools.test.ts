@@ -23,6 +23,7 @@ import { sceneToAscii } from './sceneToAscii';
 import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
+import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad, __resetLibraryForTest, __setIdbBackendForTest, type SavedProject } from './projectLibrary';
 import { parseProject } from './worldMap';
 
@@ -104,6 +105,15 @@ describe('__wfrp — autres commandes de recette', () => {
     const xpBefore = useGame.getState().party[0].xp ?? 0;
     buildApi().xp(150);
     expect(useGame.getState().party[0].xp).toBe(xpBefore + 150);
+  });
+
+  it('trait : pose le Trait hors combat par `grantTrait`, et ses Talents de carrière passifs se lisent', () => {
+    const hero = useGame.getState().party[0];
+    expect(buildApi().trait(hero.id, 'marque-de-tzeentch')).toContain('✓');
+    const porteur = useGame.getState().party[0];
+    expect(porteur.traits?.some((t) => t.id === 'marque-de-tzeentch')).toBe(true);
+    expect(careerTalentAdditions(porteur).map((r) => r.id)).toContain('magie-des-arcanes');
+    expect(buildApi().trait(hero.id, 'trait-inexistant')).toContain('✗');
   });
 
   it('spell : mémorise un sort au grimoire par l’EFFET MOTEUR (jamais une écriture parallèle)', () => {
@@ -250,10 +260,10 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
   const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
   const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-    ({ id: 'hull', name: 'Bélier (poste)', kind: 'enemy', pos, conditions: [], weapons: [],
+    ({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
       inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
   const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
-    ({ id, name: id, kind: 'npc', characteristics: CHARS, wounds: { current: 8, max: 8 }, advantage: 0,
+    ({ id, label: id, kind: 'npc', characteristics: CHARS, wounds: { current: 8, max: 8 }, advantage: 0,
       conditions: [], skills: [], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos }) as unknown as Combatant;
 

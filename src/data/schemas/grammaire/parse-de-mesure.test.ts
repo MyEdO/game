@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { z } from 'zod';
 import { estFeuilleDId, familleDuRepere, idDe, mesureDuParse, reperesDuParse } from './ref';
-import { gameOpSchema, OP_DEFS } from './mecanique';
+import { famillesConstruites, gameOpSchema } from './mecanique';
 import { refTestDeCorruption } from './valeurs';
 import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
@@ -94,12 +94,13 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
 //  - AVALEMENT : un nœud rend un résultat sans issue alors qu'un enfant lui a rendu des repères seuls ;
 //  - SAUT : une feuille validée au parse normal n'est plus exécutée au parse de mesure ;
 //  - COUVERTURE : un repère rendu vient d'une feuille que la marche instrumentée n'a pas atteinte.
-// Les deux familles de repère y passent : la référence (feuille `idDe`) et le nœud d'op (`NOEUD_D_OP`,
+// Les deux familles de repère y passent : la référence (feuille `idDe`) et le nœud d'op (`emetteursDOp`,
 // `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
 // ============================================================================
 
-/** Le nœud qui émet le repère d'op : le côté `in` de `gameOpSchema`, qui porte le `superRefine`. */
-const NOEUD_D_OP: object = (gameOpSchema as unknown as z.ZodPipe).in;
+/** Les nœuds qui émettent le repère d'op : le côté `in` du `gameOp` de CHAQUE famille construite
+ *  (`famillesConstruites`, `grammaire/mecanique.ts`), qui porte le `superRefine`. */
+const emetteursDOp = (): ReadonlySet<object> => new Set(famillesConstruites().map((f) => (f.gameOp as unknown as z.ZodPipe).in));
 
 type Issue = { readonly code: string; readonly params?: object; readonly errors?: readonly (readonly Issue[])[]; readonly issues?: readonly Issue[] };
 type Charge = { value: unknown; issues: Issue[] };
@@ -134,12 +135,13 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
     (i.code === 'invalid_union' && (i.errors ?? []).some((b) => b.length > 0 && b.every(estPropre))) ||
     ((i.code === 'invalid_key' || i.code === 'invalid_element') && (i.issues ?? []).length > 0 && i.issues!.every(estPropre));
   const originaux: [AvecRun['_zod'], Run][] = [];
+  const emetteurs = emetteursDOp();
   for (const [noeud, nom] of noeudsAtteints(racines)) {
     const zod = (noeud as AvecRun)._zod;
     const run = zod.run;
     originaux.push([zod, run]);
     const feuille = estFeuilleDId(noeud);
-    const emetteurDOp = noeud === NOEUD_D_OP;
+    const emetteurDOp = emetteurs.has(noeud);
     zod.run = (charge, ctx) => {
       const avant = charge.issues.length;
       const valeur = charge.value;
@@ -252,14 +254,14 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
     expect(masquagesDuTemoin(s, [{ op: 'condition', id: 'a' }])).toEqual(['témoin AVALEMENT : témoin']);
   });
 
-  it('les documents des DEUX racines n’en portent aucun (payloads d’`OP_DEFS` compris, re-parsés par `gameOpSchema`)', () => {
+  it('les documents des DEUX racines n’en portent aucun (payloads de CHAQUE famille mécanique compris, re-parsés par son `gameOp`)', () => {
     const racine = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
     const { brutParNom } = scannerDonnees(racine);
     const documents = DEFS_DE_DOCUMENT.filter((d) => brutParNom.has(d.file));
     expect(documents.length).toBeGreaterThan(100);
     const { sonde, restaurer } = instrumenter([
       ...DEFS_DE_DOCUMENT.map((d) => [d.file, d.schema] as const),
-      ...Object.entries(OP_DEFS).map(([op, s]) => [`OP_DEFS.${op}`, s] as const),
+      ...famillesConstruites().flatMap((f) => Object.entries(f.opDefs).map(([op, s]) => [`${JSON.stringify(f.regimes)}.${op}`, s] as const)),
     ]);
     try {
       expect(documents.flatMap((d) => masquagesDe(sonde, d.file, d.schema, brutParNom.get(d.file)))).toEqual([]);

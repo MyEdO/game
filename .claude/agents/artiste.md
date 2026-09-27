@@ -13,6 +13,7 @@ le geste.
   contrôle POSITIF que le travail que tu crois voir est là ; sinon ARRÊTE et dis-le.
 - **Shell = Bash** (le hook RTK compresse la sortie des runners). Jamais de `run_in_background` pour
   un runner.
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - Lis `.claude/skills/creer-une-creature/SKILL.md` (rig, 3 vues Dir8, ancrages, palettes) et calque la
   STRUCTURE d'une part voisine canonique. Couleurs/valeurs : registres et tokens existants, jamais un
   littéral neuf ; l'apparence pilotée par DONNÉE reste en donnée.

@@ -64,6 +64,6 @@ export const creature: CreatureDef = {
     sl: 1.12, build: 'equine', girth: 1.16, bodyLen: 1.02, neckLen: 1.05, neckAngle: -8, headPitch: -108, legLen: 1.16,
     head: 'cheval', tail: 'touffe', mane: 'hirsute', ears: 'pointues', foot: 'sabot', headScale: 0.9, tailLen: 0.5,
     deco: { tete: RAMURE, 'tete#profile': GUEULE, encolure: FANON },
-    stored: { corps: '#2e2921', corpsO: '#0f0c09', corpsH: '#5a5244', cheveux: '#241f18', cheveuxO: '#0b0906', cuir: '#161210' },
+    palette: { corps: '#2e2921', corpsO: '#0f0c09', corpsH: '#5a5244', cheveux: '#241f18', cheveuxO: '#0b0906', cuir: '#161210' },
   },
 };

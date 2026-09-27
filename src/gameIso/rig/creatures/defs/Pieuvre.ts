@@ -11,6 +11,6 @@ export const creature: CreatureDef = {
   // marbrures vertes portées par @cheveux, iris terne @cuir.
   octopus: {
     sl: 1.05, girth: 1.1,
-    stored: { corps: '#8a6238', corpsO: '#452e16', corpsH: '#c2a068', cheveux: '#6b6d3a', cheveuxO: '#3a3c1f', cuir: '#b98f47' },
+    palette: { corps: '#8a6238', corpsO: '#452e16', corpsH: '#c2a068', cheveux: '#6b6d3a', cheveuxO: '#3a3c1f', cuir: '#b98f47' },
   },
 };

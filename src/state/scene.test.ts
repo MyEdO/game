@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor, normalizeScene } from './scene';
+import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor } from './scene';
 import { evalCondition } from './flow';
-import { parseProject, CURRENT_PROJECT_SCHEMA, MAISON_PROJET_AUTHORE } from './worldMap';
 import type { Scene, Terrain } from './scene';
 
 describe('evalCondition flag — conditions de flag (triggers + dialogues, source unique)', () => {
@@ -93,38 +92,5 @@ describe('ambiance — intérieur vs extérieur (jour/nuit vient de l’horloge,
     expect(isIndoor({ ambiance: 'interieur' } as Scene)).toBe(true);
     expect(isIndoor({ ambiance: 'exterieur' } as Scene)).toBe(false);
     expect(isIndoor({ ambiance: undefined } as Scene)).toBe(false);
-  });
-});
-
-describe('normalizeScene — une Scène d’un document ANCIEN ressort ANNONCÉE (#1552)', () => {
-  /** Ce que le filet de crash de l'éditeur (`state/editorAutosave.ts`, magasin SANS axe de version)
-   *  rend au « Restaurer » quand l'enregistrement date d'avant l'annonce : une `Scene` muette. */
-  const sceneMuette = (): Scene => {
-    const { type: _muet, ...muette } = emptyScene(6, 6);
-    return muette as Scene;
-  };
-
-  it('la Scène MUETTE ressort avec `type: \'scene\'`', () => {
-    expect('type' in sceneMuette()).toBe(false);
-    expect(normalizeScene(sceneMuette()).type).toBe('scene');
-  });
-
-  it('ROUND-TRIP : restaurée → enregistrée → la porte `parseProject` la reprend', () => {
-    // Le « Fichier → Enregistrer » qui suit une restauration écrit un projet au `schema` COURANT :
-    // aucune migration ne le rattrapera au rechargement, la scène doit donc s'annoncer dès ici.
-    const projet = {
-      schema: CURRENT_PROJECT_SCHEMA,
-      type: 'projet',
-      id: 'proj-round-trip',
-      label: 'Projet restauré',
-      versionContenu: 1,
-      maison: MAISON_PROJET_AUTHORE,
-      scenes: [normalizeScene(sceneMuette())],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-    };
-    expect(() => parseProject(projet)).not.toThrow();
-    // Contre-épreuve : la MÊME scène NON normalisée est refusée, en nommant son `type`.
-    const muette = sceneMuette();
-    expect(() => parseProject({ ...projet, scenes: [muette] })).toThrow(`scenes « ${muette.id} » › type`);
   });
 });

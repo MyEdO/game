@@ -16,6 +16,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couleurHexSchema } from '../grammaire/valeurs';
 
 export const file = 'lightTones.json';
 export const famille = 'entite';
@@ -24,7 +25,7 @@ const doc = document(
   'lightTones',
   famille,
   {
-    color: z.string().regex(/^#[0-9a-f]{6}$/),
+    color: couleurHexSchema,
     intensity: z.number().gt(0).lte(1),
     flicker: z
       .strictObject({

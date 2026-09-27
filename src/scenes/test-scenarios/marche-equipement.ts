@@ -81,13 +81,13 @@ const scene = buildScene({
     'Maître d’armes (onglet Combat) pour l’écran d’emplacements (couches d’armure, cape, bascule Set I/Set II).',
   entities: [
     // Armurier : interaction directe → la boutique s'ouvre tout de suite.
-    { id: 'armurier', kind: 'personnage', label: 'Armurier', pos: { x: 7, y: 2 }, appearance: { species: 'humains-reiklander' }, merchant: { archetype: 'armurier' } },
+    { id: 'armurier', kind: 'personnage', ref: 'humain', label: 'Armurier', pos: { x: 7, y: 2 }, appearance: { species: 'humains-reiklander' }, merchant: { archetype: 'armurier' } },
     // Herboriste : DIALOGUE d'abord, puis un choix ouvre sa boutique via openMerchant (vend +25 % : village isolé).
-    { id: 'herboriste', kind: 'personnage', label: 'Herboriste', pos: { x: 12, y: 6 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-herbo', merchant: { archetype: 'herboriste', buyMarkup: 1.25 } },
+    { id: 'herboriste', kind: 'personnage', ref: 'humain', label: 'Herboriste', pos: { x: 12, y: 6 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-herbo', merchant: { archetype: 'herboriste', buyMarkup: 1.25 } },
     // Maquignon : interaction directe — vend montures/véhicules (stock DÉRIVÉ de merchants.json + unitKinds).
-    { id: 'maquignon', kind: 'personnage', label: 'Maquignon', pos: { x: 13, y: 2 }, appearance: { species: 'humains-reiklander' }, merchant: { archetype: 'maquignon' } },
+    { id: 'maquignon', kind: 'personnage', ref: 'humain', label: 'Maquignon', pos: { x: 13, y: 2 }, appearance: { species: 'humains-reiklander' }, merchant: { archetype: 'maquignon' } },
     // Aubergiste : DIALOGUE d'abord, puis un choix ouvre les jeux de taverne via l'Effet openTavernGames.
-    { id: 'aubergiste', kind: 'personnage', label: 'Aubergiste', pos: { x: 3, y: 7 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-taverne' },
+    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 3, y: 7 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-taverne' },
   ],
   dialogues: [
     {

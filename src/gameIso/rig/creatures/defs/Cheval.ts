@@ -23,16 +23,16 @@ export const creature: CreatureDef = {
     legLen: 1.2, head: 'cheval', tail: 'crin', tailLen: 1.55, mane: 'crin', ears: 'courtes',
     foot: 'sabot', markings: 'taches',
     viewArt: { profile: CHEVAL_PROFIL_COMPILE },
-    stored: {
+    palette: {
       corps: '#c6cac5', corpsO: '#7b838c', corpsH: '#f1f2ef', // gris pommelé, ombres gris-bleu
       cheveux: '#878d93', cheveuxO: '#43484e', // crinière/queue gris argenté
       cuir: '#3c322a', // sabots
       // Jetons de SELLERIE (#1128) : le harnachement n'est plus dessiné dans la bête, il vient d'un
       // SET (`quadruped/harnais/`) apposé par la donnée ; ses teintes restent ici, où vit la palette
-      // du porteur. `sellerieCuir` est DISTINCT de `cuir` (le sabot) : recolorier la corne ne doit
+      // du porteur. `harnaisCuir` est DISTINCT de `cuir` (le sabot) : recolorier la corne ne doit
       // pas déteindre sur les cuirs de bride, ni l'inverse. Même hex que le cuir d'origine —
       // l'extraction ne change aucune teinte.
-      sellerieCuir: '#3c322a', // cuirs de bride, étrivière, sangle
+      harnaisCuir: '#3c322a', // cuirs de bride, étrivière, sangle
       drap: '#7e3424', // caparaçon rouge
       sangle: '#6f6d33', // selle matelassée + panneaux de croupière olive
       accent: '#c1953e', // or des médaillons, liserés, mors, étrier

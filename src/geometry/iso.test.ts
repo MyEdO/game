@@ -487,7 +487,7 @@ describe('projection multi-niveaux (élévation z)', () => {
     expect(c1.cx).toBe(c0.cx);
     expect(c1.cy).toBe(c0.cy - LEVEL_H);
     expect(c1.top[1]).toBe(c0.top[1] - LEVEL_H);
-    expect(diamondPath(2, 2, dims)).toBe(diamondPath(2, 2, dims, 0)); // z=0 rétro-compat
+    expect(diamondPath(2, 2, dims)).toBe(diamondPath(2, 2, dims, 0)); // `z` absent = couche 0
     expect(diamondPath(2, 2, dims, 1)).not.toBe(diamondPath(2, 2, dims, 0));
   });
 });

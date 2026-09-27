@@ -17,9 +17,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
-  avecPied, ecrireDoc, empreinteDuDisque, empreinteDeLIndex, fusionnerLectures, hashListing,
+  avecPied, ecrireDoc, empreinteDuDisque, empreinteDeLIndex, existeFichier, fusionnerLectures, hashListing,
   indexGit, lirePied, retirerPied, serialiserSourcesLues, sha1Corps,
 } from './empreinte-sources.mjs'
+import { ignoresGit } from './chemin-mesure.mjs'
 import { ciblesNonSignees, refusSourcesInsuffisantes } from '../build-all.mjs'
 import { ciblesDesArmes, generateursArmes } from '../../guards/lib/empreinteStage.mjs'
 
@@ -32,6 +33,8 @@ const TSX_ESM = path.join(RACINE, 'node_modules', 'tsx', 'dist', 'esm', 'index.m
 function mesurer(script, cible, { tsx = false } = {}) {
   const sortie = mkdtempSync(path.join(tmpdir(), 'lectures-'))
   try {
+    const ignores = path.join(sortie, 'ignores')
+    writeFileSync(ignores, JSON.stringify([...ignoresGit(RACINE)]))
     execFileSync(process.execPath, [...(tsx ? ['--import', pathToFileURL(TSX_ESM).href] : []), script, '--check'], {
       cwd: RACINE,
       stdio: 'ignore',
@@ -40,6 +43,7 @@ function mesurer(script, cible, { tsx = false } = {}) {
         NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim(),
         WFRP_LECTURES_RACINE: RACINE,
         WFRP_LECTURES_SORTIE: path.join(sortie, 'l'),
+        WFRP_LECTURES_IGNORES: ignores,
         WFRP_LECTURES_CIBLE: cible,
       },
     })
@@ -319,7 +323,7 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
       insensible = false
     }
 
-    const collecteur = installer({ racine })
+    const collecteur = installer({ racine, ignores: new Set() })
     try {
       if (insensible) readFileSync(autreCasse)
       readFileSync(path.join(dehors, 'y.md'))
@@ -345,6 +349,64 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
   } finally {
     rmSync(racine, { recursive: true, force: true })
     rmSync(dehors, { recursive: true, force: true })
+  }
+})
+
+// #1769 : un script Python pose `__pycache__/` (ignoré par git) dans un dossier que les générateurs
+// listent. Enregistré, il faisait dépendre l'empreinte committée de l'état local du disque.
+test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le listing, ni les dossiers, ni l\'empreinte', () => {
+  const { racine: brute } = instanceDeDepot({
+    fichiers: { '.gitignore': '__pycache__/\n*.log\n', 'lib/geometrie.py': 'x = 1\n' },
+  })
+  const racine = realpathSync.native(brute)
+  try {
+    // Un fichier SUIVI qui répond pourtant à un motif de `.gitignore` : il reste dans le plan git.
+    writeFileSync(path.join(racine, 'lib', 'suivi.log'), 'trace\n')
+    execFileSync('git', ['add', '-f', 'lib/suivi.log'], { cwd: racine, stdio: 'pipe' })
+    const cache = path.join(racine, 'lib', '__pycache__')
+    const mesurerLib = () => {
+      const ignores = ignoresGit(racine)
+      const collecteur = installer({ racine, ignores })
+      try {
+        listerDossier(path.join(racine, 'lib'))
+        readFileSync(path.join(racine, 'lib', 'geometrie.py'))
+        readFileSync(path.join(racine, 'lib', 'suivi.log'))
+        if (existeFichier(path.join(cache, 'geometrie.pyc'))) {
+          listerDossier(cache)
+          readFileSync(path.join(cache, 'geometrie.pyc'))
+        }
+      } finally {
+        collecteur.restaurer()
+      }
+      const rendu = collecteur.rendu()
+      const lues = { fichiers: rendu.fichiers, dossiers: new Map(Object.entries(rendu.dossiers)) }
+      return { rendu, empreinte: empreinteDuDisque(racine, lues, ignores).empreinte }
+    }
+
+    const propre = mesurerLib()
+    assert.deepEqual(propre.rendu.fichiers, ['lib/geometrie.py', 'lib/suivi.log'], 'le fichier SUIVI sous motif ignoré est sorti de la mesure')
+    assert.deepEqual(propre.rendu.dossiers, { lib: ['geometrie.py', 'suivi.log'] })
+
+    mkdirSync(cache)
+    writeFileSync(path.join(cache, 'geometrie.pyc'), 'bytecode')
+    const salie = mesurerLib()
+    assert.deepEqual(salie.rendu.dossiers, propre.rendu.dossiers, 'le dossier ignoré est entré dans les dossiers ou le listing mesurés')
+    assert.deepEqual(salie.rendu.fichiers, propre.rendu.fichiers, 'un fichier du dossier ignoré est entré dans la mesure')
+    assert.equal(salie.empreinte, propre.empreinte, 'l\'empreinte dépend d\'un dossier ignoré par git')
+    // Celle de l'INDEX, recalculée par `--empreinte` au commit, est la même.
+    const parLIndex = empreinteDeLIndex(indexGit(racine), { fichiers: salie.rendu.fichiers, dossiers: new Map([['lib', []]]) })
+    assert.equal(parLIndex.empreinte, salie.empreinte)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('un `installer` SANS ensemble `ignores` refuse de s\'installer, au lieu d\'écarter chaque lecture en silence', async () => {
+  const fs = await import('node:fs')
+  const avant = fs.default.readFileSync
+  for (const ignores of [undefined, ['node_modules']]) {
+    assert.throws(() => installer({ racine: RACINE, ignores }), /`ignores` \(ensemble `ignoresGit`\) absent/)
+    assert.equal(fs.default.readFileSync, avant, 'l\'enveloppe de `fs` a été posée malgré le refus')
   }
 })
 

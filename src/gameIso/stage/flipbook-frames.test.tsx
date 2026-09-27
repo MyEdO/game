@@ -565,7 +565,7 @@ function bête(id: string): Combatant {
 
 /** Une entité de scène FIGURANTE, avec (ou sans) ambiance authorée. */
 function figurantEl(id: string, anim?: string): TokenEl {
-  const ent = { id, kind: 'personnage', pos: { x: 4, y: 4 }, facing: 'S', appearance: { species: 'humain' }, ...(anim ? { anim } : {}) };
+  const ent = { id, kind: 'personnage', ref: 'humain', pos: { x: 4, y: 4 }, facing: 'S', appearance: { species: 'humain' }, ...(anim ? { anim } : {}) };
   return {
     kind: 'token', key: `fig:${id}`, id, cell: { x: 4, y: 4, z: 0 },
     subject: { kind: 'figurant', ent, enrolled: false, inBattle: false },

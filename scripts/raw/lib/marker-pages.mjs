@@ -12,7 +12,7 @@ import { statSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import { readText } from '../_lib.mjs'
-import { extractPages } from '../anchor-fill.mjs'
+import { extractPages } from './pdf-extract.mjs'
 import { estLigneDeTitre, ouvreSur } from './titres.mjs'
 
 /** Séparateur de page de la sortie paginée de Marker : `{N}----` seul sur sa ligne.

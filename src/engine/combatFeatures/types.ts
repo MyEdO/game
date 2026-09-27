@@ -1,5 +1,5 @@
 import type { Combatant } from '../types';
-import type { SkillRef } from '../skills';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 
 /** Famille d'incantation conférée par un Talent de lanceur (LDB 10) — pilote l'apprentissage
  *  des sorts (grimoire.ts). Source UNIQUE du type, partagée avec `CasterTalent`. */
@@ -145,7 +145,7 @@ export interface CombatFeature {
    *  Recherche…). Réfs STRUCTURÉES `{ id, spec? }` (jamais un match par libellé) ; `capDR` plafonne le DR
    *  (Pansement +1). TOUJOURS une LISTE : un Talent peut couvrir plusieurs Compétences en « ou »
    *  (Pilote → Ramer OU Voile, LDB 10 l.964). */
-  reverseFailed?: { skills: SkillRef[]; capDR?: number };
+  reverseFailed?: { skills: RefDesignee[]; capDR?: number };
   // ── Économie / social ──────────────────────────────────────────────────────
   /** Négociateur (LDB 59 l.43) : un Marchandage GAGNÉ réduit le prix de 20 % (au lieu de 10 %) même
    *  sans Succès Stupéfiant (DR net ≥ 6). Lu par merchantFlow lors de la conclusion du Marchandage. */

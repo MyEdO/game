@@ -1,36 +1,42 @@
-// Aligneur PDF↔MD CONSERVATEUR pour combler les ancres `data-folio` manquantes (#522). L'extraction
-// Marker de masse est INTERDITE (docs/raw/00-index.md l.76-81 : ~3000 réfs code décaleraient) — cet
-// outil pose des ancres CIBLÉES, sans toucher un seul numéro de ligne (insertion en TÊTE de ligne
-// EXISTANTE, jamais de nouvelle ligne).
+// Aligneur PDF↔MD CONSERVATEUR pour combler les ancres `data-folio` manquantes (#522, #1739).
+// L'extraction Marker de masse est INTERDITE (docs/raw/00-index.md l.76-81 : ~3000 réfs code
+// décaleraient) — cet outil pose des ancres CIBLÉES, sans toucher un seul numéro de ligne ni un mot
+// (insertion dans une ligne EXISTANTE, jamais de nouvelle ligne).
 //
 // Principe :
-//   1. Livre → dossier `Source/<dir>/` (`livreDuSigle` de `_lib.mjs`) → PDF du livre par `pdfDuSigle`
-//      (`_lib.mjs`, champ `pdf` de `books.json`), SEULE source du PDF (#1739).
+//   1. Livre → dossier `Source/<dir>/` (`livreDuSigle` de `_lib.mjs`) → PDF du livre par la couture
+//      `pdfDe` (`_lib.mjs`, champ `pdf` de `books.json`), SEULE source du PDF (#1739).
 //   2. Offset id↔folio PAR LIVRE : chaque ancre existante `id="page-K-0" data-folio="F"` donne
-//      `offset = K - F` (K = index pypdf 0-based, identique au numéro d'id Marker). Vérifié CONSTANT
+//      `offset = K - F` (K = index PDF 0-based, identique au numéro d'id Marker). Vérifié CONSTANT
 //      sur TOUTES les ancres du livre (tous chapitres confondus) — s'il varie, le livre est SKIPPÉ
 //      et rapporté (jamais de pose au jugé sur un livre à offset instable).
 //   3. Plage de folios attendue d'un chapitre = l'en-tête `*Pages PDF N[-M]*` (l.1, pages PDF
 //      humaines 1-based) convertie en folios via l'offset : `folio = (page_humaine - 1) - offset`.
 //      Manquants = plage attendue − folios déjà ancrés dans le fichier.
-//   4. Extraction texte : `lib/pdf-extract.py` (pypdf) lit le PDF UNE fois par livre, extrait TOUTES
-//      les pages manquantes du livre en un seul appel (indices K = folio + offset).
-//   5. Candidats de tête (`extractContentHeads`) : la tête de contenu de la page PDF (boilerplate
-//      écarté — titre de livre/numéro de folio/code de chapitre courts/en-tête de caractéristiques
-//      SANS mot de 3+ minuscules), PUIS les mêmes fenêtres décalées d'une ligne (`SLIDE_MAX`) —
-//      une page à colonnes entrelace parfois un fragment d'encadré avec le corps.
-//   6. Alignement, trois index essayés dans l'ordre, match UNIQUE exigé à chaque fois :
-//      `headAnchor` de `reanchor.mjs` (RÉUTILISÉ tel quel, même normalisation `_lib.mjs#normalize`)
-//      sur `buildTightIndex` ; puis le même sur un repli TABLEAU (`|`/`<br>` strippés côté `.md`,
-//      absents du texte PDF) ; puis `compactAnchor` sur `buildCompactIndex` (index SANS espace,
-//      ancrage par préfixe de caractères — les petites capitales sortent du PDF avec des lettres
-//      éclatées à l'intérieur des mots, ce qui interdit tout découpage en mots).
-//   7. Bornage (`folioBounds`) : le candidat retenu doit tomber ENTRE la ligne du folio ancré
-//      immédiatement inférieur et celle du folio ancré immédiatement supérieur (ancres existantes
-//      du fichier ET ancres posées plus tôt dans le run). Hors bornes → candidat suivant.
-//      Absent/multiple/hors bornes/conflit avec un autre chapitre → SKIP + raison, jamais de pose
-//      au jugé. Ancre posée en tête de la ligne trouvée.
-//   8. Idempotent : un folio déjà ancré dans le fichier n'est jamais retraité.
+//   4. Lecture du PDF : pdfminer SEUL (`lib/pdf-lignes.py`, un process par livre), lignes rangées
+//      dans l'ordre de lecture par `lib/colonnes.mjs#lignes`.
+//   5. Têtes de page (`sequencesDeTete`) : trois ordres de la page — l'ordre des COLONNES ; le
+//      même, où les lignes posées au-dessus de la 1re ligne de texte courant remontent en tête, par
+//      y ; l'ordre des RANGÉES (lignes dont l'emprise verticale se chevauche, de gauche à droite),
+//      qui est celui d'une table. Dans chaque ordre, la fenêtre de tête puis les mêmes fenêtres
+//      décalées d'une ligne (`SLIDE_MAX`).
+//   6. ALIGNEMENT SÉQUENTIEL (`localiserPage`) : les pages d'un fichier se consomment dans l'ordre.
+//      La page précédente ancrée dans le fichier et la fin de son texte appariée (`finDePage`), la
+//      tête est la 1re ligne de contenu qui suit, si elle s'ouvre sur l'une des 1res lignes de la
+//      page (`ouvreSurLaPage`) et avant l'ancre du folio supérieur.
+//   7. Repli (`localiserTete`) : dans chaque ordre, la 1re fenêtre à match UNIQUE dans le fichier
+//      (clé `cle` de `sonde-titres.mjs` ; `headAnchor` de `reanchor.mjs` sur `buildTightIndex`, puis
+//      `compactAnchor` sur `buildCompactIndex`, index SANS espace des lettres éclatées), tombant
+//      entre les ancres des folios voisins (`folioBounds`) ; trouvée au décalage s>0, elle REMONTE
+//      sur les lignes `.md` dont tous les mots sont parmi les s lignes sautées (`remonter`). La tête
+//      est la PLUS PETITE des lignes trouvées. Aucune : SKIP + raison, jamais de pose au jugé.
+//   8. Cas qui ne passent pas par l'alignement :
+//      - ancre NUE Marker `<span id="page-K-0"></span>` : COMPLÉTÉE de son `data-folio`, en place ;
+//      - 1re page de la plage du chapitre : ancre en tête de la 1re ligne de contenu (un chapitre qui
+//        s'ouvre en milieu de page porte le même folio que le chapitre qui la commence) ;
+//      - page SANS texte (planche, intercalaire) : ancre VIDE, juste avant l'ancre de la page à texte
+//        qui la suit dans le fichier, sinon en fin de la dernière ligne de contenu du fichier.
+//   9. Idempotent : un folio déjà ancré dans le fichier n'est jamais retraité.
 //
 // Usage :
 //   node scripts/raw/anchor-fill.mjs <ABBR> [--ch NN] [--offset N] [--dry|--apply]
@@ -43,15 +49,21 @@ import { join, resolve, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { livreDuSigle, normalize, pdfDuSigle, readText } from './_lib.mjs'
-import { numeroDuFichier, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
+import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
+import { estSeparateur, numeroDuFichier, plageDeLigne1, stripSpans } from '../../src/data/source/decoupe.ts'
 import { offsetToLine, headAnchor } from './reanchor.mjs'
+import { cle } from './sonde-titres.mjs'
+import { lignes } from './lib/colonnes.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-export const PDF_EXTRACT_SCRIPT = join(HERE, 'lib', 'pdf-extract.py')
+const PDF_LIGNES_SCRIPT = join(HERE, 'lib', 'pdf-lignes.py')
 
 const ANCHOR_RE = /id="page-(\d+)-0" data-folio="(-?\d+)"/g
 const FOLIO_ONLY_RE = /data-folio="(-?\d+)"/g
+
+/** Clé d'une ligne `.md` : `cle` (sonde des titres), cellules `<br>` ouvertes ; un séparateur de
+ *  table n'a pas de texte. PURE. */
+const cleDeLigne = (l) => (estSeparateur(stripSpans(l)) ? '' : cle(l.replace(/<br\s*\/?>/gi, ' ')))
 
 // Index ligne/offset local (remplace reanchor.mjs#buildIndex) : buildIndex joint toujours les
 // lignes par UN espace, MEME une ligne VIDE — deux lignes séparées par un saut markdown (fréquent
@@ -65,7 +77,7 @@ export function buildTightIndex(rawLines) {
   let joined = ''
   for (let i = 0; i < rawLines.length; i++) {
     lineStartOffset.push(joined.length)
-    const n = normalize(rawLines[i])
+    const n = cleDeLigne(rawLines[i])
     if (!n) continue
     if (joined && !joined.endsWith(' ')) joined += ' '
     joined += n
@@ -85,10 +97,11 @@ export function buildCompactIndex(rawLines) {
   let joined = ''
   for (const line of rawLines) {
     lineStartOffset.push(joined.length)
-    joined += normalize(line).replace(/ /g, '')
+    joined += cleDeLigne(line).replace(/ /g, '')
   }
   return { joined, lineStartOffset, count: rawLines.length }
 }
+
 export function compactAnchor(joined, head, min = COMPACT_MIN) {
   const compact = head.replace(/ /g, '')
   for (let len = compact.length; len >= min; len--) {
@@ -101,7 +114,7 @@ export function compactAnchor(joined, head, min = COMPACT_MIN) {
   return { occ: [], anchor: null }
 }
 
-// ---------- offset (id pypdf 0-based) - (folio imprimé), constant par livre ----------
+// ---------- offset (id PDF 0-based) - (folio imprimé), constant par livre ----------
 export function resolveBookOffset(dir) {
   if (!existsSync(dir)) return { ok: false, reason: 'dossier introuvable' }
   const files = listerDossier(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
@@ -150,9 +163,8 @@ export function existingFolioLines(text) {
 }
 
 // Ancres NUES de l'extraction Marker — `<span id="page-K-0"></span>` SANS `data-folio` : Map(K ->
-// ligne 1-based). Elles portent l'`id` que la pose écrirait, et leur position n'est PAS une
-// frontière de page (#1739). Un second `id="page-K-0"` dans le même fichier ferait deux ancres de
-// même identité : la page est SAUTÉE et rapportée, jamais doublée.
+// ligne 1-based). Elles portent l'`id` que la pose écrirait : la pose les COMPLÈTE de leur
+// `data-folio`, en place (#1739), jamais un second `id="page-K-0"`.
 const NAKED_ANCHOR_RE = /<span id="page-(\d+)-0"\s*><\/span>/g
 export function nakedAnchorLines(text) {
   const map = new Map()
@@ -181,137 +193,272 @@ export function boundsLabel(b) {
   return `${lo} → ${hi}`
 }
 
-// ---------- tête de contenu exploitable d'une page PDF (écarte titre/folio/code de chapitre) ----------
-// Boilerplate = ligne sans un MOT réel (3 minuscules consécutives) — titre courant, numéro de folio,
-// code de chapitre court, OU en-tête de tableau de caractéristiques (« CC CT F E I Ag Dex Int FM
-// Soc » : quelques abréviations portent 1-2 minuscules isolées, insuffisant pour un mot) — ou ligne
-// vide. Le premier bloc de prose française contient forcément un mot de 3+ minuscules consécutives.
+// ---------- têtes de page (lignes pdfminer ordonnées par `lib/colonnes.mjs#lignes`) ----------
+// Mot réel = 3 minuscules consécutives : la 1re ligne qui en porte un ouvre le texte courant.
 export const HAS_LOWER_RE = /[a-zàâäéèêëïîôöùûüÿœæç]{3,}/
-
-// Candidats de tête d'une page : la tête de contenu, puis les mêmes fenêtres DÉCALÉES d'une ligne
-// (jusqu'à `SLIDE_MAX`). Motif : la lecture linéaire d'une page à colonnes entrelace parfois un
-// fragment d'encadré (titre de carrière, mention d'espèce) avec le corps — cette séquence-là
-// n'existe nulle part dans le `.md`, alors que le paragraphe qui la SUIT s'y retrouve mot pour mot,
-// quelques lignes plus bas. Les candidats sont essayés dans l'ordre, le premier à match UNIQUE
-// gagne, et le décalage retenu est rapporté (`slide` dans `placed`).
+const FOLIO_NU_RE = /^\d{1,4}$/
+const PIED_DE_PAGE = 60
+// Points de conduite d'une table des matières (`Swimming ........ 157`), absents du `.md`.
+const POINTILLES_RE = /\s*\.{4,}\s*/g
 const SLIDE_MAX = 8
-export function extractContentHeads(pageText, { maxLines = 6, maxChars = 400, slideMax = SLIDE_MAX } = {}) {
-  if (!pageText) return []
-  const lines = pageText.split('\n').map((l) => l.trim()).filter(Boolean)
-  let start = 0
-  while (start < lines.length && !HAS_LOWER_RE.test(lines[start])) start++
-  const heads = []
-  for (let s = start; s <= start + slideMax && s < lines.length; s++) {
-    const take = lines.slice(s, s + maxLines).join(' ').slice(0, maxChars)
-    if (take) heads.push({ slide: s - start, head: take })
+const MAX_LINES = 6
+const MAX_CHARS = 400
+
+const hauteurDe = (l) => Math.max(1, ...(l.spans ?? []).map((s) => s.taille ?? 0))
+const parHauteur = (a, b) => b.y0 - a.y0 || a.x0 - b.x0
+
+/**
+ * Les ORDRES de tête d'une page (`[texte…]`), folio de pied écarté ; `[]` pour une page SANS texte.
+ * (1) L'ordre des colonnes. (2) Le même, les lignes posées plus HAUT que la 1re ligne de texte
+ * courant remontées en tête par y (titre d'une colonne voisine au-dessus du corps, tableau coiffé) —
+ * absent s'il ne change rien. (3) L'ordre des RANGÉES : lignes triées par haut
+ * décroissant, une rangée réunit les lignes dont l'emprise verticale chevauche celle de sa 1re
+ * ligne, lues de gauche à droite — l'ordre d'une table. PURE.
+ * @param {{ texte: string, x0: number, y0: number, spans?: { taille: number }[] }[]} lignesDeLaPage
+ * @returns {string[][]}
+ */
+export function sequencesDeTete(lignesDeLaPage) {
+  const ls = lignesDeLaPage.filter((l) => l.texte.trim() && !(l.y0 < PIED_DE_PAGE && FOLIO_NU_RE.test(l.texte.trim())))
+  if (!ls.length) return []
+  const i0 = ls.findIndex((l) => HAS_LOWER_RE.test(l.texte))
+  const yCourant = i0 < 0 ? Infinity : ls[i0].y0
+  const remonte = (l) => l.y0 > yCourant
+  const remontees = [...ls.filter(remonte).sort(parHauteur), ...ls.filter((l) => !remonte(l))]
+  const rangees = []
+  for (const l of [...ls].sort((a, b) => b.y0 + hauteurDe(b) - (a.y0 + hauteurDe(a)) || a.x0 - b.x0)) {
+    const r = rangees.at(-1)
+    if (r && l.y0 + hauteurDe(l) > r.bas) r.lignes.push(l)
+    else rangees.push({ bas: l.y0, lignes: [l] })
   }
-  return heads
+  const parRangee = rangees.flatMap((r) => [...r.lignes].sort((a, b) => a.x0 - b.x0))
+  const ordres = remontees.some((l, i) => l !== ls[i]) ? [ls, remontees, parRangee] : [ls, parRangee]
+  return ordres.map((seq) => seq.map((l) => l.texte.trim()))
 }
 
-// ---------- extraction batch (un seul process python par livre) ----------
-export function extractPages(pdfPath, indices) {
-  if (!indices.length) return new Map()
+/** Fenêtres de tête d'un ordre : `{ slide, head, sautees }`, la tête en clé `cle`. PURE. */
+export function fenetresDeTete(sequence, { maxLines = MAX_LINES, maxChars = MAX_CHARS, slideMax = SLIDE_MAX } = {}) {
+  const out = []
+  for (let s = 0; s <= slideMax && s < sequence.length; s++) {
+    const head = cle(sequence.slice(s, s + maxLines).join(' ').replace(POINTILLES_RE, ' ')).slice(0, maxChars)
+    if (head) out.push({ slide: s, head, sautees: sequence.slice(0, s) })
+  }
+  return out
+}
+
+/** La ligne 1-based trouvée à un décalage s>0 REMONTE sur les lignes `.md` non vides qui la
+ *  précèdent (strictement après `lo`) tant que tous leurs mots figurent parmi les s lignes de tête
+ *  sautées — le chiffre d'onglet, le titre que l'extraction a mis devant. PURE. */
+export function remonter(lines, line, sautees, lo = 0) {
+  const mots = new Set(sautees.flatMap((t) => cle(t).split(' ').filter(Boolean)))
+  let out = line
+  for (let i = line - 2; i >= 0 && i + 1 > lo; i--) {
+    const k = cleDeLigne(lines[i])
+    if (!k) continue
+    if (!k.split(' ').filter(Boolean).every((m) => mots.has(m))) break
+    out = i + 1
+  }
+  return out
+}
+
+/**
+ * Dernière ligne `.md` (1-based) du texte d'une page, ou `null` : la queue de la page (ses dernières
+ * lignes dans l'ordre des colonnes, et chacun de ses suffixes) cherchée à partir de la ligne `depuis`
+ * (l'ancre de la page), la fin la PLUS PROCHE — la page consomme son texte dans l'ordre. Un texte que
+ * deux pages voisines répètent se partage ainsi entre elles, au lieu de rendre la tête de la seconde
+ * ambiguë. PURE.
+ */
+export function finDePage(lines, lignesDeLaPage, depuis, index = { tight: buildTightIndex(lines), compact: buildCompactIndex(lines) }) {
+  const [colonnes] = sequencesDeTete(lignesDeLaPage)
+  if (!colonnes) return null
+  const queue = cle(colonnes.slice(-3).join(' ').replace(POINTILLES_RE, ' '))
+  for (const [ix, compact, min] of [[index.tight, false, 24], [index.compact, true, COMPACT_MIN]]) {
+    const texte = compact ? queue.replace(/ /g, '') : queue
+    const debut = ix.lineStartOffset[Math.max(0, depuis - 1)] ?? 0
+    const coupes = compact ? [...texte].map((_, i) => i) : [0, ...[...texte.matchAll(/ /g)].map((m) => m.index + 1)]
+    const fins = coupes.map((c) => texte.slice(c)).filter((a) => a.length >= min)
+      .map((a) => { const at = ix.joined.indexOf(a, debut); return at < 0 ? Infinity : at + a.length - 1 })
+    const fin = Math.min(...fins)
+    if (fin !== Infinity) return offsetToLine(fin, ix.lineStartOffset)
+  }
+  return null
+}
+
+const OUVERTURE_MIN = 6
+
+/** La ligne `.md` `line` (1-based) s'ouvre-t-elle sur les 1res lignes de la page ? Sous l'un de
+ *  ses ordres, à partir de l'une de ses `SLIDE_MAX + 1` premières lignes, les lignes consécutives
+ *  jointes jusqu'à `OUVERTURE_MIN` caractères : leur clé `cle`, mots ENTIERS, en tête du texte `.md`
+ *  qui commence à `line`. PURE. */
+function ouvreSurLaPage(line, sequences, index) {
+  const ix = index.tight
+  const debut = ix.lineStartOffset[line - 1] + (ix.joined[ix.lineStartOffset[line - 1]] === ' ' ? 1 : 0)
+  const ouvre = (seq, s) => {
+    let k = ''
+    for (let i = s; i < seq.length && k.replace(/ /g, '').length < OUVERTURE_MIN; i++) k = cle(`${k} ${seq[i].replace(POINTILLES_RE, ' ')}`)
+    const suite = ix.joined[debut + k.length]
+    return k.replace(/ /g, '').length >= OUVERTURE_MIN && ix.joined.startsWith(k, debut) && (suite === undefined || suite === ' ')
+  }
+  return sequences.some((seq) => seq.slice(0, SLIDE_MAX + 1).some((_, s) => ouvre(seq, s)))
+}
+
+/**
+ * Ligne `.md` (1-based) où s'ouvre la page `folio` : ALIGNEMENT SÉQUENTIEL — les pages d'un fichier
+ * se consomment dans l'ordre. La page précédente ancrée dans le fichier, sa fin (`finDePage`)
+ * appariée : la 1re ligne de contenu qui la suit, si son texte est sur la page (`ouvreSurLaPage`)
+ * et avant l'ancre du folio supérieur. Sinon, la PLUS PETITE ligne trouvée parmi les ordres de tête
+ * (`localiserTete`). `{ line, slide }`, ou `{ reason }`. PURE.
+ */
+export function localiserPage(lines, sequences, known, folio, pagePrecedente, index) {
+  const bornes = folioBounds(known, folio)
+  const fin = known.has(folio - 1) && pagePrecedente ? finDePage(lines, pagePrecedente, known.get(folio - 1), index) : null
+  if (fin != null) {
+    let i = fin
+    while (i < lines.length && !cleDeLigne(lines[i])) i++
+    if (i < lines.length && i + 1 <= bornes.hi && ouvreSurLaPage(i + 1, sequences, index)) return { line: i + 1, slide: 0 }
+  }
+  return localiserTete(lines, sequences, bornes, index)
+}
+
+/**
+ * Ligne `.md` (1-based) où s'ouvre une page, sans page précédente appariée : dans chaque ordre, la
+ * 1re fenêtre de tête à match UNIQUE dans le fichier tombant dans les bornes ; la plus petite des
+ * lignes trouvées. `{ line, slide }`, ou `{ reason }`. PURE.
+ */
+export function localiserTete(lines, sequences, bounds, index = { tight: buildTightIndex(lines), compact: buildCompactIndex(lines) }) {
+  const echecs = { ambiguous: 0, outOfBounds: null }
+  const premier = (sequence) => {
+    for (const f of fenetresDeTete(sequence)) {
+      for (const [ix, compact] of [[index.tight, false], [index.compact, true]]) {
+        const hit = compact ? compactAnchor(ix.joined, f.head) : headAnchor(ix.joined, f.head)
+        if (hit.occ.length > 1) { echecs.ambiguous = Math.max(echecs.ambiguous, hit.occ.length); continue }
+        if (hit.occ.length !== 1) continue
+        const found = offsetToLine(hit.occ[0], ix.lineStartOffset)
+        if (found < bounds.lo || found > bounds.hi) { echecs.outOfBounds = echecs.outOfBounds ?? found; continue }
+        return { line: f.slide > 0 ? remonter(lines, found, f.sautees, bounds.lo) : found, slide: f.slide }
+      }
+    }
+    return null
+  }
+  const trouvees = sequences.map(premier).filter(Boolean)
+  if (trouvees.length) return trouvees.reduce((a, b) => (b.line < a.line ? b : a))
+  if (echecs.outOfBounds != null) return { reason: `hors bornes (l.${echecs.outOfBounds} hors ${boundsLabel(bounds)})` }
+  if (echecs.ambiguous) return { reason: `ambigu (${echecs.ambiguous} candidats)` }
+  return { reason: 'aucune occurrence' }
+}
+
+// ---------- lecture pdfminer (un seul process python par livre) ----------
+/** Map(K -> lignes ordonnées) des pages d'un livre : le JSON de `lib/pdf-lignes.py` (`boites`
+ *  fourni, sinon lu au PDF). */
+export function pagesEnLignes(id, boites = null) {
+  const brut = boites ?? lireBoites(id)
+  return new Map(brut.map((p) => [p.page - 1, lignes(p.boites)]))
+}
+
+/** Le JSON de `lib/pdf-lignes.py` d'un livre (`books.json#id`) : `[{ page, boites }]`, toutes pages. */
+export function lireBoites(id) {
   const dir = mkdtempSync(join(tmpdir(), 'anchor-fill-'))
-  const outPath = join(dir, 'pages.json')
   try {
-    execFileSync('python', [PDF_EXTRACT_SCRIPT, pdfPath, indices.join(','), outPath], { maxBuffer: 128 * 1024 * 1024 })
-    const raw = JSON.parse(readFileSync(outPath, 'utf8'))
-    const map = new Map()
-    for (const [k, v] of Object.entries(raw)) map.set(Number(k), v)
-    return map
+    const sortie = join(dir, 'boites.json')
+    execFileSync('python', [PDF_LIGNES_SCRIPT, id, sortie], { stdio: ['ignore', 'ignore', 'inherit'] })
+    return JSON.parse(readFileSync(sortie, 'utf8'))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
 }
 
-// ---------- traitement d'un chapitre (pur sur les données déjà en mémoire — pageTextOf injectable) ----------
-// Retourne { file, range, missing, placed:[{folio,line}], skipped:[{folio,reason}], alreadyCount, edits }
-// `edits` = Map(lineIdx0based -> [span,...]) à appliquer côté disque par l'appelant (jamais ici).
-// `folioOwner` optionnel : Map(folio -> nom de fichier) DÉJÀ ancré ailleurs dans le LIVRE (autres
-// chapitres). Un chapitre se termine parfois à mi-page (le split Marker suit les TITRES, pas les
-// pages) : la même page PDF peut légitimement porter du contenu dans 2 fichiers adjacents, mais elle
-// n'a qu'UN SEUL folio imprimé — vu sur LDB 40/41 (folio 220) et 66/67 (folio 303) en session #522.
-// Conflit avec un AUTRE chapitre → skip (jamais 2 fichiers avec le même `data-folio`, ambiguïté
-// détectée par `_lib.mjs#folioRangeIn`). `folioOwner` est MIS À JOUR par l'appelant après chaque
-// chapitre planifié (conflits intra-run aussi couverts, chapitres traités dans l'ordre).
-export function planChapter(file, text, offset, pageTextOf, folioOwner = new Map()) {
+// ---------- traitement d'un chapitre (pur sur les données déjà en mémoire — pageOf injectable) ----------
+// `pageOf(K)` = lignes pdfminer ordonnées de la page K (`pagesEnLignes`), `undefined`/`null` hors PDF.
+// Retourne { file, range, missing, placed:[{folio,line,slide}], completed:[{folio,line}],
+// skipped:[{folio,reason}], alreadyCount, edits } ; `edits` = Map(lineIdx0based -> [edit,...]) à
+// appliquer côté disque par l'appelant (`applyEdits`, jamais ici).
+export function planChapter(file, text, offset, pageOf) {
   const lines = text.split('\n')
   const range = chapterFolioRange(lines[0] || '', offset)
-  if (!range) return { file, range: null, missing: [], placed: [], skipped: [], alreadyCount: 0, edits: new Map() }
+  const vide = { file, range, missing: [], placed: [], completed: [], skipped: [], alreadyCount: 0, edits: new Map() }
+  if (!range) return vide
   const already = existingFolios(text)
-  const missing = []
-  for (let f = range.folioLo; f <= range.folioHi; f++) if (!already.has(f)) missing.push(f)
-  const alreadyCount = (range.folioHi - range.folioLo + 1) - missing.length
-
-  const placed = []
-  const skipped = []
-  const edits = new Map()
-  if (!missing.length) return { file, range, missing, placed, skipped, alreadyCount, edits }
-
-  const conflict = (f) => { const owner = folioOwner.get(f); return owner && owner !== file ? owner : null }
-  const li = buildTightIndex(lines)
-  // Repli TABLEAU : le texte PDF n'a jamais de `|`/`<br>` (mise en page Marker) — une page de
-  // tableau dense échoue au 1er passage (strict) faute de ces symboles côté PDF. On retente alors
-  // sur une copie des lignes DÉBARRASSÉE de `|`/`<br>` (mêmes lignes, même longueur de tableau, donc
-  // `offsetToLine` retombe sur la BONNE ligne réelle) — toujours match UNIQUE exigé, jamais deviné.
-  const liTable = buildTightIndex(lines.map((l) => l.replace(/\|/g, ' ').replace(/<br\s*\/?>/gi, ' ')))
-  const liCompact = buildCompactIndex(lines.map((l) => l.replace(/\|/g, ' ').replace(/<br\s*\/?>/gi, ' ')))
-  // Bornage à DEUX CÔTÉS (cf. `folioBounds`) : les ancres VOISINES du folio manquant — existantes
-  // dans le fichier ET posées plus tôt dans le run — encadrent la ligne recherchée. Un candidat qui
-  // sort de cet intervalle est un faux positif : page dont la tête est une ligne générique (« Nain,
-  // Halfling, Humain » d'un tableau de carrière), présente une seule fois dans le `.md` donc
-  // « unique » sans être la bonne, ou filigrane de personnalisation du PDF, qui se répète hors de
-  // toute page. Refusé : on essaie le candidat suivant, sinon la page est sautée et rapportée.
-  const known = existingFolioLines(text)
   const nues = nakedAnchorLines(text)
-  for (const folio of missing) {
-    const K = folio + offset
-    if (nues.has(K)) { skipped.push({ folio, reason: `ancre nue Marker \`id="page-${K}-0"\` déjà en place (l.${nues.get(K)})` }); continue }
-    const pageText = pageTextOf(K)
-    if (pageText === undefined || pageText === null) { skipped.push({ folio, reason: 'page hors PDF ou introuvable' }); continue }
-    const heads = extractContentHeads(pageText)
-    if (!heads.length) { skipped.push({ folio, reason: 'page sans texte exploitable (illustration probable)' }); continue }
-    const bounds = folioBounds(known, folio)
-    let lineNo = null
-    let slide = 0
-    let ambiguous = 0
-    let outOfBounds = null
-    for (const cand of heads) {
-      const normHead = normalize(cand.head)
-      for (const [index, offsets] of [[li, li.lineStartOffset], [liTable, liTable.lineStartOffset], [liCompact, liCompact.lineStartOffset]]) {
-        const hit = index === liCompact ? compactAnchor(index.joined, normHead) : headAnchor(index.joined, normHead)
-        if (hit.occ.length > 1) { ambiguous = Math.max(ambiguous, hit.occ.length); continue }
-        if (hit.occ.length !== 1) continue
-        const candLine = offsetToLine(hit.occ[0], offsets)   // 1-based
-        if (candLine < bounds.lo || candLine > bounds.hi) { outOfBounds = outOfBounds ?? candLine; continue }
-        lineNo = candLine
-        slide = cand.slide
-        break
-      }
-      if (lineNo != null) break
-    }
-    if (lineNo == null && outOfBounds != null) { skipped.push({ folio, reason: `hors bornes (l.${outOfBounds} hors ${boundsLabel(bounds)})` }); continue }
-    if (lineNo == null && ambiguous) { skipped.push({ folio, reason: `ambigu (${ambiguous} candidats)` }); continue }
-    if (lineNo == null) { skipped.push({ folio, reason: 'aucune occurrence' }); continue }
-    const owner = conflict(folio)
-    if (owner) { skipped.push({ folio, reason: `conflit : folio déjà ancré dans ${owner}` }); continue }
-    const span = `<span id="page-${K}-0" data-folio="${folio}"></span>`
-    const idx0 = lineNo - 1
-    if (!edits.has(idx0)) edits.set(idx0, [])
-    edits.get(idx0).push({ folio, span })
-    placed.push({ folio, line: lineNo, slide })
-    known.set(folio, lineNo)
-    folioOwner.set(folio, file)
+  const known = existingFolioLines(text)
+  const plan = { ...vide, edits: new Map() }
+  const edit = (idx0, e) => { if (!plan.edits.has(idx0)) plan.edits.set(idx0, []); plan.edits.get(idx0).push(e) }
+  for (let f = range.folioLo; f <= range.folioHi; f++) {
+    if (already.has(f)) continue
+    const K = f + offset
+    if (!nues.has(K)) { plan.missing.push(f); continue }
+    const line = nues.get(K)
+    edit(line - 1, { kind: 'complete', folio: f, K, span: `<span id="page-${K}-0" data-folio="${f}"></span>` })
+    plan.completed.push({ folio: f, line })
+    known.set(f, line)
   }
-  // spans multiples sur une même ligne : ordre croissant de folio (ordre de page réel)
-  for (const arr of edits.values()) arr.sort((a, b) => a.folio - b.folio)
-  return { file, range, missing, placed, skipped, alreadyCount, edits }
+  plan.alreadyCount = (range.folioHi - range.folioLo + 1) - plan.missing.length
+  if (!plan.missing.length) return plan
+  const index = { tight: buildTightIndex(lines), compact: buildCompactIndex(lines) }
+  const sansTexte = []
+  const poser = (folio, line, slide) => {
+    const K = folio + offset
+    edit(line - 1, { kind: 'tete', folio, K, span: `<span id="page-${K}-0" data-folio="${folio}"></span>` })
+    plan.placed.push({ folio, line, slide })
+    known.set(folio, line)
+  }
+  for (const folio of plan.missing) {
+    const page = pageOf(folio + offset)
+    if (page === undefined || page === null) { plan.skipped.push({ folio, reason: 'page hors PDF ou introuvable' }); continue }
+    const sequences = sequencesDeTete(page)
+    if (!sequences.length) { sansTexte.push(folio); continue }
+    if (folio === range.folioLo) {
+      const premiere = lines.findIndex((l, i) => i > 0 && l.trim())
+      if (premiere < 0) { plan.skipped.push({ folio, reason: 'chapitre sans ligne de contenu' }); continue }
+      poser(folio, premiere + 1, 0)
+      continue
+    }
+    const r = localiserPage(lines, sequences, known, folio, pageOf(folio - 1 + offset), index)
+    if (r.reason && !page.some((l) => HAS_LOWER_RE.test(l.texte))) { sansTexte.push(folio); continue }
+    if (r.reason) { plan.skipped.push({ folio, reason: r.reason }); continue }
+    poser(folio, r.line, r.slide)
+  }
+  // Page SANS texte (aucune ligne, ou aucun mot réel ni tête retrouvée : planche, intercalaire) :
+  // ancre vide juste avant l'ancre de la 1re page à texte qui la suit dans le fichier, toutes les
+  // pages intermédiaires étant elles aussi sans texte ; sans page qui la suive dans le fichier, en
+  // fin de sa dernière ligne de contenu.
+  const vides = new Set(sansTexte)
+  const derniere = lines.findLastIndex((l, i) => i > 0 && l.trim())
+  for (const folio of sansTexte) {
+    let suivante = folio + 1
+    while (vides.has(suivante)) suivante++
+    const K = folio + offset
+    const span = `<span id="page-${K}-0" data-folio="${folio}"></span>`
+    if (known.has(suivante)) {
+      edit(known.get(suivante) - 1, { kind: 'avant', folio, K, avantK: suivante + offset, span })
+      plan.placed.push({ folio, line: known.get(suivante), slide: 0, sansTexte: true })
+    } else if (derniere > 0) {
+      edit(derniere, { kind: 'fin', folio, K, span })
+      plan.placed.push({ folio, line: derniere + 1, slide: 0, sansTexte: true })
+    } else plan.skipped.push({ folio, reason: 'page sans texte dans un chapitre sans ligne de contenu' })
+  }
+  plan.placed.sort((a, b) => a.folio - b.folio)
+  return plan
 }
 
+// Marque de bloc Markdown d'une ligne (titre, citation, puce, item numéroté) : l'ancre se pose APRÈS
+// elle, en tête du texte qu'elle ouvre — posée avant, la ligne cesserait d'être ce bloc.
+const MARQUE_DE_BLOC_RE = /^(?:#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)/
+
+/** Applique les `edits` de `planChapter` : complétions en place, têtes en tête du texte de la ligne
+ *  (après sa marque de bloc, ordre croissant de folio), pages sans texte juste avant l'ancre de la
+ *  page qui les suit, ou en fin de la dernière ligne de contenu. PURE. */
 export function applyEdits(text, edits) {
   const lines = text.split('\n')
   for (const [idx0, arr] of edits) {
-    lines[idx0] = arr.map((e) => e.span).join('') + lines[idx0]
+    let l = lines[idx0]
+    for (const e of arr.filter((x) => x.kind === 'complete')) l = l.replace(new RegExp(`<span id="page-${e.K}-0"\\s*></span>`), e.span)
+    const marque = MARQUE_DE_BLOC_RE.exec(l)?.[0] ?? ''
+    l = marque + arr.filter((x) => x.kind === 'tete').sort((a, b) => a.folio - b.folio).map((e) => e.span).join('') + l.slice(marque.length)
+    for (const e of arr.filter((x) => x.kind === 'avant').sort((a, b) => a.folio - b.folio)) {
+      const cible = `<span id="page-${e.avantK}-0"`
+      l = l.replace(cible, e.span + cible)
+    }
+    l += arr.filter((x) => x.kind === 'fin').sort((a, b) => a.folio - b.folio).map((e) => e.span).join('')
+    lines[idx0] = l
   }
   return lines.join('\n')
 }
@@ -320,51 +467,25 @@ export function applyEdits(text, edits) {
 // `offset` : amorce d'un livre VIERGE (aucune ancre → `resolveBookOffset` n'a rien à dériver) ;
 // l'appelant fournit alors l'offset qu'il a LU au pied/en-tête des pages du PDF
 // (`folio-bootstrap.mjs`). Absent → offset dérivé des ancres existantes, comme d'habitude.
-export function runBook(abbr, { chapter = null, apply = false, dir: dirOverride, offset: offsetOverride = null } = {}) {
-  const dir = dirOverride ?? livreDuSigle(abbr)?.dir
-  if (!dir) return { abbr, ok: false, reason: `sigle sans livre extrait au registre : ${abbr}` }
+// `boites` : le JSON de `lib/pdf-lignes.py` déjà produit (sinon lu au PDF).
+export function runBook(abbr, { chapter = null, apply = false, dir: dirOverride, offset: offsetOverride = null, boites = null } = {}) {
+  const livre = livreDuSigle(abbr)
+  const dir = dirOverride ?? livre?.dir
+  if (!dir || !livre) return { abbr, ok: false, reason: `sigle sans livre extrait au registre : ${abbr}` }
   const off = offsetOverride == null ? resolveBookOffset(dir) : { ok: true, offset: offsetOverride }
   if (!off.ok) return { abbr, ok: false, reason: off.reason }
   let pdfPath
   try { pdfPath = pdfDuSigle(abbr) } catch (e) { return { abbr, ok: false, reason: e.message } }
-
   if (!existsSync(dir)) return { abbr, ok: false, reason: 'dossier introuvable' }
   let files = listerDossier(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
   if (chapter != null) files = files.filter((f) => numeroDuFichier(f) === Number(chapter))
-
-  // Passe 1 (à sec) : détermine les folios manquants de chaque chapitre → K à extraire.
-  const texts = new Map()
-  const perFileMissingK = new Map()
-  const allK = new Set()
-  for (const file of files) {
-    const text = readText(join(dir, file))
-    texts.set(file, text)
-    const lines = text.split('\n')
-    const range = chapterFolioRange(lines[0] || '', off.offset)
-    if (!range) { perFileMissingK.set(file, []); continue }
-    const already = existingFolios(text)
-    const ks = []
-    for (let f = range.folioLo; f <= range.folioHi; f++) if (!already.has(f)) { ks.push(f + off.offset); allK.add(f + off.offset) }
-    perFileMissingK.set(file, ks)
-  }
-
-  const pageMap = extractPages(pdfPath, [...allK])
-
-  // Propriétaire de chaque folio DÉJÀ ancré (tous chapitres) — cf. `planChapter` : conflit inter-
-  // chapitre (page PDF partagée entre 2 fichiers adjacents, un seul folio imprimé).
-  const folioOwner = new Map()
-  for (const file of files) for (const f of existingFolios(texts.get(file))) folioOwner.set(f, file)
-
-  // Passe 2 : plan + application par chapitre.
+  const pages = pagesEnLignes(livre.id, boites)
   const chapters = []
   for (const file of files) {
-    const text = texts.get(file)
-    const plan = planChapter(file, text, off.offset, (K) => pageMap.get(K), folioOwner)
+    const text = readText(join(dir, file))
+    const plan = planChapter(file, text, off.offset, (K) => pages.get(K))
     chapters.push(plan)
-    if (apply && plan.edits.size) {
-      const newText = applyEdits(text, plan.edits)
-      writeFileSync(join(dir, file), newText)
-    }
+    if (apply && plan.edits.size) writeFileSync(join(dir, file), applyEdits(text, plan.edits))
   }
   return { abbr, ok: true, offset: off.offset, dir, pdfPath, chapters }
 }
@@ -374,15 +495,15 @@ function report(result) {
   const out = []
   if (!result.ok) { out.push(`## ${result.abbr} — SKIPPÉ (${result.reason})`); return out.join('\n') }
   out.push(`## ${result.abbr} (offset ${result.offset})`)
-  let totalPlaced = 0, totalSkipped = 0, totalAlready = 0
+  let totalPlaced = 0, totalCompleted = 0, totalSkipped = 0, totalAlready = 0
   for (const c of result.chapters) {
     if (c.range == null) { out.push(`- ${c.file} : pas d'en-tête \`*Pages PDF N[-M]*\` — ignoré`); continue }
-    totalPlaced += c.placed.length; totalSkipped += c.skipped.length; totalAlready += c.alreadyCount
-    if (!c.missing.length) { continue }
-    out.push(`- ${c.file} : ✅ ${c.placed.length} posée(s) · ⏭️ ${c.skipped.length} sautée(s) · déjà là ${c.alreadyCount}`)
+    totalPlaced += c.placed.length; totalCompleted += c.completed.length; totalSkipped += c.skipped.length; totalAlready += c.alreadyCount
+    if (!c.missing.length && !c.completed.length) { continue }
+    out.push(`- ${c.file} : ✅ ${c.placed.length} posée(s) · 🔗 ${c.completed.length} complétée(s) · ⏭️ ${c.skipped.length} sautée(s) · déjà là ${c.alreadyCount}`)
     for (const s of c.skipped) out.push(`    ❌ folio ${s.folio} — ${s.reason}`)
   }
-  out.push(`**Bilan ${result.abbr} : ✅ ${totalPlaced} posées · ⏭️ ${totalSkipped} sautées · déjà là ${totalAlready}**`)
+  out.push(`**Bilan ${result.abbr} : ✅ ${totalPlaced} posées · 🔗 ${totalCompleted} complétées · ⏭️ ${totalSkipped} sautées · déjà là ${totalAlready}**`)
   return out.join('\n')
 }
 

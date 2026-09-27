@@ -411,7 +411,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         // l'affichait « Intermédiaire » par défaut tant qu'elle ne voyageait pas). Base NUE de
         // l'attaquant (`aT.base`) pour que le modificateur de Difficulté se lise sur la ligne.
         ...opposedLines([{
-          label: opp.attackerName ? (oppTestLabel ? `${opp.attackerName} — ${oppTestLabel}` : opp.attackerName) : (oppTestLabel ?? 'Adversaire'),
+          label: oppTestLabel ? `${opp.attackerName} — ${oppTestLabel}` : opp.attackerName,
           base: opp.aT.base ?? opp.aT.target,
           r: { roll: opp.aT.roll, target: opp.aT.target, sl: opp.aT.sl, success: opp.aT.success },
         }], opp.difficulty)[0],

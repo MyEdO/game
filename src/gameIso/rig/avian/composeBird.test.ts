@@ -8,7 +8,7 @@ describe('gabarit aviaire', () => {
     const bones = resolveBirdFromProps(BIRD_DEFAULT, 'profile', {});
     expect(bones.map((b) => b.id)).toEqual(['corps', 'tete']);
     const corps = bones.find((b) => b.id === 'corps')!.parts[0].svg;
-    expect(corps).toContain(BIRD_DEFAULT.stored.cuir); // pattes teintées via le token @cuir
+    expect(corps).toContain(BIRD_DEFAULT.palette.cuir); // pattes teintées via le token @cuir
     const tete = bones.find((b) => b.id === 'tete')!.parts[0].svg;
     expect(tete).toContain('#c86018'); // cercle oculaire / bec orangé (profil)
   });

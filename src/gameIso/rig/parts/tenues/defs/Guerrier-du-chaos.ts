@@ -10,7 +10,7 @@ import { lateralPair } from '../../parallax';
 export const tenue: TenueDef = {
   label: 'Guerrier du Chaos',
   id: "guerrier-du-chaos",
-  palette: { vet1: '#2a2230', vet2: '#6a5420', cuir: '#140f12', metal: '#3a3a46' },
+  palette: { vet2: '#6a5420', cuir: '#140f12', metal: '#3a3a46' },
   set: {
     pied: BOTTE_CUIR,
     torse: {

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { nomDuSiege } from '../state/netFlow';
 import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../state/netFlow';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
 import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
-import { downloadText, fileSlug } from '../state/fileIo';
+import { downloadText, fileSlug } from '../lib/fileIo';
 import { campaign, builtinCampaigns, campagneDuJeu } from '../scenes/campaign';
 import { publishedProjects, campagneDeLEntree, playerEntryError, type SavedProject } from '../state/projectLibrary';
 import { Combatant } from '../engine/types';
@@ -395,8 +396,7 @@ export function PartyScreenView({
   const coop = net.mode !== 'local';
   const isHost = net.mode !== 'guest';
   const seats = Object.entries(net.seatNames).map(([s, n]) => ({ seat: Number(s), name: n }));
-  const seatName = (seat: number) =>
-    net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
+  const seatName = (seat: number) => nomDuSiege(net, seat);
   const views = coop
     ? slotViews(party, net.slots ?? [0, 0, 0, 0], net.ownership)
     : slotMap.map((id) => ({ seat: 0, hero: id ? party.find((h) => h.id === id) : undefined }));

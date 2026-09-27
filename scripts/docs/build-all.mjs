@@ -35,8 +35,9 @@ import { MOTIF_CATALOGUES } from '../raw/gate-catalogues.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import {
   avecPied, deltaSourcesLues, empreinteDeLIndex, empreinteDuDisque, existeFichier, fusionnerLectures,
-  hashBlobDisque, ignoresGit, indexGit, lirePied, motifDeRejeu, serialiserSourcesLues, sha1Corps,
+  hashBlobDisque, indexGit, lirePied, motifDeRejeu, serialiserSourcesLues, sha1Corps,
 } from './lib/empreinte-sources.mjs'
+import { ignoresGit } from './lib/chemin-mesure.mjs'
 
 /** `{ runner, script, targets, injecte, check }` — `runner` = 'node' | 'tsx' ; `targets` = docs ÉCRITS
  *  EN ENTIER (glob toléré, cf. la garde de taxonomie de scripts/git-hooks/merge-docs.test.mjs), et
@@ -142,7 +143,7 @@ export function ciblesSurDisque(cibles, cwd) {
   })
 }
 
-function run({ runner, script }, { cwd, quiet, check, tsxEsm, lectures, cibles }) {
+function run({ runner, script }, { cwd, quiet, check, tsxEsm, lectures, ignores, cibles }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     script,
@@ -153,6 +154,7 @@ function run({ runner, script }, { cwd, quiet, check, tsxEsm, lectures, cibles }
     env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim()
     env.WFRP_LECTURES_RACINE = cwd
     env.WFRP_LECTURES_SORTIE = path.join(lectures, 'l')
+    env.WFRP_LECTURES_IGNORES = ignores
     env.WFRP_LECTURES_CIBLE = cibles.join(',')
   }
   // Rejeu si le processus n'a pas DÉMARRÉ : sous quatre lanes de gates, le loader Windows a refusé
@@ -530,6 +532,10 @@ function main() {
   }
   const racineLectures = path.join(cwd, 'node_modules', '.cache', 'lectures-docs', String(process.pid))
   rmSync(racineLectures, { recursive: true, force: true })
+  // L'ensemble `ignoresGit`, calculé UNE fois, que chaque processus mesuré relit (#1769).
+  const ignoresLectures = path.join(racineLectures, 'ignores.json')
+  mkdirSync(racineLectures, { recursive: true })
+  writeFileSync(ignoresLectures, JSON.stringify([...ignores]))
   const parGenerateur = {}
   // Les cibles des générateurs `check: false` : leur script n'est pas joué ci-dessous, leur PIED est
   // jugé ici. `--tout` ne le court-circuite pas — c'est un hash, pas une régénération.
@@ -565,7 +571,7 @@ function main() {
     const signees = ciblesSurDisque(g.targets, cwd)
     const cibles = [...new Set([...signees, ...ciblesSurDisque(g.injecte ?? [], cwd)])].sort()
     try {
-      run(g, { cwd, quiet, check, tsxEsm, lectures: dossier, cibles })
+      run(g, { cwd, quiet, check, tsxEsm, lectures: dossier, ignores: ignoresLectures, cibles })
     } catch (e) {
       process.stderr.write(`docs:build — ARRÊT sur ${g.script} (code ${e.status ?? e.message}) : docs/ n'est PAS à jour.\n`)
       process.exit(1)

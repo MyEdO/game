@@ -1,6 +1,6 @@
 *Pages PDF 2-4*
 
-# **CONTENTS**
+# <span id="page-1-0" data-folio="2"></span>**CONTENTS**
 
 | INTRODUCTION                          | Bounty Hunter53 | Townsman100                           |  |
 |---------------------------------------|-----------------|---------------------------------------|--|
@@ -54,7 +54,7 @@
 | Making Medicine153            | Characteristic Advances191             | Miracles of Taal227        |  |
 |-------------------------------|----------------------------------------|----------------------------|--|
 | Concocting Poison154          | Skill Advances191                      | Miracles of Ulric228       |  |
-| Getting Around156             | Purchasing Talents191                  | Miracles of Verena229      |  |
+<span id="page-2-0" data-folio="3"></span>| Getting Around156             | Purchasing Talents191                  | Miracles of Verena229      |  |
 | Swimming157                   | Advancing Careers191                   | VIII                       |  |
 | Riding a Mount157             | Regional Events192                     | MAGIC                      |  |
 | Vehicle Movement157           | Character Events194                    | The Aethyr230              |  |
@@ -107,7 +107,7 @@
 | Spending XP191                | Miracles of Sigmar226                  | Other?264                  |  |
 |                               |                                        |                            |  |
 
-| Using the Rules265                  | Armour and Size306             | The Restless Dead338                 |  |
+<span id="page-3-0" data-folio="4"></span>| Using the Rules265                  | Armour and Size306             | The Restless Dead338                 |  |
 |-------------------------------------|--------------------------------|--------------------------------------|--|
 | Awarding XP267                      | Packs and Containers308        | Crypt Ghoul338                       |  |
 | The Dangerous Business of Getting   | Clothing and Accessories308    | Skeleton339                          |  |

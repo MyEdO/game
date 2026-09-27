@@ -56,8 +56,8 @@ const SLOTS = slotsDuParse(scan, DEFS);
 const CLE_DETTE = (c: { dataset: string; champ: string; occurrences: number }) =>
   `${c.dataset} | ${c.champ} | ${c.occurrences}`;
 
-/** Plafond du cliquet de `SLOTS_SANS_DECLARATION` — #1473. */
-const DETTE_ADOPTION_MAX = 271;
+/** Plafond du cliquet de `SLOTS_SANS_DECLARATION` — #1473 ; 269 → 268 à la fusion de #1897 : `barge-du-sel-projet.json | effect` soldé par `setVesselSchema.vehicleId` (`idDe('vehicle')`, `defs-scenes/effets.ts`, #1882). */
+const DETTE_ADOPTION_MAX = 268;
 
 /** Plafond du cliquet de `SLOTS_INATTEIGNABLES` — #1473. */
 const INATTEIGNABLES_MAX = 4;

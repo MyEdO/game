@@ -34,7 +34,8 @@ export function ChipDeRefus({ refus }: { refus: RefusRendu }) {
 }
 
 /**
- * Les gestes qui font passer un document par la porte `parseProject`, chacun avec le VERBE de son
+ * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
+ * `migreSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
  * refus, la CONSÉQUENCE qu'il ÉNONCE, et ce qu'il dit d'un projet SANS NOM. UNE table : ces chaînes
  * ne sont pas libres, un appelant ne peut pas les désaccorder — « Import refusé : ce projet ne
  * pourrait plus être rouvert » serait faux, rien n'ayant jamais été ouvert ni écrit.
@@ -64,6 +65,11 @@ const GESTES_DE_PORTE = {
     verbe: 'Mise à l’essai refusée',
     consequence: 'ce projet ne pourrait pas être joué',
     sansNom: 'Ce projet n’a pas de nom : impossible de le mettre à l’essai tel quel.',
+  },
+  reprise: {
+    verbe: 'Restauration refusée',
+    consequence: 'cette sauvegarde locale ne peut pas être restaurée',
+    sansNom: 'Cette sauvegarde locale n’a pas de nom : impossible de la restaurer telle quelle.',
   },
 } as const;
 

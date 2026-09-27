@@ -560,7 +560,7 @@ compte des Rounds de combat, `LDB 16 l.97`). Le Test est donc roulé à chaque j
 Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les pénalités sont **permanentes** (seuls des moyens magiques ou miraculeux peuvent les annuler).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `onTickSchema`, `doc`, `autoExposureMods`, `DiseaseDef`, `OPS_FIELDS`, `water-exposure`, `Disease`, +42 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +21 fichiers
+- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `onTickSchema`, `doc`, `autoExposureMods`, `DiseaseDef`, `OPS_FIELDS`, `water-exposure`, `Disease`, +41 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
 
 ---
 
@@ -623,7 +623,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 **Traitement** (`MSRC 16 l.160`) : infusion d'écorce de saule → bonus de +10 à tous les Tests résultant de la colique pendant 1d10 heures. Pas d'autre traitement.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.149-160) → `onTickSchema`, `doc`, `Disease`, `crampes-abdominales`, `resolveInlineFlowTest`, `firingOwnTestFailed`, `colique`, `combatTestPenaltyParts`, `EffectTrigger`, `vers-du-reik`, +11 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, `src/engine/disease.ts`, +8 fichiers
+- `MSRC 16` (l.149-160) → `onTickSchema`, `doc`, `Disease`, `crampes-abdominales`, `resolveInlineFlowTest`, `firingOwnTestFailed`, `colique`, `combatTestPenaltyParts`, `EffectTrigger`, `vers-du-reik`, +10 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, `src/engine/disease.ts`, +7 fichiers
 
 ---
 

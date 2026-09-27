@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { couleurHexSchema } from '../grammaire/valeurs';
 
 export const file = 'ambiance.json';
 export const famille = 'config';
@@ -28,9 +29,6 @@ const povFogSchema = z.strictObject({
   fogGamma: z.number().positive().min(0.1),
 });
 
-/** Couleur écrite en HEXA `#rrggbb` — la forme que lisent `THREE.Color` comme le SVG. */
-const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'couleur hexadécimale « #rrggbb » attendue');
-
 /** #1176 P2-6 — PRÉCIPITATION MONDE d'un type de météo : le semis de particules qui tombe dans le
  *  volume de la voie volumique. Toutes les bornes sont des bornes de PLAUSIBILITÉ physique et de
  *  BUDGET : une donnée hors bornes ne fait pas une météo étrange, elle fait un semis qui ne tombe
@@ -48,7 +46,7 @@ const precipSchema = z
     lengthM: z.number().gt(0).max(4),
     /** Hauteur (m) du PLAFOND de semis au-dessus du sol : le volume où les particules vivent. */
     ceilingM: z.number().gt(0).max(60),
-    color: hexColor,
+    color: couleurHexSchema,
     opacity: z.number().gt(0).max(1),
   })
   .refine((p) => p.lengthM >= p.widthM, {
@@ -73,7 +71,7 @@ const precipSchema = z
  *  supprime, elle ne s'écrit pas `alpha: 0`). */
 const brumeSchema = z
   .strictObject({
-    color: hexColor,
+    color: couleurHexSchema,
     layers: z
       .array(
         z.strictObject({

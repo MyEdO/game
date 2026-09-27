@@ -22,7 +22,7 @@ const auberge = buildScene({
     'Rien à faire d’autre ici que dormir — regardez le bandeau d’objectif en haut de l’écran se ' +
     'décompter à chaque nuit (« Dormir jusqu’au lendemain » chez l’aubergiste).',
   entities: [
-    { id: 'aubergiste', kind: 'personnage', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge-echeance' },
+    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge-echeance' },
   ],
   dialogues: [
     {

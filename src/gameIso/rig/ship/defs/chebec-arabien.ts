@@ -46,9 +46,9 @@ function front(): string {
     // Grand mât au centre, antennes latines en DIAGONALE (la signature du gréement vu de face).
     + spar(0, -10, 1.5, -72, 2.4)
     + spar(-16, -28, 10, -76, 1.7)
-    + '<path d="M10 -76 L-16 -28 L-1 -18 Q8 -48 10 -76 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M10 -76 L-16 -28 L-1 -18 Q8 -48 10 -76 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + spar(12, -22, -8, -50, 1.4)
-    + '<path d="M-8 -50 L12 -22 L2 -15 Q-5 -33 -8 -50 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-8 -50 L12 -22 L2 -15 Q-5 -33 -8 -50 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + pennant(1.5, -72, 8)
     // Avirons sortis en éventail de part et d'autre.
     + '<g stroke="@mat" stroke-width="1.2" stroke-linecap="round"><line x1="-9" y1="-6" x2="-17" y2="1"/><line x1="-10" y1="-4" x2="-19" y2="2"/><line x1="9" y1="-6" x2="17" y2="1"/><line x1="10" y1="-4" x2="19" y2="2"/></g>'
@@ -67,7 +67,7 @@ function back(): string {
     // Artimon au premier plan (antenne en diagonale inverse), grand mât qui dépasse derrière.
     + spar(0, -10, -1.5, -62, 2.2)
     + spar(14, -26, -9, -66, 1.6)
-    + '<path d="M-9 -66 L14 -26 L0 -19 Q-6 -44 -9 -66 Z" fill="@voile" stroke="@voileO" stroke-width="1"/>'
+    + '<path d="M-9 -66 L14 -26 L0 -19 Q-6 -44 -9 -66 Z" fill="@toileDeVoile" stroke="@toileDeVoileO" stroke-width="1"/>'
     + spar(3, -40, 5, -74, 1.8)
     + pennant(-1.5, -62, 8) + pennant(5, -74, 7)
     // Muraille de poupe arrondie, fine.

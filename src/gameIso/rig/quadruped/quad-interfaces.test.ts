@@ -33,7 +33,7 @@ function monde(p: QuadProps, i: Pick<QuadInterface, 'os' | 'x' | 'y'>, view: Vie
 /** Props de référence : un gabarit neutre dont on ne bouge QU'UN scalaire à la fois. */
 const BASE = {
   sl: 1, build: 'equine', girth: 1, bodyLen: 1, neckLen: 1, neckAngle: -40, legLen: 1,
-  head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', stored: {},
+  head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', palette: {},
 } as unknown as QuadProps;
 
 /** Suite des valeurs d'un axe → coordonnée mondiale d'une interface, dans l'ordre du balayage. */

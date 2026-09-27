@@ -10,6 +10,7 @@
 // `citation-graphy-guard.mjs` (graphy), `reanchor.mjs` (reanchor-low), `check-refs.mjs` (dead-refs).
 import { readFileSync } from 'node:fs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
+import { naissanceDu } from '../guards/lib/stock.mjs'
 
 /** Contenu JSON d'un fichier de stock, ou `{}` s'il est ABSENT (mode ZÉRO-TOLÉRANCE : rien de toléré,
  *  l'écart fait le reste). Lecteur partagé : `reconcile.mjs` en tire ses `trous`. */
@@ -21,6 +22,9 @@ export function lireStockJson(path) {
     throw err
   }
 }
+
+/** Les comptes « à la naissance » du `quoi` du fichier de stock EN PLACE (`naissanceDu`), ou `null`. */
+export const naissanceEnPlace = (path, familles) => naissanceDu(lireStockJson(path).quoi, familles)
 
 /** Les ENTRÉES d'un fichier de stock (fichier absent, ou stock vide : aucune entrée). */
 export function readStock(path) {

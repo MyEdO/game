@@ -10,7 +10,7 @@
  * change donc jamais, et `memoByRef` (`state/sceneMemo.ts`, mémo par identité de référence) y serait
  * un cache qui ne s'invalide pas : ce patron-là suppose qu'une mutation rende une NOUVELLE réf, ce
  * que la couche donnée ne fait pas. Le témoin est la VERSION du dataset, posée par le seam d'écriture
- * lui-même (`memoParVersion`, `data/versionDataset.ts`, #1692) : une lecture n'y coûte plus qu'une
+ * lui-même (`memoParVersion`, `data/versionDataset.ts`, #1692) : une lecture y coûte seulement une
  * comparaison d'entiers, là où le témoin de CONTENU rebalayait les 25 entrées à chaque accès — et
  * `tileBlocksSight` en pose un par PAS DE RAYON.
  */
@@ -160,8 +160,8 @@ export function terrainMatiere(id: string): string | undefined {
  *
  *  Type par ACCÈS INDEXÉ sur `TerrainDef`, déjà importé ici : `DetailRecipe` vit dans
  *  `gameIso/detail/types.ts`, et la police de pureté state→gameIso (#161) ne refuse plus, depuis
- *  #1709, qu'une arête d'EXÉCUTION — un `import type` serait donc licite ; l'accès indexé n'économise
- *  plus qu'un second import. */
+ *  #1709, qu'une arête d'EXÉCUTION — un `import type` serait donc licite ; l'accès indexé économise
+ *  seulement un second import. */
 export function terrainDetail(id: string): NonNullable<TerrainDef['detail']> | null {
   const d = indexDesTerrains()[id]?.detail;
   return d && (d.tufts || d.speckle) ? d : null;

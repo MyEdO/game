@@ -1,6 +1,7 @@
 import { parseProject, exigerUnRefus, refusDeForme, type PROJECT_MIGRATIONS, type ProjectDoc } from './worldMap';
 import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
+import { ecrireDansBase, idbDisponible, lireDansBase, type BaseIdb } from '../lib/indexedDb';
 
 /** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
  *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
@@ -141,102 +142,25 @@ export interface IdbBackend {
   clear(): Promise<void>;
 }
 
-const DB = 'wfrp4-library';
 const STORE = 'projects';
-const IDB_OPEN_TIMEOUT_MS = 3000;
 
-/** Ouverture bas niveau de la connexion IndexedDB, injectable (`__setOpenIdbRequestForTest`) pour
- *  exercer en test le repli sur bloqué/délai sans navigateur réel (jsdom n'a pas `indexedDB`). */
-let openIdbRequest: () => IDBOpenDBRequest = () => indexedDB.open(DB, 1);
-let openIdbRequestOverridden = false;
+/** Montée de `wfrp4-library`. */
+export const upgradeBibliotheque: BaseIdb['upgrade'] = (db) => {
+  db.createObjectStore(STORE, { keyPath: 'id' });
+};
 
-export function __setOpenIdbRequestForTest(fn: (() => IDBOpenDBRequest) | null): void {
-  openIdbRequest = fn ?? (() => indexedDB.open(DB, 1));
-  openIdbRequestOverridden = fn !== null;
-}
+const BASE: BaseIdb = { nom: 'wfrp4-library', version: 1, upgrade: upgradeBibliotheque };
 
-/** `indexedDB` réellement disponible (navigateur), ou couture de test active (backend ou ouverture
- *  substitués) — dans les deux cas la couche IndexedDB doit être exercée plutôt que court-circuitée. */
+/** Backend substitué (`__setIdbBackendForTest`) : la couche IndexedDB est exercée même sans `indexedDB`. */
 let backendOverridden = false;
-
-function hasIdb(): boolean {
-  return backendOverridden || openIdbRequestOverridden || typeof indexedDB !== 'undefined';
-}
-
-/** N'attend jamais indéfiniment : un `open` qui ne déclenche ni succès/erreur ni `blocked` avant
- *  `IDB_OPEN_TIMEOUT_MS` (edge d'upgrade coincé) rejette quand même, pour que tout appelant retombe
- *  sur son repli localStorage plutôt que de geler `main.tsx` avant le premier rendu (#776). */
-function idb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = openIdbRequest();
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      reject(new Error('IndexedDB open : délai dépassé'));
-    }, IDB_OPEN_TIMEOUT_MS);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
-    req.onblocked = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(new Error('IndexedDB open : bloqué par une autre connexion ouverte'));
-    };
-    req.onsuccess = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(req.result);
-    };
-    req.onerror = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(req.error);
-    };
-  });
-}
 
 const realIdbBackend: IdbBackend = {
   async getAll() {
-    if (!hasIdb()) return [];
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const r = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
-      r.onsuccess = () => resolve(r.result as SavedProject[]);
-      r.onerror = () => reject(r.error);
-    });
+    return ((await lireDansBase(BASE, STORE, (m) => m.getAll())) as SavedProject[] | undefined) ?? [];
   },
-  async put(entry) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(entry);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async delete(id) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async clear() {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
+  put: (entry) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).put(entry); }),
+  delete: (id) => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).delete(id); }),
+  clear: () => ecrireDansBase(BASE, STORE, (tx) => { tx.objectStore(STORE).clear(); }),
 };
 
 /** Substitution de la couche IndexedDB entière, injectable (`__setIdbBackendForTest`) pour exercer en
@@ -428,7 +352,7 @@ function isSavedProject(e: unknown): e is SavedProject {
  */
 export async function initLibrary(): Promise<void> {
   try {
-    if (!hasIdb()) {
+    if (!backendOverridden && !idbDisponible()) {
       cache = readLocalStorage();
       return;
     }
@@ -573,5 +497,5 @@ export async function __resetLibraryForTest(): Promise<void> {
   } catch {
     // accès refusé : rien à nettoyer côté localStorage.
   }
-  await backend.clear().catch(() => { /* idb absent en jsdom */ });
+  await backend.clear();
 }

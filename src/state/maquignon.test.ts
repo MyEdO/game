@@ -18,7 +18,7 @@ const hero = (id: string, name: string): Combatant =>
 
 const maquignonScene = () => {
   const sc = emptyScene(4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, merchant: { archetype: 'maquignon' } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'maquignon' } } as never);
   return sc;
 };
 

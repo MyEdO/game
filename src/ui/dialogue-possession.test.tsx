@@ -21,7 +21,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const pnj: SceneEntity = { id: 'e1', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Alice' };
+const pnj: SceneEntity = { id: 'e1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Alice' };
 
 const dlg: Dialogue = {
   id: 'dlg-groupe',
@@ -40,7 +40,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 function monte(n: GameState['net']) {
-  useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], net: n, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'e1' } });
+  useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], net: n, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'e1', session: 1 } });
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);

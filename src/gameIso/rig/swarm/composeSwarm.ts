@@ -59,7 +59,7 @@ function resolveSwarm(species: string, view: View, pose: BonePose = {}, colors?:
   const form = formFor(species);
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<SwarmBoneId, Matrix>;
-  const tmap = buildTokenMap(form.stored, colors ?? {});
+  const tmap = buildTokenMap([form.palette], colors ?? {});
   return [{ id: 'corps', matrix: world.corps, scale: [1, 1], z: sk.corps.z, parts: [{ svg: applyTokenMap(heap(form, view), tmap), layer: 0 }] }];
 }
 

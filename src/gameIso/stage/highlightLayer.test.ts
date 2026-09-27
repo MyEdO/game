@@ -37,7 +37,7 @@ describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par l
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
     ally.wounds = { ...ally.wounds, current: ally.wounds.max - 3 }; // seul un blessé est soignable
-    const e1 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e1', { x: 7, y: 6 });
+    const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 6 });
     const battle = {
       combatants: [hero, ally, e1], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

@@ -14,6 +14,7 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
+import traitsJson from '../../traits.json';
 import { document, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
@@ -1131,6 +1132,13 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
       expect(JSON.stringify(res.error?.issues)).toMatch(new RegExp(`spec-hors-pool.*${type}s\\.json`));
     });
   }
+
+  it('trait : `entreeOuverte` suit le `specsOpen` de CHAQUE entrée de traits.json', () => {
+    const entrees = traitsJson as EntreeOuvrable[];
+    const ouvertes = entrees.filter((e) => e.specsOpen === true).map((e) => e.id);
+    expect(ouvertes.length).toBeGreaterThan(0);
+    expect(entrees.filter((e) => entreeOuverte('trait', e.id)).map((e) => e.id)).toEqual(ouvertes);
+  });
 
   it('« spec » XOR « choix » : jamais les deux, jamais aucun', () => {
     const r = specRef('skill');

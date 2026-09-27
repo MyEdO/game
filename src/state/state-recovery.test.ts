@@ -3,6 +3,7 @@ import { useGame } from './store';
 import type { Combatant } from '../engine/types';
 import { seedBattleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
+import { findConditionById } from '../data';
 
 function hero(p: Partial<Combatant>): Combatant {
   return {
@@ -42,7 +43,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     useGame.getState().battleRecoverState('en-flammes');
     const sr = useGame.getState().pendingStateRecovery!;
     expect(sr).not.toBeNull();
-    expect(sr.opposed).toBe(false);
+    expect(sr.opposition).toBeUndefined();
     expect(sr.skillLabel).toBe('Athlétisme');
     useGame.getState().recoverRoll();
     expect(useGame.getState().pendingStateRecovery!.roll).not.toBeNull();
@@ -62,8 +63,8 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     setBattle([h, src], 'h');
     useGame.getState().battleRecoverState('empetre');
     const sr = useGame.getState().pendingStateRecovery!;
-    expect(sr.opposed).toBe(true);
-    expect(sr.opponentName).toBe('Pieuvre');
+    expect(sr.opposition).toBeDefined();
+    expect(sr.opposition?.label).toBe('Pieuvre');
     useGame.getState().recoverRoll();
     // fige la victoire de l’acteur (F 80 ≫ F 20)
     useGame.setState({ pendingStateRecovery: { ...useGame.getState().pendingStateRecovery!, success: true, netSL: 0 } });
@@ -77,7 +78,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'empetre', value: 1, sourceId: 'parti' }] });
     setBattle([h], 'h'); // la source 'parti' n’est pas dans le combat
     useGame.getState().battleRecoverState('empetre');
-    expect(useGame.getState().pendingStateRecovery!.opposed).toBe(false);
+    expect(useGame.getState().pendingStateRecovery!.opposition).toBeUndefined();
     expect(useGame.getState().pendingStateRecovery!.skillLabel).toBe('Force');
   });
 
@@ -104,8 +105,19 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     setBattle([h], 'h'); // pas de source vivante dans le combat → sans escapeStrength, ce serait un Test simple
     useGame.getState().battleRecoverState('empetre');
     const sr = useGame.getState().pendingStateRecovery!;
-    expect(sr.opposed).toBe(true); // grâce à la Force d'entrave figée
-    expect(sr.opponentValue).toBe(55); // FM du lanceur, pas sa Force (25)
+    expect(sr.opposition).toBeDefined(); // grâce à la Force d'entrave figée
+    expect(sr.opposition?.value).toBe(55); // FM du lanceur, pas sa Force (25)
+    expect(sr.opposition?.label, 'sans source au combat, l’entrave est l’État lui-même (#1882)').toBe(findConditionById('empetre')!.label);
+  });
+
+  it('entrave figée d’une source HORS DE COMBAT : l’entrave porte le NOM de sa source (#1882)', () => {
+    const caster = enemy({ id: 'src', label: 'Liane', dead: true });
+    const h = hero({ id: 'h', conditions: [] });
+    applyOps(h, [{ op: 'condition', id: 'empetre', value: 1, escapeStrength: 40 }], { caster });
+    h.conditions.find((c) => c.id === 'empetre')!.sourceId = 'src';
+    setBattle([h, caster], 'h');
+    useGame.getState().battleRecoverState('empetre');
+    expect(useGame.getState().pendingStateRecovery!.opposition).toEqual({ value: 40, base: 40, label: 'Liane' });
   });
 
   it('escapeStrength PRIORITAIRE sur la Force de la source vivante', () => {
@@ -119,8 +131,8 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     setBattle([h, caster], 'h');
     useGame.getState().battleRecoverState('empetre');
     const sr = useGame.getState().pendingStateRecovery!;
-    expect(sr.opponentValue).toBe(30); // FM figée, PAS la Force 80 de la source vivante
-    expect(sr.opponentName).toBe('Liane'); // nom de la source si présente
+    expect(sr.opposition?.value).toBe(30); // FM figée, PAS la Force 80 de la source vivante
+    expect(sr.opposition?.label).toBe('Liane'); // nom de la source si présente
   });
 
   it('Filet (Zoo Impérial p.29) : échec du Test à seuil → entangleOnFail AGGRAVE (+1 État Empêtré)', () => {

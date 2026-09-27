@@ -40,6 +40,7 @@ import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type * as THREE from 'three';
 import { useGame } from '../../state/store';
+import { capDuGroupe } from '../../state/combatants';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { parseProject } from '../../state/worldMap';
@@ -364,8 +365,6 @@ interface Geste {
   agir: () => Promise<void>;
 }
 
-const meneur = (): string => useGame.getState().party[0]!.id;
-
 const BATTERIE: readonly Geste[] = [
   {
     nom: 'un pas',
@@ -386,7 +385,7 @@ const BATTERIE: readonly Geste[] = [
       await act(async () => { useGame.getState().togglePov(); });
       await attendreRepos('la bascule en première personne doit être servie avant le geste');
     },
-    témoin: () => String(useGame.getState().facing[meneur()] ?? '—'),
+    témoin: () => String(capDuGroupe(useGame.getState()) ?? '—'),
     agir: async () => { await act(async () => { useGame.getState().pivotParty(1); }); },
   },
   {

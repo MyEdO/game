@@ -24,7 +24,7 @@ import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
 import { CATEGORY_BY_SOURCE_KIND, type Difficulty, type EffectSource, type EffectSourceKind } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type-only (effacé à la compilation, comme `domainAttributes`/`ops` importent déjà `TriggeredEffect`) :
 // le nœud de Test imbriqué d'une entrée de table EST un nœud de Flow `test` — la STRUCTURE de logique
 // partagée du jeu (noyau engine `flowCore`, feuille EffectOp), exécutée cadence-aware par `runCombatFlow`.
@@ -70,7 +70,7 @@ export interface MiscastResult {
 /** Spécification d'un Test imbriqué d'une entrée de table (« Résistance Accessible (+20) ou Sonné » ;
  *  « échec à −4 DR ou moins → Inconscient EN PLUS »). Transformée en nœud de Flow `test` par `mkTest`. */
 interface NestedTest {
-  skill?: SkillRef;
+  skill?: RefDesignee;
   characteristic?: 'force-mentale';
   difficulty: Difficulty;
   /** Ops appliqués au lanceur sur un ÉCHEC du Test (« ou Sonné »). */
@@ -124,7 +124,7 @@ type JsonOp = {
   ignoreTB?: boolean;
   ignoreAP?: boolean;
   // castPenalty
-  skill?: SkillRef;
+  skill?: RefDesignee;
   mod?: number;
   blocked?: boolean;
   maxZeroDR?: boolean;
@@ -136,7 +136,7 @@ type JsonOp = {
 
 /** Spec d'un test imbriqué telle que stockée dans le JSON (même forme que `NestedTest`, en `JsonOp[]`). */
 interface JsonNestedTest {
-  skill?: SkillRef;
+  skill?: RefDesignee;
   characteristic?: string;
   difficulty: string;
   onFail: JsonOp[];

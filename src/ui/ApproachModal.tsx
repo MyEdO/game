@@ -24,7 +24,6 @@ export function ApproachModal() {
   const cancel = useGame((s) => s.approachCancel);
   if (!pa || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pa.combatantId);
-  const src = battle.combatants.find((x) => x.id === pa.sourceId);
   if (!c) return null;
   const r = pa.result;
   const rolled = !!r;
@@ -57,12 +56,12 @@ export function ApproachModal() {
       title={<><Icon id="flag/fear" size="sm" /> Affronter sa Peur</>}
       subtitle={
         <>
-          <strong>{c.label}</strong> ose approcher {src?.label ?? 'la source de sa Peur'} (Test de Calme +0)
+          <strong>{c.label}</strong> ose approcher {pa.sourceName} (Test de Calme +0)
         </>
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('fear', describeApproach(pa), c.id, src?.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('fear', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

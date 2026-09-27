@@ -55,7 +55,7 @@ function focusTarget(box: HTMLElement, mode: 'initial' | 'rescue'): HTMLElement 
   return choice ?? (primary?.getClientRects().length ? primary : null) ?? visibleFocusables(box)[0] ?? null;
 }
 
-/** @param kind libellé de DIAGNOSTIC de la couche empilée.
+/** @param kind identifiant STABLE de la surface empilée (`dismissStack`) — il n'entre dans aucun rang.
  *  @param actif le dialogue est-il RÉELLEMENT à l'écran. DISTINCT d'« annulable » : un composant monté
  *   en permanence (menu système fermé) ou qui rend `null` sous condition n'a AUCUNE couche — sans quoi il empilerait une couche fantôme qui mange le
  *   congédiement de toute la session. */
@@ -110,7 +110,7 @@ export function useModalA11y(
   // portal ajouté en fin de `body` mentait sur l'ordre d'ouverture. Sans `onClose`, la couche est
   // BLOQUANTE : elle consomme la touche sans rien fermer (un jet posé doit être résolu). Un `onClose`
   // qui rend `false` garde la couche à l'écran (congédiement PARTIEL, #1752).
-  useDismissLayer(kind, onClose ?? null, actif);
+  useDismissLayer(kind, 'modale', onClose ?? null, actif);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const box = boxRef.current;

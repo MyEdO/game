@@ -72,7 +72,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     const seed = seedYieldingMark();
     const H = setup();
     // Témoin AVANT : rien n'est possédé, aucun +DR.
-    expect(hasTalent(H, 'Empreint de Hysh')).toBe(false);
+    expect(hasTalent(H, 'empreint-de-hysh')).toBe(false);
     expect(talentTestSLBonus(H, { skill: 'recherche' })).toBe(0);
 
     seedBattleRng(seed);
@@ -80,7 +80,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     draineCascade(useGame.getState);
 
     const marque = live(H.id);
-    expect(hasTalent(marque, 'Empreint de Hysh')).toBe(true);
+    expect(hasTalent(marque, 'empreint-de-hysh')).toBe(true);
     expect(talentTestSLBonus(marque, { skill: 'recherche' })).toBe(1);
     expect(talentTestSLBonus(marque, { skill: 'natation' })).toBe(0);
     // La Marque est DÉFINITIVE : acquisition structurelle, pas un effet actif qui expire.

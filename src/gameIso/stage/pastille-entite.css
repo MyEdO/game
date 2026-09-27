@@ -1,0 +1,19 @@
+/* PASTILLE D'ENTITÉ (`stage/PastilleEntite.tsx`, spec HUD combat zone 4, #1411 P2-C) : le geste qu'une
+   chose du champ offre, posé au-dessus de son porteur dans le SVG du plateau (foreignObject). Cette
+   boîte n'est qu'un ANCRAGE : elle est TRANSPARENTE au pointeur (le SVG dessous reste cliquable et
+   survolable sur toute sa surface), seul le bouton le reçoit — et sa matière comme sa cible tactile
+   appartiennent à la primitive qui le pose (`GatedAction tactile` → `.btn-tactile`, base.css). */
+.pastille-entite {
+  display: flex;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto;
+  pointer-events: none;
+}
+.pastille-entite .btn {
+  pointer-events: auto;
+}
+.pastille-entite .pe-cost {
+  font-size: 0.8em;
+  opacity: 0.8;
+}

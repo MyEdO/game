@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -203,8 +203,8 @@ export interface CodexItem {
   tabs?: CodexTab[];
   /** Corps prose en **Markdown** (verbatim de la source), rendu par `<Prose>` (auto-liage des règles). */
   desc?: string;
-  /** Arbitrage MAISON de l'entrée (clé d'enveloppe `maison`, `grammaire/document.ts`) : la raison, en
-   *  clair, d'une valeur qu'aucun folio n'imprime. Projetée par `depuisEnveloppe` et rendue UNE fois
+  /** Raison MAISON de l'entrée (clé d'enveloppe `maison`, `grammaire/document.ts`) : en clair,
+   *  d'où vient une valeur qu'aucun folio n'imprime. Projetée par `depuisEnveloppe` et rendue UNE fois
    *  par `CodexEntry` — c'est la provenance des documents SANS livre (CLAUDE.md règle 7). */
   maison?: string;
   source?: CodexSource | null;
@@ -1505,7 +1505,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(fact('Portée', a.core ? 'Socle de base' : 'Axe de scénario')),
       sections: sections(
         a.skills?.length ? { title: 'Compétences', layout: 'chips', rows: a.skills.map((r) => idRefRow('skills', r.id, r.spec)) } : null,
-        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.talentId, r.spec)) } : null,
+        a.talents?.length ? { title: 'Talents', layout: 'chips', rows: a.talents.map((r) => idRefRow('talents', r.id, r.spec)) } : null,
       ),
     })),
   },
@@ -1830,7 +1830,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'calendarIntercalary', label: 'Calendrier — Jours intercalaires', group: 'Tables', cluster: 'Calendrier',
     build: () => calendarIntercalary.map((i) => depuisEnveloppe(i, {
-      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${calendarMonths[i.afterMonth]?.label ?? `mois ${i.afterMonth}`}`,
+      sub: i.afterMonth < 0 ? 'avant le 1ᵉʳ mois' : `après ${libelleOuAbsence(calendarMonths[i.afterMonth], 'mois', String(i.afterMonth))}`,
     })),
   },
   {
@@ -1865,7 +1865,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     })),
   },
   {
-    key: 'raceAppearance', label: 'Apparences (rig)', group: 'Tables', cluster: 'Création de personnage',
+    key: 'raceAppearance', label: 'Apparences', group: 'Tables', cluster: 'Création de personnage',
     build: () => raceAppearance.map((r) => ({
       id: r.id, label: r.label, sub: r.gabarit, appearance: { species: r.id },
       meta: facts(fact('Gabarit', r.gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),

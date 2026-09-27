@@ -6,7 +6,7 @@
 // `src/data/pregen-by-label-guard.test.ts` ET par un futur hook pre-commit. Même patron que
 // `hardcode.mjs`/`inBattleFind.mjs` (mécanique de détection ici, policy dans le test).
 
-/** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`/`inBattleFind.mjs`.
+/** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.
  * @param {string} src @returns {string} */
 export function stripComments(src) {
   return src

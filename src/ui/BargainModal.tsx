@@ -1,6 +1,6 @@
 import { useGame, type PendingBargain } from '../state/store';
 import type { Combatant } from '../engine/types';
-import { spawnEnemy } from '../state/spawn';
+import { sceneNpc } from '../state/sceneNpc';
 import { influencesLocally } from '../state/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { soutienMod, opposedLines } from './breakdown';
@@ -137,9 +137,8 @@ export function BargainModal() {
   useGame((s) => s.net);
   if (!pb) return null;
   const actor = party.find((c) => c.id === pb.playerId);
-  // Le marchand est une entité de scène → on en dérive un Combatant (portrait de la ligne adverse).
-  const ent = merchantState ? scene?.entities.find((e) => e.id === merchantState.entityId) : undefined;
-  const merchant = ent ? spawnEnemy(ent.ref, ent.statblock, ent.id, ent.pos, { appearance: ent.appearance }) : undefined;
+  // Le marchand est un PNJ de scène : sa fiche (portrait de la ligne adverse).
+  const merchant = merchantState ? sceneNpc(scene, merchantState.entityId) : undefined;
   // Le Marchandage se joue ENTIER par le siège du négociateur — MÊME prédicat que la validation
   // d'intent côté hôte (`intentAllowedFor` → `seatInfluences`) : afficher et agir répondent pareil.
   const owned = influencesLocally(useGame.getState(), pb.playerId);

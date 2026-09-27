@@ -68,6 +68,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `findTableEntry` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `baseTestMods` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `actorIn/inBattleId` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `estDebout/meneurDuMonde/meneurDeboutDuMonde/poserCapDuGroupe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `applyOps/GameOp` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `GameOpEditor` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `passiveMods` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -144,7 +145,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `LogDrawer` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `InspectPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `EquipmentPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `GameStage3D` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
+| `MondeDeCampagne` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `GameStage3D/SurcoucheIso` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
+| `PlaquesDeNom` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `PastilleEntite` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `StateChips` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `InitiativeStrip` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `PartyDock` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -153,6 +157,14 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `ouvrirBase/lireDansBase/ecrireDansBase` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -179,6 +191,9 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `LogDrawer` (src/ui/LogDrawer.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `InspectPanel` (src/ui/InspectPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `EquipmentPanel` (src/ui/EquipmentPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `MondeDeCampagne` (src/gameIso/stage/MondeDeCampagne.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `PlaquesDeNom` (src/gameIso/stage/PlaquesDeNom.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `PastilleEntite` (src/gameIso/stage/PastilleEntite.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `InitiativeStrip` (src/ui/InitiativeStrip.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `PartyDock` (src/ui/PartyDock.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ObjectiveBanner` (src/ui/ObjectiveBanner.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -189,7 +204,7 @@ Portée : fichiers top-level (hors `*.test.ts`) non atteints par la closure d'im
 manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système
 unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.
 
-17 fichier(s) :
+18 fichier(s) :
 
 - `src/engine/axes.ts`
 - `src/engine/mountedManeuvers.ts`
@@ -202,10 +217,11 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/devtools.ts`
 - `src/state/houseRules.ts`
 - `src/state/jumpMove.ts`
+- `src/state/noeudsDeTest.testkit.ts`
 - `src/state/offresUtilisables.ts`
 - `src/state/preferences.ts`
 - `src/state/registreOffres.ts`
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 843070f8ff923b04573f275e7d412770d4efa6d6 (1832 fichiers, 2 dossiers) corps: 27daa45f38725fadc9d67320a7549a251c564a6e -->
+<!-- sources-empreinte: 09c2f9292b0915136ffe29c13b291eb6c28ff338 (1844 fichiers, 2 dossiers) corps: b104d7d1b66ec4b4449a708a8ece8c860293e518 -->

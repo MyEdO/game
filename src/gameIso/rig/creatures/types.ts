@@ -21,6 +21,7 @@ import type { JabberProps } from '../jabberslythe/composeJabber';
 import type { CrabProps } from '../crustace/composeCrab';
 import type { FishProps } from '../fish/composeFish';
 import type { TheropodProps } from '../theropode/composeTheropod';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 export type CreatureBodyPlan =
   | 'biped' | 'quadruped' | 'winged'
@@ -33,7 +34,7 @@ export type CreatureBodyPlan =
 export interface CreaturePerso {
   tenue?: string;
   monster?: MonsterParts;
-  sex?: 'M' | 'F';
+  sex?: Sexe;
   parts?: { cheveux?: number; visage?: number };
   colors?: Palette;
   scale?: number;

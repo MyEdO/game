@@ -75,12 +75,13 @@ describe('corpus des SCÈNES — le contenu joué CONSOMME, ce qu\'il pose ne co
 
   it("l'id PROPRE d'une entité posée ne consomme RIEN — poser n'est pas citer", () => {
     // Témoin réel et HOMONYME : `arene-projet.json` pose un PERSONNAGE d'id `chaland` (un badaud,
-    // sans `ref`) ; `chaland` est par ailleurs une entrée de `vehicles.json` (une embarcation).
+    // dont la `ref` nomme sa fiche, #1882) ; `chaland` est par ailleurs une entrée de `vehicles.json`
+    // (une embarcation).
     const arene = JSON.parse(readFileSync(`${ROOT}src/scenes/arene/arene-projet.json`, 'utf8'));
     const pose = arene.scenes.flatMap((s: { entities?: { id: string; ref?: string }[] }) => s.entities ?? [])
       .find((e: { id: string }) => e.id === 'chaland');
     expect(pose, 'témoin VIDE : plus aucune entité posée ne porte l\'id `chaland` — rebaser le témoin sur une autre identité propre').toBeTruthy();
-    expect(pose.ref, 'témoin VICIÉ : cette entité porte désormais un `ref`, qui est une vraie citation').toBeUndefined();
+    expect(pose.ref, 'témoin VICIÉ : la `ref` de cette entité CITE désormais `chaland`, une vraie citation').not.toBe('chaland');
     expect(isConsumed(sceneCorpus, 'chaland')).toBe(false);
   });
 });

@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
-import type { SkillRef } from '../../engine/skills';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../engine/shipBuild';
 import { serializeDataset } from '../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, schemaForFile } from '../../data/schemas/validate';
@@ -30,14 +30,15 @@ import { NumberField } from '../NumberField';
 import { PlageField, type PlageValue } from '../PlageField';
 import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
+import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
-import { creatureSpeciesOptions, QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
-import { coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
+import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from './CreaturePreview';
 import { porteurDApercu } from './apercuPorteur';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -59,7 +60,7 @@ import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '
 import type { DiseaseSymptom } from '../../engine/disease';
 import type { CombatFeature } from '../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../data';
-import { skillRefLabel, talentRefLabel, type SkillRef as SkillRefLivre, type TalentRef } from '../../data';
+import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
 import type { SecondaryRef, Variant } from '../../data/schemas/grammaire/valeurs';
@@ -306,7 +307,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
   if (categoryKey === 'structures' || categoryKey === 'races') add('traits'); // {id,value?}[] → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
   if (categoryKey === 'crewRoles') add('skills'); // {id,spec?}[] → éditeur dédié (SkillSpecListField)
-  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[]/{talentId,spec?}[] → SkillSpecListField/TalentSpecListField
+  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {trappingId,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
   if (categoryKey === 'steamBreakdowns') add('restart'); // {skill:{id,spec?},difficulty,extendedDR?}[] → éditeur dédié
@@ -440,11 +441,17 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const [needsGrant, setNeedsGrant] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
+  const fsApi = fs.fsApiDisponible();
   // Refus de SCHÉMA (contrat de donnée #176) : message champ-par-champ (validateDataset) quand la donnée
   // sérialisée ne parse pas son schéma zod — l'écriture disque est bloquée. Effacé à toute ré-édition.
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  useEffect(() => { fs.restoreDataDir().then((r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } }); }, []);
+  useEffect(() => {
+    fs.restoreDataDir().then(
+      (r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } },
+      (e) => setMsg(`Échec de la reconnexion à src/data : ${String(e)}`),
+    );
+  }, []);
   useEffect(() => { setEntry(structuredClone(src.initial)); setDirty(false); setMsg(''); setSchemaError(null); }, [src]);
 
   // L'apparence (MonsterPartsFields) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
@@ -469,7 +476,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const isStructure = categoryKey === 'structures';
   // Rôle d'équipage (`crewRoles`, #157) : `skills` = {id,spec?}[] → éditeur dédié.
   const hasCrewSkills = categoryKey === 'crewRoles';
-  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[]/{talentId,spec?}[] → éditeurs dédiés
+  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[] → éditeurs dédiés
   // (SkillSpecListField, réutilisé tel quel côté Compétences ; TalentSpecListField, même patron côté Talents).
   const hasAxes = categoryKey === 'axes';
   // Traumatisme (`traumas`, #157) : `prosthesis` (prothèses annulatrices, LDB 73) = {trappingId,cancels}[].
@@ -613,7 +620,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
     setSchemaError(null);
     const text = serializeDataset(root);
     try {
-      if (fs.FS_API && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
+      if (fsApi && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
       else { fs.downloadFallback(src.file, text); setMsg(`Téléchargé ${src.file} — reposez-le dans src/data/`); }
       setDirty(false);
     } catch (e) { setMsg(`Échec : ${String(e)}`); }
@@ -622,10 +629,16 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   return (
     <div className="codex-edit">
       <div className="codex-edit-bar">
-        {!fs.FS_API && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
-        {fs.FS_API && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then((h) => { setDir(h); setNeedsGrant(false); }).catch(() => {})}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
-        {fs.FS_API && dir && needsGrant && <button className="btn small" onClick={() => dir && fs.grantPermission(dir).then((ok) => ok && setNeedsGrant(false))}>Autoriser l'écriture</button>}
-        {fs.FS_API && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
+        {!fsApi && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
+        {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
+          (h) => { if (h) { setDir(h); setNeedsGrant(false); } },
+          (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
+        )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
+        {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
+          (ok) => { if (ok) setNeedsGrant(false); },
+          (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
+        )}>Autoriser l'écriture</button>}
+        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
         <span className="de-spacer" />
         {msg && <span className="de-msg">{msg}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
@@ -646,6 +659,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
+            racine="critique"
             desc="jet de la rangée (nœud `test` — Difficulté, compétence, conséquences des deux branches)"
             value={entry.test as NoeudTest | undefined}
             onChange={(v) => edit('test', v)}
@@ -718,7 +732,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {hasConsumable && (
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
-            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }}
+            <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
@@ -783,7 +797,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
             <LignesFormatLivreField
               label="Compétences"
               hint="(une par ligne, format livre « Compétence (Spéc) Valeur » : « Langue (Magick) 63 », « Savoir (Au choix) 65 », « Métier (Armurier ou Forgeron) 50 », « Esquive 48 » — la valeur est le Test FINAL)"
-              value={refsEnLignes(entry.skills as SkillRefLivre[] | undefined, skillRefLabel)}
+              value={refsEnLignes(entry.skills as SkillRef[] | undefined, skillRefLabel)}
               onCommit={(t) => edit('skills', lignesEnRefs(t, parseSkillRef))}
             />
             <LignesFormatLivreField
@@ -798,9 +812,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
         {isStructure && <TraitListField label="Atouts" hint="(Résistant/Impénétrable — ADE II 8)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
         {isRace && <TraitListField label="Trait racial" hint="(#572 — Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
-        {hasCrewSkills && <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <TalentSpecListField value={entry.talents as { talentId: string; spec?: string }[] | undefined} onChange={(v) => edit('talents', v)} />}
+        {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasConsumable && <GenericArrayField noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
         {hasProsthesis && <ProsthesisField value={entry.prosthesis as { trappingId: string; cancels: 'all' | 'movement' }[] | undefined} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
@@ -861,8 +875,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   );
 }
 
-/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise la brique
- *  partagée `MonsterPartsFields` (espèce + parts/couleurs/coiffure/tenue/harnachement/yeux). Édite le VRAI record
+/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise les briques
+ *  partagées `ReglagesApparence` (espèce/sexe/carrure/coiffure) et `MonsterPartsFields` (parts/couleurs/
+ *  tenue/harnachement/yeux). Édite le VRAI record
  *  `creatures.json` ; le rig le lit comme couche de défaut → l'apparence en jeu reflète l'édition. */
 function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
@@ -872,22 +887,19 @@ function AppearanceField({ label, porteur, value, onChange }: { label: string; p
   const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
     <div className="ed-field ed-appearance">
-      <span>apparence par défaut (rig) — éditée sur le record, reflétée en jeu</span>
+      <span>apparence par défaut — éditée sur le record, reflétée en jeu</span>
       <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-      <label className="ed-subfield">
-        Espèce
-        <select value={a.species ?? ''} onChange={(e) => patch({ species: e.target.value || undefined })}>
-          <option value="">(par défaut : Humain)</option>
-          {creatureSpeciesOptions().map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </select>
-      </label>
-      <MonsterPartsFields
-        monster={a.monster} colors={a.colors} sex={a.sex} build={a.build} hairstyle={a.hairstyle} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
-        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
-        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
+      <ReglagesApparence
+        species={a.species} sex={a.sex} build={a.build} hairstyle={a.hairstyle}
+        onSpecies={(id) => patch({ species: id })}
         onSex={(s) => patch({ sex: s })}
         onBuild={(b) => patch({ build: b })}
-        onHairstyle={(id) => patch({ hairstyle: id })}
+        onHairstyle={(id) => patch(coiffureChoisie(id))}
+      />
+      <MonsterPartsFields
+        monster={a.monster} colors={a.colors} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
+        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
+        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
         onTenue={(c) => patch({ tenue: c })}
         onHarnais={quadrupede ? (id) => patch({ harnais: id }) : undefined}
         onEyes={(p) => patch({ eyes: { ...(a.eyes ?? {}), ...p } })}
@@ -930,13 +942,13 @@ function ConsumableDurationField({ value, onChange }: { value: ConsumableDuratio
 /** Éditeur des EFFETS d'un sort (`SpellData.effects`) — le `Flow` ÉDITABLE (do/si/test, feuilles
  *  EffectOp). Réutilise le `FlowEditor` de l'éditeur de scène (source UNIQUE de la logique authorée) :
  *  pose des effets mécaniques `on:'target'`/`on:'caster'`, des branches conditionnelles, des Tests. Écrit
- *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). `ctx` vide :
- *  un sort n'a pas d'encounters/dialogues de scène (les transitions/dialogues n'ont pas cours ici). */
+ *  le record `spells.json` au save → l'incantation en jeu lit ces effets (runCombatFlow). Racine de
+ *  CATALOGUE `sort` (`ctxDeCatalogue`) : ni encounters/dialogues de scène, et la table de cibles d'un sort. */
 function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onChange: (v: Flow) => void }) {
   return (
     <div className="ed-field">
       <span>effets du sort (Flow éditable — effets mécaniques, conditions, tests)</span>
-      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={onChange} />
+      <FlowEditor flow={value ?? EMPTY_FLOW} ctx={ctxDeCatalogue('sort')} onChange={onChange} />
     </div>
   );
 }
@@ -988,7 +1000,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={{ encounters: [], dialogues: [] }} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
@@ -1118,7 +1130,7 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
 /** Compétences d'un Rôle d'équipage (`crewRoles.skills`, MDG 14, #157) OU d'un axe de forces
  *  (`axes.skills`, #409) : `{id,spec?}[]` — plusieurs Compétences candidates possibles (`hint`
  *  précise la sémantique par appelant : « la meilleure retenue » pour un rôle, dérivation pour un axe). */
-function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: SkillRef[] | undefined; onChange: (v: SkillRef[]) => void; hint?: string }) {
+function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void; hint?: string }) {
   const list = value ?? [];
   const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1140,9 +1152,9 @@ function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au
   );
 }
 
-/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{talentId,spec?}[]` — MÊME patron
+/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]` — MÊME patron
  *  que `SkillSpecListField` (Compétences), sur le dataset `talents`. */
-function TalentSpecListField({ value, onChange }: { value: { talentId: string; spec?: string }[] | undefined; onChange: (v: { talentId: string; spec?: string }[]) => void }) {
+function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
   const list = value ?? [];
   const talentOpts = datasetArray('talents') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1151,15 +1163,15 @@ function TalentSpecListField({ value, onChange }: { value: { talentId: string; s
       <span>talents contribuant à l'axe (facultatif)</span>
       {list.map((s, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.talentId} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, talentId: e.target.value } : x)))}>
-            {!s.talentId && <option value="">— (choisir un talent) —</option>}
+          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
+            {!s.id && <option value="">— (choisir un talent) —</option>}
             {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { talentId: '' }])}>+ Talent</button>
+      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Talent</button>
     </div>
   );
 }
@@ -1467,7 +1479,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         ))}
       </div>
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
-      <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>

@@ -453,7 +453,7 @@ function nearest(enemyPos: Pt, heroes: Combatant[]): Combatant {
  * Un CANDIDAT d'action discrétionnaire (Lot 3 — moteur Utility à score pondéré).
  * `kind` = type d'action (sert au BIAIS de palier dans le départage : à utilité égale, on garde l'ordre
  * castArea < focus < cast < reload < shoot < melee < move — la cascade historique comme tie-break stable,
- * PAS comme priorité absolue : une utilité supérieure renverse désormais le palier). `utility` = somme
+ * PAS comme priorité absolue : une utilité supérieure renverse le palier). `utility` = somme
  * pondérée des heuristiques (plus HAUT = mieux). `targetId`/`coord` = départage déterministe final.
  */
 interface Candidate {
@@ -511,7 +511,7 @@ function argmax(cands: Candidate[]): Candidate | null {
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
   // Tenue de formation (#196) : Mouvement effectif plafonné à 0 → tout le reste de la fonction (approche,
-  // repositionnement/kiting, fallback anti-immobilisme) n'énumère plus que la case courante — un ennemi déjà
+  // repositionnement/kiting, fallback anti-immobilisme) énumère seulement la case courante — un ennemi déjà
   // adjacent (`inMelee`/`withinMelee`, testés sur `pos` SANS passer par `reach`) reste attaquable normalement.
   const movement = input.holdsFormation ? 0 : input.movement;
   const spells = input.spells ?? []; // absent (tests purs / fixtures sans sort) → aucun candidat de sort
@@ -812,7 +812,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // hors de portée de tir → ils CHARGEAIENT au contact au lieu de s'approcher à distance de tir (retour
   // playtest 2026-06-27 : « le chasseur charge à l'arme simple alors qu'il a une fronde »). La mêlée au
   // contact (cible adjacente) et le tir en portée restent gérés par `canShoot`/le candidat mêlée direct ;
-  // seule l'APPROCHE/REPOSITION d'un hybride hors de portée change (il vise désormais sa distance de tir).
+  // seule l'APPROCHE/REPOSITION d'un hybride hors de portée change (il vise sa distance de tir).
   const isShooterOrCaster = canCast || canShoot || hasAnyOffensiveSpell || hasRanged;
   // Empoignade (LDB 14 l.161) : Empoigné au DÉBUT de son tour, son Action EST le Test opposé de Force — une
   // créature Empoignée ne peut PAS prendre d'action normale (cast/tir/mêlée), son tour est VERROUILLÉ sur la

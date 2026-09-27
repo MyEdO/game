@@ -2,6 +2,7 @@
 // règle 6b) — toute écriture qui l'INTRODUIT exige sa confirmation explicite : ce dialogue EST la
 // validation. Opposable aux sessions ET aux sous-agents (aucune mémoire/discipline requise).
 import { readFileSync } from 'node:fs'
+import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 let raw = ''
 process.stdin.setEncoding('utf8')
@@ -9,6 +10,7 @@ for await (const chunk of process.stdin) raw += chunk
 
 let input = null
 try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
+const chemin = cheminDEcriture(input)
 
 const TAG = /\[entériné[^\]]*\]/i
 const tags = (s) => String(s ?? '').match(/\[entériné[^\]]*\]/gi) ?? []
@@ -26,7 +28,7 @@ function writeIntroduit(input) {
   if (typeof input.content !== 'string') return false
   const ecrits = tags(input.content)
   if (ecrits.length === 0) return false
-  const reste = tagsSurDisque(input.file_path)
+  const reste = tagsSurDisque(chemin?.reel)
   return ecrits.some((t) => {
     const i = reste.indexOf(t)
     if (i < 0) return true
@@ -42,7 +44,7 @@ const introduces = input && (
   (typeof input.new_string === 'string' && TAG.test(input.new_string) && !TAG.test(String(input.old_string ?? '')))
 )
 
-if (introduces) {
+if (introduces && !chemin?.horsContenu) {
   console.log(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'PreToolUse',

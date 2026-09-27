@@ -120,7 +120,7 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     }
     /** Référence PAR ID jusque dans la spécialisation (`specResolves`, #1342 L3). La sentinelle
      *  « au choix » reste admise : elle désigne un EMPLACEMENT, pas une spécialisation. Elle ne
-     *  peut plus arriver côté COMPÉTENCE (`skillRefSchema` = `refOuSpec('skill')`, dont
+     *  peut plus arriver côté COMPÉTENCE (`competenceChiffreeSchema` = `refOuSpec('skill', { value })`, dont
      *  `ref.ts#SENTINELLE_DE_SPEC` la refuse au parse) ; elle arrive ENCORE côté TALENT, où
      *  `talentRefSchema` (`grammaire/reference.ts`) n'a pas de régime `choix` — 12 sentinelles
      *  mesurées dans `creatures.json`, dont ces profils embarqués sont le patch partiel. Concept

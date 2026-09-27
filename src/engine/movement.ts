@@ -6,6 +6,16 @@ import { effectiveChar } from './characteristics';
 import { loseWounds, addCondition } from './conditions';
 import type { Combatant } from './types';
 import { rollTest, type TestResult } from './tests';
+import { effectiveMovement } from './encumbrance';
+
+/**
+ * Le plus PETIT Mouvement effectif (`effectiveMovement`) des membres fournis ; liste vide → 0, plancher
+ * 0. LDB 51 l.193. LOI UNIQUE, paramétrée par la LISTE : c'est l'APPELANT qui décide qui compte (le
+ * voyage prend les vivants, la portée de saut du groupe sa propre population). PUR.
+ */
+export function slowestMovement(membres: readonly Combatant[]): number {
+  return membres.length ? Math.max(0, Math.min(...membres.map((c) => effectiveMovement(c)))) : 0;
+}
 
 /**
  * Course (LDB 15 l.41) : « vous pouvez utiliser votre Action pour courir. Vous avez

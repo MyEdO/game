@@ -23,15 +23,22 @@ import {
   speciesTalentRandomCount,
   careerTalentOptions,
   pettySpellQuota,
-  specOptionsFor,
+  speciesSkillRefs,
+  speciesSkillPick,
+  withSpeciesSkillSpec,
+  withCareerSkillSpec,
+  speciesTalentChoiceEntries,
+  attendSaSpec,
+  probeHero,
   CAREER_CHAR_ADVANCES,
   CAREER_SKILL_ADVANCES,
   SPECIES_SKILLS_PLUS5,
   SPECIES_SKILLS_PLUS3,
 } from './draft';
-import { species, careersForSpecies, levelsForCareer, advancementLabel, spells } from '../../data';
+import { species, careersForSpecies, levelsForCareer, spells } from '../../data';
 import type { CharKey } from '../../engine/types';
-import { isUnresolvedChoice, splitTopLevelOu } from '../../engine/careerSlots';
+import { talentMaxReached } from '../../engine/careerSlots';
+import { designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
   if (draftSpecies(d)) return d;
@@ -77,59 +84,43 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   if (!sp) return d;
   let cur = d;
 
-  // 5a — Compétences de race : quotas + Spécialisations.
+  // 5a — Compétences de race : quotas + Spécialisations (1re libre du pool de l'emplacement).
   if (cur.speciesPlus5.length !== SPECIES_SKILLS_PLUS5 || cur.speciesPlus3.length !== SPECIES_SKILLS_PLUS3) {
-    const plus5 = sp.skills.slice(0, SPECIES_SKILLS_PLUS5).map((a) => advancementLabel('skills', a));
-    const plus3 = sp.skills.slice(SPECIES_SKILLS_PLUS5, SPECIES_SKILLS_PLUS5 + SPECIES_SKILLS_PLUS3).map((a) => advancementLabel('skills', a));
-    cur = { ...cur, speciesPlus5: plus5, speciesPlus3: plus3 };
+    const defauts = speciesSkillDefaults(sp);
+    cur = { ...cur, speciesPlus5: defauts.plus5, speciesPlus3: defauts.plus3 };
   }
-  let specChoices = { ...cur.specChoices };
-  for (const raw of [...cur.speciesPlus5, ...cur.speciesPlus3]) {
-    if (isUnresolvedChoice(raw) && !specChoices[raw]) {
-      const opt = specOptionsFor(raw)[0];
-      if (opt) specChoices[raw] = opt;
-    }
+  for (const ref of speciesSkillRefs(cur)) {
+    const retenue = speciesSkillPick(cur, ref);
+    if (retenue && attendSaSpec(retenue)) cur = withSpeciesSkillSpec(cur, ref, designer('skill', ref, undefined, libreDEspece(sp, ref, [...cur.speciesPlus5, ...cur.speciesPlus3].filter((r) => r !== retenue))).spec ?? '');
   }
-  cur = { ...cur, specChoices };
 
-  // Entrées d'espèce « A ou B » — première branche.
+  // Entrées d'espèce « A ou B » — première option.
   const speciesTalentChoices = { ...cur.speciesTalentChoices };
-  for (const ref of sp.talents) {
-    const entry = advancementLabel('talents', ref).trim();
-    const branches = splitTopLevelOu(entry);
-    if (branches.length > 1 && !speciesTalentChoices[entry]) speciesTalentChoices[entry] = branches[0];
-  }
+  for (const e of speciesTalentChoiceEntries(cur)) speciesTalentChoices[e.adresse] ??= 0;
   cur = { ...cur, speciesTalentChoices };
 
   if (speciesTalentRandomCount(cur) > 0 && !cur.talentsRolled) cur = rollDraftTalents(cur);
 
-  // 5b — Compétences de carrière : répartition égale des 40 Augmentations.
+  // 5b — Compétences de carrière : répartition égale des 40 Augmentations, 1re spécialisation libre des jokers dotés.
   if (careerAdvTotal(cur) !== CAREER_SKILL_ADVANCES) cur = { ...cur, skillAdvances: evenCareerSkillAdvances(cur) };
-  specChoices = { ...cur.specChoices };
-  for (const e of careerSkillEntries(cur)) {
-    const adv = cur.skillAdvances[e] ?? 0;
-    if (adv > 0 && isUnresolvedChoice(e) && !specChoices[e]) {
-      const opt = specOptionsFor(e)[0];
-      if (opt) specChoices[e] = opt;
-    }
+  for (const { adresse } of careerSkillEntries(cur)) {
+    const c = careerSkillEntries(cur).find((e) => e.adresse === adresse)!;
+    if (!c.designee && (cur.skillAdvances[c.cle] ?? 0) > 0) cur = withCareerSkillSpec(cur, c, designer('skill', c.ref, undefined, c.libre).spec ?? '');
   }
-  cur = { ...cur, specChoices };
 
-  // 5c — Talent de carrière : première option éligible (par entrée « (Au choix) »), puis 1ᵉʳ non-Maxi.
-  specChoices = { ...cur.specChoices };
-  for (const o of careerTalentOptions(cur)) {
-    if (o.choices && !o.selected) specChoices[o.entry] = o.choices[0];
-  }
-  cur = { ...cur, specChoices };
+  // 5c — Talent de carrière : première option dont le Maxi n'est pas atteint (1re spécialisation d'un joker).
   if (!cur.careerTalent) {
-    const pick = careerTalentOptions(cur).find((o) => o.selected && !o.maxed);
-    if (pick?.selected) cur = { ...cur, careerTalent: pick.selected };
+    const probe = probeHero(cur, false);
+    const pick = careerTalentOptions(cur)
+      .map((o) => o.selected ?? o.choices?.[0])
+      .find((t) => t && !talentMaxReached(probe, t.id, t.spec));
+    if (pick) cur = { ...cur, careerTalent: pick };
   }
 
   // Sorts de Magie mineure inclus au Talent : les N premiers.
   const quota = pettySpellQuota(cur);
   if (quota && cur.pettySpells.length !== quota) {
-    const minors = spells.filter((s) => s.family === 'mineure').map((s) => s.label);
+    const minors = spells.filter((s) => s.family === 'mineure').map((s) => s.id);
     cur = { ...cur, pettySpells: minors.slice(0, quota) };
   }
   return cur;

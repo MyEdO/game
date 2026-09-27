@@ -22,7 +22,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 function setup() {
   const hero = createHero({
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-    careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707),
+    careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
   });
   hero.spells = ['flechette'];
   useGame.setState({ party: [hero] });
@@ -44,7 +44,7 @@ function setup() {
   return { H, E };
 }
 
-/** Incantation FIGÉE du héros (réussie, non critique) : la fenêtre de Contre-sort n'a plus qu'un jet
+/** Incantation FIGÉE du héros (réussie, non critique) : la fenêtre de Contre-sort a seulement un jet
  *  à trancher — aucun aléa de l'incantation n'entre dans la différentielle. */
 function freezeHeroCast(H: Combatant, E: Combatant) {
   useGame.setState({
@@ -136,7 +136,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
 
   it('D — Sort ENNEMI (IA) : chaque contre-lanceur héros garde SA rangée, à SON siège', () => {
     useGame.getState().seedRng(3);
-    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(101) });
+    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(101) });
     w2.spells = ['flechette'];
     const { H, E } = setup();
     const b = useGame.getState().battle!;

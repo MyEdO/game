@@ -5,7 +5,7 @@ import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { trappings } from '../data';
 import type { Combatant, ItemInstance } from '../engine/types';
 
-/** Shim de test : libellé → instance par id (authoring). */
+/** Résolveur de test : libellé → instance par id (authoring). */
 const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id);
 
 /** Héros de test : cuir souple + maille PORTÉS (couches superposées), plate et cape au sac,

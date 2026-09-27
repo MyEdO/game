@@ -71,10 +71,10 @@ describe('opValue — CONTRÔLE (condition) = aiThreat de etats.json', () => {
 
 describe('opValue — INVOCATION', () => {
   it('summon ALLIÉ → > 0 (vaut la créature invoquée)', () => {
-    expect(opValue(op({ op: 'summon', ref: 'Loup', count: 1, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBeGreaterThan(0);
+    expect(opValue(op({ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBeGreaterThan(0);
   });
   it('summon HORS DE CONTRÔLE (allyOfCaster:false, démon non lié) → 0 pour le lanceur', () => {
-    expect(opValue(op({ op: 'summon', ref: 'Sanguinaire de Khorne', count: 1, allyOfCaster: false }), combatant(), combatant(), ctxOf())).toBe(0);
+    expect(opValue(op({ op: 'summon', ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }), combatant(), combatant(), ctxOf())).toBe(0);
   });
 });
 

@@ -35,7 +35,7 @@ import type {
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
-  victoryConditionSchema, wallClimbSchema, wallSegSchema, zoneAreaSchema,
+  victoryConditionSchema, wallClimbSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
 } from '../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
@@ -187,6 +187,13 @@ export interface SceneEntity {
     hiddenUntilCombat?: boolean;
   };
 }
+
+/** Un porteur de fiche d'entité PRÉSENT au moins — dérivé de `PORTEURS_DU_TYPE.personnage` (#1882),
+ *  patron de `PorteurDeFiche` (`engine/statblock.ts`) : l'absence de tous est irreprésentable. */
+type PorteurDEntite = (typeof PORTEURS_DU_TYPE)['personnage']['porteurs'][number];
+export type AuMoinsUnPorteurDeFiche = {
+  [K in PorteurDEntite]: Required<Pick<SceneEntity, K>> & Partial<Pick<SceneEntity, Exclude<PorteurDEntite, K>>>;
+}[PorteurDEntite];
 
 export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
@@ -851,32 +858,25 @@ function stripLegacyFoot(e: SceneEntity): SceneEntity {
 }
 
 /**
- * Complète les COLLECTIONS requises d'une Scène absentes sur un document ANCIEN (le schéma de
- * `ProjectDoc` — `worldMap.ts` `PROJECT_MIGRATIONS` — ne bump qu'aux ruptures de FORME du document ;
- * `Scene` a gagné des champs collection non-optionnels au fil du temps sans bump de schéma, un projet
- * sauvegardé avant ne les porte pas). Point d'entrée UNIQUE du chargement de projet (`parseProject`) :
- * jamais un `?? []` saupoudré côté consommateur (`validateScene` et le runtime supposent ces
- * collections présentes). Assainit aussi les FLOWS portés (triggers/dialogues/rencontres/entités) —
- * purge des nœuds `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement
- * absent reste rapportée par `validateScene`, jamais réparée en silence. PUR — ne mute pas `s`. */
+ * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
+ * sur `Scene`), et assainit les FLOWS portés (triggers/dialogues/rencontres/entités) — purge des nœuds
+ * `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement absent reste
+ * rapportée par `validateScene`, jamais réparée en silence. Appelée APRÈS la porte du schéma, par
+ * `parseProject` (`projetSchema`) et `migreSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
+ * un `?? []` saupoudré côté consommateur. PUR — ne mute pas `s`. */
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
-    // La scène S'ANNONCE (#1552) : un enregistrement du filet de crash (`state/editorAutosave.ts`,
-    // magasin SANS axe de version) écrit avant ce lot porte une `Scene` muette, que le
-    // « Restaurer » puis un « Enregistrer » recoucheraient telle quelle dans un projet en `schema`
-    // courant — donc SANS migration au rechargement, et refusée par `parseProject`.
-    type: 'scene',
-    layers: s.layers ?? emptyScene(s.dimensions?.w, s.dimensions?.h).layers,
+    layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
     entities: (s.entities ?? []).map((e) => stripLegacyFoot(
       e.usable?.actions
       ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
       : e)),
     dialogues: (s.dialogues ?? []).map((d) => ({
       ...d,
-      nodes: (d.nodes ?? []).map((n) => ({
+      nodes: d.nodes.map((n) => ({
         ...n,
-        choices: (n.choices ?? []).map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
+        choices: n.choices.map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
       })),
     })),
     triggers: (s.triggers ?? []).map((t) => ({ ...t, flow: sanitizeSceneFlow(t.flow) as Flow })),

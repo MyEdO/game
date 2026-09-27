@@ -158,7 +158,7 @@ est celle du document porteur, telle que `document()` la déclare.
 | `psychologie` | Psychologie | `src/data/traits.json` | dataset `traits` |
 | `psychologies` | États psychologiques | `src/data/psychology.json` | dataset `psychologies` |
 | `qualities` | Qualités | `src/data/qualities.json` | dataset `qualities` |
-| `raceAppearance` | Apparences (rig) | `src/data/raceAppearance.json` | dataset `raceAppearance` |
+| `raceAppearance` | Apparences | `src/data/raceAppearance.json` | dataset `raceAppearance` |
 | `races` | Races | `src/data/species.json` | dataset `species` |
 | `regles` | Règles de jeu | `src/data/regles.json` | aucune |
 | `reglesOptionnelles` | Règles optionnelles | `src/data/reglesOptionnelles.json` | dataset `reglesOptionnelles` |
@@ -320,4 +320,4 @@ Regrouper une catégorie = poser `cluster: '…'` sur son littéral dans `CODEX_
 - `npx vitest run src/ui/compendium/humanize.test.ts`
 - `npx vitest run src/data/schemas/exposition-contrats.test.ts`
 - `npx vitest run src/data/serialize.test.ts`
-<!-- sources-empreinte: 70a6dd5b552276a78518a1c4d4adc0d6cd331749 (775 fichiers, 0 dossiers) corps: 62ec4892a79d73383c85d22a9ad3fa1348735d9e -->
+<!-- sources-empreinte: d309b845159c97c309d5bcf3712eb5d6e880480a (780 fichiers, 0 dossiers) corps: 85a4b1e534df54918650b73f70e5e6ab4cc11c7b -->

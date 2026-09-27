@@ -1,6 +1,6 @@
 *Pages PDF 32-33*
 
-# <span id="page-31-0"></span>**HIGH ELVES**
+# <span id="page-31-0" data-folio="32"></span>**HIGH ELVES**
 
 High elves, who call themselves the Asur, are among the oldest civilisations in the world. Proud, cultured, and intensely disciplined, they use ritual and tradition to keep their soaring emotions in check and provide focus for their complicated intellects. They often seem aloof or arrogant to other species, and still harbour disdain for dwarfs after the terrible War of the Beard. Yet not all Asur are solemn nobles. Some revel in adventure, taking to the seas as mariners, traders, and diplomats. In particular, the adventurous 'sea elves' are often found trading with other species, and exploring the world's oceans.
 
@@ -44,21 +44,21 @@ Elves use their forename and an epithet translated into Reikspiel when travellin
 
 #### **High Elf Physical Characteristics**
 
-**Age:** 30 + 10d10 **Height:** 5'11" + 1d10"
+**Age:** 30 + 10d10
 
-**Eye colour:** Jet, Amethyst, Aquamarine, Sapphire, Turquoise,
+**Height:** 5'11" + 1d10"
 
-Emerald, Amber, Copper, Citrine, Gold
+**Eye colour:** Jet, Amethyst, Aquamarine, Sapphire, Turquoise, Emerald, Amber, Copper, Citrine, Gold
 
-**Hair colour:** Silver, White, Pale Blond, Blond, Yellow Blond,
-
-Copper Blond, Red Blond, Auburn, Red, Black
+**Hair colour:** Silver, White, Pale Blond, Blond, Yellow Blond, Copper Blond, Red Blond, Auburn, Red, Black
 
 ## **Fluent Languages**
 
 Take six Advances (+30) in both the Language (Elthárin) and Language (Reikspiel) Skills
 
-**Starting Skills** Add one Advance (+5) to any five of the following Skills: Cool, Entertain (Sing), Evaluate, Leadership, Melee (Basic), Navigation, Perception, Play (any one), Ranged (Bow), Sail, Swim
+## <span id="page-32-0" data-folio="33"></span>**Starting Skills**
+
+Add one Advance (+5) to any five of the following Skills: Cool, Entertain (Sing), Evaluate, Leadership, Melee (Basic), Navigation, Perception, Play (any one), Ranged (Bow), Sail, Swim
 
 #### **Starting Talents**
 

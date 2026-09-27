@@ -12,6 +12,6 @@ export const creature: CreatureDef = {
     // crocs plus grands en proportion) ; rouge sang mat (highlight discret, fini l'effet jouet),
     // contour/épines/sourcils presque noirs (méchant), pattes en corne sombre (plus « moignon brun »).
     sl: 0.85, girth: 0.82,
-    stored: { corps: '#a8200f', corpsO: '#3c0a04', corpsH: '#c44526', cheveux: '#5a1010', cheveuxO: '#3a0a0a', cuir: '#241910' },
+    palette: { corps: '#a8200f', corpsO: '#3c0a04', corpsH: '#c44526', cheveux: '#5a1010', cheveuxO: '#3a0a0a', cuir: '#241910' },
   },
 };

@@ -22,7 +22,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
 
   function setup() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(seed) });
+      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, rng: makeRNG(seed) });
       h.spells = ['flechette'];
       h.resilience = 1; // pour les tests de Résilience
       return h;

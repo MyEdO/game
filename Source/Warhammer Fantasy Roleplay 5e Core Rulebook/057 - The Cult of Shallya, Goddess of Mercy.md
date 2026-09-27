@@ -1,14 +1,12 @@
 *Pages PDF 210*
 
-# **THE CULT OF SHALLYA, GODDESS OF MERCY**
+# <span id="page-209-0" data-folio="210"></span>**THE CULT OF SHALLYA, GODDESS OF MERCY**
 
 **Seat of Power:** Couronne, Bretonnia
 
 **Head of the Cult:** Lisegund, Grande Matriarche
 
-**Primary Orders:** Order of the Bleeding Heart, Order of the
-
-Chalice
+**Primary Orders:** Order of the Bleeding Heart, Order of the Chalice
 
 **Major Festivals:** None
 
@@ -16,9 +14,7 @@ Chalice
 
 *The Testament of Pergunda*
 
-**Common Holy Symbols:** White doves, keys, heart with a drop
-
-of blood
+**Common Holy Symbols:** White doves, keys, heart with a drop of blood
 
 Shallya is the goddess of healing, mercy, and compassion. She is the daughter of Verena and Morr, and the sister of Myrmidia. Shallya is normally portrayed as a young, beautiful maiden whose eyes are perpetually welling with tears as she weeps for the world's pain. It is said Shallya's compassion knows no bounds, and in some myths — such as the stories of Ranald tricking her into granting him immortality, or Manann trapping her at the bottom of the sea — she seems trusting to the point of foolishness. However, her cultists maintain her mercy is available to all, without judgment. True foolishness consists of presuming to judge who is worthy of Shallya's grace and who is not.
 
@@ -35,6 +31,8 @@ The high temple of all Shallya's cult is in Couronne, Bretonnia, built over a fa
 #### **Penances**
 
 Penances set by Shallya always involve helping the sick, poor, or downtrodden. A cultist might be sent to a village struck by a plague to tend the sick until the disease has passed. Shallya often tasks her servants to help the wounded at war, or patrol popular pilgrimage routes for those unable to complete their journeys due to ill health.
+
+#### **Strictures**
 
 - Always render assistance without judgement, based only on a person's need.
 - Never kill, except in self-defence.

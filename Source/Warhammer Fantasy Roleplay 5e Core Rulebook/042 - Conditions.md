@@ -1,6 +1,6 @@
 *Pages PDF 184-187*
 
-# **CONDITIONS**
+# <span id="page-183-0" data-folio="184"></span>**CONDITIONS**
 
 Conditions represent the effects of things that can happen to you in the course of your adventures. The Conditions you suffer from can be recorded on a scrap sheet of paper, or you can use chits or counters to represent them. Each Condition explains how long any effects usually last in its description; however, it is possible the cause of a Condition — such as a Spell or Critical Wound — may override this.
 
@@ -32,7 +32,7 @@ You can also be subject to multiple, different Conditions at once. When this occ
 
 A Condition can be removed with a Fortune Point, so while they are debilitating, they can be managed if you are careful (see page 133).
 
-# **Master Condition List**
+# <span id="page-184-0" data-folio="185"></span>**Master Condition List**
 
 # **Ablaze**
 
@@ -66,7 +66,7 @@ Because of a powerful flash of light, blood in your eyes, or a terrible wound, y
 
 You are terrified, defeated, panicked, or otherwise convinced you are going to die. On your Turn, you must use your Move and Action to Flee (page 163) until you are in a good hiding place beyond the sight of any enemy; then you can use your Action on a Skill that allows you to hide more effectively. You also receive a -1 SL penalty to all Tests not involving running and hiding.
 
-You cannot Test to rally from being *Broken* if you are Engaged with an enemy (see page 163). If you are not Engaged, at the end of each Round, you may attempt a Cool Test. A success removes 1 *Broken* Condition, and one more for each SL after the first. If you spend a full Round hiding out of sight of any enemy, you lose 1 *Broken* Condition.
+<span id="page-185-0" data-folio="186"></span>You cannot Test to rally from being *Broken* if you are Engaged with an enemy (see page 163). If you are not Engaged, at the end of each Round, you may attempt a Cool Test. A success removes 1 *Broken* Condition, and one more for each SL after the first. If you spend a full Round hiding out of sight of any enemy, you lose 1 *Broken* Condition.
 
 # **Deafened**
 
@@ -78,7 +78,7 @@ You are wrapped in something restricting your movement; it could be ropes, spide
 
 If you have an *Entangled* Condition as a result of being caught up with something that doesn't have a Strength characteristic, refer to the **Strength of Materials** Table to decide the Strength to use in an opposed test.
 
-#### **STRENGTH OF MATERIALS**
+**STRENGTH OF MATERIALS**
 
 | Material         | Strength |
 |------------------|----------|
@@ -117,6 +117,8 @@ You have been struck about the head or otherwise disorientated or confused; your
 At the end of each Round, you may attempt a **Challenging (+0 SL) Endurance** Test. If successful, remove 1 *Stunned* Condition and one more for each SL after the first. Once all *Stunned*  Conditions are removed, gain 1 *Fatigued* Condition if you do not already have one.
 
 If you possess more *Stunned* Conditions than your Toughness Bonus, gain the *Unconscious* Condition.
+
+#### <span id="page-186-0" data-folio="187"></span>**Surprised**
 
 You have been caught unawares and you are not at all ready for what is about to hit you. You can take no Action or Move on your Turn and cannot defend yourself in Opposed Tests. Any opponent trying to strike you in melee gains a bonus of +2 SL.
 

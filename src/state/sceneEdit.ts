@@ -29,6 +29,7 @@ import {
   type SeatOccupant,
 } from './seating';
 import { METRES_PER_LEVEL } from './relief';
+import { typeNonNomme } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './buildings';
 import { decorEnCaseEtage } from './decorIndex';
 
@@ -664,11 +665,26 @@ export function seatOccupant(
   return res.ok ? { ...res, scene: normaliseAssises(res.scene, partySize) } : res;
 }
 
+/** Un patch d'authoring qui RETIRERAIT le type nommé d'une entité (`typeNonNomme`, #877, #1882). */
+export class TypeNonNomme extends Error {
+  constructor(absence: string) {
+    super(`patch refusé — ${absence}`);
+    this.name = 'TypeNonNomme';
+  }
+}
+
 /** Patch d'AUTHORING d'une entité (libellé, orientation, étage, ref, statblock…) : la seule porte
  *  d'écriture d'entité ouverte à `src/ui/**`. Traverse le seam — tourner ou monter d'un étage un
- *  meuble attablé recale ou lève ses places dans la MÊME mutation. */
+ *  meuble attablé recale ou lève ses places dans la MÊME mutation. Juge la TRANSITION du type
+ *  (`PORTEURS_DU_TYPE`) : un porteur avant, aucun après → `TypeNonNomme`, qui nomme l'entité. Une
+ *  entité déjà sans type reçoit tout patch ; sa faute est dite par `validateScene`. */
 export function editEntity(scene: Scene, id: string, patch: Partial<SceneEntity>): Scene {
-  return normaliseAssises(patchEntity(scene, id, patch), GROUPE_A_L_AUTHORING);
+  const avant = scene.entities.find((e) => e.id === id);
+  const patchee = patchEntity(scene, id, patch);
+  const apres = patchee.entities.find((e) => e.id === id);
+  const absence = avant && apres && !typeNonNomme(avant) ? typeNonNomme(apres) : undefined;
+  if (absence) throw new TypeNonNomme(absence);
+  return normaliseAssises(patchee, GROUPE_A_L_AUTHORING);
 }
 
 /** Idem pour le sous-objet `combat` (fusion non écrasante) — même porte, même seam. */

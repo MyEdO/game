@@ -36,11 +36,10 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
       if (diff !== 0) ops.push({ op: 'charMod', char: k, mod: diff });
     }
   }
-  // Traits standards de la créature SAUF ceux que leur entrée de registre déclare intransférables
-  // (`TraitData.nonTransferable`, LDB 48 l.23) — grantTrait par `TraitInstance` structuré (id + arg/indice).
+  // `TraitData.nonTransferable` (LDB 48 l.23) ; `grantTrait` porte `arg`, `value` → `indice` et `range` (LDB 85 l.209).
   for (const t of cr.traits ?? [])
     if (!findTraitById(t.id)?.nonTransferable)
-      ops.push({ op: 'grantTrait', traitId: t.id, ...(t.arg ? { arg: t.arg } : {}), ...(t.value != null ? { indice: t.value } : {}) });
+      ops.push({ op: 'grantTrait', traitId: t.id, ...(t.arg ? { arg: t.arg } : {}), ...(t.value != null ? { indice: t.value } : {}), ...(t.range != null ? { range: t.range } : {}) });
   ops.push({
     op: 'narrative',
     text: `${target.label} prend la forme d'un(e) ${cr.label} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme — arbitrage MJ.`,

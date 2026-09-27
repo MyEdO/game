@@ -15,7 +15,7 @@ import { timberOverlaySvg } from '../../authoring/detailSvg';
 import { TIMBER_V0, TIMBER_V1, expandRecipe } from '../../detail/expand';
 import { ISO_PX_PER_M } from '../../iso';
 import { structureAppearances } from '../../../data';
-import { parseHex } from '../../shade';
+import { parseHex, srgbToLinear } from '../../shade';
 import type { DetailRecipe } from '../../detail/types';
 
 /** La def d'apparence à COLOMBAGE de la donnée — la cuisson tire d'elle sa couleur de bois. */
@@ -37,12 +37,7 @@ const facteurs = (b: { data: Uint8Array; w: number; gain: number }, x: number, y
   return [0, 1, 2].map((c) => (b.data[i + c] / 255) * b.gain) as [number, number, number];
 };
 
-/** Transfert sRGB ⇄ linéaire (octet 0–255 ⇄ valeur linéaire), celui que three applique aux couleurs de
- *  sommet et à la sortie du rendu. */
-const srgbToLinear = (octet: number): number => {
-  const u = octet / 255;
-  return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
-};
+/** Inverse de `srgbToLinear` (valeur linéaire → sRGB 0–1). */
 const linearToSrgb = (v: number): number => (v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055);
 
 /** Luminance moyenne d'une colonne de pixels du masque, sur la bande de lignes `[y0, y1[`. */

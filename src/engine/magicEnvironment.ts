@@ -68,7 +68,7 @@ function scopeMatches(
 }
 
 /** Les Vents déclarés par le site RESTREIGNENT le modificateur qui porte `windRestricted`
- *  (`VDM 14` l.161) : il ne vaut plus que pour ces Domaines. Un modificateur sans ce drapeau est
+ *  (`VDM 14` l.161) : il vaut seulement pour ces Domaines. Un modificateur sans ce drapeau est
  *  insensible aux Vents du site — une portée fermée ne s'ouvre JAMAIS par cette voie. */
 function windRestrictionHolds(
   mod: PhenomenonTestMod,

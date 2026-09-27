@@ -10,7 +10,7 @@
 // O, l'ensemble des chiffres d'onglet d'un fichier, se tire de la DONNÉE `onglets` de sa liste de
 // découpe (`scripts/raw/decoupes/<id>.json`), jamais d'une devinette.
 import characteristics from '../../../src/data/characteristics.json' with { type: 'json' }
-import { cellulesDe, estSeparateur } from '../../../src/data/source/decoupe.ts'
+import { cellulesDe, estSeparateur, stripSpans } from '../../../src/data/source/decoupe.ts'
 import { nomsDeLaListe } from '../_lib.mjs'
 import { EXEMPTIONS_MOBILIER } from '../../guards/lib/mobilierExemptions.mjs'
 
@@ -37,11 +37,14 @@ const horsGras = (ligne) => ligne.replace(/\*\*[^*]*\*\*/g, (m) => ' '.repeat(m.
 
 /**
  * Sites de mobilier d'un texte — PUR. `O` = chiffres d'onglet du fichier ; `folios` = `[lo, hi]`
- * des nombres qu'une ligne seule peut porter comme folio.
- *  (a) une ligne réduite à un élément de O (`romain-seul`), ou à un nombre de `folios` (`folio-nu`) ;
- *  (b) un élément de O comme MOT ISOLÉ hors gras (`mot`, avec sa position `debut`) — mot = suite
+ * des nombres qu'une tête de ligne peut porter comme folio.
+ *  (a) une ligne réduite à un élément de O (`romain-seul`) ;
+ *  (b) une tête de ligne (après ses `#`) faite de 1 à 3 nombres, TOUS de `folios` (le folio seul, la
+ *      paire d'une double page) : un site par nombre, à sa position `debut` — `folio-nu` si rien ne
+ *      les suit, `folio-tete` s'ils précèdent du texte ;
+ *  (c) un élément de O comme MOT ISOLÉ hors gras (`mot`, avec sa position `debut`) — mot = suite
  *      sans blanc ni `|` ; les cellules d'en-tête d'une table de PROFIL sont exclues.
- * @returns {{ ligne: number, classe: 'romain-seul'|'folio-nu'|'mot', jeton: string, debut?: number, texte: string }[]}
+ * @returns {{ ligne: number, classe: 'romain-seul'|'folio-nu'|'folio-tete'|'mot', jeton: string, debut?: number, texte: string }[]}
  */
 export function sitesDeMobilier(texte, { O, folios, abreviations = ABREVIATIONS }) {
   const out = []
@@ -50,9 +53,14 @@ export function sitesDeMobilier(texte, { O, folios, abreviations = ABREVIATIONS 
     const t = l.trim()
     const site = { ligne: i + 1, texte: l }
     if (O.has(t)) { out.push({ ...site, classe: 'romain-seul', jeton: t }); return }
-    if (/^\d{1,3}$/.test(t)) {
-      if (+t >= folios[0] && +t <= folios[1]) out.push({ ...site, classe: 'folio-nu', jeton: t })
-      return
+    const tete = /^(\s*(?:#{1,6} +)?)((?:\d{1,3} +){0,2}\d{1,3})(?=\s|$)/.exec(l)
+    const seul = tete && !l.slice(tete[0].length).trim()
+    if (tete) {
+      const nombres = [...tete[2].matchAll(/\d+/g)]
+      if (nombres.every((n) => +n[0] >= folios[0] && +n[0] <= folios[1])) {
+        for (const n of nombres) out.push({ ...site, classe: seul ? 'folio-nu' : 'folio-tete', jeton: n[0], debut: tete[1].length + n.index })
+      }
+      if (seul) return
     }
     if (estEnTeteDeProfil(lignes, i, abreviations)) return
     for (const m of horsGras(l).matchAll(/[^\s|]+/g)) {
@@ -62,13 +70,15 @@ export function sitesDeMobilier(texte, { O, folios, abreviations = ABREVIATIONS 
   return out
 }
 
-/** Sites d'UN fichier de la liste de découpe, O tiré de `onglets` sur sa fenêtre. PURE. */
+/** Sites d'UN fichier de la liste de découpe, O tiré de `onglets` sur sa fenêtre ; ses folios, de
+ *  `page - 1` (folio de gauche de la double page où il s'ouvre) à `pageFin + 1`. PURE. */
 export const sitesDuFichier = (texte, entree, onglets) =>
-  sitesDeMobilier(texte, { O: chiffresDes(onglets, fenetreDe(entree)), folios: [entree.page, entree.pageFin + 1] })
+  sitesDeMobilier(texte, { O: chiffresDes(onglets, fenetreDe(entree)), folios: [entree.page - 1, entree.pageFin + 1] })
 
-/** L'exemption d'une LIGNE : celle du même fichier dont le motif tient au texte, ou `null`. PURE. */
+/** L'exemption d'une LIGNE : celle du même fichier dont le motif tient au texte (ancres de page
+ *  ôtées), ou `null`. PURE. */
 export const exemptionDe = (texte, fichier, exemptions) =>
-  exemptions.find((e) => e.fichier === fichier && e.motif.test(texte)) ?? null
+  exemptions.find((e) => e.fichier === fichier && e.motif.test(stripSpans(texte))) ?? null
 
 /**
  * Pose les exemptions sur les sites d'UN fichier — PUR. Une exemption couvre, sur sa ligne, ses

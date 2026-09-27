@@ -38,8 +38,11 @@ const SCRIPT_1715 = '2026-09-09-1715-roof-defaults-scenes.mjs';
 const SCRIPT_1687 = '2026-09-10-1687-usable-sieges.mjs';
 const SCRIPT_1687_ACTIONS = '2026-09-11-1687-actions-authorees.mjs';
 const SCRIPT_877 = '2026-09-21-877-ref-de-decor-nommee.mjs';
-const SCRIPT_1897 = '2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs';
+const SCRIPT_1882 = '2026-09-23-1882-fiche-de-personnage-nommee.mjs';
+const SCRIPT_1882_REFS = '2026-09-24-1882-refs-vivantes-semees.mjs';
+const SCRIPT_1897 = '2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs';
 const SCRIPT_1897_FUSIONS = '2026-09-24-1897-projet-sorts-fusionnes.mjs';
+const SCRIPT_1473 = '2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs';
 
 /** La CHAÎNE du format projet, DÉRIVÉE du dossier : tout script daté qui lit le `schema` d'un
  *  `<campagne>-projet.json`, dans l'ordre lexical du rejeu (`scripts/migrations/replay.mjs`). */
@@ -69,12 +72,15 @@ const CIBLE = 'src/scenes/camp/camp-projet.json';
 
 /** Joue `script` sur un dépôt jetable portant `doc` (`scripts/migrations/lib/joue.mjs`) ; rend le code
  *  de sortie, la sortie (le MOTIF d'un refus : deux refus distincts sortent tous deux 1) et l'état
- *  APRÈS. `src/data/props.json` (les TYPES de décor à places, lus par `2026-09-10-1687-usable-sieges.mjs`)
- *  et `src/data/sortsFusionnes.ts` (la primitive importée par `2026-09-24-1897-projet-sorts-fusionnes.mjs`)
+ *  APRÈS. `src/data/props.json` (les TYPES de décor à places, lus par `2026-09-10-1687-usable-sieges.mjs`),
+ *  `src/data/species.json` (les PROFILS STANDARD lus par `2026-09-23-1882-fiche-de-personnage-nommee.mjs`),
+ *  `src/data/creatures.json` et `src/data/vehicles.json` (la réf. SEMÉE lue par `2026-09-24-1882-refs-vivantes-semees.mjs`)
+ *  `src/data/sortsFusionnes.ts` (la primitive importée par `2026-09-24-1897-projet-sorts-fusionnes.mjs`)
+ *  et `src/data/graphieOpsDeTalent.ts` (celle de `2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`)
  *  sont des ENTRÉES déclarées de la chaîne : le dépôt les porte, sinon le script mourrait sur un fichier
  *  absent au lieu de rendre le refus qu'on mesure. */
 function joue(script: string, doc: Record<string, unknown>): { code: number | null; err: string; avant: string; apres: string } {
-  const d = depot({ [CIBLE]: serialise(doc, FORME_PROJET) }, ['src/data/props.json', 'src/data/sortsFusionnes.ts']);
+  const d = depot({ [CIBLE]: serialise(doc, FORME_PROJET) }, ['src/data/props.json', 'src/data/species.json', 'src/data/creatures.json', 'src/data/vehicles.json', 'src/data/sortsFusionnes.ts', 'src/data/graphieOpsDeTalent.ts']);
   try {
     const { code, sortie } = jouerDans(d.racine, script);
     return { code, err: sortie, avant: d.avant.get(CIBLE) ?? '', apres: lireDans(d.racine, CIBLE) };
@@ -126,7 +132,7 @@ describe(`${SCRIPT_13} — le bump de forme 4 → 5 (aplatissement de la poche \
   it('t6. RATTRAPAGE : un `schema` FUTUR, avalé par TOUTES les amont, est REFUSÉ par la DERNIÈRE de la chaîne', () => {
     // La DÉRIVATION couvre la chaîne connue : un script qui perdrait sa marque sortirait du banc en
     // silence, et la « dernière » dérivée mentirait.
-    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877, SCRIPT_1897, SCRIPT_1897_FUSIONS]));
+    expect(CHAINE).toEqual(expect.arrayContaining([SCRIPT_3I, SCRIPT_13, SCRIPT_15B, SCRIPT_1552, SCRIPT_1691, SCRIPT_1715, SCRIPT_1687, SCRIPT_1687_ACTIONS, SCRIPT_877, SCRIPT_1882, SCRIPT_1882_REFS, SCRIPT_1897, SCRIPT_1897_FUSIONS, SCRIPT_1473]));
     const schemaFutur = SCHEMA_PROJET + 1;
     // Un TYPE de décor à places, LU au catalogue : sans entité à places, `SCRIPT_1687` s'arrête sur
     // un périmètre vide au lieu de mesurer sa borne.
@@ -311,6 +317,33 @@ describe(`${SCRIPT_15B} — le bump 5 → 6 (\`label\` de scène/carte, statbloc
     expect((apres15b.scenes as Record<string, unknown>[])[0].label).toBe('Une salle');
     // La CONDITION que la prose énonce : le tri des NOMS suit l'ordre des bumps.
     expect([SCRIPT_3I, SCRIPT_13, SCRIPT_15B].slice().sort()).toEqual([SCRIPT_3I, SCRIPT_13, SCRIPT_15B]);
+  });
+});
+
+describe('la QUEUE de la chaîne (#1882, #1897, #1473) — l’ordre lexical suit l’ordre des bumps 13 → 17', () => {
+  it('un document au format 13 traverse, DANS l’ordre du rejeu, chaque migration qui suit la 1882 et sort au format courant', () => {
+    const queue = CHAINE.slice(CHAINE.indexOf(SCRIPT_1882) + 1);
+    expect(queue).toEqual([SCRIPT_1882_REFS, SCRIPT_1897, SCRIPT_1897_FUSIONS, SCRIPT_1473]);
+    const creature = (JSON.parse(lireArbre('src/data/creatures.json')) as { id: string }[])[0].id;
+    let doc: Record<string, unknown> = {
+      type: 'projet', schema: 13, id: 'camp', label: 'C', versionContenu: 1, maison: 'fixture',
+      narratif: { affaires: [], indices: [], presetsPnj: [{ id: 'sorcier', base: 'squelette', profil: { spells: [{ id: 'alarme' }] } }], objets: [] },
+      scenes: [{ type: 'scene', id: 's1', label: 'Une salle', triggers: [
+        { id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: '' } }] } } },
+        { id: 'autel', flow: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'grantTalent', talentId: 'chanceux' }, { op: 'grantTalent', talentId: 'sens-aiguise', spec: 'odorat' }] } } },
+      ] }],
+    };
+    for (const script of queue) {
+      const r = joue(script, doc);
+      expect(r.code, `${script} : ${r.err.slice(0, 600)}`).toBe(0);
+      doc = JSON.parse(r.apres) as Record<string, unknown>;
+    }
+    expect(doc.schema).toBe(SCHEMA_PROJET);
+    expect(doc.narratif).toEqual({ affaires: [], indices: [], presetsPnj: [{ id: 'sorcier', base: 'squelette', profil: { spells: ['alerte'] } }], objets: [] });
+    expect(doc.scenes).toEqual([{ type: 'scene', id: 's1', label: 'Une salle', triggers: [
+      { id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: creature } }] } } },
+      { id: 'autel', flow: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'grantTalent', talent: { id: 'chanceux' } }, { op: 'grantTalent', talent: { id: 'sens-aiguise', spec: 'odorat' } }] } } },
+    ] }]);
   });
 });
 

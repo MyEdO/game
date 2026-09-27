@@ -8,7 +8,7 @@ import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
 import { norm as wnorm } from './weaponForms';
 import { findTrappingById } from '../../../data';
-import { buildTokenMap, applyTokenMapArt } from '../palette';
+import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
 /** Contexte d'équipement extrait d'un Combatant (le rendu lit l'engine — direction permise). */
 export interface EquipCtx {
@@ -74,11 +74,10 @@ export function weaponFamily(w: Weapon): string {
  * lisibilité de l'audit aveugle sont déjà bakées dans chaque def). `epee` (forme générique, repli
  * du Groupe `base` via `ART_BY_GROUP` + défaut final de `weaponPart`) est une def comme les autres.
  */
-// Art des formes RÉSOLU @défaut (palette `stored` du def). `applyTokenMapArt` est un no-op tant
-// que l'art ne contient pas de `@tokens` (armes non encore tokenisées) → sûr avant/après. Relevé sur
-// `PartArt` : préserve un art DIRECTIONNEL (front/dos/profil de l'épée) verbatim.
+// Art des formes RÉSOLU par la table d'OBJET du def (`tableDObjet`) : les clés porteur restent en
+// jeton pour la passe du porteur. Relevé sur `PartArt` : préserve un art DIRECTIONNEL verbatim.
 const FORM_ART: Record<string, PartArt> = Object.fromEntries(
-  WEAPON_DEFS.map((d) => [d.slug, applyTokenMapArt(d.art, buildTokenMap(d.palette ?? {}))]),
+  WEAPON_DEFS.map((d) => [d.slug, applyTokenMapArt(d.art, tableDObjet([d.palette ?? {}]))]),
 );
 const FORM_DEF = new Map(WEAPON_DEFS.map((d) => [d.slug, d]));
 const WEAPONS: Record<string, PartArt> = FORM_ART;
@@ -89,7 +88,7 @@ export function weaponPart(w: Weapon): PartArt {
   // SKIN d'objet légendaire : re-résout l'art du def contre SA palette + l'override d'instance
   // (≠ tenues qui suivent la palette du PORTEUR). Sans skin → art @défaut précalculé.
   const def = w.skin ? FORM_DEF.get(f) : undefined;
-  if (def) return applyTokenMapArt(def.art, buildTokenMap(def.palette ?? {}, w.skin));
+  if (def) return applyTokenMapArt(def.art, tableDObjet([def.palette ?? {}], w.skin));
   return WEAPONS[f] ?? WEAPONS.epee;
 }
 
@@ -98,9 +97,10 @@ export function weaponPart(w: Weapon): PartArt {
  *  libellé ; repli = le def marqué `fallback` (rondache). Plus aucun SVG ni tableau en dur ici. */
 const SHIELD_BY_SLUG = new Map(SHIELD_DEFS.map((d) => [d.slug, d]));
 const SHIELD_FALLBACK = SHIELD_DEFS.find((d) => d.fallback) ?? SHIELD_DEFS[0];
+const TABLE_BOUCLIER = tableDObjet([]);
 export function shieldPart(x: Weapon | ItemInstance): PartArt {
   const d = (x.shape ? SHIELD_BY_SLUG.get(x.shape) : undefined) ?? SHIELD_FALLBACK;
-  return d.art;
+  return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 
 /** Matériau inféré du nom (sinon palier de PA). Cuir AVANT plaque (« Plastron de cuir »). */
@@ -138,6 +138,13 @@ export function armourPart(item: ItemInstance, slot: Slot): PartArt | null {
   // Les 4 matériaux couvrent tete/torse/bras/jambes ; pour un slot qu'aucun def ne dessine (pied/main/cou),
   // art est absent → null, et la zone retombe sur son repli de chair (resolve.ts).
   return art
-    ? applyTokenMapArt(art, buildTokenMap(ARMOUR_PALETTES[mat] ?? {}, item.skin as Record<string, string> | undefined))
+    ? applyTokenMapArt(art, tableDObjet([ARMOUR_PALETTES[mat] ?? {}], item.skin as Record<string, string> | undefined))
     : null;
+}
+
+const TABLE_PORTEUR_DEFAUT = buildTokenMap([]);
+/** Rendu d'un OBJET SANS PORTEUR (icône, galerie) : la part d'arme, d'armure ou de bouclier passée
+ *  par la table du porteur PAR DÉFAUT (#1903 D2), qui résout ses clés porteur. */
+export function objetSansPorteur(art: PartArt): PartArt {
+  return applyTokenMapArt(art, TABLE_PORTEUR_DEFAUT);
 }

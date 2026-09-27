@@ -25,7 +25,7 @@ export const EXEMPTIONS_MOBILIER = [
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^Great care should therefore be taken even when mildly touching/, jetons: 1, raison: PRONOM },
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^Though the signs of these dark powers may be plain enough/, jetons: 1, raison: PRONOM },
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^The most dangerous of these deviants scheme to recruit/, jetons: 1, raison: PRONOM },
-  { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^conspiracies that the diligent watch lacks the time to address/, jetons: 1, raison: PRONOM },
+  { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^The indomitable spirit of commerce leads canny merchants/, jetons: 1, raison: PRONOM },
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^And so, to our restless young people who want to contribute/, jetons: 1, raison: PRONOM },
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/004 - Introduction.md', motif: /^Before you cry that I offer medicine/, jetons: 3, raison: PRONOM },
   { fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/011 - High Elves.md', motif: /After the death of Caledor II in/, jetons: 1, raison: 'nom de règne « Caledor II », mot du livre' },

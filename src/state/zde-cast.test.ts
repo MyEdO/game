@@ -47,9 +47,9 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     const w = wiz();
     w.pos = { x: 2, y: 2 };
     w.characteristics['force-mentale'] = 40; // BFM 4 → ZdE diamètre 4 m → rayon 1 case ; portée (FM) m → 20 cases
-    const e1 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e1', { x: 6, y: 6 });
-    const e2 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e2', { x: 7, y: 6 });
-    const e3 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e3', { x: 12, y: 12 }); // hors zone
+    const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 6, y: 6 });
+    const e2 = spawnEnemy({ ref: 'brigand' }, 'e2', { x: 7, y: 6 });
+    const e3 = spawnEnemy({ ref: 'brigand' }, 'e3', { x: 12, y: 12 }); // hors zone
     const battle = {
       combatants: [w, e1, e2, e3], order: [w.id, 'e1', 'e2', 'e3'], baseOrder: [w.id, 'e1', 'e2', 'e3'],
       turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),

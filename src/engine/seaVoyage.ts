@@ -17,13 +17,14 @@
  *  - Cargaisons (l.402-436) : type au d100 PAR SAISON, prix de base par saison (Vin : 3d10 CO).
  */
 import seaEventsJson from '../data/sea-events.json';
+import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, roll as rollDice, type RNG, defaultRNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -86,7 +87,7 @@ const CARGO = seaCargoJson as unknown as {
   };
   opportunite: {
     investMaxEnc: boolean;
-    test: { skill: SkillRef; difficulty: Difficulty; totalDR: number; maxAttempts: number };
+    test: { skill: RefDesignee; difficulty: Difficulty; totalDR: number; maxAttempts: number };
     outcomes: { on: 'success' | 'failure'; minMissing?: number; minExtraDR?: number; pct: number }[];
   };
 };
@@ -144,7 +145,7 @@ export function cargoOverload(enc: number, capacity: number): CargoOverload {
   return {
     ratioPct: Math.round(ratio * 100),
     palierId: chosen?.id ?? null,
-    label: chosen?.label ?? 'Charge nominale',
+    label: chosen ? chosen.label : t('cargo.chargeNominale'),
     mMod: chosen?.mMod ?? 0,
     manoeuvreDR: chosen?.manoeuvreDR ?? 0,
     canSail: ratio <= OVERLOAD_HARD_CAP_PCT / 100,

@@ -5,14 +5,16 @@
 import { Combatant, Characteristics, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
-import { findCreatureById, byId, findTalentById, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
+import { findCreatureById, byId, findTalentById, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
 import { vehicleCombatant } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
 import { requiredTerrains } from '../engine/ops';
-import { CustomStatblock, type Scene, heightAt, tileAt } from './scene';
+import { CustomStatblock, type Scene, type SceneEntity, heightAt, tileAt } from './scene';
+import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
+import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
-import { randomizeChars } from '../engine/statblock';
+import { randomizeChars, type PorteurDeFiche } from '../engine/statblock';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../engine/items';
 import { maxWounds, bonus } from '../engine/characteristics';
@@ -88,6 +90,13 @@ export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): 
   if (ent.statblock?.size) return ent.statblock.size;
   const traits = ent.statblock?.traits ?? (ent.ref ? findCreatureById(ent.ref)?.traits : undefined); // tous TraitInstance[]
   return (traits && sizeFromTraits(traits)) || undefined;
+}
+
+/** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
+ *  couture unique de la marchabilité et de la ligne de vue), le carré de sa Taille pour une créature. */
+export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
+  if (ent.kind === 'prop') return propFootTiles(ent.ref, ent.pos, ent.facing, mpt);
+  return footprintTiles(ent.pos, sizeFootprint(entitySize(ent)));
 }
 
 /** Nuée au spawn (LDB 85 l.253) : ×5 PB (« cinq fois plus de PB qu'une créature type ») + 10 CC sur
@@ -367,39 +376,19 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   };
 }
 
-/** La réf d'une entité de scène désigne-t-elle quelque chose de SPAWNABLE ? Créature du bestiaire, coque
- *  de véhicule (`vehicles.json` facette `hull`), affût d'engin de siège (`trappings.json` `siegeRig`).
- *  SEULE expression du faisceau : `spawnEnemy` la CONSOMME pour décider de son repli BRUYANT (#223,
- *  mannequin `RÉF ?` à l'écran) et `validateScene` pour le dire à l'auteur AVANT le jeu — une branche
- *  ajoutée ici les suit tous les deux, aucun des deux ne peut dériver de l'autre. */
-export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+/** Une réf hors du faisceau `refEntiteResolue` a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */
+export class RefIrresoluble extends Error {
+  constructor(readonly ref: string, readonly entite: string) {
+    super(`[spawn] réf. irrésoluble « ${ref} » (entité « ${entite} ») (#1882)`);
+    this.name = 'RefIrresoluble';
+  }
 }
 
-export function spawnEnemy(
-  ref: string | undefined,
-  statblock: CustomStatblock | undefined,
-  id: string,
-  pos: { x: number; y: number; z?: number }, // z (étage) conservé sur c.pos via les spreads/shorthands
-  opts?: { appearance?: EntityAppearance; weapon?: string; presetCreature?: CreatureData } & SpawnExtras,
-): Combatant {
+/** La fiche d'une `ref` du faisceau `refEntiteResolue` : créature, coque, affût ; lève `RefIrresoluble` hors faisceau. */
+function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   let c: Combatant;
-  // Preset de PNJ nommé (#671) : la CreatureData est déjà mergée (base globale + surcharges du preset)
-  // par le call-site (`resolvePresetCreature`, couche campagne) — `spawn.ts` n'importe PAS `campaignData`.
-  if (opts?.presetCreature) c = creatureToCombatant(opts.presetCreature, id, pos, opts);
-  else if (statblock) c = statblockToCombatant(statblock, id, pos, opts?.appearance);
-  else if (!ref) {
-    // ref ABSENTE (ni statbloc) : PNJ scénique générique légitime (apparence authorée par l'entité, rendu
-    // marche) — repli SILENCIEUX (comportement historique d'avant #223 : le repli bruyant ne visait que la
-    // réf. FOURNIE-mais-fausse, jamais l'absence de réf.).
-    c = statblockToCombatant({ type: 'statblock', label: 'Ennemi', char: { B: 10 } }, id, pos);
-  } else if (!refEntiteResolue(ref)) {
-    // Repli BRUYANT (#223) : réf. FOURNIE mais irrésoluble — le VERDICT est celui de `refEntiteResolue`,
-    // le même que lit `validateScene` → console.error + mannequin PORTANT le marqueur au nom (affiché tel
-    // quel au token/frise).
-    console.error(`[spawn] réf. irrésoluble « ${ref} » (entité « ${id} ») — mannequin de repli visible (#223)`);
-    c = statblockToCombatant({ type: 'statblock', label: `RÉF ? « ${ref} »`, char: { B: 10 } }, id, pos);
-  } else if (findCreatureById(ref)) c = creatureToCombatant(findCreatureById(ref)!, id, pos, opts);
+  if (!refEntiteResolue(ref)) throw new RefIrresoluble(ref, id);
+  if (findCreatureById(ref)) c = creatureToCombatant(findCreatureById(ref)!, id, pos, opts);
   else if (findVehicleById(ref)?.hull) {
     // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'enemy' pour être
     // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
@@ -417,6 +406,19 @@ export function spawnEnemy(
     c.pos = { ...pos };
     c.species = t.siegeRig; // espèce DÉRIVÉE de la ref → rig engin au combat (parité avec l'explo/éditeur)
   }
+  return c;
+}
+
+export function spawnEnemy(
+  porteur: PorteurDeFiche,
+  id: string,
+  pos: { x: number; y: number; z?: number }, // z (étage) conservé sur c.pos via les spreads/shorthands
+  opts?: { appearance?: EntityAppearance; weapon?: string } & SpawnExtras,
+): Combatant {
+  const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
+    : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance)
+    : ficheDeRef(porteur.ref, id, pos, opts);
+  c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
   if (opts?.postes) c.postes = opts.postes.map(hydratePoste); // #222 — réf catalogue → base HYDRATÉE (couture unique)
   if (opts?.upgrades) c.upgrades = opts.upgrades;

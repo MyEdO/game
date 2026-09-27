@@ -13,11 +13,11 @@ export const creature: CreatureDef = {
   id: "amibe",
   plan: 'amorphous',
   // girth 0.95 : masse dressée, plus haute que large (l'artwork monte en colonne bosselée).
-  // corps = gelée turquoise pâle (posée en fill-opacity par la forme `gel`), corpsO = membrane
-  // rosâtre du contour, corpsH = reflets/bulles, cheveux(+O) = vase sombre du socle et
+  // corps = gelée turquoise pâle (posée en fill-opacity par la forme `gel`), membrane = contour
+  // rosâtre, corpsH = lumière/bulles, cheveux(+O) = vase sombre du socle et
   // silhouettes des objets engloutis, cuir = os du squelette digéré.
   hulk: {
     sl: 1.15, girth: 0.95, form: 'gel',
-    stored: { corps: '#7cecc2', corpsO: '#c8a8b2', corpsH: '#d9fff0', cheveux: '#3d534f', cheveuxO: '#22302d', cuir: '#8d968c' },
+    palette: { corps: '#7cecc2', membrane: '#c8a8b2', corpsH: '#d9fff0', cheveux: '#3d534f', cheveuxO: '#22302d', cuir: '#8d968c' },
   },
 };

@@ -21,6 +21,7 @@ import { livreDuSigle, sigleDe } from '../../raw/_lib.mjs'
 // Le NUMÉRO DE CHAPITRE (prédicat, motif, résolution) vient de sa maison PURE, jamais de la couche
 // `scripts/raw` — `guards/lib` n'en dépend pas.
 import { fichierDuChapitre } from '../../../src/data/source/decoupe.ts'
+import { FOLIO_ATTR } from '../../../src/data/source/ancre-vide.ts'
 import { join } from 'node:path'
 
 /** Citation à la ligne : `LDB 12 l.28`, `ADE II 09 l.3`, `AA 07 l.1-185`, `MDG 14 l.13-19`… Le
@@ -36,18 +37,6 @@ export function parseLineCitation(cite) {
   return { abbr: m[1].trim(), chapter: Number(m[2]), line: Number(m[3]) }
 }
 
-/** Folio GOUVERNANT une ligne dans un chapitre déjà chargé : la dernière ancre `data-folio` à ou
- *  au-dessus de la ligne. `null` si le chapitre n'en porte aucune avant elle (le contenu déborde
- *  alors du chapitre précédent — voir `folioGoverning`). PUR.
- *  @param {string[]} lines @param {number} line @returns {number|null} */
-export function folioInLines(lines, line) {
-  for (let i = Math.min(line, lines.length) - 1; i >= 0; i--) {
-    const m = /data-folio="(-?\d+)"/.exec(lines[i])
-    if (m) return Number(m[1])
-  }
-  return null
-}
-
 /** Toutes les ancres `data-folio` d'un chapitre, dans l'ordre. PUR.
  *  @param {string[]} lines @returns {number[]} */
 export function folioAnchors(lines) {
@@ -59,7 +48,7 @@ export function folioAnchors(lines) {
 export function anchorsAt(lines) {
   const out = []
   lines.forEach((l, i) => {
-    const m = /data-folio="(-?\d+)"/.exec(l)
+    const [m] = l.matchAll(FOLIO_ATTR)
     if (m) out.push({ folio: Number(m[1]), line: i + 1 })
   })
   return out

@@ -2,10 +2,9 @@ import { useSyncExternalStore } from 'react';
 import { subscribeWebglRefusé, webglRefusé } from './webglSupport';
 
 /**
- * LE MONDE NE PEUT PAS ÊTRE PEINT (#1176, P3-4, commit C5a) — ce que le joueur voit quand la machine
- * refuse le contexte volumique (GPU sur liste noire, machine virtuelle, budget de contextes épuisé).
- * Il n'y a plus qu'un moteur de monde : l'échec ne se replie plus en silence sur un second peintre, il
- * se DIT. Un écran nu et muet était la seule autre issue.
+ * LE MONDE NE PEUT PAS ÊTRE PEINT (#1176) — ce que le joueur voit quand la machine refuse le
+ * contexte volumique (GPU sur liste noire, machine virtuelle, budget de contextes épuisé). Le monde a
+ * UN seul moteur, volumique : quand il ne peut pas peindre, l'écran le DIT au joueur.
  *
  * `compact` : la variante posée DANS un panneau (plan de station), qui n'occupe que la boîte de son
  * hôte et laisse la surcouche de marqueurs par-dessus.

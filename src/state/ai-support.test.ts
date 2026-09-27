@@ -75,7 +75,7 @@ describe('chooseEnemyAction — invocation : Unicité (plus d’outnumberedFacto
   // Invocation centrée sur le lanceur (shape 'self'), op summon allié sur 'caster'.
   const summonSpell = (over: Partial<CastableSpell> = {}): CastableSpell => castable({
     id: 'hurlement-du-loup', shape: 'self', range: 0,
-    data: spellData({ id: 'hurlement-du-loup', effects: doOps([{ op: 'summon', ref: 'Loup', count: 1, allyOfCaster: true }], 'caster') }),
+    data: spellData({ id: 'hurlement-du-loup', effects: doOps([{ op: 'summon', ref: 'loup', count: 1, allyOfCaster: true }], 'caster') }),
     ...over,
   });
 

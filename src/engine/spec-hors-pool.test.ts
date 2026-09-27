@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { byId, specPoolOf, specCatalogOf, specResolves, specLabel } from '../data';
 import { wildcardSpecs } from './careerSlots';
-import { createHero } from './character';
+import { createHero, adresseDeCreation } from './character';
 import { testValue } from './skills';
 import { makeRNG } from './dice';
 import type { Combatant, SkillInstance } from './types';
@@ -39,8 +39,8 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
 
   it('POOL : ni `specPoolOf`, ni le joker « (Au choix) » du créateur/avancement ne la proposent', () => {
     expect(specPoolOf(savoir)).not.toContain(HORS_POOL.specId);
-    expect(wildcardSpecs({ label: savoir.label })).not.toContain(HORS_POOL.specId);
-    expect(wildcardSpecs({ label: savoir.label }).length).toBeGreaterThan(0); // le pool existe, il est juste amputé de l'entrée
+    expect(wildcardSpecs({ optionId: savoir.id }, 'skill')).not.toContain(HORS_POOL.specId);
+    expect(wildcardSpecs({ optionId: savoir.id }, 'skill').length).toBeGreaterThan(0); // le pool existe, il est juste amputé de l'entrée
   });
 
   it('`testValue` calcule la spécialisation hors pool comme n\'importe quelle autre', () => {
@@ -48,10 +48,10 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
     expect(testValue(c, HORS_POOL.skillId, undefined, HORS_POOL.specId)).toBe(52);
   });
 
-  it('round-trip LIBELLÉ → id : un héros créé sur « Savoir (Local) » stocke l\'id, pas le libellé', () => {
+  it('un héros créé sur « Savoir (Local) » stocke l\'id de la spécialisation', () => {
     const h = createHero({
       speciesId: 'humains-reiklander', careerId: 'erudit', label: 'É', rng: makeRNG(7),
-      specChoices: { 'Savoir (Au choix)': HORS_POOL.label },
+      specChoices: { [adresseDeCreation.carriereCompetence(7)]: HORS_POOL.specId }, // erudit : « Savoir (Au choix) »
     });
     const inst = h.skills.filter((s) => s.id === HORS_POOL.skillId);
     expect(inst.map((s) => s.spec)).toContain(HORS_POOL.specId);

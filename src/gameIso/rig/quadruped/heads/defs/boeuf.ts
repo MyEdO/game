@@ -39,10 +39,10 @@ import { eyeF } from '../kit';
  * corne/crâne vaut ≈ 2,3 — le crâne bovin est LARGE, et c'est cette largeur qui interdit la lecture
  * « deux ailes et un bâton » que donnait le crâne étroit de l'équin.
  *
- * MATÉRIAU DE CORNE : famille de jetons custom `corne`/`corneO`/`corneH`, STOCKÉE par l'espèce
- * porteuse (`creatures/defs/Boeuf.ts`, `quad.stored`). Une espèce qui adopterait cette tête sans
- * stocker de base `corne` laisserait le jeton non résolu — `buildTokenMap` ne dérive que les
- * familles présentes dans `stored` (palette.ts).
+ * MATÉRIAU DE CORNE : gamme de jetons `corne`/`corneO`/`corneH`, DÉCLARÉE par l'espèce porteuse
+ * (`creatures/defs/Boeuf.ts`, `quad.palette`). Une espèce qui adopterait cette tête sans déclarer
+ * de base `corne` laisserait le jeton non résolu — `buildTokenMap` ne résout que les gammes dont
+ * une couche donne la base (palette.ts).
  */
 
 // ── OREILLES ──────────────────────────────────────────────────────────────────────────────────

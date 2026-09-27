@@ -17,7 +17,7 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `setObjective` | `id`, `desc`, `...ScheduleSpec` | Pose/met à jour un OBJECTIF courant (surface « je fais quoi maintenant ? », #238) sur la pile `store.objectives`, keyé par `id` STABLE : re-poser le même `id` MET À JOUR sa prose (`desc`). |
 | `clearObjective` | `id?` | Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). |
 | `giveTrapping` | `trappingId?`, `custom?`, `heroId?`, `qualities?`, `identified?`, `skin?`, `magicKnown?`, `detectTried?`, `appraiseTriedDay?`, `price?` | Donne un objet à un héros (défaut : le premier). |
-| `givePossession` | `nature`, `ref`, `heroId?` | Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que `giveTrapping.heroId`, §4.3). |
+| `givePossession` | `nature`, `ref`, `heroId?` | — |
 | `giveMoney` | `montant` | Donne (ou RETIRE, montant négatif) de l'argent au groupe. |
 | `giveXp` | `amount` | Octroie des Points d'Expérience à TOUT le groupe (XP de session, identique pour tous). |
 | `startCombat` | `encounter` | — |
@@ -73,4 +73,4 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `endDialogue` | — | — |
 
 _58 Effects — dérivés de `src/data/schemas/defs-scenes/effets.ts`._
-<!-- sources-empreinte: 3200fab65265321a1b7d48179e333121f4a882a1 (6 fichiers, 0 dossiers) corps: 1bc45ca49cfff1bb7375131e969bb93d4fbc40ed -->
+<!-- sources-empreinte: b68afc68b51743e833ec72ba568e71d033afe902 (6 fichiers, 0 dossiers) corps: 3d2fdf07b755219f6c98ba17be2b89b63f00b18a -->

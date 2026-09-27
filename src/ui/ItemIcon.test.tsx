@@ -52,4 +52,11 @@ describe('ItemIcon', () => {
   it('rend en SSR sans getBBox (repli viewBox, aucune exception)', () => {
     expect(() => html(itemFromTrappingById('hallebarde')!)).not.toThrow();
   });
+
+  it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903 D2)', () => {
+    const poing: Weapon = { label: 'Coup-de-poing', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: 'poing' };
+    const out = renderToStaticMarkup(<ItemIcon item={poing} />);
+    expect(out).not.toMatch(/@[a-zA-Z]/);
+    expect(out).toContain('url(#dg-v-ffd4a5-b08c6d)');
+  });
 });

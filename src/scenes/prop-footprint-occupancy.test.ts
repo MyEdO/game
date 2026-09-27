@@ -60,8 +60,8 @@ describe('empreinte de TYPE — aucun corps ne naît dans un décor (toutes scè
       id: 'sonde',
       entities: [
         { id: 'epave', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'epave-carrosse' }, // 2×2 : (4,4)…(5,5)
-        { id: 'garde', kind: 'personnage', pos: { x: 5, y: 5 } },
-        { id: 'passant', kind: 'personnage', pos: { x: 6, y: 5 } },
+        { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } },
+        { id: 'passant', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
       ],
     } as unknown as Scene;
     expect(occupantsDansUnDecor('sonde', scene)).toEqual(['sonde/sonde/garde sur (5,5,0) — epave-carrosse (epave)']);

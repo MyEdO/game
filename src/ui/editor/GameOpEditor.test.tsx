@@ -75,7 +75,7 @@ describe('GameOpEditor — menu « + op » COMPLET', () => {
  *  (a) tout champ-réf d'une op fraîche est VIDE — l'auteur choisit, l'op porte sa raison ;
  *  (b) s'il est malgré tout renseigné, il RÉSOUT dans son dataset (le défaut historique : `talentId:
  *      'sang-froid'` absent de talents.json, `ref: 'Loup'`/'Ours' — des LIBELLÉS là où le bestiaire
- *      est keyé `loup`/`ours` → mannequin de repli au jeu).
+ *      est keyé `loup`/`ours` → `RefIrresoluble` au jeu).
  */
 describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
   const knownIds = (ds: string) => new Set((datasetArray(ds as never) as { id?: string }[]).map((e) => e.id));
@@ -95,7 +95,7 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
 
   it('une op fraîche à champ-réf REQUIS porte sa raison ; renseignée, elle n’en porte plus', () => {
     expect(opMissingRefs(newOp('grantTalent'))).toEqual(['Accorder un Talent : Talent à choisir']);
-    expect(opMissingRefs({ op: 'grantTalent', talentId: 'ambidextre' })).toEqual([]);
+    expect(opMissingRefs({ op: 'grantTalent', talent: { id: 'ambidextre' } })).toEqual([]);
     // Champ FACULTATIF (`removeCondition.id` = « au choix ») : absent ≠ manquant.
     expect(opMissingRefs(newOp('removeCondition'))).toEqual([]);
   });

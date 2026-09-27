@@ -1,6 +1,6 @@
 *Pages PDF 190*
 
-# • **BETWEEN ADVENTURES** •
+# <span id="page-189-0" data-folio="190"></span>• **BETWEEN ADVENTURES** •
 
 *'Oh, they come by every few weeks, and take that same table there by the fire. A bit battered, maybe, but with coin to spend. I don't believe half the stories they tell about mad orcs and feral goblins, buried dwarfen treasures, and dark gods at the edge of the world. But there's folk who come by just to hear 'em told. So of course I jack up the price of the ale when I see them coming. That's just good business, that.'*
 

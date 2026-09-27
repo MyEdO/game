@@ -39,8 +39,8 @@ function table(mode: 'host' | 'guest', porteurs: Record<string, number>) {
   const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
   hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
   const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
-  const e1 = spawnEnemy('capitaine-du-guet', undefined, 'e1', { x: 7, y: 6 });
-  const e2 = spawnEnemy('capitaine-du-guet', undefined, 'e2', { x: 8, y: 6 });
+  const e1 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e1', { x: 7, y: 6 });
+  const e2 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e2', { x: 8, y: 6 });
   // Porteurs de Sorts à la forme RÉELLE d'un effet actif (`bonus`/`duration` REQUIS,
   // `engine/types.ts`) : un effet sans durée ne peut pas exister en jeu — le peintre de pastilles
   // jette dessus (`gameIso/effectIcons.ts` lit `e.duration.scale`). Le type le GARDE ici.

@@ -8,7 +8,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -21,7 +21,7 @@ type BBone = FKBone & { z: number };
 export interface BirdProps {
   sl: number;
   girth: number; // rondeur du corps
-  stored: StoredPalette; // plumage (corps/corpsO/corpsH) ; cuir = pattes/bec
+  palette: PaletteDeclaree; // plumage (corps/corpsO/corpsH) ; cuir = pattes/bec
   /** Mode THÉROPODE (Happeur carnivore, Compagnon T1 ch.11) : reptile bipède horizontal —
    *  lourde queue d'équilibre, pattes arrière puissantes, bras-moignons, mâchoire dentée.
    *  Réutilise la machinerie aviaire (2 os, dodelinement = affût, coup de bec = morsure). */
@@ -274,7 +274,7 @@ export function resolveBirdFromProps(
     sk.tete.pivot = view === 'front' ? { x: 0, y: 12 } : view === 'back' ? { x: 0, y: -11 } : { x: 16, y: 9 };
   }
   const world = worldTransformsG(sk, pose) as Record<BirdBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const body = p.raptor
     ? (view === 'front' ? raptorBodyFront(p) : view === 'back' ? raptorBodyBack(p) : raptorBodyProfile(p))
     : p.theropod
@@ -293,7 +293,7 @@ export function resolveBirdFromProps(
 
 export const BIRD_DEFAULT: BirdProps = {
   sl: 0.62, girth: 1.0,
-  stored: { corps: '#7c8a99', corpsO: '#4e5a66', corpsH: '#c2ccd4', cheveux: '#3a444e', cheveuxO: '#222a30', cuir: '#d06a26' },
+  palette: { corps: '#7c8a99', corpsO: '#4e5a66', corpsH: '#c2ccd4', cheveux: '#3a444e', cheveuxO: '#222a30', cuir: '#d06a26' },
 };
 
 export function resolveBird(species: string, view: View = 'profile', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

@@ -25,7 +25,7 @@ describe('ailes pliées/déployées (WingState)', () => {
 });
 
 describe('props de finesse (ridge / markings / headScale / tailLen)', () => {
-  const base = { sl: 1, build: 'equine', girth: 1, bodyLen: 1, neckLen: 1, neckAngle: -40, legLen: 1, head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', stored: {} } as never;
+  const base = { sl: 1, build: 'equine', girth: 1, bodyLen: 1, neckLen: 1, neckAngle: -40, legLen: 1, head: 'cheval', tail: 'crin', mane: 'crin', ears: 'courtes', foot: 'sabot', palette: {} } as never;
   const osQuad = (props: Record<string, unknown>, view: View = 'profile') =>
     resolveQuadFromProps({ ...(base as object), ...props } as never, view);
   const svgQuad = (props: Record<string, unknown>) =>

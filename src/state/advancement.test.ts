@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Combatant } from '../engine/types';
+import { findTalentById, specPoolOf } from '../data';
 import { buildAdvancementView } from './advancement';
 
 /** Héros minimal de carrière « Agitateur » (careerLevels.json : Niveau 1 = « Pamphlétaire »,
@@ -193,5 +194,16 @@ describe('buildAdvancementView — Marque de Khorne : 10 Talents achetables hors
       expect(row!.times).toBe(0);
       expect(row!.nextCost).toBe(100); // coût en PX NORMAL d'Augmentation de Carrière (première acquisition)
     }
+  });
+});
+
+// EDOC 13 l.524 : « Magie des Arcanes (n'importe laquelle) » — l'emplacement `choix` de la Marque de
+// Tzeentch se déplie à l'avancement sur le pool du Talent, comme le joker d'emplacement de carrière.
+describe('buildAdvancementView — Marque de Tzeentch : Magie des Arcanes au choix du Domaine', () => {
+  it('chaque Domaine du pool de Magie des Arcanes est une option projetée, désignée par sa spec', () => {
+    const v = buildAdvancementView(hero({ traits: [{ id: 'marque-de-tzeentch' }] }));
+    const specs = v.talents.filter((t) => t.talentId === 'magie-des-arcanes').map((t) => t.spec);
+    expect(specs.length).toBeGreaterThan(1);
+    expect(specs).toEqual(specPoolOf(findTalentById('magie-des-arcanes')!));
   });
 });

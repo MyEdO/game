@@ -204,7 +204,7 @@
     {
       "famille": "banniere-suspecte",
       "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/117 - Appendix II.md",
-      "ref": "advancement-xp-costs#1 :: |cost of advance (+1)|",
+      "ref": "individual-characteristic-advances#1 :: |cost of advance (+1)|",
       "occurrence": 1,
       "lot": "#1384 B2",
       "date": "2026-09-20",
@@ -2097,7 +2097,7 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/027 - Theft and Skullduggery.md",
-      "ref": "example-difficulties-of-common-underhanded-tasks#1 :: difficulty|action",
+      "ref": "sneaking-around#1 :: difficulty|action",
       "occurrence": 1,
       "lot": "#1384 B2",
       "date": "2026-09-20",
@@ -2106,7 +2106,7 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md",
-      "ref": "example-difficulties-of-common-social-actions#1 :: difficulty|action",
+      "ref": "status-and-social-standing#1 :: difficulty|action",
       "occurrence": 1,
       "lot": "#1384 B2",
       "date": "2026-09-20",
@@ -2115,7 +2115,7 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md",
-      "ref": "example-difficulties-of-common-investigative-tasks#1 :: difficulty|action",
+      "ref": "hiding-clues#1 :: difficulty|action",
       "occurrence": 1,
       "lot": "#1384 B2",
       "date": "2026-09-20",
@@ -2124,7 +2124,7 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/031 - Cunning Crafts.md",
-      "ref": "selection-of-poisons#1 :: name|source|resistance test|effect",
+      "ref": "concocting-poison#1 :: name|source|resistance test|effect",
       "occurrence": 1,
       "lot": "#1384 B2",
       "date": "2026-09-20",
@@ -4150,110 +4150,6 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/09 - LE COMBAT MONTE.md",
-      "ref": "differents-mercenaires#1 :: -",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/09 - LE COMBAT MONTE.md",
-      "ref": "profils-de-mercenaires#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: baliste",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: batterie tonnerre de feu",
-      "occurrence": 1,
-      "lot": "#1384 B2",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: canon à répétition",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: canon à répétition feu d'enfer",
-      "occurrence": 1,
-      "lot": "#1384 B2",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: catapulte",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: mortier",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Aux Armes/10 - L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES.md",
-      "ref": "les-armes-de-siege#1 :: pierrier",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - La Mer de Griffe/12 - Navires et construction navale.md",
-      "ref": "pierriers#1 :: baliste",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - La Mer de Griffe/12 - Navires et construction navale.md",
-      "ref": "pierriers#1 :: mortier",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - La Mer de Griffe/12 - Navires et construction navale.md",
-      "ref": "pierriers#1 :: pierrier",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - La Mer de Griffe/14 - Navigation a bord de grands vaisseaux.md",
-      "ref": "exemples-de-mercenaires#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/WH - V4 - La Mer de Griffe/15 - Longs voyages.md",
       "ref": "generer-les-cargaisons-disponibles#1 :: armes",
       "occurrence": 1,
@@ -4366,11 +4262,11 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/WH - V4 - Le zoo imperial/14 - Expeditions prevues.md",
-      "ref": "lynathryn-chantenuit#1 :: dur à cuire",
+      "fichier": "Source/Warhammer Fantasy Roleplay 5e Core Rulebook/086 - Weapons.md",
+      "ref": "blackpowder-ammunition#1 :: sling",
       "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
+      "lot": "#1739",
+      "date": "2026-09-25"
     },
     {
       "famille": "cle-de-ligne-ambigue",
@@ -4380,22 +4276,6 @@
       "lot": "#1384 B2",
       "date": "2026-09-20",
       "preuve": "PDF p.376-377 : la case « Name » est imprimée sur les deux pages de la fiche de personnage (bloc d'identité p.376 ; blocs Weapons, Armour et Spells and Prayers p.377), et aucun titre imprimé ne les sépare."
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/07 - Chapitre 4 - Montures et vehicules.md",
-      "ref": "animaux-de-trait-et-montures#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/07 - Chapitre 4 - Montures et vehicules.md",
-      "ref": "animaux-de-trait-et-montures#1 :: 7",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
     },
     {
       "famille": "cle-de-ligne-ambigue",
@@ -4481,14 +4361,6 @@
       "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/07 - Chapitre 7 - Dans les tenebres.md",
       "ref": "rein-et-rein#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/09 - Chapitre 9 - L'heure fatidique.md",
-      "ref": "le-guet#1 :: 4",
       "occurrence": 1,
       "lot": "#1384 B1",
       "date": "2026-09-14"
@@ -4631,14 +4503,6 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik/09 - CHAPITRE 7 - Chateau von Wittgenstein.md",
-      "ref": "de-la-chair-en-putrefaction#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik/11 - APPENDICE I - L'entrainement et les mentors.md",
       "ref": "carlo-et-furio-spadassins-humains-argent-1#1 :: hommes-oiseaux100",
       "occurrence": 1,
@@ -4681,14 +4545,6 @@
       "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
       "ref": "calendrier-des-attractions-principales#1 :: stade bernabau",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
-      "ref": "influencer-le-graf#1 :: aubentag",
       "occurrence": 1,
       "lot": "#1384 B1",
       "date": "2026-09-14"
@@ -4951,86 +4807,6 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 12-14",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 15-17",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 18",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 19",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 2",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 20",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 3",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 5-7",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/05 - _gjdgxs.md",
-      "ref": "ambitions-a-court-terme#1 :: 8-11",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - Livre de base version corrigee/18 - Traumatisme.md",
       "ref": "blessures-critiques-a-la-tete#1 :: 00",
       "occurrence": 1,
@@ -5263,22 +5039,6 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/05 - _GoBack.md",
-      "ref": "johann-schmidt-et-frau-schmidt#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/05 - _GoBack.md",
-      "ref": "le-personnel-de-la-gravin#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/08 - Une nuit a l'Opera.md",
       "ref": "le-culte-de-la-larve-sacree#1 :: 4",
       "occurrence": 1,
@@ -5287,48 +5047,8 @@
     },
     {
       "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/08 - Une nuit a l'Opera.md",
-      "ref": "serviteurs-musiciens-artistes-et-employes#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/08 - Une nuit a l'Opera.md",
-      "ref": "serviteurs-royaux-et-gardes#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/10 - le mariage de nastassia.md",
-      "ref": "la-noble-jeune-fille-et-son-roturier-d-amoureux#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
       "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/13 - SEIGNEUR D'UBERSREIK -.md",
       "ref": "erich-von-holzenauer-noble-or-2#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/13 - SEIGNEUR D'UBERSREIK -.md",
-      "ref": "les-deux-capitaines#1 :: 4",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "cle-de-ligne-ambigue",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/13 - SEIGNEUR D'UBERSREIK -.md",
-      "ref": "sigmar-verena-et-shallya#1 :: 4",
       "occurrence": 1,
       "lot": "#1384 B1",
       "date": "2026-09-14"

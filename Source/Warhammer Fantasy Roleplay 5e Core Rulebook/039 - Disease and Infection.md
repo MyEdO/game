@@ -1,6 +1,6 @@
 *Pages PDF 179-182*
 
-# **DISEASE AND INFECTION**
+# <span id="page-178-0" data-folio="179"></span>**DISEASE AND INFECTION**
 
 Plague and pestilence — the purview of Nurgle, the Chaos God of disease and despair — are an everyday fact of Old World life. Outbreaks of plague affect all levels of society, although the common folk usually fare the worst. To ward against these terrible infections, most turn to the welcoming arms of Nurgle's sworn enemy, Shallya, the goddess of mercy and healing. Those actually suffering a disease will often turn to any possible cure, ensuring wise women, herbalists, and travelling doktors are never out of business, even when most peddle quackery rather than true remedies.
 
@@ -28,7 +28,9 @@ Those who do survive the Black Plague rarely ever contract it again — a small 
 
 **Contraction:** Enact an **Average (+2 SL) Endurance** Test for each hour, or part thereof, spent in an area infested with infected fleas, or when exposed to infected fluids. Those who have already survived a bout of the Black Plague Test only once each day, and then with Advantage.
 
-**Incubation:** 1d10 hours **Duration:** 3d10 days
+**Incubation:** 1d10 hours
+
+**Duration:** 3d10 days
 
 **Symptoms:** Blight, Buboes, Fever
 
@@ -36,13 +38,15 @@ Those who do survive the Black Plague rarely ever contract it again — a small 
 
 Your very blood is diseased, and your heart now pumps sickness through your body. Leeching the rot is the accepted cure, but some doktors instead cut careful incisions near the neck to free the contaminated blood, demanding the patient ingest vast quantities of healthy blood to replace what is lost. Whether the patient accepts such remedies or not, without treatment, Blood Rot is deadly, and often ends in a visit from the Mourners Guild and the Cult of Morr.
 
-**Contraction:** As a development of another disease or a
+**Contraction:** As a development of another disease or a Critical Wound.
 
-Critical Wound. **Incubation:** Instant **Duration:** 1d10 days
+**Incubation:** Instant
+
+**Duration:** 1d10 days
 
 **Symptoms:** Blight, Fever, Malaise
 
-#### **Bloody Flux**
+#### <span id="page-179-0" data-folio="180"></span>**Bloody Flux**
 
 The Bloody Flux is a persistent problem in the Empire, and widely viewed to be a curse upon the impious by the gods. The foul disease causes its unfortunate victim to evacuate the bowels forcibly and frequently. The Bloody Flux is endemic in the State Armies, where it is commonly claimed to kill more soldiers than any enemy. Typical cures include eating blood pudding to replace lost humours, 'corking', and rubbing fats into the afflicted area to lessen the sting.
 
@@ -58,9 +62,11 @@ Infected cuts and abrasions are commonplace, meaning many superstitions exist ex
 
 **Contraction:** If you fail an **Average (+2 SL) Endurance** Test after a combat with a creature with the Infected trait (see **Chapter 12: Bestiary**). You can also develop a Festering Wound from an *Infection* (page 182).
 
-**Incubation:** 1d10 days, or instantly if developed from another
+**Incubation:** 1d10 days, or instantly if developed from another disease or *Infection*.
 
-disease or *Infection*. **Duration:** 1d10 days **Symptoms:** Fever, Malaise
+**Duration:** 1d10 days
+
+**Symptoms:** Fever, Malaise
 
 # **Galloping Trots**
 
@@ -78,13 +84,13 @@ Annual outbreaks of Itching Pox afflict most towns and cities of the Empire. The
 
 **Contraction:** If you fail an **Average (+2 SL) Endurance** Test when contact is made with an infected individual.
 
-**Incubation:** 1d10 days **Duration:** 1d10 + 7 days
+**Incubation:** 1d10 days
+
+**Duration:** 1d10 + 7 days
 
 **Symptoms:** Pox
 
-**Permanent:** Once the disease is contracted, you become
-
-immune to catching it again.
+**Permanent:** Once the disease is contracted, you become immune to catching it again.
 
 #### **Packer's Pox**
 
@@ -92,7 +98,11 @@ A common infection amongst hunters, furriers, and traders, Packer's Pox is contr
 
 **Contraction:** If you fail an **Easy (+4 SL) Endurance** Test after any contact with infected animals, hides, or bodies.
 
-**Incubation:** 1d10 days **Duration:** 5d10 days **Symptoms:** Pox, Infection
+**Incubation:** 1d10 days
+
+**Duration:** 5d10 days
+
+**Symptoms:** Pox, Infection
 
 #### **Ratte Fever**
 
@@ -100,7 +110,13 @@ Contracted from infected rodents, dreaded Ratte Fever brings inflamed rashes and
 
 **Contraction:** If you fail an **Average (+2 SL) Endurance** Test after any combat when wounded by rodents (including skaven) with the *Infected* Trait, or you fail an **Easy (+4 SL) Endurance** Test after an infected source enters your mouth.
 
-**Incubation:** 3d10 + 5 days **Duration:** 3d10 + 10 days **Symptoms:** Fever, Malaise, Pox
+**Incubation:** 3d10 + 5 days
+
+**Duration:** 3d10 + 10 days
+
+**Symptoms:** Fever, Malaise, Pox
+
+#### <span id="page-180-0" data-folio="181"></span>**Sea Sickness**
 
 Many folk feel queasy when they first spend time aboard a vessel at sea. Once they get used to the motion of the ocean, Sea Sickness only tends to be a problem when there are high winds or a vigorous swell. Elves are immune to Sea Sickness.
 
@@ -116,7 +132,9 @@ Tiny mites that infest stores of hay, wheat, or flour can bring about a persiste
 
 **Contraction:** If you fail an **Average (+2 SL) Endurance** Test when contact is made with infected hay, wheat, or flour or fail the same Test when an infected individual coughs in your immediate vicinity (at a rate of about one Test per hour of exposure).
 
-**Incubation:** 1d10 days **Duration:** 1d10 days
+**Incubation:** 1d10 days
+
+**Duration:** 1d10 days
 
 **Symptoms:** Coughs and Sneezes, Malaise
 
@@ -130,7 +148,7 @@ You are seriously ill and perhaps close to Morr's Portal as deadly poisons flood
 
 #### **Buboes**
 
-**Sea Sickness** You have huge swellings of the lymph nodes, possibly in the groin, neck, or armpits. These are enormously painful and may bleed or seep pus. They are disgusting and stink of rot — though cultists of the Lord of Pestilence consider them a sure sign of his favour, believing they hide tiny, growing daemons. Common practice is to lance these terrible expressions of taint to remove whatever nestles within, though doing so often results in *Festering Wounds*.
+You have huge swellings of the lymph nodes, possibly in the groin, neck, or armpits. These are enormously painful and may bleed or seep pus. They are disgusting and stink of rot — though cultists of the Lord of Pestilence consider them a sure sign of his favour, believing they hide tiny, growing daemons. Common practice is to lance these terrible expressions of taint to remove whatever nestles within, though doing so often results in *Festering Wounds*.
 
 > Suffer a -1 SL penalty to all physical Tests, and to all Fellowship Tests if the buboes can be seen or smelled. A Heal Test made by a character with the *Surgery* Talent can lance your buboes, removing the penalty. If the Test is failed, gain a *Festering Wound*. If your Buboes are lanced, make a **Difficult (-1 SL) Endurance** Test once per day or more swell into place.
 
@@ -150,7 +168,7 @@ Your temperature is high, you sweat and shiver, and find it difficult to keep yo
 
 There's a rumble and a grumble. Any given situation may be the moment you just have to go to the privy. You are expected to take every opportunity you can to pop off for an essential stop, and this is largely left in your hands. In addition, once per session the GM will let you know that you simply have to go immediately. You have a number of Rounds equal to your Toughness Bonus to get to an appropriate place to relieve yourself, or else suffer the *Besmirched* Condition.
 
-## **Infection**
+## <span id="page-181-0" data-folio="182"></span>**Infection**
 
 You have a wound or open sore that will not heal properly because of an infection, weeping foul-smelling pus. For each *Infection* Symptom you have, you cannot recover 1 Wound. Every day, make a single **Very Easy (+6 SL) Endurance** Test or gain a *Festering Wound* if you do not already have one. If you do have one, the Test is **Easy (+4 SL)**, and if you fail, you contract *Blood Rot*.
 

@@ -351,7 +351,7 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 `LDB 05 l.722-728`
 
-> « Tailles moyennes : nain (1,45 m), elfe (1,90 m), halfling (1 m). Les humains ont des tailles qui varient beaucoup plus, se situant dans une moyenne de 1m75 dans le Reikland. Si l'un des dés obtient un 10, lancez un dé supplémentaire et ajoutez le résultat (humains seulement). »
+> « Les tailles moyennes sont : nain (1,45 mètre), elfe (1,90 mètre), halfling (1 mètre). Les humains ont des tailles qui varient beaucoup plus, se situant dans une moyenne de 1m75 dans le Reikland. Si vous voulez une taille vraiment aléatoire pour les humains, si l'un des dés obtient un 10, lancez un dé supplémentaire et ajoutez le résultat à la hauteur totale. »
 
 | Race | Formule |
 |------|---------|

@@ -4,9 +4,6 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 export const tenue: TenueDef = {
   label: "Flagellant",
   id: "flagellant",
-  // `tete.front` peint une chevelure emmêlée hérissée de piquants : les jetons `@cheveux*` de
-  // l'art restent, mais la palette ne les déclare plus — la chevelure vient du PORTEUR
-  // (`stripPorterTokens`, career.ts), jamais de la tenue (#599).
   palette: {"vet1O":"#8a7a50","vet1H":"#e8e0c8","cuir":"#5b4a36","vet2":"#9a2820","vet2O":"#8e1c16","cuirO":"#4a3320","vet1":"#d8cba0","metalH":"#ffd24a","metal":"#caa050"},
   set: {
     pied: BOTTE_CUIR,

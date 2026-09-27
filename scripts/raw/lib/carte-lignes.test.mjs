@@ -26,6 +26,16 @@ test('édition en place (hunk à compte égal) : appariement 1:1, rien ne bouge 
   assert.deepEqual(destins(carte, 6), [{ ligne: 1 }, { ligne: 2 }, { ligne: 3 }, { ligne: 4 }, { ligne: 5 }, { ligne: 6 }])
 })
 
+test('ancre de page posée EN PLACE dans un titre court : même ligne une fois les ancres ôtées, jamais ambiguë', () => {
+  const carte = carteDe('@@ -31 +31 @@\n-# **COMMON MEANS**\n+# <span id="page-146-0" data-folio="147"></span>**COMMON MEANS**\n')
+  assert.deepEqual(destins(carte, 32).slice(29), [{ ligne: 30 }, { ligne: 31 }, { ligne: 32 }])
+})
+
+test('ancre posée dans une ligne d’un hunk à compte inégal : appariée à son ancienne, la ligne ôtée SUPPRIMÉE', () => {
+  const carte = carteDe('@@ -3,2 +3 @@\n-II\n-# **Wounds**\n+# <span id="page-28-0" data-folio="29"></span>**Wounds**\n')
+  assert.deepEqual(destins(carte, 5), [{ ligne: 1 }, { ligne: 2 }, { supprimee: true }, { ligne: 3 }, { ligne: 4 }])
+})
+
 test('scission 1 → 2 : la ligne scindée est AMBIGUË avec ses candidates, les suivantes descendent', () => {
   const carte = carteDe('@@ -58 +58,2 @@\n-### A B\n+### A\n+### B\n')
   assert.deepEqual(carte(57), { ligne: 57 })

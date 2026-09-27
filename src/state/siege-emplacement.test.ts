@@ -64,7 +64,7 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est servi (mannedPoste)', () => {
   it('SceneEntity NON-navire portant `postes` → `Combatant.postes` au spawn (comme la voie navale)', () => {
     const poste = mkPoste('baliste', ['gunner', 's1']); // PAS de `side` → exige `ShipPoste.side` optionnel
-    const emplacement = spawnEnemy(undefined, { name: 'Affût de baliste', char: { B: 20 } } as never, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
+    const emplacement = spawnEnemy({ statblock: { name: 'Affût de baliste', char: { B: 20 } } as never }, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
     expect(emplacement.postes).toBeTruthy();
     expect(emplacement.bodyShape).not.toBe('vehicule'); // AUCUN couplage navire (pas une coque)
   });

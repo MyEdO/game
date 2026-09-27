@@ -7,7 +7,7 @@ import type { Fige } from '../state/scene';
  *
  * TABLE GELÉE (`Fige`, `src/state/scene.ts`) : ce que rejouent la migration de donnée
  * (`scripts/migrations/2026-09-23-1897-sorts-fan-par-le-pont.mjs`) et les migrations de chargement des
- * documents PORTABLES de ce lot (`ROSTER_MIGRATIONS[4]`, `src/state/roster.ts` ; `PROJECT_MIGRATIONS[13]`,
+ * documents PORTABLES de ce lot (`ROSTER_MIGRATIONS[4]`, `src/state/roster.ts` ; `PROJECT_MIGRATIONS[15]`,
  * `src/state/worldMap.ts`), jamais une correspondance du jour. Un document déjà monté au format d'après
  * ce lot ne repasse plus par elle : un lot de fusion ULTÉRIEUR n'étend donc pas cette table, il pose la
  * SIENNE, avec ses montées `EXPORT_VERSION` (`roster.ts`) et `SCHEMA_PROJET`

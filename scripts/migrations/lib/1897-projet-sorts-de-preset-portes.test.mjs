@@ -1,9 +1,9 @@
 /**
  * MORSURE des PORTES de la migration #1897 — la référence de sort d'un preset de PNJ se DÉNUDE.
  *
- *  - `2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs` (racine `src/scenes`) : dans
+ *  - `2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs` (racine `src/scenes`) : dans
  *    `narratif.presetsPnj[].profil.spells`, tout `{ id }` devient l'id NU à sa position, et le
- *    document passe au `schema` 13. Sa borne haute est OUVERTE (`schema` ∈ {12, ≥ 13}) : un `schema`
+ *    document passe au `schema` 15. Sa borne haute est OUVERTE (`schema` ∈ {14, ≥ 15}) : un `schema`
  *    futur la traverse sans être RABAISSÉ, la DERNIÈRE de la chaîne étant seule à le nommer.
  *
  * Une déclaration n'est pas une porte tant qu'on ne l'a pas vue MORDRE : ce banc joue la migration
@@ -23,11 +23,11 @@ import test from 'node:test';
 import { FORME_PROJET, serialise } from './croissance.mjs';
 import { depot, efface, joue, lireDans, refuse, rienTouche } from './joue.mjs';
 
-const MIGRATION = '2026-09-23-1897-projet-sorts-de-preset-ids-nus.mjs';
+const MIGRATION = '2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs';
 
 /** Forme d'entrée et CIBLE du bump porté par cette migration — borne haute OUVERTE. */
-const SCHEMA_AVANT = 12;
-const SCHEMA_APRES = 13;
+const SCHEMA_AVANT = 14;
+const SCHEMA_APRES = 15;
 
 const ALPHA = 'src/scenes/alpha/alpha-projet.json';
 const BETA = 'src/scenes/beta/beta-projet.json';
@@ -78,7 +78,7 @@ const beta = (schema = SCHEMA_AVANT) => ({
   narratif: { presetsPnj: [] },
 });
 
-test('(a) MIGRATION RÉELLE : les sorts `{ id }` deviennent des ids nus À LEUR PLACE, le document passe à 13, le reste est intact', (t) => {
+test('(a) MIGRATION RÉELLE : les sorts `{ id }` deviennent des ids nus À LEUR PLACE, le document passe à 15, le reste est intact', (t) => {
   const d = depot({ [ALPHA]: serialise(alpha(), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) });
   t.after(() => efface(d.racine));
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -125,7 +125,7 @@ test('(e) FAIL-FAST `schema` ABSENT → sortie 1 NOMINATIVE, rien d’écrit', (
   );
 });
 
-test('(f) FAIL-FAST `schema` NON NUMÉRIQUE (la chaîne "12") → sortie 1 NOMINATIVE, rien d’écrit', () => {
+test('(f) FAIL-FAST `schema` NON NUMÉRIQUE (la chaîne "14") → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(
     MIGRATION,
     { [ALPHA]: serialise(alpha(String(SCHEMA_AVANT)), FORME_PROJET), [BETA]: serialise(beta(), FORME_PROJET) },

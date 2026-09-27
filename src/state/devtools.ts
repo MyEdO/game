@@ -49,7 +49,7 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappings, findCreatureById } from '../data';
+import { trappings, findCreatureById, findTraitById } from '../data';
 import { creatureToCombatant } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
@@ -58,6 +58,8 @@ import { isOutOfAction, addCondition, syncDerivedConditions } from '../engine/co
 import { contractDisease, tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
+import { acquerirTalent } from '../engine/careerSlots';
+import { grantTrait } from '../engine/grantedTraits';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
@@ -1449,13 +1451,41 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  'magie-du-chaos', { spec: 'tzeentch' })`). */
     talent: (id: string, talentId: string, opts: number | { spec?: string; times?: number } = 1) => {
       const { spec, times } = typeof opts === 'number' ? { spec: undefined, times: opts } : { spec: opts.spec, times: opts.times ?? 1 };
-      const grant = (c: Combatant): Combatant =>
-        c.id === id ? { ...c, talents: [...(c.talents ?? []), { talentId, times, ...(spec != null ? { spec } : {}) }] } : c;
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const acquis = { ...c };
+        for (let i = 0; i < times; i++) acquerirTalent(acquis, { id: talentId, ...(spec != null ? { spec } : {}) });
+        return acquis;
+      };
       useGame.setState((s) => ({
         party: s.party.map(grant),
         battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
       }));
-      return `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''}`;
+      const pose = actorIn(useGame.getState(), id)?.talents?.find((t) => t.talentId === talentId && (t.spec ?? null) === (spec ?? null));
+      return pose
+        ? `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''} ×${pose.times}`
+        : `✗ ${id} : « ${talentId} » non acquis (Maxi atteint ou combattant absent)`;
+    },
+
+    /** RECETTE : pose un Trait de créature sur un combattant, hors combat compris (ex. Marque de Tzeentch
+     *  pour dérouler ses Talents de carrière à l'avancement). Passe par `grantTrait`
+     *  (`engine/grantedTraits.ts`), le noyau de l'op homonyme et d'`attachMutation`. `opts` : `arg`
+     *  (Cible, Domaine…) et `value` (indice). Rend l'état RÉEL relu au store. */
+    trait: (id: string, traitId: string, opts: { arg?: string; value?: number } = {}) => {
+      if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
+      const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const porteur = { ...c };
+        grantTrait(porteur, instance);
+        return porteur;
+      };
+      useGame.setState((s) => ({
+        party: s.party.map(grant),
+        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
+      }));
+      const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
+      return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le

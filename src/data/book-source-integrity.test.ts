@@ -12,7 +12,7 @@
  * PÉRIMÈTRE MESURÉ ET ANGLE MORT au 2026-09-06 (#1389 C4) : `src/data/*.json` porte 4516 entrées
  * à `source:{book,page}` ; 1223 citent aussi une ligne et `folio-line-align.test.ts` n'en juge que
  * 321 (902 écartées : 896 hors-forme, 6 queue-trouée), soit 7,1 % des folios vérifiés machine par
- * cette voie. Ces deux chiffres ne sont plus qu'écrits ici : `folio-line-align.test.ts` les CLIQUÈTE
+ * cette voie. Ces deux chiffres sont seulement écrits ici : `folio-line-align.test.ts` les CLIQUÈTE
  * (`SCANNED_MIN` croissant, `SANS_CITATION_MAX` décroissant).
  * Cette garde-ci scanne les entrées à `desc` citable et en laisse une part hors de tout verdict
  * d'encadrement. Ces populations VIVENT avec le corpus : le PLAFOND (`folioRatchetStock.mjs`) fait
@@ -130,7 +130,7 @@ describe('intégrité du folio — source.page pointe sur la page qui porte la d
 
 /**
  * Plafond du stock de la VOIE C, même rôle et même lecture que `FOLIO_RATCHET_MAX`. À ZÉRO depuis
- * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est désormais un échec, il
+ * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est un échec, il
  * n'y a plus de dette à cliqueter.
  */
 const FOLIO_TITLE_RATCHET_MAX = 0;

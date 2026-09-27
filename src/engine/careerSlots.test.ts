@@ -13,13 +13,14 @@ import {
   designateSlot,
   designationsFor,
   freeSlotFor,
-  talentMax,
+  talentMaxById,
   talentMaxReached,
   heldArcaneDomains,
   arcaneDomainCap,
   arcaneDomainGate,
   wildcardSpecs,
   parseAdvancement,
+  prisParLesAutres,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
 
@@ -117,7 +118,7 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
     expect(inCareerStatus(slots1, designationsFor(h, 'C1'), 'sens-aiguise', 'ouie')).toBe(null);
   });
 
-  it('2) au niveau 2, le NOUVEAU slot ne peut pas re-désigner la spec prise au niveau 1', () => {
+  it('2) au niveau 2, le NOUVEAU slot peut désigner la spec prise au niveau 1 (LDB 08 l.140)', () => {
     const h = hero({ careerLevel: 2, talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 1 }, { talentId: 'sens-aiguise', spec: 'ouie', times: 1 }] });
     const slots1 = talentSlots(C1, 1);
     const slots2 = talentSlots(C1, 2);
@@ -125,13 +126,10 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
     // Niveau 1 : Ouïe avait été désignée (achat à 100 PX à l'époque).
     designateSlot(h, 'C1', slots1[0], 'sens-aiguise', 'ouie', all);
     const des = designationsFor(h, 'C1');
-    // Le slot du niveau 2 ne peut PAS reprendre Ouïe…
-    expect(designateSlot(h, 'C1', slots2[0], 'sens-aiguise', 'ouie', all).ok).toBe(false);
-    expect(inCareerStatus(slots2, des, 'sens-aiguise', 'ouie', all)).toBe(null);
-    // …mais peut désigner Goût (gratuit, déjà possédé) ou Toucher (achat 100 PX).
-    expect(inCareerStatus(slots2, des, 'sens-aiguise', 'gout', all)).toBe('free');
+    // L'exclusion ne porte que sur les emplacements du MÊME niveau : Ouïe reste libre au niveau 2.
+    expect(inCareerStatus(slots2, des, 'sens-aiguise', 'ouie', all)).toBe('free');
     expect(inCareerStatus(slots2, des, 'sens-aiguise', 'toucher', all)).toBe('free');
-    expect(designateSlot(h, 'C1', slots2[0], 'sens-aiguise', 'gout', all).ok).toBe(true);
+    expect(designateSlot(h, 'C1', slots2[0], 'sens-aiguise', 'ouie', all).ok).toBe(true);
   });
 
   it('3) changement de carrière : les désignations sont PAR carrière — tout sens redevient désignable', () => {
@@ -170,14 +168,14 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
 describe('Maxi des Talents (LDB 10 « Schéma des Talents »)', () => {
   it('Maxi 1 (Lire/Écrire) : atteint dès la 1re acquisition', () => {
     const h = hero({ talents: [{ talentId: 'lire-ecrire', times: 1 }] });
-    expect(talentMax(h, 'Lire/Écrire')).toBe(1);
+    expect(talentMaxById(h, 'lire-ecrire')).toBe(1);
     expect(talentMaxReached(h, 'lire-ecrire')).toBe(true);
     expect(talentMaxReached(h, 'baratiner')).toBe(false);
   });
   it('Maxi « Bonus de Caractéristique » : par spécialisation, recalculé sur la valeur courante', () => {
     // Sens aiguisé : Maxi = Bonus d'Initiative (I 30 → 3).
     const h = hero({ talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 3 }, { talentId: 'sens-aiguise', spec: 'ouie', times: 1 }] });
-    expect(talentMax(h, 'Sens aiguisé (Goût)')).toBe(3);
+    expect(talentMaxById(h, 'sens-aiguise')).toBe(3);
     expect(talentMaxReached(h, 'sens-aiguise', 'gout')).toBe(true);
     expect(talentMaxReached(h, 'sens-aiguise', 'ouie')).toBe(false); // spec distincte
   });
@@ -246,31 +244,26 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
 });
 
 describe('wildcardSpecs — pool d’un joker (SOURCE UNIQUE créateur + avancement)', () => {
+  const joker = (optionId: string, specOptions?: string[]) => ({ optionId, ...(specOptions ? { specOptions } : {}) });
   it('Béni → cultes du registre (ids ; dont les dieux gnomes NADJ)', () => {
-    const s = wildcardSpecs({ label: 'Béni' });
+    const s = wildcardSpecs(joker('beni'), 'talent');
     expect(s).toContain('sigmar');
     expect(s).toContain('evawn');
   });
   it('Magie des Arcanes → ids de domaine (specs id-based, data-driven)', () => {
-    expect(wildcardSpecs({ label: 'Magie des Arcanes' })).toEqual(expect.arrayContaining(['feu', 'ombres', 'metal']));
+    expect(wildcardSpecs(joker('magie-des-arcanes'), 'talent')).toEqual(expect.arrayContaining(['feu', 'ombres', 'metal']));
   });
   it('Magie du Chaos → ids nurgle / slaanesh / tzeentch', () => {
-    expect(wildcardSpecs({ label: 'Magie du Chaos' }).sort()).toEqual(['nurgle', 'slaanesh', 'tzeentch']);
+    expect(wildcardSpecs(joker('magie-du-chaos'), 'talent').sort()).toEqual(['nurgle', 'slaanesh', 'tzeentch']);
   });
   it('Invocation → cultes (ids)', () => {
-    expect(wildcardSpecs({ label: 'Invocation' })).toContain('sigmar');
+    expect(wildcardSpecs(joker('invocation'), 'talent')).toContain('sigmar');
   });
-  it('libellé sans domaine/culte/specs → []', () => {
-    expect(wildcardSpecs({ label: 'Inexistant-xyz' })).toEqual([]);
+  it('id absent du catalogue → []', () => {
+    expect(wildcardSpecs(joker('inexistant-xyz'), 'skill')).toEqual([]);
   });
-  it('entrée par id (avancement) = entrée par libellé (créateur) : un seul pool', () => {
-    expect(wildcardSpecs({ label: 'Béni', optionId: 'beni', wildcard: true }, 'talent')).toEqual(wildcardSpecs({ label: 'Béni' }));
-    expect(wildcardSpecs({ label: 'Savoir', optionId: 'savoir', wildcard: true }, 'skill')).toEqual(wildcardSpecs({ label: 'Savoir' }));
-    expect(wildcardSpecs({ label: 'Béni', optionId: 'beni', wildcard: true }, 'talent').length).toBeGreaterThan(0);
-  });
-  it('liste restreinte « (A ou B) » : prime sur le pool de la def, par les deux entrées', () => {
-    expect(wildcardSpecs({ label: 'Béni', optionId: 'beni', wildcard: true, specOptions: ['sigmar'] }, 'talent')).toEqual(['sigmar']);
-    expect(wildcardSpecs({ label: 'Béni', specOptions: ['sigmar'] })).toEqual(['sigmar']);
+  it('liste restreinte « (A ou B) » : prime sur le pool de la def', () => {
+    expect(wildcardSpecs(joker('beni', ['sigmar']), 'talent')).toEqual(['sigmar']);
   });
 });
 
@@ -346,5 +339,33 @@ describe('Domaines magiques multiples (Talent Magie des Arcanes — VDM 02 l.190
   it('Domaine déjà possédé : toujours autorisé (relève de talentMaxReached, pas de ce gate)', () => {
     const h = hero({ talents: [domainTalent('feu')] });
     expect(arcaneDomainGate(h, 'feu').ok).toBe(true);
+  });
+});
+
+describe('prisParLesAutres — pool libre d\'un joker (LDB 05 l.535)', () => {
+  const levels = levelsForCareer('gladiateur');
+  const slots = skillSlots(levels, 1);
+  const joker = slots.find((s) => s.needsChoice)!;
+  const libres = (designations: Record<string, string>) => {
+    const pris = prisParLesAutres(joker, slots, designations);
+    return wildcardSpecs(joker.options[0], 'skill').filter((spec) => !pris.has(`${joker.options[0].optionId}|${spec}`));
+  };
+  it('le pool libre ne contient pas la référence d\'un autre emplacement, et CONTIENT sa propre désignation', () => {
+    const pool = libres({ [joker.key]: 'corps-a-corps|escrime' });
+    expect(pool).not.toContain('bagarre');
+    expect(pool).toContain('escrime');
+  });
+});
+
+describe('portée de l\'exclusion : les emplacements du MÊME niveau (LDB 05 l.535 ; LDB 08 l.140)', () => {
+  it('au Niveau 2, un joker désigne une spécialisation tenue au Niveau 1 ; au même niveau, il ne peut pas', () => {
+    const soldat = skillSlots(levelsForCareer('soldat'), 2);
+    const joker2 = soldat.find((s) => s.level === 2 && s.needsChoice && s.options[0].optionId === 'corps-a-corps')!;
+    expect(soldat.some((s) => s.level === 1 && !s.needsChoice && s.options[0].optionId === 'corps-a-corps' && s.options[0].spec === 'base')).toBe(true);
+    expect(designateSlot(hero({ career: 'soldat', careerSlotChoices: {} }), 'soldat', joker2, 'corps-a-corps', 'base', soldat)).toEqual({ ok: true });
+
+    const glad = skillSlots(levelsForCareer('gladiateur'), 1);
+    const joker1 = glad.find((s) => s.needsChoice)!;
+    expect(designateSlot(hero({ career: 'gladiateur', careerSlotChoices: {} }), 'gladiateur', joker1, 'corps-a-corps', 'bagarre', glad).ok).toBe(false);
   });
 });

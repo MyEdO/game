@@ -2,7 +2,7 @@
 import { Profiler, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useGame } from '../../state/store';
+import { useGame, type BattleState } from '../../state/store';
 import { emptyScene } from '../../state/scene';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
 import type { Combatant } from '../../engine/types';
@@ -30,7 +30,7 @@ afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return {
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
     wounds: { current: 12, max: 12 }, weapons: [],
     characteristics: {}, advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
@@ -40,7 +40,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-function monter(): { el: HTMLDivElement; commits: () => number } {
+function monter(retouche: Record<string, unknown> = {}): { el: HTMLDivElement; commits: () => number } {
   useGame.setState({
     scene: emptyScene(8, 8),
     mode: 'exploration',
@@ -50,7 +50,8 @@ function monter(): { el: HTMLDivElement; commits: () => number } {
     dialogue: null,
     flags: {},
     camPan: { x: 0, y: 0 },
-  });
+    ...retouche,
+  } as never);
   resetStagePan();
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -176,12 +177,19 @@ describe('Focale — la vue COURT vers sa nouvelle cible, elle n’y saute pas',
     vi.spyOn(performance, 'now').mockImplementation(() => horloge);
   });
 
+  /** Combat à deux unités distantes, au tour de `h1` : le sujet suivi est l'unité ACTIVE (`stageFocus`). */
+  const combat = (turn: number): BattleState => ({
+    combatants: [hero('h1', { x: 2, y: 2 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'enemy' }],
+    order: ['h1', 'e1'], turn, round: 2, over: false, action: null, acted: false, movementUsed: 0,
+    preview: null, reachable: new Map<string, number>(), zones: [], log: [],
+  }) as unknown as BattleState;
+
   it('au saut : la vue reste au point QUITTÉ, puis arrive EXACTEMENT sur la cible et s’y arrête', () => {
-    const { el } = monter();
+    const { el } = monter({ mode: 'battle', battle: combat(0), pendingAttack: null, pendingCast: null, hoverCombatantId: null });
     const quitté = groupe(el).style.transform;
 
-    // Le sujet suivi change (meneur du groupe) ET son point focal saute de plusieurs cases.
-    act(() => { useGame.setState({ party: [hero('h2', { x: 6, y: 6 })], partyPos: { x: 6, y: 6 } }); });
+    // Le sujet suivi change (l'unité active passe à `e1`) ET son point focal saute de plusieurs cases.
+    act(() => { useGame.setState({ battle: combat(1) }); });
     expect(groupe(el).style.transform).toBe(quitté); // le rendu a posé la cible ; l'adoucissement l'a reprise
 
     horloge += DUREE_FOCALE_MS / 2;

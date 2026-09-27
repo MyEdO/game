@@ -70,3 +70,12 @@ test('niveauDeLegende : le niveau le plus porté par les titres que suit une tab
   assert.equal(niveauDeLegende(l, 99), '###')
   assert.equal(niveauDeLegende(['## **A**', 'texte', '| t |'], 2), '##')
 })
+
+test('FOLIOS (CRB) : la ligne qui n’en porte que (`#` compris) est SUPPRIMÉE ; soudés en tête de prose, le préfixe seul part', () => {
+  const avant = ['texte', '', '# 274 274 275', '', '# **The Hägercrybs**', '', '298 299 *Fatigued* Conditions are accrued'].join('\n')
+  const s = sites(avant, [], [272, 299])
+  const { texte, refus } = reparer(avant, s)
+  assert.deepEqual(refus, [])
+  assert.equal(texte, ['texte', '', '# **The Hägercrybs**', '', '*Fatigued* Conditions are accrued'].join('\n'))
+  assert.equal(infidelite(avant, texte, s), null)
+})

@@ -8,7 +8,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -20,7 +20,7 @@ type SBone = FKBone & { z: number };
 export interface SpiderProps {
   sl: number; // échelle token
   girth: number; // grosseur de l'abdomen
-  stored: StoredPalette; // robe (corps/corpsO/corpsH…)
+  palette: PaletteDeclaree; // robe (corps/corpsO/corpsH…)
 }
 
 function buildSkeleton(): Record<SpiderBoneId, SBone> {
@@ -146,7 +146,7 @@ export function resolveSpiderFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<SpiderBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<SpiderBoneId, string> = { corps: cephalo(view), abdomen: abdomen(p, view) };
   return sortByZ((Object.keys(sk) as SpiderBoneId[])
     .map((id) => ({
@@ -157,7 +157,7 @@ export function resolveSpiderFromProps(
 
 export const SPIDER_DEFAULT: SpiderProps = {
   sl: 1.0, girth: 1.0,
-  stored: { corps: '#2e2622', corpsO: '#181210', corpsH: '#574438', cheveux: '#181210', cheveuxO: '#0e0a08', cuir: '#7a1010' },
+  palette: { corps: '#2e2622', corpsO: '#181210', corpsH: '#574438', cheveux: '#181210', cheveuxO: '#0e0a08', cuir: '#7a1010' },
 };
 
 export function resolveSpider(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

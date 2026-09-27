@@ -115,7 +115,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
 describe('editorState — patch d’entité', () => {
   const base = (): Scene => {
     const s = emptyScene(6, 6);
-    s.entities = [{ id: 'e0', kind: 'personnage', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
+    s.entities = [{ id: 'e0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
     return s;
   };
 

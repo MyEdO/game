@@ -9,6 +9,7 @@ import { damageString, parseDamage, REACH_IDS } from '../../engine/items';
 import { parseQualityInstance } from '../../engine/qualities/normalize';
 import { qualityRefLabel } from '../../data';
 import { NumberField } from '../NumberField';
+import { RefField, REF_FIELD } from '../compendium/RefField';
 
 /** Valeurs sélectionnables de l'Allonge = le vocabulaire FERMÉ `ReachValue` lui-même (les sept
  *  longueurs de l'axe, LDB 62 l.156-164, puis « Variable », l.31) : la `<option>` et la valeur
@@ -46,7 +47,8 @@ export function WeaponField({ value, onChange }: { value: Weapon | undefined; on
             <option value={2}>2</option>
           </select>
         </label>
-        <label className="dr">Groupe<input placeholder="Base, Cavalerie…" value={w.subType ?? ''} onChange={(e) => patch({ subType: e.target.value || undefined })} /></label>
+        <RefField cfg={REF_FIELD['trappings.subType']} label="Groupe" nullable value={w.subType ?? ''}
+          onChange={(v) => patch({ subType: typeof v === 'string' && v !== '' ? v : undefined })} />
         {w.type === 'melee' ? (
           <label className="dr">Allonge
             {/* Choix FERMÉ sur l'axe (LDB 62 l.156-164) + « Variable » (l.31) : une saisie libre

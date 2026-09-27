@@ -24,7 +24,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   function setup() {
     const hero = createHero({
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-      careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(707),
+      careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707),
     });
     hero.spells = ['fauche-demon'];
     useGame.setState({ party: [hero] });

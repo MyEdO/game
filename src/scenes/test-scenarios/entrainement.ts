@@ -1,4 +1,5 @@
 import { createHero } from '../../engine/character';
+import { acquerirTalent } from '../../engine/careerSlots';
 import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant, ItemInstance } from '../../engine/types';
@@ -52,7 +53,7 @@ function tireur(): Combatant {
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);
   // Tir rapide (LDB 10) : interruption à distance pendant la pause de début de Round (badge de la frise d'Initiative).
-  if (!h.talents.some((t) => t.talentId === 'tir-rapide')) h.talents.push({ talentId: 'tir-rapide', times: 1 });
+  if (!h.talents.some((t) => t.talentId === 'tir-rapide')) acquerirTalent(h, { id: 'tir-rapide' });
   h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
   return h;
 }
@@ -61,7 +62,7 @@ function tireur(): Combatant {
 function bretteur(): Combatant {
   const h = pregen(PREGEN.soldat); // Sigmund
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
-    h.talents.push({ talentId: 'maniement-de-deux-armes', times: 1 });
+    acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
   const main = itemFromTrappingById('arme-simple'); // shape:'epee' + formChoices (épée→hache/masse/…)
   const off = itemFromTrappingById('dague');

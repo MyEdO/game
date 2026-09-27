@@ -44,7 +44,7 @@ function h(id: string, over: Partial<Combatant> = {}): Combatant {
   return c;
 }
 
-/** Étape MONO de nuit MINTÉE : la fabrique n'accepte plus que des produits de la porte (#1262 V2). La
+/** Étape MONO de nuit MINTÉE : la fabrique accepte seulement des produits de la porte (#1262 V2). La
  *  ligne est posée telle quelle (`montee`) — chaque cas fixe ses propres valeurs de jet. */
 function nuit(spec: {
   id: string; kind: string; hero?: string; label?: string; rollLabel?: string;

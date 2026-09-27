@@ -27,7 +27,7 @@ const REF_BILLBOARD = props.find((p) => !p.volume)!.id;
 const legacyEntity = (id: string): SceneEntity =>
   ({ id, kind: 'prop', pos: { x: 5, y: 5 }, ref: REF_BILLBOARD }) as SceneEntity;
 const figurant = (id: string): SceneEntity =>
-  ({ id, kind: 'personnage', pos: { x: 6, y: 6 } }) as SceneEntity;
+  ({ id, kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 } }) as SceneEntity;
 /** Deux listes de deps sont-elles la MÊME ? — par IDENTITÉ, terme à terme : le patron de rétention. */
 const memesDeps = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((d, i) => d === b[i]);
 const patchEntity = (scene: Scene, id: string, patch: Partial<SceneEntity>): Scene =>

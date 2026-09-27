@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { props, findPropById } from './index';
 import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene';
 import { empreinteDuProp } from './props.types';
@@ -23,7 +23,6 @@ const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
   ['balustrade-loge', 1, 1],
   ['barque', 2, 1],
   ['canon-de-pont', 1, 1],
-  ['charrette', 2, 1],
   ['cheval-mort', 2, 1],
   ['cuve-brasserie', 1, 1],
   ['ecoutille', 1, 1],
@@ -50,8 +49,8 @@ const propFootTable = (): [string, number, number][] =>
 const SCENES_DIR = join(__dirname, '../scenes');
 const ARENE_JSON = join(SCENES_DIR, 'arene/arene-projet.json');
 
-/** Tous les `.json` de `src/scenes` (récursif). */
-const sceneJsonFiles = (): string[] => listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('.json') });
+/** Les projets livrés (`projetsLivres.mjs`), relatifs à `src/scenes`. */
+const sceneJsonFiles = (): string[] => listerProjetsLivres();
 
 /** `<fichier>/<scène>/<entité>` pour chaque entité portant un `foot` d'INSTANCE dans un document BRUT. */
 function entitesAvecFoot(doc: unknown, fichier: string): string[] {

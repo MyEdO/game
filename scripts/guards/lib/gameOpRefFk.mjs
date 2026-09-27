@@ -1,7 +1,7 @@
 // Mécanique du garde-fou « les références portées par les `GameOp` de la DONNÉE COMMITÉE résolvent »
 // (#847). `applyOps` (`src/engine/ops.ts`) empile sans valider : un `talentId` fantôme produit une op
-// silencieusement inerte, un `ref` fantôme un mannequin de repli visible (`src/state/spawn.ts ›
-// spawnEnemy`). Le gate posé à l'ÉDITION ne protège que ce qui passe par l'UI ; les `.json` commités, non.
+// silencieusement inerte, un `ref` fantôme un refus au spawn (`RefIrresoluble`, `src/state/spawn.ts`).
+// Le gate posé à l'ÉDITION ne protège que ce qui passe par l'UI ; les `.json` commités, non.
 //
 // PÉRIMÈTRE DÉRIVÉ, PAS RECOPIÉ. Les champs surveillés sont ÉNUMÉRÉS par le TypeChecker depuis l'union
 // `GameOp` de `src/engine/ops.ts` (`gameOpStringFields`) : chaque propriété dont le type admet `string`
@@ -85,13 +85,7 @@ export const GAMEOP_FIELD_TARGETS = {
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Traits / Talents / Compétences ──
   'grantTrait.traitId': { registry: 'traits' },
-  'grantTalent.talentId': { registry: 'talents' },
-  'grantCareerTalent.talentId': { registry: 'talents' },
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
-  // Spécialisations : résolution assurée par la GARDE EXHAUSTIVE Phase 3 de
-  // `src/data/refs-migrated.test.ts`, qui connaît le domaine porteur (fermé/ouvert/`specsSource`).
-  'grantTalent.spec': { coveredBy: 'refs-migrated.test.ts § GARDE EXHAUSTIVE (Phase 3 complétude)' },
-  'grantCareerTalent.spec': { coveredBy: 'refs-migrated.test.ts § GARDE EXHAUSTIVE (Phase 3 complétude)' },
 
   // ── Séquelles (traumas.json) — `permanentAmputations` (src/engine/trauma.ts) instancie CHAQUE id ──
   'amputer.sequels': { registry: 'traumas' },

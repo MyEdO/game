@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
+import { poserCapDuGroupe } from '../../state/combatants';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { setRevealAll } from '../../state/visionState';
 import { createHero } from '../../engine/character';
@@ -15,6 +16,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { FOG_GAMMA_DEFINE, type MatériauEmbrumable } from '../backends/webgl/sceneMeshes';
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
+import { toHex } from '../shade';
 
 /**
  * BRUME & CIEL DE LA PREMIÈRE PERSONNE (#1176, P3-1c) — l'horizon du POV volumique cesse d'être tranché
@@ -41,7 +43,7 @@ function poser(ambiance: Scene['ambiance']): Scene {
   scene.ambiance = ambiance;
   useGame.setState({
     screen: 'campaign', mode: 'exploration', party: [hero], scene,
-    partyPos: { x: 4, y: 4 }, facing: { [hero.id]: 'N' },
+    partyPos: { x: 4, y: 4 }, facing: poserCapDuGroupe({}, 'N'),
     dialogue: null, battle: null, povActive: true, lightLevel: 1,
   } as never);
   return scene;
@@ -132,7 +134,7 @@ describe('POV volumique — la BRUME du milieu (#1176 P3-1c)', () => {
     const fond = s.background as THREE.DataTexture;
     expect(fond?.isTexture, 'le fond porte le dégradé de ciel').toBe(true);
     const d = fond.image.data as Uint8Array;
-    const bas = `#${[0, 1, 2].map((k) => d[k].toString(16).padStart(2, '0')).join('')}`;
+    const bas = toHex(d[0], d[1], d[2]);
     expect(bas, 'l’horizon du fond porte la brume de CIEL, pas celle des surfaces').toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
     expect(bas).not.toBe(hex(fog.color));
   });
@@ -165,7 +167,7 @@ describe('POV volumique — la BRUME du milieu (#1176 P3-1c)', () => {
     /** La loi du MONDE : l'albédo décodé × le palier, en linéaire (l'espace où les lampes multiplient). */
     const commeUneFace = (h: string) => hex(new THREE.Color(h).multiplyScalar(lum));
     const d = (s.background as THREE.DataTexture).image.data as Uint8Array;
-    const horizon = `#${[0, 1, 2].map((k) => d[k].toString(16).padStart(2, '0')).join('')}`;
+    const horizon = toHex(d[0], d[1], d[2]);
     expect(horizon, 'l’horizon ne reste pas à la brume de ciel de plein jour').toBe(commeUneFace(AMBIANCE.pov.fogOutdoor));
     expect(horizon).not.toBe(AMBIANCE.pov.fogOutdoor.toLowerCase());
     expect(hex((s.fog as THREE.Fog).color), 'la brume des surfaces suit le même palier').toBe(

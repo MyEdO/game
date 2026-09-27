@@ -14,7 +14,7 @@
  * `JSON.stringify(doc, null, 1) + '\n'` (précédent déclaré par
  * `scripts/migrations/2026-08-24-give-trapping-label-vers-id.mjs`), vérifié AVANT toute écriture.
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un choix ne portant plus que `label` est reconnu migré ;
+ * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un choix portant seulement `label` est reconnu migré ;
  * rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * FAIL-FAST : choix portant `text` ET `label`, choix sans ni l'un ni l'autre, `text` non-chaîne →
  * rien n'est écrit, sortie 1.

@@ -9,7 +9,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -32,7 +32,7 @@ export interface SpectreProps {
   /** Arme brandie — `epee` : bras D levé (banshee) ; `faux` : faux de faucheuse tenue à deux
    *  mains en diagonale devant le corps (spectre), hampe @cuir + lame pâle corrodée. */
   arme?: 'epee' | 'faux';
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 function buildSkeleton(): Record<SpectreBoneId, SBone> {
@@ -259,7 +259,7 @@ export function resolveSpectreFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton();
   const world = worldTransformsG(sk, pose) as Record<SpectreBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const back = view === 'back';
   const prof = view === 'profile';
   const backHead = `<g opacity="0.82"><path d="M-8 2 Q-9 -12 0 -13 Q9 -12 8 2 Q7 9 0 11 Q-7 9 -8 2 Z" fill="@corpsO"/></g>`;
@@ -285,7 +285,7 @@ export function resolveSpectreFromProps(
 
 export const SPECTRE_DEFAULT: SpectreProps = {
   sl: 0.95, hood: false, face: 'morne',
-  stored: { corps: '#9fb8c8', corpsO: '#5a7282', corpsH: '#d8e8f0', cheveux: '#3a4a54', cheveuxO: '#222e34', cuir: '#7a90a0' },
+  palette: { corps: '#9fb8c8', corpsO: '#5a7282', corpsH: '#d8e8f0', cheveux: '#3a4a54', cheveuxO: '#222e34', cuir: '#7a90a0' },
 };
 
 export function resolveSpectre(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

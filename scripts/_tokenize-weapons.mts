@@ -3,7 +3,7 @@
  * classe chaque couleur (hex + dégradés métal) par VALEUR (HSL) en familles @metal/@cuir/@accent
  * × tiers base/O/H, le reste (outlines quasi-noirs, glow/sang/chair, rouges/verts) = `keep`.
  * Pour chaque def : réécrit art (couleur→@token, géométrie intacte) + ajoute `palette`
- * (StoredPalette = hex EXACT par token → défaut sans perte, recolor cohérent via buildTokenMap).
+ * (PaletteDeclaree = hex EXACT par token → défaut sans perte, recolor cohérent via buildTokenMap).
  *
  *   npx tsx scripts/_tokenize-weapons.mts          # DRY-RUN (rapport, n'écrit rien)
  *   npx tsx scripts/_tokenize-weapons.mts --write   # applique aux defs/

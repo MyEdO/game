@@ -27,7 +27,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Trois héros lanceurs (deux du Domaine du Feu, un de la Mort) face à une ennemie qui incante. */
 function setup() {
   const mk = (label: string, seed: number, advances: number, domain: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { talentId: 'magie-mineure' }, rng: makeRNG(seed) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, rng: makeRNG(seed) });
     h.spells = ['flechette'];
     h.characteristics.intelligence = 40;
     h.characteristics['force-mentale'] = 60;

@@ -1,0 +1,14 @@
+/* ── LE PLATEAU (`stage/GameStage3D.tsx`, `SurcoucheIso.tsx`) : une seule boîte, celle du canevas
+   volumique et du SVG posé dessus. Elle remplit tout l'espace disponible (caméra responsive). ── */
+.iso-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: radial-gradient(circle at 50% 28%, var(--bg), var(--bg));
+  /* Aucun `cursor` au REPOS : le stage est le seul écrivain du curseur du monde
+     (`stage/useStagePointer.ts` — `'pointer'` sur un utilisable, `''` sinon), et une main posée ici
+     rendrait cet effacement invisible (#1687). */
+  touch-action: none;
+}

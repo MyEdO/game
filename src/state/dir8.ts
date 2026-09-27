@@ -15,9 +15,7 @@ export const DIR8_ORDER: Dir8[] = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
  *  case voisine (`CARD_NB`). L'ARÊTE d'une case — QUEL de ses quatre bords porte un mur, une porte, une
  *  paroi de relief — est l'autre concept, et il a lui aussi UN terme : `CellSide` (`state/scene.ts`).
  *  Même cardinal, frontière nette : on ne tourne pas vers une arête, on ne pose pas un mur sur un cap.
- *  Un décor volumique ne prend pas d'autre cap : sa recette tourne (`rotatePropLocal`) là où son
- *  empreinte solide ne tourne pas (#1509), et une diagonale poserait sa géométrie en travers de cases
- *  restées traversables. */
+ *  Un décor volumique ne prend pas d'autre cap : `data/props.types.ts` `capVolumique`. */
 export type Dir4 = Extract<Dir8, 'N' | 'E' | 'S' | 'O'>;
 export const DIR4_ORDER: readonly Dir4[] = ['N', 'E', 'S', 'O'];
 export const estCardinal = (d: Dir8): d is Dir4 => (DIR4_ORDER as readonly Dir8[]).includes(d);

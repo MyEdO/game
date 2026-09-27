@@ -23,6 +23,9 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
+/** Un type de décor que le catalogue ne porte pas : la faute que la voie de recette sait poser. */
+const DECOR_MORT = 'decor-absent-du-catalogue';
+
 /** Une scène SAINE : son unique décor nomme son type (`ref`) — ce que #877 rend REQUIS. */
 const sceneSaine = (): Scene => ({
   ...emptyScene(4, 4),
@@ -103,12 +106,13 @@ describe('Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregist
     expect(relu.scenes[0].entities[0].ref).toBe('tonneau');
   });
 
-  it('projet FAUTIF (décor sans type) : RIEN n’est téléchargé, et le refus nomme la scène et l’entité', async () => {
+  it('projet FAUTIF (décor à type MORT) : RIEN n’est téléchargé, et le refus nomme la scène et l’entité', async () => {
     await monter(sceneSaine());
-    // L'état fautif se FABRIQUE par la voie de recette, jamais par un document forgé à côté.
+    // L'état fautif se FABRIQUE par la voie de recette, jamais par un document forgé à côté. Un type
+    // RETIRÉ ne se fabrique plus (`editEntity` refuse, #1882) : la faute posée est un type absent du catalogue.
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: undefined }); });
-    expect(verdict, 'le helper dit CE qu’il a retiré').toContain('retiré : ref');
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
+    expect(verdict, 'le helper dit CE qu’il a posé').toContain('posé : ref');
 
     const { telecharge, refus } = await exporte();
     expect(telecharge, 'aucun téléchargement : `downloadText` n’est pas appelé').toBe('');
@@ -118,7 +122,7 @@ describe('Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregist
       .toContain('ce fichier ne pourrait plus être rouvert');
     expect(refus, 'la scène est nommée').toContain('Salle d’export');
     expect(refus, 'l’entité fautive est nommée').toContain('La jetée');
-    expect(refus, 'et la règle enfreinte est dite').toContain('« ref » absente');
+    expect(refus, 'et la faute est dite').toContain(DECOR_MORT);
   });
 });
 
@@ -235,7 +239,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
     useGame.getState().setParty(makeShowcaseParty());
     await monter(sceneSaine());
-    await act(async () => { await buildApi().editorPatchEntity('p0', { ref: undefined }); });
+    await act(async () => { await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
     const { refus, titre, ecran } = await metALEssai();
     expect(titre).toBe('Tester la scène');
     expect(refus).toContain('Mise à l’essai refusée');
@@ -325,6 +329,16 @@ describe('__wfrp.editorPatchEntity — SETUP de recette par le pont d’INTENTIO
     await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { kind: 'personnage' }); });
     expect(verdict).toContain('✗');
     expect(verdict).toContain('kind');
+  });
+
+  it('retirer le type d’une entité : refus NOMMÉ à la porte de patch, et la scène n’est pas touchée (#1882)', async () => {
+    await monter(sceneSaine());
+    const avant = sceneCourante!;
+    let verdict = '';
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: undefined }); });
+    expect(verdict).toContain('✗');
+    expect(verdict).toContain('décor « p0 » : « ref » absente');
+    expect(sceneCourante).toEqual(avant);
   });
 
   it('entité inconnue : refus NOMMÉ, portant les ids de la scène', async () => {

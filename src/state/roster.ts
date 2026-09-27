@@ -1,4 +1,4 @@
-import { Combatant } from '../engine/types';
+import { Combatant, type TalentInstance } from '../engine/types';
 import { Money } from '../engine/money';
 import type { CreatorDraft } from '../ui/creator/draft';
 import { migrateDoc, type MigrationMap, type RaisonDeRefus } from './migrateDoc';
@@ -6,6 +6,10 @@ import { remapCharKeysDeep } from './charKeyMigration';
 import { remapNameToLabelDeep } from './instanceIdMigration';
 import { remapSkillIdDeep } from './skillIdMigration';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
+import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
+import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
+import type { Mutation } from '../engine/corruption';
+import { FORMAT_DES_CHOIX } from '../engine/character';
 import { t } from '../i18n';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
@@ -17,15 +21,7 @@ import { t } from '../i18n';
  *  (un Combatant seul ne retient pas ces choix). Absent → édition reconstruite.
  *
  *  NON VERSIONNÉ (cf. `rosterLoad` ci-dessous : liste nue, sans `version`, là où une partie porte
- *  `SAVE_VERSION`). Or les clés du brouillon sont des LIBELLÉS d'avancement (`advancementLabel`) :
- *  `speciesTalentChoices`, `specChoices`, `speciesPlus5`/`speciesPlus3`. MESURE L2 #1548 : 8 libellés
- *  d'avancement changent avec le passage des spécs à l'id de catalogue (« Savoir-vivre (Érudit) » →
- *  « Savoir-vivre (Érudits) »…), dont les 5 entrées « A ou B » d'espèce à `Savoir-vivre` spécifié qui
- *  KEYENT `speciesTalentChoices` (halflings Cendreplaine/Piedfoin/Havrebas/Fraisedébois/Pavéderonces —
- *  jeu figé par `ui/creator/draft.test.ts`). Un brouillon écrit avant ce lot rouvre donc le créateur
- *  avec ces choix non appariés — l'étape se re-choisit. Le héros déjà construit (`hero`), lui, EST
- *  intact : ses `SkillInstance` sont remappées à la lecture (`skillIdMigration.ts`, les deux canaux),
- *  jamais laissées à leur graphie morte ni purgées. */
+ *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`, `brouillonRelu`). */
 export interface RosterEntry {
   hero: Combatant;
   wealth: Money;
@@ -55,14 +51,64 @@ export function rosterLoad(): RosterEntry[] {
     // `skillId`→`id` des `SkillInstance` (#1548 L2) et celui des ids de sort FUSIONNÉS (#1897,
     // `remapSortsFusionnesDeep`) s'appliquent donc en repli IDEMPOTENT à chaque
     // lecture (aucun ancien token restant après un 1er passage → no-op), plutôt que via `migrateDoc`
-    // (réservé au format `EXPORT_VERSION`).
-    return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[]).filter(
-      (e): e is RosterEntry =>
-        !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string',
-    );
+    // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) et la
+    // graphie des ops de Talent (#1473) de même, héros par héros.
+    return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
+      .filter((e): e is RosterEntry => !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string')
+      .map((e) => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
   } catch {
     return [];
   }
+}
+
+/** Le brouillon persisté, s'il est au format des choix en ids (`FORMAT_DES_CHOIX`) ; sinon aucun : un
+ *  brouillon antérieur porte des libellés qu'aucune lecture ne résout, le créateur rouvre le héros par
+ *  `draftFromHero`. */
+function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
+  return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
+}
+
+/** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */
+function avecClesDEmplacementEnIds<T>(hero: T): T {
+  const choix = (hero as { careerSlotChoices?: Combatant['careerSlotChoices'] } | null)?.careerSlotChoices;
+  return choix ? { ...hero, careerSlotChoices: migrerClesDEmplacement(choix) } : hero;
+}
+
+/** Les ops de Talent du héros (armes, effets, mutations, traumatismes, consommables) à la graphie
+ *  `talent: { id, spec? }` (#1473, train 2a, `graphieOpsDeTalentDeep`) — idempotent.
+ *  Avant le lot, `attachMutation` posait une instance NEUVE du Talent octroyé, doublon compris, et le
+ *  détachement retirait une instance par `grantTalent` de la mutation ; ces ops portent encore
+ *  `talentId`, sans `talentsAcquis` (`engine/corruption.ts`). Le héros d'une telle mutation reçoit une
+ *  instance par Talent (`instancesFusionnees`) et la mutation ses `talentsAcquis`, AVANT la graphie qui
+ *  efface la marque de l'ancienne attache. */
+function avecOpsDeTalentALaGraphie<T>(hero: T): T {
+  const { mutations, talents } = (hero ?? {}) as { mutations?: unknown; talents?: unknown };
+  if (!Array.isArray(mutations)) return graphieOpsDeTalentDeep(hero) as T;
+  const instances = Array.isArray(talents) ? instancesFusionnees(talents as TalentInstance[]) : [];
+  return graphieOpsDeTalentDeep({
+    ...hero,
+    ...(Array.isArray(talents) ? { talents: instances } : {}),
+    mutations: mutations.map((m: unknown) => (m && typeof m === 'object' ? avecTalentsAcquisDAvantLeLot(m as Mutation, instances) : m)),
+  }) as T;
+}
+
+/** `talentsAcquis` d'une mutation attachée avant le lot : ses `grantTalent` à l'ancienne graphie dont le
+ *  héros porte le Talent. Une mutation qui a ses `talentsAcquis`, ou sans op ancienne, traverse. */
+function avecTalentsAcquisDAvantLeLot(m: Mutation, talents: TalentInstance[]): Mutation {
+  const acquis = (Array.isArray(m.passive) ? (m.passive as unknown[]) : [])
+    .filter(estOpDeTalentAncienne)
+    .filter((op) => op.op === 'grantTalent')
+    .map((op) => ({ id: op.talentId, ...(op.spec ? { spec: op.spec } : {}) }))
+    .filter((ref) => talents.some(estLInstanceDe(ref)));
+  return acquis.length && !m.talentsAcquis ? { ...m, talentsAcquis: acquis } : m;
+}
+
+/** Une instance par Talent (id et spécialisation), les `times` des doublons additionnés. */
+function instancesFusionnees(talents: TalentInstance[]): TalentInstance[] {
+  return talents.reduce<TalentInstance[]>((acc, x) => {
+    const meme = estLInstanceDe({ id: x.talentId, ...(x.spec ? { spec: x.spec } : {}) });
+    return acc.some(meme) ? acc.map((y) => (meme(y) ? { ...y, times: y.times + x.times } : y)) : [...acc, x];
+  }, []);
 }
 
 export function rosterAdd(entry: RosterEntry): void {
@@ -89,7 +135,7 @@ export function rosterUpdate(hero: Combatant): void {
 }
 
 const EXPORT_KIND = 'wfrp4-hero';
-export const EXPORT_VERSION = 5;
+export const EXPORT_VERSION = 7;
 
 /** Migrations SÉQUENTIELLES de l'export roster. À CHAQUE bump d'`EXPORT_VERSION`, ajouter ici
  *  l'entrée `vN → vN+1` — sinon les exports antérieurs sont refusés (jamais acceptés en silence
@@ -107,6 +153,14 @@ export const ROSTER_MIGRATIONS: MigrationMap = {
   // primitive `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`). Sans elle, un sort appris est
   // perdu en silence (`findSpellById` ne le résout plus).
   4: (doc) => ({ ...doc, version: 5, hero: remapSortsFusionnesDeep(doc.hero) }),
+  // v5 → v6 (#1924) : les clés de `careerSlotChoices` se résument en ids — `migrerClesDEmplacement`
+  // (`engine/careerSlots.ts`). Sans elle, chaque joker de carrière désigné redevient à désigner.
+  5: (doc) => ({ ...doc, version: 6, hero: avecClesDEmplacementEnIds(doc.hero) }),
+  // v6 → v7 (#1473, train 2a) : les ops de Talent que le héros porte s'écrivent
+  // `talent: { id, spec? }`, et une mutation attachée avant le lot reçoit ses `talentsAcquis` —
+  // `avecOpsDeTalentALaGraphie`. Sans elle, l'op importée n'a pas de `talent` et son application
+  // lève (`engine/ops.ts`, `grantTalent`).
+  6: (doc) => ({ ...doc, version: 7, hero: avecOpsDeTalentALaGraphie(doc.hero) }),
 };
 
 /** Sérialise un héros (avec sa Richesse) en chaîne portable — sauvegarde, transfert d'appareil,

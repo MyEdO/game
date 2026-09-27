@@ -62,7 +62,7 @@ describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réel
 });
 
 describe('entityBlockedAt — empreinte multi-cases des décors', () => {
-  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'charrette' } as SceneEntity; // 2×1 au catalogue
+  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'charrette' } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
   const puddle: SceneEntity = { id: 'b', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'mare-sang' } as SceneEntity; // 1×1, type passable (au sol)
   const scene = { entities: [cart, puddle] } as unknown as Scene;
   it('bloque toutes les cases de l’empreinte (charrette 2×1)', () => {
@@ -125,7 +125,7 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
 });
 
 describe('isWalkable — intègre l’empreinte des décors', () => {
-  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 1, y: 0 }, ref: 'charrette' } as SceneEntity; // 2×1 au catalogue
+  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 1, y: 0 }, ref: 'charrette' } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
   const scene = { dimensions: { w: 4, h: 1 }, layers: [{ z: 0, tiles: ['herbe', 'herbe', 'herbe', 'herbe'] }], entities: [cart] } as unknown as Scene;
   it('une case d’empreinte (charrette 2×1) est non-walkable', () => {
     expect(isWalkable(scene, 1, 0)).toBe(false);

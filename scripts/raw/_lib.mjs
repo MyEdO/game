@@ -485,10 +485,15 @@ export function buildFolioMap(chapters) {
   return map
 }
 
-// (map, folio) → { ch, lo, hi } | null (folio absent) | 'ambiguous' (folio dans ≥2 chapitres).
-export function folioRangeIn(map, folio) {
+// (map, folio, ch?) → { ch, lo, hi } | null (folio absent) | 'ambiguous'. Une page partagée entre
+// deux chapitres (l'un s'ouvre en milieu de page, #1739) porte son folio dans les deux : la réf qui
+// NOMME son chapitre `ch` se résout dans ce chapitre ; sans chapitre nommé ou hors de ses hits, un
+// folio présent dans ≥2 chapitres reste 'ambiguous'.
+export function folioRangeIn(map, folio, ch = null) {
   const hits = map.get(folio)
   if (!hits || !hits.length) return null
+  const dansCh = ch == null ? undefined : hits.find((h) => h.ch === ch)
+  if (dansCh) return dansCh
   if (new Set(hits.map((h) => h.ch)).size > 1) return 'ambiguous'
   return hits[0]
 }
@@ -511,22 +516,22 @@ export function folioIndexOf(abbr) {
   return map
 }
 
-// (abbr, folio) → { ch, lo, hi } | null | 'ambiguous'.
-export function folioRange(abbr, folio) {
-  return folioRangeIn(folioIndexOf(abbr), folio)
+// (abbr, folio, ch?) → { ch, lo, hi } | null | 'ambiguous' (`folioRangeIn`).
+export function folioRange(abbr, folio, ch = null) {
+  return folioRangeIn(folioIndexOf(abbr), folio, ch)
 }
 
 // (abbr, nn, folioStr, suffix) -> [lo, hi] LIGNES dans le fichier-chapitre `nn`, ou `null` (#606).
 // Convertit une ref folio `ABBR NN p.folio[-fin][+pts]` en plage de LIGNES du MEME chapitre via
-// `folioRange` (ancres `data-folio`). Ignore proprement (`null`, jamais un throw) : ancre absente
-// (residu #522), folio ambigu (present dans plusieurs chapitres), ou folio resolu vers un AUTRE
-// chapitre que `nn` (frontiere de chapitre) -- on ne cherche PAS a re-ancrer, juste a ne pas
-// crediter un mauvais chapitre. Un `-fin`/`+pts` dont le second folio est irresolu degrade sur
-// la seule plage du premier folio (jamais un throw ni une plage bancale).
+// `folioRange` (ancres `data-folio`), résolue DANS le chapitre `nn` quand le folio y est ancré (page
+// partagée comprise). Ignore proprement (`null`, jamais un throw) : ancre absente (residu #522), ou
+// folio ancré hors du chapitre `nn` (frontiere de chapitre) -- on ne cherche PAS a re-ancrer, juste
+// a ne pas crediter un mauvais chapitre. Un `-fin`/`+pts` dont le second folio est irresolu degrade
+// sur la seule plage du premier folio (jamais un throw ni une plage bancale).
 export function folioSpan(abbr, nn, folioStr, suffix) {
   const wantCh = Number(nn)
   const resolveInCh = (folio) => {
-    const r = folioRange(abbr, folio)
+    const r = folioRange(abbr, folio, wantCh)
     if (!r || r === 'ambiguous' || r.ch !== wantCh) return null
     return r
   }

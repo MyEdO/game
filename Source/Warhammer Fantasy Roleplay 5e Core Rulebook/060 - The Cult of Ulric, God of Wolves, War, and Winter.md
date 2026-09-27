@@ -1,14 +1,18 @@
 *Pages PDF 213*
 
-# **THE CULT OF ULRIC, GOD OF WOLVES, WAR, AND WINTER**
+# <span id="page-212-0" data-folio="213"></span>**THE CULT OF ULRIC, GOD OF WOLVES, WAR, AND WINTER**
 
-**Seat of Power:** Middenheim, Middenland **Head of the Cult:** Jarrick Valgeir, Ar-Ulric
+**Seat of Power:** Middenheim, Middenland
 
-**Primary Orders:** Order of the Howling Wolf, Order of the
+**Head of the Cult:** Jarrick Valgeir, Ar-Ulric
 
-White Wolf **Major Festivals:** Campaign Start, Hochwinter, Campaign End **Important Holy Texts:** *Liber Lupus*, *Teutognengeschichte*, *The* 
+**Primary Orders:** Order of the Howling Wolf, Order of the White Wolf
 
-*Ulric Creed* **Common Holy Symbols:** White wolves, stylised U's, claws
+**Major Festivals:** Campaign Start, Hochwinter, Campaign End
+
+**Important Holy Texts:** *Liber Lupus*, *Teutognengeschichte*, *The Ulric Creed*
+
+**Common Holy Symbols:** White wolves, stylised U's, claws
 
 Ulric is the ferocious god of wolves, war, and winter. He is the brother of Taal and, according to Ulrican lore, the king of the gods, although other cults dispute this. He is normally portrayed as a massive, heavily bearded barbarian wearing a white wolfpelt cloak, and bearing a mighty war axe named Blitzbeil. He's a distant, harsh, and unforgiving god who expects his cultists to rely on individual strength and prowess. He despises weakness, cowardice, and trickery, favouring the direct approach in all matters.
 
@@ -27,6 +31,8 @@ Temples resemble fortified keeps and are normally square. The interior of the ma
 #### **Penances**
 
 Penances set by Ulric are almost always tests of strength, courage, and martial skill. Slaying a powerful monster, or clearing out a nest of beastmen or outlaws, are typical tasks.
+
+#### **Strictures**
 
 - Obey your betters.
 - Defend your honour in all matters, and never refuse a challenge.

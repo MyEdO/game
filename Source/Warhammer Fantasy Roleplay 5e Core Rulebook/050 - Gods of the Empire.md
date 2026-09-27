@@ -1,6 +1,6 @@
 *Pages PDF 202-203*
 
-# **GODS OF THE EMPIRE**
+# <span id="page-201-0" data-folio="202"></span>**GODS OF THE EMPIRE**
 
 The people of the Old World recognise many deities. Some are worshipped across the whole of the Old World, some are restricted to one nation or region, and some are patrons of just a single town or occupation. In the Empire, the pantheon of gods is split into three broad categories: the Old Gods, the Classical Gods, and the Provincial Gods. Standing apart from these is Sigmar, the first emperor, and patron deity of the Empire as a whole.
 
@@ -30,7 +30,7 @@ Sigmar founded the Empire over two thousand years ago, and his legend recounts h
 
 Today, many centuries later, the Cult of Sigmar, patron of the Empire, has spread to such an extent that its leader, the grand theogonist, is arguably more powerful than the emperor himself.
 
-# **Other Pantheons**
+# <span id="page-202-0" data-folio="203"></span>**Other Pantheons**
 
 The different countries and species of the Old World all have deities of their own. Some, according to theologians, are aspects of other deities worshipped under different names. Others are particularly revered by a particular species — examples include Grungni, the dwarf ancestor god of mining and craftsmanship; Isha, a goddess of fertility and nature who is seen as the mother of all elves; and Esmerelda, the halfling goddess of hearth, home, and family.
 

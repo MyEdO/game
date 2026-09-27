@@ -18,7 +18,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette, StoredPalette } from '../palette';
+import type { Palette, PaletteDeclaree } from '../palette';
 import { worldTransformsG, type FKBone, type Matrix } from '../kinematics';
 import { buildTokenMap, applyTokenMap } from '../palette';
 import { bonesToSvg } from '../renderBones';
@@ -33,7 +33,7 @@ export interface HulkProps {
   /** Forme : `blob` (défaut) = masse informe à moignons ; `gel` = gelée translucide à proies
    *  englouties ; `brute` = colosse bipède voûté. */
   form?: 'blob' | 'gel' | 'brute';
-  stored: StoredPalette;
+  palette: PaletteDeclaree;
 }
 
 function buildSkeleton(p: HulkProps): Record<HulkBoneId, HBone> {
@@ -88,7 +88,7 @@ function gel(p: HulkProps, view: View): string {
   const droplet = `<ellipse cx="${W(31)}" cy="26.5" rx="3.8" ry="3" fill="@cheveux" stroke="@cheveuxO" stroke-width="0.6"/><path d="M${W(29.5)} 25 q1.5 -1.4 3 -0.4" stroke="@corpsH" stroke-width="0.7" fill="none" opacity="0.4"/>`;
   const ring = `<ellipse cx="${W(-23)}" cy="24" rx="5.4" ry="2.6" fill="none" stroke="@cuir" stroke-width="1.1" transform="rotate(-14 ${W(-23)} 24)"/>`;
   // masse gélatineuse TRANSLUCIDE dressée (plus haute que large), contour bosselé irrégulier,
-  // fill semi-transparent + fine membrane rosâtre (@corpsO) — SANS visage
+  // fill semi-transparent + fine membrane rosâtre (@membrane) — SANS visage
   const massD = `M${W(-19)} 17 Q${W(-27)} 13 ${W(-23)} 4 Q${W(-29)} -2 ${W(-22)} -9 Q${W(-27)} -17 ${W(-18)} -23 Q${W(-23)} -30 ${W(-13)} -34 Q${W(-12)} -41 ${W(-3)} -40.5 Q${W(6)} -43 ${W(10)} -36.5 Q${W(19)} -34.5 ${W(15)} -27 Q${W(24)} -22 ${W(19)} -15 Q${W(26)} -8 ${W(21)} -1 Q${W(26)} 7 ${W(18)} 14 Q${W(9)} 19.5 0 19.5 Q${W(-11)} 19.5 ${W(-19)} 17 Z`;
   const mass = `<path d="${massD}" fill="@corps" fill-opacity="0.62" stroke="none"/>`;
   // dégradé interne (artwork ZI 48 : gelée CLAIRE et lumineuse en haut → s'assombrit en fondant
@@ -97,7 +97,7 @@ function gel(p: HulkProps, view: View): string {
     `<path d="M${W(-17)} -13 Q${W(-4)} -18 ${W(10)} -13 Q${W(14)} -6 ${W(11)} 0 Q0 -4 ${W(-12)} 0 Q${W(-18)} -6 ${W(-17)} -13 Z" fill="@corpsH" fill-opacity="0.2"/>`;
   const shade = `<path d="M${W(-21)} 3 Q${W(-11)} 8 0 8.5 Q${W(12)} 8 ${W(20)} 2 Q${W(25)} 8 ${W(18)} 14 Q${W(9)} 19.5 0 19.5 Q${W(-11)} 19.5 ${W(-19)} 17 Q${W(-26)} 12 ${W(-21)} 3 Z" fill="@cheveux" opacity="0.45"/>` +
     `<path d="M${W(-19)} 11 Q${W(-8)} 15 0 15.2 Q${W(9)} 15 ${W(17)} 10 Q${W(21)} 14 ${W(18)} 14 Q${W(9)} 19.5 0 19.5 Q${W(-11)} 19.5 ${W(-19)} 17 Q${W(-23)} 14 ${W(-19)} 11 Z" fill="@cheveuxO" opacity="0.4"/>`;
-  const membrane = `<path d="${massD}" fill="none" stroke="@corpsO" stroke-width="1.3" stroke-opacity="0.8"/>` +
+  const membrane = `<path d="${massD}" fill="none" stroke="@membrane" stroke-width="1.3" stroke-opacity="0.8"/>` +
     `<path d="${massD}" fill="none" stroke="@corpsH" stroke-width="0.5" stroke-opacity="0.45" transform="scale(0.965)"/>`;
   // LE trait distinctif (ZI 48) : proies ENGLOUTIES en silhouettes sombres visibles PAR
   // TRANSPARENCE — squelette suspendu (crâne penché, cage thoracique, bras d'os, bassin),
@@ -129,7 +129,7 @@ function gel(p: HulkProps, view: View): string {
 }
 function gelArm(sx: number): string {
   // pseudopode translucide court (repère d'épaule pour l'anim), même matière que la masse
-  return `<path d="M0 -3 Q${sx * 10} -1 ${sx * 9.5} 8 Q${sx * 9} 15 ${sx * 3} 16 Q${sx * 6} 10 ${sx * 4} 4 Q${sx * 2} 0 0 2 Z" fill="@corps" fill-opacity="0.62" stroke="@corpsO" stroke-width="0.9" stroke-opacity="0.75"/>` +
+  return `<path d="M0 -3 Q${sx * 10} -1 ${sx * 9.5} 8 Q${sx * 9} 15 ${sx * 3} 16 Q${sx * 6} 10 ${sx * 4} 4 Q${sx * 2} 0 0 2 Z" fill="@corps" fill-opacity="0.62" stroke="@membrane" stroke-width="0.9" stroke-opacity="0.75"/>` +
     `<circle cx="${sx * 6}" cy="6" r="1.2" fill="@corpsH" opacity="0.4"/>`;
 }
 function bruteBody(p: HulkProps, view: View): string {
@@ -247,7 +247,7 @@ export function resolveHulkFromProps(
 ): ResolvedBone[] {
   const sk = buildSkeleton(p);
   const world = worldTransformsG(sk, pose) as Record<HulkBoneId, Matrix>;
-  const tmap = buildTokenMap(p.stored, colors ?? {});
+  const tmap = buildTokenMap([p.palette], colors ?? {});
   const art: Record<HulkBoneId, string> = p.form === 'brute'
     ? { corps: bruteBody(p, view), brasG: bruteArm(-1), brasD: bruteArm(1) }
     : p.form === 'gel'
@@ -262,7 +262,7 @@ export function resolveHulkFromProps(
 
 export const HULK_DEFAULT: HulkProps = {
   sl: 1.1, girth: 1.0,
-  stored: { corps: '#5a5236', corpsO: '#362f1e', corpsH: '#7c7150', cheveux: '#2a2416', cheveuxO: '#181206', cuir: '#3a3320' },
+  palette: { corps: '#5a5236', corpsO: '#362f1e', corpsH: '#7c7150', cheveux: '#2a2416', cheveuxO: '#181206', cuir: '#3a3320' },
 };
 
 export function resolveHulk(species: string, view: View = 'front', pose: BonePose = {}, colors?: Palette): ResolvedBone[] {

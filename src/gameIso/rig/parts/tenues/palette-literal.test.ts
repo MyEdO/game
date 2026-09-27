@@ -4,8 +4,9 @@
  * Un littéral hex (`fill`/`stroke`/`stop-color`) qui vaut EXACTEMENT une valeur déclarée dans la
  * `palette` du MÊME def aurait dû être le jeton `@<clé>` correspondant. Le recoloriage
  * (`buildTokenMap`/`applyTokenMap`, `palette.ts`) ne peut agir que sur les tokens : un littéral
- * gravé reste figé quel que soit l'espèce/la carrière du porteur — même défaut que la chair
- * gravée (`flesh-gradient.test.ts`), généralisé à TOUTE matière (chair, cuir, tissu, plume…).
+ * gravé reste figé quel que soit l'espèce/la carrière du porteur, quelle que soit la matière (chair,
+ * cuir, tissu, plume…). Un arrêt littéral de dégradé dérivé `url(#dg-…)` compte comme un
+ * `stop-color` (#1903 A3).
  *
  * PÉRIMÈTRE : comparaison EXACTE (distance ZÉRO, insensible casse/guillemets) contre les valeurs
  * déclarées PAR LE MÊME def — sans ambiguïté, sans faux positif possible. Jamais une distance

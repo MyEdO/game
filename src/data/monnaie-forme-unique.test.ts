@@ -12,8 +12,7 @@
  *     et TOUJOURS dans un objet qui ne porte QU'ELLES : une action nomme sa charge (`giveMoney.montant`,
  *     `giveXp.amount`, `givePossession.ref`), elle ne l'étale pas parmi ses propres clés.
  *  B. les noms RÉSERVÉS `price`/`cost` : recensement par CLASSE réelle et par SIGNATURE d'objet —
- *     un nom de concept est réservé à son type (#1463 S2). `cost` est SOLDÉ (L-monnaie-4) : il ne
- *     porte plus qu'une classe. `price` en porte trois de plus que la monnaie — `null` et `'ND'` sont
+ *     un nom de concept est réservé à son type (#1463 S2). `cost` est SOLDÉ (L-monnaie-4) : il porte seulement une classe. `price` en porte trois de plus que la monnaie — `null` et `'ND'` sont
  *     la colonne Prix telle que le livre l'imprime, `number` est le facteur saisonnier du vin.
  */
 import { describe, it, expect } from 'vitest';
@@ -109,7 +108,7 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
       dice: 1, // prix TIRÉ
     });
 
-    // `cost` est RENDU à son type (L-monnaie-4) : il ne nomme plus QUE de la monnaie. L'économie du
+    // `cost` est RENDU à son type (L-monnaie-4) : il nomme seulement de la monnaie. L'économie du
     // Tour dit `coutAction`, le barème d'installation navale `installation`, les paliers de prothèse
     // `px`, les deux coûts d'Avantage du Flow `advantageCost` / `advantageOrMovement`, la réaction de
     // défense `avantage`. UNE seule classe subsiste, et chaque objet est un montant.

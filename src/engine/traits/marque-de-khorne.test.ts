@@ -31,7 +31,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
   it('Savoir-vivre : POSSESSION effective et REQUÊTABLE (#516, réfutation 1) — sur la fiche (`effectiveTalents`) et par `hasTalent`', () => {
     const talents = effectiveTalents(bearer());
     expect(talents).toContainEqual({ talentId: 'savoir-vivre', spec: 'suivants-de-khorne', times: 1 });
-    expect(hasTalent(bearer(), 'Savoir-vivre')).toBe(true);
+    expect(hasTalent(bearer(), 'savoir-vivre')).toBe(true);
   });
 
   it('Savoir-vivre : pas de double-comptage si le porteur possède AUSSI le talent en PROPRE (#516)', () => {

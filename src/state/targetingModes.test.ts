@@ -26,8 +26,8 @@ const arena = () => {
 function combat(over: Record<string, unknown> = {}) {
   const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
   const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
-  const e1 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e1', { x: 7, y: 6 }); // adjacent
-  const e2 = spawnEnemy('Bandit de Grand Chemin', undefined, 'e2', { x: 8, y: 6 });
+  const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 6 }); // adjacent
+  const e2 = spawnEnemy({ ref: 'brigand' }, 'e2', { x: 8, y: 6 });
   const battle = {
     combatants: [hero, ally, e1, e2], order: ['h1', 'h2', 'e1', 'e2'], baseOrder: ['h1', 'h2', 'e1', 'e2'],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

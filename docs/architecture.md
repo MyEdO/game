@@ -133,6 +133,15 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             jetable de la tête, mesuré par EMPREINTE (`lib/empreinteRejeu.mjs` —
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
+src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
+                            plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
+                            `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
+                            `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
+                            bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
+                            promesse, une connexion par opération) — bibliothèque de projets, calque
+                            de référence, sauvegarde automatique, dossier `src/data` du Codex (#1956).
+                            `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
+                            sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -194,12 +203,13 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/state/
-  scene.ts                  SCÈNE : 35 fonctions PURES (tuiles, murs, portes, relief) + 38 types exportés,
+  scene.ts                  SCÈNE : 35 fonctions PURES (tuiles, murs, portes, relief) + 39 types exportés,
                             dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
                             (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 11 MANUSCRITS : `Scene`, `SceneEntity`,
-                            `ActionAuthoree` (geste authoré d'une instance de décor),
+                            `EffectOp` = 58 membres). Restent 12 MANUSCRITS : `Scene`, `SceneEntity`,
+                            `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
+                            `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
                             (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
                             ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et

@@ -22,7 +22,7 @@ import { EntityRef } from './EntityChip';
 import type { GameOp } from '../engine/ops';
 
 export function StakeNote({ stake }: { stake: StakeRef }) {
-  // Entrée d'enjeu SANS gabarit (#1117) : la donnée ne porte plus que son foyer de règle — le jet dit
+  // Entrée d'enjeu SANS gabarit (#1117) : la donnée porte seulement son foyer de règle — le jet dit
   // ce qu'il met en jeu par ses CHIPS d'ops (`OutcomeNote`), et le verbatim reste au ⓘ du titre.
   const { text } = resolveStake(stake);
   if (!text) return null;

@@ -21,7 +21,7 @@ import { indexParId, memoParVersion } from './versionDataset';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Une MUTATION (entité, `mutations.json`) : identité + effets, INDÉPENDANTE de toute table de tirage. */
-export type MutationData = Omit<Mutation, 'roll'> & { type: 'mutations' };
+export type MutationData = Omit<Mutation, 'roll' | 'talentsAcquis'> & { type: 'mutations' };
 
 /** Une TABLE de Corruption (`mutationTables.json`) : plages d100 → référence de mutation par id.
  *  `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */

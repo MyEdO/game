@@ -29,7 +29,7 @@ function main() {
   const [id] = process.argv.slice(2)
   if (!id) { console.error('usage : node scripts/raw/sonde-mobilier.mjs <id du livre>'); process.exitCode = 2; return }
   const sites = sitesDuLivre(id)
-  for (const c of ['romain-seul', 'folio-nu', 'mot']) {
+  for (const c of ['romain-seul', 'folio-nu', 'folio-tete', 'mot']) {
     const de = sites.filter((s) => s.classe === c)
     const lignes = new Set(de.map(adresse))
     console.log(`== ${c} : ${de.length} jeton(s) sur ${lignes.size} ligne(s), dont ${de.filter((s) => s.exemption).length} exempté(s)`)

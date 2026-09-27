@@ -8,8 +8,7 @@ import type { PartArt } from '../types';
 // Peinte en JETONS de la famille `botte` (cuir `@botte` + contour `@botteO`, `@semelle`, et
 // `@botteDos`/`@botteDosO` pour le cuir dorsal que l'art assombrit à la main) — une tenue pilote
 // donc la couleur de ses bottes par sa `palette` (`botte`, cf. tenues/types.ts). Défauts (art
-// d'origine) et expansion de la famille : `footPalette` (career.ts), empilée sous la palette
-// portée (espèce ∪ tenue) par `rigStoredPalette` — la SEULE construction de cet empilage.
+// d'origine) et clés suiveuses `semelle`/`botteDos` : table des clés de palette (`clesDePalette.ts`).
 export const BOTTE_CUIR: PartArt = {
   front: `<path d="M-2.9 -1 Q-3.3 2.5 -3.4 5 Q-3.5 7.2 -2.4 7.8 Q0 8.5 2.4 7.8 Q3.5 7.2 3.4 5 Q3.3 2.5 2.9 -1 Z" fill="@botte" stroke="@botteO" stroke-width="0.6"/><path d="M-3.4 6.9 Q0 8.4 3.4 6.9 L3.2 8.4 Q0 9.7 -3.2 8.4 Z" fill="@semelle"/><path d="M-2.9 0.6 Q0 1.4 2.9 0.6" fill="none" stroke="@botteO" stroke-width="0.5" opacity="0.7"/><path d="M-3.3 5.1 Q0 6.1 3.3 5.1" fill="none" stroke="@botteO" stroke-width="0.4" opacity="0.5"/>`,
   back: `<path d="M-2.8 -1 Q-3.2 2.5 -3.3 5 Q-3.4 7 -2.3 7.7 Q0 8.3 2.3 7.7 Q3.4 7 3.3 5 Q3.2 2.5 2.8 -1 Z" fill="@botteDos" stroke="@botteDosO" stroke-width="0.5"/><path d="M-3.3 6.8 Q0 8.2 3.3 6.8 L3.1 8.3 Q0 9.5 -3.1 8.3 Z" fill="@semelle"/><path d="M0 0.2 Q0.4 4 0 7.5" fill="none" stroke="@botteDosO" stroke-width="0.4" opacity="0.6"/><path d="M-2.8 0.4 Q0 1.2 2.8 0.4" fill="none" stroke="@botteDosO" stroke-width="0.5" opacity="0.6"/>`,

@@ -1,9 +1,10 @@
 import type { RaceDef } from './types';
-import type { StoredPalette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
 import { raceAppearance, type RaceAppearanceData } from '../../../data';
 import { feat } from '../parts/elements';
 import { memoByRef } from '../../../state/sceneMemo';
 import speciesRaceJson from '../../../data/speciesRace.json';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /**
  * Apparence d'espèce = DONNÉE app-owned éditable (`src/data/raceAppearance.json`, lu live via la
@@ -12,7 +13,7 @@ import speciesRaceJson from '../../../data/speciesRace.json';
  */
 const resolve = memoByRef((rec: RaceAppearanceData): RaceDef => {
   const { featureKeys, ...rest } = rec;
-  return { ...rest, ...(featureKeys?.length ? { features: feat(...featureKeys) } : {}) } as unknown as RaceDef;
+  return { ...rest, ...(featureKeys?.length ? { features: feat(...featureKeys) } : {}) };
 });
 
 export type { RaceDef, RaceFeature } from './types';
@@ -33,7 +34,7 @@ export function raceById(id: string | undefined): RaceDef {
   return resolve(rec ?? raceAppearance.find((r) => r.id === DEFAULT_RACE_ID)!);
 }
 /** Palette de peau/cheveux d'une race pour un sexe (variante F si définie, sinon la palette commune). */
-export function racePalette(id: string, sex: 'M' | 'F'): StoredPalette {
+export function racePalette(id: string, sex: Sexe): PaletteDeclaree {
   const r = raceById(id);
   return sex === 'F' && r.paletteF ? r.paletteF : (r.palette ?? {});
 }

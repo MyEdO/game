@@ -1,6 +1,6 @@
 *Pages PDF 183-184*
 
-# **PSYCHOLOGY**
+# <span id="page-182-0" data-folio="183"></span>**PSYCHOLOGY**
 
 Our emotions and instincts have a powerful impact on how we react in certain circumstances. These rules bring another level of drama to your game and help bring the Old World's inhabitants to life.
 
@@ -24,7 +24,7 @@ Becoming subject to *Fear* or *Terror* quickly outweighs even the most ardent *A
 
 When subject to *Fear*, you may not gain Momentum, and Melee Attacks made against you by the source of your *Fear* benefit from Advantage.
 
-### **Frenzy**
+### <span id="page-183-0" data-folio="184"></span>**Frenzy**
 
 You can work yourself into a frothing rage by howling like a wolf, flaying strips of sinful skin from your unworthy flesh, or simply embracing the deep well of bloodlust within. On your Turn, you may enter a state of *Frenzy* by passing a Willpower Test.
 

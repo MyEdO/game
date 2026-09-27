@@ -436,6 +436,9 @@ export function refusDeSpec(type: TypeEntite, id: string, spec: string): 'nonSpe
  */
 export type RegimeDeSpec = 'specOuChoix' | 'specSeule' | 'specOuChoixFacultatifs';
 
+/** Régime qu'un PORTEUR déclare pour une référence dont la spécialisation est facultative (`refOuSpec`). */
+export type RegimeDePorteur = Exclude<RegimeDeSpec, 'specOuChoix'>;
+
 /** Nœud `{ id, spec?, choix?, …extra }` + validation de la spécialisation, au `regime` du porteur. */
 function noeudASpecialisation<T extends TypeEntite>(
   type: T,
@@ -530,8 +533,13 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
 ): z.ZodType<RefASpecialisation>;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
   type: T,
+  extra: E | undefined,
+  regime: RegimeDePorteur,
+): z.ZodType<RefASpecialisation>;
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+  type: T,
   extra?: E,
-  regime: 'specSeule' | 'specOuChoixFacultatifs' = 'specSeule',
+  regime: RegimeDePorteur = 'specSeule',
 ): z.ZodType<RefASpecialisation> {
   return noeudASpecialisation(type, extra, regime);
 }

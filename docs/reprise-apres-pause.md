@@ -33,7 +33,9 @@ chantier du ticket `<N>` depuis n'importe quel worktree du dépôt (le chantier 
 l'arbre principal) : il pose le worktree lié `.wt-<N>` sur `origin/main`, crée la branche
 `chantier/<N>`, y joue `npm ci` et imprime le port dev dérivé. `npm run ops:publier -- --detache`
 (`node scripts/ops/publier.mjs`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son `pid` et son `log`. Le train rebase sur `origin/main`, régénère les docs
+du harnais, et imprime son `pid` et son `log`. Le train rebase sur `origin/main` — sans rebase quand
+`origin/main` est déjà ancêtre de la tête, refus quand la branche porte des fusions hors tronc :
+fusionner `origin/main` dans la branche, puis `--reprendre` (#1998) —, régénère les docs
 dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (borné par
 `--ci-timeout-min`) et, sur vert, fait entrer `main` en FAST-FORWARD ; un run neuf rotationne le log
 précédent en `<branche>.<AAAAMMJJ-HHMMSS>.log` (péremption 7 jours) — ce n'est pas une archive, le
@@ -104,7 +106,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 142 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 147 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
@@ -169,7 +171,7 @@ refaire `npm install`.
 | `PreToolUse` | Write \| Edit | `scripts/hooks/enterine-guard.mjs` | Tag [entériné] = validation utilisateur |
 | `PreToolUse` | Write \| Edit | `scripts/hooks/exception-add-guard.mjs` | Ajout d'exception de garde = autorisation utilisateur |
 | `PreToolUse` | Write \| Edit \| mcp__lean-ctx__ctx_patch | `scripts/hooks/memoire-tombale-guard.mjs` | Fiche mémoire : réécrire au présent, jamais une pierre tombale |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/git-destructive-guard.mjs` | Garde git destructif (arbre partagé) |
+| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/commande-piege-guard.mjs` | Commande piège refusée (lien node_modules, git show -- <sha>) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-guard.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/issue-label-guard.mjs` | Ticket sans label refusé (index du backlog) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/runner-fast-reminder.mjs` | Rappel typecheck:fast (tsc nu ~42 s) |
@@ -201,7 +203,7 @@ gates sur CHAQUE branche `chantier/**`, et c'est son verdict — jamais un artef
 autorise une tête à entrer dans `main`. Elle CLASSE d'abord le push
 (`scripts/gates/classerPush.mjs`) : un push dont tous les fichiers changés tombent sous
 `.claude/`, `.agents/`, `.codex/`, `AGENTS.md`, `CLAUDE.md` ne joue que les 9 gates qui LISENT un de
-ces chemins (`agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:docs`, `deps:unused`, `docs:check`, `docs:empreinte`, `test:raw`) ; les 17 autres sont sautées.
+ces chemins (`agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:docs`, `deps:unused`, `docs:check`, `docs:empreinte`, `test:raw`) ; les 18 autres sont sautées.
 
 `npm run ops:publier` joue le train : rebase, docs dérivés, push de la BRANCHE, attente du run CI de
 cette branche, fast-forward de `main`, pilotage. Il refuse à la première étape rouge en la nommant,
@@ -221,7 +223,7 @@ nomme 4 refus, et celui qui exige un run vert ne vaut que pour la ref `main`.
 Ajouter une gate, c'est ajouter UN step à `ci.yml` — rien d'autre ne la récite.
 
 **Rejeu LOCAL `npm run gates`** (`node scripts/gates/toutes.mjs`), un confort de diagnostic, jamais une porte :
-26 gates classées, d'abord
+27 gates classées, d'abord
 une phase SÉRIE `AVANT_LES_LANES` (`raw:coverage`, `raw:reconcile`, `raw:reanchor`) — les gates qui ÉCRIVENT dans
 l'arbre, jouées seules pour qu'aucun lecteur ne tombe sur un fichier à moitié écrit — puis
 3 lanes parallèles de LECTEURS :
@@ -230,11 +232,11 @@ l'arbre, jouées seules pour qu'aucun lecteur ne tombe sur un fichier à moitié
 |---|---|
 | `suite` | `test` |
 | `types` | `typecheck`, `lint`, `deps:unused`, `server:typecheck`, `test:agents`, `test:ops`, `test:runner`, `test:recette`, `test:hooks` |
-| `docs` | `docs:check`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `test:docs`, `agents:check`, `build` |
+| `docs` | `docs:check`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `raw:check-renvois`, `test:docs`, `agents:check`, `build` |
 
 Les deux tables vivent dans `scripts/gates/toutes.mjs` : `LANES` pour la répartition ci-dessus,
-`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (26 gates mesurées, dont
-11 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
+`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (27 gates mesurées, dont
+12 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par `WFRP_TEST_COEURS`
 pendant que les autres lanes tournent. Options : `--gates`, `--liste`, `--serie`. Une gate de `ci.yml`
 sans place dans ce plan fait REFUSER le run, avec son nom.
@@ -243,4 +245,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: e1472affaa8277b3a571e9d26f01230b1af33267 (25 fichiers, 8 dossiers) corps: 35d311d859f642a0649152d8d26fb6a165413cb1 -->
+<!-- sources-empreinte: 19dd83b7b00bbb6a8b0c7b16a419cfd5e78a1971 (25 fichiers, 8 dossiers) corps: d56c21511b5dc6a8b735e3981c5fbee0e8c80757 -->

@@ -31,9 +31,9 @@ function derniereePlaceLibre(): void {
   s.id = 'taverne-coop';
   s.entities = [
     { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } },
-    { id: 'pnj-1', kind: 'personnage', pos: { x: 6, y: 5 } },
-    { id: 'pnj-2', kind: 'personnage', pos: { x: 5, y: 6 } },
-    { id: 'pnj-3', kind: 'personnage', pos: { x: 4, y: 5 } },
+    { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
+    { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 6 } },
+    { id: 'pnj-3', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 5 } },
   ];
   s.seatAssignments = { [PROP]: { 'place-2': pris('pnj-1'), 'place-3': pris('pnj-2'), 'place-4': pris('pnj-3') } };
   useGame.setState({ party: [hero('h1'), hero('h2')], battle: null, journal: [], dialogue: null, mode: 'exploration' });

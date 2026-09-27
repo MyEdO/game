@@ -1,11 +1,14 @@
 import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
 import { startOf, unreachableDescriptiveZones } from './mapQC';
 import { footprintTiles, sizeFootprint } from './footprint';
-import { entitySize, refEntiteResolue } from './spawn';
+import { entitySize } from './spawn';
 import { METRES_PER_LEVEL } from './relief';
 import { realFloorAt } from './sceneEdit';
+import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
+import { formatMoney, spellMoney } from '../engine/money';
+import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
-import { stakeSpeaks, matieresDe } from '../data';
+import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
@@ -22,6 +25,13 @@ import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './pl
 import { seatAssignmentDefects } from './seating';
 import { memoByRefDeps } from './sceneMemo';
 
+/** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
+const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
+  competence: (id) => byId('skill', id)?.label,
+  carac: CHAR_LABELS,
+  difficultes: DIFFICULTY_LABELS,
+  monnaie: { formater: formatMoney, epeler: spellMoney },
+};
 /** Ids de la sous-liste `roof` que la DONNÉE ne déclare PAS couvrants (`materials.json`, champ
  *  `couverture` — le plan vu du dessus) : le schéma prouve l'appartenance à `roof`, ce sous-filtre de
  *  SCÈNE dit le reste (`couvertureSchema`, `defs-scenes/scene.ts`). CALCULÉ À L'APPEL : le document des
@@ -41,6 +51,15 @@ export interface Warning {
   plan?: { family: PlanDefectFamily; at: PlanDefectAt };
   message: string;
 }
+
+/** Avertissement d'un dialogue qu'aucun ouvreur de sa scène ne cite — le texte est l'IDENTITÉ de la
+ *  famille (la garde de corpus `scenes/dialogue-jamais-ouvert.test.ts` le relit). */
+export const avisDialogueJamaisOuvert = (dialogueId: string): string =>
+  `Dialogue « ${dialogueId} » : aucune entité ni aucun effet de la scène ne l'ouvre — il est injouable. Donne-le à une entité, ou ouvre-le par un effet « ${EFFECT_HANDLERS.startDialogue.label} ».`;
+
+/** Avertissement d'un libellé de réponse qui recopie ce que la fenêtre annonce (Test, coût). */
+export const avisLibelleRecopie = (dialogueId: string, label: string, terme: string): string =>
+  `Dialogue « ${dialogueId} » : le libellé « ${label} » recopie ce que la fenêtre annonce déjà (« ${terme} ») — le Test et le coût d'une réponse s'affichent d'eux-mêmes.`;
 
 export type ArchitectureWarningRef =
   | { type: 'architectureBody'; id: string }
@@ -183,9 +202,14 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       npcSheet: (id) => sceneNpc(s, id),
       within,
     };
+    // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
+    // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
+    const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId] : [])));
     const checkEffect = (eff: Effect, refId: string, scope: Warning['scope']) => {
-      const refs = (EFFECT_HANDLERS[eff.type] as EffectHandler).refs;
-      if (refs) for (const issue of refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);
+      const handler = EFFECT_HANDLERS[eff.type] as EffectHandler;
+      if (handler.refs) for (const issue of handler.refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);
+      const ouvert = handler.ouvreDialogue?.(eff);
+      if (ouvert) dialoguesOuverts.add(ouvert);
     };
     // Le SCHÉMA de scène (`sceneSchema`) : il prouve au parse toutes les références de catalogue, la
     // forme de la scène et l'unicité des clés de ses listes ; une scène VIVANTE de l'éditeur ne repasse
@@ -205,12 +229,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${e.label ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${e.label ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${e.label ?? e.id} sur étage ${e.z} inexistant`);
-      // RÉF de personnage : le schéma n'en dit que la forme (`ref: z.string().optional()`), la résolution
-      // est CELLE du spawn (`refEntiteResolue`, `state/spawn`) —
-      // un statbloc ou un preset de PNJ prime sur la réf et la rend sans objet, comme au runtime. Une réf
-      // fournie mais irrésoluble pose un mannequin `RÉF ?` à l'écran (#223) : l'auteur l'apprend ici.
-      if (e.kind === 'personnage' && e.ref && !e.statblock && !e.presetId && !refEntiteResolue(e.ref))
-        add('error', 'entity', e.id, `${e.label ?? e.id} → créature inexistante « ${e.ref} »`);
     }
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
@@ -408,6 +426,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
           if (c.when) checkCondTimes(c.when, d.id, 'dialogue');
           if (c.flow) checkFlow(c.flow, d.id, 'dialogue');
+          const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
+          if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }
     }
     const entById = new Map(s.entities.map((e) => [e.id, e] as const));
@@ -437,6 +457,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
       }
     }
+    for (const d of s.dialogues)
+      if (!dialoguesOuverts.has(d.id))
+        add('warn', 'dialogue', d.id, avisDialogueJamaisOuvert(d.id));
     // Défauts de PLAN (`state/planDefects`, la MÊME détection que `npm run map:check`) : l'auteur les
     // corrige dans l'éditeur, pas en ligne de commande — chaque défaut porte sa famille et l'endroit.
     for (const d of scenePlanDefects(s))

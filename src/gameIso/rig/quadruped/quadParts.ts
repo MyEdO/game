@@ -147,7 +147,7 @@ function legPartsFront(p: QuadProps, far: boolean, foot: QuadFoot, fore = false)
 // CORPS ENTIER en UNE SEULE silhouette continue (poitrail → garrot → dos → croupe → cuisse →
 // ventre), dessinée dans le tronc : détourer barrique et croupe séparément lit « deux pièces mal
 // soudées / croupe-ballon » (retour utilisateur + juges).
-// +x = avant. La croupe (os) ne porte plus que pattes arrière/queue ; l'arrière-train vit ici
+// +x = avant. La croupe (os) porte seulement pattes arrière/queue ; l'arrière-train vit ici
 // (la croupe ne tourne que de quelques degrés en anim — perte négligeable, couture supprimée).
 // La profondeur est encore étirée par girth (scale vertical au rendu).
 // Canal `bodyHi` (calque clair du haut de la silhouette : pelage en touffes, balafres) : la DEF DE
@@ -478,9 +478,8 @@ const tailBack = (p: QuadProps): string => quadArt(quadTailDef(p.tail).art.back,
 // les lames dressées en permanence lisaient « feuilles plantées ») / DÉPLOYÉES (vol/attaque).
 // PROFIL replié : l'aile se couche vers l'arrière (-x), couvre le haut du flanc, pointe au-delà
 // de la croupe. FACE/DOS : déployée vers +x (aile gauche miroitée scale(-1,1) au dispatch).
-// Couleur d'AILE : famille de jetons dédiée `@aile*`, repliée sur la ROBE (`@corps*`) quand la
-// def ne stocke pas de base `aile` (cf. resolveQuadFromProps) — permet une aile d'une AUTRE
-// teinte que le corps (pégase : robe blanche, ailes brun/doré, artwork LDB 79 p.325).
+// Couleur d'AILE : clé `aile` (`clesDePalette.ts`) — pégase : robe blanche, ailes brun/doré,
+// artwork LDB 79 p.325.
 function wingFoldedProfile(p: QuadProps, far: boolean): string {
   const c = far ? '@aileO' : '@aile';
   const L = 46 * p.bodyLen; // longueur du pli (suit l'allongement du corps)

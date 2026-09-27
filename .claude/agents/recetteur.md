@@ -14,6 +14,7 @@ TESTEUR-JOUEUR : tu vis l'expérience d'un utilisateur lambda et déroules la re
 - Pour AGIR, contrôles JOUEUR seuls : clics réels et clavier (`src/state/keybindings.ts`). `__wfrp`
   OBSERVE ou prépare un setup, JAMAIS ne déclenche le flux testé — agir par le store est un échec à
   consigner, pas un contournement.
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - **L'ÉCRAN fait foi** : une chaîne visible (libellé, badge, tooltip, log) qui contredit la mécanique
   exercée est un MENSONGE D'AFFORDANCE = friction — jamais « validé, la valeur interne est bonne ».
   Toute erreur console est une trouvaille.

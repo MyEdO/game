@@ -1,6 +1,6 @@
 *Pages PDF 196-201*
 
-# **ENDEAVOURS**
+# <span id="page-195-0" data-folio="196"></span>**ENDEAVOURS**
 
 Activities Characters undertake between adventures are known as Endeavours. You may choose one Endeavour per week if you are not adventuring, up to a maximum of three Endeavours in each period of downtime.
 
@@ -34,7 +34,7 @@ The spiritual philosophy known as *yenlui* is common to elven cultures. Masterin
 
 Because of this need to maintain a sense of spiritual and psychological balance, an elf Character must spend one of their Endeavours ensuring that they keep control of their psyches, using at least some of their time away from adventuring to meditate, pray, and attain a state of harmonious *yenlui*.
 
-The *High Elf Players Guide* gives more detailed information on maintaining *yenlui*, and what the consequences are of failing to keep it in balance. If using those rules, the elf Character does not need to spend one of their Endeavours on monitoring *yenlui*  — either they will be keeping it under control as a result of their behaviour, or suffering as a result of being imbalanced.
+The ***High Elf Players Guide*** gives more detailed information on maintaining *yenlui*, and what the consequences are of failing to keep it in balance. If using those rules, the elf Character does not need to spend one of their Endeavours on monitoring *yenlui*  — either they will be keeping it under control as a result of their behaviour, or suffering as a result of being imbalanced.
 
 # **Common Endeavours**
 
@@ -48,17 +48,19 @@ To advance in your Career, you need to spend some time rubbing shoulders with th
 
 You spend time training one of your animals. Make an **Average (+2 SL) Animal Training** Test. If successful, add one skill to your animal from the *Trained* Creature Trait (see page 363).
 
+# <span id="page-196-0" data-folio="197"></span>**Banking**
+
 All the money remaining at the end of your 'Between Adventures' phase is lost before the next adventure begins, unless it is saved with this Endeavour. You have two options when taking the Banking Endeavour:
 
 #### **Invest with Banking House**
 
 - Gold and Silver Status Characters only.
-- Determine risk and reward choose a number between 1 and 10 (or roll 1d10). This is the rate of interest you will accrue, and also how risky the investment is.
+- Determine risk and reward — choose a number between 1 and 10 (or roll 1d10). This is the rate of interest you will accrue, and also how risky the investment is.
 - Withdrawing funds requires another *Banking* Endeavour, either immediately after the initial Endeavour, or after subsequent adventures. Roll 1d100: if you roll equal to or less than the risk and reward number, the venture has failed and you have lost all of your money. If you roll over the interest rate, you receive your initial funds, plus the interest accrued.
 
 #### **Stash the Loot**
 
-- Hide/bury/give to someone for safekeeping a high risk option available to all Characters
+- Hide/bury/give to someone for safekeeping — a high risk option available to all Characters
 - Withdraw money from a stash before the start of an adventure without undertaking an Endeavour. Roll 1d100: if you roll 10 or lower, your stash has been found and you have lost all your money, otherwise you receive your initial funds. If you successfully withdraw your funds they are available for you when you start your next adventure, in addition to any funds secured via an *Income* Endeavour.
 
 **Example:** *Gerhard and Ulli's courage in the face of a horde of goblins (not to mention some judicious looting) has earned them a haul worth 10 gold crowns each. The ever-prudent Gerhard decides to place his money with the esteemed Fooger's Counting House in Marienburg. The GM rolls 1d10 with a result of 6. Gerhard will earn 6% interest on his deposit (12 silver shillings, see page 296), and the investment will fail if he rolls 6 or less on d100 when he tries to make a withdrawal.*
@@ -67,7 +69,7 @@ All the money remaining at the end of your 'Between Adventures' phase is lost be
 
 ### **Change Career**
 
-**Banking** Time spent on this Endeavour represents making the appropriate introductions, doling out bribes, acquiring permits and anything else needed to start a new Career. Work out the particulars with your GM — switching from Soldier to Sailor might be as simple as being press-ganged into the navy, while switching from a Rat Catcher to become a Noble is all but impossible. Additionally, not every Career is available to every Species. Assuming your GM agrees, you may pay 100 XP to change to a Career within your current Class, or 200 XP to change to a Career in another Class.
+Time spent on this Endeavour represents making the appropriate introductions, doling out bribes, acquiring permits and anything else needed to start a new Career. Work out the particulars with your GM — switching from Soldier to Sailor might be as simple as being press-ganged into the navy, while switching from a Rat Catcher to become a Noble is all but impossible. Additionally, not every Career is available to every Species. Assuming your GM agrees, you may pay 100 XP to change to a Career within your current Class, or 200 XP to change to a Career in another Class.
 
 # **Combat Training**
 
@@ -87,7 +89,7 @@ You may undertake the *Consult an Expert* Endeavour either to facilitate another
 
 First, you must locate an expert, unless you already know one. Make a **Challenging (+0 SL) Gossip** Test. On a success, you find a genuine expert. On a failure, you instead find the loudest self-proclaimed authority in the area, and the quality of their advice is up to the GM.
 
-Experts rarely give their time freely. They may require payment, or ask you to perform one or more Favours (see **Do Me a Favour!**, page 200), which can be called upon during a future adventure or 'bought off ' by spending Endeavours between future adventures. The GM determines what, if anything, the expert demands.
+<span id="page-197-0" data-folio="198"></span>Experts rarely give their time freely. They may require payment, or ask you to perform one or more Favours (see **Do Me a Favour!**, page 200), which can be called upon during a future adventure or 'bought off ' by spending Endeavours between future adventures. The GM determines what, if anything, the expert demands.
 
 The information you receive depends on both the expert consulted and the questions you ask. Academics know the history of their subjects, wizards of the Colleges of Magic understand magic and mystical artefacts — especially those of their own Order — Apothecary Generals can identify even the rarest poisons, and Verenan scholars recall countless historical events. Every expert presents their knowledge through the lens of their own experience and biases.
 
@@ -99,7 +101,7 @@ Crafting allows you to make any trapping from **Chapter 11: Consumer Guide** (or
 
 To craft the Trapping, attempt an Extended Trade Test, with a Difficulty set by the GM, typically using the Trapping's Availability as a loose guide.
 
-# **CRAFTING DIFFICULTY**
+**CRAFTING DIFFICULTY**
 
 | Availability | Difficulty          |
 |--------------|---------------------|
@@ -108,7 +110,7 @@ To craft the Trapping, attempt an Extended Trade Test, with a Difficulty set by 
 | Rare         | Difficult (-1 SL)   |
 | Exotic       | Very Hard (-3 SL)   |
 
-# **CRAFTING SL REQUIRED**
+**CRAFTING SL REQUIRED**
 
 | List Price | SL  |
 |------------|-----|
@@ -134,11 +136,13 @@ If successful, you can attempt a Charm Test during your next adventure to rally 
 
 Once you have successfully fomented dissent, you may try to turn the mob against a different target during the same adventure, though the Charm Test is two Difficulty levels harder.
 
+#### <span id="page-198-0" data-folio="199"></span>**Income**
+
 Most people resume their usual employment between bouts of adventuring. Bounty Hunters hunt bounties, Riverwardens ward rivers, Troll Slayers slay trolls — in the modern Empire, some even rely on a lucrative skill not featured in their job title. Wealthier Characters, such as Nobles and Merchants, might collect a stipend by (briefly) indulging their family, or collecting interest on their investments and business ventures. Roguish types have any number of means to acquire funds, though it's best not to ask for details.
 
-Take the *Income* Endeavour to represent your Character working in their chosen Career. Make an Average (+2 SL) Test using the *Earning Skill* listed in bold italics in the first Level of your Career. On a success, you earn income based on the **Status**  of your current Career Level, as shown below.
+Take the *Income* Endeavour to represent your Character working in their chosen Career. Make an Average (+2 SL) Test using the ***Earning Skill*** listed in bold italics in the first Level of your Career. On a success, you earn income based on the **Status**  of your current Career Level, as shown below.
 
-# **EARNED INCOME**
+**EARNED INCOME**
 
 | Status Tier | Income                                   |
 |-------------|------------------------------------------|
@@ -154,7 +158,7 @@ Certain results on the **Events Tables** may directly affect your income. The mo
 
 #### **Invent!**
 
-**Income** The *Invent* Endeavour allows you to create entirely new Trappings by combining the properties of two or more existing ones. A pair of Pistols might become a Repeating Pistol, or Pigeons combined with Bombs might produce Pigeon Bombs. The exact effects of any invention are ultimately determined by the GM.
+The *Invent* Endeavour allows you to create entirely new Trappings by combining the properties of two or more existing ones. A pair of Pistols might become a Repeating Pistol, or Pigeons combined with Bombs might produce Pigeon Bombs. The exact effects of any invention are ultimately determined by the GM.
 
 Inventing is a two-stage process: Plan and Build.
 
@@ -162,7 +166,7 @@ Inventing is a two-stage process: Plan and Build.
 
 **Build**: Complete the invention by undertaking either a *Crafting*  or *Commission* Endeavour.
 
-- Crafting: You build the invention yourself. You must possess the Skills required to create each component for example, combining Pigeons and Bombs requires Animal Training and Trade (Explosives). The Crafting Test is always Very Hard (–3 SL), modified by any bonus gained from the Plan stage. The raw materials cost twice the combined listed price of the Trappings and have an Availability equal to the rarest component.
+- Crafting: You build the invention yourself. You must possess the Skills required to create each component — for example, combining Pigeons and Bombs requires Animal Training and Trade (Explosives). The Crafting Test is always Very Hard (–3 SL), modified by any bonus gained from the Plan stage. The raw materials cost twice the combined listed price of the Trappings and have an Availability equal to the rarest component.
 - Commission: You hire someone else to build the invention. You may first need to undertake *Consult an Expert* to locate a suitable engineer. Resolve the *Commission* Endeavour as normal, except the work costs six times the combined listed price of the Trappings.
 
 The GM has the final say on the rules and capabilities of every invention.
@@ -173,7 +177,7 @@ If you do not take the *Income* Endeavour during Downtime, you neglect your Care
 
 For Characters at the highest Level of their Career, neglecting the demands of their position has more lasting consequences. See **Burdens of Power**, page 196.
 
-#### **The Latest News**
+#### <span id="page-199-0" data-folio="200"></span>**The Latest News**
 
 This Endeavour allows you to learn the latest news from afar. Attempt a **Challenging (+0 SL) Gossip** Test. On a success, you hear an interesting rumour, with your SL determining how accurate and detailed it is. The news may relate to an upcoming adventure, events elsewhere in the region, or anything else the GM considers appropriate. If you fail particularly badly (an Impressive Failure) you learn something false you are convinced is true. To facilitate this, the GM may want to make the Gossip Test in secret on your behalf.
 
@@ -201,6 +205,8 @@ Favours come in three levels: Minor, Major, and Significant. Regardless of a Fav
 
 In the Old World, breaking one's sworn word carries significant social ramifications. No-one trusts oath breakers, meaning your Status is reduced by 1 Tier (see page @@). Powerful and dangerous folks tend to take it very, very poorly if someone refuses a Favour owed them, so bloody consequences may follow.
 
+# <span id="page-200-0" data-folio="201"></span>**Study a Mark**
+
 Use this Endeavour to observe a potential target and gain advantages during future criminal enterprises. A Charlatan may study a merchant in order to better impersonate them during a future scam, or a Thief may spend time watching the comings and goings of a warehouse's guards to get an idea of their patrol routes.
 
 Attempt a **Challenging (+0 SL) Perception** Test, though the difficulty may be modified for especially easy or difficult marks. If you succeed, you may gain Advantage on a Test concerning your mark once during your next adventure. Note this on your Character Sheet. You can take this Endeavour multiple times if you wish. Further, the GM should provide information (or disinformation!) concerning your mark according to the SL you scored.
@@ -209,7 +215,7 @@ Attempt a **Challenging (+0 SL) Perception** Test, though the difficulty may be 
 
 This Endeavour allows you to train a Skill or Characteristic outside your Career. In addition to the normal XP cost, you must also pay a tutor. Training in Basic Skills and Characteristics costs a number of pennies equal to the XP cost of the Advance. Advanced Skills cost twice that amount. For more on Advances, see page 191.
 
-**Study a Mark** You should be able to find a tutor for most skills, especially in a large city such as Altdorf. For some specialist Skills, however, you may first need to undertake *Consult an Expert* to locate a suitable teacher — those willing to teach Pick Lock, for example, rarely advertise their services.
+You should be able to find a tutor for most skills, especially in a large city such as Altdorf. For some specialist Skills, however, you may first need to undertake *Consult an Expert* to locate a suitable teacher — those willing to teach Pick Lock, for example, rarely advertise their services.
 
 > Some Skills, particularly certain Lore Skills, can only be learned at appropriate institutions, while others are outright forbidden in the Empire. Finding a tutor able (and willing) to teach proscribed subjects, such as Necromancy or those related to the Ruinous Powers, may itself become an adventure. Such tutors usually demand far more than the usual fee, often requiring a Significant Favour (see **Do Me a Favour!**, page 200).
 

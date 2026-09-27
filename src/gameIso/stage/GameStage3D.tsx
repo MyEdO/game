@@ -211,6 +211,7 @@ import { materiauProfondeurPerce, percerMateriau, PERCAGE_MAX_HEROS } from '../b
 import { creerPercage, type ActeurPerce, type Percage } from './percage';
 import type { Lid } from './architectureVisibility';
 import { demanderUneImage, signalerImagePeinte, subscribeStageFrames, useBattementContinu } from './stageFrames';
+import './iso-stage.css';
 
 /** Clé de verdict des frames SANS découpe locale (première personne, éditeur) : constante, donc le
  *  verdict ne s'y rejoue jamais, et la liste vide y ramène toutes les cibles à zéro. */
@@ -2341,8 +2342,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
 
   // ── POOL DE FLAQUES (#1245, L1) : monté UNE fois, jamais reconstruit (la réf `pool` est déclarée avec
   // la décision, plus haut). Le compte de lampes ponctuelles entre dans la clé de cache de programme de
-  // three (`numPointLights`) : le faire varier recompilerait les 76 matériaux du monde. L'écran ne fait
-  // donc plus qu'écrire des intensités.
+  // three (`numPointLights`) : le faire varier recompilerait les 76 matériaux du monde. L'écran fait
+  // donc seulement écrire des intensités.
   useEffect(() => {
     const groupe = flaques.current;
     if (!groupe) return;

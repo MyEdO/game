@@ -117,7 +117,7 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
     const ops = consumableOps(itemFromTrappingById('bonnet-de-fou')!.consumable);
     expect(ops).toContainEqual({ op: 'charMod', char: 'force', mod: 10 });
     expect(ops).toContainEqual({ op: 'attrMod', attr: 'wounds', mod: 4 });
-    expect(ops).toContainEqual({ op: 'grantTalent', talentId: 'frenesie' });
+    expect(ops).toContainEqual({ op: 'grantTalent', talent: { id: 'frenesie' } });
     const delayed = ops.find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
     expect(delayed.afterDuration).toBe(true);
     expect(delayed.ops).toEqual([{ op: 'wounds', amount: { dice: { n: 1, sides: 10 } }, ignoreTB: true, ignoreAP: true }]);

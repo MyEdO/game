@@ -5,7 +5,7 @@ import type { Pt as ScenePt } from '../../state/path';
 import { walkFlow, type Flow } from '../../state/flow';
 import { nextEntityId } from '../../state/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
-import { speciesLabel } from '../../gameIso/rig/creatures';
+import { creatureLabel, findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
@@ -61,16 +61,15 @@ export type { CellSide } from '../../state/scene';
 export { planStairFlight, applyStairFlight, minFlightCells } from '../../state/stairFlight';
 export type { StairCell, StairStep, StairFlightPlan } from '../../state/stairFlight';
 
-/** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor/d'une espèce précise.
- *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877) : un décor NOMME son type — `ref` y est REQUISE, comme
- *  au schéma de scène — là où l'espèce d'un personnage reste facultative (apparence libre) et où le
- *  départ des héros n'a rien à référencer. Sans cette scission, l'outil pouvait fabriquer un document
- *  que l'app refuse ensuite de sauvegarder, et `placeEntity` le couvrait d'un cas MUET. */
+/** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
+ *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
+ *  personnage NOMME sa fiche au bestiaire — `ref` y est REQUISE, comme au schéma de scène
+ *  (`PORTEURS_DU_TYPE`) — et le départ des héros n'a rien à référencer. */
 export type Tool =
   | { mode: 'select' }
   | { mode: 'tile'; terrain: Terrain }
   | { mode: 'entity'; kind: 'prop'; ref: string }
-  | { mode: 'entity'; kind: 'personnage'; ref?: string }
+  | { mode: 'entity'; kind: 'personnage'; ref: string }
   | { mode: 'entity'; kind: 'heroStart' }
   | { mode: 'zone'; zone: ZoneVariant }
   // EMPRISE d'une zone d'effet au PINCEAU (`SceneEffectZone.tiles`) : `zoneId` = id STABLE de la zone
@@ -191,8 +190,8 @@ function areaCovering(area: ZoneArea, p: Pt): ZoneArea {
 
 /** PINCEAU d'emprise : met la case `p` DANS la zone (`add`) ou l'en SORT (`remove`), sans jamais
  *  basculer — repasser sur une case déjà peinte au glissé la laisse telle quelle. Peindre hors de la
- *  boîte de l'aire l'ÉTEND à la boîte englobante et matérialise l'emprise : la boîte n'est plus qu'un
- *  cadre, `sceneZoneTiles` reste exactement ce qui est peint (un disque peint au-delà de son rayon
+ *  boîte de l'aire l'ÉTEND à la boîte englobante et matérialise l'emprise : la boîte n'est alors
+ *  qu'un cadre, `sceneZoneTiles` reste exactement ce qui est peint (un disque peint au-delà de son rayon
  *  devient donc une emprise explicite dans une boîte rect). */
 export function paintEffectZoneTile(zone: SceneEffectZone, p: Pt, paint: 'add' | 'remove'): SceneEffectZone {
   const cur = sceneZoneTiles(zone);
@@ -543,16 +542,18 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
 
 /** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
- *  ou l'espèce élue, et son type dit lequel des deux est REQUIS : aucun cas muet ne subsiste ici.
- *  Les props appliquent leurs défauts de catalogue (empreinte, interactif si fouillable). */
+ *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
+ *  (empreinte, interactif si fouillable) ; un personnage porte sa fiche en `ref` et le libellé de la
+ *  fiche, son apparence se dérive du record (#1882). Une fiche absente du bestiaire lève. */
 export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
   const base: SceneEntity = { id, kind: outil.kind, pos: { ...p }, label: libelleDeValeur(entityKindSchema, outil.kind) };
+  if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
+    throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   const ent: SceneEntity = outil.kind === 'prop'
     ? { ...base, ...propRefPatch(outil.ref, undefined), label: PROPS[outil.ref]?.label }
-    // Personnage d'ambiance : `ref` porte l'id d'ESPÈCE rig (sélecteur Palette) → apparence + libellé.
-    : outil.kind === 'personnage' && outil.ref
-      ? { ...base, appearance: { species: outil.ref }, label: speciesLabel(outil.ref) }
+    : outil.kind === 'personnage'
+      ? { ...base, ref: outil.ref, label: creatureLabel(outil.ref) }
       : base;
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }
