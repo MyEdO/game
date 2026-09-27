@@ -8,14 +8,14 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, sceneMetresPerTile, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { apparenceDeLArete, apparenceDOrnement, formeRendue, estBaie } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { effectiveArchitecture } from '../../state/sceneEdit';
-import { structureAppearance, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
+import { structureAppearance, uprightCrossM, wallMatterM, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { MISSING_ID } from '../catalog/missing';
 import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import { WALL_H_M, isoPxToM } from '../iso';
@@ -43,13 +43,19 @@ const FRAME_PX = 1.3; // épaisseur de la moulure (trait historique)
 const CHAMBRANLE_PX = 4; // linteau de porte bois
 // VANTAIL d'une porte FERMÉE : panneau bois qui remplit l'ouverture [VANTAIL_T0, VANTAIL_T1] d'un
 // montant à l'autre ; ses joints de planches (demi-largeur PLANK_HALF_T) et sa poignée se DÉRIVENT de
-// ces bornes (`jointsDePlanches`, `poigneeDuVantail`).
+// sa partie VISIBLE entre les jambages (`jourDuVantail`, `jointsDePlanches`, `poigneeDuVantail`).
 export const VANTAIL_T0 = 0, VANTAIL_T1 = 1;
+/** Partie VISIBLE [t0, t1] du vantail, entre les croix des deux jambages : la demi-croix
+ *  (`uprightCrossM`, m) ramenée en fraction de l'arête `longueurM` (m). */
+export function jourDuVantail(app: StructureAppearanceDef, longueurM: number): [number, number] {
+  const demi = uprightCrossM('jambage', wallMatterM(app)) / 2 / longueurM;
+  return [VANTAIL_T0 + demi, VANTAIL_T1 - demi];
+}
 const PLANK_HALF_T = 0.012;
 /** Nombre de PLANCHES du vantail, toutes de même largeur : `PLANCHES − 1` joints. */
 export const PLANCHES = 4;
-/** Poignée, en fractions de la LARGEUR du vantail : son bord extérieur à `POIGNEE_BORD` du bord du
- *  vantail, sa largeur `POIGNEE_LARGEUR` ; hauteur [HANDLE_LO, HANDLE_HI] de l'ouverture. */
+/** Poignée, en fractions de la LARGEUR VISIBLE du vantail : son bord extérieur à `POIGNEE_BORD` du bord
+ *  visible, sa largeur `POIGNEE_LARGEUR` ; hauteur [HANDLE_LO, HANDLE_HI] de l'ouverture. */
 export const POIGNEE_BORD = 1 / 17, POIGNEE_LARGEUR = 3 / 34;
 const HANDLE_LO = 0.42, HANDLE_HI = 0.56;
 /** Axes des joints qui partagent [t0, t1] en `PLANCHES` planches égales. */
@@ -134,7 +140,7 @@ export function crownFaces(app: StructureAppearanceDef, A: GXY, B: GXY, baseH: n
  *  px des defs passent par `isoPxToM` (une seule vérité px⇔m). Un montant (poteau/jambage) = 2 points
  *  [haut, bas] — le backend lui donne sa largeur. `capped` = un ÉTAGE repose sur ce mur (`storeyAbove`) :
  *  la lèvre débordante du couronnement est alors omise, elle percerait le plancher du dessus. */
-function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, wallHeightM = WALL_H_M, open = false, capped = false): Face[] {
+function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, metresPerTile: number, wallHeightM = WALL_H_M, open = false, capped = false): Face[] {
   const [A, B] = wallEnds(seg);
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
   const mat = (part: WallPart) => ({ domain: 'structure' as const, id: app.id, part });
@@ -207,12 +213,13 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     // porte ouverte. FERMÉE → sa CLAIRE-VOIE quand l'apparence en porte une (herse), sinon le VANTAIL
     // (panneau + planches + poignée) : la porte se LIT comme une porte. Une fermeture fixe ne s'ouvre pas :
     // son vantail n'a pas de poignée.
+    const jour = jourDuVantail(app, Math.hypot(B.x - A.x, B.y - A.y) * metresPerTile);
     const leaf: Face[] = forme === 'porte-ouverte'
       ? []
       : app.claireVoie ? claireVoie(b, b + op) : [
           span('vantail', VANTAIL_T0, VANTAIL_T1, b, b + op),
-          ...jointsDePlanches(VANTAIL_T0, VANTAIL_T1).map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
-          ...(forme === 'fermeture-fixe' ? [] : [span('poignee', ...poigneeDuVantail(VANTAIL_T0, VANTAIL_T1), b + op * HANDLE_LO, b + op * HANDLE_HI)]),
+          ...jointsDePlanches(...jour).map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
+          ...(forme === 'fermeture-fixe' ? [] : [span('poignee', ...poigneeDuVantail(...jour), b + op * HANDLE_LO, b + op * HANDLE_HI)]),
         ];
     return [
       upright('poteau', 0, b, H1),
@@ -634,7 +641,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
     const open = !!w.door && doorIsOpen(scene, w);
     const [nx, ny] = NB[w.side];
     const [A, B] = wallEnds(w);
-    const physicalFaces = wallFaces(w, app, baseH, down, wallHeightM, open, storeyAbove(scene, w, z, baseH + wallHeightM));
+    const physicalFaces = wallFaces(w, app, baseH, down, sceneMetresPerTile(scene), wallHeightM, open, storeyAbove(scene, w, z, baseH + wallHeightM));
     out.push({
       off: {
         kind: 'wall',

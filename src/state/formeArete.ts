@@ -64,7 +64,6 @@ export function formeRendue(seg: Pick<WallSeg, 'door' | 'window' | 'structure'>,
 export interface BlocsDApparence {
   window?: unknown;
   door?: unknown;
-  claireVoie?: unknown;
   parapet?: { corpsDeGarde?: unknown };
 }
 
@@ -74,12 +73,12 @@ export interface BlocsDApparence {
  *  - mur nu → toujours : chaque branche dessine un pan plein depuis les champs de l'apparence (courtine
  *    d'un `parapet`, claire-voie, panneau) ;
  *  - mur fenêtré → bloc `window`, hors `parapet` (la branche de courtine ne dessine pas de croisée) ;
- *  - porte fermée, ouverte, fermeture fixe → sur une courtine (`parapet`), son `corpsDeGarde` ET une
- *    `claireVoie` (la branche de courtine barre le passage fermé de sa claire-voie, sans vantail) ; bloc
- *    `door` sinon.
+ *  - porte fermée, ouverte, fermeture fixe → sur une courtine (`parapet`), son `corpsDeGarde` (la
+ *    branche de courtine barre le passage fermé de sa `claireVoie`, que le schéma exige avec lui,
+ *    `data/schemas/defs/structureAppearance.ts`) ; bloc `door` sinon.
  */
 export function formesAdmises(app: BlocsDApparence): readonly FormeArete[] {
-  const baie = app.parapet ? !!app.parapet.corpsDeGarde && !!app.claireVoie : !!app.door;
+  const baie = app.parapet ? !!app.parapet.corpsDeGarde : !!app.door;
   return FORMES_ARETE.filter((f) => f === 'mur-nu' || (f === 'mur-fenetre' ? !!app.window && !app.parapet : baie));
 }
 

@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
-import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
+import { wallDepth, wallSvg, wallAccentsSvg, solidEdgeTopSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
 import { structureAppearance } from '../catalog/structures';
-import { structureAppearances } from '../../data';
+import { materials, structureAppearances, terrains } from '../../data';
 import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../../data/schemas/defs/teintesJeu';
 import { shade, SIDE_N } from '../shade';
-import { formesAdmises } from '../../state/formeArete';
+import { formesAdmises, type FormeArete } from '../../state/formeArete';
 import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 
 /**
@@ -223,10 +223,10 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
   const top: Dims = { ...dims, view: 'top' };
   it('mur bois : double trait arrondi ; porte : deux jambages (ouverture centrale)', () => {
     const mur = wallSvg(el({ x: 2, y: 2, side: 'N' }), top);
-    expect((mur.match(/stroke-linecap="round"/g) ?? []).length).toBe(2); // liseré + trait
+    expect((mur.match(/stroke-linecap="round"/g) ?? []).length).toBe(2); // bord + cœur
     expect(mur).not.toContain('<polygon'); // symbolique, pas les faces
     const porte = wallSvg(el({ x: 2, y: 2, side: 'N', door: true }), top);
-    expect((porte.match(/<line /g) ?? []).length).toBe(2);
+    expect((porte.match(/<line /g) ?? []).length).toBe(4); // deux jambages, bord + cœur
   });
   it('courtine : traits 11/7 ; corps de garde : case pleine + glyphe ; abattue : tirets', () => {
     const courtine = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }), top);
@@ -234,7 +234,7 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     expect(courtine).toContain('stroke-width="7"');
     const porte = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
     expect(porte).toContain('<path'); // la case (diamondPath) pleine
-    expect(porte).toContain('fill="#241a10"'); // renfoncement du glyphe (def recess)
+    expect(porte).toContain(`fill="${structureAppearance('porte-de-ville').recess}"`); // renfoncement du glyphe (def recess)
     const breche = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }, (s) => setStructureDown(s, 2, 2, 'N', 0, true)), top);
     expect(breche).toContain('stroke-dasharray="3 5"');
   });
@@ -245,12 +245,58 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     const fixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
     expect(fixe).toContain('<path');
     const herseFixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'herse' }), top);
-    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée').toBe(3);
+    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée, bord + cœur').toBe(6);
   });
 
-  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux, détaché de ce qu’il touche au plancher des teintes contiguës ; seule la porte OUVERTE laisse le vide', () => {
-    const lignes = (svg: string) => (svg.match(/<line /g) ?? []).length;
-    const traits = (svg: string) => [...svg.matchAll(/<line [^>]*stroke="([^"]+)"/g)].map((m) => m[1]);
+  /** Traits d'une vue du dessus, groupés par GÉOMÉTRIE (même ligne, même chemin) : un trait d'arête est
+   *  un groupe de deux tracés, bord puis cœur. */
+  const traitsDe = (svg: string): { cle: string; tons: string[] }[] => {
+    const groupes = new Map<string, string[]>();
+    for (const m of svg.matchAll(/<(line|path) ([^>]*)\/>/g)) {
+      const attr = (n: string) => m[2].match(new RegExp(`${n}="([^"]+)"`))?.[1];
+      const cle = m[1] === 'line' ? ['x1', 'y1', 'x2', 'y2'].map(attr).join(',') : attr('d')!;
+      groupes.set(cle, [...(groupes.get(cle) ?? []), attr('stroke')!]);
+    }
+    return [...groupes].map(([cle, tons]) => ({ cle, tons }));
+  };
+  const SEG_DE_FORME: Record<FormeArete, Partial<WallSeg>> = {
+    'mur-nu': {},
+    'mur-fenetre': { window: true },
+    'porte-fermee': { structure: 'porte', door: true, closed: true },
+    'porte-ouverte': { structure: 'porte', door: true },
+    'fermeture-fixe': { structure: 'porte' },
+  };
+  /** Couleurs de SOL réelles : les terrains et le dessus des matières de relief. */
+  const SOLS: [string, string][] = [
+    ...terrains.map((t): [string, string] => [t.id, t.swatch]),
+    ...materials.flatMap((m) => ('slopeTop' in m && m.slopeTop ? [[`relief:${m.id}`, m.slopeTop] as [string, string]] : [])),
+  ];
+
+  it("contrat BICOLORE : chaque trait d'arête de chaque apparence, dans chaque forme admise et en brèche, porte deux tons à ≥ 2 × SEUIL_TEINTES_CONTIGUES — et l'un des deux tient le seuil contre chaque sol du catalogue", () => {
+    const fautes: string[] = [];
+    const rendus: [string, string][] = [['bloc plein', solidEdgeTopSvg([0, 0], [40, 20])]];
+    for (const app of structureAppearances) {
+      for (const forme of formesAdmises(app)) {
+        const w = el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance: app.id });
+        expect(w.forme, `${app.id} ${forme}`).toBe(forme);
+        rendus.push([`${app.id} ${forme}`, wallSvg(w, top)]);
+      }
+      rendus.push([`${app.id} brèche`, wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', appearance: app.id }, (s) => setStructureDown(s, 2, 2, 'N', 0, true)), top)]);
+    }
+    expect(SOLS.length).toBeGreaterThan(10);
+    for (const [quoi, svg] of rendus)
+      for (const { cle, tons } of traitsDe(svg)) {
+        if (tons.length !== 2) { fautes.push(`${quoi} [${cle}] : ${tons.length} ton(s)`); continue; }
+        const [t1, t2] = tons;
+        if (distanceTeinte(t1, t2) < 2 * SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} : ${t1} ⇄ ${t2} = ${distanceTeinte(t1, t2).toFixed(1)}`);
+        for (const [sol, c] of SOLS)
+          if (Math.max(distanceTeinte(t1, c), distanceTeinte(t2, c)) < SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} sur ${sol}`);
+      }
+    expect(fautes).toEqual([]);
+  });
+
+  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux sous les jambages, BORD de baie ⇄ BORD de jambage au plancher des teintes contiguës ; seule la porte OUVERTE laisse le vide', () => {
+    const lignes = (svg: string) => traitsDe(svg).filter((t) => !t.cle.startsWith('M')).length;
     const porte = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
     expect(lignes(porte(true)), 'porte ouverte : deux jambages, le vide entre').toBe(2);
     const baies = structureAppearances.filter((d) => formesAdmises(d).includes('porte-fermee'));
@@ -260,16 +306,13 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
         const svg = wallSvg(el({ x: 2, y: 2, side: 'N', ...seg, appearance: a.id }), top);
         const quoi = `${a.id} ${seg.door ? 'porte fermée' : 'fermeture fixe'}`;
         if (a.parapet) {
-          const renfoncement = svg.match(/<rect [^>]*fill="([^"]+)"/)![1];
           expect(lignes(svg), `${quoi} : un trait par barreau intérieur de la claire-voie`).toBe(a.claireVoie!.bars - 1);
-          for (const t of traits(svg))
-            expect(distanceTeinte(t, renfoncement), `${quoi} : barreau ⇄ renfoncement`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
           continue;
         }
-        const [jambeA, jambeB, bouchee] = traits(svg);
-        expect(bouchee, `${quoi} : baie bouchée`).toBeDefined();
-        expect(distanceTeinte(bouchee, jambeA), `${quoi} : trait de baie ⇄ jambages`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
-        expect(jambeB).toBe(jambeA);
+        const [bouchee, jambeA, jambeB] = traitsDe(svg);
+        expect(jambeB, `${quoi} : deux jambages`).toBeDefined();
+        expect(jambeB.tons).toEqual(jambeA.tons);
+        expect(distanceTeinte(bouchee.tons[0], jambeA.tons[0]), `${quoi} : bord du trait de baie ⇄ bord des jambages`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
       }
     const corpsDeGarde = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
     expect(lignes(corpsDeGarde(true)), 'corps de garde ouvert : passage libre').toBe(0);

@@ -151,7 +151,7 @@ const doc = document(
     // garde-corps : une seule demeure pour la claire-voie, donc un refine plutôt qu'un bloc imbriqué.
     affinerEntree: (entree) =>
       entree.refine((v) => !(v as { parapet?: { corpsDeGarde?: unknown } }).parapet?.corpsDeGarde || !!(v as { claireVoie?: unknown }).claireVoie, {
-        message: 'structureAppearance : un `parapet.corpsDeGarde` sans `claireVoie` — le passage n’aurait rien pour le barrer (`formesAdmises` le réduirait au mur nu).',
+        message: 'structureAppearance : un `parapet.corpsDeGarde` sans `claireVoie` — le passage fermé n’aurait rien pour le barrer.',
         path: ['claireVoie'],
       }),
   },

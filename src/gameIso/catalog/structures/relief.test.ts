@@ -151,7 +151,7 @@ describe('SCHÉMA de `structureAppearance.json` — le linteau du corps de garde
     expect(schema.safeParse(entree({ door: { openingFrac: 0.5, lintelPx: 4 } })).success).toBe(false);
   });
 
-  it('un corps de garde SANS `claireVoie` est refusé : aucune forme ne l’habillerait', () => {
+  it('un corps de garde SANS `claireVoie` est refusé : son passage fermé n’aurait rien pour le barrer', () => {
     expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } } })).success).toBe(false);
     expect(schema.safeParse(entree({ parapet })).success).toBe(true);
   });

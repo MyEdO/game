@@ -40,11 +40,10 @@ describe('formeArete — la forme vient de la nature de la Structure ET de `door
       if (c.refuse) expect(formesAdmises(app(c.refuse))).not.toContain(c.forme);
     });
 
-  it('une baie sous `parapet` exige son `corpsDeGarde` ET une `claireVoie` — sans l’un d’eux, la courtine n’habille que le mur nu', () => {
+  it('une baie sous `parapet` exige son `corpsDeGarde` — sans lui, la courtine n’habille que le mur nu, bloc `door` compris', () => {
     const baies: FormeArete[] = ['porte-fermee', 'porte-ouverte', 'fermeture-fixe'];
-    expect(formesAdmises({ parapet: { corpsDeGarde: {} }, claireVoie: {} })).toEqual(['mur-nu', ...baies]);
-    expect(formesAdmises({ parapet: { corpsDeGarde: {} } })).toEqual(['mur-nu']);
-    expect(formesAdmises({ parapet: {}, claireVoie: {} })).toEqual(['mur-nu']);
+    expect(formesAdmises({ parapet: { corpsDeGarde: {} } })).toEqual(['mur-nu', ...baies]);
+    expect(formesAdmises({ parapet: {} })).toEqual(['mur-nu']);
     expect(formesAdmises({ parapet: {}, door: {} })).toEqual(['mur-nu']);
   });
 

@@ -12,7 +12,7 @@ import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
 import { APPARENCE_MUR_NU, estBaie, estBaieFermee } from '../../state/formeArete';
 import { structureAppearance, wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
-import { shade, spec, traitContre, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
+import { shade, spec, tonsDArete, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import type { Face, GP, WallEl } from '../builders/types';
@@ -111,47 +111,70 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
   return `<polygon points="${polyPts(p)}" fill="${fill}"${extra}/>` + overlay;
 }
 
-/** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
- *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
- *  fermée, fermeture fixe) se dessine bouchée — trait de vantail ou de barreaux entre les jambages,
- *  barreaux de la claire-voie au corps de garde, chacun détaché de ce qu'il touche (`traitContre`) — ;
- *  seule la porte ouverte laisse le vide. */
+/** TRAIT D'ARÊTE de la vue du dessus, le long de p→q : un BORD de largeur `larg[0]` puis un CŒUR de
+ *  largeur `larg[1]`, aux deux tons de `tonsDArete(base)` — sombre au bord, clair au cœur ; `inverse`
+ *  les échange. `dash` : tirets de la brèche. */
+function traitDArete(p: Pt2, q: Pt2, larg: readonly [number, number], base: string, opts: { dash?: string; inverse?: boolean } = {}): string {
+  const { sombre, clair } = tonsDArete(base);
+  const [bord, coeur] = opts.inverse ? [clair, sombre] : [sombre, clair];
+  const seg = (w: number, col: string) =>
+    `<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${opts.dash ? ` stroke-dasharray="${opts.dash}"` : ''}/>`;
+  return seg(larg[0], bord) + seg(larg[1], coeur);
+}
+
+// Largeurs ÉCRAN (px) [bord, cœur] des traits d'arête de la vue du dessus — la FORME se lit à la largeur,
+// aux tirets et au glyphe.
+const TRAIT_MUR = [8, 5] as const;
+const TRAIT_COURTINE = [11, 7] as const;
+const TRAIT_BRECHE = [6, 3.5] as const;
+const TRAIT_JAMBAGE = [7, 4] as const;
+const TRAIT_BAIE = [4, 2] as const;
+const TRAIT_BARREAU = [2.4, 1] as const;
+const TRAIT_CASE = [3.5, 1.5] as const;
+const TIRETS_BRECHE = '3 5';
+
+/** Vue du DESSUS symbolique : trait d'arête bicolore (`traitDArete`) — mur plein, courtine, brèche en
+ *  tirets —, porte = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
+ *  fermée, fermeture fixe) se dessine bouchée : trait de vantail ou de barreaux SOUS les jambages, tons
+ *  inversés (bord clair contre le bord sombre des jambages), barreaux de la claire-voie au corps de
+ *  garde ; seule la porte ouverte laisse le vide. */
 function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
-  const seg = (p: Pt2, q: Pt2, w: number, col: string, dash?: string) =>
-    `<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   if (app.parapet) {
-    if (el.states.down) return `<g>${seg(a, b, 6, app.rubble ?? app.face, '3 5')}</g>`;
+    if (el.states.down) return `<g>${traitDArete(a, b, TRAIT_BRECHE, app.rubble ?? app.face, { dash: TIRETS_BRECHE })}</g>`;
     if (app.parapet.corpsDeGarde && estBaie(el.forme)) {
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
-      const renfoncement = app.recess ?? app.face;
-      let glyph = `<rect x="${cx - h * 0.46}" y="${cy - h}" width="${h * 0.92}" height="${2 * h}" fill="${renfoncement}"/>`;
+      const d = diamondPath(el.cell.x, el.cell.y, dims, lift);
+      const { sombre, clair } = tonsDArete(app.face);
+      let glyph = `<path d="${d}" fill="${app.face}" stroke="${sombre}" stroke-width="${TRAIT_CASE[0]}"/>` +
+        `<path d="${d}" fill="none" stroke="${clair}" stroke-width="${TRAIT_CASE[1]}"/>` +
+        `<rect x="${cx - h * 0.46}" y="${cy - h}" width="${h * 0.92}" height="${2 * h}" fill="${app.recess ?? app.face}"/>`;
       const bars = estBaieFermee(el.forme) ? app.claireVoie?.bars ?? 0 : 0;
-      const barreau = traitContre(app.cap ?? app.face, renfoncement);
       for (let i = 1; i < bars; i++) {
         const ly = cy - h + 2 * h * (i / bars);
-        glyph += `<line x1="${cx - h * 0.46}" y1="${ly}" x2="${cx + h * 0.46}" y2="${ly}" stroke="${barreau}" stroke-width="1.6"/>`;
+        glyph += traitDArete([cx - h * 0.46, ly], [cx + h * 0.46, ly], TRAIT_BARREAU, app.cap ?? app.face);
       }
-      return `<g><path d="${diamondPath(el.cell.x, el.cell.y, dims, lift)}" fill="${app.face}" stroke="${app.band ?? app.face}" stroke-width="2.5"/>${glyph}</g>`;
+      return `<g>${glyph}</g>`;
     }
-    return `<g>${seg(a, b, 11, app.band ?? app.face) + seg(a, b, 7, app.face)}</g>`;
+    return `<g>${traitDArete(a, b, TRAIT_COURTINE, app.face)}</g>`;
   }
-  if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
+  if (el.states.down) return `<g>${traitDArete(a, b, TRAIT_BRECHE, app.face, { dash: TIRETS_BRECHE })}</g>`;
   if (estBaie(el.forme)) {
     const jambage = shade(app.post, POST_CAP);
-    const jambages = seg(a, lerp(0.3), 7, jambage) + seg(lerp(0.7), b, 7, jambage);
-    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 3, traitContre(wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'), jambage)) : '';
-    return `<g>${jambages + bouchee}</g>`;
+    const bouchee = estBaieFermee(el.forme)
+      ? traitDArete(lerp(0.3), lerp(0.7), TRAIT_BAIE, wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'), { inverse: true })
+      : '';
+    return `<g>${bouchee + traitDArete(a, lerp(0.3), TRAIT_JAMBAGE, jambage) + traitDArete(lerp(0.7), b, TRAIT_JAMBAGE, jambage)}</g>`;
   }
-  return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;
+  return `<g>${traitDArete(a, b, TRAIT_MUR, app.face)}</g>`;
 }
 
 /**
  * TRAIT de FRONTIÈRE d'une TUILE À BLOC PLEIN en vue du dessus (#1176, P3-5b) : le MÊME trait
- * symbolique que le mur sur arête (liseré sombre + face), posé sur une arête de case.
+ * symbolique que le mur sur arête (`traitDArete`), posé sur une arête de case.
  *
  * Un obstacle s'auteure de DEUX façons — un segment `WallSeg` sur une arête, ou une tuile de terrain à
  * `solidHeightM > 0` (le muret de couvert d'une scène à grille). En volume ce sont deux formes
@@ -160,10 +183,7 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
  * une dalle pâle, lue comme du SOL.
  */
 export function solidEdgeTopSvg(a: Pt2, b: Pt2): string {
-  const app = structureAppearance(APPARENCE_MUR_NU);
-  const seg = (w: number, col: string) =>
-    `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
-  return `<g>${seg(8, shade(app.face, OUTLINE)) + seg(5, app.face)}</g>`;
+  return `<g>${traitDArete(a, b, TRAIT_MUR, structureAppearance(APPARENCE_MUR_NU).face)}</g>`;
 }
 
 /** SVG d'un élément de mur : iso/edge-on = faces dans l'ORDRE DE PEINTURE du builder, ombrées par

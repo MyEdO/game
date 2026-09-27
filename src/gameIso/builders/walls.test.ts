@@ -7,6 +7,7 @@ import { structureAppearance } from '../catalog/structures';
 import { MISSING_ID } from '../catalog/missing';
 import { emptyScene, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
+import { faceDepthM } from '../backends/webgl/faceRelief';
 
 /**
  * Builder de MURS du pivot : on teste la sortie MONDE (camera-free) — l'aiguillage d'arête unique
@@ -341,18 +342,31 @@ describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un
     const leaf = facesOf(el, 'vantail')[0];
     expect(leaf.poly.map((pt) => pt.h)).toEqual([WALL_H_M * 0.52, WALL_H_M * 0.52, 0, 0]);
   });
-  it('les joints partagent le vantail en PLANCHES égales, la poignée tient sa distance RELATIVE au bord — lus sur le rendu, depuis les bornes du vantail', () => {
-    const el = one(sceneWith([{ x: 2, y: 2, side: 'N', door: true, closed: true }]));
-    const [A, B] = wallEnds({ x: 2, y: 2, side: 'N' });
+  it.each([
+    ['N', undefined],
+    ['E', 3],
+    ['\\', 2],
+  ] as const)('arête %s, %s m/tuile : les joints partagent la partie VISIBLE du vantail (entre les croix des jambages) en PLANCHES égales, la poignée y tient sa distance RELATIVE au bord — lus sur le rendu', (side, metresPerTile) => {
+    const s = sceneWith([{ x: 2, y: 2, side, door: true, closed: true }]);
+    if (metresPerTile) s.metresPerTile = metresPerTile;
+    const el = one(s);
+    const [A, B] = wallEnds({ x: 2, y: 2, side });
     const t = (p: { x: number; y: number }) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
     const troncon = (f: { poly: { x: number; y: number }[] }) => [Math.min(...f.poly.map(t)), Math.max(...f.poly.map(t))];
-    const [v0, v1] = troncon(facesOf(el, 'vantail')[0]);
+    const [v0, v1] = facesOf(el, 'jambage').map((f) => {
+      const demi = faceDepthM(f)! / 2 / (Math.hypot(B.x - A.x, B.y - A.y) * (metresPerTile ?? 2));
+      const axe = t(f.poly[0]);
+      return axe < 0.5 ? axe + demi : axe - demi;
+    });
+    expect(v0, 'la croix du jambage mord sur le vantail').toBeGreaterThan(0);
     const axes = facesOf(el, 'vantail-planche').map((f) => { const [a, b] = troncon(f); return (a + b) / 2; }).sort((a, b) => a - b);
     const bornes = [v0, ...axes, v1];
     const largeurs = bornes.slice(1).map((b, i) => b - bornes[i]);
     expect(largeurs).toHaveLength(PLANCHES);
     for (const l of largeurs) expect(l, `planches ${largeurs.map((x) => x.toFixed(4)).join(' / ')}`).toBeCloseTo((v1 - v0) / PLANCHES, 9);
     const [p0, p1] = troncon(facesOf(el, 'poignee')[0]);
+    expect(p0, 'poignée sur la partie visible').toBeGreaterThanOrEqual(v0);
+    expect(p1, 'poignée sur la partie visible').toBeLessThanOrEqual(v1);
     expect((v1 - p1) / (v1 - v0)).toBeCloseTo(POIGNEE_BORD, 9);
     expect((p1 - p0) / (v1 - v0)).toBeCloseTo(POIGNEE_LARGEUR, 9);
   });

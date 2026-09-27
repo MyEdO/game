@@ -26,23 +26,25 @@ export const srgbToLinear = (octet: number): number => {
   return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
 };
 
-/** Pas de recherche de `traitContre` : le chemin base → pôle est découpé en `PAS_TRAIT` crans. */
-const PAS_TRAIT = 128;
+/** Pas de recherche de `tonsDArete` : le chemin base → pôle est découpé en `PAS_TONS` crans. */
+const PAS_TONS = 256;
 
-/** Teinte d'un trait posé CONTRE `fond` : `base`, poussée vers le blanc ou vers le noir du plus petit cran
- *  qui atteint le plancher des teintes contiguës (`SEUIL_TEINTES_CONTIGUES`) — éclaircie ou assombrie
- *  selon le fond. Toujours atteint : l'un des deux pôles est à la moitié au moins de la distance blanc ⇄
- *  noir (765) de tout fond. Non-hex (`var(--x)`) : renvoyée telle quelle, comme `shade`. */
-export function traitContre(base: string, fond: string): string {
-  const f = parseHex(fond);
-  if (!parseHex(base) || !f) return base;
-  const fondHex = toHex(f[0], f[1], f[2]);
-  for (let i = 0; i <= PAS_TRAIT; i++)
-    for (const pole of ['#ffffff', '#000000']) {
-      const c = mix(base, pole, i / PAS_TRAIT);
-      if (distanceTeinte(c, fondHex) >= SEUIL_TEINTES_CONTIGUES) return c;
-    }
-  throw new Error(`traitContre : ni le blanc ni le noir n’atteignent ${SEUIL_TEINTES_CONTIGUES} de « ${fond} ».`);
+/** Écart des deux tons d'un trait d'arête : deux fois le plancher des teintes contiguës. `distanceTeinte`
+ *  est une norme (inégalité triangulaire) : pour tout fond S, d(sombre, S) + d(S, clair) ≥ ce plancher
+ *  doublé, donc l'un des deux tons est à `SEUIL_TEINTES_CONTIGUES` au moins de S. */
+export const ECART_TONS_D_ARETE = 2 * SEUIL_TEINTES_CONTIGUES;
+
+/** Les deux tons d'un TRAIT D'ARÊTE, à la teinte de `base` : assombri vers le noir et éclairci vers le
+ *  blanc du même cran, le plus petit qui écarte les deux de `ECART_TONS_D_ARETE`. Toujours atteint :
+ *  au cran plein, noir ⇄ blanc = 765. */
+export function tonsDArete(base: string): { sombre: string; clair: string } {
+  if (!parseHex(base)) throw new Error(`tonsDArete : « ${base} » n’est pas une couleur #rrggbb.`);
+  for (let i = 0; i <= PAS_TONS; i++) {
+    const sombre = mix(base, '#000000', i / PAS_TONS);
+    const clair = mix(base, '#ffffff', i / PAS_TONS);
+    if (distanceTeinte(sombre, clair) >= ECART_TONS_D_ARETE) return { sombre, clair };
+  }
+  throw new Error(`tonsDArete : noir et blanc n’atteignent pas ${ECART_TONS_D_ARETE}.`);
 }
 
 /** Base × facteur de luminance (clampé). Un non-hex (`var(--x)`) est renvoyé tel quel. */

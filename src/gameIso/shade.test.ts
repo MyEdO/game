@@ -4,7 +4,7 @@
  * NON-RÉGRESSION visuelle du passage « palette pré-ombrée → base + shade() » (Phase 1+).
  */
 import { describe, it, expect } from 'vitest';
-import { shade, mix, traitContre, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './shade';
+import { shade, mix, parseHex, tonsDArete, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './shade';
 import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../data/schemas/defs/teintesJeu';
 
 /** Bases (face E/éclairée) → face N (ombre) telles que codées aujourd'hui dans walls.ts::houseWallIso. */
@@ -57,26 +57,35 @@ describe('shade — calibration ombre bois iso', () => {
   });
 });
 
-describe('traitContre — un trait atteint le plancher des teintes contiguës contre TOUT fond', () => {
-  /** Échantillon du cube RVB : 6 niveaux par canal (0, 51, … 255), les deux saturations comprises. */
-  const NIVEAUX = [0, 51, 102, 153, 204, 255];
+describe('tonsDArete — deux tons à la teinte de la base, écartés du double du plancher des teintes contiguës', () => {
+  /** Échantillon DENSE du cube RVB : 16 niveaux par canal (0, 17, … 255), 4 096 bases. */
+  const NIVEAUX = Array.from({ length: 16 }, (_, i) => i * 17);
   const hex = (r: number, g: number, b: number) => `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
   const ECHANTILLON = NIVEAUX.flatMap((r) => NIVEAUX.flatMap((g) => NIVEAUX.map((b) => hex(r, g, b))));
 
-  it('pour toute paire (trait, fond) de l’échantillon, éclairci ou assombri selon le fond', () => {
+  it('pour toute base : sombre ⇄ clair ≥ 2 × SEUIL_TEINTES_CONTIGUES, le sombre sous la base et le clair au-dessus, canal par canal', () => {
+    const fautes: string[] = [];
+    for (const base of ECHANTILLON) {
+      const { sombre, clair } = tonsDArete(base);
+      const [b, s, c] = [base, sombre, clair].map((x) => parseHex(x)!);
+      if (distanceTeinte(sombre, clair) < 2 * SEUIL_TEINTES_CONTIGUES) fautes.push(`${base} : ${sombre} ⇄ ${clair}`);
+      if (b.some((v, i) => s[i] > v || c[i] < v)) fautes.push(`${base} : ${sombre} / ${clair} hors de la teinte`);
+    }
+    expect(fautes).toEqual([]);
+  });
+
+  it('pour toute base et tout fond de l’échantillon, l’un des deux tons tient SEUIL_TEINTES_CONTIGUES du fond', () => {
+    const fonds = ECHANTILLON.filter((_, i) => i % 7 === 0);
     const sous: string[] = [];
-    for (const base of ECHANTILLON)
-      for (const fond of ECHANTILLON)
-        if (distanceTeinte(traitContre(base, fond), fond) < SEUIL_TEINTES_CONTIGUES) sous.push(`${base} sur ${fond}`);
+    for (const base of ECHANTILLON) {
+      const { sombre, clair } = tonsDArete(base);
+      for (const fond of fonds)
+        if (Math.max(distanceTeinte(sombre, fond), distanceTeinte(clair, fond)) < SEUIL_TEINTES_CONTIGUES) sous.push(`${base} sur ${fond}`);
+    }
     expect(sous).toEqual([]);
   });
 
-  it('un vantail blanc contre un jambage que l’éclat sature au blanc s’assombrit ; un trait déjà distinct reste lui-même', () => {
-    const jambage = shade('#c0c0c0', POST_CAP);
-    expect(jambage).toBe('#ffffff');
-    const trait = traitContre('#ffffff', jambage);
-    expect(distanceTeinte(trait, jambage)).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
-    expect(trait < '#ffffff').toBe(true);
-    expect(traitContre('#806040', '#302010')).toBe('#806040');
+  it('une base non hexadécimale est refusée', () => {
+    expect(() => tonsDArete('var(--pierre)')).toThrow(/rrggbb/);
   });
 });
