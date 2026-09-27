@@ -2,9 +2,8 @@
 // absent LÈVE — un corpus vide rendrait verts, en silence, tous les tests qui le parcourent.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { listerProjetsLivres, PROJETS_LIVRES } from './projetsLivres.mjs'
 
 test('le corpus du dépôt : des chemins relatifs au dossier, au suffixe du descripteur', () => {
@@ -14,10 +13,7 @@ test('le corpus du dépôt : des chemins relatifs au dossier, au suffixe du desc
 })
 
 test('une racine SANS le dossier du corpus LÈVE, jamais un corpus vide', () => {
-  const racine = mkdtempSync(join(tmpdir(), 'projets-livres-'))
-  try {
-    assert.throws(() => listerProjetsLivres(racine))
-  } finally {
-    rmSync(racine, { recursive: true, force: true })
-  }
+  const racine = fileURLToPath(new URL('./racine-sans-corpus-absente/', import.meta.url))
+  assert.equal(existsSync(racine), false, 'la racine du contrat doit être ABSENTE')
+  assert.throws(() => listerProjetsLivres(racine))
 })
