@@ -13,8 +13,7 @@ touché, tests compris) et poser CE set de gates ; la suite complète avant fusi
 
 **Why:** un périmètre choisi par « où j'ai écrit » ignore « qui me lit » — un registre d'actions est lu
 par le monde autant que par la console, un stock de garde par plusieurs suites, un `*-projet.json` est
-le PRODUIT d'un `scripts/<campagne>/generate.mjs` (`generateurs-byte-stables.test.ts`), et la
-régression sort après le push (#877, #1874, #1362).
+le PRODUIT d'un `scripts/<campagne>/generate.mjs`, et la régression sort après le push.
 
 **How to apply:**
 - schéma de scène ou `*-projet.json` touché ⇒ `npm test -- src/state src/data src/scenes src/ui`
