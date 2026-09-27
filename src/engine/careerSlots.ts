@@ -407,7 +407,8 @@ export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?
 /** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */
 export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
 
-const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+/** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
+export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
 
 /**
  * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10
