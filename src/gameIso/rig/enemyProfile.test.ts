@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
-import { creatures } from '../../data';
+import { creatures, DEFAULT_RACE_ID } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { mutationById } from '../../data/mutations';
-import { raceById, DEFAULT_RACE_ID } from './races';
+import { raceById } from './races';
 import { bipedDef } from './creatures';
 import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';

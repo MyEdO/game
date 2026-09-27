@@ -109,7 +109,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `id` | 17 | `src/data/index.ts:3584` |
-| `spec` | 5 | `src/engine/careerSlots.ts:167` |
+| `spec` | 5 | `src/engine/careerSlots.ts:161` |
 | `choix` | 11 | `src/data/index.ts:3053` |
 | `pick` | 2 | `src/data/index.ts:3587` |
 | `of` | 9 | `src/data/index.ts:3586` |
@@ -122,16 +122,16 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `seed` | 3 | `src/gameIso/rig/enemyProfile.ts:119` |
 | `monster` | 3 | `src/gameIso/rig/enemyProfile.ts:175` |
-| `colors` | 5 | `src/gameIso/rig/bodyPlan.ts:123` |
+| `colors` | 5 | `src/gameIso/rig/bodyPlan.ts:122` |
 | `parts` | 2 | `src/gameIso/rig/enemyProfile.ts:65` |
 | `sex` | 1 | `src/gameIso/rig/enemyProfile.ts:64` |
 | `build` | 2 | `src/gameIso/rig/enemyProfile.ts:64` |
-| `species` | 11 | `src/gameIso/rig/bodyPlan.ts:173` |
+| `species` | 11 | `src/gameIso/rig/bodyPlan.ts:172` |
 | `tenue` | 4 | `src/gameIso/rig/enemyProfile.ts:102` |
-| `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:125` |
+| `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:124` |
 | `armurePortee` | 3 | `src/gameIso/rig/enemyProfile.ts:224` |
 | `hairstyle` | 1 | `src/gameIso/rig/enemyProfile.ts:65` |
-| `eyes` | 5 | `src/gameIso/rig/bodyPlan.ts:124` |
+| `eyes` | 5 | `src/gameIso/rig/bodyPlan.ts:123` |
 | `features` | 4 | `src/gameIso/rig/enemyProfile.ts:65` |
 
 ### `FlowTest` (src/engine/flowCore.ts)
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: 2c516bbc435e524dfccb8a5906ebec16ad471913 (2122 fichiers, 174 dossiers) corps: fe79024f61598ad8adca9f33047ad0b1dd10af29 -->
+<!-- sources-empreinte: b6e97f5586b28bcdb10c9745ff325537bb360326 (2122 fichiers, 174 dossiers) corps: 69cfce711bf89669111ef621a7cd52a90265c899 -->

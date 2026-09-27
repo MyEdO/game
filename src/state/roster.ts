@@ -22,7 +22,8 @@ import { stockageWeb } from '../lib/stockageWeb';
  *  (un Combatant seul ne retient pas ces choix). Absent → édition reconstruite.
  *
  *  NON VERSIONNÉ (cf. `rosterLoad` ci-dessous : liste nue, sans `version`, là où une partie porte
- *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`, `brouillonRelu`). */
+ *  `SAVE_VERSION`) : le brouillon porte son propre format (`CreatorDraft.v`), `brouillonRelu` écarte tout
+ *  format autre que `FORMAT_DES_CHOIX`. */
 export interface RosterEntry {
   hero: Combatant;
   wealth: Money;
@@ -54,9 +55,8 @@ export function rosterLoad(): RosterEntry[] {
   }
 }
 
-/** Le brouillon persisté, s'il est au format des choix en ids (`FORMAT_DES_CHOIX`) ; sinon aucun : un
- *  brouillon antérieur porte des libellés qu'aucune lecture ne résout, le créateur rouvre le héros par
- *  `draftFromHero`. */
+/** Le brouillon persisté s'il est au format `FORMAT_DES_CHOIX` ; tout autre format (`v` absent, antérieur
+ *  ou autre) est écarté, le créateur rouvre alors le héros par `draftFromHero`. */
 function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
   return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
 }

@@ -48,14 +48,14 @@ describe('MonsterPartsFields — Arme équipée', () => {
 });
 
 describe('ReglagesApparence — option vide d’Espèce', () => {
-  it('renvoie à la réf., puis nomme la race que le rendu pose sans espèce ni réf.', () => {
+  it('renvoie au profil, puis nomme la race que le rendu pose sans espèce ni profil', () => {
     const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
     const repli = resolveRender(undefined, undefined, undefined);
     erreur.mockRestore();
     const { container } = monterRacine(<ReglagesApparence appearance={{}} onChange={() => {}} reglages={['species']} />);
     const vide = selectDe(container, 'Espèce').options[0];
     expect(vide.value).toBe('');
-    expect(vide.textContent).toMatch(/réf\./);
+    expect(vide.textContent).toMatch(/^— selon le profil \(à défaut : /);
     expect(vide.textContent).toContain(raceById(repli.species).label);
   });
 });
@@ -87,9 +87,9 @@ describe('ReglagesApparence — Espèce : le domaine de saisie, partagé par le 
     expect(especes({ species: 'nains' }, false).value).toBe('nains');
   });
 
-  it('une valeur hors des options reste sélectionnée, marquée « (hors domaine) »', () => {
+  it('une valeur hors des options reste sélectionnée, marquée « (inconnue) »', () => {
     const select = especes({ species: 'rats' }, false);
     expect(select.value).toBe('rats');
-    expect(select.selectedOptions[0].textContent).toContain('(hors domaine)');
+    expect(select.selectedOptions[0].textContent).toContain('(inconnue)');
   });
 });

@@ -14,7 +14,6 @@ import {
   xpTotal,
   charRolls,
   draftChars,
-  resolvedSpeciesTalents,
   speciesTalentRandomCount,
   speciesTalentRandomDrawn,
   talentsDone,
@@ -44,7 +43,7 @@ import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
-import { adresseDeCreation, speciesSkillDefaults, designer, createHero } from '../../engine/character';
+import { adresseDeCreation, speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
@@ -127,11 +126,11 @@ describe('aléatoire FIGÉ (anti-savescum)', () => {
   });
   it('les talents d\'espèce aléatoires sont identiques à chaque résolution (seed fixe)', () => {
     const d = rollDraftTalents(draft()); // geste 5c posé — Reiklander : « 3 Talent aléatoire »
-    expect(resolvedSpeciesTalents(d)).toEqual(resolvedSpeciesTalents(d));
+    expect(resolveSpeciesTalents(draftSpecies(d)!, d)).toEqual(resolveSpeciesTalents(draftSpecies(d)!, d));
     // Changer un choix « A ou B » ne re-tire pas les dés des aléatoires.
     const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } } };
     const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
-    expect(randoms(resolvedSpeciesTalents(d2))).toEqual(randoms(resolvedSpeciesTalents(d)));
+    expect(randoms(resolveSpeciesTalents(draftSpecies(d2)!, d2))).toEqual(randoms(resolveSpeciesTalents(draftSpecies(d)!, d)));
   });
 });
 
@@ -263,11 +262,11 @@ describe('agentivité (#393, amendement « ossature enforcée ») — aucun rés
     const d = draft(); // Reiklander : « 3 Talent aléatoire »
     expect(speciesTalentRandomCount(d)).toBe(3);
     expect(speciesTalentRandomDrawn(d)).toEqual([]); // rien à l'écran avant le geste
-    const before = resolvedSpeciesTalents(d);
+    const before = resolveSpeciesTalents(draftSpecies(d)!, d);
     const rolled = rollDraftTalents(d);
     const drawn = speciesTalentRandomDrawn(rolled);
     expect(drawn).toHaveLength(3);
-    expect(resolvedSpeciesTalents(rolled)).toHaveLength(before.length + drawn.length);
+    expect(resolveSpeciesTalents(draftSpecies(rolled)!, rolled)).toHaveLength(before.length + drawn.length);
     expect(speciesTalentRandomDrawn(rollDraftTalents(draft()))).toEqual(drawn); // découverte, jamais un re-tirage
   });
   it('validation 5c : le tirage des Talents aléatoires est exigé (validateStep + talentsDone)', () => {

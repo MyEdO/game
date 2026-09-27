@@ -13,8 +13,8 @@ import { harnaisOptions } from '../../gameIso/rig/quadruped/harnais';
 import { elementsOf } from '../../gameIso/rig/parts/elements';
 import { defById } from '../../gameIso/rig/creatures';
 import { libelleDeFormeDeNuee } from '../../gameIso/rig/swarm/forms';
-import { raceById, DEFAULT_RACE_ID } from '../../gameIso/rig/races';
-import { armesChoisissables, findSpeciesById, speciesSingular } from '../../data';
+import { raceById } from '../../gameIso/rig/races';
+import { armesChoisissables, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
@@ -67,8 +67,8 @@ export function ReglagesApparence<T extends ApparenceEditee>({
         <label className="reglage-apparence">
           Espèce
           <select value={species ?? ''} onChange={(e) => poser({ species: e.target.value || undefined })}>
-            <option value="">{`— selon la réf. (à défaut : ${raceById(DEFAULT_RACE_ID).label}) —`}</option>
-            {horsDomaine && <option value={species}>{`${libelleDEspece(species)} (hors domaine)`}</option>}
+            <option value="">{`— selon le profil (à défaut : ${raceById(DEFAULT_RACE_ID).label}) —`}</option>
+            {horsDomaine && <option value={species}>{`${libelleDEspece(species)} (inconnue)`}</option>}
             {groupes.map((g) => (
               <optgroup key={g.libelle} label={g.libelle}>
                 {g.ids.map((id) => <option key={id} value={id}>{libelleDEspece(id)}</option>)}

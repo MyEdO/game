@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   trappings, qualities, spells, creatures, classes, careers, careerLevels, species, gods, etats, maladies, weaponGroups,
-  traits, stars, talents, maneuvers, skills, domains, crewRoles, groups, raceAppearance,
+  traits, stars, talents, maneuvers, skills, domains, crewRoles, groups,
   byId, findTalentById, findTrappingById, findQualityById, findSeaShantyById,
   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
   findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
@@ -14,6 +14,7 @@ import {
   specLabel, refLabel, specEntryId, specEntryLabel, specResolves, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { avancement } from './schemas/grammaire/avancement';
+import { fauteDEspece } from './schemas/grammaire/art';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { entreeOuverte, mesureDuParse, refusDeSpec } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
@@ -32,8 +33,6 @@ import traumasJson from './traumas.json';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
-import { creatureSpeciesOptions } from '../gameIso/rig/creatures';
-import { SWARM_FORMS } from '../gameIso/rig/swarm/forms';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { wardrobeKeyResolves } from '../gameIso/rig/parts/career';
 import { CHAR_KEYS } from '../engine/types';
@@ -889,30 +888,20 @@ describe('careerLevels.trappings — cliquet anti-régression {text} (#622)', ()
   });
 });
 
-// ── GARDE DE CLASSE — `appearance.species` = id STABLE, jamais un LIBELLÉ. Le champ route (1) le PLAN de
-// rig par lookup EXACT `defById` dans DEF_BY_ID et (2) la RACE par `baseSpeciesOf` : un libellé n'y résout
-// dans aucun registre exact et vit d'un défaut silencieux. Vocabulaire CANONIQUE des DONNÉES = ids de
-// species.json (espèces jouables) ∪ ids de def rig (creatureSpeciesOptions) ∪ ids de raceAppearance.json
-// (races d'apparence, sortie de `raceById`/`DEFAULT_RACE_ID`) ∪ formes de nuée (clés de SWARM_FORMS, lues
-// par composeSwarm). `species` absent = OK (défaut Humain documenté).
+// ── GARDE DE CLASSE — `appearance.species` = id STABLE du domaine de saisie (`fauteDEspece`,
+// `grammaire/art.ts`), jamais un LIBELLÉ. `species` absent = OK.
 // Cf. `CLAUDE.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
-describe('appearance.species — id stable (species.json ∪ defs rig ∪ raceAppearance ∪ formes de nuée), jamais un libellé', () => {
-  const VALID_SPECIES = new Set<string>([
-    ...species.map((s) => s.id),
-    ...creatureSpeciesOptions().map((o) => o.id),
-    ...raceAppearance.map((r) => r.id),
-    ...Object.keys(SWARM_FORMS),
-  ]);
+describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais un libellé', () => {
   function collect(node: unknown, where: string, out: string[]): void {
     if (Array.isArray(node)) { node.forEach((x, i) => collect(x, `${where}[${i}]`, out)); return; }
     if (!isObj(node)) return;
     const app = node.appearance;
-    if (isObj(app) && typeof app.species === 'string' && !VALID_SPECIES.has(app.species))
+    if (isObj(app) && typeof app.species === 'string' && fauteDEspece(app.species) !== null)
       out.push(`${where}.appearance.species = ${JSON.stringify(app.species)}`);
     for (const [k, v] of Object.entries(node)) collect(v, `${where}.${k}`, out);
   }
 
-  it('projets Arène + Loup-et-Saumure : tout appearance.species est une clé exacte de species.json ∪ defs rig', () => {
+  it('projets Arène + Loup-et-Saumure : tout appearance.species est dans le domaine de saisie', () => {
     const bad: string[] = [];
     collect(areneProject, 'arene-projet.json', bad);
     collect(loupProject, 'loup-et-saumure-projet.json', bad);

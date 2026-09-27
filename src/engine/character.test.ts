@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { makeRNG } from './dice';
 import { findSpeciesById, talentConcrete, talents, specPoolOf, firstLevel, careerLevels, species } from '../data';
 import { setDataset } from '../data/overrides';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
 import {
   speciesSkillDefaults,
-  rollRandomTalent,
   resolveSpeciesTalents,
   resolveSpeciesTalentsDetail,
   createHero,
@@ -32,33 +30,44 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
   });
 });
 
-describe('rollRandomTalent — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
+describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
+  // Le tirage vit à l'adresse `especeTirage(PREALABLES, 0)`, quels que soient les Talents possédés : les
+  // emplacements préalables non tenus portent un Talent hors du Tableau.
+  const PREALABLES = Math.max(1, ...talents.filter((t) => t.rand != null).map((t) => specPoolOf(t).length));
+  const horsTableau = talents.find((t) => t.rand == null && !specPoolOf(t).length)!;
+  const tirage = (seed: number, possedes: RefDesignee[] = [], opts: { randomSpecPicks?: Record<string, string> } = {}) => {
+    const prealables = [...possedes, ...Array.from({ length: PREALABLES - possedes.length }, () => ({ id: horsTableau.id }))];
+    const out = resolveSpeciesTalentsDetail({ ...sp(), talents: [...prealables, { random: 1 }] }, { seed, ...opts });
+    const t = out[out.length - 1];
+    return { ref: t.ref, doublon: t.tirage!.doublon };
+  };
+  const ADRESSE = adresseDeCreation.especeTirage(PREALABLES, 0);
+
   it('renvoie un talent de la table, non doublon sans Talent possédé', () => {
-    const t = rollRandomTalent(makeRNG(1), [])!;
+    const t = tirage(1);
     expect(talents.find((x) => x.id === t.ref.id)?.rand).toBeDefined();
     expect(t.doublon).toBe(false);
   });
 
   it('LDB 05 l.484 « vous pouvez relancer » : le Talent déjà possédé est RENDU, marqué doublon, jamais relancé d\'office', () => {
-    const first = rollRandomTalent(makeRNG(1), [])!;
-    const second = rollRandomTalent(makeRNG(1), [first.ref])!;
-    expect(second).toEqual({ ref: first.ref, doublon: true });
+    const first = tirage(1);
+    expect(tirage(1, [first.ref])).toEqual({ ref: first.ref, doublon: true });
   });
 
   it('déterministe à seed égal', () => {
-    expect(rollRandomTalent(makeRNG(42), [])).toEqual(rollRandomTalent(makeRNG(42), []));
+    expect(tirage(42)).toEqual(tirage(42));
   });
 
   it('LDB 10 l.17 : une AUTRE utilisation possédée fait du tirage un doublon ; il prend la 1re utilisation non possédée', () => {
-    const tire = rollRandomTalent(makeRNG(2), [])!;
+    const seed = Array.from({ length: 500 }, (_, i) => i + 1).find((s) => specPoolOf(talents.find((t) => t.id === tirage(s).ref.id)!).length > 1)!;
+    const tire = tirage(seed);
     const pool = specPoolOf(talents.find((t) => t.id === tire.ref.id)!);
-    expect(pool.length).toBeGreaterThan(1);
     const [specA, specB] = pool;
     expect(tire.ref).toEqual({ id: tire.ref.id, spec: specA });
-    expect(rollRandomTalent(makeRNG(2), [{ id: tire.ref.id, spec: specA }])).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: true });
+    expect(tirage(seed, [{ id: tire.ref.id, spec: specA }])).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: true });
     const toutes = pool.map((spec) => ({ id: tire.ref.id, spec }));
-    expect(rollRandomTalent(makeRNG(2), toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
-    expect(rollRandomTalent(makeRNG(2), [], specB)).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
+    expect(tirage(seed, toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
+    expect(tirage(seed, [], { randomSpecPicks: { [ADRESSE]: specB } })).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
   });
 });
 

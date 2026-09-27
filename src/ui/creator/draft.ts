@@ -417,7 +417,7 @@ export function rollDraftAstrology(d: CreatorDraft): CreatorDraft {
 // ── 4) Compétences & Talents ──
 /** Talents d'espèce résolus (choix appliqués, tirages aléatoires FIGÉS par le seed) — les TIRÉS AU
  *  D100 n'y figurent qu'une fois le geste « Tirer aux dés » posé (`talentsRolled`, #393). */
-export function resolvedSpeciesTalents(d: CreatorDraft): RefDesignee[] {
+function resolvedSpeciesTalents(d: CreatorDraft): RefDesignee[] {
   const sp = draftSpecies(d);
   return sp ? resolveSpeciesTalentsDetail(sp, d).map((t) => t.ref) : [];
 }

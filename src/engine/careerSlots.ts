@@ -1,17 +1,11 @@
 /**
- * Emplacements de carrière & spécialisations — RAW :
+ * Emplacements de carrière & spécialisations.
  *
- *  - Compétences groupées (LDB 09 l.33-43) : chaque Spécialisation est UNE Compétence distincte
- *    (l.42, ex. Sigrid). Quand l'entrée de carrière porte « (Au choix) », le joueur choisit la
- *    Spécialisation AU MOMENT où il alloue une Augmentation (l.38, ex. Théodora).
- *  - Talents : utilisation et Maxi — LDB 10 l.17-18 ; dérogation `grantsArcaneDomain` — LDB 46 l.177.
- *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.78),
- *    Talents du niveau courant uniquement (l.100).
+ *  - Disponibilité : Compétences LDB 07 l.76 ; Talents LDB 07 l.103.
+ *  - Compétences groupées : LDB 09 l.34-44.
+ *  - Talents, utilisation et Maxi : LDB 10 l.17-18 ; `grantsArcaneDomain` : LDB 46 l.177.
  *
- * Modèle des emplacements « (Au choix) » : chaque entrée de liste d'un Niveau de Carrière est un
- * EMPLACEMENT (slot). Le livre fixe QUOI est disponible (Compétences/Talents ci-dessus) mais reste
- * muet sur COMMENT un slot à choix se résout en jeu — le modèle ci-dessous est maison (LDB 07/09/10
- * — silence, valeur maison) :
+ * Modèle maison des emplacements « (Au choix) » (LDB 07/09/10 — silence, valeur maison) :
  *  - un slot se « désigne » sur une spec concrète gratuitement (la désignation ne donne rien, elle
  *    déclare ce que le slot couvre, éventuellement un talent déjà possédé via l'espèce) ; acheter
  *    via un slot libre le désigne automatiquement ;
@@ -393,7 +387,7 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
 }
 
 /** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
- *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
+ *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105, l.156). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
  *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `arcaneDomainGate`. */
 export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
   const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;

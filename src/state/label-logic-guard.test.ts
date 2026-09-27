@@ -238,11 +238,22 @@ describe('garde-fou « logique par label interdite » (#142)', () => {
       "const elfe = /elfe/i.test(hero.species ?? '');",
       "const isElf = (species) => !!species?.includes('elfes');",
       "const nain = c.species.startsWith('nain');",
+      "const d = speciesId.includes('elfe');",
+      "const e = (hero.species ?? '').includes('elfe');",
+      "const f = String(c.species).includes('elf');",
+      "const g = ['hauts-elfes', 'elfes-sylvains'].includes(hero.species);",
+      "const s = new Set(['hauts-elfes', 'elfes-sylvains']).has(hero.species);",
+      "const h = hero.species === 'hauts-elfes' || 'nains' !== c.species;",
+      "const k = hero.species?.split('-').includes('elfes');",
+      "const l = hero.species!.includes('elfe');",
+      "const m = hero['species']?.includes('elfe');",
+      "const o = c.species?.toLowerCase().includes('elf');",
       "const g = groupsFor({ speciesId: hero.species }).includes('elfe');",
       "const sp = findSpeciesById(hero.species);",
       "const ok = allowed.includes(hero.species);",
+      "if (typeof app.species === 'string') poser(app.species);",
     ].join('\n');
-    expect(scanLabelLogic('fixture.ts', src).map((f) => f.line)).toEqual([1, 2, 3]);
+    expect(scanLabelLogic('fixture.ts', src).map((f) => f.line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
   });
 
   it('collectIdParamFunctions + scanLabelAsIdArg : détecte `.label` passé où le paramètre déclaré est `id` (LOT 5)', () => {

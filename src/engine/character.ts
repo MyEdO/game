@@ -226,7 +226,7 @@ function randomTalentTable() {
 /** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484). `doublon` : Talent déjà dans
  *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` (`randomSpecPicks`,
  *  écrit par `withRandomTalentSpec`) si `specPoolOf` la propose, sinon la 1re non possédée, sinon la 1re. */
-export function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } | null {
+function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } | null {
   const r = roll(1, 100, rng);
   const entry = randomTalentTable().find((t) => r <= (t.rand as number));
   if (!entry) return null;

@@ -22,7 +22,6 @@ export const RACES: Record<string, RaceDef> = new Proxy({} as Record<string, Rac
   ownKeys: () => raceAppearance.map((r) => r.id),
   getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
 });
-export { DEFAULT_RACE_ID };
 /** Race par id canonique (sortie de baseSpeciesOf) ; sans id (aucune espèce résolue) → défaut déclaré.
  *  Un id FOURNI mais absent de `raceAppearance.json` est une donnée à corriger : bruyant en dev. */
 export function raceById(id: string | undefined): RaceDef {

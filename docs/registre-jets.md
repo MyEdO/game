@@ -177,9 +177,9 @@ Périmètre : hors `src/engine/**` et hors `ROLL_SEAM_CORE`.
 | `src/state/upkeep.ts` | 3 | dette | `applyOps`, `dailyFoodUpkeep`, `dailyWaterUpkeep` | mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2. |
 | `src/state/zones.ts` | 4 | dette | `applyOps`, `resolveFormula` | mesuré : applyOps×2, resolveFormula×2. B (magnitudes d'`applyOps`/`resolveFormula` de zone) -> #1508 T2. |
 | `src/ui/creator/CharacterCreator.tsx` | 2 | dette | `generateName`, `rng.int` | mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6. |
-| `src/ui/creator/draft.ts` | 13 | dette | `rng.int`, `rollAge`, `rollCareer`, `rollEyes`, `rollHair`, `rollHeight`, `rollInitialWealth`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6. |
+| `src/ui/creator/draft.ts` | 15 | dette | `resolveSpeciesTalentsDetail`, `rng.int`, `rollAge`, `rollCareer`, `rollEyes`, `rollHair`, `rollHeight`, `rollInitialWealth`, `rollSpecies`, `rollStar` | mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6. |
 
-_302 dés mesurés dans 45 fichiers, pour 121 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 302 dette._
+_304 dés mesurés dans 45 fichiers, pour 121 exports de `src/engine` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : 304 dette._
 
 ## Population AUTHORÉE (donnée, pas code)
 
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: d1e55c9cc55a3252fd357fe826e7d664e6c3a34e (2124 fichiers, 136 dossiers) corps: 1be9fc9a8be8b25b4697edf5e87c77c5d348e7c5 -->
+<!-- sources-empreinte: 4367446a1869c06e6115f456a643987936f2100c (2124 fichiers, 136 dossiers) corps: 4099a5bac260e606aede292664d1d36f216579f8 -->
