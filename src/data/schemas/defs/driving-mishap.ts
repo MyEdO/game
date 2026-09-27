@@ -36,7 +36,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['drivingMishap'] },
-    edit: { niche: { categories: ['drivingMishap'] } },
+    edit: { niche: { categories: { drivingMishap: 'entries' } } },
   },
   { rangee: mishapEntrySchema },
 );

@@ -294,20 +294,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/index-vif-guard.test.ts",
-    motif: "désormais",
-    ancre: "SONT désormais du VOCABULAIRE, joués à ce lot (les deux formes par lesquelles le module",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/index-vif-guard.test.ts",
-    motif: "désormais",
-    ancre: "// Et le détecteur VOIT désormais un index figé sur ce nom, injecté dans une copie en mémoire.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/libelles-guard.test.ts",
     motif: "désormais",
     ancre: "montrait son trou nommé entre accolades, il le DIT désormais en français (`defs/voyage-stakes.ts`).",

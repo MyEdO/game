@@ -77,7 +77,7 @@ const doc = document(
   },
   {
     codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] },
-    edit: { niche: { categories: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] } },
+    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents', seaPortEvents: 'portEvents' } } },
   },
 );
 

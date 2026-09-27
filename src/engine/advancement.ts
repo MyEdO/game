@@ -9,6 +9,7 @@ import { Combatant, CharKey } from './types';
 import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
 
 /**
@@ -38,14 +39,14 @@ const ADVANCE_COST_TABLE: AdvanceCostBand[] = advancementCostsJson as AdvanceCos
 /** La table telle que `findTableEntry` la lit : la borne OUVERTE de la dernière bande devient son
  *  infini. Aucun plafond n'est écrit en donnée — c'est le lookup qui ouvre, pas la source, et il est
  *  le tronc commun des tables ouvertes (`tableOuverte`, `./tables`). */
-const ADVANCE_COST_LOOKUP = tableOuverte(ADVANCE_COST_TABLE);
+const advanceCostLookup = memoParVersion('advancementCosts', () => tableOuverte(ADVANCE_COST_TABLE));
 
 /** Coût en PX de la PROCHAINE Augmentation (la N+1ᵉ), `advancesAlready` = N déjà achetées.
  *  Hors carrière, le coût est DOUBLÉ (LDB 07 l.91). `discount` : « 5 PX de moins par
  *  Augmentation » des talents Maître artisan / Oreille absolue / etc. (LDB 10) quand la
  *  Compétence ajoutée est déjà incluse dans la Carrière — appliqué in-carrière seulement. */
 export function advanceCost(advancesAlready: number, kind: 'characteristic' | 'skill', inCareer = true, discount = 0): number {
-  const band = findTableEntry(ADVANCE_COST_LOOKUP, advancesAlready);
+  const band = findTableEntry(advanceCostLookup(), advancesAlready);
   const base = kind === 'characteristic' ? band.coutCarac : band.coutCompetence;
   return inCareer ? Math.max(1, base - discount) : base * 2;
 }

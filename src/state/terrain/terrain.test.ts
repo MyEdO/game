@@ -122,7 +122,7 @@ describe('terrains — le GLYPHE d’authoring est une donnée (#1789)', () => {
       expect(GLYPHES_RESERVES.has(ch), `le glyphe « ${ch} » est un mot de la grammaire du plan`).toBe(false);
   });
 
-  it('un glyphe ÉDITÉ au dataset est vu sans rechargement (lecture VIVE)', () => {
+  it('un glyphe ÉDITÉ au dataset est vu sans rechargement (lecture VIVANTE)', () => {
     const declare = tousLesTerrains().find((t) => typeof t.ascii === 'string')!;
     expect(terrainsAvecGlyphe()['§']).toBeUndefined();
     setDataset('terrains', AVANT.map((t) => (t.id === declare.id ? { ...t, ascii: '§' } : t)) as never);
@@ -132,7 +132,7 @@ describe('terrains — le GLYPHE d’authoring est une donnée (#1789)', () => {
   });
 });
 
-describe('terrains — la façade et le catalogue de rendu lisent VIF', () => {
+describe('terrains — la façade et le catalogue de rendu lisent VIVANT', () => {
   it('une entrée éditée est vue par la façade ET par le catalogue, sans rechargement', () => {
     const editees = AVANT.map((t) => {
       if (t.id === 'herbe') return { ...t, walkable: false };

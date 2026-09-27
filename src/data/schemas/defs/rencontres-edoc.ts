@@ -31,7 +31,7 @@ const doc = document(
   },
   {
     codex: { keys: ['rencontresPositives', 'rencontresFortuites', 'rencontresDangereuses'] },
-    edit: { niche: { categories: ['rencontresPositives', 'rencontresFortuites', 'rencontresDangereuses'] } },
+    edit: { niche: { categories: { rencontresPositives: 'tables.positives', rencontresFortuites: 'tables.fortuites', rencontresDangereuses: 'tables.dangereuses' } } },
   },
 );
 

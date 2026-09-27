@@ -61,7 +61,7 @@ export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number
   petrifie: { label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
 };
 
-/** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIF + marqueurs
+/** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
  *  cherché dans un texte FRANÇAIS. SOURCE UNIQUE du scan, partagée par l'importance d'un évènement
  *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */

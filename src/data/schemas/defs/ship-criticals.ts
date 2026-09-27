@@ -65,7 +65,7 @@ const doc = document(
   },
   {
     codex: { keys: ['shipCriticalsCargaison', 'shipCriticalsGreement', 'shipCriticalsCoque', 'shipCriticalsAvirons', 'shipCriticalsEquipements'] },
-    edit: { niche: { categories: ['shipCriticalsCargaison', 'shipCriticalsGreement', 'shipCriticalsCoque', 'shipCriticalsAvirons', 'shipCriticalsEquipements'] } },
+    edit: { niche: { categories: { shipCriticalsCargaison: 'tables.cargaison', shipCriticalsGreement: 'tables.greement', shipCriticalsCoque: 'tables.coque', shipCriticalsAvirons: 'tables.avirons', shipCriticalsEquipements: 'tables.equipements' } } },
   },
 );
 

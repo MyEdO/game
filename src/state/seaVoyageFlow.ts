@@ -62,11 +62,11 @@ import { applyOps, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { isRation } from '../engine/provisions';
-import { toDate, MINUTES_PER_DAY, minutesUntilNext, DUSK_MINUTE } from '../engine/clock';
+import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForce, windEffect, windAdjustedM,
-  seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, WIND_FORCES,
+  seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
   precipitationSkillMod, precipitationDef,
   type SeaWeather, type WindDirection,
 } from '../engine/seaWeather';
@@ -104,7 +104,8 @@ import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings'
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from './rollSeam';
-import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStep, startCascade, runCascadeImmediate, pushStep } from './cascade';
+import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
 import { dataLabel } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
@@ -1113,16 +1114,17 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
 
 const SEA_BOARD_EVENT_KIND = 'seaBoardEvent';
 const SEA_BOARD_EVENT_STEP_ID = 'sea-board-event';
-const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
+export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
 
 // Table DÉRIVÉE du catalogue (`sea-events.json` : chaque entrée porte déjà `min`/`max`/`id`) — aucune
-// plage réécrite à la main.
-registerTableStep(SEA_BOARD_EVENT_TABLE, {
+// plage réécrite à la main ; FAMILLE (`registerTableStepFamily`) mémoïsée sur `seaBoardEvents`.
+const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
   die: 100,
   rows: BOARD_EVENTS.map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(BOARD_EVENTS, die).label })],
-});
+}]]));
+registerTableStepFamily(tableDesEvenementsDeBord);
 
 registerCascadeApplier(SEA_BOARD_EVENT_KIND, (get, set, step) => {
   const tiree = step.table?.result;
@@ -1375,11 +1377,12 @@ const isElfSpecies = (species: string | undefined): boolean => groupsFor({ speci
 /** Mal de mer (MDG 14 l.211-222) — DEUX déclencheurs INDÉPENDANTS, cumulables le même jour : premier
  *  jour de CETTE traversée (`daysAtSea === 0` — proxy : le moteur ne porte aucun état par-personnage
  *  « a déjà navigué », le RAW parle de « la première fois qu'ils entreprennent un voyage en mer ») et
- *  mauvais temps (Vent violent ou plus, l.218, `WIND_FORCES`). Les Personnages elfes sont IMMUNISÉS
+ *  mauvais temps (Vent violent ou plus, l.218, `windForces`). Les Personnages elfes sont IMMUNISÉS
  *  (l.215) : jamais testés, aucune étape posée. */
 function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[] {
   const firstDay = sea.daysAtSea === 0;
-  const badWeather = WIND_FORCES.indexOf(sea.weather.vent) >= WIND_FORCES.indexOf('vent-violent');
+  const forces = windForces();
+  const badWeather = forces.indexOf(sea.weather.vent) >= forces.indexOf('vent-violent');
   if (!firstDay && !badWeather) return [];
   const appeles = get().party.filter((h) => !h.dead && !isElfSpecies(h.species) && contractionDue(h, 'mal-de-mer'));
   if (!appeles.length) return [];
@@ -1525,7 +1528,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   // convalescence) n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans
   // la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
   const arrived = plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
-  const dayMinutes = arrived ? 24 * 60 : minutesUntilNext(get().gameTime, DUSK_MINUTE);
+  const dayMinutes = arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute());
   set({ gameTime: get().gameTime + dayMinutes });
   bus.emit(EVT.TIME_ADVANCED, { minutes: dayMinutes });
 

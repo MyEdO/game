@@ -2,7 +2,7 @@
  * Schéma de `disponibilite.json` — les deux tables numériques de « Faire son marché » (LDB 59)
  * migrées en donnée éditable (#366) : `dispoPct` (Tableau de Disponibilité, folio 290 l.25-30) et
  * `barterRatios` (RATIOS DE TROC, folio 291 l.68-76). Consommé par `src/engine/disponibilite.ts`
- * (`DISPO_PCT` / `BARTER_RATIOS`). `availability` = `Availability` (`src/engine/types.ts`), clé
+ * (`dispoPct` / `barterRatios`). `availability` = `Availability` (`src/engine/types.ts`), clé
  * STABLE ; `village`/`ville`/`cite` = `Settlement`.
  */
 import { z } from 'zod';

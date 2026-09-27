@@ -6,9 +6,11 @@
  * `props.json?volume`). Les filtres sont les paramètres `espace` de la marque de la collection
  * (`grammaire/collection-cle.ts`) ; la table `IDS_PAR_ESPACE` (`_ids.generated.ts`) est keyée ici.
  *
- * FEUILLE : aucun import — `grammaire/ref.ts` et `grammaire/idsVivants.ts` l'atteignent sans passer
- * par les defs (`idsVivants.ts:9-11`).
+ * FEUILLE : aucun import exécutable (le type de la marque s'efface à la compilation) —
+ * `grammaire/ref.ts` et `grammaire/idsVivants.ts` l'atteignent sans passer par les defs
+ * (`idsVivants.ts`, en-tête).
  */
+import type { MarqueDeCollection } from './collection-cle';
 
 /** Filtre d'une clé d'espace : `vaut` posé = discriminant ; sinon marqueur. */
 export interface FiltreDEspace {
@@ -77,14 +79,6 @@ export function cleDesSpecs(espace: string, id: string): string {
   return cleNichee(espace, suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'specs' }));
 }
 
-/** Le fichier d'une clé d'espace, au type. */
-export type FichierDe<K extends string> = K extends `${infer F}#${string}` ? F : K extends `${infer F}?${string}` ? F : K;
-
-/** Le fichier d'une clé d'espace, typé par sa clé littérale. */
-export function fichierDe<K extends string>(cle: K): FichierDe<K> {
-  return lireCleDEspace(cle).fichier as FichierDe<K>;
-}
-
 /** La clé NON FILTRÉE d'une clé lue : `fichier`, ou `fichier#…`. */
 export function baseDe(lue: CleLue): string {
   return lue.niche === undefined ? lue.fichier : `${lue.fichier}#${lue.niche}`;
@@ -119,28 +113,28 @@ export function porteLeChampMarqueur(e: Readonly<Record<string, unknown>>, champ
   return v !== undefined && v !== null && v !== false && v !== '' && !(Array.isArray(v) && v.length === 0);
 }
 
-/** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par la phase 2 de
- *  `npm run gen` (`scripts/gen-espaces.mts`) et par le régime vivant (`idsVivants.ts`). */
-export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
+/** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par `idsDeCollection`. */
+function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
   return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
 }
 
 const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
- * Ids d'un espace lus sur la racine VIVE de son fichier, dans l'ordre de la donnée : les `id` d'une
- * liste (filtrée), les clés d'un record. La suite nichée ne s'y lit qu'en pas de CHAMP
- * (`sizes.json#rangedMod`) ; un pas `[clé]` ou un filtre sur un record LÈVENT, nommément.
+ * SEUL lecteur des ids d'une collection à clé, par sa MARQUE (`grammaire/collection-cle.ts`), dans
+ * l'ordre de la donnée : la clé de chaque élément d'une liste (un élément sans clé lisible n'en porte
+ * pas), les noms de propriété d'un record. `filtre` : les éléments d'une liste qu'il retient
+ * (`retenuParFiltre`) ; sur un record, il LÈVE.
  */
-export function idsSurLaRacine(cle: string, racine: unknown): string[] {
-  const { niche, filtre } = lireCleDEspace(cle);
-  let noeud = racine;
-  for (const pas of niche === undefined ? [] : niche.split('.')) {
-    if (pas.startsWith('[')) throw new Error(`clé d'espace « ${cle} » : le pas « ${pas} » ne se lit pas sur une racine vive.`);
-    noeud = estObjet(noeud) ? noeud[pas] : undefined;
-  }
-  if (Array.isArray(noeud))
-    return noeud.flatMap((e) => (estObjet(e) && typeof e.id === 'string' && (!filtre || retenuParFiltre(filtre, e)) ? [e.id] : []));
-  if (filtre) throw new Error(`clé d'espace « ${cle} » : un filtre ne se lit que sur une liste.`);
-  return estObjet(noeud) ? Object.keys(noeud) : [];
+export function idsDeCollection(marque: MarqueDeCollection, valeur: unknown, filtre?: FiltreDEspace): string[] {
+  if (marque.forme === 'liste')
+    return Array.isArray(valeur)
+      ? valeur.flatMap((el) => {
+          const cle = marque.de(el);
+          return cle !== undefined && (!filtre || (estObjet(el) && retenuParFiltre(filtre, el))) ? [cle] : [];
+        })
+      : [];
+  if (filtre) throw new Error(`filtre « ${filtre.champ} » sur un record : un filtre d'espace ne se lit que sur une liste.`);
+  const carte = marque.sous === undefined ? valeur : estObjet(valeur) ? valeur[marque.sous] : undefined;
+  return estObjet(carte) ? Object.keys(carte) : [];
 }

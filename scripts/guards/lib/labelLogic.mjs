@@ -911,7 +911,7 @@ export function ratchetShortKey(finding) {
 //        une entité de catalogue — `XxxData` (`SpellData`, `TalentData`…), convention des
 //        interfaces app-owned ;
 //     b. ALIAS d'un binding construit par `indexParChamp(cle, entrees, (e) => e.label…)` — l'index
-//        vif rend l'ENTRÉE elle-même, donc l'alias résout l'entité par son libellé exactement comme
+//        vivant rend l'ENTRÉE elle-même, donc l'alias résout l'entité par son libellé exactement comme
 //        (a) : un critère qui ne jugerait que la FORME SYNTAXIQUE (flèche avec corps) serait muet sur
 //        ce résolveur, inchangé pour l'appelant.
 //     c. fonction/flèche à paramètre `label` dont le NOM suit `…By…Label` (`traitIdByLabel`…) : la
@@ -938,7 +938,7 @@ function isExported(node) {
   return (node.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 }
 
-/** L'initialiseur est-il un INDEX VIF keyé par le LIBELLÉ — `indexParChamp(cle, entrees, (e) =>
+/** L'initialiseur est-il un INDEX VIVANT keyé par le LIBELLÉ — `indexParChamp(cle, entrees, (e) =>
  *  e.label…)` (`src/data/versionDataset.ts`) ? Cet accesseur rend l'ENTRÉE de catalogue elle-même
  *  (`(k) => T | undefined`) : le binding qui le tient RÉSOUT une entité par son libellé, quelle que
  *  soit la forme sous laquelle un export le publie ensuite. La clef est lue par son CORPS (`d.label`,
@@ -960,7 +960,7 @@ function isLabelKeyedIndex(init) {
 
 /** Les bindings qui TIENNENT une résolution par libellé : index keyé par label, ou ALIAS NU d'un tel
  *  binding — les déclarations étant en ordre, une chaîne d'alias suit (même mécanique d'héritage par
- *  alias que `nomsVifsDuFichier`, `bindingsVifs.mjs`).
+ *  alias que `nomsVivantsDuFichier`, `bindingsVivants.mjs`).
  *  @param {ts.SourceFile} sf @returns {Set<string>} */
 function labelKeyedBindings(sf) {
   const noms = new Set();

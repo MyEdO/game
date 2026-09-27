@@ -70,7 +70,7 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau
                             module se bâtit donc par `indexParId`/`indexParChamp`/`memoParVersion`
-                            (#1692) ; deux gardes structurelles le tiennent : `index-vif-guard.test.ts`
+                            (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,

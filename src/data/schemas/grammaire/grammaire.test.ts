@@ -28,7 +28,7 @@ import { avancement } from './avancement';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { poserSourceDIdsVivants } from './idsVivants';
+import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet } from '../validate';
 
@@ -158,16 +158,16 @@ describe('document() — enveloppe posée par la fabrique', () => {
       document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: {} }),
     ).toThrow(/`edit` exige/);
     expect(() =>
-      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: { niche: { categories: [] } } }),
+      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: { niche: { categories: {} } } }),
     ).toThrow(/`edit.niche.categories` exige/);
     const nichee = document(
       'jouet',
       'config',
       { max: z.number() },
       { max: { label: 'Max' } },
-      { codex: { keys: ['x', 'y'] }, edit: { niche: { categories: ['x'] } } },
+      { codex: { keys: ['x', 'y'] }, edit: { niche: { categories: { x: 'x' } } } },
     );
-    expect(nichee.exposition.edit).toEqual({ niche: { categories: ['x'] } });
+    expect(nichee.exposition.edit).toEqual({ niche: { categories: { x: 'x' } } });
     const exempte = document(
       'jouet',
       'config',
@@ -207,7 +207,7 @@ describe('document() — enveloppe posée par la fabrique', () => {
         'config',
         { max: z.number() },
         { max: { label: 'Max' } },
-        { codex: { keys: ['x'] }, edit: { niche: { categories: ['x', 'z'] } } },
+        { codex: { keys: ['x'] }, edit: { niche: { categories: { x: 'x', z: 'z' } } } },
       ),
     ).toThrow(/`edit.niche.categories` nomme des clés absentes de `codex.keys` : z/);
   });
@@ -221,7 +221,7 @@ describe('document() — enveloppe posée par la fabrique', () => {
         { max: { label: 'Max' } },
         {
           codex: { exempt: { kind: 'vocabulaire-app-interne', raison: 'vocabulaire du moteur, jamais lu par le joueur' } },
-          edit: { niche: { categories: ['x'] } },
+          edit: { niche: { categories: { x: 'x' } } },
         },
       ),
     ).toThrow(/`edit.niche` route des catégories alors que `codex` est EXEMPT/);
@@ -542,13 +542,14 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
         continue;
       }
       const c = exposition.codex as { keys?: readonly string[]; exempt?: { raison?: string } };
-      const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: readonly string[] }; none?: string };
+      const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: Readonly<Record<string, unknown>> }; none?: string };
       const keys = Array.isArray(c.keys) && c.keys.length ? c.keys : undefined;
       if (!keys && !c.exempt?.raison) fautifs.push(`${def.file} : \`codex\` sans \`keys\` ni \`exempt\` motivé`);
       if (!e.dataset && !e.object && !e.none && !e.niche) fautifs.push(`${def.file} : \`edit\` sans route déclarée`);
       if (e.niche) {
-        const cats = e.niche.categories;
-        if (!(Array.isArray(cats) && cats.length && cats.every((k) => typeof k === 'string' && k.length))) {
+        const carte = e.niche.categories;
+        const cats = carte && typeof carte === 'object' && !Array.isArray(carte) ? Object.keys(carte) : [];
+        if (!(cats.length && cats.every((k) => k.length && typeof carte![k] === 'string' && (carte![k] as string).length))) {
           fautifs.push(`${def.file} : \`edit.niche.categories\` vide ou mal formée`);
         } else if (!keys) {
           fautifs.push(`${def.file} : \`edit.niche\` sur un Codex EXEMPT`);
@@ -1073,23 +1074,19 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
    * posés par la couche donnée. Un schéma se construit une fois au chargement du module, la donnée se
    * valide après ; la liste admise doit donc se lire à la VALIDATION. Sans quoi une entité créée au
    * Compendium rendrait rouge toute donnée qui la référence.
-   * Le test POSE une source vivante synthétique et repose la précédente : il ne mute aucun registre
-   * partagé, et vaut que la couche donnée ait déjà posé la sienne dans ce worker ou non.
+   * Le test POSE un régime vivant synthétique et repose le précédent : il ne mute aucun registre
+   * partagé, et vaut que la couche donnée ait déjà posé le sien dans ce worker ou non.
    */
   it('un schéma construit AVANT une mise à jour du registre voit la NOUVELLE liste', () => {
     const avant = IDS_PAR_ESPACE['etats.json'];
     const noeud = idDe('etat'); // construit AVANT la mise à jour
     expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(false);
-    const precedente = poserSourceDIdsVivants({
-      entrees: (f) =>
-        f === 'etats.json' ? [...avant.map((id) => ({ id })), { id: 'etat-cree-au-compendium' }] : precedente?.entrees(f),
-      version: (f) => precedente?.version(f) ?? 0,
-    });
+    const precedent = poserRegimeVivant((cle) => (cle === 'etats.json' ? new Set([...avant, 'etat-cree-au-compendium']) : precedent?.(cle)));
     try {
       expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(true);
       expect(idDe('etat').safeParse('etat-cree-au-compendium').success).toBe(true);
     } finally {
-      poserSourceDIdsVivants(precedente);
+      poserRegimeVivant(precedent);
     }
     expect(noeud.safeParse('etat-cree-au-compendium').success).toBe(false);
   });

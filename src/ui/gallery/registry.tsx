@@ -98,7 +98,7 @@ import { RefField, refFieldCfg } from '../compendium/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 
-// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVES (#1692) ──
+// ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
 export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] => {
   const parFamille = new Map<string, typeof species>();
@@ -975,7 +975,7 @@ function ReglagesApparenceDemo() {
 
 /** Ops RÉELLES (mutations.json) : charMod (ancré Caractéristiques) + grantTalent (ancré Talents) de
  *  « Tête bestiale (Chien) », `ap` (sans ancre Codex → repli `humanizeOp` en phrase) de « Tête pointue ». */
-const GAMEOP_CHIPS_DEMO_OPS: GameOp[] = [
+const gameOpChipsDemoOps = (): GameOp[] => [
   ...(mutations.find((m) => m.id === 'tete-bestiale-chien')?.passive ?? []),
   ...(mutations.find((m) => m.id === 'tete-pointue')?.passive?.filter((o) => o.op === 'ap') ?? []),
 ];
@@ -983,7 +983,7 @@ const GAMEOP_CHIPS_DEMO_OPS: GameOp[] = [
 function GameOpChipsDemo() {
   return (
     <Row className="skill-tags">
-      <GameOpChips ops={GAMEOP_CHIPS_DEMO_OPS} />
+      <GameOpChips ops={gameOpChipsDemoOps()} />
     </Row>
   );
 }

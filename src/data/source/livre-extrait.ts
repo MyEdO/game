@@ -3,7 +3,7 @@
 //
 // Module PUR, sans aucun import : chargé tel quel par Node nu (retrait de types natif) comme par
 // vitest et le navigateur. Le prédicat porte sur l'ENTRÉE du registre `src/data/books.json`, jamais sur
-// un ensemble dérivé : chaque lecteur l'applique au registre qu'il tient, vif ou injecté.
+// un ensemble dérivé : chaque lecteur l'applique au registre qu'il tient, vivant ou injecté.
 
 /** Les champs d'une entrée de registre de livre que le prédicat lit. */
 export interface EntreeDeLivre {

@@ -71,7 +71,7 @@ export type ArchitectureWarningRef =
 /** Verdict d'un SCHÉMA par objet validé (une scène, la carte), par le mémo CANONIQUE (`memoByRefDeps`),
  *  daté par la version des datasets : les éditions de l'éditeur sont IMMUABLES (`useSceneHistory`),
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
- *  verdicts — les réfs se résolvent au catalogue VIF. */
+ *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
 const fautesDeSchema = (schema: Parameters<typeof validateDocument>[0], objet: object): readonly Faute[] | null =>
   verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validateDocument(schema, objet));

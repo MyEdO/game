@@ -38,7 +38,7 @@ import type { MagicEnvironment } from './magicEnvironment';
 import { effectiveCastingNumber } from './castingNumber';
 import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { armourMaterialOf } from './armourBypass';
-import { MINUTES_PER_DAY, minutesUntilNext, DAWN_MINUTE } from './clock';
+import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
 import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, DIFFICULTY_MODIFIERS, type ItemInstance } from './types';
 import { findTraitById, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
@@ -450,7 +450,7 @@ export function prayerWrathTriggered(roll: number, sinPoints: number): boolean {
 export function durationClockMinutes(duration: SpellDuration | null | undefined, caster: Combatant, now: number): number | null {
   if (!duration) return null;
   if (duration.kind === 'untilDawn') {
-    const toDawn = minutesUntilNext(now, DAWN_MINUTE);
+    const toDawn = minutesUntilNext(now, dawnMinute());
     return toDawn === 0 ? MINUTES_PER_DAY : toDawn;
   }
   if (duration.kind !== 'clock') return null;

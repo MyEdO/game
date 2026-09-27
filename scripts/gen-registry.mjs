@@ -7,8 +7,8 @@
  *   node scripts/gen-registry.mjs
  *
  * `genAll` joue la PHASE 1 (ces registres) puis la PHASE 2 (`scripts/gen-espaces.mts`, l'INDEX DES
- * IDS), pour `npm run gen`, `npm run build` et le plugin Vite (`vite.config.ts`, donc chaque run
- * Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
+ * IDS, les CLÉS DE DATASET et les RACINES VIVANTES), pour `npm run gen`, `npm run build` et le plugin
+ * Vite (`vite.config.ts`, donc chaque run Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
  */
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';

@@ -320,12 +320,12 @@ const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec |
   join(t.damage ? damageString(t.damage) : null, conditionalDamageNote(t));
 
 /** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex et aucun écran ne
- *  l'écrit, `defs/props.ts`) — lecture VIVE du dataset ; l'id nu tient lieu de
+ *  l'écrit, `defs/props.ts`) — lecture VIVANTE du dataset ; l'id nu tient lieu de
  *  nom pour une référence hors catalogue, que le parse refuse nominativement (`idDe('prop')`). */
 const propLabel = (id: string): string => props.find((p) => p.id === id)?.label ?? id;
 
 /** Nom d'auteur d'une matière de RELIEF de `materials.json` (domaine filtré comme le picker,
- *  `REF_FIELD['terrains.matiere']`) — lecture VIVE, l'id nu tenant lieu de nom hors catalogue. */
+ *  `REF_FIELD['terrains.matiere']`) — lecture VIVANTE, l'id nu tenant lieu de nom hors catalogue. */
 const matiereLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'relief')?.label ?? id;
 /** Nom d'auteur d'une matière de COUVERTURE (`materials.json` domaine `roof`) — l'id nu à défaut. */
 const couvertureLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'roof')?.label ?? id;

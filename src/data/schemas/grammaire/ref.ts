@@ -11,7 +11,7 @@ import { z } from 'zod';
 import './locale-fr';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace } from './cle-d-espace';
-import { idsVivants, specsVivantesDe } from './idsVivants';
+import { idsVivants } from './idsVivants';
 
 declare const marqueDeType: unique symbol;
 /** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
@@ -92,7 +92,7 @@ function fige(cle: string): ReadonlySet<string> | undefined {
  * IMMÉDIATEMENT —, sinon l'INDEX DES IDS généré. Hors application (scripts, gardes, `npm run gen`),
  * aucune source n'est posée et le fichier généré fait foi. `undefined` : l'espace n'existe pas.
  */
-function lireLEspace(cle: string): ReadonlySet<string> | undefined {
+export function lireLEspace(cle: string): ReadonlySet<string> | undefined {
   return idsVivants(cle) ?? fige(cle);
 }
 
@@ -101,7 +101,7 @@ const clesDeLIndex = (): readonly string[] => Object.keys(IDS_PAR_ESPACE);
 
 /** Ids d'un espace DÉSIGNÉ : une clé absente LÈVE — un désignateur qui vise un espace que la phase 2
  *  ne mesure pas refuserait tout en silence. */
-function idsDeLEspace(cle: string, site: string): ReadonlySet<string> {
+function idsDesignes(cle: string, site: string): ReadonlySet<string> {
   const ids = lireLEspace(cle);
   if (!ids) throw new Error(`${site} : « ${cle} » n'est aucun espace de l'INDEX DES IDS (\`IDS_PAR_ESPACE\`, \`npm run gen\`).`);
   return ids;
@@ -132,7 +132,7 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
 
 /** L'ensemble ADMIS par une feuille `idDe(type, valeur?)`, lu à chaque validation. */
 function admisDe(type: TypeEntite, valeur: string | undefined, site: string): ReadonlySet<string> {
-  return idsDeLEspace(valeur === undefined ? espaceDe(type) : cleDeSousListe(type, valeur, site), site);
+  return idsDesignes(valeur === undefined ? espaceDe(type) : cleDeSousListe(type, valeur, site), site);
 }
 
 /** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
@@ -152,15 +152,13 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   const cle = cleFiltree(espaceDe(type), { champ: marqueur });
   const site = `porteLeMarqueur('${type}', '${marqueur}')`;
   DESIGNATIONS.add(cle);
-  return (id) => idsDeLEspace(cle, site).has(id);
+  return (id) => idsDesignes(cle, site).has(id);
 }
 
-/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) — lu en MÉMOIRE
- *  quand une source vivante est posée (`specsVivantesDe`), sinon à l'espace de ses `specs`
- *  (`<espace>#[<id>].specs`) de l'INDEX DES IDS. */
+/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) : l'espace de ses
+ *  `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris (`lectureDeLEspace`). */
 function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
-  const espace = espaceDe(type);
-  return specsVivantesDe(espace, id) ?? [...(lireLEspace(cleDesSpecs(espace, id)) ?? [])];
+  return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
 }
 
 /**
@@ -236,7 +234,7 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * (`CodexEdit.save` → `validateDataset`), qui remplace l'entrée du dataset. Les schémas, eux, se
  * construisent UNE fois au chargement du module : une lecture faite à la construction rendrait une
  * entité créée au Compendium invalide pour toute donnée qui la référence. La construction ne lit pas
- * la table (`idsVivants.ts:9-11`) : un espace désigné et absent LÈVE au parse, et
+ * la table (`idsVivants.ts`, en-tête) : un espace désigné et absent LÈVE au parse, et
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
  */
 export function idDe<T extends TypeEntite>(type: T, valeur?: string): z.ZodType<Id<T>, string> {

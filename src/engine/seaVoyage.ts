@@ -20,6 +20,7 @@ import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
 import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { d10, roll as rollDice, type RNG, defaultRNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
@@ -100,13 +101,13 @@ export const FAST_VOYAGE_PALIERS = EVENTS.fastVoyage.paliers;
 export const CARGO_ENTRIES: readonly CargoEntry[] = CARGO.cargoes;
 /** Catalogue ÉCHANGEABLE : filtré À LA SOURCE sur le champ d'exclusion, pour que négoce, table de
  *  cargaison aléatoire, éditeur et Compendium ne voient jamais un marqueur. */
-export const CARGOES: readonly CargoDef[] = CARGO.cargoes.filter(isEchangeable);
+export const cargoes = memoParVersion('seaCargo', (): readonly CargoDef[] => CARGO.cargoes.filter(isEchangeable));
 export const OPPORTUNITE = CARGO.opportunite;
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
 const OFFER_PRICE_LOOKUP = tableOuverte(CARGO.sell.offerPrice);
 /** Résout une MARCHANDISE (les marqueurs ne sont ni achetables ni vendables). */
-export const findCargoById = (id: string): CargoDef | undefined => CARGOES.find((c) => c.id === id);
+export const findCargoById = (id: string): CargoDef | undefined => cargoes().find((c) => c.id === id);
 /** Résout une entrée QUELCONQUE de la colonne Production, marqueur compris (libellé d'affichage). */
 export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
 /** La colonne Production d'un PORT le désigne-t-elle comme plaque tournante (l.321) ? Lit le champ
@@ -240,7 +241,7 @@ export interface PortProfile {
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
 export function rollRandomCargo(season: Season, rng: RNG = defaultRNG): CargoDef {
-  return rollSeasonalCargo([...CARGOES], season, rng);
+  return rollSeasonalCargo([...cargoes()], season, rng);
 }
 
 /** Enc DISPONIBLE d'une cargaison à l'achat (l.323-331) : « additionnez la Taille et la Richesse du

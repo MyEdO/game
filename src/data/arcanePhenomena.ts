@@ -125,12 +125,10 @@ interface ArcaneData {
 
 const DATA = arcaneJson as unknown as ArcaneData;
 
-/** Les cinq paliers de Saturation environnementale, du plus faible au plus fort (`order`) — MÊME
- *  référence que `DATA.saturationLevels` (triée EN PLACE, jamais une copie) : une édition Compendium
- *  (`setObjectDataset`, `data/overrides.ts`) mute ce tableau en place et reste visible sans
- *  rechargement de page. */
+/** Les cinq paliers de Saturation environnementale, dans l'ordre du document — MÊME référence que
+ *  `DATA.saturationLevels` : une édition Compendium (`setObjectDataset`, `data/overrides.ts`) mute ce
+ *  tableau en place et reste visible sans rechargement de page. */
 export const saturationLevels: SaturationLevel[] = DATA.saturationLevels;
-saturationLevels.sort((a, b) => a.order - b.order);
 /** La rangée d'Effets de Saturation de chaque Vent. */
 export const windSaturationEffects: WindSaturationEffects[] = DATA.windSaturationEffects;
 /** Tous les phénomènes arcaniques du chapitre. */

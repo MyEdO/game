@@ -121,18 +121,19 @@ export type ExpositionCodex =
  * qu'il forme à lui seul (`single`) ou dont il est une valeur (`record`), les TABLEAUX NICHÉS qu'il
  * porte (`niche`), ou rien (`none`, raison exigée — vraie lecture seule, aucune route d'édition).
  * Un document `none` dont les entrées SONT un dataset-liste de la mémoire (`src/data/overrides.ts`
- * `ARRAYS`) le nomme par `dataset` : sans route d'édition, il garde son fichier — c'est la liste
- * d'entrées que lit le régime vif des ids (`schemas/grammaire/idsVivants.ts`).
+ * `ARRAYS`) le nomme par `dataset` : sans route d'édition, il garde son fichier, et sa clé de dataset
+ * (`CLES_DE_DATASET`, `schemas/_cles-de-dataset.generated.ts`).
  *
- * `niche.categories` nomme les clés de catégorie Codex de CE document qui sont routées comme datasets
- * (`CodexEdit.CATEGORY_DATASET`) : chacune édite UN champ tableau du document, jamais le document
- * entier ; le fichier PARENT est réécrit au save. Une clé Codex du document absente de cette liste
+ * `niche.categories` associe chaque clé de catégorie Codex de CE document routée comme dataset
+ * (`CodexEdit.CATEGORY_DATASET`) à la SUITE NICHÉE de la collection qu'elle édite
+ * (`grammaire/cle-d-espace.ts`, `entries`, `[criticals-ldb-tete].entries`), jamais le document
+ * entier ; le fichier PARENT est réécrit au save. Une clé Codex du document absente de cette carte
  * n'a aucune route d'édition.
  */
 export type ExpositionEdit =
   | { readonly dataset: string }
   | { readonly object: 'single' | 'record' }
-  | { readonly niche: { readonly categories: readonly string[] } }
+  | { readonly niche: { readonly categories: Readonly<Record<string, string>> } }
   | { readonly none: string; readonly dataset?: string };
 
 /** EXPOSITION d'un document : où il se lit (Codex) et où il s'édite. */
@@ -334,11 +335,12 @@ function verifieExposition(type: string, exposition: Exposition): void {
       `document('${type}') : \`codex\` exige des \`keys\` non vides ou un \`exempt\` motivé (raison ≥ 10 caractères).`,
     );
   }
-  const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: readonly string[] }; none?: string };
+  const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: Readonly<Record<string, unknown>> }; none?: string };
   if (e.niche) {
-    const cats = e.niche.categories;
-    if (!(Array.isArray(cats) && cats.length && cats.every((d) => typeof d === 'string' && d.length))) {
-      throw new Error(`document('${type}') : \`edit.niche.categories\` exige au moins une clé de catégorie routée (chaînes non vides).`);
+    const carte = e.niche.categories;
+    const cats = carte !== null && typeof carte === 'object' && !Array.isArray(carte) ? Object.keys(carte) : [];
+    if (!(cats.length && cats.every((d) => d.length && typeof carte![d] === 'string' && (carte![d] as string).length))) {
+      throw new Error(`document('${type}') : \`edit.niche.categories\` exige au moins une clé de catégorie routée, chacune vers sa suite nichée (chaînes non vides).`);
     }
     if (!(Array.isArray(c.keys) && c.keys.length)) {
       throw new Error(

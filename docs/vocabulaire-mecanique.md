@@ -55,16 +55,16 @@ Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: 
 | Entité | Déclarée | `passive` | `effects` | Drapeaux |
 |---|---|---|---|---|
 | `ActiveEffect` | `src/engine/types.ts:756` | `passive: GameOp[]` | — | — |
-| `DomainData` | `src/data/index.ts:2027` | — | `effects: TriggeredEffect[]` | — |
-| `ManeuverDef` | `src/data/index.ts:1655` | — | `effects: TriggeredEffect[]` | — |
+| `DomainData` | `src/data/index.ts:2025` | — | `effects: TriggeredEffect[]` | — |
+| `ManeuverDef` | `src/data/index.ts:1653` | — | `effects: TriggeredEffect[]` | — |
 | `Mutation` | `src/engine/corruption.ts:60` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `NavalTraitData` | `src/data/index.ts:2574` | `passive: GameOp[]` | — | — |
-| `QualityData` | `src/data/index.ts:1942` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
-| `StatusData` | `src/data/index.ts:1437` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `SymptomData` | `src/data/index.ts:1985` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
-| `TalentData` | `src/data/index.ts:1042` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
-| `TraitData` | `src/data/index.ts:1825` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
-| `TrappingData` | `src/data/index.ts:1158` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
+| `NavalTraitData` | `src/data/index.ts:2568` | `passive: GameOp[]` | — | — |
+| `QualityData` | `src/data/index.ts:1940` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
+| `StatusData` | `src/data/index.ts:1435` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
+| `SymptomData` | `src/data/index.ts:1983` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
+| `TalentData` | `src/data/index.ts:1040` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
+| `TraitData` | `src/data/index.ts:1823` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
+| `TrappingData` | `src/data/index.ts:1156` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
 | `Weapon` | `src/engine/types.ts:372` | `passive: GameOp[]` | — | — |
 | `WeaponEnchant` | `src/engine/types.ts:535` | `passive: GameOp[]` | — | — |
 
@@ -76,10 +76,10 @@ table ne montre que les champs DÉCLARÉS (`EtatData`/`PsychologyData` tiennent 
 | Type | Site | Drapeaux déclarés |
 |---|---|---|
 | `CombatFeature` | `src/engine/combatFeatures/types.ts:27` | 51 — `offHandPenalty`, `attackModes`, `meleeDamageBonus`, `rangedDamageBonus`, `brawlDamageBonus`, `chargeDamageBonus`, `slayer`, `damageReduction`, `critExtraWounds`, `rangedAPIgnore`, `ignoreCalledShotHead`, `ignoreCalledShotRanged`, `ignoreSizeRangedMods`, `sniper`, `initiativeBonus`, `strikeFirstRanged`, `surpriseSave`, `reloadDR`, `runBonus`, `fleeBonus`, `pursuitTargetBonus`, `shieldAdvantage`, `advantageDefenseReaction`, `counterOnDefenseWin`, `counterRequiresFastParry`, `stealAdvantage`, `stealOne`, `transferWeight`, `reloadAssessAdvantage`, `fearSizeAsMount`, `retreatCost`, `keepAdvantageOnDisengage`, `disengageWithLessAdvantage`, `battement`, `distraire`, `outnumberCount`, `braveheart`, `fearImmune`, `bleedIgnore`, `focusNoMiscastOnDouble`, `castNoMiscastOnDouble`, `causesFear`, `reverseFailed`, `bargainBonus`, `encumbranceBonus`, `corruptionThreshold`, `surgery`, `castingKind`, `commandTeam`, `seaShanty`, `critRollTwice` |
-| `ItemCapabilities` | `src/data/index.ts:1115` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
-| `QualityCapabilities` | `src/data/index.ts:1904` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
-| `SymptomCapabilities` | `src/data/index.ts:1971` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
-| `TraitCapabilities` | `src/data/index.ts:1706` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
+| `ItemCapabilities` | `src/data/index.ts:1113` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
+| `QualityCapabilities` | `src/data/index.ts:1902` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
+| `SymptomCapabilities` | `src/data/index.ts:1969` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
+| `TraitCapabilities` | `src/data/index.ts:1704` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
 
 ## GameOp — index par concept (français)
 
@@ -356,4 +356,4 @@ Valeurs du champ `on` d'un `TriggeredEffect`.
 | `{ pick … }` | `sizeAtMost?`, `max` | — |
 
 _6 entrées — dérivées de `src/engine/flowCore.ts`._
-<!-- sources-empreinte: 9b989f33c605555dd17890d10639ae3e389bdfb0 (680 fichiers, 16 dossiers) corps: c7df34520886f574d0b6adf35db03842504839ab -->
+<!-- sources-empreinte: 8d5a931ff3442008e25971591b9ac7a586b02165 (682 fichiers, 16 dossiers) corps: 814e69f4b58220d2bc43fcd3635b4832d2a2d566 -->
