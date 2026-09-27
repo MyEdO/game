@@ -52,7 +52,7 @@ function scèneFortifiée(): Scene {
   return s;
 }
 
-const ID_MUR = 'structure-1-1-E-0';
+const ID_MUR = 'structure-1,1,E,0';
 const mur = { id: ID_MUR, label: 'Mur à ossature en bois' } as unknown as Combatant;
 const bataille = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: [], turn: 0 } as unknown as BattleState);
@@ -233,7 +233,7 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
       visible: new Set(['1,1,0', '2,1,0', '1,0,0']),
       controleur: { x: 1, y: 1, z: 0 },
       activeZ: 0,
-      battle: bataille([{ id: 'structure-1-1-N-0', label: 'Mur à ossature en bois' } as unknown as Combatant]),
+      battle: bataille([{ id: 'structure-1,1,N,0', label: 'Mur à ossature en bois' } as unknown as Combatant]),
     });
 
     expect(aretes.map((a) => a.capacite)).toEqual(['structure', 'escalade']);

@@ -357,8 +357,8 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
  * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
  * […] en atterrissant sur des malheureux assis dans les sièges en dessous » — un bord de balcon, qu'on
  * passe par projection. Le folio 39 est le plan (image), sans ligne de texte à l'extraction (l.22 folio
- * 37 → l.51 folio 40). Choix MAISON (#1883) : ce bord laisse VOIR la salle et ne se franchit pas à la
- * marche — chaque paire puits|plancher porte la structure `garde-corps`, et elle seule.
+ * 37 → l.51 folio 40). Ce plan pose sur ce bord la structure `garde-corps`, et elle seule, à chaque
+ * paire puits|plancher : il laisse VOIR la salle et ne se franchit pas à la marche (NADJ 08 l.133).
  * Les refends de loge qui meurent sur ce bord ne sont pas des impasses (`auditWallDeadEndsInside`,
  * famille 11).
  */

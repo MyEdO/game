@@ -774,6 +774,7 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/structureAppearance.json', ref: 'door | handle,jamb,jambCap,leaf,openingFrac,plank', occurrence: 1 },
   { fichier: 'src/data/structureAppearance.json', ref: 'door | jamb,jambCap,openingFrac', occurrence: 1 },
   { fichier: 'src/data/structureAppearance.json', ref: 'door | openingFrac', occurrence: 1 },
+  { fichier: 'src/data/structureAppearance.json', ref: 'parapet | arasePx,bandThickPx,bands,corpsDeGarde,heightLevelFrac,merlonCount,merlonHeightPx,merlonStep,parapetBandFrac', occurrence: 1 },
   { fichier: 'src/data/structureAppearance.json', ref: 'parapet | arasePx,bandThickPx,bands,heightLevelFrac,merlonCount,merlonHeightPx,merlonStep,parapetBandFrac', occurrence: 1 },
   { fichier: 'src/data/structureAppearance.json', ref: 'speckle | colors,perM2,rM,vBias', occurrence: 1 },
   { fichier: 'src/data/structureAppearance.json', ref: 'timber | braces,color,postEveryM,wM', occurrence: 1 },

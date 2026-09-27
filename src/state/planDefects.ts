@@ -10,6 +10,7 @@ import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from './te
 import { gradeBetween, METRES_PER_LEVEL } from './relief';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
 import type { CellSide } from './scene';
+import { areteCanonique } from '../geometry/arete';
 
 /** Terrains BÂTIS : ceux dont l'entrée porte `built` (`TerrainDef.built`) — surface construite qui PORTE
  *  l'étage posé dessus (plancher, dallage, pavage, bloc de maçonnerie). LU au dataset à l'appel : une
@@ -36,17 +37,9 @@ export function scenesZ(scene: Scene): number[] {
   return [...new Set(scene.layers.map((l) => l.z))].sort((a, b) => a - b);
 }
 
-/** Convertit une arête `CellSide` (N/E/S/O d'une case) vers sa forme CANONIQUE de stockage `WallSeg`
- *  (`N`/`E` seulement — S de (x,y) = N de (x,y+1) ; O de (x,y) = E de (x-1,y), cf. `scene.ts` l.680). */
-function canonical(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
-  if (side === 'S') return { x, y: y + 1, side: 'N' };
-  if (side === 'O') return { x: x - 1, y, side: 'E' };
-  return { x, y, side };
-}
-
 /** Un mur (plein, porte ou structure) existe-t-il sur cette arête, à cet étage ? */
 function edgeExists(scene: Scene, x: number, y: number, side: CellSide, z: number): boolean {
-  const c = canonical(x, y, side);
+  const c = areteCanonique(x, y, side);
   return (scene.walls ?? []).some((w) => (w.z ?? 0) === z && w.side === c.side && w.x === c.x && w.y === c.y);
 }
 

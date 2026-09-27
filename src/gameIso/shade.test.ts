@@ -4,7 +4,8 @@
  * NON-RÉGRESSION visuelle du passage « palette pré-ombrée → base + shade() » (Phase 1+).
  */
 import { describe, it, expect } from 'vitest';
-import { shade, mix, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './shade';
+import { shade, mix, traitContre, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from './shade';
+import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../data/schemas/defs/teintesJeu';
 
 /** Bases (face E/éclairée) → face N (ombre) telles que codées aujourd'hui dans walls.ts::houseWallIso. */
 const WOOD_LIT_TO_N: [string, string][] = [
@@ -53,5 +54,29 @@ describe('shade — calibration ombre bois iso', () => {
     expect(mix('#000000', '#ffffff', 0)).toBe('#000000');
     expect(mix('#000000', '#ffffff', 1)).toBe('#ffffff');
     expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
+  });
+});
+
+describe('traitContre — un trait atteint le plancher des teintes contiguës contre TOUT fond', () => {
+  /** Échantillon du cube RVB : 6 niveaux par canal (0, 51, … 255), les deux saturations comprises. */
+  const NIVEAUX = [0, 51, 102, 153, 204, 255];
+  const hex = (r: number, g: number, b: number) => `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  const ECHANTILLON = NIVEAUX.flatMap((r) => NIVEAUX.flatMap((g) => NIVEAUX.map((b) => hex(r, g, b))));
+
+  it('pour toute paire (trait, fond) de l’échantillon, éclairci ou assombri selon le fond', () => {
+    const sous: string[] = [];
+    for (const base of ECHANTILLON)
+      for (const fond of ECHANTILLON)
+        if (distanceTeinte(traitContre(base, fond), fond) < SEUIL_TEINTES_CONTIGUES) sous.push(`${base} sur ${fond}`);
+    expect(sous).toEqual([]);
+  });
+
+  it('un vantail blanc contre un jambage que l’éclat sature au blanc s’assombrit ; un trait déjà distinct reste lui-même', () => {
+    const jambage = shade('#c0c0c0', POST_CAP);
+    expect(jambage).toBe('#ffffff');
+    const trait = traitContre('#ffffff', jambage);
+    expect(distanceTeinte(trait, jambage)).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
+    expect(trait < '#ffffff').toBe(true);
+    expect(traitContre('#806040', '#302010')).toBe('#806040');
   });
 });

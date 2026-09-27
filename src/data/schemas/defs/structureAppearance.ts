@@ -76,6 +76,7 @@ const doc = document(
         bandThickPx: z.number(),
         parapetBandFrac: z.number(),
         arasePx: z.number(),
+        corpsDeGarde: z.strictObject({ lintelPx: z.number() }).optional(),
       })
       .optional(),
     door: z
@@ -89,7 +90,6 @@ const doc = document(
       })
       .optional(),
     claireVoie: claireVoieSchema.optional(),
-    corpsDeGarde: z.strictObject({ lintelPx: z.number() }).optional(),
     window: z
       .strictObject({
         glass: z.string(),
@@ -125,12 +125,11 @@ const doc = document(
       label: 'Habillage bois',
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
     },
-    parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet' },
+    parapet: { label: 'Parapet', hint: 'Hauteur, merlons et bandes du parapet ; son corps de garde (épaisseur du linteau du passage)' },
     door: { label: 'Porte', hint: 'Ouverture, jambages, vantail et poignée' },
-    corpsDeGarde: { label: 'Corps de garde', hint: 'Passage d’un mur à parapet : épaisseur du linteau' },
     claireVoie: {
       label: 'Claire-voie',
-      hint: 'Barreaux ajourés (herse, garde-corps) : nombre, bornes basse et haute en fraction de hauteur, traverses ; plinthe et main courante quand elle tient lieu de mur',
+      hint: 'Barreaux ajourés (herse, garde-corps) : nombre, traverses ; plinthe et main courante quand elle tient lieu de mur',
     },
     window: { label: 'Fenêtre', hint: 'Vitre, cadre, meneau et teinte éclairée' },
     relief: {

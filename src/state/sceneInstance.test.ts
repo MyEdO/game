@@ -43,7 +43,7 @@ describe('sceneInstance — helpers PURS (#707)', () => {
     const authored = fixtureScene('s2');
     const current = setDoorOpen(authored, 1, 1, 'N', 0, true);
     const mut = captureMutation(current, authored);
-    expect(mut).toEqual<SceneMutation>({ removedEntityIds: [], flags: { __door_1_1_N_0: true } });
+    expect(mut).toEqual<SceneMutation>({ removedEntityIds: [], flags: { '__door_1,1,N,0': true } });
   });
 
   it('captureMutation ignore un flag authored INCHANGÉ', () => {
@@ -61,11 +61,11 @@ describe('sceneInstance — helpers PURS (#707)', () => {
 
   it('applyMutation filtre les entités retirées et fusionne les flags delta', () => {
     const cloned = fixtureScene('s5');
-    const mut: SceneMutation = { removedEntityIds: ['decor-retire'], flags: { __door_1_1_N_0: true } };
+    const mut: SceneMutation = { removedEntityIds: ['decor-retire'], flags: { '__door_1,1,N,0': true } };
     const out = applyMutation(cloned, mut);
     expect(out.entities.map((e) => e.id)).not.toContain('decor-retire');
     expect(out.entities.map((e) => e.id)).toContain('decor-untouche');
-    expect(out.flags.__door_1_1_N_0).toBe(true);
+    expect(out.flags['__door_1,1,N,0']).toBe(true);
   });
 
   it('applyMutation est un no-op si mutation absente', () => {
@@ -105,7 +105,7 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
     expect(useGame.getState().scene?.id).toBe('scene-b');
     expect(useGame.getState().sceneInstances['scene-a']).toEqual<SceneMutation>({
       removedEntityIds: ['decor-retire'],
-      flags: { __door_1_1_N_0: true },
+      flags: { '__door_1,1,N,0': true },
     });
 
     useGame.getState().transitionTo('scene-a');

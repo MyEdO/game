@@ -16,8 +16,7 @@
  */
 import { depth, projectOccluder, tileEdge, type Dims, type EdgeSide } from '../../geometry/iso';
 import { liftDe, tileAt } from '../../state/scene';
-import { canonEdge } from '../../state/sceneEdit';
-import { cleArete } from '../../geometry/arete';
+import { areteCanonique, cleArete } from '../../geometry/arete';
 import { terrainSolidHeightM } from '../../state/terrain';
 import { memoByRefDeps } from '../../state/sceneMemo';
 import { panelOf } from './occluders';
@@ -100,7 +99,7 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
     const lift = liftDe(scene, { x, y, z });
     for (const [side, dx, dy] of ARETES) {
       if (plein(x + dx, y + dy)) continue;
-      const arete = canonEdge(x, y, side);
+      const arete = areteCanonique(x, y, side);
       const [a, b] = tileEdge(x, y, side, dims, lift);
       const svg = solidEdgeTopSvg([a.cx, a.cy], [b.cx, b.cy]);
       out.push({

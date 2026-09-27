@@ -12,7 +12,7 @@ import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
 import { APPARENCE_MUR_NU, estBaie, estBaieFermee } from '../../state/formeArete';
 import { structureAppearance, wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
-import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
+import { shade, spec, traitContre, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import type { Face, GP, WallEl } from '../builders/types';
@@ -25,10 +25,6 @@ const JAMBCAP = 1.25; // chapiteau de jambage clair (repli sans couleur de def)
 const POST_W = 3.8, POST_CAP_H = 2.4, POST_BASE_H = 3; // montant d'extrémité
 const JAMB_W = 3.6, JAMB_CAP_H = 1.8; // jambage de porte
 const FRAME_W = 1.3, BAR_W = 1.7; // moulure bois / barreau de claire-voie (lignes médianes)
-/** Éclat du trait de baie FERMÉE en vue du dessus : la couleur de sa claire-voie (barreaux) ou de son
- *  vantail, éclaircie pour se détacher des jambages (`shade(post, POST_CAP)`) au plancher de distance
- *  perceptuelle des teintes qui se touchent (`SEUIL_IDENTITE_HEROS`, `data/schemas/defs/teintesJeu.ts`). */
-const BAIE_ECLAT = 2.2;
 
 /** Parties ombrées par ORIENTATION (arête N assombrie). La PIERRE (hex
  *  depuis la palette unifiée du JSON) est désormais ombrée comme le bois : sa face N recule dans l'ombre,
@@ -117,8 +113,9 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 
 /** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
  *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. Une baie FERMÉE (porte
- *  fermée, fermeture fixe) se dessine bouchée — trait de vantail ou de barreaux entre les jambages
- *  (`BAIE_ECLAT`), barreaux de herse au corps de garde — ; seule la porte ouverte laisse le vide. */
+ *  fermée, fermeture fixe) se dessine bouchée — trait de vantail ou de barreaux entre les jambages,
+ *  barreaux de la claire-voie au corps de garde, chacun détaché de ce qu'il touche (`traitContre`) — ;
+ *  seule la porte ouverte laisse le vide. */
 function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
   const seg = (p: Pt2, q: Pt2, w: number, col: string, dash?: string) =>
@@ -126,14 +123,17 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   if (app.parapet) {
     if (el.states.down) return `<g>${seg(a, b, 6, app.rubble ?? app.face, '3 5')}</g>`;
-    if (app.corpsDeGarde && estBaie(el.forme)) {
+    if (app.parapet.corpsDeGarde && estBaie(el.forme)) {
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
-      let glyph = `<rect x="${cx - h * 0.46}" y="${cy - h}" width="${h * 0.92}" height="${2 * h}" fill="${app.recess ?? app.face}"/>`;
-      if (estBaieFermee(el.forme)) for (let i = 1; i <= 3; i++) {
-        const ly = cy - h + 2 * h * (i / 4);
-        glyph += `<line x1="${cx - h * 0.46}" y1="${ly}" x2="${cx + h * 0.46}" y2="${ly}" stroke="${app.cap ?? app.face}" stroke-width="1.6"/>`;
+      const renfoncement = app.recess ?? app.face;
+      let glyph = `<rect x="${cx - h * 0.46}" y="${cy - h}" width="${h * 0.92}" height="${2 * h}" fill="${renfoncement}"/>`;
+      const bars = estBaieFermee(el.forme) ? app.claireVoie?.bars ?? 0 : 0;
+      const barreau = traitContre(app.cap ?? app.face, renfoncement);
+      for (let i = 1; i < bars; i++) {
+        const ly = cy - h + 2 * h * (i / bars);
+        glyph += `<line x1="${cx - h * 0.46}" y1="${ly}" x2="${cx + h * 0.46}" y2="${ly}" stroke="${barreau}" stroke-width="1.6"/>`;
       }
       return `<g><path d="${diamondPath(el.cell.x, el.cell.y, dims, lift)}" fill="${app.face}" stroke="${app.band ?? app.face}" stroke-width="2.5"/>${glyph}</g>`;
     }
@@ -141,8 +141,9 @@ function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
   }
   if (el.states.down) return `<g>${seg(a, b, 5, app.face, '3 5')}</g>`;
   if (estBaie(el.forme)) {
-    const jambages = seg(a, lerp(0.3), 7, shade(app.post, POST_CAP)) + seg(lerp(0.7), b, 7, shade(app.post, POST_CAP));
-    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 3, shade(wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'), BAIE_ECLAT)) : '';
+    const jambage = shade(app.post, POST_CAP);
+    const jambages = seg(a, lerp(0.3), 7, jambage) + seg(lerp(0.7), b, 7, jambage);
+    const bouchee = estBaieFermee(el.forme) ? seg(lerp(0.3), lerp(0.7), 3, traitContre(wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'), jambage)) : '';
     return `<g>${jambages + bouchee}</g>`;
   }
   return `<g>${seg(a, b, 8, shade(app.face, OUTLINE)) + seg(a, b, 5, app.face)}</g>`;

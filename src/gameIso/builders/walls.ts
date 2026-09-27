@@ -9,14 +9,13 @@
  * chacun à sa résolution.
  */
 import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type Scene, type WallSeg, type WallSide } from '../../state/scene';
-import { apparenceDeLArete, formeRendue, estBaie } from '../../state/formeArete';
+import { apparenceDeLArete, apparenceDOrnement, formeRendue, estBaie } from '../../state/formeArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { structureAppearance, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
-import { facadeWallFeatureAppearance } from '../catalog/facades';
 import { MISSING_ID } from '../catalog/missing';
 import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import { WALL_H_M, isoPxToM } from '../iso';
@@ -42,9 +41,9 @@ const CAP_FRAC = 0.86; // couronnement (bande haute)
 const CAP_LIP_PX = 4; // lèvre du couronnement, DÉBORDANTE au-dessus du sommet (cf. `capped` de `wallFaces`)
 const FRAME_PX = 1.3; // épaisseur de la moulure (trait historique)
 const CHAMBRANLE_PX = 4; // linteau de porte bois
-// VANTAIL d'une porte FERMÉE : panneau bois entre les jambages [LEAF_T0,LEAF_T1], 3 joints de planches
-// verticaux (demi-largeur PLANK_HALF_T) et une poignée [HANDLE_T0,HANDLE_T1] à mi-hauteur.
-const LEAF_T0 = 0.16, LEAF_T1 = 0.84, PLANK_HALF_T = 0.012;
+// VANTAIL d'une porte FERMÉE : panneau bois qui remplit l'ouverture entre les jambages, 3 joints de
+// planches verticaux (demi-largeur PLANK_HALF_T) et une poignée [HANDLE_T0,HANDLE_T1] à mi-hauteur.
+const PLANK_HALF_T = 0.012;
 const PLANK_TS = [0.34, 0.5, 0.66]; // positions des joints de planches (fraction d'arête)
 const HANDLE_T0 = 0.74, HANDLE_T1 = 0.8, HANDLE_LO = 0.42, HANDLE_HI = 0.56; // poignée
 // FENÊTRE (croisée) = vraie OUVERTURE dans la face : carreau AJOURÉ [WIN_T0,WIN_T1]×[WIN_LO,WIN_HI]
@@ -53,7 +52,7 @@ const WIN_T0 = 0.3, WIN_T1 = 0.7, WIN_LO = 0.42, WIN_HI = 0.8;
 const MULLION_HALF_T = 0.02, MULLION_HALF_PX = 2;
 const TRAVERSE_PX = 2; // traverse d'une claire-voie
 /** Demi-largeur d'un BARREAU de claire-voie (fraction d'arête) — l'affine retrace la ligne médiane (1.7 px). */
-const BAR_HALF_T = 0.02;
+export const BAR_HALF_T = 0.02;
 /** Seuil d'éboulis d'un corps de garde ABATTU (fraction de WALL_H). */
 const GATE_SILL_FRAC = 0.12;
 /** Forme de BRÈCHE — UNE paramétrisation bois+pierre (les deux matières tiennent dans le même jeu de
@@ -64,6 +63,15 @@ const BREACH_H = 0.32, BREACH_M1 = 0.34, BREACH_M2 = 0.62, BREACH_POST_A = 0.7, 
 const EPS = 1e-9;
 
 type GXY = { x: number; y: number };
+
+/** HAUTEUR (m, depuis la surface porteuse) de l'OUVERTURE d'une baie — le bas de ce qui la surmonte :
+ *  le linteau du corps de garde d'une courtine (`parapet.corpsDeGarde`), sinon le chambranle posé à
+ *  `door.openingFrac`. L'ouverture court sur toute l'arête, d'un montant à l'autre ; vantail et
+ *  claire-voie la remplissent. */
+export function hauteurDeBaie(app: StructureAppearanceDef, wallHeightM: number): number {
+  const corps = app.parapet?.corpsDeGarde;
+  return corps ? wallHeightM - isoPxToM(corps.lintelPx) : wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
+}
 
 /** Extrémités A,B (coins de GRILLE, ±0.5) de l'arête d'un segment — l'aiguillage UNIQUE N/E/`\`/`/`
  *  (SOURCE UNIQUE des extrémités d'arête pour l'iso comme pour le POV).
@@ -139,11 +147,11 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
 
   const H1 = b + wallHeightM; // sommet de la face pleine
   const forme = formeRendue(seg, open);
-  /** CLAIRE-VOIE (`app.claireVoie`) : barreaux + traverses, SOURCE UNIQUE des deux branches. */
-  const claireVoie = (): Face[] => {
+  /** CLAIRE-VOIE (`app.claireVoie`) dressée de `lo` à `hi`, la hauteur de ce qui l'encadre : barreaux +
+   *  traverses, SOURCE UNIQUE des trois branches. */
+  const claireVoie = (lo: number, hi: number): Face[] => {
     const cv = app.claireVoie;
     if (!cv) return [];
-    const lo = b + wallHeightM * cv.bottomFrac, hi = b + wallHeightM * cv.topFrac;
     const out: Face[] = [];
     for (let k = 0; k <= cv.bars; k++) {
       const t = k / cv.bars;
@@ -159,11 +167,12 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (poteaux montant à H1+P)
     const crest = crownFaces(app, A, B, H1);
 
-    if (app.corpsDeGarde && estBaie(forme)) {
-      // CORPS DE GARDE : passage béant barré de sa claire-voie (fermé), libre (ouvert) ou seuil d'éboulis
-      // (abattu) + linteau.
-      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie();
-      return [...passage, slab('linteau', H1 - isoPxToM(app.corpsDeGarde.lintelPx), H1), ...crest];
+    if (par.corpsDeGarde && estBaie(forme)) {
+      // CORPS DE GARDE : passage béant barré de sa claire-voie jusqu'au linteau (fermé), libre (ouvert) ou
+      // seuil d'éboulis (abattu) + linteau.
+      const haut = b + hauteurDeBaie(app, wallHeightM);
+      const passage = down ? [slab('seuil', b, b + wallHeightM * GATE_SILL_FRAC)] : forme === 'porte-ouverte' ? [] : claireVoie(b, haut);
+      return [...passage, slab('linteau', haut, H1), ...crest];
     }
     if (down) return breach();
     return [
@@ -178,7 +187,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   // MUR ORDINAIRE (bois) : panneau encadré + moulures + plinthe, ou porte ajourée (routée par la FORME).
   if (down) return breach();
   if (estBaie(forme)) {
-    const op = wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
+    const op = hauteurDeBaie(app, wallHeightM);
     // OUVERTE → l'ouverture est un TROU : AUCUNE face ne la remplit (jambages et chambranle la bordent
     // déjà, et les joues du mur se voient de part et d'autre) — on voit la pièce derrière, comme par une
     // porte ouverte. FERMÉE → sa CLAIRE-VOIE quand l'apparence en porte une (herse), sinon le VANTAIL
@@ -186,8 +195,8 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     // son vantail n'a pas de poignée.
     const leaf: Face[] = forme === 'porte-ouverte'
       ? []
-      : app.claireVoie ? claireVoie() : [
-          span('vantail', LEAF_T0, LEAF_T1, b, b + op),
+      : app.claireVoie ? claireVoie(b, b + op) : [
+          span('vantail', 0, 1, b, b + op),
           ...PLANK_TS.map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
           ...(forme === 'fermeture-fixe' ? [] : [span('poignee', HANDLE_T0, HANDLE_T1, b + op * HANDLE_LO, b + op * HANDLE_HI)]),
         ];
@@ -228,14 +237,17 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   }
   if (app.claireVoie) {
     // CLAIRE-VOIE sans porte : barreaux entre deux poteaux, AUCUNE face pleine — l'arête se voit au
-    // travers. Plinthe et main courante (`couronnement`) seulement si l'APPARENCE les porte.
+    // travers. Plinthe et main courante (`couronnement`) seulement si l'APPARENCE les porte ; les
+    // barreaux montent de l'une à l'autre.
     const cv = app.claireVoie;
+    const pied = cv.plinthe ? b + wallHeightM * SKIRT_FRAC : b;
+    const tete = cv.mainCourante ? b + wallHeightM * CAP_FRAC : H1;
     return [
       upright('poteau', 0, b, H1),
-      ...(cv.plinthe ? [slab('plinthe', b, b + wallHeightM * SKIRT_FRAC)] : []),
-      ...claireVoie(),
+      ...(cv.plinthe ? [slab('plinthe', b, pied)] : []),
+      ...claireVoie(pied, tete),
       ...(cv.mainCourante ? [
-        slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
+        slab('couronnement', tete, H1),
         ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
       ] : []),
       upright('poteau', 1, b, H1),
@@ -362,8 +374,7 @@ function facadeFeatureFaces(
   for (const feature of facade.features) {
     if (KINDS_DE_DECOR.has(feature.kind)) continue;
     if (feature.kind === 'window-band' && seg.window) continue;
-    const appearance = feature.appearance ??
-      facadeWallFeatureAppearance(facade.appearance, feature.kind) ?? MISSING_ID;
+    const appearance = apparenceDOrnement(facade.appearance, feature) ?? MISSING_ID;
     const id = `${facade.bodyId}:${facade.sectionId}:${feature.id}`;
     const center = feature.offset ?? 0.5;
     const width = feature.width ?? 0.6;
@@ -419,8 +430,7 @@ function tagExistingFacadeFaces(faces: Face[], seg: WallSeg, facade: FacadeEdge,
   const feature = facade.features.find((candidate) => candidate.kind === 'window-band');
   if (!feature) return faces;
   const id = `${facade.bodyId}:${facade.sectionId}:${feature.id}`;
-  const appearance = feature.appearance ??
-    facadeWallFeatureAppearance(facade.appearance, feature.kind) ?? MISSING_ID;
+  const appearance = apparenceDOrnement(facade.appearance, feature) ?? MISSING_ID;
   return faces.map((face) =>
     face.material.part === 'vitre' || face.material.part === 'meneau'
       ? {

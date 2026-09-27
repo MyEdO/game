@@ -27,6 +27,9 @@ export interface StructureAppearanceDef {
     heightLevelFrac: number;
     merlonCount: number; merlonStep: number; merlonHeightPx: number;
     bands: number[]; bandThickPx: number; parapetBandFrac: number; arasePx: number;
+    /** CORPS DE GARDE : la baie de la courtine — passage béant sous un linteau de `lintelPx`, barré de
+     *  la claire-voie de l'apparence quand il est fermé. */
+    corpsDeGarde?: { lintelPx: number };
   };
   /** Ouverture d'une porte de mur ordinaire (sans `parapet`). `leaf`/`plank`/`handle` = couleurs du
    *  VANTAIL (porte FERMÉE : panneau + joints de planches + poignée). */
@@ -35,17 +38,14 @@ export interface StructureAppearanceDef {
     jamb?: string; jambCap?: string;
     leaf?: string; plank?: string; handle?: string;
   };
-  /** CLAIRE-VOIE (herse, garde-corps) : `bars` intervalles de barreaux sur l'arête, dressés de
-   *  `bottomFrac` à `topFrac` de `wallHeightM`, et des traverses aux fractions `traverseFracs` de cette
-   *  hauteur ajourée. Elle BOUCHE une ouverture fermée, ou remplace la face pleine d'un mur — encadrée
-   *  alors de sa `plinthe` et de sa `mainCourante` quand l'apparence les porte. */
+  /** CLAIRE-VOIE (herse, garde-corps) : `bars` intervalles de barreaux sur l'arête, dressés sur la
+   *  hauteur de ce qui l'ENCADRE (`builders/walls.ts`), et des traverses aux fractions `traverseFracs` de
+   *  cette hauteur ajourée. Elle BOUCHE une ouverture fermée, ou remplace la face pleine d'un mur —
+   *  encadrée alors de sa `plinthe` et de sa `mainCourante` quand l'apparence les porte. */
   claireVoie?: {
-    bars: number; bottomFrac: number; topFrac: number; traverseFracs: number[]; traverseColor: string;
+    bars: number; traverseFracs: number[]; traverseColor: string;
     plinthe: boolean; mainCourante: boolean;
   };
-  /** CORPS DE GARDE : la baie d'un mur à `parapet` — passage béant sous un linteau de `lintelPx`, barré
-   *  de la claire-voie de l'apparence quand il est fermé. */
-  corpsDeGarde?: { lintelPx: number };
   /** FENÊTRE (croisée décorative sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
    *  ÉMISSIF de la NUIT (halo chaud), `mullion` = meneau + traverse (croisillon). */
   window?: { glass: string; lit: string; mullion: string };

@@ -64,6 +64,7 @@ export type EntityKind = z.infer<typeof entityKindSchema>;
 import type { CustomStatblock } from '../engine/statblock';
 import { chebyshev } from '../engine/grid';
 import type { SeatAssignments } from './seating';
+import { cleArete } from '../geometry/arete';
 export type { CustomStatblock };
 
 /**
@@ -633,7 +634,7 @@ export function climbEdgeBetween(
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
  *  de l'état authored `closed`). Absent du flag = défaut authored (`!closed`). */
 export function doorKey(x: number, y: number, side: WallSide, z = 0): string {
-  return `__door_${x}_${y}_${side}_${z}`;
+  return `__door_${cleArete(x, y, side, z)}`;
 }
 
 /** Une porte est-elle OUVERTE ? Flag runtime (`scene.flags[doorKey]`) prioritaire, sinon défaut authored
@@ -666,7 +667,7 @@ export function toggleDoorIn<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S,
  *  Absent = défaut intact (une structure neuve tient ; pas de couche authored à inverser, à la différence
  *  d'une porte qui peut être `closed` au départ). */
 export function structureDownKey(x: number, y: number, side: WallSide, z = 0): string {
-  return `__struct_down_${x}_${y}_${side}_${z}`;
+  return `__struct_down_${cleArete(x, y, side, z)}`;
 }
 
 /** La structure de cette arête est-elle ABATTUE ? Flag runtime override ; absent = intacte (false). Une

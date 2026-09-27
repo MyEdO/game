@@ -429,11 +429,12 @@ describe('buildWalls — corps de garde (porte-de-ville : ouverture béante + cl
     expect(facesOf(el, 'merlon')).toHaveLength(3);
   });
 
-  it('barreaux : tronçons fins clampés à [0,1], du sol au linteau (topFrac × WALL_H_M)', () => {
+  it('barreaux : tronçons fins clampés à [0,1], du sol au bas du linteau', () => {
     const bars = facesOf(el, 'barreau');
+    const linteau = facesOf(el, 'linteau')[0];
     expect(bars[0].poly[0].x).toBe(wallEnds({ x: 2, y: 2, side: 'N' })[0].x); // clampé à t=0
     for (const b of bars) {
-      expect(b.poly[0].h).toBeCloseTo(WALL_H_M * def.claireVoie!.topFrac, 9);
+      expect(b.poly[0].h).toBe(Math.min(...linteau.poly.map((p) => p.h)));
       expect(b.poly[2].h).toBe(0);
     }
   });

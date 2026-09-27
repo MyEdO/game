@@ -7,6 +7,7 @@
  * du canvas (couplés UI/gameIso) y restent. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
 import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
+import { areteCanonique } from '../geometry/arete';
 import { memoByRef } from './sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './dir8';
@@ -224,16 +225,10 @@ export function removeLayer(scene: Scene, z: number): Scene {
 //    qu'une fois, quel que soit le côté cliqué. ──
 // L'ARÊTE d'une case a UN terme, `CellSide` (`./scene`) : ce module n'en déclare pas un second.
 
-/** Arête (case, side N/E/S/O) → forme CANONIQUE (case, N|E). */
-export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
-  if (side === 'S') return { x, y: y + 1, side: 'N' };
-  if (side === 'O') return { x: x - 1, y, side: 'E' };
-  return { x, y, side };
-}
 
 /** État d'une arête : 'none' | 'wall' (pleine) | 'door' (franchissable), sur l'étage `z`. */
 export function edgeWallState(scene: Scene, x: number, y: number, side: CellSide, z = 0): 'none' | 'wall' | 'door' {
-  const e = canonEdge(x, y, side);
+  const e = areteCanonique(x, y, side);
   const w = (scene.walls ?? []).find((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z);
   return !w ? 'none' : w.door ? 'door' : 'wall';
 }
@@ -242,7 +237,7 @@ export function edgeWallState(scene: Scene, x: number, y: number, side: CellSide
  *  `structure` (id de `structures.json`) pose le MATÉRIAU en même temps que l'arête — l'outil de dessin
  *  porte son matériau, l'auteur n'a plus à repasser par l'inspecteur segment par segment (#830). */
 export function setEdgeWall(scene: Scene, x: number, y: number, side: CellSide, z: number, want: 'none' | 'wall' | 'door', structure?: string): Scene {
-  const e = canonEdge(x, y, side);
+  const e = areteCanonique(x, y, side);
   const others = (scene.walls ?? []).filter((w) => !(w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z));
   if (want === 'none') return { ...scene, walls: others.length ? others : undefined };
   const seg: WallSeg = { x: e.x, y: e.y, side: e.side, ...(z ? { z } : {}), ...(want === 'door' ? { door: true } : {}), ...(structure ? { structure } : {}) };

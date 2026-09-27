@@ -68,7 +68,7 @@
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
 - `src/data/schemas/defs-scenes/scene.ts:158` (l.72) — /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
 - `src/scenes/test-scenarios/taverne-profil-standard.ts:10` (l.72) — * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
-- `src/state/scene.ts:154` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
+- `src/state/scene.ts:155` (l.72) — *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de
 - `src/state/tavern-npc-a-fiche.test.ts:6` (l.72) — *  · `NADJ 04 l.72` — « Elle jouera une partie de L'Impératrice écarlate avec quiconque lui propose,
 
 ### NADJ 14 — 5 réf(s) code, 0 dans l'Atlas
@@ -211,4 +211,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: ce406502a11a9d83bf5a07ce1c16bb145557a7b9 (4244 fichiers, 151 dossiers) corps: 79371da6f284ebf714a703f799397faaa56ba552 -->
+<!-- sources-empreinte: 538b6987593008073f4217d2969be9c13f666f06 (4244 fichiers, 151 dossiers) corps: b23120eb4633ce7c4247615667eb5de5d0162993 -->

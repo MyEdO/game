@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
-const CID = 'structure-1-1-E-0';
+const CID = 'structure-1,1,E,0';
 const VU = ['1,1,0', '2,1,0'];
 /** La case du MUR : ce que le geste vise, donc l'ancrage de l'arête (`Combatant.pos` de la Structure,
  *  `state/combatSlice.ts`). */

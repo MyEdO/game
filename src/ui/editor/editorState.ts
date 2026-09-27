@@ -9,7 +9,8 @@ import { creatureLabel, findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
-import { type Rect, type Pt, type EffectZoneSeed, canonEdge, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../state/sceneEdit';
+import { type Rect, type Pt, type EffectZoneSeed, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../state/sceneEdit';
+import { areteCanonique } from '../../geometry/arete';
 
 export {
   addArchitectureBody,
@@ -22,7 +23,6 @@ export {
   fillTerrainRect,
   addLayer,
   removeLayer,
-  canonEdge,
   edgeWallState,
   setEdgeWall,
   toggleEdgeWall,
@@ -519,7 +519,7 @@ export function pickWallEdge(scene: Scene, fx: number, fy: number, z: number): {
   const side = nearestEdge(ox, oy);
   const dist: Record<CellSide, number> = { N: 0.5 + oy, S: 0.5 - oy, O: 0.5 + ox, E: 0.5 - ox };
   if (dist[side] > EDGE_PICK) return null;
-  const e = canonEdge(px, py, side);
+  const e = areteCanonique(px, py, side);
   return edgeWallState(scene, e.x, e.y, e.side, z) === 'none' ? null : e;
 }
 
@@ -529,7 +529,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
   const side = nearestEdge(ox, oy);
   const dist: Record<CellSide, number> = { N: 0.5 + oy, S: 0.5 - oy, O: 0.5 + ox, E: 0.5 - ox };
   if (dist[side] > EDGE_PICK) return null;
-  const edge = canonEdge(px, py, side);
+  const edge = areteCanonique(px, py, side);
   for (const body of scene.architecture ?? []) {
     const facade = body.facades.find((section) => section.z === z && section.edges.some((candidate) => candidate.x === edge.x && candidate.y === edge.y && candidate.side === edge.side && (candidate.z ?? section.z) === z));
     if (facade) return { type: 'facadeSection', bodyId: body.id, id: facade.id };

@@ -3,10 +3,11 @@ import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { wallDepth, wallSvg, wallAccentsSvg } from './wallsSvg';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
-import { structureAppearance, wallPartColor } from '../catalog/structures';
+import { structureAppearance } from '../catalog/structures';
 import { structureAppearances } from '../../data';
-import { distanceTeinte, SEUIL_IDENTITE_HEROS } from '../../data/schemas/defs/teintesJeu';
+import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../../data/schemas/defs/teintesJeu';
 import { shade, SIDE_N } from '../shade';
+import { formesAdmises } from '../../state/formeArete';
 import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 
 /**
@@ -247,21 +248,30 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée').toBe(3);
   });
 
-  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux, détaché des jambages au plancher perceptuel ; seule la porte OUVERTE laisse le vide', () => {
+  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux, détaché de ce qu’il touche au plancher des teintes contiguës ; seule la porte OUVERTE laisse le vide', () => {
     const lignes = (svg: string) => (svg.match(/<line /g) ?? []).length;
     const traits = (svg: string) => [...svg.matchAll(/<line [^>]*stroke="([^"]+)"/g)].map((m) => m[1]);
     const porte = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
     expect(lignes(porte(true)), 'porte ouverte : deux jambages, le vide entre').toBe(2);
-    for (const a of structureAppearances.filter((d) => d.door && !d.parapet))
+    const baies = structureAppearances.filter((d) => formesAdmises(d).includes('porte-fermee'));
+    expect(baies.some((d) => d.parapet), 'le catalogue porte un corps de garde').toBe(true);
+    for (const a of baies)
       for (const seg of [{ structure: 'porte', door: true, closed: true }, { structure: 'porte' }]) {
-        const [jambeA, jambeB, bouchee] = traits(wallSvg(el({ x: 2, y: 2, side: 'N', ...seg, appearance: a.id }), top));
-        expect(bouchee, `${a.id} ${seg.door ? 'porte fermée' : 'fermeture fixe'} : baie bouchée`).toBeDefined();
-        expect(distanceTeinte(bouchee, jambeA), `${a.id} : distance perceptuelle trait de baie ⇄ jambages`).toBeGreaterThanOrEqual(SEUIL_IDENTITE_HEROS);
-        expect(bouchee).toBe(shade(wallPartColor(a, a.claireVoie ? 'barreau' : 'vantail'), 2.2));
+        const svg = wallSvg(el({ x: 2, y: 2, side: 'N', ...seg, appearance: a.id }), top);
+        const quoi = `${a.id} ${seg.door ? 'porte fermée' : 'fermeture fixe'}`;
+        if (a.parapet) {
+          const renfoncement = svg.match(/<rect [^>]*fill="([^"]+)"/)![1];
+          expect(lignes(svg), `${quoi} : un trait par barreau intérieur de la claire-voie`).toBe(a.claireVoie!.bars - 1);
+          for (const t of traits(svg))
+            expect(distanceTeinte(t, renfoncement), `${quoi} : barreau ⇄ renfoncement`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
+          continue;
+        }
+        const [jambeA, jambeB, bouchee] = traits(svg);
+        expect(bouchee, `${quoi} : baie bouchée`).toBeDefined();
+        expect(distanceTeinte(bouchee, jambeA), `${quoi} : trait de baie ⇄ jambages`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
         expect(jambeB).toBe(jambeA);
       }
     const corpsDeGarde = (open: boolean) => wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
-    expect(lignes(corpsDeGarde(false)), 'corps de garde fermé : barreaux de herse').toBe(3);
     expect(lignes(corpsDeGarde(true)), 'corps de garde ouvert : passage libre').toBe(0);
   });
 });

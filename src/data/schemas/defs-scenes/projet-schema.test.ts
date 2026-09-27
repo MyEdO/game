@@ -182,9 +182,8 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
 
 /**
  * UNE arête, UN segment (#1624) — l'invariant que l'index d'arêtes (`state/wallIndex.ts`) SUPPOSE
- * et que ses consommateurs consomment (`aretesA(...)[0]`, `gameIso/builders/roofs.ts`). Mesuré vrai
- * sur les 65 scènes livrées ; `setEdgeWall` (`state/sceneEdit.ts`) le tient à la POSE, ce banc le
- * tient à la PORTE — le chemin que prennent l'authoring littéral, les migrations et l'import.
+ * et que ses consommateurs consomment (`aretesA(...)[0]`, `gameIso/builders/roofs.ts`).
+ * `setEdgeWall` (`state/sceneEdit.ts`) le tient à la POSE, ce banc le tient à la PORTE — le chemin que prennent l'authoring littéral, les migrations et l'import.
  */
 describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () => {
   const avecMurs = (walls: Jouet[]): Jouet => projet({ scenes: [sceneMinimale({ walls })] });

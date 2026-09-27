@@ -11,10 +11,3 @@ export function facadeFeatureViz(
 ): FacadeFeatureViz | undefined {
   return facadePreset(facadeId)?.features[kind];
 }
-
-export function facadeWallFeatureAppearance(
-  facadeId: string,
-  kind: FacadeFeature['kind'],
-): string | undefined {
-  return facadePreset(facadeId)?.wallFeatures[kind];
-}

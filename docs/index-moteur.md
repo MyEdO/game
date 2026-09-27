@@ -2561,7 +2561,7 @@ _2132 exports publics mesurés (160 fichiers de `src/engine`, hors tests) — 18
 | `structureEnduranceMult` | 126 | function | Combien de fois compter le Bonus d'Endurance de la Structure `target` face à un attaquant de Taille `attackerSize` (`AA 10 l.98`) : `1` hors Structure, hors écart, ou pour une arme à Atout Siège ; sinon `1 + écart de catégories` (Taille de la Structure au-dessus de celle de l'attaquant). | Structures (siège), Combat : attaque, Avantage, engagement, Coups Critiques, Encombrement, taille, gabarit |
 | `structureFaceCells` | 138 | function | Les DEUX cases bordant l'arête d'une structure (ses deux FACES), à l'étage `z` de l'arête. | Structures (siège) |
 | `structureAimCell` | 151 | function | Case de VISÉE d'une structure depuis `from` : sa FACE la plus proche de l'attaquant. | Structures (siège), Combat : attaque, Avantage, engagement, Coups Critiques |
-| `idCombattantStructure` | 160 | const | Id du Combattant-structure enrôlé depuis l'arête `e` (`state/combatSlice.ts`), relu par `state/aretes.ts` — l'identité de l'arête (`cleArete`), séparée par des tirets. | Structures (siège), Combat : attaque, Avantage, engagement, Coups Critiques |
+| `idCombattantStructure` | 160 | const | Id du Combattant-structure enrôlé depuis l'arête `e` (`state/combatSlice.ts`), relu par `state/aretes.ts` — l'identité de l'arête (`cleArete`). | Structures (siège), Combat : attaque, Avantage, engagement, Coups Critiques |
 | `structureCombatant` | 167 | function | Adaptateur de `inanimateCombatant` (builder UNIQUE des objets inanimés) pour une structure de siège (`structures.json`). | Structures (siège), Combat : attaque, Avantage, engagement, Coups Critiques, Objets, possessions, équipement |
 
 ### `suffocation.ts` — Suffocation
@@ -3135,4 +3135,4 @@ _2132 exports publics mesurés (160 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: 5400fef3a036d339030f01ae05f04f8dc8c95110 (166 fichiers, 6 dossiers) corps: 1b3786467bb1cd977f10c3da1bd7487bc69219d0 -->
+<!-- sources-empreinte: 987a0ff0dabf55d950811aac7d3bcb3c53031a68 (166 fichiers, 6 dossiers) corps: 8e900cf7b9d52f5755b9bd1926a71038cabf9e78 -->

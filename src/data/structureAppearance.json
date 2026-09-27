@@ -303,12 +303,13 @@
       ],
       "bandThickPx": 2.4,
       "parapetBandFrac": 0.72,
-      "arasePx": 3
+      "arasePx": 3,
+      "corpsDeGarde": {
+        "lintelPx": 4
+      }
     },
     "claireVoie": {
       "bars": 6,
-      "bottomFrac": 0,
-      "topFrac": 0.9583333333333334,
       "traverseFracs": [
         0.4,
         0.78
@@ -316,9 +317,6 @@
       "traverseColor": "#4a4d54",
       "plinthe": false,
       "mainCourante": false
-    },
-    "corpsDeGarde": {
-      "lintelPx": 4
     }
   },
   {
@@ -369,8 +367,6 @@
     },
     "claireVoie": {
       "bars": 6,
-      "bottomFrac": 0.11,
-      "topFrac": 0.86,
       "traverseFracs": [],
       "traverseColor": "#7c6647",
       "plinthe": true,
@@ -385,8 +381,6 @@
     "post": "#2b2d30",
     "claireVoie": {
       "bars": 6,
-      "bottomFrac": 0,
-      "topFrac": 0.86,
       "traverseFracs": [
         0.5
       ],

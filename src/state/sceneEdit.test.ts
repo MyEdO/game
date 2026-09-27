@@ -41,7 +41,7 @@ import diligenceProjet from '../scenes/diligence/diligence-projet.json';
  */
 
 // Les murs de pourtour des fixtures viennent du kit partagé `sceneEdit.testkit` (`perimeterWallSegs`,
-// canonicalisation N/E par `canonEdge`).
+// canonicalisation N/E par `areteCanonique`).
 
 /** Scène d'un corps unique dont le plancher du rez est délimité par des MURS clos (la règle
  *  d'`interiorCells`/`realFloorAt` à `z=0`, #881), sans aucune masse authorée : tout est à dériver.

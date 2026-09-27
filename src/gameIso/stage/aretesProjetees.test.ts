@@ -45,7 +45,7 @@ const passage: RoomPortal = {
 };
 
 const bataille: BattleState = ({
-  combatants: [{ id: 'structure-3-3-E-0', label: 'Mur à ossature en bois' } as unknown as Combatant],
+  combatants: [{ id: 'structure-3,3,E,0', label: 'Mur à ossature en bois' } as unknown as Combatant],
   order: [],
   turn: 0,
 } as unknown as BattleState);

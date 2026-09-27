@@ -44,6 +44,7 @@ import type {
   WallOverlay,
 } from './scene';
 import { DEFAULT_TERRAIN, emptyScene, tileAt, wallOverlayOf } from './scene';
+import { areteCanonique, libelleArete } from '../geometry/arete';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -68,7 +69,6 @@ import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './seating';
 import {
   type Pt,
-  canonEdge,
   setEdgeWall,
   edgeWallState,
   patchWall,
@@ -755,7 +755,7 @@ export function buildScene(spec: MapSpec): Scene {
     const z = wall.z ?? 0;
     s = setEdgeWall(s, wall.x, wall.y, wall.side, z, wall.door ? 'door' : 'wall');
     if (wall.structure || wall.appearance || wall.window || wall.climb) {
-      const c = canonEdge(wall.x, wall.y, wall.side);
+      const c = areteCanonique(wall.x, wall.y, wall.side);
       s = patchWall(s, c.x, c.y, c.side, z, { ...(wall.structure ? { structure: wall.structure } : {}), ...(wall.appearance ? { appearance: wall.appearance } : {}), ...(wall.window ? { window: true } : {}), ...(wall.climb ? { climb: wall.climb } : {}) });
     }
   }
@@ -1016,7 +1016,7 @@ function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
     appearance(overlay.appearance, `wallLegend['${ch}']`);
   }
   for (const seg of scene.walls ?? []) {
-    const source = `arête (${seg.x},${seg.y},${seg.side}) z${seg.z ?? 0}`;
+    const source = `arête ${libelleArete(seg)}`;
     structure(seg.structure, source);
     appearance(seg.appearance, source);
   }

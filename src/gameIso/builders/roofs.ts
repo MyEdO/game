@@ -32,12 +32,11 @@ import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureR
 import { sceneZoneTiles } from '../../state/zones';
 import { memoByRef } from '../../state/sceneMemo';
 import { facadeDeLArete } from '../../state/facadeEdges';
-import { apparenceDeLArete } from '../../state/formeArete';
+import { apparenceDeLArete, apparenceDOrnement } from '../../state/formeArete';
 import { aretesA } from '../../state/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta } from '../../state/buildings';
-import { facadeWallFeatureAppearance } from '../catalog/facades';
 import { MISSING_ID } from '../catalog/missing';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { interiorZoneTilesById, occupiedInteriorZoneIds } from '../stage/roomFocus';
@@ -788,9 +787,9 @@ export const WALL_NB: Record<WallSide, [number, number]> = { N: [0, -1], E: [1, 
 
 /** Murs de scène indexés par CASE BORDÉE (`x,y,z`) — mémoïsé par scène. L'index par ARÊTE, lui, est le
  *  PARTAGÉ (`state/wallIndex.ts`, même clé `cleArete`, `geometry/arete.ts`) : `aretesA` rend la liste des
- *  segments d'une arête, `[0]` le premier au sens du document. Mesure sur les 65 scènes livrées
- *  (37 scénarios + 4 campagnes, 3 143 murs) : ZÉRO arête porte plus d'un segment — premier et dernier
- *  sont le même mur, le verdict est celui d'ici. */
+ *  segments d'une arête, `[0]` le premier au sens du document. Une arête ne porte qu'un segment
+ *  (`sceneSchema`, `data/schemas/defs-scenes/projet-schema.test.ts`) : premier et dernier sont le même
+ *  mur, le verdict est celui d'ici. */
 const wallCellIndexOf = memoByRef((scene: Scene) => {
   const byCell = new Map<string, WallSeg[]>();
   for (const seg of scene.walls ?? []) {
@@ -840,7 +839,7 @@ export function closureAppearance(
   const index = wallCellIndexOf(scene);
   for (const edge of edges) {
     const facade = facadeDeLArete(scene, edge);
-    const routed = facade && facadeWallFeatureAppearance(facade.appearance, 'gable');
+    const routed = facade && apparenceDOrnement(facade.appearance, { kind: 'gable' });
     if (routed) return routed;
   }
   for (const edge of edges) {

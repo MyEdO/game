@@ -156,9 +156,9 @@ export function structureAimCell(from: { x: number; y: number }, target: Pick<Co
 }
 
 /** Id du Combattant-structure enrôlé depuis l'arête `e` (`state/combatSlice.ts`), relu par `state/aretes.ts`
- *  — l'identité de l'arête (`cleArete`), séparée par des tirets. */
+ *  — l'identité de l'arête (`cleArete`). */
 export const idCombattantStructure = (e: { x: number; y: number; side: WallEdgeSide; z: number }): string =>
-  `structure-${cleArete(e.x, e.y, e.side, e.z).split(',').join('-')}`;
+  `structure-${cleArete(e.x, e.y, e.side, e.z)}`;
 
 /** Adaptateur de `inanimateCombatant` (builder UNIQUE des objets inanimés) pour une structure de siège
  *  (`structures.json`). `E = BE × 10` (la table ADE II donne le Bonus d'Endurance ⇒ `bonus(E)` retrouve

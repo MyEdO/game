@@ -152,7 +152,10 @@ import type { Scene } from './scene';
 // 54 → 55 (#1883) : les défs de décor `balustrade-loge`, `balustrade-bois` et `bastingage` sont retirées de
 // `props.json`, et le garde-corps devient une ARÊTE (`WallSeg` à structure `garde-corps`). Une save de 54
 // prise à l'opéra rouvre sur une scène vivante dont les travées sont des décors inexistants
-// (`validateScene`), sans les arêtes neuves. La save se jette (politique 2 ci-dessus).
+// (`validateScene`), sans les arêtes neuves. Les clés de drapeau de porte et de structure abattue
+// (`doorKey`, `structureDownKey`, `scene.flags`) passent au format de `cleArete` (`__door_x,y,side,z`) :
+// une save de 54 garderait ses portes ouvertes sous l'ancienne clé, relue comme absente. La save se jette
+// (politique 2 ci-dessus).
 export const SAVE_VERSION = 55;
 
 export interface SaveMeta {

@@ -4,6 +4,7 @@
  * (ombre d'orientation, occlusion, spéculaire) vient d'ici. Dérive un ton en multipliant la luminance d'une
  * base par un facteur, clampé ; un `var(--x)` CSS (pierre) passe tel quel. Aucune lecture DOM.
  */
+import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../data/schemas/defs/teintesJeu';
 
 /** Parse `#rgb`/`#rrggbb` en canaux [r,g,b] (0–255) ; null si non-hex (`var(--x)`, `rgb(...)`).
  *  Parseur UNIQUE partagé par `shade`/`mix` ici ET par les helpers de teinte POV (camera.ts). */
@@ -24,6 +25,25 @@ export const srgbToLinear = (octet: number): number => {
   const u = octet / 255;
   return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
 };
+
+/** Pas de recherche de `traitContre` : le chemin base → pôle est découpé en `PAS_TRAIT` crans. */
+const PAS_TRAIT = 128;
+
+/** Teinte d'un trait posé CONTRE `fond` : `base`, poussée vers le blanc ou vers le noir du plus petit cran
+ *  qui atteint le plancher des teintes contiguës (`SEUIL_TEINTES_CONTIGUES`) — éclaircie ou assombrie
+ *  selon le fond. Toujours atteint : l'un des deux pôles est à la moitié au moins de la distance blanc ⇄
+ *  noir (765) de tout fond. Non-hex (`var(--x)`) : renvoyée telle quelle, comme `shade`. */
+export function traitContre(base: string, fond: string): string {
+  const f = parseHex(fond);
+  if (!parseHex(base) || !f) return base;
+  const fondHex = toHex(f[0], f[1], f[2]);
+  for (let i = 0; i <= PAS_TRAIT; i++)
+    for (const pole of ['#ffffff', '#000000']) {
+      const c = mix(base, pole, i / PAS_TRAIT);
+      if (distanceTeinte(c, fondHex) >= SEUIL_TEINTES_CONTIGUES) return c;
+    }
+  throw new Error(`traitContre : ni le blanc ni le noir n’atteignent ${SEUIL_TEINTES_CONTIGUES} de « ${fond} ».`);
+}
 
 /** Base × facteur de luminance (clampé). Un non-hex (`var(--x)`) est renvoyé tel quel. */
 export function shade(color: string, k: number): string {

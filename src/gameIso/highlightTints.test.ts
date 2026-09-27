@@ -38,6 +38,7 @@ import {
   PARTAGES_NOMMES,
   PAIRES_SUPERPOSEES,
   SEUIL_IDENTITE_HEROS,
+  SEUIL_TEINTES_CONTIGUES,
   distanceTeinte,
   schema,
   type TeinteId,
@@ -217,10 +218,10 @@ describe('teintes de jeu — RÔLES DISJOINTS (surbrillance ⇄ identité), inva
 });
 
 describe('teintes de jeu — PAIRES SUPERPOSÉES (le tapis peint SOUS le pion)', () => {
-  it('chaque paire déclarée tient le plancher des identités', () => {
+  it('chaque paire déclarée tient le plancher des teintes contiguës', () => {
     const serrées = PAIRES_SUPERPOSEES.map((p) => [
       `${p.surbrillance} ⇄ ${p.identite}`,
-      distanceTeinte(teintesJeu[p.surbrillance], teintesJeu[p.identite]) >= SEUIL_IDENTITE_HEROS,
+      distanceTeinte(teintesJeu[p.surbrillance], teintesJeu[p.identite]) >= SEUIL_TEINTES_CONTIGUES,
     ]);
     expect(serrées).toEqual(PAIRES_SUPERPOSEES.map((p) => [`${p.surbrillance} ⇄ ${p.identite}`, true]));
   });
@@ -234,7 +235,7 @@ describe('teintes de jeu — PAIRES SUPERPOSÉES (le tapis peint SOUS le pion)',
   it('le schéma REFUSE une paire superposée TROP PROCHE, octets pourtant distincts', () => {
     // #3d7fd0 : un bleu de Marche à 49,4 de l'anneau du héros 1 — la non-collision d'octet le laissait passer.
     const forge = { ...teintesJeu, 'zone-marche': '#3d7fd0' };
-    expect(distanceTeinte(forge['zone-marche'], teintesJeu['identite-heros-1'])).toBeLessThan(SEUIL_IDENTITE_HEROS);
+    expect(distanceTeinte(forge['zone-marche'], teintesJeu['identite-heros-1'])).toBeLessThan(SEUIL_TEINTES_CONTIGUES);
     expect(schema.safeParse(doc(forge)).success).toBe(false);
   });
 
@@ -243,9 +244,9 @@ describe('teintes de jeu — PAIRES SUPERPOSÉES (le tapis peint SOUS le pion)',
     // posée à 22,6 de l'anneau du héros 4 passe, faute d'être déclarée superposée. Sur la donnée du
     // dépôt, le croisement le plus serré hors liste est `zone-course` ⇄ `identite-heros-4`, à 71,2.
     const forge = { ...teintesJeu, 'zone-fumee': '#8a6cff' };
-    expect(distanceTeinte(forge['zone-fumee'], teintesJeu['identite-heros-4'])).toBeLessThan(SEUIL_IDENTITE_HEROS);
+    expect(distanceTeinte(forge['zone-fumee'], teintesJeu['identite-heros-4'])).toBeLessThan(SEUIL_TEINTES_CONTIGUES);
     expect(schema.safeParse(doc(forge)).success).toBe(true);
-    expect(distanceTeinte(teintesJeu['zone-course'], teintesJeu['identite-heros-4'])).toBeLessThan(SEUIL_IDENTITE_HEROS);
+    expect(distanceTeinte(teintesJeu['zone-course'], teintesJeu['identite-heros-4'])).toBeLessThan(SEUIL_TEINTES_CONTIGUES);
   });
 
   it('la Marche garde son DÉTACHEMENT du sol volumique (la lisibilité ne se paie pas sur la pâleur)', () => {

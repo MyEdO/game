@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt } from '../../state/scene';
-import { resizeGrid, editEntity, TypeNonNomme, canonEdge } from '../../state/sceneEdit';
-import { cleArete } from '../../geometry/arete';
+import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
+import { areteCanonique, cleArete } from '../../geometry/arete';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
 import { testScene } from '../../scenes/test-fixture';
@@ -89,7 +89,7 @@ export function architectureSelectionForWarning(warning: Warning): Warning['arch
  *  mesure qu'on le corrige. C'est par elle qu'on retrouve le MÊME défaut dans des avertissements frais. */
 export function planDefectKey(plan: { family: PlanDefectFamily; at: PlanDefectAt }): string {
   const at = plan.at;
-  const arete = at.kind === 'edge' ? canonEdge(at.x, at.y, at.side) : null;
+  const arete = at.kind === 'edge' ? areteCanonique(at.x, at.y, at.side) : null;
   const place =
     at.kind === 'zone' ? `zone:${at.zoneId}`
       : arete ? `edge:${cleArete(arete.x, arete.y, arete.side, at.z)}`

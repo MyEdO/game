@@ -135,7 +135,7 @@ describe('wallIndex — identité', () => {
   });
 
   it('un changement de `flags` (porte ouverte, structure abattue) CONSERVE l\'index', () => {
-    const bougee: Scene = { ...carte, flags: { ...carte.flags, __door_1_1_N_0: true } };
+    const bougee: Scene = { ...carte, flags: { ...carte.flags, '__door_1,1,N,0': true } };
     expect(wallIndexOf(bougee)).toBe(wallIndexOf(carte));
   });
 

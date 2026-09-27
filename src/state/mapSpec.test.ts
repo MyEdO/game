@@ -172,10 +172,10 @@ describe('buildScene — `walled` : `wallLegend`, ce qu’un char d’arête ÉC
     );
   });
 
-  it('`walls[]` à l’apparence INCONNUE → throw nommant l’arête et l’étage', () => {
+  it('`walls[]` à l’apparence INCONNUE → throw nommant l’arête (`libelleArete`, sans étage au rez-de-chaussée)', () => {
     expect(() =>
       buildScene({ ...spec(LEGENDE), walls: [{ x: 3, y: 0, side: 'N', appearance: 'mur-en-chocolat' }] }),
-    ).toThrow(/arête \(3,0,N\) z0.*mur-en-chocolat/s);
+    ).toThrow(/arête \(3,0,N\)(?! étage).*mur-en-chocolat/s);
   });
 
   it('`elevate[].parapet` à l’apparence INCONNUE → throw nommant le char', () => {

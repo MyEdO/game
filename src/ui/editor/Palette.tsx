@@ -21,6 +21,7 @@ import { terrainDef } from '../../gameIso/catalog/terrain';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findPropById, premierOffert, profilsStandard, structures } from '../../data';
 import { structureAppearance } from '../../gameIso/catalog/structures';
+import { apparenceDeclaree } from '../../state/formeArete';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { GatedAction } from '../GatedAction';
 import type { Pt, Tool, ZoneVariant } from './editorState';
@@ -163,7 +164,7 @@ export function Palette({
   const [lastWallStructure, setLastWallStructure] = useState<string | undefined>(undefined);
   // Structures posables au Crénelage : celles qui portent un PARAPET (`structureAppearance`) — une
   // structure sans parapet n'a rien à dessiner sur le pourtour (#841 FU-H).
-  const crenelStructures = structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearance(s.id).parapet);
+  const crenelStructures = structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearance(apparenceDeclaree({ structure: s.id })).parapet);
   const [lastCrenelStructure, setLastCrenelStructure] = useState<string | undefined>(crenelStructures[0]?.id);
   const [lastDoorStructure, setLastDoorStructure] = useState<string | undefined>(undefined);
   // Étages disponibles pour la VOLÉE : la première couche au-dessus de celle qu'on édite est la cible

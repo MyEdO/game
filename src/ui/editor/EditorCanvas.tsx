@@ -28,8 +28,9 @@ import { gridLines } from '../../geometry/grid';
 import {
   Tool, Layers, Sel, Rect, Pt, CellSide, rectFrom, hitAt, selRect, selZ, moveSel, resizeSel, paintTiles, fillTerrainRect,
   placeEntity, placeEmplacement, placeEntry, addTrigger, addRestZone, addEffectZone, EFFECT_ZONE_SEEDS, addEnemyMember, eraseAt, entityAt, sameSel,
-  toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge, addFacadeSection,
+  toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, nearestEdge, pickWallEdge, pickArchitectureEdge, addFacadeSection,
 } from './editorState';
+import { areteCanonique } from '../../geometry/arete';
 import { planFocusTiles, type PlanDefectAt } from '../../state/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import { buildTokens } from '../../gameIso/builders/tokens';
@@ -418,7 +419,7 @@ export function EditorCanvas({
           }
           if (architectureAction === 'facade' && architectureBodyId) {
             const px = Math.round(f.x), py = Math.round(f.y);
-            const edge = canonEdge(px, py, nearestEdge(f.x - px, f.y - py));
+            const edge = areteCanonique(px, py, nearestEdge(f.x - px, f.y - py));
             const out = addFacadeSection(
               scene,
               architectureBodyId,
@@ -549,7 +550,7 @@ export function EditorCanvas({
     // Aperçu de l'arête ciblée (outil murs, sous-modes cloison/porte).
     if (tool.mode === 'wall' && (tool.paint === 'wall' || tool.paint === 'door')) {
       const wh = wallHit(e);
-      setHoverEdge(canonEdge(wh.p.x, wh.p.y, wh.side));
+      setHoverEdge(areteCanonique(wh.p.x, wh.p.y, wh.side));
     } else if (hoverEdge) setHoverEdge(null);
     if (resizeRef.current) {
       if (!resizeRef.current.moved) {

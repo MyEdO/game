@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, structureAt, type WallSeg } from '../../state/scene';
 import { wallBetween } from '../../state/scene';
-import { canonEdge, edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeight, nearestEdge, pickWallEdge, patchWall, deleteSel } from './editorState';
+import { edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeight, nearestEdge, pickWallEdge, patchWall, deleteSel } from './editorState';
+import { areteCanonique } from '../../geometry/arete';
 
 /**
  * Outils éditeur MURS (arêtes + portes + diagonales) et HAUTEUR métrique (surface surélevée / fosse).
@@ -10,11 +11,11 @@ import { canonEdge, edgeWallState, toggleEdgeWall, toggleDiagonalWall, paintHeig
  * dans `Layer.height` (porteuse : marchabilité/combat/chute) — plus d'escalier ni d'« élévation » 0-1.
  */
 describe('editorState — outil MURS (arêtes)', () => {
-  it('canonEdge : S→N de la case du dessous, O→E de la case de gauche, N/E inchangés', () => {
-    expect(canonEdge(2, 3, 'N')).toEqual({ x: 2, y: 3, side: 'N' });
-    expect(canonEdge(2, 3, 'E')).toEqual({ x: 2, y: 3, side: 'E' });
-    expect(canonEdge(2, 3, 'S')).toEqual({ x: 2, y: 4, side: 'N' });
-    expect(canonEdge(2, 3, 'O')).toEqual({ x: 1, y: 3, side: 'E' });
+  it('areteCanonique : S→N de la case du dessous, O→E de la case de gauche, N/E inchangés', () => {
+    expect(areteCanonique(2, 3, 'N')).toEqual({ x: 2, y: 3, side: 'N' });
+    expect(areteCanonique(2, 3, 'E')).toEqual({ x: 2, y: 3, side: 'E' });
+    expect(areteCanonique(2, 3, 'S')).toEqual({ x: 2, y: 4, side: 'N' });
+    expect(areteCanonique(2, 3, 'O')).toEqual({ x: 1, y: 3, side: 'E' });
   });
 
   it('toggle pose un mur sur l’arête, re-toggle l’enlève', () => {

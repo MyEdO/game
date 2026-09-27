@@ -4,15 +4,15 @@
  * en avaient besoin (dérivation de masses, compilation `MapSpec`, toitures dérivées, affordances de
  * l'éditeur) composent d'ici, chacune dans sa forme de sortie.
  *
- * Il vit à côté de la primitive qu'il compose (`sceneEdit.ts` : `canonEdge`/`setEdgeWall`) parce que
+ * Il vit à côté de la primitive qu'il compose (`geometry/arete.ts` : `areteCanonique`, `sceneEdit.ts` : `setEdgeWall`) parce que
  * ses consommateurs s'étalent sur `state/`, `gameIso/` et `ui/editor/` : un kit hébergé chez l'un
  * d'eux redeviendrait le helper local d'un seul. La CANONICALISATION N/E n'est jamais réencodée ici :
- * elle passe par `canonEdge`/`setEdgeWall`.
+ * elle passe par `areteCanonique`/`setEdgeWall`.
  */
 import type { Scene, WallSeg } from './scene';
-import { canonEdge, setEdgeWall } from './sceneEdit';
+import { setEdgeWall } from './sceneEdit';
 import type { CellSide } from './scene';
-import { cleArete } from '../geometry/arete';
+import { areteCanonique, cleArete } from '../geometry/arete';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
 export interface PlanRect { x: number; y: number; w: number; h: number }
@@ -36,12 +36,12 @@ export function perimeterEdges(rects: readonly PlanRect[]): { x: number; y: numb
   return out;
 }
 
-/** Le MÊME pourtour en segments de stockage `WallSeg` (forme canonique N/E par `canonEdge`), dédoublonnés. */
+/** Le MÊME pourtour en segments de stockage `WallSeg` (forme canonique N/E par `areteCanonique`), dédoublonnés. */
 export function perimeterWallSegs(rects: readonly PlanRect[], z = 0): WallSeg[] {
   const seen = new Set<string>();
   const out: WallSeg[] = [];
   for (const e of perimeterEdges(rects)) {
-    const c = canonEdge(e.x, e.y, e.side);
+    const c = areteCanonique(e.x, e.y, e.side);
     const key = cleArete(c.x, c.y, c.side, z);
     if (seen.has(key)) continue;
     seen.add(key);

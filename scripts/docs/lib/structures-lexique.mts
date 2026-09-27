@@ -440,15 +440,15 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['fixed'],
   },
   {
-    // #1883 : la CLAIRE-VOIE d'une apparence d'arête (herse, garde-corps) — barreaux, bornes basse et
-    // haute en fraction de hauteur, traverses, plinthe et main courante. Porte : `claireVoie` de
+    // #1883 : la CLAIRE-VOIE d'une apparence d'arête (herse, garde-corps) — barreaux, traverses, plinthe
+    // et main courante ; sa hauteur est celle de ce qui l'encadre (`builders/walls.ts`). Porte : `claireVoie` de
     // `defs/structureAppearance.ts`.
     // Noyau MESURÉ sans débordement sur les 2 racines (2026-09-26) : `bars` et `traverseFracs` ne vivent
     // que sous `structureAppearance.json › [].claireVoie`.
     id: 'claireVoie',
-    label: 'claire-voie d’une apparence d’arête (barreaux, bornes, traverses, plinthe, main courante)',
+    label: 'claire-voie d’une apparence d’arête (barreaux, traverses, plinthe, main courante)',
     strate: 'Valeur',
-    signatures: [{ sig: 'bars,bottomFrac,mainCourante,plinthe,topFrac,traverseColor,traverseFracs', statut: 'cible' }],
+    signatures: [{ sig: 'bars,mainCourante,plinthe,traverseColor,traverseFracs', statut: 'cible' }],
     noyau: ['bars', 'traverseFracs'],
   },
   // DERNIER concept de la strate, et le RANG décide (patron `bornes` avant `plage`) : `difficulty`

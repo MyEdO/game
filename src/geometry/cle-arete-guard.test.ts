@@ -22,6 +22,12 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `: \`edge:${D}{at.x}:${D}{at.y}:${D}{at.side}\``,
       `return \`__door_${D}{x}_${D}{y}_${D}{side}_${D}{z}\`;`,
       `el: <g key={\`bloc-${D}{x},${D}{y},${D}{z},${D}{side}\`} />,`,
+      `const k = \`${D}{side}:${D}{x},${D}{y}\`;`,
+      `const k = \`${D}{side},${D}{x},${D}{y},${D}{z}\`;`,
+      `const k = \`${D}{x}|${D}{y}|${D}{side}\`;`,
+      `const k = \`${D}{x}.${D}{y}.${D}{side}\`;`,
+      `const k = \`${D}{x},${D}{y},S\`;`,
+      `const k = \`${D}{x},${D}{y},O\`;`,
     ]) expect(sitesFautifs(ligne), ligne).toHaveLength(1);
     for (const ligne of [
       `const source = \`arête (${D}{seg.x},${D}{seg.y},${D}{seg.side}) z${D}{seg.z ?? 0}\`;`,

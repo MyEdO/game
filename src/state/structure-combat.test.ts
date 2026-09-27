@@ -72,7 +72,7 @@ describe('Structures de siège — enrôlement au combat (AA 10 l.94-127)', () =
   it('une arête `structure` INTACTE devient un Combattant bodyShape=structure (pos=arête, structureEdge renseigné)', () => {
     const { S } = start('porte-de-ville');
     expect(S).toBeTruthy();
-    expect(S!.id).toBe('structure-2-2-E-0');
+    expect(S!.id).toBe('structure-2,2,E,0');
     expect(S!.bodyShape).toBe('structure');
     expect(S!.kind).toBe('npc');
     expect(S!.pos).toEqual({ x: 2, y: 2 });

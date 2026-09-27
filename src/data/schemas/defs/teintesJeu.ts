@@ -28,8 +28,9 @@
  *  (b) SÉPARATION des quatre `identite-heros-*` : `teamColors.ts` les veut « 4 couleurs FROIDES
  *      distinctes » — l'invariant en fait une distance mesurée, pas une intention en prose.
  *  (c) DISTANCE des paires SUPERPOSÉES (`PAIRES_SUPERPOSEES`) : deux teintes qui se touchent dans le
- *      même cadre (le tapis peint SOUS le pion) tiennent le même plancher que (b) — octets distincts
- *      ne suffit pas quand les deux couleurs se jouxtent à quelques pixels.
+ *      même cadre (le tapis peint SOUS le pion) tiennent le plancher des teintes CONTIGUËS
+ *      (`SEUIL_TEINTES_CONTIGUES`) — octets distincts ne suffit pas quand les deux couleurs se
+ *      jouxtent à quelques pixels.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -101,8 +102,8 @@ export const PARTAGES_NOMMES: { a: TeinteId; b: TeinteId; signal: string }[] = [
 
 /**
  * Paires SUPERPOSÉES dans le même cadre : la surbrillance est peinte SOUS le pion qui porte
- * l'identité — les deux couleurs se touchent à l'écran. Elles se lisent donc au plancher des
- * identités entre elles (`SEUIL_IDENTITE_HEROS`), et pas seulement « octets différents » : un tapis
+ * l'identité — les deux couleurs se touchent à l'écran. Elles se lisent donc au plancher des teintes
+ * contiguës (`SEUIL_TEINTES_CONTIGUES`), et pas seulement « octets différents » : un tapis
  * de Marche à 49 de l'anneau du héros 1 se lit comme ce héros.
  *
  * PÉRIMÈTRE : les paires nommées ci-dessous. ANGLE MORT (mesuré 2026-08-21) : les 16 autres
@@ -122,11 +123,15 @@ export function distanceTeinte(a: string, b: string): number {
   return Math.sqrt(2 * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + 3 * (b1 - b2) ** 2);
 }
 
-/** Plancher de séparation des quatre identités de héros. Distance MESURÉE la plus courte sur la
- *  donnée du dépôt : 102 (`identite-heros-1` ⇄ `identite-heros-3`) — le plancher laisse la marge
- *  d'un ajustement d'artiste, et refuse deux jumelles (une paire à moins de 90 se confond sur un
- *  anneau de 2 px). */
-export const SEUIL_IDENTITE_HEROS = 90;
+/** Plancher de distance perceptuelle (`distanceTeinte`) entre deux teintes CONTIGUËS — qui se touchent
+ *  à l'écran et doivent s'y distinguer : surbrillance peinte sous un pion, trait de baie contre ses
+ *  jambages, anneaux de deux héros côte à côte. Étalon MESURÉ : la paire la plus proche que le dépôt
+ *  lit distincte, `identite-heros-1` ⇄ `identite-heros-3`, est à 102 ; sous 90, deux teintes se
+ *  confondent sur un trait de 2 px. Le plancher garde la marge d'un ajustement d'artiste. */
+export const SEUIL_TEINTES_CONTIGUES = 90;
+
+/** Plancher de séparation des quatre identités de héros : leurs anneaux sont des teintes contiguës. */
+export const SEUIL_IDENTITE_HEROS = SEUIL_TEINTES_CONTIGUES;
 
 /** Vue de la CHARGE d'un document `teintesJeu` : la carte des teintes, sous `entries`. */
 type Carte = { entries: Record<TeinteId, string> };
@@ -186,10 +191,10 @@ const doc = document(
             PAIRES_SUPERPOSEES.every(
               (p) =>
                 distanceTeinte((d as Carte).entries[p.surbrillance], (d as Carte).entries[p.identite]) >=
-                SEUIL_IDENTITE_HEROS,
+                SEUIL_TEINTES_CONTIGUES,
             ),
           {
-            message: `teintesJeu : une paire SUPERPOSÉE (\`PAIRES_SUPERPOSEES\` — la surbrillance est peinte sous le pion qui porte l'identité) est à moins de ${SEUIL_IDENTITE_HEROS} de distance perceptuelle ; à ce contact la surbrillance se lit comme la couleur de l'unité.`,
+            message: `teintesJeu : une paire SUPERPOSÉE (\`PAIRES_SUPERPOSEES\` — la surbrillance est peinte sous le pion qui porte l'identité) est à moins de ${SEUIL_TEINTES_CONTIGUES} de distance perceptuelle ; à ce contact la surbrillance se lit comme la couleur de l'unité.`,
           },
         ),
   },
