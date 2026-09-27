@@ -1793,6 +1793,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  * `entries` — les clés du record disparaîtraient de l'index des ids, en silence.
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
@@ -1804,7 +1805,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', entries: { 'zone-marche': '#123456' } }),
         'utf8',
       );
-      const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde(), { valeurRecord: z.string() });
+      const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde, { valeurRecord: z.string() });
       const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX);
       const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
       expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
@@ -1821,14 +1822,13 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
   });
 });
 
-const expositionDeSonde = (): Exposition => ({ codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } });
-
 /**
  * COLLECTION À CLÉ DÉCLARÉE (#1897) : une carte de record que le schéma MARQUE (`marquerCollection`)
  * n'est jamais hors strate — ni invisible, ni orpheline — et le classement valeur/référence la lit
  * comme tout objet (`TERMES_COLLECTION_A_CLE`, `scripts/docs/lib/structures-lexique.mts`).
  */
 describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est jamais hors strate', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const carte = <S extends z.ZodType>(s: S) => marquerCollection(s, marqueDeRecord());
   const cotes = z.strictObject({ a: z.number(), b: z.number() });
   const renvois = z.strictObject({ a: z.string(), b: z.string() });
@@ -1837,9 +1837,9 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
     'config',
     { t: carte(cotes), tNue: cotes, r: carte(renvois), u: carte(z.strictObject({ fooId: z.string() })) },
     { t: { label: 'T' }, tNue: { label: 'T nue' }, r: { label: 'R' }, u: { label: 'U' } },
-    expositionDeSonde(),
+    expositionDeSonde,
   );
-  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde());
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
   const DEFS_FIXTURE: SchemaDef[] = [
     { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
     { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
