@@ -1,5 +1,5 @@
 import { DIR8_ORDER, type Dir8 } from '../state/dir8';
-import { WIND_FORCES, windForceLabel, type SeaWindForceId } from '../engine/seaWeather';
+import { windForces, windForceLabel, type SeaWindForceId } from '../engine/seaWeather';
 
 /**
  * Rose des vents compacte (SVG) — 8 directions (vocabulaire `Dir8` du projet), flèche de PROVENANCE
@@ -29,7 +29,7 @@ const point = (deg: number, r: number): { x: number; y: number } => {
 };
 
 export function WindRose({ dir, force, heading, size = 'md', className }: WindRoseProps) {
-  const intensity = Math.max(0, WIND_FORCES.indexOf(force)); // 0..5 (calme-plat → violente-tempête)
+  const intensity = Math.max(0, windForces().indexOf(force)); // 0..5 (calme-plat → violente-tempête)
   const forceLabel = windForceLabel(force);
 
   return (

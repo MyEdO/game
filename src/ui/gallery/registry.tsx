@@ -131,7 +131,7 @@ function TokenSwatches() {
     { label: '--text', token: 'var(--text)', role: 'encre principale' },
     { label: '--muted', token: 'var(--muted)', role: 'encre atténuée' },
     { label: '--gold', token: 'var(--gold)', role: 'or — bordures/focus' },
-    { label: '--gold2', token: 'var(--gold2)', role: 'or vivant — titres/valeurs' },
+    { label: '--gold2', token: 'var(--gold2)', role: 'or vif — titres/valeurs' },
     { label: '--accent', token: 'var(--accent)', role: 'rouge sang — primaire' },
     { label: '--accent2', token: 'var(--accent2)', role: 'rouge sang haut' },
     { label: '--danger', token: 'var(--danger)', role: 'alerte' },
@@ -962,7 +962,7 @@ function GameOpEditorDemo() {
 
 /** Ops RÉELLES (mutations.json) : charMod (ancré Caractéristiques) + grantTalent (ancré Talents) de
  *  « Tête bestiale (Chien) », `ap` (sans ancre Codex → repli `humanizeOp` en phrase) de « Tête pointue ». */
-const GAMEOP_CHIPS_DEMO_OPS: GameOp[] = [
+const gameOpChipsDemoOps = (): GameOp[] => [
   ...(mutations.find((m) => m.id === 'tete-bestiale-chien')?.passive ?? []),
   ...(mutations.find((m) => m.id === 'tete-pointue')?.passive?.filter((o) => o.op === 'ap') ?? []),
 ];
@@ -970,7 +970,7 @@ const GAMEOP_CHIPS_DEMO_OPS: GameOp[] = [
 function GameOpChipsDemo() {
   return (
     <Row className="skill-tags">
-      <GameOpChips ops={GAMEOP_CHIPS_DEMO_OPS} />
+      <GameOpChips ops={gameOpChipsDemoOps()} />
     </Row>
   );
 }

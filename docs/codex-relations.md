@@ -41,8 +41,8 @@ argument de la fabrique `document()` (`src/data/schemas/grammaire/document.ts`, 
   document, soit `{ exempt: { kind, raison, ticket? } }` : une exemption MOTIVÉE. La fabrique
   refuse un `codex` sans clés ni exemption motivée.
 - `edit` — ce que l'ÉDITEUR édite : `{ dataset }`, `{ object: 'single' | 'record' }`,
-  `{ niche: { categories } }` (les clés Codex du document routées comme datasets, chacune éditant
-  UN champ tableau — le fichier parent est réécrit au save), ou `{ none: raison }`. La fabrique
+  `{ niche: { categories } }` (chaque clé Codex du document routée comme dataset, vers la suite
+  nichée de la collection qu'elle édite — le fichier parent est réécrit au save), ou `{ none: raison }`. La fabrique
   refuse les quatre absents.
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
@@ -320,4 +320,4 @@ Regrouper une catégorie = poser `cluster: '…'` sur son littéral dans `CODEX_
 - `npx vitest run src/ui/compendium/humanize.test.ts`
 - `npx vitest run src/data/schemas/exposition-contrats.test.ts`
 - `npx vitest run src/data/serialize.test.ts`
-<!-- sources-empreinte: 3783f491783594839392693c8d549c9b887ebd6a (773 fichiers, 0 dossiers) corps: 0b28db504a40873a4550c78c3d4863521b698c7f -->
+<!-- sources-empreinte: 1f9a788b9f8d9dd64dd84050bf974819c01bf1ed (775 fichiers, 0 dossiers) corps: 62ec4892a79d73383c85d22a9ad3fa1348735d9e -->

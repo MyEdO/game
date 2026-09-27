@@ -110,7 +110,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `trappings.json` | **Équipement PORTÉ** : armes, armures, objets tenus/portés. **ATTENTION — PAS** les machines de guerre. (441 entrée(s)) | `trappings` · `siegeEngines` — dataset `trappings` |
-| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`DISPO_PCT`/`BARTER_RATIOS`) (objet à sous-catalogues) | `disponibilite` — objet single |
+| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`dispoPct`/`barterRatios`) (objet à sous-catalogues) | `disponibilite` — objet single |
 
 ### Bestiaire
 | Fichier | Contient | Exposition (Codex — édition) |
@@ -422,8 +422,10 @@ méta sans champ correspondant est refusée. C'est le canal registre → atelier
 `src/ui/compendium/libelles-de-champs.test.tsx` — les CHIFFRES y sont, jamais recopiés ici.
 
 **Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par
-`scripts/gen-registry.mjs` (phase 1 de `npm run gen`), `_ids.generated.ts` (l'INDEX DES IDS,
-`IDS_PAR_ESPACE`) par `scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.
+`scripts/gen-registry.mjs` (phase 1 de `npm run gen`) ; `_ids.generated.ts` (l'INDEX DES IDS,
+`IDS_PAR_ESPACE`), `_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`) et
+`_racines-vivantes.generated.ts` (`RACINES_VIVANTES`, l'image de `DATASET_FICHIER_DERIVE`) par
+`scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.
 `DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.
 
 Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à
@@ -496,4 +498,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 44188055ae6909bc27064d24312035a256d46dbd (380 fichiers, 2 dossiers) corps: 93c6d650df653fac0c0500663df3fbb3e53ed0da -->
+<!-- sources-empreinte: ee4213bd258d4802e1686d73670cc70de578bd2e (380 fichiers, 2 dossiers) corps: b52fd1dc5b4444c5dd5c04e5559f53d7a5f3e9b7 -->

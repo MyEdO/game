@@ -147,7 +147,7 @@ async function genEspaces(): Promise<{ changed: boolean; espaces: number; ids: n
   } catch {
     /* nouveau */
   }
-  if (!indexChargeable(prev)) writeFileSync(SORTIE, (prev = TABLE_VIDE));
+  if (!indexChargeable(prev)) writeFileSync(SORTIE, TABLE_VIDE);
   const { table, clesDeDataset, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +

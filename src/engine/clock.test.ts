@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { IMPERIAL_MONTHS, INTERCALARY, WEEKDAYS, DAYS_PER_YEAR, daysPerYear, MINUTES_PER_DAY, toDate, fromDate, formatImperial, campaignStart, dayPhase, isNight, minutesUntilNext, DAWN_MINUTE, DUSK_MINUTE, DAY_PHASES, ancreDePhase } from './clock';
+import { IMPERIAL_MONTHS, INTERCALARY, WEEKDAYS, daysPerYear, MINUTES_PER_DAY, toDate, fromDate, formatImperial, campaignStart, dayPhase, isNight, minutesUntilNext, dawnMinute, duskMinute, DAY_PHASES, ancreDePhase } from './clock';
 import { setDataset } from '../data/overrides';
 import { calendarMonths } from '../data';
 
@@ -9,11 +9,11 @@ describe('clock — calendrier impérial', () => {
     expect(IMPERIAL_MONTHS[0]).toMatchObject({ label: 'Nachhexen', days: 32 });
     expect(INTERCALARY).toHaveLength(6);
     expect(WEEKDAYS).toHaveLength(8);
-    expect(DAYS_PER_YEAR).toBe(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0) + INTERCALARY.length); // 394 + 6 = 400
+    expect(daysPerYear()).toBe(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0) + INTERCALARY.length); // 394 + 6 = 400
   });
 
   it('année = 400 jours (canon EiS Annexe 3 l.20/68) ; mois = 394 = 2×32 + 10×33', () => {
-    expect(DAYS_PER_YEAR).toBe(400);
+    expect(daysPerYear()).toBe(400);
     expect(IMPERIAL_MONTHS.reduce((s, m) => s + m.days, 0)).toBe(394);
     expect(IMPERIAL_MONTHS.filter((m) => m.days === 32).map((m) => m.label)).toEqual(['Nachhexen', 'Nachgeheim']);
   });
@@ -128,13 +128,13 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
   // l'une en POSITIONNEL (`DAY_PHASES[0]`), l'autre avec un REPLI (`[length - 2]`, qui désigne
   // 'soir' — 20:00, pas 18:00) : deux heures fausses en silence si la donnée bougeait.
   it('ancres DAWN/DUSK : résolues par id sur `calendarPhases.json`, valeurs du dataset réel', () => {
-    expect(DAWN_MINUTE).toBe(300); // 05:00
-    expect(DUSK_MINUTE).toBe(1080); // 18:00
+    expect(dawnMinute()).toBe(300); // 05:00
+    expect(duskMinute()).toBe(1080); // 18:00
     // Chaque ancre est bien LA phase demandée, pas sa voisine de position.
-    expect(DAY_PHASES.find((p) => p.id === 'aube')?.start).toBe(DAWN_MINUTE);
-    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.start).toBe(DUSK_MINUTE);
+    expect(DAY_PHASES.find((p) => p.id === 'aube')?.start).toBe(dawnMinute());
+    expect(DAY_PHASES.find((p) => p.id === 'crepuscule')?.start).toBe(duskMinute());
     // TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.
-    expect(DAY_PHASES.find((p) => p.id === 'soir')?.start).not.toBe(DUSK_MINUTE);
+    expect(DAY_PHASES.find((p) => p.id === 'soir')?.start).not.toBe(duskMinute());
   });
 
   it('`ancreDePhase` : une ancre absente FAIL-FAST, et le message nomme donnée + id + ids présents', () => {

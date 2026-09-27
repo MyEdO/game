@@ -24,7 +24,22 @@ import { stageWeatherRows } from '../state/travelFlow';
 // La FAMILLE des Tableaux de Corruption s'enregistre au chargement de son module : on l'importe par
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from '../state/corruptionFlow';
-import { setDataset, datasetArray } from './overrides';
+import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from './overrides';
+import { cargoes, findCargoById, type CargoDef } from '../engine/seaVoyage';
+import { landCargoes, findLandCargoById, type LandCargoDef } from '../engine/landCargo';
+import { advanceCost } from '../engine/advancement';
+import { shipSizeOfLength } from '../engine/shipBuild';
+import {
+  tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods, rowingAgilityDifficulty,
+  capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
+} from '../engine/riverNavigation';
+import { tickWindForce, type SeaWindForceId } from '../engine/seaWeather';
+import { rollAvailability, barterRatio } from '../engine/disponibilite';
+import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
+import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
+import { SEA_BOARD_EVENT_TABLE } from '../state/seaVoyageFlow';
+import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
+import type { RNG } from '../engine/dice';
 import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';
 import { weaponGroupFromText } from '../engine/weaponGroup';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
@@ -42,8 +57,20 @@ const VEHICULES_LIVRES = [...vehicles];
 const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
 const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
+/** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
+const LISTES_LIVREES = Object.fromEntries(
+  (['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'flowStakes', 'combatStakes', 'seaBoardEvents'] as const)
+    .map((k) => [k, structuredClone(datasetArray(k))]),
+) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'flowStakes' | 'combatStakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+const OBJETS_LIVRES = Object.fromEntries(
+  (['riverNavigation', 'seaWeather', 'disponibilite'] as const).map((k) => [k, structuredClone(datasetObject(k))]),
+) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
+/** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
+const deFixe = (n: number): RNG => ({ int: () => n });
 
 afterEach(() => {
+  for (const k of Object.keys(LISTES_LIVREES) as (keyof typeof LISTES_LIVREES)[]) setDataset(k, structuredClone(LISTES_LIVREES[k]) as never);
+  for (const k of Object.keys(OBJETS_LIVRES) as (keyof typeof OBJETS_LIVRES & ObjectDatasetKey)[]) setObjectDataset(k, structuredClone(OBJETS_LIVRES[k]) as never);
   setDataset('mutationTables', TABLES_MUTATION_LIVREES);
   setDataset('miscastMinor', MISCAST_MINEURE_LIVREE);
   setDataset('weather', SAISONS_LIVREES);
@@ -252,5 +279,125 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     setDataset('traits', [...traits]);
     expect(versionDuDataset('traits')).toBe(v + 1);
     expect(versionDuDataset('trappings')).toBe(vAutre);
+  });
+});
+
+describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', () => {
+  it('une marchandise maritime NEUVE : `cargoes` et `findCargoById` la servent', () => {
+    const modele = cargoes()[0];
+    expect(findCargoById('cargo-qc-1692')).toBeUndefined();
+    setDataset('seaCargo', [...datasetArray('seaCargo'), { ...modele, id: 'cargo-qc-1692', label: 'Cargo QC' } as CargoDef]);
+    expect(cargoes().map((c) => c.id)).toContain('cargo-qc-1692');
+    expect(findCargoById('cargo-qc-1692')!.label).toBe('Cargo QC');
+  });
+
+  it('une marchandise terrestre NEUVE : `landCargoes` et `findLandCargoById` la servent', () => {
+    const modele = landCargoes()[0];
+    expect(findLandCargoById('cargo-terre-qc-1692')).toBeUndefined();
+    setDataset('landCargo', [...datasetArray('landCargo'), { ...modele, id: 'cargo-terre-qc-1692', label: 'Cargo terre QC' } as LandCargoDef]);
+    expect(landCargoes().map((c) => c.id)).toContain('cargo-terre-qc-1692');
+    expect(findLandCargoById('cargo-terre-qc-1692')!.label).toBe('Cargo terre QC');
+  });
+
+  it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
+    expect(advanceCost(0, 'characteristic')).toBe(25);
+    setDataset('advancementCosts', datasetArray('advancementCosts').map((b, i) => (i === 0 ? { ...b, coutCarac: 99 } : b)));
+    expect(advanceCost(0, 'characteristic')).toBe(99);
+  });
+
+  it('une bande de longueur de coque ÉDITÉE : `shipSizeOfLength` lit la NOUVELLE colonne « Taille »', () => {
+    expect(shipSizeOfLength(11)).not.toBe('minuscule');
+    setDataset('shipHullSizes', datasetArray('shipHullSizes').map((r) => (r.size === 'minuscule' ? { ...r, lengthM: { min: 1, max: 12 } } : r)));
+    expect(shipSizeOfLength(11)).toBe('minuscule');
+  });
+
+  it('la fiche de Navigation fluviale ÉDITÉE : forces de vent et scalaires servis NEUFS', () => {
+    const fiche = structuredClone(datasetObject('riverNavigation'));
+    const [calme, second] = fiche.windForces;
+    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe(second.id);
+    setObjectDataset('riverNavigation', {
+      ...fiche,
+      windForces: fiche.windForces.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)),
+      navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
+      rowingAgility: { ...fiche.rowingAgility, difficulty: 'difficile' },
+      capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
+    });
+    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe('brise-qc');
+    expect(navBaseDifficulty()).toBe('difficile');
+    expect(tackDifficulty()).toBe('difficile');
+    expect(driftPctOfSpeed()).toBe(40);
+    expect(navPenaltyMods({ drift: true })[0].value).toBe(-30);
+    expect(rowingAgilityDifficulty()).toBe('difficile');
+    expect(capsizeRightDifficulty()).toBe('difficile');
+    expect(capsizeRightCumulative()).toBe(-15);
+  });
+
+  it('les vents de mer ÉDITÉS : `tickWindForce` passe au cran NEUF', () => {
+    const fiche = structuredClone(datasetObject('seaWeather'));
+    const [calme, second] = fiche.vents;
+    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe(second.id);
+    setObjectDataset('seaWeather', { ...fiche, vents: fiche.vents.map((v, i) => (i === 1 ? { ...v, id: 'brise-mer-qc' } : v)) });
+    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe('brise-mer-qc');
+  });
+
+  it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {
+    const fiche = structuredClone(datasetObject('disponibilite'));
+    expect(rollAvailability('Limitée', 'village', deFixe(1)).test!.target).toBe(30);
+    expect(barterRatio('Commune', 'Exotique')).toEqual({ give: 8, get: 1 });
+    setObjectDataset('disponibilite', {
+      ...fiche,
+      dispoPct: fiche.dispoPct.map((e) => (e.availability === 'Limitée' ? { ...e, pct: { ...e.pct, village: 77 } } : e)),
+      barterRatios: fiche.barterRatios.map((r) => (r.give === 'Commune' ? { ...r, ratios: { ...r.ratios, Exotique: { give: 9, get: 1 } } } : r)),
+    });
+    expect(rollAvailability('Limitée', 'village', deFixe(1)).test!.target).toBe(77);
+    expect(barterRatio('Commune', 'Exotique')).toEqual({ give: 9, get: 1 });
+  });
+
+  it('les phases du jour ÉDITÉES : aube, crépuscule, créneau de départ et arche solaire suivent', () => {
+    expect(dawnMinute()).toBe(300);
+    expect(isTravelDaylight(330)).toBe(true);
+    setDataset('calendarPhases', datasetArray('calendarPhases').map((p) => (
+      p.id === 'aube' ? { ...p, start: 360 } : p.id === 'crepuscule' ? { ...p, start: 1140 } : p)));
+    expect(dawnMinute()).toBe(360);
+    expect(duskMinute()).toBe(1140);
+    expect(isTravelDaylight(330)).toBe(false);
+    expect(sunJeuHalfArcMin()).toBe(12 * 60 - 360);
+  });
+
+  it('un jour intercalaire AJOUTÉ : `daysPerYear` le compte', () => {
+    const avant = daysPerYear();
+    const inter = datasetArray('calendarIntercalary');
+    setDataset('calendarIntercalary', [...inter, { ...inter[0], id: 'jour-qc-1692', label: 'Jour QC' }]);
+    expect(daysPerYear()).toBe(avant + 1);
+  });
+
+  it('un mois ALLONGÉ : `daysPerYear` suit `calendarMonths`', () => {
+    const avant = daysPerYear();
+    setDataset('calendarMonths', datasetArray('calendarMonths').map((m, i) => (i === 0 ? { ...m, days: m.days + 3 } : m)));
+    expect(daysPerYear()).toBe(avant + 3);
+  });
+
+  it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `flowStakes`', () => {
+    const chanson = seaShanties[0].id;
+    const ref = () => resolveStake(flowStakeRef('shanty', 'roll', { entryId: chanson })).rule;
+    expect(ref()).toEqual({ category: 'seaShanties', id: chanson });
+    setDataset('flowStakes', FLOW_STAKES.map((e) => (e.flow === 'shanty' && e.phase === 'roll' ? { ...e, entryCategory: undefined } : e)));
+    expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toEqual({ category: 'talents', id: 'chanson-de-marin' });
+  });
+
+  it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `combatStakes`', () => {
+    const maladie = maladies[0].id;
+    const ref = () => resolveStake(combatStakeRef('combatEndDisease', { entryId: maladie })).rule;
+    expect(ref()).toEqual({ category: 'maladies', id: maladie });
+    setDataset('combatStakes', COMBAT_STAKES.map((e) => (e.kind === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
+    expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
+  });
+
+  it('un Événement de bord ÉDITÉ : la table tirable `sea-board-events` sert les NOUVELLES bornes', () => {
+    const evts = datasetArray('seaBoardEvents');
+    const premier = evts[0];
+    expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);
+    setDataset('seaBoardEvents', evts.map((e, i) => (i === 0 ? { ...e, max: premier.max - 1 } : e)));
+    expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max - 1);
   });
 });

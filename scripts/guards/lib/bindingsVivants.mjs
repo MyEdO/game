@@ -405,7 +405,9 @@ function declarateurs(texte) {
  *  retour d'un ACCESSEUR VIVANT appelé là (`siegeEngines().filter(…)`), sans passer par les primitives
  *  vivantes. Une valeur figée SERT L'ANCIEN MONDE après une édition au Codex.
  *  Le nom qu'une déclaration fautive DÉCLARE rejoint le vocabulaire : l'index bâti ensuite sur cette
- *  vue (`new Map(armes.map(…))`) est nommé lui aussi. Rend des lignes `fichier:ligne — …`. */
+ *  vue (`new Map(armes.map(…))`) est nommé lui aussi. Rend des lignes `fichier:ligne — …`.
+ *  Ce qu'il ne voit pas, mesuré par injection, avec un site témoin par angle : en-tête de
+ *  `src/data/index-vivant-guard.test.ts`, rubrique « CE QUE CETTE GARDE NE VOIT PAS ». */
 export function indexFiges(chemin, src, parBinding, vivants = accesseursVivants()) {
   const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const espaces = espacesDeNomsDuFichier(src);

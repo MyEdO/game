@@ -16,6 +16,7 @@
 import landCargoJson from '../data/land-cargo.json';
 import { d10, d100, roll as rollDice, type RNG, defaultRNG } from './dice';
 import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
 import { type CargoDef, type CargoMarkerDef, isEchangeable, isTradeHubColumn, rollSeasonalCargo, cargoBasePrice } from './cargo';
@@ -50,7 +51,7 @@ export const LAND_CARGO_ENTRIES: readonly LandCargoEntry[] = LAND.cargoes;
 /** Catalogue ÉCHANGEABLE des cargaisons terrestres (Tableau des cargaisons, MSRC 13 l.71-90) : filtré
  *  À LA SOURCE sur le champ d'exclusion — source UNIQUE pour énumérer les Produits négociables d'un
  *  Lieu (éditeur de marché, négoce, Compendium), marqueurs jamais compris. */
-export const LAND_CARGOES: readonly LandCargoDef[] = LAND.cargoes.filter(isEchangeable) as LandCargoDef[];
+export const landCargoes = memoParVersion('landCargo', (): readonly LandCargoDef[] => LAND.cargoes.filter(isEchangeable) as LandCargoDef[]);
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
  *  marché. Pourcentages de MSRC 13 l.150-156 ; libellés de l'échelle des indices l.52-60 (1 Pauvre …
  *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
@@ -61,7 +62,7 @@ export const LAND_RICHESSE_ROWS: readonly OfferRow[] = LAND.sell.offerByRichesse
  *  MSRC 13 l.150-156 n'écrit aucune bande sans plafond, mais la table est de la même famille). */
 const OFFER_BY_RICHESSE_LOOKUP = tableOuverte(LAND.sell.offerByRichesse);
 /** Résout une MARCHANDISE terrestre (les marqueurs ne sont ni achetables ni vendables). */
-export const findLandCargoById = (id: string): LandCargoDef | undefined => LAND_CARGOES.find((c) => c.id === id);
+export const findLandCargoById = (id: string): LandCargoDef | undefined => landCargoes().find((c) => c.id === id);
 /** Résout une entrée QUELCONQUE de la colonne Produits, marqueur compris (libellé d'affichage). */
 export const findLandCargoEntryById = (id: string): LandCargoEntry | undefined => LAND_CARGO_ENTRIES.find((c) => c.id === id);
 
@@ -144,7 +145,7 @@ export function rollCargoQuantity(place: LandMarketProfile, rng: RNG = defaultRN
 
 /** Cargaison ALÉATOIRE de la saison (Tableau des cargaisons aléatoires, l.71-78) — table TERRESTRE. PUR. */
 export function rollRandomLandCargo(season: Season, rng: RNG = defaultRNG): LandCargoDef {
-  return rollSeasonalCargo([...LAND_CARGOES], season, rng) as LandCargoDef;
+  return rollSeasonalCargo([...landCargoes()], season, rng) as LandCargoDef;
 }
 
 /** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : 1d10 → qualité → prix de base
