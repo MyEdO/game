@@ -426,7 +426,7 @@ méta sans champ correspondant est refusée. C'est le canal registre → atelier
 `DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.
 
 Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à
-`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les quatre defs de projet partagent
+`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les defs de projet partagent
 le même `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`), composé des formes de scène
 (`scene.ts`), de carte du monde (`worldmap.ts`) et du bloc narratif (`narratif.ts`).
 
@@ -495,4 +495,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 339b5271459ffba5a59172fa62800ac89e41e3ff (378 fichiers, 2 dossiers) corps: 89781b2f129ed03534834525b9ca393fc77998a7 -->
+<!-- sources-empreinte: e582530169a49d072ab970db309a2bacf9ebf5ff (378 fichiers, 2 dossiers) corps: f1b071c42b40e83b41162c9136dd53c38bf4b3ae -->
