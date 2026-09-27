@@ -1,16 +1,15 @@
-// Mécanique de scan du garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme
-// #276). La porte déclarative
+// Mécanique de scan du garde-fou « exclusivité du seam de jet » (#274, #276). La porte déclarative
 // (`openRoll`, `src/state/rollSeam.ts`) + `TestOutcome.seal(...)` (`src/engine/testOutcome.ts`) sont
 // le SEUL chemin scellé pour produire une issue de Test ; un `rollTest(`/`d100(` inline ou un
-// `TestOutcome.seal(` hors whitelist forge un jet SANS passer par la policy de surfaçage (M/V/I,
-// Décision 3) — exactement le trou que ce garde ferme. Module ESM pur, exécutable par `node` nu —
+// `TestOutcome.seal(` hors whitelist forge un jet SANS passer par la policy de surfaçage
+// (M/V/I) — exactement le trou que ce garde ferme. Module ESM pur, exécutable par `node` nu —
 // mécanique ICI, whitelist EN POLICY dans le test/pre-commit (même patron que `hardcode.mjs`).
 //
 // Détection par AST (`typescript`, `ts.createSourceFile` — MÊME socle que `battleRngEngineLeak.mjs`/
 // `registryIdBranch.mjs`, aucun second socle) : un site est un APPEL, jamais une occurrence textuelle.
-// Deux conséquences mesurées (#918 lot B) : les lignes rapportées sont EXACTES (le scan lexical
-// précédent supprimait commentaires bloc et imports multi-lignes sans conserver leurs retours-ligne —
-// dérive mesurée jusqu'à +662 lignes sur `combatFlow.ts`), et deux FORMES de non-violation sont
+// Deux conséquences (#918) : les lignes rapportées sont EXACTES (un scan lexical qui retire
+// commentaires bloc et imports multi-lignes sans leurs retours-ligne dérive de centaines de lignes
+// sur un gros fichier), et deux FORMES de non-violation sont
 // reconnues STRUCTURELLEMENT au lieu d'être portées par une entrée de whitelist :
 //
 //  (S) POSITION DE SPEC — le site est dans un callback (`resolve`/`reresolve`/`rollActor`/`actorTR`/
@@ -33,25 +32,24 @@
 // `massBattleFlow.ts` (`enemyRoll` passé à `openBattlePending`), qui est le jet de l'ADVERSAIRE d'un
 // Test opposé.
 //
-// ANGLE MORT résiduel de CE scanner (mesuré, fail-open assumé) : un import RENOMMÉ
+// ANGLE MORT résiduel de CE scanner (fail-open assumé) : un import RENOMMÉ
 // (`import { d100 as des } from '../engine/dice'`) lui échappe — il reconnaît le nom APPELÉ, sans
-// résoudre la liaison. Le dépôt porte DEUX imports renommés de primitives de dé (`combatEffects.ts:9`
-// et `interludeFlow.ts:16`, `roll as rollDice`) ; aucun ne renomme `rollTest`/`d100`, la population de
-// ce scanner-ci reste donc exacte. La garde SŒUR (#1508), elle, RÉSOUT l'alias
-// (`importsDuMoteur` : nom local → nom d'origine) — elle ne pouvait pas s'en remettre à la coïncidence
-// qui fait tomber `roll as rollDice` sur un autre nom de son amorce.
+// résoudre la liaison. Les imports renommés de primitives de dé du dépôt (`roll as rollDice`) ne
+// renomment ni `rollTest` ni `d100` : la population de ce scanner-ci reste exacte. La garde SŒUR
+// (#1508), elle, RÉSOUT l'alias (`importsDuMoteur` : nom local → nom d'origine) — elle ne peut pas
+// s'en remettre à la coïncidence qui fait tomber `roll as rollDice` sur un autre nom de son amorce.
 import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
+import { alternationDe } from '../../../src/lib/regex.ts';
 
-// Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest ce module passe par
-// vite-node, et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du runner. Même
-// socle, même mesure qu'en tête de `sceneMutation.mjs` : à la seule liaison ci-dessous,
-// `scene-mutation-guard.test.ts` tombe de 7,46 s à 3,60 s.
+// Liaison LOCALE de l'API du compilateur : sous Vitest ce module passe par vite-node, et chaque `ts.x`
+// d'un visiteur AST se relirait sur l'objet d'import du runner. Même socle, même mesure qu'en tête de
+// `sceneMutation.mjs`.
 const ts = tsModule;
 
-/** Les 3 motifs de forgeage/roulage bruts d'un Test — PRÉ-FILTRE lexical bon marché (un fichier sans
- *  aucun motif n'est jamais parsé). Tolère les formes que l'AST sait lire mais qu'un `\(` collé
+/** Les 3 regex de forgeage/roulage bruts d'un Test — PRÉ-FILTRE lexical bon marché (un fichier où
+ *  aucune regex ne matche n'est jamais parsé). Tolère les formes que l'AST sait lire mais qu'un `\(` collé
  *  raterait : espace avant la parenthèse, appel générique `rollTest<T>(`, `TestOutcome` et `.seal`
  *  séparés par un retour-ligne. @type {RegExp} */
 export const ROLL_SEAM_RX = /\brollTest\s*[(<]|\bd100\s*\(|\bTestOutcome\s*\.\s*seal\s*\(/;
@@ -68,9 +66,9 @@ const TEST_VALUE_STMT_RX = /\btestValue\b|\beffectiveChar\b|\bskillValue\b|\bcha
 /** Mêmes marqueurs, évalués sur la FONCTION englobante : la valeur comparée au dé transite souvent par
  *  une variable au nom neutre (`const cible = effectiveChar(c, 'ag'); if (d100(rng) <= cible)`) — lue
  *  sur la seule instruction, la souillure blanchirait ce Test, et un Test opposé maison entier.
- *  `.sl` en est EXCLU (et lui seul) : mesuré, il souille par sa seule présence n'importe où dans une
- *  grosse fonction (`runActivityResolver`, 18 000 caractères) et fait basculer 5 dés de monde
- *  légitimes ; sur l'instruction, il reste précis. @type {RegExp} */
+ *  `.sl` en est EXCLU (et lui seul) : il souille par sa seule présence n'importe où dans une grosse
+ *  fonction (`runActivityResolver`) et ferait basculer des dés de monde légitimes ; sur l'instruction,
+ *  il reste précis. @type {RegExp} */
 const TEST_VALUE_BODY_RX = /\btestValue\b|\beffectiveChar\b|\bskillValue\b|\bcharacteristics\b/;
 
 /** Comparaisons à un seuil (cf. (M)). @type {Set<number>} */
@@ -225,7 +223,7 @@ function hasRollNull(obj) {
 
 /**
  * (F) FABRICATION D'UN PENDING DE JET — un littéral d'objet qui porte `skillValue:` ET (`target:` OU
- * `roll: null`). Signature DISCRIMINANTE mesurée : `skillValue:` seul remonte 200+ faux positifs
+ * `roll: null`). Signature DISCRIMINANTE : `skillValue:` seul remonte des faux positifs par centaines
  * (paramètres de résolveur, types, patches de champ) ; la conjonction ne retient que les objets qui
  * portent DÉJÀ la cible du jet (`target`, donc la Difficulté appliquée) ou son emplacement de dé
  * vide (`roll: null`) — c'est-à-dire un jet DÉCRIT hors de la porte.
@@ -271,31 +269,27 @@ function functionOf(node) {
   return null;
 }
 
-/** AMORCE historique de (D) : ce qui forge un TEST. @type {readonly string[]} */
+/** AMORCE de (D) : ce qui forge un TEST. @type {readonly string[]} */
 export const AMORCE_TEST = ['rollTest', 'd100'];
 
 /**
  * AMORCE ÉLARGIE (#1508) — ce qui tire PHYSIQUEMENT un dé, Test ou pas : les primitives de
  * `src/engine/dice.ts` au complet. La garde d'exclusivité (#274) ne connaît que le forgeage d'un
  * Test ; elle est donc AVEUGLE à une magnitude (`rollDice`), à une dispersion (`d10`), à une
- * expression authorée (`rollExpr`) et au d100 d'environnement (`deMonde`) — 60 des 75 lignes de dé
- * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04.
+ * expression authorée (`rollExpr`) et au d100 d'environnement (`deMonde`).
  * @type {readonly string[]}
  */
 export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'rollExpr', 'deMonde'];
 
 /** PRÉ-FILTRE lexical de la garde sœur — strictement plus large que son critère AST (un appel
  *  `nom(` cite `nom` ; un `rng.int(` cite `int`). @type {RegExp} */
-export const DES_HORS_PORTE_RX = new RegExp(`\\b(?:${AMORCE_DES.join('|')}|int)\\s*\\(`);
+export const DES_HORS_PORTE_RX = new RegExp(`\\b(?:${alternationDe([...AMORCE_DES, 'int'])})\\s*\\(`);
 
 /**
  * CRITÈRE STRUCTUREL du `.int(` — un dé de RNG porte SA PLAGE (`rng.int(1, 10)`, `base.int(min, max)`,
  * `battleRng().int(0, l.length - 1)` : `RNG.int(min, max)`, `src/engine/dice.ts:7`). Un `.int()` de
- * schéma zod ne tire rien et n'a pas d'argument, ou n'en porte qu'un message. Sans ce critère, 18
- * sites de schéma de `src/data/schemas/**` comptaient comme des dés — mesure du 2026-09-05 :
- * `defs-scenes/worldmap.ts` 4, `defs/props.ts` 1, `defs/surincantation.ts` 6, `defs/vehicles.ts` 1,
- * `grammaire/avancement.ts` 1, `grammaire/ref.ts` 1, `grammaire/valeurs.ts` 4 ; et `git grep ".int("`
- * sur `src/` ne rend AUCUN `.int(` zod porteur d'argument, ni aucun dé `.int()` nu.
+ * schéma zod ne tire rien et n'a pas d'argument, ou n'en porte qu'un message. Sans ce critère, les
+ * `.int()` des schémas de `src/data/schemas/**` compteraient comme des dés.
  * @param {import('typescript').CallExpression} node @returns {boolean} */
 function estAppelDeDe(node) {
   const e = node.expression;
@@ -308,9 +302,8 @@ function estAppelDeDe(node) {
  * (`import { d10 } from '../engine/dice'` → `d10 → d10` ; `import { roll as rollDice }` →
  * `rollDice → roll`). Deux rôles, un seul passage :
  *  - elle distingue une primitive de dé d'un HOMONYME local (`roll`, déclencheur de flux en UI) ;
- *  - elle ferme l'ALIAS : le dépôt en porte deux (`combatEffects.ts:9`, `interludeFlow.ts:16` —
- *    `roll as rollDice`), qui ne comptaient jusqu'ici que par la coïncidence d'un alias tombant sur un
- *    autre nom de l'amorce. Un `d100 as des` ne se serait pas vu.
+ *  - elle ferme l'ALIAS (`roll as rollDice`) : sans elle, un alias ne compterait que par la
+ *    coïncidence de tomber sur un autre nom de l'amorce, et un `d100 as des` ne se verrait pas.
  * @returns {Map<string, string>} */
 function importsDuMoteur(sf) {
   const out = new Map();
@@ -332,19 +325,19 @@ function importsDuMoteur(sf) {
  * dé (`AMORCE_DES`) ou un `.int(` DANS SON CORPS, **ou** s'il passe par un helper NON EXPORTÉ du
  * moteur qui, lui, tire : `merchantFlow.rollStock` → `fullStock` (module-local) → `rollDice`, ou
  * `creation.rollDetailFormula` (module-local) → `roll(n, 10, rng)` derrière `rollAge`/`rollEyes`/
- * `rollHair`/`rollHeight`. S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
- * dont `merchantFlow.ts` en entier — que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en
- * dette. Deux stocks du même dé ne peuvent pas se contredire.
+ * `rollHair`/`rollHeight`. S'arrêter à UN SAUT rendrait ces dés INVISIBLES, `merchantFlow.ts` en
+ * entier, que `ENGINE_DELEGATED_ROLL_STOCK` classe en dette : deux stocks du même dé ne peuvent pas se
+ * contredire.
  *
  * CE QU'ELLE N'ASPIRE PAS, et c'est le point : un export qui traverse une AUTRE frontière exportée
  * n'entre pas. La clôture transitive complète de `engineRollerExports` sous amorce élargie, elle,
- * remonte jusqu'aux helpers GÉNÉRIQUES (mesuré : `createHero`, `contractDisease`, `rollInitialWealth`,
- * `spellRangeTiles`, `zdeRadiusTiles`, `durationClockMinutes`…) et fait passer la population de 319
- * sites où le dé TOMBE à 423 sites « où un dé pourrait tomber » — un stock bâti sur le second ne peut
- * pas descendre à zéro, ce serait un registre et non une dette.
+ * remonte jusqu'aux helpers GÉNÉRIQUES (`createHero`, `contractDisease`, `rollInitialWealth`,
+ * `spellRangeTiles`, `zdeRadiusTiles`, `durationClockMinutes`…) et compterait les sites « où un dé
+ * pourrait tomber » au lieu de ceux où le dé TOMBE — un stock bâti sur les premiers ne peut pas
+ * descendre à zéro, ce serait un registre et non une dette.
  *
- * `applyOps` compte : il tire DANS SON CORPS (`rng.int` de ses désignations). Son canal a son propre
- * lot (#1508 T2, `OpsCtx.des`), qui le fera sortir d'ici en une ligne.
+ * `applyOps` compte : il tire DANS SON CORPS (`rng.int` de ses désignations). Son canal propre,
+ * `OpsCtx.des`, est suivi à #1508.
  * @param {{ rel: string, text: string }[]} engineFiles @returns {Set<string>}
  */
 export function engineDiceRollers(engineFiles) {
@@ -415,10 +408,10 @@ export function scanDesHorsPorte(relPath, contenu, rollerNames) {
     scriptKindDe(relPath),
   );
   // Un nom ne compte que s'il est IMPORTÉ DU MOTEUR dans CE fichier, et il compte sous son nom
-  // D'ORIGINE. Les primitives de dé portent des noms courants (`roll`) : sans cette condition, 7 sites
-  // d'UI où `roll` est le déclencheur local du flux (`AuContactModal`, `jetProps/*`, `CascadeModal`…)
-  // étaient comptés comme des dés ; et sans la résolution d'ALIAS, un `d100 as des` ne compterait pas
-  // du tout (le dépôt porte deux `roll as rollDice`, cf. `importsDuMoteur`).
+  // D'ORIGINE. Les primitives de dé portent des noms courants (`roll`) : sans cette condition, les
+  // sites d'UI où `roll` est le déclencheur local du flux (`AuContactModal`, `jetProps/*`,
+  // `CascadeModal`…) compteraient comme des dés ; et sans la résolution d'ALIAS, un `d100 as des` ne
+  // compterait pas du tout (cf. `importsDuMoteur`).
   const duMoteur = importsDuMoteur(sf);
   /** @type {Map<string, { line: number, name: string }>} */
   const vus = new Map();
@@ -484,7 +477,7 @@ export function engineRollerExports(engineFiles, amorce = AMORCE_TEST) {
 /**
  * (D) angle mort SURVEILLÉ — noms de fonctions déclarés dans PLUSIEURS fichiers de `src/engine`.
  * `engineRollerExports` indexe à plat (un nom = une entrée) : la DERNIÈRE déclaration lue écrase les
- * précédentes. Conséquence mesurée (mutation #1066) : un homonyme non-rouleur peut faire SORTIR un
+ * précédentes. Conséquence (#1066) : un homonyme non-rouleur peut faire SORTIR un
  * vrai rouleur de la liste — et avec lui toute sa clôture transitive. Le drapeau `rollsDirectly` est
  * donc lu sur CHAQUE déclaration, pas sur l'index collapsé : sinon la surveillance est aveugle au cas
  * même qu'elle prétend couvrir.
@@ -523,17 +516,17 @@ export function engineHomonyms(engineFiles) {
 }
 
 /** PRÉ-FILTRE lexical de (D) : un fichier qui ne CITE aucun nom de rouleur n'est jamais parsé. Le
- *  motif est strictement plus large que le critère AST (un appel `nom(` cite `nom`), donc sans faux
+ *  regex est strictement plus large que le critère AST (un appel `nom(` cite `nom`), donc sans faux
  *  négatif. La clé du cache est le CONTENU du jeu de noms (triés, joints) : le `Set` de l'appelant
- *  est mutable, un nom qu'on y ajoute change la clé, donc le motif rendu. Cache de taille UN — les
- *  ~1 100 fichiers d'un scan partagent le même jeu (81 rouleurs dérivés), et rien ne s'accumule d'un
- *  scan au suivant.
+ *  est mutable, un nom qu'on y ajoute change la clé, donc la regex rendue. Cache de taille UN — les
+ *  fichiers d'un scan partagent le même jeu de rouleurs dérivés, et rien ne s'accumule d'un scan au
+ *  suivant.
  *  @type {{ cle: string, rx: RegExp } | null} */
 let _rollerRx = null;
 function rollerNameRx(names) {
   const cle = [...names].sort().join('\u0000');
   if (_rollerRx && _rollerRx.cle === cle) return _rollerRx.rx;
-  const rx = names.size ? new RegExp(`\\b(?:${[...names].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`) : /$^/;
+  const rx = new RegExp(`\\b(?:${alternationDe(names)})\\b`);
   _rollerRx = { cle, rx };
   return rx;
 }

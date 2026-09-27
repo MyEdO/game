@@ -79,6 +79,7 @@ import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, normalize, re
 import { lignes } from './lib/colonnes.mjs'
 import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
 import { FOLIO_ATTR, foliosRoulants } from '../../src/data/source/ancre-vide.ts'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { grasOuvert, prosePrecedenteCoupee, recoller } from './lib/titres-soudes.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import { ecartDuVolet, ecrireStockSousLot, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
@@ -729,7 +730,6 @@ function formesDuTexte({ pages, flux, fichiers, cles, adresse, estTitre, titres 
     return n.length >= 2 && n.every((x) => m.has(x))
   }
   const jetons = (t) => normalize(stripSpans(String(t))).match(/[\p{L}\p{N}]+/gu) ?? []
-  const echappe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const lignesMd = (page, garde) => fichiers.flatMap((fx, f) => (surSesPages(fx, page) ? fx.lignes.flatMap((ligne, i) => (surSaPage(f, i, page) && garde(ligne) ? [{ f, i, ligne }] : [])) : []))
   const clot = (l) => !/[,\-/]$/.test(l.texte.trim())
   const enchaine = (a, b) => !clot(a) || /^\p{Ll}/u.test(b.texte.trim())
@@ -904,13 +904,13 @@ function formesDuTexte({ pages, flux, fichiers, cles, adresse, estTitre, titres 
   for (const r of runs) {
     const l = flux[r.n]
     const t = r.texte.replace(/\s+/g, ' ').trim().replace(/’/g, "'")
-    const re = new RegExp(`(?<!\\*)\\*${echappe(t)}\\*(?!\\*)`, 'g')
+    const re = new RegExp(`(?<!\\*)\\*${echapperRegex(t)}\\*(?!\\*)`, 'g')
     const porteLe = (ligne) => (ligne.match(re) ?? []).length > 0 && porte(ligne, l)
     const seules = lignesMd(l.page, porteLe)
     const vus = seules.length ? seules : jointures.filter((x) => surSesPages(fichiers[x.f], l.page) && surSaPage(x.f, x.i, l.page) && porteLe(x.ligne))
     if (vus.length !== 1) continue
     const { f, i, ligne } = vus[0]
-    const emphases = new Set([...ligne.matchAll(new RegExp(`(?<![\\p{L}*])(\\**)${echappe(t)}\\**(?![\\p{L}*])`, 'gu'))].map((m) => m[1].length))
+    const emphases = new Set([...ligne.matchAll(new RegExp(`(?<![\\p{L}*])(\\**)${echapperRegex(t)}\\**(?![\\p{L}*])`, 'gu'))].map((m) => m[1].length))
     if (emphases.size > 1) continue
     const cleSite = `${f}:${i}:${t}`
     const n = parLigne.get(cleSite) ?? 0
@@ -932,7 +932,7 @@ function formesDuTexte({ pages, flux, fichiers, cles, adresse, estTitre, titres 
   })
   for (const [l, avant, apres] of tirets) {
     if (!/\p{L}/u.test(avant) || !/\p{L}/u.test(apres)) continue
-    const re = new RegExp(`(^|[^\\p{L}])${echappe(avant)} ${echappe(apres)}(?!\\p{L})`, 'u')
+    const re = new RegExp(`(^|[^\\p{L}])${echapperRegex(avant)} ${echapperRegex(apres)}(?!\\p{L})`, 'u')
     const vus = lignesMd(l.page, (ligne) => re.test(stripSpans(ligne).replace(/\*/g, '')) && porte(ligne, l))
     if (vus.length !== 1) continue
     const { f, i, ligne } = vus[0]

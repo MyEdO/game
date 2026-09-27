@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { alternationDe } from './lib/regex';
 
 /**
  * GARDE STRUCTURELLE — PROPRIÉTAIRE UNIQUE de l'état de charge : charger une arme sélectionne sa munition,
@@ -10,8 +11,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * REGISTRE résolu par `engine/weaponLoad.loadRegister` (objet possédé > instance d'arme > pièce servie).
  * Une affectation DIRECTE hors des deux ÉCRIVAINS (`loadWeapon`/`unloadWeapon`, `engine/items.ts`) écrit
  * à côté du registre : l'état posé est perdu au prochain re-dérivage du set, ou reste sur un porteur que
- * personne ne relit. Deux passes de revue ont trouvé cette classe (interruption de rechargement,
- * initialisation de début de combat) — d'où ce verrou par CONSTRUCTION plutôt qu'une Nᵉ relecture.
+ * personne ne relit.
  *
  * PÉRIMÈTRE : `src/**\/*.ts(x)` de PRODUCTION.
  * EXEMPTS, et pourquoi :
@@ -21,7 +21,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * ANGLES MORTS (énoncés, pas contournés) : une écriture via alias (`const reg = ...; reg.loaded = ...`)
  * n'est vue que si l'alias vient de `loadRegister` (autorisé) — un alias fabriqué autrement passerait ;
  * une écriture par index (`obj['loaded'] = …`) passerait aussi. Le scan est TEXTUEL (pas d'AST) : il
- * couvre la forme réellement rencontrée (`x.champ = …`), qui est celle des deux régressions mesurées.
+ * couvre la forme `x.champ = …`.
  */
 
 /** Champs de l'état de charge — mêmes noms sur `Weapon`, `ItemInstance` et `ShipPoste`. */
@@ -33,7 +33,7 @@ export const OWNER_FILES = ['src/engine/items.ts', 'src/engine/weaponLoad.ts'];
 /** Une affectation directe `qqch.<champ> = …` (hors `==`/`===`/`=>`), commentaires de ligne exclus. */
 export function loadWritesIn(rel: string, source: string): { file: string; line: number; text: string }[] {
   const hits: { file: string; line: number; text: string }[] = [];
-  const re = new RegExp(String.raw`[\w\]\)]\s*\.\s*(${LOAD_FIELDS.join('|')})\s*=(?!=)`);
+  const re = new RegExp(String.raw`[\w\]\)]\s*\.\s*(${alternationDe(LOAD_FIELDS)})\s*=(?!=)`);
   source.split(/\r?\n/).forEach((raw, i) => {
     const code = raw.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
     if (re.test(code)) hits.push({ file: rel, line: i + 1, text: raw.trim() });

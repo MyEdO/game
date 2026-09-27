@@ -9,7 +9,7 @@
 // positifs écartés sont plantés en LITTÉRAUX DE CHAÎNE dans `src/comment-poison-guard.test.ts`, que
 // `extractComments` ignore par construction (il ne lit que les commentaires). Aucun marqueur
 // d'échappement, aucune liste d'exception : le mécanisme n'est pas transposable ailleurs, puisqu'il
-// ne consiste qu'à ne pas ÉCRIRE le motif dans un commentaire.
+// ne consiste qu'à ne pas ÉCRIRE dans un commentaire le texte que la regex cherche.
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -41,9 +41,9 @@ export function estFichierScanne(cheminRelatifOuAbsolu) {
 /**
  * Blanchit les MARQUEURS DE CONTINUATION en tête de ligne d'un commentaire (`*` d'un bloc, `//` d'une
  * suite de lignes fusionnées). Ils séparent deux mots exactement comme une espace : sans ce passage,
- * toute famille dont le motif exige une espace entre ses mots rate la phrase COUPÉE à cet endroit,
- * alors qu'elle la détecte sur une seule ligne (angle mort mesuré 2026-08-03 sur la famille 4 ; les
- * formes couvertes sont plantées en LITTÉRAUX dans `src/comment-poison-guard.test.ts`).
+ * toute famille dont la regex exige une espace entre ses mots rate la phrase COUPÉE à cet endroit,
+ * alors qu'elle la détecte sur une seule ligne (angle mort de la famille 4 ; les formes couvertes
+ * sont plantées en LITTÉRAUX dans `src/comment-poison-guard.test.ts`).
  * Chaque marqueur est remplacé par le MÊME nombre d'espaces et les `\n` sont conservés : les index de
  * match — donc `matchLine` et `excerptAt` — restent exacts au caractère près.
  * @param {string} text @returns {string}
@@ -140,10 +140,9 @@ export function extractComments(src) {
       i = j;
       continue;
     }
-    // Littéral d'EXPRESSION RÉGULIÈRE : ses guillemets ne sont pas des chaînes. Sans ce saut, un
-    // motif comme `("[^"]*"|…)` désynchronise le balayage de chaînes et TOUT le reste du fichier
-    // devient invisible aux gardes (mesuré 2026-09-02 sur `scripts/hooks/solde-ticket-guard.mjs` :
-    // 2 commentaires vus sur 1 902 lignes, tout ce qui suit la ligne 55 muet).
+    // Littéral de REGEX : ses guillemets ne sont pas des chaînes. Sans ce saut, une
+    // regex comme `("[^"]*"|…)` désynchronise le balayage de chaînes et TOUT le reste du fichier
+    // devient invisible aux gardes.
     if (ch === '/' && estDebutRegex(src, i)) {
       const fin = finRegex(src, i);
       if (fin > 0) {
@@ -245,26 +244,27 @@ const CODE_TOMBSTONE_RETIRE_RX = new RegExp(
   '(ancien\\w*|' + BT + '[^' + BT + ']+' + BT + '|«[^»]+»)[\\s\\S]{0,200}?a été (retiré|supprimé|renommé)',
   'i',
 );
-// ANGLE MORT MESURÉ (#1728, 2026-09-14) : le PARTICIPE NU derrière un artefact back-tiqué
-// (« `x` retiré », sans « a été ») n'entre PAS dans la famille. Mesure sur `src/**`+`scripts/**` :
-// 132 sites, dont la quasi-totalité décrit une OPÉRATION COURANTE (« `type` retiré des deux côtés »,
+// ANGLE MORT (#1728) : le PARTICIPE NU derrière un artefact back-tiqué (« `x` retiré », sans « a été »)
+// n'entre PAS dans la famille. Sur `src/**`+`scripts/**`, la quasi-totalité de ses sites décrit une
+// OPÉRATION COURANTE (« `type` retiré des deux côtés »,
 // « `usable` retiré de chaque entité à places », « `«` `»` SUPPRIMÉS avec l'espace adjacent ») — du
 // contrat au présent, pas du code disparu. Aucun discriminant syntaxique ne sépare les deux sens, et
-// une famille qui exigerait 130 exemptions serait un stock nominatif : la forme reste hors garde.
-// ANGLE MORT MESURÉ (#1759, 2026-09-14) : le DÉPLACEMENT « X est passé à/vers Y » n'entre PAS dans
-// les familles. Mesure sur `src/**`+`scripts/**` : 98 sites pour la forme nue, 14 en exigeant
-// l'auxiliaire — et la MAJORITÉ des deux populations dit le PASSAGE D'UN ARGUMENT au présent
-// (« la valeur passée à `buildScene` », « l'acteur est passé à `InfluenceRow` », « les lookups sont
-// passés à `findTableEntry` »), soit le contrat COURANT du site. Les deux discriminants essayés
-// échouent : l'artefact back-tiqué est présent des DEUX côtés, et l'auxiliaire laisse 8 contrats au
-// présent sur 14. Aucune forme propre ne sépare les deux sens : la famille n'est pas posée.
+// une famille qui exigerait une exemption par site serait un stock nominatif : la forme reste hors
+// garde.
+// ANGLE MORT (#1759) : le DÉPLACEMENT « X est passé à/vers Y » n'entre PAS dans les familles. Sur
+// `src/**`+`scripts/**`, la MAJORITÉ de ses sites, avec ou sans l'auxiliaire, dit le PASSAGE D'UN
+// ARGUMENT au présent (« la valeur passée à `buildScene` », « l'acteur est passé à
+// `InfluenceRow` », « les lookups sont passés à `findTableEntry` »), soit le contrat COURANT du
+// site. Les deux discriminants essayés échouent : l'artefact back-tiqué est présent des DEUX
+// côtés, et l'auxiliaire laisse une majorité de contrats au présent. Aucune forme propre ne sépare
+// les deux sens : la famille n'est pas posée.
 
 // Apostrophe (droite ou typographique), bâtie par ÉCHAPPEMENT : aucun caractère apostrophe littéral
-// dans les motifs de ce fichier, qui déséquilibrerait le balayage de chaînes d'`extractComments`.
+// dans les regex de ce fichier, qui déséquilibrerait le balayage de chaînes d'`extractComments`.
 const APOS = '[\\u0027\\u2019]';
 // Négation TEMPORELLE (adverbe de cessation, jamais celui de simple absence) suivie d'un artefact de
 // CODE nommé : forme que les familles voisines laissent passer (ni parenthèse, ni tiret, ni participe
-// passé) — mutation mesurée 2026-07-30, une tombale de cette forme laissait la suite entièrement verte.
+// passé).
 // Le complément doit nommer un artefact de code : le même tour de phrase sur une ressource de JEU (une
 // place libre, une provision, un souffle) décrit un état de partie VIVANT, pas du code disparu — d'où
 // le vocabulaire fermé ci-dessous, et le lookahead qui interdit d'attraper un mot plus long.
@@ -287,12 +287,11 @@ const OF_YORE_RX = new RegExp('\\bd' + APOS + 'antan\\b', 'i');
 
 // La NATURE révolue d'un site : la négation temporelle dont le complément est le mot `code` lui-même.
 // Le lecteur ne peut pas ouvrir ce qui a disparu, et le contrat courant se dit au présent. Forme
-// ÉTROITE, complément FERMÉ à ce seul mot — population mesurée 2026-09-05 sur `src/**`+`scripts/**`
-// (4253 fichiers) : UN site, reformulé du même geste. Les LITTÉRAUX (formes couvertes, faux positifs
+// ÉTROITE, complément FERMÉ à ce seul mot. Les LITTÉRAUX (formes couvertes, faux positifs
 // écartés) vivent dans `src/comment-poison-guard.test.ts` — jamais ici : le fichier de la garde est
 // lui-même scanné. ANGLE MORT ASSUMÉ, déclaré à l'en-tête du test : la même cessation devant un
-// artefact BACK-TICKÉ n'entre PAS dans la famille (48 sites au même relevé, en majorité des prédicats
-// VIVANTS sur une clé de donnée ou un nœud zod scellé — plus de faux positifs que de sites).
+// artefact BACK-TICKÉ n'entre PAS dans la famille (ses sites sont en majorité des prédicats VIVANTS
+// sur une clé de donnée ou un nœud zod scellé — plus de faux positifs que de sites).
 const NO_MORE_CODE_RX = new RegExp(
   '\\bn(?:' + APOS + '|e' + GAP + ')(?:est|sont)' + GAP + 'plus' + GAP + 'du' + GAP + 'code\\b',
   'i',
@@ -301,9 +300,8 @@ const NO_MORE_CODE_RX = new RegExp(
 // Le SITE quitté : la négation temporelle dont le complément est l'adverbe de lieu qui désigne CE
 // fichier. Le lecteur y cherche le contrat courant, pas ce qu'un autre module a repris. Forme
 // ÉTROITE — quatre verbes (état et résidence), complément FERMÉ à l'adverbe de PROXIMITÉ.
-// Population mesurée 2026-09-05 sur `src/**`+`scripts/**` (4278 fichiers, tests compris) : 2 sites,
-// reformulés du même geste. L'adverbe de DISTANCE est exclu par construction : au même relevé, ses
-// 5 sites décrivent tous une absence À L'EXÉCUTION (une entrée de cache libérée, un héros sorti du
+// L'adverbe de DISTANCE est exclu par construction : ses sites décrivent une absence À L'EXÉCUTION
+// (une entrée de cache libérée, un héros sorti du
 // groupe, un composant démonté) — un état de partie VIVANT, jamais du code disparu.
 // Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
 const NO_MORE_HERE_RX = new RegExp(
@@ -313,9 +311,8 @@ const NO_MORE_HERE_RX = new RegExp(
 
 // Le DÉPART d'un artefact de code : le passé composé du verbe de départ, collé à un artefact
 // BACK-TICKÉ — sujet juste avant, ou complément juste après. Le lecteur y apprend d'où l'artefact
-// est parti, jamais ce qu'il est. Population mesurée 2026-09-22 sur `src/**`+`scripts/**` (#1343) :
-// 25 commentaires pour le verbe nu ; ses 4 sites back-tickés, tous des tombales, reformulés du même
-// geste. Hors artefact back-tické, la forme reste HORS famille (angle mort déclaré à l'en-tête du test).
+// est parti, jamais ce qu'il est (#1343). Hors artefact back-tické, la forme reste HORS famille
+// (angle mort déclaré à l'en-tête du test).
 // Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
 const QUITTE = '(?:a|ont)' + GAP + 'quitt[ée]e?s?(?![\\wÀ-ÿ])';
 const TICKED = BT + '[^' + BT + '\\n]+' + BT;
@@ -328,8 +325,7 @@ const LEFT_ARTIFACT_RX = new RegExp(
 // de CODE nommé, sans négation verbale (« … — plus de X », « (plus de X en dur) »). Même exigence
 // que la famille voisine : le complément doit nommer un artefact de code, jamais une ressource de
 // JEU (un pion, un créneau, un marqueur d'affichage), d'où le vocabulaire FERMÉ ci-dessous.
-// Population mesurée 2026-08-23 sur `src/**`+`scripts/**` hors tests ; formes couvertes et faux
-// positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
+// Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
 const CODE_ARTIFACT_NOUN =
   '(?:name-match|if-chain|hook-fonction|regex|liste|littéra(?:l|ux)|chaîne|clé|copie|doublon|parsing' +
   '|prédicat|dispatch|ternaire|hack|tableau|table|record|map|devinette|garde|gate|planner|match' +
@@ -359,9 +355,9 @@ const ANCIEN_IDENT_EOL_RX = new RegExp(
   '\\b[Aa]ncien(?:ne|s|nes)?\\s+' + IDENT_CODE + '[ \\t]*(?:\\*+/)?[ \\t]*$',
   'm',
 );
-// ANGLE MORT MESURÉ (#1728, 2026-09-14) : le QUANTIFIEUR de vacuité (« plus aucun match », « plus
-// aucune entrée ») est EXCLU de la famille. Mesure sur `src/**`+`scripts/**` : 120 sites, presque
-// tous des CONTRATS AU PRÉSENT (« plus AUCUN match par libellé », « plus aucune liste `specs[]`
+// ANGLE MORT (#1728) : le QUANTIFIEUR de vacuité (« plus aucun match », « plus aucune entrée ») est
+// EXCLU de la famille. Sur `src/**`+`scripts/**`, ses sites sont presque tous des CONTRATS AU
+// PRÉSENT (« plus AUCUN match par libellé », « plus aucune liste `specs[]`
 // maintenue à la main ») — la forme « plus AUCUN X » affirme ce que le code NE FAIT PLUS par
 // conception, quand « plus de X », en incise, rappelle un ÉTAT RÉVOLU. Deux sens, deux formes.
 const NAMED_ARTIFACT_TOMBSTONE_RX = new RegExp(
@@ -403,7 +399,7 @@ export const TOMBSTONE_FAMILIES = [
   { rx: /déplacée?s? (vers|dans) (?!la\b|le\b|un\b|une\b|les\b)/i, label: 'déplacé(e)(s) vers/dans (code)' },
   { rx: /anciennement/i, label: 'anciennement' },
   // Le préfixe du révolu INTRODUIT un artefact qui n'existe plus, quelle que soit la casse de ce qui
-  // suit : exiger un back-tick ou une majuscule laissait passer toute la moitié minuscule de la classe
+  // suit : exiger un back-tick ou une majuscule laisserait passer toute la moitié minuscule de la classe
   // (#828). Seule soustraction, LEXICALE et fermée : la locution latine « ex aequo », où le mot est
   // latin et non préfixe — aucun artefact de code ne porte ce nom, la soustraction n'ouvre donc aucune
   // échappatoire.
@@ -430,8 +426,7 @@ export const TOMBSTONE_FAMILIES = [
   // d'avant entre guillemets.
   { rx: /(comme avant\s*:|avant\s*:\s*«)/i, label: 'avant : (comparaison au code)' },
   // #336 : la forme PARENTHÉSÉE est un état-d'avant encapsulé dans un commentaire de code — la
-  // parenthèse est le discriminant qui manquait à l'affinage ci-dessus (zéro faux positif au sweep
-  // du 2026-07-11).
+  // parenthèse est le discriminant de l'affinage ci-dessus.
   { rx: /\(avant\s*:/i, label: 'avant : (parenthésé — état d’avant)' },
   // #948 : jumelle de la précédente pour l'ARTEFACT révolu nommé entre parenthèses — forme que les
   // familles voisines laissaient passer (l'une exige le mot « chemin », l'autre un tiret). Même
@@ -451,9 +446,8 @@ export const TOMBSTONE_FAMILIES = [
   { rx: NO_MORE_CODE_RX, label: 'n’est plus du code (nature révolue du site)' },
   { rx: NO_MORE_HERE_RX, label: 'n’est / ne vit plus ici (site quitté)' },
   { rx: LEFT_ARTIFACT_RX, label: 'artefact back-tické parti (départ révolu)' },
-  // #1486 : la locution de cessation NUE devant un artefact de code nommé — 8 vraies tombales sur les
-  // 10 sites échantillonnés du 2026-08-23, sur une population de 248 commentaires ; le vocabulaire
-  // fermé et les exclusions de quantité/comparaison ramènent cette population aux seuls artefacts.
+  // #1486 : la locution de cessation NUE devant un artefact de code nommé ; le vocabulaire fermé et les
+  // exclusions de quantité/comparaison ramènent sa population aux seuls artefacts.
   { rx: NAMED_ARTIFACT_TOMBSTONE_RX, label: 'plus de <artefact de code> (état révolu)' },
 ];
 
@@ -491,74 +485,70 @@ export function scanTombstones(relPath, contenu) {
  *  tout src/**. Une nouvelle excuse sans tag `[entériné]` échoue la CI et le commit. */
 export const EXCUSE_GUARD_ACTIVE = true;
 
-// Affinage 2026-07-06 (recensement : 41 faux positifs sur 44 occurrences, même méthode que les
-// familles tombstone ci-dessus) : une vraie excuse nomme un artefact de CODE (paramètre, appelant,
+// Affinage (même méthode que les familles tombstone ci-dessus) : une vraie excuse nomme un artefact
+// de CODE (paramètre, appelant,
 // migration) ; le faux positif nomme un artefact de RÈGLE (Round, Test, Action, Sort — capitalisé
 // dans les commentaires du repo) ou documente la sémantique null/false d'un champ d'état de partie.
 // Les deux locutions suivies d'un participe de mécanique de jeu (état de partie, durée d'effet) sont
 // écartées structurellement par les lookaheads ci-dessous ; la locution d'attente nue reste détectée
-// (les vraies excuses du stock l'utilisent). Le motif littéral n'est PAS écrit ici — il est planté en
-// chaîne dans `src/comment-poison-guard.test.ts`, que `extractComments` ne lit pas (#828).
+// (les vraies excuses du stock l'utilisent). Le texte que la regex cherche n'est PAS écrit ici — il
+// est planté en chaîne dans `src/comment-poison-guard.test.ts`, que `extractComments` ne lit pas (#828).
 const GAME_STATE_PARTICIPLE =
   '(lanc|tir[ée]|boug|dépens|défend|résol|jou|commenc|ouvert|agi\\b|explor|entraîn|connu|désign|roul|au niveau|à la mi|de [A-ZÀ-Ý])';
 // Un DÉFAUT relevé puis renvoyé à un autre geste (« … à <verbe> <ailleurs> ») est une excuse : le
 // commentaire signale une dette sans validation utilisateur traçable. La discrimination tient au
-// seul motif ci-dessous — il exige l'INFINITIF d'un verbe de réparation SUIVI d'un renvoi
+// seule regex ci-dessous — elle exige l'INFINITIF d'un verbe de réparation SUIVI d'un renvoi
 // (séparément/ailleurs/plus tard/à part/au propre) ; un participe qui décrit le PRÉSENT
 // (« traité ailleurs », « comptés séparément ») n'a pas cette forme et ne matche pas.
-// ANGLE MORT MESURÉ (2026-08-24) : une phrase DESCRIPTIVE au présent bâtie sur « est <infinitif de
+// ANGLE MORT : une phrase DESCRIPTIVE au présent bâtie sur « est <infinitif de
 // réparation> <renvoi> » (une localisation par zone, comptée chacune de son côté) porterait la même
-// forme et matcherait — 0 occurrence dans le corpus scanné ; motif tenu STRICT tant que le compte
-// reste à 0.
+// forme et matcherait ; la regex reste STRICTE tant que le corpus scanné n'en porte aucune.
 const VERBES_REPARATION =
   '(corriger|traiter|régler|migrer|nettoyer|purger|réparer|reprendre|refaire|supprimer|instruire)';
 const REPORT_AILLEURS = 'à ' + VERBES_REPARATION + ' (séparément|ailleurs|plus tard|à part|au propre)';
-// Deux formes mesurées MUETTES le 2026-08-29 (sonde de revue de palier), toutes deux relevées sur un
-// site réel de `src/engine/travelStages.ts` : (i) la dette laissée EN ATTENTE, sans renvoi explicite —
+// Deux formes d'excuse : (i) la dette laissée EN ATTENTE, sans renvoi explicite —
 // un verbe d'état suivi de l'infinitif de réparation ; (ii) l'alibi de PÉRIMÈTRE daté, qui justifie
 // l'omission par l'état du chantier au moment du geste. Les deux sont des excuses au sens de 6b : une
 // dette signalée sans validation utilisateur traçable.
-// ANGLE MORT MESURÉ (2026-08-30), même clause que `REPORT_AILLEURS` ci-dessus : une prose
-// DESCRIPTIVE au passé bâtie sur le verbe d'état + le premier motif ci-dessous, suivi d'un
+// ANGLE MORT, même clause que `REPORT_AILLEURS` ci-dessus : une prose
+// DESCRIPTIVE au passé bâtie sur le verbe d'état + la première regex ci-dessous, suivi d'un
 // complément de SOURCE et non d'un renvoi de chantier (un CONSTAT sur ce que l'extraction FR n'a pas
-// couvert, pas une dette laissée), porte la même forme et MORDRAIT — 0 occurrence dans le corpus
-// scanné le 2026-08-30 ; motif tenu STRICT tant que le compte reste à 0. Comme pour les familles
+// couvert, pas une dette laissée), porte la même forme et MORDRAIT ; la regex reste STRICTE tant que
+// le corpus scanné n'en porte aucune. Comme pour les familles
 // ci-dessus, l'exemple LITTÉRAL n'est pas écrit ici (il mordrait sur ce commentaire même) : il est
 // planté en chaîne dans `src/comment-poison-guard.test.ts` (#828).
 const RESTE_A_REPARER = '(reste|restent|restait|restaient) à ' + VERBES_REPARATION;
 const ALIBI_PERIMETRE = '(était|étaient) hors périmètre|hors périmètre le jour d';
 // Dette laissée à la locution d'ATTENTE devant le mot « arbitrage » : le commentaire renvoie la
-// décision à personne et à aucune date — c'est une excuse au sens de 6b. Motif STRICT : le simple
-// pointeur « arbitrage #N », qui NOMME le ticket où la question vit, reste hors motif (17 sites
-// légitimes mesurés le 2026-09-02). Comme les familles ci-dessus, la forme LITTÉRALE n'est pas
+// décision à personne et à aucune date — c'est une excuse au sens de 6b. Regex STRICTE : le simple
+// pointeur « arbitrage #N », qui NOMME le ticket où la question vit, reste hors regex. Comme les
+// familles ci-dessus, la forme LITTÉRALE n'est pas
 // écrite ici (elle mordrait sur ce commentaire même) : elle est plantée dans le test (#828).
 const ATTENTE_ARBITRAGE = 'en attente d' + APOS + '\\s*(un )?arbitrage';
-// Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732, site
-// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux paliers) : le commentaire décrit un état à
-// venir au lieu de ce que le code rend — excuse au sens de 6b.
-// CE QUE LE MOTIF FAIT, exactement : une des trois locutions d'attente (plantées en littéral dans le
+// Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732) : le commentaire décrit
+// un état à venir au lieu de ce que le code rend — excuse au sens de 6b.
+// CE QUE LA REGEX FAIT, exactement : une des trois locutions d'attente (plantées en littéral dans le
 // test, #828 — ce module est scanné par sa propre garde) suivie, DANS LA MÊME PHRASE, d'un MARQUEUR DE
 // DETTE (`MARQUEUR_ATTENTE` ci-dessous) — la chose future est un artefact de chantier : une primitive,
 // une mutualisation, une forme canonique, une factorisation, un lot numéroté, un ticket, une migration,
 // une refonte.
 // L'UNITÉ EST LA PHRASE, ni la ligne ni le bloc : un bloc s'enroule à ~100 colonnes, donc une phrase y
-// tombe couramment sur deux lignes (c'est le cas du site d'origine, planté en littéral dans le test) ;
+// tombe couramment sur deux lignes (le cas planté en littéral dans le test) ;
 // la fenêtre traverse donc le retour de ligne ET le préfixe de continuation (` * ` d'un bloc, `//` de
 // deux lignes jointes par `extractComments`), mais s'arrête au premier `.` `;` `!` `?`. Le bloc ENTIER
 // comme fenêtre rapporterait des faux positifs de flux (une phrase d'état de partie suivie, phrase
 // suivante, d'un mot de chantier) : contrôle négatif planté dans le test.
-// POURQUOI LE MARQUEUR et pas la locution seule : sur le corpus MESURÉ (les deux racines, 2026-09-14),
-// ces locutions servent massivement le vocabulaire de FLUX du jeu — un pending, un effet gelé, un jet
+// POURQUOI LE MARQUEUR et pas la locution seule : sur le corpus des deux racines, ces locutions
+// servent massivement le vocabulaire de FLUX du jeu — un pending, un effet gelé, un jet
 // adverse, une offre de prolongation — et la chose attendue y est une pièce d'état de partie, jamais un
 // artefact de chantier. C'est le test de CORPUS qui tient ce constat (aucun cardinal ici : il mentirait
 // dès le prochain commit).
 // ANGLE MORT (1) : une dette dont la chose future n'est PAS nommée avec ces mots (un renvoi à un nom
-// propre de module, une périphrase) passe — le motif ne mesure qu'un vocabulaire.
+// propre de module, une périphrase) passe — la regex ne mesure qu'un vocabulaire.
 // ANGLE MORT (2) : la frontière de phrase est LEXICALE, donc toute ponctuation de CODE rencontrée entre
 // la locution et le marqueur ferme la fenêtre — le point d'un chemin de fichier ou d'une abréviation, le
 // point d'un décimal, le point-virgule qui sépare deux propositions d'une même phrase. Une dette qui
-// nomme son artefact APRÈS une telle ponctuation passe : mesuré le 2026-09-14, 4 dettes forgées sur 7.
-// La frontière de phrase SYNTAXIQUE est un geste de design à part, qui a son ticket dédié.
+// nomme son artefact APRÈS une telle ponctuation passe. La frontière de phrase SYNTAXIQUE : #1737.
 const MARQUEUR_ATTENTE =
   '(primitives?|partagée?s?|mutualis\\w*|canoniqu\\w*|factoris\\w*|lots?\\s+\\d|#\\d+|migration|refonte)';
 const LOCUTION_ATTENTE = '(en attendant|dans l' + APOS + 'attente d|en attente d)';
@@ -643,15 +633,12 @@ export const LEGACY_VOCAB_FAMILIES = [
     ),
     label: 'ne … plus que',
   },
-  // Adverbe de CHANGEMENT d'état : extension de couverture mesurée le 2026-09-26 (#1486 #1509).
+  // Adverbe de CHANGEMENT d'état (#1486, #1509).
   { rx: new RegExp(NB_AVANT + 'désormais' + NB_APRES, 'i'), label: 'désormais' },
 ];
 
-/** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).
- *  Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici
- *  omettait Ubersreik/Altdorf/T3, désynchronisée dès qu'un livre s'ajoutait à BOOKS). `ACE`
- *  (Altdorf, Annexe I — citée en `p.NNN`, jamais `l.NNN`) est portée par `BOOKS`/`allAbbrAlternation`
- *  (alias `Ald\w+`/`Alt\w+` en plus de la forme canonique `ACE`, ref #529) — aucune entrée en dur ici. */
+/** Réf de livre ancrant la thèse au Source, n'importe où dans le MÊME commentaire logique, sur
+ *  `allAbbrAlternation` (`_lib.mjs`, #434). */
 export const BOOK_REF_RX = new RegExp(
   `\\b(${allAbbrAlternation()})\\b\\s*(\\d+|ch\\.?\\s*\\d+|l\\.\\s*\\d+|p\\.?\\s*\\d+|§)`,
   'i',
@@ -661,7 +648,8 @@ export const BOOK_REF_RX = new RegExp(
 // mot y qualifie autre chose que du code de ce dépôt — une dépendance npm à monter de version, une
 // couture de test montée pour Playwright, l'entrée d'une liste de garde sans correspondance. Aucun de
 // ces sites ne peut « mourir » : la famille (e) veut des sites qui se soldent, pas des occurrences.
-// L'exclusion ne vaut que si elle RECOUVRE le match : chaque motif est planté en littéral dans le test.
+// L'exclusion ne vaut que si elle RECOUVRE le match : le texte que chaque regex cherche est planté en
+// littéral dans le test.
 /** @type {{ rx: RegExp, label: string }[]} */
 export const LEGACY_VOCAB_EXCLUSIONS = [
   { rx: new RegExp('shims?' + GAP + 'DEV', 'gi'), label: 'couture DEV (Playwright)' },
@@ -742,7 +730,7 @@ export function scanLegacyVocab(relPath, contenu) {
 // ---------------------------------------------------------------------------------------------
 // Famille 3 — AFFIRMATION-RAW non ancrée (CLAUDE.md règle 6a). Un commentaire qui AFFIRME ce que
 // le RAW exige/n'exige pas, sans réf de livre dans le MÊME commentaire, est du poison présumé :
-// c'est la classe « bélier » 2026-07-06 (« RAW ne l'exige pas » — faux, ADE II ch.8 exige l'Équipe)
+// c'est la classe « bélier » (« RAW ne l'exige pas » — faux, ADE II ch.8 exige l'Équipe)
 // — la vérité d'une thèse n'est pas machine-vérifiable, son ANCRAGE l'est. Canal ALERTE (jamais
 // bloquant) : la session qui l'écrit doit ouvrir le Source et citer, ou reformuler en réf nue.
 // ---------------------------------------------------------------------------------------------
@@ -761,7 +749,7 @@ export const RAW_CLAIM_FAMILIES = [
 // Famille 4 — REVENDICATION D'AUTORITÉ non tracée (credo : « un commentaire-excuse n'est pas une
 // autorisation », house-rule = paramétrable/taguée). Une revendication de ce type, sans TRACE de
 // validation, est la justification fallacieuse qui habille une implémentation (classe « servir coûte
-// l'Action » 2026-07-06, sœur de la classe « bélier »).
+// l'Action », sœur de la classe « bélier »).
 // SEULE trace reconnue (décision utilisateur 2026-07-07 : « je n'accepte aucune justification sans
 // la mention explicite [entériné] ») : le tag [entériné AAAA-MM-JJ] — dont l'écriture est elle-même
 // gardée par enterine-guard.mjs (dialogue de validation utilisateur). Date, citation, ancrage canon
@@ -809,8 +797,8 @@ export function scanRawClaims(relPath, contenu) {
       const m = fam.rx.exec(c.text);
       if (!m) continue;
       // Ancrage de PROXIMITÉ : une réf de livre ADJACENTE à la thèse (±120 caractères) la rend
-      // matériellement vérifiable. Le bloc ENTIER ne suffit pas — l'en-tête du scénario bélier
-      // citait ADE II ailleurs, la fausse claim restait non sourcée (angle mort constaté 2026-07-06).
+      // matériellement vérifiable. Le bloc ENTIER ne suffit pas : une réf citée ailleurs dans le bloc
+      // laisse la thèse non sourcée.
       const window = c.text.slice(Math.max(0, m.index - 120), m.index + m[0].length + 120);
       if (BOOK_REF_RX.test(window)) continue;
       findings.push({ line: matchLine(c, m.index), detail: `[${fam.label}] ${excerptAt(c, m.index)}` });

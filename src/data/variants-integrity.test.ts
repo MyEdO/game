@@ -1,8 +1,8 @@
 /**
- * Garde des VARIANTES réglées (#563/#564 Lot 3) : `when.rule` DOIT être un id de `OPTIONAL_RULES`
- * (item 1, gate fantôme sinon), et la règle stricte 5 (verbatim + folio) s'applique PAR VARIANTE
- * comme pour l'ancre (item 2 — `folioIntegrity.mjs:citedEntriesOf` la découvre déjà, aucune
- * extension nécessaire : une variante est structurellement `{desc, source}` comme une entrée).
+ * Garde des VARIANTES réglées (#563, #564) : `when.rule` DOIT être un id de `OPTIONAL_RULES`
+ * (gate fantôme sinon), et la règle stricte 5 (verbatim + folio) s'applique PAR VARIANTE comme pour
+ * l'ancre (`citedEntriesOf` de `folioIntegrity.mjs` la découvre sans extension : une variante est
+ * structurellement `{desc, source}` comme une entrée).
  *
  * `talents.json` et `spells.json` portent des variantes en donnée — la garde EXHAUSTIVE ci-dessous
  * DÉRIVE la liste autorisée des defs (`RESOLVED_BY_FILE`) et couvre ces fichiers réels ; les morsures
@@ -22,15 +22,16 @@ import * as talentsDef from './schemas/defs/talents';
 import * as traitsDef from './schemas/defs/traits';
 import * as spellsDef from './schemas/defs/spells';
 import { characteristics, skills, traits } from './index';
+import { echapperRegex } from '../lib/regex';
 
 const DIR = fileURLToPath(new URL('.', import.meta.url));
-/** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les quatre sites qui le lisent. */
+/** Les datasets `.json` de `src/data`, en ordre total — UN listage pour tous les sites qui le lisent. */
 const DATASETS = listerDossier(DIR).filter((f) => f.endsWith('.json'));
 const KNOWN_RULE_IDS = new Set(OPTIONAL_RULES.map((r) => r.id));
 /** Clés du schéma d'ENTRÉE de chaque dataset à variantes — lues du def, jamais recopiées. Un def
  *  ADOPTÉ par `document()` rend un nœud SCELLÉ, sans `.element.shape` : il publie ses clés relevées
- *  AVANT le sceau (`DocumentHandle.cles`, réexportées `cles`). Les TROIS defs à variantes sont
- *  désormais adoptés : aucun ne se lit plus au nœud zod. */
+ *  AVANT le sceau (`DocumentHandle.cles`, réexportées `cles`). Les defs à variantes sont adoptés :
+ *  aucun ne se lit au nœud zod. */
 const SHAPE_BY_FILE = new Map<string, string[]>([
   [talentsDef.file, [...talentsDef.cles]],
   [traitsDef.file, [...traitsDef.cles]],
@@ -52,8 +53,8 @@ describe('variantRulesOf — walk de `variants[].when.rule`', () => {
   });
 });
 
-describe('garde-fou « when.rule ∈ OPTIONAL_RULES » (#564 Lot 3 item 1)', () => {
-  it('0 variante réelle sur src/data/*.json ne référence un id de règle inconnu (aucune migration au Lot 0/3)', () => {
+describe('garde-fou « when.rule ∈ OPTIONAL_RULES » (#564)', () => {
+  it('0 variante réelle sur src/data/*.json ne référence un id de règle inconnu', () => {
     const violations = unknownVariantRules(DIR, KNOWN_RULE_IDS);
     expect(violations).toEqual([]);
   });
@@ -77,7 +78,7 @@ describe('garde-fou « when.rule ∈ OPTIONAL_RULES » (#564 Lot 3 item 1)', () 
   });
 });
 
-// ── FK d'une règle optionnelle portée par une ENTRÉE : `gatedByRule` (#1318 E4/C2) ────────────────
+// ── FK d'une règle optionnelle portée par une ENTRÉE : `gatedByRule` (#1318) ────────────────
 /**
  * MÊME gate fantôme que `variants[].when.rule`, par une autre porte : un nœud de donnée peut subordonner
  * à une règle optionnelle sa DISPONIBILITÉ (`SpeciesData.gatedByRule`, lu par `speciesAllowed`) ou son
@@ -103,7 +104,7 @@ function gateRuleRefs(node: unknown, path = ''): { key: string; rule: string }[]
   return out;
 }
 
-describe('garde-fou « gatedByRule ∈ OPTIONAL_RULES » (#1318 E4/C2)', () => {
+describe('garde-fou « gatedByRule ∈ OPTIONAL_RULES » (#1318)', () => {
   const filesWithGate = () =>
     DATASETS.filter((f) => readFileSync(join(DIR, f), 'utf8').includes(`"${GATE_FIELD}"`));
 
@@ -134,9 +135,9 @@ describe('garde-fou « gatedByRule ∈ OPTIONAL_RULES » (#1318 E4/C2)', () => {
   });
 });
 
-describe('règle 5 PAR VARIANTE — `variants[i].desc` verbatim dans `variants[i].source` (#563 Lot 3 item 2)', () => {
+describe('règle 5 PAR VARIANTE — `variants[i].desc` verbatim dans `variants[i].source` (#563)', () => {
   // Fixture RÉELLE (ZI, folio 23) — même patron que `secondary-ref-integrity.test.ts` : preuve de
-  // câblage contre le vrai corpus, pas un livre inventé. Cf. `folioIntegrity.mjs` note l.241-244 :
+  // câblage contre le vrai corpus, pas un livre inventé. Cf. `citedEntriesOf` (`folioIntegrity.mjs`) :
   // une variante est structurellement `{desc, source}` sur le même nœud qu'une entrée, découverte à
   // toute profondeur SANS extension de `citedEntriesOf`.
   const VERBATIM =
@@ -149,9 +150,9 @@ describe('règle 5 PAR VARIANTE — `variants[i].desc` verbatim dans `variants[i
     };
     const entries = citedEntriesOf(data);
     // `citedEntriesOf` (`folioIntegrity.mjs`) chemine par PATH JSON, pas par id du porteur remonté :
-    // même comportement que sur les 16 entrées anonymes réelles du dépôt (note l.252-253) — la clé
+    // même clé que pour les entrées anonymes réelles du dépôt (JSDoc de `citedEntriesOf`) — la clé
     // porteur (`porteur.variants[0]`) est celle de `variantRulesOf` (`variantRule.mjs`), un vocabulaire
-    // DIFFÉRENT (guard #564 item 1, pas règle 5 item 2).
+    // DIFFÉRENT (garde `when.rule` de #564, pas la règle 5).
     expect(entries).toEqual([{ id: 'variants[0]', book: 'zoo-imperial', page: 23, desc: VERBATIM }]);
     expect(auditFolio(entries[0]).verdict).toBe('folio-ok');
   });
@@ -275,7 +276,7 @@ describe('couverture du « Maxi » d’Aux Armes Annexe III (#564) — la forme 
   }
 });
 
-// ── Champs republiables : la liste blanche de chaque dataset = ses champs RÉSOLUS (#564 audit) ─────
+// ── Champs republiables : la liste blanche de chaque dataset = ses champs RÉSOLUS (#564) ─────
 /** Datasets autorisant des variantes, avec les champs que leur résolution APPLIQUE (`effectiveEntry`).
  *  Un dataset absent d'ici n'admet aucune variante (son schéma ne porte pas le champ `variants`). */
 const RESOLVED_BY_FILE = new Map<string, readonly string[]>([
@@ -312,7 +313,7 @@ function unresolvedVariantFields(node: unknown, resolved: readonly string[] | un
     .filter((v) => v.extra.length > 0);
 }
 
-describe('garde-fou « une variante ne déclare QUE des champs résolus » (#564 audit)', () => {
+describe('garde-fou « une variante ne déclare QUE des champs résolus » (#564)', () => {
   it('0 variante réelle de src/data/*.json ne déclare un champ hors de la liste résolue de son dataset', () => {
     const offenders = DATASETS.flatMap((f) =>
       unresolvedVariantFields(JSON.parse(readFileSync(join(DIR, f), 'utf8')), RESOLVED_BY_FILE.get(f)).map((v) => ({ file: f, ...v })),
@@ -378,7 +379,6 @@ const BONUS_ABBR: [RegExp, string][] = [
   [/\bBI\b/g, "Bonus d'Initiative"],
   [/\bBF\b/g, 'Bonus de Force'],
 ];
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const byLengthDesc = (a: string, b: string) => b.length - a.length;
 const CHAR_LABELS = characteristics.map((c) => c.label).sort(byLengthDesc);
 const SKILL_LABELS = [...new Set(skills.map((s) => s.label))].sort(byLengthDesc);
@@ -389,11 +389,11 @@ function mechanicalTokens(raw: string): Set<string> {
   const text = BONUS_ABBR.reduce((s, [re, to]) => s.replace(re, to), raw).replace(/−/g, '-');
   const out = new Set<string>();
   for (const l of CHAR_LABELS) {
-    if (new RegExp(`Bonus (?:de |d')${escapeRe(l)}`, 'i').test(text)) out.add(`bonus:${l}`);
-    else if (new RegExp(`\\b${escapeRe(l)}\\b`, 'i').test(text)) out.add(`carac:${l}`);
+    if (new RegExp(`Bonus (?:de |d')${echapperRegex(l)}`, 'i').test(text)) out.add(`bonus:${l}`);
+    else if (new RegExp(`\\b${echapperRegex(l)}\\b`, 'i').test(text)) out.add(`carac:${l}`);
   }
-  for (const l of SKILL_LABELS) if (new RegExp(`\\b${escapeRe(l)}\\b`).test(text)) out.add(`competence:${l}`);
-  for (const l of TRAIT_LABELS) if (new RegExp(`\\b${escapeRe(l)}\\b`).test(text)) out.add(`trait:${l}`);
+  for (const l of SKILL_LABELS) if (new RegExp(`\\b${echapperRegex(l)}\\b`).test(text)) out.add(`competence:${l}`);
+  for (const l of TRAIT_LABELS) if (new RegExp(`\\b${echapperRegex(l)}\\b`).test(text)) out.add(`trait:${l}`);
   for (const m of text.matchAll(/\(([+-]\s?\d+)\)/g)) out.add(`mod:${m[1].replace(/\s/g, '')}`);
   if (/\bDR\b/.test(text)) out.add('dr');
   return out;
@@ -437,8 +437,8 @@ function staleFlowVariants(data: unknown): { id: string; tokens: string[] }[] {
 /** Datasets dont la liste blanche admet le Flow mécanique — DÉRIVÉ des defs, jamais une liste. */
 const FLOW_FILES = [...RESOLVED_BY_FILE].filter(([, f]) => f.includes(MECHANICAL_FLOW_FIELD)).map(([file]) => file);
 
-/** Stock nominatif DÉCROISSANT de #880 : divergences par OMISSION que le critère voit, hors du lot
- *  des 4 contradictions franches. La liste ne remonte JAMAIS — une entrée soldée la fait rougir. */
+/** Stock nominatif DÉCROISSANT de #880 : divergences par OMISSION que le critère voit.
+ *  La liste ne remonte JAMAIS — une entrée soldée la fait rougir. */
 const A_TRAITER_880 = [
   { id: 'bouclier-ceruleen', tokens: ["bonus:Endurance"] },
   { id: 'l-egide-d-aqshy', tokens: ['trait:Souffle'] },

@@ -8,6 +8,7 @@ import { SORTS_FUSIONNES_1897 } from '../data/sortsFusionnes';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { skillSlots, talentSlotsUpTo } from '../engine/careerSlots';
 import { levelsForCareer } from '../data';
+import { alternationDe } from '../lib/regex';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -180,14 +181,14 @@ describe('roster — export / import (portabilité, versionné via migrateDoc)',
   });
 });
 
-/** Le lot L2 #1548 renomme `SkillInstance.skillId` → `id` (`engine/types.ts`). Le roster persiste des
+/** #1548 renomme `SkillInstance.skillId` → `id` (`engine/types.ts`). Le roster persiste des
  *  `SkillInstance` par DEUX canaux — l'export versionné (`EXPORT_VERSION`) et la liste localStorage nue.
- *  `skillBaseValue` (`engine/skills.ts:153`) ne lit QUE `s.id` : sans remap aux deux canaux, un héros
+ *  `skillBaseValue` (`engine/skills.ts`) ne lit QUE `s.id` : sans remap aux deux canaux, un héros
  *  d'avant le lot repart avec ses Compétences muettes (Caractéristique nue, Augmentations perdues) sans
  *  qu'aucun type ne bronche. Le roster ne se PURGE pas pour autant (l'arbitrage 2026-08-17 est borné aux
  *  saves — `migrateDoc.ts` interdit nommément la purge du roster par imitation) : il MIGRE, comme #311
- *  et #604 avant lui. Témoin : Résistance (Endurance), Endurance 35 + 20 Augmentations = 55. */
-describe('roster — remap `skillId`→`id` des Compétences persistées (#1548 L2, les DEUX canaux)', () => {
+ *  et #604. Témoin : Résistance (Endurance), Endurance 35 + 20 Augmentations = 55. */
+describe('roster — remap `skillId`→`id` des Compétences persistées (#1548, les DEUX canaux)', () => {
   const ancienHero = (id: string) => ({
     id,
     label: 'Vétéran d’avant le lot',
@@ -290,7 +291,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-projectile' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
     items: [{ trappingId: 'bouclier' }],
   });
-  const FUSIONNES = Object.keys(SORTS_FUSIONNES_1897).join('|');
+  const FUSIONNES = alternationDe(Object.keys(SORTS_FUSIONNES_1897));
   /** Les ids fusionnés qui SURVIVENT dans le héros sérialisé, à une place de sort (`sort-` compris). */
   const survivants = (hero: unknown): string[] =>
     JSON.stringify(hero).match(new RegExp(`"(?:sort-)?(?:${FUSIONNES})"`, 'g'))?.filter((m) => m !== '"bouclier"') ?? [];
@@ -353,7 +354,7 @@ describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX 
   });
 });
 
-/** #1473 (train 2a) : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
+/** #1473 : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
  *  roster avant le lot porte `talentId` dans les ops de ses armes, effets et traumatismes : aux DEUX
  *  canaux elles passent à la graphie que `engine/ops.ts` lit. */
 describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, les DEUX canaux)', () => {
@@ -391,7 +392,7 @@ describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, l
   });
 });
 
-/** #1473 (train 2a) : `detachMutation` ne retire que les `talentsAcquis` de la mutation attachée
+/** #1473 : `detachMutation` ne retire que les `talentsAcquis` de la mutation attachée
  *  (`engine/corruption.ts`). Une mutation attachée avant le lot porte ses `grantTalent` en `talentId`
  *  et aucune `talentsAcquis`, et l'attache d'alors posait une instance NEUVE du Talent, doublon compris : la
  *  relecture fusionne les instances et reconstitue ce que le détachement d'alors retirait. */
@@ -426,7 +427,7 @@ describe('roster — `talentsAcquis` d’une mutation attachée avant le lot (#1
     const [entree] = rosterLoad();
     expect(entree.hero.mutations!.map((m) => m.talentsAcquis)).toEqual([undefined, undefined]);
   });
-  /** Le détachement d'avant le lot (`git show origin/main:src/engine/corruption.ts`, `detachMutation`) :
+  /** Le détachement d'avant le lot (`detachMutation` de `engine/corruption.ts` d'avant #1473) :
    *  une instance retirée par `grantTalent` de la mutation. */
   it('(d) Talent de carrière DOUBLÉ par l’ancienne attache : les instances fusionnent, le détachement en rend une', () => {
     const doublon = { ...heros('h', [mutationDAvant('chanceux')]), talents: [{ talentId: 'chanceux', times: 1 }, { talentId: 'chanceux', times: 1 }] };

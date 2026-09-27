@@ -24,7 +24,7 @@
 // fichier au même titre normalisé (un titre et l'intitulé de sa table) sont UNE cible : la première,
 // l'englobante. Un titre à parenthèse finale (`Fear (Rating)`) se compare aussi sans elle. Un titre
 // trouvé DANS l'étendue d'un autre titre trouvé n'est pas nommé (« Fate » dans « Fate and Fortune »).
-// Design : #1393, lot 1 (2026-09-25).
+// Design : #1393.
 import {
   empreinteDe,
   graphieDuFichier,
@@ -37,6 +37,7 @@ import {
   type TableDeSection,
 } from './decoupe.ts';
 import type { SourceRef } from '../schemas/grammaire/valeurs.ts';
+import { alternationDe, espacesExtensibles } from '../../lib/regex.ts';
 
 /** Formes d'un renvoi dans une LANGUE : mesurées sur le corpus, jamais écrites par livre. */
 export interface MotifsDeRenvoi {
@@ -100,21 +101,17 @@ export interface Renvoi {
   phrase: string;
 }
 
-const echapper = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const alternative = (xs: string[]): string =>
-  [...xs].sort((a, b) => b.length - a.length).map((x) => echapper(x).replace(/ /g, '\\s+')).join('|');
-
-const motifRenvoi = (m: MotifsDeRenvoi): RegExp =>
+const regexDeRenvoi = (m: MotifsDeRenvoi): RegExp =>
   new RegExp(
-    `\\(?(?:(?:${alternative(m.introducteurs)})\\s+)?\\b(?:${alternative(m.mots)})\\s+(\\d+)` +
-      `(?:\\s*(?:${alternative(m.tirets)})\\s*(\\d+)|\\s+(?:${alternative(m.liaisons)})\\s+(\\d+))?` +
+    `\\(?(?:(?:${alternationDe(m.introducteurs, { parChaine: espacesExtensibles })})\\s+)?\\b(?:${alternationDe(m.mots, { parChaine: espacesExtensibles })})\\s+(\\d+)` +
+      `(?:\\s*(?:${alternationDe(m.tirets, { parChaine: espacesExtensibles })})\\s*(\\d+)|\\s+(?:${alternationDe(m.liaisons, { parChaine: espacesExtensibles })})\\s+(\\d+))?` +
       `((?:${elementDeListe(m)})*)\\)?`,
     'giu',
   );
 
 /** Un élément de liste de pages après le premier : séparateur, liaison facultative, nombre. */
 const elementDeListe = (m: MotifsDeRenvoi): string =>
-  `\\s*(?:${alternative(m.separateursDeListe)})\\s*(?:(?:${alternative(m.liaisonsDeListe)})\\s+)?\\d+`;
+  `\\s*(?:${alternationDe(m.separateursDeListe, { parChaine: espacesExtensibles })})\\s*(?:(?:${alternationDe(m.liaisonsDeListe, { parChaine: espacesExtensibles })})\\s+)?\\d+`;
 
 /** Début de la phrase qui contient la position `at` (ligne ou `. `). */
 function debutDePhrase(texte: string, at: number): number {
@@ -131,7 +128,7 @@ function finDePhrase(texte: string, depuis: number): number {
 export function renvoisDe(texte: string, langue: string): Renvoi[] {
   const out: Renvoi[] = [];
   let finPrecedent = 0;
-  for (const m of texte.matchAll(motifRenvoi(motifsDe(langue)))) {
+  for (const m of texte.matchAll(regexDeRenvoi(motifsDe(langue)))) {
     const at = m.index;
     const bout = at + m[0].length;
     const phrase = debutDePhrase(texte, at);
@@ -300,10 +297,10 @@ export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
       : { ...base, table, niveau: 'ambigu', cible: null, candidats: elues.map(nommer) };
 
   const clause = ` ${cle(renvoi.clause)} `;
-  const motTable = `(?:${alternative(motifs.tables)})`;
+  const motTable = `(?:${alternationDe(motifs.tables, { parChaine: espacesExtensibles })})`;
   const nommee =
     new RegExp(` ([\\p{L}\\p{N} ]{2,60}?) ${motTable} $`, 'u').exec(clause) ??
-    new RegExp(` ${motTable} (?:${alternative(motifs.liaisonsDeTable)}) ([\\p{L}\\p{N} ]{2,60}?) $`, 'u').exec(clause) ??
+    new RegExp(` ${motTable} (?:${alternationDe(motifs.liaisonsDeTable, { parChaine: espacesExtensibles })}) ([\\p{L}\\p{N} ]{2,60}?) $`, 'u').exec(clause) ??
     new RegExp(` ([\\p{L}\\p{N} ]{2,60}?) ${motTable} (?:[\\p{L}\\p{N}]+ ){0,3}$`, 'u').exec(clause);
   if (nommee) {
     const x = ` ${sg(nommee[1].trim())} `;

@@ -4,6 +4,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { FEUILLES, manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
 import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
@@ -41,9 +42,9 @@ test('fermerLeTicket : `poser: false` rejoue le SEUL patch — un solde déjà a
 test('fermerLeTicket : la RAISON de fermeture est posée EXPLICITEMENT, et vaut `completed`', () => {
   // Le PATCH REST porte `state` et `state_reason` en deux champs : la doc de
   // `PATCH /repos/{owner}/{repo}/issues/{n}` ne définit AUCUNE valeur de `state_reason` pour un
-  // `state=closed` sans raison. Les 100 dernières fermetures du dépôt portent `completed` (sonde du
-  // 2026-09-18) — ce que posait `gh issue close --reason completed` ; sans ce cas, la retirer serait
-  // muette, et le dépôt se mettrait à fermer des tickets sous une raison décidée ailleurs.
+  // `state=closed` sans raison. Les fermetures du dépôt portent `completed`, la raison de
+  // `gh issue close --reason completed` ; sans ce cas, la retirer serait muette, et le dépôt se
+  // mettrait à fermer des tickets sous une raison décidée ailleurs.
   const vus = []
   fermerLeTicket({ numero: '1813', corps: 'le solde', poser: false, appel: (args) => {
     vus.push(args)
@@ -102,7 +103,7 @@ test('ticket OUVERT sans marque : le solde est POSTÉ puis l’état patché', (
   assert.equal(gestes.length, 1)
   assert.equal(gestes[0].poser, true)
   assert.match(gestes[0].corps, /VERIFIE: le solde/)
-  assert.match(gestes[0].corps, new RegExp(marqueDe('aaa').replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&')))
+  assert.match(gestes[0].corps, new RegExp(echapperRegex(marqueDe('aaa'))))
 })
 
 test('ticket OUVERT qui porte DÉJÀ la marque : EXACTEMENT un geste, et il ne POSTE pas', () => {

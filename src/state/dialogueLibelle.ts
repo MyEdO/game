@@ -9,6 +9,7 @@
  * `skills.json`), des Caractéristiques et des Difficultés (`CHAR_LABELS`, `DIFFICULTY_LABELS`), et les
  * deux écritures canon de la monnaie (`formatMoney`, `spellMoney`).
  */
+import { echapperRegex } from '../lib/regex';
 
 /** Vocabulaire du tag dérivé, injecté depuis ses sources. */
 export interface VocabulaireDuTag {
@@ -32,8 +33,8 @@ const cle = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toL
 /** Le terme apparaît-il en MOT ENTIER dans ce libellé ? (« Soin » ne se lit pas dans « Soigner ».) */
 function contientLeTerme(label: string, terme: string): boolean {
   if (terme.length < 2) return false;
-  const motif = new RegExp(`(^|[^\\p{L}\\p{N}])${cle(terme).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}\\p{N}])`, 'u');
-  return motif.test(cle(label));
+  const regex = new RegExp(`(^|[^\\p{L}\\p{N}])${echapperRegex(cle(terme))}($|[^\\p{L}\\p{N}])`, 'u');
+  return regex.test(cle(label));
 }
 
 /** Le MOT que le jeu emploie pour NOMMER un jet (« (Test de …) », « (Test étendu, 5 DR) »). */

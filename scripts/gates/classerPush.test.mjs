@@ -12,6 +12,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'nod
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import {
   DOCUMENTAIRE,
   CI_SEULEMENT_PRODUIT,
@@ -133,10 +134,8 @@ test('le step de classement précède `npm ci` dans chaque job qui le porte', ()
 
 // (c1) — chaque gate SAUTABLE confrontée à son CORPUS : la classe « `lit` sous-déclaré ».
 //
-// Le trou vécu (2026-09-16) : `ECRIT_LU['test:agents'].lit` disait `['scripts/agents/']` alors que
-// `scripts/agents/compat.test.mjs:160,161,166,180` lit `.claude/settings.json`, `.codex/hooks.json`,
-// `CLAUDE.md` et `AGENTS.md` sur l'arbre réel — la gate était donc SAUTÉE sur le push qui touche
-// exactement ces fichiers. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
+// Une gate dont le `lit` omet un fichier que son code lit est SAUTÉE sur le push qui touche
+// exactement ce fichier. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
 //
 // ANGLES MORTS, dits : le grain est la LIGNE d'un module local, et le corpus vient de la fermeture
 // transitive d'imports de `ecrivainsAtteints.mjs` — un chemin CONSTRUIT dynamiquement (`join(base,
@@ -149,10 +148,9 @@ const JETONS = Object.keys(DOCUMENTAIRE).map((p) => p.replace(/\/$/, ''))
 
 /** Le premier jeton documentaire NOMMÉ par cette ligne, dans une chaîne ou un `new URL(`. */
 function jetonNomme(ligne) {
-  return JETONS.find((jeton) => {
-    const echappe = jeton.replace(/\./g, '\\.')
-    return new RegExp(`(?:['"\`]|new URL\\(\\s*['"\`])[^'"\`\\n]*${echappe}`).test(ligne)
-  })
+  return JETONS.find((jeton) =>
+    new RegExp(`(?:['"\`]|new URL\\(\\s*['"\`])[^'"\`\\n]*${echapperRegex(jeton)}`).test(ligne),
+  )
 }
 
 test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’elle atteint', () => {
@@ -189,13 +187,12 @@ function sourcesDeProduction() {
 
 /**
  * Les cibles que le fichier LIT vraiment : spécificateur d'`import`/`export … from`, argument de
- * `readFileSync`/`readFile`, de `fetch(`, motif d'`import.meta.glob`. Jamais une regex sur le texte
- * nu : un chemin cité en commentaire n'est pas une lecture (mesuré 2026-09-16 — 64 mentions de
- * `.claude`/`.codex`/`CLAUDE.md` sous src/, toutes en commentaire ou classe CSS).
+ * `readFileSync`/`readFile`, de `fetch(`, glob d'`import.meta.glob`. Jamais une regex sur le texte
+ * nu : un chemin cité en commentaire ou en classe CSS n'est pas une lecture.
  */
 function ciblesLues(texte) {
   const cibles = []
-  const motifs = [
+  const lectures = [
     /(?:^|\n)\s*(?:import|export)[^\n;]*?from\s*['"]([^'"]+)['"]/g,
     /\bimport\s*\(\s*['"]([^'"]+)['"]/g,
     /\bimport\.meta\.glob\s*\(\s*\[?\s*['"]([^'"]+)['"]/g,
@@ -203,7 +200,7 @@ function ciblesLues(texte) {
     /\breadFile\s*\(\s*['"]([^'"]+)['"]/g,
     /\bfetch\s*\(\s*['"]([^'"]+)['"]/g,
   ]
-  for (const motif of motifs) for (const m of texte.matchAll(motif)) cibles.push(m[1])
+  for (const lecture of lectures) for (const m of texte.matchAll(lecture)) cibles.push(m[1])
   return cibles
 }
 

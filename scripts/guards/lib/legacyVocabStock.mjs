@@ -434,13 +434,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/variants-integrity.test.ts",
-    motif: "désormais",
-    ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/zde-affects-authoring.test.ts",
     motif: "désormais",
     ancre: "`affects` décide désormais. Portée : le camp du candidat (toute mention d'alliance) et les deux",
@@ -1337,13 +1330,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/player-text-ratchet.test.ts",
-    motif: "désormais",
-    ancre: "- la météo de Scène (`Scene['weather']`) : son libellé FR vit désormais SUR LE NŒUD",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/port-sell-cargo.test.ts",
     motif: "désormais",
     ancre: "Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,",
@@ -1743,23 +1729,9 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/compendium/registry.ts",
-    motif: "désormais",
-    ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/compendium/relations.test.ts",
     motif: "désormais",
     ancre: "est désormais une clé mono-catégorie → la JAUGE.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/relations.ts",
-    motif: "désormais",
-    ancre: "// 15) Lieu ← sous-lieux (inversion de location.parent, désormais un id de parent).",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

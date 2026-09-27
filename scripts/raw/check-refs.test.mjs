@@ -2,6 +2,7 @@
 // détectée, une réf valide reste silencieuse. Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { scanDeadRefs, sitesMorts, STOCK_PATH } from './check-refs.mjs'
 import { avecAtlasFixture, coeurDeBanc } from './atlasFixture.mjs'
 import { RAWDOC_META_GENERATED } from './_lib.mjs'
@@ -82,10 +83,10 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
     ou: 'dead-refs-stock.json',
   })
   assert.equal(neuves.length, 1)
-  assert.match(neuves[0], new RegExp(`docs/raw/${FICHE.replace('.', '\\.')} :: LDB 6 l\\.999 :: 1 — site NEUF`))
+  assert.match(neuves[0], new RegExp(`docs/raw/${echapperRegex(FICHE)} :: LDB 6 l\\.999 :: 1 — site NEUF`))
   assert.match(neuves[0], /CLIQUET:/)
   assert.equal(perimees.length, 1)
-  assert.match(perimees[0], new RegExp(AUTRE_FICHE.replace('.', '\\.')))
+  assert.match(perimees[0], new RegExp(echapperRegex(AUTRE_FICHE)))
   assert.match(perimees[0], /entrée SOLDÉE/)
 })
 

@@ -1,11 +1,10 @@
 // CROISSANCE DES DONNÉES — la mécanisation du DoD de #1812 : « +1 entrée → aucun rouge ».
 //
 // Un compte d'entrées gelé dans une migration DÉJÀ JOUÉE est un PÉAGE : chaque dataset app-owned qui
-// grandit légitimement (#1392 `regles.json` 85 → 86, #1800 puis #1806 `primitives.manifest.json`
-// 62 → 66 → 67) paie
-// un recalage dans un script sans rapport avec son lot. Aucune analyse de TEXTE ne tient cette
+// grandit légitimement (`regles.json`, `primitives.manifest.json`…) paie un recalage dans un script
+// sans rapport avec son lot. Aucune analyse de TEXTE ne tient cette
 // promesse — un cardinal s'écrit `!== ATTENDU`, `!== CARDINAUX[f]`, `total += d.length` puis
-// `total !== TOTAL`, sur une ligne ou sur trois. Ce module ne lit donc plus le CODE : il fabrique
+// `total !== TOTAL`, sur une ligne ou sur trois. Ce module ne lit donc pas le CODE : il fabrique
 // l'ÉVÉNEMENT que le ticket interdit de faire payer, et regarde qui proteste.
 //
 // PROTOCOLE : l'arbre d'un sha est exporté hors dépôt (`replay-head.mjs`, réutilisé tel quel) ;
@@ -17,9 +16,9 @@
 // CONTRAT, par migration : sortie 0 ET rien de réécrit ; OU sortie ≠ 0 dont CHAQUE LIGNE de refus
 // porte SA RÉFÉRENCE NUE RÉSOLVABLE (`LDB 18 l.53`, `AA 07 l.25-42`, un topic de `docs/raw/`).
 // LIGNE PAR LIGNE, et pas « quelque part dans le stderr » : un script qui refuse pour DEUX raisons
-// dont une seule est imposée par le livre exempterait l'autre par voisinage (mesuré sur
-// `1659-sub-lengthm-plage`, dont la table nominative des sous-tirages passait grâce à la réf de la
-// ligne CARDINAL voisine). L'exemption vit AU SITE, dans ce que le code PRONONCE en refusant — jamais
+// dont une seule est imposée par le livre exempterait l'autre par voisinage (`1659-sub-lengthm-plage` :
+// la réf de sa ligne CARDINAL exempterait sa table nominative des sous-tirages voisine).
+// L'exemption vit AU SITE, dans ce que le code PRONONCE en refusant — jamais
 // dans une liste de fichiers. Une seule ligne de refus sans référence = cardinal VIVANT, rouge
 // NOMINATIF (migration + ligne).
 //
@@ -34,6 +33,7 @@ import path from 'node:path';
 
 import { listerDossier } from '../../guards/lib/lister.mjs';
 import { pagesDeLAtlas } from '../../raw/_lib.mjs';
+import { alternationDe } from '../../../src/lib/regex.ts';
 import { comparer, empreinteDe } from './empreinteRejeu.mjs';
 import { PERIMETRE } from '../replay.mjs';
 
@@ -59,8 +59,6 @@ function topicsRaw(racine) {
     .map((p) => p.relatif.replace(/\.md$/, ''));
 }
 
-const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-
 /**
  * La reconnaissance d'une RÉF NUE : `<ABBR> <chapitre>` (avec ou sans `l.<ligne>`), ou un topic de
  * l'Atlas DÉSIGNÉ comme tel — `docs/raw/<topic>` ou `<topic>#<ancre>`. Le mot NU ne suffit pas :
@@ -70,8 +68,8 @@ const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
  * @returns {(texte: string) => boolean}
  */
 export function reconnaisseurDeRef(racine) {
-  const abbr = new RegExp(`\\b(?:${abreviations(racine).map(echappe).join('|')})\\s+\\d+`, 'u');
-  const noms = topicsRaw(racine).map(echappe).join('|');
+  const abbr = new RegExp(`\\b(?:${alternationDe(abreviations(racine))})\\s+\\d+`, 'u');
+  const noms = alternationDe(topicsRaw(racine));
   const topics = new RegExp(`(?:docs/raw/(?:${noms})|\\b(?:${noms})#[\\w-]+)`, 'u');
   return (texte) => abbr.test(texte) || topics.test(texte);
 }

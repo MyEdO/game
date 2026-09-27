@@ -3,7 +3,7 @@
 // CE QUI EST JOUÉ ICI : les scanners de commentaires/code sur le contenu de l'INDEX, `validate-data`,
 // `docs:check` + `check-docs-vs-head` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
 // `compile-dessin-quad`,
-// `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés (≈ 4 s / 20 fichiers).
+// `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés.
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
 // coûtent des dizaines de secondes et restent à la CI. La durée totale est imprimée en fin de hook.
 // Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (tolérance zéro, arbre à zéro) ;
@@ -43,12 +43,13 @@ import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.m
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
 import { arbrePrincipal } from '../guards/lib/gitPorte.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+import { alternationDe } from '../../src/lib/regex.ts';
 
 const DEBUT_MS = Date.now();
 
 // Deux racines DISTINCTES, jamais interchangeables. `core.hooksPath` vaut `scripts/git-hooks` RELATIF
 // (`git config --show-origin --get-all core.hooksPath` → `.git/config`, valeur relative), donc le
-// FICHIER joué est la copie de l'arbre QUI COMMITTE, worktree compris (#1679 L1c). Ce `.git/config`
+// FICHIER joué est la copie de l'arbre QUI COMMITTE, worktree compris (#1679). Ce `.git/config`
 // est COMMUN à tous les worktrees : une valeur absolue y désignerait un seul arbre pour tous.
 //  - ROOT = racine du worktree QUI COMMITTE, l'arbre à JUGER (contenu lu, scripts de garde joués, cwd
 //    des sous-processus). git chdir dans la racine de la copie de travail avant d'invoquer un hook
@@ -78,8 +79,8 @@ const TSX_CLI = existsSync(tsxIn(ROOT)) ? tsxIn(ROOT) : tsxIn(HOOK_TREE);
 // appel peuvent vivre dans des fichiers différents, ex. `bodyShapeOf`) — composition PARTAGÉE
 // (`collectIdParamFnsAcrossDirs`, scripts/guards/lib/labelLogic.mjs), aucune copie ici.
 const ID_PARAM_FNS = collectIdParamFnsAcrossDirs(ROOT, [...STRICT_DIRS, ...RATCHET_DIRS]);
-const strictRe = new RegExp(`^(?:${STRICT_DIRS.join('|')})/`);
-const ratchetRe = new RegExp(`^(?:${RATCHET_DIRS.join('|')})/`);
+const strictRe = new RegExp(`^(?:${alternationDe(STRICT_DIRS)})/`);
+const ratchetRe = new RegExp(`^(?:${alternationDe(RATCHET_DIRS)})/`);
 
 const argFiles = process.argv.slice(2);
 const staged = argFiles.length
@@ -88,7 +89,7 @@ const staged = argFiles.length
       .split('\n').filter(Boolean);
 
 const offenders = [];
-// #1679 L1c — le contenu d'un arbre de travail imbriqué n'appartient pas à un commit du dépôt hôte.
+// #1679 — le contenu d'un arbre de travail imbriqué n'appartient pas à un commit du dépôt hôte.
 for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.detail);
 // Signaux non bloquants, en OBJETS `{ file, line, detail }` : ils passent par la baseline
 // nominative (`decisions-baseline.json`) avant impression, qui les range en NOUVEAU / BASELINE.
@@ -145,7 +146,7 @@ for (const f of staged) {
         offenders.push(`${rel}:${x.line} [logique par label — hors exception ratchet] ${x.detail}`);
     }
   }
-  // #142 LOT 7 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
+  // #142 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
   // stock PAR FICHIER que `label-logic-guard.test.ts` (`LABEL_LITERAL_STOCK`, partagé par la lib).
   // Le hook ne voit qu'un fichier à la fois : seul un compte SUPÉRIEUR au stock y bloque — le volet
   // « dette soldée non retirée » reste à la CI, qui scanne le corpus entier.
@@ -256,19 +257,19 @@ if (docsPourLaPorte.length) {
   }
 }
 
-// #1679 L1b — EMPREINTE DE SOURCES des docs dérivés. UN déclencheur : un doc GÉNÉRÉ est stagé. Pour
+// #1679 — EMPREINTE DE SOURCES des docs dérivés. UN déclencheur : un doc GÉNÉRÉ est stagé. Pour
 // ce doc-là, les blobs figés dans son pied doivent être ceux de l'INDEX — sinon il décrit un arbre
 // que ce commit n'embarque pas. Une SOURCE stagée sans régénération n'arme rien ici : le pied qu'elle
 // périme porte un doc qui ne part pas dans ce commit, et armer sur les sources coûterait un
-// `docs:build` à 59,3 % des commits (mesuré 2026-09-02) pour un pied re-signé UNE fois par train, à
-// l'étape docs de `ops:publier` — qui juge désormais aussi les pieds des cibles `check: false`
-// (`piedsDesNonVerifiables`, #1773). La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
-// régénère RIEN (recalcul sur l'index, `git ls-files -s`), contre 49,8 s pour la régénération des 13
-// générateurs qu'un `src/data/*.json` arme (mesuré 2026-09-02).
+// `docs:build` à la majorité des commits pour un pied re-signé UNE fois par train, à l'étape docs de
+// `ops:publier` — qui juge aussi les pieds des cibles `check: false` (`piedsDesNonVerifiables`,
+// #1773). La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne régénère RIEN (recalcul sur
+// l'index, `git ls-files -s`), là où une régénération rejouerait chaque générateur qu'un
+// `src/data/*.json` arme.
 // CHAÎNE DE CONFIANCE : `docs/.sources-lues.json` est lu ici dans l'ARBRE (il ne sert qu'à CHOISIR
 // les générateurs), SANS être revérifié ; le VERDICT, lui, ne sort que de l'INDEX. Sa fraîcheur est
-// gatée en CI par `docs:check`, qui le REGÉNÈRE et le compare comme tout dérivé. DÉFAUT CONNU : s'il
-// est illisible, la sélection rend une liste vide et la porte se tait ici — la CI reste le filet.
+// gatée en CI par `docs:check`, qui le REGÉNÈRE et le compare comme tout dérivé. Illisible, il rend
+// une sélection vide : la porte se tait ici et `docs:check` tranche en CI.
 const sourcesLues = (() => {
   try { return JSON.parse(readFileSync(join(ROOT, 'docs', '.sources-lues.json'), 'utf8')); } catch { return {}; }
 })();
@@ -291,13 +292,13 @@ if (armes.length) {
 }
 
 // La garde des plans datés scanne TOUT fichier suivi (sens « référent → plan », par chemin ET par nom
-// nu) : l'armer sur le seul stage d'un doc laissait passer le cas le plus courant — un commentaire de
-// `.ts`/`.css` qui cite un plan. Elle coûte 4,8 s (mesuré), donc elle ne tourne pas à chaque commit :
+// nu) : l'armer sur le seul stage d'un doc laisserait passer le cas le plus courant — un commentaire de
+// `.ts`/`.css` qui cite un plan. Elle coûte plusieurs secondes, donc elle ne tourne pas à chaque commit :
 // COMPROMIS retenu = déclencheur sur le DIFF STAGÉ, pas sur la liste des fichiers.
-//   (a) un doc stagé, comme avant ;
+//   (a) un doc stagé ;
 //   (b) une ligne AJOUTÉE qui cite `docs/plans/` — le cas « je crée la référence », quel que soit le
 //       fichier porteur ;
-//   (c) une ligne AJOUTÉE qui NOMME un plan déjà supprimé (registre lu par `--registre`, 0,45 s) —
+//   (c) une ligne AJOUTÉE qui NOMME un plan déjà supprimé (registre lu par `--registre`) —
 //       consulté uniquement si le diff ajoute un nom de fichier plausible, sinon on ne paie rien.
 // Reste hors pre-commit (assumé, couvert par `npm run docs:check` et le canari) : une violation
 // PRÉEXISTANTE d'un fichier que ce commit ne touche pas.
@@ -331,7 +332,7 @@ if (docsPourLaPorte.length || citePlan || citeUnMort()) {
 
 // #487 — champ Implémente d'une fiche docs/raw ÉDITÉ à la main : le --check tourne UNIQUEMENT si une
 // page de l'Atlas est stagée (coût borné à ce cas), même patron bloquant que ci-dessus. Les fiches
-// vivent SOUS leur cœur (`docs/raw/<coeur>/<page>.md`, #1825) : le motif traverse les dossiers.
+// vivent SOUS leur cœur (`docs/raw/<coeur>/<page>.md`, #1825) : la regex traverse les dossiers.
 const rawFicheStaged = staged.some((f) => /^docs\/raw\/.+\.md$/.test(f.replace(/\\/g, '/')));
 if (rawFicheStaged) {
   try {
@@ -344,7 +345,7 @@ if (rawFicheStaged) {
   }
 }
 
-// #1679 L1b — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md` : le --check
+// #1679 — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md` : le --check
 // tourne dès qu'une fiche user-* ou le doc lui-même est stagé (même patron borné que #487 ci-dessus).
 const doctrineStaged = staged.some((f) => {
   const r = f.replace(/\\/g, '/');
@@ -446,7 +447,7 @@ if (recetteInfraStaged) {
   }
 }
 
-// LINT du diff (≈ 4 s / 20 fichiers) : la CI joue `npm run lint` sur le dépôt entier, ce hook le joue
+// LINT du diff : la CI joue `npm run lint` sur le dépôt entier, ce hook le joue
 // sur les seuls stagés EXISTANTS — câblage et raisons dans `scripts/guards/lib/lintStage.mjs`.
 const aLinter = fichiersALinter(staged, ROOT);
 if (aLinter.length) {

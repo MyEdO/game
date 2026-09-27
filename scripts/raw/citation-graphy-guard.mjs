@@ -1,4 +1,4 @@
-// Garde de graphie des citations RAW (#487 lot 3, #585 lot A, #454 DoD, #1898).
+// Garde de graphie des citations RAW (#487, #585, #454, #1898).
 // Dans les CITANTS de `src/**` (`lib/fichiersCitants.mjs`), une réf au livre s'écrit
 // `<ABRÉV> <chap> l.<ligne>` (CLAUDE.md règle 1). Deux classes y lisent TOUTE ligne — commentaire en
 // tête ou en fin de ligne de code, titre de test, chaîne affichée, champ JSON :
@@ -18,6 +18,7 @@ import { allAbbrAlternation, bookOf, chapterBoundaryRiskFor, folioRange, pagesDe
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { EXTS_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { readStock as readStockFile } from './stockNominatif.mjs'
+import { alternationDeRegex } from '../../src/lib/regex.ts'
 
 export const SRC_DIR = 'src'
 export const RAWDIR = 'docs/raw'
@@ -35,10 +36,9 @@ export const CLASSES_PROSE = ['fiche', 'catalogue']
 export const EMDASH_RANGE_RE = () => /l\.\d+[–—]/g
 // (b) Réf de livre SANS chapitre : `<ABRÉV> l.<n>` — le chapitre manquant, ni `check-refs` ni
 // `check-code-refs` n'ont de fichier à borner : la réf n'est jamais comptée. TOUS les livres de
-// `BOOKS`, les livres de cœur compris : la graphie est UNE (`refRe`, _lib.mjs), la classe l'est aussi.
-// Alternation DÉRIVÉE de `_lib.mjs` (#434 défaut 10 : une alternation écrite à la main ici se
-// désynchronisait dès qu'un livre s'ajoutait à BOOKS). Les réfs irrésolues au `Source/` sont des
-// entrées NOMINATIVES du stock, jamais une exclusion de classe.
+// `BOOKS`, les livres de cœur compris : la graphie est UNE (`refRe`, _lib.mjs, #434), la classe l'est
+// aussi. Les réfs irrésolues au `Source/` sont des entrées NOMINATIVES du stock, jamais une exclusion
+// de classe.
 export const BOOK_NO_CHAPTER_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) l\\.\\d`, 'g')
 // (c) Nom de FICHIER de chapitre en backticks entre le livre et les lignes : `` `NN - Titre.md` l.X ``
 // (ex. `ADE II \`08 - Le theatre de la guerre.md\` l.89-131`) — invisible de `refRe` (numéro de
@@ -49,28 +49,27 @@ export const BACKTICK_FILE_RE = () => /`\d+ - [^`]*\.md` l\.\d/g
 // chapitre est lu) collé par un tiret à un nom (lettres accentuées comprises — `\w` seul EXCLUT les
 // accents hors mode Unicode, d'où la classe explicite), suivi d'une réf `l.<ligne>` — ex.
 // `15-Déplacement l.79`, `18-Traumatisme l.417`, `15-Dépl l.87`. Les dates (`2026-07-15`) et ids
-// (`ticket-42`) ne matchent pas : le motif exige des chiffres puis un TIRET puis une LETTRE (jamais
+// (`ticket-42`) ne matchent pas : la regex exige des chiffres puis un TIRET puis une LETTRE (jamais
 // un second groupe de chiffres, jamais un id nu sans " l.<n>" collé juste après le nom).
 export const GRAPHY_RE = () => /\b\d+-[A-Za-zÀ-ÿ]+ l\.\d+/g
 
 // (d) Prose d'état d'implémentation dans une fiche, HORS bloc de champ généré `**Implémente**`
 // (frontière via `fieldBlockMask`, source unique). Verrouille à zéro toute réapparition de « X n'est
-// pas câblé / ne sont pas implémentés » — la graphie PLURIELLE (`ne sont pas implémentés`) échappait
-// à l'ancien NONIMPL_RE. Fabrique FRAÎCHE (état /g non partagé). Insensible à la casse.
+// pas câblé / ne sont pas implémentés », graphie PLURIELLE comprise. Insensible à la casse.
 export const NONIMPL_RE = () => new RegExp(
-  '(?:' + [
+  '(?:' + alternationDeRegex([
     'non[- ]impl[ée]ment[ée]?e?s?',
     "n['’](?:est|étaient?|était) pas (?:encore )?impl[ée]ment[ée]?e?s?",
     'ne sont pas (?:encore )?impl[ée]ment[ée]?e?s?',
     'non c[âa]bl[ée]?e?s?',
     'pas (?:encore )?c[âa]bl[ée]?e?s?',
-  ].join('|') + ')\\b',
+  ]) + ')\\b',
   'iu',
 )
 
-// (e) `ch.` cosmétique devant un numéro de chapitre — TOLÉRÉ par `refRe` (#434 défaut 3),
-// mais graphie DÉVIANTE au sens de #585 (le numéro de fichier n'a pas besoin du préfixe `ch.` depuis
-// la convention 2ed2acff/a5eddf80) : cliqueté par site, `src/**` et fiches.
+// (e) `ch.` cosmétique devant un numéro de chapitre — TOLÉRÉ par `refRe` (#434), mais graphie
+// DÉVIANTE au sens de #585 : le numéro de fichier se passe du préfixe `ch.`. Cliqueté par site,
+// `src/**` et fiches.
 export const CH_DOT_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) ch\\.\\d+`, 'g')
 // (f) Folio NU sans chapitre en fiche : `<ABRÉV> p.<n>` (chapitre absent → invérifiable contre les
 // data-folio bakés). Toute ligne des fiches scannées ; en `src/**`, la classe (j) le voit.
@@ -81,8 +80,8 @@ export const BARE_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) p\\.
 // un stock à geler).
 export const UNKNOWN_ABBR_RE = () => /\b[A-Z]{2,6}(?:\s+I{1,2})? \d+ [lp]\.\d+/g
 
-// (h) MULTI-FOLIOS d'une fiche dont un folio tombe dans un chapitre DIFFÉRENT du chapitre écrit (#522
-// juge adversarial) : `<ABRÉV> NN p.X` suivi d'un ou plusieurs folios supplémentaires (`/Y`, `-Y`,
+// (h) MULTI-FOLIOS d'une fiche dont un folio tombe dans un chapitre DIFFÉRENT du chapitre écrit
+// (#522) : `<ABRÉV> NN p.X` suivi d'un ou plusieurs folios supplémentaires (`/Y`, `-Y`,
 // `,Z`). Un seul chapitre N est écrit dans la réf — si un des folios listés ne résout PAS dans CE
 // chapitre (`folioRange(abbr, folio).ch !== N`), le folio appartient à un AUTRE chapitre, jamais
 // écrit : violation. Zéro tolérance, PAS de stock. Remède : une réf par chapitre. En `src/**`, la
@@ -90,7 +89,7 @@ export const UNKNOWN_ABBR_RE = () => /\b[A-Z]{2,6}(?:\s+I{1,2})? \d+ [lp]\.\d+/g
 export const MULTI_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\d+) p\\.(\\d+)((?:[/,-]\\d+)+)`, 'g')
 
 // (i) Folio SIMPLE `<ABRÉV> N p.X` d'une fiche cité au DERNIER folio du chapitre N alors que le
-// chapitre N+1 s'ouvre sur X ou X+1 (#454 juge adversarial, cas prouvé `LDB 48 p.255` — voir
+// chapitre N+1 s'ouvre sur X ou X+1 (#454, cas prouvé `LDB 48 p.255` — voir
 // `chapterBoundaryRisk`, _lib.mjs). Négation `(?![/,-]\d)` : un folio suivi d'un autre (`p.X/Y`,
 // `p.X-Y`, `p.X,Y`) n'est pas un folio simple : la classe (h) le juge. AVERTISSEMENT cliqueté (jamais bloquant à l'aveugle) :
 // la position structurelle rend le débordement PLAUSIBLE, mais seule une relecture verbatim tranche
@@ -101,12 +100,12 @@ export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternat
 // --- PASSE UNIQUE : un corpus lu une fois, une itération par (fichier, ligne), tous les détecteurs
 // nourris au passage. Chaque CLASSE est une fonction PURE d'une LIGNE vers ses occurrences
 // (`detecte*`) ; chaque `scan*Violations` lit sa famille dans le résultat de la passe, qui est
-// mémoïsé par clé (dossiers + extensions). Ce qui coûtait n'était pas l'I/O (~2 s) mais le RE-SCAN
-// du même corpus par famille, sept fois (mesure #1709 D2 : 18,9 s pour 3 743 fichiers de `src/`).
+// mémoïsé par clé (dossiers + extensions) : le coût n'est pas l'I/O mais le RE-SCAN du même corpus
+// par famille (#1709).
 // MÉMO : il porte le RÉSULTAT de la passe, pas le texte lu (`readCorpus`, scripts/guards/lib) ;
 // même condition de licéité — l'arbre scanné est STATIQUE pendant un run (les gates écrivantes
 // jouent en série avant les lectrices, `scripts/gates/toutes.mjs` `AVANT_LES_LANES`). Les familles
-// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs:96,100`) : un `push`/`sort`
+// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs:103,107`) : un `push`/`sort`
 // d'appelant ne peut pas s'écrire dans le mémo.
 // LECTEUR : la marche reste `fichiersCitants` (sur `listerArbre`) et non `readCorpus`, parce que ce garde
 // scanne des corpus que ce dernier ne sait pas dire — une base à 0 fichier (il la refuse, par base)
@@ -213,7 +212,7 @@ function fichesScannees(rawDir) {
 
 const FAMILLES = ['graphy', 'folioSrc', 'docsRaw', 'implProse', 'chDot', 'bareFolio', 'bookNoChapterSrc', 'unknownAbbr', 'multiFolioSplit', 'chapterBoundaryFolio']
 const vide = () => Object.fromEntries(FAMILLES.map((f) => [f, []]))
-/** Gèle les dix familles et leur porteur : ce que rend une passe est IMMUABLE. */
+/** Gèle chaque famille (`FAMILLES`) et leur porteur : ce que rend une passe est IMMUABLE. */
 const geler = (familles) => {
   for (const f of FAMILLES) Object.freeze(familles[f])
   return Object.freeze(familles)
@@ -272,7 +271,7 @@ function passeFiches(rawDir) {
   })
 }
 
-/** Les dix familles du garde, corpus `src/**` PUIS fiches `docs/raw/*.md` (l'ordre des deux passes
+/** Les familles du garde (`FAMILLES`), corpus `src/**` PUIS fiches `docs/raw/*.md` (l'ordre des deux passes
  *  décide de l'ordre du rapport). Pur (aucune écriture). */
 export function scanTout(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
   const src = passeSrc(srcDir, exts)
@@ -280,14 +279,14 @@ export function scanTout(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR
   return geler(Object.fromEntries(FAMILLES.map((f) => [f, [...src[f], ...fiches[f]]])))
 }
 
-/** Scan (h) : multi-folios d'une fiche à cheval sur des chapitres différents (#522 juge
- *  adversarial), zéro tolérance. Retourne `{ file, row, folios, text }[]`. */
+/** Scan (h) : multi-folios d'une fiche à cheval sur des chapitres différents (#522), zéro
+ *  tolérance. Retourne `{ file, row, folios, text }[]`. */
 export function scanMultiFolioSplitViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).multiFolioSplit
 }
 
 /** Scan (i) : folio simple `<ABRÉV> N p.X` d'une fiche au DERNIER folio du chapitre N, chapitre
- *  N+1 s'ouvrant sur X/X+1 (#454 juge adversarial). AVERTISSEMENT cliqueté (non bloquant sur le stock
+ *  N+1 s'ouvrant sur X/X+1 (#454). AVERTISSEMENT cliqueté (non bloquant sur le stock
  *  EXISTANT, cf. `main()`) — un candidat structurel n'est PAS une preuve verbatim.
  *  Retourne `{ file, row, abbr, ch, folio, text }[]`. */
 export function scanChapterBoundaryFolioViolations(rawDir = RAWDIR) {
@@ -420,7 +419,7 @@ function main() {
     console.log('citation-graphy-guard : 0 prose d\'état d\'implémentation (docs/raw/) — classe verrouillée à zéro.')
   }
 
-  // (#454 juge adversarial) La famille AVERTISSEMENT n'est PAS bloquante à l'aveugle sur ses sites
+  // (#454) La famille AVERTISSEMENT n'est PAS bloquante à l'aveugle sur ses sites
   // déclarés : un candidat structurel (dernier folio de N, N+1 s'ouvre sur X/X+1) n'est PAS une preuve
   // verbatim (cas prouvé unique `LDB 48 p.255` sur 48 candidats structurels du repo). Un site NEUF ou
   // une entrée SOLDÉE échoue quand même, même cliquet que les autres familles.

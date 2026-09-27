@@ -1,4 +1,4 @@
-// GARDE DE FORME du workflow d'extraction de fiches d'Atlas (#1825 lot E).
+// GARDE DE FORME du workflow d'extraction de fiches d'Atlas (#1825).
 //
 // L'invariant : le script ne NOMME aucun livre ni aucun DOMAINE — ni sigle, ni titre, ni dossier, ni
 // édition, ni cardinal de livres/chapitres —, ni dans son code, ni dans un PROMPT. Le périmètre
@@ -22,6 +22,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { REGISTRE_LIVRES } from './_lib.mjs'
 import { assemble } from './assemble-domain.mjs'
 import { lireRendu, perimetreDeCoeur } from './workflow-args.mjs'
@@ -103,7 +104,7 @@ const fonctionsDePrompt = [...SOURCE.matchAll(/function (\w+Prompt)\s*\([^)]*\)\
   .map((m) => ({ nom: m[1], amorce: m[2].slice(0, 20) }))
 
 /** Bordures UNICODE : `\w` laisserait passer « ZI, ÉAA, l'ACE. */
-const borde = (s) => new RegExp(`(?<![\\p{L}\\p{N}])${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u')
+const borde = (s) => new RegExp(`(?<![\\p{L}\\p{N}])${echapperRegex(s)}(?![\\p{L}\\p{N}])`, 'u')
 
 /** Toute identité du registre RÉEL : sigles, libellés, dossiers, cœurs, langues, TITRES de domaine. */
 const identitesReelles = () => [
@@ -221,13 +222,13 @@ test('workflow Atlas : un domaine SAUTÉ sort dans `sautes`, avec sa RAISON, pou
     ['Cartographie', { items: [] }, /inventaire VIDE/],
     ['Taxonomie', { topics: [] }, /taxonomie VIDE/],
   ]
-  for (const [phaseMuette, rendu, motif] of causes) {
+  for (const [phaseMuette, rendu, regex] of causes) {
     const { rendu: r } = await jouerWorkflow(SCRIPT, PERIMETRE(), (p, o) =>
       (o.phase === phaseMuette ? rendu : repondreAvec(false)(p, o)))
     assert.deepEqual(r.domains, [], `le domaine n'aurait pas dû être traité (${phaseMuette})`)
     assert.equal(r.sautes.length, 1, JSON.stringify(r.sautes))
     assert.equal(r.sautes[0].domain, LOT[0])
-    assert.match(r.sautes[0].raison, motif)
+    assert.match(r.sautes[0].raison, regex)
   }
   // Un run NOMINAL ne saute rien : la clé existe, et elle est vide.
   const { rendu: sain } = await jouerWorkflow(SCRIPT, PERIMETRE(), repondreAvec(false))
@@ -449,10 +450,10 @@ test('workflow Atlas : un agent de vérif qui rend un AUTRE `topicId` ne keye pl
   assert.equal(topics.find((t) => t.topicId === 'jamais-juge').faithful, true)
 })
 
-// UNE RE-VÉRIF MUETTE NE DÉTRUIT PLUS UN VERDICT. Un topic entré `faithful:false` avec ses `issues`
-// en ressortait `faithful:null` sans issue dès que l'agent ne rendait rien : le verdict établi était
-// effacé, et plus rien ne disait comment corriger. Ce que personne n'a jugé reste `null` ; ce qu'un
-// juge a refusé reste refusé, avec ses points.
+// UNE RE-VÉRIF MUETTE NE DÉTRUIT PAS UN VERDICT : un topic entré `faithful:false` avec ses `issues`
+// ne ressort pas `faithful:null` sans issue quand l'agent ne rend rien — le verdict établi, et ce qui
+// dit comment corriger, restent. Ce que personne n'a jugé reste `null` ; ce qu'un juge a refusé reste
+// refusé, avec ses points.
 test('workflow Atlas : en REPRISE, un agent MUET laisse le verdict antérieur INTACT', async () => {
   const rendu = RENDU_A_REPRENDRE()
   rendu.topics.push({ topicId: 'juge-refuse', title: 'Juge Refuse', markdown: '## Juge Refuse\n\nUn corps.', refs: ['BKA 05 l.3'], codeHint: '', faithful: false, issues: ['une valeur fausse'] })
@@ -474,8 +475,8 @@ test('workflow Atlas : un `args.reprise` mal formé LÈVE en nommant la cause', 
     [{ ...PERIMETRE(), reprise: { domain: LOT[0] } }, /`args\.reprise\.topics` absent ou vide/],
     [{ ...PERIMETRE(), lot: ['domaine-deux'], reprise: RENDU_A_REPRENDRE() }, /une reprise ne joue QUE le domaine de son rendu/],
   ]
-  for (const [argsDuRun, motif] of cas) {
-    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), motif, JSON.stringify(argsDuRun.reprise))
+  for (const [argsDuRun, regex] of cas) {
+    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), regex, JSON.stringify(argsDuRun.reprise))
   }
 })
 
@@ -533,7 +534,7 @@ test('workflow Atlas : un `args` absent ou mal formé LÈVE en nommant la cause'
     [{ coeur: 'alpha', livres, domaines }, /`args\.lot` absent ou vide/],
     [{ coeur: 'alpha', livres, domaines, lot: ['domaine-jamais-declare'] }, /« domaine-jamais-declare » du lot inconnu/],
   ]
-  for (const [argsDuRun, motif] of cas) {
-    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), motif, `args = ${JSON.stringify(argsDuRun)}`)
+  for (const [argsDuRun, regex] of cas) {
+    await assert.rejects(() => jouerWorkflow(SCRIPT, argsDuRun, repondreAvec(false)), regex, `args = ${JSON.stringify(argsDuRun)}`)
   }
 })

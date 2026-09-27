@@ -13,11 +13,10 @@
  */
 import booksJson from './books.json';
 import { memoParVersion } from './versionDataset';
-
-const escapeRx = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+import { alternationDe } from '../lib/regex';
 
 export const bookMarkerRx = memoParVersion('books', () => new RegExp(
-  `\\s*\\((?:${(booksJson as { abbr: string }[]).map((b) => escapeRx(b.abbr)).join('|')})\\)\\s*$`,
+  `\\s*\\((?:${alternationDe((booksJson as { abbr: string }[]).map((b) => b.abbr))})\\)\\s*$`,
 ));
 
 /** Le libellé PRIVÉ de sa marque de provenance (inchangé s'il n'en porte pas). */

@@ -5,6 +5,7 @@ import { emptyScene, type Scene } from '../../state/scene';
 import { floorSvg, floorDepth } from './floorsSvg';
 import { depth, diamondPath, tileCenter, type Dims } from '../../geometry/iso';
 import { terrainGradientId } from '../catalog/terrain';
+import { echapperRegex } from '../../lib/regex';
 
 /**
  * Peintre SVG d'authoring des sols : projette les éléments `floor` du pivot (builders/floors) via la
@@ -31,7 +32,7 @@ describe('floorSvg — losange de base', () => {
   it('tuile plate = un losange au tracé écran de diamondPath ; herbe = VARIANTE de teinte par tuile (matériaux v2)', () => {
     const s = emptyScene(4, 4); // herbe partout
     const svg = floorSvg(elAt(s, 1, 1), dims);
-    expect(svg).toMatch(new RegExp(`^<path d="${diamondPath(1, 1, dims).replace(/([().])/g, '\\$1')}" fill="url\\(#${terrainGradientId('herbe')}-v[0-3]\\)" stroke="rgba\\(0,0,0,0.16\\)"/>$`));
+    expect(svg).toMatch(new RegExp(`^<path d="${echapperRegex(diamondPath(1, 1, dims))}" fill="url\\(#${terrainGradientId('herbe')}-v[0-3]\\)" stroke="rgba\\(0,0,0,0.16\\)"/>$`));
     expect(floorSvg(elAt(s, 1, 1), dims)).toBe(svg); // variante stable (hash du monde)
   });
 

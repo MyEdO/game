@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { echapperRegex } from '../lib/regex';
 
 /**
- * Garde de MATIÈRE (#414, lot « matière modale + onglets ») — la primitive `.modal` (components.css)
+ * Garde de MATIÈRE (#414) — la primitive `.modal` (components.css)
  * porte la peau « Atelier du scribe » (planche ratifiée de la fiche, `.sheet-modal`) : halo or
  * radial en tête + dégradé bois chaud, bandeau or 4px, bordures chaudes, ombre profonde. jsdom ne
  * calcule pas la cascade des fichiers CSS externes (pas de `<link>` chargé) — on parse donc le bloc
@@ -16,7 +17,7 @@ const css = readFileSync(COMPONENTS, 'utf8');
 
 /** Isole le bloc `{...}` d'un sélecteur EXACT (ex. `.modal {`) — pas `.modal.wide`/`.modal-overlay`. */
 function ruleBlock(src: string, selector: string): string {
-  const re = new RegExp(`(?:^|\\n)${selector.replace(/[.[\]]/g, '\\$&')}\\s*\\{`);
+  const re = new RegExp(`(?:^|\\n)${echapperRegex(selector)}\\s*\\{`);
   const m = re.exec(src);
   if (!m) throw new Error(`sélecteur introuvable : ${selector}`);
   const start = m.index + m[0].length;

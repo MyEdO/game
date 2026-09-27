@@ -1,5 +1,5 @@
 /**
- * Migration #1466 T3-b — effet `giveTrapping`, DEUX volets de la MÊME classe (une donnée d'authoring
+ * Migration #1466 — effet `giveTrapping`, DEUX volets de la MÊME classe (une donnée d'authoring
  * porte un **LIBELLÉ** d'affichage là où le lecteur attend un **id STABLE** de catalogue) :
  *   1. champ `trapping` → champ `trappingId` (catalogue `src/data/trappings.json`) ;
  *   2. éléments de `qualities: [...]` → ids de qualité (catalogue `src/data/qualities.json`).
@@ -36,6 +36,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { echapperRegex } from '../../src/lib/regex.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
@@ -121,7 +123,7 @@ function migrateJson(full) {
     const id = resolve(label, `${rel(full)} ${chemin}`);
     if (id === null) continue;
     const jsonLabel = JSON.stringify(label);
-    const ancre = new RegExp(`"trapping"(\\s*:\\s*)${jsonLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+    const ancre = new RegExp(`"trapping"(\\s*:\\s*)${echapperRegex(jsonLabel)}`);
     if (!ancre.test(out)) {
       echecs.push({ label, where: `${rel(full)} ${chemin}`, motif: 'ancre textuelle introuvable' });
       continue;

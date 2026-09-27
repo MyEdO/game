@@ -37,7 +37,7 @@
  *  - Part claire : % des pixels du masque au-dessus de la mi-distance entre la valeur de BASE
  *    de la matière dominante (jeton `@vetN`/`@cuir`/… résolu) et sa valeur de LUMIÈRE (`…H`).
  *    Diagnostic le plus robuste : un P90 posé exactement sur la valeur de base = aucune
- *    surface éclairée. Part sombre (miroir, #638 volet B) : % des pixels sous la mi-distance
+ *    surface éclairée. Part sombre (miroir, #638) : % des pixels sous la mi-distance
  *    base↔OMBRE (`…O`) — seule mesure exprimable pour une matière quasi-blanche.
  *  - Composantes connexes (8-voisins) de la figure ENTIÈRE : une masse détachée est un défaut
  *    bloquant. bbox des surnuméraires en unités SVG.
@@ -60,7 +60,7 @@
  * ni échec, à instruire par un juge, n'affecte PAS l'exit code. Sinon → `NON-REFUTE` — jamais
  * « BON » : le harnais ne voit qu'un histogramme de pixels, jamais le rendu ; le verdict humain
  * vient d'un juge qui a REGARDÉ l'image (#635).
- * CLAUSE QUASI-BLANC (#638 volet B) : une matière de base ≥ `CONTRAT_QUASI_BLANC_BASE_MIN` ne
+ * CLAUSE QUASI-BLANC (#638) : une matière de base ≥ `CONTRAT_QUASI_BLANC_BASE_MIN` ne
  * peut structurellement pas atteindre la part claire (aucune surface plus claire qu'une base déjà
  * quasi-blanche) — son volume s'y prouve par l'OMBRE, miroir symétrique : part SOMBRE (< seuil
  * base↔ombre) à la place de part claire, `p10SurBase` (« ancrage » bas) à la place de `p90SurBase`.
@@ -85,6 +85,7 @@ import { QUAD_SPECIES, WINGED_SPECIES } from '../../src/gameIso/rig/creatures';
 import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQuad';
 import { QUAD_REST } from '../../src/gameIso/rig/quadruped/quadPose';
 import type { QuadBoneId } from '../../src/gameIso/rig/quadruped/quadSkeleton';
+import { alternationDe } from '../../src/lib/regex.ts';
 
 // ── Rig de référence (figé) ───────────────────────────────────────────────────────────────
 const REF_APPEARANCE: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
@@ -144,8 +145,8 @@ if (osArg && !creatureArg) die(`${USAGE}\n--os nécessite --creature.`);
 if (!SLOT_BONES[slot]) die(`slot inconnu: ${slot} — attendus: ${Object.keys(SLOT_BONES).join(', ')}`);
 for (const v of views) if (!['front', 'profile', 'back'].includes(v)) die(`vue inconnue: ${v} — attendues: front, profile, back`);
 
-// `tenueId` est un ID (slugId), jamais un libellé : un lookup par libellé replie silencieusement
-// sur la tenue citadins (incident corrigé en a1fcfe6c).
+// `tenueId` est un ID (slugId), jamais un libellé : un lookup par libellé replierait silencieusement
+// sur la tenue citadins.
 if (!allMode && !creatureArg && !TENUE_BY_ID[tenueArg]) {
   const asId = slugId(tenueArg);
   if (TENUE_BY_ID[asId]) die(`« ${tenueArg} » est un LIBELLÉ, pas un id. Relancer avec l'id : ${asId}`);
@@ -253,7 +254,7 @@ function dominantMaterial(tmap: Record<string, string>, counts: Map<string, numb
 /** Emplacements de CORPS (chair/anatomie) — le reste de `SLOTS` (`palette.ts`) est TENUE. */
 const BODY_SLOTS = new Set(['peau', 'cheveux', 'yeux', 'corps']);
 const TENUE_FAM_TOKENS = SLOTS.filter((s) => !BODY_SLOTS.has(s));
-const TENUE_TOKEN_RE = new RegExp(`@(${TENUE_FAM_TOKENS.join('|')})(O|H)?\\b`);
+const TENUE_TOKEN_RE = new RegExp(`@(${alternationDe(TENUE_FAM_TOKENS)})(O|H)?\\b`);
 /** Un gradient de tenue est tout `url(#g_...)` ; un dégradé dérivé `dg-` compte par ses jetons. */
 const TENUE_GRADIENT_RE = /url\(#g_\w+\)/;
 
@@ -474,7 +475,7 @@ const reglagesCommun = {
 // couleur du composé = couleur du rendu des SEULS os demandés ; érosion 1 u) appliquée au plan
 // QUADRUPÈDE/AILÉ, en pose de repos. Ce mode ajoute la PLATITUDE LOCALE FENÊTRÉE, que l'écart
 // global ne voit pas : une bête peut afficher 33 pts d'écart P90−P10 avec un dos très structuré
-// et une PLAQUE de valeur uniforme à l'épaule (mesure du juge de design, #1082).
+// et une PLAQUE de valeur uniforme à l'épaule (#1082).
 //   Réglages DÉCLARÉS, à citer avec TOUT chiffre : fenêtre 11 u, pas 2 u, une fenêtre est RETENUE
 //   si ≥ 60 % de ses pixels sont au masque, et PLATE si son P90−P10 y est < 12 pts.
 //   Le rapport rend le COMPTE (plates/retenues), les AMAS de fenêtres plates 4-connexes (une
@@ -484,8 +485,8 @@ const reglagesCommun = {
 // DROITE (`quadSkeleton`) : `dos` = tiers HAUT ; `flanc+epaule` = deux tiers bas de la moitié
 // AVANT ; `ensemble` = tout le masque. Une fenêtre appartient à une bande si son CENTRE y tombe.
 // PÉRIMÈTRE du masque : le GROUPE D'OS demandé, sans séparation par matière — un chiffre de ce
-// mode n'est comparable qu'à un chiffre du même mode (un relevé antérieur qui excluait la corne
-// du bœuf par géométrie compte moins de fenêtres retenues, à réglages pourtant identiques).
+// mode n'est comparable qu'à un chiffre du même mode (un relevé qui exclut la corne du bœuf par
+// géométrie compte moins de fenêtres retenues, à réglages pourtant identiques).
 // ─────────────────────────────────────────────────────────────────────────────────────────
 const PLAT_FENETRE_U = 11, PLAT_PAS_U = 2, PLAT_SEUIL = 12, PLAT_COUV = 0.6;
 const BANDES: { nom: string; x0: number; y0: number; x1: number; y1: number }[] = [

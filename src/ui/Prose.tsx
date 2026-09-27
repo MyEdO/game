@@ -47,7 +47,7 @@ function autolink(tree: HastNode, selfCategory: string, selfId: string): void {
     const next: HastNode[] = [];
     for (const child of node.children) {
       if (child.type === 'text' && typeof child.value === 'string') {
-        const tokens = tokenizeLinks(child.value, undefined, selfCategory, selfId);
+        const tokens = tokenizeLinks(child.value, selfCategory, selfId);
         if (tokens.length === 1 && typeof tokens[0] === 'string') {
           next.push(child);
         } else {

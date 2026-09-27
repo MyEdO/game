@@ -1,10 +1,11 @@
-// LECTURE DE `_zod.def` (#1463 R2, D10b) — hors de `src/data/schemas/grammaire/descente.ts`, la forme
+// LECTURE DE `_zod.def` (#1463) — hors de `src/data/schemas/grammaire/descente.ts`, la forme
 // d'un nœud zod se lit par `defDe` et ses enfants par `enfantsDe` : un `_zod.def` écrit à la main, ou un
 // champ d'enfants (`CHAMPS_D_ENFANTS`, exporté par `descente.ts`) lu sur un `def`, est une seconde
 // lecture de la forme, qui divergera sur la première enveloppe neuve. Module ESM pur, exécutable par
 // `node` nu ; le scan porte sur la vue CODE SEUL (`codeSeul.mjs`) : un commentaire ou une chaîne
 // n'exécutent rien.
 import { codeSeul } from './codeSeul.mjs';
+import { alternationDe } from '../../../src/lib/regex.ts';
 
 /** Accès à `def` sur `_zod` (`_zod.def`, `_zod?.def`, `_zod!.def`), et `_def` (alias de zod). */
 const ACCES_DEF = /_zod[!?]*\.def\b|\b_def\b/;
@@ -17,18 +18,15 @@ const ASSIGNATION_DE_DEF = /=\s*defDe\s*\(/g;
 /** Une déstructuration depuis `defDe(` : `const { shape } = defDe(n)`. */
 const DESTRUCTURATION_DE_DEF = /\{([^{}]*)\}\s*(?::[^=;]*)?=\s*defDe\s*\(/g;
 
-const echapper = (mot) => mot.replace(/[$]/g, '\\$');
-
 /**
- * Motif d'une lecture de champ d'enfants sur un `def` ou un alias : `def.shape`, `def?.options`,
+ * Regex d'une lecture de champ d'enfants sur un `def` ou un alias : `def.shape`, `def?.options`,
  * `x.def!.element`, `nd.shape` quand `nd` est un alias.
  * @param {readonly string[]} champs
  * @param {readonly string[]} [alias] identifiants assignés depuis `defDe(` dans le même fichier
  * @returns {RegExp}
  */
-function motifDeChampDEnfants(champs, alias = []) {
-  const noms = ['def', ...alias].map(echapper).join('|');
-  return new RegExp(`(?<![\\w$])(?:${noms})[!?]*\\??\\.(?:${champs.map(echapper).join('|')})\\b`);
+function regexDeChampDEnfants(champs, alias = []) {
+  return new RegExp(`(?<![\\w$])(?:${alternationDe(['def', ...alias])})[!?]*\\??\\.(?:${alternationDe(champs)})\\b`);
 }
 
 /**
@@ -94,9 +92,9 @@ function apresDefDe(code) {
 export function lecturesDefZod(contenu, champs) {
   const code = codeSeul(contenu);
   const alias = [...new Set(aliasDeDef(code).filter((n) => n !== 'def'))];
-  const champ = motifDeChampDEnfants(champs, alias);
-  const apresAppel = new RegExp(`^[!?]*\\??\\.(?:${champs.map(echapper).join('|')})\\b`);
-  const destructure = new RegExp(`(?<![\\w$])(?:${champs.map(echapper).join('|')})(?![\\w$])`);
+  const champ = regexDeChampDEnfants(champs, alias);
+  const apresAppel = new RegExp(`^[!?]*\\??\\.(?:${alternationDe(champs)})\\b`);
+  const destructure = new RegExp(`(?<![\\w$])(?:${alternationDe(champs)})(?![\\w$])`);
   const brut = contenu.split('\n');
   const trouvees = [];
   code.split('\n').forEach((ligne, i) => {

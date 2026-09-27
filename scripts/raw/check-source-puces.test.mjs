@@ -102,6 +102,17 @@ test('jetonDeLigne : le jeton d’UN caractère et son contenu, ou rien', () => 
   assert.equal(jetonDeLigne(''), null)
 })
 
+test('jetonDeLigne : la ponctuation de STRUCTURE Markdown n’est jamais un jeton, tout autre glyphe l’est', () => {
+  for (const structure of ['-', '*', '+', '>', '|', '#', '=']) {
+    assert.equal(jetonDeLigne(`- ${structure} Act`), null, structure)
+    assert.equal(jetonDeLigne(`${structure} Act`), null, structure)
+  }
+  for (const glyphe of [',', 'A', '•', '.']) {
+    assert.deepEqual(jetonDeLigne(`- ${glyphe} Act`), { jeton: glyphe, contenu: 'Act' }, glyphe)
+    assert.deepEqual(jetonDeLigne(`${glyphe} Act`), { jeton: glyphe, contenu: 'Act' }, glyphe)
+  }
+})
+
 test('la RÉF porte du CONTENU, jamais une position — un paragraphe inséré ne la bouge pas', () => {
   const suite = ['- 0 **Gold:** The rulers of society.', '- 0 **Silver:** Skilled professionals.']
   assert.deepEqual(refs(suite), refs(['Un paragraphe de plus.', '', ...suite]))

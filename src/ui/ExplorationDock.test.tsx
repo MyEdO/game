@@ -13,6 +13,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { echapperRegex } from '../lib/regex';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
@@ -153,7 +154,7 @@ describe('Zone 11 — UNE bande, jamais des boîtes flottantes (contrat d’asse
     const css = readFileSync(join(process.cwd(), 'src', 'ui', 'styles', 'exploration-dock.css'), 'utf8');
     const regle = /\.exploration-dock\s*\{([^}]*)\}/.exec(css);
     expect(regle, '`.exploration-dock` doit porter sa géométrie de bande').not.toBeNull();
-    // #1848 : le pont ne s'ANCRE plus au bas du champ, il EST la rangée basse de la grille du
+    // #1848 : le pont ne s'ANCRE pas au bas du champ, il EST la rangée basse de la grille du
     // plateau — c'est ce qui interdit à toute surface basse de lire sa hauteur pour s'en écarter.
     for (const prop of ['left:', 'right:', 'bottom:', 'position: absolute']) expect(regle![1], prop).not.toContain(prop);
     const hud = readFileSync(join(process.cwd(), 'src', 'ui', 'styles', 'hud.css'), 'utf8');
@@ -173,29 +174,29 @@ describe('Zone 11 — UNE bande, jamais des boîtes flottantes (contrat d’asse
 /* ══════════ Outils de MESURE des feuilles (aucune valeur recopiée : tout est lu au CSS) ══════════ */
 
 /** Écran de la capture de recette : les `clamp()`/`vw`/`vh` des deux ponts s'y résolvent. C'est le
- *  premier des écrans de bureau jugés par `CombatConsole.test.tsx` (F-1, `ECRANS`) — la HAUTEUR est
- *  load-bearing depuis que l'alvéole se calcule en `vh` (budget de hauteur, arbitrage #1348). */
+ *  premier des écrans de bureau jugés par `CombatConsole.test.tsx` (F-1, `ECRANS`) — la HAUTEUR porte
+ *  le verdict : l'alvéole se calcule en `vh` (budget de hauteur, arbitrage #1348). */
 const VIEWPORT_W = 1280;
 const VIEWPORT_H = 800;
 const styles = (n: string) => readFileSync(join(process.cwd(), 'src', 'ui', 'styles', n), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 /** Corps du bloc, à la RACINE du module (sélecteur en colonne 0) : les tranches `@media` indentent
  *  leurs règles, et une déclaration de tranche ne vaut pas pour la matière de base. */
 function blocRacine(css: string, sel: string): string {
-  const re = new RegExp(`(^|\\})\\s*\\n${sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`);
+  const re = new RegExp(`(^|\\})\\s*\\n${echapperRegex(sel)}\\s*\\{([^}]*)\\}`);
   const m = re.exec(css);
   if (!m) throw new Error(`sélecteur absent à la racine : ${sel}`);
   return m[2];
 }
 /** Corps du PREMIER bloc dont le sélecteur est exactement `sel`. */
 function bloc(css: string, sel: string): string {
-  const re = new RegExp(`(^|[}\\n])\\s*${sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm');
+  const re = new RegExp(`(^|[}\\n])\\s*${echapperRegex(sel)}\\s*\\{([^}]*)\\}`, 'm');
   const m = re.exec(css);
   if (!m) throw new Error(`sélecteur absent : ${sel}`);
   return m[2];
 }
 /** Valeur d'une propriété (ou d'un token) dans un corps de bloc. */
 function prop(corps: string, p: string): string {
-  const m = new RegExp(`(^|;|\\s)${p}\\s*:([^;]+)`).exec(corps);
+  const m = new RegExp(`(^|;|\\s)${echapperRegex(p)}\\s*:([^;]+)`).exec(corps);
   if (!m) throw new Error(`propriété absente : ${p}`);
   return m[2].trim();
 }
@@ -314,7 +315,7 @@ describe('Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT', 
   it('le tiroir-journal LIT la réserve pour s’ancrer au-dessus du pont (jamais un nombre recopié)', () => {
     const hud = styles('exploration-dock.css');
     const tiroir = bloc(hud, '.exploration-dock .log-drawer');
-    // Le pont porte l'ancrage : le tiroir ne flotte plus (les calages mobiles ≤700/≤560 sont annulés).
+    // Le pont porte l'ancrage : le tiroir ne flotte pas (les calages mobiles ≤700/≤560 sont annulés).
     expect(prop(tiroir, 'position')).toBe('relative');
     expect(prop(tiroir, 'inset')).toBe('auto');
     expect(prop(bloc(hud, '.exploration-dock .ld-panel'), 'max-height')).toContain('var(--xd-deck-h)');
@@ -396,8 +397,8 @@ describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais de
     // DÉRIVE de `--cc-deck-h`) — elle resterait verte sur une nappe fausse des deux côtés. La valeur
     // ci-dessous épingle la teinte RÉELLEMENT peinte à +3px sous le liseré, à 1280×800. Elle SUIT la
     // hauteur de pont : la nappe (300px) est ancrée en bas d'une boîte de `--cc-deck-h`, un pont plus
-    // court n'en montre que la queue sombre. Re-mesurée après l'arbitrage de densité #1348 (alvéole
-    // en `vh`, pont 208,6px → 134px à cet écran) : rgb(33,24,13) → rgb(25,18,9).
+    // court n'en montre que la queue sombre. Mesurée sous l'arbitrage de densité #1348 (alvéole en
+    // `vh`, pont de 134px à cet écran) : rgb(25,18,9).
     for (const [k, v] of [...teinteXd(3).entries()]) expect(Math.abs(v - [25, 18, 9][k])).toBeLessThanOrEqual(1);
     // Et la même matière plus BAS dans la bande (une seule profondeur pourrait coïncider par hasard).
     expect(teinteXd(20)).toEqual(teinteCc(20));
@@ -410,7 +411,7 @@ describe('Zone 11 — la tôle du pont est une PEAU partagée, jamais un scope d
   });
 
   // Quatre poseurs (pont, rail, menu ☰, tiroir) sur trois bases : la matière est une PEAU de la
-  // couche d'identité, posée À CÔTÉ de la base, et non la variante d'une primitive (#1806 2a).
+  // couche d'identité, posée À CÔTÉ de la base, et non la variante d'une primitive (#1806).
   it('la peau vit en couche d’identité, et les ouvreurs du pont la portent', () => {
     const skin = styles('components.css');
     // À la RACINE du module : la tranche `pointer: coarse` redéclare le MÊME sélecteur (la cible de
@@ -436,11 +437,11 @@ describe('Zone 11 — le journal est SUR le pont hors combat, au RAIL en combat'
     const rangee = el.querySelector('.xd-openers')!;
     expect(rangee.querySelector('.log-drawer'), 'le tiroir est assis DANS la rangée d’ouvreurs').not.toBeNull();
     expect(rangee.lastElementChild!.classList.contains('log-drawer')).toBe(true);
-    // Aucun tiroir hors du pont : plus de boîte flottante au coin du champ.
+    // Aucun tiroir hors du pont : aucune boîte flottante au coin du champ.
     expect(el.querySelectorAll('.log-drawer')).toHaveLength(el.querySelectorAll('.exploration-dock .log-drawer').length);
   });
 
-  it('COMBAT : le rail porte le journal ET le dossier de navire ; la barre haute ne porte plus rien', () => {
+  it('COMBAT : le rail porte le journal ET le dossier de navire ; la barre haute ne porte rien', () => {
     enCombat();
     act(() => { useGame.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); });
     const el = monter();
@@ -450,7 +451,7 @@ describe('Zone 11 — le journal est SUR le pont hors combat, au RAIL en combat'
     const dossier = rail!.querySelector('.worldmap-btn');
     expect(dossier!.getAttribute('title')).toBe('Dossier du navire — état, cargaison, équipage');
     expect(dossier!.getAttribute('data-ton')).toBe('laiton');
-    // Zéro flottant en barre haute, en AUCUN mode (le dossier y vivait).
+    // Zéro flottant en barre haute, en AUCUN mode.
     expect(el.querySelector('.hud-topbar .worldmap-btn')).toBeNull();
     expect(el.querySelectorAll('.worldmap-btn')).toHaveLength(el.querySelectorAll('.hud-rail .worldmap-btn').length);
   });

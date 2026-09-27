@@ -8,12 +8,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { echapperRegex } from '../lib/regex';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
 const ATLAS = readFileSync(fileURLToPath(new URL('../../docs/donnees.md', import.meta.url)), 'utf8');
 
 const mentioned = (file: string): boolean =>
-  new RegExp(`(?<![A-Za-z0-9_-])${file.replace(/\./g, '\\.')}`).test(ATLAS);
+  new RegExp(`(?<![A-Za-z0-9_-])${echapperRegex(file)}`).test(ATLAS);
 
 describe('atlas des données (docs/donnees.md) — complétude', () => {
   const files = listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));

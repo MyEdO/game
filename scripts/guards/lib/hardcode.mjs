@@ -1,9 +1,10 @@
 // Mécanique de scan du garde-fou « tout migrer » — réactions de combat hardcodées PAR-NOM
 // (État/trait/talent/atout d'arme) plutôt que par DONNÉE (TriggeredEffect/passive). Module ESM
-// pur, exécutable par `node` nu — consommé par src/state/combat-hardcode-guard.test.ts ET par un
-// futur hook pre-commit. Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
-// restent DONNÉES DE POLICY dans le test — ici ne vit QUE la mécanique de détection, généralisée à
-// TOUT src/engine + src/state (cf. docs/combat-events-coherence.md, Lot 8).
+// pur, exécutable par `node` nu. Les BASELINES (nombre de sites tolérés par fichier) restent DONNÉES
+// DE POLICY dans `src/state/combat-hardcode-guard.test.ts` — ici ne vit QUE la mécanique de
+// détection, sur TOUT src/engine + src/state (docs/combat-events-coherence.md).
+
+import { alternationDeRegex } from '../../../src/lib/regex.ts';
 
 /** Retire commentaires ET imports nommés (les ids/noms en commentaire ou en `import {…}` — y
  *  compris multi-lignes — ne sont PAS du code réactif : seuls les SITES d'appel comptent).
@@ -21,9 +22,8 @@ export function stripComments(src) {
 }
 
 /**
- * Marqueurs réactifs par-nom, famille TRAIT/TALENT — recensés aux Lots 4bis/6 sur
- * state/combat/roundHooks.ts et state/combatFlow.ts, généralisés à tout src/engine + src/state
- * (Lot 8) : une réaction de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
+ * Marqueurs réactifs par-nom, famille TRAIT/TALENT, sur tout src/engine + src/state : une réaction
+ * de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
  * Les appels `hasTraitKey(`/`hasTalent(` NE sont PAS ici : leur nocivité dépend de l'ARGUMENT-entité
  * (littéral en dur vs donnée), tranchée par `nameCallHasLiteralArg` (#385) — un `hasTalent(c, X)` dont
  * `X` est une variable/donnée est data-driven, pas un hardcode par-nom.
@@ -77,7 +77,7 @@ export function nameCallHasLiteralArg(line) {
 }
 
 /**
- * Vrai si un appel dont la regex `callRx` (globale, `\(` en fin de motif) matche sur `line` porte
+ * Vrai si un appel dont la regex `callRx` (globale, `\(` en fin de regex) matche sur `line` porte
  * un 2e argument LITTÉRAL de chaîne (`'…'`/`"…"`/gabarit sans interpolation `${…}`). Généralisation
  * de `nameCallHasLiteralArg` (#385) à toute famille d'appel à 2 arguments (#413).
  * @param {string} line @param {RegExp} callRx @returns {boolean}
@@ -100,22 +100,19 @@ function callHasLiteralArg(line, callRx) {
 }
 
 /**
- * Marqueurs réactifs par-nom, famille PAR-ÉTAT — motif du Lot 4 (`hasCondition(_, COND.*)` /
- * `stacks(_, COND.*)`), généralisé À TOUT l'arbre (Lot 8, issue #160). Var libre (`\w+`) : plus
- * seulement `c`/`target`. Toute lecture d'un État en INTERROGATION nominative est candidate ;
- * les GATES/mesures de machinerie universelle en sont retranchés par `MACHINERY_RX` (ci-dessous),
- * PAS par une entrée nominative d'entité (COND.hemorragique/aTerre/surpris…).
- * Étendu (#411, 2026-07-13) aux formes en CHAÎNE LITTÉRALE (`hasCondition(c, 'inconscient')` /
- * `stacks(c, "aveugle")`) : le contournement consistant à taper la chaîne au lieu de la constante
- * `COND.*` échappait totalement au scan (audit #410). Un 2e argument variable/propriété/gabarit
- * interpolé reste NON signalé (data-driven, même doctrine que #385 pour `hasTraitKey`/`hasTalent`).
+ * Marqueurs réactifs par-nom, famille PAR-ÉTAT (`hasCondition(_, COND.*)` / `stacks(_, COND.*)`),
+ * sur TOUT l'arbre (#160). Var libre (`\w+`), quel que soit le nom du combattant. Toute lecture d'un
+ * État en INTERROGATION nominative est candidate ; les GATES/mesures de machinerie universelle en
+ * sont retranchés par `MACHINERY_RX` (ci-dessous), PAS par une entrée nominative d'entité
+ * (COND.hemorragique/aTerre/surpris…). Les formes en CHAÎNE LITTÉRALE (`hasCondition(c, 'inconscient')`
+ * / `stacks(c, "aveugle")`) en sont aussi (#411) : taper la chaîne au lieu de la constante `COND.*`
+ * n'échappe pas au scan. Un 2e argument variable/propriété/gabarit interpolé reste NON signalé
+ * (data-driven, même doctrine que #385 pour `hasTraitKey`/`hasTalent`).
  * Le gabarit BACKTICK STATIQUE (`` hasCondition(c, `inconscient`) ``) n'est PAS couvert par cette
  * regex : un backtick en tête de 2e argument peut être suivi d'une interpolation ARBITRAIREMENT
  * loin dans le segment (`` `etat-${x}` ``), donc juger sa littéralité exige de lire le segment ENTIER
  * jusqu'au backtick fermant — pas juste le caractère suivant. C'est `perEtatHasLiteralArg` (même
- * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413,
- * corrige un faux positif de la 1ère version qui testait seulement `` `(?!\$\{) `` — flaguait à tort
- * un préfixe littéral suivi d'interpolation).
+ * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413).
  * @type {RegExp}
  */
 export const PER_ETAT_RX = /hasCondition\(\w+, ?(?:COND\.|['"])|stacks\(\w+, ?(?:COND\.|['"])/;
@@ -145,7 +142,7 @@ export function perEtatHasLiteralArg(line) {
 export const EXCLUDE_RX = /^\s*import/;
 
 /**
- * EXCLUSIONS de MACHINERIE (généralisation de l'exclude Lot 4 d'engine/conditions.ts, issue #160) —
+ * EXCLUSIONS de MACHINERIE (#160) —
  * appliquées AUX SEULES lectures PAR-ÉTAT. Chaque terme est une RÈGLE d'arène universelle ou une
  * INSTRUMENTATION, JAMAIS un nom d'État/trait/talent éditable : une lecture d'État qui matche décrit
  * un GATE (mort, action/mouvement, géométrie, contrôle) ou une MESURE/journalisation, pas la
@@ -167,14 +164,14 @@ export const EXCLUDE_RX = /^\s*import/;
  * ferme le contournement où l'instrumentation masquait un nom d'État en dur (`perEtatHasLiteralArg`).
  * @type {RegExp}
  */
-export const MACHINERY_RX = new RegExp([
+export const MACHINERY_RX = new RegExp(alternationDeRegex([
   'isOutOfAction', 'inDeathCondition', 'applyZeroWounds', 'aaDeathByCriticalCount', 'usesSuddenDeath',
   'criticalWounds', 'roundsAtZero', 'outOfRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
   'canTakeAction', 'isEngaged', 'controlsCombatant', 'movementUsed',
   'sizeGap', '\\breturn reach\\b', 'hasActiveCapability', 'pilotedByHuman', 'removeCondition',
   '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.log\\(', '\\breturn tr\\(',
   "return '(?:ambush|assault|combat|embuscade)'",
-].join('|'));
+]));
 
 /**
  * Scan complet d'un fichier source : chaque ligne portant un marqueur réactif par-nom (hors
