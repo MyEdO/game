@@ -13,7 +13,8 @@
  * `chaos`, exclusivement dépendants du Talent `magie-du-chaos` (lui-même `codexOnly`), sont exemptés
  * de `spellNever` pour la même raison — verdicts RAW cités sur les entrées, pas un silence.
  */
-import { readFileSync, globSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
 import {
   talents, spells, careerLevels, species, creatures, mutations, stars, trappings, gods, effectTables,
@@ -69,7 +70,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
   if (sawRandomEntry) for (const t of talents) if (t.rand != null) addTalentSource(t.id, 'table-talents-aleatoires');
 
   const learnSpellIds = new Set<string>();
-  for (const f of globSync('src/scenes/**/*.json', { cwd: root })) {
+  for (const f of listerProjetsLivres(root).map((rel) => `${PROJETS_LIVRES.dossier}/${rel}`)) {
     const text = readFileSync(join(root, f), 'utf8');
     if (!text.includes('"grantTalent"') && !text.includes('"learnSpell"')) continue;
     let json: unknown;

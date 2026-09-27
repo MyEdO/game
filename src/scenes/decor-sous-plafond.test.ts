@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { findPropById, props } from '../data';
 import { setDataset } from '../data/overrides';
 import { empriseLocaleM, type PropPrimitive } from '../data/props.types';
@@ -23,7 +23,7 @@ import { SCENARIOS } from './test-scenarios/_registry.generated';
  */
 
 const SCENES_DIR = __dirname;
-const projets = listerArbre(SCENES_DIR, { filtre: (rel: string) => rel.endsWith('-projet.json') }) as string[];
+const projets = listerProjetsLivres();
 const scenesDeProjet: Scene[] = projets.flatMap((f) => parseProject(JSON.parse(readFileSync(join(SCENES_DIR, f), 'utf8'))).scenes);
 const scenesDeScenario: Scene[] = (SCENARIOS as { scene?: Scene }[]).flatMap((sc) => (sc.scene?.entities ? [sc.scene] : []));
 const SCENES: Scene[] = [...scenesDeScenario, ...scenesDeProjet];
@@ -86,13 +86,13 @@ describe('aucun décor volumique ne traverse une dalle ni un toit (#1343)', () =
     const tonneau = findPropById('tonneau')!;
     const bloc: PropPrimitive = { kind: 'box', center: { xM: 0, yM: 0, hM: cible - 0.1 }, size: { xM: 0.6, yM: 0.6, hM: 0.2 }, material: 'bois-chene' };
     const fixture = { ...tonneau, id: '__fixture-sous-pan__', volume: { ...tonneau.volume!, primitives: [bloc] } };
-    scene.entities = [{ id: 'decor-sous-pan', kind: 'prop', ref: fixture.id, pos } as SceneEntity];
+    const posee: Scene = { ...scene, entities: [{ id: 'decor-sous-pan', kind: 'prop', ref: fixture.id, pos } as SceneEntity] };
     const livres = [...props];
     try {
       setDataset('props', [...livres, fixture]);
       expect(haut - bas, 'la case de fixture est sous un pan en pente').toBeGreaterThan(0.5);
-      expect(propFootTiles(fixture.id, pos, undefined, sceneMetresPerTile(scene)), 'la fixture tient dans sa case de pose').toEqual([pos]);
-      expect(decorsQuiTraversent(scene)).toEqual([expect.stringContaining('decor-sous-pan')]);
+      expect(propFootTiles(fixture.id, pos, undefined, sceneMetresPerTile(posee)), 'la fixture tient dans sa case de pose').toEqual([pos]);
+      expect(decorsQuiTraversent(posee)).toEqual([expect.stringContaining('decor-sous-pan')]);
     } finally {
       setDataset('props', livres);
     }

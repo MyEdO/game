@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { KEYBINDINGS, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
+import { KEYBINDINGS, bindingApplies, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
 import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
 
 /** Touches de NAVIGATION : elles ne sont à personne par défaut — un bouton focalisé ne les possède
@@ -20,6 +20,11 @@ const CONTENEUR_ROVING = '[role="listbox"],[role="tablist"],[role="menu"],[role=
  * EXACTEMENT ceux qu'il déclare (`mods`) — un raccourci sans `mods` se tait donc sous Alt ou Ctrl,
  * et laisse la combinaison au système ou au raccourci qui la déclare.
  *
+ * La COUCHE DIALOGUE (`coucheDialogue`) ne se tranche PAS ici : elle vit dans `bindingApplies`
+ * (`state/keybindings`), la porte que le clavier ET la manette empruntent — une conversation à
+ * l'écran est bloquante pour les DEUX. C'est une PROPRIÉTÉ déclarée au registre, jamais une liste
+ * d'ids : aucun dispatcher ne connaît un raccourci par son nom.
+ *
  * Le CONTRÔLE FOCALISÉ (`notWhenControlFocused`) ne possède que les touches de SON geste, et ce
  * partage est tranché ICI, une fois : un bouton/lien focalisé possède son ACTIVATION (Espace,
  * Entrée) ; les FLÈCHES ne lui appartiennent que s'il est l'item d'un conteneur à roving tabindex
@@ -36,7 +41,7 @@ export function useGameKeyboard() {
           effectiveCodes(k, s.keyOverrides).includes(e.code) &&
           modsMatch(effectiveMods(k, s.keyOverrides), tenus, e.code) &&
           (!k.notWhenControlFocused || !controlFocused) &&
-          k.when(s),
+          bindingApplies(k, s),
       );
     };
     const saisieEnCours = (e: KeyboardEvent): { saisie: boolean; controlFocused: boolean } => {
@@ -64,7 +69,6 @@ export function useGameKeyboard() {
         if (pris !== null) e.preventDefault();
         return;
       }
-      if (useGame.getState().dialogue) return; // pas de raccourci pendant un dialogue
       const b = trouver(e, controlFocused);
       if (!b) return;
       e.preventDefault();

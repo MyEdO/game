@@ -229,21 +229,21 @@ describe('parseSave — la version DOIT être la courante', () => {
     const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
-  it('MESURE du motif de bump 54 → 55 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 54 se jette', () => {
-    // Une save de 54 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
+  it('MESURE du motif de bump 55 → 56 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 55 se jette', () => {
+    // Une save de 55 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
     // a appris « Alarme » (frenchy-bzh, fusionnée dans « Alerte ») rouvrirait avec un id que plus rien
     // ne résout. D'où le REJET, et non une purge silencieuse du grimoire.
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(55);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(56);
     const heros = { id: 'h', kind: 'hero', spells: ['alarme', 'alerte'] };
-    expect(parseSave({ ...cur, version: 54, data: { party: [heros] } })).toBeNull();
+    expect(parseSave({ ...cur, version: 55, data: { party: [heros] } })).toBeNull();
     expect(findSpellById('alarme'), 'l’id fusionné n’existe plus au catalogue').toBeUndefined();
     expect(idDeSortVivant('alarme')).toBe('alerte');
   });
-  it('MESURE du motif de bump 56 → 57 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
-    // Une save de 56 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
+  it('MESURE du motif de bump 57 → 58 (#1473) : l’ancienne graphie d’une op de Talent persistée lève à `applyOps`', () => {
+    // Une save de 57 porte ses ops telles quelles (`snapshotSave` recopie le `state`) : une mutation
     // attachée garde `passive: [{ op: 'grantTalent', talentId }]`, et l'octroi lit `op.talent.id`. Le rejet
     // d'une version non courante est la politique testée par « version ANTÉRIEURE → null » ci-dessus.
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(57);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(58);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
   });

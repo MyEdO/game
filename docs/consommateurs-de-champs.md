@@ -57,7 +57,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 229 | `src/data/index.ts:3058` |
+| `id` | 230 | `src/data/index.ts:3058` |
 | `spec` | 138 | `src/data/index.ts:3544` |
 
 ### `QualityRef` (src/data/index.ts)
@@ -139,18 +139,18 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `stake` | 10 | `src/engine/flowCore.ts:847` |
-| `skill` | 30 | `src/engine/disease.ts:371` |
-| `sense` | 2 | `src/state/combatEffects.ts:1011` |
-| `characteristic` | 24 | `src/engine/disease.ts:371` |
+| `skill` | 31 | `src/engine/disease.ts:371` |
+| `sense` | 2 | `src/state/combatEffects.ts:1012` |
+| `characteristic` | 25 | `src/engine/disease.ts:371` |
 | `difficulty` | 8 | `src/engine/disease.ts:358` |
-| `requireSL` | 2 | `src/state/combatEffects.ts:1050` |
+| `requireSL` | 2 | `src/state/combatEffects.ts:1051` |
 | `label` | 11 | `src/state/combat/triggeredTest.ts:235` |
-| `tool` | 2 | `src/state/combatEffects.ts:1013` |
-| `vsGroups` | 5 | `src/state/combatEffects.ts:918` |
-| `vsStatus` | 1 | `src/state/combatEffects.ts:917` |
-| `begging` | 3 | `src/state/combatEffects.ts:922` |
-| `vsCapricieux` | 1 | `src/state/combatEffects.ts:926` |
-| `easierIf` | 11 | `src/state/combatEffects.ts:967` |
+| `tool` | 2 | `src/state/combatEffects.ts:1014` |
+| `vsGroups` | 5 | `src/state/combatEffects.ts:919` |
+| `vsStatus` | 1 | `src/state/combatEffects.ts:918` |
+| `begging` | 3 | `src/state/combatEffects.ts:923` |
+| `vsCapricieux` | 1 | `src/state/combatEffects.ts:927` |
+| `easierIf` | 11 | `src/state/combatEffects.ts:968` |
 | `argDifficulty` | 1 | `src/state/triggeredEffects.ts:75` |
 | `unlessImmune` | 1 | `src/state/combat/flowEval.ts:137` |
 | `onlyGroups` | 1 | `src/state/combat/flowEval.ts:138` |
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: dd5b25e85c050e296f2d2eca05c0480d768cb4a5 (2115 fichiers, 174 dossiers) corps: b03929c61ba2f9712c436f4dc2b147ee3ea6d237 -->
+<!-- sources-empreinte: 51d221d50d216fa351116a71310b77ec2c4ef908 (2117 fichiers, 174 dossiers) corps: 2097bfa7a64beb5edbe91ea1fc0b9cbb9fb7da7e -->

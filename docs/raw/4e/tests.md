@@ -393,7 +393,7 @@ Parfois, une situation requiert qu'un personnage réussisse deux Compétences di
 
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.202-208) → `soutien`, `fr`, `testBreakdown`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +35 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +22 fichiers
+- `LDB 12` (l.202-208) → `soutien`, `fr`, `testBreakdown`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `CombinedTestResult`, +35 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +22 fichiers
 
 ---
 

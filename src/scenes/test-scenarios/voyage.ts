@@ -88,7 +88,7 @@ const village = buildScene({
           desc: 'Une table, une chope, un lit ? Tout se paie, mais tout est bon.',
           choices: [
             { label: 'Prendre des chambres pour la nuit.', flow: flowFromEffects([{ type: 'rest', lodging: 'auberge' }]) },
-            { label: 'Juste un repas (4 sous).', cost: { brass: 4 }, flow: flowFromEffects([{ type: 'mealParty' }]) },
+            { label: 'Juste un repas.', cost: { brass: 4 }, flow: flowFromEffects([{ type: 'mealParty' }]) },
             { label: 'Une autre fois. (Partir)' },
           ],
         },

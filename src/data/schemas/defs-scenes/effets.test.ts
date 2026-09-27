@@ -22,6 +22,7 @@ import { describe, it, expect, expectTypeOf } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres, PROJETS_LIVRES } from '../../../../scripts/guards/lib/projetsLivres.mjs';
 import type { z } from 'zod';
 import {
   effectSchema, sceneFlowSchema, setFlagSchema, setObjectiveSchema, delayedEffectSchema,
@@ -40,14 +41,19 @@ const ROOT = join(__dirname, '../../../..');
 /** Clés dont la VALEUR est un effet (ou en contient) — établies par mesure sur les deux racines. */
 const CONTEXTES_D_EFFET = ['effect', 'effects', 'onEnter', 'onExit', 'reward', 'interact'];
 
-/** Les deux racines authorées, racine par racine — le scan doit voir chacune d'elles. */
-const RACINES = ['src/scenes', 'src/data'];
+/** Les documents de chaque racine authorée, relatifs à elle : les projets livrés, et tous les `.json`
+ *  de `src/data`. */
+const DOCUMENTS_DE_RACINE: Record<string, () => string[]> = {
+  [PROJETS_LIVRES.dossier]: () => listerProjetsLivres(ROOT),
+  'src/data': () => listerArbre(join(ROOT, 'src/data'), { filtre: (rel) => rel.endsWith('.json') }),
+};
 
-/** Tous les `.json` des deux racines authorées. */
+/** Les deux racines authorées, racine par racine — le scan doit voir chacune d'elles. */
+const RACINES = Object.keys(DOCUMENTS_DE_RACINE);
+
+/** Les documents des deux racines authorées, en chemins absolus. */
 const fichiersJson = (): string[] =>
-  RACINES.flatMap((racine) =>
-    listerArbre(join(ROOT, racine), { filtre: (rel) => rel.endsWith('.json') }).map((rel) => join(ROOT, racine, rel)),
-  );
+  RACINES.flatMap((racine) => DOCUMENTS_DE_RACINE[racine]().map((rel) => join(ROOT, racine, rel)));
 
 /** Tous les objets à clé `type` posés SOUS une clé de contexte d'effet, dans les deux racines. */
 function effetsPoses(): { chemin: string; noeud: unknown }[] {

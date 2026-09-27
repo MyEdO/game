@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { listerArbre } from './lister.mjs';
+import { PROJETS_LIVRES } from './projetsLivres.mjs';
 import { REGISTRE_LIVRES, estLivreExtrait } from '../../raw/_lib.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -34,7 +35,7 @@ export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', impor
  */
 export const RACINES_PROSE = Object.freeze([
   Object.freeze({ dossier: 'src/data', suffixe: '.json', recursif: false }),
-  Object.freeze({ dossier: 'src/scenes', suffixe: '-projet.json', recursif: true }),
+  PROJETS_LIVRES,
 ]);
 
 /** Ids des livres EXTRAITS (`estLivreExtrait`) du registre (`REGISTRE_LIVRES`) — les seuls adressables. */
