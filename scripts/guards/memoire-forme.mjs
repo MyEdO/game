@@ -4,11 +4,12 @@
 //
 // PÉRIMÈTRE JUGÉ (trois familles, deux volets) :
 //   A. `.claude/memory/*.md` HORS `MEMORY.md` (l'index, jugé par `budget-contexte.mjs`) —
-//      1. corps > TAILLE_MAX octets, frontmatter exclu ET LIGNES DE CITATION EXCLUES : la PROSE se
+//      1. corps > TAILLE_MAX octets, frontmatter exclu ET TEXTE CITÉ (`« … »`) EXCLU : la PROSE se
 //         plafonne, jamais les mots de l'utilisateur. « Tout arbitrage UTILISATEUR consigné (doc,
 //         mémoire, ticket) porte sa CITATION verbatim + date » (CLAUDE.md § Pour TOUT agent) : un
 //         verbatim ne se tronque pas pour tenir un plafond, et une fiche qui en porte trois n'est pas
-//         plus bavarde qu'une autre. Ce qui se borne, c'est ce que la session ÉCRIT autour ;
+//         plus bavarde qu'une autre. Ce qui se borne, c'est ce que la session ÉCRIT autour — sur la
+//         même ligne comme ailleurs : un seul mot cité n'exempte pas la ligne qui le porte ;
 //      2. toute date ISO (`AAAA-MM-JJ`) dans le corps HORS d'une ligne de citation verbatim
 //         (celle qui porte les guillemets `«` : un arbitrage consigné DOIT porter sa date) ;
 //      3. les motifs de RÉCIT.
@@ -19,7 +20,8 @@
 // ANGLES MORTS DÉCLARÉS : le contenu VRAI mais long n'est pas jugé (seule sa TAILLE l'est — une
 // fiche juste et dense passe tant qu'elle tient) ; une date dans un NOM DE FICHIER n'est pas jugée ;
 // une date dans le FRONTMATTER (`description`, `metadata`) n'est pas jugée ; les motifs de récit sont
-// une liste FERMÉE, pas une détection sémantique — un récit qui n'emploie aucun de ces mots passe.
+// une liste FERMÉE, pas une détection sémantique — un récit qui n'emploie aucun de ces mots passe ; un
+// texte de la session placé tout entier entre `« »` passe pour une citation.
 import { Buffer } from 'node:buffer'
 
 /** Plafond du CORPS d'une fiche de mémoire, en octets. Une règle tient ; un récit non. */
@@ -72,9 +74,10 @@ export function defautsDeForme(chemin, texte) {
   const lignes = corps.split(/\r?\n/)
   const defauts = []
   if (famille === 'fiche') {
-    // La PROSE mesurée : le corps MOINS ses lignes de citation (`«`). Les mots de l'utilisateur sont
-    // portés tels quels, jamais tronqués pour tenir un plafond (en-tête de ce fichier).
-    const prose = lignes.filter((l) => !l.includes('«')).join('\n')
+    // La PROSE mesurée : le corps MOINS son texte cité (`« … »` fermé, sur une ou plusieurs lignes).
+    // Les mots de l'utilisateur sont portés tels quels, jamais tronqués pour tenir un plafond (en-tête
+    // de ce fichier) ; un `«` jamais refermé ne retire rien.
+    const prose = corps.replace(/«[^«»]*»/g, '')
     const octets = Buffer.byteLength(prose.replace(/\r\n/g, '\n'), 'utf8')
     if (octets > TAILLE_MAX) {
       defauts.push({
