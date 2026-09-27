@@ -34,6 +34,7 @@ import {
   findTalentById,
   specPoolOf,
   talents as talentTable,
+  rigSpeciesId,
   type TrappingRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
@@ -292,6 +293,8 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   xpBonus?: number;
   details?: HeroDetails;
   motivation?: string;
+  /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`rigSpeciesId`). Absente = aucune. */
+  apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
   rng?: RNG;
   id?: string;
 }
@@ -455,6 +458,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     xp: opts.xpBonus ?? 0,
     charAdvances,
     careerLevel: 1,
+    ...(opts.apparence ? { appearance: { ...opts.apparence, species: rigSpeciesId(opts.speciesId) } } : {}),
   };
 
   // Effets d'acquisition des Talents (+5 Caractéristique de départ, Véloce) — une fois par

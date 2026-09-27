@@ -41,7 +41,8 @@ import {
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
-import { pettySpellQuota, probeHero, type CreatorDraft } from './draft';
+import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
+import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { adresseDeCreation, speciesSkillDefaults, designer } from '../../engine/character';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
@@ -297,6 +298,14 @@ describe('validation des étapes', () => {
 });
 
 describe('buildHero — bout en bout', () => {
+  it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue, coiffure comprise', () => {
+    const coiffureF = hairstylesForSex('F')[0].id;
+    const d = readyDraft();
+    const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
+    const hero = buildHero({ ...d, apparence }, 'h-apparence');
+    expect(hero.appearance).toEqual({ ...apparence, species: rigSpeciesId(d.speciesId) });
+    expect(draftFromHero(hero).apparence).toEqual(apparence);
+  });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
     let d = readyDraft();
     d = { ...d, age: 20, height: 175, eyes: 'Bleu', hair: 'Brun' };

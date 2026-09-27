@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { makePregens, makePregensWithWealth, makeShowcaseParty, pregen, pregenParty, PREGEN } from './pregens';
-import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, pregens as definitions } from './index';
+import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, rigSpeciesId, pregens as definitions } from './index';
 import { parseStatus } from '../engine/creation';
 import { validateDataset } from './schemas/validate';
 import { toBrass } from '../engine/money';
@@ -205,5 +205,15 @@ describe('Sélection de groupe — pregen / pregenParty', () => {
 
   it('makeShowcaseParty = les 4 piliers (soldat, tueur, sorcier, chasseur)', () => {
     expect(makeShowcaseParty().map((h) => h.career)).toEqual(['soldat', 'tueur', 'sorcier', 'chasseur']);
+  });
+});
+
+describe('Pré-tirés — apparence posée par createHero', () => {
+  it('chaque héros porte l’apparence de sa définition (sexe, morphologie, graine) et l’espèce de rendu de son espèce', () => {
+    const heros = makePregens();
+    expect(heros).toHaveLength(definitions.length);
+    for (const [i, d] of definitions.entries()) {
+      expect(heros[i].appearance, d.id).toEqual({ species: rigSpeciesId(d.species), sex: d.sex ?? 'M', build: d.build ?? 0.5, seed: d.seed });
+    }
   });
 });

@@ -61,10 +61,9 @@ import {
   type TalentDEspece,
 } from '../../engine/character';
 import { refKey, talentMaxReached, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, rigSpeciesId, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
+import { findSpeciesById, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type TrappingRef, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
-import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
 
@@ -155,11 +154,8 @@ export interface CreatorDraft
    *  effet mécanique (l.492 : « pas directement liés aux mécaniques de jeu »). */
   ascendant?: string;
   dwellings?: { house: string; sign: string }[];
-  sex: Sexe;
-  build: number;
-  appSeed: number;
-  colors?: Appearance['colors'];
-  parts?: Appearance['parts'];
+  /** Apparence du héros d'un seul tenant ; l'espèce de rendu se dérive de `speciesId` (`createHero`). */
+  apparence: Omit<Appearance, 'species'>;
 }
 
 export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff) | 0)): CreatorDraft {
@@ -194,9 +190,7 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
     motivation: '',
     ambitionShort: '',
     ambitionLong: '',
-    sex: 'M',
-    build: 0.5,
-    appSeed: (seed >> 2) & 0xffff,
+    apparence: { sex: 'M', build: 0.5, seed: (seed >> 2) & 0xffff },
   };
 }
 
@@ -211,11 +205,12 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
  * héros d'avant cette fonctionnalité). */
 export function draftFromHero(hero: Combatant): CreatorDraft {
   const d = newDraft();
-  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est une clé de rig (libellé) → on
+  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est un id de rig → on
   // reconstruit le brouillon depuis l'id rules, pas depuis l'apparence.
   const speciesId = hero.species ?? d.speciesId;
   const withSp = withSpecies(d, speciesId);
   const withCa = hero.career ? withCareer(withSp, hero.career) : withSp;
+  const { species: _espece, ...apparence } = hero.appearance ?? { species: undefined, ...d.apparence };
   return {
     ...withCa,
     speciesId,
@@ -231,11 +226,7 @@ export function draftFromHero(hero: Combatant): CreatorDraft {
     star: hero.star,
     ascendant: hero.details?.ascendant,
     dwellings: hero.details?.dwellings,
-    sex: hero.appearance?.sex ?? d.sex,
-    build: hero.appearance?.build ?? d.build,
-    appSeed: hero.appearance?.seed ?? d.appSeed,
-    colors: hero.appearance?.colors,
-    parts: hero.appearance?.parts,
+    apparence,
   };
 }
 
@@ -813,10 +804,9 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
     },
     motivation: d.motivation.trim() || undefined,
     rng: fluxDuBrouillon(d, 'heros'),
+    apparence: d.apparence,
     id,
   });
-  // appearance.species = id d'espèce RIG (slug, via rigSpeciesId) ≠ Combatant.species (id rules).
-  hero.appearance = { species: rigSpeciesId(d.speciesId), sex: d.sex, build: d.build, seed: d.appSeed, colors: d.colors, parts: d.parts };
   if (d.star) hero.star = d.star;
   return hero;
 }

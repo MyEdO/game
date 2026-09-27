@@ -121,18 +121,18 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `seed` | 3 | `src/gameIso/rig/enemyProfile.ts:119` |
-| `monster` | 8 | `src/gameIso/rig/enemyProfile.ts:175` |
-| `colors` | 10 | `src/gameIso/rig/bodyPlan.ts:123` |
+| `monster` | 3 | `src/gameIso/rig/enemyProfile.ts:175` |
+| `colors` | 5 | `src/gameIso/rig/bodyPlan.ts:123` |
 | `parts` | 2 | `src/gameIso/rig/enemyProfile.ts:65` |
-| `sex` | 4 | `src/gameIso/rig/enemyProfile.ts:64` |
-| `build` | 5 | `src/gameIso/rig/enemyProfile.ts:64` |
-| `species` | 14 | `src/gameIso/rig/bodyPlan.ts:173` |
-| `tenue` | 6 | `src/gameIso/rig/enemyProfile.ts:102` |
+| `sex` | 1 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `build` | 2 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `species` | 11 | `src/gameIso/rig/bodyPlan.ts:173` |
+| `tenue` | 4 | `src/gameIso/rig/enemyProfile.ts:102` |
 | `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:125` |
 | `armurePortee` | 3 | `src/gameIso/rig/enemyProfile.ts:224` |
-| `hairstyle` | 4 | `src/gameIso/rig/enemyProfile.ts:65` |
-| `eyes` | 10 | `src/gameIso/rig/bodyPlan.ts:124` |
-| `features` | 6 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `hairstyle` | 1 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `eyes` | 5 | `src/gameIso/rig/bodyPlan.ts:124` |
+| `features` | 4 | `src/gameIso/rig/enemyProfile.ts:65` |
 
 ### `FlowTest` (src/engine/flowCore.ts)
 
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: 0024b6c7ffb70dab2d5cd36e9009e78b071cee06 (2116 fichiers, 174 dossiers) corps: c37e4186bc1cb095e2a2b18dd439dfcb99da83c1 -->
+<!-- sources-empreinte: a585b1c254fd15a7833114659c108204c89e1a72 (2116 fichiers, 174 dossiers) corps: 419a8f8e3bb0d817e518447aa73d4d2617cf98f2 -->

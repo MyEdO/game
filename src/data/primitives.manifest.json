@@ -594,6 +594,16 @@
     "verrou": "réflexe avant tout bandeau de rubrique recodé"
   },
   {
+    "id": "reglagesApparence",
+    "type": "primitives.manifest",
+    "label": "ReglagesApparence/MonsterPartsFields",
+    "fichier": "src/ui/editor/MonsterPartsFields.tsx",
+    "css": "src/ui/styles/reglages-apparence.css",
+    "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "verrou": "apparence-une-rubrique.test.tsx"
+  },
+  {
     "id": "heroSheet",
     "type": "primitives.manifest",
     "label": "HeroSheet",

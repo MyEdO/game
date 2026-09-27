@@ -117,6 +117,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `PlaqueRow/PlaqueGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CreatorStepFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Band` |  |  |  |  | U |  | U |  | U | U |  |  |  |  | U |  |
+| `ReglagesApparence/MonsterPartsFields` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `HeroSheet` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `DesignGallery` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Stack/Row/Grid/Split` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -223,4 +224,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 80b3f8e7ce4694a33f8d77596ee18b58cf98196b (1841 fichiers, 2 dossiers) corps: bbbffb3cd9e79e912080e9f00f83c3d3af8af003 -->
+<!-- sources-empreinte: 7c3b8fb566d1454be23566c2101de7fb13af9448 (1841 fichiers, 2 dossiers) corps: b3ec79b6e1ff7c974330fcf69362b404facbc424 -->

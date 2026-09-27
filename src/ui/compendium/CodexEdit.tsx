@@ -38,7 +38,7 @@ import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
-import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from './CreaturePreview';
 import { porteurDApercu } from './apercuPorteur';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -875,41 +875,29 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   );
 }
 
-/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise les briques
- *  partagées `ReglagesApparence` (espèce/sexe/carrure/coiffure) et `MonsterPartsFields` (parts/couleurs/
- *  tenue/harnachement/yeux). Édite le VRAI record
- *  `creatures.json` ; le rig le lit comme couche de défaut → l'apparence en jeu reflète l'édition. */
+/** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
 function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
-  const patch = (p: Partial<EntityAppearance>) => onChange(coiffureRetombee({ ...a, ...p }));
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
   const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
-    <div className="ed-field ed-appearance">
-      <span>apparence par défaut — éditée sur le record, reflétée en jeu</span>
-      <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-      <ReglagesApparence
-        species={a.species} sex={a.sex} build={a.build} hairstyle={a.hairstyle}
-        onSpecies={(id) => patch({ species: id })}
-        onSex={(s) => patch({ sex: s })}
-        onBuild={(b) => patch({ build: b })}
-        onHairstyle={(id) => patch(coiffureChoisie(id))}
-      />
+    <>
+      <div className="ed-field">
+        <span>Apparence</span>
+        <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
+        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} />
+        <label className="dr">
+          <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
+          {' '}Armure du profil visible sur la figurine
+        </label>
+      </div>
       <MonsterPartsFields
-        monster={a.monster} colors={a.colors} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
-        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
-        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
-        onTenue={(c) => patch({ tenue: c })}
-        onHarnais={quadrupede ? (id) => patch({ harnais: id }) : undefined}
-        onEyes={(p) => patch({ eyes: { ...(a.eyes ?? {}), ...p } })}
-        onFeatures={(f) => patch({ features: f.length ? f : undefined })}
+        appearance={a}
+        onChange={onChange}
+        reglages={quadrupede ? ['monster', 'eyes', 'features', 'tenue', 'harnais', 'colors'] : ['monster', 'eyes', 'features', 'tenue', 'colors']}
       />
-      <label className="dr">
-        <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => patch({ armurePortee: e.target.checked || undefined })} />
-        {' '}Armure du statblock VISIBLE (portée) — sinon les PA (trait Armure) restent mécaniques purs, sans art
-      </label>
-    </div>
+    </>
   );
 }
 

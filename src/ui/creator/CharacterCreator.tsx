@@ -87,6 +87,7 @@ import { raceSkillSection, raceTalentSection, type CodexSection } from '../compe
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
 import type { Appearance } from '../../gameIso/rig/appearance';
+import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
 import { bodyHeight } from '../../gameIso/rig/composeRig';
 import { hash32 } from '../../data/hash';
 import { previewHero } from './CreatorSummary';
@@ -486,7 +487,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
 
   /** Apparence de la figurine qui REPRÉSENTE une famille sur sa carte : sa 1ʳᵉ lignée (la canonique
    *  des données) — source UNIQUE du rendu de la tuile ET de la mesure de la toise ci-dessous. */
-  const famAppearance = (f: { list: SpeciesData[] }) => pickAppearance(f.list[0].id, d.sex, f.list[0].variant ?? f.list[0].id);
+  const famAppearance = (f: { list: SpeciesData[] }) => pickAppearance(f.list[0].id, d.apparence.sex, f.list[0].variant ?? f.list[0].id);
   // TOISE COMMUNE de la grille de RACE (#431, verdict user 2026-07-15 verbatim : « ça ne permet pas
   // de voir les différences de taille ») : une carte de race se compare aux AUTRES races — chaque
   // figurine est donc cadrée à son échelle VRAIE contre la plus HAUTE des familles, au lieu d'être
@@ -721,7 +722,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
           label: cl.label,
           items: accessible
             .filter((c) => c.class === cl.id)
-            .map((c: CareerData) => ({ id: c.id, label: c.label, preview: { appearance: pickAppearance(sp.id, d.sex, c.id), career: c.id } })),
+            .map((c: CareerData) => ({ id: c.id, label: c.label, preview: { appearance: pickAppearance(sp.id, d.apparence.sex, c.id), career: c.id } })),
         }))
     : [];
   const q = search.trim();
@@ -839,7 +840,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
     <p className="hint">Sélectionnez une carrière dans la liste, ou tirez-la aux dés.</p>
   ) : (
     <DetailFrame
-      label={<CodexRef category="careers" id={career.id} label={career.label ?? d.careerId}>{careerLabelFor({ career: d.careerId, appearance: { sex: d.sex } })}</CodexRef>}
+      label={<CodexRef category="careers" id={career.id} label={career.label ?? d.careerId}>{careerLabelFor({ career: d.careerId, appearance: { sex: d.apparence.sex } })}</CodexRef>}
       sub={sourceSub(career.source)}
       meta={
         <>
@@ -2208,8 +2209,8 @@ function IdentityNumberField({ label, value, onChange, onClear }: {
 //      puis zone de CHOIX ; fiche vivante à droite). L'état civil COMPOSE la rangée-plaque
 //      (`PlaqueGrid`/`PlaqueRow` : `.idf` de la planche = la plaque, colonne de libellé gravée +
 //      valeur à la plume sur trait pointillé), puis bande Motivation & Ambitions (`BackgroundFields`,
-//      primitive PARTAGÉE avec l'onglet Background de la fiche) et bande Apparence (`AppearancePanel`,
-//      personnalisateur INCHANGÉ). Mécanique INCHANGÉE (`rolledDetails`, draft.ts).
+//      primitive PARTAGÉE avec l'onglet Background de la fiche) et bande Apparence (`AppearancePanel`) ;
+//      le Sexe se règle à la seule bascule de l'état civil (`apparenceSuivante`). Tirage : `rolledDetails`.
 export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const sp = draftSpecies(d);
   const stepIdx = stepIds().indexOf('details');
@@ -2218,7 +2219,6 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
       <CreatorStepFrame d={d} step={stepIdx} label="Détails" zones={{ action: null, choice: <p className="hint">Choisissez d'abord une race.</p> }} />
     );
   }
-  const appearance: Appearance = { species: rigSpeciesId(d.speciesId), sex: d.sex, build: d.build, seed: d.appSeed, colors: d.colors, parts: d.parts };
   const physiqueRolled = !!(d.age || d.height || d.eyes || d.hair);
   const { rolling, landed, trigger, skip } = useRollFrisson(() => {
     const r = rolledDetails(d);
@@ -2231,7 +2231,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const action = (
     <StepHeader title="Détails" sub="Le registre d'état civil du héros">
       <PlaqueRow
-        onClick={() => { const n = generateName(sp.refChar, d.sex, makeRNG(Math.floor(Math.random() * 1e9))); if (n) setD({ ...d, label: n }); }}
+        onClick={() => { const n = generateName(sp.refChar, d.apparence.sex, makeRNG(Math.floor(Math.random() * 1e9))); if (n) setD({ ...d, label: n }); }}
         content="Tirer le nom"
         meta={<em>au générateur</em>}
       />
@@ -2264,8 +2264,8 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
         <PlaqueRow
           label="Sexe"
           content={
-            <button type="button" className="btn small" onClick={() => setD({ ...d, sex: sexeSchema.options[(sexeSchema.options.indexOf(d.sex) + 1) % sexeSchema.options.length] })}>
-              <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.sex)}
+            <button type="button" className="btn small" onClick={() => setD({ ...d, apparence: apparenceSuivante(d.apparence, { sex: sexeSchema.options[(sexeSchema.options.indexOf(d.apparence.sex) + 1) % sexeSchema.options.length] }) })}>
+              <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
             </button>
           }
         />
@@ -2284,10 +2284,11 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
 
       <Band title={<>Apparence<small>la silhouette prend les teintes</small></>} right="tirées aux dés — retouche libre">
         <AppearancePanel
-          value={appearance}
+          species={rigSpeciesId(d.speciesId)}
+          value={d.apparence}
           equip={{ weapons: [], armour: [] }}
           career={d.careerId}
-          onChange={(a) => setD({ ...d, sex: a.sex, build: a.build, appSeed: a.seed ?? d.appSeed, colors: a.colors, parts: a.parts })}
+          onChange={(apparence) => setD({ ...d, apparence })}
         />
       </Band>
 
@@ -2373,7 +2374,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         <Rubrique title="Identité">
           <div className="skill-tags">
             {sign && <CodexRef category="stars" id={sign.id} label={sign.label}><span className="chip">{sign.label}</span></CodexRef>}
-            <span className="chip">{libelleDeValeur(sexeSchema, d.sex)}</span>
+            <span className="chip">{libelleDeValeur(sexeSchema, d.apparence.sex)}</span>
             {hero.details?.age != null && <span className="chip">{hero.details.age} ans</span>}
             {hero.details?.height != null && <span className="chip">{hero.details.height} cm</span>}
             {hero.details?.eyes && <span className="chip">Yeux {hero.details.eyes}</span>}
@@ -2406,7 +2407,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         <p className="presentation-sub">
           <CodexRef category="races" id={d.speciesId} label={speciesLabel}>{speciesLabel}</CodexRef>
           {' · '}
-          {level?.label ? `${level.label} (${displayLabelForSex(d.sex, careerLabel, career?.labelF)})` : displayLabelForSex(d.sex, careerLabel, career?.labelF)}
+          {level?.label ? `${level.label} (${displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)})` : displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)}
           {level?.status && <> · <MetalStatus status={level.status} size="chip" /></>}
         </p>
         <Row>
