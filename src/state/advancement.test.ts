@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { Combatant } from '../engine/types';
 import { findTalentById, specPoolOf } from '../data';
 import { buildAdvancementView } from './advancement';
+import { useGame } from './store';
+import { acquerirTalent } from '../engine/careerSlots';
+import { scenario } from '../scenes/test-scenarios/niveau-complet';
 
 /** Héros minimal de carrière « Agitateur » (careerLevels.json : Niveau 1 = « Pamphlétaire »,
  *  Caractéristiques de carrière = CT/Int/Soc ; Compétences incluent Charme, Ragot ;
@@ -82,7 +85,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
     expect(v.talents).toHaveLength(4);
   });
 
-  it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 10 l.17)', () => {
+  it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 08 l.140)', () => {
     const v = buildAdvancementView(hero({ career: 'pretre' }));
     const row = v.talents.find((r) => r.entry === 'Béni (Au choix)')!;
     expect(row.options?.map((o) => o.refKey)).toContain('beni|sigmar');
@@ -205,5 +208,55 @@ describe('buildAdvancementView — Marque de Tzeentch : Magie des Arcanes au cho
     const specs = v.talents.filter((t) => t.talentId === 'magie-des-arcanes').map((t) => t.spec);
     expect(specs.length).toBeGreaterThan(1);
     expect(specs).toEqual(specPoolOf(findTalentById('magie-des-arcanes')!));
+  });
+});
+
+// LDB 10 l.467 ; EDOC 13 l.524 : la rangée d'un ajout de carrière porte la référence de son porteur ; celle
+// d'un ajout comme en carrière le dit aussi.
+describe('buildAdvancementView — provenance des ajouts de carrière', () => {
+  it('Frénésie par Flagellant (dans la carrière) ; Mains agiles par la Marque de Tzeentch (comme en carrière)', () => {
+    const v = buildAdvancementView(hero({ talents: [{ talentId: 'flagellant', times: 1 }], traits: [{ id: 'marque-de-tzeentch' }] }));
+    const frenesie = v.talents.find((t) => t.talentId === 'frenesie');
+    const mains = v.talents.find((t) => t.talentId === 'mains-agiles');
+    expect(frenesie?.ajout).toEqual({ provenance: { type: 'talent', id: 'flagellant' } });
+    expect(mains?.ajout).toEqual({
+      provenance: { type: 'trait', id: 'marque-de-tzeentch' },
+      commeEnCarriere: true,
+    });
+    expect(v.talents.filter((t) => !t.slotKey.startsWith('add:')).every((t) => t.ajout === undefined)).toBe(true);
+  });
+
+  it('Métier (Forgeron) par Maître artisan (Forgeron) ; une Compétence non ajoutée ne porte aucune provenance', () => {
+    const v = buildAdvancementView(hero({
+      talents: [{ talentId: 'maitre-artisan', spec: 'forgeron', times: 1 }],
+      skills: [
+        { id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 0 },
+        { id: 'esquive', characteristic: 'agilite', advances: 0 },
+      ],
+    } as Partial<Combatant>));
+    expect(v.skills.find((s) => s.skillId === 'metier')?.ajout).toEqual({ provenance: { type: 'talent', id: 'maitre-artisan', spec: 'forgeron' } });
+    expect(v.skills.find((s) => s.skillId === 'esquive')?.ajout).toBeUndefined();
+  });
+});
+
+// LDB 07 l.76 ; LDB 10 l.745 : la Compétence que Maître artisan ajoute à la carrière, inconnue du héros, a sa
+// rangée « à apprendre » avec sa provenance, et l'achat du store la fait passer à 1 Augmentation. Métier
+// (Imprimerie) est l'emplacement de l'Agitateur N1 (`careerLevels.json`), sans ajout.
+describe('buildAdvancementView — Compétence ajoutée à la carrière, inconnue du héros', () => {
+  it('Métier (Forgeron) par Maître artisan (Forgeron) : rangée à apprendre, puis achetée par le store', () => {
+    const [h] = scenario.construire().party;
+    acquerirTalent(h, { id: 'maitre-artisan', spec: 'forgeron' });
+    h.xp = 1000;
+    h.skills = h.skills.filter((s) => s.id !== 'metier');
+    useGame.setState({ battle: null, party: [h], journal: [] });
+    const rangees = buildAdvancementView(useGame.getState().party[0]).skills.filter((s) => s.skillId === 'metier');
+    expect(rangees.map((s) => ({ spec: s.spec, known: s.known, inCareer: s.inCareer, nextCost: s.nextCost, ajout: s.ajout }))).toEqual([
+      { spec: 'imprimerie', known: false, inCareer: true, nextCost: 10, ajout: undefined },
+      { spec: 'forgeron', known: false, inCareer: true, nextCost: 10, ajout: { provenance: { type: 'talent', id: 'maitre-artisan', spec: 'forgeron' } } },
+    ]);
+    useGame.getState().buySkillAdvance(h.id, 'metier', 'forgeron');
+    const apres = useGame.getState().party[0];
+    expect(apres.skills.find((s) => s.id === 'metier' && s.spec === 'forgeron')?.advances).toBe(1);
+    expect(apres.xp).toBe(990);
   });
 });

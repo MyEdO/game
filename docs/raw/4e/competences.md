@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `RecoverResolution`, `DispelModal`, `useTestJetProps`, `AppraiseModalView`, `BargainModalView`, `HealRollFlow`, +57 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +40 fichiers
+- `LDB 9` (l.22-32) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `RecoverResolution`, `DispelModal`, `useTestJetProps`, `AppraiseModalView`, `BargainModalView`, `HealRollFlow`, +56 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +40 fichiers
 
 ---
 
@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `buySkillAdvance`, `athletisme`, `buildAdvancementView`, `designateSpec`, `entreeOuverte`, +23 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +20 fichiers
+- `LDB 9` (l.34-46) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `buySkillAdvance`, `athletisme`, `buildAdvancementView`, `designateSpec`, `entreeOuverte`, +22 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +20 fichiers
 
 ---
 

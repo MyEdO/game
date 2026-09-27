@@ -7,7 +7,8 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
-import { findTrappingById } from '../data';
+import { findTrappingById, refLabel } from '../data';
+import { metaDuChampDOp } from '../data/schemas/grammaire/mecanique';
 import { useGame } from '../state/store';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
@@ -38,6 +39,10 @@ const hero = (): Combatant =>
   }) as unknown as Combatant;
 
 describe('AdvancementPanel (rendu)', () => {
+  beforeAll(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  });
+  afterEach(demonterRacines);
   it('rend le bandeau PX, les Caractéristiques, Compétences, Talents et le bloc Carrière', () => {
     const html = renderToStaticMarkup(<AdvancementPanel hero={hero()} />);
     // Bandeau PX collant (total en tête de l'onglet Avancement)
@@ -62,6 +67,45 @@ describe('AdvancementPanel (rendu)', () => {
     expect(html).toContain('Pamphlétaire');
     expect(html).toContain('niveau en cours');
     expect(html).toContain('changer de carrière');
+  });
+
+  it('rangée d’un ajout de carrière : porteur en chip d’ENTITÉ, régime « comme en carrière » en `.chip` (LDB 10 l.467 ; EDOC 13 l.524)', () => {
+    const porteur = {
+      ...hero(),
+      talents: [{ talentId: 'flagellant', times: 1 }, { talentId: 'maitre-artisan', spec: 'forgeron', times: 1 }],
+      traits: [{ id: 'marque-de-tzeentch' }],
+      skills: [{ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 0 }],
+    } as unknown as Combatant;
+    const racine = document.createElement('div');
+    racine.innerHTML = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
+    const rangee = (libelle: string) => [...racine.querySelectorAll('.adv-row')].find((r) => r.querySelector('.adv-name')?.textContent?.startsWith(libelle))!;
+    const entites = (r: Element) => [...r.querySelectorAll('.adv-name .entity-chip')].map((c) => c.textContent);
+    const pastilles = (r: Element) => [...r.querySelectorAll('.adv-name .chip')].map((c) => c.textContent);
+    expect(entites(rangee('Frénésie'))).toEqual(['Flagellant']);
+    expect(pastilles(rangee('Frénésie'))).toEqual([]);
+    expect(entites(rangee('Mains agiles'))).toEqual(['Marque de Tzeentch']);
+    expect(pastilles(rangee('Mains agiles'))).toEqual([metaDuChampDOp('grantCareerTalent', 'commeEnCarriere')!.label]);
+    expect(entites(rangee('Métier'))).toEqual([refLabel('talents', { id: 'maitre-artisan', spec: 'forgeron' })]);
+    expect(entites(rangee('Sociable'))).toEqual([]);
+  });
+
+  it.each([
+    ['Frénésie', 'talents', 'flagellant', 'Flagellant'],
+    ['Mains agiles', 'traits', 'marque-de-tzeentch', 'Marque de Tzeentch'],
+  ])('puce de provenance de la rangée « %s » : un clic ouvre la fiche de son porteur (%s), quel que soit son type', (libelle, category, id, nom) => {
+    useGame.setState({ screen: 'campaign', codexOverlay: null });
+    const porteur = {
+      ...hero(),
+      talents: [{ talentId: 'flagellant', times: 1 }],
+      traits: [{ id: 'marque-de-tzeentch' }],
+    } as unknown as Combatant;
+    const { container } = monterRacine(<AdvancementPanel hero={porteur} />);
+    const rangee = [...container.querySelectorAll('.adv-row')].find((r) => r.querySelector('.adv-name')?.textContent?.startsWith(libelle))!;
+    const puce = rangee.querySelector<HTMLElement>('.adv-name .entity-chip [role="button"]')!;
+    expect(puce.textContent).toBe(nom);
+    act(() => { puce.click(); });
+    expect(useGame.getState().screen).toBe('campaign');
+    expect(useGame.getState().codexOverlay).toMatchObject({ category, id });
   });
 
   it('grise un achat quand les PX sont insuffisants', () => {

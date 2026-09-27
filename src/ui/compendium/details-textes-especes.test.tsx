@@ -38,7 +38,7 @@ function mount(initial: DetailsTexts) {
   act(() => { root.render(<DetailsTextsField value={valeur} onChange={onChange} />); });
 }
 
-const bouton = () => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('+ Espèce'))!;
+const bouton = () => [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Espèce')!;
 const selects = () => [...container.querySelectorAll('select')];
 const options = (s: HTMLSelectElement) => [...s.options].map((o) => o.value);
 

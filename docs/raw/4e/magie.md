@@ -476,7 +476,7 @@ Un lanceur peut activer un sort depuis un **grimoire** si le sort appartient au 
 > **Verbatim** (l.152-154) : « Un lanceur de Sorts peut en activer un depuis un grimoire si le Sort appartient au Domaine qu'il possède, mais cela double le Niveau d'Incantation. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.96-99) → `followsCharacterRules`, `overcastAxes`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `lecture-au-grimoire`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `SpellbookSection`, +11 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +8 fichiers
+- `LDB 46` (l.96-99) → `followsCharacterRules`, `overcastAxes`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `lecture-au-grimoire`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `buySpellComponent`, +11 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +8 fichiers
 
 ---
 
@@ -827,7 +827,7 @@ Le « Département des arts magiques maritimes » du collège du baron Henryk (M
 **Voir aussi :** [Focalisation (Test étendu)](#focalisation-test-étendu), [Focalisation Critique](#focalisation-critique), [Maladresse de Focalisation](#maladresse-de-focalisation), [Domaine du Feu (Aqshy — Vent Rouge)](#domaine-du-feu-aqshy--vent-rouge)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.178-186) → `seaMagicContext`, `crew`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+- `MDG 2` (l.178-186) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
 
 ---
 
@@ -849,7 +849,7 @@ Ces sorts manipulent des objets de jeu « navals » (navire, Manœuvre, tourbill
 **Voir aussi :** [Magie des mers — modificateurs des Vents en mer](#magie-des-mers--modificateurs-des-vents-en-mer), [Surincantation](#surincantation), [Zone d'Effet (ZdE)](#zone-deffet-zde)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.189-262) → `seaMagicContext`, `crew`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+- `MDG 2` (l.189-262) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
 
 ---
 

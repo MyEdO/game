@@ -37,7 +37,7 @@ import {
   type TrappingRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
+import { refKey, memeRef, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices } from './trappingChoices';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
@@ -363,7 +363,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const heroSoFar: Combatant = { characteristics: chars, talents } as Combatant;
   const skills: SkillInstance[] = [];
   const addSkill = ({ id, spec }: RefDesignee, adv: number) => {
-    const existing = skills.find((s) => s.id === id && (s.spec ?? '') === (spec ?? ''));
+    const existing = skills.find((s) => memeRef(s, { id, spec }));
     if (existing) existing.advances += adv; // même (id, spec) = même Compétence (LDB 09 l.42)
     else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
   };
@@ -480,7 +480,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
       case 'free': designateSlot(hero, opts.careerId, freeSlotFor(tSlots, designations, talentId, spec, all)!, talentId, spec, all); break;
       case 'explicit': case 'designated': break;
       case 'absent': throw new Error(`${quoi} : absent du Niveau 1 de « ${opts.careerId} » (LDB 05 l.535).`);
-      case 'sansSpec': throw new Error(`${quoi} : l'emplacement « (Au choix) » du Niveau 1 de « ${opts.careerId} » exige une spécialisation (LDB 10 l.17).`);
+      case 'sansSpec': throw new Error(`${quoi} : l'emplacement « (Au choix) » du Niveau 1 de « ${opts.careerId} » exige une spécialisation (LDB 08 l.140).`);
       case 'nonCouvert': throw new Error(`${quoi} : aucun emplacement libre du Niveau 1 de « ${opts.careerId} » ne couvre cette spécialisation.`);
     }
   }

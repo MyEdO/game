@@ -1,9 +1,19 @@
-import { Combatant } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
+import { skillCharacteristicById } from '../../engine/character';
+import { memeRef } from '../../engine/careerSlots';
 import { Scene, Terrain } from '../../state/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { IconId } from '../../ui/icons';
 import { buildEncounters, type AuthoredEncounter } from '../../state/encounterAuthoring';
 import { buildScene } from '../../state/mapSpec';
+
+/** Ajoute la Compétence (id, spec) à un héros à la Caractéristique de sa donnée, ou porte ses Augmentations
+ *  à `advances` si elle y est déjà (`memeRef`). */
+export function renforceCompetence(c: Combatant, skillId: string, advances: number, spec?: string): void {
+  const ex = c.skills.find((s) => memeRef(s, { id: skillId, spec }));
+  if (ex) ex.advances = Math.max(ex.advances, advances);
+  else c.skills.push({ id: skillId, spec, characteristic: skillCharacteristicById(skillId), advances });
+}
 
 /** Attache des rencontres authored (terse) à une scène : expanse chaque liste d'ennemis en
  *  entités 'personnage' + `members` canoniques, pousse les entités dans la scène et pose les
@@ -21,6 +31,7 @@ export const SCENARIO_SECTIONS = [
   { key: 'magie', label: 'Magie', icon: 'action/cast' },
   { key: 'creatures', label: 'Créatures', icon: 'scenario/bestiary' },
   { key: 'survie', label: 'Survie', icon: 'scenario/travel' },
+  { key: 'progression', label: 'Progression', icon: 'resource/xp' },
   { key: 'marche', label: 'Marché', icon: 'scenario/market' },
   { key: 'scenarios', label: 'Scénarios complets', icon: 'nav/campaign' },
   { key: 'naval', label: 'Naval', icon: 'scenario/naval' },

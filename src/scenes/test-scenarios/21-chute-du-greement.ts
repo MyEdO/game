@@ -1,9 +1,9 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
+import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
-import type { TestScenario } from './_shared';
+import { renforceCompetence, type TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
 
 /**
@@ -24,14 +24,6 @@ import { rigSpeciesId } from '../../data';
  * Les trois gestes de recette (console `__wfrp`) sont documentés dans `docs/test-scenarios.md`.
  */
 
-/** Ajoute/renforce une Compétence à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /**
  * Deux gabiers, chacun à SA station — c'est la station qui décide de la hauteur lue dans la table.
  * Athlétisme volontairement FAIBLE : le Test du gréement se rate souvent, et c'est l'échec qu'on vient
@@ -42,15 +34,15 @@ function equipage(): Combatant[] {
   const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', rng: makeRNG(1508), id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
-  skill(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
-  skill(gabier, 'voile', 45);
+  renforceCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
+  renforceCompetence(gabier, 'voile', 45);
   gabier.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.45 };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', rng: makeRNG(1509), id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
-  skill(vigie, 'athletisme', 5);
-  skill(vigie, 'perception', 50);
+  renforceCompetence(vigie, 'athletisme', 5);
+  renforceCompetence(vigie, 'perception', 50);
   vigie.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.4 };
 
   return [gabier, vigie];

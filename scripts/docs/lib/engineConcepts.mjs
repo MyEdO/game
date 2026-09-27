@@ -79,6 +79,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/healing.ts', 'Soin, guérison'],
   ['src/engine/inanimate.ts', 'Entités inanimées (véhicules, structures)'],
   ['src/engine/items.ts', 'Objets, possessions'],
+  ['src/engine/carrier.ts', "Porteur d'objets (héros ou possession)"],
   ['src/engine/landCargo.ts', 'Cargaison terrestre'],
   ['src/engine/magic.ts', 'Magie : incantation, sorts'],
   ['src/engine/magicEnvironment.ts', "Environnement magique (Aethyr)"],

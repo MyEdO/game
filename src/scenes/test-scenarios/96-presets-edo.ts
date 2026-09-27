@@ -110,7 +110,7 @@ function construireNarratif(): NarratifBlock {
           { id: 'coude-a-coude' },
           { id: 'maitrise-des-des' },
           { id: 'rechargement-rapide' },
-          { id: 'savoir-vivre', spec: 'Soldats' },
+          { id: 'savoir-vivre', spec: 'soldats' },
           { id: 'seigneur-de-guerre' },
           { id: 'tricheur' },
           { id: 'vigilance' },

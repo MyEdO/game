@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, formulaSchema } from '../grammaire/valeurs';
+import { charKeySchema, formulaSchema, maisonSchema } from '../grammaire/valeurs';
 import { flowSchema, conditionSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
@@ -37,8 +37,8 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
 const spellTargetSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('self') }),
   z.strictObject({ kind: z.literal('count'), n: formulaSchema }),
-  z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formulaSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: z.string().optional() }),
-  z.strictObject({ kind: z.literal('cone'), lengthMeters: formulaSchema, widthMeters: formulaSchema, affects: conditionSchema.optional(), maison: z.string().optional() }),
+  z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formulaSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: maisonSchema.optional() }),
+  z.strictObject({ kind: z.literal('cone'), lengthMeters: formulaSchema, widthMeters: formulaSchema, affects: conditionSchema.optional(), maison: maisonSchema.optional() }),
   z.strictObject({ kind: z.literal('special'), text: z.string() }),
 ]);
 

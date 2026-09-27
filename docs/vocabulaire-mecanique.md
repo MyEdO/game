@@ -55,16 +55,16 @@ Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: 
 | Entité | Déclarée | `passive` | `effects` | Drapeaux |
 |---|---|---|---|---|
 | `ActiveEffect` | `src/engine/types.ts:756` | `passive: GameOp[]` | — | — |
-| `DomainData` | `src/data/index.ts:2024` | — | `effects: TriggeredEffect[]` | — |
-| `ManeuverDef` | `src/data/index.ts:1652` | — | `effects: TriggeredEffect[]` | — |
+| `DomainData` | `src/data/index.ts:2018` | — | `effects: TriggeredEffect[]` | — |
+| `ManeuverDef` | `src/data/index.ts:1646` | — | `effects: TriggeredEffect[]` | — |
 | `Mutation` | `src/engine/corruption.ts:60` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `NavalTraitData` | `src/data/index.ts:2567` | `passive: GameOp[]` | — | — |
-| `QualityData` | `src/data/index.ts:1939` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
-| `StatusData` | `src/data/index.ts:1434` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `SymptomData` | `src/data/index.ts:1982` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
-| `TalentData` | `src/data/index.ts:1039` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
-| `TraitData` | `src/data/index.ts:1822` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
-| `TrappingData` | `src/data/index.ts:1155` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
+| `NavalTraitData` | `src/data/index.ts:2561` | `passive: GameOp[]` | — | — |
+| `QualityData` | `src/data/index.ts:1933` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
+| `StatusData` | `src/data/index.ts:1428` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
+| `SymptomData` | `src/data/index.ts:1976` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
+| `TalentData` | `src/data/index.ts:1033` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
+| `TraitData` | `src/data/index.ts:1816` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
+| `TrappingData` | `src/data/index.ts:1149` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
 | `Weapon` | `src/engine/types.ts:372` | `passive: GameOp[]` | — | — |
 | `WeaponEnchant` | `src/engine/types.ts:535` | `passive: GameOp[]` | — | — |
 
@@ -76,10 +76,10 @@ table ne montre que les champs DÉCLARÉS (`EtatData`/`PsychologyData` tiennent 
 | Type | Site | Drapeaux déclarés |
 |---|---|---|
 | `CombatFeature` | `src/engine/combatFeatures/types.ts:27` | 51 — `offHandPenalty`, `attackModes`, `meleeDamageBonus`, `rangedDamageBonus`, `brawlDamageBonus`, `chargeDamageBonus`, `slayer`, `damageReduction`, `critExtraWounds`, `rangedAPIgnore`, `ignoreCalledShotHead`, `ignoreCalledShotRanged`, `ignoreSizeRangedMods`, `sniper`, `initiativeBonus`, `strikeFirstRanged`, `surpriseSave`, `reloadDR`, `runBonus`, `fleeBonus`, `pursuitTargetBonus`, `shieldAdvantage`, `advantageDefenseReaction`, `counterOnDefenseWin`, `counterRequiresFastParry`, `stealAdvantage`, `stealOne`, `transferWeight`, `reloadAssessAdvantage`, `fearSizeAsMount`, `retreatCost`, `keepAdvantageOnDisengage`, `disengageWithLessAdvantage`, `battement`, `distraire`, `outnumberCount`, `braveheart`, `fearImmune`, `bleedIgnore`, `focusNoMiscastOnDouble`, `castNoMiscastOnDouble`, `causesFear`, `reverseFailed`, `bargainBonus`, `encumbranceBonus`, `corruptionThreshold`, `surgery`, `castingKind`, `commandTeam`, `seaShanty`, `critRollTwice` |
-| `ItemCapabilities` | `src/data/index.ts:1112` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
-| `QualityCapabilities` | `src/data/index.ts:1901` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
-| `SymptomCapabilities` | `src/data/index.ts:1968` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
-| `TraitCapabilities` | `src/data/index.ts:1703` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
+| `ItemCapabilities` | `src/data/index.ts:1106` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
+| `QualityCapabilities` | `src/data/index.ts:1895` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
+| `SymptomCapabilities` | `src/data/index.ts:1962` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
+| `TraitCapabilities` | `src/data/index.ts:1697` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
 
 ## GameOp — index par concept (français)
 
@@ -171,7 +171,7 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | `gainResource` | `resource`, `amount`, `perSL?`, `temporary?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 6 — `spells.json:le-premier-signe-d-amul`, `spells.json:le-second-signe-d-amul` … | Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les points NON dépensés à l'expiration (rounds OU horloge, engine/grantedResources). |
 | `giveTrapping` | `trappingId?`, `custom?`, `count?`, `perSL?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 3 — `spells.json:generosite-de-manann`, `spells.json:recolte-de-rhya` … | Crée un objet (`trapping`) dans l'inventaire de la cible — nom RÉEL de la base → objet à stats, nom inconnu → objet CUSTOM (misc). |
 | `grantCareerSkill` | `skill` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 5 — `talents.json:artiste`, `talents.json:maitre-artisan` … | Ajoute une Compétence aux listes de TOUTE carrière entamée (Maître artisan/Sorcier!/… LDB 10) — référence EMBOÎTÉE (jamais libellé), MÊME forme que `RefDesignee` sans sa valeur imprimée : `skill.choix` = emplacement NON désigné, reporté sur la spec choisie du talent quand elle existe. |
-| `grantCareerTalent` | `talent` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 21 — `talents.json:flagellant`, `traits.json:marque-de-tzeentch` … | Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de `grantCareerSkill`. |
+| `grantCareerTalent` | `talent`, `commeEnCarriere?` | **hors switch** | `engine/talentEffects.ts`, `state/targetingModes.ts` | 21 — `talents.json:flagellant`, `traits.json:marque-de-tzeentch` … | Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de `grantCareerSkill`. |
 | `grantFreeAttack` | `weapon`, `when`, `advantageCost?`, `advantageOrMovement?`, `activeIf?`, `perChargerOncePerRound?`, `label?` | **inerte au switch** | `engine/flowCore.ts`, `state/aiSpellValue.ts`, `state/combat/triggeredTest.ts` +3 | 3 — `psychology.json:frenesie`, `talents.json:assaut-feroce` … | ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce : attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). |
 | `grantNaturalWeapon` | `label`, `damage`, `damagePlus?`, `plusBF?`, `bare?`, `qualities?`, `attackKind?`, `subType?`, `uid?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 7 — `mutations.json:cornes-asymetriques`, `mutations.json:griffes` … | Accorde une ARME NATURELLE (Dent et griffe : Morsure BF+3 / Arme BF+4 ; Incarnation de Wyssan) : attaque ADDITIONNELLE de mêlée injectée dans `c.weapons` (recomputeLoadout), retirée à l'expiration. |
 | `grantPsychTrait` | `psychType`, `cible?`, `argFrom?` | exécutée | `engine/corruption.ts`, `engine/disease.ts` | 8 — `drunkenness.json:tous-un-par-un`, `mutations.json:colere-impie` … | Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). |
@@ -356,4 +356,4 @@ Valeurs du champ `on` d'un `TriggeredEffect`.
 | `{ pick … }` | `sizeAtMost?`, `max` | — |
 
 _6 entrées — dérivées de `src/engine/flowCore.ts`._
-<!-- sources-empreinte: 3e5cb2704ace814295e7535ad34501fb0f733403 (682 fichiers, 16 dossiers) corps: cebc9778ae6f5b59855a5d7061601ae29f6062a4 -->
+<!-- sources-empreinte: d1a5f8a8a729a01ed4243f0531443226f41bdec9 (683 fichiers, 16 dossiers) corps: 7fbe611183845742bd0cb625f3f5eb637b6c20fa -->

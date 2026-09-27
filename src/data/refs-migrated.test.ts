@@ -11,7 +11,7 @@ import {
   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
   findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
   mutationTables,
-  specLabel, refLabel, specEntryId, specEntryLabel, specResolves, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
+  specLabel, refLabel, specEntryId, specEntryLabel, specResolves, specCatalogOf, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { avancement } from './schemas/grammaire/avancement';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
@@ -485,11 +485,26 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         expect((s.specs?.length ?? 0) > 0, id).toBe(true);
         for (const entry of s.specs ?? []) expect(isObj(entry) && typeof entry.id === 'string' && typeof entry.label === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
       }
-      for (const id of ['bon-marcheur', 'haine', 'maitre-artisan', 'sans-peur', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice']) {
-        const t = findTalentById(id)!;
-        expect(t.specsOpen, id).toBe(true);
-        for (const entry of t.specs ?? []) expect(isObj(entry) && typeof (entry as { id: unknown }).id === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
+    });
+    // LDB 10 l.315 (Destinée) ; LDB 09 l.40 — Maître artisan (LDB 10 l.741), Travailleur qualifié (LDB 11 l.126),
+    // Savant (LDB 10 l.1059) ; LDB 10 l.117 (Bon marcheur), l.548 (Haine), l.1051 (Sans peur), l.1071
+    // (Savoir-vivre) ; ADE II 02 l.265 (Vice).
+    it('Talents `specsOpen` : les Talents dont le livre ouvre la liste', () => {
+      expect(talents.filter((t) => t.specsOpen).map((t) => t.id).sort()).toEqual([
+        'bon-marcheur', 'destinee', 'haine', 'maitre-artisan', 'sans-peur', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice',
+      ]);
+      for (const id of ['maitre-artisan', 'savant', 'travailleur-qualifie']) {
+        for (const entry of findTalentById(id)!.specs ?? []) expect(isObj(entry) && typeof (entry as { id: unknown }).id === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
       }
+    });
+    // LDB 10 l.117, l.548, l.1051, l.1071 ; ADE II 02 l.265 ; LDB 10 l.315.
+    it.each([
+      ['bon-marcheur', 'Jungle'], ['haine', 'Nains'], ['sans-peur', 'Elfes'], ['savoir-vivre', 'Vagabonds'], ['vice', 'Jeu'],
+      ['destinee', 'Noyé dans le Reik'],
+    ])('Talent à liste ouverte « %s » : un groupe hors catalogue (« %s ») est admis', (id, groupe) => {
+      expect((findTalentById(id)!.specs ?? []).some((e) => e.id === groupe || e.label === groupe), `${groupe} est déjà au catalogue de ${id}`).toBe(false);
+      expect(entreeOuverte('talent', id), id).toBe(true);
+      expect(refusDeSpec('talent', id, groupe), `${id} (${groupe})`).toBeNull();
     });
   });
 
@@ -592,9 +607,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 // module PARTAGÉ avec la migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait
 // la donnée à sa façon mesurerait autre chose que le geste qu'elle garde.
 type SpecDef = { specsSource?: SpecsSource; specs?: SpecEntry[] };
-/** Une spéc RENCONTRÉE qui ne résout pas, nommée par sa clé stable `fichier|porteur|refId|spec`.
- *  `catalogue` = la def PORTE un catalogue de spécs (`specs[]` non vide ou `specsSource`). */
-type SpecHors = { where: string; key: string; book: string; refId: string; spec: string; catalogue: boolean };
+/** Une spéc RENCONTRÉE qui ne résout pas, nommée par sa clé stable `fichier|porteur|refId|spec`. */
+type SpecHors = { where: string; key: string; book: string; refId: string; spec: string };
 
 /**
  * MARCHE PARTAGÉE des deux contrats positifs — Compétences (#1342 L2-a) et Talents (#1457 B1) : même
@@ -627,7 +641,7 @@ function collecteSpecs(
         if (isSentinel(node.spec)) { sentinelles.push(`${file}|${owner}|${node.id}|${node.spec}`); return; }
         seen++;
         if (def && specResolves(def, node.spec)) return;
-        hors.push({ where: `${file}(${owner})`, key: `${file}|${owner}|${node.id}|${node.spec}`, book, refId: node.id, spec: node.spec, catalogue });
+        hors.push({ where: `${file}(${owner})`, key: `${file}|${owner}|${node.id}|${node.spec}`, book, refId: node.id, spec: node.spec });
       }, arrName);
     }
   }
@@ -638,11 +652,6 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
   const ROOT = fileURLToPath(new URL('../../', import.meta.url));
   const { extraits: EXTRAITS, dirManquant } = extractedBooks(books, ROOT);
   const { hors, nues, seen } = collecteSpecs('skills', (id) => byId('skill', id));
-
-  // Le stock « la ligne imprime un CHOIX, pas une spéc » (6 clés : « Artisanat (Armurier OU
-  // Forgeron) », « Savoir (Rivières_ou_Chemins) » ×2, « Savoir (Divinité) » ×3) est ÉTEINT au commit
-  // 4bis de L2 #1548 : ces lignes portent désormais `choix: [ids]`, que la marche ci-dessus rend au
-  // régime `choix` (ligne 721) et ne confronte plus au catalogue en tant que spéc.
 
   it('creatures/careerLevels/species : zéro spec hors catalogue sous un livre extrait dans Source/', () => {
     // NON-VACUITÉ : sans lignes scannées ni extraction sur disque, le contrat serait vert à vide.
@@ -710,77 +719,65 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
   });
 });
 
-// ── CONTRAT POSITIF (#1457 B1) — `talents[].spec` d'une entrée SOURCÉE d'un livre EXTRAIT : la spéc
-// RÉSOUT au catalogue du Talent, ou elle est NOMMÉE au stock ci-dessous. Les listes de spécialisation
-// des Talents concernés sont OUVERTES au RAW (`LDB 10 l.117`, `LDB 10 l.1071`) : le geste juste est de
-// CRÉER l'entrée `talents.json#specs[]` avec sa `source` (patron `savoir-vivre›mercenaires`,
-// `AA 04 l.119`), jamais de mapper une valeur imprimée vers un id voisin. Ce lot pose l'INSTRUMENT :
-// les créations d'entrées se font aux lots B2 (livres officiels) et B3 (frenchy-bzh).
-describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock nominatif DÉCROISSANT (#1457 B1)', () => {
-  const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-  const { extraits: EXTRAITS } = extractedBooks(books, ROOT);
+// ── CONTRAT POSITIF — `talents[].spec` : toute spec de Talent RÉSOUT au catalogue du Talent par id, ou l'entrée
+// porte `specsOpen` (`entreeOuverte`) et le texte libre n'y DÉSIGNE aucune entrée du catalogue par la couture
+// libellé d'affichage (`specLabel`) → id du catalogue (`specCatalogOf`). LDB 09 l.40, LDB 10 l.315.
+describe('spec de Talent — résout au catalogue, ou texte libre d’une entrée specsOpen (LDB 09 l.40, LDB 10 l.315)', () => {
   const { hors, seen, sentinelles } = collecteSpecs('talents', (id) => findTalentById(id));
-  const dette = hors.filter((h) => h.catalogue);
-  const textesDInstance = hors.filter((h) => !h.catalogue);
+  /** L'entrée du catalogue que DÉSIGNE un texte libre par la couture label→id, `undefined` si aucune. */
+  const parLibelle = (refId: string, texte: string): string | undefined => {
+    const def = findTalentById(refId);
+    return def ? specCatalogOf(def).find((id) => id !== texte && specLabel('talents', refId, id) === texte) : undefined;
+  };
+  const designee = (h: SpecHors): string | undefined => parLibelle(h.refId, h.spec);
+  const ouverte = (h: SpecHors) => entreeOuverte('talent', h.refId) && designee(h) === undefined;
 
-  /** STOCK NOMINATIF DÉCROISSANT — mesure du 2026-09-01 (après B3) : 5 spécs de Talent à créer au
-   *  catalogue, clé `fichier|porteur|talentId|spec`. Par Talent : bon-marcheur 5 ; par livre :
-   *  frenchy-bzh 5 — les livres OFFICIELS y sont à ZÉRO. Une clé se RETIRE quand sa spéc résout.
-   *
-   *  CE QUI RESTE, ET POURQUOI : les 5 lignes impriment un CHOIX BORNÉ entre deux terrains, pas une
-   *  spéc — « Arpenteur (Plaine_OU_Forêt) » (`frenchy.bzh 26 l.366`, `l.413`) et « Arpenteur
-   *  (Forêt_ou_Plaine) » (`l.686`, `l.950`, `l.1008`), toutes cinq décrites « Bonus +N DR pour les
-   *  Tests d'Athlétisme réussis dans l'environnement CHOISI ». La forme canonique du dépôt pour ce
-   *  cas est `choix: [ids]` (L2 #1548) ; `talentRefSchema` (`schemas/grammaire/reference.ts`) n'a
-   *  pas ce régime, concept LOTÉ L3 #1463 (`schemas/defs-scenes/narratif.ts` l.127-133). La
-   *  sentinelle libre « au choix » les éteindrait en perdant la BORNE imprimée : elles restent ici.
-   *
-   *  Hors des tableaux `talents[]` que walke ce contrat (`walkSkillRefs`), une référence de Talent est
-   *  un `refOuSpec('talent')` — ops de Talent, `axes.json › talents` (#1473, train 2a) : sa spéc est
-   *  jugée AU PARSE, contre le catalogue ou l'entrée ouverte. */
-  const SPECS_DE_TALENT_A_CREER = new Set<string>([
-    'creatures|haut-druide-de-la-foi-antique|bon-marcheur|ForêtouPlaine',
-    'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|ForêtouPlaine',
-    'creatures|maitre-des-taillis|bon-marcheur|PlaineOUForêt',
-    'creatures|pretre-rodeur-de-taal|bon-marcheur|ForêtouPlaine',
-    'creatures|rebouteux|bon-marcheur|PlaineOUForêt',
+  /** Texte libre qui imprime une BORNE : au moins deux termes joints par « ou », chacun une entrée du
+   *  catalogue (`frenchy.bzh 26 l.366`, `l.413`, `l.645`, `l.686`, `l.950`, `l.1008`). */
+  const borne = (h: SpecHors): boolean => {
+    const termes = h.spec.split(/\s+ou\s+/i).map((x) => x.trim()).filter(Boolean);
+    return termes.length > 1 && termes.every((x) => parLibelle(h.refId, x) !== undefined);
+  };
+  /** STOCK NOMINATIF DÉCROISSANT des bornes en texte libre (`borne`), #1473. Clé `fichier|porteur|talentId|spec`.
+   *  `talentRefSchema` (`schemas/grammaire/reference.ts`) n'a pas de `choix` : la borne d'un statbloc
+   *  n'a pas d'autre graphie que ce texte libre gelé ici, #1621. */
+  const BORNES_EN_TEXTE_LIBRE = new Set<string>([
+    'creatures|druide-de-la-foi-antique|bon-marcheur|Forêt ou Plaine',
+    'creatures|haut-druide-de-la-foi-antique|bon-marcheur|Forêt ou Plaine',
+    'creatures|haut-pretre-rodeur-de-taal|bon-marcheur|Forêt ou Plaine',
+    'creatures|maitre-des-taillis|bon-marcheur|Plaine OU Forêt',
+    'creatures|pretre-rodeur-de-taal|bon-marcheur|Forêt ou Plaine',
+    'creatures|rebouteux|bon-marcheur|Plaine OU Forêt',
   ]);
 
-  it('creatures/careerLevels/species : zéro spec de Talent hors catalogue sous un livre extrait, hors stock nominatif', () => {
-    // NON-VACUITÉ : sans lignes scannées ni extraction sur disque, le contrat serait vert à vide.
+  it('creatures/careerLevels/species : toute spec de Talent résout au catalogue, ou est un texte libre d’entrée specsOpen', () => {
     expect(seen).toBeGreaterThan(300);
-    expect(EXTRAITS.size).toBeGreaterThan(10);
-    const bad = dette
-      .filter((h) => EXTRAITS.has(h.book) && !SPECS_DE_TALENT_A_CREER.has(h.key))
-      .map((h) => `${h.where} [${h.book}] : ${h.refId} → ${JSON.stringify(h.spec)} — clé ${h.key}`);
-    expect(bad, `spec de Talent qui ne résout pas et qui n'est pas au stock — créer l'entrée sourcée dans talents.json#specs[] :\n${bad.join('\n')}`).toEqual([]);
+    const bad = hors.filter((h) => !ouverte(h)).map((h) => {
+      const id = designee(h);
+      return `${h.where} [${h.book}] : ${h.refId} → ${JSON.stringify(h.spec)}${id ? ` — désigne l'entrée « ${id} » : écrire son id` : ' — entrée sans specsOpen : créer l\'entrée sourcée dans talents.json#specs[]'}`;
+    });
+    expect(bad, `spec de Talent qui ne résout pas par id :\n${bad.join('\n')}`).toEqual([]);
   });
 
-  it('le stock DÉCROÎT : une clé dont la spéc RÉSOUT (ou dont le porteur a disparu) est retirée', () => {
-    const vues = new Set(hors.map((h) => h.key));
-    const perimes = [...SPECS_DE_TALENT_A_CREER].filter((k) => !vues.has(k));
-    expect(perimes, `clé(s) du stock sans instance non résolue — RETIRER du stock :\n${perimes.join('\n')}`).toEqual([]);
+  it('les textes libres d’entrée ouverte existent (Destinée, LDB 10 l.315) et le stock des bornes DÉCROÎT', () => {
+    expect(hors.filter(ouverte).filter((h) => h.refId === 'destinee').length).toBeGreaterThan(0);
+    const bornes = hors.filter(borne).map((h) => h.key);
+    expect(bornes.filter((k) => !BORNES_EN_TEXTE_LIBRE.has(k)), 'borne neuve en texte libre : porteur d’emplacement → écrire `choix: [ids]` ; statbloc (`talentRefSchema` sans `choix`, #1621) → la geler dans BORNES_EN_TEXTE_LIBRE').toEqual([]);
+    expect([...BORNES_EN_TEXTE_LIBRE].filter((k) => !bornes.includes(k)), 'clé(s) du stock sans borne — RETIRER du stock').toEqual([]);
   });
 
-  it('un Talent SANS catalogue de spécs (destinee, frenesie) porte un TEXTE d’instance : compté à part, jamais au stock de dette (#1621)', () => {
-    const PLAFOND = 24;
-    const parTalent = [...textesDInstance.reduce((m, h) => m.set(h.refId, (m.get(h.refId) ?? 0) + 1), new Map<string, number>())]
-      .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
-    // Cliquet UNIDIRECTIONNEL : PLAFOND, pas stock nominatif. Une 25e instance rougit (#1621) ; une
-    // chute de 24 vers 1 reste verte — le régime du champ texte d'instance se tranche à #1621.
-    expect(textesDInstance.length).toBeGreaterThan(0);
-    expect(textesDInstance.length, `${parTalent} — un texte d'instance de PLUS : le régime du champ se tranche à #1621`).toBeLessThanOrEqual(PLAFOND);
-    const melanges = textesDInstance.filter((h) => SPECS_DE_TALENT_A_CREER.has(h.key)).map((h) => h.key);
-    expect(melanges, `texte d'instance stocké comme dette de spec :\n${melanges.join('\n')}`).toEqual([]);
+  it('CONTRÔLE POSITIF — `borne` découpe sur le MOT « ou », jamais dans un terme qui le contient', () => {
+    const vue = (refId: string, spec: string) => borne({ refId, spec } as SpecHors);
+    expect([
+      vue('bon-marcheur', 'Toundra ou Littoral'), vue('bon-marcheur', 'Forêt ou Plaine'),
+      vue('bon-marcheur', 'Plaine OU Forêt'), vue('bon-marcheur', 'Toundra'), vue('bon-marcheur', 'ForêtouPlaine'),
+    ]).toEqual([true, true, true, false, false]);
   });
 
   it('les sentinelles « Au choix » de talents[] sont ÉCARTÉES de la résolution mais COMPTÉES et BORNÉES (#1621)', () => {
     const PLAFOND = 12;
-    // Même lecture que le PLAFOND des textes d'instance ci-dessus : cliquet UNIDIRECTIONNEL, pas
-    // stock nominatif. La sentinelle est un EMPLACEMENT de spéc, pas une spéc : elle ne peut pas
-    // résoudre au catalogue, donc `collecteSpecs` la saute avant `seen++` — sans ce compte, elle
-    // sortait de la mesure sans laisser de trace. Le régime `choix` des réfs de Talent (qui les
-    // éteindra en portant la borne imprimée) se tranche à #1621 ; d'ici là, une 13e rougit.
+    // Cliquet UNIDIRECTIONNEL. La sentinelle est un EMPLACEMENT de spéc, pas une spéc : `collecteSpecs` la
+    // saute avant `seen++`, ce compte la garde dans la mesure. Lot de mort : E4, train 2b de #1473.
     const parTalent = [...sentinelles.reduce((m, k) => m.set(k.split('|')[2], (m.get(k.split('|')[2]) ?? 0) + 1), new Map<string, number>())]
       .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
     expect(sentinelles.length).toBeGreaterThan(0);
@@ -790,13 +787,26 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
     ).toBeLessThanOrEqual(PLAFOND);
   });
 
-  it('CONTRÔLE POSITIF — une spec de Talent inconnue posée sur une créature FIXTURE est ATTRAPÉE (mutation EN MÉMOIRE, jamais au disque)', () => {
-    const fixture = { id: 'fixture-1457-b1', source: { book: 'frenchy-bzh' }, talents: [{ id: 'savoir-vivre', spec: 'Vagabonds fantômes' }] };
+  it('CONTRÔLE POSITIF — texte libre : refusé sans specsOpen, refusé s’il désigne une entrée du catalogue, admis sinon (mutation EN MÉMOIRE)', () => {
+    const fixture = {
+      id: 'fixture-talent', source: { book: 'frenchy-bzh' },
+      talents: [
+        { id: 'sens-aiguise', spec: 'Sixième sens' }, { id: 'maitre-artisan', spec: 'Forgeron' },
+        { id: 'maitre-artisan', spec: 'Souffleur de verre' }, { id: 'destinee', spec: 'Noyé dans le Reik' },
+        { id: 'haine', spec: 'Nains' },
+      ],
+    };
     const corpus = [['creatures', [fixture]]] as unknown as [string, { id?: string; label?: string; source?: { book?: string } }[]][];
     const { hors: mordu } = collecteSpecs('talents', (id) => findTalentById(id), corpus);
-    expect(mordu.map((h) => h.key)).toEqual(['creatures|fixture-1457-b1|savoir-vivre|Vagabonds fantômes']);
-    expect(mordu[0].catalogue, 'savoir-vivre PORTE un catalogue de spécs : la fixture mesure bien une DETTE de spec').toBe(true);
-    expect(SPECS_DE_TALENT_A_CREER.has(mordu[0].key)).toBe(false);
+    expect(mordu.filter((h) => !ouverte(h)).map((h) => `${h.key} → ${designee(h) ?? '-'}`)).toEqual([
+      'creatures|fixture-talent|sens-aiguise|Sixième sens → -',
+      'creatures|fixture-talent|maitre-artisan|Forgeron → forgeron',
+    ]);
+    expect(mordu.filter(ouverte).map((h) => h.key)).toEqual([
+      'creatures|fixture-talent|maitre-artisan|Souffleur de verre',
+      'creatures|fixture-talent|destinee|Noyé dans le Reik',
+      'creatures|fixture-talent|haine|Nains',
+    ]);
   });
 });
 

@@ -27,12 +27,13 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-113 primitives.
+114 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
 | panneau d’activité ou de service : en-tête, corps défilable, pied fixe (pré-jet, coût, action) | `ActivityPane` | `src/ui/ActivityPane.tsx` | — | interlude, hub de cité | réflexe avant tout volet en-tête/corps/pied recodé |
 | combattant par id — combat-ou-groupe vs en-combat-seulement | `actorIn/inBattleId` | `src/state/combatants.ts` | — | toute résolution d'acteur | in-battle-find-guard.test.ts |
+| ajouter une rangée à une liste éditable : bouton `btn small` icône `ui/add` + libellé, le focus va au premier champ saisissable né du clic (différence des champs du document) ; `ListeRangees` nomme le conteneur (`role=group`, `aria-label`) | `AjoutRangee / ListeRangees` | `src/ui/AjoutRangee.tsx` | — | éditeurs de liste du Codex, de scène, de carte du monde, de dialogue, de narratif et de GameOp | src/ui/AjoutRangee.test.tsx — aucun bouton de src/ui ne s’ouvre par le glyphe « + » ou l’icône `ui/add` hors de `AjoutRangee` (`scripts/guards/lib/ajoutRangee.mjs`) |
 | tout effet mécanique (soin/état/dégâts/corruption/octroi) | `applyOps/GameOp` | `src/engine/ops.ts` | — | toute conséquence appliquée à une cible | applyOps unique (aucun effet ad hoc) |
 | bande titrée de rubrique : titre, compteur ou jauge ancrés à droite, contenu dessous | `Band` | `src/ui/Band.tsx` | `src/ui/styles/band.css` | étapes du créateur, bandes de section du registre État de la fiche | réflexe avant tout bandeau de rubrique recodé |
 | modificateurs de combat bruts (Avantage×10 + État) | `baseTestMods` | `src/engine/combat.ts` | — | tout Test de combat | — |
@@ -144,4 +145,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | en-tête A→B d'une modale de combat/opposition | `VsHeader` | `src/ui/VsHeader.tsx` | `src/ui/styles/vs-header.css` | toute confrontation à 2 camps | — |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 9775d76cdcb4a534a5d71170cce13c2dc3682117 (6 fichiers, 0 dossiers) corps: b4ab30e4f2be940ac56e576cc874b84afe53fa61 -->
+<!-- sources-empreinte: c0971a39ec926dbd55dd095e0c5735a459dd1265 (6 fichiers, 0 dossiers) corps: 9819b5c73fcb5969045b4b1984cde62447d8c847 -->

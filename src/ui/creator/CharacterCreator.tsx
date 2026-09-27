@@ -55,7 +55,7 @@ import {
   DEFAULT_FABRICATION_ATOUT,
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
-import { refKey, splitLabel } from '../../engine/careerSlots';
+import { memeRef, splitLabel } from '../../engine/careerSlots';
 import { adresseDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
@@ -216,10 +216,8 @@ function blurb(md: string | null | undefined, max = 160): string {
 const talentTip = (id: string) => blurb(findTalentById(id)?.desc, 300);
 /** Clé de la Caractéristique liée à une compétence (« Ag »), pour annoter les listes. */
 const skillCharKey = (id: string): CharKey | null => byId('skill', id)?.characteristic ?? null;
-/** Même désignation (id, spec) ? */
-const memeRef = (a: RefDesignee | null | undefined, b: RefDesignee | null | undefined): boolean => !!a && !!b && refKey(a.id, a.spec) === refKey(b.id, b.spec);
-/** Chip d'un Talent désigné (id, spec) — `TalentChip` d'une acquisition. */
-const TalentRef = ({ talent }: { talent: RefDesignee }) => <TalentChip talent={{ talentId: talent.id, spec: talent.spec, times: 1 }} />;
+/** Même désignation (id, spec) (`memeRef`), fausse quand l'une manque. */
+const memeDesignee = (a: RefDesignee | null | undefined, b: RefDesignee | null | undefined): boolean => !!a && !!b && memeRef(a, b);
 
 /** Apparence de PRÉ-SÉLECTION (rail/entête, avant tout réglage) d'une espèce par `id` rules —
  *  mêmes briques que le brouillon (`rigSpeciesId`), rendue par la primitive `CharacterPreview`.
@@ -1671,7 +1669,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
             {entries.map((c) => {
               const { k, v } = charOf(c.ref.id);
               const adv = d.skillAdvances[c.cle] ?? 0;
-              const raceTier = d.speciesPlus5.some((r) => memeRef(r, c.designee)) ? 5 : d.speciesPlus3.some((r) => memeRef(r, c.designee)) ? 3 : 0;
+              const raceTier = d.speciesPlus5.some((r) => memeDesignee(r, c.designee)) ? 5 : d.speciesPlus3.some((r) => memeDesignee(r, c.designee)) ? 3 : 0;
               const nom = c.designee ? refLabel('skills', c.designee) : advancementLabel('skills', c.ref);
               return (
                 <PlaqueRow
@@ -1738,7 +1736,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
             <div className="mini-title" style={{ marginTop: 0 }}>Tirés d'office — d100 — {randomCount} Talent{randomCount > 1 ? 's' : ''} rendu{randomCount > 1 ? 's' : ''}</div>
             <div className="skill-tags">
               {drawn.map((t, i) => (
-                <TalentRef key={i} talent={t} />
+                <TalentChip key={i} talent={t} />
               ))}
             </div>
           </CreatorDice>
@@ -1803,7 +1801,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                 <div className="mini-title">Acquis d'office</div>
                 <div className="skill-tags">
                   {fixed.map((t, i) => (
-                    <TalentRef key={i} talent={t} />
+                    <TalentChip key={i} talent={t} />
                   ))}
                 </div>
               </>
@@ -1815,7 +1813,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
               // `maxed`) sont focalisables — un bouton `disabled` ne peut de toute façon pas recevoir
               // le focus (`.focus()` y est un no-op), le cursor roving doit donc les ignorer.
               const enabledChoices = careerChoices.filter((c) => c.selected && !c.maxed);
-              const activeCareerIdx = Math.max(0, enabledChoices.findIndex((c) => memeRef(c.selected, d.careerTalent)));
+              const activeCareerIdx = Math.max(0, enabledChoices.findIndex((c) => memeDesignee(c.selected, d.careerTalent)));
               const careerRef: { current: HTMLDivElement | null } = { current: null };
               const onCareerKeyDown = rovingKeyDown<HTMLDivElement>({
                 containerRef: careerRef,
@@ -1828,7 +1826,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
               return (
                 <div ref={careerRef} className="talent-options-grid" role="radiogroup" aria-label="Talent de carrière" onKeyDown={onCareerKeyDown}>
                 {careerChoices.map(({ ref, choices, selected, maxed }, n) => {
-                  const isSel = memeRef(selected, d.careerTalent);
+                  const isSel = memeDesignee(selected, d.careerTalent);
                   const enabled = !!selected && !maxed;
                   const enabledIdx = enabled ? enabledChoices.findIndex((c) => c.ref === ref) : -1;
                   return (
@@ -1849,7 +1847,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                     >
                       <b>{selected ? refLabel('talents', selected) : advancementLabel('talents', ref)}</b>
                       {maxed && <em className="hint">Maxi atteint (déjà possédé)</em>}
-                      {!maxed && selected && probe.talents.some((t) => memeRef({ id: t.talentId, spec: t.spec }, selected)) && <em className="hint">déjà possédé via la race → passera ×2</em>}
+                      {!maxed && selected && probe.talents.some((t) => memeDesignee({ id: t.talentId, spec: t.spec }, selected)) && <em className="hint">déjà possédé via la race → passera ×2</em>}
                       <p className="hint talent-desc">{talentTip(ref.id)}</p>
                     </button>
                     {choices && (
@@ -2410,7 +2408,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         </Rubrique>
         <Rubrique title="Talents">
           <div className="skill-tags">
-            {hero.talents.map((t) => <TalentChip key={`${t.talentId}|${t.spec ?? ''}`} talent={t} />)}
+            {hero.talents.map((t) => <TalentChip key={`${t.talentId}|${t.spec ?? ''}`} talent={{ id: t.talentId, spec: t.spec }} times={t.times} />)}
           </div>
         </Rubrique>
         <Rubrique title="Possessions">

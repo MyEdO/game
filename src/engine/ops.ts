@@ -39,7 +39,8 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, buildWeapon, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem } from './items';
+import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, buildWeapon, weaponItem, newUid, activeLoadout, damageString, receiveItems } from './items';
+import { heroCarrier } from './carrier';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
@@ -621,7 +622,7 @@ export type GameOp =
   /** Ajoute un Talent aux listes de TOUTE carrière entamée (Flagellant → Frénésie « est ajouté à la
    *  liste des Talents de n'importe laquelle de vos Carrières », LDB 10) — analogue Talent de
    *  `grantCareerSkill`. Lu par `careerTalentAdditions`, pas appliqué au combattant. */
-  | { op: 'grantCareerTalent'; talent: RefASpecialisation }
+  | { op: 'grantCareerTalent'; talent: RefASpecialisation; commeEnCarriere?: true }
   /** ALTÉRATION d'ARME temporisée — enchantement OU dégradation, une seule primitive (Jalon 2.6 —
    *  Bénédiction de Droiture : Magique ; Marteau ardent : Magique +BSoc + En flammes/À Terre à la touche ; Épée
    *  ardente : +6 + Percutante + En flammes ; VDM 05 — Arme enchantée « ajouter 1 Atout ou retirer 1
@@ -2450,12 +2451,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       }
       case 'giveTrapping': {
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
-        target.items = target.items ?? [];
-        for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.source);
-          target.items.push(it);
-          autoStowNewItem(target, it); // #204 : rangement par défaut
-        }
+        receiveItems(heroCarrier(target), Array.from({ length: n }, () => itemFromGive(o, ctx.source)));
         lines.push(t('op.giveTrapping', { name: target.label, count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o), src: nomDeSource(ctx) }));
         break;
       }

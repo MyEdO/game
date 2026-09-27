@@ -179,7 +179,7 @@ describe('Inspecteur — l’INTENTION de toiture atteint le rendu (#829/#841)',
     expect(avant.has('2,2')).toBe(true);
 
     const addExclusion = Array.from(h.container.querySelectorAll('button'))
-      .find((b) => b.textContent === '+ Exclusion') as HTMLButtonElement;
+      .find((b) => b.textContent?.trim() === 'Exclusion') as HTMLButtonElement;
     await act(async () => {
       addExclusion.click();
     });
@@ -280,7 +280,7 @@ describe('Inspecteur — une ANCRE de bataille posée est RÉSOLUE par son conso
     await h.mount();
 
     const addAnchor = Array.from(h.container.querySelectorAll('button'))
-      .find((b) => b.textContent === '+ Ancre') as HTMLButtonElement;
+      .find((b) => b.textContent?.trim() === 'Ancre') as HTMLButtonElement;
     expect(addAnchor.disabled).toBe(false); // aucune autre Scène de projet : ça ne doit RIEN empêcher
     await act(async () => {
       addAnchor.click();
@@ -554,7 +554,7 @@ describe('Inspecteur — ÉQUIPAGE EXPOSÉ d’une coque (`SceneEntity.crewIds`,
 
     expect(spawned(h.sceneOf(), 'coque').crewIds).toBeUndefined(); // coque sans équipage authoré
 
-    await click(buttonBy(h.container, "+ Embarquer un membre d'équipage"));
+    await click(buttonBy(h.container, "Embarquer un membre d'équipage"));
     expect(h.sceneOf().entities.find((e) => e.id === 'coque')!.crewIds).toEqual(['marin']);
     expect(spawned(h.sceneOf(), 'coque').crewIds).toEqual(['marin']);
 
@@ -624,7 +624,7 @@ describe('SceneProps — un drapeau de départ posé à l’inspecteur atteint `
 
     const nameInput = h.container.querySelector('input[placeholder="nom du drapeau"]') as HTMLInputElement;
     await setInput(nameInput, 'jalon-pose');
-    const addBtn = Array.from(h.container.querySelectorAll('button')).find((b) => b.textContent === '+ Drapeau') as HTMLButtonElement;
+    const addBtn = Array.from(h.container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Drapeau') as HTMLButtonElement;
     await click(addBtn);
     expect(lit(h.sceneOf().flags)).toBe(true);
 

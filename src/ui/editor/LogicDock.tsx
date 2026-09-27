@@ -24,6 +24,7 @@ import { Tabs } from '../Tabs';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { Row } from '../Layout';
+import { AjoutRangee } from '../AjoutRangee';
 
 export type LogicTab = 'triggers' | 'dialogues' | 'encounters' | 'validation';
 
@@ -155,16 +156,11 @@ function TriggersTab({
             <span className="count">{flowEffectCount(x.flow)}</span>
           </ListRow>
         ))}
-        <button
-          className="btn small"
-          onClick={() => {
+        <AjoutRangee libelle="Nouveau trigger" onAjout={() => {
             const id = nextEntityId('trig', scene.triggers.map((x) => x.id));
             setScene({ ...scene, triggers: [...scene.triggers, { id, rect: { x: 0, y: 0, w: 2, h: 2, ...(currentLayer ? { z: currentLayer } : {}) }, once: true, flow: EMPTY_FLOW }] });
             setSel(id);
-          }}
-        >
-          + Nouveau trigger
-        </button>
+          }} />
         <p className="hint">Astuce : outil <Icon id="map-tool/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
       </div>
       {t ? (
@@ -227,16 +223,11 @@ function DialoguesTab({
             <span className="count">{x.nodes.length} nœud(s)</span>
           </ListRow>
         ))}
-        <button
-          className="btn small"
-          onClick={() => {
+        <AjoutRangee libelle="Nouveau dialogue" onAjout={() => {
             const id = nextEntityId('dlg', scene.dialogues.map((x) => x.id));
             setScene({ ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', desc: '', choices: [] }] }] });
             setSel(id);
-          }}
-        >
-          + Nouveau dialogue
-        </button>
+          }} />
       </div>
       {d ? (
         <div className="logic-detail">
@@ -301,16 +292,11 @@ function EncountersTab({
             <span className="count">{(x.members ?? []).length} membre(s)</span>
           </ListRow>
         ))}
-        <button
-          className="btn small"
-          onClick={() => {
+        <AjoutRangee libelle="Nouvelle rencontre" onAjout={() => {
             const id = nextEntityId('enc', scene.encounters.map((x) => x.id));
             setScene({ ...scene, encounters: [...scene.encounters, { id, members: [] }] });
             setSel(id);
-          }}
-        >
-          + Nouvelle rencontre
-        </button>
+          }} />
         <p className="hint">Astuce : outil <Icon id="action/attack" size="sm" /> pour poser les combattants directement sur la carte.</p>
       </div>
       {enc ? (

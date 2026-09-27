@@ -86,18 +86,19 @@ describe('Marque de Khorne — câblage (#516)', () => {
     expect(targetedTrigger(slaaneshFollower, [marked])).toBeNull();
   });
 
-  it('Les 10 Talents achetables hors-Carrière au tarif normal (grantCareerTalent, étendu aux Traits)', () => {
+  it('Les 10 Talents achetables comme en Carrière, hors de sa liste (grantCareerTalent `commeEnCarriere`, étendu aux Traits)', () => {
+    const PORTEUR = { type: 'trait', id: 'marque-de-khorne' };
     expect(careerTalentAdditions(bearer())).toEqual([
-      { id: 'assaut-feroce', spec: undefined },
-      { id: 'charge-berserk', spec: undefined },
-      { id: 'combat-instinctif', spec: undefined },
-      { id: 'coup-puissant', spec: undefined },
-      { id: 'determine', spec: undefined },
-      { id: 'endurci', spec: undefined },
-      { id: 'guerrier-ne', spec: undefined },
-      { id: 'resistance', spec: 'magie' },
-      { id: 'resistance-a-la-magie', spec: undefined },
-      { id: 'vigilance', spec: undefined },
+      { id: 'assaut-feroce', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'charge-berserk', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'combat-instinctif', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'coup-puissant', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'determine', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'endurci', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'guerrier-ne', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'resistance', spec: 'magie', commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'resistance-a-la-magie', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
+      { id: 'vigilance', spec: undefined, commeEnCarriere: true, provenance: PORTEUR },
     ]);
   });
 });

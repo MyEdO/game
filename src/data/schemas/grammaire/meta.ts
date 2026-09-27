@@ -35,9 +35,15 @@ type NoeudEnum = { meta?: () => unknown };
  * ci-dessous aussi.
  */
 export function noyauEnum(noeud: unknown): NoeudEnum | undefined {
+  return deroule(noeud, (n) => defDe(n)?.type === 'enum') as NoeudEnum | undefined;
+}
+
+/** Premier nœud qui satisfait `arret`, du nœud lui-même à travers le déroulé décrit ci-dessus ;
+ *  `undefined` sinon. Le déroulé UNIQUE du dépôt (`noyauEnum`, `regimesDuChamp`). */
+export function deroule(noeud: unknown, arret: (n: unknown) => boolean): unknown {
   const traverses = new Set<unknown>();
   for (let n = noeud; n && !traverses.has(n); ) {
-    if (defDe(n)?.type === 'enum') return n as NoeudEnum;
+    if (arret(n)) return n;
     traverses.add(n);
     const enfants = enfantsDe(n);
     if (enfants.length !== 1 || (enfants[0].segment !== '' && enfants[0].segment !== '[]')) return undefined;

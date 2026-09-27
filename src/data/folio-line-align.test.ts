@@ -44,14 +44,14 @@ import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
 
-/** Couverture MESURÉE le 2026-09-24 (#1473, même mesure que `book-source-integrity.test.ts` et
- *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4472 entrées à `source:{book,page}`, dont 1310
- *  citent AUSSI une ligne — 495 jugées ici, 815 écartées (807 hors-forme, 8 queue-trouée), soit 11,1 %
+/** Couverture MESURÉE le 2026-09-27 (#1473, même mesure que `book-source-integrity.test.ts` et
+ *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4492 entrées à `source:{book,page}`, dont 1330
+ *  citent AUSSI une ligne — 512 jugées ici, 818 écartées (809 hors-forme, 8 queue-trouée, 1 span-à-trou), soit 11,4 %
  *  des folios vérifiés machine par cette voie. Les deux bornes ci-dessous rendent ces chiffres
  *  OPPOSABLES, chacune dans son sens, sans marge : la prochaine entrée sourcée SANS citer sa ligne fait
  *  rouge, comme la prochaine entrée qui cesse d'être jugée. */
-const SCANNED_MIN = 495;
-const SANS_CITATION_MAX = 3162; // 4472 sourcées − 1310 citées.
+const SCANNED_MIN = 512;
+const SANS_CITATION_MAX = 3162; // 4492 sourcées − 1330 citées.
 
 /** Entrées à `source:{book,page}` (SOURCÉES) et celles qui citent AUSSI une ligne (CITÉES), même
  *  règle de lecture que `citedEntries` : `source.note`, à défaut le champ `ref` frère. */
@@ -141,15 +141,14 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318 E8)',
     expect(nonJugees).toHaveLength(2); // 54 posés − 52 vérifiés
   });
 
-  it('COUVERTURE : aucune entrée n\'est jugée depuis un span à TROU, et les non-jugeables sont ceux du stock', () => {
-    const trous = ignored.filter((i) => i.reason === 'span-a-trou').map((i) => `${i.key} (« ${i.cite} »)`);
+  it('COUVERTURE : aucune entrée n\'est jugée depuis un span à TROU — les non-jugeables sont ceux du stock', () => {
+    const motifs = ignored.map((i) => [`${DOSSIER_DATA}/${i.file} :: ${i.id} ::`, `${i.reason}, « ${i.cite} »`] as const);
+    const bouge = [...ecartNonJugeables.neuves, ...ecartNonJugeables.perimees]
+      .map((l) => `${l}${motifs.filter(([cle]) => l.includes(cle)).map(([, m]) => ` (${m})`).join('')}`);
     expect(
-      trous,
-      'Entrée(s) citant une ligne dans un span sans ancre intermédiaire — le folio n\'y est PAS ' +
-        `mesurable : les geler dans FOLIO_LINE_ALIGN_NON_JUGEABLE :\n${trous.join('\n')}`,
+      bouge,
+      'La liste des entrées non jugeables a bougé — un site NEUF (span sans ancre intermédiaire : le folio ' +
+        `n'y est PAS mesurable) se gèle dans FOLIO_LINE_ALIGN_NON_JUGEABLE ; régénérer (${REGEN}) :\n${bouge.join('\n')}`,
     ).toEqual([]);
-
-    const bouge = [...ecartNonJugeables.neuves, ...ecartNonJugeables.perimees];
-    expect(bouge, `La liste des entrées non jugeables a bougé — régénérer (${REGEN}) :\n${bouge.join('\n')}`).toEqual([]);
   });
 });

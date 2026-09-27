@@ -23,6 +23,7 @@ import {
   prisParLesAutres,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
+import { refusDeSpec } from '../data/schemas/grammaire/ref';
 
 /** Fixtures : libellés d'avancement → `AdvancementRef[]` (la donnée est structurée). */
 const A = (xs: string[]) => xs.map(parseAdvancement);
@@ -197,7 +198,7 @@ describe('désignation d\'un emplacement de Groupe d\'arme par specId (données 
   });
 });
 
-describe('un emplacement « (Au choix) » se désigne par une spécialisation (LDB 10 l.17)', () => {
+describe('un emplacement « (Au choix) » se désigne par une spécialisation', () => {
   const tSlots = talentSlots(levelsForCareer('pretre'), 1);
   const beni = tSlots.find((s) => s.options.some((o) => o.optionId === 'beni' && o.wildcard))!;
   it('Béni (Au choix) du Prêtre : couvert par une spécialisation, jamais nu', () => {
@@ -213,7 +214,7 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(designateSlot(h, 'pretre', beni, 'beni', 'sigmar', tSlots).ok).toBe(true);
     expect(h.careerSlotChoices?.pretre).toEqual({ [beni.key]: 'beni|sigmar' });
   });
-  it('Béni du Prêtre (catalogue FERMÉ) : la sentinelle et une spécialisation hors pool ne couvrent pas', () => {
+  it('Béni du Prêtre (sans `specsOpen`) : la sentinelle et une spécialisation hors pool ne couvrent pas', () => {
     expect(slotCovers(beni, 'beni', 'Au choix')).toBe(false);
     expect(slotCovers(beni, 'beni', 'zzz-inexistant')).toBe(false);
   });
@@ -223,7 +224,7 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(slotCovers(savoir, 'savoir', 'une-specialisation-creee')).toBe(true);
     expect(slotCovers(savoir, 'savoir', 'Au choix')).toBe(false);
   });
-  it('un joker de Compétence au catalogue FERMÉ (`specsOpen` absent de l’entrée) n’est couvert que par son pool', () => {
+  it('un joker de Compétence sans `specsOpen` n’est couvert que par son pool', () => {
     const cac = skillSlots(levelsForCareer('milicien'), 1).find((s) => s.options.some((o) => o.optionId === 'corps-a-corps' && o.wildcard))!;
     expect(cac, 'Milicien N1 porte « Corps à corps (Au choix) »').toBeDefined();
     expect(slotCovers(cac, 'corps-a-corps', 'une-specialisation-creee')).toBe(false);
@@ -234,6 +235,21 @@ describe('un emplacement « (Au choix) » se désigne par une spécialisation (L
     expect(savant, 'Érudit N3 porte « Savant (Au choix) »').toBeDefined();
     expect(slotCovers(savant, 'savant', 'une-specialisation-creee')).toBe(true);
     expect(slotCovers(savant, 'savant', 'Au choix')).toBe(false);
+  });
+  it('un joker de Talent à liste ouverte (Haine, LDB 10 l.548) est couvert par un groupe hors catalogue', () => {
+    const haine = talentSlots(levelsForCareer('cavalier'), 3).find((s) => s.options.some((o) => o.optionId === 'haine' && o.wildcard))!;
+    expect(haine, 'Cavalier N3 porte « Haine (Au choix) »').toBeDefined();
+    expect(slotCovers(haine, 'haine', 'Nains')).toBe(true);
+    expect(slotCovers(haine, 'haine', 'peaux-vertes')).toBe(true);
+    expect(refusDeSpec('talent', 'haine', 'Nains')).toBeNull();
+  });
+  it('un joker de Talent sans `specsOpen` (Sens aiguisé, LDB 10 l.1091) n’est couvert que par son catalogue ; le schéma refuse le texte libre', () => {
+    const sens = talentSlots(levelsForCareer('enqueteur'), 4).find((s) => s.options.some((o) => o.optionId === 'sens-aiguise' && o.wildcard))!;
+    expect(sens, 'Enquêteur N4 porte « Sens aiguisé (Au choix) »').toBeDefined();
+    expect(slotCovers(sens, 'sens-aiguise', 'Sixième sens')).toBe(false);
+    expect(slotCovers(sens, 'sens-aiguise', 'vue')).toBe(true);
+    expect(refusDeSpec('talent', 'sens-aiguise', 'Sixième sens')).toBe('horsCatalogue');
+    expect(refusDeSpec('talent', 'maitre-artisan', 'Souffleur de verre')).toBeNull();
   });
   it('freeSlotFor / designateSlot refusent Béni nu', () => {
     expect(freeSlotFor(tSlots, {}, 'beni', undefined)).toBeUndefined();

@@ -98,17 +98,18 @@ describe('« Ajoutez la Compétence X à n\'importe quelle Carrière que vous en
     });
     // Refs STRUCTURÉES (id, spec) — l'affichage (refLabel/specLabel) se fait au point d'usage, pas ici.
     const adds = careerSkillAdditions(h);
-    expect(adds).toContainEqual({ id: 'metier', spec: 'forgeron' }); // spec « Au choix » reportée sur celle du talent
-    expect(adds).toContainEqual({ id: 'langue', spec: 'magick' });
-    expect(adds).toContainEqual({ id: 'divertissement', spec: 'chant' });
-    expect(adds).toContainEqual({ id: 'savoir', spec: 'region' });
+    const par = (id: string, spec?: string) => ({ type: 'talent', id, ...(spec ? { spec } : {}) });
+    expect(adds).toContainEqual({ id: 'metier', spec: 'forgeron', provenance: par('maitre-artisan', 'forgeron') }); // spec « Au choix » reportée sur celle du talent
+    expect(adds).toContainEqual({ id: 'langue', spec: 'magick', provenance: par('sorcier') });
+    expect(adds).toContainEqual({ id: 'divertissement', spec: 'chant', provenance: par('oreille-absolue') });
+    expect(adds).toContainEqual({ id: 'savoir', spec: 'region', provenance: par('voyageur-aguerri') });
     expect(adds).toHaveLength(4);
   });
 });
 
 describe('« Le Talent X est ajouté à la liste des Talents de vos Carrières » (LDB 10, op grantCareerTalent)', () => {
   it('Flagellant → Frénésie ajoutée aux carrières ; un talent sans op → rien', () => {
-    expect(careerTalentAdditions(hero({ talents: [{ talentId: 'flagellant', times: 1 }] }))).toEqual([{ id: 'frenesie' }]);
+    expect(careerTalentAdditions(hero({ talents: [{ talentId: 'flagellant', times: 1 }] }))).toEqual([{ id: 'frenesie', provenance: { type: 'talent', id: 'flagellant' } }]);
     expect(careerTalentAdditions(hero({ talents: [{ talentId: 'baratiner', times: 1 }] }))).toEqual([]);
   });
 });

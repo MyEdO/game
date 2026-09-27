@@ -28,8 +28,8 @@
 ## A1 — Chapitres appelés par le CODE, ABSENTS de l'Atlas (trous durs)
 
 ### ADE I 2 — 2 réf(s) code, 0 dans l'Atlas
-- `src/data/talents.json:3207` (l.267) — "note": "ADE I 02 l.267"
-- `src/data/talents.json:4821` (l.276) — "note": "ADE I 02 l.276"
+- `src/data/talents.json:3290` (l.267) — "note": "ADE I 02 l.267"
+- `src/data/talents.json:4974` (l.276) — "note": "ADE I 02 l.276"
 
 ### EDO 10 — 1 réf(s) code, 0 dans l'Atlas
 - `src/data/skills.json:1896` (l.736) — "note": "EDO 10 l.736"
@@ -45,7 +45,7 @@
 - `src/data/reseau-routier.json:192` (l.11) — "note": "EDOC 10 l.11 — section « Patrouilles routières » ; la phrase reprend l.17, l'encadré « LES JUSTICIERS » (l.13-15) la coupant."
 
 ### MCLB 2 — 5 réf(s) code, 0 dans l'Atlas
-- `src/data/creatures.json:57902` (l.2420) — "note": "MCLB 02 l.2420"
+- `src/data/creatures.json:57903` (l.2420) — "note": "MCLB 02 l.2420"
 - `src/data/skills.json:971` (l.1844) — "note": "MCLB 02 l.1844"
 - `src/data/skills.json:1568` (l.1322) — "note": "MCLB 02 l.1322"
 - `src/data/skills.json:1578` (l.2426) — "note": "MCLB 02 l.2426"
@@ -54,7 +54,7 @@
 - `src/state/restFlow.ts:68` (l.71) — /** À bord du navire de campagne (hamacs/quartiers, MDG 03 l.71 · 09 l.87) — couchage ABRITÉ (pas
 - `src/state/restFlow.ts:636` (l.71) — if (places.bord) out.push('bord'); // à bord = hamacs (MDG 03 l.71) ; par défaut si offert
 - `src/state/riverVoyageFlow.ts:1082` (l.71) — // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
-- `src/state/seaActivities.ts:232` (l.71) — // dort à bord (hamacs, MDG 03 l.71) : couchage unique et abrité.
+- `src/state/seaActivities.ts:233` (l.71) — // dort à bord (hamacs, MDG 03 l.71) : couchage unique et abrité.
 
 ### MDG 6 — 1 réf(s) code, 0 dans l'Atlas
 - `src/data/species.json:2623` (l.50) — "note": "MDG 06 l.50"
@@ -109,9 +109,9 @@
 - l.340 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:20` — * D'où vient le `km` : `EDO 01 l.340` — « Une borne sur le bas-côté indique : « Altdorf, 180 km ». »
 
 ### MSRC 12 — 6/12 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.85 — `src/data/index.ts:2591` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.85 — `src/data/index.ts:2585` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.107 — `src/engine/naval-traits.test.ts:301` — it('Plat-bord : palier de LONGUEUR (grande barge ~30 m, bande ouverte au-delà de 20 m) → 45 CO / 60 Enc (MSRC 12 l.107/109)', () => {
-- l.111 — `src/data/index.ts:2591` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.111 — `src/data/index.ts:2585` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.117 — `src/engine/naval-traits.test.ts:304` — it('Allégement : ALLÈGE la coque — weightEnc NÉGATIF (grande barge → −80 Enc, MSRC 12 l.117)', () => {
 - l.137 — `src/data/schemas/defs/sea-weather.ts:102` — /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
 - l.140 — `src/engine/naval-traits.test.ts:191` — it('Gréement de course → −10 au Test de Navigation (MSRC 12 l.140) ; converti −1 DR d’équipage', () => {
@@ -124,9 +124,9 @@
 
 ### EDOC 13 — 4/10 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
 - l.125 — `src/data/mutations.json:1640` — "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
-- l.137 — `src/data/index.ts:1099` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-- l.522 — `src/data/index.ts:1707` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
-- l.524 — `src/data/talents.json:4916` — "note": "EDOC 13 l.524"
+- l.137 — `src/data/index.ts:1093` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
+- l.522 — `src/data/index.ts:1701` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
+- l.524 — `src/data/schemas/grammaire/mecanique.ts:71` — /** `commeEnCarriere` d'un ajout de carrière : EDOC 13 l.524 ; absent : LDB 10 l.467, l.745. */
 
 ### MDG 15 — 3/51 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
 - l.461 — `src/data/naval-ports.test.ts:47` — it('Erengrad : Taille 4, Richesse 4, Surplus pièces-détachées-de-navire +1, Demande laine +1 (MDG 15 l.461-462, folio 138)', () => {
@@ -136,14 +136,14 @@
 ### VDM 14 — 3/7 ligne(s) code hors couverture (propriétaire : 4e/magie.md)
 - l.353 — `src/data/arcanePhenomena.ts:77` — /** Modificateurs de NIVEAU D'INCANTATION apportés par le lieu (`VDM 14 l.353`, l.437, l.489) —
 - l.437 — `src/engine/castingNumber.test.ts:28` — it('Caverne de l’Attache : moitié ARRONDIE À L’INFÉRIEUR, Sorts de la Bête (VDM 14 l.437)', () => {
-- l.489 — `src/data/index.ts:2135` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
+- l.489 — `src/data/index.ts:2129` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
 
 ### NADJ 16 — 2/20 ligne(s) code hors couverture (propriétaire : 4e/tests.md)
-- l.119 — `src/engine/combat.ts:903` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
+- l.119 — `src/engine/combat.ts:904` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
 - l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:197` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
 
 ### ADE I 6 — 1/1 ligne(s) code hors couverture (propriétaire : —)
-- l.185 — `src/data/index.ts:1099` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
+- l.185 — `src/data/index.ts:1093` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
 
 ### EDO 7 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
 - l.184 — `src/ui/mono-stake-ratchet.test.ts:73` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
@@ -209,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: df6c55aabb141607084fe9b2b02127565f38bd0b (4305 fichiers, 154 dossiers) corps: a825d9e2252c394ffd14751778c0fd52fa1c7e4f -->
+<!-- sources-empreinte: 6b0e170b6585e5c6d67fad0173f69328e854a7e6 (4318 fichiers, 154 dossiers) corps: 5b82b097e73e289db98eeee9ee6868a90f7c0561 -->

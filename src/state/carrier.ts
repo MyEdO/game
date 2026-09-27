@@ -6,8 +6,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { Possession, PossessionLocation } from '../engine/possession';
-
-export type Carrier = { kind: 'hero'; hero: Combatant } | { kind: 'possession'; possession: Possession };
+import type { Carrier } from '../engine/carrier';
 
 /** Porteur d'objets par id — héros de `party` (par `id`) sinon possession de `possessions` (par `uid`). */
 export function resolveCarrier(
@@ -34,4 +33,23 @@ export function carriersCoLocated(a: Carrier, b: Carrier): boolean {
   if (la.kind === 'au-lieu' && lb.kind === 'au-lieu') return la.placeId === lb.placeId;
   if (la.kind === 'embarquee' && lb.kind === 'embarquee') return la.hostUid === lb.hostUid;
   return true;
+}
+
+/** Patch d'état qui remplace le porteur `carrierId` par un CLONE muté par `fn` ; `fn` rend `false` → le
+ *  porteur reste inchangé. Porteur introuvable → patch vide. */
+export function patchCarrier(
+  state: { party: Combatant[]; possessions: Possession[] },
+  carrierId: string,
+  fn: (clone: Carrier) => boolean,
+): Partial<{ party: Combatant[]; possessions: Possession[] }> {
+  const carrier = resolveCarrier(state, carrierId);
+  if (!carrier) return {};
+  if (carrier.kind === 'hero') {
+    const hero: Combatant = structuredClone(carrier.hero);
+    if (!fn({ kind: 'hero', hero })) return {};
+    return { party: state.party.map((h) => (h.id === carrierId ? hero : h)) };
+  }
+  const possession: Possession = structuredClone(carrier.possession);
+  if (!fn({ kind: 'possession', possession })) return {};
+  return { possessions: state.possessions.map((p) => (p.uid === carrierId ? possession : p)) };
 }

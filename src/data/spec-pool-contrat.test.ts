@@ -465,7 +465,7 @@ describe('#1897 — un emplacement ne vise jamais une entrée à pool JOUEUR vid
     expect(fautes).toEqual(['fixture.json : « x » en « choix » — pool joueur VIDE', 'fixture.json : « x » en « au choix » — pool joueur VIDE']);
   });
 
-  it('une entrée à `specs` inline toutes `pool: false` et SANS emplacement qui la vise n’est pas fautive (`attirant`, `LDB 10 l.17`)', () => {
+  it('une entrée à `specs` inline toutes `pool: false` et SANS emplacement qui la vise n’est pas fautive (`attirant`, `LDB 08 l.140`)', () => {
     const fixture: DefASpecs[] = [{ specs: [{ id: 'public-restreint', label: 'Public restreint', pool: false }] } as DefASpecs];
     const { fautes } = choixSansPoolJoueur([['fixture.json', [{ id: 'x' }, { id: 'x', spec: 'public-restreint' }]]], (id) => (id === 'x' ? fixture : []));
     expect(fautes).toEqual([]);

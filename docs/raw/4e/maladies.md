@@ -810,7 +810,7 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 **Voir aussi** : [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (soupe de chou fermenté ; biscuits de mer ≠ nourriture correcte) ; [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Blessé, Intoxication Alimentaire, Malaise, Nausée) ; `docs/raw/4e/etats.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.224-234) → `mousse`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `dailyWaterLitres`, `chirurgien`, `mene-de-main-de-maitre`, `consumeCrewProvisions`, `excellent-equipage`, `equipage-satisfait`, +13 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +7 fichiers
+- `MDG 14` (l.224-234) → `mousse`, `shipboardSouls`, `scenario`, `SeaVoyageState`, `dailyWaterLitres`, `chirurgien`, `mene-de-main-de-maitre`, `consumeCrewProvisions`, `excellent-equipage`, `equipage-satisfait`, +13 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +7 fichiers
 
 ---
 

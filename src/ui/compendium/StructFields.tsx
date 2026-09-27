@@ -31,7 +31,9 @@ import type { CrewTarget } from '../../data/shipCriticals';
 import { NumberField } from '../NumberField';
 import { PlageField } from '../PlageField';
 import { OptionChooser } from '../OptionChooser';
+import { libelleDuChamp } from './editFields';
 import type { OptionalRule, RuleValue } from '../../engine/policy';
+import { AjoutRangee, ListeRangees } from '../AjoutRangee';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 
@@ -80,7 +82,7 @@ export function SymptomsField({ value, onChange }: { value: DiseaseSymptom[] | u
           <button className="btn small danger" title="Retirer le symptôme" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { symptomId: '' }])}>+ Symptôme</button>
+      <AjoutRangee libelle="Symptôme" onAjout={() => onChange([...list, { symptomId: '' }])} />
     </div>
   );
 }
@@ -280,11 +282,11 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
               <button className="btn small danger" title="Retirer le contexte" onClick={() => setM(i, { when: undefined })}>✕</button>
             </div>
           ) : (
-            <button className="btn small" style={{ marginLeft: 16 }} title="Contexte de combat mécanisable (Condition)" onClick={() => setM(i, { when: { kind: 'engaged' } })}>+ contexte (when)</button>
+            <AjoutRangee libelle="contexte (when)" onAjout={() => setM(i, { when: { kind: 'engaged' } })} />
           )}
         </div>
       ))}
-      <button className="btn small" onClick={() => emit(raw, [...matches, { skill: { id: '' } }])}>+ Test lié</button>
+      <AjoutRangee libelle="Test lié" onAjout={() => emit(raw, [...matches, { skill: { id: '' } }])} />
     </div>
   );
 }
@@ -349,7 +351,7 @@ export function CombatField(
             <button className="btn small danger" title="Retirer" onClick={() => { const next = (c.attackModes ?? []).filter((_, j) => j !== i); emit({ ...c, attackModes: next.length ? next : undefined }); }}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => emit({ ...c, attackModes: [...(c.attackModes ?? []), ''] })}>+ Mode d'attaque</button>
+        <AjoutRangee libelle="Mode d'attaque" onAjout={() => emit({ ...c, attackModes: [...(c.attackModes ?? []), ''] })} />
       </div>
       <div className="tf-row">
         <label className="dr"><input type="checkbox" checked={!!offHand} onChange={(e) => emit({ ...c, offHandPenalty: e.target.checked ? { perLevel: 10, zeroAt: 2 } : undefined })} /> Pénalité de main secondaire</label>
@@ -449,7 +451,7 @@ export function AdvancementRefField(
           </div>
         );
       })}
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Emplacement</button>
+      <AjoutRangee libelle="Emplacement" onAjout={() => onChange([...list, { id: '' }])} />
     </div>
   );
 }
@@ -525,7 +527,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
                 : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>
+      <AjoutRangee libelle="Possession" onAjout={() => onChange([...list, { id: '' }])} />
     </div>
   );
 }
@@ -590,16 +592,27 @@ export function DispoSaisonniereField(
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 6bis) skills/talents.specs — SpecEntry[] = `{id,label}[]` (langue/chevaucher/discretion/art,
- *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition.
+ *    talent résistance…) : id STABLE auto-dérivé du libellé FR à l'édition. `maison` (`maisonSchema`) se
+ *    saisit par le balisage du repli texte de `Field` (`CodexEdit.tsx`), sous le libellé de tout champ
+ *    `maison` du Codex (`libelleDuChamp`).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined; onChange: (v: SpecEntry[]) => void }) {
   const list = value ?? [];
   const set = (next: SpecEntry[]) => onChange(next);
   // Renommer = changer le LIBELLÉ et l'id qui en dérive ; les autres champs de l'entrée
-  // (`source`, `alsoIn`, `pool`) sont PORTÉS, jamais reconstruits.
+  // (`source`, `alsoIn`, `maison`, `pool`) sont PORTÉS, jamais reconstruits.
   const setLabel = (i: number, label: string) =>
     set(list.map((s, j) => (j === i ? { ...s, id: slugId(label), label } : s)));
+  // `maison` est une chaîne NON VIDE (`specEntrySchema`) : vider le champ retire la clé.
+  const setMaison = (i: number, maison: string) =>
+    set(list.map((s, j) => {
+      if (j !== i) return s;
+      const { maison: _maison, ...rest } = s;
+      return maison ? { ...rest, maison } : rest;
+    }));
+  const libelleLabel = libelleDuChamp('label');
+  const libelleMaison = libelleDuChamp('maison');
   const setPool = (i: number, propose: boolean) =>
     set(list.map((s, j) => {
       if (j !== i) return s;
@@ -607,12 +620,13 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
       return propose ? rest : { ...rest, pool: false as const };
     }));
   return (
-    <div className="ed-field">
+    <ListeRangees nom="spécialisations" className="ed-field">
       <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, `LDB 09 l.40`)</span>
       {list.map((s, i) => (
         <div key={i} className="de-reflrow">
-          <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />
+          <label className="ed-field"><span>{libelleLabel}</span><input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} /></label>
           <em className="de-hint">{specEntryId(s)}</em>
+          <label className="ed-field"><span>{libelleMaison}</span><input value={s.maison ?? ''} onChange={(e) => setMaison(i, e.target.value)} /></label>
           <OptionChooser
             layout="seg"
             options={[
@@ -623,8 +637,8 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
           <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '', label: '' }])}>+ Ajouter</button>
-    </div>
+      <AjoutRangee libelle="Ajouter" onAjout={() => set([...list, { id: '', label: '' }])} />
+    </ListeRangees>
   );
 }
 
@@ -710,7 +724,7 @@ export function TraitListField(
   const dlId = `dl-traitlist-${label.replace(/\s+/g, '-')}`;
   const opts = suggestions ?? traitDatalistOptions();
   return (
-    <div className="ed-field">
+    <ListeRangees nom={label} className="ed-field">
       <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
@@ -719,8 +733,8 @@ export function TraitListField(
         </div>
       ))}
       <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter un trait</button>
-    </div>
+      <AjoutRangee libelle="Ajouter un trait" onAjout={() => set([...list, { id: '' }])} />
+    </ListeRangees>
   );
 }
 
@@ -736,7 +750,7 @@ export function OptionalsListField(
   const dlId = `dl-optlist-${label.replace(/\s+/g, '-')}`;
   const opts = traitDatalistOptions();
   return (
-    <div className="ed-field">
+    <ListeRangees nom={label} className="ed-field">
       <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
@@ -749,8 +763,8 @@ export function OptionalsListField(
         </div>
       ))}
       <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Ajouter un trait optionnel</button>
-    </div>
+      <AjoutRangee libelle="Ajouter un trait optionnel" onAjout={() => onChange([...list, { id: '' }])} />
+    </ListeRangees>
   );
 }
 

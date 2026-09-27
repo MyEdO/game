@@ -100,17 +100,18 @@ describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#67
     affaires: [{ id: 'affaire-a', titre: 'Le Marché noir' }],
   });
 
-  it('0 affaire : « Ajouter un indice » est désactivé (défaut 1)', () => {
+  it('0 affaire : « Ajouter un indice » est refusé avec sa raison (défaut 1)', () => {
     mount();
     click(btn('Indices'));
-    expect(btn('Ajouter un indice').disabled).toBe(true);
+    expect(btn('Ajouter un indice').getAttribute('aria-disabled')).toBe('true');
+    expect(document.body.textContent).toContain('Créez d\'abord une affaire.');
   });
 
   it('1 affaire : « Ajouter un indice » émet un bloc qui PARSE contre narratifSchema', () => {
     mount(withOneAffaire());
     click(btn('Indices'));
     const addIndice = btn('Ajouter un indice');
-    expect(addIndice.disabled).toBe(false);
+    expect(addIndice.getAttribute('aria-disabled')).toBeNull();
     click(addIndice);
 
     expect(last.indices).toHaveLength(1);

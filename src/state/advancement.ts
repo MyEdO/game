@@ -27,8 +27,9 @@ import {
   parseRefKey,
   talentMaxReached,
   wildcardSpecs,
+  memeRef,
 } from '../engine/careerSlots';
-import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../engine/talentEffects';
+import { competenceEnCarriere, competencesAjouteesALaCarriere, talentsAjoutesALaCarriere, baseWithTalents, type AjoutDeTalent, type AjoutHorsReference } from '../engine/talentEffects';
 import { rule } from '../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../data';
 
@@ -52,6 +53,8 @@ export interface SkillAdvanceRow {
   known: boolean;
   inCareer: boolean;
   nextCost: number;
+  /** Rangée d'une Compétence ajoutée à la carrière (`competenceEnCarriere`). */
+  ajout?: AjoutHorsReference<AjoutDeTalent>;
 }
 /** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
 export interface SkillSlotRow {
@@ -83,6 +86,8 @@ export interface TalentSlotRow {
   /** Slot à choix non désigné : options proposées — `refKey` = clé de câblage OPAQUE id+spec (produite
    *  par `careerSlots.refKey`, jamais un libellé), `display` = texte montré (résolu via `refLabel`). */
   options?: { refKey: string; display: string; owned: boolean }[];
+  /** Rangée d'un ajout de carrière (`talentsAjoutesALaCarriere`). */
+  ajout?: AjoutHorsReference<AjoutDeTalent>;
 }
 export interface CareerTarget {
   career: string;
@@ -130,7 +135,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
   // compétence ajoutée par un talent (« à n'importe quelle Carrière », LDB 10).
   const skills: SkillAdvanceRow[] = hero.skills.map((s) => {
     const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
-    const { statut, remise: discount } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
+    const { statut, remise: discount, ajout } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
     const inCareer = statut != null;
     return {
       skillId: s.id,
@@ -141,19 +146,24 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
       known: true,
       inCareer,
       nextCost: advanceCost(s.advances, 'skill', inCareer, discount),
+      ...(ajout ? { ajout: { provenance: ajout.provenance } } : {}),
     };
   });
-  // Entrées EXPLICITES de carrière pas encore connues → acquérables à advances 0.
-  const knows = (skillId: string, spec?: string) => hero.skills.some((s) => s.id === skillId && (s.spec ?? '') === (spec ?? ''));
+  // Compétences de carrière pas encore connues → acquérables à advances 0 (LDB 07 l.76) : entrées EXPLICITES
+  // des emplacements, puis ajouts de carrière dépliés (LDB 10 l.745), au statut que lit l'achat.
+  const aApprendre = (skillId: string, spec: string | undefined, label: string) => {
+    if (skills.some((r) => memeRef({ id: r.skillId, spec: r.spec }, { id: skillId, spec }))) return;
+    const { remise, ajout } = competenceEnCarriere(hero, sSlots, designations, skillId, spec);
+    const characteristic = byId('skill', skillId)?.characteristic ?? 'intelligence';
+    skills.push({ skillId, label, spec, characteristic, advances: 0, known: false, inCareer: true, nextCost: advanceCost(0, 'skill', true, remise), ...(ajout ? { ajout: { provenance: ajout.provenance } } : {}) });
+  };
   for (const slot of sSlots) {
     if (slot.needsChoice) continue;
     const o = slot.options[0];
     if (!o.optionId) continue; // tirage aléatoire sans identité réelle : jamais acquérable ainsi
-    if (knows(o.optionId, o.spec)) continue;
-    if (skills.some((r) => !r.known && r.skillId === o.optionId && (r.spec ?? '') === (o.spec ?? ''))) continue;
-    const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    skills.push({ skillId: o.optionId, label: o.label, spec: o.spec, characteristic, advances: 0, known: false, inCareer: true, nextCost: advanceCost(0, 'skill', true) });
+    aApprendre(o.optionId, o.spec, o.label);
   }
+  for (const add of competencesAjouteesALaCarriere(hero)) aApprendre(add.id, add.spec, byId('skill', add.id)?.label ?? add.id);
   // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
   const skillSlotsOpen: SkillSlotRow[] = [];
   for (const slot of sSlots) {
@@ -166,7 +176,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
       .map((spec) => ({
         spec,
         display: specLabel('skills', o.optionId!, spec),
-        ownedAdvances: hero.skills.find((s) => s.id === o.optionId && (s.spec ?? '') === spec)?.advances ?? 0,
+        ownedAdvances: hero.skills.find((s) => memeRef(s, { id: o.optionId!, spec }))?.advances ?? 0,
       }));
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
     skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: advanceCost(0, 'skill', true) });
@@ -185,7 +195,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
     if (ref) {
       // Match de l'entité possédée par id+spec — le libellé (`refLabel`) reste l'AFFICHAGE seul.
       const label = refLabel('talents', ref);
-      const times = hero.talents.find((t) => t.talentId === ref!.id && (t.spec ?? '') === (ref!.spec ?? ''))?.times ?? 0;
+      const times = hero.talents.find((t) => memeRef({ id: t.talentId, spec: t.spec }, ref!))?.times ?? 0;
       return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, ref.id, ref.spec) };
     }
     // Slot à choix non désigné : proposer les options concrètes que son niveau ne tient pas.
@@ -199,7 +209,7 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
         options.push({
           refKey: rk,
           display: refLabel('talents', { id: o.optionId, spec }),
-          owned: (hero.talents.find((t) => t.talentId === o.optionId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0) > 0,
+          owned: (hero.talents.find((t) => memeRef({ id: t.talentId, spec: t.spec }, { id: o.optionId!, spec }))?.times ?? 0) > 0,
         });
       }
     }
@@ -209,10 +219,10 @@ export function buildAdvancementView(hero: Combatant): AdvancementView {
   // en carrière même hors emplacement de niveau. Dédupe contre les slots déjà projetés (par id+spec).
   for (const add of talentsAjoutesALaCarriere(hero)) {
     const rk = refKey(add.id, add.spec);
-    if (talents.some((r) => (r.talentId === add.id && (r.spec ?? '') === (add.spec ?? '')) || r.options?.some((o) => o.refKey === rk))) continue;
+    if (talents.some((r) => (r.talentId != null && memeRef({ id: r.talentId, spec: r.spec }, add)) || r.options?.some((o) => o.refKey === rk))) continue;
     const label = refLabel('talents', add);
-    const times = hero.talents.find((t) => t.talentId === add.id && (t.spec ?? '') === (add.spec ?? ''))?.times ?? 0;
-    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, add.id, add.spec) });
+    const times = hero.talents.find((t) => memeRef({ id: t.talentId, spec: t.spec }, add))?.times ?? 0;
+    talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost: talentCost(times), maxReached: talentMaxReached(hero, add.id, add.spec), ajout: { provenance: add.provenance, ...(add.commeEnCarriere ? { commeEnCarriere: true as const } : {}) } });
   }
 
   const completed = cur

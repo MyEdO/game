@@ -41,7 +41,8 @@ import { weatherTestMods } from '../engine/weatherTestMod'; // CANAL UNIQUE « T
 import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
-import { itemFromGive, autoStowNewItem } from '../engine/items';
+import { itemFromGive, receiveItems } from '../engine/items';
+import { heroCarrier } from '../engine/carrier';
 import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
@@ -319,9 +320,7 @@ registerCascadeApplier('stageAggregate', (get, set, step) => {
     for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
       if (remaining <= 0) break;
       if (rationCount(h) >= 1) continue;
-      const ration = itemFromGive({ trappingId: 'ration' });
-      h.items = [...(h.items ?? []), ration];
-      autoStowNewItem(h, ration); // #204 : rangement par défaut
+      receiveItems(heroCarrier(h), [itemFromGive({ trappingId: 'ration' })]);
       remaining -= 1;
       j.push(t('tp.rationFound', { name: h.label }));
     }

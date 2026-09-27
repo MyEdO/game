@@ -9,9 +9,10 @@ import { Fragment, type ReactNode } from 'react';
 import { CodexRef } from './compendium/CodexRef';
 import { splitTopLevelOu } from '../engine/careerSlots';
 import { statName } from '../engine/statEntry';
-import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel } from '../data';
+import { byId, findTalentById, findTraitById, skillInstanceLabel, refConcrete, qualityRefLabel } from '../data';
 import { formatTrait } from '../engine/traits/dispatch';
-import type { SkillInstance, TalentInstance, QualityInstance } from '../engine/types';
+import type { SkillInstance, QualityInstance } from '../engine/types';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TraitInstance } from '../engine/statEntry';
 
 /** Un chip : boîte `.entity-chip` + déclencheur `CodexRef` (`label` = clé de résolution) + badge
@@ -100,14 +101,14 @@ export function SkillChip({ skill }: { skill: SkillInstance }) {
   );
 }
 
-/** Chip d'un talent CONCRET (instance d'un héros) — libellé vivant + `×N` si répété. */
-export function TalentChip({ talent }: { talent: TalentInstance }) {
+/** Chip d'un talent désigné (id, spec) — libellé vivant + `×N` quand `times` > 1. */
+export function TalentChip({ talent, times }: { talent: RefDesignee; times?: number }) {
   return (
     <EntityRef
       category="talents"
-      id={talent.talentId}
-      label={findTalentById(talent.talentId)?.label ?? talent.talentId}
-      show={`${talentConcrete(talent)}${talent.times > 1 ? ` ×${talent.times}` : ''}`}
+      id={talent.id}
+      label={findTalentById(talent.id)?.label ?? talent.id}
+      show={`${refConcrete('talents', talent)}${times != null && times > 1 ? ` ×${times}` : ''}`}
     />
   );
 }

@@ -31,7 +31,7 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 
 | Catalogue | Entités | Orphelines | Taux |
 |---|---|---|---|
-| `traits` | 132 | 7 | 5 % |
+| `traits` | 132 | 6 | 5 % |
 | `talents` | 187 | 5 | 3 % |
 | `qualities` | 59 | 2 | 3 % |
 | `maneuvers` | 20 | 0 | 0 % |
@@ -39,11 +39,10 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 | `props` | 124 | 0 | 0 % |
 | `vehicles` | 31 | 0 | 0 % |
 | `creatures` | 493 | 349 | 71 % |
-| **Total** | **1094** | **364** | — |
+| **Total** | **1094** | **363** | — |
 
 ### `traits`
 
-- `marque-de-tzeentch` — Marque de Tzeentch
 - `absorption` — Absorption
 - `amorphe` — Amorphe
 - `contagieux` — Contagieux
@@ -420,4 +419,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: f4fbba9c40d752836461a7ebac694192355263e8 (2120 fichiers, 136 dossiers) corps: b0426b44380bef3f7613baf260ad6b490541b5b3 -->
+<!-- sources-empreinte: 80dfbc776362124bcb58e4ede387f319830dc216 (2124 fichiers, 136 dossiers) corps: c4bdec43388ad6be6eaff03b0bdd6a3195c003f3 -->

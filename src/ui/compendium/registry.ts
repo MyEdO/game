@@ -132,6 +132,8 @@ export interface CodexFact {
   /** Lien Codex du LIBELLÉ (facultatif) — même forme que `CodexRow['kv'].kref` : la bande statbloc
    *  (profil M+carac+B) devient cliquable quand le fait référence une entité du Codex. */
   kref?: { category: string; id: string; label: string };
+  /** MARQUE du fait, rendue en `.chip` à côté de la valeur (liste ouverte d'un catalogue de spécialisations). */
+  marque?: string;
 }
 /**
  * PORTEUR d'une rangée de prose : le champ d'où sort son texte, VERBATIM. `type`/`id` NOMMENT
@@ -298,10 +300,13 @@ const join = (...parts: (string | null | undefined)[]): string | undefined => {
 
 /** Fait « Spécialisations » d'une Compétence/Talent : catalogue ÉNUMÉRABLE (`specCatalogOf` — registre
  *  partagé si `specsSource`, sinon TOUTES les `specs[]`, hors-pool comprises : le Codex est un écran de
- *  RÉFÉRENCE) rendu en libellés FR via `specLabel`. Null si le domaine n'a aucune spec. */
-const specsFact = (cat: 'skills' | 'talents', def: { id: string; specsSource?: import('../../data').SpecsSource; specs?: import('../../data').SpecEntry[] }): string | null => {
+ *  RÉFÉRENCE) rendu en libellés FR via `specLabel` ; une entrée `specsOpen` porte la marque que sa méta
+ *  nomme. Null si le domaine n'a aucune spec. */
+const specsFact = (cat: 'skills' | 'talents', def: { id: string; specsSource?: import('../../data').SpecsSource; specs?: import('../../data').SpecEntry[]; specsOpen?: boolean }): CodexFact | null => {
   const ids = specCatalogOf(def);
-  return ids.length ? ids.map((id) => specLabel(cat, def.id, id)).join(', ') : null;
+  if (!ids.length) return null;
+  const marque = def.specsOpen ? libelleDuChamp('specsOpen', { meta: metaPourFichier(`${cat}.json`) }) : undefined;
+  return { label: 'Spécialisations', value: ids.map((id) => specLabel(cat, def.id, id)).join(', '), ...(marque ? { marque } : {}) };
 };
 
 /** Prix d'une possession → libellé monnaie canon. La MARQUE de la colonne Prix (`'ND'`, LDB 62 l.28/
@@ -1478,7 +1483,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'skills', label: 'Compétences', group: 'Compétences',
     build: () => skills.map((s) => depuisEnveloppe(s, {
       sub: join(CHAR_LABELS[s.characteristic], valeurFR('skills.json', 'acces', s.acces)),
-      meta: facts(fact('Caractéristique', CHAR_LABELS[s.characteristic]), fact('Accès', valeurFR('skills.json', 'acces', s.acces)), fact('Spécialisations', specsFact('skills', s))),
+      meta: facts(fact('Caractéristique', CHAR_LABELS[s.characteristic]), fact('Accès', valeurFR('skills.json', 'acces', s.acces)), specsFact('skills', s)),
       sections: sections(...reverseSections('skills', s.id)),
     })),
   },
@@ -1489,7 +1494,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       // passifs et effets affichés sont ceux de la variante réglée quand elle est active.
       const e = effectiveEntry(t);
       return depuisEnveloppe(e, {
-      meta: facts(fact('Max', talentMaxLabel(e.max)), fact('Test', e.test?.raw ?? null), fact('Spécialisations', specsFact('talents', e))),
+      meta: facts(fact('Max', talentMaxLabel(e.max)), fact('Test', e.test?.raw ?? null), specsFact('talents', e)),
       sections: sections(
         careerGrantSection(e.passive), // Compétence/Talent ajouté à toute carrière (Maître artisan, Flagellant…)
         passiveSection(e.passive),

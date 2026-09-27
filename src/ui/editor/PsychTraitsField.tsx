@@ -6,6 +6,7 @@
 import { estCibleType, type PsychTrait, type PsychType } from '../../engine/psychology';
 import { memoParVersion, psychologies, psychologyLabel } from '../../data';
 import { NumberField } from '../NumberField';
+import { AjoutRangee } from '../AjoutRangee';
 
 // Types conférables = ceux de `psychology.json` (exclut `trauma`, marqueur INTERNE) ; libellés/ciblage
 // DÉRIVÉS de la donnée (source UNIQUE, jamais une map ni un Set codés en dur).
@@ -34,7 +35,7 @@ export function PsychTraitsField({ value, onChange }: { value: PsychTrait[] | un
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { type: 'frenesie' }])}>+ Trait psy</button>
+      <AjoutRangee libelle="Trait psy" onAjout={() => set([...list, { type: 'frenesie' }])} />
     </div>
   );
 }

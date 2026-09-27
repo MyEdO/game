@@ -6,7 +6,9 @@
  * VERBATIM du Tableau de Coût des Augmentations (LDB 07 l.51-70) — aucune invention.
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, acquerirTalent, parseRefKey } from './careerSlots';
+import { CareerSlot, acquerirTalent, parseRefKey, memeRef } from './careerSlots';
+import { ajoutsDansLaCarriere } from './talentEffects';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
@@ -78,7 +80,7 @@ export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true):
 /** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité (name, spec) : chaque
  *  Spécialisation est une Compétence distincte (LDB 09 l.42). */
 export function buySkillAdvance(hero: Combatant, skillId: string, spec: string | undefined, inCareer = true, discount = 0): AdvanceResult {
-  const skill = hero.skills.find((s) => s.id === skillId && (s.spec ?? '') === (spec ?? ''));
+  const skill = hero.skills.find((s) => memeRef(s, { id: skillId, spec }));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
   const cost = advanceCost(skill.advances, 'skill', inCareer, discount);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
@@ -92,7 +94,7 @@ export function buySkillAdvance(hero: Combatant, skillId: string, spec: string |
  *  libellé). Les Talents hors carrière ne sont pas achetables (LDB 07 l.93) et le Maxi doit être respecté
  *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. */
 export function buyTalent(hero: Combatant, talentId: string, spec?: string): AdvanceResult {
-  const already = hero.talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0;
+  const already = hero.talents.find((t) => memeRef({ id: t.talentId, spec: t.spec }, { id: talentId, spec }))?.times ?? 0;
   const cost = talentCost(already);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   if (!acquerirTalent(hero, { id: talentId, spec })) return { ok: false, cost, reason: t('adv.talentMax') };
@@ -121,14 +123,8 @@ function slotRef(slot: CareerSlot, designations: Record<string, string>): { id: 
   return key ? parseRefKey(key) : null;
 }
 
-/**
- * Un Niveau de Carrière est complété si (LDB 07 l.124) : toutes les CARACTÉRISTIQUES DE LA CARRIÈRE
- * disponibles (cumul des niveaux ≤ courant, LDB 07 l.41-43) ont ≥ req Augmentations, AU MOINS 8 des
- * Compétences disponibles (cumul, LDB 07 l.76) ont ≥ req Augmentations, et le héros possède au moins
- * 1 Talent du Niveau COURANT. Un emplacement « (Au choix) » compte via sa spec DÉSIGNÉE
- * (un slot non désigné n'est pas tenu) — chaque libellé concret ne valide qu'un slot, garanti
- * par l'unicité des désignations (cf. careerSlots.designateSlot).
- */
+/** Niveau de Carrière complété : LDB 07 l.124 (Caractéristiques : l.41-43 ; Compétences : l.76) ; ajouts de
+ *  carrière : `ajoutsDansLaCarriere` ; spec d'un emplacement « (Au choix) » : `careerSlots.designateSlot`. */
 export function isCareerLevelComplete(
   hero: Combatant,
   level: number,
@@ -147,20 +143,21 @@ export function isCareerLevelComplete(
   const charKeys = opts.careerChars; // déjà des CharKey
   if (!charKeys.length || !charKeys.every((k) => (hero.charAdvances?.[k] ?? 0) >= req)) return false;
 
-  let held = 0;
-  for (const slot of opts.skillSlots) {
-    const ref = slotRef(slot, opts.designations);
-    if (!ref) continue;
-    const adv = hero.skills.find((s) => s.id === ref.id && (s.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
-    if (adv >= req) held += 1;
-  }
+  // Une EXIGENCE du Niveau = des références dont une seule suffit : une par slot, puis une par ajout de
+  // carrière (`ajoutsDansLaCarriere`) qu'aucun slot ne couvre.
+  const slotRefs = (slots: CareerSlot[]) => slots.flatMap((slot) => { const ref = slotRef(slot, opts.designations); return ref ? [[ref]] : []; });
+  const exigences = (slots: CareerSlot[], kind: 'skill' | 'talent') => {
+    const deCarriere = slotRefs(slots);
+    const ajouts = ajoutsDansLaCarriere(hero, kind).filter((exigence) => !exigence.some((r) => deCarriere.some(([c]) => memeRef(c, r))));
+    return [...deCarriere, ...ajouts];
+  };
+
+  const skillTenue = (ref: RefDesignee) => (hero.skills.find((s) => memeRef(ref, s))?.advances ?? 0) >= req;
+  const held = exigences(opts.skillSlots, 'skill').filter((exigence) => exigence.some(skillTenue)).length;
   if (held < 8) return false;
 
-  return opts.talentSlots.some((slot) => {
-    const ref = slotRef(slot, opts.designations);
-    if (!ref) return false;
-    return hero.talents.some((t) => t.talentId === ref.id && (t.spec ?? '') === (ref.spec ?? '') && t.times > 0);
-  });
+  const talentTenu = (ref: RefDesignee) => hero.talents.some((t) => t.times > 0 && memeRef(ref, { id: t.talentId, spec: t.spec }));
+  return exigences(opts.talentSlots, 'talent').some((exigence) => exigence.some(talentTenu));
 }
 
 /** Coût en PX d'un changement de Carrière : 100 si le Niveau actuel est COMPLÉTÉ, 200 sinon (LDB 07 l.118). */

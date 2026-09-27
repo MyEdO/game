@@ -21,7 +21,8 @@ import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
 import { partyMoneyTotal, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
-import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
+import { addItemToHero, itemFromTrappingById, buildWeapon, receiveItems } from '../engine/items';
+import { heroCarrier } from '../engine/carrier';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -36,6 +37,7 @@ import {
 import { outOfTradeReason } from '../engine/disponibilite';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { applyOps, type GameOp } from '../engine/ops';
+import { memeRef } from '../engine/careerSlots';
 import { isFumble } from '../engine/oups';
 import { combatValue } from '../engine/combat';
 import { spellCost, ritualReduction } from '../engine/grimoire';
@@ -201,14 +203,13 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   // Passer commande (ch.23 l.170) : « L'objet sera achevé après votre prochaine aventure » —
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
-    const hero = party.find((h) => h.id === o.heroId);
-    const it = hero ? itemFromTrappingById(o.trappingId) : null;
-    if (hero && it) {
-      hero.items = [...(hero.items ?? []), it];
-      autoStowNewItem(hero, it); // #204 : rangement par défaut
-      recomputeLoadout(hero);
-      lines.push(msg('if.orderDelivered', { name: hero.label, label: trappingLabelOf(o.trappingId) }));
-    }
+    const i = party.findIndex((h) => h.id === o.heroId);
+    if (i < 0) continue;
+    const livre = addItemToHero(party[i], o.trappingId);
+    if (livre === party[i]) continue;
+    set((s) => ({ party: s.party.map((h) => (h.id === livre.id ? livre : h)) }));
+    party[i] = livre;
+    lines.push(msg('if.orderDelivered', { name: livre.label, label: trappingLabelOf(o.trappingId) }));
   }
   const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (ch.23 l.6)
   const perHero: Record<string, InterludeHeroState> = {};
@@ -662,7 +663,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // d'artefact) → Test de Savoir (Magie) Intermédiaire (+0). Savoir est AVANCÉE : il faut l'avoir.
     const item = (h.items ?? []).find((i) => i.uid === opts.itemUid);
     if (!item || item.identified !== false) return; // rien à identifier
-    const savoir = h.skills.find((k) => k.id === 'savoir' && (k.spec ?? '') === 'magie' && k.advances >= 1);
+    const savoir = h.skills.find((k) => memeRef(k, { id: 'savoir', spec: 'magie' }) && k.advances >= 1);
     if (!savoir) {
       get().log(msg('if.noSavoirMagie', { name: h.label }));
       return;
@@ -821,9 +822,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         const it = itemFromTrappingById(h.craft.trappingId);
         if (it) {
           it.qualities = [...(it.qualities ?? []), ...h.craft.atouts.map((id) => ({ id })), ...h.craft.defauts.map((id) => ({ id }))]; // ids → QualityInstance
-          h.items = [...(h.items ?? []), it];
-          autoStowNewItem(h, it); // #204 : rangement par défaut
-          recomputeLoadout(h);
+          receiveItems(heroCarrier(h), [it]);
         }
         const atL = h.craft.atouts.map(craftQualLabel), dfL = h.craft.defauts.map(craftQualLabel);
         const doneLabel = trappingLabelOf(h.craft.trappingId);
@@ -1134,7 +1133,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h || st.left <= 0) return;
   if (refusedBeforeDraw(get, h.label)) return;
-  const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && (o.spec ?? '') === (spec ?? ''));
+  const opt = entrainementOptions(h).find((o) => o.kind === kind && memeRef(o, { id, spec }));
   if (!opt) {
     get().log(t('if.entrainementUnknown', { name: h.label }));
     return;
@@ -1153,7 +1152,7 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
   const r = kind === 'characteristic'
     ? engineBuyCharAdvance(h, id as CharKey, false)
     : (() => {
-        if (!h.skills.some((k) => k.id === id && (k.spec ?? '') === (spec ?? ''))) {
+        if (!h.skills.some((k) => memeRef(k, { id, spec }))) {
           h.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
         }
         return engineBuySkillAdvance(h, id, spec, false);

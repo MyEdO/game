@@ -23,6 +23,7 @@ import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
 import { loadRegister, type WeaponLoadState } from './weaponLoad';
+import { carrierItems, heroCarrier, type Carrier } from './carrier';
 
 let uidCounter = 0;
 export function newUid(): string {
@@ -463,8 +464,11 @@ export function isWearable(it: ItemInstance): boolean {
   return it.kind === 'misc' && (it.subType === 'vetements-et-accessoires' || it.subType === 'protheses');
 }
 
+/** Tout ce qui PORTE des objets, lu sans y écrire : héros, possession, liste nue. */
+export type ItemHolder = { readonly items?: readonly ItemInstance[] };
+
 /** Remplissage actuel d'un contenant (LDB 64) : somme de l'Enc des objets rangés DEDANS (`inside === containerUid`). PUR. */
-export function containerFillEnc(c: Pick<Combatant, 'items'>, containerUid: string): number {
+export function containerFillEnc(c: ItemHolder, containerUid: string): number {
   return (c.items ?? [])
     .filter((i) => i.inside === containerUid)
     .reduce((s, i) => s + (i.enc || 0) + craftEncDelta(i), 0);
@@ -472,7 +476,7 @@ export function containerFillEnc(c: Pick<Combatant, 'items'>, containerUid: stri
 
 /** Peut-on ranger `it` dans le contenant `containerUid` (LDB 64) ? Le contenant existe et a une capacité ;
  *  `it` n'est ni le contenant lui-même ni un contenant (pas d'imbrication) ; le Contenu restant suffit. PUR. */
-export function canStow(c: Pick<Combatant, 'items'>, it: ItemInstance, containerUid: string): boolean {
+export function canStow(c: ItemHolder, it: ItemInstance, containerUid: string): boolean {
   const container = (c.items ?? []).find((i) => i.uid === containerUid);
   const capacity = container?.container?.capacity;
   if (capacity == null) return false;
@@ -485,7 +489,7 @@ export function canStow(c: Pick<Combatant, 'items'>, it: ItemInstance, container
  *  `canStow` écarte déjà l'auto-rangement/l'imbrication, donc un objet qui EST lui-même un contenant ne
  *  reçoit jamais de cible. `null` = aucun contenant compatible → `it` reste porté/en vrac. Départage
  *  déterministe : premier contenant rencontré (ordre de `c.items`) à égalité de place libre. PUR. */
-export function defaultContainerFor(c: Combatant, it: ItemInstance): string | null {
+export function defaultContainerFor(c: ItemHolder, it: ItemInstance): string | null {
   let best: string | null = null;
   let bestFree = -Infinity;
   for (const cand of c.items ?? []) {
@@ -500,7 +504,7 @@ export function defaultContainerFor(c: Combatant, it: ItemInstance): string | nu
 /** Objets ÉQUIPÉS en conflit de port avec `it` : armure de MÊME couche sur ≥1 localisation commune
  *  (pas deux justaucorps de cuir l'un sur l'autre), ou autre cape déjà portée. Équiper `it` doit
  *  d'abord les retirer (échange façon jeu vidéo). */
-export function equipConflicts(c: Pick<Combatant, 'items'>, it: ItemInstance): ItemInstance[] {
+export function equipConflicts(c: ItemHolder, it: ItemInstance): ItemInstance[] {
   const others = (c.items ?? []).filter((o) => o.uid !== it.uid && o.equipped);
   if (it.kind === 'armor' && it.locs?.length) {
     const layer = armourLayer(it);
@@ -807,6 +811,7 @@ export function loadoutSetSlot(c: Combatant, id: string, slot: 'main' | 'off', u
   if (!lo) return;
   lo[slot] = uid ?? undefined;
   if (uid) {
+    unstow(heroCarrier(c), uid);
     const other = slot === 'main' ? 'off' : 'main';
     if (lo[other] === uid) lo[other] = undefined; // une arme ne peut pas être tenue des deux mains à la fois
     if (slot === 'main') {
@@ -816,28 +821,82 @@ export function loadoutSetSlot(c: Combatant, id: string, slot: 'main' | 'off', u
   }
 }
 
-/** Auto-rangement (#204) : à l'ACQUISITION d'un objet, pose `it.inside` sur son contenant par défaut
- *  (`defaultContainerFor`) s'il y en a un — sinon `it` reste porté/en vrac. JAMAIS pour un objet ÉQUIPÉ
- *  explicitement par l'appelant (le port choisi prime). SOURCE UNIQUE : à appeler juste après avoir
- *  poussé `it` dans `c.items`, avant `recomputeLoadout`. */
-export function autoStowNewItem(c: Combatant, it: ItemInstance): void {
-  if (it.equipped) return;
-  const uid = defaultContainerFor(c, it);
-  if (uid) it.inside = uid;
+/** Re-dérive ce qui se lit de l'inventaire d'un porteur : armes, armure et encombrement d'un héros
+ *  (`recomputeLoadout`) ; une possession n'a pas de loadout. */
+export function recomputeCarrier(p: Carrier): void {
+  if (p.kind === 'hero') recomputeLoadout(p.hero);
+}
+
+/** Range l'objet `uid` du porteur dans `containerUid` (LDB 64) : ni porté, ni tenu dans aucun set
+ *  d'armes, actif ou non. La capacité (`canStow`) se vérifie avant. */
+export function stowIn(p: Carrier, uid: string, containerUid: string): void {
+  const it = carrierItems(p).find((i) => i.uid === uid);
+  if (!it) return;
+  it.inside = containerUid;
+  it.equipped = false;
+  if (p.kind !== 'hero') return;
+  for (const lo of p.hero.loadouts ?? []) {
+    if (lo.main === uid) lo.main = undefined;
+    if (lo.off === uid) lo.off = undefined;
+  }
+}
+
+/** Sort l'objet `uid` du porteur de son contenant (LDB 64). */
+export function unstow(p: Carrier, uid: string): void {
+  const it = carrierItems(p).find((i) => i.uid === uid);
+  if (it) it.inside = undefined;
+}
+
+/** Porte ou retire l'objet `uid` du porteur. Le porter le sort de son contenant et retire les objets
+ *  en conflit de port (`equipConflicts`, LDB 63) ; rend ces objets retirés. */
+export function toggleWorn(p: Carrier, uid: string): ItemInstance[] {
+  const items = carrierItems(p);
+  const it = items.find((i) => i.uid === uid);
+  if (!it) return [];
+  if (it.equipped) {
+    it.equipped = false;
+    return [];
+  }
+  unstow(p, uid);
+  const out = equipConflicts({ items }, it);
+  for (const o of out) o.equipped = false;
+  it.equipped = true;
+  return out;
+}
+
+/** Rangement par défaut (#204) : `it` va dans le contenant du porteur qui a le plus de place libre
+ *  (`defaultContainerFor`), s'il y en a un. */
+function autoStowNewItem(p: Carrier, it: ItemInstance): void {
+  const bag = defaultContainerFor({ items: carrierItems(p) }, it);
+  if (bag) stowIn(p, it.uid, bag);
+}
+
+/** Fait ENTRER une charge chez un porteur (#1985, #204) : chaque objet y arrive en copie, non porté ;
+ *  un objet rangé dans un contenant de la charge y reste, tout autre objet est rangé par défaut ; le
+ *  porteur est re-dérivé. Rend les objets entrés, dans l'ordre de la charge. */
+export function receiveItems(p: Carrier, charge: readonly ItemInstance[]): ItemInstance[] {
+  const uids = new Set(charge.map((it) => it.uid));
+  const entrants = charge.map(({ inside, ...it }): ItemInstance => ({
+    ...it,
+    equipped: false,
+    ...(inside && uids.has(inside) ? { inside } : {}),
+  }));
+  if (p.kind === 'hero') p.hero.items = [...(p.hero.items ?? []), ...entrants];
+  else p.possession.items = [...p.possession.items, ...entrants];
+  for (const it of entrants) if (!it.inside) autoStowNewItem(p, it);
+  recomputeCarrier(p);
+  return entrants;
 }
 
 /**
- * Ajoute l'objet de catalogue `trappingId` à l'inventaire PERSONNEL d'un héros et re-dérive son équipement
- * actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet à un héros » : utilisée
- * par l'achat marchand (`buyItem`) ET l'assignation de butin. Id inconnu → inchangé.
+ * Ajoute l'objet de catalogue `trappingId` à un héros par `receiveItems`. Retourne un NOUVEAU combattant
+ * (cloné). Id inconnu → inchangé.
  */
 export function addItemToHero(hero: Combatant, trappingId: string): Combatant {
   const it = itemFromTrappingById(trappingId);
   if (!it) return hero;
   const clone: Combatant = structuredClone(hero);
-  clone.items = [...(clone.items ?? []), it];
-  autoStowNewItem(clone, it);
-  recomputeLoadout(clone);
+  receiveItems(heroCarrier(clone), [it]);
   return clone;
 }
 
@@ -952,14 +1011,15 @@ export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
   // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —
   // LDB 63 : pas de « 2 armures de cuir »). Les doublons restent dans l'inventaire (déséquipés).
-  const melee = items.filter((i) => i.kind === 'melee');
-  const ranged = items.filter((i) => i.kind === 'ranged');
-  if (melee.length) melee.sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0].equipped = true;
-  if (ranged.length) ranged[0].equipped = true;
-  const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
+  const worn = new Set<string>();
+  const melee = items.filter((i) => i.kind === 'melee').sort((a, b) => damageScore(b.damage) - damageScore(a.damage));
+  const ranged = items.find((i) => i.kind === 'ranged');
+  if (melee.length) worn.add(melee[0].uid);
+  if (ranged) worn.add(ranged.uid);
+  const marked = () => items.map((i): ItemInstance => ({ ...i, equipped: worn.has(i.uid) }));
   const armours = items.filter((i) => i.kind === 'armor').sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
-  for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;
-  return items;
+  for (const a of armours) if (!equipConflicts({ items: marked() }, a).length) worn.add(a.uid);
+  return marked();
 }
 
 /** Famille de munitions canonique. Les armes à **Poudre noire** ET d'**Ingénierie** partagent les

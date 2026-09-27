@@ -37,7 +37,8 @@ import { battleRng } from './battleRng';
 import { openRest, placesOfKind } from './restFlow';
 import { activityById, activitiesFor, travelActivitySpec, applyTravelActivityResult, type ActivityDef } from '../engine/activities';
 import { applyOps } from '../engine/ops';
-import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
+import { itemFromTrappingById, receiveItems } from '../engine/items';
+import { heroCarrier } from '../engine/carrier';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit, bourseOf } from './bourseFlow';
 import { cargoTotalEnc, OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
@@ -250,9 +251,7 @@ registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
     const it = itemFromTrappingById('carte-marine');
     if (it) {
       it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
-      hero.items = [...(hero.items ?? []), it];
-      autoStowNewItem(hero, it); // #204 : rangement par défaut
-      recomputeLoadout(hero);
+      receiveItems(heroCarrier(hero), [it]);
     }
     j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
     const stashCO = Math.max(0, Math.min(stashGold, Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO)));

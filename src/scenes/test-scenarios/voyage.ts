@@ -2,12 +2,12 @@ import { flowFromEffects } from '../../state/flow';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
-import { itemFromTrappingById } from '../../engine/items';
-import { Combatant, SkillInstance } from '../../engine/types';
+import { addItemToHero } from '../../engine/items';
+import type { Combatant } from '../../engine/types';
 import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
 import { buildScene } from '../../state/mapSpec';
-import type { TestScenario } from './_shared';
+import { renforceCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
 
 /**
@@ -16,32 +16,26 @@ import type { Scene } from '../../state/scene';
  * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `travel-etapes`
  * activable au panneau Règles maison) et l'Entre-deux-aventures (interlude d'Activités à l'arrivée).
  */
-const skill = (c: Combatant, skillId: string, advances: number, spec?: string, characteristic: SkillInstance['characteristic'] = 'intelligence') => {
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-};
 
 /** Quatre héros, chacun à son POSTE de voyage (Étapes EDOC) ; Greta cumule le « mauvais état » qui fait
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
 function groupe(): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
-  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', rng: makeRNG(2401), id: 'bjorn' });
+  const bjorn = ['ration', 'ration', 'ration'].reduce(addItemToHero, createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', rng: makeRNG(2401), id: 'bjorn' }));
   bjorn.travelRole = 'plein-air';
-  skill(bjorn, 'survie-en-exterieur', 60);
-  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
+  renforceCompetence(bjorn, 'survie-en-exterieur', 60);
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
   const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', rng: makeRNG(2402), id: 'mira' });
   mira.travelRole = 'rester-aux-aguets';
-  skill(mira, 'perception', 50);
+  renforceCompetence(mira, 'perception', 50);
   mira.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
   const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', rng: makeRNG(2403), id: 'aldric' });
   aldric.travelRole = 'etablir-cartes';
-  skill(aldric, 'metier', 70, 'Cartographe', 'dexterite');
+  renforceCompetence(aldric, 'metier', 70, 'cartographe');
   aldric.xp = 300;
   aldric.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
 
@@ -49,7 +43,7 @@ function groupe(): Combatant[] {
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
   const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', rng: makeRNG(1502), id: 'greta' });
   greta.travelRole = 'approvisionnement';
-  skill(greta, 'survie-en-exterieur', 0);
+  renforceCompetence(greta, 'survie-en-exterieur', 0);
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);
   greta.nightmares = true;
   greta.diseases = [contractDisease('verole-urticante', makeRNG(1503), { incubation: 0, duration: 5 })!];

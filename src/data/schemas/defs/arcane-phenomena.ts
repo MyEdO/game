@@ -15,7 +15,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { deDeTableSchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { deDeTableSchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema, castingNumberModSchema, maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -62,7 +62,7 @@ const testMod = z.strictObject({
   windRestricted: z.boolean().optional(),
   /** Valeur maison ÉDITABLE portant sa justification, quand le RAW ne chiffre qu'une fourchette sans
    *  cas général (CLAUDE.md règle 7 ; #831). Comptée comme citation par `citationCoverage.mjs`. */
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
   source: sourceRefSchema,
   /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
   desc: z.string(),
@@ -200,7 +200,7 @@ const doc = document(
           /** Rangée RECONSTRUITE : la cellule imprimée ne porte rien (débordement de la rangée
            *  voisine à l'impression). Le texte dit ce qui est LU au Source et ce qui est DÉDUIT —
            *  sans lui, une valeur déduite serait indiscernable d'une valeur lue. */
-          maison: z.string().optional(),
+          maison: maisonSchema.optional(),
         }),
       ).min(1),
       source: sourceRefSchema,

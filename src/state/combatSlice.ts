@@ -58,7 +58,8 @@ import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
-import { recomputeLoadout, itemFromGive, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, itemFromGive, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, receiveItems } from '../engine/items';
+import { heroCarrier } from '../engine/carrier';
 import { trappingById } from './campaignData';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -2342,17 +2343,12 @@ export function createCombatSlice(get: Get, set: Set) {
         const it = itemFromGive(eff, undefined, trappingById); // catalogue, campagne-d'abord (#767), sinon objet custom
         label = it.label;
         // ajout NON équipé au combattant actif (clone battle) ET au membre party (persiste post-combat).
-        active.items = [...(active.items ?? []), it];
-        autoStowNewItem(active, it); // #204 : rangement par défaut
-        recomputeLoadout(active);
+        receiveItems(heroCarrier(active), [it]);
         set((s) => ({
           party: s.party.map((h) => {
             if (h.id !== active.id) return h;
             const clone: Combatant = structuredClone(h);
-            const itCopy = structuredClone(it);
-            clone.items = [...(clone.items ?? []), itCopy];
-            autoStowNewItem(clone, itCopy); // #204 : rangement par défaut
-            recomputeLoadout(clone);
+            receiveItems(heroCarrier(clone), [structuredClone(it)]);
             return clone;
           }),
         }));

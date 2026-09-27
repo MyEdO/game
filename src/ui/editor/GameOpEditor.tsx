@@ -13,7 +13,8 @@ import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, CHAMPS_A_CHOIX, armourBypassCategorieSchema, cibleDuChampAChoix, metaDuChampDOp, zoneShapeSchema, type ChampAChoix } from '../../data/schemas/grammaire/mecanique';
+import { FamilleFermee, useRegimeDuChamp } from './familleDuChamp';
 import { ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
@@ -21,7 +22,7 @@ import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effect
 import { findFallTable, fallTables } from '../../data/shipCriticals';
 import { terrainLabel, terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
-import type { DatasetKey } from '../../data/overrides';
+import { datasetDuType, type DatasetKey } from '../../data/overrides';
 import { giveTrappingLabel } from '../../engine/items';
 import { parseTraitInstance, formatTrait, formatWardSave } from '../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../engine/trauma';
@@ -33,6 +34,7 @@ import { NumberField } from '../NumberField';
 import type { IconIdInput } from '../icons';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
@@ -378,8 +380,7 @@ export function FormulaField({ label, value, onChange, min }: {
                   onClick={() => onChange({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
               </span>
             ))}
-            <button type="button" className="btn small" title="ajouter un terme" aria-label="ajouter un terme"
-              onClick={() => onChange({ sum: [...value.sum, 0] })}>+</button>
+            <AjoutRangee libelle="terme" onAjout={() => onChange({ sum: [...value.sum, 0] })} />
           </span>
         )}
       </span>
@@ -573,10 +574,25 @@ export function opWithRefValue<T>(op: T, field: string, valeur: unknown): T {
   return { ...source, [tete]: sousArbre } as T;
 }
 
-/** SOURCE UNIQUE des réfs de registre du vocabulaire `GameOp`, lue par les contrôles d'édition
- *  (sentinelle vide), par la raison visible portée par la rangée, et par le gate pré-persist du
- *  Codex (`validateEntry`). Un nouveau champ-réf s'ajoute ICI, jamais dans une nième liste. */
+/** Réf de registre d'un champ à choix (`CHAMPS_A_CHOIX`), lue au schéma : dataset par sa cible
+ *  (`cibleDuChampAChoix` → `datasetDuType`), libellé par sa méta (`metaDuChampDOp`) ; requise, le
+ *  champ n'étant jamais optionnel à sa déclaration (`aChoix`). */
+function refDuChampAChoix(champ: ChampAChoix): OpRefField {
+  const [op, nom] = champ.split('.');
+  const ds = datasetDuType(cibleDuChampAChoix(champ));
+  const label = metaDuChampDOp(op, nom)?.label;
+  if (!ds || !label) throw new Error(`champ à choix ${champ} : sans dataset-liste ou sans méta au schéma`);
+  return { field: `${nom}.id`, ds, label, required: true };
+}
+
+/** Réfs de registre du vocabulaire `GameOp`, lues par les contrôles d'édition (sentinelle vide), par la
+ *  raison visible portée par la rangée et par le gate pré-persist du Codex (`validateEntry`). Celles des
+ *  champs à choix se DÉRIVENT du schéma (`refDuChampAChoix`) ; les autres s'écrivent ici à la main. */
 export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>> = {
+  ...CHAMPS_A_CHOIX.reduce<Partial<Record<GameOp['op'], OpRefField[]>>>((parOp, c) => {
+    (parOp[c.split('.')[0] as GameOp['op']] ??= []).push(refDuChampAChoix(c));
+    return parOp;
+  }, {}),
   condition: [{ field: 'id', ds: 'etats', label: 'État', required: true }],
   removeCondition: [{ field: 'id', ds: 'etats', label: 'État', required: false }],
   endPsych: [{ field: 'type', ds: 'psychologies', label: 'Trait psychologique', required: true }],
@@ -586,9 +602,6 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   grantTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   removeTrait: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
   domeWard: [{ field: 'traitId', ds: 'traits', label: 'Trait', required: true }],
-  grantTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerTalent: [{ field: 'talent.id', ds: 'talents', label: 'Talent', required: true }],
-  grantCareerSkill: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillMod: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: true }],
   skillDRBonus: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
   grantReverseToken: [{ field: 'skill.id', ds: 'skills', label: 'Compétence', required: false }],
@@ -684,7 +697,7 @@ export function opSummary(o: GameOp): string {
     case 'grantPsychTrait': return `${o.psychType}${o.cible ? ` (${o.cible})` : ''}`;
     case 'grantTalent': return `${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
-    case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;
+    case 'grantCareerTalent': return `${refLabel('talents', o.talent)}${o.commeEnCarriere ? ` — ${metaDuChampDOp(o.op, 'commeEnCarriere')?.label}` : ''}`;
     case 'augmentWeapon': return `${[
       ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })),
       o.damageBonus != null ? `+${formulaSummary(o.damageBonus)} Dégâts` : '',
@@ -743,7 +756,7 @@ export function opSummary(o: GameOp): string {
 /** Ops avec un éditeur DÉDIÉ ; toute autre op tombe sur le repli JSON (lisible/modifiable sans perte). */
 const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'wounds', 'heal', 'healCaster', 'condition', 'removeCondition', 'charMod', 'skillMod', 'moveMod', 'ap', 'testMod',
-  'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
+  'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantCareerSkill', 'grantCareerTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
   'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands',
 ]);
@@ -785,10 +798,10 @@ function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: numb
             <button className="btn small" title="Descendre" disabled={i === rows.length - 1} onClick={() => swap(i, i + 1)}>↓</button>
             <button className="btn small danger" title="Supprimer la rangée" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} />
+          <FamilleFermee><GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} /></FamilleFermee>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...rows, { min: 1, max: 1, ops: [] }])}>+ Rangée</button>
+      <AjoutRangee libelle="Rangée" onAjout={() => onChange([...rows, { min: 1, max: 1, ops: [] }])} />
     </div>
   );
 }
@@ -797,6 +810,19 @@ function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: numb
  *  SOUS-objet que `upd` ne balaie pas (il ne voit que le premier niveau). */
 function sansClesVides<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
+}
+
+/** Champ à choix d'une op (`CHAMPS_A_CHOIX`) : une référence au régime de la famille courante
+ *  (`useRegimeDuChamp`), dataset et libellé lus au schéma (`refDuChampAChoix`). */
+function ChampAChoixField({ champ, op, onChange }: { champ: ChampAChoix; op: GameOp; onChange: (o: GameOp) => void }) {
+  const regime = useRegimeDuChamp(champ);
+  const nom = champ.split('.')[1];
+  const { ds, label } = refDuChampAChoix(champ);
+  return (
+    <RefField cfg={{ ds, single: true, spec: true }} fieldKey={label} regime={regime}
+      value={opRefValue(op, nom) ?? { id: '' }}
+      onChange={(v) => onChange(opWithRefValue(op, nom, typeof v === 'string' ? { id: v } : v))} />
+  );
 }
 
 function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void }) {
@@ -1054,10 +1080,13 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
             <FormulaField label="Indice" value={o.indice ?? 1} min={1} onChange={(indice) => upd({ indice })} />
           </>
         )}
-        {op.op === 'grantTalent' && (
-          <RefField cfg={{ ds: 'talents', single: true, spec: true }} fieldKey="Talent"
-            value={{ id: o.talent?.id ?? '', spec: o.talent?.spec }}
-            onChange={(v) => { const r = typeof v === 'string' ? { id: v } : (v as { id: string; spec?: string }); upd({ talent: r }); }} />
+        {CHAMPS_A_CHOIX.filter((c) => c.startsWith(`${op.op}.`)).map((c) => (
+          <ChampAChoixField key={c} champ={c} op={op} onChange={onChange} />
+        ))}
+        {op.op === 'grantCareerTalent' && (
+          <button type="button" className="chip" aria-pressed={!!o.commeEnCarriere} onClick={() => upd({ commeEnCarriere: o.commeEnCarriere ? undefined : true })}>
+            {metaDuChampDOp(op.op, 'commeEnCarriere')?.label}
+          </button>
         )}
         {op.op === 'grantNaturalWeapon' && (
           <>

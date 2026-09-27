@@ -1004,6 +1004,7 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/traits.json', ref: 'passive | blocked,op,skill', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'passive | bonus,op,skill', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'passive | char,mod,op', occurrence: 1 },
+  { fichier: 'src/data/traits.json', ref: 'passive | commeEnCarriere,op,talent', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'passive | keyword,op', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'passive | mod,op', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'passive | mod,op,skill', occurrence: 1 },

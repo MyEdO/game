@@ -25,7 +25,8 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
+import { itemFromGive, giveTrappingLabel, withGiveQualities, receiveItems } from '../engine/items';
+import { heroCarrier } from '../engine/carrier';
 import { trappingById, indiceById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
@@ -1453,9 +1454,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
       const who = env.mutateHero(e.heroId, (h) => {
         const clone: Combatant = structuredClone(h);
-        clone.items = [...(clone.items ?? []), it]; // arrive NON équipé
-        autoStowNewItem(clone, it); // #204 : rangement par défaut (contenant avec le plus de place libre)
-        recomputeLoadout(clone); // met à jour l'encombrement
+        receiveItems(heroCarrier(clone), [it]);
         return clone;
       });
       env.log(who ? t('eff.recover', { name: who.label, item: it.label }) : t('eff.recoverSansHeros', { item: it.label }));

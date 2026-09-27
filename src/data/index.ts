@@ -7,7 +7,7 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, SpecEntry } from './schemas/grammaire/valeurs';
 import { lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
@@ -904,13 +904,7 @@ export interface CareerLevelData {
   characteristics: CharKey[];
   status: string;
 }
-/** Entrée `specs[]` d'une Compétence/Talent — id STABLE (résolu par `specLabel`, cf. `langue`/
- *  `chevaucher`/`discretion`/`art`/talent `resistance`) + libellé d'affichage FR. Un domaine
- *  `specsSource` n'a PAS de `specs[]` (le pool DÉRIVE du registre partagé, cf. `specPoolOf`).
- *  `pool: false` — l'entrée est VALIDE (résolution, `testValue`, bonus de règle) mais n'est pas
- *  PROPOSÉE d'office par le créateur/l'avancement (`LDB 09 l.40`) ; les écrans de RÉFÉRENCE
- *  l'impriment (`specCatalogOf`). Absente = dans le pool. VALIDITÉ ⊇ POOL, cf. `specResolves`. */
-export type SpecEntry = { id: string; label: string; source?: SourceRef; alsoIn?: SecondaryRef[]; pool?: false };
+export type { SpecEntry };
 /** id d'une entrée `specs[]`. */
 export function specEntryId(e: SpecEntry): string {
   return e.id;

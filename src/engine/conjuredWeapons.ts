@@ -7,7 +7,8 @@
  * (= BFM…) et l'Atout Magique sont surchargés par le Sort.
  */
 import { Combatant, ItemInstance, QualityInstance } from './types';
-import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping } from './items';
+import { recomputeLoadout, itemFromTrappingById, receiveItems, loadoutCreate, loadoutSetSlot, isUnarmedTrapping, isImprovisedTrapping } from './items';
+import { heroCarrier } from './carrier';
 import { isShieldItem } from './equipCompare';
 import { hasQuality } from './qualities/dispatch';
 import { trappings, byId } from '../data';
@@ -18,13 +19,10 @@ type ConjuredSet = NonNullable<NonNullable<Combatant['activeEffects']>[number]['
  *  l'arme du set actif, convertie par `recomputeLoadout` comme toute arme tenue (zéro injection
  *  parallèle). Garantit d'abord les sets réels (Set I/II) pour une restauration propre. Mute `c`. */
 export function equipConjuredWeapon(c: Combatant, item: ItemInstance): ConjuredSet {
-  c.items = c.items ?? [];
-  c.items.push(item);
-  ensureDefaultLoadout(c); // sets réels présents → restoreLoadoutId pointe un vrai set
+  receiveItems(heroCarrier(c), [item]); // `recomputeLoadout` → `ensureDefaultLoadout` : restoreLoadoutId pointe un vrai set
   const restoreLoadoutId = c.activeLoadoutId;
-  const loadoutId = newLoadoutId();
-  c.loadouts = [...(c.loadouts ?? []), { id: loadoutId, main: item.uid }];
-  c.activeLoadoutId = loadoutId;
+  const loadoutId = loadoutCreate(c);
+  loadoutSetSlot(c, loadoutId, 'main', item.uid);
   recomputeLoadout(c);
   return { itemUid: item.uid, loadoutId, ...(restoreLoadoutId ? { restoreLoadoutId } : {}) };
 }

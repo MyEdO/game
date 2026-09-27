@@ -33,6 +33,7 @@ import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEf
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema, facadeFeatureKindSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
@@ -476,7 +477,7 @@ export function Inspector({
                       <button className="btn small danger" onClick={() => removeExclusion(i)}>Retirer</button>
                     </div>
                   ))}
-                  <button className="btn small" onClick={addExclusion}>+ Exclusion</button>
+                  <AjoutRangee libelle="Exclusion" onAjout={addExclusion} />
                 </Stack>
               </Fold>
               <div className="insp-actions">
@@ -1776,7 +1777,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
             onChange={(next) => setScene(setPosteCrew(scene, ent.id, next))}
             caption={<>Servants du poste <em className="de-hint">(le 1ᵉʳ = chef de pièce ★)</em></>}
             head="Chef de pièce"
-            addLabel="+ Affecter un servant"
+            addLabel="Affecter un servant"
             emptyHint="Posez des personnages (servants) sur la carte, puis affectez-les ici."
           >
             <p className="hint">
@@ -1798,7 +1799,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
         ids={ent.crewIds ?? []}
         onChange={(next) => setScene(editEntity(scene, ent.id, { crewIds: next.length ? next : undefined }))}
         caption={<>Équipage exposé à bord <em className="de-hint">(MDG 14 — encaisse les critiques de coque)</em></>}
-        addLabel="+ Embarquer un membre d'équipage"
+        addLabel="Embarquer un membre d'équipage"
         emptyHint="Posez des personnages sur la carte, puis embarquez-les ici."
       />
       <RefField
@@ -1937,7 +1938,7 @@ function CrewPicker({
         </div>
       ))}
       {addable.length > 0 ? (
-        <button className="btn small" onClick={() => onChange([...ids, addable[0].id])}>{addLabel}</button>
+        <AjoutRangee libelle={addLabel} onAjout={() => onChange([...ids, addable[0].id])} />
       ) : candidates.length === 0 ? (
         <p className="hint">{emptyHint}</p>
       ) : null}
@@ -2244,7 +2245,7 @@ function SceneProps({
               value={newFlagKey}
               onChange={(e) => setNewFlagKey(e.target.value)}
             />
-            <button className="btn small" disabled={!newFlagKey.trim() || newFlagKey.trim() in scene.flags} onClick={addFlag}>+ Drapeau</button>
+            <AjoutRangee libelle="Drapeau" disabled={!newFlagKey.trim() || newFlagKey.trim() in scene.flags} onAjout={addFlag} />
           </div>
         </Stack>
       </Fold>
@@ -2284,7 +2285,7 @@ function SceneProps({
               <button className="btn small danger" onClick={() => removeStation(i)}>Retirer</button>
             </div>
           ))}
-          <button className="btn small" disabled={!anchorTargets.length} onClick={addStation}>+ Ancre</button>
+          <AjoutRangee libelle="Ancre" disabled={!anchorTargets.length} onAjout={addStation} />
         </Stack>
       </Fold>
     </>

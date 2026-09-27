@@ -17,19 +17,20 @@ import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
 import { document, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe } from './meta';
-import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
+import { descRefSchema, enumNomme, maisonSchema, sourceRefSchema, specsSchema } from './valeurs';
+import { defDe, descendre, enfantsDe } from './descente';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
-import { byId, type SkillData, type TypeResolu } from '../../index';
+import { byId, findTalentById, specPoolOf, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
+import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
-import { defDe, enfantsDe } from './descente';
 import { noeudObjet } from '../validate';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
@@ -1195,6 +1196,14 @@ describe('régime d’une réf à spécialisation — un porteur qui DÉSIGNE re
     expect(refOuSpec('talent').safeParse({ id: 'beni', choix: true }).success).toBe(false);
   });
 
+  it('une borne `choix` VIDE est refusée chez tout porteur d’emplacement ; une borne non vide passe', () => {
+    const borne = specPoolOf(findTalentById('beni')!).slice(0, 1);
+    for (const noeud of [avancement('talent'), refOuSpec('talent', undefined, 'specOuChoixFacultatifs'), specRef('talent')]) {
+      expect(noeud.safeParse({ id: 'beni', choix: [] }).success).toBe(false);
+      expect(noeud.safeParse({ id: 'beni', choix: borne }).success).toBe(true);
+    }
+  });
+
   it('le refus de la sentinelle sur un Talent ne porte AUCUNE référence de livre', () => {
     const res = refOuSpec('talent').safeParse({ id: 'beni', spec: 'Au choix' });
     expect(res.success).toBe(false);
@@ -1253,7 +1262,9 @@ describe('avancement() — l’emplacement d’avancement, vocabulaire CLOS', ()
     ['graphie MORTE `{ref}`', { ref: { id: 'sens-aiguise' } }, t, false],
     ['graphie MORTE `{wildcard}`', { wildcard: { id: 'sens-aiguise' } }, t, false],
     ['graphie MORTE `{choice}`', { choice: [{ ref: { id: 'sens-aiguise' } }] }, t, false],
-    ['Talent OUVERT : spéc hors catalogue', { id: 'savoir-vivre', spec: 'plombiers' }, t, true],
+    ['Talent `specsOpen` : spéc hors catalogue', { id: 'maitre-artisan', spec: 'plombiers' }, t, true],
+    ['Talent `specsOpen` à liste d’exemples (LDB 10 l.1071) : spéc hors catalogue', { id: 'savoir-vivre', spec: 'plombiers' }, t, true],
+    ['Talent sans `specsOpen` (LDB 10 l.1091) : spéc hors catalogue', { id: 'sens-aiguise', spec: 'sixieme-sens' }, t, false],
     ['Compétence : spéc de catalogue', { id: 'signes-secrets', spec: 'guilde' }, s, true],
     // `signes-secrets` est une entrée OUVERTE (`entreeOuverte`) : une spéc hors catalogue passe au
     // schéma, y compris l'id `guilde-au-choix` fusionné dans `guilde` au commit 4. C'est la DONNÉE
@@ -1441,5 +1452,36 @@ describe('enumNomme — le libellé d’une valeur vit sur le NŒUD', () => {
     expect(optionsEnum(z.enum(['a', 'b']).optional())).toEqual(['a', 'b']);
     expect(optionsEnum(z.array(z.enum(['a', 'b'])))).toEqual(['a', 'b']);
     expect(optionsEnum(z.string())).toBeUndefined();
+  });
+});
+
+describe('entrée de `specs[]` — `maison` (CLAUDE.md règle 7)', () => {
+  const entree = { id: 'groupe-neuf', label: 'Groupe neuf' };
+  it('accepte `maison` : la raison maison de l’entrée, seule ou à côté de `source`', () => {
+    expect(specsSchema.safeParse([{ ...entree, maison: 'arbitrage : groupe hors exemples du livre' }]).success).toBe(true);
+    expect(specsSchema.safeParse([{ ...entree, source: { book: 'livre-de-base', page: 138 }, maison: 'raison' }]).success).toBe(true);
+  });
+  it('refuse un `maison` qui ne dit aucune raison : chaîne vide ou drapeau', () => {
+    expect(specsSchema.safeParse([{ ...entree, maison: '' }]).success).toBe(false);
+    expect(specsSchema.safeParse([{ ...entree, maison: true }]).success).toBe(false);
+  });
+});
+
+describe('`maisonSchema` — la raison maison a UNE forme (CLAUDE.md règle 7)', () => {
+  it('refuse une chaîne vide, accepte une raison', () => {
+    expect(maisonSchema.safeParse('').success).toBe(false);
+    expect(maisonSchema.safeParse('arbitrage : valeur absente du livre').success).toBe(true);
+  });
+  it('toute clé `maison` des schémas enregistrés COMPOSE `maisonSchema` — enveloppe comme sous-entrée', () => {
+    const defs = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
+    const retapes: string[] = [];
+    descendre(defs.map((d) => d.schema), ({ def, path, racine }) => {
+      // `auberge`/`maison`/`camp` : les lieux de repos (`defs-scenes/scene.ts`, `restPlacesSchema`), pas une raison.
+      if (def.type !== 'object' || !def.shape || !('maison' in def.shape) || 'auberge' in def.shape) return;
+      let valeur = def.shape.maison;
+      while (defDe(valeur)?.type === 'optional') valeur = defDe(valeur)?.innerType;
+      if (valeur !== maisonSchema) retapes.push(`${defs[racine].root}/${defs[racine].file}${path}.maison`);
+    });
+    expect(retapes).toEqual([]);
   });
 });

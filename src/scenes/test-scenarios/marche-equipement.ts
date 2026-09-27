@@ -1,6 +1,7 @@
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
-import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
+import { itemFromTrappingById, recomputeLoadout, toggleWorn } from '../../engine/items';
+import { heroCarrier } from '../../engine/carrier';
 import { trappings, rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../state/flow';
@@ -26,13 +27,13 @@ function negociant(): Combatant {
   epee.qualities = [...epee.qualities, { id: 'de-plaies-atroces' }];
   epee.identified = false;
   epee.skin = { metal: '#7faaff' };
-  epee.equipped = true;
   const maille = itemFromTrappingById('chemise-de-mailles')!;
   maille.damageTaken = 2; // 2 PA perdus → réparable (10 %/PA, LDB 63)
-  maille.equipped = true;
   const dague = itemFromTrappingById('dague')!; // un objet à vendre
   const selle = itemFromTrappingById('selle-et-harnais')!;
   h.items = [epee, maille, dague, selle];
+  toggleWorn(heroCarrier(h), epee.uid);
+  toggleWorn(heroCarrier(h), maille.uid);
   recomputeLoadout(h);
   h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
   return h;
@@ -41,10 +42,11 @@ function negociant(): Combatant {
 /** Maître d'armes : sac garni pour l'écran d'EMPLACEMENTS (couches d'armure LDB 63 + 2 sets d'armes + cape). */
 function maitreArmes(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', rng: makeRNG(2606), id: 'test-equipement' });
+  const worn: string[] = [];
   const take = (label: string, equipped = false) => {
     const id = trappings.find((t) => t.label === label)!.id; // libellé → id de catalogue
     const it = itemFromTrappingById(id)!;
-    it.equipped = equipped;
+    if (equipped) worn.push(it.uid);
     return it;
   };
   h.items = [
@@ -61,6 +63,7 @@ function maitreArmes(): Combatant {
     take('Arc', true), // Set II distance
     take('Flèche'),
   ];
+  for (const uid of worn) toggleWorn(heroCarrier(h), uid);
   h.loadouts = undefined; // inventaire de carrière REMPLACÉ → régénérer les sets par défaut
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);

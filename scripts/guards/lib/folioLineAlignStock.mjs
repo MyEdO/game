@@ -36,6 +36,11 @@
 //     régénération. Les quatre entrées de `reseau-routier.json` (#677) sont citées APRÈS l'unique
 //     ancre d'`EDOC 06` (`data-folio="20"`, l.37) : le chapitre suivant ne reprend pas la
 //     numérotation, la queue est donc trouée pour tout ce qui suit cette ancre.
+//     (`reason: 'span-a-trou'` : la ligne tombe entre deux ancres qui ne se suivent pas.)
+//     `talents.json#primes` (Sans peur (Primes), `LDB 08 l.1559`) : ancres `data-folio="77"` l.1519
+//     puis `data-folio="80"` l.1676, les folios 78 et 79 n'ont pas d'ancre (#1966). Relevé à la main :
+//     la ligne est dans le bloc du Chasseur de primes vétéran, avant le texte du Cocher (l.1564) et
+//     son « Schéma de Progression » (l.1578), soit le folio 77 du schéma ouvert l.1519.
 //
 // ANGLE MORT MESURÉ du détecteur (2026-08-28, #1467 L1b V-FLIP-TABLE) — il ne se lit dans aucune des
 // deux collections : `parseLineCitation` (`folioLineAlign.mjs`) ANCRE son motif au DÉBUT de la
@@ -99,4 +104,5 @@ export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
   { fichier: 'src/data/reseau-routier.json', ref: 'diligences-tour-du-roc', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'lignes-rochet', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'mutants-et-hommes-betes', occurrence: 1 },
+  { fichier: 'src/data/talents.json', ref: 'primes', occurrence: 1 },
 ]

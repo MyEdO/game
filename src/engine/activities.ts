@@ -29,7 +29,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
 import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, skillSlots, availableChars, memeRef } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
@@ -825,7 +825,7 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
     const specs = specPoolOf(s); // options OFFERTES au joueur (Entraînement)
     for (const spec of specs.length ? specs : [undefined]) {
       if (competenceEnCarriere(hero, sSlots, designations, s.id, spec).statut != null) continue; // de carrière → Avancement normal
-      const known = hero.skills.find((k) => k.id === s.id && (k.spec ?? '') === (spec ?? ''));
+      const known = hero.skills.find((k) => memeRef(k, { id: s.id, spec }));
       const advances = known?.advances ?? 0;
       const advanced = s.acces === 'avancee';
       const range = entrainementTutorRange(advanced);

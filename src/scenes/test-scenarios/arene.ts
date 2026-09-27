@@ -1,5 +1,5 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { addItemToHero } from '../../engine/items';
 import { parseProject } from '../../state/worldMap';
 import areneProjet from '../arene/arene-projet.json';
 import type { TestScenario } from './_shared';
@@ -11,13 +11,8 @@ import type { TestScenario } from './_shared';
  * voyage (#T2). Point d'entrée Playwright de la recette navigateur.
  */
 function groupe() {
-  const party = makeShowcaseParty();
   // De quoi tester voyage (rations) et marchands sans grinder la zone 1.
-  for (const h of party) {
-    const ration = itemFromTrappingById('ration');
-    if (ration) h.items = [...(h.items ?? []), ration];
-  }
-  return party;
+  return makeShowcaseParty().map((h) => addItemToHero(h, 'ration'));
 }
 
 export const scenario: TestScenario = {

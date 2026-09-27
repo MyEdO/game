@@ -175,10 +175,10 @@ describe('createHero — applique compétences et talents raciaux', () => {
     expect(hero.talents.find((t) => talentConcrete(t) === 'Sens aiguisé (Goût)')!.times).toBe(2);
   });
 
-  it('Talent de carrière : pris au Niveau 1 (LDB 05 l.535), un emplacement « (Au choix) » exige sa spécialisation (LDB 10 l.17)', () => {
+  it('Talent de carrière : pris au Niveau 1 (LDB 05 l.535), un emplacement « (Au choix) » exige sa spécialisation (LDB 08 l.140)', () => {
     const cree = (careerTalent: { id: string; spec?: string }) =>
       () => createHero({ speciesId: 'humains-reiklander', careerId: 'pretre', label: 'T', careerTalent, rng: makeRNG(5) });
-    expect(cree({ id: 'beni' })).toThrow(/Talent de carrière « beni ».*pretre.*exige une spécialisation \(LDB 10 l\.17\)/);
+    expect(cree({ id: 'beni' })).toThrow(/Talent de carrière « beni ».*pretre.*exige une spécialisation \(LDB 08 l\.140\)/);
     expect(cree({ id: 'acrobate' })).toThrow(/Talent de carrière « acrobate ».*absent du Niveau 1 de « pretre » \(LDB 05 l\.535\)/);
     const hero = cree({ id: 'beni', spec: 'sigmar' })();
     expect(Object.values(hero.careerSlotChoices?.pretre ?? {})).toContain('beni|sigmar');

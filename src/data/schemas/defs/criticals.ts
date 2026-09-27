@@ -25,7 +25,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteAvecPas } from '../grammaire/cle-d-espace';
-import { difficultySchema, enumNomme, hitLocationSchema, plageSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, hitLocationSchema, plageSchema, sourceRefSchema, formulaSchema, maisonSchema } from '../grammaire/valeurs';
 import { gameOpSchema, flowSchema, noeudTest } from '../grammaire/mecanique';
 
 /** FAMILLE de Localisation d'un tableau de Critiques (`CritTableKey`, `src/engine/critical.ts`) — les 4
@@ -114,7 +114,7 @@ const critEntrySchema = z.strictObject({
   traumas: z.array(z.string()).optional(),
   escalation: critEscalationSchema.optional(),
   // Note MAISON (#195) : trace éditable d'une valeur mécanique absente littéralement du texte RAW (règle stricte 7).
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
   desc: z.string(),
   source: sourceRefSchema,
 });

@@ -28,12 +28,12 @@ import type { DescRef } from '../../data/source/decoupe';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { PlageField, type PlageValue } from '../PlageField';
-import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
 import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
+import { FamilleDuChamp } from '../editor/familleDuChamp';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
@@ -68,6 +68,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../engine/poli
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../data/schemas/defs/spells';
 import { Grid } from '../Layout';
+import { AjoutRangee, ListeRangees } from '../AjoutRangee';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -668,7 +669,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isPassive && (
           <div className="ed-field">
             <span>modificateurs PASSIFS continus (mêmes ops que les sorts — sans déclencheur)</span>
-            <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            <FamilleDuChamp noeud={noeudDe('passive')}>
+              <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            </FamilleDuChamp>
           </div>
         )}
         {isOptionalRule && (
@@ -861,7 +864,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {opsFields.map((fieldKey) => (
           <div className="ed-field" key={fieldKey}>
             <span>{fieldKey} — effet (GameOp[], même éditeur que les modificateurs passifs)</span>
-            <GameOpEditor ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            <FamilleDuChamp noeud={noeudDe(fieldKey)}>
+              <GameOpEditor ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            </FamilleDuChamp>
           </div>
         ))}
         {fields.map((f) => {
@@ -1003,7 +1008,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
           <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctxDeCatalogue('declenche')} onChange={(flow) => set(i, { flow })} />
         </div>
       ))}
-      <button className="btn small" onClick={add}>+ Effet de trait</button>
+      <AjoutRangee libelle="Effet de trait" onAjout={add} />
     </div>
   );
 }
@@ -1131,47 +1136,28 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
  *  (`axes.skills`, #409) : `{id,spec?}[]` — plusieurs Compétences candidates possibles (`hint`
  *  précise la sémantique par appelant : « la meilleure retenue » pour un rôle, dérivation pour un axe). */
 function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void; hint?: string }) {
+  return <RefSpecListField ds="skills" quoi="Compétence" hint={hint} value={value} onChange={onChange} />;
+}
+
+/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]`. */
+function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
+  return <RefSpecListField ds="talents" quoi="Talent" hint="talents contribuant à l'axe (facultatif)" value={value} onChange={onChange} />;
+}
+
+/** Liste de références désignées `{id, spec?}[]` : un `RefField` (mode `spec`) par rangée. */
+function RefSpecListField({ ds, quoi, hint, value, onChange }: { ds: 'skills' | 'talents'; quoi: string; hint: string; value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
   const list = value ?? [];
-  const skillOpts = datasetArray('skills') as { id: string; label: string }[];
-  const set = (next: typeof list) => onChange(next);
   return (
     <div className="ed-field">
       <span>{hint}</span>
-      {list.map((s, i) => (
+      {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
-            {!s.id && <option value="">— (choisir une compétence) —</option>}
-            {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+          <RefField cfg={{ ds, single: true, spec: true }} fieldKey={quoi} value={r}
+            onChange={(v) => onChange(list.map((x, j) => (j === i ? ((v as RefDesignee | '') || { id: '' }) : x)))} />
+          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Compétence</button>
-    </div>
-  );
-}
-
-/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]` — MÊME patron
- *  que `SkillSpecListField` (Compétences), sur le dataset `talents`. */
-function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
-  const list = value ?? [];
-  const talentOpts = datasetArray('talents') as { id: string; label: string }[];
-  const set = (next: typeof list) => onChange(next);
-  return (
-    <div className="ed-field">
-      <span>talents contribuant à l'axe (facultatif)</span>
-      {list.map((s, i) => (
-        <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
-            {!s.id && <option value="">— (choisir un talent) —</option>}
-            {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
-        </div>
-      ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Talent</button>
+      <AjoutRangee libelle={quoi} onAjout={() => onChange([...list, { id: '' }])} />
     </div>
   );
 }
@@ -1198,7 +1184,7 @@ function ProsthesisField({ value, onChange }: { value: { trappingId: string; can
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { trappingId: '', cancels: 'all' }])}>+ Prothèse</button>
+      <AjoutRangee libelle="Prothèse" onAjout={() => set([...list, { trappingId: '', cancels: 'all' }])} />
     </div>
   );
 }
@@ -1225,7 +1211,7 @@ function TraumaListField({ value, onChange }: { value: string[] | undefined; onC
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, ''])}>+ Traumatisme</button>
+      <AjoutRangee libelle="Traumatisme" onAjout={() => set([...list, ''])} />
     </div>
   );
 }
@@ -1259,7 +1245,7 @@ function AlsoInField({ value, onChange }: { value: SecondaryRef[] | undefined; o
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { book: '', page: 0 }])}>+ Emplacement secondaire</button>
+      <AjoutRangee libelle="Emplacement secondaire" onAjout={() => set([...list, { book: '', page: 0 }])} />
     </div>
   );
 }
@@ -1320,7 +1306,7 @@ function VariantsField({ value, resolved, entryFields, allFeatures, onChange }: 
           {resolved.includes('combat') && <CombatField value={v.combat as Partial<CombatFeature> | undefined} allFeatures={allFeatures} onChange={(c) => patch(i, 'combat', c)} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { when: { rule: '' } }])}>+ Variante</button>
+      <AjoutRangee libelle="Variante" onAjout={() => set([...list, { when: { rule: '' } }])} />
     </div>
   );
 }
@@ -1360,7 +1346,7 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { skill: { id: '' }, difficulty: DIFFICULTIES[0] }])}>+ Test</button>
+      <AjoutRangee libelle="Test" onAjout={() => set([...list, { skill: { id: '' }, difficulty: DIFFICULTIES[0] }])} />
     </div>
   );
 }
@@ -1423,7 +1409,7 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
           <JsonField label="condition automatique (auto — facultatif, dérivée du Combatant)" value={m.auto} onChange={(v) => set(i, { auto: v as WaterExposureModifier['auto'] })} />
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { id: '', label: '', mod: 0, appliesTo: [], table: 'source-d-eau' }])}>+ Modificateur</button>
+      <AjoutRangee libelle="Modificateur" onAjout={() => onChange([...list, { id: '', label: '', mod: 0, appliesTo: [], table: 'source-d-eau' }])} />
     </div>
   );
 }
@@ -1449,7 +1435,7 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
           <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 1, disease: '' }])}>+ Maladie</button>
+      <AjoutRangee libelle="Maladie" onAjout={() => onChange([...list, { min: 1, max: 1, disease: '' }])} />
     </div>
   );
 }
@@ -1522,7 +1508,7 @@ function BattleOutcomeListField({ value, onChange }: { value: BattleOutcome[] | 
           <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { target: 'might', scale: 'fixed', amount: 0 }])}>+ Issue de bataille</button>
+      <AjoutRangee libelle="Issue de bataille" onAjout={() => onChange([...list, { target: 'might', scale: 'fixed', amount: 0 }])} />
     </div>
   );
 }
@@ -1539,7 +1525,7 @@ function ChainsField({ value, onChange }: { value: string[] | undefined; onChang
           <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, ''])}>+ Scène enchaînée</button>
+      <AjoutRangee libelle="Scène enchaînée" onAjout={() => onChange([...list, ''])} />
     </div>
   );
 }
@@ -1633,7 +1619,7 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
           <ChainsField value={b.chains} onChange={(v) => set(i, { chains: v.length ? v : undefined })} />
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, {}])}>+ Bande d’issue</button>
+      <AjoutRangee libelle="Bande d’issue" onAjout={() => onChange([...list, {}])} />
     </div>
   );
 }
@@ -1671,7 +1657,7 @@ function WeatherRangesField({ value, onChange }: { value: { min: number; max: nu
           </div>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 100, weather: 'beau' }])}>+ Plage d100</button>
+      <AjoutRangee libelle="Plage d100" onAjout={() => onChange([...list, { min: 1, max: 100, weather: 'beau' }])} />
     </div>
   );
 }
@@ -1695,7 +1681,7 @@ function MutationTableField({ value, onChange }: { value: MutationRange[] | unde
           </div>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 1, mutation: '' }])}>+ Plage d100</button>
+      <AjoutRangee libelle="Plage d100" onAjout={() => onChange([...list, { min: 1, max: 1, mutation: '' }])} />
     </div>
   );
 }
@@ -1755,10 +1741,8 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
                 </div>
               ))}
             </Grid>
-            <GatedAction id={`details-add-species-${key}`} label="+ Espèce" primary={false} btnClassName="small"
-              enabled={clesLibres(key).length > 0}
-              reason="Les 7 espèces ont déjà leur surcharge."
-              onClick={() => { const libre = clesLibres(key)[0]; if (libre) setSpecies(key, libre, ''); }} />
+            <AjoutRangee libelle="Espèce" refus={clesLibres(key).length > 0 ? undefined : 'Les 7 espèces ont déjà leur surcharge.'}
+              onAjout={() => { const libre = clesLibres(key)[0]; if (libre) setSpecies(key, libre, ''); }} />
           </div>
         );
       })}
@@ -1776,7 +1760,7 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
     const list = (value as string[]) ?? [];
     const set = (next: string[]) => onChange(next);
     return (
-      <div className="ed-field">
+      <ListeRangees nom={label} className="ed-field">
         <span>{label}{refDs && <em className="de-hint"> (autocomplétion {refDs})</em>}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
@@ -1785,16 +1769,16 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
             <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, ''])}>+ Ajouter</button>
+        <AjoutRangee libelle="Ajouter" onAjout={() => set([...list, ''])} />
         {refDs && <RefDatalist ds={refDs} />}
-      </div>
+      </ListeRangees>
     );
   }
   if (kind === 'numberList') {
     const list = (value as number[]) ?? [];
     const set = (next: number[]) => onChange(next);
     return (
-      <div className="ed-field">
+      <ListeRangees nom={label} className="ed-field">
         <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
@@ -1802,8 +1786,8 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
             <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, 0])}>+ Ajouter</button>
-      </div>
+        <AjoutRangee libelle="Ajouter" onAjout={() => set([...list, 0])} />
+      </ListeRangees>
     );
   }
   if (kind === 'select' && field.valeurs) {
@@ -1878,7 +1862,7 @@ function RecordTextField({ label, value, onChange }: { label: string; value: Rec
           <button className="btn small danger" title="Retirer" onClick={() => { const next = { ...rec }; delete next[k]; onChange(next); }}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange({ ...rec, '': '' })}>+ Entrée</button>
+      <AjoutRangee libelle="Entrée" onAjout={() => onChange({ ...rec, '': '' })} />
     </div>
   );
 }
@@ -1932,7 +1916,7 @@ function GenericArrayField({ label, value, noeud, onChange, columns }: { label: 
   }, [list, cols]);
   const setRow = (i: number, key: string, v: unknown) => onChange(list.map((r, j) => (j === i ? { ...r, [key]: v } : r)));
   return (
-    <div className="ed-field ed-subform">
+    <ListeRangees nom={label} className="ed-field ed-subform">
       <span>{label}</span>
       {list.map((row, i) => (
         <div className="ed-subfield" key={i}>
@@ -1942,8 +1926,8 @@ function GenericArrayField({ label, value, noeud, onChange, columns }: { label: 
           <button className="btn small danger" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, {}])}>+ Ajouter</button>
-    </div>
+      <AjoutRangee libelle="Ajouter" onAjout={() => onChange([...list, {}])} />
+    </ListeRangees>
   );
 }
 

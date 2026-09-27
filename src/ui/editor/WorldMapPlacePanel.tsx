@@ -20,6 +20,7 @@ import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { AjoutRangee } from '../AjoutRangee';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
 const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
@@ -326,18 +327,12 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
                     </div>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  className="btn small"
-                  onClick={() => {
+                <AjoutRangee libelle="Point d'intérêt" onAjout={() => {
                     const id = `poi-${Date.now().toString(36)}`;
                     const p: PlacePoi = { id, label: 'Nouveau point', pos: { x: 50, y: 50 } };
                     updPlace(place.id, { poi: [...poiList, p] });
                     setPoiSel(id);
-                  }}
-                >
-                  + Point d'intérêt
-                </button>
+                  }} />
                 <div className="wme-poi-plan">
                   <MapCanvas
                     ariaLabel="Aperçu de placement des POI"

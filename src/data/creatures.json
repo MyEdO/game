@@ -18644,7 +18644,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "PlaineOUForêt"
+        "spec": "Plaine OU Forêt"
       },
       {
         "id": "magie-mineure"
@@ -18838,7 +18838,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "PlaineOUForêt"
+        "spec": "Plaine OU Forêt"
       },
       {
         "id": "magie-mineure"
@@ -19340,7 +19340,8 @@
     ],
     "talents": [
       {
-        "id": "bon-marcheur"
+        "id": "bon-marcheur",
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni"
@@ -19503,7 +19504,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni"
@@ -20593,7 +20594,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni",
@@ -20768,7 +20769,7 @@
     "talents": [
       {
         "id": "bon-marcheur",
-        "spec": "ForêtouPlaine"
+        "spec": "Forêt ou Plaine"
       },
       {
         "id": "beni",
@@ -37384,7 +37385,7 @@
       },
       {
         "id": "frenesie",
-        "spec": "à Volonté !"
+        "spec": "a-volonte"
       },
       {
         "id": "magie-des-arcanes",
@@ -37563,7 +37564,7 @@
       },
       {
         "id": "frenesie",
-        "spec": "à Volonté !"
+        "spec": "a-volonte"
       },
       {
         "id": "magie-des-arcanes",
@@ -37756,7 +37757,7 @@
       },
       {
         "id": "frenesie",
-        "spec": "à Volonté !"
+        "spec": "a-volonte"
       },
       {
         "id": "harmonisation-aethyrique"

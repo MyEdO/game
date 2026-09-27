@@ -9,7 +9,8 @@
  * (régime du store Zustand, qui remplace `party`).
  */
 import type { Combatant, ItemInstance } from './types';
-import { itemFromTrappingById } from './items';
+import { itemFromTrappingById, receiveItems } from './items';
+import { heroCarrier } from './carrier';
 import { fromBrass, toBrass, type Money } from './money';
 
 /** Id de trapping de la Bourse (`trappings.json`) — la seule graphie de cette référence. */
@@ -34,9 +35,7 @@ export function ensureBourseInstance(hero: Combatant): ItemInstance | undefined 
   if (existing) return existing;
   const it = itemFromTrappingById(BOURSE_TRAPPING_ID);
   if (!it) return undefined;
-  const inst: ItemInstance = { ...it, money: { ...ZERO_MONEY } };
-  hero.items = [...(hero.items ?? []), inst];
-  return inst;
+  return receiveItems(heroCarrier(hero), [{ ...it, money: { ...ZERO_MONEY } }])[0];
 }
 
 /** Garantit une instance Bourse SUR UN CLONE du héros (patron `addItemToHero`, engine/items.ts) —
@@ -46,7 +45,7 @@ export function ensureBourse(hero: Combatant): Combatant {
   const it = itemFromTrappingById(BOURSE_TRAPPING_ID);
   if (!it) return hero;
   const clone: Combatant = structuredClone(hero);
-  clone.items = [...(clone.items ?? []), { ...it, money: { ...ZERO_MONEY } }];
+  receiveItems(heroCarrier(clone), [{ ...it, money: { ...ZERO_MONEY } }]);
   return clone;
 }
 

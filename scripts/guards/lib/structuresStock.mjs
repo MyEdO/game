@@ -1208,7 +1208,7 @@ export const STRUCTURES_OPS = [
   { op: "giveTrapping", signature: "op,perSL,trappingId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantCareerSkill", signature: "op,skill", dataset: "talents.json", occurrences: 5, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantCareerTalent", signature: "op,talent", dataset: "talents.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantCareerTalent", signature: "op,talent", dataset: "traits.json", occurrences: 20, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantCareerTalent", signature: "commeEnCarriere,op,talent", dataset: "traits.json", occurrences: 20, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTalent", signature: "op,talent", dataset: "mutations.json", occurrences: 7, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTalent", signature: "op,talent", dataset: "spells.json", occurrences: 21, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTalent", signature: "op,talent", dataset: "stars.json", occurrences: 13, lot: "L1c #1468", date: "2026-08-23" },

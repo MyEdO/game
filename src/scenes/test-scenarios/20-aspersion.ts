@@ -1,5 +1,5 @@
 import { pregen, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { addItemToHero } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
@@ -24,10 +24,7 @@ import type { Scene } from '../../state/scene';
  * (`combatSlice.ts:2424`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
 function porteurDOutre() {
-  const h = pregen(PREGEN.soldat);
-  const outre = itemFromTrappingById('outre-a-eau')!;
-  h.items = [...(h.items ?? []), outre];
-  return h;
+  return addItemToHero(pregen(PREGEN.soldat), 'outre-a-eau');
 }
 
 const HERO_START = { x: 2, y: 4 };

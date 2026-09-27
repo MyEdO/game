@@ -351,6 +351,15 @@
     "verrou": "réflexe avant tout clavier de navigation par flèches recodé"
   },
   {
+    "id": "ajoutRangee",
+    "type": "primitives.manifest",
+    "label": "AjoutRangee / ListeRangees",
+    "fichier": "src/ui/AjoutRangee.tsx",
+    "concept": "ajouter une rangée à une liste éditable : bouton `btn small` icône `ui/add` + libellé, le focus va au premier champ saisissable né du clic (différence des champs du document) ; `ListeRangees` nomme le conteneur (`role=group`, `aria-label`)",
+    "perimetre": "éditeurs de liste du Codex, de scène, de carte du monde, de dialogue, de narratif et de GameOp",
+    "verrou": "src/ui/AjoutRangee.test.tsx — aucun bouton de src/ui ne s’ouvre par le glyphe « + » ou l’icône `ui/add` hors de `AjoutRangee` (`scripts/guards/lib/ajoutRangee.mjs`)"
+  },
+  {
     "id": "useRamenerEnVue",
     "type": "primitives.manifest",
     "label": "useRamenerEnVue / ramenerEnVue",

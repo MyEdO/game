@@ -10,6 +10,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
+import { maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-traits.json';
 export const famille = 'entite';
@@ -17,7 +18,7 @@ export const famille = 'entite';
 const installBandSchema = z.strictObject({
   maxLengthM: z.number().nullable(),
   value: z.number(),
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
 });
 
 const installBaremeSchema = z.union([

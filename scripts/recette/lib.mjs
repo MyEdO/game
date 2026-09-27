@@ -165,9 +165,38 @@ process.on('exit', () => {
   }
 });
 
-function resolveChromePath(explicit) {
-  if (explicit) return explicit;
-  return CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
+/** Indicateurs du rendu LOGICIEL : sans GPU ni bac à sable de conteneur, THREE.js ne crée aucun
+ *  contexte WebGL sans eux. Réservés au Chromium de Playwright, jamais au Chrome Windows. */
+export const INDICATEURS_CHROMIUM_CONTENEUR = [
+  '--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
+];
+
+/** Chromium fourni par Playwright sous `racine` (`PLAYWRIGHT_BROWSERS_PATH`) : `chromium-<rév>/chrome-linux/chrome`,
+ *  révision la plus haute d'abord. */
+function chromiumPlaywright(racine, { existe, lister }) {
+  if (!racine || !existe(racine)) return null;
+  const revisions = lister(racine)
+    .map((nom) => /^chromium-(\d+)$/.exec(nom))
+    .filter(Boolean)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+  return revisions.map((m) => join(racine, m[0], 'chrome-linux', 'chrome')).find((p) => existe(p)) ?? null;
+}
+
+/**
+ * Le navigateur que lance `launchSession`, et ses indicateurs propres. Ordre : `explicite`, puis le
+ * Chrome Windows (`CHROME_CANDIDATES`), puis le Chromium de Playwright (`env.PLAYWRIGHT_BROWSERS_PATH`).
+ * Un chemin sous `PLAYWRIGHT_BROWSERS_PATH` reçoit `INDICATEURS_CHROMIUM_CONTENEUR` ; un chemin relatif se
+ * résout contre `cwd`. PUR : `env`, `existe`, `lister` et `cwd` sont injectables.
+ * @returns {{ chemin: string, indicateurs: string[] }}
+ */
+export function lancementChrome(explicite, { env = process.env, existe = existsSync, lister = readdirSync, cwd = process.cwd() } = {}) {
+  const racinePw = env.PLAYWRIGHT_BROWSERS_PATH;
+  const chemin = explicite
+    ?? CHROME_CANDIDATES.find((p) => existe(p))
+    ?? chromiumPlaywright(racinePw, { existe, lister })
+    ?? CHROME_CANDIDATES[0];
+  const sousPlaywright = !!racinePw && resolve(cwd, chemin).startsWith(join(resolve(cwd, racinePw), '/'));
+  return { chemin, indicateurs: sousPlaywright ? [...INDICATEURS_CHROMIUM_CONTENEUR] : [] };
 }
 
 /**
@@ -271,9 +300,10 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), `recette-cdp-profile-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
   mkdirSync(profile, { recursive: true });
-  const chrome = spawn(resolveChromePath(chromePath), [
+  const { chemin, indicateurs } = lancementChrome(chromePath);
+  const chrome = spawn(chemin, [
     '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
-    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
+    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', ...indicateurs, 'about:blank',
   ], { stdio: 'ignore' });
   const childEntry = { chrome, profile };
   activeChildren.add(childEntry);
@@ -436,6 +466,24 @@ export async function waitFor(session, expression, { timeoutMs = 8000, intervalM
   for (;;) {
     if (await evaluate(session, expression)) return true;
     if (Date.now() >= deadline) throw new Error(`Condition jamais vraie après ${timeoutMs}ms : ${expression}`);
+    await sleep(intervalMs);
+  }
+}
+
+/** Délai BORNÉ pendant lequel un helper qui vise une cible au DOM la re-cherche avant de refuser : un
+ *  écran monté en différé (liste des scénarios après « Scénarios de test ») est absent au premier
+ *  regard. */
+export const DELAI_CIBLE_MS = 5000;
+
+/** Re-évalue `expression` jusqu'à une valeur non nulle, ou `null` à l'échéance `delaiCibleMs` — la
+ *  recherche de cible UNIQUE des helpers qui visent le DOM (`clickButtonByText`, `cliquerSelecteur`,
+ *  `iconeDe`, `survoler`, `infobulleDe`, `selectOption`, `typeInField`). */
+async function chercherCible(session, expression, delaiCibleMs = DELAI_CIBLE_MS, intervalMs = 100) {
+  const deadline = Date.now() + delaiCibleMs;
+  for (;;) {
+    const v = await evaluate(session, expression);
+    if (v != null) return v;
+    if (Date.now() >= deadline) return null;
     await sleep(intervalMs);
   }
 }
@@ -733,8 +781,8 @@ export async function setMobileViewport(session) {
  *
  * `modifiers` = les touches TENUES pendant le clic (`MOD_ALT`), même paramètre que `survoler`.
  */
-export async function clickButtonByText(session, texte, { exact = false, dans, rangee, modifiers = 0 } = {}) {
-  const rect = await evaluate(session, `(() => {
+export async function clickButtonByText(session, texte, { exact = false, dans, rangee, modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     const target = norm(${JSON.stringify(texte)});
     const racine = ${dans ? `document.querySelector(${JSON.stringify(dans)})` : 'document'};
@@ -758,8 +806,8 @@ export async function clickButtonByText(session, texte, { exact = false, dans, r
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, textes: matches.slice(0, 5).map((b) => norm(b.textContent)) };
-  })()`);
-  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''}`);
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''} après ${delaiCibleMs} ms`);
   if (rect.textes && rect.textes.length > 1) {
     console.warn(`clickButtonByText « ${texte} » : ${rect.textes.length} boutons matchent (${rect.textes.join(' | ')}) — le PREMIER est cliqué. Préciser avec { exact: true } si ce n'est pas celui-là.`);
   }
@@ -774,8 +822,8 @@ export async function clickButtonByText(session, texte, { exact = false, dans, r
  * absente, ou désactivée — jamais un clic silencieux qui n'a rien fait.
  * @returns {Promise<{ x: number, y: number, label: string }>}
  */
-export async function cliquerSelecteur(session, selecteur, { modifiers = 0 } = {}) {
-  const cible = await evaluate(session, `(() => {
+export async function cliquerSelecteur(session, selecteur, { modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const cible = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -786,12 +834,48 @@ export async function cliquerSelecteur(session, selecteur, { modifiers = 0 } = {
       desactive: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
       label: (el.getAttribute('title') || el.getAttribute('aria-label') || el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 60),
     };
-  })()`);
-  if (!cible) throw new Error(`cliquerSelecteur « ${selecteur} » : aucun élément`);
+  })()`, delaiCibleMs);
+  if (!cible) throw new Error(`cliquerSelecteur « ${selecteur} » : aucun élément après ${delaiCibleMs} ms`);
   if (cible.vide) throw new Error(`cliquerSelecteur « ${selecteur} » : boîte de taille nulle (non rendu)`);
   if (cible.desactive) throw new Error(`cliquerSelecteur « ${selecteur} » : contrôle DÉSACTIVÉ (${cible.label})`);
   await clicReel(session, cible.x, cible.y, modifiers);
   return cible;
+}
+
+/**
+ * LOCALISATEUR UNIQUE d'une cible désignée par SÉLECTEUR ou par TEXTE — source JS évaluée dans la page,
+ * qui pose `el` (ou `null`). Ordre : bouton (`button, [role="button"]`) dont le texte VISIBLE égale la
+ * cible ; tout élément dont le NOM ACCESSIBLE (`aria-label`) ou le texte visible égale la cible, le plus
+ * INTÉRIEUR (un titre de section, une carte) ; enfin sélecteur CSS (un texte qui n'en est pas un ne jette
+ * pas). Les égalités de texte passent AVANT le sélecteur : un texte qui est aussi un nom de balise
+ * (« Menu », « Table », « Section ») désigne l'élément qui l'affiche, pas la balise. Mêmes normalisations
+ * que `clickButtonByText` (espaces, apostrophe mixte). Composé par `survoler`, `infobulleDe` et `iconeDe`.
+ */
+const localiserCible = (cible) => `
+    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
+    const cible = ${JSON.stringify(cible)};
+    let el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+    if (!el) {
+      const nomme = (e) => norm(e.getAttribute('aria-label')) === norm(cible) || norm(e.textContent) === norm(cible);
+      el = Array.from(document.body.querySelectorAll('*')).find((e) => nomme(e) && !Array.from(e.children).some(nomme)) || null;
+    }
+    if (!el) try { el = document.querySelector(cible); } catch { el = null; }`;
+
+/**
+ * ID D'ICÔNE qu'affiche l'élément désigné par `cible` (`localiserCible` : sélecteur, texte visible ou
+ * nom accessible) : son `data-icon` (posé par `<Icon>` et `IconG`, `src/ui/Icon.tsx`), ou celui de sa
+ * PREMIÈRE icône descendante. L'élément absent est RE-CHERCHÉ jusqu'à `delaiCibleMs`, puis refusé en
+ * le nommant ; présent sans icône = `null`.
+ * @returns {Promise<string | null>}
+ */
+export async function iconeDe(session, cible, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const r = await chercherCible(session, `(() => {${localiserCible(cible)}
+    if (!el) return null;
+    const icone = el.matches('[data-icon]') ? el : el.querySelector('[data-icon]');
+    return { icone: icone ? icone.getAttribute('data-icon') : null };
+  })()`, delaiCibleMs);
+  if (!r) throw new Error(`iconeDe « ${cible} » : aucun élément après ${delaiCibleMs} ms`);
+  return r.icone;
 }
 
 /** Clic RÉEL (CDP) au point donné — le geste de clic UNIQUE de ce module : tout helper qui clique
@@ -868,7 +952,7 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
 
 /**
  * SURVOL RÉEL (CDP `Input.dispatchMouseEvent mouseMoved`) d'un contrôle désigné par un SÉLECTEUR ou
- * par son TEXTE exact de bouton — le geste par lequel une raison de refus se lit (arbitrage user
+ * par son TEXTE ou son NOM ACCESSIBLE (`localiserCible`) — le geste par lequel une raison de refus se lit (arbitrage user
  * 2026-08-24 : au survol/focus/tap, jamais inline). SCROLL-AWARE comme `clickButtonByText` : le rect
  * est lu APRÈS `scrollIntoView`, sinon la souris se pose sur ce qui n'est pas là.
  *
@@ -877,19 +961,14 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
  * l'événement dirait au navigateur que la touche vient d'être relâchée.
  * Rend le point survolé `{ x, y }` ; lève si la cible est absente.
  */
-export async function survoler(session, cible, { attenteMs = 500, modifiers = 0 } = {}) {
-  const point = await evaluate(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
-    const cible = ${JSON.stringify(cible)};
-    let el = null;
-    try { el = document.querySelector(cible); } catch { el = null; }
-    if (!el) el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const point = await chercherCible(session, `(() => {${localiserCible(cible)}
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
-  })()`);
-  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur ni texte de bouton)`);
+  })()`, delaiCibleMs);
+  if (!point) throw new Error(`survoler : aucune cible « ${cible} » (sélecteur, texte ni nom accessible) après ${delaiCibleMs} ms`);
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, buttons: 0, modifiers });
   await sleep(attenteMs);
   return point;
@@ -902,13 +981,8 @@ export async function survoler(session, cible, { attenteMs = 500, modifiers = 0 
  * sur l'enveloppe → bulle au coin haut-gauche, (8, 6) pour un contrôle à (1050, 258)).
  * `{ texte: null }` = aucune infobulle ouverte — un refus muet, pas une erreur de recette.
  */
-export async function infobulleDe(session, cible) {
-  const r = await evaluate(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
-    const cible = ${JSON.stringify(cible)};
-    let el = null;
-    try { el = document.querySelector(cible); } catch { el = null; }
-    if (!el) el = Array.from(document.querySelectorAll('button, [role="button"]')).find((b) => norm(b.textContent) === norm(cible)) || null;
+export async function infobulleDe(session, cible, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const r = await chercherCible(session, `(() => {${localiserCible(cible)}
     if (!el) return null;
     const bulle = document.querySelector('[role="tooltip"]');
     const b = el.getBoundingClientRect();
@@ -921,8 +995,8 @@ export async function infobulleDe(session, cible) {
       cible: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
       bulle: { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) },
     };
-  })()`);
-  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur ni texte de bouton)`);
+  })()`, delaiCibleMs);
+  if (!r) throw new Error(`infobulleDe : aucune cible « ${cible} » (sélecteur, texte ni nom accessible) après ${delaiCibleMs} ms`);
   return r;
 }
 
@@ -943,18 +1017,16 @@ export async function infobulleDe(session, cible) {
  * remontées dans le message). Rend `{ valeur, libelle }` LUS après le geste — un `onChange` qui
  * refuse la valeur se voit donc au retour, jamais en silence.
  */
-export async function selectOption(session, selecteur, valeur) {
-  const rect = await evaluate(session, `(() => {
+export async function selectOption(session, selecteur, valeur, { delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} » après ${delaiCibleMs} ms`);
+  await clicReel(session, rect.x, rect.y);
   const res = await evaluate(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     const cible = ${JSON.stringify(String(valeur))};
@@ -1009,6 +1081,85 @@ export async function champParLibelle(session, libelle, { exact = true, dans } =
     return true;
   })()`)
   return trouve ? `[data-recette="${marque}"]` : null
+}
+
+/**
+ * Expression qui repère le CHAMP DE LISTE nommé `nom` — le groupe (`role="group"`) dont le NOM ACCESSIBLE
+ * (`aria-label`, ou texte des éléments d'`aria-labelledby`) vaut `nom` après normalisation des espaces
+ * et des apostrophes — et y pose `data-recette="<marque>"`. Rend `true`, ou `null` si aucun groupe ne
+ * porte ce nom. Le conteneur de rangées d'un éditeur de liste est `ListeRangees` (`src/ui/AjoutRangee.tsx`).
+ */
+export function expressionListeParNom(nom, marque) {
+  return `(() => {
+    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
+    const target = norm(${JSON.stringify(nom)});
+    const nomDe = (g) => {
+      const par = (g.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean)
+        .map((id) => (document.getElementById(id) || {}).textContent || '').join(' ');
+      return norm(g.getAttribute('aria-label') || par);
+    };
+    const el = Array.from(document.querySelectorAll('[role="group"]')).find((g) => nomDe(g) === target);
+    if (!el) return null;
+    el.setAttribute('data-recette', ${JSON.stringify(marque)});
+    return true;
+  })()`;
+}
+
+/**
+ * SÉLECTEUR du champ de liste nommé `nom` (rôle et nom accessibles, jamais une classe) : à passer en
+ * `dans` à `clickButtonByText`/`champParLibelle`, ou à `evaluate`. Même marquage inerte que
+ * `champParLibelle`, tiré NEUF à chaque appel. `null` si aucun groupe ne porte ce nom.
+ */
+export async function listeParNom(session, nom) {
+  const marque = `recette-liste-${Math.random().toString(36).slice(2, 8)}`;
+  const trouve = await evaluate(session, expressionListeParNom(nom, marque));
+  return trouve ? `[data-recette="${marque}"]` : null;
+}
+
+/** Expression de l'état du tour : nom accessible du combattant AU TRAIT dans la frise d'initiative
+ *  (`[aria-current="step"]`, sans le suffixe « — cibler » du mode visée) et case « Fin du tour » de la
+ *  console (`data-action="end-turn"`) : offerte ou non, désactivée ou non. */
+export function expressionTourActif() {
+  return `(() => {
+    const tuile = document.querySelector('[aria-current="step"] [aria-label]');
+    const fin = document.querySelector('.combat-console [data-action="end-turn"]');
+    return {
+      actif: tuile ? tuile.getAttribute('aria-label').replace(/ \u2014 cibler$/, '').trim() : null,
+      finTour: fin ? { disabled: !!fin.disabled } : null,
+    };
+  })()`;
+}
+
+/**
+ * AVANCE LE COMBAT jusqu'au tour du combattant nommé `nom` (nom accessible de sa tuile de frise) : au
+ * tour d'un héros, clic RÉEL sur « Fin du tour » (`cliquerAction` `end-turn` ; le second clic confirme
+ * un « Finir quand même ») ; au tour de l'IA, attente. Rend `{ actif, clics }` quand `nom` est au trait.
+ * REFUSE en le nommant à l'échéance `echeanceMs` : combattant au trait, clics faits — une modale qui
+ * réclame le joueur (jet opposé, cascade) bloque l'avance et se lit dans ce refus.
+ * `lire`, `finirTour`, `attendre`, `maintenant` : coutures des tests purs.
+ */
+export async function avancerJusquAuTourDe(session, nom, {
+  echeanceMs = 60000,
+  pauseMs = 400,
+  lire = () => evaluate(session, expressionTourActif()),
+  finirTour = () => cliquerAction(session, 'end-turn'),
+  attendre = sleep,
+  maintenant = Date.now,
+} = {}) {
+  const fin = maintenant() + echeanceMs;
+  let clics = 0;
+  for (;;) {
+    const etat = await lire();
+    if (etat && etat.actif === nom) return { actif: etat.actif, clics };
+    if (maintenant() >= fin) {
+      throw new Error(`avancerJusquAuTourDe « ${nom} » : pas au trait après ${echeanceMs} ms — au trait : « ${etat?.actif ?? '(aucun)'} », ${clics} clic(s) sur « Fin du tour »`);
+    }
+    if (etat && etat.finTour && !etat.finTour.disabled) {
+      await finirTour();
+      clics += 1;
+    }
+    await attendre(pauseMs);
+  }
 }
 
 /**
@@ -1185,18 +1336,16 @@ export async function realKeyUp(session, touche) {
  * s'en apercevrait. `attendu` (chaîne ou prédicat) durcit le contrôle en ERREUR quand le site connaît
  * la valeur exacte à obtenir.
  */
-export async function typeInField(session, selecteur, texte, { clear = true, attendu } = {}) {
-  const rect = await evaluate(session, `(() => {
+export async function typeInField(session, selecteur, texte, { clear = true, attendu, delaiCibleMs = DELAI_CIBLE_MS } = {}) {
+  const rect = await chercherCible(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`typeInField : aucun élément ne matche « ${selecteur} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
+  })()`, delaiCibleMs);
+  if (!rect) throw new Error(`typeInField : aucun élément ne matche « ${selecteur} » après ${delaiCibleMs} ms`);
+  await clicReel(session, rect.x, rect.y);
   if (clear) await evaluate(session, `(() => { const el = document.querySelector(${JSON.stringify(selecteur)}); el.select ? el.select() : el.setSelectionRange(0, el.value.length); return true; })()`);
   await session.rpc('Input.insertText', { text: texte });
   const lu = await evaluate(session, `document.querySelector(${JSON.stringify(selecteur)}).value`);

@@ -1,8 +1,9 @@
 import { createHero } from '../../engine/character';
 import { acquerirTalent } from '../../engine/careerSlots';
 import { makeRNG } from '../../engine/dice';
-import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import type { Combatant, ItemInstance } from '../../engine/types';
+import { addItemToHero, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout, toggleWorn } from '../../engine/items';
+import { heroCarrier } from '../../engine/carrier';
+import type { Combatant } from '../../engine/types';
 import type { CustomStatblock, Scene } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
@@ -44,11 +45,11 @@ function tireur(): Combatant {
     id: 'tr-tireur',
   });
   const arb = itemFromTrappingById('arbalete')!; // Recharge 1 + Empaleuse
-  arb.equipped = true;
   const carreaux = itemFromTrappingById('carreau')!;
   const lant = itemFromTrappingById('lanterne')!;
-  lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
   h.items = [arb, carreaux, lant];
+  toggleWorn(heroCarrier(h), arb.uid);
+  toggleWorn(heroCarrier(h), lant.uid); // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
   h.loadouts = undefined;
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);
@@ -60,17 +61,17 @@ function tireur(): Combatant {
 
 /** Bretteur : deux armes de mêlée 1 main (Arme simple à FORME changeable + Dague) + talent dédié. */
 function bretteur(): Combatant {
-  const h = pregen(PREGEN.soldat); // Sigmund
-  if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
-    acquerirTalent(h, { id: 'maniement-de-deux-armes' });
+  const base = pregen(PREGEN.soldat); // Sigmund
+  if (!base.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
+    acquerirTalent(base, { id: 'maniement-de-deux-armes' });
   }
-  const main = itemFromTrappingById('arme-simple'); // shape:'epee' + formChoices (épée→hache/masse/…)
-  const off = itemFromTrappingById('dague');
-  h.items = [...(h.items ?? []), main, off].filter(Boolean) as ItemInstance[];
-  if (main && off) {
+  const avecMain = addItemToHero(base, 'arme-simple'); // shape:'epee' + formChoices (épée→hache/masse/…)
+  const h = addItemToHero(avecMain, 'dague');
+  if (avecMain !== base && h !== avecMain) {
+    const n = h.items!.length;
     const id = loadoutCreate(h);
-    loadoutSetSlot(h, id, 'main', main.uid);
-    loadoutSetSlot(h, id, 'off', off.uid);
+    loadoutSetSlot(h, id, 'main', h.items![n - 2].uid);
+    loadoutSetSlot(h, id, 'off', h.items![n - 1].uid);
   }
   recomputeLoadout(h);
   return h;

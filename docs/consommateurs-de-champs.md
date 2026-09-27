@@ -57,15 +57,15 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 230 | `src/data/index.ts:3052` |
-| `spec` | 138 | `src/data/index.ts:3523` |
+| `id` | 228 | `src/data/index.ts:3046` |
+| `spec` | 135 | `src/data/index.ts:3517` |
 
 ### `QualityRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 6 | `src/data/index.ts:3536` |
-| `value` | 4 | `src/data/index.ts:3537` |
+| `id` | 6 | `src/data/index.ts:3530` |
+| `value` | 4 | `src/data/index.ts:3531` |
 
 ### `CastingNumberMod` (src/engine/castingNumber.ts)
 
@@ -85,36 +85,36 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `fixed` | 4 | `src/data/index.ts:3605` |
-| `roll` | 3 | `src/data/index.ts:3605` |
+| `fixed` | 4 | `src/data/index.ts:3599` |
+| `roll` | 3 | `src/data/index.ts:3599` |
 
 ### `TrappingRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 8 | `src/engine/items.ts:307` |
-| `spec` | 2 | `src/engine/items.ts:309` |
-| `count` | 10 | `src/data/index.ts:3605` |
-| `qualities` | 4 | `src/data/index.ts:3608` |
-| `qualityChoice` | 6 | `src/data/index.ts:3606` |
-| `text` | 2 | `src/data/index.ts:3599` |
-| `vehicleId` | 5 | `src/data/index.ts:3601` |
+| `id` | 8 | `src/engine/items.ts:308` |
+| `spec` | 2 | `src/engine/items.ts:310` |
+| `count` | 10 | `src/data/index.ts:3599` |
+| `qualities` | 4 | `src/data/index.ts:3602` |
+| `qualityChoice` | 6 | `src/data/index.ts:3600` |
+| `text` | 2 | `src/data/index.ts:3593` |
+| `vehicleId` | 5 | `src/data/index.ts:3595` |
 | `label` | 7 | `src/engine/possessionGrants.ts:25` |
-| `creatureId` | 5 | `src/data/index.ts:3603` |
-| `choice` | 5 | `src/data/index.ts:3596` |
-| `wildcard` | 3 | `src/data/index.ts:3597` |
+| `creatureId` | 5 | `src/data/index.ts:3597` |
+| `choice` | 5 | `src/data/index.ts:3590` |
+| `wildcard` | 3 | `src/data/index.ts:3591` |
 
 ### `AdvancementRef` (src/data/index.ts)
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `id` | 16 | `src/data/index.ts:3578` |
-| `spec` | 4 | `src/engine/careerSlots.ts:168` |
-| `choix` | 11 | `src/data/index.ts:3052` |
-| `pick` | 2 | `src/data/index.ts:3581` |
-| `of` | 8 | `src/data/index.ts:3580` |
+| `id` | 16 | `src/data/index.ts:3572` |
+| `spec` | 4 | `src/engine/careerSlots.ts:173` |
+| `choix` | 11 | `src/data/index.ts:3046` |
+| `pick` | 2 | `src/data/index.ts:3575` |
+| `of` | 8 | `src/data/index.ts:3574` |
 | `table` | — | *absent du type TS* |
-| `random` | 5 | `src/data/index.ts:3583` |
+| `random` | 5 | `src/data/index.ts:3577` |
 
 ### `EntityAppearance` (src/engine/authoringAppearance.ts)
 
@@ -140,17 +140,17 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `stake` | 10 | `src/engine/flowCore.ts:847` |
 | `skill` | 31 | `src/engine/disease.ts:371` |
-| `sense` | 2 | `src/state/combatEffects.ts:1012` |
+| `sense` | 2 | `src/state/combatEffects.ts:1013` |
 | `characteristic` | 25 | `src/engine/disease.ts:371` |
 | `difficulty` | 8 | `src/engine/disease.ts:358` |
-| `requireSL` | 2 | `src/state/combatEffects.ts:1051` |
+| `requireSL` | 2 | `src/state/combatEffects.ts:1052` |
 | `label` | 11 | `src/state/combat/triggeredTest.ts:235` |
-| `tool` | 2 | `src/state/combatEffects.ts:1014` |
-| `vsGroups` | 5 | `src/state/combatEffects.ts:919` |
-| `vsStatus` | 1 | `src/state/combatEffects.ts:918` |
-| `begging` | 3 | `src/state/combatEffects.ts:923` |
-| `vsCapricieux` | 1 | `src/state/combatEffects.ts:927` |
-| `easierIf` | 11 | `src/state/combatEffects.ts:968` |
+| `tool` | 2 | `src/state/combatEffects.ts:1015` |
+| `vsGroups` | 5 | `src/state/combatEffects.ts:920` |
+| `vsStatus` | 1 | `src/state/combatEffects.ts:919` |
+| `begging` | 3 | `src/state/combatEffects.ts:924` |
+| `vsCapricieux` | 1 | `src/state/combatEffects.ts:928` |
+| `easierIf` | 11 | `src/state/combatEffects.ts:969` |
 | `argDifficulty` | 1 | `src/state/triggeredEffects.ts:75` |
 | `unlessImmune` | 1 | `src/state/combat/flowEval.ts:137` |
 | `onlyGroups` | 1 | `src/state/combat/flowEval.ts:138` |
@@ -166,11 +166,11 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `min` | 2 | `src/state/travelFlow.ts:1154` |
-| `max` | 1 | `src/ui/compendium/registry.ts:816` |
+| `max` | 1 | `src/ui/compendium/registry.ts:821` |
 | `id` | 8 | `src/engine/mountTravel.ts:217` |
 | `label` | 8 | `src/engine/mountTravel.ts:201` |
-| `desc` | 1 | `src/state/travelPostes.ts:362` |
-| `stageOutcome` | 1 | `src/state/travelPostes.ts:363` |
+| `desc` | 1 | `src/state/travelPostes.ts:361` |
+| `stageOutcome` | 1 | `src/state/travelPostes.ts:362` |
 | `vehicleWounds` | 3 | `src/engine/vehicle.ts:59` |
 | `occupantOps` | 3 | `src/state/travelFlow.ts:1158` |
 | `mount` | 2 | `src/engine/mountTravel.ts:202` |
@@ -187,11 +187,11 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `min` | 1 | `src/ui/compendium/registry.ts:839` |
-| `max` | 1 | `src/ui/compendium/registry.ts:839` |
+| `min` | 1 | `src/ui/compendium/registry.ts:844` |
+| `max` | 1 | `src/ui/compendium/registry.ts:844` |
 | `id` | 3 | `src/data/index.ts:498` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
-| `ops` | 3 | `src/engine/riverNavigation.ts:215` |
+| `ops` | 3 | `src/engine/riverNavigation.ts:216` |
 | `shrapnel` | 3 | `src/engine/shipCritical.ts:110` |
 | `hullCrits` | 2 | `src/engine/shipCritical.ts:103` |
 | `crewHit` | 2 | `src/engine/shipCritical.ts:112` |
@@ -203,7 +203,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `id` | 11 | `src/data/props.types.ts:595` |
 | `type` | **0 — JAMAIS LU** | — |
-| `label` | 1 | `src/ui/compendium/registry.ts:325` |
+| `label` | 1 | `src/ui/compendium/registry.ts:330` |
 | `labelF` | — | *absent du type TS* |
 | `desc` | — | *absent du type TS* |
 | `descRef` | — | *absent du type TS* |
@@ -298,7 +298,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 ## Cas fondateur
 
-Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
+Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:310`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: afd7204fd3edc726219c39a23d5dbef196d50408 (2120 fichiers, 174 dossiers) corps: a11e2133dda85e52420a9587a310460100855297 -->
+<!-- sources-empreinte: ce286b2b0a5e568529a1dd173f57a3b6ec046b58 (2124 fichiers, 174 dossiers) corps: 8a4fd75d5c480e617494efdd6767598c0236929f -->

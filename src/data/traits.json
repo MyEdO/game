@@ -2058,62 +2058,72 @@
         "talent": {
           "id": "magie-des-arcanes",
           "choix": true
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "diction-instinctive"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "harmonisation-aethyrique"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "magie-du-chaos",
           "spec": "tzeentch"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "mage-de-guerre"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "magie-mineure"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "mains-agiles"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "perception-de-la-magie"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "seconde-vue"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "sorcier"
-        }
+        },
+        "commeEnCarriere": true
       }
     ]
   },
@@ -2735,62 +2745,72 @@
         "op": "grantCareerTalent",
         "talent": {
           "id": "assaut-feroce"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "charge-berserk"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "combat-instinctif"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "coup-puissant"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "determine"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "endurci"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "guerrier-ne"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "resistance",
           "spec": "magie"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "resistance-a-la-magie"
-        }
+        },
+        "commeEnCarriere": true
       },
       {
         "op": "grantCareerTalent",
         "talent": {
           "id": "vigilance"
-        }
+        },
+        "commeEnCarriere": true
       }
     ]
   },

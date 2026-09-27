@@ -202,6 +202,14 @@ export const secondarySourceRefSchema = sourceRefSchema.extend({
 export type SecondaryRef = z.infer<typeof secondarySourceRefSchema>;
 
 /**
+ * RAISON MAISON (CLAUDE.md règle 7) : ce que le canon ne tranche pas, dit en clair. UNE forme, une
+ * chaîne NON VIDE — une chaîne vide ne dit aucune raison. L'enveloppe de document
+ * (`grammaire/document.ts`, `maison`) et toute sous-entrée la COMPOSENT ; l'optionalité se décide
+ * au site.
+ */
+export const maisonSchema = z.string().min(1);
+
+/**
  * FRAGMENT DE BLOCS d'une adresse de prose : la suite CONTIGUË `b0..b1` des blocs d'affichage d'une
  * section de chapitre, plus l'empreinte du texte normalisé qu'elle rend. Forme et sémantique du
  * parseur `src/data/source/decoupe.ts` (`FragmentBlocs`) — les deux définitions coïncident, et
@@ -291,9 +299,11 @@ export type DescRef = z.infer<typeof descRefSchema>;
 /**
  * ENTRÉE DE CATALOGUE DE SPÉCIALISATION (`SpecEntry`, `src/data/index.ts`) — ce qu'une def de
  * Compétence/Talent énumère sous `specs[]` : l'id STABLE manipulé par la logique, son `label` FR
- * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), et
- * `pool: false` pour une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). SOURCE UNIQUE :
- * `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
+ * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), sa
+ * RAISON maison (`maison`, CLAUDE.md règle 7 ; compose `maisonSchema`), seule ou à côté de `source`, et
+ * `pool: false` pour une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). Absente = dans le
+ * pool ; les écrans de RÉFÉRENCE impriment tout le catalogue (`specCatalogOf`). SOURCE
+ * UNIQUE : `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
  * (`grammaire/ref.ts`, espace `<fichier>#[<id>].specs` de l'INDEX DES IDS).
  */
 const specEntrySchema = z.strictObject({
@@ -301,8 +311,12 @@ const specEntrySchema = z.strictObject({
   label: z.string(),
   source: sourceRefSchema.optional(),
   alsoIn: z.array(secondarySourceRefSchema).optional(),
+  maison: maisonSchema.optional(),
   pool: z.literal(false).optional(),
 });
+
+/** Vue TS de `specEntrySchema` (`SpecEntry`, réexportée par `src/data/index.ts`). */
+export type SpecEntry = z.infer<typeof specEntrySchema>;
 
 /**
  * CATALOGUE DE SPÉCIALISATIONS d'une entrée (`specs[]`) : un ESPACE DE NOMS, clé `id`, désigné par
@@ -583,7 +597,7 @@ export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avi
  *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
 export const replisSansExposeSchema = z.strictObject({
   cible: shipLocationSchema,
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
 });
 
 /**
@@ -660,7 +674,7 @@ export const castingNumberModSchema = z
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
      *  (sens d'arrondi non imprimé…) — CLAUDE.md règle 7. */
-    maison: z.string().optional(),
+    maison: maisonSchema.optional(),
     source: sourceRefSchema,
     /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
     desc: z.string(),

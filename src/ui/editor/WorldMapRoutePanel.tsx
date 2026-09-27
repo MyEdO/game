@@ -15,6 +15,7 @@ import { EffectList, type Ctx } from './EffectList';
 import { RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { AjoutRangee } from '../AjoutRangee';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
   route: MapRoute;
@@ -209,12 +210,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               </button>
             </div>
           ))}
-          <button
-            className="btn small"
-            onClick={() => updRoute(route.id, { perils: [...(route.perils ?? []), { label: 'Péripétie', chancePct: 10, effects: [] }] })}
-          >
-            + Péripétie d'auteur
-          </button>
+          <AjoutRangee libelle="Péripétie d'auteur" onAjout={() => updRoute(route.id, { perils: [...(route.perils ?? []), { label: 'Péripétie', chancePct: 10, effects: [] }] })} />
         </>
       )}
     </>

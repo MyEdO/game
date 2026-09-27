@@ -510,6 +510,16 @@
           "note": "frenchy.bzh 26 l.239"
         },
         "pool": false
+      },
+      {
+        "id": "plaine",
+        "label": "Plaine",
+        "source": {
+          "book": "frenchy-bzh",
+          "page": 138,
+          "note": "frenchy.bzh 26 l.366"
+        },
+        "pool": false
       }
     ],
     "rand": null,
@@ -1271,7 +1281,49 @@
     "max": 1,
     "test": null,
     "desc": "À l'âge de 10 ans, un Prêtre de Morr aussi appelé Augure, vous a pris à part pour prédire votre mort lors d'un rituel de passage à l'âge adulte, lourd d'encens, appelé la Destinée. En accord avec votre MJ, proposez une Destinée appropriée. Si votre Personnage meurt d'une façon y correspondant, votre prochain Personnage gagnera un bonus égal à la moitié du total de PX accumulés par votre Personnage mort pendant la partie.",
-    "specs": [],
+    "specs": [
+      {
+        "id": "des-tenebres-viendra-le-corbeau",
+        "label": "Des ténèbres viendra le corbeau."
+      },
+      {
+        "id": "les-betes-sauvages-n-auront-d-yeux-que-pour-toi",
+        "label": "Les bêtes sauvages n'auront d'yeux que pour toi."
+      },
+      {
+        "id": "la-peste-et-la-sombre-maladie-te-mettront-a-genoux",
+        "label": "La peste et la sombre maladie te mettront à genoux."
+      },
+      {
+        "id": "l-absence-affaiblira-ton-coeur",
+        "label": "L'absence affaiblira ton cœur."
+      },
+      {
+        "id": "l-epee-n-apportera-aucune-justice-seulement-ta-fin",
+        "label": "L'épée n'apportera aucune justice, seulement ta fin."
+      },
+      {
+        "id": "la-brioche-la-viennoiserie-la-tarte-regarde-ce-sont-les-delices-de-morr",
+        "label": "La brioche ! La viennoiserie ! La tarte ! Regarde, ce sont les délices de Morr !"
+      },
+      {
+        "id": "les-tambours-annoncent-ta-fin",
+        "label": "Les tambours annoncent ta fin."
+      },
+      {
+        "id": "la-mort-n-est-pas-la-fin",
+        "label": "La mort n'est pas la fin !"
+      },
+      {
+        "id": "tu-tomberas-sous-la-coupe-de-la-corruption",
+        "label": "Tu tomberas sous la coupe de la Corruption."
+      },
+      {
+        "id": "les-hautes-spheres-causeront-ta-chute",
+        "label": "Les hautes sphères causeront ta chute."
+      }
+    ],
+    "specsOpen": true,
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2170,7 +2222,18 @@
     "max": 1,
     "test": null,
     "desc": "Vous pouvez entrer en Frénésie comme décrit à la page 190.",
-    "specs": [],
+    "specs": [
+      {
+        "id": "a-volonte",
+        "label": "à Volonté !",
+        "source": {
+          "book": "frenchy-bzh",
+          "page": 384,
+          "note": "Habitants & Creatures 58 l.123"
+        },
+        "pool": false
+      }
+    ],
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -2351,7 +2414,12 @@
     "specs": [
       {
         "id": "heretiques",
-        "label": "Hérétiques"
+        "label": "Hérétiques",
+        "source": {
+          "book": "livre-de-base",
+          "page": 80,
+          "note": "LDB 08 l.1718"
+        }
       },
       {
         "id": "hommes-betes",
@@ -2363,7 +2431,12 @@
       },
       {
         "id": "manannites",
-        "label": "Manannites"
+        "label": "Manannites",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 90,
+          "note": "MDG 11 l.127"
+        }
       },
       {
         "id": "monstres",
@@ -2387,11 +2460,21 @@
       },
       {
         "id": "suivants-de-stromfels",
-        "label": "Suivants de Stromfels"
+        "label": "Suivants de Stromfels",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 76,
+          "note": "MDG 09 l.700"
+        }
       },
       {
         "id": "suivants-du-chaos",
-        "label": "Suivants du Chaos"
+        "label": "Suivants du Chaos",
+        "source": {
+          "book": "mer-des-griffes",
+          "page": 90,
+          "note": "MDG 11 l.127"
+        }
       },
       {
         "id": "ennemis-de-sigmar",
@@ -3168,7 +3251,7 @@
       },
       {
         "id": "sulpteur-sur-bois",
-        "label": "Sulpteur sur bois"
+        "label": "Sculpteur sur bois"
       },
       {
         "id": "tailleur-de-pierre",
@@ -4283,11 +4366,21 @@
     "specs": [
       {
         "id": "animaux",
-        "label": "Animaux"
+        "label": "Animaux",
+        "source": {
+          "book": "livre-de-base",
+          "page": 110,
+          "note": "LDB 08 l.3514"
+        }
       },
       {
         "id": "criminels",
-        "label": "Criminels"
+        "label": "Criminels",
+        "source": {
+          "book": "livre-de-base",
+          "page": 59,
+          "note": "LDB 08 l.547"
+        }
       },
       {
         "id": "gardes",
@@ -4303,35 +4396,75 @@
       },
       {
         "id": "heretiques",
-        "label": "Hérétiques"
+        "label": "Hérétiques",
+        "source": {
+          "book": "livre-de-base",
+          "page": 80,
+          "note": "LDB 08 l.1732"
+        }
       },
       {
         "id": "intrus",
-        "label": "Intrus"
+        "label": "Intrus",
+        "source": {
+          "book": "livre-de-base",
+          "page": 71,
+          "note": "LDB 08 l.1203"
+        }
       },
       {
         "id": "miliciens",
-        "label": "Miliciens"
+        "label": "Miliciens",
+        "source": {
+          "book": "livre-de-base",
+          "page": 58,
+          "note": "LDB 08 l.490"
+        }
       },
       {
         "id": "monstres",
-        "label": "Monstres"
+        "label": "Monstres",
+        "source": {
+          "book": "livre-de-base",
+          "page": 110,
+          "note": "LDB 08 l.3520"
+        }
       },
       {
         "id": "morts-vivants",
-        "label": "Morts-vivants"
+        "label": "Morts-vivants",
+        "source": {
+          "book": "livre-de-base",
+          "page": 104,
+          "note": "LDB 08 l.3184"
+        }
       },
       {
         "id": "naufrageurs",
-        "label": "Naufrageurs"
+        "label": "Naufrageurs",
+        "source": {
+          "book": "livre-de-base",
+          "page": 100,
+          "note": "LDB 08 l.2928"
+        }
       },
       {
         "id": "patrouilleurs-fluviaux",
-        "label": "Patrouilleurs fluviaux"
+        "label": "Patrouilleurs fluviaux",
+        "source": {
+          "book": "livre-de-base",
+          "page": 94,
+          "note": "LDB 08 l.2582"
+        }
       },
       {
         "id": "patrouilleurs-routiers",
-        "label": "Patrouilleurs routiers"
+        "label": "Patrouilleurs routiers",
+        "source": {
+          "book": "livre-de-base",
+          "page": 103,
+          "note": "LDB 08 l.3125"
+        }
       },
       {
         "id": "peaux-vertes",
@@ -4339,15 +4472,30 @@
       },
       {
         "id": "primes",
-        "label": "Primes"
+        "label": "Primes",
+        "source": {
+          "book": "livre-de-base",
+          "page": 77,
+          "note": "LDB 08 l.1559"
+        }
       },
       {
         "id": "rats",
-        "label": "Rats"
+        "label": "Rats",
+        "source": {
+          "book": "livre-de-base",
+          "page": 60,
+          "note": "LDB 08 l.596"
+        }
       },
       {
         "id": "skaven",
-        "label": "Skaven"
+        "label": "Skaven",
+        "source": {
+          "book": "livre-de-base",
+          "page": 60,
+          "note": "LDB 08 l.608-610"
+        }
       },
       {
         "id": "sorciers-dissidents",
@@ -4355,7 +4503,12 @@
       },
       {
         "id": "sorcieres",
-        "label": "Sorcières"
+        "label": "Sorcières",
+        "source": {
+          "book": "livre-de-base",
+          "page": 83,
+          "note": "LDB 08 l.1907"
+        }
       },
       {
         "id": "vampires",
@@ -4367,7 +4520,7 @@
         "source": {
           "book": "livre-de-base",
           "page": 76,
-          "note": "LDB 08 l.1472"
+          "note": "LDB 08 l.1472-1474"
         }
       },
       {
@@ -5598,7 +5751,7 @@
       },
       {
         "id": "sulpteur-sur-bois",
-        "label": "Sulpteur sur bois"
+        "label": "Sculpteur sur bois"
       },
       {
         "id": "tailleur-de-pierre",

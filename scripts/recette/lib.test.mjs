@@ -7,9 +7,16 @@ import assert from 'node:assert/strict'
 import { isAbsolute } from 'node:path'
 import {
   ALT,
+  INDICATEURS_CHROMIUM_CONTENEUR,
+  lancementChrome,
+  expressionListeParNom,
+  expressionTourActif,
+  avancerJusquAuTourDe,
   DELAI_EVALUATE,
   champParLibelle,
   clickButtonByText,
+  cliquerSelecteur,
+  iconeDe,
   MOD_ALT,
   checkServer,
   frapperTouche,
@@ -484,8 +491,77 @@ for (const [dansLeDom, demandee] of [['L’Arène', "L'Arène"], ["L'Arène", 'L
 
 test('clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic', async () => {
   const { dom, session } = sessionRangees()
-  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim' }), /rangée « Middenheim »/)
+  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim', delaiCibleMs: 200 }), /rangée « Middenheim » après 200 ms/)
   assert.equal(dom.window.vise, undefined)
+})
+
+// ------------------------------------------------- recherche de cible BORNÉE (`chercherCible`)
+
+test('clickButtonByText : un bouton monté APRÈS l’appel est attendu, puis cliqué', async () => {
+  const { dom, session } = sessionRangees()
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<button id="tardif">Scénario tardif</button>'), 250)
+  await clickButtonByText(session, 'Scénario tardif', { delaiCibleMs: 2000 })
+  assert.equal(dom.window.vise, 'tardif')
+})
+
+test('clickButtonByText : à l’échéance, refus NOMMANT le libellé et le délai, sans clic', async () => {
+  const { dom, session } = sessionRangees()
+  const t0 = Date.now()
+  await assert.rejects(() => clickButtonByText(session, 'Jamais monté', { delaiCibleMs: 300 }), /aucun bouton ne matche « Jamais monté » après 300 ms/)
+  assert.ok(Date.now() - t0 >= 300, 'la recherche a duré le délai')
+  assert.equal(dom.window.vise, undefined)
+})
+
+test('cliquerSelecteur : un contrôle monté APRÈS l’appel est attendu', async () => {
+  const { dom, session } = sessionRangees()
+  dom.window.Element.prototype.getBoundingClientRect = function () { return { x: 0, y: 0, width: 10, height: 10 } }
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<button id="glyphe" class="ld-btn">☰</button>'), 250)
+  await cliquerSelecteur(session, '.ld-btn', { delaiCibleMs: 2000 })
+  assert.equal(dom.window.vise, 'glyphe')
+})
+
+// ------------------------------------------------- iconeDe : `data-icon` de `<Icon>` au DOM
+
+const PUCES = `
+  <span class="chip" id="puce-talent"><svg class="icon" data-icon="entity/talent"></svg>Haine</span>
+  <svg class="icon" id="icone-nue" data-icon="action/attack"></svg>
+  <span class="chip" id="puce-muette">Sans icône</span>`
+
+test('iconeDe : l’id de l’icône DESCENDANTE de l’élément, ou de l’élément s’il EST l’icône', async () => {
+  const { session } = sessionSurDom(PUCES)
+  assert.equal(await iconeDe(session, '#puce-talent'), 'entity/talent')
+  assert.equal(await iconeDe(session, '#icone-nue'), 'action/attack')
+})
+
+test('iconeDe : élément présent sans icône = null', async () => {
+  const { session } = sessionSurDom(PUCES)
+  assert.equal(await iconeDe(session, '#puce-muette', { delaiCibleMs: 200 }), null)
+})
+
+test('iconeDe : un élément monté APRÈS l’appel est attendu ; absent à l’échéance = refus NOMMANT le sélecteur', async () => {
+  const { dom, session } = sessionSurDom(PUCES)
+  setTimeout(() => dom.window.document.body.insertAdjacentHTML('beforeend', '<span id="tardive"><svg data-icon="ui/wait"></svg></span>'), 250)
+  assert.equal(await iconeDe(session, '#tardive', { delaiCibleMs: 2000 }), 'ui/wait')
+  await assert.rejects(() => iconeDe(session, '#jamais', { delaiCibleMs: 300 }), /iconeDe « #jamais » : aucun élément après 300 ms/)
+})
+
+test('iconeDe : une cible par TEXTE visible (titre de section) ou par NOM ACCESSIBLE, l’élément le plus intérieur', async () => {
+  const { session } = sessionSurDom(`
+    <section><h2 class="mini-title"><svg class="icon" data-icon="resource/xp"></svg> Progression</h2><p>Niveau complet</p></section>
+    <span aria-label="Menu système"><svg data-icon="ui/menu"></svg></span>`)
+  assert.equal(await iconeDe(session, 'Progression'), 'resource/xp')
+  assert.equal(await iconeDe(session, 'Menu système'), 'ui/menu')
+  assert.equal(await iconeDe(session, 'Niveau complet', { delaiCibleMs: 200 }), null)
+})
+
+test('iconeDe : un texte qui est aussi un nom de balise désigne l’élément qui l’affiche, pas la balise', async () => {
+  const { session } = sessionSurDom(`
+    <menu><li>entrée</li></menu><table><tr><td>cellule</td></tr></table>
+    <button><svg data-icon="ui/menu"></svg> Menu</button>
+    <h2><svg data-icon="ui/table"></svg> Table</h2>`)
+  assert.equal(await iconeDe(session, 'Menu'), 'ui/menu')
+  assert.equal(await iconeDe(session, 'Table'), 'ui/table')
+  assert.equal(await iconeDe(session, 'menu li', { delaiCibleMs: 200 }), null)
 })
 
 // ------------------------------------------------- poserFichier : domaine DOM du CDP
@@ -530,4 +606,122 @@ test('poserFichier : racine `dans` absente = refus NOMMANT la racine', async () 
   const { poses, session } = sessionDomCdp(DEUX_IMPORTS)
   await assert.rejects(() => poserFichier(session, 'input[type=file]', 'x.json', { dans: '.modal-overlay' }), /\.modal-overlay/)
   assert.deepEqual(poses, [])
+})
+
+test('lancementChrome : Chrome Windows présent → lancé tel quel, SANS indicateur de conteneur', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const r = lancementChrome(undefined, { env: {}, existe: (p) => p === win, lister: () => [] })
+  assert.deepEqual(r, { chemin: win, indicateurs: [] })
+})
+
+test('lancementChrome : sans Chrome Windows → Chromium de Playwright (révision la plus haute), AVEC les indicateurs', () => {
+  const racine = '/opt/pw-browsers'
+  const presents = new Set([racine, `${racine}/chromium-1194/chrome-linux/chrome`, `${racine}/chromium-1100/chrome-linux/chrome`])
+  const r = lancementChrome(undefined, {
+    env: { PLAYWRIGHT_BROWSERS_PATH: racine },
+    existe: (p) => presents.has(p),
+    lister: () => ['chromium', 'chromium-1100', 'chromium-1194', 'chromium_headless_shell-1194', 'ffmpeg-1011'],
+  })
+  assert.equal(r.chemin, `${racine}/chromium-1194/chrome-linux/chrome`)
+  assert.deepEqual(r.indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(INDICATEURS_CHROMIUM_CONTENEUR, ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+})
+
+test('lancementChrome : chemin EXPLICITE — indicateurs seulement s’il vit sous PLAYWRIGHT_BROWSERS_PATH', () => {
+  const env = { PLAYWRIGHT_BROWSERS_PATH: '/opt/pw-browsers' }
+  const aucun = { env, existe: () => false, lister: () => [] }
+  assert.deepEqual(lancementChrome('/opt/pw-browsers/chromium', aucun).indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(lancementChrome('/usr/bin/google-chrome', aucun), { chemin: '/usr/bin/google-chrome', indicateurs: [] })
+  assert.deepEqual(lancementChrome('/opt/pw-browsers-autre/chrome', aucun).indicateurs, [])
+})
+
+test('lancementChrome : Chrome Windows ET Chromium Playwright présents → Windows gagne, SANS indicateur malgré PLAYWRIGHT_BROWSERS_PATH', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const racine = '/opt/pw-browsers'
+  const presents = new Set([win, racine, `${racine}/chromium-1194/chrome-linux/chrome`])
+  const r = lancementChrome(undefined, {
+    env: { PLAYWRIGHT_BROWSERS_PATH: racine },
+    existe: (p) => presents.has(p),
+    lister: () => ['chromium-1194'],
+    cwd: '/',
+  })
+  assert.deepEqual(r, { chemin: win, indicateurs: [] })
+})
+
+test('lancementChrome : chemin EXPLICITE ET Chrome Windows présent → l’explicite gagne', () => {
+  const win = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  const r = lancementChrome('/usr/bin/chromium', { env: {}, existe: (p) => p === win, lister: () => [], cwd: '/' })
+  assert.deepEqual(r, { chemin: '/usr/bin/chromium', indicateurs: [] })
+})
+
+test('lancementChrome : un chemin RELATIF se résout contre le `cwd` injecté, jamais contre celui du processus', () => {
+  const aucun = { env: { PLAYWRIGHT_BROWSERS_PATH: '/opt/pw-browsers' }, existe: () => false, lister: () => [] }
+  const relatif = 'pw-browsers/chromium-1194/chrome-linux/chrome'
+  assert.deepEqual(lancementChrome(relatif, { ...aucun, cwd: '/opt' }).indicateurs, INDICATEURS_CHROMIUM_CONTENEUR)
+  assert.deepEqual(lancementChrome(relatif, { ...aucun, cwd: '/home' }).indicateurs, [])
+})
+
+test('lancementChrome : ni Chrome Windows ni Playwright → 1er candidat Windows, sans indicateur', () => {
+  const r = lancementChrome(undefined, { env: {}, existe: () => false, lister: () => [] })
+  assert.deepEqual(r.indicateurs, [])
+  assert.match(r.chemin, /chrome\.exe$/)
+})
+
+test('expressionListeParNom : nom et marque échappés en JSON, expression qui se compile', () => {
+  const nom = 'L’épée "longue"'
+  const e = expressionListeParNom(nom, 'recette-liste-x')
+  assert.ok(e.includes(JSON.stringify(nom)))
+  assert.ok(e.includes('[role="group"]'))
+  assert.ok(e.includes('aria-labelledby'))
+  assert.ok(!/class|\.de-reflrow|\.ed-field/.test(e), 'repérage par rôle et nom, jamais par classe')
+  assert.doesNotThrow(() => new Function(`return ${e}`))
+})
+
+test('expressionTourActif : expression qui se compile, lit la frise et la case « Fin du tour »', () => {
+  const e = expressionTourActif()
+  assert.ok(e.includes('[aria-current="step"]'))
+  assert.ok(e.includes('[data-action="end-turn"]'))
+  assert.doesNotThrow(() => new Function(`return ${e}`))
+})
+
+/** Horloge et lecture simulées : chaque lecture rend l'état suivant de `etats` (le dernier se répète). */
+function tourSimule(etats) {
+  let t = 0
+  let i = 0
+  const clics = []
+  return {
+    clics,
+    opts: {
+      echeanceMs: 1000,
+      pauseMs: 100,
+      lire: async () => etats[Math.min(i++, etats.length - 1)],
+      finirTour: async () => { clics.push(t) },
+      attendre: async (ms) => { t += ms },
+      maintenant: () => t,
+    },
+  }
+}
+
+test('avancerJusquAuTourDe : clique « Fin du tour » au tour d’un héros, attend l’IA, s’arrête au nom voulu', async () => {
+  const { clics, opts } = tourSimule([
+    { actif: 'Sigmund', finTour: { disabled: false } },
+    { actif: 'Gobelin', finTour: null },
+    { actif: 'Gobelin', finTour: { disabled: true } },
+    { actif: 'Aelindra', finTour: { disabled: false } },
+    { actif: 'Mannequin', finTour: null },
+  ])
+  const r = await avancerJusquAuTourDe(null, 'Mannequin', opts)
+  assert.deepEqual(r, { actif: 'Mannequin', clics: 2 })
+  assert.equal(clics.length, 2)
+})
+
+test('avancerJusquAuTourDe : déjà au trait → aucun clic', async () => {
+  const { clics, opts } = tourSimule([{ actif: 'Sigmund', finTour: { disabled: false } }])
+  assert.deepEqual(await avancerJusquAuTourDe(null, 'Sigmund', opts), { actif: 'Sigmund', clics: 0 })
+  assert.equal(clics.length, 0)
+})
+
+test('avancerJusquAuTourDe : échéance bornée → refus NOMMANT le combattant au trait et les clics', async () => {
+  const { opts } = tourSimule([{ actif: 'Gobelin', finTour: null }])
+  await assert.rejects(() => avancerJusquAuTourDe(null, 'Mannequin', opts), /« Mannequin » : pas au trait après 1000 ms — au trait : « Gobelin », 0 clic/)
 })
