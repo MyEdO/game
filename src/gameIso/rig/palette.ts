@@ -12,7 +12,8 @@
 import type { PartArt } from './parts/types';
 import { SLOTS, PORTEUR, type Slot } from '../../data/palette.types';
 import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses } from './clesDePalette';
-import { parseHex, toHex, shade, LUMA_709 } from '../shade';
+import { shade, LUMA_709 } from '../shade';
+import { parseHex, toHex } from '../../data/couleur';
 
 export { SLOTS, type Slot };
 

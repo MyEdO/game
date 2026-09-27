@@ -355,11 +355,12 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
 });
 
 /**
- * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 41) : « est projeté par-dessus le balcon
- * […] en atterrissant sur des malheureux assis dans les sièges en dessous ». Le folio 39 est le plan
- * (image), sans ligne de texte à l'extraction (l.22 folio 37 → l.51 folio 40). Ce plan pose sur ce bord
- * la structure `garde-corps`, et elle seule, à chaque paire puits|plancher. Qu'elle laisse voir la salle
- * et ne se franchisse pas à la marche, aucune de ces lignes ne le dit : c'est le `maison` de la
+ * #1179, #1883 — le pourtour du PUITS. NADJ 08 l.133 (folio 42, page PDF 44 ; l'extraction n'ancre rien
+ * entre l.92 folio 41 et l.286 folio 47, `NADJ 8 41→47` de `scripts/raw/folio-gaps-stock.json`) : « est
+ * projeté par-dessus le balcon […] en atterrissant sur des malheureux assis dans les sièges en
+ * dessous ». Le folio 39 est le plan (image), sans ligne de texte à l'extraction (l.22 folio 37 → l.51
+ * folio 40). Ce plan pose sur ce bord la structure `garde-corps`, et elle seule, à chaque paire
+ * puits|plancher. Qu'elle laisse voir la salle et ne se franchisse pas à la marche, aucune de ces lignes ne le dit : c'est le `maison` de la
  * structure `garde-corps` (`src/data/structures.json`), arbitrage #1883.
  * Les refends de loge qui meurent sur ce bord ne sont pas des impasses (`auditWallDeadEndsInside`,
  * famille 11).

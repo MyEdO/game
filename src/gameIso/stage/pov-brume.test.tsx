@@ -16,7 +16,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { FOG_GAMMA_DEFINE, type MatériauEmbrumable } from '../backends/webgl/sceneMeshes';
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
-import { toHex } from '../shade';
+import { toHex } from '../../data/couleur';
 
 /**
  * BRUME & CIEL DE LA PREMIÈRE PERSONNE (#1176, P3-1c) — l'horizon du POV volumique cesse d'être tranché

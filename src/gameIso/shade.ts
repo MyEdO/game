@@ -4,20 +4,7 @@
  * (ombre d'orientation, occlusion, spéculaire) vient d'ici. Dérive un ton en multipliant la luminance d'une
  * base par un facteur, clampé ; un `var(--x)` CSS (pierre) passe tel quel. Aucune lecture DOM.
  */
-import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../data/schemas/defs/teintesJeu';
-
-/** Parse `#rgb`/`#rrggbb` en canaux [r,g,b] (0–255) ; null si non-hex (`var(--x)`, `rgb(...)`).
- *  Parseur UNIQUE partagé par `shade`/`mix` ici ET par les helpers de teinte POV (camera.ts). */
-export function parseHex(hex: string): [number, number, number] | null {
-  const m = hex.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (!m) return null;
-  const h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-const clamp255 = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
-/** Canaux [r,g,b] (0–255, arrondis et bornés) en `#rrggbb`. Émetteur UNIQUE, pendant de `parseHex`. */
-export const toHex = (r: number, g: number, b: number) =>
-  `#${[r, g, b].map((c) => clamp255(c).toString(16).padStart(2, '0')).join('')}`;
+import { distanceTeinte, mix, parseHex, SEUIL_TEINTES_CONTIGUES, toHex } from '../data/couleur';
 
 /** Un octet sRGB (0–255) en valeur LINÉAIRE — la transfert standard, celle que three applique aux
  *  couleurs de sommet et à la sortie du rendu. */
@@ -26,38 +13,32 @@ export const srgbToLinear = (octet: number): number => {
   return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
 };
 
-/** Pas de recherche de `tonsDArete` : le chemin base → pôle est découpé en `PAS_TONS` crans. */
+/** Pas de recherche de `tonsDArete` : le chemin cœur → pôle est découpé en `PAS_TONS` crans. */
 const PAS_TONS = 256;
 
 /** Écart des deux tons d'un trait d'arête : deux fois le plancher des teintes contiguës. `distanceTeinte`
- *  est une norme (inégalité triangulaire) : pour tout fond S, d(sombre, S) + d(S, clair) ≥ ce plancher
+ *  est une norme (inégalité triangulaire) : pour tout fond S, d(cœur, S) + d(S, bord) ≥ ce plancher
  *  doublé, donc l'un des deux tons est à `SEUIL_TEINTES_CONTIGUES` au moins de S. */
 export const ECART_TONS_D_ARETE = 2 * SEUIL_TEINTES_CONTIGUES;
 
-/** Les deux tons d'un TRAIT D'ARÊTE, à la teinte de `base` : assombri vers le noir et éclairci vers le
- *  blanc du même cran, le plus petit qui écarte les deux de `ECART_TONS_D_ARETE`. Toujours atteint :
- *  au cran plein, noir ⇄ blanc = 765. */
-export function tonsDArete(base: string): { sombre: string; clair: string } {
-  if (!parseHex(base)) throw new Error(`tonsDArete : « ${base} » n’est pas une couleur #rrggbb.`);
-  for (let i = 0; i <= PAS_TONS; i++) {
-    const sombre = mix(base, '#000000', i / PAS_TONS);
-    const clair = mix(base, '#ffffff', i / PAS_TONS);
-    if (distanceTeinte(sombre, clair) >= ECART_TONS_D_ARETE) return { sombre, clair };
+/** Les deux tons d'un TRAIT D'ARÊTE : le CŒUR est `base` à l'identique (la couleur déclarée) ; le BORD
+ *  est `base` poussée vers le pôle (noir ou blanc) le plus LOINTAIN, au plus petit cran qui l'en écarte
+ *  de `ECART_TONS_D_ARETE`. Toujours atteint : d(base, noir) + d(base, blanc) ≥ d(noir, blanc) = 765,
+ *  donc le pôle lointain est à 382,5 au moins. */
+export function tonsDArete(base: string): { coeur: string; bord: string } {
+  if (!/^#[0-9a-fA-F]{6}$/.test(base)) throw new Error(`tonsDArete : « ${base} » n’est pas une couleur #rrggbb.`);
+  const pole = distanceTeinte(base, '#000000') >= distanceTeinte(base, '#ffffff') ? '#000000' : '#ffffff';
+  for (let i = 1; i <= PAS_TONS; i++) {
+    const bord = mix(base, pole, i / PAS_TONS);
+    if (distanceTeinte(base, bord) >= ECART_TONS_D_ARETE) return { coeur: base, bord };
   }
-  throw new Error(`tonsDArete : noir et blanc n’atteignent pas ${ECART_TONS_D_ARETE}.`);
+  throw new Error(`tonsDArete : le pôle ${pole} n’atteint pas ${ECART_TONS_D_ARETE} depuis ${base}.`);
 }
 
 /** Base × facteur de luminance (clampé). Un non-hex (`var(--x)`) est renvoyé tel quel. */
 export function shade(color: string, k: number): string {
   const c = parseHex(color);
   return c ? toHex(c[0] * k, c[1] * k, c[2] * k) : color;
-}
-
-/** Interpolation linéaire (`t` 0→a, 1→b). Non-hex : renvoie `a`. */
-export function mix(a: string, b: string, t: number): string {
-  const ca = parseHex(a);
-  const cb = parseHex(b);
-  return ca && cb ? toHex(ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t, ca[2] + (cb[2] - ca[2]) * t) : a;
 }
 
 /** Pondération de LUMINANCE PERÇUE (Rec. 709) — source unique des deux lecteurs : la luminance d'une

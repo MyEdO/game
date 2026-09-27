@@ -15,7 +15,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { buildTokenMap, clarte8, SLOTS } from '../../palette';
-import { parseHex, srgbToLinear, toHex } from '../../../shade';
+import { srgbToLinear } from '../../../shade';
+import { parseHex, toHex } from '../../../../data/couleur';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { palettesDeclarees, modulesDuRig, CLE_DE_PALETTE } from '../../../../../scripts/guards/lib/palettesDeclarees';

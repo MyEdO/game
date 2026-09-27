@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { claireVoieSchema, detailRecipeSchema } from '../grammaire/valeurs';
+import { habilleUneBaie, type BlocsDApparence } from '../../formesDArete';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -148,9 +149,10 @@ const doc = document(
   },
   {
     // Le corps de garde se barre de la `claireVoie` de RACINE, la même que celle de la herse et du
-    // garde-corps : une seule demeure pour la claire-voie, donc un refine plutôt qu'un bloc imbriqué.
+    // garde-corps : une seule demeure pour la claire-voie, donc un refine plutôt qu'un bloc imbriqué. Le
+    // couple se lit à l'admission (`habilleUneBaie`, `data/formesDArete.ts`).
     affinerEntree: (entree) =>
-      entree.refine((v) => !(v as { parapet?: { corpsDeGarde?: unknown } }).parapet?.corpsDeGarde || !!(v as { claireVoie?: unknown }).claireVoie, {
+      entree.refine((v) => !(v as BlocsDApparence).parapet?.corpsDeGarde || habilleUneBaie(v as BlocsDApparence), {
         message: 'structureAppearance : un `parapet.corpsDeGarde` sans `claireVoie` — le passage fermé n’aurait rien pour le barrer.',
         path: ['claireVoie'],
       }),

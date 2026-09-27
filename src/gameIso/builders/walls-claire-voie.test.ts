@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { buildWalls, wallEnds } from './walls';
 import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 import { structureAppearances } from '../../data';
-import { formesAdmises, formesDeLArete, type FormeArete } from '../../state/formeArete';
+import { formesDeLArete } from '../../state/formeArete';
+import { formesAdmises, type FormeArete } from '../../data/formesDArete';
 
 /**
  * CONTRATS de rendu des apparences à CLAIRE-VOIE (#1883), pour chaque FORME que l'apparence habille
- * (`formesAdmises`, `state/formeArete.ts` — la source que lisent aussi `validateScene` et l'Inspecteur),
+ * (`formesAdmises`, `data/formesDArete.ts` — la source que lisent aussi `validateScene` et l'Inspecteur),
  * posée sur la Structure du même id quand elle prend cette forme, sinon en override sur un mur de bois,
  * intacte puis abattue. Deux lectures :
  *  - `parties` : `partie[bas-haut]` en mètres depuis le sol, dans l'ordre de peinture ;

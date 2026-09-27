@@ -45,7 +45,7 @@ import type {
 import type { CellSide } from '../data/schemas/defs-scenes/communs';
 import { DEFAULT_TERRAIN, emptyScene, tileAt, wallOverlayOf } from './scene';
 import { areteCanonique } from '../geometry/arete';
-import { libelleArete } from './formeArete';
+import { libelleArete } from './compatibiliteArete';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron

@@ -24,7 +24,7 @@ import {
   areteOcculteEntre, areteOcculte, structureAt, doorAt, climbAt,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
-import { areteEntre } from '../geometry/arete';
+import { areteEntre, cleArete } from '../geometry/arete';
 import { allBuiltinCampaigns, diligenceCampaign } from '../scenes/campaign';
 import { testScenarios } from '../scenes/test-scenarios';
 
@@ -64,12 +64,12 @@ describe('wallIndex — contrat', () => {
   });
 
   it('une arête NUE rend une liste vide (et le naïf aussi)', () => {
-    const portees = new Set(murs().map((w) => `${w.x},${w.y},${w.side},${w.z ?? 0}`));
+    const portees = new Set(murs().map((w) => cleArete(w.x, w.y, w.side, w.z ?? 0)));
     let nues = 0;
     for (let y = 0; y < carte.dimensions.h; y++)
       for (let x = 0; x < carte.dimensions.w; x++)
         for (const side of ['N', 'E'] as const) {
-          if (portees.has(`${x},${y},${side},0`)) continue;
+          if (portees.has(cleArete(x, y, side, 0))) continue;
           expect(aretesA(carte, x, y, side, 0)).toEqual([]);
           nues++;
         }
@@ -96,7 +96,7 @@ describe('wallIndex — TOUTES les scènes livrées', () => {
       const parArete = new Map<string, WallSeg[]>();
       for (const w of scene.walls ?? []) {
         mursScannes++;
-        const k = `${w.x},${w.y},${w.side},${w.z ?? 0}`;
+        const k = cleArete(w.x, w.y, w.side, w.z ?? 0);
         const l = parArete.get(k);
         if (l) l.push(w); else parArete.set(k, [w]);
       }

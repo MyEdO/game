@@ -32,7 +32,8 @@ import {
 import { hash32, seedStream } from '../../data/hash';
 import { matierePlan } from '../../data';
 import { ACCENT_FRAC, BLOCK_INSET_M, BLOCK_SHADE_K } from '../detail/expand';
-import { shade, mix } from '../shade';
+import { shade } from '../shade';
+import { mix } from '../../data/couleur';
 import type { DetailRecipe } from '../detail/types';
 import { projGP, type Pt2 } from './project';
 import { structureFaceSvg } from './wallsSvg';

@@ -35,6 +35,10 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `const k = \`${D}{x}${D}{y}${D}{side}\`;`,
       `const k = \`N,${D}{x},${D}{y}\`;`,
       `const k = \`E:${D}{x}:${D}{y}\`;`,
+      `const k = \`${D}{x},${D}{y},'N'\`;`,
+      `const k = \`${D}{x},${D}{y},"S"\`;`,
+      `const k = \`'E',${D}{x},${D}{y}\`;`,
+      `const k = \`${D}{x},${D}{y},${D}{String(side)}\`;`,
     ]) expect(sitesFautifs(ligne), ligne).toHaveLength(1);
     for (const ligne of [
       `const source = \`arête (${D}{seg.x},${D}{seg.y},${D}{seg.side}) z${D}{seg.z ?? 0}\`;`,
@@ -45,6 +49,24 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `const s = \`(N,${D}{x},${D}{y})\`;`,
       `const t = \`NIVEAU${D}{a}${D}{b}\`;`,
       `key: \`seam:${D}{a.massId}:${D}{b.bodyId}:${D}{cleArete(c.x, c.y, side, z)}\`,`,
+      `// ex: ${D}{x},${D}{y},N dans un commentaire`,
+      `const n = 1; /* ${D}{x},${D}{y},${D}{side} */`,
+      `const t = \`${D}{a} ${D}{b} S\`;`,
+      `const t = \`${D}{n} ${D}{unite} E\`;`,
+    ]) expect(sitesFautifs(ligne), ligne).toEqual([]);
+  });
+
+  it('LIMITE dite (`cleAreteMain.mjs`) : chaque forme déclarée hors d’atteinte passe, une ligne par forme', () => {
+    for (const ligne of [
+      `const k = [x, y, side, z].join(',');`,
+      `const k = x + ',' + y + ',' + side;`,
+      `const k = \`${D}{x},${D}{y},\n${D}{side}\`;`,
+      `const k = \`${D}{x},${D}{y},${D}{s}\`;`,
+      `const k = \`${D}{x},${D}{side},${D}{y}\`;`,
+      `const k = \`${D}{x}::${D}{y}::${D}{side}\`;`,
+      `const k = \`N${D}{x},${D}{y}\`;`,
+      `const k = \`${D}{x} ${D}{y} N\`;`,
+      `const k = \`${D}{x},${D}{y},${D}{nomDe(side)}\`;`,
     ]) expect(sitesFautifs(ligne), ligne).toEqual([]);
   });
 

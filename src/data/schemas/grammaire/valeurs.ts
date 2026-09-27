@@ -420,7 +420,8 @@ export type Variant = {
  * `claireVoie` du lexique (`scripts/docs/lib/structures-lexique.mts`).
  */
 export const claireVoieSchema = z.strictObject({
-  bars: z.number(),
+  /** Nombre d'ENTRE-BARREAUX : `bars - 1` barreaux intérieurs (`gameIso/authoring/wallsSvg.ts`), au moins un. */
+  bars: z.number().int().min(2),
   traverseFracs: z.array(z.number()),
   traverseColor: z.string(),
   plinthe: z.boolean(),

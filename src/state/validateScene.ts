@@ -8,7 +8,7 @@ import { realFloorAt } from './sceneEdit';
 import { CHAR_KEYS } from '../engine/types';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
 import { refEstVolumique, stakeSpeaks, findPropById, matieresCouvrantes } from '../data';
-import { aretesHorsCompatibilite, facadesHorsCompatibilite } from './formeArete';
+import { aretesHorsCompatibilite, facadesHorsCompatibilite } from './compatibiliteArete';
 import { capDecorAdmis } from '../data/props.types';
 import { PENTE_TOIT_DEG, typeNonNomme } from '../data/schemas/defs-scenes/scene';
 // Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
@@ -185,7 +185,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `state/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
     for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
-    // FORME × APPARENCE d'arête (`state/formeArete.ts`) : l'apparence RÉSOLUE comme au rendu (déclarée, de
+    // FORME × APPARENCE d'arête (`state/compatibiliteArete.ts`) : l'apparence RÉSOLUE comme au rendu (déclarée, de
     // façade, ou mur nu — `apparenceDeLArete`) doit savoir habiller chaque forme que l'arête prend ; une
     // façade nomme un préset, et son bandeau de fenêtres une apparence qui habille le mur fenêtré.
     for (const message of [...aretesHorsCompatibilite(s), ...facadesHorsCompatibilite(s)]) add('error', 'scene', undefined, message);

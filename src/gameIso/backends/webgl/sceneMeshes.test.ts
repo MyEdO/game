@@ -71,7 +71,8 @@ import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
 import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../state/sceneMemo';
-import { srgbToLinear, toHex } from '../../shade';
+import { srgbToLinear } from '../../shade';
+import { toHex } from '../../../data/couleur';
 
 const scene = buildScene(siegeSpec);
 const mpt = sceneMetresPerTile(scene);

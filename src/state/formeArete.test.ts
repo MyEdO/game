@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { formesDeLArete, formeRendue, formesAdmises, formesHorsCompatibilite, fenetrePosable, aretesHorsCompatibilite, facadesHorsCompatibilite, apparenceDeLArete, type FormeArete } from './formeArete';
+import { formesDeLArete, formeRendue, formesHorsCompatibilite, fenetrePosable, apparenceDeLArete } from './formeArete';
+import { aretesHorsCompatibilite, facadesHorsCompatibilite } from './compatibiliteArete';
+import { formesAdmises, type FormeArete } from '../data/formesDArete';
 import { emptyScene, type FacadeFeature, type Scene, type WallSeg } from './scene';
 import { validateScene } from './validateScene';
 import { structureAppearances } from '../data';
@@ -40,9 +42,11 @@ describe('formeArete — la forme vient de la nature de la Structure ET de `door
       if (c.refuse) expect(formesAdmises(app(c.refuse))).not.toContain(c.forme);
     });
 
-  it('une baie sous `parapet` exige son `corpsDeGarde` — sans lui, la courtine n’habille que le mur nu, bloc `door` compris', () => {
+  it('une baie sous `parapet` exige son `corpsDeGarde` ET la `claireVoie` qui le barre — sans le couple, la courtine n’habille que le mur nu, bloc `door` compris', () => {
     const baies: FormeArete[] = ['porte-fermee', 'porte-ouverte', 'fermeture-fixe'];
-    expect(formesAdmises({ parapet: { corpsDeGarde: {} } })).toEqual(['mur-nu', ...baies]);
+    expect(formesAdmises({ parapet: { corpsDeGarde: {} }, claireVoie: {} })).toEqual(['mur-nu', ...baies]);
+    expect(formesAdmises({ parapet: { corpsDeGarde: {} } })).toEqual(['mur-nu']);
+    expect(formesAdmises({ parapet: {}, claireVoie: {} })).toEqual(['mur-nu']);
     expect(formesAdmises({ parapet: {} })).toEqual(['mur-nu']);
     expect(formesAdmises({ parapet: {}, door: {} })).toEqual(['mur-nu']);
   });

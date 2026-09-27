@@ -54,7 +54,8 @@ import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import { structureEdgeKind } from '../../engine/structures';
-import { apparenceDeLArete, fenetrePosable, formesHorsCompatibilite, natureDuType, patchVersStructure, patchVersType, typeDArete, type TypeDArete } from '../../state/formeArete';
+import { apparenceDeLArete, apparenceParId, fenetrePosable, formesHorsCompatibilite, natureDuType, typeDArete, type TypeDArete } from '../../state/formeArete';
+import { patchVersStructure, patchVersType } from '../../state/editionArete';
 import { RefField } from '../compendium/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
@@ -212,7 +213,8 @@ export function Inspector({
   const entry = sel?.type === 'entry' ? scene.entryPoints?.[sel.id] ?? null : null;
   const selW = sel?.type === 'wall' ? scene.walls?.find((w) => w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z) ?? null : null;
   /** Apparence RÉSOLUE de l'arête sélectionnée (`apparenceDeLArete`, façade comprise). */
-  const appDeSelW = selW ? structureAppearances.find((a) => a.id === apparenceDeLArete(scene, selW)) : undefined;
+  const idDeSelW = selW ? apparenceDeLArete(scene, selW) : undefined;
+  const appDeSelW = idDeSelW === undefined ? undefined : apparenceParId(idDeSelW);
   const architectureBody = sel && (
     sel.type === 'architectureBody'
     || sel.type === 'architectureStorey'

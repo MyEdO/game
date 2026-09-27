@@ -20,7 +20,7 @@ import { areteCanonique, cleArete } from '../../geometry/arete';
 import { terrainSolidHeightM } from '../../state/terrain';
 import { memoByRefDeps } from '../../state/sceneMemo';
 import { panelOf } from './occluders';
-import { wallSvg, wallAccentsSvg, wallDepth, solidEdgeTopSvg } from '../authoring/wallsSvg';
+import { wallSvg, wallAccentsSvg, wallDepth, dessusDuBlocPlein, dessusSvg } from '../authoring/wallsSvg';
 import type { DetailOpts } from '../authoring/detailSvg';
 import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
@@ -101,7 +101,7 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
       if (plein(x + dx, y + dy)) continue;
       const arete = areteCanonique(x, y, side);
       const [a, b] = tileEdge(x, y, side, dims, lift);
-      const svg = solidEdgeTopSvg([a.cx, a.cy], [b.cx, b.cy]);
+      const svg = dessusSvg(dessusDuBlocPlein([a.cx, a.cy], [b.cx, b.cy]));
       out.push({
         d: depth(x, y, dims, z) + TRAIT_D,
         x, y, z,

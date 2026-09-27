@@ -38,11 +38,10 @@ import {
   PARTAGES_NOMMES,
   PAIRES_SUPERPOSEES,
   SEUIL_IDENTITE_HEROS,
-  SEUIL_TEINTES_CONTIGUES,
-  distanceTeinte,
   schema,
   type TeinteId,
 } from '../data/schemas/defs/teintesJeu';
+import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../data/couleur';
 
 /**
  * Les TEINTES DE JEU sont en DONNÉE (`src/data/teintesJeu.json`) ; trois façades les nomment

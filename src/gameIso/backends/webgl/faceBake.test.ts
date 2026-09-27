@@ -15,7 +15,8 @@ import { timberOverlaySvg } from '../../authoring/detailSvg';
 import { TIMBER_V0, TIMBER_V1, expandRecipe } from '../../detail/expand';
 import { ISO_PX_PER_M } from '../../iso';
 import { structureAppearances } from '../../../data';
-import { parseHex, srgbToLinear } from '../../shade';
+import { srgbToLinear } from '../../shade';
+import { parseHex } from '../../../data/couleur';
 import type { DetailRecipe } from '../../detail/types';
 
 /** La def d'apparence à COLOMBAGE de la donnée — la cuisson tire d'elle sa couleur de bois. */

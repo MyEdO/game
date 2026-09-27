@@ -98,7 +98,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:130` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
 | `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1354` | Éléments `roof` de la scène. |
 | `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
-| `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:681` | Éléments `wall` de la scène. |
+| `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:684` | Éléments `wall` de la scène. |
 
 ## 3. L'arborescence de `src/gameIso/`
 
@@ -199,4 +199,4 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: bee962a6dd998d7862495645a88c88e3a8adf504 (1007 fichiers, 91 dossiers) corps: 820df85243b6aea96eaeab29557188277b4b87b1 -->
+<!-- sources-empreinte: 931d746de54d233c2b5b7eb836212a27f950e4d7 (1007 fichiers, 91 dossiers) corps: f7eed63158492ec710e26d2cbd563e3484256450 -->

@@ -151,6 +151,12 @@ describe('SCHÉMA de `structureAppearance.json` — le linteau du corps de garde
     expect(schema.safeParse(entree({ door: { openingFrac: 0.5, lintelPx: 4 } })).success).toBe(false);
   });
 
+  it('une `claireVoie` à moins de deux entre-barreaux, ou fractionnaire, est refusée : sans barreau intérieur, le passage fermé se rendrait comme l’ouvert', () => {
+    const avec = (bars: number) => schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } }, claireVoie: { ...claireVoie, bars } })).success;
+    expect([avec(2), avec(6)]).toEqual([true, true]);
+    expect([avec(1), avec(0), avec(-3), avec(2.5)]).toEqual([false, false, false, false]);
+  });
+
   it('un corps de garde SANS `claireVoie` est refusé : son passage fermé n’aurait rien pour le barrer', () => {
     expect(schema.safeParse(entree({ parapet: { ...parapet, corpsDeGarde: { lintelPx: 4 } } })).success).toBe(false);
     expect(schema.safeParse(entree({ parapet })).success).toBe(true);

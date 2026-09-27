@@ -28,9 +28,8 @@ import { AVAILABILITIES, STAKE_FORMS, type Availability, type StakeForm, type Te
 import { availabilitySchema, harvestRaritySchema, stakeFormSchema } from './grammaire/valeurs';
 import { dispoPctAvailabilitySchema } from './defs/disponibilite';
 import type { HarvestRarity } from '../index';
-import { wallSideSchema } from './defs-scenes/communs';
+import { wallSideSchema, type WallSide } from './defs-scenes/communs';
 import { weatherIdSchema } from './defs/weather';
-import type { WallSide } from '../../state/scene';
 import type { WallEdgeSide } from '../../engine/types';
 
 /** Les deux canons verrouillés AU SEUIL GÉNÉRIQUE (≥2 membres), sous la forme attendue par le scan.
@@ -82,8 +81,8 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
 
   /**
    * ARÊTE DE MUR — le canon est le SCHÉMA (`wallSideSchema`, `defs-scenes/communs.ts`) : `WallSide`
-   * (`state/scene.ts`) et `WallEdgeSide` (`engine/types.ts`) en dérivent par `z.infer` (les deux `Eq`
-   * ci-dessus), l'éditeur en dérive ses `<option>` (`wallSideSchema.options`, `LogicDock.tsx`).
+   * (`defs-scenes/communs.ts`) et `WallEdgeSide` (`engine/types.ts`) en dérivent par `z.infer` (les deux
+   * `Eq` ci-dessus), l'éditeur en dérive ses `<option>` (`wallSideSchema.options`, `LogicDock.tsx`).
    *
    * PÉRIMÈTRE MESURÉ (2026-08-26, arbre APRÈS ce lot, scan sur 3438 fichiers) : la recopie que cette garde
    * ferme est celle de l'union COMPLÈTE — les 4 membres re-tapés ensemble. Il en reste 2 : le canon

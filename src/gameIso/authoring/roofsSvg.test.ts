@@ -6,7 +6,8 @@ import { diamondPath, footprintDepth, tileCenter, WALL_H, type Dims } from '../.
 import { WALL_H_M } from '../iso';
 import { metricToLift, METRES_PER_LEVEL } from '../../state/relief';
 import { roofMaterial } from '../catalog/roofs';
-import { shade, mix } from '../shade';
+import { shade } from '../shade';
+import { mix } from '../../data/couleur';
 import { emptyScene } from '../../state/scene';
 
 /**

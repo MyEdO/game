@@ -3,7 +3,7 @@ import { BAR_HALF_T, buildWalls, hauteurDeBaie, wallEnds } from './walls';
 import { WALL_H_M } from '../iso';
 import { emptyScene, setDoorOpen, type Scene, type WallSeg } from '../../state/scene';
 import { structureAppearances } from '../../data';
-import { formesAdmises, type FormeArete } from '../../state/formeArete';
+import { formesAdmises, type FormeArete } from '../../data/formesDArete';
 
 /**
  * GARDE (#1883) : une forme que `formesAdmises` déclare habillée SE DESSINE — la règle se lit sur le

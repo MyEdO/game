@@ -9,7 +9,7 @@
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
 import { WALL_H_M } from '../iso';
-import { mix, parseHex } from '../shade';
+import { mix, parseHex } from '../../data/couleur';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { DIR8_DELTA, type Dir8 } from '../../state/dir8';
 import { AMBIANCE } from '../catalog/ambiance';
@@ -251,7 +251,7 @@ const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > 
 export function tint(baseHex: string, light: number, fogT: number, fogColor: string = FOG_COLOR): string {
   const l = clamp(light, AMBIENT_FLOOR, 1);
   const t = clamp(fogT, 0, 1);
-  const base = parseHex(baseHex) ?? [0, 0, 0]; // parseur PARTAGÉ (shade.ts) — POV n'a que des couleurs hex résolues
+  const base = parseHex(baseHex) ?? [0, 0, 0]; // parseur PARTAGÉ (data/couleur.ts) — POV n'a que des couleurs hex résolues
   const fog = parseHex(fogColor) ?? [0, 0, 0];
   const ch = (b: number, f: number): number => {
     const lit = b * l;
@@ -270,7 +270,7 @@ export function fogAt(depthTiles: number, curve: FogCurve): number {
 }
 
 /** Mélange linéaire de deux couleurs `#rrggbb` (t = part de `b`, clampé à [0,1] : les poids de LOD
- *  frisent 1). Délègue au `mix` PARTAGÉ de shade.ts (parseur unique). PUR — sert aux FONDUS de LOD
+ *  frisent 1). Délègue au `mix` PARTAGÉ de data/couleur.ts (parseur unique). PUR — sert aux FONDUS de LOD
  *  (un joint qui s'évanouit se mélange vers la teinte de sa face, pas d'alpha SVG). */
 export function mixHex(a: string, b: string, t: number): string {
   return mix(a, b, clamp(t, 0, 1));

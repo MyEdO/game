@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildWalls, wallEnds, PLANCHES, POIGNEE_BORD, POIGNEE_LARGEUR } from './walls';
 import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
@@ -8,6 +8,17 @@ import { MISSING_ID } from '../catalog/missing';
 import { emptyScene, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import { faceDepthM } from '../backends/webgl/faceRelief';
+import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
+
+/** Apparence d'ESSAI à matière MINCE (`relief.wallM` sous la largeur du poteau, `UPRIGHT_WIDTH_M`) : le
+ *  poteau d'extrémité y déborde le jambage, ce qu'aucune apparence du catalogue ne montre. Servie par
+ *  `structureAppearance` sous son seul id ; toute autre id passe au catalogue. */
+const { APPARENCE_MINCE } = vi.hoisted(() => ({ APPARENCE_MINCE: 'essai-matiere-mince' }));
+vi.mock('../catalog/structures', async (importOriginal) => {
+  const catalogue = await importOriginal<typeof import('../catalog/structures')>();
+  const mince = { ...catalogue.structureAppearance('solide-porte-en-bois'), id: APPARENCE_MINCE, relief: { wallM: 0.12 } };
+  return { ...catalogue, structureAppearance: (id: string | undefined) => (id === APPARENCE_MINCE ? mince : catalogue.structureAppearance(id)) };
+});
 
 /**
  * Builder de MURS du pivot : on teste la sortie MONDE (camera-free) — l'aiguillage d'arête unique
@@ -342,23 +353,24 @@ describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un
     const leaf = facesOf(el, 'vantail')[0];
     expect(leaf.poly.map((pt) => pt.h)).toEqual([WALL_H_M * 0.52, WALL_H_M * 0.52, 0, 0]);
   });
-  it.each([
-    ['N', undefined],
-    ['E', 3],
-    ['\\', 2],
-  ] as const)('arête %s, %s m/tuile : les joints partagent la partie VISIBLE du vantail (entre les croix des jambages) en PLANCHES égales, la poignée y tient sa distance RELATIVE au bord — lus sur le rendu', (side, metresPerTile) => {
-    const s = sceneWith([{ x: 2, y: 2, side, door: true, closed: true }]);
-    if (metresPerTile) s.metresPerTile = metresPerTile;
+  const ARETES_DE_VANTAIL = wallSideSchema.options.flatMap((side) =>
+    ([2, 3] as const).flatMap((metresPerTile) => ([undefined, 'solide-porte-en-bois', APPARENCE_MINCE] as const).map((appearance) => [side, metresPerTile, appearance] as const)));
+  it.each(ARETES_DE_VANTAIL)('arête %s, %s m/tuile, apparence %s : les joints partagent la partie VISIBLE du vantail (entre les croix de TOUS les montants de chaque borne) en PLANCHES égales, la poignée y tient sa distance RELATIVE au bord — lus sur le rendu', (side, metresPerTile, appearance) => {
+    const s = sceneWith([{ x: 2, y: 2, side, door: true, closed: true, ...(appearance ? { appearance } : {}) }]);
+    s.metresPerTile = metresPerTile;
     const el = one(s);
     const [A, B] = wallEnds({ x: 2, y: 2, side });
     const t = (p: { x: number; y: number }) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
     const troncon = (f: { poly: { x: number; y: number }[] }) => [Math.min(...f.poly.map(t)), Math.max(...f.poly.map(t))];
-    const [v0, v1] = facesOf(el, 'jambage').map((f) => {
-      const demi = faceDepthM(f)! / 2 / (Math.hypot(B.x - A.x, B.y - A.y) * (metresPerTile ?? 2));
-      const axe = t(f.poly[0]);
-      return axe < 0.5 ? axe + demi : axe - demi;
+    const montants = el.faces.filter((f) => f.poly.length === 2).map((f) => {
+      const demi = faceDepthM(f)! / 2 / (Math.hypot(B.x - A.x, B.y - A.y) * metresPerTile);
+      return { axe: t(f.poly[0]), demi };
     });
-    expect(v0, 'la croix du jambage mord sur le vantail').toBeGreaterThan(0);
+    expect(montants.filter((m) => m.axe < 0.5).length, 'plusieurs montants à la borne A').toBeGreaterThan(1);
+    expect(montants.filter((m) => m.axe > 0.5).length, 'plusieurs montants à la borne B').toBeGreaterThan(1);
+    const v0 = Math.max(...montants.filter((m) => m.axe < 0.5).map((m) => m.axe + m.demi));
+    const v1 = Math.min(...montants.filter((m) => m.axe > 0.5).map((m) => m.axe - m.demi));
+    expect(v0, 'la croix des montants mord sur le vantail').toBeGreaterThan(0);
     const axes = facesOf(el, 'vantail-planche').map((f) => { const [a, b] = troncon(f); return (a + b) / 2; }).sort((a, b) => a - b);
     const bornes = [v0, ...axes, v1];
     const largeurs = bornes.slice(1).map((b, i) => b - bornes[i]);
@@ -621,7 +633,7 @@ describe('crestEls — crénelure de PÉRIMÈTRE (RENDU PUR, générale, jamais 
  * ENVELOPPE D'ÉTAGE (#892) — depuis l'unification `WALL_H = LEVEL_H` (`geometry/iso.ts`), le sommet
  * d'un mur EST la cote du plancher du dessus : la lèvre décorative du couronnement (`CAP_LIP_PX`,
  * 0,167 m au-dessus du sommet) n'a plus aucun dégagement et PERCE ce plancher. Elle se voit en POV et
- * en iso, où les FACES sont peintes ; pas en vue du dessus, qui ne trace que les arêtes (`topSvg`,
+ * en iso, où les FACES sont peintes ; pas en vue du dessus, qui ne trace que les arêtes (`dessusDuMur`,
  * `authoring/wallsSvg.ts`). Un mur COIFFÉ par un étage tient donc dans [base, base+WALL_H_M] ; un mur
  * libre (dernier niveau, clôture), ou seulement TRAVERSÉ par un plancher, garde sa lèvre.
  */

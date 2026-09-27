@@ -35,6 +35,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couleurHexSchema } from '../grammaire/valeurs';
+import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../../couleur';
 
 export const file = 'teintesJeu.json';
 export const famille = 'record';
@@ -113,21 +114,6 @@ export const PARTAGES_NOMMES: { a: TeinteId; b: TeinteId; signal: string }[] = [
 export const PAIRES_SUPERPOSEES: { surbrillance: TeinteId; identite: TeinteId }[] = IDENTITE_HEROS_KEYS.map(
   (identite) => ({ surbrillance: 'zone-marche' as TeinteId, identite }),
 );
-
-/** Distance PERCEPTUELLE bon marché entre deux `#rrggbb` (pondération RVB classique 2/4/3 : l'œil
- *  discrimine le vert le plus finement, le rouge le moins). L'échelle va de 0 à ~765. */
-export function distanceTeinte(a: string, b: string): number {
-  const c = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-  const [r1, g1, b1] = c(a);
-  const [r2, g2, b2] = c(b);
-  return Math.sqrt(2 * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + 3 * (b1 - b2) ** 2);
-}
-
-/** Plancher de distance perceptuelle (`distanceTeinte`) entre deux teintes CONTIGUËS — qui se touchent
- *  à l'écran et doivent s'y distinguer : surbrillance peinte sous un pion, trait de baie contre ses
- *  jambages, anneaux de deux héros côte à côte. Étalon MESURÉ : la paire la plus proche que le dépôt
- *  lit distincte, `identite-heros-1` ⇄ `identite-heros-3`, est à 102. */
-export const SEUIL_TEINTES_CONTIGUES = 90;
 
 /** Plancher de séparation des quatre identités de héros : leurs anneaux sont des teintes contiguës. */
 export const SEUIL_IDENTITE_HEROS = SEUIL_TEINTES_CONTIGUES;

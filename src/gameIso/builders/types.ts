@@ -17,7 +17,7 @@ export type { CellSide };
 import type { Combatant } from '../../engine/types';
 import type { Dir4, Dir8 } from '../../state/dir8';
 import type { SeatPose } from '../../state/seating';
-import type { FormeArete } from '../../state/formeArete';
+import type { FormeArete } from '../../data/formesDArete';
 
 /** Point MONDE : (x,y) en unités de GRILLE continues (coins de case à ±0.5), `h` en MÈTRES.
  *  Jamais de rotation ni d'écran ici — backend affine : `tileCenter(x, y, dims, metricToLift(h))` ;
