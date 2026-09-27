@@ -93,7 +93,7 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'resolveAttack', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'autoCleave', pred: /aiDriven/ },
   { file: 'combatFlow', fn: 'maybeHeroCleave', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
-  { file: 'combatFlow', fn: 'resolveEnemyFumble', pred: /aiDriven/ },
+  { file: 'combatFlow', fn: 'ecrireLaMaladresse', pred: /jetSurfaced/ },
   { file: 'combatFlow', fn: 'openRoundEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 2 : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'openCombatEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'openCombatPsychCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : idem

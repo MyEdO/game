@@ -2637,7 +2637,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           domeWard: { radiusMeters: zone.rayonM, ward },
         });
         lines.push(t(zone.porteur ? 'op.domeWard' : 'op.domeWardCouvert', {
-          name: target.label, diametre: zone.diametreM, trait: formatWardSave(ward.id, ward.value), src: nomDeSource(ctx),
+          name: target.label, diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, ward.value), src: nomDeSource(ctx),
         }));
         break;
       }
