@@ -145,6 +145,27 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(hh.criticalWounds ?? 0).toBe(1); // Critique subi
   });
 
+  it('ATTAQUE STANDARD (aucune option) → la fenêtre offre ses voies ; SOUS-ATTAQUE → aucune fenêtre de Déviation', () => {
+    const mont = () => {
+      seedBattleRng(424242);
+      const e = enemy({});
+      const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 });
+      setBattle([e, h]);
+      return { e, h };
+    };
+    const voies = () => (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
+    const std = mont();
+    expect(applyAttackResult(useGame.getState, useGame.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(true);
+    expect(tireLaSeverite().options?.map((o) => o.key), 'standard : Dévier / Subir offerts').toEqual(['devier', 'subir']);
+
+    useGame.setState({ pendingCascade: null });
+    const sous = mont();
+    applyAttackResult(useGame.getState, useGame.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true });
+    expect(voies(), 'sous-attaque : pas de fenêtre de Déviation imbriquée').toEqual([]);
+    const hh = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
+    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'la pièce n’est pas sacrifiée').toBe(0);
+  });
+
   it('héros avec une PIÈCE portée → Déviation offerte ; sur « Dévier », la pièce perd 1 PA, Critique ignoré', () => {
     const e = enemy({});
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 });

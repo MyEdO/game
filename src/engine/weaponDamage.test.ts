@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, destroyWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
+import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
 import { recomputeLoadout, damageString } from './items';
 import type { Weapon, Combatant } from './types';
 
@@ -94,14 +94,12 @@ describe('Solide (Indice) — absorption des Dégâts d’arme + sauvegarde (LDB
   });
 });
 
-describe('damageWeapon / destroyWeapon', () => {
+describe('damageWeapon', () => {
   it('incrémente damageTaken', () => { const w = sword(); damageWeapon(w); expect(w.damageTaken).toBe(1); });
-  it('Incassable exempte des dégâts ET de la destruction', () => {
+  it('Incassable exempte des dégâts', () => {
     const w = sword({ qualities: [{ id: 'incassable' }] });
     damageWeapon(w); expect(w.damageTaken ?? 0).toBe(0);
-    destroyWeapon(w); expect(w.destroyed).toBeFalsy();
   });
-  it('destroyWeapon marque détruite', () => { const w = bow(); destroyWeapon(w); expect(w.destroyed).toBe(true); });
 });
 
 function hero(items: Combatant['items']): Combatant {

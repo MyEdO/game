@@ -6,7 +6,7 @@
  * donne un couvert TOTAL au servant qui tire à travers (sinon tir depuis le pont, aucun couvert).
  */
 import { inFireArc } from './fireArc';
-import { mannedPosteWeapon, loadWeapon } from '../engine/items';
+import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../engine/items';
 import { hasWeaponGroupSkill } from '../engine/combat';
 import { exposedCrew } from '../engine/shipCritical';
 import { isOutOfAction } from '../engine/conditions';
@@ -293,7 +293,8 @@ export function leaveChef(actor: Combatant, poste: ShipPoste, combatants: Combat
   const wasChef = poste.crewIds?.[0] === actor.id;
   delete actor.mannedPoste;
   poste.crewIds = (poste.crewIds ?? []).filter((id) => id !== actor.id);
-  if (actor.weapons) actor.weapons = actor.weapons.filter((w) => w.uid !== poste.item.uid);
+  const piece = actor.weapons?.find((w) => w.uid === poste.item.uid);
+  if (piece) lacherLArme(actor, piece);
   if (wasChef) {
     const next = (poste.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).find((c): c is Combatant => !!c && !isOutOfAction(c));
     if (next) {

@@ -157,7 +157,7 @@ describe('Étape à DÉ NU en fenêtre (#1508) — la même coquille qu’une ta
  * et le porteur AVANT le lancer : la donnée est sur l'étape dès sa déclaration (`rollSeam.dieStep`).
  */
 describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AVANT le lancer', () => {
-  const DOME: SeuilDeSauvegarde = { indice: 6, traitId: 'protection', dome: true };
+  const DOME: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true };
   const NOM = 'Ilyanwe la Voilée';
 
   /** Ouvre la sauvegarde d'un héros NOMMÉ, telle que la porte la pousse (`combatFlow.pousserSauvegarde`). */

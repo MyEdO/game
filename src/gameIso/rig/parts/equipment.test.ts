@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipFromCombatant, isShield } from './equipment';
 import { pickView } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
-import { trappings } from '../../../data';
+import { findMutationById, trappings } from '../../../data';
 import { itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
 
@@ -138,5 +138,17 @@ describe('equipFromCombatant', () => {
     }
     expect(perdues).toEqual([]);
     expect([tenues.length, enPoste.length]).toEqual([122, 22]);
+  });
+});
+
+// Mutation Cornes asymétriques (`grantNaturalWeapon`) : une attaque NATURELLE (`Weapon.natural`), rien en main.
+describe('héros cornu sans arme au set : le rig ne dessine aucune arme pour les Cornes', () => {
+  it('les Cornes sont naturelles, leur forme est vide', () => {
+    const hero = { id: 'h', label: 'h', kind: 'hero', items: [], weapons: [], traits: [], activeEffects: [], mutations: [findMutationById('cornes-asymetriques')!] } as unknown as Combatant;
+    recomputeLoadout(hero);
+    const cornes = equipFromCombatant(hero).weapons.find((w) => !isShield(w))!;
+    expect(cornes.label).toBe('Cornes');
+    expect(cornes.natural).toBe(true);
+    expect(weaponFamily(cornes)).toBe('');
   });
 });
