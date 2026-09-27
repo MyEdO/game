@@ -86,9 +86,20 @@ export interface PendingVictory {
   /** COOP (spec §4bis) : ✓ de chaque siège — l'écran est synchronisé, l'hôte ferme à l'unanimité. */
   readyBySeat?: Record<number, boolean>;
 }
-/** Avancée d'un dialogue une fois un Test suspendu résolu : transition vers un nœud (dialogue
- *  conservé), ou clôture de la conversation. */
-export type DialogueTransition = { dialogue: Dialogue; nodeId: string; speakerId?: string } | 'close';
+/** CONVERSATION EN COURS : le dialogue ouvert, le nœud courant, l'interlocuteur de session, et la
+ *  `session` — id MONOTONE posé à l'ouverture par l'unique fabrique `ouvrirDialogue`
+ *  (`state/dialogue.ts`). La session REGROUPE les tours d'une même conversation à la relecture : deux
+ *  visites au même PNJ portent deux ids, là où `dialogueId` seul les confondait. */
+export interface EtatDialogue {
+  dialogue: Dialogue;
+  nodeId: string;
+  speakerId?: string;
+  session: number;
+}
+
+/** Avancée d'un dialogue une fois un Test suspendu résolu : transition vers un nœud (dialogue ET
+ *  session CONSERVÉS — on avance DANS la conversation, on n'en ouvre pas une autre), ou clôture. */
+export type DialogueTransition = EtatDialogue | 'close';
 
 /** Test de compétence interactif en attente d'acquittement par le joueur. */
 export interface PendingTest {

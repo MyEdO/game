@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, polygonesDePrimitive, sommetLocal, validatePropCatalog, type PropData, type PropPrimitive } from './props.types';
@@ -346,16 +345,13 @@ describe('validatePropCatalog — invariants de données du décor', () => {
    * effective d'un décor à recette s'en déduit, et avec elle la case de chaque siège et de chaque
    * abord). Le juger à la seule échelle par défaut laisse passer ce qu'une scène LIVRÉE fait vraiment :
    * la barge du sel et le Loup & Saumure sont à 10 m/case, où tout meuble à N places tient sur une case.
-   * La liste est DÉRIVÉE des documents (glob des `*-projet.json`) plus le défaut du monde — une scène
+   * La liste est DÉRIVÉE des documents (les projets livrés, `projetsLivres.mjs`) plus le défaut du monde — une scène
    * qui adopte une nouvelle échelle entre sous garde par sa seule déclaration.
    */
   const ECHELLES_EN_USAGE = (() => {
     const vues = new Set<number>([MPT]);
     const racine = new URL('../scenes/', import.meta.url);
-    const projets = listerArbre(fileURLToPath(racine), {
-      descendre: (rel) => !rel.includes('/'),
-      filtre: (rel) => rel.includes('/') && rel.endsWith('-projet.json'),
-    });
+    const projets = listerProjetsLivres();
     for (const rel of projets) {
       const doc = JSON.parse(readFileSync(new URL(rel, racine), 'utf8')) as { scenes?: { metresPerTile?: number }[] };
       for (const sc of doc.scenes ?? []) if (typeof sc.metresPerTile === 'number') vues.add(sc.metresPerTile);

@@ -13,8 +13,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { join } from 'node:path';
+import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { basename, join } from 'node:path';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
@@ -264,16 +264,11 @@ describe('Lieu — Mendier se fait « dans les rues » (LDB 09 l.97), donc PARTO
   /** Les lieux de carte RÉELLEMENT livrés, DÉRIVÉS des projets de campagne — jamais une liste tenue
    *  à la main : une campagne neuve entre dans la mesure sans toucher ce test. */
   function lieuxLivres(): { projet: string; id: string }[] {
-    const scenes = join(ROOT, 'src/scenes');
-    // Les projets vivent à la PROFONDEUR 1 (`<campagne>/<x>-projet.json`) : on n'entre que dans les
-    // dossiers de premier niveau, et on ne retient que leurs fichiers directs.
-    return listerArbre(scenes, {
-      descendre: (rel) => !rel.includes('/'),
-      filtre: (rel) => rel.split('/').length === 2 && rel.endsWith('-projet.json'),
-    })
-      .map((rel) => rel.split('/'))
-      .flatMap(([dossier, fichier]) => {
-        const projet = JSON.parse(readFileSync(join(scenes, dossier, fichier), 'utf8')) as
+    const scenes = dossierDesProjetsLivres(ROOT);
+    return listerProjetsLivres(ROOT)
+      .flatMap((rel) => {
+        const fichier = basename(rel);
+        const projet = JSON.parse(readFileSync(join(scenes, rel), 'utf8')) as
           { worldMap?: { places?: { id: string }[] } };
         return (projet.worldMap?.places ?? []).map((p) => ({ projet: fichier, id: p.id }));
       });

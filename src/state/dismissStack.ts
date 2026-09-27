@@ -4,7 +4,16 @@
  * Modèle STANDARD (celui des `<dialog>`/popover natifs) : chaque surface qui peut être congédiée
  * s'empile à son ouverture, se dépile à sa fermeture, et un appui congédie LA COUCHE DU DESSUS.
  * L'ordre est celui des `pushLayer` — LIFO PUR : la dernière ouverte se ferme la première. Le `kind`
- * est un LIBELLÉ DE DIAGNOSTIC (journal, tests) ; il n'entre dans aucun calcul de rang.
+ * est l'identifiant STABLE de la surface (`conversationAuDessus` le lit) : il n'entre dans aucun rang.
+ *
+ * NATURE d'une couche, déclarée à l'empilement (REQUISE) — le modèle natif :
+ *  - `modale` (un `<dialog>` ouvert par `showModal()`) : elle PIÈGE le focus (`useModalA11y`) — ce qui
+ *    est dessous n'est plus jouable, ni au clavier ni à la marche, qu'un voile le couvre ou non ;
+ *  - `popover` : il ne piège rien — il se congédie en premier (LIFO), mais il ne prend ni les touches
+ *    ni la page.
+ * Le congédiement ignore la nature (LIFO pur) ; `modalKindsOpen`/`modalLayerOpen` la lisent pour dire
+ * quelles surfaces MODALES sont ouvertes sur l'écran de CE siège (la pile est locale au client) —
+ * l'ORDRE de la pile n'y entre pas : il dit qui se congédie d'abord, pas qui est peint au-dessus.
  *
  * Deux façons pour une couche de RESTER à l'écran :
  *  - `onDismiss: null` — couche BLOQUANTE : elle CONSOMME l'appui sans rien faire (l'équivalent du
@@ -25,9 +34,14 @@
  *  l'écran, l'appui consommé — refus pur, ou congédiement PARTIEL (un échelon interne de moins). */
 export type OnDismiss = () => void | boolean;
 
+/** Ce que la couche fait de ce qui est dessous (cf. en-tête) : `modale` le retire au clavier et à la
+ *  marche, `popover` n'en retire rien. */
+export type LayerNature = 'modale' | 'popover';
+
 /** Jeton opaque rendu par `pushLayer` : la seule façon de désigner SA couche pour la retirer. */
 export interface DismissHandle {
   readonly kind: string;
+  readonly nature: LayerNature;
 }
 
 interface Couche extends DismissHandle {
@@ -53,8 +67,8 @@ function notifier(e: DismissEvent): void {
   for (const fn of [...abonnes]) fn(e);
 }
 
-export function pushLayer(couche: { kind: string; onDismiss: OnDismiss | null }): DismissHandle {
-  const c: Couche = { kind: couche.kind, onDismiss: couche.onDismiss };
+export function pushLayer(couche: { kind: string; nature: LayerNature; onDismiss: OnDismiss | null }): DismissHandle {
+  const c: Couche = { kind: couche.kind, nature: couche.nature, onDismiss: couche.onDismiss };
   pile.push(c);
   notifier({ type: 'push', handle: c, taille: pile.length });
   return c;
@@ -80,7 +94,15 @@ export function dismissTop(): DismissResult {
 
 export const dismissStackSize = (): number => pile.length;
 
-/** Libellés de la pile, du bas vers le haut — DIAGNOSTIC (tests, journal) uniquement. */
+/** `kind` des couches MODALES ouvertes sur l'écran de CE siège, du bas vers le haut de la pile (les
+ *  popovers, qui ne piègent rien, n'y figurent pas). */
+export const modalKindsOpen = (): readonly string[] => pile.filter((c) => c.nature === 'modale').map((c) => c.kind);
+
+/** Une couche MODALE est-elle ouverte sur l'écran de CE siège (le focus y est piégé) ? */
+export const modalLayerOpen = (): boolean => pile.some((c) => c.nature === 'modale');
+
+/** `kind` de toutes les couches, du bas vers le haut — lecture de DIAGNOSTIC : seuls les tests la
+ *  lisent. */
 export const dismissStackKinds = (): readonly string[] => pile.map((c) => c.kind);
 
 export function subscribeDismissStack(fn: (e: DismissEvent) => void): () => void {

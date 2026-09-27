@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { KEYBINDINGS, effectiveCodes } from './keybindings';
+import { KEYBINDINGS, bindingApplies, effectiveCodes } from './keybindings';
 
 /**
  * #199 — résidu de recette : en mode Pousser, les flèches positionnaient bien le curseur (aperçu
@@ -14,7 +14,7 @@ import { KEYBINDINGS, effectiveCodes } from './keybindings';
  */
 function dispatch(code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) {
   return KEYBINDINGS.find(
-    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && k.when(s),
+    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && bindingApplies(k, s),
   );
 }
 

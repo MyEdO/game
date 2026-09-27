@@ -139,18 +139,18 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `stake` | 10 | `src/engine/flowCore.ts:841` |
-| `skill` | 30 | `src/engine/disease.ts:371` |
-| `sense` | 2 | `src/state/combatEffects.ts:1011` |
-| `characteristic` | 24 | `src/engine/disease.ts:371` |
+| `skill` | 31 | `src/engine/disease.ts:371` |
+| `sense` | 2 | `src/state/combatEffects.ts:1012` |
+| `characteristic` | 25 | `src/engine/disease.ts:371` |
 | `difficulty` | 8 | `src/engine/disease.ts:358` |
-| `requireSL` | 2 | `src/state/combatEffects.ts:1050` |
+| `requireSL` | 2 | `src/state/combatEffects.ts:1051` |
 | `label` | 11 | `src/state/combat/triggeredTest.ts:235` |
-| `tool` | 2 | `src/state/combatEffects.ts:1013` |
-| `vsGroups` | 5 | `src/state/combatEffects.ts:918` |
-| `vsStatus` | 1 | `src/state/combatEffects.ts:917` |
-| `begging` | 3 | `src/state/combatEffects.ts:922` |
-| `vsCapricieux` | 1 | `src/state/combatEffects.ts:926` |
-| `easierIf` | 11 | `src/state/combatEffects.ts:967` |
+| `tool` | 2 | `src/state/combatEffects.ts:1014` |
+| `vsGroups` | 5 | `src/state/combatEffects.ts:919` |
+| `vsStatus` | 1 | `src/state/combatEffects.ts:918` |
+| `begging` | 3 | `src/state/combatEffects.ts:923` |
+| `vsCapricieux` | 1 | `src/state/combatEffects.ts:927` |
+| `easierIf` | 11 | `src/state/combatEffects.ts:968` |
 | `argDifficulty` | 1 | `src/state/triggeredEffects.ts:75` |
 | `unlessImmune` | 1 | `src/state/combat/flowEval.ts:137` |
 | `onlyGroups` | 1 | `src/state/combat/flowEval.ts:138` |
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `Ref`.
-<!-- sources-empreinte: 2f4c5d2148e501c3e90cd6c2c309360d317980d0 (2113 fichiers, 174 dossiers) corps: 5c720213a77d35bce679bfbbe7c5a6254bdf397e -->
+<!-- sources-empreinte: 559f32c5abf122c8b3142455be640ebd77651d55 (2115 fichiers, 174 dossiers) corps: 8413f663cfc53ccdfb1587e31c629916a1adf92a -->

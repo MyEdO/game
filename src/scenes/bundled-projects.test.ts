@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import { validateScene } from '../state/validateScene';
@@ -25,7 +26,7 @@ import type { Flow } from '../state/flow';
  */
 const SCENES_DIR = join(__dirname);
 
-const bundledFiles = listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('-projet.json') })
+const bundledFiles = listerProjetsLivres()
   .map((rel) => join(SCENES_DIR, rel));
 
 /** Erreurs de contenu d'un paquet, chacune NOMMANT son fautif (scène / portée / réf) — jamais un compte. */

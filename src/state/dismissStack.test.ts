@@ -21,7 +21,7 @@ describe('dismissStack — verdicts d’un appui', () => {
 
   it('`onDismiss` sans retour : `ferme`, la couche est DÉPILÉE', () => {
     const fermer = vi.fn();
-    pushLayer({ kind: 'modale', onDismiss: fermer });
+    pushLayer({ kind: 'modale', nature: 'modale', onDismiss: fermer });
     expect(dismissTop()).toBe('ferme');
     expect(fermer).toHaveBeenCalledTimes(1);
     expect(dismissStackKinds()).toEqual([]);
@@ -31,7 +31,7 @@ describe('dismissStack — verdicts d’un appui', () => {
     // Une surface à sous-écrans : le 1er appui remonte d'un échelon interne (elle reste à l'écran),
     // le 2e la ferme pour de bon.
     let echelon = 1;
-    pushLayer({ kind: 'menu-systeme', onDismiss: () => { if (echelon > 0) { echelon -= 1; return false; } } });
+    pushLayer({ kind: 'menu-systeme', nature: 'modale', onDismiss: () => { if (echelon > 0) { echelon -= 1; return false; } } });
 
     expect(dismissTop(), 'appui 1 : consommé par l’échelon interne').toBe('reste');
     expect(echelon).toBe(0);
@@ -42,9 +42,9 @@ describe('dismissStack — verdicts d’un appui', () => {
   });
 
   it('retrait HORS-ORDRE : une couche démontée par le rendu retire LA SIENNE, l’ordre des autres tient', () => {
-    const bas = pushLayer({ kind: 'bas', onDismiss: () => {} });
-    pushLayer({ kind: 'milieu', onDismiss: () => {} });
-    pushLayer({ kind: 'haut', onDismiss: () => {} });
+    const bas = pushLayer({ kind: 'bas', nature: 'modale', onDismiss: () => {} });
+    pushLayer({ kind: 'milieu', nature: 'modale', onDismiss: () => {} });
+    pushLayer({ kind: 'haut', nature: 'modale', onDismiss: () => {} });
     popLayer(bas);
     expect(dismissStackKinds()).toEqual(['milieu', 'haut']);
   });

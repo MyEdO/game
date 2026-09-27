@@ -177,7 +177,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
-| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (107 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (109 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
@@ -429,7 +429,7 @@ méta sans champ correspondant est refusée. C'est le canal registre → atelier
 `DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.
 
 Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à
-`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les quatre defs de projet partagent
+`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les defs de projet partagent
 le même `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`), composé des formes de scène
 (`scene.ts`), de carte du monde (`worldmap.ts`) et du bloc narratif (`narratif.ts`).
 
@@ -498,4 +498,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: 643bac8547bb96746aaf6acf6d9fc495a4eb1a2c (382 fichiers, 2 dossiers) corps: e4665926fb9d61574075f3354eed036948ff1b54 -->
+<!-- sources-empreinte: 1951588faed7a1d246667f73d26872e9274e630f (382 fichiers, 2 dossiers) corps: f08899d4cd50950a908c5bebbef9af0e3e4ccab9 -->

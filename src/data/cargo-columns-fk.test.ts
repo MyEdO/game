@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres, PROJETS_LIVRES } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { navalPorts } from './index';
 import { unresolvedCargoIds, type CargoEntry } from '../engine/cargo';
 import { findCargoEntryById } from '../engine/seaVoyage';
@@ -25,8 +25,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  *  (un `port.ref` est résolu depuis `naval-ports.json`, couvert par le bloc MARITIME). */
 function colonnesDesProjets(): { source: string; ids: string[]; resolve: (id: string) => CargoEntry | undefined }[] {
   const out: { source: string; ids: string[]; resolve: (id: string) => CargoEntry | undefined }[] = [];
-  const scenes = listerArbre(join(ROOT, 'src/scenes'), { filtre: (r) => r.endsWith('.json') });
-  for (const rel of scenes.map((r) => `src/scenes/${r}`)) {
+  for (const rel of listerProjetsLivres(ROOT).map((r) => `${PROJETS_LIVRES.dossier}/${r}`)) {
     let doc: { worldMap?: { places?: { id?: string; port?: { production?: string[] }; market?: { produits?: string[] } }[] } };
     try { doc = JSON.parse(readFileSync(join(ROOT, rel), 'utf8')); } catch { continue; }
     for (const p of doc.worldMap?.places ?? []) {

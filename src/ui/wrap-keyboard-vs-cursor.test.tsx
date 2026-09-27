@@ -14,14 +14,14 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { KEYBINDINGS, effectiveCodes } from '../state/keybindings';
+import { KEYBINDINGS, bindingApplies, effectiveCodes } from '../state/keybindings';
 import { useGameKeyboard } from './useGameKeyboard';
 import { ResilienceButton } from './ResilienceButton';
 
 /** Réplique EXACTE du prédicat de sélection de `useGameKeyboard.ts::onKey` (1er match). */
 function dispatchBinding(code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) {
   return KEYBINDINGS.find(
-    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && k.when(s),
+    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && bindingApplies(k, s),
   );
 }
 

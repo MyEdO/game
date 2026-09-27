@@ -161,6 +161,8 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -220,4 +222,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: c204fd4fada3e310087f74970da153e04200da84 (1838 fichiers, 2 dossiers) corps: 5670c6fc12509e04a3f753f563c44b0abec6741e -->
+<!-- sources-empreinte: 5e0b4b6f883b06794ecc9de83c3b0ccdcf8513ee (1840 fichiers, 2 dossiers) corps: f795f87832339c7537ecc0c062d6aaad765464ea -->

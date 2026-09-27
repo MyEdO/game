@@ -229,13 +229,13 @@ describe('parseSave — la version DOIT être la courante', () => {
     const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
-  it('MESURE du motif de bump 54 → 55 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 54 se jette', () => {
-    // Une save de 54 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
+  it('MESURE du motif de bump 55 → 56 (#1897) : un sort FUSIONNÉ ne se résout plus — la save de 55 se jette', () => {
+    // Une save de 55 porte `Combatant.spells` tel quel (`snapshotSave` recopie le `state`) : un héros qui
     // a appris « Alarme » (frenchy-bzh, fusionnée dans « Alerte ») rouvrirait avec un id que plus rien
     // ne résout. D'où le REJET, et non une purge silencieuse du grimoire.
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(55);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(56);
     const heros = { id: 'h', kind: 'hero', spells: ['alarme', 'alerte'] };
-    expect(parseSave({ ...cur, version: 54, data: { party: [heros] } })).toBeNull();
+    expect(parseSave({ ...cur, version: 55, data: { party: [heros] } })).toBeNull();
     expect(findSpellById('alarme'), 'l’id fusionné n’existe plus au catalogue').toBeUndefined();
     expect(idDeSortVivant('alarme')).toBe('alerte');
   });

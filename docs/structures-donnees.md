@@ -26,7 +26,7 @@ Ce que la mesure ci-dessous **ne voit pas** — un compte n’a de sens qu’ave
 - Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.
 - La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).
 - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
-- Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les quatre projets de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.
+- Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.
 - Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).
 - La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` NUMÉRIQUES est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto`). Ce qui reste hors candidature est le TYPE : une borne non numérique (`null` d’une bande ouverte comprise) n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.
 - Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 36 tuples à l’arbre sur 10 sites (2 racines, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 34 paramètres de recette de rendu (`detail.courses.blockWM` 15, `detail.speckle.rM` 17, `detail.tufts.hM` 2, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (`sea-cargo.json › cargoes[].avail` 44, `land-cargo.json › cargoes[].avail` 28, L-1659-2), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 36 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.
@@ -56,8 +56,8 @@ troncature se COMPTE ici, elle ne se tait pas.
 
 ### 1bis. Index des ids (le cœur du détecteur)
 
-Identités indexées : **5932** (entrées de racine + documents embarqués) ; libellés
-normalisés : **5168**. Un id vu dans PLUSIEURS datasets rend la résolution
+Identités indexées : **5934** (entrées de racine + documents embarqués) ; libellés
+normalisés : **5170**. Un id vu dans PLUSIEURS datasets rend la résolution
 AMBIGUË (jamais fausse) : **398** collisions, et **3428** ids
 sont aussi le libellé d’une entité (faux positif possible sur la résolvabilité d’un `{text}`).
 
@@ -595,7 +595,7 @@ nombre d’entrées qui la portent.
 | `src/data/oups.json` | array | liste | table | 8 | `id`:string(8) `kind`:string(8) `label`:string(8) `max`:number(7) `min`:number(7) `source`:object(8) `type`:string(8) |
 | `src/data/peripeties.json` | array | liste | entité | 10 | `desc`:string(10) `id`:string(10) `kind`:string(10) `label`:string(10) `roll`:number(10) `source`:object(10) `type`:string(10) |
 | `src/data/pregens.json` | array | liste | entité | 8 | `ambitionLong`:string(8) `ambitionShort`:string(8) `build`:number(2) `career`:string(8) `careerTalent`:object(2) `id`:string(8) `label`:string(8) `motivation`:string(8) `pettySpells`:array(1) `seed`:number(8) `sex`:string(2) `species`:string(8) `type`:string(8) |
-| `src/data/primitives.manifest.json` | array | liste | entité | 107 | `concept`:string(107) `css`:string(50) `fichier`:string(107) `id`:string(107) `label`:string(107) `nature`:string(8) `perimetre`:string(107) `poseurs`:array(12) `type`:string(107) `verrou`:string(107) |
+| `src/data/primitives.manifest.json` | array | liste | entité | 109 | `concept`:string(109) `css`:string(50) `fichier`:string(109) `id`:string(109) `label`:string(109) `nature`:string(8) `perimetre`:string(109) `poseurs`:array(12) `type`:string(109) `verrou`:string(109) |
 | `src/data/problemes-vehicule.json` | object | pipe à la racine | config | 1 | `die`:string(1) `entries`:array(1) `id`:string(1) `label`:string(1) `source`:object(1) `type`:string(1) |
 | `src/data/progression-schemas.derived.json` | object | pipe à la racine | config | 1 | `id`:string(1) `label`:string(1) `livres`:array(1) `schemas`:array(1) `type`:string(1) |
 | `src/data/props.json` | array | liste | entité | 124 | `cover`:string(32) `foot`:object(20) `id`:string(124) `label`:string(124) `light`:object(10) `maison`:string(41) `opaque`:boolean(5) `seatSlots`:array(2) `solid`:boolean(92) `type`:string(124) `volume`:object(46) |
@@ -674,7 +674,7 @@ Signatures distinctes d’entrée de document : **640**. Les 40 plus fréquentes
 | `cn,desc,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 67 |
 | `availability,categorie,damage,desc,enc,id,label,loc,pa,price,qualities,reach,source,subType,type` | 66 |
 | `id,label,type` | 60 |
-| `concept,fichier,id,label,perimetre,type,verrou` | 57 |
+| `concept,fichier,id,label,perimetre,type,verrou` | 59 |
 | `desc,id,label,parent,prefix,source,suffix,type` | 55 |
 | `appearance,char,desc,folder,grantGroups,id,label,optionals,skills,source,spells,talents,title,traits,trappings,type` | 44 |
 | `appearance,char,desc,folder,harvest,id,label,optionals,skills,source,spells,talents,title,traits,trappings,type` | 42 |
@@ -742,7 +742,7 @@ dans le MÊME commit :
 | source | clé absente | 42 |
 
 Documents dont AUCUNE ENTRÉE DE RACINE ne porte `source` : **42** (lot `L1d #1469`) —
-`ambiance.json`(1) `arcane-phenomena.json`(1) `books.json`(30) `breath-types.json`(6) `calendarPhases.json`(7) `crew-test-types.json`(1) `damage-types.json`(4) `details.json`(1) `disponibilite.json`(1) `donnees.manifest.json`(1) `groups.json`(38) `land-cargo.json`(1) `lieux-services.json`(7) `lightLevels.json`(5) `lightTones.json`(4) `localisation.json`(1) `mass-battle.json`(1) `materials.json`(16) `merchantFamilies.json`(7) `merchants.json`(6) `names.json`(7) `naval-progression.json`(1) `pregens.json`(8) `primitives.manifest.json`(107) `progression-schemas.derived.json`(1) `qualitySubtypes.json`(3) `qualityTypes.json`(2) `raceAppearance.json`(21) `raw.manifest.json`(12) `renduMonte.json`(1) `river-perils.json`(1) `sea-cargo.json`(1) `sea-events.json`(1) `sea-navigation.json`(1) `sea-perils.json`(1) `sea-weather.json`(1) `ship-construction.json`(1) `sizes.json`(1) `speciesRace.json`(1) `structureAppearance.json`(18) `systemes.manifest.json`(16) `weather.json`(1)
+`ambiance.json`(1) `arcane-phenomena.json`(1) `books.json`(30) `breath-types.json`(6) `calendarPhases.json`(7) `crew-test-types.json`(1) `damage-types.json`(4) `details.json`(1) `disponibilite.json`(1) `donnees.manifest.json`(1) `groups.json`(38) `land-cargo.json`(1) `lieux-services.json`(7) `lightLevels.json`(5) `lightTones.json`(4) `localisation.json`(1) `mass-battle.json`(1) `materials.json`(16) `merchantFamilies.json`(7) `merchants.json`(6) `names.json`(7) `naval-progression.json`(1) `pregens.json`(8) `primitives.manifest.json`(109) `progression-schemas.derived.json`(1) `qualitySubtypes.json`(3) `qualityTypes.json`(2) `raceAppearance.json`(21) `raw.manifest.json`(12) `renduMonte.json`(1) `river-perils.json`(1) `sea-cargo.json`(1) `sea-events.json`(1) `sea-navigation.json`(1) `sea-perils.json`(1) `sea-weather.json`(1) `ship-construction.json`(1) `sizes.json`(1) `speciesRace.json`(1) `structureAppearance.json`(18) `systemes.manifest.json`(16) `weather.json`(1)
 
 Le DoD ajouté de #1465 annonçait « 13 datasets sans `source` » : la mesure en trouve
 **42** — le chiffre de 13 n’a pas de porteur dans l’arbre, il ne se recopie pas.
@@ -1155,10 +1155,10 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **885** (cible 418 · declaree 6 · historique 131 · divergente 330). Objets JSON parcourus : **49208**, dont **31857** portent une forme
+Lignes concept × dataset × champ × forme : **885** (cible 418 · declaree 6 · historique 131 · divergente 330). Objets JSON parcourus : **49210**, dont **31857** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **88**.
 
-Entrées de racine sans concept de valeur : **4101** sur **4188** —
+Entrées de racine sans concept de valeur : **4103** sur **4190** —
 un document n’est ni orphelin ni hors strate : ce compte est le seul porteur de ce qu’aucun concept ne revendique.
 Dont, NOMMÉES, celles qu’un concept de valeur revendiquerait sans la clause `horsDesignation` du lexique : `activities.json` 52.
 
@@ -2529,7 +2529,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13476** objets sur **49208** ne sont portés par AUCUNE
+Au-delà des orphelines, **13476** objets sur **49210** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -5293,4 +5293,4 @@ pèse **2990** slots sur 3635.
 - Symétrique et INVERSE : une référence ENVELOPPÉE (`{id}` posé par `ref(type)`) projette sur la clé `id`, jamais sur le champ PORTEUR que le scan observe — mesuré 2026-09-01, `species.json › [].previewCareer.id` → `id`, `structures.json › [].traits[].id` → `id`, `vehicles.json › [].ship.traits[].id` → `id`. La couverture est donc SOUS-estimée sur toute référence à enveloppe, et la ligne de `SLOTS_SANS_DECLARATION` du champ porteur NE SE SOLDE PAS par l’adoption de la fabrique : elle survit à la migration qui la rendait caduque.
 - `valeursAuPath` traverse une branche d’union (`|N`) sans la discriminer : la donnée ne porte pas la branche qui la parse, chaque branche lit donc les valeurs de toutes — mesuré le 2026-09-22 sur `props.json › [].volume.primitives[]|0..2.material`, 297 valeurs à chacune des trois branches : la résolution y est comptée une fois par branche.
 
-<!-- sources-empreinte: f2a19308bf6955594d61fc59a18a47d18c635c5f (391 fichiers, 10 dossiers) corps: c5b5a4f8ad4926926bbe53d652956b5b7ffb7493 -->
+<!-- sources-empreinte: 89d703e60de144f1d456c84956531d532ac0bb1f (392 fichiers, 10 dossiers) corps: ab047c1174b633b28c43306bfa86ef36058031da -->

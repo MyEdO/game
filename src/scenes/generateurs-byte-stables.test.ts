@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, it, expect } from 'vitest';
-import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 
 /**
  * Garde TRANSVERSE (#1522) : la SOURCE d'authoring possède 100 % de la donnée de l'artefact généré.
@@ -46,8 +47,7 @@ function generateurs(): string[] {
   return out;
 }
 
-const projets = (dir: string): string[] =>
-  listerArbre(dir, { filtre: (rel) => rel.endsWith('-projet.json') }).map((rel) => join(dir, rel));
+const projets = (): string[] => listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
 
 const GENERATEURS = generateurs();
 
@@ -85,10 +85,10 @@ describe('générateurs de campagne — l’artefact committé est l’octet exa
       const mod = (await import(pathToFileURL(f).href)) as Generateur;
       produits.add(join(mod.OUT));
     }
-    const orphelins = projets(SCENES_DIR).filter((p) => !produits.has(join(p)) && !(p.split(/[\\/]/).pop()! in MANUSCRITS));
+    const orphelins = projets().filter((p) => !produits.has(join(p)) && !(p.split(/[\\/]/).pop()! in MANUSCRITS));
     expect(orphelins, 'projet ni généré ni déclaré manuscrit — ajouter son générateur ou le nommer dans MANUSCRITS').toEqual([]);
     // Non-vacuité : la liste des manuscrits nomme des fichiers qui EXISTENT.
-    const noms = new Set(projets(SCENES_DIR).map((p) => p.split(/[\\/]/).pop()!));
+    const noms = new Set(projets().map((p) => p.split(/[\\/]/).pop()!));
     for (const m of Object.keys(MANUSCRITS)) expect(noms.has(m), `${m} : déclaré manuscrit mais absent de ${dirname(SCENES_DIR)}`).toBe(true);
   });
 });
