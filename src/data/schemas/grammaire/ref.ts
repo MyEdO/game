@@ -155,7 +155,7 @@ function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: strin
 
 /** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
 export function idsDe(type: TypeEntite): ReadonlySet<string> {
-  return admisDe(type, undefined, `idsDe('${type}')`);
+  return idsDesignes(espaceDe(type), `idsDe('${type}')`);
 }
 
 /**
