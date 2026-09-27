@@ -490,3 +490,27 @@ test('`--check` : `.sources-lues.json` périmé est nommé par son DELTA (`delta
     rmSync(racine, { recursive: true, force: true })
   }
 })
+
+test('`--check` de bout en bout : un PIED périmé sous un corps identique est refusé, nommé, et `docs:build` le guérit', () => {
+  const { racine, git } = depotReel()
+  try {
+    // Même longueur, autre contenu : le générateur rend un corps identique, seul le PIED signe
+    // d'autres sources — le refus ne peut venir que du verdict du pied dans `executer`.
+    writeFileSync(path.join(racine, 'src', 'a.ts'), 'export const a = 2\n')
+    git('add', 'src/a.ts')
+    const rouge = executer(racine, ['--check'])
+    assert.equal(rouge.status, CODE_CORPS_PERIME, rouge.sortie)
+    assert.match(
+      rouge.sortie,
+      new RegExp(`docs:check — g/a\\.mjs — pied PÉRIMÉ sur ${DOC_A.replace('.', '\\.')} : sources [0-9a-f]{12} ≠ [0-9a-f]{12}, corps identique — npm run docs:build`),
+    )
+    assert.doesNotMatch(rouge.sortie, /g\/a\.mjs — corps périmé/)
+
+    assert.equal(executer(racine, []).status, 0)
+    git('add', '-A')
+    const vert = executer(racine, ['--check'])
+    assert.equal(vert.status, 0, vert.sortie)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
