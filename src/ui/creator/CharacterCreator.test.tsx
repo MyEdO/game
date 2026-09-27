@@ -421,7 +421,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(withoutChoice).toContain('signe de statut social');
     expect(withoutChoice).toContain('Point d&#x27;Encombrement');
     expect(withoutChoice).toContain('DR à un Test raté');
-    expect(withoutChoice).toContain('Robuste');
+    expect(withoutChoice).toContain('matériaux robustes');
     // Raffiné (défaut du résolveur) pré-sélectionné sans que rien ne soit stocké.
     expect(estPrimary(withoutChoice, 'Raffiné')).toBe(true);
     expect(estPrimary(withoutChoice, 'Solide')).toBe(false);
@@ -444,7 +444,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     const afterBranch = renderToStaticMarkup(
       <TrappingChoiceSlot slot={slot} choices={{ [outerKey]: branchKey, [branchKey]: 'solide' }} onChoicesChange={() => {}} />,
     );
-    expect(afterBranch).toContain('Robuste'); // picker imbriqué déroulé
+    expect(afterBranch).toContain('matériaux robustes'); // picker imbriqué déroulé
     expect(estPrimary(afterBranch, 'Solide')).toBe(true);
   });
 

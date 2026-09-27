@@ -1,6 +1,7 @@
 import { fixtureText } from '../../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../../engine/qualities/normalize';
+import { isUnarmed } from '../../engine/items';
 import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : enregistre l'applier 'bladeTrap' + installe les hooks (breakBlade…)
 import { pushChoice } from '../rollSeam';
@@ -119,8 +120,8 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // désarmé dans tous les cas de victoire
+    expect(a.weapons.map(isUnarmed), 'arrachée ou brisée, la lame a quitté les mains : les Mains nues la remplacent').toEqual([true]);
     // Bris SSI Succès Stupéfiant (marge nette ≥ 6) — preuve que la conséquence lit la marge nette (LDB 62 l.280).
-    expect(weapon.destroyed === true).toBe(o.netSL >= 6);
     // La conséquence est EMPILÉE comme étape d'affichage propre (paradigme cascade : « l'un sous l'autre »).
     const rx = o.netSL >= 6 ? /BRISÉE/ : /arrachée/;
     expect(outcome.some((l) => rx.test(l.text))).toBe(true);
@@ -144,7 +145,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // retirée du loadout
-    expect(weapon.destroyed).toBe(true); // BRISÉE (Succès Stupéfiant)
+    expect(a.weapons.map(isUnarmed), 'BRISÉE : les Mains nues la remplacent').toEqual([true]);
     expect(outcome.some((l) => /BRISÉE/.test(l.text))).toBe(true); // note empilée sous le jet
   });
 
@@ -161,7 +162,6 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // arrachée des mains
-    expect(weapon.destroyed).toBeFalsy(); // Incassable → pas brisée (LDB 62 l.280)
     expect(outcome.some((l) => /résiste à la casse/.test(l.text))).toBe(true); // note empilée
   });
 
@@ -201,7 +201,6 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade'), 'la lame reste en main').toBeTruthy();
-    expect(weapon.destroyed).toBeFalsy();
     expect(useGame.getState().pendingCascade?.participants.some((s) => s.kind === 'bladeTrapResult'), 'rien ne se passe : aucune conséquence empilée').not.toBe(true);
   });
 
@@ -223,7 +222,6 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = useGame.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeTruthy(); // garde sa lame
-    expect(weapon.destroyed).toBeFalsy();
   });
 
   it('héros en cadence AUTO : Test opposé résolu INLINE (jet non influençable), désarme si le défenseur l’emporte', () => {

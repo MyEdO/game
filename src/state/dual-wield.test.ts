@@ -97,7 +97,7 @@ describe('applyAttackResult : defer de l’Avantage de l’attaquant', () => {
     h.advantage = 0;
     const res = { hit: true, attackerRoll: 10, netSL: 2, critical: false, advantageTo: 'attacker',
       defenderDefeated: false, woundsLost: 0, location: 'corps', log: 'x' } as unknown as AttackResult;
-    applyAttackResult(useGame.getState, useGame.setState, h, f1, h.weapons[0], res, undefined, undefined, { deferAttackerAdvantage: true });
+    applyAttackResult(useGame.getState, useGame.setState, h, f1, h.weapons[0], res, { suite: { deferAttackerAdvantage: true } });
     expect(h.advantage).toBe(0);
   });
   it('sans defer → incrémente normalement', () => {

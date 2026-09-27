@@ -126,7 +126,7 @@ describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', (
    */
   const pasDeDe = (id: string, actorId: string, label: string): CascadeStep => dieStep({
     id, kind: 'uiDieSpy', actorId, label: fixtureText(label), icon: 'journal/critical',
-    spec: { n: 1, sides: 10 }, seuil: { indice: 6, traitId: 'protection', dome: true },
+    spec: { n: 1, sides: 10 }, seuil: { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true },
   })!;
 
   it('branche DÉ : sous-titre = « porteur — 2/2 », puis le porteur SEUL à une étape', () => {

@@ -54,19 +54,19 @@ Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: 
 
 | Entité | Déclarée | `passive` | `effects` | Drapeaux |
 |---|---|---|---|---|
-| `ActiveEffect` | `src/engine/types.ts:756` | `passive: GameOp[]` | — | — |
-| `DomainData` | `src/data/index.ts:2024` | — | `effects: TriggeredEffect[]` | — |
-| `ManeuverDef` | `src/data/index.ts:1652` | — | `effects: TriggeredEffect[]` | — |
+| `ActiveEffect` | `src/engine/types.ts:757` | `passive: GameOp[]` | — | — |
+| `DomainData` | `src/data/index.ts:2028` | — | `effects: TriggeredEffect[]` | — |
+| `ManeuverDef` | `src/data/index.ts:1656` | — | `effects: TriggeredEffect[]` | — |
 | `Mutation` | `src/engine/corruption.ts:60` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `NavalTraitData` | `src/data/index.ts:2567` | `passive: GameOp[]` | — | — |
-| `QualityData` | `src/data/index.ts:1939` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
-| `StatusData` | `src/data/index.ts:1434` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
-| `SymptomData` | `src/data/index.ts:1982` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
-| `TalentData` | `src/data/index.ts:1039` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
-| `TraitData` | `src/data/index.ts:1822` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
-| `TrappingData` | `src/data/index.ts:1155` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
+| `NavalTraitData` | `src/data/index.ts:2571` | `passive: GameOp[]` | — | — |
+| `QualityData` | `src/data/index.ts:1943` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: QualityCapabilities` |
+| `StatusData` | `src/data/index.ts:1438` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | — |
+| `SymptomData` | `src/data/index.ts:1986` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: SymptomCapabilities` |
+| `TalentData` | `src/data/index.ts:1043` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `combat: CombatFeature` |
+| `TraitData` | `src/data/index.ts:1826` | `passive: GameOp[]` | `effects: TriggeredEffect[]` | `capabilities: TraitCapabilities` |
+| `TrappingData` | `src/data/index.ts:1159` | `passive: GameOp[]` | — | `capabilities: ItemCapabilities` |
 | `Weapon` | `src/engine/types.ts:372` | `passive: GameOp[]` | — | — |
-| `WeaponEnchant` | `src/engine/types.ts:535` | `passive: GameOp[]` | — | — |
+| `WeaponEnchant` | `src/engine/types.ts:536` | `passive: GameOp[]` | — | — |
 
 _13 entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la
 table ne montre que les champs DÉCLARÉS (`EtatData`/`PsychologyData` tiennent les leurs de `StatusData`)._
@@ -76,10 +76,10 @@ table ne montre que les champs DÉCLARÉS (`EtatData`/`PsychologyData` tiennent 
 | Type | Site | Drapeaux déclarés |
 |---|---|---|
 | `CombatFeature` | `src/engine/combatFeatures/types.ts:27` | 51 — `offHandPenalty`, `attackModes`, `meleeDamageBonus`, `rangedDamageBonus`, `brawlDamageBonus`, `chargeDamageBonus`, `slayer`, `damageReduction`, `critExtraWounds`, `rangedAPIgnore`, `ignoreCalledShotHead`, `ignoreCalledShotRanged`, `ignoreSizeRangedMods`, `sniper`, `initiativeBonus`, `strikeFirstRanged`, `surpriseSave`, `reloadDR`, `runBonus`, `fleeBonus`, `pursuitTargetBonus`, `shieldAdvantage`, `advantageDefenseReaction`, `counterOnDefenseWin`, `counterRequiresFastParry`, `stealAdvantage`, `stealOne`, `transferWeight`, `reloadAssessAdvantage`, `fearSizeAsMount`, `retreatCost`, `keepAdvantageOnDisengage`, `disengageWithLessAdvantage`, `battement`, `distraire`, `outnumberCount`, `braveheart`, `fearImmune`, `bleedIgnore`, `focusNoMiscastOnDouble`, `castNoMiscastOnDouble`, `causesFear`, `reverseFailed`, `bargainBonus`, `encumbranceBonus`, `corruptionThreshold`, `surgery`, `castingKind`, `commandTeam`, `seaShanty`, `critRollTwice` |
-| `ItemCapabilities` | `src/data/index.ts:1112` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
-| `QualityCapabilities` | `src/data/index.ts:1901` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
-| `SymptomCapabilities` | `src/data/index.ts:1968` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
-| `TraitCapabilities` | `src/data/index.ts:1703` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
+| `ItemCapabilities` | `src/data/index.ts:1116` | 12 — `preventForcedDrop`, `weatherProtection`, `isShelter`, `isRations`, `isGrimoire`, `lockpicks`, `scurvyGuard`, `sealskin`, `shipParts`, `disarmImmune`, `ropeMode`, `waterContainer` |
+| `QualityCapabilities` | `src/data/index.ts:1905` | 26 — `fastStrike`, `slowStrike`, `fumbleOn9`, `fumbleDigits`, `pushback`, `bladeTrap`, `damagesArmour`, `firearm`, `canFireWhileEngaged`, `magazine`, `salvo`, `areaFire`, `explosion`, `crewedTeam`, `parryAP`, `encDelta`, `layerable`, `critImmuneOdd`, `apIgnoredOnEven`, `apIgnoredOnImpaleCrit`, `siege`, `ram`, `unbreakable`, `magic`, `withheldOnRestraint`, `beats` |
+| `SymptomCapabilities` | `src/data/index.ts:1972` | 6 — `blocksHealing`, `amputation`, `contagious`, `nausea`, `endTest`, `persistentActive` |
+| `TraitCapabilities` | `src/data/index.ts:1707` | 43 — `bonusWoundsBE`, `mutationAtSpawn`, `markMutations`, `swarm`, `naturalWeapon`, `spellcaster`, `undead`, `wardSave`, `damageImmunity`, `spellDomainImmunity`, `counterOnDefenseWin`, `counterRequiresFastParry`, `unstable`, `painless`, `freeTrample`, `psychImmuneIfAhead`, `psychType`, `psychImmune`, `psychIndice`, `psychCible`, `grantGroups`, `frenzyCapable`, `mindless`, `woundsUseForce`, `bestial`, `coldBlooded`, `stupid`, `rage`, `territorial`, `skittishMount`, `structResistant`, `structImpenetrable`, `fly`, `leap`, `stride`, `autoClimb`, `climbFullSpeed`, `noRun`, `seesInDark`, `darkSightTiles`, `wakelessBite`, `encumbranceFactor`, `consumptionFactor` |
 
 ## GameOp — index par concept (français)
 
@@ -97,7 +97,7 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | Caractéristiques et attributs (max de Blessures, Chance…) | `charMod`, `charDamage`, `charDRBonus`, `sbBonus`, `attrMod` |
 | Compétences, Talents, Carrières : octroyer, modifier | `castPenalty`, `grantTalent`, `grantCareerSkill`, `grantCareerTalent`, `grantFreeAttack`, `skillMod`, `skillDRBonus`, `incomingSpellDRMod` |
 | Composition : séquence d'ops, palier, tableau, récurrence | `kill`, `fall`, `perRound`, `rollThreshold`, `rollTable`, `rollMutation`, `transform` |
-| Corruption, Chaos, mutation, Péché | `corruption`, `sinMod`, `corruptionExposure`, `rollMutation`, `zone`, `attackKeyword`, `moveMod`, `disarm` |
+| Corruption, Chaos, mutation, Péché | `corruption`, `sinMod`, `corruptionExposure`, `rollMutation`, `zone`, `attackKeyword`, `moveMod` |
 | Durée, horloge, effet différé, expiration | `charMod`, `gainResource`, `castPenalty`, `statusMod`, `grantReverseToken`, `grantTrait`, `grantTalent`, `augmentWeapon`, `reduceDiseaseDays`, `contractDisease`, `suppressPsych`, `grantNaturalWeapon`, `perRound`, `scheduleRespawn`, `polymorph`, `transform`, `suppressSymptom`, `delayed` |
 | Empoignade, entrave, immobilisation | `condition` |
 | États (LDB 16) : poser, retirer, ignorer une pénalité d'État | `condition`, `removeCondition`, `endPsych`, `beginPsych`, `ignoreStatePenalties`, `grantFreeAttack` |
@@ -159,7 +159,7 @@ concept fait ÉCHOUER la génération, donc la CI. Une op apparaît sous plusieu
 | `cureDisease` | `count?`, `countPerSL?` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 2 — `spells.json:amere-catharsis`, `trappings.json:panacea-universalis` | Purge de maladies (Amère catharsis, LDB 42) : retire `count` (+échelle DR) maladies. |
 | `damageArmour` | `material` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 3 — `maneuvers.json:souffle-corrosif`, `maneuvers.json:vomissement` … | Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — seule la matière `cuir` est mécanisée (pièce d'armure portée) ; le reste (denrées, vêtements) reste MJ. |
 | `delayed` | `afterMinutes?`, `afterHours?`, `afterDays?`, `afterDuration?`, `forMinutes?`, `forHours?`, `forDays?`, `ops` | **inerte au switch** | `engine/flowCore.ts`, `state/combatEffects.ts` | 7 — `spells.json:crevasse-lumiere`, `spells.json:danse-du-desespoir` … | Ops DIFFÉRÉES à échéance d'horloge (op IMPURE — file `scheduledEffects`, résolue couche state comme `summon`/`zone` ; INERTE dans `applyOps`). |
-| `disarm` | — | exécutée | `state/combatFlow.ts` | 17 — `criticals.json:choc-au-bras`, `criticals.json:choc-violent-au-bras` … | Lâche l'objet tenu dans UNE main (Aux Armes, bras/corps « Vous lâchez ce que vous teniez dans cette main ») — vide le slot de loadout (`main`/`off`) et `recomputeLoadout` (même patron que `breakBacleArmour` : mutation de l'ItemInstance/loadout puis re-dérivation, PAS un ground-item — aucun tel concept dans le moteur). |
+| `disarm` | — | exécutée | `state/combatFlow.ts` | 17 — `criticals.json:choc-au-bras`, `criticals.json:choc-violent-au-bras` … | Lâche l'objet tenu dans UNE main (Aux Armes, bras/corps « Vous lâchez ce que vous teniez dans cette main ») — l'arme TENUE dans cette main (`items.estUneVraieArme`, lue dans `c.weapons`) quitte les mains par `items.lacherLArme`, sauf un objet source `disarmImmune` ; une arme DÉRIVÉE (`derivedFromItem`) ne se lâche pas ; une arme à deux mains (`Weapon.hands`) est tenue par les deux. |
 | `diseaseTestMod` | `diseases?`, `amount` | exécutée | `engine/disease.ts`, `state/aiSpellValue.ts`, `state/targetingModes.ts` | 6 — `maladies.json:vers-du-reik`, `trappings.json:fleur-de-lune` … | Bonus/malus aux Tests LIÉS À UNE MALADIE (contraction, cycle quotidien, Test de fin) — Fleur de lune « +30 à tous les Tests associés pour résister à la [Peste noire] » (LDB 71 l.26), Racine de terre +10 (LDB 72 l.28), Tonique digestif +20 (l.32). |
 | `domeWard` | `traitId`, `indice` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 1 — `spells.json:dome` | Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `traitId` (Indice) à ceux qu'elle couvre : MÊME graphie d'octroi que `grantTrait`, et REQUISE ici (un dôme sans Indice serait une protection qui ne sauve de rien). |
 | `endPsych` | `type` | exécutée | `state/aiSpellValue.ts`, `state/targetingModes.ts` | 2 — `psychology.json:frenesie`, `talents.json:controle-de-la-frenesie` | Retire un état PSYCHOLOGIQUE porté (`PsychAffliction.type` — collection `psychState`, DISTINCTE de `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16). |
@@ -356,4 +356,4 @@ Valeurs du champ `on` d'un `TriggeredEffect`.
 | `{ pick … }` | `sizeAtMost?`, `max` | — |
 
 _6 entrées — dérivées de `src/engine/flowCore.ts`._
-<!-- sources-empreinte: e155206af803b988c40b241ae0cb29e2ac7f8cce (683 fichiers, 16 dossiers) corps: cebc9778ae6f5b59855a5d7061601ae29f6062a4 -->
+<!-- sources-empreinte: 00bb551999f991428eba41f7e3d8edfc714c5aaa (683 fichiers, 16 dossiers) corps: 7706d186288d93f673ac7a1fbf1cf5baedf45748 -->

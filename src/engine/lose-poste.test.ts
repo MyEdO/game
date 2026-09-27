@@ -3,6 +3,7 @@ import { applyCrewHit } from './shipCritical';
 import { applyOps } from './ops';
 import type { Combatant, ShipPoste } from './types';
 import type { ShipCrewHit } from '../data/shipCriticals';
+import { isUnarmed } from './items';
 
 /** Marin minimal — assez pour `testValue('athletisme')` (Ag=36) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
@@ -31,6 +32,13 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
     expect(hull.postes).toHaveLength(0); // passé par-dessus bord
     expect(chef.mannedPoste).toBeUndefined(); // il ne sert plus rien
     expect(chef.weapons.find((w) => w.uid === 'p1')).toBeUndefined(); // l'arme du poste disparaît du loadout
+  });
+
+  // `LDB 62 l.28` : le chef qui ne tenait que la pièce frappe aux Mains nues (`items.lacherLArme`).
+  it('le chef qui ne tenait que la pièce tient les Mains nues', () => {
+    const { hull, chef } = setup();
+    applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [chef], rng: rng0 });
+    expect(chef.weapons.map(isUnarmed)).toEqual([true]);
   });
 
   it('coque sans poste → inerte (aucun retrait fantôme)', () => {

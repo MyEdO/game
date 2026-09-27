@@ -1050,7 +1050,7 @@
     "label": "Solide",
     "polarite": "atout",
     "subType": "objet",
-    "desc": "Robuste : encaisse Indice Points de Dégâts avant pénalités, et bénéficie d'une Sauvegarde 9+ (-1 par cran) contre la casse.",
+    "desc": "Fabriqué en utilisant des matériaux robustes, l'objet peut encaisser *Indice* Points de Dégâts avant de subir des pénalités (voir Dégâts des Armes et des Armures aux pages 293 et 299) et gagner un Test de Sauvegarde de 9+ sur un lancer de 1d10 contre une cassure instantanée, issue de sources comme Lame piégée (voir page 298). Cet Atout peut être pris plusieurs fois. Chaque fois qu'il est pris, le Test de Sauvegarde est amélioré de 1 (par exemple de 9+ à 8+).",
     "indice": {
       "label": "Indice"
     },

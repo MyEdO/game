@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { placementPenalty, servingCrewPresent } from './shipPostes';
+import { placementPenalty, servingCrewPresent, leaveChef, serveChef } from './shipPostes';
+import { hydratePoste, isUnarmed } from '../engine/items';
 import type { Combatant } from '../engine/types';
 
 /**
@@ -63,5 +64,19 @@ describe('servingCrewPresent — servants APTES tenant le poste du chef (sous-ef
   it('chef sans poste → undefined (tir normal, pas une pièce servie)', () => {
     const lone = sailor('lone');
     expect(servingCrewPresent(lone, [lone])).toBeUndefined();
+  });
+});
+
+// « Quitter la pièce » : l'arme du poste quitte les mains (`engine/items.lacherLArme`) ; repli `LDB 62 l.28`.
+describe('leaveChef — le chef de statbloc qui ne tenait que la pièce', () => {
+  it('ne tient plus la pièce, et tient les Mains nues', () => {
+    const chef = { id: 'chef', label: 'Chef', kind: 'enemy', conditions: [], weapons: [], items: [], wounds: { current: 5, max: 5 } } as unknown as Combatant;
+    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never);
+    poste.crewIds = ['chef'];
+    serveChef(chef, poste);
+    expect(chef.weapons.some((w) => w.uid === poste.item.uid)).toBe(true);
+    leaveChef(chef, poste, [chef]);
+    expect(chef.weapons.some((w) => w.uid === poste.item.uid)).toBe(false);
+    expect(chef.weapons.map(isUnarmed)).toEqual([true]);
   });
 });
