@@ -15,6 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -162,21 +163,16 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
     expect(sansMeta, `document(s) registré(s) sans méta — le canal atelier y retombe sur la clé technique :\n${sansMeta.join('\n')}`).toEqual([]);
   });
 
-  it('les 4 projets de scène tiennent leur méta du HANDLE partagé (`defs-scenes/projet.ts`)', () => {
-    // Un projet est UN document déclaré une seule fois : les 4 defs de `defs-scenes/` nomment leur
-    // fichier et ré-exportent la méta du même handle. Le canal rend donc la MÊME table pour les 4.
+  it('chaque projet livré tient sa méta du HANDLE partagé (`defs-scenes/projet.ts`)', () => {
+    // Un projet est UN document déclaré une seule fois : chaque def de `defs-scenes/` nomme son
+    // fichier et ré-exporte la méta du même handle. Le canal rend donc la MÊME table pour tous.
     const projets = DEFS_DE_DOCUMENT.filter((d) => d.root === 'src/scenes');
-    expect(projets.map((d) => d.file).sort()).toEqual([
-      'arene/arene-projet.json',
-      'barge-du-sel/barge-du-sel-projet.json',
-      'diligence/diligence-projet.json',
-      'loup-et-saumure/loup-et-saumure-projet.json',
-    ]);
+    expect(projets.map((d) => d.file).sort()).toEqual(listerProjetsLivres());
     for (const d of projets) {
       expect(metaPourFichier(d.file)?.versionContenu?.label, `${d.file} : méta du handle absente`).toBe('Version de contenu');
     }
     const tables = new Set(projets.map((d) => metaPourFichier(d.file)));
-    expect(tables.size, 'les 4 defs doivent partager la MÊME table de méta (un seul handle)').toBe(1);
+    expect(tables.size, 'les defs de campagne doivent partager la MÊME table de méta (un seul handle)').toBe(1);
   });
 
   it('`oups.json` rend bien ses libellés de champs par le canal (témoin nominatif de l’adoption)', () => {
@@ -317,8 +313,8 @@ const APPELLE_DOCUMENT = /\bdocument\s*\(/;
  * Ce qui fait d'un module un DEF : nommer un fichier de données. C'est le critère du générateur
  * lui-même (`scripts/gen-registry.mjs:388`, registre à champ `file`) — un module du dossier qui ne
  * déclare aucun `export const file` n'entre pas au registre : c'est un module de FORME partagé entre
- * defs (`defs-scenes/projet.ts` déclare LE document de projet, que les 4 defs de campagne nomment
- * chacun pour SON fichier). Ici cette forme large (`export const file`, guillemet libre) borne la
+ * defs (`defs-scenes/projet.ts` déclare LE document de projet, que chaque def de campagne nomme
+ * pour SON fichier). Ici cette forme large (`export const file`, guillemet libre) borne la
  * POPULATION ; le verdict d'appartenance, lui, reste la regex STRICTE du gen (`FILE_DU_GEN`), si bien
  * qu'un `file` à double quote/annoté/indirect reste ROUGE au lieu de sortir du périmètre.
  * La forme large couvre AUSSI la destructuration (`export const { file, … } = doc`) : ce module-là
@@ -422,17 +418,17 @@ describe('convention d’export lue par le générateur de registre', () => {
     expect(sourcesDesDefs().length).toBeGreaterThan(100);
   });
 
-  it('ANCRAGE au dépôt : le module de FORME est hors population, les 4 defs qui le nomment y sont', () => {
+  it('ANCRAGE au dépôt : le module de FORME est hors population, les defs qui le nomment y sont', () => {
     const parFichier = new Map(sourcesDesDefs().map((s) => [s.file, s.src]));
     const forme = parFichier.get('src/data/schemas/defs-scenes/projet.ts')!;
     expect(APPELLE_DOCUMENT.test(stripComments(forme)), 'projet.ts déclare bien LE document de projet').toBe(true);
     expect(NOMME_UN_FICHIER.test(stripComments(forme)), 'projet.ts ne nomme AUCUN fichier de données').toBe(false);
     expect(defsSansExportsPlats([{ file: 'projet.ts', src: forme }])).toEqual([]);
 
-    // Les 4 defs de campagne, eux, NOMMENT leur fichier et n'appellent pas la fabrique : ils
+    // Les defs de campagne (un par projet livré, nommé par son dossier), eux, NOMMENT leur fichier et n'appellent pas la fabrique : ils
     // ré-exportent le handle du module de forme. C'est EUX que le générateur collecte — leurs quatre
     // exports sont vérifiés par la COMPILATION du registre généré, qui les importe par leur nom.
-    for (const nom of ['arene', 'barge-du-sel', 'diligence', 'loup-et-saumure']) {
+    for (const nom of listerProjetsLivres().map((rel) => rel.split('/')[0])) {
       const src = parFichier.get(`src/data/schemas/defs-scenes/${nom}.ts`)!;
       expect(NOMME_UN_FICHIER.test(stripComments(src)), `${nom}.ts nomme son fichier de campagne`).toBe(true);
       expect(FILE_DU_GEN.test(src), `${nom}.ts : \`file\` à la forme que le gen collecte`).toBe(true);

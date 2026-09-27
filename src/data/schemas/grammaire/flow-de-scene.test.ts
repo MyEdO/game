@@ -11,18 +11,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { listerProjetsLivres } from '../../../../scripts/guards/lib/projetsLivres.mjs';
 import { flowSchema, effectOpSchema, conditionSchema } from './mecanique';
 import { effectSchema, sceneFlowSchema } from '../defs-scenes/effets';
 
 const RACINE = fileURLToPath(new URL('../../../scenes/', import.meta.url));
-const PROJETS = [
-  'arene/arene-projet.json',
-  'barge-du-sel/barge-du-sel-projet.json',
-  'diligence/diligence-projet.json',
-  'loup-et-saumure/loup-et-saumure-projet.json',
-];
+const PROJETS = listerProjetsLivres();
 
-/** Toutes les feuilles `{ kind:'do', effect }` des Flows authorés des 4 projets. */
+/** Toutes les feuilles `{ kind:'do', effect }` des Flows authorés des projets livrés. */
 function feuillesDo(): unknown[] {
   const out: unknown[] = [];
   const marche = (n: unknown): void => {
@@ -39,7 +35,7 @@ function feuillesDo(): unknown[] {
 describe('grammaire — `flowSchema` (Flow<EffectOp>) ≠ Flow de scène (Flow<Effect>)', () => {
   const feuilles = feuillesDo();
 
-  it('le corpus de mesure est peuplé (les 4 projets portent des Flows authorés)', () => {
+  it('le corpus de mesure est peuplé (les projets livrés portent des Flows authorés)', () => {
     // #684+#717 (343→346) : +3 feuilles `do` authorées dans « La Barge du Sel » — le `setFlag` du cap
     // pris au quai et son `journal`, plus le `setFlag` d'accostage ajouté au trigger d'arrivée.
     expect(feuilles.length).toBe(346);

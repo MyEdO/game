@@ -12,21 +12,18 @@
 // MASQUE : `termeRecopie` (`src/state/dialogueLibelle.ts`), le MÊME que la validation de scène rend à
 // l'éditeur — cette garde n'en porte que le parcours du corpus et le `fichier:ligne`.
 //
-// PORTÉE : tous les documents `.json` de `src/scenes`, à toute profondeur (scènes ET campagnes).
+// PORTÉE : les projets livrés (`projetsLivres.mjs`).
 // Le `test.label` d'un `FlowTest` est EXCLU PAR CONSTRUCTION — il n'est pas un `choices[].label`, et
 // il NOMME légitimement la fenêtre de jet (« Intuition — quelque chose cloche chez Kramer »). Aucune
 // liste d'exceptions n'est donc nécessaire, et il n'y en a pas.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { listerArbre } from './lister.mjs';
+import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_LIVRES } from './projetsLivres.mjs';
 import { termeRecopie } from '../../../src/state/dialogueLibelle';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
 export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
-
-/** Dossier des documents de scène/campagne scannés, et le suffixe retenu. */
-export const RACINE_SCENES = Object.freeze({ dossier: 'src/scenes', suffixe: '.json' });
 
 /** Libellé d'une Compétence par son `id` STABLE (`src/data/skills.json`) — la donnée, jamais une copie. */
 function libellesDeCompetence(root) {
@@ -49,14 +46,14 @@ function libellesDeCompetence(root) {
 export function mesurerLibellesDeReponse(vocabulaire, root = RACINE_DEPOT) {
   const skills = libellesDeCompetence(root);
   const voc = { ...vocabulaire, competence: (id) => skills.get(id) };
-  const dossier = path.join(root, RACINE_SCENES.dossier);
-  const fichiers = listerArbre(dossier, { absent: 'vide', descendre: () => true, filtre: (rel) => rel.endsWith(RACINE_SCENES.suffixe) });
+  const dossier = dossierDesProjetsLivres(root);
+  const fichiers = listerProjetsLivres(root);
   const trouves = [];
   for (const rel of fichiers) {
     const abs = path.join(dossier, rel);
     const texte = fs.readFileSync(abs, 'utf8');
     const lignes = texte.split(/\r?\n/);
-    const relatif = `${RACINE_SCENES.dossier}/${rel}`;
+    const relatif = `${PROJETS_LIVRES.dossier}/${rel}`;
     const visite = (v) => {
       if (Array.isArray(v)) { v.forEach(visite); return; }
       if (!v || typeof v !== 'object') return;

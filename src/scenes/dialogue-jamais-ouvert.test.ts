@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { parseProject } from '../state/worldMap';
 import { avisDialogueJamaisOuvert, validateScene, type Warning } from '../state/validateScene';
 import { emptyScene, type Scene } from '../state/scene';
@@ -21,7 +21,7 @@ import { testScenarios } from './test-scenarios';
 const jamaisOuverts = (ws: Warning[]) =>
   ws.filter((w) => w.refId && w.message === avisDialogueJamaisOuvert(w.refId)).map((w) => `${w.sceneId} › ${w.refId}`);
 
-const projetsLivres = listerArbre(__dirname, { filtre: (rel) => rel.endsWith('-projet.json') })
+const projetsLivres = listerProjetsLivres()
   .map((rel) => parseProject(JSON.parse(readFileSync(join(__dirname, rel), 'utf8'))));
 
 describe('#1869 — un dialogue sans ouvreur est injouable', () => {

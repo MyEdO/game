@@ -48,12 +48,12 @@ const fluxDeTest = (over: Record<string, unknown> = {}) => ({
 function depotJouet(label: string, flow: unknown = fluxDeTest(), cost?: Record<string, number>): string {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'garde-libelle-'));
   fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
-  fs.mkdirSync(path.join(racine, 'src/scenes'), { recursive: true });
+  fs.mkdirSync(path.join(racine, 'src/scenes/jouet'), { recursive: true });
   fs.writeFileSync(path.join(racine, 'src/data/skills.json'), JSON.stringify([{ id: 'crochetage', label: 'Crochetage' }]));
   const doc = {
     dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ label, flow, ...(cost ? { cost } : {}) }] }] }],
   };
-  fs.writeFileSync(path.join(racine, 'src/scenes/jouet.json'), JSON.stringify(doc, null, 1));
+  fs.writeFileSync(path.join(racine, 'src/scenes/jouet/jouet-projet.json'), JSON.stringify(doc, null, 1));
   return racine;
 }
 
@@ -62,7 +62,7 @@ function trouvaille(label: string, flow?: unknown, cost?: Record<string, number>
   const trouves = mesurerLibellesDeReponse(VOC, depotJouet(label, flow, cost));
   if (!trouves.length) return null;
   expect(trouves, 'un libellé fautif se nomme UNE fois').toHaveLength(1);
-  expect(trouves[0]).toContain('src/scenes/jouet.json:');
+  expect(trouves[0]).toContain('src/scenes/jouet/jouet-projet.json:');
   return trouves[0].replace(/^.*\[/, '').replace(/\]$/, '');
 }
 
