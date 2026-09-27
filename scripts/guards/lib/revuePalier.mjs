@@ -11,7 +11,7 @@
 // que n'importe qui refait avec git, et qui rend la même valeur depuis n'importe quel arbre. Un compteur d'événements
 // compterait ce que chaque worktree fait de son côté (20 sur ce dépôt, dont des trains qui ne
 // rejoignent jamais `main`) : deux worktrees suffisent à en faire un nombre que rien ne recoupe.
-import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, combienDe, depotDe, estAncetre, imageDeHead, lireEnLot, listerImage, shasDe } from './gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, combienDe, depotDe, estAncetre, fusionnesEnCours, imageDeHead, lireEnLot, listerImage, shasDe } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
 /** Le dossier des revues archivées. */
@@ -114,12 +114,15 @@ export function archivesDe(cwd = process.cwd()) {
 
 /**
  * Les revues AJOUTÉES par le commit en cours, avec leur contenu STAGÉ : ce sont elles que la porte au
- * commit valide, et c'est le seul endroit où l'index est lu.
+ * commit valide, et c'est le seul endroit où l'index est lu. AJOUTÉE = absente de CHAQUE parent du
+ * commit : HEAD, et sous une fusion en cours chaque commit fusionné (`fusionnesEnCours`).
  * @returns {{ chemin: string, nom: string, contenu: string }[]}
  */
 export function revuesNeuves(cwd = process.cwd()) {
   const depot = depotDe(cwd)
-  const ajoutees = ceQuEmporteLIndex(depot).chemins('A', [SOLDES]).filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
+  const portees = new Set(fusionnesEnCours(depot).flatMap((parent) => listerImage(depot, parent, SOLDES)))
+  const ajoutees = ceQuEmporteLIndex(depot).chemins('A', [SOLDES])
+    .filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin) && !portees.has(chemin))
   const texte = textesDe(depot, INDEX, ajoutees)
   return ajoutees.map((chemin) => ({ chemin, nom: chemin.split('/').pop(), contenu: texte(chemin) }))
 }

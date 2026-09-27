@@ -67,7 +67,7 @@ import {
   listeurDuBudget,
 } from './solde-ticket-guard.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
-import { GitIndisponible, INDEX, depotDe, estDansHead } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQuEmporteLIndex, depotDe, estDansHead } from '../guards/lib/gitPorte.mjs'
 import {
   archivesDe, derniereRevueArchivee, fenetreDeRevue, mesureDuPalier, nomDArchiveDeRevue, nomsDArchiveAcceptes,
   revuesNeuves, shasDeSubstance,
@@ -696,6 +696,23 @@ test('MORSURE : la revue neuve du commit REMET le palier a zero — elle est dan
     assert.equal(apres.compte, 0, 'le palier REPART : la revue est dans HEAD des son commit')
     assert.equal(apres.tete, tete)
     assert.equal(apres.chemin, revue.chemin)
+  } finally { rmSync(depot, { recursive: true, force: true }) }
+})
+
+test('revuesNeuves sous une FUSION en cours : la revue que porte le parent fusionne n’est pas neuve, celle ecrite dans la fusion l’est', () => {
+  const { depot, git, commit, racine, poser } = depotAvecRevues()
+  try {
+    git('checkout', '-q', '-b', 'cote')
+    const cote = commit('cote')
+    const fusionnee = poser(racine, cote)
+    git('add', '-A'); git('commit', '-q', '-m', 'revue du cote fusionne')
+    git('checkout', '-q', '-')
+    commit('ici')
+    git('merge', '-q', '--no-commit', '--no-ff', 'cote')
+    const ecrite = poser('1111111', racine)
+    git('add', '-A')
+    assert.ok(ceQuEmporteLIndex(depotDe(depot, { env: envDeDepotForge() })).chemins('A').includes(fusionnee.chemin), 'contre HEAD seul, la revue fusionnee est AJOUTEE')
+    assert.deepEqual(revuesNeuves(depot).map((r) => r.chemin), [ecrite.chemin])
   } finally { rmSync(depot, { recursive: true, force: true }) }
 })
 

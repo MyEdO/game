@@ -36,8 +36,8 @@
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
-import { statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, statSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 
@@ -861,6 +861,19 @@ export const brancheDe = (depot) => lire(depot, ['symbolic-ref', '--quiet', '--s
 /** Le chemin de `nom` sous le répertoire git (`rev-parse --git-path`, `git help rev-parse`), relatif
  *  au `cwd` du lecteur. @param {Depot} depot @param {string} nom @returns {string | null} */
 export const cheminGit = (depot, nom) => lire(depot, ['rev-parse', '--git-path', nom])?.trim() || null
+
+/**
+ * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, un sha par ligne : `git help
+ * revisions`), vide hors fusion. Avec HEAD, ce sont les PARENTS du commit à venir.
+ * @param {Depot} depot @returns {string[]}
+ */
+export function fusionnesEnCours(depot) {
+  const chemin = cheminGit(depot, 'MERGE_HEAD')
+  if (!chemin) return []
+  const complet = resolve(depot.cwd, chemin)
+  if (natureDuChemin(complet) !== 'fichier') return []
+  return readFileSync(complet, 'utf8').split(/\s+/).filter(Boolean).map((sha) => shaDe(depot, sha)).filter(Boolean)
+}
 
 /** Le dépôt est-il SUPERFICIEL (`rev-parse --is-shallow-repository`) ? `null` si git ne le dit pas.
  *  @param {Depot} depot @returns {boolean | null} */
