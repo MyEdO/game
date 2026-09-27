@@ -351,3 +351,41 @@ describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX 
     expect(rosterLoad()).toEqual(une);
   });
 });
+
+/** #1473 (train 2a) : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
+ *  roster avant le lot porte `talentId` dans les ops de ses armes, effets et traumatismes : aux DEUX
+ *  canaux elles passent à la graphie que `engine/ops.ts` lit. */
+describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, les DEUX canaux)', () => {
+  const heros = (id: string) => ({
+    id, label: 'Répurgateur', kind: 'hero', skills: [], talents: [],
+    weapons: [{ label: 'Épée', passive: [{ op: 'grantTalent', talentId: 'chanceux' }] }],
+    activeEffects: [{ id: 'e', opsPerRound: [{ op: 'grantTalent', talentId: 'sens-aiguise', spec: 'odorat' }] }],
+    traumas: [{ id: 't', ops: [{ op: 'grantCareerTalent', talentId: 'chanceux' }], recoveryPenalty: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+  });
+  const attendu = {
+    weapons: [{ label: 'Épée', passive: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+    activeEffects: [{ id: 'e', opsPerRound: [{ op: 'grantTalent', talent: { id: 'sens-aiguise', spec: 'odorat' } }] }],
+    traumas: [{ id: 't', ops: [{ op: 'grantCareerTalent', talent: { id: 'chanceux' } }], recoveryPenalty: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+  };
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('(a) un export v6 charge avec ses ops de Talent à la graphie `talent`, aucun `talentId` ne survit', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 6, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.error).toBeUndefined();
+    expect(res.entry!.hero).toMatchObject(attendu);
+    expect(JSON.stringify(res.entry!.hero)).not.toContain('talentId');
+  });
+  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(une[0].hero).toMatchObject(attendu);
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
+  });
+});

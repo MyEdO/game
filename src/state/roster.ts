@@ -6,6 +6,7 @@ import { remapCharKeysDeep } from './charKeyMigration';
 import { remapNameToLabelDeep } from './instanceIdMigration';
 import { remapSkillIdDeep } from './skillIdMigration';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
+import { graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
 import { migrerClesDEmplacement } from '../engine/careerSlots';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { t } from '../i18n';
@@ -49,8 +50,9 @@ export function rosterLoad(): RosterEntry[] {
     // `skillId`→`id` des `SkillInstance` (#1548 L2) et celui des ids de sort FUSIONNÉS (#1897,
     // `remapSortsFusionnesDeep`) s'appliquent donc en repli IDEMPOTENT à chaque
     // lecture (aucun ancien token restant après un 1er passage → no-op), plutôt que via `migrateDoc`
-    // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) de même.
-    return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
+    // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) de même, et
+    // la graphie `talent: { id, spec? }` des ops de Talent (#1473, `graphieOpsDeTalentDeep`).
+    return (graphieOpsDeTalentDeep(remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr))))) as unknown[])
       .filter((e): e is RosterEntry => !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string')
       .map((e) => ({ ...e, hero: avecClesDEmplacementEnIds(e.hero), draft: brouillonRelu(e.draft) }));
   } catch {
@@ -95,7 +97,7 @@ export function rosterUpdate(hero: Combatant): void {
 }
 
 const EXPORT_KIND = 'wfrp4-hero';
-export const EXPORT_VERSION = 6;
+export const EXPORT_VERSION = 7;
 
 /** Migrations SÉQUENTIELLES de l'export roster. À CHAQUE bump d'`EXPORT_VERSION`, ajouter ici
  *  l'entrée `vN → vN+1` — sinon les exports antérieurs sont refusés (jamais acceptés en silence
@@ -116,6 +118,12 @@ export const ROSTER_MIGRATIONS: MigrationMap = {
   // v5 → v6 (#1924) : les clés de `careerSlotChoices` se résument en ids — `migrerClesDEmplacement`
   // (`engine/careerSlots.ts`). Sans elle, chaque joker de carrière désigné redevient à désigner.
   5: (doc) => ({ ...doc, version: 6, hero: avecClesDEmplacementEnIds(doc.hero) }),
+  // v6 → v7 (#1473, train 2a) : les ops `grantTalent` / `grantCareerTalent` que le héros porte
+  // (`Weapon.passive`, `ActiveEffect.passive` / `opsPerRound`, `Trauma.ops` / `recoveryPenalty`)
+  // s'écrivent `talent: { id, spec? }` — primitive `graphieOpsDeTalentDeep`
+  // (`src/data/graphieOpsDeTalent.ts`). Sans elle, l'op importée n'a pas de `talent` et son
+  // application lève (`engine/ops.ts`, `grantTalent`).
+  6: (doc) => ({ ...doc, version: 7, hero: graphieOpsDeTalentDeep(doc.hero) }),
 };
 
 /** Sérialise un héros (avec sa Richesse) en chaîne portable — sauvegarde, transfert d'appareil,
